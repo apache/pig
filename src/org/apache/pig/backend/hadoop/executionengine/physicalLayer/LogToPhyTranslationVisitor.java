@@ -645,13 +645,23 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
     
     @Override
     public void visit(LOCogroup cg) throws VisitorException {
-        boolean currentPhysicalPlan = false;
+            
+        if (cg.getGroupType() == LOCogroup.GROUPTYPE.COLLECTED) {
+
+            translateCollectedCogroup(cg);
+
+        } else {
+            
+            translateRegularCogroup(cg);
+        }
+    }
+    
+    private void translateRegularCogroup(LOCogroup cg) throws VisitorException {
         String scope = cg.getOperatorKey().scope;
         List<LogicalOperator> inputs = cg.getInputs();
-
+        
         POGlobalRearrange poGlobal = new POGlobalRearrange(new OperatorKey(
-                scope, nodeGen.getNextNodeId(scope)), cg
-                .getRequestedParallelism());
+                scope, nodeGen.getNextNodeId(scope)), cg.getRequestedParallelism());
         POPackage poPackage = new POPackage(new OperatorKey(scope, nodeGen
                 .getNextNodeId(scope)), cg.getRequestedParallelism());
 
@@ -669,8 +679,7 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
         int count = 0;
         Byte type = null;
         for (LogicalOperator op : inputs) {
-            List<LogicalPlan> plans = (List<LogicalPlan>) cg.getGroupByPlans()
-                    .get(op);
+            List<LogicalPlan> plans = (List<LogicalPlan>)cg.getGroupByPlans().get(op);
             POLocalRearrange physOp = new POLocalRearrange(new OperatorKey(
                     scope, nodeGen.getNextNodeId(scope)), cg
                     .getRequestedParallelism());
@@ -682,9 +691,8 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
                         .spawnChildWalker(lp);
                 pushWalker(childWalker);
                 mCurrentWalker.walk(this);
-                exprPlans.add((PhysicalPlan) currentPlan);
+                exprPlans.add(currentPlan);
                 popWalker();
-
             }
             currentPlan = currentPlans.pop();
             try {
@@ -697,8 +705,8 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
             try {
                 physOp.setIndex(count++);
             } catch (ExecException e1) {
-            	int errCode = 2058;
-            	String msg = "Unable to set index on newly create POLocalRearrange.";
+                int errCode = 2058;
+                String msg = "Unable to set index on newly create POLocalRearrange.";
                 throw new VisitorException(msg, errCode, PigException.BUG, e1);
             }
             if (plans.size() > 1) {
@@ -720,13 +728,66 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
                 String msg = "Invalid physical operators in the physical plan" ;
                 throw new LogicalToPhysicalTranslatorException(msg, errCode, PigException.BUG, e);
             }
-
         }
+        
         poPackage.setKeyType(type);
         poPackage.setResultType(DataType.TUPLE);
         poPackage.setNumInps(count);
         poPackage.setInner(cg.getInner());
         logToPhyMap.put(cg, poPackage);
+    }
+    
+    private void translateCollectedCogroup(LOCogroup cg) throws VisitorException {
+        String scope = cg.getOperatorKey().scope;
+        List<LogicalOperator> inputs = cg.getInputs();
+        
+        // can have only one input
+        LogicalOperator op = inputs.get(0);
+        List<LogicalPlan> plans = (List<LogicalPlan>) cg.getGroupByPlans().get(op);
+        POCollectedGroup physOp = new POCollectedGroup(new OperatorKey(
+                scope, nodeGen.getNextNodeId(scope)));
+        
+        List<PhysicalPlan> exprPlans = new ArrayList<PhysicalPlan>();
+        currentPlans.push(currentPlan);
+        for (LogicalPlan lp : plans) {
+            currentPlan = new PhysicalPlan();
+            PlanWalker<LogicalOperator, LogicalPlan> childWalker = 
+                mCurrentWalker.spawnChildWalker(lp);
+            pushWalker(childWalker);
+            mCurrentWalker.walk(this);
+            exprPlans.add(currentPlan);
+            popWalker();
+        }
+        currentPlan = currentPlans.pop();
+        
+        try {
+            physOp.setPlans(exprPlans);
+        } catch (PlanException pe) {
+            int errCode = 2071;
+            String msg = "Problem with setting up map group's plans.";
+            throw new LogicalToPhysicalTranslatorException(msg, errCode, PigException.BUG, pe);
+        }
+        Byte type = null;
+        if (plans.size() > 1) {
+            type = DataType.TUPLE;
+            physOp.setKeyType(type);
+        } else {
+            type = exprPlans.get(0).getLeaves().get(0).getResultType();
+            physOp.setKeyType(type);
+        }
+        physOp.setResultType(DataType.TUPLE);
+
+        currentPlan.add(physOp);
+              
+        try {
+            currentPlan.connect(logToPhyMap.get(op), physOp);
+        } catch (PlanException e) {
+            int errCode = 2015;
+            String msg = "Invalid physical operators in the physical plan" ;
+            throw new LogicalToPhysicalTranslatorException(msg, errCode, PigException.BUG, e);
+        }
+
+        logToPhyMap.put(cg, physOp);
     }
     
 	@Override

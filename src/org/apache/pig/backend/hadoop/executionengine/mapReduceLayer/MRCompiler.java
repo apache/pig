@@ -79,6 +79,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStream;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POUnion;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POCollectedGroup;
 import org.apache.pig.impl.plan.CompilationMessageCollector;
 import org.apache.pig.impl.plan.DepthFirstWalker;
 import org.apache.pig.impl.plan.NodeIdGenerator;
@@ -900,7 +901,22 @@ public class MRCompiler extends PhyPlanVisitor {
             throw new MRCompilerException(msg, errCode, PigException.BUG, e);
         }
     }
-    
+
+    public void visitCollectedGroup(POCollectedGroup op) throws VisitorException {
+        try{
+            nonBlocking(op);
+            List<PhysicalPlan> plans = op.getPlans();
+            if(plans!=null)
+                for(PhysicalPlan ep : plans)
+                    addUDFs(ep);
+            phyToMROpMap.put(op, curMROp);
+        }catch(Exception e){
+            int errCode = 2034;
+            String msg = "Error compiling operator " + op.getClass().getSimpleName();
+            throw new MRCompilerException(msg, errCode, PigException.BUG, e);
+        }
+    }
+
     @Override
     public void visitPOForEach(POForEach op) throws VisitorException{
         try{
