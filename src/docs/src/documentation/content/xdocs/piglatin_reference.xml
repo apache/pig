@@ -2129,6 +2129,7 @@ B = FILTER A BY $0>'5';
                <para>(condition ? value_if_true : value_if_false) </para>
                <para>The bincond should be enclosed in parenthesis. </para>
                <para>The schemas for the two conditional outputs of the bincond should match.</para>
+               <para>Use expressions only (relational operators are not allowed).</para>
             </entry>
          </row></tbody></tgroup>
    </informaltable>
@@ -4750,9 +4751,9 @@ DUMP B;
    <section>
    <title>Relational Operators</title>
 
-<section>
+ <section id="COGROUP">
 <title>COGROUP</title>
-   <para>COGROUP is the same as GROUP, but for readability purposes programmers usually use GROUP when only one relation is involved and COGROUP with multiple relations. See <xref linkend="GROUP" /> for more information.</para>
+   <para>COGROUP is the same as GROUP. For readability, programmers usually use GROUP when only one relation is involved and COGROUP with multiple relations re involved. See <xref linkend="GROUP" /> for more information.</para>
 </section>
    <section>
    <title>CROSS</title>
@@ -5403,7 +5404,8 @@ DUMP X;
    
    <section id="GROUP">
    <title>GROUP</title>
-   <para>Groups the data in a one or multiple relations. For readability COGROUP is usually used with multiple relations and group is used with a single relation, but they are the same operator.</para>
+   <para>Groups the data in one or multiple relations. GROUP is the same as <xref linkend="COGROUP" />. For
+readability, programmers usually use GROUP when only one relation is involved and COGROUP with multiple relations are involved. </para>
    
    <section>
    <title>Syntax</title>
@@ -7674,7 +7676,7 @@ DUMP X;
          </row></tbody></tgroup>
    </informaltable></section></section>
    
-   <section>
+   <section >
    <title>COUNT</title>
    <para>Computes the number of elements in a bag. </para>
    <section>
@@ -7682,7 +7684,7 @@ DUMP X;
    <informaltable frame="all">
       <tgroup cols="1"><tbody><row>
             <entry>
-               <para>COUNT(expression)        </para>
+               <para>COUNT(expression) </para>
             </entry>
          </row></tbody></tgroup>
    </informaltable></section>
@@ -7702,11 +7704,11 @@ DUMP X;
    
    <section>
    <title>Usage</title>
-   <para>Use the COUNT function to compute the number of elements in a bag. 
+   <para>Use the COUNT function to compute the number of elements in a bag.
    COUNT requires a preceding GROUP ALL statement for global counts and a GROUP BY statement for group counts.</para>
 
    <para>
-    The COUNT function now ignores NULL values.  If you want to include NULL values in the count computation, see 
+    The COUNT function ignores NULL values.  If you want to include NULL values in the count computation, use 
     <ulink url="piglatin_reference.html#COUNT_STAR">COUNT_STAR</ulink>.
    </para>   
    
@@ -7833,7 +7835,9 @@ DUMP X;
    <title>Usage</title>
    <para>Use the COUNT_STAR function to compute the number of elements in a bag.
    COUNT_STAR requires a preceding GROUP ALL statement for global counts and a GROUP BY statement for group counts.</para>
-   <para>COUNT_STAR includes NULL values in the count computation (unlike COUNT, which ignores NULL values).</para>
+   <para>COUNT_STAR includes NULL values in the count computation 
+   (unlike <ulink url="piglatin_reference.html#COUNT">COUNT</ulink>, which ignores NULL values).
+   </para>
    </section>
    
    <section>
@@ -8180,7 +8184,7 @@ DUMP X;
    
    <section>
    <title>SIZE</title>
-   <para>Computes the number of elements based on the data type.</para>
+   <para>Computes the number of elements based on any Pig data type. </para>
    
    <section>
    <title>Syntax</title>
@@ -8207,7 +8211,9 @@ DUMP X;
    
    <section>
    <title>Usage</title>
-   <para>Use the SIZE function to compute the number of elements based on the data type (see the Types Tables below).</para></section>
+   <para>Use the SIZE function to compute the number of elements based on the data type (see the Types Tables below). 
+   SIZE includes NULL values in the size computation. SIZE is not algebraic.</para>
+   </section>
    
    <section>
    <title>Example</title>
