@@ -36,6 +36,7 @@ import org.apache.hadoop.io.WritableComparable;
 import org.apache.hadoop.io.WritableComparator;
 import org.apache.hadoop.mapred.FileOutputFormat;
 import org.apache.hadoop.mapred.JobConf;
+import org.apache.hadoop.mapred.JobPriority;
 import org.apache.hadoop.mapred.OutputFormat;
 import org.apache.hadoop.mapred.jobcontrol.Job;
 import org.apache.hadoop.mapred.jobcontrol.JobControl;
@@ -334,6 +335,25 @@ public class JobControlCompiler{
             if (pigContext.getProperties().getProperty(PigContext.JOB_NAME) != null)
                 jobConf.setJobName(pigContext.getProperties().getProperty(PigContext.JOB_NAME));
     
+            if (pigContext.getProperties().getProperty(PigContext.JOB_PRIORITY) != null) {
+                // If the job priority was set, attempt to get the corresponding enum value
+                // and set the hadoop job priority.
+                String jobPriority = pigContext.getProperties().getProperty(PigContext.JOB_PRIORITY).toUpperCase();
+                try {
+                  // Allow arbitrary case; the Hadoop job priorities are all upper case.
+                  jobConf.setJobPriority(JobPriority.valueOf(jobPriority));
+                } catch (IllegalArgumentException e) {
+                  StringBuffer sb = new StringBuffer("The job priority must be one of [");
+                  JobPriority[] priorities = JobPriority.values();
+                  for (int i = 0; i < priorities.length; ++i) {
+                    if (i > 0)  sb.append(", ");
+                    sb.append(priorities[i]);
+                  }
+                  sb.append("].  You specified [" + jobPriority + "]");
+                  throw new JobCreationException(sb.toString());
+                }
+            }
+
             // Setup the DistributedCache for this job
             setupDistributedCache(pigContext, jobConf, pigContext.getProperties(), 
                                   "pig.streaming.ship.files", true);

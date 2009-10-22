@@ -439,6 +439,10 @@ public class PigServer {
         currDAG.setJobName(name);
     }
     
+    public void setJobPriority(String priority){
+        currDAG.setJobPriority(priority);
+    }
+
     /**
      * Forces execution of query (and all queries from which it reads), in order to materialize
      * result
@@ -903,6 +907,8 @@ public class PigServer {
 
         private String jobName;
         
+        private String jobPriority;
+
         private boolean batchMode;
 
         private int processedStores;
@@ -934,6 +940,10 @@ public class PigServer {
         
         List<ExecJob> execute() throws ExecException, FrontendException {
             pigContext.getProperties().setProperty(PigContext.JOB_NAME, jobName);
+            if (jobPriority != null) {
+              pigContext.getProperties().setProperty(PigContext.JOB_PRIORITY, jobPriority);
+            }
+            
             List<ExecJob> jobs = PigServer.this.execute(null);
             processedStores = storeOpTable.keySet().size();
             return jobs;
@@ -945,6 +955,10 @@ public class PigServer {
 
         void setJobName(String name) {
             jobName = PigContext.JOB_NAME_PREFIX+":"+name;
+        }
+
+        public void setJobPriority(String priority){
+            jobPriority = priority;
         }
 
         LogicalPlan getPlan(String alias) throws IOException {
