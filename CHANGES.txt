@@ -24,6 +24,7 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 PIG-1020: Include an ant target to build pig.jar without hadoop libraries (daijy)
+PIG-1039: documentation update (chandec via olgan)
 
 OPTIMIZATIONS
 
