@@ -430,6 +430,10 @@ public class GruntParser extends PigScriptParser {
         {
             mPigServer.setJobName(value);
         }
+        else if (key.equals("job.priority"))
+        {
+            mPigServer.setJobPriority(value);
+        }
         else if (key.equals("stream.skippath")) {
             // Validate
             File file = new File(value);

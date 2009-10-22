@@ -72,6 +72,7 @@ public class PigContext implements Serializable, FunctionInstantiator {
     
     public static final String JOB_NAME = "jobName";
     public static final String JOB_NAME_PREFIX= "PigLatin";
+    public static final String JOB_PRIORITY = "jobPriority";
     
     /* NOTE: we only serialize some of the stuff 
      * 

@@ -26,6 +26,9 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-1025: Add ability to set job priority from Pig Latin script (kevinweil via
+gates)
+
 PIG-1028: FINDBUGS: DM_NUMBER_CTOR: Method invokes inefficient Number
 constructor; use static valueOf instead (olgan)
 
