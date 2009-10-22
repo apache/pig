@@ -18,6 +18,7 @@
 package org.apache.pig.impl.logicalLayer;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -43,6 +44,14 @@ import org.apache.pig.impl.util.Pair;
 
 public class LOCogroup extends RelationalOperator {
     private static final long serialVersionUID = 2L;
+   
+    /**
+     * Enum for the type of group
+     */
+    public static enum GROUPTYPE {
+        REGULAR,    // Regular (co)group
+        COLLECTED   // Collected group
+    };
 
     /**
      * Cogroup contains a list of logical operators corresponding to the
@@ -53,6 +62,7 @@ public class LOCogroup extends RelationalOperator {
     private boolean[] mIsInner;
     private static Log log = LogFactory.getLog(LOCogroup.class);
     private MultiMap<LogicalOperator, LogicalPlan> mGroupByPlans;
+    private GROUPTYPE mGroupType;
 
     /**
      * 
@@ -70,9 +80,34 @@ public class LOCogroup extends RelationalOperator {
             OperatorKey k,
             MultiMap<LogicalOperator, LogicalPlan> groupByPlans,
             boolean[] isInner) {
+        this(plan, k, groupByPlans, GROUPTYPE.REGULAR, isInner);
+    }
+   
+    /**
+     * 
+     * @param plan
+     *            LogicalPlan this operator is a part of.
+     * @param k
+     *            OperatorKey for this operator
+     * @param groupByPlans
+     *            the group by columns
+     * @param type
+     *            the type of this group           
+     * @param isInner
+     *            indicates whether the cogroup is inner for each relation
+     */
+    public LOCogroup(
+            LogicalPlan plan,
+            OperatorKey k,
+            MultiMap<LogicalOperator, LogicalPlan> groupByPlans,
+            GROUPTYPE type,
+            boolean[] isInner) {
         super(plan, k);
         mGroupByPlans = groupByPlans;
-        mIsInner = isInner;
+        if (isInner != null) {
+            mIsInner = Arrays.copyOf(isInner, isInner.length);
+        }
+        mGroupType = type;
     }
 
     public List<LogicalOperator> getInputs() {
@@ -93,6 +128,10 @@ public class LOCogroup extends RelationalOperator {
 
     public void setInner(boolean[] inner) {
         mIsInner = inner;
+    }
+
+    public GROUPTYPE getGroupType() {
+        return mGroupType;
     }
 
     @Override

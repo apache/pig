@@ -249,7 +249,7 @@ public class QueryParser {
         return fname;
     }
 	
-	LogicalOperator parseCogroup(ArrayList<CogroupInput> gis, LogicalPlan lp) throws ParseException, PlanException{
+	LogicalOperator parseCogroup(ArrayList<CogroupInput> gis, LogicalPlan lp, LOCogroup.GROUPTYPE type) throws ParseException, PlanException{
 		
 		log.trace("Entering parseCogroup");
 		log.debug("LogicalPlan: " + lp);
@@ -286,7 +286,7 @@ public class QueryParser {
 			isInner[i] = gi.isInner;
 		}
 		
-		LogicalOperator cogroup = new LOCogroup(lp, new OperatorKey(scope, getNextId()), groupByPlans, isInner);
+		LogicalOperator cogroup = new LOCogroup(lp, new OperatorKey(scope, getNextId()), groupByPlans, type, isInner);
 		lp.add(cogroup);
 		log.debug("Added operator " + cogroup.getClass().getName() + " object " + cogroup + " to the logical plan " + lp);
 		
@@ -388,7 +388,7 @@ public class QueryParser {
         for (int i = 0; i < n; i++) {
 			(gis.get(i)).isInner = true;
         }
-		LogicalOperator cogroup = parseCogroup(gis, lp);
+		LogicalOperator cogroup = parseCogroup(gis, lp, LOCogroup.GROUPTYPE.REGULAR);
 		lp.add(cogroup);
 		log.debug("Added operator " + cogroup.getClass().getName() + " to the logical plan");
 		
@@ -676,7 +676,21 @@ public class QueryParser {
         }
         log.trace("Exiting attachPlan");
     }
-	
+
+    boolean isColumnProjectionsOrStar(CogroupInput cgi) {
+        if (cgi == null || cgi.plans == null || cgi.plans.size() == 0) {
+            return false;
+        }
+        for (LogicalPlan keyPlan: cgi.plans) {
+            for (LogicalOperator op : keyPlan) {
+                if(!(op instanceof LOProject)) {
+                    return false;
+                }
+            }
+        }
+        return true;    
+    }
+
 }
 
 
@@ -1623,20 +1637,40 @@ ExpressionOperator PNullCond(Schema over, Map<String, LogicalOperator> specs,Log
 
 LogicalOperator CogroupClause(LogicalPlan lp) : 
 {
-	CogroupInput gi; 
-	ArrayList<CogroupInput> gis = new ArrayList<CogroupInput>(); 
-	LogicalOperator cogroup; 
-	log.trace("Entering CoGroupClause");
+    CogroupInput gi; 
+    ArrayList<CogroupInput> gis = new ArrayList<CogroupInput>(); 
+    LogicalOperator cogroup = null; 
+    log.trace("Entering CoGroupClause");
 }
 {
 
-	(gi = GroupItem(lp) { gis.add(gi); }
-	("," gi = GroupItem(lp) { gis.add(gi); })*)
-	{
-		cogroup = parseCogroup(gis, lp);
-		log.trace("Exiting CoGroupClause");
-		return cogroup;		
-	}
+    (gi = GroupItem(lp) { gis.add(gi); }
+        ("," gi = GroupItem(lp) { gis.add(gi); })*
+        (
+            [<USING> ("\"collected\"" { 
+                if (gis.size() != 1) {
+                    throw new ParseException("Collected group is only supported for single input");  
+                }
+                if (!isColumnProjectionsOrStar(gis.get(0))) {
+                    throw new ParseException("Collected group is only supported for columns or star projection");
+                }
+                cogroup = parseCogroup(gis, lp, LOCogroup.GROUPTYPE.COLLECTED);
+                }
+                )
+            ]                                                                        
+        )
+    )
+
+    {
+        if (cogroup != null) {
+            log.trace("Exiting CoGroupClause");
+            return cogroup;
+        }
+
+        cogroup = parseCogroup(gis, lp, LOCogroup.GROUPTYPE.REGULAR);
+        log.trace("Exiting CoGroupClause");
+        return cogroup;		
+    }
 
 }
 

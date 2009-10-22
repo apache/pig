@@ -63,6 +63,12 @@ public class PhyPlanSetter extends PhyPlanVisitor {
     }
 
     @Override
+    public void visitCollectedGroup(POCollectedGroup mg) throws VisitorException{
+        super.visitCollectedGroup(mg);
+        mg.setParentPlan(parent);
+    }
+
+    @Override
     public void visitGlobalRearrange(POGlobalRearrange gr) throws VisitorException{
         gr.setParentPlan(parent);
     }
