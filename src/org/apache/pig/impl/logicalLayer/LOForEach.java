@@ -441,7 +441,7 @@ public class LOForEach extends RelationalOperator {
         if(mFlatten != null) {
             forEachClone.mFlatten = new ArrayList<Boolean>();
             for (Iterator<Boolean> it = mFlatten.iterator(); it.hasNext();) {
-                forEachClone.mFlatten.add(new Boolean(it.next()));
+                forEachClone.mFlatten.add(Boolean.valueOf(it.next()));
             }
         }
         

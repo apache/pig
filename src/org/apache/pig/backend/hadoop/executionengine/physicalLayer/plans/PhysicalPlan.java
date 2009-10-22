@@ -229,16 +229,14 @@ public class PhysicalPlan extends OperatorPlan<PhysicalOperator> implements Clon
         for (PhysicalOperator op : mFromEdges.keySet()) {
             PhysicalOperator cloneFrom = matches.get(op);
             if (cloneFrom == null) {
-                String msg = new String("Unable to find clone for op "
-                    + op.name());
+                String msg = "Unable to find clone for op " + op.name();
                 throw new CloneNotSupportedException(msg);
             }
             Collection<PhysicalOperator> toOps = mFromEdges.get(op);
             for (PhysicalOperator toOp : toOps) {
                 PhysicalOperator cloneTo = matches.get(toOp);
                 if (cloneTo == null) {
-                    String msg = new String("Unable to find clone for op "
-                        + toOp.name());
+                    String msg = "Unable to find clone for op " + toOp.name();
                     throw new CloneNotSupportedException(msg);
                 }
                 try {
@@ -259,15 +257,13 @@ public class PhysicalPlan extends OperatorPlan<PhysicalOperator> implements Clon
                 new ArrayList<PhysicalOperator>(inputs.size());
             PhysicalOperator cloneOp = matches.get(op);
             if (cloneOp == null) {
-                String msg = new String("Unable to find clone for op "
-                    + cloneOp.name());
+                String msg = "Unable to find clone for op " + cloneOp.name();
                 throw new CloneNotSupportedException(msg);
             }
             for (PhysicalOperator iOp : inputs) {
                 PhysicalOperator cloneIOp = matches.get(iOp);
                 if (cloneIOp == null) {
-                    String msg = new String("Unable to find clone for op "
-                        + cloneIOp.name());
+                    String msg = "Unable to find clone for op " + cloneIOp.name();
                     throw new CloneNotSupportedException(msg);
                 }
                 newInputs.add(cloneIOp);

@@ -123,5 +123,9 @@
         <Field name="nig" />
         <Bug pattern="SE_TRANSIENT_FIELD_NOT_RESTORED" />
     </Match>
+    <Match>
+        <Class name="org.apache.pig.impl.util.SpillableMemoryManager" />
+        <Bug pattern="DM_GC" />
+    </Match>
 
 </FindBugsFilter>

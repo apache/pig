@@ -140,12 +140,12 @@ public char getNextOpt() throws ParseException
                     " requires a value but you did not provide one.";
                 throw new ParseException(errMsg, mArgNum);
             }
-            mVal = new String(mArgs[++mArgNum]);
+            mVal = mArgs[++mArgNum];
             return cc.charValue();
 
         case OPTIONAL:
             if (mArgNum + 1 < mArgs.length && mArgs[mArgNum + 1].charAt(0) != '-') {
-                mVal = new String(mArgs[++mArgNum]);
+                mVal = mArgs[++mArgNum];
             }
             return cc.charValue();
 

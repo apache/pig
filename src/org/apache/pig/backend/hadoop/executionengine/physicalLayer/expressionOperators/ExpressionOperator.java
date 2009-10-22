@@ -68,8 +68,7 @@ public abstract class ExpressionOperator extends PhysicalOperator {
      */
     @Override
     public ExpressionOperator clone() throws CloneNotSupportedException {
-        String s = new String("This expression operator does not " +
-            "implement clone.");
+        String s = "This expression operator does not implement clone.";
         log.error(s);
         throw new CloneNotSupportedException(s);
     }

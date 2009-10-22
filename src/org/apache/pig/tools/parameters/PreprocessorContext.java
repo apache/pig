@@ -210,7 +210,7 @@ public class PreprocessorContext {
         int index = line.indexOf('$');
         if (index == -1)	return line;
 
-        String replaced_line = new String(line);
+        String replaced_line = line;
 
         Pattern identifier = Pattern.compile( id_regex );
         Matcher keyMatcher = identifier.matcher( line );

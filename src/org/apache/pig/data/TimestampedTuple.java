@@ -67,7 +67,7 @@ public class TimestampedTuple extends DefaultTuple {
                     log.error("Could not parse timestamp " + splitString[i]);
                 }
             }else{
-                mFields.add(new String(splitString[i]));
+                mFields.add(splitString[i]);
             }
         }
     }

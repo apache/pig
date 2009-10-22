@@ -650,9 +650,9 @@ public class POCast extends ExpressionOperator {
             Result res = in.getNext(b);
             if (res.returnStatus == POStatus.STATUS_OK && res.result != null) {
                 if (((Boolean) res.result) == true)
-                    res.result = new String("1");
+                    res.result = "1";
                 else
-                    res.result = new String("1");
+                    res.result = "0";
             }
             return res;
         }
@@ -660,7 +660,7 @@ public class POCast extends ExpressionOperator {
             Integer dummyI = null;
             Result res = in.getNext(dummyI);
             if (res.returnStatus == POStatus.STATUS_OK && res.result != null) {
-                res.result = new String(((Integer) res.result).toString());
+                res.result = ((Integer) res.result).toString();
             }
             return res;
         }
@@ -670,7 +670,7 @@ public class POCast extends ExpressionOperator {
             Result res = in.getNext(d);
             if (res.returnStatus == POStatus.STATUS_OK && res.result != null) {
                 // res.result = DataType.toInteger(res.result);
-                res.result = new String(((Double) res.result).toString());
+                res.result = ((Double) res.result).toString();
             }
             return res;
         }
@@ -680,7 +680,7 @@ public class POCast extends ExpressionOperator {
             Long l = null;
             Result res = in.getNext(l);
             if (res.returnStatus == POStatus.STATUS_OK && res.result != null) {
-                res.result = new String(((Long) res.result).toString());
+                res.result = ((Long) res.result).toString();
             }
             return res;
         }
@@ -689,7 +689,7 @@ public class POCast extends ExpressionOperator {
             Float f = null;
             Result res = in.getNext(f);
             if (res.returnStatus == POStatus.STATUS_OK && res.result != null) {
-                res.result = new String(((Float) res.result).toString());
+                res.result = ((Float) res.result).toString();
             }
             return res;
         }

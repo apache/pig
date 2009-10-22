@@ -478,8 +478,8 @@ public class HExecutionEngine implements ExecutionEngine {
 
     private String copyHadoopConfLocally(String server) throws ExecException {
         String localDir = createTempDir(LOCAL);
-        String remoteFile = new String(hodConfDir + "/hadoop-site.xml");
-        String localFile = new String(localDir + "/hadoop-site.xml");
+        String remoteFile = hodConfDir + "/hadoop-site.xml";
+        String localFile = localDir + "/hadoop-site.xml";
 
         remoteHodConfDir = hodConfDir;
 

@@ -193,7 +193,7 @@ public class LOSort extends RelationalOperator {
         if(mAscCols != null) {
             clone.mAscCols = new ArrayList<Boolean>();
             for (Iterator<Boolean> it = mAscCols.iterator(); it.hasNext();) {
-                clone.mAscCols.add(new Boolean(it.next()));
+                clone.mAscCols.add(Boolean.valueOf(it.next()));
             }
         }
         
