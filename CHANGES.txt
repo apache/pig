@@ -26,6 +26,9 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-984:  Add map side grouping for data that is already collected when
+it is read into the map (rding via gates).
+
 PIG-1025: Add ability to set job priority from Pig Latin script (kevinweil via
 gates)
 

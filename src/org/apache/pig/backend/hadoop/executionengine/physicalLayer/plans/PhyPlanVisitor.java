@@ -59,6 +59,15 @@ public class PhyPlanVisitor extends PlanVisitor<PhysicalOperator,PhysicalPlan> {
         visit();
         popWalker();
     }
+ 
+    public void visitCollectedGroup(POCollectedGroup mg) throws VisitorException{
+        List<PhysicalPlan> inpPlans = mg.getPlans();
+        for (PhysicalPlan plan : inpPlans) {
+            pushWalker(mCurrentWalker.spawnChildWalker(plan));
+            visit();
+            popWalker();
+        }
+    }
     
     public void visitLocalRearrange(POLocalRearrange lr) throws VisitorException{
         List<PhysicalPlan> inpPlans = lr.getPlans();

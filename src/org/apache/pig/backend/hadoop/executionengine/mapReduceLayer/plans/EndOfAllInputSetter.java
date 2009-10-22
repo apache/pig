@@ -23,6 +23,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlan
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POMergeJoin;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStream;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POCollectedGroup;
 import org.apache.pig.impl.plan.DepthFirstWalker;
 import org.apache.pig.impl.plan.VisitorException;
 
@@ -80,6 +81,13 @@ public class EndOfAllInputSetter extends MROpPlanVisitor {
             // merge join present
             endOfAllInputFlag = true;
         }
+       
+        @Override
+        public void visitCollectedGroup(POCollectedGroup mg) throws VisitorException {
+            // map side group present
+            endOfAllInputFlag = true;
+        }
+
         /**
          * @return if end of all input is present
          */
@@ -88,3 +96,4 @@ public class EndOfAllInputSetter extends MROpPlanVisitor {
         }
     }
 }
+
