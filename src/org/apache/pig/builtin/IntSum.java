@@ -136,7 +136,7 @@ public class IntSum extends EvalFunc<Long> implements Algebraic {
         long sum = 0;
         boolean sawNonNull = false;
         for (Iterator<Tuple> it = values.iterator(); it.hasNext();) {
-            Tuple t = (Tuple) it.next();
+            Tuple t = it.next();
             try {
                 Long l = (Long)(t.get(0));
                 if (l == null) continue;
@@ -169,7 +169,7 @@ public class IntSum extends EvalFunc<Long> implements Algebraic {
         long sum = 0;
         boolean sawNonNull = false;
         for (Iterator<Tuple> it = values.iterator(); it.hasNext();) {
-            Tuple t = (Tuple) it.next();
+            Tuple t = it.next();
             try {
                 Integer i = (Integer)(t.get(0));
                 if (i == null) continue;

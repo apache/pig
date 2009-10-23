@@ -21,6 +21,8 @@ import org.apache.pig.impl.logicalLayer.FrontendException;
 
 public class PlanException extends FrontendException {
 
+    private static final long serialVersionUID = 1L;
+
     /**
      * Create a new PlanException with null as the error message.
      */

@@ -111,6 +111,8 @@ public class DotMRPrinter extends DotPlanDumper<MapReduceOper, MROperPlan,
      * combine phases in an MR operator.
      */
     public class InnerOperator extends Operator<PlanVisitor> {
+
+        private static final long serialVersionUID = 1L;
         String name;
         PhysicalPlan plan;
         int code;
@@ -138,6 +140,9 @@ public class DotMRPrinter extends DotPlanDumper<MapReduceOper, MROperPlan,
      * execution phase.
      */
     public class InnerPlan extends OperatorPlan<InnerOperator> {
+
+        private static final long serialVersionUID = 1L;
+
         public InnerPlan(PhysicalPlan mapPlan, PhysicalPlan combinePlan, 
                          PhysicalPlan reducePlan) {
             try {

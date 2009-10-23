@@ -135,6 +135,7 @@ public class LocalPigLauncher extends Launcher {
 
     }
 
+    @SuppressWarnings("fallthrough")
     private int runPipeline(POStore[] leaves, PigContext pc) throws IOException, ExecException {
         BitSet bs = new BitSet(leaves.length);
         int failed = 0;

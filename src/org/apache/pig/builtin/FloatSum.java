@@ -136,7 +136,7 @@ public class FloatSum extends EvalFunc<Double> implements Algebraic {
         double sum = 0;
         boolean sawNonNull = false;
         for (Iterator<Tuple> it = values.iterator(); it.hasNext();) {
-            Tuple t = (Tuple) it.next();
+            Tuple t = it.next();
             try {
                 Double d = (Double)(t.get(0));
                 if (d == null) continue;
@@ -170,7 +170,7 @@ public class FloatSum extends EvalFunc<Double> implements Algebraic {
         double sum = 0.0;
         boolean sawNonNull = false;
         for (Iterator<Tuple> it = values.iterator(); it.hasNext();) {
-            Tuple t = (Tuple) it.next();
+            Tuple t = it.next();
             try {
                 Float f = (Float)(t.get(0));
                 if (f == null) continue;

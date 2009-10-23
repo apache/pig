@@ -32,6 +32,8 @@ import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.VisitorException;
 
 public class POBinCond extends ExpressionOperator {
+    
+    private static final long serialVersionUID = 1L;
     ExpressionOperator cond;
     ExpressionOperator lhs;
     ExpressionOperator rhs;

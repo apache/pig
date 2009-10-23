@@ -89,7 +89,7 @@ abstract public class Utf8StorageConverter {
                     PigWarning.FIELD_DISCARDED_TYPE_CONVERSION_FAILED, mLog);
             return null;       
         }
-        return (DataBag)db;
+        return db;
     }
 
     public String bytesToCharArray(byte[] b) throws IOException {

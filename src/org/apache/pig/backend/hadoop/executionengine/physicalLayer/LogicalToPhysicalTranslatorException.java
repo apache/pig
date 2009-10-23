@@ -21,6 +21,8 @@ import org.apache.pig.impl.plan.VisitorException;
 
 public class LogicalToPhysicalTranslatorException extends VisitorException {
 
+    private static final long serialVersionUID = 1L;
+
     /**
      * Create a new LogicalToPhysicalTranslatorException with null as the error message.
      */

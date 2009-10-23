@@ -35,6 +35,8 @@ import org.apache.pig.impl.plan.VisitorException;
 
 public class POIsNull extends UnaryComparisonOperator {
 
+    private static final long serialVersionUID = 1L;
+
     public POIsNull(OperatorKey k, int rp) {
         super(k, rp);
         

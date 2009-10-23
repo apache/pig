@@ -206,7 +206,7 @@ public class POCogroup extends PhysicalOperator {
 		t = data[i];
 		continue; //since the previous data was probably null so we dont really need a comparison
 	    }
-	    if(comp.compare(t, (Tuple) data[i]) > 0) 
+	    if(comp.compare(t, data[i]) > 0) 
 		t = data[i];
 	}
 	return t;

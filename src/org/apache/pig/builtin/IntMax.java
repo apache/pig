@@ -128,7 +128,7 @@ public class IntMax extends EvalFunc<Integer> implements Algebraic {
         int curMax = Integer.MIN_VALUE;
         boolean sawNonNull = false;
         for (Iterator<Tuple> it = values.iterator(); it.hasNext();) {
-            Tuple t = (Tuple)it.next();
+            Tuple t = it.next();
             try {
                 Integer i = (Integer)(t.get(0));
                 if (i == null) continue;

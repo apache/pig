@@ -433,7 +433,7 @@ public class DerivedDataVisitor extends LOVisitor {
 
         // replace the original inputs by POReads
         for (int i = 0; i < inputs.size(); i++) {
-            DataBag bag = derivedData.get(((LOCogroup) op).getInputs().get(i));
+            DataBag bag = derivedData.get(op.getInputs().get(i));
             PORead por = new PORead(new OperatorKey("", r.nextLong()), bag);
             phy.add(por);
             try {

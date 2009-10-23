@@ -409,7 +409,7 @@ public class POForEach extends PhysicalOperator {
             planLeafOps = new PhysicalOperator[inputPlans.size()];
             for(PhysicalPlan p : inputPlans) {
                 ++i;
-                PhysicalOperator leaf = (PhysicalOperator)p.getLeaves().get(0); 
+                PhysicalOperator leaf = p.getLeaves().get(0); 
                 planLeafOps[i] = leaf;
                 if(leaf instanceof POProject &&
                         leaf.getResultType() == DataType.TUPLE &&
