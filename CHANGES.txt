@@ -115,6 +115,8 @@ PIG-1024: Script contains nested limit fail due to "LOLimit does not support mul
 
 PIG-644: Duplicate column names in foreach do not throw parser error (daijy)
 
+PIG-927: null should be handled consistently in Join (daijy)
+
 Release 0.5.0 - Unreleased
 
 INCOMPATIBLE CHANGES

@@ -22,6 +22,8 @@ import java.io.DataOutput;
 import java.io.IOException;
 
 import org.apache.hadoop.io.WritableComparable;
+import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.data.Tuple;
 
 /**
  * A base class for all types that pig uses to move data between map and
@@ -75,7 +77,21 @@ public abstract class PigNullableWritable implements WritableComparable {
         }
         
         if (!mNull && !w.mNull) {
-            return mValue.compareTo(w.mValue);
+            int result = mValue.compareTo(w.mValue);
+            
+            // If any of the field inside tuple is null, then we do not merge keys
+            // See PIG-927
+            if (result == 0 && mValue instanceof Tuple && w.mValue instanceof Tuple)
+            {
+                try {
+                    for (int i=0;i<((Tuple)mValue).size();i++)
+                        if (((Tuple)mValue).get(i)==null)
+                            return mIndex - w.mIndex;
+                } catch (ExecException e) {
+                    throw new RuntimeException("Unable to access tuple field", e);
+                }
+            }
+            return result;
         } else if (mNull && w.mNull) {
             // If they're both null, compare the indicies
             if ((mIndex & idxSpace) < (w.mIndex & idxSpace)) return -1;

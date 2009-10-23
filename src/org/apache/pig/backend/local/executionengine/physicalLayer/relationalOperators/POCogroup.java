@@ -246,7 +246,23 @@ public class POCogroup extends PhysicalOperator {
 		throw new RuntimeException("Error comparing tuples");
 	    }
 	    
-	    return DataType.compare(t1, t2);
+	    int result = DataType.compare(t1, t2);
+	    
+	    // Further check if any field is null
+        // See PIG-927
+	    if (result == 0 && t1 instanceof Tuple && t2 instanceof Tuple)
+	    {
+	        try {
+    	        int firstInputIndex = (Byte)(o1.get(0));
+                int secondInputIndex = (Byte)(o2.get(0));
+    	        for (int i=0;i<((Tuple)t1).size();i++)
+                    if (((Tuple)t1).get(i)==null)
+                        return firstInputIndex - secondInputIndex;
+            } catch (ExecException e) {
+                throw new RuntimeException("Error comparing tuple fields", e);
+            }
+	    }
+	    return result;
 	}
 	
 	public boolean equals(Object obj) {
