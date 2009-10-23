@@ -114,20 +114,16 @@ public class CombinerOptimizer extends MROpPlanVisitor {
 
     private byte mKeyType = 0;
     
-    private String chunkSize;
-    
     private CompilationMessageCollector messageCollector = null;
 
     public CombinerOptimizer(MROperPlan plan, String chunkSize) {
         super(plan, new DepthFirstWalker<MapReduceOper, MROperPlan>(plan));
-        this.chunkSize = chunkSize;
         messageCollector = new CompilationMessageCollector() ; 
     }
 
     public CombinerOptimizer(MROperPlan plan, String chunkSize, 
     		CompilationMessageCollector messageCollector) {
         super(plan, new DepthFirstWalker<MapReduceOper, MROperPlan>(plan));
-        this.chunkSize = chunkSize;
         this.messageCollector = messageCollector ; 
     }
     

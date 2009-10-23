@@ -71,7 +71,6 @@ import org.apache.pig.pen.util.LineageTracer;
 public class DerivedDataVisitor extends LOVisitor {
 
     Map<LogicalOperator, DataBag> derivedData = new HashMap<LogicalOperator, DataBag>();
-    PigContext pc;
     PhysicalPlan physPlan = null;
     Map<LOLoad, DataBag> baseData = null;
 
@@ -89,7 +88,6 @@ public class DerivedDataVisitor extends LOVisitor {
             PhysicalPlan physPlan) {
         super(plan, new DependencyOrderWalker<LogicalOperator, LogicalPlan>(
                 plan));
-        this.pc = pc;
         this.baseData = baseData;
 
         OpToEqClasses = new HashMap<LogicalOperator, Collection<IdentityHashSet<Tuple>>>();
@@ -111,7 +109,6 @@ public class DerivedDataVisitor extends LOVisitor {
         super(op.getPlan(),
                 new DependencyOrderLimitedWalker<LogicalOperator, LogicalPlan>(
                         op, op.getPlan()));
-        this.pc = pc;
         this.baseData = baseData;
 
         OpToEqClasses = new HashMap<LogicalOperator, Collection<IdentityHashSet<Tuple>>>();

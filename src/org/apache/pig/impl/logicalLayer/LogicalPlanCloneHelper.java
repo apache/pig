@@ -36,14 +36,12 @@ import org.apache.pig.impl.util.MultiMap;
 public class LogicalPlanCloneHelper extends LOVisitor {
     
     public static Map<LogicalOperator, LogicalOperator> mOpToCloneMap;
-    private LogicalPlan mOriginalPlan;
 
     /**
      * @param plan logical plan to be cloned
      */
     public LogicalPlanCloneHelper(LogicalPlan plan) throws CloneNotSupportedException {
         super(plan, new DependencyOrderWalker<LogicalOperator, LogicalPlan>(plan));
-        mOriginalPlan = plan;
         //LOVisitor does not have a default constructor and super needs to be the first
         //statement in the constructor. As a result, mPlan and mCurrentWalker are being
         //re-initialized here
@@ -59,7 +57,6 @@ public class LogicalPlanCloneHelper extends LOVisitor {
             Map<LogicalOperator, LogicalOperator> origCloneMap) throws CloneNotSupportedException {
         super(plan, new DependencyOrderWalker<LogicalOperator, LogicalPlan>(plan));
         mOpToCloneMap = origCloneMap;
-        mOriginalPlan = plan;
         //LOVisitor does not have a default constructor and super needs to be the first
         //statement in the constructor. As a result, mPlan and mCurrentWalker are being
         //re-initialized here

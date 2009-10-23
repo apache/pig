@@ -51,8 +51,6 @@ public class PlanPrinter<O extends Operator, P extends OperatorPlan<O>> extends
 
     int levelCntr = -1;
 
-    OutputStream printer;
-    
     PrintStream stream = System.out;
 
     boolean isVerbose = true;
@@ -82,7 +80,6 @@ public class PlanPrinter<O extends Operator, P extends OperatorPlan<O>> extends
     }
 
     public void print(OutputStream printer) throws VisitorException, IOException {
-        this.printer = printer;
         printer.write(depthFirstPP().getBytes());
     }
 

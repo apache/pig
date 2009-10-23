@@ -54,16 +54,9 @@ public class PigStorage extends Utf8StorageConverter
     private byte recordDel = '\n';
     private byte fieldDel = '\t';
     private ArrayList<Object> mProtoTuple = null;
-    private int os;
-    private static final int OS_UNIX = 0;
-    private static final int OS_WINDOWS = 1;
     private static final String UTF8 = "UTF-8";
-    
-    public PigStorage() {
-        os = OS_UNIX;
-        if (System.getProperty("os.name").toUpperCase().startsWith("WINDOWS"))
-            os = OS_WINDOWS;
-    }
+
+    public PigStorage() {}
 
     /**
      * Constructs a Pig loader that uses specified regex as a field delimiter.
