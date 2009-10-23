@@ -47,6 +47,7 @@ public class DependencyOrderWalkerWOSeenChk <O extends Operator, P extends Opera
      * @param visitor Visitor this walker is being used by.
      * @throws VisitorException if an error is encountered while walking.
      */
+    @SuppressWarnings("unchecked")
     public void walk(PlanVisitor<O, P> visitor) throws VisitorException {
         // This is highly inefficient, but our graphs are small so it should be okay.
         // The algorithm works by starting at any node in the graph, finding it's

@@ -74,6 +74,7 @@ public class PigSplit implements InputSplit {
     public PigSplit() {
     }
 
+    @SuppressWarnings("unchecked")
     public PigSplit(PigContext pigContext, FileSystem fs, Path path,
             String parser, List<OperatorKey> targetOps, long start, long length) {
         this.fs = fs;
@@ -138,12 +139,13 @@ public class PigSplit implements InputSplit {
         return locations;
     }
 
+    @SuppressWarnings("unchecked")
     public void readFields(DataInput is) throws IOException {
         file = new Path(is.readUTF());
         start = is.readLong();
         length = is.readLong();
         pigContext = (PigContext) readObject(is);
-        targetOps = (ArrayList<OperatorKey>) readObject(is);
+        targetOps = (ArrayList) readObject(is);
         parser = is.readUTF();
     }
 

@@ -290,6 +290,7 @@ public class DefaultTuple implements Tuple {
         }
     }
 
+    @SuppressWarnings("unchecked")
     private long getFieldMemorySize(Object o) {
         // 12 is added to each to account for the object overhead and the
         // pointer in the tuple.

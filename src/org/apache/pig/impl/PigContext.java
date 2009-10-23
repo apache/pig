@@ -351,6 +351,7 @@ public class PigContext implements Serializable, FunctionInstantiator {
     /**
      * @deprecated use {@link #getProperties()} instead
      */
+    @Deprecated
     public Properties getConf() {
         return getProperties();
     }

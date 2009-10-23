@@ -92,6 +92,7 @@ public class PlanPrinter<O extends Operator, P extends OperatorPlan<O>> extends
         breadthFirst(leaves, seen);
     }
 
+    @SuppressWarnings("unchecked")
     private void breadthFirst(Collection<O> predecessors, Set<O> seen)
             throws VisitorException {
         ++levelCntr;
@@ -113,6 +114,7 @@ public class PlanPrinter<O extends Operator, P extends OperatorPlan<O>> extends
         }
     }
 
+    @SuppressWarnings("unchecked")
     protected String depthFirstPP() throws VisitorException {
         StringBuilder sb = new StringBuilder();
         List<O> leaves = mPlan.getLeaves();
@@ -147,6 +149,7 @@ public class PlanPrinter<O extends Operator, P extends OperatorPlan<O>> extends
         return sb.toString();
     }
 
+    @SuppressWarnings("unchecked")
     private String depthFirst(O node) throws VisitorException {
         StringBuilder sb = new StringBuilder(node.name() + "\n");
         if (isVerbose) {

@@ -33,7 +33,7 @@ import org.apache.pig.impl.plan.VisitorException;
 
 public abstract class PlanOptimizer<O extends Operator, P extends OperatorPlan<O>> {
     
-    protected List<Rule> mRules;
+    protected List<Rule<O, P>> mRules;
     protected P mPlan;
     protected int mMaxIterations;
 
@@ -49,7 +49,7 @@ public abstract class PlanOptimizer<O extends Operator, P extends OperatorPlan<O
      * @param iterations maximum number of optimization iterations
      */
     protected PlanOptimizer(P plan, int iterations) {
-        mRules = new ArrayList<Rule>();
+        mRules = new ArrayList<Rule<O, P>>();
         mPlan = plan;
         if(iterations < 0) {
             mMaxIterations = 1000;
@@ -76,8 +76,8 @@ public abstract class PlanOptimizer<O extends Operator, P extends OperatorPlan<O
         int numIterations = 0;
         do {
             sawMatch = false;
-            for (Rule rule : mRules) {
-                RuleMatcher matcher = new RuleMatcher();
+            for (Rule<O, P> rule : mRules) {
+                RuleMatcher<O, P> matcher = new RuleMatcher<O, P>();
                 if (matcher.match(rule)) {
                     // It matches the pattern.  Now check if the transformer
                     // approves as well.

@@ -68,6 +68,7 @@ public class POSplitOutput extends PhysicalOperator {
 
     }
     
+    @SuppressWarnings("unchecked")
     public Result getNext(Tuple t) throws ExecException {
 	if(it == null) {
 	    PhysicalOperator op = getInputs().get(0);

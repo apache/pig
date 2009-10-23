@@ -117,6 +117,7 @@ public class SliceWrapper implements InputSplit {
         return lastConf;
     }
 
+    @SuppressWarnings("unchecked")
     public RecordReader<Text, Tuple> makeReader(JobConf job) throws IOException {
         lastConf = job;        
         DataStorage store = new HDataStorage(ConfigurationUtil.toProperties(job));
@@ -165,6 +166,7 @@ public class SliceWrapper implements InputSplit {
         };
     }
 
+    @SuppressWarnings("unchecked")
     public void readFields(DataInput is) throws IOException {
         execType = (ExecType) readObject(is);
         targetOps = (ArrayList<OperatorKey>) readObject(is);

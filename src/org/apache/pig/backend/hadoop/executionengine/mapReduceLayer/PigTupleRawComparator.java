@@ -43,6 +43,7 @@ public class PigTupleRawComparator extends WritableComparator implements Configu
     private boolean mWholeTuple;
     private TupleFactory mFact;
 
+    @SuppressWarnings("unchecked")
     public PigTupleRawComparator() {
         super(TupleFactory.getInstance().tupleClass());
     }

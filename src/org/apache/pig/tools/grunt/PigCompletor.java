@@ -99,6 +99,8 @@ public class PigCompletor implements Completor {
         return true;
     }
 
+    @SuppressWarnings("unchecked")
+    @Override
     public int complete(String buffer, int cursor, List candidates) {
         if (cursor == 0)
             return -1;

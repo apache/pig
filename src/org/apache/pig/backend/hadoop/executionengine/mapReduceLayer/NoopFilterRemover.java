@@ -85,7 +85,7 @@ class NoopFilterRemover extends MROpPlanVisitor {
                     if (value instanceof Boolean) {
                         Boolean filterValue = (Boolean)value;
                         if (filterValue) {
-                            removalQ.add(new Pair(fl, mCurrentWalker.getPlan()));
+                            removalQ.add(new Pair<POFilter, PhysicalPlan>(fl, mCurrentWalker.getPlan()));
                         }
                     }
                 }

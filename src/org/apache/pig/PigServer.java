@@ -789,6 +789,7 @@ public class PigServer {
         return compileLp(alias, true);
     }
 
+    @SuppressWarnings("unchecked")
     private LogicalPlan compileLp(
             String alias,
             boolean optimize) throws FrontendException {

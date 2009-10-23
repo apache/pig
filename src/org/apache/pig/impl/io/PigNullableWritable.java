@@ -36,6 +36,10 @@ import org.apache.pig.data.Tuple;
  * 
  * Index and the null indicator are packed into one byte to save space.
  */
+
+//Put in to make the compiler not complain about WritableComparable
+//being a generic type.
+@SuppressWarnings("unchecked")
 public abstract class PigNullableWritable implements WritableComparable {
 
     /**

@@ -59,6 +59,7 @@ public class PreOrderDepthFirstWalker<O extends Operator, P extends OperatorPlan
         return new DepthFirstWalker<O, P>(plan);
     }
 
+    @SuppressWarnings("unchecked")
     private void depthFirst(O node, Collection<O> predecessors, Set<O> seen,
             PlanVisitor<O, P> visitor) throws VisitorException {
         if (predecessors == null)

@@ -163,6 +163,7 @@ public abstract class DefaultAbstractBag implements DataBag {
      * This method is potentially very expensive since it may require a
      * sort of the bag; don't call it unless you have to.
      */
+    @SuppressWarnings("unchecked")
     public int compareTo(Object other) {
         if (this == other)
             return 0;

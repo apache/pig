@@ -47,6 +47,8 @@ import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.pen.util.ExampleTuple;
 
+//We intentionally skip type checking in backend for performance reasons
+@SuppressWarnings("unchecked")
 public class POForEach extends PhysicalOperator {
 
     /**

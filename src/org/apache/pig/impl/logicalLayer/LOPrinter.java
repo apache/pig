@@ -54,7 +54,7 @@ public class LOPrinter extends LOVisitor {
      */
     public LOPrinter(PrintStream ps, LogicalPlan plan) {
         //super(plan, new DependencyOrderWalker(plan));
-        super(plan, new DepthFirstWalker(plan));
+        super(plan, new DepthFirstWalker<LogicalOperator, LogicalPlan>(plan));
         mStream = ps;
     }
 

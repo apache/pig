@@ -174,7 +174,7 @@ public class PushDownForeachFlatten extends LogicalTransformer {
                 }
             }
             
-            IndexHelper indexHelper = new IndexHelper(peers);
+            IndexHelper<LogicalOperator> indexHelper = new IndexHelper<LogicalOperator>(peers);
             Integer foreachPosition = indexHelper.getIndex(foreach);
             
             // the foreach with flatten can be swapped with an order by

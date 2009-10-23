@@ -53,7 +53,7 @@ public class PlanPrinter<O extends Operator, P extends OperatorPlan<O>> extends 
      */
     public PlanPrinter(PrintStream ps, P plan) {
         //super(plan, new DependencyOrderWalker(plan));
-        super(plan, new DepthFirstWalker(plan));
+        super(plan, new DepthFirstWalker<O, P>(plan));
         mStream = ps;
     }
 
@@ -72,6 +72,7 @@ public class PlanPrinter<O extends Operator, P extends OperatorPlan<O>> extends 
     }
 
 
+    @SuppressWarnings("unchecked")
     protected String depthFirst() throws VisitorException, IOException {
         StringBuilder sb = new StringBuilder();
         List<O> leaves = mPlan.getLeaves();
@@ -107,6 +108,7 @@ public class PlanPrinter<O extends Operator, P extends OperatorPlan<O>> extends 
         return sb.toString();
     }
 
+    @SuppressWarnings("unchecked")
     private String depthFirst(O node) throws VisitorException, IOException {
         StringBuilder sb = new StringBuilder(node.name());
         sb.append("\n");

@@ -128,7 +128,7 @@ abstract public class LOVisitor extends
                     // TODO FIX - How do we know this should be a
                     // DependencyOrderWalker?  We should be replicating the
                     // walker the current visitor is using.
-                    PlanWalker w = new DependencyOrderWalker(lp);
+                    PlanWalker<LogicalOperator, LogicalPlan> w = new DependencyOrderWalker<LogicalOperator, LogicalPlan>(lp);
                     pushWalker(w);
                     w.walk(this);
                     popWalker();
@@ -171,7 +171,7 @@ abstract public class LOVisitor extends
     protected void visit(LOForEach forEach) throws VisitorException {
         // Visit each of generates projection elements.
         for(LogicalPlan lp: forEach.getForEachPlans()) {
-            PlanWalker w = new DependencyOrderWalker(lp);
+            PlanWalker<LogicalOperator, LogicalPlan> w = new DependencyOrderWalker<LogicalOperator, LogicalPlan>(lp);
             pushWalker(w);
             w.walk(this);
             popWalker();
@@ -187,7 +187,7 @@ abstract public class LOVisitor extends
     protected void visit(LOSort s) throws VisitorException {
         // Visit the sort function
         for(LogicalPlan lp: s.getSortColPlans()) {
-            PlanWalker w = new DependencyOrderWalker(lp);
+            PlanWalker<LogicalOperator, LogicalPlan> w = new DependencyOrderWalker<LogicalOperator, LogicalPlan>(lp);
             pushWalker(w);
             w.walk(this);
             popWalker();
@@ -210,7 +210,7 @@ abstract public class LOVisitor extends
      */
     protected void visit(LOFilter filter) throws VisitorException {
         // Visit the condition for the filter followed by the input
-        PlanWalker w = new DependencyOrderWalker(filter.getComparisonPlan());
+        PlanWalker<LogicalOperator, LogicalPlan> w = new DependencyOrderWalker<LogicalOperator, LogicalPlan>(filter.getComparisonPlan());
         pushWalker(w);
         w.walk(this);
         popWalker();
@@ -240,7 +240,7 @@ abstract public class LOVisitor extends
     protected void visit(LOGenerate g) throws VisitorException {
         // Visit the operators that are part of the foreach plan
         for(LogicalPlan lp: g.getGeneratePlans()) {
-            PlanWalker w = new DependencyOrderWalker(lp);
+            PlanWalker<LogicalOperator, LogicalPlan> w = new DependencyOrderWalker<LogicalOperator, LogicalPlan>(lp);
             pushWalker(w);
             w.walk(this);
             popWalker();
@@ -307,7 +307,7 @@ abstract public class LOVisitor extends
     protected void visit(LOSplitOutput sop) throws VisitorException {
         LogicalPlan lp = sop.getConditionPlan();
         if (null != lp) {
-            PlanWalker w = new DependencyOrderWalker(lp);
+            PlanWalker<LogicalOperator, LogicalPlan> w = new DependencyOrderWalker<LogicalOperator, LogicalPlan>(lp);
             pushWalker(w);
             w.walk(this);
             popWalker();

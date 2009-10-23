@@ -28,6 +28,8 @@ import org.apache.pig.impl.plan.OperatorKey;
 /**
  * Base class for all types of operators.
  */
+// Suppress "unchecked" warnings for all logical plan related classes. Will revisit in logical plan rework
+@SuppressWarnings("unchecked")
 abstract public class Operator<V extends PlanVisitor> implements Serializable, Comparable<Operator>, Cloneable {
     private static final long serialVersionUID = 1L;
 
