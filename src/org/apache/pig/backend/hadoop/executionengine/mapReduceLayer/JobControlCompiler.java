@@ -216,11 +216,6 @@ public class JobControlCompiler{
     }
 
     /**
-     * The map between MapReduceOpers and their corresponding Jobs
-     */
-    Map<OperatorKey, Job> seen = new Hashtable<OperatorKey, Job>();
-    
-    /**
      * Compiles all jobs that have no dependencies removes them from
      * the plan and returns. Should be called with the same plan until
      * exhausted. 

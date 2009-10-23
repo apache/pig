@@ -68,19 +68,13 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
 
     protected Map<LogicalOperator, PhysicalOperator> logToPhyMap;
 
-    Random r = new Random();
-
     protected Stack<PhysicalPlan> currentPlans;
 
     protected PhysicalPlan currentPlan;
 
     protected NodeIdGenerator nodeGen = NodeIdGenerator.getGenerator();
 
-    private Log log = LogFactory.getLog(getClass());
-
     protected PigContext pc;
-
-    LoadFunc load;
 
     public LogToPhyTranslationVisitor(LogicalPlan plan) {
         super(plan, new DependencyOrderWalker<LogicalOperator, LogicalPlan>(
@@ -1540,7 +1534,6 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
         load.setResultType(loLoad.getType());
         currentPlan.add(load);
         logToPhyMap.put(loLoad, load);
-        this.load = loLoad.getLoadFunc();
 
         // Load is typically a root operator, but in the multiquery
         // case it might have a store as a predecessor.

@@ -65,8 +65,6 @@ public class HadoopExecutableManager extends ExecutableManager {
     
     FSDataOutputStream errorStream;
     
-    boolean writeHeaderFooter = false;
-    
     public HadoopExecutableManager() {}
     
     public void configure(POStream stream) 
