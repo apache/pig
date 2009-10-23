@@ -46,6 +46,9 @@ import org.apache.pig.pen.util.ExampleTuple;
  * 
  *
  */
+
+//We intentionally skip type checking in backend for performance reasons
+@SuppressWarnings("unchecked")
 public class POCogroup extends PhysicalOperator {
     private static final long serialVersionUID = 1L;    
     Tuple[] data = null;

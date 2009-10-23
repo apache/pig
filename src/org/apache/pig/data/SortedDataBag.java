@@ -62,6 +62,7 @@ public class SortedDataBag extends DefaultAbstractBag{
     private boolean mReadStarted = false;
 
     private class DefaultComparator implements Comparator<Tuple> {
+        @SuppressWarnings("unchecked")
         public int compare(Tuple t1, Tuple t2) {
             return t1.compareTo(t2);
         }

@@ -34,6 +34,9 @@ import org.apache.pig.impl.plan.VisitorException;
  * getNext methods have to be implemented 
  *
  */
+
+//We intentionally skip type checking in backend for performance reasons
+@SuppressWarnings("unchecked")
 public class POGlobalRearrange extends PhysicalOperator {
 
     /**

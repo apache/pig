@@ -296,6 +296,7 @@ public class DataType {
      * @param o2 Second object
      * @return -1 if o1 is less, 0 if they are equal, 1 if o2 is less.
      */
+    @SuppressWarnings("unchecked")
     public static int compare(Object o1, Object o2) {
         byte dt1 = findType(o1);
         byte dt2 = findType(o2);
@@ -765,6 +766,7 @@ public class DataType {
      * @return The object as a Map.
      * @throws ExecException if the type can't be forced to a Double.
      */
+    @SuppressWarnings("unchecked")
     public static Map<String, Object> toMap(Object o) throws ExecException {
         if (o == null) return null;
 

@@ -117,7 +117,7 @@ public class LogicalOptimizer extends
              * the Storage class.
              */
 
-            Rule rule = new Rule<LogicalOperator, LogicalPlan>(rulePlan,
+            Rule<LogicalOperator, LogicalPlan> rule = new Rule<LogicalOperator, LogicalPlan>(rulePlan,
                     new StreamOptimizer(plan, LOStream.class.getName()),
                     "StreamOptimizer");
             checkAndAddRule(rule);
@@ -152,7 +152,7 @@ public class LogicalOptimizer extends
         
     }
 
-    private void checkAndAddRule(Rule rule) {
+    private void checkAndAddRule(Rule<LogicalOperator, LogicalPlan> rule) {
         if(mRulesOff != null) {
             for(String ruleOff: mRulesOff) {
                 String ruleName = rule.getRuleName();
@@ -172,8 +172,8 @@ public class LogicalOptimizer extends
         int numIterations = 0;
         do {
             sawMatch = false;
-            for (Rule rule : mRules) {
-                RuleMatcher matcher = new RuleMatcher();
+            for (Rule<LogicalOperator, LogicalPlan> rule : mRules) {
+                RuleMatcher<LogicalOperator, LogicalPlan> matcher = new RuleMatcher<LogicalOperator, LogicalPlan>();
                 if (matcher.match(rule)) {
                     // It matches the pattern.  Now check if the transformer
                     // approves as well.

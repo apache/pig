@@ -170,6 +170,7 @@ public class PigStorage extends Utf8StorageConverter
         mOut = os;
     }
 
+    @SuppressWarnings("unchecked")
     private void putField(Object field) throws IOException {
         //string constants for each delimiter
         String tupleBeginDelim = "(";

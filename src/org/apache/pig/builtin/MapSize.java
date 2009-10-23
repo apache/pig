@@ -33,6 +33,7 @@ import org.apache.pig.impl.logicalLayer.schema.Schema;
  */
 public class MapSize extends EvalFunc<Long> {
 
+    @SuppressWarnings("unchecked")
     @Override
     public Long exec(Tuple input) throws IOException {
         try {

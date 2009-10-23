@@ -174,6 +174,7 @@ public class DotPlanDumper<E extends Operator, P extends OperatorPlan<E>,
         ps.println(attributes);
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     protected PlanDumper makeDumper(S plan, PrintStream ps) {
         return new DotPlanDumper(plan, ps, true, 

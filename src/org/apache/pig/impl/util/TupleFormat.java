@@ -43,6 +43,7 @@ public class TupleFormat {
      * @param tuple
      * @return Default format of Tuple
      */
+    @SuppressWarnings("unchecked")
     public static String format(Tuple tuple) {
         StringBuilder sb = new StringBuilder();
         sb.append('(');

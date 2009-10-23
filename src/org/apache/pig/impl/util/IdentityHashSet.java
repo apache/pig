@@ -97,6 +97,7 @@ public class IdentityHashSet<E> implements Set<E> {
         return true;
     }
 
+    @SuppressWarnings("unchecked")
     public boolean retainAll(Collection<?> elements) {
         IdentityHashMap<E, Object> newMap = new IdentityHashMap<E, Object>();
 

@@ -35,10 +35,12 @@ public class DefaultTupleFactory extends TupleFactory {
         return new DefaultTuple(size);
     }
     
+    @SuppressWarnings("unchecked")
     public Tuple newTuple(List c) {
         return new DefaultTuple(c);
     }
 
+    @SuppressWarnings("unchecked")
     public Tuple newTupleNoCopy(List list) {
         return new DefaultTuple(list, 1);
     }

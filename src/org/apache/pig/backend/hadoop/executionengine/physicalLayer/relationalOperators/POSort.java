@@ -56,6 +56,9 @@ import org.apache.pig.impl.plan.VisitorException;
  * 
  * 
  */
+
+//We intentionally skip type checking in backend for performance reasons
+@SuppressWarnings("unchecked")
 public class POSort extends PhysicalOperator {
 
 	/**

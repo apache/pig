@@ -60,6 +60,9 @@ import org.apache.pig.impl.plan.VisitorException;
  * each Hashtable for the key and also with the value for the fragment input.
  * It then returns tuples returned by this foreach operator.
  */
+
+//We intentionally skip type checking in backend for performance reasons
+@SuppressWarnings("unchecked")
 public class POFRJoin extends PhysicalOperator {
     /**
      * 

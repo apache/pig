@@ -49,6 +49,8 @@ public class PigCompletorAliases implements Completor {
         }
     }
 
+    @SuppressWarnings("unchecked")
+    @Override
     public int complete(String buffer, int cursor, List candidates)
     {
         if (cursor == 0)

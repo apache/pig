@@ -278,6 +278,7 @@ public class JobControlCompiler{
      * @return Job corresponding to mro
      * @throws JobCreationException
      */
+    @SuppressWarnings("unchecked")
     private Job getJob(MapReduceOper mro, Configuration conf, PigContext pigContext) throws JobCreationException{
         JobConf jobConf = new JobConf(conf);
         ArrayList<Pair<FileSpec, Boolean>> inp = new ArrayList<Pair<FileSpec, Boolean>>();
@@ -545,7 +546,7 @@ public class JobControlCompiler{
             }
             
             Job job = new Job(jobConf);
-            jobStoreMap.put(job,new Pair(storeLocations, tmpLocation));
+            jobStoreMap.put(job,new Pair<List<POStore>, Path>(storeLocations, tmpLocation));
             return job;
         } catch (JobCreationException jce) {
         	throw jce;
@@ -565,6 +566,7 @@ public class JobControlCompiler{
     }
 
     public static class PigWritableComparator extends WritableComparator {
+        @SuppressWarnings("unchecked")
         protected PigWritableComparator(Class c) {
             super(c);
         }

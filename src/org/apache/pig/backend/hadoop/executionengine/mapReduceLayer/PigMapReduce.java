@@ -270,6 +270,7 @@ public class PigMapReduce {
          * Configures the Reduce plan, the POPackage operator
          * and the reporter thread
          */
+        @SuppressWarnings("unchecked")
         @Override
         public void configure(JobConf jConf) {
             super.configure(jConf);

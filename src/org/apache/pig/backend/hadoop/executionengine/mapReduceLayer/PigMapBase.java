@@ -139,6 +139,7 @@ public abstract class PigMapBase extends MapReduceBase{
      * Configures the mapper with the map plan and the
      * reproter thread
      */
+    @SuppressWarnings("unchecked")
     @Override
     public void configure(JobConf job) {
         super.configure(job);

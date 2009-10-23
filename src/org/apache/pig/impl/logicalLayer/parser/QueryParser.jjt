@@ -2075,7 +2075,7 @@ LogicalOperator UnionClause(LogicalPlan lp) :
 	}
 }
 
-LogicalOperator ForEachClause(LogicalPlan lp) : 
+    LogicalOperator ForEachClause(LogicalPlan lp) : 
 {
 	ArrayList<LogicalOperator> specList = new ArrayList<LogicalOperator>(); 
 	LogicalOperator input, foreach; 

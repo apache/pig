@@ -192,6 +192,7 @@ public class NonSpillableDataBag implements DataBag {
         return compareTo(obj) == 0;
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     public int compareTo(Object other) {
         if (this == other)

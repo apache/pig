@@ -40,6 +40,7 @@ public class DependencyOrderLimitedWalker<O extends Operator, P extends Operator
         this.operator = operator;
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     public void walk(PlanVisitor<O, P> visitor) throws VisitorException {
         List<O> fifo = new ArrayList<O>();
