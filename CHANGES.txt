@@ -74,6 +74,8 @@ PIG-960: Using Hadoop's optimized LineRecordReader for reading Tuples in PigStor
 
 PIG-1020: Include an ant target to build pig.jar without hadoop libraries (daijy)
 
+PIG-1033: javac warnings: deprecated hadoop APIs (daijy)
+
 OPTIMIZATIONS
 
 BUG FIXES

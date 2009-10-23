@@ -60,7 +60,7 @@
     <!-- default warnings option -->
     <property name="javac.args.warnings" value="-Xmaxwarns 1000000" />
     <!-- warnings option if all.warnings property is set on cmdline -->
-    <property name="javac.args.all.warnings" value="-Xmaxwarns 1000000 -Xlint" />
+    <property name="javac.args.all.warnings" value="-Xmaxwarns 1000000 -Xlint -Xlint:-deprecation" />
 
     <!-- jar names. TODO we might want to use the svn reversion name in the name in case it is a dev version -->
     <property name="output.jarfile" value="${build.dir}/${final.name}.jar" />
