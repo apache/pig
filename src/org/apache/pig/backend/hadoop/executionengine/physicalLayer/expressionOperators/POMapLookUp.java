@@ -33,7 +33,8 @@ import org.apache.pig.impl.plan.VisitorException;
 
 public class POMapLookUp extends ExpressionOperator {
 	
-	private String key;
+    private static final long serialVersionUID = 1L;
+    private String key;
 
 	public POMapLookUp(OperatorKey k) {
 		super(k);

@@ -338,8 +338,7 @@ public class LineageTrimmingVisitor extends LOVisitor {
                 Set<IdentityHashSet<Tuple>> equivClassesCovered = lineageGroupToEquivClasses
                         .get(lineageGroup);
                 int numEquivClassesCovered = equivClassesCovered.size();
-                double score = ((double) numEquivClassesCovered)
-                        / ((double) weight);
+                double score = ((double) numEquivClassesCovered) / weight;
 
                 if (score > bestScore) {
 

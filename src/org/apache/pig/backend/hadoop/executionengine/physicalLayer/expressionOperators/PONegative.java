@@ -28,6 +28,8 @@ import org.apache.pig.impl.plan.VisitorException;
 
 public class PONegative extends UnaryExpressionOperator {
 
+    private static final long serialVersionUID = 1L;
+
     public PONegative(OperatorKey k, int rp) {
         super(k, rp);
         
