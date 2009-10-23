@@ -30,7 +30,7 @@ PIG-1032: FINDBUGS: DM_STRING_CTOR: Method invokes inefficient new
 String(String) constructor (olgan)
 
 PIG-984:  Add map side grouping for data that is already collected when
-it is read into the map (rding via gates).
+it is read into the map (rding via gates)
 
 PIG-1025: Add ability to set job priority from Pig Latin script (kevinweil via
 gates)
@@ -64,7 +64,7 @@ following a join or cogroup (rding via pradeepkth)
 PIG-975: Need a databag that does not register with SpillableMemoryManager and
 spill data pro-actively (yinghe via olgan)
 
-PIG-891: Fixing dfs statement for Pig (zjffdu via daijy).
+PIG-891: Fixing dfs statement for Pig (zjffdu via daijy
 
 PIG-956: 10 minute commit tests (olgan)
 
@@ -78,7 +78,7 @@ OPTIMIZATIONS
 
 BUG FIXES
 
-PIG-1027: Number of bytes written are always zero in local mode (zjffdu via gates). 
+PIG-1027: Number of bytes written are always zero in local mode (zjffdu via gates)
 
 PIG-976: Multi-query optimization throws ClassCastException (rding via
 pradeepkth)
@@ -87,17 +87,17 @@ PIG-858: Order By followed by "replicated" join fails while compiling MR-plan
 from physical plan (ashutoshc via gates)
 
 PIG-968: Fix findContainingJar to work properly when there is a + in the jar
-         path (tlipcon via gates).
+         path (tlipcon via gates)
 
 PIG-738: Regexp passed from pigscript fails in UDF  (pradeepkth)
 
 PIG-942: Maps are not implicitly casted (pradeepkth)
 
 PIG-513:  Removed unecessary bounds check in DefaultTuple (ashutoshc via
-          gates).
+          gates)
 
 PIG-951:  Set parallelism explicitly to 1 for indexing job in merge join
-          (ashutoc via gates).
+          (ashutoshc via gates)
 
 PIG-592: schema inferred incorrectly (daijy)
 
@@ -136,7 +136,7 @@ INCOMPATIBLE CHANGES
 
 PIG-892: Make COUNT and AVG deal with nulls accordingly with SQL standart
 (olgan)
-PIG-734: Changed maps to only take strings as keys (gates).
+PIG-734: Changed maps to only take strings as keys (gates)
 
 IMPROVEMENTS
 
@@ -159,7 +159,7 @@ PIG-926: Merge-Join phase 2 (ashutoshc via pradeepkth)
 
 PIG-845: PERFORMANCE: Merge Join (ashutoshc via pradeepkth)
 
-PIG-893:  Added string -> integer, long, float, and double casts (zjffdu via gates). 
+PIG-893:  Added string -> integer, long, float, and double casts (zjffdu via gates)
 
 PIG-833: Added Zebra, new columnar storage mechanism for HDFS (rangadi plus many others via gates)
 
@@ -169,15 +169,15 @@ PIG-895: Default parallel for Pig (daijy)
 
 PIG-820: Change RandomSampleLoader to take a LoadFunc instead of extending
 		BinStorage.  Added new Samplable interface for loaders to implement
-		allowing them to be used by RandomSampleLoader (ashutoshc via gates).
+		allowing them to be used by RandomSampleLoader (ashutoshc via gates)
 
 PIG-832: Make import list configurable (daijy)
 
 PIG-697: Proposed improvements to pig's optimizer (sms)
 
-PIG-753:  Allow UDFs with no parameters (zjffdu via gates).
+PIG-753:  Allow UDFs with no parameters (zjffdu via gates)
 
-PIG-765: jdiff for pig ( gkesavan ).
+PIG-765: jdiff for pig ( gkesavan 
 
 OPTIMIZATIONS
 
@@ -227,7 +227,7 @@ BUG FIXES
 
     PIG-695: Pig should not fail when error logs cannot be created (sms)
 
-	PIG-878: Pig is returning too many blocks in the input split. (arunc via gates).
+	PIG-878: Pig is returning too many blocks in the input split. (arunc via gates)
 
     PIG-888: Pig do not pass udf to the backend in some situation (daijy)
 
@@ -267,29 +267,30 @@ IMPROVEMENTS
 
 PIG-817: documentation update (chandec via olgan)
 
-PIG-830: Add RegExLoader and apache log utils to piggybank (dvryaboy via gates).
+PIG-830: Add RegExLoader and apache log utils to piggybank (dvryaboy via gates)
 
 PIG-831: Turned off reporting of records and bytes written for mutli-store
 queries as the returned results are confusing and wrong. (gates)
 
 PIG-813: documentation updates (chandec via olgan)
 
-PIG-825: PIG_HADOOP_VERSION should be set to 18 (dvryaboy via gates).
+PIG-825: PIG_HADOOP_VERSION should be set to 18 (dvryaboy via gates)
 
 PIG-795: support for SAMPLE command (ericg via olgan)
 
 PIG-619: Create one InputSplit even when the input file is zero length
          so that hadoop runs maps and creates output for the next
-		 job (gates).
+		 job (gates)
 
 PIG-697: Proposed improvements to pig's optimizer (sms)
 
 PIG-700: To automate the pig patch test process (gkesavan via sms)
 
 PIG-712: Added utility functions to create schemas for tuples and bags (zjffdu
-via gates).
+via gates)
 
-PIG-652: Adapt changes in store interface to multi-query changes (hagleitn via gates).
+PIG-652: Adapt changes in store interface to multi-query changes (hagleitn
+        via gates)
 
 PIG-775: PORelationToExprProject should create a NonSpillableDataBag to create
 empty bags (pradeepkth)
@@ -302,7 +303,7 @@ PIG-743: To implement clover (gkesavan)
 
 PIG-701: Implement IVY for resolving pig dependencies (gkesavan)
 
-PIG-626: Add access to hadoop counters (shubhamc via gates).
+PIG-626: Add access to hadoop counters (shubhamc via gates)
 
 PIG-627: multiquery support phase 1 and phase 2 (hagleitn and Richard Ding via pradeepkth)
 
@@ -315,7 +316,7 @@ PIG-835: Multiquery optimization does not handle the case where the map keys
 in the split plans have different key types (tuple and non tuple key type)
 (pradeepkth)
 
-PIG-839: incorrect return codes on failure when using -f or -e flags (hagletin
+PIG-839: incorrect return codes on failure when using -f or -e flags (hagleitn
 via sms)
 
 PIG-796: support conversion from numeric types to chararray (Ashutosh Chauhan
@@ -353,21 +354,21 @@ PIG-725: javadoc: warning - Multiple sources of package comments found for
 package "org.apache.commons.logging" (gkesavan via sms)
 
 PIG-745: Add DataType.toString() to force basic types to chararray, useful
-for UDFs that want to handle all simple types as strings (ciemo via gates).
+for UDFs that want to handle all simple types as strings (ciemo via gates)
 
 PIG-514: COUNT returns no results as a result of two filter statements in
 FOREACH (pradeepkth)
 
 PIG-789: Fix dump and illustrate to work with new multi-query feature 
-(hagleitn via gates).
+(hagleitn via gates)
 
 PIG-774: Pig does not handle Chinese characters (in both the parameter subsitution
 using -param_file or embedded in the Pig script) correctly (daijy)
 
 PIG-800: Fix distinct and order in local mode to not go into an infinite loop
-(gates).
+(gates)
 
-PIG-806: to remove author tags in the pig source code (sms).
+PIG-806: to remove author tags in the pig source code (sms
 
 PIG-799: Unit tests on windows are failing after multiquery commit (daijy)
 
@@ -390,10 +391,10 @@ NEW FEATURES
 
 	PIG-704 Added ALIASES command that shows all currently defined ALIASES.
 	Changed semantics of DEFINE to define last used alias if no argument is
-	given (ericg via gates).
+	given (ericg via gates)
 
 	PIG-713 Added alias completion as part of tab completion in grunt (ericg
-	via gates).
+	via gates)
 
 IMPROVEMENTS
 
@@ -401,7 +402,7 @@ IMPROVEMENTS
     
     PIG-367: convinience function for UDFs to name schema
 
-    PIG-443:  Illustrate for the Types branch (shubham via olgan)
+    PIG-443:  Illustrate for the Types branch (shubhamc via olgan)
 
 	PIG-599: Added buffering to BufferedPositionedInputStream (gates)
     
@@ -578,7 +579,7 @@ BUG FIXES
 
     PIG-501: Make branches/types work under cygwin (daijy via olgan)
 
-    PIG-504: cleanup illustrate not to produce cn= (shubham via olgan)
+    PIG-504: cleanup illustrate not to produce cn= (shubhamc via olgan)
 
     PIG-469: make sure that describe says "int" not "integer" (sms via olgan)
 
@@ -629,7 +630,7 @@ BUG FIXES
 	PIG-556: Changed FindQuantiles to report progress.  Fixed issue with null
 	reporter being passed to EvalFuncs. (gates)
 
-	PIG-6: Add load support from hbase (hustlmsp via gates).
+	PIG-6: Add load support from hbase (hustlmsp via gates)
 
     PIG-522: make negation work (pradeepkth via olgan)
 
@@ -781,7 +782,7 @@ Release 0.1.0 - 2008-09-11
 
   PIG-55: added custom splitter (groves via olgan)
   
-  PIG-59: Add a new ILLUSTRATE command (shubhamc via gates).
+  PIG-59: Add a new ILLUSTRATE command (shubhamc via gates)
 
   PIG-256: Added variable argument support for UDFs (pi_song)
 
@@ -798,7 +799,7 @@ Release 0.1.0 - 2008-09-11
   PIG-30: Rewrote DataBags to better handle decisions of when to spill to
 	disk and to spill more intelligently. (gates)
 
-  PIG-12: Added time stamps to log4j messages (phunt via gates).
+  PIG-12: Added time stamps to log4j messages (phunt via gates)
 
   PIG-44: Added adaptive decision of the number of records to hold in memory 
 	before spilling (utkarsh)
@@ -819,11 +820,11 @@ Release 0.1.0 - 2008-09-11
   PIG-113:  Make explain output more understandable (pi_song via gates)
 
   PIG-120:  Support map reduce in local mode.  To do this user needs to
-    specify execution type as mapreduce and cluster name as local (joa23 via gates).
+    specify execution type as mapreduce and cluster name as local (joa23 via gates)
 
-  PIG-106:  Change StringBuffer and String '+' to StringBuilder (francisoud via gates).
+  PIG-106:  Change StringBuffer and String '+' to StringBuilder (francisoud via gates)
 
-  PIG-111: Reworked configuration to be setable via properties. (joa23, pi_song, oae via gates).
+  PIG-111: Reworked configuration to be setable via properties. (joa23, pi_song, oae via gates)
       
   BUG FIXES
   	PIG-24 Files that were incorrectly placed under test/reports have been
@@ -849,7 +850,7 @@ Release 0.1.0 - 2008-09-11
     from being evaluated more than once. (gates)
 
     PIG-45: Fixed pig.pl to not assume hodrc file is named the same as
-    cluster name (gates).
+    cluster name (gates)
 
     PIG-7 (more): Fixed bug in PigCombiner where it was writing IndexedTuples
     instead of Tuples, causing Reducer to crash in some cases.
@@ -869,23 +870,23 @@ Release 0.1.0 - 2008-09-11
 
 	PIG-69: NPE in PigContext.setJobtrackerLocation (francisoud via gates)
 
-	PIG-78: src/org/apache/pig/builtin/PigStorage.java doesn't compile (arun
+	PIG-78: src/org/apache/pig/builtin/PigStorage.java doesn't compile (arunc
 	via olgan)
 
 	PIG-87: Fix pig.pl to find java via JAVA_HOME instead of hardcoded default
 	path.  Also fix it to not die if pigclient.conf is missing. (craigm via
-	gates).
+	gates)
 
 	PIG-89: Fix DefaultDataBag, DistinctDataBag, SortedDataBag to close spill
 	files when they are done spilling (contributions by craigm, breed, and
-	gates, committed by gates).
+	gates, committed by gates)
 
-	PIG-95: Remove System.exit() statements from inside pig (joa23 via gates).
+	PIG-95: Remove System.exit() statements from inside pig (joa23 via gates)
 
 	PIG-65: convert tabs to spaces (groves via olgan)
 
 	PIG-97: Turn off combiner in the case of Cogroup, as it doesn't work when
-	more than one bag is involved (gates).
+	more than one bag is involved (gates)
 
 	PIG-92: Fix NullPointerException in PIgContext due to uninitialized conf
 	reference. (francisoud via gates)
@@ -893,15 +894,15 @@ Release 0.1.0 - 2008-09-11
 	PIG-80: In a number of places stack trace information was being lost by an
 	exception being caught, and a different exception then thrown.  All those
 	locations have been changed so that the new exception now wraps the old.
-	(francisoud via gates).
+	(francisoud via gates)
 
 	PIG-84: Converted printStackTrace calls to calls to the logger.
-	(francisoud via gates).
+	(francisoud via gates)
 
-	PIG-88: Remove unused HadoopExe import from Main.  (pi_song via gates).
+	PIG-88: Remove unused HadoopExe import from Main.  (pi_song via gates)
 
 	PIG-99: Fix to make unit tests not run out of memory. (francisoud via
-	gates).
+	gates)
 
     PIG-107: enabled several tests. (francisoud via olgan)
 
@@ -919,7 +920,7 @@ Release 0.1.0 - 2008-09-11
 	flattening the combiner case. (gates and oae)
 
     PIG-213: Remove non-static references to logger from data bags and tuples, 
-    as it causes significant overhead (vgeschel via gates).
+    as it causes significant overhead (vgeschel via gates)
 
     PIG-284: target for building source jar (oae via olgan)
 
