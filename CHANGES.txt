@@ -78,6 +78,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-1027: Number of bytes written are always zero in local mode (zjffdu via gates). 
+
 PIG-976: Multi-query optimization throws ClassCastException (rding via
 pradeepkth)
 

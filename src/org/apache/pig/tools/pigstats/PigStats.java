@@ -102,11 +102,19 @@ public class PigStats {
             stats.put(op.toString(), jobStats);
             POCounter counter = (POCounter) php.getPredecessors(op).get(0);
             jobStats.put("PIG_STATS_LOCAL_OUTPUT_RECORDS", (Long.valueOf(counter.getCount())).toString());
-            jobStats.put("PIG_STATS_LOCAL_BYTES_WRITTEN", (Long.valueOf((new File(((POStore)op).getSFile().getFileName())).length())).toString());
+            String localFilePath=normalizeToLocalFilePath(((POStore)op).getSFile().getFileName());
+            jobStats.put("PIG_STATS_LOCAL_BYTES_WRITTEN", (Long.valueOf(new File(localFilePath).length())).toString());
         }
         return stats;
     }
     
+    private String normalizeToLocalFilePath(String fileName) {
+        if (fileName.startsWith("file:")){
+            return fileName.substring(5);
+        }
+        return fileName;
+    }
+
     private Map<String, Map<String, String>> accumulateMRStats() throws ExecException {
         
         for(Job job : jc.getSuccessfulJobs()) {
