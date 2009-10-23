@@ -22,6 +22,8 @@ import org.apache.pig.impl.plan.VisitorException;
 
 public class OptimizerException extends VisitorException {
 
+    private static final long serialVersionUID = 1L;
+
     /**
      * Create a new OptimizerException with null as the error message.
      */

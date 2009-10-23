@@ -41,7 +41,7 @@ public class ExecTools {
             PhysicalPlan plan,
             PigContext pigContext) throws ExecException {
         try {
-            PhysicalOperator leaf = (PhysicalOperator)plan.getLeaves().get(0);
+            PhysicalOperator leaf = plan.getLeaves().get(0);
             FileSpec spec = null;
             if(!(leaf instanceof POStore)){
                 String scope = leaf.getOperatorKey().getScope();

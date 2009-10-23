@@ -433,11 +433,11 @@ public class CBZip2InputStream extends InputStream implements BZip2Constants {
     }
 
     private int bsGetIntVS(int numBits) throws IOException {
-        return (int) bsR(numBits);
+        return bsR(numBits);
     }
 
     private int bsGetInt32() throws IOException {
-        return (int) bsGetint();
+        return bsGetint();
     }
 
     private void hbCreateDecodeTables(int[] limit, int[] base,
@@ -796,7 +796,7 @@ public class CBZip2InputStream extends InputStream implements BZip2Constants {
         }
 
         for (i = 0; i <= last; i++) {
-            ch = (char) ll8[i];
+            ch = ll8[i];
             tt[cftab[ch]] = i;
             cftab[ch]++;
         }
@@ -830,7 +830,7 @@ public class CBZip2InputStream extends InputStream implements BZip2Constants {
                 }
             }
             rNToGo--;
-            ch2 ^= (int) ((rNToGo == 1) ? 1 : 0);
+            ch2 ^= ((rNToGo == 1) ? 1 : 0);
             i2++;
 
             currentChar = ch2;

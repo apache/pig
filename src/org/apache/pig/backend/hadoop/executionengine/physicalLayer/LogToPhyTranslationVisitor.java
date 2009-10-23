@@ -944,7 +944,7 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
 	                            .spawnChildWalker(lp);
 	                    pushWalker(childWalker);
 	                    mCurrentWalker.walk(this);
-	                    exprPlans.add((PhysicalPlan) currentPlan);
+	                    exprPlans.add(currentPlan);
 	                    popWalker();
 
 	                }
@@ -1178,7 +1178,7 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
         mCurrentWalker.walk(this);
         popWalker();
 
-        poFilter.setPlan((PhysicalPlan) currentPlan);
+        poFilter.setPlan(currentPlan);
         currentPlan = currentPlans.pop();
 
         List<LogicalOperator> op = filter.getPlan().getPredecessors(filter);
@@ -1327,7 +1327,7 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
                     .spawnChildWalker(plan);
             pushWalker(childWalker);
             childWalker.walk(this);
-            sortPlans.add((PhysicalPlan) currentPlan);
+            sortPlans.add(currentPlan);
             popWalker();
         }
         currentPlan = currentPlans.pop();
@@ -1472,7 +1472,7 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
         mCurrentWalker.walk(this);
         popWalker();
 
-        ((POFilter) physOp).setPlan((PhysicalPlan) currentPlan);
+        ((POFilter) physOp).setPlan(currentPlan);
         currentPlan = currentPlans.pop();
         currentPlan.add(physOp);
 
@@ -1719,7 +1719,7 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
 
     @Override
     public void visit(LOMapLookup op) throws VisitorException {
-        String scope = ((OperatorKey) op.getOperatorKey()).scope;
+        String scope = (op.getOperatorKey()).scope;
         ExpressionOperator physOp = new POMapLookUp(new OperatorKey(scope,
                 nodeGen.getNextNodeId(scope)), op.getRequestedParallelism(), op
                 .getLookUpKey());

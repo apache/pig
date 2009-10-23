@@ -537,9 +537,9 @@ private static String getVersionString() {
           final Manifest manifest = jar.getManifest(); 
           final Map <String,Attributes> attrs = manifest.getEntries(); 
           Attributes attr = attrs.get("org/apache/pig");
-          String version = (String) attr.getValue("Implementation-Version");
-          String svnRevision = (String) attr.getValue("Svn-Revision");
-          String buildTime = (String) attr.getValue("Build-TimeStamp");
+          String version = attr.getValue("Implementation-Version");
+          String svnRevision = attr.getValue("Svn-Revision");
+          String buildTime = attr.getValue("Build-TimeStamp");
           // we use a version string similar to svn 
           //svn, version 1.4.4 (r25188)
           // compiled Sep 23 2007, 22:32:34

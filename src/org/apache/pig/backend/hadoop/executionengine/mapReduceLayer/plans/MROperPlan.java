@@ -34,6 +34,8 @@ import org.apache.pig.impl.plan.VisitorException;
  */
 public class MROperPlan extends OperatorPlan<MapReduceOper> {
 
+    private static final long serialVersionUID = 1L;
+
     public MROperPlan() {
         // TODO Auto-generated constructor stub
     }

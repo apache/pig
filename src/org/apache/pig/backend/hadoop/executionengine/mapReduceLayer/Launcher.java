@@ -155,7 +155,7 @@ public abstract class Launcher {
                                    IOException;
     
     protected boolean isComplete(double prog){
-        return (int)(Math.ceil(prog)) == (int)1;
+        return (int)(Math.ceil(prog)) == 1;
     }
     
     protected void getStats(Job job, JobClient jobClient, boolean errNotDbg, PigContext pigContext) throws Exception {
@@ -494,7 +494,7 @@ public abstract class Launcher {
             	}
             	
             	StackTraceElement[] steArr = new StackTraceElement[stackTraceElements.size()];
-            	((Throwable)object).setStackTrace((StackTraceElement[])(stackTraceElements.toArray(steArr)));
+            	((Throwable)object).setStackTrace(stackTraceElements.toArray(steArr));
             	
             	if(startingLineNum < (stackTraceLines.length - 1)) {
             	    Throwable e = getExceptionFromStrings(stackTraceLines, startingLineNum);

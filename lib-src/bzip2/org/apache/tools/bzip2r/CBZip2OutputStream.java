@@ -1211,7 +1211,7 @@ public class CBZip2OutputStream extends OutputStream implements BZip2Constants {
             quadrant[i] = 0;
         }
 
-        block[0] = (char) (block[last + 1]);
+        block[0] = block[last + 1];
 
         if (last < 4000) {
             /*

@@ -355,9 +355,11 @@ public abstract class DefaultAbstractBag implements DataBag {
     }
 
     public static abstract class BagDelimiterTuple extends DefaultTuple{}
-    public static class StartBag extends BagDelimiterTuple{}
+    public static class StartBag extends BagDelimiterTuple{
+        private static final long serialVersionUID = 1L;}
     
-    public static class EndBag extends BagDelimiterTuple{}
+    public static class EndBag extends BagDelimiterTuple{
+        private static final long serialVersionUID = 1L;}
     
     public static final Tuple startBag = new StartBag();
     public static final Tuple endBag = new EndBag();

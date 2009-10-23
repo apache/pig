@@ -128,7 +128,7 @@ public class FloatMax extends EvalFunc<Float> implements Algebraic {
         float curMax = Float.NEGATIVE_INFINITY;
         boolean sawNonNull = false;
         for (Iterator<Tuple> it = values.iterator(); it.hasNext();) {
-            Tuple t = (Tuple)it.next();
+            Tuple t = it.next();
             try {
                 Float f = (Float)(t.get(0));
                 if (f == null) continue;

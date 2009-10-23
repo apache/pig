@@ -119,10 +119,10 @@ public class SpillableMemoryManager implements NotificationListener {
         try {
             
             spillFileSizeThreshold = Long.parseLong(
-                        (String) properties.getProperty("pig.spill.size.threshold") ) ;
+                    properties.getProperty("pig.spill.size.threshold") ) ;
             
             gcActivationSize = Long.parseLong(
-                    (String) properties.getProperty("pig.spill.gc.activation.size") ) ;
+                    properties.getProperty("pig.spill.gc.activation.size") ) ;
         } 
         catch (NumberFormatException  nfe) {
             throw new RuntimeException("Error while converting system configurations" +

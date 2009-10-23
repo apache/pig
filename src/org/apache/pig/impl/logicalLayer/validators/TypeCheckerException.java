@@ -21,6 +21,8 @@ import org.apache.pig.impl.plan.VisitorException;
 
 public class TypeCheckerException extends VisitorException {
 
+    private static final long serialVersionUID = 1L;
+
     /**
      * Create a new TypeCheckerException with null as the error message.
      */

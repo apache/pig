@@ -36,7 +36,8 @@ import org.apache.pig.backend.executionengine.ExecException;
  * a single Tuple non-serializable DataBag is required.
  */
 public class SingleTupleBag implements DataBag {
-    
+
+    private static final long serialVersionUID = 1L;
     Tuple item;
 
     public SingleTupleBag(Tuple t) {

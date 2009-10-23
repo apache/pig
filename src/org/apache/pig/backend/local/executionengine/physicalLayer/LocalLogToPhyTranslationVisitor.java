@@ -96,7 +96,7 @@ public class LocalLogToPhyTranslationVisitor extends LogToPhyTranslationVisitor 
                         .spawnChildWalker(lp);
                 pushWalker(childWalker);
                 mCurrentWalker.walk(this);
-                exprPlans.add((PhysicalPlan) currentPlan);
+                exprPlans.add(currentPlan);
                 popWalker();
 
             }
@@ -284,7 +284,7 @@ public class LocalLogToPhyTranslationVisitor extends LogToPhyTranslationVisitor 
         mCurrentWalker.walk(this);
         popWalker();
 
-        ((POSplitOutput) physOp).setPlan((PhysicalPlan) currentPlan);
+        ((POSplitOutput) physOp).setPlan(currentPlan);
         currentPlan = currentPlans.pop();
         currentPlan.add(physOp);
         PhysicalOperator from = logToPhyMap.get(split.getPlan()

@@ -30,6 +30,8 @@ import java.util.Collection;
  * other methods.
  */
 public class DataByteArray implements Comparable, Serializable {
+
+    private static final long serialVersionUID = 1L;
     byte[] mData = null;
 
     /**

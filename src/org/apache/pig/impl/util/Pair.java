@@ -23,6 +23,8 @@ import java.io.Serializable;
  * Copy of C++ STL pair container.
  */
 public class Pair<T, U> implements Serializable {
+
+    private static final long serialVersionUID = 1L;
     public T first;
     public U second;
 

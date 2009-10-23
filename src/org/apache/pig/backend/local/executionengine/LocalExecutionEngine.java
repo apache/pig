@@ -147,7 +147,7 @@ public class LocalExecutionEngine implements ExecutionEngine {
     public List<ExecJob> execute(PhysicalPlan plan, String jobName)
         throws ExecException {
         try {
-            PhysicalOperator leaf = (PhysicalOperator) plan.getLeaves().get(0);
+            PhysicalOperator leaf = plan.getLeaves().get(0);
             if (!(leaf instanceof POStore)) {
                 String scope = leaf.getOperatorKey().getScope();
                 POStore str = new POStore(new OperatorKey(scope,
