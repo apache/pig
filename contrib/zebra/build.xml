@@ -24,10 +24,10 @@ to call at top-level: ant deploy-contrib compile-core-test
 <project name="zebra" default="jar">
 
   <import file="build-contrib.xml"/>
-  <property name="zebraVersion" value="0.1.0" />
+  <property name="zebraVersion" value="0.2.0" />
 
   <!-- Override jar target to specify main class -->
-  <target name="jar" depends="compile">
+  <target name="jar" depends="compile" description="Build zebra jar">
     <jar
       jarfile="${build.dir}/${name}-${zebraVersion}.jar"
       basedir="${build.classes}"      
@@ -99,7 +99,7 @@ to call at top-level: ant deploy-contrib compile-core-test
   <!-- ================================================================== -->
   <!-- Run checkin tests                                                  -->
   <!-- ================================================================== -->
-  <target name="test" depends="compile-test, compile" if="test.available">
+  <target name="test" depends="compile-test, compile" if="test.available" description="Run check-in test">
     <echo message="contrib: ${name}"/>
     <delete dir="${pig.log.dir}"/>
     <mkdir dir="${pig.log.dir}"/>
@@ -126,7 +126,7 @@ to call at top-level: ant deploy-contrib compile-core-test
       <classpath refid="test.classpath"/>
       <formatter type="${test.junit.output.format}" />
 
-      <batchtest todir="${build.test}"  unless="testcase">
+      <batchtest todir="${build.test}" unless="testcase">
         <fileset dir="${src.test}"
                  includes="**/TestCheckin*.java" excludes="**/${test.exclude}.java" />
       </batchtest>
@@ -178,4 +178,106 @@ to call at top-level: ant deploy-contrib compile-core-test
     <fail if="tests.failed">Tests failed!</fail>
   </target>
 
+  <!-- ================================================================== -->
+  <!-- findbugs                                                           -->
+  <!-- ================================================================== -->
+  <target name="findbugs" depends="check-for-findbugs, jar" if="findbugs.present" description="Run findbugs if present">
+      <property name="findbugs.out.dir" value="${build.dir}/findbugs"/>
+      <property name="findbugs.report.htmlfile" value="${findbugs.out.dir}/zebra-findbugs-report.html"/>
+      <property name="findbugs.report.xmlfile" value="${findbugs.out.dir}/zebra-findbugs-report.xml"/>
+      <taskdef name="findbugs" classname="edu.umd.cs.findbugs.anttask.FindBugsTask"
+              classpath="${findbugs.home}/lib/findbugs-ant.jar" />
+      <mkdir dir="${findbugs.out.dir}"/>
+      <findbugs home="${findbugs.home}" output="xml:withMessages"
+              outputFile="${findbugs.report.xmlfile}" effort="max" jvmargs="-Xmx512M">
+            <sourcePath path="${src.dir}"/>
+            <class location="${build.dir}" />
+      </findbugs>
+      <xslt style="${findbugs.home}/src/xsl/default.xsl" in="${findbugs.report.xmlfile}"
+              out="${findbugs.report.htmlfile}"/>
+  </target>
+  
+  <target name="check-for-findbugs">
+      <available property="findbugs.present" file="${findbugs.home}/lib/findbugs.jar" />
+  </target>
+
+  <!-- ================================================================== -->
+  <!-- checkstyle                                                         -->
+  <!-- ================================================================== -->
+	<target name="checkstyle" depends="checkstyle.check, set-checkstyle-classpath" if="checkstyle.home"
+	        description="Run optional third-party tool targets">
+      <property name="checkstyle.dir" value="${build.dir}/checkstyle"/>
+	    <taskdef resource="checkstyletask.properties">
+	        <classpath refid="classpath"/>
+	        <classpath refid="checkstyle-classpath"/>
+	    </taskdef>
+	    <mkdir dir="${checkstyle.dir}"/>
+	    <checkstyle config="${checkstyle.dir}/checkstyle.xml" failOnViolation="false">
+	        <!--fileset dir="${src.dir}" includes="**/*.java" excludes="**/generated/**"/-->
+	        <fileset dir="${src.dir}" includes="**/*.java"/>
+	        <formatter type="xml" toFile="${checkstyle.dir}/checkstyle-errors.xml"/>
+	    </checkstyle>
+	    <xslt style="${checkstyle.dir}/checkstyle-noframes-sorted.xsl" in="${checkstyle.dir}/checkstyle-errors.xml"
+	        out="${checkstyle.dir}/checkstyle-errors.html"/>
+	</target>
+	
+	<target name="checkstyle.check" unless="checkstyle.home">
+	    <!--<fail message="'checkstyle.home' is not defined. Please pass -Dcheckstyle.home=&lt;base of checkstyle installation&gt; to Ant on the command-line." />-->
+	    <echo>
+        Checkstyle not found. Checkstyle disabled.
+      </echo>
+	</target>
+	
+	<target name="set-checkstyle-classpath">
+	    <path id="checkstyle-classpath">
+	        <fileset dir="${checkstyle.home}">
+	        <include name="**/*.jar"/>
+	         </fileset>
+	 </path>
+	</target>
+
+
+  <!-- ================================================================== -->
+  <!-- clover                                                             -->
+  <!-- ================================================================== -->
+  <target name="clover" depends="clover.setup, clover.info" description="Instrument the Unit tests using Clover.  
+ 	   To use, specify -Dclover.home=&lt;base of clover installation&gt; -Drun.clover=true on the command line."/>
+
+  <target name="clover.setup" if="clover.enabled">
+  	<taskdef resource="cloverlib.xml" classpath="${clover.jar}"/>
+     <mkdir dir="${clover.db.dir}"/>
+     <clover-setup initString="${clover.db.dir}/zebra_coverage.db">
+     	<fileset dir="src" includes="**/*.java"/>
+	 </clover-setup>
+  </target>
+
+  <target name="clover.info" unless="clover.present">
+    	<echo>
+     	Clover not found. Code coverage reports disabled.
+    	</echo>
+  </target>
+  
+  <target name="clover.check">
+    <fail unless="clover.present">
+      ##################################################################
+  	  	Clover not found.
+  	  	Please specify -Dclover.home=&lt;base of clover installation&gt;
+  	  	on the command line.
+      ##################################################################
+ 	  </fail>
+  </target>
+
+  <target name="generate-clover-reports" depends="clover.check, clover">
+    	<mkdir dir="${clover.report.dir}"/>
+ 	<clover-report>
+    		<current outfile="${clover.report.dir}" title="${final.name}">
+    	    		<format type="html"/>
+   	  	</current>
+ 	</clover-report>
+  <clover-report>
+         	<current outfile="${clover.report.dir}/clover.xml" title="${final.name}">
+           		<format type="xml"/>
+         	</current>
+       </clover-report>
+  </target> 
 </project>
