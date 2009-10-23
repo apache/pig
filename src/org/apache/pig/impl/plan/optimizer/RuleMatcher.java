@@ -50,7 +50,6 @@ public class RuleMatcher<O extends Operator, P extends OperatorPlan<O>> {
     private List<List<O>> mMatches = new ArrayList<List<O>>();
     private P mPlan; // for convenience.
     private int mNumCommonNodes = 0;
-    private List<RuleOperator> mCommonNodes = null;
 
     /**
      * Test a rule to see if it matches the current plan. Save all matched nodes using BFS
@@ -63,7 +62,6 @@ public class RuleMatcher<O extends Operator, P extends OperatorPlan<O>> {
         try {
             commonNodeFinder.visit();
             mNumCommonNodes = commonNodeFinder.getCount();
-            mCommonNodes = commonNodeFinder.getCommonNodes();
         } catch (VisitorException ve) {
             int errCode = 2125;
             String msg = "Internal error. Problem in computing common nodes in the Rule Plan.";

@@ -124,7 +124,6 @@ public class PigServer {
     private static int scopeCounter = 0;
     private String scope = constructScope();
 
-    private ArrayList<String> cachedScript = new ArrayList<String>();
     private boolean aggregateWarning = true;
     private boolean isMultiQuery = true;
     

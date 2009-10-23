@@ -45,7 +45,6 @@ public class LOPrinter extends LOVisitor {
     private String LSep = "|\n|---";
     private String USep = "|   |\n|   ";
     private int levelCntr = -1;
-    private OutputStream printer;
     private boolean isVerbose = true;
 
     /**
@@ -72,7 +71,6 @@ public class LOPrinter extends LOVisitor {
     }
 
     public void print(OutputStream printer) throws VisitorException, IOException {
-        this.printer = printer;
         printer.write(depthFirstLP().getBytes());
     }
 

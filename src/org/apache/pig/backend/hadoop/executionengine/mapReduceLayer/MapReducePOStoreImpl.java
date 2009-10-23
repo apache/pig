@@ -60,9 +60,6 @@ import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigOutputFor
  */
 public class MapReducePOStoreImpl extends POStoreImpl {
 
-    private PigContext pc;
-    private StoreFunc storer;
-    private FileSpec sFile;
     private Reporter reporter;
     private RecordWriter writer;
     private JobConf job;

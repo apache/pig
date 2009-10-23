@@ -29,7 +29,6 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 
-import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.pig.FuncSpec;
@@ -128,9 +127,6 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.util.PlanHelp
  *
  */
 public class MRCompiler extends PhyPlanVisitor {
-    
-    private Log log = LogFactory.getLog(getClass());
-    
     PigContext pigContext;
     
     //The plan that is being compiled
@@ -2068,8 +2064,6 @@ public class MRCompiler extends PhyPlanVisitor {
     }
 
     static class LastInputStreamingOptimizer extends MROpPlanVisitor {
-        
-        Log log = LogFactory.getLog(this.getClass());
         String chunkSize;
         LastInputStreamingOptimizer(MROperPlan plan, String chunkSize) {
             super(plan, new DepthFirstWalker<MapReduceOper, MROperPlan>(plan));

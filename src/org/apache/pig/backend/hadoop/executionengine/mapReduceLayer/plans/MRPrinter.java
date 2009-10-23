@@ -35,7 +35,6 @@ import org.apache.pig.impl.plan.VisitorException;
 public class MRPrinter extends MROpPlanVisitor {
 
     private PrintStream mStream = null;
-    private int mIndent = 0;
     private boolean isVerbose = true;
 
     /**

@@ -53,8 +53,6 @@ abstract public class Utf8StorageConverter {
     private Integer mMaxInt = Integer.valueOf(Integer.MAX_VALUE);
     private Long mMaxLong = Long.valueOf(Long.MAX_VALUE);
     private TextDataParser dataParser = null;
-    
-    private PigLogger pigLogger = PhysicalOperator.getPigLogger();
         
     public Utf8StorageConverter() {
     }

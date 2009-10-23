@@ -45,7 +45,6 @@ public class PlanPrinter<O extends Operator, P extends OperatorPlan<O>> extends 
     private String LSep = "|\n|---";
     private String USep = "|   |\n|   ";
     private int levelCntr = -1;
-    private OutputStream printer;
 
     /**
      * @param ps PrintStream to output plan information to
@@ -67,7 +66,6 @@ public class PlanPrinter<O extends Operator, P extends OperatorPlan<O>> extends 
     }
 
     public void print(OutputStream printer) throws VisitorException, IOException {
-        this.printer = printer;
         printer.write(depthFirst().getBytes());
     }
 

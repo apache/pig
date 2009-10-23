@@ -45,7 +45,6 @@ public class RulePlanPrinter extends RulePlanVisitor {
     private String LSep = "|\n|---";
     private String USep = "|   |\n|   ";
     private int levelCntr = -1;
-    private OutputStream printer;
 
     /**
      * @param ps PrintStream to output plan information to
@@ -67,7 +66,6 @@ public class RulePlanPrinter extends RulePlanVisitor {
     }
 
     public void print(OutputStream printer) throws VisitorException, IOException {
-        this.printer = printer;
         printer.write(depthFirst().getBytes());
     }
 
