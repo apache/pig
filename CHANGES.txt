@@ -78,6 +78,8 @@ PIG-1033: javac warnings: deprecated hadoop APIs (daijy)
 
 PIG-1041: javac warnings: cast, fallthrough, serial (daijy)
 
+PIG-1042: javac warnings: unchecked (daijy)
+
 OPTIMIZATIONS
 
 BUG FIXES

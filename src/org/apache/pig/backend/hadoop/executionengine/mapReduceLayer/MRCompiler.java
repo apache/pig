@@ -1526,6 +1526,8 @@ public class MRCompiler extends PhyPlanVisitor {
         }
     }
     
+    @SuppressWarnings("unchecked")
+    // Suppress the type conversion warning for Pair. There is no way to create a generic array
     private Pair<Integer, Byte>[] getSortCols(List<PhysicalPlan> plans) throws PlanException, ExecException {
         if(plans!=null){
             Pair[] ret = new Pair[plans.size()]; 

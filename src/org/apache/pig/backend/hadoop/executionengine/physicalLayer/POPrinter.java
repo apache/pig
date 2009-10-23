@@ -27,7 +27,7 @@ import org.apache.pig.impl.plan.DependencyOrderWalker;
 public class POPrinter extends PhyPlanVisitor {
 
     public POPrinter(PrintStream ps, PhysicalPlan pp) {
-        super(pp, new DependencyOrderWalker(pp));
+        super(pp, new DependencyOrderWalker<PhysicalOperator, PhysicalPlan>(pp));
     }
 
     // TODO FIX

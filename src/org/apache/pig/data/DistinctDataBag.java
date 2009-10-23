@@ -199,6 +199,7 @@ public class DistinctDataBag extends DefaultAbstractBag {
             public Tuple tuple;
             public int fileNum;
 
+            @SuppressWarnings("unchecked")
             public int compareTo(TContainer other) {
                 return tuple.compareTo(other.tuple);
             }
@@ -213,6 +214,7 @@ public class DistinctDataBag extends DefaultAbstractBag {
         private ArrayList<DataInputStream> mStreams = null;
         private int mCntr = 0;
 
+        @SuppressWarnings("unchecked")
         DistinctDataBagIterator() {
             // If this is the first read, we need to sort the data.
             synchronized (mContents) {

@@ -53,7 +53,7 @@ public class RulePlanPrinter extends RulePlanVisitor {
      */
     public RulePlanPrinter(PrintStream ps, RulePlan plan) {
         //super(plan, new DependencyOrderWalker(plan));
-        super(plan, new DepthFirstWalker(plan));
+        super(plan, new DepthFirstWalker<RuleOperator, RulePlan>(plan));
         mStream = ps;
     }
 

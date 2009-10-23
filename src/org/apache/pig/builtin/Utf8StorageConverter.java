@@ -204,6 +204,7 @@ abstract public class Utf8StorageConverter {
         }
     }
 
+    @SuppressWarnings("unchecked")
     public Map<String, Object> bytesToMap(byte[] b) throws IOException {
         if(b == null)
             return null;

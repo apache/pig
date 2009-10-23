@@ -39,6 +39,8 @@ import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.VisitorException;
 
+//We intentionally skip type checking in backend for performance reasons
+@SuppressWarnings("unchecked")
 public class POUserComparisonFunc extends ExpressionOperator {
 
 	/**

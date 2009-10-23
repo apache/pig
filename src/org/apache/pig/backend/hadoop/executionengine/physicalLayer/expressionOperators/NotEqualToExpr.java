@@ -111,6 +111,7 @@ public class NotEqualToExpr extends BinaryComparisonOperator {
         }
     }
 
+    @SuppressWarnings("unchecked")
     private Result doComparison(Result left, Result right) {
         if (trueRef == null) initializeRefs();
         if (left.returnStatus != POStatus.STATUS_OK) return left;

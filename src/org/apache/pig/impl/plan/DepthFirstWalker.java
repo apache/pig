@@ -54,6 +54,8 @@ public class DepthFirstWalker <O extends Operator, P extends OperatorPlan<O>>
         return new DepthFirstWalker<O, P>(plan);
     }
 
+    // Suppress "unchecked" warnings for all logical plan related classes. Will revisit in logical plan rework
+    @SuppressWarnings("unchecked")
     private void depthFirst(O node,
                             Collection<O> successors,
                             Set<O> seen,

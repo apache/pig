@@ -146,6 +146,7 @@ public class TargetedTuple implements Tuple {
         return t.toDelimitedString(delim);
     }
 
+    @SuppressWarnings("unchecked")
     public int compareTo(Object o) {
         return t.compareTo(o);
     }

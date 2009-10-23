@@ -319,6 +319,7 @@ public class HExecutionEngine implements ExecutionEngine {
         throw new UnsupportedOperationException();
     }
     
+    @SuppressWarnings("unchecked")
     private void setSSHFactory(){
         Properties properties = this.pigContext.getProperties();
         String g = properties.getProperty("ssh.gateway");

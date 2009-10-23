@@ -37,6 +37,9 @@ import org.apache.pig.pen.util.ExampleTuple;
  * that in getNext(), it knows that "input" has already been
  * attached by its input operator which SHOULD be POJoinPackage
  */
+
+//We intentionally skip type checking in backend for performance reasons
+@SuppressWarnings("unchecked")
 public class POOptimizedForEach extends POForEach {
 
     /**

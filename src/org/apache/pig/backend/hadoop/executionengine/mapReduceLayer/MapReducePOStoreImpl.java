@@ -79,6 +79,7 @@ public class MapReducePOStoreImpl extends POStoreImpl {
     }
 
     @Override
+    @SuppressWarnings({"unchecked"})
     public StoreFunc createStoreFunc(FileSpec sFile, Schema schema) 
         throws IOException {
 
@@ -144,7 +145,6 @@ public class MapReducePOStoreImpl extends POStoreImpl {
         // return an output collector using the writer we just created.
         return new StoreFuncAdaptor(new OutputCollector() 
             {
-                @SuppressWarnings({"unchecked"})
                 public void collect(Object key, Object value) throws IOException {
                     writer.write(key,value);
                 }
@@ -182,6 +182,8 @@ public class MapReducePOStoreImpl extends POStoreImpl {
      * to be used in the map reduce case. It will allow to use an output
      * collector instead of an output stream to write tuples.
      */
+    //We intentionally skip type checking in backend for performance reasons
+    @SuppressWarnings("unchecked")
     private class StoreFuncAdaptor implements StoreFunc {
         private OutputCollector collector;
         

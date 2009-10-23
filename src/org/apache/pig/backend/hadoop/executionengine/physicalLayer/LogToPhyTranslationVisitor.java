@@ -1230,6 +1230,7 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
         }
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     public void visit(LOProject op) throws VisitorException {
         String scope = op.getOperatorKey().scope;

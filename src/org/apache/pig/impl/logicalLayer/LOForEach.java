@@ -750,7 +750,7 @@ public class LOForEach extends RelationalOperator {
      * @see org.apache.pig.impl.plan.Operator#rewire(org.apache.pig.impl.plan.Operator, org.apache.pig.impl.plan.Operator)
      */
     @Override
-    public void rewire(Operator oldPred, int oldPredIndex, Operator newPred, boolean useOldPred) throws PlanException {
+    public void rewire(Operator<LOVisitor> oldPred, int oldPredIndex, Operator<LOVisitor> newPred, boolean useOldPred) throws PlanException {
         super.rewire(oldPred, oldPredIndex, newPred, useOldPred);
         LogicalOperator previous = (LogicalOperator) oldPred;
         LogicalOperator current = (LogicalOperator) newPred;

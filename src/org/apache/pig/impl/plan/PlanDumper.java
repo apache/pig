@@ -93,6 +93,7 @@ public class PlanDumper<E extends Operator,
      * @param plan Plan that the new dumper should handle
      * @return the dumper for plan
      */
+    @SuppressWarnings("unchecked")
     protected PlanDumper makeDumper(S plan, PrintStream ps) {
         return new PlanDumper(plan, ps);
     }

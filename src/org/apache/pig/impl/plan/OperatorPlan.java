@@ -63,6 +63,9 @@ import org.apache.pig.impl.util.MultiMap;
  * has resulted in a slightly less maintainable code along with the necessity to use
  * rewire with discretion.
  */
+
+// Suppress "unchecked" warnings for all logical plan related classes. Will revisit in logical plan rework
+@SuppressWarnings("unchecked")
 public abstract class OperatorPlan<E extends Operator> implements Iterable<E>, Serializable, Cloneable {
     protected Map<E, OperatorKey> mOps;
     protected Map<OperatorKey, E> mKeys;
@@ -316,13 +319,13 @@ public abstract class OperatorPlan<E extends Operator> implements Iterable<E>, S
         // Find all of the from edges, as I have to remove all the associated to
         // edges.  Need to make a copy so we can delete from the map without
         // screwing up our iterator.
-        Collection c = fromMap.get(op);
+        Collection<E> c = fromMap.get(op);
         if (c == null) return;
 
-        ArrayList al = new ArrayList(c);
-        Iterator i = al.iterator();
+        ArrayList<E> al = new ArrayList<E>(c);
+        Iterator<E> i = al.iterator();
         while (i.hasNext()) {
-            E to = (E)i.next();
+            E to = i.next();
             toMap.remove(to, op);
             fromMap.remove(op, to);
         }
