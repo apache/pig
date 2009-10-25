@@ -746,7 +746,7 @@ public class GruntParser extends PigScriptParser {
         }
     }
     
-    private class ExplainState {
+    private static class ExplainState {
         public long mTime;
         public int mCount;
         public String mAlias;

@@ -123,7 +123,7 @@ class NoopStoreRemover extends MROpPlanVisitor {
         }
     }
 
-    private class RemovableStore {
+    private static class RemovableStore {
         public PhysicalPlan storePlan;
         public PhysicalPlan plan;
         public POSplit split;

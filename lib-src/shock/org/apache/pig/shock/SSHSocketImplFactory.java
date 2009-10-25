@@ -146,7 +146,7 @@ public class SSHSocketImplFactory implements SocketImplFactory, Logger {
         log.error(arg0 + ": " + arg1);
     }
 
-    class SSHProcess extends Process {
+    static class SSHProcess extends Process {
         ChannelExec channel;
 
         InputStream is;

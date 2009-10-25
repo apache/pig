@@ -2425,7 +2425,7 @@ public class MRCompiler extends PhyPlanVisitor {
         }
     }
 
-    private class FindKeyTypeVisitor extends PhyPlanVisitor {
+    private static class FindKeyTypeVisitor extends PhyPlanVisitor {
 
         byte keyType = DataType.UNKNOWN;
 

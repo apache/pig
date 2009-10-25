@@ -227,7 +227,7 @@ public class POCogroup extends PhysicalOperator {
 	return false;
     }
     
-    private class groupComparator implements Comparator<Tuple> {
+    private static class groupComparator implements Comparator<Tuple> {
 
 	public int compare(Tuple o1, Tuple o2) {
 	    //We want to make it as efficient as possible by only comparing the keys
