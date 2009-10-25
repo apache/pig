@@ -181,7 +181,7 @@ public class MapReducePOStoreImpl extends POStoreImpl {
      */
     //We intentionally skip type checking in backend for performance reasons
     @SuppressWarnings("unchecked")
-    private class StoreFuncAdaptor implements StoreFunc {
+    private static class StoreFuncAdaptor implements StoreFunc {
         private OutputCollector collector;
         
         public StoreFuncAdaptor(OutputCollector collector) {

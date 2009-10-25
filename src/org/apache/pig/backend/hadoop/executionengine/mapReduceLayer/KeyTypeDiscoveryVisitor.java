@@ -99,7 +99,7 @@ public class KeyTypeDiscoveryVisitor extends MROpPlanVisitor {
         }
     }
     
-    class PhyPlanKeyTypeVisitor extends PhyPlanVisitor {
+    static class PhyPlanKeyTypeVisitor extends PhyPlanVisitor {
         
         private MapReduceOper mro;
         private boolean foundKeyType = false;
