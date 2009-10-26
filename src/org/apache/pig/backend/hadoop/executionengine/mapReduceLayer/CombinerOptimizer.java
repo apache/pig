@@ -677,7 +677,7 @@ public class CombinerOptimizer extends MROpPlanVisitor {
         rearrange.setPlansFromCombiner(plans);
     }
 
-    private class AlgebraicPlanChecker extends PhyPlanVisitor {
+    private static class AlgebraicPlanChecker extends PhyPlanVisitor {
         boolean sawNonAlgebraic = false;
         boolean sawDistinctAgg = false;
         private boolean sawForeach = false;
@@ -812,7 +812,7 @@ public class CombinerOptimizer extends MROpPlanVisitor {
      * with 
      * POUserFunc(org.apache.pig.builtin.Distinct)[DataBag]    
      */
-    private class DistinctPatcher extends PhyPlanVisitor {
+    private static class DistinctPatcher extends PhyPlanVisitor {
 
         public boolean patched = false;
         /**
@@ -884,7 +884,7 @@ public class CombinerOptimizer extends MROpPlanVisitor {
 
     }
     
-    private class fixMapProjects extends PhyPlanVisitor {
+    private static class fixMapProjects extends PhyPlanVisitor {
 
         public fixMapProjects(PhysicalPlan plan) {
             this(plan, new DepthFirstWalker<PhysicalOperator, PhysicalPlan>(

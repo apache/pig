@@ -1312,7 +1312,7 @@ public class TypeCheckingVisitor extends LOVisitor {
         return null;
     }
 
-    private class ScoreFuncSpecListComparator implements Comparator<Pair<Long, FuncSpec>> {
+    private static class ScoreFuncSpecListComparator implements Comparator<Pair<Long, FuncSpec>> {
 
         /* (non-Javadoc)
          * @see java.util.Comparator#compare(java.lang.Object, java.lang.Object)

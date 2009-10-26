@@ -131,7 +131,7 @@ public class POPackageAnnotator extends MROpPlanVisitor {
      * which will get a reference to the POPacakge
      * present in the plan
      */
-    class PackageDiscoverer extends PhyPlanVisitor {
+    static class PackageDiscoverer extends PhyPlanVisitor {
 
         private POPackage pkg;
         
@@ -181,7 +181,7 @@ public class POPackageAnnotator extends MROpPlanVisitor {
      * in the LocalRearrange (regarding columns in the "value"
      * present in the "key")
      */
-    class LoRearrangeDiscoverer extends PhyPlanVisitor {
+    static class LoRearrangeDiscoverer extends PhyPlanVisitor {
         
         private int loRearrangeFound = 0;
         private POPackage pkg;

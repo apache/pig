@@ -127,5 +127,9 @@
         <Class name="org.apache.pig.impl.util.SpillableMemoryManager" />
         <Bug pattern="DM_GC" />
     </Match>
+    <Match>
+        <Class name="org.apache.pig.data.DistinctDataBag$DistinctDataBagIterator$TContainer" />
+        <Bug pattern="SIC_INNER_SHOULD_BE_STATIC" />
+    </Match>
 
 </FindBugsFilter>

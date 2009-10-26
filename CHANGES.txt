@@ -28,6 +28,9 @@ IMPROVEMENTS
 
 PIG-1045: Integration with Hadoop 20 New API (rding via pradeepkth)
 
+PIG-1043: FINDBUGS: SIC_INNER_SHOULD_BE_STATIC: Should be a static inner class
+(olgan)
+
 PIG-1047: FINDBUGS: URF_UNREAD_FIELD: Unread field (olgan)
 
 PIG-1032: FINDBUGS: DM_STRING_CTOR: Method invokes inefficient new
