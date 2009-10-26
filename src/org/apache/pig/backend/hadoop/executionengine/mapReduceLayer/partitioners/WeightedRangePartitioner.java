@@ -17,27 +17,26 @@
  */
 package org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.partitioners;
 
-
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import org.apache.hadoop.conf.Configurable;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.RawComparator;
 import org.apache.hadoop.io.Writable;
-import org.apache.hadoop.mapred.JobConf;
-import org.apache.hadoop.mapred.Partitioner;
+import org.apache.hadoop.mapreduce.Partitioner;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.HDataType;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce;
 import org.apache.pig.builtin.BinStorage;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.InternalMap;
 import org.apache.pig.data.Tuple;
-import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.builtin.FindQuantiles;
 import org.apache.pig.impl.io.BufferedPositionedInputStream;
 import org.apache.pig.impl.io.FileLocalizer;
@@ -53,14 +52,23 @@ import org.apache.pig.impl.io.PigNullableWritable;
 import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.impl.util.Pair;
 
-public class WeightedRangePartitioner implements Partitioner<PigNullableWritable, Writable> {
+public class WeightedRangePartitioner extends Partitioner<PigNullableWritable, Writable>   
+                                      implements Configurable {
     PigNullableWritable[] quantiles;
     RawComparator<PigNullableWritable> comparator;
-    public static Map<PigNullableWritable,DiscreteProbabilitySampleGenerator> weightedParts = new HashMap<PigNullableWritable, DiscreteProbabilitySampleGenerator>();
-    JobConf job;
+    public static Map<PigNullableWritable,DiscreteProbabilitySampleGenerator> weightedParts 
+        = new HashMap<PigNullableWritable, DiscreteProbabilitySampleGenerator>();
+    
+    Configuration job;
 
+    @SuppressWarnings("unchecked")
+    @Override
     public int getPartition(PigNullableWritable key, Writable value,
             int numPartitions){
+        if (comparator == null) {
+            comparator = (RawComparator<PigNullableWritable>)PigMapReduce.sJobContext.getSortComparator();
+        }
+        
         if(!weightedParts.containsKey(key)){
             int index = Arrays.binarySearch(quantiles, key, comparator);
             if (index < 0)
@@ -74,10 +82,12 @@ public class WeightedRangePartitioner implements Partitioner<PigNullableWritable
     }
 
     @SuppressWarnings("unchecked")
-    public void configure(JobConf job) {
-        this.job = job;
+    @Override
+    public void setConf(Configuration configuration) {
+        job = configuration;
+
         String quantilesFile = job.get("pig.quantilesFile", "");
-        comparator = job.getOutputKeyComparator();
+
         if (quantilesFile.length() == 0)
             throw new RuntimeException(this.getClass().getSimpleName() + " used but no quantiles found");
         
@@ -154,10 +164,6 @@ public class WeightedRangePartitioner implements Partitioner<PigNullableWritable
         }
     }
 
-    private boolean areEqual(PigNullableWritable sample, PigNullableWritable writable) {
-        return comparator.compare(sample, writable)==0;
-    }
-
     private void convertToArray(
             DataBag quantilesListAsBag) {
         ArrayList<PigNullableWritable> quantilesList = getList(quantilesListAsBag);
@@ -193,4 +199,11 @@ public class WeightedRangePartitioner implements Partitioner<PigNullableWritable
         }
         return list;
     }
+
+    @Override
+    public Configuration getConf() {
+        return job;
+    }
+
+
 }

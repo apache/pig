@@ -23,12 +23,12 @@ import java.text.NumberFormat;
 import java.util.Date;
 import java.util.List;
 
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.FileUtil;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.mapred.JobConf;
-import org.apache.hadoop.mapred.TaskAttemptID;
+import org.apache.hadoop.mapreduce.TaskAttemptID;
 import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce;
@@ -57,7 +57,7 @@ public class HadoopExecutableManager extends ExecutableManager {
       return "part-" + NUMBER_FORMAT.format(partition);
     }
 
-    JobConf job;
+    Configuration job;
     
     String scriptOutputDir;
     String scriptLogDir;
@@ -168,10 +168,6 @@ public class HadoopExecutableManager extends ExecutableManager {
      */
     private boolean writeErrorToHDFS(int limit, String taskId) {
         if (command.getPersistStderr()) {
-            // These are hard-coded begin/end offsets a Hadoop *taskid*
-            int beginIndex = 25, endIndex = 31;   
-
-            //int tipId = Integer.parseInt(taskId.substring(beginIndex, endIndex));
             int tipId = TaskAttemptID.forName(taskId).getTaskID().getId();
             return tipId < command.getLogFilesLimit();
         }

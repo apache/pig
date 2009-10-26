@@ -107,9 +107,17 @@ public class PigSlice implements Slice {
         // set the right sample size
         if (loader instanceof SampleLoader) {
         	try {
-	          	PigContext pc = (PigContext) ObjectSerializer.deserialize(((HDataStorage)base).getConfiguration().getProperty("pig.pigContext"));
+	          	PigContext pc = (PigContext) ObjectSerializer.deserialize(
+	          	        ((HDataStorage)base).getConfiguration().getProperty("pig.pigContext"));
 	          	ArrayList<Pair<FileSpec, Boolean>> inputs = 
-	          		(ArrayList<Pair<FileSpec, Boolean>>) ObjectSerializer.deserialize(((HDataStorage)base).getConfiguration().getProperty("pig.inputs"));
+	          		(ArrayList<Pair<FileSpec, Boolean>>) ObjectSerializer.deserialize(
+	          		        ((HDataStorage)base).getConfiguration().getProperty("pig.inputs"));
+	          	
+	          	// XXX hadoop 20 new API integration: get around a hadoop 20 bug 
+	          	// by passing splits count to the back-end. This value is needed 
+	          	// by PoissonSampleLoader to compute the number of samples
+	          	String val = base.getConfiguration().getProperty("pig.mapsplits.count");
+	          	pc.getProperties().setProperty("pig.mapsplits.count", val);
 	          	
 	          	((SampleLoader)loader).computeSamples(inputs, pc);	          	
 	        } catch (Exception e) {

@@ -773,7 +773,7 @@ public class PigServer {
         PhysicalPlan pp = compilePp(compiledLp);
         // execute using appropriate engine
         FileLocalizer.clearDeleteOnFail();
-        List<ExecJob> execJobs = pigContext.getExecutionEngine().execute(pp, "execute");
+        List<ExecJob> execJobs = pigContext.getExecutionEngine().execute(pp, "job_pigexec_");
         for (ExecJob execJob: execJobs) {
             if (execJob.getStatus()==ExecJob.JOB_STATUS.FAILED) {
                 FileLocalizer.triggerDeleteOnFail();

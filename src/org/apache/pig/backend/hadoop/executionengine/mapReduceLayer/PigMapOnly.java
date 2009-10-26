@@ -17,31 +17,9 @@
  */
 package org.apache.pig.backend.hadoop.executionengine.mapReduceLayer;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.util.List;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.apache.hadoop.io.Text;
-import org.apache.hadoop.io.Writable;
-import org.apache.hadoop.io.WritableComparable;
-import org.apache.hadoop.mapred.JobConf;
-import org.apache.hadoop.mapred.MapReduceBase;
-import org.apache.hadoop.mapred.Mapper;
-import org.apache.hadoop.mapred.OutputCollector;
-import org.apache.hadoop.mapred.Reporter;
-import org.apache.pig.backend.executionengine.ExecException;
-import org.apache.pig.data.TargetedTuple;
 import org.apache.pig.data.Tuple;
-import org.apache.pig.impl.plan.OperatorKey;
-import org.apache.pig.impl.io.PigNullableWritable;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
-import org.apache.pig.impl.util.ObjectSerializer;
 
 /**
  * This class is the static Mapper class used by Pig
@@ -62,12 +40,12 @@ import org.apache.pig.impl.util.ObjectSerializer;
 
 public class PigMapOnly {
 
-    public static class Map extends PigMapBase implements
-            Mapper<Text, Tuple, PigNullableWritable, Writable> {
+    public static class Map extends PigMapBase {
 
         @Override
-        public void collect(OutputCollector<PigNullableWritable, Writable> oc, Tuple tuple) throws ExecException, IOException {
-            oc.collect(null, tuple);
+        public void collect(Context oc, Tuple tuple) 
+                throws InterruptedException, IOException {            
+            oc.write(null, tuple);
         }
     }
 }

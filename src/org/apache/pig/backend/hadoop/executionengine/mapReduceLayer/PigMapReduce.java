@@ -25,42 +25,34 @@ import java.util.List;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.hadoop.io.Text;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Writable;
-import org.apache.hadoop.mapred.JobConf;
-import org.apache.hadoop.mapred.MapReduceBase;
-import org.apache.hadoop.mapred.Mapper;
-import org.apache.hadoop.mapred.OutputCollector;
-import org.apache.hadoop.mapred.Reducer;
-import org.apache.hadoop.mapred.Reporter;
+import org.apache.hadoop.mapreduce.JobContext;
+import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.log4j.PropertyConfigurator;
-
 import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.HDataType;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POJoinPackage;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPackage;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.util.PlanHelper;
+import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
-import org.apache.pig.data.TargetedTuple;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
-import org.apache.pig.impl.io.PigNullableWritable;
+import org.apache.pig.impl.io.NullablePartitionWritable;
 import org.apache.pig.impl.io.NullableTuple;
+import org.apache.pig.impl.io.PigNullableWritable;
 import org.apache.pig.impl.plan.DependencyOrderWalker;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.impl.util.SpillableMemoryManager;
-import org.apache.pig.impl.util.WrappedIOException;
-
-import org.apache.pig.data.DataBag;
-import org.apache.pig.impl.io.NullablePartitionWritable;
 
 /**
  * This class is the static Mapper &amp; Reducer classes that
@@ -87,25 +79,29 @@ import org.apache.pig.impl.io.NullablePartitionWritable;
  */
 public class PigMapReduce {
 
-    public static JobConf sJobConf = null;
+    public static JobContext sJobContext = null;
+    public static Configuration sJobConf = null;
     private final static Tuple DUMMYTUPLE = null;
     
-    public static class Map extends PigMapBase implements
-            Mapper<Text, Tuple, PigNullableWritable, Writable> {
+    public static class Map extends PigMapBase {
 
         @Override
-        public void collect(OutputCollector<PigNullableWritable, Writable> oc, Tuple tuple) throws ExecException, IOException {
+        public void collect(Context oc, Tuple tuple) 
+                throws InterruptedException, IOException {
+            
             Byte index = (Byte)tuple.get(0);
             PigNullableWritable key =
                 HDataType.getWritableComparableTypes(tuple.get(1), keyType);
             NullableTuple val = new NullableTuple((Tuple)tuple.get(2));
+            
             // Both the key and the value need the index.  The key needs it so
             // that it can be sorted on the index in addition to the key
             // value.  The value needs it so that POPackage can properly
             // assign the tuple to its slot in the projection.
             key.setIndex(index);
-            val.setIndex(index);
-            oc.collect(key, val);
+            val.setIndex(index);         	
+            	
+            oc.write(key, val);
         }
     }
     
@@ -115,12 +111,12 @@ public class PigMapReduce {
      * to be handed tuples. Hence this map class ensures that the "key" used
      * in the order by is wrapped into a tuple (if it isn't already a tuple)
      */
-    public static class MapWithComparator extends PigMapBase implements
-            Mapper<Text, Tuple, PigNullableWritable, Writable> {
+    public static class MapWithComparator extends PigMapBase {
 
         @Override
-        public void collect(OutputCollector<PigNullableWritable, Writable> oc,
-                Tuple tuple) throws ExecException, IOException {
+        public void collect(Context oc, Tuple tuple) 
+                throws InterruptedException, IOException {
+            
             Object keyTuple = null;
             if(keyType != DataType.TUPLE) {
                 Object k = tuple.get(1);
@@ -134,110 +130,115 @@ public class PigMapReduce {
             PigNullableWritable key =
                 HDataType.getWritableComparableTypes(keyTuple, DataType.TUPLE);
             NullableTuple val = new NullableTuple((Tuple)tuple.get(2));
+            
             // Both the key and the value need the index.  The key needs it so
             // that it can be sorted on the index in addition to the key
             // value.  The value needs it so that POPackage can properly
             // assign the tuple to its slot in the projection.
             key.setIndex(index);
             val.setIndex(index);
-            oc.collect(key, val);
+
+            oc.write(key, val);
         }
     }
 
-	/**
-	 * Used by Skewed Join
-	 */
-    public static class MapWithPartitionIndex extends Map implements
-            Mapper<Text, Tuple, PigNullableWritable, Writable> {    	
+    /**
+     * Used by Skewed Join
+     */
+    public static class MapWithPartitionIndex extends Map {
 
         @Override
-        public void collect(OutputCollector<PigNullableWritable, Writable> oc, Tuple tuple) throws ExecException, IOException {			
-			Byte tupleKeyIdx = 2;
-			Byte tupleValIdx = 3;
+        public void collect(Context oc, Tuple tuple) 
+                throws InterruptedException, IOException {
+            
+            Byte tupleKeyIdx = 2;
+            Byte tupleValIdx = 3;
 
             Byte index = (Byte)tuple.get(0);
-			Byte partitionIndex = -1;
-        	// for partitioning table, the partition index isn't present
-			if (tuple.size() == 3) {
-				//super.collect(oc, tuple);
-				//return;
-				tupleKeyIdx--;
-				tupleValIdx--;
-			} else {
-				partitionIndex = (Byte)tuple.get(1);
-			}
+            Byte partitionIndex = -1;
+            // for partitioning table, the partition index isn't present
+            if (tuple.size() == 3) {
+                //super.collect(oc, tuple);
+                //return;
+                tupleKeyIdx--;
+                tupleValIdx--;
+            } else {
+                partitionIndex = (Byte)tuple.get(1);
+            }
 
             PigNullableWritable key =
                 HDataType.getWritableComparableTypes(tuple.get(tupleKeyIdx), DataType.TUPLE);
 
-			NullablePartitionWritable wrappedKey = new NullablePartitionWritable(key);
-			//key.setIndex(index);
-			//NullableTuple wrappedKey = new NullableTuple((Tuple)tuple);
+            NullablePartitionWritable wrappedKey = new NullablePartitionWritable(key);
 
-			NullableTuple val = new NullableTuple((Tuple)tuple.get(tupleValIdx));
+            NullableTuple val = new NullableTuple((Tuple)tuple.get(tupleValIdx));
+            
             // Both the key and the value need the index.  The key needs it so
             // that it can be sorted on the index in addition to the key
             // value.  The value needs it so that POPackage can properly
             // assign the tuple to its slot in the projection.
             wrappedKey.setIndex(index);
-			// set the partition
-			wrappedKey.setPartition(partitionIndex);
-			val.setIndex(index);
-            oc.collect(wrappedKey, val);
-            //oc.collect(key, val);
+            
+            // set the partition
+            wrappedKey.setPartition(partitionIndex);
+            val.setIndex(index);
+
+            oc.write(wrappedKey, val);
         }
 
-		@Override
-		protected void runPipeline(PhysicalOperator leaf) throws IOException, ExecException {			
-			while(true){								
-				Result res = leaf.getNext(DUMMYTUPLE);
-				
-				if(res.returnStatus==POStatus.STATUS_OK){
-					// For POPartitionRearrange, the result is a bag. This operator is used for 
-					// skewed join
-					if (res.result instanceof DataBag) {					
-						Iterator<Tuple> its = ((DataBag)res.result).iterator();
-						while(its.hasNext()) {																
-							collect(outputCollector, its.next());
-						}
-					}else{											
-						collect(outputCollector, (Tuple)res.result);
-					}
-					continue;
-				}
-				
-				if(res.returnStatus==POStatus.STATUS_EOP) {
-					return;
-				}
-				
-				if(res.returnStatus==POStatus.STATUS_NULL)
-					continue;
-				
-				if(res.returnStatus==POStatus.STATUS_ERR){
-					// remember that we had an issue so that in 
-					// close() we can do the right thing
-					errorInMap  = true;
-					// if there is an errmessage use it
-					String errMsg;
-					if(res.result != null) {
-						errMsg = "Received Error while " +
-						"processing the map plan: " + res.result;
-					} else {
-						errMsg = "Received Error while " +
-						"processing the map plan.";
-					}
-						
-					int errCode = 2055;
-					ExecException ee = new ExecException(errMsg, errCode, PigException.BUG);
-					throw ee;
-				}
-			}
-		}
-	}
+        @Override
+        protected void runPipeline(PhysicalOperator leaf) 
+                throws IOException, InterruptedException {
+            
+            while(true){
+                Result res = leaf.getNext(DUMMYTUPLE);
+                
+                if(res.returnStatus==POStatus.STATUS_OK){
+                    // For POPartitionRearrange, the result is a bag. 
+                    // This operator is used for skewed join
+                    if (res.result instanceof DataBag) {
+                        Iterator<Tuple> its = ((DataBag)res.result).iterator();
+                        while(its.hasNext()) {
+                            collect(outputCollector, its.next());
+                        }
+                    }else{
+                        collect(outputCollector, (Tuple)res.result);
+                    }
+                    continue;
+                }
+                
+                if(res.returnStatus==POStatus.STATUS_EOP) {
+                    return;
+                }
 
-    public static class Reduce extends MapReduceBase
-            implements
-            Reducer<PigNullableWritable, NullableTuple, PigNullableWritable, Writable> {
+                if(res.returnStatus==POStatus.STATUS_NULL) {
+                    continue;
+                }
+
+                if(res.returnStatus==POStatus.STATUS_ERR){
+                    // remember that we had an issue so that in 
+                    // close() we can do the right thing
+                    errorInMap  = true;
+                    // if there is an errmessage use it
+                    String errMsg;
+                    if(res.result != null) {
+                        errMsg = "Received Error while " +
+                            "processing the map plan: " + res.result;
+                    } else {
+                        errMsg = "Received Error while " +
+                            "processing the map plan.";
+                    }
+
+                    int errCode = 2055;
+                    throw new ExecException(errMsg, errCode, PigException.BUG);
+                }
+            }
+        }
+    }
+
+    public static class Reduce 
+            extends Reducer <PigNullableWritable, NullableTuple, PigNullableWritable, Writable> {
+        
         protected final Log log = LogFactory.getLog(getClass());
         
         //The reduce plan
@@ -255,7 +256,7 @@ public class PigMapReduce {
         
         ProgressableReporter pigReporter;
 
-        protected OutputCollector<PigNullableWritable, Writable> outputCollector;
+        protected Context outputCollector;
 
         protected boolean errorInReduce = false;
         
@@ -272,10 +273,13 @@ public class PigMapReduce {
          */
         @SuppressWarnings("unchecked")
         @Override
-        public void configure(JobConf jConf) {
-            super.configure(jConf);
+        protected void setup(Context context) throws IOException, InterruptedException {
+            super.setup(context);
+            
+            Configuration jConf = context.getConfiguration();
             SpillableMemoryManager.configure(ConfigurationUtil.toProperties(jConf));
-            sJobConf = jConf;
+            sJobContext = context;
+            sJobConf = context.getConfiguration();
             try {
                 PigContext.setPackageImportList((ArrayList<String>)ObjectSerializer.deserialize(jConf.get("udf.import.list")));
                 pigContext = (PigContext)ObjectSerializer.deserialize(jConf.get("pig.pigContext"));
@@ -297,8 +301,6 @@ public class PigMapReduce {
                 }
                 // till here
                 
-                long sleepTime = jConf.getLong("pig.reporter.sleep.time", 10000);
-
                 pigReporter = new ProgressableReporter();
                 if(!(rp.isEmpty())) {
                     roots = rp.getRoots().toArray(new PhysicalOperator[1]);
@@ -315,37 +317,36 @@ public class PigMapReduce {
          * into key, Bag&lt;Tuple&gt; after converting Hadoop type key into Pig type.
          * The package result is either collected as is, if the reduce plan is
          * empty or after passing through the reduce plan.
-         */
-        public void reduce(PigNullableWritable key,
-                Iterator<NullableTuple> tupIter,
-                OutputCollector<PigNullableWritable, Writable> oc,
-                Reporter reporter) throws IOException {
+         */       
+        @Override
+        protected void reduce(PigNullableWritable key, Iterable<NullableTuple> tupIter, Context context) 
+                throws IOException, InterruptedException {            
             
             if (!initialized) {
                 initialized = true;
                 
                 // cache the collector for use in runPipeline()
                 // which could additionally be called from close()
-                this.outputCollector = oc;
-                pigReporter.setRep(reporter);
+                this.outputCollector = context;
+                pigReporter.setRep(context);
                 PhysicalOperator.setReporter(pigReporter);
 
                 boolean aggregateWarning = "true".equalsIgnoreCase(pigContext.getProperties().getProperty("aggregate.warning"));
-	        
+
                 PigHadoopLogger pigHadoopLogger = PigHadoopLogger.getInstance();
                 pigHadoopLogger.setAggregate(aggregateWarning);
-                pigHadoopLogger.setReporter(reporter);
+                pigHadoopLogger.setReporter(context);
+                
                 PhysicalOperator.setPigLogger(pigHadoopLogger);
 
                 for (POStore store: stores) {
                     MapReducePOStoreImpl impl 
-                        = new MapReducePOStoreImpl(PigMapReduce.sJobConf);
-                    impl.setReporter(reporter);
+                        = new MapReducePOStoreImpl(context);
                     store.setStoreImpl(impl);
                     store.setUp();
                 }
             }
-
+          
             // In the case we optimize the join, we combine
             // POPackage and POForeach - so we could get many
             // tuples out of the getnext() call of POJoinPackage
@@ -353,72 +354,76 @@ public class PigMapReduce {
             // POJoinPacakage.getNext()
             if (pack instanceof POJoinPackage)
             {
-                pack.attachInput(key, tupIter);
+                pack.attachInput(key, tupIter.iterator());
                 while (true)
                 {
-                    if (processOnePackageOutput(oc))
+                    if (processOnePackageOutput(context))
                         break;
                 }
             }
             else {
                 // join is not optimized, so package will
                 // give only one tuple out for the key
-                pack.attachInput(key, tupIter);
-                processOnePackageOutput(oc);
-            }
+                pack.attachInput(key, tupIter.iterator());
+                processOnePackageOutput(context);
+            } 
         }
         
         // return: false-more output
         //         true- end of processing
-        public boolean processOnePackageOutput(OutputCollector<PigNullableWritable, Writable> oc) throws IOException
-        {
-            try {
-                Result res = pack.getNext(DUMMYTUPLE);
-                if(res.returnStatus==POStatus.STATUS_OK){
-                    Tuple packRes = (Tuple)res.result;
-                    
-                    if(rp.isEmpty()){
-                        oc.collect(null, packRes);
-                        return false;
-                    }
-                    for (int i = 0; i < roots.length; i++) {
-                        roots[i].attachInput(packRes);
-                    }
-                    runPipeline(leaf);
-                    
-                }
+        public boolean processOnePackageOutput(Context oc) 
+                throws IOException, InterruptedException {
+
+            Result res = pack.getNext(DUMMYTUPLE);
+            if(res.returnStatus==POStatus.STATUS_OK){
+                Tuple packRes = (Tuple)res.result;
                 
-                if(res.returnStatus==POStatus.STATUS_NULL) {
+                if(rp.isEmpty()){
+                    oc.write(null, packRes);
                     return false;
                 }
-                
-                if(res.returnStatus==POStatus.STATUS_ERR){
-                    int errCode = 2093;
-                    String msg = "Encountered error in package operator while processing group.";
-                    throw new ExecException(msg, errCode, PigException.BUG);
+                for (int i = 0; i < roots.length; i++) {
+                    roots[i].attachInput(packRes);
                 }
+                runPipeline(leaf);
                 
-                if(res.returnStatus==POStatus.STATUS_EOP) {
-                    return true;
-                }
-                    
-                return false;
-            } catch (ExecException e) {
-                throw e;
             }
+            
+            if(res.returnStatus==POStatus.STATUS_NULL) {
+                return false;
+            }
+            
+            if(res.returnStatus==POStatus.STATUS_ERR){
+                int errCode = 2093;
+                String msg = "Encountered error in package operator while processing group.";
+                throw new ExecException(msg, errCode, PigException.BUG);
+            }
+            
+            if(res.returnStatus==POStatus.STATUS_EOP) {
+                return true;
+            }
+                
+            return false;
+            
         }
         
         /**
          * @param leaf
-         * @throws ExecException 
+         * @throws InterruptedException
          * @throws IOException 
          */
-        protected void runPipeline(PhysicalOperator leaf) throws ExecException, IOException {
+        protected void runPipeline(PhysicalOperator leaf) 
+                throws InterruptedException, IOException {
+            
             while(true)
             {
                 Result redRes = leaf.getNext(DUMMYTUPLE);
                 if(redRes.returnStatus==POStatus.STATUS_OK){
-                   	outputCollector.collect(null, (Tuple)redRes.result);
+                    try{
+                        outputCollector.write(null, (Tuple)redRes.result);
+                    }catch(Exception e) {
+                        throw new IOException(e);
+                    }
                     continue;
                 }
                 
@@ -426,8 +431,9 @@ public class PigMapReduce {
                     return;
                 }
                 
-                if(redRes.returnStatus==POStatus.STATUS_NULL)
+                if(redRes.returnStatus==POStatus.STATUS_NULL) {
                     continue;
+                }
                 
                 if(redRes.returnStatus==POStatus.STATUS_ERR){
                     // remember that we had an issue so that in 
@@ -446,17 +452,15 @@ public class PigMapReduce {
                     throw new ExecException(msg, errCode, PigException.BUG);
                 }
             }
-
-        
         }
         
         /**
          * Will be called once all the intermediate keys and values are
          * processed. So right place to stop the reporter thread.
          */
-        @Override
-        public void close() throws IOException {
-            super.close();
+        @Override 
+        protected void cleanup(Context context) throws IOException, InterruptedException {
+            super.cleanup(context);
             
             if(errorInReduce) {
                 // there was an error in reduce - just return
@@ -471,17 +475,13 @@ public class PigMapReduce {
                 // This will result in nothing happening in the case
                 // where there is no stream in the pipeline
                 rp.endOfAllInput = true;
-                try {
-                    runPipeline(leaf);
-                } catch (ExecException e) {
-                     throw e;
-                }
+                runPipeline(leaf);
             }
 
             for (POStore store: stores) {
                 if (!initialized) {
                     MapReducePOStoreImpl impl 
-                        = new MapReducePOStoreImpl(PigMapReduce.sJobConf);
+                        = new MapReducePOStoreImpl(context);
                     store.setStoreImpl(impl);
                     store.setUp();
                 }
@@ -519,8 +519,8 @@ public class PigMapReduce {
          * and the reporter thread
          */
         @Override
-        public void configure(JobConf jConf) {
-            super.configure(jConf);
+        protected void setup(Context context) throws IOException, InterruptedException {
+            super.setup(context);
             keyType = pack.getKeyType();
         }
 
@@ -530,31 +530,29 @@ public class PigMapReduce {
          * The package result is either collected as is, if the reduce plan is
          * empty or after passing through the reduce plan.
          */
-        public void reduce(PigNullableWritable key,
-                Iterator<NullableTuple> tupIter,
-                OutputCollector<PigNullableWritable, Writable> oc,
-                Reporter reporter) throws IOException {
+        @Override
+        protected void reduce(PigNullableWritable key, Iterable<NullableTuple> tupIter, Context context) 
+                throws IOException, InterruptedException {
             
             if (!initialized) {
                 initialized = true;
                 
                 // cache the collector for use in runPipeline()
                 // which could additionally be called from close()
-                this.outputCollector = oc;
-                pigReporter.setRep(reporter);
+                this.outputCollector = context;
+                pigReporter.setRep(context);
                 PhysicalOperator.setReporter(pigReporter);
 
                 boolean aggregateWarning = "true".equalsIgnoreCase(pigContext.getProperties().getProperty("aggregate.warning"));
                 
                 PigHadoopLogger pigHadoopLogger = PigHadoopLogger.getInstance();
                 pigHadoopLogger.setAggregate(aggregateWarning);
-                pigHadoopLogger.setReporter(reporter);
+                pigHadoopLogger.setReporter(context);
                 PhysicalOperator.setPigLogger(pigHadoopLogger);
                 
                 for (POStore store: stores) {
                     MapReducePOStoreImpl impl 
-                        = new MapReducePOStoreImpl(PigMapReduce.sJobConf);
-                    impl.setReporter(reporter);
+                        = new MapReducePOStoreImpl(context);
                     store.setStoreImpl(impl);
                     store.setUp();
                 }
@@ -574,43 +572,38 @@ public class PigMapReduce {
                 }
             }
             
-            pack.attachInput(key, tupIter);
+            pack.attachInput(key, tupIter.iterator());
             
-            try {
-                Result res = pack.getNext(DUMMYTUPLE);
-                if(res.returnStatus==POStatus.STATUS_OK){
-                    Tuple packRes = (Tuple)res.result;
-                    
-                    if(rp.isEmpty()){
-                        oc.collect(null, packRes);
-                        return;
-                    }
-                    
-                    rp.attachInput(packRes);
-
-                    List<PhysicalOperator> leaves = rp.getLeaves();
-                    
-                    PhysicalOperator leaf = leaves.get(0);
-                    runPipeline(leaf);
-                    
-                }
+            Result res = pack.getNext(DUMMYTUPLE);
+            if(res.returnStatus==POStatus.STATUS_OK){
+                Tuple packRes = (Tuple)res.result;
                 
-                if(res.returnStatus==POStatus.STATUS_NULL) {
+                if(rp.isEmpty()){
+                    context.write(null, packRes);
                     return;
                 }
                 
-                if(res.returnStatus==POStatus.STATUS_ERR){
-                    int errCode = 2093;
-                    String msg = "Encountered error in package operator while processing group.";
-                    throw new ExecException(msg, errCode, PigException.BUG);
-                }
-                    
+                rp.attachInput(packRes);
+
+                List<PhysicalOperator> leaves = rp.getLeaves();
                 
-            } catch (ExecException e) {
-                throw e;
+                PhysicalOperator leaf = leaves.get(0);
+                runPipeline(leaf);
+                
             }
+            
+            if(res.returnStatus==POStatus.STATUS_NULL) {
+                return;
+            }
+            
+            if(res.returnStatus==POStatus.STATUS_ERR){
+                int errCode = 2093;
+                String msg = "Encountered error in package operator while processing group.";
+                throw new ExecException(msg, errCode, PigException.BUG);
+            }
+
         }
 
     }
-    
+   
 }

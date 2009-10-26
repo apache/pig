@@ -20,33 +20,26 @@ package org.apache.pig.backend.hadoop.executionengine.mapReduceLayer;
 import java.io.IOException;
 import java.io.OutputStream;
 
-import org.apache.pig.data.Tuple;
-
-import java.text.NumberFormat;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.mapred.FileOutputFormat;
-import org.apache.hadoop.mapred.JobConf;
-import org.apache.hadoop.mapred.OutputFormat;
-import org.apache.hadoop.mapred.RecordWriter;
-import org.apache.hadoop.mapred.OutputCollector;
-import org.apache.hadoop.mapred.Reporter;
-
+import org.apache.hadoop.io.Writable;
+import org.apache.hadoop.mapreduce.OutputFormat;
+import org.apache.hadoop.mapreduce.RecordWriter;
+import org.apache.hadoop.mapreduce.TaskAttemptContext;
+import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.pig.StoreConfig;
 import org.apache.pig.StoreFunc;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStoreImpl;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.util.PlanHelper;
+import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
-import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.FileSpec;
+import org.apache.pig.impl.io.PigNullableWritable;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.util.ObjectSerializer;
-
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.util.PlanHelper;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStoreImpl;
-import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigOutputFormat;
 
 /**
  * This class is used to have a POStore write to DFS via a output
@@ -60,29 +53,26 @@ import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigOutputFor
  */
 public class MapReducePOStoreImpl extends POStoreImpl {
 
-    private Reporter reporter;
+    private TaskAttemptContext context;
+    
+    @SuppressWarnings("unchecked")
     private RecordWriter writer;
-    private JobConf job;
-
+    
+    private Configuration job;
+    
     private final Log log = LogFactory.getLog(getClass());
+    
     public static final String PIG_STORE_CONFIG = "pig.store.config";
     
-    public MapReducePOStoreImpl(JobConf job) {
-        this.job = job;
+    public MapReducePOStoreImpl(TaskAttemptContext context) {
+        this.context = context;
+        this.job = context.getConfiguration();
     }
-
-    public void setReporter(Reporter reporter) {
-        this.reporter = reporter;
-    }
-
+    
+    @SuppressWarnings("unchecked")
     @Override
-    @SuppressWarnings({"unchecked"})
     public StoreFunc createStoreFunc(FileSpec sFile, Schema schema) 
         throws IOException {
-
-        // set up a new job conf
-        JobConf outputConf = new JobConf(job);
-        String tmpPath = PlanHelper.makeStoreTmpPath(sFile.getFileName());
 
         // If the StoreFunc associate with the POStore is implements
         // getStorePreparationClass() and returns a non null value,
@@ -99,10 +89,11 @@ public class MapReducePOStoreImpl extends POStoreImpl {
             // used. In this case, we want to just use PigOutputFormat
             sPrepClass = null;
         }
-        if(sPrepClass != null && OutputFormat.class.isAssignableFrom(sPrepClass)) {
-            outputConf.setOutputFormat(sPrepClass);
+        Class<? extends OutputFormat<?,?>> outputClass = null;
+        if (sPrepClass != null && OutputFormat.class.isAssignableFrom(sPrepClass)) {
+            outputClass = sPrepClass; 
         } else {
-            outputConf.setOutputFormat(PigOutputFormat.class);
+            outputClass = PigOutputFormat.class;
         }
 
         // PigOuputFormat will look for pig.storeFunc to actually
@@ -113,65 +104,63 @@ public class MapReducePOStoreImpl extends POStoreImpl {
         // get encoded as regular characters. Otherwise any control characters
         // in the store funcspec would break the job.xml which is created by
         // hadoop from the jobconf.
-        outputConf.set("pig.storeFunc", ObjectSerializer.serialize(sFile.getFuncSpec().toString()));
+        job.set("pig.storeFunc", ObjectSerializer.serialize(sFile.getFuncSpec().toString()));
 
         // We set the output dir to the final location of the output,
         // the output dir set in the original job config points to the
-        // temp location for the multi store.
-        Path outputDir = new Path(sFile.getFileName()).makeQualified(FileSystem.get(outputConf));
-        outputConf.set("mapred.output.dir", outputDir.toString());
+        // temp location for the multi store which we set to PIG output dir.        
+        if (job.get(PigOutputFormat.PIG_MAPRED_OUTPUT_DIR) == null) {
+            job.set(PigOutputFormat.PIG_MAPRED_OUTPUT_DIR, job.get(PigOutputFormat.MAPRED_OUTPUT_DIR));
+        }
+        Path outputDir = new Path(sFile.getFileName()).makeQualified(FileSystem.get(job));
+        job.set(PigOutputFormat.MAPRED_OUTPUT_DIR, outputDir.toString());
 
         // Set the schema
-        outputConf.set(PIG_STORE_CONFIG, 
+        job.set(PIG_STORE_CONFIG, 
                        ObjectSerializer.serialize(new StoreConfig(outputDir.toString(), schema)));
 
-        // The workpath is set to a unique-per-store subdirectory of
-        // the current working directory.
-        String workPath = outputConf.get("mapred.work.output.dir");
-        outputConf.set("mapred.work.output.dir",
-                       new Path(workPath, tmpPath).toString());
-        OutputFormat outputFormat = outputConf.getOutputFormat();
-
-        // Generate a unique part name (part-<task_partition_number>).
-        String fileName = getPartName(outputConf);
+        // Set the relative path that can be used to build a temporary
+        // place to store the output from a number of map-reduce tasks.
+        String tmpPath = PlanHelper.makeStoreTmpPath(sFile.getFileName());
+        job.set(PigOutputFormat.PIG_TMP_PATH, tmpPath);
+                
+        OutputFormat outputFormat
+             = ReflectionUtils.newInstance(outputClass, job);
         
         // create a new record writer
-        writer = outputFormat.getRecordWriter(FileSystem.get(outputConf), 
-                                              outputConf, fileName, reporter);
-
+        try {
+            writer = outputFormat.getRecordWriter(context);
+        } catch (InterruptedException e) {
+            throw new IOException(e);
+        }
+ 
         // return an output collector using the writer we just created.
-        return new StoreFuncAdaptor(new OutputCollector() 
-            {
-                public void collect(Object key, Object value) throws IOException {
-                    writer.write(key,value);
-                }
-            });
+        return new StoreFuncAdaptor(writer);
+
     }
 
     @Override
-    public void tearDown() throws IOException{
+    public void tearDown() throws IOException {
         if (writer != null) {
-            writer.close(reporter);
+            try {
+                writer.close(context);
+            } catch (InterruptedException e) {
+                throw new IOException(e);
+            }
             writer = null;
         }
     }
 
     @Override
-    public void cleanUp() throws IOException{
+    public void cleanUp() throws IOException {
         if (writer != null) {
-            writer.close(reporter);
+            try {
+                writer.close(context);
+            } catch (InterruptedException e) {
+                throw new IOException(e);
+            }
             writer = null;
         }
-    }
-
-    private String getPartName(JobConf conf) {
-        int partition = conf.getInt("mapred.task.partition", -1);   
-
-        NumberFormat numberFormat = NumberFormat.getInstance();
-        numberFormat.setMinimumIntegerDigits(5);
-        numberFormat.setGroupingUsed(false);
-
-        return "part-" + numberFormat.format(partition);
     }
 
     /**
@@ -182,9 +171,9 @@ public class MapReducePOStoreImpl extends POStoreImpl {
     //We intentionally skip type checking in backend for performance reasons
     @SuppressWarnings("unchecked")
     private class StoreFuncAdaptor implements StoreFunc {
-        private OutputCollector collector;
+        private RecordWriter<PigNullableWritable, Writable> collector;
         
-        public StoreFuncAdaptor(OutputCollector collector) {
+        public StoreFuncAdaptor(RecordWriter<PigNullableWritable, Writable> collector) {
             this.collector = collector;
         }
         
@@ -194,7 +183,11 @@ public class MapReducePOStoreImpl extends POStoreImpl {
         
         @Override
         public void putNext(Tuple f) throws IOException {
-            collector.collect(null,f);
+            try {
+                collector.write(null,f);
+            } catch (InterruptedException e) {
+                throw new IOException(e);
+            }
         }
         
         @Override

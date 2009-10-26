@@ -23,11 +23,7 @@ import java.util.Iterator;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.io.Writable;
-import org.apache.hadoop.mapred.JobConf;
-import org.apache.hadoop.mapred.MapReduceBase;
-import org.apache.hadoop.mapred.OutputCollector;
-import org.apache.hadoop.mapred.Reducer;
-import org.apache.hadoop.mapred.Reporter;
+import org.apache.hadoop.mapreduce.Reducer;
 
 import org.apache.pig.impl.io.PigNullableWritable;
 import org.apache.pig.impl.io.NullableTuple;
@@ -39,9 +35,9 @@ import org.apache.pig.impl.io.NullableTuple;
  */
 public class DistinctCombiner {
 
-    public static class Combine extends MapReduceBase
-            implements
-            Reducer<PigNullableWritable, NullableTuple, PigNullableWritable, Writable> {
+    public static class Combine 
+        extends Reducer<PigNullableWritable, NullableTuple, PigNullableWritable, Writable> {
+        
         private final Log log = LogFactory.getLog(getClass());
 
         ProgressableReporter pigReporter;
@@ -50,25 +46,25 @@ public class DistinctCombiner {
          * Configures the reporter 
          */
         @Override
-        public void configure(JobConf jConf) {
-            super.configure(jConf);
+        protected void setup(Context context) throws IOException, InterruptedException {
+            super.setup(context);
             pigReporter = new ProgressableReporter();
         }
         
         /**
          * The reduce function which removes values.
          */
-        public void reduce(PigNullableWritable key,
-                Iterator<NullableTuple> tupIter,
-                OutputCollector<PigNullableWritable, Writable> oc,
-                Reporter reporter) throws IOException {
+        @Override
+        protected void reduce(PigNullableWritable key, Iterable<NullableTuple> tupIter, Context context) 
+                throws IOException, InterruptedException {
             
-            pigReporter.setRep(reporter);
+            pigReporter.setRep(context);
 
             // Take the first value and the key and collect
             // just that.
-            NullableTuple val = tupIter.next();
-            oc.collect(key, val);
+            Iterator<NullableTuple> iter = tupIter.iterator();
+            NullableTuple val = iter.next();
+            context.write(key, val);
         }
     }
     

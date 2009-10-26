@@ -18,34 +18,16 @@
 package org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.partitioners;
 
 
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
-import java.util.Map.Entry;
 
-import org.apache.hadoop.io.RawComparator;
+
+import org.apache.hadoop.conf.Configurable;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Writable;
-import org.apache.hadoop.mapred.JobConf;
-import org.apache.hadoop.mapred.Partitioner;
+import org.apache.hadoop.mapreduce.Partitioner;
 import org.apache.pig.backend.executionengine.ExecException;
-import org.apache.pig.backend.hadoop.HDataType;
-import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
-import org.apache.pig.builtin.BinStorage;
-import org.apache.pig.data.DataBag;
 import org.apache.pig.data.Tuple;
-import org.apache.pig.data.TupleFactory;
-import org.apache.pig.impl.builtin.FindQuantiles;
-import org.apache.pig.impl.io.BufferedPositionedInputStream;
-import org.apache.pig.impl.io.FileLocalizer;
-import org.apache.pig.impl.io.NullableBytesWritable;
-import org.apache.pig.impl.io.NullableDoubleWritable;
-import org.apache.pig.impl.io.NullableFloatWritable;
-import org.apache.pig.impl.io.NullableIntWritable;
-import org.apache.pig.impl.io.NullableLongWritable;
-import org.apache.pig.impl.io.NullableText;
 import org.apache.pig.impl.io.NullableTuple;
 import org.apache.pig.impl.io.PigNullableWritable;
 import org.apache.pig.impl.io.NullablePartitionWritable;
@@ -62,71 +44,79 @@ import org.apache.pig.backend.hadoop.executionengine.util.MapRedUtil;
   * For ex: if the key distribution file contains (k1, 5, 3) as an entry, reducers from 5 to 3 are returned 
   * in a round robin manner.
   */ 
-public class SkewedPartitioner implements Partitioner<PigNullableWritable, Writable> {
-	Map<Tuple, Pair<Integer, Integer> > reducerMap = new HashMap<Tuple, Pair<Integer, Integer> >();
-	static Map<Tuple, Integer> currentIndexMap = new HashMap<Tuple, Integer> ();
-	Integer totalReducers;
+public class SkewedPartitioner extends Partitioner<PigNullableWritable, Writable> implements Configurable {
+    Map<Tuple, Pair<Integer, Integer> > reducerMap = new HashMap<Tuple, Pair<Integer, Integer> >();
+    static Map<Tuple, Integer> currentIndexMap = new HashMap<Tuple, Integer> ();
+    Integer totalReducers;
+    Configuration conf;
 
+    @Override
     public int getPartition(PigNullableWritable wrappedKey, Writable value,
             int numPartitions) {
-		// for streaming tables, return the partition index blindly
-		if (wrappedKey instanceof NullablePartitionWritable && ((int)((NullablePartitionWritable)wrappedKey).getPartition()) != -1) {
-			return (int) ((NullablePartitionWritable)wrappedKey).getPartition();
-		}
+        // for streaming tables, return the partition index blindly
+        if (wrappedKey instanceof NullablePartitionWritable && ((int)((NullablePartitionWritable)wrappedKey).getPartition()) != -1) {
+            return (int) ((NullablePartitionWritable)wrappedKey).getPartition();
+        }
 
-		// for partition table, compute the index based on the sampler output
-		Pair <Integer, Integer> indexes;
-		Integer curIndex = -1;
-		Tuple keyTuple = DefaultTupleFactory.getInstance().newTuple(1);
-		
-		// extract the key from nullablepartitionwritable
-		PigNullableWritable key = ((NullablePartitionWritable) wrappedKey).getKey();
+        // for partition table, compute the index based on the sampler output
+        Pair <Integer, Integer> indexes;
+        Integer curIndex = -1;
+        Tuple keyTuple = DefaultTupleFactory.getInstance().newTuple(1);
 
-		try {
-			keyTuple.set(0, key.getValueAsPigType());
-		} catch (ExecException e) {
-			return -1;
-		}
-		
-		// if the key is not null and key 
-		if (key instanceof NullableTuple && key.getValueAsPigType() != null) {
-			keyTuple = (Tuple)key.getValueAsPigType();
-		}
+        // extract the key from nullablepartitionwritable
+        PigNullableWritable key = ((NullablePartitionWritable) wrappedKey).getKey();
 
-		indexes = reducerMap.get(keyTuple);
-		// if the reducerMap does not contain the key, do the default hash based partitioning
-		if (indexes == null) {
-			return (Math.abs(keyTuple.hashCode()) % totalReducers);
-		}
+        try {
+            keyTuple.set(0, key.getValueAsPigType());
+        } catch (ExecException e) {
+            return -1;
+        }
 
-		if (currentIndexMap.containsKey(keyTuple)) {
-	    	curIndex = currentIndexMap.get(keyTuple);
-		}
-		
-		if (curIndex >= (indexes.first + indexes.second) || curIndex == -1) {
-			curIndex = indexes.first;
-		} else {
-			curIndex++;
-		}
-		
-		// set it in the map
-		currentIndexMap.put(keyTuple, curIndex);
-		return (curIndex % totalReducers);
-	}
+        // if the key is not null and key 
+        if (key instanceof NullableTuple && key.getValueAsPigType() != null) {
+            keyTuple = (Tuple)key.getValueAsPigType();
+        }
 
-    @SuppressWarnings("unchecked")
-    public void configure(JobConf job) {
+        indexes = reducerMap.get(keyTuple);
+        // if the reducerMap does not contain the key, do the default hash based partitioning
+        if (indexes == null) {
+            return (Math.abs(keyTuple.hashCode()) % totalReducers);
+        }
+
+        if (currentIndexMap.containsKey(keyTuple)) {
+            curIndex = currentIndexMap.get(keyTuple);
+        }
+
+        if (curIndex >= (indexes.first + indexes.second) || curIndex == -1) {
+            curIndex = indexes.first;
+        } else {
+            curIndex++;
+        }
+
+        // set it in the map
+        currentIndexMap.put(keyTuple, curIndex);
+        return (curIndex % totalReducers);
+    }
+
+    @Override
+    public void setConf(Configuration job) {
+        conf = job;
         String keyDistFile = job.get("pig.keyDistFile", "");
         if (keyDistFile.length() == 0)
             throw new RuntimeException(this.getClass().getSimpleName() + " used but no key distribution found");
 
-		try {
-			Integer [] redCnt = new Integer[1]; 
-			reducerMap = MapRedUtil.loadPartitionFile(keyDistFile, redCnt, job, DataType.TUPLE);
-			totalReducers = redCnt[0];
-		} catch (Exception e) {
-			throw new RuntimeException(e);
-		}
-	}
+        try {
+            Integer [] redCnt = new Integer[1]; 
+            reducerMap = MapRedUtil.loadPartitionFile(keyDistFile, redCnt, job, DataType.TUPLE);
+            totalReducers = redCnt[0];
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Override
+    public Configuration getConf() {
+        return conf;
+    }
 
 }
