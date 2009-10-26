@@ -26,16 +26,15 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Random;
 import java.util.Stack;
-import java.util.Properties ;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.hadoop.mapred.JobConf;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.pig.ExecType;
 import org.apache.pig.backend.datastorage.ContainerDescriptor;
 import org.apache.pig.backend.datastorage.DataStorage;
@@ -43,13 +42,13 @@ import org.apache.pig.backend.datastorage.DataStorageException;
 import org.apache.pig.backend.datastorage.ElementDescriptor;
 import org.apache.pig.backend.datastorage.SeekableInputStream;
 import org.apache.pig.backend.datastorage.SeekableInputStream.FLAGS;
+import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.datastorage.HDataStorage;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigInputFormat;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.SliceWrapper;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.util.WrappedIOException;
-import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 
 public class FileLocalizer {
     private static final Log log = LogFactory.getLog(FileLocalizer.class);
@@ -155,7 +154,7 @@ public class FileLocalizer {
     public static InputStream openDFSFile(String fileName) throws IOException {
         SliceWrapper wrapper = PigInputFormat.getActiveSplit();
 
-        JobConf conf = null;
+        Configuration conf = null;
         if (wrapper == null) {
         	conf = PigMapReduce.sJobConf;
         }else{
@@ -180,7 +179,7 @@ public class FileLocalizer {
     public static long getSize(String fileName) throws IOException {
     	SliceWrapper wrapper = PigInputFormat.getActiveSplit();
     	
-    	JobConf conf = null;
+    	Configuration conf = null;
     	if (wrapper == null) {
     		conf = PigMapReduce.sJobConf;
     	}else{
@@ -456,12 +455,6 @@ public class FileLocalizer {
             initialized = true;
             relativeRoot = pigContext.getDfs().asContainer("/tmp/temp" + r.nextInt());
             toDelete.push(relativeRoot);
-            // Runtime.getRuntime().addShutdownHook(new Thread() {
-              //   @Override
-            //     public void run() {
-            //          deleteTempFiles();
-            //     }
-            //});
         }
     }
 
@@ -593,7 +586,6 @@ public class FileLocalizer {
             }
         }
         catch (DataStorageException e) {
-            //throw WrappedIOException.wrap("Unable to get collect for pattern " + elem.toString(), e);
             throw e;
         }
     }

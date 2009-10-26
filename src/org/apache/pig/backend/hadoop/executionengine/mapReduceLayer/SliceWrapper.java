@@ -28,17 +28,19 @@ import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.Set;
 import java.util.List;
+import java.util.Set;
 
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.BlockLocation;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapred.InputSplit;
-import org.apache.hadoop.mapred.JobConf;
-import org.apache.hadoop.mapred.RecordReader;
+import org.apache.hadoop.io.Writable;
+import org.apache.hadoop.mapreduce.InputSplit;
+import org.apache.hadoop.mapreduce.RecordReader;
+import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigException;
 import org.apache.pig.Slice;
@@ -47,7 +49,6 @@ import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.executionengine.PigSlice;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.datastorage.HDataStorage;
-import org.apache.pig.data.TargetedTuple;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.PigContext;
@@ -57,14 +58,20 @@ import org.apache.pig.impl.util.ObjectSerializer;
 /**
  * Wraps a {@link Slice} in an {@link InputSplit} so it's usable by hadoop.
  */
-public class SliceWrapper implements InputSplit {
+public class SliceWrapper extends InputSplit implements Writable {
 
     private int index;
     private ExecType execType;
     private Slice wrapped;
     private transient FileSystem fs;// transient so it isn't serialized
-    private transient JobConf lastConf;
+    private transient Configuration lastConf;
     private ArrayList<OperatorKey> targetOps;
+    
+    // XXX hadoop 20 new API integration: get around a hadoop 20 bug 
+    // by setting total number of splits to each split so that it can
+    // be passed to the back-end. This value is needed 
+    // by PoissonSampleLoader to compute the number of samples
+    private int totalSplits;
 
     public SliceWrapper() {
         // for deserialization
@@ -77,22 +84,32 @@ public class SliceWrapper implements InputSplit {
         this.fs = fs;
         this.targetOps = targetOps;
     }
-
+        
     public int getIndex() {
         return index;
     }
 
+    public void setTotalSplits(int t) {
+        totalSplits = t;
+    }
+    
+    public int getTotalSplits() {
+        return totalSplits;        
+    }
+    
+    @Override
     public long getLength() throws IOException {
         return wrapped.getLength();
     }
 
+    @Override
     public String[] getLocations() throws IOException {
         if(wrapped instanceof PigSlice) {
             Set<String> locations = new HashSet<String>();
             for (String loc : wrapped.getLocations()) {
                 Path path = new Path(loc);
                 FileStatus status = fs.getFileStatus(path); 
-				BlockLocation[] b = fs.getFileBlockLocations(status, wrapped.getStart(), wrapped.getLength());
+                BlockLocation[] b = fs.getFileBlockLocations(status, wrapped.getStart(), wrapped.getLength());
                 int total = 0;
                 for (int i = 0; i < b.length; i++) {
                     total += b[i].getHosts().length;
@@ -108,76 +125,84 @@ public class SliceWrapper implements InputSplit {
             return locations.toArray(new String[locations.size()]);
         } else {
             return wrapped.getLocations();
-        }
-        
-        
+        }       
     }
 
-    public JobConf getJobConf() {
+    public Configuration getJobConf() {
         return lastConf;
     }
 
+
     @SuppressWarnings("unchecked")
-    public RecordReader<Text, Tuple> makeReader(JobConf job) throws IOException {
-        lastConf = job;        
-        DataStorage store = new HDataStorage(ConfigurationUtil.toProperties(job));
+    public RecordReader<Text, Tuple> makeReader(Configuration conf) throws IOException {
+        lastConf = conf;        
+        DataStorage store = new HDataStorage(ConfigurationUtil.toProperties(conf));
+
         // if the execution is against Mapred DFS, set
         // working dir to /user/<userid>
         if(execType == ExecType.MAPREDUCE)
-            store.setActiveContainer(store.asContainer("/user/" + job.getUser()));
-        PigContext.setPackageImportList((ArrayList<String>)ObjectSerializer.deserialize(job.get("udf.import.list")));
-        wrapped.init(store);
+            store.setActiveContainer(store.asContainer("/user/" + conf.get("user.name")));
+        PigContext.setPackageImportList((ArrayList<String>)ObjectSerializer.deserialize(conf.get("udf.import.list")));
+        wrapped.init(store);                             
         
-        job.set("map.target.ops", ObjectSerializer.serialize(targetOps));
         // Mimic org.apache.hadoop.mapred.FileSplit if feasible...
         String[] locations = wrapped.getLocations();
         if (locations.length > 0) {
-            job.set("map.input.file", locations[0]);    
-            job.setLong("map.input.start", wrapped.getStart());   
-            job.setLong("map.input.length", wrapped.getLength());
+            conf.set("map.input.file", locations[0]);    
+            conf.setLong("map.input.start", wrapped.getStart());   
+            conf.setLong("map.input.length", wrapped.getLength());
         }
         
-        return new RecordReader<Text, Tuple>() {
+        return new TupleReader();
+    }
+    
+    public class TupleReader extends RecordReader<Text, Tuple> {
+        private Tuple current;
 
-            TupleFactory tupFac = TupleFactory.getInstance();
-            public void close() throws IOException {
-                wrapped.close();
-            }
+        TupleFactory tupFac = TupleFactory.getInstance();
+        
+        @Override
+        public void close() throws IOException {
+            wrapped.close();
+        } 
 
-            public Text createKey() {
-                return null; // we never use the key!
-            }
+        @Override
+        public float getProgress() throws IOException {
+            return wrapped.getProgress();
+        }
 
-            public Tuple createValue() {
-                return tupFac.newTuple();
-            }
+        @Override
+        public Text getCurrentKey() throws IOException, InterruptedException {
+            return null;
+        }
 
-            public long getPos() throws IOException {
-                return wrapped.getPos();
-            }
+        @Override
+        public Tuple getCurrentValue() throws IOException, InterruptedException {
+            return current;
+        }
 
-            public float getProgress() throws IOException {
-                return wrapped.getProgress();
-            }
+        @Override
+        public void initialize(InputSplit inputsplit, 
+            TaskAttemptContext taskattemptcontext) throws IOException, InterruptedException {
+        }
 
-            public boolean next(Text key, Tuple value) throws IOException {
-                return wrapped.next(value);
-            }
-        };
+        @Override
+        public boolean nextKeyValue() throws IOException, InterruptedException {
+            Tuple t = tupFac.newTuple();
+            boolean result = wrapped.next(t);
+            current = t;
+            return result;
+        }
     }
 
     @SuppressWarnings("unchecked")
+    @Override
     public void readFields(DataInput is) throws IOException {
         execType = (ExecType) readObject(is);
         targetOps = (ArrayList<OperatorKey>) readObject(is);
         index = is.readInt();
         wrapped = (Slice) readObject(is);
-    }
-
-    private IOException wrapException(Exception e) {
-        IOException newE = new IOException(e.getMessage());
-        newE.initCause(e);
-        return newE;
+        totalSplits = is.readInt();
     }
 
     private Object readObject(DataInput is) throws IOException {
@@ -194,11 +219,13 @@ public class SliceWrapper implements InputSplit {
         }
     }
 
+    @Override
     public void write(DataOutput os) throws IOException {
         writeObject(execType, os);
         writeObject(targetOps, os);
         os.writeInt(index);
         writeObject(wrapped, os);
+        os.writeInt(totalSplits);
     }
 
     private void writeObject(Serializable obj, DataOutput os)
@@ -218,4 +245,7 @@ public class SliceWrapper implements InputSplit {
         return wrapped;
     }
 
+    public List<OperatorKey> getTargetOperatorKeyList() {
+        return targetOps;
+    }
 }

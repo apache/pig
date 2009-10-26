@@ -24,40 +24,37 @@ import java.util.List;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
-import org.apache.hadoop.mapred.JobConf;
-import org.apache.hadoop.mapred.MapReduceBase;
-import org.apache.hadoop.mapred.OutputCollector;
-import org.apache.hadoop.mapred.Reporter;
+import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.log4j.PropertyConfigurator;
 import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.util.PlanHelper;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.PigNullableWritable;
-import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.plan.DependencyOrderWalker;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.VisitorException;
-import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.util.PlanHelper;
 import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.impl.util.SpillableMemoryManager;
 
-public abstract class PigMapBase extends MapReduceBase{
+public abstract class PigMapBase extends Mapper<Text, Tuple, PigNullableWritable, Writable> {
     private static final Tuple DUMMYTUPLE = null;
 
     private final Log log = LogFactory.getLog(getClass());
     
     protected byte keyType;
-    
-    
+        
     //Map Plan
     protected PhysicalPlan mp;
 
@@ -66,7 +63,7 @@ public abstract class PigMapBase extends MapReduceBase{
 
     protected TupleFactory tf = TupleFactory.getInstance();
     
-    OutputCollector<PigNullableWritable, Writable> outputCollector;
+    Context outputCollector;
     
     // Reporter that will be used by operators
     // to transmit heartbeat
@@ -86,9 +83,8 @@ public abstract class PigMapBase extends MapReduceBase{
      * are done. So reporter thread should be closed.
      */
     @Override
-    public void close() throws IOException {
-        super.close();
-
+    public void cleanup(Context context) throws IOException, InterruptedException {
+        super.cleanup(context);
         if(errorInMap) {
             //error in map - returning
             return;
@@ -102,17 +98,13 @@ public abstract class PigMapBase extends MapReduceBase{
             // This will result in nothing happening in the case
             // where there is no stream or it is not a merge-join in the pipeline
             mp.endOfAllInput = true;
-            try {
-                runPipeline(leaf);
-            } catch (ExecException e) {
-            	throw e;
-            }
+            runPipeline(leaf);
         }
 
         for (POStore store: stores) {
             if (!initialized) {
                 MapReducePOStoreImpl impl 
-                    = new MapReducePOStoreImpl(PigMapReduce.sJobConf);
+                    = new MapReducePOStoreImpl(context);
                 store.setStoreImpl(impl);
                 store.setUp();
             }
@@ -124,8 +116,8 @@ public abstract class PigMapBase extends MapReduceBase{
         try {
             finisher.visit();
         } catch (VisitorException e) {
-        	int errCode = 2121;
-        	String msg = "Error while calling finish method on UDFs.";
+            int errCode = 2121;
+            String msg = "Error while calling finish method on UDFs.";
             throw new VisitorException(msg, errCode, PigException.BUG, e);
         }
         
@@ -141,51 +133,48 @@ public abstract class PigMapBase extends MapReduceBase{
      */
     @SuppressWarnings("unchecked")
     @Override
-    public void configure(JobConf job) {
-        super.configure(job);
+    public void setup(Context context) throws IOException, InterruptedException {       	
+        super.setup(context);
+        
+        Configuration job = context.getConfiguration();
         SpillableMemoryManager.configure(ConfigurationUtil.toProperties(job));
-        PigMapReduce.sJobConf = job;
-        try {
-            PigContext.setPackageImportList((ArrayList<String>)ObjectSerializer.deserialize(job.get("udf.import.list")));
-            pigContext = (PigContext)ObjectSerializer.deserialize(job.get("pig.pigContext"));
-            if (pigContext.getLog4jProperties()!=null)
-                PropertyConfigurator.configure(pigContext.getLog4jProperties());
-            
-            mp = (PhysicalPlan) ObjectSerializer.deserialize(
-                job.get("pig.mapPlan"));
-            stores = PlanHelper.getStores(mp);
-            
-            // To be removed
-            if(mp.isEmpty())
-                log.debug("Map Plan empty!");
-            else{
-                ByteArrayOutputStream baos = new ByteArrayOutputStream();
-                mp.explain(baos);
-                log.debug(baos.toString());
-            }
-            keyType = ((byte[])ObjectSerializer.deserialize(job.get("pig.map.keytype")))[0];
-            // till here
-            
-            long sleepTime = job.getLong("pig.reporter.sleep.time", 10000);
-            
-            pigReporter = new ProgressableReporter();
-            if(!(mp.isEmpty())) {
-                List<OperatorKey> targetOpKeys = 
-                    (ArrayList<OperatorKey>)ObjectSerializer.deserialize(job.get("map.target.ops"));
-                ArrayList<PhysicalOperator> targetOpsAsList = new ArrayList<PhysicalOperator>();
-                for (OperatorKey targetKey : targetOpKeys) {                    
-                    targetOpsAsList.add(mp.getOperator(targetKey));
-                }
-                roots = targetOpsAsList.toArray(new PhysicalOperator[1]);
-                leaf = mp.getLeaves().get(0);
-            }
-            
-            
-            
-        } catch (IOException ioe) {
-            String msg = "Problem while configuring map plan.";
-            throw new RuntimeException(msg, ioe);
+        PigMapReduce.sJobContext = context;
+        PigMapReduce.sJobConf = context.getConfiguration();
+        
+        PigContext.setPackageImportList((ArrayList<String>)ObjectSerializer.deserialize(job.get("udf.import.list")));
+        pigContext = (PigContext)ObjectSerializer.deserialize(job.get("pig.pigContext"));
+        if (pigContext.getLog4jProperties()!=null)
+            PropertyConfigurator.configure(pigContext.getLog4jProperties());
+        
+        mp = (PhysicalPlan) ObjectSerializer.deserialize(
+            job.get("pig.mapPlan"));
+        stores = PlanHelper.getStores(mp);
+        
+        // To be removed
+        if(mp.isEmpty())
+            log.debug("Map Plan empty!");
+        else{
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            mp.explain(baos);
+            log.debug(baos.toString());
         }
+        keyType = ((byte[])ObjectSerializer.deserialize(job.get("pig.map.keytype")))[0];
+        // till here
+        
+        pigReporter = new ProgressableReporter();
+        if(!(mp.isEmpty())) {
+
+            SliceWrapper split = (SliceWrapper)context.getInputSplit();
+            List<OperatorKey> targetOpKeys = split.getTargetOperatorKeyList();
+            
+            ArrayList<PhysicalOperator> targetOpsAsList = new ArrayList<PhysicalOperator>();
+            for (OperatorKey targetKey : targetOpKeys) {                    
+                targetOpsAsList.add(mp.getOperator(targetKey));
+            }
+            roots = targetOpsAsList.toArray(new PhysicalOperator[1]);
+            leaf = mp.getLeaves().get(0);               
+        }
+ 
     }
     
     /**
@@ -196,23 +185,20 @@ public abstract class PigMapBase extends MapReduceBase{
      * map-only or map-reduce job to implement. Map-only collects
      * the tuple as-is whereas map-reduce collects it after extracting
      * the key and indexed tuple.
-     */
-    public void map(Text key, Tuple inpTuple,
-            OutputCollector<PigNullableWritable, Writable> oc,
-            Reporter reporter) throws IOException {
-        
+     */   
+    @Override
+    protected void map(Text key, Tuple inpTuple, Context context) throws IOException, InterruptedException {     
         if(!initialized) {
             initialized  = true;
             // cache the collector for use in runPipeline() which
             // can be called from close()
-            this.outputCollector = oc;
-            pigReporter.setRep(reporter);
+            this.outputCollector = context;
+            pigReporter.setRep(context);
             PhysicalOperator.setReporter(pigReporter);
 
             for (POStore store: stores) {
                 MapReducePOStoreImpl impl 
-                    = new MapReducePOStoreImpl(PigMapReduce.sJobConf);
-                impl.setReporter(reporter);
+                    = new MapReducePOStoreImpl(context);
                 store.setStoreImpl(impl);
                 store.setUp();
             }
@@ -221,31 +207,23 @@ public abstract class PigMapBase extends MapReduceBase{
 
             PigHadoopLogger pigHadoopLogger = PigHadoopLogger.getInstance();
             pigHadoopLogger.setAggregate(aggregateWarning);
-            pigHadoopLogger.setReporter(reporter);
+            pigHadoopLogger.setReporter(context);
             PhysicalOperator.setPigLogger(pigHadoopLogger);
         }
         
-        if(mp.isEmpty()){
-            try{
-                collect(oc,inpTuple);
-            } catch (ExecException e) {
-                throw e;
-            }
+        if (mp.isEmpty()) {
+            collect(context,inpTuple);
             return;
         }
         
         for (PhysicalOperator root : roots) {
             root.attachInput(tf.newTupleNoCopy(inpTuple.getAll()));
         }
-        try {
-            runPipeline(leaf);
             
-        } catch (ExecException e) {
-        	throw e;
-        }
+        runPipeline(leaf);
     }
 
-    protected void runPipeline(PhysicalOperator leaf) throws IOException, ExecException {
+    protected void runPipeline(PhysicalOperator leaf) throws IOException, InterruptedException {
         while(true){
             Result res = leaf.getNext(DUMMYTUPLE);
             if(res.returnStatus==POStatus.STATUS_OK){
@@ -282,7 +260,7 @@ public abstract class PigMapBase extends MapReduceBase{
         
     }
 
-    abstract public void collect(OutputCollector<PigNullableWritable, Writable> oc, Tuple tuple) throws ExecException, IOException;
+    abstract public void collect(Context oc, Tuple tuple) throws InterruptedException, IOException;
 
     /**
      * @return the keyType
