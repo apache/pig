@@ -22,6 +22,7 @@ import java.util.Enumeration;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Map.Entry;
 
 import org.apache.hadoop.conf.Configuration;
 
@@ -48,5 +49,17 @@ public class ConfigurationUtil {
             properties.put(entry.getKey(), entry.getValue());
         }
         return properties;
+    }
+
+    /**
+     * @param origConf
+     * @param replaceConf
+     */
+    public static void mergeConf(Configuration origConf,
+            Configuration replaceConf) {
+        for (Entry<String, String> entry : replaceConf) {
+            origConf.set(entry.getKey(), entry.getValue());
+        }
+        
     }
 }

@@ -31,6 +31,7 @@ import org.apache.pig.data.Tuple;
  * manner via its <code>stdin</code> or in an {@link InputType#ASYNCHRONOUS} 
  * manner via an external file which is subsequently read by the executable.
  */
+//XXX: FIXME make this work with new load store redesign
 public abstract class InputHandler {
     /**
      * 
@@ -77,7 +78,7 @@ public abstract class InputHandler {
      */
     public synchronized void close(Process process) throws IOException {
         if(!alreadyClosed) {
-            serializer.finish();
+//            serializer.finish();
             alreadyClosed = true;
         }
     }
@@ -91,6 +92,6 @@ public abstract class InputHandler {
      * @throws IOException
      */
     public void bindTo(OutputStream os) throws IOException {
-        serializer.bindTo(os);
+//        serializer.bindTo(os);
     }
 }

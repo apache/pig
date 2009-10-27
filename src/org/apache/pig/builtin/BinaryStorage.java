@@ -22,11 +22,21 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URL;
 
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.mapreduce.InputFormat;
+import org.apache.hadoop.mapreduce.InputSplit;
+import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.mapreduce.OutputFormat;
+import org.apache.hadoop.mapreduce.RecordReader;
+import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.pig.ExecType;
+import org.apache.pig.LoadCaster;
 import org.apache.pig.LoadFunc;
+import org.apache.pig.ResourceSchema;
 import org.apache.pig.StoreFunc;
 import org.apache.pig.backend.datastorage.DataStorage;
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigSplit;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.DefaultTupleFactory;
@@ -45,7 +55,8 @@ import org.apache.pig.impl.logicalLayer.schema.Schema;
  * are to be sent in-whole for processing without any splitting and 
  * interpretation of their data.
  */
-public class BinaryStorage extends Utf8StorageConverter implements LoadFunc, StoreFunc {
+// XXX : FIXME - make this work with new load-store redesign
+public class BinaryStorage implements LoadFunc, StoreFunc {
     // LoadFunc
     private static final int DEFAULT_BUFFER_SIZE = 64*1024;
     protected int bufferSize = DEFAULT_BUFFER_SIZE;
@@ -73,13 +84,6 @@ public class BinaryStorage extends Utf8StorageConverter implements LoadFunc, Sto
         this.bufferSize = bufferSize;
     }
     
-    public void bindTo(String fileName, BufferedPositionedInputStream in,
-            long offset, long end) throws IOException {
-        this.in = in;
-        this.offset = offset;
-        this.end = end;
-    }
-
     public Tuple getNext() throws IOException {
         // Sanity check
         if (in == null || in.getPosition() > end) {
@@ -144,28 +148,101 @@ public class BinaryStorage extends Utf8StorageConverter implements LoadFunc, Sto
     }
 
     /* (non-Javadoc)
-     * @see org.apache.pig.LoadFunc#determineSchema(java.lang.String, org.apache.pig.ExecType, org.apache.pig.backend.datastorage.DataStorage)
+     * @see org.apache.pig.LoadFunc#doneReading()
      */
-    public Schema determineSchema(String fileName, ExecType execType,
-            DataStorage storage) throws IOException {
-        // TODO Auto-generated method stub
-        return null;
-    }
-    
-    /* (non-Javadoc)
-     * @see org.apache.pig.LoadFunc#fieldsToRead(org.apache.pig.impl.logicalLayer.schema.Schema)
-     */
-    public void fieldsToRead(Schema schema) {
+    @Override
+    public void doneReading() {
         // TODO Auto-generated method stub
         
     }
 
     /* (non-Javadoc)
-     * @see org.apache.pig.StoreFunc#getStorePreparationClass()
+     * @see org.apache.pig.LoadFunc#getInputFormat()
      */
     @Override
-    public Class getStorePreparationClass() throws IOException {
+    public InputFormat getInputFormat() {
         // TODO Auto-generated method stub
         return null;
+    }
+
+    /* (non-Javadoc)
+     * @see org.apache.pig.LoadFunc#getLoadCaster()
+     */
+    @Override
+    public LoadCaster getLoadCaster() {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    /* (non-Javadoc)
+     * @see org.apache.pig.LoadFunc#prepareToRead(org.apache.hadoop.mapreduce.RecordReader, org.apache.hadoop.mapreduce.InputSplit)
+     */
+    @Override
+    public void prepareToRead(RecordReader reader, PigSplit split) {
+        // TODO Auto-generated method stub
+        
+    }
+
+    /* (non-Javadoc)
+     * @see org.apache.pig.LoadFunc#setLocation(java.lang.String, org.apache.hadoop.mapreduce.Job)
+     */
+    @Override
+    public void setLocation(String location, Job job) throws IOException {
+        // TODO Auto-generated method stub
+        
+    }
+
+    /* (non-Javadoc)
+     * @see org.apache.pig.StoreFunc#allFinished(org.apache.hadoop.mapreduce.Job)
+     */
+    @Override
+    public void allFinished(Job job) {
+        // TODO Auto-generated method stub
+        
+    }
+
+    /* (non-Javadoc)
+     * @see org.apache.pig.StoreFunc#doneWriting()
+     */
+    @Override
+    public void doneWriting() {
+        // TODO Auto-generated method stub
+        
+    }
+
+    /* (non-Javadoc)
+     * @see org.apache.pig.StoreFunc#getOutputFormat()
+     */
+    @Override
+    public OutputFormat getOutputFormat() {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    /* (non-Javadoc)
+     * @see org.apache.pig.StoreFunc#prepareToWrite(org.apache.hadoop.mapreduce.RecordWriter)
+     */
+    @Override
+    public void prepareToWrite(RecordWriter writer) {
+        // TODO Auto-generated method stub
+        
+    }
+
+    /* (non-Javadoc)
+     * @see org.apache.pig.StoreFunc#setSchema(org.apache.pig.ResourceSchema)
+     */
+    @Override
+    public void setSchema(ResourceSchema s) throws IOException {
+        // TODO Auto-generated method stub
+        
+    }
+
+    /* (non-Javadoc)
+     * @see org.apache.pig.StoreFunc#setStoreLocation(java.lang.String, org.apache.hadoop.mapreduce.Job)
+     */
+    @Override
+    public void setStoreLocation(String location, Job job) throws IOException {
+        // TODO Auto-generated method stub
+        
     }
 }

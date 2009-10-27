@@ -32,6 +32,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
  * execution engine. It creates and manages the store function and the
  * output stream of the store.
  */
+// XXX: FIXME make this work with new loadstore redesign
 public class LocalPOStoreImpl extends POStoreImpl {
 
     private OutputStream os;
@@ -49,13 +50,13 @@ public class LocalPOStoreImpl extends POStoreImpl {
         this.sFile = sFile;
         storer = (StoreFunc)PigContext.instantiateFuncFromSpec(sFile.getFuncSpec());
         os = FileLocalizer.create(sFile.getFileName(), pc);
-        storer.bindTo(os);
+//        storer.bindTo(os);
         return storer;
     }
 
     @Override
     public void tearDown() throws IOException{
-        storer.finish();
+//        storer.finish();
         os.close();
     }
 

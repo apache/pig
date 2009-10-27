@@ -20,11 +20,16 @@ package org.apache.pig.builtin;
 import java.io.IOException;
 import java.io.OutputStream;
 
+import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.mapreduce.OutputFormat;
+import org.apache.hadoop.mapreduce.RecordWriter;
+import org.apache.pig.ResourceSchema;
 import org.apache.pig.StoreFunc;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.util.TupleFormat;
 
 
+// XXX: FIXME - make this work with new load-store redesign
 public class PigDump implements StoreFunc {
 
     public static String recordDelimiter = "\n";
@@ -45,12 +50,57 @@ public class PigDump implements StoreFunc {
     }
 
     /* (non-Javadoc)
-     * @see org.apache.pig.StoreFunc#getStorePreparationClass()
+     * @see org.apache.pig.StoreFunc#allFinished(org.apache.hadoop.mapreduce.Job)
      */
     @Override
-    public Class getStorePreparationClass() throws IOException {
+    public void allFinished(Job job) {
+        // TODO Auto-generated method stub
+        
+    }
+
+    /* (non-Javadoc)
+     * @see org.apache.pig.StoreFunc#doneWriting()
+     */
+    @Override
+    public void doneWriting() {
+        // TODO Auto-generated method stub
+        
+    }
+
+    /* (non-Javadoc)
+     * @see org.apache.pig.StoreFunc#getOutputFormat()
+     */
+    @Override
+    public OutputFormat getOutputFormat() {
         // TODO Auto-generated method stub
         return null;
+    }
+
+    /* (non-Javadoc)
+     * @see org.apache.pig.StoreFunc#prepareToWrite(org.apache.hadoop.mapreduce.RecordWriter)
+     */
+    @Override
+    public void prepareToWrite(RecordWriter writer) {
+        // TODO Auto-generated method stub
+        
+    }
+
+    /* (non-Javadoc)
+     * @see org.apache.pig.StoreFunc#setSchema(org.apache.pig.ResourceSchema)
+     */
+    @Override
+    public void setSchema(ResourceSchema s) throws IOException {
+        // TODO Auto-generated method stub
+        
+    }
+
+    /* (non-Javadoc)
+     * @see org.apache.pig.StoreFunc#setStoreLocation(java.lang.String, org.apache.hadoop.mapreduce.Job)
+     */
+    @Override
+    public void setStoreLocation(String location, Job job) throws IOException {
+        // TODO Auto-generated method stub
+        
     }
 
 }

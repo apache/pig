@@ -20,6 +20,7 @@ import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler;
 import org.apache.pig.builtin.BinStorage;
 import org.apache.pig.builtin.PigStorage;
+import org.apache.pig.impl.io.ReadToEndLoader;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.DefaultTupleFactory;
@@ -100,9 +101,9 @@ public class MapRedUtil {
         } else {
             is = FileLocalizer.openDFSFile(keyDistFile);
         }
-        BinStorage loader = new BinStorage();
+        ReadToEndLoader loader = new ReadToEndLoader(new BinStorage(), job, 
+                keyDistFile, 0);
         DataBag partitionList;
-        loader.bindTo(keyDistFile, new BufferedPositionedInputStream(is), 0, Long.MAX_VALUE);
         Tuple t = loader.getNext();
         if(t==null) {
             throw new RuntimeException("Empty samples file");

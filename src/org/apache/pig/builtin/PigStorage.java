@@ -17,46 +17,67 @@
  */
 package org.apache.pig.builtin;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.ArrayList;
-import java.util.Map;
 import java.util.Iterator;
+import java.util.Map;
 
-import org.apache.commons.logging.LogFactory;
 import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
-import org.apache.pig.ExecType;
+import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
+import org.apache.hadoop.mapreduce.InputFormat;
+import org.apache.hadoop.mapreduce.InputSplit;
+import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.mapreduce.OutputFormat;
+import org.apache.hadoop.mapreduce.RecordReader;
+import org.apache.hadoop.mapreduce.RecordWriter;
+import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
+import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
+import org.apache.pig.LoadCaster;
 import org.apache.pig.PigException;
-import org.apache.pig.SamplableLoader;
+import org.apache.pig.ResourceSchema;
 import org.apache.pig.ReversibleLoadStoreFunc;
-import org.apache.pig.backend.datastorage.DataStorage;
 import org.apache.pig.backend.executionengine.ExecException;
-import org.apache.pig.data.DataByteArray;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigSplit;
 import org.apache.pig.data.DataBag;
+import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
-import org.apache.pig.impl.io.BufferedPositionedInputStream;
-import org.apache.pig.impl.io.PigLineRecordReader;
-import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.data.TupleFactory;
 
 /**
  * A load function that parses a line of input into fields using a delimiter to set the fields. The
  * delimiter is given as a regular expression. See String.split(delimiter) and
  * http://java.sun.com/j2se/1.5.0/docs/api/java/util/regex/Pattern.html for more information.
  */
-public class PigStorage extends Utf8StorageConverter
-        implements ReversibleLoadStoreFunc, SamplableLoader {
-    protected PigLineRecordReader in = null;
+public class PigStorage 
+        implements ReversibleLoadStoreFunc {
+    protected RecordReader in = null;
+    protected RecordWriter writer = null;
     protected final Log mLog = LogFactory.getLog(getClass());
         
     long end = Long.MAX_VALUE;
     private byte recordDel = '\n';
     private byte fieldDel = '\t';
     private ArrayList<Object> mProtoTuple = null;
+    private int os;
+    private TupleFactory mTupleFactory = TupleFactory.getInstance();
+    private static final int OS_UNIX = 0;
+    private static final int OS_WINDOWS = 1;
     private static final String UTF8 = "UTF-8";
-
-    public PigStorage() {}
+    private static final int BUFFER_SIZE = 1024;
+    
+    public PigStorage() {
+        os = OS_UNIX;
+        if (System.getProperty("os.name").toUpperCase().startsWith("WINDOWS"))
+            os = OS_WINDOWS;
+    }
 
     /**
      * Constructs a Pig loader that uses specified regex as a field delimiter.
@@ -89,81 +110,40 @@ public class PigStorage extends Utf8StorageConverter
         }
     }
 
-    public long getPosition() throws IOException {
-        return in.getPosition();
-    }
-
-    public long skip(long n) throws IOException {
-        
-        Text t = new Text();
-        long sofar = 0;
-        while (sofar < n) {
-            /*
-             *  By calling next we skip more than required bytes
-             *  but this skip will be only until end of record.. aka line
-             */
-            if (in.next( t)) {
-                sofar += t.getLength() + 1;
-            } else {
-                // End of file
-                return sofar;
-            } 
-        }
-        return sofar;
-    }
-
     public Tuple getNext() throws IOException {
-        if (in == null || in.getPosition() > end) {
-            return null;
-        }
 
-        Text value = new Text();
-        boolean notDone = in.next(value);
-        if (!notDone) {
-            return null;
-        }                                                                                           
-
-        byte[] buf = value.getBytes();
-        int len = value.getLength();
-        int start = 0;
-        for (int i = 0; i < len; i++) {
-            if (buf[i] == fieldDel) {
-                readField(buf, start, i);
-                start = i + 1;
+        try {
+            boolean notDone = in.nextKeyValue();
+            if (!notDone) {
+                return null;
+            }                                                                                           
+            Text value = (Text) in.getCurrentValue();
+            byte[] buf = value.getBytes();
+            int len = value.getLength();
+            int start = 0;
+            for (int i = 0; i < len; i++) {
+                if (buf[i] == fieldDel) {
+                    readField(buf, start, i);
+                    start = i + 1;
+                }
             }
+            // pick up the last field
+            if (start <= len) {
+                readField(buf, start, len);
+            }
+            Tuple t =  mTupleFactory.newTupleNoCopy(mProtoTuple);
+            // System.out.println( "Arity:" + t.size() + " Value: " + value.toString() );
+            mProtoTuple = null;
+            return t;
+        } catch (InterruptedException e) {
+            // FIXME: XXX - include errorcode
+            throw new IOException("Error getting input");
         }
-        // pick up the last field
-        if (start <= len) {
-            readField(buf, start, len);
-        }
-        Tuple t =  mTupleFactory.newTupleNoCopy(mProtoTuple);
-        // System.out.println( "Arity:" + t.size() + " Value: " + value.toString() );
-        mProtoTuple = null;
-        return t;
 
     }
 
-    public Tuple getSampledTuple() throws IOException {     
-        return getNext();
-    }
+    ByteArrayOutputStream mOut = new ByteArrayOutputStream(BUFFER_SIZE);
 
-    public void bindTo(String fileName, BufferedPositionedInputStream in, long offset, long end) throws IOException {
-        this.in = new PigLineRecordReader( in, offset, end );
-        this.end = end;
-        
-        // Since we are not block aligned we throw away the first
-        // record and cound on a different instance to read it
-        if (offset != 0) {
-            getNext();
-        }
-    }
-    
-    OutputStream mOut;
-    public void bindTo(OutputStream os) throws IOException {
-        mOut = os;
-    }
-
-    @SuppressWarnings("unchecked")
     private void putField(Object field) throws IOException {
         //string constants for each delimiter
         String tupleBeginDelim = "(";
@@ -285,12 +265,16 @@ public class PigStorage extends Utf8StorageConverter
 
             putField(field);
 
-            if (i == sz - 1) {
-                // last field in tuple.
-                mOut.write(recordDel);
-            } else {
+            if (i != sz - 1) {
                 mOut.write(fieldDel);
             }
+        }
+        Text text = new Text(mOut.toByteArray());
+        try {
+            writer.write(null, text);
+            mOut.reset();
+        } catch (InterruptedException e) {
+            throw new IOException(e);
         }
     }
 
@@ -310,19 +294,6 @@ public class PigStorage extends Utf8StorageConverter
         }
     }
 
-    /* (non-Javadoc)
-     * @see org.apache.pig.LoadFunc#determineSchema(java.lang.String, org.apache.pig.ExecType, org.apache.pig.backend.datastorage.DataStorage)
-     */
-    public Schema determineSchema(String fileName, ExecType execType,
-            DataStorage storage) throws IOException {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    public void fieldsToRead(Schema schema) {
-        // do nothing
-    }
-    
     public boolean equals(Object obj) {
         return equals((PigStorage)obj);
     }
@@ -332,11 +303,100 @@ public class PigStorage extends Utf8StorageConverter
     }
 
     /* (non-Javadoc)
-     * @see org.apache.pig.StoreFunc#getStorePreparationClass()
+     * @see org.apache.pig.LoadFunc#doneReading()
      */
-   
-    public Class getStorePreparationClass() throws IOException {
+    @Override
+    public void doneReading() {
         // TODO Auto-generated method stub
-        return null;
+        
     }
+
+    /* (non-Javadoc)
+     * @see org.apache.pig.LoadFunc#getInputFormat()
+     */
+    @Override
+    public InputFormat getInputFormat() {
+        // TODO Auto-generated method stub
+        return new TextInputFormat();
+    }
+
+    /* (non-Javadoc)
+     * @see org.apache.pig.LoadFunc#getLoadCaster()
+     */
+    @Override
+    public LoadCaster getLoadCaster() {
+        // TODO Auto-generated method stub
+        return new Utf8StorageConverter();
+    }
+
+    /* (non-Javadoc)
+     * @see org.apache.pig.LoadFunc#prepareToRead(org.apache.hadoop.mapreduce.RecordReader, org.apache.hadoop.mapreduce.InputSplit)
+     */
+    @Override
+    public void prepareToRead(RecordReader reader, PigSplit split) {
+        in = reader;
+    }
+
+    /* (non-Javadoc)
+     * @see org.apache.pig.LoadFunc#setLocation(java.lang.String, org.apache.hadoop.conf.Configuration)
+     */
+    @Override
+    public void setLocation(String location, Job job)
+            throws IOException {
+        FileInputFormat.setInputPaths(job, location);
+    }
+
+    /* (non-Javadoc)
+     * @see org.apache.pig.StoreFunc#allFinished(org.apache.hadoop.conf.Configuration)
+     */
+    @Override
+    public void allFinished(Job job) {
+        // TODO Auto-generated method stub
+        
+    }
+
+    /* (non-Javadoc)
+     * @see org.apache.pig.StoreFunc#doneWriting()
+     */
+    @Override
+    public void doneWriting() {
+        // TODO Auto-generated method stub
+        
+    }
+
+    /* (non-Javadoc)
+     * @see org.apache.pig.StoreFunc#getOutputFormat()
+     */
+    @Override
+    public OutputFormat getOutputFormat() {
+        return new TextOutputFormat<Text, Text>();
+    }
+
+    /* (non-Javadoc)
+     * @see org.apache.pig.StoreFunc#prepareToWrite(org.apache.hadoop.mapreduce.RecordWriter)
+     */
+    @Override
+    public void prepareToWrite(RecordWriter writer) {
+        this.writer = writer;        
+    }
+
+    /* (non-Javadoc)
+     * @see org.apache.pig.StoreFunc#setLocation(java.lang.String)
+     */
+    @Override
+    public void setStoreLocation(String location, Job job) throws IOException {
+        job.getConfiguration().set("mapred.textoutputformat.separator", "");
+        FileOutputFormat.setOutputPath(job, new Path(location));
+    }
+
+    /* (non-Javadoc)
+     * @see org.apache.pig.StoreFunc#setSchema(org.apache.pig.ResourceSchema)
+     */
+    @Override
+    public void setSchema(ResourceSchema s) throws IOException {
+        // TODO Auto-generated method stub
+        
+    }
+
+   
  }

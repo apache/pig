@@ -18,14 +18,23 @@
 
 package org.apache.pig.backend.local.executionengine;
 
+import java.io.IOException;
 import java.io.OutputStream;
 import java.io.InputStream;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.mapreduce.InputFormat;
+import org.apache.hadoop.mapreduce.InputSplit;
+import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.mapreduce.JobContext;
+import org.apache.hadoop.mapreduce.JobID;
+import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.executionengine.ExecJob;
 import org.apache.pig.data.Tuple;
@@ -34,6 +43,7 @@ import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.LoadFunc;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.BufferedPositionedInputStream;
+import org.apache.pig.impl.io.ReadToEndLoader;
 import org.apache.pig.tools.pigstats.PigStats;
 
 
@@ -74,14 +84,18 @@ public class LocalJob implements ExecJob {
     
     public Iterator<Tuple> getResults() throws ExecException {
         final LoadFunc p;
+        final InputFormat inputFormat;
         
         try{
-             p = (LoadFunc)PigContext.instantiateFuncFromSpec(outFileSpec.getFuncSpec());
-
-             InputStream is = FileLocalizer.open(outFileSpec.getFileName(), pigContext);
-
-             p.bindTo(outFileSpec.getFileName(), new BufferedPositionedInputStream(is), 0, Long.MAX_VALUE);
-
+             LoadFunc origLoadFunc = (LoadFunc)PigContext.instantiateFuncFromSpec(outFileSpec.getFuncSpec());
+             
+             String fileName = outFileSpec.getFileName();
+             if(!fileName.startsWith("file://")) {
+                 fileName = "file://" + fileName;
+             }
+             //XXX: FIXME: ensure this works in local mode (part of load-store redesign changes)
+             p = new ReadToEndLoader(origLoadFunc, ConfigurationUtil.toConfiguration(
+                                         pigContext.getProperties()), fileName, 0);
         }catch (Exception e){
             throw new ExecException("Unable to get results for " + outFileSpec, e);
         }

@@ -18,51 +18,73 @@
 package org.apache.pig;
 
 import java.io.IOException;
-import java.net.URL;
-import java.util.Map;
 
-import org.apache.pig.backend.datastorage.DataStorage;
-import org.apache.pig.data.DataBag;
+import org.apache.hadoop.mapreduce.InputFormat;
+import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.mapreduce.RecordReader;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigSplit;
 import org.apache.pig.data.Tuple;
-import org.apache.pig.impl.io.BufferedPositionedInputStream;
-import org.apache.pig.impl.logicalLayer.schema.Schema;
 
 
 /**
  * This interface is used to implement functions to parse records
- * from a dataset.  This also includes functions to cast raw byte data into various
- * datatypes.  These are external functions because we want loaders, whenever
- * possible, to delay casting of datatypes until the last possible moment (i.e.
- * don't do it on load).  This means we need to expose the functionality so that
- * other sections of the code can call back to the loader to do the cast.
+ * from a dataset.
  */
 public interface LoadFunc {
+
     /**
-     * Specifies a portion of an InputStream to read tuples. Because the
-     * starting and ending offsets may not be on record boundaries it is up to
-     * the implementor to deal with figuring out the actual starting and ending
-     * offsets in such a way that an arbitrarily sliced up file will be processed
-     * in its entirety.
-     * <p>
-     * A common way of handling slices in the middle of records is to start at
-     * the given offset and, if the offset is not zero, skip to the end of the
-     * first record (which may be a partial record) before reading tuples.
-     * Reading continues until a tuple has been read that ends at an offset past
-     * the ending offset.
-     * <p>
-     * <b>The load function should not do any buffering on the input stream</b>. Buffering will
-     * cause the offsets returned by is.getPos() to be unreliable.
-     *  
-     * @param fileName the name of the file to be read
-     * @param is the stream representing the file to be processed, and which can also provide its position.
-     * @param offset the offset to start reading tuples.
-     * @param end the ending offset for reading.
-     * @throws IOException
+     * Communicate to the loader the load string used in Pig Latin to refer to the 
+     * object(s) being loaded.  That is, if the PL script is
+     * <b>A = load 'bla'</b>
+     * then 'bla' is the load string.  In general Pig expects these to be
+     * a path name, a glob, or a URI.  If there is no URI scheme present,
+     * Pig will assume it is a file name.  This will be 
+     * called during planning on the front end at which time an empty Job object
+     * will be passed as the second argument.
+     * 
+     * This method will also be called in the backend multiple times and in those
+     * calls the Job object will actually have job information. Implementations
+     * should bear in mind that this method is called multiple times and should
+     * ensure there are no inconsistent side effects due to the multiple calls.
+     * 
+     * @param location Location indicated in load statement.
+     * @param job the {@link Job} object
+     * @throws IOException if the location is not valid.
      */
-    public void bindTo(String fileName,
-                       BufferedPositionedInputStream is,
-                       long offset,
-                       long end) throws IOException;
+    void setLocation(String location, Job job) throws IOException;
+    
+    /**
+     * Return the InputFormat associated with this loader.  This will be
+     * called during planning on the front end.  The LoadFunc need not
+     * carry the InputFormat information to the backend, as it will
+     * be provided with the appropriate RecordReader there.  This is the
+     * instance of InputFormat (rather than the class name) because the 
+     * load function may need to instantiate the InputFormat in order 
+     * to control how it is constructed.
+     */
+    InputFormat getInputFormat();
+
+    /**
+     * Return the LoadCaster associated with this loader.  Returning
+     * null indicates that casts from byte array are not supported
+     * for this loader.  This will be called on the front end during
+     * planning and not on the back end during execution.
+     */
+    LoadCaster getLoadCaster();
+
+    /**
+     * Initializes LoadFunc for reading data.  This will be called during execution
+     * before any calls to getNext.  The RecordReader needs to be passed here because
+     * it has been instantiated for a particular InputSplit.
+     * @param reader RecordReader to be used by this instance of the LoadFunc
+     * @param split The input split to process
+     */
+    void prepareToRead(RecordReader reader, PigSplit split);
+
+    /**
+     * Called after all reading is finished.
+     */
+    void doneReading();
 
     /**
      * Retrieves the next tuple to be processed.
@@ -70,99 +92,6 @@ public interface LoadFunc {
      * to be processed.
      * @throws IOException
      */
-    public Tuple getNext() throws IOException;
-    
-    
-    /**
-     * Cast data from bytes to integer value.  
-     * @param b byte array to be cast.
-     * @return Integer value.
-     * @throws IOException if the value cannot be cast.
-     */
-    public Integer bytesToInteger(byte[] b) throws IOException;
+    Tuple getNext() throws IOException;
 
-    /**
-     * Cast data from bytes to long value.  
-     * @param b byte array to be cast.
-     * @return Long value.
-     * @throws IOException if the value cannot be cast.
-     */
-    public Long bytesToLong(byte[] b) throws IOException;
-
-    /**
-     * Cast data from bytes to float value.  
-     * @param b byte array to be cast.
-     * @return Float value.
-     * @throws IOException if the value cannot be cast.
-     */
-    public Float bytesToFloat(byte[] b) throws IOException;
-
-    /**
-     * Cast data from bytes to double value.  
-     * @param b byte array to be cast.
-     * @return Double value.
-     * @throws IOException if the value cannot be cast.
-     */
-    public Double bytesToDouble(byte[] b) throws IOException;
-
-    /**
-     * Cast data from bytes to chararray value.  
-     * @param b byte array to be cast.
-     * @return String value.
-     * @throws IOException if the value cannot be cast.
-     */
-    public String bytesToCharArray(byte[] b) throws IOException;
-
-    /**
-     * Cast data from bytes to map value.  
-     * @param b byte array to be cast.
-     * @return Map value.
-     * @throws IOException if the value cannot be cast.
-     */
-    public Map<String, Object> bytesToMap(byte[] b) throws IOException;
-
-    /**
-     * Cast data from bytes to tuple value.  
-     * @param b byte array to be cast.
-     * @return Tuple value.
-     * @throws IOException if the value cannot be cast.
-     */
-    public Tuple bytesToTuple(byte[] b) throws IOException;
-
-    /**
-     * Cast data from bytes to bag value.  
-     * @param b byte array to be cast.
-     * @return Bag value.
-     * @throws IOException if the value cannot be cast.
-     */
-    public DataBag bytesToBag(byte[] b) throws IOException;
-
-    /**
-     * Indicate to the loader fields that will be needed.  This can be useful for
-     * loaders that access data that is stored in a columnar format where indicating
-     * columns to be accessed a head of time will save scans.  If the loader
-     * function cannot make use of this information, it is free to ignore it.
-     * @param schema Schema indicating which columns will be needed.
-     */
-    public void fieldsToRead(Schema schema);
-
-    /**
-     * Find the schema from the loader.  This function will be called at parse time
-     * (not run time) to see if the loader can provide a schema for the data.  The
-     * loader may be able to do this if the data is self describing (e.g. JSON).  If
-     * the loader cannot determine the schema, it can return a null.
-     * LoadFunc implementations which need to open the input "fileName", can use 
-     * FileLocalizer.open(String fileName, ExecType execType, DataStorage storage) to get
-     * an InputStream which they can use to initialize their loader implementation. They
-     * can then use this to read the input data to discover the schema. Note: this will
-     * work only when the fileName represents a file on Local File System or Hadoop file 
-     * system
-     * @param fileName Name of the file to be read.(this will be the same as the filename 
-     * in the "load statement of the script)
-     * @param execType - execution mode of the pig script - one of ExecType.LOCAL or ExecType.MAPREDUCE
-     * @param storage - the DataStorage object corresponding to the execType
-     * @return a Schema describing the data if possible, or null otherwise.
-     * @throws IOException.
-     */
-    public Schema determineSchema(String fileName, ExecType execType, DataStorage storage) throws IOException;
 }

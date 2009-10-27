@@ -194,4 +194,10 @@ public class POStore extends PhysicalOperator {
     public Schema getSchema() {
         return schema;
     }
+    
+    public StoreFunc getStoreFunc() {
+        return (StoreFunc) 
+        PigContext.instantiateFuncFromSpec(sFile.getFuncSpec());
+    }
+    
 }

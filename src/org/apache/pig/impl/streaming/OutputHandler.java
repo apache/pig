@@ -62,8 +62,9 @@ public abstract class OutputHandler {
      */
     public void bindTo(String fileName, BufferedPositionedInputStream is,
                        long offset, long end) throws IOException {
-        deserializer.bindTo(fileName, new BufferedPositionedInputStream(is), 
-                            offset, end);
+        // XXX: FIXME - make this work with new load-store redesign
+//        deserializer.bindTo(fileName, new BufferedPositionedInputStream(is), 
+//                            offset, end);
     }
     
     /**

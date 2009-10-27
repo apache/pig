@@ -24,11 +24,18 @@ import java.net.URL;
 import java.nio.charset.Charset;
 import java.util.Map;
 
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.mapreduce.InputFormat;
+import org.apache.hadoop.mapreduce.InputSplit;
+import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.pig.ExecType;
+import org.apache.pig.LoadCaster;
 import org.apache.pig.LoadFunc;
 import org.apache.pig.PigException;
 import org.apache.pig.backend.datastorage.DataStorage;
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigSplit;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.Tuple;
@@ -41,20 +48,12 @@ import org.apache.pig.impl.logicalLayer.schema.Schema;
  * This load function simply creates a tuple for each line of text that has a single field that
  * contains the line of text.
  */
+//XXX : FIXME - make this work with new load-store redesign
 public class TextLoader implements LoadFunc{
     BufferedPositionedInputStream in;
     final private static Charset utf8 = Charset.forName("UTF8");
     long end;
     private TupleFactory mTupleFactory = TupleFactory.getInstance();
-
-    public void bindTo(String fileName, BufferedPositionedInputStream in, long offset, long end) throws IOException {
-        this.in = in;
-        this.end = end;
-        // Since we are not block aligned we throw away the first
-        // record and count on a different instance to read it
-        if (offset != 0)
-            getNext();
-    }
 
     public Tuple getNext() throws IOException {
         if (in == null || in.getPosition() > end)
@@ -216,5 +215,50 @@ public class TextLoader implements LoadFunc{
         int errCode = 2109;
         String msg = "TextLoader does not support conversion from Tuple.";
         throw new ExecException(msg, errCode, PigException.BUG);
+    }
+
+    /* (non-Javadoc)
+     * @see org.apache.pig.LoadFunc#doneReading()
+     */
+    @Override
+    public void doneReading() {
+        // TODO Auto-generated method stub
+        
+    }
+
+    /* (non-Javadoc)
+     * @see org.apache.pig.LoadFunc#getInputFormat()
+     */
+    @Override
+    public InputFormat getInputFormat() {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    /* (non-Javadoc)
+     * @see org.apache.pig.LoadFunc#getLoadCaster()
+     */
+    @Override
+    public LoadCaster getLoadCaster() {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    /* (non-Javadoc)
+     * @see org.apache.pig.LoadFunc#prepareToRead(org.apache.hadoop.mapreduce.RecordReader, org.apache.hadoop.mapreduce.InputSplit)
+     */
+    @Override
+    public void prepareToRead(RecordReader reader, PigSplit split) {
+        // TODO Auto-generated method stub
+        
+    }
+
+    /* (non-Javadoc)
+     * @see org.apache.pig.LoadFunc#setLocation(java.lang.String, org.apache.hadoop.mapreduce.Job)
+     */
+    @Override
+    public void setLocation(String location, Job job) throws IOException {
+        // TODO Auto-generated method stub
+        
     }
 }

@@ -20,15 +20,22 @@ import java.io.IOException;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.hadoop.mapreduce.InputFormat;
+import org.apache.hadoop.mapreduce.InputSplit;
+import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.pig.ExecType;
+import org.apache.pig.LoadCaster;
 import org.apache.pig.LoadFunc;
 import org.apache.pig.Slice;
 import org.apache.pig.Slicer;
 import org.apache.pig.backend.datastorage.DataStorage;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigSplit;
 import org.apache.pig.builtin.Utf8StorageConverter;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.io.BufferedPositionedInputStream;
@@ -146,27 +153,55 @@ public class HBaseStorage extends Utf8StorageConverter implements Slicer,
     // It is just a mock class to let the UDF be casted to a LOADFUNC during
     // parsing.
     
-    @Override
-    public void bindTo(String fileName, BufferedPositionedInputStream is,
-            long offset, long end) throws IOException {
-        // do nothing
-    }
-
-    @Override
-    public Schema determineSchema(String fileName, ExecType execType,
-            DataStorage storage) throws IOException {
-        // do nothing
-        return null;
-    }
-
-    @Override
-    public void fieldsToRead(Schema schema) {
-        // do nothing
-    }
 
     @Override
     public Tuple getNext() throws IOException {
         // do nothing
         return null;
+    }
+
+    /* (non-Javadoc)
+     * @see org.apache.pig.LoadFunc#doneReading()
+     */
+    @Override
+    public void doneReading() {
+        // TODO Auto-generated method stub
+        
+    }
+
+    /* (non-Javadoc)
+     * @see org.apache.pig.LoadFunc#getInputFormat()
+     */
+    @Override
+    public InputFormat getInputFormat() {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    /* (non-Javadoc)
+     * @see org.apache.pig.LoadFunc#getLoadCaster()
+     */
+    @Override
+    public LoadCaster getLoadCaster() {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    /* (non-Javadoc)
+     * @see org.apache.pig.LoadFunc#prepareToRead(org.apache.hadoop.mapreduce.RecordReader, org.apache.hadoop.mapreduce.InputSplit)
+     */
+    @Override
+    public void prepareToRead(RecordReader reader, PigSplit split) {
+        // TODO Auto-generated method stub
+        
+    }
+
+    /* (non-Javadoc)
+     * @see org.apache.pig.LoadFunc#setLocation(java.lang.String, org.apache.hadoop.mapreduce.Job)
+     */
+    @Override
+    public void setLocation(String location, Job job) throws IOException {
+        // TODO Auto-generated method stub
+        
     }
 }

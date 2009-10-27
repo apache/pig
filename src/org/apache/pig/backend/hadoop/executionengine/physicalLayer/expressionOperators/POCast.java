@@ -24,6 +24,7 @@ import java.util.Map;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.pig.FuncSpec;
+import org.apache.pig.LoadCaster;
 import org.apache.pig.LoadFunc;
 import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
@@ -49,6 +50,7 @@ import org.apache.pig.impl.util.CastUtils;
 public class POCast extends ExpressionOperator {
     private FuncSpec loadFSpec = null;
     transient private LoadFunc load;
+    transient private LoadCaster caster;
     transient private Log log = LogFactory.getLog(getClass());
     private boolean castNotNeeded = false;
     private Byte realType = null;
@@ -72,6 +74,7 @@ public class POCast extends ExpressionOperator {
             this.load = (LoadFunc) PigContext
                     .instantiateFuncFromSpec(this.loadFSpec);
         }
+        this.caster = load.getLoadCaster();
     }
 
     public void setLoadFSpec(FuncSpec lf) {
@@ -135,8 +138,8 @@ public class POCast extends ExpressionOperator {
                     return res;
                 }
                 try {
-                    if (null != load) {
-                        res.result = load.bytesToInteger(dba.get());
+                    if (null != caster) {
+                        res.result = caster.bytesToInteger(dba.get());
                     } else {
                         int errCode = 1075;
                         String msg = "Received a bytearray from the UDF. Cannot determine how to convert the bytearray to int.";
@@ -262,8 +265,8 @@ public class POCast extends ExpressionOperator {
                     return res;
                 }
                 try {
-                    if (null != load) {
-                        res.result = load.bytesToLong(dba.get());
+                    if (null != caster) {
+                        res.result = caster.bytesToLong(dba.get());
                     } else {
                         int errCode = 1075;
                         String msg = "Received a bytearray from the UDF. Cannot determine how to convert the bytearray to long.";
@@ -384,8 +387,8 @@ public class POCast extends ExpressionOperator {
                     return res;
                 }
                 try {
-                    if (null != load) {
-                        res.result = load.bytesToDouble(dba.get());
+                    if (null != caster) {
+                        res.result = caster.bytesToDouble(dba.get());
                     } else {
                         int errCode = 1075;
                         String msg = "Received a bytearray from the UDF. Cannot determine how to convert the bytearray to double.";
@@ -505,8 +508,8 @@ public class POCast extends ExpressionOperator {
                     return res;
                 }
                 try {
-                    if (null != load) {
-                        res.result = load.bytesToFloat(dba.get());
+                    if (null != caster) {
+                        res.result = caster.bytesToFloat(dba.get());
                     } else {
                         int errCode = 1075;
                         String msg = "Received a bytearray from the UDF. Cannot determine how to convert the bytearray to float.";
@@ -628,8 +631,8 @@ public class POCast extends ExpressionOperator {
                     return res;
                 }
                 try {
-                    if (null != load) {
-                        res.result = load.bytesToCharArray(dba.get());
+                    if (null != caster) {
+                        res.result = caster.bytesToCharArray(dba.get());
                     } else {
                         int errCode = 1075;
                         String msg = "Received a bytearray from the UDF. Cannot determine how to convert the bytearray to string.";
@@ -650,9 +653,9 @@ public class POCast extends ExpressionOperator {
             Result res = in.getNext(b);
             if (res.returnStatus == POStatus.STATUS_OK && res.result != null) {
                 if (((Boolean) res.result) == true)
-                    res.result = "1";
+                    res.result = new String("1");
                 else
-                    res.result = "0";
+                    res.result = new String("1");
             }
             return res;
         }
@@ -660,7 +663,7 @@ public class POCast extends ExpressionOperator {
             Integer dummyI = null;
             Result res = in.getNext(dummyI);
             if (res.returnStatus == POStatus.STATUS_OK && res.result != null) {
-                res.result = ((Integer) res.result).toString();
+                res.result = new String(((Integer) res.result).toString());
             }
             return res;
         }
@@ -670,7 +673,7 @@ public class POCast extends ExpressionOperator {
             Result res = in.getNext(d);
             if (res.returnStatus == POStatus.STATUS_OK && res.result != null) {
                 // res.result = DataType.toInteger(res.result);
-                res.result = ((Double) res.result).toString();
+                res.result = new String(((Double) res.result).toString());
             }
             return res;
         }
@@ -680,7 +683,7 @@ public class POCast extends ExpressionOperator {
             Long l = null;
             Result res = in.getNext(l);
             if (res.returnStatus == POStatus.STATUS_OK && res.result != null) {
-                res.result = ((Long) res.result).toString();
+                res.result = new String(((Long) res.result).toString());
             }
             return res;
         }
@@ -689,7 +692,7 @@ public class POCast extends ExpressionOperator {
             Float f = null;
             Result res = in.getNext(f);
             if (res.returnStatus == POStatus.STATUS_OK && res.result != null) {
-                res.result = ((Float) res.result).toString();
+                res.result = new String(((Float) res.result).toString());
             }
             return res;
         }
@@ -753,8 +756,8 @@ public class POCast extends ExpressionOperator {
 
                 }
                 try {
-                    if (null != load) {
-                        res.result = load.bytesToTuple(dba.get());
+                    if (null != caster) {
+                        res.result = caster.bytesToTuple(dba.get());
                     } else {
                         int errCode = 1075;
                         String msg = "Received a bytearray from the UDF. Cannot determine how to convert the bytearray to tuple.";
@@ -841,8 +844,8 @@ public class POCast extends ExpressionOperator {
 
                 }
                 try {
-                    if (null != load) {
-                        res.result = load.bytesToBag(dba.get());
+                    if (null != caster) {
+                        res.result = caster.bytesToBag(dba.get());
                     } else {
                         int errCode = 1075;
                         String msg = "Received a bytearray from the UDF. Cannot determine how to convert the bytearray to bag.";
@@ -929,8 +932,8 @@ public class POCast extends ExpressionOperator {
 
                 }
                 try {
-                    if (null != load) {
-                        res.result = load.bytesToMap(dba.get());
+                    if (null != caster) {
+                        res.result = caster.bytesToMap(dba.get());
                     } else {
                         int errCode = 1075;
                         String msg = "Received a bytearray from the UDF. Cannot determine how to convert the bytearray to map.";

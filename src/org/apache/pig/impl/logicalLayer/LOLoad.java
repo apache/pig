@@ -27,8 +27,11 @@ import java.util.Map;
 import java.util.Set;
 import org.apache.pig.ExecType;
 import org.apache.pig.LoadFunc;
+import org.apache.pig.LoadMetadata;
 import org.apache.pig.PigException;
+import org.apache.pig.ResourceSchema;
 import org.apache.pig.backend.datastorage.DataStorage;
+import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.data.DataType;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileSpec;
@@ -38,12 +41,14 @@ import org.apache.pig.impl.plan.RequiredFields;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.util.MultiMap;
 import org.apache.pig.impl.util.Pair;
+import org.apache.pig.impl.util.PropertiesUtil;
 import org.apache.pig.impl.util.WrappedIOException;
 import org.apache.pig.impl.logicalLayer.parser.ParseException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.logicalLayer.schema.SchemaMergeException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.mapreduce.Job;
 
 public class LOLoad extends RelationalOperator {
     private static final long serialVersionUID = 2L;
@@ -145,8 +150,8 @@ public class LOLoad extends RelationalOperator {
                 }
 
                 if(null == mDeterminedSchema) {
-                    mSchema = mLoadFunc.determineSchema(mSchemaFile, mExecType, mStorage);
-                    mDeterminedSchema  = mSchema;
+                    mSchema = determineSchema();
+                    mDeterminedSchema  = mSchema;    
                 }
                 mIsSchemaComputed = true;
             } catch (IOException ioe) {
@@ -161,6 +166,22 @@ public class LOLoad extends RelationalOperator {
         return mSchema;
     }
     
+    private Schema determineSchema() throws IOException {
+        if(LoadMetadata.class.isAssignableFrom(mLoadFunc.getClass())) {
+            // XXX: FIXME - mStorage should no longer be needed, we
+            // should use Configuration directly by passing a 
+            // Configuration object while creating LOLoad rather than
+            // a DataStorage object
+            mLoadFunc.setLocation(mInputFileSpec.getFileName(), 
+                    new Job(ConfigurationUtil.toConfiguration(
+                            mStorage.getConfiguration())));
+            LoadMetadata loadMetadata = (LoadMetadata)mLoadFunc;
+            ResourceSchema rSchema = loadMetadata.getSchema();
+            return Schema.getPigSchema(rSchema);
+        } else {
+            return null;
+        }
+    }
     /* (non-Javadoc)
      * @see org.apache.pig.impl.logicalLayer.LogicalOperator#setSchema(org.apache.pig.impl.logicalLayer.schema.Schema)
      */
@@ -253,7 +274,7 @@ public class LOLoad extends RelationalOperator {
             }
         } else {
             try {
-                inputSchema = mLoadFunc.determineSchema(mSchemaFile, mExecType, mStorage);
+                inputSchema = determineSchema();
             } catch (IOException ioe) {
                 mProjectionMap = null;
                 return mProjectionMap;

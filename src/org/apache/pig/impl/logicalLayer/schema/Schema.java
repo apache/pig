@@ -28,6 +28,8 @@ import java.util.Set;
 import java.util.Collection;
 
 import org.apache.pig.PigException;
+import org.apache.pig.ResourceSchema;
+import org.apache.pig.ResourceSchema.ResourceFieldSchema;
 import org.apache.pig.data.DataType;
 //import org.apache.pig.impl.logicalLayer.parser.ParseException;
 import org.apache.commons.logging.Log;
@@ -672,7 +674,7 @@ public class Schema implements Serializable, Cloneable {
     public FieldSchema getField(String alias) throws FrontendException {
         FieldSchema fs = mAliases.get(alias);
         if(null == fs) {
-            String cocoPrefix = "::" + alias;
+            String cocoPrefix = new String("::" + alias);
             Map<String, Integer> aliasMatches = new HashMap<String, Integer>();
             //build the map of aliases that have cocoPrefix as the suffix
             for(String key: mAliases.keySet()) {
@@ -798,7 +800,7 @@ public class Schema implements Serializable, Cloneable {
                         if (aliases != null) {
                             List<String> listAliases = new ArrayList<String>();
                             for(String alias: aliases) {
-                                listAliases.add(alias);
+                                listAliases.add(new String(alias));
                             }
                             for(String alias: listAliases) {
                                 log.debug("Removing alias " + alias + " from multimap");
@@ -1595,6 +1597,34 @@ public class Schema implements Serializable, Cloneable {
      */
     public void setTwoLevelAccessRequired(boolean twoLevelAccess) {
         this.twoLevelAccessRequired = twoLevelAccess;
+    }
+    
+    public static Schema getPigSchema(ResourceSchema rSchema) 
+    throws FrontendException {
+        List<FieldSchema> fsList = new ArrayList<FieldSchema>();
+        for(ResourceFieldSchema rfs : rSchema.fields) {
+            FieldSchema fs = new FieldSchema(rfs.name, rfs.schema == null ? null:
+                getPigSchema(rfs.schema), rfs.type);
+            
+            // check if we have a need to set twoLevelAcccessRequired flag
+            if(rfs.type == DataType.BAG) {
+                if(fs.schema.size() == 1) {
+                    FieldSchema innerFs = fs.schema.getField(0);
+                    if(innerFs.type == DataType.TUPLE && innerFs.schema != null) {
+                        fs.schema.setTwoLevelAccessRequired(true);
+                    }
+                }
+            }
+            fsList.add(fs);
+        }
+        return new Schema(fsList);
+    }
+    
+    private static Schema getPigSchema(ResourceFieldSchema rfSchema) 
+    throws FrontendException {
+        return new Schema(new FieldSchema(rfSchema.name, 
+                rfSchema.schema == null ? null : getPigSchema(rfSchema.schema),
+                        rfSchema.type));
     }
     
 }

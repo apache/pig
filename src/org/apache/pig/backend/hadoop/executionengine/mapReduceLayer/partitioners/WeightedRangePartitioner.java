@@ -40,6 +40,7 @@ import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.builtin.FindQuantiles;
 import org.apache.pig.impl.io.BufferedPositionedInputStream;
 import org.apache.pig.impl.io.FileLocalizer;
+import org.apache.pig.impl.io.ReadToEndLoader;
 import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.io.NullableBytesWritable;
 import org.apache.pig.impl.io.NullableDoubleWritable;
@@ -93,9 +94,9 @@ public class WeightedRangePartitioner extends Partitioner<PigNullableWritable, W
         
         try{
             InputStream is = FileLocalizer.openDFSFile(quantilesFile,ConfigurationUtil.toProperties(job));
-            BinStorage loader = new BinStorage();
+            ReadToEndLoader loader = new ReadToEndLoader(new BinStorage(), job, 
+                    quantilesFile, 0);
             DataBag quantilesList;
-            loader.bindTo(quantilesFile, new BufferedPositionedInputStream(is), 0, Long.MAX_VALUE);
             Tuple t = loader.getNext();
             if(t!=null)
             {

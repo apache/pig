@@ -18,34 +18,21 @@
 package org.apache.pig.backend.hadoop.executionengine.mapReduceLayer;
 
 import java.io.IOException;
-import java.io.OutputStream;
-import java.text.NumberFormat;
+import java.util.List;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.WritableComparable;
-import org.apache.hadoop.mapred.JobConf;
+import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.hadoop.mapreduce.OutputCommitter;
 import org.apache.hadoop.mapreduce.OutputFormat;
-import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.RecordWriter;
-import org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter;
-import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
-import org.apache.hadoop.util.Progressable;
-import org.apache.pig.PigException;
+import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.pig.StoreFunc;
-import org.apache.pig.backend.executionengine.ExecException;
-import org.apache.pig.backend.hadoop.executionengine.util.MapRedUtil;
-import org.apache.pig.builtin.PigStorage;
+import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.data.Tuple;
-import org.apache.pig.impl.PigContext;
-import org.apache.pig.impl.io.PigNullableWritable;
-import org.apache.tools.bzip2r.CBZip2OutputStream;
+import org.apache.pig.impl.util.ObjectSerializer;
 
 /**
  * The better half of PigInputFormat which is responsible
@@ -55,6 +42,10 @@ import org.apache.tools.bzip2r.CBZip2OutputStream;
  */
 @SuppressWarnings("unchecked")
 public class PigOutputFormat extends OutputFormat<WritableComparable, Tuple> {
+    
+    private enum Mode { SINGLE_STORE, MULTI_STORE};
+    
+    private OutputCommitter committer;
 
     /** hadoop job output directory */
     public static final String MAPRED_OUTPUT_DIR = "mapred.output.dir";
@@ -66,10 +57,6 @@ public class PigOutputFormat extends OutputFormat<WritableComparable, Tuple> {
     /** the relative path that can be used to build a temporary
      * place to store the output from a number of map-reduce tasks*/
     public static final String PIG_TMP_PATH =  "pig.tmp.path";
-    
-    private FileOutputCommitter committer = null;
-    
-    private final Log log = LogFactory.getLog(getClass());
     
     /**
      * In general, the mechanism for an OutputFormat in Pig to get hold of the storeFunc
@@ -88,42 +75,72 @@ public class PigOutputFormat extends OutputFormat<WritableComparable, Tuple> {
      * {@link org.apache.hadoop.mapred.FileOutputFormat#getWorkOutputPath(JobConf)}
      * which will provide a safe output directory into which the OutputFormat should write
      * the part file (given by the name argument in the getRecordWriter() call).
-     */
-    private PigRecordWriter getRecordWriter(FileSystem fs, TaskAttemptContext context,
-                    Path outputDir, String name) throws IOException {
+     */  
+    public RecordWriter<WritableComparable, Tuple> getRecordWriter(TaskAttemptContext taskattemptcontext)
+                throws IOException, InterruptedException {
+        List<POStore> mapStores = getStores(taskattemptcontext, 
+                JobControlCompiler.PIG_MAP_STORES);
+        List<POStore> reduceStores = getStores(taskattemptcontext, 
+                JobControlCompiler.PIG_REDUCE_STORES);
         
-        StoreFunc store = MapRedUtil.getStoreFunc(context.getConfiguration());
-        
-        String parentName = FileOutputFormat.getOutputPath(context).getName();
-        int suffixStart = parentName.lastIndexOf('.');
-        if (suffixStart != -1) {
-            String suffix = parentName.substring(suffixStart);
-            if (suffix.equals(".bz") || suffix.equals(".bz2")) {
-                name = name + suffix;
+        if(mapStores.size() + reduceStores.size() == 1) {
+            // single store case
+            POStore store;
+            if(mapStores.size() == 1) {
+                store = mapStores.get(0);
+            } else {
+                store = reduceStores.get(0);
             }
+            StoreFunc sFunc = store.getStoreFunc();
+            // set output location
+            PigOutputFormat.setLocation(taskattemptcontext, sFunc, 
+                    store.getSFile().getFileName());
+            // The above call should have update the conf in the JobContext
+            // to have the output location - now call checkOutputSpecs()
+            RecordWriter writer = sFunc.getOutputFormat().getRecordWriter(
+                    taskattemptcontext);
+            return new PigRecordWriter(writer, sFunc, Mode.SINGLE_STORE);
+        } else {
+           // multi store case - in this case, all writing is done through
+           // MapReducePOStoreImpl - set up a dummy RecordWriter
+           return new PigRecordWriter(null, null, Mode.MULTI_STORE);
         }
-
-        return new PigRecordWriter(fs, new Path(outputDir, name), store);
     }
 
+
+    /**
+     * Wrapper class which will delegate calls to the actual RecordWriter - this
+     * should only get called in the single store case.
+     */
     @SuppressWarnings("unchecked")
     static public class PigRecordWriter
             extends RecordWriter<WritableComparable, Tuple> {
         
-        private OutputStream os = null;
-
-        private StoreFunc sfunc = null;
-
-        public PigRecordWriter(FileSystem fs, Path file, StoreFunc sfunc)
+        /**
+         * the actual RecordWriter
+         */
+        private RecordWriter wrappedWriter;
+        
+        /**
+         * the StoreFunc for the single store
+         */
+        private StoreFunc sFunc;
+        
+        /**
+         * Single Query or multi query
+         */
+        private Mode mode;
+        
+        public PigRecordWriter(RecordWriter wrappedWriter, StoreFunc sFunc, 
+                Mode mode)
                 throws IOException {            
-            this.sfunc = sfunc;
-            fs.delete(file, true);
-            this.os = fs.create(file);
-            String name = file.getName();
-            if (name.endsWith(".bz") || name.endsWith(".bz2")) {
-                os = new CBZip2OutputStream(os);
+            this.mode = mode;
+            
+            if(mode == Mode.SINGLE_STORE) {
+                this.wrappedWriter = wrappedWriter;
+                this.sFunc = sFunc;
+                this.sFunc.prepareToWrite(this.wrappedWriter);
             }
-            this.sfunc.bindTo(os);
         }
 
         /**
@@ -134,62 +151,88 @@ public class PigOutputFormat extends OutputFormat<WritableComparable, Tuple> {
          */
         @Override
         public void write(WritableComparable key, Tuple value)
-                throws IOException, InterruptedException{
-            this.sfunc.putNext(value);
+                throws IOException, InterruptedException {
+            if(mode == Mode.SINGLE_STORE) {
+                sFunc.putNext(value);
+            } else {
+                throw new IOException("Internal Error: Unexpected code path");
+            }
         }
 
         @Override
-        public void close(TaskAttemptContext context) 
-                throws IOException, InterruptedException {
-            sfunc.finish();
-            os.close();            
+        public void close(TaskAttemptContext taskattemptcontext) throws 
+        IOException, InterruptedException {
+            if(mode == Mode.SINGLE_STORE) {
+                wrappedWriter.close(taskattemptcontext);
+            }
         }
 
-    }
-
-    @Override
-    public void checkOutputSpecs(JobContext context) 
-            throws IOException, InterruptedException {
-
-    }
-
-    @Override
-    public OutputCommitter getOutputCommitter(TaskAttemptContext context)
-            throws IOException, InterruptedException {
-        if (committer == null) {
-            Path output = null;            
-            if (context.getConfiguration().get(PIG_MAPRED_OUTPUT_DIR) != null) {
-                output = new Path(context.getConfiguration().get(PIG_MAPRED_OUTPUT_DIR));
-            } else {
-                output = new Path(context.getConfiguration().get(MAPRED_OUTPUT_DIR));
-            }            
-            committer = new FileOutputCommitter(output, context);
-        }
-        return committer;
-    }
-
-    @SuppressWarnings("unchecked")
-    @Override
-    public RecordWriter getRecordWriter(
-            TaskAttemptContext context) throws IOException, InterruptedException {
-        FileOutputCommitter committer = (FileOutputCommitter)getOutputCommitter(context);
-        Path outputDir = committer.getWorkPath();
-        Configuration conf = context.getConfiguration();
-        String tmpPath = conf.get(PIG_TMP_PATH);
-        if (tmpPath != null) {
-            outputDir = new Path(committer.getWorkPath(), tmpPath);
-        } 
-        return getRecordWriter(FileSystem.get(conf), context, outputDir, getPartName(conf));
     }
     
-    private String getPartName(Configuration conf) {
-        int partition = conf.getInt(MAPRED_TASK_PARTITION, -1);   
-
-        NumberFormat numberFormat = NumberFormat.getInstance();
-        numberFormat.setMinimumIntegerDigits(5);
-        numberFormat.setGroupingUsed(false);
-
-        return "part-" + numberFormat.format(partition);
+    public static void setLocation(JobContext job, StoreFunc storeFunc, 
+            String outputLocation) throws IOException {
+        Job storeJob = new Job(job.getConfiguration());
+        storeFunc.setStoreLocation(outputLocation, storeJob);
+        // the setStoreLocation() method would indicate to the StoreFunc
+        // to set the output location for its underlying OutputFormat.
+        // Typically OutputFormat's store the output location in the
+        // Configuration - so we need to get the modified Configuration
+        // containing the output location (and any other settings the
+        // OutputFormat might have set) and merge it with the Configuration
+        // we started with so that when this method returns the Configuration
+        // supplied as input has the updates.
+        ConfigurationUtil.mergeConf(job.getConfiguration(), 
+                storeJob.getConfiguration());
     }
 
+    @Override
+    public void checkOutputSpecs(JobContext jobcontext) throws IOException, InterruptedException {
+        List<POStore> mapStores = getStores(jobcontext, 
+                JobControlCompiler.PIG_MAP_STORES);
+        checkOutputSpecsHelper(mapStores, jobcontext);
+        List<POStore> reduceStores = getStores(jobcontext, 
+                JobControlCompiler.PIG_REDUCE_STORES);
+        checkOutputSpecsHelper(reduceStores, jobcontext);
+        
+    }
+
+    private void checkOutputSpecsHelper(List<POStore> stores, JobContext 
+            jobcontext) throws IOException, InterruptedException {
+        for (POStore store : stores) {
+            StoreFunc sFunc = store.getStoreFunc();
+            OutputFormat of = sFunc.getOutputFormat();
+            
+            // make a copy of the original JobContext so that
+            // each OutputFormat get a different copy 
+            JobContext jobContextCopy = new JobContext(
+                    jobcontext.getConfiguration(), jobcontext.getJobID());
+            
+            // set output location
+            PigOutputFormat.setLocation(jobcontext, sFunc, 
+                    store.getSFile().getFileName());
+            // The above call should have update the conf in the JobContext
+            // to have the output location - now call checkOutputSpecs()
+            of.checkOutputSpecs(jobcontext);
+        }
+    }
+    /**
+     * @param jobcontext
+     * @param storeLookupKey
+     * @return
+     * @throws IOException 
+     */
+    private List<POStore> getStores(JobContext jobcontext, String storeLookupKey) 
+    throws IOException {
+        Configuration conf = jobcontext.getConfiguration();
+        return (List<POStore>)ObjectSerializer.deserialize(
+                conf.get(storeLookupKey));
+    }
+
+    @Override
+    public OutputCommitter getOutputCommitter(TaskAttemptContext 
+            taskattemptcontext) throws IOException, InterruptedException {
+        // we return an instance of PigOutputCommitter to Hadoop - this instance
+        // will wrap the real OutputCommitter(s) belonging to the store(s)
+        return new PigOutputCommitter(taskattemptcontext);
+    }
 }

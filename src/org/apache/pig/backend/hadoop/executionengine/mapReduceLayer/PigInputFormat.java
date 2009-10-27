@@ -24,25 +24,22 @@ import java.util.List;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.PathFilter;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.hadoop.mapreduce.InputSplit;
+import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.JobContext;
-import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
-import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.pig.ExecType;
+import org.apache.pig.FuncSpec;
+import org.apache.pig.LoadFunc;
 import org.apache.pig.PigException;
-import org.apache.pig.Slice;
 import org.apache.pig.backend.datastorage.DataStorage;
 import org.apache.pig.backend.executionengine.ExecException;
-import org.apache.pig.backend.executionengine.PigSlicer;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.datastorage.HDataStorage;
 import org.apache.pig.data.Tuple;
@@ -65,66 +62,87 @@ public class PigInputFormat extends InputFormat<Text, Tuple> {
         }
     };
     
-    // XXX This is only used by FILTERFROMFILE.java for UDF testing and
-    // should be removed.
-    public static JobConf sJob;
+    public static final String PIG_INPUTS = "pig.inputs";
 
-    /**
-     * Is the given filename splitable? Usually, true, but if the file is stream
-     * compressed, it will not be.
-     * 
-     * <code>FileInputFormat</code> implementations can override this and
-     * return <code>false</code> to ensure that individual input files are
-     * never split-up so that {@link Mapper}s process entire files.
-     * 
-     * @param fs
-     *            the file system that the file is on
-     * @param filename
-     *            the file name to check
-     * @return is this file splitable?
+    /* (non-Javadoc)
+     * @see org.apache.hadoop.mapreduce.InputFormat#createRecordReader(org.apache.hadoop.mapreduce.InputSplit, org.apache.hadoop.mapreduce.TaskAttemptContext)
      */
-    protected boolean isSplitable(FileSystem fs, Path filename) {
-        return !filename.getName().endsWith(".gz");
-    }
-
-    /**
-     * List input directories. Subclasses may override to, e.g., select only
-     * files matching a regular expression.
-     * 
-     * @param job
-     *            the job to list input paths for
-     * @return array of Path objects
-     * @throws IOException
-     *             if zero items.
-     */
-    protected Path[] listPaths(JobContext job) throws IOException {
-        Path[] dirs = FileInputFormat.getInputPaths(job);
-        if (dirs.length == 0) {
-            int errCode = 2092;
-            String msg = "No input paths specified in job.";
-            throw new ExecException(msg, errCode, PigException.BUG);
-        }
+    @Override
+    public org.apache.hadoop.mapreduce.RecordReader<Text, Tuple> createRecordReader(
+            org.apache.hadoop.mapreduce.InputSplit split,
+            TaskAttemptContext context) throws IOException,
+            InterruptedException {
+        // We need to create a TaskAttemptContext based on the Configuration which
+        // was used in the getSplits() to produce the split supplied here. For 
+        // this, let's find out the input of the script which produced the split
+        // supplied here and then get the corresponding Configuration and setup
+        // TaskAttemptContext based on it and then call the real InputFormat's
+        // createRecordReader() method
         
-        List<Path> result = new ArrayList<Path>();
-        for (Path p : dirs) {
-            FileSystem fs = p.getFileSystem(job.getConfiguration());
-            FileStatus[] matches = fs.globStatus(p, hiddenFileFilter);
-            for (FileStatus match : matches) {
-                result.add(fs.makeQualified(match.getPath()));
-            }
-        }
-
-        return result.toArray(new Path[result.size()]);
+        PigSplit pigSplit = (PigSplit)split;
+        activeSplit = pigSplit;
+        // XXX hadoop 20 new API integration: get around a hadoop 20 bug by 
+        // passing total # of splits to each split so it can be retrieved 
+        // here and set it to the configuration object. This number is needed
+        // by PoissonSampleLoader to compute the number of samples
+        int n = pigSplit.getTotalSplits();
+        context.getConfiguration().setInt("pig.mapsplits.count", n);
+        Configuration conf = context.getConfiguration();
+        // merge entries from split specific conf into the conf we got
+        PigInputFormat.mergeSplitSpecificConf(pigSplit, conf);
+        LoadFunc loadFunc = getLoadFunc(pigSplit.getInputIndex(), conf);
+        InputFormat inputFormat = loadFunc.getInputFormat();
+        
+        // now invoke the createRecordReader() with this "adjusted" conf
+        RecordReader reader = inputFormat.createRecordReader(split, context);
+        return new PigRecordReader(reader, loadFunc, conf);
     }
+    
 
-    public void validateInput(JobContext job) throws IOException {
- 
+    /**
+     * get the corresponding configuration for the input on which the split
+     * is based and merge it with the Conf supplied
+     * 
+     * package level access so that this is not publicly used elsewhere
+     * @throws IOException 
+     */
+    static void mergeSplitSpecificConf(PigSplit pigSplit, Configuration originalConf) 
+    throws IOException {
+     
+        // set up conf with entries from input specific conf
+        LoadFunc loadFunc = getLoadFunc(pigSplit.getInputIndex(), originalConf);
+        Job job = new Job(originalConf);
+        loadFunc.setLocation(getLoadLocation(pigSplit.getInputIndex(), 
+                originalConf), job);
+        // The above setLocation call could write to the conf within
+        // the job - merge that updated conf with original conf
+        ConfigurationUtil.mergeConf(originalConf, job.getConfiguration());
+        
     }
     
     /**
-     * Creates input splits one per input and slices of it
-     * per DFS block of the input file. Configures the PigSlice
-     * and returns the list of PigSlices as an array
+     * @param inputIndex
+     * @param conf
+     * @return
+     * @throws IOException 
+     */
+    private static LoadFunc getLoadFunc(int inputIndex, Configuration conf) throws IOException {
+        ArrayList<Pair<FileSpec, Boolean>> inputs = 
+            (ArrayList<Pair<FileSpec, Boolean>>) ObjectSerializer.deserialize(
+                    conf.get(PIG_INPUTS));
+        FuncSpec loadFuncSpec = inputs.get(inputIndex).first.getFuncSpec();
+        return (LoadFunc) PigContext.instantiateFuncFromSpec(loadFuncSpec);
+    }
+    
+    private static String getLoadLocation(int inputIndex, Configuration conf) throws IOException {
+        ArrayList<Pair<FileSpec, Boolean>> inputs = 
+            (ArrayList<Pair<FileSpec, Boolean>>) ObjectSerializer.deserialize(
+                    conf.get(PIG_INPUTS));
+        return inputs.get(inputIndex).first.getFileName();
+    }
+
+    /* (non-Javadoc)
+     * @see org.apache.hadoop.mapreduce.InputFormat#getSplits(org.apache.hadoop.mapreduce.JobContext)
      */
     @SuppressWarnings("unchecked")
     @Override
@@ -173,7 +191,7 @@ public class PigInputFormat extends InputFormat<Text, Tuple> {
                 if(pigContext.getExecType() == ExecType.MAPREDUCE) {
                     fs.setWorkingDirectory(new Path("/user", conf.get("user.name")));
                 }
-
+                
                 DataStorage store = new HDataStorage(ConfigurationUtil.toProperties(conf));
                 ValidatingInputFileSpec spec;
                 if (inputs.get(i).first instanceof ValidatingInputFileSpec) {
@@ -181,19 +199,39 @@ public class PigInputFormat extends InputFormat<Text, Tuple> {
                 } else {
                     spec = new ValidatingInputFileSpec(inputs.get(i).first, store);
                 }
+                //XXX FIXME - how do we handle split by file in new load-store redesign?
                 boolean isSplittable = inputs.get(i).second;
-                if ((spec.getSlicer() instanceof PigSlicer)) {
-                    ((PigSlicer)spec.getSlicer()).setSplittable(isSplittable);
-                }
-                Slice[] pigs = spec.getSlicer().slice(store, spec.getFileName());
-                for (Slice split : pigs) {
-                    splits.add(new SliceWrapper(split, pigContext.getExecType(), i, fs, inpTargets.get(i)));
-                }
+                
+                // first pass input location to the loader - for this send a 
+                // clone of the configuration we have - this is so that if the
+                // loader (or the inputformat of the loader) decide to store the
+                // input location into the configuration (for example, 
+                // FileInputFormat stores this in mapred.input.dir in the conf),
+                // then for different inputs, the loader's don't end up
+                // over-writing the same conf.
+                FuncSpec loadFuncSpec = inputs.get(i).first.getFuncSpec();
+                LoadFunc loadFunc = (LoadFunc) PigContext.instantiateFuncFromSpec(
+                        loadFuncSpec);
+                Configuration confClone = new Configuration(conf);
+                Job inputSpecificJob = new Job(confClone);
+                loadFunc.setLocation(inputs.get(i).first.getFileName(), 
+                        inputSpecificJob);
+                // The above setLocation call could write to the conf within
+                // the inputSpecificJob - use this updated conf
+                
+                // get the InputFormat from it and ask for splits
+                InputFormat inpFormat = loadFunc.getInputFormat();
+                List<InputSplit> oneInputSplits = inpFormat.getSplits(
+                        new JobContext(inputSpecificJob.getConfiguration(), 
+                                jobcontext.getJobID()));
+                List<PigSplit> oneInputPigSplits = getPigSplits(
+                        oneInputSplits, i, inpTargets.get(i), conf);
+                splits.addAll(oneInputPigSplits);
             } catch (ExecException ee) {
                 throw ee;
             } catch (Exception e) {
                 int errCode = 2118;
-                String msg = "Unable to create input slice for: " + inputs.get(i).first.getFileName();
+                String msg = "Unable to create input splits for: " + inputs.get(i).first.getFileName();
                 throw new ExecException(msg, errCode, PigException.BUG, e);
             }
         }
@@ -203,38 +241,29 @@ public class PigInputFormat extends InputFormat<Text, Tuple> {
         // in the RecordReader method when called by mapreduce framework later. 
         int n = splits.size();
         for (InputSplit split : splits) {
-            ((SliceWrapper)split).setTotalSplits(n);
+            ((PigSplit) split).setTotalSplits(n);
         }
         
         return splits;
     }
 
-    @SuppressWarnings("deprecation")
-    @Override
-    public RecordReader<Text, Tuple> createRecordReader(InputSplit split, 
-            TaskAttemptContext taskattemptcontext) throws IOException, InterruptedException {   
-        if (sJob == null) {
-            sJob = new JobConf(taskattemptcontext.getConfiguration());
+    private List<PigSplit> getPigSplits(List<InputSplit> oneInputSplits, 
+            int inputIndex, ArrayList<OperatorKey> targetOps, Configuration conf) {
+        int splitIndex = 0;
+        ArrayList<PigSplit> pigSplits = new ArrayList<PigSplit>();
+        for (InputSplit inputSplit : oneInputSplits) {
+            PigSplit pigSplit = new PigSplit(inputSplit, inputIndex, targetOps,
+                    splitIndex++);
+            pigSplit.setConf(conf);
+            pigSplits.add(pigSplit);
         }
-        
-        // XXX hadoop 20 new API integration: get around a hadoop 20 bug by 
-        // passing total # of splits to each split so it can be retrieved 
-        // here and set it to the configuration object. This number is needed
-        // by PoissonSampleLoader to compute the number of samples
-        if (split instanceof SliceWrapper) {
-            int n = ((SliceWrapper)split).getTotalSplits();
-            taskattemptcontext.getConfiguration().setInt("pig.mapsplits.count", n);
-        }
- 
-        activeSplit = (SliceWrapper) split;
-        return activeSplit.makeReader(taskattemptcontext.getConfiguration());
+        return pigSplits;
     }
 
-
-    public static SliceWrapper getActiveSplit() {
+    public static PigSplit getActiveSplit() {
         return activeSplit;
     }
 
-    private static SliceWrapper activeSplit;
+    private static PigSplit activeSplit;
     
 }

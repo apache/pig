@@ -31,7 +31,9 @@ import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.BufferedPositionedInputStream;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.FileSpec;
+import org.apache.pig.impl.io.ReadToEndLoader;
 import org.apache.pig.impl.plan.OperatorKey;
+import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
@@ -98,11 +100,21 @@ public class POLoad extends PhysicalOperator {
      */
     public void setUp() throws IOException{
         String filename = lFile.getFileName();
-        loader = (LoadFunc)PigContext.instantiateFuncFromSpec(lFile.getFuncSpec());
+        LoadFunc origloader = 
+            (LoadFunc)PigContext.instantiateFuncFromSpec(lFile.getFuncSpec());
         
+        loader = new ReadToEndLoader(origloader, 
+                ConfigurationUtil.toConfiguration(pc.getProperties()), 
+                filename,
+                0);
+        
+     // XXX : FIXME need to get this to work with new loadfunc interface - the 
+        // below code is for merge join - hopefully we will no longer need it
+        // and then we can just get rid of it and the rest should be fine.
         is = (this.offset == 0) ? FileLocalizer.open(filename, pc) : FileLocalizer.open(filename, this.offset,pc);
         
-        loader.bindTo(filename , new BufferedPositionedInputStream(is), this.offset, Long.MAX_VALUE);
+//        loader.bindTo(filename , new BufferedPositionedInputStream(is), this.offset, Long.MAX_VALUE);
+        
     }
     
     /**

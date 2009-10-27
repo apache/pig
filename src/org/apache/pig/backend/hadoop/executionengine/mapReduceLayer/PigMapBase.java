@@ -164,8 +164,8 @@ public abstract class PigMapBase extends Mapper<Text, Tuple, PigNullableWritable
         pigReporter = new ProgressableReporter();
         if(!(mp.isEmpty())) {
 
-            SliceWrapper split = (SliceWrapper)context.getInputSplit();
-            List<OperatorKey> targetOpKeys = split.getTargetOperatorKeyList();
+            PigSplit split = (PigSplit)context.getInputSplit();
+            List<OperatorKey> targetOpKeys = split.getTargetOps();
             
             ArrayList<PhysicalOperator> targetOpsAsList = new ArrayList<PhysicalOperator>();
             for (OperatorKey targetKey : targetOpKeys) {                    

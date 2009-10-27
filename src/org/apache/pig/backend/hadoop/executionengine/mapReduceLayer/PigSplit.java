@@ -22,140 +22,139 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.io.OutputStream;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.hadoop.fs.BlockLocation;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.fs.FileStatus;
-import org.apache.hadoop.mapred.InputSplit;
-import org.apache.pig.FuncSpec;
-import org.apache.pig.LoadFunc;
-import org.apache.pig.builtin.PigStorage;
-import org.apache.pig.impl.PigContext;
+import org.apache.hadoop.conf.Configurable;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.io.Writable;
+import org.apache.hadoop.io.serializer.Deserializer;
+import org.apache.hadoop.io.serializer.SerializationFactory;
+import org.apache.hadoop.io.serializer.Serializer;
+import org.apache.hadoop.mapreduce.InputFormat;
+import org.apache.hadoop.mapreduce.InputSplit;
+import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.pig.impl.plan.OperatorKey;
 
 /**
  * The main split class that maintains important
  * information about the input split.
  *
+ * The reason this class implements Configurable is so that Hadoop will call
+ * {@link Configurable#setConf(Configuration)} on the backend so we can use
+ * the Configuration to create the SerializationFactory to deserialize the
+ * wrapped InputSplit.
  */
-public class PigSplit implements InputSplit {
-    //The input file this split represents
-    Path file;
-    
-    //The start pos from which this split starts
-    //in file
-    long start;
-
-    //The length of this split
-    long length;
-
+public class PigSplit extends InputSplit implements Writable, Configurable {
     //The operators to which the tuples from this
     //input file are attached. These are the successors
     //of the load operator representing this input
-    ArrayList<OperatorKey> targetOps;
+    private ArrayList<OperatorKey> targetOps;
 
-    //The load function that parses this split and
-    //produces tuples from it
-    String parser;
+    // index starting from 0 representing the input number
+    // So if we have 3 inputs (say for a 3 way join), then the 
+    // splits corresponding to the first input will have an index of 0, those
+    // corresponding to the second will have an index of 1 and so on
+    // This will be used to get the input specific Configuration for use
+    // by PigInputFormat while creating and initializing the RecordReader
+    private int inputIndex;
+    
+    // The real InputSplit this split is wrapping
+    private InputSplit wrappedSplit;
 
-    //The filesystem on which file resides
-    FileSystem fs;
+    // index of the wrappedSplit in the list of splits returned by
+    // InputFormat.getSplits()
+    // This will be used by MergeJoinIndexer to record the split # in the
+    // index
+    private int splitIndex;
+    
+    /**
+     * the job Configuration
+     */
+    private Configuration conf;
+    
+    /**
+     * total number of splits - required by skew join
+     */
+    private int totalSplits;
 
-    //The context in which Pig was running when this
-    //job got submitted.
-    PigContext pigContext;
-
-    public PigSplit() {
+    // this seems necessary for Hadoop to instatiate this split on the
+    // backend
+    public PigSplit() {}
+    
+    public PigSplit(InputSplit wrappedSplit, int inputIndex, 
+            List<OperatorKey> targetOps, int splitIndex) {
+        this.wrappedSplit = wrappedSplit;
+        this.inputIndex = inputIndex;
+        this.targetOps = new ArrayList<OperatorKey>(targetOps);
+        this.splitIndex = splitIndex;
     }
 
-    @SuppressWarnings("unchecked")
-    public PigSplit(PigContext pigContext, FileSystem fs, Path path,
-            String parser, List<OperatorKey> targetOps, long start, long length) {
-        this.fs = fs;
-        this.file = path;
-        this.start = start;
-        this.length = length;
-        this.targetOps = (ArrayList) targetOps;
-        this.parser = parser;
-        this.pigContext = pigContext;
-    }
-
-    public String getParser() {
-        return parser;
-    }
-
-    public long getStart() {
-        return start;
-    }
-
-    public long getLength() {
-        return length;
-    }
-
-    public Path getPath() {
-        return file;
-    }
 
     public List<OperatorKey> getTargetOps() {
-        return targetOps;
+        return new ArrayList<OperatorKey>(targetOps);
+    }
+    
+
+    /**
+     * This methods returns the actual InputSplit (as returned by the 
+     * {@link InputFormat}) which this class is wrapping.
+     * @return the wrappedSplit
+     */
+    public InputSplit getWrappedSplit() {
+        return wrappedSplit;
+    }
+    
+    @Override
+    public String[] getLocations() throws IOException, InterruptedException {
+            return wrappedSplit.getLocations();
     }
 
-    public LoadFunc getLoadFunction() {
-        LoadFunc loader = null;
-        if (this.parser == null) {
-            loader = new PigStorage();
-        } else {
-            try {
-                loader = (LoadFunc) PigContext
-                        .instantiateFuncFromSpec(new FuncSpec(this.parser));
-            } catch (Exception exp) {
-                throw new RuntimeException("can't instantiate " + parser);
-            }
-        }
-        return loader;
+    /* (non-Javadoc)
+     * @see org.apache.hadoop.mapreduce.InputSplit#getLength()
+     */
+    @Override
+    public long getLength() throws IOException, InterruptedException {
+        return wrappedSplit.getLength();
     }
-
-    public String[] getLocations() throws IOException {
-        FileStatus status = fs.getFileStatus(file);
-        BlockLocation[] b = fs.getFileBlockLocations(status, start, length);
-        int total = 0;
-        for (int i = 0; i < b.length; i++) {
-            total += b[i].getHosts().length;
-        }
-        String locations[] = new String[total];
-        int count = 0;
-        for (int i = 0; i < b.length; i++) {
-            String hosts[] = b[i].getHosts();
-            for (int j = 0; j < hosts.length; j++) {
-                locations[count++] = hosts[j];
-            }
-        }
-        return locations;
-    }
-
-    @SuppressWarnings("unchecked")
+    
     public void readFields(DataInput is) throws IOException {
-        file = new Path(is.readUTF());
-        start = is.readLong();
-        length = is.readLong();
-        pigContext = (PigContext) readObject(is);
-        targetOps = (ArrayList) readObject(is);
-        parser = is.readUTF();
+        splitIndex = is.readInt();
+        inputIndex = is.readInt();
+        targetOps = (ArrayList<OperatorKey>) readObject(is);
+        String splitClassName = is.readUTF();
+        try {
+            Class splitClass = conf.getClassByName(splitClassName);
+            wrappedSplit = (InputSplit) 
+            ReflectionUtils.newInstance(splitClass, conf);
+            SerializationFactory sf = new SerializationFactory(conf);
+            Deserializer d = sf.getDeserializer(splitClass);
+            d.open((InputStream) is);
+            d.deserialize(wrappedSplit);
+            d.close();
+        } catch (ClassNotFoundException e) {
+            throw new IOException(e);
+        }
+        
     }
 
     public void write(DataOutput os) throws IOException {
-        os.writeUTF(file.toString());
-        os.writeLong(start);
-        os.writeLong(length);
-        writeObject(pigContext, os);
+        os.writeInt(splitIndex);
+        os.writeInt(inputIndex);
         writeObject(targetOps, os);
-        os.writeUTF(parser);
+        os.writeUTF(wrappedSplit.getClass().getName());
+        SerializationFactory sf = new SerializationFactory(conf);
+        Serializer s = 
+            sf.getSerializer(wrappedSplit.getClass());
+        s.open((OutputStream) os);
+        s.serialize(wrappedSplit);
+        s.close();
+        
     }
 
     private void writeObject(Serializable obj, DataOutput os)
@@ -180,6 +179,46 @@ public class PigSplit implements InputSplit {
             newE.initCause(cnfe);
             throw newE;
         }
+    }
+
+    public int getSplitIndex() {
+        return splitIndex;
+    }
+
+
+    /* (non-Javadoc)
+     * @see org.apache.hadoop.conf.Configurable#getConf()
+     */
+    @Override
+    public Configuration getConf() {
+        return conf;
+    }
+
+
+    /* (non-Javadoc)
+     * @see org.apache.hadoop.conf.Configurable#setConf(org.apache.hadoop.conf.Configuration)
+     */
+    @Override
+    public void setConf(Configuration conf) {
+        this.conf = conf;        
+    }
+
+    public int getInputIndex() {
+        return inputIndex;
+    }
+
+    /**
+     * @return the totalSplits
+     */
+    public int getTotalSplits() {
+        return totalSplits;
+    }
+
+    /**
+     * @param totalSplits the totalSplits to set
+     */
+    public void setTotalSplits(int totalSplits) {
+        this.totalSplits = totalSplits;
     }
 
 }

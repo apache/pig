@@ -152,15 +152,7 @@ public class FileLocalizer {
      * @throws IOException
      */
     public static InputStream openDFSFile(String fileName) throws IOException {
-        SliceWrapper wrapper = PigInputFormat.getActiveSplit();
-
-        Configuration conf = null;
-        if (wrapper == null) {
-        	conf = PigMapReduce.sJobConf;
-        }else{
-        	conf = wrapper.getJobConf();
-        }
-        
+        Configuration conf = PigMapReduce.sJobConf;
         if (conf == null) {
             throw new RuntimeException(
                     "can't open DFS file while executing locally");
@@ -177,14 +169,7 @@ public class FileLocalizer {
     }
     
     public static long getSize(String fileName) throws IOException {
-    	SliceWrapper wrapper = PigInputFormat.getActiveSplit();
-    	
-    	Configuration conf = null;
-    	if (wrapper == null) {
-    		conf = PigMapReduce.sJobConf;
-    	}else{
-    		conf = wrapper.getJobConf();
-    	}
+    	Configuration conf = PigMapReduce.sJobConf;
 
     	if (conf == null) {
     		throw new RuntimeException(

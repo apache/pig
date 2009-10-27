@@ -44,7 +44,6 @@ import org.apache.hadoop.mapred.JobPriority;
 import org.apache.hadoop.mapred.jobcontrol.Job;
 import org.apache.hadoop.mapred.jobcontrol.JobControl;
 import org.apache.hadoop.mapreduce.OutputFormat;
-import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.pig.ComparisonFunc;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.PigException;
@@ -115,6 +114,17 @@ public class JobControlCompiler{
     public static final String LOG_DIR = "_logs";
 
     public static final String END_OF_INP_IN_MAP = "pig.invoke.close.in.map";
+    
+    /**
+     * We will serialize the POStore(s) present in map and reduce in lists in
+     * the Hadoop Conf. In the case of Multi stores, we could deduce these from
+     * the map plan and reduce plan but in the case of single store, we remove
+     * the POStore from the plan - in either case, we serialize the POStore(s)
+     * so that PigOutputFormat and PigOutputCommiter can get the POStore(s) in
+     * the same way irrespective of whether it is multi store or single store.
+     */
+    public static final String PIG_MAP_STORES = "pig.map.stores";
+    public static final String PIG_REDUCE_STORES = "pig.reduce.stores";
     
     // A mapping of job to pair of store locations and tmp locations for that job
     private Map<Job, Pair<List<POStore>, Path>> jobStoreMap;
@@ -383,9 +393,12 @@ public class JobControlCompiler{
             nwJob.setInputFormatClass(PigInputFormat.class);
             
             //Process POStore and remove it from the plan
-            List<POStore> mapStores = PlanHelper.getStores(mro.mapPlan);
-            List<POStore> reduceStores = PlanHelper.getStores(mro.reducePlan);
-
+            LinkedList<POStore> mapStores = PlanHelper.getStores(mro.mapPlan);
+            LinkedList<POStore> reduceStores = PlanHelper.getStores(mro.reducePlan);
+            
+            conf.set(PIG_MAP_STORES, ObjectSerializer.serialize(mapStores));
+            conf.set(PIG_REDUCE_STORES, ObjectSerializer.serialize(reduceStores));
+            
             for (POStore st: mapStores) {
                 storeLocations.add(st);
             }
@@ -394,6 +407,9 @@ public class JobControlCompiler{
                 storeLocations.add(st);
             }
 
+            // the OutputFormat we report to Hadoop is always PigOutputFormat
+            nwJob.setOutputFormatClass(PigOutputFormat.class);
+            
             if (mapStores.size() + reduceStores.size() == 1) { // single store case
                 log.info("Setting up single store job");
                 
@@ -407,31 +423,9 @@ public class JobControlCompiler{
                     mro.reducePlan.remove(st);
                 }
 
-                // If the StoreFunc associate with the POStore is implements
-                // getStorePreparationClass() and returns a non null value,
-                // then it could be wanting to implement OutputFormat for writing out to hadoop
-                // Check if this is the case, if so, use the OutputFormat class the 
-                // StoreFunc gives us else use our default PigOutputFormat
-                Object storeFunc = PigContext.instantiateFuncFromSpec(st.getSFile().getFuncSpec());
-                Class sPrepClass = null;
-                try {
-                    sPrepClass = ((StoreFunc)storeFunc).getStorePreparationClass();
-                } catch(AbstractMethodError e) {
-                    // this is for backward compatibility wherein some old StoreFunc
-                    // which does not implement getStorePreparationClass() is being
-                    // used. In this case, we want to just use PigOutputFormat
-                    sPrepClass = null;
-                }
-                if(sPrepClass != null && OutputFormat.class.isAssignableFrom(sPrepClass)) {
-                    nwJob.setOutputFormatClass(sPrepClass);
-                } else {
-                    nwJob.setOutputFormatClass(PigOutputFormat.class);
-                }
-                
-                //set out filespecs
+                // set out filespecs
                 String outputPath = st.getSFile().getFileName();
                 FuncSpec outputFuncSpec = st.getSFile().getFuncSpec();
-                FileOutputFormat.setOutputPath(nwJob, new Path(outputPath));
                 
                 // serialize the store func spec using ObjectSerializer
                 // ObjectSerializer.serialize() uses default java serialization
@@ -442,27 +436,21 @@ public class JobControlCompiler{
                 conf.set("pig.storeFunc", ObjectSerializer.serialize(outputFuncSpec.toString()));
                 conf.set(PIG_STORE_CONFIG, 
                             ObjectSerializer.serialize(new StoreConfig(outputPath, st.getSchema())));
-
+                
                 conf.set("pig.streaming.log.dir", 
                             new Path(outputPath, LOG_DIR).toString());
                 conf.set("pig.streaming.task.output.dir", outputPath);
             } 
            else { // multi store case
                 log.info("Setting up multi store job");
-
-                tmpLocation = makeTmpPath();
-
-                FileSystem fs = tmpLocation.getFileSystem(conf);
-                for (POStore st: mapStores) {
-                    Path tmpOut = new Path(
-                        tmpLocation,
-                        PlanHelper.makeStoreTmpPath(st.getSFile().getFileName()));
-                    fs.mkdirs(tmpOut);
-                }
+                String tmpLocationStr =  FileLocalizer
+                .getTemporaryPath(null, pigContext).toString();
+                tmpLocation = new Path(tmpLocationStr);
 
                 nwJob.setOutputFormatClass(PigOutputFormat.class);
-                FileOutputFormat.setOutputPath(nwJob, tmpLocation);
-
+                // XXX: FIXME - we can no longer set these due to the new load
+                // store redesign changes - need to handle this when streaming is
+                // changed for the new load-store redesign
                 conf.set("pig.streaming.log.dir", 
                             new Path(tmpLocation, LOG_DIR).toString());
                 conf.set("pig.streaming.task.output.dir", tmpLocation.toString());

@@ -21,12 +21,19 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.mapreduce.InputFormat;
+import org.apache.hadoop.mapreduce.InputSplit;
+import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.pig.ExecType;
+import org.apache.pig.LoadCaster;
 import org.apache.pig.LoadFunc;
 import org.apache.pig.PigException;
 import org.apache.pig.SamplableLoader;
 import org.apache.pig.backend.datastorage.DataStorage;
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigSplit;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
@@ -48,7 +55,7 @@ import org.apache.pig.impl.util.ObjectSerializer;
  *  (key0, key1,...,fileName, offset)
  *  These tuples are then sorted before being written out to index file on HDFS.
  */
-
+//XXX : FIXME - make this work with new load-store redesign
 public class MergeJoinIndexer  implements LoadFunc{
 
     private boolean firstRec = true;
@@ -96,12 +103,6 @@ public class MergeJoinIndexer  implements LoadFunc{
             throw new ExecException(msg,errCode,e);
         }
         mTupleFactory = TupleFactory.getInstance();
-    }
-
-    @Override
-    public void bindTo(String fileName, BufferedPositionedInputStream is,long offset, long end) throws IOException {
-        this.fileName = fileName;
-        loader.bindTo(fileName, is, offset, end);
     }
 
     @Override
@@ -188,46 +189,48 @@ public class MergeJoinIndexer  implements LoadFunc{
         return wrapperTuple;
     }
     
-    public Integer bytesToInteger(byte[] b) throws IOException {
-        return loader.bytesToInteger(b);
+    /* (non-Javadoc)
+     * @see org.apache.pig.LoadFunc#doneReading()
+     */
+    @Override
+    public void doneReading() {
+        // TODO Auto-generated method stub
+        
     }
 
-    public Long bytesToLong(byte[] b) throws IOException {
-        return loader.bytesToLong(b);
+    /* (non-Javadoc)
+     * @see org.apache.pig.LoadFunc#getInputFormat()
+     */
+    @Override
+    public InputFormat getInputFormat() {
+        // TODO Auto-generated method stub
+        return null;
     }
 
-    public Float bytesToFloat(byte[] b) throws IOException {
-        return loader.bytesToFloat(b);
+    /* (non-Javadoc)
+     * @see org.apache.pig.LoadFunc#getLoadCaster()
+     */
+    @Override
+    public LoadCaster getLoadCaster() {
+        // TODO Auto-generated method stub
+        return null;
     }
 
-    public Double bytesToDouble(byte[] b) throws IOException {
-        return loader.bytesToDouble(b);
+    /* (non-Javadoc)
+     * @see org.apache.pig.LoadFunc#prepareToRead(org.apache.hadoop.mapreduce.RecordReader, org.apache.hadoop.mapreduce.InputSplit)
+     */
+    @Override
+    public void prepareToRead(RecordReader reader, PigSplit split) {
+        // TODO Auto-generated method stub
+        
     }
 
-    public String bytesToCharArray(byte[] b) throws IOException {
-        return loader.bytesToCharArray(b);
-    }
-
-    public Map<String, Object> bytesToMap(byte[] b) throws IOException {
-        return loader.bytesToMap(b);
-    }
-
-    public Tuple bytesToTuple(byte[] b) throws IOException {
-        return loader.bytesToTuple(b);
-    }
-
-    public DataBag bytesToBag(byte[] b) throws IOException {
-        return loader.bytesToBag(b);
-    }
-
-    public void fieldsToRead(Schema schema) {
-        loader.fieldsToRead(schema);
-    }
-
-    public Schema determineSchema(
-            String fileName,
-            ExecType execType,
-            DataStorage storage) throws IOException {
-        return loader.determineSchema(fileName, execType, storage);
+    /* (non-Javadoc)
+     * @see org.apache.pig.LoadFunc#setLocation(java.lang.String, org.apache.hadoop.mapreduce.Job)
+     */
+    @Override
+    public void setLocation(String location, Job job) throws IOException {
+        // TODO Auto-generated method stub
+        
     }
 }

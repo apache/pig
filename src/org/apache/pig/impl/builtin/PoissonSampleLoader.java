@@ -21,22 +21,26 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Properties;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.mapreduce.InputSplit;
+import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.mapreduce.RecordReader;
+import org.apache.pig.LoadCaster;
 import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
-import org.apache.pig.data.Tuple;
-import org.apache.pig.data.TupleFactory;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigSplit;
 import org.apache.pig.impl.PigContext;
-import org.apache.pig.impl.io.BufferedPositionedInputStream;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.util.Pair;
-import org.apache.pig.impl.builtin.PartitionSkewedKeys;
 
 /**
  * Currently skipInterval is similar to the randomsampleloader. However, if we were to use an
  * uniform distribution, we could precompute the intervals and read it from a file.
  *
  */
+//XXX : FIXME - make this work with new load-store redesign
 public class PoissonSampleLoader extends SampleLoader {
 	
 	// Base number of samples needed
@@ -62,6 +66,7 @@ public class PoissonSampleLoader extends SampleLoader {
 	// By default the data is multiplied by 2 to account for the encoding
 	private static final int DEFAULT_CONV_FACTOR = 2;
 	
+	private final Log log = LogFactory.getLog(getClass());
 
 	public PoissonSampleLoader(String funcSpec, String ns) {
 		super(funcSpec);
@@ -140,6 +145,42 @@ public class PoissonSampleLoader extends SampleLoader {
 		n = (n > 1) ? n : 1;
 		setNumSamples(n);
 	}
+
+    /* (non-Javadoc)
+     * @see org.apache.pig.LoadFunc#doneReading()
+     */
+    @Override
+    public void doneReading() {
+        // TODO Auto-generated method stub
+        
+    }
+
+    /* (non-Javadoc)
+     * @see org.apache.pig.LoadFunc#getLoadCaster()
+     */
+    @Override
+    public LoadCaster getLoadCaster() {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    /* (non-Javadoc)
+     * @see org.apache.pig.LoadFunc#prepareToRead(org.apache.hadoop.mapreduce.RecordReader, org.apache.hadoop.mapreduce.InputSplit)
+     */
+    @Override
+    public void prepareToRead(RecordReader reader, PigSplit split) {
+        // TODO Auto-generated method stub
+        
+    }
+
+    /* (non-Javadoc)
+     * @see org.apache.pig.LoadFunc#setLocation(java.lang.String, org.apache.hadoop.mapreduce.Job)
+     */
+    @Override
+    public void setLocation(String location, Job job) throws IOException {
+        // TODO Auto-generated method stub
+        
+    }
 	
 
 }

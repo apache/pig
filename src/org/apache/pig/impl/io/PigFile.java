@@ -31,6 +31,8 @@ import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
 
 
+// XXX: FIXME: make this work with load store redesign
+
 public class PigFile {
     private String file = null;
     boolean append = false;
@@ -47,7 +49,8 @@ public class PigFile {
     public DataBag load(LoadFunc lfunc, PigContext pigContext) throws IOException {
         DataBag content = BagFactory.getInstance().newDefaultBag();
         InputStream is = FileLocalizer.open(file, pigContext);
-        lfunc.bindTo(file, new BufferedPositionedInputStream(is), 0, Long.MAX_VALUE);
+        //XXX FIXME: make this work with new load-store redesign
+//        lfunc.bindTo(file, new BufferedPositionedInputStream(is), 0, Long.MAX_VALUE);
         Tuple f = null;
         while ((f = lfunc.getNext()) != null) {
             content.add(f);
@@ -58,12 +61,12 @@ public class PigFile {
     
     public void store(DataBag data, StoreFunc sfunc, PigContext pigContext) throws IOException {
         BufferedOutputStream bos = new BufferedOutputStream(FileLocalizer.create(file, append, pigContext));
-        sfunc.bindTo(bos);
+//        sfunc.bindTo(bos);
         for (Iterator<Tuple> it = data.iterator(); it.hasNext();) {
             Tuple row = it.next();
             sfunc.putNext(row);
         }
-        sfunc.finish();
+//        sfunc.finish();
         bos.close();
     }
 

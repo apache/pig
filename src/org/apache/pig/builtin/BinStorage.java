@@ -23,38 +23,44 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Iterator;
 import java.util.Map;
 
-import org.apache.commons.logging.LogFactory;
 import org.apache.commons.logging.Log;
-import org.apache.pig.ExecType;
+import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.mapreduce.InputFormat;
+import org.apache.hadoop.mapreduce.InputSplit;
+import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.mapreduce.OutputFormat;
+import org.apache.hadoop.mapreduce.RecordReader;
+import org.apache.hadoop.mapreduce.RecordWriter;
+import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
+import org.apache.pig.LoadCaster;
 import org.apache.pig.PigException;
 import org.apache.pig.PigWarning;
+import org.apache.pig.ResourceSchema;
 import org.apache.pig.ReversibleLoadStoreFunc;
-import org.apache.pig.SamplableLoader;
-import org.apache.pig.backend.datastorage.DataStorage;
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigSplit;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataReaderWriter;
-import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
-import org.apache.pig.impl.io.BufferedPositionedInputStream;
-import org.apache.pig.impl.io.FileLocalizer;
-import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.impl.io.BinStorageInputFormat;
+import org.apache.pig.impl.io.BinStorageRecordReader;
 import org.apache.pig.impl.util.LogUtils;
 
-public class BinStorage implements ReversibleLoadStoreFunc, SamplableLoader {
+public class BinStorage implements ReversibleLoadStoreFunc, LoadCaster {
     public static final int RECORD_1 = 0x01;
     public static final int RECORD_2 = 0x02;
     public static final int RECORD_3 = 0x03;
 
-    protected BufferedPositionedInputStream in = null;
+    Iterator<Tuple>     i              = null;
     private static final Log mLog = LogFactory.getLog(BinStorage.class);
-    private DataInputStream inData = null;
     protected long                end            = Long.MAX_VALUE;
+    
+    private BinStorageRecordReader recReader = null;
     
     /**
      * Simple binary nested reader format
@@ -62,68 +68,13 @@ public class BinStorage implements ReversibleLoadStoreFunc, SamplableLoader {
     public BinStorage() {
     }
 
-    @Override
-    public long getPosition() throws IOException {
-        return in.getPosition();
-    }
-
-    @Override
-    public long skip(long n) throws IOException {
-        return in.skip(n);
-    }
-    
     public Tuple getNext() throws IOException {
-        
-        int b = 0;
-//      skip to next record
-        while (true) {
-            if (in == null || in.getPosition() >=end) {
-                return null;
-            }
-            // check if we saw RECORD_1 in our last attempt
-            // this can happen if we have the following 
-            // sequence RECORD_1-RECORD_1-RECORD_2-RECORD_3
-            // After reading the second RECORD_1 in the above
-            // sequence, we should not look for RECORD_1 again
-            if(b != RECORD_1) {
-                b = in.read();
-                if(b != RECORD_1 && b != -1) {
-                    continue;
-                }
-                if(b == -1) return null;
-            }
-            b = in.read();
-            if(b != RECORD_2 && b != -1) {
-                continue;
-            }
-            if(b == -1) return null;
-            b = in.read();
-            if(b != RECORD_3 && b != -1) {
-                continue;
-            }
-            if(b == -1) return null;
-            b = in.read();
-            if(b != DataType.TUPLE && b != -1) {
-                continue;
-            }
-            if(b == -1) return null;
-            break;
-        }
-        try {
-            // if we got here, we have seen RECORD_1-RECORD_2-RECORD_3-TUPLE_MARKER
-            // sequence - lets now read the contents of the tuple 
-            return (Tuple)DataReaderWriter.readDatum(inData, DataType.TUPLE);
-        } catch (ExecException ee) {
-            throw ee;
+        if(recReader.nextKeyValue()) {
+            return recReader.getCurrentValue();
+        } else {
+            return null;
         }
     }
-
-    public void bindTo(String fileName, BufferedPositionedInputStream in, long offset, long end) throws IOException {
-        this.in = in;
-        inData = new DataInputStream(in);
-        this.end = end;
-    }
-
 
     DataOutputStream         out     = null;
   
@@ -254,50 +205,6 @@ public class BinStorage implements ReversibleLoadStoreFunc, SamplableLoader {
         }
     }
 
-    /* (non-Javadoc)
-     * @see org.apache.pig.LoadFunc#determineSchema(java.lang.String, org.apache.pig.ExecType, org.apache.pig.backend.datastorage.DataStorage)
-     */
-    public Schema determineSchema(String fileName, ExecType execType,
-            DataStorage storage) throws IOException {
-
-        if (!FileLocalizer.fileExists(fileName, storage)) {
-            // At compile time in batch mode, the file may not exist
-            // (such as intermediate file). Just return null - the
-            // same way as we would if we did not get a valid record
-            return null;
-        }
-        
-        InputStream is = FileLocalizer.open(fileName, execType, storage);
-       
-        bindTo(fileName, new BufferedPositionedInputStream(is), 0, Long.MAX_VALUE);
-        // get the first record from the input file
-        // and figure out the schema from the data in
-        // the first record
-        Tuple t = getNext();
-        is.close();
-        if(t == null) {
-            // we couldn't get a valid record from the input
-            return null;
-        }
-        int numFields = t.size();
-        Schema s = new Schema();
-        for (int i = 0; i < numFields; i++) {
-            try {
-                s.add(DataType.determineFieldSchema(t.get(i)));
-            } catch (Exception e) {
-                int errCode = 2104;
-                String msg = "Error while determining schema of BinStorage data.";
-                throw new ExecException(msg, errCode, PigException.BUG, e);
-            } 
-        }
-        return s;
-    }
-
-    public void fieldsToRead(Schema schema) {
-        // TODO Auto-generated method stub
-        
-    }
-
     public byte[] toBytes(DataBag bag) throws IOException {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         DataOutputStream dos = new DataOutputStream(baos);
@@ -401,21 +308,97 @@ public class BinStorage implements ReversibleLoadStoreFunc, SamplableLoader {
         }
         return baos.toByteArray();
     }
-    public boolean equals(Object obj) {
-        return true;
+    
+    /* (non-Javadoc)
+     * @see org.apache.pig.LoadFunc#doneReading()
+     */
+    @Override
+    public void doneReading() {
+        // nothing to be done for now
     }
 
     /* (non-Javadoc)
-     * @see org.apache.pig.StoreFunc#getStorePreparationClass()
+     * @see org.apache.pig.LoadFunc#getInputFormat()
      */
     @Override
-    public Class getStorePreparationClass() throws IOException {
+    public InputFormat getInputFormat() {
+        return new BinStorageInputFormat();
+    }
+
+    /* (non-Javadoc)
+     * @see org.apache.pig.LoadFunc#getLoadCaster()
+     */
+    @Override
+    public LoadCaster getLoadCaster() {
+        return this;
+    }
+
+    /* (non-Javadoc)
+     */
+    @Override
+    public void prepareToRead(RecordReader reader, PigSplit split) {
+        recReader = (BinStorageRecordReader)reader;
+    }
+
+    /* (non-Javadoc)
+     * @see org.apache.pig.LoadFunc#setLocation(java.lang.String, org.apache.hadoop.mapreduce.Job)
+     */
+    @Override
+    public void setLocation(String location, Job job) throws IOException {
+        FileInputFormat.setInputPaths(job, location);
+    }
+
+    /* (non-Javadoc)
+     * @see org.apache.pig.StoreFunc#allFinished(org.apache.hadoop.mapreduce.Job)
+     */
+    @Override
+    public void allFinished(Job job) {
+        // TODO Auto-generated method stub
+        
+    }
+
+    /* (non-Javadoc)
+     * @see org.apache.pig.StoreFunc#doneWriting()
+     */
+    @Override
+    public void doneWriting() {
+        // TODO Auto-generated method stub
+        
+    }
+
+    /* (non-Javadoc)
+     * @see org.apache.pig.StoreFunc#getOutputFormat()
+     */
+    @Override
+    public OutputFormat getOutputFormat() {
         // TODO Auto-generated method stub
         return null;
     }
 
+    /* (non-Javadoc)
+     * @see org.apache.pig.StoreFunc#prepareToWrite(org.apache.hadoop.mapreduce.RecordWriter)
+     */
     @Override
-    public Tuple getSampledTuple() throws IOException {
-        return this.getNext();
+    public void prepareToWrite(RecordWriter writer) {
+        // TODO Auto-generated method stub
+        
+    }
+
+    /* (non-Javadoc)
+     * @see org.apache.pig.StoreFunc#setSchema(org.apache.pig.ResourceSchema)
+     */
+    @Override
+    public void setSchema(ResourceSchema s) throws IOException {
+        // TODO Auto-generated method stub
+        
+    }
+
+    /* (non-Javadoc)
+     * @see org.apache.pig.StoreFunc#setStoreLocation(java.lang.String, org.apache.hadoop.mapreduce.Job)
+     */
+    @Override
+    public void setStoreLocation(String location, Job job) throws IOException {
+        // TODO Auto-generated method stub
+        
     }
 }
