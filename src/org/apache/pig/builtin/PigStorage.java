@@ -29,6 +29,7 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
+import org.apache.hadoop.io.WritableComparable;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.hadoop.mapreduce.InputSplit;
@@ -369,7 +370,7 @@ public class PigStorage
      */
     @Override
     public OutputFormat getOutputFormat() {
-        return new TextOutputFormat<Text, Text>();
+        return new TextOutputFormat<WritableComparable, Text>();
     }
 
     /* (non-Javadoc)

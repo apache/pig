@@ -30,6 +30,7 @@ import java.util.Map;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.Job;
@@ -37,6 +38,7 @@ import org.apache.hadoop.mapreduce.OutputFormat;
 import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
+import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.pig.LoadCaster;
 import org.apache.pig.PigException;
 import org.apache.pig.PigWarning;
@@ -48,7 +50,9 @@ import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataReaderWriter;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.io.BinStorageInputFormat;
+import org.apache.pig.impl.io.BinStorageOutputFormat;
 import org.apache.pig.impl.io.BinStorageRecordReader;
+import org.apache.pig.impl.io.BinStorageRecordWriter;
 import org.apache.pig.impl.util.LogUtils;
 
 public class BinStorage implements ReversibleLoadStoreFunc, LoadCaster {
@@ -61,6 +65,7 @@ public class BinStorage implements ReversibleLoadStoreFunc, LoadCaster {
     protected long                end            = Long.MAX_VALUE;
     
     private BinStorageRecordReader recReader = null;
+    private BinStorageRecordWriter recWriter = null;
     
     /**
      * Simple binary nested reader format
@@ -76,21 +81,12 @@ public class BinStorage implements ReversibleLoadStoreFunc, LoadCaster {
         }
     }
 
-    DataOutputStream         out     = null;
-  
-    public void bindTo(OutputStream os) throws IOException {
-        this.out = new DataOutputStream(new BufferedOutputStream(os));
-    }
-
-    public void finish() throws IOException {
-        out.flush();
-    }
-
     public void putNext(Tuple t) throws IOException {
-        out.write(RECORD_1);
-        out.write(RECORD_2);
-        out.write(RECORD_3);
-        t.write(out);
+        try {
+            recWriter.write(null, t);
+        } catch (InterruptedException e) {
+            throw new IOException(e);
+        }
     }
 
     public DataBag bytesToBag(byte[] b){
@@ -371,8 +367,7 @@ public class BinStorage implements ReversibleLoadStoreFunc, LoadCaster {
      */
     @Override
     public OutputFormat getOutputFormat() {
-        // TODO Auto-generated method stub
-        return null;
+        return new BinStorageOutputFormat();
     }
 
     /* (non-Javadoc)
@@ -380,8 +375,7 @@ public class BinStorage implements ReversibleLoadStoreFunc, LoadCaster {
      */
     @Override
     public void prepareToWrite(RecordWriter writer) {
-        // TODO Auto-generated method stub
-        
+        this.recWriter = (BinStorageRecordWriter) writer;        
     }
 
     /* (non-Javadoc)
@@ -398,7 +392,6 @@ public class BinStorage implements ReversibleLoadStoreFunc, LoadCaster {
      */
     @Override
     public void setStoreLocation(String location, Job job) throws IOException {
-        // TODO Auto-generated method stub
-        
+        FileOutputFormat.setOutputPath(job, new Path(location));
     }
 }
