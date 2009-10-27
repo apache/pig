@@ -117,8 +117,6 @@ public class PigCombiner {
                 keyType = ((byte[])ObjectSerializer.deserialize(jConf.get("pig.map.keytype")))[0];
                 // till here
                 
-                long sleepTime = jConf.getLong("pig.reporter.sleep.time", 10000);
-
                 pigReporter = new ProgressableReporter();
                 if(!(cp.isEmpty())) {
                     roots = cp.getRoots().toArray(new PhysicalOperator[1]);

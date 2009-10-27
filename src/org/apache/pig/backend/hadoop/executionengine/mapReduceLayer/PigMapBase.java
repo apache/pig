@@ -164,9 +164,6 @@ public abstract class PigMapBase extends MapReduceBase{
                 log.debug(baos.toString());
             }
             keyType = ((byte[])ObjectSerializer.deserialize(job.get("pig.map.keytype")))[0];
-            // till here
-            
-            long sleepTime = job.getLong("pig.reporter.sleep.time", 10000);
             
             pigReporter = new ProgressableReporter();
             if(!(mp.isEmpty())) {

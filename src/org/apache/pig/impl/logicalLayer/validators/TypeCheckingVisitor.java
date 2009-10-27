@@ -284,7 +284,6 @@ public class TypeCheckingVisitor extends LOVisitor {
 
         byte lhsType = lhs.getType() ;
         byte rhsType = rhs.getType() ;
-        Schema.FieldSchema fs = new Schema.FieldSchema(null, DataType.BOOLEAN);
 
         if (  (lhsType != DataType.BOOLEAN)  ||
               (rhsType != DataType.BOOLEAN)  ) {
@@ -319,7 +318,6 @@ public class TypeCheckingVisitor extends LOVisitor {
 
         byte lhsType = lhs.getType() ;
         byte rhsType = rhs.getType() ;
-        Schema.FieldSchema fs = new Schema.FieldSchema(null, DataType.BOOLEAN);
 
         if (  (lhsType != DataType.BOOLEAN)  ||
               (rhsType != DataType.BOOLEAN)  ) {
@@ -1627,7 +1625,6 @@ public class TypeCheckingVisitor extends LOVisitor {
         List<FieldSchema> fsLst = fromSch.getFields();
         List<FieldSchema> tsLst = toSch.getFields();
         List<ExpressionOperator> args = udf.getArguments();
-        List<ExpressionOperator> newArgs = new ArrayList<ExpressionOperator>(args.size());
         int i=-1;
         for (FieldSchema fFSch : fsLst) {
             ++i;
@@ -1839,7 +1836,7 @@ public class TypeCheckingVisitor extends LOVisitor {
         // There is no point to union only one operand
         // it should be a problem in the parser
         if (inputs.size() < 2) {
-            AssertionError err =  new AssertionError("Union with Count(Operand) < 2") ;
+            throw new AssertionError("Union with Count(Operand) < 2") ;
         }
 
         Schema schema = null ;
@@ -1914,7 +1911,6 @@ public class TypeCheckingVisitor extends LOVisitor {
             throw new TypeCheckerException(msg, errCode, PigException.BUG) ;
         }
 
-        LogicalOperator input = list.get(0);
         LogicalPlan condPlan = op.getConditionPlan() ;
 
         // Check that the inner plan has only 1 output port
@@ -1958,8 +1954,6 @@ public class TypeCheckingVisitor extends LOVisitor {
     @Override
     protected void visit(LODistinct op) throws VisitorException {
         op.unsetSchema();
-        LogicalPlan currentPlan = mCurrentWalker.getPlan() ;
-        List<LogicalOperator> list = currentPlan.getPredecessors(op) ;
 
         try {
             // Compute the schema
@@ -1998,8 +1992,6 @@ public class TypeCheckingVisitor extends LOVisitor {
      */
     protected void visit(LOCross cs) throws VisitorException {
         cs.unsetSchema();
-        List<LogicalOperator> inputs = cs.getInputs() ;
-        List<FieldSchema> fsList = new ArrayList<FieldSchema>() ;
 
         try {
             // Compute the schema
@@ -2063,7 +2055,6 @@ public class TypeCheckingVisitor extends LOVisitor {
     @Override
     protected void visit(LOFilter filter) throws VisitorException {
         filter.unsetSchema();
-        LogicalOperator input = filter.getInput() ;
         LogicalPlan comparisonPlan = filter.getComparisonPlan() ;
         
         // Check that the inner plan has only 1 output port
@@ -2110,8 +2101,6 @@ public class TypeCheckingVisitor extends LOVisitor {
             String msg = "LOSplit cannot have more than one input. Found: " + inputList.size() + " input(s).";
             throw new TypeCheckerException(msg, errCode, PigException.BUG) ;
         }
-        
-        LogicalOperator input = inputList.get(0) ;
         
         try {
             // Compute the schema
@@ -2720,7 +2709,6 @@ public class TypeCheckingVisitor extends LOVisitor {
 
     protected void visit(LOForEach f) throws VisitorException {
         List<LogicalPlan> plans = f.getForEachPlans() ;
-        List<Boolean> flattens = f.getFlatten() ;
 
         f.unsetSchema();
         try {
@@ -2934,9 +2922,6 @@ public class TypeCheckingVisitor extends LOVisitor {
             throw new TypeCheckerException(msg, errCode, PigException.INPUT);
         }
 
-        // Compose the new inner plan to be used in ForEach
-        LogicalPlan foreachPlan = new LogicalPlan() ;
-
         // Plans inside Generate. Fields that do not need casting will only
         // have Project. Fields that need casting will have Project + Cast
         ArrayList<LogicalPlan> generatePlans = new ArrayList<LogicalPlan>() ;
@@ -2998,7 +2983,6 @@ public class TypeCheckingVisitor extends LOVisitor {
             }
 
             generatePlans.add(genPlan) ;
-
         }
 
         // if we really need casting

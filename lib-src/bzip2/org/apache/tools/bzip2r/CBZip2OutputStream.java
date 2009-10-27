@@ -1050,9 +1050,7 @@ public class CBZip2OutputStream extends OutputStream implements BZip2Constants {
             b = t;
         }
         if (b > c) {
-            t = b;
             b = c;
-            c = t;
         }
         if (a > b) {
             b = a;

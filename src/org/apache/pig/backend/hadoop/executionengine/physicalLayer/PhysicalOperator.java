@@ -276,7 +276,7 @@ public abstract class PhysicalOperator extends Operator<PhyPlanVisitor> implemen
     }
 
     public Result getNext(DataBag db) throws ExecException {
-        Result ret = new Result();
+        Result ret = null;
         DataBag tmpBag = BagFactory.getInstance().newDefaultBag();
         for(ret = getNext(dummyTuple);ret.returnStatus!=POStatus.STATUS_EOP;ret=getNext(dummyTuple)){
             if(ret.returnStatus == POStatus.STATUS_ERR) return ret;

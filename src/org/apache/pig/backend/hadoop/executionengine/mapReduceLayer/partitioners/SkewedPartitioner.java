@@ -106,7 +106,7 @@ public class SkewedPartitioner implements Partitioner<PigNullableWritable, Writa
 		if (curIndex >= (indexes.first + indexes.second) || curIndex == -1) {
 			curIndex = indexes.first;
 		} else {
-			curIndex++;
+			curIndex = curIndex + 1;
 		}
 		
 		// set it in the map
