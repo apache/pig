@@ -295,9 +295,6 @@ public class PigMapReduce {
                     rp.explain(baos);
                     log.debug(baos.toString());
                 }
-                // till here
-                
-                long sleepTime = jConf.getLong("pig.reporter.sleep.time", 10000);
 
                 pigReporter = new ProgressableReporter();
                 if(!(rp.isEmpty())) {

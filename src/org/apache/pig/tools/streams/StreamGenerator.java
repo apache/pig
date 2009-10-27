@@ -146,8 +146,6 @@ public class StreamGenerator implements ActionListener {
     private static void createAndShowGUI() {
         //Make sure we have nice window decorations.
         JFrame.setDefaultLookAndFeelDecorated(true);
-
-        StreamGenerator converter = new StreamGenerator();
     }
 
     public static void main(String[] args) {

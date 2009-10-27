@@ -140,7 +140,7 @@ public class LOForEach extends RelationalOperator {
 		if(null == count) {
 			aliases.put(alias, 1);
 		} else {
-			aliases.put(alias, ++count);
+			aliases.put(alias, count + 1);
 		}
     }
 

@@ -532,7 +532,6 @@ private static BufferedReader runParamPreprocessor(BufferedReader origPigScript,
 private static String getVersionString() {
 	String findContainingJar = JarManager.findContainingJar(Main.class);
 	  try { 
-		  StringBuffer buffer = new  StringBuffer();
           JarFile jar = new JarFile(findContainingJar); 
           final Manifest manifest = jar.getManifest(); 
           final Map <String,Attributes> attrs = manifest.getEntries(); 
