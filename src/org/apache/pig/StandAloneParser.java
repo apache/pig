@@ -54,9 +54,11 @@ public class StandAloneParser {
                 return;
             }
             
-            if (line.toLowerCase().equals("quit")) break;
-            if (line.toLowerCase().startsWith("#")) continue;
-            else tryParse(line);
+            if (line != null){
+                if (line.toLowerCase().equals("quit")) break;
+                if (line.toLowerCase().startsWith("#")) continue;
+                else tryParse(line);
+            }
             
         }
         

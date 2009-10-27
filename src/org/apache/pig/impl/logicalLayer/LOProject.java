@@ -184,6 +184,13 @@ public class LOProject extends ExpressionOperator {
         for (int i : mProjection) {
             log.debug("Column: " + i);
         }
+
+        if (mExp == null){
+            String msg = "The input for a projection operator cannot be null";
+            int errCode = 2998;
+            throw new FrontendException(msg, errCode, PigException.BUG, false, null);
+        }
+
         LogicalOperator expressionOperator = mExp;
         log.debug("expressionOperator = " + expressionOperator);
         log.debug("mIsStar: " + mIsStar);
@@ -193,28 +200,22 @@ public class LOProject extends ExpressionOperator {
             if (mIsStar) {
                 log.debug("mIsStar is true");
                 try {
-                    if (null != expressionOperator) {
-                        log.debug("expressionOperator is not null "
-                                + expressionOperator.getClass().getName() + " " + expressionOperator);
-                        if(!mSentinel) {
-                            //we have an expression operator and hence a list of field shcemas
-                            Schema.FieldSchema fs = ((ExpressionOperator)expressionOperator).getFieldSchema();
-                            mFieldSchema = new Schema.FieldSchema(fs);
-                            mFieldSchema.setParent(fs.canonicalName, expressionOperator);
-                        } else {
-                            //we have a relational operator as input and hence a schema
-                            log.debug("expression operator alias: " + expressionOperator.getAlias());
-                            log.debug("expression operator schema: " + expressionOperator.getSchema());
-                            log.debug("expression operator type: " + expressionOperator.getType());
-                            //TODO
-                            //the type of the operator will be unknown. when type checking is in place
-                            //add the type of the operator as a parameter to the fieldschema creation
-                            mFieldSchema = new Schema.FieldSchema(expressionOperator.getAlias(), expressionOperator.getSchema(), DataType.TUPLE);
-                            mFieldSchema.setParent(null, expressionOperator);
-                            //mFieldSchema = new Schema.FieldSchema(expressionOperator.getAlias(), expressionOperator.getSchema());
-                        }
+                    if(!mSentinel) {
+                        //we have an expression operator and hence a list of field shcemas
+                        Schema.FieldSchema fs = ((ExpressionOperator)expressionOperator).getFieldSchema();
+                         mFieldSchema = new Schema.FieldSchema(fs);
+                         mFieldSchema.setParent(fs.canonicalName, expressionOperator);
                     } else {
-                        log.warn("The input for a projection operator cannot be null");
+                        //we have a relational operator as input and hence a schema
+                        log.debug("expression operator alias: " + expressionOperator.getAlias());
+                        log.debug("expression operator schema: " + expressionOperator.getSchema());
+                        log.debug("expression operator type: " + expressionOperator.getType());
+                        //TODO
+                        //the type of the operator will be unknown. when type checking is in place
+                        //add the type of the operator as a parameter to the fieldschema creation
+                        mFieldSchema = new Schema.FieldSchema(expressionOperator.getAlias(), expressionOperator.getSchema(), DataType.TUPLE);
+                        mFieldSchema.setParent(null, expressionOperator);
+                        //mFieldSchema = new Schema.FieldSchema(expressionOperator.getAlias(), expressionOperator.getSchema());
                     }
                     mIsFieldSchemaComputed = true;
                 } catch (FrontendException fee) {
@@ -226,7 +227,6 @@ public class LOProject extends ExpressionOperator {
                 //its n list of columns to project including a single column
                 List<Schema.FieldSchema> fss = new ArrayList<Schema.FieldSchema>(mProjection.size());
                 //try {
-                    if (null != expressionOperator) {
                         log.debug("expressionOperator is not null");
                         if(mProjection.size() == 1) {
                             //if there is only one element then extract and return the field schema
@@ -345,10 +345,6 @@ public class LOProject extends ExpressionOperator {
                             }
                         }
     
-                    } else {
-                        log.warn("The input for a projection operator cannot be null");
-                        //fss.add(new Schema.FieldSchema(null, DataType.BYTEARRAY));
-                    }
                 //} catch(ParseException pe) {
                 //    mFieldSchema = null;
                 //    mIsFieldSchemaComputed = false;

@@ -257,13 +257,13 @@ public class PhysicalPlan extends OperatorPlan<PhysicalOperator> implements Clon
                 new ArrayList<PhysicalOperator>(inputs.size());
             PhysicalOperator cloneOp = matches.get(op);
             if (cloneOp == null) {
-                String msg = "Unable to find clone for op " + cloneOp.name();
+                String msg = "Unable to find clone for op " + op.name();
                 throw new CloneNotSupportedException(msg);
             }
             for (PhysicalOperator iOp : inputs) {
                 PhysicalOperator cloneIOp = matches.get(iOp);
                 if (cloneIOp == null) {
-                    String msg = "Unable to find clone for op " + cloneIOp.name();
+                    String msg = "Unable to find clone for op " + iOp.name();
                     throw new CloneNotSupportedException(msg);
                 }
                 newInputs.add(cloneIOp);

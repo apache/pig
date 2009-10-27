@@ -81,7 +81,9 @@ public class IntSum extends EvalFunc<Long> implements Algebraic {
                         Long.valueOf(i) : null);
             }catch(NumberFormatException nfe){
                 // treat this particular input as null
-                return tfact.newTuple(null);
+                Tuple t = tfact.newTuple(1);
+                t.set(0, null);
+                return t;
             } catch (ExecException e) {
                 throw e;
             } catch (Exception e) {

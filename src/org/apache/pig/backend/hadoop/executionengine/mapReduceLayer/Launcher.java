@@ -470,7 +470,11 @@ public abstract class Launcher {
                 		}
             			
                 		//could receive a number format exception here but it will be propagated up the stack                		
-                		int errCode = Integer.parseInt(code);
+                		int errCode;
+                        if (code != null) 
+                            errCode = Integer.parseInt(code);
+                        else
+                            errCode = 2998;
                 		
                 		//create the exception with the message and then set the error code and error source
                 		FuncSpec funcSpec = new FuncSpec(exceptionName, exceptionMessage);		                		

@@ -12,6 +12,16 @@
     <Match>
         <Class name="org.apache.pig.tools.parameters.JavaCharStream" />
     </Match>
+    <!--Ignore PigPen since it is not actively supported -->
+    <Match>
+        <Package name="org.apache.pig.pen.util" />
+    </Match>
+    <Match>
+        <Package name="org.apache.pig.pen" />
+    </Match>
+    <Match>
+        <Package name="org.apache.pig.data.parser.*" />
+    </Match>
     <!-- Ingnore non-serializable comparators --> 
     <Match>
         <Bug pattern="SE_COMPARATOR_SHOULD_BE_SERIALIZABLE" />
@@ -130,5 +140,48 @@
     <Match>
         <Class name="org.apache.pig.data.DistinctDataBag$DistinctDataBagIterator$TContainer" />
         <Bug pattern="SIC_INNER_SHOULD_BE_STATIC" />
+    </Match>
+    <Match>
+        <Class name="org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.partitioners.CountingMap" />
+        <Method name="put" />
+        <Bug pattern="NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE" />
+    </Match>
+    <Match>
+        <Class name="org.apache.pig.impl.logicalLayer.optimizer.OpLimitOptimizer" />
+        <Method name = "check" />
+        <Bug pattern="NP_LOAD_OF_KNOWN_NULL_VALUE" />
+    </Match>
+    <Match>
+        <Class name="org.apache.pig.impl.logicalLayer.optimizer.PushDownForeachFlatten" />
+        <Method name = "getOperator" />
+        <Bug pattern="NP_LOAD_OF_KNOWN_NULL_VALUE" />
+    </Match>
+    <Match>
+        <Class name="org.apache.pig.impl.logicalLayer.optimizer.StreamOptimizer" />
+        <Method name = "check" />
+        <Bug pattern="NP_LOAD_OF_KNOWN_NULL_VALUE" />
+    </Match>
+    <Match>
+        <Class name="org.apache.pig.impl.logicalLayer.optimizer.TypeCastInserter" />
+        <Method name = "getOperator" />
+        <Bug pattern="NP_LOAD_OF_KNOWN_NULL_VALUE" />
+    </Match>
+    <Match>
+        <Class name="org.apache.pig.impl.logicalLayer.schema.Schema" />
+        <Method name = "mergeSchema" />
+        <Bug pattern="NP_LOAD_OF_KNOWN_NULL_VALUE" />
+    </Match>
+    <Match>
+        <Class name="org.apache.pig.impl.util.LineageTracer" />
+    </Match>
+    <Match>
+        <Class name="org.apache.pig.impl.logicalLayer.optimizer.OpLimitOptimizer" />
+        <Method name = "transform" />
+        <Bug pattern="NP_LOAD_OF_KNOWN_NULL_VALUE" />
+    </Match>
+    <Match>
+        <Class name="org.apache.pig.impl.logicalLayer.optimizer.PushUpFilter" />
+        <Method name = "getOperator" />
+        <Bug pattern="NP_LOAD_OF_KNOWN_NULL_VALUE" />
     </Match>
 </FindBugsFilter>
