@@ -103,7 +103,7 @@ public class OpLimitOptimizer extends LogicalTransformer {
             LogicalOperator lo = nodes.get(0);
             if (lo == null || !(lo instanceof LOLimit)) {
                 int errCode = 2005;
-                String msg = "Expected " + LOLimit.class.getSimpleName() + ", got " + lo.getClass().getSimpleName();
+                String msg = "Expected " + LOLimit.class.getSimpleName() + ", got " + (lo == null ? lo : lo.getClass().getSimpleName());
                 throw new OptimizerException(msg, errCode, PigException.BUG);
             }
 

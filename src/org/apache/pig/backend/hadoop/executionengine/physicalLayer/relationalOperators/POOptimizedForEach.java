@@ -133,7 +133,7 @@ public class POOptimizedForEach extends POForEach {
 
             if(lineageTracer != null && res.result != null) {
         	//we check for res.result since that can also be null in the case of flatten
-        	tIn = (ExampleTuple) inp.result;
+        	tIn = (ExampleTuple) input;
         	ExampleTuple tOut = new ExampleTuple((Tuple) res.result);
         	tOut.synthetic = tIn.synthetic;
         	lineageTracer.insert(tOut);
