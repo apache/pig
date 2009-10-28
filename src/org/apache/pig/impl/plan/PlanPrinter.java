@@ -43,7 +43,6 @@ public class PlanPrinter<O extends Operator, P extends OperatorPlan<O>> extends 
     private String TAB1 = "    ";
     private String TABMore = "|   ";
     private String LSep = "|\n|---";
-    private String USep = "|   |\n|   ";
     private int levelCntr = -1;
 
     /**
@@ -84,28 +83,6 @@ public class PlanPrinter<O extends Operator, P extends OperatorPlan<O>> extends 
         return sb.toString();
     }
     
-    private String planString(P plan) throws VisitorException, IOException {
-        StringBuilder sb = new StringBuilder();
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        if(plan!=null)
-            plan.explain(baos, mStream);
-        else
-            return "";
-        sb.append(USep);
-        sb.append(shiftStringByTabs(baos.toString(), 2));
-        return sb.toString();
-    }
-    
-    private String planString(
-            List<P> plans) throws VisitorException, IOException {
-        StringBuilder sb = new StringBuilder();
-        if(plans!=null)
-            for (P plan : plans) {
-                sb.append(planString(plan));
-            }
-        return sb.toString();
-    }
-
     @SuppressWarnings("unchecked")
     private String depthFirst(O node) throws VisitorException, IOException {
         StringBuilder sb = new StringBuilder(node.name());

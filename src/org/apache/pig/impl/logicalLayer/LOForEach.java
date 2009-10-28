@@ -371,32 +371,40 @@ public class LOForEach extends RelationalOperator {
 			log.debug(" fss.size: " + fss.size());
 			boolean duplicates = false;
 			Map<String, Integer> duplicateAliases = new HashMap<String, Integer>();
-			for(String alias: aliases.keySet()) {
-				Integer count = aliases.get(alias);
+			for(Map.Entry<String, Integer> e: aliases.entrySet()) {
+				Integer count = e.getValue();
 				if(count > 1) {//not checking for null here as counts are intitalized to 1
 					Boolean inFlatten = false;
 					log.debug("inFlatten: " + inFlatten + " inverseFlattenAlias: " + inverseFlattenAlias);
-					inFlatten = inverseFlattenAlias.get(alias);
+					inFlatten = inverseFlattenAlias.get(e.getKey());
 					log.debug("inFlatten: " + inFlatten + " inverseFlattenAlias: " + inverseFlattenAlias);
 					if((null == inFlatten) || (!inFlatten)) {
 						duplicates = true;
-						duplicateAliases.put(alias, count);
+						duplicateAliases.put(e.getKey(), count);
 					}
 				}
 			}
 			if(duplicates) {
-				String errMessage = "Found duplicates in schema. ";
+				String errMessage;
+                StringBuffer sb = new StringBuffer("Found duplicates in schema. ");
 				if(duplicateAliases.size() > 0) {
-					Set<String> duplicateCols = duplicateAliases.keySet();
-					Iterator<String> iter = duplicateCols.iterator();
-					String col = iter.next();
-					errMessage += col + ": " + duplicateAliases.get(col) + " columns";
+					Set<Map.Entry<String, Integer>> es = duplicateAliases.entrySet();
+					Iterator<Map.Entry<String, Integer>> iter = es.iterator();
+					Map.Entry<String, Integer> e = iter.next();
+                    sb.append(": ");
+                    sb.append(e.getValue());
+                    sb.append(" columns");
 					while(iter.hasNext()) {
-						col = iter.next();
-						errMessage += ", " + col + ": " + duplicateAliases.get(col) + " columns";
+						e = iter.next();
+                        sb.append(", ");
+                        sb.append(e.getKey());
+                        sb.append(": ");
+                        sb.append(e.getValue());
+                        sb.append(" columns");
 					}
 				}
-				errMessage += ". Please alias the columns with unique names.";
+                sb.append(". Please alias the columns with unique names.");
+				errMessage = sb.toString();
 				log.debug(errMessage);
 				int errCode = 1007;
 				throw new FrontendException(errMessage, errCode, PigException.INPUT, false, null);

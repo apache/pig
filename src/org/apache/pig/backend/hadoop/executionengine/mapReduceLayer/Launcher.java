@@ -60,7 +60,7 @@ public abstract class Launcher {
     String newLine = "\n";
     boolean pigException = false;
     boolean outOfMemory = false;
-    final String OOM_ERR = "OutOfMemoryError";
+    static final String OOM_ERR = "OutOfMemoryError";
 
     protected List<FileSpec> succeededStores = null;
     protected List<FileSpec> failedStores = null;
@@ -574,12 +574,15 @@ public abstract class Launcher {
         String declaringClass = items[0]; 
         //the last member is always the method name
         String methodName = items[items.length - 1];
+        StringBuilder sb = new StringBuilder();
         
         //concatenate the names by adding the dot (.) between the members till the penultimate member
         for(int i = 1; i < items.length - 1; ++i) {
-        	declaringClass += ".";
-        	declaringClass += items[i];
+        	sb.append('.');
+        	sb.append(items[i]);
         }
+
+        declaringClass = sb.toString();
         
         //from the file details extract the file name and the line number
         //PigMapOnly.java:65

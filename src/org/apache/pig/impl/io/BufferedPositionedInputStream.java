@@ -33,7 +33,7 @@ import org.apache.tools.bzip2r.CBZip2InputStream;
 public class BufferedPositionedInputStream extends InputStream {
     long pos;
     InputStream in;
-    final int bufSize = 1024;
+    static final int bufSize = 1024;
     
     public BufferedPositionedInputStream(InputStream in, long pos) {
 		// Don't buffer a bzip stream as it will cause problems for split

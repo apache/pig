@@ -320,14 +320,17 @@ public class PigServer {
         }
         
         if (urls.hasMoreElements()) {
-            String logMessage = "Found multiple resources that match " 
-                + jarName + ": " + resourceLocation;
+            StringBuffer sb = new StringBuffer("Found multiple resources that match ");
+            sb.append(jarName);
+            sb.append(": ");
+            sb.append(resourceLocation);
             
             while (urls.hasMoreElements()) {
-                logMessage += (logMessage + urls.nextElement() + "; ");
+                sb.append(urls.nextElement());
+                sb.append("; ");
             }
             
-            log.debug(logMessage);
+            log.debug(sb.toString());
         }
     
         return resourceLocation;

@@ -26,6 +26,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-1052: FINDBUGS: remaining performance warningse(olgan)
+
 PIG-1037: Converted sorted and distinct bags to use the new active spilling
           paradigm (yinghe via gates)
 
