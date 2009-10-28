@@ -19,6 +19,7 @@ package org.apache.pig.data;
 
 import java.io.*;
 import java.util.*;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce;
@@ -41,7 +42,7 @@ public class InternalCachedBag extends DefaultAbstractBag {
     }
 
     public InternalCachedBag(int bagCount) {       
-        float percent = 0.5F;
+        float percent = 0.1F;
         
     	if (PigMapReduce.sJobConf != null) {
     		String usage = PigMapReduce.sJobConf.get("pig.cachedbag.memusage");
@@ -82,12 +83,14 @@ public class InternalCachedBag extends DefaultAbstractBag {
                 
         if(mContents.size() < cacheLimit)  {
             mMemSizeChanged = true;
-            mContents.add(t);
+            mContents.add(t);           
             if(mContents.size() < 100)
             {
                 memUsage += t.getMemorySize();
                 long avgUsage = memUsage / (long)mContents.size();
-                cacheLimit = (int)(maxMemUsage / avgUsage);
+                if (avgUsage > 0) {
+                	cacheLimit = (int)(maxMemUsage / avgUsage);
+                }
             }
         } else {
             try {
@@ -107,6 +110,20 @@ public class InternalCachedBag extends DefaultAbstractBag {
         mSize++;
     }
 
+    public void addAll(DataBag b) {
+    	Iterator<Tuple> iter = b.iterator();
+    	while(iter.hasNext()) {
+    		add(iter.next());
+    	}
+    }
+
+    public void addAll(Collection<Tuple> c) {
+    	Iterator<Tuple> iter = c.iterator();
+    	while(iter.hasNext()) {
+    		add(iter.next());
+    	}
+    }
+    
     private void addDone() {
         if(out != null) {
             try {

@@ -208,17 +208,18 @@ public class NonSpillableDataBag implements DataBag {
             // same tuples, regardless of order.  Hopefully most of the
             // time the size check above will prevent this.
             // If either bag isn't already sorted, create a sorted bag out
-            // of it so I can guarantee order.
+            // of it so I can guarantee order.           
+            BagFactory factory = BagFactory.getInstance();
+            
             DataBag thisClone;
             DataBag otherClone;
-            thisClone = new SortedDataBag(null);
+            thisClone = factory.newSortedBag(null);
             Iterator<Tuple> i = iterator();
             while (i.hasNext()) thisClone.add(i.next());
-            if (other instanceof SortedDataBag ||
-                    other instanceof DistinctDataBag) {
+            if (((DataBag) other).isSorted() || ((DataBag) other).isDistinct()) {
                 otherClone = bOther;
             } else {
-                otherClone = new SortedDataBag(null);
+                otherClone = factory.newSortedBag(null);
                 i = bOther.iterator();
                 while (i.hasNext()) otherClone.add(i.next());
             }
