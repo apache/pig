@@ -72,10 +72,10 @@ public class StandAloneParser {
             pig.registerQuery(query);
             System.out.print("Current aliases: ");
             Map<String, LogicalPlan> aliasPlan = pig.getAliases();
-            for (Iterator<String> it = aliasPlan.keySet().iterator(); it.hasNext(); ) {
-                String alias = it.next();
-                LogicalPlan lp = aliasPlan.get(alias);
-                System.out.print(alias + "->" + lp.getLeaves().get(0).getSchema());
+            for (Iterator<Map.Entry<String,LogicalPlan>> it = aliasPlan.entrySet().iterator(); it.hasNext(); ) {
+                Map.Entry<String, LogicalPlan> e = it.next();
+                LogicalPlan lp = e.getValue();
+                System.out.print(e.getKey() + "->" + lp.getLeaves().get(0).getSchema());
                 if (it.hasNext()) System.out.print(", \n");
                 else System.out.print("\n");
             }

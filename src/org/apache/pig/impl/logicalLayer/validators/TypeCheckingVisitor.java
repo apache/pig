@@ -3186,9 +3186,9 @@ public class TypeCheckingVisitor extends LOVisitor {
         MultiMap<String, FuncSpec> loadFuncSpecMap = new MultiMap<String, FuncSpec>();
 
         if(canonicalMap.keySet().size() > 0) {
-            for(String canonicalName: canonicalMap.keySet()) {
-                if((null == parentCanonicalName) || (parentCanonicalName.equals(canonicalName))) {
-                    FuncSpec lfSpec = getLoadFuncSpec(canonicalMap.get(canonicalName), parentCanonicalName);
+            for(Map.Entry<String, LogicalOperator> e: canonicalMap.entrySet()) {
+                if((null == parentCanonicalName) || (parentCanonicalName.equals(e.getKey()))) {
+                    FuncSpec lfSpec = getLoadFuncSpec(e.getValue(), parentCanonicalName);
                     if(null != lfSpec) loadFuncSpecMap.put(lfSpec.getClassName(), lfSpec);
                 }
             }

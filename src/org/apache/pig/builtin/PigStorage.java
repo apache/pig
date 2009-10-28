@@ -214,15 +214,15 @@ public class PigStorage extends Utf8StorageConverter
             boolean mapHasNext = false;
             Map<String, Object> m = (Map<String, Object>)field;
             mOut.write(mapBeginDelim.getBytes(UTF8));
-            for(String s: m.keySet()) {
+            for(Map.Entry<String, Object> e: m.entrySet()) {
                 if(mapHasNext) {
                     mOut.write(fieldDelim.getBytes(UTF8));
                 } else {
                     mapHasNext = true;
                 }
-                putField(s);
+                putField(e.getKey());
                 mOut.write(mapKeyValueDelim.getBytes(UTF8));
-                putField(m.get(s));
+                putField(e.getValue());
             }
             mOut.write(mapEndDelim.getBytes(UTF8));
             break;

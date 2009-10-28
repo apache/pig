@@ -57,7 +57,7 @@
         <Class name="org.apache.pig.tools.parameters.PigFileParserTokenManager" />
     </Match>
     <Match>
-        <Class name="org.apache.pig.tools.parameters.ParserException" />
+        <Class name="org.apache.pig.tools.parameters.ParseException" />
     </Match>
 
     <!-- Exclude CN_IDIOM_NO_SUPER_CALL issue in logical and physical plans for now-->
