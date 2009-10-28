@@ -136,6 +136,16 @@ public abstract class DefaultAbstractBag implements DataBag {
             used *= numInMem;
         }
 
+        // add up the overhead for this object, mContents object, references to tuples,
+        // and other object variables
+        used += 12 + 12 + numInMem*4 + 8 + 4 + 8;
+        
+        // add up overhead for mSpillFiles ArrayList, Object[] inside ArrayList,
+        // object variable inside ArrayList and references to spill files
+        if (mSpillFiles != null) {
+        	used += 12 + 12 + 4 + mSpillFiles.size()*4;
+        }
+        
         mMemSize = used;
         mMemSizeChanged = false;
         return used;
@@ -181,19 +191,20 @@ public abstract class DefaultAbstractBag implements DataBag {
             // of it so I can guarantee order.
             DataBag thisClone;
             DataBag otherClone;
-            if (this instanceof SortedDataBag ||
-                    this instanceof DistinctDataBag) {
+            BagFactory factory = BagFactory.getInstance();
+            
+            if (this.isSorted() || this.isDistinct()) {
                 thisClone = this;
             } else {
-                thisClone = new SortedDataBag(null);
+                thisClone = factory.newSortedBag(null);
                 Iterator<Tuple> i = iterator();
                 while (i.hasNext()) thisClone.add(i.next());
+                
             }
-            if (other instanceof SortedDataBag ||
-                    other instanceof DistinctDataBag) {
+            if (((DataBag) other).isSorted() || ((DataBag)other).isDistinct()) {
                 otherClone = bOther;
             } else {
-                otherClone = new SortedDataBag(null);
+                otherClone = factory.newSortedBag(null);
                 Iterator<Tuple> i = bOther.iterator();
                 while (i.hasNext()) otherClone.add(i.next());
             }

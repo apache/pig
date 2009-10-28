@@ -183,7 +183,10 @@ public class DefaultTuple implements Tuple {
      */
     public long getMemorySize() {
         Iterator<Object> i = mFields.iterator();
-        long sum = 0;
+        // initial memory overhead for Tuple object, ArrayList object
+        // and Object[] inside ArrayList, plus references to each tuple field,
+        // plus other object variables
+        long sum = 12*3 + mFields.size()*4 + 8;
         while (i.hasNext()) {
             sum += getFieldMemorySize(i.next());
         }
@@ -307,12 +310,12 @@ public class DefaultTuple implements Tuple {
 
             case DataType.TUPLE: {
                 Tuple t = (Tuple)o;
-                return t.getMemorySize() + 12;
+                return t.getMemorySize();
             }
 
             case DataType.BAG: {
                 DataBag b = (DataBag)o;
-                return b.getMemorySize() + 12;
+                return b.getMemorySize();
             }
 
             case DataType.INTEGER:

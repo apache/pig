@@ -24,6 +24,7 @@ import java.util.List;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
@@ -31,6 +32,8 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlan
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
+import org.apache.pig.data.InternalDistinctBag;
+import org.apache.pig.data.InternalSortedBag;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.OperatorKey;
@@ -73,9 +76,21 @@ public class PODistinct extends PhysicalOperator implements Cloneable {
 
     @Override
     public Result getNext(Tuple t) throws ExecException {
-        if (!inputsAccumulated) {
-            Result in = processInput();
-            distinctBag = BagFactory.getInstance().newDistinctBag();
+         if (!inputsAccumulated) {
+            Result in = processInput();    
+            
+            // by default, we create InternalSortedBag, unless user configures
+			// explicitly to use old bag
+           	String bagType = null;
+            if (PigMapReduce.sJobConf != null) {
+       			bagType = PigMapReduce.sJobConf.get("pig.cachedbag.distinct.type");       			
+       	    }            
+            if (bagType != null && bagType.equalsIgnoreCase("default")) {        	    	
+            	distinctBag = BagFactory.getInstance().newDistinctBag();    			
+       	    } else {
+       	    	distinctBag = new InternalDistinctBag(3);
+    	    }
+            
             while (in.returnStatus != POStatus.STATUS_EOP) {
                 if (in.returnStatus == POStatus.STATUS_ERR) {
                     log.error("Error in reading from inputs");
