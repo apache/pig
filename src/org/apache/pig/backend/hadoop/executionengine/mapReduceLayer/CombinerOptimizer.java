@@ -406,6 +406,11 @@ public class CombinerOptimizer extends MROpPlanVisitor {
             // the reduce side.
             if (pp.getPredecessors(proj) != null) return ExprType.NOT_ALGEBRAIC;
 
+            // Check if it's a projection of bag. Currently we can't use combiner 
+            // for statement like c = foreach b generate group, SUM(a), a; 
+            // where a is a bag.
+            if (proj.getResultType() == DataType.BAG) return ExprType.NOT_ALGEBRAIC;
+            
             // Check to see if this is a projection of the grouping column.
             // If so, it will be a projection of col 0 and will have no
             // predecessors (to avoid things like group.$0, which isn't what we
