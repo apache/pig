@@ -36,6 +36,7 @@ import org.apache.hadoop.mapred.RecordWriter;
 import org.apache.hadoop.mapred.OutputCollector;
 import org.apache.hadoop.mapred.Reporter;
 
+import org.apache.pig.SortInfo;
 import org.apache.pig.StoreConfig;
 import org.apache.pig.StoreFunc;
 import org.apache.pig.impl.PigContext;
@@ -77,7 +78,7 @@ public class MapReducePOStoreImpl extends POStoreImpl {
 
     @Override
     @SuppressWarnings({"unchecked"})
-    public StoreFunc createStoreFunc(FileSpec sFile, Schema schema) 
+    public StoreFunc createStoreFunc(FileSpec sFile, Schema schema, SortInfo sortInfo) 
         throws IOException {
 
         // set up a new job conf
@@ -123,7 +124,7 @@ public class MapReducePOStoreImpl extends POStoreImpl {
 
         // Set the schema
         outputConf.set(PIG_STORE_CONFIG, 
-                       ObjectSerializer.serialize(new StoreConfig(outputDir.toString(), schema)));
+                       ObjectSerializer.serialize(new StoreConfig(outputDir.toString(), schema, sortInfo)));
 
         // The workpath is set to a unique-per-store subdirectory of
         // the current working directory.

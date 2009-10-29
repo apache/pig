@@ -22,6 +22,8 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -32,21 +34,24 @@ import java.util.Random;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.pig.ExecType;
+import org.apache.pig.SortColInfo;
+import org.apache.pig.SortInfo;
 import org.apache.pig.backend.executionengine.ExecException;
-import org.apache.pig.builtin.COUNT;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.LogToPhyTranslationVisitor;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.impl.PigContext;
-import org.apache.pig.impl.logicalLayer.ExpressionOperator;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.LogToPhyTranslationVisitor;
-import org.apache.pig.impl.logicalLayer.LOFilter;
-import org.apache.pig.impl.logicalLayer.LogicalOperator;
-import org.apache.pig.impl.logicalLayer.LOLoad;
 import org.apache.pig.impl.logicalLayer.LODefine;
+import org.apache.pig.impl.logicalLayer.LOFilter;
+import org.apache.pig.impl.logicalLayer.LOLoad;
+import org.apache.pig.impl.logicalLayer.LOPrinter;
+import org.apache.pig.impl.logicalLayer.LogicalOperator;
 import org.apache.pig.impl.logicalLayer.LogicalPlan;
 import org.apache.pig.impl.logicalLayer.LogicalPlanBuilder;
 import org.apache.pig.impl.plan.OperatorKey;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.impl.plan.VisitorException;
+import org.apache.pig.test.utils.LogicalPlanTester;
 import org.junit.Test;
 
 /**
@@ -597,6 +602,126 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
         }
     }
 
+    /**
+     * tests sortinfo for the case where order by is ascending on
+     * all sort columns
+     */
+    @Test
+    public void testSortInfoAsc() throws Exception {
+        LogicalPlanTester lpt = new LogicalPlanTester();
+        lpt.buildPlan("a = load 'bla' as (i:int, n:chararray, d:double);");
+        lpt.buildPlan("b = order a by i, d;");
+        LogicalPlan lp = lpt.buildPlan("store b into 'foo';");
+        PhysicalPlan pp = buildPhysicalPlan(lp);
+        SortInfo si = ((POStore)(pp.getLeaves().get(0))).getSortInfo();
+        SortInfo expected = getSortInfo(
+                Arrays.asList(new String[] {"i", "d"}),
+                Arrays.asList(new Integer[] {0, 2}),
+                Arrays.asList(new SortColInfo.Order[] {
+                        SortColInfo.Order.ASCENDING, 
+                        SortColInfo.Order.ASCENDING}));
+        assertEquals(expected, si);
+    }
+    
+    /**
+     * tests sortInfo for mixed ascending and descending in order by
+     * @throws Exception
+     */
+    @Test
+    public void testSortInfoAscDesc() throws Exception {
+        LogicalPlanTester lpt = new LogicalPlanTester();
+        lpt.buildPlan("a = load 'bla' as (i:int, n:chararray, d:double);");
+        lpt.buildPlan("b = filter a by i > 10;");
+        lpt.buildPlan("c = order b by i desc, d;");
+        LogicalPlan lp = lpt.buildPlan("store c into 'foo';");
+        PhysicalPlan pp = buildPhysicalPlan(lp);
+        SortInfo si = ((POStore)(pp.getLeaves().get(0))).getSortInfo();
+        SortInfo expected = getSortInfo(
+                Arrays.asList(new String[] {"i", "d"}), 
+                Arrays.asList(new Integer[] {0, 2}),
+                Arrays.asList(new SortColInfo.Order[] {
+                        SortColInfo.Order.DESCENDING, 
+                        SortColInfo.Order.ASCENDING}));
+        assertEquals(expected, si);
+    }
+    
+    /**
+     * tests that sortInfo is null when there is no order by
+     * before the store
+     * @throws Exception
+     */
+    @Test
+    public void testSortInfoNoOrderBy1() throws Exception {
+        LogicalPlanTester lpt = new LogicalPlanTester();
+        lpt.buildPlan("a = load 'bla' as (i:int, n:chararray, d:double);");
+        lpt.buildPlan("b = filter a by i > 10;");
+        LogicalPlan lp = lpt.buildPlan("store b into 'foo';");
+        PhysicalPlan pp = buildPhysicalPlan(lp);
+        SortInfo si = ((POStore)(pp.getLeaves().get(0))).getSortInfo();
+        assertEquals(null, si);
+    }
+    
+    /**
+     * tests that sortInfo is null when there is an operator other than limit
+     * between order by and the store
+     * @throws Exception
+     */
+    @Test
+    public void testSortInfoNoOrderBy2() throws Exception {
+        LogicalPlanTester lpt = new LogicalPlanTester();
+        lpt.buildPlan("a = load 'bla' as (i:int, n:chararray, d:double);");
+        lpt.buildPlan("b = order a by i, d;");
+        lpt.buildPlan("c = filter b by i > 10;");
+        LogicalPlan lp = lpt.buildPlan("store c into 'foo';");
+        PhysicalPlan pp = buildPhysicalPlan(lp);
+        SortInfo si = ((POStore)(pp.getLeaves().get(0))).getSortInfo();
+        assertEquals(null, si);
+    }
+    
+    /**
+     * tests that sortInfo is not null when there is a limit
+     * between order by and the store
+     * @throws Exception
+     */
+    @Test
+    public void testSortInfoOrderByLimit() throws Exception {
+        LogicalPlanTester lpt = new LogicalPlanTester();
+        lpt.buildPlan("a = load 'bla' as (i:int, n:chararray, d:double);");
+        lpt.buildPlan("b = order a by i, d desc;");
+        lpt.buildPlan("c = limit b 10;");
+        LogicalPlan lp = lpt.buildPlan("store c into 'foo';");
+        LOPrinter lpr = new LOPrinter(System.err, lp);
+        lpr.visit();
+        PhysicalPlan pp = buildPhysicalPlan(lp);
+        SortInfo si = ((POStore)(pp.getLeaves().get(0))).getSortInfo();
+        SortInfo expected = getSortInfo(
+                Arrays.asList(new String[] {"i", "d"}), 
+                Arrays.asList(new Integer[] {0, 2}),
+                Arrays.asList(new SortColInfo.Order[] {
+                        SortColInfo.Order.ASCENDING, 
+                        SortColInfo.Order.DESCENDING}));
+        assertEquals(expected, si);
+    }
+    
+    /**
+     * tests that sortInfo is null when there is no schema for order by
+     * before the store
+     * @throws Exception
+     */
+    @Test
+    public void testSortInfoNoOrderBySchema() throws Exception {
+        LogicalPlanTester lpt = new LogicalPlanTester();
+        lpt.buildPlan("a = load 'bla' ;");
+        lpt.buildPlan("b = order a by $0;");
+        LogicalPlan lp = lpt.buildPlan("store b into 'foo';");
+        PhysicalPlan pp = buildPhysicalPlan(lp);
+        SortInfo si = ((POStore)(pp.getLeaves().get(0))).getSortInfo();
+        SortInfo expected = getSortInfo(Arrays.asList(new String[] {null}),
+                Arrays.asList(new Integer[] {0}), 
+                Arrays.asList(new SortColInfo.Order[] { 
+                        SortColInfo.Order.ASCENDING}));
+        assertEquals(expected, si);
+    }
     
     /*@Test
     public void testUserFunc() throws VisitorException {
@@ -622,6 +747,16 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
     
     // Helper Functions
     // =================
+    
+    private SortInfo getSortInfo(List<String> colNames, List<Integer> colIndices, 
+            List<SortColInfo.Order> orderingTypes) {
+        List<SortColInfo> sortColInfoList = new ArrayList<SortColInfo>();
+        for(int i = 0; i < colNames.size(); i++) {
+            sortColInfoList.add(new SortColInfo(colNames.get(i),
+                    colIndices.get(i), orderingTypes.get(i)));
+        }
+        return new SortInfo(sortColInfoList);
+    }
     
     public PhysicalPlan buildPhysicalPlan(LogicalPlan lp) throws VisitorException {
     	LogToPhyTranslationVisitor visitor = new LogToPhyTranslationVisitor(lp);

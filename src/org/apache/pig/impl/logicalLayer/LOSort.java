@@ -20,13 +20,17 @@ package org.apache.pig.impl.logicalLayer;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Set;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.PigException;
+import org.apache.pig.SortColInfo;
+import org.apache.pig.SortInfo;
+import org.apache.pig.data.DataType;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.plan.Operator;
 import org.apache.pig.impl.plan.OperatorKey;
@@ -34,11 +38,7 @@ import org.apache.pig.impl.plan.PlanException;
 import org.apache.pig.impl.plan.ProjectionMap;
 import org.apache.pig.impl.plan.RequiredFields;
 import org.apache.pig.impl.plan.VisitorException;
-import org.apache.pig.impl.plan.PlanVisitor;
 import org.apache.pig.impl.util.Pair;
-import org.apache.pig.data.DataType;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 
 public class LOSort extends RelationalOperator {
     private static final long serialVersionUID = 2L;
@@ -310,6 +310,32 @@ public class LOSort extends RelationalOperator {
                 throw new PlanException(msg, errCode, PigException.BUG, ve);
             }
         }
+    }
+    
+    public SortInfo getSortInfo() throws FrontendException {
+        Schema schema = this.getSchema();
+        List<SortColInfo> sortColInfoList = new ArrayList<SortColInfo>();
+        for (int i = 0; i < mSortColPlans.size(); i++) {
+            LogicalPlan lp = mSortColPlans.get(i);
+            Iterator<LogicalOperator> opsIterator = lp.iterator();
+            List<LogicalOperator> opsList = new ArrayList<LogicalOperator>();
+            while(opsIterator.hasNext()) {
+                opsList.add(opsIterator.next());
+            }
+            if(opsList.size() != 1 || !(opsList.get(0) instanceof LOProject)) {
+                int errCode = 2066;
+                String msg = "Unsupported operator in inner plan: " + opsList.get(0);
+                throw new PlanException(msg, errCode, PigException.BUG);
+            }
+            LOProject project = (LOProject) opsList.get(0);
+            int sortColIndex = project.getCol();
+            String sortColName = (schema == null) ? null :
+                schema.getField(sortColIndex).alias;
+            sortColInfoList.add(new SortColInfo(sortColName, sortColIndex, 
+                    mAscCols.get(i)? SortColInfo.Order.ASCENDING :
+                        SortColInfo.Order.DESCENDING));
+        }
+        return new SortInfo(sortColInfoList);
     }
     
     @Override

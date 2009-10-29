@@ -33,6 +33,7 @@ import org.apache.pig.EvalFunc;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.LoadFunc;
 import org.apache.pig.PigException;
+import org.apache.pig.SortInfo;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.NonSpillableDataBag;
@@ -1365,6 +1366,11 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
         }
 
         sort.setResultType(s.getType());
+        try {
+            sort.setSortInfo(s.getSortInfo());
+        } catch (FrontendException e) {
+            throw new LogicalToPhysicalTranslatorException(e);
+        }
 
     }
 
@@ -1556,6 +1562,7 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
     @Override
     public void visit(LOStore loStore) throws VisitorException {
         String scope = loStore.getOperatorKey().scope;
+        
         POStore store = new POStore(new OperatorKey(scope, nodeGen
                 .getNextNodeId(scope)));
         store.setSFile(loStore.getOutputFile());
@@ -1581,6 +1588,19 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
         
         if(op != null) {
             from = logToPhyMap.get(op.get(0));
+            SortInfo sortInfo = null;
+            // if store's predecessor is limit,
+            // check limit's predecessor
+            if(op.get(0) instanceof LOLimit) {
+                op = loStore.getPlan().getPredecessors(op.get(0));
+            }
+            PhysicalOperator sortPhyOp = logToPhyMap.get(op.get(0));
+            // if this predecessor is a sort, get
+            // the sort info.
+            if(op.get(0) instanceof LOSort) {
+                sortInfo = ((POSort)sortPhyOp).getSortInfo();
+            }
+            store.setSortInfo(sortInfo);
         } else {
             int errCode = 2051;
             String msg = "Did not find a predecessor for Store." ;
