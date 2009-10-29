@@ -199,6 +199,16 @@
         <Bug pattern="NP_LOAD_OF_KNOWN_NULL_VALUE" />
     </Match>
     <Match>
+        <Class name="org.apache.pig.SortInfo"/>
+        <Method name="equals" />
+        <Bug pattern="BC_EQUALS_METHOD_SHOULD_WORK_FOR_ALL_OBJECTS"/>
+    </Match>
+    <Match>
+        <Class name="org.apache.pig.SortColInfo"/>
+        <Method name="equals" />
+        <Bug pattern="BC_EQUALS_METHOD_SHOULD_WORK_FOR_ALL_OBJECTS"/>
+    </Match>
+    <Match>
         <Class name="org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.CombinerOptimizer" />
         <Method name = "visitMROp" />
         <Bug pattern="REC_CATCH_EXCEPTION" />

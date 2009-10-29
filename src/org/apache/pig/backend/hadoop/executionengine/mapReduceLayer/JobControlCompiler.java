@@ -417,7 +417,8 @@ public class JobControlCompiler{
                 // hadoop from the jobconf.
                 jobConf.set("pig.storeFunc", ObjectSerializer.serialize(outputFuncSpec.toString()));
                 jobConf.set(PIG_STORE_CONFIG, 
-                            ObjectSerializer.serialize(new StoreConfig(outputPath, st.getSchema())));
+                            ObjectSerializer.serialize(
+                                    new StoreConfig(outputPath, st.getSchema(), st.getSortInfo())));
 
                 jobConf.set("pig.streaming.log.dir", 
                             new Path(outputPath, LOG_DIR).toString());
@@ -540,6 +541,7 @@ public class JobControlCompiler{
 				jobConf.setMapOutputKeyClass(NullablePartitionWritable.class);
             }
             
+            jobConf.setOutputCommitter(PigOutputCommitter.class);
             Job job = new Job(jobConf);
             jobStoreMap.put(job,new Pair<List<POStore>, Path>(storeLocations, tmpLocation));
             return job;

@@ -32,12 +32,15 @@ import java.util.Set;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.pig.FuncSpec;
+import org.apache.pig.IndexableLoadFunc;
+import org.apache.pig.LoadFunc;
 import org.apache.pig.PigException;
 import org.apache.pig.PigWarning;
 import org.apache.pig.SamplableLoader;
 import org.apache.pig.builtin.BinStorage;
 import org.apache.pig.data.DataType;
 import org.apache.pig.impl.PigContext;
+import org.apache.pig.impl.builtin.DefaultIndexableLoader;
 import org.apache.pig.impl.builtin.FindQuantiles;
 import org.apache.pig.impl.builtin.PoissonSampleLoader;
 import org.apache.pig.impl.builtin.MergeJoinIndexer;
@@ -1148,92 +1151,131 @@ public class MRCompiler extends PhyPlanVisitor {
 	    rightMROpr.requestedParallelism = 1; // we need exactly one reducer for indexing job.        
             
             // At this point, we must be operating on map plan of right input and it would contain nothing else other then a POLoad.
-            POLoad rightLoader = (POLoad)rightMROpr.mapPlan.getRoots().get(0);
-            joinOp.setRightLoaderFuncSpec(rightLoader.getLFile().getFuncSpec());
-
-            // Replace POLoad with  indexer.
-            String[] indexerArgs = new String[3];
-            indexerArgs[0] = rightLoader.getLFile().getFuncSpec().toString();
-             if (! (PigContext.instantiateFuncFromSpec(indexerArgs[0]) instanceof SamplableLoader)){
-                 int errCode = 1104;
-                 String errMsg = "Right input of merge-join must implement SamplableLoader interface. The specified loader " + indexerArgs[0] + " doesn't implement it";
-                 throw new MRCompilerException(errMsg,errCode);
-             }
-            List<PhysicalPlan> rightInpPlans = joinOp.getInnerPlansOf(1);
-            indexerArgs[1] = ObjectSerializer.serialize((Serializable)rightInpPlans);
-            indexerArgs[2] = ObjectSerializer.serialize(rightPipelinePlan);
-            FileSpec lFile = new FileSpec(rightLoader.getLFile().getFileName(),new FuncSpec(MergeJoinIndexer.class.getName(), indexerArgs));
-            rightLoader.setLFile(lFile);
-
-            // Loader of mro will return a tuple of form (key1, key2, ..,filename, offset)
-            // Now set up a POLocalRearrange which has "all" as the key and tuple fetched
-            // by loader as the "value" of POLocalRearrange
-            // Sorting of index can possibly be achieved by using Hadoop sorting between map and reduce instead of Pig doing sort. If that is so, 
-            // it will simplify lot of the code below.
+            POLoad rightLoader = (POLoad)rightMROpr.mapPlan.getRoots().get(0);            
+            LoadFunc rightLoadFunc = (LoadFunc) PigContext.instantiateFuncFromSpec(rightLoader.getLFile().getFuncSpec());
+            if(rightLoadFunc instanceof IndexableLoadFunc) {
+                joinOp.setRightLoaderFuncSpec(rightLoader.getLFile().getFuncSpec());
+                joinOp.setRightInputFileName(rightLoader.getLFile().getFileName());
+                rightMROpr = null; // we don't need the right MROper since
+                // the right loader is an IndexableLoadFunc which can handle the index
+                // itself 
+                // validate that the join keys in merge join are only                                                                                                                                                                              
+                // simple column projections or '*' and not expression - expressions                                                                                                                                                               
+                // cannot be handled when the index is built by the storage layer on the sorted                                                                                                                                                    
+                // data when the sorted data (and corresponding index) is written.                                                                                                                                                                 
+                // So merge join will be restricted not have expressions as                                                                                                                                                                        
+                // join keys      
+                int numInputs = mPlan.getPredecessors(joinOp).size(); // should be 2
+                for(int i = 0; i < numInputs; i++) {
+                    List<PhysicalPlan> keyPlans = joinOp.getInnerPlansOf(i);
+                    for (PhysicalPlan keyPlan : keyPlans) {
+                        for(PhysicalOperator op : keyPlan) {
+                            if(!(op instanceof POProject)) {
+                                int errCode = 1106;
+                                String errMsg = "Merge join is possible only for simple column or '*' join keys when using " +
+                                rightLoader.getLFile().getFuncSpec() + " as the loader";
+                                throw new MRCompilerException(errMsg, errCode, PigException.INPUT);
+                            }
+                        }
+                    }
+                }
+            } else {
+                // Replace POLoad with  indexer.
+                String[] indexerArgs = new String[3];
+                FileSpec origRightLoaderFileSpec = rightLoader.getLFile();
+                indexerArgs[0] = origRightLoaderFileSpec.getFuncSpec().toString();
+                 if (! (PigContext.instantiateFuncFromSpec(indexerArgs[0]) instanceof SamplableLoader)){
+                     int errCode = 1104;
+                     String errMsg = "Right input of merge-join must implement SamplableLoader interface. The specified loader " + indexerArgs[0] + " doesn't implement it";
+                     throw new MRCompilerException(errMsg,errCode);
+                 }
+                List<PhysicalPlan> rightInpPlans = joinOp.getInnerPlansOf(1);
+                indexerArgs[1] = ObjectSerializer.serialize((Serializable)rightInpPlans);
+                indexerArgs[2] = ObjectSerializer.serialize(rightPipelinePlan);
+                FileSpec lFile = new FileSpec(rightLoader.getLFile().getFileName(),new FuncSpec(MergeJoinIndexer.class.getName(), indexerArgs));
+                rightLoader.setLFile(lFile);
+    
+                // Loader of mro will return a tuple of form (key1, key2, ..,filename, offset)
+                // Now set up a POLocalRearrange which has "all" as the key and tuple fetched
+                // by loader as the "value" of POLocalRearrange
+                // Sorting of index can possibly be achieved by using Hadoop sorting between map and reduce instead of Pig doing sort. If that is so, 
+                // it will simplify lot of the code below.
+                
+                PhysicalPlan lrPP = new PhysicalPlan();
+                ConstantExpression ce = new ConstantExpression(new OperatorKey(scope,nig.getNextNodeId(scope)));
+                ce.setValue("all");
+                ce.setResultType(DataType.CHARARRAY);
+                lrPP.add(ce);
+    
+                List<PhysicalPlan> lrInnerPlans = new ArrayList<PhysicalPlan>();
+                lrInnerPlans.add(lrPP);
+    
+                POLocalRearrange lr = new POLocalRearrange(new OperatorKey(scope,nig.getNextNodeId(scope)));
+                lr.setIndex(0);
+                lr.setKeyType(DataType.CHARARRAY);
+                lr.setPlans(lrInnerPlans);
+                lr.setResultType(DataType.TUPLE);
+                rightMROpr.mapPlan.addAsLeaf(lr);
+    
+                rightMROpr.setMapDone(true);
+    
+                // On the reduce side of this indexing job, there will be a global rearrange followed by POSort.
+                // Output of POSort will be index file dumped on the DFS.
+    
+                // First add POPackage.
+                POPackage pkg = new POPackage(new OperatorKey(scope,nig.getNextNodeId(scope)));
+                pkg.setKeyType(DataType.CHARARRAY);
+                pkg.setNumInps(1); 
+                pkg.setInner(new boolean[]{false});
+                rightMROpr.reducePlan.add(pkg);
+    
+                // Next project tuples from the bag created by POPackage.
+                POProject topPrj = new POProject(new OperatorKey(scope,nig.getNextNodeId(scope)));
+                topPrj.setColumn(1);
+                topPrj.setResultType(DataType.TUPLE);
+                topPrj.setOverloaded(true);
+                rightMROpr.reducePlan.add(topPrj);
+                rightMROpr.reducePlan.connect(pkg, topPrj);
+    
+                // Now create and add POSort. Sort plan is project *.
+                List<PhysicalPlan> sortPlans = new ArrayList<PhysicalPlan>(1);
+                PhysicalPlan innerSortPlan = new PhysicalPlan();
+                POProject prj = new POProject(new OperatorKey(scope,nig.getNextNodeId(scope)));
+                prj.setStar(true);
+                prj.setOverloaded(false);
+                prj.setResultType(DataType.TUPLE);
+                innerSortPlan.add(prj);
+                sortPlans.add(innerSortPlan);
+    
+                // Currently we assume all columns are in asc order.
+                // Add two because filename and offset are added by Indexer in addition to keys.
+                List<Boolean>  mAscCols = new ArrayList<Boolean>(rightInpPlans.size()+2);
+                for(int i=0; i< rightInpPlans.size()+2; i++)
+                    mAscCols.add(true);
+    
+                POSort sortOp = new POSort(new OperatorKey(scope,nig.getNextNodeId(scope)),1, null, sortPlans, mAscCols, null);
+                rightMROpr.reducePlan.add(sortOp);
+                rightMROpr.reducePlan.connect(topPrj, sortOp);
+    
+                POStore st = getStore();
+                FileSpec strFile = getTempFileSpec();
+                st.setSFile(strFile);
+                rightMROpr.reducePlan.addAsLeaf(st);
+                rightMROpr.setReduceDone(true);
+                
+                // set up the DefaultIndexableLoader for the join operator
+                String[] defaultIndexableLoaderArgs = new String[4];
+                defaultIndexableLoaderArgs[0] = origRightLoaderFileSpec.getFuncSpec().toString();
+                defaultIndexableLoaderArgs[1] = strFile.getFileName();
+                defaultIndexableLoaderArgs[2] = strFile.getFuncSpec().toString();
+                defaultIndexableLoaderArgs[3] = joinOp.getOperatorKey().scope;
+                joinOp.setRightLoaderFuncSpec((new FuncSpec(DefaultIndexableLoader.class.getName(), defaultIndexableLoaderArgs)));
+                joinOp.setRightInputFileName(origRightLoaderFileSpec.getFileName());    
+                 
+            }
             
-            PhysicalPlan lrPP = new PhysicalPlan();
-            ConstantExpression ce = new ConstantExpression(new OperatorKey(scope,nig.getNextNodeId(scope)));
-            ce.setValue("all");
-            ce.setResultType(DataType.CHARARRAY);
-            lrPP.add(ce);
-
-            List<PhysicalPlan> lrInnerPlans = new ArrayList<PhysicalPlan>();
-            lrInnerPlans.add(lrPP);
-
-            POLocalRearrange lr = new POLocalRearrange(new OperatorKey(scope,nig.getNextNodeId(scope)));
-            lr.setIndex(0);
-            lr.setKeyType(DataType.CHARARRAY);
-            lr.setPlans(lrInnerPlans);
-            lr.setResultType(DataType.TUPLE);
-            rightMROpr.mapPlan.addAsLeaf(lr);
-
-            rightMROpr.setMapDone(true);
-
-            // On the reduce side of this indexing job, there will be a global rearrange followed by POSort.
-            // Output of POSort will be index file dumped on the DFS.
-
-            // First add POPackage.
-            POPackage pkg = new POPackage(new OperatorKey(scope,nig.getNextNodeId(scope)));
-            pkg.setKeyType(DataType.CHARARRAY);
-            pkg.setNumInps(1); 
-            pkg.setInner(new boolean[]{false});
-            rightMROpr.reducePlan.add(pkg);
-
-            // Next project tuples from the bag created by POPackage.
-            POProject topPrj = new POProject(new OperatorKey(scope,nig.getNextNodeId(scope)));
-            topPrj.setColumn(1);
-            topPrj.setResultType(DataType.TUPLE);
-            topPrj.setOverloaded(true);
-            rightMROpr.reducePlan.add(topPrj);
-            rightMROpr.reducePlan.connect(pkg, topPrj);
-
-            // Now create and add POSort. Sort plan is project *.
-            List<PhysicalPlan> sortPlans = new ArrayList<PhysicalPlan>(1);
-            PhysicalPlan innerSortPlan = new PhysicalPlan();
-            POProject prj = new POProject(new OperatorKey(scope,nig.getNextNodeId(scope)));
-            prj.setStar(true);
-            prj.setOverloaded(false);
-            prj.setResultType(DataType.TUPLE);
-            innerSortPlan.add(prj);
-            sortPlans.add(innerSortPlan);
-
-            // Currently we assume all columns are in asc order.
-            // Add two because filename and offset are added by Indexer in addition to keys.
-            List<Boolean>  mAscCols = new ArrayList<Boolean>(rightInpPlans.size()+2);
-            for(int i=0; i< rightInpPlans.size()+2; i++)
-                mAscCols.add(true);
-
-            POSort sortOp = new POSort(new OperatorKey(scope,nig.getNextNodeId(scope)),1, null, sortPlans, mAscCols, null);
-            rightMROpr.reducePlan.add(sortOp);
-            rightMROpr.reducePlan.connect(topPrj, sortOp);
-
-            POStore st = getStore();
-            FileSpec strFile = getTempFileSpec();
-            st.setSFile(strFile);
-            rightMROpr.reducePlan.addAsLeaf(st);
-            rightMROpr.setReduceDone(true);
    
-            joinOp.setIndexFile(strFile);
+//            joinOp.setIndexFile(strFile);
             
             // We are done with right side. Lets work on left now.
             // Join will be materialized in leftMROper.
@@ -1254,9 +1296,10 @@ public class MRCompiler extends PhyPlanVisitor {
                 String msg = "Both map and reduce phases have been done. This is unexpected while compiling.";
                 throw new PlanException(msg, errCode, PigException.BUG);
             }
-
-            // We want to ensure indexing job runs prior to actual join job. So, connect them in order.
-            MRPlan.connect(rightMROpr, curMROp);
+            if(rightMROpr != null) {
+                // We want to ensure indexing job runs prior to actual join job. So, connect them in order.
+                MRPlan.connect(rightMROpr, curMROp);
+            }
             phyToMROpMap.put(joinOp, curMROp);
         }
         catch(PlanException e){

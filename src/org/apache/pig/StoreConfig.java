@@ -20,15 +20,17 @@ public class StoreConfig implements Serializable {
     private static final long serialVersionUID = 1L;
     private String location;
     private Schema schema;
+    private SortInfo sortInfo;
     
     
     /**
      * @param location
      * @param schema
      */
-    public StoreConfig(String location, Schema schema) {
+    public StoreConfig(String location, Schema schema, SortInfo sortInfo) {
         this.location = location;
         this.schema = schema;
+        this.sortInfo = sortInfo;
     }
     
     /**
@@ -62,6 +64,35 @@ public class StoreConfig implements Serializable {
     @Override
     public String toString() {
         return "{location:" + location + ", schema:" + schema + "}";
+    }
+
+    /**
+     * @param sortInfo the sortInfo to set
+     */
+    public void setSortInfo(SortInfo sortInfo) {
+        this.sortInfo = sortInfo;
+    }
+
+    /**
+     * This method returns a {@link SortInfo} object giving
+     * information on the column names in the output schema which
+     * correspond to the sort columns and which columns are
+     * ascending and those which are descending
+     * @return the sortInfo object if one could be determined else null
+     * null is returned in the following scenarios (wherein
+     * the sortInfo could not be determined):
+     * 1) the store does not follow an order by
+     * 2) There are operators other than limit between "order by"
+     * and store. If there is a limit between order by and store and
+     * if non of the above conditions are true, then sortInfo will be
+     * non-null.
+     * 
+     * IMPORTANT NOTE:
+     * The caller should check if the return value is null and
+     * take appropriate action
+     */
+    public SortInfo getSortInfo() {
+        return sortInfo;
     }
 
 }

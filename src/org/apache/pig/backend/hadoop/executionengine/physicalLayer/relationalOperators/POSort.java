@@ -26,6 +26,7 @@ import java.util.List;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.pig.PigException;
+import org.apache.pig.SortInfo;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
@@ -81,6 +82,8 @@ public class POSort extends PhysicalOperator {
 	public boolean isUDFComparatorUsed = false;
 	private DataBag sortedBag;
 	transient Iterator<Tuple> it;
+	
+	private SortInfo sortInfo;
 
 	public POSort(
             OperatorKey k,
@@ -387,6 +390,20 @@ public class POSort extends PhysicalOperator {
         return new POSort(new OperatorKey(mKey.scope, 
             NodeIdGenerator.getGenerator().getNextNodeId(mKey.scope)),
             requestedParallelism, null, clonePlans, cloneAsc, cloneFunc);
+    }
+
+    /**
+     * @param sortInfo the sortInfo to set
+     */
+    public void setSortInfo(SortInfo sortInfo) {
+        this.sortInfo = sortInfo;
+    }
+
+    /**
+     * @return the sortInfo
+     */
+    public SortInfo getSortInfo() {
+        return sortInfo;
     }
 
 

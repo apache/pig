@@ -24,6 +24,7 @@ import java.util.List;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.pig.PigException;
+import org.apache.pig.SortInfo;
 import org.apache.pig.StoreFunc;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.Tuple;
@@ -64,6 +65,11 @@ public class POStore extends PhysicalOperator {
     // reload this store, if the optimizer has the need.
     private FileSpec lFile;
     
+    // if the predecessor of store is Sort (order by)
+    // then sortInfo will have information of the sort 
+    // column names and the asc/dsc info
+    private SortInfo sortInfo;
+    
     public POStore(OperatorKey k) {
         this(k, -1, null);
     }
@@ -83,7 +89,7 @@ public class POStore extends PhysicalOperator {
     public void setUp() throws IOException{
         if (impl != null) {
             try{
-                storer = impl.createStoreFunc(sFile, schema);
+                storer = impl.createStoreFunc(sFile, schema, sortInfo);
             }catch (IOException ioe) {
                 int errCode = 2081;
                 String msg = "Unable to setup the store function.";            
@@ -193,5 +199,19 @@ public class POStore extends PhysicalOperator {
     
     public Schema getSchema() {
         return schema;
+    }
+
+    /**
+     * @param sortInfo the sortInfo to set
+     */
+    public void setSortInfo(SortInfo sortInfo) {
+        this.sortInfo = sortInfo;
+    }
+
+    /**
+     * @return the sortInfo
+     */
+    public SortInfo getSortInfo() {
+        return sortInfo;
     }
 }
