@@ -22,6 +22,10 @@
     <Match>
         <Package name="org.apache.pig.data.parser.*" />
     </Match>
+    <!-- Code does not support multithreading at the moment -->
+    <Match>
+        <Bug pattern="ST_WRITE_TO_STATIC_FROM_INSTANCE_METHOD" />
+    </Match>
     <!-- Ingnore non-serializable comparators --> 
     <Match>
         <Bug pattern="SE_COMPARATOR_SHOULD_BE_SERIALIZABLE" />
@@ -142,6 +146,16 @@
         <Bug pattern="SIC_INNER_SHOULD_BE_STATIC" />
     </Match>
     <Match>
+        <Bug pattern="BC_BAD_CAST_TO_CONCRETE_COLLECTION" />
+    </Match>
+    <!-- This Tuple classes are not used -->
+    <Match>
+        <Class name="org.apache.pig.data.AmendableTuple" />
+    </Match>
+    <Match>
+        <Class name="org.apache.pig.data.TimestampedTuple" />
+    </Match>
+    <Match>
         <Class name="org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.partitioners.CountingMap" />
         <Method name="put" />
         <Bug pattern="NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE" />
@@ -184,4 +198,33 @@
         <Method name = "getOperator" />
         <Bug pattern="NP_LOAD_OF_KNOWN_NULL_VALUE" />
     </Match>
+    <Match>
+        <Class name="org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.CombinerOptimizer" />
+        <Method name = "visitMROp" />
+        <Bug pattern="REC_CATCH_EXCEPTION" />
+    </Match>
+    <Match>
+        <Class name="org.apache.pig.tools.streams.StreamGenerator" />
+        <Method name = "actionPerformed" />
+        <Bug pattern="REC_CATCH_EXCEPTION" />
+    </Match>
+    <Match>
+        <Class name="org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRCompiler" />
+        <Or>
+        <Method name = "visitDistinct" />
+        <Method name = "visitFRJoin" />
+        </Or>
+        <Bug pattern="REC_CATCH_EXCEPTION" />
+    </Match>
+    <Match>
+        <Class name="org.apache.tools.bzip2r.CBZip2OutputStream" />
+        <Method name = "qSort3" />
+        <Bug pattern="IM_AVERAGE_COMPUTATION_COULD_OVERFLOW" />
+    </Match>
+    <Match>
+        <Class name="org.apache.tools.bzip2r.CBZip2OutputStream" />
+        <Method name = "sendMTFValues" />
+        <Bug pattern="IM_BAD_CHECK_FOR_ODD" />
+    </Match>
+    
 </FindBugsFilter>

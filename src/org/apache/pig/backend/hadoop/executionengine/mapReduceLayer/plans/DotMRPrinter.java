@@ -187,7 +187,7 @@ public class DotMRPrinter extends DotPlanDumper<MapReduceOper, MROperPlan,
         @Override
         protected String[] getAttributes(InnerOperator op) {
             String[] attributes = new String[3];
-            attributes[0] = "label=\""+getName(op)+"\"";
+            attributes[0] = "label=\""+super.getName(op)+"\"";
             attributes[1] = "style=\"filled\"";
             attributes[2] = "fillcolor=\"white\"";
             return attributes;

@@ -241,10 +241,6 @@ public class OpLimitOptimizer extends LogicalTransformer {
             }
     	} catch (OptimizerException oe) {
     	    throw oe;
-        } catch (Exception e) {
-            int errCode = 2050;
-            String msg = "Internal error. Unable to optimize limit operator.";
-            throw new OptimizerException(msg, errCode, PigException.BUG);
         }
     }
 }
