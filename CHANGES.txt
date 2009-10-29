@@ -103,6 +103,9 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-746: Works in --exectype local, fails on grid - ERROR 2113: SingleTupleBag
+should never be serialized (rding via pradeepkth)
+
 PIG-1027: Number of bytes written are always zero in local mode (zjffdu via gates)
 
 PIG-976: Multi-query optimization throws ClassCastException (rding via

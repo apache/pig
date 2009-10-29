@@ -29,6 +29,8 @@ import java.util.List;
 import java.util.Properties;
 
 import org.junit.Test;
+
+import junit.framework.Assert;
 import junit.framework.TestCase;
 
 import org.apache.pig.ExecType;
@@ -283,6 +285,60 @@ public class TestCombiner extends TestCase {
         }
         Util.deleteFile(cluster, "forEachNoCombinerInput.txt");
         
+    }
+    
+    @Test
+    public void testJiraPig746() {
+        // test that combiner is NOT invoked when
+        // one of the elements in the foreach generate
+        // has a foreach in the plan without a distinct agg
+        String input[] = {
+                "pig1\t18\t2.1",
+                "pig2\t24\t3.3",
+                "pig5\t45\t2.4",
+                "pig1\t18\t2.1",
+                "pig1\t19\t2.1",
+                "pig2\t24\t4.5",
+                "pig1\t20\t3.1" };
+        
+        String expected[] = {
+                "(pig1,75L,{(pig1,18,2.1),(pig1,18,2.1),(pig1,19,2.1),(pig1,20,3.1)})",
+                "(pig2,48L,{(pig2,24,3.3),(pig2,24,4.5)})",
+                "(pig5,45L,{(pig5,45,2.4)})"
+        };
+
+        try {
+            Util.createInputFile(cluster, "forEachNoCombinerInput.txt", input);
+ 
+            PigServer pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+            pigServer.registerQuery("a = load 'forEachNoCombinerInput.txt' as (name:chararray, age:int, gpa:double);");
+            pigServer.registerQuery("b = group a by name;");
+            pigServer.registerQuery("c = foreach b " +
+                    "        generate group, SUM(a.age), a;};");
+            
+            // make sure there isn't a combine plan in the explain output
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            PrintStream ps = new PrintStream(baos);
+            pigServer.explain("c", ps);
+            assertFalse(baos.toString().matches("(?si).*combine plan.*"));
+    
+            Iterator<Tuple> it = pigServer.openIterator("c");
+            int count = 0;
+            while (it.hasNext()) {
+                Tuple t = it.next();
+                assertEquals(expected[count++], t.toString());
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+            Assert.fail();
+        } finally {
+            try {
+                Util.deleteFile(cluster, "forEachNoCombinerInput.txt");
+            } catch (IOException e) {
+                e.printStackTrace();
+                Assert.fail();
+            }
+        }
     }
 
 }
