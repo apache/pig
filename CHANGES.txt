@@ -107,6 +107,9 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-1063: Pig does not call checkOutSpecs() on OutputFormat provided by
+StoreFunc in the multistore case (pradeepkth)
+
 PIG-746: Works in --exectype local, fails on grid - ERROR 2113: SingleTupleBag
 should never be serialized (rding via pradeepkth)
 
