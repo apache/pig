@@ -18,6 +18,9 @@ Trunk (unreleased changes)
 
   BUG FIXES
 
+	PIG-1057 Zebra does not support concurrent deletions of column groups now
+	(chaow via gates).
+
 	PIG-944  Change schema to be taken from StoreConfig instead of
 	TableStorer's constructor (yanz via gates).
 
