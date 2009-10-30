@@ -21,6 +21,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.io.StringReader;
 import java.util.ArrayList;
@@ -36,6 +37,8 @@ import junit.framework.TestCase;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigException;
 import org.apache.pig.PigServer;
+import org.apache.pig.StoreConfig;
+import org.apache.pig.StoreFunc;
 import org.apache.pig.backend.executionengine.util.ExecTools;
 import org.apache.pig.backend.executionengine.ExecJob;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MapReduceLauncher;
@@ -45,6 +48,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.Physica
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSplit;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
+import org.apache.pig.backend.hadoop.executionengine.util.MapRedUtil;
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.Tuple;
@@ -59,8 +63,14 @@ import org.apache.pig.tools.pigscript.parser.ParseException;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.WritableComparable;
+import org.apache.hadoop.mapred.JobConf;
+import org.apache.hadoop.mapred.OutputFormat;
+import org.apache.hadoop.mapred.RecordWriter;
 import org.apache.hadoop.mapred.jobcontrol.Job;
+import org.apache.hadoop.util.Progressable;
 
 public class TestMultiQuery extends TestCase {
 
@@ -1904,7 +1914,117 @@ public class TestMultiQuery extends TestCase {
             Assert.fail();
         } 
     }
+    
+    /**
+     * Test that pig calls checkOutputSpecs() method of the OutputFormat (if the
+     * StoreFunc defines an OutputFormat as the return value of 
+     * {@link StoreFunc#getStorePreparationClass()} 
+     * @throws IOException
+     */
+    @Test
+    public void testMultiStoreWithOutputFormat() throws IOException {
+        Util.createInputFile(cluster, "input.txt", new String[] {"hello", "bye"});
+        String query = "a = load 'input.txt';" +
+        		"b = filter a by $0 < 10;" +
+        		"store b into 'output1' using "+DummyStoreWithOutputFormat.class.getName()+"();" +
+        		"c = group a by $0;" +
+        		"d = foreach c generate group, COUNT(a.$0);" +
+        		"store d into 'output2' using "+DummyStoreWithOutputFormat.class.getName()+"();" ;
+        myPig.setBatchOn();
+        Util.registerMultiLineQuery(myPig, query);
+        myPig.executeBatch();
+        
+        // check that files were created as a result of the
+        // checkOutputSpecs() method of the OutputFormat being called
+        FileSystem fs = cluster.getFileSystem();
+        assertEquals(true, fs.exists(new Path("output1_checkOutputSpec_test")));
+        assertEquals(true, fs.exists(new Path("output2_checkOutputSpec_test")));
+        Util.deleteFile(cluster, "input.txt");
+        Util.deleteFile(cluster, "output1_checkOutputSpec_test");
+        Util.deleteFile(cluster, "output2_checkOutputSpec_test");
+    }
 
+    public static class DummyStoreWithOutputFormat implements StoreFunc {
+        
+        /**
+         * 
+         */
+        public DummyStoreWithOutputFormat() {
+            // TODO Auto-generated constructor stub
+        }
+
+        /* (non-Javadoc)
+         * @see org.apache.pig.StoreFunc#bindTo(java.io.OutputStream)
+         */
+        @Override
+        public void bindTo(OutputStream os) throws IOException {
+            // TODO Auto-generated method stub
+            
+        }
+
+        /* (non-Javadoc)
+         * @see org.apache.pig.StoreFunc#finish()
+         */
+        @Override
+        public void finish() throws IOException {
+            // TODO Auto-generated method stub
+            
+        }
+
+        /* (non-Javadoc)
+         * @see org.apache.pig.StoreFunc#getStorePreparationClass()
+         */
+        @Override
+        @SuppressWarnings("unchecked")
+        public Class getStorePreparationClass() throws IOException {
+            return DummyOutputFormat.class;
+        }
+
+        /* (non-Javadoc)
+         * @see org.apache.pig.StoreFunc#putNext(org.apache.pig.data.Tuple)
+         */
+        @Override
+        public void putNext(Tuple f) throws IOException {
+            // TODO Auto-generated method stub
+            
+        }
+                
+    }
+    
+    @SuppressWarnings({ "deprecation", "unchecked" })
+    public static class DummyOutputFormat
+    implements OutputFormat<WritableComparable, Tuple> {
+
+        public DummyOutputFormat() {
+            
+        }
+        /* (non-Javadoc)
+         * @see org.apache.hadoop.mapred.OutputFormat#checkOutputSpecs(org.apache.hadoop.fs.FileSystem, org.apache.hadoop.mapred.JobConf)
+         */
+        @Override
+        public void checkOutputSpecs(FileSystem ignored, JobConf job)
+                throws IOException {
+            StoreConfig sConfig = MapRedUtil.getStoreConfig(job);
+            FileSystem fs = FileSystem.get(job);
+            // create a file to test that this method got called
+            fs.create(new Path(sConfig.getLocation() + "_checkOutputSpec_test"));
+        }
+
+        /* (non-Javadoc)
+         * @see org.apache.hadoop.mapred.OutputFormat#getRecordWriter(org.apache.hadoop.fs.FileSystem, org.apache.hadoop.mapred.JobConf, java.lang.String, org.apache.hadoop.util.Progressable)
+         */
+        @Override
+        public RecordWriter<WritableComparable, Tuple> getRecordWriter(
+                FileSystem ignored, JobConf job, String name,
+                Progressable progress) throws IOException {
+            // TODO Auto-generated method stub
+            return null;
+        }
+        
+    }
+
+    
+    
     // --------------------------------------------------------------------------
     // Helper methods
 

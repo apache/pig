@@ -19,7 +19,10 @@ package org.apache.pig.backend.hadoop.executionengine.mapReduceLayer;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.ArrayList;
+import java.util.List;
 
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Writable;
@@ -31,12 +34,17 @@ import org.apache.hadoop.mapred.RecordWriter;
 import org.apache.hadoop.mapred.Reporter;
 import org.apache.hadoop.util.Progressable;
 import org.apache.pig.PigException;
+import org.apache.pig.StoreConfig;
 import org.apache.pig.StoreFunc;
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.util.PlanHelper;
 import org.apache.pig.backend.hadoop.executionengine.util.MapRedUtil;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
+import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.tools.bzip2r.CBZip2OutputStream;
 
 /**
@@ -88,9 +96,79 @@ public class PigOutputFormat implements OutputFormat<WritableComparable, Tuple> 
         return new PigRecordWriter(fs, new Path(outputDir, name), store);
     }
 
+    @SuppressWarnings("deprecation")
     public void checkOutputSpecs(FileSystem fs, JobConf job) throws IOException {
-        // TODO We really should validate things here
-        return;
+        
+        // check if there is any storeFunc which internally has an
+        // OutputFormat - if it does, we should be delegating this call
+        // to it after setting up the StoreFunc and StoreConfig properties
+        // in the JobConf.
+        PhysicalPlan mp = (PhysicalPlan) ObjectSerializer.deserialize(
+                job.get("pig.mapPlan"));
+        List<POStore> mapStores = PlanHelper.getStores(mp);
+        PhysicalPlan rp = (PhysicalPlan) ObjectSerializer.deserialize(
+                    job.get("pig.reducePlan"));
+        List<POStore> reduceStores = new ArrayList<POStore>();
+        if(rp != null) {
+            reduceStores = PlanHelper.getStores(rp);    
+        }
+
+        // In the case of single store in the job, we remove the store
+        // out of the map/reduce plan and in that case, if the store had
+        // an OutputFormat, we would have set that to be the Job's 
+        // OutputFormat (relevant code in JobControlCompiler). We only need
+        // to handle multi store case - to be safe, we check for non zero
+        // store size
+        if(mapStores.size() > 0) {
+            for (POStore store : mapStores) {
+                checkOutputSpecsHelper(fs, store, job);
+            }
+        }
+        if(reduceStores.size() > 0) {
+            for (POStore store : reduceStores) {
+                checkOutputSpecsHelper(fs, store, job);
+            }
+        }
+    }
+
+    /**
+     * @param fs 
+     * @param store
+     * @param job
+     * @throws IOException 
+     */
+    @SuppressWarnings({ "unchecked", "deprecation" })
+    private void checkOutputSpecsHelper(FileSystem fs, POStore store, JobConf job) 
+    throws IOException {
+        StoreFunc storeFunc = (StoreFunc)PigContext.instantiateFuncFromSpec(
+                store.getSFile().getFuncSpec());
+        Class sPrepClass = null;
+        try {
+            sPrepClass = storeFunc.getStorePreparationClass();
+        } catch(AbstractMethodError e) {
+            // this is for backward compatibility wherein some old StoreFunc
+            // which does not implement getStorePreparationClass() is being
+            // used. In this case, we want to just use PigOutputFormat
+            sPrepClass = null;
+        }
+        if(sPrepClass != null && OutputFormat.class.isAssignableFrom(sPrepClass)) {
+        
+            StoreConfig storeConfig = new StoreConfig(store.getSFile().
+                    getFileName(), store.getSchema(), store.getSortInfo());
+            // make a copy of the conf since we may be dealing with multiple
+            // stores. Set storeFunc and StoreConfig 
+            // pertaining to this store in the copy and use it
+            JobConf confCopy = new JobConf(job);
+            confCopy.set("pig.storeFunc", ObjectSerializer.serialize(
+                    store.getSFile().getFuncSpec().toString()));
+            confCopy.set(JobControlCompiler.PIG_STORE_CONFIG, 
+                    ObjectSerializer.serialize(storeConfig));
+            confCopy.setOutputFormat(sPrepClass);
+            OutputFormat of = confCopy.getOutputFormat();
+            of.checkOutputSpecs(fs, confCopy);
+        
+        }
+        
     }
 
     static public class PigRecordWriter implements
