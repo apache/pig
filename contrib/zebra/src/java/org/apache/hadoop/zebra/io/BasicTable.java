@@ -21,6 +21,7 @@ import java.io.DataInput;
 import java.io.DataInputStream;
 import java.io.DataOutput;
 import java.io.DataOutputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
@@ -127,8 +128,25 @@ public class BasicTable {
                                      throws IOException {
     
     FileSystem fs = FileSystem.get(conf);
+    int triedCount = 0;
+    int numCGs =  SchemaFile.getNumCGs(path, conf);
+    SchemaFile schemaFile = null;
     
-    SchemaFile schemaFile = new SchemaFile(path, conf);
+    /* Retry up to numCGs times accounting for other CG deleting threads or processes.*/
+    while (triedCount ++ < numCGs) {
+      try {
+        schemaFile = new SchemaFile(path, conf);
+        break;
+      } catch (FileNotFoundException e) {
+        LOG.info("Try " + triedCount + " times : " + e.getMessage());
+      } catch (Exception e) {
+        throw new IOException ("Cannot construct SchemaFile : " + e.getMessage());
+      }
+    }
+    
+    if (schemaFile == null) {
+      throw new IOException ("Cannot construct SchemaFile");
+    }
     
     int cgIdx = schemaFile.getCGByName(cgName);
     if (cgIdx < 0) {
@@ -137,9 +155,8 @@ public class BasicTable {
     }
     
     Path cgPath = new Path(path, schemaFile.getName(cgIdx));
-    
-    //Clean up any previous unfinished attempts to drop column groups?
-    
+        
+    //Clean up any previous unfinished attempts to drop column groups?    
     if (schemaFile.isCGDeleted(cgIdx)) {
       // Clean up unfinished delete if it exists. so that clean up can 
       // complete if the previous deletion was interrupted for some reason.
@@ -1480,9 +1497,9 @@ public class BasicTable {
       return cgschemas[nx].getCompressor();
     }
 
-    /** 
-     * Returns the index for CG with the given name.
-     * -1 indicates that there is no CG with the name.
+    /**
+     * Returns the index for CG with the given name. -1 indicates that there is
+     * no CG with the name.
      */
     int getCGByName(String cgName) {
       for(int i=0; i<physical.length; i++) {
@@ -1592,6 +1609,32 @@ public class BasicTable {
       in.close();
     }
 
+    private static int getNumCGs(Path path, Configuration conf) throws IOException {
+      Path pathSchema = makeSchemaFilePath(path);
+      if (!path.getFileSystem(conf).exists(pathSchema)) {
+        throw new IOException("BT Schema file doesn't exist: " + pathSchema);
+      }
+      // read schema file
+      FSDataInputStream in = path.getFileSystem(conf).open(pathSchema);
+      Version version = new Version(in);
+      // verify compatibility against SCHEMA_VERSION
+      if (!version.compatibleWith(SCHEMA_VERSION)) {
+        new IOException("Incompatible versions, expecting: " + SCHEMA_VERSION
+            + "; found in file: " + version);
+      }
+      
+      // read comparator
+      WritableUtils.readString(in);
+      // read logicalStr
+      WritableUtils.readString(in);
+      // read storage
+      WritableUtils.readString(in);
+      int numCGs = WritableUtils.readVInt(in);
+      in.close();
+
+      return numCGs;
+    }
+
     private static Path makeSchemaFilePath(Path parent) {
       return new Path(parent, BT_SCHEMA_FILE);
     }
@@ -1607,23 +1650,24 @@ public class BasicTable {
       
       for (FileStatus file : path.getFileSystem(conf).listStatus(path)) {
         if (!file.isDir()) {
-           String fname =  file.getPath().getName();
-           if (fname.startsWith(DELETED_CG_PREFIX)) {
-             deletedCGs.add(fname.substring(DELETED_CG_PREFIX.length()));
-           }
+          String fname =  file.getPath().getName();
+          if (fname.startsWith(DELETED_CG_PREFIX)) {
+            deletedCGs.add(fname.substring(DELETED_CG_PREFIX.length()));
+          }
         }
       }
       
       for(int i=0; i<physical.length; i++) {
-        cgDeletedFlags[i] = 
-          deletedCGs.contains(getName(i));
+        cgDeletedFlags[i] = deletedCGs.contains(getName(i));
       }
     }
+    
+    
   }
 
   static public void dumpInfo(String file, PrintStream out, Configuration conf)
       throws IOException {
-      dumpInfo(file, out, conf, 0);
+    dumpInfo(file, out, conf, 0);
   }
 
   static public void dumpInfo(String file, PrintStream out, Configuration conf, int indent)
