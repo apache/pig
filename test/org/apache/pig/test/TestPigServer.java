@@ -103,6 +103,7 @@ public class TestPigServer extends TestCase {
             throws IOException {
         assertFalse((new File(name)).canRead());
         
+        System.err. println("Location: " + location);
         assertTrue((new File(location)).mkdirs());
         
         assertTrue((new File(location + FILE_SEPARATOR + name)).

@@ -54,7 +54,7 @@ public class POProject extends ExpressionOperator {
 
 	private static TupleFactory tupleFactory = TupleFactory.getInstance();
 	
-	protected static BagFactory bagFactory = BagFactory.getInstance();
+	protected static final BagFactory bagFactory = BagFactory.getInstance();
 
 	private boolean resultSingleTupleBag = false;
 	

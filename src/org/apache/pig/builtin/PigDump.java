@@ -27,7 +27,7 @@ import org.apache.pig.impl.util.TupleFormat;
 
 public class PigDump implements StoreFunc {
 
-    public static String recordDelimiter = "\n";
+    public static final String recordDelimiter = "\n";
     
 
     OutputStream os;

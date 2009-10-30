@@ -81,7 +81,7 @@ public class TypeCheckingVisitor extends LOVisitor {
     
     private String currentAlias = null;
     
-    public static MultiMap<Byte, Byte> castLookup = new MultiMap<Byte, Byte>();
+    public static final MultiMap<Byte, Byte> castLookup = new MultiMap<Byte, Byte>();
     static{
         //Ordering here decides the score for the best fit function.
         //Do not change the order. Conversions to a smaller type is preferred

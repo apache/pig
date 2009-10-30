@@ -59,7 +59,7 @@ public class POForEach extends PhysicalOperator {
     protected List<PhysicalPlan> inputPlans;
     protected List<PhysicalOperator> opsToBeReset;
     transient protected Log log = LogFactory.getLog(getClass());
-    protected static TupleFactory mTupleFactory = TupleFactory.getInstance();
+    protected static final TupleFactory mTupleFactory = TupleFactory.getInstance();
     //Since the plan has a generate, this needs to be maintained
     //as the generate can potentially return multiple tuples for
     //same call.
