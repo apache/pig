@@ -24,12 +24,14 @@ import java.util.Set;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROpPlanVisitor;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROperPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.PODemux;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POForEach;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLoad;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLocalRearrange;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POMultiQueryPackage;
@@ -43,9 +45,8 @@ import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.PlanException;
 import org.apache.pig.impl.plan.ReverseDependencyOrderWalker;
 import org.apache.pig.impl.plan.VisitorException;
-import org.apache.pig.impl.util.Pair;
 import org.apache.pig.impl.plan.optimizer.OptimizerException;
-import org.apache.pig.PigException;
+import org.apache.pig.impl.util.Pair;
 
 
 /** 
@@ -204,9 +205,120 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
             }    
         }
 
+        // case 6: special diamond case with trivial MR operator at the head
+        if (numMerges == 0 && isDiamondMROper(mr)) {
+            int merged = mergeDiamondMROper(mr, getPlan().getSuccessors(mr));
+            log.info("Merged " + merged + " diamond splitter.");
+            numMerges += merged;    
+        }
+        
         log.info("Merged " + numMerges + " out of total " 
-                + numSplittees + " splittees.");
+                + (numSplittees +1) + " MR operators.");
     }                
+    
+    private boolean isDiamondMROper(MapReduceOper mr) {
+        
+        // We'll remove this mr as part of diamond query optimization
+        // only if this mr is a trivial one, that is, it's plan
+        // has either two operators (load followed by store) or three operators 
+        // (the operator between the load and store must be a foreach,
+        // introduced by casting operation).
+        // 
+        // We won't optimize in other cases where there're more operators
+        // in the plan. Otherwise those operators world run multiple times 
+        // in the successor MR operators which may not give better
+        // performance.
+        boolean rtn = false;
+        if (isMapOnly(mr)) {
+            PhysicalPlan pl = mr.mapPlan;
+            if (pl.size() == 2 || pl.size() == 3) {               
+                PhysicalOperator root = pl.getRoots().get(0);
+                PhysicalOperator leaf = pl.getLeaves().get(0);
+                if (root instanceof POLoad && leaf instanceof POStore) {
+                    if (pl.size() == 3) {
+                        PhysicalOperator mid = pl.getSuccessors(root).get(0);
+                        if (mid instanceof POForEach) {
+                            rtn = true;
+                        }                      
+                    } else {
+                        rtn = true;
+                    }
+                }
+            }
+        }
+        return rtn;
+    }
+    
+    private int mergeDiamondMROper(MapReduceOper mr, List<MapReduceOper> succs) 
+        throws VisitorException {
+       
+        // Only consider the cases where all inputs of the splittees are 
+        // from the splitter
+        for (MapReduceOper succ : succs) {
+            List<MapReduceOper> preds = getPlan().getPredecessors(succ);
+            if (preds.size() != 1) {
+                return 0;
+            }
+        }
+        
+        // first, remove the store operator from the splitter
+        PhysicalPlan pl = mr.mapPlan;
+        PhysicalOperator leaf = mr.mapPlan.getLeaves().get(0);
+        pl.remove(leaf);
+        
+        // then connect the remaining map plan to the successor of
+        // each root (load) operator of the splittee
+        for (MapReduceOper succ : succs) {
+            List<PhysicalOperator> roots = succ.mapPlan.getRoots();
+            ArrayList<PhysicalOperator> rootsCopy = 
+                new ArrayList<PhysicalOperator>(roots);
+            for (PhysicalOperator op : rootsCopy) {
+                PhysicalOperator opSucc = succ.mapPlan.getSuccessors(op).get(0);
+                PhysicalPlan clone = null;
+                try {
+                    clone = pl.clone();
+                } catch (CloneNotSupportedException e) {
+                    int errCode = 2127;
+                    String msg = "Internal Error: Cloning of plan failed for optimization.";
+                    throw new OptimizerException(msg, errCode, PigException.BUG, e);
+                }
+                succ.mapPlan.remove(op);
+                while (!clone.isEmpty()) {
+                    PhysicalOperator oper = clone.getLeaves().get(0);
+                    clone.remove(oper);
+                    succ.mapPlan.add(oper);
+                    try {
+                        succ.mapPlan.connect(oper, opSucc);
+                        opSucc = oper;
+                    } catch (PlanException e) {
+                        int errCode = 2131;
+                        String msg = "Internal Error. Unable to connect split plan for optimization.";
+                        throw new OptimizerException(msg, errCode, PigException.BUG, e);
+                    }                
+                }
+            }
+        }
+        
+        // finally, remove the splitter from the MR plan
+        List<MapReduceOper> mrPreds = getPlan().getPredecessors(mr);
+        if (mrPreds != null) {
+            for (MapReduceOper pred : mrPreds) {
+                for (MapReduceOper succ : succs) {
+                    try {
+                        getPlan().connect(pred, succ);
+                    } catch (PlanException e) {
+                        int errCode = 2131;
+                        String msg = "Internal Error. Unable to connect split plan for optimization.";
+                        throw new OptimizerException(msg, errCode, PigException.BUG, e);
+                    }
+                }
+            }
+        }
+        
+        getPlan().remove(mr);
+        
+        return 1;
+    }
     
     private void mergeOneMapPart(MapReduceOper mapper, MapReduceOper splitter)
     throws VisitorException {
@@ -1091,5 +1203,5 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
     
     private POMultiQueryPackage getMultiQueryPackage(){
         return new POMultiQueryPackage(new OperatorKey(scope, nig.getNextNodeId(scope)));
-    }  
+    }   
 }

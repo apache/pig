@@ -89,6 +89,154 @@ public class TestMultiQuery extends TestCase {
     public void tearDown() throws Exception {
         myPig = null;
     }
+    
+    @Test
+    public void testMultiQueryJiraPig920() {
+
+        // test case: a simple diamond query
+        try {
+            myPig.setBatchOn();
+
+            myPig.registerQuery("a = load 'file:test/org/apache/pig/test/data/passwd' " +
+                                 "using PigStorage(':') as (uname:chararray, passwd:chararray, uid:int, gid:int);");
+            myPig.registerQuery("b = filter a by uid < 5;");
+            myPig.registerQuery("c = filter a by gid >= 5;");
+            myPig.registerQuery("d = cogroup c by $0, b by $0;");
+            myPig.registerQuery("e = foreach d generate group, COUNT(c), COUNT(b);");
+            myPig.registerQuery("store e into '/tmp/output1';");
+             
+            LogicalPlan lp = checkLogicalPlan(1, 1, 10);
+
+            PhysicalPlan pp = checkPhysicalPlan(lp, 1, 1, 13);
+
+            checkMRPlan(pp, 1, 1, 1);
+            
+        } catch (Exception e) {
+            e.printStackTrace();
+            Assert.fail();
+        } 
+    }       
+ 
+    @Test
+    public void testMultiQueryJiraPig920_1() {
+
+        // test case: a query with two diamonds
+        try {
+            myPig.setBatchOn();
+
+            myPig.registerQuery("a = load 'file:test/org/apache/pig/test/data/passwd' " +
+                                 "using PigStorage(':') as (uname:chararray, passwd:chararray, uid:int, gid:int);");
+            myPig.registerQuery("b = filter a by uid < 5;");
+            myPig.registerQuery("c = filter a by gid >= 5;");
+            myPig.registerQuery("d = filter a by uid >= 5;");
+            myPig.registerQuery("e = filter a by gid < 5;");
+            myPig.registerQuery("f = cogroup c by $0, b by $0;");
+            myPig.registerQuery("f1 = foreach f generate group, COUNT(c), COUNT(b);");
+            myPig.registerQuery("store f1 into '/tmp/output1';");
+            myPig.registerQuery("g = cogroup d by $0, e by $0;");
+            myPig.registerQuery("g1 = foreach g generate group, COUNT(d), COUNT(e);");
+            myPig.registerQuery("store g1 into '/tmp/output2';");
+             
+            LogicalPlan lp = checkLogicalPlan(1, 2, 17);
+
+            PhysicalPlan pp = checkPhysicalPlan(lp, 1, 2, 23);
+
+            checkMRPlan(pp, 2, 2, 2);
+            
+        } catch (Exception e) {
+            e.printStackTrace();
+            Assert.fail();
+        } 
+    }
+
+    @Test
+    public void testMultiQueryJiraPig920_2() {
+
+        // test case: execution of a query with two diamonds
+        try {
+            myPig.setBatchOn();
+
+            myPig.registerQuery("a = load 'file:test/org/apache/pig/test/data/passwd' " +
+                                 "using PigStorage(':') as (uname:chararray, passwd:chararray, uid:int, gid:int);");
+            myPig.registerQuery("b = filter a by uid < 5;");
+            myPig.registerQuery("c = filter a by gid >= 5;");
+            myPig.registerQuery("d = filter a by uid >= 5;");
+            myPig.registerQuery("e = filter a by gid < 5;");
+            myPig.registerQuery("f = cogroup c by $0, b by $0;");
+            myPig.registerQuery("f1 = foreach f generate group, COUNT(c), COUNT(b);");
+            myPig.registerQuery("store f1 into '/tmp/output1';");
+            myPig.registerQuery("g = cogroup d by $0, e by $0;");
+            myPig.registerQuery("g1 = foreach g generate group, COUNT(d), COUNT(e);");
+            myPig.registerQuery("store g1 into '/tmp/output2';");
+             
+            List<ExecJob> jobs = myPig.executeBatch();
+            for (ExecJob job : jobs) {
+                assertTrue(job.getStatus() == ExecJob.JOB_STATUS.COMPLETED);
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            Assert.fail();
+        } 
+    }            
+    
+    @Test
+    public void testMultiQueryJiraPig920_3() {
+
+        // test case: execution of a simple diamond query
+        
+        String INPUT_FILE = "pig-920.txt";
+        
+        try {
+            
+            PrintWriter w = new PrintWriter(new FileWriter(INPUT_FILE));
+            w.println("apple\tapple\t100\t10");
+            w.println("apple\tapple\t200\t20");
+            w.println("orange\torange\t100\t10");
+            w.println("orange\torange\t300\t20");
+   
+            w.close();
+            
+            Util.copyFromLocalToCluster(cluster, INPUT_FILE, INPUT_FILE);
+        
+            myPig.setBatchOn();
+
+            myPig.registerQuery("a = load '" + INPUT_FILE +
+                                "' as (uname:chararray, passwd:chararray, uid:int, gid:int);");
+            myPig.registerQuery("b = filter a by uid < 300;");
+            myPig.registerQuery("c = filter a by gid > 10;");
+            myPig.registerQuery("d = cogroup c by $0, b by $0;");
+            myPig.registerQuery("e = foreach d generate group, COUNT(c), COUNT(b);");
+                                   
+            Iterator<Tuple> iter = myPig.openIterator("e");
+
+            List<Tuple> expectedResults = Util.getTuplesFromConstantTupleStrings(
+                    new String[] { 
+                            "('apple',1L,2L)",
+                            "('orange',1L,1L)"
+                    });
+            
+            int counter = 0;
+            while (iter.hasNext()) {
+                assertEquals(expectedResults.get(counter++).toString(), iter.next().toString());
+            }
+
+            assertEquals(expectedResults.size(), counter);
+            
+        } catch (Exception e) {
+            e.printStackTrace();
+            Assert.fail();
+        } finally {
+            new File(INPUT_FILE).delete();
+            try {
+                Util.deleteFile(cluster, INPUT_FILE);
+            } catch (IOException e) {
+                e.printStackTrace();
+                Assert.fail();
+            }
+            
+        }
+    }        
 
     @Test
     public void testMultiQueryWithDemoCase() {
@@ -491,7 +639,7 @@ public class TestMultiQuery extends TestCase {
 
             PhysicalPlan pp = checkPhysicalPlan(lp, 1, 2, 25);
 
-            checkMRPlan(pp, 1, 1, 3);
+            checkMRPlan(pp, 1, 1, 2);
             
         } catch (Exception e) {
             e.printStackTrace();
@@ -519,8 +667,13 @@ public class TestMultiQuery extends TestCase {
             myPig.registerQuery("f1 = foreach f generate group, SUM(d.c::uid);");
             myPig.registerQuery("store f1 into '/tmp/output2';");
              
-            myPig.executeBatch();
+            List<ExecJob> jobs = myPig.executeBatch();
 
+            assertTrue(jobs.size() == 2);
+            
+            for (ExecJob job : jobs) {
+                assertTrue(job.getStatus() == ExecJob.JOB_STATUS.COMPLETED);
+            }
         } catch (Exception e) {
             e.printStackTrace();
             Assert.fail();
