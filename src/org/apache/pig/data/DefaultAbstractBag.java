@@ -29,6 +29,7 @@ import java.util.Iterator;
 import java.util.ArrayList;
 
 import org.apache.pig.PigException;
+import org.apache.pig.PigWarning;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PigLogger;
@@ -161,7 +162,9 @@ public abstract class DefaultAbstractBag implements DataBag {
             mContents.clear();
             if (mSpillFiles != null) {
                 for (int i = 0; i < mSpillFiles.size(); i++) {
-                    mSpillFiles.get(i).delete();
+                    boolean res = mSpillFiles.get(i).delete();
+                    if (!res)
+                        warn ("DefaultAbstractBag.clear: failed to delete " + mSpillFiles.get(i), PigWarning.DELETE_FAILED, null);  
                 }
                 mSpillFiles.clear();
             }
@@ -298,7 +301,10 @@ public abstract class DefaultAbstractBag implements DataBag {
     protected void finalize() {
         if (mSpillFiles != null) {
             for (int i = 0; i < mSpillFiles.size(); i++) {
-                mSpillFiles.get(i).delete();
+                boolean res = mSpillFiles.get(i).delete();
+                if (!res)
+                    warn ("DefaultAbstractBag.finalize: failed to delete " + mSpillFiles.get(i), PigWarning.DELETE_FAILED, null);
+                    
             }
         }
     }

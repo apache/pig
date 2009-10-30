@@ -143,6 +143,10 @@ public class BinaryStorage extends Utf8StorageConverter implements LoadFunc, Sto
         return true;
     }
 
+    public int hashCode() {
+        return 42; 
+    }
+
     /* (non-Javadoc)
      * @see org.apache.pig.LoadFunc#determineSchema(java.lang.String, org.apache.pig.ExecType, org.apache.pig.backend.datastorage.DataStorage)
      */

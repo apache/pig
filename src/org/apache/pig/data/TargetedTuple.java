@@ -151,6 +151,15 @@ public class TargetedTuple implements Tuple {
         return t.compareTo(o);
     }
     
+    @SuppressWarnings("unchecked")
+    public boolean equals(Object o) {
+        return t.equals(o);
+    }
+
+    public int hashCode() {
+        return t.hashCode();
+    }
+    
     /**
      * @return true if this Tuple is null
      */
