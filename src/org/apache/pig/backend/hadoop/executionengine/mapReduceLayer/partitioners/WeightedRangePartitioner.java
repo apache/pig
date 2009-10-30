@@ -56,7 +56,7 @@ import org.apache.pig.impl.util.Pair;
 public class WeightedRangePartitioner implements Partitioner<PigNullableWritable, Writable> {
     PigNullableWritable[] quantiles;
     RawComparator<PigNullableWritable> comparator;
-    public static Map<PigNullableWritable,DiscreteProbabilitySampleGenerator> weightedParts = new HashMap<PigNullableWritable, DiscreteProbabilitySampleGenerator>();
+    public static final Map<PigNullableWritable,DiscreteProbabilitySampleGenerator> weightedParts = new HashMap<PigNullableWritable, DiscreteProbabilitySampleGenerator>();
     JobConf job;
 
     public int getPartition(PigNullableWritable key, Writable value,

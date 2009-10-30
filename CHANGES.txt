@@ -26,6 +26,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-1040: FINDBUGS: MS_SHOULD_BE_FINAL: Field isn't final but should be  (olgan)
+
 PIG-1059: FINDBUGS: remaining Bad practice + Multithreaded correctness Warning (olgan)
 
 PIG-953: Enable merge join in pig to work with loaders and store functions

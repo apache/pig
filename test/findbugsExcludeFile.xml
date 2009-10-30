@@ -141,8 +141,33 @@
         <Bug pattern="SE_TRANSIENT_FIELD_NOT_RESTORED" />
     </Match>
     <Match>
+        <Class name="org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce" />
+        <Field name="sJobConf" />
+        <Bug pattern="MS_CANNOT_BE_FINAL" />
+    </Match>
+    <Match>
+        <Class name="org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator" />
+        <Field name="reporter" />
+        <Bug pattern="MS_CANNOT_BE_FINAL" />
+    </Match>
+    <Match>
+        <Class name="org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator" />
+        <Field name="pigLogger" />
+        <Bug pattern="MS_PKGPROTECT" />
+    </Match>
+    <Match>
+        <Class name="org.apache.pig.impl.logicalLayer.LogicalPlanCloneHelper" />
+        <Field name="mOpToCloneMap" />
+        <Bug pattern="MS_PKGPROTECT" />
+    </Match>
+    <Match>
         <Class name="org.apache.pig.impl.util.SpillableMemoryManager" />
         <Bug pattern="DM_GC" />
+    </Match>
+    <Match>
+        <Class name="org.apache.pig.impl.logicalLayer.LogicalPlanBuilder" />
+        <Field name="classloader" />
+        <Bug pattern="MS_PKGPROTECT" />
     </Match>
     <Match>
         <Class name="org.apache.pig.data.DistinctDataBag$DistinctDataBagIterator$TContainer" />

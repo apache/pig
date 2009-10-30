@@ -107,8 +107,8 @@ public class POPackage extends PhysicalOperator {
     
     transient private final Log log = LogFactory.getLog(getClass());
 
-    protected static BagFactory mBagFactory = BagFactory.getInstance();
-    protected static TupleFactory mTupleFactory = TupleFactory.getInstance();
+    protected static final BagFactory mBagFactory = BagFactory.getInstance();
+    protected static final TupleFactory mTupleFactory = TupleFactory.getInstance();
 
     public POPackage(OperatorKey k) {
         this(k, -1, null);

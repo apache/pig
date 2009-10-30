@@ -170,7 +170,7 @@ public class MRCompiler extends PhyPlanVisitor {
     
     private Map<PhysicalOperator,MapReduceOper> phyToMROpMap;
     
-    public static String USER_COMPARATOR_MARKER = "user.comparator.func:";
+    public static final String USER_COMPARATOR_MARKER = "user.comparator.func:";
     
     public MRCompiler(PhysicalPlan plan) throws MRCompilerException {
         this(plan,null);

@@ -55,7 +55,7 @@ public class POLocalRearrange extends PhysicalOperator {
      */
     protected static final long serialVersionUID = 1L;
 
-    protected static TupleFactory mTupleFactory = TupleFactory.getInstance();
+    protected static final TupleFactory mTupleFactory = TupleFactory.getInstance();
 
     transient private Log log = LogFactory.getLog(getClass());
 

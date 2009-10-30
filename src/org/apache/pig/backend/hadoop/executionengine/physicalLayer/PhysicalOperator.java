@@ -101,25 +101,25 @@ public abstract class PhysicalOperator extends Operator<PhyPlanVisitor> implemen
 
     // Dummy types used to access the getNext of appropriate
     // type. These will be null
-    static protected DataByteArray dummyDBA;
+    static final protected DataByteArray dummyDBA = null;
 
-    static protected String dummyString;
+    static final protected String dummyString = null;
 
-    static protected Double dummyDouble;
+    static final protected Double dummyDouble = null;
 
-    static protected Float dummyFloat;
+    static final protected Float dummyFloat = null;
 
-    static protected Integer dummyInt;
+    static final protected Integer dummyInt = null;
 
-    static protected Long dummyLong;
+    static final protected Long dummyLong = null;
 
-    static protected Boolean dummyBool;
+    static final protected Boolean dummyBool = null;
 
-    static protected Tuple dummyTuple;
+    static final protected Tuple dummyTuple = null;
 
-    static protected DataBag dummyBag;
+    static final protected DataBag dummyBag = null;
 
-    static protected Map dummyMap;
+    static final protected Map dummyMap = null;
     
     protected LineageTracer lineageTracer;
 

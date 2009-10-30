@@ -33,7 +33,7 @@ public class GFCross extends EvalFunc<DataBag> {
     BagFactory mBagFactory = BagFactory.getInstance();
     TupleFactory mTupleFactory = TupleFactory.getInstance();
     
-    public static int DEFAULT_PARALLELISM = 96;
+    public static final int DEFAULT_PARALLELISM = 96;
 
     @Override
     public DataBag exec(Tuple input) throws IOException {
