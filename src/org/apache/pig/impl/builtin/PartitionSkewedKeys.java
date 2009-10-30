@@ -236,7 +236,7 @@ public class PartitionSkewedKeys extends EvalFunc<Map<String, Object>> {
 		// get the number of total tuples for this key
 		long tupleCount = (long) (((double) count) / totalSampleCount_
 				* inputFileSize_ / avgD);	
-
+		tupleCount = Math.max(tupleCount, 1);
 
 		int redCount = (int) Math.round(Math.ceil((double) tupleCount
 				/ tupleMCount));
@@ -252,7 +252,7 @@ public class PartitionSkewedKeys extends EvalFunc<Map<String, Object>> {
 		}
 
 		// this is not a skewed key
-		if (redCount == 1) {
+		if (redCount <= 1) {
 			return new Pair<Tuple, Integer>(null, 1);
 		}
 
