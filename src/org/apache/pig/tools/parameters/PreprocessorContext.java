@@ -176,9 +176,12 @@ public class PreprocessorContext {
             InputStreamReader isr = new InputStreamReader(p.getInputStream());
             br = new BufferedReader(isr);
             String line=null;
+            StringBuilder sb = new StringBuilder();
             while ( (line = br.readLine()) != null){
-                streamData+=(line+"\n");
+                sb.append(line);
+                sb.append("\n");
             }
+            streamData = sb.toString();
         } catch (IOException e){
             RuntimeException rte = new RuntimeException("IO Exception while executing shell command : "+e.getMessage() , e);
             throw rte;
@@ -190,9 +193,12 @@ public class PreprocessorContext {
             InputStreamReader isr = new InputStreamReader(p.getErrorStream());
             br = new BufferedReader(isr);
             String line=null;
+            StringBuilder sb = new StringBuilder();
             while ( (line = br.readLine()) != null ) {
-                streamError += (line+"\n");
+                sb.append(line);
+                sb.append("\n");
             }
+            streamError = sb.toString();
             log.debug("Error stream while executing shell command : " + streamError);
         } catch (Exception e) {
             RuntimeException rte = new RuntimeException("IO Exception while executing shell command : "+e.getMessage() , e);

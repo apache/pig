@@ -24,6 +24,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.Set;
 
 import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
@@ -912,15 +913,15 @@ public class DataType {
         boolean hasNext = false;
         StringBuilder sb = new StringBuilder();
         sb.append("[");
-        for(String s: m.keySet()) {
+        for(Map.Entry<String, Object> e: m.entrySet()) {
             if(hasNext) {
                 sb.append(",");
             } else {
                 hasNext = true;
             }
-            sb.append(s);
+            sb.append(e.getKey());
             sb.append("#");
-            Object val = m.get(s);
+            Object val = e.getValue();
             if(val != null) {
                 sb.append(val.toString());
             }

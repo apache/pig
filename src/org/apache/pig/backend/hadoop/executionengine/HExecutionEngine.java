@@ -353,7 +353,6 @@ public class HExecutionEngine implements ExecutionEngine {
             return new String[] {hodHDFS, hodMapRed};
         }
         
-        try {
             // first, create temp director to store the configuration
             hodConfDir = createTempDir(server);
 			
@@ -431,12 +430,6 @@ public class HExecutionEngine implements ExecutionEngine {
             hodMapRed = mapred;
 
             return new String[] {hdfs, mapred};
-        } 
-        catch (Exception e) {
-            int errCode = 6010;
-            String msg = "Could not connect to HOD";
-            throw new ExecException(msg, errCode, PigException.REMOTE_ENVIRONMENT, e);
-        }
     }
 
     private synchronized void closeHod(String server){

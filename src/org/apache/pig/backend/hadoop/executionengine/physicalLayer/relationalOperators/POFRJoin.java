@@ -95,22 +95,6 @@ public class POFRJoin extends PhysicalOperator {
     private transient BagFactory mBagFactory;
     private boolean setUp;
     
-    public POFRJoin(OperatorKey k) throws PlanException, ExecException {
-        this(k,-1,null, null, null, null, -1);
-    }
-
-    public POFRJoin(OperatorKey k, int rp) throws PlanException, ExecException {
-        this(k, rp, null, null, null, null, -1);
-    }
-
-    public POFRJoin(OperatorKey k, List<PhysicalOperator> inp) throws PlanException, ExecException {
-        this(k, -1, inp, null, null, null, -1);
-    }
-
-    public POFRJoin(OperatorKey k, int rp, List<PhysicalOperator> inp) throws PlanException, ExecException {
-        this(k,rp,inp,null, null, null, -1);
-    }
-    
     public POFRJoin(OperatorKey k, int rp, List<PhysicalOperator> inp, List<List<PhysicalPlan>> ppLists, List<List<Byte>> keyTypes, FileSpec[] replFiles, int fragment) throws ExecException{
         super(k,rp,inp);
         

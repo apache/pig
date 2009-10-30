@@ -299,8 +299,6 @@ public class PigMapReduce {
                     rp.explain(baos);
                     log.debug(baos.toString());
                 }
-                // till here
-                
                 pigReporter = new ProgressableReporter();
                 if(!(rp.isEmpty())) {
                     roots = rp.getRoots().toArray(new PhysicalOperator[1]);

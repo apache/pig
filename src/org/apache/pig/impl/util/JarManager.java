@@ -101,14 +101,10 @@ public class JarManager {
         for(String toSend: pigPackagesToSend) {
             addContainingJar(jarList, PigMapReduce.class, toSend, pigContext);
         }
-        ClassLoader pigClassLoader = PigMapReduce.class.getClassLoader();
         
         for (String func: funcs) {
             Class clazz = pigContext.getClassForAlias(func);
             if (clazz != null) {
-                /*if (pigClassLoader == clazz.getClassLoader()) {
-                    continue;
-                }*/
                 addContainingJar(jarList, clazz, null, pigContext);
             }
         }

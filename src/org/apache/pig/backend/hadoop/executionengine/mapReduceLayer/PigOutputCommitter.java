@@ -58,7 +58,6 @@ public class PigOutputCommitter extends OutputCommitter {
     List<POStore> reduceStores;
     
     /**
-     * @param outputPath
      * @param context
      * @throws IOException
      */
@@ -110,14 +109,11 @@ public class PigOutputCommitter extends OutputCommitter {
      */
     @Override
     public void cleanupJob(JobContext context) throws IOException {
-        System.err.println("XXX: IN CLEANUPJOB");
         // call clean up on all map and reduce committers
         for (OutputCommitter mapCommitter : mapOutputCommitters) {
-            System.err.println("XXX: calling cleanup on map committers");
             mapCommitter.cleanupJob(context);
         }
         for (OutputCommitter reduceCommitter : reduceOutputCommitters) {
-            System.err.println("XXX: calling cleanup on reduce committers");
             reduceCommitter.cleanupJob(context);
         }
        
@@ -130,12 +126,10 @@ public class PigOutputCommitter extends OutputCommitter {
     public void abortTask(TaskAttemptContext context) throws IOException {
         if(context.getTaskAttemptID().isMap()) {
             for (OutputCommitter mapCommitter : mapOutputCommitters) {
-                System.err.println("XXX: calling abort task on map committers");
                 mapCommitter.abortTask(context);
             } 
         } else {
             for (OutputCommitter reduceCommitter : reduceOutputCommitters) {
-                System.err.println("XXX: calling abort task on reduce committers");
                 reduceCommitter.abortTask(context);
             } 
         }
@@ -148,12 +142,10 @@ public class PigOutputCommitter extends OutputCommitter {
     public void commitTask(TaskAttemptContext context) throws IOException {
         if(context.getTaskAttemptID().isMap()) {
             for (OutputCommitter mapCommitter : mapOutputCommitters) {
-                System.err.println("XXX: calling commitTask on map committers");
                 mapCommitter.commitTask(context);
             } 
         } else {
             for (OutputCommitter reduceCommitter : reduceOutputCommitters) {
-                System.err.println("XXX: calling commitTask on reduce committers");
                 reduceCommitter.commitTask(context);
             } 
         }
@@ -168,17 +160,13 @@ public class PigOutputCommitter extends OutputCommitter {
         boolean needCommit = false;
         if(context.getTaskAttemptID().isMap()) {
             for (OutputCommitter mapCommitter : mapOutputCommitters) {
-                System.err.println("XXX: calling needsTaskCommit on map committers");
                 needCommit = needCommit || mapCommitter.needsTaskCommit(context);
             } 
-            System.err.println("XXX: returning " + needCommit + " for needscommmut");
             return needCommit;
         } else {
             for (OutputCommitter reduceCommitter : reduceOutputCommitters) {
-                System.err.println("XXX: calling needsTaskCommit on reduce committers");
                 needCommit = needCommit || reduceCommitter.needsTaskCommit(context);
             } 
-            System.err.println("XXX: returning " + needCommit + " for needscommmut");
             return needCommit;
         }
     }
@@ -188,14 +176,11 @@ public class PigOutputCommitter extends OutputCommitter {
      */
     @Override
     public void setupJob(JobContext context) throws IOException {
-        System.err.println("XXX: in SETUPJOB");
         // call set up on all map and reduce committers
         for (OutputCommitter mapCommitter : mapOutputCommitters) {
-            System.err.println("XXX: calling setup on map committers");
             mapCommitter.setupJob(context);
         }
         for (OutputCommitter reduceCommitter : reduceOutputCommitters) {
-            System.err.println("XXX: calling setup on reduce committers");
             reduceCommitter.setupJob(context);
         }
     }
@@ -207,15 +192,12 @@ public class PigOutputCommitter extends OutputCommitter {
     public void setupTask(TaskAttemptContext context) throws IOException {
         if(context.getTaskAttemptID().isMap()) {
             for (OutputCommitter mapCommitter : mapOutputCommitters) {
-                System.err.println("XXX: calling setupTask on map committers");
                 mapCommitter.setupTask(context);
             } 
         } else {
             for (OutputCommitter reduceCommitter : reduceOutputCommitters) {
-                System.err.println("XXX: calling setupTask on reduce committers");
                 reduceCommitter.setupTask(context);
             } 
         }
     }
 }
-

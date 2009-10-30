@@ -43,7 +43,6 @@ public class RulePlanPrinter extends RulePlanVisitor {
     private String TAB1 = "    ";
     private String TABMore = "|   ";
     private String LSep = "|\n|---";
-    private String USep = "|   |\n|   ";
     private int levelCntr = -1;
 
     /**
@@ -83,28 +82,6 @@ public class RulePlanPrinter extends RulePlanVisitor {
         return sb.toString();
     }
     
-    private String planString(RulePlan rulePlan) throws VisitorException, IOException {
-        StringBuilder sb = new StringBuilder();
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        if(rulePlan!=null)
-            rulePlan.explain(baos, mStream);
-        else
-            return "";
-        sb.append(USep);
-        sb.append(shiftStringByTabs(baos.toString(), 2));
-        return sb.toString();
-    }
-    
-    private String planString(
-            List<RulePlan> rulePlans) throws VisitorException, IOException {
-        StringBuilder sb = new StringBuilder();
-        if(rulePlans!=null)
-            for (RulePlan rulePlan : rulePlans) {
-                sb.append(planString(rulePlan));
-            }
-        return sb.toString();
-    }
-
     private String depthFirst(RuleOperator node) throws VisitorException, IOException {
         StringBuilder sb = new StringBuilder(node.name());
         sb.append("\n");

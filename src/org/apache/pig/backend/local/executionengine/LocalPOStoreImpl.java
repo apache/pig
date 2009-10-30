@@ -20,6 +20,7 @@ package org.apache.pig.backend.local.executionengine;
 import java.io.IOException;
 import java.io.OutputStream;
 
+import org.apache.pig.SortInfo;
 import org.apache.pig.StoreFunc;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
@@ -45,7 +46,7 @@ public class LocalPOStoreImpl extends POStoreImpl {
     }
 
     @Override
-    public StoreFunc createStoreFunc(FileSpec sFile, Schema schema) 
+    public StoreFunc createStoreFunc(FileSpec sFile, Schema schema, SortInfo sortInfo) 
         throws IOException {
         this.sFile = sFile;
         storer = (StoreFunc)PigContext.instantiateFuncFromSpec(sFile.getFuncSpec());

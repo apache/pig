@@ -33,6 +33,7 @@ import org.apache.hadoop.mapreduce.OutputFormat;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.pig.ResourceSchema;
+import org.apache.pig.SortInfo;
 import org.apache.pig.StoreConfig;
 import org.apache.pig.StoreFunc;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStoreImpl;
@@ -73,7 +74,7 @@ public class MapReducePOStoreImpl extends POStoreImpl {
     
     @SuppressWarnings("unchecked")
     @Override
-    public StoreFunc createStoreFunc(FileSpec sFile, Schema schema) 
+    public StoreFunc createStoreFunc(FileSpec sFile, Schema schema, SortInfo sortInfo) 
         throws IOException {
 
         Configuration outputConf = context.getConfiguration();

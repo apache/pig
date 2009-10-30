@@ -79,6 +79,8 @@ public class TypeCheckingVisitor extends LOVisitor {
 
     private boolean strictMode = false ;
     
+    private String currentAlias = null;
+    
     public static MultiMap<Byte, Byte> castLookup = new MultiMap<Byte, Byte>();
     static{
         //Ordering here decides the score for the best fit function.
@@ -284,7 +286,6 @@ public class TypeCheckingVisitor extends LOVisitor {
 
         byte lhsType = lhs.getType() ;
         byte rhsType = rhs.getType() ;
-        Schema.FieldSchema fs = new Schema.FieldSchema(null, DataType.BOOLEAN);
 
         if (  (lhsType != DataType.BOOLEAN)  ||
               (rhsType != DataType.BOOLEAN)  ) {
@@ -319,7 +320,6 @@ public class TypeCheckingVisitor extends LOVisitor {
 
         byte lhsType = lhs.getType() ;
         byte rhsType = rhs.getType() ;
-        Schema.FieldSchema fs = new Schema.FieldSchema(null, DataType.BOOLEAN);
 
         if (  (lhsType != DataType.BOOLEAN)  ||
               (rhsType != DataType.BOOLEAN)  ) {
@@ -369,9 +369,7 @@ public class TypeCheckingVisitor extends LOVisitor {
         }
         else {
             int errCode = 1039;
-            String msg = "Incompatible types in Multiplication Operator"
-                            + " left hand side:" + DataType.findTypeName(lhsType)
-                            + " right hand side:" + DataType.findTypeName(rhsType) ;
+            String msg = generateIncompatibleTypesMessage(binOp, "Multiplication", lhsType, rhsType);
             msgCollector.collect(msg, MessageType.Error);
             throw new TypeCheckerException(msg, errCode, PigException.INPUT) ;
         }
@@ -424,9 +422,7 @@ public class TypeCheckingVisitor extends LOVisitor {
         }
         else {
             int errCode = 1039;
-            String msg = "Incompatible types in Division Operator"
-                            + " left hand side:" + DataType.findTypeName(lhsType)
-                            + " right hand side:" + DataType.findTypeName(rhsType) ;
+            String msg = generateIncompatibleTypesMessage(binOp, "Division", lhsType, rhsType);
             msgCollector.collect(msg, MessageType.Error);
             throw new TypeCheckerException(msg, errCode, PigException.INPUT) ;
         }
@@ -479,9 +475,7 @@ public class TypeCheckingVisitor extends LOVisitor {
         }
         else {
             int errCode = 1039;
-            String msg = "Incompatible types in Add Operator"
-                            + " left hand side:" + DataType.findTypeName(lhsType)
-                            + " right hand side:" + DataType.findTypeName(rhsType) ;
+            String msg = generateIncompatibleTypesMessage(binOp, "Add", lhsType, rhsType);
             msgCollector.collect(msg, MessageType.Error);
             throw new TypeCheckerException(msg, errCode, PigException.INPUT) ;
         }
@@ -533,9 +527,7 @@ public class TypeCheckingVisitor extends LOVisitor {
         }
         else {
             int errCode = 1039;
-            String msg = "Incompatible types in Subtract Operator"
-                            + " left hand side:" + DataType.findTypeName(lhsType)
-                            + " right hand side:" + DataType.findTypeName(rhsType) ;
+            String msg = generateIncompatibleTypesMessage(binOp, "Subtract", lhsType, rhsType);
             msgCollector.collect(msg, MessageType.Error);
             throw new TypeCheckerException(msg, errCode, PigException.INPUT) ;
         }
@@ -594,9 +586,7 @@ public class TypeCheckingVisitor extends LOVisitor {
         }
         else {
             int errCode = 1039;
-            String msg = "Incompatible types in GreaterThan operator"
-                            + " left hand side:" + DataType.findTypeName(lhsType)
-                            + " right hand side:" + DataType.findTypeName(rhsType) ;
+            String msg = generateIncompatibleTypesMessage(binOp, "GreaterThan", lhsType, rhsType);
             msgCollector.collect(msg, MessageType.Error) ;
             throw new TypeCheckerException(msg, errCode, PigException.INPUT) ;
         }
@@ -646,9 +636,7 @@ public class TypeCheckingVisitor extends LOVisitor {
         }
         else {
             int errCode = 1039;
-            String msg = "Incompatible types in GreaterThanEqualTo operator"
-                            + " left hand side:" + DataType.findTypeName(lhsType)
-                            + " right hand side:" + DataType.findTypeName(rhsType) ;
+            String msg = generateIncompatibleTypesMessage(binOp, "GreaterThanEqualTo", lhsType, rhsType);
             msgCollector.collect(msg, MessageType.Error) ;
             throw new TypeCheckerException(msg, errCode, PigException.INPUT) ;
         }
@@ -697,9 +685,7 @@ public class TypeCheckingVisitor extends LOVisitor {
         }
         else {
             int errCode = 1039;
-            String msg = "Incompatible types in LesserThan operator"
-                            + " left hand side:" + DataType.findTypeName(lhsType)
-                            + " right hand side:" + DataType.findTypeName(rhsType) ;
+            String msg = generateIncompatibleTypesMessage(binOp, "LesserThan", lhsType, rhsType);
             msgCollector.collect(msg, MessageType.Error) ;
             throw new TypeCheckerException(msg, errCode, PigException.INPUT) ;
         }
@@ -749,9 +735,7 @@ public class TypeCheckingVisitor extends LOVisitor {
         }
         else {
             int errCode = 1039;
-            String msg = "Incompatible types in LesserThanEqualTo operator"
-                            + " left hand side:" + DataType.findTypeName(lhsType)
-                            + " right hand side:" + DataType.findTypeName(rhsType) ;
+            String msg = generateIncompatibleTypesMessage(binOp, "LesserThanEqualTo", lhsType, rhsType);
             msgCollector.collect(msg, MessageType.Error) ;
             throw new TypeCheckerException(msg, errCode, PigException.INPUT) ;
         }
@@ -820,9 +804,7 @@ public class TypeCheckingVisitor extends LOVisitor {
             insertRightCastForBinaryOp(binOp, lhsType);
         } else {
             int errCode = 1039;
-            String msg = "Incompatible types in EqualTo Operator"
-                    + " left hand side:" + DataType.findTypeName(lhsType) + " right hand side:"
-                    + DataType.findTypeName(rhsType);
+            String msg = generateIncompatibleTypesMessage(binOp, "EqualTo", lhsType, rhsType);
             msgCollector.collect(msg, MessageType.Error);
             throw new TypeCheckerException(msg, errCode, PigException.INPUT) ;
         }
@@ -890,9 +872,7 @@ public class TypeCheckingVisitor extends LOVisitor {
             insertRightCastForBinaryOp(binOp, lhsType);
         } else {
             int errCode = 1039;
-            String msg = "Incompatible types in NotEqual Operator"
-                            + " left hand side:" + DataType.findTypeName(lhsType)
-                            + " right hand side:" + DataType.findTypeName(rhsType) ;
+            String msg = generateIncompatibleTypesMessage(binOp, "NotEqual", lhsType, rhsType);
             msgCollector.collect(msg, MessageType.Error);
             throw new TypeCheckerException(msg, errCode, PigException.INPUT) ;
         }
@@ -933,9 +913,7 @@ public class TypeCheckingVisitor extends LOVisitor {
         }
         else {
             int errCode = 1039;
-            String msg = "Incompatible types in Mod Operator"
-                            + " left hand side:" + DataType.findTypeName(lhsType)
-                            + " right hand side:" + DataType.findTypeName(rhsType) ;
+            String msg = generateIncompatibleTypesMessage(binOp, "Mod", lhsType, rhsType);
             msgCollector.collect(msg, MessageType.Error);
             throw new TypeCheckerException(msg, errCode, PigException.INPUT) ;
         }
@@ -1627,7 +1605,6 @@ public class TypeCheckingVisitor extends LOVisitor {
         List<FieldSchema> fsLst = fromSch.getFields();
         List<FieldSchema> tsLst = toSch.getFields();
         List<ExpressionOperator> args = udf.getArguments();
-        List<ExpressionOperator> newArgs = new ArrayList<ExpressionOperator>(args.size());
         int i=-1;
         for (FieldSchema fFSch : fsLst) {
             ++i;
@@ -1839,7 +1816,7 @@ public class TypeCheckingVisitor extends LOVisitor {
         // There is no point to union only one operand
         // it should be a problem in the parser
         if (inputs.size() < 2) {
-            AssertionError err =  new AssertionError("Union with Count(Operand) < 2") ;
+            throw new AssertionError("Union with Count(Operand) < 2") ;
         }
 
         Schema schema = null ;
@@ -1914,7 +1891,6 @@ public class TypeCheckingVisitor extends LOVisitor {
             throw new TypeCheckerException(msg, errCode, PigException.BUG) ;
         }
 
-        LogicalOperator input = list.get(0);
         LogicalPlan condPlan = op.getConditionPlan() ;
 
         // Check that the inner plan has only 1 output port
@@ -1925,7 +1901,7 @@ public class TypeCheckingVisitor extends LOVisitor {
             throw new TypeCheckerException(msg, errCode, PigException.INPUT) ;
         }
             
-        checkInnerPlan(condPlan) ;
+        checkInnerPlan(op.getAlias(), condPlan) ;
                  
         byte innerCondType = condPlan.getLeaves().get(0).getType() ;
         if (innerCondType != DataType.BOOLEAN) {
@@ -1958,8 +1934,6 @@ public class TypeCheckingVisitor extends LOVisitor {
     @Override
     protected void visit(LODistinct op) throws VisitorException {
         op.unsetSchema();
-        LogicalPlan currentPlan = mCurrentWalker.getPlan() ;
-        List<LogicalOperator> list = currentPlan.getPredecessors(op) ;
 
         try {
             // Compute the schema
@@ -1998,8 +1972,6 @@ public class TypeCheckingVisitor extends LOVisitor {
      */
     protected void visit(LOCross cs) throws VisitorException {
         cs.unsetSchema();
-        List<LogicalOperator> inputs = cs.getInputs() ;
-        List<FieldSchema> fsList = new ArrayList<FieldSchema>() ;
 
         try {
             // Compute the schema
@@ -2036,7 +2008,7 @@ public class TypeCheckingVisitor extends LOVisitor {
                 throw new TypeCheckerException(msg, errCode, PigException.INPUT) ;
             }
 
-            checkInnerPlan(sortColPlan) ;
+            checkInnerPlan(s.getAlias(), sortColPlan) ;
             // TODO: May have to check SortFunc compatibility here in the future
                        
         }
@@ -2063,7 +2035,6 @@ public class TypeCheckingVisitor extends LOVisitor {
     @Override
     protected void visit(LOFilter filter) throws VisitorException {
         filter.unsetSchema();
-        LogicalOperator input = filter.getInput() ;
         LogicalPlan comparisonPlan = filter.getComparisonPlan() ;
         
         // Check that the inner plan has only 1 output port
@@ -2074,7 +2045,7 @@ public class TypeCheckingVisitor extends LOVisitor {
             throw new TypeCheckerException(msg, errCode, PigException.INPUT) ;
         }
 
-        checkInnerPlan(comparisonPlan) ;
+        checkInnerPlan(filter.getAlias(), comparisonPlan) ;
               
         byte innerCondType = comparisonPlan.getLeaves().get(0).getType() ;
         if (innerCondType != DataType.BOOLEAN) {
@@ -2110,8 +2081,6 @@ public class TypeCheckingVisitor extends LOVisitor {
             String msg = "LOSplit cannot have more than one input. Found: " + inputList.size() + " input(s).";
             throw new TypeCheckerException(msg, errCode, PigException.BUG) ;
         }
-        
-        LogicalOperator input = inputList.get(0) ;
         
         try {
             // Compute the schema
@@ -2287,7 +2256,7 @@ public class TypeCheckingVisitor extends LOVisitor {
                     throw new TypeCheckerException(msg, errCode, PigException.INPUT) ;
                 }
 
-                checkInnerPlan(innerPlans.get(j)) ;
+                checkInnerPlan(join.getAlias(), innerPlans.get(j)) ;
             }
         }
         
@@ -2415,7 +2384,7 @@ public class TypeCheckingVisitor extends LOVisitor {
                     throw new TypeCheckerException(msg, errCode, PigException.INPUT) ;
                 }
 
-                checkInnerPlan(innerPlans.get(j)) ;
+                checkInnerPlan(cg.getAlias(), innerPlans.get(j)) ;
             }
 
         }
@@ -2720,7 +2689,6 @@ public class TypeCheckingVisitor extends LOVisitor {
 
     protected void visit(LOForEach f) throws VisitorException {
         List<LogicalPlan> plans = f.getForEachPlans() ;
-        List<Boolean> flattens = f.getFlatten() ;
 
         f.unsetSchema();
         try {
@@ -2759,7 +2727,7 @@ public class TypeCheckingVisitor extends LOVisitor {
                     }
                 }
 
-                checkInnerPlan(plan) ;
+                checkInnerPlan(f.getAlias(), plan) ;
 
             }
 
@@ -2786,9 +2754,10 @@ public class TypeCheckingVisitor extends LOVisitor {
      * @throws VisitorException
      */
 
-    private void checkInnerPlan(LogicalPlan innerPlan)
+    private void checkInnerPlan(String alias, LogicalPlan innerPlan)
                                     throws VisitorException {
         // Preparation
+        currentAlias = alias;
         int errorCount = 0 ;     
         List<LogicalOperator> rootList = innerPlan.getRoots() ;
         if (rootList.size() < 1) {
@@ -2934,9 +2903,6 @@ public class TypeCheckingVisitor extends LOVisitor {
             throw new TypeCheckerException(msg, errCode, PigException.INPUT);
         }
 
-        // Compose the new inner plan to be used in ForEach
-        LogicalPlan foreachPlan = new LogicalPlan() ;
-
         // Plans inside Generate. Fields that do not need casting will only
         // have Project. Fields that need casting will have Project + Cast
         ArrayList<LogicalPlan> generatePlans = new ArrayList<LogicalPlan>() ;
@@ -2998,7 +2964,6 @@ public class TypeCheckingVisitor extends LOVisitor {
             }
 
             generatePlans.add(genPlan) ;
-
         }
 
         // if we really need casting
@@ -3221,9 +3186,9 @@ public class TypeCheckingVisitor extends LOVisitor {
         MultiMap<String, FuncSpec> loadFuncSpecMap = new MultiMap<String, FuncSpec>();
 
         if(canonicalMap.keySet().size() > 0) {
-            for(String canonicalName: canonicalMap.keySet()) {
-                if((null == parentCanonicalName) || (parentCanonicalName.equals(canonicalName))) {
-                    FuncSpec lfSpec = getLoadFuncSpec(canonicalMap.get(canonicalName), parentCanonicalName);
+            for(Map.Entry<String, LogicalOperator> e: canonicalMap.entrySet()) {
+                if((null == parentCanonicalName) || (parentCanonicalName.equals(e.getKey()))) {
+                    FuncSpec lfSpec = getLoadFuncSpec(e.getValue(), parentCanonicalName);
                     if(null != lfSpec) loadFuncSpecMap.put(lfSpec.getClassName(), lfSpec);
                 }
             }
@@ -3252,5 +3217,16 @@ public class TypeCheckingVisitor extends LOVisitor {
         }
     }
 
-
+    private String generateIncompatibleTypesMessage(LogicalOperator op, String operatorDesc, byte lhsType, byte rhsType)
+    {
+        String alias = currentAlias;
+        if (op.getAlias()!=null)
+            alias = op.getAlias();
+        String msg = "In alias " + alias + ", ";
+        
+        msg = msg + "incompatible types in " + operatorDesc + " Operator"
+                        + " left hand side:" + DataType.findTypeName(lhsType)
+                        + " right hand side:" + DataType.findTypeName(rhsType) ;
+        return msg;
+    }
 }

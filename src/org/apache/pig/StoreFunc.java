@@ -70,8 +70,8 @@ public interface StoreFunc {
      * can check that the correct partition keys are included;
      * a storage function to be written directly to an OutputFormat can
      * make sure the schema will translate in a well defined way.  
-     * @param schema to be checked/set
-     * @throw IOException if this schema is not acceptable.  It should include
+     * @param s to be checked/set
+     * @throws IOException if this schema is not acceptable.  It should include
      * a detailed error message indicating what is wrong with the schema.
      */
     void setSchema(ResourceSchema s) throws IOException;
@@ -95,7 +95,7 @@ public interface StoreFunc {
      * Write a tuple the output stream to which this instance was
      * previously bound.
      * 
-     * @param f the tuple to store.
+     * @param t the tuple to store.
      * @throws IOException
      */
     void putNext(Tuple t) throws IOException;

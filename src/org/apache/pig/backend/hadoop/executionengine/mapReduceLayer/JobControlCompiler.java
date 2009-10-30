@@ -435,7 +435,8 @@ public class JobControlCompiler{
                 // hadoop from the jobconf.
                 conf.set("pig.storeFunc", ObjectSerializer.serialize(outputFuncSpec.toString()));
                 conf.set(PIG_STORE_CONFIG, 
-                            ObjectSerializer.serialize(new StoreConfig(outputPath, st.getSchema())));
+                            ObjectSerializer.serialize(
+                                    new StoreConfig(outputPath, st.getSchema(), st.getSortInfo())));
                 
                 conf.set("pig.streaming.log.dir", 
                             new Path(outputPath, LOG_DIR).toString());

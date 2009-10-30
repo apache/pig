@@ -18,6 +18,8 @@
 package org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators;
 
 import java.io.IOException;
+
+import org.apache.pig.SortInfo;
 import org.apache.pig.StoreFunc;
 import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
@@ -30,9 +32,11 @@ public abstract class POStoreImpl {
     /**
      * Set up the storer 
      * @param sFile - The file the store should write to
+     * @param schema - the schema of the data 
+     * @param sortInfo - sortInfo for any sort columns
      * @throws IOException
      */
-    public abstract StoreFunc createStoreFunc(FileSpec sFile, Schema schema) 
+    public abstract StoreFunc createStoreFunc(FileSpec sFile, Schema schema, SortInfo sortInfo) 
         throws IOException;
     
     /**

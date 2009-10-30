@@ -136,12 +136,12 @@ public class CompilationMessageCollector implements Iterable<CompilationMessageC
         if (nullCounterCount!=0 && aggMap.size()>1) // PigWarning.NULL_COUNTER_COUNT is definitely in appMap
             logMessage("Unable to retrieve hadoop counter for " + nullCounterCount + 
                     " jobs, the number following warnings may not be correct", messageType, log);
-        for(Enum e: aggMap.keySet()) {
-            if (e!=PigWarning.NULL_COUNTER_COUNT)
+        for(Map.Entry<Enum, Long> e: aggMap.entrySet()) {
+            if (e.getKey() !=PigWarning.NULL_COUNTER_COUNT)
             {
-                Long count = aggMap.get(e);
+                Long count = e.getValue();
                 if(count != null && count > 0) {
-                    String message = "Encountered " + messageType + " " + e.toString() + " " + count + " time(s).";
+                    String message = "Encountered " + messageType + " " + e.getKey().toString() + " " + count + " time(s).";
                     logMessage(message, messageType, log);
                 }
             }

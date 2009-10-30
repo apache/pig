@@ -26,6 +26,20 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-953: Enable merge join in pig to work with loaders and store functions
+which can internally index sorted data (pradeepkth)
+
+PIG-1055: FINDBUGS: remaining "Dodgy Warnings" (olgan)
+
+PIG-1052: FINDBUGS: remaining performance warningse(olgan)
+
+PIG-1037: Converted sorted and distinct bags to use the new active spilling
+          paradigm (yinghe via gates)
+
+PIG-1051: FINDBUGS: NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE (olgan)
+
+PIG-1050: FINDBUGS: DLS_DEAD_LOCAL_STORE: Dead store to local variable (olgan)
+
 PIG-1045: Integration with Hadoop 20 New API (rding via pradeepkth)
 
 PIG-1043: FINDBUGS: SIC_INNER_SHOULD_BE_STATIC: Should be a static inner class
@@ -91,6 +105,9 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-746: Works in --exectype local, fails on grid - ERROR 2113: SingleTupleBag
+should never be serialized (rding via pradeepkth)
+
 PIG-1027: Number of bytes written are always zero in local mode (zjffdu via gates)
 
 PIG-976: Multi-query optimization throws ClassCastException (rding via
@@ -129,6 +146,8 @@ PIG-1024: Script contains nested limit fail due to "LOLimit does not support mul
 PIG-644: Duplicate column names in foreach do not throw parser error (daijy)
 
 PIG-927: null should be handled consistently in Join (daijy)
+
+PIG-790: Error message should indicate in which line number in the Pig script the error occured (debugging BinCond) (daijy)
 
 Release 0.5.0 - Unreleased
 

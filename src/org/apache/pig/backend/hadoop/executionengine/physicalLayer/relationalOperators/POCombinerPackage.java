@@ -25,6 +25,7 @@ import java.util.Map;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
@@ -32,6 +33,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlan
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
+import org.apache.pig.data.InternalCachedBag;
 import org.apache.pig.data.NonSpillableDataBag;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
@@ -120,13 +122,25 @@ public class POCombinerPackage extends POPackage {
         keyLookup = lrKeyInfo.second;
     }
 
+    private DataBag createDataBag() {
+    	String bagType = null;
+        if (PigMapReduce.sJobConf != null) {
+   			bagType = PigMapReduce.sJobConf.get("pig.cachedbag.type");       			
+   	    }
+                		          	           		
+    	if (bagType != null && bagType.equalsIgnoreCase("default")) {
+    		return new NonSpillableDataBag();
+    	}
+    	return new InternalCachedBag();  	
+    }
+    
     @Override
     public Result getNext(Tuple t) throws ExecException {
         int keyField = -1;
         //Create numInputs bags
         Object[] fields = new Object[mBags.length];
         for (int i = 0; i < mBags.length; i++) {
-            if (mBags[i]) fields[i] = new NonSpillableDataBag();
+            if (mBags[i]) fields[i] = createDataBag();            
         }
         
         // For each indexed tup in the inp, split them up and place their

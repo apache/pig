@@ -18,14 +18,15 @@
 package org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.util.ArrayList;
-import java.util.LinkedList;
 import java.util.List;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.pig.FuncSpec;
+import org.apache.pig.IndexableLoadFunc;
 import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce;
@@ -38,7 +39,8 @@ import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.PigContext;
-import org.apache.pig.impl.io.FileSpec;
+import org.apache.pig.impl.io.BufferedPositionedInputStream;
+import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.OperatorKey;
@@ -68,11 +70,7 @@ public class POMergeJoin extends PhysicalOperator {
     //The Local Rearrange operators modeling the join key
     private POLocalRearrange[] LRs;
 
-    // FileSpec of index file which will be read from HDFS.
-    private FileSpec indexFile;
-
-    private POLoad rightLoader;
-
+    private transient IndexableLoadFunc rightLoader;
     private OperatorKey opKey;
 
     private Object prevLeftKey;
@@ -88,10 +86,9 @@ public class POMergeJoin extends PhysicalOperator {
     //boolean denoting whether we are generating joined tuples in this getNext() call or do we need to read in more data.
     private boolean doingJoin;
 
-    // Index is modeled as FIFO queue and LinkedList implements java Queue interface.  
-    private LinkedList<Tuple> index;
-
     private FuncSpec rightLoaderFuncSpec;
+
+    private String rightInputFileName;
 
     // Buffer to hold accumulated left tuples.
     private List<Tuple> leftTuples;
@@ -117,6 +114,7 @@ public class POMergeJoin extends PhysicalOperator {
     private int rightTupSize = -1;
 
     private int arrayListSize = 1024;
+    
 
     /**
      * @param k
@@ -125,7 +123,8 @@ public class POMergeJoin extends PhysicalOperator {
      * @param inpPlans there can only be 2 inputs each being a List<PhysicalPlan>
      * Ex. join A by ($0,$1), B by ($1,$2);
      */
-    public POMergeJoin(OperatorKey k, int rp, List<PhysicalOperator> inp, MultiMap<PhysicalOperator, PhysicalPlan> inpPlans,List<List<Byte>> keyTypes) throws ExecException{
+    public POMergeJoin(OperatorKey k, int rp, List<PhysicalOperator> inp, MultiMap<PhysicalOperator, PhysicalPlan> inpPlans,
+            List<List<Byte>> keyTypes) throws ExecException{
 
         super(k, rp, inp);
         this.opKey = k;
@@ -178,7 +177,13 @@ public class POMergeJoin extends PhysicalOperator {
             if(null == curLeftKey) // We drop the tuples which have null keys.
                 return new Result(POStatus.STATUS_EOP, null);
             
-            seekInRightStream(curLeftKey);
+            try {
+                seekInRightStream(curLeftKey);
+            } catch (IOException e) {
+                throwProcessingException(true, e);
+            } catch (ClassCastException e) {
+                throwProcessingException(true, e);;
+            }
             leftTuples.add((Tuple)curLeftInp.result);
             firstTime = false;
             prevLeftKey = curLeftKey;
@@ -239,7 +244,7 @@ public class POMergeJoin extends PhysicalOperator {
                         else{           // This is end of all input and this is last join output.
                             // Right loader in this case wouldn't get a chance to close input stream. So, we close it ourself.
                             try {
-                                rightLoader.tearDown();
+                                rightLoader.close();
                             } catch (IOException e) {
                                 // Non-fatal error. We can continue.
                                 log.error("Received exception while trying to close right side file: " + e.getMessage());
@@ -371,7 +376,7 @@ public class POMergeJoin extends PhysicalOperator {
                 if(this.parentPlan.endOfAllInput){  // This is end of all input and this is last time we will read right input.
                     // Right loader in this case wouldn't get a chance to close input stream. So, we close it ourself.
                     try {
-                        rightLoader.tearDown();
+                        rightLoader.close();
                     } catch (IOException e) {
                      // Non-fatal error. We can continue.
                         log.error("Received exception while trying to close right side file: " + e.getMessage());
@@ -381,187 +386,71 @@ public class POMergeJoin extends PhysicalOperator {
             }
         }
     }
-
+    
     @SuppressWarnings("unchecked")
-    private void seekInRightStream(Object firstLeftKey) throws ExecException{
-
-        /* Currently whole of index is read into memory. Typically, index is small. Usually 
-           few KBs in size. So, this should not be an issue.
-           However, reading whole index at startup time is not required. So, this can be improved upon.
-           Assumption: Index being read is sorted on keys followed by filename, followed by offset.
-         */
-
-        // Index is modeled as FIFO Queue, that frees us from keeping track of which index entry should be read next.
-        POLoad ld = new POLoad(genKey(), this.indexFile, false);
-        try {
-            pc = (PigContext)ObjectSerializer.deserialize(PigMapReduce.sJobConf.get("pig.pigContext"));
-        } catch (IOException e) {
-            int errCode = 2094;
-            String msg = "Unable to deserialize pig context.";
-            throw new ExecException(msg,errCode,e);
-        }
+    private void seekInRightStream(Object firstLeftKey) throws IOException{
+        rightLoader = (IndexableLoadFunc)PigContext.instantiateFuncFromSpec(rightLoaderFuncSpec);
+        pc = (PigContext)ObjectSerializer.deserialize(PigMapReduce.sJobConf.get("pig.pigContext"));
         pc.connect();
-        ld.setPc(pc);
-        index = new LinkedList<Tuple>();
-        for(Result res=ld.getNext(dummyTuple);res.returnStatus!=POStatus.STATUS_EOP;res=ld.getNext(dummyTuple))
-            index.offer((Tuple) res.result);   
-
-        Tuple prevIdxEntry = null;
-        Tuple matchedEntry;
-     
-        // When the first call is made, we need to seek into right input at correct offset.
-        while(true){
-            // Keep looping till we find first entry in index >= left key
-            // then return the prev idx entry.
-
-            Tuple curIdxEntry = index.poll();
-            if(null == curIdxEntry){
-                // Its possible that we hit end of index and still doesn't encounter
-                // idx entry >= left key, in that case return last index entry.
-                matchedEntry = prevIdxEntry;
-                break;
-            }
-            Object extractedKey = extractKeysFromIdxTuple(curIdxEntry);
-            if(extractedKey == null){
-                prevIdxEntry = curIdxEntry;
-                continue;
-            }
-            
-            if(((Comparable)extractedKey).compareTo(firstLeftKey) >= 0){
-                if(null == prevIdxEntry)   // very first entry in index.
-                    matchedEntry = curIdxEntry;
-                else{
-                    matchedEntry = prevIdxEntry;
-                    index.addFirst(curIdxEntry);  // We need to add back the current index Entry because we are reading ahead.
-                }
-                break;
-            }
-            else
-                prevIdxEntry = curIdxEntry;
-        }
-
-        if(matchedEntry == null){
-            
-            int errCode = 2165;
-            String errMsg = "Problem in index construction.";
-            throw new ExecException(errMsg,errCode,PigException.BUG);
-        }
+     // XXX FIXME - make this work with new load-store redesign
+//        InputStream is = FileLocalizer.open(rightInputFileName, pc);
+//        rightLoader.initialize(PigMapReduce.sJobConf);
+        // the main purpose of this bindTo call is supply the input file name
+        // to the right loader - in the case of Pig's DefaultIndexableLoader
+        // this is really not used since the index has all information required
         
-        Object extractedKey = extractKeysFromIdxTuple(matchedEntry);
-        
-        if(extractedKey != null){
-            Class idxKeyClass = extractedKey.getClass();
-            if( ! firstLeftKey.getClass().equals(idxKeyClass)){
-
-                // This check should indeed be done on compile time. But to be on safe side, we do it on runtime also.
-                int errCode = 2166;
-                String errMsg = "Key type mismatch. Found key of type "+firstLeftKey.getClass().getCanonicalName()+" on left side. But, found key of type "+ idxKeyClass.getCanonicalName()+" in index built for right side.";
-                throw new ExecException(errMsg,errCode,PigException.BUG);
-            }
-        }
-        initRightLoader(matchedEntry);
+//        rightLoader.bindTo(rightInputFileName, new BufferedPositionedInputStream(is), 0, Long.MAX_VALUE);
+        rightLoader.seekNear(
+                firstLeftKey instanceof Tuple ? (Tuple)firstLeftKey : mTupleFactory.newTuple(firstLeftKey));
     }
 
-    /**innerKeyTypes
-     * @param indexFile the indexFile to set
-     */
-    public void setIndexFile(FileSpec indexFile) {
-        this.indexFile = indexFile;
-    }
-
-    private Object extractKeysFromIdxTuple(Tuple idxTuple) throws ExecException{
-
-        int idxTupSize = idxTuple.size();
-
-        if(idxTupSize == 3)
-            return idxTuple.get(0);
-        
-        List<Object> list = new ArrayList<Object>(idxTupSize-2);
-        for(int i=0; i<idxTupSize-2;i++)
-            list.add(idxTuple.get(i));
-
-        return mTupleFactory.newTupleNoCopy(list);
-    }
 
     private Result getNextRightInp() throws ExecException{
 
-        if(noInnerPlanOnRightSide){
-            Result res = rightLoader.getNext(dummyTuple);
-            switch(res.returnStatus) {
-            case POStatus.STATUS_OK:
-                return res;
-
-            case POStatus.STATUS_EOP:           // Current file has ended. Need to open next file by reading next index entry.
-                String prevFile = rightLoader.getLFile().getFileName();
-                while(true){                        // But next file may be same as previous one, because index may contain multiple entries for same file.
-                    Tuple idxEntry = index.poll();
-                    if(null == idxEntry)            // Index is finished too. Right stream is finished. No more tuples.
-                        return res;
-                    else{                           
-                        if(prevFile.equals((String)idxEntry.get(idxEntry.size()-2)))
-                            continue;
-                        else{
-                            initRightLoader(idxEntry);      // bind loader to file and get tuple from it.
-                            return this.getNextRightInp();    
-                        }
-                    }
+        try {
+            if(noInnerPlanOnRightSide){
+                Tuple t = rightLoader.getNext();
+                if(t == null) { // no more data on right side
+                    return new Result(POStatus.STATUS_EOP, null);
+                } else {
+                    return new Result(POStatus.STATUS_OK, t);
                 }
-            default:    // We pass down ERR/NULL.
-                return res;
-            }
-        }
-
-        else {
-            Result res = rightPipelineLeaf.getNext(dummyTuple);
-            switch(res.returnStatus){
-            case POStatus.STATUS_OK:
-                return res;
-
-            case POStatus.STATUS_EOP:
-                res = rightLoader.getNext(dummyTuple);
-
-                switch(res.returnStatus) {
+            } else {
+                Result res = rightPipelineLeaf.getNext(dummyTuple);
+                switch(res.returnStatus){
                 case POStatus.STATUS_OK:
-                    rightPipelineRoot.attachInput((Tuple)res.result);
-                    return this.getNextRightInp();
-
-                case POStatus.STATUS_EOP:          // Current file has ended. Need to open next file by reading next index entry.
-                    String prevFile = rightLoader.getLFile().getFileName();
-                    while(true){                        // But next file may be same as previous one, because index may contain multiple entries for same file.
-                        Tuple idxEntry = index.poll();
-                        if(null == idxEntry)          // Index is finished too. Right stream is finished. No more tuples.
-                            return res;
-                        else{
-                            if(prevFile.equals((String)idxEntry.get(idxEntry.size()-2)))
-                                continue;
-                            else{
-                                initRightLoader(idxEntry);
-                                res = rightLoader.getNext(dummyTuple);
-                                rightPipelineRoot.attachInput((Tuple)res.result);
-                                return this.getNextRightInp();
-                            }
-                        }
-                    }
-                default:    // We don't deal with ERR/NULL. just pass them down
                     return res;
-                }
 
-            default:    // We don't deal with ERR/NULL. just pass them down
-                return res;
-            }            
+                case POStatus.STATUS_EOP:
+                    Tuple t = rightLoader.getNext();
+                    if(t == null) { // no more data on right side
+                        return new Result(POStatus.STATUS_EOP, null);
+                    } else {
+                        // run the tuple through the pipeline
+                        rightPipelineRoot.attachInput(t);
+                        return this.getNextRightInp();
+                        
+                    }
+                    default: // We don't deal with ERR/NULL. just pass them down
+                        throwProcessingException(false, null);
+                        
+                }
+            }
+        } catch (IOException e) {
+            throwProcessingException(true, e);
         }
+        // we should never get here!
+        return new Result(POStatus.STATUS_ERR, null);
     }
 
-    private void initRightLoader(Tuple idxEntry) throws ExecException{
-
-        // bind loader to file pointed by this index Entry.
-        int keysCnt = idxEntry.size();
-        Long offset = (Long)idxEntry.get(keysCnt-1);
-        if(offset > 0)
-            // Loader will throw away one tuple if we are in the middle of the block. We don't want that.
-            offset -= 1 ;
-        rightLoader = new POLoad(genKey(), new FileSpec((String)idxEntry.get(keysCnt-2),this.rightLoaderFuncSpec),offset, false);
-        rightLoader.setPc(pc);
+    public void throwProcessingException (boolean withCauseException, Exception e) throws ExecException {
+        int errCode = 2176;
+        String errMsg = "Error processing right input during merge join";
+        if(withCauseException) {
+            throw new ExecException(errMsg, errCode, PigException.BUG, e);
+        } else {
+            throw new ExecException(errMsg, errCode, PigException.BUG);
+        }
     }
 
     private Object extractKeysFromTuple(Result inp, int lrIdx) throws ExecException{
@@ -646,5 +535,12 @@ public class POMergeJoin extends PhysicalOperator {
     @Override
     public boolean supportsMultipleOutputs() {
         return false;
+    }
+    
+    /**
+     * @param rightInputFileName the rightInputFileName to set
+     */
+    public void setRightInputFileName(String rightInputFileName) {
+        this.rightInputFileName = rightInputFileName;
     }
 }

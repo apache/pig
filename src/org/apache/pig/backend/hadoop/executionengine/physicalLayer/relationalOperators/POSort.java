@@ -26,7 +26,9 @@ import java.util.List;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.pig.PigException;
+import org.apache.pig.SortInfo;
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
@@ -38,6 +40,8 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOpe
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
+import org.apache.pig.data.InternalCachedBag;
+import org.apache.pig.data.InternalSortedBag;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.plan.OperatorKey;
@@ -78,6 +82,8 @@ public class POSort extends PhysicalOperator {
 	public boolean isUDFComparatorUsed = false;
 	private DataBag sortedBag;
 	transient Iterator<Tuple> it;
+	
+	private SortInfo sortInfo;
 
 	public POSort(
             OperatorKey k,
@@ -255,9 +261,21 @@ public class POSort extends PhysicalOperator {
 	@Override
 	public Result getNext(Tuple t) throws ExecException {
 		Result res = new Result();
+		
 		if (!inputsAccumulated) {
-			res = processInput();
-            sortedBag = BagFactory.getInstance().newSortedBag(mComparator);
+			res = processInput();         
+			// by default, we create InternalSortedBag, unless user configures
+			// explicitly to use old bag
+			String bagType = null;
+	        if (PigMapReduce.sJobConf != null) {
+	   			bagType = PigMapReduce.sJobConf.get("pig.cachedbag.sort.type");       			
+	   	    }	        
+            if (bagType != null && bagType.equalsIgnoreCase("default")) {        	    	
+            	sortedBag = BagFactory.getInstance().newSortedBag(mComparator);     			
+       	    } else {
+    	    	sortedBag = new InternalSortedBag(3, mComparator);
+    	    }
+            
 			while (res.returnStatus != POStatus.STATUS_EOP) {
 				if (res.returnStatus == POStatus.STATUS_ERR) {
 					log.error("Error in reading from the inputs");
@@ -372,6 +390,20 @@ public class POSort extends PhysicalOperator {
         return new POSort(new OperatorKey(mKey.scope, 
             NodeIdGenerator.getGenerator().getNextNodeId(mKey.scope)),
             requestedParallelism, null, clonePlans, cloneAsc, cloneFunc);
+    }
+
+    /**
+     * @param sortInfo the sortInfo to set
+     */
+    public void setSortInfo(SortInfo sortInfo) {
+        this.sortInfo = sortInfo;
+    }
+
+    /**
+     * @return the sortInfo
+     */
+    public SortInfo getSortInfo() {
+        return sortInfo;
     }
 
 

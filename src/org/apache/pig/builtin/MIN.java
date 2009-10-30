@@ -85,7 +85,9 @@ public class MIN extends EvalFunc<Double> implements Algebraic {
                         Double.valueOf(dba.toString()) : null);
             } catch (NumberFormatException e) {
                 // invalid input, send null
-                return tfact.newTuple(null);
+                Tuple t =  tfact.newTuple(1);
+                t.set(0, null);
+                return t;
             } catch (ExecException ee) {
                 throw ee;
             } catch (Exception e) {

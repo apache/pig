@@ -34,7 +34,7 @@ public interface LoadMetadata {
      * not possible to return a schema that represents all returned data,
      * then null should be returned.
      * This method will be called after a 
-     * {@link LoadFunc#setLocation(String, org.apache.hadoop.conf.Configuration)}
+     * {@link LoadFunc#setLocation(String, org.apache.hadoop.mapreduce.Job)}
      * call is made on the Loader implementing {@link LoadFunc} and {@link LoadMetadata}
      */
     ResourceSchema getSchema();
