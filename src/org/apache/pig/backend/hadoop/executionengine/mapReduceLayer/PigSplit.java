@@ -181,7 +181,10 @@ public class PigSplit extends InputSplit implements Writable, Configurable {
         }
     }
 
-    public int getSplitIndex() {
+    // package level access because we don't want LoadFunc implementations
+    // to get this information - this is to be used only from
+    // MergeJoinIndexer
+    int getSplitIndex() {
         return splitIndex;
     }
 
@@ -195,29 +198,48 @@ public class PigSplit extends InputSplit implements Writable, Configurable {
     }
 
 
-    /* (non-Javadoc)
+    /** (non-Javadoc)
      * @see org.apache.hadoop.conf.Configurable#setConf(org.apache.hadoop.conf.Configuration)
+     * 
+     * This will be called by 
+     * {@link PigInputFormat#getSplits(org.apache.hadoop.mapreduce.JobContext)}
+     * to be used in {@link #write(DataOutput)} for serializing the 
+     * wrappedSplit
+     * 
+     * This will be called by Hadoop in the backend to set the right Job 
+     * Configuration (hadoop will invoke this method because PigSplit implements
+     * {@link Configurable} - we need this Configuration in readFields() to
+     * deserialize the wrappedSplit 
      */
     @Override
     public void setConf(Configuration conf) {
         this.conf = conf;        
     }
 
-    public int getInputIndex() {
+    // package level access because we don't want LoadFunc implementations
+    // to get this information - this is to be used only from
+    // PigInputFormat
+    int getInputIndex() {
         return inputIndex;
     }
 
     /**
      * @return the totalSplits
+     * package level access because we don't want LoadFunc implementations
+     * to get this information - this is to be used only from
+     * PigInputFormat
      */
-    public int getTotalSplits() {
+    int getTotalSplits() {
         return totalSplits;
     }
 
     /**
      * @param totalSplits the totalSplits to set
+     * package level access because we don't want LoadFunc implementations
+     * to get this information - this is to be used only from
+     * PigInputFormat
      */
-    public void setTotalSplits(int totalSplits) {
+    void setTotalSplits(int totalSplits) {
         this.totalSplits = totalSplits;
     }
 
