@@ -324,11 +324,18 @@ public class PigStorage extends Utf8StorageConverter
     }
     
     public boolean equals(Object obj) {
-        return equals((PigStorage)obj);
+        if (obj instanceof PigStorage)
+            return equals((PigStorage)obj);
+        else
+            return false;
     }
 
     public boolean equals(PigStorage other) {
         return this.fieldDel == other.fieldDel;
+    }
+
+    public int hashCode() {
+        return (int)fieldDel;
     }
 
     /* (non-Javadoc)

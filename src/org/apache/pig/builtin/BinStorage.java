@@ -405,6 +405,10 @@ public class BinStorage implements ReversibleLoadStoreFunc, SamplableLoader {
         return true;
     }
 
+    public int hashCode() {
+        return 42; 
+    }
+
     /* (non-Javadoc)
      * @see org.apache.pig.StoreFunc#getStorePreparationClass()
      */

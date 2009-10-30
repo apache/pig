@@ -37,6 +37,9 @@
         <Bug pattern="EI_EXPOSE_REP2" />
     </Match>
     <Match>
+        <Bug pattern="DP_CREATE_CLASSLOADER_INSIDE_DO_PRIVILEGED" />
+    </Match>
+    <Match>
         <Class name="org.apache.pig.tools.parameters.Token" />
     </Match>
     <Match>
@@ -146,6 +149,10 @@
         <Bug pattern="SIC_INNER_SHOULD_BE_STATIC" />
     </Match>
     <Match>
+        <Class name="org.apache.pig.data.InternalDistinctBag$DistinctDataBagIterator$TContainer" />
+        <Bug pattern="SIC_INNER_SHOULD_BE_STATIC" />
+    </Match>
+    <Match>
         <Bug pattern="BC_BAD_CAST_TO_CONCRETE_COLLECTION" />
     </Match>
     <!-- This Tuple classes are not used -->
@@ -235,6 +242,14 @@
         <Class name="org.apache.tools.bzip2r.CBZip2OutputStream" />
         <Method name = "sendMTFValues" />
         <Bug pattern="IM_BAD_CHECK_FOR_ODD" />
+    </Match>
+    <Match>
+        <Class name="org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigHadoopLogger" />
+        <Bug pattern="UG_SYNC_SET_UNSYNC_GET" />
+    </Match>
+    <Match>
+        <Class name="org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStream" />
+        <Bug pattern="IS2_INCONSISTENT_SYNC" />
     </Match>
     
 </FindBugsFilter>

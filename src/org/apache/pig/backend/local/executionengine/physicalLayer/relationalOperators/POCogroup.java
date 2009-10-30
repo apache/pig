@@ -268,10 +268,6 @@ public class POCogroup extends PhysicalOperator {
 	    return result;
 	}
 	
-	public boolean equals(Object obj) {
-	    return this.equals(obj);
-	}
-	
     }
 
 }

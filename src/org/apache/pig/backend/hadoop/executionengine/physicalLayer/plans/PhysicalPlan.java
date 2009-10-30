@@ -204,12 +204,6 @@ public class PhysicalPlan extends OperatorPlan<PhysicalOperator> implements Clon
     }
 
     @Override
-    public boolean equals(Object obj) {
-        // TODO Auto-generated method stub
-        return super.equals(obj);
-    }
-
-    @Override
     public PhysicalPlan clone() throws CloneNotSupportedException {
         PhysicalPlan clone = new PhysicalPlan();
 

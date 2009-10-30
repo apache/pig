@@ -80,14 +80,11 @@ import org.apache.pig.tools.pigstats.PigStats;
 
 public class HExecutionEngine implements ExecutionEngine {
     
-    private static final String HOD_SERVER = "hod.server";
     public static final String JOB_TRACKER_LOCATION = "mapred.job.tracker";
     private static final String FILE_SYSTEM_LOCATION = "fs.default.name";
     
     private final Log log = LogFactory.getLog(getClass());
     private static final String LOCAL = "local";
-    
-    private StringBuilder hodParams = null;
     
     protected PigContext pigContext;
     
@@ -141,57 +138,48 @@ public class HExecutionEngine implements ExecutionEngine {
         //First set the ssh socket factory
         setSSHFactory();
         
-        String hodServer = properties.getProperty(HOD_SERVER);
         String cluster = null;
         String nameNode = null;
         Configuration configuration = null;
     
-        if (hodServer != null && hodServer.length() > 0) {
-            String hdfsAndMapred[] = doHod(hodServer, properties);
-            properties.setProperty(FILE_SYSTEM_LOCATION, hdfsAndMapred[0]);
-            properties.setProperty(JOB_TRACKER_LOCATION, hdfsAndMapred[1]);
-        }
-        else {
+        // We need to build a configuration object first in the manner described below
+        // and then get back a properties object to inspect the JOB_TRACKER_LOCATION
+        // and FILE_SYSTEM_LOCATION. The reason to do this is if we looked only at
+        // the existing properties object, we may not get the right settings. So we want
+        // to read the configurations in the order specified below and only then look
+        // for JOB_TRACKER_LOCATION and FILE_SYSTEM_LOCATION.
             
-            // We need to build a configuration object first in the manner described below
-            // and then get back a properties object to inspect the JOB_TRACKER_LOCATION
-            // and FILE_SYSTEM_LOCATION. The reason to do this is if we looked only at
-            // the existing properties object, we may not get the right settings. So we want
-            // to read the configurations in the order specified below and only then look
-            // for JOB_TRACKER_LOCATION and FILE_SYSTEM_LOCATION.
-            
-            // Hadoop by default specifies two resources, loaded in-order from the classpath:
-            // 1. hadoop-default.xml : Read-only defaults for hadoop.
-            // 2. hadoop-site.xml: Site-specific configuration for a given hadoop installation.
-            // Now add the settings from "properties" object to override any existing properties
-            // All of the above is accomplished in the method call below
+        // Hadoop by default specifies two resources, loaded in-order from the classpath:
+        // 1. hadoop-default.xml : Read-only defaults for hadoop.
+        // 2. hadoop-site.xml: Site-specific configuration for a given hadoop installation.
+        // Now add the settings from "properties" object to override any existing properties
+        // All of the above is accomplished in the method call below
            
-            JobConf jobConf = new JobConf();
-            jobConf.addResource("pig-cluster-hadoop-site.xml");
+        JobConf jobConf = new JobConf();
+        jobConf.addResource("pig-cluster-hadoop-site.xml");
             
-            //the method below alters the properties object by overriding the
-            //hadoop properties with the values from properties and recomputing
-            //the properties
-            recomputeProperties(jobConf, properties);
+        //the method below alters the properties object by overriding the
+        //hadoop properties with the values from properties and recomputing
+        //the properties
+        recomputeProperties(jobConf, properties);
             
-            configuration = ConfigurationUtil.toConfiguration(properties);            
-            properties = ConfigurationUtil.toProperties(configuration);
-            cluster = properties.getProperty(JOB_TRACKER_LOCATION);
-            nameNode = properties.getProperty(FILE_SYSTEM_LOCATION);
+        configuration = ConfigurationUtil.toConfiguration(properties);            
+        properties = ConfigurationUtil.toProperties(configuration);
+        cluster = properties.getProperty(JOB_TRACKER_LOCATION);
+        nameNode = properties.getProperty(FILE_SYSTEM_LOCATION);
             
-            if (cluster != null && cluster.length() > 0) {
-                if(!cluster.contains(":") && !cluster.equalsIgnoreCase(LOCAL)) {
-                    cluster = cluster + ":50020";
-                }
-                properties.setProperty(JOB_TRACKER_LOCATION, cluster);
+        if (cluster != null && cluster.length() > 0) {
+            if(!cluster.contains(":") && !cluster.equalsIgnoreCase(LOCAL)) {
+                cluster = cluster + ":50020";
             }
+            properties.setProperty(JOB_TRACKER_LOCATION, cluster);
+        }
 
-            if (nameNode!=null && nameNode.length() > 0) {
-                if(!nameNode.contains(":")  && !nameNode.equalsIgnoreCase(LOCAL)) {
-                    nameNode = nameNode + ":8020";
-                }
-                properties.setProperty(FILE_SYSTEM_LOCATION, nameNode);
+        if (nameNode!=null && nameNode.length() > 0) {
+            if(!nameNode.contains(":")  && !nameNode.equalsIgnoreCase(LOCAL)) {
+                nameNode = nameNode + ":8020";
             }
+            properties.setProperty(FILE_SYSTEM_LOCATION, nameNode);
         }
      
         log.info("Connecting to hadoop file system at: "  + (nameNode==null? LOCAL: nameNode) )  ;
@@ -218,10 +206,6 @@ public class HExecutionEngine implements ExecutionEngine {
         }
     }
 
-    public void close() throws ExecException {
-        closeHod(pigContext.getProperties().getProperty("hod.server"));
-    }
-        
     public Properties getConfiguration() throws ExecException {
         return this.pigContext.getProperties();
     }
@@ -231,6 +215,8 @@ public class HExecutionEngine implements ExecutionEngine {
         init(newConfiguration);
     }
         
+    public void close() throws ExecException {}
+
     public Map<String, Object> getStatistics() throws ExecException {
         throw new UnsupportedOperationException();
     }
@@ -335,409 +321,6 @@ public class HExecutionEngine implements ExecutionEngine {
         }
     }
 
-    //To prevent doing hod if the pig server is constructed multiple times
-    private static String hodMapRed;
-    private static String hodHDFS;
-    private String hodConfDir = null; 
-    private String remoteHodConfDir = null; 
-    private Process hodProcess = null;
-
-    class ShutdownThread extends Thread{
-        public synchronized void run() {
-            closeHod(pigContext.getProperties().getProperty("hod.server"));
-        }
-    }
-    
-    private String[] doHod(String server, Properties properties) throws ExecException {
-        if (hodMapRed != null) {
-            return new String[] {hodHDFS, hodMapRed};
-        }
-        
-            // first, create temp director to store the configuration
-            hodConfDir = createTempDir(server);
-			
-            //jz: fallback to systemproperty cause this not handled in Main
-            hodParams = new StringBuilder(properties.getProperty(
-                    "hod.param", System.getProperty("hod.param", "")));
-            // get the number of nodes out of the command or use default
-            int nodes = getNumNodes(hodParams);
-
-            // command format: hod allocate - d <cluster_dir> -n <number_of_nodes> <other params>
-            String[] fixedCmdArray = new String[] { "hod", "allocate", "-d",
-                                       hodConfDir, "-n", Integer.toString(nodes) };
-            String[] extraParams = hodParams.toString().split(" ");
-    
-            String[] cmdarray = new String[fixedCmdArray.length + extraParams.length];
-            System.arraycopy(fixedCmdArray, 0, cmdarray, 0, fixedCmdArray.length);
-            System.arraycopy(extraParams, 0, cmdarray, fixedCmdArray.length, extraParams.length);
-
-            log.info("Connecting to HOD...");
-            log.debug("sending HOD command " + cmdToString(cmdarray));
-
-            // setup shutdown hook to make sure we tear down hod connection
-            Runtime.getRuntime().addShutdownHook(new ShutdownThread());
-
-            runCommand(server, cmdarray, true);
-
-            // print all the information provided by HOD
-            try {
-                BufferedReader br = new BufferedReader(new InputStreamReader(hodProcess.getErrorStream()));
-                String msg;
-                while ((msg = br.readLine()) != null)
-                    log.info(msg);
-                br.close();
-            } catch(IOException ioe) {}
-
-            // for remote connection we need to bring the file locally  
-            if (!server.equals(LOCAL))
-                hodConfDir = copyHadoopConfLocally(server);
-
-            String hdfs = null;
-            String mapred = null;
-            String hadoopConf = hodConfDir + "/hadoop-site.xml";
-
-            log.info ("Hadoop configuration file: " + hadoopConf);
-
-            JobConf jobConf = new JobConf(hadoopConf);
-            jobConf.addResource("pig-cluster-hadoop-site.xml");
-
-            //the method below alters the properties object by overriding the
-            //hod properties with the values from properties and recomputing
-            //the properties
-            recomputeProperties(jobConf, properties);
-            
-            hdfs = properties.getProperty(FILE_SYSTEM_LOCATION);
-            if (hdfs == null) {
-                int errCode = 4007;
-                String msg = "Missing fs.default.name from hadoop configuration.";
-                throw new ExecException(msg, errCode, PigException.USER_ENVIRONMENT);
-            }
-            log.info("HDFS: " + hdfs);
-
-            mapred = properties.getProperty(JOB_TRACKER_LOCATION);
-            if (mapred == null) {
-                int errCode = 4007;
-                String msg = "Missing mapred.job.tracker from hadoop configuration";
-                throw new ExecException(msg, errCode, PigException.USER_ENVIRONMENT);
-            }
-            log.info("JobTracker: " + mapred);
-
-            // this is not longer needed as hadoop-site.xml given to us by HOD
-            // contains data in the correct format
-            // hdfs = fixUpDomain(hdfs, properties);
-            // mapred = fixUpDomain(mapred, properties);
-            hodHDFS = hdfs;
-            hodMapRed = mapred;
-
-            return new String[] {hdfs, mapred};
-    }
-
-    private synchronized void closeHod(String server){
-            if (hodProcess == null){
-                // just cleanup the dir if it exists and return
-                if (hodConfDir != null)
-                    deleteDir(server, hodConfDir);
-                return;
-            }
-
-            // hod deallocate format: hod deallocate -d <conf dir>
-            String[] cmdarray = new String[4];
-			cmdarray[0] = "hod";
-            cmdarray[1] = "deallocate";
-            cmdarray[2] = "-d";
-            if (remoteHodConfDir != null)
-                cmdarray[3] = remoteHodConfDir;
-            else
-                cmdarray[3] = hodConfDir;
-            
-            log.info("Disconnecting from HOD...");
-            log.debug("Disconnect command: " + cmdToString(cmdarray));
-
-            try {
-                runCommand(server, cmdarray, false);
-           } catch (Exception e) {
-                log.warn("Failed to disconnect from HOD; error: " + e.getMessage());
-                hodProcess.destroy();
-           } finally {
-               if (remoteHodConfDir != null){
-                   deleteDir(server, remoteHodConfDir);
-                   if (hodConfDir != null)
-                       deleteDir(LOCAL, hodConfDir);
-               }else
-                   deleteDir(server, hodConfDir);
-           }
-
-           hodProcess = null;
-    }
-
-    private String copyHadoopConfLocally(String server) throws ExecException {
-        String localDir = createTempDir(LOCAL);
-        String remoteFile = hodConfDir + "/hadoop-site.xml";
-        String localFile = localDir + "/hadoop-site.xml";
-
-        remoteHodConfDir = hodConfDir;
-
-        String[] cmdarray = new String[2];
-        cmdarray[0] = "cat";
-        cmdarray[1] = remoteFile;
-
-        Process p = runCommand(server, cmdarray, false);
-
-        BufferedWriter bw;
-        try {
-            bw = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(localFile)));
-        } catch (Exception e){
-            int errCode = 4008;
-            String msg = "Failed to create local hadoop file " + localFile;
-            throw new ExecException(msg, errCode, PigException.USER_ENVIRONMENT, e);
-        }
-
-        try {
-            BufferedReader br = new BufferedReader(new InputStreamReader(p.getInputStream()));
-            String line;
-            while ((line = br.readLine()) != null){
-                bw.write(line, 0, line.length());
-                bw.newLine();
-            }
-            br.close();
-            bw.close();
-        } catch (Exception e){
-            int errCode = 4009;
-            String msg = "Failed to copy data to local hadoop file " + localFile;
-            throw new ExecException(msg, errCode, PigException.USER_ENVIRONMENT, e);
-        }
-
-        return localDir;
-    }
-
-    private String cmdToString(String[] cmdarray) {
-        StringBuilder cmd = new StringBuilder();
-
-        for (int i = 0; i < cmdarray.length; i++) {
-            cmd.append(cmdarray[i]);
-            cmd.append(' ');
-        }
-
-        return cmd.toString();
-    }
-    private Process runCommand(String server, String[] cmdarray, boolean connect) throws ExecException {
-        Process p;
-        try {
-            if (server.equals(LOCAL)) {
-                p = Runtime.getRuntime().exec(cmdarray);
-            } 
-            else {
-                SSHSocketImplFactory fac = SSHSocketImplFactory.getFactory(server);
-                p = fac.ssh(cmdToString(cmdarray));
-            }
-
-            if (connect)
-                hodProcess = p;
-
-            //this should return as soon as connection is shutdown
-            int rc = p.waitFor();
-            if (rc != 0) {
-                StringBuilder errMsg = new StringBuilder();
-                try {
-                    BufferedReader br = new BufferedReader(new InputStreamReader(p.getInputStream()));
-                    String line = null;
-                    while((line = br.readLine()) != null) {
-                        errMsg.append(line);
-                    }
-                    br.close();
-                    br = new BufferedReader(new InputStreamReader(p.getErrorStream()));
-                    line = null;
-                    while((line = br.readLine()) != null) {
-                        errMsg.append(line);
-                    }
-                    br.close();
-                } catch (IOException ioe) {}
-                int errCode = 6011;
-                StringBuilder msg = new StringBuilder("Failed to run command ");
-                msg.append(cmdToString(cmdarray));
-                msg.append(" on server ");
-                msg.append(server);
-                msg.append("; return code: ");
-                msg.append(rc);
-                msg.append("; error: ");
-                msg.append(errMsg.toString());
-                throw new ExecException(msg.toString(), errCode, PigException.REMOTE_ENVIRONMENT);
-            }
-        } catch (Exception e){
-            if(e instanceof ExecException) throw (ExecException)e;
-            int errCode = 6012;
-            String msg = "Unable to run command: " + cmdToString(cmdarray) + " on server " + server;
-            throw new ExecException(msg, errCode, PigException.REMOTE_ENVIRONMENT, e);
-        }
-
-        return p;
-    }
-
-    /*
-    private FileSpec checkLeafIsStore(PhysicalPlan plan) throws ExecException {
-        try {
-            PhysicalOperator leaf = (PhysicalOperator)plan.getLeaves().get(0);
-            FileSpec spec = null;
-            if(!(leaf instanceof POStore)){
-                String scope = leaf.getOperatorKey().getScope();
-                POStore str = new POStore(new OperatorKey(scope,
-                    NodeIdGenerator.getGenerator().getNextNodeId(scope)));
-                str.setPc(pigContext);
-                spec = new FileSpec(FileLocalizer.getTemporaryPath(null,
-                    pigContext).toString(),
-                    new FuncSpec(BinStorage.class.getName()));
-                str.setSFile(spec);
-                plan.addAsLeaf(str);
-            } else{
-                spec = ((POStore)leaf).getSFile();
-            }
-            return spec;
-        } catch (Exception e) {
-            throw new ExecException(e);
-        }
-    }
-    */
-
-    private void deleteDir(String server, String dir) {
-        if (server.equals(LOCAL)){
-            File path = new File(dir);
-            deleteLocalDir(path);
-        }
-        else { 
-            // send rm command over ssh
-            String[] cmdarray = new String[3];
-			cmdarray[0] = "rm";
-            cmdarray[1] = "-rf";
-            cmdarray[2] = dir;
-
-            try{
-                runCommand(server, cmdarray, false);
-            }catch(Exception e){
-                    log.warn("Failed to remove HOD configuration directory - " + dir);
-            }
-        }
-    }
-
-    private void deleteLocalDir(File path){
-        File[] files = path.listFiles();
-        int i;
-        for (i = 0; i < files.length; i++){
-            if (files[i].isHidden())
-                continue;
-            if (files[i].isFile())
-                files[i].delete();
-            else if (files[i].isDirectory())
-                deleteLocalDir(files[i]);
-        }
-
-        path.delete();
-    }
-
-    private String fixUpDomain(String hostPort,Properties properties) throws UnknownHostException {
-        URI uri = null;
-        try {
-            uri = new URI(hostPort);
-        } catch (URISyntaxException use) {
-            throw new RuntimeException("Illegal hostPort: " + hostPort);
-        }
-        
-        String hostname = uri.getHost();
-        int port = uri.getPort();
-        
-        // Parse manually if hostPort wasn't non-opaque URI
-        // e.g. hostPort is "myhost:myport"
-        if (hostname == null || port == -1) {
-            String parts[] = hostPort.split(":");
-            hostname = parts[0];
-            port = Integer.valueOf(parts[1]);
-        }
-        
-        if (hostname.indexOf('.') == -1) {
-          //jz: fallback to systemproperty cause this not handled in Main 
-            String domain = properties.getProperty("cluster.domain",System.getProperty("cluster.domain"));
-            if (domain == null) 
-                throw new RuntimeException("Missing cluster.domain property!");
-            hostname = hostname + "." + domain;
-        }
-        InetAddress.getByName(hostname);
-        return hostname + ":" + Integer.toString(port);
-    }
-
-    // create temp dir to store hod output; removed on exit
-    // format: <tempdir>/PigHod.<host name>.<user name>.<nanosecondts>
-    private String createTempDir(String server) throws ExecException {
-        StringBuilder tempDirPrefix  = new StringBuilder ();
-        
-        if (server.equals(LOCAL))
-            tempDirPrefix.append(System.getProperty("java.io.tmpdir"));
-        else
-            // for remote access we assume /tmp as temp dir
-            tempDirPrefix.append("/tmp");
-
-        tempDirPrefix.append("/PigHod.");
-        try {
-            tempDirPrefix.append(InetAddress.getLocalHost().getHostName());
-            tempDirPrefix.append(".");
-        } catch (UnknownHostException e) {}
-            
-        tempDirPrefix.append(System.getProperty("user.name"));
-        tempDirPrefix.append(".");
-        String path;
-        do {
-            path = tempDirPrefix.toString() + System.nanoTime();
-        } while (!createDir(server, path));
-
-        return path;
-    }
-
-    private boolean createDir(String server, String dir) throws ExecException{
-        if (server.equals(LOCAL)){ 
-            // create local directory
-            File tempDir = new File(dir);
-            boolean success = tempDir.mkdir();
-            if (!success)
-                log.warn("Failed to create HOD configuration directory - " + dir + ". Retrying ...");
-
-            return success;
-        }
-        else {
-            String[] cmdarray = new String[2];
-			cmdarray[0] = "mkdir ";
-            cmdarray[1] = dir;
-
-            try{
-                runCommand(server, cmdarray, false);
-            }
-            catch(ExecException e){
-                    log.warn("Failed to create HOD configuration directory - " + dir + "Retrying...");
-                    return false;
-            }
-
-            return true;
-        }
-    }
-
-    // returns number of nodes based on -m option in hodParams if present;
-    // otherwise, default is used; -m is removed from the params
-    int getNumNodes(StringBuilder hodParams) {
-        String val = hodParams.toString();
-        int startPos = val.indexOf("-m ");
-        if (startPos == -1)
-            startPos = val.indexOf("-m\t");
-        if (startPos != -1) {
-            int curPos = startPos + 3;
-            int len = val.length();
-            while (curPos < len && Character.isWhitespace(val.charAt(curPos))) curPos ++;
-            int numStartPos = curPos;
-            while (curPos < len && Character.isDigit(val.charAt(curPos))) curPos ++;
-            int nodes = Integer.parseInt(val.substring(numStartPos, curPos));
-            hodParams.delete(startPos, curPos);
-            return nodes;
-        } else {
-            return Integer.getInteger("hod.nodes", 15);
-        }
-    }
-    
     /**
      * Method to recompute pig properties by overriding hadoop properties
      * with pig properties
@@ -763,20 +346,7 @@ public class HExecutionEngine implements ExecutionEngine {
                 hadoopProperties.put(key, val);
             }
             
-            //clear user defined properties and re-populate
-            properties.clear();
-            Enumeration<Object> hodPropertiesIter = hadoopProperties.keys();
-            while (hodPropertiesIter.hasMoreElements()) {
-                String key = (String) hodPropertiesIter.nextElement();
-                String val = hadoopProperties.getProperty(key);
-                properties.put(key, val);
-            }
-
         }
     }
     
 }
-
-
-
-

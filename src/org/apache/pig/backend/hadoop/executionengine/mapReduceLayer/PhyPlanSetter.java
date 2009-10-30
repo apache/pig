@@ -273,16 +273,6 @@ public class PhyPlanSetter extends PhyPlanVisitor {
     }
 
     @Override
-    public void visitCogroup(POCogroup cogroup) {
-        cogroup.setParentPlan(parent);
-    }
-
-    @Override
-    public void visitSplit(org.apache.pig.backend.local.executionengine.physicalLayer.relationalOperators.POSplit split) {
-        split.setParentPlan(parent);
-    }
-
-    @Override
     public void visitLocalRearrangeForIllustrate(
             POLocalRearrangeForIllustrate lrfi) throws VisitorException {
         super.visitLocalRearrangeForIllustrate(lrfi);

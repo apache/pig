@@ -157,6 +157,15 @@ public class SingleTupleBag implements DataBag {
         return 0;
     }
 
+    public boolean equals(Object o){
+        // TODO: match to compareTo if it is updated
+        return true;
+    }
+
+    public int hashCode() {
+        return 42; 
+    }
+
     class TBIterator implements Iterator<Tuple> {
         boolean nextDone = false;
         /* (non-Javadoc)
