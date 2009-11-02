@@ -2019,10 +2019,7 @@ LogicalOperator JoinClause(LogicalPlan lp) :
                     }
 				    frj=parseJoin(gis, lp, LOJoin.JOINTYPE.REPLICATED);
 				}
-		    |"\"skewed\"" { 
-		    	    if(isOuter) {
-                        throw new ParseException("Skewed join does not support (left|right|full) outer joins");
-                    }
+		    |"\"skewed\"" {
 		    	    skj = parseJoin(gis, lp, LOJoin.JOINTYPE.SKEWED); 
 		    	}
 		    |"\"merge\"" { 

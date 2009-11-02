@@ -18,6 +18,7 @@
 
 package org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.commons.logging.Log;
@@ -26,6 +27,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOpera
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.data.DataType;
+import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.util.MultiMap;
@@ -42,6 +44,10 @@ public class POSkewedJoin extends PhysicalOperator  {
 
 	
 	private static final long serialVersionUID = 1L;
+	private boolean[] mInnerFlags;
+	
+	// The schema is used only by the MRCompiler to support outer join
+	transient private List<Schema> inputSchema = new ArrayList<Schema>();
 	
 	transient private static Log log = LogFactory.getLog(POSkewedJoin.class);
 	
@@ -51,19 +57,30 @@ public class POSkewedJoin extends PhysicalOperator  {
     private MultiMap<PhysicalOperator, PhysicalPlan> mJoinPlans;
 
     public POSkewedJoin(OperatorKey k)  {
-        this(k,-1,null);
+        this(k,-1,null, null);
     }
 
     public POSkewedJoin(OperatorKey k, int rp) {
-        this(k, rp, null);
+        this(k, rp, null, null);
     }
 
-    public POSkewedJoin(OperatorKey k, List<PhysicalOperator> inp) {
-        this(k, -1, inp);
+    public POSkewedJoin(OperatorKey k, List<PhysicalOperator> inp, boolean []flags) {
+        this(k, -1, inp, flags);
     }
 
-    public POSkewedJoin(OperatorKey k, int rp, List<PhysicalOperator> inp) {
-        super(k,rp,inp);      
+    public POSkewedJoin(OperatorKey k, int rp, List<PhysicalOperator> inp, boolean []flags) {
+        super(k,rp,inp);
+        if (flags != null) {
+        	// copy the inner flags
+        	mInnerFlags = new boolean[flags.length];
+        	for (int i = 0; i < flags.length; i++) {
+        		mInnerFlags[i] = flags[i];
+        	}
+        }
+    }
+    
+    public boolean[] getInnerFlags() {
+    	return mInnerFlags;
     }
     
     public MultiMap<PhysicalOperator, PhysicalPlan> getJoinPlans() {
@@ -92,6 +109,14 @@ public class POSkewedJoin extends PhysicalOperator  {
 	@Override
 	public boolean supportsMultipleOutputs() {	
 		return false;
+	}
+	
+	public void addSchema(Schema s) {
+		inputSchema.add(s);
+	}
+	
+	public Schema getSchema(int i) {
+		return inputSchema.get(i);
 	}
 
 }

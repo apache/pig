@@ -109,6 +109,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-1035: support for skewed outer join (sriranjan via pradeepkth)
+
 PIG-1030: explain and dump not working with two UDFs inside inner plan of
 foreach (rding via pradeepkth)
 

@@ -324,6 +324,43 @@ public class TestSkewedJoin extends TestCase{
         return;
     }
     
+    public void testSkewedJoinOuter() throws IOException {
+        pigServer.registerQuery("A = LOAD '" + INPUT_FILE5 + "' as (id,name);");
+        pigServer.registerQuery("B = LOAD '" + INPUT_FILE5 + "' as (id,name);");
+        try {
+            DataBag dbfrj = BagFactory.getInstance().newDefaultBag();
+            {
+                pigServer.registerQuery("C = join A by id left, B by id using \"skewed\";");
+                Iterator<Tuple> iter = pigServer.openIterator("C");
+                
+                while(iter.hasNext()) {
+                    dbfrj.add(iter.next());
+                }
+            }
+            {
+                pigServer.registerQuery("C = join A by id right, B by id using \"skewed\";");
+                Iterator<Tuple> iter = pigServer.openIterator("C");
+                
+                while(iter.hasNext()) {
+                    dbfrj.add(iter.next());
+                }
+            }
+            {
+                pigServer.registerQuery("C = join A by id full, B by id using \"skewed\";");
+                Iterator<Tuple> iter = pigServer.openIterator("C");
+                
+                while(iter.hasNext()) {
+                    dbfrj.add(iter.next());
+                }
+            }
+        } catch(Exception e) {
+            System.out.println(e.getMessage());
+            e.printStackTrace();
+            fail("Should support outer join in skewed join");
+        }
+        return;
+    }
+    
     // pig 1048
     public void testSkewedJoinOneValue() throws IOException {
         pigServer.registerQuery("A = LOAD '" + INPUT_FILE3 + "' as (id,name);");
