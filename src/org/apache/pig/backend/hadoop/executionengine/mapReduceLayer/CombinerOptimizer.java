@@ -712,6 +712,7 @@ public class CombinerOptimizer extends MROpPlanVisitor {
                 // we apparently have seen a PODistinct before, so lets not
                 // combine.
                 sawNonAlgebraic = true;
+                return;
             }
             // check that this distinct is the only input to an agg
             // We could have the following two cases
@@ -748,6 +749,16 @@ public class CombinerOptimizer extends MROpPlanVisitor {
             PhysicalOperator leaf = mPlan.getLeaves().get(0);
             // the leaf has to be a POUserFunc (need not be algebraic)
             if(leaf instanceof POUserFunc) {
+                
+                // we want to combine only in the case where there is only
+                // one PODistinct which is the only input to an agg.
+                // Do not combine if there are additional inputs.
+                List<PhysicalOperator> preds = mPlan.getPredecessors(leaf);
+                if (preds.size() > 1) {
+                    sawNonAlgebraic = true;
+                    return;
+                }
+                
                 List<PhysicalOperator> immediateSuccs = mPlan.getSuccessors(distinct);
                 if(immediateSuccs.size() == 1 && immediateSuccs.get(0) instanceof POProject) {
                     if(checkSuccessorIsLeaf(leaf, immediateSuccs.get(0))) { // script 1 above

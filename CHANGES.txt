@@ -109,6 +109,9 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-1030: explain and dump not working with two UDFs inside inner plan of
+foreach (rding via pradeepkth)
+
 PIG-1048: inner join using 'skewed' produces multiple rows for keys with
           single row in both input relations (sriranjan via gates)
 
