@@ -60,8 +60,8 @@ public class PigSplit extends InputSplit implements Writable, Configurable {
     // So if we have 3 inputs (say for a 3 way join), then the 
     // splits corresponding to the first input will have an index of 0, those
     // corresponding to the second will have an index of 1 and so on
-    // This will be used to get the input specific Configuration for use
-    // by PigInputFormat while creating and initializing the RecordReader
+    // This will be used to get the LoadFunc corresponding to the input
+    // in PigInputFormat and related code.
     private int inputIndex;
     
     // The real InputSplit this split is wrapping
