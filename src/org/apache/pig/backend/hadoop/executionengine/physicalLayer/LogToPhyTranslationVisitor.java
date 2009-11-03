@@ -880,15 +880,49 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
 				}
 			}
 			logToPhyMap.put(loj, skj);
-		} 
-		
+		}
 		else if(loj.getJoinType() == LOJoin.JOINTYPE.REPLICATED) {
 	        
 	        int fragment = 0;
 	        POFRJoin pfrj;
 	        try {
+	            boolean []innerFlags = loj.getInnerFlags();
+	            boolean isLeftOuter = false;
+	            // We dont check for bounds issue as we assume that a join 
+	            // involves atleast two inputs
+	            isLeftOuter = !innerFlags[1];
+	            
+	            Tuple nullTuple = null;
+	            if( isLeftOuter ) {
+	                try {
+	                    // We know that in a Left outer join its only a two way 
+	                    // join, so we assume index of 1 for the right input	                    
+	                    Schema inputSchema = inputs.get(1).getSchema();	                    
+	                    
+	                    // We check if we have a schema before the join
+	                    if(inputSchema == null) {
+	                        int errCode = 1109;
+	                        String msg = "Input (" + inputs.get(1).getAlias() + ") " +
+	                        "on which outer join is desired should have a valid schema";
+	                        throw new LogicalToPhysicalTranslatorException(msg, errCode, PigException.INPUT);
+	                    }
+	                    
+	                    // Using the schema we decide the number of columns/fields 
+	                    // in the nullTuple
+	                    nullTuple = TupleFactory.getInstance().newTuple(inputSchema.size());
+	                    for(int j = 0; j < inputSchema.size(); j++) {
+	                        nullTuple.set(j, null);
+	                    }
+	                    
+	                } catch( FrontendException e ) {
+	                    int errCode = 2104;
+                        String msg = "Error while determining the schema of input";
+                        throw new LogicalToPhysicalTranslatorException(msg, errCode, PigException.BUG, e);
+	                }
+	            }
+	            
 	            pfrj = new POFRJoin(new OperatorKey(scope,nodeGen.getNextNodeId(scope)),loj.getRequestedParallelism(),
-	                                        inp, ppLists, keyTypes, null, fragment);
+	                                        inp, ppLists, keyTypes, null, fragment, isLeftOuter, nullTuple);
 	        } catch (ExecException e1) {
 	            int errCode = 2058;
 	            String msg = "Unable to set index on newly create POLocalRearrange.";
@@ -1073,13 +1107,13 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
          
           
             if(inputSchema == null) {
-                int errCode = 1105;
+                int errCode = 1109;
                 String msg = "Input (" + joinInput.getAlias() + ") " +
                         "on which outer join is desired should have a valid schema";
                 throw new LogicalToPhysicalTranslatorException(msg, errCode, PigException.INPUT);
             }
         } catch (FrontendException e) {
-            int errCode = 2014;
+            int errCode = 2104;
             String msg = "Error while determining the schema of input";
             throw new LogicalToPhysicalTranslatorException(msg, errCode, PigException.BUG, e);
         }
