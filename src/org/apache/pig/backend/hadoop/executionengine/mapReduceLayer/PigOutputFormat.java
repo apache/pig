@@ -209,11 +209,11 @@ public class PigOutputFormat extends OutputFormat<WritableComparable, Tuple> {
                     jobcontext.getConfiguration(), jobcontext.getJobID());
             
             // set output location
-            PigOutputFormat.setLocation(jobcontext, sFunc, 
+            PigOutputFormat.setLocation(jobContextCopy, sFunc, 
                     store.getSFile().getFileName());
             // The above call should have update the conf in the JobContext
             // to have the output location - now call checkOutputSpecs()
-            of.checkOutputSpecs(jobcontext);
+            of.checkOutputSpecs(jobContextCopy);
         }
     }
     /**
