@@ -466,9 +466,20 @@ public class TestJoin extends TestCase {
                     
                 } catch(Exception e) {
                     errCaught = true;
-                    assertEquals(true, e.getMessage().contains("does not support (left|right|full) outer joins"));
+                    if( j == 0 || j == 1 ) {
+                     // This after adding support of LeftOuter Join to replicated Join
+                        assertEquals(true, e.getMessage().contains("does not support (right|full) outer joins"));   
+                    } else {
+                        assertEquals(true, e.getMessage().contains("does not support (left|right|full) outer joins"));
+                    }                    
                 }
-                assertEquals(true, errCaught);
+                if( i == 0 && ( j == 0 || j== 1 ) ) {
+                    // This after adding support of LeftOuter Join to replicated Join
+                    assertEquals(false, errCaught);
+                }
+                else {
+                    assertEquals(true, errCaught);
+                }
             }
             
         }

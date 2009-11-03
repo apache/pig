@@ -26,6 +26,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-1036: Fragment-replicate left outer join (ankit.modi via pradeepkth)
+
 PIG-920:  optimizing diamond queries (rding via pradeepkth)
 
 PIG-1040: FINDBUGS: MS_SHOULD_BE_FINAL: Field isn't final but should be  (olgan)

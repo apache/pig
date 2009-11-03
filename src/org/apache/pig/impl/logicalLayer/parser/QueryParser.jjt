@@ -2008,15 +2008,15 @@ LogicalOperator JoinClause(LogicalPlan lp) :
 	// For all types of join we create LOJoin and mark what type of join it is.
 	(
 		[<USING> ("\"replicated\"" { 
-	                if(isOuter) {
-	                    throw new ParseException("Replicated join does not support (left|right|full) outer joins");
-	                }
+	          if(isFullOuter || isRightOuter) {
+	              throw new ParseException("Replicated join does not support (right|full) outer joins");
+	          }
 				    frj = parseJoin(gis, lp, LOJoin.JOINTYPE.REPLICATED); 
 			    }
 			| "\"repl\"" { 
-				    if(isOuter) {
-                        throw new ParseException("Replicated join does not support (left|right|full) outer joins");
-                    }
+				    if(isFullOuter || isRightOuter) {
+	                    throw new ParseException("Replicated join does not support (right|full) outer joins");
+	          }
 				    frj=parseJoin(gis, lp, LOJoin.JOINTYPE.REPLICATED);
 				}
 		    |"\"skewed\"" {
