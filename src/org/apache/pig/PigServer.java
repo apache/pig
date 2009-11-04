@@ -677,7 +677,8 @@ public class PigServer {
             allPaths.add(elem.toString());
         }
             
-        return (String[])(allPaths.toArray());
+        String[] type = new String[1];
+        return allPaths.toArray(type);
     }
     
     public long totalHadoopTimeSpent() {

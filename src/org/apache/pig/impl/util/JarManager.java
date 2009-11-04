@@ -120,10 +120,9 @@ public class JarManager {
             // log.error("Adding extra " + pigContext.extraJars.get(i));
             mergeJar(jarFile, pigContext.extraJars.get(i), null, contents);
         }
-        if (pigContext != null) {
-            jarFile.putNextEntry(new ZipEntry("pigContext"));
-            new ObjectOutputStream(jarFile).writeObject(pigContext);
-        }
+
+        jarFile.putNextEntry(new ZipEntry("pigContext"));
+        new ObjectOutputStream(jarFile).writeObject(pigContext);
         jarFile.close();
     }
 

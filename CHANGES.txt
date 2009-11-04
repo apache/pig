@@ -26,6 +26,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-1058: FINDBUGS: remaining "Correctness Warnings" (olgan)
+
 PIG-1036: Fragment-replicate left outer join (ankit.modi via pradeepkth)
 
 PIG-920:  optimizing diamond queries (rding via pradeepkth)
