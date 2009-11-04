@@ -23,6 +23,10 @@ package org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOp
 
 import java.util.Iterator;
 import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Map.Entry;
+import org.apache.pig.impl.util.Pair;
 
 import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
@@ -96,6 +100,10 @@ public class POPackageLite extends POPackage {
     public POPackageLite clone() throws CloneNotSupportedException {
         POPackageLite clone = (POPackageLite)super.clone();
         clone.inner = null;
+        clone.keyInfo = new HashMap<Integer, Pair<Boolean,Map<Integer,Integer>>>();
+        for (Entry<Integer, Pair<Boolean, Map<Integer,Integer>>> entry: keyInfo.entrySet()) {
+            clone.keyInfo.put(entry.getKey(), entry.getValue());
+        }
         return clone;
     }
     

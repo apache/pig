@@ -186,8 +186,6 @@ public class HExecutionEngine implements ExecutionEngine {
         ds = new HDataStorage(properties);
                 
         // The above HDataStorage constructor sets DEFAULT_REPLICATION_FACTOR_KEY in properties.
-        // So we need to reconstruct the configuration object for the non HOD case
-        // In the HOD case, this is the first time the configuration object will be created
         configuration = ConfigurationUtil.toConfiguration(properties);
         
             

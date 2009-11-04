@@ -99,7 +99,6 @@ public static void main(String args[])
         opts.registerOpt('j', "jar", CmdLineParser.ValueExpected.REQUIRED);
         opts.registerOpt('l', "logfile", CmdLineParser.ValueExpected.REQUIRED);
         opts.registerOpt('m', "param_file", CmdLineParser.ValueExpected.OPTIONAL);
-        opts.registerOpt('o', "hod", CmdLineParser.ValueExpected.NOT_ACCEPTED);
         opts.registerOpt('p', "param", CmdLineParser.ValueExpected.OPTIONAL);
         opts.registerOpt('r', "dryrun", CmdLineParser.ValueExpected.NOT_ACCEPTED);
         opts.registerOpt('t', "optimizer_off", CmdLineParser.ValueExpected.REQUIRED);
@@ -214,16 +213,6 @@ public static void main(String args[])
                 properties.setProperty("opt.multiquery",""+false);
                 break;
                             
-            case 'o': 
-                // TODO sgroschupf using system properties is always a very bad idea
-                String gateway = System.getProperty("ssh.gateway");
-                if (gateway == null || gateway.length() == 0) {
-                    properties.setProperty("hod.server", "local");
-                } else {
-                    properties.setProperty("hod.server", System.getProperty("ssh.gateway"));
-                }
-                break;
-
             case 'p': 
                 String val = opts.getValStr();
                 params.add(opts.getValStr());
@@ -566,7 +555,6 @@ public static void usage()
         System.out.println("    -j, -jar jarfile load jarfile"); 
         System.out.println("    -l, -logfile path to client side log file; current working directory is default");
         System.out.println("    -m, -param_file path to the parameter file");
-        System.out.println("    -o, -hod read hod server from system property ssh.gateway");
         System.out.println("    -p, -param key value pair of the form param=val");
         System.out.println("    -r, -dryrun");
         System.out.println("    -t, -optimizer_off optimizer rule name, turn optimizer off for this rule; use all to turn all rules off, optimizer is turned on by default");

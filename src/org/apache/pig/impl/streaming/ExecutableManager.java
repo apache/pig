@@ -347,12 +347,12 @@ public class ExecutableManager {
                     // We should receive an EOP only when *ALL* input
                     // for this process has already been sent and no
                     // more input is expected
-                    if (inp.returnStatus == POStatus.STATUS_EOP) {
+                    if (inp != null && inp.returnStatus == POStatus.STATUS_EOP) {
                         // signal cleanup in ExecutableManager
                         close();
                         return;
                     }
-                    if (inp.returnStatus == POStatus.STATUS_OK) {
+                    if (inp != null && inp.returnStatus == POStatus.STATUS_OK) {
                         // Check if there was a problem with the managed process
                         if (outerrThreadsError != null) {
                             throw new IOException(

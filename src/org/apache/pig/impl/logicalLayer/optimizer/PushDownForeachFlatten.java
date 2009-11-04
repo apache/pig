@@ -163,12 +163,14 @@ public class PushDownForeachFlatten extends LogicalTransformer {
             
             // check if any of the foreach's peers is a foreach flatten
             // if so then this rule does not apply
-            for(LogicalOperator peer: peers) {
-                if(!peer.equals(foreach)) {
-                    if(peer instanceof LOForEach) {
-                        LOForEach peerForeach = (LOForEach)peer;
-                        if(peerForeach.hasFlatten().first) {
-                            return false;
+            if (peers != null){
+                for(LogicalOperator peer: peers) {
+                    if(!peer.equals(foreach)) {
+                        if(peer instanceof LOForEach) {
+                            LOForEach peerForeach = (LOForEach)peer;
+                            if(peerForeach.hasFlatten().first) {
+                                return false;
+                            }
                         }
                     }
                 }
