@@ -113,6 +113,9 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-970:  Changes to make HBase loader work with HBase 0.20 (vbarat and zjffdu
+	      via gates)
+
 PIG-1035: support for skewed outer join (sriranjan via pradeepkth)
 
 PIG-1030: explain and dump not working with two UDFs inside inner plan of

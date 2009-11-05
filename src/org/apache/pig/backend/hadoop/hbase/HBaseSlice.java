@@ -24,9 +24,9 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.UnknownScannerException;
 import org.apache.hadoop.hbase.client.HTable;
-import org.apache.hadoop.hbase.client.Scanner;
-import org.apache.hadoop.hbase.io.Cell;
-import org.apache.hadoop.hbase.io.RowResult;
+import org.apache.hadoop.hbase.client.Result;
+import org.apache.hadoop.hbase.client.ResultScanner;
+import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.util.StringUtils;
 import org.apache.pig.Slice;
@@ -61,7 +61,7 @@ public class HBaseSlice implements Slice {
     /** The connection to the table in Hbase **/
     private transient HTable m_table;
     /** The scanner over the table **/
-    private transient Scanner m_scanner;
+    private transient ResultScanner m_scanner;
 
     private transient ArrayList<Object> mProtoTuple;
 
@@ -153,7 +153,8 @@ public class HBaseSlice implements Slice {
     @Override
     public void init(DataStorage store) throws IOException {
         LOG.info("Init Hbase Slice " + this);
-        HBaseConfiguration conf = new HBaseConfiguration();
+        
+        HBaseConfiguration conf=new HBaseConfiguration();
         // connect to the given table
         m_table = new HTable(conf, m_tableName);
         // init the scanner
@@ -178,17 +179,18 @@ public class HBaseSlice implements Slice {
      * @throws IOException
      */
     private void restart(byte[] startRow) throws IOException {
+	Scan scan;
         if ((m_endRow != null) && (m_endRow.length > 0)) {
-            this.m_scanner = this.m_table.getScanner(m_inputColumns, startRow,
-                    m_endRow);
+	    scan = new Scan(startRow, m_endRow);
         } else {
-            this.m_scanner = this.m_table.getScanner(m_inputColumns, startRow);
+	    scan = new Scan(startRow);
         }
+	this.m_scanner = this.m_table.getScanner(scan);
     }
 
     @Override
     public boolean next(Tuple value) throws IOException {
-        RowResult result;
+        Result result;
         try {
             result = this.m_scanner.next();
         } catch (UnknownScannerException e) {
@@ -215,15 +217,14 @@ public class HBaseSlice implements Slice {
      * @param tuple
      *            tuple
      */
-    private void convertResultToTuple(RowResult result, Tuple tuple) {
+    private void convertResultToTuple(Result result, Tuple tuple) {
         if (mProtoTuple == null)
             mProtoTuple = new ArrayList<Object>();
 
-        Cell cell = null;
         byte[] value = null;
         for (byte[] column : m_inputColumns) {
-            cell = result.get(column);
-            if (cell == null || (value = cell.getValue()) == null) {
+            value = result.getValue(column);
+            if (value == null) {
                 mProtoTuple.add(null);
             } else {
                 mProtoTuple.add(new DataByteArray(value));
