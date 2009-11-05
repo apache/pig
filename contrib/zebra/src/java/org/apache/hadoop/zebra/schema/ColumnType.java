@@ -26,57 +26,93 @@ import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.file.tfile.Utils;
 import org.apache.pig.data.DataType;
 
+/**
+ * Zebra Column Type
+ */
 public enum ColumnType {
+  /**
+   * Any type
+   */
   ANY("any") {
 	  public byte pigDataType() {
 		  return DataType.UNKNOWN;
 	  }
   },
+  /**
+   * Integer
+   */
   INT("int") {
     public byte pigDataType() {
       return DataType.INTEGER;
     }
   },
+  /**
+   * Long
+   */
   LONG("long") {
     public byte pigDataType() {
       return DataType.LONG;
     }
   },
+  /**
+   * Float
+   */
   FLOAT("float") {
     public byte pigDataType() {
       return DataType.FLOAT;
     }
   },
+  /**
+   * Double
+   */
   DOUBLE("double") {
     public byte pigDataType() {
       return DataType.DOUBLE;
     }
   },
+  /**
+   * Boolean
+   */
   BOOL("bool") {
     public byte pigDataType() {
       return DataType.BOOLEAN;
     }
   },
+  /**
+   * Collection
+   */
   COLLECTION("collection") {
     public byte pigDataType() {
       return DataType.BAG;
     }
   },
+  /**
+   * Map
+   */
   MAP("map") {
     public byte pigDataType() {
       return DataType.MAP;
     }
   },
+  /**
+   * Record
+   */
   RECORD("record") {
     public byte pigDataType() {
       return DataType.TUPLE;
     }
   },
+  /**
+   * String
+   */
   STRING("string") {
     public byte pigDataType() {
       return DataType.CHARARRAY;
     }
   },
+  /**
+   * Bytes
+   */
   BYTES("bytes") {
     public byte pigDataType() {
       return DataType.BYTEARRAY;
@@ -102,6 +138,13 @@ public enum ColumnType {
     return ColumnType.valueOf(name.toUpperCase());
   }
 
+  /**
+   * Get the Zebra type from a Pig type
+   *
+   * @param dt Pig type
+   *
+   * @return Zebra type
+   */
   public static ColumnType getTypeByPigDataType(byte dt) {
     for (ColumnType ct : ColumnType.values()) {
       if (ct.pigDataType() == dt) {
@@ -111,18 +154,40 @@ public enum ColumnType {
     return null;
   }
 
+  /**
+   * Get the Zebra type name for the passed in Zebra column type
+   *
+   * @param columntype Zebra column type
+   *
+   * @return string representation of the Zebra column type
+   */
   public static String findTypeName(ColumnType columntype) {
 	  return columntype.getName();
   }
 
+  /**
+   * Get the Zebra type name for this Zebra column type
+   *
+   * @return string representation of the Zebra column type
+   */
   public String getName() {
     return name;
   }
 
+  /**
+   * Same as getType
+   */
   public String toString() {
     return name;
   }
 
+  /**
+   * check if a column type contains internal schema
+   *
+   * @param columnType Zebra column type
+   *
+   * @return true if the type is RECORD, MAP or COLLECTION
+   */
   public static boolean isSchemaType(ColumnType columnType) {
 	  return ((columnType == RECORD) || (columnType == MAP) || (columnType == COLLECTION));
   }

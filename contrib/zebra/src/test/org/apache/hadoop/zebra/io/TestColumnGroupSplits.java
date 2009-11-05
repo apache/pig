@@ -70,6 +70,10 @@ public class TestColumnGroupSplits {
     fs = new LocalFileSystem(rawLFS);
     path = new Path(fs.getWorkingDirectory(), outputFile);
     System.out.println("output file: " + path);
+    
+    if (fs.exists(path)) {
+        ColumnGroup.drop(path, conf);
+    }
 
     schema = new Schema(STR_SCHEMA);
 

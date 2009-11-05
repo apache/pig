@@ -1051,7 +1051,7 @@ class ColumnGroup {
     Configuration conf;
     FileSystem fs;
     CGSchema cgschema;
-    private boolean finished;
+    private boolean finished, closed;
 
     /**
      * Create a ColumnGroup writer. The semantics are as follows:
@@ -1095,11 +1095,25 @@ class ColumnGroup {
     public Writer(Path path, String schema, boolean sorted, String name, String serializer,
         String compressor, String owner, String group, short perm,boolean overwrite, Configuration conf)
         throws IOException, ParseException {
-      this(path, new Schema(schema), sorted, name, serializer, compressor, owner, group, perm, overwrite,
+      this(path, new Schema(schema), sorted, null, name, serializer, compressor, owner, group, perm, overwrite,
           conf);
     }
     
     public Writer(Path path, Schema schema, boolean sorted, String name, String serializer,
+        String compressor, String owner, String group, short perm,boolean overwrite, Configuration conf)
+        throws IOException, ParseException {
+      this(path, schema, sorted, null, name, serializer, compressor, owner, group, perm, overwrite,
+          conf);
+    }
+
+    public Writer(Path path, String schema, boolean sorted, String comparator, String name, String serializer,
+        String compressor, String owner, String group, short perm,boolean overwrite, Configuration conf)
+        throws IOException, ParseException {
+      this(path, new Schema(schema), sorted, comparator, name, serializer, compressor, owner, group, perm, overwrite,
+          conf);
+    }
+
+    public Writer(Path path, Schema schema, boolean sorted, String comparator, String name, String serializer,
         String compressor, String owner, String group, short perm, boolean overwrite, Configuration conf)
         throws IOException, ParseException {
       this.path = path;
@@ -1118,7 +1132,7 @@ class ColumnGroup {
 
       checkPath(path, true);
 
-      cgschema = new CGSchema(schema, sorted, name, serializer, compressor, owner, group, perm);
+      cgschema = new CGSchema(schema, sorted, comparator, name, serializer, compressor, owner, group, perm);
       CGSchema sfNew = CGSchema.load(fs, path);
       if (sfNew != null) {
         // compare input with on-disk schema.
@@ -1162,7 +1176,10 @@ class ColumnGroup {
     @Override
     public void close() throws IOException {
       if (!finished) {
-        finished = true;
+        finish();
+      }
+      if (!closed) {
+        closed = true;
         createIndex();
       }
     }

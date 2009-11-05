@@ -170,9 +170,16 @@ to call at top-level: ant deploy-contrib compile-core-test
       <classpath refid="test.classpath"/>
       <formatter type="${test.junit.output.format}" />
 
+      <!-- For the time being, we disable two test cases that need a real cluster to run -->
       <batchtest todir="${build.test}">
-        <fileset dir="${src.test}"
-                 includes="**/Test*.java" excludes="**/${test.exclude}.java" />
+        <fileset dir="${src.test}" includes="**/Test*.java" excludes="**/TestCheckin*.java">
+          <not>
+            <filename name="**/TestRealCluster.java"/>
+          </not>
+          <not>
+            <filename name="**/TestColumnSecurity.java"/>
+          </not>
+        </fileset> 
       </batchtest>
     </junit>
     <fail if="tests.failed">Tests failed!</fail>

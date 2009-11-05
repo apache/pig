@@ -114,7 +114,7 @@ public class TestSchema {
 
     // Build Table and column groups
     BasicTable.Writer writer = new BasicTable.Writer(path, STR_SCHEMA,
-        STR_STORAGE, false, conf);
+        STR_STORAGE, conf);
     writer.finish();
     Schema schema = writer.getSchema();
     Tuple tuple = TypesUtils.createTuple(schema);
@@ -210,7 +210,7 @@ public class TestSchema {
     System.out.println("in testRecord, get path: " + path.toString());
     // Build Table and column groups
     BasicTable.Writer writer = new BasicTable.Writer(path, STR_SCHEMA,
-        STR_STORAGE, false, conf);
+        STR_STORAGE, conf);
     writer.finish();
     Schema schema = writer.getSchema();
     Tuple tuple = TypesUtils.createTuple(schema);
@@ -411,8 +411,9 @@ public class TestSchema {
     // String STR_STORAGE = "[m1#{a}]";
     // Build Table and column groups
     path = new Path(getCurrentMethodName());
+    BasicTable.drop(path, conf);
     BasicTable.Writer writer = new BasicTable.Writer(path, STR_SCHEMA,
-        STR_STORAGE, false, conf);
+        STR_STORAGE, conf);
     writer.finish();
     Schema schema = writer.getSchema();
     Tuple tuple = TypesUtils.createTuple(schema);

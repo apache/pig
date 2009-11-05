@@ -49,7 +49,7 @@ public class TestStorageCollection {
   public void testStorageValid1() {
     try {
       String strStorage = "[c1]; [c2]";
-      Partition p = new Partition(schema.toString(), strStorage);
+      Partition p = new Partition(schema.toString(), strStorage, null);
       CGSchema[] cgschemas = p.getCGSchemas();
 
       // 2 column group;
@@ -109,7 +109,7 @@ public class TestStorageCollection {
   public void testStorageValid2() {
     try {
       String strStorage = "[c1.f1]";
-      Partition p = new Partition(schema.toString(), strStorage);
+      Partition p = new Partition(schema.toString(), strStorage, null);
       Assert.assertTrue(false);
       CGSchema[] cgschemas = p.getCGSchemas();
 

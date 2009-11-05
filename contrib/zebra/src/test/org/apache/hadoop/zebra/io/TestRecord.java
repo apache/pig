@@ -75,7 +75,7 @@ public class TestRecord {
     BasicTable.drop(path, conf);
     // Build Table and column groups
     BasicTable.Writer writer = new BasicTable.Writer(path, STR_SCHEMA,
-        STR_STORAGE, false, conf);
+        STR_STORAGE, conf);
     writer.finish();
     Schema schema = writer.getSchema();
     Tuple tuple = TypesUtils.createTuple(schema);

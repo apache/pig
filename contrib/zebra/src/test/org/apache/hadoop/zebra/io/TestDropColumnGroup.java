@@ -121,7 +121,8 @@ public class TestDropColumnGroup {
     }
     
     int numRows = TestBasicTable.createBasicTable(1, 10, "a, b, c, d, e, f",
-        "[a, b]; [c, d]", path, true, false);
+                                                  "[a, b]; [c, d]", null,
+                                                  path, true);
 
     int rowsToRead = Math.min(10, numRows);
 
@@ -163,8 +164,9 @@ public class TestDropColumnGroup {
      */
 
     // 5 splits and 50 rows
-    numRows = TestBasicTable.createBasicTable(5, 50, "a, b, c, d, e, f",
-        "[a, b]; [c, d]; [e] as myCG", path, true, false);
+    numRows =  TestBasicTable.createBasicTable(5, 50, "a, b, c, d, e, f",
+                                               "[a, b]; [c, d]; [e] as myCG",
+                                               null, path, true);
 
     BasicTable.dropColumnGroup(path, conf, "myCG");
 
@@ -208,7 +210,7 @@ public class TestDropColumnGroup {
     
     // first write the table :
     BasicTable.Writer writer = new BasicTable.Writer(path, mixedSchema,
-        mixedStorageHint, false, conf);
+        mixedStorageHint, conf);
     writer.finish();
 
     Schema schema = writer.getSchema();
@@ -413,7 +415,7 @@ public class TestDropColumnGroup {
       "[f21];[f22];[f23];[f24];[f25];[f26];[f27];[f28];[f29];[f30];" +
       "[f31];[f32];[f33];[f34];[f35];[f36];[f37];[f38];[f39];[f40];" +
       "[f41];[f42];[f43];[f44];[f45];[f46];[f47];[f48];[f49];[f50]",
-      path, true, false);
+      null, path, true);
     
     System.out.println("First dump:");
     BasicTable.dumpInfo(path.toString(), System.out, conf);
@@ -476,7 +478,7 @@ public class TestDropColumnGroup {
         "[f21];[f22];[f23];[f24];[f25];[f26];[f27];[f28];[f29];[f30];" +
         "[f31];[f32];[f33];[f34];[f35];[f36];[f37];[f38];[f39];[f40];" +
         "[f41];[f42];[f43];[f44];[f45];[f46];[f47];[f48];[f49];[f50]",
-        path, true, false);
+        null, path, true);
     
     System.out.println("First dump:");
     BasicTable.dumpInfo(path.toString(), System.out, conf);
@@ -533,7 +535,7 @@ public class TestDropColumnGroup {
     }
 
     int numRows = TestBasicTable.createBasicTable(1, 100000,
-        "a, b, c, d, e, f, g, h, i, j, k, l, m, n", "[a, b]; [c, d]; [e]; [f]; [g]; [h]; [i]; [j]; [k]; [l]; [m]; [n]", path, true, false);
+        "a, b, c, d, e, f, g, h, i, j, k, l, m, n", "[a, b]; [c, d]; [e]; [f]; [g]; [h]; [i]; [j]; [k]; [l]; [m]; [n]", null, path, true);
 
     System.out.println("in test5 , dump infor 1");
     BasicTable.dumpInfo(path.toString(), System.out, conf);
@@ -624,7 +626,7 @@ public class TestDropColumnGroup {
     }
     
     TestBasicTable.createBasicTable(1, 10, "a, b, c, d, e, f",
-        "[a];[b];[c];[d];[e];[f]", path, true, false);
+        "[a];[b];[c];[d];[e];[f]", null, path, true);
     Path wrongPath = new Path(path.toString() + "non-existing");
     try {
       BasicTable.dropColumnGroup(wrongPath, conf, "CG0");
@@ -643,7 +645,7 @@ public class TestDropColumnGroup {
 
     Path path1 = new Path(path.toString() + "13");
     TestBasicTable.createBasicTable(1, 10, "a, b, c, d, e, f",
-        "[a];[b];[c];[d];[e];[f]", path1, true, false);
+        "[a];[b];[c];[d];[e];[f]", null, path1, true);
     try {
       BasicTable.dropColumnGroup(path1, null, "CG0");
       Assert.fail("should throw excepiton");
@@ -661,7 +663,7 @@ public class TestDropColumnGroup {
 
     Path path1 = new Path(path.toString() + "14");
     TestBasicTable.createBasicTable(1, 10, "a, b, c, d, e, f",
-        "[a];[b];[c];[d];[e];[f]", path1, true, false);
+        "[a];[b];[c];[d];[e];[f]", null, path1, true);
     try {
       BasicTable.dropColumnGroup(path1, conf, "");
       Assert.fail("should throw excepiton");
@@ -680,7 +682,7 @@ public class TestDropColumnGroup {
     Path path1 = new Path(path.toString() + "15");
 
     TestBasicTable.createBasicTable(1, 10, "a, b, c, d, e, f",
-        "[a];[b];[c];[d];[e];[f]", path1, true, false);
+        "[a];[b];[c];[d];[e];[f]", null, path1, true);
     try {
       BasicTable.dropColumnGroup(path1, conf, null);
       Assert.fail("should throw excepiton");
@@ -699,7 +701,7 @@ public class TestDropColumnGroup {
     Path path1 = new Path(path.toString() + "16");
 
     int numRows = TestBasicTable.createBasicTable(1, 10, "a, b, c, d, e, f",
-        "[a, b]; [c, d]", path1, true, false);
+        "[a, b]; [c, d]", null, path1, true);
 
     int rowsToRead = Math.min(10, numRows);
 
@@ -731,7 +733,7 @@ public class TestDropColumnGroup {
 
     Path path1 = new Path(path.toString() + "17");
     TestBasicTable.createBasicTable(1, 10, "a, b, c, d, e, f", "[a,b,c,d,e,f]",
-        path1, true, false);
+        null, path1, true);
 
     BasicTable.dropColumnGroup(path1, conf, "CG0");
 

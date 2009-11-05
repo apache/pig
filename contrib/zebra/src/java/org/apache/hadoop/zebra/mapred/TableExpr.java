@@ -34,6 +34,7 @@ import org.apache.hadoop.zebra.schema.Schema;
  * Table Expression - expression to describe an input table.
  */
 abstract class TableExpr {
+  private boolean sorted = false;
   /**
    * Factory method to create a TableExpr from a string.
    * 
@@ -179,7 +180,14 @@ abstract class TableExpr {
    * @return Whether this expression may only be split by key.
    */
   public boolean sortedSplitRequired() {
-    return false;
+    return sorted;
+  }
+
+  /**
+   * Set the requirement for sorted table
+   */
+  public void setSortedSplit() {
+    sorted = true;
   }
 
   /**

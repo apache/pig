@@ -89,7 +89,7 @@ public class TestStorageMisc1 {
 //      String strStorage = "[r.r.f1,r.f2#{k1}] COMPRESS BY gzip SECURE BY user:ggg SECURE BY group:fff; [r.r.f2, r.f2#{k2}] COMPRESS BY lzo SERIALIZE BY avro";
 //      String strStorage = "[r.r.f1,r.f2#{k1}] COMPRESS BY gzip SECURE BY user:root user:root; [r.r.f2, r.f2#{k2}] COMPRESS BY lzo SERIALIZE BY avro";
 
-    	Partition p = new Partition(schema.toString(), strStorage);
+    	Partition p = new Partition(schema.toString(), strStorage, null);
       CGSchema[] cgschemas = p.getCGSchemas();
 
       // 3 column group;

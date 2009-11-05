@@ -56,6 +56,7 @@ import org.apache.hadoop.zebra.types.Projection;
 import org.apache.hadoop.zebra.schema.Schema;
 import org.apache.hadoop.zebra.parser.TableSchemaParser;
 import org.apache.hadoop.zebra.types.TypesUtils;
+import org.apache.hadoop.zebra.types.SortInfo;
 import org.apache.pig.data.Tuple;
 
 /**
@@ -82,13 +83,11 @@ public class BasicTable {
   private final static String BT_SCHEMA_FILE = ".btschema";
   // schema version
   private final static Version SCHEMA_VERSION =
-      new Version((short) 1, (short) 0);
+      new Version((short) 1, (short) 1);
   // name of the BasicTable meta-data file
   private final static String BT_META_FILE = ".btmeta";
   // column group prefix
   private final static String CGPathPrefix = "CG";
-  // default comparator to "memcmp"
-  private final static String DEFAULT_COMPARATOR = TFile.COMPARATOR_MEMCMP;
 
   private final static String DELETED_CG_PREFIX = ".deleted-";
   
@@ -288,7 +287,8 @@ public class BasicTable {
         schema = schemaFile.getLogical();
         projection = new Projection(schema);
         String storage = schemaFile.getStorageString();
-        partition = new Partition(schema, projection, storage);
+        String comparator = schemaFile.getComparator();
+        partition = new Partition(schema, projection, storage, comparator);
         for (int nx = 0; nx < numCGs; nx++) {
           if (!schemaFile.isCGDeleted(nx)) {
             colGroups[nx] =
@@ -349,6 +349,14 @@ public class BasicTable {
     }
 
     /**
+     * @return the list of sorted columns
+     */
+    public SortInfo getSortInfo()
+    {
+      return schemaFile.getSortInfo();
+    }
+
+    /**
      * Set the projection for the reader. This will affect calls to
      * {@link #getScanner(RangeSplit, boolean)},
      * {@link #getScanner(BytesWritable, BytesWritable, boolean)},
@@ -368,7 +376,7 @@ public class BasicTable {
         this.projection = new Projection(schemaFile.getLogical());
         partition =
             new Partition(schemaFile.getLogical(), this.projection, schemaFile
-                .getStorageString());
+                .getStorageString(), schemaFile.getComparator());
       }
       else {
         /**
@@ -379,7 +387,7 @@ public class BasicTable {
             new Projection(schemaFile.getLogical(), projection);
         partition =
             new Partition(schemaFile.getLogical(), this.projection, schemaFile
-                .getStorageString());
+                .getStorageString(), schemaFile.getComparator());
       }
       inferredMapping = false;
     }
@@ -432,7 +440,7 @@ public class BasicTable {
            kd.add(colGroups[nx].getKeyDistribution(n));
         }
       }
-      if (kd.size() > (int) (n * 1.5)) {
+      if (n >= 0 && kd.size() > (int) (n * 1.5)) {
         kd.resize(n);
       }
       return kd;
@@ -1031,6 +1039,8 @@ public class BasicTable {
     private boolean closed = true;
     ColumnGroup.Writer[] colGroups;
     Partition partition;
+    boolean sorted;
+    private boolean finished;
     Tuple[] cgTuples;
 
     /**
@@ -1056,35 +1066,34 @@ public class BasicTable {
      *          implementation, the schema of a table is a comma or
      *          semicolon-separated list of column names, such as
      *          "FirstName, LastName; Sex, Department".
-     * @param sorted
-     *          Whether the table to be created is sorted or not. If set to
-     *          true, we expect the rows inserted by every inserter created from
-     *          this Writer must be sorted. Additionally, there exists an
-     *          ordering of the inserters Ins-1, Ins-2, ... such that the rows
-     *          created by Ins-1, followed by rows created by Ins-2, ... form a
-     *          total order.
+     * @param sortColumns
+     *          String of comma-separated sorted columns: null for unsorted tables
+     * @param comparator
+     *          Name of the comparator used in sorted tables
      * @param conf
      *          Optional Configuration objects.
      * 
      * @throws IOException
      * @see Schema
      */
-    public Writer(Path path, String btSchemaString, String btStorageString,
-        boolean sorted, Configuration conf) throws IOException {
+    public Writer(Path path, String btSchemaString, String btStorageString, String sortColumns,
+        String comparator, Configuration conf) throws IOException {
       try {
         schemaFile =
-            new SchemaFile(path, btSchemaString, btStorageString,
-                DEFAULT_COMPARATOR, sorted, conf);
+            new SchemaFile(path, btSchemaString, btStorageString, sortColumns,
+                comparator, conf);
         partition = schemaFile.getPartition();
         int numCGs = schemaFile.getNumOfPhysicalSchemas();
         colGroups = new ColumnGroup.Writer[numCGs];
         cgTuples = new Tuple[numCGs];
+        sorted = schemaFile.isSorted();
         for (int nx = 0; nx < numCGs; nx++) {
           colGroups[nx] =
               new ColumnGroup.Writer( 
                  new Path(path, schemaFile.getName(nx)),
             		 schemaFile.getPhysicalSchema(nx), 
             		 sorted, 
+                 comparator,
             		 schemaFile.getName(nx),
             		 schemaFile.getSerializer(nx), 
             		 schemaFile.getCompressor(nx), 
@@ -1130,7 +1139,16 @@ public class BasicTable {
     }
 
     /**
-     * Reopen an already created BasicTable for writing. Excepiton will be
+     * a wrapper to support backward compatible constructor
+     */
+    public Writer(Path path, String btSchemaString, String btStorageString,
+        Configuration conf) throws IOException {
+      this(path, btSchemaString, btStorageString, null, null, conf);
+    }
+
+    /**
+    /**
+     * Reopen an already created BasicTable for writing. Exception will be
      * thrown if the table is already closed, or is in the process of being
      * closed.
      */
@@ -1139,6 +1157,7 @@ public class BasicTable {
         schemaFile = new SchemaFile(path, conf);
         int numCGs = schemaFile.getNumOfPhysicalSchemas();
         partition = schemaFile.getPartition();
+        sorted = schemaFile.isSorted();
         colGroups = new ColumnGroup.Writer[numCGs];
         cgTuples = new Tuple[numCGs];
         for (int nx = 0; nx < numCGs; nx++) {
@@ -1184,8 +1203,8 @@ public class BasicTable {
      * make the table immutable.
      */
     public void finish() throws IOException {
-      if (closed) return;
-      closed = true;
+      if (finished) return;
+      finished = true;
       try {
         for (int nx = 0; nx < colGroups.length; nx++) {
           if (colGroups[nx] != null) {
@@ -1220,6 +1239,8 @@ public class BasicTable {
     public void close() throws IOException {
       if (closed) return;
       closed = true;
+      if (!finished)
+        finish();
       try {
         for (int nx = 0; nx < colGroups.length; nx++) {
           if (colGroups[nx] != null) {
@@ -1253,6 +1274,22 @@ public class BasicTable {
      */
     public Schema getSchema() {
       return schemaFile.getLogical();
+    }
+    
+    /**
+     * @return sortness
+     */
+    public boolean isSorted() {
+    	return sorted;
+    }
+
+    /**
+     * Get the list of sorted columns.
+     * @return the list of sorted columns
+     */
+    public SortInfo getSortInfo()
+    {
+      return schemaFile.getSortInfo();
     }
 
     /**
@@ -1386,7 +1423,7 @@ public class BasicTable {
           }
           if (finishWriter) {
             try {
-              BasicTable.Writer.this.close();
+              BasicTable.Writer.this.finish();
             }
             catch (Exception e) {
               // no-op
@@ -1418,6 +1455,7 @@ public class BasicTable {
     Schema[] physical;
     Partition partition;
     boolean sorted;
+    SortInfo sortInfo = null;
     String storage;
     CGSchema[] cgschemas;
     
@@ -1436,17 +1474,21 @@ public class BasicTable {
     }
 
     // ctor for writing
-    public SchemaFile(Path path, String btSchemaStr, String btStorageStr,
-        String btComparator, boolean sorted, Configuration conf)
+    public SchemaFile(Path path, String btSchemaStr, String btStorageStr, String sortColumns,
+        String btComparator, Configuration conf)
         throws IOException {
       storage = btStorageStr;
-      this.comparator = btComparator;
       try {
-        partition = new Partition(btSchemaStr, btStorageStr);
+        partition = new Partition(btSchemaStr, btStorageStr, btComparator, sortColumns);
       }
       catch (Exception e) {
         throw new IOException("Partition constructor failed :" + e.getMessage());
       }
+      this.sortInfo = partition.getSortInfo();
+      this.sorted = partition.isSorted();
+      this.comparator = (this.sortInfo == null ? null : this.sortInfo.getComparator());
+      if (this.comparator == null)
+        this.comparator = "";
       logical = partition.getSchema();
       cgschemas = partition.getCGSchemas();
       physical = new Schema[cgschemas.length];
@@ -1454,7 +1496,7 @@ public class BasicTable {
         physical[nx] = cgschemas[nx].getSchema();
       }
       cgDeletedFlags = new boolean[physical.length];
-      this.sorted = sorted;
+
       version = SCHEMA_VERSION;
 
       // write out the schema
@@ -1471,6 +1513,10 @@ public class BasicTable {
 
     public boolean isSorted() {
       return sorted;
+    }
+
+    public SortInfo getSortInfo() {
+      return sortInfo;
     }
 
     public Schema getLogical() {
@@ -1555,6 +1601,15 @@ public class BasicTable {
         WritableUtils.writeString(outSchema, physical[nx].toString());
       }
       WritableUtils.writeVInt(outSchema, sorted ? 1 : 0);
+      WritableUtils.writeVInt(outSchema, sortInfo == null ? 0 : sortInfo.size());
+      if (sortInfo != null && sortInfo.size() > 0)
+      {
+        String[] sortedCols = sortInfo.getSortColumnNames();
+        for (int i = 0; i < sortInfo.size(); i++)
+        {
+          WritableUtils.writeString(outSchema, sortedCols[i]);
+        }
+      }
       outSchema.close();
     }
 
@@ -1583,7 +1638,7 @@ public class BasicTable {
       }
       storage = WritableUtils.readString(in);
       try {
-        partition = new Partition(logicalStr, storage);
+        partition = new Partition(logicalStr, storage, comparator);
       }
       catch (Exception e) {
         throw new IOException("Partition constructor failed :" + e.getMessage());
@@ -1606,6 +1661,19 @@ public class BasicTable {
       }
       sorted = WritableUtils.readVInt(in) == 1 ? true : false;
       setCGDeletedFlags(path, conf);
+      if (version.compareTo(new Version((short)1, (short)0)) > 0)
+      {
+        int numSortColumns = WritableUtils.readVInt(in);
+        if (numSortColumns > 0)
+        {
+          String[] sortColumnStr = new String[numSortColumns];
+          for (int i = 0; i < numSortColumns; i++)
+          {
+            sortColumnStr[i] = WritableUtils.readString(in);
+          }
+          sortInfo = SortInfo.parse(SortInfo.toSortString(sortColumnStr), logical, comparator);
+        }
+      }
       in.close();
     }
 
@@ -1677,10 +1745,25 @@ public class BasicTable {
     Path path = new Path(file);
     try {
       BasicTable.Reader reader = new BasicTable.Reader(path, conf);
+      String schemaStr = reader.getBTSchemaString();
+      String storageStr = reader.getStorageString();
       IOutils.indent(out, indent);
-      out.printf("Schema : %s\n", reader.getBTSchemaString());
+      out.printf("Schema : %s\n", schemaStr);
       IOutils.indent(out, indent);
-      out.printf("Storage Information : %s\n", reader.getStorageString());
+      out.printf("Storage Information : %s\n", storageStr);
+      SortInfo sortInfo = reader.getSortInfo();
+      if (sortInfo != null && sortInfo.size() > 0)
+      {
+        IOutils.indent(out, indent);
+        String[] sortedCols = sortInfo.getSortColumnNames();
+        out.println("Sorted Columns :");
+        for (int nx = 0; nx < sortedCols.length; nx++) {
+          if (nx > 0)
+            out.printf(" , ");
+          out.printf("%s", sortedCols[nx]);
+        }
+        out.printf("\n");
+      }
       IOutils.indent(out, indent);
       out.println("Column Groups within the Basic Table :");
       for (int nx = 0; nx < reader.colGroups.length; nx++) {

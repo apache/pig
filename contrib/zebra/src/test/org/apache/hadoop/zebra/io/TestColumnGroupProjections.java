@@ -59,6 +59,10 @@ public class TestColumnGroupProjections {
     fs = new LocalFileSystem(rawLFS);
     path = new Path(fs.getWorkingDirectory(), outputFile);
     System.out.println("output file: " + path);
+    
+    if (fs.exists(path)) {
+        ColumnGroup.drop(path, conf);
+    }
 
     schema = new Schema("a,b,c,d,e,f,g");
 

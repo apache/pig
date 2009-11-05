@@ -37,6 +37,9 @@ public class Schema implements Comparable<Schema>, Writable {
 
   private static final long schemaVersion = 1L;
 
+  /**
+   * Column Schema in Schema
+   */
   public static class ColumnSchema {
     private String name;
     private ColumnType type;
@@ -73,6 +76,8 @@ public class Schema implements Comparable<Schema>, Writable {
 
     /**
      * access function to get the column name 
+     *
+     * @return name of the column
      */
     public String getName() {
       return name;
@@ -80,6 +85,8 @@ public class Schema implements Comparable<Schema>, Writable {
     
     /**
      * access function to get the column type 
+     *
+     * @return column type
      */
     public ColumnType getType() {
       return type;
@@ -87,6 +94,8 @@ public class Schema implements Comparable<Schema>, Writable {
     
     /**
      * access function to get the column name 
+     *
+     * @return column index in the parent schema
      */
     public int getIndex() {
       return index;
@@ -128,8 +137,8 @@ public class Schema implements Comparable<Schema>, Writable {
     /**
      * Compare two field schema for equality
      * 
-     * @param fschema
-     * @param fother
+     * @param fschema one column schema to be compared
+     * @param fother the other column schema to be compared
      * @return true if ColumnSchema are equal, false otherwise
      */
     public static boolean equals(ColumnSchema fschema, ColumnSchema fother) {
@@ -195,28 +204,47 @@ public class Schema implements Comparable<Schema>, Writable {
     /*
      * Returns the schema for the next level structure, in record, collection
      * and map.
+     *
+     * @return Schema of the column
      */
     public Schema getSchema() {
       return schema;
     }
   }
 
-  /*
-   * helper class to parse a column name string one section at a time and find
+  /**
+   * Helper class to parse a column name string one section at a time and find
    * the required type for the parsed part.
    */
   public static class ParsedName {
-    public String mName;
-    int mKeyOffset; // the offset where the keysstring starts
-    public ColumnType mDT = ColumnType.ANY; // parent's type
+    private String mName;
+    private int mKeyOffset; // the offset where the keysstring starts
+    private ColumnType mDT = ColumnType.ANY; // parent's type
 
+    /**
+     * Default ctor
+     */
     public ParsedName() {
     }
 
+    /**
+     * Set the name
+     *
+     * @param name
+     *            column name string
+     */
     public void setName(String name) {
       mName = name;
     }
 
+    /**
+     * Set the name and type
+     *
+     * @param name
+     *            column name string
+     * @param pdt
+     *            column type
+     */
     public void setName(String name, ColumnType pdt) {
       mName = name;
       mDT = pdt;
@@ -227,21 +255,42 @@ public class Schema implements Comparable<Schema>, Writable {
       mKeyOffset = keyStrOffset;
     }
 
-    void setDT(ColumnType dt) {
+    /**
+     * Set the column type
+     *
+     * @param dt
+     *          column type to be set with
+     */
+    public void setDT(ColumnType dt) {
       mDT = dt;
     }
 
-    ColumnType getDT() {
+    /**
+     * Get the column type
+     * 
+     * @return column type
+     */
+    public ColumnType getDT() {
       return mDT;
     }
 
-    String getName() {
+    /**
+     * Get the column name
+     *
+     * @return column name
+     */
+    public String getName() {
       return mName;
     }
 
+    /**
+     * Parse one sector of a fully qualified column name; also checks validity
+     * of use of the MAP and RECORD delimiters
+     *
+     * @param fs
+     *          column schema this column name is checked against with          
+     */
     public String parseName(Schema.ColumnSchema fs) throws ParseException {
-      // parse one sector of a fq name, also checks sanity of MAP and RECORD
-      // fields
       int fieldIndex, hashIndex;
       fieldIndex = mName.indexOf('.');
       hashIndex = mName.indexOf('#');

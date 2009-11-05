@@ -49,7 +49,7 @@ public class TestStorageRecord {
   public void testStorageValid1() {
     try {
       String strStorage = "[r1.f1, r2.r3.f3]; [r1.f2, r2.r3.f4]";
-      Partition p = new Partition(schema.toString(), strStorage);
+      Partition p = new Partition(schema.toString(), strStorage, null);
       CGSchema[] cgschemas = p.getCGSchemas();
 
       // 2 column group;

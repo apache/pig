@@ -51,7 +51,7 @@ public class TestStorageMap {
   public void testStorageValid1() {
     try {
       String strStorage = "[m1#{k1}]; [m2#{k1}, f3]";
-      Partition p = new Partition(schema.toString(), strStorage);
+      Partition p = new Partition(schema.toString(), strStorage, null);
       CGSchema[] cgschemas = p.getCGSchemas();
 
       // 3 column group;
@@ -138,7 +138,7 @@ public class TestStorageMap {
   public void testStorageValid2() {
     try {
       String strStorage = "[m1#{k1}]; [m1#{k2}, f3]";
-      Partition p = new Partition(schema.toString(), strStorage);
+      Partition p = new Partition(schema.toString(), strStorage, null);
       CGSchema[] cgschemas = p.getCGSchemas();
 
       // 3 column group;
@@ -222,7 +222,7 @@ public class TestStorageMap {
   public void testStorageInvalid1() {
     try {
       String strStorage = "m1#{k1}";
-      Partition p = new Partition(schema.toString(), strStorage);
+      Partition p = new Partition(schema.toString(), strStorage, null);
       CGSchema[] cgschemas = p.getCGSchemas();
       CGSchema cgs1 = cgschemas[0];
       System.out.println(cgs1);
@@ -239,7 +239,7 @@ public class TestStorageMap {
   public void testStorageInvalid2() {
     try {
       String strStorage = "[m1#{k1}] abc; [m1#{k2}, f3] xyz";
-      Partition p = new Partition(schema.toString(), strStorage);
+      Partition p = new Partition(schema.toString(), strStorage, null);
       CGSchema[] cgschemas = p.getCGSchemas();
       CGSchema cgs1 = cgschemas[0];
       System.out.println(cgs1);
@@ -256,7 +256,7 @@ public class TestStorageMap {
   public void testStorageInvalid3() {
     try {
       String strStorage = "[m1{#k1}{#k2}]";
-      Partition p = new Partition(schema.toString(), strStorage);
+      Partition p = new Partition(schema.toString(), strStorage, null);
       CGSchema[] cgschemas = p.getCGSchemas();
       CGSchema cgs1 = cgschemas[0];
       System.out.println(cgs1);

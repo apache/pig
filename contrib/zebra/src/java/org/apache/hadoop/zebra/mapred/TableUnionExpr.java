@@ -162,6 +162,7 @@ class SortedTableUnionScanner implements TableScanner {
   CachedTableScanner[] scanners;
   PriorityBlockingQueue<CachedTableScanner> queue;
   boolean synced = false;
+  CachedTableScanner scanner = null; // the working scanner
 
   SortedTableUnionScanner(List<TableScanner> scanners) throws IOException {
     if (scanners.isEmpty()) {
@@ -188,6 +189,9 @@ class SortedTableUnionScanner implements TableScanner {
       TableScanner scanner = scanners.get(i);
       this.scanners[i] = new CachedTableScanner(scanner);
     }
+    // initial fill-ins
+    if (!atEnd())
+    	scanner = queue.poll();
   }
   
 
@@ -206,21 +210,18 @@ class SortedTableUnionScanner implements TableScanner {
   @Override
   public boolean advance() throws IOException {
     sync();
-    CachedTableScanner scanner = queue.poll();
-    if (scanner != null) {
-      scanner.advance();
-      if (!scanner.atEnd()) {
-        queue.add(scanner);
-      }
-      return true;
+    scanner.advance();
+    if (!scanner.atEnd()) {
+      queue.add(scanner);
     }
-    return false;
+    scanner = queue.poll();
+    return (scanner != null);
   }
 
   @Override
   public boolean atEnd() throws IOException {
     sync();
-    return queue.isEmpty();
+    return (scanner == null && queue.isEmpty());
   }
 
   @Override
@@ -239,7 +240,6 @@ class SortedTableUnionScanner implements TableScanner {
       throw new EOFException("No more rows to read");
     }
     
-    CachedTableScanner scanner = queue.poll();
     key.set(scanner.getKey());
   }
 
@@ -249,7 +249,6 @@ class SortedTableUnionScanner implements TableScanner {
       throw new EOFException("No more rows to read");
     }
     
-    CachedTableScanner scanner = queue.poll();
     row.reference(scanner.getValue());
   }
 
@@ -260,6 +259,8 @@ class SortedTableUnionScanner implements TableScanner {
       rv = rv || scanner.seekTo(key);
     }
     synced = false;
+    if (!atEnd())
+      scanner = queue.poll();
     return rv;
   }
 
@@ -268,6 +269,7 @@ class SortedTableUnionScanner implements TableScanner {
     for (CachedTableScanner scanner : scanners) {
       scanner.seekToEnd();
     }
+    scanner = null;
     synced = false;
   }
 

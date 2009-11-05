@@ -82,7 +82,7 @@ public class TestSimple {
     // drop any previous tables
     BasicTable.drop(path, conf);
     BasicTable.Writer writer = new BasicTable.Writer(path, STR_SCHEMA,
-        STR_STORAGE, false, conf);
+        STR_STORAGE, conf);
     writer.finish();
     Schema schema = writer.getSchema();
     Tuple tuple = TypesUtils.createTuple(schema);

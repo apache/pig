@@ -74,7 +74,7 @@ public class TestColumnGroupName {
   public void testStorageValid1() {
     try {
       String strStorage = "[f1, f2] as PI; [f3, f4] as General secure by user:joe perm:640 COMPRESS BY gz SERIALIZE BY avro; [f5, f6] as ULT";
-      Partition p = new Partition(schema.toString(), strStorage);
+      Partition p = new Partition(schema.toString(), strStorage, null);
       CGSchema[] cgschemas = p.getCGSchemas();
 
       // 3 column group;
@@ -177,7 +177,7 @@ public class TestColumnGroupName {
   public void testStorageValid2() {
     try {
       String strStorage = "[f1, f2] serialize by avro compress by gz; [f3, f4] SERIALIZE BY avro COMPRESS BY gz; [f5, f6]";
-      Partition p = new Partition(schema.toString(), strStorage);
+      Partition p = new Partition(schema.toString(), strStorage, null);
       CGSchema[] cgschemas = p.getCGSchemas();
 
       Assert.assertEquals(cgschemas.length, 3);
@@ -200,7 +200,7 @@ public class TestColumnGroupName {
   public void testStorageValid3() {
     try {
       String strStorage = "[f1, f2] as PI serialize by avro compress by gz; [f3, f4] as General SERIALIZE BY avro COMPRESS BY gz; [f5, f6]";
-      Partition p = new Partition(schema.toString(), strStorage);
+      Partition p = new Partition(schema.toString(), strStorage, null);
       CGSchema[] cgschemas = p.getCGSchemas();
 
       Assert.assertEquals(cgschemas.length, 3);
@@ -223,7 +223,7 @@ public class TestColumnGroupName {
   public void testStorageValid4() {
     try {
       String strStorage = "[f1, f2] as C1 serialize by avro compress by gz; [f3, f4] as C2 SERIALIZE BY avro COMPRESS BY gz; as C3";
-      Partition p = new Partition(schema.toString(), strStorage);
+      Partition p = new Partition(schema.toString(), strStorage, null);
       CGSchema[] cgschemas = p.getCGSchemas();
 
       Assert.assertEquals(cgschemas.length, 3);
@@ -246,7 +246,7 @@ public class TestColumnGroupName {
   public void testStorageValid5() {
     try {
       String strStorage = "[f1, f2] as C1 serialize by avro compress by gz; [f3, f4] as C2 SERIALIZE BY avro COMPRESS BY gz;";
-      Partition p = new Partition(schema.toString(), strStorage);
+      Partition p = new Partition(schema.toString(), strStorage, null);
       CGSchema[] cgschemas = p.getCGSchemas();
 
       Assert.assertEquals(cgschemas.length, 3);
@@ -269,7 +269,7 @@ public class TestColumnGroupName {
   public void testStorageValid6() {
     try {
       String strStorage = "[f1, f2] as PI serialize by avro compress by gz; [f3, f4] SERIALIZE BY avro COMPRESS BY gz; [f5, f6] as CG0";
-      Partition p = new Partition(schema.toString(), strStorage);
+      Partition p = new Partition(schema.toString(), strStorage, null);
       CGSchema[] cgschemas = p.getCGSchemas();
 
       Assert.assertEquals(cgschemas.length, 3);
@@ -292,7 +292,7 @@ public class TestColumnGroupName {
   public void testStorageValid7() {
     try {
       String strStorage = "[f1, f2] as PI serialize by avro compress by gz; [f3, f4] as Pi SERIALIZE BY avro COMPRESS BY gz; [f5, f6] as CG100";
-      Partition p = new Partition(schema.toString(), strStorage);
+      Partition p = new Partition(schema.toString(), strStorage, null);
       CGSchema[] cgschemas = p.getCGSchemas();
 
       Assert.assertEquals(cgschemas.length, 3);
@@ -318,7 +318,7 @@ public class TestColumnGroupName {
   public void testStorageValid8() {
     try {
       String strStorage = "[f1, f2] as C1 serialize by avro compress by gz; [f3, f4, f5, f6] as C2 SERIALIZE BY avro COMPRESS BY gz; as C3 compress by gz";
-      Partition p = new Partition(schema.toString(), strStorage);
+      Partition p = new Partition(schema.toString(), strStorage, null);
       CGSchema[] cgschemas = p.getCGSchemas();
       Assert.assertEquals(cgschemas.length, 2);
       CGSchema cgs1 = cgschemas[0];
@@ -337,7 +337,7 @@ public class TestColumnGroupName {
   public void testStorageInvalid1() {
     try {
       String strStorage = "[f1, f2] as C1 serialize by avro compress by gz; [f3, f4] as C1 SERIALIZE BY avro COMPRESS BY gz; [f5, f6] as C3";
-      Partition p = new Partition(schema.toString(), strStorage);
+      Partition p = new Partition(schema.toString(), strStorage, null);
       CGSchema[] cgschemas = p.getCGSchemas();
       CGSchema cgs1 = cgschemas[0];
       System.out.println(cgs1);
@@ -354,7 +354,7 @@ public class TestColumnGroupName {
   public void testStorageInvalid2() {
     try {
       String strStorage = "[f1, f2] serialize by avro compress by gz as C1; [f3, f4] as C2 SERIALIZE BY avro COMPRESS BY gz; [f5, f6] as C3";
-      Partition p = new Partition(schema.toString(), strStorage);
+      Partition p = new Partition(schema.toString(), strStorage, null);
       CGSchema[] cgschemas = p.getCGSchemas();
       CGSchema cgs1 = cgschemas[0];
       System.out.println(cgs1);

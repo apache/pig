@@ -87,7 +87,7 @@ public class TestNegative {
     // Build Table and column groups
     BasicTable.Writer writer = null;
     try {
-      writer = new BasicTable.Writer(path, STR_SCHEMA, STR_STORAGE, false, conf);
+      writer = new BasicTable.Writer(path, STR_SCHEMA, STR_STORAGE, conf);
       Assert.fail("Should throw exception");
     } catch (Exception e) {
       System.out.println(e);
@@ -114,7 +114,7 @@ public class TestNegative {
     // Build Table and column groups
     BasicTable.Writer writer = null;
     try {
-      writer = new BasicTable.Writer(path, STR_SCHEMA, STR_STORAGE, false, conf);
+      writer = new BasicTable.Writer(path, STR_SCHEMA, STR_STORAGE, conf);
       Assert.fail("Should throw exception");
     } catch (Exception e) {
       System.out.println(e);
@@ -141,7 +141,7 @@ public class TestNegative {
     // Build Table and column groups
     BasicTable.Writer writer = null;
     try {
-      writer = new BasicTable.Writer(path, STR_SCHEMA, STR_STORAGE, false, conf);
+      writer = new BasicTable.Writer(path, STR_SCHEMA, STR_STORAGE, conf);
       Assert.fail("Should throw exception");
     } catch (Exception e) {
       System.out.println(e);
@@ -168,7 +168,7 @@ public class TestNegative {
     // Build Table and column groups
     BasicTable.Writer writer = null;
     try {
-      writer = new BasicTable.Writer(path, STR_SCHEMA, STR_STORAGE, false, conf);
+      writer = new BasicTable.Writer(path, STR_SCHEMA, STR_STORAGE, conf);
       Assert.fail("Should throw exception");
     } catch (Exception e) {
       System.out.println(e);
@@ -195,7 +195,7 @@ public class TestNegative {
     // Build Table and column groups
     BasicTable.Writer writer = null;
     try {
-      writer = new BasicTable.Writer(path, STR_SCHEMA, STR_STORAGE, false, conf);
+      writer = new BasicTable.Writer(path, STR_SCHEMA, STR_STORAGE, conf);
       Assert.fail("Should throw exception");
     } catch (Exception e) {
       System.out.println(e);
@@ -222,7 +222,7 @@ public class TestNegative {
     // Build Table and column groups
     BasicTable.Writer writer = null;
     try {
-      writer = new BasicTable.Writer(path, STR_SCHEMA, STR_STORAGE, false, conf);
+      writer = new BasicTable.Writer(path, STR_SCHEMA, STR_STORAGE, conf);
       Assert.fail("Should throw exception");
     } catch (Exception e) {
       System.out.println(e);
@@ -249,7 +249,7 @@ public class TestNegative {
     // Build Table and column groups
     BasicTable.Writer writer = null;
     try {
-      writer = new BasicTable.Writer(path, STR_SCHEMA, STR_STORAGE, false, conf);
+      writer = new BasicTable.Writer(path, STR_SCHEMA, STR_STORAGE, conf);
       Assert.fail("Should throw exception");
     } catch (Exception e) {
       System.out.println(e);
@@ -276,7 +276,7 @@ public class TestNegative {
     // Build Table and column groups
     BasicTable.Writer writer = null;
     try {
-      writer = new BasicTable.Writer(path, STR_SCHEMA, STR_STORAGE, false, conf);
+      writer = new BasicTable.Writer(path, STR_SCHEMA, STR_STORAGE, conf);
       Assert.fail("Should throw exception");
     } catch (Exception e) {
       System.out.println(e);
@@ -303,7 +303,7 @@ public class TestNegative {
     // Build Table and column groups
     BasicTable.Writer writer = null;
     try {
-      writer = new BasicTable.Writer(path, STR_SCHEMA, STR_STORAGE, false, conf);
+      writer = new BasicTable.Writer(path, STR_SCHEMA, STR_STORAGE, conf);
       Assert.fail("Should throw exception");
     } catch (Exception e) {
       System.out.println(e);
@@ -330,7 +330,7 @@ public class TestNegative {
     // Build Table and column groups
     BasicTable.Writer writer = null;
     try {
-      writer = new BasicTable.Writer(path, STR_SCHEMA, STR_STORAGE, false, conf);
+      writer = new BasicTable.Writer(path, STR_SCHEMA, STR_STORAGE, conf);
       Assert.fail("Should throw exception");
     } catch (Exception e) {
       System.out.println(e);
@@ -357,7 +357,7 @@ public class TestNegative {
     // Build Table and column groups
     BasicTable.Writer writer = null;
     try {
-      writer = new BasicTable.Writer(path, STR_SCHEMA, STR_STORAGE, false, conf);
+      writer = new BasicTable.Writer(path, STR_SCHEMA, STR_STORAGE, conf);
       Assert.fail("Should throw exception");
     } catch (Exception e) {
       System.out.println(e);
@@ -384,7 +384,7 @@ public class TestNegative {
     // Build Table and column groups
     BasicTable.Writer writer = null;
     try {
-      writer = new BasicTable.Writer(path, STR_SCHEMA, STR_STORAGE, false, conf);
+      writer = new BasicTable.Writer(path, STR_SCHEMA, STR_STORAGE, conf);
       Assert.fail("Should throw exception");
     } catch (Exception e) {
       System.out.println(e);
@@ -412,7 +412,7 @@ public class TestNegative {
     // Build Table and column groups
     BasicTable.Writer writer = null;
     try {
-      writer = new BasicTable.Writer(path, STR_SCHEMA, STR_STORAGE, false, conf);
+      writer = new BasicTable.Writer(path, STR_SCHEMA, STR_STORAGE, conf);
       System.out.println("HERE HERE");
       Assert.fail("Should throw exception");
     } catch (Exception e) {
@@ -441,7 +441,7 @@ public class TestNegative {
     // Build Table and column groups
     BasicTable.Writer writer = null;
     try {
-      writer = new BasicTable.Writer(path, STR_SCHEMA, STR_STORAGE, false, conf);
+      writer = new BasicTable.Writer(path, STR_SCHEMA, STR_STORAGE, conf);
     } catch (Exception e) {
       e.printStackTrace();
       Assert.fail("Should Not throw exception");
@@ -525,7 +525,7 @@ public class TestNegative {
     // Build Table and column groups
     BasicTable.Writer writer = null;
     try {
-      writer = new BasicTable.Writer(path, STR_SCHEMA, STR_STORAGE, false, conf);
+      writer = new BasicTable.Writer(path, STR_SCHEMA, STR_STORAGE, conf);
     } catch (Exception e) {
       System.out.println(e);
       Assert.fail("Should throw exception");
@@ -552,7 +552,7 @@ public class TestNegative {
     // Build Table and column groups
     BasicTable.Writer writer = null;
     try {
-      writer = new BasicTable.Writer(path, STR_SCHEMA, STR_STORAGE, false, conf);
+      writer = new BasicTable.Writer(path, STR_SCHEMA, STR_STORAGE, conf);
       Assert.fail("Should throw exception");
     } catch (Exception e) {
       System.out.println(e);
@@ -580,7 +580,7 @@ public class TestNegative {
     // Build Table and column groups
     BasicTable.Writer writer = null;
     try {
-      writer = new BasicTable.Writer(path, STR_SCHEMA, STR_STORAGE, false, conf);
+      writer = new BasicTable.Writer(path, STR_SCHEMA, STR_STORAGE, conf);
     } catch (Exception e) {
       e.printStackTrace();
       Assert.fail("Should Not throw exception");
@@ -609,7 +609,7 @@ public class TestNegative {
     // Build Table and column groups
     BasicTable.Writer writer = null;
     try {
-      writer = new BasicTable.Writer(path, STR_SCHEMA, STR_STORAGE, false, conf);
+      writer = new BasicTable.Writer(path, STR_SCHEMA, STR_STORAGE, conf);
       Assert.fail("Should throw exception");
     } catch (Exception e) {
       System.out.println(e);

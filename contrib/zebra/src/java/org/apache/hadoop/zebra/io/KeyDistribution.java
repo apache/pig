@@ -24,6 +24,7 @@ import java.util.TreeMap;
 
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.file.tfile.RawComparable;
+import org.apache.hadoop.io.file.tfile.ByteArray;
 
 /**
  * Class used to convey the information of how on-disk data are distributed
@@ -149,7 +150,8 @@ public class KeyDistribution {
    * Get the block distribution of all data that maps to the key bucket.
    */
   public BlockDistribution getBlockDistribution(BytesWritable key) {
-    BlockDistribution bInfo = data.get(key);
+    ByteArray key0 = new ByteArray(key.get(), 0, key.getSize());
+    BlockDistribution bInfo = data.get(key0);
     if (bInfo == null) {
       throw new IllegalArgumentException("Invalid key");
     }
