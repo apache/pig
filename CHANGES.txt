@@ -26,6 +26,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-958: Splitting output data on key field (ankur via pradeepkth)
+
 PIG-1058: FINDBUGS: remaining "Correctness Warnings" (olgan)
 
 PIG-1036: Fragment-replicate left outer join (ankit.modi via pradeepkth)
