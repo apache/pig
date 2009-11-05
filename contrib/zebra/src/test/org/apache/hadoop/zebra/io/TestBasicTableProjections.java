@@ -62,7 +62,7 @@ public class TestBasicTableProjections {
     BasicTable.drop(path, conf);
 
     BasicTable.Writer writer = new BasicTable.Writer(path, "a,b,c,d,e,f,g",
-        "[a,b,c];[d,e,f,g]", false, conf);
+        "[a,b,c];[d,e,f,g]", conf);
     writer.finish();
 
     Schema schema = writer.getSchema();

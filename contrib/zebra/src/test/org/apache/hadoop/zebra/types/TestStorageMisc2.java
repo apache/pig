@@ -96,7 +96,7 @@ public class TestStorageMisc2 {
   public void testStorageValid1() {
     try {
       String strStorage = "[c] compress by gz; [m1] serialize by avro";
-      Partition p = new Partition(schema.toString(), strStorage);
+      Partition p = new Partition(schema.toString(), strStorage, null);
       CGSchema[] cgschemas = p.getCGSchemas();
 
       // 2 column group;
@@ -160,7 +160,7 @@ public class TestStorageMisc2 {
   public void testStorageValid2() {
     try {
       String strStorage = "[c] compress by gz; [m1#{k1}] serialize by avro";
-      Partition p = new Partition(schema.toString(), strStorage);
+      Partition p = new Partition(schema.toString(), strStorage, null);
       CGSchema[] cgschemas = p.getCGSchemas();
 
       // 3 column group;

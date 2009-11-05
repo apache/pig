@@ -41,6 +41,9 @@ import org.apache.hadoop.zebra.schema.ColumnType;
  * insertions and queries respectively.
  */
 public class Partition {
+  /**
+   * Storage split types
+   */
   public enum SplitType {
     NONE, RECORD, COLLECTION, MAP
   }
@@ -317,7 +320,7 @@ public class Partition {
      */
     public CGSchema generateDefaultCGSchema(String name, String compressor,
         String serializer, String owner, String group, 
-        short perm, final int defaultCGIndex) throws ParseException {
+        short perm, final int defaultCGIndex, String comparator) throws ParseException {
       Schema schema = new Schema();
       Schema.ColumnSchema fs;
       for (int i = 0; i < mSchema.getNumColumns(); i++) {
@@ -369,13 +372,13 @@ public class Partition {
         }
       }
       CGSchema defaultSchema =
-          (schema.getNumColumns() == 0 ? null : new CGSchema(schema, false, name, serializer, compressor, owner, group, perm));
+          (schema.getNumColumns() == 0 ? null : new CGSchema(schema, false, comparator, name, serializer, compressor, owner, group, perm));
       return defaultSchema;
     }
 
     /**
      * returns "hash key-to-(sub)column" map on a (sub)column which is MAP-split
-     * aross different hash keys
+     * across different hash keys
      */
     public HashSet<PartitionInfo.ColumnMappingEntry> getSplitMap(
         Schema.ColumnSchema fs) {
@@ -661,17 +664,21 @@ public class Partition {
   private Projection mProjection = null;
   private ArrayList<PartitionedColumn> mPCNeedTmpTuple = new ArrayList<PartitionedColumn>();
   private ArrayList<PartitionedColumn> mPCNeedMap = new ArrayList<PartitionedColumn>();
+  private String comparator;
+  private boolean mSorted;
+  private SortInfo mSortInfo;
 
   /*
    * ctor used for LOAD
    */
-  public Partition(Schema schema, Projection projection, String storage)
+  public Partition(Schema schema, Projection projection, String storage, String comparator)
       throws ParseException, IOException {
     mSchema = schema;
     TableStorageParser sparser =
-        new TableStorageParser(new StringReader(storage), this, mSchema);
+        new TableStorageParser(new StringReader(storage), this, mSchema, comparator);
     mPartitionInfo = new PartitionInfo(schema);
-    ArrayList<CGSchema> cgschemas = sparser.StorageSchema();
+    ArrayList<CGSchema> cgschemas = new ArrayList<CGSchema>();
+    sparser.StorageSchema(cgschemas);
     mCGSchemas = cgschemas.toArray(new CGSchema[cgschemas.size()]);
     mProjection = projection;
     Schema projSchema = projection.getProjectionSchema();
@@ -747,15 +754,34 @@ public class Partition {
   /*
    * ctor used by STORE
    */
-  public Partition(final String schema, final String storage)
+  public Partition(final String schema, final String storage, String comparator, String sortColumns)
+        throws ParseException, IOException
+  {
+    TableSchemaParser parser = new TableSchemaParser(new StringReader(schema));
+    mSchema = parser.RecordSchema(null);
+    mSortInfo = SortInfo.parse(sortColumns, mSchema, comparator);
+    mSorted = (mSortInfo != null && mSortInfo.size() > 0);
+    this.comparator = (mSorted ? mSortInfo.getComparator() : "");
+    storeConst(storage);
+  }
+
+  public Partition(String schema, final String storage, String comparator)
       throws ParseException, IOException
   {
     TableSchemaParser parser = new TableSchemaParser(new StringReader(schema));
     mSchema = parser.RecordSchema(null);
+    this.comparator = comparator;
+    storeConst(storage);
+  }
+
+  private void storeConst(final String storage)
+      throws ParseException, IOException
+  {
     mPartitionInfo = new PartitionInfo(mSchema);
     TableStorageParser sparser =
-        new TableStorageParser(new StringReader(storage), this, mSchema);
-    ArrayList<CGSchema> cgschemas = sparser.StorageSchema();    
+      new TableStorageParser(new StringReader(storage), this, mSchema, this.comparator);
+    ArrayList<CGSchema> cgschemas = new ArrayList<CGSchema>();
+    sparser.StorageSchema(cgschemas);
     mCGSchemas = cgschemas.toArray(new CGSchema[cgschemas.size()]);
     int size = mSchema.getNumColumns();
     PartitionInfo.ColumnMappingEntry cgindex;
@@ -803,6 +829,18 @@ public class Partition {
 
     for (int i = 0; i < mPCNeedMap.size(); i++)
       mPCNeedMap.get(i).createMap();
+  }
+
+  public SortInfo getSortInfo() {
+    return mSortInfo;
+  }
+
+  public boolean isSorted() {
+    return mSorted;
+  }
+
+  public String getComparator() {
+    return comparator;
   }
 
   /**
@@ -856,10 +894,10 @@ public class Partition {
     {
       if (projectedKeys != null)
       {
-        pn.mDT = ColumnType.MAP;
+        pn.setDT(ColumnType.MAP);
         map = true;
       } else {
-        pn.mDT = ColumnType.ANY;
+        pn.setDT(ColumnType.ANY);
         PartitionInfo.ColumnMappingEntry cme;
         for (Iterator<PartitionInfo.ColumnMappingEntry> it = results.iterator(); it.hasNext(); )
         {
@@ -985,7 +1023,7 @@ public class Partition {
       pn.parseName(fs);
       Schema.ParsedName oripn = new Schema.ParsedName();
       for (int i = 0; i < schema.getNumColumns(); i++) {
-        oripn.setName(new String(pn.mName), pn.mDT);
+        oripn.setName(new String(pn.getName()), pn.getDT());
         child = schema.getColumn(i);
         if (getCGIndex(child) == null) {
           // not a CG: go one level lower
@@ -1038,7 +1076,7 @@ public class Partition {
       PartitionedColumn parent, Schema.ColumnSchema child, int i,
       int fi, HashMap<PartitionInfo.ColumnMappingEntry, HashSet<String>> cgindices) throws IOException {
     CGEntry cgentry;
-    if (pn.mDT == ColumnType.ANY) {
+    if (pn.getDT() == ColumnType.ANY) {
       // this subtype is MAP split and the projection is on the whole MAP:
       // => need to add stitches for all split keys
 
@@ -1236,7 +1274,6 @@ public class Partition {
     while (it.hasNext())
       it.next().getValue().read();
 
-    TypesUtils.resetTuple(t);
     // dispatch
     mExecs.get(mStitchSize - 1).setRecord(t);
 
@@ -1313,9 +1350,9 @@ public class Partition {
 
   public CGSchema generateDefaultCGSchema(String name, String compressor, String serializer,
       String owner, String group, short perm, 
-      final int defaultCGIndex) throws ParseException {
+      final int defaultCGIndex, String comparator) throws ParseException {
     return mPartitionInfo.generateDefaultCGSchema(name, compressor, serializer,owner, group, perm,
-        defaultCGIndex);
+        defaultCGIndex, comparator);
   }
 
   public void setSplit(Schema.ColumnSchema fs, SplitType st, SplitType cst, String name, String childName, boolean splitChild) throws ParseException {

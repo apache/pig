@@ -30,7 +30,7 @@ import org.apache.hadoop.zebra.schema.ColumnType;
 import org.apache.hadoop.zebra.types.*;
 
 public class TableStorageParser {
-		public TableStorageParser(java.io.Reader in, Partition partition, Schema schema) { this(in); mSchema = schema; this.partition = partition;}
+		public TableStorageParser(java.io.Reader in, Partition partition, Schema schema, String comparator) { this(in); mSchema = schema; this.partition = partition; this.comparator = comparator; }
 		private Schema mSchema;
 		private int mDefaultCGIndex = -1;
 		private String mName = null;
@@ -39,6 +39,7 @@ public class TableStorageParser {
 		private short mPerm = -1;
 		private int mCGCount = 0;
 		private Partition partition;
+    private String comparator = null;
 }
 PARSER_END(TableStorageParser)
 
@@ -54,16 +55,15 @@ SKIP : {
 TOKEN : { <COMPRESSOR : "lzo" | "gz"> }
 TOKEN : { <SERIALIZER : ("pig" | "avro")> }
 
-TOKEN : { <ORDER	 : "order by"> }
 TOKEN : { <COMPRESS	 : "compress by"> }
 TOKEN : { <SERIALIZE : "serialize by"> }
+TOKEN : { <ASC : "ASC"> }
+TOKEN : { <DESC: "DESC"> }
 TOKEN : { <SECURE 	 : "secure by"> }
 TOKEN : { <USER		 : "user"> }
 TOKEN : { <GROUP	 : "group"> }
 TOKEN : { <PERM		 : "perm"> }
 TOKEN : { <AS		 : "as"> }
-
-
 
 
 TOKEN:
@@ -77,62 +77,17 @@ TOKEN:
 |   <SHORT	:	(<OCTAL>){3}	>
 }
 
-ArrayList<CGSchema> StorageSchema() throws ParseException :
+void StorageSchema(ArrayList<CGSchema> s) throws ParseException :
 {
-	ArrayList<CGSchema> s = new ArrayList();
 	CGSchema fs;
 	CGSchema defaultSchema;
 }
 {
 	try {
-		LOOKAHEAD(2) <EOF>
-		{
-			defaultSchema = partition.generateDefaultCGSchema(mName, mCompressor, mSerializer, mOwner, mGroup, mPerm, 0);
-			if (defaultSchema != null)
-				s.add(defaultSchema);
-
-      // check column group names, add system created names when necessary;
-      HashSet<String> cgNames = new HashSet<String>();
-      ArrayList<CGSchema> unnamed = new ArrayList<CGSchema>(); 	
-      for (int i = 0; i < s.size(); i++) { 
-        CGSchema cgSchema = s.get(i);
-        String str = cgSchema.getName();
-        if (str != null) {
-          if (!cgNames.add(str)) {
-            throw new ParseException("Duplicate column group names.");
-          }
-        } else {
-          unnamed.add(cgSchema);
-        }
-      }
-      
-      int digits = 1;
-      int total = unnamed.size();
-      while (total >= 10) {
-        ++digits;
-        total /= 10;
-      }
-      String formatString = "%0" + digits + "d";
-      
-      int idx = 0;
-      for (int i = 0; i < unnamed.size(); i++) { 
-        CGSchema cgSchema = unnamed.get(i);
-        String str = null;
-        while (true) {
-          str = "CG" + String.format(formatString, idx++);
-          if (!cgNames.contains(str)) {
-            break;
-          }
-        }
-        cgSchema.setName(str);
-      }
-			return s;
-		}
-	|
 		fs = FieldSchema() {mCGCount++; if (fs != null) s.add(fs);}
 		(";" fs = FieldSchema() {mCGCount++; if (fs != null) s.add(fs);})* <EOF>
 		{
-			defaultSchema = partition.generateDefaultCGSchema(mName, mCompressor, mSerializer, mOwner, mGroup, mPerm, mDefaultCGIndex == -1 ? mDefaultCGIndex = mCGCount++ : mDefaultCGIndex);
+			defaultSchema = partition.generateDefaultCGSchema(mName, mCompressor, mSerializer, mOwner, mGroup, mPerm, mDefaultCGIndex == -1 ? mDefaultCGIndex = mCGCount++ : mDefaultCGIndex, comparator);
 			if (defaultSchema != null)
 				s.add(defaultSchema);
 
@@ -171,11 +126,27 @@ ArrayList<CGSchema> StorageSchema() throws ParseException :
         }
         cgSchema.setName(str);
       }
-			return s;
+			return;
 		}
 	} catch (TokenMgrError e) {
 		throw new ParseException(e.getMessage());
 	}
+}
+
+boolean ascdsc() throws ParseException :
+{
+  Token t1 = null, t2 = null;
+}
+{
+  (
+		t1 = <ASC>
+  | t2 = <DESC>
+  )
+  {
+    if (t2 != null)
+      return false;
+    return true;
+  }
 }
 
 CGSchema FieldSchema() throws ParseException:
@@ -310,8 +281,9 @@ CGSchema FieldSchema() throws ParseException:
 			mOwner		= owner;
 			mGroup		= group;
 			mPerm 		= perm; 
-		} else
-			cs = new CGSchema(fs, false, name, serializer, compressor, owner, group, perm);
+		} else {
+			cs = new CGSchema(fs, false, comparator, name, serializer, compressor, owner, group, perm);
+    }
 		return cs;
 	}
 }

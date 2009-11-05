@@ -81,14 +81,13 @@ public class TestBasicTable {
     return String.format("%s%09d", prefix, random.nextInt(max));
   }
 
-  static int createBasicTable(int parts, int rows, String strSchema, String storage,
-      Path path, boolean properClose, boolean sorted) throws IOException {
+  static int createBasicTable(int parts, int rows, String strSchema, String storage, String sortColumns,
+      Path path, boolean properClose) throws IOException {
     if (fs.exists(path)) {
       BasicTable.drop(path, conf);
     }
 
-    BasicTable.Writer writer = new BasicTable.Writer(path, strSchema, storage,
-        sorted, conf);
+    BasicTable.Writer writer = new BasicTable.Writer(path, strSchema, storage, sortColumns, null, conf);
     writer.finish();
 
     int total = 0;
@@ -96,6 +95,7 @@ public class TestBasicTable {
     String colNames[] = schema.getColumns();
     Tuple tuple = TypesUtils.createTuple(schema);
 
+    boolean sorted = writer.isSorted();
     for (int i = 0; i < parts; ++i) {
       writer = new BasicTable.Writer(path, conf);
       TableInserter inserter = writer.getInserter(
@@ -230,10 +230,10 @@ public class TestBasicTable {
   }
 
   static void doReadWrite(Path path, int parts, int rows, String schema,
-      String storage, String projection, boolean properClose, boolean sorted)
+      String storage, String sortColumns, String projection, boolean properClose, boolean sorted)
       throws IOException, ParseException {
-    int totalRows = createBasicTable(parts, rows, schema, storage, path,
-        properClose, sorted);
+    int totalRows = createBasicTable(parts, rows, schema, storage, sortColumns, path,
+        properClose);
     if (rows == 0) {
       Assert.assertEquals(rows, 0);
     }
@@ -248,17 +248,17 @@ public class TestBasicTable {
 
   public void testMultiCGs() throws IOException, ParseException {
     Path path = new Path(rootPath, "TestBasicTableMultiCGs");
-    doReadWrite(path, 2, 100, "SF_a,SF_b,SF_c,SF_d,SF_e", "[SF_a,SF_b,SF_c];[SF_d,SF_e]", "SF_f,SF_a,SF_c,SF_d", true, false);
+    doReadWrite(path, 2, 100, "SF_a,SF_b,SF_c,SF_d,SF_e", "[SF_a,SF_b,SF_c];[SF_d,SF_e]", null, "SF_f,SF_a,SF_c,SF_d", true, false);
   }
 
   public void testCornerCases() throws IOException, ParseException {
     Path path = new Path(rootPath, "TestBasicTableCornerCases");
-    doReadWrite(path, 0, 0, "a, b, c", "", "a, d, c, f", false, false);
-    doReadWrite(path, 0, 0, "a, b, c", "", "a, d, c, f", true, false);
-    doReadWrite(path, 0, 0, "a, b, c", "", "a, d, c, f", true, true);
-    doReadWrite(path, 2, 0, "a, b, c", "", "a, d, c, f", false, false);
-    doReadWrite(path, 2, 0, "a, b, c", "", "a, d, c, f", true, false);
-    doReadWrite(path, 2, 0, "a, b, c", "", "a, d, c, f", true, true);
+    doReadWrite(path, 0, 0, "a, b, c", "", null, "a, d, c, f", false, false);
+    doReadWrite(path, 0, 0, "a, b, c", "", null, "a, d, c, f", true, false);
+    doReadWrite(path, 0, 0, "a, b, c", "", "a", "a, d, c, f", true, true);
+    doReadWrite(path, 2, 0, "a, b, c", "", null, "a, d, c, f", false, false);
+    doReadWrite(path, 2, 0, "a, b, c", "", null, "a, d, c, f", true, false);
+    doReadWrite(path, 2, 0, "a, b, c", "", "a", "a, d, c, f", true, true);
   }
 
   static int doReadOnly(TableScanner scanner) throws IOException, ParseException {
@@ -289,7 +289,7 @@ public class TestBasicTable {
   @Test
   public void testNullSplits() throws IOException, ParseException {
     Path path = new Path(rootPath, "TestBasicTableNullSplits");
-    int totalRows = createBasicTable(2, 250, "a, b, c", "", path, true, true);
+    int totalRows = createBasicTable(2, 250, "a, b, c", "", "a", path, true);
     BasicTable.Reader reader = new BasicTable.Reader(path, conf);
     reader.setProjection("a,d,c,f");
     Assert.assertEquals(totalRows, doReadOnly(reader.getScanner(null, false)));
@@ -301,14 +301,14 @@ public class TestBasicTable {
   @Test
   public void testNegativeSplits() throws IOException, ParseException {
     Path path = new Path(rootPath, "TestNegativeSplits");
-    int totalRows = createBasicTable(2, 250, "a, b, c", "", path, true, true);
+    int totalRows = createBasicTable(2, 250, "a, b, c", "", "", path, true);
     rangeSplitBasicTable(-1, totalRows, "a,d,c,f", path);
   }
 
   @Test
   public void testMetaBlocks() throws IOException, ParseException {
     Path path = new Path(rootPath, "TestBasicTableMetaBlocks");
-    createBasicTable(3, 100, "a, b, c", "", path, false, false);
+    createBasicTable(3, 100, "a, b, c", "", null, path, false);
     BasicTable.Writer writer = new BasicTable.Writer(path, conf);
     BytesWritable meta1 = makeKey(1234);
     BytesWritable meta2 = makeKey(9876);
@@ -350,8 +350,8 @@ public class TestBasicTable {
   @Test
   public void testNormalCases() throws IOException, ParseException {
     Path path = new Path(rootPath, "TestBasicTableNormal");
-    doReadWrite(path, 2, 250, "a, b, c", "", "a, d, c, f", false, false);
-    doReadWrite(path, 2, 250, "a, b, c", "", "a, d, c, f", true, false);
-    doReadWrite(path, 2, 250, "a, b, c", "", "a, d, c, f", true, true);
+    doReadWrite(path, 2, 250, "a, b, c", "", null, "a, d, c, f", false, false);
+    doReadWrite(path, 2, 250, "a, b, c", "", null, "a, d, c, f", true, false);
+    doReadWrite(path, 2, 250, "a, b, c", "", "a", "a, d, c, f", true, true);
   }
 }

@@ -44,7 +44,7 @@
   <property name="conf.dir" location="${pig.root}/conf"/>
   <property name="test.junit.output.format" value="plain"/>
   <property name="test.output" value="no"/>
-  <property name="test.timeout" value="900000"/>
+  <property name="test.timeout" value="9000000"/>
   <property name="build.dir" location="${pig.root}/build/contrib/${name}"/>
   <property name="build.javadoc"
 	  location="${pig.root}/build/contrib/${name}/docs"/>
@@ -53,6 +53,7 @@
   <property name="build.examples" location="${build.dir}/examples"/>
   <property name="pig.log.dir" location="${build.dir}/test/logs"/>
   <property name="hadoop.jarfile" value="hadoop20.jar" />
+  <property name="pig.jarfile" value="pig-0.6.0-dev-core.jar" />
   <property name="hbase.jarfile" value="hbase-0.18.1.jar" />
   <property name="hbase.test.jarfile" value="hbase-0.18.1-test.jar" />
 
@@ -102,6 +103,9 @@
       <include name="${hadoop.jarfile}" />
       <include name="${hbase.jarfile}" />
       <include name="${hbase.test.jarfile}" />
+    </fileset>
+    <fileset dir="${pig.root}/build">
+      <include name="${pig.jarfile}" />
     </fileset>
     <fileset dir="${pig.root}/build/ivy/lib">
        <include name="**/*.jar"/>

@@ -5,6 +5,8 @@ Trunk (unreleased changes)
   INCOMPATIBLE CHANGES
 
   IMPROVEMENTS
+
+    PIG-997 Sorted Table Support by Zebra (yanz via gates)
   	
 	PIG-996 Add findbugs, checkstyle, and clover to zebra build file (chaow via
 	        gates)

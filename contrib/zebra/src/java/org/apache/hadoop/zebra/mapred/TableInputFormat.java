@@ -24,7 +24,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-
+import org.apache.hadoop.util.StringUtils;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.WritableUtils;
@@ -46,6 +46,8 @@ import org.apache.hadoop.zebra.parser.ParseException;
 import org.apache.hadoop.zebra.types.Projection;
 import org.apache.hadoop.zebra.schema.Schema;
 import org.apache.hadoop.zebra.types.TypesUtils;
+import org.apache.hadoop.zebra.types.SortInfo;
+import org.apache.hadoop.zebra.mapred.TableExpr.LeafTableInfo;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.Tuple;
@@ -133,6 +135,7 @@ import org.apache.pig.data.Tuple;
 public class TableInputFormat implements InputFormat<BytesWritable, Tuple> {
   private static final String INPUT_EXPR = "mapred.lib.table.input.expr";
   private static final String INPUT_PROJ = "mapred.lib.table.input.projection";
+  private static final String INPUT_SORT = "mapred.lib.table.input.sort";
 
   /**
    * Set the paths to the input table.
@@ -158,6 +161,45 @@ public class TableInputFormat implements InputFormat<BytesWritable, Tuple> {
       setInputExpr(conf, expr);
     }
   }
+  
+  //This method escapes commas in the glob pattern of the given paths. 
+  private static String[] getPathStrings(String commaSeparatedPaths) {
+    int length = commaSeparatedPaths.length();
+    int curlyOpen = 0;
+    int pathStart = 0;
+    boolean globPattern = false;
+    List<String> pathStrings = new ArrayList<String>();
+    
+    for (int i=0; i<length; i++) {
+      char ch = commaSeparatedPaths.charAt(i);
+      switch(ch) {
+        case '{' : {
+          curlyOpen++;
+          if (!globPattern) {
+            globPattern = true;
+          }
+          break;
+        }
+        case '}' : {
+          curlyOpen--;
+          if (curlyOpen == 0 && globPattern) {
+            globPattern = false;
+          }
+          break;
+        }
+        case ',' : {
+          if (!globPattern) {
+            pathStrings.add(commaSeparatedPaths.substring(pathStart, i));
+            pathStart = i + 1 ;
+          }
+          break;
+        }
+      }
+    }
+    pathStrings.add(commaSeparatedPaths.substring(pathStart, length));
+    
+    return pathStrings.toArray(new String[0]);
+  }
 
   /**
    * Set the input expression in the JobConf object.
@@ -180,6 +222,18 @@ public class TableInputFormat implements InputFormat<BytesWritable, Tuple> {
     }
     StringReader in = new StringReader(expr);
     return TableExpr.parse(in);
+  }
+  
+  /**
+   * Get the schema of a table expr
+   * 
+   * @param conf
+   *          JobConf object.
+   */
+  public static Schema getSchema(JobConf conf) throws IOException
+  {
+	  TableExpr expr = getInputExpr(conf);
+	  return expr.getSchema(conf);
   }
 
   /**
@@ -220,15 +274,171 @@ public class TableInputFormat implements InputFormat<BytesWritable, Tuple> {
   }
   
   /**
+   * Set requirement for sorted table
+   *
+   *@param conf
+   *          JobConf object.
+   */
+  private static void setSorted(JobConf conf) {
+    conf.setBoolean(INPUT_SORT, true);
+  }
+  
+  /**
+   * Get the SortInfo object regarding a Zebra table
+   *
+   * @param conf
+   *          JobConf object
+   * @return the zebra tables's SortInfo; null if the table is unsorted.
+   */
+  public static SortInfo getSortInfo(JobConf conf) throws IOException
+  {
+	  TableExpr expr = getInputExpr(conf);
+	  SortInfo result = null;
+	  int sortSize = 0;
+	  if (expr instanceof BasicTableExpr)
+    {
+      BasicTable.Reader reader = new BasicTable.Reader(((BasicTableExpr) expr).getPath(), conf);
+      SortInfo sortInfo = reader.getSortInfo();
+      reader.close();
+      result = sortInfo;
+	  } else {
+      List<LeafTableInfo> leaves = expr.getLeafTables(null);
+      for (Iterator<LeafTableInfo> it = leaves.iterator(); it.hasNext(); )
+      {
+        LeafTableInfo leaf = it.next();
+        BasicTable.Reader reader = new BasicTable.Reader(leaf.getPath(), conf);
+        SortInfo sortInfo = reader.getSortInfo();
+        reader.close();
+        if (sortSize == 0)
+        {
+          sortSize = sortInfo.size();
+          result = sortInfo;
+        } else if (sortSize != sortInfo.size()) {
+          throw new IOException("Tables of the table union do not possess the same sort property.");
+        }
+		  }
+	  }
+	  return result;
+  }
+
+  /**
+   * Requires sorted table or table union
+   * 
+   * @param conf
+   *          JobConf object.
+   * @param sortcolumns
+   *          Sort column names.
+   * @param comparator
+   *          Comparator name. Null means the caller does not care but table union will check
+   *          identical comparators regardless as a minimum sanity check
+   *        
+   */
+  public static void requireSortedTable(JobConf conf, String sortcolumns, String comparator) throws IOException {
+	 TableExpr expr = getInputExpr(conf);
+	 if (expr instanceof BasicTableExpr)
+	 {
+		 BasicTable.Reader reader = new BasicTable.Reader(((BasicTableExpr) expr).getPath(), conf);
+		 SortInfo sortInfo = reader.getSortInfo();
+		 reader.close();
+		 if (comparator == null && sortInfo != null)
+			 // cheat the equals method's comparator comparison
+			 comparator = sortInfo.getComparator();
+		 if (sortInfo == null || !sortInfo.equals(sortcolumns, comparator))
+		 {
+			 throw new IOException("The table is not (properly) sorted");
+		 }
+	 } else {
+		 List<LeafTableInfo> leaves = expr.getLeafTables(null);
+		 for (Iterator<LeafTableInfo> it = leaves.iterator(); it.hasNext(); )
+		 {
+			 LeafTableInfo leaf = it.next();
+			 BasicTable.Reader reader = new BasicTable.Reader(leaf.getPath(), conf);
+			 SortInfo sortInfo = reader.getSortInfo();
+			 reader.close();
+			 if (comparator == null && sortInfo != null)
+				 comparator = sortInfo.getComparator(); // use the first table's comparator as comparison base
+			 if (sortInfo == null || !sortInfo.equals(sortcolumns, comparator))
+			 {
+				 throw new IOException("The table is not (properly) sorted");
+			 }
+		 }
+		 // need key range input splits for sorted table union
+		 setSorted(conf);
+	 }
+  }
+  
+  /**
+   * Requires sorted table or table union. For table union, leading sort columns 
+   * of component tables need to be the same
+   * 
+   * @param conf
+   *          JobConf object.
+   *        
+   */
+  public static void requireSortedTable(JobConf conf) throws IOException {
+	 TableExpr expr = getInputExpr(conf);
+	 if (expr instanceof BasicTableExpr)
+	 {
+		 BasicTable.Reader reader = new BasicTable.Reader(((BasicTableExpr) expr).getPath(), conf);
+		 SortInfo sortInfo = reader.getSortInfo();
+		 reader.close();
+		 if (sortInfo == null)
+		 {
+			 throw new IOException("The table is not (properly) sorted");
+		 }
+	 } else {
+		 List<LeafTableInfo> leaves = expr.getLeafTables(null);
+		 String sortcolumns = null, comparator = null;
+		 for (Iterator<LeafTableInfo> it = leaves.iterator(); it.hasNext(); )
+		 {
+			 LeafTableInfo leaf = it.next();
+			 BasicTable.Reader reader = new BasicTable.Reader(leaf.getPath(), conf);
+			 SortInfo sortInfo = reader.getSortInfo();
+			 reader.close();
+			 if (sortInfo == null)
+			 {
+				 throw new IOException("The table is not (properly) sorted");
+			 }
+			 // check the compatible sort info among the member tables of a union
+			 if (sortcolumns == null)
+			 {
+				 sortcolumns = SortInfo.toSortString(sortInfo.getSortColumnNames());
+				 comparator = sortInfo.getComparator();
+			 } else {
+				 if (!sortInfo.equals(sortcolumns, comparator))
+				 {
+					 throw new IOException("The table is not (properly) sorted");
+				 }
+			 }
+		 }
+		 // need key range input splits for sorted table union
+		 setSorted(conf);
+	 }
+  }
+  /**
+   * Set requirement for sorted table
+   *
+   *@param conf
+   *          JobConf object.
+   */
+  private static boolean getSorted(JobConf conf) {
+    return conf.getBoolean(INPUT_SORT, false);
+  }
+
+  /**
    * @see InputFormat#getRecordReader(InputSplit, JobConf, Reporter)
    */
   @Override
   public RecordReader<BytesWritable, Tuple> getRecordReader(InputSplit split,
       JobConf conf, Reporter reporter) throws IOException {
-    TableExpr expr = getInputExpr(conf);
+  TableExpr expr = getInputExpr(conf);
     if (expr == null) {
       throw new IOException("Table expression not defined");
     }
+
+    if (getSorted(conf))
+      expr.setSortedSplit();
+
     String strProj = conf.get(INPUT_PROJ);
     String projection = null;
     try {
@@ -241,16 +451,37 @@ public class TableInputFormat implements InputFormat<BytesWritable, Tuple> {
     } catch (ParseException e) {
     	throw new IOException("Projection parsing failed : "+e.getMessage());
     }
+
     try {
       return new TableRecordReader(expr, projection, split, conf);
     } catch (ParseException e) {
     	throw new IOException("Projection parsing faile : "+e.getMessage());
     }
   }
+  
+  /**
+   * Get a TableRecordReader on a single split
+   * 
+   * @param conf
+   *          JobConf object.
+   * @param projection
+   *          comma-separated column names in projection. null means all columns in projection
+   */
+  
+  public TableRecordReader getTableRecordReader(JobConf conf, String projection) throws IOException, ParseException
+  {
+	// a single split is needed
+    if (projection != null)
+    	setProjection(conf, projection);
+    TableInputFormat inputFormat = new TableInputFormat();
+    InputSplit[] splits = inputFormat.getSplits(conf, 1);
+    return (TableRecordReader) getRecordReader(splits[0], conf, Reporter.NULL);
+  }
 
   private static InputSplit[] getSortedSplits(JobConf conf, int numSplits,
       TableExpr expr, List<BasicTable.Reader> readers,
       List<BasicTableStatus> status) throws IOException {
+
     if (expr.sortedSplitRequired() && !expr.sortedSplitCapable()) {
       throw new IOException("Unable to created sorted splits");
     }
@@ -410,6 +641,8 @@ public class TableInputFormat implements InputFormat<BytesWritable, Tuple> {
   public InputSplit[] getSplits(JobConf conf, int numSplits)
       throws IOException {
     TableExpr expr = getInputExpr(conf);
+    if (getSorted(conf))
+      expr.setSortedSplit();
     if (expr.sortedSplitRequired() && !expr.sortedSplitCapable()) {
       throw new IOException("Unable to created sorted splits");
     }
@@ -542,6 +775,12 @@ class SortedTableSplit implements InputSplit {
     if (bool == 1) {
       end.readFields(in);
     }
+    length = WritableUtils.readVLong(in);
+    int size = WritableUtils.readVInt(in);
+    if (size > 0)
+      hosts = new String[size];
+    for (int i = 0; i < size; i++)
+    	hosts[i] = WritableUtils.readString(in);
   }
 
   @Override
@@ -559,6 +798,12 @@ class SortedTableSplit implements InputSplit {
     else {
       WritableUtils.writeVInt(out, 1);
       end.write(out);
+    }
+    WritableUtils.writeVLong(out, length);
+    WritableUtils.writeVInt(out, hosts == null ? 0 : hosts.length);
+    for (int i = 0; i < hosts.length; i++)
+    {
+    	WritableUtils.writeString(out, hosts[i]);
     }
   }
   
@@ -642,81 +887,5 @@ class UnsortedTableSplit implements InputSplit {
   
   public RangeSplit getSplit() {
     return split;
-  }
-}
-
-/**
- * Adaptor class to implement RecordReader on top of Scanner.
- */
-class TableRecordReader implements RecordReader<BytesWritable, Tuple> {
-  private final TableScanner scanner;
-  private long count = 0;
-
-  /**
-   * 
-   * @param expr
-   * @param projection
-   *          projection schema. Should never be null.
-   * @param split
-   * @param conf
-   * @throws IOException
-   */
-  public TableRecordReader(TableExpr expr, String projection,
-      InputSplit split,
-      JobConf conf) throws IOException, ParseException {
-    if (expr.sortedSplitRequired()) {
-      SortedTableSplit tblSplit = (SortedTableSplit) split;
-      scanner =
-          expr.getScanner(tblSplit.getBegin(), tblSplit.getEnd(), projection,
-              conf);
-    }
-    else {
-      UnsortedTableSplit tblSplit = (UnsortedTableSplit) split;
-      scanner = expr.getScanner(tblSplit, projection, conf);
-    }
-  }
-  
-  @Override
-  public void close() throws IOException {
-    scanner.close();
-  }
-
-  @Override
-  public BytesWritable createKey() {
-    return new BytesWritable();
-  }
-
-  @Override
-  public Tuple createValue() {
-    try {
-      return TypesUtils.createTuple(Projection.getNumColumns(scanner.getProjection()));
-    }
-    catch (IOException e) {
-      // TODO Auto-generated catch block
-      e.printStackTrace();
-    }
-    return null;
-  }
-
-  @Override
-  public long getPos() throws IOException {
-    return count;
-  }
-
-  @Override
-  public float getProgress() throws IOException {
-    return (float) ((scanner.atEnd()) ? 1.0 : 0);
-  }
-
-  @Override
-  public boolean next(BytesWritable key, Tuple value) throws IOException {
-    if (scanner.atEnd()) {
-      return false;
-    }
-    scanner.getKey(key);
-    scanner.getValue(value);
-    scanner.advance();
-    ++count;
-    return true;
   }
 }

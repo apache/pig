@@ -74,7 +74,7 @@ public class TestCollectionTableLoader {
     BasicTable.drop(pathTable, conf);
 
     BasicTable.Writer writer = new BasicTable.Writer(pathTable,
-        "c:collection(a:double, b:float, c:bytes)", "[c]", false, conf);
+        "c:collection(a:double, b:float, c:bytes)", "[c]", conf);
     Schema schema = writer.getSchema();
     Tuple tuple = TypesUtils.createTuple(schema);
 

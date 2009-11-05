@@ -21,7 +21,18 @@ import java.io.DataOutput;
 import java.io.DataOutputStream;
 import java.io.PrintStream;
 
+/**
+ * Helper for Zebra I/O
+ */
 public class IOutils {
+  /**
+   * indent of some spaces
+   *
+   * @param os
+   *          print stream the indent space to be inserted
+   * @param amount
+   *          the number of spaces to be indented
+   */
   public static void indent(PrintStream os, int amount)
   {
     for (int i = 0; i < amount; i++)

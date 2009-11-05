@@ -93,7 +93,6 @@ public interface TableScanner extends Closeable {
   
   /**
    * Get the projection's schema
-   * @return
    */
   public Schema getSchema();
 }

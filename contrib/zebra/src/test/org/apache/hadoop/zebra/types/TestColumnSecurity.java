@@ -133,8 +133,7 @@ public class TestColumnSecurity {
     fs = path1.getFileSystem(conf);
     fs.setPermission(path, new FsPermission((short) 0777));
     login(USER1);
-    BasicTable.Writer writer = new BasicTable.Writer(path1, schema, storage,
-        false, conf);
+    BasicTable.Writer writer = new BasicTable.Writer(path1, schema, storage, conf);
     writer.finish();
     Schema schema1 = writer.getSchema();
     insertData(USER1.getUserName(), schema1, path1);
@@ -183,8 +182,7 @@ public class TestColumnSecurity {
     fs = path1.getFileSystem(conf);
     fs.setPermission(path, new FsPermission((short) 0777));
     login(USER1);
-    BasicTable.Writer writer = new BasicTable.Writer(path1, schema, storage,
-        false, conf);
+    BasicTable.Writer writer = new BasicTable.Writer(path1, schema, storage, conf);
     writer.finish();
     Schema schema1 = writer.getSchema();
     insertData(USER1.getUserName(), schema1, path1);
@@ -245,8 +243,7 @@ public class TestColumnSecurity {
     fs = path1.getFileSystem(conf);
     fs.setPermission(path, new FsPermission((short) 0777));
     login(USER1);
-    BasicTable.Writer writer = new BasicTable.Writer(path1, schema, storage,
-        false, conf);
+    BasicTable.Writer writer = new BasicTable.Writer(path1, schema, storage, conf);
     writer.finish();
     Schema schema1 = writer.getSchema();
     insertData(USER1.getUserName(), schema1, path1);
@@ -303,8 +300,7 @@ public class TestColumnSecurity {
     fs = path1.getFileSystem(conf);
     fs.setPermission(path, new FsPermission((short) 0777));
     login(USER1);
-    BasicTable.Writer writer = new BasicTable.Writer(path1, schema, storage,
-        false, conf);
+    BasicTable.Writer writer = new BasicTable.Writer(path1, schema, storage, conf);
     writer.finish();
     Schema schema1 = writer.getSchema();
     insertData(USER1.getUserName(), schema1, path1);
@@ -362,8 +358,7 @@ public class TestColumnSecurity {
     fs = path1.getFileSystem(conf);
     fs.setPermission(path, new FsPermission((short) 0777));
     login(USER1);
-    BasicTable.Writer writer = new BasicTable.Writer(path1, schema, storage,
-        false, conf);
+    BasicTable.Writer writer = new BasicTable.Writer(path1, schema, storage, conf);
     writer.finish();
     Schema schema1 = writer.getSchema();
     insertData(USER1.getUserName(), schema1, path1);
@@ -419,8 +414,7 @@ public class TestColumnSecurity {
     fs = path1.getFileSystem(conf);
     fs.setPermission(path, new FsPermission((short) 0777));
     login(USER1);
-    BasicTable.Writer writer = new BasicTable.Writer(path1, schema, storage,
-        false, conf);
+    BasicTable.Writer writer = new BasicTable.Writer(path1, schema, storage, conf);
     writer.finish();
     Schema schema1 = writer.getSchema();
     insertData(USER1.getUserName(), schema1, path1);
@@ -480,7 +474,7 @@ public class TestColumnSecurity {
     login(USER1);
 
     try {
-      new BasicTable.Writer(path1, schema, storage, false, conf);
+      new BasicTable.Writer(path1, schema, storage, conf);
       Assert.fail("write should fail");
     } catch (IOException e) {
     }
@@ -500,8 +494,7 @@ public class TestColumnSecurity {
     fs = path1.getFileSystem(conf);
     fs.setPermission(path, new FsPermission((short) 0777));
     login(USER1);
-    BasicTable.Writer writer = new BasicTable.Writer(path1, schema, storage,
-        false, conf);
+    BasicTable.Writer writer = new BasicTable.Writer(path1, schema, storage, conf);
     writer.finish();
     Schema schema1 = writer.getSchema();
     insertData(USER1.getUserName(), schema1, path1);
@@ -573,8 +566,7 @@ public class TestColumnSecurity {
     fs = path1.getFileSystem(conf);
     fs.setPermission(path, new FsPermission((short) 0777));
     login(USER1);
-    BasicTable.Writer writer = new BasicTable.Writer(path1, schema, storage,
-        false, conf);
+    BasicTable.Writer writer = new BasicTable.Writer(path1, schema, storage, conf);
     writer.finish();
 
     Schema schema1 = writer.getSchema();
@@ -634,7 +626,7 @@ public class TestColumnSecurity {
     login(USER1);
 
     try {
-      new BasicTable.Writer(path1, schema, storage, false, conf);
+      new BasicTable.Writer(path1, schema, storage, conf);
       Assert.fail("write should fail");
     } catch (IOException e) {
     }
@@ -654,8 +646,7 @@ public class TestColumnSecurity {
     fs = path1.getFileSystem(conf);
     fs.setPermission(path, new FsPermission((short) 0777));
     login(USER1);
-    BasicTable.Writer writer = new BasicTable.Writer(path1, schema, storage,
-        false, conf);
+    BasicTable.Writer writer = new BasicTable.Writer(path1, schema, storage, conf);
     writer.finish();
 
     Schema schema1 = writer.getSchema();
@@ -693,8 +684,7 @@ public class TestColumnSecurity {
     fs = path1.getFileSystem(conf);
     fs.setPermission(path, new FsPermission((short) 0777));
     login(USER1);
-    BasicTable.Writer writer = new BasicTable.Writer(path1, schema, storage,
-        false, conf);
+    BasicTable.Writer writer = new BasicTable.Writer(path1, schema, storage, conf);
     writer.finish();
 
     Schema schema1 = writer.getSchema();
@@ -733,8 +723,7 @@ public class TestColumnSecurity {
     fs = path1.getFileSystem(conf);
     fs.setPermission(path, new FsPermission((short) 0777));
     login(USER1);
-    BasicTable.Writer writer = new BasicTable.Writer(path1, schema, storage,
-        false, conf);
+    BasicTable.Writer writer = new BasicTable.Writer(path1, schema, storage, conf);
     writer.finish();
 
     Schema schema1 = writer.getSchema();
@@ -772,8 +761,7 @@ public class TestColumnSecurity {
     fs = path1.getFileSystem(conf);
     fs.setPermission(path, new FsPermission((short) 0777));
     login(USER1);
-    BasicTable.Writer writer = new BasicTable.Writer(path1, schema, storage,
-        false, conf);
+    BasicTable.Writer writer = new BasicTable.Writer(path1, schema, storage, conf);
     writer.finish();
 
     Schema schema1 = writer.getSchema();
@@ -811,8 +799,7 @@ public class TestColumnSecurity {
     fs = path1.getFileSystem(conf);
     fs.setPermission(path, new FsPermission((short) 0777));
     login(USER1);
-    BasicTable.Writer writer = new BasicTable.Writer(path1, schema, storage,
-        false, conf);
+    BasicTable.Writer writer = new BasicTable.Writer(path1, schema, storage, conf);
     writer.finish();
 
     Schema schema1 = writer.getSchema();
@@ -859,8 +846,7 @@ public class TestColumnSecurity {
     fs = path1.getFileSystem(conf);
     fs.setPermission(path, new FsPermission((short) 0777));
     login(USER1);
-    BasicTable.Writer writer = new BasicTable.Writer(path1, schema, storage,
-        false, conf);
+    BasicTable.Writer writer = new BasicTable.Writer(path1, schema, storage, conf);
     writer.finish();
 
     Schema schema1 = writer.getSchema();
@@ -927,7 +913,7 @@ public class TestColumnSecurity {
     login(USER1);
 
     try {
-      new BasicTable.Writer(path1, schema, storage, false, conf);
+      new BasicTable.Writer(path1, schema, storage, conf);
       Assert.fail("write should fail");
     } catch (IOException e) {
     }
@@ -949,7 +935,7 @@ public class TestColumnSecurity {
     login(USER1);
 
     try {
-      new BasicTable.Writer(path1, schema, storage, false, conf);
+      new BasicTable.Writer(path1, schema, storage, conf);
       Assert.fail("write should fail");
     } catch (IOException e) {
     }
@@ -970,7 +956,7 @@ public class TestColumnSecurity {
     fs.setPermission(path, new FsPermission((short) 0777));
     login(USER1);
     try {
-      new BasicTable.Writer(path1, schema, storage, false, conf);
+      new BasicTable.Writer(path1, schema, storage, conf);
       Assert.fail("write should fail");
     } catch (IOException e) {
     }
@@ -992,7 +978,7 @@ public class TestColumnSecurity {
     login(USER1);
 
     try {
-      new BasicTable.Writer(path1, schema, storage, false, conf);
+      new BasicTable.Writer(path1, schema, storage, conf);
       Assert.fail("write should fail");
     } catch (IOException e) {
     }
@@ -1015,8 +1001,7 @@ public class TestColumnSecurity {
     fs.setPermission(path, new FsPermission((short) 0777));
 
     login(SUPERUSER);
-    BasicTable.Writer writer = new BasicTable.Writer(path1, schema, storage,
-        false, conf);
+    BasicTable.Writer writer = new BasicTable.Writer(path1, schema, storage, conf);
     writer.finish();
 
     Schema schema1 = writer.getSchema();
@@ -1088,8 +1073,7 @@ public class TestColumnSecurity {
     fs = path1.getFileSystem(conf);
     fs.setPermission(path, new FsPermission((short) 0777));
 
-    BasicTable.Writer writer = new BasicTable.Writer(path1, schema, storage,
-        false, conf);
+    BasicTable.Writer writer = new BasicTable.Writer(path1, schema, storage, conf);
     writer.finish();
 
     Schema schema1 = writer.getSchema();

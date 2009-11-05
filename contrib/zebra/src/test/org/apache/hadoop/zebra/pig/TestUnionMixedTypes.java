@@ -96,7 +96,7 @@ public class TestUnionMixedTypes {
     System.out.println("pathTable1 =" + pathTable1);
 
     BasicTable.Writer writer = new BasicTable.Writer(pathTable1, STR_SCHEMA1,
-        STR_STORAGE1, false, conf);
+        STR_STORAGE1, conf);
     Schema schema = writer.getSchema();
     Tuple tuple = TypesUtils.createTuple(schema);
 
@@ -184,7 +184,7 @@ public class TestUnionMixedTypes {
     System.out.println("pathTable2 =" + pathTable2);
 
     BasicTable.Writer writer2 = new BasicTable.Writer(pathTable2, STR_SCHEMA2,
-        STR_STORAGE2, false, conf);
+        STR_STORAGE2, conf);
     Schema schema2 = writer.getSchema();
 
     Tuple tuple2 = TypesUtils.createTuple(schema2);

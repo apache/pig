@@ -97,7 +97,7 @@ public class TestMapType {
     System.out.println("path =" + path);
 
     BasicTable.Writer writer = new BasicTable.Writer(path, STR_SCHEMA,
-        STR_STORAGE, false, conf);
+        STR_STORAGE, conf);
     writer.finish();
     Schema schema = writer.getSchema();
     Tuple tuple = TypesUtils.createTuple(schema);

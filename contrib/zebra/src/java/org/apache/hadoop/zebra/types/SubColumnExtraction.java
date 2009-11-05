@@ -30,14 +30,14 @@ import org.apache.hadoop.zebra.schema.ColumnType;
 import org.apache.hadoop.zebra.parser.ParseException;
 
 
+/**
+ * This class extracts a subfield from a column or subcolumn stored
+ * in entirety on disk
+ * It should be used only by readers whose serializers do not
+ * support projection
+ */
 public class SubColumnExtraction {
-	/**
-	 * This class extracts a subfield from a column or subcolumn stored
-   * in entirety on disk
-	 * It should be used only by readers whose serializers do not
-   * support projection
-	 */
-	public static class SubColumn {
+	static class SubColumn {
 		Schema physical;
 		Projection projection;
 		ArrayList<SplitColumn> exec = null;
@@ -77,16 +77,17 @@ public class SubColumnExtraction {
 				pn.setName(name);
 				fs = physical.getColumnSchema(pn);
 				if (keySet != null)
-				  pn.mDT = ColumnType.MAP;
+				  pn.setDT(ColumnType.MAP);
 				if (fs == null)
 		     		continue; // skip non-existing field
 		
 				j = fs.getIndex();
-				if (pn.mDT == ColumnType.MAP || pn.mDT == ColumnType.RECORD || pn.mDT == ColumnType.COLLECTION)
+				ColumnType ct = pn.getDT();
+				if (ct == ColumnType.MAP || ct == ColumnType.RECORD || ct == ColumnType.COLLECTION)
 				{
 					// record/map subfield is expected
-					sc = new SplitColumn(j, pn.mDT);
-          if (pn.mDT == ColumnType.MAP)
+					sc = new SplitColumn(j, ct);
+          if (ct == ColumnType.MAP)
             sclist.add(sc);
 					exec.add(sc); // breadth-first
 					// (i, j) represents the mapping between projection and physical schema
@@ -105,18 +106,19 @@ public class SubColumnExtraction {
      * build the split executions
      */
 		private void buildSplit(SplitColumn parent, Schema.ColumnSchema fs,
-        Schema.ParsedName pn, final int projIndex, HashSet<String> keys) throws ParseException, ExecException
+        final Schema.ParsedName pn, final int projIndex, HashSet<String> keys) throws ParseException, ExecException
 		{
 			// recursive call to get the next level schema
-			if (pn.mDT != fs.getType())
+		  ColumnType ct = pn.getDT();
+			if (ct != fs.getType())
 	      	throw new ParseException(fs.getName()+" is not of proper type.");
 	
 			String prefix;
 			int fieldIndex;
 			SplitColumn sc;
-			Partition.SplitType callerDT = (pn.mDT == ColumnType.MAP ? Partition.SplitType.MAP :
-				                               (pn.mDT == ColumnType.RECORD ? Partition.SplitType.RECORD :
-				                                 (pn.mDT == ColumnType.COLLECTION ? Partition.SplitType.COLLECTION :
+			Partition.SplitType callerDT = (ct == ColumnType.MAP ? Partition.SplitType.MAP :
+				                               (ct == ColumnType.RECORD ? Partition.SplitType.RECORD :
+				                                 (ct == ColumnType.COLLECTION ? Partition.SplitType.COLLECTION :
 				                        	         Partition.SplitType.NONE)));
 			prefix = pn.parseName(fs);
 			Schema schema = fs.getSchema();
@@ -133,11 +135,12 @@ public class SubColumnExtraction {
 				fieldIndex = 0;
 			}
 	
-			if (pn.mDT != ColumnType.ANY)
+		  ct = pn.getDT();
+			if (ct != ColumnType.ANY)
 			{
 				// record subfield is expected
-			 	sc = new SplitColumn(fieldIndex, pn.mDT);
-        if (pn.mDT == ColumnType.MAP)
+			 	sc = new SplitColumn(fieldIndex, ct);
+        if (ct == ColumnType.MAP)
           sclist.add(sc);
 			 	exec.add(sc); // breadth-first
 			 	buildSplit(sc, fs, pn, projIndex, null);

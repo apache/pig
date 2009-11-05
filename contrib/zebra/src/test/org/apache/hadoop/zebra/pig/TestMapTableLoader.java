@@ -84,7 +84,7 @@ public class TestMapTableLoader {
     pathTable = new Path(pathWorking, "TestMapTableLoader");
 
     BasicTable.Writer writer = new BasicTable.Writer(pathTable,
-        "m1:map(string)", "[m1#{a}]", false, conf);
+        "m1:map(string)", "[m1#{a}]", conf);
     Schema schema = writer.getSchema();
     Tuple tuple = TypesUtils.createTuple(schema);
 

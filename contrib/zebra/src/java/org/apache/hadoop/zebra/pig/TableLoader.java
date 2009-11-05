@@ -27,7 +27,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
-//import junit.framework.Assert;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -41,11 +40,14 @@ import org.apache.hadoop.mapred.InputSplit;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.RecordReader;
 import org.apache.hadoop.mapred.Reporter;
+import org.apache.hadoop.mapred.InputSplit;
 import org.apache.hadoop.zebra.io.BasicTable;
 import org.apache.hadoop.zebra.mapred.TableInputFormat;
+import org.apache.hadoop.zebra.mapred.TableRecordReader;
 import org.apache.hadoop.zebra.parser.ParseException;
 import org.apache.hadoop.zebra.types.Projection;
 import org.apache.hadoop.zebra.types.TypesUtils;
+import org.apache.hadoop.zebra.types.SortInfo;
 import org.apache.pig.ExecType;
 import org.apache.pig.LoadFunc;
 import org.apache.pig.Slice;
@@ -57,16 +59,25 @@ import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.io.BufferedPositionedInputStream;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.hadoop.zebra.pig.comparator.*;
+import org.apache.pig.IndexableLoadFunc;
+import org.apache.hadoop.zebra.io.TableScanner;
 
 /**
- * Pig LoadFunc and Slicer for Table
+ * Pig IndexableLoadFunc and Slicer for Zebra Table
  */
-public class TableLoader implements LoadFunc, Slicer {
+public class TableLoader implements IndexableLoadFunc, Slicer {
 	static final Log LOG = LogFactory.getLog(TableLoader.class);
 	private TableInputFormat inputFormat;
 	private JobConf jobConf;
 	private String projectionString;
 	private Path[] paths;
+	private TableRecordReader indexReader = null;
+	private BytesWritable indexKey = null;
+  private Tuple tuple;
+  private org.apache.hadoop.zebra.schema.Schema schema;  
+  private SortInfo sortInfo;
+  private boolean sorted = false;
   
 	/**
 	 * default constructor
@@ -84,12 +95,103 @@ public class TableLoader implements LoadFunc, Slicer {
 		projectionString = projectionStr;	  
 	}
 
-	@Override
-	public void bindTo(String fileName, BufferedPositionedInputStream is,
-			long offset, long end) throws IOException {
-		throw new IOException("Not implemented");
+  /**
+	 * @param projectionStr
+	 * 		  projection string passed from pig query.
+   * @param sorted
+   *      need sorted table(s)?
+	 */
+	public TableLoader(String projectionStr, String sorted) throws IOException {
+      inputFormat = new TableInputFormat();
+      if (projectionStr != null && !projectionStr.isEmpty())
+        projectionString = projectionStr;	  
+      if (sorted.equalsIgnoreCase("sorted"))
+        this.sorted = true;
+      else
+        throw new IOException("Invalid argument to the table loader constructor: "+sorted);
 	}
 
+	@Override
+	public void initialize(Configuration conf) throws IOException
+	{
+	  if (conf == null)
+	    throw new IOException("Null Configuration passed.");
+	  jobConf = new JobConf(conf);
+	}
+	
+	@Override
+	public void bindTo(String filePaths, BufferedPositionedInputStream is,
+			long offset, long end) throws IOException {
+
+      FileInputFormat.setInputPaths(jobConf, filePaths);
+      Path[] paths = FileInputFormat.getInputPaths(jobConf);
+			/**
+			 * Performing glob pattern matching
+			 */
+			List<Path> result = new ArrayList<Path>(paths.length);
+			for (Path p : paths) {
+				FileSystem fs = p.getFileSystem(jobConf);
+				FileStatus[] matches = fs.globStatus(p);
+				if (matches == null) {
+					LOG.warn("Input path does not exist: " + p);
+				}
+				else if (matches.length == 0) {
+					LOG.warn("Input Pattern " + p + " matches 0 files");
+				} else {
+					for (FileStatus globStat: matches) {
+						if (globStat.isDir()) {
+							result.add(globStat.getPath());
+						} else {
+							LOG.warn("Input path " + p + " is not a directory");
+						}
+					}
+				}
+			}
+			if (result.isEmpty()) {
+				throw new IOException("No table specified for input");
+			}
+			TableInputFormat.setInputPaths(jobConf, result.toArray(new Path[result.size()]));
+
+      TableInputFormat.requireSortedTable(jobConf);
+      sortInfo = TableInputFormat.getSortInfo(jobConf);
+      schema = TableInputFormat.getSchema(jobConf);
+      int numcols = schema.getNumColumns();
+      tuple = TypesUtils.createTuple(numcols);
+
+      /*
+       * Use all columns of a table as a projection: not an optimal approach
+       * No need to call TableInputFormat.setProjection: by default use all columns
+       */
+      try {
+        indexReader = inputFormat.getTableRecordReader(jobConf, null);
+      } catch (ParseException e) {
+    	  throw new IOException("Exception from TableInputFormat.getTableRecordReader: "+e.getMessage());
+      }
+      indexKey = new BytesWritable();
+    }
+
+  @Override
+  public void seekNear(Tuple t) throws IOException
+  {
+		// SortInfo sortInfo =  inputFormat.getSortInfo(conf, path);
+		String[] sortColNames = sortInfo.getSortColumnNames();
+		byte[] types = new byte[sortColNames.length];
+		for(int i =0 ; i < sortColNames.length; ++i){
+			types[i] = schema.getColumn(sortColNames[i]).getType().pigDataType();
+		}
+		KeyGenerator builder = makeKeyBuilder(types);
+		BytesWritable key = builder.generateKey(t);
+//	    BytesWritable key = new BytesWritable(((String) t.get(0)).getBytes());
+		indexReader.seekTo(key);
+  }
+
+  private KeyGenerator makeKeyBuilder(byte[] elems) {
+	    ComparatorExpr[] exprs = new ComparatorExpr[elems.length];
+	    for (int i = 0; i < elems.length; ++i) {
+	      exprs[i] = ExprUtils.primitiveComparator(i, elems[i]);
+	    }
+	    return new KeyGenerator(ExprUtils.tupleComparator(exprs));
+  }  
 	/**
 	 * @param storage
 	 * @param location
@@ -145,6 +247,8 @@ public class TableLoader implements LoadFunc, Slicer {
 			} catch (ParseException e) {
 				throw new RuntimeException("Schema parsing failed : "+e.getMessage());
 			}
+      if (sorted)
+  			TableInputFormat.requireSortedTable(jobConf);
 		}
 	}
   
@@ -215,17 +319,27 @@ public class TableLoader implements LoadFunc, Slicer {
 
 	@Override
 	public Tuple getNext() throws IOException {
-		throw new IOException("Not implemented");
+      if (indexReader.atEnd())
+        return null;
+      indexReader.next(indexKey, tuple);
+      return tuple;
 	}
+
+  @Override
+  public void close() throws IOException {
+    if (indexReader != null)
+      indexReader.close();
+  }
 
 	@Override
 	public Slice[] slice(DataStorage store, String location) throws IOException {
 		checkConf(store, location);
 		// TableInputFormat accepts numSplits < 0 (special case for no-hint)
 		InputSplit[] splits = inputFormat.getSplits(jobConf, -1);
+
 		Slice[] slices = new Slice[splits.length];
 		for (int nx = 0; nx < slices.length; nx++) {
-			slices[nx] = new TableSlice(jobConf, splits[nx]);
+			slices[nx] = new TableSlice(jobConf, splits[nx], sorted);
 		}
 
 		return slices;
@@ -244,11 +358,12 @@ public class TableLoader implements LoadFunc, Slicer {
 		private InputSplit split;
     
 		transient private JobConf conf;
-		transient private String projection;
+		transient private int numProjCols = 0;
 		transient private RecordReader<BytesWritable, Tuple> scanner;
 		transient private BytesWritable key;
+    transient private boolean sorted = false;
 
-		TableSlice(JobConf conf, InputSplit split) {
+		TableSlice(JobConf conf, InputSplit split, boolean sorted) {
 			// hack: expecting JobConf contains nothing but a <string, string>
 			// key-value pair store.
 			configMap = new TreeMap<String, String>();
@@ -257,6 +372,7 @@ public class TableLoader implements LoadFunc, Slicer {
 				configMap.put(e.getKey(), e.getValue());
 			}
 			this.split = split;
+      this.sorted = sorted;
 		}
 
 		@Override
@@ -315,20 +431,24 @@ public class TableLoader implements LoadFunc, Slicer {
 				localConf.set(e.getKey(), e.getValue());
 			}
 			conf = new JobConf(localConf);
+      String projection;
 			try
-			{
-				projection = TableInputFormat.getProjection(conf);
-			} catch (ParseException e) {
-				throw new IOException("Schema parsing failed :"+e.getMessage());
-			}
+      {
+        projection = TableInputFormat.getProjection(conf);
+      } catch (ParseException e) {
+        throw new IOException("Schema parsing failed :"+e.getMessage());
+      }
+      numProjCols = Projection.getNumColumns(projection);
 			TableInputFormat inputFormat = new TableInputFormat();
+      if (sorted)
+        TableInputFormat.requireSortedTable(conf);
 			scanner = inputFormat.getRecordReader(split, conf, Reporter.NULL);
 			key = new BytesWritable();
 		}
 
 		@Override
 		public boolean next(Tuple value) throws IOException {
-			TypesUtils.formatTuple(value, projection);
+			TypesUtils.formatTuple(value, numProjCols);
 			return scanner.next(key, value);
 		}
     

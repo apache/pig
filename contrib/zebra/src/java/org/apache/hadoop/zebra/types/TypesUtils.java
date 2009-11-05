@@ -212,8 +212,8 @@ public class TypesUtils {
    * @throws IOException
    * 
    */
-  public static void formatTuple(Tuple tuple, String projection) throws IOException {
-    Tuple one = createTuple(Projection.getNumColumns(projection));
+  public static void formatTuple(Tuple tuple, int ncols) throws IOException {
+    Tuple one = createTuple(ncols);
     tuple.reference(one);
     return;
     /*
