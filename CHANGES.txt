@@ -173,6 +173,8 @@ PIG-927: null should be handled consistently in Join (daijy)
 
 PIG-790: Error message should indicate in which line number in the Pig script the error occured (debugging BinCond) (daijy)
 
+PIG-1001: Generate more meaningful error message when one input file does not exist (daijy)
+
 Release 0.5.0 - Unreleased
 
 INCOMPATIBLE CHANGES
