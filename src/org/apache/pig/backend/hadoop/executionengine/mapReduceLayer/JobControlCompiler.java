@@ -115,11 +115,14 @@ public class JobControlCompiler{
     
     // A mapping of job to pair of store locations and tmp locations for that job
     private Map<Job, Pair<List<POStore>, Path>> jobStoreMap;
+    
+    private Map<Job, MapReduceOper> jobMroMap;
 
     public JobControlCompiler(PigContext pigContext, Configuration conf) throws IOException {
         this.pigContext = pigContext;
         this.conf = conf;
         jobStoreMap = new HashMap<Job, Pair<List<POStore>, Path>>();
+        jobMroMap = new HashMap<Job, MapReduceOper>();
     }
 
     /**
@@ -139,6 +142,7 @@ public class JobControlCompiler{
      */
     public void reset() {
         jobStoreMap = new HashMap<Job, Pair<List<POStore>, Path>>();
+        jobMroMap = new HashMap<Job, MapReduceOper>();
     }
 
     /**
@@ -237,8 +241,9 @@ public class JobControlCompiler{
             List<MapReduceOper> roots = new LinkedList<MapReduceOper>();
             roots.addAll(plan.getRoots());
             for (MapReduceOper mro: roots) {
-                jobCtrl.addJob(getJob(mro, conf, pigContext));
-                plan.remove(mro);
+                Job job = getJob(mro, conf, pigContext);
+                jobMroMap.put(job, mro);
+                jobCtrl.addJob(job);
             }
         } catch (JobCreationException jce) {
         	throw jce;
@@ -249,6 +254,34 @@ public class JobControlCompiler{
         }
 
         return jobCtrl;
+    }
+    
+    // Update Map-Reduce plan with the execution status of the jobs. If one job
+    // completely fail (the job has only one store and that job fail), then we 
+    // remove all its dependent jobs. This method will return the number of MapReduceOper
+    // removed from the Map-Reduce plan
+    public int updateMROpPlan(List<Job> completeFailedJobs)
+    {
+        int sizeBefore = plan.size();
+        for (Job job : completeFailedJobs)  // remove all subsequent jobs
+        {
+            MapReduceOper mrOper = jobMroMap.get(job); 
+            plan.trimBelow(mrOper);
+            plan.remove(mrOper);
+        }
+
+        // Remove successful jobs from jobMroMap
+        for (Job job : jobMroMap.keySet())
+        {
+            if (!completeFailedJobs.contains(job))
+            {
+                MapReduceOper mro = jobMroMap.get(job);
+                plan.remove(mro);
+            }
+        }
+        jobMroMap.clear();
+        int sizeAfter = plan.size();
+        return sizeBefore-sizeAfter;
     }
         
     /**
