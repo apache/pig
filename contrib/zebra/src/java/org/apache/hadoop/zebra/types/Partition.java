@@ -90,7 +90,7 @@ public class Partition {
        * add map keys
        * return false if any key already exists but no rollback!
        */
-      public boolean addKeys(HashSet<String> keys)
+      public boolean addKeys(HashSet<String> keys, HashSet<String> columnKeySet)
       {
         if (keySet == null)
           keySet = new HashSet<String>();
@@ -98,6 +98,11 @@ public class Partition {
         for (Iterator<String> it = keys.iterator(); it.hasNext(); )
         {
           key = it.next();
+          
+          // if the key is used in another CG?
+          if (!columnKeySet.add(key))
+            return false;
+          
           if (!keySet.add(key))
             return false;
         }
@@ -147,6 +152,7 @@ public class Partition {
       private HashSet<String> mSplitColumns = new HashSet<String>();
       private ColumnMappingEntry mCGIndex = null;
       private String mCGName = null; // fully qualified name
+      private HashSet<String> keySet = null;
       private SplitType stype = SplitType.NONE;
       private boolean splitChild;
 
@@ -160,7 +166,9 @@ public class Partition {
         mSplitMaps.add(cme);
         // multiple map splits on one MAP column is allowed!
         mSplitColumns.add(name);
-        return cme.addKeys(keys);
+        if (keySet == null)
+          keySet = new HashSet<String>();
+        return cme.addKeys(keys, keySet);
       }
 
       /**
@@ -811,7 +819,7 @@ public class Partition {
         } else {
           // this subtype is MAP-split
           // => need to add splits for all split keys
-          handleMapSplit(curCol, fs, i, cgentry);
+          handleMapSplit(curCol, fs, i, cgentry, cgindex.getFieldIndex());
         }
       }
       else {
@@ -1212,7 +1220,7 @@ public class Partition {
           else {
             // this subfield is MAP-split
             // => need to add splits for all split keys
-            handleMapSplit(parent, child, i, cgentry);
+            handleMapSplit(parent, child, i, cgentry, cgindex.getFieldIndex());
           }
         }
       }
@@ -1227,12 +1235,13 @@ public class Partition {
    * @throws IOException
    */
   private void handleMapSplit(PartitionedColumn parent,
-      Schema.ColumnSchema child, int i, CGEntry cgentry) throws ParseException, IOException {
+      Schema.ColumnSchema child, int i, CGEntry cgentry, int childProjIndex) throws ParseException, IOException {
     // first the map partitioned column that contain all non-key-partitioned
     // hashes
     PartitionedColumn mapParCol =
         new PartitionedColumn(i, Partition.SplitType.MAP, false);
     cgentry.addUser(mapParCol, getCGName(child));
+    mapParCol.setProjIndex(childProjIndex);
     mExecs.add(mapParCol); // not a leaf : MAP split needed
     mSplitSize++;
     parent.addChild(mapParCol);

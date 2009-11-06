@@ -20,6 +20,8 @@ Trunk (unreleased changes)
 
   BUG FIXES
 
+    PIG-1026: [zebra] map split returns null (yanz via pradeepkth)
+
 	PIG-1057 Zebra does not support concurrent deletions of column groups now
 	(chaow via gates).
 

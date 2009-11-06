@@ -503,7 +503,7 @@ Schema.ColumnSchema AnonymousMapSchema(Schema.ColumnSchema schema, String name, 
 		"{" keys = hashKeys() "}"
 		{
 			if(!partition.getPartitionInfo().setKeyCGIndex(schema, mCGCount, colIndex, name, keys))
-				throw new ParseException("Column "+name+" specified more than once!");
+				throw new ParseException("Column "+name+" has split keys splecified more than once.");
 			fs = new Schema.ColumnSchema(name, schema.getSchema(), schema.getType());
 		}
 	)
