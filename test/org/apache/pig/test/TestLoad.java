@@ -163,6 +163,36 @@ public class TestLoad extends junit.framework.TestCase {
         checkLoadPath("t?s*","/tmp/t?s*");
     }
 
+    @Test
+    public void testCommaSeparatedString() throws Exception {
+        checkLoadPath("usr/pig/a,usr/pig/b","/tmp/usr/pig/a,/tmp/usr/pig/b");
+    }
+
+    @Test
+    public void testCommaSeparatedString2() throws Exception {
+        checkLoadPath("t?s*,test","/tmp/t?s*,/tmp/test");
+    }
+
+    @Test
+    public void testCommaSeparatedString3() throws Exception {
+        checkLoadPath("hdfs:/tmp/test,hdfs:/tmp/test2,hdfs:/tmp/test3","/tmp/test,/tmp/test2,/tmp/test3");
+    }
+    
+    @Test
+    public void testCommaSeparatedString4() throws Exception {
+        checkLoadPath("usr/pig/{a,c},usr/pig/b","/tmp/usr/pig/{a,c},/tmp/usr/pig/b");
+    }
+
+    @Test
+    public void testCommaSeparatedString5() throws Exception {
+        checkLoadPath("/usr/pig/{a,c},usr/pig/b","/usr/pig/{a,c},/tmp/usr/pig/b");
+    }
+    
+    @Test
+    public void testCommaSeparatedString6() throws Exception {
+        checkLoadPath("usr/pig/{a,c},/usr/pig/b","/tmp/usr/pig/{a,c},/usr/pig/b");
+    }    
+
     private void checkLoadPath(String orig, String expected) throws Exception {
         checkLoadPath(orig, expected, false);
     }
