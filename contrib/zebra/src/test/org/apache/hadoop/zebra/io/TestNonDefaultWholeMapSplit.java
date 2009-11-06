@@ -47,6 +47,7 @@ import org.junit.Test;
 public class TestNonDefaultWholeMapSplit {
 
   final static String STR_SCHEMA = "m1:map(string),m2:map(map(int))";
+  //the comment STR_STORAGE is the one for jira 949 
   final static String STR_STORAGE = "[m1#{a}];[m2#{x|y}]; [m1#{b}, m2#{z}];[m1]";
   private static Configuration conf;
   private static Path path;
@@ -268,14 +269,14 @@ public class TestNonDefaultWholeMapSplit {
     Assert.assertEquals(key, new BytesWritable("k11".getBytes()));
     scanner.getValue(RowValue);
     System.out.println("read1 : " + RowValue.toString());
-    Assert.assertEquals("{nonexist=null}", RowValue.get(0).toString());
+    Assert.assertEquals("{}", RowValue.get(0).toString());
 
     scanner.advance();
     scanner.getKey(key);
     Assert.assertEquals(key, new BytesWritable("k12".getBytes()));
     scanner.getValue(RowValue);
     System.out.println(RowValue.get(0).toString());
-    Assert.assertEquals("{nonexist=null}", RowValue.get(0).toString());
+    Assert.assertEquals("{}", RowValue.get(0).toString());
 
     reader.close();
   }

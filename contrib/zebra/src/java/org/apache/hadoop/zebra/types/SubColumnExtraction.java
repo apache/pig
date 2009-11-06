@@ -317,7 +317,7 @@ public class SubColumnExtraction {
 		 } else if (st == Partition.SplitType.MAP && keys != null) {
        String key;
        Iterator<String> it;
-
+       Object value;
 			 for (int i = 0; i < size; i++)
 			 {
 				 if (children.get(i).projIndex != -1) // a leaf: set projection directly
@@ -325,7 +325,10 @@ public class SubColumnExtraction {
            for (it = keys.iterator(); it.hasNext(); )
            {
              key = it.next();
-			 		   ((Map<String, Object>) (((Tuple)children.get(i).leaf.field).get(children.get(i).projIndex))).put(key, ((Map<String, Object>) field).get(key));
+             value = ((Map<String, Object>) field).get(key);
+             if (value == null)
+               continue;
+			 		   ((Map<String, Object>) (((Tuple)children.get(i).leaf.field).get(children.get(i).projIndex))).put(key, value);
            }
          } else {
            for (it = keys.iterator(); it.hasNext(); )
