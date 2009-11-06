@@ -115,6 +115,9 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-1071: Support comma separated file/directory names in load statements
+(rding via pradeepkth)
+
 PIG-970:  Changes to make HBase loader work with HBase 0.20 (vbarat and zjffdu
 	      via gates)
 

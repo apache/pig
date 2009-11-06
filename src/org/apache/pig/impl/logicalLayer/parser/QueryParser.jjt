@@ -173,26 +173,8 @@ public class QueryParser {
 	static int undollar(String s) {
 		return Integer.parseInt(s.substring(1, s.length()));	
 	}
-	
-
+	    
     String massageFilename(String filename, PigContext pigContext, boolean isLoad) throws IOException, ParseException {
-
-        // If multiquery is off we revert to the old behavior, which
-        // did not try to convert paths to their absolute location.
-    	boolean isMultiQuery = "true".equalsIgnoreCase(pigContext.getProperties().getProperty("opt.multiquery","true"));
-        if (!isMultiQuery) {
-            if (!isLoad) { // stores do not require any change
-                return filename;
-            }
-
-            // Local loads in the hadoop context require copying the
-            // file to dfs first.
-            if (pigContext.getExecType() != ExecType.LOCAL 
-                && filename.startsWith(FileLocalizer.LOCAL_PREFIX)) {
-                    filename = FileLocalizer.hadoopify(filename, pigContext);
-            }
-            return filename;
-        }
 
         String fname;
 
@@ -200,55 +182,115 @@ public class QueryParser {
         // result. This is not done for performance but to make sure
         // we return the same result for relative paths when
         // re-parsing the same script for execution.
+        // For example if a script has
+        // a = load ...
+        // ...
+        // cd x
+        // ...
+        // store c into 'foo'; => the abs. path for 'foo' would be '/user/<username>/x/foo'
+        // ..
+        // cd y
+        // ..
+        // store f into 'bar'=> the abs. path for 'bar' would be '/user/<username>/x/y/bar' 
+        // While re-parsing, the current working dir is already at /user/<username>/x/y
+        // so translating 'foo' to its absolute path based on that dir would give incorrect
+        // results - hence we store the translations into a map during the first parse for
+        // use during the reparse.
         if (null != (fname = fileNameMap.get(filename))) {
             return fname;
         } else {
             fname = filename;
         }
-
-        String scheme, path;
-
-        if (fname.startsWith(FileLocalizer.LOCAL_PREFIX)) {
-            // We don't use hadoop path class to do the parsing,
-            // because our syntax of saying 'file:foo' for relative
-            // paths on the local FS is not a valid URL.
-            scheme = "file";
-            path = fname.substring(FileLocalizer.LOCAL_PREFIX.length());
-        } else {
-            // Path implements a custom uri parsing that takes care of
-            // unescaped characters (think globs). Using "new
-            // URI(fname)" would break.
-            URI uri = new Path(fname).toUri();
-            
-            scheme = uri.getScheme();
-            if (scheme != null) {
-                scheme = scheme.toLowerCase();
-            }
-            
-            path = uri.getPath();
-        }
         
-        if (scheme == null || scheme.equals("file") || scheme.equals("hdfs")) {
+        String[] fnames = StringUtils.getPathStrings(fname);
+        
+        ArrayList<String> pathStrings = new ArrayList<String>();
+        
+        // If multiquery is off we revert to the old behavior, which
+        // did not try to convert paths to their absolute location.
+        boolean isMultiQuery = "true".equalsIgnoreCase(pigContext.getProperties().getProperty("opt.multiquery","true"));
+        if (!isMultiQuery) {
+            if (!isLoad) { // stores do not require any change
+                return filename;
+            }
+
+            // Local loads in the hadoop context require copying the
+            // file to dfs first.
             if (pigContext.getExecType() != ExecType.LOCAL) {
-                if (fname.startsWith(FileLocalizer.LOCAL_PREFIX)) {
-                    if (isLoad) {
-                        fname = FileLocalizer.hadoopify(fname, pigContext);
+                for (String strname : fnames) { 
+                    if (strname.startsWith(FileLocalizer.LOCAL_PREFIX)) {
+                        strname = FileLocalizer.hadoopify(strname, pigContext);
                     }
-                    return fname;
-                }
-            }       
-            DataStorage dfs = pigContext.getDfs();
-            ContainerDescriptor desc = dfs.getActiveContainer();
-            ElementDescriptor el = dfs.asElement(desc, path);
-            fname = el.toString();
+                    pathStrings.add(strname);
+                 }
+            }
+            return StringUtils.join(pathStrings, ",");
         }
 
-        if (!fname.equals(filename)) {
+        boolean hadoopify = false;
+
+        for (String strname : fnames) {
+
+            boolean added = false;
+            String scheme, path;
+
+            if (strname.startsWith(FileLocalizer.LOCAL_PREFIX)) {
+                // We don't use hadoop path class to do the parsing,
+                // because our syntax of saying 'file:foo' for relative
+                // paths on the local FS is not a valid URL.
+                scheme = "file";
+                path = strname.substring(FileLocalizer.LOCAL_PREFIX.length());
+            } else {
+                // Path implements a custom uri parsing that takes care of
+                // unescaped characters (think globs). Using "new
+                // URI(fname)" would break.
+                URI uri = new Path(strname).toUri();
+
+                scheme = uri.getScheme();
+                if (scheme != null) {
+                    scheme = scheme.toLowerCase();
+                }
+
+                path = uri.getPath();
+            }
+
+            if (scheme == null || scheme.equals("file") || scheme.equals("hdfs")) {
+                if (pigContext.getExecType() != ExecType.LOCAL) {
+                    if (strname.startsWith(FileLocalizer.LOCAL_PREFIX)) {
+                        if (isLoad) {
+                            strname = FileLocalizer.hadoopify(strname, pigContext);
+                            // in the old code before we were parsing comma separated paths
+                            // the code would return at this point without storing in the
+                            // fileNameMap. So we should remember to not update the fileNameMap
+                            // at the end of this method
+                            hadoopify = true;
+                        }
+                        pathStrings.add(strname);
+                        added = true;
+                    }
+                }    
+                if (!added) {   
+                    DataStorage dfs = pigContext.getDfs();
+                    ContainerDescriptor desc = dfs.getActiveContainer();
+                    ElementDescriptor el = dfs.asElement(desc, path);
+                    strname = el.toString();
+                }
+            }
+
+            if (!added) {
+                pathStrings.add(strname);
+            }
+        }
+
+        fname = StringUtils.join(pathStrings, ",");
+
+        if (!fname.equals(filename) && !hadoopify) {
             fileNameMap.put(filename, fname);
         }
+
         return fname;
     }
-	
+
 	LogicalOperator parseCogroup(ArrayList<CogroupInput> gis, LogicalPlan lp, LOCogroup.GROUPTYPE type) throws ParseException, PlanException{
 		
 		log.trace("Entering parseCogroup");
@@ -775,6 +817,56 @@ class StringUtils {
             }
             
             return output.toString() ;
+        }
+        
+        public static String join(AbstractCollection<String> s, String delimiter) {
+            if (s.isEmpty()) return "";
+            Iterator<String> iter = s.iterator();
+            StringBuffer buffer = new StringBuffer(iter.next());
+            while (iter.hasNext()) {
+                buffer.append(delimiter);
+                buffer.append(iter.next());
+            }
+            return buffer.toString();
+        }
+        
+            
+        public static String[] getPathStrings(String commaSeparatedPaths) {
+            int length = commaSeparatedPaths.length();
+            int curlyOpen = 0;
+            int pathStart = 0;
+            boolean globPattern = false;
+            List<String> pathStrings = new ArrayList<String>();
+        
+            for (int i=0; i<length; i++) {
+                char ch = commaSeparatedPaths.charAt(i);
+                switch(ch) {
+                    case '{' : {
+                        curlyOpen++;
+                        if (!globPattern) {
+                            globPattern = true;
+                        }
+                        break;
+                    }
+                    case '}' : {
+                        curlyOpen--;
+                        if (curlyOpen == 0 && globPattern) {
+                            globPattern = false;
+                        }
+                        break;
+                    }
+                    case ',' : {
+                        if (!globPattern) {
+                            pathStrings.add(commaSeparatedPaths.substring(pathStart, i));
+                            pathStart = i + 1 ;
+                        }
+                        break;
+                    }
+                }
+            }
+            pathStrings.add(commaSeparatedPaths.substring(pathStart, length));
+        
+            return pathStrings.toArray(new String[0]);
         }
 }
 
