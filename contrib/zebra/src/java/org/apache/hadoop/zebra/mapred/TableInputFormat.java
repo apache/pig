@@ -247,8 +247,12 @@ public class TableInputFormat implements InputFormat<BytesWritable, Tuple> {
    *          conforms to the {@link Schema} string.
    * @see Schema#Schema(String)
    */
-  public static void setProjection(JobConf conf, String projection) throws ParseException{
+  public static void setProjection(JobConf conf, String projection) throws ParseException {
     conf.set(INPUT_PROJ, Schema.normalize(projection));
+
+    // virtual source_table columns require sorted table
+    if (Projection.getVirtualColumnIndices(projection) != null && !getSorted(conf))
+        throw new ParseException("The source_table virtual column is only availabe for sorted table unions.");
   }
 
   /**
@@ -494,7 +498,9 @@ public class TableInputFormat implements InputFormat<BytesWritable, Tuple> {
 
     long maxSplits = totalBytes / getMinSplitSize(conf);
 
-    if (numSplits > maxSplits) {
+    if (maxSplits == 0)
+      numSplits = 1;
+    else if (numSplits > maxSplits) {
       numSplits = -1;
     }
 
@@ -769,10 +775,12 @@ class SortedTableSplit implements InputSplit {
     begin = end = null;
     int bool = WritableUtils.readVInt(in);
     if (bool == 1) {
+      begin = new BytesWritable();
       begin.readFields(in);
     }
     bool = WritableUtils.readVInt(in);
     if (bool == 1) {
+      end = new BytesWritable();
       end.readFields(in);
     }
     length = WritableUtils.readVLong(in);

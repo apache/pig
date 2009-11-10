@@ -525,7 +525,7 @@ public class TestMergeJoin {
     verify(it3);
   }
 
-  //@Test
+  @Test
   public void test3() throws ExecException, IOException {
     /*
      * join key: single string column

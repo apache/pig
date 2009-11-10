@@ -235,7 +235,11 @@ public class BasicTableOutputFormat implements
   /**
    * Set the table storage hint in JobConf, should be called after setSchema is
    * called.
+   * <br> <br>
    * 
+   * Note that the "secure by" feature is experimental now and subject to
+   * changes in the future.
+   *
    * @param conf
    *          The JobConf object.
    * @param storehint

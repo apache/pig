@@ -240,15 +240,15 @@ public class TableLoader implements IndexableLoadFunc, Slicer {
 			
 			LOG.info("Total input tables to process : " + result.size()); 
 			TableInputFormat.setInputPaths(jobConf, result.toArray(new Path[result.size()]));
+      if (sorted)
+  			TableInputFormat.requireSortedTable(jobConf);
 			try {
 				if (projectionString != null) {    		  
 					TableInputFormat.setProjection(jobConf, projectionString);
 				}
 			} catch (ParseException e) {
-				throw new RuntimeException("Schema parsing failed : "+e.getMessage());
+				throw new IOException("Schema parsing failed : "+e.getMessage());
 			}
-      if (sorted)
-  			TableInputFormat.requireSortedTable(jobConf);
 		}
 	}
   

@@ -26,6 +26,7 @@ import java.io.StringReader;
 import java.util.HashSet;
 
 import org.apache.hadoop.io.Writable;
+import org.apache.hadoop.zebra.types.Projection;
 import org.apache.hadoop.zebra.parser.ParseException;
 import org.apache.hadoop.zebra.parser.TableSchemaParser;
 
@@ -351,12 +352,13 @@ public class Schema implements Comparable<Schema>, Writable {
    *          alpha-numeric characters in column names.
    */
   public Schema(String schema) throws ParseException {
-    init(schema);
+    init(schema, false);
   }
 
   public Schema(String schema, boolean dupAllowed) throws ParseException {
     dupColNameAllowed = dupAllowed;
-    init(schema);
+    // suppose if duplicate is allowed, then it's from projection and hence virtual column is allowed
+    init(schema, dupAllowed);
   }
 
   public Schema(ColumnSchema fs) throws ParseException {
@@ -372,7 +374,7 @@ public class Schema implements Comparable<Schema>, Writable {
    *          please use only alpha-numeric characters in column names.
    */
   public Schema(String[] columns) throws ParseException {
-    init(columns);
+    init(columns, false);
   }
 
   /**
@@ -479,7 +481,7 @@ public class Schema implements Comparable<Schema>, Writable {
    */
   public static Schema parse(String schema) throws ParseException {
     Schema s = new Schema();
-    s.init(schema);
+    s.init(schema, false);
     return s;
   }
 
@@ -666,7 +668,7 @@ public class Schema implements Comparable<Schema>, Writable {
     // check-ups are needed for future versions for backward-compatibility
     String strSchema = org.apache.hadoop.io.file.tfile.Utils.readString(in);
     try {
-      init(strSchema);
+      init(strSchema, false);
     }
     catch (Exception e) {
       throw new IOException(e.getMessage());
@@ -682,7 +684,7 @@ public class Schema implements Comparable<Schema>, Writable {
     org.apache.hadoop.io.file.tfile.Utils.writeString(out, toString());
   }
 
-  private void init(String[] columnNames) throws ParseException {
+  private void init(String[] columnNames, boolean virtualColAllowed) throws ParseException {
     // the arg must be of type or they will be treated as the default type
     mFields = new ArrayList<ColumnSchema>();
     mNames = new HashMap<String, ColumnSchema>();
@@ -696,7 +698,7 @@ public class Schema implements Comparable<Schema>, Writable {
     }
     TableSchemaParser parser =
         new TableSchemaParser(new StringReader(sb.toString()));
-    parser.RecordSchema(this);
+    parser.RecordSchema(this, virtualColAllowed);
   }
 
   private void init() {
@@ -704,7 +706,7 @@ public class Schema implements Comparable<Schema>, Writable {
     mNames = new HashMap<String, ColumnSchema>();
   }
 
-  private void init(String columnString) throws ParseException {
+  private void init(String columnString, boolean virtualColAllowed) throws ParseException {
     String trimmedColumnStr;
     if (columnString == null || (trimmedColumnStr = columnString.trim()).isEmpty()) {
       init();
@@ -715,7 +717,7 @@ public class Schema implements Comparable<Schema>, Writable {
     for (int nx = 0; nx < parts.length; nx++) {
       parts[nx] = parts[nx].trim();
     }
-    init(parts);
+    init(parts, virtualColAllowed);
   }
 
   /**
@@ -732,6 +734,11 @@ public class Schema implements Comparable<Schema>, Writable {
     ParsedName pn = new ParsedName();
     HashSet<String> keyentries;
     for (int i = 0; i < ncols; i++) {
+	    if (Projection.isVirtualColumn(projcols[i]))
+	    {
+	      result.add(null);
+	      continue;
+	    }
       pn.setName(projcols[i]);
       if ((cs = getColumnSchemaOnParsedName(pn)) != null) {
         mycs = new ColumnSchema(pn.mName, cs.schema, cs.type);
@@ -993,7 +1000,7 @@ public class Schema implements Comparable<Schema>, Writable {
       else {
         if (!ColumnSchema.equals(fs, otherfs))
           throw new ParseException("Different types of column " + fs.name
-              + " in uioned tables");
+              + " in tables of a union");
       }
     }
   }
