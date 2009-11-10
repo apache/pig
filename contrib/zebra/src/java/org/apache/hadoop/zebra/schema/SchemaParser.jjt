@@ -26,6 +26,7 @@ package org.apache.hadoop.zebra.parser;
 import java.io.*;
 import org.apache.hadoop.zebra.schema.Schema;
 import org.apache.hadoop.zebra.schema.ColumnType;
+import org.apache.hadoop.zebra.types.Projection;
 
 public class TableSchemaParser {
            public static void main( String[] args )
@@ -38,6 +39,10 @@ public class TableSchemaParser {
 					objout.writeObject(schema);
 					objout.close();
 					System.out.println(schema.toString());
+      }
+      public Schema RecordSchema(Schema list) throws ParseException
+      {
+        return RecordSchema(list, false);
       }
 }
 PARSER_END(TableSchemaParser)
@@ -288,7 +293,7 @@ Schema RecordSchemaInternal(Schema list) throws ParseException :
 	{ return list; }
 }
 
-Schema RecordSchema(Schema list) throws ParseException : 
+Schema RecordSchema(Schema list, boolean virtualColAllowed) throws ParseException : 
 {
 	Schema item = null; 
 	if (list == null)
@@ -298,8 +303,8 @@ Schema RecordSchema(Schema list) throws ParseException :
 {
 	(
 	(
-		fs = ColumnSchema() {list.add(fs);}
-		( "," fs = ColumnSchema() {list.add(fs);})* <EOF>
+		fs = ColumnSchema() { if (!virtualColAllowed && fs != null && Projection.isVirtualColumn(fs.getName())) throw new ParseException("["+fs.getName()+"] is a reserved virtual column name"); list.add(fs);}
+		( "," fs = ColumnSchema() { if (!virtualColAllowed && fs != null && Projection.isVirtualColumn(fs.getName())) throw new ParseException("["+fs.getName()+"] is a reserved virtual column name"); list.add(fs);})* <EOF>
 	)	
 	)
 	{ return (list.getNumColumns() == 0 || (list.getNumColumns() == 1 && list.getColumn(0) == null) ? null : list); }

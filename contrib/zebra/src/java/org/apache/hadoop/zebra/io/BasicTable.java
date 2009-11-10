@@ -114,7 +114,11 @@ public class BasicTable {
    *
    * Dropping a column group that has already been removed is a no-op no 
    * exception is thrown.
+   * <br> <br> 
    * 
+   * Note that this feature is experimental now and subject to changes in the
+   * future.
+   *
    * @param path path to BasicTable
    * @param conf Configuration determines file system and other parameters.
    * @param cgName name of the column group to drop.

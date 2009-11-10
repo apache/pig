@@ -259,8 +259,7 @@ public class TestMapSplitSchemaStorageColumnOutOfOrder {
 
   }
 
-  
-
+  @Test
   public void testRead3() throws IOException, ParseException {
     /*
      * negative , read one map who is non-exist 
@@ -291,11 +290,12 @@ public class TestMapSplitSchemaStorageColumnOutOfOrder {
     reader.close();
   }
 
+  @Test
   public void testRead4() throws IOException, ParseException {
     /*
      *  Not exist key for all rows
      */
-    String projection = new String("m1#{nonexist}");
+    String projection = new String("column5#{nonexist}");
     BasicTable.Reader reader = new BasicTable.Reader(path, conf);
     reader.setProjection(projection);
     List<RangeSplit> splits = reader.rangeSplit(1);
@@ -307,14 +307,14 @@ public class TestMapSplitSchemaStorageColumnOutOfOrder {
     Assert.assertEquals(key, new BytesWritable("k11".getBytes()));
     scanner.getValue(RowValue);
     System.out.println("read1 : " + RowValue.toString());
-    Assert.assertEquals("{nonexist=null}", RowValue.get(0).toString());
+    Assert.assertEquals("{}", RowValue.get(0).toString());
 
     scanner.advance();
     scanner.getKey(key);
     Assert.assertEquals(key, new BytesWritable("k12".getBytes()));
     scanner.getValue(RowValue);
     System.out.println(RowValue.get(0).toString());
-    Assert.assertEquals("{nonexist=null}", RowValue.get(0).toString());
+    Assert.assertEquals("{}", RowValue.get(0).toString());
 
     reader.close();
   }

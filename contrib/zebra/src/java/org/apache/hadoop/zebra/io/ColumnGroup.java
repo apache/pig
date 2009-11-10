@@ -421,10 +421,6 @@ class ColumnGroup {
         throw new IllegalArgumentException("Illegal range split");
       }
 
-      if (split.len == 0) {
-        throw new IOException("Zero-length range split");
-      }
-
       return new CGScanner(split, closeReader);
     }
 

@@ -186,7 +186,8 @@ public class TestDropColumnGroup {
   }
 
   @Test
-  public void testDropColumnGroupsMixedTypes() throws IOException, ParseException {
+  public void testDropColumnGroupsMixedTypes() throws IOException,
+      ParseException {
 
     String mixedSchema = /* roughly borrowed from testMixedType1.java */
     "s1:bool, s2:int, s3:long, s4:float, s5:string, s6:bytes, "
