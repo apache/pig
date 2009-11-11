@@ -88,10 +88,23 @@ public class PigSlice implements Slice {
                 throw new ExecException(msg, errCode, PigException.BUG, exp);
             }
         }
+        
+        end = start + getLength();
+        
+        // Since we are not block aligned and we throw away the first
+        // record (count on a different instance to read it), we make the 
+        // successor block overlap one byte with the previous block when
+        // using PigStorage for uncompressed text files (which in turn 
+        // uses Hadoop LineRecordReader).
+        if (start != 0 && (loader instanceof PigStorage)) {
+            if (!(file.endsWith(".bz") || file.endsWith(".bz2")) &&
+                    !(file.endsWith(".gz"))) {
+                --start;        
+            }
+        }
+     
         fsis = base.asElement(base.getActiveContainer(), file).sopen();
         fsis.seek(start, FLAGS.SEEK_CUR);
-
-        end = start + getLength();
 
         if (file.endsWith(".bz") || file.endsWith(".bz2")) {
             is = new CBZip2InputStream(fsis, 9);
