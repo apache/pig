@@ -89,6 +89,9 @@ public class POPackage extends PhysicalOperator {
     //key, no value.
     int numInputs;
     
+    // If the attaching map-reduce plan use secondary sort key
+    boolean useSecondaryKey = false;
+    
     //Denotes if inner is specified
     //on a particular input
     boolean[] inner;
@@ -157,6 +160,15 @@ public class POPackage extends PhysicalOperator {
     public void attachInput(PigNullableWritable k, Iterator<NullableTuple> inp) {
         tupIter = inp;
         key = k.getValueAsPigType();
+        if (useSecondaryKey)
+        {
+            try {
+                key = ((Tuple)key).get(0);
+            } catch (ExecException e) {
+                // TODO Exception
+                throw new RuntimeException(e);
+            }
+        }
         if(isKeyTuple) {
             // key is a tuple, cache the key as a
             // tuple for use in the getNext()
@@ -402,6 +414,10 @@ public class POPackage extends PhysicalOperator {
      */
     public void setDistinct(boolean distinct) {
         this.distinct = distinct;
+    }
+    
+    public void setUseSecondaryKey(boolean useSecondaryKey) {
+        this.useSecondaryKey = useSecondaryKey;
     }
 
 }

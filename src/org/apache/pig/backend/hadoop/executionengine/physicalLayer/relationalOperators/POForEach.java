@@ -402,7 +402,7 @@ public class POForEach extends PhysicalOperator {
         }
     }
     
-    protected void getLeaves() {
+    public void getLeaves() {
         if (inputPlans != null) {
             int i=-1;
             if(isToBeFlattenedArray == null) {

@@ -123,6 +123,9 @@ public abstract class PhysicalOperator extends Operator<PhyPlanVisitor> implemen
     
     protected LineageTracer lineageTracer;
 
+    private boolean accum;
+    private transient boolean accumStart;
+
     public PhysicalOperator(OperatorKey k) {
         this(k, -1, null);
     }
@@ -156,6 +159,32 @@ public abstract class PhysicalOperator extends Operator<PhyPlanVisitor> implemen
 
     public byte getResultType() {
         return resultType;
+    }
+
+    public void setAccumulative() {    	
+        accum = true;
+    }
+
+    public boolean isAccumulative() {
+       return accum;
+    }
+
+    public void setAccumStart() {
+       if (!accum) {
+               throw new IllegalStateException("Accumulative is not turned on.");
+       }
+       accumStart = true;
+    }
+
+    public boolean isAccumStarted() {
+    	return accumStart;
+    }
+    
+    public void setAccumEnd() {
+       if (!accum){
+    	   throw new IllegalStateException("Accumulative is not turned on.");
+       }
+       accumStart = false;
     }
 
     public void setResultType(byte resultType) {

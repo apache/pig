@@ -76,7 +76,7 @@ public class POLocalRearrangeForIllustrate extends POLocalRearrange {
             mIsDistinct + ") - " + mKey.toString();
     }
 
-    protected Tuple constructLROutput(List<Result> resLst, Tuple value) throws ExecException{
+    protected Tuple constructLROutput(List<Result> resLst, List<Result> secondaryResLst, Tuple value) throws ExecException{
         //Construct key
         Object key;
         if(resLst.size()>1){

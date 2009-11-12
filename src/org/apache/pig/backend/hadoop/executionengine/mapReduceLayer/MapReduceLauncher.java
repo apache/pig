@@ -366,6 +366,7 @@ public class MapReduceLauncher extends Launcher{
         String lastInputChunkSize = 
             pc.getProperties().getProperty(
                     "last.input.chunksize", POJoinPackage.DEFAULT_CHUNK_SIZE);
+        
         String prop = System.getProperty("pig.exec.nocombiner");
         if (!("true".equals(prop)))  {
             CombinerOptimizer co = new CombinerOptimizer(plan, lastInputChunkSize);
@@ -377,7 +378,14 @@ public class MapReduceLauncher extends Launcher{
         // Optimize the jobs that have a load/store only first MR job followed
         // by a sample job.
         SampleOptimizer so = new SampleOptimizer(plan);
-        so.visit();            
+        so.visit();
+        
+        // Optimize to use secondary sort key if possible
+        prop = System.getProperty("pig.exec.nosecondarykey");
+        if (!("true".equals(prop)))  {
+            SecondaryKeyOptimizer skOptimizer = new SecondaryKeyOptimizer(plan);
+            skOptimizer.visit();
+        }
         
         // optimize key - value handling in package
         POPackageAnnotator pkgAnnotator = new POPackageAnnotator(plan);
