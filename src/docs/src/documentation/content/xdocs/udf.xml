@@ -866,8 +866,89 @@ public class StringStore implements StoreFunc {
 </section>
 
 <section>
-<title>Advanced Topics</title>
+<title>Accumulate Interface</title>
 
+<p>In Pig, problems with memory usage can occur when data, which results from a group or cogroup operation, needs to be placed in a bag  and passed in its entirety to a UDF.</p>
+
+<p>This problem is partially addressed by Algebraic UDFs that use the combiner and can deal with data being passed to them incrementally during different processing phases (map, combiner, and reduce.) However, there are a number of UDFs that are not Algebraic, don't use the combiner, but still don’t need to be given all data at once. </p>
+
+<p>The new Accumulator interface is designed to decrease memory usage by targeting such UDFs. For the functions that implement this interface, Pig guarantees that the data for the same key is passed continuously but in small increments. To work with incremental data, here is the interface a UDF needs to implement:</p>
+<source>
+public interface Accumulator &lt;T&gt; {
+   /**
+    * Process tuples. Each DataBag may contain 0 to many tuples for current key
+    */
+    public void accumulate(Tuple b) throws IOException;
+    /**
+     * Called when all tuples from current key have been passed to accumulate.
+     * @return the value for the UDF for this key.
+     */
+    public T getValue();
+    /**
+     * Called after getValue() to prepare processing for next key. 
+     */
+    public void cleanup();
+}
+</source>
+
+<p>There are several things to note here:</p>
+
+<ol>
+	<li>Each UDF must extend the EvalFunc class and implement all necessary functions there.</li>
+	<li>If a function is algebraic but can be used in a FOREACH statement with accumulator functions, it needs to implement the Accumulator interface in addition to the Algebraic interface.</li>
+	<li>The interface is parameterized with the return type of the function.</li>
+	<li>The accumulate function is guaranteed to be called one or more times, passing one or more tuples in a bag, to the UDF. (Note that the tuple that is passed to the accumulator has the same content as the one passed to exec – all the parameters passed to the UDF – one of which should be a bag).</li>
+	<li>The getValue function is called after all the tuples for a particular key have been processed to retrieve the final value.</li>
+	<li>The cleanup function is called after getValue but before the next value is processed.</li>
+</ol>
+
+
+<p>Here us a code snippet of the integer version of the MAX function that implements the interface:</p>
+<source>
+public class IntMax extends EvalFunc&lt;Integer&gt; implements Algebraic, Accumulator&lt;Integer&gt; {
+    …….
+    /* Accumulator interface */
+    
+    private Integer intermediateMax = null;
+    
+    @Override
+    public void accumulate(Tuple b) throws IOException {
+        try {
+            Integer curMax = max(b);
+            if (curMax == null) {
+                return;
+            }
+            /* if bag is not null, initialize intermediateMax to negative infinity */
+            if (intermediateMax == null) {
+                intermediateMax = Integer.MIN_VALUE;
+            }
+            intermediateMax = java.lang.Math.max(intermediateMax, curMax);
+        } catch (ExecException ee) {
+            throw ee;
+        } catch (Exception e) {
+            int errCode = 2106;
+            String msg = "Error while computing max in " + this.getClass().getSimpleName();
+            throw new ExecException(msg, errCode, PigException.BUG, e);           
+        }
+    }
+
+    @Override
+    public void cleanup() {
+        intermediateMax = null;
+    }
+
+    @Override
+    public Integer getValue() {
+        return intermediateMax;
+    }
+}
+</source>
+
+</section>
+
+
+<section>
+<title>Advanced Topics</title>
 
 <section>
 <title>Function Instantiation</title>

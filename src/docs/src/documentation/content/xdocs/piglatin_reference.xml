@@ -5412,7 +5412,7 @@ readability, programmers usually use GROUP when only one relation is involved an
    <informaltable frame="all">
       <tgroup cols="1"><tbody><row>
             <entry>
-               <para>alias = GROUP alias { ALL | BY expression} [, alias ALL | BY expression …] [PARALLEL n];</para>
+               <para>alias = GROUP alias { ALL | BY expression} [, alias ALL | BY expression …]  [USING "collected"] [PARALLEL n];</para>
             </entry>
          </row></tbody></tgroup>
    </informaltable></section>
@@ -5454,6 +5454,27 @@ readability, programmers usually use GROUP when only one relation is involved an
                <para>A tuple expression. This is the group key or key field. If the result of the tuple expression is a single field, the key will be the value of the first field rather than a tuple with one field.</para>
             </entry>
          </row>
+         
+         <row>
+            <entry>
+               <para>USING</para>
+            </entry>
+            <entry>
+               <para>Keyword</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>"collected"</para>
+            </entry>
+            <entry>
+               <para>Allows for more efficient computation of a group if the loader guarantees that the data for the 
+               same key is continuous and is given to a single map. As of this release, only the Zebra loader makes this 
+               guarantee. The efficiency is achieved by performing the group operation in map
+               rather than reduce (see <ulink url="piglatin_users.html#Integration+with+Zebra">Integration with Zebra</ulink>). This feature cannot be used with the COGROUP operator.</para>
+            </entry>
+         </row>         
+         
 
          <row>
             <entry>
@@ -5553,6 +5574,10 @@ DUMP C;
 (19,{(Mary)})
 (20,{(Bill)})
 </programlisting>
+
+   </section>
+   <section>
+   <title>Example</title>
    
    <para>Suppose we have relation A.</para>
 <programlisting>
@@ -5629,6 +5654,18 @@ DUMP X;
 </programlisting>
    
    </section>
+   
+   <section>
+   <title>Example</title>
+<para>This example shows a map-side group.</para>   
+<programlisting>
+ register zebra.jar;
+ A = LOAD 'studentsortedtab' USING org.apache.hadoop.zebra.pig.TableLoader('name, age, gpa’, 'sorted');
+ B = GROUP A BY name USING "collected";
+ C = FOREACH b GENERATE group, MAX(a.age), COUNT_STAR(a);
+</programlisting>
+    </section>
+
    </section>
    
    <section>
@@ -5793,7 +5830,8 @@ DUMP X;
    <informaltable frame="all">
       <tgroup cols="1"><tbody><row>
             <entry>
-               <para>alias = JOIN left-alias BY left-alias-column [LEFT|RIGHT|FULL] [OUTER], right-alias BY right-alias-column [PARALLEL n];  </para>
+               <para>alias = JOIN left-alias BY left-alias-column [LEFT|RIGHT|FULL] [OUTER], right-alias BY right-alias-column 
+               [USING "replicated" | "skewed"] [PARALLEL n];  </para>
             </entry>
          </row></tbody></tgroup>
    </informaltable>
@@ -5865,6 +5903,34 @@ DUMP X;
             </entry>
          </row>
 
+  <row>
+            <entry>
+               <para>USING</para>
+            </entry>
+            <entry>
+               <para>Keyword</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>"replicated"</para>
+            </entry>
+            <entry>
+               <para>Use to perform fragment replicate joins (see <ulink url="piglatin_users.html#Fragment+Replicate+Joins">Fragment Replicate Joins</ulink>).</para>
+               <para>Only left outer join is supported for replicated outer join.</para>
+            </entry>
+         </row>
+         
+                  <row>
+            <entry>
+               <para>"skewed"</para>
+            </entry>
+            <entry>
+               <para>Use to perform skewed joins (see <ulink url="piglatin_users.html#Skewed+Joins">Skewed Joins</ulink>).</para>
+            </entry>
+         </row>
+
+
          <row>
             <entry>
                <para>PARALLEL n</para>
@@ -5929,6 +5995,21 @@ A = LOAD 'a.txt' AS (n:chararray, a:int);
 B = LOAD 'b.txt' AS (n:chararray, m:chararray);
 C = JOIN A BY $0 FULL, B BY $0;
 </programlisting>
+
+<para>This example shows a replicated left outer join.</para>
+<programlisting>
+A = LOAD ‘large’;
+B = LOAD ‘tiny’;
+C= JOIN A BY $0 LEFT, B BY $0 USING "replicated";
+</programlisting>
+
+<para>This example shows a skewed full outer join.</para>
+<programlisting>
+A = LOAD  ‘studenttab’ as (name, age, gpa);
+B = LOAD  'votertab' as (name, age, registration, contribution);
+C = JOIN A BY name FULL, B BY name USING "skewed";
+</programlisting>
+
 </section>
 </section>  
   
@@ -8739,12 +8820,78 @@ A = LOAD 'data' USING TextLoader();
 </programlisting>
    </section></section></section>
    
+      <!-- Shell COMMANDS-->
+   <section>
+   <title>Shell Commands</title>
    
+      <section>
+   <title>fs</title>
+   <para>Invokes any FSShell command from within a Pig script or the Grunt shell.</para>
    
+   <section>
+   <title>Syntax </title>
+   <informaltable frame="all">
+      <tgroup cols="1"><tbody><row>
+            <entry>
+               <para>fs subcommand subcommand_parameters </para>
+            </entry>
+         </row></tbody></tgroup>
+   </informaltable></section>
+   
+   <section>
+   <title>Terms</title>
+   <informaltable frame="all">
+      <tgroup cols="2">
+      <tbody>
+      <row>
+            <entry>
+               <para>subcommand</para>
+            </entry>
+            <entry>
+               <para>The FSShell command.</para>
+            </entry>
+         </row>
+               <row>
+            <entry>
+               <para>subcommand_parameters</para>
+            </entry>
+            <entry>
+               <para>The FSShell command parameters.</para>
+            </entry>
+         </row>
+         </tbody>
+         </tgroup>
+   </informaltable>
+   
+   </section>
+   
+   <section>
+   <title>Usage</title>
+   <para>Use the fs command to invoke any FSShell command from within a Pig script or Grunt shell. 
+   The fs command greatly extends the set of supported file system commands and the capabilities
+   supported for existing commands such as ls that will now support globing. For a complete list of
+   FSShell commands, see 
+   <ulink url="http://hadoop.apache.org/common/docs/current/hdfs_shell.html">HDFS File System Shell Guide</ulink></para>
+   </section>
+   
+   <section>
+   <title>Examples</title>
+   <para>In these examples, a directory is created, a file is copied, a file is listed.</para>
+<programlisting>
+fs -mkdir /tmp
+fs -copyFromLocal file-x file-y
+fs -ls file-y
+</programlisting>
+   </section>
+    </section>
+        </section>
+    
    <!-- FILE COMMANDS-->
    <section>
    <title>File Commands</title>
-
+   <para>Note: Beginning with Pig 0.6.0, the file commands are now deprecated and will be removed in a future release. 
+   Start using Pig's -fs command to invoke the shell commands <ulink url="piglatin_reference.html#Shell+Commands">shell commands</ulink>.   
+   </para>
    <section>
    <title>cat</title>
    <para>Prints the content of one or more files to the screen.</para>
@@ -8786,7 +8933,8 @@ joe smith
 john adams
 anne white
 </programlisting>
-   </section></section>
+   </section>
+   </section>
    
    <section>
    <title>cd</title>
@@ -8984,96 +9132,7 @@ grunt&gt; cp students students_save
 </programlisting>
    </section></section>
    
-   <section>
-   <title>exec</title>
-   <para>Run a Pig script.</para>
-   
-   <section>
-   <title>Syntax</title>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>exec [–param param_name = param_value] [–param_file file_name] script  </para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable></section>
-   
-   <section>
-   <title>Terms</title>
-   <informaltable frame="all">
-   <tgroup cols="2"><tbody>
-        <row>
-            <entry>
-               <para>–param param_name = param_value</para>
-            </entry>
-            <entry>
-               <para>See Parameter Substitution.</para>
-            </entry>
-        </row>
-
-        <row>
-            <entry>
-               <para>–param_file file_name</para>
-            </entry>
-            <entry>
-               <para>See Parameter Substitution. </para>
-            </entry>
-        </row>
-   
-      <row>
-            <entry>
-               <para>script</para>
-            </entry>
-            <entry>
-               <para>The name of a Pig script.</para>
-            </entry>
-         </row>
-         
-   </tbody></tgroup>
-   </informaltable></section>
-   
-   <section>
-   <title>Usage</title>
-   <para>Use the exec command to run a Pig script with no interaction between the script and the Grunt shell (batch mode). Aliases defined in the script are not available to the shell; however, the files produced as the output of the script and stored on the system are visible after the script is run. Aliases defined via the shell are not available to the script. </para>
-   <para>With the exec command, store statements will not trigger execution; rather, the entire script is parsed before execution starts. Unlike the run command, exec does not change the command history or remembers the handles used inside the script. Exec without any parameters can be used in scripts to force execution up to the point in the script where the exec occurs. </para>
-   <para>For comparison, see the run command. Both the exec and run commands are useful for debugging because you can modify a Pig script in an editor and then rerun the script in the Grunt shell without leaving the shell. Also, both commands promote Pig script modularity as they allow you to reuse existing components.</para>
-   </section>
-   
-   <section>
-   <title>Examples</title>
-   <para>In this example the script is displayed and run.</para>
-
-<programlisting>
-grunt&gt; cat myscript.pig
-a = LOAD 'student' AS (name, age, gpa);
-b = LIMIT a 3;
-DUMP b;
-
-grunt&gt; exec myscript.pig
-(alice,20,2.47)
-(luke,18,4.00)
-(holly,24,3.27)
-</programlisting>
-
-   <para>In this example parameter substitution is used with the exec command.</para>
-<programlisting>
-grunt&gt; cat myscript.pig
-a = LOAD 'student' AS (name, age, gpa);
-b = ORDER a BY name;
-
-STORE b into '$out';
-
-grunt&gt; exec –param out=myoutput myscript.pig
-</programlisting>
-
-      <para>In this example multiple parameters are specified.</para>
-<programlisting>
-grunt&gt; exec –param p1=myparam1 –param p2=myparam2 myscript.pig
-</programlisting>
-
-   </section>
-   
-   </section>
+ 
    
    <section>
    <title>ls</title>
@@ -9343,8 +9402,15 @@ grunt&gt; rmf students students_sav
 </programlisting>
    </section></section>
    
+
+   </section>
+   
+   
    <section>
-   <title>run</title>
+   <title>Utility Commands</title>
+   
+  <section>
+   <title>exec</title>
    <para>Run a Pig script.</para>
    
    <section>
@@ -9352,7 +9418,7 @@ grunt&gt; rmf students students_sav
    <informaltable frame="all">
       <tgroup cols="1"><tbody><row>
             <entry>
-               <para>run [–param param_name = param_value] [–param_file file_name] script </para>
+               <para>exec [–param param_name = param_value] [–param_file file_name] script  </para>
             </entry>
          </row></tbody></tgroup>
    </informaltable></section>
@@ -9361,23 +9427,24 @@ grunt&gt; rmf students students_sav
    <title>Terms</title>
    <informaltable frame="all">
    <tgroup cols="2"><tbody>
-         <row>
+        <row>
             <entry>
                <para>–param param_name = param_value</para>
             </entry>
             <entry>
                <para>See Parameter Substitution.</para>
             </entry>
-         </row>
+        </row>
 
-         <row>
+        <row>
             <entry>
                <para>–param_file file_name</para>
             </entry>
             <entry>
                <para>See Parameter Substitution. </para>
             </entry>
-         </row>
+        </row>
+   
       <row>
             <entry>
                <para>script</para>
@@ -9392,49 +9459,47 @@ grunt&gt; rmf students students_sav
    
    <section>
    <title>Usage</title>
-   <para>Use the run command to run a Pig script that can interact with the Grunt shell (interactive mode). The script has access to aliases defined externally via the Grunt shell. The Grunt shell has access to aliases defined within the script. All commands from the script are visible in the command history. </para>   
-	<para>With the run command, every store triggers execution. The statements from the script are put into the command history and all the aliases defined in the script can be referenced in subsequent statements after the run command has completed. Issuing a run command on the grunt command line has basically the same effect as typing the statements manually. </para>   
-   <para>For comparison, see the exec command. Both the run and exec commands are useful for debugging because you can modify a Pig script in an editor and then rerun the script in the Grunt shell without leaving the shell. Also, both commands promote Pig script modularity as they allow you to reuse existing components.</para>
-  </section>
-   
-   <section>
-   <title>Example</title>
-   <para>In this example the script interacts with the results of commands issued via the Grunt shell.</para>
-<programlisting>
-grunt&gt; cat myscript.pig
-b = ORDER a BY name;
-c = LIMIT b 10;
-
-grunt&gt; a = LOAD 'student' AS (name, age, gpa);
-
-grunt&gt; run myscript.pig
-
-grunt&gt; d = LIMIT c 3;
-
-grunt&gt; DUMP d;
-(alice,20,2.47)
-(alice,27,1.95)
-(alice,36,2.27)
-</programlisting>
-   
-   
-   <para>In this example parameter substitution is used with the run command.</para>
-<programlisting>
-grunt&gt; a = LOAD 'student' AS (name, age, gpa);
-
-grunt&gt; cat myscript.pig
-b = ORDER a BY name;
-STORE b into '$out';
-
-grunt&gt; run –param out=myoutput myscript.pig
-</programlisting>
-   
-   </section></section>
+   <para>Use the exec command to run a Pig script with no interaction between the script and the Grunt shell (batch mode). Aliases defined in the script are not available to the shell; however, the files produced as the output of the script and stored on the system are visible after the script is run. Aliases defined via the shell are not available to the script. </para>
+   <para>With the exec command, store statements will not trigger execution; rather, the entire script is parsed before execution starts. Unlike the run command, exec does not change the command history or remembers the handles used inside the script. Exec without any parameters can be used in scripts to force execution up to the point in the script where the exec occurs. </para>
+   <para>For comparison, see the run command. Both the exec and run commands are useful for debugging because you can modify a Pig script in an editor and then rerun the script in the Grunt shell without leaving the shell. Also, both commands promote Pig script modularity as they allow you to reuse existing components.</para>
    </section>
    
-   
    <section>
-   <title>Utility Commands</title>
+   <title>Examples</title>
+   <para>In this example the script is displayed and run.</para>
+
+<programlisting>
+grunt&gt; cat myscript.pig
+a = LOAD 'student' AS (name, age, gpa);
+b = LIMIT a 3;
+DUMP b;
+
+grunt&gt; exec myscript.pig
+(alice,20,2.47)
+(luke,18,4.00)
+(holly,24,3.27)
+</programlisting>
+
+   <para>In this example parameter substitution is used with the exec command.</para>
+<programlisting>
+grunt&gt; cat myscript.pig
+a = LOAD 'student' AS (name, age, gpa);
+b = ORDER a BY name;
+
+STORE b into '$out';
+
+grunt&gt; exec –param out=myoutput myscript.pig
+</programlisting>
+
+      <para>In this example multiple parameters are specified.</para>
+<programlisting>
+grunt&gt; exec –param p1=myparam1 –param p2=myparam2 myscript.pig
+</programlisting>
+
+   </section>
+   
+   </section>   
+   
    
    <section>
    <title>help</title>
@@ -9556,6 +9621,97 @@ grunt&gt; kill job_0001
 grunt&gt; quit
 </programlisting>
    </section></section>
+   
+   
+   <section>
+   <title>run</title>
+   <para>Run a Pig script.</para>
+   
+   <section>
+   <title>Syntax</title>
+   <informaltable frame="all">
+      <tgroup cols="1"><tbody><row>
+            <entry>
+               <para>run [–param param_name = param_value] [–param_file file_name] script </para>
+            </entry>
+         </row></tbody></tgroup>
+   </informaltable></section>
+   
+   <section>
+   <title>Terms</title>
+   <informaltable frame="all">
+   <tgroup cols="2"><tbody>
+         <row>
+            <entry>
+               <para>–param param_name = param_value</para>
+            </entry>
+            <entry>
+               <para>See Parameter Substitution.</para>
+            </entry>
+         </row>
+
+         <row>
+            <entry>
+               <para>–param_file file_name</para>
+            </entry>
+            <entry>
+               <para>See Parameter Substitution. </para>
+            </entry>
+         </row>
+      <row>
+            <entry>
+               <para>script</para>
+            </entry>
+            <entry>
+               <para>The name of a Pig script.</para>
+            </entry>
+         </row>
+         
+   </tbody></tgroup>
+   </informaltable></section>
+   
+   <section>
+   <title>Usage</title>
+   <para>Use the run command to run a Pig script that can interact with the Grunt shell (interactive mode). The script has access to aliases defined externally via the Grunt shell. The Grunt shell has access to aliases defined within the script. All commands from the script are visible in the command history. </para>   
+	<para>With the run command, every store triggers execution. The statements from the script are put into the command history and all the aliases defined in the script can be referenced in subsequent statements after the run command has completed. Issuing a run command on the grunt command line has basically the same effect as typing the statements manually. </para>   
+   <para>For comparison, see the exec command. Both the run and exec commands are useful for debugging because you can modify a Pig script in an editor and then rerun the script in the Grunt shell without leaving the shell. Also, both commands promote Pig script modularity as they allow you to reuse existing components.</para>
+  </section>
+   
+   <section>
+   <title>Example</title>
+   <para>In this example the script interacts with the results of commands issued via the Grunt shell.</para>
+<programlisting>
+grunt&gt; cat myscript.pig
+b = ORDER a BY name;
+c = LIMIT b 10;
+
+grunt&gt; a = LOAD 'student' AS (name, age, gpa);
+
+grunt&gt; run myscript.pig
+
+grunt&gt; d = LIMIT c 3;
+
+grunt&gt; DUMP d;
+(alice,20,2.47)
+(alice,27,1.95)
+(alice,36,2.27)
+</programlisting>
+   
+   
+   <para>In this example parameter substitution is used with the run command.</para>
+<programlisting>
+grunt&gt; a = LOAD 'student' AS (name, age, gpa);
+
+grunt&gt; cat myscript.pig
+b = ORDER a BY name;
+STORE b into '$out';
+
+grunt&gt; run –param out=myoutput myscript.pig
+</programlisting>
+   
+   </section></section>   
+   
+   
    
    <section>
    <title>set</title>
