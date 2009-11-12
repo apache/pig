@@ -17,6 +17,7 @@
  */
 package org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators;
 
+import java.util.List;
 import java.util.Map;
 
 import org.apache.pig.backend.executionengine.ExecException;
@@ -194,5 +195,13 @@ public class ConstantExpression extends ExpressionOperator {
         clone.value = value;
         clone.cloneHelper(this);
         return clone;
+    }
+    
+    /**
+     * Get the child expressions of this expression
+     */
+    @Override
+    public List<ExpressionOperator> getChildExpressions() {		
+        return null;
     }
 }

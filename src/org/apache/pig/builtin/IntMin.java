@@ -20,6 +20,7 @@ package org.apache.pig.builtin;
 import java.io.IOException;
 import java.util.Iterator;
 
+import org.apache.pig.Accumulator;
 import org.apache.pig.Algebraic;
 import org.apache.pig.EvalFunc;
 import org.apache.pig.PigException;
@@ -35,7 +36,7 @@ import org.apache.pig.impl.logicalLayer.schema.Schema;
 /**
  * Generates the min of the Integer values in the first field of a tuple.
  */
-public class IntMin extends EvalFunc<Integer> implements Algebraic {
+public class IntMin extends EvalFunc<Integer> implements Algebraic, Accumulator<Integer> {
 
     @Override
     public Integer exec(Tuple input) throws IOException {
@@ -154,4 +155,38 @@ public class IntMin extends EvalFunc<Integer> implements Algebraic {
     public Schema outputSchema(Schema input) {
         return new Schema(new Schema.FieldSchema(null, DataType.INTEGER)); 
     }
+    
+    /* Accumulator interface implementation */
+    private Integer intermediateMin = null;
+    
+    @Override
+    public void accumulate(Tuple b) throws IOException {
+        try {
+            Integer curMin = min(b);
+            if (curMin == null) {
+                return;
+            }
+            /* if bag is not null, initialize intermediateMax to negative infinity */
+            if (intermediateMin == null) {
+                intermediateMin = Integer.MAX_VALUE;
+            }
+            intermediateMin = java.lang.Math.min(intermediateMin, curMin);
+        } catch (ExecException ee) {
+            throw ee;
+        } catch (Exception e) {
+            int errCode = 2106;
+            String msg = "Error while computing min in " + this.getClass().getSimpleName();
+            throw new ExecException(msg, errCode, PigException.BUG, e);           
+        }
+    }
+
+    @Override
+    public void cleanup() {
+        intermediateMin = null;
+    }
+
+    @Override
+    public Integer getValue() {
+        return intermediateMin;
+    }    
 }

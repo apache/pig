@@ -60,7 +60,7 @@ public class PONegative extends UnaryExpressionOperator {
     public Result getNext(Double d) throws ExecException {
         Result res = expr.getNext(d);
         if(res.returnStatus == POStatus.STATUS_OK && res.result!=null) {
-         		res.result = -1*((Double)res.result);
+                 res.result = -1*((Double)res.result);
 
        }
        

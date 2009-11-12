@@ -17,6 +17,9 @@
  */
 package org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
@@ -26,6 +29,7 @@ import org.apache.pig.impl.plan.VisitorException;
 public abstract class UnaryExpressionOperator extends ExpressionOperator {
 
     ExpressionOperator expr;
+    private transient List<ExpressionOperator> child;
     
     public UnaryExpressionOperator(OperatorKey k, int rp) {
         super(k, rp);
@@ -71,6 +75,19 @@ public abstract class UnaryExpressionOperator extends ExpressionOperator {
         // the plan.
         expr = op.expr;
         resultType = op.getResultType();
+    }
+
+    /**
+     * Get child expression of this expression
+     */
+    @Override
+    public List<ExpressionOperator> getChildExpressions() {
+        if (child == null) {
+            child = new ArrayList<ExpressionOperator>();		
+            child.add(expr);		
+        }
+        
+        return child;		
     }
 
 }

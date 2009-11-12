@@ -53,6 +53,11 @@ public class Multiply extends BinaryExpressionOperator {
 
     @Override
     public Result getNext(Double d) throws ExecException {
+        Result r = accumChild(null, d);
+        if (r != null) {
+            return r;
+        }
+        
         byte status;
         Result res;
         Double left = null, right = null;
@@ -76,6 +81,11 @@ public class Multiply extends BinaryExpressionOperator {
     
     @Override
     public Result getNext(Float f) throws ExecException {
+        Result r = accumChild(null, f);
+        if (r != null) {
+            return r;
+        }
+        
         byte status;
         Result res;
         Float left = null, right = null;
@@ -99,6 +109,11 @@ public class Multiply extends BinaryExpressionOperator {
     
     @Override
     public Result getNext(Integer i) throws ExecException {
+        Result r = accumChild(null, i);
+        if (r != null) {
+            return r;
+        }
+        
         byte status;
         Result res;
         Integer left = null, right = null;
@@ -122,6 +137,11 @@ public class Multiply extends BinaryExpressionOperator {
     
     @Override
     public Result getNext(Long l) throws ExecException {
+        Result r = accumChild(null, l);
+        if (r != null) {
+            return r;
+        }
+        
         byte status;
         Result res;
         Long left = null, right = null;

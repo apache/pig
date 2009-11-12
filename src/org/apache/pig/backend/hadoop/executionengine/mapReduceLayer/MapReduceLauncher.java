@@ -181,18 +181,18 @@ public class MapReduceLauncher extends Launcher{
             //if the job controller fails before launching the jobs then there are
             //no jobs to check for failure
             if(jobControlException != null) {
-            	if(jobControlException instanceof PigException) {
-            	        if(jobControlExceptionStackTrace != null) {
-            	            LogUtils.writeLog("Error message from job controller", jobControlExceptionStackTrace, 
-            	                    pc.getProperties().getProperty("pig.logfile"), 
+                if(jobControlException instanceof PigException) {
+                        if(jobControlExceptionStackTrace != null) {
+                            LogUtils.writeLog("Error message from job controller", jobControlExceptionStackTrace, 
+                                    pc.getProperties().getProperty("pig.logfile"), 
                                     log);
-            	        }
+                        }
                         throw jobControlException;
-            	} else {
+                } else {
                         int errCode = 2117;
                         String msg = "Unexpected error when launching map reduce job.";        	
                         throw new ExecException(msg, errCode, PigException.BUG, jobControlException);
-            	}
+                }
             }
 
             if (!jc.getFailedJobs().isEmpty() )
@@ -424,6 +424,9 @@ public class MapReduceLauncher extends Launcher{
         EndOfAllInputSetter checker = new EndOfAllInputSetter(plan);
         checker.visit();
         
+        AccumulatorOptimizer accum = new AccumulatorOptimizer(plan);
+        accum.visit();
+        
         return plan;
     }
     
@@ -434,29 +437,29 @@ public class MapReduceLauncher extends Launcher{
      * explicitly or if the default handler is null
      */
     class JobControlThreadExceptionHandler implements Thread.UncaughtExceptionHandler {
-    	
-    	public void uncaughtException(Thread thread, Throwable throwable) {
-    		ByteArrayOutputStream baos = new ByteArrayOutputStream();
-    		PrintStream ps = new PrintStream(baos);
-    		throwable.printStackTrace(ps);
-    		jobControlExceptionStackTrace = baos.toString();    		
-    		try {	
-    			jobControlException = getExceptionFromString(jobControlExceptionStackTrace);
-    		} catch (Exception e) {
-    			String errMsg = "Could not resolve error that occured when launching map reduce job: "
+        
+        public void uncaughtException(Thread thread, Throwable throwable) {
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            PrintStream ps = new PrintStream(baos);
+            throwable.printStackTrace(ps);
+            jobControlExceptionStackTrace = baos.toString();    		
+            try {	
+                jobControlException = getExceptionFromString(jobControlExceptionStackTrace);
+            } catch (Exception e) {
+                String errMsg = "Could not resolve error that occured when launching map reduce job: "
                         + getFirstLineFromMessage(jobControlExceptionStackTrace);
-    			jobControlException = new RuntimeException(errMsg);
-    		}
-    	}
+                jobControlException = new RuntimeException(errMsg);
+            }
+        }
     }
     
     void computeWarningAggregate(Job job, JobClient jobClient, Map<Enum, Long> aggMap) {
-    	JobID mapRedJobID = job.getAssignedJobID();
-    	RunningJob runningJob = null;
-    	try {
-    		runningJob = jobClient.getJob(mapRedJobID);
-    		if(runningJob != null) {
-        		Counters counters = runningJob.getCounters();
+        JobID mapRedJobID = job.getAssignedJobID();
+        RunningJob runningJob = null;
+        try {
+            runningJob = jobClient.getJob(mapRedJobID);
+            if(runningJob != null) {
+                Counters counters = runningJob.getCounters();
                 if (counters==null)
                 {
                     long nullCounterCount = aggMap.get(PigWarning.NULL_COUNTER_COUNT)==null?0 : aggMap.get(PigWarning.NULL_COUNTER_COUNT);
@@ -479,11 +482,11 @@ public class MapReduceLauncher extends Launcher{
                         aggMap.put(e, currentCount);
                     }
                 }
-    		}
-    	} catch (IOException ioe) {
-    		String msg = "Unable to retrieve job to compute warning aggregation.";
-    		log.warn(msg);
-    	}    	
+            }
+        } catch (IOException ioe) {
+            String msg = "Unable to retrieve job to compute warning aggregation.";
+            log.warn(msg);
+        }    	
     }
 
 }

@@ -20,6 +20,7 @@ package org.apache.pig.builtin;
 import java.io.IOException;
 import java.util.Iterator;
 
+import org.apache.pig.Accumulator;
 import org.apache.pig.Algebraic;
 import org.apache.pig.EvalFunc;
 import org.apache.pig.PigException;
@@ -33,7 +34,7 @@ import org.apache.pig.impl.logicalLayer.schema.Schema;
 /**
  * Generates the max of the values of the first field of a tuple.
  */
-public class FloatMax extends EvalFunc<Float> implements Algebraic {
+public class FloatMax extends EvalFunc<Float> implements Algebraic, Accumulator<Float> {
 
     @Override
     public Float exec(Tuple input) throws IOException {
@@ -151,5 +152,40 @@ public class FloatMax extends EvalFunc<Float> implements Algebraic {
     @Override
     public Schema outputSchema(Schema input) {
         return new Schema(new Schema.FieldSchema(null, DataType.FLOAT)); 
+    }
+    
+    /* Accumulator interface */
+    
+    private Float intermediateMax = null;
+    
+    @Override
+    public void accumulate(Tuple b) throws IOException {
+        try {
+            Float curMax = max(b);
+            if (curMax == null) {
+                return;
+            }
+            /* if bag is not null, initialize intermediateMax to negative infinity */
+            if (intermediateMax == null) {
+                intermediateMax = Float.NEGATIVE_INFINITY;
+            }
+            intermediateMax = java.lang.Math.max(intermediateMax, curMax);
+        } catch (ExecException ee) {
+            throw ee;
+        } catch (Exception e) {
+            int errCode = 2106;
+            String msg = "Error while computing min in " + this.getClass().getSimpleName();
+            throw new ExecException(msg, errCode, PigException.BUG, e);           
+        }
+    }
+
+    @Override
+    public void cleanup() {
+        intermediateMax = null;
+    }
+
+    @Override
+    public Float getValue() {
+        return intermediateMax;
     }
 }

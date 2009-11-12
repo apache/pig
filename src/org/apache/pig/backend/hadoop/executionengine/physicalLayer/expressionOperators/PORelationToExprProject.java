@@ -105,6 +105,13 @@ public class PORelationToExprProject extends POProject {
     @Override
     public Result getNext(DataBag db) throws ExecException {
         Result input = processInputBag();
+        
+        // if this is called during accumulation, it is ok to have an empty bag
+        // we need to send STATUS_OK so that the UDF can be called.
+        if (isAccumulative()) {
+            reset();
+        }
+        
         if(input.returnStatus!=POStatus.STATUS_OK) {
             if(input.returnStatus == POStatus.STATUS_EOP && sendEmptyBagOnEOP)  {
                 // we received an EOP from the predecessor

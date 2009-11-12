@@ -29,6 +29,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.data.AccumulativeBag;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.DataType;
@@ -37,6 +38,7 @@ import org.apache.pig.data.TupleFactory;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.ExpressionOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POProject;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.PORelationToExprProject;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
@@ -88,6 +90,8 @@ public class POForEach extends PhysicalOperator {
     protected int noItems;
 
     protected PhysicalOperator[] planLeafOps = null;
+    
+    protected transient AccumulativeTupleBuffer buffer;
     
     public POForEach(OperatorKey k) {
         this(k,-1,null,null);
@@ -146,15 +150,54 @@ public class POForEach extends PhysicalOperator {
     @Override
     public boolean supportsMultipleOutputs() {
         return false;
+    }      
+          
+    public void setAccumulative() {
+        super.setAccumulative();
+        for(PhysicalPlan p : inputPlans) {            
+            Iterator<PhysicalOperator> iter = p.iterator();
+            while(iter.hasNext()) {
+                PhysicalOperator po = iter.next();
+                if (po instanceof ExpressionOperator || po instanceof PODistinct) {
+                    po.setAccumulative();
+                }
+            }
+        }
+    }
+
+    public void setAccumStart() {
+        super.setAccumStart();
+        for(PhysicalPlan p : inputPlans) {            
+            Iterator<PhysicalOperator> iter = p.iterator();
+            while(iter.hasNext()) {
+                PhysicalOperator po = iter.next();
+                if (po instanceof ExpressionOperator || po instanceof PODistinct) {
+                    po.setAccumStart();
+                }
+            }
+        }
     }
     
+    public void setAccumEnd() {    	
+        super.setAccumEnd();
+        for(PhysicalPlan p : inputPlans) {            
+            Iterator<PhysicalOperator> iter = p.iterator();
+            while(iter.hasNext()) {
+                PhysicalOperator po = iter.next();
+                if (po instanceof ExpressionOperator || po instanceof PODistinct) {    				
+                    po.setAccumEnd();
+                }
+            }
+        }
+    }
+
     /**
      * Calls getNext on the generate operator inside the nested
      * physical plan and returns it maintaining an additional state
      * to denote the begin and end of the nested plan processing.
      */
     @Override
-    public Result getNext(Tuple t) throws ExecException {
+    public Result getNext(Tuple t) throws ExecException {    	
         Result res = null;
         Result inp = null;
         //The nested plan is under processing
@@ -162,14 +205,15 @@ public class POForEach extends PhysicalOperator {
         //returns
         if(processingPlan){
             while(true) {
-                res = processPlan();
+                res = processPlan();               
+                
                 if(res.returnStatus==POStatus.STATUS_OK) {
                     if(lineageTracer !=  null && res.result != null) {
-                	ExampleTuple tOut = new ExampleTuple((Tuple) res.result);
-                	tOut.synthetic = tIn.synthetic;
-                	lineageTracer.insert(tOut);
-                	lineageTracer.union(tOut, tIn);
-                	res.result = tOut;
+                    ExampleTuple tOut = new ExampleTuple((Tuple) res.result);
+                    tOut.synthetic = tIn.synthetic;
+                    lineageTracer.insert(tOut);
+                    lineageTracer.union(tOut, tIn);
+                    res.result = tOut;
                     }
                     return res;
                 }
@@ -198,32 +242,71 @@ public class POForEach extends PhysicalOperator {
             if (inp.returnStatus == POStatus.STATUS_NULL) {
                 continue;
             }
-            
+                       
             attachInputToPlans((Tuple) inp.result);
+            Tuple tuple = (Tuple)inp.result;
+            
             for (PhysicalOperator po : opsToBeReset) {
                 po.reset();
             }
-            res = processPlan();
+            
+            if (isAccumulative()) {            	
+                for(int i=0; i<tuple.size(); i++) {            		
+                    if (tuple.getType(i) == DataType.BAG) {
+                        // we only need to check one bag, because all the bags
+                        // share the same buffer
+                        buffer = ((AccumulativeBag)tuple.get(i)).getTuplebuffer();
+                        break;
+                    }
+                }
+                
+                while(true) {                    		
+                    if (buffer.hasNextBatch()) {        
+                        try {
+                            buffer.nextBatch();
+                        }catch(IOException e) {
+                            throw new ExecException(e);
+                        }
+                        
+                        setAccumStart();                		
+                    }else{                
+                        buffer.clear();
+                        setAccumEnd();                		
+                    }
+                    
+                    res = processPlan();            	
+                    
+                    if (res.returnStatus == POStatus.STATUS_BATCH_OK) {
+                        // attach same input again to process next batch
+                        attachInputToPlans((Tuple) inp.result);
+                    } else {
+                        break;
+                    }
+                } 
+                
+            } else {                        
+                res = processPlan();          
+            }
             
             processingPlan = true;
 
             if(lineageTracer != null && res.result != null) {
-        	//we check for res.result since that can also be null in the case of flatten
-        	tIn = (ExampleTuple) inp.result;
-        	ExampleTuple tOut = new ExampleTuple((Tuple) res.result);
-        	tOut.synthetic = tIn.synthetic;
-        	lineageTracer.insert(tOut);
-        	lineageTracer.union(tOut, tIn);
-        	res.result = tOut;
+            //we check for res.result since that can also be null in the case of flatten
+            tIn = (ExampleTuple) inp.result;
+            ExampleTuple tOut = new ExampleTuple((Tuple) res.result);
+            tOut.synthetic = tIn.synthetic;
+            lineageTracer.insert(tOut);
+            lineageTracer.union(tOut, tIn);
+            res.result = tOut;
             }
             
             return res;
         }
     }
 
-    protected Result processPlan() throws ExecException{
+    protected Result processPlan() throws ExecException{    	
         Result res = new Result();
-        
+
         //We check if all the databags have exhausted the tuples. If so we enforce the reading of new data by setting data and its to null
         if(its != null) {
             boolean restartIts = true;
@@ -238,6 +321,7 @@ public class POForEach extends PhysicalOperator {
             }
         }
         
+ 
         if(its == null) {
             //getNext being called for the first time OR starting with a set of new data from inputs 
             its = new Iterator[noItems];
@@ -287,9 +371,13 @@ public class POForEach extends PhysicalOperator {
                 }
                 
                 }
-                
+
+                if (inputData.returnStatus == POStatus.STATUS_BATCH_OK) {                	
+                    continue;
+                }
+
                 if(inputData.returnStatus == POStatus.STATUS_EOP) {
-                    //we are done with all the elements. Time to return.
+                    //we are done with all the elements. Time to return.                	
                     its = null;
                     bags = null;
                     return inputData;
@@ -310,6 +398,11 @@ public class POForEach extends PhysicalOperator {
             }
         }
 
+        // if accumulating, we haven't got data yet for some fields, just return
+        if (isAccumulative() && isAccumStarted()) {
+            res.returnStatus = POStatus.STATUS_BATCH_OK;        	
+            return res;
+        }
         
         while(true) {
             if(data == null) {
@@ -396,8 +489,8 @@ public class POForEach extends PhysicalOperator {
 
     
     protected void attachInputToPlans(Tuple t) {
-        //super.attachInput(t);
-        for(PhysicalPlan p : inputPlans) {
+        //super.attachInput(t);    	
+        for(PhysicalPlan p : inputPlans) {        	
             p.attachInput(t);
         }
     }

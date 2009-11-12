@@ -20,6 +20,7 @@ package org.apache.pig.builtin;
 import java.io.IOException;
 import java.util.Iterator;
 
+import org.apache.pig.Accumulator;
 import org.apache.pig.Algebraic;
 import org.apache.pig.EvalFunc;
 import org.apache.pig.PigException;
@@ -34,7 +35,7 @@ import org.apache.pig.impl.util.WrappedIOException;
 /**
  * Generates the sum of the Integer in the first field of a tuple.
  */
-public class IntSum extends EvalFunc<Long> implements Algebraic {
+public class IntSum extends EvalFunc<Long> implements Algebraic, Accumulator<Long> {
 
     @Override
     public Long exec(Tuple input) throws IOException {
@@ -198,4 +199,33 @@ public class IntSum extends EvalFunc<Long> implements Algebraic {
         return new Schema(new Schema.FieldSchema(null, DataType.LONG)); 
     }
 
+    /* Accumulator interface implementation*/
+    private Long intermediateSum = null;
+    
+    @Override
+    public void accumulate(Tuple b) throws IOException {
+        try {
+            Long curSum = sum(b);
+            if (curSum == null) {
+                return;
+            }
+            intermediateSum = (intermediateSum == null ? 0L : intermediateSum) + curSum;
+        } catch (ExecException ee) {
+            throw ee;
+        } catch (Exception e) {
+            int errCode = 2106;
+            String msg = "Error while computing min in " + this.getClass().getSimpleName();
+            throw new ExecException(msg, errCode, PigException.BUG, e);           
+        }
+    }
+
+    @Override
+    public void cleanup() {
+        intermediateSum = null;
+    }
+
+    @Override
+    public Long getValue() {
+        return intermediateSum;
+    }    
 }

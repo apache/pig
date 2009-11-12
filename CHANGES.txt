@@ -113,6 +113,8 @@ PIG-1042: javac warnings: unchecked (daijy)
 
 PIG-1038: Optimize nested distinct/sort to use secondary key (daijy)
 
+PIG-979: Acummulator Interface for UDFs (yinghe via daijy)
+
 OPTIMIZATIONS
 
 BUG FIXES
