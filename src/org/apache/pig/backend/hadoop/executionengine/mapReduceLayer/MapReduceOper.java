@@ -88,12 +88,18 @@ public class MapReduceOper extends Operator<MROpPlanVisitor> {
     // mapreduce job will speed things up.
     boolean needsDistinctCombiner = false;
     
+    // If true, we will use secondary key in the map-reduce job
+    boolean useSecondaryKey = false;
+    
     //The quantiles file name if globalSort is true
     String quantFile;
     
     //The sort order of the columns;
     //asc is true and desc is false
     boolean[] sortOrder;
+    
+    // Sort order for secondary keys;
+    boolean[] secondarySortOrder;
 
     public List<String> UDFs;
     
@@ -302,9 +308,21 @@ public class MapReduceOper extends Operator<MROpPlanVisitor> {
             this.sortOrder[i] = sortOrder[i];
         }
     }
+    
+    public void setSecondarySortOrder(boolean[] secondarySortOrder) {
+        if(null == secondarySortOrder) return;
+        this.secondarySortOrder = new boolean[secondarySortOrder.length];
+        for(int i = 0; i < secondarySortOrder.length; ++i) {
+            this.secondarySortOrder[i] = secondarySortOrder[i];
+        }
+    }
              
     public boolean[] getSortOrder() {
         return sortOrder;
+    }
+
+    public boolean[] getSecondarySortOrder() {
+        return secondarySortOrder;
     }
 
     /**
@@ -368,5 +386,13 @@ public class MapReduceOper extends Operator<MROpPlanVisitor> {
 
     public boolean isSplitter() {
         return splitter;
+    }
+    
+    public boolean getUseSecondaryKey() {
+        return useSecondaryKey;
+    }
+    
+    public void setUseSecondaryKey(boolean useSecondaryKey) {
+        this.useSecondaryKey = useSecondaryKey;
     }
 }

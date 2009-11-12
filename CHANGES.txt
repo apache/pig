@@ -111,6 +111,8 @@ PIG-1041: javac warnings: cast, fallthrough, serial (daijy)
 
 PIG-1042: javac warnings: unchecked (daijy)
 
+PIG-1038: Optimize nested distinct/sort to use secondary key (daijy)
+
 OPTIMIZATIONS
 
 BUG FIXES

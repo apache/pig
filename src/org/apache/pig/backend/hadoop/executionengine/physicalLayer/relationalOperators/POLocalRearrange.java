@@ -61,12 +61,20 @@ public class POLocalRearrange extends PhysicalOperator {
 
     protected List<PhysicalPlan> plans;
     
+    protected List<PhysicalPlan> secondaryPlans;
+    
     protected List<ExpressionOperator> leafOps;
+    
+    protected List<ExpressionOperator> secondaryLeafOps;
 
     // The position of this LR in the package operator
     protected byte index;
     
     protected byte keyType;
+    
+    protected byte mainKeyType;
+    
+    protected byte secondaryKeyType;
 
     protected boolean mIsDistinct = false;
     
@@ -83,6 +91,7 @@ public class POLocalRearrange extends PhysicalOperator {
     // 2:0 (2 corresponds to $2 in cogroup a by ($2, $3) and 0 corresponds to 1st index in key)
     // 3:1 (3 corresponds to $3 in cogroup a by ($2, $3) and 0 corresponds to 2nd index in key)
     private Map<Integer, Integer> mProjectedColsMap;
+    private Map<Integer, Integer> mSecondaryProjectedColsMap;
 
     // A place holder Tuple used in distinct case where we really don't
     // have any value to pass through.  But hadoop gets cranky if we pass a
@@ -95,19 +104,24 @@ public class POLocalRearrange extends PhysicalOperator {
 	// is a project(*) - we set this ONLY when the project(*)
 	// is the ONLY thing in the cogroup by ..
 	private boolean mProjectStar = false;
+	private boolean mSecondaryProjectStar = false;
 
     // marker to note that the "key" is a tuple
     // this is required by POPackage to pick things
     // off the "key" correctly to stitch together the
     // "value"
     private boolean isKeyTuple = false;
+    private boolean isSecondaryKeyTuple = false;
 
     private int mProjectedColsMapSize = 0;
+    private int mSecondaryProjectedColsMapSize = 0;
 
     private ArrayList<Integer> minValuePositions;
     private int minValuePositionsSize = 0;
 
     private Tuple lrOutput;
+    
+    private boolean useSecondaryKey = false;
     
     public POLocalRearrange(OperatorKey k) {
         this(k, -1, null);
@@ -125,7 +139,9 @@ public class POLocalRearrange extends PhysicalOperator {
         super(k, rp, inp);
         index = -1;
         leafOps = new ArrayList<ExpressionOperator>();
+        secondaryLeafOps = new ArrayList<ExpressionOperator>();
         mProjectedColsMap = new HashMap<Integer, Integer>();
+        mSecondaryProjectedColsMap = new HashMap<Integer, Integer>();
         lrOutput = mTupleFactory.newTuple(3);
     }
 
@@ -246,7 +262,19 @@ public class POLocalRearrange extends PhysicalOperator {
             for (PhysicalPlan ep : plans) {
                 ep.attachInput((Tuple)inp.result);
             }
+            
             List<Result> resLst = new ArrayList<Result>();
+            
+            if (secondaryPlans!=null) {
+                for (PhysicalPlan ep : secondaryPlans) {
+                    ep.attachInput((Tuple)inp.result);
+                }
+            }
+            
+            List<Result> secondaryResLst = null;
+            if (secondaryLeafOps!=null)
+                secondaryResLst = new ArrayList<Result>();
+            
             for (ExpressionOperator op : leafOps){
                 
                 switch(op.getResultType()){
@@ -285,24 +313,66 @@ public class POLocalRearrange extends PhysicalOperator {
                     return new Result();
                 resLst.add(res);
             }
-            res.result = constructLROutput(resLst,(Tuple)inp.result);
+            
+            if (secondaryLeafOps!=null)
+            {
+                for (ExpressionOperator op : secondaryLeafOps){
+                    
+                    switch(op.getResultType()){
+                    case DataType.BAG:
+                        res = op.getNext(dummyBag);
+                        break;
+                    case DataType.BOOLEAN:
+                        res = op.getNext(dummyBool);
+                        break;
+                    case DataType.BYTEARRAY:
+                        res = op.getNext(dummyDBA);
+                        break;
+                    case DataType.CHARARRAY:
+                        res = op.getNext(dummyString);
+                        break;
+                    case DataType.DOUBLE:
+                        res = op.getNext(dummyDouble);
+                        break;
+                    case DataType.FLOAT:
+                        res = op.getNext(dummyFloat);
+                        break;
+                    case DataType.INTEGER:
+                        res = op.getNext(dummyInt);
+                        break;
+                    case DataType.LONG:
+                        res = op.getNext(dummyLong);
+                        break;
+                    case DataType.MAP:
+                        res = op.getNext(dummyMap);
+                        break;
+                    case DataType.TUPLE:
+                        res = op.getNext(dummyTuple);
+                        break;
+                    }
+                    if(res.returnStatus!=POStatus.STATUS_OK)
+                        return new Result();
+                    secondaryResLst.add(res);
+                }
+            }
+            // If we are using secondary sort key, our new key is:
+            // (nullable, index, (key, secondary key), value)
+            res.result = constructLROutput(resLst,secondaryResLst,(Tuple)inp.result);
             
             return res;
         }
         return inp;
     }
     
-    protected Tuple constructLROutput(List<Result> resLst, Tuple value) throws ExecException{
-        //Construct key
+    protected Object getKeyFromResult(List<Result> resLst, byte type) throws ExecException {
         Object key;
-        
         if(resLst.size()>1){
             Tuple t = mTupleFactory.newTuple(resLst.size());
             int i=-1;
             for(Result res : resLst)
                 t.set(++i, res.result);
             key = t;           
-        } else if (resLst.size() == 1 && keyType == DataType.TUPLE) {
+        } else if (resLst.size() == 1 && type == DataType.TUPLE) {
             
             // We get here after merging multiple jobs that have different
             // map key types into a single job during multi-query optimization.
@@ -319,6 +389,21 @@ public class POLocalRearrange extends PhysicalOperator {
         else{
             key = resLst.get(0).result;
         }
+        return key;
+    }
+    
+    protected Tuple constructLROutput(List<Result> resLst, List<Result> secondaryResLst, Tuple value) throws ExecException{
+        //Construct key
+        Object key;
+        Object secondaryKey=null;
+        
+        
+        if (secondaryResLst!=null && secondaryResLst.size()>0)
+        {
+            key = getKeyFromResult(resLst, mainKeyType);
+            secondaryKey = getKeyFromResult(secondaryResLst, secondaryKeyType);
+        } else
+            key = getKeyFromResult(resLst, keyType);
         
         if (mIsDistinct) {
 
@@ -340,7 +425,15 @@ public class POLocalRearrange extends PhysicalOperator {
 
             //Put the index, key, and value
             //in a tuple and return
-            lrOutput.set(1, key);
+            if (useSecondaryKey)
+            {
+                Tuple compoundKey = mTupleFactory.newTuple(2);
+                compoundKey.set(0, key);
+                compoundKey.set(1, secondaryKey);
+                lrOutput.set(1, compoundKey);
+            }
+            else
+                lrOutput.set(1, key);
             
             // strip off the columns in the "value" which 
             // are present in the "key"
@@ -398,11 +491,19 @@ public class POLocalRearrange extends PhysicalOperator {
     }
 
     public void setKeyType(byte keyType) {
-        this.keyType = keyType;
+        if (useSecondaryKey)
+            this.mainKeyType = keyType;
+        else
+            this.keyType = keyType;
     }
 
     public List<PhysicalPlan> getPlans() {
         return plans;
+    }
+    
+    public void setUseSecondaryKey(boolean useSecondaryKey) {
+        this.useSecondaryKey = useSecondaryKey;
+        mainKeyType = keyType;
     }
 
     public void setPlans(List<PhysicalPlan> plans) throws PlanException {
@@ -464,6 +565,74 @@ public class POLocalRearrange extends PhysicalOperator {
         }
         mProjectedColsMapSize = mProjectedColsMap.size();
     }
+    
+    public void setSecondaryPlans(List<PhysicalPlan> plans) throws PlanException {
+        this.secondaryPlans = plans;
+        secondaryLeafOps.clear();
+        int keyIndex = 0; // zero based index for fields in the key
+        for (PhysicalPlan plan : plans) {
+            ExpressionOperator leaf = (ExpressionOperator)plan.getLeaves().get(0); 
+            secondaryLeafOps.add(leaf);
+            
+            // don't optimize CROSS
+            if(!isCross) {
+                // Look for the leaf Ops which are POProject operators - get the 
+                // the columns that these POProject Operators are projecting.
+                // They MUST be projecting either a column or '*'.
+                // Keep track of the columns which are being projected and
+                // the position in the "Key" where these will be projected to.
+                // Then we can use this information to strip off these columns
+                // from the "Value" and in POPackage stitch the right "Value"
+                // tuple back by getting these columns from the "key". The goal
+                // is reduce the amount of the data sent to Hadoop in the map.
+                if(leaf instanceof POProject) {
+                    POProject project = (POProject) leaf;
+                    if(project.isStar()) {
+                        if(secondaryPlans.size() == 1) {
+                            // note that we have a project *
+                            mSecondaryProjectStar  = true;
+                            // key will be a tuple in this case
+                            isSecondaryKeyTuple = true;
+                        } else {
+                            // TODO: currently "group by (*, somethingelse)" is NOT
+                            // allowed. So we should never get here. But once it is
+                            // allowed, we will need to handle it. For now just log
+                            log.debug("Project * in group by not being optimized in key-value transfer");
+                        }
+                    } else {
+                        try {
+                            List<PhysicalOperator> preds = plan.getPredecessors(leaf);
+                            if (preds==null || !(preds.get(0) instanceof POProject))
+                                mSecondaryProjectedColsMap.put(project.getColumn(), keyIndex);
+                        } catch (ExecException e) {
+                            int errCode = 2070;
+                            String msg = "Problem in accessing column from project operator.";
+                            throw new PlanException(msg, errCode, PigException.BUG);
+                        }
+                    }
+                    if(project.getResultType() == DataType.TUPLE)
+                        isSecondaryKeyTuple = true;
+                }
+                keyIndex++;
+            }
+        }
+        if(keyIndex > 1) {
+            // make a note that the "key" is a tuple
+            // this is required by POPackage to pick things
+            // off the "key" correctly to stitch together the
+            // "value"
+            isSecondaryKeyTuple  = true;
+        }
+        mainKeyType = keyType;
+        keyType = DataType.TUPLE;
+        if (plans.size()>1)
+            secondaryKeyType = DataType.TUPLE;
+        else
+        {
+            secondaryKeyType = plans.get(0).getLeaves().get(0).getResultType();
+        }
+        mSecondaryProjectedColsMapSize = mSecondaryProjectedColsMap.size();
+    }
 
     /**
      * Make a deep copy of this operator.  
@@ -488,6 +657,9 @@ public class POLocalRearrange extends PhysicalOperator {
             throw cnse;
         }
         clone.keyType = keyType;
+        clone.mainKeyType = mainKeyType;
+        clone.secondaryKeyType = secondaryKeyType;
+        clone.useSecondaryKey = useSecondaryKey;
         clone.index = index;
         try {
             clone.lrOutput.set(0, index);
@@ -516,6 +688,13 @@ public class POLocalRearrange extends PhysicalOperator {
     public Map<Integer, Integer> getProjectedColsMap() {
         return mProjectedColsMap;
     }
+    
+    /**
+     * @return the mProjectedColsMap
+     */
+    public Map<Integer, Integer> getSecondaryProjectedColsMap() {
+        return mSecondaryProjectedColsMap;
+    }
 
     /**
      * @return the mProjectStar
@@ -525,10 +704,24 @@ public class POLocalRearrange extends PhysicalOperator {
     }
 
     /**
+     * @return the mProjectStar
+     */
+    public boolean isSecondaryProjectStar() {
+        return mSecondaryProjectStar;
+    }
+
+    /**
      * @return the keyTuple
      */
     public boolean isKeyTuple() {
         return isKeyTuple;
+    }
+
+    /**
+     * @return the keyTuple
+     */
+    public boolean isSecondaryKeyTuple() {
+        return isSecondaryKeyTuple;
     }
 
     /**
