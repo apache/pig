@@ -20,6 +20,7 @@ package org.apache.pig.builtin;
 import java.io.IOException;
 import java.util.Iterator;
 
+import org.apache.pig.Accumulator;
 import org.apache.pig.Algebraic;
 import org.apache.pig.EvalFunc;
 import org.apache.pig.PigException;
@@ -35,7 +36,7 @@ import org.apache.pig.backend.executionengine.ExecException;
  * Generates the average of the values of the first field of a tuple. This class is Algebraic in
  * implementation, so if possible the execution will be split into a local and global application
  */
-public class LongAvg extends EvalFunc<Double> implements Algebraic {
+public class LongAvg extends EvalFunc<Double> implements Algebraic, Accumulator<Double> {
     
     private static TupleFactory mTupleFactory = TupleFactory.getInstance();
 
@@ -229,6 +230,54 @@ public class LongAvg extends EvalFunc<Double> implements Algebraic {
     @Override
     public Schema outputSchema(Schema input) {
         return new Schema(new Schema.FieldSchema(null, DataType.DOUBLE)); 
+    }
+    
+    /* Accumulator interface */
+   
+    private Long intermediateSum = null;
+    private Double intermediateCount = null;
+    
+    @Override
+    public void accumulate(Tuple b) throws IOException {
+        try {
+            Long sum = sum(b);
+            if(sum == null) {
+                return;
+            }
+            // set default values
+            if (intermediateSum == null || intermediateCount == null) {
+                intermediateSum = 0L;
+                intermediateCount = 0.0;
+            }
+            
+            double count = (Long)count(b);
+
+            if (count > 0) {
+                intermediateCount += count;
+                intermediateSum += sum;
+            }
+        } catch (ExecException ee) {
+            throw ee;
+        } catch (Exception e) {
+            int errCode = 2106;
+            String msg = "Error while computing average in " + this.getClass().getSimpleName();
+            throw new ExecException(msg, errCode, PigException.BUG, e);           
+        }
+    }        
+
+    @Override
+    public void cleanup() {
+        intermediateSum = null;
+        intermediateCount = null;
+    }
+
+    @Override
+    public Double getValue() {
+        Double avg = null;
+        if (intermediateCount > 0) {
+            avg = new Double(intermediateSum / intermediateCount);
+        }
+        return avg;
     }
 
 }

@@ -17,6 +17,9 @@
  */
 package org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.apache.pig.impl.plan.OperatorKey;
 
 /**
@@ -31,6 +34,7 @@ public abstract class BinaryExpressionOperator extends ExpressionOperator {
     
     protected ExpressionOperator lhs;
     protected ExpressionOperator rhs;
+    private transient List<ExpressionOperator> child;
     
     public BinaryExpressionOperator(OperatorKey k) {
         this(k,-1);
@@ -42,6 +46,18 @@ public abstract class BinaryExpressionOperator extends ExpressionOperator {
 
     public ExpressionOperator getLhs() {
         return lhs;
+    }
+    
+    /**
+     * Get the child expressions of this expression
+     */
+    public List<ExpressionOperator> getChildExpressions() {
+        if (child == null) {
+            child = new ArrayList<ExpressionOperator>();    	
+            child.add(lhs);    	
+            child.add(rhs);
+        }
+        return child;
     }
     
     @Override

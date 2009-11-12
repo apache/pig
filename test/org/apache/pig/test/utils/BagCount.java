@@ -15,24 +15,37 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.pig.backend.hadoop.executionengine.physicalLayer;
 
-public class POStatus {
-    public static final byte STATUS_OK = 0;
+package org.apache.pig.test.utils;
 
-    public static final byte STATUS_NULL = 1;
+import java.io.IOException;
+import java.util.Iterator;
+import org.apache.pig.EvalFunc;
+import org.apache.pig.data.DataBag;
+import org.apache.pig.data.Tuple;
 
-    public static final byte STATUS_ERR = 2;
+public class BagCount extends EvalFunc<Integer> { 
 
-    public static final byte STATUS_EOP = 3; // end of processing
+    
+    public BagCount() {
+    }
 
-    // This is currently only used in communications 
-    // between ExecutableManager and POStream
-    public static final byte STATUS_EOS = 4; // end of Streaming output (i.e. output from streaming binary)
 
-    // successfully processing of a batch, used by accumulative UDFs
-    // this is used for accumulative UDFs
-    public static final byte STATUS_BATCH_OK = 5; 
+    public Integer exec(Tuple tuple) throws IOException {
+        DataBag databag = (DataBag)tuple.get(0);
+        if(databag == null) {
+            return new Integer(0);
+        }
+        
+        int count = 0;
 
-    public static Object result;
+        Iterator<Tuple> iterator = databag.iterator();
+        while(iterator.hasNext()) {
+            iterator.next();
+            count++;
+        }
+        
+        return new Integer(count);
+    }
 }
+                                                                                 

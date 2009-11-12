@@ -65,36 +65,60 @@ public class GreaterThanExpr extends BinaryComparisonOperator {
 
         switch (operandType) {
         case DataType.BYTEARRAY: {
+            Result r = accumChild(null, dummyDBA);
+            if (r != null) {
+                return r;
+            }        	
             left = lhs.getNext(dummyDBA);
             right = rhs.getNext(dummyDBA);
             return doComparison(left, right);
                             }
 
         case DataType.DOUBLE: {
+            Result r = accumChild(null, dummyDouble);
+            if (r != null) {
+                return r;
+            }        	
             left = lhs.getNext(dummyDouble);
             right = rhs.getNext(dummyDouble);
             return doComparison(left, right);
                             }
 
         case DataType.FLOAT: {
+            Result r = accumChild(null, dummyFloat);
+            if (r != null) {
+                return r;
+            }
             left = lhs.getNext(dummyFloat);
             right = rhs.getNext(dummyFloat);
             return doComparison(left, right);
                             }
 
         case DataType.INTEGER: {
+            Result r = accumChild(null, dummyInt);
+            if (r != null) {
+                return r;
+            }
             left = lhs.getNext(dummyInt);
             right = rhs.getNext(dummyInt);
             return doComparison(left, right);
                             }
 
         case DataType.LONG: {
+            Result r = accumChild(null, dummyLong);
+            if (r != null) {
+                return r;
+            }
             left = lhs.getNext(dummyLong);
             right = rhs.getNext(dummyLong);
             return doComparison(left, right);
                             }
 
         case DataType.CHARARRAY: {
+            Result r = accumChild(null, dummyString);
+            if (r != null) {
+                return r;
+            }
             left = lhs.getNext(dummyString);
             right = rhs.getNext(dummyString);
             return doComparison(left, right);

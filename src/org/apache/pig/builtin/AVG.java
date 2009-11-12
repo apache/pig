@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
+import org.apache.pig.Accumulator;
 import org.apache.pig.Algebraic;
 import org.apache.pig.EvalFunc;
 import org.apache.pig.FuncSpec;
@@ -41,7 +42,7 @@ import org.apache.pig.backend.executionengine.ExecException;
  * Generates the average of the values of the first field of a tuple. This class is Algebraic in
  * implemenation, so if possible the execution will be split into a local and global application
  */
-public class AVG extends EvalFunc<Double> implements Algebraic {
+public class AVG extends EvalFunc<Double> implements Algebraic, Accumulator<Double> {
     
     private static TupleFactory mTupleFactory = TupleFactory.getInstance();
 
@@ -178,6 +179,7 @@ public class AVG extends EvalFunc<Double> implements Algebraic {
         for (Iterator<Tuple> it = values.iterator(); it.hasNext();) {
             Tuple t = it.next();
             Double d = (Double)t.get(0);
+            
             // we count nulls in avg as contributing 0
             // a departure from SQL for performance of 
             // COUNT() which implemented by just inspecting
@@ -261,5 +263,53 @@ public class AVG extends EvalFunc<Double> implements Algebraic {
         funcList.add(new FuncSpec(IntAvg.class.getName(), Schema.generateNestedSchema(DataType.BAG, DataType.INTEGER)));
         funcList.add(new FuncSpec(LongAvg.class.getName(), Schema.generateNestedSchema(DataType.BAG, DataType.LONG)));
         return funcList;
+    }
+
+    /* Accumulator interface implementation */
+    
+    private Double intermediateSum = null;
+    private Double intermediateCount = null;
+    
+    @Override
+    public void accumulate(Tuple b) throws IOException {
+        try {
+            Double sum = sum(b);
+            if(sum == null) {
+                return;
+            }
+            // set default values
+            if (intermediateSum == null || intermediateCount == null) {
+                intermediateSum = 0.0;
+                intermediateCount = 0.0;
+            }
+            
+            double count = (Long)count(b);
+
+            if (count > 0) {
+                intermediateCount += count;
+                intermediateSum += sum;
+            }
+        } catch (ExecException ee) {
+            throw ee;
+        } catch (Exception e) {
+            int errCode = 2106;
+            String msg = "Error while computing average in " + this.getClass().getSimpleName();
+            throw new ExecException(msg, errCode, PigException.BUG, e);           
+        }
+    }        
+
+    @Override
+    public void cleanup() {
+        intermediateSum = null;
+        intermediateCount = null;
+    }
+
+    @Override
+    public Double getValue() {
+        Double avg = null;
+        if (intermediateCount > 0) {
+            avg = new Double(intermediateSum / intermediateCount);
+        }
+        return avg;
     }    
 }

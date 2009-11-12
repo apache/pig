@@ -56,6 +56,11 @@ public class PORegexp extends BinaryComparisonOperator {
 
     @Override
     public Result getNext(Boolean bool) throws ExecException {
+        Result r = accumChild(null, dummyString);
+        if (r != null) {
+            return r;
+        }
+        
         byte status;
         Result left, right;
 

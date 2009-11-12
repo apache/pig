@@ -17,6 +17,8 @@
  */
 package org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators;
 
+import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -25,6 +27,7 @@ import java.util.Map;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.data.AccumulativeBag;
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.InternalCachedBag;
 import org.apache.pig.data.DataBag;
@@ -199,7 +202,7 @@ public class POPackage extends PhysicalOperator {
     public void setInner(boolean[] inner) {
         this.inner = inner;
     }
-
+   
     /**
      * From the inputs, constructs the output tuple
      * for this co-group in the required format which
@@ -218,38 +221,51 @@ public class POPackage extends PhysicalOperator {
             DataBag[] dbs = null;
             dbs = new DataBag[numInputs];
                  
-            String bagType = null;
-            if (PigMapReduce.sJobConf != null) {
-       			bagType = PigMapReduce.sJobConf.get("pig.cachedbag.type");       			
-       	    }
-            
-        	for (int i = 0; i < numInputs; i++) {        		          	           		
-        	    if (bagType != null && bagType.equalsIgnoreCase("default")) {        	    	
-           			dbs[i] = mBagFactory.newDefaultBag();           			
-           	    } else {
-        	    	dbs[i] = new InternalCachedBag(numInputs);
-        	    }
-        	}      
-                           
-            //For each indexed tup in the inp, sort them
-            //into their corresponding bags based
-            //on the index
-            while (tupIter.hasNext()) {
-                NullableTuple ntup = tupIter.next();
-                int index = ntup.getIndex();
-                Tuple copy = getValueTuple(ntup, index);  
-                
-                if (numInputs == 1) {
-                    
-                    // this is for multi-query merge where 
-                    // the numInputs is always 1, but the index
-                    // (the position of the inner plan in the 
-                    // enclosed operator) may not be 1.
-                    dbs[0].add(copy);
-                } else {
-                    dbs[index].add(copy);
+            if (isAccumulative()) {
+                // create bag wrapper to pull tuples in many batches
+                // all bags have reference to the sample tuples buffer
+                // which contains tuples from one batch
+                POPackageTupleBuffer buffer = new POPackageTupleBuffer();
+                for (int i = 0; i < numInputs; i++) {
+                    dbs[i] = new AccumulativeBag(buffer, i);
                 }
-                if(reporter!=null) reporter.progress();
+                
+            } else {
+                // create bag to pull all tuples out of iterator
+                String bagType = null;
+                if (PigMapReduce.sJobConf != null) {
+                       bagType = PigMapReduce.sJobConf.get("pig.cachedbag.type");       			
+                   }
+                                
+
+                for (int i = 0; i < numInputs; i++) {        		          	           		
+                    if (bagType != null && bagType.equalsIgnoreCase("default")) {        	    	
+                           dbs[i] = mBagFactory.newDefaultBag();           			
+                       } else {
+                        dbs[i] = new InternalCachedBag(numInputs);
+                    }
+                }      
+                               
+                //For each indexed tup in the inp, sort them
+                //into their corresponding bags based
+                //on the index
+                while (tupIter.hasNext()) {
+                    NullableTuple ntup = tupIter.next();
+                    int index = ntup.getIndex();
+                    Tuple copy = getValueTuple(ntup, index);  
+                    
+                    if (numInputs == 1) {
+                        
+                        // this is for multi-query merge where 
+                        // the numInputs is always 1, but the index
+                        // (the position of the inner plan in the 
+                        // enclosed operator) may not be 1.
+                        dbs[0].add(copy);
+                    } else {
+                        dbs[index].add(copy);
+                    }
+                    if(reporter!=null) reporter.progress();
+                }
             }
                       
             //Construct the output tuple by appending
@@ -259,14 +275,16 @@ public class POPackage extends PhysicalOperator {
             res.set(0,key);
             int i=-1;
             for (DataBag bag : dbs) {
-                if(inner[++i]){
+                i++;
+                if(inner[i] && !isAccumulative()){
                     if(bag.size()==0){
                         detachInput();
                         Result r = new Result();
                         r.returnStatus = POStatus.STATUS_NULL;
                         return r;
                     }
-                }
+                } 
+                
                 res.set(i+1,bag);
             }
         }
@@ -420,4 +438,70 @@ public class POPackage extends PhysicalOperator {
         this.useSecondaryKey = useSecondaryKey;
     }
 
+    private class POPackageTupleBuffer implements AccumulativeTupleBuffer {
+        private List<Tuple>[] bags;
+        private Iterator<NullableTuple> iter;
+        private int batchSize;
+        private Object currKey;
+
+        @SuppressWarnings("unchecked")
+        public POPackageTupleBuffer() {    		
+            batchSize = 20000;
+            if (PigMapReduce.sJobConf != null) {
+                String size = PigMapReduce.sJobConf.get("pig.accumulative.batchsize");
+                if (size != null) {
+                    batchSize = Integer.parseInt(size);
+                }
+            }		
+            
+            this.bags = new List[numInputs];
+            for(int i=0; i<numInputs; i++) {
+                this.bags[i] = new ArrayList<Tuple>();
+            }
+            this.iter = tupIter;
+            this.currKey = key;
+        }
+        
+        @Override
+        public boolean hasNextBatch() {
+            return iter.hasNext();
+        }
+
+        @Override
+        public void nextBatch() throws IOException {
+            for(int i=0; i<bags.length; i++) {
+                bags[i].clear();
+            }
+                        
+            key = currKey;			
+            for(int i=0; i<batchSize; i++) {
+                if (iter.hasNext()) {
+                     NullableTuple ntup = iter.next();
+                     int index = ntup.getIndex();
+                     Tuple copy = getValueTuple(ntup, index);		            
+                     if (numInputs == 1) {
+                            
+                            // this is for multi-query merge where 
+                            // the numInputs is always 1, but the index
+                            // (the position of the inner plan in the 
+                            // enclosed operator) may not be 1.
+                            bags[0].add(copy);
+                     } else {
+                            bags[index].add(copy);
+                     }
+                }
+            }
+        } 
+        
+        public void clear() {
+            for(int i=0; i<bags.length; i++) {
+                bags[i].clear();
+            }
+            iter = null;
+        }
+        
+        public Iterator<Tuple> getTuples(int index) {			
+            return bags[index].iterator();
+        }
+       };
 }
