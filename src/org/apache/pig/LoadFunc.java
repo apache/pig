@@ -19,6 +19,7 @@ package org.apache.pig;
 
 import java.io.IOException;
 
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.RecordReader;
@@ -31,66 +32,76 @@ import org.apache.pig.data.Tuple;
  * from a dataset.
  */
 public interface LoadFunc {
+    /**
+     * This method is called by the Pig runtime in the front end to convert the
+     * input location to an absolute path if the location is relative. The
+     * loadFunc implementation is free to choose how it converts a relative 
+     * location to an absolute location since this may depend on what the location
+     * string represent (hdfs path or some other data source)
+     * 
+     * @param location location as provided in the "load" statement of the script
+     * @param curDir the current working direction based on any "cd" statements
+     * in the script before the "load" statement. If there are no "cd" statements
+     * in the script, this would be the home directory - 
+     * <pre>/user/<username> </pre>
+     * @return the absolute location based on the arguments passed
+     * @throws IOException if the conversion is not possible
+     */
+    String relativeToAbsolutePath(String location, Path curDir) throws IOException;
 
     /**
-     * Communicate to the loader the load string used in Pig Latin to refer to the 
-     * object(s) being loaded.  That is, if the PL script is
-     * <b>A = load 'bla'</b>
-     * then 'bla' is the load string.  In general Pig expects these to be
-     * a path name, a glob, or a URI.  If there is no URI scheme present,
-     * Pig will assume it is a file name.  This will be 
-     * called during planning on the front end at which time an empty Job object
-     * will be passed as the second argument.
+     * Communicate to the loader the location of the object(s) being loaded.  
+     * The location string passed to the LoadFunc here is the return value of 
+     * {@link LoadFunc#relativeToAbsolutePath(String, Path)}
      * 
-     * This method will also be called in the backend multiple times and in those
-     * calls the Job object will actually have job information. Implementations
+     * This method will be called in the backend multiple times. Implementations
      * should bear in mind that this method is called multiple times and should
      * ensure there are no inconsistent side effects due to the multiple calls.
      * 
-     * @param location Location indicated in load statement.
+     * @param location Location as returned by 
+     * {@link LoadFunc#relativeToAbsolutePath(String, Path)}
      * @param job the {@link Job} object
      * @throws IOException if the location is not valid.
      */
     void setLocation(String location, Job job) throws IOException;
     
     /**
-     * Return the InputFormat associated with this loader.  This will be
-     * called during planning on the front end.  The LoadFunc need not
-     * carry the InputFormat information to the backend, as it will
-     * be provided with the appropriate RecordReader there.  This is the
+     * This will be called during planning on the front end. This is the
      * instance of InputFormat (rather than the class name) because the 
      * load function may need to instantiate the InputFormat in order 
      * to control how it is constructed.
+     * @return the InputFormat associated with this loader.
+     * @throws IOException if there is an exception during InputFormat 
+     * construction
      */
-    InputFormat getInputFormat();
+    InputFormat getInputFormat() throws IOException;
 
     /**
-     * Return the LoadCaster associated with this loader.  Returning
-     * null indicates that casts from byte array are not supported
-     * for this loader.  This will be called on the front end during
-     * planning and not on the back end during execution.
+     * This will be called on the front end during planning and not on the back 
+     * end during execution.
+     * @return the {@link LoadCaster} associated with this loader. Returning null 
+     * indicates that casts from byte array are not supported for this loader. 
+     * construction
+     * @throws IOException if there is an exception during LoadCaster 
      */
-    LoadCaster getLoadCaster();
+    LoadCaster getLoadCaster() throws IOException;
 
     /**
      * Initializes LoadFunc for reading data.  This will be called during execution
      * before any calls to getNext.  The RecordReader needs to be passed here because
      * it has been instantiated for a particular InputSplit.
-     * @param reader RecordReader to be used by this instance of the LoadFunc
-     * @param split The input split to process
+     * @param reader {@link RecordReader} to be used by this instance of the LoadFunc
+     * @param split The input {@link PigSplit} to process
+     * @throws IOException if there is an exception during initialization
      */
-    void prepareToRead(RecordReader reader, PigSplit split);
-
-    /**
-     * Called after all reading is finished.
-     */
-    void doneReading();
+    void prepareToRead(RecordReader reader, PigSplit split) throws IOException;
 
     /**
      * Retrieves the next tuple to be processed.
      * @return the next tuple to be processed or null if there are no more tuples
      * to be processed.
-     * @throws IOException
+     * @throws IOException if there is an exception while retrieving the next
+     * tuple
      */
     Tuple getNext() throws IOException;
 

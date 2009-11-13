@@ -66,7 +66,7 @@ public abstract class SampleLoader implements LoadFunc {
      * @see org.apache.pig.LoadFunc#getInputFormat()
      */
     @Override
-    public InputFormat getInputFormat() {
+    public InputFormat getInputFormat() throws IOException {
         return loader.getInputFormat();
     }
 

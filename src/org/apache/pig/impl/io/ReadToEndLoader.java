@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.Job;
@@ -97,18 +98,18 @@ public class ReadToEndLoader implements LoadFunc {
      * @param wrappedLoadFunc
      * @param conf
      * @param inputLocation
-     * @param splitIndex
+     * @param startSplitIndex
      * @throws IOException 
      * @throws InterruptedException 
      */
     public ReadToEndLoader(LoadFunc wrappedLoadFunc, Configuration conf,
-            String inputLocation, int splitIndex) throws IOException {
+            String inputLocation, int startSplitIndex) throws IOException {
         this.wrappedLoadFunc = wrappedLoadFunc;
         // make a copy so that if the underlying InputFormat writes to the
         // conf, we don't affect the caller's copy
         this.conf = new Configuration(conf);
         this.inputLocation = inputLocation;
-        this.startSplitIndex = splitIndex;
+        this.startSplitIndex = startSplitIndex;
         this.curSplitIndex = startSplitIndex;
         
         // let's initialize the wrappedLoadFunc 
@@ -165,6 +166,7 @@ public class ReadToEndLoader implements LoadFunc {
                 }
                 // if loadfunc returned null, we need to read next split
                 // if there is one
+                reader.close();
                 curSplitIndex++;
                 return getNextHelper();
             }
@@ -184,17 +186,7 @@ public class ReadToEndLoader implements LoadFunc {
                 return t;
             }
         }
-        // we processed all splits - we are done
-        wrappedLoadFunc.doneReading();
         return null;
-    }
-
-    /* (non-Javadoc)
-     * @see org.apache.pig.LoadFunc#doneReading()
-     */
-    @Override
-    public void doneReading() {
-        throw new RuntimeException("Internal Error: Unimplemented method called!");        
     }
 
     /* (non-Javadoc)
@@ -227,6 +219,16 @@ public class ReadToEndLoader implements LoadFunc {
     @Override
     public void setLocation(String location, Job job) throws IOException {
         throw new RuntimeException("Internal Error: Unimplemented method called!");        
+    }
+
+    /* (non-Javadoc)
+     * @see org.apache.pig.LoadFunc#relativeToAbsolutePath(java.lang.String, org.apache.hadoop.fs.Path)
+     */
+    @Override
+    public String relativeToAbsolutePath(String location, Path curDir)
+            throws IOException {
+        // TODO Auto-generated method stub
+        return null;
     }
    
 }

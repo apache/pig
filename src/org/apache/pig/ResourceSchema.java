@@ -42,8 +42,7 @@ public class ResourceSchema {
     }
 
     public ResourceFieldSchema[] fields;
-    public Map<String, Integer> byName;
-
+    
     enum Order { ASCENDING, DESCENDING }
     public int[] sortKeys; // each entry is an offset into the fields array.
     public Order[] sortKeyOrders; 

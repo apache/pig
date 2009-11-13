@@ -23,6 +23,7 @@ import java.io.OutputStream;
 import java.net.URL;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.Job;
@@ -148,15 +149,6 @@ public class BinaryStorage implements LoadFunc, StoreFunc {
     }
 
     /* (non-Javadoc)
-     * @see org.apache.pig.LoadFunc#doneReading()
-     */
-    @Override
-    public void doneReading() {
-        // TODO Auto-generated method stub
-        
-    }
-
-    /* (non-Javadoc)
      * @see org.apache.pig.LoadFunc#getInputFormat()
      */
     @Override
@@ -193,24 +185,6 @@ public class BinaryStorage implements LoadFunc, StoreFunc {
     }
 
     /* (non-Javadoc)
-     * @see org.apache.pig.StoreFunc#allFinished(org.apache.hadoop.mapreduce.Job)
-     */
-    @Override
-    public void allFinished(Job job) {
-        // TODO Auto-generated method stub
-        
-    }
-
-    /* (non-Javadoc)
-     * @see org.apache.pig.StoreFunc#doneWriting()
-     */
-    @Override
-    public void doneWriting() {
-        // TODO Auto-generated method stub
-        
-    }
-
-    /* (non-Javadoc)
      * @see org.apache.pig.StoreFunc#getOutputFormat()
      */
     @Override
@@ -232,7 +206,7 @@ public class BinaryStorage implements LoadFunc, StoreFunc {
      * @see org.apache.pig.StoreFunc#setSchema(org.apache.pig.ResourceSchema)
      */
     @Override
-    public void setSchema(ResourceSchema s) throws IOException {
+    public void checkSchema(ResourceSchema s) throws IOException {
         // TODO Auto-generated method stub
         
     }
@@ -244,5 +218,25 @@ public class BinaryStorage implements LoadFunc, StoreFunc {
     public void setStoreLocation(String location, Job job) throws IOException {
         // TODO Auto-generated method stub
         
+    }
+
+    /* (non-Javadoc)
+     * @see org.apache.pig.LoadFunc#relativeToAbsolutePath(java.lang.String, org.apache.hadoop.fs.Path)
+     */
+    @Override
+    public String relativeToAbsolutePath(String location, Path curDir)
+            throws IOException {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    /* (non-Javadoc)
+     * @see org.apache.pig.StoreFunc#relToAbsPathForStoreLocation(java.lang.String, org.apache.hadoop.fs.Path)
+     */
+    @Override
+    public String relToAbsPathForStoreLocation(String location, Path curDir)
+            throws IOException {
+        // TODO Auto-generated method stub
+        return null;
     }
 }

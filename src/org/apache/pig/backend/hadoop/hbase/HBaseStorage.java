@@ -21,6 +21,7 @@ import java.io.IOException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.client.HTable;
@@ -160,14 +161,6 @@ public class HBaseStorage extends Utf8StorageConverter implements Slicer,
         return null;
     }
 
-    /* (non-Javadoc)
-     * @see org.apache.pig.LoadFunc#doneReading()
-     */
-    @Override
-    public void doneReading() {
-        // TODO Auto-generated method stub
-        
-    }
 
     /* (non-Javadoc)
      * @see org.apache.pig.LoadFunc#getInputFormat()
@@ -203,5 +196,15 @@ public class HBaseStorage extends Utf8StorageConverter implements Slicer,
     public void setLocation(String location, Job job) throws IOException {
         // TODO Auto-generated method stub
         
+    }
+
+    /* (non-Javadoc)
+     * @see org.apache.pig.LoadFunc#relativeToAbsolutePath(java.lang.String, org.apache.hadoop.fs.Path)
+     */
+    @Override
+    public String relativeToAbsolutePath(String location, Path curDir)
+            throws IOException {
+        // TODO Auto-generated method stub
+        return null;
     }
 }

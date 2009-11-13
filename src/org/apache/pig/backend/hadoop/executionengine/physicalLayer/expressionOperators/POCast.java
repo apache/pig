@@ -67,7 +67,7 @@ public class POCast extends ExpressionOperator {
         // TODO Auto-generated constructor stub
     }
 
-    private void instantiateFunc() {
+    private void instantiateFunc() throws IOException {
         if (load != null)
             return;
         if (this.loadFSpec != null) {
@@ -77,7 +77,7 @@ public class POCast extends ExpressionOperator {
         this.caster = load.getLoadCaster();
     }
 
-    public void setLoadFSpec(FuncSpec lf) {
+    public void setLoadFSpec(FuncSpec lf) throws IOException {
         this.loadFSpec = lf;
         instantiateFunc();
     }
@@ -987,7 +987,13 @@ public class POCast extends ExpressionOperator {
                 .getGenerator().getNextNodeId(mKey.scope)));
         clone.cloneHelper(this);
         clone.loadFSpec = loadFSpec;
-        clone.instantiateFunc();
+        try {
+            clone.instantiateFunc();
+        } catch (IOException e) {
+            CloneNotSupportedException cnse = new CloneNotSupportedException();
+            cnse.initCause(e);
+            throw cnse;
+        }
         return clone;
     }
 

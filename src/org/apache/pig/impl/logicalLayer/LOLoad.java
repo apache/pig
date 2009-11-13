@@ -176,7 +176,9 @@ public class LOLoad extends RelationalOperator {
                     new Job(ConfigurationUtil.toConfiguration(
                             mStorage.getConfiguration())));
             LoadMetadata loadMetadata = (LoadMetadata)mLoadFunc;
-            ResourceSchema rSchema = loadMetadata.getSchema();
+            ResourceSchema rSchema = loadMetadata.getSchema(
+                    mInputFileSpec.getFileName(), 
+                    ConfigurationUtil.toConfiguration(mStorage.getConfiguration()));
             return Schema.getPigSchema(rSchema);
         } else {
             return null;

@@ -18,11 +18,9 @@
 package org.apache.pig;
 
 import java.io.IOException;
-import java.io.OutputStream;
 
-import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.Job;
-import org.apache.hadoop.mapreduce.OutputCommitter;
 import org.apache.hadoop.mapreduce.OutputFormat;
 import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.pig.data.Tuple;
@@ -38,12 +36,32 @@ import org.apache.pig.data.Tuple;
 public interface StoreFunc {
 
     /**
+     * This method is called by the Pig runtime in the front end to convert the
+     * output location to an absolute path if the location is relative. The
+     * StoreFunc implementation is free to choose how it converts a relative 
+     * location to an absolute location since this may depend on what the location
+     * string represent (hdfs path or some other data source)
+     * 
+     * @param location location as provided in the "store" statement of the script
+     * @param curDir the current working direction based on any "cd" statements
+     * in the script before the "store" statement. If there are no "cd" statements
+     * in the script, this would be the home directory - 
+     * <pre>/user/<username> </pre>
+     * @return the absolute location based on the arguments passed
+     * @throws IOException if the conversion is not possible
+     */
+    String relToAbsPathForStoreLocation(String location, Path curDir) throws IOException;
+
+    /**
      * Return the OutputFormat associated with StoreFunc.  This will be called
      * on the front end during planning and not on the backend during
-     * execution.  OutputFormat information need not be carried to the back end
-     * as the appropriate RecordWriter will be provided to the StoreFunc.
+     * execution. 
+     * @return the {@link OutputFormat} associated with StoreFunc
+     * @throws IOException if an exception occurs while constructing the 
+     * OutputFormat
+     *
      */
-    OutputFormat getOutputFormat();
+    OutputFormat getOutputFormat() throws IOException;
 
     /**
      * Communicate to the store function the location used in Pig Latin to refer 
@@ -62,56 +80,32 @@ public interface StoreFunc {
  
     /**
      * Set the schema for data to be stored.  This will be called on the
-     * front end during planning.  If the store function wishes to record
-     * the schema it will need to carry it to the backend.
-     * Even if a store function cannot
-     * record the schema, it may need to implement this function to
+     * front end during planning. A Store function should implement this function to
      * check that a given schema is acceptable to it.  For example, it
      * can check that the correct partition keys are included;
      * a storage function to be written directly to an OutputFormat can
      * make sure the schema will translate in a well defined way.  
-     * @param s to be checked/set
+     * @param s to be checked
      * @throws IOException if this schema is not acceptable.  It should include
      * a detailed error message indicating what is wrong with the schema.
      */
-    void setSchema(ResourceSchema s) throws IOException;
+    void checkSchema(ResourceSchema s) throws IOException;
 
     /**
      * Initialize StoreFunc to write data.  This will be called during
      * execution before the call to putNext.
      * @param writer RecordWriter to use.
+     * @throws IOException if an exception occurs during initialization
      */
-    void prepareToWrite(RecordWriter writer);
-
-    /**
-     * XXX FIXME: do we really need this - there is already
-     * {@link OutputCommitter#commitTask(org.apache.hadoop.mapreduce.TaskAttemptContext)}
-     * Called when all writing is finished.  This will be called on the backend,
-     * once for each writing task.
-     */
-    void doneWriting();
+    void prepareToWrite(RecordWriter writer) throws IOException;
 
     /**
      * Write a tuple the output stream to which this instance was
      * previously bound.
      * 
      * @param t the tuple to store.
-     * @throws IOException
+     * @throws IOException if an exception occurs during the write
      */
     void putNext(Tuple t) throws IOException;
-
-    
-    /**
-     * XXX FIXME: do we really need this - there is already 
-     * {@link OutputCommitter#cleanupJob(org.apache.hadoop.mapreduce.JobContext)}
-     * Called when writing all of the data is finished.  This can be used
-     * to commit information to a metadata system, clean up tmp files, 
-     * close connections, etc.  This call will be made on the front end
-     * after all back end processing is finished.
-     * @param job The job object
-     */
-    void allFinished(Job job);
-
-
 
 }

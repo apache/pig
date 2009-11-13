@@ -19,6 +19,7 @@ package org.apache.pig;
 
 import java.io.IOException;
 
+import org.apache.hadoop.conf.Configuration;
 import org.apache.pig.impl.plan.OperatorPlan;
 
 /**
@@ -29,28 +30,42 @@ import org.apache.pig.impl.plan.OperatorPlan;
 public interface LoadMetadata {
 
     /**
-     * Get a schema for the data to be loaded.  This schema should represent
+     * Get a schema for the data to be loaded.  
+     * @param location Location as returned by 
+     * {@link LoadFunc#relativeToAbsolutePath(String, org.apache.hadoop.fs.Path)}
+     * @param conf The {@link Configuration} object 
+     * @return schema for the data to be loaded. This schema should represent
      * all tuples of the returned data.  If the schema is unknown or it is
      * not possible to return a schema that represents all returned data,
      * then null should be returned.
-     * This method will be called after a 
-     * {@link LoadFunc#setLocation(String, org.apache.hadoop.mapreduce.Job)}
-     * call is made on the Loader implementing {@link LoadFunc} and {@link LoadMetadata}
+     * @throws IOException if an exception occurs while determining the schema
      */
-    ResourceSchema getSchema();
+    ResourceSchema getSchema(String location, Configuration conf) throws 
+    IOException;
 
     /**
      * Get statistics about the data to be loaded.  If no statistics are
      * available, then null should be returned.
+     * @param location Location as returned by 
+     * {@link LoadFunc#relativeToAbsolutePath(String, org.apache.hadoop.fs.Path)}
+     * @param conf The {@link Configuration} object
+     * @return statistics about the data to be loaded.  If no statistics are
+     * available, then null should be returned.
+     * @throws IOException if an exception occurs while retrieving statistics
      */
-    ResourceStatistics getStatistics();
+    ResourceStatistics getStatistics(String location, Configuration conf) 
+    throws IOException;
 
     /**
      * Find what columns are partition keys for this input.
-     * This function assumes that setLocation has already been called.
+     * @param location Location as returned by 
+     * {@link LoadFunc#relativeToAbsolutePath(String, org.apache.hadoop.fs.Path)}
+     * @param conf The {@link Configuration} object
      * @return array of field names of the partition keys.
+     * @throws IOException if an exception occurs while retrieving partition keys
      */
-    String[] getPartitionKeys();
+    String[] getPartitionKeys(String location, Configuration conf) 
+    throws IOException;
 
     /**
      * Set the filter for partitioning.  It is assumed that this filter

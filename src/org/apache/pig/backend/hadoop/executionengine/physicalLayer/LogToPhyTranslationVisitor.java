@@ -1767,7 +1767,17 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
         physOp.setResultType(op.getType());
         FuncSpec lfSpec = op.getLoadFuncSpec();
         if(null != lfSpec) {
-            ((POCast) physOp).setLoadFSpec(lfSpec);
+            try {
+                ((POCast) physOp).setLoadFSpec(lfSpec);
+            } catch (IOException e) {
+                int errCode = 1053;
+                String msg = "Cannot resolve load function to use for casting" +
+                		" from " + DataType.findTypeName(op.getExpression().
+                		        getType()) + " to " + DataType.findTypeName(op.getType());
+                throw new LogicalToPhysicalTranslatorException(msg, errCode, 
+                        PigException.ERROR, e);
+            }
+                
         }
         try {
             currentPlan.connect(from, physOp);

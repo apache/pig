@@ -26,6 +26,7 @@ import java.util.Map;
 import java.util.zip.GZIPInputStream;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.RecordReader;
@@ -255,15 +256,6 @@ public class DefaultIndexableLoader implements IndexableLoadFunc {
     }
 
     /* (non-Javadoc)
-     * @see org.apache.pig.LoadFunc#doneReading()
-     */
-    @Override
-    public void doneReading() {
-        // TODO Auto-generated method stub
-        
-    }
-
-    /* (non-Javadoc)
      * @see org.apache.pig.LoadFunc#getInputFormat()
      */
     @Override
@@ -297,6 +289,16 @@ public class DefaultIndexableLoader implements IndexableLoadFunc {
     public void setLocation(String location, Job job) throws IOException {
         // TODO Auto-generated method stub
         
+    }
+
+    /* (non-Javadoc)
+     * @see org.apache.pig.LoadFunc#relativeToAbsolutePath(java.lang.String, org.apache.hadoop.fs.Path)
+     */
+    @Override
+    public String relativeToAbsolutePath(String location, Path curDir)
+            throws IOException {
+        // TODO Auto-generated method stub
+        return null;
     }
     
 }

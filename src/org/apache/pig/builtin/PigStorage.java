@@ -304,15 +304,6 @@ public class PigStorage
     }
 
     /* (non-Javadoc)
-     * @see org.apache.pig.LoadFunc#doneReading()
-     */
-    @Override
-    public void doneReading() {
-        // TODO Auto-generated method stub
-        
-    }
-
-    /* (non-Javadoc)
      * @see org.apache.pig.LoadFunc#getInputFormat()
      */
     @Override
@@ -348,24 +339,6 @@ public class PigStorage
     }
 
     /* (non-Javadoc)
-     * @see org.apache.pig.StoreFunc#allFinished(org.apache.hadoop.conf.Configuration)
-     */
-    @Override
-    public void allFinished(Job job) {
-        // TODO Auto-generated method stub
-        
-    }
-
-    /* (non-Javadoc)
-     * @see org.apache.pig.StoreFunc#doneWriting()
-     */
-    @Override
-    public void doneWriting() {
-        // TODO Auto-generated method stub
-        
-    }
-
-    /* (non-Javadoc)
      * @see org.apache.pig.StoreFunc#getOutputFormat()
      */
     @Override
@@ -391,12 +364,32 @@ public class PigStorage
     }
 
     /* (non-Javadoc)
-     * @see org.apache.pig.StoreFunc#setSchema(org.apache.pig.ResourceSchema)
+     * @see org.apache.pig.LoadFunc#relativeToAbsolutePath(java.lang.String, org.apache.hadoop.fs.Path)
      */
     @Override
-    public void setSchema(ResourceSchema s) throws IOException {
+    public String relativeToAbsolutePath(String location, Path curDir)
+            throws IOException {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    /* (non-Javadoc)
+     * @see org.apache.pig.StoreFunc#checkSchema(org.apache.pig.ResourceSchema)
+     */
+    @Override
+    public void checkSchema(ResourceSchema s) throws IOException {
         // TODO Auto-generated method stub
         
+    }
+
+    /* (non-Javadoc)
+     * @see org.apache.pig.StoreFunc#relToAbsPathForStoreLocation(java.lang.String, org.apache.hadoop.fs.Path)
+     */
+    @Override
+    public String relToAbsPathForStoreLocation(String location, Path curDir)
+            throws IOException {
+        // TODO Auto-generated method stub
+        return null;
     }
 
    
