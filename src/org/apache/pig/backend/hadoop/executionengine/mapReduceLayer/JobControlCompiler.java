@@ -81,6 +81,7 @@ import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.util.JarManager;
 import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.impl.util.Pair;
+import org.apache.pig.impl.util.UDFContext;
 
 /**
  * This is compiler class that takes an MROperPlan and converts
@@ -596,6 +597,9 @@ public class JobControlCompiler{
             jobConf.setOutputCommitter(PigOutputCommitter.class);
             Job job = new Job(jobConf);
             jobStoreMap.put(job,new Pair<List<POStore>, Path>(storeLocations, tmpLocation));
+            
+            // Serialize the UDF specific context info.
+            UDFContext.getUDFContext().serialize(jobConf);
             return job;
         } catch (JobCreationException jce) {
         	throw jce;

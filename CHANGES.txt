@@ -23,6 +23,8 @@ Trunk (unreleased changes)
 INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
+PIG-1085:  Pass JobConf and UDF specific configuration information to UDFs
+		   (gates)
 
 OPTIMIZATIONS
 
