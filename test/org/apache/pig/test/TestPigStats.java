@@ -25,6 +25,7 @@ import junit.framework.TestCase;
 
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
+import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.tools.pigstats.PigStats;
 
 public class TestPigStats extends TestCase {
@@ -34,19 +35,38 @@ public class TestPigStats extends TestCase {
         File outputFile = null;
         try {
             outputFile = File.createTempFile("JIAR_1027", ".out");
+            String filePath = outputFile.getAbsolutePath();
+            outputFile.delete();
             PigServer pig = new PigServer(ExecType.LOCAL);
             pig
                     .registerQuery("A = load 'test/org/apache/pig/test/data/passwd';");
-            PigStats stats = pig.store("A", outputFile.getAbsolutePath())
+            PigStats stats = pig.store("A", filePath)
                     .getStatistics();
-            assertEquals(outputFile.length(), stats.getBytesWritten());
+            File dataFile = new File( outputFile.getAbsoluteFile() + File.separator + "part-00000" );
+            assertEquals(dataFile.length(), stats.getBytesWritten());
         } catch (IOException e) {
+            e.printStackTrace();
+            System.err.println( e.getMessage() );
             fail("IOException happened");
         } finally {
             if (outputFile != null) {
-                outputFile.delete();
+                // Hadoop Local mode creates a directory
+                // Hence we need to delete a directory recursively
+                deleteDirectory(outputFile);
             }
         }
 
+    }
+    
+    private void deleteDirectory( File dir ) {
+        File[] files = dir.listFiles();
+        for( File file : files ) {
+            if( file.isDirectory() ) {
+                deleteDirectory(file);
+            } else {
+                file.delete();
+            }
+        }
+        dir.delete();
     }
 }

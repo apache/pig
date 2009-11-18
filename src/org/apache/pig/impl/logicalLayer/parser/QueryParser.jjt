@@ -346,15 +346,6 @@ public class QueryParser {
 	 */
 	LogicalOperator parseJoin(ArrayList<CogroupInput> gis, LogicalPlan lp, LOJoin.JOINTYPE jt) throws ParseException, PlanException{
 		log.trace("Entering parseJoin");
-		// Skewed Join behaves as regular join in local mode
-		if (pigContext.getExecType() == ExecType.LOCAL && jt == LOJoin.JOINTYPE.SKEWED) {
-			return rewriteJoin(gis,lp);
-		}
-
-      // Merge Join behaves as regular join in local mode
-		if (pigContext.getExecType() == ExecType.LOCAL && jt == LOJoin.JOINTYPE.MERGE) {
-            return rewriteJoin(gis,lp);
-        }
         
 		int n = gis.size();
 
@@ -1316,7 +1307,14 @@ LogicalOperator BaseExpr(LogicalPlan lp) :
     )
 |   (<STORE> op = StoreClause(lp))
 	)
-    [<PARALLEL> t2=<INTEGER> { op.setRequestedParallelism(Integer.parseInt(t2.image));} ]
+    [<PARALLEL> t2=<INTEGER> {
+      // In Local Mode we can only use one reducer
+    	if( this.pigContext.getExecType() == ExecType.LOCAL ) {
+    		op.setRequestedParallelism(1);
+    	} else {
+    		op.setRequestedParallelism(Integer.parseInt(t2.image));
+    	}
+    } ]
 	)	
 	{log.trace("Exiting BaseExpr"); return op;}
 }

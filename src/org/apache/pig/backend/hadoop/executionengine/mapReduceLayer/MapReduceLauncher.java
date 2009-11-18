@@ -35,6 +35,7 @@ import org.apache.hadoop.mapred.JobID;
 import org.apache.hadoop.mapred.RunningJob;
 import org.apache.hadoop.mapred.jobcontrol.Job;
 import org.apache.hadoop.mapred.jobcontrol.JobControl;
+import org.apache.pig.ExecType;
 import org.apache.pig.PigException;
 import org.apache.pig.PigWarning;
 import org.apache.pig.backend.executionengine.ExecException;
@@ -298,7 +299,7 @@ public class MapReduceLauncher extends Launcher{
         // Report records and bytes written.  Only do this in the single store case.  Multi-store
         // scripts mess up the stats reporting from hadoop.
         List<String> rji = stats.getRootJobIDs();
-        if (rji != null && rji.size() == 1 && finalStores == 1) {
+        if ( (rji != null && rji.size() == 1 && finalStores == 1) || pc.getExecType() == ExecType.LOCAL ) {
             if(stats.getRecordsWritten()==-1) {
                 log.info("Records written : Unable to determine number of records written");
             } else {

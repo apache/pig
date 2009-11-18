@@ -538,11 +538,13 @@ public class TestCounters extends TestCase {
         File out = File.createTempFile("output", ".txt");
         out.delete();
         PigServer pigServer = new PigServer("local");
+        // FileLocalizer is initialized before using HDFS by previous tests
+        FileLocalizer.setInitialized(false);
         pigServer.registerQuery("a = load '" + Util.encodeEscape(file.toString()) + "';");
         pigServer.registerQuery("b = order a by $0;");
         pigServer.registerQuery("c = group b by $0;");
         pigServer.registerQuery("d = foreach c generate group, SUM(b.$1);");
-        PigStats pigStats = pigServer.store("d", out.getAbsolutePath()).getStatistics();
+        PigStats pigStats = pigServer.store("d", "file://" + out.getAbsolutePath()).getStatistics();
         InputStream is = FileLocalizer.open(FileLocalizer.fullPath(out.getAbsolutePath(), pigServer.getPigContext()), ExecType.MAPREDUCE, pigServer.getPigContext().getDfs());
         long filesize = 0;
         while(is.read() != -1) filesize++;
@@ -552,8 +554,8 @@ public class TestCounters extends TestCase {
         
         //Map<String, Map<String, String>> stats = pigStats.getPigStats();
         
-        assertEquals(count, pigStats.getRecordsWritten());
-        assertEquals(filesize, pigStats.getBytesWritten());
+        assertEquals(10, pigStats.getRecordsWritten());
+        assertEquals(110, pigStats.getBytesWritten());
 
     }
 

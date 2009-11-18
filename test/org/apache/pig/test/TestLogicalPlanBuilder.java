@@ -2182,5 +2182,5 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
     Map<OperatorKey, LogicalOperator> logicalOpTable = new HashMap<OperatorKey, LogicalOperator>();
     Map<String, LogicalOperator> aliasOp = new HashMap<String, LogicalOperator>();
     Map<String, String> fileNameMap = new HashMap<String, String>();
-    PigContext pigContext = new PigContext(ExecType.LOCAL, new Properties());
+    PigContext pigContext = new PigContext(ExecType.MAPREDUCE, new Properties());
 }
