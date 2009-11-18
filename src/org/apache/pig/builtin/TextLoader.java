@@ -17,55 +17,46 @@
  */
 package org.apache.pig.builtin;
 
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
 import java.io.IOException;
-import java.net.URL;
-import java.nio.charset.Charset;
 import java.util.Map;
 
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.InputFormat;
-import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.RecordReader;
-import org.apache.pig.ExecType;
+import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
+import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
 import org.apache.pig.LoadCaster;
 import org.apache.pig.LoadFunc;
 import org.apache.pig.PigException;
-import org.apache.pig.backend.datastorage.DataStorage;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigSplit;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
-import org.apache.pig.impl.io.BufferedPositionedInputStream;
-import org.apache.pig.impl.logicalLayer.schema.Schema;
 
 
 /**
  * This load function simply creates a tuple for each line of text that has a single field that
  * contains the line of text.
  */
-//XXX : FIXME - make this work with new load-store redesign
-public class TextLoader implements LoadFunc{
-    BufferedPositionedInputStream in;
-    final private static Charset utf8 = Charset.forName("UTF8");
-    long end;
+public class TextLoader implements LoadFunc, LoadCaster{
+    protected RecordReader in = null;
     private TupleFactory mTupleFactory = TupleFactory.getInstance();
 
     public Tuple getNext() throws IOException {
-        if (in == null || in.getPosition() > end)
-            return null;
-        String line;
-        if ((line = in.readLine(utf8, (byte)'\n')) != null) {
-            if (line.length()>0 && line.charAt(line.length()-1)=='\r' && System.getProperty("os.name").toUpperCase().startsWith("WINDOWS"))
-                line = line.substring(0, line.length()-1);
-            return mTupleFactory.newTuple(new DataByteArray(line.getBytes()));
+        try {
+            boolean notDone = in.nextKeyValue();
+            if (!notDone) {
+                return null;
+            }                                                                                           
+            Text value = (Text) in.getCurrentValue();
+            return mTupleFactory.newTuple(new DataByteArray(value.getBytes()));
+        } catch (InterruptedException e) {
+            throw new IOException("Error getting input");
         }
-        return null;
     }
 
     /**
@@ -158,20 +149,6 @@ public class TextLoader implements LoadFunc{
         throw new ExecException(msg, errCode, PigException.BUG);
     }
 
-    /**
-     * TextLoader doesn't make use of this.
-     */
-    public void fieldsToRead(Schema schema) {}
-
-    /**
-     * TextLoader does not provide a schema.
-     */
-    public Schema determineSchema(String fileName, ExecType execType,
-            DataStorage storage) throws IOException {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
     public byte[] toBytes(DataBag bag) throws IOException {
         int errCode = 2109;
         String msg = "TextLoader does not support conversion from Bag.";
@@ -223,8 +200,7 @@ public class TextLoader implements LoadFunc{
      */
     @Override
     public InputFormat getInputFormat() {
-        // TODO Auto-generated method stub
-        return null;
+        return new TextInputFormat();
     }
 
     /* (non-Javadoc)
@@ -232,8 +208,7 @@ public class TextLoader implements LoadFunc{
      */
     @Override
     public LoadCaster getLoadCaster() {
-        // TODO Auto-generated method stub
-        return null;
+        return this;
     }
 
     /* (non-Javadoc)
@@ -241,8 +216,7 @@ public class TextLoader implements LoadFunc{
      */
     @Override
     public void prepareToRead(RecordReader reader, PigSplit split) {
-        // TODO Auto-generated method stub
-        
+        in = reader;        
     }
 
     /* (non-Javadoc)
@@ -250,8 +224,7 @@ public class TextLoader implements LoadFunc{
      */
     @Override
     public void setLocation(String location, Job job) throws IOException {
-        // TODO Auto-generated method stub
-        
+        FileInputFormat.setInputPaths(job, location);
     }
 
     /* (non-Javadoc)
@@ -260,7 +233,8 @@ public class TextLoader implements LoadFunc{
     @Override
     public String relativeToAbsolutePath(String location, Path curDir)
             throws IOException {
-        // TODO Auto-generated method stub
+        // XXX: FIXME - should follow what PigStorage() does
+        // when PigStorage() has an implementation
         return null;
     }
 }

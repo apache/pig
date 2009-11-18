@@ -61,9 +61,9 @@ public class RandomSampleLoader extends SampleLoader {
      * @see org.apache.pig.LoadFunc#getInputFormat()
      */
     @Override
-    public InputFormat getInputFormat() {
+    public InputFormat getInputFormat() throws IOException {
         // TODO Auto-generated method stub
-        return null;
+        return loader.getInputFormat();
     }
 
 

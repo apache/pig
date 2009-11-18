@@ -49,8 +49,24 @@ public class TestCombiner extends TestCase {
     @Test
     public void testOnCluster() throws Exception {
         // run the test on cluster        
-        runTest(new PigServer(ExecType.MAPREDUCE, cluster.getProperties()));
+        String inputFileName = runTest(new PigServer(
+                ExecType.MAPREDUCE, cluster.getProperties()));
+        Util.deleteFile(cluster, inputFileName);
 
+    }
+    
+    /* (non-Javadoc)
+     * @see junit.framework.TestCase#setUp()
+     */
+    @Override
+    protected void setUp() throws Exception {
+        // cause a re initialization of FileLocalizer's
+        // internal state before each test run
+        // A previous test might have been in a different 
+        // mode than the test which is about to run. To
+        // ensure each test runs correctly in it's exectype
+        // mode, let's re initialize.
+        FileLocalizer.setInitialized(false);
     }
 
     @Test
@@ -62,12 +78,12 @@ public class TestCombiner extends TestCase {
     }
 
     
-    private void runTest(PigServer pig) throws IOException {
+    private String  runTest(PigServer pig) throws IOException {
         List<String> inputLines = new ArrayList<String>();
         inputLines.add("a,b,1");
         inputLines.add("a,b,1");
         inputLines.add("a,c,1");
-        loadWithTestLoadFunc("A", pig, inputLines);
+        String inputFileName = loadWithTestLoadFunc("A", pig, inputLines);
 
         pig.registerQuery("B = group A by ($0, $1);");
         pig.registerQuery("C = foreach B generate flatten(group), COUNT($1);");
@@ -76,19 +92,28 @@ public class TestCombiner extends TestCase {
         assertEquals("(a,b,2L)", tuple.toString());
         tuple = resultIterator.next();
         assertEquals("(a,c,1L)", tuple.toString());
+        
+        return inputFileName;
     }
 
-    private void loadWithTestLoadFunc(String loadAlias, PigServer pig,
+    private String loadWithTestLoadFunc(String loadAlias, PigServer pig,
             List<String> inputLines) throws IOException {
         File inputFile = File.createTempFile("test", "txt");
-        PrintStream ps = new PrintStream(new FileOutputStream(inputFile));
-        for (String line : inputLines) {
-            ps.println(line);
+        inputFile.deleteOnExit();
+        String inputFileName = inputFile.getAbsolutePath();
+        if(pig.getPigContext().getExecType() == ExecType.LOCAL) {
+            PrintStream ps = new PrintStream(new FileOutputStream(inputFile));
+            for (String line : inputLines) {
+                ps.println(line);
+            }
+            ps.close();
+        } else {
+            Util.createInputFile(cluster, inputFileName, inputLines.toArray(new String[] {}));
         }
-        ps.close();
         pig.registerQuery(loadAlias + " = load '"
-                + Util.generateURI(inputFile.toString()) + "' using "
+                + inputFileName + "' using "
                 + PigStorage.class.getName() + "(',');");
+        return inputFileName;
     }
     
     

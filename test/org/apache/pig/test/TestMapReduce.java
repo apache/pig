@@ -46,6 +46,7 @@ import org.apache.pig.StoreFunc;
 import org.apache.pig.ExecType;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.builtin.COUNT;
+import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
@@ -193,7 +194,7 @@ public class TestMapReduce extends TestCase {
         }
     }
 
-    static public class MyStorage implements LoadFunc, StoreFunc {
+    static public class MyStorage extends PigStorage {
 
         final static int COUNT = 10;
 
@@ -202,9 +203,16 @@ public class TestMapReduce extends TestCase {
 
         public void setNulls(boolean hasNulls ) { this.hasNulls=hasNulls; }
 
-        public void bindTo(String fileName, BufferedPositionedInputStream is, long offset, long end) throws IOException {
+        /**
+         * 
+         */
+        public MyStorage() {
+            // initialize delimiter to be "-" for output
+            // since that is the delimiter in the tests below
+            super("-");
         }
-
+        
+        @Override
         public Tuple getNext() throws IOException {
             if (count < COUNT) {
 
@@ -213,114 +221,6 @@ public class TestMapReduce extends TestCase {
 
             }
 
-            return null;
-        }
-
-
-        OutputStream os;
-        public void bindTo(OutputStream os) throws IOException {
-            this.os = os;
-        }
-
-        public void finish() throws IOException {
-            
-        }
-
-        public void putNext(Tuple f) throws IOException {
-            try {
-                os.write((f.toDelimitedString("-")+"\n").getBytes());            
-            } catch (ExecException ee) {
-                IOException ioe = new IOException(ee.getMessage());
-                ioe.initCause(ee);
-                throw ioe;
-            }
-        }
-
-        public Boolean bytesToBoolean(byte[] b) throws IOException {
-            return false;
-        }
-    
-        public Integer bytesToInteger(byte[] b) throws IOException {
-            return 0;
-        }
-
-        public Long bytesToLong(byte[] b) throws IOException {
-            return 0L;
-        }
-
-        public Float bytesToFloat(byte[] b) throws IOException {
-            return 0.0f;
-        }
-
-        public Double bytesToDouble(byte[] b) throws IOException {
-            return 0.0;
-        }
-
-        public String bytesToCharArray(byte[] b) throws IOException {
-            return "";
-        }
-
-        public Map<String, Object> bytesToMap(byte[] b) throws IOException {
-            return new HashMap<String, Object>();
-        }
-
-        public Tuple bytesToTuple(byte[] b) throws IOException {
-            return null;
-        }
-
-        public DataBag bytesToBag(byte[] b) throws IOException {
-            return null;
-        }
-
-        public void fieldsToRead(Schema schema) {}
-
-	    public byte[] toBytes(DataBag bag) throws IOException {
-	        return null;
-	    }
-	
-	    public byte[] toBytes(String s) throws IOException {
-	        return s.getBytes();
-	    }
-	
-	    public byte[] toBytes(Double d) throws IOException {
-	        return d.toString().getBytes();
-	    }
-	
-	    public byte[] toBytes(Float f) throws IOException {
-	        return f.toString().getBytes();
-	    }
-	
-	    public byte[] toBytes(Integer i) throws IOException {
-	        return i.toString().getBytes();
-	    }
-	
-	    public byte[] toBytes(Long l) throws IOException {
-	        return l.toString().getBytes();
-	    }
-	
-	    public byte[] toBytes(Map<String, Object> m) throws IOException {
-	        return m.toString().getBytes();
-	    }
-	
-	    public byte[] toBytes(Tuple t) throws IOException {
-	        return null;
-	    }
-
-        /* (non-Javadoc)
-         * @see org.apache.pig.LoadFunc#determineSchema(java.lang.String, org.apache.pig.ExecType, org.apache.pig.backend.datastorage.DataStorage)
-         */
-        public Schema determineSchema(String fileName, ExecType execType,
-                DataStorage storage) throws IOException {
-            // TODO Auto-generated method stub
-            return null;
-        }
-
-        /* (non-Javadoc)
-         * @see org.apache.pig.StoreFunc#getStorePreparationClass()
-         */
-        @Override
-        public Class getStorePreparationClass() throws IOException {
-            // TODO Auto-generated method stub
             return null;
         }
 

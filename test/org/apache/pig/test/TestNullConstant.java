@@ -36,9 +36,10 @@ public class TestNullConstant extends TestCase {
     
     @Test
     public void testArithExpressions() throws IOException, ExecException {
-        File input = Util.createInputFile("tmp", "", 
+        String inputFileName = "testArithExpressions-input.txt";
+        Util.createInputFile(cluster, inputFileName, 
                 new String[] {"10\t11.0"});
-        pigServer.registerQuery("a = load 'file:" + Util.encodeEscape(input.toString()) + "' as (x:int, y:double);");
+        pigServer.registerQuery("a = load '" + inputFileName + "' as (x:int, y:double);");
         pigServer.registerQuery("b = foreach a generate x + null, x * null, x / null, x - null, null % x, " +
         		"y + null, y * null, y / null, y - null;");
         Iterator<Tuple> it = pigServer.openIterator("b");
@@ -46,13 +47,15 @@ public class TestNullConstant extends TestCase {
         for (int i = 0; i < 9; i++) {
             assertEquals(null, t.get(i));
         }
+        Util.deleteFile(cluster, inputFileName);
     }
     
     @Test
     public void testBinCond() throws IOException, ExecException {
-        File input = Util.createInputFile("tmp", "", 
+        String inputFileName = "testBinCond-input.txt";
+        Util.createInputFile(cluster, inputFileName, 
                 new String[] {"10\t11.0"});
-        pigServer.registerQuery("a = load 'file:" + Util.encodeEscape(input.toString()) + "' as (x:int, y:double);");
+        pigServer.registerQuery("a = load '" + inputFileName + "' as (x:int, y:double);");
         pigServer.registerQuery("b = foreach a generate (2 > 1? null : 1), ( 2 < 1 ? null : 1), (2 > 1 ? 1 : null), ( 2 < 1 ? 1 : null);");
         Iterator<Tuple> it = pigServer.openIterator("b");
         Tuple t = it.next();
@@ -68,14 +71,16 @@ public class TestNullConstant extends TestCase {
         for (int i = 0; i < 2; i++) {
             assertEquals(1, t.get(i));
         }
+        Util.deleteFile(cluster, inputFileName);
         
     }
 
     @Test
     public void testForeachGenerate() throws ExecException, IOException {
-        File input = Util.createInputFile("tmp", "", 
+        String inputFileName = "testForeachGenerate-input.txt";
+        Util.createInputFile(cluster, inputFileName, 
                 new String[] {"10\t11.0"});
-        pigServer.registerQuery("a = load 'file:" + Util.encodeEscape(input.toString()) + "' as (x:int, y:double);");
+        pigServer.registerQuery("a = load '" + inputFileName + "' as (x:int, y:double);");
         pigServer.registerQuery("b = foreach a generate x, null, y, null;");
         Iterator<Tuple> it = pigServer.openIterator("b");
         Tuple t = it.next();
@@ -83,17 +88,20 @@ public class TestNullConstant extends TestCase {
         for (int i = 0; i < 4; i++) {
             assertEquals(result[i], t.get(i));
         }
+        Util.deleteFile(cluster, inputFileName);
         
     }
     
     @Test
     public void testOuterJoin() throws IOException, ExecException {
-        File input1 = Util.createInputFile("tmp", "", 
+        String inputFileName1 = "testOuterJoin-input1.txt";
+        Util.createInputFile(cluster, inputFileName1, 
                 new String[] {"10\twill_join", "11\twill_not_join"});
-        File input2 = Util.createInputFile("tmp", "", 
+        String inputFileName2 = "testOuterJoin-input2.txt";
+        Util.createInputFile(cluster, inputFileName2, 
                 new String[] {"10\twill_join", "12\twill_not_join"});
-        pigServer.registerQuery("a = load 'file:" + Util.encodeEscape(input1.toString()) + "' as (x:int, y:chararray);");
-        pigServer.registerQuery("b = load 'file:" + Util.encodeEscape(input2.toString()) + "' as (u:int, v:chararray);");
+        pigServer.registerQuery("a = load '" + inputFileName1 + "' as (x:int, y:chararray);");
+        pigServer.registerQuery("b = load '" + inputFileName2 + "' as (u:int, v:chararray);");
         pigServer.registerQuery("c = cogroup a by x, b by u;");
         pigServer.registerQuery("d = foreach c generate flatten((SIZE(a) == 0 ? null : a)), flatten((SIZE(b) == 0 ? null : b));");
         Iterator<Tuple> it = pigServer.openIterator("d");
@@ -108,13 +116,16 @@ public class TestNullConstant extends TestCase {
                 assertEquals(result[j], t.get(j));
             }
         }
+        Util.deleteFile(cluster, inputFileName1);
+        Util.deleteFile(cluster, inputFileName2);
     }
     
     @Test
     public void testConcatAndSize() throws IOException, ExecException {
-        File input = Util.createInputFile("tmp", "", 
+        String inputFileName = "testConcatAndSize-input.txt";
+        Util.createInputFile(cluster, inputFileName, 
                 new String[] {"10\t11.0\tstring"});
-        pigServer.registerQuery("a = load 'file:" + Util.encodeEscape(input.toString()) + "' as (x:int, y:double, str:chararray);");
+        pigServer.registerQuery("a = load '" + inputFileName + "' as (x:int, y:double, str:chararray);");
         pigServer.registerQuery("b = foreach a generate SIZE(null), CONCAT(str, null), " +
         		"CONCAT(null, str);");
         Iterator<Tuple> it = pigServer.openIterator("b");
@@ -122,41 +133,45 @@ public class TestNullConstant extends TestCase {
         for (int i = 0; i < 3; i++) {
             assertEquals(null, t.get(i));
         }
+        Util.deleteFile(cluster, inputFileName);
     }
 
     @Test
     public void testExplicitCast() throws IOException, ExecException {
-        File input = Util.createInputFile("tmp", "", 
+        String inputFileName = "testExplicitCast-input.txt";
+        Util.createInputFile(cluster, inputFileName, 
                 new String[] {"10\t11.0\tstring"});
-        pigServer.registerQuery("a = load 'file:" + Util.encodeEscape(input.toString()) + "' as (x:int, y:double, str:chararray);");
+        pigServer.registerQuery("a = load '" + inputFileName + "' as (x:int, y:double, str:chararray);");
         pigServer.registerQuery("b = foreach a generate (int)null, (double)null, (chararray)null, (map[])null;");
         Iterator<Tuple> it = pigServer.openIterator("b");
         Tuple t = it.next();
         for (int i = 0; i < 3; i++) {
             assertEquals(null, t.get(i));
         }
+        Util.deleteFile(cluster, inputFileName);
     }
     
     @Test
     public void testComplexNullConstants() throws IOException, ExecException {
-        File input = Util.createInputFile("tmp", "", 
+        String inputFileName = "testComplexNullConstants-input.txt";
+        Util.createInputFile(cluster, inputFileName, 
                 new String[] {"10\t11.0\tstring"});
-        pigServer.registerQuery("a = load 'file:" + Util.encodeEscape(input.toString()) + "' as (x:int, y:double, str:chararray);");
+        pigServer.registerQuery("a = load '" + inputFileName + "' as (x:int, y:double, str:chararray);");
         pigServer.registerQuery("b = foreach a generate {(null)}, ['2'#null];");
         Iterator<Tuple> it = pigServer.openIterator("b");
         Tuple t = it.next();
 System.out.println("tuple: " + t);
         assertEquals(null, ((DataBag)t.get(0)).iterator().next().get(0));
         assertEquals(null, ((Map<String, Object>)t.get(1)).get("2"));
-        
+        Util.deleteFile(cluster, inputFileName);
     }
 
     @Test
     public void testMapNullKeyFailure() throws IOException {
-        File input;
-        input = Util.createInputFile("tmp", "", 
+        String inputFileName = "testMapNullKeyFailure-input.txt";
+        Util.createInputFile(cluster, inputFileName, 
                 new String[] {"10\t11.0\tstring"});
-        pigServer.registerQuery("a = load 'file:" + Util.encodeEscape(input.toString()) + "' as (x:int, y:double, str:chararray);");
+        pigServer.registerQuery("a = load '" + inputFileName + "' as (x:int, y:double, str:chararray);");
 
         boolean exceptionOccured = false;
         try {
@@ -166,6 +181,7 @@ System.out.println("tuple: " + t);
             String msg = e.getMessage();
             assertTrue(msg.contains("key in a map cannot be null"));
         }
+        Util.deleteFile(cluster, inputFileName);
         if(!exceptionOccured) fail();        
     }
 }

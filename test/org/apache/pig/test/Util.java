@@ -23,6 +23,7 @@ import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.ByteArrayInputStream;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
@@ -31,6 +32,7 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
+import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -208,12 +210,26 @@ public class Util {
 	throws IOException {
 		File f = File.createTempFile(tmpFilenamePrefix, tmpFilenameSuffix);
         f.deleteOnExit();
-		PrintWriter pw = new PrintWriter(new OutputStreamWriter(new FileOutputStream(f), "UTF-8"));
-		for (int i=0; i<inputData.length; i++){
-			pw.println(inputData[i]);
-		}
-		pw.close();
+        writeToFile(f, inputData);	
 		return f;
+	}
+	
+	static public File createLocalInputFile(String filename, String[] inputData) 
+    throws IOException {
+        File f = new File(filename);
+        f.deleteOnExit();
+        writeToFile(f, inputData);  
+        return f;
+    }
+	
+	private static void writeToFile(File f, String[] inputData) throws
+	IOException {
+	    PrintWriter pw = new PrintWriter(new OutputStreamWriter(new 
+	            FileOutputStream(f), "UTF-8"));
+        for (int i=0; i<inputData.length; i++){
+            pw.println(inputData[i]);
+        }
+        pw.close();
 	}
 	
 	/**

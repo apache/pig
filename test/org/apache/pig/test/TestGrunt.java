@@ -595,6 +595,7 @@ public class TestGrunt extends TestCase {
     @Test
     public void testKeepGoing() throws Throwable {
         PigServer server = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        
         PigContext context = server.getPigContext();
         
         String strCmd = 
@@ -623,17 +624,17 @@ public class TestGrunt extends TestCase {
     public void testKeepGoigFailed() throws Throwable {
         PigServer server = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
         PigContext context = server.getPigContext();
-        
+        Util.copyFromLocalToCluster(cluster, "test/org/apache/pig/test/data/passwd", "passwd");
         String strCmd = 
             "rmf bar;"
             +"rmf foo;"
             +"rmf baz;"
-            +"A = load 'file:test/org/apache/pig/test/data/passwd';"
+            +"A = load 'passwd';"
             +"B = foreach A generate 1;"
             +"C = foreach A generate 0/0;"
             +"store B into 'foo';"
             +"store C into 'bar';"
-            +"A = load 'file:test/org/apache/pig/test/data/passwd';"
+            +"A = load 'passwd';"
             +"B = stream A through `false`;"
             +"store B into 'baz';"
             +"cat baz;";

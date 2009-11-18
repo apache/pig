@@ -44,10 +44,11 @@ import org.junit.Test;
 
 public class TestImplicitSplit extends TestCase{
     private PigServer pigServer;
+    MiniCluster cluster = MiniCluster.buildCluster();
     
     @Before
     public void setUp() throws Exception {
-        pigServer = new PigServer(ExecType.LOCAL);
+        pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
     }
 
     @After
@@ -57,13 +58,13 @@ public class TestImplicitSplit extends TestCase{
     @Test
     public void testImplicitSplit() throws Exception{
         int LOOP_SIZE = 20;
-        File tmpFile = File.createTempFile("test", "txt");
-        PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
+        String[] input = new String[LOOP_SIZE];
         for(int i = 1; i <= LOOP_SIZE; i++) {
-            ps.println(i);
+            input[i-1] = Integer.toString(i);
         }
-        ps.close();
-        pigServer.registerQuery("A = LOAD '" + Util.generateURI(tmpFile.toString()) + "';");
+        String inputFileName = "testImplicitSplit-input.txt";
+        Util.createInputFile(cluster, inputFileName, input);
+        pigServer.registerQuery("A = LOAD '" + inputFileName + "';");
         pigServer.registerQuery("B = filter A by $0<=10;");
         pigServer.registerQuery("C = filter A by $0>10;");
         pigServer.registerQuery("D = union B,C;");
@@ -75,19 +76,22 @@ public class TestImplicitSplit extends TestCase{
             ++cnt;
         }
         assertEquals(20, cnt);
+        Util.deleteFile(cluster, inputFileName);
     }
     
     @Test
     public void testImplicitSplitInCoGroup() throws Exception {
         // this query is similar to the one reported in JIRA - PIG-537
         // Create input file
-        File inputA = Util.createInputFile("tmp", "", 
+        String input1 = "testImplicitSplitInCoGroup-input1.txt";
+        String input2 = "testImplicitSplitInCoGroup-input2.txt";
+        Util.createInputFile(cluster, input1, 
                 new String[] {"a:1", "b:2", "b:20", "c:3", "c:30"});
-        File inputB = Util.createInputFile("tmp", "", 
+        Util.createInputFile(cluster, input2, 
                 new String[] {"a:first", "b:second", "c:third"});
-        pigServer.registerQuery("a = load 'file:" + Util.encodeEscape(inputA.toString()) + 
+        pigServer.registerQuery("a = load '" + input1 + 
                 "' using PigStorage(':') as (name:chararray, marks:int);");
-        pigServer.registerQuery("b = load 'file:" + Util.encodeEscape(inputA.toString()) + 
+        pigServer.registerQuery("b = load '" + input2 + 
                 "' using PigStorage(':') as (name:chararray, rank:chararray);");
         pigServer.registerQuery("c = cogroup a by name, b by name;");
         pigServer.registerQuery("d = foreach c generate group, FLATTEN(a.marks) as newmarks;");
@@ -110,6 +114,8 @@ public class TestImplicitSplit extends TestCase{
                 assertEquals(groupValues[i], t.get(i+1));    
             }
         }
+        Util.deleteFile(cluster, input1);
+        Util.deleteFile(cluster, input2);
     }
     
     @Test

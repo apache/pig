@@ -19,23 +19,57 @@
 package org.apache.pig.test;
 
 import java.io.File;
+import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.Iterator;
 
+import org.apache.pig.ExecType;
 import org.apache.pig.data.Tuple;
 import org.junit.Test;
 
 public class TestPigSplit extends PigExecTestCase {
-		
+	
+    /**
+     * filename of input in each of the tests
+     */
+    String inputFileName;
+    
+    public TestPigSplit() {
+        // by default let's test in map-red mode, user can
+        // override this by setting ant property "test.exectype"
+        execType = ExecType.MAPREDUCE;
+    }
+    
+    private void createInput(String[] data) throws IOException {
+        if(execType == ExecType.MAPREDUCE) {
+            Util.createInputFile(cluster, inputFileName, data);
+        } else if (execType == ExecType.LOCAL) {
+            Util.createLocalInputFile(inputFileName, data);
+        } else {
+            throw new IOException("unknown exectype:" + execType.toString());
+        }
+    }
+    
+    /* (non-Javadoc)
+     * @see org.apache.pig.test.PigExecTestCase#tearDown()
+     */
+    @Override
+    protected void tearDown() throws Exception {
+        if(execType == ExecType.MAPREDUCE) {
+            Util.deleteFile(cluster, inputFileName);
+        } else if (execType == ExecType.LOCAL) {
+            new File(inputFileName).delete();
+        } else {
+            throw new IOException("unknown exectype:" + execType.toString());
+        }
+    }
+    
 	@Test
 	public void notestLongEvalSpec() throws Exception{
-		File f = File.createTempFile("tmp", "");
+		inputFileName = "notestLongEvalSpec-input.txt";
+		createInput(new String[] {"0\ta"});
 		
-		PrintWriter pw = new PrintWriter(f);
-		pw.println("0\ta");
-		pw.close();
-		
-		pigServer.registerQuery("a = load 'file:" + Util.encodeEscape(f.toString()) + "';");
+		pigServer.registerQuery("a = load '" + inputFileName + "';");
 		for (int i=0; i< 500; i++){
 			pigServer.registerQuery("a = filter a by $0 == '1';");
 		}
@@ -43,19 +77,14 @@ public class TestPigSplit extends PigExecTestCase {
 		while (iter.hasNext()){
 			throw new Exception();
 		}
-		f.delete();
 	}
 	
     @Test
     public void testSchemaWithSplit() throws Exception {
-        File f = File.createTempFile("tmp", "");
-
-        PrintWriter pw = new PrintWriter(f);
-        pw.println("2");
-        pw.println("12");
-        pw.println("42");
-        pw.close();
-        pigServer.registerQuery("a = load 'file:" + Util.encodeEscape(f.toString()) + "' as (value:chararray);");
+        inputFileName = "testSchemaWithSplit-input.txt";
+        String[] input = {"2","12","42"};
+        createInput(input);
+        pigServer.registerQuery("a = load '" + inputFileName + "' as (value:chararray);");
         pigServer.registerQuery("split a into b if value < '20', c if value > '10';");
         pigServer.registerQuery("b1 = order b by value;");
         pigServer.registerQuery("c1 = order c by value;");
@@ -77,26 +106,22 @@ public class TestPigSplit extends PigExecTestCase {
         assertEquals("third item in c1", iter.next().get(0), "42");
         assertFalse("c1 is over", iter.hasNext());
 
-        f.delete();
     }
 
     @Test
     public void testLongEvalSpec() throws Exception{
-        File f = File.createTempFile("tmp", "");
-        
-        PrintWriter pw = new PrintWriter(f);
+        inputFileName = "testLongEvalSpec-input.txt";
+        String[] input = new String[500];
         for (int i=0; i< 500; i++) {
-            pw.println("0\ta");
+            input[i] = ("0\ta");
         }
-        pw.close();
-        
-        pigServer.registerQuery("a = load '" + Util.generateURI(f.toString()) + "';");
+        createInput(input);        
+        pigServer.registerQuery("a = load '" + inputFileName + "';");
         pigServer.registerQuery("a = filter a by $0 == '1';");
 
         Iterator<Tuple> iter = pigServer.openIterator("a");
         while (iter.hasNext()){
             throw new Exception();
         }
-        f.delete();
     }
 }

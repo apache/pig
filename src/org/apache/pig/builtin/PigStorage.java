@@ -64,10 +64,8 @@ public class PigStorage
     protected final Log mLog = LogFactory.getLog(getClass());
         
     long end = Long.MAX_VALUE;
-    private byte recordDel = '\n';
     private byte fieldDel = '\t';
     private ArrayList<Object> mProtoTuple = null;
-    private int os;
     private TupleFactory mTupleFactory = TupleFactory.getInstance();
     private static final int OS_UNIX = 0;
     private static final int OS_WINDOWS = 1;
@@ -75,9 +73,6 @@ public class PigStorage
     private static final int BUFFER_SIZE = 1024;
     
     public PigStorage() {
-        os = OS_UNIX;
-        if (System.getProperty("os.name").toUpperCase().startsWith("WINDOWS"))
-            os = OS_WINDOWS;
     }
 
     /**
@@ -308,7 +303,6 @@ public class PigStorage
      */
     @Override
     public InputFormat getInputFormat() {
-        // TODO Auto-generated method stub
         return new TextInputFormat();
     }
 

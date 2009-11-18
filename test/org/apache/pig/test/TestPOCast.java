@@ -24,8 +24,13 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Random;
 
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.mapreduce.InputFormat;
+import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.pig.ExecType;
 import org.apache.pig.FuncSpec;
+import org.apache.pig.LoadCaster;
 import org.apache.pig.LoadFunc;
 import org.apache.pig.backend.datastorage.DataStorage;
 import org.apache.pig.backend.executionengine.ExecException;
@@ -39,6 +44,7 @@ import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.io.BufferedPositionedInputStream;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigSplit;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
@@ -61,7 +67,7 @@ public class TestPOCast extends TestCase {
 	DataBag dummyBag = null;
 	
 	@Test
-	public void testIntegerToOther() throws PlanException, ExecException {
+	public void testIntegerToOther() throws IOException {
 		//Create data
 		DataBag bag = BagFactory.getInstance().newDefaultBag();
 		for(int i = 0; i < MAX; i++) {
@@ -224,7 +230,7 @@ public class TestPOCast extends TestCase {
 	}
 	
 	@Test
-	public void testLongToOther() throws PlanException, ExecException {
+	public void testLongToOther() throws IOException {
 		//Create data
 		DataBag bag = BagFactory.getInstance().newDefaultBag();
 		for(int i = 0; i < MAX; i++) {
@@ -395,7 +401,7 @@ public class TestPOCast extends TestCase {
 	}
 	
 	@Test
-	public void testFloatToOther() throws PlanException, ExecException {
+	public void testFloatToOther() throws IOException {
 		//Create data
 		DataBag bag = BagFactory.getInstance().newDefaultBag();
 		for(int i = 0; i < MAX; i++) {
@@ -570,7 +576,7 @@ public class TestPOCast extends TestCase {
 	}
 	
 	@Test
-	public void testDoubleToOther() throws PlanException, ExecException {
+	public void testDoubleToOther() throws IOException {
 		//Create data
 		DataBag bag = BagFactory.getInstance().newDefaultBag();
 		for(int i = 0; i < MAX; i++) {
@@ -734,7 +740,7 @@ public class TestPOCast extends TestCase {
 	}
 	
 	@Test
-	public void testStringToOther() throws PlanException, ExecException {
+	public void testStringToOther() throws IOException {
 		POCast op = new POCast(new OperatorKey("", r.nextLong()), -1);
 		LoadFunc load = new TestLoader();
 		op.setLoadFSpec(new FuncSpec(load.getClass().getName()));
@@ -901,7 +907,7 @@ public class TestPOCast extends TestCase {
         }
 	}
 	
-	public static class TestLoader implements LoadFunc{
+	public static class TestLoader implements LoadFunc, LoadCaster{
         public void bindTo(String fileName, BufferedPositionedInputStream is, long offset, long end) throws IOException {
             
         }
@@ -986,18 +992,57 @@ public class TestPOCast extends TestCase {
         public byte[] toBytes(Tuple t) throws IOException {
             return null;
         }
+
         /* (non-Javadoc)
-         * @see org.apache.pig.LoadFunc#determineSchema(java.lang.String, org.apache.pig.ExecType, org.apache.pig.backend.datastorage.DataStorage)
+         * @see org.apache.pig.LoadFunc#getInputFormat()
          */
-        public Schema determineSchema(String fileName, ExecType execType,
-                DataStorage storage) throws IOException {
+        @Override
+        public InputFormat getInputFormat() throws IOException {
             // TODO Auto-generated method stub
             return null;
         }
+
+        /* (non-Javadoc)
+         * @see org.apache.pig.LoadFunc#getLoadCaster()
+         */
+        @Override
+        public LoadCaster getLoadCaster() throws IOException {
+            return this;
+        }
+
+        /* (non-Javadoc)
+         * @see org.apache.pig.LoadFunc#prepareToRead(org.apache.hadoop.mapreduce.RecordReader, org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigSplit)
+         */
+        @Override
+        public void prepareToRead(RecordReader reader, PigSplit split)
+                throws IOException {
+            // TODO Auto-generated method stub
+            
+        }
+
+        /* (non-Javadoc)
+         * @see org.apache.pig.LoadFunc#relativeToAbsolutePath(java.lang.String, org.apache.hadoop.fs.Path)
+         */
+        @Override
+        public String relativeToAbsolutePath(String location, Path curDir)
+                throws IOException {
+            // TODO Auto-generated method stub
+            return null;
+        }
+
+        /* (non-Javadoc)
+         * @see org.apache.pig.LoadFunc#setLocation(java.lang.String, org.apache.hadoop.mapreduce.Job)
+         */
+        @Override
+        public void setLocation(String location, Job job) throws IOException {
+            // TODO Auto-generated method stub
+            
+        }
+        
 	}
 	
 	@Test
-	public void testByteArrayToOther() throws PlanException, ExecException {
+	public void testByteArrayToOther() throws IOException {
 		POCast op = new POCast(new OperatorKey("", r.nextLong()), -1);
 		LoadFunc load = new TestLoader();
 		op.setLoadFSpec(new FuncSpec(load.getClass().getName()));
@@ -1160,7 +1205,7 @@ public class TestPOCast extends TestCase {
 		}
 	}
 	
-	private PhysicalPlan constructPlan(POCast op) throws PlanException {
+	private PhysicalPlan constructPlan(POCast op) throws IOException {
         LoadFunc load = new TestLoader();
         op.setLoadFSpec(new FuncSpec(load.getClass().getName()));
         POProject prj = new POProject(new OperatorKey("", r.nextLong()), -1, 0);
@@ -1186,7 +1231,7 @@ public class TestPOCast extends TestCase {
      * the input to the cast is already a string
      */
 	@Test
-	public void testByteArrayToOtherNoCast() throws PlanException, ExecException {
+	public void testByteArrayToOtherNoCast() throws IOException {
         POCast op = new POCast(new OperatorKey("", r.nextLong()), -1);
         PhysicalPlan plan = constructPlan(op);
         TupleFactory tf = TupleFactory.getInstance();
@@ -1310,7 +1355,7 @@ public class TestPOCast extends TestCase {
 	}
 	
 	@Test
-	public void testTupleToOther() throws PlanException, ExecException {
+	public void testTupleToOther() throws IOException {
 		POCast op = new POCast(new OperatorKey("", r.nextLong()), -1);
 		op.setLoadFSpec(new FuncSpec(PigStorage.class.getName()));
 		POProject prj = new POProject(new OperatorKey("", r.nextLong()), -1, 0);
@@ -1438,7 +1483,7 @@ public class TestPOCast extends TestCase {
 	}
 	
 	@Test
-	public void testBagToOther() throws PlanException, ExecException {
+	public void testBagToOther() throws IOException {
 		POCast op = new POCast(new OperatorKey("", r.nextLong()), -1);
 		op.setLoadFSpec(new FuncSpec(PigStorage.class.getName()));
 		POProject prj = new POProject(new OperatorKey("", r.nextLong()), -1, 0);
@@ -1547,7 +1592,7 @@ public class TestPOCast extends TestCase {
 	}
 	
 	@Test
-	public void testMapToOther() throws PlanException, ExecException {
+	public void testMapToOther() throws IOException {
 		POCast op = new POCast(new OperatorKey("", r.nextLong()), -1);
 		op.setLoadFSpec(new FuncSpec(PigStorage.class.getName()));
 		POProject prj = new POProject(new OperatorKey("", r.nextLong()), -1, 0);
@@ -1748,7 +1793,7 @@ public class TestPOCast extends TestCase {
 	}
 	
 	@Test
-	public void testValueTypesChanged() throws PlanException, ExecException {
+	public void testValueTypesChanged() throws IOException {
 
 		// Plan to test when result type is ByteArray and casting is requested
 		// for example casting of values coming out of map lookup.

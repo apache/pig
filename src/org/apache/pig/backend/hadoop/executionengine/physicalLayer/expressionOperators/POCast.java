@@ -73,8 +73,9 @@ public class POCast extends ExpressionOperator {
         if (this.loadFSpec != null) {
             this.load = (LoadFunc) PigContext
                     .instantiateFuncFromSpec(this.loadFSpec);
+            this.caster = load.getLoadCaster();
         }
-        this.caster = load.getLoadCaster();
+        
     }
 
     public void setLoadFSpec(FuncSpec lf) throws IOException {
