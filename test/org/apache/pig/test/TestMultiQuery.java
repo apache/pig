@@ -34,22 +34,28 @@ import java.util.Map;
 import junit.framework.Assert;
 import junit.framework.TestCase;
 
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.WritableComparable;
+import org.apache.hadoop.mapred.JobConf;
+import org.apache.hadoop.mapred.OutputFormat;
+import org.apache.hadoop.mapred.RecordWriter;
+import org.apache.hadoop.util.Progressable;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigException;
 import org.apache.pig.PigServer;
 import org.apache.pig.StoreConfig;
 import org.apache.pig.StoreFunc;
-import org.apache.pig.backend.executionengine.util.ExecTools;
 import org.apache.pig.backend.executionengine.ExecJob;
+import org.apache.pig.backend.executionengine.util.ExecTools;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MapReduceLauncher;
-import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROperPlan;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MapReduceOper;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROperPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSplit;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.backend.hadoop.executionengine.util.MapRedUtil;
-import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
@@ -57,20 +63,12 @@ import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.logicalLayer.LogicalPlan;
 import org.apache.pig.impl.plan.Operator;
 import org.apache.pig.impl.plan.OperatorPlan;
-import org.apache.pig.tools.grunt.GruntParser;
 import org.apache.pig.impl.util.LogUtils;
+import org.apache.pig.tools.grunt.GruntParser;
 import org.apache.pig.tools.pigscript.parser.ParseException;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.WritableComparable;
-import org.apache.hadoop.mapred.JobConf;
-import org.apache.hadoop.mapred.OutputFormat;
-import org.apache.hadoop.mapred.RecordWriter;
-import org.apache.hadoop.mapred.jobcontrol.Job;
-import org.apache.hadoop.util.Progressable;
 
 public class TestMultiQuery extends TestCase {
 
@@ -90,6 +88,137 @@ public class TestMultiQuery extends TestCase {
         myPig = null;
     }
     
+    @Test
+    public void testMultiQueryJiraPig1060() {
+
+        // test case: 
+
+        String INPUT_FILE = "pig-1060.txt";
+
+        try {
+
+            PrintWriter w = new PrintWriter(new FileWriter(INPUT_FILE));
+            w.println("apple\t2");
+            w.println("apple\t12");
+            w.println("orange\t3");
+            w.println("orange\t23");
+            w.println("strawberry\t10");
+            w.println("strawberry\t34");
+
+            w.close();
+
+            Util.copyFromLocalToCluster(cluster, INPUT_FILE, INPUT_FILE);
+
+            myPig.setBatchOn();
+
+            myPig.registerQuery("data = load '" + INPUT_FILE +
+                                "' as (name:chararray, gid:int);");
+            myPig.registerQuery("f1 = filter data by gid < 5;");
+            myPig.registerQuery("g1 = group f1 by name;");
+            myPig.registerQuery("p1 = foreach g1 generate group, COUNT(f1.gid);");
+            myPig.registerQuery("store p1 into '/tmp/output1';");
+
+            myPig.registerQuery("f2 = filter data by gid > 5;");
+            myPig.registerQuery("g2 = group f2 by name;");
+            myPig.registerQuery("p2 = foreach g2 generate group, COUNT(f2.gid);");
+            myPig.registerQuery("store p2 into '/tmp/output2';");
+
+            myPig.registerQuery("f3 = filter f2 by gid > 10;");
+            myPig.registerQuery("g3 = group f3 by name;");
+            myPig.registerQuery("p3 = foreach g3 generate group, COUNT(f3.gid);");
+            myPig.registerQuery("store p3 into '/tmp/output3';");
+
+            myPig.registerQuery("f4 = filter f3 by gid < 20;");
+            myPig.registerQuery("g4 = group f4 by name;");
+            myPig.registerQuery("p4 = foreach g4 generate group, COUNT(f4.gid);");
+            myPig.registerQuery("store p4 into '/tmp/output4';");
+
+            LogicalPlan lp = checkLogicalPlan(1, 4, 27);
+
+            PhysicalPlan pp = checkPhysicalPlan(lp, 1, 4, 35);
+
+            checkMRPlan(pp, 1, 1, 1);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            Assert.fail();
+        } finally {
+            new File(INPUT_FILE).delete();
+            try {
+                Util.deleteFile(cluster, INPUT_FILE);
+            } catch (IOException e) {
+                e.printStackTrace();
+                Assert.fail();
+            }
+        }
+    }
+     
+    @Test
+    public void testMultiQueryJiraPig1060_2() {
+
+        // test case: 
+
+        String INPUT_FILE = "pig-1060.txt";
+
+        try {
+
+            PrintWriter w = new PrintWriter(new FileWriter(INPUT_FILE));
+            w.println("apple\t2");
+            w.println("apple\t12");
+            w.println("orange\t3");
+            w.println("orange\t23");
+            w.println("strawberry\t10");
+            w.println("strawberry\t34");
+
+            w.close();
+
+            Util.copyFromLocalToCluster(cluster, INPUT_FILE, INPUT_FILE);
+
+            myPig.setBatchOn();
+
+            myPig.registerQuery("data = load '" + INPUT_FILE +
+            "' as (name:chararray, gid:int);");
+            myPig.registerQuery("f1 = filter data by gid < 5;");
+            myPig.registerQuery("g1 = group f1 by name;");
+            myPig.registerQuery("p1 = foreach g1 generate group, COUNT(f1.gid);");
+            myPig.registerQuery("store p1 into '/tmp/output1';");
+
+            myPig.registerQuery("f2 = filter data by gid > 5;");
+            myPig.registerQuery("g2 = group f2 by name;");
+            myPig.registerQuery("p2 = foreach g2 generate group, COUNT(f2.gid);");
+            myPig.registerQuery("store p2 into '/tmp/output2';");
+
+            myPig.registerQuery("f3 = filter f2 by gid > 10;");
+            myPig.registerQuery("g3 = group f3 by name;");
+            myPig.registerQuery("p3 = foreach g3 generate group, COUNT(f3.gid);");
+            myPig.registerQuery("store p3 into '/tmp/output3';");
+
+            myPig.registerQuery("f4 = filter f3 by gid < 20;");
+            myPig.registerQuery("g4 = group f4 by name;");
+            myPig.registerQuery("p4 = foreach g4 generate group, COUNT(f4.gid);");
+            myPig.registerQuery("store p4 into '/tmp/output4';");
+
+            List<ExecJob> jobs = myPig.executeBatch();
+            assertEquals(4, jobs.size());
+
+            for (ExecJob job : jobs) {
+                assertTrue(job.getStatus() == ExecJob.JOB_STATUS.COMPLETED);
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            Assert.fail();
+        } finally {
+            new File(INPUT_FILE).delete();
+            try {
+                Util.deleteFile(cluster, INPUT_FILE);
+            } catch (IOException e) {
+                e.printStackTrace();
+                Assert.fail();
+            }
+        }
+    }
+
     @Test
     public void testMultiQueryJiraPig920() {
 
@@ -485,6 +614,10 @@ public class TestMultiQuery extends TestCase {
             List<ExecJob> jobs = myPig.executeBatch();
             assertTrue(jobs.size() == 2);
 
+            for (ExecJob job : jobs) {
+                assertTrue(job.getStatus() == ExecJob.JOB_STATUS.COMPLETED);
+            }
+
         } catch (Exception e) {
             e.printStackTrace();
             Assert.fail();
@@ -607,7 +740,11 @@ public class TestMultiQuery extends TestCase {
             myPig.registerQuery("d2 = foreach d1 generate group, AVG(d.uid);");            
             myPig.registerQuery("store d2 into '/tmp/output3';");
              
-            myPig.executeBatch();
+            List<ExecJob> jobs = myPig.executeBatch();
+            
+            for (ExecJob job : jobs) {
+                assertTrue(job.getStatus() == ExecJob.JOB_STATUS.COMPLETED);
+            }
             
         } catch (Exception e) {
             e.printStackTrace();
@@ -740,8 +877,12 @@ public class TestMultiQuery extends TestCase {
             myPig.registerQuery("d2 = foreach d1 generate group, MAX(d.uid) - MIN(d.uid);");
             myPig.registerQuery("store d2 into '/tmp/output3';");
              
-            myPig.executeBatch();
-            
+            List<ExecJob> jobs = myPig.executeBatch();
+
+            for (ExecJob job : jobs) {
+                assertTrue(job.getStatus() == ExecJob.JOB_STATUS.COMPLETED);
+            }
+  
         } catch (Exception e) {
             e.printStackTrace();
             Assert.fail();
@@ -808,7 +949,12 @@ public class TestMultiQuery extends TestCase {
             myPig.registerQuery("d2 = foreach d1 generate group, MAX(d.uid) - MIN(d.uid);");
             myPig.registerQuery("store d2 into '/tmp/output3';");
              
-            myPig.executeBatch();
+            List<ExecJob> jobs = myPig.executeBatch();
+            assertEquals(3, jobs.size());
+
+            for (ExecJob job : jobs) {
+                assertTrue(job.getStatus() == ExecJob.JOB_STATUS.COMPLETED);
+            }
             
         } catch (Exception e) {
             e.printStackTrace();
@@ -876,7 +1022,12 @@ public class TestMultiQuery extends TestCase {
             myPig.registerQuery("d2 = foreach d1 generate group, COUNT(d.uid);");
             myPig.registerQuery("store d2 into '/tmp/output3';");
              
-            myPig.executeBatch();
+            List<ExecJob> jobs = myPig.executeBatch();
+            assertEquals(3, jobs.size());
+
+            for (ExecJob job : jobs) {
+                assertTrue(job.getStatus() == ExecJob.JOB_STATUS.COMPLETED);
+            }
             
         } catch (Exception e) {
             e.printStackTrace();
@@ -989,7 +1140,12 @@ public class TestMultiQuery extends TestCase {
             myPig.registerQuery("H = foreach G generate group, COUNT(A1);");          
             myPig.registerQuery("store H into '/tmp/output3';");
              
-            myPig.executeBatch();
+            List<ExecJob> jobs = myPig.executeBatch();
+            assertEquals(3, jobs.size());
+
+            for (ExecJob job : jobs) {
+                assertTrue(job.getStatus() == ExecJob.JOB_STATUS.COMPLETED);
+            }
             
         } catch (Exception e) {
             e.printStackTrace();
@@ -1055,7 +1211,12 @@ public class TestMultiQuery extends TestCase {
             myPig.registerQuery("g1 = foreach g generate group, COUNT(d2);");
             myPig.registerQuery("store g1 into '/tmp/output3';");
 
-            myPig.executeBatch();
+            List<ExecJob> jobs = myPig.executeBatch();
+            assertEquals(3, jobs.size());
+
+            for (ExecJob job : jobs) {
+                assertTrue(job.getStatus() == ExecJob.JOB_STATUS.COMPLETED);
+            }
             
         } catch (Exception e) {
             e.printStackTrace();
@@ -1111,7 +1272,12 @@ public class TestMultiQuery extends TestCase {
             myPig.registerQuery("e = foreach d generate flatten(b), flatten(c);");
             myPig.registerQuery("store e into '/tmp/output2';");
 
-            myPig.executeBatch();
+            List<ExecJob> jobs = myPig.executeBatch();
+            assertTrue(jobs.size() == 2);
+
+            for (ExecJob job : jobs) {
+                assertTrue(job.getStatus() == ExecJob.JOB_STATUS.COMPLETED);
+            }
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -1169,7 +1335,12 @@ public class TestMultiQuery extends TestCase {
             myPig.registerQuery("e = join c by gid, d by gid using \"repl\";");
             myPig.registerQuery("store e into '/tmp/output3';");
 
-            myPig.executeBatch();
+            List<ExecJob> jobs = myPig.executeBatch();
+            assertEquals(3, jobs.size());
+
+            for (ExecJob job : jobs) {
+                assertTrue(job.getStatus() == ExecJob.JOB_STATUS.COMPLETED);
+            }
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -1278,7 +1449,12 @@ public class TestMultiQuery extends TestCase {
             myPig.registerQuery("b = load '/tmp/output1' using PigStorage(':'); ");
             myPig.registerQuery("store b into '/tmp/output2';");
 
-            myPig.executeBatch();
+            List<ExecJob> jobs = myPig.executeBatch();
+            assertTrue(jobs.size() == 2);
+
+            for (ExecJob job : jobs) {
+                assertTrue(job.getStatus() == ExecJob.JOB_STATUS.COMPLETED);
+            }
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -1596,7 +1772,7 @@ public class TestMultiQuery extends TestCase {
         }
         
     }
-    
+   
     @Test
     public void testMultiQueryWithTwoStores() {
 
@@ -2067,7 +2243,7 @@ public class TestMultiQuery extends TestCase {
             Assert.fail();
         } 
     }
-    
+   
     /**
      * Test that pig calls checkOutputSpecs() method of the OutputFormat (if the
      * StoreFunc defines an OutputFormat as the return value of 
@@ -2313,6 +2489,9 @@ public class TestMultiQuery extends TestCase {
         }        
 
         showPlanOperators(mrp);
+        
+        System.out.println("===== Display map-reduce Plan =====");
+        System.out.println(mrp.toString());
         
         Assert.assertEquals(expectedRoots, mrp.getRoots().size());
         Assert.assertEquals(expectedLeaves, mrp.getLeaves().size());
