@@ -19,6 +19,7 @@ package org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOp
 
 import java.util.ArrayList;
 import java.util.BitSet;
+import java.util.Collections;
 import java.util.List;
 
 import org.apache.commons.logging.Log;
@@ -61,14 +62,7 @@ public class PODemux extends PhysicalOperator {
     private static Result eop = new Result(POStatus.STATUS_EOP, null);
     
     transient private Log log = LogFactory.getLog(getClass());
-    
-    /*
-     * The base index of this demux. In the case of
-     * a demux contained in another demux, the index
-     * passed in must be shifted before it can be used.
-     */
-    private int baseIndex = 0;
-    
+        
     /*
      * The list of sub-plans the inner plan is composed of
      */
@@ -178,7 +172,7 @@ public class PODemux extends PhysicalOperator {
 
     @Override
     public String name() {
-        return "Demux" + isKeyWrapped + "[" + baseIndex +"] - " + mKey.toString();
+        return "Demux" + isKeyWrapped + " - " + mKey.toString();
     }
 
     @Override
@@ -190,24 +184,6 @@ public class PODemux extends PhysicalOperator {
     public boolean supportsMultipleOutputs() {
         return false;
     }
-
-    /**
-     * Sets the base index of this demux. 
-     * 
-     * @param idx the base index
-     */
-    public void setBaseIndex(int idx) {
-        baseIndex = idx;
-    }
-    
-    /**
-     * Returns the base index of this demux
-     * 
-     * @return the base index
-     */
-    public int getBaseIndex() {
-        return baseIndex;
-    }
     
     /**
      * Returns the list of inner plans.
@@ -216,6 +192,27 @@ public class PODemux extends PhysicalOperator {
      */
     public List<PhysicalPlan> getPlans() {
         return myPlans;
+    }
+    
+    /**
+     * Returns the list of booleans that indicates if the 
+     * key needs to unwrapped for the corresponding plan.
+     * 
+     * @return the list of isKeyWrapped boolean values
+     */
+    public List<Boolean> getIsKeyWrappedList() {
+        return Collections.unmodifiableList(isKeyWrapped);
+    }
+    
+    /**
+     * Adds a list of IsKeyWrapped boolean values
+     * 
+     * @param lst the list of boolean values to add
+     */
+    public void addIsKeyWrappedList(List<Boolean> lst) {
+        for (Boolean b : lst) {
+            isKeyWrapped.add(b);
+        }
     }
     
     /**
@@ -230,6 +227,12 @@ public class PODemux extends PhysicalOperator {
         // be wrapping it in an extra tuple. If it is not
         // a tuple, we will wrap into in a tuple
         isKeyWrapped.add(mapKeyType == DataType.TUPLE ? false : true);
+        keyPositions.add(keyPos);
+    }
+    
+    public void addPlan(PhysicalPlan inPlan, boolean[] keyPos) {  
+        myPlans.add(inPlan);
+        processedSet.set(myPlans.size()-1);
         keyPositions.add(keyPos);
     }
    
@@ -357,8 +360,7 @@ public class PODemux extends PhysicalOperator {
         // the POLocalRearrange operator and passed to this operator
         // by POMultiQueryPackage
         int index = fld.getIndex();
-        index &= idxPart;
-        index -= baseIndex;                         
+        index &= idxPart;                      
         
         PhysicalPlan pl = myPlans.get(index);
         if (!(pl.getRoots().get(0) instanceof PODemux)) {                             
