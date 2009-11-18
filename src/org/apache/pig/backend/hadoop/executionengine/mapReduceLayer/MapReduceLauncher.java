@@ -407,11 +407,16 @@ public class MapReduceLauncher extends Launcher{
         NoopFilterRemover fRem = new NoopFilterRemover(plan);
         fRem.visit();
         
-        // reduces the number of MROpers in the MR plan generated 
-        // by multi-query (multi-store) script.
-        MultiQueryOptimizer mqOptimizer = new MultiQueryOptimizer(plan);
-        mqOptimizer.visit();
-
+        boolean isMultiQuery = 
+            "true".equalsIgnoreCase(pc.getProperties().getProperty("opt.multiquery","true"));
+        
+        if (isMultiQuery) {
+            // reduces the number of MROpers in the MR plan generated 
+            // by multi-query (multi-store) script.
+            MultiQueryOptimizer mqOptimizer = new MultiQueryOptimizer(plan);
+            mqOptimizer.visit();
+        }
+        
         // removes unnecessary stores (as can happen with splits in
         // some cases.). This has to run after the MultiQuery and
         // NoopFilterRemover.

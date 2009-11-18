@@ -64,8 +64,6 @@ public class POMultiQueryPackage extends POPackage {
     private List<POPackage> packages = new ArrayList<POPackage>();
 
     transient private PigNullableWritable myKey;
-    
-    private int baseIndex = 0;      
 
     /**
      * Constructs an operator with the specified key.
@@ -111,7 +109,7 @@ public class POMultiQueryPackage extends POPackage {
 
     @Override
     public String name() {
-        return "MultiQuery Package[" + baseIndex +"] - " +  getOperatorKey().toString();
+        return "MultiQuery Package  - " +  getOperatorKey().toString();
     }
 
     @Override
@@ -174,7 +172,6 @@ public class POMultiQueryPackage extends POPackage {
 
         int index = (int)origIndex;
         index &= idxPart;
-        index -= baseIndex;
         
         if (index >= packages.size() || index < 0) {
             int errCode = 2140;
@@ -221,21 +218,4 @@ public class POMultiQueryPackage extends POPackage {
         return res;
     }
 
-    /**
-     * Sets the base index of this operator
-     * 
-     * @param baseIndex the base index of this operator
-     */
-    public void setBaseIndex(int baseIndex) {
-        this.baseIndex = baseIndex;
-    }
-
-    /**
-     * Returns the base index of this operator
-     * 
-     * @return the base index of this operator
-     */
-    public int getBaseIndex() {
-        return baseIndex;
-    }      
 }
