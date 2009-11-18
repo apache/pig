@@ -34,6 +34,10 @@ to call at top-level: ant deploy-contrib compile-core-test
   	<manifest>
 	    <attribute name="Main-Class" value="org.apache.hadoop.zebra.io.BasicTable"/>
 	</manifest>
+
+        <zipfileset src="${pig.root}/lib/${hadoop.jarfile}">
+            <include name="${hadoop.includes}" />
+        </zipfileset>
     </jar>
   </target>
 

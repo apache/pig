@@ -55,6 +55,9 @@ public class TableRecordReader implements RecordReader<BytesWritable, Tuple> {
       scanner =
           expr.getScanner(tblSplit.getBegin(), tblSplit.getEnd(), projection,
               conf);
+    } else if (split != null && split instanceof RowTableSplit) {
+      RowTableSplit rowSplit = (RowTableSplit) split;
+      scanner = expr.getScanner(rowSplit, projection, conf);
     }
     else {
       UnsortedTableSplit tblSplit = (UnsortedTableSplit) split;

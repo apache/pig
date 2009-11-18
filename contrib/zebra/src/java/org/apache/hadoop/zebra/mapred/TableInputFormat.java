@@ -24,11 +24,16 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import org.apache.hadoop.util.StringUtils;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.PathFilter;
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.WritableUtils;
-import org.apache.hadoop.io.file.tfile.RawComparable;
+import org.apache.hadoop.zebra.tfile.RawComparable;
+import org.apache.hadoop.mapred.FileInputFormat;
+import org.apache.hadoop.mapred.FileSplit;
 import org.apache.hadoop.mapred.InputFormat;
 import org.apache.hadoop.mapred.InputSplit;
 import org.apache.hadoop.mapred.JobConf;
@@ -38,16 +43,14 @@ import org.apache.hadoop.zebra.io.BasicTable;
 import org.apache.hadoop.zebra.io.BasicTableStatus;
 import org.apache.hadoop.zebra.io.BlockDistribution;
 import org.apache.hadoop.zebra.io.KeyDistribution;
-import org.apache.hadoop.zebra.io.TableScanner;
 import org.apache.hadoop.zebra.io.BasicTable.Reader;
 import org.apache.hadoop.zebra.io.BasicTable.Reader.RangeSplit;
+import org.apache.hadoop.zebra.io.BasicTable.Reader.RowSplit;
 import org.apache.hadoop.zebra.mapred.TableExpr.LeafTableInfo;
 import org.apache.hadoop.zebra.parser.ParseException;
 import org.apache.hadoop.zebra.types.Projection;
 import org.apache.hadoop.zebra.schema.Schema;
-import org.apache.hadoop.zebra.types.TypesUtils;
 import org.apache.hadoop.zebra.types.SortInfo;
-import org.apache.hadoop.zebra.mapred.TableExpr.LeafTableInfo;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.Tuple;
@@ -133,6 +136,8 @@ import org.apache.pig.data.Tuple;
  * </UL>
  */
 public class TableInputFormat implements InputFormat<BytesWritable, Tuple> {
+  static Log LOG = LogFactory.getLog(TableInputFormat.class);
+  
   private static final String INPUT_EXPR = "mapred.lib.table.input.expr";
   private static final String INPUT_PROJ = "mapred.lib.table.input.projection";
   private static final String INPUT_SORT = "mapred.lib.table.input.sort";
@@ -162,45 +167,6 @@ public class TableInputFormat implements InputFormat<BytesWritable, Tuple> {
     }
   }
   
-  //This method escapes commas in the glob pattern of the given paths. 
-  private static String[] getPathStrings(String commaSeparatedPaths) {
-    int length = commaSeparatedPaths.length();
-    int curlyOpen = 0;
-    int pathStart = 0;
-    boolean globPattern = false;
-    List<String> pathStrings = new ArrayList<String>();
-    
-    for (int i=0; i<length; i++) {
-      char ch = commaSeparatedPaths.charAt(i);
-      switch(ch) {
-        case '{' : {
-          curlyOpen++;
-          if (!globPattern) {
-            globPattern = true;
-          }
-          break;
-        }
-        case '}' : {
-          curlyOpen--;
-          if (curlyOpen == 0 && globPattern) {
-            globPattern = false;
-          }
-          break;
-        }
-        case ',' : {
-          if (!globPattern) {
-            pathStrings.add(commaSeparatedPaths.substring(pathStart, i));
-            pathStart = i + 1 ;
-          }
-          break;
-        }
-      }
-    }
-    pathStrings.add(commaSeparatedPaths.substring(pathStart, length));
-    
-    return pathStrings.toArray(new String[0]);
-  }
-
   /**
    * Set the input expression in the JobConf object.
    * 
@@ -517,7 +483,7 @@ public class TableInputFormat implements InputFormat<BytesWritable, Tuple> {
       BlockDistribution bd = null;
       for (Iterator<BasicTable.Reader> it = readers.iterator(); it.hasNext();) {
         BasicTable.Reader reader = it.next();
-        bd = BlockDistribution.sum(bd, reader.getBlockDistribution(null));
+        bd = BlockDistribution.sum(bd, reader.getBlockDistribution((RangeSplit)null));
       }
       
       if (bd == null) {
@@ -603,7 +569,7 @@ public class TableInputFormat implements InputFormat<BytesWritable, Tuple> {
       numSplits = -1;
     }
 
-    ArrayList<InputSplit> ret = new ArrayList<InputSplit>();;
+    ArrayList<InputSplit> ret = new ArrayList<InputSplit>();
     if (numSplits <= 0) {
       for (int i = 0; i < readers.size(); ++i) {
         BasicTable.Reader reader = readers.get(i);
@@ -637,6 +603,68 @@ public class TableInputFormat implements InputFormat<BytesWritable, Tuple> {
       }
     }
 
+    LOG.info("getSplits : returning " + ret.size() + " file splits.");
+    return ret.toArray(new InputSplit[ret.size()]);
+  }
+  
+  private static class DummyFileInputFormat extends FileInputFormat<BytesWritable, Tuple> {
+    public DummyFileInputFormat(long minSplitSize) {
+      super.setMinSplitSize(minSplitSize);
+    }
+    
+    @Override
+    public RecordReader<BytesWritable, Tuple> getRecordReader(InputSplit split,
+        JobConf conf, Reporter reporter) throws IOException {
+      // no-op
+      return null;
+    }
+  }
+  
+  private static InputSplit[] getRowSplits(JobConf conf, int numSplits,
+      TableExpr expr, List<BasicTable.Reader> readers, 
+      List<BasicTableStatus> status) throws IOException {
+    ArrayList<InputSplit> ret = new ArrayList<InputSplit>();
+    DummyFileInputFormat helper = new DummyFileInputFormat(getMinSplitSize(conf));
+
+    for (int i = 0; i < readers.size(); ++i) {
+      BasicTable.Reader reader = readers.get(i);
+      /* Get the index of the column group that will be used for row-split.*/
+      int splitCGIndex = reader.getRowSplitCGIndex();
+      
+      /* We can create input splits only if there does exist a valid column group for split.
+       * Otherwise, we do not create input splits. */
+      if (splitCGIndex >= 0) {        
+        Path path = new Path (reader.getPath().toString() + "/" + reader.getName(splitCGIndex));
+        DummyFileInputFormat.setInputPaths(conf, path);
+        PathFilter filter = reader.getPathFilter(conf);
+        DummyFileInputFormat.setInputPathFilter(conf, filter.getClass());
+        InputSplit[] inputSplits = helper.getSplits(conf, (numSplits < 1 ? 1 : numSplits));
+        
+        long starts[] = new long[inputSplits.length];
+        long lengths[] = new long[inputSplits.length];
+        Path paths[] = new Path [inputSplits.length];
+        for (int j=0; j<inputSplits.length; j++) {
+          FileSplit fileSplit = (FileSplit) inputSplits[j];
+          Path p = fileSplit.getPath();
+          long start = fileSplit.getStart();
+          long length = fileSplit.getLength();
+
+          starts[j] = start;
+          lengths[j] = length;
+          paths[j] = p;
+        }
+        
+        List<RowSplit> subSplits = reader.rowSplit(starts, lengths, paths, splitCGIndex);
+  
+        for (Iterator<RowSplit> it = subSplits.iterator(); it.hasNext();) {
+          RowSplit subSplit = it.next();
+          RowTableSplit split = new RowTableSplit(reader, subSplit, conf);
+          ret.add(split);
+        }
+      }
+    }
+    
+    LOG.info("getSplits : returning " + ret.size() + " row splits.");
     return ret.toArray(new InputSplit[ret.size()]);
   }
 
@@ -644,8 +672,7 @@ public class TableInputFormat implements InputFormat<BytesWritable, Tuple> {
    * @see InputFormat#getSplits(JobConf, int)
    */
   @Override
-  public InputSplit[] getSplits(JobConf conf, int numSplits)
-      throws IOException {
+  public InputSplit[] getSplits(JobConf conf, int numSplits) throws IOException {
     TableExpr expr = getInputExpr(conf);
     if (getSorted(conf))
       expr.setSortedSplit();
@@ -657,7 +684,7 @@ public class TableInputFormat implements InputFormat<BytesWritable, Tuple> {
     try {
       projection = getProjection(conf);
     } catch (ParseException e) {
-    	throw new IOException("getProjection failed : "+e.getMessage());
+      throw new IOException("getProjection failed : "+e.getMessage());
     }
     List<LeafTableInfo> leaves = expr.getLeafTables(projection);
     int nLeaves = leaves.size();
@@ -690,9 +717,10 @@ public class TableInputFormat implements InputFormat<BytesWritable, Tuple> {
       if (expr.sortedSplitRequired()) {
         return getSortedSplits(conf, numSplits, expr, readers, status);
       }
-      return getUnsortedSplits(conf, numSplits, expr, readers, status);
+       
+      return getRowSplits(conf, numSplits, expr, readers, status);
     } catch (ParseException e) {
-    	throw new IOException("Projection parsing failed : "+e.getMessage());
+      throw new IOException("Projection parsing failed : "+e.getMessage());
     }
     finally {
       for (Iterator<BasicTable.Reader> it = readers.iterator(); it.hasNext();) {
@@ -700,7 +728,7 @@ public class TableInputFormat implements InputFormat<BytesWritable, Tuple> {
           it.next().close();
         }
         catch (Exception e) {
-          // trap errors.
+          e.printStackTrace();
           // TODO: log the error here.
         }
       }
@@ -872,7 +900,6 @@ class UnsortedTableSplit implements InputSplit {
     }
     hosts = WritableUtils.readStringArray(in);
     length = WritableUtils.readVLong(in);
-
   }
 
   @Override
@@ -894,6 +921,79 @@ class UnsortedTableSplit implements InputSplit {
   }
   
   public RangeSplit getSplit() {
+    return split;
+  }
+}
+
+/**
+ * Adaptor class for unsorted InputSplit for table.
+ */
+class RowTableSplit implements InputSplit {
+  String path = null;
+  RowSplit split = null;
+  String[] hosts = null;
+  long length = 1;
+
+  public RowTableSplit(Reader reader, RowSplit split, JobConf conf)
+      throws IOException {
+    this.path = reader.getPath();
+    this.split = split;
+    BlockDistribution dataDist = reader.getBlockDistribution(split);
+    if (dataDist != null) {
+      length = dataDist.getLength();
+      hosts =
+          dataDist.getHosts(conf.getInt("mapred.lib.table.input.nlocation", 5));
+    }
+  }
+  
+  public RowTableSplit() {
+    // no-op for Writable construction
+  }
+  
+  @Override
+  public long getLength() throws IOException {
+    return length;
+  }
+
+  @Override
+  public String[] getLocations() throws IOException {
+    return hosts;
+  }
+
+  @Override
+  public void readFields(DataInput in) throws IOException {
+    path = WritableUtils.readString(in);
+    int bool = WritableUtils.readVInt(in);
+    if (bool == 1) {
+      if (split == null) split = new RowSplit();
+      split.readFields(in);
+    }
+    else {
+      split = null;
+    }
+    hosts = WritableUtils.readStringArray(in);
+    length = WritableUtils.readVLong(in);
+  }
+
+  @Override
+  public void write(DataOutput out) throws IOException {
+    WritableUtils.writeString(out, path);
+    if (split == null) {
+      WritableUtils.writeVInt(out, 0);
+    }
+    else {
+      WritableUtils.writeVInt(out, 1);
+      split.write(out);
+    }
+    WritableUtils.writeStringArray(out, hosts);
+    WritableUtils.writeVLong(out, length);
+  }
+
+  public String getPath() {
+    return path;
+  }
+  
+  public RowSplit getSplit() {
     return split;
   }
 }

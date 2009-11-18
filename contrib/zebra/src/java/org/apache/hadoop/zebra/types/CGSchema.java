@@ -27,7 +27,7 @@ import org.apache.hadoop.fs.permission.*;
 
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.WritableUtils;
-import org.apache.hadoop.io.file.tfile.Utils.Version;
+import org.apache.hadoop.zebra.tfile.Utils.Version;
 import org.apache.hadoop.zebra.schema.Schema;
 import org.apache.hadoop.zebra.parser.ParseException;
 
