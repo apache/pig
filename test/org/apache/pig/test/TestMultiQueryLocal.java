@@ -32,11 +32,6 @@ import org.apache.pig.ExecType;
 import org.apache.pig.PigException;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecJob;
-import org.apache.pig.backend.executionengine.util.ExecTools;
-import org.apache.pig.backend.hadoop.executionengine.HExecutionEngine;
-import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRCompiler;
-import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MapReduceLauncher;
-import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROperPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.logicalLayer.LogicalPlan;
@@ -86,7 +81,7 @@ public class TestMultiQueryLocal extends TestCase {
             LogicalPlan lp = checkLogicalPlan(1, 2, 9);
 
             // XXX Physical plan has one less node in the local case
-            PhysicalPlan pp = checkPhysicalPlan(lp, 1, 2, 12);
+            PhysicalPlan pp = checkPhysicalPlan(lp, 1, 2, 11);
 
             Assert.assertTrue(executePlan(pp));
 
@@ -186,7 +181,7 @@ public class TestMultiQueryLocal extends TestCase {
 
             LogicalPlan lp = checkLogicalPlan(1, 3, 14);
 
-            PhysicalPlan pp = checkPhysicalPlan(lp, 1, 3, 17);
+            PhysicalPlan pp = checkPhysicalPlan(lp, 1, 3, 14);
 
             Assert.assertTrue(executePlan(pp));
 
@@ -248,7 +243,7 @@ public class TestMultiQueryLocal extends TestCase {
             LogicalPlan lp = checkLogicalPlan(2, 3, 16);
 
             // XXX the total number of ops is one less in the local case
-            PhysicalPlan pp = checkPhysicalPlan(lp, 2, 3, 21);
+            PhysicalPlan pp = checkPhysicalPlan(lp, 2, 3, 19);
 
             Assert.assertTrue(executePlan(pp));
 
@@ -459,7 +454,7 @@ public class TestMultiQueryLocal extends TestCase {
             myPig.registerQuery("store c into '/tmp/output5';");
 
             LogicalPlan lp = checkLogicalPlan(1, 3, 12);
-            PhysicalPlan pp = checkPhysicalPlan(lp, 1, 3, 19);
+            PhysicalPlan pp = checkPhysicalPlan(lp, 1, 3, 15);
 
             myPig.executeBatch();
             myPig.discardBatch(); 
@@ -536,7 +531,7 @@ public class TestMultiQueryLocal extends TestCase {
     private PhysicalPlan checkPhysicalPlan(LogicalPlan lp, int expectedRoots,
             int expectedLeaves, int expectedSize) throws IOException {
 
-        System.out.println("===== check physical plan =====");
+        System.out.println("===== check physical plan =====");        
 
         PhysicalPlan pp = myPig.getPigContext().getExecutionEngine().compile(
                 lp, null);
@@ -565,16 +560,38 @@ public class TestMultiQueryLocal extends TestCase {
     }
 
     private void deleteOutputFiles() {
+        String outputFiles[] = { "/tmp/output1",
+                                 "/tmp/output2",
+                                 "/tmp/output3",
+                                 "/tmp/output4",
+                                 "/tmp/output5"
+                };
         try {
-            FileLocalizer.delete("/tmp/output1", myPig.getPigContext());
-            FileLocalizer.delete("/tmp/output2", myPig.getPigContext());
-            FileLocalizer.delete("/tmp/output3", myPig.getPigContext());
-            FileLocalizer.delete("/tmp/output4", myPig.getPigContext());
-            FileLocalizer.delete("/tmp/output5", myPig.getPigContext());
+            for( String outputFile : outputFiles ) {
+                if( isDirectory(outputFile) ) {
+                    deleteDir( new File( outputFile ) );
+                } else {
+                    FileLocalizer.delete(outputFile, myPig.getPigContext());
+                }    
+            }            
         } catch (IOException e) {
             e.printStackTrace();
             Assert.fail();
         }
+    }
+    
+    private void deleteDir( File file ) {
+        if( file.isDirectory() && file.listFiles().length != 0 ) {
+            for( File innerFile : file.listFiles() ) {
+                deleteDir( innerFile );
+            }
+        }
+        file.delete();
+    }
+    
+    private boolean isDirectory( String filepath ) {
+        File file = new File( filepath );
+        return file.isDirectory();
     }
 
 }

@@ -18,25 +18,14 @@
 
 package org.apache.pig.backend.hadoop.executionengine;
 
-import java.io.File;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
-import java.io.FileOutputStream;
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
 import java.io.PrintStream;
-import java.net.InetAddress;
 import java.net.Socket;
 import java.net.SocketException;
 import java.net.SocketImplFactory;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.net.UnknownHostException;
 import java.util.Collection;
 import java.util.List;
 import java.util.ArrayList;
-import java.util.LinkedList;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -46,11 +35,9 @@ import java.util.Properties;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.ipc.RPC;
 import org.apache.hadoop.mapred.JobClient;
 import org.apache.hadoop.mapred.JobConf;
-import org.apache.hadoop.mapred.JobTracker;
-import org.apache.pig.FuncSpec;
+import org.apache.pig.ExecType;
 import org.apache.pig.PigException;
 import org.apache.pig.backend.datastorage.DataStorage;
 import org.apache.pig.backend.executionengine.ExecException;
@@ -60,22 +47,14 @@ import org.apache.pig.backend.executionengine.ExecutionEngine;
 import org.apache.pig.backend.executionengine.util.ExecTools;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.datastorage.HDataStorage;
-import org.apache.pig.builtin.BinStorage;
 import org.apache.pig.impl.PigContext;
-import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.logicalLayer.LogicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.LogToPhyTranslationVisitor;
-import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MapReduceLauncher;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PlanPrinter;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.impl.plan.VisitorException;
-import org.apache.pig.shock.SSHSocketImplFactory;
-import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.tools.pigstats.PigStats;
 
 public class HExecutionEngine implements ExecutionEngine {
@@ -84,7 +63,7 @@ public class HExecutionEngine implements ExecutionEngine {
     private static final String FILE_SYSTEM_LOCATION = "fs.default.name";
     
     private final Log log = LogFactory.getLog(getClass());
-    private static final String LOCAL = "local";
+    public static final String LOCAL = "local";
     
     protected PigContext pigContext;
     
@@ -134,6 +113,7 @@ public class HExecutionEngine implements ExecutionEngine {
         init(this.pigContext.getProperties());
     }
     
+    @SuppressWarnings("deprecation")
     public void init(Properties properties) throws ExecException {
         //First set the ssh socket factory
         setSSHFactory();
@@ -155,19 +135,32 @@ public class HExecutionEngine implements ExecutionEngine {
         // Now add the settings from "properties" object to override any existing properties
         // All of the above is accomplished in the method call below
            
-        JobConf jobConf = new JobConf();
-        jobConf.addResource("pig-cluster-hadoop-site.xml");
+        JobConf jobConf = null;
+        if( this.pigContext.getExecType() == ExecType.LOCAL ) {
+            // We dont load any configurations here
+            jobConf = new JobConf( false );
+        } else {
+            jobConf = new JobConf();
+            jobConf.addResource("pig-cluster-hadoop-site.xml");
+        }
             
         //the method below alters the properties object by overriding the
         //hadoop properties with the values from properties and recomputing
         //the properties
         recomputeProperties(jobConf, properties);
-            
-        configuration = ConfigurationUtil.toConfiguration(properties);            
-        properties = ConfigurationUtil.toProperties(configuration);
+
+        // If we are running in local mode we dont read the hadoop conf file
+        if ( this.pigContext.getExecType() != ExecType.LOCAL ) {
+            configuration = ConfigurationUtil.toConfiguration(properties);
+            properties = ConfigurationUtil.toProperties(configuration);
+        } else {
+            properties.setProperty(JOB_TRACKER_LOCATION, LOCAL );
+            properties.setProperty(FILE_SYSTEM_LOCATION, "file:///");
+        }
+        
         cluster = properties.getProperty(JOB_TRACKER_LOCATION);
         nameNode = properties.getProperty(FILE_SYSTEM_LOCATION);
-            
+
         if (cluster != null && cluster.length() > 0) {
             if(!cluster.contains(":") && !cluster.equalsIgnoreCase(LOCAL)) {
                 cluster = cluster + ":50020";
@@ -190,7 +183,7 @@ public class HExecutionEngine implements ExecutionEngine {
         
             
         if(cluster != null && !cluster.equalsIgnoreCase(LOCAL)){
-                log.info("Connecting to map-reduce job tracker at: " + properties.get(JOB_TRACKER_LOCATION));
+            log.info("Connecting to map-reduce job tracker at: " + properties.get(JOB_TRACKER_LOCATION));
         }
 
         try {

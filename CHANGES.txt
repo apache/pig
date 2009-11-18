@@ -23,6 +23,9 @@ Trunk (unreleased changes)
 INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
+
+PIG-1053: Consider moving to Hadoop for local mode (ankit.modi via olgan)
+
 PIG-1085:  Pass JobConf and UDF specific configuration information to UDFs
 		   (gates)
 
