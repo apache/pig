@@ -23,8 +23,8 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 
 import org.apache.hadoop.io.BytesWritable;
-import org.apache.hadoop.io.file.tfile.RawComparable;
-import org.apache.hadoop.io.file.tfile.ByteArray;
+import org.apache.hadoop.zebra.tfile.RawComparable;
+import org.apache.hadoop.zebra.tfile.ByteArray;
 
 /**
  * Class used to convey the information of how on-disk data are distributed

@@ -30,7 +30,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.BytesWritable;
-import org.apache.hadoop.io.file.tfile.RawComparable;
+import org.apache.hadoop.zebra.tfile.RawComparable;
 import org.apache.hadoop.zebra.io.BasicTableStatus;
 import org.apache.hadoop.zebra.io.ColumnGroup;
 import org.apache.hadoop.zebra.io.KeyDistribution;
@@ -149,8 +149,11 @@ public class TestColumnGroup {
     if (properClose) {
       writer = new ColumnGroup.Writer(path, conf);
       writer.close();
-      BasicTableStatus status = getStatus(path);
-      Assert.assertEquals(total, status.getRows());
+      /* We can only test number of rows on sorted tables.*/
+      if (sorted) {
+        BasicTableStatus status = getStatus(path);
+        Assert.assertEquals(total, status.getRows());
+      }
     }
 
     return total;

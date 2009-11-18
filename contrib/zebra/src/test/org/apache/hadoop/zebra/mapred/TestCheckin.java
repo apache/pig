@@ -24,7 +24,8 @@ import org.junit.runners.Suite;
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
   TestBasicTableIOFormatLocalFS.class,
-  TestBasicTableIOFormatDFS.class
+  TestBasicTableIOFormatDFS.class,
+  TestTfileSplit.class
 })
 
 public class TestCheckin {
