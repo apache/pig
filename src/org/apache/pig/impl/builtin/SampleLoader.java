@@ -19,36 +19,32 @@ package org.apache.pig.impl.builtin;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Map;
 
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.InputFormat;
-import org.apache.pig.ExecType;
+import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.mapreduce.RecordReader;
+import org.apache.pig.LoadCaster;
 import org.apache.pig.LoadFunc;
-import org.apache.pig.SamplableLoader;
-import org.apache.pig.backend.datastorage.DataStorage;
 import org.apache.pig.backend.executionengine.ExecException;
-import org.apache.pig.data.DataBag;
-import org.apache.pig.data.Tuple;
-import org.apache.pig.data.TupleFactory;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigSplit;
 import org.apache.pig.impl.PigContext;
-import org.apache.pig.impl.io.BufferedPositionedInputStream;
 import org.apache.pig.impl.io.FileSpec;
-import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.util.Pair;
 
 /**
  * Abstract class that specifies the interface for sample loaders
  *
  */
-//XXX : FIXME - make this work with new load-store redesign
 public abstract class SampleLoader implements LoadFunc {
 
-	protected int numSamples;
-	protected long skipInterval;
+    // number of samples to be sampled
+    protected int numSamples;
+    
     protected LoadFunc loader;
-	private TupleFactory factory;
-	private boolean initialized = false;
-
+    
+    // RecordReader used by the underlying loader
+    private RecordReader<?, ?> recordReader= null;
     
     public SampleLoader(String funcSpec) {
     	loader = (LoadFunc)PigContext.instantiateFuncFromSpec(funcSpec);
@@ -66,22 +62,49 @@ public abstract class SampleLoader implements LoadFunc {
      * @see org.apache.pig.LoadFunc#getInputFormat()
      */
     @Override
-    public InputFormat getInputFormat() throws IOException {
+    public InputFormat<?,?> getInputFormat() throws IOException {
         return loader.getInputFormat();
+    } 
+
+    public boolean skipNext() throws IOException {
+        try {
+            return recordReader.nextKeyValue();
+        } catch (InterruptedException e) {
+            throw new IOException("Error getting input",e);
+        }
     }
+    
+    public void computeSamples(ArrayList<Pair<FileSpec, Boolean>> inputs, PigContext pc)
+    throws ExecException {
+    }
+    
+    @Override
+    public LoadCaster getLoadCaster() throws IOException {
+        return loader.getLoadCaster();
+    }
+    
+    @Override
+    public String relativeToAbsolutePath(String location, Path curDir)
+            throws IOException {
+        return loader.relativeToAbsolutePath(location, curDir);
+    }
+    
+    /* (non-Javadoc)
+     * @see org.apache.pig.LoadFunc#prepareToRead(org.apache.hadoop.mapreduce.RecordReader, org.apache.hadoop.mapreduce.InputSplit)
+     */
+    @Override
+    public void prepareToRead(RecordReader reader, PigSplit split) throws IOException {
+        loader.prepareToRead(reader, split);
+        this.recordReader = reader;
+    }
+    
 
     /* (non-Javadoc)
-	 * @see org.apache.pig.LoadFunc#getNext()
-	 */
-	public Tuple getNext() throws IOException {
-	   // estimate how many tuples there are in the map
-	   // based on the 
-	    return null;   
-	}
-
-	public void computeSamples(ArrayList<Pair<FileSpec, Boolean>> inputs, PigContext pc) throws ExecException {
-		// TODO Auto-generated method stub
-		
-	}
+     * @see org.apache.pig.LoadFunc#setLocation(java.lang.String, org.apache.hadoop.mapreduce.Job)
+     */
+    @Override
+    public void setLocation(String location, Job job) throws IOException {
+        loader.setLocation(location, job);
+    }
 
 }

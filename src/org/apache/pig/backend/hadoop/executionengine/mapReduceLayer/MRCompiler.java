@@ -44,7 +44,7 @@ import org.apache.pig.impl.builtin.DefaultIndexableLoader;
 import org.apache.pig.impl.builtin.FindQuantiles;
 import org.apache.pig.impl.builtin.PoissonSampleLoader;
 import org.apache.pig.impl.builtin.MergeJoinIndexer;
-import org.apache.pig.impl.builtin.TupleSize;
+import org.apache.pig.impl.builtin.GetMemNumRows;
 import org.apache.pig.impl.builtin.PartitionSkewedKeys;
 import org.apache.pig.impl.builtin.RandomSampleLoader;
 import org.apache.pig.impl.io.FileLocalizer;
@@ -1387,6 +1387,7 @@ public class MRCompiler extends PhyPlanVisitor {
 				throw new VisitorException("POSkewedJoin operator has " + compiledInputs.length + " inputs. It should have 2.");
 			}
 			
+			//change plan to store the first join input into a temp file
 			FileSpec fSpec = getTempFileSpec();
 			MapReduceOper mro = compiledInputs[0];
 			POStore str = getStore();
@@ -1460,7 +1461,10 @@ public class MRCompiler extends PhyPlanVisitor {
 			}     		      
 			
 			// run POPartitionRearrange for second join table
-			lr = new POPartitionRearrange(new OperatorKey(scope,nig.getNextNodeId(scope)), rp);            
+			POPartitionRearrange pr = 
+			    new POPartitionRearrange(new OperatorKey(scope,nig.getNextNodeId(scope)), rp);
+			pr.setPigContext(pigContext);
+			lr = pr;
 			try {
 				lr.setIndex(1);
 			} catch (ExecException e) {
@@ -1817,7 +1821,7 @@ public class MRCompiler extends PhyPlanVisitor {
         
     	PhysicalPlan ep = new PhysicalPlan();
     	POUserFunc uf = new POUserFunc(new OperatorKey(scope,nig.getNextNodeId(scope)), -1, ufInps,
-    	            new FuncSpec(TupleSize.class.getName(), (String[])null));
+    	            new FuncSpec(GetMemNumRows.class.getName(), (String[])null));
     	uf.setResultType(DataType.TUPLE);
     	ep.add(uf);     
     	ep.add(prjStar);

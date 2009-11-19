@@ -33,7 +33,6 @@ import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
-import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.util.Pair;
 
 /**
@@ -82,8 +81,6 @@ public class PartitionSkewedKeys extends EvalFunc<Map<String, Object>> {
 
 	private String inputFile_;
 
-	private long inputFileSize_;
-
 	private long totalSampleCount_;
 
 	private double heapPercentage_;
@@ -100,7 +97,6 @@ public class PartitionSkewedKeys extends EvalFunc<Map<String, Object>> {
 	public PartitionSkewedKeys(String[] args) {
 		totalReducers_ = -1;
 		currentIndex_ = 0;
-		inputFileSize_ = -1;
 
 		if (args != null && args.length > 0) {
 			heapPercentage_ = Double.parseDouble(args[0]);
@@ -123,187 +119,177 @@ public class PartitionSkewedKeys extends EvalFunc<Map<String, Object>> {
 	 * first field in the input tuple is the number of reducers
 	 * 
 	 * second field is the *sorted* bag of samples
+	 * this should be called only once
 	 */
 	public Map<String, Object> exec(Tuple in) throws IOException {
-		// get size of input file in bytes
-		if (inputFileSize_ == -1) {
-			try {
-				inputFileSize_ = FileLocalizer.getSize(inputFile_);
-			} catch (Exception e) {
-				throw new RuntimeException(e);
-			}
-		}
+	    if (in == null || in.size() == 0) {                     
+	        return null;
+	    }
+	    Map<String, Object> output = new HashMap<String, Object>();
 
-		Map<String, Object> output = new HashMap<String, Object>();
+	    totalMemory_ = (long) (Runtime.getRuntime().maxMemory() * heapPercentage_);
+	    log.info("Maximum of available memory is " + totalMemory_);
 
-		if (in == null || in.size() == 0) {			
-			return null;
-		}
+	    ArrayList<Tuple> reducerList = new ArrayList<Tuple>();
 
-		totalMemory_ = (long) (Runtime.getRuntime().maxMemory() * heapPercentage_);
-		log.info("Maximum of available memory is " + totalMemory_);
+	    Tuple currentTuple = null;
+	    long count = 0;
+	    
+	    // total size in memory for tuples in sample 
+	    long totalSampleMSize = 0;
+	    
+	    //total input rows for the join
+	    long totalInputRows = 0;
+	    
+	    try {
+	        totalReducers_ = (Integer) in.get(0);
+	        DataBag samples = (DataBag) in.get(1);
 
-		ArrayList<Tuple> reducerList = new ArrayList<Tuple>();
+	        totalSampleCount_ = samples.size();
 
-		Tuple currentTuple = null;
-		long count = 0;
-		long totalMSize = 0;
-		long totalDSize = 0;
-		try {
-			totalReducers_ = (Integer) in.get(0);
-			DataBag samples = (DataBag) in.get(1);
+	        log.info("totalSample: " + totalSampleCount_);
+	        log.info("totalReducers: " + totalReducers_);			
 
-			totalSampleCount_ = samples.size();
-			
-			log.info("inputFileSize: " + inputFileSize_);
-			log.info("totalSample: " + totalSampleCount_);
-			log.info("totalReducers: " + totalReducers_);			
+	        int maxReducers = 0;
 
-			int maxReducers = 0;
-			Iterator<Tuple> iter = samples.iterator();
-			while (iter.hasNext()) {
-				Tuple t = iter.next();
-				if (hasSameKey(currentTuple, t) || currentTuple == null) {
-					count++;
-					totalMSize += getMemorySize(t);
-					totalDSize += getDiskSize(t);
-				} else {
-					Pair<Tuple, Integer> p = calculateReducers(currentTuple,
-							count, totalMSize, totalDSize);
-					Tuple rt = p.first;
-					if (rt != null) {
-						reducerList.add(rt);
-					}
-					if (maxReducers < p.second) {
-						maxReducers = p.second;
-					}
-					count = 1;
-					totalMSize = getMemorySize(t);
-					totalDSize = getDiskSize(t);
-				}
+	        // first iterate the samples to find total number of rows
+	        Iterator<Tuple> iter1 = samples.iterator();
+	        while (iter1.hasNext()) {
+	            Tuple t = iter1.next();
+	            totalInputRows += (Long)t.get(t.size() - 1);
+	        }
+	                        
+	        // now iterate samples to do the reducer calculation
+	        Iterator<Tuple> iter2 = samples.iterator();
+	        while (iter2.hasNext()) {
+	            Tuple t = iter2.next();
+	            if (hasSameKey(currentTuple, t) || currentTuple == null) {
+	                count++;
+	                totalSampleMSize += getMemorySize(t);
+	            } else {
+	                Pair<Tuple, Integer> p = calculateReducers(currentTuple,
+	                        count, totalSampleMSize, totalInputRows);
+	                Tuple rt = p.first;
+	                if (rt != null) {
+	                    reducerList.add(rt);
+	                }
+	                if (maxReducers < p.second) {
+	                    maxReducers = p.second;
+	                }
+	                count = 1;
+	                totalSampleMSize = getMemorySize(t);
+	            }
 
-				currentTuple = t;
-			}
+	            currentTuple = t;
+	        }
 
-			// add last key
-			if (count > 0) {
-				Pair<Tuple, Integer> p = calculateReducers(currentTuple, count,
-						totalMSize, totalDSize);
-				Tuple rt = p.first;
-				if (rt != null) {
-					reducerList.add(rt);
-				}
-				if (maxReducers < p.second) {
-					maxReducers = p.second;
-				}
-			}
+	        // add last key
+	        if (count > 0) {
+	            Pair<Tuple, Integer> p = calculateReducers(currentTuple, count,
+	                    totalSampleMSize, totalInputRows);
+	            Tuple rt = p.first;
+	            if (rt != null) {
+	                reducerList.add(rt);
+	            }
+	            if (maxReducers < p.second) {
+	                maxReducers = p.second;
+	            }
+	        }
 
-			if (maxReducers > totalReducers_) {
-				if(pigLogger != null) {
-                    pigLogger.warn(this,"You need at least " + maxReducers
-                    		+ " reducers to avoid spillage and run this job efficiently.", PigWarning.REDUCER_COUNT_LOW);
-                } else {
-    				log.warn("You need at least " + maxReducers
-    						+ " reducers to avoid spillage and run this job efficiently.");
-                }
-			}
+	        if (maxReducers > totalReducers_) {
+	            if(pigLogger != null) {
+	                pigLogger.warn(this,"You need at least " + maxReducers
+	                        + " reducers to avoid spillage and run this job efficiently.", PigWarning.REDUCER_COUNT_LOW);
+	            } else {
+	                log.warn("You need at least " + maxReducers
+	                        + " reducers to avoid spillage and run this job efficiently.");
+	            }
+	        }
 
-			output.put(PARTITION_LIST, mBagFactory.newDefaultBag(reducerList));
-			output.put(TOTAL_REDUCERS, Integer.valueOf(totalReducers_));
-			
-			log.info(output.toString());
-			if (log.isDebugEnabled()) {
-				log.debug(output.toString());
-			}
+	        output.put(PARTITION_LIST, mBagFactory.newDefaultBag(reducerList));
+	        output.put(TOTAL_REDUCERS, Integer.valueOf(totalReducers_));
 
-			return output;
-		} catch (Exception e) {
-			e.printStackTrace();
-			throw new RuntimeException(e);
-		}
+	        log.info(output.toString());
+	        if (log.isDebugEnabled()) {
+	            log.debug(output.toString());
+	        }
+
+	        return output;
+	    } catch (Exception e) {
+	        e.printStackTrace();
+	        throw new RuntimeException(e);
+	    }
 	}
 
 	private Pair<Tuple, Integer> calculateReducers(Tuple currentTuple,
-			long count, long totalMSize, long totalDSize) {
-		// get average memory size per tuple
-		double avgM = totalMSize / (double) count;
-		// get average disk size per tuple
-		double avgD = totalDSize / (double) count;
+	        long count, long totalMSize, long totalTuples) {
+	    // get average memory size per tuple
+	    double avgM = totalMSize / (double) count;
 
-		// get the number of tuples that can fit into memory
-		long tupleMCount = (tupleMCount_ <= 0)?(long) (totalMemory_ / avgM): tupleMCount_;
+	    // get the number of tuples that can fit into memory
+	    long tupleMCount = (tupleMCount_ <= 0)?(long) (totalMemory_ / avgM): tupleMCount_;
 
-		// get the number of total tuples for this key
-		long tupleCount = (long) (((double) count) / totalSampleCount_
-				* inputFileSize_ / avgD);	
+	    // estimate the number of total tuples for this key
+            long keyTupleCount = (long)  ( ((double) count/ totalSampleCount_) * 
+                        totalTuples);
+                            
+	    
+	    int redCount = (int) Math.round(Math.ceil((double) keyTupleCount
+	            / tupleMCount));
 
+	    if (log.isDebugEnabled()) 
+	    {
+	        log.debug("avgM: " + avgM);
+	        log.debug("tuple count: " + keyTupleCount);
+	        log.debug("count: " + count);
+	        log.debug("A reducer can take " + tupleMCount + " tuples and "
+	                + keyTupleCount + " tuples are find for " + currentTuple);
+	        log.debug("key " + currentTuple + " need " + redCount + " reducers");
+	    }
 
-		int redCount = (int) Math.round(Math.ceil((double) tupleCount
-				/ tupleMCount));
+	    // this is not a skewed key
+	    if (redCount == 1) {
+	        return new Pair<Tuple, Integer>(null, 1);
+	    }
 
-		if (log.isDebugEnabled()) 
-		{
-			log.debug("avgM: " + avgM);
-			log.debug("avgD: " + avgD);
-			log.debug("count: " + count);
-			log.debug("A reducer can take " + tupleMCount + " tuples and "
-					+ tupleCount + " tuples are find for " + currentTuple);
-			log.debug("key " + currentTuple + " need " + redCount + " reducers");
-		}
+	    Tuple t = this.mTupleFactory.newTuple(currentTuple.size());
+	    int i = 0;
+	    try {
+	        // set keys
+	        for (; i < currentTuple.size() - 2; i++) {
+	            t.set(i, currentTuple.get(i));
+	        }
 
-		// this is not a skewed key
-		if (redCount == 1) {
-			return new Pair<Tuple, Integer>(null, 1);
-		}
+	        // set the min index of reducer for this key
+	        t.set(i++, currentIndex_);
+	        currentIndex_ = (currentIndex_ + redCount) % totalReducers_ - 1;
+	        if (currentIndex_ < 0) {
+	            currentIndex_ += totalReducers_;
+	        }
+	        // set the max index of reducer for this key
+	        t.set(i++, currentIndex_);
+	    } catch (ExecException e) {
+	        throw new RuntimeException("Failed to set value to tuple." + e);
+	    }
 
-		Tuple t = this.mTupleFactory.newTuple(currentTuple.size());
-		int i = 0;
-		try {
-			// set keys
-			for (; i < currentTuple.size() - 2; i++) {
-				t.set(i, currentTuple.get(i));
-			}
+	    currentIndex_ = (currentIndex_ + 1) % totalReducers_;
 
-			// set the min index of reducer for this key
-			t.set(i++, currentIndex_);
-			currentIndex_ = (currentIndex_ + redCount) % totalReducers_ - 1;
-			if (currentIndex_ < 0) {
-				currentIndex_ += totalReducers_;
-			}
-			// set the max index of reducer for this key
-			t.set(i++, currentIndex_);
-		} catch (ExecException e) {
-			throw new RuntimeException("Failed to set value to tuple." + e);
-		}
+	    Pair<Tuple, Integer> p = new Pair<Tuple, Integer>(t, redCount);
 
-		currentIndex_ = (currentIndex_ + 1) % totalReducers_;
-
-		Pair<Tuple, Integer> p = new Pair<Tuple, Integer>(t, redCount);
-
-		return p;
+	    return p;
 	}
 
 	// the last field of the tuple is a tuple for memory size and disk size
 	private long getMemorySize(Tuple t) {
-		int s = t.size();
-		try {
-			return (Long) t.get(s - 2);
-		} catch (ExecException e) {
-			throw new RuntimeException(
-					"Unable to retrive the size field from tuple.", e);
-		}
+	    int s = t.size();
+	    try {
+	        return (Long) t.get(s - 2);
+	    } catch (ExecException e) {
+	        throw new RuntimeException(
+	                "Unable to retrive the size field from tuple.", e);
+	    }
 	}
 
-	// the last field of the tuple is a tuple for memory size and disk size
-	private long getDiskSize(Tuple t) {
-		int s = t.size();
-		try {
-			return (Long) t.get(s - 1);
-		} catch (ExecException e) {
-			throw new RuntimeException(
-					"Unable to retrive the size field from tuple.", e);
-		}
-	}
 
 	private boolean hasSameKey(Tuple t1, Tuple t2) {
 		// Have to break the tuple down and compare it field to field.

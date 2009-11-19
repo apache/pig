@@ -18,23 +18,23 @@
 package org.apache.pig.impl.builtin;
 
 import java.io.IOException;
+import java.util.Random;
 
-import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.mapreduce.InputFormat;
-import org.apache.hadoop.mapreduce.InputSplit;
-import org.apache.hadoop.mapreduce.Job;
-import org.apache.hadoop.mapreduce.RecordReader;
-import org.apache.pig.LoadCaster;
-import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigSplit;
+import org.apache.pig.data.Tuple;
 
 /**
- * A loader that samples the data.  This loader can subsume loader that
- * can handle starting in the middle of a record.  Loaders that can
- * handle this should implement the SamplableLoader interface.
+ * A loader that samples the data.  
+ * It randomly samples tuples from input. The number of tuples to be sampled
+ * has to be set before the first call to getNext().
+ *  see documentation of getNext() call.
  */
-//XXX : FIXME - make this work with new load-store redesign
 public class RandomSampleLoader extends SampleLoader {
  
+    //array to store the sample tuples
+    Tuple [] samples = null;
+    //index into samples array to the next sample to be returned 
+    protected int nextSampleIdx= 0;
+    
     /**
      * Construct with a class of loader to use.
      * @param funcSpec func spec of the loader to use.
@@ -49,61 +49,67 @@ public class RandomSampleLoader extends SampleLoader {
         // set the number of samples
         super.setNumSamples(Integer.valueOf(ns));
     }
-    
-    
-    @Override
-    public void setNumSamples(int n) {
-    	// Setting it to 100 as default for order by
-    	super.setNumSamples(100);
-    }
 
     /* (non-Javadoc)
-     * @see org.apache.pig.LoadFunc#getInputFormat()
+     * @see org.apache.pig.LoadFunc#getNext()
+     * Allocate a buffer for numSamples elements, populate it with the 
+     * first numSamples tuples, and continue scanning rest of the input.
+     * For every ith next() call, we generate a random number r s.t. 0<=r<i,
+     * and if r<numSamples we insert the new tuple into our buffer at position r.
+     * This gives us a random sample of the tuples in the partition.
      */
     @Override
-    public InputFormat getInputFormat() throws IOException {
-        // TODO Auto-generated method stub
-        return loader.getInputFormat();
-    }
+    public Tuple getNext() throws IOException {
 
-
-    /* (non-Javadoc)
-     * @see org.apache.pig.LoadFunc#getLoadCaster()
-     */
-    @Override
-    public LoadCaster getLoadCaster() {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    /* (non-Javadoc)
-     * @see org.apache.pig.LoadFunc#prepareToRead(org.apache.hadoop.mapreduce.RecordReader, org.apache.hadoop.mapreduce.InputSplit)
-     */
-    @Override
-    public void prepareToRead(RecordReader reader, PigSplit split) {
-        // TODO Auto-generated method stub
+        if(samples != null){
+            return getSample();
+        }
+        //else collect samples
+        samples = new Tuple[numSamples];
         
-    }
-
-
-    /* (non-Javadoc)
-     * @see org.apache.pig.LoadFunc#setLocation(java.lang.String, org.apache.hadoop.mapreduce.Job)
-     */
-    @Override
-    public void setLocation(String location, Job job) throws IOException {
-        // TODO Auto-generated method stub
+        // populate the samples array with first numSamples tuples
+        Tuple t = null;
+        for(int i=0; i<numSamples; i++){
+            t = loader.getNext();
+            if(t == null)
+                break;
+            samples[i] = t;
+        }
         
+        // rowNum that starts from 1
+        int rowNum = numSamples+1;
+        Random randGen = new Random();
+
+        if(t != null){ // did not exhaust all tuples
+            while(true){
+                // collect samples until input is exhausted
+                int rand = randGen.nextInt(rowNum);
+                if(rand < numSamples){
+                    // pick this as sample
+                    Tuple sampleTuple = loader.getNext();
+                    if(sampleTuple == null)
+                        break;
+                    samples[rand] = sampleTuple;
+                }else {
+                    //skip tuple
+                    if(!skipNext())
+                        break;
+                }
+                rowNum++;
+            }
+        }        
+        
+        return getSample();
+    } 
+    
+    private Tuple getSample() {
+        if(nextSampleIdx < samples.length){
+            return samples[nextSampleIdx++];
+        }
+        else{
+            return null;
+        }
     }
 
-
-    /* (non-Javadoc)
-     * @see org.apache.pig.LoadFunc#relativeToAbsolutePath(java.lang.String, org.apache.hadoop.fs.Path)
-     */
-    @Override
-    public String relativeToAbsolutePath(String location, Path curDir)
-            throws IOException {
-        // TODO Auto-generated method stub
-        return null;
-    }
  
 }
