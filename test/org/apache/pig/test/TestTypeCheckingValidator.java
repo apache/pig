@@ -24,6 +24,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.ArrayList;
 
+import junit.framework.AssertionFailedError;
 import junit.framework.TestCase;
 
 import org.apache.pig.EvalFunc;
@@ -49,7 +50,18 @@ import org.apache.pig.test.utils.TypeCheckingTestUtil;
 
 public class TestTypeCheckingValidator extends TestCase {
 
-    LogicalPlanTester planTester = new LogicalPlanTester() ;
+    LogicalPlanTester planTester;
+    
+    /* (non-Javadoc)
+     * @see junit.framework.TestCase#setUp()
+     */
+    @Override
+    protected void setUp() throws Exception {
+        // create a new instance of the plan tester
+        // for each test so that different tests do not
+        // interact with each other's plans
+        planTester = new LogicalPlanTester() ;
+    }
     
 	private static final String simpleEchoStreamingCommand;
         static {
@@ -3287,77 +3299,19 @@ public class TestTypeCheckingValidator extends TestCase {
     }
 
     @Test
-    public void testCogroupStarLineageNoSchema() throws Throwable {
-        planTester.buildPlan("a = load 'a' using BinStorage() ;") ;
-        planTester.buildPlan("b = load 'b' using PigStorage() ;") ;
-        planTester.buildPlan("c = cogroup a by *, b by * ;") ;
-        planTester.buildPlan("d = foreach c generate group, flatten($1), flatten($2);") ;
-        LogicalPlan plan = planTester.buildPlan("e = foreach d generate group, $1 + 1, $2 + 2.0;") ;
-
-        // validate
-        CompilationMessageCollector collector = new CompilationMessageCollector() ;
-        TypeCheckingValidator typeValidator = new TypeCheckingValidator() ;
-        try {
-            typeValidator.validate(plan, collector) ;
-        }
-        catch (PlanValidationException pve) {
-            //not good
-        }
-
-        printMessageCollector(collector) ;
-        printTypeGraph(plan) ;
-        planTester.printPlan(plan, TypeCheckingTestUtil.getCurrentMethodName());
-
-        if (collector.hasError()) {
-            throw new AssertionError("Expect no  error") ;
-        }
-
-
-        LOForEach foreach = (LOForEach)plan.getLeaves().get(0);
-        LogicalPlan foreachPlan = foreach.getForEachPlans().get(1);
-
-        LogicalOperator exOp = foreachPlan.getRoots().get(0);
-
-        if(! (exOp instanceof LOProject)) exOp = foreachPlan.getRoots().get(1);
-
-        LOCast cast = (LOCast)foreachPlan.getSuccessors(exOp).get(0);
-        assertTrue(cast.getLoadFuncSpec().getClassName().startsWith("BinStorage"));
-
-        foreachPlan = foreach.getForEachPlans().get(2);
-        exOp = foreachPlan.getRoots().get(0);
-        if(! (exOp instanceof LOProject)) exOp = foreachPlan.getRoots().get(1);
-        cast = (LOCast)foreachPlan.getSuccessors(exOp).get(0);
-        assertTrue(cast.getLoadFuncSpec().getClassName().startsWith("PigStorage"));
-
-    }
-
-    @Test
     public void testCogroupStarLineageNoSchemaFail() throws Throwable {
         planTester.buildPlan("a = load 'a' using BinStorage() ;") ;
         planTester.buildPlan("b = load 'b' using PigStorage() ;") ;
-        planTester.buildPlan("c = cogroup a by *, b by * ;") ;
-        planTester.buildPlan("d = foreach c generate group, flatten($1), flatten($2);") ;
-        LogicalPlan plan = planTester.buildPlan("e = foreach d generate group + 1, $1 + 1, $2 + 2.0;") ;
-
-        // validate
-        CompilationMessageCollector collector = new CompilationMessageCollector() ;
-        TypeCheckingValidator typeValidator = new TypeCheckingValidator() ;
+        boolean exceptionThrown = false;
         try {
-            typeValidator.validate(plan, collector) ;
-            fail("Exception expected") ;
+            LogicalPlan lp = planTester.buildPlan("c = cogroup a by *, b by *;");
+        } catch(AssertionFailedError e) {
+            assertTrue(e.getMessage().contains("Cogroup/Group by * is only allowed if " +
+            "the input has a schema"));
+            exceptionThrown = true;
         }
-        catch (PlanValidationException pve) {
-            //not good
-        }
-
-        printMessageCollector(collector) ;
-        printTypeGraph(plan) ;
-        planTester.printPlan(plan, TypeCheckingTestUtil.getCurrentMethodName());
-
-        if (!collector.hasError()) {
-            throw new AssertionError("Expect error") ;
-        }
-
+        assertTrue(exceptionThrown);
+        
     }
 
     @Test

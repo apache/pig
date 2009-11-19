@@ -291,7 +291,7 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
     
     @Test
     public void testQuery22Fail() {
-        buildPlan("A = load 'a';");
+        buildPlan("A = load 'a' as (a:int, b: double);");
         try {
             buildPlan("B = group A by (*, $0);");
         } catch (AssertionFailedError e) {
@@ -323,15 +323,50 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
 
     @Test
     public void testQuery23Fail() {
-        buildPlan("A = load 'a';");
+        buildPlan("A = load 'a' as (a: int, b:double);");
         buildPlan("B = load 'b';");
+        boolean exceptionThrown = false;
         try {
-            buildPlan("C = group A by (*, $0), B by ($0, $1);");
+            buildPlan("C = cogroup A by (*, $0), B by ($0, $1);");
         } catch (AssertionFailedError e) {
-            assertTrue(e.getMessage().contains("Grouping attributes can either be star (*"));
+            assertTrue(e.getMessage().contains("The arity of cogroup/group by columns " +
+                        "do not match"));
+            exceptionThrown = true;
         }
+        assertTrue(exceptionThrown);
     }
 
+    @Test
+    public void testQuery23Fail2() {
+        buildPlan("A = load 'a';");
+        buildPlan("B = load 'b';");
+        boolean exceptionThrown = false;
+        try {
+            buildPlan("C = cogroup A by (*, $0), B by ($0, $1);");
+        } catch (AssertionFailedError e) {
+            assertTrue(e.getMessage().contains("Cogroup/Group by * is only allowed if " +
+            "the input has a schema"));
+            exceptionThrown = true;
+        }
+        assertTrue(exceptionThrown);
+    }
+    
+    @Test
+    public void testQuery23Fail3() {
+        buildPlan("A = load 'a' as (a: int, b:double);");
+        buildPlan("B = load 'b' as (a:int);");
+        boolean exceptionThrown = false;
+        try {
+            buildPlan("C = cogroup A by *, B by *;");
+        } catch (AssertionFailedError e) {
+            assertTrue(e.getMessage().contains("The arity of cogroup/group by columns " +
+                        "do not match"));
+            exceptionThrown = true;
+        }
+        assertTrue(exceptionThrown);
+    }
+
+    
     @Test
     public void testQuery24() {
         buildPlan("a = load 'a';");
@@ -1642,7 +1677,7 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
     }
 
     @Test
-    public void testQuery110()  throws FrontendException, ParseException {
+    public void testQuery110Fail()  throws FrontendException, ParseException {
         LogicalPlan lp;
         LOLoad load;
         LOCogroup cogroup;
@@ -1651,13 +1686,16 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
         lp = buildPlan("b = load 'two';");
 
         load = (LOLoad) lp.getLeaves().get(0);
-
+        boolean exceptionThrown = false;
+        try{
         lp = buildPlan("c = cogroup a by $0, b by *;");
-        cogroup = (LOCogroup) lp.getLeaves().get(0);
-
-        MultiMap<LogicalOperator, LogicalPlan> mapGByPlans = cogroup.getGroupByPlans();
-        LogicalPlan cogroupPlan = (LogicalPlan)(mapGByPlans.get(load).toArray())[0];
-        assertTrue(checkPlanForProjectStar(cogroupPlan) == true);
+        } catch(AssertionFailedError e) {
+            assertTrue(e.getMessage().contains("Cogroup/Group by * is only allowed if " +
+                    "the input has a schema"));
+            exceptionThrown = true;
+        }
+        assertTrue(exceptionThrown);
+        
 
     }
 
@@ -2102,6 +2140,37 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
         fail();
     }
 
+    @Test
+    public void testCogroupByStarFailure1() {
+        boolean exceptionThrown = false;
+        try {
+            buildPlan(" a = load '1.txt' as (a0:int, a1:int);");
+            buildPlan(" b = load '2.txt'; ");
+            buildPlan("c = cogroup a by *, b by *;");
+        } catch (AssertionFailedError e) {
+            assertTrue(e.getMessage().contains("Cogroup/Group by * is only allowed if " +
+                    "the input has a schema"));
+            exceptionThrown = true;
+        }
+        assertEquals("An exception was expected but did " +
+                "not occur", true, exceptionThrown);
+    }
+
+    @Test
+    public void testCogroupByStarFailure2() {
+        boolean exceptionThrown = false;
+        try {
+            buildPlan(" a = load '1.txt' ;");
+            buildPlan(" b = load '2.txt' as (b0:int, b1:int); ");
+            buildPlan("c = cogroup a by *, b by *;");
+        } catch (AssertionFailedError e) {
+            assertTrue(e.getMessage().contains("Cogroup/Group by * is only allowed if " +
+            "the input has a schema"));
+            exceptionThrown = true;
+        }
+        assertEquals("An exception was expected but did " +
+                "not occur", true, exceptionThrown);
+    }
     private void printPlan(LogicalPlan lp) {
         LOPrinter graphPrinter = new LOPrinter(System.err, lp);
         System.err.println("Printing the logical plan");
