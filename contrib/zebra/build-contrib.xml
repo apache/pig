@@ -23,7 +23,7 @@
 
   <property name="name" value="${ant.project.name}"/>
   <property name="root" value="${basedir}"/>
-  <property name="version" value="0.6.0-dev"/>
+  <property name="version" value="0.7.0-dev"/>
 
   <!-- Load all the default properties, and any the user wants    -->
   <!-- to contribute (without having to type -D or edit this file -->
