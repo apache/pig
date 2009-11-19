@@ -18,20 +18,28 @@
 package org.apache.pig;
 
 import java.io.IOException;
+import java.net.URI;
+import java.util.AbstractCollection;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
 
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigSplit;
+import org.apache.pig.builtin.Utf8StorageConverter;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.impl.logicalLayer.FrontendException;
 
 
 /**
- * This interface is used to implement functions to parse records
- * from a dataset.
+ * <code>LoadFunc</code> provides functions directly associated with reading 
+ * records from data set.
  */
-public interface LoadFunc {
+public abstract class LoadFunc {
+    
     /**
      * This method is called by the Pig runtime in the front end to convert the
      * input location to an absolute path if the location is relative. The
@@ -47,7 +55,10 @@ public interface LoadFunc {
      * @return the absolute location based on the arguments passed
      * @throws IOException if the conversion is not possible
      */
-    String relativeToAbsolutePath(String location, Path curDir) throws IOException;
+    public String relativeToAbsolutePath(String location, Path curDir) 
+            throws IOException {      
+        return getAbsolutePath(location, curDir);
+    }    
 
     /**
      * Communicate to the loader the location of the object(s) being loaded.  
@@ -63,7 +74,7 @@ public interface LoadFunc {
      * @param job the {@link Job} object
      * @throws IOException if the location is not valid.
      */
-    void setLocation(String location, Job job) throws IOException;
+    public abstract void setLocation(String location, Job job) throws IOException;
     
     /**
      * This will be called during planning on the front end. This is the
@@ -74,7 +85,8 @@ public interface LoadFunc {
      * @throws IOException if there is an exception during InputFormat 
      * construction
      */
-    InputFormat getInputFormat() throws IOException;
+    @SuppressWarnings("unchecked")
+    public abstract InputFormat getInputFormat() throws IOException;
 
     /**
      * This will be called on the front end during planning and not on the back 
@@ -84,7 +96,9 @@ public interface LoadFunc {
      * construction
      * @throws IOException if there is an exception during LoadCaster 
      */
-    LoadCaster getLoadCaster() throws IOException;
+    public LoadCaster getLoadCaster() throws IOException {
+        return new Utf8StorageConverter();
+    }
 
     /**
      * Initializes LoadFunc for reading data.  This will be called during execution
@@ -94,7 +108,8 @@ public interface LoadFunc {
      * @param split The input {@link PigSplit} to process
      * @throws IOException if there is an exception during initialization
      */
-    void prepareToRead(RecordReader reader, PigSplit split) throws IOException;
+    @SuppressWarnings("unchecked")
+    public abstract void prepareToRead(RecordReader reader, PigSplit split) throws IOException;
 
     /**
      * Retrieves the next tuple to be processed.
@@ -103,6 +118,134 @@ public interface LoadFunc {
      * @throws IOException if there is an exception while retrieving the next
      * tuple
      */
-    Tuple getNext() throws IOException;
+    public abstract Tuple getNext() throws IOException;
 
+    //------------------------------------------------------------------------
+    
+    /**
+     * Join multiple strings into a string delimited by the given delimiter.
+     * 
+     * @param s a collection of strings
+     * @param delimiter the delimiter 
+     * @return a 'delimiter' separated string
+     */
+    public static String join(AbstractCollection<String> s, String delimiter) {
+        if (s.isEmpty()) return "";
+        Iterator<String> iter = s.iterator();
+        StringBuffer buffer = new StringBuffer(iter.next());
+        while (iter.hasNext()) {
+            buffer.append(delimiter);
+            buffer.append(iter.next());
+        }
+        return buffer.toString();
+    }
+
+    /**
+     * Parse comma separated path strings into a string array. This method 
+     * escapes commas in the Hadoop glob pattern of the given paths. 
+     * 
+     * This method is borrowed from 
+     * {@link org.apache.hadoop.mapreduce.lib.input.FileInputFormat}. A jira
+     * (MAPREDUCE-1205) is opened to make the same name method there 
+     * accessible. We'll use that method directly when the jira is fixed.
+     * 
+     * @param commaSeparatedPaths a comma separated string
+     * @return an array of path strings
+     */
+    public static String[] getPathStrings(String commaSeparatedPaths) {
+        int length = commaSeparatedPaths.length();
+        int curlyOpen = 0;
+        int pathStart = 0;
+        boolean globPattern = false;
+        List<String> pathStrings = new ArrayList<String>();
+
+        for (int i=0; i<length; i++) {
+            char ch = commaSeparatedPaths.charAt(i);
+            switch(ch) {
+                case '{' : {
+                    curlyOpen++;
+                    if (!globPattern) {
+                        globPattern = true;
+                    }
+                    break;
+                }
+                case '}' : {
+                    curlyOpen--;
+                    if (curlyOpen == 0 && globPattern) {
+                        globPattern = false;
+                    }
+                    break;
+                }
+                case ',' : {
+                    if (!globPattern) {
+                        pathStrings.add(commaSeparatedPaths.substring(pathStart, i));
+                        pathStart = i + 1 ;
+                    }
+                    break;
+                }
+            }
+        }
+        pathStrings.add(commaSeparatedPaths.substring(pathStart, length));
+
+        return pathStrings.toArray(new String[0]);
+    }
+    
+    /**
+     * Construct the absolute path from the file location and the current
+     * directory. The current directory is either of the form 
+     * {code}hdfs://<nodename>:<nodeport>/<directory>{code} in Hadoop 
+     * MapReduce mode, or of the form 
+     * {code}file:///<directory>{code} in Hadoop local mode.
+     * 
+     * @param location the location string specified in the load statement
+     * @param curDir the current file system directory
+     * @return the absolute path of file in the file system
+     * @throws FrontendException if the scheme of the location is incompatible
+     *         with the scheme of the file system
+     */
+    public static String getAbsolutePath(String location, Path curDir) 
+            throws FrontendException {
+        
+        if (location == null || curDir == null) {
+            throw new IllegalArgumentException(
+                    "location: " + location + " curDir: " + curDir);
+        }
+    
+        URI fsUri = curDir.toUri();
+        String fsScheme = fsUri.getScheme();
+        if (fsScheme == null) {
+            throw new IllegalArgumentException("curDir: " + curDir);           
+        }
+        
+        fsScheme = fsScheme.toLowerCase();
+        String root = fsScheme + "://" + fsUri.getAuthority();
+        Path rootDir = new Path(root); 
+        
+        ArrayList<String> pathStrings = new ArrayList<String>();
+        
+        String[] fnames = getPathStrings(location);
+        for (String fname: fnames) {
+            Path p = new Path(fname.trim());
+            URI uri = p.toUri();
+            String scheme = uri.getScheme();
+            if (scheme != null) {
+                scheme = scheme.toLowerCase();
+            }
+            
+            if (scheme != null && !scheme.equals(fsScheme)) {
+                throw new FrontendException("Incompatible file URI scheme: "
+                        + scheme + " : " + fsScheme);               
+            }            
+            
+            String path = uri.getPath();
+            fname = (p.isAbsolute()) ? 
+                        new Path(rootDir, path).toString() : 
+                            new Path(curDir, path).toString();
+             
+            pathStrings.add(fname);
+        }
+    
+        return join(pathStrings, ",");
+    }
+    
 }

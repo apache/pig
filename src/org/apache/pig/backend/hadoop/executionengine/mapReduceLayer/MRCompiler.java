@@ -36,7 +36,6 @@ import org.apache.pig.IndexableLoadFunc;
 import org.apache.pig.LoadFunc;
 import org.apache.pig.PigException;
 import org.apache.pig.PigWarning;
-import org.apache.pig.SamplableLoader;
 import org.apache.pig.builtin.BinStorage;
 import org.apache.pig.data.DataType;
 import org.apache.pig.impl.PigContext;
@@ -1184,11 +1183,7 @@ public class MRCompiler extends PhyPlanVisitor {
                 String[] indexerArgs = new String[3];
                 FileSpec origRightLoaderFileSpec = rightLoader.getLFile();
                 indexerArgs[0] = origRightLoaderFileSpec.getFuncSpec().toString();
-                 if (! (PigContext.instantiateFuncFromSpec(indexerArgs[0]) instanceof SamplableLoader)){
-                     int errCode = 1104;
-                     String errMsg = "Right input of merge-join must implement SamplableLoader interface. The specified loader " + indexerArgs[0] + " doesn't implement it";
-                     throw new MRCompilerException(errMsg,errCode);
-                 }
+
                 List<PhysicalPlan> rightInpPlans = joinOp.getInnerPlansOf(1);
                 indexerArgs[1] = ObjectSerializer.serialize((Serializable)rightInpPlans);
                 indexerArgs[2] = ObjectSerializer.serialize(rightPipelinePlan);

@@ -24,6 +24,9 @@ Trunk (unreleased changes)
 
 INCOMPATIBLE CHANGES
 
+PIG-879:  Pig should provide a way for input location string in load statement
+to be passed as-is to the Loader (rding via pradeepkth)
+
 PIG-966: load-store-redesign branch: change SampleLoader and subclasses to
 work with new LoadFunc interface (thejas via pradeepkth)
 

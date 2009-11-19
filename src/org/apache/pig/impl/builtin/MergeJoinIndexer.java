@@ -19,20 +19,13 @@ package org.apache.pig.impl.builtin;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.Map;
 
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.InputFormat;
-import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.RecordReader;
-import org.apache.pig.ExecType;
-import org.apache.pig.LoadCaster;
 import org.apache.pig.LoadFunc;
 import org.apache.pig.PigException;
 import org.apache.pig.SamplableLoader;
-import org.apache.pig.backend.datastorage.DataStorage;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigSplit;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
@@ -40,12 +33,9 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOpera
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLocalRearrange;
-import org.apache.pig.data.DataBag;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.PigContext;
-import org.apache.pig.impl.io.BufferedPositionedInputStream;
-import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.util.ObjectSerializer;
@@ -57,7 +47,7 @@ import org.apache.pig.impl.util.ObjectSerializer;
  *  These tuples are then sorted before being written out to index file on HDFS.
  */
 //XXX : FIXME - make this work with new load-store redesign
-public class MergeJoinIndexer  implements LoadFunc{
+public class MergeJoinIndexer  extends LoadFunc {
 
     private boolean firstRec = true;
     private transient TupleFactory mTupleFactory;
@@ -78,12 +68,15 @@ public class MergeJoinIndexer  implements LoadFunc{
      * @throws ExecException 
      */
     @SuppressWarnings("unchecked")
-    public MergeJoinIndexer(String funcSpec, String innerPlan, String serializedPhyPlan) throws ExecException{
+    public MergeJoinIndexer(String funcSpec, String innerPlan, String serializedPhyPlan) 
+            throws ExecException{
         
         loader = (SamplableLoader)PigContext.instantiateFuncFromSpec(funcSpec);
         try {
-            List<PhysicalPlan> innerPlans = (List<PhysicalPlan>)ObjectSerializer.deserialize(innerPlan);
-            lr = new POLocalRearrange(new OperatorKey("MergeJoin Indexer",NodeIdGenerator.getGenerator().getNextNodeId("MergeJoin Indexer")));
+            List<PhysicalPlan> innerPlans = 
+                (List<PhysicalPlan>)ObjectSerializer.deserialize(innerPlan);
+            lr = new POLocalRearrange(new OperatorKey("MergeJoin Indexer",
+                    NodeIdGenerator.getGenerator().getNextNodeId("MergeJoin Indexer")));
             lr.setPlans(innerPlans);
             keysCnt = innerPlans.size();
             precedingPhyPlan = (PhysicalPlan)ObjectSerializer.deserialize(serializedPhyPlan);
@@ -190,49 +183,19 @@ public class MergeJoinIndexer  implements LoadFunc{
         return wrapperTuple;
     }
     
-    /* (non-Javadoc)
-     * @see org.apache.pig.LoadFunc#getInputFormat()
-     */
     @Override
     public InputFormat getInputFormat() {
-        // TODO Auto-generated method stub
         return null;
     }
 
-    /* (non-Javadoc)
-     * @see org.apache.pig.LoadFunc#getLoadCaster()
-     */
-    @Override
-    public LoadCaster getLoadCaster() {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    /* (non-Javadoc)
-     * @see org.apache.pig.LoadFunc#prepareToRead(org.apache.hadoop.mapreduce.RecordReader, org.apache.hadoop.mapreduce.InputSplit)
-     */
     @Override
     public void prepareToRead(RecordReader reader, PigSplit split) {
-        // TODO Auto-generated method stub
-        
+        throw new UnsupportedOperationException();
     }
 
-    /* (non-Javadoc)
-     * @see org.apache.pig.LoadFunc#setLocation(java.lang.String, org.apache.hadoop.mapreduce.Job)
-     */
     @Override
     public void setLocation(String location, Job job) throws IOException {
-        // TODO Auto-generated method stub
-        
+        throw new UnsupportedOperationException();
     }
 
-    /* (non-Javadoc)
-     * @see org.apache.pig.LoadFunc#relativeToAbsolutePath(java.lang.String, org.apache.hadoop.fs.Path)
-     */
-    @Override
-    public String relativeToAbsolutePath(String location, Path curDir)
-            throws IOException {
-        // TODO Auto-generated method stub
-        return null;
-    }
 }

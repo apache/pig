@@ -20,7 +20,6 @@ package org.apache.pig.builtin;
 import java.io.IOException;
 import java.util.Map;
 
-import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.hadoop.mapreduce.Job;
@@ -42,7 +41,7 @@ import org.apache.pig.data.TupleFactory;
  * This load function simply creates a tuple for each line of text that has a single field that
  * contains the line of text.
  */
-public class TextLoader implements LoadFunc, LoadCaster{
+public class TextLoader extends LoadFunc implements LoadCaster {
     protected RecordReader in = null;
     private TupleFactory mTupleFactory = TupleFactory.getInstance();
 
@@ -58,21 +57,12 @@ public class TextLoader implements LoadFunc, LoadCaster{
             throw new IOException("Error getting input");
         }
     }
-
-    /**
-     * TextLoader does not support conversion to Boolean.
-     * @throws IOException if the value cannot be cast.
-     */
-    public Boolean bytesToBoolean(byte[] b) throws IOException {
-        int errCode = 2109;
-        String msg = "TextLoader does not support conversion to Boolean.";
-        throw new ExecException(msg, errCode, PigException.BUG);
-    }
     
     /**
      * TextLoader does not support conversion to Integer
      * @throws IOException if the value cannot be cast.
      */
+    @Override
     public Integer bytesToInteger(byte[] b) throws IOException {
         int errCode = 2109;
         String msg = "TextLoader does not support conversion to Integer.";
@@ -83,6 +73,7 @@ public class TextLoader implements LoadFunc, LoadCaster{
      * TextLoader does not support conversion to Long
      * @throws IOException if the value cannot be cast.
      */
+    @Override
     public Long bytesToLong(byte[] b) throws IOException {
         int errCode = 2109;
         String msg = "TextLoader does not support conversion to Long.";
@@ -93,6 +84,7 @@ public class TextLoader implements LoadFunc, LoadCaster{
      * TextLoader does not support conversion to Float
      * @throws IOException if the value cannot be cast.
      */
+    @Override
     public Float bytesToFloat(byte[] b) throws IOException {
         int errCode = 2109;
         String msg = "TextLoader does not support conversion to Float.";
@@ -103,6 +95,7 @@ public class TextLoader implements LoadFunc, LoadCaster{
      * TextLoader does not support conversion to Double
      * @throws IOException if the value cannot be cast.
      */
+    @Override
     public Double bytesToDouble(byte[] b) throws IOException {
         int errCode = 2109;
         String msg = "TextLoader does not support conversion to Double.";
@@ -115,6 +108,7 @@ public class TextLoader implements LoadFunc, LoadCaster{
      * @return String value.
      * @throws IOException if the value cannot be cast.
      */
+    @Override
     public String bytesToCharArray(byte[] b) throws IOException {
         return new String(b);
     }
@@ -123,6 +117,7 @@ public class TextLoader implements LoadFunc, LoadCaster{
      * TextLoader does not support conversion to Map
      * @throws IOException if the value cannot be cast.
      */
+    @Override
     public Map<String, Object> bytesToMap(byte[] b) throws IOException {
         int errCode = 2109;
         String msg = "TextLoader does not support conversion to Map.";
@@ -133,6 +128,7 @@ public class TextLoader implements LoadFunc, LoadCaster{
      * TextLoader does not support conversion to Tuple
      * @throws IOException if the value cannot be cast.
      */
+    @Override
     public Tuple bytesToTuple(byte[] b) throws IOException {
         int errCode = 2109;
         String msg = "TextLoader does not support conversion to Tuple.";
@@ -195,46 +191,24 @@ public class TextLoader implements LoadFunc, LoadCaster{
         throw new ExecException(msg, errCode, PigException.BUG);
     }
 
-    /* (non-Javadoc)
-     * @see org.apache.pig.LoadFunc#getInputFormat()
-     */
     @Override
     public InputFormat getInputFormat() {
         return new TextInputFormat();
     }
 
-    /* (non-Javadoc)
-     * @see org.apache.pig.LoadFunc#getLoadCaster()
-     */
     @Override
     public LoadCaster getLoadCaster() {
         return this;
     }
-
-    /* (non-Javadoc)
-     * @see org.apache.pig.LoadFunc#prepareToRead(org.apache.hadoop.mapreduce.RecordReader, org.apache.hadoop.mapreduce.InputSplit)
-     */
+    
     @Override
     public void prepareToRead(RecordReader reader, PigSplit split) {
         in = reader;        
     }
 
-    /* (non-Javadoc)
-     * @see org.apache.pig.LoadFunc#setLocation(java.lang.String, org.apache.hadoop.mapreduce.Job)
-     */
     @Override
     public void setLocation(String location, Job job) throws IOException {
         FileInputFormat.setInputPaths(job, location);
     }
 
-    /* (non-Javadoc)
-     * @see org.apache.pig.LoadFunc#relativeToAbsolutePath(java.lang.String, org.apache.hadoop.fs.Path)
-     */
-    @Override
-    public String relativeToAbsolutePath(String location, Path curDir)
-            throws IOException {
-        // XXX: FIXME - should follow what PigStorage() does
-        // when PigStorage() has an implementation
-        return null;
-    }
 }

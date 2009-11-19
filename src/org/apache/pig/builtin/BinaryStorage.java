@@ -57,7 +57,7 @@ import org.apache.pig.impl.logicalLayer.schema.Schema;
  * interpretation of their data.
  */
 // XXX : FIXME - make this work with new load-store redesign
-public class BinaryStorage implements LoadFunc, StoreFunc {
+public class BinaryStorage extends LoadFunc implements StoreFunc {
     // LoadFunc
     private static final int DEFAULT_BUFFER_SIZE = 64*1024;
     protected int bufferSize = DEFAULT_BUFFER_SIZE;
@@ -85,6 +85,7 @@ public class BinaryStorage implements LoadFunc, StoreFunc {
         this.bufferSize = bufferSize;
     }
     
+    @Override
     public Tuple getNext() throws IOException {
         // Sanity check
         if (in == null || in.getPosition() > end) {
@@ -117,12 +118,7 @@ public class BinaryStorage implements LoadFunc, StoreFunc {
         return null;
     }
 
-    public void bindTo(OutputStream out) throws IOException {
-        this.out = out;
-    }
-
-    public void finish() throws IOException {}
-
+    @Override
     public void putNext(Tuple f) throws IOException {
         // Pick up the first field of the Tuple, then it's 
         // raw-bytes and send it out
@@ -140,103 +136,59 @@ public class BinaryStorage implements LoadFunc, StoreFunc {
         }
     }
     
+    @Override
     public String toString() {
         return "BinaryStorage(" + bufferSize + ")";
     }
     
+    @Override
     public boolean equals(Object obj) {
         return true;
     }
 
-    /* (non-Javadoc)
-     * @see org.apache.pig.LoadFunc#getInputFormat()
-     */
     @Override
-    public InputFormat getInputFormat() {
-        // TODO Auto-generated method stub
+    public InputFormat getInputFormat() throws IOException {
         return null;
     }
 
-    /* (non-Javadoc)
-     * @see org.apache.pig.LoadFunc#getLoadCaster()
-     */
     @Override
-    public LoadCaster getLoadCaster() {
-        // TODO Auto-generated method stub
+    public LoadCaster getLoadCaster() throws IOException {
         return null;
     }
 
-    /* (non-Javadoc)
-     * @see org.apache.pig.LoadFunc#prepareToRead(org.apache.hadoop.mapreduce.RecordReader, org.apache.hadoop.mapreduce.InputSplit)
-     */
     @Override
-    public void prepareToRead(RecordReader reader, PigSplit split) {
-        // TODO Auto-generated method stub
-        
+    public void prepareToRead(RecordReader reader, PigSplit split) throws IOException {
+        throw new UnsupportedOperationException();
     }
 
-    /* (non-Javadoc)
-     * @see org.apache.pig.LoadFunc#setLocation(java.lang.String, org.apache.hadoop.mapreduce.Job)
-     */
     @Override
     public void setLocation(String location, Job job) throws IOException {
-        // TODO Auto-generated method stub
-        
+        throw new UnsupportedOperationException();
     }
 
-    /* (non-Javadoc)
-     * @see org.apache.pig.StoreFunc#getOutputFormat()
-     */
     @Override
-    public OutputFormat getOutputFormat() {
-        // TODO Auto-generated method stub
+    public OutputFormat getOutputFormat() throws IOException {
         return null;
     }
 
-    /* (non-Javadoc)
-     * @see org.apache.pig.StoreFunc#prepareToWrite(org.apache.hadoop.mapreduce.RecordWriter)
-     */
     @Override
-    public void prepareToWrite(RecordWriter writer) {
-        // TODO Auto-generated method stub
-        
+    public void prepareToWrite(RecordWriter writer) throws IOException {
+        throw new UnsupportedOperationException();
     }
 
-    /* (non-Javadoc)
-     * @see org.apache.pig.StoreFunc#setSchema(org.apache.pig.ResourceSchema)
-     */
     @Override
-    public void checkSchema(ResourceSchema s) throws IOException {
-        // TODO Auto-generated method stub
-        
+    public void checkSchema(ResourceSchema s) throws IOException {   
+        throw new UnsupportedOperationException();
     }
 
-    /* (non-Javadoc)
-     * @see org.apache.pig.StoreFunc#setStoreLocation(java.lang.String, org.apache.hadoop.mapreduce.Job)
-     */
     @Override
     public void setStoreLocation(String location, Job job) throws IOException {
-        // TODO Auto-generated method stub
-        
+        throw new UnsupportedOperationException();
     }
 
-    /* (non-Javadoc)
-     * @see org.apache.pig.LoadFunc#relativeToAbsolutePath(java.lang.String, org.apache.hadoop.fs.Path)
-     */
-    @Override
-    public String relativeToAbsolutePath(String location, Path curDir)
-            throws IOException {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    /* (non-Javadoc)
-     * @see org.apache.pig.StoreFunc#relToAbsPathForStoreLocation(java.lang.String, org.apache.hadoop.fs.Path)
-     */
     @Override
     public String relToAbsPathForStoreLocation(String location, Path curDir)
             throws IOException {
-        // TODO Auto-generated method stub
-        return null;
+        return LoadFunc.getAbsolutePath(location, curDir);
     }
 }

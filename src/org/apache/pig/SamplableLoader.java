@@ -21,6 +21,7 @@ package org.apache.pig;
 import java.io.IOException;
 
 import org.apache.pig.data.Tuple;
+import org.apache.pig.LoadFunc;
 
 /**
  * Implementing this interface indicates to Pig that a given loader can be 
@@ -33,7 +34,7 @@ import org.apache.pig.data.Tuple;
  * from that point.  Another requirement is that the loader be able to 
  * skip or seek in its input stream.
  */
-public interface SamplableLoader extends LoadFunc {
+public abstract class SamplableLoader extends LoadFunc {
     
     /**
      * Skip ahead in the input stream.
@@ -41,13 +42,13 @@ public interface SamplableLoader extends LoadFunc {
      * @return number of bytes actually skipped.  The return semantics are
      * exactly the same as {@link java.io.InpuStream#skip(long)}
      */
-    public long skip(long n) throws IOException;
+    public abstract long skip(long n) throws IOException;
     
     /**
      * Get the current position in the stream.
      * @return position in the stream.
      */
-    public long getPosition() throws IOException;
+    public abstract long getPosition() throws IOException;
     
     /**
      * Get the next tuple from the stream starting from the current 
@@ -59,5 +60,5 @@ public interface SamplableLoader extends LoadFunc {
      * @return the next tuple from underlying input stream or null if there are no more tuples
      * to be processed.
      */
-    public Tuple getSampledTuple() throws IOException;
+    public abstract Tuple getSampledTuple() throws IOException;
 }

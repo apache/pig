@@ -49,7 +49,7 @@ import org.apache.pig.impl.plan.OperatorKey;
  * 1) construct an object using the constructor
  * 2) Call getNext() in a loop till it returns null
  */
-public class ReadToEndLoader implements LoadFunc {
+public class ReadToEndLoader extends LoadFunc {
 
     /**
      * the wrapped LoadFunc which will do the actual reading
@@ -149,9 +149,7 @@ public class ReadToEndLoader implements LoadFunc {
         return true;
     }
 
-    /* (non-Javadoc)
-     * @see org.apache.pig.LoadFunc#getNext()
-     */
+    @Override
     public Tuple getNext() throws IOException {
         try {
             Tuple t = null;
@@ -189,46 +187,24 @@ public class ReadToEndLoader implements LoadFunc {
         return null;
     }
 
-    /* (non-Javadoc)
-     * @see org.apache.pig.LoadFunc#getInputFormat()
-     */
     @Override
     public InputFormat getInputFormat() {
         return null;
     }
 
-    /* (non-Javadoc)
-     * @see org.apache.pig.LoadFunc#getLoadCaster()
-     */
     @Override
     public LoadCaster getLoadCaster() {
         return null;
     }
 
-    /* (non-Javadoc)
-     * @see org.apache.pig.LoadFunc#prepareToRead(org.apache.hadoop.mapreduce.RecordReader, org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigSplit)
-     */
     @Override
     public void prepareToRead(RecordReader reader, PigSplit split) {
-        throw new RuntimeException("Internal Error: Unimplemented method called!");        
+        throw new UnsupportedOperationException();
     }
 
-    /* (non-Javadoc)
-     * @see org.apache.pig.LoadFunc#setLocation(java.lang.String, org.apache.hadoop.mapreduce.Job)
-     */
     @Override
     public void setLocation(String location, Job job) throws IOException {
-        throw new RuntimeException("Internal Error: Unimplemented method called!");        
-    }
-
-    /* (non-Javadoc)
-     * @see org.apache.pig.LoadFunc#relativeToAbsolutePath(java.lang.String, org.apache.hadoop.fs.Path)
-     */
-    @Override
-    public String relativeToAbsolutePath(String location, Path curDir)
-            throws IOException {
-        // TODO Auto-generated method stub
-        return null;
+        throw new UnsupportedOperationException();       
     }
    
 }

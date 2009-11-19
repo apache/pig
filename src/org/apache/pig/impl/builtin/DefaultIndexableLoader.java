@@ -22,7 +22,6 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.zip.GZIPInputStream;
 
 import org.apache.hadoop.conf.Configuration;
@@ -30,13 +29,11 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.RecordReader;
-import org.apache.pig.ExecType;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.IndexableLoadFunc;
 import org.apache.pig.LoadCaster;
 import org.apache.pig.LoadFunc;
 import org.apache.pig.PigException;
-import org.apache.pig.backend.datastorage.DataStorage;
 import org.apache.pig.backend.datastorage.SeekableInputStream;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce;
@@ -44,14 +41,11 @@ import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigSplit;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLoad;
-import org.apache.pig.data.DataBag;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.PigContext;
-import org.apache.pig.impl.io.BufferedPositionedInputStream;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.FileSpec;
-import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.util.ObjectSerializer;
@@ -61,7 +55,7 @@ import org.apache.tools.bzip2r.CBZip2InputStream;
  *
  */
 //XXX FIXME - make this work with new load-store redesign
-public class DefaultIndexableLoader implements IndexableLoadFunc {
+public class DefaultIndexableLoader extends IndexableLoadFunc {
 
     
     // FileSpec of index file which will be read from HDFS.
@@ -217,9 +211,6 @@ public class DefaultIndexableLoader implements IndexableLoadFunc {
         return new OperatorKey(scope,NodeIdGenerator.getGenerator().getNextNodeId(scope));
     }
     
-    /* (non-Javadoc)
-     * @see org.apache.pig.LoadFunc#getNext()
-     */
     @Override
     public Tuple getNext() throws IOException {
         Tuple t = loader.getNext();
@@ -246,59 +237,23 @@ public class DefaultIndexableLoader implements IndexableLoadFunc {
         is.close();
     }
 
-    /* (non-Javadoc)
-     * @see org.apache.pig.IndexableLoadFunc#initialize(org.apache.hadoop.conf.Configuration)
-     */
     @Override
     public void initialize(Configuration conf) throws IOException {
         // nothing to do
         
     }
 
-    /* (non-Javadoc)
-     * @see org.apache.pig.LoadFunc#getInputFormat()
-     */
     @Override
     public InputFormat getInputFormat() {
-        // TODO Auto-generated method stub
         return null;
     }
-
-    /* (non-Javadoc)
-     * @see org.apache.pig.LoadFunc#getLoadCaster()
-     */
-    @Override
-    public LoadCaster getLoadCaster() {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    /* (non-Javadoc)
-     * @see org.apache.pig.LoadFunc#prepareToRead(org.apache.hadoop.mapreduce.RecordReader, org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigSplit)
-     */
+    
     @Override
     public void prepareToRead(RecordReader reader, PigSplit split) {
-        // TODO Auto-generated method stub
-        
     }
 
-    /* (non-Javadoc)
-     * @see org.apache.pig.LoadFunc#setLocation(java.lang.String, org.apache.hadoop.mapreduce.Job)
-     */
     @Override
-    public void setLocation(String location, Job job) throws IOException {
-        // TODO Auto-generated method stub
-        
-    }
-
-    /* (non-Javadoc)
-     * @see org.apache.pig.LoadFunc#relativeToAbsolutePath(java.lang.String, org.apache.hadoop.fs.Path)
-     */
-    @Override
-    public String relativeToAbsolutePath(String location, Path curDir)
-            throws IOException {
-        // TODO Auto-generated method stub
-        return null;
+    public void setLocation(String location, Job job) throws IOException {        
     }
     
 }

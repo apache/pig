@@ -40,7 +40,10 @@ public interface StoreFunc {
      * output location to an absolute path if the location is relative. The
      * StoreFunc implementation is free to choose how it converts a relative 
      * location to an absolute location since this may depend on what the location
-     * string represent (hdfs path or some other data source)
+     * string represent (hdfs path or some other data source). 
+     * The static method {@link LoadFunc#getAbsolutePath} provides a default 
+     * implementation for hdfs and hadoop local file system and it can be used
+     * to implement this method.  
      * 
      * @param location location as provided in the "store" statement of the script
      * @param curDir the current working direction based on any "cd" statements

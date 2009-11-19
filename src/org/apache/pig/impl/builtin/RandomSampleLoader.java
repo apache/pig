@@ -50,8 +50,7 @@ public class RandomSampleLoader extends SampleLoader {
         super.setNumSamples(Integer.valueOf(ns));
     }
 
-    /* (non-Javadoc)
-     * @see org.apache.pig.LoadFunc#getNext()
+    /**
      * Allocate a buffer for numSamples elements, populate it with the 
      * first numSamples tuples, and continue scanning rest of the input.
      * For every ith next() call, we generate a random number r s.t. 0<=r<i,
@@ -111,5 +110,4 @@ public class RandomSampleLoader extends SampleLoader {
         }
     }
 
- 
 }

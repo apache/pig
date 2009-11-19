@@ -25,7 +25,6 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.LoadFunc;
-import org.apache.pig.SamplableLoader;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROpPlanVisitor;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROperPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
@@ -128,11 +127,6 @@ public class SampleOptimizer extends MROpPlanVisitor {
             return;
         }
         POLoad predLoad = (POLoad)r;
-        LoadFunc lf = (LoadFunc)PigContext.instantiateFuncFromSpec(predLoad.getLFile().getFuncSpec());
-        if (!(lf instanceof SamplableLoader)) {
-            log.debug("Predecessor's loader does not implement SamplableLoader");
-            return;
-        }
 
         // The MR job should have one successor.
         List<MapReduceOper> succs = mPlan.getSuccessors(mr);

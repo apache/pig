@@ -50,49 +50,28 @@ public class PigDump implements StoreFunc {
         os.write((TupleFormat.format(f) + recordDelimiter).getBytes());
     }
 
-    /* (non-Javadoc)
-     * @see org.apache.pig.StoreFunc#getOutputFormat()
-     */
     @Override
     public OutputFormat getOutputFormat() {
-        // TODO Auto-generated method stub
         return null;
     }
 
-    /* (non-Javadoc)
-     * @see org.apache.pig.StoreFunc#prepareToWrite(org.apache.hadoop.mapreduce.RecordWriter)
-     */
     @Override
     public void prepareToWrite(RecordWriter writer) {
-        // TODO Auto-generated method stub
-        
     }
 
-    /* (non-Javadoc)
-     * @see org.apache.pig.StoreFunc#setStoreLocation(java.lang.String, org.apache.hadoop.mapreduce.Job)
-     */
     @Override
     public void setStoreLocation(String location, Job job) throws IOException {
-        // TODO Auto-generated method stub
-        
+ 
     }
 
-    /* (non-Javadoc)
-     * @see org.apache.pig.StoreFunc#checkSchema(org.apache.pig.ResourceSchema)
-     */
     @Override
     public void checkSchema(ResourceSchema s) throws IOException {
-        // TODO Auto-generated method stub
-        
+ 
     }
 
-    /* (non-Javadoc)
-     * @see org.apache.pig.StoreFunc#relToAbsPathForStoreLocation(java.lang.String, org.apache.hadoop.fs.Path)
-     */
     @Override
     public String relToAbsPathForStoreLocation(String location, Path curDir)
             throws IOException {
-        // TODO Auto-generated method stub
         return null;
     }
 

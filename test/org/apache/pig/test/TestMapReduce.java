@@ -25,25 +25,17 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.PrintStream;
-import java.net.URL;
-import java.text.DecimalFormat;
-import java.util.HashMap;
 import java.util.Iterator;
-import java.util.Map;
-import java.util.Properties;
 
 import junit.framework.TestCase;
-
-import org.junit.Test;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.pig.EvalFunc;
-import org.apache.pig.FuncSpec;
-import org.apache.pig.LoadFunc;
-import org.apache.pig.PigServer;
-import org.apache.pig.StoreFunc;
 import org.apache.pig.ExecType;
+import org.apache.pig.FuncSpec;
+import org.apache.pig.PigServer;
+import org.apache.pig.backend.datastorage.ElementDescriptor;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.builtin.COUNT;
 import org.apache.pig.builtin.PigStorage;
@@ -54,12 +46,9 @@ import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
-import org.apache.pig.impl.io.BufferedPositionedInputStream;
-import org.apache.pig.impl.logicalLayer.schema.Schema;
-import org.apache.pig.backend.datastorage.DataStorage;
-import org.apache.pig.backend.datastorage.ElementDescriptor;
-import org.junit.Before;
 import org.apache.pig.test.utils.TestHelper;
+import org.junit.Before;
+import org.junit.Test;
 
 public class TestMapReduce extends TestCase {
 

@@ -19,31 +19,29 @@ package org.apache.pig.builtin;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Map;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.WritableComparable;
-import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.InputFormat;
-import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.OutputFormat;
 import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.RecordWriter;
+import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
-import org.apache.pig.LoadCaster;
+import org.apache.pig.LoadFunc;
 import org.apache.pig.PigException;
 import org.apache.pig.ResourceSchema;
 import org.apache.pig.ReversibleLoadStoreFunc;
+import org.apache.pig.StoreFunc;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigSplit;
 import org.apache.pig.data.DataBag;
@@ -57,8 +55,8 @@ import org.apache.pig.data.TupleFactory;
  * delimiter is given as a regular expression. See String.split(delimiter) and
  * http://java.sun.com/j2se/1.5.0/docs/api/java/util/regex/Pattern.html for more information.
  */
-public class PigStorage 
-        implements ReversibleLoadStoreFunc {
+public class PigStorage extends LoadFunc
+        implements ReversibleLoadStoreFunc, StoreFunc {
     protected RecordReader in = null;
     protected RecordWriter writer = null;
     protected final Log mLog = LogFactory.getLog(getClass());
@@ -106,6 +104,7 @@ public class PigStorage
         }
     }
 
+    @Override
     public Tuple getNext() throws IOException {
 
         try {
@@ -128,7 +127,6 @@ public class PigStorage
                 readField(buf, start, len);
             }
             Tuple t =  mTupleFactory.newTupleNoCopy(mProtoTuple);
-            // System.out.println( "Arity:" + t.size() + " Value: " + value.toString() );
             mProtoTuple = null;
             return t;
         } catch (InterruptedException e) {
@@ -246,6 +244,7 @@ public class PigStorage
         }
     }
 
+    @Override
     public void putNext(Tuple f) throws IOException {
         // I have to convert integer fields to string, and then to bytes.
         // If I use a DataOutputStream to convert directly from integer to
@@ -274,9 +273,6 @@ public class PigStorage
         }
     }
 
-    public void finish() throws IOException {
-    }
-
     private void readField(byte[] buf, int start, int end) {
         if (mProtoTuple == null) {
             mProtoTuple = new ArrayList<Object>();
@@ -290,6 +286,7 @@ public class PigStorage
         }
     }
 
+    @Override
     public boolean equals(Object obj) {
         return equals((PigStorage)obj);
     }
@@ -298,92 +295,47 @@ public class PigStorage
         return this.fieldDel == other.fieldDel;
     }
 
-    /* (non-Javadoc)
-     * @see org.apache.pig.LoadFunc#getInputFormat()
-     */
     @Override
     public InputFormat getInputFormat() {
         return new TextInputFormat();
     }
 
-    /* (non-Javadoc)
-     * @see org.apache.pig.LoadFunc#getLoadCaster()
-     */
-    @Override
-    public LoadCaster getLoadCaster() {
-        // TODO Auto-generated method stub
-        return new Utf8StorageConverter();
-    }
-
-    /* (non-Javadoc)
-     * @see org.apache.pig.LoadFunc#prepareToRead(org.apache.hadoop.mapreduce.RecordReader, org.apache.hadoop.mapreduce.InputSplit)
-     */
     @Override
     public void prepareToRead(RecordReader reader, PigSplit split) {
         in = reader;
     }
 
-    /* (non-Javadoc)
-     * @see org.apache.pig.LoadFunc#setLocation(java.lang.String, org.apache.hadoop.conf.Configuration)
-     */
     @Override
     public void setLocation(String location, Job job)
             throws IOException {
         FileInputFormat.setInputPaths(job, location);
     }
 
-    /* (non-Javadoc)
-     * @see org.apache.pig.StoreFunc#getOutputFormat()
-     */
     @Override
     public OutputFormat getOutputFormat() {
         return new TextOutputFormat<WritableComparable, Text>();
     }
 
-    /* (non-Javadoc)
-     * @see org.apache.pig.StoreFunc#prepareToWrite(org.apache.hadoop.mapreduce.RecordWriter)
-     */
     @Override
     public void prepareToWrite(RecordWriter writer) {
         this.writer = writer;        
     }
 
-    /* (non-Javadoc)
-     * @see org.apache.pig.StoreFunc#setLocation(java.lang.String)
-     */
     @Override
     public void setStoreLocation(String location, Job job) throws IOException {
         job.getConfiguration().set("mapred.textoutputformat.separator", "");
         FileOutputFormat.setOutputPath(job, new Path(location));
     }
 
-    /* (non-Javadoc)
-     * @see org.apache.pig.LoadFunc#relativeToAbsolutePath(java.lang.String, org.apache.hadoop.fs.Path)
-     */
-    @Override
-    public String relativeToAbsolutePath(String location, Path curDir)
-            throws IOException {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    /* (non-Javadoc)
-     * @see org.apache.pig.StoreFunc#checkSchema(org.apache.pig.ResourceSchema)
-     */
     @Override
     public void checkSchema(ResourceSchema s) throws IOException {
-        // TODO Auto-generated method stub
-        
+
     }
 
-    /* (non-Javadoc)
-     * @see org.apache.pig.StoreFunc#relToAbsPathForStoreLocation(java.lang.String, org.apache.hadoop.fs.Path)
-     */
     @Override
     public String relToAbsPathForStoreLocation(String location, Path curDir)
             throws IOException {
-        // TODO Auto-generated method stub
-        return null;
+        return LoadFunc.getAbsolutePath(location, curDir);
     }
 
    

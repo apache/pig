@@ -17,22 +17,19 @@
  */
 package org.apache.pig.builtin;
 
-import java.io.BufferedOutputStream;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.util.Iterator;
 import java.util.Map;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.InputFormat;
-import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.OutputFormat;
 import org.apache.hadoop.mapreduce.RecordReader;
@@ -40,10 +37,12 @@ import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.pig.LoadCaster;
+import org.apache.pig.LoadFunc;
 import org.apache.pig.PigException;
 import org.apache.pig.PigWarning;
 import org.apache.pig.ResourceSchema;
 import org.apache.pig.ReversibleLoadStoreFunc;
+import org.apache.pig.StoreFunc;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigSplit;
 import org.apache.pig.data.DataBag;
@@ -55,7 +54,9 @@ import org.apache.pig.impl.io.BinStorageRecordReader;
 import org.apache.pig.impl.io.BinStorageRecordWriter;
 import org.apache.pig.impl.util.LogUtils;
 
-public class BinStorage implements ReversibleLoadStoreFunc, LoadCaster {
+public class BinStorage extends LoadFunc 
+        implements ReversibleLoadStoreFunc, LoadCaster, StoreFunc {
+    
     public static final int RECORD_1 = 0x01;
     public static final int RECORD_2 = 0x02;
     public static final int RECORD_3 = 0x03;
@@ -73,6 +74,7 @@ public class BinStorage implements ReversibleLoadStoreFunc, LoadCaster {
     public BinStorage() {
     }
 
+    @Override
     public Tuple getNext() throws IOException {
         if(recReader.nextKeyValue()) {
             return recReader.getCurrentValue();
@@ -81,6 +83,7 @@ public class BinStorage implements ReversibleLoadStoreFunc, LoadCaster {
         }
     }
 
+    @Override
     public void putNext(Tuple t) throws IOException {
         try {
             recWriter.write(null, t);
@@ -89,6 +92,7 @@ public class BinStorage implements ReversibleLoadStoreFunc, LoadCaster {
         }
     }
 
+    @Override
     public DataBag bytesToBag(byte[] b){
         DataInputStream dis = new DataInputStream(new ByteArrayInputStream(b));
         try {
@@ -103,6 +107,7 @@ public class BinStorage implements ReversibleLoadStoreFunc, LoadCaster {
         }        
     }
 
+    @Override
     public String bytesToCharArray(byte[] b) {
         DataInputStream dis = new DataInputStream(new ByteArrayInputStream(b));
         try {
@@ -117,6 +122,7 @@ public class BinStorage implements ReversibleLoadStoreFunc, LoadCaster {
         }
     }
 
+    @Override
     public Double bytesToDouble(byte[] b) {
         DataInputStream dis = new DataInputStream(new ByteArrayInputStream(b));
         try {
@@ -131,6 +137,7 @@ public class BinStorage implements ReversibleLoadStoreFunc, LoadCaster {
         }
     }
 
+    @Override
     public Float bytesToFloat(byte[] b) {
         DataInputStream dis = new DataInputStream(new ByteArrayInputStream(b));
         try {
@@ -145,6 +152,7 @@ public class BinStorage implements ReversibleLoadStoreFunc, LoadCaster {
         }
     }
 
+    @Override
     public Integer bytesToInteger(byte[] b) {
         DataInputStream dis = new DataInputStream(new ByteArrayInputStream(b));
         try {
@@ -159,6 +167,7 @@ public class BinStorage implements ReversibleLoadStoreFunc, LoadCaster {
         }
     }
 
+    @Override
     public Long bytesToLong(byte[] b) {
         DataInputStream dis = new DataInputStream(new ByteArrayInputStream(b));
         try {
@@ -173,6 +182,7 @@ public class BinStorage implements ReversibleLoadStoreFunc, LoadCaster {
         }
     }
 
+    @Override
     public Map<String, Object> bytesToMap(byte[] b) {
         DataInputStream dis = new DataInputStream(new ByteArrayInputStream(b));
         try {
@@ -187,6 +197,7 @@ public class BinStorage implements ReversibleLoadStoreFunc, LoadCaster {
         }
     }
 
+    @Override
     public Tuple bytesToTuple(byte[] b) {
         DataInputStream dis = new DataInputStream(new ByteArrayInputStream(b));
         try {
@@ -305,87 +316,49 @@ public class BinStorage implements ReversibleLoadStoreFunc, LoadCaster {
         return baos.toByteArray();
     }
     
-    /* (non-Javadoc)
-     * @see org.apache.pig.LoadFunc#getInputFormat()
-     */
     @Override
     public InputFormat getInputFormat() {
         return new BinStorageInputFormat();
     }
 
-    /* (non-Javadoc)
-     * @see org.apache.pig.LoadFunc#getLoadCaster()
-     */
     @Override
     public LoadCaster getLoadCaster() {
         return this;
     }
 
-    /* (non-Javadoc)
-     */
     @Override
     public void prepareToRead(RecordReader reader, PigSplit split) {
         recReader = (BinStorageRecordReader)reader;
     }
 
-    /* (non-Javadoc)
-     * @see org.apache.pig.LoadFunc#setLocation(java.lang.String, org.apache.hadoop.mapreduce.Job)
-     */
     @Override
     public void setLocation(String location, Job job) throws IOException {
         FileInputFormat.setInputPaths(job, location);
     }
 
-    /* (non-Javadoc)
-     * @see org.apache.pig.StoreFunc#getOutputFormat()
-     */
     @Override
     public OutputFormat getOutputFormat() {
         return new BinStorageOutputFormat();
     }
 
-    /* (non-Javadoc)
-     * @see org.apache.pig.StoreFunc#prepareToWrite(org.apache.hadoop.mapreduce.RecordWriter)
-     */
     @Override
     public void prepareToWrite(RecordWriter writer) {
         this.recWriter = (BinStorageRecordWriter) writer;        
     }
 
-    /* (non-Javadoc)
-     * @see org.apache.pig.StoreFunc#setStoreLocation(java.lang.String, org.apache.hadoop.mapreduce.Job)
-     */
     @Override
     public void setStoreLocation(String location, Job job) throws IOException {
         FileOutputFormat.setOutputPath(job, new Path(location));
     }
 
-    /* (non-Javadoc)
-     * @see org.apache.pig.LoadFunc#relativeToAbsolutePath(java.lang.String, org.apache.hadoop.fs.Path)
-     */
-    @Override
-    public String relativeToAbsolutePath(String location, Path curDir)
-            throws IOException {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    /* (non-Javadoc)
-     * @see org.apache.pig.StoreFunc#checkSchema(org.apache.pig.ResourceSchema)
-     */
     @Override
     public void checkSchema(ResourceSchema s) throws IOException {
-        // TODO Auto-generated method stub
-        
+        throw new UnsupportedOperationException();
     }
 
-    /* (non-Javadoc)
-     * @see org.apache.pig.StoreFunc#relToAbsPathForStoreLocation(java.lang.String, org.apache.hadoop.fs.Path)
-     */
     @Override
     public String relToAbsPathForStoreLocation(String location, Path curDir)
             throws IOException {
-        // TODO Auto-generated method stub
-        return null;
+        return LoadFunc.getAbsolutePath(location, curDir);
     }
 }

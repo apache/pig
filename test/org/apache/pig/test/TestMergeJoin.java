@@ -549,96 +549,52 @@ public class TestMergeJoin {
      * that expressions are not allowed as merge join keys when the right input's
      * loader implements {@link IndexableLoadFunc}
      */
-    public static class DummyIndexableLoader implements IndexableLoadFunc {
+    public static class DummyIndexableLoader extends IndexableLoadFunc {
 
         /**
          * 
          */
         public DummyIndexableLoader() {
-            // TODO Auto-generated constructor stub
         }
-        
-        /* (non-Javadoc)
-         * @see org.apache.pig.IndexableLoadFunc#close()
-         */
+ 
         @Override
         public void close() throws IOException {
-            // TODO Auto-generated method stub
-            
+ 
         }
 
-        /* (non-Javadoc)
-         * @see org.apache.pig.IndexableLoadFunc#seekNear(org.apache.pig.data.Tuple)
-         */
         @Override
         public void seekNear(Tuple keys) throws IOException {
-            // TODO Auto-generated method stub
-            
+ 
         }
 
-        /* (non-Javadoc)
-         * @see org.apache.pig.LoadFunc#getNext()
-         */
         @Override
         public Tuple getNext() throws IOException {
-            // TODO Auto-generated method stub
             return null;
         }
 
-        /* (non-Javadoc)
-         * @see org.apache.pig.IndexableLoadFunc#initialize(org.apache.hadoop.conf.Configuration)
-         */
         @Override
         public void initialize(Configuration conf) throws IOException {
-            // TODO Auto-generated method stub
-            
         }
 
-        /* (non-Javadoc)
-         * @see org.apache.pig.LoadFunc#getInputFormat()
-         */
         @Override
         public InputFormat getInputFormat() throws IOException {
-            // TODO Auto-generated method stub
             return null;
         }
 
-        /* (non-Javadoc)
-         * @see org.apache.pig.LoadFunc#getLoadCaster()
-         */
         @Override
-        public LoadCaster getLoadCaster() throws IOException {
-            // TODO Auto-generated method stub
+        public LoadCaster getLoadCaster() throws IOException {            
             return null;
         }
 
-        /* (non-Javadoc)
-         * @see org.apache.pig.LoadFunc#prepareToRead(org.apache.hadoop.mapreduce.RecordReader, org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigSplit)
-         */
         @Override
         public void prepareToRead(RecordReader reader, PigSplit split)
                 throws IOException {
-            // TODO Auto-generated method stub
-            
+
         }
 
-        /* (non-Javadoc)
-         * @see org.apache.pig.LoadFunc#relativeToAbsolutePath(java.lang.String, org.apache.hadoop.fs.Path)
-         */
-        @Override
-        public String relativeToAbsolutePath(String location, Path curDir)
-                throws IOException {
-            // TODO Auto-generated method stub
-            return null;
-        }
-
-        /* (non-Javadoc)
-         * @see org.apache.pig.LoadFunc#setLocation(java.lang.String, org.apache.hadoop.mapreduce.Job)
-         */
         @Override
         public void setLocation(String location, Job job) throws IOException {
-            // TODO Auto-generated method stub
-            
+
         }
         
     }

@@ -36,7 +36,7 @@ import org.apache.pig.impl.util.Pair;
  * Abstract class that specifies the interface for sample loaders
  *
  */
-public abstract class SampleLoader implements LoadFunc {
+public abstract class SampleLoader extends LoadFunc {
 
     // number of samples to be sampled
     protected int numSamples;
@@ -58,9 +58,6 @@ public abstract class SampleLoader implements LoadFunc {
     	return numSamples;
     }
     
-    /* (non-Javadoc)
-     * @see org.apache.pig.LoadFunc#getInputFormat()
-     */
     @Override
     public InputFormat<?,?> getInputFormat() throws IOException {
         return loader.getInputFormat();
@@ -74,8 +71,8 @@ public abstract class SampleLoader implements LoadFunc {
         }
     }
     
-    public void computeSamples(ArrayList<Pair<FileSpec, Boolean>> inputs, PigContext pc)
-    throws ExecException {
+    public void computeSamples(ArrayList<Pair<FileSpec, Boolean>> inputs, 
+            PigContext pc) throws ExecException {
     }
     
     @Override
@@ -89,19 +86,12 @@ public abstract class SampleLoader implements LoadFunc {
         return loader.relativeToAbsolutePath(location, curDir);
     }
     
-    /* (non-Javadoc)
-     * @see org.apache.pig.LoadFunc#prepareToRead(org.apache.hadoop.mapreduce.RecordReader, org.apache.hadoop.mapreduce.InputSplit)
-     */
     @Override
     public void prepareToRead(RecordReader reader, PigSplit split) throws IOException {
         loader.prepareToRead(reader, split);
         this.recordReader = reader;
     }
-    
 
-    /* (non-Javadoc)
-     * @see org.apache.pig.LoadFunc#setLocation(java.lang.String, org.apache.hadoop.mapreduce.Job)
-     */
     @Override
     public void setLocation(String location, Job job) throws IOException {
         loader.setLocation(location, job);

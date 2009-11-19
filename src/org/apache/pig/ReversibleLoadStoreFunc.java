@@ -26,6 +26,6 @@ package org.apache.pig;
  * interface is likely to result in unexpected output from executions.
  * 
  */
-public interface ReversibleLoadStoreFunc extends LoadFunc, StoreFunc {
+public interface ReversibleLoadStoreFunc {
 
 }
