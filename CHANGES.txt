@@ -24,6 +24,14 @@ Trunk (unreleased changes)
 
 INCOMPATIBLE CHANGES
 
+PIG-966: load-store-redesign branch: change SampleLoader and subclasses to
+work with new LoadFunc interface (thejas via pradeepkth)
+
+PIG-1094:  Fix unit tests corresponding to source changes so far (pradeepkth)
+
+PIG-1090:  Update sources to reflect recent changes in load-store interfaces
+(pradeepkth)
+
 IMPROVEMENTS
 
 PIG-953: Enable merge join in pig to work with loaders and store functions
