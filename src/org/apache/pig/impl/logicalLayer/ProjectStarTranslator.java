@@ -57,7 +57,6 @@ public class ProjectStarTranslator extends
         //get the attributes of cogroup that are modified during the trnalsation
         
         MultiMap<LogicalOperator, LogicalPlan> mapGByPlans = cg.getGroupByPlans();
-
         for(LogicalOperator op: cg.getInputs()) {
             ArrayList<LogicalPlan> newGByPlans = new ArrayList<LogicalPlan>();
             for(LogicalPlan lp: mapGByPlans.get(op)) {
@@ -70,8 +69,40 @@ public class ProjectStarTranslator extends
                     newGByPlans.add(lp);
                 }
             }
+            
+            
             mapGByPlans.removeKey(op);
             mapGByPlans.put(op, newGByPlans);
+        }
+        
+        // check if after translation none of group by plans in a cogroup
+        // have a project(*) - if they still do it's because the input
+        // for the project(*) did not have a schema - in this case, we should
+        // error out since we could have different number/types of 
+        // cogroup keys
+        if(cg.getInputs().size() > 1) { // only for cogroups
+            for(LogicalOperator op: cg.getInputs()) {
+                for(LogicalPlan lp: mapGByPlans.get(op)) {
+                    if(checkPlanForProjectStar(lp)) {
+                        // not following Error handling guidelines to give error code
+                        // and error source since this will get swallowed by the parser
+                        // which will just return a ParseException
+                        throw new VisitorException("Cogroup/Group by * is only allowed if " +
+                        		"the input has a schema");
+                    }
+                }
+            }
+            // check if after translation all group by plans have same arity
+            int arity = mapGByPlans.get(cg.getInputs().get(0)).size();
+            for(LogicalOperator op: cg.getInputs()) {
+                if(arity != mapGByPlans.get(op).size()) {
+                    // not following Error handling guidelines to give error code
+                    // and error source since this will get swallowed by the parser
+                    // which will just return a ParseException
+                    throw new VisitorException("The arity of cogroup/group by columns " +
+                    		"do not match");
+                }
+            }
         }
     }
     

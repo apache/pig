@@ -1029,19 +1029,19 @@ LogicalPlan Parse() :
 	)
 	{ 
 		if(null != root) {
-            log.debug("Adding " + root.getAlias() + " " + root + " to the lookup table " + aliases);
-
-            //Translate all the project(*) leaves in the plan to a sequence of projections
-            ProjectStarTranslator translate = new ProjectStarTranslator(lp);
-            translate.visit();
-
-            addLogicalPlan(root, lp);
-
             try {
-			    log.debug("Root: " + root.getClass().getName() + " schema: " + root.getSchema());
+                log.debug("Adding " + root.getAlias() + " " + root + " to the lookup table " + aliases);
+    
+                //Translate all the project(*) leaves in the plan to a sequence of projections
+                ProjectStarTranslator translate = new ProjectStarTranslator(lp);
+                translate.visit();
+    
+                addLogicalPlan(root, lp);
+            
+                log.debug("Root: " + root.getClass().getName() + " schema: " + root.getSchema());
             } catch(FrontendException fee) {
-            	ParseException pe = new ParseException(fee.getMessage());
-            	pe.initCause(fee);  
+                ParseException pe = new ParseException(fee.getMessage());
+                pe.initCause(fee);  
                 throw pe;
             }
 		}

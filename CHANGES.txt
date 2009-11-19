@@ -33,6 +33,9 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-1064: Behaviour of COGROUP with and without schema when using "*" operator
+(pradeepkth)
+
 Release 0.6.0 - Unreleased
 
 INCOMPATIBLE CHANGES
