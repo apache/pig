@@ -24,6 +24,9 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-1085:  Pass JobConf and UDF specific configuration information to UDFs
+		   (gates)
+
 PIG-1089: Pig 0.6.0 Documentation  (chandec via olgan)
 
 PIG-958: Splitting output data on key field (ankur via pradeepkth)

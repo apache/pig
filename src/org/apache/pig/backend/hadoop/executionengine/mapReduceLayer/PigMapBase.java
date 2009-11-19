@@ -49,6 +49,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.Physica
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.util.PlanHelper;
 import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.impl.util.SpillableMemoryManager;
+import org.apache.pig.impl.util.UDFContext;
 
 public abstract class PigMapBase extends MapReduceBase{
     private static final Tuple DUMMYTUPLE = null;
@@ -166,6 +167,12 @@ public abstract class PigMapBase extends MapReduceBase{
             keyType = ((byte[])ObjectSerializer.deserialize(job.get("pig.map.keytype")))[0];
             
             pigReporter = new ProgressableReporter();
+                
+            // Get the UDF specific context
+            UDFContext udfc = UDFContext.getUDFContext();
+            udfc.addJobConf(job);
+            udfc.deserialize();
+            
             if(!(mp.isEmpty())) {
                 List<OperatorKey> targetOpKeys = 
                     (ArrayList<OperatorKey>)ObjectSerializer.deserialize(job.get("map.target.ops"));
@@ -176,7 +183,6 @@ public abstract class PigMapBase extends MapReduceBase{
                 roots = targetOpsAsList.toArray(new PhysicalOperator[1]);
                 leaf = mp.getLeaves().get(0);
             }
-            
             
             
         } catch (IOException ioe) {
