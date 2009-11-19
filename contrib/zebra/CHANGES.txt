@@ -3,6 +3,8 @@ Zebra Change Log
 Trunk (unreleased changes)
 
   INCOMPATIBLE CHANGES
+    PIG-1099 Changed version number to be 0.7.0 to match Pig version number
+	change (yanz via gates)
 
   IMPROVEMENTS
 
