@@ -28,6 +28,7 @@ import org.apache.hadoop.mapreduce.OutputCommitter;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.pig.StoreFunc;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
+import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.util.ObjectSerializer;
 
 /**
@@ -78,9 +79,19 @@ public class PigOutputCommitter extends OutputCommitter {
      * @return
      * @throws IOException 
      */
+    @SuppressWarnings("unchecked")
     private List<OutputCommitter> getCommitters(TaskAttemptContext context,
             String storeLookupKey) throws IOException {
         Configuration conf = context.getConfiguration();
+        
+        // if there is a udf in the plan we would need to know the import
+        // path so we can instantiate the udf. This is required because
+        // we will be deserializing the POStores out of the plan in the next
+        // line below. The POStore inturn has a member reference to the Physical
+        // plan it is part of - so the deserialization goes deep and while
+        // deserializing the plan, the udf.import.list may be needed.
+        PigContext.setPackageImportList((ArrayList<String>)ObjectSerializer.
+                deserialize(conf.get("udf.import.list")));
         LinkedList<POStore> stores = (LinkedList<POStore>) ObjectSerializer.
         deserialize(conf.get(storeLookupKey));
         List<OutputCommitter> committers = new ArrayList<OutputCommitter>();

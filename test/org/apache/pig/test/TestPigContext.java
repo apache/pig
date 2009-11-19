@@ -109,8 +109,6 @@ public class TestPigContext extends TestCase {
         tmpDir.delete();
         tmpDir.mkdir();
         
-        File tempDir = new File(tmpDir.getAbsolutePath());
-        Util.deleteDirectory(tempDir);
         File udf1Dir = new File(tmpDir.getAbsolutePath()+FILE_SEPARATOR+"com"+FILE_SEPARATOR+"xxx"+FILE_SEPARATOR+"udf1");
         udf1Dir.mkdirs();
         File udf2Dir = new File(tmpDir.getAbsolutePath()+FILE_SEPARATOR+"com"+FILE_SEPARATOR+"xxx"+FILE_SEPARATOR+"udf2");
@@ -172,18 +170,18 @@ public class TestPigContext extends TestCase {
 
         int LOOP_COUNT = 40;
         File tmpFile = File.createTempFile("test", "txt");
-        PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
+        tmpFile.deleteOnExit();
+        String input[] = new String[LOOP_COUNT];
         Random r = new Random(1);
         int rand;
         for(int i = 0; i < LOOP_COUNT; i++) {
             rand = r.nextInt(100);
-            ps.println(rand);
+            input[i] = Integer.toString(rand);
         }
-        ps.close();
-        
+        Util.createInputFile(cluster, tmpFile.getCanonicalPath(), input);        
         FileLocalizer.deleteTempFiles();
         PigServer pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
-        pigServer.registerQuery("A = LOAD '" + Util.generateURI(tmpFile.toString()) + "' using TestUDF2() AS (num:chararray);");
+        pigServer.registerQuery("A = LOAD '" + tmpFile.getCanonicalPath() + "' using TestUDF2() AS (num:chararray);");
         pigServer.registerQuery("B = foreach A generate TestUDF1(num);");
         Iterator<Tuple> iter = pigServer.openIterator("B");
         if(!iter.hasNext()) fail("No output found");
@@ -192,8 +190,8 @@ public class TestPigContext extends TestCase {
             assertTrue(t.get(0) instanceof Integer);
             assertTrue((Integer)t.get(0) == 1);
         }
-        
-        Util.deleteDirectory(tempDir);
+        Util.deleteFile(cluster, tmpFile.getCanonicalPath());
+        Util.deleteDirectory(tmpDir);
     }
 
     @After

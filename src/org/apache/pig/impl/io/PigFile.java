@@ -17,21 +17,27 @@
  */
 package org.apache.pig.impl.io;
 
-import java.io.BufferedOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.Iterator;
 
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.mapreduce.JobContext;
+import org.apache.hadoop.mapreduce.JobID;
+import org.apache.hadoop.mapreduce.OutputCommitter;
+import org.apache.hadoop.mapreduce.OutputFormat;
+import org.apache.hadoop.mapreduce.RecordWriter;
+import org.apache.hadoop.mapreduce.TaskAttemptContext;
+import org.apache.hadoop.mapreduce.TaskAttemptID;
 import org.apache.pig.LoadFunc;
 import org.apache.pig.StoreFunc;
+import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigOutputFormat;
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
-import org.apache.pig.impl.io.FileLocalizer;
 
 
-// XXX: FIXME: make this work with load store redesign
 
 public class PigFile {
     private String file = null;
@@ -48,11 +54,10 @@ public class PigFile {
     
     public DataBag load(LoadFunc lfunc, PigContext pigContext) throws IOException {
         DataBag content = BagFactory.getInstance().newDefaultBag();
-        InputStream is = FileLocalizer.open(file, pigContext);
-        //XXX FIXME: make this work with new load-store redesign
-//        lfunc.bindTo(file, new BufferedPositionedInputStream(is), 0, Long.MAX_VALUE);
+        ReadToEndLoader loader = new ReadToEndLoader(lfunc, 
+                ConfigurationUtil.toConfiguration(pigContext.getProperties()), file, 0);
         Tuple f = null;
-        while ((f = lfunc.getNext()) != null) {
+        while ((f = loader.getNext()) != null) {
             content.add(f);
         }
         return content;
@@ -60,14 +65,36 @@ public class PigFile {
 
     
     public void store(DataBag data, StoreFunc sfunc, PigContext pigContext) throws IOException {
-        BufferedOutputStream bos = new BufferedOutputStream(FileLocalizer.create(file, append, pigContext));
-//        sfunc.bindTo(bos);
-        for (Iterator<Tuple> it = data.iterator(); it.hasNext();) {
-            Tuple row = it.next();
-            sfunc.putNext(row);
+        Configuration conf = ConfigurationUtil.toConfiguration(pigContext.getProperties());
+        // create a simulated JobContext
+        JobContext jc = new JobContext(conf, new JobID());
+        OutputFormat<?,?> of = sfunc.getOutputFormat();
+        PigOutputFormat.setLocation(jc, sfunc, file);
+        OutputCommitter oc;
+        // create a simulated TaskAttemptContext
+        TaskAttemptContext tac = new TaskAttemptContext(conf, new TaskAttemptID());
+        PigOutputFormat.setLocation(tac, sfunc, file);
+        RecordWriter<?,?> rw ;
+        try {
+            of.checkOutputSpecs(jc);
+            oc = of.getOutputCommitter(tac);
+            oc.setupJob(jc);
+            oc.setupTask(tac);
+            rw = of.getRecordWriter(tac);
+            sfunc.prepareToWrite(rw);
+        
+            for (Iterator<Tuple> it = data.iterator(); it.hasNext();) {
+                Tuple row = it.next();
+                sfunc.putNext(row);
+            }
+            rw.close(tac);
+        } catch (InterruptedException e) {
+            throw new IOException(e);
         }
-//        sfunc.finish();
-        bos.close();
+        if(oc.needsTaskCommit(tac)) {
+            oc.commitTask(tac);
+        }
+        oc.cleanupJob(jc);
     }
 
     public String toString() {

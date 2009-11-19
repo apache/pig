@@ -160,18 +160,21 @@ public class TestEvalPipeline extends TestCase {
         t.append(weights);
         b.add(t);
         
-        String fileName = "file:"+File.createTempFile("tmp", "");
+        File tmpFile = File.createTempFile("tmp", "");
+        tmpFile.deleteOnExit();
+        String fileName = tmpFile.getAbsolutePath();
         PigFile f = new PigFile(fileName);
         f.store(b, new BinStorage(), pigServer.getPigContext());
         
         
-        pigServer.registerQuery("a = load '" + Util.encodeEscape(fileName) + "' using BinStorage();");
+        pigServer.registerQuery("a = load '" + fileName + "' using BinStorage();");
         pigServer.registerQuery("b = foreach a generate $0#'apple',flatten($1#'orange');");
         Iterator<Tuple> iter = pigServer.openIterator("b");
         t = iter.next();
         assertEquals(t.get(0).toString(), "red");
         assertEquals(DataType.toDouble(t.get(1)), 0.3);
         assertFalse(iter.hasNext());
+        Util.deleteFile(cluster, fileName);
     }
     
     static public class TitleNGrams extends EvalFunc<DataBag> {
