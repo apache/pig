@@ -28,9 +28,9 @@ import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.file.tfile.TFile;
-import org.apache.hadoop.io.file.tfile.MetaBlockAlreadyExists;
-import org.apache.hadoop.io.file.tfile.MetaBlockDoesNotExist;
+import org.apache.hadoop.zebra.tfile.TFile;
+import org.apache.hadoop.zebra.tfile.MetaBlockAlreadyExists;
+import org.apache.hadoop.zebra.tfile.MetaBlockDoesNotExist;
 
 
 /**

@@ -6,6 +6,9 @@ Trunk (unreleased changes)
 
   IMPROVEMENTS
 
+    PIG-1077 Support record(row)-based file split in Zebra's
+             TableInputFormat (chaow via gates)
+
     PIG-1089 Use Pig's version for Zebra's own versi (chaow via olgan)
 
     PIG-1069  Order Preserving Sorted Table Union (yanz via gates)

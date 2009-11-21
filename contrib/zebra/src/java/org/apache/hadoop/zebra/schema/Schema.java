@@ -660,13 +660,13 @@ public class Schema implements Comparable<Schema>, Writable {
    */
   @Override
   public void readFields(DataInput in) throws IOException {
-    long version = org.apache.hadoop.io.file.tfile.Utils.readVLong(in);
+    long version = org.apache.hadoop.zebra.tfile.Utils.readVLong(in);
 
     if (version > schemaVersion)
       throw new IOException("Schema version is newer than that in software.");
 
     // check-ups are needed for future versions for backward-compatibility
-    String strSchema = org.apache.hadoop.io.file.tfile.Utils.readString(in);
+    String strSchema = org.apache.hadoop.zebra.tfile.Utils.readString(in);
     try {
       init(strSchema, false);
     }
@@ -680,8 +680,8 @@ public class Schema implements Comparable<Schema>, Writable {
    */
   @Override
   public void write(DataOutput out) throws IOException {
-    org.apache.hadoop.io.file.tfile.Utils.writeVLong(out, schemaVersion);
-    org.apache.hadoop.io.file.tfile.Utils.writeString(out, toString());
+    org.apache.hadoop.zebra.tfile.Utils.writeVLong(out, schemaVersion);
+    org.apache.hadoop.zebra.tfile.Utils.writeString(out, toString());
   }
 
   private void init(String[] columnNames, boolean virtualColAllowed) throws ParseException {

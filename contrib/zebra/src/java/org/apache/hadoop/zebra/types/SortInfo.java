@@ -21,7 +21,7 @@ package org.apache.hadoop.zebra.types;
 import java.io.IOException;
 import org.apache.hadoop.zebra.schema.Schema;
 import org.apache.hadoop.zebra.schema.ColumnType;
-import org.apache.hadoop.io.file.tfile.TFile;
+import org.apache.hadoop.zebra.tfile.TFile;
 
 /**
  * Sortness related Information

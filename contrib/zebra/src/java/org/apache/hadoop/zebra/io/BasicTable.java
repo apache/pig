@@ -40,15 +40,18 @@ import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.PathFilter;
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.WritableUtils;
-import org.apache.hadoop.io.file.tfile.TFile;
-import org.apache.hadoop.io.file.tfile.Utils;
-import org.apache.hadoop.io.file.tfile.MetaBlockAlreadyExists;
-import org.apache.hadoop.io.file.tfile.MetaBlockDoesNotExist;
-import org.apache.hadoop.io.file.tfile.Utils.Version;
+import org.apache.hadoop.zebra.tfile.TFile;
+import org.apache.hadoop.zebra.tfile.Utils;
+import org.apache.hadoop.zebra.tfile.MetaBlockAlreadyExists;
+import org.apache.hadoop.zebra.tfile.MetaBlockDoesNotExist;
+import org.apache.hadoop.zebra.tfile.Utils.Version;
+import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.zebra.io.ColumnGroup.Reader.CGRangeSplit;
+import org.apache.hadoop.zebra.io.ColumnGroup.Reader.CGRowSplit;
 import org.apache.hadoop.zebra.types.CGSchema;
 import org.apache.hadoop.zebra.parser.ParseException;
 import org.apache.hadoop.zebra.types.Partition;
@@ -359,6 +362,13 @@ public class BasicTable {
     {
       return schemaFile.getSortInfo();
     }
+    
+    /**
+     * @return the name of i-th column group 
+     */
+    public String getName(int i) {
+      return schemaFile.getName(i);
+    }
 
     /**
      * Set the projection for the reader. This will affect calls to
@@ -418,10 +428,28 @@ public class BasicTable {
       BlockDistribution bd = new BlockDistribution();
       for (int nx = 0; nx < colGroups.length; nx++) {
         if (!isCGDeleted(nx)) {
-          bd.add(colGroups[nx].getBlockDistribution(split == null ? null : split
-            .get(nx)));
+          bd.add(colGroups[nx].getBlockDistribution(split == null ? null : split.getCGRangeSplit()));
         }
       }
+      return bd;
+    }
+
+
+    /**
+     * Given a row-based split, calculate how the file data that fall into the split
+     * are distributed among hosts.
+     * 
+     * @param split The row-based split. <i>Cannot</i> be null.
+     * @return An object that conveys how blocks fall into the split are
+     *         distributed across hosts.
+     * @see #rowSplit(int)
+     */
+    public BlockDistribution getBlockDistribution(RowSplit split)
+        throws IOException {
+      BlockDistribution bd = new BlockDistribution();
+      int cgIdx = split.getCGIndex();      
+      bd.add(colGroups[cgIdx].getBlockDistribution(split.getCGRowSplit()));
+      
       return bd;
     }
 
@@ -502,6 +530,26 @@ public class BasicTable {
     }
 
     /**
+     * Get a scanner that reads a consecutive number of rows as defined in the
+     * {@link RowSplit} object.
+     * 
+     * @param closeReader
+     *          close the underlying Reader object when we close the scanner.
+     *          Should be set to true if we have only one scanner on top of the
+     *          reader, so that we should release resources after the scanner is
+     *          closed.
+     * @param rowSplit split based on row numbers.
+     * 
+     * @return A scanner object.
+     * @throws IOException
+     */
+    public synchronized TableScanner getScanner(boolean closeReader,
+                                                RowSplit rowSplit) 
+      throws IOException, ParseException, ParseException {
+      checkInferredMapping();
+      return new BTScanner(rowSplit, closeReader, partition);
+    }
+    /**
      * Get the schema of the table. The schema may be different from
      * {@link BasicTable.Reader#getSchema(Path, Configuration)} if a projection
      * has been set on the table.
@@ -535,61 +583,106 @@ public class BasicTable {
     public String getPath() {
       return path.toString();
     }
+    
+    /**
+     * Get the path filter used by the table.
+     */
+    public PathFilter getPathFilter(Configuration conf) {
+      ColumnGroup.CGPathFilter filter = new ColumnGroup.CGPathFilter();
+      ColumnGroup.CGPathFilter.setConf(conf);
+      return filter;
+    }
 
     /**
      * Split the table into at most n parts.
      * 
-     * @param n
-     *          Maximum number of parts in the output list.
+     * @param n Maximum number of parts in the output list.
      * @return A list of RangeSplit objects, each of which can be used to
      *         construct TableScanner later.
      */
-    @SuppressWarnings("unchecked")
     public List<RangeSplit> rangeSplit(int n) throws IOException {
-      // assume all CGs will be split into the same number of horizontal
-      // slices
-      List<CGRangeSplit>[] cgSplitsAll = new ArrayList[colGroups.length];
-      // split each CG
-      for (int nx = 0; nx < colGroups.length; nx++) {
-        if (!isCGDeleted(nx))
-          cgSplitsAll[nx] = colGroups[nx].rangeSplit(n);
-      }
+      // use the first non-deleted column group to do split, other column groups will be split exactly the same way.
+      List<RangeSplit> ret;
+      if (firstValidCG >= 0) {
+        List<CGRangeSplit> cgSplits = colGroups[firstValidCG].rangeSplit(n);
+        int numSlices = cgSplits.size();
+        ret = new ArrayList<RangeSplit>(numSlices);
+        for (int slice = 0; slice < numSlices; slice++) {
+          CGRangeSplit oneSliceSplit = cgSplits.get(slice);
+          ret.add(new BasicTable.Reader.RangeSplit(oneSliceSplit));
+        }
 
-      // verify all CGs have same number of slices
-      int numSlices = -1;
-      for (int nx = 0; nx < cgSplitsAll.length; nx++) {
-        if (isCGDeleted(nx)) {
-          continue;
-        }
-        if (numSlices < 0) {
-          numSlices = cgSplitsAll[nx].size();
-        }
-        else if (cgSplitsAll[nx].size() != numSlices) {
-          throw new IOException(
-              "BasicTable's column groups were not equally split.");
-        }
+        return ret;
+      } else { // all column groups are dropped.
+        ret = new ArrayList<RangeSplit>(1);
+        // add a dummy split
+        ret.add(new BasicTable.Reader.RangeSplit(new CGRangeSplit(0, 0)));
+        return ret;
       }
-      if (numSlices <= 0) {
-        // This could happen because of various reasons.
-        // One possibility is that all the CGs are deleted.
-        numSlices = 1;
-      }
-      // return horizontal slices as RangeSplits
-      List<RangeSplit> ret = new ArrayList<RangeSplit>(numSlices);
+    }
+
+    /**
+     * We already use FileInputFormat to create byte offset-based input splits.
+     * Their information is encoded in starts, lengths and paths. This method is 
+     * to wrap this information to form RowSplit objects at basic table level.
+     * 
+     * @param starts array of starting byte of fileSplits.
+     * @param lengths array of length of fileSplits.
+     * @param paths array of path of fileSplits.
+     * @param splitCGIndex index of column group that is used to create fileSplits.
+     * @return A list of RowSplit objects, each of which can be used to
+     *         construct a TableScanner later. 
+     *         
+     */
+    public List<RowSplit> rowSplit(long[] starts, long[] lengths, Path[] paths, int splitCGIndex) throws IOException {
+      List<RowSplit> ret; 
+      
+      List<CGRowSplit> cgSplits = colGroups[splitCGIndex].rowSplit(starts, lengths, paths);
+      int numSlices = cgSplits.size();
+      ret = new ArrayList<RowSplit>(numSlices);
       for (int slice = 0; slice < numSlices; slice++) {
-        CGRangeSplit[] oneSliceSplits = new CGRangeSplit[cgSplitsAll.length];
-        for (int cgIndex = 0; cgIndex < cgSplitsAll.length; cgIndex++) {
-          if (isCGDeleted(cgIndex)) {
-            // set a dummy split
-            oneSliceSplits[cgIndex] = new CGRangeSplit(0, 0);
-          } else {
-            oneSliceSplits[cgIndex] = cgSplitsAll[cgIndex].get(slice);
-          }
-        }
-        ret.add(new BasicTable.Reader.RangeSplit(oneSliceSplits));
+        CGRowSplit cgRowSplit = cgSplits.get(slice);
+        ret.add(new BasicTable.Reader.RowSplit(splitCGIndex, cgRowSplit));
       }
+        
       return ret;
     }
+    
+
+    /** 
+     * Get index of the column group that will be used for row-based split. 
+     * 
+     */
+    public int getRowSplitCGIndex() {
+      // Try to find the largest non-deleted and used column group by projection;
+      int largestCGIndex = -1;
+      int splitCGIndex = -1;
+      long largestCGSize = -1;
+      for (int i=0; i<colGroups.length; i++) {
+        if (!partition.isCGNeeded(i) || isCGDeleted(i)) {
+          continue;
+        }
+        ColumnGroup.Reader reader = colGroups[i];
+        BasicTableStatus btStatus = reader.getStatus();
+        long size = btStatus.getSize();
+        if (size > largestCGSize) {
+          largestCGIndex = i;
+          largestCGSize = size;
+        }
+      }
+     
+      /* We do have a largest non-deleted and used column group,
+      and we use it to do split. */
+      if (largestCGIndex >= 0) { 
+        splitCGIndex = largestCGIndex;
+      } else if (firstValidCG >= 0) { /* If all projection columns are either deleted or non-existing,
+                                      then we use the first non-deleted column group to do split if it exists. */
+        splitCGIndex = firstValidCG; 
+      } 
+     
+      return splitCGIndex;
+    }
+
 
     /**
      * Close the BasicTable for reading. Resources are released.
@@ -671,10 +764,11 @@ public class BasicTable {
      * implementation-dependent.
      */
     public static class RangeSplit implements Writable {
-      CGRangeSplit[] slice;
+      //CGRangeSplit[] slice;
+      CGRangeSplit slice;
 
-      RangeSplit(CGRangeSplit[] splits) {
-        slice = splits;
+      RangeSplit(CGRangeSplit split) {
+        slice = split;
       }
 
       /**
@@ -689,12 +783,10 @@ public class BasicTable {
        */
       @Override
       public void readFields(DataInput in) throws IOException {
-        int count = Utils.readVInt(in);
-        slice = new CGRangeSplit[count];
-        for (int nx = 0; nx < count; nx++) {
+        for (int nx = 0; nx < 1; nx++) {
           CGRangeSplit cgrs = new CGRangeSplit();
           cgrs.readFields(in);
-          slice[nx] = cgrs;
+          slice = cgrs;
         }
       }
 
@@ -703,17 +795,80 @@ public class BasicTable {
        */
       @Override
       public void write(DataOutput out) throws IOException {
-        Utils.writeVInt(out, slice.length);
-        for (CGRangeSplit split : slice) {
-          split.write(out);
-        }
+        //Utils.writeVInt(out, slice.length);
+        //for (CGRangeSplit split : slice) {
+        //  split.write(out);
+        //}
+        slice.write(out);
       }
 
-      CGRangeSplit get(int index) {
-        return slice[index];
+      //CGRangeSplit get(int index) {
+       // return slice[index];
+      //}
+      
+      CGRangeSplit getCGRangeSplit() {
+        return slice;
       }
     }
 
+    /**
+     * A row-based split on the zebra table;
+     */
+    public static class RowSplit implements Writable {
+      int cgIndex;  // column group index where split lies on;
+      CGRowSplit slice; 
+
+      RowSplit(int cgidx, CGRowSplit split) {
+        this.cgIndex = cgidx;
+        this.slice = split;
+      }
+
+      /**
+       * Default constructor.
+       */
+      public RowSplit() {
+        // no-op
+      }
+      
+      @Override
+      public String toString() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("{cgIndex = " + cgIndex + "}\n");
+        sb.append(slice.toString());
+        
+        return sb.toString();
+      }
+
+      /**
+       * @see Writable#readFields(DataInput)
+       */
+      @Override
+      public void readFields(DataInput in) throws IOException {
+        this.cgIndex = Utils.readVInt(in);
+        CGRowSplit cgrs = new CGRowSplit();
+        cgrs.readFields(in);
+        this.slice = cgrs;
+      }
+
+      /**
+       * @see Writable#write(DataOutput)
+       */
+      @Override
+      public void write(DataOutput out) throws IOException {
+        Utils.writeVInt(out, cgIndex);
+        slice.write(out);
+      }
+      
+      int getCGIndex() {
+        return cgIndex;
+      }
+
+      CGRowSplit getCGRowSplit() {
+        return slice;
+      }
+    }
+    
+    
     /**
      * BasicTable scanner class
      */
@@ -733,9 +888,88 @@ public class BasicTable {
       }
 
       public BTScanner(BytesWritable beginKey, BytesWritable endKey,
-          boolean closeReader, Partition partition) throws IOException {
+        boolean closeReader, Partition partition) throws IOException {
+        init(null, null, beginKey, endKey, closeReader, partition);
+      }
+      
+      public BTScanner(RangeSplit split, Partition partition,
+        boolean closeReader) throws IOException {
+        init(null, split, null, null, closeReader, partition);
+      }
+      
+      public BTScanner(RowSplit rowSplit,  boolean closeReader, 
+                       Partition partition) throws IOException {
+        init(rowSplit, null, null, null, closeReader, partition);
+      }      
+      
+      /**
+       * Creates new CGRowSplit. If the startRow in rowSplit is not set 
+       * (i.e. < 0), it sets the startRow and numRows based on 'startByte' 
+       * and 'numBytes' from given rowSplit.
+       */
+      private CGRowSplit makeCGRowSplit(RowSplit rowSplit) throws IOException {
+        CGRowSplit inputCGSplit = rowSplit.getCGRowSplit(); 
+
+        int cgIdx = rowSplit.getCGIndex();
+        
+        CGRowSplit cgSplit = new CGRowSplit();
+        cgSplit.fileIndex = inputCGSplit.fileIndex;
+        // startByte and numBytes from inputCGSplit are ignored, since
+        // they make sense for only one CG.
+        cgSplit.startRow = inputCGSplit.startRow;
+        cgSplit.numRows = inputCGSplit.numRows;
+        
+        if (cgSplit.startRow >= 0) {
+          //assume the rows are already set up.
+          return cgSplit;
+        }
+        
+        // Find the row range :
+        if (isCGDeleted(cgIdx)) {
+          throw new IOException("CG " + cgIdx + " is deleted.");
+        }
+        
+        //fill the row numbers.
+        colGroups[cgIdx].fillRowSplit(cgSplit, inputCGSplit.startByte,
+                                      inputCGSplit.numBytes);
+        return cgSplit;
+      }
+    
+      // Helper function for initialization.
+      private TableScanner createCGScanner(int cgIndex, CGRowSplit cgRowSplit, 
+                                           RangeSplit rangeSplit,
+                                           BytesWritable beginKey, 
+                                           BytesWritable endKey) 
+                      throws IOException, ParseException, 
+                             ParseException {        
+        if (cgRowSplit != null) {
+          return colGroups[cgIndex].getScanner(false, cgRowSplit);
+        }      
+        if (beginKey != null || endKey != null) {
+          return colGroups[cgIndex].getScanner(beginKey, endKey, false);
+        }
+        return colGroups[cgIndex].getScanner
+                ((rangeSplit == null ? null : rangeSplit.getCGRangeSplit()), 
+                 false);
+      }
+      
+      /**
+       * If rowRange is not null, scanners will be created based on the 
+       * row range. <br>
+       * If RangeSplit is not null, scaller will be based on the range, <br>
+       * otherwise, these are based on keys.
+       */
+      private void init(RowSplit rowSplit, RangeSplit rangeSplit,
+                   BytesWritable beginKey, BytesWritable endKey, 
+                   boolean closeReader, Partition partition) throws IOException {
         this.partition = partition;
         boolean anyScanner = false;
+        
+        CGRowSplit cgRowSplit = null;
+        if (rowSplit != null) {
+          cgRowSplit = makeCGRowSplit(rowSplit);
+        }
+        
         try {
           schema = partition.getProjection();
           cgScanners = new TableScanner[colGroups.length];
@@ -743,64 +977,17 @@ public class BasicTable {
             if (!isCGDeleted(i) && partition.isCGNeeded(i)) 
             {
               anyScanner = true;
-              cgScanners[i] = colGroups[i].getScanner(beginKey, endKey, false);
+              cgScanners[i] = createCGScanner(i, cgRowSplit, rangeSplit,
+                                              beginKey, endKey);                                                             
             } else
               cgScanners[i] = null;
           }
           if (!anyScanner && firstValidCG >= 0) {
             // if no CG is needed explicitly by projection but the "countRow" still needs to access some column group
-            cgScanners[firstValidCG] = colGroups[firstValidCG].
-                                         getScanner(beginKey, endKey, false);
+            cgScanners[firstValidCG] = createCGScanner(firstValidCG, cgRowSplit, 
+                                                       rangeSplit,
+                                                       beginKey, endKey);            
           }
-          this.closeReader = closeReader;
-          sClosed = false;
-        }
-        catch (Exception e) {
-          throw new IOException("BTScanner constructor failed : "
-              + e.getMessage());
-        }
-        finally {
-          if (sClosed) {
-            if (cgScanners != null) {
-              for (int i = 0; i < cgScanners.length; ++i) {
-                if (cgScanners[i] != null) {
-                  try {
-                    cgScanners[i].close();
-                    cgScanners[i] = null;
-                  }
-                  catch (Exception e) {
-                    // no-op
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-
-      public BTScanner(RangeSplit split, Partition partition,
-          boolean closeReader) throws IOException {
-        try {
-          schema = partition.getProjection();
-          cgScanners = new TableScanner[colGroups.length];
-          boolean anyScanner = false;
-          for (int i = 0; i < colGroups.length; ++i) {
-            // if no CG is needed explicitly by projection but the "countRow" still needs to access some column group
-            if (!isCGDeleted(i) && partition.isCGNeeded(i))
-            {
-              cgScanners[i] =
-                  colGroups[i].getScanner(split == null ? null : split.get(i),
-                      false);
-              anyScanner = true;
-            } else
-              cgScanners[i] = null;
-          }
-          if (!anyScanner && firstValidCG >= 0) {
-            // if no CG is needed explicitly by projection but the "countRow" still needs to access some column group
-            cgScanners[firstValidCG] = colGroups[firstValidCG].
-              getScanner(split == null ? null : split.get(firstValidCG), false);
-          }
-          this.partition = partition;
           this.closeReader = closeReader;
           sClosed = false;
         }

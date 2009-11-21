@@ -31,7 +31,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.BytesWritable;
-import org.apache.hadoop.io.file.tfile.RawComparable;
+import org.apache.hadoop.zebra.tfile.RawComparable;
 import org.apache.hadoop.zebra.io.BasicTable;
 import org.apache.hadoop.zebra.io.BasicTableStatus;
 import org.apache.hadoop.zebra.io.KeyDistribution;
@@ -81,7 +81,7 @@ public class TestBasicTable {
     return String.format("%s%09d", prefix, random.nextInt(max));
   }
 
-  static int createBasicTable(int parts, int rows, String strSchema, String storage, String sortColumns,
+  public static int createBasicTable(int parts, int rows, String strSchema, String storage, String sortColumns,
       Path path, boolean properClose) throws IOException {
     if (fs.exists(path)) {
       BasicTable.drop(path, conf);
@@ -126,8 +126,11 @@ public class TestBasicTable {
     if (properClose) {
       writer = new BasicTable.Writer(path, conf);
       writer.close();
-      BasicTableStatus status = getStatus(path);
-      Assert.assertEquals(total, status.getRows());
+      /* We can only test number of rows on sorted tables.*/
+      if (sorted) {
+        BasicTableStatus status = getStatus(path);
+        Assert.assertEquals(total, status.getRows());
+      }
     }
 
     return total;
