@@ -29,6 +29,9 @@ Trunk (unreleased changes)
 
   BUG FIXES
 
+    PIG-1091: Exception when load with projection of map keys on a map column
+	that is not map split (yanz via gates).
+
     PIG-1026: [zebra] map split returns null (yanz via pradeepkth)
 
 	PIG-1057 Zebra does not support concurrent deletions of column groups now
