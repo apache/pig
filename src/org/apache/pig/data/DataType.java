@@ -24,8 +24,8 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.TreeMap;
-import java.util.Set;
 
+import org.apache.hadoop.io.WritableComparable;
 import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.impl.logicalLayer.FrontendException;
@@ -62,6 +62,12 @@ public class DataType {
     public static final byte MAP       = 100;
     public static final byte TUPLE     = 110;
     public static final byte BAG       = 120;
+    
+    // internal use only; used to store WriteableComparable objects 
+    // for creating ordered index in MergeJoin. Expecting a object that
+    // implements Writable interface and has default constructor
+    public static final byte GENERIC_WRITABLECOMPARABLE = 123; 
+    
     public static final byte INTERNALMAP = 127; // internal use only; for maps that are object->object.  Used by FindQuantiles.
     public static final byte ERROR     =  -1;
 
@@ -86,6 +92,7 @@ public class DataType {
         else if (o instanceof Double) return DOUBLE;
         else if (o instanceof Boolean) return BOOLEAN;
         else if (o instanceof Byte) return BYTE;
+        else if (o instanceof WritableComparable) return GENERIC_WRITABLECOMPARABLE;
         else {return ERROR;}
     }
 
@@ -135,6 +142,7 @@ public class DataType {
 		}  else {
 		    interfaces = ioeInterfaces;
 		}
+		boolean matchedWritableComparable = false;
 		for (int i = 0; i < interfaces.length; i++) {
 		    if (interfaces[i].getName().equals("org.apache.pig.data.Tuple")) {
 		        return TUPLE;
@@ -142,8 +150,13 @@ public class DataType {
 		        return BAG;
 		    } else if (interfaces[i].getName().equals("java.util.Map")) {
 		        return MAP;
-		    }
+		    } else if (interfaces[i].getName().equals("org.apache.hadoop.io.WritableComparable")) {
+		        // use GENERIC_WRITABLECOMPARABLE type only as last resort
+		        matchedWritableComparable = true;
+                    }
 		}
+		if(matchedWritableComparable)
+		    return GENERIC_WRITABLECOMPARABLE;
 		
 		return ERROR;
 	}
@@ -154,14 +167,19 @@ public class DataType {
     }
     public static byte[] genAllTypes(){
         byte[] types = { DataType.BAG, DataType.BIGCHARARRAY, DataType.BOOLEAN, DataType.BYTE, DataType.BYTEARRAY, 
-                DataType.CHARARRAY, DataType.DOUBLE, DataType.FLOAT, DataType.INTEGER, DataType.INTERNALMAP, 
+                DataType.CHARARRAY, DataType.DOUBLE, DataType.FLOAT, 
+                DataType.GENERIC_WRITABLECOMPARABLE,
+                DataType.INTEGER, DataType.INTERNALMAP, 
                 DataType.LONG, DataType.MAP, DataType.TUPLE};
         return types;
     }
     
     private static String[] genAllTypeNames(){
-        String[] names = { "BAG", "BIGCHARARRAY", "BOOLEAN", "BYTE", "BYTEARRAY", "CHARARRAY", "DOUBLE", "FLOAT", "INTEGER",
-                "INTERNALMAP", "LONG", "MAP", "TUPLE" };
+        String[] names = { "BAG", "BIGCHARARRAY", "BOOLEAN", "BYTE", "BYTEARRAY", 
+                "CHARARRAY", "DOUBLE", "FLOAT", 
+                "GENERIC_WRITABLECOMPARABLE",
+                "INTEGER","INTERNALMAP",
+                "LONG", "MAP", "TUPLE" };
         return names;
     }
     
@@ -215,6 +233,7 @@ public class DataType {
         case INTERNALMAP: return "internalmap";
         case TUPLE:     return "tuple";
         case BAG:       return "bag";
+        case GENERIC_WRITABLECOMPARABLE: return "generic_writablecomparable";
         default: return "Unknown";
         }
     }
@@ -253,7 +272,8 @@ public class DataType {
                 (dataType == FLOAT) ||
                 (dataType == DOUBLE) ||
                 (dataType == BOOLEAN) ||
-                (dataType == BYTE));
+                (dataType == BYTE) ||
+                (dataType == GENERIC_WRITABLECOMPARABLE));
     }
 
     /**
@@ -366,6 +386,9 @@ public class DataType {
                 }
                       }
 
+            case GENERIC_WRITABLECOMPARABLE:
+                return ((Comparable)o1).compareTo(o2);
+
             case INTERNALMAP:
                 return -1;  // Don't think anyway will want to do this.
                 
@@ -374,6 +397,7 @@ public class DataType {
 
             case BAG:
                 return ((DataBag)o1).compareTo((DataBag)o2);
+                
 
             default:
                 throw new RuntimeException("Unkown type " + dt1 +

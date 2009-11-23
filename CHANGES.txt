@@ -24,6 +24,9 @@ Trunk (unreleased changes)
 
 INCOMPATIBLE CHANGES
 
+PIG-1088: change merge join and merge join indexer to work with new LoadFunc
+interface (thejas via pradeepkth)
+
 PIG-879:  Pig should provide a way for input location string in load statement
 to be passed as-is to the Loader (rding via pradeepkth)
 

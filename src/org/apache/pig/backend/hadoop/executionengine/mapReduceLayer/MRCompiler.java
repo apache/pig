@@ -34,6 +34,7 @@ import org.apache.hadoop.mapred.JobConf;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.IndexableLoadFunc;
 import org.apache.pig.LoadFunc;
+import org.apache.pig.OrderedLoadFunc;
 import org.apache.pig.PigException;
 import org.apache.pig.PigWarning;
 import org.apache.pig.builtin.BinStorage;
@@ -42,7 +43,6 @@ import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.builtin.DefaultIndexableLoader;
 import org.apache.pig.impl.builtin.FindQuantiles;
 import org.apache.pig.impl.builtin.PoissonSampleLoader;
-import org.apache.pig.impl.builtin.MergeJoinIndexer;
 import org.apache.pig.impl.builtin.GetMemNumRows;
 import org.apache.pig.impl.builtin.PartitionSkewedKeys;
 import org.apache.pig.impl.builtin.RandomSampleLoader;
@@ -56,7 +56,6 @@ import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROpPl
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.UDFFinder;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.ConstantExpression;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POCast;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POProject;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POUserFunc;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
@@ -1183,17 +1182,25 @@ public class MRCompiler extends PhyPlanVisitor {
                 String[] indexerArgs = new String[3];
                 FileSpec origRightLoaderFileSpec = rightLoader.getLFile();
                 indexerArgs[0] = origRightLoaderFileSpec.getFuncSpec().toString();
-
+                if (! (PigContext.instantiateFuncFromSpec(indexerArgs[0]) instanceof OrderedLoadFunc)){
+                    int errCode = 1104;
+                    String errMsg = "Right input of merge-join must implement " +
+                    "OrderedLoadFunc interface. The specified loader " 
+                    + indexerArgs[0] + " doesn't implement it";
+                    throw new MRCompilerException(errMsg,errCode);
+                }
                 List<PhysicalPlan> rightInpPlans = joinOp.getInnerPlansOf(1);
                 indexerArgs[1] = ObjectSerializer.serialize((Serializable)rightInpPlans);
                 indexerArgs[2] = ObjectSerializer.serialize(rightPipelinePlan);
                 FileSpec lFile = new FileSpec(rightLoader.getLFile().getFileName(),new FuncSpec(MergeJoinIndexer.class.getName(), indexerArgs));
                 rightLoader.setLFile(lFile);
     
-                // Loader of mro will return a tuple of form (key1, key2, ..,filename, offset)
+                // Loader of mro will return a tuple of form - 
+                // (keyFirst1, keyFirst2, .. , position, splitIndex) See MergeJoinIndexer
                 // Now set up a POLocalRearrange which has "all" as the key and tuple fetched
                 // by loader as the "value" of POLocalRearrange
-                // Sorting of index can possibly be achieved by using Hadoop sorting between map and reduce instead of Pig doing sort. If that is so, 
+                // Sorting of index can possibly be achieved by using Hadoop sorting 
+                // between map and reduce instead of Pig doing sort. If that is so, 
                 // it will simplify lot of the code below.
                 
                 PhysicalPlan lrPP = new PhysicalPlan();
@@ -1259,11 +1266,12 @@ public class MRCompiler extends PhyPlanVisitor {
                 rightMROpr.setReduceDone(true);
                 
                 // set up the DefaultIndexableLoader for the join operator
-                String[] defaultIndexableLoaderArgs = new String[4];
+                String[] defaultIndexableLoaderArgs = new String[5];
                 defaultIndexableLoaderArgs[0] = origRightLoaderFileSpec.getFuncSpec().toString();
                 defaultIndexableLoaderArgs[1] = strFile.getFileName();
                 defaultIndexableLoaderArgs[2] = strFile.getFuncSpec().toString();
                 defaultIndexableLoaderArgs[3] = joinOp.getOperatorKey().scope;
+                defaultIndexableLoaderArgs[4] = origRightLoaderFileSpec.getFileName();
                 joinOp.setRightLoaderFuncSpec((new FuncSpec(DefaultIndexableLoader.class.getName(), defaultIndexableLoaderArgs)));
                 joinOp.setRightInputFileName(origRightLoaderFileSpec.getFileName());    
                  

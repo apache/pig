@@ -15,19 +15,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.pig.impl.builtin;
+package org.apache.pig.backend.hadoop.executionengine.mapReduceLayer;
 
 import java.io.IOException;
 import java.util.List;
-
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.WritableComparable;
 import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.RecordReader;
+import org.apache.pig.LoadCaster;
 import org.apache.pig.LoadFunc;
+import org.apache.pig.OrderedLoadFunc;
 import org.apache.pig.PigException;
-import org.apache.pig.SamplableLoader;
 import org.apache.pig.backend.executionengine.ExecException;
-import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigSplit;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
@@ -43,23 +44,22 @@ import org.apache.pig.impl.util.ObjectSerializer;
 /** Merge Join indexer is used to generate on the fly index for doing Merge Join efficiently.
  *  It samples first record from every block of right side input. 
  *  and returns tuple in the following format : 
- *  (key0, key1,...,fileName, offset)
+ *  (key0, key1,...,position,splitIndex)
  *  These tuples are then sorted before being written out to index file on HDFS.
  */
-//XXX : FIXME - make this work with new load-store redesign
-public class MergeJoinIndexer  extends LoadFunc {
+public class MergeJoinIndexer  extends LoadFunc{
 
     private boolean firstRec = true;
     private transient TupleFactory mTupleFactory;
-    private String fileName;
     private POLocalRearrange lr;
     private PhysicalPlan precedingPhyPlan;
     private int keysCnt;
     private PhysicalOperator rightPipelineLeaf;
     private PhysicalOperator rightPipelineRoot;
     private Tuple dummyTuple = null;
-    private SamplableLoader loader;
-
+    private OrderedLoadFunc loader;
+    private PigSplit pigSplit = null;
+    
     /** @param funcSpec : Loader specification.
      *  @param innerPlan : This is serialized version of LR plan. We 
      *  want to keep only keys in our index file and not the whole tuple. So, we need LR and thus its plan
@@ -68,15 +68,12 @@ public class MergeJoinIndexer  extends LoadFunc {
      * @throws ExecException 
      */
     @SuppressWarnings("unchecked")
-    public MergeJoinIndexer(String funcSpec, String innerPlan, String serializedPhyPlan) 
-            throws ExecException{
+    public MergeJoinIndexer(String funcSpec, String innerPlan, String serializedPhyPlan) throws ExecException{
         
-        loader = (SamplableLoader)PigContext.instantiateFuncFromSpec(funcSpec);
+        loader = (OrderedLoadFunc)PigContext.instantiateFuncFromSpec(funcSpec);
         try {
-            List<PhysicalPlan> innerPlans = 
-                (List<PhysicalPlan>)ObjectSerializer.deserialize(innerPlan);
-            lr = new POLocalRearrange(new OperatorKey("MergeJoin Indexer",
-                    NodeIdGenerator.getGenerator().getNextNodeId("MergeJoin Indexer")));
+            List<PhysicalPlan> innerPlans = (List<PhysicalPlan>)ObjectSerializer.deserialize(innerPlan);
+            lr = new POLocalRearrange(new OperatorKey("MergeJoin Indexer",NodeIdGenerator.getGenerator().getNextNodeId("MergeJoin Indexer")));
             lr.setPlans(innerPlans);
             keysCnt = innerPlans.size();
             precedingPhyPlan = (PhysicalPlan)ObjectSerializer.deserialize(serializedPhyPlan);
@@ -101,24 +98,21 @@ public class MergeJoinIndexer  extends LoadFunc {
 
     @Override
     public Tuple getNext() throws IOException {
-
+        
         if(!firstRec)   // We sample only one record per block.
             return null;
-
-        long curPos;
+        WritableComparable<?> position = loader.getSplitComparable(pigSplit);
         Object key = null;
         Tuple wrapperTuple = mTupleFactory.newTuple(keysCnt+2);
         
         while(true){
-            curPos = loader.getPosition();
             Tuple readTuple = loader.getNext();
 
             if(null == readTuple){    // We hit the end.
 
                 for(int i =0; i < keysCnt; i++)
                     wrapperTuple.set(i, null);
-                wrapperTuple.set(keysCnt, fileName);
-                wrapperTuple.set(keysCnt+1, curPos);
+                wrapperTuple.set(keysCnt, position);
                 firstRec = false;
                 return wrapperTuple;
             }
@@ -177,25 +171,42 @@ public class MergeJoinIndexer  extends LoadFunc {
         else
             wrapperTuple.set(0, key);
 
-        wrapperTuple.set(keysCnt, fileName);
-        wrapperTuple.set(keysCnt+1, curPos);    
+        wrapperTuple.set(keysCnt, position);
+        wrapperTuple.set(keysCnt+1, pigSplit.getSplitIndex());
         firstRec = false;
         return wrapperTuple;
     }
     
+    /* (non-Javadoc)
+     * @see org.apache.pig.LoadFunc#getInputFormat()
+     */
     @Override
-    public InputFormat getInputFormat() {
-        return null;
+    public InputFormat getInputFormat() throws IOException {
+        return loader.getInputFormat();
     }
 
+    /* (non-Javadoc)
+     * @see org.apache.pig.LoadFunc#getLoadCaster()
+     */
     @Override
-    public void prepareToRead(RecordReader reader, PigSplit split) {
-        throw new UnsupportedOperationException();
+    public LoadCaster getLoadCaster() throws IOException {
+        return loader.getLoadCaster();
     }
 
+    /* (non-Javadoc)
+     * @see org.apache.pig.LoadFunc#prepareToRead(org.apache.hadoop.mapreduce.RecordReader, org.apache.hadoop.mapreduce.InputSplit)
+     */
+    @Override
+    public void prepareToRead(RecordReader reader, PigSplit split) throws IOException {
+        loader.prepareToRead(reader, split);
+        pigSplit = split;
+    }
+
+    /* (non-Javadoc)
+     * @see org.apache.pig.LoadFunc#setLocation(java.lang.String, org.apache.hadoop.mapreduce.Job)
+     */
     @Override
     public void setLocation(String location, Job job) throws IOException {
-        throw new UnsupportedOperationException();
+        loader.setLocation(location, job);
     }
-
 }

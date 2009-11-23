@@ -58,8 +58,6 @@ public class POLoad extends PhysicalOperator {
     transient LoadFunc loader = null;
     // The filespec on which the operator is based
     FileSpec lFile;
-    // The stream used to bind to by the loader
-    transient InputStream is;
     // PigContext passed to us by the operator creator
     PigContext pc;
     //Indicates whether the loader setup is done or not
@@ -107,13 +105,7 @@ public class POLoad extends PhysicalOperator {
                 ConfigurationUtil.toConfiguration(pc.getProperties()), 
                 filename,
                 0);
-        
-     // XXX : FIXME need to get this to work with new loadfunc interface - the 
-        // below code is for merge join - hopefully we will no longer need it
-        // and then we can just get rid of it and the rest should be fine.
-        is = (this.offset == 0) ? FileLocalizer.open(filename, pc) : FileLocalizer.open(filename, this.offset,pc);
-        
-//        loader.bindTo(filename , new BufferedPositionedInputStream(is), this.offset, Long.MAX_VALUE);
+
         
     }
     
@@ -123,7 +115,6 @@ public class POLoad extends PhysicalOperator {
      * @throws IOException
      */
     public void tearDown() throws IOException{
-        is.close();
         setUpDone = false;
     }
     

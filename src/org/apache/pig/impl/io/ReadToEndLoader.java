@@ -22,7 +22,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.Job;
@@ -67,13 +66,18 @@ public class ReadToEndLoader extends LoadFunc {
      * the input location string (typically input file/dir name )
      */
     private String inputLocation;
+      
+    /**
+     * If the splits to be read are not in increasing sequence of integers
+     * this array can be used
+     */
+    private int[] toReadSplits = null;
     
     /**
-     * the index of the split (in {@link InputFormat#getSplits(org.apache.hadoop.mapreduce.JobContext)})
-     * to start reading from
+     * index into toReadSplits
      */
-    private int startSplitIndex;
-
+    private int toReadSplitsIdx = 0;
+    
     /**
      * the index of the split the loader is currently reading from
      */
@@ -82,60 +86,86 @@ public class ReadToEndLoader extends LoadFunc {
     /**
      * the input splits returned by underlying {@link InputFormat#getSplits(JobContext)}
      */
-    private List<InputSplit> splits;
+    private List<InputSplit> inpSplits = null;
     
     /**
      * underlying RecordReader
      */
-    private RecordReader reader;
+    private RecordReader reader = null;
     
     /**
      * underlying InputFormat
      */
-    private InputFormat inputFormat;
+    private InputFormat inputFormat = null;
     
     /**
      * @param wrappedLoadFunc
      * @param conf
      * @param inputLocation
-     * @param startSplitIndex
+     * @param splitIndex
      * @throws IOException 
      * @throws InterruptedException 
      */
     public ReadToEndLoader(LoadFunc wrappedLoadFunc, Configuration conf,
-            String inputLocation, int startSplitIndex) throws IOException {
+            String inputLocation, int splitIndex) throws IOException {
         this.wrappedLoadFunc = wrappedLoadFunc;
+        this.inputLocation = inputLocation;
+        this.conf = conf;
+        this.curSplitIndex = splitIndex;
+        init();
+    }
+    
+    /**
+     * This constructor takes an array of split indexes (toReadSplitIdxs) of the 
+     * splits to be read.
+     * @param wrappedLoadFunc
+     * @param conf
+     * @param inputLocation
+     * @param toReadSplitIdxs
+     * @throws IOException 
+     * @throws InterruptedException 
+     */
+    public ReadToEndLoader(LoadFunc wrappedLoadFunc, Configuration conf,
+            String inputLocation, int[] toReadSplitIdxs) throws IOException {
+        this.wrappedLoadFunc = wrappedLoadFunc;
+        this.inputLocation = inputLocation;
+        this.toReadSplits = toReadSplitIdxs;
+        this.conf = conf;
+        this.curSplitIndex =
+            toReadSplitIdxs.length > 0 ? toReadSplitIdxs[0] : Integer.MAX_VALUE;
+        init();
+    }
+    
+    private void init() throws IOException {
         // make a copy so that if the underlying InputFormat writes to the
         // conf, we don't affect the caller's copy
-        this.conf = new Configuration(conf);
-        this.inputLocation = inputLocation;
-        this.startSplitIndex = startSplitIndex;
-        this.curSplitIndex = startSplitIndex;
-        
+        conf = new Configuration(conf);
         // let's initialize the wrappedLoadFunc 
-        Job job = new Job(this.conf);
-        wrappedLoadFunc.setLocation(this.inputLocation, 
+        Job job = new Job(conf);
+        wrappedLoadFunc.setLocation(inputLocation, 
                 job);
         // The above setLocation call could write to the conf within
         // the job - get a hold of the modified conf
-        this.conf = job.getConfiguration();
+        conf = job.getConfiguration();
         inputFormat = wrappedLoadFunc.getInputFormat();
         try {
-            splits = inputFormat.getSplits(new JobContext(this.conf,
+            inpSplits = inputFormat.getSplits(new JobContext(conf,
                     new JobID()));
         } catch (InterruptedException e) {
             throw new IOException(e);
-        }
+        }        
     }
-    
+
     private boolean initializeReader() throws IOException, 
     InterruptedException {
-        if(curSplitIndex > splits.size() - 1) {
+        if(curSplitIndex > inpSplits.size() - 1) {
             // past the last split, we are done
             return false;
         }
-        
-        InputSplit curSplit = splits.get(curSplitIndex);
+        if(reader != null){
+            reader.close();
+        }
+        InputSplit curSplit = inpSplits.get(curSplitIndex);
         TaskAttemptContext tAContext = new TaskAttemptContext(conf, 
                 new TaskAttemptID());
         reader = inputFormat.createRecordReader(curSplit, tAContext);
@@ -164,8 +194,7 @@ public class ReadToEndLoader extends LoadFunc {
                 }
                 // if loadfunc returned null, we need to read next split
                 // if there is one
-                reader.close();
-                curSplitIndex++;
+                updateCurSplitIndex();
                 return getNextHelper();
             }
         } catch (InterruptedException e) {
@@ -179,22 +208,41 @@ public class ReadToEndLoader extends LoadFunc {
             t = wrappedLoadFunc.getNext();
             if(t == null) {
                 // try next split
-                curSplitIndex++;
+                updateCurSplitIndex();
             } else {
                 return t;
             }
         }
         return null;
     }
-
-    @Override
-    public InputFormat getInputFormat() {
-        return null;
+    
+    
+    /**
+     * Updates curSplitIndex , just increment if splitIndexes is null,
+     * else get next split in splitIndexes
+     */
+    private void updateCurSplitIndex() {
+        if(toReadSplits == null){
+            ++curSplitIndex;
+        }else{
+            ++toReadSplitsIdx;
+            if(toReadSplitsIdx >= toReadSplits.length){
+                // finished all the splits in splitIndexes array
+                curSplitIndex = Integer.MAX_VALUE;
+            }else{
+                curSplitIndex = toReadSplits[toReadSplitsIdx];
+            }
+        }
     }
 
     @Override
-    public LoadCaster getLoadCaster() {
-        return null;
+    public InputFormat getInputFormat() throws IOException {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public LoadCaster getLoadCaster() throws IOException {
+        throw new UnsupportedOperationException();
     }
 
     @Override
@@ -206,5 +254,7 @@ public class ReadToEndLoader extends LoadFunc {
     public void setLocation(String location, Job job) throws IOException {
         throw new UnsupportedOperationException();       
     }
+
+
    
 }
