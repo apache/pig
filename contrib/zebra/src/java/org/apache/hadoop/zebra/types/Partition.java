@@ -726,8 +726,6 @@ public class Partition {
           cgindex = mapentry.getKey();
           if (cgindex == null)
             throw new AssertionError( "Internal Logical Error: RECORD does not have a CG index.");
-          if (mapentry.getValue() != null)
-            throw new AssertionError( "Internal Logical Error: RECORD should not have a split key map.");
           cgentry = getCGEntry(cgindex.getCGIndex());
           parCol = new PartitionedColumn(i, false);
           cgentry.addUser(parCol, name);
