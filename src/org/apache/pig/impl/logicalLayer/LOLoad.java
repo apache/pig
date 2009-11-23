@@ -172,13 +172,11 @@ public class LOLoad extends RelationalOperator {
             // should use Configuration directly by passing a 
             // Configuration object while creating LOLoad rather than
             // a DataStorage object
-            mLoadFunc.setLocation(mInputFileSpec.getFileName(), 
-                    new Job(ConfigurationUtil.toConfiguration(
-                            mStorage.getConfiguration())));
             LoadMetadata loadMetadata = (LoadMetadata)mLoadFunc;
             ResourceSchema rSchema = loadMetadata.getSchema(
                     mInputFileSpec.getFileName(), 
-                    ConfigurationUtil.toConfiguration(mStorage.getConfiguration()));
+                    ConfigurationUtil.toConfiguration(
+                            mStorage.getConfiguration()));
             return Schema.getPigSchema(rSchema);
         } else {
             return null;
