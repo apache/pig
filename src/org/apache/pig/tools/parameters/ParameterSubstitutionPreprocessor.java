@@ -52,7 +52,6 @@ public class ParameterSubstitutionPreprocessor {
 
         paramParser  = new ParamLoader(sr);
         paramParser.setContext(pc);
-
         pigParser = new PigFileParser(sr);
         pigParser.setContext(pc);
     }
@@ -87,33 +86,10 @@ public class ParameterSubstitutionPreprocessor {
     }
 
     private void parsePigFile(BufferedReader in, Writer out) throws ParseException {
-
+        pigParser.setOutputWriter(out);
+        pigParser.ReInit(in);
         try {
-            String line;
-            int lineNum=0;
-
-            while((line = in.readLine())!= null)
-            {
-                lineNum++;
-
-                if (line.length() == 0) {
-                    out.append("\n");
-                    continue;
-                }
-
-                if ( !(line.startsWith("%")) ) {
-                    //process an ordinary pig line - perform substitution
-                    String sub_line = pc.substitute(line);
-                    out.append(sub_line);
-                    out.append("\n");
-                    continue;
-                }
-
-                //parse the declare/default line
-                pigParser.ReInit(new StringReader(line));
-                pigParser.Parse();
-            }
-
+            pigParser.Parse();
             //close input and output streams
             in.close();
             out.flush();
@@ -122,7 +98,6 @@ public class ParameterSubstitutionPreprocessor {
             RuntimeException rte = new RuntimeException(e.getMessage() , e);
             throw rte;
         }
-
     }
 
     /* 
