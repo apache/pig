@@ -60,7 +60,9 @@ public class TestUTF8 extends TestCase {
         pw.println("ภาษาไทย");
         pw.close();
 
-        pigServer.registerQuery("a = load '" + Util.generateURI(f1.toString()) + "' using " + PigStorage.class.getName() + "();");
+        pigServer.registerQuery("a = load '" 
+                + Util.generateURI(f1.toString(), pigServer.getPigContext()) 
+                + "' using " + PigStorage.class.getName() + "();");
         Iterator<Tuple> iter  = pigServer.openIterator("a");
         
         assertEquals(DataType.toString(iter.next().get(0)), "中文");
@@ -91,7 +93,9 @@ public class TestUTF8 extends TestCase {
         pw.println("中文");
         pw.close();
         
-        pigServer.registerQuery("a = load '" + Util.generateURI(f1.toString()) + "' using " + PigStorage.class.getName() + "();");
+        pigServer.registerQuery("a = load '" 
+                + Util.generateURI(f1.toString(), pigServer.getPigContext()) 
+                + "' using " + PigStorage.class.getName() + "();");
         pigServer.registerQuery("b =  filter a by $0 == '中文';");
         Iterator<Tuple> iter  = pigServer.openIterator("a");
         
@@ -99,6 +103,7 @@ public class TestUTF8 extends TestCase {
 
         f1.delete();
     }
+    
     @Test
     public void testParamSubstitution() throws Exception{
     	File queryFile = File.createTempFile("query", "");

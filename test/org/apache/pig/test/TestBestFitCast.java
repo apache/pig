@@ -17,14 +17,13 @@
  */
 package org.apache.pig.test;
 
-import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
+
+import junit.framework.TestCase;
 
 import org.apache.pig.EvalFunc;
 import org.apache.pig.ExecType;
@@ -37,13 +36,10 @@ import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
-import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.util.LogUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-
-import junit.framework.TestCase;
 
 public class TestBestFitCast extends TestCase {
     private PigServer pigServer;
@@ -699,12 +695,13 @@ public class TestBestFitCast extends TestCase {
     public void test6() throws Exception{
         // test UDF with single mapping function 
         // where bytearray is passed in as input parameter
-        File input = Util.createInputFile("tmp", "", new String[] {"abc"});
-        pigServer.registerQuery("A = LOAD '" + Util.generateURI(input.toString()) +"';");
+        Util.createInputFile(cluster, "test6", new String[] {"abc"});
+        pigServer.registerQuery("A = LOAD 'test6';");
         pigServer.registerQuery("B = FOREACH A GENERATE " + UDF2.class.getName() + "($0);");
         Iterator<Tuple> iter = pigServer.openIterator("B");
         if(!iter.hasNext()) fail("No Output received");
         Tuple t = iter.next();
         assertEquals("ABC", t.get(0));
+        Util.deleteFile(cluster, "test6");
     }
 }

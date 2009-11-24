@@ -40,7 +40,6 @@ public class TestFilterOpString extends TestCase {
 
     private final Log log = LogFactory.getLog(getClass());
     private static int LOOP_COUNT = 1024;    
-    private String initString = "mapreduce";
     MiniCluster cluster = MiniCluster.buildCluster();
 
     private PigServer pig;
@@ -71,16 +70,18 @@ public class TestFilterOpString extends TestCase {
             }
         }
         ps.close();
-        pig.registerQuery("A=load '" + Util.generateURI(tmpFile.toString()) + "' using " + PigStorage.class.getName() + "(':');");
+        pig.registerQuery("A=load '" 
+                + Util.generateURI(tmpFile.toString(), pig.getPigContext()) 
+                + "' using " + PigStorage.class.getName() + "(':');");
         String query = "A = filter A by $0 eq $1;";
 
         log.info(query);
         pig.registerQuery(query);
-        Iterator it = pig.openIterator("A");
+        Iterator<Tuple> it = pig.openIterator("A");
         tmpFile.delete();
         int count = 0;
         while(it.hasNext()) {
-            Tuple t = (Tuple)it.next();
+            Tuple t = it.next();
             String first = t.get(0).toString();
             String second = t.get(1).toString();
             count++;
@@ -108,16 +109,18 @@ public class TestFilterOpString extends TestCase {
             }
         }
         ps.close();
-        pig.registerQuery("A=load '" + Util.generateURI(tmpFile.toString()) + "' using " + PigStorage.class.getName() + "(':');");
+        pig.registerQuery("A=load '" 
+                + Util.generateURI(tmpFile.toString(), pig.getPigContext()) 
+                + "' using " + PigStorage.class.getName() + "(':');");
         String query = "A = filter A by $0 neq $1;";
 
         log.info(query);
         pig.registerQuery(query);
-        Iterator it = pig.openIterator("A");
+        Iterator<Tuple> it = pig.openIterator("A");
         tmpFile.delete();
         int count = 0;
         while(it.hasNext()) {
-            Tuple t = (Tuple)it.next();
+            Tuple t = it.next();
             String first = t.get(0).toString();
             String second = t.get(1).toString();
             assertFalse(first.equals(second));
@@ -145,16 +148,18 @@ public class TestFilterOpString extends TestCase {
             }
         }
         ps.close();
-        pig.registerQuery("A=load '" + Util.generateURI(tmpFile.toString()) + "' using " + PigStorage.class.getName() + "(':');");
+        pig.registerQuery("A=load '" 
+                + Util.generateURI(tmpFile.toString(), pig.getPigContext()) 
+                + "' using " + PigStorage.class.getName() + "(':');");
         String query = "A = filter A by $0 gt $1;";
 
         log.info(query);
         pig.registerQuery(query);
-        Iterator it = pig.openIterator("A");
+        Iterator<Tuple> it = pig.openIterator("A");
         tmpFile.delete();
         int count = 0;
         while(it.hasNext()) {
-            Tuple t = (Tuple)it.next();
+            Tuple t = it.next();
             String first = t.get(0).toString();
             String second = t.get(1).toString();
             assertTrue(first.compareTo(second) > 0);
@@ -187,16 +192,18 @@ public class TestFilterOpString extends TestCase {
         }
         ps.close();
         
-        pig.registerQuery("A=load '" + Util.generateURI(tmpFile.toString()) + "' using " + PigStorage.class.getName() + "(':');");
+        pig.registerQuery("A=load '" 
+                + Util.generateURI(tmpFile.toString(), pig.getPigContext()) 
+                + "' using " + PigStorage.class.getName() + "(':');");
         String query = "A = filter A by $0 gte $1;";
 
         log.info(query);
         pig.registerQuery(query);
-        Iterator it = pig.openIterator("A");
+        Iterator<Tuple> it = pig.openIterator("A");
         tmpFile.delete();
         int count = 0;
         while(it.hasNext()) {
-            Tuple t = (Tuple)it.next();
+            Tuple t = it.next();
             String first = t.get(0).toString();
             String second = t.get(1).toString();
             assertTrue(first.compareTo(second) >= 0);
@@ -224,16 +231,18 @@ public class TestFilterOpString extends TestCase {
         }
         ps.close();
         
-        pig.registerQuery("A=load '" + Util.generateURI(tmpFile.toString()) + "' using " + PigStorage.class.getName() + "(':');");
+        pig.registerQuery("A=load '" 
+                + Util.generateURI(tmpFile.toString(), pig.getPigContext()) 
+                + "' using " + PigStorage.class.getName() + "(':');");
         String query = "A = filter A by $0 lt $1;";
 
         log.info(query);
         pig.registerQuery(query);
-        Iterator it = pig.openIterator("A");
+        Iterator<Tuple> it = pig.openIterator("A");
         tmpFile.delete();
         int count = 0;
         while(it.hasNext()) {
-            Tuple t = (Tuple)it.next();
+            Tuple t = it.next();
             String first = t.get(0).toString();
             String second = t.get(1).toString();
             assertTrue(first.compareTo(second) < 0);
@@ -244,7 +253,6 @@ public class TestFilterOpString extends TestCase {
 
     @Test
     public void testStringLte() throws Throwable {
-        PigServer pig = new PigServer(initString);
         File tmpFile = File.createTempFile("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
         int expectedCount = 0;
@@ -265,16 +273,18 @@ public class TestFilterOpString extends TestCase {
         }
         ps.close();
         
-        pig.registerQuery("A=load '" + Util.generateURI(tmpFile.toString()) + "' using " + PigStorage.class.getName() + "(':');");
+        pig.registerQuery("A=load '" 
+                + Util.generateURI(tmpFile.toString(), pig.getPigContext()) 
+                + "' using " + PigStorage.class.getName() + "(':');");
         String query = "A = filter A by $0 lte $1;";
 
         log.info(query);
         pig.registerQuery(query);
-        Iterator it = pig.openIterator("A");
+        Iterator<Tuple> it = pig.openIterator("A");
         tmpFile.delete();
         int count = 0;
         while(it.hasNext()) {
-            Tuple t = (Tuple)it.next();
+            Tuple t = it.next();
             String first = t.get(0).toString();
             String second = t.get(1).toString();
             assertTrue(first.compareTo(second) <= 0);

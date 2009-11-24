@@ -45,6 +45,7 @@ import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRCompiler;
@@ -58,6 +59,7 @@ import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.PigContext;
+import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.logicalLayer.LogicalPlan;
 import org.apache.pig.impl.logicalLayer.parser.ParseException;
 import org.apache.pig.impl.logicalLayer.parser.QueryParser;
@@ -389,6 +391,17 @@ public class Util {
         if (System.getProperty("os.name").toUpperCase().startsWith("WINDOWS"))
             return "file:/"+encodeEscape(path);
         return "file:"+path;
+    }
+
+    static String generateURI(String filename, PigContext context) 
+            throws IOException {
+        if (context.getExecType() == ExecType.MAPREDUCE) {
+            return FileLocalizer.hadoopify(filename, context);
+        } else if (context.getExecType() == ExecType.LOCAL) {
+            return "file://" + filename;
+        } else {
+            throw new IllegalStateException("ExecType: " + context.getExecType());
+        }
     }
 
     public static Schema getSchemaFromString(String schemaString) throws ParseException {

@@ -25,20 +25,17 @@ import java.util.Random;
 
 import junit.framework.TestCase;
 
-import org.junit.Before;
-import org.junit.Test;
-
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.builtin.PigStorage;
-import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
+import org.junit.Before;
+import org.junit.Test;
 
 public class TestAlgebraicEval extends TestCase {
     
     private int LOOP_COUNT = 1024;
-
 
     private PigServer pig;
     
@@ -95,7 +92,8 @@ public class TestAlgebraicEval extends TestCase {
                 }
                 ps.close();                
             }
-            pig.registerQuery(" a = group (load '" + Util.generateURI(tmpFile.toString()) + "') by ($0,$1);");
+            pig.registerQuery(" a = group (load '" 
+                    + Util.generateURI(tmpFile.toString(), pig.getPigContext()) + "') by ($0,$1);");
             pig.registerQuery("b = foreach a generate flatten(group), SUM($1.$2);");
             Iterator<Tuple> it = pig.openIterator("b");
             int count = 0;
@@ -107,19 +105,21 @@ public class TestAlgebraicEval extends TestCase {
                 // if the first two fields (output of flatten(group))
                 // are both nulls then we should change the sum accordingly
                 if(t.get(0) == null && t.get(1) == null)                
-                    assertEquals( "Running testGroupCountWithMultipleFields with nullFlags set to " + nullFlags[k],
-                    		 (LOOP_COUNT/2)*groupKeyWithNulls, sum);
+                    assertEquals( "Running testGroupCountWithMultipleFields with nullFlags set to " 
+                            + nullFlags[k], (LOOP_COUNT/2)*groupKeyWithNulls, sum);
                 else
-                    assertEquals("Running testGroupCountWithMultipleFields with nullFlags set to " + nullFlags[k],
-                            LOOP_COUNT/2, sum);
+                    assertEquals("Running testGroupCountWithMultipleFields with nullFlags set to " 
+                            + nullFlags[k], LOOP_COUNT/2, sum);
                     
                 count++;
             }
             System.err.println("XX done");
             if(groupKeyWithNulls == 0)
-                assertEquals("Running testGroupCountWithMultipleFields with nullFlags set to " + nullFlags[k], LOOP_COUNT, count);
+                assertEquals("Running testGroupCountWithMultipleFields with nullFlags set to " 
+                        + nullFlags[k], LOOP_COUNT, count);
             else
-                assertEquals("Running testGroupCountWithMultipleFields with nullFlags set to " + nullFlags[k], LOOP_COUNT - groupKeyWithNulls + 1, count);
+                assertEquals("Running testGroupCountWithMultipleFields with nullFlags set to " 
+                        + nullFlags[k], LOOP_COUNT - groupKeyWithNulls + 1, count);
             
         }
         tmpFile.delete();
@@ -133,15 +133,18 @@ public class TestAlgebraicEval extends TestCase {
             System.err.println("Testing testSimpleCount with null flag:" + nullFlags[i]);
         
             PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
-            int numNulls = generateInput(ps, nullFlags[i]);
-            String query = "myid =  foreach (group (load '" + Util.generateURI(tmpFile.toString()) + "') all) generate COUNT($1);";
+            generateInput(ps, nullFlags[i]);
+            String query = "myid =  foreach (group (load '" 
+                + Util.generateURI(tmpFile.toString(), pig.getPigContext()) 
+                + "') all) generate COUNT($1);";
             System.out.println(query);
             pig.registerQuery(query);
-            Iterator it = pig.openIterator("myid");
+            Iterator<Tuple> it = pig.openIterator("myid");
             tmpFile.delete();
-            Tuple t = (Tuple)it.next();
+            Tuple t = it.next();
             Long count = DataType.toLong(t.get(0));
-            assertEquals(this.getName() + "with nullFlags set to: " + nullFlags[i], count.longValue(), LOOP_COUNT);
+            assertEquals(this.getName() + "with nullFlags set to: " 
+                    + nullFlags[i], count.longValue(), LOOP_COUNT);
         }
     }
 
@@ -152,15 +155,18 @@ public class TestAlgebraicEval extends TestCase {
             System.err.println("Testing testGroupCount with null flag:" + nullFlags[i]);
         
             PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
-            int numNulls = generateInput(ps, nullFlags[i]);
-            String query = "myid = foreach (group (load '" + Util.generateURI(tmpFile.toString()) + "') all) generate group, COUNT($1) ;";
+            generateInput(ps, nullFlags[i]);
+            String query = "myid = foreach (group (load '" 
+                + Util.generateURI(tmpFile.toString(), pig.getPigContext()) 
+                + "') all) generate group, COUNT($1) ;";
             System.out.println(query);
             pig.registerQuery(query);
-            Iterator it = pig.openIterator("myid");
+            Iterator<Tuple>  it = pig.openIterator("myid");
             tmpFile.delete();
-            Tuple t = (Tuple)it.next();
+            Tuple t = it.next();
             Long count = DataType.toLong(t.get(1));
-            assertEquals(this.getName() + "with nullFlags set to: " + nullFlags[i], count.longValue(), LOOP_COUNT);
+            assertEquals(this.getName() + "with nullFlags set to: " 
+                    + nullFlags[i], count.longValue(), LOOP_COUNT);
         }
     }
     
@@ -170,19 +176,20 @@ public class TestAlgebraicEval extends TestCase {
         for (int i = 0; i < nullFlags.length; i++) {
             System.err.println("Testing testGroupCount with null flag:" + nullFlags[i]);
             PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
-            int numNulls = generateInput(ps, nullFlags[i]);
-            String query = "myid = foreach (group (load '" + Util.generateURI(tmpFile.toString()) + "') all) generate COUNT($1), group ;";
+            generateInput(ps, nullFlags[i]);
+            String query = "myid = foreach (group (load '" 
+                + Util.generateURI(tmpFile.toString(), pig.getPigContext()) 
+                + "') all) generate COUNT($1), group ;";
             System.out.println(query);
             pig.registerQuery(query);
-            Iterator it = pig.openIterator("myid");
+            Iterator<Tuple>  it = pig.openIterator("myid");
             tmpFile.delete();
-            Tuple t = (Tuple)it.next();
+            Tuple t = it.next();
             Long count = DataType.toLong(t.get(0));
-            assertEquals(this.getName() + "with nullFlags set to: " + nullFlags[i], count.longValue(), LOOP_COUNT);
+            assertEquals(this.getName() + "with nullFlags set to: " 
+                    + nullFlags[i], count.longValue(), LOOP_COUNT);
         }
     }
-
-
 
     @Test
     public void testGroupUniqueColumnCount() throws Throwable {
@@ -211,20 +218,24 @@ public class TestAlgebraicEval extends TestCase {
                 }
             }         
             ps.close();
-            String query = "myid = foreach (group (load '" + Util.generateURI(tmpFile.toString()) + "' using " + PigStorage.class.getName() + "(':')) by $0) generate group, COUNT($1.$1) ;";
+            String query = "myid = foreach (group (load '" 
+                + Util.generateURI(tmpFile.toString(), pig.getPigContext()) 
+                + "' using " + PigStorage.class.getName() 
+                + "(':')) by $0) generate group, COUNT($1.$1) ;";
             System.out.println(query);
             pig.registerQuery(query);
-            Iterator it = pig.openIterator("myid");
+            Iterator<Tuple>  it = pig.openIterator("myid");
             tmpFile.delete();
             System.err.println("Output from testGroupUniqueColumnCount");
             while(it.hasNext()) {
-                Tuple t = (Tuple)it.next();
+                Tuple t = it.next();
                 System.err.println(t);
                 String a = t.get(0).toString();
                 Double group = Double.valueOf(a.toString());
                 if(group == 0.0) {
                     Long count = DataType.toLong(t.get(1));
-                    assertEquals(this.getName() + "with nullFlags set to: " + nullFlags[i], groupsize, count.longValue());                    
+                    assertEquals(this.getName() + "with nullFlags set to: " 
+                            + nullFlags[i], groupsize, count.longValue());                    
                 }
             }
         }
@@ -258,23 +269,27 @@ public class TestAlgebraicEval extends TestCase {
                 }
             }
             ps.close();
-            String query = "myid = foreach (group (load '" + Util.generateURI(tmpFile.toString()) + 
-                           "' using " + PigStorage.class.getName() + "(':')) by $0) generate group, COUNT($1.$1), COUNT($1.$0) ;";
+            String query = "myid = foreach (group (load '" 
+                + Util.generateURI(tmpFile.toString(), pig.getPigContext()) 
+                + "' using " + PigStorage.class.getName() 
+                + "(':')) by $0) generate group, COUNT($1.$1), COUNT($1.$0) ;";
             System.out.println(query);
             pig.registerQuery(query);
-            Iterator it = pig.openIterator("myid");
+            Iterator<Tuple>  it = pig.openIterator("myid");
             tmpFile.delete();
             System.err.println("Output from testGroupDuplicateColumnCount");
             while(it.hasNext()) {
-                Tuple t = (Tuple)it.next();
+                Tuple t = it.next();
                 System.err.println(t);
                 String a = t.get(0).toString();
                 Double group = Double.valueOf(a.toString());
                 if(group == 0.0) {
                     Long count = DataType.toLong(t.get(2));
-                    assertEquals(this.getName() + "with nullFlags set to: " + nullFlags[i],groupsize, count.longValue());
+                    assertEquals(this.getName() + "with nullFlags set to: " 
+                            + nullFlags[i],groupsize, count.longValue());
                     count = DataType.toLong(t.get(1));
-                    assertEquals(this.getName() + "with nullFlags set to: " + nullFlags[i],nonNullCnt, count.longValue());
+                    assertEquals(this.getName() + "with nullFlags set to: " 
+                            + nullFlags[i],nonNullCnt, count.longValue());
                 }
             }
         }

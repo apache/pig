@@ -39,7 +39,6 @@ public class TestFilterOpNumeric extends TestCase {
     private final Log log = LogFactory.getLog(getClass());
 
     private static int LOOP_COUNT = 1024;
-    private String initString = "mapreduce";
     MiniCluster cluster = MiniCluster.buildCluster();
     private PigServer pig;
     
@@ -62,14 +61,16 @@ public class TestFilterOpNumeric extends TestCase {
             }
         }
         ps.close();
-        pig.registerQuery("A=load '" + Util.generateURI(tmpFile.toString()) + "' using "+PigStorage.class.getName() +"(':');");
+        pig.registerQuery("A=load '" 
+                + Util.generateURI(tmpFile.toString(), pig.getPigContext()) 
+                + "' using "+PigStorage.class.getName() +"(':');");
         String query = "A = filter A by $0 == $1;";
         log.info(query);
         pig.registerQuery(query);
-        Iterator it = pig.openIterator("A");
+        Iterator<Tuple> it = pig.openIterator("A");
         tmpFile.delete();
         while(it.hasNext()) {
-            Tuple t = (Tuple)it.next();
+            Tuple t = it.next();
             Double first = Double.valueOf(t.get(0).toString());
             Double second = Double.valueOf(t.get(1).toString());
             assertTrue(first.equals(second));
@@ -92,14 +93,16 @@ public class TestFilterOpNumeric extends TestCase {
             }
         }
         ps.close();
-        pig.registerQuery("A=load '" + Util.generateURI(tmpFile.toString()) + "' using " + PigStorage.class.getName() + "(':');");
+        pig.registerQuery("A=load '" 
+                + Util.generateURI(tmpFile.toString(), pig.getPigContext()) 
+                + "' using " + PigStorage.class.getName() + "(':');");
         String query = "A = filter A by $0 != $1;";
         log.info(query);
         pig.registerQuery(query);
-        Iterator it = pig.openIterator("A");
+        Iterator<Tuple> it = pig.openIterator("A");
         tmpFile.delete();
         while(it.hasNext()) {
-            Tuple t = (Tuple)it.next();
+            Tuple t = it.next();
             Double first = Double.valueOf(t.get(0).toString());
             Double second = Double.valueOf(t.get(1).toString());
             assertFalse(first.equals(second));
@@ -118,17 +121,17 @@ public class TestFilterOpNumeric extends TestCase {
             }
         }
         ps.close();
-        pig.registerQuery("A=load '" + Util.generateURI(tmpFile.toString()) + "' using " +
-                PigStorage.class.getName() +
-                "(':') as (f1: double, f2:double);");
+        pig.registerQuery("A=load '" 
+                + Util.generateURI(tmpFile.toString(), pig.getPigContext()) + "' using " 
+                + PigStorage.class.getName() + "(':') as (f1: double, f2:double);");
         String query = "A = filter A by $0 > $1;";
 
         log.info(query);
         pig.registerQuery(query);
-        Iterator it = pig.openIterator("A");
+        Iterator<Tuple> it = pig.openIterator("A");
         tmpFile.delete();
         while(it.hasNext()) {
-            Tuple t = (Tuple)it.next();
+            Tuple t = it.next();
             Double first = Double.valueOf(t.get(0).toString());
             Double second = Double.valueOf(t.get(1).toString());
             assertTrue(first.compareTo(second) > 0);
@@ -143,15 +146,16 @@ public class TestFilterOpNumeric extends TestCase {
             ps.println(i + "\t" + i + "\t1");            
         }
         ps.close();
-        pig.registerQuery("A=load '" + Util.generateURI(tmpFile.toString()) + "';");
+        pig.registerQuery("A=load '" 
+                + Util.generateURI(tmpFile.toString(), pig.getPigContext()) + "';");
         String query = "A = foreach A generate ($1 >= "+ LOOP_COUNT+"-10?'1':'0');";
         log.info(query);
         pig.registerQuery(query);
-        Iterator it = pig.openIterator("A");
+        Iterator<Tuple> it = pig.openIterator("A");
         tmpFile.delete();
         int count =0;
         while(it.hasNext()) {
-            Tuple t = (Tuple)it.next();
+            Tuple t = it.next();
             Double first = Double.valueOf(t.get(0).toString());
             if (first == 1)
                 count++;
@@ -171,15 +175,16 @@ public class TestFilterOpNumeric extends TestCase {
             ps.println(i + "\t" + i + "\t1");            
         }
         ps.close();
-        pig.registerQuery("A=load '" + Util.generateURI(tmpFile.toString()) + "';");
+        pig.registerQuery("A=load '" 
+                + Util.generateURI(tmpFile.toString(), pig.getPigContext()) + "';");
         String query = "A = foreach A generate ($0 < 10?($1 >= 5 ? 2: 1) : 0);";
         log.info(query);
         pig.registerQuery(query);
-        Iterator it = pig.openIterator("A");
+        Iterator<Tuple> it = pig.openIterator("A");
         tmpFile.delete();
         int count =0;
         while(it.hasNext()) {
-            Tuple t = (Tuple)it.next();
+            Tuple t = it.next();
             Integer first = (Integer)t.get(0);
             count+=first;
             assertTrue(first == 1 || first == 2 || first == 0);
@@ -200,15 +205,17 @@ public class TestFilterOpNumeric extends TestCase {
             }
         }
         ps.close();
-        pig.registerQuery("A=load '" + Util.generateURI(tmpFile.toString()) + "' using " + PigStorage.class.getName() + "(':') as (a: double, b:double);");
+        pig.registerQuery("A=load '" 
+                + Util.generateURI(tmpFile.toString(), pig.getPigContext()) 
+                + "' using " + PigStorage.class.getName() + "(':') as (a: double, b:double);");
         String query = "A = filter A by $0 < $1;";
 
         log.info(query);
         pig.registerQuery(query);
-        Iterator it = pig.openIterator("A");
+        Iterator<Tuple> it = pig.openIterator("A");
         tmpFile.delete();
         while(it.hasNext()) {
-            Tuple t = (Tuple)it.next();
+            Tuple t = it.next();
             Double first = Double.valueOf(t.get(0).toString());
             Double second = Double.valueOf(t.get(1).toString());
             assertTrue(first.compareTo(second) < 0);
@@ -216,7 +223,6 @@ public class TestFilterOpNumeric extends TestCase {
         
     }
 
-    
     @Test
     public void testNumericGte() throws Throwable {
         File tmpFile = File.createTempFile("test", "txt");
@@ -231,15 +237,17 @@ public class TestFilterOpNumeric extends TestCase {
             }
         }
         ps.close();
-        pig.registerQuery("A=load '" + Util.generateURI(tmpFile.toString()) + "' using " + PigStorage.class.getName() + "(':');");
+        pig.registerQuery("A=load '" 
+                + Util.generateURI(tmpFile.toString(), pig.getPigContext()) 
+                + "' using " + PigStorage.class.getName() + "(':');");
         String query = "A = filter A by $0 >= $1;";
 
         log.info(query);
         pig.registerQuery(query);
-        Iterator it = pig.openIterator("A");
+        Iterator<Tuple> it = pig.openIterator("A");
         tmpFile.delete();
         while(it.hasNext()) {
-            Tuple t = (Tuple)it.next();
+            Tuple t = it.next();
             Double first = Double.valueOf(t.get(0).toString());
             Double second = Double.valueOf(t.get(1).toString());
             assertTrue(first.compareTo(second) >= 0);
@@ -260,15 +268,17 @@ public class TestFilterOpNumeric extends TestCase {
             }
         }
         ps.close();
-        pig.registerQuery("A=load '" + Util.generateURI(tmpFile.toString()) + "' using " + PigStorage.class.getName() + "(':') as (a: double, b:double);");
+        pig.registerQuery("A=load '" 
+                + Util.generateURI(tmpFile.toString(), pig.getPigContext()) 
+                + "' using " + PigStorage.class.getName() + "(':') as (a: double, b:double);");
         String query = "A = filter A by $0 <= $1;";
 
         log.info(query);
         pig.registerQuery(query);
-        Iterator it = pig.openIterator("A");
+        Iterator<Tuple> it = pig.openIterator("A");
         tmpFile.delete();
         while(it.hasNext()) {
-            Tuple t = (Tuple)it.next();
+            Tuple t = it.next();
             Double first = Double.valueOf(t.get(0).toString());
             Double second = Double.valueOf(t.get(1).toString());
             assertTrue(first.compareTo(second) <= 0);

@@ -34,8 +34,6 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.Physica
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POProject;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.PONegative;
 import org.apache.pig.impl.plan.PlanException;
-import org.junit.Before;
-
 import junit.framework.TestCase;
 
 public class TestPONegative extends TestCase {
@@ -69,11 +67,9 @@ public class TestPONegative extends TestCase {
             int output = (Integer) pn.getNext(expected).result;
             assertEquals(expected.intValue(), output);
         }
-        
     }
     
     public void testPONegIntAndNull () throws PlanException, ExecException {
-    	
         for(int i = 0; i < MAX; i++) {
             Tuple t = tf.newTuple();
             t.append(r.nextInt());
@@ -83,7 +79,6 @@ public class TestPONegative extends TestCase {
 	            t.append(null);
 	            bag.add(t);
             }
-
         }
         
         POProject prj = new POProject(new OperatorKey("", r.nextLong()), -1, 0);
@@ -107,11 +102,8 @@ public class TestPONegative extends TestCase {
                 Integer expected = -(Integer)t.get(0);
                 int output = (Integer) pn.getNext(expected).result;
                 assertEquals(expected.intValue(), output);
-                
             }
-            
           }
-        
     }
     
     public void testPONegLong () throws PlanException, ExecException {
@@ -137,7 +129,6 @@ public class TestPONegative extends TestCase {
             long output = (Long) pn.getNext(expected).result;
             assertEquals(expected.longValue(), output);
         }
-        
     }
     
     public void testPONegLongAndNull () throws PlanException, ExecException {
@@ -150,7 +141,6 @@ public class TestPONegative extends TestCase {
 	            t.append(null);
 	            bag.add(t);
             }
-
         }
         
         POProject prj = new POProject(new OperatorKey("", r.nextLong()), -1, 0);
@@ -174,12 +164,8 @@ public class TestPONegative extends TestCase {
 	            Long expected = -(Long)t.get(0);
 	            long output = (Long) pn.getNext(expected).result;
 	            assertEquals(expected.longValue(), output);
-                
             }
-
-            
         }
-        
     }
     
     public void testPONegDouble() throws PlanException, ExecException {
@@ -204,12 +190,9 @@ public class TestPONegative extends TestCase {
 			Double expected = -(Double)t.get(0);
 			double output = (Double) pn.getNext(expected).result;
 			assertEquals(expected.doubleValue(), output);
-
         }
-        
     }
   
-    
     public void testPONegDoubleAndNull() throws PlanException, ExecException {
         for(int i = 0; i < MAX; i++) {
             Tuple t = tf.newTuple();
@@ -220,7 +203,6 @@ public class TestPONegative extends TestCase {
 	            t.append(null);
 	            bag.add(t);
             }
-
         }
         
         POProject prj = new POProject(new OperatorKey("", r.nextLong()), -1, 0);
@@ -239,16 +221,12 @@ public class TestPONegative extends TestCase {
             if(t.get(0) == null) {
             	Double output = (Double )pn.getNext((Double )null).result;
                 assertEquals(null, output);
-
             } else  {
                 Double expected = -(Double)t.get(0);
                 double output = (Double) pn.getNext(expected).result;
                 assertEquals(expected.doubleValue(), output);
-                
             }
-
         }
-        
     }
 
     public void testPONegFloat() throws PlanException, ExecException {
@@ -274,10 +252,8 @@ public class TestPONegative extends TestCase {
             float output = (Float) pn.getNext(expected).result;
             assertEquals(expected.floatValue(), output);
         }
-        
     }
     
- 
     public void testPONegFloatAndNull() throws PlanException, ExecException {
         for(int i = 0; i < MAX; i++) {
             Tuple t = tf.newTuple();
@@ -288,7 +264,6 @@ public class TestPONegative extends TestCase {
 	            t.append(null);
 	            bag.add(t);
             }
-
         }
         
         POProject prj = new POProject(new OperatorKey("", r.nextLong()), -1, 0);
@@ -307,22 +282,19 @@ public class TestPONegative extends TestCase {
             if(t.get(0) == null) {
             	Float output = (Float)pn.getNext((Float)null).result;
                 assertEquals(null, output);
-
             } else  {
-
                 Float expected = -(Float)t.get(0);
                 float output = (Float) pn.getNext(expected).result;
                 assertEquals(expected.floatValue(), output);
-                
             }
         }
-        
     }
     
     public void testPONegType() throws Exception {
         PigServer pig = new PigServer(ExecType.MAPREDUCE, miniCluster.getProperties());
         File f = Util.createInputFile("tmp", "", new String[] {"a", "b", "c"});
-        pig.registerQuery("a = load '" + Util.generateURI(f.toString()) + "';");
+        pig.registerQuery("a = load '" 
+                + Util.generateURI(f.toString(), pig.getPigContext()) + "';");
         // -1 is modeled as POnegative with Constant(1)
         pig.registerQuery("b = foreach a generate SIZE(-1);");
         Iterator<Tuple> it = pig.openIterator("b");

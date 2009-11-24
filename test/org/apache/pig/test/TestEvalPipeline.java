@@ -17,8 +17,6 @@
  */
 package org.apache.pig.test;
 
-import static org.apache.pig.ExecType.MAPREDUCE;
-
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -33,8 +31,7 @@ import java.util.Map;
 import java.util.Random;
 import java.util.StringTokenizer;
 
-import org.junit.Before;
-import org.junit.Test;
+import junit.framework.TestCase;
 
 import org.apache.pig.ComparisonFunc;
 import org.apache.pig.EvalFunc;
@@ -42,24 +39,30 @@ import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.builtin.BinStorage;
-import org.apache.pig.builtin.Distinct;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.builtin.TextLoader;
-import org.apache.pig.data.*;
+import org.apache.pig.data.BagFactory;
+import org.apache.pig.data.DataBag;
+import org.apache.pig.data.DataByteArray;
+import org.apache.pig.data.DataType;
+import org.apache.pig.data.DefaultDataBag;
+import org.apache.pig.data.Tuple;
+import org.apache.pig.data.TupleFactory;
+import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.PigFile;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
-import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.util.Pair;
 import org.apache.pig.test.utils.GenRandomData;
 import org.apache.pig.test.utils.Identity;
-
-import junit.framework.TestCase;
+import org.junit.Before;
+import org.junit.Test;
 
 public class TestEvalPipeline extends TestCase {
     
     MiniCluster cluster = MiniCluster.buildCluster();
     private PigServer pigServer;
+    private PigContext pigContext;
 
     TupleFactory mTf = TupleFactory.getInstance();
     BagFactory mBf = BagFactory.getInstance();
@@ -70,6 +73,7 @@ public class TestEvalPipeline extends TestCase {
         FileLocalizer.setR(new Random());
         pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
 //        pigServer = new PigServer(ExecType.LOCAL);
+        pigContext = pigServer.getPigContext();
     }
     
     static public class MyBagFunction extends EvalFunc<DataBag>{
@@ -81,34 +85,34 @@ public class TestEvalPipeline extends TestCase {
             output.add(tf.newTuple("a"));
             output.add(tf.newTuple("a"));
             return output;
-            
         }
     }
     
-    
     @Test
     public void testFunctionInsideFunction() throws Exception{
-        
         File f1 = Util.createFile(new String[]{"a:1","b:1","a:1"});
 
-        pigServer.registerQuery("a = load '" + Util.generateURI(f1.toString()) + "' using " + PigStorage.class.getName() + "(':');");
+        pigServer.registerQuery("a = load '" 
+                + Util.generateURI(f1.toString(), pigContext) 
+                + "' using " + PigStorage.class.getName() + "(':');");
         pigServer.registerQuery("b = foreach a generate 1-1/1;");
         Iterator<Tuple> iter  = pigServer.openIterator("b");
         
         for (int i=0 ;i<3; i++){
             assertEquals(DataType.toDouble(iter.next().get(0)), 0.0);
         }
-        
     }
     
     @Test
     public void testJoin() throws Exception{
-                
         File f1 = Util.createFile(new String[]{"a:1","b:1","a:1"});
         File f2 = Util.createFile(new String[]{"b","b","a"});
         
-        pigServer.registerQuery("a = load '" + Util.generateURI(f1.toString()) + "' using " + PigStorage.class.getName() + "(':');");
-        pigServer.registerQuery("b = load '" + Util.generateURI(f2.toString()) + "';");
+        pigServer.registerQuery("a = load '" 
+                + Util.generateURI(f1.toString(), pigContext) + "' using " 
+                + PigStorage.class.getName() + "(':');");
+        pigServer.registerQuery("b = load '" 
+                + Util.generateURI(f2.toString(), pigContext) + "';");
         pigServer.registerQuery("c = cogroup a by $0, b by $0;");        
         pigServer.registerQuery("d = foreach c generate flatten($1),flatten($2);");
         
@@ -129,8 +133,9 @@ public class TestEvalPipeline extends TestCase {
         pw.println("a");
         pw.println("a");
         pw.close();
-        pigServer.registerQuery("a = foreach (load '" + Util.generateURI(f.toString()) + "') generate 1, flatten(" + MyBagFunction.class.getName() + "(*));");
-//        pigServer.registerQuery("b = foreach a generate $0, flatten($1);");
+        pigServer.registerQuery("a = foreach (load '" 
+                + Util.generateURI(f.toString(), pigContext) + "') " 
+                + "generate 1, flatten(" + MyBagFunction.class.getName() + "(*));");
         Iterator<Tuple> iter = pigServer.openIterator("a");
         int count = 0;
         while(iter.hasNext()){
@@ -142,7 +147,6 @@ public class TestEvalPipeline extends TestCase {
         assertEquals(count, 6);
         f.delete();
     }
-    
     
     @Test
     public void testMapLookup() throws Exception {
@@ -164,8 +168,7 @@ public class TestEvalPipeline extends TestCase {
         tmpFile.deleteOnExit();
         String fileName = tmpFile.getAbsolutePath();
         PigFile f = new PigFile(fileName);
-        f.store(b, new BinStorage(), pigServer.getPigContext());
-        
+        f.store(b, new BinStorage(), pigServer.getPigContext());        
         
         pigServer.registerQuery("a = load '" + fileName + "' using BinStorage();");
         pigServer.registerQuery("b = foreach a generate $0#'apple',flatten($1#'orange');");
@@ -285,7 +288,6 @@ public class TestEvalPipeline extends TestCase {
         }
     }
     
-    
     @Test
     public void testBagFunctionWithFlattening() throws Exception{
         File queryLogFile = Util.createFile(
@@ -315,8 +317,11 @@ public class TestEvalPipeline extends TestCase {
         expectedResults.put("world", 1);
         expectedResults.put("conference", 1);
         
-        pigServer.registerQuery("newsArticles = LOAD '" + Util.generateURI(newsFile.toString()) + "' USING " + TextLoader.class.getName() + "();");
-        pigServer.registerQuery("queryLog = LOAD '" + Util.generateURI(queryLogFile.toString()) + "';");
+        pigServer.registerQuery("newsArticles = LOAD '" 
+                + Util.generateURI(newsFile.toString(), pigContext) 
+                + "' USING " + TextLoader.class.getName() + "();");
+        pigServer.registerQuery("queryLog = LOAD '" 
+                + Util.generateURI(queryLogFile.toString(), pigContext) + "';");
 
         pigServer.registerQuery("titleNGrams = FOREACH newsArticles GENERATE flatten(" + TitleNGrams.class.getName() + "(*));");
         pigServer.registerQuery("cogrouped = COGROUP titleNGrams BY $0 INNER, queryLog BY $0 INNER;");
@@ -330,8 +335,6 @@ public class TestEvalPipeline extends TestCase {
         }
     }
     
-
-    
     /*    
     @Test
     public void testSort() throws Exception{
@@ -342,8 +345,7 @@ public class TestEvalPipeline extends TestCase {
     @Test
     public void testSortWithUDF() throws Exception{
         testSortDistinct(false, true);
-    }
-    
+    }    
 
     @Test
     public void testDistinct() throws Exception{
@@ -368,8 +370,8 @@ public class TestEvalPipeline extends TestCase {
         }
         ps.close(); 
         
-        String tmpOutputFile = FileLocalizer.getTemporaryPath(null, pigServer.getPigContext()).toString();
-        pigServer.registerQuery("A = LOAD '" + Util.generateURI(tmpFile.toString()) + "';");
+        pigServer.registerQuery("A = LOAD '" 
+                + Util.generateURI(tmpFile.toString(), pigContext) + "';");
         if (eliminateDuplicates){
             pigServer.registerQuery("B = DISTINCT (FOREACH A GENERATE $0) PARALLEL 10;");
         }else{
@@ -385,7 +387,6 @@ public class TestEvalPipeline extends TestCase {
         if(!iter.hasNext()) fail("No Results obtained");
         while (iter.hasNext()){
             Tuple t = iter.next();
-            //System.out.println(t.get(0).toString());
             if (eliminateDuplicates){
                 Integer act = Integer.parseInt(t.get(0).toString());
                 assertFalse(seen.contains(act));
@@ -395,15 +396,13 @@ public class TestEvalPipeline extends TestCase {
                 assertEquals(t.size(), 2);
                 last = t.get(0).toString();
             }
-        }
-        
+        }        
     }
     
     public void testNestedPlan() throws Exception{
         int LOOP_COUNT = 10;
         File tmpFile = File.createTempFile("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
-        Random r = new Random();
         for(int i = 0; i < LOOP_COUNT; i++) {
             for(int j=0;j<LOOP_COUNT;j+=2){
                 ps.println(i+"\t"+j);
@@ -412,9 +411,8 @@ public class TestEvalPipeline extends TestCase {
         }
         ps.close();
 
-        String tmpOutputFile = FileLocalizer.getTemporaryPath(null, 
-        pigServer.getPigContext()).toString();
-        pigServer.registerQuery("A = LOAD '" + Util.generateURI(tmpFile.toString()) + "';");
+        pigServer.registerQuery("A = LOAD '" 
+                + Util.generateURI(tmpFile.toString(), pigContext) + "';");
         pigServer.registerQuery("B = group A by $0;");
         String query = "C = foreach B {"
         + "C1 = filter A by $0 > -1;"
@@ -444,7 +442,6 @@ public class TestEvalPipeline extends TestCase {
         int LOOP_COUNT = 10;
         File tmpFile = File.createTempFile("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
-        Random r = new Random();
         for(int i = 0; i < LOOP_COUNT; i++) {
             for(int j=0;j<LOOP_COUNT;j+=2){
                 ps.println(i+"\t"+j);
@@ -453,9 +450,8 @@ public class TestEvalPipeline extends TestCase {
         }
         ps.close();
 
-        String tmpOutputFile = FileLocalizer.getTemporaryPath(null, 
-        pigServer.getPigContext()).toString();
-        pigServer.registerQuery("A = LOAD '" + Util.generateURI(tmpFile.toString()) + "';");
+        pigServer.registerQuery("A = LOAD '" 
+                + Util.generateURI(tmpFile.toString(), pigContext) + "';");
         pigServer.registerQuery("B = group A by $0;");
         String query = "C = foreach B {"
         + "C1 = filter A by $0 > -1;"
@@ -490,21 +486,19 @@ public class TestEvalPipeline extends TestCase {
         int LOOP_COUNT = 20;
         File tmpFile = File.createTempFile("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
-        Random r = new Random();
         for(int i = 0; i < LOOP_COUNT; i++) {
             ps.println(i);
         }
         ps.close();
 
-        String tmpOutputFile = FileLocalizer.getTemporaryPath(null, 
-        pigServer.getPigContext()).toString();
-        pigServer.registerQuery("A = LOAD '" + Util.generateURI(tmpFile.toString()) + "';");
+        pigServer.registerQuery("A = LOAD '" 
+                + Util.generateURI(tmpFile.toString(), pigContext) + "';");
         pigServer.registerQuery("B = limit A 5;");
         Iterator<Tuple> iter = pigServer.openIterator("B");
         if(!iter.hasNext()) fail("No output found");
         int numIdentity = 0;
         while(iter.hasNext()){
-            Tuple t = iter.next();
+            iter.next();
             ++numIdentity;
         }
         assertEquals(5, numIdentity);
@@ -516,8 +510,9 @@ public class TestEvalPipeline extends TestCase {
         File input = Util.createInputFile("tmp", "", 
                 new String[] {"{(f1, f2),(f3, f4)}\t(1,2)\t[key1#value1,key2#value2]"});
         
-        pigServer.registerQuery("a = load '" + Util.generateURI(input.toString()) + "' using PigStorage() " +
-                "as (b:bag{t:tuple(x,y)}, t2:tuple(a,b), m:map[]);");
+        pigServer.registerQuery("a = load '" 
+                + Util.generateURI(input.toString(), pigContext) + "' using PigStorage() " 
+                + "as (b:bag{t:tuple(x,y)}, t2:tuple(a,b), m:map[]);");
         pigServer.registerQuery("b = foreach a generate COUNT(b), t2.a, t2.b, m#'key1', m#'key2';");
         Iterator<Tuple> it = pigServer.openIterator("b");
         Tuple t = it.next();
@@ -528,8 +523,9 @@ public class TestEvalPipeline extends TestCase {
         assertEquals("value2", t.get(4).toString());
         
         //test with BinStorage
-        pigServer.registerQuery("a = load '" + Util.generateURI(input.toString()) + "' using PigStorage() " +
-                "as (b:bag{t:tuple(x,y)}, t2:tuple(a,b), m:map[]);");
+        pigServer.registerQuery("a = load '" 
+                + Util.generateURI(input.toString(), pigContext) + "' using PigStorage() " 
+                + "as (b:bag{t:tuple(x,y)}, t2:tuple(a,b), m:map[]);");
         String output = "/pig/out/TestEvalPipeline-testComplexData";
         pigServer.deleteFile(output);
         pigServer.store("a", output, BinStorage.class.getName());
@@ -542,19 +538,18 @@ public class TestEvalPipeline extends TestCase {
         assertEquals("1", t.get(1).toString());
         assertEquals("2", t.get(2).toString());
         assertEquals("value1", t.get(3).toString());
-        assertEquals("value2", t.get(4).toString());
-        
+        assertEquals("value2", t.get(4).toString());        
     }
-    
-    
+
     @Test
     public void testBinStorageDetermineSchema() throws IOException, ExecException {
         // Create input file with ascii data
         File input = Util.createInputFile("tmp", "", 
                 new String[] {"{(f1, f2),(f3, f4)}\t(1,2)\t[key1#value1,key2#value2]"});
         
-        pigServer.registerQuery("a = load 'file:" + Util.encodeEscape(input.toString()) + "' using PigStorage() " +
-                "as (b:bag{t:tuple(x:chararray,y:chararray)}, t2:tuple(a:int,b:int), m:map[]);");
+        pigServer.registerQuery("a = load '" 
+                + Util.generateURI(input.toString(), pigContext) + "' using PigStorage() " 
+                + "as (b:bag{t:tuple(x:chararray,y:chararray)}, t2:tuple(a:int,b:int), m:map[]);");
         pigServer.registerQuery("b = foreach a generate COUNT(b), t2.a, t2.b, m#'key1', m#'key2';");
         Iterator<Tuple> it = pigServer.openIterator("b");
         Tuple t = it.next();
@@ -565,8 +560,9 @@ public class TestEvalPipeline extends TestCase {
         assertEquals("value2", t.get(4).toString());
         
         //test with BinStorage
-        pigServer.registerQuery("a = load 'file:" + Util.encodeEscape(input.toString()) + "' using PigStorage() " +
-                "as (b:bag{t:tuple(x:chararray,y:chararray)}, t2:tuple(a:int,b:int), m:map[]);");
+        pigServer.registerQuery("a = load '" 
+                + Util.generateURI(input.toString(), pigContext) + "' using PigStorage() " 
+                + "as (b:bag{t:tuple(x:chararray,y:chararray)}, t2:tuple(a:int,b:int), m:map[]);");
         String output = "/pig/out/TestEvalPipeline-testBinStorageDetermineSchema";
         pigServer.deleteFile(output);
         pigServer.store("a", output, BinStorage.class.getName());
@@ -609,7 +605,8 @@ public class TestEvalPipeline extends TestCase {
         // projected all columns apear in the output
         File input = Util.createInputFile("tmp", "", 
                 new String[] {"f1\tf2\tf3"});
-        pigServer.registerQuery("a = load 'file:" + Util.encodeEscape(input.toString()) + "' as (x, y, z);");
+        pigServer.registerQuery("a = load '" 
+                + Util.generateURI(input.toString(), pigContext) + "' as (x, y, z);");
         pigServer.registerQuery("b = group a by x;");
         pigServer.registerQuery("c = foreach b generate flatten(a.(y, z));");
         Iterator<Tuple> it = pigServer.openIterator("c");
@@ -625,8 +622,9 @@ public class TestEvalPipeline extends TestCase {
         File input = Util.createInputFile("tmp", "", 
                 new String[] {"pigtester\t10\t1.2"});
         
-        pigServer.registerQuery("a = load 'file:" + Util.encodeEscape(input.toString()) + "' using PigStorage() " +
-                "as (name:chararray, age:int, gpa:double);");
+        pigServer.registerQuery("a = load '" 
+                + Util.generateURI(input.toString(), pigContext) + "' using PigStorage() " 
+                + "as (name:chararray, age:int, gpa:double);");
         String output = "/pig/out/TestEvalPipeline-testBinStorageDetermineSchema2";
         pigServer.deleteFile(output);
         pigServer.store("a", output, BinStorage.class.getName());
@@ -697,11 +695,13 @@ public class TestEvalPipeline extends TestCase {
         resultMap.put("pigtester2", new Pair<Long, Long>(10L, 1L));
         resultMap.put("pigtester3", new Pair<Long, Long>(60L, 3L));
         
-        pigServer.registerQuery("a = load 'file:" + Util.encodeEscape(input.toString()) + "' using PigStorage() " +
-                "as (name:chararray, age:int, gpa:double);");
+        pigServer.registerQuery("a = load '" 
+                + Util.generateURI(input.toString(), pigContext) + "' using PigStorage() " 
+                + "as (name:chararray, age:int, gpa:double);");
         pigServer.registerQuery("b = group a by name;");
-        pigServer.registerQuery("c = load 'file:" + Util.encodeEscape(input.toString()) + "' using PigStorage() " +
-        "as (name:chararray, age:int, gpa:double);");
+        pigServer.registerQuery("c = load '" 
+                + Util.generateURI(input.toString(), pigContext) + "' using PigStorage() " 
+                + "as (name:chararray, age:int, gpa:double);");
         pigServer.registerQuery("d = cogroup b by group, c by name;");
         pigServer.registerQuery("e = foreach d generate flatten(group), SUM(c.age), COUNT(c.name);");
         Iterator<Tuple> it = pigServer.openIterator("e");
@@ -720,8 +720,9 @@ public class TestEvalPipeline extends TestCase {
         // Create input file with unicode data
         File input = Util.createInputFile("tmp", "", 
                 new String[] {"wendyξ"});
-        pigServer.registerQuery("a = load 'file:" + Util.encodeEscape(input.toString()) + "' using PigStorage() " +
-        "as (name:chararray);");
+        pigServer.registerQuery("a = load '" 
+                + Util.generateURI(input.toString(), pigContext) 
+                + "' using PigStorage() " + "as (name:chararray);");
         Iterator<Tuple> it = pigServer.openIterator("a");
         Tuple t = it.next();
         assertEquals("wendyξ", t.get(0));
@@ -732,7 +733,6 @@ public class TestEvalPipeline extends TestCase {
         int LOOP_COUNT = 2;
         File tmpFile = File.createTempFile("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
-        Random r = new Random();
         for(int i = 0; i < LOOP_COUNT; i++) {
             for(int j=0;j<LOOP_COUNT;j+=2){
                 ps.println(i+"\t"+j);
@@ -741,9 +741,8 @@ public class TestEvalPipeline extends TestCase {
         }
         ps.close();
 
-        String tmpOutputFile = FileLocalizer.getTemporaryPath(null, 
-        pigServer.getPigContext()).toString();
-        pigServer.registerQuery("A = LOAD '" + Util.generateURI(tmpFile.toString()) + "';");
+        pigServer.registerQuery("A = LOAD '" 
+                + Util.generateURI(tmpFile.toString(), pigContext) + "';");
         pigServer.registerQuery("B = foreach A generate " + MapUDF.class.getName() + "($0) as mymap;"); //the argument does not matter
         String query = "C = foreach B {"
         + "generate (double)mymap#'double' as d, (long)mymap#'long' + (float)mymap#'float' as float_sum, CONCAT((chararray) mymap#'string', ' World!'), mymap#'int' * 10, (bag{tuple()}) mymap#'bag' as mybag, (tuple()) mymap#'tuple' as mytuple, (map[])mymap#'map' as mapInMap, mymap#'dba' as dba;"
@@ -773,7 +772,6 @@ public class TestEvalPipeline extends TestCase {
         int LOOP_COUNT = 2;
         File tmpFile = File.createTempFile("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
-        Random r = new Random();
         for(int i = 0; i < LOOP_COUNT; i++) {
             for(int j=0;j<LOOP_COUNT;j+=2){
                 ps.println(i+"\t"+j);
@@ -782,9 +780,8 @@ public class TestEvalPipeline extends TestCase {
         }
         ps.close();
 
-        String tmpOutputFile = FileLocalizer.getTemporaryPath(null, 
-        pigServer.getPigContext()).toString();
-        pigServer.registerQuery("A = LOAD '" + Util.generateURI(tmpFile.toString()) + "';");
+        pigServer.registerQuery("A = LOAD '" 
+                + Util.generateURI(tmpFile.toString(), pigContext) + "';");
         pigServer.registerQuery("B = foreach A generate " + MapUDF.class.getName() + "($0) as mymap;"); //the argument does not matter
         String query = "C = foreach B {"
         + "generate mymap#'dba' * 10;"
@@ -792,7 +789,7 @@ public class TestEvalPipeline extends TestCase {
 
         pigServer.registerQuery(query);
         try {
-            Iterator<Tuple> iter = pigServer.openIterator("C");
+            pigServer.openIterator("C");
             fail("Error expected.");
         } catch (Exception e) {
             e.getMessage().contains("Cannot determine");
@@ -805,8 +802,9 @@ public class TestEvalPipeline extends TestCase {
         // Create input file
         File input = Util.createInputFile("tmp", "", 
                 new String[] {"hello:world"});
-        pigServer.registerQuery("a = load 'file:" + Util.encodeEscape(input.toString()) + 
-                "' using org.apache.pig.test.PigStorageNoDefCtor(':');");
+        pigServer.registerQuery("a = load '" 
+                + Util.generateURI(input.toString(), pigContext) 
+                + "' using org.apache.pig.test.PigStorageNoDefCtor(':');");
         pigServer.registerQuery("b = foreach a generate (chararray)$0, (chararray)$1;");
         Iterator<Tuple> it = pigServer.openIterator("b");
         Tuple t = it.next();
@@ -820,7 +818,6 @@ public class TestEvalPipeline extends TestCase {
         int LOOP_COUNT = 10;
         File tmpFile = File.createTempFile("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
-        Random r = new Random();
         for(int i = 0; i < LOOP_COUNT; i++) {
             for(int j=0;j<LOOP_COUNT;j+=2){
                 ps.println(i+"\t"+j);
@@ -829,9 +826,8 @@ public class TestEvalPipeline extends TestCase {
         }
         ps.close();
 
-        String tmpOutputFile = FileLocalizer.getTemporaryPath(null, 
-        pigServer.getPigContext()).toString();
-        pigServer.registerQuery("A = LOAD '" + Util.generateURI(tmpFile.toString()) + "';");
+        pigServer.registerQuery("A = LOAD '" 
+                + Util.generateURI(tmpFile.toString(), pigContext) + "';");
         pigServer.registerQuery("B = group A by $0;");
         String query = "C = foreach B {"
         + "C1 = filter A by not($0 <= -1);"
@@ -864,7 +860,6 @@ public class TestEvalPipeline extends TestCase {
         int LOOP_COUNT = 10;
         File tmpFile = File.createTempFile("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
-        Random r = new Random();
         for(int i = 0; i < LOOP_COUNT; i++) {
             for(int j=0;j<LOOP_COUNT;j+=2){
                 ps.println(i+"\t"+j);
@@ -873,9 +868,8 @@ public class TestEvalPipeline extends TestCase {
         }
         ps.close();
 
-        String tmpOutputFile = FileLocalizer.getTemporaryPath(null, 
-        pigServer.getPigContext()).toString();
-        pigServer.registerQuery("A = LOAD '" + Util.generateURI(tmpFile.toString()) + "';");
+        pigServer.registerQuery("A = LOAD '" 
+                + Util.generateURI(tmpFile.toString(), pigContext) + "';");
         pigServer.registerQuery("B = distinct A;");
         String query = "C = foreach B {"
         + "C1 = $1 - $0;"
@@ -913,7 +907,6 @@ public class TestEvalPipeline extends TestCase {
         int LOOP_COUNT = 10;
         File tmpFile = File.createTempFile("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
-        Random r = new Random();
         for(int i = 0; i < LOOP_COUNT; i++) {
             for(int j=0;j<LOOP_COUNT;j+=2){
                 ps.println(i+"\t"+j);
@@ -922,9 +915,8 @@ public class TestEvalPipeline extends TestCase {
         }
         ps.close();
 
-        String tmpOutputFile = FileLocalizer.getTemporaryPath(null, 
-        pigServer.getPigContext()).toString();
-        pigServer.registerQuery("A = LOAD '" + Util.generateURI(tmpFile.toString()) + "';");
+        pigServer.registerQuery("A = LOAD '" 
+                + Util.generateURI(tmpFile.toString(), pigContext) + "';");
         pigServer.registerQuery("B = distinct A;");
         String query = "C = foreach B {"
         + "C1 = $0 + $1;"
@@ -956,7 +948,6 @@ public class TestEvalPipeline extends TestCase {
         int LOOP_COUNT = 2;
         File tmpFile = File.createTempFile("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
-        Random r = new Random();
         for(int i = 0; i < LOOP_COUNT; i++) {
             for(int j=0;j<LOOP_COUNT;j+=2){
                 ps.println(i+"\t"+j);
@@ -965,9 +956,8 @@ public class TestEvalPipeline extends TestCase {
         }
         ps.close();
 
-        String tmpOutputFile = FileLocalizer.getTemporaryPath(null, 
-        pigServer.getPigContext()).toString();
-        pigServer.registerQuery("A = LOAD '" + Util.generateURI(tmpFile.toString()) + "';");
+        pigServer.registerQuery("A = LOAD '" 
+                + Util.generateURI(tmpFile.toString(), pigContext) + "';");
         pigServer.registerQuery("B = distinct A ;"); //the argument does not matter
         pigServer.registerQuery("C = foreach B generate FLATTEN(" + Identity.class.getName() + "($0, $1));"); //the argument does not matter
 
@@ -1063,9 +1053,7 @@ public class TestEvalPipeline extends TestCase {
             inpString[i] = new Integer(i/2).toString();
             inpString[i+1] = new Integer(i/2).toString();
         }
-        
-       
-        DataBag inputBag = Util.createBagOfOneColumn(inp);
+               
         Util.createInputFile(cluster, "table", inpString);
 
         pigServer.registerQuery("a = LOAD 'table' AS (i:int);");

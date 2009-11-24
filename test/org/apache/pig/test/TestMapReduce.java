@@ -113,7 +113,10 @@ public class TestMapReduce extends TestCase {
             System.setProperty("pig.overrideBlockSize", Integer.toString(offsets[i]));
             PigContext pigContext = new PigContext(ExecType.MAPREDUCE, cluster.getProperties());
             PigServer pig = new PigServer(pigContext);
-            pig.registerQuery("a = load 'file:test/org/apache/pig/test/data/bzipTest.bz2';");
+            pig.registerQuery("a = load '"
+                    + Util.generateURI(
+                            "file:test/org/apache/pig/test/data/bzipTest.bz2",
+                            pig.getPigContext()) + "';");
             //pig.registerQuery("a = foreach (group (load 'file:test/org/apache/pig/test/data/bzipTest.bz2') all) generate COUNT($1);");
             Iterator<Tuple> it = pig.openIterator("a");
             int count = 0;
@@ -131,11 +134,13 @@ public class TestMapReduce extends TestCase {
     @Test
     public Double bigGroupAll( File tmpFile ) throws Throwable {
 
-        String query = "foreach (group (load '" + Util.generateURI(tmpFile.toString()) + "') all) generate " + COUNT.class.getName() + "($1) ;";
+        String query = "foreach (group (load '"
+                + Util.generateURI(tmpFile.toString(), pig.getPigContext())
+                + "') all) generate " + COUNT.class.getName() + "($1) ;";
         System.out.println(query);
         pig.registerQuery("asdf_id = " + query);
-        Iterator it = pig.openIterator("asdf_id");
-        Tuple t = (Tuple)it.next();
+        Iterator<Tuple> it = pig.openIterator("asdf_id");
+        Tuple t = it.next();
 
         return  DataType.toDouble(t.get(0));
     }
@@ -226,8 +231,10 @@ public class TestMapReduce extends TestCase {
         }
         ps.close();
 
-	//Load, Execute and Store query
-        String query = "foreach (load '"+Util.generateURI(tmpFile.toString())+"') generate $0,$1;";
+        //Load, Execute and Store query
+        String query = "foreach (load '"
+                + Util.generateURI(tmpFile.toString(), pig.getPigContext())
+                + "') generate $0,$1;";
         System.out.println(query);
         pig.registerQuery("asdf_id = " + query);
         try {
@@ -236,7 +243,7 @@ public class TestMapReduce extends TestCase {
         pig.store("asdf_id", "frog", MyStorage.class.getName()+"()");
 
 
-	//verify query
+        //verify query
 
         InputStream is = FileLocalizer.open("frog", pig.getPigContext());
         BufferedReader br = new BufferedReader(new InputStreamReader(is));
@@ -276,7 +283,9 @@ public class TestMapReduce extends TestCase {
         File tmpFile=TestHelper.createTempFile(data) ;
 
 	//Load, Execute and Store query
-        String query = "foreach (load '"+Util.generateURI(tmpFile.toString())+"') generate $0,$1;";
+        String query = "foreach (load '"
+                + Util.generateURI(tmpFile.toString(), pig.getPigContext())
+                + "') generate $0,$1;";
         System.out.println(query);
         pig.registerQuery("asdf_id = " + query);
         try {
@@ -319,16 +328,20 @@ public class TestMapReduce extends TestCase {
         ps.close();
 
         // execute query
-        String query = "foreach (group (load '"+Util.generateURI(tmpFile.toString())+"' using " + MyStorage.class.getName() + "()) by " + MyGroup.class.getName() + "('all')) generate flatten(" + MyApply.class.getName() + "($1)) ;";
+        String query = "foreach (group (load '"
+                + Util.generateURI(tmpFile.toString(), pig.getPigContext())
+                + "' using " + MyStorage.class.getName() + "()) by "
+                + MyGroup.class.getName() + "('all')) generate flatten("
+                + MyApply.class.getName() + "($1)) ;";
         System.out.println(query);
         pig.registerQuery("asdf_id = " + query);
 
         //Verfiy query
-        Iterator it = pig.openIterator("asdf_id");
+        Iterator<Tuple> it = pig.openIterator("asdf_id");
         Tuple t;
         int count = 0;
         while(it.hasNext()) {
-            t = (Tuple) it.next();
+            t = it.next();
             assertEquals(t.get(0).toString(), "Got");
             Integer.parseInt(t.get(1).toString());
             count++;
@@ -353,16 +366,20 @@ public class TestMapReduce extends TestCase {
         ps.close();
 
         // execute query
-        String query = "foreach (group (load '"+Util.generateURI(tmpFile.toString())+"' using " + MyStorage.class.getName() + "()) by " + MyGroup.class.getName() + "('all')) generate flatten(" + MyApply.class.getName() + "($1)) ;";
+        String query = "foreach (group (load '"
+                + Util.generateURI(tmpFile.toString(), pig.getPigContext())
+                + "' using " + MyStorage.class.getName() + "()) by "
+                + MyGroup.class.getName() + "('all')) generate flatten("
+                + MyApply.class.getName() + "($1)) ;";
         System.out.println(query);
         pig.registerQuery("asdf_id = " + query);
 
         //Verfiy query
-        Iterator it = pig.openIterator("asdf_id");
+        Iterator<Tuple> it = pig.openIterator("asdf_id");
         Tuple t;
         int count = 0;
         while(it.hasNext()) {
-            t = (Tuple) it.next();
+            t = it.next();
             assertEquals(t.get(0).toString(), "Got");
             Integer.parseInt(t.get(1).toString());
             count++;
@@ -383,15 +400,19 @@ public class TestMapReduce extends TestCase {
         ps.close();
         pig.registerFunction("foo",
             new FuncSpec(MyApply.class.getName()+"('foo')"));
-        String query = "foreach (group (load '"+Util.generateURI(tmpFile.toString())+"' using " + MyStorage.class.getName() + "()) by " + MyGroup.class.getName() + "('all')) generate flatten(foo($1)) ;";
+        String query = "foreach (group (load '"
+                + Util.generateURI(tmpFile.toString(), pig.getPigContext())
+                + "' using " + MyStorage.class.getName() + "()) by "
+                + MyGroup.class.getName()
+                + "('all')) generate flatten(foo($1)) ;";
         System.out.println(query);
         pig.registerQuery("asdf_id = " + query);
-        Iterator it = pig.openIterator("asdf_id");
+        Iterator<Tuple> it = pig.openIterator("asdf_id");
         tmpFile.delete();
         Tuple t;
         int count = 0;
         while(it.hasNext()) {
-            t = (Tuple) it.next();
+            t = it.next();
             assertEquals("foo", t.get(0).toString());
             Integer.parseInt(t.get(1).toString());
             count++;
@@ -428,15 +449,19 @@ public class TestMapReduce extends TestCase {
         ps.close();
         pig.registerFunction("foo",
             new FuncSpec(MyApply.class.getName()+"('foo')"));
-        String query = "foreach (group (load '"+Util.generateURI(tmpFile.toString())+"' using " + MyStorage.class.getName() + "()) by " + MyGroup.class.getName() + "('all')) generate flatten(foo($1)) ;";
+        String query = "foreach (group (load '"
+                + Util.generateURI(tmpFile.toString(), pig.getPigContext())
+                + "' using " + MyStorage.class.getName() + "()) by "
+                + MyGroup.class.getName()
+                + "('all')) generate flatten(foo($1)) ;";
         System.out.println(query);
         pig.registerQuery("asdf_id = " + query);
-        Iterator it = pig.openIterator("asdf_id");
+        Iterator<Tuple> it = pig.openIterator("asdf_id");
         tmpFile.delete();
         Tuple t;
         int count = 0;
         while(it.hasNext()) {
-            t = (Tuple) it.next();
+            t = it.next();
             assertEquals("foo", t.get(0).toString());
 
             if ( t.get(1).toString() != "" ) {

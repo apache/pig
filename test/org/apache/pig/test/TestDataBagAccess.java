@@ -74,7 +74,8 @@ public class TestDataBagAccess extends TestCase {
     public void testBagConstantAccess() throws IOException, ExecException {
         File input = Util.createInputFile("tmp", "", 
                 new String[] {"sampledata\tnot_used"});
-        pigServer.registerQuery("a = load 'file:" + Util.encodeEscape(input.toString()) + "';");
+        pigServer.registerQuery("a = load '" 
+                + Util.generateURI(Util.encodeEscape(input.toString()), pigServer.getPigContext()) + "';");
         pigServer.registerQuery("b = foreach a generate {(16, 4.0e-2, 'hello')} as mybag:{t:(i: int, d: double, c: chararray)};");
         pigServer.registerQuery("c = foreach b generate mybag.i, mybag.d, mybag.c;");
         Iterator<Tuple> it = pigServer.openIterator("c");
@@ -93,7 +94,8 @@ public class TestDataBagAccess extends TestCase {
     public void testBagConstantAccessFailure() throws IOException, ExecException {
         File input = Util.createInputFile("tmp", "", 
                 new String[] {"sampledata\tnot_used"});
-        pigServer.registerQuery("a = load 'file:" + Util.encodeEscape(input.toString()) + "';");
+        pigServer.registerQuery("a = load '" 
+                + Util.generateURI(Util.encodeEscape(input.toString()), pigServer.getPigContext()) + "';");
         pigServer.registerQuery("b = foreach a generate {(16, 4.0e-2, 'hello')} as mybag:{t:(i: int, d: double, c: chararray)};");
         boolean exceptionOccured = false;
         try {
@@ -111,7 +113,8 @@ public class TestDataBagAccess extends TestCase {
     public void testBagConstantFlatten1() throws IOException, ExecException {
         File input = Util.createInputFile("tmp", "", 
                 new String[] {"sampledata\tnot_used"});
-        pigServer.registerQuery("A = load 'file:" + Util.encodeEscape(input.toString()) + "';");
+        pigServer.registerQuery("A = load '" 
+                + Util.generateURI(Util.encodeEscape(input.toString()), pigServer.getPigContext()) + "';");
         pigServer.registerQuery("B = foreach A generate {(('p1-t1-e1', 'p1-t1-e2'),('p1-t2-e1', 'p1-t2-e2'))," +
                 "(('p2-t1-e1', 'p2-t1-e2'), ('p2-t2-e1', 'p2-t2-e2'))};");
         pigServer.registerQuery("C = foreach B generate $0 as pairbag { pair: ( t1: (e1, e2), t2: (e1, e2) ) };");
@@ -134,8 +137,9 @@ public class TestDataBagAccess extends TestCase {
     public void testBagConstantFlatten2() throws IOException, ExecException {
         File input = Util.createInputFile("tmp", "", 
                 new String[] {"somestring\t10\t{(a,10),(b,20)}"});
-        pigServer.registerQuery("a = load 'file:" + Util.encodeEscape(input.toString()) + "' " +
-        		"as (str:chararray, intval:int, bg:bag{t:tuple(s:chararray, i:int)});");
+        pigServer.registerQuery("a = load '" 
+                + Util.generateURI(Util.encodeEscape(input.toString()), pigServer.getPigContext()) 
+                + "' " + "as (str:chararray, intval:int, bg:bag{t:tuple(s:chararray, i:int)});");
         pigServer.registerQuery("b = foreach a generate str, intval, flatten(bg);");
         pigServer.registerQuery("c = foreach b generate str, intval, s, i;");
         Iterator<Tuple> it = pigServer.openIterator("c");
@@ -171,8 +175,9 @@ public class TestDataBagAccess extends TestCase {
     public void testBagStoreLoad() throws IOException, ExecException {
         File input = Util.createInputFile("tmp", "", 
                 new String[] {"a\tid1", "a\tid2", "a\tid3", "b\tid4", "b\tid5", "b\tid6"});
-        pigServer.registerQuery("a = load 'file:" + Util.encodeEscape(input.toString()) + "' " +
-                "as (s:chararray, id:chararray);");
+        pigServer.registerQuery("a = load '" 
+                + Util.generateURI(Util.encodeEscape(input.toString()), pigServer.getPigContext()) 
+                + "' " + "as (s:chararray, id:chararray);");
         pigServer.registerQuery("b = group a by s;");
         Class[] loadStoreClasses = new Class[] { BinStorage.class, PigStorage.class };
         for (int i = 0; i < loadStoreClasses.length; i++) {

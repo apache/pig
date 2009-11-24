@@ -19,6 +19,7 @@
 package org.apache.pig.test;
 
 import org.apache.pig.PigServer;
+import org.apache.pig.ExecType;
 import org.apache.pig.test.utils.TestHelper;
 import org.apache.pig.data.Tuple;
 import org.junit.Test;
@@ -33,13 +34,12 @@ import java.text.DecimalFormat;
 
 public class TestForEachNestedPlan extends TestCase {
 
-    private String initString = "mapreduce";
     MiniCluster cluster = MiniCluster.buildCluster();
 
     private PigServer pig ;
 
     public TestForEachNestedPlan() throws Throwable {
-        pig = new PigServer(initString) ;
+        pig = new PigServer(ExecType.MAPREDUCE, cluster.getProperties()) ;
     }
 
     Boolean[] nullFlags = new Boolean[]{ false, true };
@@ -49,7 +49,8 @@ public class TestForEachNestedPlan extends TestCase {
         for (int i = 0; i < nullFlags.length; i++) {
             System.err.println("Running testInnerOrderBy with nullFlags set to :" + nullFlags[i]);
             File tmpFile = genDataSetFile1(nullFlags[i]);
-            pig.registerQuery("a = load '" + Util.generateURI(tmpFile.toString()) + "'; ");
+            pig.registerQuery("a = load '" 
+                    + Util.generateURI(tmpFile.toString(), pig.getPigContext()) + "'; ");
             pig.registerQuery("b = group a by $0; ");
             pig.registerQuery("c = foreach b { " + "     c1 = order $1 by *; "
                     + "    generate flatten(c1); " + "};");

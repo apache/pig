@@ -19,8 +19,6 @@ package org.apache.pig.test;
 
 import org.junit.Test;
 import junit.framework.TestCase;
-import junit.framework.AssertionFailedError;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.pig.ExecType;
@@ -139,7 +137,9 @@ public class TestGrunt extends TestCase {
         PigServer server = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
         PigContext context = server.getPigContext();
         
-        String strCmd = "a = load 'input1'; b = foreach a generate {(1, '1', 0.4f),(2, '2', 0.45)} as b: bag{t(i: int, c:chararray, d: double)};\n";
+        String strCmd = "a = load 'input1'; b = foreach a generate "
+                + "{(1, '1', 0.4f),(2, '2', 0.45)} as "
+                + "b: bag{t(i: int, c:chararray, d: double)};\n";
         
         ByteArrayInputStream cmd = new ByteArrayInputStream(strCmd.getBytes());
         InputStreamReader reader = new InputStreamReader(cmd);
@@ -154,7 +154,8 @@ public class TestGrunt extends TestCase {
         PigServer server = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
         PigContext context = server.getPigContext();
         
-        String strCmd = "a = load 'input1'; b = foreach a {generate {(1, '1', 0.4f),(2, '2', 0.45)};};\n";
+        String strCmd = "a = load 'input1'; "
+                + "b = foreach a {generate {(1, '1', 0.4f),(2, '2', 0.45)};};\n";
         
         ByteArrayInputStream cmd = new ByteArrayInputStream(strCmd.getBytes());
         InputStreamReader reader = new InputStreamReader(cmd);
@@ -169,7 +170,9 @@ public class TestGrunt extends TestCase {
         PigServer server = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
         PigContext context = server.getPigContext();
         
-        String strCmd = "a = load 'input1'; b = foreach a {generate {(1, '1', 0.4f),(2, '2', 0.45)} as b: bag{t(i: int, c:chararray, d: double)};};\n";
+        String strCmd = "a = load 'input1'; "
+                + "b = foreach a {generate {(1, '1', 0.4f),(2, '2', 0.45)} "
+                + "as b: bag{t(i: int, c:chararray, d: double)};};\n";
         
         ByteArrayInputStream cmd = new ByteArrayInputStream(strCmd.getBytes());
         InputStreamReader reader = new InputStreamReader(cmd);
@@ -184,7 +187,9 @@ public class TestGrunt extends TestCase {
         PigServer server = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
         PigContext context = server.getPigContext();
         
-        String strCmd = "a = load 'foo' as (foo, fast); b = group a by foo; c = foreach b {generate SUM(a.fast) as fast;};\n";
+        String strCmd = "a = load 'foo' as (foo, fast); "
+                + "b = group a by foo; c = foreach b "
+                + "{generate SUM(a.fast) as fast;};\n";
         
         ByteArrayInputStream cmd = new ByteArrayInputStream(strCmd.getBytes());
         InputStreamReader reader = new InputStreamReader(cmd);
@@ -199,7 +204,8 @@ public class TestGrunt extends TestCase {
         PigServer server = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
         PigContext context = server.getPigContext();
         
-        String strCmd = "a = load 'foo' as (foo, fast); b = group a by foo; c = foreach b generate SUM(a.fast) as fast;\n";
+        String strCmd = "a = load 'foo' as (foo, fast); "
+                + "b = group a by foo; c = foreach b generate SUM(a.fast) as fast;\n";
         
         ByteArrayInputStream cmd = new ByteArrayInputStream(strCmd.getBytes());
         InputStreamReader reader = new InputStreamReader(cmd);
@@ -214,7 +220,8 @@ public class TestGrunt extends TestCase {
         PigServer server = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
         PigContext context = server.getPigContext();
         
-        String strCmd = "a = load 'foo' as (foo, fast); b = group a by foo; c = foreach b {generate SUM(a.fast);};\n";
+        String strCmd = "a = load 'foo' as (foo, fast); "
+                + "b = group a by foo; c = foreach b {generate SUM(a.fast);};\n";
         
         ByteArrayInputStream cmd = new ByteArrayInputStream(strCmd.getBytes());
         InputStreamReader reader = new InputStreamReader(cmd);
@@ -229,7 +236,8 @@ public class TestGrunt extends TestCase {
         PigServer server = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
         PigContext context = server.getPigContext();
         
-        String strCmd = "a = load 'foo' as (foo, fast); b = group a by foo; c = foreach b generate SUM(a.fast);\n";
+        String strCmd = "a = load 'foo' as (foo, fast); "
+                + "b = group a by foo; c = foreach b generate SUM(a.fast);\n";
         
         ByteArrayInputStream cmd = new ByteArrayInputStream(strCmd.getBytes());
         InputStreamReader reader = new InputStreamReader(cmd);
@@ -244,7 +252,8 @@ public class TestGrunt extends TestCase {
         PigServer server = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
         PigContext context = server.getPigContext();
         
-        String strCmd = "cash = load 'foo' as (foo, fast); b = foreach cash generate fast * 2.0;\n";
+        String strCmd = "cash = load 'foo' as (foo, fast); "
+                + "b = foreach cash generate fast * 2.0;\n";
         
         ByteArrayInputStream cmd = new ByteArrayInputStream(strCmd.getBytes());
         InputStreamReader reader = new InputStreamReader(cmd);
@@ -260,7 +269,8 @@ public class TestGrunt extends TestCase {
         PigServer server = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
         PigContext context = server.getPigContext();
         
-        String strCmd = "a = load 'foo' as (foo, fast, regenerate); b = group a by foo; c = foreach b {generate a.regenerate;};\n";
+        String strCmd = "a = load 'foo' as (foo, fast, regenerate); "
+                + "b = group a by foo; c = foreach b {generate a.regenerate;};\n";
         
         ByteArrayInputStream cmd = new ByteArrayInputStream(strCmd.getBytes());
         InputStreamReader reader = new InputStreamReader(cmd);
@@ -275,7 +285,8 @@ public class TestGrunt extends TestCase {
         PigServer server = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
         PigContext context = server.getPigContext();
         
-        String strCmd = "a = load 'foo' as (foo, fast, regenerate); b = group a by foo; c = foreach b generate a.regenerate;\n";
+        String strCmd = "a = load 'foo' as (foo, fast, regenerate); "
+                + "b = group a by foo; c = foreach b generate a.regenerate;\n";
         
         ByteArrayInputStream cmd = new ByteArrayInputStream(strCmd.getBytes());
         InputStreamReader reader = new InputStreamReader(cmd);
@@ -290,7 +301,11 @@ public class TestGrunt extends TestCase {
         PigServer server = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
         PigContext context = server.getPigContext();
         
-        String strCmd = "a = load 'foo' as (foo, fast, regenerate); b = group a by foo; c = foreach b {generate {(1, '1', 0.4f),(2, '2', 0.45)} as b: bag{t(i: int, cease:chararray, degenerate: double)}, SUM(a.fast) as fast, a.regenerate as degenerated;};\n";
+        String strCmd = "a = load 'foo' as (foo, fast, regenerate); "
+                + "b = group a by foo; c = foreach b {generate "
+                + "{(1, '1', 0.4f),(2, '2', 0.45)} "
+                + "as b: bag{t(i: int, cease:chararray, degenerate: double)}, "
+                + "SUM(a.fast) as fast, a.regenerate as degenerated;};\n";
         
         ByteArrayInputStream cmd = new ByteArrayInputStream(strCmd.getBytes());
         InputStreamReader reader = new InputStreamReader(cmd);
@@ -305,7 +320,11 @@ public class TestGrunt extends TestCase {
         PigServer server = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
         PigContext context = server.getPigContext();
         
-        String strCmd = "a = load 'foo' as (foo, fast, regenerate); b = group a by foo; c = foreach b generate {(1, '1', 0.4f),(2, '2', 0.45)} as b: bag{t(i: int, cease:chararray, degenerate: double)}, SUM(a.fast) as fast, a.regenerate as degenerated;\n";
+        String strCmd = "a = load 'foo' as (foo, fast, regenerate); "
+                + "b = group a by foo; c = foreach b generate "
+                + "{(1, '1', 0.4f),(2, '2', 0.45)} "
+                + "as b: bag{t(i: int, cease:chararray, degenerate: double)}, "
+                + "SUM(a.fast) as fast, a.regenerate as degenerated;\n";
         
         ByteArrayInputStream cmd = new ByteArrayInputStream(strCmd.getBytes());
         InputStreamReader reader = new InputStreamReader(cmd);
@@ -320,9 +339,9 @@ public class TestGrunt extends TestCase {
         PigServer server = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
         PigContext context = server.getPigContext();
         
-        String strCmd = "a = load 'foo' as (foo, fast, regenerate);" +
-                        " run -param LIMIT=5 -param_file " + basedir +
-                        "/test_broken.ppf " + basedir + "/testsub.pig; explain bar";
+        String strCmd = "a = load 'foo' as (foo, fast, regenerate);"
+                + " run -param LIMIT=5 -param_file " + basedir
+                + "/test_broken.ppf " + basedir + "/testsub.pig; explain bar";
         
         ByteArrayInputStream cmd = new ByteArrayInputStream(strCmd.getBytes());
         InputStreamReader reader = new InputStreamReader(cmd);
@@ -338,9 +357,9 @@ public class TestGrunt extends TestCase {
         PigContext context = server.getPigContext();
         boolean caught = false;
         
-        String strCmd = "a = load 'foo' as (foo, fast, regenerate);" +
-                        " exec -param LIMIT=5 -param FUNCTION=COUNT " +
-                        "-param FILE=foo " + basedir + "/testsub.pig; explain bar;";
+        String strCmd = "a = load 'foo' as (foo, fast, regenerate);"
+                + " exec -param LIMIT=5 -param FUNCTION=COUNT "
+                + "-param FILE=foo " + basedir + "/testsub.pig; explain bar;";
         
         ByteArrayInputStream cmd = new ByteArrayInputStream(strCmd.getBytes());
         InputStreamReader reader = new InputStreamReader(cmd);
@@ -362,7 +381,7 @@ public class TestGrunt extends TestCase {
         PigContext context = server.getPigContext();
         
         String strCmd = "a = load 'foo' as (foo, fast, regenerate); run "
-            +basedir+"/testsubnested_run.pig; explain bar";
+                + basedir + "/testsubnested_run.pig; explain bar";
         
         ByteArrayInputStream cmd = new ByteArrayInputStream(strCmd.getBytes());
         InputStreamReader reader = new InputStreamReader(cmd);
@@ -379,7 +398,7 @@ public class TestGrunt extends TestCase {
         boolean caught = false;
         
         String strCmd = "a = load 'foo' as (foo, fast, regenerate); exec "
-            +basedir+"/testsubnested_exec.pig; explain bar";
+                + basedir + "/testsubnested_exec.pig; explain bar";
         
         ByteArrayInputStream cmd = new ByteArrayInputStream(strCmd.getBytes());
         InputStreamReader reader = new InputStreamReader(cmd);
@@ -401,7 +420,7 @@ public class TestGrunt extends TestCase {
         PigContext context = server.getPigContext();
         
         String strCmd = "a = load 'foo' as (foo, fast, regenerate); run "
-            +basedir+"/testsubnested_run.pig; explain";
+                + basedir + "/testsubnested_run.pig; explain";
         
         ByteArrayInputStream cmd = new ByteArrayInputStream(strCmd.getBytes());
         InputStreamReader reader = new InputStreamReader(cmd);
@@ -417,7 +436,7 @@ public class TestGrunt extends TestCase {
         PigContext context = server.getPigContext();
         
         String strCmd = "a = load 'foo' as (foo, fast, regenerate); explain -script "
-            +basedir+"/testsubnested_run.pig;";
+                + basedir + "/testsubnested_run.pig;";
         
         ByteArrayInputStream cmd = new ByteArrayInputStream(strCmd.getBytes());
         InputStreamReader reader = new InputStreamReader(cmd);
@@ -433,7 +452,7 @@ public class TestGrunt extends TestCase {
         PigContext context = server.getPigContext();
         
         String strCmd = "a = load 'foo' as (foo, fast, regenerate); explain -brief -script "
-            +basedir+"/testsubnested_run.pig;";
+                + basedir + "/testsubnested_run.pig;";
         
         ByteArrayInputStream cmd = new ByteArrayInputStream(strCmd.getBytes());
         InputStreamReader reader = new InputStreamReader(cmd);
@@ -449,7 +468,7 @@ public class TestGrunt extends TestCase {
         PigContext context = server.getPigContext();
         
         String strCmd = "a = load 'foo' as (foo, fast, regenerate); explain -dot -script "
-            +basedir+"/testsubnested_run.pig;";
+                + basedir + "/testsubnested_run.pig;";
         
         ByteArrayInputStream cmd = new ByteArrayInputStream(strCmd.getBytes());
         InputStreamReader reader = new InputStreamReader(cmd);
@@ -465,7 +484,7 @@ public class TestGrunt extends TestCase {
         PigContext context = server.getPigContext();
         
         String strCmd = "a = load 'foo' as (foo, fast, regenerate); explain -out /tmp -script "
-            +basedir+"/testsubnested_run.pig;";
+                + basedir + "/testsubnested_run.pig;";
         
         ByteArrayInputStream cmd = new ByteArrayInputStream(strCmd.getBytes());
         InputStreamReader reader = new InputStreamReader(cmd);
@@ -480,8 +499,12 @@ public class TestGrunt extends TestCase {
         PigServer server = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
         PigContext context = server.getPigContext();
         
-        String strCmd = "rmf bar; rmf baz; a = load 'file:test/org/apache/pig/test/data/passwd';"
-            +"store a into 'bar'; exec; a = load 'bar'; store a into 'baz';\n";
+        String strCmd = "rmf bar; rmf baz; "
+                + "a = load '"
+                + Util.generateURI("file:test/org/apache/pig/test/data/passwd",
+                        context)
+                + "';"
+                + "store a into 'bar'; exec; a = load 'bar'; store a into 'baz';\n";
         
         ByteArrayInputStream cmd = new ByteArrayInputStream(strCmd.getBytes());
         InputStreamReader reader = new InputStreamReader(cmd);
@@ -498,7 +521,8 @@ public class TestGrunt extends TestCase {
         
         String strCmd = 
             "rmf bar; rmf baz;"
-            +"a = load 'file:test/org/apache/pig/test/data/passwd';"
+            +"a = load '" 
+            + Util.generateURI("file:test/org/apache/pig/test/data/passwd", context) + "';"
             +"store a into 'bar';"
             +"cp bar baz;"
             +"rm bar; rm baz;"
@@ -553,7 +577,8 @@ public class TestGrunt extends TestCase {
         
         String strCmd = 
             "rmf bla;"
-            +"a = load 'file:test/org/apache/pig/test/data/passwd';"
+            +"a = load '"
+            + Util.generateURI("file:test/org/apache/pig/test/data/passwd", context) + "';"
             +"e = group a by $0;"
             +"f = foreach e generate group, COUNT($1);"
             +"store f into 'bla';"
@@ -576,7 +601,8 @@ public class TestGrunt extends TestCase {
         
         String strCmd = 
             "rmf bla;"
-            +"a = load 'file:test/org/apache/pig/test/data/passwd';"
+            +"a = load '"
+            + Util.generateURI("file:test/org/apache/pig/test/data/passwd", context) + "';"
             +"e = group a by $0;"
             +"f = foreach e generate group, COUNT($1);"
             +"store f into 'bla';"
@@ -591,23 +617,25 @@ public class TestGrunt extends TestCase {
     
         grunt.exec();
     }
-
+/*
     @Test
     public void testKeepGoing() throws Throwable {
         PigServer server = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
         
         PigContext context = server.getPigContext();
-        
+
+        String filename = 
+            Util.generateURI("file:test/org/apache/pig/test/data/passwd", context);
         String strCmd = 
             "rmf bar;"
             +"rmf foo;"
             +"rmf baz;"
-            +"A = load 'file:test/org/apache/pig/test/data/passwd';"
+            +"A = load '" + filename + "';"
             +"B = foreach A generate 1;"
             +"C = foreach A generate 0/0;"
             +"store B into 'foo';"
             +"store C into 'bar';"
-            +"A = load 'file:test/org/apache/pig/test/data/passwd';"
+            +"A = load '" + filename + "';"
             +"B = stream A through `false`;"
             +"store B into 'baz';"
             +"cat bar;";
@@ -653,7 +681,7 @@ public class TestGrunt extends TestCase {
         }
         assertTrue(caught);
     }
-
+*/
     @Test
     public void testInvalidParam() throws Throwable {
         PigServer server = new PigServer(ExecType.LOCAL, cluster.getProperties());
@@ -688,7 +716,8 @@ public class TestGrunt extends TestCase {
             +"rmf foo;\n"
             +"rmf baz;\n"
             +"copyFromLocal test/org/apache/pig/test/data/passwd pre;\n"
-            +"A = load 'file:test/org/apache/pig/test/data/passwd';\n"
+            +"A = load '" 
+            + Util.generateURI("file:test/org/apache/pig/test/data/passwd", context) + "';\n"
             +"B = stream A through `false`;\n"
             +"store B into 'bar' using BinStorage();\n"
             +"A = load 'bar';\n"
