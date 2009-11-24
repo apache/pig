@@ -509,14 +509,16 @@ class ColumnGroup {
       }
 
       BlockDistribution ret = new BlockDistribution();
-      CGIndexEntry entry = cgindex.get(split.fileIndex);
-      FileStatus tfileStatus = fs.getFileStatus(new Path(path, entry.getName())); 
-      
-      BlockLocation[] locations = fs.getFileBlockLocations(tfileStatus, split.startByte, split.numBytes);
-      for (BlockLocation l : locations) {
-        ret.add(l);
-      }
-      
+      if (split.fileIndex >= 0)
+      {
+        CGIndexEntry entry = cgindex.get(split.fileIndex);
+        FileStatus tfileStatus = fs.getFileStatus(new Path(path, entry.getName())); 
+        
+        BlockLocation[] locations = fs.getFileBlockLocations(tfileStatus, split.startByte, split.numBytes);
+        for (BlockLocation l : locations) {
+          ret.add(l);
+        }
+      } 
       return ret;
     }
 
@@ -529,6 +531,9 @@ class ColumnGroup {
     */
     void fillRowSplit(CGRowSplit rowSplit, long startOffset, long length) 
                       throws IOException {
+
+      if (rowSplit.fileIndex < 0)
+        return;
 
       Path tfPath = new Path(path, cgindex.get(rowSplit.fileIndex).getName());
       FileStatus tfile = fs.getFileStatus(tfPath);
@@ -748,7 +753,6 @@ class ColumnGroup {
         long length = lengths[i];
         Path path = paths[i];
         int idx = cgindex.getFileIndex(path);        
-        
         lst.add(new CGRowSplit(idx, start, length));
       }
       
@@ -1060,6 +1064,10 @@ class ColumnGroup {
       public boolean seekTo(BytesWritable key) throws IOException {
         if (!isSorted()) {
           throw new IOException("Cannot seek in unsorted Column Gruop");
+        }
+        if (atEnd())
+        {
+          return false;
         }
         int index =
             cgindex.lowerBound(new ByteArray(key.get(), 0, key.getSize()),
@@ -1764,6 +1772,8 @@ class ColumnGroup {
     
     int getFileIndex(Path path) throws IOException {
       String filename = path.getName();
+      if (index.isEmpty())
+        return -1;
       for (CGIndexEntry cgie : index) {
         if (cgie.getName().equals(filename)) {
           return cgie.getIndex(); 
