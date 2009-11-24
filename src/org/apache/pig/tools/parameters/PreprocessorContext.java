@@ -210,16 +210,16 @@ public class PreprocessorContext {
         return streamData.trim();
     }
 
-    private static String id_regex = "\\$[_]*[a-zA-Z][a-zA-Z_0-9]*";
+    private Pattern id_pattern = Pattern.compile("\\$[_]*[a-zA-Z][a-zA-Z_0-9]*");
+    
     public  String substitute(String line) {
 
         int index = line.indexOf('$');
         if (index == -1)	return line;
 
         String replaced_line = line;
-
-        Pattern identifier = Pattern.compile( id_regex );
-        Matcher keyMatcher = identifier.matcher( line );
+        
+        Matcher keyMatcher = id_pattern.matcher( line );
         String key="";
         String val="";
 

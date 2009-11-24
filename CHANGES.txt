@@ -36,6 +36,9 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-598: Parameter substitution ($PARAMETER) should not be performed in
+comments (thejas via olgan)
+
 PIG-1064: Behaviour of COGROUP with and without schema when using "*" operator
 (pradeepkth)
 

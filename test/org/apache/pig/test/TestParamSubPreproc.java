@@ -167,7 +167,7 @@ public class TestParamSubPreproc extends TestCase {
             ps.genSubstitutedFile(pigIStream , pigOStream , arg , argFiles);
 
             FileInputStream pigResultStream = new FileInputStream(basedir + "/output1.pig");
-            pigExResultStream = new FileInputStream(basedir + "/ExpectedResult.pig");
+            pigExResultStream = new FileInputStream(basedir + "/ExpectedResultDefault.pig");
             BufferedReader inExpected = new BufferedReader(new InputStreamReader(pigExResultStream));
             BufferedReader inResult = new BufferedReader(new InputStreamReader(pigResultStream));
 
@@ -259,7 +259,7 @@ public class TestParamSubPreproc extends TestCase {
             ps.genSubstitutedFile(pigIStream , pigOStream , arg , argFiles);
 
             FileInputStream pigResultStream = new FileInputStream(basedir + "/output1.pig");
-            pigExResultStream = new FileInputStream(basedir + "/ExpectedResult.pig");
+            pigExResultStream = new FileInputStream(basedir + "/ExpectedResult4.pig");
             BufferedReader inExpected = new BufferedReader(new InputStreamReader(pigExResultStream));
             BufferedReader inResult = new BufferedReader(new InputStreamReader(pigResultStream));
 
@@ -310,7 +310,7 @@ public class TestParamSubPreproc extends TestCase {
             ps.genSubstitutedFile(pigIStream , pigOStream , arg , argFiles);
 
             FileInputStream pigResultStream = new FileInputStream(basedir + "/output1.pig");
-            pigExResultStream = new FileInputStream(basedir + "/ExpectedResult.pig");
+            pigExResultStream = new FileInputStream(basedir + "/ExpectedResult4.pig");
             BufferedReader inExpected = new BufferedReader(new InputStreamReader(pigExResultStream));
             BufferedReader inResult = new BufferedReader(new InputStreamReader(pigResultStream));
 
@@ -359,7 +359,7 @@ public class TestParamSubPreproc extends TestCase {
             ps.genSubstitutedFile(pigIStream , pigOStream , arg , argFiles);
 
             FileInputStream pigResultStream = new FileInputStream(basedir + "/output1.pig");
-            pigExResultStream = new FileInputStream(basedir + "/ExpectedResult.pig");
+            pigExResultStream = new FileInputStream(basedir + "/ExpectedResultCmdLnPriorDeclare.pig");
             BufferedReader inExpected = new BufferedReader(new InputStreamReader(pigExResultStream));
             BufferedReader inResult = new BufferedReader(new InputStreamReader(pigResultStream));
 
@@ -409,7 +409,7 @@ public class TestParamSubPreproc extends TestCase {
             ps.genSubstitutedFile(pigIStream , pigOStream , arg , argFiles);
 
             FileInputStream pigResultStream = new FileInputStream(basedir + "/output1.pig");
-            pigExResultStream = new FileInputStream(basedir + "/ExpectedResult.pig");
+            pigExResultStream = new FileInputStream(basedir + "/ExpectedResult4.pig");
             BufferedReader inExpected = new BufferedReader(new InputStreamReader(pigExResultStream));
             BufferedReader inResult = new BufferedReader(new InputStreamReader(pigResultStream));
 
@@ -913,7 +913,7 @@ public class TestParamSubPreproc extends TestCase {
             ps.genSubstitutedFile(pigIStream , pigOStream , arg , argFiles);
 
             FileInputStream pigResultStream = new FileInputStream(basedir + "/output1.pig");
-            pigExResultStream = new FileInputStream(basedir + "/ExpectedResult.pig");
+            pigExResultStream = new FileInputStream(basedir + "/ExpectedResultMulDecs.pig");
             BufferedReader inExpected = new BufferedReader(new InputStreamReader(pigExResultStream));
             BufferedReader inResult = new BufferedReader(new InputStreamReader(pigResultStream));
 
@@ -1334,6 +1334,53 @@ public class TestParamSubPreproc extends TestCase {
         }
 
         log.info("Done");
+
+    }
+    
+    /* Test case 25
+     *   Test that params in comments are untouched
+     */
+    @Test
+    public void testCommentWithParam() throws Exception{
+        try {
+            ParameterSubstitutionPreprocessor ps = new ParameterSubstitutionPreprocessor(50);
+            pigIStream = new BufferedReader(new FileReader(basedir + "/inputComment.pig"));
+            pigOStream = new FileWriter(basedir + "/output1.pig");
+
+            String[] arg = {"date='20080228'"};
+            String[] argFiles = null;
+            ps.genSubstitutedFile(pigIStream , pigOStream , arg , argFiles);
+
+            FileInputStream pigResultStream = new FileInputStream(basedir + "/output1.pig");
+            pigExResultStream = new FileInputStream(basedir + "/ExpectedResultComment.pig");
+            BufferedReader inExpected = new BufferedReader(new InputStreamReader(pigExResultStream));
+            BufferedReader inResult = new BufferedReader(new InputStreamReader(pigResultStream));
+
+            String exLine;
+            String resLine;
+            int lineNum=0;
+
+            while (true) {
+                lineNum++;
+                exLine = inExpected.readLine();
+                resLine = inResult.readLine();
+                if (exLine==null || resLine==null)
+                    break;
+                assertEquals("Expected : "+exLine+" , but got : "+resLine+" in line num : "+lineNum ,exLine.trim(), resLine.trim());
+            }
+            if (!(exLine==null && resLine==null)) {
+                fail ("Expected : "+exLine+" , but got : "+resLine+" in line num : "+lineNum);
+            }
+
+            inExpected.close();
+            inResult.close();
+        } catch (ParseException e) {
+            fail ("Got ParseException : " + e.getMessage());
+        } catch (RuntimeException e) {
+            fail ("Got RuntimeException : " + e.getMessage());
+        } catch (Error e) {
+            fail ("Got error : " + e.getMessage());
+        }
 
     }
 }
