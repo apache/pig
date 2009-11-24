@@ -24,6 +24,9 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-1101: Allow arugment to limit to be long in addition to int (ashutoshc via
+			gates)
+
 PIG-872: use distributed cache for the replicated data set in FR join
 (sriranjan via olgan)
 
