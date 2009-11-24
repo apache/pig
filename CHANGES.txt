@@ -18,8 +18,6 @@
 
 Pig Change Log
 
-Pig Change Log
-
 Trunk (unreleased changes)
 
 INCOMPATIBLE CHANGES
@@ -39,6 +37,38 @@ PIG-1090:  Update sources to reflect recent changes in load-store interfaces
 (pradeepkth)
 
 IMPROVEMENTS
+
+PIG-1053: Consider moving to Hadoop for local mode (ankit.modi via olgan)
+
+PIG-1085:  Pass JobConf and UDF specific configuration information to UDFs
+		   (gates)
+
+OPTIMIZATIONS
+
+BUG FIXES
+
+PIG-1064: Behaviour of COGROUP with and without schema when using "*" operator
+(pradeepkth)
+
+Release 0.6.0 - Unreleased
+
+INCOMPATIBLE CHANGES
+
+IMPROVEMENTS
+
+PIG-1089: Pig 0.6.0 Documentation  (chandec via olgan)
+
+PIG-958: Splitting output data on key field (ankur via pradeepkth)
+
+PIG-1058: FINDBUGS: remaining "Correctness Warnings" (olgan)
+
+PIG-1036: Fragment-replicate left outer join (ankit.modi via pradeepkth)
+
+PIG-920:  optimizing diamond queries (rding via pradeepkth)
+
+PIG-1040: FINDBUGS: MS_SHOULD_BE_FINAL: Field isn't final but should be  (olgan)
+
+PIG-1059: FINDBUGS: remaining Bad practice + Multithreaded correctness Warning (olgan)
 
 PIG-953: Enable merge join in pig to work with loaders and store functions
 which can internally index sorted data (pradeepkth)
@@ -115,9 +145,32 @@ PIG-1041: javac warnings: cast, fallthrough, serial (daijy)
 
 PIG-1042: javac warnings: unchecked (daijy)
 
+PIG-1038: Optimize nested distinct/sort to use secondary key (daijy)
+
+PIG-979: Acummulator Interface for UDFs (yinghe via daijy)
+
 OPTIMIZATIONS
 
 BUG FIXES
+
+PIG-1080: PigStorage may miss records when loading a file (rding via olgan)
+
+PIG-1071: Support comma separated file/directory names in load statements
+(rding via pradeepkth)
+
+PIG-970:  Changes to make HBase loader work with HBase 0.20 (vbarat and zjffdu
+	      via gates)
+
+PIG-1035: support for skewed outer join (sriranjan via pradeepkth)
+
+PIG-1030: explain and dump not working with two UDFs inside inner plan of
+foreach (rding via pradeepkth)
+
+PIG-1048: inner join using 'skewed' produces multiple rows for keys with
+          single row in both input relations (sriranjan via gates)
+
+PIG-1063: Pig does not call checkOutSpecs() on OutputFormat provided by
+StoreFunc in the multistore case (pradeepkth)
 
 PIG-746: Works in --exectype local, fails on grid - ERROR 2113: SingleTupleBag
 should never be serialized (rding via pradeepkth)
@@ -163,7 +216,11 @@ PIG-927: null should be handled consistently in Join (daijy)
 
 PIG-790: Error message should indicate in which line number in the Pig script the error occured (debugging BinCond) (daijy)
 
-Release 0.5.0 - Unreleased
+PIG-1001: Generate more meaningful error message when one input file does not exist (daijy)
+
+PIG-1060: MultiQuery optimization throws error for multi-level splits (rding via daijy)
+
+Release 0.5.0
 
 INCOMPATIBLE CHANGES
 

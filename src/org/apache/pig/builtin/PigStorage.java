@@ -291,7 +291,10 @@ implements ReversibleLoadStoreFunc, StoreFunc {
 
     @Override
     public boolean equals(Object obj) {
-        return equals((PigStorage)obj);
+        if (obj instanceof PigStorage)
+            return equals((PigStorage)obj);
+        else
+            return false;
     }
 
     public boolean equals(PigStorage other) {
@@ -341,5 +344,8 @@ implements ReversibleLoadStoreFunc, StoreFunc {
         return LoadFunc.getAbsolutePath(location, curDir);
     }
 
-   
+    public int hashCode() {
+        return (int)fieldDel;
+    }
+
  }

@@ -403,12 +403,10 @@ public class CBZip2InputStream extends InputStream implements BZip2Constants {
         int v;
         while (bsLive < n) {
             int zzi;
-            char thech = 0;
-            thech = (char) readBs();
-            if (thech == -1) {
+            zzi = readBs();
+            if (zzi == -1) {
                 compressedStreamEOF();
             }
-            zzi = thech;
             bsBuff = (bsBuff << 8) | (zzi & 0xff);
             bsLive += 8;
         }
@@ -621,17 +619,15 @@ public class CBZip2InputStream extends InputStream implements BZip2Constants {
                 {
                     {
                         while (bsLive < 1) {
-                            int zzi;
-                            char thech = 0;
+                            int zzi = 0;
                             try {
-                                thech = (char) readBs();
+                                zzi = readBs();
                             } catch (IOException e) {
                                 compressedStreamEOF();
                             }
-                            if (thech == -1) {
+                            if (zzi == -1) {
                                 compressedStreamEOF();
                             }
-                            zzi = thech;
                             bsBuff = (bsBuff << 8) | (zzi & 0xff);
                             bsLive += 8;
                         }
@@ -676,17 +672,15 @@ public class CBZip2InputStream extends InputStream implements BZip2Constants {
                             {
                                 {
                                     while (bsLive < 1) {
-                                        int zzi;
-                                        char thech = 0;
+                                        int zzi = 0;
                                         try {
-                                            thech = (char) readBs();
+                                            zzi = readBs();
                                         } catch (IOException e) {
                                             compressedStreamEOF();
                                         }
-                                        if (thech == -1) {
+                                        if (zzi == -1) {
                                             compressedStreamEOF();
                                         }
-                                        zzi = thech;
                                         bsBuff = (bsBuff << 8) | (zzi & 0xff);
                                         bsLive += 8;
                                     }

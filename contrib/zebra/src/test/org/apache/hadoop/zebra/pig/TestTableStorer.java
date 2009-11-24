@@ -22,6 +22,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Iterator;
 
+import junit.framework.Assert;
 import junit.framework.TestCase;
 
 import org.apache.hadoop.conf.Configuration;
@@ -36,6 +37,7 @@ import org.apache.hadoop.zebra.types.TypesUtils;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.backend.executionengine.ExecJob;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.test.MiniCluster;
 import org.junit.After;
@@ -79,7 +81,7 @@ public class TestTableStorer {
     System.out.println("pathTable =" + pathTable);
     BasicTable.Writer writer = new BasicTable.Writer(pathTable,
         "SF_a,SF_b,SF_c,SF_d,SF_e,SF_f,SF_g",
-        "[SF_a, SF_b, SF_c]; [SF_e, SF_f, SF_g]", false, conf);
+        "[SF_a, SF_b, SF_c]; [SF_e, SF_f, SF_g]", conf);
     Schema schema = writer.getSchema();
     Tuple tuple = TypesUtils.createTuple(schema);
 
@@ -134,12 +136,13 @@ public class TestTableStorer {
      * BasicTable.Writer(pathTable, "SF_a,SF_b,SF_c,SF_d,SF_e,SF_f,SF_g",
      * "[SF_a, SF_b, SF_c]; [SF_e, SF_f, SF_g]", false, conf);
      */
-    pigServer
+    ExecJob pigJob = pigServer
         .store(
             "records",
             new Path(pathTable, "store").toString(),
             TableStorer.class.getCanonicalName()
                 + "('[SF_a, SF_b, SF_c]; [SF_e]')");
 
+    Assert.assertNull(pigJob.getException());
   }
 }

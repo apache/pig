@@ -33,7 +33,7 @@ import org.apache.pig.impl.util.TupleFormat;
 // XXX: FIXME - make this work with new load-store redesign
 public class PigDump implements StoreFunc {
 
-    public static String recordDelimiter = "\n";
+    public static final String recordDelimiter = "\n";
     
 
     OutputStream os;

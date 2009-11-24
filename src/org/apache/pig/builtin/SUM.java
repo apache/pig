@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
+import org.apache.pig.Accumulator;
 import org.apache.pig.Algebraic;
 import org.apache.pig.EvalFunc;
 import org.apache.pig.FuncSpec;
@@ -39,7 +40,7 @@ import org.apache.pig.impl.logicalLayer.schema.Schema;
 /**
  * Generates the sum of the values of the first field of a tuple.
  */
-public class SUM extends EvalFunc<Double> implements Algebraic {
+public class SUM extends EvalFunc<Double> implements Algebraic, Accumulator<Double> {
 
     @Override
     public Double exec(Tuple input) throws IOException {
@@ -222,6 +223,36 @@ public class SUM extends EvalFunc<Double> implements Algebraic {
         funcList.add(new FuncSpec(IntSum.class.getName(), Schema.generateNestedSchema(DataType.BAG, DataType.INTEGER)));
         funcList.add(new FuncSpec(LongSum.class.getName(), Schema.generateNestedSchema(DataType.BAG, DataType.LONG)));
         return funcList;
+    }
+
+    /* Accumulator interface implementation*/
+    private Double intermediateSum = null;
+    
+    @Override
+    public void accumulate(Tuple b) throws IOException {
+        try {
+            Double curSum = sum(b);
+            if (curSum == null) {
+                return;
+            }
+            intermediateSum = (intermediateSum == null ? 0.0 : intermediateSum) + curSum;
+        } catch (ExecException ee) {
+            throw ee;
+        } catch (Exception e) {
+            int errCode = 2106;
+            String msg = "Error while computing sum in " + this.getClass().getSimpleName();
+            throw new ExecException(msg, errCode, PigException.BUG, e);
+        }
+    }
+
+    @Override
+    public void cleanup() {
+        intermediateSum = null;
+    }
+
+    @Override
+    public Double getValue() {
+        return intermediateSum;
     }    
     
 }

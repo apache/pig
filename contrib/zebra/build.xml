@@ -24,23 +24,26 @@ to call at top-level: ant deploy-contrib compile-core-test
 <project name="zebra" default="jar">
 
   <import file="build-contrib.xml"/>
-  <property name="zebraVersion" value="0.2.0" />
 
   <!-- Override jar target to specify main class -->
   <target name="jar" depends="compile" description="Build zebra jar">
     <jar
-      jarfile="${build.dir}/${name}-${zebraVersion}.jar"
+      jarfile="${build.dir}/${name}-${version}.jar"
       basedir="${build.classes}"      
     >
   	<manifest>
 	    <attribute name="Main-Class" value="org.apache.hadoop.zebra.io.BasicTable"/>
 	</manifest>
+
+        <zipfileset src="${pig.root}/lib/${hadoop.jarfile}">
+            <include name="${hadoop.includes}" />
+        </zipfileset>
     </jar>
   </target>
 
   <target name="schema-jar" depends="compile">
     <jar
-      jarfile="${build.dir}/schema-${zebraVersion}.jar"
+      jarfile="${build.dir}/schema-${version}.jar"
       basedir="${build.classes}"      
       includes="**/schema/**"
     >
@@ -105,7 +108,7 @@ to call at top-level: ant deploy-contrib compile-core-test
     <mkdir dir="${pig.log.dir}"/>
     <junit
       printsummary="yes" showoutput="${test.output}" 
-      haltonfailure="no" fork="yes" maxmemory="256m"
+      haltonfailure="no" fork="yes" maxmemory="1024m"
       errorProperty="tests.failed" failureProperty="tests.failed"
       timeout="${test.timeout}">
       
@@ -149,7 +152,7 @@ to call at top-level: ant deploy-contrib compile-core-test
     <mkdir dir="${pig.log.dir}"/>
     <junit
       printsummary="yes" showoutput="${test.output}" 
-      haltonfailure="no" fork="yes" maxmemory="256m"
+      haltonfailure="no" fork="yes" maxmemory="1024m"
       errorProperty="tests.failed" failureProperty="tests.failed"
       timeout="${test.timeout}">
       
@@ -170,9 +173,16 @@ to call at top-level: ant deploy-contrib compile-core-test
       <classpath refid="test.classpath"/>
       <formatter type="${test.junit.output.format}" />
 
+      <!-- For the time being, we disable two test cases that need a real cluster to run -->
       <batchtest todir="${build.test}">
-        <fileset dir="${src.test}"
-                 includes="**/Test*.java" excludes="**/${test.exclude}.java" />
+        <fileset dir="${src.test}" includes="**/Test*.java" excludes="**/TestCheckin*.java">
+          <not>
+            <filename name="**/TestRealCluster.java"/>
+          </not>
+          <not>
+            <filename name="**/TestColumnSecurity.java"/>
+          </not>
+        </fileset> 
       </batchtest>
     </junit>
     <fail if="tests.failed">Tests failed!</fail>

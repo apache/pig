@@ -17,6 +17,7 @@
  */
 package org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators;
 
+import java.util.List;
 import java.util.Map;
 
 import org.apache.pig.backend.executionengine.ExecException;
@@ -32,49 +33,49 @@ import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.VisitorException;
 
 public class POMapLookUp extends ExpressionOperator {
-	
+    
     private static final long serialVersionUID = 1L;
     private String key;
 
-	public POMapLookUp(OperatorKey k) {
-		super(k);
-	}
-	
-	public POMapLookUp(OperatorKey k, int rp) {
-		super(k, rp);
-	}
-	
-	public POMapLookUp(OperatorKey k, int rp, String key) {
-		super(k, rp);
-		this.key = key;
-	}
-	
-	public void setLookUpKey(String key) {
-		this.key = key;
-	}
-	
-	public String getLookUpKey() {
-		return key;
-	}
+    public POMapLookUp(OperatorKey k) {
+        super(k);
+    }
+    
+    public POMapLookUp(OperatorKey k, int rp) {
+        super(k, rp);
+    }
+    
+    public POMapLookUp(OperatorKey k, int rp, String key) {
+        super(k, rp);
+        this.key = key;
+    }
+    
+    public void setLookUpKey(String key) {
+        this.key = key;
+    }
+    
+    public String getLookUpKey() {
+        return key;
+    }
 
-	@Override
-	public void visit(PhyPlanVisitor v) throws VisitorException {
-		v.visitMapLookUp(this);
+    @Override
+    public void visit(PhyPlanVisitor v) throws VisitorException {
+        v.visitMapLookUp(this);
 
-	}
+    }
 
-	@Override
-	public String name() {
-		return "POMapLookUp" + "[" + DataType.findTypeName(resultType) + "]" +" - " + mKey.toString();
-	}
+    @Override
+    public String name() {
+        return "POMapLookUp" + "[" + DataType.findTypeName(resultType) + "]" +" - " + mKey.toString();
+    }
 
-	@Override
-	public boolean supportsMultipleInputs() {
-		return false;
-	}
-	
-	@Override
-	public Result processInput() throws ExecException {
+    @Override
+    public boolean supportsMultipleInputs() {
+        return false;
+    }
+    
+    @Override
+    public Result processInput() throws ExecException {
         Result res = new Result();
         Map<String, Object> inpValue = null;
         if (input == null && (inputs == null || inputs.size()==0)) {
@@ -91,65 +92,65 @@ public class POMapLookUp extends ExpressionOperator {
             return res;
         }
     }
-	
-	@SuppressWarnings("unchecked")
-	private Result getNext() throws ExecException {
-		Result res = processInput();
-		if(res.result != null && res.returnStatus == POStatus.STATUS_OK) {
-			res.result = ((Map<String, Object>)res.result).get(key);
-		}
-		return res;
-	}
+    
+    @SuppressWarnings("unchecked")
+    private Result getNext() throws ExecException {
+        Result res = processInput();
+        if(res.result != null && res.returnStatus == POStatus.STATUS_OK) {
+            res.result = ((Map<String, Object>)res.result).get(key);
+        }
+        return res;
+    }
 
-	@Override
-	public Result getNext(Boolean b) throws ExecException {
-		return getNext();
-	}
+    @Override
+    public Result getNext(Boolean b) throws ExecException {
+        return getNext();
+    }
 
-	@Override
-	public Result getNext(DataBag db) throws ExecException {
-		return getNext();
-	}
+    @Override
+    public Result getNext(DataBag db) throws ExecException {
+        return getNext();
+    }
 
-	@Override
-	public Result getNext(DataByteArray ba) throws ExecException {
-		return getNext();
-	}
+    @Override
+    public Result getNext(DataByteArray ba) throws ExecException {
+        return getNext();
+    }
 
-	@Override
-	public Result getNext(Double d) throws ExecException {
-		return getNext();
-	}
+    @Override
+    public Result getNext(Double d) throws ExecException {
+        return getNext();
+    }
 
-	@Override
-	public Result getNext(Float f) throws ExecException {
-		return getNext();
-	}
+    @Override
+    public Result getNext(Float f) throws ExecException {
+        return getNext();
+    }
 
-	@Override
-	public Result getNext(Integer i) throws ExecException {
-		return getNext();
-	}
+    @Override
+    public Result getNext(Integer i) throws ExecException {
+        return getNext();
+    }
 
-	@Override
-	public Result getNext(Long l) throws ExecException {
-		return getNext();
-	}
+    @Override
+    public Result getNext(Long l) throws ExecException {
+        return getNext();
+    }
 
-	@Override
-	public Result getNext(Map m) throws ExecException {
-		return getNext();
-	}
+    @Override
+    public Result getNext(Map m) throws ExecException {
+        return getNext();
+    }
 
-	@Override
-	public Result getNext(String s) throws ExecException {
-		return getNext();
-	}
+    @Override
+    public Result getNext(String s) throws ExecException {
+        return getNext();
+    }
 
-	@Override
-	public Result getNext(Tuple t) throws ExecException {
-		return getNext();
-	}
+    @Override
+    public Result getNext(Tuple t) throws ExecException {
+        return getNext();
+    }
 
     @Override
     public POMapLookUp clone() throws CloneNotSupportedException {
@@ -158,7 +159,12 @@ public class POMapLookUp extends ExpressionOperator {
         clone.cloneHelper(this);
         return clone;
     }
-	
-	
+
+    @Override
+    public List<ExpressionOperator> getChildExpressions() {		
+        return null;
+    }
+    
+    
 
 }

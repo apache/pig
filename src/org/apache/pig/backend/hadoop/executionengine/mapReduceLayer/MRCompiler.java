@@ -89,6 +89,7 @@ import org.apache.pig.impl.plan.OperatorPlan;
 import org.apache.pig.impl.plan.PlanException;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.plan.CompilationMessageCollector.MessageType;
+import org.apache.pig.impl.util.CompilerUtils;
 import org.apache.pig.impl.util.MultiMap;
 import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.impl.util.Pair;
@@ -168,7 +169,7 @@ public class MRCompiler extends PhyPlanVisitor {
     
     private Map<PhysicalOperator,MapReduceOper> phyToMROpMap;
     
-    public static String USER_COMPARATOR_MARKER = "user.comparator.func:";
+    public static final String USER_COMPARATOR_MARKER = "user.comparator.func:";
     
     public MRCompiler(PhysicalPlan plan) throws MRCompilerException {
         this(plan,null);
@@ -1502,7 +1503,7 @@ public class MRCompiler extends PhyPlanVisitor {
 			pkg.setKeyType(type);
 			pkg.setResultType(DataType.TUPLE);
 			pkg.setNumInps(2);
-			boolean[] inner = {true, true}; 
+			boolean [] inner = op.getInnerFlags();
 			pkg.setInner(inner);            
 			pkg.visit(this);       
 			compiledInputs = new MapReduceOper[] {curMROp};
@@ -1511,23 +1512,22 @@ public class MRCompiler extends PhyPlanVisitor {
 			List<PhysicalPlan> eps = new ArrayList<PhysicalPlan>();
 			List<Boolean> flat = new ArrayList<Boolean>();
 			
-			PhysicalPlan ep = new PhysicalPlan();
-			POProject prj = new POProject(new OperatorKey(scope,nig.getNextNodeId(scope)));
-			prj.setColumn(1);
-			prj.setOverloaded(false);
-			prj.setResultType(DataType.BAG);
-			ep.add(prj);
-			eps.add(ep);
-			flat.add(true);
-
-			ep = new PhysicalPlan();
-			prj = new POProject(new OperatorKey(scope,nig.getNextNodeId(scope)));
-			prj.setColumn(2);
-			prj.setOverloaded(false);
-			prj.setResultType(DataType.BAG);
-			ep.add(prj);
-			eps.add(ep);
-			flat.add(true);
+			PhysicalPlan ep;
+			// Add corresponding POProjects
+			for (int i=0; i < 2; i++ ) {
+			    ep = new PhysicalPlan();
+			    POProject prj = new POProject(new OperatorKey(scope,nig.getNextNodeId(scope)));
+			    prj.setColumn(i+1);
+			    prj.setOverloaded(false);
+			    prj.setResultType(DataType.BAG);
+			    ep.add(prj);
+			    eps.add(ep);
+			    if (!inner[i]) {
+			        // Add an empty bag for outer join
+			        CompilerUtils.addEmptyBagOuterJoin(ep, op.getSchema(i));
+			    }
+			    flat.add(true);
+			}
 
 			POForEach fe = new POForEach(new OperatorKey(scope,nig.getNextNodeId(scope)), -1, eps, flat);
 			fe.setResultType(DataType.TUPLE);

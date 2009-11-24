@@ -35,6 +35,7 @@ import org.apache.hadoop.mapred.JobID;
 import org.apache.hadoop.mapred.RunningJob;
 import org.apache.hadoop.mapred.jobcontrol.Job;
 import org.apache.hadoop.mapred.jobcontrol.JobControl;
+import org.apache.pig.ExecType;
 import org.apache.pig.PigException;
 import org.apache.pig.PigWarning;
 import org.apache.pig.backend.executionengine.ExecException;
@@ -114,11 +115,11 @@ public class MapReduceLauncher extends Launcher{
         JobControlCompiler jcc = new JobControlCompiler(pc, conf);
         
         List<Job> failedJobs = new LinkedList<Job>();
+        List<Job> completeFailedJobsInThisRun = new LinkedList<Job>();
         List<Job> succJobs = new LinkedList<Job>();
         JobControl jc;
         int totalMRJobs = mrp.size();
         int numMRJobsCompl = 0;
-        int numMRJobsCurrent = 0;
         double lastProg = -1;
         
         //create the exception handler for the job control thread
@@ -128,7 +129,7 @@ public class MapReduceLauncher extends Launcher{
         while((jc = jcc.compile(mrp, grpName)) != null) {
             
             List<Job> waitingJobs = jc.getWaitingJobs();
-            numMRJobsCurrent = waitingJobs.size();
+            completeFailedJobsInThisRun.clear();
             
             Thread jcThread = new Thread(jc);
             jcThread.setUncaughtExceptionHandler(jctExceptionHandler);
@@ -181,40 +182,50 @@ public class MapReduceLauncher extends Launcher{
             //if the job controller fails before launching the jobs then there are
             //no jobs to check for failure
             if(jobControlException != null) {
-        	if(jobControlException instanceof PigException) {
-        	        if(jobControlExceptionStackTrace != null) {
-        	            LogUtils.writeLog("Error message from job controller", jobControlExceptionStackTrace, 
-        	                    pc.getProperties().getProperty("pig.logfile"), 
-                                log);
-        	        }
-                    throw jobControlException;
-        	} else {
-                    int errCode = 2117;
-                    String msg = "Unexpected error when launching map reduce job.";        	
-                    throw new ExecException(msg, errCode, PigException.BUG, jobControlException);
-        	}
-            }
-
-            numMRJobsCompl += numMRJobsCurrent;
-            failedJobs.addAll(jc.getFailedJobs());
-
-            if (!failedJobs.isEmpty() 
-                && "true".equalsIgnoreCase(
-                  pc.getProperties().getProperty("stop.on.failure","false"))) {
-                int errCode = 6017;
-                StringBuilder msg = new StringBuilder("Execution failed, while processing ");
-                
-                for (Job j: failedJobs) {
-                    List<POStore> sts = jcc.getStores(j);
-                    for (POStore st: sts) {
-                        msg.append(st.getSFile().getFileName());
-                        msg.append(", ");
-                    }
+                if(jobControlException instanceof PigException) {
+                        if(jobControlExceptionStackTrace != null) {
+                            LogUtils.writeLog("Error message from job controller", jobControlExceptionStackTrace, 
+                                    pc.getProperties().getProperty("pig.logfile"), 
+                                    log);
+                        }
+                        throw jobControlException;
+                } else {
+                        int errCode = 2117;
+                        String msg = "Unexpected error when launching map reduce job.";        	
+                        throw new ExecException(msg, errCode, PigException.BUG, jobControlException);
                 }
-                
-                throw new ExecException(msg.substring(0,msg.length()-2), 
-                                        errCode, PigException.REMOTE_ENVIRONMENT);
             }
+
+            if (!jc.getFailedJobs().isEmpty() )
+            {
+                if ("true".equalsIgnoreCase(
+                  pc.getProperties().getProperty("stop.on.failure","false"))) {
+                    int errCode = 6017;
+                    StringBuilder msg = new StringBuilder();
+                    
+                    for (int i=0;i<jc.getFailedJobs().size();i++) {
+                        Job j = jc.getFailedJobs().get(i);
+                        msg.append(getFirstLineFromMessage(j.getMessage()));
+                        if (i!=jc.getFailedJobs().size()-1)
+                            msg.append("\n");
+                    }
+                    
+                    throw new ExecException(msg.toString(), 
+                                            errCode, PigException.REMOTE_ENVIRONMENT);
+                }
+                // If we only have one store and that job fail, then we sure that the job completely fail, and we shall stop dependent jobs
+                for (Job job : jc.getFailedJobs())
+                {
+                    List<POStore> sts = jcc.getStores(job);
+                    if (sts.size()==1)
+                        completeFailedJobsInThisRun.add(job);
+                }
+                failedJobs.addAll(jc.getFailedJobs());
+            }
+            
+            int removedMROp = jcc.updateMROpPlan(completeFailedJobsInThisRun);
+            
+            numMRJobsCompl += removedMROp;
 
             List<Job> jobs = jc.getSuccessfulJobs();
             jcc.moveResults(jobs);
@@ -248,13 +259,13 @@ public class MapReduceLauncher extends Launcher{
                 List<POStore> sts = jcc.getStores(fj);
                 for (POStore st: sts) {
                     if (!st.isTmpStore()) {
-                        failedStores.add(st.getSFile());
-                        failureMap.put(st.getSFile(), backendException);
                         finalStores++;
+                        log.error("Failed to produce result in: \""+st.getSFile().getFileName()+"\"");
                     }
-
+                    failedStores.add(st.getSFile());
+                    failureMap.put(st.getSFile(), backendException);
                     FileLocalizer.registerDeleteOnFail(st.getSFile().getFileName(), pc);
-                    log.error("Failed to produce result in: \""+st.getSFile().getFileName()+"\"");
+                    //log.error("Failed to produce result in: \""+st.getSFile().getFileName()+"\"");
                 }
             }
             failed = true;
@@ -269,8 +280,10 @@ public class MapReduceLauncher extends Launcher{
                     if (!st.isTmpStore()) {
                         succeededStores.add(st.getSFile());
                         finalStores++;
+                        log.info("Successfully stored result in: \""+st.getSFile().getFileName()+"\"");
                     }
-                    log.info("Successfully stored result in: \""+st.getSFile().getFileName()+"\"");
+                    else
+                        log.debug("Successfully stored result in: \""+st.getSFile().getFileName()+"\"");
                 }
                 getStats(job,jobClient, false, pc);
                 if(aggregateWarning) {
@@ -286,7 +299,7 @@ public class MapReduceLauncher extends Launcher{
         // Report records and bytes written.  Only do this in the single store case.  Multi-store
         // scripts mess up the stats reporting from hadoop.
         List<String> rji = stats.getRootJobIDs();
-        if (rji != null && rji.size() == 1 && finalStores == 1) {
+        if ( (rji != null && rji.size() == 1 && finalStores == 1) || pc.getExecType() == ExecType.LOCAL ) {
             if(stats.getRecordsWritten()==-1) {
                 log.info("Records written : Unable to determine number of records written");
             } else {
@@ -303,7 +316,7 @@ public class MapReduceLauncher extends Launcher{
             log.info("Success!");
         } else {
             if (succJobs != null && succJobs.size() > 0) {
-                log.info("Some jobs have failed!");
+                log.info("Some jobs have failed! Stop running all dependent jobs");
             } else {
                 log.info("Failed!");
             }
@@ -354,6 +367,7 @@ public class MapReduceLauncher extends Launcher{
         String lastInputChunkSize = 
             pc.getProperties().getProperty(
                     "last.input.chunksize", POJoinPackage.DEFAULT_CHUNK_SIZE);
+        
         String prop = System.getProperty("pig.exec.nocombiner");
         if (!("true".equals(prop)))  {
             CombinerOptimizer co = new CombinerOptimizer(plan, lastInputChunkSize);
@@ -365,7 +379,14 @@ public class MapReduceLauncher extends Launcher{
         // Optimize the jobs that have a load/store only first MR job followed
         // by a sample job.
         SampleOptimizer so = new SampleOptimizer(plan);
-        so.visit();            
+        so.visit();
+        
+        // Optimize to use secondary sort key if possible
+        prop = System.getProperty("pig.exec.nosecondarykey");
+        if (!("true".equals(prop)))  {
+            SecondaryKeyOptimizer skOptimizer = new SecondaryKeyOptimizer(plan);
+            skOptimizer.visit();
+        }
         
         // optimize key - value handling in package
         POPackageAnnotator pkgAnnotator = new POPackageAnnotator(plan);
@@ -387,11 +408,16 @@ public class MapReduceLauncher extends Launcher{
         NoopFilterRemover fRem = new NoopFilterRemover(plan);
         fRem.visit();
         
-        // reduces the number of MROpers in the MR plan generated 
-        // by multi-query (multi-store) script.
-        MultiQueryOptimizer mqOptimizer = new MultiQueryOptimizer(plan);
-        mqOptimizer.visit();
-
+        boolean isMultiQuery = 
+            "true".equalsIgnoreCase(pc.getProperties().getProperty("opt.multiquery","true"));
+        
+        if (isMultiQuery) {
+            // reduces the number of MROpers in the MR plan generated 
+            // by multi-query (multi-store) script.
+            MultiQueryOptimizer mqOptimizer = new MultiQueryOptimizer(plan);
+            mqOptimizer.visit();
+        }
+        
         // removes unnecessary stores (as can happen with splits in
         // some cases.). This has to run after the MultiQuery and
         // NoopFilterRemover.
@@ -404,6 +430,9 @@ public class MapReduceLauncher extends Launcher{
         EndOfAllInputSetter checker = new EndOfAllInputSetter(plan);
         checker.visit();
         
+        AccumulatorOptimizer accum = new AccumulatorOptimizer(plan);
+        accum.visit();
+        
         return plan;
     }
     
@@ -414,29 +443,29 @@ public class MapReduceLauncher extends Launcher{
      * explicitly or if the default handler is null
      */
     class JobControlThreadExceptionHandler implements Thread.UncaughtExceptionHandler {
-    	
-    	public void uncaughtException(Thread thread, Throwable throwable) {
-    		ByteArrayOutputStream baos = new ByteArrayOutputStream();
-    		PrintStream ps = new PrintStream(baos);
-    		throwable.printStackTrace(ps);
-    		jobControlExceptionStackTrace = baos.toString();    		
-    		try {	
-    			jobControlException = getExceptionFromString(jobControlExceptionStackTrace);
-    		} catch (Exception e) {
-    			String errMsg = "Could not resolve error that occured when launching map reduce job: "
+        
+        public void uncaughtException(Thread thread, Throwable throwable) {
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            PrintStream ps = new PrintStream(baos);
+            throwable.printStackTrace(ps);
+            jobControlExceptionStackTrace = baos.toString();    		
+            try {	
+                jobControlException = getExceptionFromString(jobControlExceptionStackTrace);
+            } catch (Exception e) {
+                String errMsg = "Could not resolve error that occured when launching map reduce job: "
                         + getFirstLineFromMessage(jobControlExceptionStackTrace);
-    			jobControlException = new RuntimeException(errMsg);
-    		}
-    	}
+                jobControlException = new RuntimeException(errMsg);
+            }
+        }
     }
     
     void computeWarningAggregate(Job job, JobClient jobClient, Map<Enum, Long> aggMap) {
-    	JobID mapRedJobID = job.getAssignedJobID();
-    	RunningJob runningJob = null;
-    	try {
-    		runningJob = jobClient.getJob(mapRedJobID);
-    		if(runningJob != null) {
-        		Counters counters = runningJob.getCounters();
+        JobID mapRedJobID = job.getAssignedJobID();
+        RunningJob runningJob = null;
+        try {
+            runningJob = jobClient.getJob(mapRedJobID);
+            if(runningJob != null) {
+                Counters counters = runningJob.getCounters();
                 if (counters==null)
                 {
                     long nullCounterCount = aggMap.get(PigWarning.NULL_COUNTER_COUNT)==null?0 : aggMap.get(PigWarning.NULL_COUNTER_COUNT);
@@ -459,11 +488,11 @@ public class MapReduceLauncher extends Launcher{
                         aggMap.put(e, currentCount);
                     }
                 }
-    		}
-    	} catch (IOException ioe) {
-    		String msg = "Unable to retrieve job to compute warning aggregation.";
-    		log.warn(msg);
-    	}    	
+            }
+        } catch (IOException ioe) {
+            String msg = "Unable to retrieve job to compute warning aggregation.";
+            log.warn(msg);
+        }    	
     }
 
 }

@@ -32,7 +32,7 @@
  * represent row keys, and PIG {@link org.apache.pig.data.Tuple} objects to
  * represent rows.
  * <p>
- * Each BasicTable maintains a {@link org.apache.hadoop.zebra.types.Schema} ,
+ * Each BasicTable maintains a {@link org.apache.hadoop.zebra.schema.Schema} ,
  * which, for this release, is nothing but a collection of column names. Given a
  * schema, we can deduce the integer index of a particular column, and use it to
  * extract (get) the desired datum from PIG Tuple object (which only allows

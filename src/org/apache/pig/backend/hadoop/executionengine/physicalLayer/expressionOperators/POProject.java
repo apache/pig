@@ -19,6 +19,7 @@ package org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOp
 
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.pig.PigException;
@@ -52,12 +53,12 @@ public class POProject extends ExpressionOperator {
      */
     private static final long serialVersionUID = 1L;
 
-	private static TupleFactory tupleFactory = TupleFactory.getInstance();
-	
-	protected static BagFactory bagFactory = BagFactory.getInstance();
+    private static TupleFactory tupleFactory = TupleFactory.getInstance();
+    
+    protected static final BagFactory bagFactory = BagFactory.getInstance();
 
-	private boolean resultSingleTupleBag = false;
-	
+    private boolean resultSingleTupleBag = false;
+    
     //The column to project
     protected ArrayList<Integer> columns;
     
@@ -162,7 +163,7 @@ public class POProject extends ExpressionOperator {
                 ret = null;
             }
         } else {
-	        ArrayList<Object> objList = new ArrayList<Object>(columns.size()); 
+            ArrayList<Object> objList = new ArrayList<Object>(columns.size()); 
                 
             for(int i: columns) {
                 try { 
@@ -175,7 +176,7 @@ public class POProject extends ExpressionOperator {
                     objList.add(null);
                 }
             }
-		    ret = tupleFactory.newTuple(objList);
+            ret = tupleFactory.newTuple(objList);
         }
         res.result = ret;
         return res;
@@ -294,12 +295,12 @@ public class POProject extends ExpressionOperator {
             if(columns.size() == 1) {
                 ret = inpValue.get(columns.get(0));
             } else {
-	            ArrayList<Object> objList = new ArrayList<Object>(columns.size()); 
+                ArrayList<Object> objList = new ArrayList<Object>(columns.size()); 
                 
                 for(int i: columns) {
                    objList.add(inpValue.get(i)); 
                 }
-		        ret = tupleFactory.newTuple(objList);
+                ret = tupleFactory.newTuple(objList);
                 res.result = (Tuple)ret;
                 return res;
             }
@@ -411,6 +412,11 @@ public class POProject extends ExpressionOperator {
 
     public void setResultSingleTupleBag(boolean resultSingleTupleBag) {
         this.resultSingleTupleBag = resultSingleTupleBag;
+    }
+
+    @Override
+    public List<ExpressionOperator> getChildExpressions() {
+        return null;
     }
 
 }

@@ -53,6 +53,8 @@ import org.apache.pig.impl.plan.DependencyOrderWalker;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.impl.util.SpillableMemoryManager;
+import org.apache.pig.impl.util.UDFContext;
+import org.apache.pig.impl.util.WrappedIOException;
 
 /**
  * This class is the static Mapper &amp; Reducer classes that
@@ -304,6 +306,12 @@ public class PigMapReduce {
                     roots = rp.getRoots().toArray(new PhysicalOperator[1]);
                     leaf = rp.getLeaves().get(0);
                 }
+                
+                // Get the UDF specific context
+            	UDFContext udfc = UDFContext.getUDFContext();
+            	udfc.addJobConf(jConf);
+            	udfc.deserialize();
+            
             } catch (IOException ioe) {
                 String msg = "Problem while configuring reduce plan.";
                 throw new RuntimeException(msg, ioe);

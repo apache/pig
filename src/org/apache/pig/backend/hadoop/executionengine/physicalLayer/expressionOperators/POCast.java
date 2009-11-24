@@ -19,6 +19,8 @@ package org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOp
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.logging.Log;
@@ -54,6 +56,7 @@ public class POCast extends ExpressionOperator {
     transient private Log log = LogFactory.getLog(getClass());
     private boolean castNotNeeded = false;
     private Byte realType = null;
+    private transient List<ExpressionOperator> child;
 
     private static final long serialVersionUID = 1L;
 
@@ -332,7 +335,7 @@ public class POCast extends ExpressionOperator {
             String str = null;
             Result res = in.getNext(str);
             if (res.returnStatus == POStatus.STATUS_OK && res.result != null) {
-            	res.result = CastUtils.stringToLong((String)res.result);
+                res.result = CastUtils.stringToLong((String)res.result);
             }
             return res;
         }
@@ -453,7 +456,7 @@ public class POCast extends ExpressionOperator {
             String str = null;
             Result res = in.getNext(str);
             if (res.returnStatus == POStatus.STATUS_OK && res.result != null) {
-            	res.result = CastUtils.stringToDouble((String)res.result);
+                res.result = CastUtils.stringToDouble((String)res.result);
             }
             return res;
         }
@@ -576,7 +579,7 @@ public class POCast extends ExpressionOperator {
             String str = null;
             Result res = in.getNext(str);
             if (res.returnStatus == POStatus.STATUS_OK && res.result != null) {
-            	res.result = CastUtils.stringToFloat((String)res.result);
+                res.result = CastUtils.stringToFloat((String)res.result);
             }
             return res;
         }
@@ -699,7 +702,6 @@ public class POCast extends ExpressionOperator {
         }
 
         case DataType.CHARARRAY: {
-
             Result res = in.getNext(str);
 
             return res;
@@ -996,6 +998,21 @@ public class POCast extends ExpressionOperator {
             throw cnse;
         }
         return clone;
+    }
+
+    /**
+     * Get child expression of this expression
+     */
+    @Override
+    public List<ExpressionOperator> getChildExpressions() {
+        if (child == null) {
+            child = new ArrayList<ExpressionOperator>();
+            if (inputs.get(0) instanceof ExpressionOperator) {
+                child.add( (ExpressionOperator)inputs.get(0));		
+            }
+        }
+        
+        return child;				
     }
 
 }

@@ -24,7 +24,7 @@
     <!-- name and version properties -->
     <property name="name" value="pig" />
     <property name="Name" value="Pig" />
-    <property name="version" value="0.6.0-dev" />
+    <property name="version" value="0.7.0-dev" />
     <property name="final.name" value="${name}-${version}" />
     <condition property="isWindows">
         <os family="windows"/>
@@ -48,9 +48,10 @@
     <property name="build.encoding" value="UTF8" />
     <!-- TODO with only one version of hadoop in the lib folder we do not need that anymore -->
     <property name="hadoop.jarfile" value="hadoop20.jar" />
-    <property name="hbase.jarfile" value="hbase-0.18.1.jar" />
-    <property name="hbase.test.jarfile" value="hbase-0.18.1-test.jar" />
-
+    <property name="hbase.jarfile" value="hbase-0.20.0.jar" />
+    <property name="hbase.test.jarfile" value="hbase-0.20.0-test.jar" />
+	<property name="zookeeper.jarfile" value="zookeeper-hbase-1329.jar" />
+	
     <!-- javac properties -->
     <property name="javac.debug" value="on" />
     <property name="javac.optimize" value="on" />
@@ -166,6 +167,7 @@
         <fileset file="${lib.dir}/${hadoop.jarfile}" />
         <fileset file="${lib.dir}/${hbase.jarfile}" />
         <fileset file="${lib.dir}/${hbase.test.jarfile}" />
+    	<fileset file="${lib.dir}/${zookeeper.jarfile}"/>
    <!-- <fileset file="${lib.dir}/commons-collections-3.2.jar" />  -->
     </path>
 
@@ -285,7 +287,8 @@
             <param name="dist" value="${test.build.classes}" />
             <param name="cp" value="test.classpath" />
         </antcall>
-
+    	
+    	<copy file="${basedir}/test/hbase-site.xml" tofile="${test.build.classes}/hbase-site.xml"/>
     </target>
 
     <!-- This target is for default compilation -->
@@ -507,6 +510,7 @@
                 <pathelement location="${output.jarfile.withouthadoop}" />
                 <pathelement location="${test.build.classes}" />
                 <pathelement location="${junit.hadoop.conf}" />
+            	
 		<pathelement path="${clover.jar}"/>
                 <path refid="classpath"/>
             </classpath>
@@ -529,7 +533,7 @@
                     <!-- Excluded under Windows.-->
                     <exclude name="**/TestHBaseStorage.java" if="isWindows" />
                     <!-- Excluced because we don't want to run them -->
-                    <exclude name="**/TestHBaseStorage.java" />
+                    <!-- <exclude name="**/TestHBaseStorage.java" /> -->
                     <exclude name="**/PigExecTestCase.java" />
                     <exclude name="**/TypeCheckingTestUtil.java" />
                     <exclude name="**/TypeGraphPrinter.java" />

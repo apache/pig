@@ -37,6 +37,8 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.permission.*;
 import org.apache.hadoop.fs.BlockLocation;
@@ -48,10 +50,10 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.PathFilter;
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.Writable;
-import org.apache.hadoop.io.file.tfile.TFile;
-import org.apache.hadoop.io.file.tfile.Utils;
-import org.apache.hadoop.io.file.tfile.ByteArray;
-import org.apache.hadoop.io.file.tfile.RawComparable;
+import org.apache.hadoop.zebra.tfile.TFile;
+import org.apache.hadoop.zebra.tfile.Utils;
+import org.apache.hadoop.zebra.tfile.ByteArray;
+import org.apache.hadoop.zebra.tfile.RawComparable;
 import org.apache.hadoop.zebra.types.CGSchema;
 import org.apache.hadoop.zebra.parser.ParseException;
 import org.apache.hadoop.zebra.types.Partition;
@@ -78,6 +80,8 @@ import org.apache.pig.data.Tuple;
  *      </ul>
  */
 class ColumnGroup {
+  static Log LOG = LogFactory.getLog(ColumnGroup.class);
+  
   private final static String CONF_COMPRESS = "table.output.tfile.compression";
   private final static String DEFAULT_COMPRESS = "gz";
   private final static String CONF_MIN_BLOCK_SIZE = "table.tfile.minblock.size";
@@ -156,7 +160,10 @@ class ColumnGroup {
   static CGIndex buildIndex(FileSystem fs, Path path, boolean dirty,
       Configuration conf) throws IOException {
     CGIndex ret = new CGIndex();
-    FileStatus[] files = fs.listStatus(path, new CGPathFilter(conf));
+    CGPathFilter cgPathFilter = new CGPathFilter();
+    CGPathFilter.setConf(conf);
+    FileStatus[] files = fs.listStatus(path, cgPathFilter);
+    
     Comparator<RawComparable> comparator = null;
     for (FileStatus f : files) {
       if (dirty) {
@@ -194,9 +201,15 @@ class ColumnGroup {
     }
 
     ret.sort(comparator);
+    
+    int idx = 0;
+    for (CGIndexEntry e : ret.getIndex()) {
+      e.setIndex(idx++);    
+    }
+    
     return ret;
-  }
-
+  }   
+  
   /**
    * ColumnGroup reader.
    */
@@ -266,7 +279,8 @@ class ColumnGroup {
       }
       projection = new Projection(cgschema.getSchema()); // default projection to CG schema.
       Path metaFilePath = makeMetaFilePath(path);
-      if (!fs.exists(metaFilePath)) {
+      /* If index file is not existing or loading from an unsorted table. */
+      if (!fs.exists(metaFilePath) || !cgschema.isSorted() ) {
         // special case for unsorted CG that did not create index properly.
         if (cgschema.isSorted()) {
           throw new FileNotFoundException(
@@ -421,13 +435,30 @@ class ColumnGroup {
         throw new IllegalArgumentException("Illegal range split");
       }
 
-      if (split.len == 0) {
-        throw new IOException("Zero-length range split");
-      }
-
       return new CGScanner(split, closeReader);
     }
 
+    /**
+     * Get a scanner that reads the rows defined by rowRange. 
+     * 
+     * @param closeReader
+     *          close the underlying Reader object when we close the scanner.
+     *          Should be set to true if we have only one scanner on top of the
+     *          reader, so that we should release resources after the scanner is
+     *          closed.
+     * @param rowSplit specifies part index, start row, and end row.
+     * @return A scanner object.
+     */
+    public synchronized TableScanner getScanner(boolean closeReader, 
+                                                CGRowSplit rowSplit)
+                        throws IOException, ParseException {
+      if (closed) {
+        throw new EOFException("Reader already closed");
+      }
+      
+      return new CGScanner(rowSplit, closeReader);
+    }
+     
     /**
      * Given a split range, calculate how the file data that fall into the range
      * are distributed among hosts.
@@ -461,7 +492,69 @@ class ColumnGroup {
 
       return ret;
     }
+    
+    /**
+     * Given a row range, calculate how the file data that fall into the range
+     * are distributed among hosts.
+     * 
+     * @param split
+     *          The row-based split. If null, return all blocks.
+     * @return a map from host name to the amount of data (in bytes) the host
+     *         owns that fall roughly into the key range.
+     */
+    public BlockDistribution getBlockDistribution(CGRowSplit split)
+        throws IOException {
+      if (split == null) {
+        throw new IOException("Row-based split cannot be null for getBlockDistribution()");
+      }
 
+      BlockDistribution ret = new BlockDistribution();
+      CGIndexEntry entry = cgindex.get(split.fileIndex);
+      FileStatus tfileStatus = fs.getFileStatus(new Path(path, entry.getName())); 
+      
+      BlockLocation[] locations = fs.getFileBlockLocations(tfileStatus, split.startByte, split.numBytes);
+      for (BlockLocation l : locations) {
+        ret.add(l);
+      }
+      
+      return ret;
+    }
+
+   /**
+    * Sets startRow and number of rows in rowSplit based on
+    * startOffset and length.
+    * 
+    * It is assumed that 'startByte' and 'numBytes' in rowSplit itself
+    * are not valid.
+    */
+    void fillRowSplit(CGRowSplit rowSplit, long startOffset, long length) 
+                      throws IOException {
+
+      Path tfPath = new Path(path, cgindex.get(rowSplit.fileIndex).getName());
+      FileStatus tfile = fs.getFileStatus(tfPath);
+
+      TFile.Reader reader = null;
+      
+      try {
+        reader = new TFile.Reader(fs.open(tfPath),
+                                  tfile.getLen(), conf);
+
+        long startRow = reader.getRecordNumNear(startOffset);
+        long endRow = reader.getRecordNumNear(startOffset + length);
+
+        if (endRow < startRow) {
+          endRow = startRow;
+        }
+
+        rowSplit.startRow = startRow;
+        rowSplit.numRows = endRow - startRow;
+      } finally {
+        if (reader != null) {
+          reader.close();
+        }
+      }
+    }
+    
     /**
      * Get a sampling of keys and calculate how data are distributed among
      * key-partitioned buckets. The implementation attempts to calculate all
@@ -637,6 +730,32 @@ class ColumnGroup {
     }
 
     /**
+     * We already use FileInputFormat to create byte offset-based input splits.
+     * Their information is encoded in starts, lengths and paths. This method is 
+     * to wrap this information to form CGRowSplit objects at column group level.
+     * 
+     * @param starts array of starting byte of fileSplits.
+     * @param lengths array of length of fileSplits.
+     * @param paths array of path of fileSplits.
+     * @return A list of CGRowSplit objects. 
+     *         
+     */
+    public List<CGRowSplit> rowSplit(long[] starts, long[] lengths, Path[] paths) throws IOException {
+      List<CGRowSplit> lst = new ArrayList<CGRowSplit>();
+       
+      for (int i=0; i<starts.length; i++) {
+        long start = starts[i];
+        long length = lengths[i];
+        Path path = paths[i];
+        int idx = cgindex.getFileIndex(path);        
+        
+        lst.add(new CGRowSplit(idx, start, length));
+      }
+      
+      return lst;
+    } 
+    
+    /**
      * Is the ColumnGroup sorted?
      * 
      * @return Whether the ColumnGroup is sorted.
@@ -663,8 +782,9 @@ class ColumnGroup {
       TFile.Reader.Scanner scanner;
       TupleReader tupleReader;
 
-      TFileScanner(FileSystem fs, Path path, RawComparable begin,
-          RawComparable end, CGSchema cgschema, Projection projection,
+      TFileScanner(FileSystem fs, Path path, CGRowSplit rowRange, 
+                    RawComparable begin, RawComparable end, 
+                    CGSchema cgschema, Projection projection,
           Configuration conf) throws IOException, ParseException {
         try {
           ins = fs.open(path);
@@ -672,7 +792,17 @@ class ColumnGroup {
            * compressor is inside cgschema
            */
           reader = new TFile.Reader(ins, fs.getFileStatus(path).getLen(), conf);
-          scanner = reader.createScanner(begin, end);
+          if (rowRange != null && rowRange.fileIndex >= 0) {
+            scanner = reader.createScannerByRecordNum(rowRange.startRow, 
+                                         rowRange.startRow + rowRange.numRows);
+          } else {
+            /* using deprecated API just so that zebra can work with 
+             * hadoop jar that does not contain HADOOP-6218 (Record ids for
+             * TFile). This is expected to be temporary. Later we should 
+             * use the undeprecated API.
+             */
+            scanner = reader.createScanner(begin, end);
+          }
           /*
            * serializer is inside cgschema: different serializer will require
            * different Reader: for pig, it's TupleReader
@@ -795,9 +925,29 @@ class ColumnGroup {
           beginIndex = split.start;
           endIndex = split.start + split.len;
         }
-        init(null, null, closeReader);
+        init(null, null, null, closeReader);
       }
-
+      
+      /**
+       * Scanner for a range specified by the given row range.
+       * 
+       * @param rowRange see {@link CGRowSplit}
+       * @param closeReader
+       */
+      CGScanner(CGRowSplit rowRange, boolean closeReader) 
+                 throws IOException, ParseException {
+        beginIndex = 0;
+        endIndex = cgindex.size();
+        if (rowRange != null && rowRange.fileIndex>= 0) {
+          if (rowRange.fileIndex >= cgindex.size()) {
+            throw new IllegalArgumentException("Part Index is out of range.");
+          }
+          beginIndex = rowRange.fileIndex;
+          endIndex = beginIndex+1;
+        }
+        init(rowRange, null, null, closeReader);
+      }
+      
       CGScanner(RawComparable beginKey, RawComparable endKey,
           boolean closeReader) throws IOException, ParseException {
         beginIndex = 0;
@@ -811,11 +961,12 @@ class ColumnGroup {
             ++endIndex;
           }
         }
-        init(beginKey, endKey, closeReader);
+        init(null, beginKey, endKey, closeReader);
       }
 
-      private void init(RawComparable beginKey, RawComparable endKey,
-          boolean doClose) throws IOException, ParseException {
+      private void init(CGRowSplit rowRange, RawComparable beginKey, 
+                        RawComparable endKey, boolean doClose) 
+             throws IOException, ParseException {
         if (beginIndex > endIndex) {
           throw new IllegalArgumentException("beginIndex > endIndex");
         }
@@ -827,8 +978,9 @@ class ColumnGroup {
             RawComparable begin = (i == beginIndex) ? beginKey : null;
             RawComparable end = (i == endIndex - 1) ? endKey : null;
             TFileScanner scanner =
-                new TFileScanner(fs, cgindex.getPath(i, path), begin, end,
-                    cgschema, logicalSchema, conf);
+                new TFileScanner(fs, cgindex.getPath(i, path), rowRange, 
+                                 begin, end,
+                                 cgschema, logicalSchema, conf);
             // skip empty scanners.
             if (!scanner.atEnd()) {
               tmpScanners.add(scanner);
@@ -975,7 +1127,55 @@ class ColumnGroup {
         Utils.writeVInt(out, len);
       }
     }
+    
+    public static class CGRowSplit implements Writable {
+      int fileIndex = -1;
+      long startByte = -1;
+      long numBytes = -1;
+      long startRow = -1;
+      long numRows = -1;
 
+      CGRowSplit(int fileIdx, long start, long len) {
+        this.fileIndex = fileIdx;
+        this.startByte = start;
+        this.numBytes = len;
+      }
+
+      public CGRowSplit() {
+        // no-op;
+      }
+      
+      @Override
+      public String toString() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("{fileIndex = " + fileIndex + "}\n");       
+        sb.append("{startByte = " + startByte + "}\n");
+        sb.append("{numBytes = " + numBytes + "}\n");
+        sb.append("{startRow = " + startRow + "}\n");
+        sb.append("{numRows = " + numRows + "}\n");
+        
+        return sb.toString();
+      }
+
+      @Override
+      public void readFields(DataInput in) throws IOException {
+        fileIndex = Utils.readVInt(in);
+        startByte = Utils.readVLong(in);
+        numBytes = Utils.readVLong(in);
+        startRow = Utils.readVLong(in);
+        numRows = Utils.readVLong(in);
+      }
+
+      @Override
+      public void write(DataOutput out) throws IOException {
+        Utils.writeVInt(out, fileIndex);
+        Utils.writeVLong(out, startByte);
+        Utils.writeVLong(out, numBytes);
+        Utils.writeVLong(out, startRow);
+        Utils.writeVLong(out, numRows);
+      }      
+    }
+    
     private static class SplitColumn {
       SplitColumn(Partition.SplitType st) {
         this.st = st;
@@ -1051,7 +1251,7 @@ class ColumnGroup {
     Configuration conf;
     FileSystem fs;
     CGSchema cgschema;
-    private boolean finished;
+    private boolean finished, closed;
 
     /**
      * Create a ColumnGroup writer. The semantics are as follows:
@@ -1095,11 +1295,25 @@ class ColumnGroup {
     public Writer(Path path, String schema, boolean sorted, String name, String serializer,
         String compressor, String owner, String group, short perm,boolean overwrite, Configuration conf)
         throws IOException, ParseException {
-      this(path, new Schema(schema), sorted, name, serializer, compressor, owner, group, perm, overwrite,
+      this(path, new Schema(schema), sorted, null, name, serializer, compressor, owner, group, perm, overwrite,
           conf);
     }
     
     public Writer(Path path, Schema schema, boolean sorted, String name, String serializer,
+        String compressor, String owner, String group, short perm,boolean overwrite, Configuration conf)
+        throws IOException, ParseException {
+      this(path, schema, sorted, null, name, serializer, compressor, owner, group, perm, overwrite,
+          conf);
+    }
+
+    public Writer(Path path, String schema, boolean sorted, String comparator, String name, String serializer,
+        String compressor, String owner, String group, short perm,boolean overwrite, Configuration conf)
+        throws IOException, ParseException {
+      this(path, new Schema(schema), sorted, comparator, name, serializer, compressor, owner, group, perm, overwrite,
+          conf);
+    }
+
+    public Writer(Path path, Schema schema, boolean sorted, String comparator, String name, String serializer,
         String compressor, String owner, String group, short perm, boolean overwrite, Configuration conf)
         throws IOException, ParseException {
       this.path = path;
@@ -1118,7 +1332,7 @@ class ColumnGroup {
 
       checkPath(path, true);
 
-      cgschema = new CGSchema(schema, sorted, name, serializer, compressor, owner, group, perm);
+      cgschema = new CGSchema(schema, sorted, comparator, name, serializer, compressor, owner, group, perm);
       CGSchema sfNew = CGSchema.load(fs, path);
       if (sfNew != null) {
         // compare input with on-disk schema.
@@ -1162,7 +1376,10 @@ class ColumnGroup {
     @Override
     public void close() throws IOException {
       if (!finished) {
-        finished = true;
+        finish();
+      }
+      if (!closed) {
+        closed = true;
         createIndex();
       }
     }
@@ -1196,13 +1413,23 @@ class ColumnGroup {
     private void createIndex() throws IOException {
       MetaFile.Writer metaFile =
           MetaFile.createWriter(makeMetaFilePath(path), conf);
-      CGIndex index = buildIndex(fs, path, false, conf);
-      DataOutputStream dos = metaFile.createMetaBlock(BLOCK_NAME_INDEX);
-      try {
-        index.write(dos);
-      }
-      finally {
-        dos.close();
+      if (cgschema.isSorted()) {
+        CGIndex index = buildIndex(fs, path, false, conf);
+        DataOutputStream dos = metaFile.createMetaBlock(BLOCK_NAME_INDEX);
+        try {
+          index.write(dos);
+        }
+        finally {
+          dos.close();
+        }
+      } else { /* Create an empty data meta file for unsorted table. */
+        DataOutputStream dos = metaFile.createMetaBlock(BLOCK_NAME_INDEX);
+        try {
+          Utils.writeString(dos, "");
+        } 
+        finally {
+          dos.close();
+        }
       }
       metaFile.close();
     }
@@ -1429,18 +1656,19 @@ class ColumnGroup {
    * name, first and last key (inclusive) of a data file
    */
   static class CGIndexEntry implements RawComparable, Writable {
+    int index;
     String name;
     long rows;
     RawComparable firstKey;
     RawComparable lastKey;
 
     // for reading
-    CGIndexEntry() {
+    public CGIndexEntry() {
       // no-op
     }
 
     // for writing
-    CGIndexEntry(String name, long rows, RawComparable firstKey,
+    public CGIndexEntry(String name, long rows, RawComparable firstKey,
         RawComparable lastKey) {
       this.name = name;
       this.rows = rows;
@@ -1448,6 +1676,10 @@ class ColumnGroup {
       this.lastKey = lastKey;
     }
 
+    public int getIndex() {
+      return index;
+    }
+    
     public String getName() {
       return name;
     }
@@ -1462,6 +1694,10 @@ class ColumnGroup {
 
     public RawComparable getLastKey() {
       return lastKey;
+    }
+    
+    void setIndex (int idx) {
+      this.index = idx;
     }
 
     @Override
@@ -1524,6 +1760,16 @@ class ColumnGroup {
     CGIndex() {
       status = new BasicTableStatus();
       index = new ArrayList<CGIndexEntry>();
+    }
+    
+    int getFileIndex(Path path) throws IOException {
+      String filename = path.getName();
+      for (CGIndexEntry cgie : index) {
+        if (cgie.getName().equals(filename)) {
+          return cgie.getIndex(); 
+        }
+      }
+      throw new IOException("File " + filename + " is not in the column group index"); 
     }
 
     int size() {
@@ -1679,16 +1925,17 @@ class ColumnGroup {
     }
   }
 
-  static class CGPathFilter implements PathFilter {
-    private final Configuration conf;
-
-    CGPathFilter(Configuration conf) {
-      this.conf = conf;
+  public static class CGPathFilter implements PathFilter {
+    private static Configuration conf;
+   
+    public static void setConf(Configuration c) {
+      conf = c;
     }
 
     public boolean accept(Path p) {
       return p.getName().equals(META_FILE) || p.getName().equals(SCHEMA_FILE)
           || p.getName().startsWith(".tmp.")
+          || p.getName().startsWith("ttt")
           || p.getName().startsWith(getNonDataFilePrefix(conf)) ? false : true;
     }
   }

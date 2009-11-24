@@ -50,7 +50,7 @@ public class POPreCombinerLocalRearrange extends PhysicalOperator {
 
     protected static final long serialVersionUID = 1L;
 
-    protected static TupleFactory mTupleFactory = TupleFactory.getInstance();
+    protected static final TupleFactory mTupleFactory = TupleFactory.getInstance();
     protected static BagFactory mBagFactory = BagFactory.getInstance();
 
     protected List<PhysicalPlan> plans;

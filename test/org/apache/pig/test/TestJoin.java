@@ -456,7 +456,7 @@ public class TestJoin extends TestCase {
         lpt.buildPlan("a = load 'a.txt' as (n:chararray, a:int); ");
         lpt.buildPlan("b = load 'b.txt' as (n:chararray, m:chararray); ");
         String[] types = new String[] { "left", "right", "full" };
-        String[] joinTypes = new String[] { "replicated", "repl", "skewed", "merge" };
+        String[] joinTypes = new String[] { "replicated", "repl", "merge" };
         for (int i = 0; i < types.length; i++) {
             for(int j = 0; j < joinTypes.length; j++) {
                 boolean errCaught = false;
@@ -466,9 +466,20 @@ public class TestJoin extends TestCase {
                     
                 } catch(Exception e) {
                     errCaught = true;
-                    assertEquals(true, e.getMessage().contains("does not support (left|right|full) outer joins"));
+                    if( j == 0 || j == 1 ) {
+                     // This after adding support of LeftOuter Join to replicated Join
+                        assertEquals(true, e.getMessage().contains("does not support (right|full) outer joins"));   
+                    } else {
+                        assertEquals(true, e.getMessage().contains("does not support (left|right|full) outer joins"));
+                    }                    
                 }
-                assertEquals(true, errCaught);
+                if( i == 0 && ( j == 0 || j== 1 ) ) {
+                    // This after adding support of LeftOuter Join to replicated Join
+                    assertEquals(false, errCaught);
+                }
+                else {
+                    assertEquals(true, errCaught);
+                }
             }
             
         }

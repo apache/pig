@@ -73,7 +73,7 @@ public class TestStorePrimitive {
   public void testStorageValid1() {
     try {
       String strStorage = "[f1, f2]; [f3, f4] COMPRESS BY gz SERIALIZE BY avro";
-      Partition p = new Partition(schema.toString(), strStorage);
+      Partition p = new Partition(schema.toString(), strStorage, null);
       CGSchema[] cgschemas = p.getCGSchemas();
 
       // 3 column group;
@@ -169,7 +169,7 @@ public class TestStorePrimitive {
   public void testStorageValid2() {
     try {
       String strStorage = "[f1, f2] serialize by avro compress by gz; [f3, f4] SERIALIZE BY avro COMPRESS BY gz";
-      Partition p = new Partition(schema.toString(), strStorage);
+      Partition p = new Partition(schema.toString(), strStorage, null);
       CGSchema[] cgschemas = p.getCGSchemas();
 
       Assert.assertEquals(cgschemas.length, 3);
@@ -184,7 +184,7 @@ public class TestStorePrimitive {
   public void testStorageValid3() {
     try {
       String strStorage = "";
-      Partition p = new Partition(schema.toString(), strStorage);
+      Partition p = new Partition(schema.toString(), strStorage, null);
       CGSchema[] cgschemas = p.getCGSchemas();
       Assert.assertEquals(cgschemas.length, 1);
       CGSchema cgs1 = cgschemas[0];
@@ -198,7 +198,7 @@ public class TestStorePrimitive {
   public void testStorageInvalid1() {
     try {
       String strStorage = "f1";
-      Partition p = new Partition(schema.toString(), strStorage);
+      Partition p = new Partition(schema.toString(), strStorage, null);
       CGSchema[] cgschemas = p.getCGSchemas();
       CGSchema cgs1 = cgschemas[0];
       System.out.println(cgs1);
@@ -215,7 +215,7 @@ public class TestStorePrimitive {
   public void testStorageInvalid2() {
     try {
       String strStorage = "[f100]";
-      Partition p = new Partition(schema.toString(), strStorage);
+      Partition p = new Partition(schema.toString(), strStorage, null);
       CGSchema[] cgschemas = p.getCGSchemas();
       CGSchema cgs1 = cgschemas[0];
       System.out.println(cgs1);
@@ -232,7 +232,7 @@ public class TestStorePrimitive {
   public void testStorageInvalid3() {
     try {
       String strStorage = "f1:long";
-      Partition p = new Partition(schema.toString(), strStorage);
+      Partition p = new Partition(schema.toString(), strStorage, null);
       CGSchema[] cgschemas = p.getCGSchemas();
       CGSchema cgs1 = cgschemas[0];
       System.out.println(cgs1);
@@ -249,7 +249,7 @@ public class TestStorePrimitive {
   public void testStorageInvalid4() {
     try {
       String strStorage = "[";
-      Partition p = new Partition(schema.toString(), strStorage);
+      Partition p = new Partition(schema.toString(), strStorage, null);
       CGSchema[] cgschemas = p.getCGSchemas();
       CGSchema cgs1 = cgschemas[0];
       System.out.println(cgs1);
@@ -266,7 +266,7 @@ public class TestStorePrimitive {
   public void testStorageInvalid5() {
     try {
       String strStorage = "[f1, f2]; [f1, f4]";
-      Partition p = new Partition(schema.toString(), strStorage);
+      Partition p = new Partition(schema.toString(), strStorage, null);
       CGSchema[] cgschemas = p.getCGSchemas();
       CGSchema cgs1 = cgschemas[0];
       System.out.println(cgs1);
@@ -283,7 +283,7 @@ public class TestStorePrimitive {
   public void testStorageInvalid6() {
     try {
       String strStorage = ":";
-      Partition p = new Partition(schema.toString(), strStorage);
+      Partition p = new Partition(schema.toString(), strStorage, null);
       CGSchema[] cgschemas = p.getCGSchemas();
       CGSchema cgs1 = cgschemas[0];
       System.out.println(cgs1);
@@ -300,7 +300,7 @@ public class TestStorePrimitive {
   public void testStorageInvalid7() {
     try {
       String strStorage = "[f1, f2] serialize by xyz compress by gz; [f3, f4] SERIALIZE BY avro COMPRESS BY lzo";
-      Partition p = new Partition(schema.toString(), strStorage);
+      Partition p = new Partition(schema.toString(), strStorage, null);
       CGSchema[] cgschemas = p.getCGSchemas();
       CGSchema cgs1 = cgschemas[0];
       System.out.println(cgs1);
@@ -317,7 +317,7 @@ public class TestStorePrimitive {
   public void testStorageInvalid8() {
     try {
       String strStorage = "[f1, f2] serialize by avro compress by xyz; [f3, f4] SERIALIZE BY avro COMPRESS BY lzo";
-      Partition p = new Partition(schema.toString(), strStorage);
+      Partition p = new Partition(schema.toString(), strStorage, null);
       CGSchema[] cgschemas = p.getCGSchemas();
       CGSchema cgs1 = cgschemas[0];
       System.out.println(cgs1);

@@ -203,6 +203,17 @@ public class DistinctDataBag extends DefaultAbstractBag {
             public int compareTo(TContainer other) {
                 return tuple.compareTo(other.tuple);
             }
+
+            public boolean equals(Object obj){
+                if (obj instanceof TContainer)
+                    return tuple.equals(((TContainer)obj).tuple);
+                else
+                    return false;
+            }
+
+            public int hashCode() {
+                return tuple.hashCode(); 
+            }
         }
 
         // We have to buffer a tuple because there's no easy way for next

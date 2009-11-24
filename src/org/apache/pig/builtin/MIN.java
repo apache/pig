@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
+import org.apache.pig.Accumulator;
 import org.apache.pig.Algebraic;
 import org.apache.pig.EvalFunc;
 import org.apache.pig.FuncSpec;
@@ -40,7 +41,7 @@ import org.apache.pig.impl.util.WrappedIOException;
 /**
  * Generates the min of the values of the first field of a tuple.
  */
-public class MIN extends EvalFunc<Double> implements Algebraic {
+public class MIN extends EvalFunc<Double> implements Algebraic, Accumulator<Double> {
 
     @Override
     public Double exec(Tuple input) throws IOException {
@@ -217,5 +218,39 @@ public class MIN extends EvalFunc<Double> implements Algebraic {
         funcList.add(new FuncSpec(LongMin.class.getName(), Schema.generateNestedSchema(DataType.BAG, DataType.LONG)));
         funcList.add(new FuncSpec(StringMin.class.getName(), Schema.generateNestedSchema(DataType.BAG, DataType.CHARARRAY)));
         return funcList;
+    }
+
+    /* Accumulator interface implementation */
+    private Double intermediateMin = null;
+    
+    @Override
+    public void accumulate(Tuple b) throws IOException {
+        try {
+            Double curMin = min(b);
+            if (curMin == null) {
+                return;
+            }
+            /* if bag is not null, initialize intermediateMax to negative infinity */
+            if (intermediateMin == null) {
+                intermediateMin = Double.POSITIVE_INFINITY;
+            }
+            intermediateMin = java.lang.Math.min(intermediateMin, curMin);
+        } catch (ExecException ee) {
+            throw ee;
+        } catch (Exception e) {
+            int errCode = 2106;
+            String msg = "Error while computing min in " + this.getClass().getSimpleName();
+            throw new ExecException(msg, errCode, PigException.BUG, e);           
+        }
+    }
+
+    @Override
+    public void cleanup() {
+        intermediateMin = null;
+    }
+
+    @Override
+    public Double getValue() {
+        return intermediateMin;
     }    
 }

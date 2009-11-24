@@ -54,7 +54,6 @@ import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.logicalLayer.FrontendException;
-import org.apache.pig.impl.logicalLayer.LOJoin;
 import org.apache.pig.impl.logicalLayer.LOLoad;
 import org.apache.pig.impl.logicalLayer.LogicalOperator;
 import org.apache.pig.impl.logicalLayer.LogicalPlan;
@@ -677,7 +676,8 @@ public class PigServer {
             allPaths.add(elem.toString());
         }
             
-        return (String[])(allPaths.toArray());
+        String[] type = new String[1];
+        return allPaths.toArray(type);
     }
     
     public long totalHadoopTimeSpent() {

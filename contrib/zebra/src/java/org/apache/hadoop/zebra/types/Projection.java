@@ -19,6 +19,7 @@ package org.apache.hadoop.zebra.types;
 
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.ArrayList;
 import org.apache.hadoop.zebra.schema.Schema;
 import org.apache.hadoop.zebra.parser.ParseException;
 
@@ -27,6 +28,7 @@ import org.apache.hadoop.zebra.parser.ParseException;
  */
 
 public class Projection {
+  public static final String source_table_vcolumn_name = "source_table";
   private Schema mProjection; // schema as needed by the projection
   private int mNumColumns;
   private String mProjStr;
@@ -51,6 +53,43 @@ public class Projection {
     }
   }
 
+  /**
+   * if a column name is on a virtual column
+   */
+  public static boolean isVirtualColumn(String name)
+  {
+    if (name == null || name.isEmpty())
+      return false;
+    return name.trim().equalsIgnoreCase(source_table_vcolumn_name);
+  }
+
+  /**
+   * Get the indices of all virtual columns
+   */
+  public static Integer[] getVirtualColumnIndices(String projection)
+  {
+    if (projection == null)
+      return null;
+    String[] colnames = projection.trim().split(Schema.COLUMN_DELIMITER);
+    int size = colnames.length, realsize = 0;
+    ArrayList<Integer> vcol = new ArrayList();
+    
+    for (int i = 0; i < size; i++)
+    {
+      if (Projection.isVirtualColumn(colnames[i]))
+      {
+        vcol.add(i);
+      }
+    }
+    Integer[] result = null;
+    if (!vcol.isEmpty())
+    {
+      result = new Integer[vcol.size()];
+      vcol.toArray(result);
+    }
+    return result;
+  }
+  
   /**
    * ctor for partial projection
    */

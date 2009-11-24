@@ -17,6 +17,7 @@
  */
 package org.apache.pig.backend.hadoop.executionengine.mapReduceLayer;
 
+import java.io.DataInput;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -32,11 +33,13 @@ import java.util.Properties;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.conf.Configurable;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.filecache.DistributedCache;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.hadoop.io.WritableComparable;
 import org.apache.hadoop.io.WritableComparator;
 import org.apache.hadoop.mapred.JobConf;
@@ -52,6 +55,7 @@ import org.apache.pig.StoreFunc;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.HDataType;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.partitioners.SkewedPartitioner;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.partitioners.SecondaryKeyPartitioner;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.partitioners.WeightedRangePartitioner;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROperPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
@@ -61,6 +65,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.util.PlanHelper;
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataType;
+import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
@@ -73,10 +78,12 @@ import org.apache.pig.impl.io.NullableLongWritable;
 import org.apache.pig.impl.io.NullablePartitionWritable;
 import org.apache.pig.impl.io.NullableText;
 import org.apache.pig.impl.io.NullableTuple;
+import org.apache.pig.impl.io.PigNullableWritable;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.util.JarManager;
 import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.impl.util.Pair;
+import org.apache.pig.impl.util.UDFContext;
 
 /**
  * This is compiler class that takes an MROperPlan and converts
@@ -128,11 +135,14 @@ public class JobControlCompiler{
     
     // A mapping of job to pair of store locations and tmp locations for that job
     private Map<Job, Pair<List<POStore>, Path>> jobStoreMap;
+    
+    private Map<Job, MapReduceOper> jobMroMap;
 
     public JobControlCompiler(PigContext pigContext, Configuration conf) throws IOException {
         this.pigContext = pigContext;
         this.conf = conf;
         jobStoreMap = new HashMap<Job, Pair<List<POStore>, Path>>();
+        jobMroMap = new HashMap<Job, MapReduceOper>();
     }
 
     /**
@@ -152,6 +162,7 @@ public class JobControlCompiler{
      */
     public void reset() {
         jobStoreMap = new HashMap<Job, Pair<List<POStore>, Path>>();
+        jobMroMap = new HashMap<Job, MapReduceOper>();
     }
 
     /**
@@ -250,8 +261,9 @@ public class JobControlCompiler{
             List<MapReduceOper> roots = new LinkedList<MapReduceOper>();
             roots.addAll(plan.getRoots());
             for (MapReduceOper mro: roots) {
-                jobCtrl.addJob(getJob(mro, conf, pigContext));
-                plan.remove(mro);
+                Job job = getJob(mro, conf, pigContext);
+                jobMroMap.put(job, mro);
+                jobCtrl.addJob(job);
             }
         } catch (JobCreationException jce) {
         	throw jce;
@@ -262,6 +274,34 @@ public class JobControlCompiler{
         }
 
         return jobCtrl;
+    }
+    
+    // Update Map-Reduce plan with the execution status of the jobs. If one job
+    // completely fail (the job has only one store and that job fail), then we 
+    // remove all its dependent jobs. This method will return the number of MapReduceOper
+    // removed from the Map-Reduce plan
+    public int updateMROpPlan(List<Job> completeFailedJobs)
+    {
+        int sizeBefore = plan.size();
+        for (Job job : completeFailedJobs)  // remove all subsequent jobs
+        {
+            MapReduceOper mrOper = jobMroMap.get(job); 
+            plan.trimBelow(mrOper);
+            plan.remove(mrOper);
+        }
+
+        // Remove successful jobs from jobMroMap
+        for (Job job : jobMroMap.keySet())
+        {
+            if (!completeFailedJobs.contains(job))
+            {
+                MapReduceOper mro = jobMroMap.get(job);
+                plan.remove(mro);
+            }
+        }
+        jobMroMap.clear();
+        int sizeAfter = plan.size();
+        return sizeBefore-sizeAfter;
     }
         
     /**
@@ -515,10 +555,23 @@ public class JobControlCompiler{
                     conf.set("pig.stream.in.reduce", "true");
                 }
                 conf.set("pig.reduce.package", ObjectSerializer.serialize(pack));
-                Class<? extends WritableComparable> keyClass = HDataType.getWritableComparableTypes(pack.getKeyType()).getClass();
-                nwJob.setOutputKeyClass(keyClass);
                 conf.set("pig.reduce.key.type", Byte.toString(pack.getKeyType())); 
-                selectComparator(mro, pack.getKeyType(), nwJob);
+                
+                if (mro.getUseSecondaryKey()) {
+                    nwJob.setGroupingComparatorClass(PigSecondaryKeyGroupComparator.class);
+                    nwJob.setPartitionerClass(SecondaryKeyPartitioner.class);
+                    nwJob.setSortComparatorClass(PigSecondaryKeyComparator.class);
+                    nwJob.setOutputKeyClass(NullableTuple.class);
+                    conf.set("pig.secondarySortOrder",
+                            ObjectSerializer.serialize(mro.getSecondarySortOrder()));
+
+                }
+                else
+                {
+                    Class<? extends WritableComparable> keyClass = HDataType.getWritableComparableTypes(pack.getKeyType()).getClass();
+                    nwJob.setOutputKeyClass(keyClass);
+                    selectComparator(mro, pack.getKeyType(), nwJob);
+                }
                 nwJob.setOutputValueClass(NullableTuple.class);
             }
         
@@ -554,8 +607,11 @@ public class JobControlCompiler{
                 nwJob.setGroupingComparatorClass(PigGroupingPartitionWritableComparator.class);
             }
       
+            // Serialize the UDF specific context info.
+            UDFContext.getUDFContext().serialize(conf);
             Job cjob = new Job(new JobConf(nwJob.getConfiguration()), new ArrayList());
             jobStoreMap.put(cjob,new Pair(storeLocations, tmpLocation));
+            
             return cjob;
 
         } catch (JobCreationException jce) {
@@ -564,6 +620,63 @@ public class JobControlCompiler{
             int errCode = 2017;
             String msg = "Internal error creating job configuration.";
             throw new JobCreationException(msg, errCode, PigException.BUG, e);
+        }
+    }
+    
+    public static class PigSecondaryKeyGroupComparator extends WritableComparator {
+        @SuppressWarnings("unchecked")
+        public PigSecondaryKeyGroupComparator() {
+//            super(TupleFactory.getInstance().tupleClass(), true);
+            super(NullableTuple.class, true);
+        }
+
+        @Override
+        public int compare(WritableComparable a, WritableComparable b)
+        {
+            PigNullableWritable wa = (PigNullableWritable)a;
+            PigNullableWritable wb = (PigNullableWritable)b;
+            if ((wa.getIndex() & PigNullableWritable.mqFlag) != 0) { // this is a multi-query index
+                if ((wa.getIndex() & PigNullableWritable.idxSpace) < (wb.getIndex() & PigNullableWritable.idxSpace)) return -1;
+                else if ((wa.getIndex() & PigNullableWritable.idxSpace) > (wb.getIndex() & PigNullableWritable.idxSpace)) return 1;
+                // If equal, we fall through
+            }
+            
+            // wa and wb are guaranteed to be not null, POLocalRearrange will create a tuple anyway even if main key and secondary key
+            // are both null; however, main key can be null, we need to check for that using the same logic we have in PigNullableWritable
+            Object valuea = null;
+            Object valueb = null;
+            try {
+                // Get the main key from compound key
+                valuea = ((Tuple)wa.getValueAsPigType()).get(0);
+                valueb = ((Tuple)wb.getValueAsPigType()).get(0);
+            } catch (ExecException e) {
+                throw new RuntimeException("Unable to access tuple field", e);
+            }
+            if (!wa.isNull() && !wb.isNull()) {
+                
+                int result = DataType.compare(valuea, valueb);
+                
+                // If any of the field inside tuple is null, then we do not merge keys
+                // See PIG-927
+                if (result == 0 && valuea instanceof Tuple && valueb instanceof Tuple)
+                {
+                    try {
+                        for (int i=0;i<((Tuple)valuea).size();i++)
+                            if (((Tuple)valueb).get(i)==null)
+                                return (wa.getIndex()&PigNullableWritable.idxSpace) - (wb.getIndex()&PigNullableWritable.idxSpace);
+                    } catch (ExecException e) {
+                        throw new RuntimeException("Unable to access tuple field", e);
+                    }
+                }
+                return result;
+            } else if (valuea==null && valueb==null) {
+                // If they're both null, compare the indicies
+                if ((wa.getIndex() & PigNullableWritable.idxSpace) < (wb.getIndex() & PigNullableWritable.idxSpace)) return -1;
+                else if ((wa.getIndex() & PigNullableWritable.idxSpace) > (wb.getIndex() & PigNullableWritable.idxSpace)) return 1;
+                else return 0;
+            }
+            else if (valuea==null) return -1; 
+            else return 1;
         }
     }
     

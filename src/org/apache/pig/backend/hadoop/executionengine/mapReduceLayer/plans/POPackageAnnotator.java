@@ -212,7 +212,7 @@ public class POPackageAnnotator extends MROpPlanVisitor {
             if(keyInfo == null)
                 keyInfo = new HashMap<Integer, Pair<Boolean, Map<Integer, Integer>>>();
             
-            if(keyInfo.get(lrearrange.getIndex()) != null) {
+            if(keyInfo.get(Integer.valueOf(lrearrange.getIndex())) != null) {
                 // something is wrong - we should not be getting key info 
                 // for the same index from two different Local Rearranges
                 int errCode = 2087;

@@ -17,6 +17,8 @@
  */
 package org.apache.pig.test.utils;
 
+import java.util.List;
+
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.impl.plan.OperatorKey;
@@ -96,7 +98,9 @@ public class POCastDummy extends ExpressionOperator {
         }
         return new Result();
     }
-    
-    
+
+    protected List<ExpressionOperator> getChildExpressions() {		
+        return null;
+    }    
 
 }

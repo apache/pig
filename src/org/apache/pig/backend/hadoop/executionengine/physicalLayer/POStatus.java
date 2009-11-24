@@ -30,5 +30,9 @@ public class POStatus {
     // between ExecutableManager and POStream
     public static final byte STATUS_EOS = 4; // end of Streaming output (i.e. output from streaming binary)
 
+    // successfully processing of a batch, used by accumulative UDFs
+    // this is used for accumulative UDFs
+    public static final byte STATUS_BATCH_OK = 5; 
+
     public static Object result;
 }

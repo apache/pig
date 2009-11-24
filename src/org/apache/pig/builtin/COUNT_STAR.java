@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.util.Iterator;
 import java.util.Map;
 
+import org.apache.pig.Accumulator;
 import org.apache.pig.Algebraic;
 import org.apache.pig.EvalFunc;
 import org.apache.pig.PigException;
@@ -38,7 +39,7 @@ import org.apache.pig.impl.util.WrappedIOException;
  * implements SQL COUNT(*) semantics. This class is Algebraic in
  * implemenation, so if possible the execution will be split into a local and global functions
  */
-public class COUNT_STAR extends EvalFunc<Long> implements Algebraic{
+public class COUNT_STAR extends EvalFunc<Long> implements Algebraic, Accumulator<Long>{
     private static TupleFactory mTupleFactory = TupleFactory.getInstance();
 
     @Override
@@ -125,6 +126,33 @@ public class COUNT_STAR extends EvalFunc<Long> implements Algebraic{
     @Override
     public Schema outputSchema(Schema input) {
         return new Schema(new Schema.FieldSchema(null, DataType.LONG)); 
+    }
+
+    /* Accumulator interface imlpemenatation */
+    
+    private long intermediateCount = 0L;
+    
+    @Override
+    public void accumulate(Tuple b) throws IOException {
+        try {
+            intermediateCount += sum(b);
+        } catch (ExecException ee) {
+            throw ee;
+        } catch (Exception e) {
+            int errCode = 2106;
+            String msg = "Error while computing min in " + this.getClass().getSimpleName();
+            throw new ExecException(msg, errCode, PigException.BUG, e);           
+        }
+    }
+
+    @Override
+    public void cleanup() {
+        intermediateCount = 0L;
+    }
+
+    @Override
+    public Long getValue() {
+        return intermediateCount;
     }
 
 }

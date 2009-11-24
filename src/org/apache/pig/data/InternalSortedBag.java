@@ -83,6 +83,9 @@ public class InternalSortedBag extends DefaultAbstractBag{
         	return (o == this);
         }
 
+        public int hashCode() {
+            return 42; 
+        }
     }
     
     public InternalSortedBag() {

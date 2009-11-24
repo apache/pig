@@ -74,7 +74,7 @@ public abstract class OperatorPlan<E extends Operator> implements Iterable<E>, S
 
     private List<E> mRoots;
     private List<E> mLeaves;
-    protected static Log log = LogFactory.getLog(OperatorPlan.class);
+    protected static final Log log = LogFactory.getLog(OperatorPlan.class);
     
     public OperatorPlan() {
         mRoots = new ArrayList<E>();

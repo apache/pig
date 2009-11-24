@@ -27,7 +27,7 @@ import org.apache.hadoop.fs.permission.*;
 
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.WritableUtils;
-import org.apache.hadoop.io.file.tfile.Utils.Version;
+import org.apache.hadoop.zebra.tfile.Utils.Version;
 import org.apache.hadoop.zebra.schema.Schema;
 import org.apache.hadoop.zebra.parser.ParseException;
 
@@ -50,7 +50,6 @@ public class CGSchema {
    
    // tmp schema file name, used as a flag of unfinished CG
    private final static String SCHEMA_FILE = ".schema";
-   private final static String DEFAULT_COMPARATOR = "memcmp";
 	// schema version, should be same as BasicTable's most of the time
    private final static Version SCHEMA_VERSION =
      new Version((short) 1, (short) 1);
@@ -87,19 +86,18 @@ public class CGSchema {
      this.version = SCHEMA_VERSION;
    }
 
-   public CGSchema(Schema schema, boolean sorted) {
+   public CGSchema(Schema schema, boolean sorted, String comparator) {
      this.sorted = sorted;
-     this.comparator = (sorted) ? DEFAULT_COMPARATOR : "";
+     this.comparator = (sorted) ? (comparator == null ? SortInfo.DEFAULT_COMPARATOR : comparator) : "";
      this.schema = schema;
      this.version = SCHEMA_VERSION;
    }
 
-   public CGSchema(Schema schema, boolean sorted, String name, String serializer, String compressor, String owner, String group, short perm) {
-  	this(schema, sorted);
+   public CGSchema(Schema schema, boolean sorted, String comparator, String name, String serializer, String compressor, String owner, String group, short perm) {
+  	this(schema, sorted, comparator);
     this.name = name;
   	this.serializer = serializer;
   	this.compressor = compressor;
-//  	this.owner = owner;
   	this.group = group;
   	this.perm  = perm;
    }

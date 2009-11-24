@@ -99,7 +99,7 @@ public class TestCollection {
     System.out.println("path =" + path);
 
     BasicTable.Writer writer = new BasicTable.Writer(path, STR_SCHEMA,
-        STR_STORAGE, false, conf);
+        STR_STORAGE, conf);
     /*
      * conf = new Configuration();
      * conf.setInt("table.output.tfile.minBlock.size", 64 * 1024);

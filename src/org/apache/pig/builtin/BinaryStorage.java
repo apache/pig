@@ -146,6 +146,10 @@ public class BinaryStorage extends LoadFunc implements StoreFunc {
         return true;
     }
 
+    public int hashCode() {
+        return 42; 
+    }
+
     @Override
     public InputFormat getInputFormat() throws IOException {
         return null;

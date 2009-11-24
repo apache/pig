@@ -80,7 +80,7 @@ public class TestCollection {
     // drop any previous tables
     BasicTable.drop(path, conf);
     BasicTable.Writer writer = new BasicTable.Writer(path, STR_SCHEMA,
-        STR_STORAGE, false, conf);
+        STR_STORAGE, conf);
 
     writer.finish();
 
@@ -987,7 +987,7 @@ public class TestCollection {
     BasicTable.drop(path, conf);
     try {
       BasicTable.Writer writer = new BasicTable.Writer(path, STR_SCHEMA,
-          STR_STORAGE, false, conf);
+          STR_STORAGE, conf);
       Assert.fail("should throw exception");
     } catch (Exception e) {
       System.out.println(e);
@@ -1012,7 +1012,7 @@ public class TestCollection {
     BasicTable.drop(path, conf);
     try {
       BasicTable.Writer writer = new BasicTable.Writer(path, STR_SCHEMA,
-          STR_STORAGE, false, conf);
+          STR_STORAGE, conf);
       Assert.fail("should throw exception");
     } catch (Exception e) {
       System.out.println(e);

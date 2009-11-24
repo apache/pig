@@ -46,8 +46,8 @@ import org.junit.Test;
 public class TestPigContext extends TestCase {
 
     private static final String TMP_DIR_PROP = "/tmp/hadoop-hadoop";
-    private static final String FS_NAME = "machine:9000";
-    private static final String JOB_TRACKER = "machine:9001";
+    private static final String FS_NAME = "file:///";
+    private static final String JOB_TRACKER = "local";
 
     private File input;
     private PigContext pigContext;
@@ -68,7 +68,7 @@ public class TestPigContext extends TestCase {
         PigServer pigServer = new PigServer(pigContext);
         registerAndStore(pigServer);
         
-        check_asserts();
+        check_asserts(pigServer);
     }
 
     /**
@@ -79,7 +79,7 @@ public class TestPigContext extends TestCase {
         PigServer pigServer = new PigServer(ExecType.LOCAL, getProperties());
         registerAndStore(pigServer);
         
-        check_asserts();
+        check_asserts(pigServer);
     }
 
     /**
@@ -91,7 +91,7 @@ public class TestPigContext extends TestCase {
         PigServer pigServer = new PigServer(pigContext);
         registerAndStore(pigServer);
         
-        check_asserts();
+        check_asserts(pigServer);
     }
     
     @Test
@@ -218,7 +218,7 @@ public class TestPigContext extends TestCase {
     }
 
     private void registerAndStore(PigServer pigServer) throws IOException {
-        pigServer.debugOn();
+        // pigServer.debugOn();
         List<String> commands = getCommands();
         for (final String command : commands) {
             pigServer.registerQuery(command);
@@ -226,9 +226,9 @@ public class TestPigContext extends TestCase {
         pigServer.store("counts", input.getAbsolutePath() + ".out");
     }
 
-    private void check_asserts() {
-        assertEquals(JOB_TRACKER, pigContext.getProperties().getProperty("mapred.job.tracker"));
-        assertEquals(FS_NAME, pigContext.getProperties().getProperty("fs.default.name"));
-        assertEquals(TMP_DIR_PROP, pigContext.getProperties().getProperty("hadoop.tmp.dir"));
+    private void check_asserts(PigServer pigServer) {
+        assertEquals(JOB_TRACKER, pigServer.getPigContext().getProperties().getProperty("mapred.job.tracker"));
+        assertEquals(FS_NAME, pigServer.getPigContext().getProperties().getProperty("fs.default.name"));
+        assertEquals(TMP_DIR_PROP, pigServer.getPigContext().getProperties().getProperty("hadoop.tmp.dir"));
     }
 }

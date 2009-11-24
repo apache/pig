@@ -37,6 +37,9 @@
         <Bug pattern="EI_EXPOSE_REP2" />
     </Match>
     <Match>
+        <Bug pattern="DP_CREATE_CLASSLOADER_INSIDE_DO_PRIVILEGED" />
+    </Match>
+    <Match>
         <Class name="org.apache.pig.tools.parameters.Token" />
     </Match>
     <Match>
@@ -138,11 +141,40 @@
         <Bug pattern="SE_TRANSIENT_FIELD_NOT_RESTORED" />
     </Match>
     <Match>
+        <Class name="org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce" />
+        <Field name="sJobConf" />
+        <Bug pattern="MS_CANNOT_BE_FINAL" />
+    </Match>
+    <Match>
+        <Class name="org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator" />
+        <Field name="reporter" />
+        <Bug pattern="MS_CANNOT_BE_FINAL" />
+    </Match>
+    <Match>
+        <Class name="org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator" />
+        <Field name="pigLogger" />
+        <Bug pattern="MS_PKGPROTECT" />
+    </Match>
+    <Match>
+        <Class name="org.apache.pig.impl.logicalLayer.LogicalPlanCloneHelper" />
+        <Field name="mOpToCloneMap" />
+        <Bug pattern="MS_PKGPROTECT" />
+    </Match>
+    <Match>
         <Class name="org.apache.pig.impl.util.SpillableMemoryManager" />
         <Bug pattern="DM_GC" />
     </Match>
     <Match>
+        <Class name="org.apache.pig.impl.logicalLayer.LogicalPlanBuilder" />
+        <Field name="classloader" />
+        <Bug pattern="MS_PKGPROTECT" />
+    </Match>
+    <Match>
         <Class name="org.apache.pig.data.DistinctDataBag$DistinctDataBagIterator$TContainer" />
+        <Bug pattern="SIC_INNER_SHOULD_BE_STATIC" />
+    </Match>
+    <Match>
+        <Class name="org.apache.pig.data.InternalDistinctBag$DistinctDataBagIterator$TContainer" />
         <Bug pattern="SIC_INNER_SHOULD_BE_STATIC" />
     </Match>
     <Match>
@@ -235,6 +267,62 @@
         <Class name="org.apache.tools.bzip2r.CBZip2OutputStream" />
         <Method name = "sendMTFValues" />
         <Bug pattern="IM_BAD_CHECK_FOR_ODD" />
+    </Match>
+    <Match>
+        <Class name="org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigHadoopLogger" />
+        <Bug pattern="UG_SYNC_SET_UNSYNC_GET" />
+    </Match>
+    <Match>
+        <Class name="org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStream" />
+        <Bug pattern="IS2_INCONSISTENT_SYNC" />
+    </Match>
+    <Match>
+        <Class name="org.apache.pig.impl.builtin.DefaultIndexableLoader" />
+        <Bug pattern="UWF_NULL_FIELD" />
+    </Match>
+    <Match>
+        <Class name="org.apache.pig.impl.builtin.MergeJoinIndexer" />
+        <Bug pattern="UWF_NULL_FIELD" />
+    </Match>
+    <Match>
+        <Class name="org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRCompiler" />
+        <Bug pattern="NM_WRONG_PACKAGE" />
+    </Match>
+    <Match>
+        <Class name="org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.NoopStoreRemover$PhysicalRemover" />
+        <Bug pattern="NM_WRONG_PACKAGE" />
+    </Match>
+    <Match>
+        <Class name="org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PhyPlanSetter" />
+        <Bug pattern="NM_WRONG_PACKAGE" />
+    </Match>
+    <Match>
+        <Class name="org.apache.pig.impl.logicalLayer.schema.Schema" />
+        <Method name = "equals" />
+        <Bug pattern="NP_NULL_ON_SOME_PATH" />
+    </Match>
+    <Match>
+        <Class name="org.apache.pig.impl.logicalLayer.schema.Schema$FieldSchema" />
+        <Method name = "equals" />
+        <Bug pattern="NP_NULL_ON_SOME_PATH" />
+    </Match>
+    <Match>
+        <Class name="org.apache.pig.impl.logicalLayer.optimizer.StreamOptimizer" />
+        <Method name = "transform" />
+        <Bug pattern="NP_LOAD_OF_KNOWN_NULL_VALUE" />
+    </Match>
+    <Match>
+        <Class name="org.apache.pig.impl.logicalLayer.LogicalPlanBuilder" />
+        <Field name = "classloader" />
+        <Bug pattern="MS_CANNOT_BE_FINAL" />
+    </Match>
+    <Match>
+        <Bug pattern="RV_ABSOLUTE_VALUE_OF_HASHCODE" />
+    </Match>
+    <Match>
+        <Class name="org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.ConstantExpression" />
+        <Field name = "res" />
+        <Bug pattern="MF_CLASS_MASKS_FIELD" />
     </Match>
     
 </FindBugsFilter>

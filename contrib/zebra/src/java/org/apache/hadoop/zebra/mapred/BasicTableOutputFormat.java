@@ -30,8 +30,11 @@ import org.apache.hadoop.zebra.io.BasicTable;
 import org.apache.hadoop.zebra.io.TableInserter;
 import org.apache.hadoop.zebra.parser.ParseException;
 import org.apache.hadoop.zebra.types.Partition;
+import org.apache.hadoop.zebra.types.SortInfo;
 import org.apache.hadoop.zebra.schema.Schema;
 import org.apache.pig.data.Tuple;
+import org.apache.hadoop.zebra.pig.comparator.*;
+
 
 /**
  * {@link org.apache.hadoop.mapred.OutputFormat} class for creating a
@@ -113,7 +116,10 @@ public class BasicTableOutputFormat implements
   private static final String OUTPUT_SCHEMA = "mapred.lib.table.output.schema";
   private static final String OUTPUT_STORAGEHINT =
       "mapred.lib.table.output.storagehint";
-  private static final String OUTPUT_SORTED = "mapred.lib.table.output.sorted";
+  private static final String OUTPUT_SORTCOLUMNS =
+      "mapred.lib.table.output.sortcolumns";
+  private static final String OUTPUT_COMPARATOR =
+      "mapred.lib.table.output.comparator";
 
   /**
    * Set the output path of the BasicTable in JobConf
@@ -174,10 +180,66 @@ public class BasicTableOutputFormat implements
     return new Schema(schema);
   }
 
+  private static KeyGenerator makeKeyBuilder(byte[] elems) {
+	    ComparatorExpr[] exprs = new ComparatorExpr[elems.length];
+	    for (int i = 0; i < elems.length; ++i) {
+	      exprs[i] = ExprUtils.primitiveComparator(i, elems[i]);
+	    }
+	    return new KeyGenerator(ExprUtils.tupleComparator(exprs));
+  }
+
+  /**
+   * Generates a zebra specific sort key generator which is used to generate BytesWritable key 
+   * Sort Key(s) are used to generate this object
+   * 
+   * @param conf
+   *          The JobConf object.
+   * @return Object of type zebra.pig.comaprator.KeyGenerator. 
+   *         
+   */
+  public static Object getSortKeyGenerator(JobConf conf) throws IOException, ParseException {
+
+    SortInfo sortInfo = getSortInfo(conf);
+    Schema schema     = getSchema(conf);
+    String[] sortColNames = sortInfo.getSortColumnNames();
+
+    byte[] types = new byte[sortColNames.length];
+    for(int i =0 ; i < sortColNames.length; ++i){
+      types[i] = schema.getColumn(sortColNames[i]).getType().pigDataType();
+    }
+    KeyGenerator builder = makeKeyBuilder(types);
+    return builder;
+
+  }
+
+
+  /**
+   * Generates a BytesWritable key for the input key
+   * using keygenerate provided. Sort Key(s) are used to generate this object
+   *
+   * @param builder
+   *         Opaque key generator created by getSortKeyGenerator() method
+   * @param t
+   *         Tuple to create sort key from
+   * @return ByteWritable Key 
+   *
+   */
+  public static BytesWritable getSortKey(Object builder, Tuple t) throws Exception {
+	  KeyGenerator kg = (KeyGenerator) builder;
+	  return kg.generateKey(t);
+  }
+
+
+
+
   /**
    * Set the table storage hint in JobConf, should be called after setSchema is
    * called.
+   * <br> <br>
    * 
+   * Note that the "secure by" feature is experimental now and subject to
+   * changes in the future.
+   *
    * @param conf
    *          The JobConf object.
    * @param storehint
@@ -194,7 +256,7 @@ public class BasicTableOutputFormat implements
       throw new ParseException("Schema has not been set");
 
     // for sanity check purpose only
-    Partition partition = new Partition(schema, storehint);
+    Partition partition = new Partition(schema, storehint, null);
 
     conf.set(OUTPUT_STORAGEHINT, storehint);
   }
@@ -214,34 +276,84 @@ public class BasicTableOutputFormat implements
   }
 
   /**
-   * Set sorted-ness of the table. It is disabled now (by making it package
-   * private). So only unsorted BasicTables may be created for now.
-   * 
-   * TODO: must also allow users to specify customized comparator.
+   * Set the sort info
+   *
+   * @param conf
+   *          The JobConf object.
+   *          
+   * @param sortColumns
+   *          Comma-separated sort column names
+   *          
+   * @param comparator
+   *          comparator class name; null for default
+   *
    */
-  public static void setSorted(JobConf conf, boolean sorted) {
-    conf.setBoolean(OUTPUT_SORTED, sorted);
+  public static void setSortInfo(JobConf conf, String sortColumns, String comparator) {
+    conf.set(OUTPUT_SORTCOLUMNS, sortColumns);
+    conf.set(OUTPUT_COMPARATOR, comparator);
   }
 
   /**
-   * Is the table to be created should be sorted? It is disabled now (by making
-   * it package private).
+   * Set the sort info
+   *
+   * @param conf
+   *          The JobConf object.
+   *          
+   * @param sortColumns
+   *          Comma-separated sort column names
    */
-  static boolean getSorted(JobConf conf) {
-    return conf.getBoolean(OUTPUT_SORTED, false);
+  public static void setSortInfo(JobConf conf, String sortColumns) {
+	  conf.set(OUTPUT_SORTCOLUMNS, sortColumns);
+  }
+  
+  /**
+   * Get the SortInfo object 
+   *
+   * @param conf
+   *          The JobConf object.
+   * @return SortInfo object; null if the Zebra table is unsorted 
+   *
+   */
+  public static SortInfo getSortInfo(JobConf conf)throws IOException
+  {
+    String sortColumns = conf.get(OUTPUT_SORTCOLUMNS);
+    if (sortColumns == null)
+    	return null;
+    Schema schema = null;
+    try {
+      schema = getSchema(conf);
+    } catch (ParseException e) {
+    	throw new IOException("Schema parsing failure : "+e.getMessage());
+    }
+    if (schema == null)
+    	throw new IOException("Schema not defined");
+    String comparator = getComparator(conf);
+    return SortInfo.parse(sortColumns, schema, comparator);
+  }
+
+  /**
+   * Get the  comparator for sort columns
+   *
+   * @param conf
+   *          The JobConf object.
+   * @return  comparator String
+   *
+   */
+  private static String getComparator(JobConf conf)
+  {
+    return conf.get(OUTPUT_COMPARATOR);
   }
 
   /**
    * Get the output table as specified in JobConf. It is useful for applications
    * to add more meta data after all rows have been added to the table.
-   * Currently it is disabled (by setting it to package private).
    * 
    * @param conf
    *          The JobConf object.
    * @return The output BasicTable.Writer object.
    * @throws IOException
    */
-  public static BasicTable.Writer getOutput(JobConf conf) throws IOException {
+  private static BasicTable.Writer getOutput(JobConf conf) throws IOException {
     String path = conf.get(OUTPUT_PATH);
     if (path == null) {
       throw new IllegalArgumentException("Cannot find output path");
@@ -268,16 +380,17 @@ public class BasicTableOutputFormat implements
     if (schema == null) {
       throw new IllegalArgumentException("Cannot find output schema");
     }
-    String storehint;
+    String storehint, sortColumns, comparator;
     try {
       storehint = getStorageHint(conf);
+      sortColumns = (getSortInfo(conf) == null ? null : SortInfo.toSortString(getSortInfo(conf).getSortColumnNames()));
+      comparator = getComparator(conf);
     }
     catch (ParseException e) {
       throw new IOException(e);
     }
     BasicTable.Writer writer =
-        new BasicTable.Writer(new Path(path), schema, storehint,
-            getSorted(conf), conf); // will
+        new BasicTable.Writer(new Path(path), schema, storehint, sortColumns, comparator, conf);
 
     writer.finish();
   }
@@ -299,14 +412,13 @@ public class BasicTableOutputFormat implements
 
   /**
    * Close the output BasicTable, No more rows can be added into the table. A
-   * BasicTable is not visible for reading until it is "closed". This call is
-   * required for sorted TFile, but not required for unsorted TFile.
+   * BasicTable is not visible for reading until it is "closed".
    * 
    * @param conf
    *          The JobConf object.
    * @throws IOException
    */
-  static void close(JobConf conf) throws IOException {
+  public static void close(JobConf conf) throws IOException {
     BasicTable.Writer table = getOutput(conf);
     table.close();
   }

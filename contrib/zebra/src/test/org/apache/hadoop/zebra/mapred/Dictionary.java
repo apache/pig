@@ -24,9 +24,9 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 
-import org.apache.hadoop.io.file.tfile.RandomDistribution.Binomial;
-import org.apache.hadoop.io.file.tfile.RandomDistribution.DiscreteRNG;
-import org.apache.hadoop.io.file.tfile.RandomDistribution.Zipf;
+import org.apache.hadoop.zebra.tfile.RandomDistribution.Binomial;
+import org.apache.hadoop.zebra.tfile.RandomDistribution.DiscreteRNG;
+import org.apache.hadoop.zebra.tfile.RandomDistribution.Zipf;
 
 /**
  * A dictionary that generates English words, whose frequency follows Zipf

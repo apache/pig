@@ -58,6 +58,11 @@ public class POAnd extends BinaryComparisonOperator {
 
     @Override
     public Result getNext(Boolean b) throws ExecException {
+        Result r = accumChild(null, dummyBool);
+        if (r != null) {
+            return r;
+        }
+        
         Result left;
         left = lhs.getNext(dummyBool);
         // pass on ERROR and EOP 

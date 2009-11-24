@@ -26,6 +26,7 @@ import java.io.StringReader;
 import java.util.HashSet;
 
 import org.apache.hadoop.io.Writable;
+import org.apache.hadoop.zebra.types.Projection;
 import org.apache.hadoop.zebra.parser.ParseException;
 import org.apache.hadoop.zebra.parser.TableSchemaParser;
 
@@ -37,6 +38,9 @@ public class Schema implements Comparable<Schema>, Writable {
 
   private static final long schemaVersion = 1L;
 
+  /**
+   * Column Schema in Schema
+   */
   public static class ColumnSchema {
     private String name;
     private ColumnType type;
@@ -73,6 +77,8 @@ public class Schema implements Comparable<Schema>, Writable {
 
     /**
      * access function to get the column name 
+     *
+     * @return name of the column
      */
     public String getName() {
       return name;
@@ -80,6 +86,8 @@ public class Schema implements Comparable<Schema>, Writable {
     
     /**
      * access function to get the column type 
+     *
+     * @return column type
      */
     public ColumnType getType() {
       return type;
@@ -87,6 +95,8 @@ public class Schema implements Comparable<Schema>, Writable {
     
     /**
      * access function to get the column name 
+     *
+     * @return column index in the parent schema
      */
     public int getIndex() {
       return index;
@@ -128,8 +138,8 @@ public class Schema implements Comparable<Schema>, Writable {
     /**
      * Compare two field schema for equality
      * 
-     * @param fschema
-     * @param fother
+     * @param fschema one column schema to be compared
+     * @param fother the other column schema to be compared
      * @return true if ColumnSchema are equal, false otherwise
      */
     public static boolean equals(ColumnSchema fschema, ColumnSchema fother) {
@@ -195,28 +205,47 @@ public class Schema implements Comparable<Schema>, Writable {
     /*
      * Returns the schema for the next level structure, in record, collection
      * and map.
+     *
+     * @return Schema of the column
      */
     public Schema getSchema() {
       return schema;
     }
   }
 
-  /*
-   * helper class to parse a column name string one section at a time and find
+  /**
+   * Helper class to parse a column name string one section at a time and find
    * the required type for the parsed part.
    */
   public static class ParsedName {
-    public String mName;
-    int mKeyOffset; // the offset where the keysstring starts
-    public ColumnType mDT = ColumnType.ANY; // parent's type
+    private String mName;
+    private int mKeyOffset; // the offset where the keysstring starts
+    private ColumnType mDT = ColumnType.ANY; // parent's type
 
+    /**
+     * Default ctor
+     */
     public ParsedName() {
     }
 
+    /**
+     * Set the name
+     *
+     * @param name
+     *            column name string
+     */
     public void setName(String name) {
       mName = name;
     }
 
+    /**
+     * Set the name and type
+     *
+     * @param name
+     *            column name string
+     * @param pdt
+     *            column type
+     */
     public void setName(String name, ColumnType pdt) {
       mName = name;
       mDT = pdt;
@@ -227,21 +256,42 @@ public class Schema implements Comparable<Schema>, Writable {
       mKeyOffset = keyStrOffset;
     }
 
-    void setDT(ColumnType dt) {
+    /**
+     * Set the column type
+     *
+     * @param dt
+     *          column type to be set with
+     */
+    public void setDT(ColumnType dt) {
       mDT = dt;
     }
 
-    ColumnType getDT() {
+    /**
+     * Get the column type
+     * 
+     * @return column type
+     */
+    public ColumnType getDT() {
       return mDT;
     }
 
-    String getName() {
+    /**
+     * Get the column name
+     *
+     * @return column name
+     */
+    public String getName() {
       return mName;
     }
 
+    /**
+     * Parse one sector of a fully qualified column name; also checks validity
+     * of use of the MAP and RECORD delimiters
+     *
+     * @param fs
+     *          column schema this column name is checked against with          
+     */
     public String parseName(Schema.ColumnSchema fs) throws ParseException {
-      // parse one sector of a fq name, also checks sanity of MAP and RECORD
-      // fields
       int fieldIndex, hashIndex;
       fieldIndex = mName.indexOf('.');
       hashIndex = mName.indexOf('#');
@@ -302,12 +352,13 @@ public class Schema implements Comparable<Schema>, Writable {
    *          alpha-numeric characters in column names.
    */
   public Schema(String schema) throws ParseException {
-    init(schema);
+    init(schema, false);
   }
 
   public Schema(String schema, boolean dupAllowed) throws ParseException {
     dupColNameAllowed = dupAllowed;
-    init(schema);
+    // suppose if duplicate is allowed, then it's from projection and hence virtual column is allowed
+    init(schema, dupAllowed);
   }
 
   public Schema(ColumnSchema fs) throws ParseException {
@@ -323,7 +374,7 @@ public class Schema implements Comparable<Schema>, Writable {
    *          please use only alpha-numeric characters in column names.
    */
   public Schema(String[] columns) throws ParseException {
-    init(columns);
+    init(columns, false);
   }
 
   /**
@@ -430,7 +481,7 @@ public class Schema implements Comparable<Schema>, Writable {
    */
   public static Schema parse(String schema) throws ParseException {
     Schema s = new Schema();
-    s.init(schema);
+    s.init(schema, false);
     return s;
   }
 
@@ -609,15 +660,15 @@ public class Schema implements Comparable<Schema>, Writable {
    */
   @Override
   public void readFields(DataInput in) throws IOException {
-    long version = org.apache.hadoop.io.file.tfile.Utils.readVLong(in);
+    long version = org.apache.hadoop.zebra.tfile.Utils.readVLong(in);
 
     if (version > schemaVersion)
       throw new IOException("Schema version is newer than that in software.");
 
     // check-ups are needed for future versions for backward-compatibility
-    String strSchema = org.apache.hadoop.io.file.tfile.Utils.readString(in);
+    String strSchema = org.apache.hadoop.zebra.tfile.Utils.readString(in);
     try {
-      init(strSchema);
+      init(strSchema, false);
     }
     catch (Exception e) {
       throw new IOException(e.getMessage());
@@ -629,11 +680,11 @@ public class Schema implements Comparable<Schema>, Writable {
    */
   @Override
   public void write(DataOutput out) throws IOException {
-    org.apache.hadoop.io.file.tfile.Utils.writeVLong(out, schemaVersion);
-    org.apache.hadoop.io.file.tfile.Utils.writeString(out, toString());
+    org.apache.hadoop.zebra.tfile.Utils.writeVLong(out, schemaVersion);
+    org.apache.hadoop.zebra.tfile.Utils.writeString(out, toString());
   }
 
-  private void init(String[] columnNames) throws ParseException {
+  private void init(String[] columnNames, boolean virtualColAllowed) throws ParseException {
     // the arg must be of type or they will be treated as the default type
     mFields = new ArrayList<ColumnSchema>();
     mNames = new HashMap<String, ColumnSchema>();
@@ -647,7 +698,7 @@ public class Schema implements Comparable<Schema>, Writable {
     }
     TableSchemaParser parser =
         new TableSchemaParser(new StringReader(sb.toString()));
-    parser.RecordSchema(this);
+    parser.RecordSchema(this, virtualColAllowed);
   }
 
   private void init() {
@@ -655,7 +706,7 @@ public class Schema implements Comparable<Schema>, Writable {
     mNames = new HashMap<String, ColumnSchema>();
   }
 
-  private void init(String columnString) throws ParseException {
+  private void init(String columnString, boolean virtualColAllowed) throws ParseException {
     String trimmedColumnStr;
     if (columnString == null || (trimmedColumnStr = columnString.trim()).isEmpty()) {
       init();
@@ -666,7 +717,7 @@ public class Schema implements Comparable<Schema>, Writable {
     for (int nx = 0; nx < parts.length; nx++) {
       parts[nx] = parts[nx].trim();
     }
-    init(parts);
+    init(parts, virtualColAllowed);
   }
 
   /**
@@ -683,6 +734,11 @@ public class Schema implements Comparable<Schema>, Writable {
     ParsedName pn = new ParsedName();
     HashSet<String> keyentries;
     for (int i = 0; i < ncols; i++) {
+	    if (Projection.isVirtualColumn(projcols[i]))
+	    {
+	      result.add(null);
+	      continue;
+	    }
       pn.setName(projcols[i]);
       if ((cs = getColumnSchemaOnParsedName(pn)) != null) {
         mycs = new ColumnSchema(pn.mName, cs.schema, cs.type);
@@ -944,7 +1000,7 @@ public class Schema implements Comparable<Schema>, Writable {
       else {
         if (!ColumnSchema.equals(fs, otherfs))
           throw new ParseException("Different types of column " + fs.name
-              + " in uioned tables");
+              + " in tables of a union");
       }
     }
   }

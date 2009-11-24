@@ -136,12 +136,7 @@ class TableUnionExpr extends CompositeTableExpr {
         BasicTable.Reader reader = readers.get(i);
         reader.setProjection(actualProjection);
         TableScanner scanner = readers.get(i).getScanner(begin, end, true);
-        if (!scanner.atEnd()) {
-          scanners.add(scanner);
-        }
-        else {
-          scanner.close();
-        }
+        scanners.add(scanner);
       }
     } catch (ParseException e) {
     	throw new IOException("Projection parsing failed : "+e.getMessage());
@@ -151,7 +146,10 @@ class TableUnionExpr extends CompositeTableExpr {
       return new NullScanner(actualProjection);
     }
 
-    return new SortedTableUnionScanner(scanners);
+    Integer[] virtualColumnIndices = Projection.getVirtualColumnIndices(projection);
+    if (virtualColumnIndices != null && n == 1)
+      throw new IllegalArgumentException("virtual column requires union of multiple tables");
+    return new SortedTableUnionScanner(scanners, Projection.getVirtualColumnIndices(projection));
   }
 }
 
@@ -162,11 +160,15 @@ class SortedTableUnionScanner implements TableScanner {
   CachedTableScanner[] scanners;
   PriorityBlockingQueue<CachedTableScanner> queue;
   boolean synced = false;
+  boolean hasVirtualColumns = false;
+  Integer[] virtualColumnIndices = null;
+  CachedTableScanner scanner = null; // the working scanner
 
-  SortedTableUnionScanner(List<TableScanner> scanners) throws IOException {
+  SortedTableUnionScanner(List<TableScanner> scanners, Integer[] vcolindices) throws IOException {
     if (scanners.isEmpty()) {
       throw new IllegalArgumentException("Zero-sized table union");
     }
+    
     this.scanners = new CachedTableScanner[scanners.size()];
     queue =
         new PriorityBlockingQueue<CachedTableScanner>(scanners.size(),
@@ -186,8 +188,13 @@ class SortedTableUnionScanner implements TableScanner {
     
     for (int i = 0; i < this.scanners.length; ++i) {
       TableScanner scanner = scanners.get(i);
-      this.scanners[i] = new CachedTableScanner(scanner);
+      this.scanners[i] = new CachedTableScanner(scanner, i);
     }
+    // initial fill-ins
+    if (!atEnd())
+    	scanner = queue.poll();
+    virtualColumnIndices = vcolindices;
+    hasVirtualColumns = (vcolindices != null && vcolindices.length != 0);
   }
   
 
@@ -206,21 +213,18 @@ class SortedTableUnionScanner implements TableScanner {
   @Override
   public boolean advance() throws IOException {
     sync();
-    CachedTableScanner scanner = queue.poll();
-    if (scanner != null) {
-      scanner.advance();
-      if (!scanner.atEnd()) {
-        queue.add(scanner);
-      }
-      return true;
+    scanner.advance();
+    if (!scanner.atEnd()) {
+      queue.add(scanner);
     }
-    return false;
+    scanner = queue.poll();
+    return (scanner != null);
   }
 
   @Override
   public boolean atEnd() throws IOException {
     sync();
-    return queue.isEmpty();
+    return (scanner == null && queue.isEmpty());
   }
 
   @Override
@@ -239,7 +243,6 @@ class SortedTableUnionScanner implements TableScanner {
       throw new EOFException("No more rows to read");
     }
     
-    CachedTableScanner scanner = queue.poll();
     key.set(scanner.getKey());
   }
 
@@ -248,9 +251,16 @@ class SortedTableUnionScanner implements TableScanner {
     if (atEnd()) {
       throw new EOFException("No more rows to read");
     }
-    
-    CachedTableScanner scanner = queue.poll();
-    row.reference(scanner.getValue());
+  
+    Tuple tmp = scanner.getValue();
+    if (hasVirtualColumns)
+    {
+       for (int i = 0; i < virtualColumnIndices.length; i++)
+       {
+         tmp.set(virtualColumnIndices[i], scanner.getIndex());
+       }
+    }
+    row.reference(tmp);
   }
 
   @Override
@@ -260,6 +270,8 @@ class SortedTableUnionScanner implements TableScanner {
       rv = rv || scanner.seekTo(key);
     }
     synced = false;
+    if (!atEnd())
+      scanner = queue.poll();
     return rv;
   }
 
@@ -268,6 +280,7 @@ class SortedTableUnionScanner implements TableScanner {
     for (CachedTableScanner scanner : scanners) {
       scanner.seekToEnd();
     }
+    scanner = null;
     synced = false;
   }
 

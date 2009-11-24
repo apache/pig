@@ -210,7 +210,7 @@ public class StreamOptimizer extends LogicalTransformer {
             LogicalOperator lo = nodes.get(0);
             if (lo == null || !(lo instanceof LOStream)) {
                 throw new RuntimeException("Expected stream, got " +
-                    lo.getClass().getName());
+                    (lo == null ? lo : lo.getClass().getName()));
             }
             LOStream stream = (LOStream)lo;
             if(mOptimizeLoad) {

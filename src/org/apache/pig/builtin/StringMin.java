@@ -20,6 +20,7 @@ package org.apache.pig.builtin;
 import java.io.IOException;
 import java.util.Iterator;
 
+import org.apache.pig.Accumulator;
 import org.apache.pig.Algebraic;
 import org.apache.pig.EvalFunc;
 import org.apache.pig.PigException;
@@ -35,7 +36,7 @@ import org.apache.pig.impl.util.WrappedIOException;
 /**
  * Generates the min of the String values in the first field of a tuple.
  */
-public class StringMin extends EvalFunc<String> implements Algebraic {
+public class StringMin extends EvalFunc<String> implements Algebraic, Accumulator<String> {
 
     @Override
     public String exec(Tuple input) throws IOException {
@@ -153,6 +154,40 @@ public class StringMin extends EvalFunc<String> implements Algebraic {
     @Override
     public Schema outputSchema(Schema input) {
         return new Schema(new Schema.FieldSchema(null, DataType.CHARARRAY)); 
+    }
+    
+    /* accumulator interface */
+    private String intermediateMin = null;
+    
+    @Override
+    public void accumulate(Tuple b) throws IOException {
+        try {
+            String curMin = min(b);
+            if (curMin == null) {
+                return;
+            }
+            // check if it lexicographically follows curMax
+            if (intermediateMin == null || intermediateMin.compareTo(curMin) < 0) {
+                intermediateMin = curMin;
+            }            
+
+        } catch (ExecException ee) {
+            throw ee;
+        } catch (Exception e) {
+            int errCode = 2106;
+            String msg = "Error while computing max in " + this.getClass().getSimpleName();
+            throw new ExecException(msg, errCode, PigException.BUG, e);           
+        }
+    }
+
+    @Override
+    public void cleanup() {
+        intermediateMin = null;
+    }
+
+    @Override
+    public String getValue() {
+        return intermediateMin;
     }
 
 }

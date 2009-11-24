@@ -185,15 +185,6 @@ public class PigContext implements Serializable, FunctionInstantiator {
 
         switch (execType) {
             case LOCAL:
-            {
-                lfs = new HDataStorage(URI.create("file:///"),
-                                       new Properties());
-                
-                dfs = lfs;
-                executionEngine = new LocalExecutionEngine(this);
-            }
-            break;
-
             case MAPREDUCE:
             {
                 executionEngine = new HExecutionEngine (this);
@@ -203,7 +194,7 @@ public class PigContext implements Serializable, FunctionInstantiator {
                 dfs = executionEngine.getDataStorage();
                 
                 lfs = new HDataStorage(URI.create("file:///"),
-                                        new Properties());                
+                                        new Properties()); 
             }
             break;
             
@@ -331,11 +322,7 @@ public class PigContext implements Serializable, FunctionInstantiator {
     }
 
     public DataStorage getFs() {
-        if(execType == ExecType.LOCAL) {
-            return lfs;
-        } else {
-            return dfs;
-        }
+        return dfs;
     }
     
     /**
@@ -573,10 +560,6 @@ public class PigContext implements Serializable, FunctionInstantiator {
 
         switch (execType) {
             case LOCAL:
-            {
-                executableManager = new ExecutableManager();
-            }
-            break;
             case MAPREDUCE: 
             {
                 executableManager = new HadoopExecutableManager();
@@ -628,9 +611,7 @@ public class PigContext implements Serializable, FunctionInstantiator {
      * @return error source
      */
     public byte getErrorSource() {
-        if(execType == ExecType.LOCAL) {
-            return PigException.USER_ENVIRONMENT;
-        } else if (execType == ExecType.MAPREDUCE) {
+        if(execType == ExecType.LOCAL || execType == ExecType.MAPREDUCE) {
             return PigException.REMOTE_ENVIRONMENT;
         } else {
             return PigException.BUG;

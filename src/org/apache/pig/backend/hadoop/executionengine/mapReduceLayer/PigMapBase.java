@@ -47,6 +47,7 @@ import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.impl.util.SpillableMemoryManager;
+import org.apache.pig.impl.util.UDFContext;
 
 public abstract class PigMapBase extends Mapper<Text, Tuple, PigNullableWritable, Writable> {
     private static final Tuple DUMMYTUPLE = null;
@@ -162,6 +163,11 @@ public abstract class PigMapBase extends Mapper<Text, Tuple, PigNullableWritable
         // till here
         
         pigReporter = new ProgressableReporter();
+        // Get the UDF specific context
+        UDFContext udfc = UDFContext.getUDFContext();
+        udfc.addJobConf(job);
+        udfc.deserialize();
+
         if(!(mp.isEmpty())) {
 
             PigSplit split = (PigSplit)context.getInputSplit();

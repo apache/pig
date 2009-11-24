@@ -46,7 +46,7 @@ import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.RawComparator;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
-import org.apache.hadoop.io.file.tfile.Utils;
+import org.apache.hadoop.zebra.tfile.Utils;
 import org.apache.hadoop.mapred.FileInputFormat;
 import org.apache.hadoop.mapred.FileSplit;
 import org.apache.hadoop.mapred.JobClient;
@@ -163,6 +163,9 @@ public class TestBasicTableIOFormatLocalFS extends TestCase {
   JobConf getJobConf(String name) {
     JobConf jobConf = mr.createJobConf();
     jobConf.setJobName(name);
+    jobConf.setInt("table.input.split.minSize", 1);
+    options.minTableSplitSize = 1; // force more splits
+    jobConf.setInt("dfs.block.size", 1024); // force multiple blocks
     jobConf.set("table.output.tfile.compression", options.compression);
     jobConf.setInt("mapred.app.freqWords.count", options.numFreqWords);
     return jobConf;

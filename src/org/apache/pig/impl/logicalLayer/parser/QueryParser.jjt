@@ -173,15 +173,14 @@ public class QueryParser {
 	static int undollar(String s) {
 		return Integer.parseInt(s.substring(1, s.length()));	
 	}
-	
-
+	    
     Path getCurrentDir(PigContext pigContext) throws IOException {
         DataStorage dfs = pigContext.getDfs();
         ContainerDescriptor desc = dfs.getActiveContainer();
         ElementDescriptor el = dfs.asElement(desc);
         return new Path(el.toString());
     }
-	
+
 	LogicalOperator parseCogroup(ArrayList<CogroupInput> gis, LogicalPlan lp, LOCogroup.GROUPTYPE type) throws ParseException, PlanException{
 		
 		log.trace("Entering parseCogroup");
@@ -237,15 +236,6 @@ public class QueryParser {
 	 */
 	LogicalOperator parseJoin(ArrayList<CogroupInput> gis, LogicalPlan lp, LOJoin.JOINTYPE jt) throws ParseException, PlanException{
 		log.trace("Entering parseJoin");
-		// Skewed Join behaves as regular join in local mode
-		if (pigContext.getExecType() == ExecType.LOCAL && jt == LOJoin.JOINTYPE.SKEWED) {
-			return rewriteJoin(gis,lp);
-		}
-
-      // Merge Join behaves as regular join in local mode
-		if (pigContext.getExecType() == ExecType.LOCAL && jt == LOJoin.JOINTYPE.MERGE) {
-            return rewriteJoin(gis,lp);
-        }
         
 		int n = gis.size();
 
@@ -709,6 +699,56 @@ class StringUtils {
             
             return output.toString() ;
         }
+        
+        public static String join(AbstractCollection<String> s, String delimiter) {
+            if (s.isEmpty()) return "";
+            Iterator<String> iter = s.iterator();
+            StringBuffer buffer = new StringBuffer(iter.next());
+            while (iter.hasNext()) {
+                buffer.append(delimiter);
+                buffer.append(iter.next());
+            }
+            return buffer.toString();
+        }
+        
+            
+        public static String[] getPathStrings(String commaSeparatedPaths) {
+            int length = commaSeparatedPaths.length();
+            int curlyOpen = 0;
+            int pathStart = 0;
+            boolean globPattern = false;
+            List<String> pathStrings = new ArrayList<String>();
+        
+            for (int i=0; i<length; i++) {
+                char ch = commaSeparatedPaths.charAt(i);
+                switch(ch) {
+                    case '{' : {
+                        curlyOpen++;
+                        if (!globPattern) {
+                            globPattern = true;
+                        }
+                        break;
+                    }
+                    case '}' : {
+                        curlyOpen--;
+                        if (curlyOpen == 0 && globPattern) {
+                            globPattern = false;
+                        }
+                        break;
+                    }
+                    case ',' : {
+                        if (!globPattern) {
+                            pathStrings.add(commaSeparatedPaths.substring(pathStart, i));
+                            pathStart = i + 1 ;
+                        }
+                        break;
+                    }
+                }
+            }
+            pathStrings.add(commaSeparatedPaths.substring(pathStart, length));
+        
+            return pathStrings.toArray(new String[0]);
+        }
 }
 
 class FunctionType {
@@ -879,19 +919,19 @@ LogicalPlan Parse() :
 	)
 	{ 
 		if(null != root) {
-            log.debug("Adding " + root.getAlias() + " " + root + " to the lookup table " + aliases);
-
-            //Translate all the project(*) leaves in the plan to a sequence of projections
-            ProjectStarTranslator translate = new ProjectStarTranslator(lp);
-            translate.visit();
-
-            addLogicalPlan(root, lp);
-
             try {
-			    log.debug("Root: " + root.getClass().getName() + " schema: " + root.getSchema());
+                log.debug("Adding " + root.getAlias() + " " + root + " to the lookup table " + aliases);
+    
+                //Translate all the project(*) leaves in the plan to a sequence of projections
+                ProjectStarTranslator translate = new ProjectStarTranslator(lp);
+                translate.visit();
+    
+                addLogicalPlan(root, lp);
+            
+                log.debug("Root: " + root.getClass().getName() + " schema: " + root.getSchema());
             } catch(FrontendException fee) {
-            	ParseException pe = new ParseException(fee.getMessage());
-            	pe.initCause(fee);  
+                ParseException pe = new ParseException(fee.getMessage());
+                pe.initCause(fee);  
                 throw pe;
             }
 		}
@@ -1157,7 +1197,14 @@ LogicalOperator BaseExpr(LogicalPlan lp) :
     )
 |   (<STORE> op = StoreClause(lp))
 	)
-    [<PARALLEL> t2=<INTEGER> { op.setRequestedParallelism(Integer.parseInt(t2.image));} ]
+    [<PARALLEL> t2=<INTEGER> {
+      // In Local Mode we can only use one reducer
+    	if( this.pigContext.getExecType() == ExecType.LOCAL ) {
+    		op.setRequestedParallelism(1);
+    	} else {
+    		op.setRequestedParallelism(Integer.parseInt(t2.image));
+    	}
+    } ]
 	)	
 	{log.trace("Exiting BaseExpr"); return op;}
 }
@@ -1944,21 +1991,18 @@ LogicalOperator JoinClause(LogicalPlan lp) :
 	// For all types of join we create LOJoin and mark what type of join it is.
 	(
 		[<USING> ("\"replicated\"" { 
-	                if(isOuter) {
-	                    throw new ParseException("Replicated join does not support (left|right|full) outer joins");
-	                }
+	          if(isFullOuter || isRightOuter) {
+	              throw new ParseException("Replicated join does not support (right|full) outer joins");
+	          }
 				    frj = parseJoin(gis, lp, LOJoin.JOINTYPE.REPLICATED); 
 			    }
 			| "\"repl\"" { 
-				    if(isOuter) {
-                        throw new ParseException("Replicated join does not support (left|right|full) outer joins");
-                    }
+				    if(isFullOuter || isRightOuter) {
+	                    throw new ParseException("Replicated join does not support (right|full) outer joins");
+	          }
 				    frj=parseJoin(gis, lp, LOJoin.JOINTYPE.REPLICATED);
 				}
-		    |"\"skewed\"" { 
-		    	    if(isOuter) {
-                        throw new ParseException("Skewed join does not support (left|right|full) outer joins");
-                    }
+		    |"\"skewed\"" {
 		    	    skj = parseJoin(gis, lp, LOJoin.JOINTYPE.SKEWED); 
 		    	}
 		    |"\"merge\"" { 

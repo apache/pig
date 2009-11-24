@@ -54,6 +54,11 @@ public class Divide extends BinaryExpressionOperator {
 
     @Override
     public Result getNext(Double d) throws ExecException {
+        Result r = accumChild(null, d);
+        if (r != null) {
+            return r;
+        }
+        
         byte status;
         Result res;
         Double left = null, right = null;
@@ -72,9 +77,9 @@ public class Divide extends BinaryExpressionOperator {
         right = (Double) res.result;
         
         if (right == 0) {
-        	if(pigLogger != null) {
-        		pigLogger.warn(this, "Divide by zero. Converting it to NULL.", PigWarning.DIVIDE_BY_ZERO);
-        	}
+            if(pigLogger != null) {
+                pigLogger.warn(this, "Divide by zero. Converting it to NULL.", PigWarning.DIVIDE_BY_ZERO);
+            }
             res.result = null;
         }
         else
@@ -84,6 +89,11 @@ public class Divide extends BinaryExpressionOperator {
     
     @Override
     public Result getNext(Float f) throws ExecException {
+        Result r = accumChild(null, f);
+        if (r != null) {
+            return r;
+        }
+        
         byte status;
         Result res;
         Float left = null, right = null;
@@ -102,9 +112,9 @@ public class Divide extends BinaryExpressionOperator {
         right = (Float) res.result;
         
         if (right == 0) {
-        	if(pigLogger != null) {
-        		pigLogger.warn(this, "Divide by zero. Converting it to NULL.", PigWarning.DIVIDE_BY_ZERO);
-        	}
+            if(pigLogger != null) {
+                pigLogger.warn(this, "Divide by zero. Converting it to NULL.", PigWarning.DIVIDE_BY_ZERO);
+            }
             res.result = null;
         }
         else
@@ -114,6 +124,11 @@ public class Divide extends BinaryExpressionOperator {
     
     @Override
     public Result getNext(Integer i) throws ExecException {
+        Result r = accumChild(null, i);
+        if (r != null) {
+            return r;
+        }
+        
         byte status;
         Result res;
         Integer left = null, right = null;
@@ -132,10 +147,10 @@ public class Divide extends BinaryExpressionOperator {
         right = (Integer) res.result;
         
         if (right == 0) {
-        	if(pigLogger != null) {
-        		pigLogger.warn(this, "Divide by zero. Converting it to NULL.", PigWarning.DIVIDE_BY_ZERO);
-        	}
-        	res.result = null;
+            if(pigLogger != null) {
+                pigLogger.warn(this, "Divide by zero. Converting it to NULL.", PigWarning.DIVIDE_BY_ZERO);
+            }
+            res.result = null;
         }
         else
             res.result = Integer.valueOf(left / right);
@@ -144,6 +159,11 @@ public class Divide extends BinaryExpressionOperator {
     
     @Override
     public Result getNext(Long l) throws ExecException {
+        Result r = accumChild(null, l);
+        if (r != null) {
+            return r;
+        }
+        
         byte status;
         Result res;
         Long left = null, right = null;
@@ -162,9 +182,9 @@ public class Divide extends BinaryExpressionOperator {
         right = (Long) res.result;
         
         if (right == 0) {
-        	if(pigLogger != null) {
-        		pigLogger.warn(this, "Divide by zero. Converting it to NULL.", PigWarning.DIVIDE_BY_ZERO);
-        	}
+            if(pigLogger != null) {
+                pigLogger.warn(this, "Divide by zero. Converting it to NULL.", PigWarning.DIVIDE_BY_ZERO);
+            }
             res.result = null;
         }
         else

@@ -71,6 +71,10 @@ public class SortedDataBag extends DefaultAbstractBag{
             return false;
         }
 
+        public int hashCode() {
+            return 42; 
+        }
+
     }
 
     /**
@@ -176,6 +180,17 @@ public class SortedDataBag extends DefaultAbstractBag{
 
             public int compareTo(PQContainer other) {
                 return mComp.compare(tuple, other.tuple);
+            }
+
+            public boolean equals(Object other) {
+                if (other instanceof PQContainer)
+                    return tuple.equals(((PQContainer)other).tuple);
+                else
+                    return false;
+            }
+
+            public int hashCode() {
+                return tuple.hashCode(); 
             }
         }
 

@@ -3,8 +3,19 @@ Zebra Change Log
 Trunk (unreleased changes)
 
   INCOMPATIBLE CHANGES
+    PIG-1099 Changed version number to be 0.7.0 to match Pig version number
+	change (yanz via gates)
 
   IMPROVEMENTS
+
+    PIG-1077 Support record(row)-based file split in Zebra's
+	TableInputFormat (chaow via gates)
+
+    PIG-1089 Use Pig's version for Zebra's own versi (chaow via olgan)
+
+    PIG-1069  Order Preserving Sorted Table Union (yanz via gates)
+
+    PIG-997 Sorted Table Support by Zebra (yanz via gates)
   	
 	PIG-996 Add findbugs, checkstyle, and clover to zebra build file (chaow via
 	        gates)
@@ -17,6 +28,14 @@ Trunk (unreleased changes)
   OPTIMIZATIONS
 
   BUG FIXES
+
+    PIG-1091: Exception when load with projection of map keys on a map column
+	that is not map split (yanz via gates).
+
+    PIG-1026: [zebra] map split returns null (yanz via pradeepkth)
+
+	PIG-1057 Zebra does not support concurrent deletions of column groups now
+	(chaow via gates).
 
 	PIG-944  Change schema to be taken from StoreConfig instead of
 	TableStorer's constructor (yanz via gates).

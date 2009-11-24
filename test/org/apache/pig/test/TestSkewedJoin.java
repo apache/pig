@@ -138,7 +138,6 @@ public class TestSkewedJoin extends TestCase{
 
     }
     
-    
     public void testSkewedJoinWithGroup() throws IOException{
         pigServer.registerQuery("A = LOAD '" + INPUT_FILE1 + "' as (id, name, n);");
         pigServer.registerQuery("B = LOAD '" + INPUT_FILE2 + "' as (id, name);");
@@ -290,17 +289,18 @@ public class TestSkewedJoin extends TestCase{
       	        lineCount[key][i] ++;
       	    }
          }
+         
+         int fc = 0;
          for(int i=0; i<3; i++) {
-        	 int fc = 0;
         	 for(int j=0; j<7; j++) {
-        		 if (lineCount[i][j] > 0) {
+        	     if (lineCount[i][j] > 0) {
         			 fc ++;
         		 }
         	 }
-        	 // all three keys are skewed keys,
-        	 // check each key should appear in more than 1 part- file
-        	 assertTrue(fc > 1);
          }
+         // atleast one key should be a skewed key
+         // check atleast one key should appear in more than 1 part- file
+         assertTrue(fc > 3);
     }
     
     public void testSkewedJoinNullKeys() throws IOException {
@@ -324,4 +324,72 @@ public class TestSkewedJoin extends TestCase{
         return;
     }
     
+    public void testSkewedJoinOuter() throws IOException {
+        pigServer.registerQuery("A = LOAD '" + INPUT_FILE5 + "' as (id,name);");
+        pigServer.registerQuery("B = LOAD '" + INPUT_FILE5 + "' as (id,name);");
+        try {
+            DataBag dbfrj = BagFactory.getInstance().newDefaultBag();
+            {
+                pigServer.registerQuery("C = join A by id left, B by id using \"skewed\";");
+                Iterator<Tuple> iter = pigServer.openIterator("C");
+                
+                while(iter.hasNext()) {
+                    dbfrj.add(iter.next());
+                }
+            }
+            {
+                pigServer.registerQuery("C = join A by id right, B by id using \"skewed\";");
+                Iterator<Tuple> iter = pigServer.openIterator("C");
+                
+                while(iter.hasNext()) {
+                    dbfrj.add(iter.next());
+                }
+            }
+            {
+                pigServer.registerQuery("C = join A by id full, B by id using \"skewed\";");
+                Iterator<Tuple> iter = pigServer.openIterator("C");
+                
+                while(iter.hasNext()) {
+                    dbfrj.add(iter.next());
+                }
+            }
+        } catch(Exception e) {
+            System.out.println(e.getMessage());
+            e.printStackTrace();
+            fail("Should support outer join in skewed join");
+        }
+        return;
+    }
+    
+    // pig 1048
+    public void testSkewedJoinOneValue() throws IOException {
+        pigServer.registerQuery("A = LOAD '" + INPUT_FILE3 + "' as (id,name);");
+        pigServer.registerQuery("B = LOAD '" + INPUT_FILE3 + "' as (id,name);");
+        // Filter key with a single value
+
+        pigServer.registerQuery("C = FILTER A by id == 400;");
+        pigServer.registerQuery("D = FILTER B by id == 400;");
+
+        
+        DataBag dbfrj = BagFactory.getInstance().newDefaultBag(), dbrj = BagFactory.getInstance().newDefaultBag();
+        {
+            pigServer.registerQuery("E = join C by id, D by id using \"skewed\";");
+            Iterator<Tuple> iter = pigServer.openIterator("E");
+                
+            while(iter.hasNext()) {
+                dbfrj.add(iter.next());
+            }
+        }
+        {
+        	pigServer.registerQuery("E = join C by id, D by id;");
+        	Iterator<Tuple> iter = pigServer.openIterator("E");
+        
+        	while(iter.hasNext()) {
+        		dbrj.add(iter.next());
+        	}
+        }
+        Assert.assertEquals(dbfrj.size(), dbrj.size());
+        Assert.assertEquals(true, TestHelper.compareBags(dbfrj, dbrj));       
+       
+    }
 }

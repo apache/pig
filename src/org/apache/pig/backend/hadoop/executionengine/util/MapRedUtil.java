@@ -95,12 +95,6 @@ public class MapRedUtil {
 
         Map<E, Pair<Integer, Integer> > reducerMap = new HashMap<E, Pair<Integer, Integer> >();
 
-        InputStream is;
-        if (job != null) {
-            is = FileLocalizer.openDFSFile(keyDistFile,ConfigurationUtil.toProperties(job));
-        } else {
-            is = FileLocalizer.openDFSFile(keyDistFile);
-        }
         ReadToEndLoader loader = new ReadToEndLoader(new BinStorage(), job, 
                 keyDistFile, 0);
         DataBag partitionList;
@@ -142,13 +136,7 @@ public class MapRedUtil {
                 }
             }
             // number of reducers
-            Integer cnt = 0;
-            if (minIndex < maxIndex) {
-                cnt = maxIndex - minIndex;
-            } else {
-                cnt = totalReducers[0] + maxIndex - minIndex;
-            }
-
+            Integer cnt = maxIndex - minIndex;
             reducerMap.put(keyT, new Pair(minIndex, cnt));// 1 is added to account for the 0 index
         }
         return reducerMap;

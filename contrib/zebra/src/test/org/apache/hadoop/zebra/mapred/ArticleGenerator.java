@@ -26,8 +26,8 @@ import java.util.Random;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.file.tfile.RandomDistribution.DiscreteRNG;
-import org.apache.hadoop.io.file.tfile.RandomDistribution.Flat;
+import org.apache.hadoop.zebra.tfile.RandomDistribution.DiscreteRNG;
+import org.apache.hadoop.zebra.tfile.RandomDistribution.Flat;
 
 /**
  * Generate some input text files.

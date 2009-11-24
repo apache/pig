@@ -323,6 +323,10 @@ implements ReversibleLoadStoreFunc, LoadCaster, StoreFunc {
         return new BinStorageInputFormat();
     }
 
+    public int hashCode() {
+        return 42; 
+    }
+
     @Override
     public LoadCaster getLoadCaster() {
         return this;

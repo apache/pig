@@ -53,6 +53,11 @@ public class Mod extends BinaryExpressionOperator {
     
     @Override
     public Result getNext(Integer i) throws ExecException{
+        Result r = accumChild(null, i);
+        if (r != null) {
+            return r;
+        }
+        
         byte status;
         Result res;
         Integer left = null, right = null;
@@ -76,6 +81,11 @@ public class Mod extends BinaryExpressionOperator {
     
     @Override
     public Result getNext(Long i) throws ExecException{
+        Result r = accumChild(null, i);
+        if (r != null) {
+            return r;
+        }
+        
         byte status;
         Result res;
         Long left = null, right = null;

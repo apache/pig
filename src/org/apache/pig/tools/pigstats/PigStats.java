@@ -18,8 +18,11 @@
 
 package org.apache.pig.tools.pigstats;
 
+import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.ArrayList;
@@ -41,7 +44,6 @@ import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROper
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
-import org.apache.pig.backend.local.executionengine.physicalLayer.counters.POCounter;
 import org.apache.pig.impl.util.ObjectSerializer;
 
 public class PigStats {
@@ -53,6 +55,8 @@ public class PigStats {
     // String lastJobID;
     ArrayList<String> rootJobIDs = new ArrayList<String>();
     ExecType mode;
+    
+    private static final String localModeDataFile = "part-00000";
     
     public void setMROperatorPlan(MROperPlan mrp) {
         this.mrp = mrp;
@@ -99,11 +103,25 @@ public class PigStats {
         //The counter placed before a store in the local plan should be able to get the number of records
         for(PhysicalOperator op : php.getLeaves()) {
             Map<String, String> jobStats = new HashMap<String, String>();
-            stats.put(op.toString(), jobStats);
-            POCounter counter = (POCounter) php.getPredecessors(op).get(0);
-            jobStats.put("PIG_STATS_LOCAL_OUTPUT_RECORDS", (Long.valueOf(counter.getCount())).toString());
+            stats.put(op.toString(), jobStats);         
             String localFilePath=normalizeToLocalFilePath(((POStore)op).getSFile().getFileName());
-            jobStats.put("PIG_STATS_LOCAL_BYTES_WRITTEN", (Long.valueOf(new File(localFilePath).length())).toString());
+            File outputFile = new File( localFilePath + File.separator + localModeDataFile );
+            
+            long lineCounter = 0;
+            try {
+                BufferedReader in = new BufferedReader(new FileReader( outputFile ));
+                @SuppressWarnings("unused")
+                String tmpString = null;
+                while( (tmpString = in.readLine()) != null ) {
+                    lineCounter++;
+                }
+                in.close();
+            } catch (FileNotFoundException e) {
+            } catch (IOException e) {                
+            } finally {
+                jobStats.put("PIG_STATS_LOCAL_OUTPUT_RECORDS", (Long.valueOf(lineCounter)).toString());
+            }            
+            jobStats.put("PIG_STATS_LOCAL_BYTES_WRITTEN", (Long.valueOf(outputFile.length())).toString());
         }
         return stats;
     }
@@ -266,10 +284,10 @@ public class PigStats {
     }
     
     public long getBytesWritten() {
-    	if(mode == ExecType.LOCAL) {
-    		return getLocalBytesWritten();
-    	} else if(mode == ExecType.MAPREDUCE) {
-    		return getMapReduceBytesWritten();
+        if(mode == ExecType.LOCAL) {           
+            return getLocalBytesWritten(); 
+    	} else if( mode == ExecType.MAPREDUCE ) {
+    	    return getMapReduceBytesWritten();
     	} else {
     		throw new RuntimeException("Unrecognized mode. Either MapReduce or Local mode expected.");
     	}

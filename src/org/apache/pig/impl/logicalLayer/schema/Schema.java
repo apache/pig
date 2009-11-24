@@ -116,7 +116,7 @@ public class Schema implements Serializable, Cloneable {
          * request. In order to ensure unique and consistent names, across
          * all field schema objects, the object is made static.
          */
-        public static CanonicalNamer canonicalNamer = new CanonicalNamer();
+        public static final CanonicalNamer canonicalNamer = new CanonicalNamer();
         
         private static Log log = LogFactory.getLog(Schema.FieldSchema.class);
 

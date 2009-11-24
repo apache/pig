@@ -62,6 +62,7 @@ import org.apache.pig.impl.plan.PlanWalker;
 import org.apache.pig.impl.plan.VisitorException;
 
 
+import org.apache.pig.impl.util.CompilerUtils;
 import org.apache.pig.impl.util.LinkedMultiMap;
 import org.apache.pig.impl.util.MultiMap;
 
@@ -834,7 +835,7 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
 			POSkewedJoin skj;
 			try {
 				skj = new POSkewedJoin(new OperatorKey(scope,nodeGen.getNextNodeId(scope)),loj.getRequestedParallelism(),
-											inp);
+											inp, loj.getInnerFlags());
 				skj.setJoinPlans(joinPlans);
 			}
 			catch (Exception e) {
@@ -843,6 +844,30 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
 				throw new LogicalToPhysicalTranslatorException(msg, errCode, PigException.BUG, e);
 			}
 			skj.setResultType(DataType.TUPLE);
+			
+            boolean[] innerFlags = loj.getInnerFlags();
+			for (int i=0; i < inputs.size(); i++) {
+				LogicalOperator op = inputs.get(i);
+				if (!innerFlags[i]) {
+					try {
+						Schema s = op.getSchema();
+						// if the schema cannot be determined
+						if (s == null) {
+							throw new FrontendException();
+						}
+						skj.addSchema(s);
+					} catch (FrontendException e) {
+						int errCode = 2015;
+						String msg = "Couldn't set the schema for outer join" ;
+						throw new LogicalToPhysicalTranslatorException(msg, errCode, PigException.BUG, e);
+					}
+				} else {
+				    // This will never be retrieved. It just guarantees that the index will be valid when
+				    // MRCompiler is trying to read the schema
+				    skj.addSchema(null);
+				}
+			}
+			
 			currentPlan.add(skj);
 
 			for (LogicalOperator op : inputs) {
@@ -855,15 +880,49 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
 				}
 			}
 			logToPhyMap.put(loj, skj);
-		} 
-		
+		}
 		else if(loj.getJoinType() == LOJoin.JOINTYPE.REPLICATED) {
 	        
 	        int fragment = 0;
 	        POFRJoin pfrj;
 	        try {
+	            boolean []innerFlags = loj.getInnerFlags();
+	            boolean isLeftOuter = false;
+	            // We dont check for bounds issue as we assume that a join 
+	            // involves atleast two inputs
+	            isLeftOuter = !innerFlags[1];
+	            
+	            Tuple nullTuple = null;
+	            if( isLeftOuter ) {
+	                try {
+	                    // We know that in a Left outer join its only a two way 
+	                    // join, so we assume index of 1 for the right input	                    
+	                    Schema inputSchema = inputs.get(1).getSchema();	                    
+	                    
+	                    // We check if we have a schema before the join
+	                    if(inputSchema == null) {
+	                        int errCode = 1109;
+	                        String msg = "Input (" + inputs.get(1).getAlias() + ") " +
+	                        "on which outer join is desired should have a valid schema";
+	                        throw new LogicalToPhysicalTranslatorException(msg, errCode, PigException.INPUT);
+	                    }
+	                    
+	                    // Using the schema we decide the number of columns/fields 
+	                    // in the nullTuple
+	                    nullTuple = TupleFactory.getInstance().newTuple(inputSchema.size());
+	                    for(int j = 0; j < inputSchema.size(); j++) {
+	                        nullTuple.set(j, null);
+	                    }
+	                    
+	                } catch( FrontendException e ) {
+	                    int errCode = 2104;
+                        String msg = "Error while determining the schema of input";
+                        throw new LogicalToPhysicalTranslatorException(msg, errCode, PigException.BUG, e);
+	                }
+	            }
+	            
 	            pfrj = new POFRJoin(new OperatorKey(scope,nodeGen.getNextNodeId(scope)),loj.getRequestedParallelism(),
-	                                        inp, ppLists, keyTypes, null, fragment);
+	                                        inp, ppLists, keyTypes, null, fragment, isLeftOuter, nullTuple);
 	        } catch (ExecException e1) {
 	            int errCode = 2058;
 	            String msg = "Unable to set index on newly create POLocalRearrange.";
@@ -1045,85 +1104,21 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
         Schema inputSchema = null;
         try {
             inputSchema = joinInput.getSchema();
-            
-            
+         
+          
             if(inputSchema == null) {
-                int errCode = 1105;
+                int errCode = 1109;
                 String msg = "Input (" + joinInput.getAlias() + ") " +
                         "on which outer join is desired should have a valid schema";
                 throw new LogicalToPhysicalTranslatorException(msg, errCode, PigException.INPUT);
             }
         } catch (FrontendException e) {
-            int errCode = 2014;
+            int errCode = 2104;
             String msg = "Error while determining the schema of input";
             throw new LogicalToPhysicalTranslatorException(msg, errCode, PigException.BUG, e);
         }
         
-        // we currently have POProject[bag] as the only operator in the plan
-        // If the bag is an empty bag, we should replace
-        // it with a bag with one tuple with null fields so that when we flatten
-        // we do not drop records (flatten will drop records if the bag is left
-        // as an empty bag) and actually project nulls for the fields in 
-        // the empty bag
-        
-        // So we need to get to the following state:
-        // POProject[Bag]
-        //         \     
-        //    POUserFunc["IsEmpty()"] Const[Bag](bag with null fields)   
-        //                        \      |    POProject[Bag]             
-        //                         \     |    /
-        //                          POBinCond
-        
-        POProject relationProject = (POProject) fePlan.getRoots().get(0);
-        try {
-            
-            // condition of the bincond
-            POProject relationProjectForIsEmpty = relationProject.clone();
-            fePlan.add(relationProjectForIsEmpty);
-            String scope = relationProject.getOperatorKey().scope;
-            FuncSpec isEmptySpec = new FuncSpec(IsEmpty.class.getName());
-            Object f = PigContext.instantiateFuncFromSpec(isEmptySpec);
-            POUserFunc isEmpty = new POUserFunc(new OperatorKey(scope, NodeIdGenerator.getGenerator().
-                        getNextNodeId(scope)), -1, null, isEmptySpec, (EvalFunc) f);
-            isEmpty.setResultType(DataType.BOOLEAN);
-            fePlan.add(isEmpty);
-            fePlan.connect(relationProjectForIsEmpty, isEmpty);
-            
-            // lhs of bincond (const bag with null fields)
-            ConstantExpression ce = new ConstantExpression(new OperatorKey(scope,
-                    NodeIdGenerator.getGenerator().getNextNodeId(scope)));
-            // the following should give a tuple with the
-            // required number of nulls
-            Tuple t = TupleFactory.getInstance().newTuple(inputSchema.size());
-            for(int i = 0; i < inputSchema.size(); i++) {
-                t.set(i, null);
-            }
-            List<Tuple> bagContents = new ArrayList<Tuple>(1);
-            bagContents.add(t);
-            DataBag bg = new NonSpillableDataBag(bagContents);
-            ce.setValue(bg);
-            ce.setResultType(DataType.BAG);
-            //this operator doesn't have any predecessors
-            fePlan.add(ce);
-            
-            //rhs of bincond is the original project
-            // let's set up the bincond now
-            POBinCond bincond = new POBinCond(new OperatorKey(scope,
-                    NodeIdGenerator.getGenerator().getNextNodeId(scope)));
-            bincond.setCond(isEmpty);
-            bincond.setLhs(ce);
-            bincond.setRhs(relationProject);
-            bincond.setResultType(DataType.BAG);
-            fePlan.add(bincond);
-
-            fePlan.connect(isEmpty, bincond);
-            fePlan.connect(ce, bincond);
-            fePlan.connect(relationProject, bincond);
-
-        } catch (Exception e) {
-            throw new PlanException("Error setting up outerjoin", e);
-        }
-        
+        CompilerUtils.addEmptyBagOuterJoin(fePlan, inputSchema);
         
     }
 

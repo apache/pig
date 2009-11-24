@@ -391,7 +391,9 @@ public class FileLocalizer {
             // TODO probably this should be replaced with the local file system
             File f = (new File(fileSpec)).getParentFile();
             if (f!=null){
-                f.mkdirs();
+                boolean res = f.mkdirs();
+                if (!res)
+                    log.warn("FileLocalizer.create: failed to create " + f);
             }
             
             return new FileOutputStream(fileSpec,append);

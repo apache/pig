@@ -16,6 +16,6 @@
  */
 
 /**
- * Physical I/O management of Hadoop Tables.
+ * Physical I/O management of Hadoop Zebra Tables.
  */
 package org.apache.hadoop.zebra.io;

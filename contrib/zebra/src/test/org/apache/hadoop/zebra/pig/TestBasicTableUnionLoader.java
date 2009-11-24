@@ -81,7 +81,7 @@ public class TestBasicTableUnionLoader {
     System.out.println("pathTable1 =" + pathTable1);
 
     BasicTable.Writer writer = new BasicTable.Writer(pathTable1,
-        "a:string,b,c:string", "[a,b];[c]", false, conf);
+        "a:string,b,c:string", "[a,b];[c]", conf);
     Schema schema = writer.getSchema();
     Tuple tuple = TypesUtils.createTuple(schema);
 
@@ -116,7 +116,7 @@ public class TestBasicTableUnionLoader {
     System.out.println("pathTable2 =" + pathTable2);
 
     writer = new BasicTable.Writer(pathTable2, "a:string,b,d:string",
-        "[a,b];[d]", false, conf);
+        "[a,b];[d]", conf);
     schema = writer.getSchema();
     tuple = TypesUtils.createTuple(schema);
 

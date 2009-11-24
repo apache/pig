@@ -18,7 +18,7 @@
 /**
  * Providing {@link org.apache.hadoop.mapred.InputFormat} and
  * {@link org.apache.hadoop.mapred.OutputFormat} adaptor classes for Hadoop
- * Table.
+ * Zebra Table.
  */
 package org.apache.hadoop.zebra.mapred;
 

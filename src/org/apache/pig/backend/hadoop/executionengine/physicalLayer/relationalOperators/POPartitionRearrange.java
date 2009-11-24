@@ -207,7 +207,7 @@ public class POPartitionRearrange extends POLocalRearrange {
 
 	// Returns bag of tuples 
     protected DataBag constructPROutput(List<Result> resLst, Tuple value) throws ExecException{
-		Tuple t = super.constructLROutput(resLst, value);
+		Tuple t = super.constructLROutput(resLst, null, value);
 
         //Construct key
         Object key = t.get(1);

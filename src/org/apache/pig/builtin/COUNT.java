@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.util.Iterator;
 import java.util.Map;
 
+import org.apache.pig.Accumulator;
 import org.apache.pig.Algebraic;
 import org.apache.pig.EvalFunc;
 import org.apache.pig.PigException;
@@ -36,7 +37,7 @@ import org.apache.pig.impl.util.WrappedIOException;
  * Generates the count of the values of the first field of a tuple. This class is Algebraic in
  * implemenation, so if possible the execution will be split into a local and global functions
  */
-public class COUNT extends EvalFunc<Long> implements Algebraic{
+public class COUNT extends EvalFunc<Long> implements Algebraic, Accumulator<Long>{
     private static TupleFactory mTupleFactory = TupleFactory.getInstance();
 
     @Override
@@ -135,6 +136,39 @@ public class COUNT extends EvalFunc<Long> implements Algebraic{
     @Override
     public Schema outputSchema(Schema input) {
         return new Schema(new Schema.FieldSchema(null, DataType.LONG)); 
+    }
+    
+    /* Accumulator interface implementation */
+    private long intermediateCount = 0L;
+
+    @Override
+    public void accumulate(Tuple b) throws IOException {
+        try {
+            DataBag bag = (DataBag)b.get(0);
+            Iterator it = bag.iterator();
+            while (it.hasNext()){
+                Tuple t = (Tuple)it.next();
+                if (t != null && t.size() > 0 && t.get(0) != null) {
+                    intermediateCount += 1;
+                }
+            }
+        } catch (ExecException ee) {
+            throw ee;
+        } catch (Exception e) {
+            int errCode = 2106;
+            String msg = "Error while computing min in " + this.getClass().getSimpleName();
+            throw new ExecException(msg, errCode, PigException.BUG, e);           
+        }
+    }
+
+    @Override
+    public void cleanup() {
+        intermediateCount = 0L;
+    }
+
+    @Override
+    public Long getValue() {
+        return intermediateCount;
     }
 
 }

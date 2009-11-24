@@ -33,6 +33,7 @@ import org.junit.Test;
 import junit.framework.Assert;
 import junit.framework.TestCase;
 
+import org.apache.pig.EvalFunc;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.builtin.PigStorage;
@@ -366,4 +367,53 @@ public class TestCombiner extends TestCase {
         }
     }
 
+    public static class JiraPig1030 extends EvalFunc<String> {
+        
+        public String exec(Tuple input) throws IOException {
+            return "";
+        }
+    }
+    
+    @Test
+    public void testJiraPig1030() {
+        // test that combiner is NOT invoked when
+        // one of the elements in the foreach generate
+        // has a non-algebraic UDF that have multiple inputs
+        // (one of them is distinct).
+        
+        String input[] = {
+                "pig1\t18\t2.1",
+                "pig2\t24\t3.3",
+                "pig5\t45\t2.4",
+                "pig1\t18\t2.1",
+                "pig1\t19\t2.1",
+                "pig2\t24\t4.5",
+                "pig1\t20\t3.1" };
+ 
+        try {
+            Util.createInputFile(cluster, "forEachNoCombinerInput.txt", input);
+            PigServer pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+            pigServer.registerQuery("a = load 'forEachNoCombinerInput.txt' as (name:chararray, age:int, gpa:double);");
+            pigServer.registerQuery("b = group a all;");
+            pigServer.registerQuery("c = foreach b  {" +
+                    "        d = distinct a.age;" +
+                    "        generate group, " + JiraPig1030.class.getName() + "(d, 0);};");
+            
+            // make sure there isn't a combine plan in the explain output
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            PrintStream ps = new PrintStream(baos);
+            pigServer.explain("c", ps);
+            assertFalse(baos.toString().matches("(?si).*combine plan.*"));    
+        } catch (Exception e) {
+            e.printStackTrace();
+            Assert.fail();
+        } finally {
+            try {
+                Util.deleteFile(cluster, "forEachNoCombinerInput.txt");
+            } catch (IOException e) {
+                e.printStackTrace();
+                Assert.fail();
+            }
+        }
+    }
 }

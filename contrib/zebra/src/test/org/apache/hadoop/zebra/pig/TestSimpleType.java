@@ -100,7 +100,7 @@ public class TestSimpleType {
     System.out.println("path =" + path);
 
     BasicTable.Writer writer = new BasicTable.Writer(path, STR_SCHEMA,
-        STR_STORAGE, false, conf);
+        STR_STORAGE, conf);
     Schema schema = writer.getSchema();
 
     BasicTable.Writer writer1 = new BasicTable.Writer(path, conf);
@@ -165,7 +165,7 @@ public class TestSimpleType {
     t = tok.nextToken(); // '...<caller to getCurrentRoutine>'
     return t;
   }
-
+  
   // @Test
   public void testReadSimpleStitch() throws IOException, ParseException {
     String query = "records = LOAD '" + path.toString()
@@ -242,9 +242,9 @@ public class TestSimpleType {
   @Test
   // Store same table
   public void testStorer() throws ExecException, IOException {
-    /*
-     * Use pig LOAD to load testing data for store
-     */
+    //
+    // Use pig LOAD to load testing data for store
+    //
     String query = "records = LOAD '"
         + path.toString()
         + "' USING org.apache.hadoop.zebra.pig.TableLoader() as (s1,s2,s3,s4,s5,s6);";
@@ -256,9 +256,9 @@ public class TestSimpleType {
       System.out.println(RowValue);
     }
 
-    /*
-     * Use pig STORE to store testing data
-     */
+    //
+    // Use pig STORE to store testing data
+    //
     Path newPath = new Path(getCurrentMethodName());
     pigServer
         .store(
@@ -528,19 +528,19 @@ public class TestSimpleType {
 
   @Test
   // Store negative, store to same path. Store should fail
-  public void testStorer5() throws ExecException, IOException {
-    /*
-     * Use pig LOAD to load testing data for store
-     */
+  public void testStorer5() throws ExecException, IOException {   
+    //
+    // Use pig LOAD to load testing data for store
+    //
     String query = "records = LOAD '"
         + path.toString()
         + "' USING org.apache.hadoop.zebra.pig.TableLoader() as (s1,s2,s3,s4,s5,s6);";
     pigServer.registerQuery(query);
 
-    /*
-     * Use pig STORE to store testing data
-     */
-    
+    //
+    // Use pig STORE to store testing data
+    //
+    System.out.println("path = " + path);
     ExecJob pigJob = pigServer
         .store(
             "records",
@@ -548,7 +548,6 @@ public class TestSimpleType {
             TableStorer.class.getCanonicalName()
                 + "('[s1, s2]; [s3, s4]')");
     Assert.assertNotNull(pigJob.getException());
-    System.out.println(pigJob.getException());
+    System.out.println("pig job exception : " + pigJob.getException());
   }
-
 }

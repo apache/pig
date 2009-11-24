@@ -26,12 +26,15 @@ import java.util.Map;
 import java.util.HashMap;
 import java.util.Properties;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.pig.backend.datastorage.DataStorage;
 import org.apache.pig.backend.datastorage.ElementDescriptor;
 import org.apache.pig.backend.datastorage.SeekableInputStream;
 
 public abstract class LocalPath implements ElementDescriptor {
 
+    private Log log = LogFactory.getLog(getClass());
     protected DataStorage fs;
     protected File path;
 
@@ -121,7 +124,9 @@ public abstract class LocalPath implements ElementDescriptor {
     }
 
     public void delete() throws IOException {
-        getCurPath().delete();
+        boolean res = getCurPath().delete();
+        if (!res)
+            log.warn("LocalPath.delete: failed to delete" + getCurPath());
     }
 
     public Properties getConfiguration() throws IOException {

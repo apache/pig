@@ -34,6 +34,7 @@ import org.apache.hadoop.zebra.schema.Schema;
  * Table Expression - expression to describe an input table.
  */
 abstract class TableExpr {
+  private boolean sorted = false;
   /**
    * Factory method to create a TableExpr from a string.
    * 
@@ -132,6 +133,26 @@ abstract class TableExpr {
   }
   
   /**
+   * Get a scanner with an unsorted split.
+   * 
+   * @param split
+   *          The range split.
+   * @param projection
+   *          The projection schema. It should never be null.
+   * @param conf
+   *          The configuration
+   * @return A table scanner.
+   * @throws IOException
+   */
+  public TableScanner getScanner(RowTableSplit split, String projection,
+      Configuration conf) throws IOException, ParseException, ParseException {
+    BasicTable.Reader reader =
+        new BasicTable.Reader(new Path(split.getPath()), conf);
+    reader.setProjection(projection);
+    return reader.getScanner(true, split.getSplit());
+  }
+  
+  /**
    * A leaf table corresponds to a materialized table. It is represented by the
    * path to the BasicTable and the projection.
    */
@@ -179,7 +200,14 @@ abstract class TableExpr {
    * @return Whether this expression may only be split by key.
    */
   public boolean sortedSplitRequired() {
-    return false;
+    return sorted;
+  }
+
+  /**
+   * Set the requirement for sorted table
+   */
+  public void setSortedSplit() {
+    sorted = true;
   }
 
   /**

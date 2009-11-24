@@ -27,6 +27,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.zebra.parser.ParseException;
 
@@ -48,6 +49,7 @@ public class TestDropColumnGroup {
   Log LOG = LogFactory.getLog(TestDropColumnGroup.class);
   private static Path path;
   private static Configuration conf;
+  private static FileSystem fs;
 
   @BeforeClass
   public static void setUpOnce() throws IOException {
@@ -55,7 +57,7 @@ public class TestDropColumnGroup {
     path = new Path(TestBasicTable.rootPath, "DropCGTest");
     conf = TestBasicTable.conf;
     Log LOG = LogFactory.getLog(TestDropColumnGroup.class);
-
+    fs = path.getFileSystem(conf);
   }
 
   @AfterClass
@@ -114,10 +116,13 @@ public class TestDropColumnGroup {
      * columns can be read the value returned is null.
      */
 
-    BasicTable.drop(path, conf);
-
+    if (fs.exists(path)) {
+      BasicTable.drop(path, conf);
+    }
+    
     int numRows = TestBasicTable.createBasicTable(1, 10, "a, b, c, d, e, f",
-        "[a, b]; [c, d]", path, true, false);
+                                                  "[a, b]; [c, d]", null,
+                                                  path, true);
 
     int rowsToRead = Math.min(10, numRows);
 
@@ -159,8 +164,9 @@ public class TestDropColumnGroup {
      */
 
     // 5 splits and 50 rows
-    numRows = TestBasicTable.createBasicTable(5, 50, "a, b, c, d, e, f",
-        "[a, b]; [c, d]; [e] as myCG", path, true, false);
+    numRows =  TestBasicTable.createBasicTable(5, 50, "a, b, c, d, e, f",
+                                               "[a, b]; [c, d]; [e] as myCG",
+                                               null, path, true);
 
     BasicTable.dropColumnGroup(path, conf, "myCG");
 
@@ -180,7 +186,8 @@ public class TestDropColumnGroup {
   }
 
   @Test
-  public void testDropColumnGroupsMixedTypes() throws IOException, ParseException {
+  public void testDropColumnGroupsMixedTypes() throws IOException,
+      ParseException {
 
     String mixedSchema = /* roughly borrowed from testMixedType1.java */
     "s1:bool, s2:int, s3:long, s4:float, s5:string, s6:bytes, "
@@ -195,15 +202,16 @@ public class TestDropColumnGroup {
         + "[c]                           as collectionCG; "  
         + "[r1.f2, m1#{b}, m2#{z}]       as mapRecordCG; ";
 
-    Path path = new Path(TestBasicTable.rootPath, "DropCGTest");
+    //Path path = new Path(TestBasicTable.rootPath, "DropCGTest");
     Configuration conf = TestBasicTable.conf;
     conf.set("fs.default.name", "file:///");
-
-    BasicTable.drop(path, conf);
-
+    if (fs.exists(path)) {
+      BasicTable.drop(path, conf);
+    }
+    
     // first write the table :
     BasicTable.Writer writer = new BasicTable.Writer(path, mixedSchema,
-        mixedStorageHint, false, conf);
+        mixedStorageHint, conf);
     writer.finish();
 
     Schema schema = writer.getSchema();
@@ -394,25 +402,35 @@ public class TestDropColumnGroup {
     /*
      * Tests concurrent drop CGs
      */
+    if (fs.exists(path)) {
+      BasicTable.drop(path, conf);
+    }
 
-    BasicTable.drop(path, conf);
-
-    int numRows = TestBasicTable.createBasicTable(1, 10, "a, b, c, d, e, f",
-        "[a];[b];[c];[d];[e];[f]", path, true, false);
-    System.out.println("Frist dump:");
+    int numRows = TestBasicTable.createBasicTable(1, 10, "f1,f2,f3,f4,f5,f6,f7,f8,f9,f10," +
+    		                                                 "f11,f12,f13,f14,f15,f16,f17,f18,f19,f20," +
+    		                                                 "f21,f22,f23,f24,f25,f26,f27,f28,f29,f30," +
+    		                                                 "f31,f32,f33,f34,f35,f36,f37,f38,f39,f40," +
+    		                                                 "f41,f42,f43,f44,f45,f46,f47,f48,f49,f50",
+      "[f1];[f2];[f3];[f4];[f5];[f6];[f7];[f8];[f9];[f10];" +
+      "[f11];[f12];[f13];[f14];[f15];[f16];[f17];[f18];[f19];[f20];" +
+      "[f21];[f22];[f23];[f24];[f25];[f26];[f27];[f28];[f29];[f30];" +
+      "[f31];[f32];[f33];[f34];[f35];[f36];[f37];[f38];[f39];[f40];" +
+      "[f41];[f42];[f43];[f44];[f45];[f46];[f47];[f48];[f49];[f50]",
+      null, path, true);
+    
+    System.out.println("First dump:");
     BasicTable.dumpInfo(path.toString(), System.out, conf);
     int rowsToRead = Math.min(10, numRows);
 
     // normal table.
-    verifyScanner(path, conf, "a, c, x", new boolean[] { false, false, true },
+    verifyScanner(path, conf, "f1, f3, xx", new boolean[] { false, false, true },
         rowsToRead);
 
     // create a thread for each dropCG
-    DropThread[] threads = new DropThread[6];
+    DropThread[] threads = new DropThread[50];
 
     for (int i = 0; i < threads.length; i++) {
-
-      threads[i] = new DropThread(i);
+      threads[i] = new DropThread(i, 50);
     }
 
     // start the threads
@@ -430,17 +448,16 @@ public class TestDropColumnGroup {
 
     // check various read cases.
 
-    verifyScanner(path, conf, "c, a, b, f, d, e", new boolean[] { true, true,
+    verifyScanner(path, conf, "f3, f1, f2, f6, f4, f5", new boolean[] { true, true,
         true, true, true, true }, rowsToRead);
     System.out.println("second dump");
     BasicTable.dumpInfo(path.toString(), System.out, conf);
 
     // Now make sure the reader reports zero rows.
-    Assert.assertTrue(countRows(path, conf, "c, e, b") == 0);
+    Assert.assertTrue(countRows(path, conf, "f3, f5, f2") == 0);
 
     // delete the table
     BasicTable.drop(path, conf);
-
   }
 
   @Test
@@ -448,25 +465,35 @@ public class TestDropColumnGroup {
     /*
      * Tests concurrrent drop CGs while one fails
      */
+    if (fs.exists(path)) {
+      BasicTable.drop(path, conf);
+    }
 
-    BasicTable.drop(path, conf);
-
-    int numRows = TestBasicTable.createBasicTable(1, 10, "a, b, c, d, e, f",
-        "[a];[b];[c];[d];[e];[f]", path, true, false);
-    System.out.println("Frist dump:");
+    int numRows = TestBasicTable.createBasicTable(1, 10, "f1,f2,f3,f4,f5,f6,f7,f8,f9,f10," +
+        "f11,f12,f13,f14,f15,f16,f17,f18,f19,f20," +
+        "f21,f22,f23,f24,f25,f26,f27,f28,f29,f30," +
+        "f31,f32,f33,f34,f35,f36,f37,f38,f39,f40," +
+        "f41,f42,f43,f44,f45,f46,f47,f48,f49,f50",
+        "[f1];[f2];[f3];[f4];[f5];[f6];[f7];[f8];[f9];[f10];" +
+        "[f11];[f12];[f13];[f14];[f15];[f16];[f17];[f18];[f19];[f20];" +
+        "[f21];[f22];[f23];[f24];[f25];[f26];[f27];[f28];[f29];[f30];" +
+        "[f31];[f32];[f33];[f34];[f35];[f36];[f37];[f38];[f39];[f40];" +
+        "[f41];[f42];[f43];[f44];[f45];[f46];[f47];[f48];[f49];[f50]",
+        null, path, true);
+    
+    System.out.println("First dump:");
     BasicTable.dumpInfo(path.toString(), System.out, conf);
     int rowsToRead = Math.min(10, numRows);
 
     // normal table.
-    verifyScanner(path, conf, "a, c, x", new boolean[] { false, false, true },
+    verifyScanner(path, conf, "f1, f3, xx", new boolean[] { false, false, true },
         rowsToRead);
 
     // create a thread for each dropCG
-    DropThread[] threads = new DropThread[7];
+    DropThread[] threads = new DropThread[60];
 
     for (int i = 0; i < threads.length; i++) {
-
-      threads[i] = new DropThread(i);
+      threads[i] = new DropThread(i, 50);
     }
 
     // start the threads
@@ -478,18 +505,19 @@ public class TestDropColumnGroup {
       try {
         thr.join();
       } catch (InterruptedException e) {
+        e.printStackTrace();
       }
     }
 
     // check various read cases.
 
-    verifyScanner(path, conf, "c, a, b, f, d, e", new boolean[] { true, true,
+    verifyScanner(path, conf, "f3, f1, f2, f6, f4, f5", new boolean[] { true, true,
         true, true, true, true }, rowsToRead);
     System.out.println("second dump");
     BasicTable.dumpInfo(path.toString(), System.out, conf);
 
     // Now make sure the reader reports zero rows.
-    Assert.assertTrue(countRows(path, conf, "c, e, b") == 0);
+    Assert.assertTrue(countRows(path, conf, "f3, f5, f2") == 0);
 
     // delete the table
     BasicTable.drop(path, conf);
@@ -502,10 +530,13 @@ public class TestDropColumnGroup {
      */
 
     System.out.println("######int test 5");
-    BasicTable.drop(path, conf);
+
+    if (fs.exists(path)) {
+      BasicTable.drop(path, conf);
+    }
 
     int numRows = TestBasicTable.createBasicTable(1, 100000,
-        "a, b, c, d, e, f", "[a, b]; [c, d]", path, true, false);
+        "a, b, c, d, e, f, g, h, i, j, k, l, m, n", "[a, b]; [c, d]; [e]; [f]; [g]; [h]; [i]; [j]; [k]; [l]; [m]; [n]", null, path, true);
 
     System.out.println("in test5 , dump infor 1");
     BasicTable.dumpInfo(path.toString(), System.out, conf);
@@ -519,23 +550,21 @@ public class TestDropColumnGroup {
         rowsToRead);
 
     // create a thread for each dropCG
-    DropThread[] dropThreads = new DropThread[3];
+    DropThread[] dropThreads = new DropThread[12];
 
     for (int i = 0; i < dropThreads.length; i++) {
-
-      dropThreads[i] = new DropThread(i);
+      dropThreads[i] = new DropThread(i, 12);
     }
 
     // start the threads
     for (int j = 0; j < dropThreads.length; j++) {
       dropThreads[j].start();
     }
-
+    
     // create read threads
     ReadThread[] readThreads = new ReadThread[numOfReadThreads];
 
     for (int i = 0; i < readThreads.length; i++) {
-
       readThreads[i] = new ReadThread(i, "a, b, c, d, e, f", 1000);
     }
 
@@ -551,6 +580,7 @@ public class TestDropColumnGroup {
         e.printStackTrace();
       }
     }
+    
     for (Thread thr : readThreads) {
       try {
         thr.join();
@@ -569,7 +599,6 @@ public class TestDropColumnGroup {
 
     // delete the table
     BasicTable.drop(path, conf);
-
   }
 
   @Test
@@ -593,11 +622,12 @@ public class TestDropColumnGroup {
     /*
      * Tests API, path is wrong
      */
-
-    BasicTable.drop(path, conf);
-
+    if (fs.exists(path)) {
+      BasicTable.drop(path, conf);
+    }
+    
     TestBasicTable.createBasicTable(1, 10, "a, b, c, d, e, f",
-        "[a];[b];[c];[d];[e];[f]", path, true, false);
+        "[a];[b];[c];[d];[e];[f]", null, path, true);
     Path wrongPath = new Path(path.toString() + "non-existing");
     try {
       BasicTable.dropColumnGroup(wrongPath, conf, "CG0");
@@ -616,7 +646,7 @@ public class TestDropColumnGroup {
 
     Path path1 = new Path(path.toString() + "13");
     TestBasicTable.createBasicTable(1, 10, "a, b, c, d, e, f",
-        "[a];[b];[c];[d];[e];[f]", path1, true, false);
+        "[a];[b];[c];[d];[e];[f]", null, path1, true);
     try {
       BasicTable.dropColumnGroup(path1, null, "CG0");
       Assert.fail("should throw excepiton");
@@ -634,7 +664,7 @@ public class TestDropColumnGroup {
 
     Path path1 = new Path(path.toString() + "14");
     TestBasicTable.createBasicTable(1, 10, "a, b, c, d, e, f",
-        "[a];[b];[c];[d];[e];[f]", path1, true, false);
+        "[a];[b];[c];[d];[e];[f]", null, path1, true);
     try {
       BasicTable.dropColumnGroup(path1, conf, "");
       Assert.fail("should throw excepiton");
@@ -653,7 +683,7 @@ public class TestDropColumnGroup {
     Path path1 = new Path(path.toString() + "15");
 
     TestBasicTable.createBasicTable(1, 10, "a, b, c, d, e, f",
-        "[a];[b];[c];[d];[e];[f]", path1, true, false);
+        "[a];[b];[c];[d];[e];[f]", null, path1, true);
     try {
       BasicTable.dropColumnGroup(path1, conf, null);
       Assert.fail("should throw excepiton");
@@ -672,7 +702,7 @@ public class TestDropColumnGroup {
     Path path1 = new Path(path.toString() + "16");
 
     int numRows = TestBasicTable.createBasicTable(1, 10, "a, b, c, d, e, f",
-        "[a, b]; [c, d]", path1, true, false);
+        "[a, b]; [c, d]", null, path1, true);
 
     int rowsToRead = Math.min(10, numRows);
 
@@ -704,7 +734,7 @@ public class TestDropColumnGroup {
 
     Path path1 = new Path(path.toString() + "17");
     TestBasicTable.createBasicTable(1, 10, "a, b, c, d, e, f", "[a,b,c,d,e,f]",
-        path1, true, false);
+        null, path1, true);
 
     BasicTable.dropColumnGroup(path1, conf, "CG0");
 
@@ -730,17 +760,17 @@ public class TestDropColumnGroup {
     BasicTable.drop(path1, conf);
   }
 
-  /**
+/**
    * A thread that performs a DropColumnGroup.
    */
   class DropThread extends Thread {
 
     private int id;
+    private int cntCGs;
 
-    public DropThread(int id) {
-
+    public DropThread(int id, int cntCGs) {
       this.id = id;
-
+      this.cntCGs = cntCGs;
     }
 
     /**
@@ -748,13 +778,22 @@ public class TestDropColumnGroup {
      */
     public void run() {
       try {
-        System.out.println("Droping CG: " + id);
-        BasicTable.dropColumnGroup(path, conf, "CG" + id);
+        int total = cntCGs;
+        int digits = 1;
+        while (total >= 10) {
+          ++ digits;
+          total /= 10;
+        }
+        String formatString = "%0" + digits + "d";
+        String str = "CG"  + String.format(formatString, id);
+
+        System.out.println(id + ": Droping CG: " + str);
+        BasicTable.dropColumnGroup(path, conf, str);
       } catch (Exception e) {
         System.out.println(id + " - error: " + e);
+        e.printStackTrace();
       }
     }
-
   }
 
   /**

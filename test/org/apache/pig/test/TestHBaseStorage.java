@@ -16,19 +16,27 @@
  */
 package org.apache.pig.test;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.Iterator;
 
+import junit.framework.TestCase;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.HColumnDescriptor;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.MiniHBaseCluster;
+import org.apache.hadoop.hbase.MiniZooKeeperCluster;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.client.HConnectionManager;
 import org.apache.hadoop.hbase.client.HTable;
+import org.apache.hadoop.hbase.client.Result;
+import org.apache.hadoop.hbase.client.ResultScanner;
+import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.io.BatchUpdate;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.pig.ExecType;
@@ -37,10 +45,9 @@ import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.impl.io.FileLocalizer;
 import org.junit.Before;
 import org.junit.Test;
-
-import junit.framework.TestCase;
 
 /** {@link org.apache.pig.backend.hadoop.hbase.HBaseStorage} Test Case **/
 public class TestHBaseStorage extends TestCase {
@@ -51,6 +58,7 @@ public class TestHBaseStorage extends TestCase {
     private MiniCluster cluster = MiniCluster.buildCluster();
     private HBaseConfiguration conf;
     private MiniHBaseCluster hbaseCluster;
+    private MiniZooKeeperCluster zooKeeperCluster;
     
     private PigServer pig;
     
@@ -70,8 +78,23 @@ public class TestHBaseStorage extends TestCase {
     @Override
     protected void setUp() throws Exception {
         super.setUp();
+        
         conf = new HBaseConfiguration(ConfigurationUtil.
              toConfiguration(cluster.getProperties()));
+        conf.set("fs.default.name", cluster.getFileSystem().getUri().toString());
+        Path parentdir = cluster.getFileSystem().getHomeDirectory();
+        conf.set(HConstants.HBASE_DIR, parentdir.toString());
+        
+        // Make the thread wake frequency a little slower so other threads
+        // can run
+        conf.setInt("hbase.server.thread.wakefrequency", 2000);
+        
+        // Make lease timeout longer, lease checks less frequent
+        conf.setInt("hbase.master.lease.period", 10 * 1000);
+        
+        // Increase the amount of time between client retries
+        conf.setLong("hbase.client.pause", 15 * 1000);
+        
         try {
             hBaseClusterSetup();
         } catch (Exception e) {
@@ -81,17 +104,28 @@ public class TestHBaseStorage extends TestCase {
             throw e;
         }
         
-        pig = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        pig = new PigServer(ExecType.MAPREDUCE, ConfigurationUtil.toProperties(conf));
     }
     
     /**
      * Actually start the MiniHBase instance.
      */
     protected void hBaseClusterSetup() throws Exception {
+        zooKeeperCluster = new MiniZooKeeperCluster();
+        int clientPort = this.zooKeeperCluster.startup(new File("build/test"));
+        conf.set("hbase.zookeeper.property.clientPort",clientPort+"");
       // start the mini cluster
       hbaseCluster = new MiniHBaseCluster(conf, NUM_REGIONSERVERS);
       // opening the META table ensures that cluster is running
-      new HTable(conf, HConstants.META_TABLE_NAME);
+      while(true){
+    	  try{
+    		  new HTable(conf, HConstants.META_TABLE_NAME);
+    		  break;
+    	  }catch(IOException e){
+    		  Thread.sleep(1000);
+    	  }
+    	  
+      }
     }
 
     @Override
@@ -108,6 +142,13 @@ public class TestHBaseStorage extends TestCase {
                     LOG.warn("Closing mini hbase cluster", e);
                 }
             }
+            if (zooKeeperCluster!=null){
+            	try{
+            		zooKeeperCluster.shutdown();
+            	} catch (IOException e){
+            		LOG.warn("Closing zookeeper cluster",e);
+            	}
+            }
         } catch (Exception e) {
             LOG.error(e);
         }
@@ -122,6 +163,7 @@ public class TestHBaseStorage extends TestCase {
     @Test
     public void testLoadFromHBase() throws IOException, ExecException {
         prepareTable();
+
         pig.registerQuery("a = load 'hbase://" + TESTTABLE + "' using " +
             "org.apache.pig.backend.hadoop.hbase.HBaseStorage('" + TESTCOLUMN_A + 
             " " + TESTCOLUMN_B + " " + TESTCOLUMN_C + "') as (col_a, col_b:int, col_c);");

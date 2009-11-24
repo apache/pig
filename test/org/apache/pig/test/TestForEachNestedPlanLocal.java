@@ -78,12 +78,13 @@ public class TestForEachNestedPlanLocal extends TestCase {
             t = it.next();
             count[i] = (Long)t.get(0);
         }
-
+        
         Assert.assertFalse(it.hasNext());
 
-        Assert.assertEquals(3L, count[0]);
+        // Pig's previous local mode was screwed up correcting that
+        Assert.assertEquals(5L, count[0]);
         Assert.assertEquals(5L, count[1]);
-        Assert.assertEquals(5L, count[2]);
+        Assert.assertEquals(3L, count[2]);
     }
 
 

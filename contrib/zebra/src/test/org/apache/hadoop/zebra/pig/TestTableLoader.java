@@ -76,7 +76,7 @@ public class TestTableLoader {
     System.out.println("pathTable =" + pathTable);
 
     BasicTable.Writer writer = new BasicTable.Writer(pathTable,
-        "a:string,b,c:string,d,e,f,g", "[a,b,c];[d,e,f,g]", false, conf);
+        "a:string,b,c:string,d,e,f,g", "[a,b,c];[d,e,f,g]", conf);
     Schema schema = writer.getSchema();
     Tuple tuple = TypesUtils.createTuple(schema);
 

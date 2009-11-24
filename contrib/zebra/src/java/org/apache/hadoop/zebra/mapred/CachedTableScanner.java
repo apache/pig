@@ -36,6 +36,7 @@ final class CachedTableScanner implements Closeable {
   private Tuple row;
   private boolean keyReady;
   private boolean rowReady;
+  private int index;
   private TableScanner scanner;
 
   /**
@@ -45,11 +46,12 @@ final class CachedTableScanner implements Closeable {
    *          The scanner to be encapsulated
    * @throws IOException 
    */
-  public CachedTableScanner(TableScanner scanner) throws IOException {
+  public CachedTableScanner(TableScanner scanner, int index) throws IOException {
     key = new BytesWritable();
     row = TypesUtils.createTuple(Projection.getNumColumns(scanner.getProjection()));
     keyReady = false;
     rowReady = false;
+    this.index = index;
     this.scanner = scanner;
   }
 
@@ -81,6 +83,15 @@ final class CachedTableScanner implements Closeable {
     return row;
   }
 
+  /**
+   * Get the table index in a union
+   * 
+   * @return the table index in union
+   */
+  public int getIndex() {
+    return index;
+    
+  }
   /**
    * Seek to a row whose key is greater than or equal to the input key.
    * 
