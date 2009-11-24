@@ -486,11 +486,6 @@ public class TableInputFormat implements InputFormat<BytesWritable, Tuple> {
         bd = BlockDistribution.sum(bd, reader.getBlockDistribution((RangeSplit)null));
       }
       
-      if (bd == null) {
-        // should never happen.
-        return new InputSplit[0];
-      }
-      
       SortedTableSplit split = new SortedTableSplit(null, null, bd, conf);
       return new InputSplit[] { split };
     }
@@ -509,7 +504,8 @@ public class TableInputFormat implements InputFormat<BytesWritable, Tuple> {
     
     if (keyDistri == null) {
       // should never happen.
-      return new InputSplit[0];
+      SortedTableSplit split = new SortedTableSplit(null, null, null, conf);
+      return new InputSplit[] { split };
     }
     
     if (numSplits > 0) {
@@ -571,13 +567,20 @@ public class TableInputFormat implements InputFormat<BytesWritable, Tuple> {
 
     ArrayList<InputSplit> ret = new ArrayList<InputSplit>();
     if (numSplits <= 0) {
-      for (int i = 0; i < readers.size(); ++i) {
-        BasicTable.Reader reader = readers.get(i);
-        List<RangeSplit> subSplits = reader.rangeSplit(-1);
-        for (Iterator<RangeSplit> it = subSplits.iterator(); it.hasNext();) {
-          UnsortedTableSplit split =
+      if (totalBytes <= 0) {
+        BasicTable.Reader reader = readers.get(0);
+        UnsortedTableSplit split =
+          new UnsortedTableSplit(reader, null, conf);
+        ret.add(split);
+      } else {
+        for (int i = 0; i < readers.size(); ++i) {
+          BasicTable.Reader reader = readers.get(i);
+          List<RangeSplit> subSplits = reader.rangeSplit(-1);
+          for (Iterator<RangeSplit> it = subSplits.iterator(); it.hasNext();) {
+            UnsortedTableSplit split =
               new UnsortedTableSplit(reader, it.next(), conf);
-          ret.add(split);
+            ret.add(split);
+          }
         }
       }
     } else {
@@ -700,14 +703,8 @@ public class TableInputFormat implements InputFormat<BytesWritable, Tuple> {
           new BasicTable.Reader(leaf.getPath(), conf);
         reader.setProjection(leaf.getProjection());
         BasicTableStatus s = reader.getStatus();
-        if ((s.getRows() != 0) && (s.getSize() > 0)) {
-          // skipping empty tables.
-          // getRows() may return -1 to indicate unknown row numbers.
-          readers.add(reader);
-          status.add(s);
-        } else {
-          reader.close();
-        }
+        readers.add(reader);
+        status.add(s);
       }
       
       if (readers.isEmpty()) {
@@ -795,6 +792,12 @@ class SortedTableSplit implements InputSplit {
 
   @Override
   public String[] getLocations() throws IOException {
+    if (hosts == null)
+    {
+      String[] tmp = new String[1];
+      tmp[0] = "";
+      return tmp;
+    }
     return hosts;
   }
 
@@ -884,6 +887,12 @@ class UnsortedTableSplit implements InputSplit {
 
   @Override
   public String[] getLocations() throws IOException {
+    if (hosts == null)
+    {
+      String[] tmp = new String[1];
+      tmp[0] = "";
+      return tmp;
+    }
     return hosts;
   }
 

@@ -27,6 +27,8 @@ Trunk (unreleased changes)
 
   BUG FIXES
 
+    PIG-1078: merge join with empty table failed (yanz via gates)
+
     PIG-1091: Exception when load with projection of map keys on a map column that is
 	not map split (yanz via gates)
 
