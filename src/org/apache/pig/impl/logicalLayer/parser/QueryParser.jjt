@@ -1470,15 +1470,18 @@ LogicalOperator LimitClause(LogicalPlan lp):
 {
         LogicalOperator input;
         Token t;
+        long l;
         log.trace("Entering LimitClause");
 }
 {
         (
         input = NestedExpr(lp) {log.debug("Limit input: " + input);}
-         t = <INTEGER>
+       	 (
+       	    t = <INTEGER>     { l = Long.parseLong(t.image); }
+          | t = <LONGINTEGER> { l = Long.parseLong(t.image.substring(0, t.image.length() - 1)); }
          )
+        )
         {
-                long l = Integer.parseInt(t.image);
                 LogicalOperator limit = new LOLimit(lp, new OperatorKey(scope, getNextId()), l);
                 addAlias(input.getAlias(), input);
                 lp.add(limit);

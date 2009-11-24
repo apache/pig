@@ -999,6 +999,11 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
     }
     
     @Test
+    public void testLimitWithLong() {
+        buildPlan("limit (load 'a') 100L;");
+    }
+
+    @Test
     public void testQuery75() {
         buildPlan("a = union (load 'a'), (load 'b'), (load 'c');");
         buildPlan("b = foreach a {generate $0;} parallel 10;");
