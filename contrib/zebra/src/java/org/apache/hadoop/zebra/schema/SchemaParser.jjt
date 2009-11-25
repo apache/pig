@@ -40,10 +40,6 @@ public class TableSchemaParser {
 					objout.close();
 					System.out.println(schema.toString());
       }
-      public Schema RecordSchema(Schema list) throws ParseException
-      {
-        return RecordSchema(list, false);
-      }
 }
 PARSER_END(TableSchemaParser)
 
@@ -121,14 +117,34 @@ Schema.ColumnSchema ColumnSchema() throws ParseException:
 }
 {
 	(
-	LOOKAHEAD(SchemaRecord()) fs = SchemaRecord()
-|	LOOKAHEAD(SchemaCollection()) fs = SchemaCollection()
-|	LOOKAHEAD(SchemaMap()) fs = SchemaMap()
-|	LOOKAHEAD(AtomSchema()) fs = AtomSchema()
+  LOOKAHEAD(3) fs = SchemaRecord()
+|	LOOKAHEAD(3) fs = SchemaCollection()
+|	LOOKAHEAD(3) fs = SchemaMap()
+|	fs = AtomSchema()
 	)
 	{
 		return fs;
 	}
+}
+
+Schema.ColumnSchema ProjectionColumnSchema() throws ParseException: 
+{
+	Token t1; 
+	Schema item = null; 
+	Schema.ColumnSchema fs = null; 
+}
+{
+  (
+	(
+  LOOKAHEAD(3) fs = SchemaRecord()
+|	LOOKAHEAD(3) fs = SchemaCollection()
+|	LOOKAHEAD(3) fs = SchemaMap()
+|	fs = AtomSchema()
+  )
+  { return fs; }
+|
+  { return null; }
+	)
 }
 
 Schema.ColumnSchema AtomSchema() throws ParseException : 
@@ -143,10 +159,6 @@ Schema.ColumnSchema AtomSchema() throws ParseException :
 			fs = new Schema.ColumnSchema(t1.image, type); 
 			return fs;
 		}
-|
-    {
-      return null;
-    }
 	)
 }
 
@@ -171,7 +183,7 @@ Schema.ColumnSchema SchemaRecord() throws ParseException :
 	Schema.ColumnSchema fs;
 }
 { 
-	t1 = <IDENTIFIER> ":" <RECORD> "(" s = RecordSchemaInternal(null) ")" 
+	t1 = <IDENTIFIER> ":" <RECORD> "(" s = RecordSchemaInternal() ")" 
 	{
 		fs = new Schema.ColumnSchema(t1.image, s, ColumnType.RECORD);
 		return fs;
@@ -196,12 +208,14 @@ Schema.ColumnSchema SchemaCollectionEntry(String id) throws ParseException :
 	Schema.ColumnSchema fs = null;
 }
 {
-	(
-	LOOKAHEAD(RecordSchemaInternal(null)) s= RecordSchemaInternal(null)
-|
-	fs = AnonymousColumnSchema()
-	)
-	{ if (s == null) s = new Schema(fs); fs = new Schema.ColumnSchema(id, s, ColumnType.COLLECTION); return fs; }
+  (
+  s= RecordSchemaInternal()
+| fs = AnonymousColumnSchema()
+  )
+	{ if (s == null) s = new Schema(fs);
+    fs = new Schema.ColumnSchema(id, s, ColumnType.COLLECTION);
+    return fs;
+  }
 }
 
 Schema.ColumnSchema AnonymousColumnSchema() throws ParseException : 
@@ -212,10 +226,10 @@ Schema.ColumnSchema AnonymousColumnSchema() throws ParseException :
 }
 {
 	(
-	LOOKAHEAD(AnonymousSchemaRecord()) fs = AnonymousSchemaRecord()
-|	LOOKAHEAD(AnonymousSchemaCollection()) fs = AnonymousSchemaCollection()
-|	LOOKAHEAD(AnonymousSchemaMap()) fs = AnonymousSchemaMap()
-|	LOOKAHEAD(AnonymousAtomSchema()) fs = AnonymousAtomSchema()
+	fs = AnonymousSchemaRecord()
+|	fs = AnonymousSchemaCollection()
+|	fs = AnonymousSchemaMap()
+|	fs = AnonymousAtomSchema()
 	)
 	{
 		return fs;
@@ -256,7 +270,7 @@ Schema.ColumnSchema AnonymousSchemaRecord() throws ParseException :
 	Schema.ColumnSchema fs;
 }
 { 
-	<RECORD> "(" s = RecordSchemaInternal(null) ")" 
+	<RECORD> "(" s = RecordSchemaInternal() ")" 
 	{
 		fs = new Schema.ColumnSchema(null, s, ColumnType.RECORD);
 		return fs;
@@ -269,56 +283,59 @@ Schema.ColumnSchema AnonymousSchemaCollection() throws ParseException :
 	Schema.ColumnSchema fs;
 }
 { 
-	( <COLLECTION> "(" s = RecordSchemaInternal(null) ")"  )
+	( <COLLECTION> "(" fs = SchemaCollectionEntry(null) ")"  )
 	{
+    s = new Schema(fs);
 		fs = new Schema.ColumnSchema(null, s, ColumnType.COLLECTION);
 		return fs;
 	} 
 }
 
-Schema RecordSchemaInternal(Schema list) throws ParseException : 
+Schema RecordSchemaInternal() throws ParseException : 
 {
-	Schema item = null; 
-	if (list == null)
-		list = new Schema(); 
+  Schema list = new Schema(); 
 	Schema.ColumnSchema fs = null;
 }
 {
-	(
-	(
-		fs = ColumnSchema() {list.add(fs);}
-		( "," fs = ColumnSchema() {list.add(fs);})*
-	)	
-	)
+  fs = ColumnSchema() {list.add(fs);} ( "," fs = ColumnSchema() {list.add(fs);})*
 	{ return list; }
 }
 
-Schema RecordSchema(Schema list, boolean virtualColAllowed) throws ParseException : 
+Schema RecordSchema(Schema list) throws ParseException : 
 {
-	Schema item = null; 
 	if (list == null)
 		list = new Schema(); 
 	Schema.ColumnSchema fs = null;
 }
 {
 	(
-	(
-		fs = ColumnSchema() { if (!virtualColAllowed && fs != null && Projection.isVirtualColumn(fs.getName())) throw new ParseException("["+fs.getName()+"] is a reserved virtual column name"); list.add(fs);}
-		( "," fs = ColumnSchema() { if (!virtualColAllowed && fs != null && Projection.isVirtualColumn(fs.getName())) throw new ParseException("["+fs.getName()+"] is a reserved virtual column name"); list.add(fs);})* <EOF>
+		fs = ColumnSchema() { if (fs != null && Projection.isVirtualColumn(fs.getName())) throw new ParseException("["+fs.getName()+"] is a reserved virtual column name"); list.add(fs);}
+		( "," fs = ColumnSchema() { if (fs != null && Projection.isVirtualColumn(fs.getName())) throw new ParseException("["+fs.getName()+"] is a reserved virtual column name"); list.add(fs);})* <EOF>
 	)	
-	)
+	{ return (list.getNumColumns() == 0 || (list.getNumColumns() == 1 && list.getColumn(0) == null) ? null : list); }
+}
+
+Schema ProjectionSchema(Schema list) throws ParseException : 
+{
+	if (list == null)
+		list = new Schema(); 
+	Schema.ColumnSchema fs = null;
+}
+{
+	(
+		fs = ProjectionColumnSchema() { list.add(fs);}
+		( "," fs = ProjectionColumnSchema() { list.add(fs);})* <EOF>
+	)	
 	{ return (list.getNumColumns() == 0 || (list.getNumColumns() == 1 && list.getColumn(0) == null) ? null : list); }
 }
 
 Schema MapSchema() throws ParseException : 
 {
-	Schema item = null; 
 	Schema list = new Schema(); 
 	Schema.ColumnSchema fs = null;
 }
 {
 	(
-	LOOKAHEAD(3)
 	(
 		"(" fs = AnonymousColumnSchema() ")"
 	)
