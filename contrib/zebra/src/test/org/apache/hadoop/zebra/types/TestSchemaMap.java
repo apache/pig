@@ -150,7 +150,7 @@ public class TestSchemaMap {
       System.out.println(schema);
     } catch (Exception e) {
       String errMsg = e.getMessage();
-      String str = "Encountered \" \"(\" \"( \"\" at line 1, column 7.";
+      String str = "Encountered \"<EOF>\" at line 1, column 10.";
       System.out.println(errMsg);
       System.out.println(str);
       Assert.assertEquals(errMsg.startsWith(str), true);
@@ -169,7 +169,7 @@ public class TestSchemaMap {
       System.out.println(schema);
     } catch (Exception e) {
       String errMsg = e.getMessage();
-      String str = "Encountered \" \"(\" \"( \"\" at line 1, column 7.";
+      String str = "Encountered \" \",\" \", \"\" at line 1, column 11.";
       System.out.println(errMsg);
       System.out.println(str);
       Assert.assertEquals(errMsg.startsWith(str), true);
@@ -188,7 +188,7 @@ public class TestSchemaMap {
       System.out.println(schema);
     } catch (Exception e) {
       String errMsg = e.getMessage();
-      String str = "Encountered \" \"(\" \"( \"\" at line 1, column 7.";
+      String str = "Encountered \" <IDENTIFIER> \"m2 \"\" at line 1, column 8.";
       System.out.println(errMsg);
       System.out.println(str);
       Assert.assertEquals(errMsg.startsWith(str), true);
@@ -207,7 +207,7 @@ public class TestSchemaMap {
       System.out.println(schema);
     } catch (Exception e) {
       String errMsg = e.getMessage();
-      String str = "Encountered \" \"(\" \"( \"\" at line 1, column 7.";
+      String str = "Encountered \" <IDENTIFIER> \"abc \"\" at line 1, column 8.";
       System.out.println(errMsg);
       System.out.println(str);
       Assert.assertEquals(errMsg.startsWith(str), true);
