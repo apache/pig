@@ -26,6 +26,8 @@ Trunk (unreleased changes)
   OPTIMIZATIONS
 
   BUG FIXES
+    PIG-1095: Schema support of anonymous fields in COLECTION fails (yanz via
+				gates)
 
     PIG-1078: merge join with empty table failed (yanz via gates)
 
