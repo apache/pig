@@ -122,6 +122,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-1107: PigLineRecordReader bails out on an empty line for compressed data (ankit.modi via )
+
 PIG-1080: PigStorage may miss records when loading a file (rding via olgan)
 
 PIG-1071: Support comma separated file/directory names in load statements

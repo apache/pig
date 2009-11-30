@@ -133,7 +133,8 @@ public class PigLineRecordReader {
                 
                 if (b == '\n' ) {
                     byte[] array = mBuf.toByteArray();
-                    if (array[array.length-1]=='\r' && os==OS_WINDOWS) {
+                    if (array.length != 0 && array[array.length-1]=='\r' 
+                        && os==OS_WINDOWS) {
                         // Here we dont copy the last '\r' in the Text Value
                         value.append(array, 0, array.length - 1 );
                     } else {
