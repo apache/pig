@@ -24,6 +24,9 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-872: use distributed cache for the replicated data set in FR join
+(sriranjan via olgan)
+
 PIG-1085:  Pass JobConf and UDF specific configuration information to UDFs
 		   (gates)
 
