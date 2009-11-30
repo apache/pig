@@ -614,4 +614,97 @@ public class TestPigLineRecordReader extends TestCase {
             fail(e.getMessage());
         }
     }
+    
+    /**
+     * This tests check if PigLineRecordReader can read a file which has an empty line
+     */
+    @Test
+    public void testEmptyLineSimpleFile() {
+        try {
+            File testFile = File.createTempFile("testPigLineRecordReader", ".txt");
+            String text = "This is a text";
+            
+            PrintStream ps = new PrintStream( testFile );
+            for( int i = 0; i < LOOP_COUNT; i++ ) {
+                ps.println( text );
+                // Add an empty line
+                ps.println("");
+            }
+            ps.close();
+            
+            LocalSeekableInputStream is = new LocalSeekableInputStream( testFile );
+            BufferedPositionedInputStream bpis = new BufferedPositionedInputStream( is );
+            PigLineRecordReader reader = new PigLineRecordReader( bpis, 0, Integer.MAX_VALUE );
+            
+            Text value = new Text();
+            int counter = 0;
+            while( reader.next(value) ) {
+                if( counter % 2 == 0 ) {
+                    assertTrue( "Invalid Text", value.toString().compareTo(text) == 0 );
+                } else {
+                    assertTrue( "Invalid Text", value.toString().compareTo("") == 0 );                    
+                }
+                counter++;
+            }
+            assertEquals("Invalid number of lines", counter, LOOP_COUNT*2 );
+            testFile.deleteOnExit();
+            
+        } catch (IOException e) {
+            e.printStackTrace();
+            fail( e.getMessage() );
+        } catch (SecurityException e) {
+            e.printStackTrace();
+            fail( e.getMessage() );
+        } catch (IllegalArgumentException e) {            
+            e.printStackTrace();
+            fail(e.getMessage());
+        }
+    }
+    
+    /**
+     * This tests check if PigLineRecordReader can read a file which has an empty line
+     */
+    @Test
+    public void testEmptyLineBZFile() {
+        try {
+            File testFile = File.createTempFile("testPigLineRecordReader", ".txt.bz2");
+            String text = "This is a text";
+
+            PrintStream ps = new PrintStream( new CBZip2OutputStream( new FileOutputStream( testFile )) );
+            for( int i = 0; i < LOOP_COUNT; i++ ) {
+                ps.println( text );
+                // Add an empty line
+                ps.println("");
+            }
+            ps.close();
+
+            LocalSeekableInputStream is = new LocalSeekableInputStream( testFile );
+            CBZip2InputStream bzis = new CBZip2InputStream( is );
+            BufferedPositionedInputStream bpis = new BufferedPositionedInputStream( bzis );
+            PigLineRecordReader reader = new PigLineRecordReader( bpis, 0, Integer.MAX_VALUE );
+
+            Text value = new Text();
+            int counter = 0;
+            while( reader.next(value) ) {
+                if( counter % 2 == 0 ) {
+                    assertTrue( "Invalid Text", value.toString().compareTo(text) == 0 );
+                } else {
+                    assertTrue( "Invalid Text", value.toString().compareTo("") == 0 );                    
+                }
+                counter++;
+            }
+            assertEquals("Invalid number of lines", counter, LOOP_COUNT*2 );
+            testFile.deleteOnExit();
+
+        } catch (IOException e) {
+            e.printStackTrace();
+            fail( e.getMessage() );
+        } catch (SecurityException e) {
+            e.printStackTrace();
+            fail( e.getMessage() );
+        } catch (IllegalArgumentException e) {            
+            e.printStackTrace();
+            fail(e.getMessage());
+        }
+    }
 }
