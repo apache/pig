@@ -41,6 +41,9 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-1107: PigLineRecordReader bails out on an empty line for compressed data
+(ankit.modi via olgan)
+
 PIG-598: Parameter substitution ($PARAMETER) should not be performed in
 comments (thejas via olgan)
 
