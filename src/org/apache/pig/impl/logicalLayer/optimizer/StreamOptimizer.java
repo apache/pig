@@ -24,7 +24,6 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.LoadFunc;
 import org.apache.pig.PigException;
-import org.apache.pig.ReversibleLoadStoreFunc;
 import org.apache.pig.StoreFunc;
 import org.apache.pig.builtin.BinaryStorage;
 import org.apache.pig.impl.PigContext;
@@ -118,23 +117,7 @@ public class StreamOptimizer extends LogicalTransformer {
                 // LoadFunc and if it does, are they of the same _reversible_ 
                 // type?
                 boolean sameType = false;
-                try {
-                    // Check if the streamStorer is _reversible_ as 
-                    // the inputLoader ...
-                    if (streamStorer instanceof LoadFunc) {
-                        // Cast to check if they are of the same type...
-                        streamStorer.getClass().cast(inputLoader);
-                        LogFactory.getLog(this.getClass()).info("streamStorer:" + streamStorer + "," +
-                                "inputLoader:" + inputLoader);
-                        // Now check if they both are reversible...
-                        if (streamStorer instanceof ReversibleLoadStoreFunc &&
-                            inputLoader instanceof ReversibleLoadStoreFunc) {
-                            sameType = true;
-                        }
-                    }
-                } catch (ClassCastException cce) {
-                    sameType = false;
-                }
+ 
                 // Check if both LoadFunc objects belong to the same type and
                 // are equivalent
                 if (sameType && streamStorer.equals(inputLoader)) {
@@ -172,22 +155,7 @@ public class StreamOptimizer extends LogicalTransformer {
             // StoreFunc and if it does, are they of the same _reversible_ 
             // type?
             boolean sameType = false;
-            try {
-                // Check if the streamLoader is _reversible_ as 
-                // the inputLoader ...
-                if (streamLoader instanceof StoreFunc) {
-                    // Cast to check if they are of the same type...
-                    streamLoader.getClass().cast(outputStorer);
-                    
-                    // Now check if they both are reversible...
-                    if (streamLoader instanceof ReversibleLoadStoreFunc &&
-                        outputStorer instanceof ReversibleLoadStoreFunc) {
-                        sameType = true;
-                    }
-                }
-            } catch (ClassCastException cce) {
-                sameType = false;
-            }
+
             // Check if both LoadFunc objects belong to the same type and
             // are equivalent
             if (sameType && streamLoader.equals(outputStorer)) {

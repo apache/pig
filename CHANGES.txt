@@ -36,6 +36,10 @@ PIG-1094:  Fix unit tests corresponding to source changes so far (pradeepkth)
 PIG-1090:  Update sources to reflect recent changes in load-store interfaces
 (pradeepkth)
 
+PIG-1072: ReversibleLoadStoreFunc interface should be removed to enable
+different load and store implementation classes to be used in a reversible
+manner (rding via pradeepkth)
+
 IMPROVEMENTS
 
 PIG-1053: Consider moving to Hadoop for local mode (ankit.modi via olgan)

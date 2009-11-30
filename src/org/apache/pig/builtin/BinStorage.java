@@ -28,7 +28,6 @@ import java.util.Map;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.OutputFormat;
@@ -42,7 +41,6 @@ import org.apache.pig.LoadFunc;
 import org.apache.pig.PigException;
 import org.apache.pig.PigWarning;
 import org.apache.pig.ResourceSchema;
-import org.apache.pig.ReversibleLoadStoreFunc;
 import org.apache.pig.StoreFunc;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigSplit;
@@ -56,7 +54,7 @@ import org.apache.pig.impl.io.BinStorageRecordWriter;
 import org.apache.pig.impl.util.LogUtils;
 
 public class BinStorage extends FileInputLoadFunc 
-implements ReversibleLoadStoreFunc, LoadCaster, StoreFunc {
+implements LoadCaster, StoreFunc {
 
     
     public static final int RECORD_1 = 0x01;
