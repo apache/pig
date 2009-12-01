@@ -46,7 +46,7 @@ public class TestSchemaPrimitive {
 
   @Test
   public void testSchemaValid2() throws ParseException {
-    String strSch = "f1:int, f2, f3:float, f4, f5:string, f6:bytes";
+    String strSch = "f1:int, f2, f3:float, f4, f5:string, f6::f61, f7::f71:map";
     TableSchemaParser parser;
     Schema schema;
 
@@ -61,6 +61,14 @@ public class TestSchemaPrimitive {
     ColumnSchema f4 = schema.getColumn(3);
     Assert.assertEquals("f4", f4.getName());
     Assert.assertEquals(ColumnType.BYTES, f4.getType());
+    
+    ColumnSchema f6 = schema.getColumn(5);
+    Assert.assertEquals("f6::f61", f6.getName());
+    Assert.assertEquals(ColumnType.BYTES, f6.getType());
+    
+    ColumnSchema f7 = schema.getColumn(6);
+    Assert.assertEquals("f7::f71", f7.getName());
+    Assert.assertEquals(ColumnType.MAP, f7.getType());
   }
 
   /*
@@ -148,6 +156,25 @@ public class TestSchemaPrimitive {
     } catch (Exception e) {
       String errMsg = e.getMessage();
       String str = "Encountered \" <IDENTIFIER> \"abc \"\" at line 1, column 8.";
+      System.out.println(errMsg);
+      System.out.println(str);
+      Assert.assertEquals(errMsg.startsWith(str), true);
+    }
+  }
+  
+  @Test
+  public void testSchemaInvalid5() {
+    try {
+      String strSch = "f1:f11";
+      TableSchemaParser parser;
+      Schema schema;
+
+      parser = new TableSchemaParser(new StringReader(strSch));
+      schema = parser.RecordSchema(null);
+      System.out.println(schema);
+    } catch (Exception e) {
+      String errMsg = e.getMessage();
+      String str = "Encountered \" <IDENTIFIER> \"f11 \"\" at line 1, column 4.";
       System.out.println(errMsg);
       System.out.println(str);
       Assert.assertEquals(errMsg.startsWith(str), true);
