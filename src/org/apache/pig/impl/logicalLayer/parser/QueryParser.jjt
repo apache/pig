@@ -1476,10 +1476,10 @@ LogicalOperator LimitClause(LogicalPlan lp):
 {
         (
         input = NestedExpr(lp) {log.debug("Limit input: " + input);}
-       	 (
-       	    t = <INTEGER>     { l = Long.parseLong(t.image); }
+                (
+                   t = <INTEGER>     { l = Long.parseLong(t.image); }
           | t = <LONGINTEGER> { l = Long.parseLong(t.image.substring(0, t.image.length() - 1)); }
-         )
+                )
         )
         {
                 LogicalOperator limit = new LOLimit(lp, new OperatorKey(scope, getNextId()), l);
@@ -1748,6 +1748,11 @@ LogicalOperator CogroupClause(LogicalPlan lp) :
                     throw new ParseException("Collected group is only supported for columns or star projection");
                 }
                 cogroup = parseCogroup(gis, lp, LOCogroup.GROUPTYPE.COLLECTED);
+                cogroup.pinOption(LOCogroup.OPTION_GROUPTYPE);
+                }
+                |"\"regular\"" {
+                    cogroup = parseCogroup(gis, lp, LOCogroup.GROUPTYPE.REGULAR);
+                    cogroup.pinOption(LOCogroup.OPTION_GROUPTYPE);
                 }
                 )
             ]                                                                        
@@ -2044,9 +2049,7 @@ LogicalOperator JoinClause(LogicalPlan lp) :
 	ArrayList<CogroupInput> gis = new ArrayList<CogroupInput>(); 
 	log.trace("Entering JoinClause");
 	log.debug("LogicalPlan: " + lp);
-	LogicalOperator frj = null;
-	LogicalOperator skj = null;
-	LogicalOperator smj = null;
+	LogicalOperator joinOp = null;
 	boolean isLeftOuter = false;
 	boolean isRightOuter = false;
 	boolean isFullOuter = false;
@@ -2104,39 +2107,45 @@ LogicalOperator JoinClause(LogicalPlan lp) :
 	          if(isFullOuter || isRightOuter) {
 	              throw new ParseException("Replicated join does not support (right|full) outer joins");
 	          }
-				    frj = parseJoin(gis, lp, LOJoin.JOINTYPE.REPLICATED); 
+				    joinOp = parseJoin(gis, lp, LOJoin.JOINTYPE.REPLICATED); 
+				    joinOp.pinOption(LOJoin.OPTION_JOIN); 
 			    }
-			| "\"repl\"" { 
-				    if(isFullOuter || isRightOuter) {
+			| "\"repl\"" {
+                  if(isFullOuter || isRightOuter) {
 	                    throw new ParseException("Replicated join does not support (right|full) outer joins");
 	          }
-				    frj=parseJoin(gis, lp, LOJoin.JOINTYPE.REPLICATED);
-				}
+				    joinOp = parseJoin(gis, lp, LOJoin.JOINTYPE.REPLICATED);
+				    joinOp.pinOption(LOJoin.OPTION_JOIN);
+                  }
 		    |"\"skewed\"" {
-		    	    skj = parseJoin(gis, lp, LOJoin.JOINTYPE.SKEWED); 
+		    	    joinOp = parseJoin(gis, lp, LOJoin.JOINTYPE.SKEWED);
+		    	    joinOp.pinOption(LOJoin.OPTION_JOIN);
 		    	}
 		    |"\"merge\"" { 
 		    	    if(isOuter) {
                         throw new ParseException("Merge join does not support (left|right|full) outer joins");
                     }
-		    	    smj = parseJoin(gis, lp, LOJoin.JOINTYPE.MERGE); 
+		    	    joinOp = parseJoin(gis, lp, LOJoin.JOINTYPE.MERGE);
+		    	    joinOp.pinOption(LOJoin.OPTION_JOIN); 
+		    	}
+		    |"\"hash\"" {
+		    		joinOp = parseJoin(gis, lp, LOJoin.JOINTYPE.HASH);
+		    		joinOp.pinOption(LOJoin.OPTION_JOIN);
+		    	}
+		    |"\"default\"" {
+		    		joinOp = parseJoin(gis, lp, LOJoin.JOINTYPE.HASH);
+		    		joinOp.pinOption(LOJoin.OPTION_JOIN);
 		    	})
 	    ] 
     )
     )
 
 	{log.trace("Exiting JoinClause");
-	if (frj!=null) {
-		return frj;
+	if (joinOp!=null) {
+		return joinOp;
 	}
-	else if (skj!=null) {
-		return skj;
-	}
-	else if (smj!=null) {
-        return smj;
-    }
 	else {
-		return parseJoin(gis, lp, LOJoin.JOINTYPE.REGULAR);
+		return parseJoin(gis, lp, LOJoin.JOINTYPE.HASH);
 	}}
 	
 }

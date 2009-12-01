@@ -64,6 +64,11 @@ public class LOCogroup extends RelationalOperator {
     private MultiMap<LogicalOperator, LogicalPlan> mGroupByPlans;
     private GROUPTYPE mGroupType;
 
+    /** 
+     * static constant to refer to the option of selecting a group type
+     */
+    public final static Integer OPTION_GROUPTYPE = 1;
+
     /**
      * 
      * @param plan

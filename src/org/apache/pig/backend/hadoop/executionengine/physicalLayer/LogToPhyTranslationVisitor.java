@@ -969,7 +969,7 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
             logToPhyMap.put(loj, smj);
             return;
         }
-		else if (loj.getJoinType() == LOJoin.JOINTYPE.REGULAR){
+		else if (loj.getJoinType() == LOJoin.JOINTYPE.HASH){
 	        POGlobalRearrange poGlobal = new POGlobalRearrange(new OperatorKey(
 	                scope, nodeGen.getNextNodeId(scope)), loj
 	                .getRequestedParallelism());

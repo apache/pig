@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-990:  Provide a way to pin LogicalOperator Options (dvryaboy via gates)
+
 PIG-1103: refactoring of commit tests (olgan)
 
 PIG-1101: Allow arugment to limit to be long in addition to int (ashutoshc via
