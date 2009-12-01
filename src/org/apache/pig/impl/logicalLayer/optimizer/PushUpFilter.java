@@ -36,6 +36,7 @@ import org.apache.pig.impl.logicalLayer.LOFilter;
 import org.apache.pig.impl.logicalLayer.LOForEach;
 import org.apache.pig.impl.logicalLayer.LOLimit;
 import org.apache.pig.impl.logicalLayer.LOLoad;
+import org.apache.pig.impl.logicalLayer.LOProject;
 import org.apache.pig.impl.logicalLayer.LOSplit;
 import org.apache.pig.impl.logicalLayer.LOStore;
 import org.apache.pig.impl.logicalLayer.LOStream;
@@ -43,10 +44,12 @@ import org.apache.pig.impl.logicalLayer.LOSplitOutput;
 import org.apache.pig.impl.logicalLayer.LOUnion;
 import org.apache.pig.impl.logicalLayer.LogicalOperator;
 import org.apache.pig.impl.logicalLayer.LogicalPlan;
+import org.apache.pig.impl.logicalLayer.TopLevelProjectFinder;
 import org.apache.pig.impl.logicalLayer.UDFFinder;
 import org.apache.pig.impl.plan.DepthFirstWalker;
 import org.apache.pig.impl.plan.ProjectionMap;
 import org.apache.pig.impl.plan.RequiredFields;
+import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.plan.optimizer.OptimizerException;
 import org.apache.pig.PigException;
 import org.apache.pig.impl.util.MultiMap;
@@ -256,6 +259,18 @@ public class PushUpFilter extends LogicalTransformer {
 
                 Pair<Boolean, Set<Integer>> mappingResult = isRequiredFieldMapped(requiredField, predecessor.getProjectionMap());
                 boolean mapped = mappingResult.first;
+                
+                // Check if it is a direct mapping, that is, project optionally followed by cast, so if project->project, it is not
+                // considered as a mapping
+                for (Pair<Integer, Integer> pair : requiredField.getFields())
+                {
+                    if (!isFieldSimple(loForEach.getForEachPlans().get(pair.second)))
+                    {
+                        mapped = false;
+                        break;
+                    }
+                }
+                
                 if (!mapped) {
                     return false;
                 }
@@ -419,5 +434,45 @@ public class PushUpFilter extends LogicalTransformer {
         }
 
         return new Pair<Boolean, Set<Integer>>(true, grandParentIndexes);
+    }
+    
+    /**
+     * Check if the inner plan is simple
+     * 
+     * @param lp
+     *        logical plan to check
+     * @return Whether if the logical plan is a simple project optionally followed by cast
+     */
+    boolean isFieldSimple(LogicalPlan lp) throws OptimizerException
+    {
+        TopLevelProjectFinder projectFinder = new TopLevelProjectFinder(lp);
+            
+        try {
+            projectFinder.visit();
+        } catch (VisitorException ve) {
+            throw new OptimizerException();
+        }
+        if (projectFinder.getProjectSet()!=null && projectFinder.getProjectSet().size()==1)
+        {
+            LOProject project = projectFinder.getProjectSet().iterator().next();
+            if (lp.getPredecessors(project)==null)
+            {
+                LogicalOperator pred = project;
+                while (lp.getSuccessors(pred)!=null)
+                {
+                    if (lp.getSuccessors(pred).size()!=1)
+                        return false;
+                    if (!(lp.getSuccessors(pred).get(0) instanceof LOCast))
+                    {
+                        return false;
+                    }
+                    pred = lp.getSuccessors(pred).get(0);
+                }
+                return true;
+            }
+            return false;
+        }
+        else
+            return true;
     }
 }
