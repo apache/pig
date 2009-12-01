@@ -86,7 +86,8 @@ public class TypesUtils {
    */
   public static void resetTuple(Tuple tuple) {
     try {
-      for (int i = 0; i < tuple.size(); ++i) {
+      int tupleSize = tuple.size();
+      for (int i = 0; i < tupleSize; ++i) {
         tuple.set(i, null);
       }
     }
