@@ -73,7 +73,8 @@ TOKEN:
 |   <#OCTAL : ["0" - "7"] >
 |   <#SPECIALCHAR : ["_"] >
 |   <#FSSPECIALCHAR: ["-", ":", "/"]>
-|	<IDENTIFIER: ( <LETTER> )+ ( <DIGIT> | <LETTER> | <SPECIALCHAR> )* >
+| <#SCOPEOP : "::">
+|	<IDENTIFIER: ( <LETTER> )+ ( <DIGIT> | <LETTER> | <SPECIALCHAR> )* ( <SCOPEOP>  ( <LETTER> )+ ( <DIGIT> | <LETTER> | <SPECIALCHAR> )*)* >
 |   <SHORT	:	(<OCTAL>){3}	>
 }
 

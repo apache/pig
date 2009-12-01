@@ -8,6 +8,9 @@ Trunk (unreleased changes)
 
   IMPROVEMENTS
 
+	PIG-1074 Zebra store function should allow '::' in column names in output
+	schema (yanz via gates)
+
     PIG-1077 Support record(row)-based file split in Zebra's
 	TableInputFormat (chaow via gates)
 
