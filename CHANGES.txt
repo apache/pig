@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-978: MQ docs update (chandec via olgan)
+
 PIG-990:  Provide a way to pin LogicalOperator Options (dvryaboy via gates)
 
 PIG-1103: refactoring of commit tests (olgan)
