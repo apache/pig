@@ -52,6 +52,7 @@ import org.apache.hadoop.zebra.tfile.Utils.Version;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.zebra.io.ColumnGroup.Reader.CGRangeSplit;
 import org.apache.hadoop.zebra.io.ColumnGroup.Reader.CGRowSplit;
+import org.apache.hadoop.zebra.io.ColumnGroup.Reader.CGScanner;
 import org.apache.hadoop.zebra.types.CGSchema;
 import org.apache.hadoop.zebra.parser.ParseException;
 import org.apache.hadoop.zebra.types.Partition;
@@ -874,7 +875,7 @@ public class BasicTable {
      */
     private class BTScanner implements TableScanner {
       private Projection schema;
-      private TableScanner[] cgScanners;
+      private CGScanner[] cgScanners;
       private int opCount = 0;
       Random random = new Random(System.nanoTime());
       // checking for consistency once every 1000 times.
@@ -936,7 +937,7 @@ public class BasicTable {
       }
     
       // Helper function for initialization.
-      private TableScanner createCGScanner(int cgIndex, CGRowSplit cgRowSplit, 
+      private CGScanner createCGScanner(int cgIndex, CGRowSplit cgRowSplit, 
                                            RangeSplit rangeSplit,
                                            BytesWritable beginKey, 
                                            BytesWritable endKey) 
@@ -972,7 +973,7 @@ public class BasicTable {
         
         try {
           schema = partition.getProjection();
-          cgScanners = new TableScanner[colGroups.length];
+          cgScanners = new CGScanner[colGroups.length];
           for (int i = 0; i < colGroups.length; ++i) {
             if (!isCGDeleted(i) && partition.isCGNeeded(i)) 
             {
@@ -1020,7 +1021,7 @@ public class BasicTable {
         for (int nx = 0; nx < cgScanners.length; nx++) {
           if (cgScanners[nx] != null)
           {
-            cur = cgScanners[nx].advance();
+            cur = cgScanners[nx].advanceCG();
             if (!firstAdvance) {
               if (cur != first) {
                 throw new IOException(
@@ -1038,9 +1039,6 @@ public class BasicTable {
 
       @Override
       public boolean atEnd() throws IOException {
-        if (cgScanners.length == 0) {
-          return true;
-        }
         boolean ret = true;
         int i;
         for (i = 0; i < cgScanners.length; i++)
@@ -1077,16 +1075,12 @@ public class BasicTable {
 
       @Override
       public void getKey(BytesWritable key) throws IOException {
-        if (cgScanners.length == 0) {
-          return;
-        }
-        
         int i;
         for (i = 0; i < cgScanners.length; i++)
         {
           if (cgScanners[i] != null)
           {
-            cgScanners[i].getKey(key);
+            cgScanners[i].getCGKey(key);
             break;
           }
         }
@@ -1104,7 +1098,7 @@ public class BasicTable {
           if (cgScanners[index] != null)
           {
             BytesWritable key2 = new BytesWritable();
-            cgScanners[index].getKey(key2);
+            cgScanners[index].getCGKey(key2);
             if (key.equals(key2)) {
               return;
             }
@@ -1129,7 +1123,7 @@ public class BasicTable {
             {
               if (cgTuples[i] == null)
                 throw new AssertionError("cgTuples["+i+"] is null");
-              cgScanners[i].getValue(cgTuples[i]);
+              cgScanners[i].getCGValue(cgTuples[i]);
             }
           }
         }

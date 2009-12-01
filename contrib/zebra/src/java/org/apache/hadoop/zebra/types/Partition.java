@@ -444,14 +444,17 @@ public class Partition {
     }
 
     void insert(final BytesWritable key) throws ExecException {
-      for (int i = 0; i < mSize; i++)
-        ((Tuple) mTuple).set(mSources.get(i).getProjIndex(), mSources.get(i)
-            .getRecord());
+      for (int i = 0; i < mSize; i++) {
+        PartitionedColumn mSource = mSources.get(i);
+        ((Tuple) mTuple).set(mSource.getProjIndex(), mSource.getRecord());
+      }
     }
 
     void read() throws ExecException {
-      for (int i = 0; i < mSize; i++)
-        mSources.get(i).setRecord(mTuple.get(mSources.get(i).getProjIndex()));
+      for (int i = 0; i < mSize; i++) {
+        PartitionedColumn mSource = mSources.get(i);    	  
+        mSource.setRecord(mTuple.get(mSource.getProjIndex()));
+      }
     }
 
     void setSource(Tuple tuple) {
@@ -661,6 +664,7 @@ public class Partition {
   }
 
   private HashMap<Integer, CGEntry> mCGs = null; // involved CGs
+  private CGEntry[] mCGList = new CGEntry[0];
   private ArrayList<PartitionedColumn> mExecs = null; // stitches to be
   // performed in sequence:
   // called by LOAD
@@ -1177,6 +1181,10 @@ public class Partition {
     {
       result = new CGEntry(cgindex);
       mCGs.put(cgindex, result);
+      
+      // Constructing a collection of mCGs so that 
+      // we don't have to do it again [performance]
+      mCGList = (CGEntry[])mCGs.values().toArray(new CGEntry[mCGs.size()]);
     }
     return result;
   }
@@ -1269,20 +1277,23 @@ public class Partition {
    * read in a tuple based on stitches
    */
   public void read(Tuple t) throws AssertionError, IOException, Exception {
-    if (mStitchSize == 0 || mCGs == null || mCGs.isEmpty())
+    if (mStitchSize == 0 || mCGs == null || mCGList.length == 0)
       return;
 
     // dispatch
     mExecs.get(mStitchSize - 1).setRecord(t);
 
+    //Set<Map.Entry<Integer, CGEntry>> entrySet = mCGs.entrySet();
+    //Iterator<Map.Entry<Integer, CGEntry>> it = entrySet.iterator();
+    //while (it.hasNext())
+    //  it.next().getValue().read();
+
     // read in CG data
-    Set<Map.Entry<Integer, CGEntry>> entrySet = mCGs.entrySet();
-    Iterator<Map.Entry<Integer, CGEntry>> it = entrySet.iterator();
-    while (it.hasNext())
-      it.next().getValue().read();
+    for (int i = 0; i < mCGList.length; i++)
+      mCGList[i].read();
 
     // dispatch
-    mExecs.get(mStitchSize - 1).setRecord(t);
+    // mExecs.get(mStitchSize - 1).setRecord(t);
 
     // start the stitch
     for (int i = 0; i < mStitchSize; i++)
@@ -1296,7 +1307,7 @@ public class Partition {
    */
   public void insert(final BytesWritable key, final Tuple t)
       throws AssertionError, IOException, Exception {
-    if (mSplitSize == 0 || mCGs == null || mCGs.isEmpty())
+    if (mSplitSize == 0 || mCGs == null || mCGList.length == 0)
       throw new AssertionError("Empty Column Group List!");
 
     // dispatch
@@ -1308,10 +1319,14 @@ public class Partition {
       mExecs.get(i).split();
 
     // insert CG data
-    Set<Map.Entry<Integer, CGEntry>> entrySet = mCGs.entrySet();
-    Iterator<Map.Entry<Integer, CGEntry>> it = entrySet.iterator();
-    while (it.hasNext())
-      it.next().getValue().insert(key);
+    //Set<Map.Entry<Integer, CGEntry>> entrySet = mCGs.entrySet();
+    //Iterator<Map.Entry<Integer, CGEntry>> it = entrySet.iterator();
+    //while (it.hasNext())
+    //  it.next().getValue().insert(key);
+    
+    for (int i = 0; i < mCGList.length; i++)
+      mCGList[i].insert(key);
+    
     return;
   }
 
@@ -1323,12 +1338,16 @@ public class Partition {
       throw new ParseException(
           "Internal Logical Error: Invalid number of column groups");
     for (int i = 0; i < tuples.length; i++) {
-      if (mCGs.get(i) != null) {
+      CGEntry mCG = mCGs.get(i);
+      if (mCG != null) {
         if (tuples[i] == null) {
-          mCGs.get(i).cleanup();
+          mCG.cleanup();
           mCGs.remove(i);
+          // Constructing a collection of mCGs so that 
+          // we don't have to do it again [performance]
+          mCGList = (CGEntry[])mCGs.values().toArray(new CGEntry[mCGs.size()]);
         } else {
-          mCGs.get(i).setSource(tuples[i]);
+          mCG.setSource(tuples[i]);
         }
       }
     }
