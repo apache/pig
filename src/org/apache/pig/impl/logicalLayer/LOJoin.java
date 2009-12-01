@@ -49,12 +49,13 @@ public class LOJoin extends RelationalOperator {
      * Enum for the type of join
      */
 	public static enum JOINTYPE {
-        REGULAR, // Regular join
+        HASH,    // Hash Join
         REPLICATED, // Fragment Replicated join
         SKEWED, // Skewed Join
         MERGE   // Sort Merge Join
     };
 
+    
     /**
      * LOJoin contains a list of logical operators corresponding to the
      * relational operators and a list of generates for each relational
@@ -66,7 +67,12 @@ public class LOJoin extends RelationalOperator {
     private boolean[] mInnerFlags;
 	private JOINTYPE mJoinType; // Retains the type of the join
 
-    /**
+	/** 
+	 * static constant to refer to the option of selecting a join type
+	 */
+	public final static Integer OPTION_JOIN = 1;
+	
+	/**
      * 
      * @param plan
      *            LogicalPlan this operator is a part of.

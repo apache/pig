@@ -19,6 +19,7 @@
 package org.apache.pig.impl.logicalLayer;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.io.IOException;
@@ -82,6 +83,13 @@ abstract public class LogicalOperator extends Operator<LOVisitor> {
      * A boolean variable to remember if the projection map has been computed
      */
     protected boolean mIsProjectionMapComputed = false;
+    
+    /**
+     * A HashSet to indicate whether an option (such a Join Type) was pinned
+     * by the user or can be chosen at runtime by the optimizer.
+     */
+    protected HashSet<Integer> mPinnedOptions = new HashSet<Integer>();
+
     
     private static Log log = LogFactory.getLog(LogicalOperator.class);
 
@@ -218,6 +226,14 @@ abstract public class LogicalOperator extends Operator<LOVisitor> {
         mRequestedParallelism = newRequestedParallelism;
     }
 
+    public void pinOption(Integer opt) {
+        mPinnedOptions.add(opt);
+    }
+    
+    public boolean isPinnedOption(Integer opt) {
+        return mPinnedOptions.contains(opt);
+    }
+    
     @Override
     public String toString() {
         StringBuffer msg = new StringBuffer();
