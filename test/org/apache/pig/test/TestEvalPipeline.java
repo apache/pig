@@ -36,6 +36,7 @@ import junit.framework.TestCase;
 import org.apache.pig.ComparisonFunc;
 import org.apache.pig.EvalFunc;
 import org.apache.pig.ExecType;
+import org.apache.pig.FuncSpec;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.builtin.BinStorage;
@@ -168,7 +169,8 @@ public class TestEvalPipeline extends TestCase {
         tmpFile.deleteOnExit();
         String fileName = tmpFile.getAbsolutePath();
         PigFile f = new PigFile(fileName);
-        f.store(b, new BinStorage(), pigServer.getPigContext());        
+        f.store(b, new FuncSpec(BinStorage.class.getCanonicalName()),
+                pigServer.getPigContext());        
         
         pigServer.registerQuery("a = load '" + fileName + "' using BinStorage();");
         pigServer.registerQuery("b = foreach a generate $0#'apple',flatten($1#'orange');");

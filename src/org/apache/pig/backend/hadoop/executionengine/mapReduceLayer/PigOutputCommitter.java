@@ -30,6 +30,7 @@ import org.apache.pig.StoreFunc;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.util.ObjectSerializer;
+import org.apache.pig.impl.util.Pair;
 
 /**
  * A specialization of the default FileOutputCommitter to allow
@@ -41,12 +42,12 @@ public class PigOutputCommitter extends OutputCommitter {
     /**
      * OutputCommitter(s) of Store(s) in the map
      */
-    List<OutputCommitter> mapOutputCommitters;
+    List<Pair<OutputCommitter, POStore>> mapOutputCommitters;
     
     /**
      * OutputCommitter(s) of Store(s) in the reduce
      */
-    List<OutputCommitter> reduceOutputCommitters;
+    List<Pair<OutputCommitter, POStore>> reduceOutputCommitters;
     
     /**
      * Store(s) in the map
@@ -80,7 +81,8 @@ public class PigOutputCommitter extends OutputCommitter {
      * @throws IOException 
      */
     @SuppressWarnings("unchecked")
-    private List<OutputCommitter> getCommitters(TaskAttemptContext context,
+    private List<Pair<OutputCommitter, POStore>> getCommitters(
+            TaskAttemptContext context,
             String storeLookupKey) throws IOException {
         Configuration conf = context.getConfiguration();
         
@@ -94,25 +96,56 @@ public class PigOutputCommitter extends OutputCommitter {
                 deserialize(conf.get("udf.import.list")));
         LinkedList<POStore> stores = (LinkedList<POStore>) ObjectSerializer.
         deserialize(conf.get(storeLookupKey));
-        List<OutputCommitter> committers = new ArrayList<OutputCommitter>();
+        List<Pair<OutputCommitter, POStore>> committers = 
+            new ArrayList<Pair<OutputCommitter,POStore>>();
         for (POStore store : stores) {
             StoreFunc sFunc = store.getStoreFunc();
             
-            // call setLocation() on the storeFunc so that if there are any
-            // side effects like setting map.output.dir on the Configuration
-            // in the Context are needed by the OutputCommitter, those actions
-            // will be done before the committer is created.
-            PigOutputFormat.setLocation(context, sFunc, 
-                    store.getSFile().getFileName());
+            TaskAttemptContext updatedContext = setUpContext(context, store);
             try {
-                committers.add(sFunc.getOutputFormat().
-                        getOutputCommitter(context));
+                committers.add(new Pair<OutputCommitter, POStore>(
+                        sFunc.getOutputFormat().getOutputCommitter(
+                                updatedContext), store));
             } catch (InterruptedException e) {
                 throw new IOException(e);
             }
         }
         return committers;
         
+    }
+    
+    private TaskAttemptContext setUpContext(TaskAttemptContext context, 
+            POStore store) throws IOException {
+        // make a copy of the context so that the actions after this call
+        // do not end up updating the same context
+        TaskAttemptContext contextCopy = new TaskAttemptContext(
+                context.getConfiguration(), context.getTaskAttemptID());
+        
+        // call setLocation() on the storeFunc so that if there are any
+        // side effects like setting map.output.dir on the Configuration
+        // in the Context are needed by the OutputCommitter, those actions
+        // will be done before the committer is created. Also the String 
+        // version of StoreConfig and StoreFunc for the specific store need
+        // to be set up in the context in case the committer needs them
+        PigOutputFormat.setLocation(contextCopy, store);
+        return contextCopy;   
+    }
+    
+    private JobContext setUpContext(JobContext context, 
+            POStore store) throws IOException {
+        // make a copy of the context so that the actions after this call
+        // do not end up updating the same context
+        JobContext contextCopy = new JobContext(
+                context.getConfiguration(), context.getJobID());
+        
+        // call setLocation() on the storeFunc so that if there are any
+        // side effects like setting map.output.dir on the Configuration
+        // in the Context are needed by the OutputCommitter, those actions
+        // will be done before the committer is created. Also the String 
+        // version of StoreConfig and StoreFunc for the specific store need
+        // to be set up in the context in case the committer needs them
+        PigOutputFormat.setLocation(contextCopy, store);
+        return contextCopy;   
     }
 
     /* (non-Javadoc)
@@ -121,11 +154,16 @@ public class PigOutputCommitter extends OutputCommitter {
     @Override
     public void cleanupJob(JobContext context) throws IOException {
         // call clean up on all map and reduce committers
-        for (OutputCommitter mapCommitter : mapOutputCommitters) {
-            mapCommitter.cleanupJob(context);
+        for (Pair<OutputCommitter, POStore> mapCommitter : mapOutputCommitters) {
+            JobContext updatedContext = setUpContext(context, 
+                    mapCommitter.second);
+            mapCommitter.first.cleanupJob(updatedContext);
         }
-        for (OutputCommitter reduceCommitter : reduceOutputCommitters) {
-            reduceCommitter.cleanupJob(context);
+        for (Pair<OutputCommitter, POStore> reduceCommitter : 
+            reduceOutputCommitters) {
+            JobContext updatedContext = setUpContext(context, 
+                    reduceCommitter.second);
+            reduceCommitter.first.cleanupJob(updatedContext);
         }
        
     }
@@ -136,12 +174,18 @@ public class PigOutputCommitter extends OutputCommitter {
     @Override
     public void abortTask(TaskAttemptContext context) throws IOException {
         if(context.getTaskAttemptID().isMap()) {
-            for (OutputCommitter mapCommitter : mapOutputCommitters) {
-                mapCommitter.abortTask(context);
+            for (Pair<OutputCommitter, POStore> mapCommitter : 
+                mapOutputCommitters) {
+                TaskAttemptContext updatedContext = setUpContext(context, 
+                        mapCommitter.second);
+                mapCommitter.first.abortTask(updatedContext);
             } 
         } else {
-            for (OutputCommitter reduceCommitter : reduceOutputCommitters) {
-                reduceCommitter.abortTask(context);
+            for (Pair<OutputCommitter, POStore> reduceCommitter : 
+                reduceOutputCommitters) {
+                TaskAttemptContext updatedContext = setUpContext(context, 
+                        reduceCommitter.second);
+                reduceCommitter.first.abortTask(updatedContext);
             } 
         }
     }
@@ -152,12 +196,18 @@ public class PigOutputCommitter extends OutputCommitter {
     @Override
     public void commitTask(TaskAttemptContext context) throws IOException {
         if(context.getTaskAttemptID().isMap()) {
-            for (OutputCommitter mapCommitter : mapOutputCommitters) {
-                mapCommitter.commitTask(context);
+            for (Pair<OutputCommitter, POStore> mapCommitter : 
+                mapOutputCommitters) {
+                TaskAttemptContext updatedContext = setUpContext(context, 
+                        mapCommitter.second);
+                mapCommitter.first.commitTask(updatedContext);
             } 
         } else {
-            for (OutputCommitter reduceCommitter : reduceOutputCommitters) {
-                reduceCommitter.commitTask(context);
+            for (Pair<OutputCommitter, POStore> reduceCommitter : 
+                reduceOutputCommitters) {
+                TaskAttemptContext updatedContext = setUpContext(context, 
+                        reduceCommitter.second);
+                reduceCommitter.first.commitTask(updatedContext);
             } 
         }
     }
@@ -170,13 +220,21 @@ public class PigOutputCommitter extends OutputCommitter {
             throws IOException {
         boolean needCommit = false;
         if(context.getTaskAttemptID().isMap()) {
-            for (OutputCommitter mapCommitter : mapOutputCommitters) {
-                needCommit = needCommit || mapCommitter.needsTaskCommit(context);
+            for (Pair<OutputCommitter, POStore> mapCommitter : 
+                mapOutputCommitters) {
+                TaskAttemptContext updatedContext = setUpContext(context, 
+                        mapCommitter.second);
+                needCommit = needCommit || 
+                mapCommitter.first.needsTaskCommit(updatedContext);
             } 
             return needCommit;
         } else {
-            for (OutputCommitter reduceCommitter : reduceOutputCommitters) {
-                needCommit = needCommit || reduceCommitter.needsTaskCommit(context);
+            for (Pair<OutputCommitter, POStore> reduceCommitter : 
+                reduceOutputCommitters) {
+                TaskAttemptContext updatedContext = setUpContext(context, 
+                        reduceCommitter.second);
+                needCommit = needCommit || 
+                reduceCommitter.first.needsTaskCommit(updatedContext);
             } 
             return needCommit;
         }
@@ -188,11 +246,16 @@ public class PigOutputCommitter extends OutputCommitter {
     @Override
     public void setupJob(JobContext context) throws IOException {
         // call set up on all map and reduce committers
-        for (OutputCommitter mapCommitter : mapOutputCommitters) {
-            mapCommitter.setupJob(context);
+        for (Pair<OutputCommitter, POStore> mapCommitter : mapOutputCommitters) {
+            JobContext updatedContext = setUpContext(context, 
+                    mapCommitter.second);
+            mapCommitter.first.setupJob(updatedContext);
         }
-        for (OutputCommitter reduceCommitter : reduceOutputCommitters) {
-            reduceCommitter.setupJob(context);
+        for (Pair<OutputCommitter, POStore> reduceCommitter : 
+            reduceOutputCommitters) {
+            JobContext updatedContext = setUpContext(context, 
+                    reduceCommitter.second);
+            reduceCommitter.first.setupJob(updatedContext);
         }
     }
     
@@ -202,12 +265,18 @@ public class PigOutputCommitter extends OutputCommitter {
     @Override
     public void setupTask(TaskAttemptContext context) throws IOException {
         if(context.getTaskAttemptID().isMap()) {
-            for (OutputCommitter mapCommitter : mapOutputCommitters) {
-                mapCommitter.setupTask(context);
+            for (Pair<OutputCommitter, POStore> mapCommitter : 
+                mapOutputCommitters) {
+                TaskAttemptContext updatedContext = setUpContext(context, 
+                        mapCommitter.second);
+                mapCommitter.first.setupTask(updatedContext);
             } 
         } else {
-            for (OutputCommitter reduceCommitter : reduceOutputCommitters) {
-                reduceCommitter.setupTask(context);
+            for (Pair<OutputCommitter, POStore> reduceCommitter : 
+                reduceOutputCommitters) {
+                TaskAttemptContext updatedContext = setUpContext(context, 
+                        reduceCommitter.second);
+                reduceCommitter.first.setupTask(updatedContext);
             } 
         }
     }

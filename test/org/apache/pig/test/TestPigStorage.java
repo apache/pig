@@ -92,7 +92,7 @@ public class TestPigStorage {
             
             Util.copyFromLocalToCluster(cluster, INPUT_FILE, INPUT_FILE);
             
-            pigServer.registerQuery("a = load 'file:" + INPUT_FILE + "';");
+            pigServer.registerQuery("a = load '" + INPUT_FILE + "';");
             
             Iterator<Tuple> iter = pigServer.openIterator("a");
             int counter = 0;

@@ -129,8 +129,10 @@ public class PigStorage extends FileInputLoadFunc implements StoreFunc {
             mProtoTuple = null;
             return t;
         } catch (InterruptedException e) {
-            // FIXME: XXX - include errorcode
-            throw new IOException("Error getting input");
+            int errCode = 6018;
+            String errMsg = "Error while reading input";
+            throw new ExecException(errMsg, errCode, 
+                    PigException.REMOTE_ENVIRONMENT, e);
         }
 
     }

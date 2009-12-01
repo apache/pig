@@ -165,6 +165,11 @@ public class TestPackage extends junit.framework.TestCase {
     public void testOperator() throws ExecException, IOException{
         byte[] types = DataType.genAllTypes();
         for (byte b : types) {
+            if(b == DataType.GENERIC_WRITABLECOMPARABLE) {
+                // genericwritablecomparable is only used in
+                // merge join which we will not test here
+                continue;
+            }
             System.out.println("Type " + DataType.findTypeName(b));
             boolean succ = true;
             int NUM_TRIALS = 10;

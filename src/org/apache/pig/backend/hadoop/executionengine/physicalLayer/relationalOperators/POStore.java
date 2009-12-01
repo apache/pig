@@ -89,7 +89,7 @@ public class POStore extends PhysicalOperator {
     public void setUp() throws IOException{
         if (impl != null) {
             try{
-                storer = impl.createStoreFunc(sFile, schema, sortInfo);
+                storer = impl.createStoreFunc(this);
             }catch (IOException ioe) {
                 int errCode = 2081;
                 String msg = "Unable to setup the store function.";            

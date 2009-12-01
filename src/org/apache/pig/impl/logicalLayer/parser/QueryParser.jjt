@@ -1245,8 +1245,8 @@ LogicalOperator LoadClause(LogicalPlan lp) :
 
         Object obj = PigContext.instantiateFuncFromSpec(funcSpec);
         LoadFunc loFunc = (LoadFunc)obj;
-        String absolutePath = loFunc.relativeToAbsolutePath(filename, getCurrentDir(pigContext));
         try {
+            String absolutePath = loFunc.relativeToAbsolutePath(filename, getCurrentDir(pigContext));
             lo = new LOLoad(lp, new OperatorKey(scope, getNextId()), new FileSpec(absolutePath, funcSpec),
                   pigContext.getExecType(), pigContext.getFs(), splittable);
         } catch (IOException ioe) {

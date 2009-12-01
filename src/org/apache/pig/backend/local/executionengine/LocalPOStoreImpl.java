@@ -26,6 +26,7 @@ import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStoreImpl;
 
 /**
@@ -33,7 +34,11 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
  * execution engine. It creates and manages the store function and the
  * output stream of the store.
  */
-// XXX: FIXME make this work with new loadstore redesign
+// **********************************
+// THIS CLASS IS NO LONGER BEING USED
+// **********************************
+// XXX: FIXME THis file should be deleted as part of cleaning
+// up for moving local mode to hadoop's local mode 
 public class LocalPOStoreImpl extends POStoreImpl {
 
     private OutputStream os;
@@ -46,9 +51,9 @@ public class LocalPOStoreImpl extends POStoreImpl {
     }
 
     @Override
-    public StoreFunc createStoreFunc(FileSpec sFile, Schema schema, SortInfo sortInfo) 
+    public StoreFunc createStoreFunc(POStore store) 
         throws IOException {
-        this.sFile = sFile;
+        this.sFile = store.getSFile();
         storer = (StoreFunc)PigContext.instantiateFuncFromSpec(sFile.getFuncSpec());
         os = FileLocalizer.create(sFile.getFileName(), pc);
 //        storer.bindTo(os);
@@ -69,4 +74,5 @@ public class LocalPOStoreImpl extends POStoreImpl {
             FileLocalizer.delete(fName,pc);
         }
     }
+
 }

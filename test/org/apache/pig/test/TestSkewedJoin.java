@@ -279,9 +279,9 @@ public class TestSkewedJoin extends TestCase{
          new File("skewedjoin").mkdir();
          // check how many times a key appear in each part- file
          for(int i=0; i<7; i++) {
-        	 Util.copyFromClusterToLocal(cluster, "skewedjoin/part-0000"+i, "skewedjoin/part-0000"+i);
+        	 Util.copyFromClusterToLocal(cluster, "skewedjoin/part-r-0000"+i, "skewedjoin/part-r-0000"+i);
         	 
-        	 BufferedReader reader = new BufferedReader(new FileReader("skewedjoin/part-0000"+i));
+        	 BufferedReader reader = new BufferedReader(new FileReader("skewedjoin/part-r-0000"+i));
       	     String line = null;      	     
       	     while((line = reader.readLine()) != null) {
       	        String[] cols = line.split("\t");

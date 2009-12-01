@@ -132,6 +132,7 @@ public class JobControlCompiler{
      */
     public static final String PIG_MAP_STORES = "pig.map.stores";
     public static final String PIG_REDUCE_STORES = "pig.reduce.stores";
+    public static final String PIG_STORE_FUNC = "pig.storeFunc";
     
     // A mapping of job to pair of store locations and tmp locations for that job
     private Map<Job, Pair<List<POStore>, Path>> jobStoreMap;
@@ -473,7 +474,7 @@ public class JobControlCompiler{
                 // get encoded as regular characters. Otherwise any control characters
                 // in the store funcspec would break the job.xml which is created by
                 // hadoop from the jobconf.
-                conf.set("pig.storeFunc", ObjectSerializer.serialize(outputFuncSpec.toString()));
+                conf.set(PIG_STORE_FUNC, ObjectSerializer.serialize(outputFuncSpec.toString()));
                 conf.set(PIG_STORE_CONFIG, 
                             ObjectSerializer.serialize(
                                     new StoreConfig(outputPath, st.getSchema(), st.getSortInfo())));

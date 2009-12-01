@@ -28,14 +28,17 @@ import org.apache.hadoop.mapreduce.OutputFormat;
 import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.TaskAttemptID;
+import org.apache.pig.FuncSpec;
 import org.apache.pig.LoadFunc;
 import org.apache.pig.StoreFunc;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigOutputFormat;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
+import org.apache.pig.impl.plan.OperatorKey;
 
 
 
@@ -64,16 +67,21 @@ public class PigFile {
     }
 
     
-    public void store(DataBag data, StoreFunc sfunc, PigContext pigContext) throws IOException {
+    public void store(DataBag data, FuncSpec storeFuncSpec, PigContext pigContext) throws IOException {
         Configuration conf = ConfigurationUtil.toConfiguration(pigContext.getProperties());
         // create a simulated JobContext
         JobContext jc = new JobContext(conf, new JobID());
+        StoreFunc sfunc = (StoreFunc)PigContext.instantiateFuncFromSpec(
+                storeFuncSpec);
         OutputFormat<?,?> of = sfunc.getOutputFormat();
-        PigOutputFormat.setLocation(jc, sfunc, file);
+        
+        POStore store = new POStore(new OperatorKey());
+        store.setSFile(new FileSpec(file, storeFuncSpec));
+        PigOutputFormat.setLocation(jc, store);
         OutputCommitter oc;
         // create a simulated TaskAttemptContext
         TaskAttemptContext tac = new TaskAttemptContext(conf, new TaskAttemptID());
-        PigOutputFormat.setLocation(tac, sfunc, file);
+        PigOutputFormat.setLocation(tac, store);
         RecordWriter<?,?> rw ;
         try {
             of.checkOutputSpecs(jc);

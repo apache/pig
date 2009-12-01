@@ -36,6 +36,7 @@ import junit.framework.TestCase;
 import org.apache.pig.ComparisonFunc;
 import org.apache.pig.EvalFunc;
 import org.apache.pig.ExecType;
+import org.apache.pig.FuncSpec;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.builtin.BinStorage;
@@ -178,12 +179,14 @@ public class TestEvalPipelineLocal extends TestCase {
         t.append(weights);
         b.add(t);
         
-        String fileName = "file:"+File.createTempFile("tmp", "");
+        File tempF = File.createTempFile("tmp", "");
+        String fileName = tempF.getCanonicalPath();
+        tempF.delete(); // we only needed the temp file name, so delete the file
         PigFile f = new PigFile(fileName);
-        f.store(b, new BinStorage(), pigServer.getPigContext());
+        f.store(b, new FuncSpec(BinStorage.class.getCanonicalName()), pigServer.getPigContext());
         
         
-        pigServer.registerQuery("a = load '" + Util.encodeEscape(fileName) + "' using BinStorage();");
+        pigServer.registerQuery("a = load '" + fileName + "' using BinStorage();");
         pigServer.registerQuery("b = foreach a generate $0#'apple',flatten($1#'orange');");
         Iterator<Tuple> iter = pigServer.openIterator("b");
         t = iter.next();
@@ -790,7 +793,7 @@ public class TestEvalPipelineLocal extends TestCase {
                 + MapUDF.class.getName() + "($0) as mymap;"); // the argument
                                                               // does not matter
         String query = "C = foreach B {"
-                + "generate (double)mymap#'double' as d, (long)mymap#'long' "
+                + "generate (double)mymap#'double' as d, (long)mymap#'long' + "
                 + "(float)mymap#'float' as float_sum, CONCAT((chararray) mymap#'string', ' World!'), mymap#'int' * 10, (bag{tuple()}) mymap#'bag' as mybag, (tuple()) mymap#'tuple' as mytuple, (map[])mymap#'map' as mapInMap, mymap#'dba' as dba;"
                 + "};";
 
@@ -817,8 +820,8 @@ public class TestEvalPipelineLocal extends TestCase {
     public void testMapUDFFail() throws Exception{
         int LOOP_COUNT = 2;
         File tmpFile = File.createTempFile("test", "txt");
+        tmpFile.deleteOnExit();
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
-        Random r = new Random();
         for(int i = 0; i < LOOP_COUNT; i++) {
             for(int j=0;j<LOOP_COUNT;j+=2){
                 ps.println(i+"\t"+j);
@@ -827,8 +830,6 @@ public class TestEvalPipelineLocal extends TestCase {
         }
         ps.close();
 
-        String tmpOutputFile = FileLocalizer.getTemporaryPath(null, 
-        pigServer.getPigContext()).toString();
         pigServer.registerQuery("A = LOAD '"
                 + Util.generateURI(tmpFile.toString(), pigServer
                         .getPigContext()) + "';");

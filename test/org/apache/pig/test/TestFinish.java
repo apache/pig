@@ -23,11 +23,9 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.Iterator;
-import java.util.Random;
 
 import junit.framework.TestCase;
 
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.pig.EvalFunc;
@@ -37,12 +35,9 @@ import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.data.BagFactory;
-import org.apache.pig.data.DataBag;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.io.FileLocalizer;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
 
 public class TestFinish extends TestCase {
@@ -53,11 +48,9 @@ public class TestFinish extends TestCase {
     BagFactory mBf = BagFactory.getInstance();
     File f1;
     
-    public static int gCount = 0;
     MiniCluster cluster = MiniCluster.buildCluster();
     
     static public class MyEvalFunction extends EvalFunc<Tuple>{
-        int count = 0;
         
         String execType;
         String expectedFileName;
@@ -71,27 +64,26 @@ public class TestFinish extends TestCase {
         
         @Override
         public Tuple exec(Tuple input) throws IOException {
-            ++count;
             return input;
         }
 
         @Override
         public void finish() {
-            gCount = count;
-            if(execType.equals("MAPREDUCE")) {
-                try {
-                    FileSystem fs = FileSystem.get(PigMapReduce.sJobConf);
-                    fs.create(new Path(expectedFileName));
-                } catch (IOException e) {
-                    throw new RuntimeException("Unable to create file:" + expectedFileName);
-                }
-            } else if(execType.equals("LOCAL")){
-                // XXX: FIXME need to handle this as part of fixing local mode for load-store-redesign
-                // local mode will soon be hadoop local mode - if so - can the above code just be 
-                // used as is and it would create a local file?
+            try {
+                FileSystem fs = FileSystem.get(PigMapReduce.sJobConf);
+                fs.create(new Path(expectedFileName));
+            } catch (IOException e) {
+                throw new RuntimeException("Unable to create file:" + expectedFileName);
             }
-            System.err.println("XXX: In finish, gCount is now:" + gCount);
         }
+    }
+    
+    @Override
+    protected void setUp() throws Exception {
+        // re initialize FileLocalizer so that each test runs correctly without
+        // any side effect of other tests - this is needed here since some
+        // tests are in mapred and some in local mode
+        FileLocalizer.setInitialized(false);
     }
     
     private String setUp(ExecType execType) throws Exception{
@@ -120,9 +112,24 @@ public class TestFinish extends TestCase {
         return inputFileName;
     }
     
+    private void checkAndCleanup(ExecType execType, String expectedFileName,
+            String inputFileName) throws IOException {
+        if(execType == ExecType.MAPREDUCE) {
+            FileSystem fs = FileSystem.get(ConfigurationUtil.toConfiguration(
+                    cluster.getProperties()));
+            assertTrue(fs.exists(new Path(expectedFileName)));
+            Util.deleteFile(cluster, inputFileName);
+            Util.deleteFile(cluster, expectedFileName);
+        } else if (execType == ExecType.LOCAL) {
+            assertTrue(new File(expectedFileName).exists());
+        } else {
+            throw new IllegalArgumentException("invalid excetype " + execType.
+                    toString());
+        }
+    }
+    
     @Test
     public void testFinishInMapMR() throws Exception{
-        gCount = 0;
         String inputFileName = setUp(ExecType.MAPREDUCE);
         // this file will be created on the cluster if finish() is called
         String expectedFileName = "testFinishInMapMR-finish.txt";
@@ -130,21 +137,16 @@ public class TestFinish extends TestCase {
         pigServer.registerQuery("a = load '" + inputFileName + "' using " + PigStorage.class.getName() + "(':');");
         pigServer.registerQuery("b = foreach a generate MYUDF" + "(*);");
         Iterator<Tuple> iter = pigServer.openIterator("b");
-        int count = 0;
         while(iter.hasNext()){
-            ++count;
             iter.next();
         }
         
-        FileSystem fs = FileSystem.get(ConfigurationUtil.toConfiguration(cluster.getProperties()));
-        assertTrue(fs.exists(new Path(expectedFileName)));
-        Util.deleteFile(cluster, inputFileName);
-        Util.deleteFile(cluster, expectedFileName);
+        checkAndCleanup(ExecType.MAPREDUCE, expectedFileName, inputFileName);
+        
     }
     
     @Test
     public void testFinishInReduceMR() throws Exception{
-        gCount = 0;
         String inputFileName = setUp(ExecType.MAPREDUCE);
         // this file will be created on the cluster if finish() is called
         String expectedFileName = "testFinishInReduceMR-finish.txt";
@@ -153,35 +155,28 @@ public class TestFinish extends TestCase {
         pigServer.registerQuery("a1 = group a by $1;");
         pigServer.registerQuery("b = foreach a1 generate MYUDF" + "(*);");
         Iterator<Tuple> iter = pigServer.openIterator("b");
-        int count = 0;
         while(iter.hasNext()){
-            ++count;
             iter.next();
         }
         
-        FileSystem fs = FileSystem.get(ConfigurationUtil.toConfiguration(cluster.getProperties()));
-        assertTrue(fs.exists(new Path(expectedFileName)));
-        Util.deleteFile(cluster, inputFileName);
-        Util.deleteFile(cluster, expectedFileName);
+        checkAndCleanup(ExecType.MAPREDUCE, expectedFileName, inputFileName);
     }
     
     @Test
     public void testFinishInMapLoc() throws Exception{
         String inputFileName = setUp(ExecType.LOCAL);
-        gCount = 0;
         // this file will be created on the cluster if finish() is called
         String expectedFileName = "testFinishInMapLoc-finish.txt";
         pigServer.registerQuery("define MYUDF " + MyEvalFunction.class.getName() + "('LOCAL','" + expectedFileName + "');");
         pigServer.registerQuery("a = load '" + inputFileName + "' using " + PigStorage.class.getName() + "(':');");
         pigServer.registerQuery("b = foreach a generate MYUDF" + "(*);");
         pigServer.openIterator("b");
-        assertEquals(true, gCount==3);
+        checkAndCleanup(ExecType.LOCAL, expectedFileName, inputFileName);
     }
     
     @Test
     public void testFinishInReduceLoc() throws Exception{
         String inputFileName = setUp(ExecType.LOCAL);
-        gCount = 0;
         // this file will be created on the cluster if finish() is called
         String expectedFileName = "testFinishInReduceLoc-finish.txt";
         pigServer.registerQuery("define MYUDF " + MyEvalFunction.class.getName() + "('LOCAL','" + expectedFileName + "');");
@@ -189,11 +184,7 @@ public class TestFinish extends TestCase {
         pigServer.registerQuery("a1 = group a by $1;");
         pigServer.registerQuery("b = foreach a1 generate MYUDF" + "(*);");
         pigServer.openIterator("b");
-        assertEquals(true, gCount==1);
-    }
-
-    @After
-    public void tearDown() throws Exception {
+        checkAndCleanup(ExecType.LOCAL, expectedFileName, inputFileName);
     }
 
 }

@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
+import java.util.regex.Pattern;
 
 import junit.framework.Assert;
 
@@ -32,7 +33,6 @@ import org.apache.pig.ExecType;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.datastorage.DataStorage;
-import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLoad;
@@ -164,32 +164,49 @@ public class TestLoad extends junit.framework.TestCase {
 
     @Test
     public void testCommaSeparatedString() throws Exception {
-        checkLoadPath("usr/pig/a,usr/pig/b","/tmp/usr/pig/a,/tmp/usr/pig/b");
+        for (PigServer pig : servers) {
+            pc = pig.getPigContext();
+            checkLoadPath("usr/pig/a,usr/pig/b","/tmp/usr/pig/a,/tmp/usr/pig/b");
+        }
     }
 
     @Test
     public void testCommaSeparatedString2() throws Exception {
-        checkLoadPath("t?s*,test","/tmp/t?s*,/tmp/test");
+        for (PigServer pig : servers) {
+            pc = pig.getPigContext();
+            checkLoadPath("t?s*,test","/tmp/t?s*,/tmp/test");
+        }
     }
 
     @Test
     public void testCommaSeparatedString3() throws Exception {
+        PigServer pig = servers[0];
+        pc = pig.getPigContext();
         checkLoadPath("hdfs:/tmp/test,hdfs:/tmp/test2,hdfs:/tmp/test3","/tmp/test,/tmp/test2,/tmp/test3");
     }
     
     @Test
     public void testCommaSeparatedString4() throws Exception {
-        checkLoadPath("usr/pig/{a,c},usr/pig/b","/tmp/usr/pig/{a,c},/tmp/usr/pig/b");
+        for (PigServer pig : servers) {
+            pc = pig.getPigContext();
+            checkLoadPath("usr/pig/{a,c},usr/pig/b","/tmp/usr/pig/{a,c},/tmp/usr/pig/b");
+        }
     }
 
     @Test
     public void testCommaSeparatedString5() throws Exception {
-        checkLoadPath("/usr/pig/{a,c},usr/pig/b","/usr/pig/{a,c},/tmp/usr/pig/b");
+        for (PigServer pig : servers) {
+            pc = pig.getPigContext();
+            checkLoadPath("/usr/pig/{a,c},usr/pig/b","/usr/pig/{a,c},/tmp/usr/pig/b");
+        }
     }
     
     @Test
     public void testCommaSeparatedString6() throws Exception {
-        checkLoadPath("usr/pig/{a,c},/usr/pig/b","/tmp/usr/pig/{a,c},/usr/pig/b");
+        for (PigServer pig : servers) {
+            pc = pig.getPigContext();
+            checkLoadPath("usr/pig/{a,c},/usr/pig/b","/tmp/usr/pig/{a,c},/usr/pig/b");
+        }
     }    
 
     private void checkLoadPath(String orig, String expected) throws Exception {
@@ -218,14 +235,15 @@ public class TestLoad extends junit.framework.TestCase {
         LOLoad load = (LOLoad)op;
 
         String p = load.getInputFile().getFileName();
-        
+        System.err.println("DEBUG: p:" + p + " expected:" + expected +", exectype:" + pc.getExecType());        
         if (pc.getExecType() == ExecType.MAPREDUCE) {
-            p = p.replaceAll("hdfs://[0-9a-zA-Z:\\.]*/","/");
+            Assert.assertTrue(p.matches("hdfs://[0-9a-zA-Z:\\.]*.*"));
+            Assert.assertEquals(p.replaceAll("hdfs://[0-9a-zA-Z:\\.]*/", "/"),
+                    expected);
         } else {
-            System.out.println("++++ p: " + p);
-            p = p.replaceAll("file://[0-9a-zA-Z:\\.]*/","/");
+            Assert.assertTrue(p.matches("file://[0-9a-zA-Z:\\.]*.*"));
+            Assert.assertEquals(p.replaceAll("file://[0-9a-zA-Z:\\.]*/", "/"),
+                    expected);
         }
-        
-        Assert.assertEquals(expected, p);
     }
 }

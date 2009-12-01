@@ -43,11 +43,13 @@ import junit.framework.Assert;
 
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
+import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRCompiler;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROperPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.LogToPhyTranslationVisitor;
@@ -331,13 +333,18 @@ public class Util {
 	static public void copyFromClusterToLocal(MiniCluster cluster, String fileNameOnCluster, String localFileName) throws IOException {
 	    PrintWriter writer = new PrintWriter(new FileWriter(localFileName));
 	    
-	    FileSystem fs = cluster.getFileSystem();
+	    FileSystem fs = FileSystem.get(ConfigurationUtil.toConfiguration(
+	            cluster.getProperties()));
         if(!fs.exists(new Path(fileNameOnCluster))) {
             throw new IOException("File " + fileNameOnCluster + " does not exists on the minicluster");
         }
         
         String line = null;
- 	   
+ 	   FileStatus fst = fs.getFileStatus(new Path(fileNameOnCluster));
+ 	   if(fst.isDir()) {
+ 	       throw new IOException("Only files from cluster can be copied locally," +
+ 	       		" " + fileNameOnCluster + " is a directory");
+ 	   }
         FSDataInputStream stream = fs.open(new Path(fileNameOnCluster));
         BufferedReader reader = new BufferedReader(new InputStreamReader(stream));
         while( (line = reader.readLine()) != null) {
@@ -398,7 +405,7 @@ public class Util {
         if (context.getExecType() == ExecType.MAPREDUCE) {
             return FileLocalizer.hadoopify(filename, context);
         } else if (context.getExecType() == ExecType.LOCAL) {
-            return "file://" + filename;
+            return filename;
         } else {
             throw new IllegalStateException("ExecType: " + context.getExecType());
         }

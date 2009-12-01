@@ -48,6 +48,7 @@ import org.apache.hadoop.mapreduce.OutputFormat;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.util.Progressable;
 import org.apache.pig.ExecType;
+import org.apache.pig.LoadFunc;
 import org.apache.pig.PigException;
 import org.apache.pig.PigServer;
 import org.apache.pig.ResourceSchema;
@@ -2332,7 +2333,7 @@ public class TestMultiQuery {
         @Override
         public org.apache.hadoop.mapreduce.OutputFormat getOutputFormat()
                 throws IOException {
-            return null;
+            return new DummyOutputFormat();
         }
 
 
@@ -2353,8 +2354,7 @@ public class TestMultiQuery {
         @Override
         public String relToAbsPathForStoreLocation(String location, Path curDir)
                 throws IOException {
-            // TODO Auto-generated method stub
-            return null;
+            return LoadFunc.getAbsolutePath(location, curDir);
         }
 
 
@@ -2377,10 +2377,6 @@ public class TestMultiQuery {
         public DummyOutputFormat() {
             
         }
-
-        /* (non-Javadoc)
-         * @see org.apache.hadoop.mapreduce.OutputFormat#checkOutputSpecs(org.apache.hadoop.mapreduce.JobContext)
-         */
         @Override
         public void checkOutputSpecs(JobContext context) throws IOException,
                 InterruptedException {
@@ -2389,26 +2385,17 @@ public class TestMultiQuery {
             FileSystem fs = FileSystem.get(context.getConfiguration());
             // create a file to test that this method got called
             fs.create(new Path(sConfig.getLocation() + "_checkOutputSpec_test"));
-            // TODO Auto-generated method stub
-            
         }
-        /* (non-Javadoc)
-         * @see org.apache.hadoop.mapreduce.OutputFormat#getOutputCommitter(org.apache.hadoop.mapreduce.TaskAttemptContext)
-         */
+
         @Override
         public OutputCommitter getOutputCommitter(TaskAttemptContext context)
                 throws IOException, InterruptedException {
-            // TODO Auto-generated method stub
             return null;
         }
-        /* (non-Javadoc)
-         * @see org.apache.hadoop.mapreduce.OutputFormat#getRecordWriter(org.apache.hadoop.mapreduce.TaskAttemptContext)
-         */
         @Override
         public org.apache.hadoop.mapreduce.RecordWriter<WritableComparable, Tuple> getRecordWriter(
                 TaskAttemptContext context) throws IOException,
                 InterruptedException {
-            // TODO Auto-generated method stub
             return null;
         }
         

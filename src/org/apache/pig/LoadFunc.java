@@ -207,19 +207,22 @@ public abstract class LoadFunc {
             throws FrontendException {
         
         if (location == null || curDir == null) {
-            throw new IllegalArgumentException(
+            throw new FrontendException(
                     "location: " + location + " curDir: " + curDir);
         }
     
         URI fsUri = curDir.toUri();
         String fsScheme = fsUri.getScheme();
         if (fsScheme == null) {
-            throw new IllegalArgumentException("curDir: " + curDir);           
+            throw new FrontendException("curDir: " + curDir);           
         }
         
         fsScheme = fsScheme.toLowerCase();
-        String root = fsScheme + "://" + fsUri.getAuthority();
-        Path rootDir = new Path(root); 
+        String authority = fsUri.getAuthority();
+        if(authority == null) {
+            authority = "";
+        }
+        Path rootDir = new Path(fsScheme, authority, "/");
         
         ArrayList<String> pathStrings = new ArrayList<String>();
         
@@ -241,7 +244,7 @@ public abstract class LoadFunc {
             fname = (p.isAbsolute()) ? 
                         new Path(rootDir, path).toString() : 
                             new Path(curDir, path).toString();
-             
+            fname = fname.replaceFirst("^file:/([^/])", "file:///$1");
             pathStrings.add(fname);
         }
     

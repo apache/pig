@@ -36,6 +36,7 @@ import org.apache.pig.ResourceSchema;
 import org.apache.pig.SortInfo;
 import org.apache.pig.StoreConfig;
 import org.apache.pig.StoreFunc;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStoreImpl;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.util.PlanHelper;
 import org.apache.pig.data.Tuple;
@@ -74,13 +75,12 @@ public class MapReducePOStoreImpl extends POStoreImpl {
     
     @SuppressWarnings("unchecked")
     @Override
-    public StoreFunc createStoreFunc(FileSpec sFile, Schema schema, SortInfo sortInfo) 
+    public StoreFunc createStoreFunc(POStore store) 
         throws IOException {
 
         Configuration outputConf = context.getConfiguration();
 
-        StoreFunc storeFunc = (StoreFunc) 
-        PigContext.instantiateFuncFromSpec(sFile.getFuncSpec());
+        StoreFunc storeFunc = store.getStoreFunc();
         Class outputFormatClass = storeFunc.getOutputFormat().getClass();
 
         // call the setStoreLocation on the storeFunc giving it the
@@ -89,7 +89,7 @@ public class MapReducePOStoreImpl extends POStoreImpl {
         // in the Job. The PigOutFormat.setLocation() method will merge 
         // this modified Configuration into the configuration of the
         // Context we have
-        PigOutputFormat.setLocation(context, storeFunc, sFile.getFileName());
+        PigOutputFormat.setLocation(context, store);
         OutputFormat outputFormat = null;
         try {
             outputFormat = (OutputFormat)ReflectionUtils.newInstance(
