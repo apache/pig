@@ -385,11 +385,14 @@ A = LOAD "sql://mytable" USING SQLLoader();
 
 <section>
 	<title>Implicit Dependencies</title>
-<p>If a script has dependencies on the execution order outside of what Pig knows about, execution may fail. For instance, in this script
-MYUDF might try to read from out1, a file that A was just stored into. 
+<p>If a script has dependencies on the execution order outside of what Pig knows about, execution may fail. </p>
+
+
+<section>
+	<title>Example</title>
+<p>In this script, MYUDF might try to read from out1, a file that A was just stored into. 
 However, Pig does not know that MYUDF depends on the out1 file and might submit the jobs 
-producing the out2 and out1 files at the same time.
-</p>
+producing the out2 and out1 files at the same time.</p>
 <source>
 ...
 STORE A INTO 'out1';
@@ -410,6 +413,62 @@ C = FOREACH B GENERATE MYUDF($0,'out1');
 STORE C INTO 'out2';
 </source>
 </section>
+
+<section>
+	<title>Example</title>
+<p>In this script, the store/load operators have different file paths; however, the load operator depends on the store operator.</p>
+<source>
+A = LOAD '/user/xxx/firstinput' USING PigStorage();
+B = group ....
+C = .... agrregation function
+STORE C INTO '/user/vxj/firstinputtempresult/days1';
+..
+Atab = LOAD '/user/xxx/secondinput' USING  PigStorage();
+Btab = group ....
+Ctab = .... agrregation function
+STORE Ctab INTO '/user/vxj/secondinputtempresult/days1';
+..
+E = LOAD '/user/vxj/firstinputtempresult/' USING  PigStorage();
+F = group ....
+G = .... aggregation function
+STORE G INTO '/user/vxj/finalresult1';
+
+Etab =LOAD '/user/vxj/secondinputtempresult/' USING  PigStorage();
+Ftab = group ....
+Gtab = .... aggregation function
+STORE Gtab INTO '/user/vxj/finalresult2';
+</source>
+
+<p>To make the script works, add the exec statement.  </p>
+
+<source>
+A = LOAD '/user/xxx/firstinput' USING PigStorage();
+B = group ....
+C = .... agrregation function
+STORE C INTO '/user/vxj/firstinputtempresult/days1';
+..
+Atab = LOAD '/user/xxx/secondinput' USING  PigStorage();
+Btab = group ....
+Ctab = .... agrregation function
+STORE Ctab INTO '/user/vxj/secondinputtempresult/days1';
+
+EXEC;
+
+E = LOAD '/user/vxj/firstinputtempresult/' USING  PigStorage();
+F = group ....
+G = .... aggregation function
+STORE G INTO '/user/vxj/finalresult1';
+..
+Etab =LOAD '/user/vxj/secondinputtempresult/' USING  PigStorage();
+Ftab = group ....
+Gtab = .... aggregation function
+STORE Gtab INTO '/user/vxj/finalresult2';
+</source>
+
+
+</section>
+</section>
+
 </section>
 <!-- END MULTI-QUERY EXECUTION-->
 
