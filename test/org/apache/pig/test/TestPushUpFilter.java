@@ -1050,6 +1050,24 @@ public class TestPushUpFilter extends junit.framework.TestCase {
         assertTrue(pushUpFilter.getPushBeforeInput() == -1);
         
     }
+    
+    @Test
+    public void testFilterNestedForEach() throws Exception {
+        planTester.buildPlan("A = load 'myfile' as (name, age, gpa);");
+        planTester.buildPlan("B = group A by name;");
+        planTester.buildPlan("C = foreach B generate A.age as age;");        
+        LogicalPlan lp = planTester.buildPlan("D = filter C by age == 20;");
+        
+        planTester.setPlan(lp);
+        planTester.setProjectionMap(lp);
+        
+        PushUpFilter pushUpFilter = new PushUpFilter(lp);
+        
+        assertTrue(!pushUpFilter.check(lp.getLeaves()));
+        assertTrue(pushUpFilter.getSwap() == false);
+        assertTrue(pushUpFilter.getPushBefore() == false);
+        assertTrue(pushUpFilter.getPushBeforeInput() == -1);
+    }
 
 }
 

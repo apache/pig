@@ -41,6 +41,9 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-1022:  optimizer pushes filter before the foreach that generates column
+used by filter (daijy via gates)
+
 PIG-1107: PigLineRecordReader bails out on an empty line for compressed data
 (ankit.modi via olgan)
 
