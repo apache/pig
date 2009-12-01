@@ -68,7 +68,8 @@ TOKEN:
  	<#LETTER : ["a"-"z", "A"-"Z"] >
 |	<#DIGIT : ["0"-"9"] >
 |   <#SPECIALCHAR : ["_", ".", "#"] >
-|	<IDENTIFIER: ( <LETTER> )+ ( <DIGIT> | <LETTER> | <SPECIALCHAR> )* >
+| <#SCOPEOP : "::">
+|	<IDENTIFIER: ( <LETTER> )+ ( <DIGIT> | <LETTER> | <SPECIALCHAR> )* ( <SCOPEOP>  ( <LETTER> )+ ( <DIGIT> | <LETTER> | <SPECIALCHAR> )*)* >
 }
 
 ColumnType Type() : 
