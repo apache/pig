@@ -41,6 +41,9 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-1108: Incorrect map output key type in MultiQuery optimiza (rding via
+olgan)
+
 PIG-1022:  optimizer pushes filter before the foreach that generates column
 used by filter (daijy via gates)
 

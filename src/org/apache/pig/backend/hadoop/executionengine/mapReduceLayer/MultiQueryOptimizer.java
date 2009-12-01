@@ -107,6 +107,11 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
                     
         List<MapReduceOper> successors = getPlan().getSuccessors(mr);
         for (MapReduceOper successor : successors) {
+            if (successor.getUseSecondaryKey()) {
+                log.debug("Splittee " + successor.getOperatorKey().getId()
+                        + " uses secondary key, do not merge it");
+                continue;
+            }
             if (isMapOnly(successor)) {
                 if (isSingleLoadMapperPlan(successor.mapPlan)) {                    
                     mappers.add(successor);                
@@ -121,10 +126,11 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
                 }
             }                
         }
-                      
+                  
+        int numSplittees = successors.size();
+        
         // case 1: exactly one splittee and it's map-only
-        if (mappers.size() == 1 && mapReducers.size() == 0 
-                && multiLoadMROpers.size() == 0 ) {            
+        if (mappers.size() == 1 && numSplittees == 1) {    
             mergeOnlyMapperSplittee(mappers.get(0), mr);
             
             log.info("Merged the only map-only splittee.");
@@ -133,16 +139,14 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
         }
         
         // case 2: exactly one splittee and it has reducer
-        if (isMapOnly(mr) && mapReducers.size() == 1 
-                && mappers.size() == 0 && multiLoadMROpers.size() == 0) {            
+        if (isMapOnly(mr) && mapReducers.size() == 1 && numSplittees == 1) {            
             mergeOnlyMapReduceSplittee(mapReducers.get(0), mr);
             
             log.info("Merged the only map-reduce splittee.");
             
             return;
         } 
-        
-        int numSplittees = successors.size();
+                
         int numMerges = 0;
         
         PhysicalPlan splitterPl = isMapOnly(mr) ? mr.mapPlan : mr.reducePlan;                            

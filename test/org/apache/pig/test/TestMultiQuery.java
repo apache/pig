@@ -89,6 +89,33 @@ public class TestMultiQuery extends TestCase {
     }
     
     @Test
+    public void testMultiQueryJiraPig1108() {
+        
+        try {
+            myPig.setBatchOn();
+
+            myPig.registerQuery("a = load 'file:test/org/apache/pig/test/data/passwd' " 
+                    + "using PigStorage(':') as (uname:chararray, passwd:chararray, uid:int, gid:int);");
+            myPig.registerQuery("split a into plan1 if (uid > 5), plan2 if ( uid < 5);");
+            myPig.registerQuery("b = group plan1 by uname;");
+            myPig.registerQuery("c = foreach b { tmp = order plan1 by uid desc; " 
+                    + "generate flatten(group) as foo, tmp; };");
+            myPig.registerQuery("d = filter c BY foo is not null;");
+            myPig.registerQuery("store d into '/tmp/output1';");
+            myPig.registerQuery("store plan2 into '/tmp/output2';");
+             
+            List<ExecJob> jobs = myPig.executeBatch();
+            for (ExecJob job : jobs) {
+                assertTrue(job.getStatus() == ExecJob.JOB_STATUS.COMPLETED);
+            }
+            
+        } catch (Exception e) {
+            e.printStackTrace();
+            Assert.fail();
+        } 
+    }    
+    
+    @Test
     public void testMultiQueryJiraPig1060() {
 
         // test case: 
