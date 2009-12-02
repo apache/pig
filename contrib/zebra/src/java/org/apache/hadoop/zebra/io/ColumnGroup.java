@@ -381,7 +381,7 @@ class ColumnGroup {
      * @return A scanner object.
      * @throws IOException
      */
-    public synchronized TableScanner getScanner(BytesWritable beginKey,
+    public synchronized CGScanner getScanner(BytesWritable beginKey,
         BytesWritable endKey, boolean closeReader) throws IOException,
         ParseException {
       if (closed) {
@@ -422,7 +422,7 @@ class ColumnGroup {
      * @return A scanner object.
      * @throws IOException
      */
-    public synchronized TableScanner getScanner(CGRangeSplit split,
+    public synchronized CGScanner getScanner(CGRangeSplit split,
         boolean closeReader) throws IOException, ParseException {
       if (closed) {
         throw new EOFException("Reader already closed");
@@ -449,7 +449,7 @@ class ColumnGroup {
      * @param rowSplit specifies part index, start row, and end row.
      * @return A scanner object.
      */
-    public synchronized TableScanner getScanner(boolean closeReader, 
+    public synchronized CGScanner getScanner(boolean closeReader, 
                                                 CGRowSplit rowSplit)
                         throws IOException, ParseException {
       if (closed) {
@@ -1013,22 +1013,34 @@ class ColumnGroup {
 
       @Override
       public void getKey(BytesWritable key) throws IOException {
-        if (atEnd()) {
-          throw new EOFException("No more key-value to read");
+          if (atEnd()) {
+            throw new EOFException("No more key-value to read");
+          }
+          scanners[current].getKey(key);
         }
+
+        @Override
+        public void getValue(Tuple row) throws IOException {
+          if (atEnd()) {
+            throw new EOFException("No more key-value to read");
+          }
+          try {
+            scanners[current].getValue(row);
+          } catch (ParseException e) {
+            throw new IOException("Invalid Projection: "+e.getMessage());
+          }
+        }
+
+      public void getCGKey(BytesWritable key) throws IOException {
         scanners[current].getKey(key);
       }
 
-      @Override
-      public void getValue(Tuple row) throws IOException {
-        if (atEnd()) {
-          throw new EOFException("No more key-value to read");
-        }
+      public void getCGValue(Tuple row) throws IOException {
         try {
-          scanners[current].getValue(row);
-        } catch (ParseException e) {
-          throw new IOException("Invalid Projection: "+e.getMessage());
-        }
+            scanners[current].getValue(row);
+          } catch (ParseException e) {
+            throw new IOException("Invalid Projection: "+e.getMessage());
+          }
       }
 
       @Override
@@ -1042,18 +1054,29 @@ class ColumnGroup {
 
       @Override
       public boolean advance() throws IOException {
-        if (atEnd()) {
-          return false;
-        }
-        scanners[current].advance();
-        if (scanners[current].atEnd()) {
-          ++current;
-          if (!atEnd()) {
-            scanners[current].rewind();
+          if (atEnd()) {
+            return false;
           }
+          scanners[current].advance();
+          if (scanners[current].atEnd()) {
+            ++current;
+            if (!atEnd()) {
+              scanners[current].rewind();
+            }
+          }
+          return true;
         }
-        return true;
-      }
+
+      public boolean advanceCG() throws IOException {
+          scanners[current].advance();
+          if (scanners[current].atEnd()) {
+            ++current;
+            if (!atEnd()) {
+              scanners[current].rewind();
+            }
+          }
+          return true;
+        }
 
       @Override
       public boolean atEnd() throws IOException {

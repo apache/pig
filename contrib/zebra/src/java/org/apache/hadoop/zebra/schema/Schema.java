@@ -599,18 +599,21 @@ public class Schema implements Comparable<Schema>, Writable {
    */
   @Override
   public int compareTo(Schema other) {
-    if (this.mFields.size() != other.mFields.size()) {
-      return this.mFields.size() - other.mFields.size();
+    int mFieldsSize = this.mFields.size(); 
+    if (mFieldsSize != other.mFields.size()) {
+      return mFieldsSize - other.mFields.size();
     }
     int ret = 0;
-    for (int nx = 0; nx < this.mFields.size(); nx++) {
-      if (mFields.get(nx).schema == null
-          && other.mFields.get(nx).schema != null) return -1;
-      else if (mFields.get(nx).schema != null
-          && other.mFields.get(nx).schema == null) return 1;
-      else if (mFields.get(nx).schema == null
-          && other.mFields.get(nx).schema == null) return 0;
-      ret = mFields.get(nx).schema.compareTo(other.mFields.get(nx).schema);
+    for (int nx = 0; nx < mFieldsSize; nx++) {
+      Schema mFieldSchema = mFields.get(nx).schema;
+      Schema otherFieldSchema = other.mFields.get(nx).schema;
+      if (mFieldSchema == null
+          && otherFieldSchema != null) return -1;
+      else if (mFieldSchema != null
+          && otherFieldSchema == null) return 1;
+      else if (mFieldSchema == null
+          && otherFieldSchema == null) return 0;
+      ret = mFieldSchema.compareTo(otherFieldSchema);
       if (ret != 0) {
         return ret;
       }

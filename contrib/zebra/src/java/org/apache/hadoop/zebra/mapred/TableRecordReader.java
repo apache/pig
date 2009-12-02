@@ -94,7 +94,7 @@ public class TableRecordReader implements RecordReader<BytesWritable, Tuple> {
 
   @Override
   public float getProgress() throws IOException {
-    return (float) ((scanner.atEnd()) ? 1.0 : 0);
+    return  (float)((scanner.atEnd()) ? 1.0 : 0);
   }
 
   @Override

@@ -6,6 +6,8 @@ Trunk (unreleased changes)
 
   IMPROVEMENTS
 
+    PIG-1098 Zebra Performance Optimizations (yanz via gates)
+
     PIG-1077 Support record(row)-based file split in Zebra's
              TableInputFormat (chaow via gates)
 
