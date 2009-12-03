@@ -32,6 +32,7 @@ import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.DefaultTupleFactory;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.io.BufferedPositionedInputStream;
+import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 
 /**
@@ -157,11 +158,11 @@ public class BinaryStorage extends Utf8StorageConverter implements LoadFunc, Sto
     }
     
     /* (non-Javadoc)
-     * @see org.apache.pig.LoadFunc#fieldsToRead(org.apache.pig.impl.logicalLayer.schema.Schema)
+     * @see org.apache.pig.LoadFunc#fieldsToRead(RequiredFieldList requiredFieldList)
      */
-    public void fieldsToRead(Schema schema) {
-        // TODO Auto-generated method stub
-        
+    @Override
+    public LoadFunc.RequiredFieldResponse fieldsToRead(RequiredFieldList requiredFieldList) throws FrontendException {
+        return new LoadFunc.RequiredFieldResponse(false);
     }
 
     /* (non-Javadoc)

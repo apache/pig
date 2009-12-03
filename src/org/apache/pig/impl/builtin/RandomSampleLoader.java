@@ -17,6 +17,9 @@
  */
 package org.apache.pig.impl.builtin;
 
+import org.apache.pig.LoadFunc;
+import org.apache.pig.impl.logicalLayer.FrontendException;
+
 /**
  * A loader that samples the data.  This loader can subsume loader that
  * can handle starting in the middle of a record.  Loaders that can
@@ -44,6 +47,11 @@ public class RandomSampleLoader extends SampleLoader {
     public void setNumSamples(int n) {
     	// Setting it to 100 as default for order by
     	super.setNumSamples(100);
+    }
+    
+    @Override
+    public LoadFunc.RequiredFieldResponse fieldsToRead(RequiredFieldList requiredFieldList) throws FrontendException {
+        return loader.fieldsToRead(requiredFieldList);
     }
  
 }

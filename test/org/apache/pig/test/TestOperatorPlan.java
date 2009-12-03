@@ -271,7 +271,7 @@ public class TestOperatorPlan extends junit.framework.TestCase {
         private int mNumChecks = 0;
 
         AlwaysTransform(TPlan plan) {
-            super(plan, new DepthFirstWalker<TOperator, TPlan>(plan));
+            super(plan);
         }
 
         public boolean check(List<TOperator> nodes) {
@@ -297,7 +297,7 @@ public class TestOperatorPlan extends junit.framework.TestCase {
         private int mNumChecks = 0;
 
         NeverTransform(TPlan plan) {
-            super(plan, new DepthFirstWalker<TOperator, TPlan>(plan));
+            super(plan);
         }
 
         public boolean check(List<TOperator> nodes) {

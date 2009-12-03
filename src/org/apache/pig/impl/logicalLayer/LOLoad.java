@@ -25,6 +25,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
+
 import org.apache.pig.ExecType;
 import org.apache.pig.LoadFunc;
 import org.apache.pig.PigException;
@@ -36,6 +38,7 @@ import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.ProjectionMap;
 import org.apache.pig.impl.plan.RequiredFields;
 import org.apache.pig.impl.plan.VisitorException;
+import org.apache.pig.impl.plan.optimizer.OptimizerException;
 import org.apache.pig.impl.util.MultiMap;
 import org.apache.pig.impl.util.Pair;
 import org.apache.pig.impl.util.WrappedIOException;
@@ -57,6 +60,7 @@ public class LOLoad extends RelationalOperator {
     private ExecType mExecType;
     private static Log log = LogFactory.getLog(LOLoad.class);
     private Schema mDeterminedSchema = null;
+    private LoadFunc.RequiredFieldList requiredFieldList;
 
     /**
      * @param plan
@@ -85,10 +89,13 @@ public class LOLoad extends RelationalOperator {
         mStorage = storage;
         mExecType = execType;
         this.splittable = splittable;
+        // Generate a psudo alias. Since in the following script, we do not have alias for LOLoad, however, alias is required.
+        // a = foreach (load '1') generate b0;
+        this.mAlias = ""+key.getId();
 
          try { 
              mLoadFunc = (LoadFunc)
-                  PigContext.instantiateFuncFromSpec(inputFileSpec.getFuncSpec()); 
+                  PigContext.instantiateFuncFromSpec(inputFileSpec.getFuncSpec());
         }catch (ClassCastException cce) {
             log.error(inputFileSpec.getFuncSpec() + " should implement the LoadFunc interface.");
             throw WrappedIOException.wrap(cce);
@@ -145,6 +152,9 @@ public class LOLoad extends RelationalOperator {
                 }
 
                 if(null == mDeterminedSchema) {
+                    // Zebra loader determineSchema method depends on this signature
+                    if (mStorage!=null)
+                        mStorage.getConfiguration().setProperty("pig.loader.signature", mAlias);
                     mSchema = mLoadFunc.determineSchema(mSchemaFile, mExecType, mStorage);
                     mDeterminedSchema  = mSchema;
                 }
@@ -253,6 +263,9 @@ public class LOLoad extends RelationalOperator {
             }
         } else {
             try {
+                // Zebra loader determineSchema method depends on this signature
+                if (mStorage!=null)
+                    mStorage.getConfiguration().setProperty("pig.loader.signature", mAlias);
                 inputSchema = mLoadFunc.determineSchema(mSchemaFile, mExecType, mStorage);
             } catch (IOException ioe) {
                 mProjectionMap = null;
@@ -294,7 +307,10 @@ public class LOLoad extends RelationalOperator {
     }
 
     @Override
-    public List<RequiredFields> getRelevantInputs(int output, int column) {
+    public List<RequiredFields> getRelevantInputs(int output, int column) throws FrontendException {
+        if (!mIsSchemaComputed)
+            getSchema();
+        
         if (output!=0)
             return null;
         
@@ -312,5 +328,70 @@ public class LOLoad extends RelationalOperator {
         result.add(new RequiredFields(true));
         return result;
     }
+    
+    public LoadFunc.RequiredFieldResponse fieldsToRead(LoadFunc.RequiredFieldList requiredFieldList) throws FrontendException
+    {
+        LoadFunc.RequiredFieldResponse response = new LoadFunc.RequiredFieldResponse(false);
+        if (mSchema == null)
+            return response;
+        
+        if (requiredFieldList.isAllFieldsRequired())
+            return response;
+        
+        if (requiredFieldList.getFields()==null)
+        {
+            return response;
+        }
+        
+        this.requiredFieldList = requiredFieldList;
+        response = mLoadFunc.fieldsToRead(requiredFieldList);
+        
+        if (!response.getRequiredFieldResponse())
+            return response;
+        
+        // Change LOLoad schema to reflect this pruning
+        TreeSet<Integer> prunedIndexSet = new TreeSet<Integer>();
+        for (int i=0;i<mSchema.size();i++)
+            prunedIndexSet.add(i);
 
+        for (int i=0;i<requiredFieldList.getFields().size();i++)
+        {
+            LoadFunc.RequiredField requiredField = requiredFieldList.getFields().get(i); 
+            if (requiredField.getIndex()>=0)
+                prunedIndexSet.remove(requiredField.getIndex());
+            else
+            {
+                
+                try {
+                    int index = mSchema.getPosition(requiredField.getAlias());
+                    if (index>0)
+                        prunedIndexSet.remove(index);
+                } catch (FrontendException e) {
+                    return new LoadFunc.RequiredFieldResponse(false);
+                }
+                
+            }
+        }
+        
+        Integer index;
+        while ((index = prunedIndexSet.pollLast())!=null)
+            mSchema.getFields().remove(index.intValue());
+        
+        mIsProjectionMapComputed = false;
+        getProjectionMap();
+        return response;
+
+    }
+
+    @Override
+    public boolean pruneColumns(List<Pair<Integer, Integer>> columns)
+            throws FrontendException {
+        throw new FrontendException("Not implemented");
+    }
+    
+    public LoadFunc.RequiredFieldList getRequiredFieldList()
+    {
+        return requiredFieldList;
+    }
+    
 }

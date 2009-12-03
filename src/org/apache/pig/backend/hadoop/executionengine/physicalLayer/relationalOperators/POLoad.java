@@ -36,6 +36,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOpera
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
+import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.pen.util.ExampleTuple;
 
@@ -66,6 +67,8 @@ public class POLoad extends PhysicalOperator {
     boolean splittable = true;
     // default offset.
     private long offset = 0;
+    // Alias for the POLoad
+    private String signature;
     
     transient private final Log log = LogFactory.getLog(getClass());
     
@@ -99,7 +102,8 @@ public class POLoad extends PhysicalOperator {
     public void setUp() throws IOException{
         String filename = lFile.getFileName();
         loader = (LoadFunc)PigContext.instantiateFuncFromSpec(lFile.getFuncSpec());
-        
+        if (loader instanceof PigStorage)
+            ((PigStorage)loader).setSignature(signature);
         is = (this.offset == 0) ? FileLocalizer.open(filename, pc) : FileLocalizer.open(filename, this.offset,pc);
         
         loader.bindTo(filename , new BufferedPositionedInputStream(is), this.offset, Long.MAX_VALUE);
@@ -207,4 +211,11 @@ public class POLoad extends PhysicalOperator {
         return splittable;
     }
 
+    public String getSignature() {
+        return signature;
+    }
+    
+    public void setSignature(String signature) {
+        this.signature = signature;
+    }
 }

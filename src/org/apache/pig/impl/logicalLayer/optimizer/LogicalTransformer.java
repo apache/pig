@@ -47,9 +47,8 @@ public abstract class LogicalTransformer extends Transformer<LogicalOperator, Lo
     private final Log log = LogFactory.getLog(getClass());
 
     protected LogicalTransformer(
-            LogicalPlan plan,
-            PlanWalker<LogicalOperator, LogicalPlan> walker) {
-        super(plan, walker);
+            LogicalPlan plan) {
+        super(plan);
     }
 
     /**

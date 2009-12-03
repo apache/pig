@@ -43,6 +43,8 @@ PIG-1085:  Pass JobConf and UDF specific configuration information to UDFs
 
 OPTIMIZATIONS
 
+PIG-922: Logical optimizer: push up project (daijy)
+
 BUG FIXES
 
 PIG-1068:  COGROUP fails with 'Type mismatch in key from map: expected

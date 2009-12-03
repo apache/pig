@@ -228,7 +228,10 @@ public class LOFilter extends RelationalOperator {
     }
     
     @Override
-    public List<RequiredFields> getRelevantInputs(int output, int column) {
+    public List<RequiredFields> getRelevantInputs(int output, int column) throws FrontendException {
+        if (!mIsSchemaComputed)
+            getSchema();
+        
         if (output!=0)
             return null;
         
@@ -247,5 +250,33 @@ public class LOFilter extends RelationalOperator {
         List<RequiredFields> result = new ArrayList<RequiredFields>();
         result.add(new RequiredFields(inputList));
         return result;
+    }
+    
+    @Override
+    public boolean pruneColumns(List<Pair<Integer, Integer>> columns)
+            throws FrontendException {
+        if (!mIsSchemaComputed)
+            getSchema();
+        if (mSchema == null) {
+            log
+                    .warn("Cannot prune columns in filter, no schema information found");
+            return false;
+        }
+        for (Pair<Integer, Integer> column : columns) {
+            if (column.first != 0) {
+                int errCode = 2191;
+                throw new FrontendException(
+                        "Filter only take 1 input, cannot prune input with index "
+                                + column.first, errCode, PigException.BUG);
+            }
+            if (column.second < 0) {
+                int errCode = 2192;
+                throw new FrontendException("Column to prune does not exist", errCode,
+                        PigException.BUG);
+            }
+            pruneColumnInPlan(mComparisonPlan, column.second);
+        }
+        super.pruneColumns(columns);
+        return true;
     }
 }

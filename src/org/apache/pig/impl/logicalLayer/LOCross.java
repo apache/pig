@@ -42,6 +42,7 @@ public class LOCross extends RelationalOperator {
     private static final long serialVersionUID = 2L;
     private static Log log = LogFactory.getLog(LOCross.class);
 
+    private List<LogicalOperator> mSchemaInputMapping = new ArrayList<LogicalOperator>();
     /**
      * 
      * @param plan
@@ -62,6 +63,7 @@ public class LOCross extends RelationalOperator {
         List<LogicalOperator> inputs = mPlan.getPredecessors(this);
         if (!mIsSchemaComputed) {
             List<Schema.FieldSchema> fss = new ArrayList<Schema.FieldSchema>();
+            mSchemaInputMapping = new ArrayList<LogicalOperator>();
             Map<Schema.FieldSchema, String> flattenAlias = new HashMap<Schema.FieldSchema, String>();
             Map<String, Boolean> inverseFlattenAlias = new HashMap<String, Boolean>();
             Map<String, Integer> aliases = new HashMap<String, Integer>();
@@ -83,6 +85,7 @@ public class LOCross extends RelationalOperator {
                             String disambiguatorAlias = opAlias + "::" + fs.alias;
                             newFs = new Schema.FieldSchema(disambiguatorAlias, fs.schema, fs.type);
                             fss.add(newFs);
+                            mSchemaInputMapping.add(op);
                             Integer count;
                             count = aliases.get(fs.alias);
                             if(null == count) {
@@ -104,6 +107,7 @@ public class LOCross extends RelationalOperator {
                         } else {
                             newFs = new Schema.FieldSchema(null, DataType.BYTEARRAY);
                             fss.add(newFs);
+                            mSchemaInputMapping.add(op);
                         }
                         newFs.setParent(fs.canonicalName, op);
                     }
@@ -285,11 +289,20 @@ public class LOCross extends RelationalOperator {
     }
 
     @Override
-    public List<RequiredFields> getRelevantInputs(int output, int column) {
+    public List<RequiredFields> getRelevantInputs(int output, int column) throws FrontendException {
+        if (!mIsSchemaComputed)
+            getSchema();
+
         if (output!=0)
             return null;
         
         if (column<0)
+            return null;
+        
+        if (mSchema==null)
+            return null;
+        
+        if (column>mSchema.size()-1)
             return null;
         
         List<LogicalOperator> predecessors = (ArrayList<LogicalOperator>)mPlan.getPredecessors(this);
@@ -303,30 +316,29 @@ public class LOCross extends RelationalOperator {
         for (int i=0;i<predecessors.size();i++)
             result.add(null);
         
-        for(int inputNum = 0; inputNum < predecessors.size(); ++inputNum) {
-            LogicalOperator predecessor = predecessors.get(inputNum);
-            Schema inputSchema = null;        
-            
-            try {
-                inputSchema = predecessor.getSchema();
-            } catch (FrontendException fee) {
-                return null;
+        // Figure out the # of input does this output column belong to, and the # of column of that input.
+        // When we call getSchema, we will cache mSchemaInputMapping for a mapping of output column and it's input. 
+        // We count the number of different inputs we've seen from mSchemaInputMapping[0] to
+        // mSchemaInputMapping[column] to find out the # of input
+        int inputNum = -1;
+        int inputColumn = 0;
+        LogicalOperator op = null;
+        for (int i=0;i<=column;i++)
+        {
+            if (mSchemaInputMapping.get(i)!=op)
+            {
+                inputNum++;
+                inputColumn = 0;
+                op = mSchemaInputMapping.get(i);
             }
-            
-            if(inputSchema == null) {
-                return null;
-            } else {
-                if (column<inputSchema.size()) {
-                    ArrayList<Pair<Integer, Integer>> inputList = new ArrayList<Pair<Integer, Integer>>();
-                    inputList.add(new Pair<Integer, Integer>(inputNum, column));
-                    RequiredFields requiredFields = new RequiredFields(inputList);
-                    result.set(inputNum, requiredFields);
-                    return result;
-                }
-                column-=inputSchema.size();
-            }
+            else
+                inputColumn++;
         }
-        // shall not get here
-        return null;
+
+        ArrayList<Pair<Integer, Integer>> inputList = new ArrayList<Pair<Integer, Integer>>();
+        inputList.add(new Pair<Integer, Integer>(inputNum, inputColumn));
+        RequiredFields requiredFields = new RequiredFields(inputList);
+        result.set(inputNum, requiredFields);
+        return result;
     }
 }

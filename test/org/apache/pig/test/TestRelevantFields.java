@@ -52,7 +52,7 @@ public class TestRelevantFields extends TestCase {
     
     LogicalPlanTester planTester = new LogicalPlanTester();
     @Test
-    public void testQueryForeach1() {
+    public void testQueryForeach1() throws FrontendException {
         String query = "foreach (load 'a') generate $1,$2;";
         LogicalPlan lp = planTester.buildPlan(query);
         
@@ -72,7 +72,7 @@ public class TestRelevantFields extends TestCase {
     }
 
     @Test
-    public void testQueryForeach2() {
+    public void testQueryForeach2() throws FrontendException {
         String query = "foreach (load 'a') generate $1,$2+$3;";
         LogicalPlan lp = planTester.buildPlan(query);
         
@@ -91,7 +91,7 @@ public class TestRelevantFields extends TestCase {
     }
     
     @Test
-    public void testQueryForeach3() {
+    public void testQueryForeach3() throws FrontendException {
         String query = "foreach (load 'a') generate $1,CONCAT($2,$3);";
         LogicalPlan lp = planTester.buildPlan(query);
         
@@ -110,7 +110,7 @@ public class TestRelevantFields extends TestCase {
     }
     
     @Test
-    public void testQueryCogroup1() {
+    public void testQueryCogroup1() throws FrontendException {
         String query = "foreach (cogroup (load 'a') by $1, (load 'b') by $1) generate org.apache.pig.builtin.AVG($1) ;";
         LogicalPlan lp = planTester.buildPlan(query);
         
@@ -142,7 +142,7 @@ public class TestRelevantFields extends TestCase {
     }
 
     @Test
-    public void testQueryGroupAll() throws Exception {
+    public void testQueryGroupAll() throws FrontendException  {
         String query = "foreach (group (load 'a') ALL) generate $1 ;";
         LogicalPlan lp = planTester.buildPlan(query);
         
@@ -159,7 +159,7 @@ public class TestRelevantFields extends TestCase {
     }
     
     @Test
-    public void testQueryGroup2() {
+    public void testQueryGroup2() throws FrontendException {
         String query = "foreach (group (load 'a') by $1) generate group, '1' ;";
         LogicalPlan lp = planTester.buildPlan(query);
         
@@ -177,7 +177,7 @@ public class TestRelevantFields extends TestCase {
     }
 
     @Test
-    public void testQueryCogroup2() {
+    public void testQueryCogroup2() throws FrontendException {
         String query = "foreach (cogroup (load 'a') by ($1), (load 'b') by ($1)) generate $1.$1, $2.$1 ;";
         LogicalPlan lp = planTester.buildPlan(query);
         
@@ -205,7 +205,7 @@ public class TestRelevantFields extends TestCase {
     }
     
     @Test
-    public void testQueryGroup3() {
+    public void testQueryGroup3() throws FrontendException {
         String query = "foreach (group (load 'a') by ($6, $7)) generate flatten(group) ;";
         LogicalPlan lp = planTester.buildPlan(query);
         
@@ -222,7 +222,7 @@ public class TestRelevantFields extends TestCase {
         assertTrue(cogroupRelevantFields1.getNeedNoFields() == false);        
     }
 
-    public void testQueryFilterNoSchema() {
+    public void testQueryFilterNoSchema() throws FrontendException {
         planTester.buildPlan("a = load 'a';");
         LogicalPlan lp = planTester.buildPlan("b = filter a by $1 == '3';");
         
@@ -235,15 +235,15 @@ public class TestRelevantFields extends TestCase {
     }
 
     @Test
-    public void testQuerySplitNoSchema() {
+    public void testQuerySplitNoSchema() throws FrontendException {
         planTester.buildPlan("a = load 'a';");
         LogicalPlan lp = planTester.buildPlan("split a into b if $0 == '3', c if $1 == '3';");
         
         LOSplit split = (LOSplit)lp.getSuccessors(lp.getRoots().get(0)).get(0);
         RequiredFields splitRelevantFields = split.getRelevantInputs(0, 0).get(0);
         assertTrue(splitRelevantFields.needAllFields() == false);
-        assertTrue(splitRelevantFields.needNoFields() == true);
-        assertTrue(splitRelevantFields.getFields() == null);
+        assertTrue(splitRelevantFields.needNoFields() == false);
+        assertTrue(splitRelevantFields.getFields().size() == 1);
 
         LOSplitOutput splitb = (LOSplitOutput)lp.getSuccessors(split).get(0);
         RequiredFields splitbRelevantFields0 = splitb.getRelevantInputs(0, 0).get(0);
@@ -275,7 +275,7 @@ public class TestRelevantFields extends TestCase {
     }
 
     @Test
-    public void testQueryOrderByNoSchema() {
+    public void testQueryOrderByNoSchema() throws FrontendException {
         planTester.buildPlan("a = load 'a';");
         LogicalPlan lp = planTester.buildPlan("b = order a by $1;");
         
@@ -294,7 +294,7 @@ public class TestRelevantFields extends TestCase {
     }
     
     @Test
-    public void testQueryLimitNoSchema() {
+    public void testQueryLimitNoSchema() throws FrontendException {
         planTester.buildPlan("a = load 'a';");
         planTester.buildPlan("b = order a by $1;");
         LogicalPlan lp = planTester.buildPlan("c = limit b 10;");
@@ -316,7 +316,7 @@ public class TestRelevantFields extends TestCase {
     }
     
     @Test
-    public void testQueryDistinctNoSchema() {
+    public void testQueryDistinctNoSchema() throws FrontendException {
         planTester.buildPlan("a = load 'a';");
         LogicalPlan lp = planTester.buildPlan("b = distinct a;");
         
@@ -337,7 +337,7 @@ public class TestRelevantFields extends TestCase {
     }
     
     @Test
-    public void testQueryStreamingNoSchema() {
+    public void testQueryStreamingNoSchema() throws FrontendException {
         String query = "stream (load 'a') through `" + simpleEchoStreamingCommand + "`;";
         LogicalPlan lp = planTester.buildPlan(query);
         
@@ -349,7 +349,7 @@ public class TestRelevantFields extends TestCase {
     }
 
     @Test
-    public void testQueryStreamingNoSchema1() {
+    public void testQueryStreamingNoSchema1() throws FrontendException {
         String query = "stream (load 'a' as (url, hitCount)) through `" + simpleEchoStreamingCommand + "` ;";
         LogicalPlan lp = planTester.buildPlan(query);
         
@@ -395,7 +395,7 @@ public class TestRelevantFields extends TestCase {
     }
 
     @Test
-    public void testForeach5() {
+    public void testForeach5() throws FrontendException {
         planTester.buildPlan("A = load 'a' AS (a1, a2, a3);");
         planTester.buildPlan("B = load 'b' AS (b1, b2, b3, b4);");
         planTester.buildPlan("C = cogroup A by ($1), B by ($1);");
@@ -436,7 +436,7 @@ public class TestRelevantFields extends TestCase {
     }
     
     @Test
-    public void testQueryCrossNoSchema(){
+    public void testQueryCrossNoSchema() throws FrontendException {
         String query = "c = cross (load 'a'), (load 'b');";
         LogicalPlan lp = planTester.buildPlan(query);
 
@@ -445,7 +445,7 @@ public class TestRelevantFields extends TestCase {
     }
     
     @Test
-    public void testQueryUnionNoSchema(){
+    public void testQueryUnionNoSchema() throws FrontendException {
         String query = "c = union (load 'a'), (load 'b');";
         LogicalPlan lp = planTester.buildPlan(query);
 
@@ -463,7 +463,7 @@ public class TestRelevantFields extends TestCase {
         assertTrue(unionRelevantFields1.getFields().contains(new Pair<Integer, Integer>(1, 0)));
     }
 
-    public void testQueryFRJoinNoSchema(){
+    public void testQueryFRJoinNoSchema() throws FrontendException {
         String query = "c = join (load 'a') by $0, (load 'b') by $0 using \"replicated\";";
         LogicalPlan lp = planTester.buildPlan(query);
 
@@ -472,7 +472,7 @@ public class TestRelevantFields extends TestCase {
     }
     
     @Test
-    public void testQueryJoinNoSchema(){
+    public void testQueryJoinNoSchema() throws FrontendException {
         String query = "c = join (load 'a') by $0, (load 'b') by $0;";
         LogicalPlan lp = planTester.buildPlan(query);
 
@@ -481,7 +481,7 @@ public class TestRelevantFields extends TestCase {
     }
     
     @Test
-    public void testQueryFilterWithSchema() {
+    public void testQueryFilterWithSchema() throws FrontendException {
         planTester.buildPlan("a = load 'a' as (url,hitCount);");
         LogicalPlan lp = planTester.buildPlan("b = filter a by $1 == '3';");
         
@@ -494,15 +494,24 @@ public class TestRelevantFields extends TestCase {
     }
     
     @Test
-    public void testQuerySplitWithSchema() {
+    public void testQuerySplitWithSchema() throws FrontendException {
         planTester.buildPlan("a = load 'a' as (url, hitCount);");
         LogicalPlan lp = planTester.buildPlan("split a into b if url == '3', c if hitCount == '3';");
         
         LOSplit split = (LOSplit)lp.getSuccessors(lp.getRoots().get(0)).get(0);
-        RequiredFields splitRelevantFields = split.getRelevantInputs(0, 0).get(0);
-        assertTrue(splitRelevantFields.needAllFields() == false);
-        assertTrue(splitRelevantFields.needNoFields() == true);
-        assertTrue(splitRelevantFields.getFields() == null);
+        RequiredFields splitRelevantFields0 = split.getRelevantInputs(0, 0).get(0);
+        assertTrue(splitRelevantFields0.needAllFields() == false);
+        assertTrue(splitRelevantFields0.needNoFields() == false);
+        assertTrue(splitRelevantFields0.getFields().size() == 1);
+        assertTrue(splitRelevantFields0.getFields().contains(new Pair<Integer, Integer>(0, 0)));
+        
+        RequiredFields splitRelevantFields1 = split.getRelevantInputs(0, 1).get(0);
+        assertTrue(splitRelevantFields1.needAllFields() == false);
+        assertTrue(splitRelevantFields1.needNoFields() == false);
+        assertTrue(splitRelevantFields1.getFields().size() == 1);
+        assertTrue(splitRelevantFields1.getFields().contains(new Pair<Integer, Integer>(0, 1)));
+
+        assertTrue(split.getRelevantInputs(0, 2) == null);
 
         LOSplitOutput splitb = (LOSplitOutput)lp.getSuccessors(split).get(0);
         RequiredFields splitbRelevantFields = splitb.getRelevantInputs(0, 1).get(0);
@@ -520,7 +529,7 @@ public class TestRelevantFields extends TestCase {
     }
     
     @Test
-    public void testQueryOrderByWithSchema() {
+    public void testQueryOrderByWithSchema() throws FrontendException {
         planTester.buildPlan("a = load 'a' as (url,hitCount);");
         LogicalPlan lp = planTester.buildPlan("b = order a by $1;");
         
@@ -539,7 +548,7 @@ public class TestRelevantFields extends TestCase {
     }
     
     @Test
-    public void testQueryLimitWithSchema() {
+    public void testQueryLimitWithSchema() throws FrontendException {
         planTester.buildPlan("a = load 'a' as (url,hitCount);");
         planTester.buildPlan("b = order a by $1;");
         LogicalPlan lp = planTester.buildPlan("c = limit b 10;");
@@ -561,7 +570,7 @@ public class TestRelevantFields extends TestCase {
     }
     
     @Test
-    public void testQueryDistinctWithSchema() {
+    public void testQueryDistinctWithSchema() throws FrontendException {
         planTester.buildPlan("a = load 'a' as (url,hitCount);");
         LogicalPlan lp = planTester.buildPlan("b = distinct a;");
         
@@ -582,7 +591,7 @@ public class TestRelevantFields extends TestCase {
     }
 
     @Test
-    public void testQueryStreamingWithSchema() {
+    public void testQueryStreamingWithSchema() throws FrontendException {
         String query = "stream (load 'a') through `" + simpleEchoStreamingCommand + "` as (x, y);";
         LogicalPlan lp = planTester.buildPlan(query);
         
@@ -594,7 +603,7 @@ public class TestRelevantFields extends TestCase {
     }
 
     @Test
-    public void testQueryStreamingWithSchema1() {
+    public void testQueryStreamingWithSchema1() throws FrontendException {
         String query = "stream (load 'a' as (url, hitCount)) through `" + simpleEchoStreamingCommand + "` as (x, y);";
         LogicalPlan lp = planTester.buildPlan(query);
         
@@ -606,7 +615,7 @@ public class TestRelevantFields extends TestCase {
     }
     
     @Test
-    public void testQueryImplicitJoinWithSchema() {
+    public void testQueryImplicitJoinWithSchema() throws FrontendException {
         planTester.buildPlan("a = load 'a' as (url,hitCount);");
         planTester.buildPlan("b = load 'b' as (url,rank);");
         planTester.buildPlan("c = cogroup a by url, b by url;");
@@ -683,7 +692,7 @@ public class TestRelevantFields extends TestCase {
     }
     
     @Test
-    public void testQueryCrossWithSchema(){
+    public void testQueryCrossWithSchema() throws FrontendException {
         String query = "c = cross (load 'a' as (a, b, c)), (load 'b' as (d, e, f));";
         LogicalPlan lp = planTester.buildPlan(query);
 
@@ -740,7 +749,7 @@ public class TestRelevantFields extends TestCase {
     }
     
     @Test
-    public void testQueryUnionWithSchema(){
+    public void testQueryUnionWithSchema() throws FrontendException {
         String query = "c = union (load 'a' as (url, hitcount)), (load 'b' as (url, rank));";
         LogicalPlan lp = planTester.buildPlan(query);
 
@@ -759,7 +768,7 @@ public class TestRelevantFields extends TestCase {
     }
 
     @Test
-    public void testQueryFRJoinSchema(){
+    public void testQueryFRJoinSchema() throws FrontendException {
         String query = "c = join (load 'a' as (url, hitcount)) by $0, (load 'b' as (url, rank)) by $0 using \"replicated\";";
         LogicalPlan lp = planTester.buildPlan(query);
 
@@ -804,7 +813,7 @@ public class TestRelevantFields extends TestCase {
     }
 
     @Test
-    public void testQueryJoinWithSchema(){
+    public void testQueryJoinWithSchema() throws FrontendException {
         String query = "c = join (load 'a' as (url, hitcount)) by $0, (load 'b' as (url, rank)) by $0;";
         LogicalPlan lp = planTester.buildPlan(query);
 
@@ -849,29 +858,16 @@ public class TestRelevantFields extends TestCase {
     }
     
     @Test
-    public void testQueryCrossWithMixedSchema(){
+    public void testQueryCrossWithMixedSchema() throws FrontendException {
         String query = "c = cross (load 'a' as (url, hitcount)), (load 'b');";
         LogicalPlan lp = planTester.buildPlan(query);
         
         LOCross cross = (LOCross)lp.getLeaves().get(0);
-        RequiredFields crossRelevantFields0 = cross.getRelevantInputs(0, 0).get(0);
-        assertTrue(crossRelevantFields0.getNeedAllFields()==false);
-        assertTrue(crossRelevantFields0.getNeedNoFields()==false);
-        assertTrue(crossRelevantFields0.getFields().get(0).first==0);
-        assertTrue(crossRelevantFields0.getFields().get(0).second==0);
-        
-        RequiredFields crossRelevantFields1 = cross.getRelevantInputs(0, 1).get(0);
-        assertTrue(crossRelevantFields1.getNeedAllFields()==false);
-        assertTrue(crossRelevantFields1.getNeedNoFields()==false);
-        assertTrue(crossRelevantFields1.getFields().get(0).first==0);
-        assertTrue(crossRelevantFields1.getFields().get(0).second==1);
-        
-        assertTrue(cross.getRelevantInputs(0, 2)==null);
+        assertTrue(cross.getRelevantInputs(0, 0)==null);
     }
 
-
     @Test
-    public void testQueryUnionWithMixedSchema(){
+    public void testQueryUnionWithMixedSchema() throws FrontendException {
         String query = "c = union (load 'a' as (url, hitcount)), (load 'b');";
         LogicalPlan lp = planTester.buildPlan(query);
         LOUnion union = (LOUnion)lp.getLeaves().get(0);
@@ -890,53 +886,25 @@ public class TestRelevantFields extends TestCase {
     }
     
     @Test
-    public void testQueryFRJoinWithMixedSchema(){
+    public void testQueryFRJoinWithMixedSchema() throws FrontendException {
         String query = "c = join (load 'a' as (url, hitcount)) by $0, (load 'b') by $0 using \"replicated\";";
         LogicalPlan lp = planTester.buildPlan(query);
 
         LOJoin frjoin = (LOJoin)lp.getLeaves().get(0);
-        RequiredFields frjoinRelevantFields0 = frjoin.getRelevantInputs(0, 0).get(0);
-        assertTrue(frjoinRelevantFields0.getNeedAllFields() == false);
-        assertTrue(frjoinRelevantFields0.getNeedNoFields() == false);
-        assertTrue(frjoinRelevantFields0.getFields().size() == 1);
-        assertTrue(frjoinRelevantFields0.getFields().get(0).first == 0);
-        assertTrue(frjoinRelevantFields0.getFields().get(0).second == 0);
-        
-        RequiredFields frjoinRelevantFields1 = frjoin.getRelevantInputs(0, 1).get(0);
-        assertTrue(frjoinRelevantFields1.getNeedAllFields() == false);
-        assertTrue(frjoinRelevantFields1.getNeedNoFields() == false);
-        assertTrue(frjoinRelevantFields1.getFields().size() == 1);
-        assertTrue(frjoinRelevantFields1.getFields().get(0).first == 0);
-        assertTrue(frjoinRelevantFields1.getFields().get(0).second == 1);
-        
-        assertTrue(frjoin.getRelevantInputs(0, 2)==null);
+        assertTrue(frjoin.getRelevantInputs(0, 0)==null);
     }
     
     @Test
-    public void testQueryJoinWithMixedSchema(){
+    public void testQueryJoinWithMixedSchema() throws FrontendException {
         String query = "c = join (load 'a' as (url, hitcount)) by $0, (load 'b') by $0;";
         LogicalPlan lp = planTester.buildPlan(query);
 
         LOJoin join = (LOJoin)lp.getLeaves().get(0);
-        RequiredFields joinRelevantFields0 = join.getRelevantInputs(0, 0).get(0);
-        assertTrue(joinRelevantFields0.getNeedAllFields() == false);
-        assertTrue(joinRelevantFields0.getNeedNoFields() == false);
-        assertTrue(joinRelevantFields0.getFields().size() == 1);
-        assertTrue(joinRelevantFields0.getFields().get(0).first == 0);
-        assertTrue(joinRelevantFields0.getFields().get(0).second == 0);
-        
-        RequiredFields joinRelevantFields1 = join.getRelevantInputs(0, 1).get(0);
-        assertTrue(joinRelevantFields1.getNeedAllFields() == false);
-        assertTrue(joinRelevantFields1.getNeedNoFields() == false);
-        assertTrue(joinRelevantFields1.getFields().size() == 1);
-        assertTrue(joinRelevantFields1.getFields().get(0).first == 0);
-        assertTrue(joinRelevantFields1.getFields().get(0).second == 1);
-        
-        assertTrue(join.getRelevantInputs(0, 2)==null);
+        assertTrue(join.getRelevantInputs(0, 0)==null);
     }
     
     @Test
-    public void testQueryFilterWithStarNoSchema() {
+    public void testQueryFilterWithStarNoSchema() throws FrontendException {
         planTester.buildPlan("a = load 'a';");
         LogicalPlan lp = planTester.buildPlan("b = filter a by COUNT(*) == 3;");
         
@@ -957,7 +925,7 @@ public class TestRelevantFields extends TestCase {
     }
     
     @Test
-    public void testQueryOrderByStarNoSchema() {
+    public void testQueryOrderByStarNoSchema() throws FrontendException {
         planTester.buildPlan("a = load 'a';");
         LogicalPlan lp = planTester.buildPlan("b = order a by *;");
         
@@ -978,7 +946,7 @@ public class TestRelevantFields extends TestCase {
     }
     
     @Test
-    public void testQueryGroupByStarNoSchema() throws Exception {
+    public void testQueryGroupByStarNoSchema() throws FrontendException  {
         String query = "foreach (group (load 'a') by *) generate $1 ;";
         LogicalPlan lp = planTester.buildPlan(query);
         
@@ -1003,7 +971,7 @@ public class TestRelevantFields extends TestCase {
     }
     
     @Test
-    public void testQueryFRJoinOnStarNoSchema(){
+    public void testQueryFRJoinOnStarNoSchema() throws FrontendException {
         String query = "c = join (load 'a') by *, (load 'b') by * using \"replicated\";";
         LogicalPlan lp = planTester.buildPlan(query);
 
@@ -1012,7 +980,7 @@ public class TestRelevantFields extends TestCase {
     }
     
     @Test
-    public void testQueryJoinOnStarNoSchema(){
+    public void testQueryJoinOnStarNoSchema() throws FrontendException {
         String query = "c = join (load 'a') by *, (load 'b') by *;";
         LogicalPlan lp = planTester.buildPlan(query);
 
@@ -1021,7 +989,7 @@ public class TestRelevantFields extends TestCase {
     }
     
     @Test
-    public void testQueryFilterStarWithSchema() {
+    public void testQueryFilterStarWithSchema() throws FrontendException {
         planTester.buildPlan("a = load 'a' as (url,hitCount);");
         LogicalPlan lp = planTester.buildPlan("b = filter a by COUNT(*) == 3;");
         
@@ -1042,15 +1010,24 @@ public class TestRelevantFields extends TestCase {
     }
     
     @Test
-    public void testQuerySplitWithStarSchema() {
+    public void testQuerySplitWithStarSchema() throws FrontendException {
         planTester.buildPlan("a = load 'a' as (url, hitCount);");
         LogicalPlan lp = planTester.buildPlan("split a into b if url == '3', c if COUNT(*) == '3';");
         
         LOSplit split = (LOSplit)lp.getSuccessors(lp.getRoots().get(0)).get(0);
-        RequiredFields splitRelevantFields = split.getRelevantInputs(0, 0).get(0);
-        assertTrue(splitRelevantFields.needAllFields() == false);
-        assertTrue(splitRelevantFields.needNoFields() == true);
-        assertTrue(splitRelevantFields.getFields() == null);
+        RequiredFields splitRelevantFields0 = split.getRelevantInputs(0, 0).get(0);
+        assertTrue(splitRelevantFields0.needAllFields() == false);
+        assertTrue(splitRelevantFields0.needNoFields() == false);
+        assertTrue(splitRelevantFields0.getFields().size() == 1);
+        assertTrue(splitRelevantFields0.getFields().contains(new Pair<Integer, Integer>(0, 0)));
+        
+        RequiredFields splitRelevantFields1 = split.getRelevantInputs(0, 1).get(0);
+        assertTrue(splitRelevantFields1.needAllFields() == false);
+        assertTrue(splitRelevantFields1.needNoFields() == false);
+        assertTrue(splitRelevantFields1.getFields().size() == 1);
+        assertTrue(splitRelevantFields1.getFields().contains(new Pair<Integer, Integer>(0, 1)));
+        
+        assertTrue(split.getRelevantInputs(0, 2) == null);
 
         LOSplitOutput splitb = (LOSplitOutput)lp.getSuccessors(split).get(0);
         RequiredFields splitbRelevantFields0 = splitb.getRelevantInputs(0, 0).get(0);
@@ -1081,7 +1058,7 @@ public class TestRelevantFields extends TestCase {
     }
     
     @Test
-    public void testQueryOrderByStarWithSchema() {
+    public void testQueryOrderByStarWithSchema() throws FrontendException {
         planTester.buildPlan("a = load 'a' as (url,hitCount);");
         LogicalPlan lp = planTester.buildPlan("b = order a by *;");
         
@@ -1100,7 +1077,7 @@ public class TestRelevantFields extends TestCase {
     }
     
     @Test
-    public void testQueryGroupByStarWithSchema() throws Exception {
+    public void testQueryGroupByStarWithSchema() throws FrontendException {
         String query = "foreach (group (load 'a' as (url, hitCount)) by *) generate $1 ;";
         LogicalPlan lp = planTester.buildPlan(query);
         
@@ -1131,7 +1108,7 @@ public class TestRelevantFields extends TestCase {
     }
     
     @Test
-    public void testQueryFRJoinOnStarWithSchema(){
+    public void testQueryFRJoinOnStarWithSchema() throws FrontendException {
         String query = "c = join (load 'a' as (url, hitcount)) by *, (load 'b' as (url, rank)) by * using \"replicated\";";
         LogicalPlan lp = planTester.buildPlan(query);
 
@@ -1176,7 +1153,7 @@ public class TestRelevantFields extends TestCase {
     }
 
     @Test
-    public void testQueryJoinOnStarWithSchema(){
+    public void testQueryJoinOnStarWithSchema() throws FrontendException {
         String query = "c = join (load 'a' as (url, hitcount)) by *, (load 'b' as (url, rank)) by *;";
         LogicalPlan lp = planTester.buildPlan(query);
 
@@ -1221,7 +1198,7 @@ public class TestRelevantFields extends TestCase {
     }
     
     @Test
-    public void testQueryForeachGenerateStarNoSchema() {
+    public void testQueryForeachGenerateStarNoSchema() throws FrontendException {
         String query = "foreach (load 'a') generate * ;";
         LogicalPlan lp = planTester.buildPlan(query);
         
@@ -1230,7 +1207,7 @@ public class TestRelevantFields extends TestCase {
     }
     
     @Test
-    public void testQueryForeachGenerateCountStarNoSchema() {
+    public void testQueryForeachGenerateCountStarNoSchema() throws FrontendException {
         String query = "foreach (load 'a') generate COUNT(*) ;";
         LogicalPlan lp = planTester.buildPlan(query);
         
@@ -1242,7 +1219,7 @@ public class TestRelevantFields extends TestCase {
     }
     
     @Test
-    public void testQueryForeachGenerateStarNoSchema1() {
+    public void testQueryForeachGenerateStarNoSchema1() throws FrontendException {
         String query = "foreach (load 'a') generate *, COUNT(*) ;";
         LogicalPlan lp = planTester.buildPlan(query);
         
@@ -1252,7 +1229,7 @@ public class TestRelevantFields extends TestCase {
     }
     
     @Test
-    public void testQueryForeachGenerateStarNoSchema2() {
+    public void testQueryForeachGenerateStarNoSchema2() throws FrontendException {
         String query = "foreach (load 'a') generate *, $0 ;";
         LogicalPlan lp = planTester.buildPlan(query);
         
@@ -1262,7 +1239,7 @@ public class TestRelevantFields extends TestCase {
     }
     
     @Test
-    public void testQueryForeachGenerateStarWithSchema() {
+    public void testQueryForeachGenerateStarWithSchema() throws FrontendException {
         String query = "foreach (load 'a' as (url, hitCount)) generate * ;";
         LogicalPlan lp = planTester.buildPlan(query);
         
@@ -1285,7 +1262,7 @@ public class TestRelevantFields extends TestCase {
     }
 
     @Test
-    public void testQueryForeachGenerateCountStarWithSchema() {
+    public void testQueryForeachGenerateCountStarWithSchema() throws FrontendException {
         String query = "foreach (load 'a' as (url, hitCount)) generate COUNT(*) ;";
         LogicalPlan lp = planTester.buildPlan(query);
         
@@ -1297,7 +1274,7 @@ public class TestRelevantFields extends TestCase {
     }
 
     @Test
-    public void testQueryForeachGenerateStarWithSchema1() {
+    public void testQueryForeachGenerateStarWithSchema1() throws FrontendException {
         String query = "foreach (load 'a' as (url, hitCount)) generate *, COUNT(*) ;";
         LogicalPlan lp = planTester.buildPlan(query);
         
@@ -1323,7 +1300,7 @@ public class TestRelevantFields extends TestCase {
     }
 
     @Test
-    public void testQueryForeachGenerateStarWithSchema2() {
+    public void testQueryForeachGenerateStarWithSchema2() throws FrontendException {
         String query = "foreach (load 'a' as (url, hitCount)) generate *, url ;";
         LogicalPlan lp = planTester.buildPlan(query);
 

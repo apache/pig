@@ -37,6 +37,7 @@ import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.BufferedPositionedInputStream;
+import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.OperatorKey;
@@ -220,10 +221,11 @@ public class MergeJoinIndexer  implements LoadFunc{
         return loader.bytesToBag(b);
     }
 
-    public void fieldsToRead(Schema schema) {
-        loader.fieldsToRead(schema);
+    @Override
+    public LoadFunc.RequiredFieldResponse fieldsToRead(RequiredFieldList requiredFieldList) throws FrontendException {
+        return loader.fieldsToRead(requiredFieldList);
     }
-
+    
     public Schema determineSchema(
             String fileName,
             ExecType execType,
