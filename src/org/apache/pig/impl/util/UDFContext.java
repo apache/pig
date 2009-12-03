@@ -177,4 +177,7 @@ public class UDFContext {
         return hc;
     }
     
+    public void reset() {
+        udfConfs.clear();
+    }
 }

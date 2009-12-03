@@ -26,11 +26,13 @@ import org.apache.pig.ExecType;
 import org.apache.pig.LoadFunc;
 import org.apache.pig.Slice;
 import org.apache.pig.Slicer;
+import org.apache.pig.LoadFunc.RequiredFieldList;
 import org.apache.pig.backend.datastorage.DataStorage;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.io.BufferedPositionedInputStream;
+import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 
 /**
@@ -206,8 +208,9 @@ public class RangeSlicer
     /* (non-Javadoc)
      * @see org.apache.pig.LoadFunc#fieldsToRead(org.apache.pig.impl.logicalLayer.schema.Schema)
      */
-    public void fieldsToRead(Schema schema) {
-        
+    @Override
+    public LoadFunc.RequiredFieldResponse fieldsToRead(RequiredFieldList requiredFieldList) throws FrontendException {
+        return new LoadFunc.RequiredFieldResponse(false);
     }
 
     /* (non-Javadoc)

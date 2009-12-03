@@ -126,6 +126,13 @@ public class SliceWrapper implements InputSplit {
         if(execType == ExecType.MAPREDUCE)
             store.setActiveContainer(store.asContainer("/user/" + job.getUser()));
         PigContext.setPackageImportList((ArrayList<String>)ObjectSerializer.deserialize(job.get("udf.import.list")));
+        List<String> inpSignatureLists = (ArrayList<String>)ObjectSerializer.deserialize(job.get("pig.inpSignatures"));
+        if (inpSignatureLists.get(index)!=null) {
+            // Pass loader signature to slice
+            store.getConfiguration().setProperty("pig.loader.signature", inpSignatureLists.get(index));
+            job.set("pig.loader.signature", inpSignatureLists.get(index));
+        }
+        
         wrapped.init(store);
         
         job.set("map.target.ops", ObjectSerializer.serialize(targetOps));

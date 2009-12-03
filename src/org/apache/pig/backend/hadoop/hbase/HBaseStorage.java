@@ -32,6 +32,7 @@ import org.apache.pig.backend.datastorage.DataStorage;
 import org.apache.pig.builtin.Utf8StorageConverter;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.io.BufferedPositionedInputStream;
+import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 
 /**
@@ -160,8 +161,8 @@ public class HBaseStorage extends Utf8StorageConverter implements Slicer,
     }
 
     @Override
-    public void fieldsToRead(Schema schema) {
-        // do nothing
+    public LoadFunc.RequiredFieldResponse fieldsToRead(RequiredFieldList requiredFields) throws FrontendException {
+        return new LoadFunc.RequiredFieldResponse(false);
     }
 
     @Override

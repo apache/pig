@@ -32,6 +32,7 @@ import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.BufferedPositionedInputStream;
 import org.apache.pig.impl.io.FileSpec;
+import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.util.Pair;
 
@@ -135,8 +136,9 @@ public abstract class SampleLoader implements LoadFunc {
 	/* (non-Javadoc)
 	 * @see org.apache.pig.LoadFunc#fieldsToRead(org.apache.pig.impl.logicalLayer.schema.Schema)
 	 */
-	public void fieldsToRead(Schema schema) {
-        loader.fieldsToRead(schema);
+	@Override
+	public LoadFunc.RequiredFieldResponse fieldsToRead(RequiredFieldList requiredFields) throws FrontendException {
+	    return loader.fieldsToRead(requiredFields);
 	}
 
 	/* (non-Javadoc)

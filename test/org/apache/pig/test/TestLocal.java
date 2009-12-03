@@ -44,6 +44,7 @@ import org.apache.pig.LoadFunc;
 import org.apache.pig.PigServer;
 import org.apache.pig.StoreFunc;
 import org.apache.pig.ExecType;
+import org.apache.pig.LoadFunc.RequiredFieldList;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.builtin.COUNT;
 import org.apache.pig.data.BagFactory;
@@ -54,6 +55,7 @@ import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.BufferedPositionedInputStream;
+import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.backend.datastorage.DataStorage;
 import org.apache.pig.backend.datastorage.ElementDescriptor;
@@ -247,7 +249,10 @@ public class TestLocal extends TestCase {
             return null;
         }
 
-        public void fieldsToRead(Schema schema) {}
+        @Override
+        public LoadFunc.RequiredFieldResponse fieldsToRead(RequiredFieldList requiredFieldList) throws FrontendException {
+            return new LoadFunc.RequiredFieldResponse(false);
+        }
 
         public byte[] toBytes(DataBag bag) throws IOException {
             return null;

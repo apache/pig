@@ -149,7 +149,7 @@ public class InternalSortedBag extends DefaultAbstractBag{
         
         // check how many tuples memory can hold by getting average
         // size of first 100 tuples
-        if(mSize < 100 && (mSpillFiles == null || mSpillFiles.isEmpty()))
+        if(mSize < 100 && (mSpillFiles == null || mSpillFiles.isEmpty())&&t!=null)
         {
             memUsage += t.getMemorySize();
             long avgUsage = memUsage / (long)mContents.size();

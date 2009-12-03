@@ -430,8 +430,9 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
             return null;
         }
         
-        public void fieldsToRead(Schema schema) {
-            
+        @Override
+        public LoadFunc.RequiredFieldResponse fieldsToRead(LoadFunc.RequiredFieldList requiredFieldList) throws FrontendException {
+            return new LoadFunc.RequiredFieldResponse(false);
         }
         
         public DataBag bytesToBag(byte[] b) throws IOException {

@@ -223,6 +223,12 @@ public class PigInputFormat implements InputFormat<Text, Tuple>,
                 }
 				
 				DataStorage store = new HDataStorage(ConfigurationUtil.toProperties(job));
+				
+				// Pass loader signature to slicer
+			    List<String> inpSignatureLists = (ArrayList<String>)ObjectSerializer.deserialize(job.get("pig.inpSignatures"));
+                if (inpSignatureLists.get(i)!=null)
+                    store.getConfiguration().setProperty("pig.loader.signature", inpSignatureLists.get(i));
+
 				ValidatingInputFileSpec spec;
 				if (inputs.get(i).first instanceof ValidatingInputFileSpec) {
 				    spec = (ValidatingInputFileSpec) inputs.get(i).first;

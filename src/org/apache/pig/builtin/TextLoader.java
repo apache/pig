@@ -34,6 +34,7 @@ import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.io.BufferedPositionedInputStream;
+import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 
 
@@ -161,7 +162,10 @@ public class TextLoader implements LoadFunc{
     /**
      * TextLoader doesn't make use of this.
      */
-    public void fieldsToRead(Schema schema) {}
+    @Override
+    public LoadFunc.RequiredFieldResponse fieldsToRead(LoadFunc.RequiredFieldList requiredFieldList) throws FrontendException {
+        return new LoadFunc.RequiredFieldResponse(false);
+    }
 
     /**
      * TextLoader does not provide a schema.

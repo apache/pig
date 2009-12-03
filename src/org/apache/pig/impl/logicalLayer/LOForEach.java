@@ -150,7 +150,7 @@ public class LOForEach extends RelationalOperator {
         if (!mIsSchemaComputed) {
             List<Schema.FieldSchema> fss = new ArrayList<Schema.FieldSchema>(
                     mForEachPlans.size());
-            
+            mSchemaPlanMapping = new ArrayList<LogicalPlan>();
             for (LogicalPlan plan : mForEachPlans) {
                 log.debug("Number of leaves in " + plan + " = " + plan.getLeaves().size());
                 for(int i = 0; i < plan.getLeaves().size(); ++i) {
@@ -433,6 +433,7 @@ public class LOForEach extends RelationalOperator {
             sr.visit();
         }
         super.unsetSchema();
+        mSchemaPlanMapping = new ArrayList<LogicalPlan>();
     }
 
     /**
@@ -794,8 +795,30 @@ public class LOForEach extends RelationalOperator {
         return new Pair<Boolean, List<Integer>>(hasFlatten, flattenedColumns);
     }
     
+    public LogicalPlan getRelevantPlan(int output, int column)
+    {
+        if (output!=0)
+            return null;
+
+        if (column<0)
+            return null;
+
+        if (mSchema == null)
+            return null;
+        
+        if (mSchema.size()<=column)
+        {
+            return null;
+        }
+        
+        return mSchemaPlanMapping.get(column);
+    }
+    
     @Override
-    public List<RequiredFields> getRelevantInputs(int output, int column) {
+    public List<RequiredFields> getRelevantInputs(int output, int column) throws FrontendException {
+        if (!mIsSchemaComputed)
+            getSchema();
+        
         if (output!=0)
             return null;
 
@@ -812,23 +835,8 @@ public class LOForEach extends RelationalOperator {
             return null;
         }
         
-        // find the index of foreach inner plan for this particular output column
-        LogicalPlan generatingPlan = null;
-        int planIndex = 0;
-
-        generatingPlan = mSchemaPlanMapping.get(0);
+        LogicalPlan plan = getRelevantPlan(output, column);
         
-        for (int i=1;i<=column;i++)
-        {
-            if (mSchemaPlanMapping.get(i)!=generatingPlan)
-            {
-                planIndex++;
-                generatingPlan = mSchemaPlanMapping.get(i);
-            }
-        }
-
-        // find relavant input columns for foreach innner plan
-        LogicalPlan plan = mForEachPlans.get(planIndex);
         TopLevelProjectFinder projectFinder = new TopLevelProjectFinder(
                 plan);
         
@@ -854,5 +862,102 @@ public class LOForEach extends RelationalOperator {
         result.add(new RequiredFields(inputList));
         
         return result;
+    }
+     @Override
+    public boolean pruneColumns(List<Pair<Integer, Integer>> columns)
+            throws FrontendException {
+        if (!mIsSchemaComputed)
+            getSchema();
+        if (mSchema == null) {
+            log.warn("Cannot prune columns in foreach, no schema information found");
+            return false;
+        }
+
+        List<LogicalOperator> predecessors = mPlan.getPredecessors(this);
+
+        if (predecessors == null) {
+            int errCode = 2190;
+            throw new FrontendException("Cannot find predecessors for foreach",
+                    errCode, PigException.BUG);
+        }
+
+        if (predecessors.size() != 1) {
+            int errCode = 2193;
+            throw new FrontendException("Foreach can only have 1 predecessor",
+                    errCode, PigException.BUG);
+        }
+
+        if (predecessors.get(0).getSchema() == null) {
+            int errCode = 2194;
+            throw new FrontendException("Expect schema", errCode,
+                    PigException.BUG);
+        }
+
+        for (Pair<Integer, Integer> column : columns) {
+            if (column.first != 0) {
+                int errCode = 2191;
+                throw new FrontendException(
+                        "foreach only take 1 input, cannot prune input with index "
+                                + column.first, errCode, PigException.BUG);
+            }
+
+            if (column.second < 0) {
+                int errCode = 2192;
+                throw new FrontendException("Column to prune does not exist", errCode, PigException.BUG);
+            }
+        }
+
+        List<Integer> planToRemove = new ArrayList<Integer>();
+        for (int i = 0; i < mForEachPlans.size(); i++) {
+            LogicalPlan plan = mForEachPlans.get(i);
+            TopLevelProjectFinder projectFinder = new TopLevelProjectFinder(
+                    plan);
+            try {
+                projectFinder.visit();
+            } catch (VisitorException ve) {
+                int errCode = 2195;
+                throw new FrontendException("Fail to visit foreach inner plan",
+                        errCode, PigException.BUG);
+            }
+
+            // this inner plan need all fields, cannot remove
+            if (projectFinder.getProjectStarSet() != null) {
+                continue;
+            }
+            // Constant plan, we never remove constant field
+            if (projectFinder.getProjectSet().size()==0)
+            {
+                continue;
+            }
+            boolean allPruned = true;
+            for (LOProject loProject : projectFinder.getProjectSet()) {
+                Pair<Integer, Integer> pair = new Pair<Integer, Integer>(0,
+                        loProject.getCol());
+                if (!columns.contains(pair)) {
+                    allPruned = false;
+                    break;
+                }
+            }
+            if (allPruned) {
+                planToRemove.add(i);
+            }
+        }
+        while (planToRemove.size() > 0) {
+            int index = planToRemove.get(planToRemove.size()-1);
+            mForEachPlans.remove(index);
+            mFlatten.remove(index);
+            planToRemove.remove(planToRemove.size()-1);
+        }
+
+        // Adjust col# in LOProject in every forEachPlan, pruneColumnInPlan will check if the col# need to adjust,
+        // if so, change the col# inside that LOProject
+        for (int i=columns.size()-1;i>=0;i--) {
+            Pair<Integer, Integer> column = columns.get(i);
+            for (LogicalPlan plan : mForEachPlans) {
+                pruneColumnInPlan(plan, column.second);
+            }
+        }
+        super.pruneColumns(columns);
+        return true;
     }
 }

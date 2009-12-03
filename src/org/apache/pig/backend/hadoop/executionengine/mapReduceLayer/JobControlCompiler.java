@@ -46,6 +46,7 @@ import org.apache.hadoop.mapred.jobcontrol.JobControl;
 
 import org.apache.pig.ComparisonFunc;
 import org.apache.pig.FuncSpec;
+import org.apache.pig.LoadFunc;
 import org.apache.pig.PigException;
 import org.apache.pig.StoreConfig;
 import org.apache.pig.StoreFunc;
@@ -150,6 +151,7 @@ public class JobControlCompiler{
     public void reset() {
         jobStoreMap = new HashMap<Job, Pair<List<POStore>, Path>>();
         jobMroMap = new HashMap<Job, MapReduceOper>();
+        UDFContext.getUDFContext().reset();
     }
 
     /**
@@ -318,6 +320,7 @@ public class JobControlCompiler{
         JobConf jobConf = new JobConf(conf);
         ArrayList<Pair<FileSpec, Boolean>> inp = new ArrayList<Pair<FileSpec, Boolean>>();
         ArrayList<List<OperatorKey>> inpTargets = new ArrayList<List<OperatorKey>>();
+        ArrayList<String> inpSignatureLists = new ArrayList<String>();
         ArrayList<POStore> storeLocations = new ArrayList<POStore>();
         Path tmpLocation = null;
         
@@ -349,6 +352,7 @@ public class JobControlCompiler{
                         }
                     }
                     inpTargets.add(ldSucKeys);
+                    inpSignatureLists.add(ld.getSignature());
                     //Remove the POLoad from the plan
                     mro.mapPlan.remove(ld);
                 }
@@ -365,6 +369,7 @@ public class JobControlCompiler{
             jobConf.setJar(submitJarFile.getPath());
             jobConf.set("pig.inputs", ObjectSerializer.serialize(inp));
             jobConf.set("pig.inpTargets", ObjectSerializer.serialize(inpTargets));
+            jobConf.set("pig.inpSignatures", ObjectSerializer.serialize(inpSignatureLists));
             jobConf.set("pig.pigContext", ObjectSerializer.serialize(pigContext));
             jobConf.set("udf.import.list", ObjectSerializer.serialize(PigContext.getPackageImportList()));
             // this is for unit tests since some don't create PigServer

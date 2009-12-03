@@ -37,7 +37,7 @@ import org.apache.pig.impl.plan.optimizer.OptimizerException;
 public class ImplicitSplitInserter extends LogicalTransformer {
 
     public ImplicitSplitInserter(LogicalPlan plan) {
-        super(plan, new DepthFirstWalker<LogicalOperator, LogicalPlan>(plan));
+        super(plan);
     }
 
     @Override

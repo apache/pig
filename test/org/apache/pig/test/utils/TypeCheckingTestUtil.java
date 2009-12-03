@@ -18,6 +18,9 @@
 
 package org.apache.pig.test.utils;
 
+import org.apache.hadoop.hdfs.server.common.HdfsConstants.NodeType;
+import org.apache.pig.backend.datastorage.DataStorage;
+import org.apache.pig.backend.hadoop.datastorage.HDataStorage;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.impl.logicalLayer.LogicalPlan;
 import org.apache.pig.impl.logicalLayer.LOLoad;
@@ -32,17 +35,19 @@ import org.apache.pig.test.TypeGraphPrinter;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ArrayList;
+import java.util.Properties;
 import java.io.IOException;
 
 public class TypeCheckingTestUtil {
 
     public static LOLoad genDummyLOLoad(LogicalPlan plan)  {
         String pigStorage = PigStorage.class.getName() ;
+        DataStorage dfs = new HDataStorage(new Properties());
         try {
             LOLoad load = new LOLoad(plan,
                                       genNewOperatorKey(),
                                       new FileSpec("pi", new FuncSpec(pigStorage)),
-                                      null, null, true) ;
+                                      null, dfs, true) ;
             return load ;
         } catch (IOException e) {
             throw new AssertionError("This cannot happen") ;

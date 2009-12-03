@@ -72,7 +72,7 @@ public class PushUpFilter extends LogicalTransformer {
     private int mPushBeforeInput = -1;
 
     public PushUpFilter(LogicalPlan plan) {
-        super(plan, new DepthFirstWalker<LogicalOperator, LogicalPlan>(plan));
+        super(plan);
     }
 
     /**

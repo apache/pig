@@ -1533,6 +1533,7 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
         load.setLFile(loLoad.getInputFile());
         load.setPc(pc);
         load.setResultType(loLoad.getType());
+        load.setSignature(loLoad.getAlias());
         currentPlan.add(load);
         logToPhyMap.put(loLoad, load);
 

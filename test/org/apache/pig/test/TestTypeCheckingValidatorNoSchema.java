@@ -28,6 +28,7 @@ import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.plan.CompilationMessageCollector;
 import org.apache.pig.impl.plan.PlanValidationException;
 import org.apache.pig.impl.util.MultiMap;
+import org.apache.pig.backend.hadoop.datastorage.HDataStorage;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.data.DataType;
 import org.apache.pig.impl.logicalLayer.schema.Schema.FieldSchema ;
@@ -36,6 +37,7 @@ import org.apache.pig.test.utils.TypeCheckingTestUtil;
 
 import java.util.List;
 import java.util.ArrayList;
+import java.util.Properties;
 
 public class TestTypeCheckingValidatorNoSchema  extends TestCase {
 
@@ -443,7 +445,7 @@ public class TestTypeCheckingValidatorNoSchema  extends TestCase {
         LOLoad load1 = new LOLoad(plan,
                                   genNewOperatorKey(),
                                   new FileSpec("pi", new FuncSpec(pigStorage)),
-                                  null, null, true) ;
+                                  null, new HDataStorage(new Properties()), true) ;
 
         // set schemas
         load1.setEnforcedSchema(null) ;
@@ -507,7 +509,7 @@ public class TestTypeCheckingValidatorNoSchema  extends TestCase {
         LOLoad load1 = new LOLoad(plan,
                                   genNewOperatorKey(),
                                   new FileSpec("pi", new FuncSpec(pigStorage)),
-                                  null, null, true) ;
+                                  null, new HDataStorage(new Properties()), true) ;
 
         // set schemas
         load1.setEnforcedSchema(null) ;

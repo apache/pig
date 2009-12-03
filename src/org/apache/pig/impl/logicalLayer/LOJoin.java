@@ -66,6 +66,7 @@ public class LOJoin extends RelationalOperator {
     private MultiMap<LogicalOperator, LogicalPlan> mJoinPlans;
     private boolean[] mInnerFlags;
 	private JOINTYPE mJoinType; // Retains the type of the join
+	private List<LogicalOperator> mSchemaInputMapping = new ArrayList<LogicalOperator>();
 
 	/** 
 	 * static constant to refer to the option of selecting a join type
@@ -139,6 +140,7 @@ public class LOJoin extends RelationalOperator {
         Hashtable<String, Integer> nonDuplicates = new Hashtable<String, Integer>();
         if(!mIsSchemaComputed){
             List<Schema.FieldSchema> fss = new ArrayList<Schema.FieldSchema>();
+            mSchemaInputMapping = new ArrayList<LogicalOperator>();
             int i=-1;
             boolean seeUnknown = false;
             for (LogicalOperator op : inputs) {
@@ -160,10 +162,11 @@ public class LOJoin extends RelationalOperator {
                                 }
                                 newFS = new FieldSchema(op.getAlias()+"::"+schema.alias,schema.schema,schema.type);
                             } else {
-                                newFS = new Schema.FieldSchema(null, DataType.BYTEARRAY);
+                                newFS = new Schema.FieldSchema(null, schema.type);
                             }
                             newFS.setParent(schema.canonicalName, op);
                             fss.add(newFS);
+                            mSchemaInputMapping.add(op);
                         }
                     } else {
                         seeUnknown = true;
@@ -530,11 +533,25 @@ public class LOJoin extends RelationalOperator {
     }
     
     @Override
-    public List<RequiredFields> getRelevantInputs(int output, int column) {
+    public List<RequiredFields> getRelevantInputs(int output, int column) throws FrontendException {
+        if (!mIsSchemaComputed)
+            getSchema();
+        
         if (output!=0)
             return null;
         
         if (column<0)
+            return null;
+        
+        if (mSchema==null)
+            return null;
+        
+        // remove this check after PIG-592 fixed
+        if (mSchemaInputMapping==null || mSchemaInputMapping.size()==0 || 
+                mSchema.size()!=mSchemaInputMapping.size())
+            return null;
+        
+        if (column>mSchema.size()-1)
             return null;
         
         List<LogicalOperator> predecessors = (ArrayList<LogicalOperator>)mPlan.getPredecessors(this);
@@ -543,36 +560,35 @@ public class LOJoin extends RelationalOperator {
             return null;
         }
 
+        // Figure out the # of input does this output column belong to, and the # of column of that input.
+        // When we call getSchema, we will cache mSchemaInputMapping for a mapping of output column and it's input. 
+        // We count the number of different inputs we've seen from mSchemaInputMapping[0] to
+        // mSchemaInputMapping[column] to find out the # of input
         List<RequiredFields> result = new ArrayList<RequiredFields>();
         
         for (int i=0;i<predecessors.size();i++)
             result.add(null);
         
-        for(int inputNum = 0; inputNum < predecessors.size(); ++inputNum) {
-            LogicalOperator predecessor = predecessors.get(inputNum);
-            Schema inputSchema = null;        
-            
-            try {
-                inputSchema = predecessor.getSchema();
-            } catch (FrontendException fee) {
-                return null;
+        int inputNum = -1;
+        int inputColumn = 0;
+        LogicalOperator op = null;
+        for (int i=0;i<=column;i++)
+        {
+            if (mSchemaInputMapping.get(i)!=op)
+            {
+                inputNum++;
+                inputColumn = 0;
+                op = mSchemaInputMapping.get(i);
             }
-            
-            if(inputSchema == null) {
-                return null;
-            } else {
-                if (column<inputSchema.size()) {
-                    ArrayList<Pair<Integer, Integer>> inputList = new ArrayList<Pair<Integer, Integer>>();
-                    inputList.add(new Pair<Integer, Integer>(inputNum, column));
-                    RequiredFields requiredFields = new RequiredFields(inputList);
-                    result.set(inputNum, requiredFields);
-                    return result;
-                }
-                column-=inputSchema.size();
-            }
+            else
+                inputColumn++;
         }
-        // shall not get here
-        return null;
+
+        ArrayList<Pair<Integer, Integer>> inputList = new ArrayList<Pair<Integer, Integer>>();
+        inputList.add(new Pair<Integer, Integer>(inputNum, inputColumn));
+        RequiredFields requiredFields = new RequiredFields(inputList);
+        result.set(inputNum, requiredFields);
+        return result;
     }
 
     /**
@@ -580,5 +596,43 @@ public class LOJoin extends RelationalOperator {
      */
     public boolean[] getInnerFlags() {
         return getCopy(mInnerFlags);
+    }
+    
+    @Override
+    public boolean pruneColumns(List<Pair<Integer, Integer>> columns)
+            throws FrontendException {
+        if (!mIsSchemaComputed)
+            getSchema();
+        if (mSchema == null) {
+            log
+                    .warn("Cannot prune columns in cogroup, no schema information found");
+            return false;
+        }
+
+        List<LogicalOperator> predecessors = mPlan.getPredecessors(this);
+
+        if (predecessors == null) {
+            int errCode = 2190;
+            throw new FrontendException("Cannot find predecessors for join",
+                    errCode, PigException.BUG);
+        }
+
+        for (Pair<Integer, Integer> column : columns) {
+            if (column.first < 0 || column.first > predecessors.size()) {
+                int errCode = 2191;
+                throw new FrontendException("No input " + column.first
+                        + " to prune in join", errCode, PigException.BUG);
+            }
+            if (column.second < 0) {
+                int errCode = 2192;
+                throw new FrontendException("column to prune does not exist", errCode, PigException.BUG);
+            }
+            for (LogicalPlan plan : mJoinPlans.get(predecessors
+                    .get(column.first))) {
+                pruneColumnInPlan(plan, column.second);
+            }
+        }
+        super.pruneColumns(columns);
+        return true;
     }
 }

@@ -19,9 +19,12 @@ package org.apache.pig.impl.logicalLayer;
 
 import java.util.List;
 
+import org.apache.pig.PigException;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.ProjectionMap;
 import org.apache.pig.impl.plan.RequiredFields;
+import org.apache.pig.impl.plan.VisitorException;
+import org.apache.pig.impl.util.Pair;
 
 public abstract class RelationalOperator extends LogicalOperator {
     private static final long serialVersionUID = 2L;
@@ -140,7 +143,38 @@ public abstract class RelationalOperator extends LogicalOperator {
      * @param column output column
      * @return List of relevant input columns. null if Pig cannot determine relevant inputs or any error occurs
      */
-    abstract public List<RequiredFields> getRelevantInputs(int output, int column); 
+    abstract public List<RequiredFields> getRelevantInputs(int output, int column) throws FrontendException; 
 
+    public boolean pruneColumns(List<Pair<Integer, Integer>> columns)
+            throws FrontendException {
+        unsetSchema();
+        getSchema();
+        mIsProjectionMapComputed = false;
+        getProjectionMap();
+        return true;
+    }
 
+    public void pruneColumnInPlan(LogicalPlan plan, int column)
+            throws FrontendException {
+        TopLevelProjectFinder projectFinder = new TopLevelProjectFinder(plan);
+        try {
+            projectFinder.visit();
+        } catch (VisitorException ve) {
+            int errCode = 2196;
+            throw new FrontendException("Exception when traversing inner plan",
+                    errCode, PigException.BUG, ve);
+        }
+        for (LOProject loProject : projectFinder.getProjectSet()) {
+            if (loProject.isStar()) {
+                int errCode = 2197;
+                throw new FrontendException(
+                        "Cannot drop column which require *", errCode,
+                        PigException.BUG);
+            }
+            int col = loProject.getCol();
+            if (column < col) {
+                loProject.getProjection().set(0, col - 1);
+            }
+        }
+    }
 }
