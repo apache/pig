@@ -45,6 +45,9 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-1114: MultiQuery optimization throws error when merging 2 level spl (rding
+via olgan)
+
 PIG-1108: Incorrect map output key type in MultiQuery optimiza (rding via
 olgan)
 

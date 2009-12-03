@@ -116,6 +116,65 @@ public class TestMultiQuery extends TestCase {
     }    
     
     @Test
+    public void testMultiQueryJiraPig1114() {
+
+        // test case: MultiQuery optimization throws error when merging 2 level splits
+
+        String INPUT_FILE = "data.txt";
+
+        try {
+
+            PrintWriter w = new PrintWriter(new FileWriter(INPUT_FILE));
+            w.println("10\tjar");
+            w.println("20\tbox");
+            w.println("30\tbot");
+            w.close();
+            Util.copyFromLocalToCluster(cluster, INPUT_FILE, INPUT_FILE);
+
+            myPig.setBatchOn();
+
+            myPig.registerQuery("data = load '" + INPUT_FILE
+                    + "' USING PigStorage as (id:int, name:chararray);");
+            myPig.registerQuery("ids = FOREACH data GENERATE id;");
+            myPig.registerQuery("allId = GROUP ids all;");
+            myPig.registerQuery("allIdCount = FOREACH allId GENERATE group as allId, COUNT(ids) as total;");
+            myPig.registerQuery("idGroup = GROUP ids by id;");
+            myPig.registerQuery("idGroupCount = FOREACH idGroup GENERATE group as id, COUNT(ids) as count;");
+            myPig.registerQuery("countTotal = cross idGroupCount, allIdCount;");
+            myPig.registerQuery("idCountTotal = foreach countTotal generate id, count, total, (double)count / (double)total as proportion;");
+            myPig.registerQuery("orderedCounts = order idCountTotal by count desc;");
+            myPig.registerQuery("STORE orderedCounts INTO '/tmp/output1';");
+
+            myPig.registerQuery("names = FOREACH data GENERATE name;");
+            myPig.registerQuery("allNames = GROUP names all;");
+            myPig.registerQuery("allNamesCount = FOREACH allNames GENERATE group as namesAll, COUNT(names) as total;");
+            myPig.registerQuery("nameGroup = GROUP names by name;");
+            myPig.registerQuery("nameGroupCount = FOREACH nameGroup GENERATE group as name, COUNT(names) as count;");
+            myPig.registerQuery("namesCrossed = cross nameGroupCount, allNamesCount;");
+            myPig.registerQuery("nameCountTotal = foreach namesCrossed generate name, count, total, (double)count / (double)total as proportion;");
+            myPig.registerQuery("nameCountsOrdered = order nameCountTotal by count desc;");
+            myPig.registerQuery("STORE nameCountsOrdered INTO '/tmp/output2';");
+
+            List<ExecJob> jobs = myPig.executeBatch();
+            for (ExecJob job : jobs) {
+                assertTrue(job.getStatus() == ExecJob.JOB_STATUS.COMPLETED);
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            Assert.fail();
+        } finally {
+            new File(INPUT_FILE).delete();
+            try {
+                Util.deleteFile(cluster, INPUT_FILE);
+            } catch (IOException e) {
+                e.printStackTrace();
+                Assert.fail();
+            }
+        }
+    }
+    
+    @Test
     public void testMultiQueryJiraPig1060() {
 
         // test case: 
