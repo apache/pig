@@ -3,6 +3,9 @@ Zebra Change Log
 Trunk (unreleased changes)
 
   INCOMPATIBLE CHANGES
+    PIG-1122 Changed version number of pig dev core jar used in Zebra build from 0.6.0 to 0.7.0
+        to match Pig version number (yanz)
+
     PIG-1099 Changed version number to be 0.7.0 to match Pig version number
 	change (yanz via gates)
 
