@@ -127,6 +127,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-1116: Remove redundant map-reduce job for merge join (pradeepkth)
+
 PIG-1114: MultiQuery optimization throws error when merging 2 level spl (rding
 via olgan)
 

@@ -57,7 +57,6 @@ import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROpPl
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.UDFFinder;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.ConstantExpression;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POCast;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POProject;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POUserFunc;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
@@ -216,6 +215,7 @@ public class MRCompiler extends PhyPlanVisitor {
      * Used to get the plan that was compiled
      * @return physical plan
      */
+    @Override
     public PhysicalPlan getPlan() {
         return plan;
     }
@@ -902,6 +902,7 @@ public class MRCompiler extends PhyPlanVisitor {
         }
     }
 
+    @Override
     public void visitCollectedGroup(POCollectedGroup op) throws VisitorException {
         try{
             nonBlocking(op);
@@ -1157,9 +1158,18 @@ public class MRCompiler extends PhyPlanVisitor {
             if(rightLoadFunc instanceof IndexableLoadFunc) {
                 joinOp.setRightLoaderFuncSpec(rightLoader.getLFile().getFuncSpec());
                 joinOp.setRightInputFileName(rightLoader.getLFile().getFileName());
-                rightMROpr = null; // we don't need the right MROper since
+                
+                // we don't need the right MROper since
                 // the right loader is an IndexableLoadFunc which can handle the index
-                // itself 
+                // itself
+                MRPlan.remove(rightMROpr);
+                if(rightMROpr == compiledInputs[0]) {
+                    compiledInputs[0] = null;
+                } else if(rightMROpr == compiledInputs[1]) {
+                    compiledInputs[1] = null;
+                } 
+                rightMROpr = null;
+                
                 // validate that the join keys in merge join are only                                                                                                                                                                              
                 // simple column projections or '*' and not expression - expressions                                                                                                                                                               
                 // cannot be handled when the index is built by the storage layer on the sorted                                                                                                                                                    
