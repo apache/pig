@@ -552,7 +552,7 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
         return sameKeyType;
     }
     
-    private int setIndexOnLRInSplit(int initial, POSplit splitOp)
+    private int setIndexOnLRInSplit(int initial, POSplit splitOp, boolean sameKeyType)
             throws VisitorException {
         int index = initial;
         
@@ -568,9 +568,15 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
                     String msg = "Internal Error. Unable to set multi-query index for optimization.";
                     throw new OptimizerException(msg, errCode, PigException.BUG, e);                   
                 }
+                
+                // change the map key type to tuple when 
+                // multiple splittees have different map key types
+                if (!sameKeyType) {
+                    lr.setKeyType(DataType.TUPLE);
+                }
             } else if (leaf instanceof POSplit) {
                 POSplit spl = (POSplit)leaf;
-                index = setIndexOnLRInSplit(index, spl);
+                index = setIndexOnLRInSplit(index, spl, sameKeyType);
             }
         }
 
@@ -615,7 +621,7 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
             // across all POLocalRearranges in all merged map plans
             // including nested ones in POSplit
             POSplit spl = (POSplit)leaf;
-            curIndex = setIndexOnLRInSplit(index, spl);
+            curIndex = setIndexOnLRInSplit(index, spl, sameKeyType);
         }
                     
         splitOp.addPlan(pl);
