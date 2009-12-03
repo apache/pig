@@ -18,6 +18,7 @@
 package org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 
@@ -28,6 +29,7 @@ import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
+import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.io.NullableTuple;
 import org.apache.pig.impl.io.NullableUnknownWritable;
@@ -63,6 +65,34 @@ public class POMultiQueryPackage extends POPackage {
     
     private List<POPackage> packages = new ArrayList<POPackage>();
 
+    /**
+     * If the POLocalRearranges corresponding to the reduce plans in 
+     * myPlans (the list of inner plans of the demux) have different key types
+     * then the MultiQueryOptimizer converts all the keys to be of type tuple
+     * by wrapping any non-tuple keys into Tuples (keys which are already tuples
+     * are left alone).
+     * The list below is a list of booleans indicating whether extra tuple wrapping
+     * was done for the key in the corresponding POLocalRearranges and if we need
+     * to "unwrap" the tuple to get to the key
+     */
+    private ArrayList<Boolean> isKeyWrapped = new ArrayList<Boolean>();
+    
+    /*
+     * Indicating if all the inner plans have the same
+     * map key type. If not, the keys passed in are 
+     * wrapped inside tuples and need to be extracted
+     * out during the reduce phase 
+     */
+    private boolean sameMapKeyType = true;
+    
+    /*
+     * Indicating if this operator is in a combiner. 
+     * If not, this operator is in a reducer and the key
+     * values must first be extracted from the tuple-wrap
+     * before writing out to the disk
+     */
+    private boolean inCombiner = false;
+    
     transient private PigNullableWritable myKey;
 
     /**
@@ -109,7 +139,7 @@ public class POMultiQueryPackage extends POPackage {
 
     @Override
     public String name() {
-        return "MultiQuery Package  - " +  getOperatorKey().toString();
+        return "MultiQuery Package [" + isKeyWrapped + "] - " +  getOperatorKey().toString();
     }
 
     @Override
@@ -148,6 +178,21 @@ public class POMultiQueryPackage extends POPackage {
     public void addPackage(POPackage pack) {
         packages.add(pack);        
     }
+    
+    /**
+     * Appends the specified package object to the end of 
+     * the package list.
+     * 
+     * @param pack package to be appended to the list
+     * @param mapKeyType the map key type associated with the package
+     */
+    public void addPackage(POPackage pack, byte mapKeyType) {
+        packages.add(pack);        
+        // if mapKeyType is already a tuple, we will NOT
+        // be wrapping it in an extra tuple. If it is not
+        // a tuple, we will wrap into in a tuple
+        isKeyWrapped.add(mapKeyType == DataType.TUPLE ? false : true);
+    }
 
     /**
      * Returns the list of packages.
@@ -179,10 +224,20 @@ public class POMultiQueryPackage extends POPackage {
                 + " should be in the range between 0 and " + packages.size();
             throw new ExecException(msg, errCode, PigException.BUG);
         }
-               
+                  
         POPackage pack = packages.get(index);
-
-        pack.attachInput(myKey, tupIter);
+        
+        // check to see if we need to unwrap the key. The keys may be
+        // wrapped inside a tuple by LocalRearrange operator when jobs  
+        // with different map key types are merged
+        PigNullableWritable curKey = myKey;
+        if (!sameMapKeyType && !inCombiner && isKeyWrapped.get(index)) {                                       
+            Tuple tup = (Tuple)myKey.getValueAsPigType();
+            curKey = HDataType.getWritableComparableTypes(tup.get(0), pack.getKeyType());
+            curKey.setIndex(origIndex);
+        }
+            
+        pack.attachInput(curKey, tupIter);
 
         Result res = pack.getNext(t);
         
@@ -216,6 +271,43 @@ public class POMultiQueryPackage extends POPackage {
         }
         
         return res;
+    }
+
+    /**
+     * Returns the list of booleans that indicates if the 
+     * key needs to unwrapped for the corresponding plan.
+     * 
+     * @return the list of isKeyWrapped boolean values
+     */
+    public List<Boolean> getIsKeyWrappedList() {
+        return Collections.unmodifiableList(isKeyWrapped);
+    }
+    
+    /**
+     * Adds a list of IsKeyWrapped boolean values
+     * 
+     * @param lst the list of boolean values to add
+     */
+    public void addIsKeyWrappedList(List<Boolean> lst) {
+        for (Boolean b : lst) {
+            isKeyWrapped.add(b);
+        }
+    }
+    
+    public void setInCombiner(boolean inCombiner) {
+        this.inCombiner = inCombiner;
+    }
+
+    public boolean isInCombiner() {
+        return inCombiner;
+    }
+
+    public void setSameMapKeyType(boolean sameMapKeyType) {
+        this.sameMapKeyType = sameMapKeyType;
+    }
+
+    public boolean isSameMapKeyType() {
+        return sameMapKeyType;
     }
 
 }

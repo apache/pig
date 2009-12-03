@@ -662,9 +662,10 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
                 pkg.addPackage(p);
                 pkCount++;
             }
+            pkg.addIsKeyWrappedList(((POMultiQueryPackage)pk).getIsKeyWrappedList());
             addShiftedKeyInfoIndex(initial, current, (POMultiQueryPackage)pk);
         } else {
-            pkg.addPackage(pk);
+            pkg.addPackage(pk, mapKeyType);
             pkCount = 1;
         }
         
@@ -673,8 +674,6 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
             String msg = "Internal Error. Inconsistency in key index found during optimization.";
             throw new OptimizerException(msg, errCode, PigException.BUG);
         }
-
-        boolean[] keyPos = pk.getKeyPositionsInTuple();
         
         PODemux demux = (PODemux)to.getLeaves().get(0);
         int plCount = 0;
@@ -685,12 +684,11 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
             // operator, then it's the only operator in the plan.
             List<PhysicalPlan> pls = ((PODemux)root).getPlans();
             for (PhysicalPlan pl : pls) {
-                demux.addPlan(pl, keyPos);
+                demux.addPlan(pl);
                 plCount++;
             }
-            demux.addIsKeyWrappedList(((PODemux)root).getIsKeyWrappedList());
         } else {
-            demux.addPlan(from, mapKeyType, keyPos);
+            demux.addPlan(from);
             plCount = 1;
         }
         
@@ -700,11 +698,11 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
             throw new OptimizerException(msg, errCode, PigException.BUG);
         }
 
-        if (demux.isSameMapKeyType()) {
+        if (pkg.isSameMapKeyType()) {
             pkg.setKeyType(pk.getKeyType());
         } else {
             pkg.setKeyType(DataType.TUPLE);
-        }                
+        }            
     }
     
     private void addShiftedKeyInfoIndex(int index, POPackage pkg) throws OptimizerException {
@@ -785,10 +783,10 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
         from.remove(cpk);
         
         PODemux demux = (PODemux)to.getLeaves().get(0);
-        
-        boolean isSameKeyType = demux.isSameMapKeyType();
-        
+                
         POMultiQueryPackage pkg = (POMultiQueryPackage)to.getRoots().get(0);
+        
+        boolean isSameKeyType = pkg.isSameMapKeyType();
         
         // if current > initial + 1, it means we had
         // a split in the map of the MROper we are trying to
@@ -818,6 +816,8 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
             pkCount = 1;
         }
 
+        pkg.setSameMapKeyType(isSameKeyType);
+        
         if (pkCount != total) {
             int errCode = 2146;
             String msg = "Internal Error. Inconsistency in key index found during optimization.";
@@ -831,8 +831,6 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
         
         pkg.setKeyType(cpk.getKeyType());
         
-        boolean[] keyPos = cpk.getKeyPositionsInTuple();
-        
         // See comment above for why we flatten the Packages
         // in the from plan - for the same reason, we flatten
         // the inner plans of Demux operator now.
@@ -841,7 +839,7 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
         if (leaf instanceof PODemux) {
             List<PhysicalPlan> pls = ((PODemux)leaf).getPlans();
             for (PhysicalPlan pl : pls) {
-                demux.addPlan(pl, mapKeyType, keyPos);
+                demux.addPlan(pl);
                 POLocalRearrange lr = (POLocalRearrange)pl.getLeaves().get(0);
                 try {
                     lr.setMultiQueryIndex(initial + plCount++);            
@@ -858,7 +856,7 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
                 }
             }
         } else {
-            demux.addPlan(from, mapKeyType, keyPos);
+            demux.addPlan(from);
             POLocalRearrange lr = (POLocalRearrange)from.getLeaves().get(0);
             try {
                 lr.setMultiQueryIndex(initial + plCount++);            
@@ -895,8 +893,8 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
        
     private PhysicalPlan createDemuxPlan(boolean sameKeyType, boolean isCombiner) 
         throws VisitorException {
-        PODemux demux = getDemux(sameKeyType, isCombiner);
-        POMultiQueryPackage pkg= getMultiQueryPackage();
+        PODemux demux = getDemux(isCombiner);
+        POMultiQueryPackage pkg= getMultiQueryPackage(sameKeyType, isCombiner);
         
         PhysicalPlan pl = new PhysicalPlan();
         pl.add(pkg);
@@ -1135,14 +1133,17 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
         return new POStore(new OperatorKey(scope, nig.getNextNodeId(scope)));
     } 
      
-    private PODemux getDemux(boolean sameMapKeyType, boolean inCombiner){
+    private PODemux getDemux(boolean inCombiner){
         PODemux demux = new PODemux(new OperatorKey(scope, nig.getNextNodeId(scope)));
-        demux.setSameMapKeyType(sameMapKeyType);
         demux.setInCombiner(inCombiner);
         return demux;
     } 
     
-    private POMultiQueryPackage getMultiQueryPackage(){
-        return new POMultiQueryPackage(new OperatorKey(scope, nig.getNextNodeId(scope)));
+    private POMultiQueryPackage getMultiQueryPackage(boolean sameMapKeyType, boolean inCombiner){
+        POMultiQueryPackage pkg =  
+            new POMultiQueryPackage(new OperatorKey(scope, nig.getNextNodeId(scope)));
+        pkg.setInCombiner(inCombiner);
+        pkg.setSameMapKeyType(sameMapKeyType);
+        return pkg;
     }   
 }
