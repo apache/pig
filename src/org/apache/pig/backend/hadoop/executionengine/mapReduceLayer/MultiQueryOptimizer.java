@@ -270,6 +270,9 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
         PhysicalOperator leaf = mr.mapPlan.getLeaves().get(0);
         pl.remove(leaf);
         
+        POStore store = (POStore)leaf;
+        String ofile = store.getSFile().getFileName();
+        
         // then connect the remaining map plan to the successor of
         // each root (load) operator of the splittee
         for (MapReduceOper succ : succs) {
@@ -277,6 +280,11 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
             ArrayList<PhysicalOperator> rootsCopy = 
                 new ArrayList<PhysicalOperator>(roots);
             for (PhysicalOperator op : rootsCopy) {
+                POLoad load = (POLoad)op;
+                String ifile = load.getLFile().getFileName();
+                if (ofile.compareTo(ifile) != 0) {
+                    continue;
+                }
                 PhysicalOperator opSucc = succ.mapPlan.getSuccessors(op).get(0);
                 PhysicalPlan clone = null;
                 try {

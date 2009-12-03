@@ -175,6 +175,75 @@ public class TestMultiQuery extends TestCase {
     }
     
     @Test
+    public void testMultiQueryJiraPig1113() {
+
+        // test case: Diamond query optimization throws error in JOIN
+
+        String INPUT_FILE_1 = "set1.txt";
+        String INPUT_FILE_2 = "set2.txt";
+        try {
+
+            PrintWriter w = new PrintWriter(new FileWriter(INPUT_FILE_1));
+            w.println("login\t0\tjar");
+            w.println("login\t1\tbox");
+            w.println("quit\t0\tmany");
+            w.close();
+            Util.copyFromLocalToCluster(cluster, INPUT_FILE_1, INPUT_FILE_1);
+
+            PrintWriter w2 = new PrintWriter(new FileWriter(INPUT_FILE_2));
+            w2.println("apple\tlogin\t{(login)}");
+            w2.println("orange\tlogin\t{(login)}");
+            w2.println("strawberry\tquit\t{(login)}");
+            w2.close();
+            Util.copyFromLocalToCluster(cluster, INPUT_FILE_2, INPUT_FILE_2);
+            
+            myPig.setBatchOn();
+
+            myPig.registerQuery("set1 = load '" + INPUT_FILE_1 
+                    + "' USING PigStorage as (a:chararray, b:chararray, c:chararray);");
+            myPig.registerQuery("set2 = load '" + INPUT_FILE_2
+                    + "' USING PigStorage as (a: chararray, b:chararray, c:bag{});");
+            myPig.registerQuery("set2_1 = FOREACH set2 GENERATE a as f1, b as f2, " 
+                    + "(chararray) 0 as f3;");
+            myPig.registerQuery("set2_2 = FOREACH set2 GENERATE a as f1, "
+                    + "FLATTEN((IsEmpty(c) ? null : c)) as f2, (chararray) 1 as f3;");  
+            myPig.registerQuery("all_set2 = UNION set2_1, set2_2;");
+            myPig.registerQuery("joined_sets = JOIN set1 BY (a,b), all_set2 BY (f2,f3);");
+          
+            List<Tuple> expectedResults = Util.getTuplesFromConstantTupleStrings(
+                    new String[] { 
+                            "('quit','0','many','strawberry','quit','0')",
+                            "('login','0','jar','apple','login','0')",
+                            "('login','0','jar','orange','login','0')",
+                            "('login','1','box','apple','login','1')",
+                            "('login','1','box','orange','login','1')",
+                            "('login','1','box','strawberry','login','1')"
+                    });
+            
+            Iterator<Tuple> iter = myPig.openIterator("joined_sets");
+            int count = 0;
+            while (iter.hasNext()) {
+                assertEquals(expectedResults.get(count++).toString(), iter.next().toString());
+            }
+            assertEquals(expectedResults.size(), count);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            Assert.fail();
+        } finally {
+            new File(INPUT_FILE_1).delete();
+            new File(INPUT_FILE_2).delete();
+            try {
+                Util.deleteFile(cluster, INPUT_FILE_1);
+                Util.deleteFile(cluster, INPUT_FILE_2);
+            } catch (IOException e) {
+                e.printStackTrace();
+                Assert.fail();
+            }
+        }
+    }
+    
+    @Test
     public void testMultiQueryJiraPig1060() {
 
         // test case: 
