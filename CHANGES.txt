@@ -127,6 +127,9 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-1114: MultiQuery optimization throws error when merging 2 level spl (rding
+via olgan)
+
 PIG-1022: optimizer pushes filter before the foreach that generates column
 used by filter (daijy via gates)
 
