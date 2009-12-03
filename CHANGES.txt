@@ -45,6 +45,10 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-1068:  COGROUP fails with 'Type mismatch in key from map: expected
+		   org.apache.pig.impl.io.NullableText, recieved
+		   org.apache.pig.impl.io.NullableTuple' (rding via gates)
+
 PIG-1113: Diamond query optimization throws error in JOIN (rding via olgan)
 
 PIG-1116: Remove redundant map-reduce job for merge join (pradeepkth)

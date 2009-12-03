@@ -88,6 +88,67 @@ public class TestMultiQuery extends TestCase {
         myPig = null;
     }
     
+    public void testMultiQueryJiraPig1068() {
+
+        // test case: COGROUP fails with 'Type mismatch in key from map: 
+        // expected org.apache.pig.impl.io.NullableText, recieved org.apache.pig.impl.io.NullableTuple'
+
+        String INPUT_FILE = "pig-1068.txt";
+
+        try {
+
+            PrintWriter w = new PrintWriter(new FileWriter(INPUT_FILE));
+            w.println("10\tapple\tlogin\tjar");
+            w.println("20\torange\tlogin\tbox");
+            w.println("30\tstrawberry\tquit\tbot");
+
+            w.close();
+
+            Util.copyFromLocalToCluster(cluster, INPUT_FILE, INPUT_FILE);
+
+            myPig.setBatchOn();
+
+            myPig.registerQuery("logs = load '" + INPUT_FILE 
+                    + "' as (ts:int, id:chararray, command:chararray, comments:chararray);");
+            myPig.registerQuery("SPLIT logs INTO logins IF command == 'login', all_quits IF command == 'quit';");
+            myPig.registerQuery("login_info = FOREACH logins { GENERATE id as id, comments AS client; };");  
+            myPig.registerQuery("logins_grouped = GROUP login_info BY (id, client);");
+            myPig.registerQuery("count_logins_by_client = FOREACH logins_grouped "
+                    + "{ generate group.id AS id, group.client AS client, COUNT($1) AS count; };");
+            myPig.registerQuery("all_quits_grouped = GROUP all_quits BY id; ");
+            myPig.registerQuery("quits = FOREACH all_quits_grouped { GENERATE FLATTEN(all_quits); };");
+            myPig.registerQuery("joined_session_info = COGROUP quits BY id, count_logins_by_client BY id;");
+            
+            Iterator<Tuple> iter = myPig.openIterator("joined_session_info");
+
+            List<Tuple> expectedResults = Util.getTuplesFromConstantTupleStrings(
+                    new String[] { 
+                            "('apple',{},{('apple','jar',1L)})",
+                            "('orange',{},{('orange','box',1L)})",
+                            "('strawberry',{(30,'strawberry','quit','bot')},{})"
+                    });
+            
+            int counter = 0;
+            while (iter.hasNext()) {
+                assertEquals(expectedResults.get(counter++).toString(), iter.next().toString());                
+            }
+
+            assertEquals(expectedResults.size(), counter);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            Assert.fail();
+        } finally {
+            new File(INPUT_FILE).delete();
+            try {
+                Util.deleteFile(cluster, INPUT_FILE);
+            } catch (IOException e) {
+                e.printStackTrace();
+                Assert.fail();
+            }
+        }
+    }
+    
     @Test
     public void testMultiQueryJiraPig1108() {
         

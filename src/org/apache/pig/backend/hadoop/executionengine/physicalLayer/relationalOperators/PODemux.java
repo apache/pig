@@ -68,26 +68,6 @@ public class PODemux extends PhysicalOperator {
      */
     private ArrayList<PhysicalPlan> myPlans = new ArrayList<PhysicalPlan>();
     
-    /**
-     * If the POLocalRearranges corresponding to the reduce plans in 
-     * myPlans (the list of inner plans of the demux) have different key types
-     * then the MultiQueryOptimizer converts all the keys to be of type tuple
-     * by wrapping any non-tuple keys into Tuples (keys which are already tuples
-     * are left alone).
-     * The list below is a list of booleans indicating whether extra tuple wrapping
-     * was done for the key in the corresponding POLocalRearranges and if we need
-     * to "unwrap" the tuple to get to the key
-     */
-    private ArrayList<Boolean> isKeyWrapped = new ArrayList<Boolean>();
-    
-    /**
-     * The list tracks the field position of the key in the input tuple so that
-     * the right values are "unwrapped" to get the key. 
-     * The tuples emitted from POCombinerPackages always have keys in a fixed 
-     * position, but this position varies depending on the Pig Latin scripts.
-     */
-    private ArrayList<boolean[]> keyPositions = new ArrayList<boolean[]>();
-    
     /*
      * Flag indicating when a new pull should start 
      */
@@ -104,14 +84,6 @@ public class PODemux extends PhysicalOperator {
      * The leaf of the current pipeline
      */
     private PhysicalOperator curLeaf = null;
-    
-    /*
-     * Indicating if all the inner plans have the same
-     * map key type. If not, the keys passed in are 
-     * wrapped inside tuples and need to be extracted
-     * out during the reduce phase 
-     */
-    private boolean sameMapKeyType = true;
     
     /*
      * Indicating if this operator is in a combiner. 
@@ -172,7 +144,7 @@ public class PODemux extends PhysicalOperator {
 
     @Override
     public String name() {
-        return "Demux" + isKeyWrapped + " - " + mKey.toString();
+        return "Demux [" + myPlans.size() + "] "+ mKey.toString();
     }
 
     @Override
@@ -195,45 +167,14 @@ public class PODemux extends PhysicalOperator {
     }
     
     /**
-     * Returns the list of booleans that indicates if the 
-     * key needs to unwrapped for the corresponding plan.
-     * 
-     * @return the list of isKeyWrapped boolean values
-     */
-    public List<Boolean> getIsKeyWrappedList() {
-        return Collections.unmodifiableList(isKeyWrapped);
-    }
-    
-    /**
-     * Adds a list of IsKeyWrapped boolean values
-     * 
-     * @param lst the list of boolean values to add
-     */
-    public void addIsKeyWrappedList(List<Boolean> lst) {
-        for (Boolean b : lst) {
-            isKeyWrapped.add(b);
-        }
-    }
-    
-    /**
      * Appends the specified plan at the end of the list.
      * 
      * @param inPlan plan to be appended to the inner plan list
      */
-    public void addPlan(PhysicalPlan inPlan, byte mapKeyType, boolean[] keyPos) {  
-        myPlans.add(inPlan);
-        processedSet.set(myPlans.size()-1);
-        // if mapKeyType is already a tuple, we will NOT
-        // be wrapping it in an extra tuple. If it is not
-        // a tuple, we will wrap into in a tuple
-        isKeyWrapped.add(mapKeyType == DataType.TUPLE ? false : true);
-        keyPositions.add(keyPos);
-    }
     
-    public void addPlan(PhysicalPlan inPlan, boolean[] keyPos) {  
+    public void addPlan(PhysicalPlan inPlan) {  
         myPlans.add(inPlan);
         processedSet.set(myPlans.size()-1);
-        keyPositions.add(keyPos);
     }
    
     @Override
@@ -364,50 +305,11 @@ public class PODemux extends PhysicalOperator {
         
         PhysicalPlan pl = myPlans.get(index);
         if (!(pl.getRoots().get(0) instanceof PODemux)) {                             
-            if (!sameMapKeyType && !inCombiner && isKeyWrapped.get(index)) {                                       
-                
-                // unwrap the keys
-                boolean[] keys = keyPositions.get(index);
-                for (int pos = 0; pos < keys.length; pos++) {
-                    if (keys[pos]) {
-                        Tuple tup = (pos == 0) ? 
-                                (Tuple)fld.getValueAsPigType() : (Tuple)res.get(pos);
-                        res.set(pos, tup.get(0));
-                    } 
-                    else if (pos == 0) {                 
-                        res.set(0, fld.getValueAsPigType());
-                    }
-                }
-                
-            } else {
-                res.set(0, fld.getValueAsPigType());
-            }
+            res.set(0, fld.getValueAsPigType());
         }
     
         myPlans.get(index).attachInput(res);
         return myPlans.get(index).getLeaves().get(0);
-    }
-    
-    /**
-     * Sets a flag indicating if all inner plans have 
-     * the same map key type. 
-     * 
-     * @param sameMapKeyType true if all inner plans have 
-     * the same map key type; otherwise false
-     */
-    public void setSameMapKeyType(boolean sameMapKeyType) {
-        this.sameMapKeyType = sameMapKeyType;
-    }
-
-    /**
-     * Returns a flag indicating if all inner plans 
-     * have the same map key type 
-     * 
-     * @return true if all inner plans have 
-     * the same map key type; otherwise false
-     */
-    public boolean isSameMapKeyType() {
-        return sameMapKeyType;
     }
 
     /**
