@@ -84,7 +84,7 @@ public class POSort extends PhysicalOperator {
 	transient Iterator<Tuple> it;
 	
 	private SortInfo sortInfo;
-
+	
 	public POSort(
             OperatorKey k,
             int rp,
@@ -405,7 +405,4 @@ public class POSort extends PhysicalOperator {
     public SortInfo getSortInfo() {
         return sortInfo;
     }
-
-
-
 }

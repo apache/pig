@@ -58,11 +58,11 @@ public class OpLimitOptimizer extends LogicalTransformer {
     private ExecType mode = ExecType.MAPREDUCE;
 
     public OpLimitOptimizer(LogicalPlan plan) {
-        super(plan, new DepthFirstWalker<LogicalOperator, LogicalPlan>(plan));
+        super(plan);
     }
 
     public OpLimitOptimizer(LogicalPlan plan, ExecType mode) {
-        super(plan, new DepthFirstWalker<LogicalOperator, LogicalPlan>(plan));
+        super(plan);
         this.mode = mode;
     }
 

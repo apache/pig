@@ -38,6 +38,7 @@ import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.io.BufferedPositionedInputStream;
 import org.apache.pig.impl.plan.OperatorKey;
+import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
@@ -910,8 +911,9 @@ public class TestPOCast extends TestCase {
             return null;
         }
         
-        public void fieldsToRead(Schema schema) {
-            
+        @Override
+        public LoadFunc.RequiredFieldResponse fieldsToRead(LoadFunc.RequiredFieldList requiredFieldList) throws FrontendException {
+            return new LoadFunc.RequiredFieldResponse(false);
         }
         
         public DataBag bytesToBag(byte[] b) throws IOException {

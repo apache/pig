@@ -31,6 +31,7 @@ import java.util.Map;
 import org.apache.commons.logging.LogFactory;
 import org.apache.commons.logging.Log;
 import org.apache.pig.ExecType;
+import org.apache.pig.LoadFunc;
 import org.apache.pig.PigException;
 import org.apache.pig.PigWarning;
 import org.apache.pig.ReversibleLoadStoreFunc;
@@ -43,6 +44,7 @@ import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.io.BufferedPositionedInputStream;
 import org.apache.pig.impl.io.FileLocalizer;
+import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.util.LogUtils;
 
@@ -293,9 +295,9 @@ public class BinStorage implements ReversibleLoadStoreFunc, SamplableLoader {
         return s;
     }
 
-    public void fieldsToRead(Schema schema) {
-        // TODO Auto-generated method stub
-        
+    @Override
+    public LoadFunc.RequiredFieldResponse fieldsToRead(LoadFunc.RequiredFieldList requiredFieldList) throws FrontendException {
+        return new LoadFunc.RequiredFieldResponse(false);
     }
 
     public byte[] toBytes(DataBag bag) throws IOException {

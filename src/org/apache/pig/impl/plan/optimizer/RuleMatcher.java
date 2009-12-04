@@ -74,9 +74,48 @@ public class RuleMatcher<O extends Operator, P extends OperatorPlan<O>> {
         if (mRule.getWalkerAlgo() == Rule.WalkerAlgo.DependencyOrderWalker)
         	DependencyOrderWalker();
         else if (mRule.getWalkerAlgo() == Rule.WalkerAlgo.DepthFirstWalker)
-        	DepthFirstWalker();        
+        	DepthFirstWalker();
+        else if (mRule.getWalkerAlgo() == Rule.WalkerAlgo.ReverseDependencyOrderWalker)
+            ReverseDependencyOrderWalker();
         
         return (mMatches.size()!=0);
+    }
+    
+    private void ReverseDependencyOrderWalker()
+    {
+        List<O> fifo = new ArrayList<O>();
+        Set<O> seen = new HashSet<O>();
+        List<O> roots = mPlan.getRoots();
+        if (roots == null) return;
+        for (O op : roots) {
+            RDODoAllSuccessors(op, seen, fifo);
+        }
+
+        for (O op: fifo) {
+            if (beginMatch(op))
+            mPrelimMatches.add(mMatch);
+        }
+        
+        if(mPrelimMatches.size() > 0) {
+            processPreliminaryMatches();
+        }
+    }
+        
+    private void RDODoAllSuccessors(O node, Set<O> seen, Collection<O> fifo)
+    {
+        if (!seen.contains(node)) {
+        // We haven't seen this one before.
+             Collection<O> succs = mPlan.getSuccessors(node);
+             if (succs != null && succs.size() > 0) {
+                 // Do all our successors before ourself
+                 for (O op : succs) {
+                     RDODoAllSuccessors(op, seen, fifo);
+                 }
+             }
+             // Now do ourself
+             seen.add(node);
+             fifo.add(node);
+         }
     }
     
     private void DependencyOrderWalker()

@@ -33,7 +33,7 @@ import org.apache.pig.impl.plan.OperatorPlan;
 public class Rule<O extends Operator, P extends OperatorPlan<O>> {
 
     public enum WalkerAlgo {
-        DepthFirstWalker, DependencyOrderWalker
+        DepthFirstWalker, DependencyOrderWalker, ReverseDependencyOrderWalker
     };
 
     private RulePlan mRulePlan;

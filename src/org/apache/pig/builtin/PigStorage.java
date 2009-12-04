@@ -22,11 +22,13 @@ import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.Iterator;
+import java.util.Properties;
 
 import org.apache.commons.logging.LogFactory;
 import org.apache.commons.logging.Log;
 import org.apache.hadoop.io.Text;
 import org.apache.pig.ExecType;
+import org.apache.pig.LoadFunc;
 import org.apache.pig.PigException;
 import org.apache.pig.SamplableLoader;
 import org.apache.pig.ReversibleLoadStoreFunc;
@@ -38,7 +40,10 @@ import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.io.BufferedPositionedInputStream;
 import org.apache.pig.impl.io.PigLineRecordReader;
+import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.impl.util.ObjectSerializer;
+import org.apache.pig.impl.util.UDFContext;
 
 /**
  * A load function that parses a line of input into fields using a delimiter to set the fields. The
@@ -49,12 +54,17 @@ public class PigStorage extends Utf8StorageConverter
         implements ReversibleLoadStoreFunc, SamplableLoader {
     protected PigLineRecordReader in = null;
     protected final Log mLog = LogFactory.getLog(getClass());
+    private String signature;
         
     long end = Long.MAX_VALUE;
     private byte recordDel = '\n';
     private byte fieldDel = '\t';
     private ArrayList<Object> mProtoTuple = null;
     private static final String UTF8 = "UTF-8";
+    
+    private boolean[] mRequiredColumns = null;
+    
+    private boolean mRequiredColumnsInitialized = false;
 
     public PigStorage() {}
 
@@ -113,6 +123,13 @@ public class PigStorage extends Utf8StorageConverter
     }
 
     public Tuple getNext() throws IOException {
+        if (!mRequiredColumnsInitialized) {
+            if (signature!=null) {
+                Properties p = UDFContext.getUDFContext().getUDFProperties(this.getClass());
+                mRequiredColumns = (boolean[])ObjectSerializer.deserialize(p.getProperty(signature));
+            }
+            mRequiredColumnsInitialized = true;
+        }
         if (in == null || in.getPosition() > end) {
             return null;
         }
@@ -126,14 +143,17 @@ public class PigStorage extends Utf8StorageConverter
         byte[] buf = value.getBytes();
         int len = value.getLength();
         int start = 0;
+        int fieldID = 0;
         for (int i = 0; i < len; i++) {
             if (buf[i] == fieldDel) {
-                readField(buf, start, i);
+                if (mRequiredColumns==null || (mRequiredColumns.length>fieldID && mRequiredColumns[fieldID]))
+                    readField(buf, start, i);
                 start = i + 1;
+                fieldID++;
             }
         }
         // pick up the last field
-        if (start <= len) {
+        if (start <= len && (mRequiredColumns==null || (mRequiredColumns.length>fieldID && mRequiredColumns[fieldID]))) {
             readField(buf, start, len);
         }
         Tuple t =  mTupleFactory.newTupleNoCopy(mProtoTuple);
@@ -319,8 +339,37 @@ public class PigStorage extends Utf8StorageConverter
         return null;
     }
 
-    public void fieldsToRead(Schema schema) {
-        // do nothing
+    @Override
+    public LoadFunc.RequiredFieldResponse fieldsToRead(LoadFunc.RequiredFieldList requiredFieldList) throws FrontendException {
+        if (requiredFieldList == null)
+            return null;
+        signature = requiredFieldList.getSignature();
+        if (!requiredFieldList.isAllFieldsRequired())
+        {
+            int lastColumn = -1;
+            for (LoadFunc.RequiredField rf: requiredFieldList.getFields())
+            {
+                if (rf.getIndex()>lastColumn)
+                {
+                    lastColumn = rf.getIndex();
+                }
+            }
+            mRequiredColumns = new boolean[lastColumn+1];
+            for (LoadFunc.RequiredField rf: requiredFieldList.getFields())
+            {
+                if (rf.getIndex()!=-1)
+                    mRequiredColumns[rf.getIndex()] = true;
+                else
+                    mRequiredColumns[rf.getIndex()] = false;
+            }
+            Properties p = UDFContext.getUDFContext().getUDFProperties(this.getClass());
+            try {
+                p.setProperty(signature, ObjectSerializer.serialize(mRequiredColumns));
+            } catch (Exception e) {
+                throw new RuntimeException("Cannot serialize mRequiredColumns");
+            }
+        }
+        return new LoadFunc.RequiredFieldResponse(true);
     }
     
     public boolean equals(Object obj) {
@@ -346,4 +395,9 @@ public class PigStorage extends Utf8StorageConverter
         // TODO Auto-generated method stub
         return null;
     }
- }
+    
+    public void setSignature(String signature) {
+        this.signature = signature; 
+    }
+
+}

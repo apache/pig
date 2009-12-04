@@ -180,6 +180,7 @@ public class SampleOptimizer extends MROpPlanVisitor {
         rslargs[1] = load.getLFile().getFuncSpec().getCtorArgs()[1];
         FileSpec fs = new FileSpec(predFs.getFileName(),new FuncSpec(loadFunc, rslargs));
         POLoad newLoad = new POLoad(load.getOperatorKey(),load.getRequestedParallelism(), fs, load.isSplittable());
+        newLoad.setSignature(load.getSignature());
         try {
             mr.mapPlan.replace(load, newLoad);
             
@@ -195,6 +196,7 @@ public class SampleOptimizer extends MROpPlanVisitor {
         // Second, replace the loader in our successor with whatever the originally used loader was.
         fs = new FileSpec(predFs.getFileName(), predFs.getFuncSpec());
         newLoad = new POLoad(succLoad.getOperatorKey(), succLoad.getRequestedParallelism(), fs, succLoad.isSplittable());
+        newLoad.setSignature(succLoad.getSignature());
         try {
             succ.mapPlan.replace(succLoad, newLoad);
         } catch (PlanException e) {

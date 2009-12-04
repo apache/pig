@@ -41,6 +41,8 @@ public class LOUnion extends RelationalOperator {
 
     private static final long serialVersionUID = 2L;
     private static Log log = LogFactory.getLog(LOUnion.class);
+    
+    List<Pair<Integer, Integer>> stagingPrunedColumns = new ArrayList<Pair<Integer, Integer>>(); 
 
     /**
      * @param plan
@@ -206,7 +208,10 @@ public class LOUnion extends RelationalOperator {
     }
 
     @Override
-    public List<RequiredFields> getRelevantInputs(int output, int column) {
+    public List<RequiredFields> getRelevantInputs(int output, int column) throws FrontendException {
+        if (!mIsSchemaComputed)
+            getSchema();
+        
         if (output!=0)
             return null;
 
@@ -236,4 +241,23 @@ public class LOUnion extends RelationalOperator {
         return result;
     }
 
+    public boolean pruneColumns(List<Pair<Integer, Integer>> columns)
+        throws FrontendException {
+        stagingPrunedColumns.addAll(columns);
+        boolean allPruned = true;
+        for (Pair<Integer, Integer>pair : columns)
+        {
+            for (int i=0;i<mPlan.getPredecessors(this).size();i++)
+            {
+                if (!stagingPrunedColumns.contains(new Pair<Integer, Integer>(i, pair.second)))
+                    allPruned = false;
+            }
+        }
+        if (allPruned)
+        {
+            super.pruneColumns(columns);
+            return true;
+        }
+        return false;
+    }
 }

@@ -29,13 +29,14 @@ import org.apache.pig.impl.plan.PlanWalker;
  * apply to a graph.  This class is a special case of a PlanVisitor,so it
  * can navigate the plan.
  */
-public abstract class Transformer<O extends Operator, P extends OperatorPlan<O>> extends PlanVisitor<O, P> {
+public abstract class Transformer<O extends Operator, P extends OperatorPlan<O>> {
 
+    protected P mPlan;
     /**
      * @param plan OperatorPlan to be optimized.
      */
-    protected Transformer(P plan, PlanWalker<O, P> walker) {
-        super(plan, walker);
+    protected Transformer(P plan) {
+        mPlan = plan;
     }
 
     /**
@@ -67,6 +68,11 @@ public abstract class Transformer<O extends Operator, P extends OperatorPlan<O>>
      * @throws OptimizerException
      */
     public abstract void reset() throws OptimizerException;
+    
+    public P getPlan()
+    {
+        return mPlan;
+    }
 
 }
 

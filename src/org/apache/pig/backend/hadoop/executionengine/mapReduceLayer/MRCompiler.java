@@ -1155,6 +1155,7 @@ public class MRCompiler extends PhyPlanVisitor {
             // At this point, we must be operating on map plan of right input and it would contain nothing else other then a POLoad.
             POLoad rightLoader = (POLoad)rightMROpr.mapPlan.getRoots().get(0);            
             LoadFunc rightLoadFunc = (LoadFunc) PigContext.instantiateFuncFromSpec(rightLoader.getLFile().getFuncSpec());
+            joinOp.setSignature(rightLoader.getSignature());
             if(rightLoadFunc instanceof IndexableLoadFunc) {
                 joinOp.setRightLoaderFuncSpec(rightLoader.getLFile().getFuncSpec());
                 joinOp.setRightInputFileName(rightLoader.getLFile().getFileName());

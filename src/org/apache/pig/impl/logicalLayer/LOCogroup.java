@@ -766,7 +766,10 @@ public class LOCogroup extends RelationalOperator {
         }
     }
     @Override
-    public List<RequiredFields> getRelevantInputs(int output, int column) {
+    public List<RequiredFields> getRelevantInputs(int output, int column) throws FrontendException {
+        if (!mIsSchemaComputed)
+            getSchema();
+        
         if (output!=0)
             return null;
         
@@ -793,5 +796,43 @@ public class LOCogroup extends RelationalOperator {
             }
         }
         return result;
+    }
+    
+    @Override
+    public boolean pruneColumns(List<Pair<Integer, Integer>> columns)
+            throws FrontendException {
+        if (!mIsSchemaComputed)
+            getSchema();
+        if (mSchema == null) {
+            log
+                    .warn("Cannot prune columns in cogroup, no schema information found");
+            return false;
+        }
+
+        List<LogicalOperator> predecessors = mPlan.getPredecessors(this);
+
+        if (predecessors == null) {
+            int errCode = 2190;
+            throw new FrontendException("Cannot find predecessors for cogroup",
+                    errCode, PigException.BUG);
+        }
+
+        for (Pair<Integer, Integer> column : columns) {
+            if (column.first < 0 || column.first > predecessors.size()) {
+                int errCode = 2191;
+                throw new FrontendException("No input " + column.first
+                        + " to prune in cocogroup", errCode, PigException.BUG);
+            }
+            if (column.second < 0) {
+                int errCode = 2192;
+                throw new FrontendException("column to prune does not exist", errCode, PigException.BUG);
+            }
+            for (LogicalPlan plan : getGroupByPlans().get(
+                    predecessors.get(column.first))) {
+                pruneColumnInPlan(plan, column.second);
+            }
+        }
+        super.pruneColumns(columns);
+        return true;
     }
 }

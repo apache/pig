@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Properties;
 
+import org.apache.pig.LoadFunc;
 import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.Tuple;
@@ -29,6 +30,7 @@ import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.BufferedPositionedInputStream;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.FileSpec;
+import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.util.Pair;
 import org.apache.pig.impl.builtin.PartitionSkewedKeys;
 
@@ -141,5 +143,9 @@ public class PoissonSampleLoader extends SampleLoader {
 		setNumSamples(n);
 	}
 	
+	@Override
+	public LoadFunc.RequiredFieldResponse fieldsToRead(RequiredFieldList requiredFields) throws FrontendException {
+        return new LoadFunc.RequiredFieldResponse(false);
+    }
 
 }

@@ -125,6 +125,8 @@ PIG-979: Acummulator Interface for UDFs (yinghe via daijy)
 
 OPTIMIZATIONS
 
+PIG-922: Logical optimizer: push up project (daijy)
+
 BUG FIXES
 
 PIG-1113: Diamond query optimization throws error in JOIN (rding via olgan)

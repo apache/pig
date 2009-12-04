@@ -185,7 +185,10 @@ public class LOSplit extends RelationalOperator {
    }
    
    @Override
-   public List<RequiredFields> getRelevantInputs(int output, int column) {
+   public List<RequiredFields> getRelevantInputs(int output, int column) throws FrontendException {
+       if (!mIsSchemaComputed)
+           getSchema();
+       
        if (output<0)
            return null;
        
@@ -204,8 +207,10 @@ public class LOSplit extends RelationalOperator {
                return null;
        }
        
+       ArrayList<Pair<Integer, Integer>> inputList = new ArrayList<Pair<Integer, Integer>>();
+       inputList.add(new Pair<Integer, Integer>(0, column));
        List<RequiredFields> result = new ArrayList<RequiredFields>();
-       result.add(new RequiredFields(false, true));
+       result.add(new RequiredFields(inputList));
        return result;
    }
 
