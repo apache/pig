@@ -11,6 +11,8 @@ Trunk (unreleased changes)
 
   IMPROVEMENTS
 
+    PIG-1111 Multiple Outputs Support (Gaurav Jain via yanz)
+
     PIG-1098 Zebra Performance Optimizations (yanz via gates)
 
 	PIG-1074 Zebra store function should allow '::' in column names in output
