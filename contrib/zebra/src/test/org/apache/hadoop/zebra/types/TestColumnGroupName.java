@@ -73,7 +73,7 @@ public class TestColumnGroupName {
   @Test
   public void testStorageValid1() {
     try {
-      String strStorage = "[f1, f2] as PI; [f3, f4] as General secure by user:joe perm:640 COMPRESS BY gz SERIALIZE BY avro; [f5, f6] as ULT";
+      String strStorage = "[f1, f2] as PI; [f3, f4] as General secure by uid:joe gid:secure perm:640 COMPRESS BY gz SERIALIZE BY avro; [f5, f6] as ULT";
       Partition p = new Partition(schema.toString(), strStorage, null);
       CGSchema[] cgschemas = p.getCGSchemas();
 

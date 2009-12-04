@@ -127,7 +127,7 @@ public class TestColumnSecurity {
      */
     System.out.println("In test1...");
     String schema = "s1:string, s2:string";
-    String storage = "[s1, s2 ] secure by user:user1 group:group1 perm:777";
+    String storage = "[s1, s2 ] secure by uid:user1 gid:group1 perm:777";
     Path path1 = new Path(path.toString() + "/TestColumnStorageTest1");
     login(SUPERUSER);
     fs = path1.getFileSystem(conf);
@@ -176,7 +176,7 @@ public class TestColumnSecurity {
      */
     System.out.println("In test2...");
     String schema = "s1:string, s2:string";
-    String storage = "[s1, s2] secure by user:user1 group:group2 perm:730";
+    String storage = "[s1, s2] secure by uid:user1 gid:group2 perm:730";
     Path path1 = new Path(path.toString() + "/TestColumnStorageTest2");
     login(SUPERUSER);
     fs = path1.getFileSystem(conf);
@@ -237,7 +237,7 @@ public class TestColumnSecurity {
      */
     System.out.println("In test3...");
     String schema = "s1:string, s2:string";
-    String storage = "[s1, s2] secure by user:user1 group:group2 perm:700";
+    String storage = "[s1, s2] secure by uid:user1 gid:group2 perm:700";
     Path path1 = new Path(path.toString() + "/TestColumnStorageTest3");
     login(SUPERUSER);
     fs = path1.getFileSystem(conf);
@@ -294,7 +294,7 @@ public class TestColumnSecurity {
      */
     System.out.println("In test4...");
     String schema = "s1:string, s2:string";
-    String storage = "[s1, s2] secure by user:user1 group:group2 perm:740";
+    String storage = "[s1, s2] secure by uid:user1 gid:group2 perm:740";
     Path path1 = new Path(path.toString() + "/TestColumnStorageTest4");
     login(SUPERUSER);
     fs = path1.getFileSystem(conf);
@@ -352,7 +352,7 @@ public class TestColumnSecurity {
      */
     System.out.println("In test5...");
     String schema = "s1:string, s2:string";
-    String storage = "[s1, s2] secure by user:user1 group:group1 perm:702";
+    String storage = "[s1, s2] secure by uid:user1 gid:group1 perm:702";
     Path path1 = new Path(path.toString() + "/TestColumnStorageTest5");
     login(SUPERUSER);
     fs = path1.getFileSystem(conf);
@@ -408,7 +408,7 @@ public class TestColumnSecurity {
      */
     System.out.println("In test6...");
     String schema = "s1:string, s2:string";
-    String storage = "[s1,s2] secure by user:user1 group:group1 perm:705;";
+    String storage = "[s1,s2] secure by uid:user1 gid:group1 perm:705;";
     Path path1 = new Path(path.toString() + "/TestColumnStorageTest6");
     login(SUPERUSER);
     fs = path1.getFileSystem(conf);
@@ -466,7 +466,7 @@ public class TestColumnSecurity {
      */
     System.out.println("In test7...");
     String schema = "s1:string, s2:string";
-    String storage = "[s1, s2] secure by user:user1 group:group1 perm:200";
+    String storage = "[s1, s2] secure by uid:user1 gid:group1 perm:200";
     Path path1 = new Path(path.toString() + "/TestColumnStorageTest7");
     login(SUPERUSER);
     fs = path1.getFileSystem(conf);
@@ -488,7 +488,7 @@ public class TestColumnSecurity {
      */
     System.out.println("In test8...");
     String schema = "s1:string, s2:string";
-    String storage = "[s1] secure by user:user1 group:group2 perm:770; [s2]";
+    String storage = "[s1] secure by uid:user1 gid:group2 perm:770; [s2]";
     Path path1 = new Path(path.toString() + "/TestColumnStorageTest8");
     login(SUPERUSER);
     fs = path1.getFileSystem(conf);
@@ -560,7 +560,7 @@ public class TestColumnSecurity {
      */
     System.out.println("In test9...");
     String schema = "s1:string, s2:string";
-    String storage = "[s1, s2] secure by user:user1 group:group2 perm:707";
+    String storage = "[s1, s2] secure by uid:user1 gid:group2 perm:707";
     Path path1 = new Path(path.toString() + "/TestColumnStorageTest9");
     login(SUPERUSER);
     fs = path1.getFileSystem(conf);
@@ -618,7 +618,7 @@ public class TestColumnSecurity {
      */
     System.out.println("In test10...");
     String schema = "s1:string, s2:string";
-    String storage = "[s1, s2] secure by user:user1 group:group1 perm:400";
+    String storage = "[s1, s2] secure by uid:user1 gid:group1 perm:400";
     Path path1 = new Path(path.toString() + "/TestColumnStorageTest10");
     login(SUPERUSER);
     fs = path1.getFileSystem(conf);
@@ -640,7 +640,7 @@ public class TestColumnSecurity {
      */
     System.out.println("In test11...");
     String schema = "s1:string, s2:string";
-    String storage = "[s1] secure by user:user1 group:group2 perm:770;[s2] secure by user:user1 group:group2 perm:770";
+    String storage = "[s1] secure by uid:user1 gid:group2 perm:770;[s2] secure by user:user1 gid:group2 perm:770";
     Path path1 = new Path(path.toString() + "/TestColumnStorageTest11");
     login(SUPERUSER);
     fs = path1.getFileSystem(conf);
@@ -678,7 +678,7 @@ public class TestColumnSecurity {
      */
     System.out.println("In test12...");
     String schema = "s1:string, s2:string";
-    String storage = "[s1] secure by user:user1 group:group2 perm:770;[s2] secure by user:user1 group:group2 perm:700";
+    String storage = "[s1] secure by uid:user1 gid:group2 perm:770;[s2] secure by user:user1 gid:group2 perm:700";
     Path path1 = new Path(path.toString() + "/TestColumnStorageTest12");
     login(SUPERUSER);
     fs = path1.getFileSystem(conf);
@@ -717,7 +717,7 @@ public class TestColumnSecurity {
      */
     System.out.println("In test13...");
     String schema = "s1:string, s2:string";
-    String storage = "[s1] secure by user:user1 group:group2 perm:700;[s2] secure by user:user1 group:group2 perm:770";
+    String storage = "[s1] secure by uid:user1 gid:group2 perm:700;[s2] secure by user:user1 gid:group2 perm:770";
     Path path1 = new Path(path.toString() + "/TestColumnStorageTest13");
     login(SUPERUSER);
     fs = path1.getFileSystem(conf);
@@ -755,7 +755,7 @@ public class TestColumnSecurity {
      */
     System.out.println("In test14...");
     String schema = "s1:string, s2:string";
-    String storage = "[s1] secure by user:user1 group:group2 perm:730;[s2] secure by user:user1 group:group2 perm:730";
+    String storage = "[s1] secure by uid:user1 gid:group2 perm:730;[s2] secure by user:user1 gid:group2 perm:730";
     Path path1 = new Path(path.toString() + "/TestColumnStorageTest14");
     login(SUPERUSER);
     fs = path1.getFileSystem(conf);
@@ -793,7 +793,7 @@ public class TestColumnSecurity {
      */
     System.out.println("In test15...");
     String schema = "s1:string, s2:string";
-    String storage = "[s1] secure by user:user1 group:group2 perm:770;[s2] secure by user:user1 group:group2 perm:770";
+    String storage = "[s1] secure by uid:user1 gid:group2 perm:770;[s2] secure by user:user1 gid:group2 perm:770";
     Path path1 = new Path(path.toString() + "/TestColumnStorageTest15");
     login(SUPERUSER);
     fs = path1.getFileSystem(conf);
@@ -905,7 +905,7 @@ public class TestColumnSecurity {
      */
     System.out.println("In test17...");
     String schema = "s1:string, s2:string";
-    String storage = "[s1, s2] secure by user:user1 group:group1 perm:000";
+    String storage = "[s1, s2] secure by uid:user1 gid:group1 perm:000";
     Path path1 = new Path(path.toString() + "/TestColumnStorageTest17");
     login(SUPERUSER);
     fs = path1.getFileSystem(conf);
@@ -927,7 +927,7 @@ public class TestColumnSecurity {
      */
     System.out.println("In test18...");
     String schema = "s1:string, s2:string";
-    String storage = "[s1, s2] secure by user:user1 group:nonexisting perm:000";
+    String storage = "[s1, s2] secure by uid:user1 gid:nonexisting perm:000";
     Path path1 = new Path(path.toString() + "/TestColumnStorageTest18");
     login(SUPERUSER);
     fs = path1.getFileSystem(conf);
@@ -949,7 +949,7 @@ public class TestColumnSecurity {
      */
     System.out.println("In test19...");
     String schema = "s1:string, s2:string";
-    String storage = "[s1, s2] secure by user:user1 group:group2 perm:880";
+    String storage = "[s1, s2] secure by uid:user1 gid:group2 perm:880";
     Path path1 = new Path(path.toString() + "/TestColumnStorageTest19");
     login(SUPERUSER);
     fs = path1.getFileSystem(conf);
@@ -970,7 +970,7 @@ public class TestColumnSecurity {
      */
     System.out.println("In test120...");
     String schema = "s1:string, s2:string";
-    String storage = "[s1, s2] secure by user:user1 group:group2 perm:7777";
+    String storage = "[s1, s2] secure by uid:user1 gid:group2 perm:7777";
     Path path1 = new Path(path.toString() + "/TestColumnStorageTest20");
     login(SUPERUSER);
     fs = path1.getFileSystem(conf);
@@ -992,9 +992,9 @@ public class TestColumnSecurity {
      */
     System.out.println("In test21...");
     String schema = "s1:string, s2:string";
-    String storage = "[s1] secure by user:"
+    String storage = "[s1] secure by uid:"
         + SUPERUSER.getUserName()
-        + " group:supergroup perm:755;[s2] secure by user:user1 group:group2 perm:755";
+        + " gid:supergroup perm:755;[s2] secure by uid:user1 gid:group2 perm:755";
     Path path1 = new Path(path.toString() + "/TestColumnStorageTest21");
     login(SUPERUSER);
     fs = path1.getFileSystem(conf);
@@ -1065,9 +1065,9 @@ public class TestColumnSecurity {
      */
     System.out.println("In test22...");
     String schema = "s1:string, s2:string";
-    String storage = "[s1] secure by user:"
+    String storage = "[s1] secure by uid:"
         + SUPERUSER.getUserName()
-        + " group:supergroup perm:775;[s2] secure by user:user1 group:group2 perm:775";
+        + " gid:supergroup perm:775;[s2] secure by uid:user1 gid:group2 perm:775";
     Path path1 = new Path(path.toString() + "/TestColumnStorageTest22");
     login(SUPERUSER);
     fs = path1.getFileSystem(conf);
