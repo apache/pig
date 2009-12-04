@@ -427,4 +427,18 @@ public class TestAccumulator extends TestCase{
             }            
         }    
     }
+    
+    public void testAccumWithMultiBuildin() throws IOException{
+        pigServer.registerQuery("A = load '" + INPUT_FILE + "' as (id:int, c:chararray);");
+        pigServer.registerQuery("C = group A by 1;");
+        pigServer.registerQuery("D = foreach C generate SUM(A.id), 1+SUM(A.id)+SUM(A.id);");                     
+
+        Iterator<Tuple> iter = pigServer.openIterator("D");
+        
+        while(iter.hasNext()) {
+            Tuple t = iter.next();    
+            t.get(0).toString().equals("1700");
+            t.get(1).toString().equals("3401");   
+        }    
+    }
 }
