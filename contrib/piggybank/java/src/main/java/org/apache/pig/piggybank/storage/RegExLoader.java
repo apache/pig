@@ -31,6 +31,7 @@ import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.io.BufferedPositionedInputStream;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.impl.logicalLayer.FrontendException;
 
 /**
  * RegExLoader is an abstract class used to parse logs based on a regular expression.
@@ -110,6 +111,10 @@ public abstract class RegExLoader extends  Utf8StorageConverter implements LoadF
   public Schema determineSchema(String fileName, ExecType execType, DataStorage storage) throws IOException {
     return null;
   }
-  public void fieldsToRead(Schema schema) {
+
+  @Override
+  public LoadFunc.RequiredFieldResponse fieldsToRead(LoadFunc.RequiredFieldList requiredFieldList) throws FrontendException {
+      return new LoadFunc.RequiredFieldResponse(false);
   }
+
 }

@@ -1,3 +1,4 @@
+PIG-1126: updated fieldsToRead function (olgan)
 PIG-1015: [piggybank] DateExtractor should take into account timezones
 (dryaboy via  olgan)
 PIG-911: Added SequenceFileLoader (dryaboy via gates)

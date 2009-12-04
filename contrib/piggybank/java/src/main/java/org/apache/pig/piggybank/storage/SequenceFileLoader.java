@@ -38,6 +38,7 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.serializer.SerializationFactory;
 import org.apache.hadoop.util.ReflectionUtils;
+import org.apache.pig.impl.logicalLayer.FrontendException;
 
 import org.apache.pig.ExecType;
 import org.apache.pig.LoadFunc;
@@ -168,9 +169,8 @@ public class SequenceFileLoader implements LoadFunc, SamplableLoader {
   }
   
   @Override
-  public void fieldsToRead(Schema schema) {
-    // not implemented
-
+  public LoadFunc.RequiredFieldResponse fieldsToRead(LoadFunc.RequiredFieldList requiredFieldList) throws FrontendException {
+      return new LoadFunc.RequiredFieldResponse(false);
   }
 
   @Override
