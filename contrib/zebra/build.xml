@@ -116,7 +116,8 @@ to call at top-level: ant deploy-contrib compile-core-test
       <sysproperty key="build.test" value="${build.test}"/>
       <sysproperty key="contrib.name" value="${name}"/>
       <sysproperty key="hadoop.log.dir" value="${pig.log.dir}"/>
-      
+       <sysproperty key="whichCluster" value="miniCluster"/>
+	      
       <!-- requires fork=yes for: 
         relative File paths to use the specified user.dir 
         classpath to use build/contrib/*.jar
@@ -160,7 +161,7 @@ to call at top-level: ant deploy-contrib compile-core-test
       <sysproperty key="build.test" value="${build.test}"/>
       <sysproperty key="contrib.name" value="${name}"/>
       <sysproperty key="hadoop.log.dir" value="${pig.log.dir}"/>
-      
+      <sysproperty key="whichCluster" value="miniCluster"/>
       <!-- requires fork=yes for: 
         relative File paths to use the specified user.dir 
         classpath to use build/contrib/*.jar
@@ -182,6 +183,7 @@ to call at top-level: ant deploy-contrib compile-core-test
           <not>
             <filename name="**/TestColumnSecurity.java"/>
           </not>
+
         </fileset> 
       </batchtest>
     </junit>
