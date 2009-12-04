@@ -79,6 +79,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-1084: Pig 0.6.0 Documentation improvements  (chandec via olgan)
+
 PIG-1089: Pig 0.6.0 Documentation  (chandec via olgan)
 
 PIG-958: Splitting output data on key field (ankur via pradeepkth)
