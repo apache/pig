@@ -11,6 +11,8 @@ Trunk (unreleased changes)
 
   IMPROVEMENTS
 
+    PIG-1119 Support of "group" as a column name (Gaurav Jain via yanz)
+
     PIG-653  Pig Projection Push Down (Gaurav Jain via yanz)
 
     PIG-1111 Multiple Outputs Support (Gaurav Jain via yanz)

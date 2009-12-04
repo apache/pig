@@ -60,8 +60,8 @@ TOKEN : { <SERIALIZE : "serialize by"> }
 TOKEN : { <ASC : "ASC"> }
 TOKEN : { <DESC: "DESC"> }
 TOKEN : { <SECURE 	 : "secure by"> }
-TOKEN : { <USER		 : "user"> }
-TOKEN : { <GROUP	 : "group"> }
+TOKEN : { <USER		 : "uid"> }
+TOKEN : { <GROUP	 : "gid"> }
 TOKEN : { <PERM		 : "perm"> }
 TOKEN : { <AS		 : "as"> }
 
@@ -224,7 +224,7 @@ CGSchema FieldSchema() throws ParseException:
       	    {
       	      if(owner != null) 
       	      {
-				String msg = "User defined more than once";
+				String msg = "Uid defined more than once";
 				throw new ParseException(msg);      	      
       	      } else
       	      		owner = t1.image;	
@@ -236,7 +236,7 @@ CGSchema FieldSchema() throws ParseException:
       	    {
       	      if(group != null) 
       	      {
-				String msg = "Group defined more than once";
+				String msg = "Gid defined more than once";
 				throw new ParseException(msg);      	      
       	      } else
       	      		group = t1.image;
