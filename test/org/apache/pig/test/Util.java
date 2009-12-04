@@ -20,10 +20,8 @@ package org.apache.pig.test;
 import static java.util.regex.Matcher.quoteReplacement;
 
 import java.io.BufferedReader;
-import java.io.BufferedWriter;
 import java.io.ByteArrayInputStream;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
@@ -32,7 +30,6 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
-import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -41,6 +38,7 @@ import java.util.Map;
 
 import junit.framework.Assert;
 
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileStatus;
@@ -250,6 +248,11 @@ public class Util {
                                        String[] inputData) 
     throws IOException {
         FileSystem fs = miniCluster.getFileSystem();
+        createInputFile(fs, fileName, inputData);
+    }
+    
+    static public void createInputFile(FileSystem fs, String fileName, 
+            String[] inputData) throws IOException {
         if(fs.exists(new Path(fileName))) {
             throw new IOException("File " + fileName + " already exists on the minicluster");
         }
@@ -259,6 +262,7 @@ public class Util {
             pw.println(inputData[i]);
         }
         pw.close();
+
     }
     
     /**
@@ -296,7 +300,15 @@ public class Util {
         fs.delete(new Path(fileName), true);
     }
 
-	/**
+    static public void deleteFile(PigContext pigContext, String fileName) 
+    throws IOException {
+        Configuration conf = ConfigurationUtil.toConfiguration(
+                pigContext.getProperties());
+        FileSystem fs = FileSystem.get(conf);
+        fs.delete(new Path(fileName), true);
+    }
+    
+    /**
 	 * Helper function to check if the result of a Pig Query is in line with 
 	 * expected results.
 	 * 
@@ -488,5 +500,18 @@ public class Util {
             }
         }
         return(path.delete());
+    }
+
+    /**
+     * @param pigContext
+     * @param fileName
+     * @param input
+     * @throws IOException 
+     */
+    public static void createInputFile(PigContext pigContext,
+            String fileName, String[] input) throws IOException {
+        Configuration conf = ConfigurationUtil.toConfiguration(
+                pigContext.getProperties());
+        createInputFile(FileSystem.get(conf), fileName, input); 
     }
 }

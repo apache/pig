@@ -24,9 +24,11 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Properties;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.hadoop.mapreduce.Job;
@@ -38,23 +40,32 @@ import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.pig.FileInputLoadFunc;
 import org.apache.pig.LoadCaster;
 import org.apache.pig.LoadFunc;
+import org.apache.pig.LoadMetadata;
 import org.apache.pig.PigException;
 import org.apache.pig.PigWarning;
 import org.apache.pig.ResourceSchema;
+import org.apache.pig.ResourceStatistics;
 import org.apache.pig.StoreFunc;
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
+import org.apache.pig.backend.hadoop.datastorage.HDataStorage;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigSplit;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataReaderWriter;
+import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.io.BinStorageInputFormat;
 import org.apache.pig.impl.io.BinStorageOutputFormat;
 import org.apache.pig.impl.io.BinStorageRecordReader;
 import org.apache.pig.impl.io.BinStorageRecordWriter;
+import org.apache.pig.impl.io.FileLocalizer;
+import org.apache.pig.impl.io.ReadToEndLoader;
+import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.impl.plan.OperatorPlan;
 import org.apache.pig.impl.util.LogUtils;
 
 public class BinStorage extends FileInputLoadFunc 
-implements LoadCaster, StoreFunc {
+implements LoadCaster, StoreFunc, LoadMetadata {
 
     
     public static final int RECORD_1 = 0x01;
@@ -321,6 +332,7 @@ implements LoadCaster, StoreFunc {
         return new BinStorageInputFormat();
     }
 
+    @Override
     public int hashCode() {
         return 42; 
     }
@@ -364,5 +376,59 @@ implements LoadCaster, StoreFunc {
     public String relToAbsPathForStoreLocation(String location, Path curDir)
             throws IOException {
         return LoadFunc.getAbsolutePath(location, curDir);
+    }
+
+    @Override
+    public String[] getPartitionKeys(String location, Configuration conf)
+            throws IOException {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public ResourceSchema getSchema(String location, Configuration conf)
+            throws IOException {
+        Properties props = ConfigurationUtil.toProperties(conf);
+        // since local mode now is implemented as hadoop's local mode
+        // we can treat either local or hadoop mode as hadoop mode - hence
+        // we can use HDataStorage and FileLocalizer.openDFSFile below
+        HDataStorage storage = new HDataStorage(props);
+        if (!FileLocalizer.fileExists(location, storage)) {
+            // At compile time in batch mode, the file may not exist
+            // (such as intermediate file). Just return null - the
+            // same way as we would if we did not get a valid record
+            return null;
+        }
+        ReadToEndLoader loader = new ReadToEndLoader(this, conf, location, 0);
+        // get the first record from the input file
+        // and figure out the schema from the data in
+        // the first record
+        Tuple t = loader.getNext();
+        if(t == null) {
+            // we couldn't get a valid record from the input
+            return null;
+        }
+        int numFields = t.size();
+        Schema s = new Schema();
+        for (int i = 0; i < numFields; i++) {
+            try {
+                s.add(DataType.determineFieldSchema(t.get(i)));
+            } catch (Exception e) {
+                int errCode = 2104;
+                String msg = "Error while determining schema of BinStorage data.";
+                throw new ExecException(msg, errCode, PigException.BUG, e);
+            } 
+        }
+        return new ResourceSchema(s);
+    }
+
+    @Override
+    public ResourceStatistics getStatistics(String location, Configuration conf)
+            throws IOException {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void setParitionFilter(OperatorPlan plan) throws IOException {
+        throw new UnsupportedOperationException();
     }
 }

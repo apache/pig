@@ -850,6 +850,7 @@ public class Schema implements Serializable, Cloneable {
      * Make a deep copy of a schema.
      * @throws CloneNotSupportedException
      */
+    @Override
     public Schema clone() throws CloneNotSupportedException {
         Schema s = new Schema();
 
@@ -1618,13 +1619,6 @@ public class Schema implements Serializable, Cloneable {
             fsList.add(fs);
         }
         return new Schema(fsList);
-    }
-    
-    private static Schema getPigSchema(ResourceFieldSchema rfSchema) 
-    throws FrontendException {
-        return new Schema(new FieldSchema(rfSchema.name, 
-                rfSchema.schema == null ? null : getPigSchema(rfSchema.schema),
-                        rfSchema.type));
     }
     
 }

@@ -32,8 +32,11 @@ import junit.framework.Assert;
 
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
+import org.apache.pig.ResourceSchema;
 import org.apache.pig.backend.datastorage.DataStorage;
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
+import org.apache.pig.builtin.BinStorage;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
@@ -45,6 +48,8 @@ import org.apache.pig.impl.logicalLayer.LOStore;
 import org.apache.pig.impl.logicalLayer.LogicalOperator;
 import org.apache.pig.impl.logicalLayer.LogicalPlan;
 import org.apache.pig.impl.logicalLayer.LogicalPlanBuilder;
+import org.apache.pig.impl.logicalLayer.parser.ParseException;
+import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.test.utils.GenRandomData;
 import org.apache.pig.test.utils.TestHelper;
@@ -61,6 +66,7 @@ public class TestStore extends junit.framework.TestCase {
     String inputFileName;
     String outputFileName;
     
+    @Override
     @Before
     public void setUp() throws Exception {
         pig = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
@@ -70,6 +76,7 @@ public class TestStore extends junit.framework.TestCase {
         ".txt";
     }
 
+    @Override
     @After
     public void tearDown() throws Exception {
         Util.deleteFile(cluster, inputFileName);
@@ -201,7 +208,41 @@ public class TestStore extends junit.framework.TestCase {
             ++size;
         }
     }
+    @Test
+    public void testBinStorageGetSchema() throws IOException, ParseException {
+        String input[] = new String[] { "hello\t1\t10.1", "bye\t2\t20.2" };
+        String inputFileName = "testGetSchema-input.txt";
+        String outputFileName = "testGetSchema-output.txt";
+        try {
+            Util.createInputFile(pig.getPigContext(), 
+                    inputFileName, input);
+            String query = "a = load '" + inputFileName + "' as (c:chararray, " +
+                    "i:int,d:double);store a into '" + outputFileName + "' using " +
+                            "BinStorage();";
+            pig.setBatchOn();
+            Util.registerMultiLineQuery(pig, query);
+            pig.executeBatch();
+            ResourceSchema rs = new BinStorage().getSchema(outputFileName, 
+                    ConfigurationUtil.toConfiguration(pig.getPigContext().
+                            getProperties()));
+            Schema expectedSchema = Util.getSchemaFromString(
+                    "c:chararray,i:int,d:double");
+            Assert.assertTrue("Checking binstorage getSchema output", Schema.equals( 
+                    expectedSchema, Schema.getPigSchema(rs), true, true));
+        } finally {
+            Util.deleteFile(pig.getPigContext(), inputFileName);
+            Util.deleteFile(pig.getPigContext(), outputFileName);
+        }
+    }
 
+    private static void randomizeBytes(byte[] data, int offset, int length) {
+        Random random = new Random();
+        for(int i=offset + length - 1; i >= offset; --i) {
+            data[i] = (byte) random.nextInt(256);
+        }
+    }
+
+    
     @Test
     public void testStoreRemoteRel() throws Exception {
         checkStorePath("test","/tmp/test");
