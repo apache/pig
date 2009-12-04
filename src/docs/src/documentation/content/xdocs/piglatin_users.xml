@@ -480,7 +480,7 @@ STORE Gtab INTO '/user/vxj/finalresult2';
 <p>
 Pig Latin includes three "specialized" joins: fragement replicate joins, skewed joins, and merge joins. 
 Replicate, skewed, and merge joins can be performed using the <a href="piglatin_reference.html#JOIN">JOIN</a> operator (inner, equijoins).
-Replicate and skewed joins can be performed using the the the <a href="piglatin_reference.html#JOIN%2C+OUTER">Outer Join</a> syntax.
+Replicate and skewed joins can also be performed using the the the <a href="piglatin_reference.html#JOIN%2C+OUTER">Outer Join</a> syntax.
 </p>
 
 <!-- FRAGMENT REPLICATE JOINS-->
@@ -755,77 +755,6 @@ D = JOIN C BY $1, B BY $1;
 
 </section> <!-- END MEMORY MANAGEMENT  -->
 
- <!-- ZEBRA INTEGRATION -->
-<section>
-<title>Integration with Zebra</title>
- <p>This version of Pig is integrated with Zebra storage format. Zebra is a recent contrib project of Pig and the details can be found at http://wiki.apache.org/pig/zebra. Pig can now: </p>
- <ul>
- <li>Load data in Zebra format</li>
-  <li>Take advantage of sorted Zebra tables in case of map-side group and merge join.</li>
-  <li>Store data in Zebra format</li>
- </ul>
- <p></p>
- <p>To load data in Zebra format using TableLoader, do the following:</p>
- <source>
-register /zebra.jar;
-A = LOAD 'studenttab' USING org.apache.hadoop.zebra.pig.TableLoader();
-B = FOREACH A GENERATE name, age, gpa;
-</source>
-  
- <p>There are a couple of things to note:</p>
- <ol>
- <li>You need to register a Aebra jar file the same way you would do it for any other UDF.</li>
- <li>You need to place the jar on your classpath.</li>
- <li>Zebra data is self-described and always contains schema. This means that the AS clause is unnecessary as long as 
-  you know what the column names and types are. To determine the column names and types, you can run the DESCRIBE statement right after the load:
- <source>
-A = LOAD 'studenttab' USING org.apache.hadoop.zebra.pig.TableLoader();
-DESCRIBE A;
-a: {name: chararray,age: int,gpa: float}
-</source>
- </li>
- </ol>
-   
-<p>You can provide alternative names to the columns with AS clause. You can also provide types as long as the 
- original type can be converted to the new type.</p>
- 
-<p>You can provide multiple, comma-separated files to the loader:</p>
-<source>
-A = LOAD 'studenttab, votertab' USING org.apache.hadoop.zebra.pig.TableLoader();
-</source>
-
-<p>TableLoader supports efficient column selection. The current version of Pig does not support automatically pushing 
- projections down to the loader. (The work is in progress and will be done after beta.) 
- Meanwhile, the loader allows passing columns down via a list of arguments. This example tells the loader to only return two columns, name and age.</p>
-<source>
-A = LOAD 'studenttab' USING org.apache.hadoop.zebra.pig.TableLoader('name, age');
-</source>
-
-<p>If the input data is globally sorted, map-side group or merge join can be used. Please, notice the “sorted” argument passed to the loader. This lets the loader know that the data is expected to be globally sorted and that a single key must be given to the same map.</p>
-
-<p>Here is an example of the merge join. Note that the first argument to the loader is left empty to indicate that all columns are requested.</p>
-<source>
-A = LOAD'studentsortedtab' USING org.apache.hadoop.zebra.pig.TableLoader('', 'sorted');
-B = LOAD 'votersortedtab' USING org.apache.hadoop.zebra.pig.TableLoader('', 'sorted');
-G = JOIN A BY $0, B By $0 USING "merge";
-</source>
-
-<p>Here is an example of a map-side group. Note that multiple sorted files are passed to the loader and that the loader will perform sort preserving merge to make sure that the data is globally sorted.</p>
-<source>
-A = LOAD 'studentsortedtab, studentnullsortedtab' using org.apache.hadoop.zebra.pig.TableLoader('name, age, gpa, source_table', 'sorted');
-B = GROUP A BY $0 USING "collected";
-C = FOREACH B GENERATE group, MAX(a.$1);
-</source>
-
-<p>You can also write data in Zebra format. Note that, since Zebra requires a schema to be stored with the data, the relation that is stored must have a name assigned (via alias) to every column in the relation.</p>
-<source>
-A = LOAD 'studentsortedtab, studentnullsortedtab' USING org.apache.hadoop.zebra.pig.TableLoader('name, age, gpa, source_table', 'sorted');
-B = GROUP A BY $0 USING "collected";
-C = FOREACH B GENERATE group, MAX(a.$1) AS max_val;
-STORE C INTO 'output' USING org.apache.hadoop.zebra.pig.TableStorer('');
-</source>
-
- </section> <!-- END ZEBRA INTEGRATION  -->
  
  
  
