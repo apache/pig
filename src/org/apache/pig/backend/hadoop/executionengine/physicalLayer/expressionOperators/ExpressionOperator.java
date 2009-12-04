@@ -98,7 +98,9 @@ public abstract class ExpressionOperator extends PhysicalOperator {
         List<ExpressionOperator> l = getChildExpressions();
         if (l != null) {
             for(ExpressionOperator e: l) {
-                return e.containUDF();    				
+                if (e.containUDF()) {
+                    return true;
+                }
             }
         }
         
