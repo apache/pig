@@ -91,26 +91,26 @@ public class TestStorageGrammar {
       System.setProperty("group", "users");
     }
     group = System.getProperty("group");
-    System.out.println("user:" + user + " group: " + group);
-    STR_STORAGE = "[s1, s2] COMPRESS BY gz SECURE BY user:"
+    System.out.println("uid:" + user + " gid: " + group);
+    STR_STORAGE = "[s1, s2] COMPRESS BY gz SECURE BY uid:"
         + user
-        + " group:"
+        + " gid:"
         + group
-        + " perm:777 SERIALIZE BY pig; [m1#{a}] SERIALIZE BY pig COMPRESS BY gz SECURE BY user:"
+        + " perm:777 SERIALIZE BY pig; [m1#{a}] SERIALIZE BY pig COMPRESS BY gz SECURE BY uid:"
         + user
-        + " group:"
+        + " gid:"
         + group
-        + " perm:777 ; [r1.f1] SECURE BY user:"
+        + " perm:777 ; [r1.f1] SECURE BY uid:"
         + user
-        + " group:"
+        + " gid:"
         + group
-        + " perm:777 SERIALIZE BY pig COMPRESS BY gz ; [s3, s4, r2.r3.f3] SERIALIZE BY pig SECURE BY user:"
+        + " perm:777 SERIALIZE BY pig COMPRESS BY gz ; [s3, s4, r2.r3.f3] SERIALIZE BY pig SECURE BY uid:"
         + user
-        + " group: "
+        + " gid: "
         + group
-        + " perm:777 COMPRESS BY gz ; [s5, s6, m2#{x|y}] compREss by gz secURe by user:"
+        + " perm:777 COMPRESS BY gz ; [s5, s6, m2#{x|y}] compREss by gz secURe by uid:"
         + user
-        + " group:"
+        + " gid:"
         + group
         + " perm:777 SerialIZE BY pig; [r1.f2, m1#{b}]; [r2.r3.f4, m2#{z}] SERIALIZE BY avro;[s7,s8] SERIALIZE BY AVRO;[s9,s10] COMPRESS BY gz ";
     System.out.println("storage: " + STR_STORAGE);
@@ -118,7 +118,7 @@ public class TestStorageGrammar {
     conf.setInt("table.input.split.minSize", 64 * 1024);
     conf.set("table.output.tfile.compression", "none");
     // String STR_STORAGE1 =
-    // "[s1, s2] COMPRESS BY gz SECURE BY user:"+USER1.getUserName()+" group:"+USER1.getGroupNames()[0]+" perm:777 SERIALIZE BY pig";
+    // "[s1, s2] COMPRESS BY gz SECURE BY uid:"+USER1.getUserName()+" gid:"+USER1.getGroupNames()[0]+" perm:777 SERIALIZE BY pig";
     RawLocalFileSystem rawLFS = new RawLocalFileSystem();
     fs = new LocalFileSystem(rawLFS);
     path = new Path(fs.getWorkingDirectory(), "TestStorageGrammar");
@@ -326,7 +326,7 @@ public class TestStorageGrammar {
   public void test1() throws IOException, ParseException {
    
     String schema = "s1:string, s2:string";
-    String storage = "[s1, s2]COMPRESS BY gz SECURE BY user:user1 group:users perm:744 SERIALIZE BY pig";
+    String storage = "[s1, s2]COMPRESS BY gz SECURE BY uid:user1 gid:users perm:744 SERIALIZE BY pig";
     RawLocalFileSystem rawLFS = new RawLocalFileSystem();
     fs = new LocalFileSystem(rawLFS);
     Path path1 = new Path(path.toString() + "1");
@@ -350,8 +350,8 @@ public class TestStorageGrammar {
   @Test
   public void test2() throws IOException, ParseException {
     String schema = "m1:map(string),m2:map(map(int))";
-    String storage = "[m1#{a}] SERIALIZE BY pig COMPRESS BY gz SECURE BY user:"
-        + user + " group:" + group + " perm:770 ";
+    String storage = "[m1#{a}] SERIALIZE BY pig COMPRESS BY gz SECURE BY uid:"
+        + user + " gid:" + group + " perm:770 ";
     Path path1 = new Path(path.toString() + "2");
     BasicTable.Writer writer = null;
     try {
@@ -373,7 +373,7 @@ public class TestStorageGrammar {
   @Test
   public void test3() throws IOException, ParseException {
     String schema = "r1:record(f1:int, f2:long)";
-    String storage = "[r1.f1] SECURE BY user:" + user + " group:" + group
+    String storage = "[r1.f1] SECURE BY uid:" + user + " gid:" + group
         + " perm:777 SERIALIZE BY pig COMPRESS BY gz";
     Path path1 = new Path(path.toString() + "3");
     BasicTable.Writer writer = null;
@@ -395,8 +395,8 @@ public class TestStorageGrammar {
   @Test
   public void test4() throws IOException, ParseException {
     String schema = "s3:string, s4:string, r2:record(r3:record(f3:float, f4)), c:collection(f13:double, f14:float, f15:bytes)";
-    String storage = "[s3, s4, r2.r3.f3, c] SERIALIZE BY pig SECURE BY user:"
-        + user + " group:" + group + " perm:777 COMPRESS BY gz";
+    String storage = "[s3, s4, r2.r3.f3, c] SERIALIZE BY pig SECURE BY uid:"
+        + user + " gid:" + group + " perm:777 COMPRESS BY gz";
     Path path1 = new Path(path.toString() + "4");
     BasicTable.Writer writer = null;
     try {
@@ -417,8 +417,8 @@ public class TestStorageGrammar {
   @Test
   public void test5() throws IOException, ParseException {
     String schema = "s5:string, s6:string, m2:map(map(int))";
-    String storage = "[s5, s6, m2#{x|y}] compREss by gz secURe by user:" + user
-        + " group:" + group + " perm:777 SerialIZE BY pig";
+    String storage = "[s5, s6, m2#{x|y}] compREss by gz secURe by uid:" + user
+        + " gid:" + group + " perm:777 SerialIZE BY pig";
     Path path1 = new Path(path.toString() + "5");
     BasicTable.Writer writer = null;
     try {
@@ -541,7 +541,7 @@ public class TestStorageGrammar {
   @Test(expected = IOException.class)
   public void test12() throws IOException, ParseException {
     String schema = "some1:string, some2:string";
-    String storage = "[some1,some2] COMPRESS BY gz SECURrrrrrE BY user:user1 group:grop1 perm:760 SERIALIZE BY pig";
+    String storage = "[some1,some2] COMPRESS BY gz SECURrrrrrE BY uid:user1 gid:grop1 perm:760 SERIALIZE BY pig";
     Path path1 = new Path(path.toString() + "12");
     BasicTable.Writer writer = null;
 
@@ -553,7 +553,7 @@ public class TestStorageGrammar {
   @Test(expected = IOException.class)
   public void test13() throws IOException, ParseException {
     String schema = "some1:string, some2:string";
-    String storage = "[some1,some2] COMPRESS gz SECURE BY user:user1 group:users perm:760 SERIALIZE BY pig";
+    String storage = "[some1,some2] COMPRESS gz SECURE BY uid:user1 gid:users perm:760 SERIALIZE BY pig";
     Path path1 = new Path(path.toString() + "13");
     BasicTable.Writer writer = null;
 
@@ -565,7 +565,7 @@ public class TestStorageGrammar {
   @Test(expected = IOException.class)
   public void test14() throws IOException, ParseException {
     String schema = "some1:string, some2:string";
-    String storage = "[some1,some2] COMPRESS BY gz SECURE BY usssser:user1 group:users perm:760 SERIALIZE BY pig";
+    String storage = "[some1,some2] COMPRESS BY gz SECURE BY usssser:user1 gid:users perm:760 SERIALIZE BY pig";
     Path path1 = new Path(path.toString() + "14");
     BasicTable.Writer writer = null;
     writer = new BasicTable.Writer(path1, schema, storage, conf);
@@ -576,7 +576,7 @@ public class TestStorageGrammar {
   @Test(expected = IOException.class)
   public void test15() throws IOException, ParseException {
     String schema = "some1:string, some2:string";
-    String storage = "[some1,some2] COMPRESS BY gz SECURE BY user:user1 grouuuup:group1 perm:760 SERIALIZE BY pig";
+    String storage = "[some1,some2] COMPRESS BY gz SECURE BY uid:user1 grouuuup:group1 perm:760 SERIALIZE BY pig";
     Path path1 = new Path(path.toString() + "15");
     BasicTable.Writer writer = null;
     writer = new BasicTable.Writer(path1, schema, storage, conf);
@@ -587,7 +587,7 @@ public class TestStorageGrammar {
   @Test(expected = IOException.class)
   public void test16() throws IOException, ParseException {
     String schema = "some1:string, some2:string";
-    String storage = "[some1,some2] COMPRESS BY gz SECURE BY user:user1 group:users perrrrrm:760 SERIALIZE BY pig";
+    String storage = "[some1,some2] COMPRESS BY gz SECURE BY uid:user1 gid:users perrrrrm:760 SERIALIZE BY pig";
     Path path1 = new Path(path.toString() + "16");
     BasicTable.Writer writer = null;
     writer = new BasicTable.Writer(path1, schema, storage, conf);
@@ -658,7 +658,7 @@ public class TestStorageGrammar {
    */
   public void test20() throws IOException, ParseException {
     String schema = "s9:string, s10:string, s11:string";
-    String storage = "[s9,s10] COMPRESS BY gZ; secure by user:user1 group:users perm:755";
+    String storage = "[s9,s10] COMPRESS BY gZ; secure by uid:user1 gid:users perm:755";
 
     Path path1 = new Path(path.toString() + "20");
     Runtime.getRuntime().exec("rm -rf " + path1.toString());
@@ -681,7 +681,7 @@ public class TestStorageGrammar {
   @Test(expected = IOException.class)
   public void test21() throws IOException, ParseException {
     String schema = "s9:string, s10:string, s11:string";
-    String storage = "[s9,s10] COMPRESS BY gZ; secure by user:user1 group:users perm:755;secure by user:user1 group:users perm:755";
+    String storage = "[s9,s10] COMPRESS BY gZ; secure by uid:user1 gid:users perm:755;secure by user:user1 gid:users perm:755";
     Path path1 = new Path(path.toString() + "16");
     BasicTable.Writer writer = null;
     writer = new BasicTable.Writer(path1, schema, storage, conf);
@@ -692,7 +692,7 @@ public class TestStorageGrammar {
   @Test
   public void test22() throws IOException, ParseException {
     String schema = "s9:string, s10:string";
-    String storage = "[s9,s10] secure by user:user3";
+    String storage = "[s9,s10] secure by uid:user3";
 
     Path path1 = new Path(path.toString() + "22");
     Runtime.getRuntime().exec("rm -rf " + path1.toString());
@@ -720,7 +720,7 @@ public class TestStorageGrammar {
    */
   public void test23() throws IOException, ParseException {
     String schema = "s9:string, s10:string";
-    String storage = "[s9,s10] secure by group:users";
+    String storage = "[s9,s10] secure by gid:users";
 
     Path path1 = new Path(path.toString() + "23");
     Runtime.getRuntime().exec("rm -rf " + path1.toString());
@@ -773,7 +773,7 @@ public class TestStorageGrammar {
    */
   public void test25() throws IOException, ParseException {
     String schema = "s9:string, s10:string";
-    String storage = "[s9,s10] secure by user:user1 group:users";
+    String storage = "[s9,s10] secure by uid:user1 gid:users";
 
     Path path1 = new Path(path.toString() + "25");
     Runtime.getRuntime().exec("rm -rf " + path1.toString());
@@ -798,7 +798,7 @@ public class TestStorageGrammar {
   //@Test
   public void test26() throws IOException, ParseException {
     String schema = "s9:string, s10:string";
-    String storage = "[s9,s10] secure by perm:755 group:users";
+    String storage = "[s9,s10] secure by perm:755 gid:users";
 
     Path path1 = new Path(path.toString() + "26");
     Runtime.getRuntime().exec("rm -rf " + path1.toString());
