@@ -131,6 +131,8 @@ PIG-922: Logical optimizer: push up project (daijy)
 
 BUG FIXES
 
+PIG-1105: COUNT_STAR accumulate interface implementation cases failure(sriranjan via olgan)
+
 PIG-1118: expression with aggregate functions returning null, with accumulate
 interface (yinghe via olgan)
 

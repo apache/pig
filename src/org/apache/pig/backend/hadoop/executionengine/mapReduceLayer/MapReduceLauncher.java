@@ -367,7 +367,8 @@ public class MapReduceLauncher extends Launcher{
             pc.getProperties().getProperty(
                     "last.input.chunksize", POJoinPackage.DEFAULT_CHUNK_SIZE);
         
-        String prop = System.getProperty("pig.exec.nocombiner");
+        //String prop = System.getProperty("pig.exec.nocombiner");
+        String prop = pc.getProperties().getProperty("pig.exec.nocombiner");
         if (!("true".equals(prop)))  {
             CombinerOptimizer co = new CombinerOptimizer(plan, lastInputChunkSize);
             co.visit();
