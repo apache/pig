@@ -135,7 +135,11 @@ public class COUNT_STAR extends EvalFunc<Long> implements Algebraic, Accumulator
     @Override
     public void accumulate(Tuple b) throws IOException {
         try {
-            intermediateCount += sum(b);
+            DataBag values = (DataBag)b.get(0);
+            for (Iterator<Tuple> it = values.iterator(); it.hasNext();) {
+                it.next();
+                intermediateCount++;
+            }
         } catch (ExecException ee) {
             throw ee;
         } catch (Exception e) {
@@ -143,7 +147,7 @@ public class COUNT_STAR extends EvalFunc<Long> implements Algebraic, Accumulator
             String msg = "Error while computing min in " + this.getClass().getSimpleName();
             throw new ExecException(msg, errCode, PigException.BUG, e);           
         }
-    }
+	  }
 
     @Override
     public void cleanup() {
