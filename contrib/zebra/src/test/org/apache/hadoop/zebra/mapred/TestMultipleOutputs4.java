@@ -56,12 +56,12 @@ import org.apache.hadoop.zebra.mapred.TestBasicTableIOFormatLocalFS.InvIndex;
 import org.apache.hadoop.zebra.parser.ParseException;
 import org.apache.hadoop.zebra.schema.Schema;
 import org.apache.hadoop.zebra.types.TypesUtils;
+import org.apache.hadoop.zebra.types.ZebraTuple;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.data.DataBag;
-import org.apache.pig.data.DefaultTuple;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.test.MiniCluster;
 import org.junit.BeforeClass;
@@ -558,7 +558,7 @@ public class TestMultipleOutputs4 {
        * userKey.append(Integer.parseInt(wdct[1]));
        */
       System.out.println("in map, sortkey: " + sortKey);
-      Tuple userKey = new DefaultTuple();
+      Tuple userKey = new ZebraTuple();
       if (sortKey.equalsIgnoreCase("word,count")) {
         userKey.append(new String(word));
         userKey.append(Integer.parseInt(wdct[1]));
@@ -657,7 +657,7 @@ public class TestMultipleOutputs4 {
     jobConf.setInputFormat(TextInputFormat.class);
     jobConf.setMapperClass(TestMultipleOutputs4.MapClass.class);
     jobConf.setMapOutputKeyClass(BytesWritable.class);
-    jobConf.setMapOutputValueClass(DefaultTuple.class);
+    jobConf.setMapOutputValueClass(ZebraTuple.class);
     FileInputFormat.setInputPaths(jobConf, inputPath);
 
     jobConf.setNumMapTasks(1);
