@@ -71,7 +71,10 @@ public class LOUnion extends RelationalOperator {
                     String msg = "Could not find operator in plan";
                     throw new FrontendException(msg, errCode, PigException.INPUT, false, null);
                 }
-                mSchema = op.getSchema();
+                if (op.getSchema()!=null)
+                    mSchema = new Schema(op.getSchema());
+                else
+                    mSchema = null;
                 while(iter.hasNext()) {
                     op = iter.next();
                     if(null != mSchema) {

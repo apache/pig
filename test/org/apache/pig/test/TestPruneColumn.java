@@ -53,6 +53,7 @@ public class TestPruneColumn extends TestCase {
     File tmpFile7;
     File tmpFile8;
     File tmpFile9;
+    File tmpFile10;
     File logFile;
     Logger logger;
 
@@ -139,6 +140,10 @@ public class TestPruneColumn extends TestCase {
         ps.println("2\t[key1#2,key2#4]\t[key3#8,key4#9]");
         ps.close();
 
+        tmpFile10 = File.createTempFile("prune", "txt");
+        ps = new PrintStream(new FileOutputStream(tmpFile10));
+        ps.println("1\t[1#1,2#1]\t2");
+        ps.close();
 
     }
     
@@ -1477,4 +1482,23 @@ public class TestPruneColumn extends TestCase {
         assertTrue(checkLogFileMessage(new String[]{"Columns pruned for A: $1", 
                 "No map keys pruned for A"}));
     }
+
+    // See PIG-1127
+    @Test
+    public void testSharedSchemaObject() throws Exception {
+        pigServer.registerQuery("A = load '"+ Util.generateURI(tmpFile10.toString()) + "' AS (a0, a1:map[], a2);");
+        pigServer.registerQuery("B = foreach A generate a1;");
+        pigServer.registerQuery("C = limit B 10;");
+        
+        Iterator<Tuple> iter = pigServer.openIterator("C");
+        
+        assertTrue(iter.hasNext());
+        Tuple t = iter.next();
+        assertTrue(t.toString().equals("([2#1,1#1])"));
+        
+        assertFalse(iter.hasNext());
+        
+        assertTrue(checkLogFileMessage(new String[]{"Columns pruned for A: $0, $2", 
+                "No map keys pruned for A"}));
+     } 
 }
