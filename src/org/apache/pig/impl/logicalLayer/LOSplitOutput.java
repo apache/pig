@@ -89,7 +89,13 @@ public class LOSplitOutput extends RelationalOperator {
                     String msg = "Could not find operator in plan";
                     throw new FrontendException(msg, errCode, PigException.INPUT, false, null);
                 }
-                mSchema = input.getSchema();
+                if (input.getSchema()!=null) {
+                    mSchema = new Schema(input.getSchema());
+                    for (int i=0;i<input.getSchema().size();i++)
+                        mSchema.getField(i).setParent(input.getSchema().getField(i).canonicalName, input);
+                }
+                else
+                    mSchema = null;
                 mIsSchemaComputed = true;
             } catch (FrontendException fe) {
                 mSchema = null;

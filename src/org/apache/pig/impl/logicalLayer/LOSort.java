@@ -155,7 +155,13 @@ public class LOSort extends RelationalOperator {
                         mSchema = new Schema(fss);
                     }
                 } else {
-                    mSchema = op.getSchema();
+                    if (getInput().getSchema()!=null) {
+                        mSchema = new Schema(op.getSchema());
+                        for (int i=0;i<getInput().getSchema().size();i++)
+                            mSchema.getField(i).setParent(getInput().getSchema().getField(i).canonicalName, getInput());
+                    }
+                    else
+                        mSchema = null;
                 }
                 mIsSchemaComputed = true;
             } catch (FrontendException ioe) {
