@@ -22,6 +22,8 @@ Release 0.6.0 - Unreleased
 
 INCOMPATIBLE CHANGES
 
+PIG-922: Logical optimizer: push up project (daijy)
+
 IMPROVEMENTS
 
 PIG-1129: Pig UDF doc: fieldsToRead function (chandec via olgan)
@@ -218,6 +220,9 @@ PIG-790: Error message should indicate in which line number in the Pig script th
 PIG-1001: Generate more meaningful error message when one input file does not exist (daijy)
 
 PIG-1060: MultiQuery optimization throws error for multi-level splits (rding via daijy)
+
+PIG-1128: column pruning causing failure when foreach has user-specified
+schema (daijy)
 
 Release 0.5.0
 
