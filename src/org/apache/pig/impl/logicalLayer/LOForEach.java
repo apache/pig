@@ -944,6 +944,12 @@ public class LOForEach extends RelationalOperator {
         }
         while (planToRemove.size() > 0) {
             int index = planToRemove.get(planToRemove.size()-1);
+            if (mUserDefinedSchema!=null) {
+                for (int i=mUserDefinedSchema.size()-1;i>=0;i--) {
+                    if (getRelevantPlan(0, i)==mForEachPlans.get(index))
+                        mUserDefinedSchema.remove(i);
+                }
+            }
             mForEachPlans.remove(index);
             mFlatten.remove(index);
             planToRemove.remove(planToRemove.size()-1);
