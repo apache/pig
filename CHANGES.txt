@@ -224,6 +224,9 @@ PIG-1060: MultiQuery optimization throws error for multi-level splits (rding via
 PIG-1128: column pruning causing failure when foreach has user-specified
 schema (daijy)
 
+PIG-1127: Logical operator should contains individual copy of schema object
+(daijy)
+
 Release 0.5.0
 
 INCOMPATIBLE CHANGES

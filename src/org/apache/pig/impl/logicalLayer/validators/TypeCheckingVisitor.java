@@ -3126,14 +3126,6 @@ public class TypeCheckingVisitor extends LOVisitor {
                 HandleSpec streamOutputSpec = command.getOutputSpec(); 
                 FuncSpec streamLoaderSpec = new FuncSpec(streamOutputSpec.getSpec());
                 return streamLoaderSpec;
-            } else if ((op instanceof LOFilter)
-                    || (op instanceof LODistinct)
-                    || (op instanceof LOSort)
-                    || (op instanceof LOSplit)
-                    || (op instanceof LOSplitOutput)
-                    || (op instanceof LOLimit)) {
-                LogicalPlan lp = op.getPlan();
-                return getLoadFuncSpec(lp.getPredecessors(op).get(0), parentCanonicalName);        
             }
             
             Schema s = op.getSchema();
