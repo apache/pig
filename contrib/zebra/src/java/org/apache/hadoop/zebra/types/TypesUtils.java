@@ -23,8 +23,6 @@ import java.io.IOException;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DefaultDataBag;
-import org.apache.pig.data.DefaultTuple;
-import org.apache.pig.data.DefaultTupleFactory;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.hadoop.zebra.schema.Schema;
@@ -34,7 +32,8 @@ import org.apache.hadoop.zebra.parser.ParseException;
  * Utility methods manipulating Table types (specifically, Tuple objects).
  */
 public class TypesUtils {
-  static TupleFactory tf = DefaultTupleFactory.getInstance();
+  //static TupleFactory tf = ZebraTupleFactory.getInstance();
+  static TupleFactory tf = ZebraTupleFactory.getZebraTupleFactoryInstance();
 
   /**
    * Create a tuple based on a schema
@@ -72,9 +71,8 @@ public class TypesUtils {
     return new DefaultDataBag();
   }
 
-  //TODO - sync up with yan about this change
   public static DataBag createBag(Schema schema) {
-           return new DefaultDataBag();
+    return new DefaultDataBag();
   }
 
   /**
@@ -118,7 +116,7 @@ public class TypesUtils {
    */
   public static class TupleReader {
     private Tuple tuple;
-    @SuppressWarnings("unused")
+    //@SuppressWarnings("unused")
     private Schema physical;
     private Projection projection;
     SubColumnExtraction.SubColumn subcolextractor = null;

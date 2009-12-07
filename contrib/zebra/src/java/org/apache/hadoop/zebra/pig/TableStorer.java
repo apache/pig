@@ -45,8 +45,6 @@ import org.apache.pig.CommittableStoreFunc;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.backend.hadoop.executionengine.util.MapRedUtil;
 import org.apache.pig.data.Tuple;
-import org.apache.pig.data.DefaultTuple;
-import org.apache.hadoop.zebra.pig.comparator.*;
 
 /**
  * Pig CommittableStoreFunc for Zebra Table
