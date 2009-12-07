@@ -6,6 +6,8 @@ Trunk (unreleased changes)
 
   IMPROVEMENTS
 
+    PIG-1104 Streaming Support (Chao Wang via yanz)
+
     PIG-1119 Support of "group" as a column name (Gaurav Jain via yanz)
 
     PIG-1111 Multiple Outputs Support (Gaurav Jain via yanz)

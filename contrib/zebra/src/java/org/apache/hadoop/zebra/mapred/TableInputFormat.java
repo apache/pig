@@ -184,6 +184,15 @@ public class TableInputFormat implements InputFormat<BytesWritable, Tuple> {
   static TableExpr getInputExpr(JobConf conf) throws IOException {
     String expr = conf.get(INPUT_EXPR);
     if (expr == null) {
+      // try setting from input path
+      Path[] paths = FileInputFormat.getInputPaths(conf);
+      if (paths != null) {
+        setInputPaths(conf, paths);
+      }
+      expr = conf.get(INPUT_EXPR);
+    }
+      
+    if (expr == null) {
       throw new IllegalArgumentException("Input expression not defined.");
     }
     StringReader in = new StringReader(expr);
@@ -400,8 +409,8 @@ public class TableInputFormat implements InputFormat<BytesWritable, Tuple> {
    */
   @Override
   public RecordReader<BytesWritable, Tuple> getRecordReader(InputSplit split,
-      JobConf conf, Reporter reporter) throws IOException {
-  TableExpr expr = getInputExpr(conf);
+      JobConf conf, Reporter reporter) throws IOException {        
+    TableExpr expr = getInputExpr(conf);
     if (expr == null) {
       throw new IOException("Table expression not defined");
     }
@@ -410,6 +419,7 @@ public class TableInputFormat implements InputFormat<BytesWritable, Tuple> {
       expr.setSortedSplit();
 
     String strProj = conf.get(INPUT_PROJ);
+    
     String projection = null;
     try {
       if (strProj == null) {

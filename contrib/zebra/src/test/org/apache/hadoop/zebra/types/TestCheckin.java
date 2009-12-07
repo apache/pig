@@ -34,7 +34,8 @@ import org.junit.runners.Suite;
   TestStorageMisc2.class,
   TestStorageMisc3.class,
   TestStorageRecord.class,
-  TestStorePrimitive.class
+  TestStorePrimitive.class,
+  TestZebraTupleTostring.class
 })
 
 public class TestCheckin {
