@@ -53,6 +53,7 @@ import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.util.ObjectSerializer;
+import org.apache.pig.impl.util.UDFContext;
 
 /**
  * Wraps a {@link Slice} in an {@link InputSplit} so it's usable by hadoop.
@@ -132,6 +133,11 @@ public class SliceWrapper implements InputSplit {
             store.getConfiguration().setProperty("pig.loader.signature", inpSignatureLists.get(index));
             job.set("pig.loader.signature", inpSignatureLists.get(index));
         }
+        
+        // Get the UDF specific context
+        UDFContext udfc = UDFContext.getUDFContext();
+        udfc.addJobConf(job);
+        udfc.deserialize();
         
         wrapped.init(store);
         

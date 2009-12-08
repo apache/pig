@@ -259,6 +259,8 @@ schema (daijy)
 PIG-1127: Logical operator should contains individual copy of schema object
 (daijy)
 
+PIG-1133: UDFContext should be made available to LoadFunc.bindTo (daijy)
+
 Release 0.5.0
 
 INCOMPATIBLE CHANGES
