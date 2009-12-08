@@ -59,7 +59,9 @@ import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.RequiredFields;
 import org.apache.pig.impl.plan.VisitorException;
+import org.apache.pig.impl.plan.ProjectionMap.Column;
 import org.apache.pig.impl.plan.optimizer.OptimizerException;
+import org.apache.pig.impl.util.MultiMap;
 import org.apache.pig.impl.util.Pair;
 
 class RequiredInfo {
@@ -696,6 +698,7 @@ public class PruneColumns extends LogicalTransformer {
         }
         
         // Loader does not support column pruning, insert foreach
+        LOForEach forEach = null;
         if (response==null || !response.getRequiredFieldResponse())
         {
             Set<Integer> columnsToProject = new TreeSet<Integer>();
@@ -713,71 +716,86 @@ public class PruneColumns extends LogicalTransformer {
                 projectPlan.add(column);
                 generatePlans.add(projectPlan);
             }
-            LOForEach forEach = new LOForEach(mPlan, new OperatorKey(scope, NodeIdGenerator.getGenerator().getNextNodeId(scope)), generatePlans, flattenList);
+            forEach = new LOForEach(mPlan, new OperatorKey(scope, NodeIdGenerator.getGenerator().getNextNodeId(scope)), generatePlans, flattenList);
             LogicalOperator pred = mPlan.getSuccessors(load).get(0);
+            /*mPlan.disconnect(load, pred);
             mPlan.add(forEach);
-            mPlan.insertBetween(load, forEach, pred);
-            String message = "Cannot prune " + load.getAlias() + ", " + load.getLoadFunc().getClass().getSimpleName() + " does not support pruning, add foreach";
-            log.info(message);
+            mPlan.connect(load, forEach);
+            mPlan.connect(forEach, pred);
+            forEach.getSchema();*/
+            MultiMap<Integer, Column> mappedFields = new MultiMap<Integer, Column>();
+            List<Column> columns;
+            for (int i=0;i<=load.getSchema().size();i++) {
+                columns = new ArrayList<Column>();
+                columns.add(new Column(new Pair<Integer, Integer>(0, i)));
+                mappedFields.put(i, columns);
+            }
+            mPlan.add(forEach);
+            mPlan.doInsertBetween(load, forEach, pred, false);
+            forEach.getProjectionMap().setMappedFields(mappedFields);
+            pred.rewire(load, 0, forEach, false);
         }
         
-        // We get positive response, begin to prune
-        if (response!=null && response.getRequiredFieldResponse())
+        // Begin to prune
+        for (Pair<Integer, Integer> pair: loaderRequiredFields.getFields())
+            columnRequired[pair.second] = true;
+        
+        List<Pair<Integer, Integer>> pruneList = new ArrayList<Pair<Integer, Integer>>();
+        for (int i=0;i<columnRequired.length;i++)
         {
-            for (Pair<Integer, Integer> pair: loaderRequiredFields.getFields())
-                columnRequired[pair.second] = true;
-            
-            List<Pair<Integer, Integer>> pruneList = new ArrayList<Pair<Integer, Integer>>();
-            for (int i=0;i<columnRequired.length;i++)
-            {
-                if (!columnRequired[i])
-                    pruneList.add(new Pair<Integer, Integer>(0, i));
-            }
-
-            StringBuffer message = new StringBuffer();
-            if (pruneList.size()!=0)
-            {
-                ColumnPruner columnPruner = new ColumnPruner(mPlan, load, pruneList, 
-                        new DependencyOrderWalker<LogicalOperator, LogicalPlan>(mPlan));
-                
-                columnPruner.visit();
-
-                message.append("Columns pruned for " + load.getAlias() + ": ");
-                for (int i=0;i<pruneList.size();i++)
-                {
-                    message.append("$"+pruneList.get(i).second);
-                    if (i!=pruneList.size()-1)
-                        message.append(", ");
-                }
-                log.info(message);
-            }
-            else
-                log.info("No column pruned for " + load.getAlias());
-            message = new StringBuffer();;
-            for (LoadFunc.RequiredField rf : requiredFieldList.getFields())
-            {
-                if (rf.getSubFields()!=null)
-                {
-                    message.append("Map key required for " + load.getAlias()+": ");
-                    if (rf.getIndex()!=-1)
-                        message.append("$"+rf.getIndex());
-                    else
-                        message.append(rf.getAlias());
-                    message.append("->[");
-                    for (int i=0;i<rf.getSubFields().size();i++)
-                    {
-                        LoadFunc.RequiredField keyrf = rf.getSubFields().get(i);
-                        message.append(keyrf);
-                        if (i!=rf.getSubFields().size()-1)
-                            message.append(",");
-                    }
-                    message.append("] ");
-                }
-            }
-            if (message.length()!=0)
-                log.info(message);
-            else
-                log.info("No map keys pruned for " + load.getAlias());
+            if (!columnRequired[i])
+                pruneList.add(new Pair<Integer, Integer>(0, i));
         }
+
+        StringBuffer message = new StringBuffer();
+        if (pruneList.size()!=0)
+        {
+            
+            ColumnPruner columnPruner;
+            if (forEach == null)
+                columnPruner = new ColumnPruner(mPlan, load, pruneList, 
+                    new DependencyOrderWalker<LogicalOperator, LogicalPlan>(mPlan));
+            else
+                columnPruner = new ColumnPruner(mPlan, forEach, pruneList, 
+                        new DependencyOrderWalker<LogicalOperator, LogicalPlan>(mPlan));
+            
+            columnPruner.visit();
+
+            message.append("Columns pruned for " + load.getAlias() + ": ");
+            for (int i=0;i<pruneList.size();i++)
+            {
+                message.append("$"+pruneList.get(i).second);
+                if (i!=pruneList.size()-1)
+                    message.append(", ");
+            }
+            log.info(message);
+        }
+        else
+            log.info("No column pruned for " + load.getAlias());
+        message = new StringBuffer();;
+        for (LoadFunc.RequiredField rf : requiredFieldList.getFields())
+        {
+            if (rf.getSubFields()!=null)
+            {
+                message.append("Map key required for " + load.getAlias()+": ");
+                if (rf.getIndex()!=-1)
+                    message.append("$"+rf.getIndex());
+                else
+                    message.append(rf.getAlias());
+                message.append("->[");
+                for (int i=0;i<rf.getSubFields().size();i++)
+                {
+                    LoadFunc.RequiredField keyrf = rf.getSubFields().get(i);
+                    message.append(keyrf);
+                    if (i!=rf.getSubFields().size()-1)
+                        message.append(",");
+                }
+                message.append("] ");
+            }
+        }
+        if (message.length()!=0)
+            log.info(message);
+        else
+            log.info("No map keys pruned for " + load.getAlias());
     }
 }
