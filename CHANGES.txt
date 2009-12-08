@@ -229,6 +229,8 @@ PIG-1127: Logical operator should contains individual copy of schema object
 
 PIG-1133: UDFContext should be made available to LoadFunc.bindTo (daijy)
 
+PIG-1132: Column Pruner issues in dealing with unprunable loader (daijy)
+
 Release 0.5.0
 
 INCOMPATIBLE CHANGES

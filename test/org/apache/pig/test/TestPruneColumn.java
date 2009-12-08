@@ -1280,7 +1280,7 @@ public class TestPruneColumn extends TestCase {
     }
     
     @Test
-    public void testBinStorage() throws Exception {
+    public void testBinStorage1() throws Exception {
         File intermediateFile = File.createTempFile("intemediate", "txt");
         pigServer.registerQuery("A = load '"+ Util.generateURI(tmpFile1.toString()) + "' as (a0, a1, a2);");
         pigServer.store("A", intermediateFile.toString(), "BinStorage()");
@@ -1304,8 +1304,46 @@ public class TestPruneColumn extends TestCase {
         
         assertFalse(iter.hasNext());
         
-        assertTrue(checkLogFileMessage(new String[]{"Cannot prune A, BinStorage does not support pruning, add foreach"}));
+        assertTrue(checkLogFileMessage(new String[]{"Columns pruned for A: $1, $2", 
+            "No map keys pruned for A"}));
+        
+        intermediateFile.delete();
     }
+    
+    @Test
+    public void testBinStorage2() throws Exception {
+        File intermediateFile = File.createTempFile("intemediate", "txt");
+        pigServer.registerQuery("A = load '"+ Util.generateURI(tmpFile1.toString()) + "' as (a0, a1, a2);");
+        pigServer.store("A", intermediateFile.toString(), "BinStorage()");
+        
+        pigServer.registerQuery("A = load '"+ intermediateFile.toString() 
+                + "' using BinStorage() as (a0, a1, a2);");
+        
+        pigServer.registerQuery("B = foreach A generate a2, a0, a1;");
+        pigServer.registerQuery("C = foreach B generate a0, a2;");
+        
+        Iterator<Tuple> iter = pigServer.openIterator("C");
+        
+        assertTrue(iter.hasNext());
+        Tuple t = iter.next();
+        assertTrue(t.size()==2);
+        assertTrue(t.get(0).toString().equals("1"));
+        assertTrue(t.get(1).toString().equals("3"));
+        
+        assertTrue(iter.hasNext());
+        t = iter.next();
+        assertTrue(t.size()==2);
+        assertTrue(t.get(0).toString().equals("2"));
+        assertTrue(t.get(0).toString().equals("2"));
+        
+        assertFalse(iter.hasNext());
+        
+        assertTrue(checkLogFileMessage(new String[]{"Columns pruned for A: $1", 
+            "No map keys pruned for A"}));
+        
+        intermediateFile.delete();
+    }
+
     
     @Test
     public void testProjectCastKeyLookup() throws Exception {

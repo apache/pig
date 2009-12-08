@@ -37,11 +37,11 @@ public class ColumnPruner extends LOVisitor {
     private Map<LogicalOperator, List<Pair<Integer,Integer>>> prunedColumnsMap;
     LogicalPlan plan;
     
-    public ColumnPruner(LogicalPlan plan, LOLoad load, List<Pair<Integer, Integer>> prunedColumns, 
+    public ColumnPruner(LogicalPlan plan, LogicalOperator op, List<Pair<Integer, Integer>> prunedColumns, 
             PlanWalker<LogicalOperator, LogicalPlan> walker) {
         super(plan, walker);
         prunedColumnsMap = new HashMap<LogicalOperator, List<Pair<Integer,Integer>>>();
-        prunedColumnsMap.put(load, prunedColumns);
+        prunedColumnsMap.put(op, prunedColumns);
         this.plan = plan;
     }
 
