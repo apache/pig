@@ -443,7 +443,6 @@ public class BasicTable {
      * @param split The row-based split. <i>Cannot</i> be null.
      * @return An object that conveys how blocks fall into the split are
      *         distributed across hosts.
-     * @see #rowSplit(int)
      */
     public BlockDistribution getBlockDistribution(RowSplit split)
         throws IOException {
