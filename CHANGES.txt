@@ -135,8 +135,9 @@ PIG-922: Logical optimizer: push up project (daijy)
 
 BUG FIXES
 
-PIG-1134: Skewed Join sampling job overwhelms the name node (sriranjan via
-olgan)
+PIG-1135: skewed join partitioner returns negative partition index  (yinghe via olgan)
+
+PIG-1134: Skewed Join sampling job overwhelms the name node (sriranjan via olgan)
 
 PIG-1105: COUNT_STAR accumulate interface implementation cases failure(sriranjan via olgan)
 
