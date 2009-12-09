@@ -18,11 +18,10 @@ package org.apache.hadoop.zebra.mapred;
 
 import java.io.IOException;
 import org.apache.hadoop.util.StringUtils;
-import org.apache.hadoop.conf.Configuration;
-
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.BytesWritable;
+import org.apache.hadoop.io.RawComparator;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.Mapper;
 import org.apache.hadoop.mapred.OutputFormat;
@@ -35,6 +34,7 @@ import org.apache.hadoop.zebra.parser.ParseException;
 import org.apache.hadoop.zebra.types.Partition;
 import org.apache.hadoop.zebra.types.SortInfo;
 import org.apache.hadoop.zebra.schema.Schema;
+import org.apache.hadoop.zebra.tfile.TFile;
 import org.apache.pig.data.Tuple;
 import org.apache.hadoop.zebra.pig.comparator.*;
 import org.apache.hadoop.util.ReflectionUtils;
@@ -81,7 +81,7 @@ import org.apache.hadoop.util.ReflectionUtils;
  * <pre>
  * 
  *   static class OutputPartitionerClass implements ZebraOutputPartition {
- *   @Override
+ *   &#064;Override
  *	  public int getOutputPartition(BytesWritable key, Tuple value) {		 
  *
  *        return someIndexInOutputParitionlist0;
@@ -180,6 +180,39 @@ public class BasicTableOutputFormat implements
 	setZebraOutputPartitionClass(conf, theClass);
 	  
   }
+
+  /**
+   * Set the multiple output paths of the BasicTable in JobConf
+   * 
+   * @param conf
+   *          The JobConf object.
+   * @param paths
+   *          The list of paths 
+   *          The path must either not existent, or must be an empty directory.
+   * @param theClass
+   * 	      Zebra output partitioner class
+   */
+  
+  public static void setMultipleOutputs(JobConf conf, Class<? extends ZebraOutputPartition> theClass, Path... paths)
+	throws IOException {
+    FileSystem fs = FileSystem.get(conf);
+    Path path = paths[0].makeQualified(fs);
+    StringBuffer str = new StringBuffer(StringUtils.escapeString(path.toString()));
+    for(int i = 1; i < paths.length;i++) {
+      str.append(StringUtils.COMMA_STR);
+      path = paths[i].makeQualified(fs);
+      str.append(StringUtils.escapeString(path.toString()));
+    }	  
+	conf.set(MULTI_OUTPUT_PATH, str.toString());
+
+	if(conf.getBoolean(IS_MULTI, true) == false) {
+      throw new IllegalArgumentException("Job has been setup as single output path");
+	}
+	conf.setBoolean(IS_MULTI, true);
+	setZebraOutputPartitionClass(conf, theClass);
+	  
+  }
+  
   
   /**
    * Set the multiple output paths of the BasicTable in JobConf
@@ -295,13 +328,12 @@ public class BasicTableOutputFormat implements
    *          implementation, the schema string is simply a comma separated list
    *          of column names, such as "Col1, Col2, Col3".
    * 
-   * @see Schema#Schema(String)
+   * @deprecated Use {@link #setStorageInfo(JobConf, ZebraSchema, ZebraStorageHint, ZebraSortInfo)} instead.
    */
-  public static void setSchema(JobConf conf, String schema)
-      throws ParseException {
+  public static void setSchema(JobConf conf, String schema) {
     conf.set(OUTPUT_SCHEMA, Schema.normalize(schema));
   }
-
+  
   /**
    * Get the table schema in JobConf.
    * 
@@ -315,7 +347,7 @@ public class BasicTableOutputFormat implements
     if (schema == null) {
       return null;
     }
-    schema = schema.replaceAll(";", ",");
+    //schema = schema.replaceAll(";", ",");
     return new Schema(schema);
   }
 
@@ -385,21 +417,20 @@ public class BasicTableOutputFormat implements
    *          The storage hint of the BasicTable to be created. The format would
    *          be like "[f1, f2.subfld]; [f3, f4]".
    * 
-   * @see Schema#Schema(String)
+   * @deprecated Use {@link #setStorageInfo(JobConf, ZebraSchema, ZebraStorageHint, ZebraSortInfo)} instead.
    */
-  public static void setStorageHint(JobConf conf, String storehint)
-      throws ParseException, IOException {
+  public static void setStorageHint(JobConf conf, String storehint) throws ParseException, IOException {
     String schema = conf.get(OUTPUT_SCHEMA);
 
     if (schema == null)
       throw new ParseException("Schema has not been set");
 
     // for sanity check purpose only
-    Partition partition = new Partition(schema, storehint, null);
+    new Partition(schema, storehint, null);
 
     conf.set(OUTPUT_STORAGEHINT, storehint);
   }
-
+  
   /**
    * Get the table storage hint in JobConf.
    * 
@@ -423,13 +454,15 @@ public class BasicTableOutputFormat implements
    * @param sortColumns
    *          Comma-separated sort column names
    *          
-   * @param comparator
+   * @param comparatorClass
    *          comparator class name; null for default
    *
+   * @deprecated Use {@link #setStorageInfo(JobConf, ZebraSchema, ZebraStorageHint, ZebraSortInfo)} instead.
    */
-  public static void setSortInfo(JobConf conf, String sortColumns, String comparator) {
+  public static void setSortInfo(JobConf conf, String sortColumns, Class<? extends RawComparator<Object>> comparatorClass) {
     conf.set(OUTPUT_SORTCOLUMNS, sortColumns);
-    conf.set(OUTPUT_COMPARATOR, comparator);
+    if (comparatorClass != null)
+      conf.set(OUTPUT_COMPARATOR, TFile.COMPARATOR_JCLASS+comparatorClass.getName());
   }
 
   /**
@@ -440,9 +473,89 @@ public class BasicTableOutputFormat implements
    *          
    * @param sortColumns
    *          Comma-separated sort column names
+   *          
+   * @deprecated Use {@link #setStorageInfo(JobConf, ZebraSchema, ZebraStorageHint, ZebraSortInfo)} instead.          
    */
   public static void setSortInfo(JobConf conf, String sortColumns) {
 	  conf.set(OUTPUT_SORTCOLUMNS, sortColumns);
+  }  
+
+  /**
+   * Set the table storage info including ZebraSchema, 
+   *
+   * @param conf
+   *          The JobConf object.
+   *          
+   * @param zSchema The ZebraSchema object containing schema information.
+   *  
+   * @param zStorageHint The ZebraStorageHint object containing storage hint information.
+   * 
+   * @param zSortInfo The ZebraSortInfo object containing sorting information.
+   *          
+   */
+  public static void setStorageInfo(JobConf conf, ZebraSchema zSchema, ZebraStorageHint zStorageHint, ZebraSortInfo zSortInfo) 
+    throws ParseException, IOException {
+    String schemaStr = null;
+    String storageHintStr = null;
+
+    /* validity check on schema*/
+    if (zSchema == null) {
+      throw new IllegalArgumentException("ZebraSchema object cannot be null.");
+    } else {
+      schemaStr = zSchema.toString();
+    }
+    
+    Schema schema = null;
+    try {
+      schema = new Schema(schemaStr);
+    } catch (ParseException e) {
+      throw new ParseException("[" + zSchema + "] " + " is not a valid schema string: " + e.getMessage());
+    }
+
+    /* validity check on storage hint*/
+    if (zStorageHint == null) {
+      storageHintStr = "";
+    } else {
+      storageHintStr = zStorageHint.toString();
+    }
+    
+    try {
+      new Partition(schemaStr, storageHintStr, null);
+    } catch (ParseException e) {
+      throw new ParseException("[" + zStorageHint + "] " + " is not a valid storage hint string: " + e.getMessage()  ); 
+    } catch (IOException e) {
+      throw new ParseException("[" + zStorageHint + "] " + " is not a valid storage hint string: " + e.getMessage()  );
+    }
+    
+    conf.set(OUTPUT_SCHEMA, schemaStr);
+    conf.set(OUTPUT_STORAGEHINT, storageHintStr);
+    
+    /* validity check on sort info if user specifies it */
+    if (zSortInfo != null) {
+      String sortColumnsStr = zSortInfo.getSortColumns();
+      String comparatorStr = zSortInfo.getComparator();      
+
+      /* Check existence of comparable class if user specifies it */
+      if (comparatorStr != null && comparatorStr != "") {
+        try {
+          conf.getClassByName(comparatorStr.substring(TFile.COMPARATOR_JCLASS.length()).trim());
+        } catch (ClassNotFoundException e) {
+          throw new IOException("comparator Class cannot be found : " + e.getMessage());        
+        }
+      }
+      
+      try {
+        SortInfo.parse(sortColumnsStr, schema, comparatorStr);
+      } catch (IOException e) {
+        throw new IOException("[" + sortColumnsStr + " + " + comparatorStr + "] " 
+            + "is not a valid sort configuration: " + e.getMessage());
+      }
+      
+      if (sortColumnsStr != null)
+        conf.set(OUTPUT_SORTCOLUMNS, sortColumnsStr);
+      if (comparatorStr != null)
+        conf.set(OUTPUT_COMPARATOR, comparatorStr);
+    }
   }
   
   /**
