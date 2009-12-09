@@ -26,6 +26,7 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.StringTokenizer;
 import java.util.TreeMap;
@@ -62,6 +63,7 @@ import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.data.DataBag;
+import org.apache.pig.data.DefaultTuple;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.test.MiniCluster;
 import org.junit.BeforeClass;
@@ -86,7 +88,7 @@ import org.junit.Test;
  * 
  * 
  */
-public class TestMultipleOutputs4 {
+public class TestMultipleOutputs4TypedApi {
 
   static String inputPath;
   static String inputFileName = "multi-input.txt";
@@ -263,34 +265,35 @@ public class TestMultipleOutputs4 {
     }
 
   }
-  public static void writeToFile (String inputFile) throws IOException{
-    if (whichCluster.equalsIgnoreCase("miniCluster")){
-    FileWriter fstream = new FileWriter(inputFile);
-    BufferedWriter out = new BufferedWriter(fstream);
-    out.write("us 2\n");
-    out.write("japan 2\n");
-    out.write("india 4\n");
-    out.write("us 2\n");
-    out.write("japan 1\n");
-    out.write("india 3\n");
-    out.write("nouse 5\n");
-    out.write("nowhere 4\n");
-    out.close();
+
+  public static void writeToFile(String inputFile) throws IOException {
+    if (whichCluster.equalsIgnoreCase("miniCluster")) {
+      FileWriter fstream = new FileWriter(inputFile);
+      BufferedWriter out = new BufferedWriter(fstream);
+      out.write("us 2\n");
+      out.write("japan 2\n");
+      out.write("india 4\n");
+      out.write("us 2\n");
+      out.write("japan 1\n");
+      out.write("india 3\n");
+      out.write("nouse 5\n");
+      out.write("nowhere 4\n");
+      out.close();
     }
-    if (whichCluster.equalsIgnoreCase("realCluster")){
-    FSDataOutputStream fout = fs.create(new Path (inputFile));
-    fout.writeBytes("us 2\n");
-    fout.writeBytes("japan 2\n");
-    fout.writeBytes("india 4\n");
-    fout.writeBytes("us 2\n");
-    fout.writeBytes("japan 1\n");
-    fout.writeBytes("india 3\n");
-    fout.writeBytes("nouse 5\n");
-    fout.writeBytes("nowhere 4\n");
-    fout.close();
+    if (whichCluster.equalsIgnoreCase("realCluster")) {
+      FSDataOutputStream fout = fs.create(new Path(inputFile));
+      fout.writeBytes("us 2\n");
+      fout.writeBytes("japan 2\n");
+      fout.writeBytes("india 4\n");
+      fout.writeBytes("us 2\n");
+      fout.writeBytes("japan 1\n");
+      fout.writeBytes("india 3\n");
+      fout.writeBytes("nouse 5\n");
+      fout.writeBytes("nowhere 4\n");
+      fout.close();
     }
   }
-  
+
   public static void getTablePaths(String myMultiLocs) {
     StringTokenizer st = new StringTokenizer(myMultiLocs, ",");
 
@@ -303,8 +306,9 @@ public class TestMultipleOutputs4 {
       count++;
       String token = st.nextElement().toString();
       if (whichCluster.equalsIgnoreCase("miniCluster")) {
-        System.out.println("in mini, token: "+token); 
-        //in mini, token: file:/homes/<uid>/grid/multipleoutput/pig-table/contrib/zebra/ustest3
+        System.out.println("in mini, token: " + token);
+        // in mini, token:
+        // file:/homes/<uid>/grid/multipleoutput/pig-table/contrib/zebra/ustest3
         if (count == 1)
           strTable1 = token;
         if (count == 2)
@@ -313,9 +317,9 @@ public class TestMultipleOutputs4 {
           strTable3 = token;
       }
       if (whichCluster.equalsIgnoreCase("realCluster")) {
-        System.out.println("in real, token: "+token);
-        //in real, token: /user/hadoopqa/ustest3
-        //note: no prefix file:  in real cluster
+        System.out.println("in real, token: " + token);
+        // in real, token: /user/hadoopqa/ustest3
+        // note: no prefix file: in real cluster
         if (count == 1)
           strTable1 = token;
         if (count == 2)
@@ -323,27 +327,31 @@ public class TestMultipleOutputs4 {
         if (count == 3)
           strTable3 = token;
       }
-      
+
     }
   }
-  public static void checkTableExists(boolean expected, String strDir) throws IOException{
-  
-     File theDir = null; 
-     boolean actual = false;
-     if (whichCluster.equalsIgnoreCase("miniCluster")){
-     theDir = new File(strDir.split(":")[1]);
-     actual = theDir.exists();
-     
-     }
-     if (whichCluster.equalsIgnoreCase("realCluster")){
-       theDir = new File(strDir.split(":")[0]);
-       actual = fs.exists(new Path (theDir.toString()));
-        }
-     System.out.println("the dir : "+ theDir.toString());
-     if (actual != expected){
-       Assert.fail("dir exists or not is different from what expected.");
-     }
-   }
+
+  public static void checkTableExists(boolean expected, String strDir)
+      throws IOException {
+
+    File theDir = null;
+    boolean actual = false;
+    if (whichCluster.equalsIgnoreCase("miniCluster")) {
+      theDir = new File(strDir.split(":")[1]);
+      actual = theDir.exists();
+
+    }
+    if (whichCluster.equalsIgnoreCase("realCluster")) {
+      theDir = new File(strDir.split(":")[0]);
+      actual = fs.exists(new Path(theDir.toString()));
+    }
+    System.out.println("the dir : " + theDir.toString());
+
+    if (actual != expected) {
+      Assert.fail("dir exists or not is different from what expected.");
+    }
+  }
+
   public static void checkTable(String myMultiLocs) throws IOException {
     System.out.println("myMultiLocs:" + myMultiLocs);
     System.out.println("sorgetTablePathst key:" + sortKey);
@@ -351,7 +359,7 @@ public class TestMultipleOutputs4 {
     getTablePaths(myMultiLocs);
     String query1 = null;
     String query2 = null;
- 
+
     if (strTable1 != null) {
 
       query1 = "records1 = LOAD '" + strTable1
@@ -364,7 +372,7 @@ public class TestMultipleOutputs4 {
 
     int count1 = 0;
     int count2 = 0;
-  
+
     if (query1 != null) {
       System.out.println(query1);
       pigServer.registerQuery(query1);
@@ -374,8 +382,9 @@ public class TestMultipleOutputs4 {
         Tuple RowValue = it.next();
         System.out.println(RowValue);
         // test 1 us table
-        if (query1.contains("test1") || query1.contains("test2")|| query1.contains("test3")) {
-          
+        if (query1.contains("test1") || query1.contains("test2")
+            || query1.contains("test3")) {
+
           if (count1 == 1) {
             Assert.assertEquals("us", RowValue.get(0));
             Assert.assertEquals(2, RowValue.get(1));
@@ -385,7 +394,7 @@ public class TestMultipleOutputs4 {
             Assert.assertEquals(2, RowValue.get(1));
           }
         } // test1, test2
-    
+
       }// while
       if (query1.contains("test1") || query1.contains("test2")
           || query1.contains("test3")) {
@@ -420,7 +429,7 @@ public class TestMultipleOutputs4 {
             Assert.assertEquals("japan", RowValue.get(0));
             Assert.assertEquals(2, RowValue.get(1));
           }
-          
+
           if (count1 == 5) {
             Assert.assertEquals("nouse", RowValue.get(0));
             Assert.assertEquals(5, RowValue.get(1));
@@ -430,7 +439,7 @@ public class TestMultipleOutputs4 {
             Assert.assertEquals(4, RowValue.get(1));
           }
         }// if test1
-     // if test2 other table
+        // if test2 other table
         if (query2.contains("test2")) {
           if (count2 == 1) {
             Assert.assertEquals("india", RowValue.get(0));
@@ -448,7 +457,7 @@ public class TestMultipleOutputs4 {
             Assert.assertEquals("japan", RowValue.get(0));
             Assert.assertEquals(1, RowValue.get(1));
           }
-          
+
           if (count1 == 5) {
             Assert.assertEquals("nouse", RowValue.get(0));
             Assert.assertEquals(5, RowValue.get(1));
@@ -484,9 +493,9 @@ public class TestMultipleOutputs4 {
             Assert.assertEquals("nouse", RowValue.get(0));
             Assert.assertEquals(5, RowValue.get(1));
           }
-          
+
         }// if test3
-        
+
       }// while
       if (query2.contains("test1") || query2.contains("test2")
           || query2.contains("test3")) {
@@ -496,7 +505,6 @@ public class TestMultipleOutputs4 {
 
   }
 
-  
   @Test
   public void test1() throws ParseException, IOException,
       org.apache.hadoop.zebra.parser.ParseException, Exception {
@@ -508,21 +516,25 @@ public class TestMultipleOutputs4 {
     System.out.println("hello sort on word and count");
     String methodName = getCurrentMethodName();
     String myMultiLocs = null;
+    List<Path> paths = new ArrayList<Path>(1);
+
     if (whichCluster.equalsIgnoreCase("realCluster")) {
       myMultiLocs = new String("/user/" + System.getenv("USER") + "/" + "a");
+      paths.add(new Path(new String("/user/" + System.getenv("USER") + "/"
+          + "a")));
     } else {
       RawLocalFileSystem rawLFS = new RawLocalFileSystem();
       fs = new LocalFileSystem(rawLFS);
       myMultiLocs = new String(fs.getWorkingDirectory() + "/" + "a");
+      paths.add(new Path(new String(fs.getWorkingDirectory() + "/" + "a")));
     }
     getTablePaths(myMultiLocs);
     removeDir(new Path(strTable1));
-    runMR(myMultiLocs, sortKey);
+    runMR(sortKey, paths.toArray(new Path[1]));
     checkTableExists(true, strTable1);
     System.out.println("DONE test " + getCurrentMethodName());
 
   }
-
 
   static class MapClass implements
       Mapper<LongWritable, Text, BytesWritable, Tuple> {
@@ -555,7 +567,7 @@ public class TestMultipleOutputs4 {
        * userKey.append(Integer.parseInt(wdct[1]));
        */
       System.out.println("in map, sortkey: " + sortKey);
-      Tuple userKey = new ZebraTuple();
+      Tuple userKey = new DefaultTuple();
       if (sortKey.equalsIgnoreCase("word,count")) {
         userKey.append(new String(word));
         userKey.append(Integer.parseInt(wdct[1]));
@@ -636,14 +648,15 @@ public class TestMultipleOutputs4 {
   static class OutputPartitionerClass extends ZebraOutputPartition {
 
     @Override
-    public int getOutputPartition(BytesWritable key, Tuple value) throws ExecException {
-      
+    public int getOutputPartition(BytesWritable key, Tuple value)
+        throws ExecException {
+
       return 0;
     }
 
   }
 
-  public void runMR(String myMultiLocs, String sortKey) throws ParseException,
+  public void runMR(String sortKey, Path... paths) throws ParseException,
       IOException, Exception, org.apache.hadoop.zebra.parser.ParseException {
 
     JobConf jobConf = new JobConf();
@@ -652,7 +665,7 @@ public class TestMultipleOutputs4 {
     jobConf.set("sortKey", sortKey);
     // input settings
     jobConf.setInputFormat(TextInputFormat.class);
-    jobConf.setMapperClass(TestMultipleOutputs4.MapClass.class);
+    jobConf.setMapperClass(TestMultipleOutputs4TypedApi.MapClass.class);
     jobConf.setMapOutputKeyClass(BytesWritable.class);
     jobConf.setMapOutputValueClass(ZebraTuple.class);
     FileInputFormat.setInputPaths(jobConf, inputPath);
@@ -662,15 +675,18 @@ public class TestMultipleOutputs4 {
     // output settings
 
     jobConf.setOutputFormat(BasicTableOutputFormat.class);
-    BasicTableOutputFormat.setMultipleOutputs(jobConf, myMultiLocs,
-        TestMultipleOutputs4.OutputPartitionerClass.class);
 
-    // set the logical schema with 2 columns
-    BasicTableOutputFormat.setSchema(jobConf, "word:string, count:int");
-    // for demo purposes, create 2 physical column groups
-    BasicTableOutputFormat.setStorageHint(jobConf, "[word];[count]");
-    BasicTableOutputFormat.setSortInfo(jobConf, sortKey);
-    System.out.println("in runMR, sortkey: " + sortKey);
+    String schema = "word:string, count:int";
+    String storageHint = "[word];[count]";
+    BasicTableOutputFormat.setMultipleOutputs(jobConf,
+        TestMultipleOutputs4TypedApi.OutputPartitionerClass.class, paths);
+    ZebraSchema zSchema = ZebraSchema.createZebraSchema(schema);
+    ZebraStorageHint zStorageHint = ZebraStorageHint
+        .createZebraStorageHint(storageHint);
+    ZebraSortInfo zSortInfo = ZebraSortInfo.createZebraSortInfo(sortKey, null);
+    BasicTableOutputFormat.setStorageInfo(jobConf, zSchema, zStorageHint,
+        zSortInfo);
+
     // set map-only job.
     jobConf.setNumReduceTasks(1);
     JobClient.runJob(jobConf);
@@ -679,9 +695,9 @@ public class TestMultipleOutputs4 {
 
   public static void main(String[] args) throws ParseException,
       org.apache.hadoop.zebra.parser.ParseException, Exception {
-    TestMultipleOutputs4 test = new TestMultipleOutputs4();
-    TestMultipleOutputs4.setUpOnce();
-   
-   test.test1();
+    TestMultipleOutputs4TypedApi test = new TestMultipleOutputs4TypedApi();
+    TestMultipleOutputs4TypedApi.setUpOnce();
+
+    test.test1();
   }
 }

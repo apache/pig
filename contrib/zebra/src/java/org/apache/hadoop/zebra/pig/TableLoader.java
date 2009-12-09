@@ -157,7 +157,7 @@ public class TableLoader implements IndexableLoadFunc, Slicer {
 			}
 			TableInputFormat.setInputPaths(jobConf, result.toArray(new Path[result.size()]));
 
-      TableInputFormat.requireSortedTable(jobConf);
+      TableInputFormat.requireSortedTable(jobConf, null);
       sortInfo = TableInputFormat.getSortInfo(jobConf);
       schema = TableInputFormat.getSchema(jobConf);
       int numcols = schema.getNumColumns();
@@ -168,7 +168,7 @@ public class TableLoader implements IndexableLoadFunc, Slicer {
        * No need to call TableInputFormat.setProjection: by default use all columns
        */
       try {
-        indexReader = inputFormat.getTableRecordReader(jobConf, null);
+        indexReader = TableInputFormat.getTableRecordReader(jobConf, null);
       } catch (ParseException e) {
     	  throw new IOException("Exception from TableInputFormat.getTableRecordReader: "+e.getMessage());
       }
@@ -247,7 +247,7 @@ public class TableLoader implements IndexableLoadFunc, Slicer {
 			LOG.info("Total input tables to process : " + result.size()); 
 			TableInputFormat.setInputPaths(jobConf, result.toArray(new Path[result.size()]));
 			if (sorted)
-				TableInputFormat.requireSortedTable(jobConf);
+				TableInputFormat.requireSortedTable(jobConf, null);
 		}
 	}
 
@@ -536,7 +536,7 @@ public class TableLoader implements IndexableLoadFunc, Slicer {
 			numProjCols = Projection.getNumColumns(projection);
 			TableInputFormat inputFormat = new TableInputFormat();
 			if (sorted)
-				TableInputFormat.requireSortedTable(conf);
+				TableInputFormat.requireSortedTable(conf, null);
 			scanner = inputFormat.getRecordReader(split, conf, Reporter.NULL);
 			key = new BytesWritable();
 		}

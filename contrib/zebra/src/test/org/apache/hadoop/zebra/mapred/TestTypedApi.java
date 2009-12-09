@@ -24,8 +24,10 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.StringTokenizer;
 import java.util.TreeMap;
@@ -40,7 +42,10 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.LongWritable;
+import org.apache.hadoop.io.RawComparator;
 import org.apache.hadoop.io.Text;
+import org.apache.hadoop.io.WritableComparator;
+import org.apache.hadoop.io.file.tfile.RawComparable;
 import org.apache.hadoop.mapred.FileInputFormat;
 import org.apache.hadoop.mapred.JobClient;
 import org.apache.hadoop.mapred.JobConf;
@@ -51,6 +56,7 @@ import org.apache.hadoop.mapred.Reporter;
 import org.apache.hadoop.mapred.TextInputFormat;
 import org.apache.hadoop.mapred.TextOutputFormat;
 import org.apache.hadoop.mapred.lib.MultipleOutputs;
+import org.apache.hadoop.zebra.io.BasicTable;
 import org.apache.hadoop.zebra.mapred.BasicTableOutputFormat;
 import org.apache.hadoop.zebra.mapred.TestBasicTableIOFormatLocalFS.InvIndex;
 import org.apache.hadoop.zebra.parser.ParseException;
@@ -62,10 +68,17 @@ import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.data.DataBag;
+import org.apache.pig.data.DefaultTuple;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.test.MiniCluster;
+import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
+
+import org.apache.hadoop.zebra.mapred.ZebraSchema;
+import org.apache.hadoop.zebra.mapred.ZebraProjection;
+import org.apache.hadoop.zebra.mapred.ZebraSortInfo;
+import org.apache.hadoop.zebra.mapred.ZebraStorageHint;
 
 /**
  * This is a sample a complete MR sample code for Table. It doens't contain
@@ -86,7 +99,7 @@ import org.junit.Test;
  * 
  * 
  */
-public class TestMultipleOutputs2 {
+public class TestTypedApi {
 
   static String inputPath;
   static String inputFileName = "multi-input.txt";
@@ -156,7 +169,6 @@ public class TestMultipleOutputs2 {
           + "," + "/user/" + System.getenv("USER") + "/" + "india" + ","
           + "/user/" + System.getenv("USER") + "/" + "japan");
       fs = new Path(inputPath).getFileSystem(conf);
-
     } else {
       RawLocalFileSystem rawLFS = new RawLocalFileSystem();
       fs = new LocalFileSystem(rawLFS);
@@ -199,6 +211,20 @@ public class TestMultipleOutputs2 {
     }
   }
 
+  @AfterClass
+  public static void tearDownOnce() throws Exception {
+    pigServer.shutdown();
+    if (strTable1 != null) {
+      BasicTable.drop(new Path(strTable1), conf);
+    }
+    if (strTable1 != null) {
+      BasicTable.drop(new Path(strTable2), conf);
+    }
+    if (strTable1 != null) {
+      BasicTable.drop(new Path(strTable3 + ""), conf);
+    }
+  }
+
   public String getCurrentMethodName() {
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     PrintWriter pw = new PrintWriter(baos);
@@ -222,34 +248,34 @@ public class TestMultipleOutputs2 {
     }
     return methodName;
   }
-  public static void writeToFile (String inputFile) throws IOException{
-    if (whichCluster.equalsIgnoreCase("miniCluster")){
-    FileWriter fstream = new FileWriter(inputFile);
-    BufferedWriter out = new BufferedWriter(fstream);
-    out.write("us 2\n");
-    out.write("japan 2\n");
-    out.write("india 4\n");
-    out.write("us 2\n");
-    out.write("japan 1\n");
-    out.write("india 3\n");
-    out.write("nouse 5\n");
-    out.write("nowhere 4\n");
-    out.close();
+
+  public static void writeToFile(String inputFile) throws IOException {
+    if (whichCluster.equalsIgnoreCase("miniCluster")) {
+      FileWriter fstream = new FileWriter(inputFile);
+      BufferedWriter out = new BufferedWriter(fstream);
+      out.write("us 2\n");
+      out.write("japan 2\n");
+      out.write("india 4\n");
+      out.write("us 2\n");
+      out.write("japan 1\n");
+      out.write("india 3\n");
+      out.write("nouse 5\n");
+      out.write("nowhere 4\n");
+      out.close();
     }
-    if (whichCluster.equalsIgnoreCase("realCluster")){
-    FSDataOutputStream fout = fs.create(new Path (inputFile));
-    fout.writeBytes("us 2\n");
-    fout.writeBytes("japan 2\n");
-    fout.writeBytes("india 4\n");
-    fout.writeBytes("us 2\n");
-    fout.writeBytes("japan 1\n");
-    fout.writeBytes("india 3\n");
-    fout.writeBytes("nouse 5\n");
-    fout.writeBytes("nowhere 4\n");
-    fout.close();
+    if (whichCluster.equalsIgnoreCase("realCluster")) {
+      FSDataOutputStream fout = fs.create(new Path(inputFile));
+      fout.writeBytes("us 2\n");
+      fout.writeBytes("japan 2\n");
+      fout.writeBytes("india 4\n");
+      fout.writeBytes("us 2\n");
+      fout.writeBytes("japan 1\n");
+      fout.writeBytes("india 3\n");
+      fout.writeBytes("nouse 5\n");
+      fout.writeBytes("nowhere 4\n");
+      fout.close();
     }
   }
-  
 
   public Path generateOutPath(String currentMethod) {
     Path outPath = null;
@@ -303,50 +329,16 @@ public class TestMultipleOutputs2 {
     while (st.hasMoreElements()) {
       count++;
       String token = st.nextElement().toString();
-      if (whichCluster.equalsIgnoreCase("miniCluster")) {
-        System.out.println("in mini, token: "+token); 
-         if (count == 1)
-          strTable1 = token;
-        if (count == 2)
-          strTable2 = token;
-        if (count == 3)
-          strTable3 = token;
-      }
-      if (whichCluster.equalsIgnoreCase("realCluster")) {
-        System.out.println("in real, token: "+token);
-        //in real, token: /user/hadoopqa/ustest3
-        //note: no prefix file:  in real cluster
-        if (count == 1)
-          strTable1 = token;
-        if (count == 2)
-          strTable2 = token;
-        if (count == 3)
-          strTable3 = token;
-      }
-      
+      if (count == 1)
+        strTable1 = token;
+      if (count == 2)
+        strTable2 = token;
+      if (count == 3)
+        strTable3 = token;
+      System.out.println("token = " + token);
     }
   }
-  public static void checkTableExists(boolean expected, String strDir) throws IOException{
-  
-     File theDir = null; 
-     boolean actual = false;
-     if (whichCluster.equalsIgnoreCase("miniCluster")){
-     theDir = new File(strDir.split(":")[1]);
-     actual = theDir.exists();
-     
-     }
-     if (whichCluster.equalsIgnoreCase("realCluster")){
-       theDir = new File(strDir.split(":")[0]);
-       actual = fs.exists(new Path (theDir.toString()));
-        }
-     System.out.println("the dir : "+ theDir.toString());
-     //the dir : /user/hadoopqa/ustest3
-      //the dir : /homes/<uid>/grid/multipleoutput/pig-table/contrib/zebra/ustest3
-    
-     if (actual != expected){
-       Assert.fail("dir exists or not is different from what expected.");
-     }
-   }
+
   public static void checkTable(String myMultiLocs) throws IOException {
     System.out.println("myMultiLocs:" + myMultiLocs);
     System.out.println("sorgetTablePathst key:" + sortKey);
@@ -354,7 +346,7 @@ public class TestMultipleOutputs2 {
     getTablePaths(myMultiLocs);
     String query1 = null;
     String query2 = null;
- 
+
     if (strTable1 != null) {
 
       query1 = "records1 = LOAD '" + strTable1
@@ -367,7 +359,7 @@ public class TestMultipleOutputs2 {
 
     int count1 = 0;
     int count2 = 0;
-  
+
     if (query1 != null) {
       System.out.println(query1);
       pigServer.registerQuery(query1);
@@ -377,8 +369,9 @@ public class TestMultipleOutputs2 {
         Tuple RowValue = it.next();
         System.out.println(RowValue);
         // test 1 us table
-        if (query1.contains("test1") || query1.contains("test2")|| query1.contains("test3")) {
-          
+        if (query1.contains("test1") || query1.contains("test2")
+            || query1.contains("test3")) {
+
           if (count1 == 1) {
             Assert.assertEquals("us", RowValue.get(0));
             Assert.assertEquals(2, RowValue.get(1));
@@ -388,7 +381,7 @@ public class TestMultipleOutputs2 {
             Assert.assertEquals(2, RowValue.get(1));
           }
         } // test1, test2
-    
+
       }// while
       if (query1.contains("test1") || query1.contains("test2")
           || query1.contains("test3")) {
@@ -423,7 +416,7 @@ public class TestMultipleOutputs2 {
             Assert.assertEquals("japan", RowValue.get(0));
             Assert.assertEquals(2, RowValue.get(1));
           }
-          
+
           if (count1 == 5) {
             Assert.assertEquals("nouse", RowValue.get(0));
             Assert.assertEquals(5, RowValue.get(1));
@@ -433,7 +426,7 @@ public class TestMultipleOutputs2 {
             Assert.assertEquals(4, RowValue.get(1));
           }
         }// if test1
-     // if test2 other table
+        // if test2 other table
         if (query2.contains("test2")) {
           if (count2 == 1) {
             Assert.assertEquals("india", RowValue.get(0));
@@ -451,7 +444,7 @@ public class TestMultipleOutputs2 {
             Assert.assertEquals("japan", RowValue.get(0));
             Assert.assertEquals(1, RowValue.get(1));
           }
-          
+
           if (count1 == 5) {
             Assert.assertEquals("nouse", RowValue.get(0));
             Assert.assertEquals(5, RowValue.get(1));
@@ -487,9 +480,9 @@ public class TestMultipleOutputs2 {
             Assert.assertEquals("nouse", RowValue.get(0));
             Assert.assertEquals(5, RowValue.get(1));
           }
-          
+
         }// if test3
-        
+
       }// while
       if (query2.contains("test1") || query2.contains("test2")
           || query2.contains("test3")) {
@@ -499,112 +492,451 @@ public class TestMultipleOutputs2 {
 
   }
 
-  
   @Test
   public void test1() throws ParseException, IOException,
       org.apache.hadoop.zebra.parser.ParseException, Exception {
     /*
-     * test combine sort keys
+     * test positive test case. schema, projection, sortInfo are all good ones.
      */
-    System.out.println("******Start  testcase: " + getCurrentMethodName());
+    System.out.println("******Starttt  testcase: " + getCurrentMethodName());
+    List<Path> paths = new ArrayList<Path>(1);
+
     sortKey = "word,count";
     System.out.println("hello sort on word and count");
     String methodName = getCurrentMethodName();
     String myMultiLocs = null;
     if (whichCluster.equalsIgnoreCase("realCluster")) {
       myMultiLocs = new String("/user/" + System.getenv("USER") + "/" + "us"
-          + methodName + "," + "/user/" + System.getenv("USER") + "/" + "others"
-          + methodName );
+          + methodName + "," + "/user/" + System.getenv("USER") + "/"
+          + "others" + methodName);
+      paths.add(new Path(new String("/user/" + System.getenv("USER") + "/"
+          + "us" + methodName)));
+      paths.add(new Path(new String("/user/" + System.getenv("USER") + "/"
+          + "others" + methodName)));
     } else {
       RawLocalFileSystem rawLFS = new RawLocalFileSystem();
       fs = new LocalFileSystem(rawLFS);
       myMultiLocs = new String(fs.getWorkingDirectory() + "/" + "us"
           + methodName + "," + fs.getWorkingDirectory() + "/" + "others"
-          + methodName );
+          + methodName);
+      paths.add(new Path(new String(fs.getWorkingDirectory() + "/" + "us"
+          + methodName)));
+      paths.add(new Path(new String(fs.getWorkingDirectory() + "/" + "others"
+          + methodName)));
     }
     getTablePaths(myMultiLocs);
-    System.out.println("strTable1: "+strTable1);
     removeDir(new Path(strTable1));
     removeDir(new Path(strTable2));
-    runMR(myMultiLocs, sortKey);
+    String schema = "word:string, count:int";
+    String storageHint = "[word];[count]";
+    String sortInfo = null;
+    runMR(sortKey, schema, storageHint, paths.toArray(new Path[2]));
     checkTable(myMultiLocs);
-    System.out.println("DONE test" +getCurrentMethodName());
-  
+    System.out.println("DONE test " + getCurrentMethodName());
+
   }
-  @Test
+
+  @Test(expected = ParseException.class)
   public void test2() throws ParseException, IOException,
       org.apache.hadoop.zebra.parser.ParseException, Exception {
     /*
-     * test word sort keys
+     * test negative test case. wrong schema fomat: schema = "{, count:int";
      */
-    System.out.println("******Start  testcase: " + getCurrentMethodName());
-    sortKey = "word";
+    System.out.println("******Starttt  testcase: " + getCurrentMethodName());
+    List<Path> paths = new ArrayList<Path>(1);
+
+    sortKey = "word,count";
     System.out.println("hello sort on word and count");
     String methodName = getCurrentMethodName();
     String myMultiLocs = null;
     if (whichCluster.equalsIgnoreCase("realCluster")) {
       myMultiLocs = new String("/user/" + System.getenv("USER") + "/" + "us"
-          + methodName + "," + "/user/" + System.getenv("USER") + "/" + "others"
-          + methodName );
+          + methodName + "," + "/user/" + System.getenv("USER") + "/"
+          + "others" + methodName);
+      paths.add(new Path(new String("/user/" + System.getenv("USER") + "/"
+          + "us" + methodName)));
+      paths.add(new Path(new String("/user/" + System.getenv("USER") + "/"
+          + "others" + methodName)));
+
     } else {
       RawLocalFileSystem rawLFS = new RawLocalFileSystem();
       fs = new LocalFileSystem(rawLFS);
       myMultiLocs = new String(fs.getWorkingDirectory() + "/" + "us"
           + methodName + "," + fs.getWorkingDirectory() + "/" + "others"
-          + methodName );
+          + methodName);
+      paths.add(new Path(new String(fs.getWorkingDirectory() + "/" + "us"
+          + methodName)));
+      paths.add(new Path(new String(fs.getWorkingDirectory() + "/" + "others"
+          + methodName)));
+
     }
     getTablePaths(myMultiLocs);
     removeDir(new Path(strTable1));
     removeDir(new Path(strTable2));
-    runMR(myMultiLocs, sortKey);
-    checkTable(myMultiLocs);
-    System.out.println("DONE test" +getCurrentMethodName());
-  
+    String schema = "{, count:int";
+    String storageHint = "[word];[count]";
+    runMR(sortKey, schema, storageHint, paths.toArray(new Path[2]));
+
   }
- @Test
+
+  @Test(expected = IOException.class)
   public void test3() throws ParseException, IOException,
       org.apache.hadoop.zebra.parser.ParseException, Exception {
     /*
-     * test count sort keys
+     * test negative test case. non-exist sort key
      */
-    System.out.println("******Start  testcase: " + getCurrentMethodName());
-    sortKey = "count";
+    System.out.println("******Starttt  testcase: " + getCurrentMethodName());
+    List<Path> paths = new ArrayList<Path>(1);
+
+    sortKey = "not exist";
     System.out.println("hello sort on word and count");
     String methodName = getCurrentMethodName();
     String myMultiLocs = null;
     if (whichCluster.equalsIgnoreCase("realCluster")) {
       myMultiLocs = new String("/user/" + System.getenv("USER") + "/" + "us"
-          + methodName + "," + "/user/" + System.getenv("USER") + "/" + "others"
-          + methodName );
+          + methodName + "," + "/user/" + System.getenv("USER") + "/"
+          + "others" + methodName);
+      paths.add(new Path(new String("/user/" + System.getenv("USER") + "/"
+          + "us" + methodName)));
+      paths.add(new Path(new String("/user/" + System.getenv("USER") + "/"
+          + "others" + methodName)));
+
     } else {
       RawLocalFileSystem rawLFS = new RawLocalFileSystem();
       fs = new LocalFileSystem(rawLFS);
       myMultiLocs = new String(fs.getWorkingDirectory() + "/" + "us"
           + methodName + "," + fs.getWorkingDirectory() + "/" + "others"
-          + methodName );
+          + methodName);
+      paths.add(new Path(new String("/user/" + System.getenv("USER") + "/"
+          + "us" + methodName)));
+      paths.add(new Path(new String("/user/" + System.getenv("USER") + "/"
+          + "others" + methodName)));
+
     }
     getTablePaths(myMultiLocs);
     removeDir(new Path(strTable1));
     removeDir(new Path(strTable2));
-    runMR(myMultiLocs, sortKey);
- 
-    checkTableExists(true, strTable1);
-    checkTableExists(true, strTable2);
-    checkTable(myMultiLocs);
-    System.out.println("DONE test" +getCurrentMethodName());
-  
+    String schema = "word:string, count:int";
+    String storageHint = "[word];[count]";
+    runMR(sortKey, schema, storageHint, paths.toArray(new Path[2]));
+
   }
 
- static class MapClass implements
-      Mapper<LongWritable, Text, BytesWritable, Tuple> {
+  @Test(expected = IOException.class)
+  public void test4() throws ParseException, IOException,
+      org.apache.hadoop.zebra.parser.ParseException, Exception {
+    /*
+     * test negative test case. sort key is empty string
+     */
+    System.out.println("******Starttt  testcase: " + getCurrentMethodName());
+    List<Path> paths = new ArrayList<Path>(1);
+
+    sortKey = "";
+    System.out.println("hello sort on word and count");
+    String methodName = getCurrentMethodName();
+    String myMultiLocs = null;
+    if (whichCluster.equalsIgnoreCase("realCluster")) {
+      myMultiLocs = new String("/user/" + System.getenv("USER") + "/" + "us"
+          + methodName + "," + "/user/" + System.getenv("USER") + "/"
+          + "others" + methodName);
+      paths.add(new Path(new String("/user/" + System.getenv("USER") + "/"
+          + "us" + methodName)));
+      paths.add(new Path(new String("/user/" + System.getenv("USER") + "/"
+          + "others" + methodName)));
+
+    } else {
+      RawLocalFileSystem rawLFS = new RawLocalFileSystem();
+      fs = new LocalFileSystem(rawLFS);
+      myMultiLocs = new String(fs.getWorkingDirectory() + "/" + "us"
+          + methodName + "," + fs.getWorkingDirectory() + "/" + "others"
+          + methodName);
+      paths.add(new Path(new String("/user/" + System.getenv("USER") + "/"
+          + "us" + methodName)));
+      paths.add(new Path(new String("/user/" + System.getenv("USER") + "/"
+          + "others" + methodName)));
+
+    }
+    getTablePaths(myMultiLocs);
+    removeDir(new Path(strTable1));
+    removeDir(new Path(strTable2));
+    String schema = "word:string, count:int";
+    String storageHint = "[word];[count]";
+    runMR(sortKey, schema, storageHint, paths.toArray(new Path[2]));
+
+  }
+
+  @Test(expected = NullPointerException.class)
+  public void test5() throws ParseException, IOException,
+      org.apache.hadoop.zebra.parser.ParseException, Exception {
+    /*
+     * test negative test case. sort key null
+     */
+    System.out.println("******Starttt  testcase: " + getCurrentMethodName());
+    List<Path> paths = new ArrayList<Path>(1);
+
+    sortKey = null;
+    System.out.println("hello sort on word and count");
+    String methodName = getCurrentMethodName();
+    String myMultiLocs = null;
+    if (whichCluster.equalsIgnoreCase("realCluster")) {
+      myMultiLocs = new String("/user/" + System.getenv("USER") + "/" + "us"
+          + methodName + "," + "/user/" + System.getenv("USER") + "/"
+          + "others" + methodName);
+      paths.add(new Path(new String("/user/" + System.getenv("USER") + "/"
+          + "us" + methodName)));
+      paths.add(new Path(new String("/user/" + System.getenv("USER") + "/"
+          + "others" + methodName)));
+
+    } else {
+      RawLocalFileSystem rawLFS = new RawLocalFileSystem();
+      fs = new LocalFileSystem(rawLFS);
+      myMultiLocs = new String(fs.getWorkingDirectory() + "/" + "us"
+          + methodName + "," + fs.getWorkingDirectory() + "/" + "others"
+          + methodName);
+      paths.add(new Path(new String("/user/" + System.getenv("USER") + "/"
+          + "us" + methodName)));
+      paths.add(new Path(new String("/user/" + System.getenv("USER") + "/"
+          + "others" + methodName)));
+
+    }
+    getTablePaths(myMultiLocs);
+    removeDir(new Path(strTable1));
+    removeDir(new Path(strTable2));
+    String schema = "word:string, count:int";
+    String storageHint = "[word];[count]";
+    runMR(sortKey, schema, storageHint, paths.toArray(new Path[2]));
+
+  }
+
+  @Test(expected = ParseException.class)
+  public void test6() throws ParseException, IOException,
+      org.apache.hadoop.zebra.parser.ParseException, Exception {
+    /*
+     * test negative test case. storage hint: none exist column
+     */
+    System.out.println("******Starttt  testcase: " + getCurrentMethodName());
+    List<Path> paths = new ArrayList<Path>(1);
+
+    sortKey = "word,count";
+    System.out.println("hello sort on word and count");
+    String methodName = getCurrentMethodName();
+    String myMultiLocs = null;
+    if (whichCluster.equalsIgnoreCase("realCluster")) {
+      myMultiLocs = new String("/user/" + System.getenv("USER") + "/" + "us"
+          + methodName + "," + "/user/" + System.getenv("USER") + "/"
+          + "others" + methodName);
+      paths.add(new Path(new String("/user/" + System.getenv("USER") + "/"
+          + "us" + methodName)));
+      paths.add(new Path(new String("/user/" + System.getenv("USER") + "/"
+          + "others" + methodName)));
+
+    } else {
+      RawLocalFileSystem rawLFS = new RawLocalFileSystem();
+      fs = new LocalFileSystem(rawLFS);
+      myMultiLocs = new String(fs.getWorkingDirectory() + "/" + "us"
+          + methodName + "," + fs.getWorkingDirectory() + "/" + "others"
+          + methodName);
+      paths.add(new Path(new String(fs.getWorkingDirectory() + "/" + "us"
+          + methodName)));
+      paths.add(new Path(new String(fs.getWorkingDirectory() + "/" + "others"
+          + methodName)));
+
+    }
+    getTablePaths(myMultiLocs);
+    removeDir(new Path(strTable1));
+    removeDir(new Path(strTable2));
+    String schema = "word:string, count:int";
+    String storageHint = "[none-exist-column]";
+    runMR(sortKey, schema, storageHint, paths.toArray(new Path[2]));
+
+  }
+
+  @Test(expected = ParseException.class)
+  public void test7() throws ParseException, IOException,
+      org.apache.hadoop.zebra.parser.ParseException, Exception {
+    /*
+     * test negative test case. storage hint: wrong storage hint format, missing
+     * [
+     */
+    System.out.println("******Starttt  testcase: " + getCurrentMethodName());
+    List<Path> paths = new ArrayList<Path>(1);
+
+    sortKey = "word,count";
+    System.out.println("hello sort on word and count");
+    String methodName = getCurrentMethodName();
+    String myMultiLocs = null;
+    if (whichCluster.equalsIgnoreCase("realCluster")) {
+      myMultiLocs = new String("/user/" + System.getenv("USER") + "/" + "us"
+          + methodName + "," + "/user/" + System.getenv("USER") + "/"
+          + "others" + methodName);
+      paths.add(new Path(new String("/user/" + System.getenv("USER") + "/"
+          + "us" + methodName)));
+      paths.add(new Path(new String("/user/" + System.getenv("USER") + "/"
+          + "others" + methodName)));
+
+    } else {
+      RawLocalFileSystem rawLFS = new RawLocalFileSystem();
+      fs = new LocalFileSystem(rawLFS);
+      myMultiLocs = new String(fs.getWorkingDirectory() + "/" + "us"
+          + methodName + "," + fs.getWorkingDirectory() + "/" + "others"
+          + methodName);
+      paths.add(new Path(new String(fs.getWorkingDirectory() + "/" + "us"
+          + methodName)));
+      paths.add(new Path(new String(fs.getWorkingDirectory() + "/" + "others"
+          + methodName)));
+
+    }
+    getTablePaths(myMultiLocs);
+    removeDir(new Path(strTable1));
+    removeDir(new Path(strTable2));
+    String schema = "word:string, count:int";
+    String storageHint = "none-exist-column]";
+    runMR(sortKey, schema, storageHint, paths.toArray(new Path[2]));
+
+  }
+
+  @Test(expected = ParseException.class)
+  public void test8() throws ParseException, IOException,
+      org.apache.hadoop.zebra.parser.ParseException, Exception {
+    /*
+     * test negative test case. schema defines more columns then the input file.
+     * user input has only two fields
+     */
+    System.out.println("******Starttt  testcase: " + getCurrentMethodName());
+    List<Path> paths = new ArrayList<Path>(1);
+
+    sortKey = "word,count";
+    System.out.println("hello sort on word and count");
+    String methodName = getCurrentMethodName();
+    String myMultiLocs = null;
+    if (whichCluster.equalsIgnoreCase("realCluster")) {
+      myMultiLocs = new String("/user/" + System.getenv("USER") + "/" + "us"
+          + methodName + "," + "/user/" + System.getenv("USER") + "/"
+          + "others" + methodName);
+      paths.add(new Path(new String("/user/" + System.getenv("USER") + "/"
+          + "us" + methodName)));
+      paths.add(new Path(new String("/user/" + System.getenv("USER") + "/"
+          + "others" + methodName)));
+
+    } else {
+      RawLocalFileSystem rawLFS = new RawLocalFileSystem();
+      fs = new LocalFileSystem(rawLFS);
+      myMultiLocs = new String(fs.getWorkingDirectory() + "/" + "us"
+          + methodName + "," + fs.getWorkingDirectory() + "/" + "others"
+          + methodName);
+      paths.add(new Path(new String(fs.getWorkingDirectory() + "/" + "us"
+          + methodName)));
+      paths.add(new Path(new String(fs.getWorkingDirectory() + "/" + "others"
+          + methodName)));
+
+    }
+    getTablePaths(myMultiLocs);
+    removeDir(new Path(strTable1));
+    removeDir(new Path(strTable2));
+    String schema = "word:string, count:int,word:string, count:int";
+    String storageHint = "[word];[count]";
+    runMR(sortKey, schema, storageHint, paths.toArray(new Path[2]));
+
+  }
+
+  @Test(expected = ParseException.class)
+  public void test9() throws ParseException, IOException,
+      org.apache.hadoop.zebra.parser.ParseException, Exception {
+    /*
+     * test negative test case. data type defined in schema is wrong. it is
+     * inttt instead of int
+     */
+    System.out.println("******Starttt  testcase: " + getCurrentMethodName());
+    List<Path> paths = new ArrayList<Path>(1);
+
+    sortKey = "word,count";
+    System.out.println("hello sort on word and count");
+    String methodName = getCurrentMethodName();
+    String myMultiLocs = null;
+    if (whichCluster.equalsIgnoreCase("realCluster")) {
+      myMultiLocs = new String("/user/" + System.getenv("USER") + "/" + "us"
+          + methodName + "," + "/user/" + System.getenv("USER") + "/"
+          + "others" + methodName);
+      paths.add(new Path(new String("/user/" + System.getenv("USER") + "/"
+          + "us" + methodName)));
+      paths.add(new Path(new String("/user/" + System.getenv("USER") + "/"
+          + "others" + methodName)));
+
+    } else {
+      RawLocalFileSystem rawLFS = new RawLocalFileSystem();
+      fs = new LocalFileSystem(rawLFS);
+      myMultiLocs = new String(fs.getWorkingDirectory() + "/" + "us"
+          + methodName + "," + fs.getWorkingDirectory() + "/" + "others"
+          + methodName);
+      paths.add(new Path(new String(fs.getWorkingDirectory() + "/" + "us"
+          + methodName)));
+      paths.add(new Path(new String(fs.getWorkingDirectory() + "/" + "others"
+          + methodName)));
+
+    }
+    getTablePaths(myMultiLocs);
+    removeDir(new Path(strTable1));
+    removeDir(new Path(strTable2));
+    String schema = "word:string, count:inttt";
+    String storageHint = "[word];[count]";
+    runMR(sortKey, schema, storageHint, paths.toArray(new Path[2]));
+
+  }
+
+  @Test(expected = ParseException.class)
+  public void test10() throws ParseException, IOException,
+      org.apache.hadoop.zebra.parser.ParseException, Exception {
+    /*
+     * test negative test case. schema format is wrong, schema is seperated by ;
+     * instead of ,
+     */
+    System.out.println("******Starttt  testcase: " + getCurrentMethodName());
+    List<Path> paths = new ArrayList<Path>(1);
+
+    sortKey = "word,count";
+    System.out.println("hello sort on word and count");
+    String methodName = getCurrentMethodName();
+    String myMultiLocs = null;
+    if (whichCluster.equalsIgnoreCase("realCluster")) {
+      myMultiLocs = new String("/user/" + System.getenv("USER") + "/" + "us"
+          + methodName + "," + "/user/" + System.getenv("USER") + "/"
+          + "others" + methodName);
+      paths.add(new Path(new String("/user/" + System.getenv("USER") + "/"
+          + "us" + methodName)));
+      paths.add(new Path(new String("/user/" + System.getenv("USER") + "/"
+          + "others" + methodName)));
+
+    } else {
+      RawLocalFileSystem rawLFS = new RawLocalFileSystem();
+      fs = new LocalFileSystem(rawLFS);
+      myMultiLocs = new String(fs.getWorkingDirectory() + "/" + "us"
+          + methodName + "," + fs.getWorkingDirectory() + "/" + "others"
+          + methodName);
+      paths.add(new Path(new String(fs.getWorkingDirectory() + "/" + "us"
+          + methodName)));
+      paths.add(new Path(new String(fs.getWorkingDirectory() + "/" + "others"
+          + methodName)));
+
+    }
+    getTablePaths(myMultiLocs);
+    removeDir(new Path(strTable1));
+    removeDir(new Path(strTable2));
+    String schema = "word:string; count:int";
+    String storageHint = "[word];[count]";
+    runMR(sortKey, schema, storageHint, paths.toArray(new Path[2]));
+    System.out.println("done test 10");
+  }
+
+  static class MapClass implements
+      Mapper<LongWritable, Text, BytesWritable, ZebraTuple> {
     private BytesWritable bytesKey;
-    private Tuple tupleRow;
+    private ZebraTuple tupleRow;
     private Object javaObj;
     private JobConf conf;
 
     @Override
     public void map(LongWritable key, Text value,
-        OutputCollector<BytesWritable, Tuple> output, Reporter reporter)
+        OutputCollector<BytesWritable, ZebraTuple> output, Reporter reporter)
         throws IOException {
       // value should contain "word count"
       String[] wdct = value.toString().split(" ");
@@ -626,7 +958,7 @@ public class TestMultipleOutputs2 {
        * userKey.append(Integer.parseInt(wdct[1]));
        */
       System.out.println("in map, sortkey: " + sortKey);
-      Tuple userKey = new ZebraTuple();
+      ZebraTuple userKey = new ZebraTuple();
       if (sortKey.equalsIgnoreCase("word,count")) {
         userKey.append(new String(word));
         userKey.append(Integer.parseInt(wdct[1]));
@@ -663,7 +995,7 @@ public class TestMultipleOutputs2 {
       sortKey = job.get("sortKey");
       try {
         Schema outSchema = BasicTableOutputFormat.getSchema(job);
-        tupleRow = TypesUtils.createTuple(outSchema);
+        tupleRow = (ZebraTuple) TypesUtils.createTuple(outSchema);
         javaObj = BasicTableOutputFormat.getSortKeyGenerator(job);
       } catch (IOException e) {
         throw new RuntimeException(e);
@@ -707,20 +1039,10 @@ public class TestMultipleOutputs2 {
   static class OutputPartitionerClass extends ZebraOutputPartition {
 
     @Override
-    public int getOutputPartition(BytesWritable key, Tuple value) throws ExecException {
+    public int getOutputPartition(BytesWritable key, Tuple value)
+        throws IndexOutOfBoundsException, ExecException {
 
-     //check table schema and table data are passed to this class
-/*
- * value0 : india
-value0 : india
-value0 : japan
-value0 : japan
-value0 : nouse
-value0 : nowhere
-value0 : us
-value0 : us
- */
-System.out.println("value0 : "+value.get(0));
+      System.out.println("value0 : " + value.get(0));
       String reg = null;
       try {
         reg = (String) (value.get(0));
@@ -732,21 +1054,35 @@ System.out.println("value0 : "+value.get(0));
         return 0;
       else
         return 1;
-
     }
 
   }
 
-  public void runMR(String myMultiLocs, String sortKey) throws ParseException,
-      IOException, Exception, org.apache.hadoop.zebra.parser.ParseException {
+  public static final class MemcmpRawComparator implements
+      RawComparator<Object>, Serializable {
+    @Override
+    public int compare(byte[] b1, int s1, int l1, byte[] b2, int s2, int l2) {
+      return WritableComparator.compareBytes(b1, s1, l1, b2, s2, l2);
+    }
+
+    @Override
+    public int compare(Object o1, Object o2) {
+
+      throw new RuntimeException("Object comparison not supported");
+    }
+  }
+
+  public void runMR(String sortKey, String schema, String storageHint,
+      Path... paths) throws ParseException, IOException, Exception,
+      org.apache.hadoop.zebra.parser.ParseException {
 
     JobConf jobConf = new JobConf();
-    jobConf.setJobName("tableMRSample");
+    jobConf.setJobName("TestTypedAPI");
     jobConf.set("table.output.tfile.compression", "gz");
     jobConf.set("sortKey", sortKey);
     // input settings
     jobConf.setInputFormat(TextInputFormat.class);
-    jobConf.setMapperClass(TestMultipleOutputs2.MapClass.class);
+    jobConf.setMapperClass(TestTypedApi.MapClass.class);
     jobConf.setMapOutputKeyClass(BytesWritable.class);
     jobConf.setMapOutputValueClass(ZebraTuple.class);
     FileInputFormat.setInputPaths(jobConf, inputPath);
@@ -756,16 +1092,17 @@ System.out.println("value0 : "+value.get(0));
     // output settings
 
     jobConf.setOutputFormat(BasicTableOutputFormat.class);
-    BasicTableOutputFormat.setMultipleOutputs(jobConf, myMultiLocs,
-        TestMultipleOutputs2.OutputPartitionerClass.class);
 
-    // set the logical schema with 2 columns
-    BasicTableOutputFormat.setSchema(jobConf, "word:string, count:int");
-    // for demo purposes, create 2 physical column groups
-    BasicTableOutputFormat.setStorageHint(jobConf, "[word];[count]");
-    BasicTableOutputFormat.setSortInfo(jobConf, sortKey);
+    BasicTableOutputFormat.setMultipleOutputs(jobConf,
+        TestTypedApi.OutputPartitionerClass.class, paths);
+    ZebraSchema zSchema = ZebraSchema.createZebraSchema(schema);
+    ZebraStorageHint zStorageHint = ZebraStorageHint
+        .createZebraStorageHint(storageHint);
+    ZebraSortInfo zSortInfo = ZebraSortInfo.createZebraSortInfo(sortKey, null);
+    BasicTableOutputFormat.setStorageInfo(jobConf, zSchema, zStorageHint,
+        zSortInfo);
     System.out.println("in runMR, sortkey: " + sortKey);
-    // set map-only job.
+
     jobConf.setNumReduceTasks(1);
     JobClient.runJob(jobConf);
     BasicTableOutputFormat.close(jobConf);
@@ -773,11 +1110,17 @@ System.out.println("value0 : "+value.get(0));
 
   public static void main(String[] args) throws ParseException,
       org.apache.hadoop.zebra.parser.ParseException, Exception {
-    TestMultipleOutputs2 test = new TestMultipleOutputs2();
-    TestMultipleOutputs2.setUpOnce();
+    TestTypedApi test = new TestTypedApi();
+    TestTypedApi.setUpOnce();
     test.test1();
     test.test2();
     test.test3();
-   
+    test.test4();
+    test.test5();
+    test.test6();
+    test.test7();
+    test.test8();
+    test.test9();
+    test.test10();
   }
 }

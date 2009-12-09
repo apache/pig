@@ -31,6 +31,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.PathFilter;
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.WritableUtils;
+import org.apache.hadoop.io.RawComparator;
 import org.apache.hadoop.zebra.tfile.RawComparable;
 import org.apache.hadoop.mapred.FileInputFormat;
 import org.apache.hadoop.mapred.FileSplit;
@@ -51,6 +52,7 @@ import org.apache.hadoop.zebra.parser.ParseException;
 import org.apache.hadoop.zebra.types.Projection;
 import org.apache.hadoop.zebra.schema.Schema;
 import org.apache.hadoop.zebra.types.SortInfo;
+import org.apache.hadoop.zebra.tfile.TFile;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.Tuple;
@@ -204,13 +206,14 @@ public class TableInputFormat implements InputFormat<BytesWritable, Tuple> {
    * 
    * @param conf
    *          JobConf object.
+   *                    
    */
   public static Schema getSchema(JobConf conf) throws IOException
   {
 	  TableExpr expr = getInputExpr(conf);
 	  return expr.getSchema(conf);
-  }
-
+  }  
+  
   /**
    * Set the input projection in the JobConf object.
    * 
@@ -220,7 +223,7 @@ public class TableInputFormat implements InputFormat<BytesWritable, Tuple> {
    *          A common separated list of column names. If we want select all
    *          columns, pass projection==null. The syntax of the projection
    *          conforms to the {@link Schema} string.
-   * @see Schema#Schema(String)
+   * @deprecated Use {@link #setProjection(JobConf, ZebraProjection)} instead.
    */
   public static void setProjection(JobConf conf, String projection) throws ParseException {
     conf.set(INPUT_PROJ, Schema.normalize(projection));
@@ -229,6 +232,37 @@ public class TableInputFormat implements InputFormat<BytesWritable, Tuple> {
     if (Projection.getVirtualColumnIndices(projection) != null && !getSorted(conf))
         throw new ParseException("The source_table virtual column is only availabe for sorted table unions.");
   }
+  
+  /**
+   * Set the input projection in the JobConf object.
+   * 
+   * @param conf
+   *          JobConf object.
+   * @param projection
+   *          A common separated list of column names. If we want select all
+   *          columns, pass projection==null. The syntax of the projection
+   *          conforms to the {@link Schema} string.
+   *
+   */
+  public static void setProjection(JobConf conf, ZebraProjection projection) throws ParseException {
+    /* validity check on projection */
+    Schema schema = null;
+    String normalizedProjectionString = Schema.normalize(projection.toString());
+    try {
+      schema = getSchema(conf);
+      new org.apache.hadoop.zebra.types.Projection(schema, normalizedProjectionString);
+    } catch (ParseException e) {
+      throw new ParseException("[" + projection + "] " + "is not a valid Zebra projection string " + e.getMessage());
+    } catch (IOException e) {
+      throw new ParseException("[" + projection + "] " + "is not a valid Zebra projection string " + e.getMessage());
+    }
+    
+    conf.set(INPUT_PROJ, normalizedProjectionString);
+
+    // virtual source_table columns require sorted table
+    if (Projection.getVirtualColumnIndices(projection.toString()) != null && !getSorted(conf))
+      throw new ParseException("The source_table virtual column is only availabe for sorted table unions.");
+  }  
 
   /**
    * Get the projection from the JobConf
@@ -240,6 +274,7 @@ public class TableInputFormat implements InputFormat<BytesWritable, Tuple> {
    *         when this method is called in Mapper code, the projection must
    *         already be known.
    * @throws IOException
+   *  
    */
   public static String getProjection(JobConf conf) throws IOException, ParseException {
     String strProj = conf.get(INPUT_PROJ);
@@ -251,7 +286,7 @@ public class TableInputFormat implements InputFormat<BytesWritable, Tuple> {
     }
     return null;
   }
-  
+      
   /**
    * Set requirement for sorted table
    *
@@ -305,26 +340,38 @@ public class TableInputFormat implements InputFormat<BytesWritable, Tuple> {
    * 
    * @param conf
    *          JobConf object.
-   * @param sortcolumns
-   *          Sort column names.
-   * @param comparator
-   *          Comparator name. Null means the caller does not care but table union will check
-   *          identical comparators regardless as a minimum sanity check
+   * @param sortInfo
+   *          ZebraSortInfo object containing sorting information.
    *        
    */
-  public static void requireSortedTable(JobConf conf, String sortcolumns, String comparator) throws IOException {
+  public static void requireSortedTable(JobConf conf, ZebraSortInfo sortInfo) throws IOException {
 	 TableExpr expr = getInputExpr(conf);
+	 String comparatorName = null;
+ 	 String[] sortcolumns = null;
+         if (sortInfo != null)
+         {
+           comparatorName = TFile.COMPARATOR_JCLASS+sortInfo.getComparator();
+           String sortColumnNames = sortInfo.getSortColumns();
+           if (sortColumnNames != null)
+             sortcolumns =  sortColumnNames.trim().split(SortInfo.SORTED_COLUMN_DELIMITER);
+           if (sortcolumns == null)
+             throw new IllegalArgumentException("No sort columns specified.");
+         }
+
 	 if (expr instanceof BasicTableExpr)
 	 {
 		 BasicTable.Reader reader = new BasicTable.Reader(((BasicTableExpr) expr).getPath(), conf);
-		 SortInfo sortInfo = reader.getSortInfo();
+		 SortInfo mySortInfo = reader.getSortInfo();
+
 		 reader.close();
-		 if (comparator == null && sortInfo != null)
+		 if (mySortInfo == null)
+       throw new IOException("The table is not sorted");
+		 if (comparatorName == null)
 			 // cheat the equals method's comparator comparison
-			 comparator = sortInfo.getComparator();
-		 if (sortInfo == null || !sortInfo.equals(sortcolumns, comparator))
+			 comparatorName = mySortInfo.getComparator();
+		 if (sortcolumns != null && !mySortInfo.equals(sortcolumns, comparatorName))
 		 {
-			 throw new IOException("The table is not (properly) sorted");
+			 throw new IOException("The table is not properly sorted");
 		 }
 	 } else {
 		 List<LeafTableInfo> leaves = expr.getLeafTables(null);
@@ -332,14 +379,22 @@ public class TableInputFormat implements InputFormat<BytesWritable, Tuple> {
 		 {
 			 LeafTableInfo leaf = it.next();
 			 BasicTable.Reader reader = new BasicTable.Reader(leaf.getPath(), conf);
-			 SortInfo sortInfo = reader.getSortInfo();
+			 SortInfo mySortInfo = reader.getSortInfo();
 			 reader.close();
-			 if (comparator == null && sortInfo != null)
-				 comparator = sortInfo.getComparator(); // use the first table's comparator as comparison base
-			 if (sortInfo == null || !sortInfo.equals(sortcolumns, comparator))
-			 {
-				 throw new IOException("The table is not (properly) sorted");
-			 }
+			 if (mySortInfo == null)
+			   throw new IOException("The table is not sorted");
+			 if (comparatorName == null)
+				 comparatorName = mySortInfo.getComparator(); // use the first table's comparator as comparison base
+			 if (sortcolumns == null)
+       {
+         sortcolumns = mySortInfo.getSortColumnNames();
+         comparatorName = mySortInfo.getComparator();
+       } else {
+         if (!mySortInfo.equals(sortcolumns, comparatorName))
+         {
+           throw new IOException("The table is not properly sorted");
+         }
+       }
 		 }
 		 // need key range input splits for sorted table union
 		 setSorted(conf);
@@ -347,55 +402,7 @@ public class TableInputFormat implements InputFormat<BytesWritable, Tuple> {
   }
   
   /**
-   * Requires sorted table or table union. For table union, leading sort columns 
-   * of component tables need to be the same
-   * 
-   * @param conf
-   *          JobConf object.
-   *        
-   */
-  public static void requireSortedTable(JobConf conf) throws IOException {
-	 TableExpr expr = getInputExpr(conf);
-	 if (expr instanceof BasicTableExpr)
-	 {
-		 BasicTable.Reader reader = new BasicTable.Reader(((BasicTableExpr) expr).getPath(), conf);
-		 SortInfo sortInfo = reader.getSortInfo();
-		 reader.close();
-		 if (sortInfo == null)
-		 {
-			 throw new IOException("The table is not (properly) sorted");
-		 }
-	 } else {
-		 List<LeafTableInfo> leaves = expr.getLeafTables(null);
-		 String sortcolumns = null, comparator = null;
-		 for (Iterator<LeafTableInfo> it = leaves.iterator(); it.hasNext(); )
-		 {
-			 LeafTableInfo leaf = it.next();
-			 BasicTable.Reader reader = new BasicTable.Reader(leaf.getPath(), conf);
-			 SortInfo sortInfo = reader.getSortInfo();
-			 reader.close();
-			 if (sortInfo == null)
-			 {
-				 throw new IOException("The table is not (properly) sorted");
-			 }
-			 // check the compatible sort info among the member tables of a union
-			 if (sortcolumns == null)
-			 {
-				 sortcolumns = SortInfo.toSortString(sortInfo.getSortColumnNames());
-				 comparator = sortInfo.getComparator();
-			 } else {
-				 if (!sortInfo.equals(sortcolumns, comparator))
-				 {
-					 throw new IOException("The table is not (properly) sorted");
-				 }
-			 }
-		 }
-		 // need key range input splits for sorted table union
-		 setSorted(conf);
-	 }
-  }
-  /**
-   * Set requirement for sorted table
+   * Get requirement for sorted table
    *
    *@param conf
    *          JobConf object.
@@ -448,14 +455,14 @@ public class TableInputFormat implements InputFormat<BytesWritable, Tuple> {
    *          comma-separated column names in projection. null means all columns in projection
    */
   
-  public TableRecordReader getTableRecordReader(JobConf conf, String projection) throws IOException, ParseException
+  public static TableRecordReader getTableRecordReader(JobConf conf, String projection) throws IOException, ParseException
   {
 	// a single split is needed
     if (projection != null)
     	setProjection(conf, projection);
     TableInputFormat inputFormat = new TableInputFormat();
     InputSplit[] splits = inputFormat.getSplits(conf, 1);
-    return (TableRecordReader) getRecordReader(splits[0], conf, Reporter.NULL);
+    return (TableRecordReader) inputFormat.getRecordReader(splits[0], conf, Reporter.NULL);
   }
 
   private static InputSplit[] getSortedSplits(JobConf conf, int numSplits,
