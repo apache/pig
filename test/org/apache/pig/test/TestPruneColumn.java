@@ -1535,5 +1535,32 @@ public class TestPruneColumn extends TestCase {
         
         assertTrue(checkLogFileMessage(new String[]{"Columns pruned for A: $0, $2", 
                 "No map keys pruned for A"}));
-     } 
+    }
+    
+    // See PIG-1142
+    @Test
+    public void testJoin4() throws Exception {
+        pigServer.registerQuery("A = load '"+ Util.generateURI(tmpFile1.toString()) + "' AS (a0, a1, a2);");
+        pigServer.registerQuery("B = load '"+ Util.generateURI(tmpFile1.toString()) + "' AS (b0, b1, b2);");
+        pigServer.registerQuery("C = join A by a2, B by b2;");
+        pigServer.registerQuery("D = foreach C generate $0,  $1,  $2;");
+        
+        Iterator<Tuple> iter = pigServer.openIterator("D");
+        Collection<String> results = new HashSet<String>();
+        results.add("(1,2,3)");
+        results.add("(2,5,2)");
+        
+        assertTrue(iter.hasNext());
+        Tuple t = iter.next();
+        assertTrue(results.contains(t.toString()));
+        
+        assertTrue(iter.hasNext());
+        t = iter.next();
+        assertTrue(results.contains(t.toString()));
+        
+        assertFalse(iter.hasNext());
+        
+        assertTrue(checkLogFileMessage(new String[]{"No column pruned for A", 
+                "No map keys pruned for A", "Columns pruned for B: $0, $1", "No map keys pruned for B"}));
+     }
 }

@@ -235,6 +235,8 @@ PIG-1133: UDFContext should be made available to LoadFunc.bindTo (daijy)
 
 PIG-1132: Column Pruner issues in dealing with unprunable loader (daijy)
 
+PIG-1142: Got NullPointerException merge join with pruning (daijy)
+
 Release 0.5.0
 
 INCOMPATIBLE CHANGES
