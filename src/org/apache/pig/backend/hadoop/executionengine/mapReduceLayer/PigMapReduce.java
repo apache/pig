@@ -157,7 +157,7 @@ public class PigMapReduce {
 			Byte tupleValIdx = 3;
 
             Byte index = (Byte)tuple.get(0);
-			Byte partitionIndex = -1;
+			Integer partitionIndex = -1;
         	// for partitioning table, the partition index isn't present
 			if (tuple.size() == 3) {
 				//super.collect(oc, tuple);
@@ -165,7 +165,7 @@ public class PigMapReduce {
 				tupleKeyIdx--;
 				tupleValIdx--;
 			} else {
-				partitionIndex = (Byte)tuple.get(1);
+				partitionIndex = (Integer)tuple.get(1);
 			}
 
             PigNullableWritable key =
