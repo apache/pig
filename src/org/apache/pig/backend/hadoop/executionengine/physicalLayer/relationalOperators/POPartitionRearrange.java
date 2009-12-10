@@ -223,7 +223,7 @@ public class POPartitionRearrange extends POLocalRearrange {
 			Tuple opTuple = mTupleFactory.newTuple(4);
 			opTuple.set(0, t.get(0));
 			// set the partition index
-			opTuple.set(1, reducerIdx.byteValue());
+			opTuple.set(1, reducerIdx.intValue());
 			opTuple.set(2, key);
 			opTuple.set(3, t.get(2));
 			
