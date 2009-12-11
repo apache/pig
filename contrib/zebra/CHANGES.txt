@@ -48,6 +48,8 @@ Trunk (unreleased changes)
 
   BUG FIXES
 
+    PIG-1145: Merge Join on Large Table throws an EOF exception (yanz)
+
     PIG-1095: Schema support of anonymous fields in COLECTION fails (yanz via
 	gates)
 
