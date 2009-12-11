@@ -268,7 +268,8 @@ public class LOFilter extends RelationalOperator {
                     .warn("Cannot prune columns in filter, no schema information found");
             return false;
         }
-        for (Pair<Integer, Integer> column : columns) {
+        for (int i=columns.size()-1;i>=0;i--) {
+            Pair<Integer, Integer> column = columns.get(i);
             if (column.first != 0) {
                 int errCode = 2191;
                 throw new FrontendException(
