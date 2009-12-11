@@ -1566,5 +1566,94 @@ public class TestPruneColumn extends TestCase {
         
         assertTrue(checkLogFileMessage(new String[]{"No column pruned for A", 
                 "No map keys pruned for A", "Columns pruned for B: $0, $1", "No map keys pruned for B"}));
-     }
+    }
+    
+    @Test
+    public void testFilter4() throws Exception {
+        pigServer.registerQuery("A = load '"+ Util.generateURI(tmpFile1.toString()) + "' AS (a0, a1, a2:int);");
+        pigServer.registerQuery("B = filter A by a2==3;");
+        pigServer.registerQuery("C = foreach B generate $2;");
+        
+        Iterator<Tuple> iter = pigServer.openIterator("C");
+        
+        assertTrue(iter.hasNext());
+        Tuple t = iter.next();
+        assertTrue(t.toString().equals("(3)"));
+        
+        assertFalse(iter.hasNext());
+        
+        assertTrue(checkLogFileMessage(new String[]{"Columns pruned for A: $0, $1", 
+                "No map keys pruned for A"}));
+    }
+    
+    @Test
+    public void testSplit3() throws Exception {
+        pigServer.registerQuery("A = load '"+ Util.generateURI(tmpFile1.toString()) + "' AS (a0, a1, a2:int);");
+        pigServer.registerQuery("split A into B if a2==3, C if a2<3;");
+        pigServer.registerQuery("C = foreach B generate $2;");
+        
+        Iterator<Tuple> iter = pigServer.openIterator("C");
+        
+        assertTrue(iter.hasNext());
+        Tuple t = iter.next();
+        assertTrue(t.toString().equals("(3)"));
+        
+        assertFalse(iter.hasNext());
+        
+        assertTrue(checkLogFileMessage(new String[]{"Columns pruned for A: $0, $1", 
+                "No map keys pruned for A"}));
+    }
+    
+    @Test
+    public void testOrderBy3() throws Exception {
+        pigServer.registerQuery("A = load '"+ Util.generateURI(tmpFile1.toString()) + "' AS (a0, a1, a2);");
+        pigServer.registerQuery("B = order A by a2;");
+        pigServer.registerQuery("C = foreach B generate a2;");
+        Iterator<Tuple> iter = pigServer.openIterator("C");
+        
+        assertTrue(iter.hasNext());
+        Tuple t = iter.next();
+        
+        assertTrue(t.size()==1);
+        assertTrue(t.toString().equals("(2)"));
+        
+        assertTrue(iter.hasNext());
+        t = iter.next();
+        
+        assertTrue(t.size()==1);
+        assertTrue(t.toString().equals("(3)"));
+
+        assertFalse(iter.hasNext());
+        
+        assertTrue(checkLogFileMessage(new String[]{"Columns pruned for A: $0, $1", 
+            "No map keys pruned for A"}));
+    }
+    
+    @Test
+    public void testCogroup9() throws Exception {
+        pigServer.registerQuery("A = load '"+ Util.generateURI(tmpFile1.toString()) + "' AS (a0, a1, a2);");
+        pigServer.registerQuery("B = load '"+ Util.generateURI(tmpFile1.toString()) + "' AS (b0, b1, b2);");
+        pigServer.registerQuery("C = load '"+ Util.generateURI(tmpFile1.toString()) + "' AS (c0, c1, c2);");
+        pigServer.registerQuery("D = cogroup A by a2, B by b2, C by c2;");
+        pigServer.registerQuery("E = foreach D generate $1, $2;");
+        Iterator<Tuple> iter = pigServer.openIterator("E");
+        
+        assertTrue(iter.hasNext());
+        Tuple t = iter.next();
+        
+        assertTrue(t.size()==2);
+        assertTrue(t.toString().equals("({(2,5,2)},{(2,5,2)})"));
+        
+        assertTrue(iter.hasNext());
+        t = iter.next();
+        
+        assertTrue(t.size()==2);
+        assertTrue(t.toString().equals("({(1,2,3)},{(1,2,3)})"));
+
+        assertFalse(iter.hasNext());
+        
+        assertTrue(checkLogFileMessage(new String[]{"Columns pruned for C: $0, $1", 
+            "No map keys pruned for C"}));
+    }
+
 }

@@ -822,7 +822,8 @@ public class LOCogroup extends RelationalOperator {
                     errCode, PigException.BUG);
         }
 
-        for (Pair<Integer, Integer> column : columns) {
+        for (int i=columns.size()-1;i>=0;i--) {
+            Pair<Integer, Integer> column = columns.get(i);
             if (column.first < 0 || column.first > predecessors.size()) {
                 int errCode = 2191;
                 throw new FrontendException("No input " + column.first

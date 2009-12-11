@@ -385,7 +385,8 @@ public class LOSort extends RelationalOperator {
         if (predecessors == null)
             return false;
 
-        for (Pair<Integer, Integer> column : columns) {
+        for (int i=columns.size()-1;i>=0;i--) {
+            Pair<Integer, Integer> column = columns.get(i);
             if (column.first != 0) {
                 int errCode = 2191;
                 throw new FrontendException(
