@@ -38,6 +38,9 @@ Trunk (unreleased changes)
   OPTIMIZATIONS
 
   BUG FIXES
+
+    PIG-1145: Merge Join on Large Table throws an EOF exception (yanz)
+
     PIG-1074 Zebra store function should allow '::' in column names in output
 	    schema (yanz via gates)
 
