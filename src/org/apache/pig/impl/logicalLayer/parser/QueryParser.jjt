@@ -2732,6 +2732,10 @@ LogicalOperator NestedSortOrArrange(Schema over, Map<String, LogicalOperator> sp
 		
 			lp.connect(eOp, sort);
 			log.debug("Connected alias " + eOp.getAlias() + " operator " + eOp.getClass().getName() + " to operator " + sort.getClass().getName() + " the logical plan");
+			
+			// set the correct schema for sort and eOp so that the ProjectStarTranslator
+			// can work the magic.
+			sort.getSchema();
 		} catch (PlanException planException) {
 			ParseException pe = new ParseException(planException.getMessage());
 			pe.initCause(planException); 

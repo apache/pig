@@ -1741,8 +1741,10 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
 
         sort = (LOSort)foreachPlan.getPredecessors(foreachPlan.getLeaves().get(0)).get(0);
 
+        // project (*) operator here is translated to a list of projection
+        // operators
         for(LogicalPlan sortPlan: sort.getSortColPlans()) {
-            assertTrue(checkPlanForProjectStar(sortPlan) == true);
+            assertTrue(checkPlanForProjectStar(sortPlan) == false);
         }
 
     }
