@@ -373,6 +373,7 @@ public class TableInputFormat implements InputFormat<BytesWritable, Tuple> {
 		 {
 			 throw new IOException("The table is not properly sorted");
 		 }
+		 setSorted(conf);
 	 } else {
 		 List<LeafTableInfo> leaves = expr.getLeafTables(null);
 		 for (Iterator<LeafTableInfo> it = leaves.iterator(); it.hasNext(); )

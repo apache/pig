@@ -1095,7 +1095,7 @@ class ColumnGroup {
         int index =
             cgindex.lowerBound(new ByteArray(key.get(), 0, key.getSize()),
                 comparator);
-        if (index > endIndex) {
+        if (index >= endIndex) {
           seekToEnd();
           return false;
         }

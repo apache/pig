@@ -1137,12 +1137,12 @@ public class BasicTable {
 
       @Override
       public boolean seekTo(BytesWritable key) throws IOException {
-        boolean first = false, cur;
+        boolean first = false, cur, firstset = false;
         for (int nx = 0; nx < cgScanners.length; nx++) {
           if (cgScanners[nx] == null)
             continue;
           cur = cgScanners[nx].seekTo(key);
-          if (nx != 0) {
+          if (firstset) {
             if (cur != first) {
               throw new IOException(
                   "seekTo() failed: Column Groups are not evenly positioned.");
@@ -1150,6 +1150,7 @@ public class BasicTable {
           }
           else {
             first = cur;
+            firstset = true;
           }
         }
         return first;
