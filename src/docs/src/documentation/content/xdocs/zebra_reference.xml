@@ -1,0 +1,700 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--  Copyright 2002-2004 The Apache Software Foundation
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+
+<!DOCTYPE document PUBLIC "-//APACHE//DTD Documentation V2.0//EN"
+          "http://forrest.apache.org/dtd/document-v20.dtd">
+  
+  <!-- BEGIN DOCUMENT-->
+  
+<document>
+<header>
+<title>Zebra Reference Guide</title>
+</header>
+<body>
+ 
+  <!-- ZEBRA TYPES-->
+   <section>
+   <title>Zebra Types</title>
+   <p>Zebra supports simple types (int, long, float, double, string, bytes), complex types (record, collection, map) and Booleans.  </p>
+   
+   	<table>
+		<tr><th> Zebra Type</th><th> Description </th></tr>
+		<tr>
+			<td>int</td>
+			<td>signed 32-bit integer</td>
+		</tr>
+		<tr>
+			<td>long</td>
+			<td>signed 64-bit integer</td>
+		</tr>
+		<tr>
+			<td>float</td>
+			<td>32-bit floating point</td>
+		</tr>	
+		<tr>
+			<td>double</td>
+			<td>64-bit floating point</td>
+		</tr>
+		<tr>
+			<td>string</td>
+			<td>character array (string) in Unicode UTF-8 format</td>
+		</tr>
+		<tr>
+			<td>bytes</td>
+			<td>byte array (blob)</td>
+		</tr>
+		<tr>
+			<td>record</td>
+			<td>An ordered set of fields. A field can be any Zebra type.</td>
+		</tr>
+		<tr>
+			<td>collection</td>
+			<td>A set of records. </td>
+		</tr>
+		<tr>
+			<td>map</td>
+			<td>A set of key/value pairs. The key is type string; the value can be any Zebra type.</td>
+		</tr>
+		<tr>
+			<td>bool</td>
+			<td>Boolean {0,1} false/true</td>
+		</tr>	
+    </table>
+   <p></p>
+    <p>Zebra type names are chosen to be as “technology neutral” as possible and are in resemblance to native types in modern programming languages.</p>
+       	<table>
+		<tr><th> Zebra</th><th>Pig</th><th>Avro</th><th>SQL</th></tr>
+		<tr>
+			<td>int</td>
+			<td>int</td>
+			<td>int</td>
+            <td>integer</td>
+		</tr>
+		<tr>
+			<td>long</td>
+			<td>long</td>
+			<td>long</td>
+			<td>long</td>
+		</tr>
+		<tr>
+            <td>float</td>
+            <td>float</td>
+            <td>float</td>
+            <td>float,real</td>
+		</tr>	
+		<tr>
+            <td>double</td>
+            <td>double</td>
+            <td>double</td>
+            <td>double precision</td>
+		</tr>
+		<tr>
+			<td>string</td>
+			<td>chararray</td>
+			<td>string</td>
+            <td>varchar</td>
+		</tr>
+		<tr>
+			<td>bytes</td>
+			<td>bytearray</td>
+			<td>bytes</td>
+            <td>raw</td>
+		</tr>
+		<tr>
+			<td>record</td>
+			<td>tuple</td>
+			<td>record</td>
+            <td>hash</td>
+		</tr>
+		<tr>
+			<td>collection</td>
+			<td>bag</td>
+			<td>array</td>
+            <td>list</td>
+		</tr>
+		<tr>
+			<td>map</td>
+			<td>map</td>
+			<td>map</td>
+            <td>hasp</td>
+		</tr>
+		<tr>
+			<td>bool</td>
+			<td>boolean</td>
+			<td>boolean</td>
+            <td>bool</td>
+		</tr>	
+    </table>
+    </section>
+ <!-- END ZEBRA TYPES-->
+ 
+ 
+   <!-- STORE SCHEMA SPECIFICATION -->
+   <section>
+   <title>Store Schema Specification</title>
+<p>The Zebra store schema is used to write or store Zebra columns and to specify column types. 
+The schema  supports data type compatibility and conversion between Zebra/Pig, Zebra/MapReduce, and Zebra/Streaming.
+(<em>In a future release, the schema will also support type compatibility between Zebra/Pig-SQL and will guide the underlying serialization formats provided by Avro for projection, filtering, and so on. </em>)
+</p>   
+   
+   <p>The basic format for the the store schema is shown here. 
+   The type name is optional; if not specified, the column defaults to type bytes.</p>
+   <p>
+<code>
+column_name[:type_name] [, column_name[:type_name] ... ]   
+</code>
+</p>
+   
+   <!-- SIMPLE TYPES -->
+   <section>
+   <title>Schemas for Simple Data Types</title>
+   <p>Simple data types include int, long, float, double, string, and bytes. The following syntax also applies to Booleans.</p>
+   
+<section>
+   <title>Syntax</title>
+   <p>field_alias[:type] [, field_alias[:type] …]</p>
+</section>   
+   
+   <section>
+   <title>Terms</title>
+   <table>
+		<tr>
+			<td>field_alias</td>
+			<td>The name assigned to the field column.</td>
+		</tr>
+	    <tr>
+			<td>:type</td>
+			<td>(Optional) The simple data type assigned to the field. <br></br>
+The alias and type are separated by a colon ( : ).<br></br>
+If the type is omitted, the field defaults to type bytes.
+</td>
+		</tr>
+	    <tr>
+			<td> ,</td>
+			<td>Multiple fields are separated by commas.</td>
+		</tr>
+    </table>
+</section>
+
+   <section>
+   <title>Examples</title>
+   <p>In this example the schema specifies names and types for 3 columns.</p>
+<source>
+ZebraSchema.createZebraSchema(jobconf, “s1:string, f1:float, i1:int”);
+</source>   
+   <p>In this example the schema specifies names for 3 columns; all 3 columns default to type bytes.</p>
+<source>
+ZebraSchema.createZebraSchema(jobconf, “f1, f2, f3”);
+</source> 
+</section>
+
+    </section>
+    
+    
+  <!-- RECORDS -->
+    <section>
+   <title>Schemas for Records</title>
+   <p>A record is an ordered set of fields. A field can be any Zebra type.</p>
+   
+   <section>
+   <title>Syntax</title>
+   <p>record_alias:record (field_alias[:type]) [,(field_alias[:type]) …] )</p>
+</section>   
+   
+   <section>
+   <title>Terms</title>
+   <table>
+		<tr>
+			<td>record_alias</td>
+			<td>The name assigned to the record column.</td>
+		</tr>
+	    <tr>
+			<td>:record</td>
+			<td>The record designator.</td>
+		</tr>
+	    <tr>
+			<td>(  )</td>
+			<td>The record notation, a set of parentheses.</td>
+		</tr>
+		<tr>
+			<td>field_alias</td>
+			<td>The name assigned to the field.</td>
+		</tr>
+	    <tr>
+			<td>:type</td>
+			<td>(Optional)  The type assigned to a field (can be any Zebra type).</td>
+		</tr>
+	    <tr>
+			<td>,</td>
+			<td>Multiple fields are separated by commas.</td>
+		</tr>		
+    </table>
+</section>
+
+   <section>
+   <title>Examples</title>
+   <p>In this example the schema specifies a record with two fields.  </p>
+<source>
+ZebraSchema.createZebraSchema(jobconf, “r1:record(f1:int,f2:long)”);
+</source>   
+   <p>In this example the schema specifies a record with two fields. Note that f2 will default to type bytes.</p>
+<source>
+ZebraSchema.createZebraSchema(jobconf, “r1:record(r2:record(f1:int,f2)”);
+</source> 
+</section>
+    </section>
+   
+   
+   <!-- COLLECTIONS -->
+   <section>
+   <title>Schemas for Collections</title>
+   <p>A collection is a set of records.</p>
+   <section>
+   <title>Syntax</title>
+   <p>collection_alias:collection (record)</p>
+</section>   
+   
+   <section>
+   <title>Terms</title>
+   <table>
+		<tr>
+			<td>collection_alias</td>
+			<td>The name assigned to the collection column.</td>
+		</tr>
+	    <tr>
+			<td>:collection</td>
+			<td>The collection designator.</td>
+		</tr>
+	    <tr>
+			<td>(  )</td>
+			<td>The collection notation, a set of parentheses.</td>
+		</tr>
+	    <tr>
+			<td> record</td>
+			<td>A record, specified one of two ways: <br></br>
+•	Explicit (see Record)<br></br>
+c1:collection(r1:record(f1:int,f2:long))”);<br></br>
+•	Implicit <br></br>
+c1:collection(f1:int,f2:long)”);
+</td>
+		</tr>		
+    </table>
+</section>
+
+   <section>
+   <title>Examples</title>
+   <p>In this example the schema specifies a collection with a record consisting of  two fields (explicit record notation).</p>
+<source>
+ZebraSchema.createZebraSchema(jobconf, “c1:collection(r1:record(f1:int,f2:long))”);
+</source>   
+   <p>In this example the schema specifies a collection with a  record consisting of  two fields (implicit record notation).</p>
+<source>
+ZebraSchema.createZebraSchema(jobconf, “c1:collection(f1:int,f2:long)”);
+</source> 
+</section>
+    </section>
+   
+   
+   <!-- MAPS -->
+   <section>
+   <title>Schemas for Maps</title>
+   <p>A map is a set of key/value pairs.</p>
+   <section>
+   <title>Syntax</title>
+   <p>map_alias:map (type)</p>
+</section>   
+   
+   <section>
+   <title>Terms</title>
+   <table>
+		<tr>
+			<td>map_alias</td>
+			<td>The name assigned to the map column.</td>
+		</tr>
+	    <tr>
+			<td>:map</td>
+			<td>The map designator.</td>
+		</tr>
+	    <tr>
+			<td>(  )</td>
+			<td>The map notation, a set of parentheses.</td>
+		</tr>
+	    <tr>
+			<td> type</td>
+			<td>The type assigned to the map’s value (can be any Zebra type). <br></br>
+Note that the map’s key is always type string and is not specified.
+</td>
+		</tr>
+    </table>
+</section>
+
+   <section>
+   <title>Examples</title>
+   <p>In this example the schema specifies a map with value of type string.</p>
+<source>
+ZebraSchema.createZebraSchema(jobconf, “m1:map(string)”);
+</source>   
+   <p>In this example the schema specifies a map with value of type map (with a value of type int).</p>
+<source>
+ZebraSchema.createZebraSchema(jobconf, “m2:map(map(int))”);
+</source> 
+</section>
+    </section> 
+       </section>  
+   <!-- END STORE SCHEMA SPECIFICATION -->
+   
+   
+   <!-- STORAGE SPECIFICATION -->
+   <section>
+   <title>Storage Specification</title>
+   
+ <p> The Zebra storage specification is used to specify column groups and the columns in those groups. 
+</p>
+ 
+ <p>
+ The storage specification describes the physical structure of a Zebra table where $PATH/tbl indicates the table_directory and column_group_name
+ indicates the subdirectories within the table_directory. The STORE statement below indicates the following: 
+ </p>
+ <ul>
+		<li>$PATH/mytable - directory</li>
+		<li>$PATH/mytable/A - subdirectory </li>
+		<li>$PATH/mytable/A/part00001 </li>
+		<li><em>etc ...</em></li>
+ </ul>
+
+<source>
+STORE A INTO '$PATH/mytable' USING org.apache.hadoop.zebra.pig.TableStorer('[a1, a2] AS A; [a3, a4, a5] AS B');
+</source>
+
+  <section>
+   <title>Specification</title>
+    <p>  The basic format for the Zebra storage specification is shown here. 
+ For this specification, note that the straight brackets <strong> [ ]</strong> designate a column group 
+ and the curly brackets { } designate an optional syntax component.</p>
+   
+<section>
+<title>Syntax</title>
+<p>
+<strong> [</strong>column_name {, column_name ...} <strong> ]</strong> {AS column_group_name} {COMPRESS BY compressor_name} {SERIALIZE BY serializer_name} <br></br>
+{; <strong> [</strong>column_name {, column_name ...} <strong> ]</strong> {AS column_group_name} {COMPRESS BY compressor_name} {SERIALIZE BY serializer_name} ... }
+</p>
+</section>
+
+<section>
+<title>Terms</title>
+   <table>
+		<tr>
+			<td><strong>[  ]</strong></td>
+			<td>Brackets designate a column group. Multiple column groups are separated by semi-colons.</td>
+		</tr>
+		
+	    <tr>
+			<td>AS column_group_name </td>
+			<td>Optional. The name of the column group. Column group names are unique within one table and are case sensitive: c1 and C1 are different. Column group names are used as the physical column group directory path names.
+			<br></br>If specified, the AS clause must immediately follow the column group [ ]. 
+			<br></br>If not specified, Zebra will assign unique default names for the table: CG0, CG1, CG2 ... (If CGx is specified by the programmer, then it cannot be used by Zebra.) 
+			</td>
+		</tr>
+	    <tr>
+			<td>COMPRESS BY compressor_name </td>
+			<td>Optional. Valid values for compressor_name include gz (default) and lzo. <br></br>If not specified, gz is used.</td>
+		</tr>		
+
+	    <tr>
+			<td>SERIALIZE BY serializer_name</td>
+			<td>Optional. Valid values for serializer_name include pig (default). (<em>In a future release, Avro will be available.</em>) <br></br>If not specified, pig is used.</td>
+		</tr>	
+	    <tr>
+			<td>column_name</td>
+			<td>The name of one or more columns that form the column group.</td>
+		</tr>	
+    </table>
+
+</section>
+
+<section>
+<title>Examples</title>
+<p>In this example, one column group is specified; the two statements are equivalent.</p>
+<source>
+STORE A INTO '$PATH' USING org.apache.hadoop.zebra.pig.TableStorer('[c1]');
+
+STORE A INTO '$PATH' USING org.apache.hadoop.zebra.pig.TableStorer('[c1] AS CG0 COMPRESS BY gz SERIALIZE BY pig;');
+</source>
+
+<p>In this example, two column groups are specified. The first column group, C1, has two columns. The second column group, C2, has three columns.</p>
+<source>
+STORE A INTO '$PATH' USING org.apache.hadoop.zebra.pig.TableStorer('[a1, a2] AS C1; [a3, a4, a5] AS C2');
+</source>
+
+</section>
+</section> 
+   
+   </section>
+   <!-- END STORAGE SPECIFICATION -->
+   
+   
+   <!-- LOAD SCHEMA SPECIFICATION -->
+   <section>
+   <title>Load Schema Specification</title>
+   
+   <p>The Zebra load schema is load or read table columns. </p>
+     <section>
+   <title>Schema</title>
+   <p>The basic format for the the Zebra load (read) schema is shown here. The column name can be any valid Zebra type.  
+   If no columns are specified, the entire Zebra table is loaded.</p>
+   <p>
+<code>
+column_name [, column_name ... ]   
+</code>
+   </p>
+   
+<section>
+<title>Terms</title>
+   <table>
+		<tr>
+			<td>column_name</td>
+			<td>The column name. Multiple columns are separated by commas.</td>
+		</tr>
+     </table>
+</section>   
+   
+   
+   <section>
+   <title>Example</title>
+   
+   <p>Three Pig examples are shown here.</p>
+   <source>
+-- All columns are loaded
+A = LOAD '$PATH/tbl1' USING org.apache.hadoop.pig.zebra.pig.TableLoader();
+   
+-- Two columns are projected
+B = LOAD '$PATH/tbl2' USING org.apache.hadoop.zebra.pig.TableLoader('c1,c2');
+   
+-- Three columns are projected: a simple field, a map, and a record
+C = LOAD '$PATH/tbl3' USING org.apache.hadoop.zebra.pig.TableLoader('c1,c2#{key1},col4.{f1}')
+</source>
+   </section>
+   </section>
+   </section>
+   <!-- END LOAD SCHEMA SPECIFICATION -->   
+
+   <!-- ZEBRA API-->
+   <section>
+   <title>Zebra MapReduce Interfaces</title>
+    <p>Zebra includes several classes for use in MapReduce programs. The main entry point into Zebra are the two classes for reading and writing tables, namely TableInputFormat and BasicTableOutputFormat. </p>
+
+    	<section>
+         <title>BasicTableOutputFormat  </title>    	
+    	<table>
+		<tr><th>Static</th><th>Method</th><th>Description</th></tr>
+		<tr>
+			<td>yes</td>
+			<td>void setOutputPath(JobConf, Path)  </td>
+			<td>Set the output path of the BasicTable in JobConf  </td>
+		</tr>
+		<tr>
+			<td>yes</td>
+			<td>Path[] getOutputPaths(JobConf) </td>
+			<td>Get the output paths of the BasicTable from JobConf </td>
+		</tr>
+		<tr>
+			<td>yes</td>
+			<td>void setStorageInfo(JobConf, ZebraSchema, ZebraStorageHint, ZebraSortInfo) </td>
+			<td>Set the table storage information (schema, storagehint, sortinfo) in JobConf</td>
+		</tr>
+			<tr>
+			<td>yes</td>
+			<td>Schema getSchema(JobConf)  </td>
+			<td>Get the table schema in JobConf  </td>
+		</tr>
+	    <tr>
+			<td>yes</td>
+			<td>BytesWritable generateSortKey(JobConf, Tuple)  </td>
+			<td>Generates a BytesWritable key for the input key </td>
+		</tr>
+		<tr>
+			<td>yes</td>
+			<td>String getStorageHint(JobConf)  </td>
+			<td>Get the table storage hint in JobConf  </td>
+		</tr>
+		<tr>
+			<td>yes</td>
+			<td>SortInfo getSortInfo(JobConf)  </td>
+			<td>Get the SortInfo object  </td>
+		</tr>
+		<tr>
+			<td>yes</td>
+			<td>void close(JobConf)  </td>
+			<td>Close the output BasicTable, No more rows can be added into the table  </td>
+		</tr>
+	   <tr>
+			<td>yes</td>
+			<td>void setMultipleOutputs(JobConf, String commaSeparatedLocs, Class &lt; extends ZebraOutputPartition&gt; theClass)  </td>
+			<td>Enables data to be written to multiple zebra tables based on the ZebraOutputPartition class. 
+			See <a href="zebra_mapreduce.html#Multiple+Table+Outputs">Multiple Table Outputs.</a></td>
+		</tr>
+    	</table> 
+        </section>
+        
+          	<section>
+         <title>TableInputFormat   </title>    
+    	<table>
+		<tr><th>Static</th><th>Method</th><th>Description</th></tr>
+		<tr>
+			<td>yes</td>
+			<td>void setInputPaths(JobConf, Path... paths)  </td>
+			<td>Set the paths to the input table </td>
+
+		</tr>
+		<tr>
+			<td>yes</td>
+			<td>Path[] getInputPaths(JobConf)  </td>
+			<td>Get the comma-separated paths to the input table or table union  </td>
+		</tr>
+		<tr>
+			<td>yes</td>
+			<td>Schema getSchema(JobConf)  </td>
+			<td>Get the schema of a table expr  </td>
+		</tr>
+		<tr>
+			<td>yes</td>
+			<td>void setProjection(JobConf, ZebraProjection)  </td>
+			<td>Set the input projection in the JobConf object  </td>
+		</tr>
+		<tr>
+			<td>yes</td>
+			<td>String getProjection(JobConf) </td>
+			<td>Get the projection from the JobConf </td>
+		</tr>
+		<tr>
+			<td>yes</td>
+			<td>SortInfo getSortInfo(JobConf)  </td>
+			<td>Get the SortInfo object regarding a Zebra table  </td>
+		</tr>
+		<tr>
+			<td>yes</td>
+			<td>void requireSortedTable(JobConf, String sortcolumns, BytesComparator comparator) </td>
+			<td>Requires sorted table or table union </td>
+		</tr>
+	    <tr>
+			<td> yes </td>
+			<td>TableRecordReader getTableRecordReader(JobConf, ZebraProjection) </td>
+			<td>Get a TableRecordReader on a single split </td>
+		</tr>
+		<tr>
+			<td>yes</td>
+			<td>void setMinSplitSize(JobConf, long minSize) </td>
+			<td>Set the minimum split size, default of 1M bytes </td>
+		</tr>
+    	</table>
+    	</section>
+
+    <section>
+    <title>TableRecordReader </title>
+    	<table>
+		<tr><th>Static</th><th>Method</th><th>Description</th></tr>
+		<tr>
+			<td>no</td>
+			<td>boolean seekTo(BytesWritable key) </td>
+			<td>Seek to the position at the first row which has the key (returning true) or just after the key(returning false); only applicable for sorted Zebra table.  </td>
+		</tr>
+    	</table>
+     </section>
+     
+     
+     
+     <section>
+         <title>ZebraOutputPartition </title>
+    	<table>
+		<tr><th>Static</th><th>Method</th><th>Description</th></tr>
+		<tr>
+			<td> no </td>
+			<td>public abstract int getOutputPartition(BytesWritable key, Tuple value) </td>
+			<td>Abstract method from ZebraOutputPartition abstract class. App implements this to stream data to different table  </td>
+		</tr>
+		<tr>
+			<td> no </td>
+			<td>void setConf(Configuration jobConf)  </td>
+			<td>Initialization routine giving JobConf to application. Zebra implements it  </td>
+		</tr>
+		<tr>
+			<td> no </td>
+			<td>Configuration getConf()  </td>
+			<td> returns JobConf. Zebra implements it</td>
+		</tr>
+		<tr>
+			<td>yes </td>
+			<td>Class&lt; extends ZebraOutputPartition&gt; getZebraOutputPartitionClass(JobConf conf) </td>
+			<td>return user implemented ZebraOutputPartition class  </td>
+		</tr>
+    	</table>
+   	   </section>
+   	   
+   	   
+    <section>
+    <title>ZebraProjection </title>
+    	<table>
+		<tr><th>Static</th><th>Method</th><th>Description</th></tr>
+		<tr>
+			<td>yes</td>
+			<td>ZebraProjection createZebraProjection(String) </td>
+			<td>Create a ZebraProjection object from a string representing projection information. </td>
+		</tr>
+    	</table>
+     </section>
+     
+    <section>
+    <title>ZebraSchema</title>
+    	<table>
+		<tr><th>Static</th><th>Method</th><th>Description</th></tr>
+		<tr>
+			<td>yes</td>
+			<td>ZebraSchema createZebraSchema(String)  </td>
+			<td>Create a ZebraStorageHint object from a string representing storage hint information.</td>
+		</tr>
+    	</table>
+     </section>     
+     
+    <section>
+    <title>ZebraStorageHint </title>
+    	<table>
+		<tr><th>Static</th><th>Method</th><th>Description</th></tr>
+		<tr>
+			<td>yes</td>
+			<td>ZebraStorageHint createZebraStorageHint(String) </td>
+			<td>Create a ZebraStorageHint object from a string representing storage hint information. </td>
+		</tr>
+    	</table>
+     </section>   
+     
+    <section>
+    <title>ZebraSortInfo </title>
+    	<table>
+		<tr><th>Static</th><th>Method</th><th>Description</th></tr>
+		<tr>
+			<td>yes</td>
+			<td>ZebraSortInfo createZebraSortInfo(String sortColumns, Class&lt; extends RawComparator &lt; Object &gt;&gt; comparatorClass) </td>
+			<td>Create a ZebraSortInfo object from a sort columns string and a comparator class. </td>
+		</tr>
+    	</table>
+     </section>   
+         </section>
+ <!-- END ZEBRA API--> 
+    
+ </body>
+ </document>
+  
+   

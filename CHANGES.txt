@@ -26,6 +26,8 @@ PIG-922: Logical optimizer: push up project (daijy)
 
 IMPROVEMENTS
 
+PIG-1147: Zebra Docs for Pig 0.6.0 (chandec via olgan)
+
 PIG-1129: Pig UDF doc: fieldsToRead function (chandec via olgan)
 
 PIG-1084: Pig 0.6.0 Documentation improvements  (chandec via olgan)
