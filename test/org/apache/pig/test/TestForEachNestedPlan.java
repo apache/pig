@@ -65,6 +65,23 @@ public class TestForEachNestedPlan extends TestCase {
         }
     }
 
+    @Test
+    public void testInnerOrderByStarWithSchema() throws Exception {        
+        File tmpFile = genDataSetFile1(false);
+        pig.registerQuery("a = load '" + Util.generateURI(tmpFile.toString()) + "' as (a0, a1);");
+        pig.registerQuery("b = group a by a0; ");
+        pig.registerQuery("c = foreach b { d = order a by *; "
+                + "  generate group, d; };");
+        Iterator<Tuple> it = pig.openIterator("c");
+        Tuple t = null;
+        int count = 0;
+        while (it.hasNext()) {
+            t = it.next();
+            System.out.println(count + ":" + t);
+            count++;
+        }
+        Assert.assertEquals(count, 10);
+    }
 
     /*
     @Test
