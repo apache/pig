@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-1147: Zebra Docs for Pig 0.6.0 (chandec via olgan)
+
 PIG-1129: Pig UDF doc: fieldsToRead function (chandec via olgan)
 
 PIG-978: MQ docs update (chandec via olgan)
