@@ -1,0 +1,234 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--  Copyright 2002-2004 The Apache Software Foundation
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+
+<!DOCTYPE document PUBLIC "-//APACHE//DTD Documentation V2.0//EN"
+          "http://forrest.apache.org/dtd/document-v20.dtd">
+  
+  <!-- BEGIN DOCUMENT-->
+  
+<document>
+<header>
+<title>Zebra Users Guide</title>
+</header>
+<body>
+ 
+
+
+  <!-- COLUMN SECURITY-->
+   <section>
+   <title>Column Security</title>
+   <p><strong>NOTE: THIS FEATURE IS EXPERIMENTAL AND SUBJECT TO CHANGE IN THE FUTURE</strong></p>
+   
+ <p>Since Zebra provides columnar storage of user data, we intend to separate secure and non-secure data into separate columns. We can then have access control based on HDFS file systesm based security. This would be achieved by an administrator setting appropriate permissions on the HDFS files contaning secure data. </p>
+ 
+ <section>
+ <title>Design Issues</title>
+<p>Roles:</p> 
+<ul>
+<li>Publishers of secure data </li>
+<li>Consumers of secure data </li>
+<li>Administrators of secure data </li>
+</ul>
+
+ <p>How it will work:</p>
+ <ul>
+
+<li>Before any data is written in tables, all the corresponding files and directories need to have right set of ownership and permissions. 
+This is necessary because if all the data is written and then the operation to make it secure is executed, that can leave security holes and paranoid will not allow that.</li>
+
+<li>All the files and direcories containing secure data will have same permissions and groups within a table </li>
+<li>User of the MR Job/Pig Script is required to have permissions to execute chgrp operations on a table. </li>
+<li>If no security information provided, then default behaviour.</li>
+<li>If permissions related error happens, it will be communicated to user as normal IOException </li>
+<li>If reader does not have read permissions for a column (CG), an IOException will be thrown </li>
+<li>The publisher/creator of the files will set these permissions when creating data.</li> 
+</ul>
+ </section>
+
+<p></p>   
+<p>One simple Pig example:</p>
+<source>
+a = load '/path_to_input_table' as (a:int, b:float,c:long,d:double);
+b = store a into '/path_to_output_table' using org.apache.hadoop.zebra.pig.TableStorer('[a, b] secure by group:secure perm:640');
+</source>
+
+<p>One simple MapReduce example:</p>
+<source>
+zStorageHint = ZebraStorageHint.createZebraStorageHint(“[a, b] secure by group:secure perm:640”);
+zSchema = …;
+zSortInfo = …;
+setStorageInfo(jobConf, zSchema, zStorageHint, zSortInf);
+</source>
+    </section>
+  <!-- END COLUMN SECURITY -->  
+  
+   <!-- DROP COLUMN GROUPS -->    
+    <section>
+   <title>Drop Column Groups</title>
+   <p><strong>NOTE: THIS FEATURE IS EXPERIMENTAL AND SUBJECT TO CHANGE IN THE FUTURE</strong></p>
+   
+   <p>Zebra allows you to delete a column group using the column group name. 
+   For examples, see <a href="zebra_mapreduce.html#Drop+Column+Groups">Drop Column Groups</a>.  </p>
+  
+<p>Please note the following:</p>
+<ul>
+<li>Any failures during a drop will leave the table in consistent state (either with or with out the column group). 
+While success of a CG removal guarantees a column removal, a failure does not imply CG is not removed. 
+In rare cases, you might receive an error but the column could still be deleted. </li>
+<li>MapReduce jobs and other clients that are currently accessing the table might fail with exceptions. 
+It is recommended that the column groups are dropped when there are no accesses to a table. 
+It might not be feasible to ensure that there are no readers for a table; in these cases the readers should handle the exception. </li>
+<li>Once a column group is dropped, the column gruop data is deleted from the underlying filesystem. 
+In the case of HDFS, it may not imply that physical data is actually removed because of earlier snapshot of the filesystem; handling this is out side the scope of Zebra. Legal requirements might require an admin finalize HDFS (if it is not already finalized) before or after performing a deletion. </li>
+<li>Concurrent deletions are supported and their access is serialized. </li>
+<li>Deleting a non-existant column group or a column group that is already deleted is not allowed.</li>
+<li>If you delete all the remaining columns in a table, it logically leaves an empty null table. The difference between a non-existant table and a table with zero columns is that opening a non-existant table causes an error. </li>
+ </ul>  
+ </section>   
+   <!-- END DROP COLUMN GROUPS -->    
+   
+   <!-- ORDER PRESERVE SORT-->    
+    <section>
+   <title>Order-Preserving Sorted Table Union</title>
+<p>
+This Zebra functionality is only available on underlying sorted Zebra tables. 
+</p>
+
+<section>
+<title>Output Records</title>
+<p>
+This feature groups all records from all "delta tables" on some sort key to form an output set of records while preserving the sorted ordering of the records in the origional tables. For instance, if the client application wants to fetch records from a union of tables of T1, T2 on a column "c1", then all records from T1 with a particular value of column "c1" and all records from T2 with that value of column "c1" will be output. The ordering of the rows of the output set of the same value of column "c1" is undefined. As a prerequisite, both T1 and T2 must be sorted on column "c1". More specifically the input and results could be as follows: 
+</p>
+
+<p>Table T1: </p>
+<source>
+C1    C2  
+--------------
+A     11  
+A     12  
+B     21  
+B     22  
+D     41  
+</source>
+
+<p>Table T2: </p>
+<source>
+C1    C2 
+------------- 
+A     101  
+A     102  
+C     301  
+D     401  
+</source>
+
+<p>T1 Sort-Unioned with T2: </p>
+<source>
+source_table  	 C1     C2
+---------------------------------------
+0                A      11  
+1                A      101  
+0                A      12  
+1                A      102  
+0                B      21  
+0                B      22  
+1                C      301  
+1                D      401  
+0                D      41  
+</source>
+</section>
+
+<p>
+Note that the sortness is guaranteed per mapper and among all mappers arranged with certain ordering, but not among mappers arranged in any ordering. For instance, the outputs generated by 4 mappers, m1, m2, m3 and m4, could be in total ordering between m1, m3, m2 and m4, but not in any other arrangements. 
+</p>
+
+<section>
+<title>Grouping and Indexing of Sort-Unioned Output Rows </title>
+<p>
+The order preserving sort-unioned results above could be further indexed by the component tables if the projection contains column(s) named "source_table". If so specified, the component table index will be output at the position(s) as specified in the projection list. If the underlying table is not a union of sorted tables, use of the special column name in projection will cause an exception thrown. 
+</p>
+
+<p>
+If an attempt is made to create a table of a column named "source_table", an excpetion will be thrown as the name is reserved by zebra for the virtual name. 
+</p>
+</section>
+
+<section>
+<title>MapReduce Interface </title>
+<p>
+TableInputFormat will have a static method, requireSortedTable, that allows the caller to specify the behavior of a single sorted table or an order preserving sorted table union as described above. The method will ensure all tables in a union are sorted. For  more information, see <a href="zebra_reference.html#TableInputFormat">TableInputFormat</a>.
+</p>
+
+<p>One simple example: A order-preserving sorted union B. A and B are sorted tables. </p>
+<source>
+...
+TableInputFormat.setInputpaths("path_to_A, path_to_B"); 
+TableInputFormat.requireSortedTable(); 
+TableInputFormat.setProjection(conf, "f1, f2, source_table"); 
+...
+</source>
+</section>
+
+<section>
+<title>Pig Interface </title>
+<p>Pig will take an extra string argument of "sorted" indicating the desire to load from a sorted table or an order preserving sorted table union. 
+For  more information, see <a href="zebra_pig.html#Zebra+Pig+Examples">Zebra Pig Examples</a>.</p> 
+
+<p>One simple example:</p> 
+<source>
+...
+T = load ('path_to_A, path_to_B') using TableLoader('f1, f2, source_table', 'sorted'); 
+...
+</source>
+  </section>
+  
+</section>
+<!-- END ORDER PRESERVE SORT-->   
+
+  <!--MERGE JOIN-->
+   <section>
+   <title>Merge Join and Sorted Tables</title>
+   
+<p>In data pipelines, there is often a need to join datasets. Zebra supports merge join on Zebra tables. 
+For  more information, see <a href="zebra_pig.html#Map-Side+Group+and+Merge+Join">Merge Join</a>.</p>
+   
+<p>One simple example:</p> 
+<source>
+Class myMapper {
+…
+Object keyGenerator;
+…
+
+public void map(…) {
+   bytesKey = BasicTableOutputFormat.getSortKey(keyGenerator, userKey);
+   …
+   output.collect(bytesKey, valueTuple);
+   …
+}
+
+public void configure(JobConf job)
+{
+    keyGenerator = BasicTableOutputFormat.getSortKeyGenerator(job);
+…
+}
+</source>   
+   
+   </section>
+   <!--END MERGE JOIN-->
+    
+ </body>
+ </document>
+  
+   

@@ -1,0 +1,189 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--  Copyright 2002-2004 The Apache Software Foundation
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+
+<!DOCTYPE document PUBLIC "-//APACHE//DTD Documentation V2.0//EN"
+          "http://forrest.apache.org/dtd/document-v20.dtd">
+  
+  <!-- BEGIN DOCUMENT-->
+  
+<document>
+<header>
+<title>Zebra and Pig</title>
+</header>
+<body>
+ 
+ <!-- OVERVIEW-->
+   <section>
+   <title>Overview</title>
+   <p>With Pig you can load and store data in Zebra format. You can also take advantage of sorted Zebra tables for map-side groups and merge joins. When working with Pig keep in mind that, unlike MapReduce, you do not need to declare Zebra schemas. Zebra automatically converts Zebra schemas to Pig schemas (and vice versa) for you.</p>
+
+ </section>
+ <!-- END OVERVIEW-->
+ 
+ 
+ <!-- ZEBRA EXAMPLES-->
+   <section>
+   <title>Zebra Pig Examples</title>
+<p></p>
+
+   
+    <!--example: loading data-->
+    <section>
+   <title>Loading Data</title>
+ <p>To load data stored in Zebra format (columns) use the TableLoader function.</p>
+ <source>
+register $LOCATION/zebra-$version.jar;
+A = LOAD 'studenttab' USING org.apache.hadoop.zebra.pig.TableLoader();
+B = FOREACH A GENERATE name, age, gpa;
+</source>
+  
+ <p>There are a couple of things to note:</p>
+ <ol>
+ <li>You need to register a Zebra jar file the same way you would do it for any other UDF.</li>
+ <li>You need to place the jar on your classpath.</li>
+ <li>When using Zebra with Pig, Zebra data is self-described and always contains a schema. This means that the AS clause is unnecessary as long as 
+  you know what the column names and types are. To determine the column names and types, you can run the DESCRIBE statement right after the load:
+ <source>
+A = LOAD 'studenttab' USING org.apache.hadoop.zebra.pig.TableLoader();
+DESCRIBE A;
+a: {name: chararray,age: int,gpa: float}
+</source>
+ </li>
+ </ol>
+   
+<p>You can provide alternative names to the columns with the AS clause. You can also provide types as long as the 
+ original type can be converted to the new type. <em>In general</em>, Zebra supports Pig type compatibilities 
+ (see <a href="piglatin_reference.html#Arithmetic+Operators+and+More">Arithmetic Operators and More</a>).</p>
+ 
+<p>You can provide multiple, comma-separated files to the loader:</p>
+<source>
+A = LOAD 'studenttab, votertab' USING org.apache.hadoop.zebra.pig.TableLoader();
+</source>
+
+<p>TableLoader supports efficient column selection; projections are automatically push down to the loader. This example tells the loader to only return two columns, name and age.</p>
+<source>
+A = LOAD 'studenttab' USING org.apache.hadoop.zebra.pig.TableLoader('name, age');
+</source>
+ </section>
+ <!--end example: loading data-->
+ 
+ <!--example: map-side data-->
+ <section>
+ <title>Map-Side Group and Merge Join</title>
+
+<p>If the input data is globally sorted, map-side group or merge join can be used. Please, notice the “sorted” argument passed to the loader. This lets the loader know that the data is expected to be globally sorted and that a single key must be given to the same map.</p>
+
+<p>Here is an example of the merge join. Note that the first argument to the loader is left empty to indicate that all columns are requested.</p>
+<source>
+A = LOAD'studentsortedtab' USING org.apache.hadoop.zebra.pig.TableLoader('', 'sorted');
+B = LOAD 'votersortedtab' USING org.apache.hadoop.zebra.pig.TableLoader('', 'sorted');
+G = JOIN A BY $0, B By $0 USING "merge";
+</source>
+
+<p>Here is an example of a map-side group. Note that multiple sorted files are passed to the loader and that the loader will perform sort preserving merge to make sure that the data is globally sorted.</p>
+<source>
+A = LOAD 'studentsortedtab, studentnullsortedtab' using org.apache.hadoop.zebra.pig.TableLoader('name, age, gpa, source_table', 'sorted');
+B = GROUP A BY $0 USING "collected";
+C = FOREACH B GENERATE group, MAX(a.$1);
+</source>
+ </section>
+<!--end example: map-side data-->
+    
+    
+    
+    <!--example: storing data-->
+    <section>
+   <title>Storing Data</title>
+   <p>To store data in Zebra format use the TableStorer function. Since Zebra does not support anonymous columns, the relation that is stored must have a name (alias) assigned to every column in the relation.</p>
+<source>
+A = LOAD 'studentsortedtab, studentnullsortedtab' USING org.apache.hadoop.zebra.pig.TableLoader('name, age, gpa, source_table', 'sorted');
+B = GROUP A BY $0 USING "collected";
+C = FOREACH B GENERATE group, MAX(a.$1) AS max_val;
+STORE C INTO 'output' USING org.apache.hadoop.zebra.pig.TableStorer('');
+</source>
+</section>
+    <!--end example: storing data-->
+    
+    
+    
+    <!--example: simple types-->
+   <section>
+    <title>Simple Types</title>
+    <source>
+-- The following line is required if the Zebra jar is not part of Hadoop Core
+
+REGISTER $LOCATION/zebra-$version.jar;
+
+-- Load an existing table (a projection string is not specified so all the columns will be loaded)
+
+A = LOAD '$PATH/tbl1' USING org.apache.hadoop.pig.zebra.pig.TableLoader();
+
+-- Store in table format with storage hint '[c1];[c2]' which mean two Column Groups with one column each (note that you do not specify a schema)
+
+STORE A INTO '$PATH/tbl2' USING org.apache.hadoop.zebra.pig.TableStorer('[c1] COMPRESS BY gz; SERIALIZE BY pig;[c2]');
+
+-- Load an existing table (two columns are projected)
+
+B = LOAD '$PATH/tbl3' USING org.apache.hadoop.zebra.pig.TableLoader('c1,c2');
+
+-- Load an existing table (one column is projected)
+
+C = LOAD '$PATH/tbl4' USING org.apache.hadoop.zebra.pig.TableLoader('c2');   
+    </source>
+   </section>
+   <!--end example: simple types-->
+    
+    
+   <!--example: complex types-->
+   <section>
+    <title>Complex Types</title>
+    <source>
+-- The following line is required if the Zebra jar is not part of Hadoop Core
+
+register $LOCATION/zebra-$version.jar;
+
+-- STR_SCHEMA = 
+-- "s1:bool, s2:int, s3:long, s4:float, s5:string, s6:bytes,
+--  r1:record(f1:int, f2:long), r2:record(r3:record(f3:float, f4)), 
+--  m1:map(string),m2:map(map(int)), 
+--  c:collection(f13:double, f14:float, f15:bytes)";
+
+-- STR_STORAGE = 
+-- "[s1, s2]; [m1#{a}]; [r1.f1]; [s3, s4, r2.r3.f3]; 
+--  [s5, s6, m2#{x|y}]; [r1.f2, m1#{b}]; [r2.r3.f4, m2#{z}]";
+
+
+-- Load an existing table (two columns are projected)
+
+A = LOAD '$PATH/tbl1' USING org.apache.hadoop.zebra.pig.TableLoader('r1.f2, s1');
+
+-- Store in table format (all columns are stored in one column group)
+
+STORE A INTO '$PATH/tbl2' USING org.apache.hadoop.zebra.pig.TableStorer('');
+
+-- Load an existing table (two columns are projected)
+
+B = LOAD '$PATH/tbl3' USING org.apache.hadoop.zebra.pig.TableLoader('s1, r1');    
+    </source>
+   </section>    
+   <!--end example: complex types--> 
+    </section>
+  <!-- END ZEBRA EXAMPLES-->    
+  
+ </body>
+ </document>
+  
+   

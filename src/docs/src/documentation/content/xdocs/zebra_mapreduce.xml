@@ -1,0 +1,606 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--  Copyright 2002-2004 The Apache Software Foundation
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+
+<!DOCTYPE document PUBLIC "-//APACHE//DTD Documentation V2.0//EN"
+          "http://forrest.apache.org/dtd/document-v20.dtd">
+  
+  <!-- BEGIN DOCUMENT-->
+  
+<document>
+<header>
+<title>Zebra and MapReduce</title>
+</header>
+<body>
+ 
+ 
+ <!-- OVERVIEW-->
+   <section>
+   <title>Overview</title>
+   <p>MapReduce allows you to take full advantage of Zebra's capabilities.</p>
+   </section>
+ <!-- END OVERVIEW-->
+
+<!-- HADOOP M/R API-->
+    <section>
+   <title>Hadoop MapReduce APIs</title> 
+  <p>Zebra requires Hadoop 20. However, this release of Zebra only supports the "old" jobconf-style MapReduce APIs. </p>
+   <ul>
+   <li>"old" mapreduce API - org.apache.hadoop.mapred.* - supported</li>
+   <li>"new" mapreduce API - org.apache.hadoop.mapreduce.* - not supported</li>
+   </ul>
+   <p></p>
+    </section>
+<!-- END HADOOP M/R API--> 
+
+ 
+ <!-- ZEBRA M/R EXAMPLES-->
+<section>
+<title>Zebra MapReduce Examples</title> 
+ 
+ 
+
+ 
+ <!-- ZEBRA OUTPUT EXAMPLE-->
+<section>
+<title>Table Output Format</title>
+<p>This MapReduce example demonstrates the Zebra table output format. 
+The Zebra table in this example has two unsorted columns groups, each of which has one column. 
+The output format is specified as follows:</p>
+
+<source>
+BasicTableOutputFormat.setStorageInfo(jobConf, 
+    ZebraSchema.createZebraSchema("word:string, count:int"), 
+    ZebraStorageHint.createZebraStorageHint("[word];[count]"), 
+    null);
+</source>
+
+<p><br></br>The input file for this example should contain rows of word and count, separated by a space. For example:</p>
+
+<source>
+this 2
+is 1
+a 5
+test 2
+hello 1
+world 3
+</source>
+
+<p>
+The example works like this. The first job is in Zebra format. The second job reads output from the first job, where Count is specified as a projection column. 
+The table input format projects an input row which has both Word and Count into a row containing only the Count column and hands it to map. 
+The reducer sums the counts and produces a sum of counts which should match total number of words in original text.
+</p>
+
+<source>
+package org.apache.hadoop.zebra.mapred;
+
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.conf.Configured;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.BytesWritable;
+import org.apache.hadoop.io.IntWritable;
+import org.apache.hadoop.io.LongWritable;
+import org.apache.hadoop.io.Text;
+import org.apache.hadoop.mapred.*;
+import org.apache.hadoop.util.Tool;
+import org.apache.hadoop.util.ToolRunner;
+import org.apache.pig.data.Tuple;
+import org.apache.hadoop.zebra.parser.ParseException;
+import org.apache.hadoop.zebra.schema.Schema;
+import org.apache.hadoop.zebra.types.TypesUtils;
+
+import java.io.IOException;
+import java.util.Iterator;
+
+public class TableMapReduceExample extends Configured implements Tool {
+
+  static class Map extends MapReduceBase implements Mapper&lt;LongWritable, Text, BytesWritable, Tuple&gt; {
+    private BytesWritable bytesKey;
+    private Tuple tupleRow;
+
+    /**
+     * Map method for reading input.
+     */
+    @Override
+    public void map(LongWritable key, Text value,
+                    OutputCollector&lt;BytesWritable, Tuple&gt; output, Reporter reporter)
+        throws IOException {
+
+      // value should contain "word count"
+      String[] wordCount = value.toString().split(" ");
+      if (wordCount.length != 2) {
+        // LOG the error
+        throw new IOException("Value does not contain two fields:" + value);
+      }
+
+      byte[] word = wordCount[0].getBytes();
+      bytesKey.set(word, 0, word.length);
+      tupleRow.set(0, new String(word));
+      tupleRow.set(1, Integer.parseInt(wordCount[1]));
+
+      output.collect(bytesKey, tupleRow);
+    }
+
+    /**
+     * Configuration of the job. Here we create an empty Tuple Row.
+     */
+    @Override
+    public void configure(JobConf job) {
+      bytesKey = new BytesWritable();
+      try {
+        Schema outSchema = BasicTableOutputFormat.getSchema(job);
+        tupleRow = TypesUtils.createTuple(outSchema);
+      } catch (IOException e) {
+        throw new RuntimeException(e);
+      } catch (ParseException e) {
+        throw new RuntimeException(e);
+      }
+    }
+  }
+
+  static class ProjectionMap extends MapReduceBase implements Mapper&lt;BytesWritable, Tuple, Text, IntWritable&gt; {
+    private final static Text all = new Text("All");
+
+    /**
+     * Map method which gets count column after projection.
+     *
+     * @throws IOException
+     */
+    @Override
+    public void map(BytesWritable key, Tuple value,
+                    OutputCollector&lt;Text, IntWritable&gt; output, Reporter reporter)
+        throws IOException {
+      output.collect(all, new IntWritable((Integer) value.get(0)));
+    }
+  }
+
+  public static class ProjectionReduce extends MapReduceBase implements Reducer&lt;Text, IntWritable, Text, IntWritable&gt; {
+    /**
+     * Reduce method which implements summation. Acts as both reducer and combiner.
+     *
+     * @throws IOException
+     */
+    public void reduce(Text key, Iterator&lt;IntWritable&gt; values, OutputCollector&lt;Text, IntWritable&gt; output, Reporter reporter) throws IOException {
+      int sum = 0;
+      while (values.hasNext()) {
+        sum += values.next().get();
+      }
+      output.collect(key, new IntWritable(sum));
+    }
+  }
+
+  /**
+   * Where jobs and their settings and sequence is set.
+   *
+   * @param args arguments with exception of Tools understandable ones.
+   */
+  public int run(String[] args) throws Exception {
+    if (args == null || args.length != 3) {
+      System.out.println("usage: TableMapReduceExample input_path_for_text_file output_path_for_table output_path_for_text_file");
+      System.exit(-1);
+    }
+
+    /*
+       First MR Job creating a Table with two columns
+     */
+    JobConf jobConf = new JobConf();
+    jobConf.setJobName("TableMapReduceExample");
+    jobConf.set("table.output.tfile.compression", "none");
+
+    // Input settings
+    jobConf.setInputFormat(TextInputFormat.class);
+    jobConf.setMapperClass(Map.class);
+    FileInputFormat.setInputPaths(jobConf, new Path(args[0]));
+
+    // Output settings
+    jobConf.setOutputFormat(BasicTableOutputFormat.class);
+    BasicTableOutputFormat.setOutputPath(jobConf, new Path(args[1]));
+
+    // set the output info:
+    // ZebraSchema - 2 logical columns
+    // ZebraStorageHint - 2 physical column groups (one column each)
+    // ZebraSortInfo - unsorted table (null)
+    
+    BasicTableOutputFormat.setStorageInfo(jobConf, 
+        ZebraSchema.createZebraSchema("word:string, count:int"),
+        ZebraStorageHint.createZebraStorageHint("[word];[count]"), 
+        null);
+
+    // set map-only job.
+    jobConf.setNumReduceTasks(0);
+
+    // Run Job
+    JobClient.runJob(jobConf);
+
+    /*
+      Second MR Job for Table Projection of count column
+    */
+    JobConf projectionJobConf = new JobConf();
+    projectionJobConf.setJobName("TableProjectionMapReduceExample");
+
+    // Input settings
+    projectionJobConf.setMapperClass(ProjectionMap.class);
+    projectionJobConf.setInputFormat(TableInputFormat.class);
+    TableInputFormat.setProjection(projectionJobConf, "count");
+    TableInputFormat.setInputPaths(projectionJobConf, new Path(args[1]));
+    projectionJobConf.setMapOutputKeyClass(Text.class);
+    projectionJobConf.setMapOutputValueClass(IntWritable.class);
+
+    // Output settings
+    projectionJobConf.setOutputFormat(TextOutputFormat.class);
+    FileOutputFormat.setOutputPath(projectionJobConf, new Path(args[2]));
+    projectionJobConf.setReducerClass(ProjectionReduce.class);
+    projectionJobConf.setCombinerClass(ProjectionReduce.class);
+
+    // Run Job
+    JobClient.runJob(projectionJobConf);
+
+    return 0;
+  }
+
+  public static void main(String[] args) throws Exception {
+    int res = ToolRunner.run(new Configuration(), new TableMapReduceExample(), args);
+    System.exit(res);
+  }
+}
+</source>
+</section>
+ <!-- END ZEBRA TABLE OUTPUT EXAMPLE-->
+ 
+ 
+  <!-- ZEBRA OUTPUT EXAMPLE-->
+<section>
+<title>Table Input/Output Formats</title> 
+<p>This MapReduce example demonstrates the Zebra table input/output formats. </p>
+ <source>
+ package org.apache.hadoop.zebra.mapred;
+
+import java.io.IOException;
+import java.util.List;
+import java.util.ArrayList;
+
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.BytesWritable;
+import org.apache.hadoop.mapred.JobClient;
+import org.apache.hadoop.mapred.JobConf;
+import org.apache.hadoop.mapred.Mapper;
+import org.apache.hadoop.mapred.OutputCollector;
+import org.apache.hadoop.mapred.Reporter;
+import org.apache.hadoop.zebra.mapred.BasicTableOutputFormat;
+import org.apache.hadoop.zebra.mapred.TableInputFormat;
+import org.apache.hadoop.zebra.parser.ParseException;
+import org.apache.hadoop.zebra.schema.Schema;
+import org.apache.hadoop.zebra.types.TypesUtils;
+import org.apache.pig.data.Tuple;
+
+/**
+ * This is a sample to show using zebra table to do a simple basic union in
+ * map/reduce * To run this, we need have two basic tables ready. They contain
+ * the data as in Sample 1, i.e., (word, count). In this example, they are at:
+ * /user/mapredu/t1 /user/mapredu/t2 The resulting table is put at: /user/mapredu2/t1
+ * 
+ */
+public class TableMRSample2 {
+  static class MapClass implements
+      Mapper&lt;BytesWritable, Tuple, BytesWritable, Tuple&gt; {
+    private BytesWritable bytesKey;
+    private Tuple tupleRow;
+
+    @Override
+    public void map(BytesWritable key, Tuple value,
+        OutputCollector&lt;BytesWritable, Tuple&gt; output, Reporter reporter)
+        throws IOException
+
+    {
+      System.out.println(key.toString() + value.toString());
+      output.collect(key, value);
+    }
+
+    @Override
+    public void configure(JobConf job) {
+      bytesKey = new BytesWritable();
+      try {
+        Schema outSchema = BasicTableOutputFormat.getSchema(job);
+        tupleRow = TypesUtils.createTuple(outSchema);
+      } catch (IOException e) {
+        throw new RuntimeException(e);
+      } catch (ParseException e) {
+        throw new RuntimeException(e);
+      }
+    }
+
+    @Override
+    public void close() throws IOException {
+      // no-op
+    }
+
+    public static void main(String[] args) throws ParseException, IOException {
+      JobConf jobConf = new JobConf();
+      jobConf.setJobName("tableMRSample");
+      jobConf.set("table.output.tfile.compression", "gz");
+
+      // input settings
+      jobConf.setInputFormat(TableInputFormat.class);
+      jobConf.setOutputFormat(BasicTableOutputFormat.class);
+      jobConf.setMapperClass(TableMRSample2.MapClass.class);
+
+      List
+      &lt;Path&gt; paths = new ArrayList&lt;Path&gt;(2);
+      Path p = new Path("/user/mapredu/t1");
+      System.out.println("path = " + p);
+      paths.add(p);
+      p = new Path("/user/mapredu/t2");
+      paths.add(p);
+
+      TableInputFormat.setInputPaths(jobConf, paths.toArray(new Path[2]));
+      ZebraProjection zebraProjection = ZebraProjection.createZebraProjection("word"); 
+      TableInputFormat.setProjection(jobConf, zebraProjection);
+      BasicTableOutputFormat.setOutputPath(jobConf, new Path("/user/mapredu2/t1"));
+
+      ZebraSchema zebraSchema = ZebraSchema.createZebraSchema("word:string");
+      ZebraStorageHint zebraStorageHint = ZebraStorageHint.createZebraStorageHint("[word]");
+      BasicTableOutputFormat.setStorageInfo(jobConf, zebraSchema, zebraStorageHint, null);
+
+      // set map-only job.
+      jobConf.setNumReduceTasks(0);
+      jobConf.setNumMapTasks(2);
+      JobClient.runJob(jobConf);
+    }
+  }
+}
+</source>
+ </section>
+ <!-- END ZEBRA OUTPUT EXAMPLE-->
+
+ <!-- ZEBRA SORT EXAMPLE-->
+<section>
+<title>Sort Columns</title>
+<p>This MapReduce code snippet demonstrates how to sort Zebra columns. </p>
+
+<source>
+/* user provides a Comparator Class for creating ZebraSortInfo */
+    
+public static final class MemcmpRawComparator implements
+    RawComparator&lt;Object&gt;, Serializable {
+      @Override
+        public int compare(byte[] b1, int s1, int l1, byte[] b2, int s2, int l2) {
+          return WritableComparator.compareBytes(b1, s1, l1, b2, s2, l2);
+      }
+
+      @Override
+      public int compare(Object o1, Object o2) {
+        throw new RuntimeException("Object comparison not supported");
+      }
+}
+
+…
+… 
+
+ZebraSchema zSchema = ZebraSchema.createZebraSchema(schemaString);
+    
+ZebraStorageHint zStorageHint = ZebraStorageHint.createZebraStorageHint(storageHintString);
+    
+/* Here we can use above Comparator Class to create a ZebraSortInfo object */
+    
+ZebraSortInfo zSortInfo = ZebraSortInfo.createZebraSortInfo(sortColumnsString, MemcmpRawComparator.class); 
+    
+BasicTableOutputFormat.setStorageInfo(jobConf, zSchema, zStorageHint, zSortInfo);
+</source>
+</section>
+ <!-- END ZEBRA SORT EXAMPLE-->
+
+
+ <!-- ZEBRA DROP-CG EXAMPLE-->
+<section>
+<title>Drop Column Groups</title>
+<p>
+This example illustrates how to drop column groups (CG) in Zebra tables. 
+This is not a MapReduce program since the API for deleting columg groups is a simple Java API.
+</p>
+
+<p>How to compile:</p>
+<source>
+# this command requires pig.jar and latest zebra jar. 
+$ javac -cp pig.jar:zebra-0.1.0.jar DropColumnGroupExample.java
+ 
+# create a jar file
+$ jar cvf dropcg.jar DropColumnGroupExample.class
+</source>
+
+<p>How to run:</p>
+<source>
+# run the example.
+$ java -cp pig.jar:zebra-0.1.0.jar:dropcg.jar DropColumnGroupExample
+ 
+# This creates a table under the directory "dropCGExample".
+# If run the same command again, it fails since the destination
+# directory still exists. Please remove the directory before running.
+
+#This program takes one argument : directory for the example table
+$ java -cp pig.jar:zebra-0.1.0.jar:dropcg.jar DropColumnGroupExample tableDir
+</source>
+
+<p>Source code:</p>
+<source>
+import java.io.IOException;
+
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.BytesWritable;
+import org.apache.hadoop.util.GenericOptionsParser;
+import org.apache.hadoop.zebra.io.BasicTable;
+import org.apache.hadoop.zebra.io.TableInserter;
+import org.apache.hadoop.zebra.io.TableScanner;
+import org.apache.hadoop.zebra.types.TypesUtils;
+import org.apache.pig.data.Tuple;
+
+public class DropColumnGroupExample {
+
+  private static String schema = "url, outcount:int, content:string";
+  private static String storageHint = "[url, outcount]; [content] as data";  
+  
+  public static void main(String[] args) throws Exception {
+    
+    // Create configuration and process generaic Hadoop options like -D.
+    Configuration conf = new Configuration();
+    args = new GenericOptionsParser(conf, args).getRemainingArgs();
+    
+    Path path = new Path((args.length > 0 ? args[0] : "dropCGExample"));
+    
+    if (path.getFileSystem(conf).exists(path)) {
+      throw new IOException("Destination path '" + path + "' already exists. " +
+                            "Please remove the directory and run again.");
+    }
+    // create a simple table. 
+    createTable(conf, path);
+    
+    //verify we can read the table.
+    String content = getContentForUrl(path, conf, "http://www.yahoo.com/");
+    if (content == null || !content.contains("yahoo")) {
+      throw new IOException("Table read failed.");
+    }
+    
+    /* Now drop the colum group named "data".
+     * 
+     * An exception is thrown if the CG could not be removed for some reason
+     * (e.g. the user might not have enough permissions).
+     */
+    BasicTable.dropColumnGroup(path, conf, "data");
+    
+    // deleting an already deleted CG is a no-op.
+    BasicTable.dropColumnGroup(path, conf, "data");
+    
+    // now try to read content column.
+    // Note that NULL is returned for the third column.
+    if (getContentForUrl(path, conf, "http://www.yahoo.com/") != null) {
+      throw new IOException("Expected NULL for 3rd column");
+    }
+    // While reading this table, a warning is logged since the user
+    // is trying to reading from a deleted CG.
+    
+    //clean up the test directory. 
+    //for now we are not deleting the directory to let users check it.
+    //BasicTable.drop(path, conf);
+  }
+  
+  // Utility functions:
+  
+  /**
+   * This is a simple table reader that iterates over the table to 
+   * find a given url and returns its content.
+   */
+  private static String getContentForUrl(Path path, Configuration conf, 
+                                         String url) throws Exception {
+    
+    BasicTable.Reader reader = new BasicTable.Reader(path, conf);
+    TableScanner scanner = reader.getScanner(null, true);
+    Tuple row = TypesUtils.createTuple(3);
+    
+    try {
+      while (!scanner.atEnd()) {
+        scanner.getValue(row);
+        if (url.equals(row.get(0))) {
+          return (String)row.get(2);
+        }
+        scanner.advance();
+      }
+    } finally {
+      scanner.close();
+    }
+    throw new IOException(url + " is not found");
+  }
+  
+  private static void createTable(Configuration conf, Path path) 
+                                  throws Exception {
+    /* NOTE: This creates a table using BasicTable API. This is not 
+     * a committed public API yet. Typically tables are created
+     * in M/R or through PIG.
+     */
+    BasicTable.Writer writer = new BasicTable.Writer(path, schema, 
+                                                     storageHint, conf);
+    TableInserter inserter = writer.getInserter("part-0", true);
+    Tuple rowTuple = TypesUtils.createTuple(3);
+    BytesWritable emptyKey = new BytesWritable();
+    
+    // add two rows:
+    rowTuple.set(0, "http://www.cnn.com/");
+    rowTuple.set(1, 10);
+    rowTuple.set(2, "content for cnn.com");
+    
+    inserter.insert(emptyKey, rowTuple);
+    
+    rowTuple.set(0, "http://www.yahoo.com/");
+    rowTuple.set(1, 20);
+    rowTuple.set(2, "content for yahoo.com");
+    
+    inserter.insert(emptyKey, rowTuple);
+    
+    inserter.close();
+  }
+}
+</source>
+</section>
+ <!-- END ZEBRA DROP-CG EXAMPLE-->
+ 
+  <!-- MULTIPLE TABLE OUTPUTS-->
+<section>
+<title>Multiple Table Outputs</title>
+<p>
+This code snippet illustrates how to work with multiple table outputs.
+</p>
+<source>
+In main()
+ 
+    String multiLocs = "/user/multi/us" + "," + "/user/multi/india" + "," + "/user/multi/japan";
+    
+    jobConf.setOutputFormat(BasicTableOutputFormat.class);
+    BasicTableOutputFormat.setMultipleOutputPaths(jobConf, multiLocs);
+    BasicTableOutputFormat.setZebraOutputPartitionClass(jobConf, MultipleOutputsTest.OutputPartitionerClass.class);
+ 
+
+Implement a partition class:
+ 
+  static class OutputPartitionerClass implements ZebraOutputPartition {
+       @Override
+       public int getOutputPartition(BytesWritable key, Tuple value, String commaSeparatedLocs) {                        
+ 
+          String reg = null;  
+          try {  
+            reg = (String)(value.get(0));
+          } catch ( ExecException e) {
+             // do something about e              
+          }
+ 
+          if(reg.equals("us")) return 0;
+          if(reg.equals("india")) return 1;
+          if(reg.equals("japan")) return 2;
+                        
+          return 0;
+      } 
+  }  
+</source>
+ </section>
+ 
+  <!-- endMULTIPLE TABLE OUTPUTS--> 
+ 
+ 
+ </section>
+  <!--END ZEBRA M/R EXAMPLES-->
+
+ </body>
+ </document>
+  
+   
