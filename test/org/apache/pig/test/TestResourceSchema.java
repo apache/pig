@@ -18,9 +18,11 @@
 
 package org.apache.pig.test;
 
-import junit.framework.TestCase;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import org.apache.pig.ResourceSchema;
+import org.apache.pig.ResourceSchema.ResourceFieldSchema;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataType;
 import org.apache.pig.impl.logicalLayer.FrontendException;
@@ -29,31 +31,197 @@ import org.apache.pig.impl.logicalLayer.schema.SchemaMergeException;
 import org.apache.pig.test.utils.TypeCheckingTestUtil;
 import org.junit.Test;
 
-public class TestResourceSchema extends TestCase {
+public class TestResourceSchema {
 
     /**
      * Test that ResourceSchema is correctly created given a
-     * pig.Schema and vice versa
-     * @throws FrontendException 
-     * @throws SchemaMergeException 
-     * @throws ExecException 
+     * pig.Schema and vice versa 
      */
     @Test
-    public void testResourceFlatSchemaCreation() throws ExecException, SchemaMergeException, FrontendException {
+    public void testResourceFlatSchemaCreation() 
+    throws ExecException, SchemaMergeException, FrontendException {
         String [] aliases ={"f1", "f2"};
         byte[] types = {DataType.CHARARRAY, DataType.INTEGER};
         Schema origSchema = TypeCheckingTestUtil.genFlatSchema(
                 aliases,types);
         ResourceSchema rsSchema = new ResourceSchema(origSchema);
-        assertEquals("num fields", aliases.length, rsSchema.fields.length);
-        ResourceSchema.ResourceFieldSchema[] fields = rsSchema.fields;
+        assertEquals("num fields", aliases.length, rsSchema.getFields().length);
+        ResourceSchema.ResourceFieldSchema[] fields = rsSchema.getFields();
         for (int i=0; i<fields.length; i++) {
-            assertEquals(fields[i].name, aliases[i]);
-            assertEquals(fields[i].type, types[i]);
+            assertEquals(fields[i].getName(), aliases[i]);
+            assertEquals(fields[i].getType(), types[i]);
         }
         Schema genSchema = Schema.getPigSchema(rsSchema);
-        assertTrue("generated schema equals original" , Schema.equals(genSchema, origSchema, true, false));
+        assertTrue("generated schema equals original", 
+                Schema.equals(genSchema, origSchema, true, false));
     }
     
+    /**
+     * Test that ResourceSchema is correctly created given a
+     * pig.Schema and vice versa 
+     */
+    @Test
+    public void testResourceFlatSchemaCreation2() 
+    throws ExecException, SchemaMergeException, FrontendException {
+        String [] aliases ={"f1", "f2"};
+        byte[] types = {DataType.CHARARRAY, DataType.INTEGER};
+        
+        Schema origSchema = new Schema(
+                new Schema.FieldSchema("t1", 
+                        new Schema(
+                                new Schema.FieldSchema("t0", 
+                                        TypeCheckingTestUtil.genFlatSchema(
+                                                aliases,types), 
+                                                DataType.TUPLE)), DataType.BAG));
+                        
+        ResourceSchema rsSchema = new ResourceSchema(origSchema);
 
+        Schema genSchema = Schema.getPigSchema(rsSchema);
+        assertTrue("generated schema equals original", 
+                Schema.equals(genSchema, origSchema, true, false));
+    }
+    
+    /**
+     * Test that Pig Schema is correctly created given a
+     * ResourceSchema and vice versa. Test also that 
+     * TwoLevelAccess flag is set for Pig Schema when needed.
+     */
+    @Test
+    public void testToPigSchemaWithTwoLevelAccess() throws FrontendException {
+        ResourceFieldSchema[] level0 = 
+            new ResourceFieldSchema[] {
+                new ResourceFieldSchema()
+                    .setName("fld0").setType(DataType.CHARARRAY),
+                new ResourceFieldSchema()
+                    .setName("fld1").setType(DataType.DOUBLE),
+                new ResourceFieldSchema()
+                    .setName("fld2").setType(DataType.INTEGER)
+        };
+               
+        ResourceSchema rSchema0 = new ResourceSchema()
+            .setFields(level0);
+        
+        ResourceFieldSchema[] level1 = 
+            new ResourceFieldSchema[] {
+                new ResourceFieldSchema()
+                    .setName("t1").setType(DataType.TUPLE)
+                    .setSchema(rSchema0)
+        };
+        
+        ResourceSchema rSchema1 = new ResourceSchema()
+            .setFields(level1);
+        
+        ResourceFieldSchema[] level2 = 
+            new ResourceFieldSchema[] {
+                new ResourceFieldSchema()
+                    .setName("t2").setType(DataType.BAG)
+                    .setSchema(rSchema1)
+        };
+        
+        ResourceSchema origSchema = new ResourceSchema()
+            .setFields(level2);        
+        
+        Schema pSchema = Schema.getPigSchema(origSchema);
+                
+        assertTrue(CheckTwoLevelAccess(pSchema));
+                
+        assertTrue(ResourceSchema.equals(origSchema, new ResourceSchema(pSchema)));
+    }
+    
+    private boolean CheckTwoLevelAccess(Schema s) {
+        if (s == null) return false;
+        for (Schema.FieldSchema fs : s.getFields()) {
+            if (fs.type == DataType.BAG 
+                    && fs.schema != null
+                    && fs.schema.isTwoLevelAccessRequired()) {
+                return true;
+            }
+            if (CheckTwoLevelAccess(fs.schema)) return true;
+        }            
+        return false;        
+    }
+    
+    /**
+     * Test invalid Resource Schema: multiple fields for a bag
+     */
+    @Test(expected=FrontendException.class) 
+    public void testToPigSchemaWithInvalidSchema() throws FrontendException {
+        ResourceFieldSchema[] level0 = new ResourceFieldSchema[] {
+                new ResourceFieldSchema()
+                    .setName("fld0").setType(DataType.CHARARRAY),
+                new ResourceFieldSchema()
+                    .setName("fld1").setType(DataType.DOUBLE),        
+                new ResourceFieldSchema()
+                    .setName("fld2").setType(DataType.INTEGER)
+        };
+        
+        ResourceSchema rSchema0 = new ResourceSchema()
+            .setFields(level0);
+        
+        ResourceFieldSchema[] level2 = new ResourceFieldSchema[] {
+                new ResourceFieldSchema()
+                    .setName("t2").setType(DataType.BAG).setSchema(rSchema0)
+        };
+        
+        ResourceSchema rSchema2 = new ResourceSchema()
+            .setFields(level2);        
+        
+        Schema.getPigSchema(rSchema2);               
+    }
+
+    /**
+     * Test invalid Resource Schema: bag without tuple field
+     */
+    @Test(expected=FrontendException.class) 
+    public void testToPigSchemaWithInvalidSchema2() throws FrontendException {
+        ResourceFieldSchema[] level0 = new ResourceFieldSchema[] {
+                new ResourceFieldSchema()
+                    .setName("fld0").setType(DataType.CHARARRAY)
+        };
+        
+        ResourceSchema rSchema0 = new ResourceSchema()
+            .setFields(level0);
+        
+        ResourceFieldSchema[] level2 = new ResourceFieldSchema[] {
+                new ResourceFieldSchema()
+                    .setName("t2").setType(DataType.BAG).setSchema(rSchema0)
+        };
+        
+        ResourceSchema rSchema2 = new ResourceSchema()
+            .setFields(level2);        
+        
+        Schema.getPigSchema(rSchema2);               
+    }
+    
+    /**
+     * Test invalid Pig Schema: multiple fields for a bag
+     */
+    @Test(expected=IllegalArgumentException.class) 
+    public void testResourceSchemaWithInvalidPigSchema() 
+    throws FrontendException {
+        String [] aliases ={"f1", "f2"};
+        byte[] types = {DataType.CHARARRAY, DataType.INTEGER};
+        Schema level0 = TypeCheckingTestUtil.genFlatSchema(
+                aliases,types);
+        Schema.FieldSchema fld0 = 
+            new Schema.FieldSchema("f0", level0, DataType.BAG);
+        Schema level1 = new Schema(fld0);
+        new ResourceSchema(level1);
+    }
+    
+    /**
+     * Test invalid Pig Schema: bag without tuple field
+     */
+    @Test(expected=IllegalArgumentException.class) 
+    public void testResourceSchemaWithInvalidPigSchema2() 
+    throws FrontendException {
+        String [] aliases ={"f1"};
+        byte[] types = {DataType.INTEGER};
+        Schema level0 = TypeCheckingTestUtil.genFlatSchema(
+                aliases,types);
+        Schema.FieldSchema fld0 = 
+            new Schema.FieldSchema("f0", level0, DataType.BAG);
+        Schema level1 = new Schema(fld0);
+        new ResourceSchema(level1);
+    }
 }

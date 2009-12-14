@@ -1603,18 +1603,28 @@ public class Schema implements Serializable, Cloneable {
     public static Schema getPigSchema(ResourceSchema rSchema) 
     throws FrontendException {
         List<FieldSchema> fsList = new ArrayList<FieldSchema>();
-        for(ResourceFieldSchema rfs : rSchema.fields) {
-            FieldSchema fs = new FieldSchema(rfs.name, rfs.schema == null ? null:
-                getPigSchema(rfs.schema), rfs.type);
+        for(ResourceFieldSchema rfs : rSchema.getFields()) {
+            FieldSchema fs = new FieldSchema(rfs.getName(), 
+                    rfs.getSchema() == null ? 
+                            null : getPigSchema(rfs.getSchema()), rfs.getType());
             
             // check if we have a need to set twoLevelAcccessRequired flag
-            if(rfs.type == DataType.BAG) {
-                if(fs.schema.size() == 1) {
-                    FieldSchema innerFs = fs.schema.getField(0);
-                    if(innerFs.type == DataType.TUPLE && innerFs.schema != null) {
-                        fs.schema.setTwoLevelAccessRequired(true);
+            if(rfs.getType() == DataType.BAG) {
+                if (fs.schema != null) { // allow partial schema
+                    if (fs.schema.size() == 1) {
+                        FieldSchema innerFs = fs.schema.getField(0);
+                        if (innerFs.type != DataType.TUPLE) {
+                            throw new FrontendException("Invalide resource schema: " +
+                                    "bag schema must have tuple as its field.");
+                        }
+                        if (innerFs.schema != null) { // allow partial schema                      
+                            fs.schema.setTwoLevelAccessRequired(true);
+                        }
+                    } else {
+                        throw new FrontendException("Invalide resource schema: " +
+                        		"bag schema should have exact one field.");
                     }
-                }
+                } 
             }
             fsList.add(fs);
         }
