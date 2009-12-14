@@ -37,9 +37,9 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.ConstantExpression;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
-import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
+import org.apache.pig.data.NonSpillableDataBag;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.PigContext;
@@ -94,7 +94,6 @@ public class POFRJoin extends PhysicalOperator {
     private Tuple dumTup = TupleFactory.getInstance().newTuple(1);
     // An instance of tuple factory
     private transient TupleFactory mTupleFactory;
-    private transient BagFactory mBagFactory;
     private boolean setUp;
     // A Boolean variable which denotes if this is a LeftOuter Join or an Inner
     // Join
@@ -120,10 +119,9 @@ public class POFRJoin extends PhysicalOperator {
         createJoinPlans(k);
         processingPlan = false;
         mTupleFactory = TupleFactory.getInstance();
-        mBagFactory = BagFactory.getInstance();
         List<Tuple> tupList = new ArrayList<Tuple>();
         tupList.add(nullTuple);
-        nullBag = mBagFactory.newDefaultBag(tupList);
+        nullBag = new NonSpillableDataBag(tupList);
         this.isLeftOuterJoin = isLeftOuter;
     }
 
@@ -272,7 +270,7 @@ public class POFRJoin extends PhysicalOperator {
                     noMatch = true;
                     break;
                 }
-                ce.setValue(mBagFactory.newDefaultBag(replicate.get(key)));
+                ce.setValue(new NonSpillableDataBag(replicate.get(key)));
             }
 
             // If this is not LeftOuter Join and there was no match we
@@ -352,7 +350,6 @@ public class POFRJoin extends PhysicalOperator {
             ClassNotFoundException, ExecException {
         is.defaultReadObject();
         mTupleFactory = TupleFactory.getInstance();
-        mBagFactory = BagFactory.getInstance();
         // setUpHashTable();
     }
 
