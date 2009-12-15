@@ -1084,34 +1084,6 @@ public class TypeCheckingVisitor extends LOVisitor {
         }
 
         EvalFunc<?> ef = (EvalFunc<?>) PigContext.instantiateFuncFromSpec(func.getFuncSpec());
-
-        // If the function is algebraic and the project is just sentinel
-        // (special case when we apply aggregate on flattened members)
-        // then it will never match algebraic functions' schemas
-        // without this
-
-        // Assuming all aggregates has only one argument at this stage
-        if(func.getArguments()!=null && func.getArguments().size()>0){
-            ExpressionOperator tmpExp = func.getArguments().get(0) ;
-            if ( (ef instanceof Algebraic)
-                 && (tmpExp instanceof LOProject)
-                 && (((LOProject)tmpExp).getSentinel())) {
-    
-                FieldSchema tmpField ;
-    
-                try {
-                    // embed the schema above inside a bag
-                    tmpField = new FieldSchema(null, s, DataType.BAG) ;
-                }
-                catch (FrontendException e) {
-                    int errCode = 1023;
-                    String msg = "Unable to create new field schema.";
-                    throw new TypeCheckerException(msg, errCode, PigException.INPUT, e) ;
-                }
-    
-                s = new Schema(tmpField) ;
-            }
-        }
         
         // ask the EvalFunc what types of inputs it can handle
         List<FuncSpec> funcSpecs = null;
