@@ -24,6 +24,9 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-965: PERFORMANCE: optimize common case in matches (PORegex) (ankit.modi
+via olgan)
+
 PIG-760:  Add a new PigStorageSchema load/store function that 
           store schemas for text files (dvryaboy via gates)
 
