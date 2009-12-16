@@ -20,13 +20,14 @@ package org.apache.pig.data;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.TreeMap;
-import java.util.Set;
 
 import org.apache.pig.PigException;
+import org.apache.pig.experimental.ResourceSchema;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
@@ -939,7 +940,114 @@ public class DataType {
         }
         return true;
     }
+       
+
+    /**
+     * Utility method that determines the schema from the passed in dataType.
+     * If the dataType is Bag or Tuple, then we need to determine the schemas inside this dataType;
+     * for this we iterate through the fields inside this field. This method works both for raw objects
+     * and ResourceSchema.ResourceFieldSchema field descriptions; the specific behavior is determined by the klass
+     * parameter.
+     * @param dataType  DataType.CHARARRAY, DataType.TUPLE, and so on
+     * @param fieldIter iterator over the fields if this is a tuple or a bag
+     * @param fieldNum number of fields inside the field if a tuple
+     * @param klass  should be Object or ResourceSchema.ResourceFieldSchema
+     * @return
+     * @throws ExecException
+     * @throws FrontendException
+     * @throws SchemaMergeException
+     */
+    private static Schema.FieldSchema determineFieldSchema(byte dataType, Iterator fieldIter, 
+            long fieldNum, Class klass ) throws ExecException, FrontendException, SchemaMergeException {
+        switch (dataType) {
+        case NULL:
+            return new Schema.FieldSchema(null, BYTEARRAY);
+
+        case BOOLEAN:
+        case INTEGER:
+        case LONG:
+        case FLOAT:
+        case DOUBLE:
+        case BYTEARRAY:
+        case CHARARRAY:
+        case MAP: 
+            return new Schema.FieldSchema(null, dataType);
+        case TUPLE: {
+            Schema schema = null;
+            if(fieldNum != 0) {
+                schema = new Schema();
+                for(int i = 0; i < fieldNum; ++i) {
+                    schema.add(determineFieldSchema(klass.cast(fieldIter.next()))); 
+                }
+            }
+            return new Schema.FieldSchema(null, schema, TUPLE);
+        }
+
+        case BAG: {
+            Schema schema = null;
+            Schema bagSchema = null;
+
+            if(fieldNum != 0) {
+                ArrayList<Schema> schemas = new ArrayList<Schema>();
+                while (fieldIter.hasNext() ) {
+                    schemas.add(determineFieldSchema(klass.cast(fieldIter.next())).schema);
+                }
+                schema = schemas.get(0);
+                if(null == schema) {
+                    Schema.FieldSchema tupleFs = new Schema.FieldSchema(null, null, TUPLE);
+                    bagSchema = new Schema(tupleFs);
+                    bagSchema.setTwoLevelAccessRequired(true);
+                    return new Schema.FieldSchema(null, bagSchema, BAG);
+                }
+                int schemaSize = schema.size();
+
+                for(int i = 1; i < schemas.size(); ++i) {
+                    Schema currSchema = schemas.get(i);
+                    if((null == currSchema) || (currSchema.size() != schemaSize)) {
+                        Schema.FieldSchema tupleFs = new Schema.FieldSchema(null, null, TUPLE);
+                        bagSchema = new Schema(tupleFs);
+                        bagSchema.setTwoLevelAccessRequired(true);
+                        return new Schema.FieldSchema(null, bagSchema, BAG);
+                    }
+                    schema = Schema.mergeSchema(schema, currSchema, false, false, false); 
+                }
+                Schema.FieldSchema tupleFs = new Schema.FieldSchema(null, schema, TUPLE);
+                bagSchema = new Schema(tupleFs);
+                // since this schema has tuple field schema which internally
+                // has a list of field schemas for the actual items in the bag
+                // an access to any field in the bag is a  two level access
+                bagSchema.setTwoLevelAccessRequired(true);
+            }
+            return new Schema.FieldSchema(null, bagSchema, BAG);
+        }
+        default: {
+            int errCode = 1073;
+            String msg = "Cannot determine field schema";
+            throw new ExecException(msg, errCode, PigException.INPUT);
+        }
         
+        }
+    }
+    
+    /***
+     * Determine the field schema of an ResourceFieldSchema
+     * @param rcFieldSchema the rcFieldSchema we want translated
+     * @return the field schema corresponding to the object
+     * @throws ExecException,FrontendException,SchemaMergeException
+     */
+    public static Schema.FieldSchema determineFieldSchema(ResourceSchema.ResourceFieldSchema rcFieldSchema) 
+        throws ExecException, FrontendException, SchemaMergeException {
+        byte dt = rcFieldSchema.getType();
+        Iterator<ResourceSchema.ResourceFieldSchema> fieldIter = null;
+        long fieldNum = 0;        
+        if (dt == TUPLE || dt == BAG ) {
+            fieldIter = Arrays.asList(rcFieldSchema.getSchema().getFields()).iterator();
+            fieldNum = rcFieldSchema.getSchema().getFields().length;
+        }
+        return determineFieldSchema(dt, fieldIter, fieldNum, ResourceSchema.ResourceFieldSchema.class);
+    }
+
+    
     /***
      * Determine the field schema of an object
      * @param o the object whose field schema is to be determined
@@ -949,94 +1057,15 @@ public class DataType {
     public static Schema.FieldSchema determineFieldSchema(Object o) 
         throws ExecException, FrontendException, SchemaMergeException {
         byte dt = findType(o);
-
-        switch (dt) {
-        case NULL:
-            return new Schema.FieldSchema(null, BYTEARRAY);
-
-        case BOOLEAN:
-            return new Schema.FieldSchema(null, BOOLEAN);
-
-        case INTEGER:
-            return new Schema.FieldSchema(null, INTEGER);
-
-        case LONG:
-            return new Schema.FieldSchema(null, LONG);
-
-        case FLOAT:
-            return new Schema.FieldSchema(null, FLOAT);
-
-        case DOUBLE:
-            return new Schema.FieldSchema(null, DOUBLE);
-
-        case BYTEARRAY:
-            return new Schema.FieldSchema(null, BYTEARRAY);
-
-        case CHARARRAY:
-            return new Schema.FieldSchema(null, CHARARRAY);
-
-        case MAP: 
-            return new Schema.FieldSchema(null, MAP);
-        
-        case TUPLE: {
-	            Tuple t = (Tuple)o;
-                long tupleSize = t.size();
-                Schema schema = null;
-
-                if(tupleSize != 0) {
-	                schema = new Schema();
-	                for(int i = 0; i < t.size(); ++i) {
-	                    schema.add(determineFieldSchema(t.get(i))); 
-	                }
-                }
-	            return new Schema.FieldSchema(null, schema, TUPLE);
-            }
-        
-        case BAG: {
-                DataBag b = (DataBag)o;
-                long bagSize = b.size();
-                Schema schema = null;
-                Schema bagSchema = null;
-
-                if(bagSize != 0) {
-                    Iterator<Tuple> it = b.iterator();
-                    ArrayList<Schema> schemas = new ArrayList<Schema>();
-                    while(it.hasNext()) {
-                        schemas.add(determineFieldSchema((Object)it.next()).schema);
-                    }
-                    schema = schemas.get(0);
-                    if(null == schema) {
-                        Schema.FieldSchema tupleFs = new Schema.FieldSchema(null, null, TUPLE);
-                        bagSchema = new Schema(tupleFs);
-                        bagSchema.setTwoLevelAccessRequired(true);
-                        return new Schema.FieldSchema(null, bagSchema, BAG);
-                    }
-                    int schemaSize = schema.size();
-
-                    for(int i = 1; i < schemas.size(); ++i) {
-                        Schema currSchema = schemas.get(i);
-                        if((null == currSchema) || (currSchema.size() != schemaSize)) {
-                            Schema.FieldSchema tupleFs = new Schema.FieldSchema(null, null, TUPLE);
-                            bagSchema = new Schema(tupleFs);
-                            bagSchema.setTwoLevelAccessRequired(true);
-                            return new Schema.FieldSchema(null, bagSchema, BAG);
-                        }
-                        schema = Schema.mergeSchema(schema, currSchema, false, false, false); 
-                    }
-                    Schema.FieldSchema tupleFs = new Schema.FieldSchema(null, schema, TUPLE);
-                    bagSchema = new Schema(tupleFs);
-                    // since this schema has tuple field schema which internally
-                    // has a list of field schemas for the actual items in the bag
-                    // an access to any field in the bag is a  two level access
-                    bagSchema.setTwoLevelAccessRequired(true);
-                }
-                return new Schema.FieldSchema(null, bagSchema, BAG);
-            }
-        default: {
-                int errCode = 1073;
-                String msg = "Cannot determine field schema for " + o;
-                throw new ExecException(msg, errCode, PigException.INPUT);
-            }
+        Iterator fieldIter = null;
+        long fieldNum = 0;
+        if ( dt == TUPLE ) {
+            fieldIter = ((Tuple) o).getAll().iterator();
+            fieldNum = ((Tuple) o).size();
+        } else if ( dt == BAG ) {
+            fieldNum = ((DataBag) o).size();
+            fieldIter = ((DataBag)o).iterator();
         }
+        return determineFieldSchema(dt, fieldIter, fieldNum, Object.class);
     }
 }

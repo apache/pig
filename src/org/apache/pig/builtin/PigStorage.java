@@ -57,15 +57,16 @@ public class PigStorage extends Utf8StorageConverter
     private String signature;
         
     long end = Long.MAX_VALUE;
-    private byte recordDel = '\n';
-    private byte fieldDel = '\t';
+    protected byte recordDel = '\n';
+    protected byte fieldDel = '\t';
     private ArrayList<Object> mProtoTuple = null;
-    private static final String UTF8 = "UTF-8";
     
     private boolean[] mRequiredColumns = null;
     
     private boolean mRequiredColumnsInitialized = false;
 
+    protected static final String UTF8 = "UTF-8";
+    
     public PigStorage() {}
 
     /**

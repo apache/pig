@@ -168,7 +168,10 @@
         <fileset file="${lib.dir}/${hbase.jarfile}" />
         <fileset file="${lib.dir}/${hbase.test.jarfile}" />
     	<fileset file="${lib.dir}/${zookeeper.jarfile}"/>
-   <!-- <fileset file="${lib.dir}/commons-collections-3.2.jar" />  -->
+    	<fileset file="${ivy.lib.dir}/jackson-mapper-asl-${jackson.version}.jar"/>
+    	<fileset file="${ivy.lib.dir}/jackson-core-asl-${jackson.version}.jar"/>
+
+    	<!-- <fileset file="${lib.dir}/commons-collections-3.2.jar" />  -->
     </path>
 
     <!-- javadoc-classpath -->
@@ -422,6 +425,8 @@
             <zipfileset src="${ivy.lib.dir}/junit-${junit.version}.jar" />
             <zipfileset src="${ivy.lib.dir}/jsch-${jsch.version}.jar" />
             <zipfileset src="${ivy.lib.dir}/jline-${jline.version}.jar" />
+			<zipfileset src="${ivy.lib.dir}/jackson-mapper-asl-${jackson.version}.jar" />
+        	<zipfileset src="${ivy.lib.dir}/jackson-core-asl-${jackson.version}.jar" />
         </jar>
         <copy file="${output.jarfile}" tofile="${output.jarfile.backcompat}"/>
     </target>
@@ -475,6 +480,8 @@
             <zipfileset src="${ivy.lib.dir}/junit-${junit.version}.jar" />
             <zipfileset src="${ivy.lib.dir}/jsch-${jsch.version}.jar" />
             <zipfileset src="${ivy.lib.dir}/jline-${jline.version}.jar" />
+            <zipfileset src="${ivy.lib.dir}/jackson-mapper-asl-${jackson.version}.jar" />
+            <zipfileset src="${ivy.lib.dir}/jackson-core-asl-${jackson.version}.jar" />
         </jar>
         <copy file="${output.jarfile.withouthadoop}" tofile="${output.jarfile.backcompat.withouthadoop}"/>
     </target>
