@@ -30,6 +30,7 @@ import java.util.TreeSet;
 import org.apache.pig.ExecType;
 import org.apache.pig.LoadFunc;
 import org.apache.pig.PigException;
+import org.apache.pig.StoreFunc;
 import org.apache.pig.backend.datastorage.DataStorage;
 import org.apache.pig.data.DataType;
 import org.apache.pig.impl.PigContext;
@@ -344,7 +345,15 @@ public class LOLoad extends RelationalOperator {
         }
         
         this.requiredFieldList = requiredFieldList;
-        response = mLoadFunc.fieldsToRead(requiredFieldList);
+        
+        try {
+            response = mLoadFunc.fieldsToRead(requiredFieldList);
+        } catch(AbstractMethodError e) {
+            // this is for backward compatibility wherein some old LoadFunc
+            // which does not implement fieldsToRead() is being
+            // used. In this case, return false response, means we cannot prune any columns
+            response = new LoadFunc.RequiredFieldResponse(false);
+        }
         
         if (!response.getRequiredFieldResponse())
             return response;
