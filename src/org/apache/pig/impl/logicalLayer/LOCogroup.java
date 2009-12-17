@@ -489,7 +489,15 @@ public class LOCogroup extends RelationalOperator {
                 }
                         
                 Schema.FieldSchema groupFs = fsList.get(j);
+                byte dt = groupFs.type;
                 groupFs.type = DataType.mergeType(groupFs.type, innerType) ;
+                if (!DataType.isUsableType(groupFs.type)) {                    
+                    int errCode = 1110;
+                    String msg = "Cogroup column " + j + " has incompatible types: "
+                            + DataType.findTypeName(dt) + " versus "
+                            + DataType.findTypeName(innerType);
+                    throw new FrontendException(msg, errCode, PigException.INPUT, false, null);  
+                }
                 Schema.FieldSchema fs = eOp.getFieldSchema();
                 if(null != fs) {
                     groupFs.setParent(eOp.getFieldSchema().canonicalName, eOp);

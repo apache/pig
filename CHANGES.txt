@@ -57,6 +57,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-1075: Error in Cogroup when key fields types don't match (rding via olgan)
+
 PIG-973: type resolution inconsistency (rding via olgan)
 
 PIG-1135: skewed join partitioner returns negative partition index  (yinghe
