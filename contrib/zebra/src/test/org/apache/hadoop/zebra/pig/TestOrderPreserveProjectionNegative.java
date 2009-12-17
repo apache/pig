@@ -590,7 +590,7 @@ public class TestOrderPreserveProjectionNegative {
 		} finally {
 			//System.out.println(getStackTrace(exception));
 			Assert.assertNotNull(exception);
-			Assert.assertTrue(getStackTrace(exception).contains("The table is not (properly) sorted"));
+			Assert.assertTrue(getStackTrace(exception).contains("The table is not sorted"));
 		}
 	}
 	
@@ -630,7 +630,7 @@ public class TestOrderPreserveProjectionNegative {
 		} finally {
 			//System.out.println(getStackTrace(exception));
 			Assert.assertNotNull(exception);
-			Assert.assertTrue(getStackTrace(exception).contains("The table is not (properly) sorted"));
+			Assert.assertTrue(getStackTrace(exception).contains("The table is not sorted"));
 		}
 	}
 	
@@ -679,7 +679,7 @@ public class TestOrderPreserveProjectionNegative {
 		} finally {
 			//System.out.println(getStackTrace(exception));
 			Assert.assertNotNull(exception);
-			Assert.assertTrue(getStackTrace(exception).contains("The table is not (properly) sorted"));
+			Assert.assertTrue(getStackTrace(exception).contains("The table is not sorted"));
 		}
 	}
 	
@@ -730,7 +730,7 @@ public class TestOrderPreserveProjectionNegative {
 		} finally {
 			//System.out.println(getStackTrace(exception));
 			Assert.assertNotNull(exception);
-			Assert.assertTrue(getStackTrace(exception).contains("The table is not (properly) sorted"));
+			Assert.assertTrue(getStackTrace(exception).contains("The table is not properly sorted"));
 		}
 	}
 	
@@ -778,7 +778,7 @@ public class TestOrderPreserveProjectionNegative {
 		} finally {
 			//System.out.println(getStackTrace(exception));
 			Assert.assertNotNull(exception);
-			Assert.assertTrue(getStackTrace(exception).contains("The table is not (properly) sorted"));
+			Assert.assertTrue(getStackTrace(exception).contains("The table is not sorted"));
 		}
 	}
 	

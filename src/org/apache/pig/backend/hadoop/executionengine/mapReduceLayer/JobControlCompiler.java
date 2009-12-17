@@ -49,6 +49,7 @@ import org.apache.hadoop.mapred.jobcontrol.JobControl;
 import org.apache.hadoop.mapreduce.OutputFormat;
 import org.apache.pig.ComparisonFunc;
 import org.apache.pig.FuncSpec;
+import org.apache.pig.LoadFunc;
 import org.apache.pig.PigException;
 import org.apache.pig.StoreConfig;
 import org.apache.pig.StoreFunc;
@@ -164,6 +165,7 @@ public class JobControlCompiler{
     public void reset() {
         jobStoreMap = new HashMap<Job, Pair<List<POStore>, Path>>();
         jobMroMap = new HashMap<Job, MapReduceOper>();
+        UDFContext.getUDFContext().reset();
     }
 
     /**
@@ -341,6 +343,7 @@ public class JobControlCompiler{
         
         ArrayList<Pair<FileSpec, Boolean>> inp = new ArrayList<Pair<FileSpec, Boolean>>();
         ArrayList<List<OperatorKey>> inpTargets = new ArrayList<List<OperatorKey>>();
+        ArrayList<String> inpSignatureLists = new ArrayList<String>();
         ArrayList<POStore> storeLocations = new ArrayList<POStore>();
         Path tmpLocation = null;
         
@@ -383,6 +386,7 @@ public class JobControlCompiler{
                         }
                     }
                     inpTargets.add(ldSucKeys);
+                    inpSignatureLists.add(ld.getSignature());
                     //Remove the POLoad from the plan
                     mro.mapPlan.remove(ld);
                 }
@@ -399,6 +403,7 @@ public class JobControlCompiler{
             conf.set("mapred.jar", submitJarFile.getPath());
             conf.set("pig.inputs", ObjectSerializer.serialize(inp));
             conf.set("pig.inpTargets", ObjectSerializer.serialize(inpTargets));
+            conf.set("pig.inpSignatures", ObjectSerializer.serialize(inpSignatureLists));
             conf.set("pig.pigContext", ObjectSerializer.serialize(pigContext));
             conf.set("udf.import.list", ObjectSerializer.serialize(PigContext.getPackageImportList()));
             // this is for unit tests since some don't create PigServer
@@ -608,13 +613,32 @@ public class JobControlCompiler{
                 nwJob.setGroupingComparatorClass(PigGroupingPartitionWritableComparator.class);
             }
       
+            if (mro.isFrjoin()) {
+                // set up distributed cache for the replicated files
+                FileSpec[] replFiles = mro.getReplFiles();
+                ArrayList<String> replicatedPath = new ArrayList<String>();
+                // the first input is not replicated
+                for(int i=0; i < replFiles.length; i++) {
+                    // ignore fragmented file
+                    if (i != mro.getFragment()) {
+                        replicatedPath.add(replFiles[i].getFileName());
+                    }
+                }
+                try {
+                    setupDistributedCache(pigContext, conf, replicatedPath.toArray(new String[0]) , false);
+                } catch (IOException e) {
+                    String msg = "Internal error. Distributed cache could not be set up for the replicated files";
+                    throw new IOException (msg, e);
+                }
+            }
+
             // Serialize the UDF specific context info.
             UDFContext.getUDFContext().serialize(conf);
             Job cjob = new Job(new JobConf(nwJob.getConfiguration()), new ArrayList());
-            jobStoreMap.put(cjob,new Pair(storeLocations, tmpLocation));
+            jobStoreMap.put(cjob,new Pair<List<POStore>, Path>(storeLocations, tmpLocation));
             
             return cjob;
-
+            
         } catch (JobCreationException jce) {
             throw jce;
         } catch(Exception e) {
@@ -687,6 +711,7 @@ public class JobControlCompiler{
             super(c);
         }
 
+        @Override
         public int compare(byte[] b1, int s1, int l1, byte[] b2, int s2, int l2){
             return WritableComparator.compareBytes(b1, s1, l1, b2, s2, l2);
         }
@@ -923,66 +948,71 @@ public class JobControlCompiler{
                                               Properties properties, String key, 
                                               boolean shipToCluster) 
     throws IOException {
-        // Turn on the symlink feature
-        DistributedCache.createSymlink(conf);
-
         // Set up the DistributedCache for this job        
         String fileNames = properties.getProperty(key);
+        
         if (fileNames != null) {
             String[] paths = fileNames.split(",");
+            setupDistributedCache(pigContext, conf, paths, shipToCluster);
+        }
+    }
+        
+    private static void setupDistributedCache(PigContext pigContext,
+            Configuration conf, String[] paths, boolean shipToCluster) throws IOException {
+        // Turn on the symlink feature
+        DistributedCache.createSymlink(conf);
             
-            for (String path : paths) {
-                path = path.trim();
-                if (path.length() != 0) {
-                    Path src = new Path(path);
+        for (String path : paths) {
+            path = path.trim();
+            if (path.length() != 0) {
+                Path src = new Path(path);
+                
+                // Ensure that 'src' is a valid URI
+                URI srcURI = null;
+                try {
+                    srcURI = new URI(src.toString());
+                } catch (URISyntaxException ue) {
+                    int errCode = 6003;
+                    String msg = "Invalid cache specification. " +
+                    "File doesn't exist: " + src;
+                    throw new ExecException(msg, errCode, PigException.USER_ENVIRONMENT);
+                }
+                
+                // Ship it to the cluster if necessary and add to the
+                // DistributedCache
+                if (shipToCluster) {
+                    Path dst = 
+                        new Path(FileLocalizer.getTemporaryPath(null, pigContext).toString());
+                    FileSystem fs = dst.getFileSystem(conf);
+                    fs.copyFromLocalFile(src, dst);
                     
-                    // Ensure that 'src' is a valid URI
-                    URI srcURI = null;
+                    // Construct the dst#srcName uri for DistributedCache
+                    URI dstURI = null;
                     try {
-                        srcURI = new URI(src.toString());
+                        dstURI = new URI(dst.toString() + "#" + src.getName());
                     } catch (URISyntaxException ue) {
-                        int errCode = 6003;
-                        String msg = "Invalid cache specification. " +
-                        "File doesn't exist: " + src;
-                        throw new ExecException(msg, errCode, PigException.USER_ENVIRONMENT);
-                    }
-                    
-                    // Ship it to the cluster if necessary and add to the
-                    // DistributedCache
-                    if (shipToCluster) {
-                        Path dst = 
-                            new Path(FileLocalizer.getTemporaryPath(null, pigContext).toString());
-                        FileSystem fs = dst.getFileSystem(conf);
-                        fs.copyFromLocalFile(src, dst);
-                        
-                        // Construct the dst#srcName uri for DistributedCache
-                        URI dstURI = null;
-                        try {
-                            dstURI = new URI(dst.toString() + "#" + src.getName());
-                        } catch (URISyntaxException ue) {
-                            byte errSrc = pigContext.getErrorSource();
-                            int errCode = 0;
-                            switch(errSrc) {
-                            case PigException.REMOTE_ENVIRONMENT:
-                                errCode = 6004;
-                                break;
-                            case PigException.USER_ENVIRONMENT:
-                                errCode = 4004;
-                                break;
-                            default:
-                                errCode = 2037;
-                                break;
-                            }
-                            String msg = "Invalid ship specification. " +
-                            "File doesn't exist: " + dst;
-                            throw new ExecException(msg, errCode, errSrc);
+                        byte errSrc = pigContext.getErrorSource();
+                        int errCode = 0;
+                        switch(errSrc) {
+                        case PigException.REMOTE_ENVIRONMENT:
+                            errCode = 6004;
+                            break;
+                        case PigException.USER_ENVIRONMENT:
+                            errCode = 4004;
+                            break;
+                        default:
+                            errCode = 2037;
+                            break;
                         }
-                        DistributedCache.addCacheFile(dstURI, conf);
-                    } else {
-                        DistributedCache.addCacheFile(srcURI, conf);
+                        String msg = "Invalid ship specification. " +
+                        "File doesn't exist: " + dst;
+                        throw new ExecException(msg, errCode, errSrc);
                     }
+                    DistributedCache.addCacheFile(dstURI, conf);
+                } else {
+                    DistributedCache.addCacheFile(srcURI, conf);
                 }
             }
-        }
+        }        
     }
 }

@@ -176,13 +176,15 @@ public class SubColumnExtraction {
 		{
 			int i;
 			dispatch(dest);
-      clearMaps();
-			for (i = 0; i < exec.size(); i++)
+            clearMaps();
+            int execSize = exec.size();
+			for (i = 0; i < execSize; i++)
 			{
-				if (exec.get(i) != null)
+			    SplitColumn execElement = exec.get(i);
+				if (execElement != null)
 				{
 					// split is necessary
-					exec.get(i).split();
+					execElement.split();
 				}
 			}
 		}
@@ -289,10 +291,11 @@ public class SubColumnExtraction {
 		 {
 			 for (int i = 0; i < size; i++)
 			 {
-				 if (children.get(i).projIndex != -1) // a leaf: set projection directly
-			 		((Tuple)children.get(i).leaf.field).set(children.get(i).projIndex, ((Tuple) field).get(children.get(i).fieldIndex));
+			     SplitColumn child = children.get(i);
+				 if (child.projIndex != -1) // a leaf: set projection directly
+			 		((Tuple)child.leaf.field).set(child.projIndex, ((Tuple) field).get(child.fieldIndex));
 				 else
-					 children.get(i).field = ((Tuple) field).get(children.get(i).fieldIndex);
+					 child.field = ((Tuple) field).get(child.fieldIndex);
 			 }
 		 } else if (st == Partition.SplitType.COLLECTION) {
 		    DataBag srcBag, tgtBag;
@@ -300,17 +303,18 @@ public class SubColumnExtraction {
 		    Tuple tuple;
 		    for (int i = 0; i < size; i++)
 		    {
-		      if (children.get(i).projIndex != -1) // a leaf: set projection directly
+		      SplitColumn child = children.get(i);
+		      if (child.projIndex != -1) // a leaf: set projection directly
 		      {
-		        tgtBag = (DataBag)((Tuple)children.get(i).leaf.field).get(children.get(i).projIndex);
+		        tgtBag = (DataBag)((Tuple)child.leaf.field).get(child.projIndex);
 		      } else {
-		        tgtBag = (DataBag) children.get(i).field;
+		        tgtBag = (DataBag) child.field;
 		        tgtBag.clear();
 		      }
 		      for (Iterator<Tuple> it = srcBag.iterator(); it.hasNext(); )
 		      {
 		        tuple = TypesUtils.createTuple(scratchSchema);
-		        tuple.set(0, it.next().get(children.get(i).fieldIndex));
+		        tuple.set(0, it.next().get(child.fieldIndex));
 		        tgtBag.add(tuple);
 		      }
 		    }
@@ -320,7 +324,8 @@ public class SubColumnExtraction {
        Object value;
 			 for (int i = 0; i < size; i++)
 			 {
-				 if (children.get(i).projIndex != -1) // a leaf: set projection directly
+			     SplitColumn child = children.get(i);
+				 if (child.projIndex != -1) // a leaf: set projection directly
          {
            for (it = keys.iterator(); it.hasNext(); )
            {
@@ -328,13 +333,13 @@ public class SubColumnExtraction {
              value = ((Map<String, Object>) field).get(key);
              if (value == null)
                continue;
-			 		   ((Map<String, Object>) (((Tuple)children.get(i).leaf.field).get(children.get(i).projIndex))).put(key, value);
+			 		   ((Map<String, Object>) (((Tuple)child.leaf.field).get(child.projIndex))).put(key, value);
            }
          } else {
            for (it = keys.iterator(); it.hasNext(); )
            {
              key = it.next();
-					   children.get(i).field = ((Map<String, Object>) field).get(key);
+					   child.field = ((Map<String, Object>) field).get(key);
            }
          }
 			 }

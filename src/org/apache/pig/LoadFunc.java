@@ -28,10 +28,12 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.RecordReader;
+import org.apache.pig.LoadPushDown.RequiredFieldList;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigSplit;
 import org.apache.pig.builtin.Utf8StorageConverter;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.logicalLayer.FrontendException;
+import org.apache.pig.impl.util.UDFContext;
 
 
 /**
@@ -251,4 +253,18 @@ public abstract class LoadFunc {
         return join(pathStrings, ",");
     }
     
+    /**
+     * This method will be called by Pig both in the front end and back end to
+     * pass a unique signature to the {@link LoadFunc} which it can use to store
+     * information in the {@link UDFContext} which it needs to store between
+     * various method invocations in the front end and back end. A use case is
+     * to store {@link RequiredFieldList} passed to it in 
+     * {@link LoadPushDown#pushProjection(RequiredFieldList)} for use in the
+     * back end before returning tuples in {@link LoadFunc#getNext()}
+     * @param signature a unique signature to identify this LoadFunc
+     */
+    public void setSignature(String signature) {
+        // default implementation is a no-op
+    }
+       
 }

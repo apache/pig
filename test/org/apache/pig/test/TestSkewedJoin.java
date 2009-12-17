@@ -42,6 +42,8 @@ public class TestSkewedJoin extends TestCase{
     private static final String INPUT_FILE3 = "SkewedJoinInput3.txt";
     private static final String INPUT_FILE4 = "SkewedJoinInput4.txt";
     private static final String INPUT_FILE5 = "SkewedJoinInput5.txt";
+    private static final String INPUT_FILE6 = "SkewedJoinInput6.txt";
+    private static final String INPUT_FILE7 = "SkewedJoinInput7.txt";
     
     private PigServer pigServer;
     private MiniCluster cluster = MiniCluster.buildCluster();
@@ -114,12 +116,31 @@ public class TestSkewedJoin extends TestCase{
         w5.println("100\t");
         w5.close();
         
+        PrintWriter w6 = new PrintWriter(new FileWriter(INPUT_FILE6));
+        
+        for(int i=0; i<300; i++) {
+            for(int j=0; j<5; j++) {
+                w6.println(""+i+"\t"+j);    	
+            }           
+        }
+        w6.close();   
+        
+        PrintWriter w7 = new PrintWriter(new FileWriter(INPUT_FILE7));
+        
+        for(int i=0; i<300; i = i+3) {
+            for(int j=0; j<2; j++) {
+                w7.println(""+i+"\t"+j);    	
+            }           
+        }
+        w7.close();   
+
     	Util.copyFromLocalToCluster(cluster, INPUT_FILE1, INPUT_FILE1);
     	Util.copyFromLocalToCluster(cluster, INPUT_FILE2, INPUT_FILE2);
     	Util.copyFromLocalToCluster(cluster, INPUT_FILE3, INPUT_FILE3);
     	Util.copyFromLocalToCluster(cluster, INPUT_FILE4, INPUT_FILE4);
     	Util.copyFromLocalToCluster(cluster, INPUT_FILE5, INPUT_FILE5);
-
+        Util.copyFromLocalToCluster(cluster, INPUT_FILE6, INPUT_FILE6);      
+        Util.copyFromLocalToCluster(cluster, INPUT_FILE7, INPUT_FILE7);
     }
     
     @After
@@ -128,6 +149,9 @@ public class TestSkewedJoin extends TestCase{
     	new File(INPUT_FILE2).delete();
     	new File(INPUT_FILE3).delete();
         new File(INPUT_FILE4).delete();
+        new File(INPUT_FILE5).delete();
+        new File(INPUT_FILE6).delete();
+        new File(INPUT_FILE7).delete();
         Util.deleteDirectory(new File("skewedjoin"));
     	
         Util.deleteFile(cluster, INPUT_FILE1);
@@ -135,7 +159,8 @@ public class TestSkewedJoin extends TestCase{
         Util.deleteFile(cluster, INPUT_FILE3);
         Util.deleteFile(cluster, INPUT_FILE4);
         Util.deleteFile(cluster, INPUT_FILE5);
-
+        Util.deleteFile(cluster, INPUT_FILE6);
+        Util.deleteFile(cluster, INPUT_FILE7);
     }
     
     public void testSkewedJoinWithGroup() throws IOException{
@@ -387,6 +412,33 @@ public class TestSkewedJoin extends TestCase{
         	while(iter.hasNext()) {
         		dbrj.add(iter.next());
         	}
+        }
+        Assert.assertEquals(dbfrj.size(), dbrj.size());
+        Assert.assertEquals(true, TestHelper.compareBags(dbfrj, dbrj));       
+       
+    }
+
+    public void testSkewedJoinManyReducers() throws IOException {
+        pigServer.getPigContext().getProperties().setProperty("pig.skewedjoin.reduce.maxtuple", "2");
+        pigServer.registerQuery("A = LOAD '" + INPUT_FILE6 + "' as (id,name);");
+        pigServer.registerQuery("B = LOAD '" + INPUT_FILE7 + "' as (id,name);");
+           
+        DataBag dbfrj = BagFactory.getInstance().newDefaultBag(), dbrj = BagFactory.getInstance().newDefaultBag();
+        {
+            pigServer.registerQuery("E = join A by id, B by id using \"skewed\" parallel 300;");
+            Iterator<Tuple> iter = pigServer.openIterator("E");
+                
+            while(iter.hasNext()) {
+                dbfrj.add(iter.next());
+            }
+        }
+        {
+            pigServer.registerQuery("E = join A by id, B by id;");
+            Iterator<Tuple> iter = pigServer.openIterator("E");
+        
+            while(iter.hasNext()) {
+                dbrj.add(iter.next());
+            }
         }
         Assert.assertEquals(dbfrj.size(), dbrj.size());
         Assert.assertEquals(true, TestHelper.compareBags(dbfrj, dbrj));       

@@ -104,12 +104,16 @@ public class PigRecordReader extends RecordReader<Text, Tuple> {
     public void initialize(InputSplit split, TaskAttemptContext context)
             throws IOException, InterruptedException {
         // initialize the underlying actual RecordReader with the right Context 
-        // object - this is achieved by looking up the Context corresponding to 
-        // the input split this Reader is supposed to process
+        // object - this is achieved by merging the Context corresponding to 
+        // the input split this Reader is supposed to process with the context
+        // passed in.
         PigSplit pigSplit = (PigSplit)split;
         ConfigurationUtil.mergeConf(context.getConfiguration(),
                 inputSpecificConf);
-        
+        // Pass loader signature to LoadFunc and to InputFormat through
+        // the conf
+        PigInputFormat.passLoadSignature(loadfunc, pigSplit.getInputIndex(), 
+                context.getConfiguration(), true);
         // now invoke initialize() on underlying RecordReader with
         // the "adjusted" conf
         wrappedReader.initialize(pigSplit.getWrappedSplit(), context);

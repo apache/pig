@@ -199,7 +199,7 @@ public class TestSchema {
   }
 
   @Test
-  public void testRedord() throws IOException, ParseException {
+  public void testRecord() throws IOException, ParseException {
     BasicTable.drop(path, conf);
     String STR_SCHEMA = "r1:record(f1:int, f2:long), r2:record(r3:record(f3:float, f4))";
     String STR_STORAGE = "[r1.f1]; [r2.r3.f4]; [r1.f2, r2.r3.f3]";
@@ -369,8 +369,7 @@ public class TestSchema {
 
     Assert.assertEquals(1, ((Tuple) RowValue.get(0)).get(0));
     Assert.assertEquals(1001L, ((Tuple) RowValue.get(0)).get(1));
-    Assert.assertEquals("((1.3,r3 row1 byte array))", RowValue.get(1)
-        .toString());
+    Assert.assertEquals("1.3,#r3 row1 byte array", RowValue.get(1).toString());
     Assert.assertEquals(1.3, ((Tuple) ((Tuple) RowValue.get(1)).get(0)).get(0));
     Assert.assertEquals("r3 row1 byte array",
         ((Tuple) ((Tuple) RowValue.get(1)).get(0)).get(1).toString());
@@ -382,8 +381,7 @@ public class TestSchema {
     scanner.getValue(RowValue);
     Assert.assertEquals(2, ((Tuple) RowValue.get(0)).get(0));
     Assert.assertEquals(1002L, ((Tuple) RowValue.get(0)).get(1));
-    Assert.assertEquals("((2.3,r3 row2 byte array))", RowValue.get(1)
-        .toString());
+    Assert.assertEquals("2.3,#r3 row2 byte array", RowValue.get(1).toString());
     Assert.assertEquals(2.3, ((Tuple) ((Tuple) RowValue.get(1)).get(0)).get(0));
     Assert.assertEquals("r3 row2 byte array",
         ((Tuple) ((Tuple) RowValue.get(1)).get(0)).get(1).toString());

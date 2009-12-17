@@ -107,6 +107,11 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
                     
         List<MapReduceOper> successors = getPlan().getSuccessors(mr);
         for (MapReduceOper successor : successors) {
+            if (successor.getUseSecondaryKey()) {
+                log.debug("Splittee " + successor.getOperatorKey().getId()
+                        + " uses secondary key, do not merge it");
+                continue;
+            }
             if (isMapOnly(successor)) {
                 if (isSingleLoadMapperPlan(successor.mapPlan)) {                    
                     mappers.add(successor);                
@@ -121,10 +126,11 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
                 }
             }                
         }
-                      
+                  
+        int numSplittees = successors.size();
+        
         // case 1: exactly one splittee and it's map-only
-        if (mappers.size() == 1 && mapReducers.size() == 0 
-                && multiLoadMROpers.size() == 0 ) {            
+        if (mappers.size() == 1 && numSplittees == 1) {    
             mergeOnlyMapperSplittee(mappers.get(0), mr);
             
             log.info("Merged the only map-only splittee.");
@@ -133,16 +139,14 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
         }
         
         // case 2: exactly one splittee and it has reducer
-        if (isMapOnly(mr) && mapReducers.size() == 1 
-                && mappers.size() == 0 && multiLoadMROpers.size() == 0) {            
+        if (isMapOnly(mr) && mapReducers.size() == 1 && numSplittees == 1) {            
             mergeOnlyMapReduceSplittee(mapReducers.get(0), mr);
             
             log.info("Merged the only map-reduce splittee.");
             
             return;
         } 
-        
-        int numSplittees = successors.size();
+                
         int numMerges = 0;
         
         PhysicalPlan splitterPl = isMapOnly(mr) ? mr.mapPlan : mr.reducePlan;                            
@@ -266,6 +270,9 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
         PhysicalOperator leaf = mr.mapPlan.getLeaves().get(0);
         pl.remove(leaf);
         
+        POStore store = (POStore)leaf;
+        String ofile = store.getSFile().getFileName();
+        
         // then connect the remaining map plan to the successor of
         // each root (load) operator of the splittee
         for (MapReduceOper succ : succs) {
@@ -273,6 +280,11 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
             ArrayList<PhysicalOperator> rootsCopy = 
                 new ArrayList<PhysicalOperator>(roots);
             for (PhysicalOperator op : rootsCopy) {
+                POLoad load = (POLoad)op;
+                String ifile = load.getLFile().getFileName();
+                if (ofile.compareTo(ifile) != 0) {
+                    continue;
+                }
                 PhysicalOperator opSucc = succ.mapPlan.getSuccessors(op).get(0);
                 PhysicalPlan clone = null;
                 try {
@@ -548,7 +560,7 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
         return sameKeyType;
     }
     
-    private int setIndexOnLRInSplit(int initial, POSplit splitOp)
+    private int setIndexOnLRInSplit(int initial, POSplit splitOp, boolean sameKeyType)
             throws VisitorException {
         int index = initial;
         
@@ -564,9 +576,15 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
                     String msg = "Internal Error. Unable to set multi-query index for optimization.";
                     throw new OptimizerException(msg, errCode, PigException.BUG, e);                   
                 }
+                
+                // change the map key type to tuple when 
+                // multiple splittees have different map key types
+                if (!sameKeyType) {
+                    lr.setKeyType(DataType.TUPLE);
+                }
             } else if (leaf instanceof POSplit) {
                 POSplit spl = (POSplit)leaf;
-                index = setIndexOnLRInSplit(index, spl);
+                index = setIndexOnLRInSplit(index, spl, sameKeyType);
             }
         }
 
@@ -611,7 +629,7 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
             // across all POLocalRearranges in all merged map plans
             // including nested ones in POSplit
             POSplit spl = (POSplit)leaf;
-            curIndex = setIndexOnLRInSplit(index, spl);
+            curIndex = setIndexOnLRInSplit(index, spl, sameKeyType);
         }
                     
         splitOp.addPlan(pl);
@@ -644,9 +662,10 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
                 pkg.addPackage(p);
                 pkCount++;
             }
+            pkg.addIsKeyWrappedList(((POMultiQueryPackage)pk).getIsKeyWrappedList());
             addShiftedKeyInfoIndex(initial, current, (POMultiQueryPackage)pk);
         } else {
-            pkg.addPackage(pk);
+            pkg.addPackage(pk, mapKeyType);
             pkCount = 1;
         }
         
@@ -655,8 +674,6 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
             String msg = "Internal Error. Inconsistency in key index found during optimization.";
             throw new OptimizerException(msg, errCode, PigException.BUG);
         }
-
-        boolean[] keyPos = pk.getKeyPositionsInTuple();
         
         PODemux demux = (PODemux)to.getLeaves().get(0);
         int plCount = 0;
@@ -667,12 +684,11 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
             // operator, then it's the only operator in the plan.
             List<PhysicalPlan> pls = ((PODemux)root).getPlans();
             for (PhysicalPlan pl : pls) {
-                demux.addPlan(pl, keyPos);
+                demux.addPlan(pl);
                 plCount++;
             }
-            demux.addIsKeyWrappedList(((PODemux)root).getIsKeyWrappedList());
         } else {
-            demux.addPlan(from, mapKeyType, keyPos);
+            demux.addPlan(from);
             plCount = 1;
         }
         
@@ -682,11 +698,11 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
             throw new OptimizerException(msg, errCode, PigException.BUG);
         }
 
-        if (demux.isSameMapKeyType()) {
+        if (pkg.isSameMapKeyType()) {
             pkg.setKeyType(pk.getKeyType());
         } else {
             pkg.setKeyType(DataType.TUPLE);
-        }                
+        }            
     }
     
     private void addShiftedKeyInfoIndex(int index, POPackage pkg) throws OptimizerException {
@@ -767,10 +783,10 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
         from.remove(cpk);
         
         PODemux demux = (PODemux)to.getLeaves().get(0);
-        
-        boolean isSameKeyType = demux.isSameMapKeyType();
-        
+                
         POMultiQueryPackage pkg = (POMultiQueryPackage)to.getRoots().get(0);
+        
+        boolean isSameKeyType = pkg.isSameMapKeyType();
         
         // if current > initial + 1, it means we had
         // a split in the map of the MROper we are trying to
@@ -800,6 +816,8 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
             pkCount = 1;
         }
 
+        pkg.setSameMapKeyType(isSameKeyType);
+        
         if (pkCount != total) {
             int errCode = 2146;
             String msg = "Internal Error. Inconsistency in key index found during optimization.";
@@ -813,8 +831,6 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
         
         pkg.setKeyType(cpk.getKeyType());
         
-        boolean[] keyPos = cpk.getKeyPositionsInTuple();
-        
         // See comment above for why we flatten the Packages
         // in the from plan - for the same reason, we flatten
         // the inner plans of Demux operator now.
@@ -823,7 +839,7 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
         if (leaf instanceof PODemux) {
             List<PhysicalPlan> pls = ((PODemux)leaf).getPlans();
             for (PhysicalPlan pl : pls) {
-                demux.addPlan(pl, mapKeyType, keyPos);
+                demux.addPlan(pl);
                 POLocalRearrange lr = (POLocalRearrange)pl.getLeaves().get(0);
                 try {
                     lr.setMultiQueryIndex(initial + plCount++);            
@@ -840,7 +856,7 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
                 }
             }
         } else {
-            demux.addPlan(from, mapKeyType, keyPos);
+            demux.addPlan(from);
             POLocalRearrange lr = (POLocalRearrange)from.getLeaves().get(0);
             try {
                 lr.setMultiQueryIndex(initial + plCount++);            
@@ -877,8 +893,8 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
        
     private PhysicalPlan createDemuxPlan(boolean sameKeyType, boolean isCombiner) 
         throws VisitorException {
-        PODemux demux = getDemux(sameKeyType, isCombiner);
-        POMultiQueryPackage pkg= getMultiQueryPackage();
+        PODemux demux = getDemux(isCombiner);
+        POMultiQueryPackage pkg= getMultiQueryPackage(sameKeyType, isCombiner);
         
         PhysicalPlan pl = new PhysicalPlan();
         pl.add(pkg);
@@ -1117,14 +1133,17 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
         return new POStore(new OperatorKey(scope, nig.getNextNodeId(scope)));
     } 
      
-    private PODemux getDemux(boolean sameMapKeyType, boolean inCombiner){
+    private PODemux getDemux(boolean inCombiner){
         PODemux demux = new PODemux(new OperatorKey(scope, nig.getNextNodeId(scope)));
-        demux.setSameMapKeyType(sameMapKeyType);
         demux.setInCombiner(inCombiner);
         return demux;
     } 
     
-    private POMultiQueryPackage getMultiQueryPackage(){
-        return new POMultiQueryPackage(new OperatorKey(scope, nig.getNextNodeId(scope)));
+    private POMultiQueryPackage getMultiQueryPackage(boolean sameMapKeyType, boolean inCombiner){
+        POMultiQueryPackage pkg =  
+            new POMultiQueryPackage(new OperatorKey(scope, nig.getNextNodeId(scope)));
+        pkg.setInCombiner(inCombiner);
+        pkg.setSameMapKeyType(sameMapKeyType);
+        return pkg;
     }   
 }

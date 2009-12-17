@@ -63,7 +63,7 @@ public class PushDownForeachFlatten extends LogicalTransformer {
     Map<Integer, Integer> mFlattenedColumnReMap = null;
 
     public PushDownForeachFlatten(LogicalPlan plan) {
-        super(plan, new DepthFirstWalker<LogicalOperator, LogicalPlan>(plan));
+        super(plan);
     }
 
     /**

@@ -136,8 +136,8 @@ public class BlockDistribution {
       @Override
       public int compare(Entry<String, Long> o1, Entry<String, Long> o2) {
         long diff = o1.getValue() - o2.getValue();
-        if (diff < 0) return -1;
-        if (diff > 0) return 1;
+        if (diff < 0) return 1;
+        if (diff > 0) return -1;
         return 0;
       }
     });

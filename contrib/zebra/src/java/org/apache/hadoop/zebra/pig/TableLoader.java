@@ -26,6 +26,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.TreeMap;
 
 import org.apache.commons.logging.Log;
@@ -45,6 +46,8 @@ import org.apache.hadoop.zebra.io.BasicTable;
 import org.apache.hadoop.zebra.mapred.TableInputFormat;
 import org.apache.hadoop.zebra.mapred.TableRecordReader;
 import org.apache.hadoop.zebra.parser.ParseException;
+import org.apache.hadoop.zebra.schema.ColumnType;
+import org.apache.hadoop.zebra.schema.Schema.ColumnSchema;
 import org.apache.hadoop.zebra.types.Projection;
 import org.apache.hadoop.zebra.types.TypesUtils;
 import org.apache.hadoop.zebra.types.SortInfo;
@@ -56,9 +59,11 @@ import org.apache.pig.backend.datastorage.DataStorage;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.impl.logicalLayer.optimizer.PruneColumns;
 import org.apache.pig.impl.io.BufferedPositionedInputStream;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.impl.util.UDFContext;
 import org.apache.hadoop.zebra.pig.comparator.*;
 import org.apache.pig.IndexableLoadFunc;
 import org.apache.hadoop.zebra.io.TableScanner;
@@ -74,11 +79,11 @@ public class TableLoader implements IndexableLoadFunc, Slicer {
 	private Path[] paths;
 	private TableRecordReader indexReader = null;
 	private BytesWritable indexKey = null;
-  private Tuple tuple;
-  private org.apache.hadoop.zebra.schema.Schema schema;  
-  private SortInfo sortInfo;
-  private boolean sorted = false;
-  
+    private Tuple tuple;
+    private org.apache.hadoop.zebra.schema.Schema schema;  
+    private SortInfo sortInfo;
+    private boolean sorted = false;
+    private org.apache.hadoop.zebra.schema.Schema projectionSchema;
 	/**
 	 * default constructor
 	 */
@@ -152,18 +157,18 @@ public class TableLoader implements IndexableLoadFunc, Slicer {
 			}
 			TableInputFormat.setInputPaths(jobConf, result.toArray(new Path[result.size()]));
 
-      TableInputFormat.requireSortedTable(jobConf);
+      TableInputFormat.requireSortedTable(jobConf, null);
       sortInfo = TableInputFormat.getSortInfo(jobConf);
       schema = TableInputFormat.getSchema(jobConf);
       int numcols = schema.getNumColumns();
-      tuple = TypesUtils.createTuple(numcols);
-
+      tuple = TypesUtils.createTuple(numcols);      
+      setProjection();
       /*
        * Use all columns of a table as a projection: not an optimal approach
        * No need to call TableInputFormat.setProjection: by default use all columns
        */
       try {
-        indexReader = inputFormat.getTableRecordReader(jobConf, null);
+        indexReader = TableInputFormat.getTableRecordReader(jobConf, null);
       } catch (ParseException e) {
     	  throw new IOException("Exception from TableInputFormat.getTableRecordReader: "+e.getMessage());
       }
@@ -204,7 +209,8 @@ public class TableLoader implements IndexableLoadFunc, Slicer {
 			Configuration conf =
 				ConfigurationUtil.toConfiguration(storage.getConfiguration());
 			jobConf = new JobConf(conf);
-			jobConf.setInputFormat(TableInputFormat.class);
+			jobConf.setInputFormat(TableInputFormat.class);			
+			
 			// TODO: the following code may better be moved to TableInputFormat.
 			// Hack: use FileInputFormat to decode comma-separated multiple path
 			// format.
@@ -240,26 +246,53 @@ public class TableLoader implements IndexableLoadFunc, Slicer {
 			
 			LOG.info("Total input tables to process : " + result.size()); 
 			TableInputFormat.setInputPaths(jobConf, result.toArray(new Path[result.size()]));
-      if (sorted)
-  			TableInputFormat.requireSortedTable(jobConf);
-			try {
+			if (sorted)
+				TableInputFormat.requireSortedTable(jobConf, null);
+		}
+	}
+
+	
+	private void setProjection() throws IOException {
+		try {
+			
+			String pigLoadSignature = jobConf.get("pig.loader.signature");
+			Properties p = UDFContext.getUDFContext().getUDFProperties(this.getClass());
+			String prunedProjStr = null;
+			if( pigLoadSignature != null)
+				prunedProjStr = p.getProperty(pigLoadSignature);
+			
+			if(prunedProjStr != null ) {
+				TableInputFormat.setProjection(jobConf, prunedProjStr);
+			} else {
 				if (projectionString != null) {    		  
 					TableInputFormat.setProjection(jobConf, projectionString);
 				}
-			} catch (ParseException e) {
-				throw new IOException("Schema parsing failed : "+e.getMessage());
 			}
+		} catch (ParseException e) {
+			throw new IOException("Schema parsing failed : "+e.getMessage());
 		}
+
+		
+		
 	}
-  
+	
 	@Override
 	public Schema determineSchema(String fileName, ExecType execType,
 			DataStorage storage) throws IOException {
-		checkConf(storage, fileName);
-
-		Projection projection;
-		org.apache.hadoop.zebra.schema.Schema projectionSchema;
 		
+		checkConf(storage, fileName);
+		
+		// This is bad but its done for pig. Pig creates one loadfunc object and uses to different
+		// signatures. Zebra does not modify jobConf object once created. However, we might have the new
+		// signature in this function everytime. 
+		String pigLoadSignature = storage.getConfiguration().getProperty("pig.loader.signature");
+		if( pigLoadSignature != null) {
+			jobConf.set("pig.loader.signature", pigLoadSignature);
+		}	
+		setProjection();
+		
+		Projection projection;
+
 		if (!fileName.contains(",")) { // one table;
 			org.apache.hadoop.zebra.schema.Schema tschema = BasicTable.Reader.getSchema(new Path(fileName), jobConf);
 			try {
@@ -299,22 +332,79 @@ public class TableLoader implements IndexableLoadFunc, Slicer {
 	}
 
 	@Override
-	public void fieldsToRead(Schema schema) {
-		// chaow: this function never gets triggered in pig loader/storer test cases;
-	  		
-		System.out.println("*************************fieldsToRead is invoked.");
-		try {
-		// TODO
-		//TableInputFormat.setProjection(jobConf, SchemaConverter.fromPigSchema(
-		//   schema)
-		//   .toString());
-		// chaow
-			//Assert.assertEquals(schema.getFields().size(), projection.getColumns().length);
-			//TableInputFormat.setProjection(jobConf, projection.toString());
-			TableInputFormat.setProjection(jobConf, projectionString);
-		} catch (ParseException e) {
-			throw new RuntimeException("Schema parsing failed : "+e.getMessage());
+    public RequiredFieldResponse fieldsToRead(RequiredFieldList requiredFieldList) throws FrontendException {
+
+		
+		String pigLoadSignature = requiredFieldList.getSignature();
+		if(pigLoadSignature == null) {
+			throw new FrontendException("Zebra Cannot have null loader signature in fieldsToRead");
+		}	
+		
+		List<RequiredField> rFields = requiredFieldList.getFields();
+		if( rFields == null) {
+			throw new FrontendException("requiredFieldList.getFields() can not return null in fieldsToRead");
+		}	
+
+		Iterator<RequiredField> it= rFields.iterator();
+		String projectionStr = "";
+		
+		while( it.hasNext()) {
+			RequiredField rField = (RequiredField) it.next();
+			ColumnSchema cs = projectionSchema.getColumn(rField.getIndex());
+			
+			if(cs == null) {
+				throw new FrontendException
+				("Null column schema in projection schema in fieldsToRead at index " + rField.getIndex()); 
+			}
+			
+		    if(cs.getType() != ColumnType.MAP && (rField.getSubFields() != null)) {    	
+		    	throw new FrontendException
+		    	("Zebra cannot have subfields for a non-map column type in fieldsToRead " + 
+		    	 "ColumnType:" + cs.getType() + " index in zebra projection schema: " + rField.getIndex()		
+		    	);
+		    }
+		    String name = cs.getName();
+	    	projectionStr = projectionStr + name ;
+		    if(cs.getType() == ColumnType.MAP) {    	
+		    	List<RequiredField> subFields = rField.getSubFields();
+		    	
+		    	if( subFields != null ) {
+		    	
+    		    	Iterator<RequiredField> its= subFields.iterator();
+	    	    	boolean flag = false;
+		        	if(its.hasNext()) {
+		        		flag = true;
+		    	    	projectionStr += "#" + "{";
+		        	}	
+		        	String tmp = "";
+		        	while(its.hasNext()) {
+		        		RequiredField sField = (RequiredField) its.next();	
+		        		tmp = tmp + sField.getAlias();
+		        		if(its.hasNext()) {
+		        			tmp = tmp + "|";
+		        		}
+		        	}  
+		        	if ( flag) {
+		        		projectionStr = projectionStr + tmp + "}";
+		        	}
+		    	}	
+		    }
+	    	if(it.hasNext()) {
+	    		projectionStr = projectionStr + " , ";
+	    	}
 		}
+		Properties p = UDFContext.getUDFContext().getUDFProperties(this.getClass());
+		
+		if(p == null) {
+			throw new FrontendException("Zebra Cannot have null UDFCOntext property");
+		}	
+		
+		if(projectionStr != null && (projectionStr != ""))
+			p.setProperty(pigLoadSignature, projectionStr);
+				
+		RequiredFieldResponse rfr = new RequiredFieldResponse(true);
+		
+		return rfr;		
 	}
 
 	@Override
@@ -333,7 +423,9 @@ public class TableLoader implements IndexableLoadFunc, Slicer {
 
 	@Override
 	public Slice[] slice(DataStorage store, String location) throws IOException {
+		
 		checkConf(store, location);
+		setProjection();
 		// TableInputFormat accepts numSplits < 0 (special case for no-hint)
 		InputSplit[] splits = inputFormat.getSplits(jobConf, -1);
 
@@ -371,8 +463,11 @@ public class TableLoader implements IndexableLoadFunc, Slicer {
 				Map.Entry<String, String> e = it.next();
 				configMap.put(e.getKey(), e.getValue());
 			}
+			
+			
+			
 			this.split = split;
-      this.sorted = sorted;
+			this.sorted = sorted;
 		}
 
 		@Override
@@ -431,23 +526,24 @@ public class TableLoader implements IndexableLoadFunc, Slicer {
 				localConf.set(e.getKey(), e.getValue());
 			}
 			conf = new JobConf(localConf);
-      String projection;
+			String projection;			
 			try
-      {
-        projection = TableInputFormat.getProjection(conf);
-      } catch (ParseException e) {
-        throw new IOException("Schema parsing failed :"+e.getMessage());
-      }
-      numProjCols = Projection.getNumColumns(projection);
+			{
+				projection = TableInputFormat.getProjection(conf);
+			} catch (ParseException e) {
+				throw new IOException("Schema parsing failed :"+e.getMessage());
+			}
+			numProjCols = Projection.getNumColumns(projection);
 			TableInputFormat inputFormat = new TableInputFormat();
-      if (sorted)
-        TableInputFormat.requireSortedTable(conf);
+			if (sorted)
+				TableInputFormat.requireSortedTable(conf, null);
 			scanner = inputFormat.getRecordReader(split, conf, Reporter.NULL);
 			key = new BytesWritable();
 		}
 
 		@Override
 		public boolean next(Tuple value) throws IOException {
+			
 			TypesUtils.formatTuple(value, numProjCols);
 			return scanner.next(key, value);
 		}

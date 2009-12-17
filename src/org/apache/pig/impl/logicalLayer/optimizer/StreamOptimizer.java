@@ -58,7 +58,7 @@ public class StreamOptimizer extends LogicalTransformer {
     private boolean mOptimizeStore = false;
 
     public StreamOptimizer(LogicalPlan plan, String operatorClassName) {
-        super(plan, new DepthFirstWalker<LogicalOperator, LogicalPlan>(plan));
+        super(plan);
     }
 
     @Override

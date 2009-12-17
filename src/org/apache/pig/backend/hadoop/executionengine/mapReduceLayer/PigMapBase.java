@@ -38,6 +38,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.util.PlanHelper;
+import org.apache.pig.backend.hadoop.executionengine.util.MapRedUtil;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.PigContext;
@@ -47,7 +48,6 @@ import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.impl.util.SpillableMemoryManager;
-import org.apache.pig.impl.util.UDFContext;
 
 public abstract class PigMapBase extends Mapper<Text, Tuple, PigNullableWritable, Writable> {
     private static final Tuple DUMMYTUPLE = null;
@@ -164,9 +164,7 @@ public abstract class PigMapBase extends Mapper<Text, Tuple, PigNullableWritable
         
         pigReporter = new ProgressableReporter();
         // Get the UDF specific context
-        UDFContext udfc = UDFContext.getUDFContext();
-        udfc.addJobConf(job);
-        udfc.deserialize();
+        MapRedUtil.setupUDFContext(job);
 
         if(!(mp.isEmpty())) {
 

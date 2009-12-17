@@ -22,6 +22,7 @@ import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Properties;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -29,6 +30,7 @@ import org.apache.pig.FuncSpec;
 import org.apache.pig.IndexableLoadFunc;
 import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
@@ -115,6 +117,7 @@ public class POMergeJoin extends PhysicalOperator {
 
     private int arrayListSize = 1024;
     
+    private String signature;
 
     /**
      * @param k
@@ -394,6 +397,8 @@ public class POMergeJoin extends PhysicalOperator {
         pc.connect();
      // XXX FIXME - make this work with new load-store redesign
 //        InputStream is = FileLocalizer.open(rightInputFileName, pc);
+        // Pass signature of the loader to rightLoader
+        PigMapReduce.sJobConf.set("pig.loader.signature", signature);
 //        rightLoader.initialize(PigMapReduce.sJobConf);
         // the main purpose of this bindTo call is supply the input file name
         // to the right loader - in the case of Pig's DefaultIndexableLoader
@@ -542,5 +547,13 @@ public class POMergeJoin extends PhysicalOperator {
      */
     public void setRightInputFileName(String rightInputFileName) {
         this.rightInputFileName = rightInputFileName;
+    }
+    
+    public String getSignature() {
+        return signature;
+    }
+    
+    public void setSignature(String signature) {
+        this.signature = signature;
     }
 }

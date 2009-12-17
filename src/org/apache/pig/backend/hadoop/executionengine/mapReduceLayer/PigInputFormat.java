@@ -42,6 +42,7 @@ import org.apache.pig.backend.datastorage.DataStorage;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.datastorage.HDataStorage;
+import org.apache.pig.backend.hadoop.executionengine.util.MapRedUtil;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileSpec;
@@ -88,11 +89,13 @@ public class PigInputFormat extends InputFormat<Text, Tuple> {
         int n = pigSplit.getTotalSplits();
         context.getConfiguration().setInt("pig.mapsplits.count", n);
         Configuration conf = context.getConfiguration();
-        // merge entries from split specific conf into the conf we got
-        PigInputFormat.mergeSplitSpecificConf(pigSplit, conf);
         LoadFunc loadFunc = getLoadFunc(pigSplit.getInputIndex(), conf);
+        // Pass loader signature to LoadFunc and to InputFormat through
+        // the conf
+        passLoadSignature(loadFunc, pigSplit.getInputIndex(), conf, true);
+        // merge entries from split specific conf into the conf we got
+        PigInputFormat.mergeSplitSpecificConf(loadFunc, pigSplit, conf);
         InputFormat inputFormat = loadFunc.getInputFormat();
-        
         // now invoke the createRecordReader() with this "adjusted" conf
         RecordReader reader = inputFormat.createRecordReader(split, context);
         return new PigRecordReader(reader, loadFunc, conf);
@@ -106,11 +109,10 @@ public class PigInputFormat extends InputFormat<Text, Tuple> {
      * package level access so that this is not publicly used elsewhere
      * @throws IOException 
      */
-    static void mergeSplitSpecificConf(PigSplit pigSplit, Configuration originalConf) 
+    static void mergeSplitSpecificConf(LoadFunc loadFunc, PigSplit pigSplit, Configuration originalConf) 
     throws IOException {
      
         // set up conf with entries from input specific conf
-        LoadFunc loadFunc = getLoadFunc(pigSplit.getInputIndex(), originalConf);
         Job job = new Job(originalConf);
         loadFunc.setLocation(getLoadLocation(pigSplit.getInputIndex(), 
                 originalConf), job);
@@ -126,6 +128,7 @@ public class PigInputFormat extends InputFormat<Text, Tuple> {
      * @return
      * @throws IOException 
      */
+    @SuppressWarnings("unchecked")
     private static LoadFunc getLoadFunc(int inputIndex, Configuration conf) throws IOException {
         ArrayList<Pair<FileSpec, Boolean>> inputs = 
             (ArrayList<Pair<FileSpec, Boolean>>) ObjectSerializer.deserialize(
@@ -134,6 +137,7 @@ public class PigInputFormat extends InputFormat<Text, Tuple> {
         return (LoadFunc) PigContext.instantiateFuncFromSpec(loadFuncSpec);
     }
     
+    @SuppressWarnings("unchecked")
     private static String getLoadLocation(int inputIndex, Configuration conf) throws IOException {
         ArrayList<Pair<FileSpec, Boolean>> inputs = 
             (ArrayList<Pair<FileSpec, Boolean>>) ObjectSerializer.deserialize(
@@ -141,6 +145,36 @@ public class PigInputFormat extends InputFormat<Text, Tuple> {
         return inputs.get(inputIndex).first.getFileName();
     }
 
+    /**
+     * Pass loader signature to LoadFunc and to InputFormat through
+     * the conf
+     * @param loadFunc the Loadfunc to set the signature on
+     * @param inputIndex the index of the input corresponding to the loadfunc
+     * @param conf the Configuration object into which the signature should be
+     * set
+     * @param initializeUDFContext flag to indicate if UDFContext also should
+     * be initialized
+     * @throws IOException on failure
+     */
+    @SuppressWarnings("unchecked")
+    static void passLoadSignature(LoadFunc loadFunc, int inputIndex, 
+            Configuration conf, boolean initializeUDFContext) throws IOException {
+        List<String> inpSignatureLists = 
+            (ArrayList<String>)ObjectSerializer.deserialize(
+                    conf.get("pig.inpSignatures"));
+        // signature can be null for intermediate jobs where it will not
+        // be required to be passed down
+        if(inpSignatureLists.get(inputIndex) != null) {
+            loadFunc.setSignature(inpSignatureLists.get(inputIndex));
+            conf.set("pig.loader.signature", inpSignatureLists.get(inputIndex));
+        }
+        
+        if(initializeUDFContext) {
+            MapRedUtil.setupUDFContext(conf);
+        }
+           
+    }
+    
     /* (non-Javadoc)
      * @see org.apache.hadoop.mapreduce.InputFormat#getSplits(org.apache.hadoop.mapreduce.JobContext)
      */
@@ -192,16 +226,6 @@ public class PigInputFormat extends InputFormat<Text, Tuple> {
                     fs.setWorkingDirectory(new Path("/user", conf.get("user.name")));
                 }
                 
-                DataStorage store = new HDataStorage(ConfigurationUtil.toProperties(conf));
-                ValidatingInputFileSpec spec;
-                if (inputs.get(i).first instanceof ValidatingInputFileSpec) {
-                    spec = (ValidatingInputFileSpec) inputs.get(i).first;
-                } else {
-                    spec = new ValidatingInputFileSpec(inputs.get(i).first, store);
-                }
-                //XXX FIXME - how do we handle split by file in new load-store redesign?
-                boolean isSplittable = inputs.get(i).second;
-                
                 // first pass input location to the loader - for this send a 
                 // clone of the configuration we have - this is so that if the
                 // loader (or the inputformat of the loader) decide to store the
@@ -214,6 +238,10 @@ public class PigInputFormat extends InputFormat<Text, Tuple> {
                         loadFuncSpec);
                 Configuration confClone = new Configuration(conf);
                 Job inputSpecificJob = new Job(confClone);
+                // Pass loader signature to LoadFunc and to InputFormat through
+                // the conf
+                passLoadSignature(loadFunc, i, 
+                        inputSpecificJob.getConfiguration(), false);
                 loadFunc.setLocation(inputs.get(i).first.getFileName(), 
                         inputSpecificJob);
                 // The above setLocation call could write to the conf within

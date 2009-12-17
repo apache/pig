@@ -487,7 +487,7 @@ public abstract class OperatorPlan<E extends Operator> implements Iterable<E>, S
      * Private method to perform the insertBetween operation with the ability to turn off
      * rewiring operation.
      */
-    private void doInsertBetween(
+    public void doInsertBetween(
             E after,
             E newNode,
             E before,

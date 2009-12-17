@@ -26,6 +26,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.pig.PigException;
 import org.apache.pig.impl.logicalLayer.LogicalOperator;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
@@ -45,6 +47,7 @@ public class LOSplitOutput extends RelationalOperator {
 
     protected int mIndex;
     private LogicalPlan mCondPlan;
+    private static Log log = LogFactory.getLog(LOSplitOutput.class);
     
     /**
      * @param plan
@@ -86,7 +89,13 @@ public class LOSplitOutput extends RelationalOperator {
                     String msg = "Could not find operator in plan";
                     throw new FrontendException(msg, errCode, PigException.INPUT, false, null);
                 }
-                mSchema = input.getSchema();
+                if (input.getSchema()!=null) {
+                    mSchema = new Schema(input.getSchema());
+                    for (int i=0;i<input.getSchema().size();i++)
+                        mSchema.getField(i).setParent(input.getSchema().getField(i).canonicalName, input);
+                }
+                else
+                    mSchema = null;
                 mIsSchemaComputed = true;
             } catch (FrontendException fe) {
                 mSchema = null;
@@ -240,7 +249,10 @@ public class LOSplitOutput extends RelationalOperator {
         //split output
     }
     @Override
-    public List<RequiredFields> getRelevantInputs(int output, int column) {
+    public List<RequiredFields> getRelevantInputs(int output, int column) throws FrontendException {
+        if (!mIsSchemaComputed)
+            getSchema();
+        
         if (output!=0)
             return null;
 
@@ -259,5 +271,34 @@ public class LOSplitOutput extends RelationalOperator {
         List<RequiredFields> result = new ArrayList<RequiredFields>();
         result.add(new RequiredFields(inputList));
         return result;
+    }
+    
+    @Override
+    public boolean pruneColumns(List<Pair<Integer, Integer>> columns)
+            throws FrontendException {
+        if (!mIsSchemaComputed)
+            getSchema();
+        if (mSchema == null) {
+            log.warn("Cannot prune columns in splitoutput, no schema information found");
+            return false;
+        }
+
+        for (int i=columns.size()-1;i>=0;i--) {
+            Pair<Integer, Integer> column = columns.get(i);
+            if (column.first != 0) {
+                int errCode = 2191;
+                throw new FrontendException(
+                        "Splitoutput only take 1 input, cannot prune input with index "
+                                + column.first, errCode, PigException.BUG);
+            }
+            if (column.second < 0) {
+                int errCode = 2192;
+                throw new FrontendException("Column to prune does not exist", errCode, PigException.BUG);
+            }
+
+            pruneColumnInPlan(mCondPlan, column.second);
+        }
+        super.pruneColumns(columns);
+        return true;
     }
 }

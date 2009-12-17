@@ -75,9 +75,17 @@ public class LODistinct extends RelationalOperator {
                     } else {
                         fss.add(fs);
                         mSchema = new Schema(fss);
+                        for (int i=0;i<getInput().getSchema().size();i++)
+                            mSchema.getField(i).setParent(getInput().getSchema().getField(i).canonicalName, getInput());
                     }
                 } else {
-                    mSchema = op.getSchema();
+                    if (op.getSchema()!=null) {
+                        mSchema = new Schema(op.getSchema());
+                        for (int i=0;i<op.getSchema().size();i++)
+                            mSchema.getField(i).setParent(op.getSchema().getField(i).canonicalName, op);
+                    }
+                    else
+                        mSchema = null;
                 }
                 mIsSchemaComputed = true;
             } catch (FrontendException ioe) {
@@ -168,7 +176,10 @@ public class LODistinct extends RelationalOperator {
     }
 
     @Override
-    public List<RequiredFields> getRelevantInputs(int output, int column) {
+    public List<RequiredFields> getRelevantInputs(int output, int column) throws FrontendException {
+        if (!mIsSchemaComputed)
+            getSchema();
+        
         if (output!=0)
             return null;
         

@@ -27,6 +27,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.zip.GZIPInputStream;
 
 import org.apache.pig.FuncSpec;
@@ -136,13 +137,18 @@ public class PigSlice implements Slice {
 	        } catch (Exception e) {
 	           	throw new ExecException(e.getMessage());
 	        }
-    	}
+    	}        
         
 //        loader.bindTo(file.toString(), new BufferedPositionedInputStream(is,
 //                start), start, end);
-                
+        // Set signature for LoadFunc. Currently, PigStorage is the only loader using PigSlice and support column prune. 
+        // We may extend later.
+        //String signature = ((HDataStorage)base).getConfiguration().getProperty("pig.loader.signature");
+        //if (loader instanceof PigStorage)
+            //((PigStorage)loader).setSignature(signature);
+        
     }
-
+    
     public boolean next(Tuple value) throws IOException {
         Tuple t = loader.getNext();
         if (t == null) {

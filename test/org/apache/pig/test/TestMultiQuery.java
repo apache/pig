@@ -112,6 +112,222 @@ public class TestMultiQuery {
         myPig = null;
     }
     
+    public void testMultiQueryJiraPig1068() {
+
+        // test case: COGROUP fails with 'Type mismatch in key from map: 
+        // expected org.apache.pig.impl.io.NullableText, recieved org.apache.pig.impl.io.NullableTuple'
+
+        String INPUT_FILE = "pig-1068.txt";
+
+        try {
+
+            PrintWriter w = new PrintWriter(new FileWriter(INPUT_FILE));
+            w.println("10\tapple\tlogin\tjar");
+            w.println("20\torange\tlogin\tbox");
+            w.println("30\tstrawberry\tquit\tbot");
+
+            w.close();
+
+            Util.copyFromLocalToCluster(cluster, INPUT_FILE, INPUT_FILE);
+
+            myPig.setBatchOn();
+
+            myPig.registerQuery("logs = load '" + INPUT_FILE 
+                    + "' as (ts:int, id:chararray, command:chararray, comments:chararray);");
+            myPig.registerQuery("SPLIT logs INTO logins IF command == 'login', all_quits IF command == 'quit';");
+            myPig.registerQuery("login_info = FOREACH logins { GENERATE id as id, comments AS client; };");  
+            myPig.registerQuery("logins_grouped = GROUP login_info BY (id, client);");
+            myPig.registerQuery("count_logins_by_client = FOREACH logins_grouped "
+                    + "{ generate group.id AS id, group.client AS client, COUNT($1) AS count; };");
+            myPig.registerQuery("all_quits_grouped = GROUP all_quits BY id; ");
+            myPig.registerQuery("quits = FOREACH all_quits_grouped { GENERATE FLATTEN(all_quits); };");
+            myPig.registerQuery("joined_session_info = COGROUP quits BY id, count_logins_by_client BY id;");
+            
+            Iterator<Tuple> iter = myPig.openIterator("joined_session_info");
+
+            List<Tuple> expectedResults = Util.getTuplesFromConstantTupleStrings(
+                    new String[] { 
+                            "('apple',{},{('apple','jar',1L)})",
+                            "('orange',{},{('orange','box',1L)})",
+                            "('strawberry',{(30,'strawberry','quit','bot')},{})"
+                    });
+            
+            int counter = 0;
+            while (iter.hasNext()) {
+                assertEquals(expectedResults.get(counter++).toString(), iter.next().toString());                
+            }
+
+            assertEquals(expectedResults.size(), counter);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            Assert.fail();
+        } finally {
+            new File(INPUT_FILE).delete();
+            try {
+                Util.deleteFile(cluster, INPUT_FILE);
+            } catch (IOException e) {
+                e.printStackTrace();
+                Assert.fail();
+            }
+        }
+    }
+    
+    @Test
+    public void testMultiQueryJiraPig1108() {
+        
+        try {
+            myPig.setBatchOn();
+
+            myPig.registerQuery("a = load 'file:test/org/apache/pig/test/data/passwd' " 
+                    + "using PigStorage(':') as (uname:chararray, passwd:chararray, uid:int, gid:int);");
+            myPig.registerQuery("split a into plan1 if (uid > 5), plan2 if ( uid < 5);");
+            myPig.registerQuery("b = group plan1 by uname;");
+            myPig.registerQuery("c = foreach b { tmp = order plan1 by uid desc; " 
+                    + "generate flatten(group) as foo, tmp; };");
+            myPig.registerQuery("d = filter c BY foo is not null;");
+            myPig.registerQuery("store d into '/tmp/output1';");
+            myPig.registerQuery("store plan2 into '/tmp/output2';");
+             
+            List<ExecJob> jobs = myPig.executeBatch();
+            for (ExecJob job : jobs) {
+                assertTrue(job.getStatus() == ExecJob.JOB_STATUS.COMPLETED);
+            }
+            
+        } catch (Exception e) {
+            e.printStackTrace();
+            Assert.fail();
+        } 
+    }    
+    
+    @Test
+    public void testMultiQueryJiraPig1114() {
+
+        // test case: MultiQuery optimization throws error when merging 2 level splits
+
+        String INPUT_FILE = "data.txt";
+
+        try {
+
+            PrintWriter w = new PrintWriter(new FileWriter(INPUT_FILE));
+            w.println("10\tjar");
+            w.println("20\tbox");
+            w.println("30\tbot");
+            w.close();
+            Util.copyFromLocalToCluster(cluster, INPUT_FILE, INPUT_FILE);
+
+            myPig.setBatchOn();
+
+            myPig.registerQuery("data = load '" + INPUT_FILE
+                    + "' USING PigStorage as (id:int, name:chararray);");
+            myPig.registerQuery("ids = FOREACH data GENERATE id;");
+            myPig.registerQuery("allId = GROUP ids all;");
+            myPig.registerQuery("allIdCount = FOREACH allId GENERATE group as allId, COUNT(ids) as total;");
+            myPig.registerQuery("idGroup = GROUP ids by id;");
+            myPig.registerQuery("idGroupCount = FOREACH idGroup GENERATE group as id, COUNT(ids) as count;");
+            myPig.registerQuery("countTotal = cross idGroupCount, allIdCount;");
+            myPig.registerQuery("idCountTotal = foreach countTotal generate id, count, total, (double)count / (double)total as proportion;");
+            myPig.registerQuery("orderedCounts = order idCountTotal by count desc;");
+            myPig.registerQuery("STORE orderedCounts INTO '/tmp/output1';");
+
+            myPig.registerQuery("names = FOREACH data GENERATE name;");
+            myPig.registerQuery("allNames = GROUP names all;");
+            myPig.registerQuery("allNamesCount = FOREACH allNames GENERATE group as namesAll, COUNT(names) as total;");
+            myPig.registerQuery("nameGroup = GROUP names by name;");
+            myPig.registerQuery("nameGroupCount = FOREACH nameGroup GENERATE group as name, COUNT(names) as count;");
+            myPig.registerQuery("namesCrossed = cross nameGroupCount, allNamesCount;");
+            myPig.registerQuery("nameCountTotal = foreach namesCrossed generate name, count, total, (double)count / (double)total as proportion;");
+            myPig.registerQuery("nameCountsOrdered = order nameCountTotal by count desc;");
+            myPig.registerQuery("STORE nameCountsOrdered INTO '/tmp/output2';");
+
+            List<ExecJob> jobs = myPig.executeBatch();
+            for (ExecJob job : jobs) {
+                assertTrue(job.getStatus() == ExecJob.JOB_STATUS.COMPLETED);
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            Assert.fail();
+        } finally {
+            new File(INPUT_FILE).delete();
+            try {
+                Util.deleteFile(cluster, INPUT_FILE);
+            } catch (IOException e) {
+                e.printStackTrace();
+                Assert.fail();
+            }
+        }
+    }
+    
+    @Test
+    public void testMultiQueryJiraPig1113() {
+
+        // test case: Diamond query optimization throws error in JOIN
+
+        String INPUT_FILE_1 = "set1.txt";
+        String INPUT_FILE_2 = "set2.txt";
+        try {
+
+            PrintWriter w = new PrintWriter(new FileWriter(INPUT_FILE_1));
+            w.println("login\t0\tjar");
+            w.println("login\t1\tbox");
+            w.println("quit\t0\tmany");
+            w.close();
+            Util.copyFromLocalToCluster(cluster, INPUT_FILE_1, INPUT_FILE_1);
+
+            PrintWriter w2 = new PrintWriter(new FileWriter(INPUT_FILE_2));
+            w2.println("apple\tlogin\t{(login)}");
+            w2.println("orange\tlogin\t{(login)}");
+            w2.println("strawberry\tquit\t{(login)}");
+            w2.close();
+            Util.copyFromLocalToCluster(cluster, INPUT_FILE_2, INPUT_FILE_2);
+            
+            myPig.setBatchOn();
+
+            myPig.registerQuery("set1 = load '" + INPUT_FILE_1 
+                    + "' USING PigStorage as (a:chararray, b:chararray, c:chararray);");
+            myPig.registerQuery("set2 = load '" + INPUT_FILE_2
+                    + "' USING PigStorage as (a: chararray, b:chararray, c:bag{});");
+            myPig.registerQuery("set2_1 = FOREACH set2 GENERATE a as f1, b as f2, " 
+                    + "(chararray) 0 as f3;");
+            myPig.registerQuery("set2_2 = FOREACH set2 GENERATE a as f1, "
+                    + "FLATTEN((IsEmpty(c) ? null : c)) as f2, (chararray) 1 as f3;");  
+            myPig.registerQuery("all_set2 = UNION set2_1, set2_2;");
+            myPig.registerQuery("joined_sets = JOIN set1 BY (a,b), all_set2 BY (f2,f3);");
+          
+            List<Tuple> expectedResults = Util.getTuplesFromConstantTupleStrings(
+                    new String[] { 
+                            "('quit','0','many','strawberry','quit','0')",
+                            "('login','0','jar','apple','login','0')",
+                            "('login','0','jar','orange','login','0')",
+                            "('login','1','box','apple','login','1')",
+                            "('login','1','box','orange','login','1')",
+                            "('login','1','box','strawberry','login','1')"
+                    });
+            
+            Iterator<Tuple> iter = myPig.openIterator("joined_sets");
+            int count = 0;
+            while (iter.hasNext()) {
+                assertEquals(expectedResults.get(count++).toString(), iter.next().toString());
+            }
+            assertEquals(expectedResults.size(), count);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            Assert.fail();
+        } finally {
+            new File(INPUT_FILE_1).delete();
+            new File(INPUT_FILE_2).delete();
+            try {
+                Util.deleteFile(cluster, INPUT_FILE_1);
+                Util.deleteFile(cluster, INPUT_FILE_2);
+            } catch (IOException e) {
+                e.printStackTrace();
+                Assert.fail();
+            }
+        }
+    }
+    
     @Test
     public void testMultiQueryJiraPig1060() {
 

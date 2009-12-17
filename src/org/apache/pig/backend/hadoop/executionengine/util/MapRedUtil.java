@@ -30,6 +30,7 @@ import org.apache.pig.impl.io.BufferedPositionedInputStream;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.impl.util.Pair;
+import org.apache.pig.impl.util.UDFContext;
 
 /**
  * A class of utility static methods to be used in the hadoop map reduce backend
@@ -140,5 +141,11 @@ public class MapRedUtil {
             reducerMap.put(keyT, new Pair(minIndex, cnt));// 1 is added to account for the 0 index
         }
         return reducerMap;
+    }
+    
+    public static void setupUDFContext(Configuration job) throws IOException {
+        UDFContext udfc = UDFContext.getUDFContext();
+        udfc.addJobConf(job);
+        udfc.deserialize();
     }
 }

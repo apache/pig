@@ -26,7 +26,7 @@ import java.io.IOException;
  * index to the class.
  */
 public class NullablePartitionWritable extends PigNullableWritable{
-	private byte partitionIndex;
+	private int partitionIndex;
 	private PigNullableWritable key;
 
 	public NullablePartitionWritable() {
@@ -45,11 +45,11 @@ public class NullablePartitionWritable extends PigNullableWritable{
 		return key;
 	}
 
-	public void setPartition(byte n) {
+	public void setPartition(int n) {
 		partitionIndex = n;
 	}
 
-	public byte getPartition() {
+	public int getPartition() {
 		return partitionIndex;
 	}
 

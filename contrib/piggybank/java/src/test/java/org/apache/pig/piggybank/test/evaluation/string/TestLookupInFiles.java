@@ -38,6 +38,7 @@ public class TestLookupInFiles extends TestCase {
     MiniCluster cluster = MiniCluster.buildCluster();
     private PigServer pigServer;
    
+    @Override
     public void setUp() throws Exception{
         pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
     }
@@ -70,7 +71,7 @@ public class TestLookupInFiles extends TestCase {
         FileSystem fs = FileSystem.get(ConfigurationUtil.toConfiguration(pigServer.getPigContext().getProperties()));
         fs.copyFromLocalFile(new Path(lookupFile1.toString()), new Path("lookup1"));
         fs.copyFromLocalFile(new Path(lookupFile1.toString()), new Path("lookup2"));
-        pigServer.registerQuery("A = LOAD '" + Util.generateURI(tmpFile.toString()) + "' AS (key:chararray);");
+        pigServer.registerQuery("A = LOAD '" + Util.generateURI(tmpFile.toString(), pigServer.getPigContext()) + "' AS (key:chararray);");
         pigServer.registerQuery("B = FOREACH A GENERATE org.apache.pig.piggybank.evaluation.string.LookupInFiles(key, 'lookup1', 'lookup2');");
         Iterator<Tuple> iter = pigServer.openIterator("B");
         

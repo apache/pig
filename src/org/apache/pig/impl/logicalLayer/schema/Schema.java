@@ -1602,6 +1602,9 @@ public class Schema implements Serializable, Cloneable {
     
     public static Schema getPigSchema(ResourceSchema rSchema) 
     throws FrontendException {
+        if(rSchema == null) {
+            return null;
+        }
         List<FieldSchema> fsList = new ArrayList<FieldSchema>();
         for(ResourceFieldSchema rfs : rSchema.getFields()) {
             FieldSchema fs = new FieldSchema(rfs.getName(), 

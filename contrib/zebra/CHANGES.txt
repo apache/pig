@@ -3,10 +3,29 @@ Zebra Change Log
 Trunk (unreleased changes)
 
   INCOMPATIBLE CHANGES
+
+    PIG-1122 Changed version number of pig dev core jar used in Zebra build from 0.6.0 to 0.7.0
+        to match Pig version number (yanz)
+
     PIG-1099 Changed version number to be 0.7.0 to match Pig version number
 	change (yanz via gates)
 
   IMPROVEMENTS
+
+    PIG-1125 Map/Reduce API Changes (Chao Wang via yanz)
+
+    PIG-1104 Streaming Support (Chao Wang via yanz)
+
+    PIG-1119 Support of "group" as a column name (Gaurav Jain via yanz)
+
+    PIG-653  Pig Projection Push Down (Gaurav Jain via yanz)
+
+    PIG-1111 Multiple Outputs Support (Gaurav Jain via yanz)
+
+    PIG-1098 Zebra Performance Optimizations (yanz via gates)
+
+	PIG-1074 Zebra store function should allow '::' in column names in output
+	schema (yanz via gates)
 
     PIG-1077 Support record(row)-based file split in Zebra's
 	TableInputFormat (chaow via gates)
@@ -28,6 +47,13 @@ Trunk (unreleased changes)
   OPTIMIZATIONS
 
   BUG FIXES
+
+    PIG-1145: Merge Join on Large Table throws an EOF exception (yanz)
+
+    PIG-1095: Schema support of anonymous fields in COLECTION fails (yanz via
+	gates)
+
+    PIG-1078: merge join with empty table failed (yanz via gates)
 
     PIG-1091: Exception when load with projection of map keys on a map column
 	that is not map split (yanz via gates).

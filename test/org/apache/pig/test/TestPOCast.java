@@ -43,6 +43,7 @@ import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.io.BufferedPositionedInputStream;
 import org.apache.pig.impl.plan.OperatorKey;
+import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigSplit;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
@@ -913,12 +914,9 @@ public class TestPOCast extends TestCase {
             
         }
         
+        @Override
         public Tuple getNext() throws IOException {
             return null;
-        }
-        
-        public void fieldsToRead(Schema schema) {
-            
         }
         
         public DataBag bytesToBag(byte[] b) throws IOException {

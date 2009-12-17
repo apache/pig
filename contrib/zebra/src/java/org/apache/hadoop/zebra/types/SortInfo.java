@@ -34,7 +34,7 @@ public class SortInfo {
   private ColumnType[] types = null;
   private String comparator = null;
   private Schema schema = null;
-  private static final String SORTED_COLUMN_DELIMITER = ",";
+  public static final String SORTED_COLUMN_DELIMITER = ",";
 
   private SortInfo(String[] columns, int[] sortIndices, ColumnType[] sortColTypes, String comparator, Schema schema)
   {
@@ -101,28 +101,27 @@ public class SortInfo {
    *
    * @return true if one's sort columns is equal to a leading portion of the other's
    */
-  public boolean equals(String sortcolumns, String comparator) throws IOException {
-    if (sortcolumns == null || sortcolumns.trim().isEmpty())
+  public boolean equals(String[] sortcolumns, String comparator) throws IOException {
+    if (sortcolumns == null || sortcolumns.length == 0)
     {
       return false;
     }
-    String[] columns = sortcolumns.trim().split(SORTED_COLUMN_DELIMITER);
-    for (String column : columns)
+    for (String column : sortcolumns)
     {
     	if (schema.getColumn(column) == null)
             throw new IOException(column + " does not exist in schema");
     }
-    if (this.columns.length <= columns.length)
+    if (this.columns.length <= sortcolumns.length)
     {
       for (int i = 0; i < this.columns.length; i++)
      {
-       if (!this.columns[i].equals(columns[i]))
+       if (!this.columns[i].equals(sortcolumns[i]))
          return false;
      }
     } else {
-      for (int i = 0; i < columns.length; i++)
+      for (int i = 0; i < sortcolumns.length; i++)
      {
-       if (!columns[i].equals(this.columns[i]))
+       if (!sortcolumns[i].equals(this.columns[i]))
          return false;
      }
     }

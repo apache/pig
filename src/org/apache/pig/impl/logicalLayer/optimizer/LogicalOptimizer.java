@@ -31,6 +31,7 @@ import org.apache.pig.impl.logicalLayer.LOPrinter;
 import org.apache.pig.impl.logicalLayer.LOStream;
 import org.apache.pig.impl.logicalLayer.LogicalOperator;
 import org.apache.pig.impl.logicalLayer.LogicalPlan;
+import org.apache.pig.impl.logicalLayer.RelationalOperator;
 import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.VisitorException;
@@ -46,6 +47,7 @@ public class LogicalOptimizer extends
     private static NodeIdGenerator nodeIdGen = NodeIdGenerator.getGenerator();
     
     private Set<String> mRulesOff = null;
+    private Rule<LogicalOperator, LogicalPlan> pruneRule;
 
     public LogicalOptimizer(LogicalPlan plan) {
         this(plan, ExecType.MAPREDUCE);
@@ -148,19 +150,33 @@ public class LogicalOptimizer extends
             rule = new Rule<LogicalOperator, LogicalPlan>(rulePlan,
                     new PushDownForeachFlatten(plan), "PushDownForeachFlatten");
             checkAndAddRule(rule);
+            
+            // Prune column up wherever possible
+            rulePlan = new RulePlan();
+            RuleOperator rulePruneColumnsOperator = new RuleOperator(RelationalOperator.class, RuleOperator.NodeType.ANY_NODE,
+                    new OperatorKey(SCOPE, nodeIdGen.getNextNodeId(SCOPE)));
+            rulePlan.add(rulePruneColumnsOperator);
+            pruneRule = new Rule<LogicalOperator, LogicalPlan>(rulePlan,
+                    new PruneColumns(plan), "PruneColumns", Rule.WalkerAlgo.ReverseDependencyOrderWalker);
         }
         
     }
 
-    private void checkAndAddRule(Rule<LogicalOperator, LogicalPlan> rule) {
-        if(mRulesOff != null) {
+    private boolean ruleEnabled(Rule<LogicalOperator, LogicalPlan> rule) {
+        if(mRulesOff != null && rule != null) {
             for(String ruleOff: mRulesOff) {
                 String ruleName = rule.getRuleName();
                 if(ruleName == null) continue;
-                if(ruleName.equalsIgnoreCase(ruleOff)) return;
+                if(ruleName.equalsIgnoreCase(ruleOff)) return false;
             }
         }
         mRules.add(rule);
+        return true;
+    }
+    
+    private void checkAndAddRule(Rule<LogicalOperator, LogicalPlan> rule) {
+        if (ruleEnabled(rule))
+            mRules.add(rule);
     }
 
     @Override
@@ -205,5 +221,18 @@ public class LogicalOptimizer extends
                 }
             }
         } while(sawMatch && ++numIterations < mMaxIterations);
+        if (pruneRule!=null && ruleEnabled(pruneRule))
+        {
+            RuleMatcher<LogicalOperator, LogicalPlan> matcher = new RuleMatcher<LogicalOperator, LogicalPlan>();
+            if (matcher.match(pruneRule)) {
+                List<List<LogicalOperator>> matches = matcher.getAllMatches();
+                for (List<LogicalOperator> match:matches)
+                {
+                    if (pruneRule.getTransformer().check(match)) {
+                        pruneRule.getTransformer().transform(match);
+                    }
+                }
+            }
+        }
     }
 }

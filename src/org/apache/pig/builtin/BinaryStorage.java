@@ -43,6 +43,7 @@ import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.DefaultTupleFactory;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.io.BufferedPositionedInputStream;
+import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 
 /**

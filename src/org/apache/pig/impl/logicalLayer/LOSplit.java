@@ -86,7 +86,14 @@ public class LOSplit extends RelationalOperator {
                     String msg = "Could not find operator in plan";
                     throw new FrontendException(msg, errCode, PigException.INPUT, false, null);
                 }
-                mSchema = s.iterator().next().getSchema();
+                LogicalOperator input = s.iterator().next();
+                if (input.getSchema()!=null) {
+                    mSchema = new Schema(input.getSchema());
+                    for (int i=0;i<input.getSchema().size();i++)
+                        mSchema.getField(i).setParent(input.getSchema().getField(i).canonicalName, input);
+                }
+                else
+                    mSchema = null;
                 mIsSchemaComputed = true;
             } catch (FrontendException ioe) {
                 mSchema = null;
@@ -185,7 +192,10 @@ public class LOSplit extends RelationalOperator {
    }
    
    @Override
-   public List<RequiredFields> getRelevantInputs(int output, int column) {
+   public List<RequiredFields> getRelevantInputs(int output, int column) throws FrontendException {
+       if (!mIsSchemaComputed)
+           getSchema();
+       
        if (output<0)
            return null;
        
@@ -204,8 +214,10 @@ public class LOSplit extends RelationalOperator {
                return null;
        }
        
+       ArrayList<Pair<Integer, Integer>> inputList = new ArrayList<Pair<Integer, Integer>>();
+       inputList.add(new Pair<Integer, Integer>(0, column));
        List<RequiredFields> result = new ArrayList<RequiredFields>();
-       result.add(new RequiredFields(false, true));
+       result.add(new RequiredFields(inputList));
        return result;
    }
 

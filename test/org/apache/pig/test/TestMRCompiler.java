@@ -100,6 +100,7 @@ public class TestMRCompiler extends junit.framework.TestCase {
     // and are sure of
     private boolean generate = false;
 
+    @Override
     @Before
     public void setUp() throws ExecException {
         GenPhyOp.setR(r);
@@ -107,6 +108,7 @@ public class TestMRCompiler extends junit.framework.TestCase {
         GenPhyOp.setPc(pc);
     }
 
+    @Override
     @After
     public void tearDown() throws Exception {
     }
@@ -947,7 +949,24 @@ public class TestMRCompiler extends junit.framework.TestCase {
         }
 
     }
+    
+    @Test
+    public void testMergeJoinWithIndexableLoadFunc() throws Exception{
 
+        //generate = true;
+        planTester.buildPlan("a = load '/tmp/input1';");
+        planTester.buildPlan("b = load '/tmp/input2' using " +
+            TestMergeJoin.DummyIndexableLoader.class.getName() + ";");
+        planTester.buildPlan("c = join a by $0, b by $0 using \"merge\";");
+        LogicalPlan lp = planTester.buildPlan("store c into '/tmp';");
+        
+        PhysicalPlan pp = Util.buildPhysicalPlan(lp, pc);
+        MROperPlan mp = Util.buildMRPlan(pp, pc);
+        assertEquals("Checking number of MR Jobs for merge join with " +
+        		"IndexableLoadFunc:", 1, mp.size());
+        
+    }
+    
     private void run(PhysicalPlan pp, String expectedFile) throws Exception {
         String compiledPlan, goldenPlan = null;
         int MAX_SIZE = 100000;

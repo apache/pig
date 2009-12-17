@@ -55,7 +55,7 @@ public class TypeCastInserter extends LogicalTransformer {
     private String operatorClassName;
 
     public TypeCastInserter(LogicalPlan plan, String operatorClassName) {
-        super(plan, new DepthFirstWalker<LogicalOperator, LogicalPlan>(plan));
+        super(plan);
         this.operatorClassName = operatorClassName;
     }
 

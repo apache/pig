@@ -53,10 +53,10 @@ public class SkewedPartitioner extends Partitioner<PigNullableWritable, Writable
     @Override
     public int getPartition(PigNullableWritable wrappedKey, Writable value,
             int numPartitions) {
-        // for streaming tables, return the partition index blindly
-        if (wrappedKey instanceof NullablePartitionWritable && ((int)((NullablePartitionWritable)wrappedKey).getPartition()) != -1) {
-            return (int) ((NullablePartitionWritable)wrappedKey).getPartition();
-        }
+		// for streaming tables, return the partition index blindly
+		if (wrappedKey instanceof NullablePartitionWritable && (((NullablePartitionWritable)wrappedKey).getPartition()) != -1) {
+			return ((NullablePartitionWritable)wrappedKey).getPartition();
+		}
 
         // for partition table, compute the index based on the sampler output
         Pair <Integer, Integer> indexes;

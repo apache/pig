@@ -332,12 +332,23 @@ public class Schema implements Comparable<Schema>, Writable {
 
   private ArrayList<ColumnSchema> mFields;
   private HashMap<String, ColumnSchema> mNames;
-  private boolean dupColNameAllowed;
+  private boolean projection;
 
   /**
    * Constructor - schema for empty schema (zero-column) .
    */
   public Schema() {
+    init();
+  }
+
+  /**
+   * Constructor - schema for empty projection/schema (zero-column) .
+   *
+   * @param projection
+   *           A projection schema or not
+   */
+  public Schema(boolean projection) {
+    this.projection = projection;
     init();
   }
 
@@ -355,10 +366,9 @@ public class Schema implements Comparable<Schema>, Writable {
     init(schema, false);
   }
 
-  public Schema(String schema, boolean dupAllowed) throws ParseException {
-    dupColNameAllowed = dupAllowed;
-    // suppose if duplicate is allowed, then it's from projection and hence virtual column is allowed
-    init(schema, dupAllowed);
+  public Schema(String schema, boolean projection) throws ParseException {
+    this.projection = projection;
+    init(schema, projection);
   }
 
   public Schema(ColumnSchema fs) throws ParseException {
@@ -384,18 +394,16 @@ public class Schema implements Comparable<Schema>, Writable {
    *          Column to be added to the schema
    */
   public void add(ColumnSchema f) throws ParseException {
-    add(f, false);
-  }
-
-  private void add(ColumnSchema f, boolean dupAllowed) throws ParseException {
     if (f == null) {
+      if (!projection)
+        throw new ParseException("Empty column schema is not allowed");
       mFields.add(null);
       return;
     }
     f.index = mFields.size();
     mFields.add(f);
     if (null != f && null != f.name) {
-      if (mNames.put(f.name, f) != null && !dupAllowed && !dupColNameAllowed)
+      if (mNames.put(f.name, f) != null && !projection)
         throw new ParseException("Duplicate field name: " + f.name);
     }
   }
@@ -591,18 +599,21 @@ public class Schema implements Comparable<Schema>, Writable {
    */
   @Override
   public int compareTo(Schema other) {
-    if (this.mFields.size() != other.mFields.size()) {
-      return this.mFields.size() - other.mFields.size();
+    int mFieldsSize = this.mFields.size(); 
+    if (mFieldsSize != other.mFields.size()) {
+      return mFieldsSize - other.mFields.size();
     }
     int ret = 0;
-    for (int nx = 0; nx < this.mFields.size(); nx++) {
-      if (mFields.get(nx).schema == null
-          && other.mFields.get(nx).schema != null) return -1;
-      else if (mFields.get(nx).schema != null
-          && other.mFields.get(nx).schema == null) return 1;
-      else if (mFields.get(nx).schema == null
-          && other.mFields.get(nx).schema == null) return 0;
-      ret = mFields.get(nx).schema.compareTo(other.mFields.get(nx).schema);
+    for (int nx = 0; nx < mFieldsSize; nx++) {
+      Schema mFieldSchema = mFields.get(nx).schema;
+      Schema otherFieldSchema = other.mFields.get(nx).schema;
+      if (mFieldSchema == null
+          && otherFieldSchema != null) return -1;
+      else if (mFieldSchema != null
+          && otherFieldSchema == null) return 1;
+      else if (mFieldSchema == null
+          && otherFieldSchema == null) return 0;
+      ret = mFieldSchema.compareTo(otherFieldSchema);
       if (ret != 0) {
         return ret;
       }
@@ -684,7 +695,7 @@ public class Schema implements Comparable<Schema>, Writable {
     org.apache.hadoop.zebra.tfile.Utils.writeString(out, toString());
   }
 
-  private void init(String[] columnNames, boolean virtualColAllowed) throws ParseException {
+  private void init(String[] columnNames, boolean projection) throws ParseException {
     // the arg must be of type or they will be treated as the default type
     mFields = new ArrayList<ColumnSchema>();
     mNames = new HashMap<String, ColumnSchema>();
@@ -698,7 +709,10 @@ public class Schema implements Comparable<Schema>, Writable {
     }
     TableSchemaParser parser =
         new TableSchemaParser(new StringReader(sb.toString()));
-    parser.RecordSchema(this, virtualColAllowed);
+    if (projection)
+      parser.ProjectionSchema(this);
+    else
+      parser.RecordSchema(this);
   }
 
   private void init() {
@@ -706,7 +720,7 @@ public class Schema implements Comparable<Schema>, Writable {
     mNames = new HashMap<String, ColumnSchema>();
   }
 
-  private void init(String columnString, boolean virtualColAllowed) throws ParseException {
+  private void init(String columnString, boolean projection) throws ParseException {
     String trimmedColumnStr;
     if (columnString == null || (trimmedColumnStr = columnString.trim()).isEmpty()) {
       init();
@@ -717,7 +731,7 @@ public class Schema implements Comparable<Schema>, Writable {
     for (int nx = 0; nx < parts.length; nx++) {
       parts[nx] = parts[nx].trim();
     }
-    init(parts, virtualColAllowed);
+    init(parts, projection);
   }
 
   /**
@@ -727,7 +741,7 @@ public class Schema implements Comparable<Schema>, Writable {
       HashMap<Schema.ColumnSchema, HashSet<String>> keysmap)
       throws ParseException {
     int ncols = projcols.length;
-    Schema result = new Schema();
+    Schema result = new Schema(true);
     ColumnSchema cs, mycs;
     String keysStr;
     String[] keys;
@@ -742,7 +756,7 @@ public class Schema implements Comparable<Schema>, Writable {
       pn.setName(projcols[i]);
       if ((cs = getColumnSchemaOnParsedName(pn)) != null) {
         mycs = new ColumnSchema(pn.mName, cs.schema, cs.type);
-        result.add(mycs, true);
+        result.add(mycs);
         if (pn.mDT == ColumnType.MAP) {
           keysStr = projcols[i].substring(pn.mKeyOffset);
           if (!keysStr.startsWith("{") || !keysStr.endsWith("}"))

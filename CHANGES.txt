@@ -42,6 +42,24 @@ manner (rding via pradeepkth)
 
 IMPROVEMENTS
 
+PIG-1106: FR join should not spill (ankit.modi via olgan)
+
+PIG-1147: Zebra Docs for Pig 0.6.0 (chandec via olgan)
+
+PIG-1129: Pig UDF doc: fieldsToRead function (chandec via olgan)
+
+PIG-978: MQ docs update (chandec via olgan)
+
+PIG-990:  Provide a way to pin LogicalOperator Options (dvryaboy via gates)
+
+PIG-1103: refactoring of commit tests (olgan)
+
+PIG-1101: Allow arugment to limit to be long in addition to int (ashutoshc via
+			gates)
+
+PIG-872: use distributed cache for the replicated data set in FR join
+(sriranjan via olgan)
+
 PIG-1053: Consider moving to Hadoop for local mode (ankit.modi via olgan)
 
 PIG-1085:  Pass JobConf and UDF specific configuration information to UDFs
@@ -51,14 +69,57 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-973: type resolution inconsistency (rding via olgan)
+
+PIG-1135: skewed join partitioner returns negative partition index  (yinghe
+via olgan)
+
+PIG-1134: Skewed Join sampling job overwhelms the name node (sriranjan via
+olgan)
+
+PIG-1105: COUNT_STAR accumulate interface implementation cases failure
+(sriranjan via olgan)
+
+PIG-1118: expression with aggregate functions returning null, with accumulate
+interface (yinghe via olgan)
+
+PIG-1068:  COGROUP fails with 'Type mismatch in key from map: expected
+		   org.apache.pig.impl.io.NullableText, recieved
+		   org.apache.pig.impl.io.NullableTuple' (rding via gates)
+
+PIG-1113: Diamond query optimization throws error in JOIN (rding via olgan)
+
+PIG-1116: Remove redundant map-reduce job for merge join (pradeepkth)
+
+PIG-1114: MultiQuery optimization throws error when merging 2 level spl (rding
+via olgan)
+
+PIG-1108: Incorrect map output key type in MultiQuery optimiza (rding via
+olgan)
+
+PIG-1022:  optimizer pushes filter before the foreach that generates column
+used by filter (daijy via gates)
+
+PIG-1107: PigLineRecordReader bails out on an empty line for compressed data
+(ankit.modi via olgan)
+
+PIG-598: Parameter substitution ($PARAMETER) should not be performed in
+comments (thejas via olgan)
+
 PIG-1064: Behaviour of COGROUP with and without schema when using "*" operator
 (pradeepkth)
+
+PIG-1086: Nested sort by * throw exception (rding via daijy)
 
 Release 0.6.0 - Unreleased
 
 INCOMPATIBLE CHANGES
 
+PIG-922: Logical optimizer: push up project (daijy)
+
 IMPROVEMENTS
+
+PIG-1084: Pig 0.6.0 Documentation improvements  (chandec via olgan)
 
 PIG-1089: Pig 0.6.0 Documentation  (chandec via olgan)
 
@@ -155,6 +216,8 @@ PIG-979: Acummulator Interface for UDFs (yinghe via daijy)
 
 OPTIMIZATIONS
 
+PIG-922: Logical optimizer: push up project (daijy)
+
 BUG FIXES
 
 PIG-1080: PigStorage may miss records when loading a file (rding via olgan)
@@ -223,6 +286,18 @@ PIG-790: Error message should indicate in which line number in the Pig script th
 PIG-1001: Generate more meaningful error message when one input file does not exist (daijy)
 
 PIG-1060: MultiQuery optimization throws error for multi-level splits (rding via daijy)
+
+PIG-1128: column pruning causing failure when foreach has user-specified
+schema (daijy)
+
+PIG-1127: Logical operator should contains individual copy of schema object
+(daijy)
+
+PIG-1133: UDFContext should be made available to LoadFunc.bindTo (daijy)
+
+PIG-1132: Column Pruner issues in dealing with unprunable loader (daijy)
+
+PIG-1142: Got NullPointerException merge join with pruning (daijy)
 
 Release 0.5.0
 

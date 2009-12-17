@@ -43,6 +43,7 @@ import org.apache.pig.PigException;
 import org.apache.pig.impl.plan.DependencyOrderWalker;
 import org.apache.pig.impl.plan.PlanException;
 import org.apache.pig.impl.plan.VisitorException;
+import org.apache.pig.impl.util.UDFContext;
 import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.tools.pigstats.PigStats;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.util.PlanHelper;
@@ -121,6 +122,7 @@ public class LocalPigLauncher extends Launcher {
             log.info("Successfully stored result in: \""+spec.getFileName()+"\"");
         }
 
+        UDFContext.getUDFContext().reset();
         if (failedJobs == 0) {
             log.info("Records written : " + stats.getRecordsWritten());
             log.info("Bytes written : " + stats.getBytesWritten());

@@ -342,7 +342,7 @@ Java Class
 </tr>
 </table>
 
-<p>All Pig-specific classes are available <a href="http://svn.apache.org/viewvc/hadoop/pig/trunk/src/org/apache/pig/data/"> here</a> </p>
+<p>All Pig-specific classes are available <a href="http://svn.apache.org/viewvc/hadoop/pig/trunk/src/org/apache/pig/data/"> here</a>. </p>
 <p><code>Tuple</code> and <code>DataBag</code> are different in that they are not concrete classes but rather interfaces. This enables users to extend Pig with their own versions of tuples and bags. As a result, UDFs cannot directly instantiate bags or tuples; they need to go through factory classes: <code>TupleFactory</code> and <code>BagFactory</code>. </p>
 <p>The builtin <code>TOKENIZE</code> function shows how bags and tuples are created. A function takes a text string as input and returns a bag of words from the text. (Note that currently Pig bags always contain tuples.) </p>
 
@@ -752,11 +752,11 @@ public interface LoadFunc {
     public Integer bytesToInteger(byte[] b) throws IOException;
     public Long bytesToLong(byte[] b) throws IOException;
     ......
-    public void fieldsToRead(Schema schema);
+    public RequiredFieldResponse fieldsToRead(RequiredFieldList requiredFieldList) throws FrontendException;
     public Schema determineSchema(String fileName, ExecType execType, DataStorage storage) throws IOException;
 </source>
 
-
+<p><strong>bindTo</strong></p>
 <p>The <code>bindTo</code> function is called once by each Pig task before it starts processing data. It is intended to connect the function to its input. It provides the following information: </p>
 <ul>
 <li><p> <code>fileName</code> - The name of the file from which the data is read. Not used most of the time </p>
@@ -770,7 +770,11 @@ public interface LoadFunc {
 </ul>
 
 <p>In the Hadoop world, the input data is treated as a continuous stream of bytes. A <code>slicer</code>, discussed in the Advanced Topics section, is used to split the data into chunks with each chunk going to a particular task for processing. This chunk is what <code>bindTo</code> provides to the UDF. Note that unless you use a custom slicer, the default slicer is not aware of tuple boundaries. This means that the chunk you get can start and end in the middle of a particular tuple. One common approach is to skip the first partial tuple and continue past the end position to finish processing a tuple. This is what <code>PigStorage</code> does as the example later in this section shows. </p>
+
+<p><strong>getNext</strong></p>
 <p>The <code>getNext</code> function reads the input stream and constructs the next tuple. It returns <code>null</code> when it is done with processing and throws an <code>IOException</code> if it fails to process an input tuple. </p>
+
+<p><strong>conversion routines</strong></p>
 <p>Next is a bunch of conversion routines that convert data from <code>bytearray</code> to the requested type. This requires further explanation. By default, we would like the loader to do as little per-tuple processing as possible. This is because many tuples can be thrown out during filtering or joins. Also, many fields might not get used because they get projected out. If the data needs to be converted into another form, we would like this conversion to happen as late as possible. The majority of the loaders should return the data as bytearrays and the Pig will request a conversion from bytearray to the actual type when needed. Let's looks at the example below: </p>
 
 <source>
@@ -781,11 +785,32 @@ dump C;
 </source>
 
 <p>In this query, only <code>age</code> needs to be converted to its actual type (=int=) right away. <code>name</code> only needs to be converted in the next step of processing where the data is likely to be much smaller. <code>gpa</code> is not used at all and will never need to be converted. </p>
+
 <p>This is the main reason for Pig to separate the reading of the data (which can happen immediately) from the converting of the data (to the right type, which can happen later). For ASCII data, Pig provides <code>Utf8StorageConverter</code> that your loader class can extend and will take care of all the conversion routines. The code for it can be found <a href="http://svn.apache.org/viewvc/hadoop/pig/trunk/src/org/apache/pig/builtin/Utf8StorageConverter.java?view=markup"> here</a>. </p>
+
 <p>Note that conversion rutines should return null values for data that can't be converted to the specified type. </p>
+
 <p>Loaders that work with binary data like <code>BinStorage</code> are not going to use this model. Instead, they will produce objects of the appropriate types. However, they might still need to define conversion routines in case some of the fields in a tuple are of type <code>bytearray</code>. </p>
-<p><code>fieldsToRead</code> is reserved for future use and should be left empty. </p>
+
+<p><strong>fieldsToRead</strong></p>
+<p>
+The intent of the <code>fieldsToRead</code> function is to reduce the amount of data returned from the loader. Pig will evaluate the script and determine the minimal set of columns needed to execute it. This information will be passed to the <code>fieldsToRead</code> function of the loader in the <code>requiredFieldList</code> parameter. The parameter is of type <code>RequiredFieldList</code> that is defined as part of the
+<a href="http://svn.apache.org/viewvc/hadoop/pig/branches/branch-0.6/src/org/apache/pig/LoadFunc.java?view=markup">LoadFunc</a> interface. 
+If the loader chooses not to purge unneeded columns, it can use the following implementation:
+</p>
+<source>
+public LoadFunc.RequiredFieldResponse fieldsToRead(LoadFunc.RequiredFieldList requiredFieldList) throws FrontendException {
+        return new LoadFunc.RequiredFieldResponse(false);
+}
+</source>
+
+<p>
+This tells Pig that it should expect the entire column set from the loader. We expect that most loaders will stick to this implementation. In our tests of PigStorage, we saw about 5% improvement when selecting 5 columns out of 40. The loaders that should take advantage of this functionality are the ones, like Zebra, that can pass this information directly to the storage layer. For an example of <code>fieldsToRead</code> see the implementation in <a href="http://svn.apache.org/viewvc/hadoop/pig/branches/branch-0.6/src/org/apache/pig/builtin/PigStorage.java?view=markup"> PigStorage</a>.
+</p>
+
+<p><strong>determineSchema</strong></p>
 <p>The <code>determineSchema</code> function must be implemented by loaders that return real data types rather than <code>bytearray</code> fields. Other loaders should just return <code>null</code>. The idea here is that Pig needs to know the actual types it will be getting; Pig will call <code>determineSchema</code> on the client side to get this information. The function is provided as a way to sample the data to determine its schema.  </p>
+
 <p>Here is the example of the function implemented by =BinStorage=: </p>
 
 <source>
@@ -866,7 +891,7 @@ public class StringStore implements StoreFunc {
 </section>
 
 <section>
-<title>Accumulate Interface</title>
+<title>Accumulator Interface</title>
 
 <p>In Pig, problems with memory usage can occur when data, which results from a group or cogroup operation, needs to be placed in a bag  and passed in its entirety to a UDF.</p>
 
@@ -880,7 +905,7 @@ public interface Accumulator &lt;T&gt; {
     */
     public void accumulate(Tuple b) throws IOException;
     /**
-     * Called when all tuples from current key have been passed to accumulate.
+     * Called when all tuples from current key have been passed to the accumulator.
      * @return the value for the UDF for this key.
      */
     public T getValue();

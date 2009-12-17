@@ -22,6 +22,7 @@ import java.util.Properties;
 
 import org.apache.pig.ExecType; 
 import org.apache.pig.FuncSpec;
+import org.apache.pig.backend.datastorage.DataStorage;
 import org.apache.pig.backend.datastorage.ElementDescriptor;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
@@ -52,7 +53,7 @@ public class TestInputOutputFileValidator extends TestCase {
         String inputfile = generateTempFile().getAbsolutePath() ;
         String outputfile = generateNonExistenceTempFile().getAbsolutePath() ;
 
-        LogicalPlan plan = genNewLoadStorePlan(inputfile, outputfile) ;        
+        LogicalPlan plan = genNewLoadStorePlan(inputfile, outputfile, ctx.getFs()) ;        
         
         CompilationMessageCollector collector = new CompilationMessageCollector() ;        
         LogicalPlanValidationExecutor executor = new LogicalPlanValidationExecutor(plan, ctx) ;
@@ -72,7 +73,7 @@ public class TestInputOutputFileValidator extends TestCase {
         String inputfile = generateTempFile().getAbsolutePath() ;
         String outputfile = generateTempFile().getAbsolutePath() ;
 
-        LogicalPlan plan = genNewLoadStorePlan(inputfile, outputfile) ;        
+        LogicalPlan plan = genNewLoadStorePlan(inputfile, outputfile, ctx.getDfs()) ;        
         
         CompilationMessageCollector collector = new CompilationMessageCollector() ;        
         LogicalPlanValidationExecutor executor = new LogicalPlanValidationExecutor(plan, ctx) ;
@@ -100,7 +101,7 @@ public class TestInputOutputFileValidator extends TestCase {
         String inputfile = createHadoopTempFile(ctx) ;
         String outputfile = createHadoopNonExistenceTempFile(ctx) ;
 
-        LogicalPlan plan = genNewLoadStorePlan(inputfile, outputfile) ;                     
+        LogicalPlan plan = genNewLoadStorePlan(inputfile, outputfile, ctx.getDfs()) ;                     
         
         CompilationMessageCollector collector = new CompilationMessageCollector() ;        
         LogicalPlanValidationExecutor executor = new LogicalPlanValidationExecutor(plan, ctx) ;
@@ -120,7 +121,7 @@ public class TestInputOutputFileValidator extends TestCase {
         String inputfile = createHadoopTempFile(ctx) ;
         String outputfile = createHadoopTempFile(ctx) ;
 
-        LogicalPlan plan = genNewLoadStorePlan(inputfile, outputfile) ;                     
+        LogicalPlan plan = genNewLoadStorePlan(inputfile, outputfile, ctx.getDfs()) ;                     
         
         CompilationMessageCollector collector = new CompilationMessageCollector() ;        
         LogicalPlanValidationExecutor executor = new LogicalPlanValidationExecutor(plan, ctx) ;
@@ -140,14 +141,14 @@ public class TestInputOutputFileValidator extends TestCase {
     
         
     private LogicalPlan genNewLoadStorePlan(String inputFile,
-                                            String outputFile) 
+                                            String outputFile, DataStorage dfs) 
                                         throws Throwable {
         LogicalPlan plan = new LogicalPlan() ;
         FileSpec filespec1 =
             new FileSpec(inputFile, new FuncSpec("org.apache.pig.builtin.PigStorage")) ;
         FileSpec filespec2 =
             new FileSpec(outputFile, new FuncSpec("org.apache.pig.builtin.PigStorage"));
-        LOLoad load = new LOLoad(plan, genNewOperatorKeyId(), filespec1, null, null, true) ;       
+        LOLoad load = new LOLoad(plan, genNewOperatorKeyId(), filespec1, null, dfs, true) ;       
         LOStore store = new LOStore(plan, genNewOperatorKeyId(), filespec2) ;
         
         plan.add(load) ;

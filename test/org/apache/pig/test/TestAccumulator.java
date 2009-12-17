@@ -42,6 +42,7 @@ public class TestAccumulator extends TestCase{
         // pigServer = new PigServer(ExecType.LOCAL);
         pigServer.getPigContext().getProperties().setProperty("pig.accumulative.batchsize", "2");     
         pigServer.getPigContext().getProperties().setProperty("pig.exec.batchsize", "2");
+        pigServer.getPigContext().getProperties().setProperty("pig.exec.nocombiner", "true");
     }
     
     @Before
@@ -99,7 +100,6 @@ public class TestAccumulator extends TestCase{
         new File(INPUT_FILE3).delete();
         Util.deleteFile(cluster, INPUT_FILE3);
     }
-    
     
     public void testAccumBasic() throws IOException{
         // test group by
@@ -405,12 +405,12 @@ public class TestAccumulator extends TestCase{
             Tuple t = iter.next();
             assertEquals(expected.get((Integer)t.get(0)), (String)t.get(1));                
         }                                   
-    }             
+    }
     
     public void testAccumWithBuildin() throws IOException{
         pigServer.registerQuery("A = load '" + INPUT_FILE3 + "' as (id:int, v:double);");
         pigServer.registerQuery("C = group A by id;");
-        pigServer.registerQuery("D = foreach C generate group, SUM(A.v), AVG(A.v), COUNT(A.v), MIN(A.v), MAX(A.v);");                     
+        pigServer.registerQuery("D = foreach C generate group, SUM(A.v), AVG(A.v), COUNT(A.v), MIN(A.v), MAX(A.v);");       
 
         HashMap<Integer, Double[]> expected = new HashMap<Integer, Double[]>();
         expected.put(100, new Double[]{15.0,3.0,5.0,1.0,5.0});
@@ -427,4 +427,32 @@ public class TestAccumulator extends TestCase{
             }            
         }    
     }
+    
+    public void testAccumWithMultiBuildin() throws IOException{
+        pigServer.registerQuery("A = load '" + INPUT_FILE + "' as (id:int, c:chararray);");
+        pigServer.registerQuery("C = group A by 1;");
+        pigServer.registerQuery("D = foreach C generate SUM(A.id), 1+SUM(A.id)+SUM(A.id);");                     
+
+        Iterator<Tuple> iter = pigServer.openIterator("D");
+        
+        while(iter.hasNext()) {
+            Tuple t = iter.next();    
+            t.get(0).toString().equals("1700");
+            t.get(1).toString().equals("3401");   
+        }    
+    }
+
+	// Pig 1105
+    public void testAccumCountStar() throws IOException{
+        pigServer.registerQuery("A = load '" + INPUT_FILE3 + "' as (id:int, v:double);");
+        pigServer.registerQuery("C = group A by id;");
+        pigServer.registerQuery("D = foreach C generate group, COUNT_STAR(A.id);");
+
+		try {
+			Iterator<Tuple> iter = pigServer.openIterator("D");
+		} catch (Exception e) {
+			fail("COUNT_STAR should be supported by accumulator interface");
+		}      
+	}
+	
 }

@@ -42,6 +42,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPackage;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.util.PlanHelper;
+import org.apache.pig.backend.hadoop.executionengine.util.MapRedUtil;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
@@ -53,8 +54,6 @@ import org.apache.pig.impl.plan.DependencyOrderWalker;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.impl.util.SpillableMemoryManager;
-import org.apache.pig.impl.util.UDFContext;
-import org.apache.pig.impl.util.WrappedIOException;
 
 /**
  * This class is the static Mapper &amp; Reducer classes that
@@ -157,16 +156,16 @@ public class PigMapReduce {
             Byte tupleValIdx = 3;
 
             Byte index = (Byte)tuple.get(0);
-            Byte partitionIndex = -1;
-            // for partitioning table, the partition index isn't present
-            if (tuple.size() == 3) {
-                //super.collect(oc, tuple);
-                //return;
-                tupleKeyIdx--;
-                tupleValIdx--;
-            } else {
-                partitionIndex = (Byte)tuple.get(1);
-            }
+			Integer partitionIndex = -1;
+        	// for partitioning table, the partition index isn't present
+			if (tuple.size() == 3) {
+				//super.collect(oc, tuple);
+				//return;
+				tupleKeyIdx--;
+				tupleValIdx--;
+			} else {
+				partitionIndex = (Integer)tuple.get(1);
+			}
 
             PigNullableWritable key =
                 HDataType.getWritableComparableTypes(tuple.get(tupleKeyIdx), DataType.TUPLE);
@@ -308,9 +307,7 @@ public class PigMapReduce {
                 }
                 
                 // Get the UDF specific context
-            	UDFContext udfc = UDFContext.getUDFContext();
-            	udfc.addJobConf(jConf);
-            	udfc.deserialize();
+            	MapRedUtil.setupUDFContext(jConf);
             
             } catch (IOException ioe) {
                 String msg = "Problem while configuring reduce plan.";

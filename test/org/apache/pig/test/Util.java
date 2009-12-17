@@ -396,23 +396,8 @@ public class Util {
 	    String replacement = quoteReplacement("\\\\");
 	    return str.replaceAll(regex, replacement);
 	}
-	
-	   /**
-     * Helper method to construct URI for local file system. For unix, it will
-     * put "file:" in the front of the path; For Windows, it will put "file:/" in 
-     * front of the path, and also call encodeEscape to replace "\" with "\\"
-     * 
-     * @param str absolute path (under cygwin, should be a windows style path)
-     * @return The resulting string
-     */
-    public static String generateURI(String path)
-    {
-        if (System.getProperty("os.name").toUpperCase().startsWith("WINDOWS"))
-            return "file:/"+encodeEscape(path);
-        return "file:"+path;
-    }
 
-    static String generateURI(String filename, PigContext context) 
+    public static String generateURI(String filename, PigContext context) 
             throws IOException {
         if (context.getExecType() == ExecType.MAPREDUCE) {
             return FileLocalizer.hadoopify(filename, context);

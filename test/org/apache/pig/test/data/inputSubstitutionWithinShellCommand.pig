@@ -1,4 +1,5 @@
 
+
 %DECLARE date '20080228'
 %DECLARE formatted_date `sh test/org/apache/pig/test/data/generate_date.sh $date`
 aa = load '/data/intermediate/pow/elcarobootstrap/account/full/weekly/data/$formatted_date' using PigStorage('\x01');

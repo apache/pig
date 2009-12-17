@@ -1,5 +1,4 @@
 %declare udfs /data/pigudf.jar
-
 register $udfs;
 
 aa = load '$loadfile ' using PigStorage('\x01');

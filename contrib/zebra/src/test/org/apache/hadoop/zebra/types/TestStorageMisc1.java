@@ -81,13 +81,13 @@ public class TestStorageMisc1 {
   @Test
   public void testStorageValid1() {
     try {
-        String strStorage = "[r.r.f1,r.f2#{k1}] COMPRESS BY gz SECURE BY user:root; [r.r.f2, r.f2#{k2}] COMPRESS BY lzo SERIALIZE BY avro";
-//      String strStorage = "[r.r.f1,r.f2#{k1}] COMPRESS BY gzip SECURE BY user:root; [r.r.f2, r.f2#{k2}] COMPRESS BY lzo SERIALIZE BY avro";
-//      String strStorage = "[r.r.f1,r.f2#{k1}] COMPRESS BY gzip SECURE BY user:root group:data perm:0766; [r.r.f2, r.f2#{k2}] COMPRESS BY lzo SERIALIZE BY avro";
-//      String strStorage = "[r.r.f1,r.f2#{k1}] COMPRESS BY gzip SECURE BY user:root group:data perm:966; [r.r.f2, r.f2#{k2}] COMPRESS BY lzo SERIALIZE BY avro";
+        String strStorage = "[r.r.f1,r.f2#{k1}] COMPRESS BY gz SECURE BY uid:root; [r.r.f2, r.f2#{k2}] COMPRESS BY lzo SERIALIZE BY avro";
+//      String strStorage = "[r.r.f1,r.f2#{k1}] COMPRESS BY gzip SECURE BY uid:root; [r.r.f2, r.f2#{k2}] COMPRESS BY lzo SERIALIZE BY avro";
+//      String strStorage = "[r.r.f1,r.f2#{k1}] COMPRESS BY gzip SECURE BY uid:root group:data perm:0766; [r.r.f2, r.f2#{k2}] COMPRESS BY lzo SERIALIZE BY avro";
+//      String strStorage = "[r.r.f1,r.f2#{k1}] COMPRESS BY gzip SECURE BY uid:root group:data perm:966; [r.r.f2, r.f2#{k2}] COMPRESS BY lzo SERIALIZE BY avro";
 //      String strStorage = "[r.r.f1,r.f2#{k1}] COMPRESS BY gzip SECURE BY; [r.r.f2, r.f2#{k2}] COMPRESS BY lzo SERIALIZE BY avro";
-//      String strStorage = "[r.r.f1,r.f2#{k1}] COMPRESS BY gzip SECURE BY user:ggg SECURE BY group:fff; [r.r.f2, r.f2#{k2}] COMPRESS BY lzo SERIALIZE BY avro";
-//      String strStorage = "[r.r.f1,r.f2#{k1}] COMPRESS BY gzip SECURE BY user:root user:root; [r.r.f2, r.f2#{k2}] COMPRESS BY lzo SERIALIZE BY avro";
+//      String strStorage = "[r.r.f1,r.f2#{k1}] COMPRESS BY gzip SECURE BY uid:ggg SECURE BY group:fff; [r.r.f2, r.f2#{k2}] COMPRESS BY lzo SERIALIZE BY avro";
+//      String strStorage = "[r.r.f1,r.f2#{k1}] COMPRESS BY gzip SECURE BY uid:root user:root; [r.r.f2, r.f2#{k2}] COMPRESS BY lzo SERIALIZE BY avro";
 
     	Partition p = new Partition(schema.toString(), strStorage, null);
       CGSchema[] cgschemas = p.getCGSchemas();
@@ -161,6 +161,7 @@ public class TestStorageMisc1 {
         }
       }
     } catch (Exception e) {
+      System.out.println("Error is [" + e.getMessage() + "]");
       Assert.assertTrue(false);
     }
   }

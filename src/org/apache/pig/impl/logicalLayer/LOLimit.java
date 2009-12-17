@@ -63,7 +63,13 @@ public class LOLimit extends RelationalOperator {
     public Schema getSchema() throws FrontendException {
         if (!mIsSchemaComputed) {
             try {
-                mSchema = getInput().getSchema();
+                if (getInput().getSchema()!=null) {
+                    mSchema = new Schema(getInput().getSchema());
+                    for (int i=0;i<getInput().getSchema().size();i++)
+                        mSchema.getField(i).setParent(getInput().getSchema().getField(i).canonicalName, getInput());
+                }
+                else
+                    mSchema = null;
                 mIsSchemaComputed = true;
             } catch (FrontendException ioe) {
                 mSchema = null;
@@ -163,7 +169,10 @@ public class LOLimit extends RelationalOperator {
     }
     
     @Override
-    public List<RequiredFields> getRelevantInputs(int output, int column) {
+    public List<RequiredFields> getRelevantInputs(int output, int column) throws FrontendException {
+        if (!mIsSchemaComputed)
+            getSchema();
+        
         if (output!=0)
             return null;
 

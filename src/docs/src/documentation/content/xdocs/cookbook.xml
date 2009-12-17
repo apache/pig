@@ -64,7 +64,7 @@ B = foreach A generate t + u;
 <section>
 <title>Project Early and Often </title>
 
-<p>Pig does not (yet) determine when a field is no longer needed and drop the field from the row.  For example, say you have a query like: </p>
+<p>Pig does not (yet) determine when a field is no longer needed and drop the field from the row. For example, say you have a query like: </p>
 
 <source>
 A = load 'myfile' as (t, u, v);
@@ -74,7 +74,7 @@ D = group C by u;
 E = foreach D generate group, COUNT($1);
 </source>
 
-<p>There is no need for v, y, or z to participate in this query.  And there is no need to carry both t and x past the join, just one will suffice.  Changing the above query to  </p>
+<p>There is no need for v, y, or z to participate in this query.  And there is no need to carry both t and x past the join, just one will suffice. Changing the query above to the query below will greatly reduce the amount of data being carried through the map and reduce phases by pig. </p>
 
 <source>
 A = load 'myfile' as (t, u, v);
@@ -87,8 +87,7 @@ D = group C1 by u;
 E = foreach D generate group, COUNT($1);
 </source>
 
-<p>will greatly reduce the amount of data being carried through the map and reduce phases by pig.  Depending on your data, this can produce significant time savings.  In queries similar to the example given we have seen total time drop by 50%. </p>
-
+<p>Depending on your data, this can produce significant time savings. In queries similar to the example shown here we have seen total time drop by 50%.</p>
 </section>
 
 <section>
@@ -147,12 +146,9 @@ B = foreach A generate CONCAT(in#k1, in#k2);
 </section>
 
 <section>
-<title>Make your UDFs Algebraic</title>
+<title>Make Your UDFs Algebraic</title>
 
-<p>Queries that can take advantage of the combiner generally ran much faster (sometimes several times faster) than the versions that don't. 
-The latest code significantly improves combiner usage; however, you need to make sure you do your part. 
-If you have a UDF that works on grouped data and is, by nature, algebraic (meaning their computation can be decomposed into multiple steps) 
-make sure you implement it as such. For details on how to write algebraic UDFs, see the <a href="udf.html">Pig UDF Manual</a>. </p>
+<p>Queries that can take advantage of the combiner generally ran much faster (sometimes several times faster) than the versions that don't. The latest code significantly improves combiner usage; however, you need to make sure you do your part. If you have a UDF that works on grouped data and is, by nature, algebraic (meaning their computation can be decomposed into multiple steps) make sure you implement it as such. For details on how to write algebraic UDFs, see the Pig UDF Manual and <a href="udf.html#Aggregate+Functions">Aggregate Functions</a>.</p>
 
 <source>
 A = load 'data' as (x, y, z)
@@ -162,12 +158,18 @@ C = foreach B generate group, MyUDF(A);
 </source>
 
 <p>If <code>MyUDF</code> is algebraic, the query will use combiner and run much faster. You can run <code>explain</code> command on your query to make sure that combiner is used. </p>
-
 </section>
 
 <section>
+<title>Implement the Aggregator Interface</title>
+<p>
+If your UDF can't be made Algebraic but is able to deal with getting input in chunks rather than all at once, consider implementing the Aggregator interface to reduce the amount of memory used by your script. If your function <em>is</em> Algebraic and can be used on conjunction with Accumulator functions, you will need to implement the Accumulator interface as well as the Algebraic interface. For more information, see the Pig UDF Manual and <a href="udf.html#Accumulator+Interface">Accumulator Interface</a>.
+</p>
+</section>
+
+
+<section>
 <title>Drop Nulls Before a Join</title>
-<p>This comment only applies to pig 0.2.0 branch, as pig 0.1.0 does not have nulls. </p>
 <p>With the introduction of nulls, join and cogroup semantics were altered to work with nulls.  The semantic for cogrouping with nulls is that nulls from a given input are grouped together, but nulls across inputs are not grouped together.  This preserves the semantics of grouping (nulls are collected together from a single input to be passed to aggregate functions like COUNT) and the semantics of join (nulls are not joined across inputs).  Since flattening an empty bag results in an empty row, in a standard join the rows with a null key will always be dropped.  The join:  </p>
 
 <source>
@@ -199,10 +201,13 @@ C = join A1 by t, B1 by x;
 </section>
 
 <section>
-<title>Take Advantage of Join Optimization</title>
+<title>Take Advantage of Join Optimizations</title>
 
-<p>The optimization insures that the last table in the join is not brought into memory but stream through instead. The optimization reduces the amount of memory used which means you can avoid spilling the data and also should be able to scale your query to larger data volumes. </p>
-<p>To take advantage of this optimization, make sure that the table with the largest number of tuples per key is the last table in your query. </p>
+<section>
+<title>Regular Join Optimizations</title>
+<p>Optimization for regular joins ensures that the last table in the join is not brought into memory but streamed through instead. Optimization reduces the amount of memory used which means you can avoid spilling the data and also should be able to scale your query to larger data volumes. </p>
+<p>To take advantage of this optimization, make sure that the table with the largest number of tuples per key is the last table in your query. 
+In some of our tests we saw 10x performance improvement as the result of this optimization.</p>
 
 <source>
 small = load 'small_file' as (t, u, v);
@@ -210,34 +215,36 @@ large = load 'large_file' as (x, y, z);
 C = join small by t, large by x;
 </source>
 
-<p>In some of our tests we saw 10x performance improvement as the result of this optimization. </p>
 </section>
 
 <section>
-<title>Use Fragment Replicate Join</title>
-
-<p>This type of join works well if one of tables is small enough to fit into main memory. In this case, Pig can perform a very efficient join since, in hadoop world, it can be done completely on the map side. </p>
-
-<source>
-tiny = load 'small_file' as (t, u, v);
-large = load 'large_file' as (x, y, z);
-C = join large by x, tiny by t using "replicated";
-</source>
-
-<p>Note that the large table must come first followed by one or more small tables. All small tables together must fit into main memory. </p>
-<p>This feature is new and experimental. It is experimental because we don't have a strong sense of how small the small table must be to fit into memory. In our tests with a simple query that involved just join a table of up to 100M can be used if the process overall gets 1 GB of memory. If the table does not fit into memory, the process would fail and generate an error. </p>
+<title>Specialized Join Optimizations</title>
+<p>Optimization can also be achieved using fragment replicate joins, skewed joins, and merge joins. 
+For more information see <a href="piglatin_users.html#Specialized+Joins">Specialized Joins</a>.</p>
+</section>
 
 </section>
 
+
 <section>
-<title>Use PARALLEL Keyword</title>
+<title>Use the PARALLEL Keyword</title>
 
-<p>PARALLEL controls the number of reducers invoked by Hadoop. The default out of the box is 1 which, in most cases, is not what you want. I reasonable heuristic to use is something like  </p>
+<p>PARALLEL controls the number of reducers invoked by Hadoop. The default value is 1. However, the number of reducers you need for a particular construct in Pig that forms a MapReduce boundary depends entirely on (1) your data and the number of intermediate keys you are generating in your mappers  and (2) the partitioner and distribution of map (combiner) output keys. In the best cases we have seen that a reducer processing about 500 MB of data behaves efficiently.</p>
 
-<source>&lt;num machines&gt; * &lt;num reduce slots per machine&gt; * 0.9</source>
+<p>The keyword makes sense with any operator that starts a reduce phase. This includes  
+<a href="piglatin_reference.html#COGROUP">COGROUP</a>, 
+<a href="piglatin_reference.html#CROSS">CROSS</a>, 
+<a href="piglatin_reference.html#DISTINCT">DISTINCT</a>, 
+<a href="piglatin_reference.html#GROUP">GROUP</a>, 
+<a href="piglatin_reference.html#JOIN">JOIN</a>, 
+<a href="piglatin_reference.html#ORDER">ORDER</a>, and 
+<a href="piglatin_reference.html#JOIN%2C+OUTER">OUTER JOIN</a>.
 
-<p>The keyword makes sense on any operator that starts a reduce phase. This includes GROUP, COGROUP, JOIN, DISTINCT, LIMIT, ORDER BY. </p>
-<p>Example: </p>
+</p>
+
+<p>You can set the value of PARALLEL in your scripts in conjunction with the operator (see the example below). You can also set the value of PARALLEL for all scripts using the <a href="piglatin_reference.html#set">set</a> command.</p>
+
+<p>Example</p>
 
 <source>
 A = load 'myfile' as (t, u, v);
@@ -248,7 +255,7 @@ B = group A by t PARALLEL 18;
 </section>
 
 <section>
-<title>Use LIMIT</title>
+<title>Use the LIMIT Operator</title>
 
 <p>A lot of the times, you are not interested in the entire output but either a sample or top results. In those cases, using LIMIT can yeild a much better performance as we push the limit as high as possible to minimize the amount of data travelling through the pipeline. </p>
 <p>Sample: 

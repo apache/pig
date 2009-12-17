@@ -54,6 +54,7 @@ import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.util.ObjectSerializer;
+import org.apache.pig.impl.util.UDFContext;
 
 /**
  * Wraps a {@link Slice} in an {@link InputSplit} so it's usable by hadoop.
@@ -143,7 +144,19 @@ public class SliceWrapper extends InputSplit implements Writable {
         if(execType == ExecType.MAPREDUCE)
             store.setActiveContainer(store.asContainer("/user/" + conf.get("user.name")));
         PigContext.setPackageImportList((ArrayList<String>)ObjectSerializer.deserialize(conf.get("udf.import.list")));
-        wrapped.init(store);                             
+        List<String> inpSignatureLists = (ArrayList<String>)ObjectSerializer.deserialize(conf.get("pig.inpSignatures"));
+        if (inpSignatureLists.get(index)!=null) {
+            // Pass loader signature to slice
+            store.getConfiguration().setProperty("pig.loader.signature", inpSignatureLists.get(index));
+            conf.set("pig.loader.signature", inpSignatureLists.get(index));
+        }
+        
+        // Get the UDF specific context
+        UDFContext udfc = UDFContext.getUDFContext();
+        udfc.addJobConf(conf);
+        udfc.deserialize();
+        
+        wrapped.init(store);
         
         // Mimic org.apache.hadoop.mapred.FileSplit if feasible...
         String[] locations = wrapped.getLocations();
