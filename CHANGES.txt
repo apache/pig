@@ -59,6 +59,9 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-1157: Sucessive replicated joins do not generate Map Reduce plan and fails
+due to OOM (rding via olgan)
+
 PIG-1075: Error in Cogroup when key fields types don't match (rding via olgan)
 
 PIG-973: type resolution inconsistency (rding via olgan)

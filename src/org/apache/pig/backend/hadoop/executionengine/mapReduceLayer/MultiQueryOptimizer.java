@@ -113,13 +113,15 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
                 continue;
             }
             if (isMapOnly(successor)) {
-                if (isSingleLoadMapperPlan(successor.mapPlan)) {                    
+                if (isSingleLoadMapperPlan(successor.mapPlan)
+                        && isSinglePredecessor(successor)) {                    
                     mappers.add(successor);                
                 } else {                    
                     multiLoadMROpers.add(successor);
                 }
             } else {
-                if (isSingleLoadMapperPlan(successor.mapPlan)) {                     
+                if (isSingleLoadMapperPlan(successor.mapPlan)
+                        && isSinglePredecessor(successor)) {                     
                     mapReducers.add(successor);                  
                 } else {                    
                     multiLoadMROpers.add(successor);                      
@@ -1119,6 +1121,10 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
     
     private boolean isSingleLoadMapperPlan(PhysicalPlan pl) {
         return (pl.getRoots().size() == 1);
+    }
+    
+    private boolean isSinglePredecessor(MapReduceOper mr) {
+        return (getPlan().getPredecessors(mr).size() == 1);
     }
     
     private POSplit getSplit(){
