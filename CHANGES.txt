@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-1161: add missing license headers (dvryaboy via olgan)
+
 PIG-965: PERFORMANCE: optimize common case in matches (PORegex) (ankit.modi
 via olgan)
 
