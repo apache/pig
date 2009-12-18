@@ -501,6 +501,69 @@ public class TestJobSubmission extends junit.framework.TestCase{
         
         pc.defaultParallel = -1;        
     }
+    
+    @Test
+    public void testDefaultParallelInSort() throws Throwable {
+        pc.defaultParallel = 100;
+        
+        LogicalPlanTester planTester = new LogicalPlanTester() ;
+        planTester.buildPlan("a = load 'input';");
+        LogicalPlan lp = planTester.buildPlan("b = order a by $0;");
+        PhysicalPlan pp = Util.buildPhysicalPlan(lp, pc);
+        POStore store = GenPhyOp.dummyPigStorageOp();
+        pp.addAsLeaf(store);
+        MROperPlan mrPlan = Util.buildMRPlan(pp, pc);
+
+        ExecutionEngine exe = pc.getExecutionEngine();
+        ConfigurationValidator.validatePigProperties(exe.getConfiguration());
+        Configuration conf = ConfigurationUtil.toConfiguration(exe.getConfiguration());
+        JobControlCompiler jcc = new JobControlCompiler(pc, conf);
+        
+        // Get the sort job
+        JobControl jobControl = jcc.compile(mrPlan, "Test");
+        jcc.updateMROpPlan(new ArrayList<Job>());
+        jobControl = jcc.compile(mrPlan, "Test");
+        jcc.updateMROpPlan(new ArrayList<Job>());
+        jobControl = jcc.compile(mrPlan, "Test");
+        Job job = jobControl.getWaitingJobs().get(0);
+        int parallel = job.getJobConf().getNumReduceTasks();
+
+        assertTrue(parallel==100);
+        
+        pc.defaultParallel = -1;        
+    }
+    
+    @Test
+    public void testDefaultParallelInSkewJoin() throws Throwable {
+        pc.defaultParallel = 100;
+        
+        LogicalPlanTester planTester = new LogicalPlanTester() ;
+        planTester.buildPlan("a = load 'input';");
+        planTester.buildPlan("b = load 'input';");
+        LogicalPlan lp = planTester.buildPlan("c = join a by $0, b by $0 using \"skewed\";");
+        PhysicalPlan pp = Util.buildPhysicalPlan(lp, pc);
+        POStore store = GenPhyOp.dummyPigStorageOp();
+        pp.addAsLeaf(store);
+        MROperPlan mrPlan = Util.buildMRPlan(pp, pc);
+
+        ExecutionEngine exe = pc.getExecutionEngine();
+        ConfigurationValidator.validatePigProperties(exe.getConfiguration());
+        Configuration conf = ConfigurationUtil.toConfiguration(exe.getConfiguration());
+        JobControlCompiler jcc = new JobControlCompiler(pc, conf);
+        
+        // Get the skew join job
+        JobControl jobControl = jcc.compile(mrPlan, "Test");
+        jcc.updateMROpPlan(new ArrayList<Job>());
+        jobControl = jcc.compile(mrPlan, "Test");
+        jcc.updateMROpPlan(new ArrayList<Job>());
+        jobControl = jcc.compile(mrPlan, "Test");
+        Job job = jobControl.getWaitingJobs().get(0);
+        int parallel = job.getJobConf().getNumReduceTasks();
+
+        assertTrue(parallel==100);
+        
+        pc.defaultParallel = -1;        
+    }
 
     private void submit() throws Exception{
         assertEquals(true, FileLocalizer.fileExists(hadoopLdFile, pc));
