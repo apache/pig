@@ -241,6 +241,9 @@ PIG-1142: Got NullPointerException merge join with pruning (daijy)
 
 PIG-1155: Need to make sure existing loaders work "as is" (daijy)
 
+PIG-1144: set default_parallelism construct does not set the number of
+reducers correctly (daijy)
+
 Release 0.5.0
 
 INCOMPATIBLE CHANGES
