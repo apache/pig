@@ -51,9 +51,11 @@ import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.logicalLayer.LogicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.LogToPhyTranslationVisitor;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MapReduceLauncher;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.tools.pigstats.PigStats;
 
@@ -238,15 +240,26 @@ public class HExecutionEngine implements ExecutionEngine {
         MapReduceLauncher launcher = new MapReduceLauncher();
         List<ExecJob> jobs = new ArrayList<ExecJob>();
 
+        Map<String, PhysicalOperator> leafMap = new HashMap<String, PhysicalOperator>();
+        for (PhysicalOperator physOp : plan.getLeaves()) {
+            log.info(physOp);
+            if (physOp instanceof POStore) {
+                FileSpec spec = ((POStore) physOp).getSFile();
+                if (spec != null)
+                    leafMap.put(spec.toString(), physOp);
+            }
+        }
         try {
             PigStats stats = launcher.launchPig(plan, jobName, pigContext);
 
             for (FileSpec spec: launcher.getSucceededFiles()) {
-                jobs.add(new HJob(ExecJob.JOB_STATUS.COMPLETED, pigContext, spec, stats));
+                String alias = leafMap.containsKey(spec.toString()) ? leafMap.get(spec.toString()).getAlias() : null;
+                jobs.add(new HJob(ExecJob.JOB_STATUS.COMPLETED, pigContext, spec, alias, stats));
             }
 
             for (FileSpec spec: launcher.getFailedFiles()) {
-                HJob j = new HJob(ExecJob.JOB_STATUS.FAILED, pigContext, spec, stats);
+                String alias = leafMap.containsKey(spec.toString()) ? leafMap.get(spec.toString()).getAlias() : null;
+                HJob j = new HJob(ExecJob.JOB_STATUS.FAILED, pigContext, spec, alias, stats);
                 j.setException(launcher.getError(spec));
                 jobs.add(j);
             }
