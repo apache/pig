@@ -731,6 +731,7 @@ A = load '/data/SDS/data/searcg_US/20090820' using ULTLoader as (s, m, l);
 command:
 pig -cp sds.jar -Dudf.import.list=com.yahoo.yst.sds.ULT myscript.pig 
 </source>
+
 </section>
 
 <section>
@@ -885,8 +886,9 @@ public class StringStore implements StoreFunc {
 <section>
 <title>Builtin Functions and Function Repositories</title>
 
-<p>Pig comes with a set of built-in in functions. Two main properties differentiate builtin functions from UDFs. First, they don't need to be registered because Pig knows where they are. Second, they don't need to be qualified when used because Pig knows where to find them. </p>
-<p>In addition to builtins, Pig hosts a UDF repository called <code>piggybank</code> that allows users to share UDFs that they have written. The details are described in <a href="http://wiki.apache.org/pig/PiggyBank"> PiggyBank</a>. </p>
+<p>Pig comes with a set of builtin functions. Two main properties differentiate builtin functions from UDFs. First, they don't need to be registered because Pig knows where they are. Second, they don't need to be qualified when used because Pig knows where to find them. </p>
+
+<p>Pig also hosts a UDF repository called <code>piggybank</code> that allows users to share UDFs that they have written. The details are described in <a href="http://wiki.apache.org/pig/PiggyBank"> PiggyBank</a>. </p>
 
 </section>
 
@@ -1110,7 +1112,12 @@ public class RangeSlicer implements Slicer, LoadFunc {
 LOAD '27' USING RangeSlicer();
 </source>
 
-</section></section></section>
+</section>
+
+</section>
+
+
+</section>
 
 </body>
 </document>
