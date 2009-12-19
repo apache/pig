@@ -32,31 +32,24 @@
    <title>Column Security</title>
    <p><strong>NOTE: THIS FEATURE IS EXPERIMENTAL AND SUBJECT TO CHANGE IN THE FUTURE</strong></p>
    
- <p>Since Zebra provides columnar storage of user data, we intend to separate secure and non-secure data into separate columns. We can then have access control based on HDFS file systesm based security. This would be achieved by an administrator setting appropriate permissions on the HDFS files contaning secure data. </p>
+ <p>Since Zebra supports reading and writing data in a column-oriented fashion, you can store secure and non-secure data in separate columns.
+ Then, using the HDFS file system, you can enable access control by setting the appropriate permissions on the columns containing secure data.
+ </p>
  
- <section>
- <title>Design Issues</title>
-<p>Roles:</p> 
-<ul>
-<li>Publishers of secure data </li>
-<li>Consumers of secure data </li>
-<li>Administrators of secure data </li>
-</ul>
-
- <p>How it will work:</p>
+ <p>About the data:</p>
  <ul>
-
-<li>Before any data is written in tables, all the corresponding files and directories need to have right set of ownership and permissions. 
-This is necessary because if all the data is written and then the operation to make it secure is executed, that can leave security holes and paranoid will not allow that.</li>
-
-<li>All the files and direcories containing secure data will have same permissions and groups within a table </li>
-<li>User of the MR Job/Pig Script is required to have permissions to execute chgrp operations on a table. </li>
-<li>If no security information provided, then default behaviour.</li>
-<li>If permissions related error happens, it will be communicated to user as normal IOException </li>
-<li>If reader does not have read permissions for a column (CG), an IOException will be thrown </li>
-<li>The publisher/creator of the files will set these permissions when creating data.</li> 
+<li>All the files and directories containing secure data will have the same permissions and groups within a table.  </li>
+<li>If no security information is provided, then the HDFS file system default behavior applies.</li>
 </ul>
- </section>
+<p></p>
+ <p>About the users:</p>
+ <ul>
+<li>The user who creates the data will set the file permissions.</li> 
+<li>If a permissions-related error happens, it will be communicated to the user as a normal IO exception. </li>
+<li>A user running a client application needs to have chgrp permissions to execute the "secure by group" operations on a table. </li>
+<li>If a user running a client application does not have read permissions for a secure column group, an IO exception is issued.</li>
+
+</ul>
 
 <p></p>   
 <p>One simple Pig example:</p>
@@ -70,7 +63,7 @@ b = store a into '/path_to_output_table' using org.apache.hadoop.zebra.pig.Table
 zStorageHint = ZebraStorageHint.createZebraStorageHint(“[a, b] secure by group:secure perm:640”);
 zSchema = …;
 zSortInfo = …;
-setStorageInfo(jobConf, zSchema, zStorageHint, zSortInf);
+setStorageInfo(jobConf, zSchema, zStorageHint, zSortInfo);
 </source>
     </section>
   <!-- END COLUMN SECURITY -->  
@@ -80,20 +73,20 @@ setStorageInfo(jobConf, zSchema, zStorageHint, zSortInf);
    <title>Drop Column Groups</title>
    <p><strong>NOTE: THIS FEATURE IS EXPERIMENTAL AND SUBJECT TO CHANGE IN THE FUTURE</strong></p>
    
-   <p>Zebra allows you to delete a column group using the column group name. 
+   <p>Zebra allows you to delete a column group (CG) using the column group name. 
    For examples, see <a href="zebra_mapreduce.html#Drop+Column+Groups">Drop Column Groups</a>.  </p>
   
 <p>Please note the following:</p>
 <ul>
 <li>Any failures during a drop will leave the table in consistent state (either with or with out the column group). 
-While success of a CG removal guarantees a column removal, a failure does not imply CG is not removed. 
+While success of a column group removal guarantees a column removal, a failure does not imply the column group is not removed. 
 In rare cases, you might receive an error but the column could still be deleted. </li>
 <li>MapReduce jobs and other clients that are currently accessing the table might fail with exceptions. 
-It is recommended that the column groups are dropped when there are no accesses to a table. 
+It is recommended that column groups be dropped when there are no accesses to a table. 
 It might not be feasible to ensure that there are no readers for a table; in these cases the readers should handle the exception. </li>
-<li>Once a column group is dropped, the column gruop data is deleted from the underlying filesystem. 
-In the case of HDFS, it may not imply that physical data is actually removed because of earlier snapshot of the filesystem; handling this is out side the scope of Zebra. Legal requirements might require an admin finalize HDFS (if it is not already finalized) before or after performing a deletion. </li>
-<li>Concurrent deletions are supported and their access is serialized. </li>
+<li>Once a column group is dropped, the column group data is deleted from the underlying file system. 
+In the case of the HDFS filesystem, it may not imply that physical data is actually removed because of earlier snapshot of the file system; handling this is out side the scope of Zebra.</li>
+<li>Concurrent column group deletions are supported and their access is serialized. </li>
 <li>Deleting a non-existant column group or a column group that is already deleted is not allowed.</li>
 <li>If you delete all the remaining columns in a table, it logically leaves an empty null table. The difference between a non-existant table and a table with zero columns is that opening a non-existant table causes an error. </li>
  </ul>  
@@ -104,19 +97,13 @@ In the case of HDFS, it may not imply that physical data is actually removed bec
     <section>
    <title>Order-Preserving Sorted Table Union</title>
 <p>
-This Zebra functionality is only available on underlying sorted Zebra tables. 
-</p>
-
-<section>
-<title>Output Records</title>
-<p>
-This feature groups all records from all "delta tables" on some sort key to form an output set of records while preserving the sorted ordering of the records in the origional tables. For instance, if the client application wants to fetch records from a union of tables of T1, T2 on a column "c1", then all records from T1 with a particular value of column "c1" and all records from T2 with that value of column "c1" will be output. The ordering of the rows of the output set of the same value of column "c1" is undefined. As a prerequisite, both T1 and T2 must be sorted on column "c1". More specifically the input and results could be as follows: 
+With Zebra you can group all records from all "delta tables" on some sort key to form an output set of records while preserving the sorted ordering of the records in the original tables. For instance, if the client application wants to fetch records from a union of tables of T1, T2 on a column "C1", then all records from T1 with a particular value of column "c1" and all records from T2 with that value of column "C1" will be output. The ordering of the rows of the output set of the same value of column "C1" is undefined. As a prerequisite, both T1 and T2 must be sorted on column "C1". More specifically the input and results could be as follows: 
 </p>
 
 <p>Table T1: </p>
 <source>
 C1    C2  
---------------
+------------- 
 A     11  
 A     12  
 B     21  
@@ -137,7 +124,7 @@ D     401
 <p>T1 Sort-Unioned with T2: </p>
 <source>
 source_table  	 C1     C2
----------------------------------------
+------------------------------
 0                A      11  
 1                A      101  
 0                A      12  
@@ -148,27 +135,27 @@ source_table  	 C1     C2
 1                D      401  
 0                D      41  
 </source>
-</section>
+
 
 <p>
-Note that the sortness is guaranteed per mapper and among all mappers arranged with certain ordering, but not among mappers arranged in any ordering. For instance, the outputs generated by 4 mappers, m1, m2, m3 and m4, could be in total ordering between m1, m3, m2 and m4, but not in any other arrangements. 
+Note that the sortness is guaranteed per mapper and among all mappers arranged with certain ordering, but not among mappers arranged in any ordering. For instance, the outputs generated by four mappers, m1, m2, m3 and m4, could be in total ordering between m1, m3, m2 and m4, but not in any other arrangements. 
 </p>
 
 <section>
-<title>Grouping and Indexing of Sort-Unioned Output Rows </title>
+<title>Indexing Sort-Unioned  Results</title>
 <p>
-The order preserving sort-unioned results above could be further indexed by the component tables if the projection contains column(s) named "source_table". If so specified, the component table index will be output at the position(s) as specified in the projection list. If the underlying table is not a union of sorted tables, use of the special column name in projection will cause an exception thrown. 
-</p>
+The order-preserving sort-unioned results above can be further indexed by the component tables if the projection contains column(s) named "source_table". If so specified, the component table index is output at the position(s) as specified in the projection list. 
 
-<p>
-If an attempt is made to create a table of a column named "source_table", an excpetion will be thrown as the name is reserved by zebra for the virtual name. 
+If the underlying table is not a union of sorted tables, the use of the special column name in a projection will cause an exception. 
+
+If an attempt is made to create a table of a column named "source_table", an exception will be thrown as the name is reserved by zebra for the virtual name. 
 </p>
 </section>
 
 <section>
-<title>MapReduce Interface </title>
+<title>MapReduce Jobs</title>
 <p>
-TableInputFormat will have a static method, requireSortedTable, that allows the caller to specify the behavior of a single sorted table or an order preserving sorted table union as described above. The method will ensure all tables in a union are sorted. For  more information, see <a href="zebra_reference.html#TableInputFormat">TableInputFormat</a>.
+TableInputFormat has static method, requireSortedTable, that allows the caller to specify the behavior of a single sorted table or an order-preserving sorted table union as described above. The method ensures all tables in a union are sorted. For more information, see <a href="zebra_reference.html#TableInputFormat">TableInputFormat</a>.
 </p>
 
 <p>One simple example: A order-preserving sorted union B. A and B are sorted tables. </p>
@@ -182,8 +169,8 @@ TableInputFormat.setProjection(conf, "f1, f2, source_table");
 </section>
 
 <section>
-<title>Pig Interface </title>
-<p>Pig will take an extra string argument of "sorted" indicating the desire to load from a sorted table or an order preserving sorted table union. 
+<title>Pig Scripts</title>
+<p>Pig takes an extra string argument of "sorted" indicating the desire to load from a sorted table or an order-preserving sorted table union. 
 For  more information, see <a href="zebra_pig.html#Zebra+Pig+Examples">Zebra Pig Examples</a>.</p> 
 
 <p>One simple example:</p> 
@@ -193,8 +180,7 @@ T = load ('path_to_A, path_to_B') using TableLoader('f1, f2, source_table', 'sor
 ...
 </source>
   </section>
-  
-</section>
+  </section>
 <!-- END ORDER PRESERVE SORT-->   
 
   <!--MERGE JOIN-->
@@ -206,23 +192,22 @@ For  more information, see <a href="zebra_pig.html#Map-Side+Group+and+Merge+Join
    
 <p>One simple example:</p> 
 <source>
-Class myMapper {
-…
-Object keyGenerator;
-…
-
-public void map(…) {
-   bytesKey = BasicTableOutputFormat.getSortKey(keyGenerator, userKey);
-   …
-   output.collect(bytesKey, valueTuple);
-   …
+class myMapper extends Mapper&lt;…&gt; {
+  …
+  Object keyGenerator;
+  …
+  public void map(…) {
+     bytesKey = BasicTableOutputFormat.getSortKey(keyGenerator, userKey);
+     …
+     output.collect(bytesKey, valueTuple);
+     …
+  }
+  public void configure(JobConf job) {
+     keyGenerator = BasicTableOutputFormat.getSortKeyGenerator(job);
+     …
+  }
 }
 
-public void configure(JobConf job)
-{
-    keyGenerator = BasicTableOutputFormat.getSortKeyGenerator(job);
-…
-}
 </source>   
    
    </section>

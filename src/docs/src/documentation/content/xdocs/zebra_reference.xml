@@ -150,7 +150,7 @@ The schema  supports data type compatibility and conversion between Zebra/Pig, Z
 (<em>In a future release, the schema will also support type compatibility between Zebra/Pig-SQL and will guide the underlying serialization formats provided by Avro for projection, filtering, and so on. </em>)
 </p>   
    
-   <p>The basic format for the the store schema is shown here. 
+   <p>The basic format for the store schema is shown here. 
    The type name is optional; if not specified, the column defaults to type bytes.</p>
    <p>
 <code>
@@ -453,7 +453,7 @@ STORE A INTO '$PATH' USING org.apache.hadoop.zebra.pig.TableStorer('[a1, a2] AS 
    <p>The Zebra load schema is load or read table columns. </p>
      <section>
    <title>Schema</title>
-   <p>The basic format for the the Zebra load (read) schema is shown here. The column name can be any valid Zebra type.  
+   <p>The basic format for the Zebra load (read) schema is shown here. The column name can be any valid Zebra type.  
    If no columns are specified, the entire Zebra table is loaded.</p>
    <p>
 <code>

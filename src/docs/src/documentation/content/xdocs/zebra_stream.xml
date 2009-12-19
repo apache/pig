@@ -105,7 +105,7 @@ $ grep 'en' output/part-00000 | head
    <section>
    <title>Locating Frequently Visited Pages</title>
    
- <p>This perl script sorts the pages on number of page view counts. The script outputs space padded count 
+ <p>This Perl script sorts the pages on number of page view counts. The script outputs space padded count 
  so that string sorting results in correct output. The first TAB separates the key and value for Hadoop streaming.</p>
 
 <source>
