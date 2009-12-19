@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-1163: Pig/Zebra 0.6.0 release (chandec via olgan)
+
 PIG-1156: Add aliases to ExecJobs and PhysicalOperators (dvryaboy via gates)
 
 PIG-1161: add missing license headers (dvryaboy via olgan)

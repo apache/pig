@@ -42,8 +42,8 @@
    <title>Prerequisites</title> 
    <p>Zebra requires:</p>
    <ul>
-   <li>Pig 0.6.0 </li>
-   <li>Hadoop 0.20.1</li>
+   <li>Pig 0.6.0 or later</li>
+   <li>Hadoop 0.20.1 or later</li>
    </ul>
    <p></p>
    <p>Also, make sure the following software is installed on your system:</p>
