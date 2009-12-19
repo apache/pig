@@ -149,6 +149,7 @@ public class TableMapReduceExample extends Configured implements Tool {
         throw new RuntimeException(e);
       }
     }
+
   }
 
   static class ProjectionMap extends MapReduceBase implements Mapper&lt;BytesWritable, Tuple, Text, IntWritable&gt; {
@@ -209,21 +210,22 @@ public class TableMapReduceExample extends Configured implements Tool {
     jobConf.setOutputFormat(BasicTableOutputFormat.class);
     BasicTableOutputFormat.setOutputPath(jobConf, new Path(args[1]));
 
-    // set the output info:
-    // ZebraSchema - 2 logical columns
-    // ZebraStorageHint - 2 physical column groups (one column each)
-    // ZebraSortInfo - unsorted table (null)
+    // set the storage info of logical schema with 2 columns;
+    // and create 2 physical column groups;
+    // unsorted table
     
     BasicTableOutputFormat.setStorageInfo(jobConf, 
         ZebraSchema.createZebraSchema("word:string, count:int"),
-        ZebraStorageHint.createZebraStorageHint("[word];[count]"), 
-        null);
+        ZebraStorageHint.createZebraStorageHint("[word];[count]"), null);
 
     // set map-only job.
     jobConf.setNumReduceTasks(0);
 
     // Run Job
     JobClient.runJob(jobConf);
+    
+    // Need to close Zebra output streams
+    BasicTableOutputFormat.close(jobConf);
 
     /*
       Second MR Job for Table Projection of count column
@@ -264,7 +266,13 @@ public class TableMapReduceExample extends Configured implements Tool {
   <!-- ZEBRA OUTPUT EXAMPLE-->
 <section>
 <title>Table Input/Output Formats</title> 
-<p>This MapReduce example demonstrates the Zebra table input/output formats. </p>
+<p>
+This MapReduce examples demonstrates how to perform a simple union. 
+To run this program, we need two basic tables that contain 
+the data as in the example above (word, count). In this example they are: 
+/user/mapredu/t1 and  /user/mapredu/t2. The resulting table is /user/mapredu2/t.
+</p>
+
  <source>
  package org.apache.hadoop.zebra.mapred;
 
@@ -286,13 +294,7 @@ import org.apache.hadoop.zebra.schema.Schema;
 import org.apache.hadoop.zebra.types.TypesUtils;
 import org.apache.pig.data.Tuple;
 
-/**
- * This is a sample to show using zebra table to do a simple basic union in
- * map/reduce * To run this, we need have two basic tables ready. They contain
- * the data as in Sample 1, i.e., (word, count). In this example, they are at:
- * /user/mapredu/t1 /user/mapredu/t2 The resulting table is put at: /user/mapredu2/t1
- * 
- */
+
 public class TableMRSample2 {
   static class MapClass implements
       Mapper&lt;BytesWritable, Tuple, BytesWritable, Tuple&gt; {
