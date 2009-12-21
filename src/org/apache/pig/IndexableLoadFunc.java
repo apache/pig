@@ -33,9 +33,10 @@ import org.apache.pig.data.Tuple;
  * The sequence of calls made from the pig runtime are:
  * 
  * {@link IndexableLoadFunc#initialize(Configuration)}
- * IndexableLoadFunc.bindTo(filename, bufferedPositionedInputStream, 0, LONG.MAX_VALUE);
- * (the bufferedPositionedInputStream is a decorator around the underlying
- * DFS input stream)
+ * IndexableLoadFunc.bindTo(filename, null, 0, LONG.MAX_VALUE);
+ * (it's the IndexableLoad's responsibility to create the underlying
+ * DFS input stream since indexer should have all the information 
+ * required)
  * IndexableLoadFunc.seekNear(keys);
  * A series of IndexableLoadFunc.getNext(); calls to perform the join
  * IndexableLoadFunc.close(); 

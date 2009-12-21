@@ -540,6 +540,18 @@ public class TestMergeJoin {
         Assert.assertTrue(shjSch == null);
     }
     
+    @Test
+    public void testMergeJoinWithCommaSeparatedFilePaths() throws IOException{
+
+        pigServer.registerQuery("A = LOAD '" + INPUT_FILE + "';");
+        pigServer.registerQuery("B = LOAD 'temp_file,righinput_file' using " +
+                DummyIndexableLoader.class.getName() + "();");
+
+        pigServer.registerQuery("C = join A by $0, B by $0 using \"merge\";");
+            
+        Iterator<Tuple> iter = pigServer.openIterator("C");
+        Assert.assertFalse(iter.hasNext());
+    }
     
     /**
      * A dummy loader which implements {@link IndexableLoadFunc} to test

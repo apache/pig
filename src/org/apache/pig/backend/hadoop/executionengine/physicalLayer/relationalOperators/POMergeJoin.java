@@ -395,14 +395,17 @@ public class POMergeJoin extends PhysicalOperator {
         rightLoader = (IndexableLoadFunc)PigContext.instantiateFuncFromSpec(rightLoaderFuncSpec);
         pc = (PigContext)ObjectSerializer.deserialize(PigMapReduce.sJobConf.get("pig.pigContext"));
         pc.connect();
-        InputStream is = FileLocalizer.open(rightInputFileName, pc);
+        
         // Pass signature of the loader to rightLoader
         PigMapReduce.sJobConf.set("pig.loader.signature", signature);
         rightLoader.initialize(PigMapReduce.sJobConf);
-        // the main purpose of this bindTo call is supply the input file name
+        
+        // the purpose of this bindTo call is supply the input file name
         // to the right loader - in the case of Pig's DefaultIndexableLoader
-        // this is really not used since the index has all information required
-        rightLoader.bindTo(rightInputFileName, new BufferedPositionedInputStream(is), 0, Long.MAX_VALUE);
+        // this is really not used since the index has all information required.
+        // It's responsibility of the right loader to create InputStream from which
+        // it reads data.
+        rightLoader.bindTo(rightInputFileName, null, 0, Long.MAX_VALUE);
         rightLoader.seekNear(
                 firstLeftKey instanceof Tuple ? (Tuple)firstLeftKey : mTupleFactory.newTuple(firstLeftKey));
     }
