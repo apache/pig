@@ -22,6 +22,9 @@ Trunk (unreleased changes)
 
 INCOMPATIBLE CHANGES
 
+PIG-1110: Handle compressed file formats -- Gz, BZip with the new proposal
+(rding via pradeepkth)
+
 PIG-1088: change merge join and merge join indexer to work with new LoadFunc
 interface (thejas via pradeepkth)
 

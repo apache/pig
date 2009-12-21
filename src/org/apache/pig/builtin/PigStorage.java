@@ -31,6 +31,8 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.WritableComparable;
+import org.apache.hadoop.io.compress.BZip2Codec;
+import org.apache.hadoop.io.compress.GzipCodec;
 import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.OutputFormat;
@@ -384,6 +386,13 @@ LoadPushDown {
     public void setStoreLocation(String location, Job job) throws IOException {
         job.getConfiguration().set("mapred.textoutputformat.separator", "");
         FileOutputFormat.setOutputPath(job, new Path(location));
+        if (location.endsWith(".bz2")) {
+            FileOutputFormat.setCompressOutput(job, true);
+            FileOutputFormat.setOutputCompressorClass(job,  BZip2Codec.class);
+        }  else if (location.endsWith(".gz")) {
+            FileOutputFormat.setCompressOutput(job, true);
+            FileOutputFormat.setOutputCompressorClass(job, GzipCodec.class);
+        }
     }
 
     @Override
