@@ -309,20 +309,19 @@ public class Util {
     }
     
     /**
-	 * Helper function to check if the result of a Pig Query is in line with 
-	 * expected results.
-	 * 
-	 * @param actualResults Result of the executed Pig query
-	 * @param expectedResults Expected results to validate against
-	 */
-	static public void checkQueryOutputs(Iterator<Tuple> actualResults, 
-			                        Tuple[] expectedResults) {
-	    
-		for (Tuple expected : expectedResults) {
-			Tuple actual = actualResults.next();
-			Assert.assertEquals(expected, actual);
-		}
-	}
+    * Helper function to check if the result of a Pig Query is in line with 
+    * expected results.
+    * 
+    * @param actualResults Result of the executed Pig query
+    * @param expectedResults Expected results to validate against
+    */
+    static public void checkQueryOutputs(Iterator<Tuple> actualResults, 
+                                    Tuple[] expectedResults) {
+        for (Tuple expected : expectedResults) {
+            Tuple actual = actualResults.next();
+            Assert.assertEquals(expected.toString(), actual.toString());
+        }
+    }
 
 	/**
 	 * Utility method to copy a file form local filesystem to the dfs on

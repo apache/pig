@@ -19,9 +19,10 @@ package org.apache.pig.impl.streaming;
 
 import java.io.IOException;
 
-import org.apache.pig.LoadFunc;
+import org.apache.hadoop.io.Text;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.io.BufferedPositionedInputStream;
+import org.apache.pig.impl.io.PigLineRecordReader;
 
 /**
  * {@link OutputHandler} is responsible for handling the output of the 
@@ -41,7 +42,13 @@ public abstract class OutputHandler {
      * It is the responsibility of the concrete sub-classes to setup and
      * manage the deserializer. 
      */  
-    protected LoadFunc deserializer;
+    protected StreamToPig deserializer;
+    
+    protected PigLineRecordReader in = null;
+
+    private BufferedPositionedInputStream istream;
+
+    private long end = Long.MAX_VALUE;
     
     /**
      * Get the handled <code>OutputType</code>.
@@ -62,9 +69,16 @@ public abstract class OutputHandler {
      */
     public void bindTo(String fileName, BufferedPositionedInputStream is,
                        long offset, long end) throws IOException {
-        // XXX: FIXME - make this work with new load-store redesign
-//        deserializer.bindTo(fileName, new BufferedPositionedInputStream(is), 
-//                            offset, end);
+        this.istream  = is;
+        this.in = new PigLineRecordReader(istream, offset, end);
+        this.end = end;
+
+        // Since we are not block aligned we throw away the first
+        // record and cound on a different instance to read it
+        if (offset != 0) {
+            getNext();
+        }
+
     }
     
     /**
@@ -74,12 +88,28 @@ public abstract class OutputHandler {
      * @throws IOException
      */
     public Tuple getNext() throws IOException {
-        return deserializer.getNext();
+        if (in == null || in.getPosition() > end) {
+            return null;
+        }
+
+        Text value = new Text();
+        boolean notDone = in.next(value);
+        if (!notDone) {
+            return null;
+        }
+        
+        return deserializer.deserialize(value.getBytes());
     }
     
     /**
      * Close the <code>OutputHandler</code>.
      * @throws IOException
      */
-    public synchronized void close() throws IOException {}
+    public synchronized void close() throws IOException {
+        if(!alreadyClosed) {
+            istream.close();
+            istream = null;
+            alreadyClosed = true;
+        }
+    }
 }

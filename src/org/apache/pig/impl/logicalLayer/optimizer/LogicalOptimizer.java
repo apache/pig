@@ -104,6 +104,7 @@ public class LogicalOptimizer extends
 
         // Add type casting to plans where the schema has been declared by
         // user in a statement with stream operator.
+        
         rulePlan = new RulePlan();
         RuleOperator loStream= new RuleOperator(LOStream.class, 
                 new OperatorKey(SCOPE, nodeIdGen.getNextNodeId(SCOPE)));
@@ -112,24 +113,13 @@ public class LogicalOptimizer extends
                 LOStream.class.getName()), "StreamTypeCastInserter"));
 
         if(!turnAllRulesOff) {
-            /*
-             * Optimize when LOAD precedes STREAM and the loader class is the
-             * same as the serializer for the STREAM. Similarly optimize when
-             * STREAM is followed by store and the deserializer class is same as
-             * the Storage class.
-             */
-
-            Rule<LogicalOperator, LogicalPlan> rule = new Rule<LogicalOperator, LogicalPlan>(rulePlan,
-                    new StreamOptimizer(plan, LOStream.class.getName()),
-                    "StreamOptimizer");
-            checkAndAddRule(rule);
 
             // Push up limit wherever possible.
             rulePlan = new RulePlan();
             RuleOperator loLimit = new RuleOperator(LOLimit.class,
 					new OperatorKey(SCOPE, nodeIdGen.getNextNodeId(SCOPE)));
 			rulePlan.add(loLimit);
-            rule = new Rule<LogicalOperator, LogicalPlan>(rulePlan,
+			Rule<LogicalOperator, LogicalPlan> rule = new Rule<LogicalOperator, LogicalPlan>(rulePlan,
 					new OpLimitOptimizer(plan, mode), "LimitOptimizer");
             checkAndAddRule(rule);
             

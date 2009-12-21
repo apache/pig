@@ -42,6 +42,7 @@ import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.VisitorException;
+import org.apache.pig.impl.streaming.StreamToPig;
 import org.apache.pig.impl.util.CastUtils;
 
 /**
@@ -50,8 +51,7 @@ import org.apache.pig.impl.util.CastUtils;
  * implementation.
  */
 public class POCast extends ExpressionOperator {
-    private FuncSpec loadFSpec = null;
-    transient private LoadFunc load;
+    private FuncSpec funcSpec = null;
     transient private LoadCaster caster;
     transient private Log log = LogFactory.getLog(getClass());
     private boolean castNotNeeded = false;
@@ -62,34 +62,37 @@ public class POCast extends ExpressionOperator {
 
     public POCast(OperatorKey k) {
         super(k);
-        // TODO Auto-generated constructor stub
     }
 
     public POCast(OperatorKey k, int rp) {
         super(k, rp);
-        // TODO Auto-generated constructor stub
     }
 
     private void instantiateFunc() throws IOException {
-        if (load != null)
-            return;
-        if (this.loadFSpec != null) {
-            this.load = (LoadFunc) PigContext
-                    .instantiateFuncFromSpec(this.loadFSpec);
-            this.caster = load.getLoadCaster();
-        }
-        
+        if (caster != null) return;
+           
+        if (funcSpec != null) {
+            Object obj = PigContext
+                    .instantiateFuncFromSpec(funcSpec);
+            if (obj instanceof LoadFunc) {
+                caster = ((LoadFunc)obj).getLoadCaster();
+            } else if (obj instanceof StreamToPig) {
+                caster = ((StreamToPig)obj).getLoadCaster();
+            } else {
+                throw new IOException("Invalid class type "
+                        + funcSpec.getClassName());
+            }
+        }        
     }
 
-    public void setLoadFSpec(FuncSpec lf) throws IOException {
-        this.loadFSpec = lf;
+    public void setFuncSpec(FuncSpec lf) throws IOException {
+        this.funcSpec = lf;
         instantiateFunc();
     }
 
     @Override
     public void visit(PhyPlanVisitor v) throws VisitorException {
         v.visitCast(this);
-
     }
 
     @Override
@@ -100,7 +103,6 @@ public class POCast extends ExpressionOperator {
 
     @Override
     public boolean supportsMultipleInputs() {
-        // TODO Auto-generated method stub
         return false;
     }
 
@@ -989,7 +991,7 @@ public class POCast extends ExpressionOperator {
         POCast clone = new POCast(new OperatorKey(mKey.scope, NodeIdGenerator
                 .getGenerator().getNextNodeId(mKey.scope)));
         clone.cloneHelper(this);
-        clone.loadFSpec = loadFSpec;
+        clone.funcSpec = funcSpec;
         try {
             clone.instantiateFunc();
         } catch (IOException e) {

@@ -55,6 +55,7 @@ import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
+import org.apache.pig.impl.util.StorageUtil;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.impl.util.UDFContext;
@@ -96,26 +97,7 @@ LoadPushDown {
      */
     public PigStorage(String delimiter) {
         this();
-        if (delimiter.length() == 1) {
-            this.fieldDel = (byte)delimiter.charAt(0);
-        } else if (delimiter.length() > 1 && delimiter.charAt(0) == '\\') {
-            switch (delimiter.charAt(1)) {
-            case 't':
-                this.fieldDel = (byte)'\t';
-                break;
-
-            case 'x':
-            case 'u':
-                this.fieldDel =
-                    Integer.valueOf(delimiter.substring(2)).byteValue();
-                break;
-
-            default:                
-                throw new RuntimeException("Unknown delimiter " + delimiter);
-            }
-        } else {            
-            throw new RuntimeException("PigStorage delimeter must be a single character");
-        }
+        fieldDel = StorageUtil.parseFieldDel(delimiter);        
     }
 
     @Override
@@ -163,112 +145,6 @@ LoadPushDown {
 
     ByteArrayOutputStream mOut = new ByteArrayOutputStream(BUFFER_SIZE);
 
-    private void putField(Object field) throws IOException {
-        //string constants for each delimiter
-        String tupleBeginDelim = "(";
-        String tupleEndDelim = ")";
-        String bagBeginDelim = "{";
-        String bagEndDelim = "}";
-        String mapBeginDelim = "[";
-        String mapEndDelim = "]";
-        String fieldDelim = ",";
-        String mapKeyValueDelim = "#";
-
-        switch (DataType.findType(field)) {
-        case DataType.NULL:
-            break; // just leave it empty
-
-        case DataType.BOOLEAN:
-            mOut.write(((Boolean)field).toString().getBytes());
-            break;
-
-        case DataType.INTEGER:
-            mOut.write(((Integer)field).toString().getBytes());
-            break;
-
-        case DataType.LONG:
-            mOut.write(((Long)field).toString().getBytes());
-            break;
-
-        case DataType.FLOAT:
-            mOut.write(((Float)field).toString().getBytes());
-            break;
-
-        case DataType.DOUBLE:
-            mOut.write(((Double)field).toString().getBytes());
-            break;
-
-        case DataType.BYTEARRAY: {
-            byte[] b = ((DataByteArray)field).get();
-            mOut.write(b, 0, b.length);
-            break;
-                                 }
-
-        case DataType.CHARARRAY:
-            // oddly enough, writeBytes writes a string
-            mOut.write(((String)field).getBytes(UTF8));
-            break;
-
-        case DataType.MAP:
-            boolean mapHasNext = false;
-            Map<String, Object> m = (Map<String, Object>)field;
-            mOut.write(mapBeginDelim.getBytes(UTF8));
-            for(Map.Entry<String, Object> e: m.entrySet()) {
-                if(mapHasNext) {
-                    mOut.write(fieldDelim.getBytes(UTF8));
-                } else {
-                    mapHasNext = true;
-                }
-                putField(e.getKey());
-                mOut.write(mapKeyValueDelim.getBytes(UTF8));
-                putField(e.getValue());
-            }
-            mOut.write(mapEndDelim.getBytes(UTF8));
-            break;
-
-        case DataType.TUPLE:
-            boolean tupleHasNext = false;
-            Tuple t = (Tuple)field;
-            mOut.write(tupleBeginDelim.getBytes(UTF8));
-            for(int i = 0; i < t.size(); ++i) {
-                if(tupleHasNext) {
-                    mOut.write(fieldDelim.getBytes(UTF8));
-                } else {
-                    tupleHasNext = true;
-                }
-                try {
-                    putField(t.get(i));
-                } catch (ExecException ee) {
-                    throw ee;
-                }
-            }
-            mOut.write(tupleEndDelim.getBytes(UTF8));
-            break;
-
-        case DataType.BAG:
-            boolean bagHasNext = false;
-            mOut.write(bagBeginDelim.getBytes(UTF8));
-            Iterator<Tuple> tupleIter = ((DataBag)field).iterator();
-            while(tupleIter.hasNext()) {
-                if(bagHasNext) {
-                    mOut.write(fieldDelim.getBytes(UTF8));
-                } else {
-                    bagHasNext = true;
-                }
-                putField((Object)tupleIter.next());
-            }
-            mOut.write(bagEndDelim.getBytes(UTF8));
-            break;
-            
-        default: {
-            int errCode = 2108;
-            String msg = "Could not determine data type of field: " + field;
-            throw new ExecException(msg, errCode, PigException.BUG);
-        }
-        
-        }
-    }
-
     @Override
     public void putNext(Tuple f) throws IOException {
         // I have to convert integer fields to string, and then to bytes.
@@ -283,7 +159,7 @@ LoadPushDown {
                 throw ee;
             }
 
-            putField(field);
+            StorageUtil.putField(mOut, field);
 
             if (i != sz - 1) {
                 mOut.write(fieldDel);

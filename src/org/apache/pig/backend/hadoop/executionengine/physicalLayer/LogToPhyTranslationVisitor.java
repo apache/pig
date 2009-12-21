@@ -1809,7 +1809,7 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
         FuncSpec lfSpec = op.getLoadFuncSpec();
         if(null != lfSpec) {
             try {
-                ((POCast) physOp).setLoadFSpec(lfSpec);
+                ((POCast) physOp).setFuncSpec(lfSpec);
             } catch (IOException e) {
                 int errCode = 1053;
                 String msg = "Cannot resolve load function to use for casting" +

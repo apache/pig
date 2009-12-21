@@ -18,10 +18,7 @@
 package org.apache.pig.impl.streaming;
 
 import java.io.IOException;
-import java.io.OutputStream;
 
-import org.apache.pig.StoreFunc;
-import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.streaming.StreamingCommand.HandleSpec;
 
@@ -31,46 +28,33 @@ import org.apache.pig.impl.streaming.StreamingCommand.HandleSpec;
  * via its <code>stdin</code>.  
  */
 public class DefaultInputHandler extends InputHandler {
-    
-    OutputStream stdin;
-    
+       
     public DefaultInputHandler() {
-        serializer = new PigStorage();
+        serializer = new PigStreaming();
     }
     
     public DefaultInputHandler(HandleSpec spec) {
-        serializer = (StoreFunc)PigContext.instantiateFuncFromSpec(spec.spec);
+        serializer = (PigToStream)PigContext.instantiateFuncFromSpec(spec.spec);
     }
     
+    @Override
     public InputType getInputType() {
         return InputType.SYNCHRONOUS;
     }
     
-    public void bindTo(OutputStream os) throws IOException {
-        stdin = os;
-        super.bindTo(stdin);
-    }
-    
     @Override
-    public synchronized void close(Process process) throws IOException {
-        if(!alreadyClosed) {
-            alreadyClosed = true;
+    public synchronized void close(Process process) throws IOException {            
+        try {
             super.close(process);
-            try {
-                stdin.flush();
-                stdin.close();
-                stdin = null;
-            } catch(IOException e) {
-	            // check if we got an exception because
-                // the process actually completed and we were
-                // trying to flush and close it's stdin
-                if(process == null || process.exitValue() != 0) {
-                    // the process had not terminated normally 
-                    // throw the exception we got                    
-                    throw e;
-                }
+        } catch(IOException e) {
+            // check if we got an exception because
+            // the process actually completed and we were
+            // trying to flush and close it's stdin
+            if (process == null || process.exitValue() != 0) {
+                // the process had not terminated normally 
+                // throw the exception we got                    
+                throw e;
             }
-            
         }
     }
 }

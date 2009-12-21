@@ -302,7 +302,7 @@
         FIXME: fix and remove when streaming  and local mode is fixed -->
         <javac encoding="${build.encoding}" srcdir="${sources}"
                 includes="**/*.java" destdir="${dist}" debug="${javac.debug}"
-                excludes="**/TestStreaming.java,**/TestPigLineRecordReader.java"
+                excludes="**/TestPigLineRecordReader.java"
                 optimize="${javac.optimize}" target="${javac.version}"
                 source="${javac.version}" deprecation="${javac.deprecation}">
             <compilerarg line="${javac.args} ${javac.args.warnings}"/>
@@ -556,7 +556,7 @@
                          These should be fixed (removed from here)  when the src code 
                          is fixed for the corresponding feature -->
                     <!-- FIXME: fix and remove when streaming in fixed -->
-                    <exclude name="**/TestStreaming.java" />
+                    <!-- <exclude name="**/TestStreaming.java" /> -->
                     <!-- FIXME: fix and remove when local mode is fixed --> 
                     <exclude name="**/TestPigLineRecordReader.java" />
                 </fileset>

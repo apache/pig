@@ -20,7 +20,6 @@ package org.apache.pig.impl.streaming;
 import java.io.IOException;
 import java.io.OutputStream;
 
-import org.apache.pig.StoreFunc;
 import org.apache.pig.data.Tuple;
 
 /**
@@ -31,19 +30,21 @@ import org.apache.pig.data.Tuple;
  * manner via its <code>stdin</code> or in an {@link InputType#ASYNCHRONOUS} 
  * manner via an external file which is subsequently read by the executable.
  */
-//XXX: FIXME make this work with new load store redesign
 public abstract class InputHandler {
     /**
      * 
      */
     public enum InputType {SYNCHRONOUS, ASYNCHRONOUS}
+   
     /*
      * The serializer to be used to send data to the managed process.
      * 
      * It is the responsibility of the concrete sub-classes to setup and
      * manage the serializer. 
      */  
-    protected StoreFunc serializer;
+    protected PigToStream serializer;
+    
+    private OutputStream out;
     
     // flag to mark if close() has already been called
     protected boolean alreadyClosed = false;
@@ -61,7 +62,7 @@ public abstract class InputHandler {
      * @throws IOException
      */
     public void putNext(Tuple t) throws IOException {
-        serializer.putNext(t);
+        out.write(serializer.serialize(t));
     }
     
     /**
@@ -78,8 +79,10 @@ public abstract class InputHandler {
      */
     public synchronized void close(Process process) throws IOException {
         if(!alreadyClosed) {
-//            serializer.finish();
             alreadyClosed = true;
+            out.flush();
+            out.close();
+            out = null;
         }
     }
     
@@ -92,6 +95,6 @@ public abstract class InputHandler {
      * @throws IOException
      */
     public void bindTo(OutputStream os) throws IOException {
-//        serializer.bindTo(os);
+        out = os;
     }
 }

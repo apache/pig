@@ -22,6 +22,9 @@ Trunk (unreleased changes)
 
 INCOMPATIBLE CHANGES
 
+PIG-1141: Make streaming work with the new load-store interfaces (rding via
+pradeepkth)
+
 PIG-1110: Handle compressed file formats -- Gz, BZip with the new proposal
 (rding via pradeepkth)
 

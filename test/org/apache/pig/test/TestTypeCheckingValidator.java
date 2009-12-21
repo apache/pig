@@ -5244,7 +5244,7 @@ public class TestTypeCheckingValidator extends TestCase {
 
         LOCast cast = (LOCast)foreachPlan.getSuccessors(exOp).get(0);
         
-        assertTrue(cast.getLoadFuncSpec().getClassName().startsWith("org.apache.pig.builtin.PigStorage"));
+        assertTrue(cast.getLoadFuncSpec().getClassName().startsWith("org.apache.pig.impl.streaming.PigStreaming"));
 
     }
 
@@ -5276,7 +5276,7 @@ public class TestTypeCheckingValidator extends TestCase {
 
         LOCast cast = (LOCast)foreachPlan.getSuccessors(exOp).get(0);
         
-        assertTrue(cast.getLoadFuncSpec().getClassName().startsWith("org.apache.pig.builtin.PigStorage"));
+        assertTrue(cast.getLoadFuncSpec().getClassName().startsWith("org.apache.pig.impl.streaming.PigStreaming"));
 
         foreachPlan = foreach.getForEachPlans().get(1);
 
@@ -5323,7 +5323,7 @@ public class TestTypeCheckingValidator extends TestCase {
         exOp = foreachPlan.getRoots().get(0);
         if(! (exOp instanceof LOProject)) exOp = foreachPlan.getRoots().get(1);
         cast = (LOCast)foreachPlan.getSuccessors(exOp).get(0);
-        assertTrue(cast.getLoadFuncSpec().getClassName().startsWith("org.apache.pig.builtin.PigStorage"));
+        assertTrue(cast.getLoadFuncSpec().getClassName().startsWith("org.apache.pig.impl.streaming.PigStreaming"));
 
     }
 
@@ -5363,7 +5363,7 @@ public class TestTypeCheckingValidator extends TestCase {
         exOp = foreachPlan.getRoots().get(0);
         if(! (exOp instanceof LOProject)) exOp = foreachPlan.getRoots().get(1);
         cast = (LOCast)foreachPlan.getSuccessors(exOp).get(0);
-        assertTrue(cast.getLoadFuncSpec().getClassName().startsWith("org.apache.pig.builtin.PigStorage"));
+        assertTrue(cast.getLoadFuncSpec().getClassName().startsWith("org.apache.pig.impl.streaming.PigStreaming"));
 
     }
 

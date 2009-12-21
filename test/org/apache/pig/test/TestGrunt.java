@@ -46,7 +46,8 @@ public class TestGrunt extends TestCase {
         basedir = "test/org/apache/pig/test/data";
     }
     
-/*    @Test 
+/*    
+    @Test 
     public void testCopyFromLocal() throws Throwable {
         PigServer server = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
         PigContext context = server.getPigContext();
@@ -59,8 +60,8 @@ public class TestGrunt extends TestCase {
         Grunt grunt = new Grunt(new BufferedReader(reader), context);
     
         grunt.exec();
-    }*/
-
+    }
+*/
     @Test 
     public void testDefine() throws Throwable {
         PigServer server = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
@@ -617,7 +618,7 @@ public class TestGrunt extends TestCase {
     
         grunt.exec();
     }
-/*
+
     @Test
     public void testKeepGoing() throws Throwable {
         PigServer server = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
@@ -681,7 +682,7 @@ public class TestGrunt extends TestCase {
         }
         assertTrue(caught);
     }
-*/
+
     @Test
     public void testInvalidParam() throws Throwable {
         PigServer server = new PigServer(ExecType.LOCAL, cluster.getProperties());

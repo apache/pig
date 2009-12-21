@@ -53,6 +53,9 @@ import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.PlanException;
 import org.apache.pig.impl.streaming.StreamingCommand;
 import org.apache.pig.impl.streaming.StreamingCommand.HandleSpec;
+import org.apache.pig.impl.streaming.StreamToPig;
+import org.apache.pig.impl.streaming.PigToStream;
+import org.apache.pig.impl.streaming.PigStreaming;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.BagFactory;
@@ -80,7 +83,7 @@ public class QueryParser {
 	private Map<String, LogicalOperator> mapAliasOp;
 	private static Log log = LogFactory.getLog(QueryParser.class);
 	private boolean bracketed = false;
-        private Map<String, String> fileNameMap;
+    private Map<String, String> fileNameMap;
 	
 	private long getNextId() {
 		return nodeIdGen.getNextNodeId(scope);
@@ -100,7 +103,7 @@ public class QueryParser {
 		this.scope = scope;
 		this.nodeIdGen = NodeIdGenerator.getGenerator();
 		this.mapAliasOp = aliasOp;
-                this.fileNameMap = fileNameMap;
+        this.fileNameMap = fileNameMap;
 	}
 	
     public QueryParser(InputStream in,
@@ -757,6 +760,8 @@ class FunctionType {
     public static final byte COMPARISONFUNC = 4;
     public static final byte LOADFUNC = 8; 
     public static final byte STOREFUNC = 16;
+    public static final byte PIGTOSTREAMFUNC = 32;
+    public static final byte STREAMTOPIGFUNC = 64;
 
     public static void tryCasting(Object func, byte funcType) throws Exception {
         switch(funcType) {
@@ -771,6 +776,12 @@ class FunctionType {
             break;
         case FunctionType.STOREFUNC:
 			StoreFunc storeFunc = (StoreFunc) func;
+            break;
+        case FunctionType.PIGTOSTREAMFUNC:
+            PigToStream ptsFunc = (PigToStream) func;
+            break;
+        case FunctionType.STREAMTOPIGFUNC:
+            StreamToPig stpFunc = (StreamToPig) func;
             break;
         default:
             throw new Exception("Received an unknown function type: " + funcType);
@@ -2334,8 +2345,8 @@ void InputOutputSpec(StreamingCommand command, StreamingCommand.Handle handle):
 {
     String stream, deserializer;
     StreamingCommand.HandleSpec[] handleSpecs;
-    String functionName = "PigStorage", functionArgs="";
-    byte funcType = (handle.compareTo(StreamingCommand.Handle.INPUT) != 0 ? FunctionType.LOADFUNC : FunctionType.STOREFUNC) ;
+    String functionName = PigStreaming.class.getName(), functionArgs="";
+    byte funcType = (handle.compareTo(StreamingCommand.Handle.INPUT) != 0 ? FunctionType.PIGTOSTREAMFUNC : FunctionType.STREAMTOPIGFUNC) ;
     FuncSpec funcSpec = null;
 } 
 {
@@ -3182,6 +3193,8 @@ FuncSpec NonEvalFuncSpec(byte funcType) :
             case FunctionType.COMPARISONFUNC:
             case FunctionType.LOADFUNC:
             case FunctionType.STOREFUNC:
+            case FunctionType.STREAMTOPIGFUNC:
+            case FunctionType.PIGTOSTREAMFUNC:
                 func = pigContext.instantiateFuncFromSpec(funcSpec);
 		        try{
                     FunctionType.tryCasting(func, funcType);

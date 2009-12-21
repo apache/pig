@@ -49,10 +49,7 @@ public class TestStreamingLocal extends TestCase {
     @Before
     @Override
     protected void setUp() throws Exception {
-
-
         pigServer = new PigServer("local");
-
     }
 
     @After
@@ -61,7 +58,8 @@ public class TestStreamingLocal extends TestCase {
         pigServer.shutdown();
     }
 
-    private Tuple[] setupExpectedResults(Object[] firstField, Object[] secondField) throws ExecException {
+    private Tuple[] setupExpectedResults(Object[] firstField,
+            Object[] secondField) throws ExecException {
         Assert.assertEquals(firstField.length, secondField.length);
 
         Tuple[] expectedResults = new Tuple[firstField.length];
@@ -92,8 +90,9 @@ public class TestStreamingLocal extends TestCase {
                 expectedResults = 
                     setupExpectedResults(expectedFirstFields, expectedSecondFields);
             } else {
-                expectedResults = 
-                    setupExpectedResults(Util.toDataByteArrays(expectedFirstFields), Util.toDataByteArrays(expectedSecondFields));
+                expectedResults = setupExpectedResults(Util
+                        .toDataByteArrays(expectedFirstFields), Util
+                        .toDataByteArrays(expectedSecondFields));
             }
 
             // Pig query to run
@@ -134,8 +133,9 @@ public class TestStreamingLocal extends TestCase {
                 expectedResults = 
                     setupExpectedResults(expectedFirstFields, expectedSecondFields);
             } else {
-                expectedResults = 
-                    setupExpectedResults(Util.toDataByteArrays(expectedFirstFields), Util.toDataByteArrays(expectedSecondFields));
+                expectedResults = setupExpectedResults(Util
+                        .toDataByteArrays(expectedFirstFields), Util
+                        .toDataByteArrays(expectedSecondFields));
             }
             // Pig query to run
             pigServer.registerQuery("IP = load 'file:" + Util.encodeEscape(input.toString()) + "' using " + 
@@ -173,8 +173,9 @@ public class TestStreamingLocal extends TestCase {
                 expectedResults = 
                     setupExpectedResults(expectedFirstFields, expectedSecondFields);
             } else {
-                expectedResults = 
-                    setupExpectedResults(Util.toDataByteArrays(expectedFirstFields), Util.toDataByteArrays(expectedSecondFields));
+                expectedResults = setupExpectedResults(Util
+                        .toDataByteArrays(expectedFirstFields), Util
+                        .toDataByteArrays(expectedSecondFields));
             }
 
             // Pig query to run
@@ -308,13 +309,14 @@ public class TestStreamingLocal extends TestCase {
                 expectedResults = 
                     setupExpectedResults(expectedFirstFields, expectedSecondFields);
             } else {
-                expectedResults = 
-                    setupExpectedResults(Util.toDataByteArrays(expectedFirstFields), Util.toDataByteArrays(expectedSecondFields));
+                expectedResults = setupExpectedResults(Util
+                        .toDataByteArrays(expectedFirstFields), Util
+                        .toDataByteArrays(expectedSecondFields));
             }
 
             // Pig query to run
             pigServer.registerQuery("define CMD `"+ simpleEchoStreamingCommand + 
-            "` input(stdin using PigDump);");
+            "` input(stdin);");
             pigServer.registerQuery("IP = load 'file:" + Util.encodeEscape(input.toString()) + "' using " + 
                     PigStorage.class.getName() + "(',') " +
             "split by 'file';");
