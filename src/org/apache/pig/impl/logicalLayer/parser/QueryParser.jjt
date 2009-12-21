@@ -206,27 +206,6 @@ public class QueryParser {
         
         ArrayList<String> pathStrings = new ArrayList<String>();
         
-        // If multiquery is off we revert to the old behavior, which
-        // did not try to convert paths to their absolute location.
-        boolean isMultiQuery = "true".equalsIgnoreCase(pigContext.getProperties().getProperty("opt.multiquery","true"));
-        if (!isMultiQuery) {
-            if (!isLoad) { // stores do not require any change
-                return filename;
-            }
-
-            // Local loads in the hadoop context require copying the
-            // file to dfs first.
-            if (pigContext.getExecType() != ExecType.LOCAL) {
-                for (String strname : fnames) { 
-                    if (strname.startsWith(FileLocalizer.LOCAL_PREFIX)) {
-                        strname = FileLocalizer.hadoopify(strname, pigContext);
-                    }
-                    pathStrings.add(strname);
-                 }
-            }
-            return StringUtils.join(pathStrings, ",");
-        }
-
         boolean hadoopify = false;
 
         for (String strname : fnames) {
