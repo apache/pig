@@ -35,6 +35,7 @@ import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.util.Pair;
+import org.mortbay.log.Log;
 
 /**
  * Abstract class that specifies the interface for sample loaders
@@ -49,7 +50,8 @@ public abstract class SampleLoader implements LoadFunc {
 
     
     public SampleLoader(String funcSpec) {
-    	loader = (SamplableLoader)PigContext.instantiateFuncFromSpec(funcSpec);
+        funcSpec = funcSpec.replaceAll("\\\\'", "'");
+        loader = (SamplableLoader)PigContext.instantiateFuncFromSpec(funcSpec);
     }
     
     public void setNumSamples(int n) {
