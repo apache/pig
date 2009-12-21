@@ -32,6 +32,7 @@ import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.util.Pair;
+import org.apache.pig.impl.util.UDFContext;
 import org.apache.pig.impl.builtin.PartitionSkewedKeys;
 
 /**
@@ -85,6 +86,7 @@ public class PoissonSampleLoader extends SampleLoader {
 	 */
 	@Override
 	public void computeSamples(ArrayList<Pair<FileSpec, Boolean>> inputs, PigContext pc) throws ExecException {
+	    
 		int numSplits, convFactor, sampleRate;
 		Properties pcProps = pc.getProperties();
 		
@@ -110,25 +112,23 @@ public class PoissonSampleLoader extends SampleLoader {
 		
 		// % of memory available for the records
 		float heapPerc = PartitionSkewedKeys.DEFAULT_PERCENT_MEMUSAGE;
-                if (pcProps.getProperty(PERC_MEM_AVAIL) != null) {
-		    try {
-                        heapPerc = Float.valueOf(pcProps.getProperty(PERC_MEM_AVAIL));
-                    }catch(NumberFormatException e) {
-			// ignore, use default value
-                    }
-                }
-		
-		// we are only concerned with the first input for skewed join
-		String fname = inputs.get(0).first.getFileName();
-		
-		// calculate the base number of samples
+        if (pcProps.getProperty(PERC_MEM_AVAIL) != null) {
+            try {
+                heapPerc = Float.valueOf(pcProps.getProperty(PERC_MEM_AVAIL));
+            } catch (NumberFormatException e) {
+                // ignore, use default value
+            }
+        }
+
+        // We are concerned with the size of the first input. In case of globs / directories, 
+        // this size is the total size of all the files present in them
+        Properties p = UDFContext.getUDFContext().getUDFProperties(SampleLoader.class);
+        Long iSize = Long.valueOf((String) p.get("pig.input.0.size"));
+
+        // calculate the base number of samples
 		try {
-			float f = (Runtime.getRuntime().maxMemory() * heapPerc) / (float) (FileLocalizer.getSize(fname,pcProps) * convFactor);
+		    float f = (Runtime.getRuntime().maxMemory() * heapPerc) / (float) (iSize * convFactor);
 			baseNumSamples = (long) Math.ceil(1.0 / f);
-		} catch (IOException e) {
-			int errCode = 2175;
-			String msg = "Internal error. Could not retrieve file size for the sampler.";
-			throw new ExecException(msg, errCode, PigException.BUG);
 		} catch (ArithmeticException e) {
 			int errCode = 1105;
 			String msg = "Heap percentage / Conversion factor cannot be set to 0";
@@ -141,6 +141,7 @@ public class PoissonSampleLoader extends SampleLoader {
 		// set the minimum number of samples to 1
 		n = (n > 1) ? n : 1;
 		setNumSamples(n);
+
 	}
 	
 	@Override

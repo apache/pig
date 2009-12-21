@@ -242,6 +242,23 @@ public class Util {
     }
     
     /**
+     * Helper to return the file size on the MiniCluster dfs.
+     * 
+     * @param miniCluster reference to the Minicluster where the file should be created
+     * @param fileName pathname of the file to be created
+     * @throws IOException
+     */
+    static public long getSize(MiniCluster miniCluster, String fileName) 
+    throws IOException {
+        FileSystem fs = miniCluster.getFileSystem();
+        Path p = new Path(fileName);
+        if(!fs.exists(p)) {
+            throw new IOException("File " + fileName + " does not exist on the minicluster");
+        }
+        return fs.getFileStatus(p).getLen();
+    }
+    
+    /**
      * Helper to create a dfs file on the MiniCluster dfs. This returns an
      * outputstream that can be used in test cases to write data.
      * 

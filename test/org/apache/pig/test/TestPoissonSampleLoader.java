@@ -30,17 +30,23 @@ import org.apache.pig.ExecType;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce;
 import org.apache.pig.builtin.BinStorage;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.builtin.PoissonSampleLoader;
+import org.apache.pig.impl.builtin.SampleLoader;
 import org.apache.pig.impl.util.Pair;
+import org.apache.pig.impl.util.UDFContext;
 import org.apache.pig.test.utils.TestHelper;
 import org.junit.After;
 import org.junit.Before;
+import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.FileSpec;
+
+import java.util.Properties;
 
 
 public class TestPoissonSampleLoader extends TestCase{
@@ -96,6 +102,8 @@ public class TestPoissonSampleLoader extends TestCase{
   		
   		ArrayList<Pair<FileSpec, Boolean>> inputs = new ArrayList<Pair<FileSpec, Boolean> >();
   		inputs.add(new Pair<FileSpec, Boolean>(fs, true));
+  		Properties p = UDFContext.getUDFContext().getUDFProperties(SampleLoader.class);
+  		p.setProperty("pig.input.0.size", Long.toString(Util.getSize(cluster, INPUT_FILE1)));
   		
         // Use 100 as a default value;
         PoissonSampleLoader ps = new PoissonSampleLoader((new FuncSpec(PigStorage.class.getName())).toString(), "100");
@@ -104,7 +112,7 @@ public class TestPoissonSampleLoader extends TestCase{
         ps.computeSamples(inputs, pigServer.getPigContext());
         
         if (ps.getNumSamples() != 3) {
-        	fail("Compute samples returned the wrong number of samples");
+        	fail("Compute samples returned the wrong number of samples: " + ps.getNumSamples() + " instead of 3");
         }
     }
 	
