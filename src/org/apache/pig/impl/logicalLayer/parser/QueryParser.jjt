@@ -1246,7 +1246,30 @@ LogicalOperator LoadClause(LogicalPlan lp) :
         Object obj = PigContext.instantiateFuncFromSpec(funcSpec);
         LoadFunc loFunc = (LoadFunc)obj;
         try {
-            String absolutePath = loFunc.relativeToAbsolutePath(filename, getCurrentDir(pigContext));
+        
+            // If we converted the file name before, we return the old
+            // result. This is not done for performance but to make sure
+            // we return the same result for relative paths when
+            // re-parsing the same script for execution.
+            // For example if a script has
+            // a = load ...
+            // ...
+            // cd x
+            // ...
+            // store c into 'foo'; => the abs. path for 'foo' would be '/user/<username>/x/foo'
+            // ..
+            // cd y
+            // ..
+            // store f into 'bar'=> the abs. path for 'bar' would be '/user/<username>/x/y/bar'
+            // While re-parsing, the current working dir is already at /user/<username>/x/y
+            // so translating 'foo' to its absolute path based on that dir would give incorrect
+            // results - hence we store the translations into a map during the first parse for
+            // use during the reparse.
+            String absolutePath = fileNameMap.get(filename);
+            if (absolutePath == null) {
+                absolutePath = loFunc.relativeToAbsolutePath(filename, getCurrentDir(pigContext));
+                fileNameMap.put(filename, absolutePath);
+            }
             lo = new LOLoad(lp, new OperatorKey(scope, getNextId()), new FileSpec(absolutePath, funcSpec),
                   pigContext.getExecType(), pigContext.getFs(), splittable);
         } catch (IOException ioe) {
@@ -2383,7 +2406,13 @@ LogicalOperator StoreClause(LogicalPlan lp) : {LogicalOperator lo; Token t; Stri
 
         Object obj = PigContext.instantiateFuncFromSpec(funcSpec);
         StoreFunc stoFunc = (StoreFunc)obj;
-        String absolutePath = stoFunc.relToAbsPathForStoreLocation(fileName, getCurrentDir(pigContext));
+         
+        // see the comments in LoadClause for reasons to cache absolutePath
+        String absolutePath = fileNameMap.get(fileName);
+        if (absolutePath == null) {
+            absolutePath = stoFunc.relToAbsPathForStoreLocation(fileName, getCurrentDir(pigContext));
+            fileNameMap.put(fileName, absolutePath);   
+        }
         LogicalOperator store = new LOStore(lp, new OperatorKey(scope, getNextId()),
                                             new FileSpec(absolutePath, funcSpec));
 
