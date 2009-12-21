@@ -45,6 +45,20 @@ manner (rding via pradeepkth)
 
 IMPROVEMENTS
 
+PIG-1162: Pig 0.6.0 - UDF doc (chandec via olgan)
+
+PIG-1163: Pig/Zebra 0.6.0 release (chandec via olgan)
+
+PIG-1156: Add aliases to ExecJobs and PhysicalOperators (dvryaboy via gates)
+
+PIG-1161: add missing license headers (dvryaboy via olgan)
+
+PIG-965: PERFORMANCE: optimize common case in matches (PORegex) (ankit.modi
+via olgan)
+
+PIG-760:  Add a new PigStorageSchema load/store function that 
+          store schemas for text files (dvryaboy via gates)
+
 PIG-1106: FR join should not spill (ankit.modi via olgan)
 
 PIG-1147: Zebra Docs for Pig 0.6.0 (chandec via olgan)
@@ -71,6 +85,11 @@ PIG-1085:  Pass JobConf and UDF specific configuration information to UDFs
 OPTIMIZATIONS
 
 BUG FIXES
+
+PIG-1157: Sucessive replicated joins do not generate Map Reduce plan and fails
+due to OOM (rding via olgan)
+
+PIG-1075: Error in Cogroup when key fields types don't match (rding via olgan)
 
 PIG-973: type resolution inconsistency (rding via olgan)
 
@@ -301,6 +320,11 @@ PIG-1133: UDFContext should be made available to LoadFunc.bindTo (daijy)
 PIG-1132: Column Pruner issues in dealing with unprunable loader (daijy)
 
 PIG-1142: Got NullPointerException merge join with pruning (daijy)
+
+PIG-1155: Need to make sure existing loaders work "as is" (daijy)
+
+PIG-1144: set default_parallelism construct does not set the number of
+reducers correctly (daijy)
 
 Release 0.5.0
 

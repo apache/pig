@@ -73,7 +73,7 @@ a: {name: chararray,age: int,gpa: float}
 A = LOAD 'studenttab, votertab' USING org.apache.hadoop.zebra.pig.TableLoader();
 </source>
 
-<p>TableLoader supports efficient column selection; projections are automatically push down to the loader. This example tells the loader to only return two columns, name and age.</p>
+<p>TableLoader supports efficient column selection; projections are automatically pushed down to the loader. This example tells the loader to only return two columns, name and age.</p>
 <source>
 A = LOAD 'studenttab' USING org.apache.hadoop.zebra.pig.TableLoader('name, age');
 </source>
@@ -84,7 +84,7 @@ A = LOAD 'studenttab' USING org.apache.hadoop.zebra.pig.TableLoader('name, age')
  <section>
  <title>Map-Side Group and Merge Join</title>
 
-<p>If the input data is globally sorted, map-side group or merge join can be used. Please, notice the “sorted” argument passed to the loader. This lets the loader know that the data is expected to be globally sorted and that a single key must be given to the same map.</p>
+<p>If the input data is globally sorted, merge join and map-side group can be used. Please note the “sorted” argument that is passed to the loader. This lets the loader know that the data is expected to be globally sorted and that a single key must be given to the same map.</p>
 
 <p>Here is an example of the merge join. Note that the first argument to the loader is left empty to indicate that all columns are requested.</p>
 <source>
@@ -93,7 +93,7 @@ B = LOAD 'votersortedtab' USING org.apache.hadoop.zebra.pig.TableLoader('', 'sor
 G = JOIN A BY $0, B By $0 USING "merge";
 </source>
 
-<p>Here is an example of a map-side group. Note that multiple sorted files are passed to the loader and that the loader will perform sort preserving merge to make sure that the data is globally sorted.</p>
+<p>Here is an example of a map-side group. Note that multiple sorted files are passed to the loader and that the loader will perform sort-preserving merge to make sure that the data is globally sorted.</p>
 <source>
 A = LOAD 'studentsortedtab, studentnullsortedtab' using org.apache.hadoop.zebra.pig.TableLoader('name, age, gpa, source_table', 'sorted');
 B = GROUP A BY $0 USING "collected";

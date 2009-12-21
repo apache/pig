@@ -112,6 +112,66 @@ public class TestMultiQuery {
         myPig = null;
     }
     
+    public void testMultiQueryJiraPig1157() {
+
+        // test case: Sucessive replicated joins do not generate Map Reduce plan and fails due to OOM
+        
+        String INPUT_FILE = "abc";
+        String INPUT_FILE_1 = "xyz";
+        
+        try {
+    
+            PrintWriter w = new PrintWriter(new FileWriter(INPUT_FILE));
+            w.println("1\tapple\t3");
+            w.println("2\torange\t4");
+            w.println("3\tpersimmon\t5");
+            w.close();
+    
+            Util.copyFromLocalToCluster(cluster, INPUT_FILE, INPUT_FILE);
+            Util.copyFromLocalToCluster(cluster, INPUT_FILE, INPUT_FILE_1);
+    
+            myPig.setBatchOn();
+    
+            myPig.registerQuery("A = load '" + INPUT_FILE 
+                    + "' as (a:long, b, c);");
+            myPig.registerQuery("A1 = FOREACH A GENERATE a;");
+            myPig.registerQuery("B = GROUP A1 BY a;");
+            myPig.registerQuery("C = load '" + INPUT_FILE_1 
+                    + "' as (x:long, y);");
+            myPig.registerQuery("D = JOIN C BY x, B BY group USING \"replicated\";");  
+            myPig.registerQuery("E = JOIN A BY a, D by x USING \"replicated\";");  
+            
+            Iterator<Tuple> iter = myPig.openIterator("E");
+
+            List<Tuple> expectedResults = Util.getTuplesFromConstantTupleStrings(
+                    new String[] { 
+                            "(1L,1L,'apple',1L,{(1L)})",
+                            "(2L,2L,'orange',2L,{(2L)})",
+                            "(3L,3L,'persimmon',3L,{(3L)})"
+                    });
+            
+            int counter = 0;
+            while (iter.hasNext()) {
+                assertEquals(expectedResults.get(counter++).toString(), iter.next().toString());                  
+            }
+
+            assertEquals(expectedResults.size(), counter);
+            
+        } catch (Exception e) {
+            e.printStackTrace();
+            Assert.fail();
+        } finally {
+            new File(INPUT_FILE).delete();
+            try {
+                Util.deleteFile(cluster, INPUT_FILE);
+                Util.deleteFile(cluster, INPUT_FILE_1);
+            } catch (IOException e) {
+                e.printStackTrace();
+                Assert.fail();
+            }
+        }
+    }
+    
     public void testMultiQueryJiraPig1068() {
 
         // test case: COGROUP fails with 'Type mismatch in key from map: 
@@ -1548,7 +1608,7 @@ public class TestMultiQuery {
 
             PhysicalPlan pp = checkPhysicalPlan(lp, 2, 3, 16);
 
-            checkMRPlan(pp, 1, 1, 2);            
+            checkMRPlan(pp, 2, 1, 3);            
             
         } catch (Exception e) {
             e.printStackTrace();

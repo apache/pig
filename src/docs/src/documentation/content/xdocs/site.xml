@@ -45,24 +45,24 @@ See http://forrest.apache.org/docs/linking.html for more info
     <tutorial label="Tutorial"				 	href="tutorial.html" />
     </docs>  
      <docs label="Guides"> 
-    <piglatin label="Pig Latin Users "	href="piglatin_users.html" />
-    <piglatin label="Pig Latin Reference"	href="piglatin_reference.html" />
+    <plusers label="Pig Latin Users "	href="piglatin_users.html" />
+    <plref label="Pig Latin Reference"	href="piglatin_reference.html" />
     <cookbook label="Cookbook" 		href="cookbook.html" />
     <udf label="UDFs" href="udf.html" />
     </docs>  
     <docs label="Zebra"> 
-     <piglatin label="Zebra Overview "	href="zebra_overview.html" />
-     <piglatin label="Zebra Users "	href="zebra_users.html" />
-     <piglatin label="Zebra Reference "	href="zebra_reference.html" />
-     <piglatin label="Zebra MapReduce "	href="zebra_mapreduce.html" />
-     <piglatin label="Zebra Pig "	href="zebra_pig.html" />
-     <piglatin label="Zebra Streaming "	href="zebra_stream.html" />
+     <zover label="Zebra Overview "	href="zebra_overview.html" />
+     <zusers label="Zebra Users "	href="zebra_users.html" />
+     <zref label="Zebra Reference "	href="zebra_reference.html" />
+     <zmr label="Zebra MapReduce "	href="zebra_mapreduce.html" />
+     <zpig label="Zebra Pig "	            href="zebra_pig.html" />
+     <zstream label="Zebra Streaming "	href="zebra_stream.html" />
     </docs>
      <docs label="Miscellaneous"> 
      <api	label="API Docs"					href="ext:api"/>
-    <wiki  label="Wiki"               			href="ext:wiki" />
-    <faq  label="FAQ"                			href="ext:faq" />
-    <relnotes  label="Release Notes" 	href="ext:relnotes" />
+     <wiki  label="Wiki"               			href="ext:wiki" />
+     <faq  label="FAQ"                			href="ext:faq" />
+     <relnotes  label="Release Notes" 	href="ext:relnotes" />
     </docs>
 
  <external-refs> 

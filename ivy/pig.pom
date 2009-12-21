@@ -83,5 +83,11 @@
        <version>${junit.version}</version>
     </dependency>
 
+    <dependency>
+        <groupId>jackson</groupId>
+        <artifactId>jackson</artifactId>
+        <version>${jackson.version}</version>
+    </dependency>
+
   </dependencies> 
 </project>

@@ -2127,6 +2127,23 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
         assertEquals("An exception was expected but did " +
                 "not occur", true, exceptionThrown);
     }
+    
+    @Test
+    public void testCogroupByIncompatibleSchemaFailure() {
+        boolean exceptionThrown = false;
+        try {
+            buildPlan(" a = load '1.txt' as (a0:int, a1:int);");
+            buildPlan(" b = load '2.txt' as (a0:int, a1:chararray); ");
+            buildPlan("c = cogroup a by (a0,a1), b by (a0,a1);");
+        } catch (AssertionFailedError e) {
+            assertTrue(e.getMessage().contains("Cogroup column"));
+            assertTrue(e.getMessage().contains("has incompatible types"));
+            exceptionThrown = true;
+        }
+        assertEquals("An exception was expected but did " +
+                "not occur", true, exceptionThrown);
+    }
+    
     private void printPlan(LogicalPlan lp) {
         LOPrinter graphPrinter = new LOPrinter(System.err, lp);
         System.err.println("Printing the logical plan");

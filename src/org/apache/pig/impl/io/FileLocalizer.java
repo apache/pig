@@ -298,7 +298,7 @@ public class FileLocalizer {
         }
     }
     
-    private static String fullPath(String fileName, DataStorage storage) {
+    public static String fullPath(String fileName, DataStorage storage) {
         String fullPath;
         try {
             if (fileName.charAt(0) != '/') {

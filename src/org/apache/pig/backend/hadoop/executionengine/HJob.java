@@ -49,23 +49,28 @@ public class HJob implements ExecJob {
     protected PigContext pigContext;
     protected FileSpec outFileSpec;
     protected Exception backendException;
+    protected String alias;
     private PigStats stats;
     
     public HJob(JOB_STATUS status,
                 PigContext pigContext,
-                FileSpec outFileSpec) {
+                FileSpec outFileSpec,
+                String alias) {
         this.status = status;
         this.pigContext = pigContext;
         this.outFileSpec = outFileSpec;
+        this.alias = alias;
     }
     
     public HJob(JOB_STATUS status,
             PigContext pigContext,
             FileSpec outFileSpec,
+            String alias,
             PigStats stats) {
         this.status = status;
         this.pigContext = pigContext;
         this.outFileSpec = outFileSpec;
+        this.alias = alias;
         this.stats = stats;
     }
     
@@ -174,5 +179,10 @@ public class HJob implements ExecJob {
 
     public Exception getException() {
         return backendException;
+    }
+
+    @Override
+    public String getAlias() throws ExecException {
+        return alias;
     }
 }

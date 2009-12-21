@@ -54,6 +54,7 @@ public class LocalJob implements ExecJob {
     protected JOB_STATUS status;
     protected PigContext pigContext;
     protected FileSpec outFileSpec;
+    protected String alias;
     private PigStats stats;
     
     public LocalJob(JOB_STATUS status,
@@ -175,5 +176,10 @@ public class LocalJob implements ExecJob {
 
     public Exception getException() {
         return null;
+    }
+
+    @Override
+    public String getAlias() throws ExecException {
+        return alias;
     }
 }

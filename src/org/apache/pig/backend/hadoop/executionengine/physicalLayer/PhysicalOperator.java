@@ -89,6 +89,10 @@ public abstract class PhysicalOperator extends Operator<PhyPlanVisitor> implemen
     // The result of performing the operation along with the output
     protected Result res = null;
     
+    
+    // alias associated with this PhysicalOperator
+    protected String alias = null;
+    
     // Will be used by operators to report status or transmit heartbeat
     // Should be set by the backends to appropriate implementations that
     // wrap their own version of a reporter.
@@ -161,6 +165,14 @@ public abstract class PhysicalOperator extends Operator<PhyPlanVisitor> implemen
         return resultType;
     }
 
+    public String getAlias() {
+        return alias;
+    }
+    
+    public void setAlias(String alias) {
+        this.alias = alias;
+    }
+    
     public void setAccumulative() {    	
         accum = true;
     }

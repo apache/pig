@@ -31,6 +31,7 @@ import java.util.Set;
 
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.mapred.JobConf;
+import org.apache.pig.ExecType;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.IndexableLoadFunc;
 import org.apache.pig.LoadFunc;
@@ -2054,10 +2055,13 @@ public class MRCompiler extends PhyPlanVisitor {
         int val = rp;
         if(val<=0){
             ExecutionEngine eng = pigContext.getExecutionEngine();
-            if(eng instanceof HExecutionEngine){
+            if(pigContext.getExecType() != ExecType.LOCAL){
                 try {
-                    val = ((JobConf)((HExecutionEngine)eng).getJobClient().getConf()).getNumReduceTasks();
                     if(val<=0)
+                        val = pigContext.defaultParallel;
+                    if (val<=0)
+                        val = ((JobConf)((HExecutionEngine)eng).getJobClient().getConf()).getNumReduceTasks();
+                    if (val<=0)
                         val = 1;
                 } catch (Exception e) {
                     int errCode = 6015;
