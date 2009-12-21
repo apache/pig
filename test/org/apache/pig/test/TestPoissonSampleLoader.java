@@ -24,6 +24,8 @@ import java.util.ArrayList;
 
 import junit.framework.Assert;
 import junit.framework.TestCase;
+import org.junit.Test;
+import org.mortbay.log.Log;
 
 import org.apache.pig.EvalFunc;
 import org.apache.pig.ExecType;
@@ -56,11 +58,10 @@ public class TestPoissonSampleLoader extends TestCase{
     private MiniCluster cluster = MiniCluster.buildCluster();
     
     public TestPoissonSampleLoader() throws ExecException, IOException{
-        pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        pigServer = new PigServer(ExecType.LOCAL, cluster.getProperties());
         pigServer.getPigContext().getProperties().setProperty("pig.skewedjoin.reduce.maxtuple", "5");     
         pigServer.getPigContext().getProperties().setProperty("pig.skewedjoin.reduce.memusage", "0.0001");
         pigServer.getPigContext().getProperties().setProperty("mapred.child.java.opts", "-Xmx512m");
-
         pigServer.getPigContext().getProperties().setProperty("pig.mapsplits.count", "5");
     }
     
@@ -75,11 +76,11 @@ public class TestPoissonSampleLoader extends TestCase{
     	    	
     	int k = 0;
     	for(int j=0; j<100; j++) {   	           	        
-   	        w.println("100\tapple1\taaa" + k);
+   	        w.println("100:apple1:aaa" + k);
     	    k++;
-    	    w.println("200\torange1\tbbb" + k);
+    	    w.println("200:orange1:bbb" + k);
     	    k++;
-    	    w.println("300\tstrawberry\tccc" + k);
+    	    w.println("300:strawberry:ccc" + k);
     	    k++;    	        	    
     	}
     	
@@ -115,5 +116,14 @@ public class TestPoissonSampleLoader extends TestCase{
         	fail("Compute samples returned the wrong number of samples: " + ps.getNumSamples() + " instead of 3");
         }
     }
-	
+
+    @Test
+    public void testInstantiation() throws IOException {
+        Log.info("A = Load '"+INPUT_FILE1+"' Using PoissonSampleLoader('PigStorage(\\\\\\':\\\\\\')', '100')");
+        pigServer.registerQuery("A = Load '"+INPUT_FILE1+"' Using PoissonSampleLoader('PigStorage(\\\\\\':\\\\\\')', '100');");
+        Iterator<Tuple> iter = pigServer.openIterator("A");
+        assertTrue(iter.hasNext());
+        assertEquals(iter.next().size(), 4);
+    }
+    
 }
