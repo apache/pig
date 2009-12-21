@@ -40,24 +40,25 @@ public abstract class SampleLoader extends LoadFunc {
 
     // number of samples to be sampled
     protected int numSamples;
-    
+
     protected LoadFunc loader;
-    
+
     // RecordReader used by the underlying loader
     private RecordReader<?, ?> recordReader= null;
-    
+
     public SampleLoader(String funcSpec) {
-    	loader = (LoadFunc)PigContext.instantiateFuncFromSpec(funcSpec);
+        funcSpec = funcSpec.replaceAll("\\\\'", "'");
+        loader = (LoadFunc)PigContext.instantiateFuncFromSpec(funcSpec);
     }
-    
+
     public void setNumSamples(int n) {
-    	numSamples = n;
+        numSamples = n;
     }
-    
+
     public int getNumSamples() {
-    	return numSamples;
+        return numSamples;
     }
-    
+
     @Override
     public InputFormat<?,?> getInputFormat() throws IOException {
         return loader.getInputFormat();
@@ -70,22 +71,22 @@ public abstract class SampleLoader extends LoadFunc {
             throw new IOException("Error getting input",e);
         }
     }
-    
+
     public void computeSamples(ArrayList<Pair<FileSpec, Boolean>> inputs, 
             PigContext pc) throws ExecException {
     }
-    
+
     @Override
     public LoadCaster getLoadCaster() throws IOException {
         return loader.getLoadCaster();
     }
-    
+
     @Override
     public String relativeToAbsolutePath(String location, Path curDir)
-            throws IOException {
+    throws IOException {
         return loader.relativeToAbsolutePath(location, curDir);
     }
-    
+
     @Override
     public void prepareToRead(RecordReader reader, PigSplit split) throws IOException {
         loader.prepareToRead(reader, split);
