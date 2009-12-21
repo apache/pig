@@ -65,6 +65,9 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-1143: Poisson Sample Loader should compute the number of samples required
+only once (sriranjan via olgan)
+
 PIG-1157: Sucessive replicated joins do not generate Map Reduce plan and fails
 due to OOM (rding via olgan)
 
