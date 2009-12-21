@@ -17,17 +17,24 @@
  */
 package org.apache.pig.test;
 
-import java.util.*;
+import static org.junit.Assert.*;
 
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
+import java.util.HashMap;
+import java.util.Map;
 
 import junit.framework.Assert;
 
 import org.apache.pig.ExecType;
 import org.apache.pig.FuncSpec;
+import org.apache.pig.PigServer;
+import org.apache.pig.backend.datastorage.DataStorage;
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLoad;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataByteArray;
@@ -35,28 +42,20 @@ import org.apache.pig.data.DefaultBagFactory;
 import org.apache.pig.data.DefaultTuple;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
-import org.apache.pig.impl.io.FileSpec;
-import org.apache.pig.impl.plan.OperatorKey;
-import org.apache.pig.PigServer;
 import org.apache.pig.impl.io.FileLocalizer;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLoad;
-import org.apache.pig.test.utils.GenPhyOp;
-import org.apache.pig.test.utils.TestHelper;
+import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.logicalLayer.LOLoad;
 import org.apache.pig.impl.logicalLayer.LogicalOperator;
 import org.apache.pig.impl.logicalLayer.LogicalPlan;
 import org.apache.pig.impl.logicalLayer.LogicalPlanBuilder;
-import org.apache.pig.backend.datastorage.ContainerDescriptor;
-import org.apache.pig.backend.datastorage.DataStorage;
-import org.apache.pig.backend.datastorage.DataStorageException;
-import org.apache.pig.backend.datastorage.ElementDescriptor;
+import org.apache.pig.impl.plan.OperatorKey;
+import org.apache.pig.test.utils.GenPhyOp;
+import org.apache.pig.test.utils.TestHelper;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-public class TestLoad extends junit.framework.TestCase {
+public class TestLoad {
     FileSpec inpFSpec;
     POLoad ld;
     PigContext pc;
@@ -66,6 +65,7 @@ public class TestLoad extends junit.framework.TestCase {
     PigServer pig;
     
     static MiniCluster cluster = MiniCluster.buildCluster();
+    
     @Before
     public void setUp() throws Exception {
         curDir = System.getProperty("user.dir");
@@ -95,8 +95,6 @@ public class TestLoad extends junit.framework.TestCase {
         }
     }
     
-    
-
     @After
     public void tearDown() throws Exception {
     }
@@ -198,37 +196,41 @@ public class TestLoad extends junit.framework.TestCase {
     }
 
     private void checkLoadPath(String orig, String expected, boolean isTmp) throws Exception {
-        pc.getProperties().setProperty("opt.multiquery",""+true);
-                
-        DataStorage dfs = pc.getDfs();
-        dfs.setActiveContainer(dfs.asContainer("/tmp"));
-        Map<LogicalOperator, LogicalPlan> aliases = new HashMap<LogicalOperator, LogicalPlan>();
-        Map<OperatorKey, LogicalOperator> logicalOpTable = new HashMap<OperatorKey, LogicalOperator>();
-        Map<String, LogicalOperator> aliasOp = new HashMap<String, LogicalOperator>();
-        Map<String, String> fileNameMap = new HashMap<String, String>();
+        boolean[] multiquery = {true, false};
         
-        LogicalPlanBuilder builder = new LogicalPlanBuilder(pc);
-        
-        String query = "a = load '"+orig+"';";
-        LogicalPlan lp = builder.parse("Test-Load",
-                                       query,
-                                       aliases,
-                                       logicalOpTable,
-                                       aliasOp,
-                                       fileNameMap);
-        Assert.assertTrue(lp.size()>0);
-        LogicalOperator op = lp.getRoots().get(0);
-        
-        Assert.assertTrue(op instanceof LOLoad);
-        LOLoad load = (LOLoad)op;
-
-        String p = load.getInputFile().getFileName();
-        p = p.replaceAll("hdfs://[0-9a-zA-Z:\\.]*/","/");
-
-        if (isTmp) {
-            Assert.assertTrue(p.matches("/tmp.*"));
-        } else {
-            Assert.assertEquals(p, expected);
+        for (boolean b : multiquery) {
+            pc.getProperties().setProperty("opt.multiquery", "" + b);
+                    
+            DataStorage dfs = pc.getDfs();
+            dfs.setActiveContainer(dfs.asContainer("/tmp"));
+            Map<LogicalOperator, LogicalPlan> aliases = new HashMap<LogicalOperator, LogicalPlan>();
+            Map<OperatorKey, LogicalOperator> logicalOpTable = new HashMap<OperatorKey, LogicalOperator>();
+            Map<String, LogicalOperator> aliasOp = new HashMap<String, LogicalOperator>();
+            Map<String, String> fileNameMap = new HashMap<String, String>();
+            
+            LogicalPlanBuilder builder = new LogicalPlanBuilder(pc);
+            
+            String query = "a = load '"+orig+"';";
+            LogicalPlan lp = builder.parse("Test-Load",
+                                           query,
+                                           aliases,
+                                           logicalOpTable,
+                                           aliasOp,
+                                           fileNameMap);
+            Assert.assertTrue(lp.size()>0);
+            LogicalOperator op = lp.getRoots().get(0);
+            
+            Assert.assertTrue(op instanceof LOLoad);
+            LOLoad load = (LOLoad)op;
+    
+            String p = load.getInputFile().getFileName();
+            p = p.replaceAll("hdfs://[0-9a-zA-Z:\\.]*/","/");
+    
+            if (isTmp) {
+                Assert.assertTrue(p.matches("/tmp.*"));
+            } else {
+                Assert.assertEquals(p, expected);
+            }
         }
     }
 }

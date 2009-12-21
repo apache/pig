@@ -68,6 +68,9 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-1158: pig command line -M option doesn't support table union correctly
+(comma seperated paths) (rding via olgan)
+
 PIG-1143: Poisson Sample Loader should compute the number of samples required
 only once (sriranjan via olgan)
 
