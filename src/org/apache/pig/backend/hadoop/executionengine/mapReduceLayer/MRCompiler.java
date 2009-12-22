@@ -1401,6 +1401,7 @@ public class MRCompiler extends PhyPlanVisitor {
 			}
 			
 			FileSpec fSpec = getTempFileSpec();
+			System.err.println("#@#@ fSpec: " + fSpec.getFileName());
 			MapReduceOper mro = compiledInputs[0];
 			POStore str = getStore();
 			str.setSFile(fSpec);
@@ -1845,7 +1846,7 @@ public class MRCompiler extends PhyPlanVisitor {
     		String inputFile = lFile.getFileName();
 
     		return getSamplingJob(sort, prevJob, transformPlans, lFile, sampleFile, rp, null, 
-    							PartitionSkewedKeys.class.getName(), new String[]{per, mc, inputFile}, RandomSampleLoader.class.getName());
+    							PartitionSkewedKeys.class.getName(), new String[]{per, mc, inputFile}, PoissonSampleLoader.class.getName());
     	}catch(Exception e) {
     		throw new PlanException(e);
     	}

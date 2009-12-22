@@ -20,6 +20,7 @@ package org.apache.pig.backend.hadoop.executionengine.mapReduceLayer;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Properties;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -50,11 +51,14 @@ import org.apache.pig.backend.hadoop.datastorage.HDataStorage;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.SliceWrapper;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
+import org.apache.pig.impl.builtin.SampleLoader;
+import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.io.ValidatingInputFileSpec;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.impl.util.Pair;
+import org.apache.pig.impl.util.UDFContext;
 
 public class PigInputFormat implements InputFormat<Text, Tuple>,
        JobConfigurable {
@@ -239,6 +243,20 @@ public class PigInputFormat implements InputFormat<Text, Tuple>,
 				if ((spec.getSlicer() instanceof PigSlicer)) {
 				    ((PigSlicer)spec.getSlicer()).setSplittable(isSplittable);
 				}
+				                
+                /* Set the input size in UDF Context if LoadFunc is a sample loader.
+                 * This value is used by PoissonSampleLoader to calculate the number of 
+                 * samplable tuples
+                 */
+                Object loader = PigContext.instantiateFuncFromSpec(spec.getFuncSpec());
+                if (loader instanceof SampleLoader) {
+                    Long iSize = FileLocalizer.getSize(spec.getFileName(), pigContext.getProperties());                     
+                    UDFContext udfc = UDFContext.getUDFContext();
+                    Properties p = udfc.getUDFProperties(SampleLoader.class);
+                    p.setProperty("pig.input." + i + ".size", Long.toString(iSize));
+                    udfc.serialize(job);
+                }
+		        
 				Slice[] pigs = spec.getSlicer().slice(store, spec.getFileName());
 				for (Slice split : pigs) {
 				    splits.add(new SliceWrapper(split, pigContext.getExecType(), i, fs, inpTargets.get(i)));
