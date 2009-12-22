@@ -247,7 +247,7 @@ public class DefaultIndexableLoader extends IndexableLoadFunc {
 
     @Override
     public void setLocation(String location, Job job) throws IOException {
-        throw new UnsupportedOperationException();
+        // nothing to do
     }
     
 }

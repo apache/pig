@@ -33,10 +33,8 @@ import org.apache.pig.data.Tuple;
  * The sequence of calls made from the pig runtime are:
  * 
  * {@link IndexableLoadFunc#initialize(Configuration)}
- * IndexableLoadFunc.bindTo(filename, bufferedPositionedInputStream, 0, LONG.MAX_VALUE);
- * (the bufferedPositionedInputStream is a decorator around the underlying
- * DFS input stream)
- * IndexableLoadFunc.seekNear(keys);
+ * {@link IndexableLoadFunc#setLocation(String, org.apache.hadoop.mapreduce.Job)}
+ * {@link IndexableLoadFunc#seekNear(Tuple)}
  * A series of IndexableLoadFunc.getNext(); calls to perform the join
  * IndexableLoadFunc.close(); 
  * 

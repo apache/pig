@@ -26,6 +26,7 @@ import java.util.Properties;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.mapreduce.Job;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.IndexableLoadFunc;
 import org.apache.pig.PigException;
@@ -395,16 +396,10 @@ public class POMergeJoin extends PhysicalOperator {
         rightLoader = (IndexableLoadFunc)PigContext.instantiateFuncFromSpec(rightLoaderFuncSpec);
         pc = (PigContext)ObjectSerializer.deserialize(PigMapReduce.sJobConf.get("pig.pigContext"));
         pc.connect();
-     // XXX FIXME - make this work with new load-store redesign
-//        InputStream is = FileLocalizer.open(rightInputFileName, pc);
         // Pass signature of the loader to rightLoader
         PigMapReduce.sJobConf.set("pig.loader.signature", signature);
-//        rightLoader.initialize(PigMapReduce.sJobConf);
-        // the main purpose of this bindTo call is supply the input file name
-        // to the right loader - in the case of Pig's DefaultIndexableLoader
-        // this is really not used since the index has all information required
-        
-//        rightLoader.bindTo(rightInputFileName, new BufferedPositionedInputStream(is), 0, Long.MAX_VALUE);
+        rightLoader.initialize(PigMapReduce.sJobConf);
+        rightLoader.setLocation(rightInputFileName, new Job(PigMapReduce.sJobConf));
         rightLoader.seekNear(
                 firstLeftKey instanceof Tuple ? (Tuple)firstLeftKey : mTupleFactory.newTuple(firstLeftKey));
     }
