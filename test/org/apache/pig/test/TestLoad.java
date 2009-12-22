@@ -17,14 +17,15 @@
  */
 package org.apache.pig.test;
 
-import static org.junit.Assert.*;
-
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Properties;
+import java.util.regex.Pattern;
 
 import junit.framework.Assert;
 
@@ -32,9 +33,6 @@ import org.apache.pig.ExecType;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.datastorage.DataStorage;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLoad;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLoad;
@@ -58,7 +56,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-public class TestLoad {
+public class TestLoad extends junit.framework.TestCase {
 
     PigContext pc;
     PigServer[] servers;
@@ -103,14 +101,6 @@ public class TestLoad {
             }
             inpDB.add(t);
         }
-    }
-    
-    @After
-    public void tearDown() throws Exception {
-    }
-
-    @Test
-    public void testGetNextTuple() throws ExecException {
         Tuple t=null;
         int size = 0;
         for(Result res = ld.getNext(t);res.returnStatus!=POStatus.STATUS_EOP;res=ld.getNext(t)){
@@ -220,11 +210,9 @@ public class TestLoad {
     }    
 
     private void checkLoadPath(String orig, String expected) throws Exception {
-        checkLoadPath(orig, expected, false);
-    }
-
-    private void checkLoadPath(String orig, String expected, boolean isTmp) throws Exception {
+        
         boolean[] multiquery = {true, false};
+        
         for (boolean b : multiquery) {
             pc.getProperties().setProperty("opt.multiquery", "" + b);
                     
@@ -251,12 +239,15 @@ public class TestLoad {
             LOLoad load = (LOLoad)op;
     
             String p = load.getInputFile().getFileName();
-            p = p.replaceAll("hdfs://[0-9a-zA-Z:\\.]*/","/");
-    
-            if (isTmp) {
-                Assert.assertTrue(p.matches("/tmp.*"));
+            System.err.println("DEBUG: p:" + p + " expected:" + expected +", exectype:" + pc.getExecType());        
+            if (pc.getExecType() == ExecType.MAPREDUCE) {
+                Assert.assertTrue(p.matches("hdfs://[0-9a-zA-Z:\\.]*.*"));
+                Assert.assertEquals(p.replaceAll("hdfs://[0-9a-zA-Z:\\.]*/", "/"),
+                        expected);
             } else {
-                Assert.assertEquals(p, expected);
+                Assert.assertTrue(p.matches("file://[0-9a-zA-Z:\\.]*.*"));
+                Assert.assertEquals(p.replaceAll("file://[0-9a-zA-Z:\\.]*/", "/"),
+                        expected);
             }
         }
     }
