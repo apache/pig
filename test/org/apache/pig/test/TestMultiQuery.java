@@ -235,11 +235,10 @@ public class TestMultiQuery {
     
     @Test
     public void testMultiQueryJiraPig1108() {
-        
         try {
             myPig.setBatchOn();
 
-            myPig.registerQuery("a = load 'file:test/org/apache/pig/test/data/passwd' " 
+            myPig.registerQuery("a = load 'passwd' " 
                     + "using PigStorage(':') as (uname:chararray, passwd:chararray, uid:int, gid:int);");
             myPig.registerQuery("split a into plan1 if (uid > 5), plan2 if ( uid < 5);");
             myPig.registerQuery("b = group plan1 by uname;");

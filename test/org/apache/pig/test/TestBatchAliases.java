@@ -37,6 +37,7 @@ public class TestBatchAliases extends TestCase {
 
     private PigServer myPig;
 
+    @Override
     @Before
     public void setUp() throws Exception {
         cluster.setProperty("opt.multiquery", ""+true);
@@ -44,21 +45,24 @@ public class TestBatchAliases extends TestCase {
         deleteOutputFiles();
     }
 
+    @Override
     @After
     public void tearDown() throws Exception {
         myPig = null;
+        Util.deleteFile(cluster, "passwd");
     }
     
     @Test
-    public void testBatchAliases() {
+    public void testBatchAliases() throws IOException {
 
         // test case: key ('group') isn't part of foreach output
         // and keys have the same type.
-
+        Util.copyFromLocalToCluster(cluster, 
+                "test/org/apache/pig/test/data/passwd", "passwd");
         try {
             myPig.setBatchOn();
 
-            myPig.registerQuery("a = load 'file:test/org/apache/pig/test/data/passwd' " +
+            myPig.registerQuery("a = load 'passwd' " +
                                 "using PigStorage(':') as (uname:chararray, passwd:chararray, uid:int, gid:int);");
             myPig.registerQuery("b = group a by uid;");
             myPig.registerQuery("c = group a by gid;");
