@@ -324,5 +324,9 @@
         <Field name = "res" />
         <Bug pattern="MF_CLASS_MASKS_FIELD" />
     </Match>
-    
+    <Match>
+        <Class name="org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MapReduceLauncher" />
+        <Method name = "launchPig" />
+        <Bug pattern="DE_MIGHT_IGNORE" />
+    </Match>
 </FindBugsFilter>
