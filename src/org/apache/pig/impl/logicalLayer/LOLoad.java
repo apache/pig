@@ -59,7 +59,6 @@ import org.apache.hadoop.mapreduce.Job;
 
 public class LOLoad extends RelationalOperator {
     private static final long serialVersionUID = 2L;
-    protected boolean splittable = true;
 
     private FileSpec mInputFileSpec;
     transient private LoadFunc mLoadFunc;
@@ -82,13 +81,11 @@ public class LOLoad extends RelationalOperator {
      *            the execution mode @see org.apache.pig.ExecType
      * @param storage
      *            the underlying storage
-     * @param splittable
-     *            if the input file is splittable (.gz is not)
      *            
      * 
      */
     public LOLoad(LogicalPlan plan, OperatorKey key, FileSpec inputFileSpec,
-            ExecType execType, DataStorage storage, boolean splittable) throws IOException {
+            ExecType execType, DataStorage storage) throws IOException {
         super(plan, key);
         mInputFileSpec = inputFileSpec;
         //mSchemaFile = schemaFile;
@@ -97,7 +94,6 @@ public class LOLoad extends RelationalOperator {
         mSchemaFile = inputFileSpec.getFileName();
         mStorage = storage;
         mExecType = execType;
-        this.splittable = splittable;
         // Generate a psudo alias. Since in the following script, we do not have alias for LOLoad, however, alias is required.
         // a = foreach (load '1') generate b0;
         this.mAlias = ""+key.getId();
@@ -245,10 +241,6 @@ public class LOLoad extends RelationalOperator {
      */
     public void setEnforcedSchema(Schema enforcedSchema) {
         this.mEnforcedSchema = enforcedSchema;
-    }
-
-    public boolean isSplittable() {
-        return splittable;
     }
 
     @Override

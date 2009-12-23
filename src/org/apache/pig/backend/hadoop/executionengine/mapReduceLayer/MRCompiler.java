@@ -379,7 +379,7 @@ public class MRCompiler extends PhyPlanVisitor {
     }
     
     private POLoad getLoad(){
-        POLoad ld = new POLoad(new OperatorKey(scope,nig.getNextNodeId(scope)), true);
+        POLoad ld = new POLoad(new OperatorKey(scope,nig.getNextNodeId(scope)));
         ld.setPc(pigContext);
         return ld;
     }

@@ -22,6 +22,9 @@ Trunk (unreleased changes)
 
 INCOMPATIBLE CHANGES
 
+PIG-1148: Move splitable logic from pig latin to InputFormat (zjffdu via
+pradeepkth)
+
 PIG-1141: Make streaming work with the new load-store interfaces (rding via
 pradeepkth)
 

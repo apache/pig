@@ -570,7 +570,7 @@ public class GenPhyOp{
 
     
     public static POLoad topLoadOp() {
-        POLoad ret = new POLoad(new OperatorKey("", r.nextLong()), true);
+        POLoad ret = new POLoad(new OperatorKey("", r.nextLong()));
         ret.setPc(pc);
         return ret;
     }

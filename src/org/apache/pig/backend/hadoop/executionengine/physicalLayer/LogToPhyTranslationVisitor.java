@@ -1567,7 +1567,7 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
     public void visit(LOLoad loLoad) throws VisitorException {
         String scope = loLoad.getOperatorKey().scope;
         POLoad load = new POLoad(new OperatorKey(scope, nodeGen
-                .getNextNodeId(scope)), loLoad.isSplittable());
+                .getNextNodeId(scope)));
         load.setAlias(loLoad.getAlias());
         load.setLFile(loLoad.getInputFile());
         load.setPc(pc);

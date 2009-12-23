@@ -127,19 +127,19 @@ public class PigInputFormat extends InputFormat<Text, Tuple> {
      */
     @SuppressWarnings("unchecked")
     private static LoadFunc getLoadFunc(int inputIndex, Configuration conf) throws IOException {
-        ArrayList<Pair<FileSpec, Boolean>> inputs = 
-            (ArrayList<Pair<FileSpec, Boolean>>) ObjectSerializer.deserialize(
+        ArrayList<FileSpec> inputs = 
+            (ArrayList<FileSpec>) ObjectSerializer.deserialize(
                     conf.get(PIG_INPUTS));
-        FuncSpec loadFuncSpec = inputs.get(inputIndex).first.getFuncSpec();
+        FuncSpec loadFuncSpec = inputs.get(inputIndex).getFuncSpec();
         return (LoadFunc) PigContext.instantiateFuncFromSpec(loadFuncSpec);
     }
     
     @SuppressWarnings("unchecked")
     private static String getLoadLocation(int inputIndex, Configuration conf) throws IOException {
-        ArrayList<Pair<FileSpec, Boolean>> inputs = 
-            (ArrayList<Pair<FileSpec, Boolean>>) ObjectSerializer.deserialize(
+        ArrayList<FileSpec> inputs = 
+            (ArrayList<FileSpec>) ObjectSerializer.deserialize(
                     conf.get(PIG_INPUTS));
-        return inputs.get(inputIndex).first.getFileName();
+        return inputs.get(inputIndex).getFileName();
     }
 
     /**
@@ -182,11 +182,11 @@ public class PigInputFormat extends InputFormat<Text, Tuple> {
 
         Configuration conf = jobcontext.getConfiguration();
 
-        ArrayList<Pair<FileSpec, Boolean>> inputs;
+        ArrayList<FileSpec> inputs;
         ArrayList<ArrayList<OperatorKey>> inpTargets;
         PigContext pigContext;
         try {
-            inputs = (ArrayList<Pair<FileSpec, Boolean>>) ObjectSerializer
+            inputs = (ArrayList<FileSpec>) ObjectSerializer
                     .deserialize(conf.get("pig.inputs"));
             inpTargets = (ArrayList<ArrayList<OperatorKey>>) ObjectSerializer
                     .deserialize(conf.get("pig.inpTargets"));
@@ -202,7 +202,7 @@ public class PigInputFormat extends InputFormat<Text, Tuple> {
         ArrayList<InputSplit> splits = new ArrayList<InputSplit>();
         for (int i = 0; i < inputs.size(); i++) {
             try {
-                Path path = new Path(inputs.get(i).first.getFileName());
+                Path path = new Path(inputs.get(i).getFileName());
                                 
                 FileSystem fs;
                 
@@ -230,7 +230,7 @@ public class PigInputFormat extends InputFormat<Text, Tuple> {
                 // FileInputFormat stores this in mapred.input.dir in the conf),
                 // then for different inputs, the loader's don't end up
                 // over-writing the same conf.
-                FuncSpec loadFuncSpec = inputs.get(i).first.getFuncSpec();
+                FuncSpec loadFuncSpec = inputs.get(i).getFuncSpec();
                 LoadFunc loadFunc = (LoadFunc) PigContext.instantiateFuncFromSpec(
                         loadFuncSpec);
                 Configuration confClone = new Configuration(conf);
@@ -239,7 +239,7 @@ public class PigInputFormat extends InputFormat<Text, Tuple> {
                 // the conf
                 passLoadSignature(loadFunc, i, 
                         inputSpecificJob.getConfiguration(), false);
-                loadFunc.setLocation(inputs.get(i).first.getFileName(), 
+                loadFunc.setLocation(inputs.get(i).getFileName(), 
                         inputSpecificJob);
                 // The above setLocation call could write to the conf within
                 // the inputSpecificJob - use this updated conf
@@ -256,7 +256,7 @@ public class PigInputFormat extends InputFormat<Text, Tuple> {
                 throw ee;
             } catch (Exception e) {
                 int errCode = 2118;
-                String msg = "Unable to create input splits for: " + inputs.get(i).first.getFileName();
+                String msg = "Unable to create input splits for: " + inputs.get(i).getFileName();
                 throw new ExecException(msg, errCode, PigException.BUG, e);
             }
         }

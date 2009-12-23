@@ -47,7 +47,7 @@ public class TypeCheckingTestUtil {
             LOLoad load = new LOLoad(plan,
                                       genNewOperatorKey(),
                                       new FileSpec("pi", new FuncSpec(pigStorage)),
-                                      null, dfs, true) ;
+                                      null, dfs) ;
             return load ;
         } catch (IOException e) {
             throw new AssertionError("This cannot happen") ;

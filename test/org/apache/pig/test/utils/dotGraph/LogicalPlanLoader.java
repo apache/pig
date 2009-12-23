@@ -95,7 +95,7 @@ public class LogicalPlanLoader
         FileSpec fileSpec = new FileSpec("pi",
                                          new FuncSpec(PigStorage.class.getName())) ;
         try {
-            load = new LOLoad(plan, getKey(node.attributes), fileSpec, null, null, true) ;
+            load = new LOLoad(plan, getKey(node.attributes), fileSpec, null, null) ;
             fillSchema(load, node.attributes) ;
         }
         catch (IOException ioe) {

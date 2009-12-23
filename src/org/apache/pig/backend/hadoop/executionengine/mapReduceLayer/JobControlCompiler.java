@@ -341,7 +341,7 @@ public class JobControlCompiler{
         
         Configuration conf = nwJob.getConfiguration();
         
-        ArrayList<Pair<FileSpec, Boolean>> inp = new ArrayList<Pair<FileSpec, Boolean>>();
+        ArrayList<FileSpec> inp = new ArrayList<FileSpec>();
         ArrayList<List<OperatorKey>> inpTargets = new ArrayList<List<OperatorKey>>();
         ArrayList<String> inpSignatureLists = new ArrayList<String>();
         ArrayList<POStore> storeLocations = new ArrayList<POStore>();
@@ -372,9 +372,8 @@ public class JobControlCompiler{
             if(lds!=null && lds.size()>0){
                 for (POLoad ld : lds) {
                     
-                    Pair<FileSpec, Boolean> p = new Pair<FileSpec, Boolean>(ld.getLFile(), ld.isSplittable());
                     //Store the inp filespecs
-                    inp.add(p);
+                    inp.add(ld.getLFile());
                     
                     //Store the target operators for tuples read
                     //from this input
