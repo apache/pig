@@ -18,6 +18,7 @@
 package org.apache.pig.test;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -31,6 +32,8 @@ import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.streaming.PigStreaming;
+import org.apache.pig.impl.streaming.PigToStream;
+import org.apache.pig.impl.util.TupleFormat;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -723,7 +726,7 @@ public class TestStreaming {
 
             // Pig query to run
             pigServer.registerQuery("define CMD `"+ simpleEchoStreamingCommand + 
-                                    "` input(stdin);");
+                                    "` input(stdin using " + PigStreamDump.class.getName() + ");");
             pigServer.registerQuery("IP = load '" 
                     + Util.generateURI(Util.encodeEscape(input.toString()),
                             pigServer.getPigContext()) + "' using " 
@@ -740,5 +743,16 @@ public class TestStreaming {
             // Run the query and check the results
             Util.checkQueryOutputs(pigServer.openIterator("OP"), expectedResults);
         }
+    }
+    
+    public static class PigStreamDump implements PigToStream {
+
+        public static final String recordDelimiter = "\n";
+
+        @Override
+        public byte[] serialize(Tuple t) throws IOException {
+            return (TupleFormat.format(t) + recordDelimiter).getBytes();
+        }
+        
     }
 }

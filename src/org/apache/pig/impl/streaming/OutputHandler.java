@@ -20,9 +20,9 @@ package org.apache.pig.impl.streaming;
 import java.io.IOException;
 
 import org.apache.hadoop.io.Text;
+import org.apache.hadoop.util.LineReader;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.io.BufferedPositionedInputStream;
-import org.apache.pig.impl.io.PigLineRecordReader;
 
 /**
  * {@link OutputHandler} is responsible for handling the output of the 
@@ -44,11 +44,9 @@ public abstract class OutputHandler {
      */  
     protected StreamToPig deserializer;
     
-    protected PigLineRecordReader in = null;
+    protected LineReader in = null;
 
     private BufferedPositionedInputStream istream;
-
-    private long end = Long.MAX_VALUE;
     
     /**
      * Get the handled <code>OutputType</code>.
@@ -70,15 +68,7 @@ public abstract class OutputHandler {
     public void bindTo(String fileName, BufferedPositionedInputStream is,
                        long offset, long end) throws IOException {
         this.istream  = is;
-        this.in = new PigLineRecordReader(istream, offset, end);
-        this.end = end;
-
-        // Since we are not block aligned we throw away the first
-        // record and cound on a different instance to read it
-        if (offset != 0) {
-            getNext();
-        }
-
+        this.in = new LineReader(istream);
     }
     
     /**
@@ -88,13 +78,13 @@ public abstract class OutputHandler {
      * @throws IOException
      */
     public Tuple getNext() throws IOException {
-        if (in == null || in.getPosition() > end) {
+        if (in == null) {
             return null;
         }
 
         Text value = new Text();
-        boolean notDone = in.next(value);
-        if (!notDone) {
+        int num = in.readLine(value);
+        if (num <= 0) {
             return null;
         }
         

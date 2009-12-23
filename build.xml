@@ -296,13 +296,8 @@
 
     <!-- This target is for default compilation -->
     <target name="compile-sources" unless="all.warnings">
-        <!-- FIXME: tests below are temporarily commented for load-store redesign 
-                         These should be fixed (removed from here)  when the src code 
-                         is fixed for the corresponding feature 
-        FIXME: fix and remove when streaming  and local mode is fixed -->
         <javac encoding="${build.encoding}" srcdir="${sources}"
                 includes="**/*.java" destdir="${dist}" debug="${javac.debug}"
-                excludes="**/TestPigLineRecordReader.java"
                 optimize="${javac.optimize}" target="${javac.version}"
                 source="${javac.version}" deprecation="${javac.deprecation}">
             <compilerarg line="${javac.args} ${javac.args.warnings}"/>
@@ -551,14 +546,6 @@
                     <exclude name="**/TestOrderBy2.java" />
                     <exclude name="**/TestPi.java" />
                     <exclude name="**/nightly/**" />
-
-                    <!-- FIXME: tests below are temporarily commented for load-store redesign 
-                         These should be fixed (removed from here)  when the src code 
-                         is fixed for the corresponding feature -->
-                    <!-- FIXME: fix and remove when streaming in fixed -->
-                    <!-- <exclude name="**/TestStreaming.java" /> -->
-                    <!-- FIXME: fix and remove when local mode is fixed --> 
-                    <exclude name="**/TestPigLineRecordReader.java" />
                 </fileset>
             </batchtest>
             <batchtest fork="yes" todir="${test.log.dir}" if="testcase">

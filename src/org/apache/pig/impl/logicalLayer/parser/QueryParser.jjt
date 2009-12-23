@@ -2346,7 +2346,7 @@ void InputOutputSpec(StreamingCommand command, StreamingCommand.Handle handle):
     String stream, deserializer;
     StreamingCommand.HandleSpec[] handleSpecs;
     String functionName = PigStreaming.class.getName(), functionArgs="";
-    byte funcType = (handle.compareTo(StreamingCommand.Handle.INPUT) != 0 ? FunctionType.PIGTOSTREAMFUNC : FunctionType.STREAMTOPIGFUNC) ;
+    byte funcType = (handle.compareTo(StreamingCommand.Handle.INPUT) == 0 ? FunctionType.PIGTOSTREAMFUNC : FunctionType.STREAMTOPIGFUNC) ;
     FuncSpec funcSpec = null;
 } 
 {
