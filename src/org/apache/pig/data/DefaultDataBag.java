@@ -30,6 +30,7 @@ import java.io.FileNotFoundException;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.pig.PigCounters;
 import org.apache.pig.PigWarning;
 
 
@@ -122,6 +123,8 @@ public class DefaultDataBag extends DefaultAbstractBag {
             }
             mContents.clear();
         }
+        // Increment the spill count
+        incSpillCount(PigCounters.SPILLABLE_MEMORY_MANAGER_SPILL_COUNT);
         return spilled;
     }
 

@@ -28,9 +28,11 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.ArrayList;
 
+import org.apache.pig.PigCounters;
 import org.apache.pig.PigException;
 import org.apache.pig.PigWarning;
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigHadoopLogger;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PigLogger;
 import org.apache.pig.impl.util.BagFormat;
@@ -371,7 +373,14 @@ public abstract class DefaultAbstractBag implements DataBag {
     		log.warn(msg, e);
     	}    	
     }
-
+    
+    protected void incSpillCount(Enum counter) {
+        // Increment the spill count
+        // warn is a misnomer. The function updates the counter. If the update
+        // fails, it dumps a warning
+        PigHadoopLogger.getInstance().warn(this, "Spill counter incremented", counter);
+    }
+    
     public static abstract class BagDelimiterTuple extends DefaultTuple{}
     public static class StartBag extends BagDelimiterTuple{
         private static final long serialVersionUID = 1L;}

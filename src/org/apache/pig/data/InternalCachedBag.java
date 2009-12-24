@@ -22,6 +22,7 @@ import java.util.*;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.pig.PigCounters;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce;
 
 
@@ -99,8 +100,14 @@ public class InternalCachedBag extends DefaultAbstractBag {
                 		log.debug("Memory can hold "+ mContents.size() + " records, put the rest in spill file.");
                 	}
                     out = getSpillFile();
+
                 }
                 t.write(out);
+                
+                if (cacheLimit!= 0 && mContents.size() % cacheLimit == 0) {
+                    /* Increment the spill count*/
+                    incSpillCount(PigCounters.PROACTIVE_SPILL_COUNT);                    
+                }
             }
             catch(IOException e) {
                 throw new RuntimeException(e);

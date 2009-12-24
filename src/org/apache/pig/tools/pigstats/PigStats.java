@@ -39,11 +39,13 @@ import org.apache.hadoop.mapred.RunningJob;
 import org.apache.hadoop.mapred.jobcontrol.Job;
 import org.apache.hadoop.mapred.jobcontrol.JobControl;
 import org.apache.pig.ExecType;
+import org.apache.pig.PigCounters;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROperPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
+import org.apache.pig.data.BagFactory;
 import org.apache.pig.impl.util.ObjectSerializer;
 
 public class PigStats {
@@ -186,6 +188,9 @@ public class PigStats {
                         jobStats.put("PIG_STATS_REDUCE_INPUT_RECORDS", (Long.valueOf(taskgroup.getCounterForName("REDUCE_INPUT_RECORDS").getCounter())).toString());
                         jobStats.put("PIG_STATS_REDUCE_OUTPUT_RECORDS", (Long.valueOf(taskgroup.getCounterForName("REDUCE_OUTPUT_RECORDS").getCounter())).toString());
                         jobStats.put("PIG_STATS_BYTES_WRITTEN", (Long.valueOf(hdfsgroup.getCounterForName("HDFS_BYTES_WRITTEN").getCounter())).toString());
+                        jobStats.put("PIG_STATS_SMM_SPILL_COUNT", (Long.valueOf(counters.findCounter(PigCounters.SPILLABLE_MEMORY_MANAGER_SPILL_COUNT).getCounter())).toString() );
+                        jobStats.put("PIG_STATS_PROACTIVE_SPILL_COUNT", (Long.valueOf(counters.findCounter(PigCounters.PROACTIVE_SPILL_COUNT).getCounter())).toString() );
+
                     }
                     else
                     {
@@ -194,6 +199,8 @@ public class PigStats {
                         jobStats.put("PIG_STATS_REDUCE_INPUT_RECORDS", "-1");
                         jobStats.put("PIG_STATS_REDUCE_OUTPUT_RECORDS", "-1");
                         jobStats.put("PIG_STATS_BYTES_WRITTEN", "-1");
+                        jobStats.put("PIG_STATS_SMM_SPILL_COUNT", "-1");
+                        jobStats.put("PIG_STATS_PROACTIVE_SPILL_COUNT", "-1");
                     }
                     
                 } catch (IOException e) {
@@ -292,6 +299,21 @@ public class PigStats {
     		throw new RuntimeException("Unrecognized mode. Either MapReduce or Local mode expected.");
     	}
     	
+    }
+    
+    public long getSMMSpillCount() {
+        long spillCount = 0;
+        for (String jid : rootJobIDs) {
+            Map<String, String> jobStats = stats.get(jid);
+            if (jobStats == null) continue;
+            if (Long.parseLong(jobStats.get("PIG_STATS_SMM_SPILL_COUNT"))==-1L)
+            {
+                spillCount = -1L;
+                break;
+            }
+            spillCount += Long.parseLong(jobStats.get("PIG_STATS_SMM_SPILL_COUNT"));
+        }
+        return spillCount;
     }
     
     private long getLocalBytesWritten() {
