@@ -38,6 +38,7 @@ import java.util.PriorityQueue;
   
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.pig.PigCounters;
 import org.apache.pig.PigWarning;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce;
@@ -238,6 +239,8 @@ public class InternalSortedBag extends DefaultAbstractBag{
         mMemSizeChanged = true;
         memUsage = 0;
         
+        // Increment the spill count
+        incSpillCount(PigCounters.PROACTIVE_SPILL_COUNT);
         return spilled;
     }
 
