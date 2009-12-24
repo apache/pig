@@ -19,16 +19,18 @@
 package org.apache.pig.backend.local.datastorage;
 
 import java.io.File;
-import java.io.IOException;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.io.FileOutputStream;
-import java.io.FileInputStream;
 import java.util.Properties;
 
-import org.apache.pig.backend.datastorage.*;
-import org.apache.pig.impl.util.WrappedIOException;
+import org.apache.pig.backend.datastorage.ContainerDescriptor;
+import org.apache.pig.backend.datastorage.DataStorageException;
+import org.apache.pig.backend.datastorage.ElementDescriptor;
+import org.apache.pig.backend.datastorage.SeekableInputStream;
 
 public class LocalFile extends LocalPath {
 
@@ -90,7 +92,7 @@ public class LocalFile extends LocalPath {
                                                 path.getName());
                 }
                 catch (DataStorageException e) {
-                    throw WrappedIOException.wrap("Unable to generate element name (src: " + 
+                    throw new IOException("Unable to generate element name (src: " + 
                                            this + ", dst: " + dstName + ")", e);
                 }
             }
@@ -132,7 +134,7 @@ public class LocalFile extends LocalPath {
             return new LocalSeekableInputStream(this.path);
         }
         catch (FileNotFoundException e) {
-            throw WrappedIOException.wrap("Unable to find " + this.path, e);
+            throw new IOException("Unable to find " + this.path, e);
         }
     }
 }

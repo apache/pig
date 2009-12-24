@@ -46,7 +46,6 @@ import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.datastorage.HDataStorage;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce;
 import org.apache.pig.impl.PigContext;
-import org.apache.pig.impl.util.WrappedIOException;
 
 public class FileLocalizer {
     private static final Log log = LogFactory.getLog(FileLocalizer.class);
@@ -207,7 +206,7 @@ public class FileLocalizer {
                 }
             }
             catch (DataStorageException e) {
-                throw WrappedIOException.wrap("Failed to determine if elem=" + elem + " is container", e);
+                throw new IOException("Failed to determine if elem=" + elem + " is container", e);
             }
             
             // elem is a directory - recursively get all files in it
@@ -364,7 +363,7 @@ public class FileLocalizer {
                 return sis;
             }
             catch (DataStorageException e) {
-                throw WrappedIOException.wrap("Failed to determine if elem=" + elem + " is container", e);
+                throw new IOException("Failed to determine if elem=" + elem + " is container", e);
             }
         }
         // Either a directory or a glob.

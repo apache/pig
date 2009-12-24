@@ -18,15 +18,12 @@
 package org.apache.pig.impl.logicalLayer;
 
 import java.io.IOException;
-import java.net.URL;
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 import java.util.TreeSet;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.pig.ExecType;
 import org.apache.pig.LoadFunc;
 import org.apache.pig.LoadMetadata;
@@ -41,21 +38,14 @@ import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.data.DataType;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileSpec;
+import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.impl.logicalLayer.schema.SchemaMergeException;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.ProjectionMap;
 import org.apache.pig.impl.plan.RequiredFields;
 import org.apache.pig.impl.plan.VisitorException;
-import org.apache.pig.impl.plan.optimizer.OptimizerException;
 import org.apache.pig.impl.util.MultiMap;
 import org.apache.pig.impl.util.Pair;
-import org.apache.pig.impl.util.PropertiesUtil;
-import org.apache.pig.impl.util.WrappedIOException;
-import org.apache.pig.impl.logicalLayer.parser.ParseException;
-import org.apache.pig.impl.logicalLayer.schema.Schema;
-import org.apache.pig.impl.logicalLayer.schema.SchemaMergeException;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.apache.hadoop.mapreduce.Job;
 
 public class LOLoad extends RelationalOperator {
     private static final long serialVersionUID = 2L;
@@ -103,10 +93,10 @@ public class LOLoad extends RelationalOperator {
                   PigContext.instantiateFuncFromSpec(inputFileSpec.getFuncSpec());
         }catch (ClassCastException cce) {
             log.error(inputFileSpec.getFuncSpec() + " should implement the LoadFunc interface.");
-            throw WrappedIOException.wrap(cce);
+            throw new IOException(cce);
         }
          catch (Exception e){ 
-             throw WrappedIOException.wrap(e);
+             throw new IOException(e);
         }
     }
 
