@@ -1,0 +1,5 @@
+1.put 1.txt and 2.txt to hdf /user/hadoopqa/
+2.run each pig script
+java -cp /grid/0/dev/hadoopqa/jing1234/conf:/grid/0/dev/hadoopqa/jars/pig.jar:/grid/0/dev/hadoopqa/jars/tfile.jar:/grid/0/dev/hadoopqa/jars/zebra.jar org.apache.pig.Main -M <my.pig>
+3. check output table
+$HADOOP_HOME/bin/hadoop fs -cat <table>/.btschema

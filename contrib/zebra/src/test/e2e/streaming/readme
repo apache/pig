@@ -1,0 +1,12 @@
+1. simple.txt (this txt does not have boolean type, because pig doesn't support bool type)
+
+2. run table-creator-simple.pig
+
+Use the already generated simple table (IO layer, TestSchema,located at /homes/hadoopqa/jing1234/simple-table
+3. 
+$HADOOP_HOME/bin/hadoop jar /grid/0/dev/hadoopqa/hadoop/hadoop-streaming.jar -libjars /grid/0/dev/hadoopqa/jars/pig.jar,/grid/0/dev/hadoopqa/jars/zebra.jar -D mapred.lib.table.input.projection="s1,s2,s3,s4,s5,s6" -input simple-table -output simple-stream-all-fields -mapper 'cat' -inputformat org.apache.hadoop.zebra.mapred.TableInputFormat
+4.
+$HADOOP_HOME/bin/hadoop fs -tail simple-stream-all-fields/part-00000 
+
+For details, please refer to 
+http://twiki.corp.yahoo.com/pub/Grid/Release2TestPlan/zebra_streaming_test.html
