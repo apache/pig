@@ -12,6 +12,8 @@ Trunk (unreleased changes)
 
   IMPROVEMENTS
 
+    PIG-1136 Support of map split on hash keys with leading underscore (xuefuz via yanz)
+
     PIG-1125 Map/Reduce API Changes (Chao Wang via yanz)
 
     PIG-1104 Streaming Support (Chao Wang via yanz)
