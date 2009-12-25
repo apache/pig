@@ -53,7 +53,6 @@ import org.apache.pig.impl.logicalLayer.LogicalOperator;
 import org.apache.pig.impl.logicalLayer.LogicalPlan;
 import org.apache.pig.impl.logicalLayer.RelationalOperator;
 import org.apache.pig.impl.logicalLayer.TopLevelProjectFinder;
-import org.apache.pig.impl.plan.DependencyOrderWalker;
 import org.apache.pig.impl.plan.MapKeysInfo;
 import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.OperatorKey;
@@ -77,9 +76,10 @@ public class PruneColumns extends LogicalTransformer {
 
     private static Log log = LogFactory.getLog(PruneColumns.class);
     Map<RelationalOperator, RequiredInfo> cachedRequiredInfo = new HashMap<RelationalOperator, RequiredInfo>();
-    
+    ColumnPruner pruner;
     public PruneColumns(LogicalPlan plan) {
         super(plan);
+        pruner = new ColumnPruner(plan);
     }
 
     @Override
@@ -510,7 +510,7 @@ public class PruneColumns extends LogicalTransformer {
             	processNode(predecessors.get(i), new RequiredInfo(newRequiredOutputFieldsList));
             }
         } catch (FrontendException e) {
-            int errCode = 2185;
+            int errCode = 2211;
             String msg = "Unable to prune columns when processing node " + lo;
             throw new OptimizerException(msg, errCode, PigException.BUG, e);
         }
@@ -698,42 +698,14 @@ public class PruneColumns extends LogicalTransformer {
         }
         
         // Loader does not support column pruning, insert foreach
-        LOForEach forEach = null;
+        LogicalOperator forEach = null;
         if (response==null || !response.getRequiredFieldResponse())
         {
-            Set<Integer> columnsToProject = new TreeSet<Integer>();
+            List<Integer> columnsToProject = new ArrayList<Integer>();
             for (LoadFunc.RequiredField rf : requiredFieldList.getFields())
                 columnsToProject.add(rf.getIndex());
             
-            ArrayList<Boolean> flattenList = new ArrayList<Boolean>();
-            ArrayList<LogicalPlan> generatePlans = new ArrayList<LogicalPlan>();
-            String scope = load.getOperatorKey().scope;
-            for (int pos : columnsToProject) {
-                LogicalPlan projectPlan = new LogicalPlan();
-                LogicalOperator projectInput = load;
-                ExpressionOperator column = new LOProject(projectPlan, new OperatorKey(scope, NodeIdGenerator.getGenerator().getNextNodeId(scope)), projectInput, pos);
-                flattenList.add(false);
-                projectPlan.add(column);
-                generatePlans.add(projectPlan);
-            }
-            forEach = new LOForEach(mPlan, new OperatorKey(scope, NodeIdGenerator.getGenerator().getNextNodeId(scope)), generatePlans, flattenList);
-            LogicalOperator pred = mPlan.getSuccessors(load).get(0);
-            /*mPlan.disconnect(load, pred);
-            mPlan.add(forEach);
-            mPlan.connect(load, forEach);
-            mPlan.connect(forEach, pred);
-            forEach.getSchema();*/
-            MultiMap<Integer, Column> mappedFields = new MultiMap<Integer, Column>();
-            List<Column> columns;
-            for (int i=0;i<=load.getSchema().size();i++) {
-                columns = new ArrayList<Column>();
-                columns.add(new Column(new Pair<Integer, Integer>(0, i)));
-                mappedFields.put(i, columns);
-            }
-            mPlan.add(forEach);
-            mPlan.doInsertBetween(load, forEach, pred, false);
-            forEach.getProjectionMap().setMappedFields(mappedFields);
-            pred.rewire(load, 0, forEach, false);
+            forEach = load.insertPlainForEachAfter(columnsToProject);
         }
         
         // Begin to prune
@@ -750,16 +722,10 @@ public class PruneColumns extends LogicalTransformer {
         StringBuffer message = new StringBuffer();
         if (pruneList.size()!=0)
         {
-            
-            ColumnPruner columnPruner;
             if (forEach == null)
-                columnPruner = new ColumnPruner(mPlan, load, pruneList, 
-                    new DependencyOrderWalker<LogicalOperator, LogicalPlan>(mPlan));
+                pruner.addPruneMap(load, pruneList);
             else
-                columnPruner = new ColumnPruner(mPlan, forEach, pruneList, 
-                        new DependencyOrderWalker<LogicalOperator, LogicalPlan>(mPlan));
-            
-            columnPruner.visit();
+                pruner.addPruneMap(forEach, pruneList);
 
             message.append("Columns pruned for " + load.getAlias() + ": ");
             for (int i=0;i<pruneList.size();i++)
@@ -797,5 +763,17 @@ public class PruneColumns extends LogicalTransformer {
             log.info(message);
         else
             log.info("No map keys pruned for " + load.getAlias());
+    }
+    
+    public void prune() throws OptimizerException {
+        try {
+            if (!pruner.isEmpty())
+                pruner.visit();
+        }
+        catch (FrontendException e) {
+            int errCode = 2212;
+            String msg = "Unable to prune plan";
+            throw new OptimizerException(msg, errCode, PigException.BUG, e);
+        }
     }
 }

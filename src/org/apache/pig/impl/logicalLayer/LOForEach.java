@@ -863,7 +863,7 @@ public class LOForEach extends RelationalOperator {
         
         return result;
     }
-     @Override
+    @Override
     public boolean pruneColumns(List<Pair<Integer, Integer>> columns)
             throws FrontendException {
         if (!mIsSchemaComputed)

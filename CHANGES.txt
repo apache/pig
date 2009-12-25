@@ -126,6 +126,8 @@ PIG-1064: Behaviour of COGROUP with and without schema when using "*" operator
 
 PIG-1086: Nested sort by * throw exception (rding via daijy)
 
+PIG-1146: Inconsistent column pruning in LOUnion (daijy)
+
 Release 0.6.0 - Unreleased
 
 INCOMPATIBLE CHANGES

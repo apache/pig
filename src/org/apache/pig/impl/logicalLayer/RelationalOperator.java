@@ -17,13 +17,17 @@
  */
 package org.apache.pig.impl.logicalLayer;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.pig.PigException;
+import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.ProjectionMap;
 import org.apache.pig.impl.plan.RequiredFields;
 import org.apache.pig.impl.plan.VisitorException;
+import org.apache.pig.impl.plan.ProjectionMap.Column;
+import org.apache.pig.impl.util.MultiMap;
 import org.apache.pig.impl.util.Pair;
 
 public abstract class RelationalOperator extends LogicalOperator {
@@ -176,5 +180,34 @@ public abstract class RelationalOperator extends LogicalOperator {
                 loProject.getProjection().set(0, col - 1);
             }
         }
+    }
+    
+    // insert a forEach after the operator. This forEach map columns in columnsToProject directly, and remove the rest
+    public LogicalOperator insertPlainForEachAfter(List<Integer> columnsToProject) throws FrontendException {
+        ArrayList<Boolean> flattenList = new ArrayList<Boolean>();
+        ArrayList<LogicalPlan> generatePlans = new ArrayList<LogicalPlan>();
+        String scope = getOperatorKey().scope;
+        for (int pos : columnsToProject) {
+            LogicalPlan projectPlan = new LogicalPlan();
+            ExpressionOperator column = new LOProject(projectPlan, new OperatorKey(scope, NodeIdGenerator.getGenerator().getNextNodeId(scope)), this, pos);
+            flattenList.add(false);
+            projectPlan.add(column);
+            generatePlans.add(projectPlan);
+        }
+        LOForEach forEach = new LOForEach(mPlan, new OperatorKey(scope, NodeIdGenerator.getGenerator().getNextNodeId(scope)), generatePlans, flattenList);
+        LogicalOperator succ = mPlan.getSuccessors(this).get(0);
+
+        MultiMap<Integer, Column> mappedFields = new MultiMap<Integer, Column>();
+        List<Column> columns;
+        for (int i=0;i<=getSchema().size();i++) {
+            columns = new ArrayList<Column>();
+            columns.add(new Column(new Pair<Integer, Integer>(0, i)));
+            mappedFields.put(i, columns);
+        }
+        mPlan.add(forEach);
+        mPlan.doInsertBetween(this, forEach, succ, false);
+        forEach.getProjectionMap().setMappedFields(mappedFields);
+        succ.rewire(this, 0, forEach, false);
+        return forEach;
     }
 }
