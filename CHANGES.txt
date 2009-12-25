@@ -253,6 +253,8 @@ reducers correctly (daijy)
 
 PIG-1165: Signature of loader does not set correctly for order by (daijy)
 
+PIG-761: ERROR 2086 on simple JOIN (daijy)
+
 Release 0.5.0
 
 INCOMPATIBLE CHANGES
