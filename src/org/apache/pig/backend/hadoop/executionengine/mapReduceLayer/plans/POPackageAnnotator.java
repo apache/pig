@@ -105,6 +105,8 @@ public class POPackageAnnotator extends MROpPlanVisitor {
             List<MapReduceOper> preds = this.mPlan.getPredecessors(mr);
             for (Iterator<MapReduceOper> it = preds.iterator(); it.hasNext();) {
                 MapReduceOper mrOper = it.next();
+                if (mrOper.isLimitOnly())
+                    mrOper = this.mPlan.getPredecessors(mrOper).get(0);
                 lrFound += patchPackage(mrOper.reducePlan, pkg);
                 if(lrFound == pkg.getNumInps()) {
                     break;
