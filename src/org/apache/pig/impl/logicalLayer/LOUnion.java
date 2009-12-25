@@ -42,8 +42,6 @@ public class LOUnion extends RelationalOperator {
     private static final long serialVersionUID = 2L;
     private static Log log = LogFactory.getLog(LOUnion.class);
     
-    List<Pair<Integer, Integer>> stagingPrunedColumns = new ArrayList<Pair<Integer, Integer>>(); 
-
     /**
      * @param plan
      *            Logical plan this operator is a part of.
@@ -240,27 +238,60 @@ public class LOUnion extends RelationalOperator {
             result.add(new RequiredFields(inputList));
         }
         
-        
         return result;
     }
-
+    @Override
     public boolean pruneColumns(List<Pair<Integer, Integer>> columns)
         throws FrontendException {
-        stagingPrunedColumns.addAll(columns);
-        boolean allPruned = true;
+        if (!mIsSchemaComputed)
+            getSchema();
+        if (mSchema == null) {
+            log.warn("Cannot prune columns in union, no schema information found");
+            return false;
+        }
+
+        // Find maximum pruning among all inputs
+        boolean[] maximumPruned = new boolean[mSchema.size()];
         for (Pair<Integer, Integer>pair : columns)
         {
-            for (int i=0;i<mPlan.getPredecessors(this).size();i++)
+            maximumPruned[pair.second] = true;
+        }
+        int maximumNumPruned = 0;
+        for (int i=0;i<maximumPruned.length;i++) {
+            if (maximumPruned[i])
+                maximumNumPruned++;
+        }
+        
+        List<LogicalOperator> preds = getInputs();
+        for (int i=0;i<preds.size();i++) {
+            // Build a list of pruned columns for this predecessor
+            boolean[] actualPruned = new boolean[mSchema.size()];
+            for (Pair<Integer, Integer>pair : columns)
             {
-                if (!stagingPrunedColumns.contains(new Pair<Integer, Integer>(i, pair.second)))
-                    allPruned = false;
+                if (pair.first==i)
+                    actualPruned[pair.second] = true;
+            }
+            int actualNumPruned = 0;
+            for (int j=0;j<actualPruned.length;j++) {
+                if (actualPruned[j])
+                    actualNumPruned++;
+            }
+            if (actualNumPruned!=maximumNumPruned) { // We need to prune some columns before LOUnion
+                List<Integer> columnsToProject = new ArrayList<Integer>();
+                int index=0;
+                for (int j=0;j<actualPruned.length;j++) {
+                    if (!maximumPruned[j]) {
+                        columnsToProject.add(index); 
+                        index++;
+                    } else {
+                        if (!actualPruned[j])
+                            index++;
+                    }
+                }
+                ((RelationalOperator)preds.get(i)).insertPlainForEachAfter(columnsToProject);
             }
         }
-        if (allPruned)
-        {
-            super.pruneColumns(columns);
-            return true;
-        }
-        return false;
+        super.pruneColumns(columns);
+        return true;
     }
 }
