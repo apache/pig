@@ -83,6 +83,10 @@ public class MapReduceOper extends Operator<MROpPlanVisitor> {
 
     // Indicates if this is a limit after a sort
     boolean limitAfterSort = false;
+    
+    // Indicate if the entire purpose for this map reduce job is doing limit, does not change
+    // anything else. This is to help POPackageAnnotator to find the right POPackage to annotate
+    boolean limitOnly = false;
 
     // If true, putting an identity combine in this
     // mapreduce job will speed things up.
@@ -283,6 +287,14 @@ public class MapReduceOper extends Operator<MROpPlanVisitor> {
 
     public void setLimitAfterSort(boolean las) {
         limitAfterSort = las;
+    }
+    
+    public boolean isLimitOnly() {
+        return limitOnly;
+    }
+    
+    public void setLimitOnly(boolean limitOnly) {
+        this.limitOnly = limitOnly;
     }
 
     public boolean needsDistinctCombiner() { 

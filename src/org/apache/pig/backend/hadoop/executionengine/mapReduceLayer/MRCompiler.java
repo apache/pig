@@ -2418,6 +2418,7 @@ public class MRCompiler extends PhyPlanVisitor {
                     throw new MRCompilerException(msg, errCode, PigException.BUG);
                 }
                 FileSpec oldSpec = ((POStore)mpLeaf).getSFile();
+                boolean oldIsTmpStore = ((POStore)mpLeaf).isTmpStore();
                 
                 FileSpec fSpec = getTempFileSpec();
                 ((POStore)mpLeaf).setSFile(fSpec);
@@ -2439,9 +2440,10 @@ public class MRCompiler extends PhyPlanVisitor {
                 limitAdjustMROp.reducePlan.addAsLeaf(pLimit2);
                 POStore st = getStore();
                 st.setSFile(oldSpec);
-                st.setIsTmpStore(false);
+                st.setIsTmpStore(oldIsTmpStore);
                 limitAdjustMROp.reducePlan.addAsLeaf(st);
                 limitAdjustMROp.requestedParallelism = 1;
+                limitAdjustMROp.setLimitOnly(true);
                 // If the operator we're following has global sort set, we
                 // need to indicate that this is a limit after a sort.
                 // This will assure that we get the right sort comparator
