@@ -52,6 +52,8 @@ Trunk (unreleased changes)
 
   BUG FIXES
 
+    PIG-1167: Hadoop file glob support (yanz)
+
     PIG-1153: Record split exception fix (yanz)
 
     PIG-1145: Merge Join on Large Table throws an EOF exception (yanz)
