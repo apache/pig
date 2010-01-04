@@ -44,6 +44,9 @@ import org.apache.pig.impl.plan.RequiredFields;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.util.MultiMap;
 import org.apache.pig.impl.util.Pair;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.conf.Configuration;
 
 public class LOLoad extends RelationalOperator {
     private static final long serialVersionUID = 2L;
@@ -56,7 +59,7 @@ public class LOLoad extends RelationalOperator {
     private static Log log = LogFactory.getLog(LOLoad.class);
     private Schema mDeterminedSchema = null;
     private RequiredFieldList requiredFieldList;
-
+    
     /**
      * @param plan
      *            LogicalPlan this operator is a part of.
@@ -84,6 +87,7 @@ public class LOLoad extends RelationalOperator {
          try { 
              mLoadFunc = (LoadFunc)
                   PigContext.instantiateFuncFromSpec(inputFileSpec.getFuncSpec());
+             mLoadFunc.setUDFContextSignature(getAlias());
         }catch (ClassCastException cce) {
             log.error(inputFileSpec.getFuncSpec() + " should implement the LoadFunc interface.");
             throw new IOException(cce);
@@ -324,7 +328,7 @@ public class LOLoad extends RelationalOperator {
         if (mSchema == null)
             return response;
         
-        if (requiredFieldList.isAllFieldsRequired())
+        if (requiredFieldList.getFields() == null)
             return response;
         
         if (requiredFieldList.getFields()==null)
@@ -374,6 +378,12 @@ public class LOLoad extends RelationalOperator {
         getProjectionMap();
         return response;
 
+    }
+    
+    @Override
+    public void setAlias(String newAlias) {
+        super.setAlias(newAlias);
+        mLoadFunc.setUDFContextSignature(getAlias());
     }
 
     @Override

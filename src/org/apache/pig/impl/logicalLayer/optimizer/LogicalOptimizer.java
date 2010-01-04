@@ -27,15 +27,18 @@ import org.apache.pig.impl.logicalLayer.LOFilter;
 import org.apache.pig.impl.logicalLayer.LOForEach;
 import org.apache.pig.impl.logicalLayer.LOLimit;
 import org.apache.pig.impl.logicalLayer.LOLoad;
-import org.apache.pig.impl.logicalLayer.LOPrinter;
 import org.apache.pig.impl.logicalLayer.LOStream;
 import org.apache.pig.impl.logicalLayer.LogicalOperator;
 import org.apache.pig.impl.logicalLayer.LogicalPlan;
 import org.apache.pig.impl.logicalLayer.RelationalOperator;
 import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.OperatorKey;
-import org.apache.pig.impl.plan.VisitorException;
-import org.apache.pig.impl.plan.optimizer.*;
+import org.apache.pig.impl.plan.optimizer.OptimizerException;
+import org.apache.pig.impl.plan.optimizer.PlanOptimizer;
+import org.apache.pig.impl.plan.optimizer.Rule;
+import org.apache.pig.impl.plan.optimizer.RuleMatcher;
+import org.apache.pig.impl.plan.optimizer.RuleOperator;
+import org.apache.pig.impl.plan.optimizer.RulePlan;
 
 /**
  * An optimizer for logical plans.
@@ -68,13 +71,6 @@ public class LogicalOptimizer extends
         RulePlan rulePlan;
 
         // List of rules for the logical optimizer
-
-        // This one has to be first, as the type cast inserter expects the
-        // load to only have one output.
-        // Find any places in the plan that have an implicit split and make
-        // it explicit. Since the RuleMatcher doesn't handle trees properly,
-        // we cheat and say that we match any node. Then we'll do the actual
-        // test in the transformers check method.
         
         boolean turnAllRulesOff = false;
         if (mRulesOff != null) {
@@ -86,6 +82,13 @@ public class LogicalOptimizer extends
             }
         }
         
+        // This one has to be before the type cast inserter as it expects the
+        // load to only have one output.
+        // Find any places in the plan that have an implicit split and make
+        // it explicit. Since the RuleMatcher doesn't handle trees properly,
+        // we cheat and say that we match any node. Then we'll do the actual
+        // test in the transformers check method.
+        
         rulePlan = new RulePlan();
         RuleOperator anyLogicalOperator = new RuleOperator(LogicalOperator.class, RuleOperator.NodeType.ANY_NODE, 
                 new OperatorKey(SCOPE, nodeIdGen.getNextNodeId(SCOPE)));
@@ -93,10 +96,22 @@ public class LogicalOptimizer extends
         mRules.add(new Rule<LogicalOperator, LogicalPlan>(rulePlan,
                 new ImplicitSplitInserter(plan), "ImplicitSplitInserter"));
 
+        
+        // this one is ordered to be before other optimizations since  later 
+        // optimizations may move the LOFilter that is looks for just after a 
+        // LOLoad
+        rulePlan = new RulePlan();
+        RuleOperator loLoad = new RuleOperator(LOLoad.class, 
+                new OperatorKey(SCOPE, nodeIdGen.getNextNodeId(SCOPE)));
+        rulePlan.add(loLoad);
+        mRules.add(new Rule<LogicalOperator, LogicalPlan>(rulePlan,
+                new PartitionFilterOptimizer(plan), "PartitionFilterOptimizer"));
+
+
         // Add type casting to plans where the schema has been declared (by
         // user, data, or data catalog).
         rulePlan = new RulePlan();
-        RuleOperator loLoad = new RuleOperator(LOLoad.class, 
+        loLoad = new RuleOperator(LOLoad.class, 
                 new OperatorKey(SCOPE, nodeIdGen.getNextNodeId(SCOPE)));
         rulePlan.add(loLoad);
         mRules.add(new Rule<LogicalOperator, LogicalPlan>(rulePlan,

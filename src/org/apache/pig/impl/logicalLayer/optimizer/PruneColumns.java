@@ -57,6 +57,7 @@ import org.apache.pig.impl.logicalLayer.LogicalOperator;
 import org.apache.pig.impl.logicalLayer.LogicalPlan;
 import org.apache.pig.impl.logicalLayer.RelationalOperator;
 import org.apache.pig.impl.logicalLayer.TopLevelProjectFinder;
+import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.plan.DependencyOrderWalker;
 import org.apache.pig.impl.plan.MapKeysInfo;
 import org.apache.pig.impl.plan.NodeIdGenerator;
@@ -644,18 +645,19 @@ public class PruneColumns extends LogicalTransformer {
     // Prune fields of LOLoad, and use ColumePruner to prune all the downstream logical operators
     private void pruneLoader(LOLoad load, RequiredFields loaderRequiredFields) throws FrontendException
     {
-        RequiredFieldList requiredFieldList = new RequiredFieldList(load.getAlias());
-        requiredFieldList.setAllFieldsRequired(false);
+        RequiredFieldList requiredFieldList = new RequiredFieldList();
 
         if (loaderRequiredFields==null || loaderRequiredFields.needAllFields())
             return;
+        Schema loadSchema = load.getSchema();
         for (int i=0;i<loaderRequiredFields.size();i++)
         {
             Pair<Integer, Integer> pair = loaderRequiredFields.getField(i);
             MapKeysInfo mapKeysInfo = loaderRequiredFields.getMapKeysInfo(i);
             RequiredField requiredField = new RequiredField();
             requiredField.setIndex(pair.second);
-            requiredField.setType(load.getSchema().getField(pair.second).type);
+            requiredField.setAlias(loadSchema.getField(pair.second).alias);
+            requiredField.setType(loadSchema.getField(pair.second).type);
             if (mapKeysInfo!=null && !mapKeysInfo.needAllKeys())
             {
                 List<RequiredField> subFieldList = new ArrayList<RequiredField>();

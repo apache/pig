@@ -100,8 +100,6 @@ public class POLoad extends PhysicalOperator {
         String filename = lFile.getFileName();
         LoadFunc origloader = 
             (LoadFunc)PigContext.instantiateFuncFromSpec(lFile.getFuncSpec());
-        if (loader instanceof PigStorage)
-            ((PigStorage)loader).setSignature(signature);
         loader = new ReadToEndLoader(origloader, 
                 ConfigurationUtil.toConfiguration(pc.getProperties()), 
                 filename,

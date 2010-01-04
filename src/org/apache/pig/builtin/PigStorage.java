@@ -191,8 +191,7 @@ LoadPushDown {
     public RequiredFieldResponse pushProjection(RequiredFieldList requiredFieldList) throws FrontendException {
         if (requiredFieldList == null)
             return null;
-        signature = requiredFieldList.getSignature();
-        if (!requiredFieldList.isAllFieldsRequired())
+        if (requiredFieldList.getFields() != null)
         {
             int lastColumn = -1;
             for (RequiredField rf: requiredFieldList.getFields())
@@ -289,7 +288,7 @@ LoadPushDown {
 
     
     @Override
-    public void setSignature(String signature) {
+    public void setUDFContextSignature(String signature) {
         this.signature = signature; 
     }
 

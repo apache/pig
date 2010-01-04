@@ -89,12 +89,14 @@ public class PigInputFormat extends InputFormat<Text, Tuple> {
         LoadFunc loadFunc = getLoadFunc(pigSplit.getInputIndex(), conf);
         // Pass loader signature to LoadFunc and to InputFormat through
         // the conf
-        passLoadSignature(loadFunc, pigSplit.getInputIndex(), conf, true);
+        passLoadSignature(loadFunc, pigSplit.getInputIndex(), conf);
+        
         // merge entries from split specific conf into the conf we got
         PigInputFormat.mergeSplitSpecificConf(loadFunc, pigSplit, conf);
         InputFormat inputFormat = loadFunc.getInputFormat();
         // now invoke the createRecordReader() with this "adjusted" conf
         RecordReader reader = inputFormat.createRecordReader(split, context);
+        
         return new PigRecordReader(reader, loadFunc, conf);
     }
     
@@ -108,7 +110,6 @@ public class PigInputFormat extends InputFormat<Text, Tuple> {
      */
     static void mergeSplitSpecificConf(LoadFunc loadFunc, PigSplit pigSplit, Configuration originalConf) 
     throws IOException {
-     
         // set up conf with entries from input specific conf
         Job job = new Job(originalConf);
         loadFunc.setLocation(getLoadLocation(pigSplit.getInputIndex(), 
@@ -149,27 +150,22 @@ public class PigInputFormat extends InputFormat<Text, Tuple> {
      * @param inputIndex the index of the input corresponding to the loadfunc
      * @param conf the Configuration object into which the signature should be
      * set
-     * @param initializeUDFContext flag to indicate if UDFContext also should
-     * be initialized
      * @throws IOException on failure
      */
     @SuppressWarnings("unchecked")
     static void passLoadSignature(LoadFunc loadFunc, int inputIndex, 
-            Configuration conf, boolean initializeUDFContext) throws IOException {
+            Configuration conf) throws IOException {
         List<String> inpSignatureLists = 
             (ArrayList<String>)ObjectSerializer.deserialize(
                     conf.get("pig.inpSignatures"));
         // signature can be null for intermediate jobs where it will not
         // be required to be passed down
         if(inpSignatureLists.get(inputIndex) != null) {
-            loadFunc.setSignature(inpSignatureLists.get(inputIndex));
+            loadFunc.setUDFContextSignature(inpSignatureLists.get(inputIndex));
             conf.set("pig.loader.signature", inpSignatureLists.get(inputIndex));
         }
         
-        if(initializeUDFContext) {
-            MapRedUtil.setupUDFContext(conf);
-        }
-           
+        MapRedUtil.setupUDFContext(conf);
     }
     
     /* (non-Javadoc)
@@ -237,8 +233,7 @@ public class PigInputFormat extends InputFormat<Text, Tuple> {
                 Job inputSpecificJob = new Job(confClone);
                 // Pass loader signature to LoadFunc and to InputFormat through
                 // the conf
-                passLoadSignature(loadFunc, i, 
-                        inputSpecificJob.getConfiguration(), false);
+                passLoadSignature(loadFunc, i, inputSpecificJob.getConfiguration());
                 loadFunc.setLocation(inputs.get(i).getFileName(), 
                         inputSpecificJob);
                 // The above setLocation call could write to the conf within

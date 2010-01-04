@@ -37,6 +37,7 @@ import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+import org.apache.pig.Expression;
 import org.apache.pig.FileInputLoadFunc;
 import org.apache.pig.LoadCaster;
 import org.apache.pig.LoadFunc;
@@ -382,7 +383,7 @@ implements LoadCaster, StoreFunc, LoadMetadata {
     @Override
     public String[] getPartitionKeys(String location, Configuration conf)
             throws IOException {
-        throw new UnsupportedOperationException();
+        return null;
     }
 
     @Override
@@ -429,7 +430,7 @@ implements LoadCaster, StoreFunc, LoadMetadata {
     }
 
     @Override
-    public void setParitionFilter(OperatorPlan plan) throws IOException {
+    public void setPartitionFilter(Expression plan) throws IOException {
         throw new UnsupportedOperationException();
     }
 }

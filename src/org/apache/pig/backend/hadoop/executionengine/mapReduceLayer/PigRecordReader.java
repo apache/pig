@@ -113,7 +113,7 @@ public class PigRecordReader extends RecordReader<Text, Tuple> {
         // Pass loader signature to LoadFunc and to InputFormat through
         // the conf
         PigInputFormat.passLoadSignature(loadfunc, pigSplit.getInputIndex(), 
-                context.getConfiguration(), true);
+                context.getConfiguration());
         // now invoke initialize() on underlying RecordReader with
         // the "adjusted" conf
         wrappedReader.initialize(pigSplit.getWrappedSplit(), context);

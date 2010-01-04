@@ -48,8 +48,11 @@ public interface LoadPushDown {
     /**
      * Indicate to the loader fields that will be needed.  This can be useful for
      * loaders that access data that is stored in a columnar format where indicating
-     * columns to be accessed a head of time will save scans.  If the loader
-     * function cannot make use of this information, it is free to ignore it.
+     * columns to be accessed a head of time will save scans.  This method will
+     * not be invoked by the Pig runtime if all fields are required. So implementations
+     * should assume that if this method is not invoked, then all fields from 
+     * the input are required. If the loader function cannot make use of this 
+     * information, it is free to ignore it by returning an appropriate Response
      * @param requiredFieldList RequiredFieldList indicating which columns will be needed.
      */
     public RequiredFieldResponse pushProjection(RequiredFieldList 
@@ -70,12 +73,26 @@ public interface LoadPushDown {
         // In the initial implementation only one level of subfields will be populated.
         private List<RequiredField> subFields;
         
-        // true for atomic types like INTEGER, FLOAT, DOUBLE, CHARARRAY, BYTEARRAY, LONG and when all 
-        // subfields from complex types like BAG, TUPLE and MAP are required
-        private boolean allSubFieldsRequired;
-        
         // Type of this field - the value could be any current PIG DataType (as specified by the constants in DataType class).
         private byte type;
+
+        public RequiredField() {
+            // to allow piece-meal construction
+        }
+        
+        /**
+         * @param alias
+         * @param index
+         * @param subFields
+         * @param type
+         */
+        public RequiredField(String alias, int index,
+                List<RequiredField> subFields, byte type) {
+            this.alias = alias;
+            this.index = index;
+            this.subFields = subFields;
+            this.type = type;
+        }
 
         /**
          * @return the alias
@@ -112,14 +129,6 @@ public interface LoadPushDown {
             return type;
         }
 
-        /**
-         * @return true if all sub fields are required, false otherwise
-         */
-        public boolean isAllSubFieldsRequired() {
-            return allSubFieldsRequired;
-        }
-
-
         public void setType(byte t) {
             type = t;
         }
@@ -144,18 +153,18 @@ public interface LoadPushDown {
     }
 
     public static class RequiredFieldList implements Serializable {
-        // Implementation of the private fields is subject to change but the
-        // getter() interface should remain
         
         private static final long serialVersionUID = 1L;
         
         // list of Required fields, this will be null if all fields are required
         private List<RequiredField> fields = new ArrayList<RequiredField>(); 
         
-        // flag to indicate if all fields are required. The Loader implementation should check this flag first and look at the fields ONLY if this is true
-        private boolean allFieldsRequired;
-        
-        private String signature;
+        /**
+         * @param fields
+         */
+        public RequiredFieldList(List<RequiredField> fields) {
+            this.fields = fields;
+        }
 
         /**
          * @return the required fields - this will be null if all fields are
@@ -165,29 +174,13 @@ public interface LoadPushDown {
             return fields;
         }
 
-        public RequiredFieldList(String signature) {
-            this.signature = signature;
+        public RequiredFieldList() {
         }
         
-        public String getSignature() {
-            return signature;
-        }
-        
-        /**
-         * @return true if all fields are required, false otherwise
-         */
-        public boolean isAllFieldsRequired() {
-            return allFieldsRequired;
-        }
-
-        public void setAllFieldsRequired(boolean allRequired) {
-            allFieldsRequired = allRequired;
-        }
-
         @Override
         public String toString() {
             StringBuffer result = new StringBuffer();
-            if (allFieldsRequired)
+            if (fields == null)
                 result.append("*");
             else {
                 result.append("[");

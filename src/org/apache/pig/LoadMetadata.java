@@ -61,7 +61,8 @@ public interface LoadMetadata {
      * @param location Location as returned by 
      * {@link LoadFunc#relativeToAbsolutePath(String, org.apache.hadoop.fs.Path)}
      * @param conf The {@link Configuration} object
-     * @return array of field names of the partition keys.
+     * @return array of field names of the partition keys. Implementations 
+     * should return null to indicate that there are no partition keys
      * @throws IOException if an exception occurs while retrieving partition keys
      */
     String[] getPartitionKeys(String location, Configuration conf) 
@@ -70,11 +71,14 @@ public interface LoadMetadata {
     /**
      * Set the filter for partitioning.  It is assumed that this filter
      * will only contain references to fields given as partition keys in
-     * getPartitionKeys
-     * @param plan that describes filter for partitioning
+     * getPartitionKeys. So if the implementation returns null in 
+     * {@link #getPartitionKeys(String, Configuration)}, then this method is not
+     * called by pig runtime. This method is also not called by the pig runtime
+     * if there are no partition filter conditions. 
+     * @param partitionFilter that describes filter for partitioning
      * @throws IOException if the filter is not compatible with the storage
      * mechanism or contains non-partition fields.
      */
-    void setParitionFilter(OperatorPlan plan) throws IOException;
+    void setPartitionFilter(Expression partitionFilter) throws IOException;
 
 }

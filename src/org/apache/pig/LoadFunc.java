@@ -74,6 +74,7 @@ public abstract class LoadFunc {
      * @param location Location as returned by 
      * {@link LoadFunc#relativeToAbsolutePath(String, Path)}
      * @param job the {@link Job} object
+     * store or retrieve earlier stored information from the {@link UDFContext}
      * @throws IOException if the location is not valid.
      */
     public abstract void setLocation(String location, Job job) throws IOException;
@@ -263,7 +264,7 @@ public abstract class LoadFunc {
      * back end before returning tuples in {@link LoadFunc#getNext()}
      * @param signature a unique signature to identify this LoadFunc
      */
-    public void setSignature(String signature) {
+    public void setUDFContextSignature(String signature) {
         // default implementation is a no-op
     }
        

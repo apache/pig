@@ -45,6 +45,7 @@ public class TextLoader extends LoadFunc implements LoadCaster {
     protected RecordReader in = null;
     private TupleFactory mTupleFactory = TupleFactory.getInstance();
 
+    @Override
     public Tuple getNext() throws IOException {
         try {
             boolean notDone = in.nextKeyValue();
