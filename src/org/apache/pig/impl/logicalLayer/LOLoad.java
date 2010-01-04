@@ -24,7 +24,7 @@ import java.util.TreeSet;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.pig.ExecType;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.pig.LoadFunc;
 import org.apache.pig.LoadMetadata;
 import org.apache.pig.LoadPushDown;
@@ -33,8 +33,6 @@ import org.apache.pig.ResourceSchema;
 import org.apache.pig.LoadPushDown.RequiredField;
 import org.apache.pig.LoadPushDown.RequiredFieldList;
 import org.apache.pig.LoadPushDown.RequiredFieldResponse;
-import org.apache.pig.backend.datastorage.DataStorage;
-import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.data.DataType;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileSpec;
@@ -54,8 +52,7 @@ public class LOLoad extends RelationalOperator {
     transient private LoadFunc mLoadFunc;
     private String mSchemaFile;
     private Schema mEnforcedSchema = null ;
-    transient private DataStorage mStorage;
-    private ExecType mExecType;
+    transient private Configuration conf;
     private static Log log = LogFactory.getLog(LOLoad.class);
     private Schema mDeterminedSchema = null;
     private RequiredFieldList requiredFieldList;
@@ -67,23 +64,19 @@ public class LOLoad extends RelationalOperator {
      *            OperatorKey for this operator
      * @param inputFileSpec
      *            the file to be loaded *
-     * @param execType
-     *            the execution mode @see org.apache.pig.ExecType
-     * @param storage
-     *            the underlying storage
+     * @param conf
+     *            the read-only configuration object
      *            
-     * 
      */
     public LOLoad(LogicalPlan plan, OperatorKey key, FileSpec inputFileSpec,
-            ExecType execType, DataStorage storage) throws IOException {
+            Configuration conf) throws IOException {
         super(plan, key);
         mInputFileSpec = inputFileSpec;
         //mSchemaFile = schemaFile;
         // schemaFile is the input file since we are trying
         // to deduce the schema by looking at the input file
         mSchemaFile = inputFileSpec.getFileName();
-        mStorage = storage;
-        mExecType = execType;
+        this.conf = conf;
         // Generate a psudo alias. Since in the following script, we do not have alias for LOLoad, however, alias is required.
         // a = foreach (load '1') generate b0;
         this.mAlias = ""+key.getId();
@@ -147,9 +140,6 @@ public class LOLoad extends RelationalOperator {
                 }
 
                 if(null == mDeterminedSchema) {
-                    // Zebra loader determineSchema method depends on this signature
-                    if (mStorage!=null)
-                        mStorage.getConfiguration().setProperty("pig.loader.signature", mAlias);
                     mSchema = determineSchema();
                     mDeterminedSchema  = mSchema;    
                 }
@@ -168,15 +158,9 @@ public class LOLoad extends RelationalOperator {
     
     private Schema determineSchema() throws IOException {
         if(LoadMetadata.class.isAssignableFrom(mLoadFunc.getClass())) {
-            // XXX: FIXME - mStorage should no longer be needed, we
-            // should use Configuration directly by passing a 
-            // Configuration object while creating LOLoad rather than
-            // a DataStorage object
             LoadMetadata loadMetadata = (LoadMetadata)mLoadFunc;
             ResourceSchema rSchema = loadMetadata.getSchema(
-                    mInputFileSpec.getFileName(), 
-                    ConfigurationUtil.toConfiguration(
-                            mStorage.getConfiguration()));
+                    mInputFileSpec.getFileName(), conf);
             return Schema.getPigSchema(rSchema);
         } else {
             return null;
@@ -271,9 +255,6 @@ public class LOLoad extends RelationalOperator {
             }
         } else {
             try {
-                // Zebra loader determineSchema method depends on this signature
-                if (mStorage!=null)
-                    mStorage.getConfiguration().setProperty("pig.loader.signature", mAlias);
                 inputSchema = determineSchema();
             } catch (IOException ioe) {
                 mProjectionMap = null;
