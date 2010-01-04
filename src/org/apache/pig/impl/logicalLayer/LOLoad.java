@@ -396,5 +396,9 @@ public class LOLoad extends RelationalOperator {
     {
         return requiredFieldList;
     }
+
+    public Configuration getConfiguration() {
+        return conf;
+    }
     
 }
