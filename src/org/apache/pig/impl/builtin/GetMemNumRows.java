@@ -54,8 +54,8 @@ public class GetMemNumRows extends EvalFunc<Tuple>{
     	
     	//  if this is specially marked tuple, get the number of rows
         int tSize = in.size();
-    	if(tSize >=2 &&
-    	        in.get(tSize-2).equals(PoissonSampleLoader.NUMROWS_TUPLE_MARKER)){
+    	if(tSize >=2 && 
+    	    PoissonSampleLoader.NUMROWS_TUPLE_MARKER.equals(in.get(tSize-2)) ){
     	    numRows = (Long)in.get(tSize-1);
     	}
     	

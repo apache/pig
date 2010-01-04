@@ -34,8 +34,10 @@ import org.apache.pig.impl.util.Pair;
  */
 public class PoissonSampleLoader extends SampleLoader {
     
-    // marker string for special row with total number or rows. 
-    // this will be value of first column in the special row
+    // marker string to mark the last sample row, which has total number or rows
+    // seen by this map instance
+    // this string will be in the 2nd last column of the last sample row
+    // it is used by GetMemNumRows
     public static final String NUMROWS_TUPLE_MARKER = 
         "\u4956\u3838_pig_inTeRnal-spEcial_roW_num_tuple3kt579CFLehkblah";
     
@@ -90,7 +92,7 @@ public class PoissonSampleLoader extends SampleLoader {
             // were read, nothing more to read 
             return null;
         }
-        
+
 
         if(skipInterval == -1){
             //select first tuple as sample and calculate
@@ -101,9 +103,9 @@ public class PoissonSampleLoader extends SampleLoader {
             long availRedMem = (long) (Runtime.getRuntime().maxMemory() * heapPerc);
             memToSkipPerSample = availRedMem/sampleRate;
             updateSkipInterval(t);
-                
+
             rowNum++;
-                newSample = t;
+            newSample = t;
         }
 
         // skip tuples
@@ -113,16 +115,16 @@ public class PoissonSampleLoader extends SampleLoader {
             }
             rowNum++;
         }
-        
+
         // skipped enough, get new sample
         Tuple t = loader.getNext();
         if(t == null)
             return createNumRowTuple(newSample);
         updateSkipInterval(t);
         rowNum++;
-            Tuple currentSample = newSample;
-            newSample = t;
-            return currentSample;
+        Tuple currentSample = newSample;
+        newSample = t;
+        return currentSample;
     }
 
     /**
@@ -141,7 +143,7 @@ public class PoissonSampleLoader extends SampleLoader {
             // very few samples being sampled. Sampling a little extra is OK
         if(numRowsSampled < 5)
             skipInterval = skipInterval/(10-numRowsSampled);
-            ++numRowsSampled;
+        ++numRowsSampled;
 
     }
 

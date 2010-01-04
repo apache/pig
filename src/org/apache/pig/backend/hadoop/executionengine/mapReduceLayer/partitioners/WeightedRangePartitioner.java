@@ -29,6 +29,8 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.RawComparator;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.mapreduce.Partitioner;
+import org.apache.pig.FuncSpec;
+import org.apache.pig.LoadFunc;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.HDataType;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
@@ -37,6 +39,7 @@ import org.apache.pig.builtin.BinStorage;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.InternalMap;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.builtin.FindQuantiles;
 import org.apache.pig.impl.io.BufferedPositionedInputStream;
 import org.apache.pig.impl.io.FileLocalizer;
@@ -93,7 +96,6 @@ public class WeightedRangePartitioner extends Partitioner<PigNullableWritable, W
             throw new RuntimeException(this.getClass().getSimpleName() + " used but no quantiles found");
         
         try{
-            InputStream is = FileLocalizer.openDFSFile(quantilesFile,ConfigurationUtil.toProperties(job));
             ReadToEndLoader loader = new ReadToEndLoader(new BinStorage(), job, 
                     quantilesFile, 0);
             DataBag quantilesList;
@@ -114,17 +116,25 @@ public class WeightedRangePartitioner extends Partitioner<PigNullableWritable, W
                             new DiscreteProbabilitySampleGenerator(probVec));
                 }
             }
-            else
-            {
-                ArrayList<Pair<FileSpec, Boolean>> inp = (ArrayList<Pair<FileSpec, Boolean>>)ObjectSerializer.deserialize(job.get("pig.inputs", ""));
-                String inputFileName = inp.get(0).first.getFileName();
-                long inputSize = FileLocalizer.getSize(inputFileName);
-                if (inputSize!=0)
+            else {
+                ArrayList<FileSpec> inp = 
+                    (ArrayList<FileSpec>)
+                    ObjectSerializer.deserialize(job.get("pig.inputs", ""));
+                //order-by MR job will have only one input
+                FileSpec fileSpec = inp.get(0);
+                LoadFunc inpLoad =
+                    (LoadFunc)PigContext.instantiateFuncFromSpec(fileSpec.getFuncSpec());
+
+                ReadToEndLoader r2eLoad = new ReadToEndLoader(inpLoad, job, 
+                        fileSpec.getFileName(), 0);
+
+                if (r2eLoad.getNext() != null)
                 {
                     throw new RuntimeException("Empty samples file and non-empty input file");
                 }
                 // Otherwise, we do not put anything to weightedParts
             }
+            
         }catch (Exception e){
             throw new RuntimeException(e);
         }

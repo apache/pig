@@ -32,10 +32,10 @@ import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.builtin.PoissonSampleLoader;
 import org.apache.pig.impl.util.Pair;
+import org.apache.pig.impl.io.FileSpec;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.apache.pig.impl.io.FileSpec;
 
 
 public class TestPoissonSampleLoader extends TestCase{
@@ -86,33 +86,19 @@ public class TestPoissonSampleLoader extends TestCase{
     }
 
     @Test
-    public void testComputeSamples() throws IOException{
-        FileSpec fs = new FileSpec(INPUT_FILE1, new FuncSpec(PigStorage.class.getName()));
-
-        ArrayList<Pair<FileSpec, Boolean>> inputs = new ArrayList<Pair<FileSpec, Boolean> >();
-        inputs.add(new Pair<FileSpec, Boolean>(fs, true));
-
-        // Use 100 as a default value;
-        PoissonSampleLoader ps = new PoissonSampleLoader((new FuncSpec(PigStorage.class.getName())).toString(), "100");
-
-        // Get the number of samples for the file
-        ps.computeSamples(inputs, pigServer.getPigContext());
-
-        if (ps.getNumSamples() != 3) {
-            fail("Compute samples returned the wrong number of samples");
+    public void testNumSamples() throws IOException {
+        pigServer.registerQuery("A = Load '"+INPUT_FILE1+"' Using PoissonSampleLoader('PigStorage()', '100');");
+        Iterator<Tuple> iter = pigServer.openIterator("A");
+        int count = 0;
+        while(iter.hasNext()){
+            count++;
+            iter.next();
         }
+        assertEquals(count, 1);
     }
 
     /*
-     * FIXME This currently tests for 5 elements because PoissonSampleLoader
-     * only produces a single sample for the test data, and the last sample has
-     * extra information appended in PoissonSampleLoader. 
-     * 
-     * This is incorrect. The proper number of samples should be > 1, and therefore
-     * the first sample should only have 3 elements.
-     * 
-     * See PIG-1062 and PIG-1149 for more information.
-     * 
+     * Test use of LoadFunc with parameters as argument to PoissonSampleLoader
      */
     @Test
     public void testInstantiation() throws IOException {
@@ -121,7 +107,5 @@ public class TestPoissonSampleLoader extends TestCase{
         assertTrue(iter.hasNext());
         assertEquals(5, iter.next().size());
     }
-
-
 
 }
