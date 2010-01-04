@@ -39,6 +39,8 @@ Trunk (unreleased changes)
 
   BUG FIXES
 
+    PIG-1167: Hadoop file glob support (yanz)
+
     PIG-1145: Merge Join on Large Table throws an EOF exception (yanz)
 
     PIG-1074 Zebra store function should allow '::' in column names in output

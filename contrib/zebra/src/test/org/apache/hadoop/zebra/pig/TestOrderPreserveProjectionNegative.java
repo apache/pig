@@ -455,7 +455,7 @@ public class TestOrderPreserveProjectionNegative {
 		} finally {
 			//System.out.println(getStackTrace(exception));
 			Assert.assertNotNull(exception);
-			Assert.assertTrue(getStackTrace(exception).contains("Schema file doesn't exist"));
+      Assert.assertTrue(getStackTrace(exception).contains("Input path does not exist: "));
 		}
 	}
 	
@@ -465,6 +465,7 @@ public class TestOrderPreserveProjectionNegative {
 		// Test sorted union error handling when one of the table paths is invalid (Negative test)
 		//
 		IOException exception = null;
+		String pathSort2 = null;
 		
 		try {
 			// Sort tables
@@ -479,7 +480,7 @@ public class TestOrderPreserveProjectionNegative {
 				"('" + TABLE1_STORAGE + "')");
 			Assert.assertNull(pigJob.getException());
 			
-			String pathSort2 = newPath.toString() + "2";  // invalid path
+			pathSort2 = newPath.toString() + "2";  // invalid path
 			
 			String queryLoad = "records1 = LOAD '"
 		        + pathSort1 + ","
