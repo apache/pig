@@ -45,13 +45,214 @@
     </section>
 <!-- END HADOOP M/R API--> 
 
+ <!-- ZEBRA API-->
+   <section>
+   <title>Zebra MapReduce APIs</title>
+    <p>Zebra includes several classes for use in MapReduce programs. The main entry point into Zebra are the two classes for reading and writing tables, namely TableInputFormat and BasicTableOutputFormat. </p>
+
+    	<section>
+         <title>BasicTableOutputFormat  </title>    	
+    	<table>
+		<tr><th>Static</th><th>Method</th><th>Description</th></tr>
+		<tr>
+			<td>yes</td>
+			<td>void setOutputPath(JobConf, Path)  </td>
+			<td>Set the output path of the BasicTable in JobConf  </td>
+		</tr>
+		<tr>
+			<td>yes</td>
+			<td>Path[] getOutputPaths(JobConf) </td>
+			<td>Get the output paths of the BasicTable from JobConf </td>
+		</tr>
+		<tr>
+			<td>yes</td>
+			<td>void setStorageInfo(JobConf, ZebraSchema, ZebraStorageHint, ZebraSortInfo) </td>
+			<td>Set the table storage information (schema, storagehint, sortinfo) in JobConf</td>
+		</tr>
+			<tr>
+			<td>yes</td>
+			<td>Schema getSchema(JobConf)  </td>
+			<td>Get the table schema in JobConf  </td>
+		</tr>
+	    <tr>
+			<td>yes</td>
+			<td>BytesWritable generateSortKey(JobConf, Tuple)  </td>
+			<td>Generates a BytesWritable key for the input key </td>
+		</tr>
+		<tr>
+			<td>yes</td>
+			<td>String getStorageHint(JobConf)  </td>
+			<td>Get the table storage hint in JobConf  </td>
+		</tr>
+		<tr>
+			<td>yes</td>
+			<td>SortInfo getSortInfo(JobConf)  </td>
+			<td>Get the SortInfo object  </td>
+		</tr>
+		<tr>
+			<td>yes</td>
+			<td>void close(JobConf)  </td>
+			<td>Close the output BasicTable, No more rows can be added into the table  </td>
+		</tr>
+	   <tr>
+			<td>yes</td>
+			<td>void setMultipleOutputs(JobConf, String commaSeparatedLocs, Class &lt; extends ZebraOutputPartition&gt; theClass)  </td>
+			<td>Enables data to be written to multiple zebra tables based on the ZebraOutputPartition class. 
+			See <a href="zebra_mapreduce.html#Multiple+Table+Outputs">Multiple Table Outputs.</a></td>
+		</tr>
+    	</table> 
+        </section>
+        
+          	<section>
+         <title>TableInputFormat   </title>    
+    	<table>
+		<tr><th>Static</th><th>Method</th><th>Description</th></tr>
+		<tr>
+			<td>yes</td>
+			<td>void setInputPaths(JobConf, Path... paths)  </td>
+			<td>Set the paths to the input table </td>
+
+		</tr>
+		<tr>
+			<td>yes</td>
+			<td>Path[] getInputPaths(JobConf)  </td>
+			<td>Get the comma-separated paths to the input table or table union  </td>
+		</tr>
+		<tr>
+			<td>yes</td>
+			<td>Schema getSchema(JobConf)  </td>
+			<td>Get the schema of a table expr  </td>
+		</tr>
+		<tr>
+			<td>yes</td>
+			<td>void setProjection(JobConf, ZebraProjection)  </td>
+			<td>Set the input projection in the JobConf object  </td>
+		</tr>
+		<tr>
+			<td>yes</td>
+			<td>String getProjection(JobConf) </td>
+			<td>Get the projection from the JobConf </td>
+		</tr>
+		<tr>
+			<td>yes</td>
+			<td>SortInfo getSortInfo(JobConf)  </td>
+			<td>Get the SortInfo object regarding a Zebra table  </td>
+		</tr>
+		<tr>
+			<td>yes</td>
+			<td>void requireSortedTable(JobConf, String sortcolumns, BytesComparator comparator) </td>
+			<td>Requires sorted table or table union </td>
+		</tr>
+	    <tr>
+			<td> yes </td>
+			<td>TableRecordReader getTableRecordReader(JobConf, ZebraProjection) </td>
+			<td>Get a TableRecordReader on a single split </td>
+		</tr>
+		<tr>
+			<td>yes</td>
+			<td>void setMinSplitSize(JobConf, long minSize) </td>
+			<td>Set the minimum split size, default of 1M bytes </td>
+		</tr>
+    	</table>
+    	</section>
+
+    <section>
+    <title>TableRecordReader </title>
+    	<table>
+		<tr><th>Static</th><th>Method</th><th>Description</th></tr>
+		<tr>
+			<td>no</td>
+			<td>boolean seekTo(BytesWritable key) </td>
+			<td>Seek to the position at the first row which has the key (returning true) or just after the key(returning false); only applicable for sorted Zebra table.  </td>
+		</tr>
+    	</table>
+     </section>
+     
+     
+     
+     <section>
+         <title>ZebraOutputPartition </title>
+    	<table>
+		<tr><th>Static</th><th>Method</th><th>Description</th></tr>
+		<tr>
+			<td> no </td>
+			<td>public abstract int getOutputPartition(BytesWritable key, Tuple value) </td>
+			<td>Abstract method from ZebraOutputPartition abstract class. App implements this to stream data to different table  </td>
+		</tr>
+		<tr>
+			<td> no </td>
+			<td>void setConf(Configuration jobConf)  </td>
+			<td>Initialization routine giving JobConf to application. Zebra implements it  </td>
+		</tr>
+		<tr>
+			<td> no </td>
+			<td>Configuration getConf()  </td>
+			<td> returns JobConf. Zebra implements it</td>
+		</tr>
+		<tr>
+			<td>yes </td>
+			<td>Class&lt; extends ZebraOutputPartition&gt; getZebraOutputPartitionClass(JobConf conf) </td>
+			<td>return user implemented ZebraOutputPartition class  </td>
+		</tr>
+    	</table>
+   	   </section>
+   	   
+   	   
+    <section>
+    <title>ZebraProjection </title>
+    	<table>
+		<tr><th>Static</th><th>Method</th><th>Description</th></tr>
+		<tr>
+			<td>yes</td>
+			<td>ZebraProjection createZebraProjection(String) </td>
+			<td>Create a ZebraProjection object from a string representing projection information. </td>
+		</tr>
+    	</table>
+     </section>
+     
+    <section>
+    <title>ZebraSchema</title>
+    	<table>
+		<tr><th>Static</th><th>Method</th><th>Description</th></tr>
+		<tr>
+			<td>yes</td>
+			<td>ZebraSchema createZebraSchema(String)  </td>
+			<td>Create a ZebraStorageHint object from a string representing storage hint information.</td>
+		</tr>
+    	</table>
+     </section>     
+     
+    <section>
+    <title>ZebraStorageHint </title>
+    	<table>
+		<tr><th>Static</th><th>Method</th><th>Description</th></tr>
+		<tr>
+			<td>yes</td>
+			<td>ZebraStorageHint createZebraStorageHint(String) </td>
+			<td>Create a ZebraStorageHint object from a string representing storage hint information. </td>
+		</tr>
+    	</table>
+     </section>   
+     
+    <section>
+    <title>ZebraSortInfo </title>
+    	<table>
+		<tr><th>Static</th><th>Method</th><th>Description</th></tr>
+		<tr>
+			<td>yes</td>
+			<td>ZebraSortInfo createZebraSortInfo(String sortColumns, Class&lt; extends RawComparator &lt; Object &gt;&gt; comparatorClass) </td>
+			<td>Create a ZebraSortInfo object from a sort columns string and a comparator class. </td>
+		</tr>
+    	</table>
+     </section>   
+         </section>
+ <!-- END ZEBRA API--> 
+
+
  
  <!-- ZEBRA M/R EXAMPLES-->
 <section>
 <title>Zebra MapReduce Examples</title> 
- 
- 
-
  
  <!-- ZEBRA OUTPUT EXAMPLE-->
 <section>

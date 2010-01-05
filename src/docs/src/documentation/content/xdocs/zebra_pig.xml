@@ -142,7 +142,7 @@ B = LOAD '$PATH/tbl3' USING org.apache.hadoop.zebra.pig.TableLoader('c1,c2');
 -- Load an existing table (one column is projected)
 
 C = LOAD '$PATH/tbl4' USING org.apache.hadoop.zebra.pig.TableLoader('c2');   
-    </source>
+</source>
    </section>
    <!--end example: simple types-->
     
@@ -177,11 +177,32 @@ STORE A INTO '$PATH/tbl2' USING org.apache.hadoop.zebra.pig.TableStorer('');
 -- Load an existing table (two columns are projected)
 
 B = LOAD '$PATH/tbl3' USING org.apache.hadoop.zebra.pig.TableLoader('s1, r1');    
-    </source>
+</source>
    </section>    
    <!--end example: complex types--> 
+
+
+       <!--example: HDFS Globs-->
+   <section>
+    <title>HDFS File Globs</title>
+        <p>Pig supports HDFS file globs 
+    (for more information about globs, see <a href="http://hadoop.apache.org/common/docs/current/api/org/apache/hadoop/fs/FileSystem.html">FileSystem</a> and GlobStatus).</p>
+    <p>In this example, all Zebra tables in the directory of /path/to/PIG/tables will be loaded as a union (table union). </p>
+ <source>
+ A = LOAD ‘/path/to/PIG/tables/*’ USING org.apache.hadoop.zebra.pig.TableLoader(‘’);
+</source>
+    
+<p>In this example, three Zebra tables of t1, t2 and t3 in /path/to/PIG/tables will be loaded as a union (table union). Note that the ordering of the three tables in the union may not necessarily be t1 followed by t2 followed by t3 as you would expect if you specified ‘/path/to/PIG/tables/t1, /path/to/PIG/tables/t2, /path/to/PIG/tables/t3’. Instead, the ordering is determined by the ordering the HDFS glob expansion generates, namely, the <em>string ordering</em> of the expanded paths.
+</p>
+
+ <source>
+ A = LOAD ‘/path/to/PIG/tables/{t1, t2, t3}’ USING org.apache.hadoop.zebra.pig.TableLoader(‘’);
+</source>
+   <p></p>
+    </section>    
+   <!--end example: HDFS Globs-->
     </section>
-  <!-- END ZEBRA EXAMPLES-->    
+<!-- END ZEBRA EXAMPLES-->    
   
  </body>
  </document>
