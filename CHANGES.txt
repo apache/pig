@@ -68,6 +68,8 @@ PIG-1053: Consider moving to Hadoop for local mode (ankit.modi via olgan)
 PIG-1085:  Pass JobConf and UDF specific configuration information to UDFs
 		   (gates)
 
+PIG-1173: pig cannot be built without an internet connection (jmhodges via daijy)
+
 OPTIMIZATIONS
 
 BUG FIXES

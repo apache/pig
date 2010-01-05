@@ -869,7 +869,7 @@
         </condition>
      </target>
 
-     <target name="ivy-download" description="To download ivy">
+     <target name="ivy-download" description="To download ivy" unless="offline">
         <get src="${ivy_repo_url}" dest="${ivy.jar}" usetimestamp="true"/>
      </target>
 
