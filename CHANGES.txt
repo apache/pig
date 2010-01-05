@@ -74,6 +74,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-1171: Top-N queries produce incorrect results when followed by a cross statement (rding via olgan)
+
 PIG-1159: merge join right side table does not support comma seperated paths
 (rding via olgan)
 

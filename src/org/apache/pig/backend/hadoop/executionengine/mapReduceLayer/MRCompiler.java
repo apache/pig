@@ -1568,6 +1568,7 @@ public class MRCompiler extends PhyPlanVisitor {
             
             if(op.isUDFComparatorUsed){
                 curMROp.UDFs.add(op.getMSortFunc().getFuncSpec().toString());
+                curMROp.isUDFComparatorUsed = true;
             }
             phyToMROpMap.put(op, curMROp);
         }catch(Exception e){
@@ -1895,6 +1896,7 @@ public class MRCompiler extends PhyPlanVisitor {
        
         if(sort.isUDFComparatorUsed) {
             mro.UDFs.add(sort.getMSortFunc().getFuncSpec().toString());
+            curMROp.isUDFComparatorUsed = true;
         }        
     
         List<Boolean> flat1 = new ArrayList<Boolean>();         
