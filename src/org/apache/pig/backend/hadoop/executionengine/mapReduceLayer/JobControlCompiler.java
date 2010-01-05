@@ -575,17 +575,27 @@ public class JobControlCompiler{
                     jobConf.set("pig.quantilesFile", mro.getQuantFile());
                     jobConf.setPartitionerClass(WeightedRangePartitioner.class);
                 }
-                if(mro.UDFs.size()==1){
-                    String compFuncSpec = mro.UDFs.get(0);
-                    Class comparator = PigContext.resolveClassName(compFuncSpec);
-                    if(ComparisonFunc.class.isAssignableFrom(comparator)) {
-                        jobConf.setMapperClass(PigMapReduce.MapWithComparator.class);
-                        jobConf.setReducerClass(PigMapReduce.ReduceWithComparator.class);
-                        jobConf.set("pig.reduce.package", ObjectSerializer.serialize(pack));
-                        jobConf.set("pig.usercomparator", "true");
-                        jobConf.setOutputKeyClass(NullableTuple.class);
-                        jobConf.setOutputKeyComparatorClass(comparator);
+                
+                if (mro.isUDFComparatorUsed) {  
+                    boolean usercomparator = false;
+                    for (String compFuncSpec : mro.UDFs) {
+                        Class comparator = PigContext.resolveClassName(compFuncSpec);
+                        if(ComparisonFunc.class.isAssignableFrom(comparator)) {
+                            jobConf.setMapperClass(PigMapReduce.MapWithComparator.class);
+                            jobConf.setReducerClass(PigMapReduce.ReduceWithComparator.class);
+                            jobConf.set("pig.reduce.package", ObjectSerializer.serialize(pack));
+                            jobConf.set("pig.usercomparator", "true");
+                            jobConf.setOutputKeyClass(NullableTuple.class);
+                            jobConf.setOutputKeyComparatorClass(comparator);
+                            usercomparator = true;
+                            break;
+                        }
                     }
+                    if (!usercomparator) {
+                        String msg = "Internal error. Can't find the UDF comparator";
+                        throw new IOException (msg);
+                    }
+                    
                 } else {
                     jobConf.set("pig.sortOrder",
                         ObjectSerializer.serialize(mro.getSortOrder()));
