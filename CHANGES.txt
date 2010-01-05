@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-1175: Pig 0.6 Docs - Store v. Dump (chandec via olgan)
+
 PIG-1102: Collect number of spills per job (sriranjan via olgan)
 
 PIG-1149: Allow instantiation of SampleLoaders with parametrized LoadFuncs
