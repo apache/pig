@@ -323,6 +323,9 @@ PIG-1165: Signature of loader does not set correctly for order by (daijy)
 
 PIG-761: ERROR 2086 on simple JOIN (daijy)
 
+PIG-1172: PushDownForeachFlatten shall not push ForEach below Join if the
+flattened fields is used in Join (daijy)
+
 Release 0.5.0
 
 INCOMPATIBLE CHANGES

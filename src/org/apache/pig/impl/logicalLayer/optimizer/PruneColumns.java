@@ -292,7 +292,7 @@ public class PruneColumns extends LogicalTransformer {
                     else if (rlo instanceof LOForEach)
                     {
                         // Relay map keys from output to input
-                        LogicalPlan forEachPlan = ((LOForEach)rlo).getRelevantPlan(requiredOutputField.first, requiredOutputField.second);
+                        LogicalPlan forEachPlan = ((LOForEach)rlo).getRelevantPlan(requiredOutputField.second);
                         if (relevantFields.getFields()!=null && relevantFields.getFields().size()!=0)
                         {
                             int index = ((LOForEach)rlo).getForEachPlans().indexOf(forEachPlan);

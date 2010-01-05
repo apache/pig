@@ -19,6 +19,7 @@
 package org.apache.pig.impl.logicalLayer.optimizer;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -41,6 +42,7 @@ import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.ProjectionMap;
 import org.apache.pig.impl.plan.RequiredFields;
 import org.apache.pig.impl.plan.OperatorPlan.IndexHelper;
+import org.apache.pig.impl.plan.ProjectionMap.Column;
 import org.apache.pig.impl.plan.optimizer.OptimizerException;
 import org.apache.pig.PigException;
 import org.apache.pig.impl.util.MultiMap;
@@ -280,6 +282,23 @@ public class PushDownForeachFlatten extends LogicalTransformer {
                 for(Integer key: mFlattenedColumnReMap.keySet()) {
                     if(mFlattenedColumnReMap.get(key).equals(Integer.MAX_VALUE)) {
                         return false;
+                    }
+                }
+                
+                // Check if flattened fields is required by LOJoin, if so, don't optimize
+                if (successor instanceof LOJoin) {
+                    List<RequiredFields> requiredFieldsList = ((LOJoin)successor).getRequiredFields();
+                    RequiredFields requiredFields = requiredFieldsList.get(foreachPosition.intValue());
+                    
+                    MultiMap<Integer, Column> foreachMappedFields = foreachProjectionMap.getMappedFields();
+                    
+                    for (Pair<Integer, Integer> pair : requiredFields.getFields()) {
+                        Collection<Column> columns = foreachMappedFields.get(pair.second);
+                        for (Column column : columns) {
+                            Pair<Integer, Integer> foreachInputColumn = column.getInputColumn();
+                            if (foreach.isInputFlattened(foreachInputColumn.second))
+                                return false;
+                        }
                     }
                 }
                 
