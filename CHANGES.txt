@@ -26,6 +26,8 @@ PIG-922: Logical optimizer: push up project (daijy)
 
 IMPROVEMENTS
 
+PIG-1177: Pig 0.6 Docs - Zebra docs (chandec via olgan)
+
 PIG-1175: Pig 0.6 Docs - Store v. Dump (chandec via olgan)
 
 PIG-1162: Pig 0.6.0 - UDF doc (chandec via olgan)
