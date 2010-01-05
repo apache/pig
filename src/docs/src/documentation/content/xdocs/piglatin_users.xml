@@ -54,7 +54,7 @@
   
    <section>
    <title>Running Pig Latin </title>
-   <p>You can execute Pig Latin statements interactively or in batch mode using Pig scripts (see the EXEC and RUN operators).</p>
+   <p>You can execute Pig Latin statements interactively or in batch mode using Pig scripts (see the <a href="piglatin_reference.html#exec">exec</a> and <a href="piglatin_reference.html#run">run</a> commands).</p>
    
    <p>Grunt Shell, Interactive or Batch Mode</p>
    <source>
@@ -228,15 +228,12 @@ grunt> DUMP C;
 <!-- MULTI-QUERY EXECUTION-->
 <section>
 <title>Multi-Query Execution</title>
-<p>With multi-query execution Pig processes an entire script or a batch of statements at once 
-(as opposed to processing statements when a DUMP or STORE is encountered). </p>
-
-
+<p>With multi-query execution Pig processes an entire script or a batch of statements at once.</p>
 
 <section>
 	<title>Turning Multi-Query Execution On or Off</title>	
 	<p>Multi-query execution is turned on by default. 
-	To turn it off and revert to Pi'gs "execute-on-dump/store" behavior, use the "-M" or "-no_multiquery" options. </p>
+	To turn it off and revert to Pig's "execute-on-dump/store" behavior, use the "-M" or "-no_multiquery" options. </p>
 	<p>To run script "myscript.pig" without the optimization, execute Pig as follows: </p>
 <source>
 $ pig -M myscript.pig
@@ -253,7 +250,8 @@ $ pig -no_multiquery myscript.pig
 <li>
 <p>For batch mode execution, the entire script is first parsed to determine if intermediate tasks 
 can be combined to reduce the overall amount of work that needs to be done; execution starts only after the parsing is completed 
-(see the EXPLAIN operator and the EXEC and RUN commands). </p>
+(see the <a href="piglatin_reference.html#EXPLAIN">EXPLAIN</a> operator and the <a href="piglatin_reference.html#exec">exec</a> and <a href="piglatin_reference.html#run">run</a> commands). </p>
+
 </li>
 <li>
 <p>Two run scenarios are optimized, as explained below: explicit and implicit splits, and storing intermediate results.</p>
@@ -316,7 +314,32 @@ With multi-query execution, the script will process A and dump A' as a side-effe
 </section>
 </section>
 
+<section>
+	<title>Store vs. Dump</title>
+	<p>With multi-query exection, you want to use <a href="piglatin_reference.html#STORE">STORE</a> to save (persist) your results. 
+	You do not want to use <a href="piglatin_reference.html#DUMP">DUMP</a> as it will disable multi-query execution and is likely to slow down execution. (If you have included DUMP statements in your scripts for debugging purposes, you should remove them.) </p>
+	
+	<p>DUMP Example: In this script, because the DUMP command is interactive, the multi-query execution will be disabled and two separate jobs will be created to execute this script. The first job will execute A > B > DUMP while the second job will execute A > B > C > STORE.</p>
+	
+<source>
+A = LOAD ‘input’ AS (x, y, z);
+B = FILTER A BY x > 5;
+DUMP B;
+C = FOREACH B GENERATE y, z;
+STORE C INTO ‘output’;
+</source>
+	
+	<p>STORE Example: In this script, multi-query optimization will kick in allowing the entire script to be executed as a single job. Two outputs are produced: output1 and output2.</p>
+	
+<source>
+A = LOAD ‘input’ AS (x, y, z);
+B = FILTER A BY x > 5;
+STORE B INTO ‘output1’;
+C = FOREACH B GENERATE y, z;
+STORE C INTO ‘output2’;	
+</source>
 
+</section>
 <section>
 	<title>Error Handling</title>
 	<p>With multi-query execution Pig processes an entire script or a batch of statements at once. 
@@ -352,10 +375,10 @@ $ pig -stop_on_failure myscript.pig
 	<title>Backward Compatibility</title>
 	
 	<p>Most existing Pig scripts will produce the same result with or without the multi-query execution. 
-	There are cases though were this is not true. Path names and schemes are discussed here.</p>
+	There are cases though where this is not true. Path names and schemes are discussed here.</p>
 	
 	<p>Any script is parsed in it's entirety before it is sent to execution. Since the current directory can change 
-	throughout the script any path used in load or store is translated to a fully qualified and absolute path.</p>
+	throughout the script any path used in LOAD or STORE statement is translated to a fully qualified and absolute path.</p>
 		
 	<p>In map-reduce mode, the following script will load from "hdfs://&lt;host&gt;:&lt;port&gt;/data1" and store into "hdfs://&lt;host&gt;:&lt;port&gt;/tmp/out1". </p>
 <source>
@@ -375,7 +398,7 @@ STORE A INTO 'out1';
 		<li><p>Specify a custom scheme for the LoadFunc/Slicer </p></li>
 	</ol>	
 	
-	<p>Arguments used in a load statement that have a scheme other than "hdfs" or "file" will not be expanded and passed to the LoadFunc/Slicer unchanged.</p>
+	<p>Arguments used in a LOAD statement that have a scheme other than "hdfs" or "file" will not be expanded and passed to the LoadFunc/Slicer unchanged.</p>
 	<p>In the SQL case, the SQLLoader function is invoked with "sql://mytable". </p>
 
 <source>
@@ -416,7 +439,7 @@ STORE C INTO 'out2';
 
 <section>
 	<title>Example</title>
-<p>In this script, the store/load operators have different file paths; however, the load operator depends on the store operator.</p>
+<p>In this script, the STORE/LOAD operators have different file paths; however, the LOAD operator depends on the STORE operator.</p>
 <source>
 A = LOAD '/user/xxx/firstinput' USING PigStorage();
 B = group ....

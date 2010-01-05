@@ -4919,58 +4919,7 @@ DUMP X;
 
    </section></section>
    
-   <section>
-   <title>DUMP</title>
-   <para>Displays the contents of a relation.</para>
-   
-   <section>
-   <title>Syntax</title>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>DUMP alias;        </para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable></section>
-   
-   <section>
-   <title>Terms</title>
-   <informaltable frame="all">
-      <tgroup cols="2"><tbody><row>
-            <entry>
-               <para>alias</para>
-            </entry>
-            <entry>
-               <para>The name of a relation.</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable></section>
-   
-   <section>
-   <title>Usage</title>
-   <para>Use the DUMP operator to run (execute) a Pig Latin statement and to display the contents of an alias. You can use DUMP as a debugging device to make sure the results you are expecting are being generated.</para></section>
-   
-   <section>
-   <title>Example</title>
-   <para>In this example a dump is performed after each statement.</para>
-<programlisting>
-A = LOAD 'student' AS (name:chararray, age:int, gpa:float);
-
-DUMP A;
-(John,18,4.0F)
-(Mary,19,3.7F)
-(Bill,20,3.9F)
-(Joe,22,3.8F)
-(Jill,20,4.0F)
-
-B = FILTER A BY name matches 'J.+';
-
-DUMP B;
-(John,18,4.0F)
-(Joe,22,3.8F)
-(Jill,20,4.0F)
-</programlisting>
-</section></section>
+  
    
    <section>
    <title>FILTER </title>
@@ -6521,7 +6470,7 @@ DUMP Z;
    
    <section>
    <title>STORE </title>
-   <para>Stores data to the file system.</para>
+   <para>Stores or saves results to the file system.</para>
    
    <section>
    <title>Syntax</title>
@@ -6591,7 +6540,10 @@ DUMP Z;
    
    <section>
    <title>Usage</title>
-   <para>Use the STORE operator to run (execute) Pig Latin statements and to store data on the file system. </para></section>
+   <para>Use the STORE operator to run (execute) Pig Latin statements and save (persist) results to the file system. Use STORE for production scripts and batch mode processing.</para>
+   
+   <para>Note: To debug scripts during development, you can use <ulink url="piglatin_reference.html#DUMP">DUMP</ulink> to check intermediate results.</para>
+</section>
    
    <section>
    <title>Examples</title>
@@ -6961,6 +6913,68 @@ d: {long}
 </programlisting>
    
    </section></section>
+   
+   
+ <section>
+   <title>DUMP</title>
+   <para>Dumps or displays results to screen.</para>
+   
+   <section>
+   <title>Syntax</title>
+   <informaltable frame="all">
+      <tgroup cols="1"><tbody><row>
+            <entry>
+               <para>DUMP alias;        </para>
+            </entry>
+         </row></tbody></tgroup>
+   </informaltable></section>
+   
+   <section>
+   <title>Terms</title>
+   <informaltable frame="all">
+      <tgroup cols="2"><tbody><row>
+            <entry>
+               <para>alias</para>
+            </entry>
+            <entry>
+               <para>The name of a relation.</para>
+            </entry>
+         </row></tbody></tgroup>
+   </informaltable></section>
+   
+   <section>
+   <title>Usage</title>
+   <para>Use the DUMP operator to run (execute) Pig Latin statements and display the results to your screen. DUMP is meant for interactive mode; statements are executed immediately and the results are not saved (persisted). You can use DUMP as a debugging device to make sure that the results you are expecting are actually generated. </para>
+   
+   <para>
+   Note that production scripts <emphasis>should not</emphasis> use DUMP as it will disable multi-query optimizations and is likely to slow down execution 
+   (see <ulink url="piglatin_users.html#Store+vs.+Dump">Store vs. Dump</ulink>).
+   </para>
+   </section>
+   
+   <section>
+   <title>Example</title>
+   <para>In this example a dump is performed after each statement.</para>
+<programlisting>
+A = LOAD 'student' AS (name:chararray, age:int, gpa:float);
+
+DUMP A;
+(John,18,4.0F)
+(Mary,19,3.7F)
+(Bill,20,3.9F)
+(Joe,22,3.8F)
+(Jill,20,4.0F)
+
+B = FILTER A BY name matches 'J.+';
+
+DUMP B;
+(John,18,4.0F)
+(Joe,22,3.8F)
+(Jill,20,4.0F)
+</programlisting>
+</section></section>   
+   
+   
    
    <section>
    <title>EXPLAIN</title>
