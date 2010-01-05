@@ -977,5 +977,27 @@ public class TestPushDownForeachFlatten extends junit.framework.TestCase {
 
     }
 
+    // See PIG-1172
+    @Test
+    public void testForeachJoinRequiredField() throws Exception {
+        planTester.buildPlan("A = load 'myfile' as (bg:bag{t:tuple(a0,a1)});");
+        planTester.buildPlan("B = FOREACH A generate flatten($0);");
+        planTester.buildPlan("C = load '3.txt' AS (c0, c1);");
+        planTester.buildPlan("D = JOIN B by a1, C by c1;");
+        LogicalPlan lp = planTester.buildPlan("E = limit D 10;");
+        
+        planTester.setPlan(lp);
+        planTester.setProjectionMap(lp);
+        planTester.rebuildSchema(lp);
+        
+        PushDownForeachFlatten pushDownForeach = new PushDownForeachFlatten(lp);
+
+        LOLoad loada = (LOLoad) lp.getRoots().get(0);
+        
+        assertTrue(!pushDownForeach.check(lp.getSuccessors(loada)));
+        assertTrue(pushDownForeach.getSwap() == false);
+        assertTrue(pushDownForeach.getInsertBetween() == false);
+    }
+
 }
 
