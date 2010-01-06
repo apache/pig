@@ -262,6 +262,9 @@ PIG-761: ERROR 2086 on simple JOIN (daijy)
 PIG-1172: PushDownForeachFlatten shall not push ForEach below Join if the
 flattened fields is used in Join (daijy)
 
+PIG-1180: Piggybank should compile even if we only have
+"pig-withouthadoop.jar" but no "pig.jar" in the pig home directory (daijy)
+
 Release 0.5.0
 
 INCOMPATIBLE CHANGES

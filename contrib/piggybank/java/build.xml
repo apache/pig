@@ -32,6 +32,8 @@
     <property name="build.docs" value="${build.dir}/docs" />
     <property name="build.javadoc" value="${build.docs}/api" />
     <property name="pigjar" value="../../../pig.jar" />
+    <property name="pigjar-withouthadoop" value="../../../pig-withouthadoop.jar" />
+    <property name="hadoopjar" value="../../../lib/hadoop20.jar" />
     <property name="pigtest" value="../../../build/test/classes" />
     <property name="udfjar" value="piggybank.jar" />
     <property name="src.dir" value="src/main/java/org/apache/pig/piggybank" />
@@ -51,6 +53,8 @@
     <path id="pigudf.classpath">
         <pathelement location="${build.classes}"/>
         <pathelement location="${pigjar}"/>
+        <pathelement location="${pigjar-withouthadoop}"/>
+        <pathelement location="${hadoopjar}"/>
         <pathelement location="${pigtest}"/>
     </path>
 
