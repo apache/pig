@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package org.apache.pig.backend.local.executionengine.physicalLayer.counters;
+package org.apache.pig.pen.physicalOperators;
 
 import java.util.List;
 import java.util.Map;

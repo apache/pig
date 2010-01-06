@@ -27,7 +27,7 @@ import java.util.Iterator;
 import junit.framework.TestCase;
 
 import org.apache.pig.PigServer;
-import org.apache.pig.backend.local.datastorage.LocalSeekableInputStream;
+import org.apache.pig.test.utils.LocalSeekableInputStream;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;

@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package org.apache.pig.backend.local.datastorage;
+package org.apache.pig.test.utils;
 
 import java.io.RandomAccessFile;
 import java.io.File;

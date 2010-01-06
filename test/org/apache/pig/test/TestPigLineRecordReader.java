@@ -25,7 +25,7 @@ import java.io.OutputStream;
 import java.io.PrintStream;
 import java.lang.reflect.Field;
 import org.apache.hadoop.io.Text;
-import org.apache.pig.backend.local.datastorage.LocalSeekableInputStream;
+import org.apache.pig.test.utils.LocalSeekableInputStream;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.io.BufferedPositionedInputStream;
