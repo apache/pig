@@ -34,9 +34,6 @@ import org.apache.pig.backend.datastorage.ElementDescriptor;
 import org.apache.pig.backend.hadoop.datastorage.HDataStorage;
 import org.apache.pig.backend.hadoop.datastorage.HDirectory;
 import org.apache.pig.backend.hadoop.datastorage.HFile;
-import org.apache.pig.backend.local.datastorage.LocalDataStorage;
-import org.apache.pig.backend.local.datastorage.LocalDir;
-import org.apache.pig.backend.local.datastorage.LocalFile;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.plan.Operator;
@@ -115,11 +112,6 @@ public class JsonMetadata implements LoadMetadata, StoreMetadata {
                     Path parent = descriptorPath.getParent();
                     parentName = parent.toString();
                     parentContainer = new HDirectory((HDataStorage)storage,parent);
-                } else if (descriptor instanceof LocalFile) {
-                    File descriptorPath = ((LocalFile) descriptor).getPath();
-                    fileName = descriptorPath.getName();
-                    parentName = descriptorPath.getParent();
-                    parentContainer = new LocalDir((LocalDataStorage)storage,parentName);
                 }
                 ElementDescriptor metaFilePath = storage.asElement(parentName, prefix+"."+fileName);
 

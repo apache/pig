@@ -21,8 +21,10 @@ import java.util.*;
 
 import org.apache.pig.ExecType;
 
+import java.io.File;
 import java.io.BufferedReader;
 import java.io.FileReader;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -41,13 +43,13 @@ import org.apache.pig.impl.PigContext;
 import org.apache.pig.PigServer;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.FileSpec;
-import org.apache.pig.backend.local.executionengine.LocalPigLauncher;
-import org.apache.pig.backend.local.executionengine.LocalPOStoreImpl;
-import org.apache.pig.backend.local.executionengine.physicalLayer.counters.POCounter;
+import org.apache.pig.pen.physicalOperators.POCounter;
+import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POProject;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MapReduceLauncher;
 import org.apache.pig.test.utils.GenPhyOp;
 import org.apache.pig.test.utils.GenRandomData;
 import org.apache.pig.test.utils.TestHelper;
@@ -70,9 +72,17 @@ public class TestStore extends junit.framework.TestCase {
     POProject proj;
     PigServer pig;
     POCounter pcount;
-    
+        
+    String inputFileName;
+    String outputFileName;
+
     @Before
     public void setUp() throws Exception {
+        pig = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        pc = pig.getPigContext();
+        inputFileName = "/tmp/TestStore-" + new Random().nextLong() + ".txt";
+        outputFileName = "/tmp/TestStore-output-" + new Random().nextLong() + ".txt";
+        /*
         st = GenPhyOp.topStoreOp();
         pcount = new POCounter(new OperatorKey("", (new Random()).nextLong()));
         fSpec = new FileSpec("file:/tmp/storeTest.txt",
@@ -83,17 +93,64 @@ public class TestStore extends junit.framework.TestCase {
         pig = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
         pc = pig.getPigContext();
 
-        st.setStoreImpl(new LocalPOStoreImpl(pc));
+        //st.setStoreImpl(new LocalPOStoreImpl(pc));
         
         proj = GenPhyOp.exprProject();
         proj.setColumn(0);
         proj.setResultType(DataType.TUPLE);
         proj.setOverloaded(true);
         List<PhysicalOperator> inps = new ArrayList<PhysicalOperator>();
+        */
     }
 
     @After
     public void tearDown() throws Exception {
+        Util.deleteFile(cluster, inputFileName);
+        Util.deleteFile(cluster, outputFileName);
+        new File(outputFileName).delete();
+    }
+
+    private void storeAndCopyLocally(DataBag inpDB) throws Exception {
+        setUpInputFileOnCluster(inpDB);
+        String script = "a = load '" + inputFileName + "'; " +
+                "store a into '" + outputFileName + "' using PigStorage(':');" +
+                "fs -ls /tmp";
+        pig.setBatchOn();
+        Util.registerMultiLineQuery(pig, script);
+        pig.executeBatch();
+        Util.copyFromClusterToLocal(cluster, outputFileName + "/part-00000", outputFileName);
+    }
+
+    private void setUpInputFileOnCluster(DataBag inpD) throws IOException {
+        String[] data = new String[(int) inpD.size()];
+        int i = 0;
+        for (Tuple tuple : inpD) {
+            data[i] = toDelimitedString(tuple, "\t");
+            i++;
+        } 
+        Util.createInputFile(cluster, inputFileName, data);
+    }
+
+    @SuppressWarnings("unchecked")
+    private String toDelimitedString(Tuple t, String delim) throws ExecException {
+        StringBuilder buf = new StringBuilder();
+        for (int i = 0; i < t.size(); i++) {
+            Object field = t.get(i);
+            if(field == null) {
+                buf.append("");
+            } else {
+                if(field instanceof Map) {
+                    Map<String, Object> m = (Map<String, Object>)field;
+                    buf.append(DataType.mapToString(m));
+                } else {
+                    buf.append(field.toString());
+                }
+            }
+                                                                                                                                    
+            if (i != t.size() - 1)
+                buf.append(delim);
+        }
+        return buf.toString();
     }
 
     private PigStats store() throws Exception {
@@ -105,22 +162,19 @@ public class TestStore extends junit.framework.TestCase {
         pp.connect(proj, pcount);
         pp.connect(pcount, st);
         pc.setExecType(ExecType.LOCAL);
-        return new LocalPigLauncher().launchPig(pp, "TestStore", pc);
+        return new MapReduceLauncher().launchPig(pp, "TestStore", pc);
     }
 
     @Test
     public void testStore() throws Exception {
         inpDB = GenRandomData.genRandSmallTupDataBag(new Random(), 10, 100);
-        Tuple t = new DefaultTuple();
-        t.append(inpDB);
-        proj.attachInput(t);
-        assertTrue(store() != null);
-        
+        storeAndCopyLocally(inpDB);
+
         int size = 0;
-        BufferedReader br = new BufferedReader(new FileReader("/tmp/storeTest.txt"));
+        BufferedReader br = new BufferedReader(new FileReader(outputFileName));
         for(String line=br.readLine();line!=null;line=br.readLine()){
             String[] flds = line.split(":",-1);
-            t = new DefaultTuple();
+            Tuple t = new DefaultTuple();
             t.append(flds[0].compareTo("")!=0 ? flds[0] : null);
             t.append(flds[1].compareTo("")!=0 ? Integer.parseInt(flds[1]) : null);
             
@@ -132,23 +186,19 @@ public class TestStore extends junit.framework.TestCase {
             ++size;
         }
         assertEquals(true, size==inpDB.size());
-        FileLocalizer.delete(fSpec.getFileName(), pc);
     }
 
     @Test
     public void testStoreComplexData() throws Exception {
         inpDB = GenRandomData.genRandFullTupTextDataBag(new Random(), 10, 100);
-        Tuple t = new DefaultTuple();
-        t.append(inpDB);
-        proj.attachInput(t);
-        assertTrue(store() != null);
+        storeAndCopyLocally(inpDB);
         PigStorage ps = new PigStorage(":");
-        
+
         int size = 0;
-        BufferedReader br = new BufferedReader(new FileReader("/tmp/storeTest.txt"));
+        BufferedReader br = new BufferedReader(new FileReader(outputFileName));
         for(String line=br.readLine();line!=null;line=br.readLine()){
             String[] flds = line.split(":",-1);
-            t = new DefaultTuple();
+            Tuple t = new DefaultTuple();
             t.append(flds[0].compareTo("")!=0 ? ps.bytesToBag(flds[0].getBytes()) : null);
             t.append(flds[1].compareTo("")!=0 ? ps.bytesToCharArray(flds[1].getBytes()) : null);
             t.append(flds[2].compareTo("")!=0 ? ps.bytesToCharArray(flds[2].getBytes()) : null);
@@ -163,7 +213,6 @@ public class TestStore extends junit.framework.TestCase {
             ++size;
         }
         assertEquals(true, size==inpDB.size());
-        FileLocalizer.delete(fSpec.getFileName(), pc);
     }
 
     @Test
@@ -171,19 +220,17 @@ public class TestStore extends junit.framework.TestCase {
         Tuple inputTuple = GenRandomData.genRandSmallBagTextTupleWithNulls(new Random(), 10, 100);
         inpDB = DefaultBagFactory.getInstance().newDefaultBag();
         inpDB.add(inputTuple);
-        Tuple t = new DefaultTuple();
-        t.append(inpDB);
-        proj.attachInput(t);
-        assertTrue(store() != null);
+        storeAndCopyLocally(inpDB);
+
         PigStorage ps = new PigStorage(":");
         
         int size = 0;
-        BufferedReader br = new BufferedReader(new FileReader("/tmp/storeTest.txt"));
+        BufferedReader br = new BufferedReader(new FileReader(outputFileName));
         for(String line=br.readLine();line!=null;line=br.readLine()){
             System.err.println("Complex data: ");
             System.err.println(line);
             String[] flds = line.split(":",-1);
-            t = new DefaultTuple();
+            Tuple t = new DefaultTuple();
             t.append(flds[0].compareTo("")!=0 ? ps.bytesToBag(flds[0].getBytes()) : null);
             t.append(flds[1].compareTo("")!=0 ? ps.bytesToCharArray(flds[1].getBytes()) : null);
             t.append(flds[2].compareTo("")!=0 ? ps.bytesToCharArray(flds[2].getBytes()) : null);
@@ -198,7 +245,6 @@ public class TestStore extends junit.framework.TestCase {
             assertTrue(TestHelper.tupleEquals(inputTuple, t));
             ++size;
         }
-        FileLocalizer.delete(fSpec.getFileName(), pc);
     }
 
     @Test

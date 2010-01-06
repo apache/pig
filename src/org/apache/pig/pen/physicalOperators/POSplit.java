@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.pig.backend.local.executionengine.physicalLayer.relationalOperators;
+package org.apache.pig.pen.physicalOperators;
 
 import java.util.List;
 

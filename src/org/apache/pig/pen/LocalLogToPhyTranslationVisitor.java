@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.pig.backend.local.executionengine.physicalLayer;
+package org.apache.pig.pen;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -33,12 +33,12 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.Physica
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POForEach;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLocalRearrangeForIllustrate;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
-import org.apache.pig.backend.local.executionengine.physicalLayer.counters.POCounter;
-import org.apache.pig.backend.local.executionengine.physicalLayer.relationalOperators.POCogroup;
-import org.apache.pig.backend.local.executionengine.physicalLayer.relationalOperators.POCross;
-import org.apache.pig.backend.local.executionengine.physicalLayer.relationalOperators.POSplit;
-import org.apache.pig.backend.local.executionengine.physicalLayer.relationalOperators.POSplitOutput;
-import org.apache.pig.backend.local.executionengine.physicalLayer.relationalOperators.POStreamLocal;
+import org.apache.pig.pen.physicalOperators.POCounter;
+import org.apache.pig.pen.physicalOperators.POCogroup;
+import org.apache.pig.pen.physicalOperators.POCross;
+import org.apache.pig.pen.physicalOperators.POSplit;
+import org.apache.pig.pen.physicalOperators.POSplitOutput;
+import org.apache.pig.pen.physicalOperators.POStreamLocal;
 import org.apache.pig.data.DataType;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.LOCogroup;
