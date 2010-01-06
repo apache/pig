@@ -318,8 +318,7 @@ public class TestStreamingLocal extends TestCase {
             pigServer.registerQuery("define CMD `"+ simpleEchoStreamingCommand + 
             "` input(stdin);");
             pigServer.registerQuery("IP = load 'file:" + Util.encodeEscape(input.toString()) + "' using " + 
-                    PigStorage.class.getName() + "(',') " +
-            "split by 'file';");
+                    PigStorage.class.getName() + "(',');");
             pigServer.registerQuery("FILTERED_DATA = filter IP by $1 > '3';");
             if(withTypes[i] == true) {
                 pigServer.registerQuery("OP = stream FILTERED_DATA through `" +

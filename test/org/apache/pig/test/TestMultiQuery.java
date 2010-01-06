@@ -1391,7 +1391,7 @@ public class TestMultiQuery {
         try {
             myPig.setBatchOn();
 
-            myPig.registerQuery("A = load 'passwd' split by 'file';");
+            myPig.registerQuery("A = load 'passwd';");
             myPig.registerQuery("Split A into A1 if $2 > 5, A2 if $2 >= 5;");
             myPig.registerQuery("Split A1 into A3 if $0 > 'm', A4 if $0 >= 'm';");
             myPig.registerQuery("B = group A3 by $2;");
@@ -1425,7 +1425,7 @@ public class TestMultiQuery {
         try {
             myPig.setBatchOn();
 
-            myPig.registerQuery("A = load 'passwd' split by 'file';");
+            myPig.registerQuery("A = load 'passwd';");
             myPig.registerQuery("Split A into A1 if $2 > 5, A2 if $2 >= 5;");
             myPig.registerQuery("Split A1 into A3 if $0 > 'm', A4 if $0 >= 'm';");
             myPig.registerQuery("B = group A3 by $2;");
