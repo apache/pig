@@ -169,7 +169,7 @@ public class ColumnPruner extends LOVisitor {
                 currentOp = lOp.insertPlainForEachAfter(columnsToProject);
             }
             
-            if (lOp.pruneColumns(columnsPruned)) {
+            if (!columnsPruned.isEmpty()&&lOp.pruneColumns(columnsPruned)) {
                 prunedColumnsMap.put(currentOp, columnsToPrune);
             }
         } catch (FrontendException e) {
