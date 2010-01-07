@@ -136,6 +136,9 @@ PIG-1086: Nested sort by * throw exception (rding via daijy)
 
 PIG-1146: Inconsistent column pruning in LOUnion (daijy)
 
+PIG-1176: Column Pruner issues in union of loader with and without schema
+(daijy)
+
 Release 0.6.0 - Unreleased
 
 INCOMPATIBLE CHANGES

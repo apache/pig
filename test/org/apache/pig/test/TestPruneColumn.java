@@ -1723,4 +1723,48 @@ public class TestPruneColumn extends TestCase {
             "No map keys pruned for A", "No column pruned for B",
             "No map keys pruned for B"}));
     }
+    
+    // See PIG-1176
+    @Test
+    public void testUnionMixedSchemaPruning() throws Exception {
+        pigServer.registerQuery("A = load '"+ Util.generateURI(tmpFile1.toString()) + "' AS (a0, a1, a2);");
+        pigServer.registerQuery("B = foreach A generate a0;;");
+        pigServer.registerQuery("C = load '"+ Util.generateURI(tmpFile2.toString()) + "';");
+        pigServer.registerQuery("D = foreach C generate $0;");
+        pigServer.registerQuery("E = union B, D;");
+        Iterator<Tuple> iter = pigServer.openIterator("E");
+        Collection<String> results = new HashSet<String>();
+        results.add("(1)");
+        results.add("(2)");
+        results.add("(1)");
+        results.add("(2)");
+
+        assertTrue(iter.hasNext());
+        Tuple t = iter.next();
+
+        assertTrue(t.size()==1);
+        assertTrue(results.contains(t.toString()));
+
+        assertTrue(iter.hasNext());
+        t = iter.next();
+
+        assertTrue(t.size()==1);
+        assertTrue(results.contains(t.toString()));
+
+        assertTrue(iter.hasNext());
+        t = iter.next();
+
+        assertTrue(t.size()==1);
+        assertTrue(results.contains(t.toString()));
+
+        assertTrue(iter.hasNext());
+        t = iter.next();
+
+        assertTrue(t.size()==1);
+        assertTrue(results.contains(t.toString()));
+
+        assertFalse(iter.hasNext());
+
+        assertTrue(emptyLogFileMessage());
+    }
 }

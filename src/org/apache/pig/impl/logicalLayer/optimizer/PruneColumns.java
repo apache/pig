@@ -73,9 +73,10 @@ class RequiredInfo {
 }
 
 public class PruneColumns extends LogicalTransformer {
-
+    private boolean safeToPrune = true;
     private static Log log = LogFactory.getLog(PruneColumns.class);
     Map<RelationalOperator, RequiredInfo> cachedRequiredInfo = new HashMap<RelationalOperator, RequiredInfo>();
+    private Map<LOLoad, RequiredFields> prunedLoaderColumnsMap = new HashMap<LOLoad, RequiredFields>();
     ColumnPruner pruner;
     public PruneColumns(LogicalPlan plan) {
         super(plan);
@@ -175,6 +176,8 @@ public class PruneColumns extends LogicalTransformer {
     {
         try
         {
+            if (!safeToPrune)
+                return;
             if (!(lo instanceof RelationalOperator))
             {
                 int errCode = 2182;
@@ -183,6 +186,7 @@ public class PruneColumns extends LogicalTransformer {
             }
             if (lo.getSchema()==null)
             {
+                safeToPrune = false;
                 return;
             }
             RelationalOperator rlo = (RelationalOperator)lo;
@@ -195,7 +199,7 @@ public class PruneColumns extends LogicalTransformer {
             {
                 // LOLoad has only one output
                 RequiredFields loaderRequiredFields = requiredOutputInfo.requiredFieldsList.get(0);
-                pruneLoader((LOLoad)rlo, loaderRequiredFields);
+                prunedLoaderColumnsMap.put((LOLoad)rlo, loaderRequiredFields);
                 return;
             }
             
@@ -767,6 +771,12 @@ public class PruneColumns extends LogicalTransformer {
     
     public void prune() throws OptimizerException {
         try {
+            if (!safeToPrune)
+                return;
+            
+            for (LOLoad load : prunedLoaderColumnsMap.keySet())
+                pruneLoader(load, prunedLoaderColumnsMap.get(load));
+            
             if (!pruner.isEmpty())
                 pruner.visit();
         }
