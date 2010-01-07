@@ -53,7 +53,10 @@ public class TextLoader extends LoadFunc implements LoadCaster {
                 return null;
             }                                                                                           
             Text value = (Text) in.getCurrentValue();
-            return mTupleFactory.newTuple(new DataByteArray(value.getBytes()));
+            byte[] ba = value.getBytes();
+            // make a copy of the bytes representing the input since
+            // TextInputFormat will reuse the byte array
+            return mTupleFactory.newTuple(new DataByteArray(ba, 0, value.getLength()));
         } catch (InterruptedException e) {
             throw new IOException("Error getting input");
         }
