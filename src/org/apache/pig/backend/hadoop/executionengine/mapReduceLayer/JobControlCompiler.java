@@ -494,9 +494,7 @@ public class JobControlCompiler{
                 tmpLocation = new Path(tmpLocationStr);
 
                 nwJob.setOutputFormatClass(PigOutputFormat.class);
-                // XXX: FIXME - we can no longer set these due to the new load
-                // store redesign changes - need to handle this when streaming is
-                // changed for the new load-store redesign
+ 
                 conf.set("pig.streaming.log.dir", 
                             new Path(tmpLocation, LOG_DIR).toString());
                 conf.set("pig.streaming.task.output.dir", tmpLocation.toString());
