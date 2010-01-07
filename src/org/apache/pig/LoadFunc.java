@@ -242,11 +242,16 @@ public abstract class LoadFunc {
                 throw new FrontendException("Incompatible file URI scheme: "
                         + scheme + " : " + fsScheme);               
             }            
-            
             String path = uri.getPath();
-            fname = (p.isAbsolute()) ? 
-                        new Path(rootDir, path).toString() : 
-                            new Path(curDir, path).toString();
+            // if the supplied location has an authority and is absolute, just
+            // use it
+            if(uri.getAuthority() != null && p.isAbsolute()) {
+                fname = p.toString();
+            } else {
+                fname = (p.isAbsolute()) ? 
+                            new Path(rootDir, path).toString() : 
+                                new Path(curDir, path).toString();
+            }
             fname = fname.replaceFirst("^file:/([^/])", "file:///$1");
             pathStrings.add(fname);
         }
