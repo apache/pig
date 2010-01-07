@@ -121,7 +121,9 @@ public class TestFinish extends TestCase {
             Util.deleteFile(cluster, inputFileName);
             Util.deleteFile(cluster, expectedFileName);
         } else if (execType == ExecType.LOCAL) {
-            assertTrue(new File(expectedFileName).exists());
+            File f = new File(expectedFileName);
+            assertTrue(f.exists());
+            f.delete();
         } else {
             throw new IllegalArgumentException("invalid excetype " + execType.
                     toString());
