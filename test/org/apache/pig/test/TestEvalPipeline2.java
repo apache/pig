@@ -424,4 +424,39 @@ public class TestEvalPipeline2 extends TestCase {
         
         assertTrue(iter.hasNext()==false);
     }
+    
+    // See PIG-761
+    @Test
+    public void testLimitPOPackageAnnotator() throws Exception{
+        File tmpFile1 = File.createTempFile("test1", "txt");
+        PrintStream ps1 = new PrintStream(new FileOutputStream(tmpFile1));
+        ps1.println("1\t2\t3");
+        ps1.println("2\t5\t2");
+        ps1.close();
+        
+        File tmpFile2 = File.createTempFile("test2", "txt");
+        PrintStream ps2 = new PrintStream(new FileOutputStream(tmpFile2));
+        ps2.println("1\t1");
+        ps2.println("2\t2");
+        ps2.close();
+
+        pigServer.registerQuery("A = LOAD '" + Util.generateURI(tmpFile1.toString(), pigServer.getPigContext()) + "' AS (a0, a1, a2);");
+        pigServer.registerQuery("B = LOAD '" + Util.generateURI(tmpFile2.toString(), pigServer.getPigContext()) + "' AS (b0, b1);");
+        pigServer.registerQuery("C = LIMIT B 100;");
+        pigServer.registerQuery("D = COGROUP C BY b0, A BY a0 PARALLEL 2;");
+        Iterator<Tuple> iter = pigServer.openIterator("D");
+        
+        assertTrue(iter.hasNext());
+        Tuple t = iter.next();
+        
+        assertTrue(t.toString().equals("(1,{(1,1)},{(1,2,3)})"));
+        
+        assertTrue(iter.hasNext());
+        t = iter.next();
+        
+        assertTrue(t.toString().equals("(2,{(2,2)},{(2,5,2)})"));
+        
+        assertFalse(iter.hasNext());
+    }
+
 }

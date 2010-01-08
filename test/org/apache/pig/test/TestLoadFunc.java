@@ -74,7 +74,7 @@ public class TestLoadFunc {
     public void testGetAbsolutePath3() throws IOException {
         // test case: remote hdfs path
         String absPath = "hdfs://myhost.mydomain:37765/data/passwd";
-        Assert.assertEquals(curHdfsRoot + "/data/passwd",
+        Assert.assertEquals(absPath,
                 LoadFunc.getAbsolutePath(absPath, curHdfsDir));      
     }
     

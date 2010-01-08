@@ -23,13 +23,10 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.pig.PigException;
-import org.apache.pig.impl.plan.NodeIdGenerator;
-import org.apache.pig.impl.plan.OperatorKey;
-import org.apache.pig.impl.plan.PlanWalker;
+import org.apache.pig.impl.plan.DependencyOrderWalker;
 import org.apache.pig.impl.plan.RequiredFields;
 import org.apache.pig.impl.plan.VisitorException;
-import org.apache.pig.impl.plan.ProjectionMap.Column;
-import org.apache.pig.impl.util.MultiMap;
+import org.apache.pig.impl.plan.optimizer.OptimizerException;
 import org.apache.pig.impl.util.Pair;
 import org.apache.pig.impl.logicalLayer.RelationalOperator;
 
@@ -37,14 +34,20 @@ public class ColumnPruner extends LOVisitor {
     private Map<LogicalOperator, List<Pair<Integer,Integer>>> prunedColumnsMap;
     LogicalPlan plan;
     
-    public ColumnPruner(LogicalPlan plan, LogicalOperator op, List<Pair<Integer, Integer>> prunedColumns, 
-            PlanWalker<LogicalOperator, LogicalPlan> walker) {
-        super(plan, walker);
+    public ColumnPruner(LogicalPlan plan) {
+        super(plan, new DependencyOrderWalker<LogicalOperator, LogicalPlan>(plan));
         prunedColumnsMap = new HashMap<LogicalOperator, List<Pair<Integer,Integer>>>();
-        prunedColumnsMap.put(op, prunedColumns);
         this.plan = plan;
     }
 
+    public void addPruneMap(LogicalOperator op, List<Pair<Integer,Integer>> prunedColumns) {
+        prunedColumnsMap.put(op, prunedColumns);
+    }
+    
+    public boolean isEmpty() {
+        return prunedColumnsMap.isEmpty();
+    }
+    
     protected void prune(RelationalOperator lOp) throws VisitorException {
         List<LogicalOperator> predecessors = plan.getPredecessors(lOp);
         if (predecessors==null)
@@ -79,7 +82,7 @@ public class ColumnPruner extends LOVisitor {
             }
             
             // For every input column, check if it is pruned
-            nextOutput:for (int i=0;i<lOp.getSchema().size();i++)
+            for (int i=0;i<lOp.getSchema().size();i++)
             {
                 List<RequiredFields> relevantFieldsList = lOp.getRelevantInputs(0, i);
                 
@@ -101,125 +104,73 @@ public class ColumnPruner extends LOVisitor {
                 if (needNoInputs)
                     continue;
                 
-                boolean allPruned = true;
+                boolean columnPruned = false;
                 
-                // For LOUnion, we treat it differently. LOUnion is the only operator that cannot be pruned independently.
-                // For every pruned input column, we will prune. LOUnion (Contrary to other operators, unless all relevant
-                // fields are pruned, we then prune the output field. Inside LOUnion, we have a counter, the output columns 
-                // is actually pruned only after all corresponding input columns have been pruned
-                if (lOp instanceof LOUnion)
-                {
-                    allPruned = false;
-                    checkAllPrunedUnion: for (RequiredFields relevantFields: relevantFieldsList)
-                    {
-                        for (Pair<Integer, Integer> relevantField: relevantFields.getFields())
-                        {
-                            if (columnsPruned.contains(relevantField))
-                            {
-                                allPruned = true;
-                                break checkAllPrunedUnion;
-                            }
-                        }
-                    }
-                }
                 // For LOCogroup, one output can be pruned if all its relevant input are pruned except for "key" fields 
-                else if (lOp instanceof LOCogroup)
+                if (lOp instanceof LOCogroup)
                 {
                     List<RequiredFields> requiredFieldsList = lOp.getRequiredFields();
-                    boolean sawInputPruned = false;
                     for (Pair<Integer, Integer> column : columnsPruned)
                     {
                         if (column.first == i-1)  // Saw at least one input pruned
                         {
-                            sawInputPruned = true;
-                            // Further check if requiredFields of the LOCogroup contains these fields.
-                            // If not, we can safely prune this output column
                             if (requiredFieldsList.get(i-1).getFields().contains(column))
                             {
-                                allPruned = false;
+                                columnPruned = true;
                                 break;
                             }
                         }
                     }
-                    if (!sawInputPruned)
-                        allPruned = false;
                 }
                 else
                 {
-                    nextRelevantFields:for (RequiredFields relevantFields: relevantFieldsList)
+                    // If we see any of the relevant field of this column get pruned, 
+                    // then we prune this column for this operator
+                    for (RequiredFields relevantFields: relevantFieldsList)
                     {
-                        if (relevantFields==null)
+                        if (relevantFields == null)
                             continue;
-                        
-                        if (relevantFields.needAllFields())
-                        {
-                            allPruned = false;
+                        if (relevantFields.getNeedAllFields())
                             break;
-                        }
-                        if (relevantFields.needNoFields())
-                            continue;
                         for (Pair<Integer, Integer> relevantField: relevantFields.getFields())
                         {
-                            if (relevantField==null)
-                                continue;
-                            
-                            if (lOp instanceof LOUnion)
+                            if (columnsPruned.contains(relevantField))
                             {
-                                if (columnsPruned.contains(relevantField))
-                                    break nextRelevantFields;
+                                columnPruned = true;
                             }
-                            else if (!columnsPruned.contains(relevantField))
-                            {
-                                allPruned = false;
-                                break nextRelevantFields;
+                            else {
+                                // For union, inconsistent pruning is possible (See PIG-1146)
+                                // We shall allow inconsistent pruning for union, and the pruneColumns method
+                                // in LOUnion will handle this inconsistency
+                                if (!(lOp instanceof LOUnion) && columnPruned==true) {
+                                    int errCode = 2185;
+                                    String msg = "Column $"+i+" of "+lOp+" inconsistent pruning";
+                                    throw new OptimizerException(msg, errCode, PigException.BUG);
+                                }
                             }
                         }
                     }
                 }
-                if (allPruned)
+                if (columnPruned)
                     columnsToPrune.add(new Pair<Integer, Integer>(0, i));
             }
     
-            if (columnsPruned.size()!=0)
+            LogicalOperator currentOp = lOp;
+            
+            // If it is LOCogroup, insert foreach to mimic pruning, because we have no way to prune
+            // LOCogroup output only by pruning the inputs
+            if (columnsPruned.size()!=0 && lOp instanceof LOCogroup)
             {
-                MultiMap<Integer, Column> mappedFields = new MultiMap<Integer, Column>();
-                List<Column> columns = new ArrayList<Column>();
-                columns.add(new Column(new Pair<Integer, Integer>(0, 0)));
-                mappedFields.put(0, columns);
-                LogicalOperator nextOp = lOp;
-                if (lOp instanceof LOCogroup)
-                {
-                    ArrayList<Boolean> flattenList = new ArrayList<Boolean>();
-                    ArrayList<LogicalPlan> generatingPlans = new ArrayList<LogicalPlan>();
-                    String scope = lOp.getOperatorKey().scope;
-                    for (int i=0;i<=predecessors.size();i++) {
-                        if (!columnsToPrune.contains(new Pair<Integer, Integer>(0, i)))
-                        {
-                            LogicalPlan projectPlan = new LogicalPlan();
-                            LogicalOperator projectInput = lOp;
-                            ExpressionOperator column = new LOProject(projectPlan, new OperatorKey(scope, NodeIdGenerator.getGenerator().getNextNodeId(scope)), projectInput, i);
-                            flattenList.add(false);
-                            projectPlan.add(column);
-                            generatingPlans.add(projectPlan);
-                        }
-                        columns = new ArrayList<Column>();
-                        columns.add(new Column(new Pair<Integer, Integer>(0, i+1)));
-                        mappedFields.put(i+1, columns);
-                    }
-                    LOForEach forEach = new LOForEach(mPlan, new OperatorKey(scope, NodeIdGenerator.getGenerator().getNextNodeId(scope)), generatingPlans, flattenList);
-                    LogicalOperator succ = mPlan.getSuccessors(lOp).get(0);
-                    mPlan.add(forEach);
-                    // Since the successor has not been pruned yet, so we cannot rewire directly because
-                    // rewire has the assumption that predecessor and successor is in consistent
-                    // state. The way we do the rewire is kind of hacky. We give a fake projection map in the 
-                    // new node to fool rewire
-                    mPlan.doInsertBetween(lOp, forEach, succ, false);
-                    forEach.getProjectionMap().setMappedFields(mappedFields);
-                    succ.rewire(lOp, 0, forEach, false);
-                    nextOp = forEach;
-                }
-                if (lOp.pruneColumns(columnsPruned))
-                    prunedColumnsMap.put(nextOp, columnsToPrune);
+                List<Integer> columnsToProject = new ArrayList<Integer>();
+                for (int i=0;i<=predecessors.size();i++) {
+                    if (!columnsToPrune.contains(new Pair<Integer, Integer>(0, i)))
+                        columnsToProject.add(i);
+                }                
+                currentOp = lOp.insertPlainForEachAfter(columnsToProject);
+            }
+            
+            if (!columnsPruned.isEmpty()&&lOp.pruneColumns(columnsPruned)) {
+                prunedColumnsMap.put(currentOp, columnsToPrune);
             }
         } catch (FrontendException e) {
             int errCode = 2188;
@@ -244,7 +195,11 @@ public class ColumnPruner extends LOVisitor {
     }
     
     protected void visit(LOForEach foreach) throws VisitorException {
-        prune(foreach);
+        // The only case we should skip foreach is when this is the foreach
+        // inserted after LOLoad to mimic pruning, then we put the prunedColumns entry
+        // for that foreach, and we do not need to further visit this foreach here
+        if (!prunedColumnsMap.containsKey(foreach))
+            prune(foreach);
     }
     
     protected void visit(LOJoin join) throws VisitorException {

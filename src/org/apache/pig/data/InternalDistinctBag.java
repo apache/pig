@@ -37,6 +37,7 @@ import java.util.TreeSet;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.pig.PigCounters;
 import org.apache.pig.PigWarning;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce;
 
@@ -228,7 +229,9 @@ public class InternalDistinctBag extends DefaultAbstractBag {
         mContents.clear();
         mMemSizeChanged = true;
         memUsage = 0;
-                
+
+        // Increment the spill count
+        incSpillCount(PigCounters.PROACTIVE_SPILL_COUNT);
         return spilled;
     }
 

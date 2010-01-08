@@ -1656,4 +1656,115 @@ public class TestPruneColumn extends TestCase {
             "No map keys pruned for C"}));
     }
 
+    // See PIG-1165
+    @Test
+    public void testOrderbyWrongSignature() throws Exception {
+        pigServer.registerQuery("A = load '"+ Util.generateURI(tmpFile1.toString(), pigServer.getPigContext()) + "' AS (a0, a1, a2);");
+        pigServer.registerQuery("B = load '"+ Util.generateURI(tmpFile2.toString(), pigServer.getPigContext()) + "' AS (b0, b1);");
+        pigServer.registerQuery("C = order A by a1;");
+        pigServer.registerQuery("D = join C by a1, B by b0;");
+        pigServer.registerQuery("E = foreach D generate a1, b0, b1;");
+        Iterator<Tuple> iter = pigServer.openIterator("E");
+        
+        assertTrue(iter.hasNext());
+        Tuple t = iter.next();
+        
+        assertTrue(t.size()==3);
+        assertTrue(t.toString().equals("(2,2,2)"));
+        
+        assertFalse(iter.hasNext());
+        
+        assertTrue(checkLogFileMessage(new String[]{"Columns pruned for A: $0, $2", 
+            "No map keys pruned for A", "No column pruned for B", "No map keys pruned for B"}));
+    }
+    
+    // See PIG-1146
+    @Test
+    public void testUnionMixedPruning() throws Exception {
+        pigServer.registerQuery("A = load '"+ Util.generateURI(tmpFile1.toString(), pigServer.getPigContext()) + "' AS (a0, a1:chararray, a2);");
+        pigServer.registerQuery("B = load '"+ Util.generateURI(tmpFile2.toString(), pigServer.getPigContext()) + "' AS (b0, b2);");
+        pigServer.registerQuery("C = foreach B generate b0, 'hello', b2;");
+        pigServer.registerQuery("D = union A, C;");
+        pigServer.registerQuery("E = foreach D generate $0, $2;");
+        Iterator<Tuple> iter = pigServer.openIterator("E");
+        Collection<String> results = new HashSet<String>();
+        results.add("(1,3)");
+        results.add("(2,2)");
+        results.add("(1,1)");
+        results.add("(2,2)");
+
+        assertTrue(iter.hasNext());
+        Tuple t = iter.next();
+
+        assertTrue(t.size()==2);
+        assertTrue(results.contains(t.toString()));
+
+        assertTrue(iter.hasNext());
+        t = iter.next();
+
+        assertTrue(t.size()==2);
+        assertTrue(results.contains(t.toString()));
+
+        assertTrue(iter.hasNext());
+        t = iter.next();
+
+        assertTrue(t.size()==2);
+        assertTrue(results.contains(t.toString()));
+
+        assertTrue(iter.hasNext());
+        t = iter.next();
+
+        assertTrue(t.size()==2);
+        assertTrue(results.contains(t.toString()));
+
+        assertFalse(iter.hasNext());
+
+        assertTrue(checkLogFileMessage(new String[]{"Columns pruned for A: $1",
+            "No map keys pruned for A", "No column pruned for B",
+            "No map keys pruned for B"}));
+    }
+    
+    // See PIG-1176
+    @Test
+    public void testUnionMixedSchemaPruning() throws Exception {
+        pigServer.registerQuery("A = load '"+ Util.generateURI(tmpFile1.toString(), pigServer.getPigContext()) + "' AS (a0, a1, a2);");
+        pigServer.registerQuery("B = foreach A generate a0;;");
+        pigServer.registerQuery("C = load '"+ Util.generateURI(tmpFile2.toString(), pigServer.getPigContext()) + "';");
+        pigServer.registerQuery("D = foreach C generate $0;");
+        pigServer.registerQuery("E = union B, D;");
+        Iterator<Tuple> iter = pigServer.openIterator("E");
+        Collection<String> results = new HashSet<String>();
+        results.add("(1)");
+        results.add("(2)");
+        results.add("(1)");
+        results.add("(2)");
+
+        assertTrue(iter.hasNext());
+        Tuple t = iter.next();
+
+        assertTrue(t.size()==1);
+        assertTrue(results.contains(t.toString()));
+
+        assertTrue(iter.hasNext());
+        t = iter.next();
+
+        assertTrue(t.size()==1);
+        assertTrue(results.contains(t.toString()));
+
+        assertTrue(iter.hasNext());
+        t = iter.next();
+
+        assertTrue(t.size()==1);
+        assertTrue(results.contains(t.toString()));
+
+        assertTrue(iter.hasNext());
+        t = iter.next();
+
+        assertTrue(t.size()==1);
+        assertTrue(results.contains(t.toString()));
+
+        assertFalse(iter.hasNext());
+
+        assertTrue(emptyLogFileMessage());
+    }
 }

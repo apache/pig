@@ -23,7 +23,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOpera
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.*;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.*;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSplit;
-import org.apache.pig.backend.local.executionengine.physicalLayer.relationalOperators.*;
+import org.apache.pig.pen.physicalOperators.*;
 import org.apache.pig.impl.plan.PlanVisitor;
 import org.apache.pig.impl.plan.PlanWalker;
 import org.apache.pig.impl.plan.VisitorException;
@@ -270,7 +270,7 @@ public class PhyPlanVisitor extends PlanVisitor<PhysicalOperator,PhysicalPlan> {
 	
     }
 
-    public void visitSplit(org.apache.pig.backend.local.executionengine.physicalLayer.relationalOperators.POSplit split) {
+    public void visitSplit(org.apache.pig.pen.physicalOperators.POSplit split) {
 	// TODO Auto-generated method stub
 	
     }

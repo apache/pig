@@ -74,7 +74,8 @@ TOKEN:
 |   <#SPECIALCHAR : ["_"] >
 |   <#FSSPECIALCHAR: ["-", ":", "/"]>
 | <#SCOPEOP : "::">
-|	<IDENTIFIER: ( <LETTER> )+ ( <DIGIT> | <LETTER> | <SPECIALCHAR> )* ( <SCOPEOP>  ( <LETTER> )+ ( <DIGIT> | <LETTER> | <SPECIALCHAR> )*)* >
+| <IDENTIFIER: ( <LETTER> )+ ( <DIGIT> | <LETTER> | <SPECIALCHAR> )* ( <SCOPEOP>  ( <LETTER> )+ ( <DIGIT> | <LETTER> | <SPECIALCHAR> )*)* >
+| <MAPKEYIDENTIFIER: ( <LETTER> | <SPECIALCHAR> )+ ( <DIGIT> | <LETTER> | <SPECIALCHAR> )* ( <SCOPEOP>  ( <LETTER> )+ ( <DIGIT> | <LETTER> | <SPECIALCHAR> )*)* >
 |   <SHORT	:	(<OCTAL>){3}	>
 }
 
@@ -299,9 +300,9 @@ Schema.ColumnSchema ColumnSchema(int colIndex) throws ParseException:
 }
 {
 	(
-	LOOKAHEAD(SchemaRecord()) fs = SchemaRecord(mSchema, name, colIndex)
-|	LOOKAHEAD(SchemaMap()) fs = SchemaMap(mSchema, name, colIndex)
-|	LOOKAHEAD(AtomSchema()) fs = AtomSchema(mSchema, name, colIndex)
+	LOOKAHEAD(2) fs = SchemaRecord(mSchema, name, colIndex)
+|	LOOKAHEAD(2) fs = SchemaMap(mSchema, name, colIndex)
+|	LOOKAHEAD(2) fs = AtomSchema(mSchema, name, colIndex)
 	)
 	{
 		return fs;
@@ -517,9 +518,18 @@ HashSet<String> hashKeys() :
   HashSet<String> result = new HashSet<String>();
 }
 {
-  t = <IDENTIFIER> { result.add(t.image); }
-  ("|" t = <IDENTIFIER> { result.add(t.image); })*
+  t = hashKey() { result.add(t.image); }
+  ("|" t = hashKey() { result.add(t.image); })*
   {
     return result;
   }
+}
+
+Token hashKey() :
+{
+  Token t;
+}
+{
+  ( t = <MAPKEYIDENTIFIER> |  t = <IDENTIFIER> )
+  { return t; }
 }

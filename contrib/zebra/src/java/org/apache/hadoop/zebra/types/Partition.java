@@ -149,12 +149,11 @@ public class Partition {
     class PartitionFieldInfo {
       private HashSet<PartitionInfo.ColumnMappingEntry> mSplitMaps =
           new HashSet<ColumnMappingEntry>();
-      private HashSet<String> mSplitColumns = new HashSet<String>();
       private ColumnMappingEntry mCGIndex = null;
       private String mCGName = null; // fully qualified name
       private HashSet<String> keySet = null;
       private SplitType stype = SplitType.NONE;
-      private boolean splitChild;
+      private HashSet<String> splitChildren = new HashSet<String>();
 
       /**
        * set a MAP key split (sub)column
@@ -165,7 +164,6 @@ public class Partition {
               new Partition.PartitionInfo.ColumnMappingEntry( ri, fi, fs);
         mSplitMaps.add(cme);
         // multiple map splits on one MAP column is allowed!
-        mSplitColumns.add(name);
         if (keySet == null)
           keySet = new HashSet<String>();
         return cme.addKeys(keys, keySet);
@@ -196,22 +194,19 @@ public class Partition {
         if (st == stype)
         {
           // multiple MAP splits of a field and its children on different keys are ok
-          if (st == SplitType.MAP || cst == SplitType.MAP || splitChild == this.splitChild)
+          if (st == SplitType.MAP || cst == SplitType.MAP)
             return;
         }
-        if (stype != SplitType.NONE) {
-          if (childName != null)
-            name = name + "." + childName;
-          throw new ParseException("Different Split Types Set on the same field: " + name);
+        if (splitChild)
+        {
+          if (stype != SplitType.NONE && splitChildren.isEmpty())
+            throw new ParseException("Split on "+name+" is set at different levels.");
+          splitChildren.add(childName);
+        } else {
+          if (splitChildren.contains(childName))
+            throw new ParseException("Split on "+name+" is set at different levels.");
         }
         stype = st;
-        this.splitChild = splitChild;
-        if (mSplitColumns.contains(name)) {
-          if (childName != null)
-            name = name + "." + childName;
-          throw new ParseException("Split on "+name+" are set more than once");
-        }
-        mSplitColumns.add(name);
       }
 
       /*

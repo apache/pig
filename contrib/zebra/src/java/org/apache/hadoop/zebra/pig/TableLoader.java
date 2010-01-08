@@ -226,7 +226,7 @@ public class TableLoader implements IndexableLoadFunc, Slicer {
 				FileSystem fs = p.getFileSystem(jobConf);
 				FileStatus[] matches = fs.globStatus(p);
 				if (matches == null) {
-					LOG.warn("Input path does not exist: " + p);
+					throw new IOException("Input path does not exist: " + p);
 				}
 				else if (matches.length == 0) {
 					LOG.warn("Input Pattern " + p + " matches 0 files");
@@ -293,33 +293,14 @@ public class TableLoader implements IndexableLoadFunc, Slicer {
 		
 		Projection projection;
 
-		if (!fileName.contains(",")) { // one table;
-			org.apache.hadoop.zebra.schema.Schema tschema = BasicTable.Reader.getSchema(new Path(fileName), jobConf);
-			try {
-				projection = new org.apache.hadoop.zebra.types.Projection(tschema, TableInputFormat.getProjection(jobConf));
-				projectionSchema = projection.getProjectionSchema();
-			} catch (ParseException e) {
-				throw new IOException("Schema parsing failed : "+e.getMessage());
-			}
-		} else { // table union;
-			org.apache.hadoop.zebra.schema.Schema unionSchema = new org.apache.hadoop.zebra.schema.Schema();
-			for (Path p : paths) {
-				org.apache.hadoop.zebra.schema.Schema schema = BasicTable.Reader.getSchema(p, jobConf);
-				try {
-					unionSchema.unionSchema(schema);
-				} catch (ParseException e) {
-					throw new IOException(e.getMessage());
-				}
-			}
-			
-			try {
-				projection = new org.apache.hadoop.zebra.types.Projection(unionSchema, TableInputFormat.getProjection(jobConf));
-				projectionSchema = projection.getProjectionSchema();
-			} catch (ParseException e) {
-				throw new IOException("Schema parsing failed : "+e.getMessage());
-			}
-		}		
-    
+    org.apache.hadoop.zebra.schema.Schema tschema = TableInputFormat.getSchema(jobConf);
+    try {
+      projection = new org.apache.hadoop.zebra.types.Projection(tschema, TableInputFormat.getProjection(jobConf));
+      projectionSchema = projection.getProjectionSchema();
+    } catch (ParseException e) {
+      throw new IOException("Schema parsing failed : "+e.getMessage());
+    }
+
 		if (projectionSchema == null) {
 			throw new IOException("Cannot determine table projection schema");
 		}

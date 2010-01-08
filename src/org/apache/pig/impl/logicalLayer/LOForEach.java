@@ -795,11 +795,8 @@ public class LOForEach extends RelationalOperator {
         return new Pair<Boolean, List<Integer>>(hasFlatten, flattenedColumns);
     }
     
-    public LogicalPlan getRelevantPlan(int output, int column)
+    public LogicalPlan getRelevantPlan(int column)
     {
-        if (output!=0)
-            return null;
-
         if (column<0)
             return null;
 
@@ -812,6 +809,22 @@ public class LOForEach extends RelationalOperator {
         }
         
         return mSchemaPlanMapping.get(column);
+    }
+    
+    public boolean isInputFlattened(int column) throws FrontendException {
+        LogicalPlan plan = getRelevantPlan(column);
+        if (plan==null) {
+            int errCode = 2195;
+            throw new FrontendException("Fail to get foreach plan for input column "+column,
+                    errCode, PigException.BUG);
+        }
+        int index = mForEachPlans.indexOf(plan);
+        if (index==-1) {
+            int errCode = 2195;
+            throw new FrontendException("Fail to get foreach plan for input column "+column,
+                    errCode, PigException.BUG);
+        }
+        return mFlatten.get(index);
     }
     
     @Override
@@ -835,7 +848,7 @@ public class LOForEach extends RelationalOperator {
             return null;
         }
         
-        LogicalPlan plan = getRelevantPlan(output, column);
+        LogicalPlan plan = getRelevantPlan(column);
         
         TopLevelProjectFinder projectFinder = new TopLevelProjectFinder(
                 plan);
@@ -863,7 +876,7 @@ public class LOForEach extends RelationalOperator {
         
         return result;
     }
-     @Override
+    @Override
     public boolean pruneColumns(List<Pair<Integer, Integer>> columns)
             throws FrontendException {
         if (!mIsSchemaComputed)
@@ -946,7 +959,7 @@ public class LOForEach extends RelationalOperator {
             int index = planToRemove.get(planToRemove.size()-1);
             if (mUserDefinedSchema!=null) {
                 for (int i=mUserDefinedSchema.size()-1;i>=0;i--) {
-                    if (getRelevantPlan(0, i)==mForEachPlans.get(index))
+                    if (getRelevantPlan(i)==mForEachPlans.get(index))
                         mUserDefinedSchema.remove(i);
                 }
             }

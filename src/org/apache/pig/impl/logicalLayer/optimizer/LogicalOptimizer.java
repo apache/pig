@@ -237,6 +237,7 @@ public class LogicalOptimizer extends
                         pruneRule.getTransformer().transform(match);
                     }
                 }
+                ((PruneColumns)pruneRule.getTransformer()).prune();
             }
         }
     }

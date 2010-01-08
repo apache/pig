@@ -94,6 +94,33 @@ public class TestNegative {
     }
   }
 
+//Negative test case. For record split, we should not try to store same
+  // record field on different column groups.
+  @Test
+  public void testWriteRecord6() throws IOException, ParseException {
+    String STR_SCHEMA = "r1:record(f1:int, f2:long), r2:record(r3:record(f3:float, f4))";
+    String STR_STORAGE = "[r1.f1]; [r1.f2, r2.r3.f3]; [r2.r3]";
+    conf = new Configuration();
+    conf.setInt("table.output.tfile.minBlock.size", 64 * 1024);
+    conf.setInt("table.input.split.minSize", 64 * 1024);
+    conf.set("table.output.tfile.compression", "none");
+
+    RawLocalFileSystem rawLFS = new RawLocalFileSystem();
+    fs = new LocalFileSystem(rawLFS);
+    path = new Path(fs.getWorkingDirectory(), this.getClass().getSimpleName());
+    fs = path.getFileSystem(conf);
+    // drop any previous tables
+    BasicTable.drop(path, conf);
+    // Build Table and column groups
+    BasicTable.Writer writer = null;
+    try {
+      writer = new BasicTable.Writer(path, STR_SCHEMA, STR_STORAGE, conf);
+      Assert.fail("Should throw exception");
+    } catch (Exception e) {
+      System.out.println(e);
+    }
+  }
+  
   // Negative test case. map storage syntax is wrong
   @Test
   public void testWriteMap1() throws IOException, ParseException {

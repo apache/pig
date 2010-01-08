@@ -28,8 +28,8 @@ import java.util.Iterator;
 
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
+import org.apache.pig.test.utils.LocalSeekableInputStream;
 import org.apache.pig.backend.datastorage.ElementDescriptor;
-import org.apache.pig.backend.local.datastorage.LocalSeekableInputStream;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.tools.bzip2r.CBZip2InputStream;

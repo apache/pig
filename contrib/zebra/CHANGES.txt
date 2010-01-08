@@ -12,6 +12,10 @@ Trunk (unreleased changes)
 
   IMPROVEMENTS
 
+    PIG-1170 new end-to-end and stress test cases (jing1234 via yanz)
+
+    PIG-1136 Support of map split on hash keys with leading underscore (xuefuz via yanz)
+
     PIG-1125 Map/Reduce API Changes (Chao Wang via yanz)
 
     PIG-1104 Streaming Support (Chao Wang via yanz)
@@ -47,6 +51,10 @@ Trunk (unreleased changes)
   OPTIMIZATIONS
 
   BUG FIXES
+
+    PIG-1167: Hadoop file glob support (yanz)
+
+    PIG-1153: Record split exception fix (yanz)
 
     PIG-1145: Merge Join on Large Table throws an EOF exception (yanz)
 

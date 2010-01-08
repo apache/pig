@@ -17,12 +17,12 @@
  */
 package org.apache.pig.test;
 
+import java.io.File;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
@@ -44,6 +44,12 @@ import org.apache.pig.data.DefaultBagFactory;
 import org.apache.pig.data.DefaultTuple;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POProject;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MapReduceLauncher;
+import org.apache.pig.pen.physicalOperators.POCounter;
+import org.apache.pig.tools.pigstats.PigStats;
 import org.apache.pig.impl.logicalLayer.LOStore;
 import org.apache.pig.impl.logicalLayer.LogicalOperator;
 import org.apache.pig.impl.logicalLayer.LogicalPlan;
@@ -58,22 +64,24 @@ import org.junit.Before;
 import org.junit.Test;
 
 public class TestStore extends junit.framework.TestCase {
-    
+    POStore st;
     DataBag inpDB;
     static MiniCluster cluster = MiniCluster.buildCluster();
-    PigServer pig;
     PigContext pc;
+    POProject proj;
+    PigServer pig;
+    POCounter pcount;
+        
     String inputFileName;
     String outputFileName;
-    
+        
     @Override
     @Before
     public void setUp() throws Exception {
         pig = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
         pc = pig.getPigContext();
         inputFileName = "/tmp/TestStore-" + new Random().nextLong() + ".txt";
-        outputFileName = "/tmp/TestStore-output-" + new Random().nextLong() + 
-        ".txt";
+        outputFileName = "/tmp/TestStore-output-" + new Random().nextLong() + ".txt";
     }
 
     @Override
@@ -87,12 +95,24 @@ public class TestStore extends junit.framework.TestCase {
     private void storeAndCopyLocally(DataBag inpDB) throws Exception {
         setUpInputFileOnCluster(inpDB);
         String script = "a = load '" + inputFileName + "'; " +
-        "store a into '" + outputFileName + "' using PigStorage(':');" +
-        		"fs -ls /tmp";
+                "store a into '" + outputFileName + "' using PigStorage(':');" +
+                "fs -ls /tmp";
         pig.setBatchOn();
         Util.registerMultiLineQuery(pig, script);
         pig.executeBatch();
         Util.copyFromClusterToLocal(cluster, outputFileName + "/part-m-00000", outputFileName);
+    }
+
+    private PigStats store() throws Exception {
+        PhysicalPlan pp = new PhysicalPlan();
+        pp.add(proj);
+        pp.add(st);
+        pp.add(pcount);
+        //pp.connect(proj, st);
+        pp.connect(proj, pcount);
+        pp.connect(pcount, st);
+        pc.setExecType(ExecType.LOCAL);
+        return new MapReduceLauncher().launchPig(pp, "TestStore", pc);
     }
 
     @Test
@@ -159,7 +179,6 @@ public class TestStore extends junit.framework.TestCase {
         inpDB = GenRandomData.genRandFullTupTextDataBag(new Random(), 10, 100);
         storeAndCopyLocally(inpDB);
         PigStorage ps = new PigStorage(":");
-                
         int size = 0;
         BufferedReader br = new BufferedReader(new FileReader(outputFileName));
         for(String line=br.readLine();line!=null;line=br.readLine()){

@@ -51,6 +51,12 @@ manner (rding via pradeepkth)
 
 IMPROVEMENTS
 
+PIG-1177: Pig 0.6 Docs - Zebra docs (chandec via olgan)
+
+PIG-1175: Pig 0.6 Docs - Store v. Dump (chandec via olgan)
+
+PIG-1102: Collect number of spills per job (sriranjan via olgan)
+
 PIG-1149: Allow instantiation of SampleLoaders with parametrized LoadFuncs
 (dvryaboy via pradeepkth)
 
@@ -91,9 +97,13 @@ PIG-1053: Consider moving to Hadoop for local mode (ankit.modi via olgan)
 PIG-1085:  Pass JobConf and UDF specific configuration information to UDFs
 		   (gates)
 
+PIG-1173: pig cannot be built without an internet connection (jmhodges via daijy)
+
 OPTIMIZATIONS
 
 BUG FIXES
+
+PIG-1171: Top-N queries produce incorrect results when followed by a cross statement (rding via olgan)
 
 PIG-1159: merge join right side table does not support comma seperated paths
 (rding via olgan)
@@ -150,6 +160,11 @@ PIG-1064: Behaviour of COGROUP with and without schema when using "*" operator
 (pradeepkth)
 
 PIG-1086: Nested sort by * throw exception (rding via daijy)
+
+PIG-1146: Inconsistent column pruning in LOUnion (daijy)
+
+PIG-1176: Column Pruner issues in union of loader with and without schema
+(daijy)
 
 Release 0.6.0 - Unreleased
 
@@ -343,6 +358,16 @@ PIG-1155: Need to make sure existing loaders work "as is" (daijy)
 
 PIG-1144: set default_parallelism construct does not set the number of
 reducers correctly (daijy)
+
+PIG-1165: Signature of loader does not set correctly for order by (daijy)
+
+PIG-761: ERROR 2086 on simple JOIN (daijy)
+
+PIG-1172: PushDownForeachFlatten shall not push ForEach below Join if the
+flattened fields is used in Join (daijy)
+
+PIG-1180: Piggybank should compile even if we only have
+"pig-withouthadoop.jar" but no "pig.jar" in the pig home directory (daijy)
 
 Release 0.5.0
 
