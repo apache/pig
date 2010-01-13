@@ -65,7 +65,9 @@ public abstract class LoadFunc {
     /**
      * Communicate to the loader the location of the object(s) being loaded.  
      * The location string passed to the LoadFunc here is the return value of 
-     * {@link LoadFunc#relativeToAbsolutePath(String, Path)}
+     * {@link LoadFunc#relativeToAbsolutePath(String, Path)}. Implementations
+     * should use this method to communicate the location (and any other information)
+     * to its underlying InputFormat through the Job object.
      * 
      * This method will be called in the backend multiple times. Implementations
      * should bear in mind that this method is called multiple times and should
