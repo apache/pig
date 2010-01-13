@@ -95,7 +95,8 @@ public class PigInputFormat extends InputFormat<Text, Tuple> {
         PigInputFormat.mergeSplitSpecificConf(loadFunc, pigSplit, conf);
         InputFormat inputFormat = loadFunc.getInputFormat();
         // now invoke the createRecordReader() with this "adjusted" conf
-        RecordReader reader = inputFormat.createRecordReader(split, context);
+        RecordReader reader = inputFormat.createRecordReader(
+                pigSplit.getWrappedSplit(), context);
         
         return new PigRecordReader(reader, loadFunc, conf);
     }
