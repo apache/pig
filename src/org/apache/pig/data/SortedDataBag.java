@@ -393,6 +393,11 @@ public class SortedDataBag extends DefaultAbstractBag{
                     // Out of tuples in this file.  Set our slot in the
                     // array to null so we don't keep trying to read from
                     // this file.
+                    try {
+                        in.close();
+                    }catch(IOException e) {
+                        log.warn("Failed to close spill file.", e);
+                    }                	
                     mStreams.set(fileNum, null);
                 } catch (IOException ioe) {
                     String msg = "Unable to find our spill file.";
@@ -477,6 +482,7 @@ public class SortedDataBag extends DefaultAbstractBag{
                             t.write(out);
                         }
                         out.flush();
+                        out.close();
                     } catch (IOException ioe) {
                         String msg = "Unable to find our spill file.";
                         log.fatal(msg, ioe);
