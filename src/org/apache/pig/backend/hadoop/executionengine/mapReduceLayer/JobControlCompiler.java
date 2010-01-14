@@ -33,24 +33,21 @@ import java.util.Properties;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.hadoop.conf.Configurable;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.filecache.DistributedCache;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.hadoop.io.WritableComparable;
 import org.apache.hadoop.io.WritableComparator;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.JobPriority;
 import org.apache.hadoop.mapred.jobcontrol.Job;
 import org.apache.hadoop.mapred.jobcontrol.JobControl;
-import org.apache.hadoop.mapreduce.OutputFormat;
 import org.apache.pig.ComparisonFunc;
 import org.apache.pig.FuncSpec;
-import org.apache.pig.LoadFunc;
 import org.apache.pig.PigException;
+import org.apache.pig.ResourceSchema;
 import org.apache.pig.StoreConfig;
 import org.apache.pig.StoreFunc;
 import org.apache.pig.backend.executionengine.ExecException;
@@ -446,10 +443,18 @@ public class JobControlCompiler{
             
             for (POStore st: mapStores) {
                 storeLocations.add(st);
+                StoreFunc sFunc = st.getStoreFunc();
+                //sFunc.setStoreLocation(st.getSFile().getFileName(), nwJob);
+                if (st.getSchema()!=null)
+                    sFunc.checkSchema(new ResourceSchema(st.getSchema()));
             }
 
             for (POStore st: reduceStores) {
                 storeLocations.add(st);
+                StoreFunc sFunc = st.getStoreFunc();
+                //sFunc.setStoreLocation(st.getSFile().getFileName(), nwJob);
+                if (st.getSchema()!=null)
+                    sFunc.checkSchema(new ResourceSchema(st.getSchema()));
             }
 
             // the OutputFormat we report to Hadoop is always PigOutputFormat

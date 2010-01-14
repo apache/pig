@@ -297,4 +297,8 @@ LoadPushDown {
         return Arrays.asList(LoadPushDown.OperatorSet.PROJECTION);
     }
 
+    @Override
+    public void setStoreFuncUDFContextSignature(String signature) {
+    }
+
 }

@@ -70,6 +70,8 @@ public class POStore extends PhysicalOperator {
     // column names and the asc/dsc info
     private SortInfo sortInfo;
     
+    private String signature;
+    
     public POStore(OperatorKey k) {
         this(k, -1, null);
     }
@@ -202,8 +204,9 @@ public class POStore extends PhysicalOperator {
     }
     
     public StoreFunc getStoreFunc() {
-        return (StoreFunc) 
-        PigContext.instantiateFuncFromSpec(sFile.getFuncSpec());
+        StoreFunc sFunc = (StoreFunc)PigContext.instantiateFuncFromSpec(sFile.getFuncSpec());
+        sFunc.setStoreFuncUDFContextSignature(signature);
+        return sFunc;
     }
     
     /**
@@ -218,5 +221,13 @@ public class POStore extends PhysicalOperator {
      */
     public SortInfo getSortInfo() {
         return sortInfo;
+    }
+    
+    public String getSignature() {
+        return signature;
+    }
+    
+    public void setSignature(String signature) {
+        this.signature = signature;
     }
 }

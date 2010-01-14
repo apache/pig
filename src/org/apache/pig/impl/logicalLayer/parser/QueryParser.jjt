@@ -136,7 +136,8 @@ public class QueryParser {
                                                 LogicalPlan readFrom,
                                                 String fileName,
                                                 String func,
-                                                LogicalOperator input) throws FrontendException {
+                                                LogicalOperator input,
+                                                String alias) throws FrontendException {
 
         if (func == null) {
             func = PigStorage.class.getName();
@@ -152,7 +153,8 @@ public class QueryParser {
         try {
 		store = new LOStore(storePlan,
 							   new OperatorKey(scope, storeNodeId),
-                               new FileSpec(fileName, new FuncSpec(func)));
+                               new FileSpec(fileName, new FuncSpec(func)), 
+                               alias);
         } catch (IOException ioe) {
             throw new FrontendException(ioe.getMessage(), ioe);
         }
@@ -2417,7 +2419,7 @@ LogicalOperator StoreClause(LogicalPlan lp) : {LogicalOperator lo; Token t; Stri
             fileNameMap.put(fileName, absolutePath);   
         }
         LogicalOperator store = new LOStore(lp, new OperatorKey(scope, getNextId()),
-                                            new FileSpec(absolutePath, funcSpec));
+                                            new FileSpec(absolutePath, funcSpec), t.image);
 
         LogicalOperator input = mapAliasOp.get(t.image);
         if (input == null)

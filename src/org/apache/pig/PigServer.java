@@ -524,7 +524,7 @@ public class PigServer {
                 }
             }
             
-            LogicalPlan storePlan = QueryParser.generateStorePlan(scope, lp, filename, func, leaf);
+            LogicalPlan storePlan = QueryParser.generateStorePlan(scope, lp, filename, func, leaf, id);
             List<ExecJob> jobs = executeCompiledLogicalPlan(storePlan);
             if (jobs.size() < 1) {
                 throw new IOException("Couldn't retrieve job.");
@@ -751,7 +751,7 @@ public class PigServer {
             }
             
             lp = QueryParser.generateStorePlan(scope, lp, "fakefile", 
-                                               PigStorage.class.getName(), leaf);
+                                               PigStorage.class.getName(), leaf, "fake");
         }
 
         return lp;

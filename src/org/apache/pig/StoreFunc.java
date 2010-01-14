@@ -72,9 +72,7 @@ public interface StoreFunc {
      * <b>store A into 'bla'</b>
      * then 'bla' is the location.  This location should be either a file name
      * or a URI.  If it does not have a URI scheme Pig will assume it is a 
-     * filename.  This will be 
-     * called during planning on the front end, not during execution on
-     * the backend.
+     * filename.  This will be called multiple times during execution on the backend.
      * @param location Location indicated in store statement.
      * @param job The {@link Job} object
      * @throws IOException if the location is not valid.
@@ -83,7 +81,8 @@ public interface StoreFunc {
  
     /**
      * Set the schema for data to be stored.  This will be called on the
-     * front end during planning. A Store function should implement this function to
+     * front end during planning if the store is associated with a schema.
+     * A Store function should implement this function to
      * check that a given schema is acceptable to it.  For example, it
      * can check that the correct partition keys are included;
      * a storage function to be written directly to an OutputFormat can
@@ -110,5 +109,13 @@ public interface StoreFunc {
      * @throws IOException if an exception occurs during the write
      */
     void putNext(Tuple t) throws IOException;
-
+    
+    /**
+     * This method will be called by Pig both in the front end and back end to
+     * pass a unique signature to the {@link StoreFunc} which it can use to store
+     * information in the {@link UDFContext} which it needs to store between
+     * various method invocations in the front end and back end. 
+     * @param signature a unique signature to identify this StoreFunc
+     */
+    public void setStoreFuncUDFContextSignature(String signature);
 }

@@ -46,6 +46,8 @@ public class LOStore extends RelationalOperator {
     // FileSpec is set in PigServer.postProcess. It can be used to
     // reload this store, if the optimizer has the need.
     private FileSpec mInputSpec;
+    
+    private String signature;
 
     transient private StoreFunc mStoreFunc;
     private static Log log = LogFactory.getLog(LOStore.class);
@@ -59,7 +61,7 @@ public class LOStore extends RelationalOperator {
      *            the file to be stored
      */
     public LOStore(LogicalPlan plan, OperatorKey key,
-            FileSpec outputFileSpec) throws IOException {
+            FileSpec outputFileSpec, String alias) throws IOException {
         super(plan, key);
 
         mOutputFile = outputFileSpec;
@@ -70,12 +72,27 @@ public class LOStore extends RelationalOperator {
         // Also remove the commented out import org.apache.pig.impl.PigContext
 
         try { 
-             mStoreFunc = (StoreFunc) PigContext.instantiateFuncFromSpec(outputFileSpec.getFuncSpec()); 
+             mStoreFunc = (StoreFunc) PigContext.instantiateFuncFromSpec(outputFileSpec.getFuncSpec());
+             this.mAlias = alias;
+             this.signature = constructSignature(mAlias, mOutputFile.getFileName(), mOutputFile.getFuncSpec().getCtorArgs());
+             mStoreFunc.setStoreFuncUDFContextSignature(this.signature);
         } catch (Exception e) { 
             IOException ioe = new IOException(e.getMessage()); 
             ioe.setStackTrace(e.getStackTrace());
             throw ioe; 
         }
+    }
+    
+    private String constructSignature(String alias, String filename, String[] args) {
+        String s = alias+"_"+filename+"_";
+        if (args!=null) {
+            for (int i=0;i<args.length;i++) {
+                s = s+args[i];
+                if (i!=args.length-1)
+                    s = s+"_";
+            }
+        }
+        return s;
     }
 
     public FileSpec getOutputFile() {
@@ -198,5 +215,16 @@ public class LOStore extends RelationalOperator {
         result.add(new RequiredFields(true));
         return result;
     }
-
+    
+    @Override
+    public void setAlias(String newAlias) {
+        super.setAlias(newAlias);
+        mStoreFunc.setStoreFuncUDFContextSignature(getAlias()+"_"+mOutputFile.getFileName());
+        signature = constructSignature(mAlias, mOutputFile.getFileName(), mOutputFile.getFuncSpec().getCtorArgs());
+        signature = getAlias()+"_"+mOutputFile.getFileName();
+    }
+    
+    public String getSignature() {
+        return signature;
+    }
 }

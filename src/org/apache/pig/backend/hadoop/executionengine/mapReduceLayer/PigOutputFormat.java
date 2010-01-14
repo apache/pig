@@ -51,8 +51,6 @@ import org.apache.pig.impl.util.ObjectSerializer;
 public class PigOutputFormat extends OutputFormat<WritableComparable, Tuple> {
     
     private enum Mode { SINGLE_STORE, MULTI_STORE};
-    
-    private OutputCommitter committer;
 
     /** hadoop job output directory */
     public static final String MAPRED_OUTPUT_DIR = "mapred.output.dir";
@@ -67,6 +65,8 @@ public class PigOutputFormat extends OutputFormat<WritableComparable, Tuple> {
      
     public RecordWriter<WritableComparable, Tuple> getRecordWriter(TaskAttemptContext taskattemptcontext)
                 throws IOException, InterruptedException {
+        // Setup UDFContext so in StoreFunc can make use of it
+        MapRedUtil.setupUDFContext(taskattemptcontext.getConfiguration());
         List<POStore> mapStores = getStores(taskattemptcontext, 
                 JobControlCompiler.PIG_MAP_STORES);
         List<POStore> reduceStores = getStores(taskattemptcontext, 
@@ -193,21 +193,19 @@ public class PigOutputFormat extends OutputFormat<WritableComparable, Tuple> {
 
     @Override
     public void checkOutputSpecs(JobContext jobcontext) throws IOException, InterruptedException {
+        // Setup UDFContext so in StoreFunc can make use of it
+        MapRedUtil.setupUDFContext(jobcontext.getConfiguration());
         List<POStore> mapStores = getStores(jobcontext, 
                 JobControlCompiler.PIG_MAP_STORES);
         checkOutputSpecsHelper(mapStores, jobcontext);
         List<POStore> reduceStores = getStores(jobcontext, 
                 JobControlCompiler.PIG_REDUCE_STORES);
         checkOutputSpecsHelper(reduceStores, jobcontext);
-        
     }
 
     private void checkOutputSpecsHelper(List<POStore> stores, JobContext 
             jobcontext) throws IOException, InterruptedException {
         for (POStore store : stores) {
-            StoreFunc sFunc = store.getStoreFunc();
-            OutputFormat of = sFunc.getOutputFormat();
-            
             // make a copy of the original JobContext so that
             // each OutputFormat get a different copy 
             JobContext jobContextCopy = new JobContext(
@@ -215,6 +213,9 @@ public class PigOutputFormat extends OutputFormat<WritableComparable, Tuple> {
             
             // set output location
             PigOutputFormat.setLocation(jobContextCopy, store);
+            
+            StoreFunc sFunc = store.getStoreFunc();
+            OutputFormat of = sFunc.getOutputFormat();
             
             // The above call should have update the conf in the JobContext
             // to have the output location - now call checkOutputSpecs()
@@ -237,6 +238,9 @@ public class PigOutputFormat extends OutputFormat<WritableComparable, Tuple> {
     @Override
     public OutputCommitter getOutputCommitter(TaskAttemptContext 
             taskattemptcontext) throws IOException, InterruptedException {
+        // We setup UDFContext so in StoreFunc.getOutputFormat, which is called inside 
+        // construct of PigOutputCommitter, can make use of it
+        MapRedUtil.setupUDFContext(taskattemptcontext.getConfiguration());
         // we return an instance of PigOutputCommitter to Hadoop - this instance
         // will wrap the real OutputCommitter(s) belonging to the store(s)
         return new PigOutputCommitter(taskattemptcontext);

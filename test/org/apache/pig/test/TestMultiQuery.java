@@ -2699,6 +2699,10 @@ public class TestMultiQuery {
             // TODO Auto-generated method stub
             
         }
+        
+        @Override
+        public void setStoreFuncUDFContextSignature(String signature) {
+        }
                 
     }
     

@@ -433,4 +433,9 @@ implements LoadCaster, StoreFunc, LoadMetadata {
     public void setPartitionFilter(Expression plan) throws IOException {
         throw new UnsupportedOperationException();
     }
+    
+    @Override
+    public void setStoreFuncUDFContextSignature(String signature) {
+    }
+
 }

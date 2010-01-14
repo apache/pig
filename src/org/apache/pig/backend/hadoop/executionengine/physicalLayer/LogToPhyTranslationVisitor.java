@@ -1603,6 +1603,7 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
         store.setAlias(loStore.getPlan().getPredecessors(loStore).get(0).getAlias());
         store.setSFile(loStore.getOutputFile());
         store.setInputSpec(loStore.getInputSpec());
+        store.setSignature(loStore.getSignature());
         try {
             // create a new schema for ourselves so that when
             // we serialize we are not serializing objects that

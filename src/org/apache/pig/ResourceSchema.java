@@ -18,6 +18,7 @@
 
 package org.apache.pig;
 
+import java.io.Serializable;
 import java.util.Arrays;
 import java.util.List;
 
@@ -25,8 +26,9 @@ import org.apache.pig.data.DataType;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.logicalLayer.schema.Schema.FieldSchema;
 
-public class ResourceSchema {
+public class ResourceSchema implements Serializable {
 
+    private static final long serialVersionUID = 1L;
     /* Array Getters intentionally return mutable arrays instead of copies,
      * to simplify updates without unnecessary copying.
      * Setters make a copy of the arrays in order to prevent an array
@@ -44,7 +46,8 @@ public class ResourceSchema {
         
     private int version = 0;
 
-    public static class ResourceFieldSchema {
+    public static class ResourceFieldSchema implements Serializable {
+        private static final long serialVersionUID = 1L;
         private String name;
         
         // values are constants from DataType

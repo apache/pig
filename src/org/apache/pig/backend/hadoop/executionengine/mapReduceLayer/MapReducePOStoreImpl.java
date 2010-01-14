@@ -18,33 +18,13 @@
 package org.apache.pig.backend.hadoop.executionengine.mapReduceLayer;
 
 import java.io.IOException;
-import java.io.OutputStream;
-
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.RecordWriter;
-import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.hadoop.mapreduce.OutputFormat;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
-import org.apache.hadoop.util.ReflectionUtils;
-import org.apache.pig.ResourceSchema;
-import org.apache.pig.SortInfo;
-import org.apache.pig.StoreConfig;
 import org.apache.pig.StoreFunc;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStoreImpl;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.util.PlanHelper;
-import org.apache.pig.data.Tuple;
-import org.apache.pig.impl.PigContext;
-import org.apache.pig.impl.io.FileSpec;
-import org.apache.pig.impl.io.PigNullableWritable;
-import org.apache.pig.impl.logicalLayer.schema.Schema;
-import org.apache.pig.impl.util.ObjectSerializer;
 /**
  * This class is used to have a POStore write to DFS via a output
  * collector/record writer. It sets up a modified job configuration to
@@ -78,10 +58,7 @@ public class MapReducePOStoreImpl extends POStoreImpl {
     public StoreFunc createStoreFunc(POStore store) 
         throws IOException {
 
-        Configuration outputConf = context.getConfiguration();
-
         StoreFunc storeFunc = store.getStoreFunc();
-        Class outputFormatClass = storeFunc.getOutputFormat().getClass();
 
         // call the setStoreLocation on the storeFunc giving it the
         // Job. Typically this will result in the OutputFormat of the
@@ -92,8 +69,7 @@ public class MapReducePOStoreImpl extends POStoreImpl {
         PigOutputFormat.setLocation(context, store);
         OutputFormat outputFormat = null;
         try {
-            outputFormat = (OutputFormat)ReflectionUtils.newInstance(
-                    outputFormatClass, outputConf);
+            outputFormat = (OutputFormat)storeFunc.getOutputFormat();
 
             // create a new record writer
             writer = outputFormat.getRecordWriter(context);
