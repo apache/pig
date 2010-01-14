@@ -242,6 +242,11 @@ public class DefaultDataBag extends DefaultAbstractBag {
                 } catch (EOFException eof) {
                     // Fall through to the next case where we find the
                     // next file, or go to memory
+                    try {
+                        mIn.close();
+                    }catch(IOException e) {
+                        log.warn("Failed to close spill file.", e);
+                    }
                 } catch (IOException ioe) {
                     String msg = "Unable to read our spill file."; 
                     log.fatal(msg, ioe);
