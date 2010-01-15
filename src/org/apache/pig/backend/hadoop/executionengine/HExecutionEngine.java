@@ -344,7 +344,14 @@ public class HExecutionEngine implements ExecutionEngine {
                 hadoopProperties.put(key, val);
             }
             
+            //clear user defined properties and re-populate
+            properties.clear();
+            Enumeration<Object> hodPropertiesIter = hadoopProperties.keys();
+            while (hodPropertiesIter.hasMoreElements()) {
+                String key = (String) hodPropertiesIter.nextElement();
+                String val = hadoopProperties.getProperty(key);
+                properties.put(key, val);
+            }
         }
-    }
-    
+    }    
 }
