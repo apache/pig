@@ -18,7 +18,6 @@
 
 package org.apache.pig.experimental.logical.expression;
 
-import org.apache.pig.data.DataType;
 import org.apache.pig.experimental.plan.Operator;
 import org.apache.pig.experimental.plan.OperatorPlan;
 
@@ -29,19 +28,42 @@ import org.apache.pig.experimental.plan.OperatorPlan;
  */
 public abstract class LogicalExpression extends Operator {
     
-    protected DataType type;
+    protected byte type;
     protected long uid;
 
-    public LogicalExpression(String name, OperatorPlan plan) {
+    /**
+     * 
+     * @param name of the operator
+     * @param plan LogicalExpressionPlan this is part of
+     * @param b datatype of this expression
+     */
+    public LogicalExpression(String name, OperatorPlan plan, byte b) {
         super(name, plan);
+        type = b;
     }
     
-    public DataType getType() {
+    /**
+     * Get the data type for this expression.
+     * @return data type, one of the static bytes of DataType
+     */
+    public byte getType() {
         return type;
     }
     
+    /**
+     * Get the unique identifier for this expression
+     * @return unique identifier
+     */
     public long getUid() {
         return uid;
+    }
+    
+    /**
+     * Set the unique identify for this expression
+     * @param uid unique identifier
+     */
+    public void setUid(long uid) {
+       this.uid = uid; 
     }
 
 }

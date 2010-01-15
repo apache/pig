@@ -16,27 +16,24 @@
  * limitations under the License.
  */
 
-package org.apache.pig.experimental.logical.relational;
+package org.apache.pig.experimental.logical.expression;
 
 import org.apache.pig.experimental.plan.OperatorPlan;
-import org.apache.pig.experimental.plan.PlanVisitor;
-import org.apache.pig.experimental.plan.PlanWalker;
 
 /**
- * A visitor for logical plans.
+ * Super class for all column expressions, including projection, constants, and deferences.
+ *
  */
-public abstract class LogicalPlanVisitor extends PlanVisitor {
+public abstract class ColumnExpression extends LogicalExpression {
 
-    protected LogicalPlanVisitor(OperatorPlan plan, PlanWalker walker) {
-        super(plan, walker);
-        
-        if (!(plan instanceof LogicalPlan)) {
-            throw new RuntimeException(
-                "LogicalPlanVisitor expects to visit logical plans");
-        }
-    }
-    
-    public void visitLOLoad(LOLoad load) {
+    /**
+     * 
+     * @param name of the operator
+     * @param plan LogicalExpressionPlan this column expression is part of
+     * @param type datatype of this column expression
+     */
+    public ColumnExpression(String name, OperatorPlan plan, byte type) {
+        super(name, plan, type);
     }
 
 }

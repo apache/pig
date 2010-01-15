@@ -18,17 +18,17 @@
 
 package org.apache.pig.experimental.plan;
 
-import org.apache.pig.impl.plan.VisitorException;
+import java.io.IOException;
 
 public abstract class PlanWalker {
 
     protected OperatorPlan plan;
 
     /**
-     * @param p Plan for this walker to traverse.
+     * @param plan Plan for this walker to traverse.
      */
-    public PlanWalker(OperatorPlan p) {
-        plan = p;
+    public PlanWalker(OperatorPlan plan) {
+        this.plan = plan;
     }
 
     /**
@@ -38,7 +38,7 @@ public abstract class PlanWalker {
      * not yet have a 'this' pointer to send as an argument.
      * @throws VisitorException if an error is encountered while walking.
      */
-    public abstract void walk(PlanVisitor visitor) throws VisitorException;
+    public abstract void walk(PlanVisitor visitor) throws IOException;
 
     /**
      * Return a new instance of this same type of walker for a subplan.
@@ -55,8 +55,12 @@ public abstract class PlanWalker {
         return plan ;
     }
     
-    public void setPlan(OperatorPlan p) {
-        plan = p;
+    /**
+     * Set the plan for this walker to operate on.
+     * @param plan to walk
+     */
+    public void setPlan(OperatorPlan plan) {
+        this.plan = plan;
     }
 
 }

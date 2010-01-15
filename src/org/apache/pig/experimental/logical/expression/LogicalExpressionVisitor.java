@@ -16,27 +16,40 @@
  * limitations under the License.
  */
 
-package org.apache.pig.experimental.logical.relational;
+package org.apache.pig.experimental.logical.expression;
 
 import org.apache.pig.experimental.plan.OperatorPlan;
 import org.apache.pig.experimental.plan.PlanVisitor;
 import org.apache.pig.experimental.plan.PlanWalker;
 
 /**
- * A visitor for logical plans.
+ * A visitor for expression plans.
  */
-public abstract class LogicalPlanVisitor extends PlanVisitor {
+public abstract class LogicalExpressionVisitor extends PlanVisitor {
 
-    protected LogicalPlanVisitor(OperatorPlan plan, PlanWalker walker) {
-        super(plan, walker);
+    protected LogicalExpressionVisitor(OperatorPlan p,
+                                       PlanWalker walker) {
+        super(p, walker);
         
-        if (!(plan instanceof LogicalPlan)) {
+        if (!(plan instanceof LogicalExpressionPlan)) {
             throw new RuntimeException(
-                "LogicalPlanVisitor expects to visit logical plans");
+                "LogicalExpressionVisitor expects to visit " +
+                "expression plans.");
         }
     }
     
-    public void visitLOLoad(LOLoad load) {
+    public void visitAnd(AndExpression andExpr) {
     }
+
+    public void visitEqual(EqualExpression equal) {
+    }
+    
+    public void visitProject(ProjectExpression project) {
+    }
+    
+    public void visitConstant(ConstantExpression constant) {
+    }
+    
+    
 
 }

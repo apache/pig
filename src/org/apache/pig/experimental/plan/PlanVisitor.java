@@ -18,6 +18,7 @@
 
 package org.apache.pig.experimental.plan;
 
+import java.io.IOException;
 import java.util.Stack;
 
 import org.apache.pig.impl.plan.VisitorException;
@@ -43,7 +44,7 @@ public abstract class PlanVisitor {
      * Entry point for visiting the plan.
      * @throws VisitorException if an error is encountered while visiting.
      */
-    public void visit() throws VisitorException {
+    public void visit() throws IOException {
         currentWalker.walk(this);
     }
 
@@ -52,11 +53,11 @@ public abstract class PlanVisitor {
     }
 
     /**
-     * @param p OperatorPlan this visitor will visit.
+     * @param plan OperatorPlan this visitor will visit.
      * @param walker PlanWalker this visitor will use to traverse the plan.
      */
-    protected PlanVisitor(OperatorPlan p, PlanWalker walker) {
-        plan = p;
+    protected PlanVisitor(OperatorPlan plan, PlanWalker walker) {
+        this.plan = plan;
         currentWalker = walker;
         walkers = new Stack<PlanWalker>();
     }
