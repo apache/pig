@@ -22,6 +22,17 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
 
+import org.apache.pig.data.DataType;
+import org.apache.pig.experimental.logical.expression.AndExpression;
+import org.apache.pig.experimental.logical.expression.ConstantExpression;
+import org.apache.pig.experimental.logical.expression.EqualExpression;
+import org.apache.pig.experimental.logical.expression.LogicalExpressionPlan;
+import org.apache.pig.experimental.logical.expression.LogicalExpressionVisitor;
+import org.apache.pig.experimental.logical.expression.ProjectExpression;
+import org.apache.pig.experimental.logical.relational.LOLoad;
+import org.apache.pig.experimental.logical.relational.LogicalPlan;
+import org.apache.pig.experimental.logical.relational.LogicalPlanVisitor;
+import org.apache.pig.experimental.logical.relational.LogicalRelationalOperator;
 import org.apache.pig.experimental.plan.BaseOperatorPlan;
 import org.apache.pig.experimental.plan.DependencyOrderWalker;
 import org.apache.pig.experimental.plan.DepthFirstWalker;
@@ -642,5 +653,96 @@ public class TestExperimentalOperatorPlan extends TestCase {
             fail();
         }
     }
+    
+    private static class TestLogicalVisitor extends LogicalPlanVisitor {
+        
+        StringBuffer bf = new StringBuffer();
 
+        protected TestLogicalVisitor(OperatorPlan plan) {
+            super(plan, new DepthFirstWalker(plan));
+        }
+        
+        @Override
+        public void visitLOLoad(LOLoad load) {
+            bf.append("load ");
+        }
+        
+        String getVisitPlan() {
+            return bf.toString();
+        }
+        
+    }
+    
+    @Test
+    public void testLogicalPlanVisitor() throws IOException {
+        LogicalPlan lp = new LogicalPlan();
+        LOLoad load = new LOLoad(null, null, lp);
+        lp.add((LogicalRelationalOperator)null, load,
+            (LogicalRelationalOperator)null);
+        
+        TestLogicalVisitor v = new TestLogicalVisitor(lp);
+        v.visit();
+        
+        assertEquals("load ", v.getVisitPlan());
+    }
+    
+    @Test
+    public void testBinaryOperatorOrder() throws IOException {
+        LogicalExpressionPlan ep = new LogicalExpressionPlan();
+        ConstantExpression c = new ConstantExpression(ep, DataType.INTEGER, new Integer(5));
+        ProjectExpression p = new ProjectExpression(ep, DataType.INTEGER, 0, 0);
+        EqualExpression e = new EqualExpression(ep, p, c);
+        assertEquals(p, e.getLhs());
+        assertEquals(c, e.getRhs());
+        
+    }
+    
+    private static class TestExpressionVisitor extends LogicalExpressionVisitor {
+        
+        StringBuffer bf = new StringBuffer();
+
+        protected TestExpressionVisitor(OperatorPlan plan) {
+            super(plan, new DepthFirstWalker(plan));
+        }
+        
+        @Override
+        public void visitAnd(AndExpression andExpr) {
+            bf.append("and ");
+        }
+        
+        @Override
+        public void visitEqual(EqualExpression equal) {
+            bf.append("equal ");
+        }
+        
+        @Override
+        public void visitProject(ProjectExpression project) {
+            bf.append("project ");
+        }
+        
+        @Override
+        public void visitConstant(ConstantExpression constant) {
+            bf.append("constant ");
+        }
+        
+        String getVisitPlan() {
+            return bf.toString();
+        }
+        
+    }
+    
+    @Test
+    public void testExpressionPlanVisitor() throws IOException {
+        LogicalExpressionPlan ep = new LogicalExpressionPlan();
+        ConstantExpression c = new ConstantExpression(ep, DataType.INTEGER, new Integer(5));
+        ProjectExpression p = new ProjectExpression(ep, DataType.INTEGER, 0, 0);
+        EqualExpression e = new EqualExpression(ep, p, c);
+        ConstantExpression c2 = new ConstantExpression(ep, DataType.BOOLEAN, new Boolean("true"));
+        new AndExpression(ep, e, c2);
+        
+        TestExpressionVisitor v = new TestExpressionVisitor(ep);
+        v.visit();
+        assertEquals("and equal project constant constant ", v.getVisitPlan());
+    }
+ 
 }

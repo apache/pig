@@ -33,6 +33,7 @@ public class LogicalSchema {
     public static class LogicalFieldSchema {
         public String alias;
         public DataType type;
+        public long uid;
         public LogicalSchema schema;
     }
     
@@ -44,6 +45,10 @@ public class LogicalSchema {
         aliases = new HashMap<String, Integer>();
     }
     
+    /**
+     * Add a field to this schema.
+     * @param field to be added to the schema
+     */
     public void addField(LogicalFieldSchema field) {
         fields.add(field);
         if (field.alias != null && field.alias.equals("")) {
@@ -51,18 +56,48 @@ public class LogicalSchema {
         }
     }
     
+    /**
+     * Fetch a field by alias
+     * @param alias
+     * @return field associated with alias, or null if no such field
+     */
     public LogicalFieldSchema getField(String alias) {
-        return null;
+        Integer i = aliases.get(alias);
+        if (i == null) return null;
+        else return fields.get(i);
     }
 
+    /**
+     * Fetch a field by field number
+     * @param fieldNum field number to fetch
+     * @return field
+     */
     public LogicalFieldSchema getField(int fieldNum) {
         return fields.get(fieldNum);
     }
+    
+    /**
+     * Get all fields
+     * @return list of all fields
+     */
+    public List<LogicalFieldSchema> getFields() {
+        return fields;
+    }
 
+    /**
+     * Get the size of the schema.
+     * @return size
+     */
     public Integer size() {
        return null;
     }
     
+    /**
+     * Merge two schemas.
+     * @param s1
+     * @param s2
+     * @return a merged schema, or null if the merge fails
+     */
     public static LogicalSchema merge(LogicalSchema s1, LogicalSchema s2) {
         // TODO
         return null;

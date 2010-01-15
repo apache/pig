@@ -24,8 +24,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.pig.impl.plan.VisitorException;
-
+/**
+ * Do a depth first traversal of the graph.
+ */
 public class DepthFirstWalker extends PlanWalker {
 
     public DepthFirstWalker(OperatorPlan plan) {
@@ -43,7 +44,7 @@ public class DepthFirstWalker extends PlanWalker {
      * @throws IOException if an error is encountered while walking.
      */
     @Override
-    public void walk(PlanVisitor visitor) throws VisitorException {
+    public void walk(PlanVisitor visitor) throws IOException {
         List<Operator> roots = plan.getRoots();
         Set<Operator> seen = new HashSet<Operator>();
 
@@ -53,18 +54,14 @@ public class DepthFirstWalker extends PlanWalker {
     private void depthFirst(Operator node,
                             Collection<Operator> successors,
                             Set<Operator> seen,
-                            PlanVisitor visitor) throws VisitorException {
+                            PlanVisitor visitor) throws IOException {
         if (successors == null) return;
 
         for (Operator suc : successors) {
             if (seen.add(suc)) {
                 suc.accept(visitor);
-                try {
-                    Collection<Operator> newSuccessors = plan.getSuccessors(suc);
-                    depthFirst(suc, newSuccessors, seen, visitor);
-                }catch(IOException e) {
-                    throw new VisitorException(e);
-                }
+                Collection<Operator> newSuccessors = plan.getSuccessors(suc);
+                depthFirst(suc, newSuccessors, seen, visitor);
             }
         }
     }

@@ -27,6 +27,12 @@ import java.util.Set;
 
 import org.apache.pig.impl.plan.VisitorException;
 
+/**
+ * A walker to walk graphs in dependency order.  It is guaranteed that a node
+ * will not be visited until all of its predecessors have been visited.  This
+ * is equivalent to doing a topilogical sort on the graph and then visiting
+ * the nodes in order.
+ */
 public class DependencyOrderWalker extends PlanWalker {
 
     /**
@@ -47,7 +53,7 @@ public class DependencyOrderWalker extends PlanWalker {
      * @throws VisitorException if an error is encountered while walking.
      */
     @Override
-    public void walk(PlanVisitor visitor) throws VisitorException {
+    public void walk(PlanVisitor visitor) throws IOException {
         // This is highly inefficient, but our graphs are small so it should be okay.
         // The algorithm works by starting at any node in the graph, finding it's
         // predecessors and calling itself for each of those predecessors.  When it
@@ -71,24 +77,19 @@ public class DependencyOrderWalker extends PlanWalker {
 
     protected void doAllPredecessors(Operator node,
                                    Set<Operator> seen,
-                                   Collection<Operator> fifo) throws VisitorException {
+                                   Collection<Operator> fifo) throws IOException {
         if (!seen.contains(node)) {
             // We haven't seen this one before.
-            try {
-                Collection<Operator> preds = plan.getPredecessors(node);
-                if (preds != null && preds.size() > 0) {
-                    // Do all our predecessors before ourself
-                    for (Operator op : preds) {
-                        doAllPredecessors(op, seen, fifo);
-                    }
+            Collection<Operator> preds = plan.getPredecessors(node);
+            if (preds != null && preds.size() > 0) {
+                // Do all our predecessors before ourself
+                for (Operator op : preds) {
+                    doAllPredecessors(op, seen, fifo);
                 }
-            }catch(IOException e) {
-                throw new VisitorException(e);
             }
             // Now do ourself
             seen.add(node);
             fifo.add(node);
-            
         }
     }
 }
