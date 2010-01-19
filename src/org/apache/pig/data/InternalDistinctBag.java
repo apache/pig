@@ -138,7 +138,7 @@ public class InternalDistinctBag extends DefaultAbstractBag {
     }
 
     @Override
-    public void add(Tuple t) {        
+    public DataBag add(Tuple t) {        
         
         if(mReadStarted) {
             throw new IllegalStateException("InternalDistinctBag is closed for adding new tuples");
@@ -162,14 +162,16 @@ public class InternalDistinctBag extends DefaultAbstractBag {
                 	log.debug("Memory can hold "+ cacheLimit + " records.");
                 }
             }          
-        }    	
+        }
+        return this;
     }
 
-    public void addAll(DataBag b) {
+    public DataBag addAll(DataBag b) {
     	Iterator<Tuple> iter = b.iterator();
     	while(iter.hasNext()) {
     		add(iter.next());
     	}
+    	return this;
     }
 
     public void addAll(Collection<Tuple> c) {

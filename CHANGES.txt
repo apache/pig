@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-1166: A bit change of the interface of Tuple & DataBag:make the set and append method return this (zjffdu)
+
 PIG-1177: Pig 0.6 Docs - Zebra docs (chandec via olgan)
 
 PIG-1175: Pig 0.6 Docs - Store v. Dump (chandec via olgan)

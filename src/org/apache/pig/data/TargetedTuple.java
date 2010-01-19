@@ -106,8 +106,9 @@ public class TargetedTuple implements Tuple {
         this.targetOps = targetOps;
     }
 
-    public void append(Object val) {
+    public Tuple append(Object val) {
         t.append(val);
+        return this;
     }
 
     public Object get(int fieldNum) throws ExecException {
@@ -134,8 +135,9 @@ public class TargetedTuple implements Tuple {
         this.t = t;
     }
 
-    public void set(int fieldNum, Object val) throws ExecException {
+    public Tuple set(int fieldNum, Object val) throws ExecException {
         t.set(fieldNum, val);
+        return this;
     }
 
     public int size() {

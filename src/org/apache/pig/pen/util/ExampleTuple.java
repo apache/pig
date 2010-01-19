@@ -71,9 +71,9 @@ public class ExampleTuple implements Tuple {
         return t;
     }
 
-    public void append(Object val) {
+    public Tuple append(Object val) {
         t.append(val);
-
+        return this;
     }
 
     public Object get(int fieldNum) throws ExecException {
@@ -104,8 +104,9 @@ public class ExampleTuple implements Tuple {
         t.reference(t);
     }
 
-    public void set(int fieldNum, Object val) throws ExecException {
+    public Tuple set(int fieldNum, Object val) throws ExecException {
         t.set(fieldNum, val);
+        return this;
     }
 
     public void setNull(boolean isNull) {

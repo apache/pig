@@ -92,7 +92,7 @@ public class ReadOnceBag implements DataBag {
      * @see org.apache.pig.data.DataBag#add(org.apache.pig.data.Tuple)
      */
     @Override
-    public void add(Tuple t) {
+    public DataBag add(Tuple t) {
         throw new RuntimeException("ReadOnceBag does not support add operation");		
     }
 
@@ -100,7 +100,7 @@ public class ReadOnceBag implements DataBag {
      * @see org.apache.pig.data.DataBag#addAll(org.apache.pig.data.DataBag)
      */
     @Override
-    public void addAll(DataBag b) {
+    public DataBag addAll(DataBag b) {
         throw new RuntimeException("ReadOnceBag does not support addAll operation");
     }
 

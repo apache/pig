@@ -76,11 +76,12 @@ public abstract class DefaultAbstractBag implements DataBag {
      * Add a tuple to the bag.
      * @param t tuple to add.
      */
-    public void add(Tuple t) {
+    public DataBag add(Tuple t) {
         synchronized (mContents) {
             mMemSizeChanged = true;
             mSize++;
             mContents.add(t);
+            return this;
         }
     }
 
@@ -88,12 +89,13 @@ public abstract class DefaultAbstractBag implements DataBag {
      * Add contents of a bag to the bag.
      * @param b bag to add contents of.
      */
-    public void addAll(DataBag b) {
+    public DataBag addAll(DataBag b) {
         synchronized (mContents) {
             mMemSizeChanged = true;
             mSize += b.size();
             Iterator<Tuple> i = b.iterator();
             while (i.hasNext()) mContents.add(i.next());
+            return this;
         }
     }
 

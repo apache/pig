@@ -50,15 +50,16 @@ public class SingleTupleBag implements DataBag {
      * Tuple is ever added into a SingleTupleBag
      */
     @Override
-    public void add(Tuple t) {
+    public DataBag add(Tuple t) {
         item = t;
+        return this;
     }
 
     /* (non-Javadoc)
      * @see org.apache.pig.data.DataBag#addAll(org.apache.pig.data.DataBag)
      */
     @Override
-    public void addAll(DataBag b) {
+    public DataBag addAll(DataBag b) {
         throw new RuntimeException("Cannot create SingleTupleBag from another DataBag");
     }
 
