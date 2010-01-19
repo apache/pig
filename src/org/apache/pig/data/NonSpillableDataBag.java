@@ -111,15 +111,17 @@ public class NonSpillableDataBag implements DataBag {
     }
 
     @Override
-    public void add(Tuple t) {
+    public DataBag add(Tuple t) {
         mContents.add(t);
+        return this;
     }
 
     @Override
-    public void addAll(DataBag b) {
+    public DataBag addAll(DataBag b) {
         for (Tuple t : b) {
             mContents.add(t);
         }
+        return this;
     }
 
     @Override

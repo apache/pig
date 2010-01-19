@@ -136,7 +136,7 @@ public class InternalSortedBag extends DefaultAbstractBag{
         }        
     }
     
-    public void add(Tuple t) {
+    public DataBag add(Tuple t) {
     	if(mReadStarted) {
             throw new IllegalStateException("InternalSortedBag is closed for adding new tuples");
         }
@@ -160,13 +160,15 @@ public class InternalSortedBag extends DefaultAbstractBag{
         }
                 
         mSize++;
+        return this;
     }
     
-    public void addAll(DataBag b) {
+    public DataBag addAll(DataBag b) {
     	Iterator<Tuple> iter = b.iterator();
     	while(iter.hasNext()) {
     		add(iter.next());
     	}
+    	return this;
     }
 
     public void addAll(Collection<Tuple> c) {

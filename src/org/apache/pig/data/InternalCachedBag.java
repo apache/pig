@@ -76,7 +76,7 @@ public class InternalCachedBag extends DefaultAbstractBag {
         addDone = false;
     }
 
-    public void add(Tuple t) {
+    public DataBag add(Tuple t) {
     	
         if(addDone) {
             throw new IllegalStateException("InternalCachedBag is closed for adding new tuples");
@@ -115,13 +115,15 @@ public class InternalCachedBag extends DefaultAbstractBag {
         }
         
         mSize++;
+        return this;
     }
 
-    public void addAll(DataBag b) {
+    public DataBag addAll(DataBag b) {
     	Iterator<Tuple> iter = b.iterator();
     	while(iter.hasNext()) {
     		add(iter.next());
     	}
+    	return this;
     }
 
     public void addAll(Collection<Tuple> c) {
