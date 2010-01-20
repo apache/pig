@@ -453,4 +453,22 @@ public class TestEvalPipeline2 extends TestCase {
         assertFalse(iter.hasNext());
     }
 
+    // See PIG-1195
+    @Test
+    public void testNestedDescSort() throws Exception{
+        Util.createInputFile(cluster, "table_testNestedDescSort", new String[]{"3","4"});
+        pigServer.registerQuery("A = LOAD 'table_testNestedDescSort' as (a0:int);");
+        pigServer.registerQuery("B = group A ALL;");
+        pigServer.registerQuery("C = foreach B { D = order A by a0 desc;generate D;};");
+        Iterator<Tuple> iter = pigServer.openIterator("C");
+        
+        assertTrue(iter.hasNext());
+        Tuple t = iter.next();
+        
+        assertTrue(t.toString().equals("({(4),(3)})"));
+        assertFalse(iter.hasNext());
+        
+        Util.deleteFile(cluster, "table_testNestedDescSort");
+    }
+
 }

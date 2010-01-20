@@ -75,7 +75,7 @@ public class POSort extends PhysicalOperator {
 	private List<Boolean> mAscCols;
 	private POUserComparisonFunc mSortFunc;
 	transient private final Log log = LogFactory.getLog(getClass());
-	transient private Comparator<Tuple> mComparator;
+	private Comparator<Tuple> mComparator;
 
 	private boolean inputsAccumulated = false;
 	private long limit;
