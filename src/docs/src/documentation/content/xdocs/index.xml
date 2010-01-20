@@ -31,8 +31,8 @@
         Then try out the <a href="tutorial.html">Pig Tutorial</a> to get an idea of how easy it is to use Pig. 
       </p>
       <p>  
-        When you are ready to start writing your own scripts, read through the <a href="piglatin_users.html">Pig Latin Users Guide</a>
-        and the <a href="piglatin_reference.html">Pig Latin Reference Manual</a> to become familiar with Pig's features. 
+        When you are ready to start writing your own scripts, read through the Pig Latin Reference <a href="piglatin_ref1.html">Manual 1</a>
+        and <a href="piglatin_ref2.html">Manual 2</a> to become familiar with Pig's features. 
         Also review the <a href="cookbook.html">Pig Cookbook</a> to learn how to tweak your code for optimal performance.
       </p>
       <p>
