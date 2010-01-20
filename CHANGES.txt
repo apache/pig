@@ -270,6 +270,8 @@ tuples (yinghe via daijy)
 
 PIG-1186: Pig do not take values in "pig-cluster-hadoop-site.xml" (daijy)
 
+PIG-1193: Secondary sort issue on nested desc sort (daijy)
+
 Release 0.5.0
 
 INCOMPATIBLE CHANGES
