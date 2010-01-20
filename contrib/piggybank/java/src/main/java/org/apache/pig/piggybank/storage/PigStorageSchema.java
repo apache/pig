@@ -20,27 +20,13 @@ package org.apache.pig.piggybank.storage;
 
 import java.io.IOException;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.mapred.JobConf;
-import org.apache.pig.ExecType;
-import org.apache.pig.experimental.JsonMetadata;
-import org.apache.pig.experimental.LoadMetadata;
-import org.apache.pig.experimental.StoreMetadata;
-import org.apache.pig.experimental.ResourceSchema;
-import org.apache.pig.experimental.ResourceStatistics;
-import org.apache.pig.StoreConfig;
-import org.apache.pig.backend.datastorage.DataStorage;
-import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
-import org.apache.pig.backend.hadoop.datastorage.HDataStorage;
-import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce;
-import org.apache.pig.backend.hadoop.executionengine.util.MapRedUtil;
+import org.apache.pig.Expression;
+import org.apache.pig.LoadMetadata;
+import org.apache.pig.ResourceSchema;
+import org.apache.pig.ResourceStatistics;
+import org.apache.pig.StoreMetadata;
 import org.apache.pig.builtin.PigStorage;
-import org.apache.pig.data.DataType;
-import org.apache.pig.impl.io.FileLocalizer;
-import org.apache.pig.impl.logicalLayer.schema.Schema;
-import org.apache.pig.impl.logicalLayer.schema.Schema.FieldSchema;
 
 /**
  *  This Load/Store Func reads/writes metafiles that allow the schema and 
@@ -54,9 +40,7 @@ import org.apache.pig.impl.logicalLayer.schema.Schema.FieldSchema;
  *  Due to StoreFunc limitations, you can only write the metafiles in MapReduce 
  *  mode. You can read them in Local or MapReduce mode.
  */
-public class PigStorageSchema extends PigStorage implements StoreMetadata {
-
-    private static final Log log = LogFactory.getLog(PigStorageSchema.class);
+public class PigStorageSchema extends PigStorage implements LoadMetadata, StoreMetadata {
 
     public PigStorageSchema() {
         super();
@@ -65,61 +49,50 @@ public class PigStorageSchema extends PigStorage implements StoreMetadata {
     public PigStorageSchema(String delim) {
         super(delim);
     }
+     
+    //------------------------------------------------------------------------
+    // Implementation of LoadMetaData interface
     
     @Override
-    public Schema determineSchema(String fileName, ExecType execType,
-            DataStorage storage) throws IOException {
-
-        // TODO fullPath should be retrieved ia relativeToAbsolutePath once PIG-966 is complete
-        String fullPath = FileLocalizer.fullPath(fileName, storage);
-        LoadMetadata metadataLoader = new JsonMetadata(fullPath, storage);
-        ResourceSchema resourceSchema = metadataLoader.getSchema(fullPath, null);
-        if (resourceSchema == null) {
-            return null;
-        }
-        Schema pigSchema = new Schema();
-        for (ResourceSchema.ResourceFieldSchema field : resourceSchema.getFields()) {
-            FieldSchema pigFieldSchema = DataType.determineFieldSchema(field);
-            // determineFieldSchema only sets the types. we also want the aliases.
-            // TODO this doesn't work properly for complex types
-            pigFieldSchema.alias = field.getName();
-            pigSchema.add(pigFieldSchema);
-        }
-        log.info("Loaded Schema: "+pigSchema);
-        return pigSchema;
+    public ResourceSchema getSchema(String location,
+            Configuration conf) throws IOException {
+        return (new JsonMetadata()).getSchema(location, conf);
     }
 
     @Override
-    public void finish() throws IOException {
-        super.finish();
-        JobConf jobConf = PigMapReduce.sJobConf;
-        if(jobConf != null){
-            StoreConfig storeConfig = MapRedUtil.getStoreConfig(jobConf);
-            DataStorage store = new HDataStorage(ConfigurationUtil.toProperties(jobConf));
-            Schema schema = storeConfig.getSchema();
-            ResourceSchema resourceSchema = new ResourceSchema(schema);
-            JsonMetadata metadataWriter = new JsonMetadata(storeConfig.getLocation(), store);
-            metadataWriter.setFieldDel(fieldDel);
-            metadataWriter.setRecordDel(recordDel);
-            metadataWriter.setSchema(resourceSchema, storeConfig.getLocation(), null);
-        }
+    public ResourceStatistics getStatistics(String location,
+            Configuration conf) throws IOException {        
+        return null;
     }
 
-    /**
-     * @see org.apache.pig.experimental.StoreMetadata#setSchema(ResourceSchema)
-     * Does not do anything in this implementation. The finish() call writes the schema.
-     */
     @Override
-    public void setSchema(ResourceSchema schema, String location, Configuration conf) throws IOException {
-        // n\a
+    public void setPartitionFilter(Expression partitionFilter)
+            throws IOException { 
+    }
+    
+    @Override
+    public String[] getPartitionKeys(String location, Configuration conf)
+            throws IOException {
+        return null;
     }
 
-    /**
-     * @see org.apache.pig.experimental.StoreMetadata#setStatistics(ResourceStatistics)
-     * Does not do anything in this implementation.
-     */
+    //------------------------------------------------------------------------
+    // Implementation of StoreMetadata
+
     @Override
-    public void setStatistics(ResourceStatistics stats, String location, Configuration conf) throws IOException {
-        // n\a
+    public void storeSchema(ResourceSchema schema, String location,
+            Configuration conf) throws IOException {
+        JsonMetadata metadataWriter = new JsonMetadata();
+        byte fieldDel = '\t';
+        byte recordDel = '\n';
+        metadataWriter.setFieldDel(fieldDel);
+        metadataWriter.setRecordDel(recordDel);
+        metadataWriter.storeSchema(schema, location, conf);               
+    }
+
+    @Override
+    public void storeStatistics(ResourceStatistics stats, String location,
+            Configuration conf) throws IOException {
+        
     }
 }

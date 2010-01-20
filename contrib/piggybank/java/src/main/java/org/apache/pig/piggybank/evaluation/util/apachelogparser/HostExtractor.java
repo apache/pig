@@ -26,7 +26,6 @@ import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
-import org.apache.pig.impl.util.WrappedIOException;
 
 /**
  * HostExtractor takes a url and returns the host. For example,
@@ -56,7 +55,7 @@ public class HostExtractor extends EvalFunc<String> {
           "url parsing exception for "+str);
       return null;
     } catch (Exception e) {
-      throw WrappedIOException.wrap("Caught exception processing input row ", e);
+      throw new IOException("Caught exception processing input row ", e);
     }
   }
 

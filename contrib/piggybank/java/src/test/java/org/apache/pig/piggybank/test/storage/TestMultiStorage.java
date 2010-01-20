@@ -150,7 +150,7 @@ public class TestMultiStorage extends TestCase {
         .getLocal(new Configuration()) : cluster.getFileSystem());
     Path output = new Path(outPath);
     Assert.assertTrue("Output dir does not exists!", fs.exists(output)
-        && fs.isDirectory(output));
+        && fs.getFileStatus(output).isDir());
 
     Path[] paths = FileUtil.stat2Paths(fs.listStatus(output, hiddenPathFilter));
     Assert.assertTrue("Split field dirs not found!", paths != null);
@@ -161,19 +161,26 @@ public class TestMultiStorage extends TestCase {
       Assert.assertTrue("No files found for path: " + path.toUri().getPath(),
           files != null);
       for (Path filePath : files) {
-        if (fs.isFile(filePath)) {
-          BufferedReader reader = new BufferedReader(new InputStreamReader(fs
-              .open(filePath)));
-          String line = "";
-          while ((line = reader.readLine()) != null) {
-            String[] fields = line.split("\\t");
-            Assert.assertEquals(fields.length, 3);
-            Assert.assertEquals("Unexpected field value in the output record",
+        Assert.assertTrue("This shouldn't be a directory", fs.isFile(filePath));
+        
+        BufferedReader reader = new BufferedReader(new InputStreamReader(fs
+                .open(filePath)));
+        String line = "";
+        int count = 0;
+        while ((line = reader.readLine()) != null) {
+          String[] fields = line.split("\\t");
+          Assert.assertEquals(fields.length, 3);
+          Assert.assertEquals("Unexpected field value in the output record",
                 splitField, fields[1]);
-          }
-          reader.close();
-        }
+          count++;
+          System.out.println("field: " + fields[1]);
+        }        
+        reader.close();
+        Assert.assertEquals(count, 3);
       }
     }
   }
 }
+
+
+

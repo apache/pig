@@ -13,21 +13,15 @@
 
 package org.apache.pig.piggybank.test.storage;
 
-import static org.apache.pig.ExecType.LOCAL;
-
-import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Iterator;
 
 import junit.framework.TestCase;
 
-import org.apache.pig.PigServer;
-
 import org.apache.pig.ExecType;
+import org.apache.pig.PigServer;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.Tuple;
-import org.apache.pig.impl.io.BufferedPositionedInputStream;
-import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.piggybank.storage.apachelog.CombinedLogLoader;
 import org.junit.Test;
 
@@ -84,27 +78,6 @@ public class TestCombinedLogLoader extends TestCase {
     }
 
     @Test
-    public void testLoadFromBindTo() throws Exception {
-        String filename = TestHelper.createTempFile(data, " ");
-        CombinedLogLoader combinedLogLoader = new CombinedLogLoader();
-        PigServer pigServer = new PigServer(LOCAL);
-        InputStream inputStream = FileLocalizer.open(filename, pigServer.getPigContext());
-        combinedLogLoader.bindTo(filename, new BufferedPositionedInputStream(inputStream), 0, Long.MAX_VALUE);
-
-        int tupleCount = 0;
-
-        while (true) {
-            Tuple tuple = combinedLogLoader.getNext();
-            if (tuple == null)
-                break;
-            else {
-                TestHelper.examineTuple(EXPECTED, tuple, tupleCount);
-                tupleCount++;
-            }
-        }
-        assertEquals(data.size(), tupleCount);
-    }
-
     public void testLoadFromPigServer() throws Exception {
         String filename = TestHelper.createTempFile(data, " ");
         PigServer pig = new PigServer(ExecType.LOCAL);

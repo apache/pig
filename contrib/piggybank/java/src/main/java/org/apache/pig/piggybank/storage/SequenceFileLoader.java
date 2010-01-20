@@ -20,40 +20,31 @@ package org.apache.pig.piggybank.storage;
 import java.io.IOException;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
-import java.util.Map;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.BooleanWritable;
 import org.apache.hadoop.io.ByteWritable;
 import org.apache.hadoop.io.DoubleWritable;
 import org.apache.hadoop.io.FloatWritable;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.LongWritable;
-import org.apache.hadoop.io.SequenceFile;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.serializer.SerializationFactory;
-import org.apache.hadoop.util.ReflectionUtils;
-import org.apache.pig.impl.logicalLayer.FrontendException;
-
-import org.apache.pig.ExecType;
-import org.apache.pig.LoadFunc;
-import org.apache.pig.SamplableLoader;
+import org.apache.hadoop.mapreduce.InputFormat;
+import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.mapreduce.RecordReader;
+import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
+import org.apache.hadoop.mapreduce.lib.input.SequenceFileInputFormat;
+import org.apache.hadoop.mapreduce.lib.input.SequenceFileRecordReader;
+import org.apache.pig.FileInputLoadFunc;
 import org.apache.pig.backend.BackendException;
-import org.apache.pig.backend.datastorage.DataStorage;
-import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce;
-import org.apache.pig.data.DataBag;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigSplit;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
-import org.apache.pig.impl.io.BufferedPositionedInputStream;
-import org.apache.pig.impl.logicalLayer.FrontendException;
-import org.apache.pig.impl.logicalLayer.schema.Schema;
 
 /**
  * A Loader for Hadoop-Standard SequenceFiles.
@@ -61,10 +52,10 @@ import org.apache.pig.impl.logicalLayer.schema.Schema;
  * Text, IntWritable, LongWritable, FloatWritable, DoubleWritable, BooleanWritable, ByteWritable
  **/
 
-public class SequenceFileLoader implements LoadFunc, SamplableLoader {
+public class SequenceFileLoader extends FileInputLoadFunc {
   
-  private SequenceFile.Reader reader;
-  private long end;
+  private SequenceFileRecordReader<Writable, Writable> reader;
+ 
   private Writable key;
   private Writable value;
   private ArrayList<Object> mProtoTuple = null;
@@ -73,74 +64,29 @@ public class SequenceFileLoader implements LoadFunc, SamplableLoader {
   protected TupleFactory mTupleFactory = TupleFactory.getInstance();
   protected SerializationFactory serializationFactory;
 
-  protected byte keyType;
-  protected byte valType;
+  protected byte keyType = DataType.UNKNOWN;
+  protected byte valType = DataType.UNKNOWN;
     
   public SequenceFileLoader() {
-  
+    mProtoTuple = new ArrayList<Object>(2);
   }
-  
-  @Override
-  public void bindTo(String fileName, BufferedPositionedInputStream is,
-      long offset, long end) throws IOException {
-    
-    inferReader(fileName);
-    if (offset != 0)
-      reader.sync(offset);
-
-    this.end = end;
-    
-    try {
-      this.key = (Writable) ReflectionUtils.newInstance(reader.getKeyClass(), PigMapReduce.sJobConf);
-      this.value = (Writable) ReflectionUtils.newInstance(reader.getValueClass(), PigMapReduce.sJobConf);
-    } catch (ClassCastException e) {
-      throw new RuntimeException("SequenceFile contains non-Writable objects", e);
-    }
-    setKeyValueTypes(key.getClass(), value.getClass());
-  }
-
-  @Override
-  @SuppressWarnings("unchecked")
-  public Schema determineSchema(String fileName, ExecType execType,
-      DataStorage storage) throws IOException {
-    inferReader(fileName);
-    Class<Writable> keyClass = null;
-    Class<Writable> valClass= null;
-    try {
-      keyClass = (Class<Writable>) reader.getKeyClass();
-      valClass = (Class<Writable>) reader.getValueClass();
-    } catch (ClassCastException e) {
-      throw new RuntimeException("SequenceFile contains non-Writable objects", e);
-    }
-    Schema schema = new Schema();
-    setKeyValueTypes(keyClass, valClass);  
-    schema.add(new Schema.FieldSchema(null, keyType));
-    schema.add(new Schema.FieldSchema(null, valType));
-    return schema;
-  }
-
-  protected void setKeyValueTypes(Class<?> keyClass, Class<?> valueClass) throws BackendException {
+ 
+  protected void setKeyType(Class<?> keyClass) throws BackendException {
     this.keyType |= inferPigDataType(keyClass);
+    if (keyType == DataType.ERROR) { 
+      LOG.warn("Unable to translate key "+key.getClass()+" to a Pig datatype");
+      throw new BackendException("Unable to translate "+key.getClass()+" to a Pig datatype");
+    } 
+  }
+  
+  protected void setValueType(Class<?> valueClass) throws BackendException {
     this.valType |= inferPigDataType(valueClass);
     if (keyType == DataType.ERROR) { 
       LOG.warn("Unable to translate key "+key.getClass()+" to a Pig datatype");
       throw new BackendException("Unable to translate "+key.getClass()+" to a Pig datatype");
     } 
-    if (valType == DataType.ERROR) {
-      LOG.warn("Unable to translate value "+value.getClass()+" to a Pig datatype");
-      throw new BackendException("Unable to translate "+value.getClass()+" to a Pig datatype");
-    }
-
   }
-  protected void inferReader(String fileName) throws IOException {
-    if (reader == null) {
-      Configuration conf = new Configuration();
-      Path path = new Path(fileName);
-      FileSystem fs = FileSystem.get(path.toUri(), conf);
-      reader = new SequenceFile.Reader(fs, path, conf);
-    }
-  }
-  
+    
   protected byte inferPigDataType(Type t) {
     if (t == DataByteArray.class) return DataType.BYTEARRAY;
     else if (t == Text.class) return DataType.CHARARRAY;
@@ -169,77 +115,48 @@ public class SequenceFileLoader implements LoadFunc, SamplableLoader {
   }
   
   @Override
-  public LoadFunc.RequiredFieldResponse fieldsToRead(LoadFunc.RequiredFieldList requiredFieldList) throws FrontendException {
-      return new LoadFunc.RequiredFieldResponse(false);
-  }
-
-  @Override
   public Tuple getNext() throws IOException {
-    if (mProtoTuple == null) mProtoTuple = new ArrayList<Object>(2);
-    if (reader != null && (reader.getPosition() < end || !reader.syncSeen()) && reader.next(key, value)) {
-      mProtoTuple.add(translateWritableToPigDataType(key, keyType));
-      mProtoTuple.add(translateWritableToPigDataType(value, valType));
-      Tuple t =  mTupleFactory.newTuple(mProtoTuple);
-      mProtoTuple.clear();
-      return t;
+    boolean next = false;
+    try {
+      next = reader.nextKeyValue();
+    } catch (InterruptedException e) {
+      throw new IOException(e);
     }
-    return null;
+    
+    if (!next) return null;
+    
+    key = reader.getCurrentKey();
+    value = reader.getCurrentValue();
+    
+    if (keyType == DataType.UNKNOWN && key != null) {
+        setKeyType(key.getClass());
+    }
+    if (valType == DataType.UNKNOWN && value != null) {
+        setValueType(value.getClass());
+    }
+    
+    mProtoTuple.add(translateWritableToPigDataType(key, keyType));
+    mProtoTuple.add(translateWritableToPigDataType(value, valType));
+    Tuple t =  mTupleFactory.newTuple(mProtoTuple);
+    mProtoTuple.clear();
+    return t;
+  }
+
+  @SuppressWarnings("unchecked")
+  @Override
+  public InputFormat getInputFormat() throws IOException {
+    return new SequenceFileInputFormat<Writable, Writable>();
+  }
+
+  @SuppressWarnings("unchecked")
+  @Override
+  public void prepareToRead(RecordReader reader, PigSplit split)
+        throws IOException {
+    this.reader = (SequenceFileRecordReader) reader;
   }
 
   @Override
-  public long getPosition() throws IOException {
-    return reader.getPosition();
-  }
-
-  @Override
-  public Tuple getSampledTuple() throws IOException {
-    return this.getNext();
-  }
-
-  @Override
-  public long skip(long n) throws IOException {
-    long startPos = reader.getPosition();
-    reader.sync(startPos+n);
-    return reader.getPosition()-startPos;
-  }
-
-  @Override
-  public DataBag bytesToBag(byte[] b) throws IOException {
-    throw new FrontendException("SequenceFileLoader does not expect to cast data.");
-  }
-
-  @Override
-  public String bytesToCharArray(byte[] b) throws IOException {
-    throw new FrontendException("SequenceFileLoader does not expect to cast data.");
-  }
-
-  @Override
-  public Double bytesToDouble(byte[] b) throws IOException {
-    throw new FrontendException("SequenceFileLoader does not expect to cast data.");
-  }
-
-  @Override
-  public Float bytesToFloat(byte[] b) throws IOException {
-    throw new FrontendException("SequenceFileLoader does not expect to cast data.");
-  }
-
-  @Override
-  public Integer bytesToInteger(byte[] b) throws IOException {
-    throw new FrontendException("SequenceFileLoader does not expect to cast data.");
-  }
-
-  @Override
-  public Long bytesToLong(byte[] b) throws IOException {
-    throw new FrontendException("SequenceFileLoader does not expect to cast data.");
-  }
-
-  @Override
-  public Map<String, Object> bytesToMap(byte[] b) throws IOException {
-    throw new FrontendException("SequenceFileLoader does not expect to cast data.");
-  }
-
-  @Override
-  public Tuple bytesToTuple(byte[] b) throws IOException {
-    throw new FrontendException("SequenceFileLoader does not expect to cast data.");
+  public void setLocation(String location, Job job) throws IOException {
+    FileInputFormat.setInputPaths(job, location);    
   }
 }

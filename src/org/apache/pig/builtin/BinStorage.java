@@ -371,7 +371,7 @@ implements LoadCaster, StoreFunc, LoadMetadata {
 
     @Override
     public void checkSchema(ResourceSchema s) throws IOException {
-        throw new UnsupportedOperationException();
+        
     }
 
     @Override

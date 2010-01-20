@@ -27,7 +27,6 @@ import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
-import org.apache.pig.impl.util.WrappedIOException;
 
 /**
  * DateExtractor has four different constructors which each allow for different functionality. The
@@ -117,7 +116,7 @@ public class DateExtractor extends EvalFunc<String> {
         System.err.println("piggybank.evaluation.util.apachelogparser.DateExtractor: unable to parse date "+str);
         return null;
       } catch(Exception e){
-        throw WrappedIOException.wrap("Caught exception processing input row ", e);
+        throw new IOException("Caught exception processing input row ", e);
       }
     }
 

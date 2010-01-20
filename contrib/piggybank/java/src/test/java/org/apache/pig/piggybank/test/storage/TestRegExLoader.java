@@ -15,8 +15,8 @@ package org.apache.pig.piggybank.test.storage;
 
 import static org.apache.pig.ExecType.LOCAL;
 
-import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.regex.Pattern;
 
 import junit.framework.TestCase;
@@ -24,21 +24,21 @@ import junit.framework.TestCase;
 import org.apache.pig.PigServer;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.Tuple;
-import org.apache.pig.impl.io.BufferedPositionedInputStream;
-import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.piggybank.storage.RegExLoader;
+import org.apache.pig.test.Util;
 import org.junit.Test;
 
 public class TestRegExLoader extends TestCase {
     private static String patternString = "(\\w+),(\\w+);(\\w+)";
     private final static Pattern pattern = Pattern.compile(patternString);
 
-    class DummyRegExLoader extends RegExLoader {
+    public static class DummyRegExLoader extends RegExLoader {
+        public DummyRegExLoader() {}
+        
         @Override
         public Pattern getPattern() {
             return Pattern.compile(patternString);
         }
-
     }
 
     public static ArrayList<String[]> data = new ArrayList<String[]>();
@@ -49,32 +49,26 @@ public class TestRegExLoader extends TestCase {
     }
 
     @Test
-    public void testLoadFromBindTo() throws Exception {
-        //String filename = TestHelper.createTempFile(data, " ");
-        //System.err.println(filename);
-        DummyRegExLoader dummyRegExLoader = new DummyRegExLoader();
+    public void testLoadFromBindTo() throws Exception {       
         PigServer pigServer = new PigServer(LOCAL);
         
         String filename = TestHelper.createTempFile(data, "");
-        /*org.apache.pig.test.Util.createInputFile("tmp", "", 
-            new String[]{"1,one;i", "2,two;ii", "3,three;iii"}
-        );
-        
-        String filename = input.getAbsolutePath();
-        */
-        InputStream inputStream = FileLocalizer.open(filename, pigServer.getPigContext());
-        dummyRegExLoader.bindTo(filename, new BufferedPositionedInputStream(inputStream), 0, Long.MAX_VALUE);
         ArrayList<DataByteArray[]> expected = TestHelper.getExpected(data, pattern);
+        
+        pigServer.registerQuery("A = LOAD 'file:" + Util.encodeEscape(filename) + 
+                "' USING " + DummyRegExLoader.class.getName() + "() AS (key, val);");
+        Iterator<?> it = pigServer.openIterator("A");
         int tupleCount = 0;
-        while (true) {
-            Tuple tuple = dummyRegExLoader.getNext();
+        while (it.hasNext()) {
+            Tuple tuple = (Tuple) it.next();
             if (tuple == null)
-                break;
+              break;
             else {
-                TestHelper.examineTuple(expected, tuple, tupleCount);
-                tupleCount++;
+              TestHelper.examineTuple(expected, tuple, tupleCount);
+              tupleCount++;
             }
-        }
+          }
         assertEquals(data.size(), tupleCount);
     }
+        
 }

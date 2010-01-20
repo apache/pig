@@ -20,7 +20,6 @@ package org.apache.pig;
 import java.io.IOException;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.pig.impl.plan.OperatorPlan;
 
 /**
  * This interface defines how to retrieve metadata related to data to be loaded.

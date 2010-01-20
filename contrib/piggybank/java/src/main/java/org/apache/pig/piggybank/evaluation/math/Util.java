@@ -18,12 +18,11 @@
 
 package org.apache.pig.piggybank.evaluation.math;
 
-import java.util.List;
 import java.util.ArrayList;
+import java.util.List;
 
 import org.apache.pig.FuncSpec;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
-import org.apache.pig.data.DataType;
 /**
 * base class for math udfs
 */

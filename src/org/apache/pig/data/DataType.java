@@ -28,7 +28,7 @@ import java.util.TreeMap;
 
 import org.apache.hadoop.io.WritableComparable;
 import org.apache.pig.PigException;
-import org.apache.pig.experimental.ResourceSchema;
+import org.apache.pig.ResourceSchema;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;

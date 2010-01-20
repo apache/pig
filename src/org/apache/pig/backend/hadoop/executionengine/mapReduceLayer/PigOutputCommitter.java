@@ -22,13 +22,18 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.hadoop.mapreduce.OutputCommitter;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
+import org.apache.pig.ResourceSchema;
 import org.apache.pig.StoreFunc;
+import org.apache.pig.StoreMetadata;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.impl.PigContext;
+import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.impl.util.Pair;
 
@@ -65,7 +70,6 @@ public class PigOutputCommitter extends OutputCommitter {
      */
     public PigOutputCommitter(TaskAttemptContext context)
             throws IOException {
-        
         // create and store the map and reduce output committers
         mapOutputCommitters = getCommitters(context, 
                 JobControlCompiler.PIG_MAP_STORES);
@@ -148,21 +152,36 @@ public class PigOutputCommitter extends OutputCommitter {
         return contextCopy;   
     }
 
+    private void storeCleanup(POStore store, Configuration conf)
+            throws IOException {
+        StoreFunc storeFunc = store.getStoreFunc();
+        if (storeFunc instanceof StoreMetadata) {
+            Schema schema = store.getSchema();
+            if (schema != null) {
+                ((StoreMetadata) storeFunc).storeSchema(
+                        new ResourceSchema(schema), store.getSFile()
+                                .getFileName(), conf);
+            }
+        }
+    }
+    
     /* (non-Javadoc)
      * @see org.apache.hadoop.mapred.FileOutputCommitter#cleanupJob(org.apache.hadoop.mapred.JobContext)
      */
     @Override
     public void cleanupJob(JobContext context) throws IOException {
         // call clean up on all map and reduce committers
-        for (Pair<OutputCommitter, POStore> mapCommitter : mapOutputCommitters) {
+        for (Pair<OutputCommitter, POStore> mapCommitter : mapOutputCommitters) {            
             JobContext updatedContext = setUpContext(context, 
                     mapCommitter.second);
+            storeCleanup(mapCommitter.second, context.getConfiguration());
             mapCommitter.first.cleanupJob(updatedContext);
         }
         for (Pair<OutputCommitter, POStore> reduceCommitter : 
-            reduceOutputCommitters) {
+            reduceOutputCommitters) {            
             JobContext updatedContext = setUpContext(context, 
                     reduceCommitter.second);
+            storeCleanup(reduceCommitter.second, context.getConfiguration());
             reduceCommitter.first.cleanupJob(updatedContext);
         }
        
@@ -172,7 +191,7 @@ public class PigOutputCommitter extends OutputCommitter {
      * @see org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter#abortTask(org.apache.hadoop.mapreduce.TaskAttemptContext)
      */
     @Override
-    public void abortTask(TaskAttemptContext context) throws IOException {
+    public void abortTask(TaskAttemptContext context) throws IOException {        
         if(context.getTaskAttemptID().isMap()) {
             for (Pair<OutputCommitter, POStore> mapCommitter : 
                 mapOutputCommitters) {
