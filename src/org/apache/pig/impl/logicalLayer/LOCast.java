@@ -26,6 +26,7 @@ import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.PlanVisitor;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.impl.logicalLayer.schema.Schema.FieldSchema;
 import org.apache.pig.data.DataType;
 
 public class LOCast extends ExpressionOperator {
@@ -34,6 +35,11 @@ public class LOCast extends ExpressionOperator {
 
     private static final long serialVersionUID = 2L;
     private FuncSpec mLoadFuncSpec = null;
+    // store field schema representing the schema 
+    // in user specified casts -this is so that if
+    // field schema is unset and then getFieldSchema is called we still 
+    // rebuild the fieldschema correctly as specified by the user in the script
+    private FieldSchema userSpecifiedFieldSchema;
 
     /**
      * 
@@ -65,11 +71,22 @@ public class LOCast extends ExpressionOperator {
     public Schema getSchema() {
         return mSchema;
     }
+    
+    
+    @Override
+    public void setFieldSchema(FieldSchema fs) throws FrontendException {
+        super.setFieldSchema(fs);
+        userSpecifiedFieldSchema = new Schema.FieldSchema(fs);
+    }
 
     @Override
     public Schema.FieldSchema getFieldSchema() throws FrontendException {
         if(!mIsFieldSchemaComputed) {
-            mFieldSchema = new Schema.FieldSchema(null, mType);
+            if(userSpecifiedFieldSchema != null) {
+                mFieldSchema = userSpecifiedFieldSchema;
+            } else {
+                mFieldSchema = new Schema.FieldSchema(null, mType);
+            }
             Schema.FieldSchema parFs  = getExpression().getFieldSchema();
             String canonicalName = (parFs != null ? parFs.canonicalName : null);
             mFieldSchema.setParent(canonicalName, getExpression());

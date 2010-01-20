@@ -37,6 +37,7 @@ public class SchemaRemover extends LOVisitor {
      *            the logical binary expression operator that has to be visited
      * @throws VisitorException
      */
+    @Override
     protected void visit(BinaryExpressionOperator binOp)
             throws VisitorException {
         binOp.unsetFieldSchema();
@@ -49,6 +50,7 @@ public class SchemaRemover extends LOVisitor {
      *            the logical unary operator that has to be visited
      * @throws VisitorException
      */
+    @Override
     protected void visit(UnaryExpressionOperator uniOp) throws VisitorException {
         uniOp.unsetFieldSchema();
         super.visit(uniOp);
@@ -60,6 +62,7 @@ public class SchemaRemover extends LOVisitor {
      *            the logical cogroup operator that has to be visited
      * @throws VisitorException
      */
+    @Override
     protected void visit(LOCogroup cg) throws VisitorException {
         cg.unsetSchema();
         super.visit(cg);
@@ -71,6 +74,7 @@ public class SchemaRemover extends LOVisitor {
      *            the logical sort operator that has to be visited
      * @throws VisitorException
      */
+    @Override
     protected void visit(LOSort s) throws VisitorException {
         s.unsetSchema();
         super.visit(s);
@@ -82,6 +86,7 @@ public class SchemaRemover extends LOVisitor {
      *            the logical limit operator that has to be visited
      * @throws VisitorException
      */
+    @Override
     protected void visit(LOLimit limit) throws VisitorException {
         limit.unsetSchema();
         super.visit(limit);
@@ -94,6 +99,7 @@ public class SchemaRemover extends LOVisitor {
      *            the logical filter operator that has to be visited
      * @throws VisitorException
      */
+    @Override
     protected void visit(LOFilter filter) throws VisitorException {
         filter.unsetSchema();
         super.visit(filter);
@@ -105,6 +111,7 @@ public class SchemaRemover extends LOVisitor {
      *            the logical split operator that has to be visited
      * @throws VisitorException
      */
+    @Override
     protected void visit(LOSplit split) throws VisitorException {
         split.unsetSchema();
         super.visit(split);
@@ -116,6 +123,7 @@ public class SchemaRemover extends LOVisitor {
      *            the logical foreach operator that has to be visited
      * @throws VisitorException
      */
+    @Override
     protected void visit(LOForEach forEach) throws VisitorException {
         forEach.unsetSchema();
         super.visit(forEach);
@@ -128,6 +136,7 @@ public class SchemaRemover extends LOVisitor {
      *            the user defined function
      * @throws VisitorException
      */
+    @Override
     protected void visit(LOUserFunc func) throws VisitorException {
         func.unsetFieldSchema();
         super.visit(func);
@@ -138,6 +147,7 @@ public class SchemaRemover extends LOVisitor {
      *            the logical binCond operator that has to be visited
      * @throws VisitorException
      */
+    @Override
     protected void visit(LOBinCond binCond) throws VisitorException {
         binCond.unsetFieldSchema();
         super.visit(binCond);
@@ -149,9 +159,12 @@ public class SchemaRemover extends LOVisitor {
      *            the logical cast operator that has to be visited
      * @throws VisitorException
      */
+    @Override
     protected void visit(LOCast cast) throws VisitorException {
+        cast.unsetFieldSchema();
         super.visit(cast);
     }
+    
     
     /**
      * 
@@ -159,54 +172,172 @@ public class SchemaRemover extends LOVisitor {
      *            the logical regexp operator that has to be visited
      * @throws ParseException
      */
+    @Override
     protected void visit(LORegexp regexp) throws VisitorException {
         regexp.unsetFieldSchema();
         super.visit(regexp);
     }
 
+    @Override
     protected void visit(LOLoad load) throws VisitorException{
         // Don't remove load's schema, it's not like it will change.  And we
         // don't have a way to recover it.
         super.visit(load);
     }
     
+    @Override
     protected void visit(LOStore store) throws VisitorException{
         store.unsetSchema();
         super.visit(store);
     }
     
+    @Override
     protected void visit(LOConst c) throws VisitorException{
         c.unsetSchema();
         super.visit(c);
     }
 
+    @Override
     protected void visit(LOUnion u) throws VisitorException {
         u.unsetSchema();
         super.visit(u);
     }
 
+    @Override
     protected void visit(LOSplitOutput sop) throws VisitorException {
         sop.unsetSchema();
         super.visit(sop);
     }
 
+    @Override
     protected void visit(LODistinct dt) throws VisitorException {
         dt.unsetSchema();
         super.visit(dt);
     }
 
+    @Override
     protected void visit(LOCross cs) throws VisitorException {
         cs.unsetSchema();
         super.visit(cs);
     }
 
+    @Override
     protected void visit(LOProject project) throws VisitorException {
         project.unsetFieldSchema();
         super.visit(project);
     }
 
+    @Override
     protected void visit(LOJoin join) throws VisitorException {
         join.unsetSchema();
         super.visit(join);
+    }
+
+    @Override
+    protected void visit(ExpressionOperator op) throws VisitorException {
+        op.unsetFieldSchema();
+        super.visit(op);
+    }
+
+    @Override
+    public void visit(LOAdd op) throws VisitorException {
+        op.unsetFieldSchema();
+        super.visit(op);
+    }
+
+    @Override
+    public void visit(LOAnd binOp) throws VisitorException {
+        binOp.unsetFieldSchema();
+        super.visit(binOp);
+    }
+
+    @Override
+    public void visit(LODivide op) throws VisitorException {
+        op.unsetFieldSchema();
+        super.visit(op);
+    }
+
+    @Override
+    public void visit(LOEqual op) throws VisitorException {
+        op.unsetFieldSchema();
+        super.visit(op);
+    }
+
+    @Override
+    public void visit(LOGreaterThan op) throws VisitorException {
+        op.unsetFieldSchema();
+        super.visit(op);
+    }
+
+    @Override
+    public void visit(LOGreaterThanEqual op) throws VisitorException {
+        op.unsetFieldSchema();
+        super.visit(op);
+    }
+
+    @Override
+    public void visit(LOIsNull uniOp) throws VisitorException {
+        uniOp.unsetFieldSchema();
+        super.visit(uniOp);
+    }
+
+    @Override
+    public void visit(LOLesserThan op) throws VisitorException {
+        op.unsetFieldSchema();
+        super.visit(op);
+    }
+
+    @Override
+    public void visit(LOLesserThanEqual op) throws VisitorException {
+        op.unsetFieldSchema();
+        super.visit(op);
+    }
+
+    @Override
+    public void visit(LOMapLookup op) throws VisitorException {
+        op.unsetFieldSchema();
+        super.visit(op);
+    }
+
+    @Override
+    public void visit(LOMod op) throws VisitorException {
+        op.unsetFieldSchema();
+        super.visit(op);
+    }
+
+    @Override
+    public void visit(LOMultiply op) throws VisitorException {
+        op.unsetFieldSchema();
+        super.visit(op);
+    }
+
+    @Override
+    public void visit(LONegative op) throws VisitorException {
+        op.unsetFieldSchema();
+        super.visit(op);
+    }
+
+    @Override
+    public void visit(LONot uniOp) throws VisitorException {
+        uniOp.unsetFieldSchema();
+        super.visit(uniOp);
+    }
+
+    @Override
+    public void visit(LONotEqual op) throws VisitorException {
+        op.unsetFieldSchema();
+        super.visit(op);
+    }
+
+    @Override
+    public void visit(LOOr binOp) throws VisitorException {
+        binOp.unsetFieldSchema();
+        super.visit(binOp);
+    }
+
+    @Override
+    public void visit(LOSubtract op) throws VisitorException {
+        op.unsetFieldSchema();
+        super.visit(op);
     }
 }

@@ -145,6 +145,9 @@ PIG-922: Logical optimizer: push up project (daijy)
 
 BUG FIXES
 
+PIG-1191: POCast throws exception for certain sequences of LOAD, FILTER,
+FORACH (pradeepkth via gates)
+
 PIG-1143: Poisson Sample Loader should compute the number of samples required
 only once (sriranjan via olgan)
 

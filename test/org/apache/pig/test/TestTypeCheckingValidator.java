@@ -5533,6 +5533,79 @@ public class TestTypeCheckingValidator extends TestCase {
       LogicalPlan plan = planTester.buildPlan("c = foreach b generate (chararray)viewinfo#'pos' as position;") ;
 
         // validate
+        runTypeCheckingValidator(plan);
+        
+        checkLoaderInCasts(plan, "org.apache.pig.builtin.PigStorage");
+    }
+    
+    /**
+     * test various scenarios with two level map lookup
+     */
+    @Test
+    public void testTwolevelMapLookupLineage() throws Exception {
+        List<String[]> queries = new ArrayList<String[]>();
+        // CASE 1: LOAD -> FILTER -> FOREACH -> LIMIT -> STORE
+        queries.add(new String[] {"sds = LOAD '/my/data/location' " +
+        		"AS (simpleFields:map[], mapFields:map[], listMapFields:map[]);",
+        		"queries = FILTER sds BY mapFields#'page_params'#'query' " +
+        		"is NOT NULL;",
+        		"queries_rand = FOREACH queries GENERATE " +
+        		"(CHARARRAY) (mapFields#'page_params'#'query') AS query_string;",
+        		"queries_limit = LIMIT queries_rand 100;",
+        		"STORE queries_limit INTO 'out';"});     
+        // CASE 2: LOAD -> FOREACH -> FILTER -> LIMIT -> STORE
+        queries.add(new String[]{"sds = LOAD '/my/data/location'  " +
+        		"AS (simpleFields:map[], mapFields:map[], listMapFields:map[]);",
+        		"queries_rand = FOREACH sds GENERATE " +
+        		"(CHARARRAY) (mapFields#'page_params'#'query') AS query_string;",
+        		"queries = FILTER queries_rand BY query_string IS NOT null;",
+        		"queries_limit = LIMIT queries 100;",
+        		"STORE queries_limit INTO 'out';"});
+        // CASE 3: LOAD -> FOREACH -> FOREACH -> FILTER -> LIMIT -> STORE
+        queries.add(new String[]{"sds = LOAD '/my/data/location'  " +
+        		"AS (simpleFields:map[], mapFields:map[], listMapFields:map[]);",
+        		"params = FOREACH sds GENERATE " +
+        		"(map[]) (mapFields#'page_params') AS params;",
+        		"queries = FOREACH params " +
+        		"GENERATE (CHARARRAY) (params#'query') AS query_string;",
+        		"queries_filtered = FILTER queries BY query_string IS NOT null;",
+        		"queries_limit = LIMIT queries_filtered 100;",
+        		"STORE queries_limit INTO 'out';"});
+        // CASE 4: LOAD -> FOREACH -> FOREACH -> LIMIT -> STORE
+        queries.add(new String[]{"sds = LOAD '/my/data/location'  " +
+        		"AS (simpleFields:map[], mapFields:map[], listMapFields:map[]);",
+        		"params = FOREACH sds GENERATE" +
+        		" (map[]) (mapFields#'page_params') AS params;",
+        		"queries = FOREACH params GENERATE " +
+        		"(CHARARRAY) (params#'query') AS query_string;",
+        		"queries_limit = LIMIT queries 100;",
+        		"STORE queries_limit INTO 'out';"});
+        // CASE 5: LOAD -> FOREACH -> FOREACH -> FOREACH -> LIMIT -> STORE
+        queries.add(new String[]{"sds = LOAD '/my/data/location'  " +
+                "AS (simpleFields:map[], mapFields:map[], listMapFields:map[]);",
+                "params = FOREACH sds GENERATE " +
+                "(map[]) (mapFields#'page_params') AS params;",
+                "queries = FOREACH params GENERATE " +
+                "(CHARARRAY) (params#'query') AS query_string;",
+                "rand_queries = FOREACH queries GENERATE query_string as query;",
+                "queries_limit = LIMIT rand_queries 100;",
+                "STORE rand_queries INTO 'out';"});
+        
+        for (String[] query: queries) {
+            LogicalPlan lp = null;
+            for (String queryLine : query) {
+                lp = planTester.buildPlan(queryLine);    
+            }
+            
+            // validate
+            runTypeCheckingValidator(lp);
+            checkLoaderInCasts(lp, "org.apache.pig.builtin.PigStorage");
+            
+        }
+    }
+    
+    private void runTypeCheckingValidator(LogicalPlan plan) throws 
+    PlanValidationException {
         CompilationMessageCollector collector = new CompilationMessageCollector() ;
         TypeCheckingValidator typeValidator = new TypeCheckingValidator() ;
         typeValidator.validate(plan, collector) ;
@@ -5544,12 +5617,16 @@ public class TestTypeCheckingValidator extends TestCase {
         if (collector.hasError()) {
             throw new AssertionError("Expect no  error") ;
         }
-
+    }
+    
+    private void checkLoaderInCasts(LogicalPlan plan, String loaderClassName) 
+    throws VisitorException {
         CastFinder cf = new CastFinder(plan);
         cf.visit();
         List<LOCast> casts = cf.casts;
         for (LOCast cast : casts) {
-            assertTrue(cast.getLoadFuncSpec().getClassName().startsWith("org.apache.pig.builtin.PigStorage"));    
+            assertTrue(cast.getLoadFuncSpec().getClassName().startsWith(
+                    loaderClassName));    
         }
     }
     
@@ -5708,6 +5785,7 @@ public class TestTypeCheckingValidator extends TestCase {
      */
     public static class TestBinCondFieldSchema extends EvalFunc<DataBag> {
         //no-op exec method
+        @Override
         public DataBag exec(Tuple input) {
             return null;
         }
