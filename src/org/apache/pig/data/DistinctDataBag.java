@@ -102,17 +102,16 @@ public class DistinctDataBag extends DefaultAbstractBag {
     }
 
     @Override
-    public DataBag add(Tuple t) {
+    public void add(Tuple t) {
         synchronized (mContents) {
             if (mContents.add(t)) {
                 mSize++;
             }
-            return this;
         }
     }
 
     @Override
-    public DataBag addAll(DataBag b) {
+    public void addAll(DataBag b) {
         synchronized (mContents) {
             Iterator<Tuple> i = b.iterator();
             while (i.hasNext()) {
@@ -120,7 +119,6 @@ public class DistinctDataBag extends DefaultAbstractBag {
                     mSize++;
                 }
             }
-            return this;
         }
     }
 

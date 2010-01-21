@@ -94,16 +94,14 @@ public interface DataBag extends Spillable, WritableComparable, Iterable<Tuple>,
     /**
      * Add a tuple to the bag.
      * @param t tuple to add.
-     * @return The DataBag itself
      */
-    DataBag add(Tuple t);
+    void add(Tuple t);
 
     /**
      * Add contents of a bag to the bag.
      * @param b bag to add contents of.
-     * @return The DataBag itself
      */
-    DataBag addAll(DataBag b);
+    void addAll(DataBag b);
 
     /**
      * Clear out the contents of the bag, both on disk and in memory.

@@ -35,11 +35,11 @@ public class AccumulativeBag implements DataBag {
         this.index = index;
     }
     
-    public DataBag add(Tuple t) {
+    public void add(Tuple t) {
         throw new RuntimeException("AccumulativeBag does not support add operation");
     }
 
-    public DataBag addAll(DataBag b) {
+    public void addAll(DataBag b) {
         throw new RuntimeException("AccumulativeBag does not support add operation");
     }
 
