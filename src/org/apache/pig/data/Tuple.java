@@ -110,9 +110,8 @@ public interface Tuple extends WritableComparable, Serializable {
      * @param val Object to put in the indicated field.
      * @throws ExecException if the field number is greater than or equal to
      * the number of fields in the tuple.
-     * @return The Tuple itself
      */
-    Tuple set(int fieldNum, Object val) throws ExecException;
+    void set(int fieldNum, Object val) throws ExecException;
 
     /**
      * Append a field to a tuple.  This method is not efficient as it may
@@ -121,9 +120,8 @@ public interface Tuple extends WritableComparable, Serializable {
      * newTuple(int) method and then fill in the values with set(), rather
      * than construct it with newTuple() and append values.
      * @param val Object to append to the tuple.
-     * @return The Tuple itself
      */
-    Tuple append(Object val);
+    void append(Object val);
 
     /**
      * Determine the size of tuple in memory.  This is used by data bags

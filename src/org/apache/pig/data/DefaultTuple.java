@@ -159,9 +159,8 @@ public class DefaultTuple implements Tuple {
      * @throws ExecException if the field number is greater than or equal to
      * the number of fields in the tuple.
      */
-    public Tuple set(int fieldNum, Object val) throws ExecException {
+    public void set(int fieldNum, Object val) throws ExecException {
         mFields.set(fieldNum, val);
-        return this;
     }
 
     /**
@@ -172,9 +171,8 @@ public class DefaultTuple implements Tuple {
      * than construct it with newTuple() and append values.
      * @param val Object to append to the tuple.
      */
-    public Tuple append(Object val) {
+    public void append(Object val) {
         mFields.add(val);
-        return this;
     }
 
     /**
