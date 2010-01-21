@@ -21,7 +21,7 @@
   
 <document>
 <header>
-<title>Pig Latin Users Guide</title>
+<title>Pig Latin Reference Manual 1</title>
 </header>
 <body>
  
@@ -29,13 +29,14 @@
  <!-- ABOUT PIG LATIN -->
    <section>
    <title>Overview</title>
-   <p>Use the Pig Latin Users Guide together with the <a href="piglatin_reference.html">Pig Latin Reference Manual</a>. </p>
+   <p>Use this manual together with <a href="piglatin_ref2.html">Pig Latin Reference Manual 2</a>. </p>
+   <p>Also, be sure to review the information in the <a href="cookbook.html">Pig Cookbook</a>. </p>
     </section>
     
    <!-- PIG LATIN STATEMENTS -->
    <section>
 	<title>Pig Latin Statements</title>	
-   <p>A Pig Latin statement is an operator that takes a <a href="piglatin_reference.html#Relations%2C+Bags%2C+Tuples%2C+Fields">relation</a> 
+   <p>A Pig Latin statement is an operator that takes a <a href="piglatin_ref2.html#Relations%2C+Bags%2C+Tuples%2C+Fields">relation</a> 
    as input and produces another relation as output. 
    (This definition applies to all Pig Latin operators except LOAD and STORE which read data from and write data to the file system.) 
    Pig Latin statements can span multiple lines and must end with a semi-colon ( ; ). 
@@ -54,7 +55,7 @@
   
    <section>
    <title>Running Pig Latin </title>
-   <p>You can execute Pig Latin statements interactively or in batch mode using Pig scripts (see the <a href="piglatin_reference.html#exec">exec</a> and <a href="piglatin_reference.html#run">run</a> commands).</p>
+   <p>You can execute Pig Latin statements interactively or in batch mode using Pig scripts (see the <a href="piglatin_ref2.html#exec">exec</a> and <a href="piglatin_ref2.html#run">run</a> commands).</p>
    
    <p>Grunt Shell, Interactive or Batch Mode</p>
    <source>
@@ -136,7 +137,6 @@ DUMP B;
       </li>
    </ol>
    </section>
-      
    
    <section>
    <title>Working with Data</title>
@@ -153,19 +153,7 @@ DUMP B;
       </li>
    </ol>
    </section>
-   
-   <section>
-   <title>Increasing Parallelism</title>
-   <p>To increase the parallelism of a job, include the PARALLEL clause with the COGROUP, CROSS, DISTINCT, GROUP, JOIN and ORDER operators. 
-   PARALLEL controls the number of reducers only; the number of maps is determined by the input data 
-   (see the <a href="cookbook.html">Pig Cookbook</a>).</p>
-   </section>
-   
-   <section><title>Increasing Performance</title>
-   <p>You can increase or optimize the performance of your Pig Latin scripts by following a few simple rules 
-   (see the <a href="cookbook.html">Pig Cookbook</a>).</p>
-   </section>
-   
+ 
    <section>
    <title>Using Comments in Scripts</title>
    <p>If you place Pig Latin statements in a script, the script can include comments. </p>
@@ -231,7 +219,7 @@ grunt> DUMP C;
 <p>With multi-query execution Pig processes an entire script or a batch of statements at once.</p>
 
 <section>
-	<title>Turning Multi-Query Execution On or Off</title>	
+	<title>Turning it On or Off</title>	
 	<p>Multi-query execution is turned on by default. 
 	To turn it off and revert to Pig's "execute-on-dump/store" behavior, use the "-M" or "-no_multiquery" options. </p>
 	<p>To run script "myscript.pig" without the optimization, execute Pig as follows: </p>
@@ -250,7 +238,7 @@ $ pig -no_multiquery myscript.pig
 <li>
 <p>For batch mode execution, the entire script is first parsed to determine if intermediate tasks 
 can be combined to reduce the overall amount of work that needs to be done; execution starts only after the parsing is completed 
-(see the <a href="piglatin_reference.html#EXPLAIN">EXPLAIN</a> operator and the <a href="piglatin_reference.html#exec">exec</a> and <a href="piglatin_reference.html#run">run</a> commands). </p>
+(see the <a href="piglatin_ref2.html#EXPLAIN">EXPLAIN</a> operator and the <a href="piglatin_ref2.html#exec">exec</a> and <a href="piglatin_ref2.html#run">run</a> commands). </p>
 
 </li>
 <li>
@@ -316,8 +304,8 @@ With multi-query execution, the script will process A and dump A' as a side-effe
 
 <section>
 	<title>Store vs. Dump</title>
-	<p>With multi-query exection, you want to use <a href="piglatin_reference.html#STORE">STORE</a> to save (persist) your results. 
-	You do not want to use <a href="piglatin_reference.html#DUMP">DUMP</a> as it will disable multi-query execution and is likely to slow down execution. (If you have included DUMP statements in your scripts for debugging purposes, you should remove them.) </p>
+	<p>With multi-query exection, you want to use <a href="piglatin_ref2.html#STORE">STORE</a> to save (persist) your results. 
+	You do not want to use <a href="piglatin_ref2.html#DUMP">DUMP</a> as it will disable multi-query execution and is likely to slow down execution. (If you have included DUMP statements in your scripts for debugging purposes, you should remove them.) </p>
 	
 	<p>DUMP Example: In this script, because the DUMP command is interactive, the multi-query execution will be disabled and two separate jobs will be created to execute this script. The first job will execute A > B > DUMP while the second job will execute A > B > C > STORE.</p>
 	
@@ -501,14 +489,15 @@ STORE Gtab INTO '/user/vxj/finalresult2';
 <section>
 <title>Specialized Joins</title>
 <p>
-Pig Latin includes three "specialized" joins: fragement replicate joins, skewed joins, and merge joins. 
-Replicate, skewed, and merge joins can be performed using the <a href="piglatin_reference.html#JOIN">JOIN</a> operator (inner, equijoins).
-Replicate and skewed joins can also be performed using the the the <a href="piglatin_reference.html#JOIN%2C+OUTER">Outer Join</a> syntax.
-</p>
+Pig Latin includes three "specialized" joins: replicated joins, skewed joins, and merge joins. </p>
+<ul>
+<li>Replicated, skewed, and merge joins can be performed using <a href="piglatin_ref2.html#JOIN+%28inner%29">inner joins</a>.</li>
+<li>Replicated and skewed joins can also be performed using <a href="piglatin_ref2.html#JOIN+%28outer%29">outer joins</a>.</li>
+</ul>
 
 <!-- FRAGMENT REPLICATE JOINS-->
 <section>
-<title>Fragment Replicate Joins</title>
+<title>Replicated Joins</title>
 <p>Fragment replicate join is a special type of join that works well if one or more relations are small enough to fit into main memory. 
 In such cases, Pig can perform a very efficient join because all of the hadoop work is done on the map side. In this type of join the 
 large relation is followed by one or more small relations. The small relations must be small enough to fit into main memory; if they 
@@ -516,7 +505,7 @@ don't, the process fails and an error is generated.</p>
  
 <section>
 <title>Usage</title>
-<p>Perform a fragment replicate join with the USING clause (see <a href="piglatin_reference.html#JOIN">JOIN</a> and <a href="piglatin_reference.html#JOIN%2C+OUTER">JOIN, OUTER</a>).
+<p>Perform a replicated join with the USING clause (see <a href="piglatin_ref2.html#JOIN+%28inner%29">inner joins</a> and <a href="piglatin_ref2.html#JOIN+%28outer%29">outer joins</a>).
 In this example, a large relation is joined with two smaller relations. Note that the large relation comes first followed by the smaller relations; 
 and, all small relations together must fit into main memory, otherwise an error is generated. </p>
 <source>
@@ -560,7 +549,7 @@ associated with a given key is too large to fit in memory.
 
 <section>
 <title>Usage</title>
-<p>Perform a skewed join with the USING clause (see <a href="piglatin_reference.html#JOIN">JOIN</a> and <a href="piglatin_reference.html#JOIN%2C+OUTER">JOIN, OUTER</a>). </p>
+<p>Perform a skewed join with the USING clause (see <a href="piglatin_ref2.html#JOIN+%28inner%29">inner joins</a> and <a href="piglatin_ref2.html#JOIN+%28outer%29">outer joins</a>). </p>
 <source>
 big = LOAD 'big_data' AS (b1,b2,b3);
 massive = LOAD 'massive_data' AS (m1,m2,m3);
@@ -613,7 +602,7 @@ and the right input of the join to be the side file. It then samples records fro
 
 <section>
 <title>Usage</title>
-<p>Perform a merge join with the USING clause (see the <a href="piglatin_reference.html#JOIN">JOIN</a> operator).</p>
+<p>Perform a merge join with the USING clause (see <a href="piglatin_ref2.html#JOIN+%28inner%29">inner joins</a>).</p>
 <source>
 C = JOIN A BY a1, B BY b1 USING "merge";
 </source>
@@ -682,7 +671,7 @@ pig -optimizer_off [opt_rule | all ]
 <title>ImplicitSplitInserter</title>
 <p>Status: Mandatory</p>
 <p>
-<a href="piglatin_reference.html#SPLIT">SPLIT</a> is the only operator that models multiple outputs in Pig. 
+<a href="piglatin_ref2.html#SPLIT">SPLIT</a> is the only operator that models multiple outputs in Pig. 
 To ease the process of building logical plans, all operators are allowed to have multiple outputs. As part of the 
 optimization, all non-split operators that have multiple outputs are altered to have a SPLIT operator as the output 
 and the outputs of the operator are then made outputs of the SPLIT operator. An example will illustrate the point. 
@@ -699,9 +688,9 @@ C = COGROUP A BY $0, B BY $0;
 <title>TypeCastInserter</title>
 <p>Status: Mandatory</p>
 <p>
-If you specify a <a href="piglatin_reference.html#Schemas">schema</a> with the 
-<a href="piglatin_reference.html#LOAD">LOAD</a> statement, the optimizer will perform a pre-fix projection of the columns 
-and <a href="piglatin_reference.html#Cast+Operators">cast</a> the columns to the appropriate types. An example will illustrate the point. 
+If you specify a <a href="piglatin_ref2.html#Schemas">schema</a> with the 
+<a href="piglatin_ref2.html#LOAD">LOAD</a> statement, the optimizer will perform a pre-fix projection of the columns 
+and <a href="piglatin_ref2.html#Cast+Operators">cast</a> the columns to the appropriate types. An example will illustrate the point. 
 The LOAD statement (a) has a schema associated with it. The optimizer will insert a FOREACH operator that will project columns 0, 1 and 2 
 and also cast them to chararray, int and float respectively. 
 </p>
@@ -715,9 +704,9 @@ C = GROUP A By $0;
 <section>
 <title>StreamOptimizer</title>
 <p>
-Optimize when <a href="piglatin_reference.html#LOAD">LOAD</a> precedes <a href="piglatin_reference.html#STREAM">STREAM</a> 
+Optimize when <a href="piglatin_ref2.html#LOAD">LOAD</a> precedes <a href="piglatin_ref2.html#STREAM">STREAM</a> 
 and the loader class is the same as the serializer for the stream. Similarly, optimize when STREAM is followed by 
-<a href="piglatin_reference.html#STORE">STORE</a> and the deserializer class is same as the storage class. 
+<a href="piglatin_ref2.html#STORE">STORE</a> and the deserializer class is same as the storage class. 
 For both of these cases the optimization is to replace the loader/serializer with BinaryStorage which just moves bytes 
 around and to replace the storer/deserializer with BinaryStorage.
 </p>
@@ -727,7 +716,7 @@ around and to replace the storer/deserializer with BinaryStorage.
 <section>
 <title>OpLimitOptimizer</title>
 <p>
-The objective of this rule is to push the <a href="piglatin_reference.html#LIMIT">LIMIT</a> operator up the data flow graph 
+The objective of this rule is to push the <a href="piglatin_ref2.html#LIMIT">LIMIT</a> operator up the data flow graph 
 (or down the tree for database folks). In addition, for top-k (ORDER BY followed by a LIMIT) the LIMIT is pushed into the ORDER BY.
 </p>
 <source>
@@ -740,7 +729,7 @@ C = LIMIT B 10;
 <section>
 <title>PushUpFilters</title>
 <p>
-The objective of this rule is to push the <a href="piglatin_reference.html#FILTER">FILTER</a> operators up the data flow graph. 
+The objective of this rule is to push the <a href="piglatin_ref2.html#FILTER">FILTER</a> operators up the data flow graph. 
 As a result, the number of records that flow through the pipeline is reduced. 
 </p>
 <source>
@@ -754,8 +743,8 @@ C = FILTER B BY $0 &lt; 10;
 <title>PushDownExplodes</title>
 <p>
 The objective of this rule is to reduce the number of records that flow through the pipeline by moving 
-<a href="piglatin_reference.html#FOREACH">FOREACH</a> operators with a 
-<a href="piglatin_reference.html#Flatten+Operator">FLATTEN</a> down the data flow graph. 
+<a href="piglatin_ref2.html#FOREACH">FOREACH</a> operators with a 
+<a href="piglatin_ref2.html#Flatten+Operator">FLATTEN</a> down the data flow graph. 
 In the example shown below, it would be more efficient to move the foreach after the join to reduce the cost of the join operation.
 </p>
 <source>
@@ -776,8 +765,16 @@ D = JOIN C BY $1, B BY $1;
 
 <p>The amount of memory allocated to bags is determined by pig.cachedbag.memusage; the default is set to 10% of available memory. Note that this memory is shared across all large bags used by the application.</p>
 
-</section> <!-- END MEMORY MANAGEMENT  -->
+</section> 
+<!-- END MEMORY MANAGEMENT  -->
 
+ 
+  <!-- ZEBRA INTEGRATION -->
+<section>
+<title>Zebra Integration</title>
+<p>For information about how to integrate Zebra with your Pig scripts, see <a href="zebra_pig.html">Zebra and Pig</a>.</p>
+ </section> 
+<!-- END ZEBRA INTEGRATION  -->
  
  
  
