@@ -155,7 +155,7 @@ If an attempt is made to create a table of a column named "source_table", an exc
 <section>
 <title>MapReduce Jobs</title>
 <p>
-TableInputFormat has static method, requireSortedTable, that allows the caller to specify the behavior of a single sorted table or an order-preserving sorted table union as described above. The method ensures all tables in a union are sorted. For more information, see <a href="zebra_reference.html#TableInputFormat">TableInputFormat</a>.
+TableInputFormat has static method, requireSortedTable, that allows the caller to specify the behavior of a single sorted table or an order-preserving sorted table union as described above. The method ensures all tables in a union are sorted. For more information, see <a href="zebra_mapreduce.html#TableInputFormat">TableInputFormat</a>.
 </p>
 
 <p>One simple example: A order-preserving sorted union B. A and B are sorted tables. </p>

@@ -71,7 +71,8 @@ $ pig
 <section>
 <title>Grunt Shell</title>
 <p>Use Pig's interactive shell, Grunt, to enter pig commands manually. See the <a href="setup.html#Sample+Code">Sample Code</a> for instructions about the passwd file used in the example.</p>
-<p>You can also run or execute script files from the Grunt shell. See the RUN and EXEC commands in the <a href="piglatin_reference.html">Pig Latin Reference Manual</a>. </p>
+<p>You can also run or execute script files from the Grunt shell. 
+See the <a href="piglatin_ref2.html#run">run</a> and <a href="piglatin_ref2.html#exec">exec</a> commands. </p>
 <p><strong>Local Mode</strong></p>
 <source>
 $ pig -x local

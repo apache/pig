@@ -29,7 +29,7 @@
    <section>
    <title>Overview</title>
    <p>With Pig you can load and store data in Zebra format. You can also take advantage of sorted Zebra tables for map-side groups and merge joins. When working with Pig keep in mind that, unlike MapReduce, you do not need to declare Zebra schemas. Zebra automatically converts Zebra schemas to Pig schemas (and vice versa) for you.</p>
-
+   
  </section>
  <!-- END OVERVIEW-->
  
@@ -54,19 +54,19 @@ B = FOREACH A GENERATE name, age, gpa;
  <ol>
  <li>You need to register a Zebra jar file the same way you would do it for any other UDF.</li>
  <li>You need to place the jar on your classpath.</li>
- <li>When using Zebra with Pig, Zebra data is self-described and always contains a schema. This means that the AS clause is unnecessary as long as 
-  you know what the column names and types are. To determine the column names and types, you can run the DESCRIBE statement right after the load:
+  </ol>
+  
+ <p>Zebra data is self-described meaning that the name and type information is stored with the data; you don't need to provide an AS clause or perform type casting unless you actually need to change the data. To check column names and types, you can run the DESCRIBE statement right after the load:</p>
  <source>
 A = LOAD 'studenttab' USING org.apache.hadoop.zebra.pig.TableLoader();
 DESCRIBE A;
-a: {name: chararray,age: int,gpa: float}
+A: {name: chararray,age: int,gpa: float}
 </source>
- </li>
- </ol>
    
-<p>You can provide alternative names to the columns with the AS clause. You can also provide types as long as the 
- original type can be converted to the new type. <em>In general</em>, Zebra supports Pig type compatibilities 
- (see <a href="piglatin_reference.html#Arithmetic+Operators+and+More">Arithmetic Operators and More</a>).</p>
+<p>You can provide alternative names to the columns with the AS clause. You can also provide alternative types as long as the 
+ original type can be converted to the new type. (One exception to this rule are maps since you can't specify schema for a map. Zebra always creates map values as bytearrays which would require casting to real type in the script. Note that this is not different for treating maps in Pig for any other storage.) For more information see <a href="piglatin_ref2.html#Schemas">Schemas</a> and
+<a href="piglatin_ref2.html#Arithmetic+Operators+and+More">Arithmetic Operators and More</a>.
+ </p>
  
 <p>You can provide multiple, comma-separated files to the loader:</p>
 <source>
@@ -186,7 +186,8 @@ B = LOAD '$PATH/tbl3' USING org.apache.hadoop.zebra.pig.TableLoader('s1, r1');
    <section>
     <title>HDFS File Globs</title>
         <p>Pig supports HDFS file globs 
-    (for more information about globs, see <a href="http://hadoop.apache.org/common/docs/current/api/org/apache/hadoop/fs/FileSystem.html">FileSystem</a> and GlobStatus).</p>
+    (for more information 
+    see <a href="http://hadoop.apache.org/common/docs/current/api/org/apache/hadoop/fs/FileSystem.html#globStatus(org.apache.hadoop.fs.Path)">GlobStatus</a>).</p>
     <p>In this example, all Zebra tables in the directory of /path/to/PIG/tables will be loaded as a union (table union). </p>
  <source>
  A = LOAD ‘/path/to/PIG/tables/*’ USING org.apache.hadoop.zebra.pig.TableLoader(‘’);
