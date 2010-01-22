@@ -144,9 +144,6 @@ PIG-1146: Inconsistent column pruning in LOUnion (daijy)
 PIG-1176: Column Pruner issues in union of loader with and without schema
 (daijy)
 
-PIG-1184: PruneColumns optimization does not handle the case of foreach
-flatten correctly if flattened bag is not used later (daijy)
-
 Release 0.6.0 - Unreleased
 
 INCOMPATIBLE CHANGES
