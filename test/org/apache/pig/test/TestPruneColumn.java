@@ -1767,36 +1767,4 @@ public class TestPruneColumn extends TestCase {
 
         assertTrue(emptyLogFileMessage());
     }
-    
-    // See PIG-1184
-    @Test
-    public void testForEachFlatten() throws Exception {
-        File inputFile = Util.createInputFile("table_testForEachFlatten", "", new String[]{"oiue\tM\t{(3),(4)}\t{(toronto),(montreal)}"});
-        
-        pigServer.registerQuery("A = load '"+inputFile.toString()+"' as (a0:chararray, a1:chararray, a2:bag{t:tuple(id:chararray)}, a3:bag{t:tuple(loc:chararray)});");
-        pigServer.registerQuery("B = foreach A generate a0, a1, flatten(a2), flatten(a3), 10;");
-        pigServer.registerQuery("C = foreach B generate a0, $4;");
-        Iterator<Tuple> iter = pigServer.openIterator("C");
-
-        assertTrue(iter.hasNext());
-        Tuple t = iter.next();
-        assertTrue(t.toString().equals("(oiue,10)"));
-
-        assertTrue(iter.hasNext());
-        t = iter.next();
-        assertTrue(t.toString().equals("(oiue,10)"));
-
-        assertTrue(iter.hasNext());
-        t = iter.next();
-        assertTrue(t.toString().equals("(oiue,10)"));
-
-        assertTrue(iter.hasNext());
-        t = iter.next();
-        assertTrue(t.toString().equals("(oiue,10)"));
-
-        assertFalse(iter.hasNext());
-
-        assertTrue(checkLogFileMessage(new String[]{"Columns pruned for A: $1",
-                "No map keys pruned for A"}));
-    }
 }
