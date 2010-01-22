@@ -194,9 +194,9 @@ public class TestResourceSchema {
     }
     
     /**
-     * Test invalid Pig Schema: multiple fields for a bag
+     * Test one-level Pig Schema: multiple fields for a bag
      */
-    @Test(expected=IllegalArgumentException.class) 
+    @Test
     public void testResourceSchemaWithInvalidPigSchema() 
     throws FrontendException {
         String [] aliases ={"f1", "f2"};
@@ -206,13 +206,14 @@ public class TestResourceSchema {
         Schema.FieldSchema fld0 = 
             new Schema.FieldSchema("f0", level0, DataType.BAG);
         Schema level1 = new Schema(fld0);
-        new ResourceSchema(level1);
+        Schema genSchema = Schema.getPigSchema(new ResourceSchema(level1));
+        assertTrue(CheckTwoLevelAccess(genSchema));
     }
     
     /**
-     * Test invalid Pig Schema: bag without tuple field
+     * Test one-level Pig Schema: bag without tuple field
      */
-    @Test(expected=IllegalArgumentException.class) 
+    @Test
     public void testResourceSchemaWithInvalidPigSchema2() 
     throws FrontendException {
         String [] aliases ={"f1"};
@@ -222,6 +223,7 @@ public class TestResourceSchema {
         Schema.FieldSchema fld0 = 
             new Schema.FieldSchema("f0", level0, DataType.BAG);
         Schema level1 = new Schema(fld0);
-        new ResourceSchema(level1);
+        Schema genSchema = Schema.getPigSchema(new ResourceSchema(level1));
+        assertTrue(CheckTwoLevelAccess(genSchema));
     }
 }
