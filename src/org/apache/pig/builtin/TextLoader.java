@@ -24,6 +24,8 @@ import java.net.URL;
 import java.nio.charset.Charset;
 import java.util.Map;
 
+import org.apache.hadoop.io.Text;
+
 import org.apache.pig.ExecType;
 import org.apache.pig.LoadFunc;
 import org.apache.pig.PigException;
@@ -34,6 +36,7 @@ import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.io.BufferedPositionedInputStream;
+import org.apache.pig.impl.io.PigLineRecordReader;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 
@@ -43,13 +46,14 @@ import org.apache.pig.impl.logicalLayer.schema.Schema;
  * contains the line of text.
  */
 public class TextLoader implements LoadFunc{
-    BufferedPositionedInputStream in;
+    protected PigLineRecordReader in = null;
+
     final private static Charset utf8 = Charset.forName("UTF8");
     long end;
     private TupleFactory mTupleFactory = TupleFactory.getInstance();
 
     public void bindTo(String fileName, BufferedPositionedInputStream in, long offset, long end) throws IOException {
-        this.in = in;
+        this.in = new PigLineRecordReader( in, offset, end );
         this.end = end;
         // Since we are not block aligned we throw away the first
         // record and count on a different instance to read it
@@ -58,15 +62,17 @@ public class TextLoader implements LoadFunc{
     }
 
     public Tuple getNext() throws IOException {
-        if (in == null || in.getPosition() > end)
+        if (in == null || in.getPosition() > end) {
             return null;
-        String line;
-        if ((line = in.readLine(utf8, (byte)'\n')) != null) {
-            if (line.length()>0 && line.charAt(line.length()-1)=='\r' && System.getProperty("os.name").toUpperCase().startsWith("WINDOWS"))
-                line = line.substring(0, line.length()-1);
-            return mTupleFactory.newTuple(new DataByteArray(line.getBytes()));
         }
-        return null;
+
+        Text value = new Text();
+        boolean notDone = in.next(value);
+        if (!notDone) {
+            return null;
+        }                                                                                           
+
+        return mTupleFactory.newTuple(new DataByteArray(value.getBytes()));
     }
 
     /**
