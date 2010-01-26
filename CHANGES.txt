@@ -147,6 +147,9 @@ PIG-1176: Column Pruner issues in union of loader with and without schema
 PIG-1184: PruneColumns optimization does not handle the case of foreach
 flatten correctly if flattened bag is not used later (daijy)
 
+PIG-1189: StoreFunc UDF should ship to the backend automatically without
+"register" (daijy)
+
 Release 0.6.0 - Unreleased
 
 INCOMPATIBLE CHANGES
