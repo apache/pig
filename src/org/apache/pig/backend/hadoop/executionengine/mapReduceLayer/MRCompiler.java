@@ -732,6 +732,8 @@ public class MRCompiler extends PhyPlanVisitor {
             storeToMapReduceMap.put(op, curMROp);
             nonBlocking(op);
             phyToMROpMap.put(op, curMROp);
+            if (op.getSFile()!=null && op.getSFile().getFuncSpec()!=null)
+                curMROp.UDFs.add(op.getSFile().getFuncSpec().toString());
         }catch(Exception e){
             int errCode = 2034;
             String msg = "Error compiling operator " + op.getClass().getSimpleName();
