@@ -444,17 +444,17 @@ public class JobControlCompiler{
             for (POStore st: mapStores) {
                 storeLocations.add(st);
                 StoreFunc sFunc = st.getStoreFunc();
-                //sFunc.setStoreLocation(st.getSFile().getFileName(), nwJob);
+                sFunc.setStoreLocation(st.getSFile().getFileName(), nwJob);
                 if (st.getSchema()!=null)
-                    sFunc.checkSchema(new ResourceSchema(st.getSchema()));
+                    sFunc.checkSchema(new ResourceSchema(st.getSchema(), st.getSortInfo()));
             }
 
             for (POStore st: reduceStores) {
                 storeLocations.add(st);
                 StoreFunc sFunc = st.getStoreFunc();
-                //sFunc.setStoreLocation(st.getSFile().getFileName(), nwJob);
+                sFunc.setStoreLocation(st.getSFile().getFileName(), nwJob);
                 if (st.getSchema()!=null)
-                    sFunc.checkSchema(new ResourceSchema(st.getSchema()));
+                    sFunc.checkSchema(new ResourceSchema(st.getSchema(), st.getSortInfo()));
             }
 
             // the OutputFormat we report to Hadoop is always PigOutputFormat

@@ -21,7 +21,12 @@ package org.apache.pig.test;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.apache.pig.ResourceSchema;
+import org.apache.pig.SortColInfo;
+import org.apache.pig.SortInfo;
 import org.apache.pig.ResourceSchema.ResourceFieldSchema;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataType;
@@ -79,6 +84,40 @@ public class TestResourceSchema {
         Schema genSchema = Schema.getPigSchema(rsSchema);
         assertTrue("generated schema equals original", 
                 Schema.equals(genSchema, origSchema, true, false));
+    }
+    
+    /**
+     * Test that ResourceSchema is correctly with SortInfo
+     */
+    @Test
+    public void testResourceFlatSchemaCreationWithSortInfo() 
+    throws ExecException, SchemaMergeException, FrontendException {
+        String [] aliases ={"f1", "f2"};
+        byte[] types = {DataType.CHARARRAY, DataType.INTEGER};
+        
+        Schema origSchema = new Schema(
+                new Schema.FieldSchema("t1", 
+                        new Schema(
+                                new Schema.FieldSchema("t0", 
+                                        TypeCheckingTestUtil.genFlatSchema(
+                                                aliases,types), 
+                                                DataType.TUPLE)), DataType.BAG));
+        List<SortColInfo> colList = new ArrayList<SortColInfo>();
+        SortColInfo col1 = new SortColInfo("f1", 0, SortColInfo.Order.ASCENDING);
+        SortColInfo col2 = new SortColInfo("f1", 1, SortColInfo.Order.DESCENDING);
+        colList.add(col1);
+        colList.add(col2);
+        SortInfo sortInfo = new SortInfo(colList);
+                        
+        ResourceSchema rsSchema = new ResourceSchema(origSchema, sortInfo);
+
+        Schema genSchema = Schema.getPigSchema(rsSchema);
+        assertTrue("generated schema equals original", 
+                Schema.equals(genSchema, origSchema, true, false));
+        assertTrue(rsSchema.getSortKeys()[0]==0);
+        assertTrue(rsSchema.getSortKeys()[1]==1);
+        assertTrue(rsSchema.getSortKeyOrders()[0]==ResourceSchema.Order.ASCENDING);
+        assertTrue(rsSchema.getSortKeyOrders()[1]==ResourceSchema.Order.DESCENDING);
     }
     
     /**

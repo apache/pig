@@ -149,6 +149,27 @@ public class ResourceSchema implements Serializable {
         }        
     }
     
+    public ResourceSchema(Schema pigSchema, SortInfo sortInfo) {
+        this(pigSchema);
+        if (sortInfo!=null && sortInfo.getSortColInfoList().size()!=0) {
+            sortKeys = new int[sortInfo.getSortColInfoList().size()];
+            sortKeyOrders = new Order[sortInfo.getSortColInfoList().size()];
+            for (int i=0;i<sortInfo.getSortColInfoList().size();i++) {
+                SortColInfo colInfo = sortInfo.getSortColInfoList().get(i); 
+                int index = colInfo.getColIndex();
+                Order order;
+                org.apache.pig.SortColInfo.Order origOrder = colInfo.getSortOrder();
+                if (origOrder==org.apache.pig.SortColInfo.Order.ASCENDING) {
+                    order = Order.ASCENDING;
+                } else {
+                    order = Order.DESCENDING;
+                }
+                sortKeys[i] = index;
+                sortKeyOrders[i] = order;
+            }
+        }
+    }
+    
     public int getVersion() {
         return version;
     }

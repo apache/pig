@@ -159,7 +159,7 @@ public class PigOutputCommitter extends OutputCommitter {
             Schema schema = store.getSchema();
             if (schema != null) {
                 ((StoreMetadata) storeFunc).storeSchema(
-                        new ResourceSchema(schema), store.getSFile()
+                        new ResourceSchema(schema, store.getSortInfo()), store.getSFile()
                                 .getFileName(), conf);
             }
         }

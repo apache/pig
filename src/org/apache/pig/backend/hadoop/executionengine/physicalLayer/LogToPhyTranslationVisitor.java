@@ -1630,6 +1630,23 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
             // check limit's predecessor
             if(op.get(0) instanceof LOLimit) {
                 op = loStore.getPlan().getPredecessors(op.get(0));
+            } else if (op.get(0) instanceof LOSplitOutput) {
+                LOSplitOutput splitOutput = (LOSplitOutput)op.get(0);
+                // We assume this is the LOSplitOutput we injected for this case:
+                // b = order a by $0; store b into '1'; store b into '2';
+                // In this case, we should mark both '1' and '2' as sorted
+                LogicalPlan conditionPlan = splitOutput.getConditionPlan();
+                if (conditionPlan.getRoots().size()==1) {
+                    LogicalOperator root = conditionPlan.getRoots().get(0);
+                    if (root instanceof LOConst) {
+                        Object value = ((LOConst)root).getValue();
+                        if (value instanceof Boolean && (Boolean)value==true) {
+                            LogicalOperator split = splitOutput.getPlan().getPredecessors(splitOutput).get(0);
+                            if (split instanceof LOSplit)
+                                op = loStore.getPlan().getPredecessors(split);
+                        }
+                    }
+                }
             }
             PhysicalOperator sortPhyOp = logToPhyMap.get(op.get(0));
             // if this predecessor is a sort, get

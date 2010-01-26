@@ -34,6 +34,7 @@ import java.util.Random;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.pig.ExecType;
+import org.apache.pig.PigServer;
 import org.apache.pig.SortColInfo;
 import org.apache.pig.SortInfo;
 import org.apache.pig.backend.executionengine.ExecException;
@@ -701,6 +702,41 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
                         SortColInfo.Order.ASCENDING, 
                         SortColInfo.Order.DESCENDING}));
         assertEquals(expected, si);
+    }
+    
+    /**
+     * tests that sortInfo is not null when there are multiple store
+     * @throws Exception
+     */
+    @Test
+    public void testSortInfoMultipleStore() throws Exception {
+        PigServer myPig = new PigServer(ExecType.MAPREDUCE);
+        myPig.setBatchOn();
+        myPig.registerQuery("a = load 'bla' as (i:int, n:chararray, d:double);");
+        myPig.registerQuery("b = order a by i, d desc;");
+        myPig.registerQuery("store b into '1';");
+        myPig.registerQuery("store b into '2';");
+        java.lang.reflect.Method compileLp = myPig.getClass()
+            .getDeclaredMethod("compileLp",
+            new Class[] { String.class });
+
+        compileLp.setAccessible(true);
+
+        LogicalPlan lp = (LogicalPlan) compileLp.invoke(myPig, new Object[] { null });
+        LOPrinter lpr = new LOPrinter(System.err, lp);
+        lpr.visit();
+        
+        PhysicalPlan pp = buildPhysicalPlan(lp);
+        SortInfo si0 = ((POStore)(pp.getLeaves().get(0))).getSortInfo();
+        SortInfo si1 = ((POStore)(pp.getLeaves().get(1))).getSortInfo();
+        SortInfo expected = getSortInfo(
+                Arrays.asList(new String[] {"i", "d"}), 
+                Arrays.asList(new Integer[] {0, 2}),
+                Arrays.asList(new SortColInfo.Order[] {
+                        SortColInfo.Order.ASCENDING, 
+                        SortColInfo.Order.DESCENDING}));
+        assertEquals(expected, si0);
+        assertEquals(expected, si1);
     }
     
     /**
