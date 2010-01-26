@@ -366,6 +366,26 @@ public class TestSecondarySort extends TestCase {
         assertTrue(so.getDistinctChanged()==0);
     }
     
+    // See PIG-1193
+    public void testSortOptimization8() throws Exception{
+        // Sort desc, used in UDF twice
+        LogicalPlanTester planTester = new LogicalPlanTester() ;
+        planTester.buildPlan("A = LOAD 'input1' AS (a0);");
+        planTester.buildPlan("B = group A all;");
+        planTester.buildPlan("C = foreach B { D = order A by $0 desc; generate DIFF(D, D);};");
+        
+        LogicalPlan lp = planTester.buildPlan("store C into '/tmp';");
+        PhysicalPlan pp = Util.buildPhysicalPlan(lp, pc);
+        MROperPlan mrPlan = Util.buildMRPlan(pp, pc);
+        
+        SecondaryKeyOptimizer so = new SecondaryKeyOptimizer(mrPlan);
+        so.visit();
+        
+        assertTrue(so.getNumMRUseSecondaryKey()==1);
+        assertTrue(so.getNumSortRemoved()==2);
+        assertTrue(so.getDistinctChanged()==0);
+    }
+    
     public void testNestedDistinctEndToEnd1() throws Exception{
         File tmpFile1 = File.createTempFile("test", "txt");
         PrintStream ps1 = new PrintStream(new FileOutputStream(tmpFile1));

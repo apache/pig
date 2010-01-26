@@ -51,6 +51,8 @@ manner (rding via pradeepkth)
 
 IMPROVEMENTS
 
+PIG-1192: Pig 0.6 Docs fixes (chandec via olgan)
+
 PIG-1177: Pig 0.6 Docs - Zebra docs (chandec via olgan)
 
 PIG-1175: Pig 0.6 Docs - Store v. Dump (chandec via olgan)
@@ -102,6 +104,9 @@ PIG-1173: pig cannot be built without an internet connection (jmhodges via daijy
 OPTIMIZATIONS
 
 BUG FIXES
+
+PIG-1191:  POCast throws exception for certain sequences of LOAD, FILTER,
+			FORACH (pradeepkth via gates)
 
 PIG-1171: Top-N queries produce incorrect results when followed by a cross statement (rding via olgan)
 
@@ -368,6 +373,15 @@ flattened fields is used in Join (daijy)
 
 PIG-1180: Piggybank should compile even if we only have
 "pig-withouthadoop.jar" but no "pig.jar" in the pig home directory (daijy)
+
+PIG-1185: Data bags do not close spill files after using iterator to read
+tuples (yinghe via daijy)
+
+PIG-1186: Pig do not take values in "pig-cluster-hadoop-site.xml" (daijy)
+
+PIG-1193: Secondary sort issue on nested desc sort (daijy)
+
+PIG-1195: POSort should take care of sort order (daijy)
 
 Release 0.5.0
 

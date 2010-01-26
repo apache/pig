@@ -20,14 +20,18 @@
   <!-- BEGIN ARTICLE -->
   
 <article>
-<title>Pig Latin Reference Manual</title>
+<title>Pig Latin Reference Manual 2</title>
    
    <!-- Overview -->
    <section>
    <title>Overview</title>
    <para>
-Use the Pig Latin Reference Manual together with the <ulink url="piglatin_users.html">Pig Latin Users Guide</ulink>. 
+Use this manual together with <ulink url="piglatin_ref1.html">Pig Latin Reference Manual 1</ulink>. 
    </para>
+   
+<para>
+Also, be sure to review the information in the <ulink url="cookbook.html">Pig Cookbook</ulink>. 
+</para>  
    
    <!-- CONVENTIONS -->
 <section>
@@ -263,7 +267,7 @@ Use the Pig Latin Reference Manual together with the <ulink url="piglatin_users.
                     
         <row>
             <entry> <para>-- Symbols</para> </entry>
-            <entry> <para>= =   !=   &lt;  &gt;   &lt;=   &gt;=   +   -   *   /   %   ?   $   .   #   ( )   [ ]   { } </para> </entry>
+            <entry> <para>= =   !=   &lt;  &gt;   &lt;=   &gt;=   +   -   *   /   %   ?   $   .   #   ::   ( )   [ ]   { } </para> </entry>
          </row> 
             
       </tbody></tgroup>
@@ -280,7 +284,7 @@ Use the Pig Latin Reference Manual together with the <ulink url="piglatin_users.
    
    <section>
    <title>Relations, Bags, Tuples, Fields</title>
-      <para><ulink url="piglatin_users.html#Pig+Latin+Statements">Pig Latin statements</ulink> work with relations. A relation can be defined as follows:</para>
+      <para><ulink url="piglatin_ref1.html#Pig+Latin+Statements">Pig Latin statements</ulink> work with relations. A relation can be defined as follows:</para>
    <itemizedlist>
       <listitem>
          <para>A relation is a bag (more specifically, an outer bag).</para>
@@ -2116,6 +2120,7 @@ B = FILTER A BY $0>'5';
             </entry>
             <entry>
                <para>Returns the remainder of a divided by b (a%b).</para>
+               <para>Works with integral numbers (int, long). </para>
             </entry>
          </row>
          <row>
@@ -4179,7 +4184,7 @@ B = FOREACH A GENERATE -x, y;
    For example, consider a relation that has a tuple of the form (a, {(b,c), (d,e)}), commonly produced by the GROUP operator. 
    If we apply the expression GENERATE $0, flatten($1) to this tuple, we will create new tuples: (a, b, c) and (a, d, e).</para>
    
-   <para>For examples using the FLATTEN operator, see <ulink url="piglatin_reference.html#FOREACH">FOREACH</ulink>.</para>
+   <para>For examples using the FLATTEN operator, see <ulink url="#FOREACH">FOREACH</ulink>.</para>
    </section>
 
    <section>
@@ -4785,12 +4790,7 @@ DUMP B;
                <para>PARALLEL n</para>
             </entry>
             <entry>
-               <para>Increase the parallelism of a job by specifying the number of reduce tasks, n. The optimal number of parallel tasks depends on the amount of memory on each node and the memory required by each of the tasks. To determine n, use the following as a general guideline:</para>
-               <para/>
-               <para>   n = (nr_nodes - 1) * 0.45 * nr_GB</para>
-               <para/>
-               <para>where nr_nodes is the number of nodes used and nr_GB is the amount of  physical memory on each node.</para>
-               <para>Note the following:</para>
+               <para>Increase the parallelism of a job by specifying the number of reduce tasks, n. The default value for n is 1 (one reduce task). Note the following:</para>
                <itemizedlist>
                   <listitem>
                      <para>Parallel only affects the number of reduce tasks. Map parallelism is determined by the input file, one map for each HDFS block. </para>
@@ -4799,6 +4799,7 @@ DUMP B;
                      <para>If you don’t specify parallel, you still get the same map parallelism but only one reduce task. </para>
                   </listitem>
                </itemizedlist>
+               <para>For more information, see the <ulink url="cookbook.html#Use+the+PARALLEL+Clause">Pig Cookbook</ulink>.</para>
             </entry>
          </row></tbody></tgroup>
    </informaltable></section>
@@ -4871,12 +4872,7 @@ DUMP X;
                <para>PARALLEL n</para>
             </entry>
             <entry>
-               <para>Increase the parallelism of a job by specifying the number of reduce tasks, n. The optimal number of parallel tasks depends on the amount of memory on each node and the memory required by each of the tasks. To determine n, use the following as a general guideline:</para>
-               <para/>
-               <para>   n = (nr_nodes - 1) * 0.45 * nr_GB</para>
-               <para/>
-               <para>where nr_nodes is the number of nodes used and nr_GB is the amount of  physical memory on each node.</para>
-               <para>Note the following:</para>
+               <para>Increase the parallelism of a job by specifying the number of reduce tasks, n. The default value for n is 1 (one reduce task). Note the following:</para>
                <itemizedlist>
                   <listitem>
                      <para>Parallel only affects the number of reduce tasks. Map parallelism is determined by the input file, one map for each HDFS block. </para>
@@ -4885,6 +4881,7 @@ DUMP X;
                      <para>If you don’t specify parallel, you still get the same map parallelism but only one reduce task. </para>
                   </listitem>
                </itemizedlist>
+               <para>For more information, see the <ulink url="cookbook.html#Use+the+PARALLEL+Clause">Pig Cookbook</ulink>.</para>
             </entry>
          </row></tbody></tgroup>
    </informaltable></section>
@@ -5100,7 +5097,7 @@ DUMP X;
                <para>A schema using the AS keyword (see Schemas).</para>
                <itemizedlist>
                   <listitem>
-                     <para>If the FLATTEN operator is used, enclose the schema in parentheses.</para>
+                     <para>If the <ulink url="#Flatten+Operator">FLATTEN</ulink> operator is used, enclose the schema in parentheses.</para>
                   </listitem>
                   <listitem>
                      <para>If the FLATTEN operator is not used, don't enclose the schema in parentheses.</para>
@@ -5271,7 +5268,7 @@ DUMP X;
    
    <section>
    <title>Example: Flattening</title>
-   <para>In this example the FLATTEN operator is used to eliminate nesting. </para>
+   <para>In this example the <ulink url="#Flatten+Operator">FLATTEN</ulink> operator is used to eliminate nesting. </para>
 <programlisting>
 X = FOREACH C GENERATE group, FLATTEN(A);
 
@@ -5308,6 +5305,16 @@ DUMP X;
 (4,3,9)
 (8,3,9)
 (8,4,9)
+</programlisting>
+
+   <para>Another FLATTEN example. Here, relations A and B both have a column x. When forming relation E,  you need to use the :: operator to identify which column x to use - either relation A column x (A::x) or relation B column x (B::x). This example uses relation A column x (A::x).</para>
+<programlisting>
+A = load ‘data’ as (x, y);
+B = load ‘data’ as (x, z);
+C = cogroup A by x, B by x;
+D = foreach C generate flatten(A), flatten(b);
+E = group D by A::x;
+……
 </programlisting>
    
    </section>
@@ -5421,7 +5428,7 @@ readability, programmers usually use GROUP when only one relation is involved an
                <para>Allows for more efficient computation of a group if the loader guarantees that the data for the 
                same key is continuous and is given to a single map. As of this release, only the Zebra loader makes this 
                guarantee. The efficiency is achieved by performing the group operation in map
-               rather than reduce (see <ulink url="piglatin_users.html#Integration+with+Zebra">Integration with Zebra</ulink>). This feature cannot be used with the COGROUP operator.</para>
+               rather than reduce (see <ulink url="zebra_pig.html">Zebra and Pig</ulink>). This feature cannot be used with the COGROUP operator.</para>
             </entry>
          </row>         
          
@@ -5431,12 +5438,7 @@ readability, programmers usually use GROUP when only one relation is involved an
                <para>PARALLEL n</para>
             </entry>
             <entry>
-               <para>Increase the parallelism of a job by specifying the number of reduce tasks, n. The optimal number of parallel tasks depends on the amount of memory on each node and the memory required by each of the tasks. To determine n, use the following as a general guideline:</para>
-               <para/>
-               <para>   n = (nr_nodes - 1) * 0.45 * nr_GB</para>
-               <para/>
-               <para>where nr_nodes is the number of nodes used and nr_GB is the amount of  physical memory on each node.</para>
-               <para>Note the following:</para>
+               <para>Increase the parallelism of a job by specifying the number of reduce tasks, n. The default value for n is 1 (one reduce task). Note the following:</para>
                <itemizedlist>
                   <listitem>
                      <para>Parallel only affects the number of reduce tasks. Map parallelism is determined by the input file, one map for each HDFS block. </para>
@@ -5445,6 +5447,7 @@ readability, programmers usually use GROUP when only one relation is involved an
                      <para>If you don’t specify parallel, you still get the same map parallelism but only one reduce task. </para>
                   </listitem>
                </itemizedlist>
+               <para>For more information, see the <ulink url="cookbook.html#Use+the+PARALLEL+Clause">Pig Cookbook</ulink>.</para>
             </entry>
          </row></tbody></tgroup>
    </informaltable></section>
@@ -5630,7 +5633,7 @@ DUMP X;
    </section>
    
    <section>
-   <title>JOIN </title>
+   <title>JOIN (inner) </title>
    <para>Performs inner, equijoin of two or more relations based on common field values.</para>
    
    <section>
@@ -5684,7 +5687,7 @@ DUMP X;
                <para>"replicated"</para>
             </entry>
             <entry>
-               <para>Use to perform fragment replicate joins (see <ulink url="piglatin_users.html#Fragment+Replicate+Joins">Fragment Replicate Joins</ulink>).</para>
+               <para>Use to perform replicated joins (see <ulink url="piglatin_ref1.html#Replicated+Joins">Replicated Joins</ulink>).</para>
             </entry>
          </row>
          
@@ -5693,7 +5696,7 @@ DUMP X;
                <para>"skewed"</para>
             </entry>
             <entry>
-               <para>Use to perform skewed joins (see <ulink url="piglatin_users.html#Skewed+Joins">Skewed Joins</ulink>).</para>
+               <para>Use to perform skewed joins (see <ulink url="piglatin_ref1.html#Skewed+Joins">Skewed Joins</ulink>).</para>
             </entry>
          </row>
          
@@ -5702,7 +5705,7 @@ DUMP X;
                <para>"merge"</para>
             </entry>
             <entry>
-               <para>Use to perform merge joins (see <ulink url="piglatin_users.html#Merge+Joins">Merge Joins</ulink>).</para>
+               <para>Use to perform merge joins (see <ulink url="piglatin_ref1.html#Merge+Joins">Merge Joins</ulink>).</para>
             </entry>
          </row>
          
@@ -5712,12 +5715,7 @@ DUMP X;
                <para>PARALLEL n</para>
             </entry>
             <entry>
-               <para>Increase the parallelism of a job by specifying the number of reduce tasks, n. The optimal number of parallel tasks depends on the amount of memory on each node and the memory required by each of the tasks. To determine n, use the following as a general guideline:</para>
-               <para/>
-               <para>   n = (nr_nodes - 1) * 0.45 * nr_GB</para>
-               <para/>
-               <para>where nr_nodes is the number of nodes used and nr_GB is the amount of  physical memory on each node.</para>
-               <para>Note the following:</para>
+               <para>Increase the parallelism of a job by specifying the number of reduce tasks, n. The default value for n is 1 (one reduce task). Note the following:</para>
                <itemizedlist>
                   <listitem>
                      <para>Parallel only affects the number of reduce tasks. Map parallelism is determined by the input file, one map for each HDFS block. </para>
@@ -5726,6 +5724,7 @@ DUMP X;
                      <para>If you don’t specify parallel, you still get the same map parallelism but only one reduce task. </para>
                   </listitem>
                </itemizedlist>
+               <para>For more information, see the <ulink url="cookbook.html#Use+the+PARALLEL+Clause">Pig Cookbook</ulink>.</para>
             </entry>
          </row></tbody></tgroup>
    </informaltable></section>
@@ -5785,7 +5784,7 @@ DUMP X;
   
 
 <section>
-   <title>JOIN, OUTER </title>
+   <title>JOIN (outer) </title>
    <para>Performs an outer join of two or more relations based on common field values.</para>
    
    <section>
@@ -5879,8 +5878,8 @@ DUMP X;
                <para>"replicated"</para>
             </entry>
             <entry>
-               <para>Use to perform fragment replicate joins (see <ulink url="piglatin_users.html#Fragment+Replicate+Joins">Fragment Replicate Joins</ulink>).</para>
-               <para>Only left outer join is supported for replicated outer join.</para>
+               <para>Use to perform replicated joins (see <ulink url="piglatin_ref1.html#Replicated+Joins">Replicated Joins</ulink>).</para>
+               <para>Only left outer join is supported for replicated joins.</para>
             </entry>
          </row>
          
@@ -5889,7 +5888,7 @@ DUMP X;
                <para>"skewed"</para>
             </entry>
             <entry>
-               <para>Use to perform skewed joins (see <ulink url="piglatin_users.html#Skewed+Joins">Skewed Joins</ulink>).</para>
+               <para>Use to perform skewed joins (see <ulink url="piglatin_ref1.html#Skewed+Joins">Skewed Joins</ulink>).</para>
             </entry>
          </row>
 
@@ -5899,13 +5898,7 @@ DUMP X;
                <para>PARALLEL n</para>
             </entry>
             <entry>
-               <para>Increase the parallelism of a job by specifying the number of reduce tasks, n. The optimal number of parallel tasks depends 
-                         on the amount of memory on each node and the memory required by each of the tasks. To determine n, use the following as a general guideline:</para>
-               <para/>
-               <para>   n = (nr_nodes - 1) * 0.45 * nr_GB</para>
-               <para/>
-               <para>where nr_nodes is the number of nodes used and nr_GB is the amount of  physical memory on each node.</para>
-               <para>Note the following:</para>
+               <para>Increase the parallelism of a job by specifying the number of reduce tasks, n. The default value for n is 1 (one reduce task). Note the following:</para>
                <itemizedlist>
                   <listitem>
                      <para>Parallel only affects the number of reduce tasks. Map parallelism is determined by the input file, one map for each HDFS block. </para>
@@ -5914,6 +5907,7 @@ DUMP X;
                      <para>If you don’t specify parallel, you still get the same map parallelism but only one reduce task. </para>
                   </listitem>
                </itemizedlist>
+               <para>For more information, see the <ulink url="cookbook.html#Use+the+PARALLEL+Clause">Pig Cookbook</ulink>.</para>
             </entry>
          </row>
    </tbody></tgroup>
@@ -5932,10 +5926,6 @@ DUMP X;
     <itemizedlist>
 		<listitem>
 			<para>Outer joins will only work provided the relations which need to produce nulls (in the case of non-matching keys) have schemas.</para>
-		</listitem>
-		<listitem>
-			<para>Outer joins are currently only supported by the default join implementation; 
-			<ulink url="piglatin_users.html#Specialized+Joins">specialized joins</ulink> (specified by the USING clause) <emphasis>DO NOT</emphasis> support outer joins.</para>
 		</listitem>
 		<listitem>
 			<para>Outer joins will only work for two-way joins; to perform a multi-way outer join, you will need to perform multiple two-way outer join statements.</para>
@@ -6260,12 +6250,7 @@ ILLUSTRATE A;
                <para>PARALLEL n</para>
             </entry>
             <entry>
-               <para>Increase the parallelism of a job by specifying the number of reduce tasks, n. The optimal number of parallel tasks depends on the amount of memory on each node and the memory required by each of the tasks. To determine n, use the following as a general guideline:</para>
-               <para/>
-               <para>   n = (nr_nodes - 1) * 0.45 * nr_GB</para>
-               <para/>
-               <para>where nr_nodes is the number of nodes used and nr_GB is the amount of  physical memory on each node.</para>
-               <para>Note the following:</para>
+               <para>Increase the parallelism of a job by specifying the number of reduce tasks, n. The default value for n is 1 (one reduce task). Note the following:</para>
                <itemizedlist>
                   <listitem>
                      <para>Parallel only affects the number of reduce tasks. Map parallelism is determined by the input file, one map for each HDFS block. </para>
@@ -6274,6 +6259,7 @@ ILLUSTRATE A;
                      <para>If you don’t specify parallel, you still get the same map parallelism but only one reduce task. </para>
                   </listitem>
                </itemizedlist>
+               <para>For more information, see the <ulink url="cookbook.html#Use+the+PARALLEL+Clause">Pig Cookbook</ulink>.</para>
             </entry>
          </row></tbody></tgroup>
    </informaltable></section>
@@ -6542,7 +6528,7 @@ DUMP Z;
    <title>Usage</title>
    <para>Use the STORE operator to run (execute) Pig Latin statements and save (persist) results to the file system. Use STORE for production scripts and batch mode processing.</para>
    
-   <para>Note: To debug scripts during development, you can use <ulink url="piglatin_reference.html#DUMP">DUMP</ulink> to check intermediate results.</para>
+   <para>Note: To debug scripts during development, you can use <ulink url="#DUMP">DUMP</ulink> to check intermediate results.</para>
 </section>
    
    <section>
@@ -6651,7 +6637,7 @@ a:8,b:4,c:3
                <para>cmd_alias</para>
             </entry>
             <entry>
-               <para>The name of a command created using the <ulink url="piglatin_reference.html#DEFINE">DEFINE</ulink> operator.</para>
+               <para>The name of a command created using the <ulink url="#DEFINE">DEFINE</ulink> operator.</para>
             </entry>
          </row>
          <row>
@@ -6948,7 +6934,7 @@ d: {long}
    
    <para>
    Note that production scripts <emphasis>should not</emphasis> use DUMP as it will disable multi-query optimizations and is likely to slow down execution 
-   (see <ulink url="piglatin_users.html#Store+vs.+Dump">Store vs. Dump</ulink>).
+   (see <ulink url="piglatin_ref1.html#Store+vs.+Dump">Store vs. Dump</ulink>).
    </para>
    </section>
    
@@ -7380,7 +7366,7 @@ ILLUSTRATE num_user_visits;
          <para>The constructor for the function takes string parameters. If you need to use different constructor parameters for different calls to the function you will need to create multiple defines – one for each parameter set.</para>
       </listitem>
    </itemizedlist>
-   <para>Use DEFINE to specify a command when the <ulink url="piglatin_reference.html#STREAM">streaming</ulink> command specification is complex or requires additional parameters (input, output, and so on).</para>
+   <para>Use DEFINE to specify a command when the <ulink url="#STREAM">streaming</ulink> command specification is complex or requires additional parameters (input, output, and so on).</para>
    
    <section
    ><title>About Input and Output</title>
@@ -7412,15 +7398,23 @@ OP = stream IP through CMD`;
 	</orderedlist>   
    </section>
    
+
+
+   
    <section>
+   <title>About Cache</title>
+   <para>The ship option works with binaries, jars, and small datasets. However, loading larger datasets at run time for every execution can severely impact performance. Instead, use the cache option to access large files already moved to and available on the compute nodes. Only files, not directories, can be specified with the cache option.</para>
+   </section>
+   
+   <section id="autoship">
    <title>About Auto-Ship</title>
-   <para>If the ship option is not specified, Pig will attempt to auto-ship the binary in the following way:</para>
+   <para>If the ship and cache options are not specified, Pig will attempt to auto-ship the binary in the following way:</para>
    <itemizedlist>
 		<listitem>
             <para>If the first word on the streaming command is perl or python, Pig assumes that the binary is the first non-quoted string it encounters that does not start with dash.</para>
 		</listitem>
 		<listitem>
-			<para>Otherwise, Pig will attempt to ship the first string from the command line as long as it does not come from /bin, /usr/bin, /usr/local/bin. Pig will determine this by scanning the path if an absolute path is provided or by executing which. The paths can be made configurable using the set stream.skippath &lt;path&gt; option. (You can use multiple set commands to specify more than one path to skip.) </para>
+			<para>Otherwise, Pig will attempt to ship the first string from the command line as long as it does not come from <computeroutput>/bin, /usr/bin, /usr/local/bin</computeroutput>. Pig will determine this by scanning the path if an absolute path is provided or by executing  <computeroutput>which</computeroutput>. The paths can be made configurable using the <ulink url="#set">set stream.skippath</ulink> option (you can use multiple set commands to specify more than one path to skip). </para>
 		</listitem>
 	</itemizedlist>
 	<para>If you don't supply a DEFINE for a given streaming command, then auto-shipping is turned off.</para>
@@ -7444,13 +7438,9 @@ OP = stream IP through `perl /a/b/c/script.pl`;
 			<para>To auto-ship, the file in question should be present in the PATH. So if the file is in the current working directory then the current working directory should be in the PATH. </para>
 		</listitem>
 	</orderedlist>
-	
-   </section>
    
-   <section>
-   <title>About Cache</title>
-   <para>The ship option works with binaries, jars, and small datasets. However, loading larger datasets at run time for every execution can severely impact performance. Instead, use the cache option to access large files already moved to and available on the compute nodes. Only files, not directories, can be specified with the cache option.</para>
-   </section></section>
+   </section>
+      </section>
    
  <section>
  <title>Example: Input/Output</title>
@@ -7818,7 +7808,7 @@ DUMP X;
 
    <para>
     The COUNT function ignores NULL values.  If you want to include NULL values in the count computation, use 
-    <ulink url="piglatin_reference.html#COUNT_STAR">COUNT_STAR</ulink>.
+    <ulink url="#COUNT_STAR">COUNT_STAR</ulink>.
    </para>   
    
    <para>
@@ -7945,7 +7935,7 @@ DUMP X;
    <para>Use the COUNT_STAR function to compute the number of elements in a bag.
    COUNT_STAR requires a preceding GROUP ALL statement for global counts and a GROUP BY statement for group counts.</para>
    <para>COUNT_STAR includes NULL values in the count computation 
-   (unlike <ulink url="piglatin_reference.html#COUNT">COUNT</ulink>, which ignores NULL values).
+   (unlike <ulink url="#COUNT">COUNT</ulink>, which ignores NULL values).
    </para>
    </section>
    
@@ -8918,7 +8908,7 @@ fs -ls file-y
    <section>
    <title>File Commands</title>
    <para>Note: Beginning with Pig 0.6.0, the file commands are now deprecated and will be removed in a future release. 
-   Start using Pig's -fs command to invoke the shell commands <ulink url="piglatin_reference.html#Shell+Commands">shell commands</ulink>.   
+   Start using Pig's -fs command to invoke the shell commands <ulink url="#Shell+Commands">shell commands</ulink>.   
    </para>
    <section>
    <title>cat</title>
@@ -9778,7 +9768,7 @@ grunt&gt; run –param out=myoutput myscript.pig
    
    <section>
    <title>Usage</title>
-   <para>The set command enables you to assign values to keys, as shown here:</para>
+   <para>The set command enables you to assign values to keys, as shown in the table. </para>
    <informaltable frame="all">
       <tgroup cols="3"><tbody><row>
             <entry>
@@ -9791,6 +9781,17 @@ grunt&gt; run –param out=myoutput myscript.pig
                <para>Description </para>
             </entry>
          </row>
+                     <row>
+            <entry>
+               <para>default_parallel</para>
+            </entry>
+            <entry>
+               <para>a whole number </para>
+            </entry>
+            <entry>
+               <para>Sets the number of reducers for all MapReduce jobs generated by Pig.</para>
+            </entry>
+         </row>
          <row>
             <entry>
                <para>debug </para>
@@ -9799,7 +9800,7 @@ grunt&gt; run –param out=myoutput myscript.pig
                <para>on/off </para>
             </entry>
             <entry>
-               <para>enables/disables debug-level logging </para>
+               <para>Turns debug-level logging on or off. </para>
             </entry>
          </row>
          <row>
@@ -9807,30 +9808,45 @@ grunt&gt; run –param out=myoutput myscript.pig
                <para>job.name </para>
             </entry>
             <entry>
-               <para>single quoted string that contains the name </para>
+               <para>Single-quoted string that contains the job name.</para>
             </entry>
             <entry>
-               <para>sets user-specified name for the job </para>
+               <para>Sets user-specified name for the job </para>
             </entry>
             </row>
-            <row>
+
+         <row>
             <entry>
-               <para>default_parallel</para>
+               <para>job.priority </para>
             </entry>
             <entry>
-               <para>whole number </para>
+               <para>Acceptable values (case insensitive): very_low, low, normal, high, very_high </para>
             </entry>
             <entry>
-               <para>sets the number of reducers for all MapReduce jobs generated by Pig</para>
+               <para>Sets the priority of a Pig job.</para>
             </entry>
-         </row></tbody></tgroup>
+            </row>
+
+         <row>
+            <entry>
+               <para>stream.skippath</para>
+            </entry>
+            <entry>
+               <para>String that contains the path.</para>
+            </entry>
+            <entry>
+               <para>For streaming, sets the path from which not to ship data (see <ulink url="#DEFINE">DEFINE</ulink> and <ulink url="#autoship"> About Auto-Ship</ulink>).</para>
+            </entry>
+            </row>
+
+         </tbody></tgroup>
    </informaltable>
    <para/>
    </section>
    
    <section>
    <title>Example</title>
-   <para>In this example debug is set on and the job is assigned a name.</para>
+   <para>In this example debug is set on, the job is assigned a name, and the number of reducers is set to 100.</para>
 <programlisting>
 grunt&gt; set debug on
 grunt&gt; set job.name 'my job'

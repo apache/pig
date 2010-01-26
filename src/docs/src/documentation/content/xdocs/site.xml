@@ -45,8 +45,8 @@ See http://forrest.apache.org/docs/linking.html for more info
     <tutorial label="Tutorial"				 	href="tutorial.html" />
     </docs>  
      <docs label="Guides"> 
-    <plusers label="Pig Latin Users "	href="piglatin_users.html" />
-    <plref label="Pig Latin Reference"	href="piglatin_reference.html" />
+    <plref1 label="Pig Latin 1"	href="piglatin_ref1.html" />
+    <plref2 label="Pig Latin 2"	href="piglatin_ref2.html" />
     <cookbook label="Cookbook" 		href="cookbook.html" />
     <udf label="UDFs" href="udf.html" />
     </docs>  
