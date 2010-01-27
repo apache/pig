@@ -95,10 +95,7 @@ public class LogUtils {
         PigException pigException = LogUtils.getPigException(t);
 
         if(pigException != null) {
-            if (pigException.getCause()!=null)
-                message = "ERROR " + pigException.getErrorCode() + ": " + pigException.getCause().getMessage();
-            else
-                message = "ERROR " + pigException.getErrorCode() + ": " + pigException.getMessage();
+            message = "ERROR " + pigException.getErrorCode() + ": " + pigException.getMessage();
         } else {
             if((t instanceof ParseException 
                     || t instanceof org.apache.pig.tools.pigscript.parser.TokenMgrError 
