@@ -65,7 +65,7 @@ public class PigOutputFormat extends OutputFormat<WritableComparable, Tuple> {
      
     public RecordWriter<WritableComparable, Tuple> getRecordWriter(TaskAttemptContext taskattemptcontext)
                 throws IOException, InterruptedException {
-        // Setup UDFContext so in StoreFunc can make use of it
+        // Setup UDFContext so StoreFunc can make use of it
         MapRedUtil.setupUDFContext(taskattemptcontext.getConfiguration());
         List<POStore> mapStores = getStores(taskattemptcontext, 
                 JobControlCompiler.PIG_MAP_STORES);

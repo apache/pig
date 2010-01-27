@@ -120,6 +120,8 @@ public class PigOutputCommitter extends OutputCommitter {
     
     private TaskAttemptContext setUpContext(TaskAttemptContext context, 
             POStore store) throws IOException {
+        // Setup UDFContext so StoreFunc can make use of it
+        MapRedUtil.setupUDFContext(taskattemptcontext.getConfiguration());
         // make a copy of the context so that the actions after this call
         // do not end up updating the same context
         TaskAttemptContext contextCopy = new TaskAttemptContext(
