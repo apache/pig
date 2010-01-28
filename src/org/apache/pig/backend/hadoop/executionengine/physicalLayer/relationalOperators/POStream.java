@@ -40,6 +40,8 @@ import org.apache.pig.data.Tuple;
 
 public class POStream extends PhysicalOperator {
     private static final long serialVersionUID = 2L;
+    
+    private static final Result EOP_RESULT = new Result(POStatus.STATUS_EOP, null);
 
     private String executableManagerStr;            // String representing ExecutableManager to use
     transient private ExecutableManager executableManager;    // ExecutableManager to use 
@@ -155,7 +157,7 @@ public class POStream extends PhysicalOperator {
                     // getNext() in POStream should never be called. So
                     // we don't need to set any flag noting we saw all output
                     // from binary
-                    r.returnStatus = POStatus.STATUS_EOP;
+                    r = EOP_RESULT;
                 }
                 return(r);
             }
@@ -190,7 +192,7 @@ public class POStream extends PhysicalOperator {
                             // getNext() in POStream should never be called. So
                             // we don't need to set any flag noting we saw all output
                             // from binary
-                            r.returnStatus = POStatus.STATUS_EOP;
+                            r = EOP_RESULT;
                         }
                     }
                     
@@ -204,7 +206,7 @@ public class POStream extends PhysicalOperator {
                     // So once we send this EOP down, getNext() in POStream
                     // should never be called. So we don't need to set any 
                     // flag noting we saw all output from binary
-                    r.returnStatus = POStatus.STATUS_EOP;
+                    r = EOP_RESULT;
                 }
                 return r;
             } else {
@@ -218,7 +220,7 @@ public class POStream extends PhysicalOperator {
                     // So we can send an EOP to the successor in
                     // the pipeline and also note this condition
                     // for future calls
-                    r.returnStatus = POStatus.STATUS_EOP;
+                    r = EOP_RESULT;
                     allOutputFromBinaryProcessed  = true;
                 }
                 return r;
