@@ -17,11 +17,21 @@
  */
 package org.apache.pig.test;
 
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
 
+import junit.framework.Assert;
+
+import org.apache.pig.ExecType;
+import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.backend.executionengine.ExecJob;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.DefaultTuple;
@@ -173,4 +183,52 @@ public class TestLocalRearrange extends junit.framework.TestCase {
         assertEquals(db.size(), size);
     }
 
+    @Test
+    public void testMultiQueryJiraPig1194() {
+
+        // test case: POLocalRearrange doesn't handle nulls returned by POBinCond 
+        
+        String INPUT_FILE = "data.txt";
+        
+        final MiniCluster cluster = MiniCluster.buildCluster();
+        
+        try {
+            PrintWriter w = new PrintWriter(new FileWriter(INPUT_FILE));
+            w.println("10\t2\t3");
+            w.println("20\t3\t");
+            w.close();
+            Util.copyFromLocalToCluster(cluster, INPUT_FILE, INPUT_FILE);
+
+            PigServer myPig = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+
+            myPig.registerQuery("data = load '" + INPUT_FILE + "' as (a0, a1, a2);");
+            myPig.registerQuery("grp = GROUP data BY (((double) a2)/((double) a1) > .001 OR a0 < 11 ? a0 : -1);");
+            
+            List<Tuple> expectedResults = Util.getTuplesFromConstantTupleStrings(
+                    new String[] { 
+                            "(10,{(10,2,3)})",
+                            "(null,{(20,3,null)})"
+                    });
+            
+            Iterator<Tuple> iter = myPig.openIterator("grp");
+            int counter = 0;
+            while (iter.hasNext()) {
+                assertEquals(expectedResults.get(counter++).toString(), iter.next().toString());      
+            }
+            assertEquals(expectedResults.size(), counter);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            Assert.fail();
+        } finally {
+            new File(INPUT_FILE).delete();
+            try {
+                Util.deleteFile(cluster, INPUT_FILE);
+            } catch (IOException e) {
+                e.printStackTrace();
+                Assert.fail();
+            }
+        }
+    }
+    
 }

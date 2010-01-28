@@ -57,7 +57,9 @@ public class POLocalRearrange extends PhysicalOperator {
 
     protected static final TupleFactory mTupleFactory = TupleFactory.getInstance();
 
-    transient private Log log = LogFactory.getLog(getClass());
+    private static Log log = LogFactory.getLog(POLocalRearrange.class);
+    
+    private static final Result ERR_RESULT = new Result();
 
     protected List<PhysicalPlan> plans;
     
@@ -251,7 +253,7 @@ public class POLocalRearrange extends PhysicalOperator {
     public Result getNext(Tuple t) throws ExecException {
         
         Result inp = null;
-        Result res = null;
+        Result res = ERR_RESULT;
         while (true) {
             inp = processInput();
             if (inp.returnStatus == POStatus.STATUS_EOP || inp.returnStatus == POStatus.STATUS_ERR)
@@ -308,9 +310,16 @@ public class POLocalRearrange extends PhysicalOperator {
                 case DataType.TUPLE:
                     res = op.getNext(dummyTuple);
                     break;
+                default:
+                    log.error("Invalid result type: " + DataType.findType(op.getResultType()));
+                    break;
                 }
-                if(res.returnStatus!=POStatus.STATUS_OK)
+                
+                // allow null as group by key
+                if (res.returnStatus != POStatus.STATUS_OK && res.returnStatus != POStatus.STATUS_NULL) {
                     return new Result();
+                }
+              
                 resLst.add(res);
             }
             
@@ -349,15 +358,24 @@ public class POLocalRearrange extends PhysicalOperator {
                     case DataType.TUPLE:
                         res = op.getNext(dummyTuple);
                         break;
+                    default:
+                        log.error("Invalid result type: " + DataType.findType(op.getResultType()));
+                        break;
                     }
-                    if(res.returnStatus!=POStatus.STATUS_OK)
+                    
+                    // allow null as group by key
+                    if (res.returnStatus != POStatus.STATUS_OK && res.returnStatus != POStatus.STATUS_NULL) {
                         return new Result();
+                    }
+                    
                     secondaryResLst.add(res);
                 }
             }
+            
             // If we are using secondary sort key, our new key is:
-            // (nullable, index, (key, secondary key), value)
-            res.result = constructLROutput(resLst,secondaryResLst,(Tuple)inp.result);
+            // (nullable, index, (key, secondary key), value)             
+            res.result = constructLROutput(resLst,secondaryResLst,(Tuple)inp.result);            
+            res.returnStatus = POStatus.STATUS_OK;
             
             return res;
         }
