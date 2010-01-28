@@ -32,6 +32,7 @@ import org.apache.pig.ResourceSchema;
 import org.apache.pig.StoreFunc;
 import org.apache.pig.StoreMetadata;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
+import org.apache.pig.backend.hadoop.executionengine.util.MapRedUtil;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.util.ObjectSerializer;
@@ -121,7 +122,7 @@ public class PigOutputCommitter extends OutputCommitter {
     private TaskAttemptContext setUpContext(TaskAttemptContext context, 
             POStore store) throws IOException {
         // Setup UDFContext so StoreFunc can make use of it
-        MapRedUtil.setupUDFContext(taskattemptcontext.getConfiguration());
+        MapRedUtil.setupUDFContext(context.getConfiguration());
         // make a copy of the context so that the actions after this call
         // do not end up updating the same context
         TaskAttemptContext contextCopy = new TaskAttemptContext(
