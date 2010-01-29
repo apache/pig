@@ -19,7 +19,6 @@
 package org.apache.pig.backend.hadoop.executionengine.util;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -28,21 +27,16 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.util.Progressable;
 import org.apache.pig.PigException;
-import org.apache.pig.StoreConfig;
 import org.apache.pig.StoreFunc;
 import org.apache.pig.backend.executionengine.ExecException;
-import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
-import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler;
 import org.apache.pig.builtin.BinStorage;
 import org.apache.pig.builtin.PigStorage;
-import org.apache.pig.impl.io.ReadToEndLoader;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.DefaultTupleFactory;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
-import org.apache.pig.impl.io.BufferedPositionedInputStream;
-import org.apache.pig.impl.io.FileLocalizer;
+import org.apache.pig.impl.io.ReadToEndLoader;
 import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.impl.util.Pair;
 import org.apache.pig.impl.util.UDFContext;
@@ -54,8 +48,8 @@ public class MapRedUtil {
 
     /**
      * This method is to be called from an 
-     * {@link org.apache.hadoop.mapred.OutputFormat#getRecordWriter(FileSystem ignored, JobConf job,
-                                     String name, Progressable progress)}
+     * {@link org.apache.hadoop.mapred.OutputFormat#getRecordWriter(
+     * FileSystem, org.apache.hadoop.mapred.JobConf, String, Progressable)}
      * method to obtain a reference to the {@link org.apache.pig.StoreFunc} object to be used by
      * that OutputFormat to perform the write() operation
      * @param conf the JobConf object
@@ -81,22 +75,6 @@ public class MapRedUtil {
         return store;
     }
     
-    /**
-     * This method is to be called from an 
-     * {@link org.apache.hadoop.mapred.OutputFormat#getRecordWriter(FileSystem ignored, JobConf job,
-                                     String name, Progressable progress)}
-     * method to obtain a reference to the {@link org.apache.pig.StoreConfig} object. The StoreConfig
-     * object will contain metadata information like schema and location to be used by
-     * that OutputFormat to perform the write() operation
-     * @param conf the JobConf object
-     * @return StoreConfig object containing metadata information useful for
-     * an OutputFormat to write the data
-     * @throws IOException
-     */
-    public static StoreConfig getStoreConfig(Configuration conf) throws IOException {
-        return (StoreConfig) ObjectSerializer.deserialize(conf.get(JobControlCompiler.PIG_STORE_CONFIG));
-    }
-
     /**
      * Loads the key distribution sampler file
      *

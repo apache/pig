@@ -17,13 +17,14 @@
  */
 package org.apache.pig.test;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.io.StringReader;
 import java.util.ArrayList;
@@ -34,25 +35,21 @@ import java.util.List;
 import java.util.Map;
 
 import junit.framework.Assert;
-import junit.framework.TestCase;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.WritableComparable;
-import org.apache.hadoop.mapred.RecordWriter;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.hadoop.mapreduce.OutputCommitter;
 import org.apache.hadoop.mapreduce.OutputFormat;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
-import org.apache.hadoop.util.Progressable;
 import org.apache.pig.ExecType;
 import org.apache.pig.LoadFunc;
 import org.apache.pig.PigException;
 import org.apache.pig.PigServer;
 import org.apache.pig.ResourceSchema;
-import org.apache.pig.StoreConfig;
 import org.apache.pig.StoreFunc;
 import org.apache.pig.backend.executionengine.ExecJob;
 import org.apache.pig.backend.executionengine.util.ExecTools;
@@ -63,7 +60,6 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOpera
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSplit;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
-import org.apache.pig.backend.hadoop.executionengine.util.MapRedUtil;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
@@ -2696,7 +2692,8 @@ public class TestMultiQuery {
         @Override
         public void setStoreLocation(String location, Job job)
                 throws IOException {
-            // TODO Auto-generated method stub
+            Configuration conf = job.getConfiguration();
+            conf.set("mapred.output.dir", location);
             
         }
         
@@ -2716,11 +2713,10 @@ public class TestMultiQuery {
         @Override
         public void checkOutputSpecs(JobContext context) throws IOException,
                 InterruptedException {
-            StoreConfig sConfig = MapRedUtil.getStoreConfig(context.
-                    getConfiguration());
-            FileSystem fs = FileSystem.get(context.getConfiguration());
+            Configuration conf = context.getConfiguration();
+            FileSystem fs = FileSystem.get(conf);
             // create a file to test that this method got called
-            fs.create(new Path(sConfig.getLocation() + "_checkOutputSpec_test"));
+            fs.create(new Path(conf.get("mapred.output.dir") + "_checkOutputSpec_test"));
         }
 
         @Override

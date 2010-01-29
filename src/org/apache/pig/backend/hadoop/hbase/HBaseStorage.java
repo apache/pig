@@ -42,9 +42,7 @@ import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 
 /**
- * A <code>Slicer</code> that split the hbase table into {@link HBaseSlice}s.
- * And a load function will provided to do none load operations, the actually
- * load operatrions will be done in {@link HBaseSlice}.
+ * A Hbase Loader
  */
 public class HBaseStorage extends LoadFunc {
 
@@ -55,9 +53,6 @@ public class HBaseStorage extends LoadFunc {
 	private Scan scan=new Scan();
 	
 	private static final Log LOG = LogFactory.getLog(HBaseStorage.class);
-
-	// HBase Slicer
-	// Creates a slice per region of a specified table.
 
 	/**
 	 * Constructor. Construct a HBase Table loader to load the cells of the

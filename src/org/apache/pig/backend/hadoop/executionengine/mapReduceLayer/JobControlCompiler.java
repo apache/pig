@@ -17,7 +17,6 @@
  */
 package org.apache.pig.backend.hadoop.executionengine.mapReduceLayer;
 
-import java.io.DataInput;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -25,7 +24,6 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Hashtable;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -48,12 +46,11 @@ import org.apache.pig.ComparisonFunc;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.PigException;
 import org.apache.pig.ResourceSchema;
-import org.apache.pig.StoreConfig;
 import org.apache.pig.StoreFunc;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.HDataType;
-import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.partitioners.SkewedPartitioner;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.partitioners.SecondaryKeyPartitioner;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.partitioners.SkewedPartitioner;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.partitioners.WeightedRangePartitioner;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROperPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
@@ -114,8 +111,6 @@ public class JobControlCompiler{
     
     private final Log log = LogFactory.getLog(getClass());
     
-    public static final String PIG_STORE_CONFIG = "pig.store.config";
-
     public static final String LOG_DIR = "_logs";
 
     public static final String END_OF_INP_IN_MAP = "pig.invoke.close.in.map";
@@ -484,10 +479,6 @@ public class JobControlCompiler{
                 // in the store funcspec would break the job.xml which is created by
                 // hadoop from the jobconf.
                 conf.set(PIG_STORE_FUNC, ObjectSerializer.serialize(outputFuncSpec.toString()));
-                conf.set(PIG_STORE_CONFIG, 
-                            ObjectSerializer.serialize(
-                                    new StoreConfig(outputPath, st.getSchema(), st.getSortInfo())));
-                
                 conf.set("pig.streaming.log.dir", 
                             new Path(outputPath, LOG_DIR).toString());
                 conf.set("pig.streaming.task.output.dir", outputPath);

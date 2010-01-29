@@ -22,8 +22,6 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.hadoop.mapreduce.OutputCommitter;
@@ -132,7 +130,7 @@ public class PigOutputCommitter extends OutputCommitter {
         // side effects like setting map.output.dir on the Configuration
         // in the Context are needed by the OutputCommitter, those actions
         // will be done before the committer is created. Also the String 
-        // version of StoreConfig and StoreFunc for the specific store need
+        // version of StoreFunc for the specific store need
         // to be set up in the context in case the committer needs them
         PigOutputFormat.setLocation(contextCopy, store);
         return contextCopy;   
@@ -149,7 +147,7 @@ public class PigOutputCommitter extends OutputCommitter {
         // side effects like setting map.output.dir on the Configuration
         // in the Context are needed by the OutputCommitter, those actions
         // will be done before the committer is created. Also the String 
-        // version of StoreConfig and StoreFunc for the specific store need
+        // version of StoreFunc for the specific store need
         // to be set up in the context in case the committer needs them
         PigOutputFormat.setLocation(contextCopy, store);
         return contextCopy;   
