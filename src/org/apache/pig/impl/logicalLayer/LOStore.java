@@ -24,6 +24,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.pig.FuncSpec;
 import org.apache.pig.StoreFunc; 
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileSpec;
@@ -74,7 +75,7 @@ public class LOStore extends RelationalOperator {
         try { 
              mStoreFunc = (StoreFunc) PigContext.instantiateFuncFromSpec(outputFileSpec.getFuncSpec());
              this.mAlias = alias;
-             this.signature = constructSignature(mAlias, mOutputFile.getFileName(), mOutputFile.getFuncSpec().getCtorArgs());
+             this.signature = constructSignature(mAlias, outputFileSpec.getFileName(), mOutputFile.getFuncSpec());
              mStoreFunc.setStoreFuncUDFContextSignature(this.signature);
         } catch (Exception e) { 
             IOException ioe = new IOException(e.getMessage()); 
@@ -83,16 +84,8 @@ public class LOStore extends RelationalOperator {
         }
     }
     
-    private String constructSignature(String alias, String filename, String[] args) {
-        String s = alias+"_"+filename+"_";
-        if (args!=null) {
-            for (int i=0;i<args.length;i++) {
-                s = s+args[i];
-                if (i!=args.length-1)
-                    s = s+"_";
-            }
-        }
-        return s;
+    public static String constructSignature(String alias, String filename, FuncSpec funcSpec) {
+        return alias+"_"+filename+"_"+funcSpec.toString();
     }
 
     public FileSpec getOutputFile() {
@@ -219,9 +212,8 @@ public class LOStore extends RelationalOperator {
     @Override
     public void setAlias(String newAlias) {
         super.setAlias(newAlias);
-        mStoreFunc.setStoreFuncUDFContextSignature(getAlias()+"_"+mOutputFile.getFileName());
-        signature = constructSignature(mAlias, mOutputFile.getFileName(), mOutputFile.getFuncSpec().getCtorArgs());
-        signature = getAlias()+"_"+mOutputFile.getFileName();
+        signature = constructSignature(mAlias, mOutputFile.getFileName(), mOutputFile.getFuncSpec());
+        mStoreFunc.setStoreFuncUDFContextSignature(signature);
     }
     
     public String getSignature() {

@@ -73,7 +73,12 @@ public interface StoreFunc {
      * <b>store A into 'bla'</b>
      * then 'bla' is the location.  This location should be either a file name
      * or a URI.  If it does not have a URI scheme Pig will assume it is a 
-     * filename.  This will be called multiple times during execution on the backend.
+     * filename.  
+     * This method will be called in the frontend and backend multiple times. Implementations
+     * should bear in mind that this method is called multiple times and should
+     * ensure there are no inconsistent side effects due to the multiple calls.
+     * 
+
      * @param location Location indicated in store statement.
      * @param job The {@link Job} object
      * @throws IOException if the location is not valid.

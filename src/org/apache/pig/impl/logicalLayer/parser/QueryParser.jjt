@@ -619,7 +619,10 @@ public class QueryParser {
         }
         return true;    
     }
-
+    
+    static String constructFileNameSignature(String fileName, FuncSpec funcSpec) {
+        return fileName+"_"+funcSpec.toString();
+    }
 }
 
 
@@ -1270,10 +1273,10 @@ LogicalOperator LoadClause(LogicalPlan lp) :
             // so translating 'foo' to its absolute path based on that dir would give incorrect
             // results - hence we store the translations into a map during the first parse for
             // use during the reparse.
-            String absolutePath = fileNameMap.get(filename);
+            String absolutePath = fileNameMap.get(constructFileNameSignature(filename, funcSpec));
             if (absolutePath == null) {
                 absolutePath = loFunc.relativeToAbsolutePath(filename, getCurrentDir(pigContext));
-                fileNameMap.put(filename, absolutePath);
+                fileNameMap.put(constructFileNameSignature(filename, funcSpec), absolutePath);
             }
             lo = new LOLoad(lp, new OperatorKey(scope, getNextId()), new FileSpec(absolutePath, funcSpec),
                   ConfigurationUtil.toConfiguration(pigContext.getProperties()));
@@ -2411,12 +2414,13 @@ LogicalOperator StoreClause(LogicalPlan lp) : {LogicalOperator lo; Token t; Stri
 
         Object obj = PigContext.instantiateFuncFromSpec(funcSpec);
         StoreFunc stoFunc = (StoreFunc)obj;
+        stoFunc.setStoreFuncUDFContextSignature(LOStore.constructSignature(t.image, fileName, funcSpec));
          
         // see the comments in LoadClause for reasons to cache absolutePath
-        String absolutePath = fileNameMap.get(fileName);
+        String absolutePath = fileNameMap.get(constructFileNameSignature(fileName, funcSpec));
         if (absolutePath == null) {
             absolutePath = stoFunc.relToAbsPathForStoreLocation(fileName, getCurrentDir(pigContext));
-            fileNameMap.put(fileName, absolutePath);   
+            fileNameMap.put(constructFileNameSignature(fileName, funcSpec), absolutePath);   
         }
         LogicalOperator store = new LOStore(lp, new OperatorKey(scope, getNextId()),
                                             new FileSpec(absolutePath, funcSpec), t.image);
