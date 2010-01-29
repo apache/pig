@@ -163,14 +163,14 @@ public class TestPigStorageSchema extends TestCase {
         pig.registerQuery("B = group A by f1;");
         Schema origSchema = pig.dumpSchema("B");
         ResourceSchema rs1 = new ResourceSchema(origSchema);
-        pig.registerQuery("STORE B into 'bout' using org.apache.pig.piggybank.storage.PigStorageSchema();");
+        pig.registerQuery("STORE B into 'cout' using org.apache.pig.piggybank.storage.PigStorageSchema();");
         
-        pig.registerQuery("C = LOAD 'bout' using org.apache.pig.piggybank.storage.PigStorageSchema();");
+        pig.registerQuery("C = LOAD 'cout' using org.apache.pig.piggybank.storage.PigStorageSchema();");
         Schema genSchema = pig.dumpSchema("C");
         ResourceSchema rs2 = new ResourceSchema(genSchema);
         assertTrue("generated schema equals original" , ResourceSchema.equals(rs1, rs2));
         
-        pig.registerQuery("C1 = LOAD 'bout' as (a0:chararray, A: {t: (f1:chararray, f2:int) } );");
+        pig.registerQuery("C1 = LOAD 'cout' as (a0:chararray, A: {t: (f1:chararray, f2:int) } );");
         pig.registerQuery("D = foreach C1 generate a0, SUM(A.f2);");
 
         List<Tuple> expectedResults = Util.getTuplesFromConstantTupleStrings(
