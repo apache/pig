@@ -864,7 +864,9 @@ public abstract class OperatorPlan<E extends Operator> implements Iterable<E>, S
            }
        }
        mFromEdges.removeKey(node);
-       mFromEdges.put(node,newSuccessors);
+       if (!newSuccessors.isEmpty()) {
+           mFromEdges.put(node,newSuccessors);
+       }
     }    
 
     // removes entry  for predecessor in list of predecessors of node, 
@@ -885,7 +887,9 @@ public abstract class OperatorPlan<E extends Operator> implements Iterable<E>, S
            }
        }
        mToEdges.removeKey(node);
-       mToEdges.put(node,newPredecessors);
+       if (!newPredecessors.isEmpty()) {
+           mToEdges.put(node,newPredecessors);
+       }
     }
     
     /**
