@@ -281,6 +281,8 @@ PIG-1193: Secondary sort issue on nested desc sort (daijy)
 
 PIG-1195: POSort should take care of sort order (daijy)
 
+PIG-1210: fieldsToRead send the same fields more than once in some cases (daijy)
+
 Release 0.5.0
 
 INCOMPATIBLE CHANGES
