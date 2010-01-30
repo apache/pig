@@ -33,8 +33,12 @@ import org.apache.log4j.Logger;
 import org.apache.log4j.SimpleLayout;
 import org.apache.pig.ExecType;
 import org.apache.pig.FilterFunc;
+import org.apache.pig.LoadFunc;
 import org.apache.pig.PigServer;
+import org.apache.pig.LoadFunc.RequiredFieldList;
+import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.optimizer.PruneColumns;
 import org.junit.Before;
 import org.junit.Test;
@@ -55,8 +59,24 @@ public class TestPruneColumn extends TestCase {
     File tmpFile9;
     File tmpFile10;
     File logFile;
-    Logger logger;
 
+    static public class PigStorageWithTrace extends PigStorage {
+
+        /**
+         * @param delimiter
+         */
+        public PigStorageWithTrace() {
+            super();
+        }
+        @Override
+        public LoadFunc.RequiredFieldResponse fieldsToRead(RequiredFieldList requiredFieldList) throws FrontendException {
+            LoadFunc.RequiredFieldResponse response = super.fieldsToRead(requiredFieldList);
+            Logger logger = Logger.getLogger(this.getClass());
+            logger.info(requiredFieldList);
+            return response;
+        }
+
+    }
     private static final String simpleEchoStreamingCommand;
     static {
         if (System.getProperty("os.name").toUpperCase().startsWith("WINDOWS"))
@@ -76,13 +96,17 @@ public class TestPruneColumn extends TestCase {
     @Before
     @Override
     public void setUp() throws Exception{
-        logger = Logger.getLogger(PruneColumns.class);
+        Logger logger = Logger.getLogger(PruneColumns.class);
         logger.removeAllAppenders();
         logger.setLevel(Level.INFO);
         SimpleLayout layout = new SimpleLayout();
         logFile = File.createTempFile("log", "");
         FileAppender appender = new FileAppender(layout, logFile.toString(), false, false, 0);
         logger.addAppender(appender);
+        
+        Logger pigStorageWithTraceLogger = Logger.getLogger(PigStorageWithTrace.class);
+        pigStorageWithTraceLogger.setLevel(Level.INFO);
+        pigStorageWithTraceLogger.addAppender(appender);
         
         pigServer = new PigServer("local");
         //pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
@@ -1799,4 +1823,27 @@ public class TestPruneColumn extends TestCase {
         assertTrue(checkLogFileMessage(new String[]{"Columns pruned for A: $1",
                 "No map keys pruned for A"}));
     }
+    
+    // See PIG-1210
+    @Test
+    public void testFieldsToReadDuplicatedEntry() throws Exception {
+        pigServer.registerQuery("A = load '"+ Util.generateURI(tmpFile1.toString()) + "' using "+PigStorageWithTrace.class.getName()
+                +" AS (a0, a1, a2);");
+        pigServer.registerQuery("B = foreach A generate a0+a0, a1, a2;");
+        Iterator<Tuple> iter = pigServer.openIterator("B");
+
+        assertTrue(iter.hasNext());
+        Tuple t = iter.next();
+        assertTrue(t.toString().equals("(2.0,2,3)"));
+        
+        assertTrue(iter.hasNext());
+        t = iter.next();
+        assertTrue(t.toString().equals("(4.0,5,2)"));
+
+        assertFalse(iter.hasNext());
+
+        assertTrue(checkLogFileMessage(new String[]{"No column pruned for A",
+            "No map keys pruned for A", "[0,1,2]"}));
+    }
+
 }
