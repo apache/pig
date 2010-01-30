@@ -861,7 +861,8 @@ public class LOForEach extends RelationalOperator {
         ArrayList<Pair<Integer, Integer>> inputList = new ArrayList<Pair<Integer, Integer>>();
         for (LOProject project : projectFinder.getProjectSet()) {
             for (int inputColumn : project.getProjection()) {
-                inputList.add(new Pair<Integer, Integer>(0, inputColumn));
+                if (!inputList.contains(new Pair<Integer, Integer>(0, inputColumn)))
+                    inputList.add(new Pair<Integer, Integer>(0, inputColumn));
             }
         }
         if (inputList.size()==0)
