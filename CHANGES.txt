@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-977:  exit status does not account for JOB_STATUS.TERMINATED (ashutoshc)
+
 PIG-1192: Pig 0.6 Docs fixes (chandec via olgan)
 
 PIG-1177: Pig 0.6 Docs - Zebra docs (chandec via olgan)
