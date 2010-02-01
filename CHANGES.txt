@@ -80,6 +80,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-1124: Unable to set Custom Job Name using the -Dmapred.job.name parameter (ashutoshc)
+
 PIG-1213: Schema serialization is broken (pradeepkth)
 
 PIG-1194:  ERROR 2055: Received Error while processing the map plan (rding via ashutoshc)
