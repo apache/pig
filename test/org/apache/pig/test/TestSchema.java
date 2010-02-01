@@ -36,16 +36,22 @@
 
 package org.apache.pig.test;
 
-import java.util.* ;
-
-import org.apache.pig.data.* ;
-import org.apache.pig.impl.logicalLayer.schema.* ;
-import org.apache.pig.impl.logicalLayer.schema.Schema.FieldSchema;
-
-import org.junit.* ;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
 
 import junit.framework.Assert;
-import junit.framework.TestCase ;
+import junit.framework.TestCase;
+
+import org.apache.pig.ExecType;
+import org.apache.pig.PigServer;
+import org.apache.pig.data.DataType;
+import org.apache.pig.data.Tuple;
+import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.impl.logicalLayer.schema.SchemaMergeException;
+import org.apache.pig.impl.logicalLayer.schema.Schema.FieldSchema;
+import org.junit.Test;
 
 public class TestSchema extends TestCase {
     
@@ -633,5 +639,21 @@ public class TestSchema extends TestCase {
     		Schema.FieldSchema castFieldSchema=new Schema.FieldSchema("",type);
     		Assert.assertTrue(Schema.FieldSchema.castable(castFieldSchema, inputFieldSchema));
     	}
+    }
+    
+    public void testSchemaSerialization() throws IOException {
+        MiniCluster cluster = MiniCluster.buildCluster();
+        PigServer pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        String inputFileName = "testSchemaSerialization-input.txt";
+        String[] inputData = new String[] { "foo\t1", "hello\t2" };
+        Util.createInputFile(cluster, inputFileName, inputData);
+        String script = "a = load '"+ inputFileName +"' as (f1:chararray, f2:int);" +
+        		" b = group a all; c = foreach b generate org.apache.pig.test.InputSchemaUDF(a);";
+        Util.registerMultiLineQuery(pigServer, script);
+        Iterator<Tuple> it = pigServer.openIterator("c");
+        while(it.hasNext()) {
+            Tuple t = it.next();
+            assertEquals("{a: {f1: chararray,f2: int}}", t.get(0));
+        }
     }
 }
