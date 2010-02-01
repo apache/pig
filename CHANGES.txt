@@ -80,6 +80,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-1213: Schema serialization is broken (pradeepkth)
+
 PIG-1194:  ERROR 2055: Received Error while processing the map plan (rding via ashutoshc)
 
 PIG-1204:  Pig hangs when joining two streaming relations in local mode
