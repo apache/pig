@@ -149,6 +149,8 @@ PIG-922: Logical optimizer: push up project (daijy)
 
 BUG FIXES
 
+PIG-1213: Schema serialization is broken (pradeepkth)
+
 PIG-1191: POCast throws exception for certain sequences of LOAD, FILTER,
 FORACH (pradeepkth via gates)
 
