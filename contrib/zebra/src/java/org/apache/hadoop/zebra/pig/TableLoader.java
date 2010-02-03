@@ -430,6 +430,9 @@ public class TableLoader implements IndexableLoadFunc, Slicer {
 		private TreeMap<String, String> configMap;
 		private InputSplit split;
     
+    transient private final String[] zebraConfs = {TableInputFormat.INPUT_EXPR, 
+        TableInputFormat.INPUT_PROJ, TableInputFormat.INPUT_SORT, 
+        TableInputFormat.INPUT_DELETEED_CGS, TableInputFormat.INPUT_FE, "mapred.input.dir"};
 		transient private JobConf conf;
 		transient private int numProjCols = 0;
 		transient private RecordReader<BytesWritable, Tuple> scanner;
@@ -437,16 +440,16 @@ public class TableLoader implements IndexableLoadFunc, Slicer {
     transient private boolean sorted = false;
 
 		TableSlice(JobConf conf, InputSplit split, boolean sorted) {
-			// hack: expecting JobConf contains nothing but a <string, string>
-			// key-value pair store.
 			configMap = new TreeMap<String, String>();
-			for (Iterator<Map.Entry<String, String>> it = conf.iterator(); it.hasNext();) {
-				Map.Entry<String, String> e = it.next();
-				configMap.put(e.getKey(), e.getValue());
-			}
-			
-			
-			
+      String value;
+
+      for (String zebraConf : zebraConfs)
+      {
+        value = conf.get(zebraConf);
+        if (value != null)
+          configMap.put(zebraConf, value);
+      }
+
 			this.split = split;
 			this.sorted = sorted;
 		}
@@ -500,14 +503,14 @@ public class TableLoader implements IndexableLoadFunc, Slicer {
 
 		@Override
 		public void init(DataStorage store) throws IOException {
-			Configuration localConf = new Configuration();
+			Configuration localConf = ConfigurationUtil.toConfiguration(store.getConfiguration());
 			for (Iterator<Map.Entry<String, String>> it =
 				configMap.entrySet().iterator(); it.hasNext();) {
 				Map.Entry<String, String> e = it.next();
 				localConf.set(e.getKey(), e.getValue());
 			}
 			conf = new JobConf(localConf);
-			String projection;			
+			String projection;
 			try
 			{
 				projection = TableInputFormat.getProjection(conf);
@@ -516,8 +519,8 @@ public class TableLoader implements IndexableLoadFunc, Slicer {
 			}
 			numProjCols = Projection.getNumColumns(projection);
 			TableInputFormat inputFormat = new TableInputFormat();
-			if (sorted)
-				TableInputFormat.requireSortedTable(conf, null);
+      if (sorted)
+        TableInputFormat.requireSortedTable(conf, null);
 			scanner = inputFormat.getRecordReader(split, conf, Reporter.NULL);
 			key = new BytesWritable();
 		}

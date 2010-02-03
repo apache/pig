@@ -39,6 +39,8 @@ Trunk (unreleased changes)
 
   BUG FIXES
 
+    PIG-1201: unnecessary name node calls by each mapper; too big input split serialization size by Pig's Slice implementation (yanz)
+
     PIG-1167: Hadoop file glob support (yanz)
 
     PIG-1145: Merge Join on Large Table throws an EOF exception (yanz)

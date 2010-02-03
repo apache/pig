@@ -225,6 +225,7 @@ class ColumnGroup {
     SplitColumn top; // directly associated with logical schema
     SplitColumn leaf; // corresponding to projection
     boolean closed;
+    boolean dirty;
 
     /**
      * Get the Column Group physical schema without loading the full CG index.
@@ -255,13 +256,24 @@ class ColumnGroup {
      */
     public Reader(Path path, Configuration conf) throws IOException,
       ParseException {
-      this(path, true, conf);
+      this(path, conf, false);
+    }
+    
+    public Reader(Path path, Configuration conf, boolean mapper) throws IOException,
+      ParseException {
+      this(path, true, conf, mapper);
+    }
+    
+    Reader(Path path, boolean dirty, Configuration conf) throws IOException,
+      ParseException {
+      this(path, dirty, conf, false);
     }
 
-    Reader(Path path, boolean dirty, Configuration conf) throws IOException,
+    Reader(Path path, boolean dirty, Configuration conf, boolean mapper) throws IOException,
       ParseException {
       this.path = path;
       this.conf = conf;
+      this.dirty = dirty;
 
       fs = path.getFileSystem(conf);
       // check existence of path
@@ -269,7 +281,7 @@ class ColumnGroup {
         throw new IOException("Path doesn't exist: " + path);
       }
 
-      if (!fs.getFileStatus(path).isDir()) {
+      if (!mapper && !fs.getFileStatus(path).isDir()) {
         throw new IOException("Path exists but not a directory: " + path);
       }
 
@@ -279,8 +291,8 @@ class ColumnGroup {
       }
       projection = new Projection(cgschema.getSchema()); // default projection to CG schema.
       Path metaFilePath = makeMetaFilePath(path);
-      /* If index file is not existing or loading from an unsorted table. */
-      if (!fs.exists(metaFilePath) || !cgschema.isSorted() ) {
+      /* If index file is not existing */
+      if (!fs.exists(metaFilePath)) {
         // special case for unsorted CG that did not create index properly.
         if (cgschema.isSorted()) {
           throw new FileNotFoundException(
@@ -288,15 +300,16 @@ class ColumnGroup {
         }
         cgindex = buildIndex(fs, path, dirty, conf);
       }
-      else {
+      else if (cgschema.isSorted()) {
         MetaFile.Reader metaFile = MetaFile.createReader(metaFilePath, conf);
         try {
           cgindex = new CGIndex();
           DataInputStream dis = metaFile.getMetaBlock(BLOCK_NAME_INDEX);
           try {
             cgindex.readFields(dis);
-          }
-          finally {
+          } catch (IOException e) {
+            throw new IOException("Index file read failure :"+ e.getMessage());
+          } finally {
             dis.close();
           }
         }
@@ -429,6 +442,8 @@ class ColumnGroup {
       }
 
       if (split == null) {
+        if (cgindex == null)
+          cgindex = buildIndex(fs, path, dirty, conf);
         return getScanner(new CGRangeSplit(0, cgindex.size()), closeReader);
       }
       if (split.len < 0) {
@@ -474,6 +489,8 @@ class ColumnGroup {
         return getBlockDistribution(new CGRangeSplit(0, cgindex.size()));
       }
 
+      if (cgindex == null)
+        cgindex = buildIndex(fs, path, dirty, conf);
       if ((split.start | split.len | (cgindex.size() - split.start - split.len)) < 0) {
         throw new IndexOutOfBoundsException("Bad split");
       }
@@ -509,10 +526,9 @@ class ColumnGroup {
       }
 
       BlockDistribution ret = new BlockDistribution();
-      if (split.fileIndex >= 0)
+      if (split.name != null)
       {
-        CGIndexEntry entry = cgindex.get(split.fileIndex);
-        FileStatus tfileStatus = fs.getFileStatus(new Path(path, entry.getName())); 
+        FileStatus tfileStatus = fs.getFileStatus(new Path(path, split.name)); 
         
         BlockLocation[] locations = fs.getFileBlockLocations(tfileStatus, split.startByte, split.numBytes);
         for (BlockLocation l : locations) {
@@ -532,17 +548,26 @@ class ColumnGroup {
     void fillRowSplit(CGRowSplit rowSplit, long startOffset, long length) 
                       throws IOException {
 
-      if (rowSplit.fileIndex < 0)
+      if (rowSplit.name == null)
         return;
 
-      Path tfPath = new Path(path, cgindex.get(rowSplit.fileIndex).getName());
-      FileStatus tfile = fs.getFileStatus(tfPath);
+      Path tfPath = new Path(path, rowSplit.name);
 
+      long size = rowSplit.size;
+      if (size == 0)
+      {
+        /* the on disk table is sorted. Later this will be made unnecessary when
+         * CGIndexEntry serializes its bytes field and the meta file versioning is
+         * supported.
+         */ 
+        FileStatus tfile = fs.getFileStatus(tfPath);
+        size = tfile.getLen();
+      }
       TFile.Reader reader = null;
       
       try {
         reader = new TFile.Reader(fs.open(tfPath),
-                                  tfile.getLen(), conf);
+                                  size, conf);
 
         long startRow = reader.getRecordNumNear(startOffset);
         long endRow = reader.getRecordNumNear(startOffset + length);
@@ -703,7 +728,9 @@ class ColumnGroup {
     /**
      * Get the status of the ColumnGroup.
      */
-    public BasicTableStatus getStatus() {
+    public BasicTableStatus getStatus() throws IOException {
+      if (cgindex == null)
+        cgindex = buildIndex(fs, path, dirty, conf);
       return cgindex.status;
     }
 
@@ -715,10 +742,12 @@ class ColumnGroup {
      * @return A list of range-based splits, whose size may be less than or
      *         equal to n.
      */
-    public List<CGRangeSplit> rangeSplit(int n) {
+    public List<CGRangeSplit> rangeSplit(int n) throws IOException {
       // The output of this method must be only dependent on the cgindex and
       // input parameter n - so that horizontally stitched column groups will
       // get aligned splits.
+      if (cgindex == null)
+        cgindex = buildIndex(fs, path, dirty, conf);
       int numFiles = cgindex.size();
       if ((numFiles < n) || (n < 0)) {
         return rangeSplit(numFiles);
@@ -752,8 +781,10 @@ class ColumnGroup {
         long start = starts[i];
         long length = lengths[i];
         Path path = paths[i];
-        int idx = cgindex.getFileIndex(path);        
-        lst.add(new CGRowSplit(idx, start, length));
+        if (cgindex == null)
+          cgindex = buildIndex(fs, this.path, dirty, conf);
+        long size = cgindex.get(cgindex.getFileIndex(path)).bytes;
+        lst.add(new CGRowSplit(path.getName(), start, length, size));
       }
       
       return lst;
@@ -796,7 +827,7 @@ class ColumnGroup {
            * compressor is inside cgschema
            */
           reader = new TFile.Reader(ins, fs.getFileStatus(path).getLen(), conf);
-          if (rowRange != null && rowRange.fileIndex >= 0) {
+          if (rowRange != null) {
             scanner = reader.createScannerByRecordNum(rowRange.startRow, 
                                          rowRange.startRow + rowRange.numRows);
           } else {
@@ -921,6 +952,8 @@ class ColumnGroup {
 
       CGScanner(CGRangeSplit split, boolean closeReader) throws IOException,
       ParseException {
+        if (cgindex== null)
+          cgindex = buildIndex(fs, path, dirty, conf);
         if (split == null) {
           beginIndex = 0;
           endIndex = cgindex.size();
@@ -940,15 +973,9 @@ class ColumnGroup {
        */
       CGScanner(CGRowSplit rowRange, boolean closeReader) 
                  throws IOException, ParseException {
+        
         beginIndex = 0;
-        endIndex = cgindex.size();
-        if (rowRange != null && rowRange.fileIndex>= 0) {
-          if (rowRange.fileIndex >= cgindex.size()) {
-            throw new IllegalArgumentException("Part Index is out of range.");
-          }
-          beginIndex = rowRange.fileIndex;
-          endIndex = beginIndex+1;
-        }
+        endIndex = 1;
         init(rowRange, null, null, closeReader);
       }
       
@@ -981,8 +1008,15 @@ class ColumnGroup {
           for (int i = beginIndex; i < endIndex; ++i) {
             RawComparable begin = (i == beginIndex) ? beginKey : null;
             RawComparable end = (i == endIndex - 1) ? endKey : null;
-            TFileScanner scanner =
-                new TFileScanner(fs, cgindex.getPath(i, path), rowRange, 
+            TFileScanner scanner;
+            if (rowRange != null)
+              scanner =
+                new TFileScanner(fs, new Path(path, rowRange.name), rowRange, 
+                                 begin, end,
+                                 cgschema, logicalSchema, conf);
+            else
+              scanner =
+                new TFileScanner(fs, cgindex.getPath(i, path), null, 
                                  begin, end,
                                  cgschema, logicalSchema, conf);
             // skip empty scanners.
@@ -1160,16 +1194,18 @@ class ColumnGroup {
     }
     
     public static class CGRowSplit implements Writable {
-      int fileIndex = -1;
+      String name;
       long startByte = -1;
       long numBytes = -1;
       long startRow = -1;
       long numRows = -1;
+      long size = 0; // size of the file in the selected CG 
 
-      CGRowSplit(int fileIdx, long start, long len) {
-        this.fileIndex = fileIdx;
+      CGRowSplit(String name, long start, long len, long size) {
+        this.name = name;
         this.startByte = start;
         this.numBytes = len;
+        this.size = size;
       }
 
       public CGRowSplit() {
@@ -1179,31 +1215,34 @@ class ColumnGroup {
       @Override
       public String toString() {
         StringBuilder sb = new StringBuilder();
-        sb.append("{fileIndex = " + fileIndex + "}\n");       
+        sb.append("{name = " + name + "}\n");       
         sb.append("{startByte = " + startByte + "}\n");
         sb.append("{numBytes = " + numBytes + "}\n");
         sb.append("{startRow = " + startRow + "}\n");
         sb.append("{numRows = " + numRows + "}\n");
+        sb.append("{size = " + size + "}\n");
         
         return sb.toString();
       }
 
       @Override
       public void readFields(DataInput in) throws IOException {
-        fileIndex = Utils.readVInt(in);
+        name = Utils.readString(in);
         startByte = Utils.readVLong(in);
         numBytes = Utils.readVLong(in);
         startRow = Utils.readVLong(in);
         numRows = Utils.readVLong(in);
+        size = Utils.readVLong(in);
       }
 
       @Override
       public void write(DataOutput out) throws IOException {
-        Utils.writeVInt(out, fileIndex);
+        Utils.writeString(out, name);
         Utils.writeVLong(out, startByte);
         Utils.writeVLong(out, numBytes);
         Utils.writeVLong(out, startRow);
         Utils.writeVLong(out, numRows);
+        Utils.writeVLong(out, size);
       }      
     }
     
@@ -1444,23 +1483,13 @@ class ColumnGroup {
     private void createIndex() throws IOException {
       MetaFile.Writer metaFile =
           MetaFile.createWriter(makeMetaFilePath(path), conf);
-      if (cgschema.isSorted()) {
-        CGIndex index = buildIndex(fs, path, false, conf);
-        DataOutputStream dos = metaFile.createMetaBlock(BLOCK_NAME_INDEX);
-        try {
-          index.write(dos);
-        }
-        finally {
-          dos.close();
-        }
-      } else { /* Create an empty data meta file for unsorted table. */
-        DataOutputStream dos = metaFile.createMetaBlock(BLOCK_NAME_INDEX);
-        try {
-          Utils.writeString(dos, "");
-        } 
-        finally {
-          dos.close();
-        }
+      CGIndex index = buildIndex(fs, path, false, conf);
+      DataOutputStream dos = metaFile.createMetaBlock(BLOCK_NAME_INDEX);
+      try {
+        index.write(dos);
+      }
+      finally {
+        dos.close();
       }
       metaFile.close();
     }
@@ -1689,7 +1718,7 @@ class ColumnGroup {
   static class CGIndexEntry implements RawComparable, Writable {
     int index;
     String name;
-    long rows;
+    long rows, bytes;
     RawComparable firstKey;
     RawComparable lastKey;
 
@@ -1890,6 +1919,7 @@ class ColumnGroup {
       status.rows += rows;
       index.add(range);
       sorted = false;
+      range.bytes = bytes;
     }
 
     // building dirty index
@@ -1901,6 +1931,7 @@ class ColumnGroup {
       next.name = name;
       index.add(next);
       sorted = false;
+      next.bytes = bytes;
     }
 
     int lowerBound(RawComparable key, final Comparator<RawComparable> comparator)
@@ -1935,6 +1966,7 @@ class ColumnGroup {
       for (int i = 0; i < n; ++i) {
         CGIndexEntry range = new CGIndexEntry();
         range.readFields(in);
+        range.setIndex(i);
         index.add(range);
       }
       status.readFields(in);
@@ -2035,6 +2067,8 @@ class ColumnGroup {
         out.printf("%s : %s\n", e.getKey(), e.getValue());
       }
       out.println("TFiles within the Column Group :");
+      if (reader.cgindex == null)
+        reader.cgindex = buildIndex(reader.fs, reader.path, reader.dirty, conf);
       for (CGIndexEntry entry : reader.cgindex.index) {
         IOutils.indent(out, indent);
         out.printf(" *Name : %s\n", entry.name);

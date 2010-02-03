@@ -105,14 +105,20 @@ class TableUnionExpr extends CompositeTableExpr {
       throw new IllegalArgumentException("Union of 0 table");
     }
     ArrayList<BasicTable.Reader> readers = new ArrayList<BasicTable.Reader>(n);
-    final ArrayList<BasicTableStatus> status =
-        new ArrayList<BasicTableStatus>(n);
+    String[] deletedCGsInUnion = getDeletedCGsPerUnion(conf);
+    
+    if (deletedCGsInUnion != null && deletedCGsInUnion.length != n)
+      throw new IllegalArgumentException("Invalid string of deleted column group names: expected = "+
+          n + " actual =" + deletedCGsInUnion.length);
+    
     for (int i = 0; i < n; ++i) {
+      String deletedCGs = (deletedCGsInUnion == null ? null : deletedCGsInUnion[i]);
+      String[] deletedCGList = (deletedCGs == null ? null : 
+        deletedCGs.split(BasicTable.DELETED_CG_SEPARATOR_PER_TABLE));
       BasicTableExpr expr = (BasicTableExpr) composite.get(i);
       BasicTable.Reader reader =
-          new BasicTable.Reader(expr.getPath(), conf);
+          new BasicTable.Reader(expr.getPath(), deletedCGList, conf);
       readers.add(reader);
-      status.add(reader.getStatus());
     }
 
     String actualProjection = projection;
