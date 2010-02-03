@@ -117,7 +117,9 @@ public abstract class LoadFunc {
     public abstract void prepareToRead(RecordReader reader, PigSplit split) throws IOException;
 
     /**
-     * Retrieves the next tuple to be processed.
+     * Retrieves the next tuple to be processed. Implementations should NOT reuse
+     * tuple objects they return across calls and should return a different tuple 
+     * object in each call.
      * @return the next tuple to be processed or null if there are no more tuples
      * to be processed.
      * @throws IOException if there is an exception while retrieving the next

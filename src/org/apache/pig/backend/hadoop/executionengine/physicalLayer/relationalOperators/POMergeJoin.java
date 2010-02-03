@@ -26,6 +26,7 @@ import java.util.Properties;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.IndexableLoadFunc;
@@ -397,9 +398,11 @@ public class POMergeJoin extends PhysicalOperator {
         pc = (PigContext)ObjectSerializer.deserialize(PigMapReduce.sJobConf.get("pig.pigContext"));
         pc.connect();
         // Pass signature of the loader to rightLoader
-        PigMapReduce.sJobConf.set("pig.loader.signature", signature);
-        rightLoader.initialize(PigMapReduce.sJobConf);
-        rightLoader.setLocation(rightInputFileName, new Job(PigMapReduce.sJobConf));
+        // make a copy of the conf to use in calls to rightLoader.
+        Configuration conf = new Configuration(PigMapReduce.sJobConf);
+        conf.set("pig.loader.signature", signature);
+        rightLoader.setLocation(rightInputFileName, new Job(conf));
+        rightLoader.initialize(conf);
         rightLoader.seekNear(
                 firstLeftKey instanceof Tuple ? (Tuple)firstLeftKey : mTupleFactory.newTuple(firstLeftKey));
     }
