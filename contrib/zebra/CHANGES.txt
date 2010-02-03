@@ -6,6 +6,8 @@ Trunk (unreleased changes)
 
   IMPROVEMENTS
 
+    PIG-1206 Storing descendingly sorted PIG table as unsorted table (yanz)
+
     PIG-1125 Map/Reduce API Changes (Chao Wang via yanz)
 
     PIG-1104 Streaming Support (Chao Wang via yanz)

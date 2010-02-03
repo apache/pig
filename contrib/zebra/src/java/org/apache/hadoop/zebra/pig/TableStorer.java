@@ -23,6 +23,8 @@ import java.io.OutputStream;
 import java.lang.reflect.Constructor;
 import java.util.List;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.BytesWritable;
@@ -43,6 +45,7 @@ import org.apache.hadoop.zebra.types.TypesUtils;
 import org.apache.pig.StoreConfig;
 import org.apache.pig.CommittableStoreFunc;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.SortColInfo.Order;
 import org.apache.pig.backend.hadoop.executionengine.util.MapRedUtil;
 import org.apache.pig.data.Tuple;
 
@@ -128,19 +131,28 @@ class TableOutputFormat implements OutputFormat<BytesWritable, Tuple> {
       {
         org.apache.pig.SortColInfo sortColumn;
         String sortColumnName;
+        boolean descending = false;
         for (int i = 0; i < sortColumns.size(); i++)
         {
           sortColumn = sortColumns.get(i);
           sortColumnName = sortColumn.getColName();
           if (sortColumnName == null)
             throw new IOException("Zebra does not support column positional reference yet");
+          if (sortColumn.getSortOrder() == Order.DESCENDING)
+          {
+            Log LOG = LogFactory.getLog(TableLoader.class);
+            LOG.warn("Sorting in descending order is not supported by Zebra and the table will be unsorted.");
+            descending = true;
+            break;
+          }
           if (!org.apache.pig.data.DataType.isAtomic(schema.getField(sortColumnName).type))
         	  throw new IOException(schema.getField(sortColumnName).alias+" is not of simple type as required for a sort column now.");
           if (i > 0)
             sb.append(",");
           sb.append(sortColumnName);
         }
-        sortColumnNames = sb.toString();
+        if (!descending)
+          sortColumnNames = sb.toString();
       }
     }
     try {
