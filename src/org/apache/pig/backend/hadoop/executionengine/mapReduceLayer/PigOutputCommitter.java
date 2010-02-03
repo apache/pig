@@ -175,14 +175,14 @@ public class PigOutputCommitter extends OutputCommitter {
         for (Pair<OutputCommitter, POStore> mapCommitter : mapOutputCommitters) {            
             JobContext updatedContext = setUpContext(context, 
                     mapCommitter.second);
-            storeCleanup(mapCommitter.second, context.getConfiguration());
+            storeCleanup(mapCommitter.second, updatedContext.getConfiguration());
             mapCommitter.first.cleanupJob(updatedContext);
         }
         for (Pair<OutputCommitter, POStore> reduceCommitter : 
             reduceOutputCommitters) {            
             JobContext updatedContext = setUpContext(context, 
                     reduceCommitter.second);
-            storeCleanup(reduceCommitter.second, context.getConfiguration());
+            storeCleanup(reduceCommitter.second, updatedContext.getConfiguration());
             reduceCommitter.first.cleanupJob(updatedContext);
         }
        
