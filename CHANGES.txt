@@ -26,6 +26,8 @@ PIG-922: Logical optimizer: push up project (daijy)
 
 IMPROVEMENTS
 
+PIG-1214: Pig 0.6 Docs fixes (chandec via olgan)
+
 PIG-1197: TextLoader updated to match changes to PigStorage (gates)
 
 PIG-1192: Pig 0.6 Docs fixes (chandec via olgan)
