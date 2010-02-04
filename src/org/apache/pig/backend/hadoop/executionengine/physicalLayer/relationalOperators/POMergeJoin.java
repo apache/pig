@@ -401,8 +401,9 @@ public class POMergeJoin extends PhysicalOperator {
         // make a copy of the conf to use in calls to rightLoader.
         Configuration conf = new Configuration(PigMapReduce.sJobConf);
         rightLoader.setUDFContextSignature(signature);
-        rightLoader.setLocation(rightInputFileName, new Job(conf));
-        rightLoader.initialize(conf);
+        Job job = new Job(conf);
+        rightLoader.setLocation(rightInputFileName, job);
+        rightLoader.initialize(job.getConfiguration());
         rightLoader.seekNear(
                 firstLeftKey instanceof Tuple ? (Tuple)firstLeftKey : mTupleFactory.newTuple(firstLeftKey));
     }

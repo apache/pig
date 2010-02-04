@@ -21,6 +21,7 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
@@ -124,7 +125,15 @@ public class WeightedRangePartitioner extends Partitioner<PigNullableWritable, W
                 FileSpec fileSpec = inp.get(0);
                 LoadFunc inpLoad =
                     (LoadFunc)PigContext.instantiateFuncFromSpec(fileSpec.getFuncSpec());
-
+                List<String> inpSignatureLists = 
+                    (ArrayList<String>)ObjectSerializer.deserialize(
+                            job.get("pig.inpSignatures"));
+                // signature can be null for intermediate jobs where it will not
+                // be required to be passed down
+                if(inpSignatureLists.get(0) != null) {
+                    inpLoad.setUDFContextSignature(inpSignatureLists.get(0));
+                }
+                
                 ReadToEndLoader r2eLoad = new ReadToEndLoader(inpLoad, job, 
                         fileSpec.getFileName(), 0);
 
