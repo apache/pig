@@ -80,6 +80,9 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-1154: Local Mode fails when hadoop config directory is specified in 
+            classpath (ankit.modi via gates)
+
 PIG-1124: Unable to set Custom Job Name using the -Dmapred.job.name parameter (ashutoshc)
 
 PIG-1213: Schema serialization is broken (pradeepkth)
