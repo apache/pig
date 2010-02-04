@@ -98,4 +98,8 @@ public abstract class SampleLoader extends LoadFunc {
         loader.setLocation(location, job);
     }
 
+    @Override
+    public void setUDFContextSignature(String signature) {
+        loader.setUDFContextSignature(signature);
+    }
 }
