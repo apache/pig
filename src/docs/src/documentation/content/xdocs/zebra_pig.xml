@@ -102,8 +102,14 @@ C = FOREACH B GENERATE group, MAX(a.$1);
  </section>
 <!--end example: map-side data-->
     
-    
-    
+    <!--sorting data-->
+    <section>
+   <title>Sorting Data</title>
+   <p>
+   Pig allows you to sort data by ascending (ASC) or descending (DESC) order (for more information, see <a href="piglatin_ref2.html#ORDER">ORDER</a>). Currently, Zebra supports tables that are sorted in ascending order. Zebra does not support tables that are sorted in descending order; if Zebra encounters a table to be stored that is sorted in descending order, Zebra will issue a warning and store the table as an unsorted table.</p>
+     </section>
+     <!--end sorting data-->
+     
     <!--example: storing data-->
     <section>
    <title>Storing Data</title>

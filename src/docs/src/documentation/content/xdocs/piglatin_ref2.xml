@@ -8710,7 +8710,7 @@ STORE X into 'output' USING BinStorage();
    <informaltable frame="all">
       <tgroup cols="1"><tbody><row>
             <entry>
-               <para>PigStorage(field_delimiter)        </para>
+               <para>PigStorage(field_delimiter) </para>
             </entry>
          </row></tbody></tgroup>
    </informaltable></section>
@@ -8732,16 +8732,15 @@ STORE X into 'output' USING BinStorage();
    
    <section>
    <title>Usage</title>
-   <para>PigStorage works with structured text files in human-readable UTF-8 format. PigStorage also works with simple and complex data types and is the default function for the LOAD and STORE operators.</para>
-   <itemizedlist>
-      <listitem>
-         <para>For load statements, PigStorage expects data to be formatted as delimiter-separated fields and newline-separated records ('\n'). </para>
-      </listitem>
-      <listitem>
-         <para>For store statements, PigStorage outputs data as delimiter-separated fields and newline-separated records ('\n'). </para>
-      </listitem>
-   </itemizedlist>
-   <para>For both load and store statements the default field delimiter is the tab character ('\t'). You can use other characters as field delimiters, but separators such as ^A or Ctrl-A should be represented in Unicode (\u0001) using UTF-16 encoding (see Wikipedia <ulink url="http://en.wikipedia.org/wiki/ASCII">ASCII</ulink>, <ulink url="http://en.wikipedia.org/wiki/Unicode">Unicode</ulink>, and <ulink url="http://en.wikipedia.org/wiki/UTF-16">UTF-16</ulink>).</para>
+   <para>PigStorage is the default function for the LOAD and STORE operators. PigStorage works with structured text files (in human-readable UTF-8 format) and bzip compressed text files. PigStorage also works with simple and complex data types.</para>
+
+  <para>Load statements – PigStorage expects data to be formatted using field delimiters, either the tab character  ('\t') or other specified character.</para>
+
+   <para>Store statements – PigStorage outputs data using field deliminters, either the tab character  ('\t') or other specified character, and the line feed record delimiter ('\n').  </para>
+
+   <para>Field Deliminters – For load and store statements the default field delimiter is the tab character ('\t'). You can use other characters as field delimiters, but separators such as ^A or Ctrl-A should be represented in Unicode (\u0001) using UTF-16 encoding (see Wikipedia <ulink url="http://en.wikipedia.org/wiki/ASCII">ASCII</ulink>, <ulink url="http://en.wikipedia.org/wiki/Unicode">Unicode</ulink>, and <ulink url="http://en.wikipedia.org/wiki/UTF-16">UTF-16</ulink>).</para>
+   
+   <para>Record Deliminters – For load statements Pig interprets the line feed ( '\n' ), carriage return ( '\r' or CTRL-M) and combined CR + LF ( '\r\n' ) characters as record delimiters (do not use these characters as field delimiters). For store statements Pig uses the line feed ('\n') character as the record delimiter. For load and store statements, if the input file is a bzip file (ending in .bz or .bz2), Pig uses the line feed ('\n') character as the record delimiter.</para>
    </section>
    
    <section>
