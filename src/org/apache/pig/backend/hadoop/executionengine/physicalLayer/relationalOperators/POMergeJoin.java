@@ -400,7 +400,7 @@ public class POMergeJoin extends PhysicalOperator {
         // Pass signature of the loader to rightLoader
         // make a copy of the conf to use in calls to rightLoader.
         Configuration conf = new Configuration(PigMapReduce.sJobConf);
-        conf.set("pig.loader.signature", signature);
+        rightLoader.setUDFContextSignature(signature);
         rightLoader.setLocation(rightInputFileName, new Job(conf));
         rightLoader.initialize(conf);
         rightLoader.seekNear(
