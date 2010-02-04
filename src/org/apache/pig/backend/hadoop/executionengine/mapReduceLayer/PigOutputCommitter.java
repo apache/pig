@@ -136,7 +136,7 @@ public class PigOutputCommitter extends OutputCommitter {
         return contextCopy;   
     }
     
-    private JobContext setUpContext(JobContext context, 
+    static JobContext setUpContext(JobContext context, 
             POStore store) throws IOException {
         // make a copy of the context so that the actions after this call
         // do not end up updating the same context
@@ -153,7 +153,7 @@ public class PigOutputCommitter extends OutputCommitter {
         return contextCopy;   
     }
 
-    private void storeCleanup(POStore store, Configuration conf)
+    static void storeCleanup(POStore store, Configuration conf)
             throws IOException {
         StoreFunc storeFunc = store.getStoreFunc();
         if (storeFunc instanceof StoreMetadata) {

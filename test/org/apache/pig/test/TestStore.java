@@ -17,7 +17,6 @@
  */
 package org.apache.pig.test;
 
-import java.io.File;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
@@ -25,17 +24,31 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
-import java.util.Set;
-import java.util.Map.Entry;
 
 import junit.framework.Assert;
 
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.Text;
+import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.mapreduce.OutputFormat;
+import org.apache.hadoop.mapreduce.RecordWriter;
+import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.ResourceSchema;
+import org.apache.pig.ResourceStatistics;
+import org.apache.pig.StoreFunc;
+import org.apache.pig.StoreMetadata;
 import org.apache.pig.backend.datastorage.DataStorage;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MapReduceLauncher;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POProject;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.builtin.BinStorage;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.data.DataBag;
@@ -44,12 +57,6 @@ import org.apache.pig.data.DefaultBagFactory;
 import org.apache.pig.data.DefaultTuple;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POProject;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
-import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MapReduceLauncher;
-import org.apache.pig.pen.physicalOperators.POCounter;
-import org.apache.pig.tools.pigstats.PigStats;
 import org.apache.pig.impl.logicalLayer.LOStore;
 import org.apache.pig.impl.logicalLayer.LogicalOperator;
 import org.apache.pig.impl.logicalLayer.LogicalPlan;
@@ -57,8 +64,10 @@ import org.apache.pig.impl.logicalLayer.LogicalPlanBuilder;
 import org.apache.pig.impl.logicalLayer.parser.ParseException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.plan.OperatorKey;
+import org.apache.pig.pen.physicalOperators.POCounter;
 import org.apache.pig.test.utils.GenRandomData;
 import org.apache.pig.test.utils.TestHelper;
+import org.apache.pig.tools.pigstats.PigStats;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -292,6 +301,110 @@ public class TestStore extends junit.framework.TestCase {
         checkStorePath("/tmp/foo/../././","/tmp");
     }
 
+    @Test
+    public void testSetStoreSchema() throws Exception {
+        PigServer ps = null;
+        String storeSchemaOutputFile = outputFileName + "_storeSchema_test";
+        try {
+            ExecType[] modes = new ExecType[] { ExecType.MAPREDUCE, ExecType.LOCAL};
+            String[] inputData = new String[]{"hello\tworld", "bye\tworld"};
+            
+            String script = "a = load '"+ inputFileName + "';" +
+            		"store a into '" + outputFileName + "' using " + 
+            		DummyStore.class.getName() + "();";
+            
+            for (ExecType execType : modes) {
+                if(execType == ExecType.MAPREDUCE) {
+                    ps = new PigServer(ExecType.MAPREDUCE, 
+                            cluster.getProperties());
+                    Util.deleteFile(ps.getPigContext(), inputFileName);
+                    Util.deleteFile(ps.getPigContext(), outputFileName);
+                    Util.deleteFile(ps.getPigContext(), storeSchemaOutputFile);
+                } else {
+                    ps = new PigServer(ExecType.LOCAL);
+                    Util.deleteFile(ps.getPigContext(), inputFileName);
+                    Util.deleteFile(ps.getPigContext(), outputFileName);
+                    Util.deleteFile(ps.getPigContext(), storeSchemaOutputFile);
+                }
+                ps.setBatchOn();
+                Util.createInputFile(ps.getPigContext(), 
+                        inputFileName, inputData);
+                Util.registerMultiLineQuery(ps, script);
+                ps.executeBatch();
+                assertEquals(
+                        "Checking if file indicating that storeSchema was " +
+                        "called exists in " + execType + " mode", true, 
+                        Util.exists(ps.getPigContext(), storeSchemaOutputFile));
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            Assert.fail("Exception encountered - hence failing:" + e);
+        } finally {
+            Util.deleteFile(ps.getPigContext(), inputFileName);
+            Util.deleteFile(ps.getPigContext(), outputFileName);
+            Util.deleteFile(ps.getPigContext(), storeSchemaOutputFile);
+        }
+    }
+    
+    public static class DummyStore implements StoreFunc, StoreMetadata{
+
+        @Override
+        public void checkSchema(ResourceSchema s) throws IOException {
+            
+        }
+
+        @Override
+        public OutputFormat getOutputFormat() throws IOException {
+            // we don't really write in the test - so this is just to keep
+            // Pig/hadoop happy
+            return new TextOutputFormat<Long, Text>();
+        }
+
+        @Override
+        public void prepareToWrite(RecordWriter writer) throws IOException {
+            
+        }
+
+        @Override
+        public void putNext(Tuple t) throws IOException {
+            // we don't really write anything out            
+        }
+
+        @Override
+        public String relToAbsPathForStoreLocation(String location, Path curDir)
+                throws IOException {
+            return location;
+        }
+
+        @Override
+        public void setStoreFuncUDFContextSignature(String signature) {
+            
+        }
+
+        @Override
+        public void setStoreLocation(String location, Job job)
+                throws IOException {
+            FileOutputFormat.setOutputPath(job, new Path(location));
+        }
+
+        @Override
+        public void storeSchema(ResourceSchema schema, String location,
+                Configuration conf) throws IOException {
+            FileSystem fs = FileSystem.get(conf);
+            // create a file to test that this method got called - if it gets called
+            // multiple times, the create will throw an Exception
+            fs.create(
+                    new Path(conf.get("mapred.output.dir") + "_storeSchema_test"),
+                    false);
+        }
+
+        @Override
+        public void storeStatistics(ResourceStatistics stats, String location,
+                Configuration conf) throws IOException {
+        }
+        
+    }
+    
     private void checkStorePath(String orig, String expected) throws Exception {
         checkStorePath(orig, expected, false);
     }

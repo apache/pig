@@ -308,6 +308,14 @@ public class Util {
         fs.delete(new Path(fileName), true);
     }
     
+    static public boolean exists(PigContext pigContext, String fileName) 
+    throws IOException {
+        Configuration conf = ConfigurationUtil.toConfiguration(
+                pigContext.getProperties());
+        FileSystem fs = FileSystem.get(conf);
+        return fs.exists(new Path(fileName));
+    }
+    
     /**
     * Helper function to check if the result of a Pig Query is in line with 
     * expected results.
