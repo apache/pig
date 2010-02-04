@@ -18,11 +18,13 @@
 
 package org.apache.pig.backend.hadoop.executionengine;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.net.Socket;
 import java.net.SocketException;
 import java.net.SocketImplFactory;
+import java.net.URL;
 import java.util.Collection;
 import java.util.List;
 import java.util.ArrayList;
@@ -51,10 +53,10 @@ import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.logicalLayer.LogicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.LogToPhyTranslationVisitor;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.impl.plan.OperatorKey;
-import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MapReduceLauncher;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MapReduceLauncher;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.tools.pigstats.PigStats;
@@ -63,6 +65,10 @@ public class HExecutionEngine implements ExecutionEngine {
     
     public static final String JOB_TRACKER_LOCATION = "mapred.job.tracker";
     private static final String FILE_SYSTEM_LOCATION = "fs.default.name";
+    
+    private static final String MAPRED_SITE = "mapred-site.xml";
+    private static final String HDFS_SITE = "hdfs-site.xml";
+    private static final String MAPRED_SYS_DIR = "mapred.system.dir";
     
     private final Log log = LogFactory.getLog(getClass());
     public static final String LOCAL = "local";
@@ -158,6 +164,30 @@ public class HExecutionEngine implements ExecutionEngine {
         } else {
             properties.setProperty(JOB_TRACKER_LOCATION, LOCAL );
             properties.setProperty(FILE_SYSTEM_LOCATION, "file:///");
+            
+            Configuration testConf = new Configuration();
+            ClassLoader cl = testConf.getClassLoader();
+            URL mapred_site = cl.getResource( MAPRED_SITE );
+            URL hdfs_site = cl.getResource( HDFS_SITE );
+            
+            if( mapred_site != null || hdfs_site != null ) {
+                log.warn( "Passing Hadoop Site Configurations in classpath " +
+                		"is not recommended for Local Mode" );
+            }
+
+            // This is one case. Here we check if mapred.system.dir  
+            // directory is present. This check causes use to print a nice error
+            String newMapredSystemDir = testConf.get( MAPRED_SYS_DIR, "" );
+            Configuration defaultConf = new Configuration(false);
+            defaultConf.addResource("core-default.xml");
+            defaultConf.addResource("mapred-default.xml");
+            if( defaultConf.get(MAPRED_SYS_DIR, "").compareTo(newMapredSystemDir) != 0 ) {
+                File systemDir = new File(newMapredSystemDir);
+                if( ! systemDir.exists() ) {
+                    throw new ExecException( MAPRED_SYS_DIR + ": " + newMapredSystemDir 
+                            + " mentioned in the configuration does not exist");
+                }
+            }
         }
         
         cluster = properties.getProperty(JOB_TRACKER_LOCATION);
