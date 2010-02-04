@@ -20,12 +20,14 @@ package org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOp
 import java.util.List;
 
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
+import org.apache.pig.data.InternalCachedBag;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.io.NullableTuple;
 import org.apache.pig.impl.plan.NodeIdGenerator;
@@ -124,9 +126,17 @@ public class POJoinPackage extends POPackage {
         {
             lastInputTuple = false;
             //Put n-1 inputs into bags
+            String bagType = null;
+            if (PigMapReduce.sJobConf != null) {
+                   bagType = PigMapReduce.sJobConf.get("pig.cachedbag.type");                   
+               }
             dbs = new DataBag[numInputs];
             for (int i = 0; i < numInputs; i++) {
-                dbs[i] = mBagFactory.newDefaultBag();
+                if (bagType != null && bagType.equalsIgnoreCase("default")) {                  
+                    dbs[i] = mBagFactory.newDefaultBag();                    
+                } else {
+                 dbs[i] = new InternalCachedBag(numInputs);
+             }    
             }
             
             //For each Nullable tuple in the input, put it
