@@ -55,6 +55,7 @@ import org.junit.Test;
 public class TestMergeJoin {
 
     private static final String INPUT_FILE = "testMergeJoinInput.txt";
+    private static final String INPUT_FILE2 = "testMergeJoinInput2.txt";
     private PigServer pigServer;
     private MiniCluster cluster = MiniCluster.buildCluster();
 
@@ -77,6 +78,8 @@ public class TestMergeJoin {
                 input[k++] = si + "\t" + j;
         }
         Util.createInputFile(cluster, INPUT_FILE, input);
+        
+        Util.createInputFile(cluster, INPUT_FILE2, new String[]{"2"});
     }
 
     /**
@@ -85,6 +88,7 @@ public class TestMergeJoin {
     @After
     public void tearDown() throws Exception {
         Util.deleteFile(cluster, INPUT_FILE);
+        Util.deleteFile(cluster, INPUT_FILE2);
     }
 
     /**
@@ -555,6 +559,33 @@ public class TestMergeJoin {
             
         Iterator<Tuple> iter = pigServer.openIterator("C");
         Assert.assertFalse(iter.hasNext());
+    }
+    
+    @Test
+    public void testMergeJoinEmptyIndex() throws IOException{
+        DataBag dbMergeJoin = BagFactory.getInstance().newDefaultBag(), dbshj = BagFactory.getInstance().newDefaultBag();
+        pigServer.registerQuery("A = LOAD '" + INPUT_FILE2 + "';");
+        pigServer.registerQuery("B = LOAD '" + INPUT_FILE + "';");
+        
+        {
+            pigServer.registerQuery("C = join A by $0, B by $0 using \"merge\";");
+            Iterator<Tuple> iter = pigServer.openIterator("C");
+            while(iter.hasNext()) {
+                dbMergeJoin.add(iter.next());
+            }
+        }
+        
+        {
+            pigServer.registerQuery("C = join A by $0, B by $0;");
+            Iterator<Tuple> iter = pigServer.openIterator("C");
+
+            while(iter.hasNext()) {
+                dbshj.add(iter.next());
+            }
+        }
+
+        Assert.assertEquals(dbMergeJoin.size(), dbshj.size());
+        Assert.assertEquals(true, TestHelper.compareBags(dbMergeJoin, dbshj));        
     }
     
     /**

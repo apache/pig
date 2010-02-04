@@ -132,6 +132,11 @@ public class DefaultIndexableLoader extends IndexableLoadFunc {
                 // Its possible that we hit end of index and still doesn't encounter
                 // idx entry >= left key, in that case return last index entry.
                 matchedEntry = prevIdxEntry;
+                if (prevIdxEntry!=null) {
+                    Object extractedKey = extractKeysFromIdxTuple(prevIdxEntry);
+                    if (extractedKey!=null)
+                        index.add(prevIdxEntry);
+                }
                 break;
             }
             Object extractedKey = extractKeysFromIdxTuple(curIdxEntry);
