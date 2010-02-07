@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-1046: join algorithm specification is within double quotes (ashutoshc)
+
 PIG-1209: Port POJoinPackage to proactively spill (ashutoshc)
 
 PIG-1190: Handling of quoted strings in pig-latin/grunt commands (ashutoshc)
