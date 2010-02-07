@@ -32,9 +32,12 @@ import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.test.utils.LogicalPlanTester;
 import org.apache.pig.test.utils.TestHelper;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POCollectedGroup;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
+import org.apache.pig.impl.logicalLayer.LOCogroup;
+import org.apache.pig.impl.logicalLayer.LogicalPlan;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.junit.After;
 import org.junit.Before;
@@ -74,6 +77,22 @@ public class TestCollectedGroup extends TestCase {
     public void tearDown() throws Exception {
         new File(INPUT_FILE).delete();
         Util.deleteFile(cluster, INPUT_FILE);
+    }
+    
+    public void testCollectedGrpSpecifiedInSingleQuotes1(){
+        
+        LogicalPlanTester lpt = new LogicalPlanTester();
+        lpt.buildPlan("A = LOAD '" + INPUT_FILE + "' as (id, name, grade);");
+        LogicalPlan lp = lpt.buildPlan("B = group A by id using 'collected';");
+        assertEquals(LOCogroup.GROUPTYPE.COLLECTED, ((LOCogroup)lp.getLeaves().get(0)).getGroupType());
+    }
+    
+    public void testCollectedGrpSpecifiedInSingleQuotes2(){
+        
+        LogicalPlanTester lpt = new LogicalPlanTester();
+        lpt.buildPlan("A = LOAD '" + INPUT_FILE + "' as (id, name, grade);");
+        LogicalPlan lp = lpt.buildPlan("B = group A all using 'regular';");
+        assertEquals(LOCogroup.GROUPTYPE.REGULAR, ((LOCogroup)lp.getLeaves().get(0)).getGroupType());
     }
     
     public void testPOMapsideGroupNoNullPlans() throws IOException {

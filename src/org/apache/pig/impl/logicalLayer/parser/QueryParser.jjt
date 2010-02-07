@@ -320,6 +320,31 @@ public class QueryParser {
 		return cogroup;
 	}
 	
+    private LogicalOperator parseUsingForGroupBy(String modifier, ArrayList<CogroupInput> gis, LogicalPlan lp) throws ParseException, PlanException{
+
+      if(modifier.equalsIgnoreCase("collected")){
+            if (gis.size() != 1) {
+                throw new ParseException("Collected group is only supported for single input");  
+                }
+            if (!isColumnProjectionsOrStar(gis.get(0))) {
+                throw new ParseException("Collected group is only supported for columns or star projection");
+                }
+            LogicalOperator cogroup = parseCogroup(gis, lp, LOCogroup.GROUPTYPE.COLLECTED);
+            cogroup.pinOption(LOCogroup.OPTION_GROUPTYPE);
+            return cogroup;
+        }
+
+        else if (modifier.equalsIgnoreCase("regular")){
+            LogicalOperator cogroup = parseCogroup(gis, lp, LOCogroup.GROUPTYPE.REGULAR);
+            cogroup.pinOption(LOCogroup.OPTION_GROUPTYPE);
+            return cogroup;
+        }
+
+        else{
+            throw new ParseException("Only COLLECTED or REGULAR are valid GROUP modifiers.");
+        }
+    }
+    
 	/**
 	 * Join parser. 
 	 */
@@ -435,7 +460,42 @@ public class QueryParser {
 		return foreach;
 	}
 
-	void assertAtomic(LogicalOperator spec, boolean desiredAtomic) throws ParseException{
+    private LogicalOperator parseUsingForJoin(String modifier, ArrayList<CogroupInput> gis,
+                LogicalPlan lp, boolean isFullOuter, boolean isRightOuter, boolean isOuter) throws
+                ParseException, PlanException{
+
+              if (modifier.equalsIgnoreCase("repl") || modifier.equalsIgnoreCase("replicated")) {
+              if(isFullOuter || isRightOuter) {
+                  throw new ParseException("Replicated join does not support (right|full) outer joins");
+              }
+                    LogicalOperator joinOp = parseJoin(gis, lp, LOJoin.JOINTYPE.REPLICATED); 
+                    joinOp.pinOption(LOJoin.OPTION_JOIN);
+                    return joinOp; 
+            }
+             else if (modifier.equalsIgnoreCase("hash") || modifier.equalsIgnoreCase("default")) {
+                    LogicalOperator joinOp = parseJoin(gis, lp, LOJoin.JOINTYPE.HASH);
+                    joinOp.pinOption(LOJoin.OPTION_JOIN);
+                    return joinOp;
+            }
+            else if (modifier.equalsIgnoreCase("skewed")) {
+                    LogicalOperator joinOp = parseJoin(gis, lp, LOJoin.JOINTYPE.SKEWED);
+                    joinOp.pinOption(LOJoin.OPTION_JOIN);
+                    return joinOp;
+            }
+             else if (modifier.equalsIgnoreCase("merge")) {
+                 if(isOuter) {
+                        throw new ParseException("Merge join does not support (left|right|full) outer joins");
+                    }
+                    LogicalOperator joinOp = parseJoin(gis, lp, LOJoin.JOINTYPE.MERGE);
+                    joinOp.pinOption(LOJoin.OPTION_JOIN);
+                    return joinOp; 
+            }
+            else{
+                    throw new ParseException("Only REPL, REPLICATED, HASH, SKEWED and MERGE are vaild JOIN modifiers.");
+            }
+    }
+
+    void assertAtomic(LogicalOperator spec, boolean desiredAtomic) throws ParseException{
 		Boolean isAtomic = null;
 		if ( spec instanceof LOConst || 
 			(spec instanceof LOUserFunc &&
@@ -1713,29 +1773,22 @@ LogicalOperator CogroupClause(LogicalPlan lp) :
     ArrayList<CogroupInput> gis = new ArrayList<CogroupInput>(); 
     LogicalOperator cogroup = null; 
     log.trace("Entering CoGroupClause");
+    Token t;
 }
 {
-
     (gi = GroupItem(lp) { gis.add(gi); }
         ("," gi = GroupItem(lp) { gis.add(gi); })*
-        (
-            [<USING> ("\"collected\"" { 
-                if (gis.size() != 1) {
-                    throw new ParseException("Collected group is only supported for single input");  
-                }
-                if (!isColumnProjectionsOrStar(gis.get(0))) {
-                    throw new ParseException("Collected group is only supported for columns or star projection");
-                }
-                cogroup = parseCogroup(gis, lp, LOCogroup.GROUPTYPE.COLLECTED);
-                cogroup.pinOption(LOCogroup.OPTION_GROUPTYPE);
-                }
-                |"\"regular\"" {
-                    cogroup = parseCogroup(gis, lp, LOCogroup.GROUPTYPE.REGULAR);
-                    cogroup.pinOption(LOCogroup.OPTION_GROUPTYPE);
-                }
-                )
-            ]                                                                        
-        )
+        ([ <USING> (
+          (t = < QUOTEDSTRING> { cogroup = parseUsingForGroupBy(unquote (t.image), gis, lp); })
+         |("\"collected\"") {
+            log.info("[WARN] Use of double-quoted string to specify hint is deprecated. Please specify hint in single quotes."); 
+            cogroup = parseUsingForGroupBy("collected", gis, lp);
+            }
+         |("\"regular\"") {
+            log.info("[WARN] Use of double-quoted string to specify hint is deprecated. Please specify hint in single quotes."); 
+            cogroup = parseUsingForGroupBy("regular", gis, lp);
+            }
+        )])
     )
 
     {
@@ -2033,6 +2086,7 @@ LogicalOperator JoinClause(LogicalPlan lp) :
 	boolean isRightOuter = false;
 	boolean isFullOuter = false;
 	boolean isOuter = false;
+	Token t;
 }
 {
 	(gi = JoinItem(lp) { gis.add(gi); }
@@ -2081,43 +2135,25 @@ LogicalOperator JoinClause(LogicalPlan lp) :
 		
 	}
 	// For all types of join we create LOJoin and mark what type of join it is.
-	(
-		[<USING> ("\"replicated\"" { 
-	          if(isFullOuter || isRightOuter) {
-	              throw new ParseException("Replicated join does not support (right|full) outer joins");
-	          }
-				    joinOp = parseJoin(gis, lp, LOJoin.JOINTYPE.REPLICATED); 
-				    joinOp.pinOption(LOJoin.OPTION_JOIN); 
-			    }
-			| "\"repl\"" {
-                  if(isFullOuter || isRightOuter) {
-	                    throw new ParseException("Replicated join does not support (right|full) outer joins");
-	          }
-				    joinOp = parseJoin(gis, lp, LOJoin.JOINTYPE.REPLICATED);
-				    joinOp.pinOption(LOJoin.OPTION_JOIN);
-                  }
-		    |"\"skewed\"" {
-		    	    joinOp = parseJoin(gis, lp, LOJoin.JOINTYPE.SKEWED);
-		    	    joinOp.pinOption(LOJoin.OPTION_JOIN);
+	([<USING> (
+		  (t = <QUOTEDSTRING> { joinOp = parseUsingForJoin(unquote(t.image), gis, lp, isFullOuter, isRightOuter, isOuter);})
+        | ("\"repl\"" | "\"replicated\"")  {
+		      log.info("[WARN] Use of double-quotes for specifying join algorithm is deprecated. Please use single quotes."); 
+              joinOp = parseUsingForJoin("replicated", gis, lp, isFullOuter, isRightOuter, isOuter);
+		  }
+	    | ("\"skewed\"") {
+              log.info("[WARN] Use of double-quotes for specifying join algorithm is deprecated. Please use single quotes."); 
+              joinOp = parseUsingForJoin("skewed", gis, lp, isFullOuter, isRightOuter, isOuter);
 		    	}
-		    |"\"merge\"" { 
-		    	    if(isOuter) {
-                        throw new ParseException("Merge join does not support (left|right|full) outer joins");
-                    }
-		    	    joinOp = parseJoin(gis, lp, LOJoin.JOINTYPE.MERGE);
-		    	    joinOp.pinOption(LOJoin.OPTION_JOIN); 
+		| ("\"merge\"") { 
+            log.info("[WARN] Use of double-quotes for specifying join algorithm is deprecated. Please use single quotes."); 
+            joinOp = parseUsingForJoin("merge", gis, lp, isFullOuter, isRightOuter, isOuter);
+        	}
+	    | ("\"hash\"" | "\"default\"") {
+		    log.info("[WARN] Use of double-quotes for specifying join algorithm is deprecated. Please use single quotes."); 
+            joinOp = parseUsingForJoin("hash", gis, lp, isFullOuter, isRightOuter, isOuter);
 		    	}
-		    |"\"hash\"" {
-		    		joinOp = parseJoin(gis, lp, LOJoin.JOINTYPE.HASH);
-		    		joinOp.pinOption(LOJoin.OPTION_JOIN);
-		    	}
-		    |"\"default\"" {
-		    		joinOp = parseJoin(gis, lp, LOJoin.JOINTYPE.HASH);
-		    		joinOp.pinOption(LOJoin.OPTION_JOIN);
-		    	})
-	    ] 
-    )
-    )
+     )]))
 
 	{log.trace("Exiting JoinClause");
 	if (joinOp!=null) {
