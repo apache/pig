@@ -411,7 +411,7 @@ public class TestColumnGroup {
   @Test
   public void testEmptyCG() throws IOException, ParseException {
     Path path = new Path(rootPath, "TestColumnGroupEmptyCG");
-    doReadWrite(path, 0, 0, "a, b, c", "a, d, c, f", false, false, null);
+    doReadWrite(path, 0, 0, "a, b, c", "a, d, c, f", true, false, null);
     doReadWrite(path, 0, 0, "a, b, c", "a, d, c, f", true, false, null);
     doReadWrite(path, 0, 0, "a, b, c", "a, d, c, f", true, true, null);
   }
@@ -419,14 +419,14 @@ public class TestColumnGroup {
   @Test
   public void testEmptyTFiles() throws IOException, ParseException {
     Path path = new Path(rootPath, "TestColumnGroupEmptyTFile");
-    doReadWrite(path, 2, 0, "a, b, c", "a, d, c, f", false, false, null);
+    doReadWrite(path, 2, 0, "a, b, c", "a, d, c, f", true, false, null);
     doReadWrite(path, 2, 0, "a, b, c", "a, d, c, f", true, false, null);
     doReadWrite(path, 2, 0, "a, b, c", "a, d, c, f", true, true, null);    
   }
 
   public void testNormalCases() throws IOException, ParseException {
     Path path = new Path(rootPath, "TestColumnGroupNormal");
-    doReadWrite(path, 2, 500, "a, b, c", "a, d, c, f", false, false, null);
+    doReadWrite(path, 2, 500, "a, b, c", "a, d, c, f", true, false, null);
     doReadWrite(path, 2, 500, "a, b, c", "a, d, c, f", true, false, null);
     doReadWrite(path, 2, 500, "a, b, c", "a, d, c, f", true, true, null);
   }
@@ -435,7 +435,7 @@ public class TestColumnGroup {
   public void testSomeEmptyTFiles() throws IOException, ParseException {
     Path path = new Path(rootPath, "TestColumnGroupSomeEmptyTFile");
 		for (int[] emptyTFiles : new int[][] { { 1, 2 }}) {
-      doReadWrite(path, 2, 250, "a, b, c", "a, d, c, f", false, false,
+      doReadWrite(path, 2, 250, "a, b, c", "a, d, c, f", true, false,
           emptyTFiles);
       doReadWrite(path, 2, 250, "a, b, c", "a, d, c, f", true, false,
           emptyTFiles);

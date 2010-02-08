@@ -359,9 +359,10 @@ public class TestStorageGrammar {
     } catch (Exception e) {
       e.printStackTrace();
     }
-    writer.finish();
+    writer.close();
     ByteArrayOutputStream bos = new ByteArrayOutputStream();
     PrintStream ps = new PrintStream(bos);
+
     BasicTable.dumpInfo(path1.toString(), ps, conf);
     System.out.println("start dumpinfo ===========\n" + bos.toString());
     Assert.assertEquals(true, bos.toString().contains("Serializer: pig"));
@@ -382,7 +383,7 @@ public class TestStorageGrammar {
     } catch (Exception e) {
       e.printStackTrace();
     }
-    writer.finish();
+    writer.close();
     ByteArrayOutputStream bos = new ByteArrayOutputStream();
     PrintStream ps = new PrintStream(bos);
     BasicTable.dumpInfo(path1.toString(), ps, conf);
@@ -404,7 +405,7 @@ public class TestStorageGrammar {
     } catch (Exception e) {
       e.printStackTrace();
     }
-    writer.finish();
+    writer.close();
     ByteArrayOutputStream bos = new ByteArrayOutputStream();
     PrintStream ps = new PrintStream(bos);
     BasicTable.dumpInfo(path1.toString(), ps, conf);
@@ -426,7 +427,7 @@ public class TestStorageGrammar {
     } catch (Exception e) {
       e.printStackTrace();
     }
-    writer.finish();
+    writer.close();
     ByteArrayOutputStream bos = new ByteArrayOutputStream();
     PrintStream ps = new PrintStream(bos);
     BasicTable.dumpInfo(path1.toString(), ps, conf);
@@ -448,7 +449,7 @@ public class TestStorageGrammar {
     } catch (Exception e) {
       e.printStackTrace();
     }
-    writer.finish();
+    writer.close();
     ByteArrayOutputStream bos = new ByteArrayOutputStream();
     PrintStream ps = new PrintStream(bos);
     BasicTable.dumpInfo(path1.toString(), ps, conf);
@@ -470,7 +471,7 @@ public class TestStorageGrammar {
     } catch (Exception e) {
       e.printStackTrace();
     }
-    writer.finish();
+    writer.close();
     ByteArrayOutputStream bos = new ByteArrayOutputStream();
     PrintStream ps = new PrintStream(bos);
     BasicTable.dumpInfo(path1.toString(), ps, conf);
@@ -491,7 +492,7 @@ public class TestStorageGrammar {
     } catch (Exception e) {
       e.printStackTrace();
     }
-    writer.finish();
+    writer.close();
     ByteArrayOutputStream bos = new ByteArrayOutputStream();
     PrintStream ps = new PrintStream(bos);
     BasicTable.dumpInfo(path1.toString(), ps, conf);
@@ -605,7 +606,7 @@ public class TestStorageGrammar {
     fs = path.getFileSystem(conf);
     BasicTable.Writer writer = new BasicTable.Writer(path1, schema, storage,
         conf);
-    writer.finish();
+    writer.close();
     ByteArrayOutputStream bos = new ByteArrayOutputStream();
     PrintStream ps = new PrintStream(bos);
     System.out.println("start dumpinfo 17 ===========");
@@ -699,7 +700,7 @@ public class TestStorageGrammar {
     fs = path.getFileSystem(conf);
     BasicTable.Writer writer = new BasicTable.Writer(path1, schema, storage,
         conf);
-    writer.finish();
+    writer.close();
     ByteArrayOutputStream bos = new ByteArrayOutputStream();
     PrintStream ps = new PrintStream(bos);
     System.out.println("start dumpinfo 22===========" + bos.toString());

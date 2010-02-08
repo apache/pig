@@ -159,6 +159,7 @@ public class TestGlobTableLoader{
     for (int i = 0; i < numsInserters; i++) {
       inserters[i].close();
     }
+    writer.close();
   }
 
   @AfterClass

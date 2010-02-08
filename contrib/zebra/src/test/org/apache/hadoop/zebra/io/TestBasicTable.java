@@ -353,7 +353,7 @@ public class TestBasicTable {
   @Test
   public void testNormalCases() throws IOException, ParseException {
     Path path = new Path(rootPath, "TestBasicTableNormal");
-    doReadWrite(path, 2, 250, "a, b, c", "", null, "a, d, c, f", false, false);
+    doReadWrite(path, 2, 250, "a, b, c", "", null, "a, d, c, f", true, false);
     doReadWrite(path, 2, 250, "a, b, c", "", null, "a, d, c, f", true, false);
     doReadWrite(path, 2, 250, "a, b, c", "", "a", "a, d, c, f", true, true);
   }

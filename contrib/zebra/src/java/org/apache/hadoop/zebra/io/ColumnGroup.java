@@ -293,12 +293,8 @@ class ColumnGroup {
       Path metaFilePath = makeMetaFilePath(path);
       /* If index file is not existing */
       if (!fs.exists(metaFilePath)) {
-        // special case for unsorted CG that did not create index properly.
-        if (cgschema.isSorted()) {
-          throw new FileNotFoundException(
-              "Missing Meta File for sorted Column Group");
-        }
-        cgindex = buildIndex(fs, path, dirty, conf);
+        throw new FileNotFoundException(
+              "Missing Meta File of " + metaFilePath);
       }
       else if (cgschema.isSorted()) {
         MetaFile.Reader metaFile = MetaFile.createReader(metaFilePath, conf);
