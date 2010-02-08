@@ -25,6 +25,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
+import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.InternalCachedBag;
@@ -44,6 +45,8 @@ public class POJoinPackage extends POPackage {
     private boolean lastInputTuple = false;
     private static final Tuple t1 = null;
     private static final Result eopResult = new Result(POStatus.STATUS_EOP, null);
+    private boolean firstTime = true;
+    private boolean useDefaultBag = false;
 
     public static final String DEFAULT_CHUNK_SIZE = "1000";
 
@@ -100,6 +103,16 @@ public class POJoinPackage extends POPackage {
      */
     @Override
     public Result getNext(Tuple t) throws ExecException {
+        
+        if(firstTime){
+            firstTime = false;
+            if (PigMapReduce.sJobConf != null) {
+                String bagType = PigMapReduce.sJobConf.get("pig.cachedbag.type");
+                if (bagType != null && bagType.equalsIgnoreCase("default")) {
+                    useDefaultBag = true;
+                }
+            }
+        }
         // if a previous call to foreach.getNext()
         // has still not returned all output, process it
         if (forEach.processingPlan)
@@ -126,17 +139,14 @@ public class POJoinPackage extends POPackage {
         {
             lastInputTuple = false;
             //Put n-1 inputs into bags
-            String bagType = null;
-            if (PigMapReduce.sJobConf != null) {
-                   bagType = PigMapReduce.sJobConf.get("pig.cachedbag.type");                   
-               }
             dbs = new DataBag[numInputs];
             for (int i = 0; i < numInputs; i++) {
-                if (bagType != null && bagType.equalsIgnoreCase("default")) {                  
-                    dbs[i] = mBagFactory.newDefaultBag();                    
-                } else {
-                 dbs[i] = new InternalCachedBag(numInputs);
-             }    
+                dbs[i] = useDefaultBag ? BagFactory.getInstance().newDefaultBag() 
+                // In a very rare case if there is a POStream after this 
+                // POJoinPackage in the pipeline and is also blocking the pipeline;
+                // constructor argument should be 2 * numInputs. But for one obscure
+                // case we don't want to pay the penalty all the time.        
+                        : new InternalCachedBag(numInputs);                    
             }
             
             //For each Nullable tuple in the input, put it
