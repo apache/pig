@@ -115,6 +115,10 @@ public class POPackage extends PhysicalOperator {
 
     protected static final BagFactory mBagFactory = BagFactory.getInstance();
     protected static final TupleFactory mTupleFactory = TupleFactory.getInstance();
+    
+    private boolean firstTime = true;
+    
+    private boolean useDefaultBag = false;
 
     public POPackage(OperatorKey k) {
         this(k, -1, null);
@@ -211,6 +215,17 @@ public class POPackage extends PhysicalOperator {
     @Override
     public Result getNext(Tuple t) throws ExecException {
         Tuple res;
+        
+        if(firstTime){
+            firstTime = false;
+            if (PigMapReduce.sJobConf != null) {
+                String bagType = PigMapReduce.sJobConf.get("pig.cachedbag.type");
+                if (bagType != null && bagType.equalsIgnoreCase("default")) {
+                    useDefaultBag = true;
+                }
+            }
+        }
+        
         if(distinct) {
             // only set the key which has the whole
             // tuple 
@@ -232,20 +247,14 @@ public class POPackage extends PhysicalOperator {
                 
             } else {
                 // create bag to pull all tuples out of iterator
-                String bagType = null;
-                if (PigMapReduce.sJobConf != null) {
-                       bagType = PigMapReduce.sJobConf.get("pig.cachedbag.type");       			
-                   }
-                                
-
-                for (int i = 0; i < numInputs; i++) {        		          	           		
-                    if (bagType != null && bagType.equalsIgnoreCase("default")) {        	    	
-                           dbs[i] = mBagFactory.newDefaultBag();           			
-                       } else {
-                        dbs[i] = new InternalCachedBag(numInputs);
-                    }
-                }      
-                               
+                for (int i = 0; i < numInputs; i++) {
+                    dbs[i] = useDefaultBag ? BagFactory.getInstance().newDefaultBag()
+                    // In a very rare case if there is a POStream after this 
+                    // POPackage in the pipeline and is also blocking the pipeline;
+                    // constructor argument should be 2 * numInputs. But for one obscure
+                    // case we don't want to pay the penalty all the time.                
+                            : new InternalCachedBag(numInputs);                    
+                }                               
                 //For each indexed tup in the inp, sort them
                 //into their corresponding bags based
                 //on the index
