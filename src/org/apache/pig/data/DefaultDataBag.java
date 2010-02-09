@@ -49,6 +49,8 @@ public class DefaultDataBag extends DefaultAbstractBag {
 
     private static final Log log = LogFactory.getLog(DefaultDataBag.class);
     
+    boolean hasCachedTuple = false;
+    
     public DefaultDataBag() {
         mContents = new ArrayList<Tuple>();
     }
@@ -73,6 +75,7 @@ public class DefaultDataBag extends DefaultAbstractBag {
     }
     
     public Iterator<Tuple> iterator() {
+        hasCachedTuple = false;
         return new DefaultDataBagIterator();
     }
 
@@ -147,9 +150,12 @@ public class DefaultDataBag extends DefaultAbstractBag {
         }
 
         public boolean hasNext() { 
-            // See if we can find a tuple.  If so, buffer it.
+            // Once we call hasNext(), set the flag, so we can call hasNext() repeated without fetching next tuple
+            if (hasCachedTuple)
+                return (mBuf != null);
             mBuf = next();
-            return mBuf != null;
+            hasCachedTuple = true;
+            return (mBuf != null);
         }
 
         public Tuple next() {
@@ -158,9 +164,9 @@ public class DefaultDataBag extends DefaultAbstractBag {
             if ((mCntr++ & 0x3ff) == 0) reportProgress();
 
             // If there's one in the buffer, use that one.
-            if (mBuf != null) {
+            if (hasCachedTuple) {
                 Tuple t = mBuf;
-                mBuf = null;
+                hasCachedTuple = false;
                 return t;
             }
 

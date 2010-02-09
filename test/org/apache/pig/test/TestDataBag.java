@@ -1082,6 +1082,40 @@ public class TestDataBag extends junit.framework.TestCase {
         }
         assertEquals(bg6, bg7);
     }
+    
+    // See PIG-1231
+    @Test
+    public void testDataBagIterIdempotent() throws Exception {
+        DataBag bg0 = new DefaultDataBag();
+        processDataBag(bg0, true);
+        
+        DataBag bg1 = new DistinctDataBag();
+        processDataBag(bg1, true);
+        
+        DataBag bg2 = new InternalDistinctBag();
+        processDataBag(bg2, true);
+        
+        DataBag bg3 = new InternalSortedBag();
+        processDataBag(bg3, true);
+        
+        DataBag bg4 = new SortedDataBag(null);
+        processDataBag(bg4, true);
+        
+        DataBag bg5 = new InternalCachedBag(0, 0);
+        processDataBag(bg5, false);
+    }
+    
+    void processDataBag(DataBag bg, boolean doSpill) {
+        Tuple t = TupleFactory.getInstance().newTuple(new Integer(0));
+        bg.add(t);
+        if (doSpill)
+            bg.spill();
+        Iterator<Tuple> iter = bg.iterator();
+        assertTrue(iter.hasNext());
+        iter.next();
+        assertFalse(iter.hasNext());
+        assertFalse("hasNext should be idempotent", iter.hasNext());        
+    }
 }
 
 
