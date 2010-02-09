@@ -789,5 +789,51 @@ public class TestGrunt extends TestCase {
         Grunt grunt = new Grunt(new BufferedReader(reader), context);
 
         grunt.exec();
+        assertEquals("high", context.getProperties().getProperty(PigContext.JOB_PRIORITY));
+    }
+    
+    public void testSetWithQuotes() throws Throwable {
+        PigServer server = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        PigContext context = server.getPigContext();
+
+        String strCmd = "set job.priority 'high'\n";
+
+        ByteArrayInputStream cmd = new ByteArrayInputStream(strCmd.getBytes());
+        InputStreamReader reader = new InputStreamReader(cmd);
+
+        Grunt grunt = new Grunt(new BufferedReader(reader), context);
+
+        grunt.exec();
+        assertEquals("high", context.getProperties().getProperty(PigContext.JOB_PRIORITY));
+    }
+    
+    public void testRegisterWithQuotes() throws Throwable {
+        PigServer server = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        PigContext context = server.getPigContext();
+
+        String strCmd = "register 'pig.jar'\n";
+
+        ByteArrayInputStream cmd = new ByteArrayInputStream(strCmd.getBytes());
+        InputStreamReader reader = new InputStreamReader(cmd);
+
+        Grunt grunt = new Grunt(new BufferedReader(reader), context);
+
+        grunt.exec();
+        assertTrue(context.extraJars.contains(ClassLoader.getSystemResource("pig.jar")));
+    }
+    
+    public void testRegisterWithoutQuotes() throws Throwable {
+        PigServer server = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        PigContext context = server.getPigContext();
+
+        String strCmd = "register pig.jar\n";
+
+        ByteArrayInputStream cmd = new ByteArrayInputStream(strCmd.getBytes());
+        InputStreamReader reader = new InputStreamReader(cmd);
+
+        Grunt grunt = new Grunt(new BufferedReader(reader), context);
+
+        grunt.exec();
+        assertTrue(context.extraJars.contains(ClassLoader.getSystemResource("pig.jar")));
     }
 }

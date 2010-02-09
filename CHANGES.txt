@@ -53,6 +53,18 @@ manner (rding via pradeepkth)
 
 IMPROVEMENTS
 
+PIG-1224: Collected group should change to use new (internal) bag (ashutoshc)
+
+PIG-1046: join algorithm specification is within double quotes (ashutoshc)
+
+PIG-1209: Port POJoinPackage to proactively spill (ashutoshc)
+
+PIG-1190: Handling of quoted strings in pig-latin/grunt commands (ashutoshc)
+
+PIG-1214: Pig 0.6 Docs fixes (chandec via olgan)
+
+PIG-977:  exit status does not account for JOB_STATUS.TERMINATED (ashutoshc)
+
 PIG-1192: Pig 0.6 Docs fixes (chandec via olgan)
 
 PIG-1177: Pig 0.6 Docs - Zebra docs (chandec via olgan)
@@ -106,6 +118,18 @@ PIG-1173: pig cannot be built without an internet connection (jmhodges via daijy
 OPTIMIZATIONS
 
 BUG FIXES
+
+PIG-1154: Local Mode fails when hadoop config directory is specified in 
+            classpath (ankit.modi via gates)
+
+PIG-1124: Unable to set Custom Job Name using the -Dmapred.job.name parameter (ashutoshc)
+
+PIG-1213: Schema serialization is broken (pradeepkth)
+
+PIG-1194:  ERROR 2055: Received Error while processing the map plan (rding via ashutoshc)
+
+PIG-1204:  Pig hangs when joining two streaming relations in local mode
+(rding)
 
 PIG-1191:  POCast throws exception for certain sequences of LOAD, FILTER,
 			FORACH (pradeepkth via gates)
@@ -172,6 +196,14 @@ PIG-1146: Inconsistent column pruning in LOUnion (daijy)
 
 PIG-1176: Column Pruner issues in union of loader with and without schema
 (daijy)
+
+PIG-1184: PruneColumns optimization does not handle the case of foreach
+flatten correctly if flattened bag is not used later (daijy)
+
+PIG-1189: StoreFunc UDF should ship to the backend automatically without
+"register" (daijy)
+
+PIG-1212: LogicalPlan.replaceAndAddSucessors produce wrong result when successors are null (daijy)
 
 Release 0.6.0 - Unreleased
 
@@ -384,6 +416,11 @@ PIG-1186: Pig do not take values in "pig-cluster-hadoop-site.xml" (daijy)
 PIG-1193: Secondary sort issue on nested desc sort (daijy)
 
 PIG-1195: POSort should take care of sort order (daijy)
+
+PIG-1210: fieldsToRead send the same fields more than once in some cases (daijy)
+
+PIG-1231: DefaultDataBagIterator.hasNext() should be idempotent in all cases
+(daijy)
 
 Release 0.5.0
 

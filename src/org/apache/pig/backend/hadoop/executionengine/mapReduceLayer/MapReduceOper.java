@@ -20,8 +20,10 @@ package org.apache.pig.backend.hadoop.executionengine.mapReduceLayer;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
+import java.util.Set;
 
 import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.plan.OperatorKey;
@@ -105,7 +107,7 @@ public class MapReduceOper extends Operator<MROpPlanVisitor> {
     // Sort order for secondary keys;
     boolean[] secondarySortOrder;
 
-    public List<String> UDFs;
+    public Set<String> UDFs;
     
     // Indicates if a UDF comparator is used
     boolean isUDFComparatorUsed = false;
@@ -142,7 +144,7 @@ public class MapReduceOper extends Operator<MROpPlanVisitor> {
         mapPlan = new PhysicalPlan();
         combinePlan = new PhysicalPlan();
         reducePlan = new PhysicalPlan();
-        UDFs = new ArrayList<String>();
+        UDFs = new HashSet<String>();
         nig = NodeIdGenerator.getGenerator();
         scope = k.getScope();
     }

@@ -22,6 +22,7 @@ import java.util.List;
 
 import org.apache.hadoop.io.WritableComparable;
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
@@ -31,6 +32,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.Physica
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
+import org.apache.pig.data.InternalCachedBag;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.io.PigNullableWritable;
@@ -68,6 +70,8 @@ public class POCollectedGroup extends PhysicalOperator {
     private DataBag outputBag = null;
     
     private Object prevKey = null;
+    
+    private boolean useDefaultBag = false;
     
     public POCollectedGroup(OperatorKey k) {
         this(k, -1, null);
@@ -199,8 +203,24 @@ public class POCollectedGroup extends PhysicalOperator {
 
             // the first time, just create a new buffer and continue.
             if (prevKey == null && outputBag == null) {
+                
+                if (PigMapReduce.sJobConf != null) {
+                    String bagType = PigMapReduce.sJobConf.get("pig.cachedbag.type");
+                    if (bagType != null && bagType.equalsIgnoreCase("default")) {
+                        useDefaultBag = true;
+                    }
+                }
                 prevKey = curKey;
-                outputBag = BagFactory.getInstance().newDefaultBag();
+                outputBag = useDefaultBag ? BagFactory.getInstance().newDefaultBag() 
+                // In a very rare case if there is a POStream after this 
+                // POCollectedGroup in the pipeline and is also blocking the pipeline;
+                // constructor argument should be 2. But for one obscure
+                // case we don't want to pay the penalty all the time.
+                        
+                // Additionally, if there is a merge join(on a different key) following POCollectedGroup
+                // default bags should be used. But since we don't allow anything
+                // before Merge Join currently we are good.        
+                        : new InternalCachedBag(1);
                 outputBag.add((Tuple)tup.get(1));
                 continue;
             }
@@ -224,7 +244,8 @@ public class POCollectedGroup extends PhysicalOperator {
             res.result = tup2;
                
             prevKey = curKey;
-            outputBag = BagFactory.getInstance().newDefaultBag();
+            outputBag = useDefaultBag ? BagFactory.getInstance().newDefaultBag() 
+                    : new InternalCachedBag(1);
             outputBag.add((Tuple)tup.get(1));
 
             return res;

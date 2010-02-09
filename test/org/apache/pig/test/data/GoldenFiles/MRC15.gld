@@ -26,7 +26,7 @@ MapReduce(1,GFCross) - -156:
     |   |
     |   |---Load(file:/tmp/temp-1456742965/tmp-26634357:org.apache.pig.builtin.BinStorage) - -152
     |
-    |---MapReduce(20,TestMRCompiler$WeirdComparator,COUNT,SUM) - -145:
+    |---MapReduce(20,SUM,COUNT,TestMRCompiler$WeirdComparator) - -145:
         |   Store(file:/tmp/temp-1456742965/tmp-26634357:org.apache.pig.builtin.BinStorage) - -151
         |   |
         |   |---New For Each(false,false)[tuple] - -2197807331204639125

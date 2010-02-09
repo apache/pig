@@ -32,10 +32,12 @@ import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.io.FileLocalizer;
+import org.apache.pig.impl.logicalLayer.LOJoin;
+import org.apache.pig.impl.logicalLayer.LogicalPlan;
+import org.apache.pig.impl.logicalLayer.LOJoin.JOINTYPE;
 import org.apache.pig.impl.logicalLayer.parser.ParseException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.util.LogUtils;
-import org.apache.pig.test.utils.Identity;
 import org.apache.pig.test.utils.LogicalPlanTester;
 import org.junit.Before;
 import org.junit.Test;
@@ -95,7 +97,6 @@ public class TestJoin extends TestCase {
         }
     }
 
-    
     @Test
     public void testJoinUnkownSchema() throws Exception {
         // If any of the input schema is unknown, the resulting schema should be unknown as well
@@ -109,7 +110,7 @@ public class TestJoin extends TestCase {
             assertTrue(schema == null);
         }
     }
-    
+
     @Test
     public void testDefaultJoin() throws IOException, ParseException {
         for (ExecType execType : execTypes) {
@@ -553,5 +554,54 @@ public class TestJoin extends TestCase {
             deleteInputFile(execType, secondInput);
         }
     }
-
+    
+    @Test
+    public void testLiteralsForJoinAlgoSpecification1() {
+        
+        LogicalPlanTester lpt = new LogicalPlanTester();
+        lpt.buildPlan("a = load 'A'; ");
+        lpt.buildPlan("b = load 'B'; ");
+        LogicalPlan lp = lpt.buildPlan("c = Join a by $0, b by $0 using 'merge'; ");
+        assertEquals(JOINTYPE.MERGE, ((LOJoin)lp.getLeaves().get(0)).getJoinType());
+    }
+    
+    @Test
+    public void testLiteralsForJoinAlgoSpecification2() {
+        
+        LogicalPlanTester lpt = new LogicalPlanTester();
+        lpt.buildPlan("a = load 'A'; ");
+        lpt.buildPlan("b = load 'B'; ");
+        LogicalPlan lp = lpt.buildPlan("c = Join a by $0, b by $0 using 'hash'; ");
+        assertEquals(JOINTYPE.HASH, ((LOJoin)lp.getLeaves().get(0)).getJoinType());
+    }
+    
+    @Test
+    public void testLiteralsForJoinAlgoSpecification5() {
+        
+        LogicalPlanTester lpt = new LogicalPlanTester();
+        lpt.buildPlan("a = load 'A'; ");
+        lpt.buildPlan("b = load 'B'; ");
+        LogicalPlan lp = lpt.buildPlan("c = Join a by $0, b by $0 using 'default'; ");
+        assertEquals(JOINTYPE.HASH, ((LOJoin)lp.getLeaves().get(0)).getJoinType());
+    }
+    
+    @Test
+    public void testLiteralsForJoinAlgoSpecification3() {
+        
+        LogicalPlanTester lpt = new LogicalPlanTester();
+        lpt.buildPlan("a = load 'A'; ");
+        lpt.buildPlan("b = load 'B'; ");
+        LogicalPlan lp = lpt.buildPlan("c = Join a by $0, b by $0 using 'repl'; ");
+        assertEquals(JOINTYPE.REPLICATED, ((LOJoin)lp.getLeaves().get(0)).getJoinType());
+    }
+    
+    @Test
+    public void testLiteralsForJoinAlgoSpecification4() {
+        
+        LogicalPlanTester lpt = new LogicalPlanTester();
+        lpt.buildPlan("a = load 'A'; ");
+        lpt.buildPlan("b = load 'B'; ");
+        LogicalPlan lp = lpt.buildPlan("c = Join a by $0, b by $0 using 'replicated'; ");
+        assertEquals(JOINTYPE.REPLICATED, ((LOJoin)lp.getLeaves().get(0)).getJoinType());
+    }
 }

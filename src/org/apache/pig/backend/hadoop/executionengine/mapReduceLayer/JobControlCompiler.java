@@ -398,8 +398,12 @@ public class JobControlCompiler{
             conf.set("pig.pigContext", ObjectSerializer.serialize(pigContext));
             conf.set("udf.import.list", ObjectSerializer.serialize(PigContext.getPackageImportList()));
             // this is for unit tests since some don't create PigServer
-            if (pigContext.getProperties().getProperty(PigContext.JOB_NAME) != null)
-                nwJob.setJobName(pigContext.getProperties().getProperty(PigContext.JOB_NAME));
+           
+            // if user specified the job name using -D switch, Pig won't reset the name then.
+            if (System.getProperty("mapred.job.name") == null && 
+                    pigContext.getProperties().getProperty(PigContext.JOB_NAME) != null){
+                nwJob.setJobName(pigContext.getProperties().getProperty(PigContext.JOB_NAME));                
+            }
     
             if (pigContext.getProperties().getProperty(PigContext.JOB_PRIORITY) != null) {
                 // If the job priority was set, attempt to get the corresponding enum value

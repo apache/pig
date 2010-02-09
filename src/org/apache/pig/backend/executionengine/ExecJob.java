@@ -20,7 +20,6 @@ package org.apache.pig.backend.executionengine;
 
 import java.util.Iterator;
 import java.util.Properties;
-import java.util.Map;
 import java.io.OutputStream;
 
 import org.apache.pig.data.Tuple;
@@ -35,12 +34,8 @@ import org.apache.pig.tools.pigstats.PigStats;
 public interface ExecJob {
 
     public enum JOB_STATUS {
-        QUEUED,
-        RUNNING,
-        SUSPENDED,
-        TERMINATED,
         FAILED,
-        COMPLETED,
+        COMPLETED
     }
 
     public static final String PROGRESS_KEY = "job.progress";
@@ -75,7 +70,7 @@ public interface ExecJob {
      * 
      * @return configuration information for the execution engine
      */    
-    public Properties getContiguration();
+    public Properties getConfiguration();
 
     /**
      * Can be information about the state (not submitted, e.g. the execute method

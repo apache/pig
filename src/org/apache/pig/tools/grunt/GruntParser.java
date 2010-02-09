@@ -411,9 +411,9 @@ public class GruntParser extends PigScriptParser {
     protected void processSet(String key, String value) throws IOException, ParseException {
         if (key.equals("debug"))
         {
-            if (value.equals("on") || value.equals("'on'"))
+            if (value.equals("on"))
                 mPigServer.debugOn();
-            else if (value.equals("off") || value.equals("'off'"))
+            else if (value.equals("off"))
                 mPigServer.debugOff();
             else
                 throw new ParseException("Invalid value " + value + " provided for " + key);

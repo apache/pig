@@ -803,28 +803,23 @@ public class LOForEach extends RelationalOperator {
         if (mSchema == null)
             return null;
         
-        if (mSchema.size()<=column)
-        {
-            return null;
-        }
-        
         return mSchemaPlanMapping.get(column);
     }
     
     public boolean isInputFlattened(int column) throws FrontendException {
-        LogicalPlan plan = getRelevantPlan(column);
-        if (plan==null) {
-            int errCode = 2195;
-            throw new FrontendException("Fail to get foreach plan for input column "+column,
-                    errCode, PigException.BUG);
+        for (int i=0;i<mForEachPlans.size();i++) {
+            LogicalPlan forEachPlan = mForEachPlans.get(i);
+            TopLevelProjectFinder projectFinder = new TopLevelProjectFinder(forEachPlan);
+            projectFinder.visit();
+            for (LOProject project : projectFinder.getProjectList()) {
+                if (project.getCol()==column) {
+                    if (mFlatten.get(i))
+                        return true;
+                }
+            }
         }
-        int index = mForEachPlans.indexOf(plan);
-        if (index==-1) {
-            int errCode = 2195;
-            throw new FrontendException("Fail to get foreach plan for input column "+column,
-                    errCode, PigException.BUG);
-        }
-        return mFlatten.get(index);
+
+        return false;
     }
     
     @Override
@@ -866,7 +861,8 @@ public class LOForEach extends RelationalOperator {
         ArrayList<Pair<Integer, Integer>> inputList = new ArrayList<Pair<Integer, Integer>>();
         for (LOProject project : projectFinder.getProjectSet()) {
             for (int inputColumn : project.getProjection()) {
-                inputList.add(new Pair<Integer, Integer>(0, inputColumn));
+                if (!inputList.contains(new Pair<Integer, Integer>(0, inputColumn)))
+                    inputList.add(new Pair<Integer, Integer>(0, inputColumn));
             }
         }
         if (inputList.size()==0)
@@ -942,16 +938,16 @@ public class LOForEach extends RelationalOperator {
             {
                 continue;
             }
-            boolean allPruned = true;
+            boolean anyPruned = false;
             for (LOProject loProject : projectFinder.getProjectSet()) {
                 Pair<Integer, Integer> pair = new Pair<Integer, Integer>(0,
                         loProject.getCol());
-                if (!columns.contains(pair)) {
-                    allPruned = false;
+                if (columns.contains(pair)) {
+                    anyPruned = true;
                     break;
                 }
             }
-            if (allPruned) {
+            if (anyPruned) {
                 planToRemove.add(i);
             }
         }

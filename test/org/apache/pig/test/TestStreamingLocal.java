@@ -18,6 +18,8 @@
 package org.apache.pig.test;
 
 import java.io.File;
+import java.util.ArrayList;
+import java.util.Iterator;
 
 import junit.framework.TestCase;
 
@@ -285,6 +287,39 @@ public class TestStreamingLocal extends TestCase {
             // Run the query and check the results
             Util.checkQueryOutputs(pigServer.openIterator("OP"), expectedResults);
         }
+    }
+    
+    @Test
+    public void testJoinTwoStreamingRelations() 
+    throws Exception {
+        ArrayList<String> list = new ArrayList<String>();
+        for (int i=0; i<10000; i++) {
+            list.add("A," + i);
+        }
+        File input = Util.createInputFile("tmp", "", list.toArray(new String[0]));
+        
+        // Expected results
+        Tuple expected = DefaultTupleFactory.getInstance().newTuple(4);
+        expected.set(0, "A");
+        expected.set(1, 0);
+        expected.set(2, "A");
+        expected.set(3, 0);        
+ 
+        pigServer.registerQuery("A = load 'file:" + Util.encodeEscape(input.toString()) + "' using " + 
+                    PigStorage.class.getName() + "(',') as (a0, a1);");
+        pigServer.registerQuery("B = stream A through `head -1` as (a0, a1);");
+        pigServer.registerQuery("C = load 'file:" + Util.encodeEscape(input.toString()) + "' using " + 
+                PigStorage.class.getName() + "(',') as (a0, a1);");
+        pigServer.registerQuery("D = stream C through `head -1` as (a0, a1);");
+        pigServer.registerQuery("E = join B by a0, D by a0;");
+        
+        Iterator<Tuple> iter = pigServer.openIterator("E");
+        int count = 0;
+        while (iter.hasNext()) {
+            Assert.assertEquals(expected.toString(), iter.next().toString());
+            count++;
+        }
+        Assert.assertTrue(count == 1);
     }
 
     @Test

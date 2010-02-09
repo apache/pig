@@ -21,7 +21,6 @@ package org.apache.pig.backend.hadoop.executionengine;
 import java.io.OutputStream;
 import java.io.InputStream;
 import java.util.Iterator;
-import java.util.Map;
 import java.util.Properties;
 
 import org.apache.commons.logging.Log;
@@ -143,7 +142,7 @@ public class HJob implements ExecJob {
         };
     }
 
-    public Properties getContiguration() {
+    public Properties getConfiguration() {
         Properties props = new Properties();
         return props;
     }

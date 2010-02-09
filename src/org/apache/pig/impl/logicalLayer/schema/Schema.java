@@ -101,7 +101,10 @@ public class Schema implements Serializable, Cloneable {
          * logical operator, and the value is the canonical name
          * associated with the field for that operator.
          */
-        private Map<String, LogicalOperator> canonicalMap = null;
+        // marking transient since this data structure is only used in front-end
+        // query planning to figure out lineage for casts on bytearrays and need
+        // not be serialized to the backend
+        transient private Map<String, LogicalOperator> canonicalMap = null;
 
         /**
          * A reverse lookup of canonical names to logical operators. The reverse
@@ -109,7 +112,10 @@ public class Schema implements Serializable, Cloneable {
          * cannot be determined. In such cases the keys of the reverse lookup
          * can be used to navigate the plan
          */
-        private MultiMap<LogicalOperator, String> reverseCanonicalMap = null;
+        // marking transient since this data structure is only used in front-end
+        // query planning to figure out lineage for casts on bytearrays and need
+        // not be serialized to the backend
+        transient private MultiMap<LogicalOperator, String> reverseCanonicalMap = null;
         
         /**
          * Canonical namer object to generate new canonical names on

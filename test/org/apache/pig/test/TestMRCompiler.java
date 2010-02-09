@@ -914,8 +914,9 @@ public class TestMRCompiler extends junit.framework.TestCase {
         MapReduceOper mrOper = mrPlan.getRoots().get(0);
         
         assertTrue(mrOper.UDFs.size()==2);
-        assertTrue(mrOper.UDFs.get(0).equals("BinStorage"));
-        assertTrue(mrOper.UDFs.get(1).equals("org.apache.pig.builtin.PigStorage"));
+        assertTrue(mrOper.UDFs.size()==2);
+        assertTrue(mrOper.UDFs.contains("BinStorage"));
+        assertTrue(mrOper.UDFs.contains("org.apache.pig.builtin.PigStorage"));
     }
 
     @Test

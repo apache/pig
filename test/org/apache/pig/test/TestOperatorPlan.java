@@ -17,6 +17,8 @@
  */
 package org.apache.pig.test;
 
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -2946,6 +2948,39 @@ public class TestOperatorPlan extends junit.framework.TestCase {
             assertTrue(pe.getErrorCode() == 1091);
         }
         
+    }
+
+    // See PIG-1212
+    @Test
+    public void testPushBefore2() throws Exception {
+        TPlan plan = new TPlan();
+        TOperator[] ops = new TOperator[6];
+        
+        ops[0] = new SingleOperator("Load0");
+        ops[1] = new SingleOperator("Load1");
+        ops[2] = new SingleOperator("ForEach0");
+        ops[3] = new SingleOperator("ForEach1");
+        ops[4] = new MultiOperator("Join");
+        ops[5] = new SingleOperator("Filter");
+        
+        for (int i=0;i<6;i++)
+        	plan.add(ops[i]);
+        
+        plan.connect(ops[0], ops[2]);
+        plan.connect(ops[1], ops[3]);
+        plan.connect(ops[2], ops[4]);
+        plan.connect(ops[3], ops[4]);
+        plan.connect(ops[4], ops[5]);
+        
+        try {
+            plan.pushBefore(ops[4], ops[5], 0);
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            PrintStream ps = new PrintStream(baos);
+            PlanPrinter<TOperator, TPlan> planPrinter = new PlanPrinter<TOperator, TPlan>(ps, plan);
+            planPrinter.visit();
+            assertFalse(baos.toString().equals(""));
+        } catch (PlanException pe) {
+        }        
     }
 
 }
