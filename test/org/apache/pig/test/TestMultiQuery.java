@@ -2624,6 +2624,22 @@ public class TestMultiQuery {
         Util.deleteFile(cluster, "output1_checkOutputSpec_test");
         Util.deleteFile(cluster, "output2_checkOutputSpec_test");
     }
+    
+    // A test to verify there is no cycle in the plan if the load location is the same as the store location
+    @Test
+    public void testLoadStoreLoop() {
+        try {
+            String script = "a = load 'dummy'; b = filter a by $0 == 1; store b into 'dummy';\n";
+            GruntParser parser = new GruntParser(new StringReader(script));
+            parser.setInteractive(false);
+            parser.setParams(myPig);
+            myPig.getPigContext().inExplain = true;
+            parser.parseStopOnError();
+        } catch (Exception e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
 
     public static class DummyStoreWithOutputFormat implements StoreFunc {
         

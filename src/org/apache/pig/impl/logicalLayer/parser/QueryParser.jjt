@@ -137,7 +137,7 @@ public class QueryParser {
                                                 String fileName,
                                                 String func,
                                                 LogicalOperator input,
-                                                String alias) throws FrontendException {
+                                                String alias, PigContext pigContext) throws FrontendException {
 
         if (func == null) {
             func = PigStorage.class.getName();
@@ -150,13 +150,24 @@ public class QueryParser {
         LogicalPlan storePlan = new LogicalPlan();
 
         LogicalOperator store;
+        FuncSpec funcSpec = new FuncSpec(func);
+        FileSpec fileSpec = new FileSpec(fileName, funcSpec);
         try {
-		store = new LOStore(storePlan,
-							   new OperatorKey(scope, storeNodeId),
-                               new FileSpec(fileName, new FuncSpec(func)), 
-                               alias);
+            store = new LOStore(storePlan, new OperatorKey(scope, storeNodeId),
+                    fileSpec, alias);
         } catch (IOException ioe) {
             throw new FrontendException(ioe.getMessage(), ioe);
+        }
+        
+        Object obj = PigContext.instantiateFuncFromSpec(funcSpec);
+        StoreFunc stoFunc = (StoreFunc)obj;
+        stoFunc.setStoreFuncUDFContextSignature(LOStore.constructSignature(alias, fileName, funcSpec));
+
+        try {
+            stoFunc.relToAbsPathForStoreLocation(fileName, getCurrentDir(pigContext));
+        } catch (IOException ioe) {
+            FrontendException e = new FrontendException(ioe.getMessage(), ioe);
+            throw e;
         }
         
         try {
@@ -180,7 +191,7 @@ public class QueryParser {
 		return Integer.parseInt(s.substring(1, s.length()));	
 	}
 	    
-    Path getCurrentDir(PigContext pigContext) throws IOException {
+    static Path getCurrentDir(PigContext pigContext) throws IOException {
         DataStorage dfs = pigContext.getDfs();
         ContainerDescriptor desc = dfs.getActiveContainer();
         ElementDescriptor el = dfs.asElement(desc);

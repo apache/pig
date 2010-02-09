@@ -303,6 +303,26 @@ public abstract class OperatorPlan<E extends Operator> implements Iterable<E>, S
     public List<E> getSuccessors(E op) {
         return (List<E>)mFromEdges.get(op);
     }
+    
+    /**
+     * A method to check if there is a path from a given node to another node
+     * @param from the start node for checking
+     * @param to the end node for checking
+     * @return true if path exists, false otherwise
+     */
+    public boolean pathExists(E from, E to) {
+        List<E> successors = getSuccessors(from);
+        if(successors == null || successors.size() == 0) {
+            return false;
+        }
+        for (E successor : successors) {
+            if(successor.equals(to) 
+                    || pathExists(successor, to)) {
+                return true;
+            }
+        }
+        return false;
+    }
 
     public Iterator<E> iterator() { 
         return mOps.keySet().iterator();
