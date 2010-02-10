@@ -24,6 +24,9 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-1230: Streaming input in POJoinPackage should use nonspillable bag to
+collect tuples (ashutoshc) 
+
 PIG-1224: Collected group should change to use new (internal) bag (ashutoshc)
 
 PIG-1046: join algorithm specification is within double quotes (ashutoshc)
