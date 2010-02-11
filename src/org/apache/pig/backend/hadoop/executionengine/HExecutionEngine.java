@@ -58,6 +58,8 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.Physica
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MapReduceLauncher;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
+import org.apache.pig.experimental.logical.LogicalPlanMigrationVistor;
+import org.apache.pig.experimental.logical.optimizer.UidStamper;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.tools.pigstats.PigStats;
 
@@ -253,12 +255,39 @@ public class HExecutionEngine implements ExecutionEngine {
         }
 
         try {
-            LogToPhyTranslationVisitor translator = 
-                new LogToPhyTranslationVisitor(plan);
-            translator.setPigContext(pigContext);
-            translator.visit();
-            return translator.getPhysicalPlan();
-        } catch (VisitorException ve) {
+            if (getConfiguration().getProperty("pig.usenewlogicalplan", "false").equals("true")) {
+                log.info("pig.usenewlogicalplan is set to true. New logical plan will be used.");
+                
+                // translate old logical plan to new plan
+                LogicalPlanMigrationVistor visitor = new LogicalPlanMigrationVistor(plan);
+                visitor.visit();
+                org.apache.pig.experimental.logical.relational.LogicalPlan newPlan = visitor.getNewLogicalPlan();
+                
+                // set uids
+                UidStamper stamper = new UidStamper(newPlan);
+                stamper.visit();
+                
+                // run optimizer
+                org.apache.pig.experimental.logical.optimizer.LogicalPlanOptimizer optimizer = 
+                    new org.apache.pig.experimental.logical.optimizer.LogicalPlanOptimizer(newPlan, 100);
+                optimizer.optimize();
+                
+                // translate new logical plan to physical plan
+                org.apache.pig.experimental.logical.relational.LogToPhyTranslationVisitor translator = 
+                    new org.apache.pig.experimental.logical.relational.LogToPhyTranslationVisitor(newPlan);
+                
+                translator.setPigContext(pigContext);
+                translator.visit();
+                return translator.getPhysicalPlan();
+                
+            }else{       
+                LogToPhyTranslationVisitor translator = 
+                    new LogToPhyTranslationVisitor(plan);
+                translator.setPigContext(pigContext);
+                translator.visit();
+                return translator.getPhysicalPlan();
+            }
+        } catch (Exception ve) {
             int errCode = 2042;
             String msg = "Internal error. Unable to translate logical plan to physical plan.";
             throw new ExecException(msg, errCode, PigException.BUG, ve);

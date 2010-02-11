@@ -31,6 +31,9 @@ import org.apache.pig.impl.plan.VisitorException;
  */
 public abstract class PlanVisitor {
 
+    // TODO Remove this scope value
+    final protected static String DEFAULT_SCOPE = "scope";
+    
     protected OperatorPlan plan;
 
     /**

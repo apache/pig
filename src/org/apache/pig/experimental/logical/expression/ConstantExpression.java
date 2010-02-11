@@ -18,6 +18,9 @@
 
 package org.apache.pig.experimental.logical.expression;
 
+import java.io.IOException;
+
+import org.apache.pig.experimental.plan.Operator;
 import org.apache.pig.experimental.plan.OperatorPlan;
 import org.apache.pig.experimental.plan.PlanVisitor;
 
@@ -48,9 +51,9 @@ public class ConstantExpression extends ColumnExpression {
      * @link org.apache.pig.experimental.plan.Operator#accept(org.apache.pig.experimental.plan.PlanVisitor)
      */
     @Override
-    public void accept(PlanVisitor v) {
+    public void accept(PlanVisitor v) throws IOException {
         if (!(v instanceof LogicalExpressionVisitor)) {
-            throw new RuntimeException("Expected LogicalExpressionVisitor");
+            throw new IOException("Expected LogicalExpressionVisitor");
         }
         ((LogicalExpressionVisitor)v).visitConstant(this);
 
@@ -63,5 +66,15 @@ public class ConstantExpression extends ColumnExpression {
     public Object getValue() {
         return val;
     }
-
+    
+    @Override
+    public boolean isEqual(Operator other) {
+        if (other != null && other instanceof ConstantExpression) {
+            ConstantExpression co = (ConstantExpression)other;
+            return co.type == type && ( ( co.val == null && val == null ) 
+                    || ( co != null && co.val.equals(val) ) );
+        } else {
+            return false;
+        }
+    }
 }

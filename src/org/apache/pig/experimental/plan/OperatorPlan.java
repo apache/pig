@@ -19,14 +19,9 @@
 package org.apache.pig.experimental.plan;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Set;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.pig.impl.util.Pair;
 
 public interface OperatorPlan {
@@ -41,20 +36,20 @@ public interface OperatorPlan {
      * @return all operators in the plan that have no predecessors, or
      * an empty list if the plan is empty.
      */
-    public List<Operator> getRoots();
+    public List<Operator> getSources();
 
     /**
      * Get all operators in the plan that have no successors.
      * @return all operators in the plan that have no successors, or
      * an empty list if the plan is empty.
      */
-    public List<Operator> getLeaves();
+    public List<Operator> getSinks();
 
     /**
      * For a given operator, get all operators immediately before it in the
      * plan.
      * @param op operator to fetch predecessors of
-     * @return list of all operators imeediately before op, or an empty list
+     * @return list of all operators immediately before op, or an empty list
      * if op is a root.
      * @throws IOException if op is not in the plan.
      */
@@ -63,7 +58,7 @@ public interface OperatorPlan {
     /**
      * For a given operator, get all operators immediately after it.
      * @param op operator to fetch successors of
-     * @return list of all operators imeediately after op, or an empty list
+     * @return list of all operators immediately after op, or an empty list
      * if op is a leaf.
      * @throws IOException if op is not in the plan.
      */
@@ -117,4 +112,13 @@ public interface OperatorPlan {
      * @return an iterator of all operators in this plan
      */
     public Iterator<Operator> getOperators();
+    
+    /**
+     * This is like a shallow comparison.
+     * Two plans are equal if they have equivalent operators and equivalent 
+     * structure.
+     * @param other object to compare
+     * @return boolean if both the plans are equivalent
+     */
+    public boolean isEqual( OperatorPlan other );
 }

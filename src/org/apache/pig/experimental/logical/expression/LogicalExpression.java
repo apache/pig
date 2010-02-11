@@ -18,6 +18,9 @@
 
 package org.apache.pig.experimental.logical.expression;
 
+import java.io.IOException;
+
+import org.apache.pig.experimental.logical.relational.LogicalRelationalOperator;
 import org.apache.pig.experimental.plan.Operator;
 import org.apache.pig.experimental.plan.OperatorPlan;
 
@@ -28,9 +31,19 @@ import org.apache.pig.experimental.plan.OperatorPlan;
  */
 public abstract class LogicalExpression extends Operator {
     
+    static long nextUid = 1;
     protected byte type;
-    protected long uid;
+    protected long uid = -1;
 
+    static public long getNextUid() {
+        return nextUid++;
+    }
+    
+    // used for junit test, should not be called elsewhere
+    static public void resetNextUid() {
+        nextUid = 1;
+    }
+    
     /**
      * 
      * @param name of the operator
@@ -55,15 +68,30 @@ public abstract class LogicalExpression extends Operator {
      * @return unique identifier
      */
     public long getUid() {
+        if (uid == -1) {
+            throw new RuntimeException("getUid called before uid set");
+        }
         return uid;
     }
     
     /**
-     * Set the unique identify for this expression
-     * @param uid unique identifier
+     * Set the uid.  For most expressions this will get a new uid.
+     * ProjectExpression needs to override this and find its uid from its
+     * predecessor.
+     * @param currentOp Current LogicalRelationalOperator that this expression operator
+     * is attached to.  Passed so that projection operators can determine their uid.
+     * @throws IOException
      */
-    public void setUid(long uid) {
-       this.uid = uid; 
+    public void setUid(LogicalRelationalOperator currentOp) throws IOException {
+        uid = getNextUid();
     }
-
+    
+    /**
+     * Hard code the uid.  This should only be used in testing, never in real
+     * code.
+     * @param uid value to set uid to
+     */
+    public void neverUseForRealSetUid(long uid) {
+        this.uid = uid;
+    }
 }

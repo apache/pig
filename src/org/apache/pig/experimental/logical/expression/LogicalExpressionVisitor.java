@@ -18,6 +18,7 @@
 
 package org.apache.pig.experimental.logical.expression;
 
+import java.io.IOException;
 import org.apache.pig.experimental.plan.OperatorPlan;
 import org.apache.pig.experimental.plan.PlanVisitor;
 import org.apache.pig.experimental.plan.PlanWalker;
@@ -38,18 +39,33 @@ public abstract class LogicalExpressionVisitor extends PlanVisitor {
         }
     }
     
-    public void visitAnd(AndExpression andExpr) {
+    public void visitAnd(AndExpression andExpr) throws IOException {
+    }
+    
+    public void visitOr(OrExpression exp) throws IOException { 
     }
 
-    public void visitEqual(EqualExpression equal) {
+    public void visitEqual(EqualExpression equal) throws IOException {
     }
     
-    public void visitProject(ProjectExpression project) {
+    public void visitProject(ProjectExpression project) throws IOException {
     }
     
-    public void visitConstant(ConstantExpression constant) {
+    public void visitConstant(ConstantExpression constant) throws IOException {
     }
     
-    
+    public void visitCast(CastExpression cast) throws IOException {
+    }
 
+    public void visitGreaterThan(GreaterThanExpression greaterThanExpression) throws IOException {
+    }
+    
+    public void visitGreaterThanEqual(GreaterThanEqualExpression op) throws IOException {
+    }
+
+    public void visitLessThan(LessThanExpression lessThanExpression) throws IOException { 
+    }
+    
+    public void visitLessThanEqual(LessThanEqualExpression op) throws IOException {
+    }
 }
