@@ -64,7 +64,7 @@ public class DependencyOrderWalker extends PlanWalker {
 
         List<Operator> fifo = new ArrayList<Operator>();
         Set<Operator> seen = new HashSet<Operator>();
-        List<Operator> leaves = plan.getLeaves();
+        List<Operator> leaves = plan.getSinks();
         if (leaves == null) return;
         for (Operator op : leaves) {
             doAllPredecessors(op, seen, fifo);

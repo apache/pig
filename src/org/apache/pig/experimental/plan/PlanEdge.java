@@ -83,7 +83,8 @@ public class PlanEdge extends MultiMap<Operator, Operator> {
         Operator keeper = null;
         for (int j = 0; i.hasNext(); j++) {
             keeper = i.next();
-            if (keeper.equals(value)) {
+            //if (keeper.equals(value)) {
+            if (keeper == value) {
                 i.remove();
                 index = j;
                 break;

@@ -45,7 +45,7 @@ public class DepthFirstWalker extends PlanWalker {
      */
     @Override
     public void walk(PlanVisitor visitor) throws IOException {
-        List<Operator> roots = plan.getRoots();
+        List<Operator> roots = plan.getSources();
         Set<Operator> seen = new HashSet<Operator>();
 
         depthFirst(null, roots, seen, visitor);

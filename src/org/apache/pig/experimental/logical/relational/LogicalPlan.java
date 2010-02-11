@@ -19,11 +19,13 @@
 package org.apache.pig.experimental.logical.relational;
 
 import java.io.IOException;
+import java.util.Iterator;
 import java.util.List;
 
 import org.apache.pig.experimental.plan.BaseOperatorPlan;
 import org.apache.pig.experimental.plan.Operator;
 import org.apache.pig.experimental.plan.OperatorPlan;
+import org.apache.pig.experimental.plan.OperatorSubPlan;
 
 /**
  * LogicalPlan is the logical view of relational operations Pig will execute 
@@ -47,7 +49,7 @@ public class LogicalPlan extends BaseOperatorPlan {
      * be in the plan.
      * @param after operator  that will be after the new operator.  This
      * operator should already be in the plan.  If after is null, then the
-     * new operator will be a root.
+     * new operator will be a leaf.
      * @throws IOException if add is already in the plan, or before or after
      * are not in the plan.
      */
@@ -65,11 +67,11 @@ public class LogicalPlan extends BaseOperatorPlan {
      * be in the plan.
      * @param after operator  that will be after the new operator.  This
      * operator should already be in the plan.  If after is null, then the
-     * new operator will be a root.
+     * new operator will be a leaf.
      * @throws IOException if add is already in the plan, or before or after
      * are not in the plan.
      */
-    public void add(List<LogicalRelationalOperator> before,
+    public void add(LogicalRelationalOperator[] before,
                     LogicalRelationalOperator newOper,
                     LogicalRelationalOperator after) throws IOException {
         doAdd(null, newOper, after);
@@ -94,7 +96,7 @@ public class LogicalPlan extends BaseOperatorPlan {
      */
     public void add(LogicalRelationalOperator before,
                     LogicalRelationalOperator newOper,
-                    List<LogicalRelationalOperator> after) throws IOException {
+                    LogicalRelationalOperator[] after) throws IOException {
         doAdd(before, newOper, null);
         
         for (LogicalRelationalOperator op : after) {
@@ -117,7 +119,7 @@ public class LogicalPlan extends BaseOperatorPlan {
      * @param afterFromPos Position in newOps's edges to connect after at.
      * @param after operator  that will be after the new operator.  This
      * operator should already be in the plan.  If after is null, then the
-     * new operator will be a root.
+     * new operator will be a leaf.
      * @throws IOException if add is already in the plan, or before or after
      * are not in the plan.
      */
@@ -181,6 +183,28 @@ public class LogicalPlan extends BaseOperatorPlan {
         
     }
     
+    /**
+     * Equality is checked by calling equals on every leaf in the plan.  This
+     * assumes that plans are always connected graphs.  It is somewhat 
+     * inefficient since every leaf will test equality all the way to 
+     * every root.  But it is only intended for use in testing, so that
+     * should be ok.  Checking predecessors (as opposed to successors) was
+     * chosen because splits (which have multiple successors) do not depend
+     * on order of outputs for correctness, whereas joins (with multiple
+     * predecessors) do.  That is, reversing the outputs of split in the
+     * graph has no correctness implications, whereas reversing the inputs
+     * of join can.  This method of doing equals will detect predecessors
+     * in different orders but not successors in different orders.
+     */
+    @Override
+    public boolean isEqual(OperatorPlan other) {
+        if (other == null || !(other instanceof LogicalPlan)) {
+            return false;
+        }
+        
+        return super.isEqual(other);   
+    }
+    
     private void doAdd(LogicalRelationalOperator before,
                        LogicalRelationalOperator newOper,
                        LogicalRelationalOperator after) throws IOException {
@@ -205,6 +229,5 @@ public class LogicalPlan extends BaseOperatorPlan {
             throw new IOException("Attempt to add operator " + op.getName() + 
                 " which is already in the plan.");
         }
-    }
-        
+     }           
 }

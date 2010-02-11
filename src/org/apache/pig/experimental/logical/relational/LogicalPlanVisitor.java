@@ -18,6 +18,10 @@
 
 package org.apache.pig.experimental.logical.relational;
 
+import java.io.IOException;
+import java.util.Iterator;
+
+import org.apache.pig.experimental.plan.Operator;
 import org.apache.pig.experimental.plan.OperatorPlan;
 import org.apache.pig.experimental.plan.PlanVisitor;
 import org.apache.pig.experimental.plan.PlanWalker;
@@ -30,13 +34,32 @@ public abstract class LogicalPlanVisitor extends PlanVisitor {
     protected LogicalPlanVisitor(OperatorPlan plan, PlanWalker walker) {
         super(plan, walker);
         
-        if (!(plan instanceof LogicalPlan)) {
-            throw new RuntimeException(
-                "LogicalPlanVisitor expects to visit logical plans");
+        Iterator<Operator> iter = plan.getOperators();
+        while(iter.hasNext()) {
+            if (!(iter.next() instanceof LogicalRelationalOperator)) {
+                throw new RuntimeException("LogicalPlanVisitor can only visit logical plan");
+            }
         }
     }
     
-    public void visitLOLoad(LOLoad load) {
+    public void visitLOLoad(LOLoad load) throws IOException {
     }
 
+    public void visitLOFilter(LOFilter filter) throws IOException {
+    }
+    
+    public void visitLOStore(LOStore store) throws IOException {
+    }
+    
+    public void visitLOJoin(LOJoin join) throws IOException {
+    }
+    
+    public void visitLOForEach(LOForEach foreach) throws IOException {
+    }
+    
+    public void visitLOGenerate(LOGenerate gen) throws IOException {
+    }
+    
+    public void visitLOInnerLoad(LOInnerLoad load) throws IOException {
+    }
 }

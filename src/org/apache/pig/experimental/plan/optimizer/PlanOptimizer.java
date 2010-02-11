@@ -37,7 +37,7 @@ import org.apache.pig.experimental.plan.OperatorPlan;
  * Each rule is has two parts:  a pattern and and associated transformer.
  * Transformers have two important functions:   check(), and transform().
  * The pattern describes a pattern of node types that the optimizer will
- * look ot match.  If that match is found anywhere in the plan, then check()
+ * look to match.  If that match is found anywhere in the plan, then check()
  * will be called.  check() allows the rule to look more in depth at the 
  * matched pattern and decide whether the rule should be run or not.  For
  * example, one might design a rule to push filters above join that would
@@ -74,7 +74,13 @@ public abstract class PlanOptimizer {
         maxIter = (iterations < 1 ? defaultIterations : iterations);
     }
     
-    public void addPlanTransformListener(PlanTransformListener listener) {
+    /**
+     * Adds a listener to the optimization.  This listener will be fired 
+     * after each rule transforms a plan.  Listeners are guaranteed to
+     * be fired in the order they are added.
+     * @param listener
+     */
+    protected void addPlanTransformListener(PlanTransformListener listener) {
         listeners.add(listener);
     }
     
@@ -87,6 +93,7 @@ public abstract class PlanOptimizer {
      * @throws OptimizerException
      */
     public void optimize() throws IOException {
+
         for (Set<Rule> rs : ruleSets) {
             boolean sawMatch = false;
             int numIterations = 0;
@@ -101,7 +108,7 @@ public abstract class PlanOptimizer {
                                 sawMatch = true;
                                 transformer.transform(m);
                                 for(PlanTransformListener l: listeners) {
-                                    l.transformed(plan, transformer);
+                                    l.transformed(plan, transformer.reportChanges());
                                 }
                             }
                         }
@@ -109,5 +116,5 @@ public abstract class PlanOptimizer {
                 }
             } while(sawMatch && ++numIterations < maxIter);
         }
-    }
+    }    
 }

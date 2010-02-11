@@ -18,11 +18,30 @@
 
 package org.apache.pig.experimental.logical.expression;
 
+import java.util.List;
+
 import org.apache.pig.experimental.plan.BaseOperatorPlan;
+import org.apache.pig.experimental.plan.Operator;
+import org.apache.pig.experimental.plan.OperatorPlan;
 
 /**
  * A plan containing LogicalExpressionOperators.
  */
 public class LogicalExpressionPlan extends BaseOperatorPlan {
-
+    
+    @Override
+    public boolean isEqual(OperatorPlan other) {
+        if (other != null && other instanceof LogicalExpressionPlan) {
+            LogicalExpressionPlan otherPlan = (LogicalExpressionPlan)other;
+            List<Operator> roots = getSources();
+            List<Operator> otherRoots = otherPlan.getSources();
+            if (roots.size() == 0 && otherRoots.size() == 0) return true;
+            if (roots.size() > 1 || otherRoots.size() > 1) {
+                throw new RuntimeException("Found LogicalExpressionPlan with more than one root.  Unexpected.");
+            }
+            return roots.get(0).isEqual(otherRoots.get(0));            
+        } else {
+            return false;
+        }
+    }
 }

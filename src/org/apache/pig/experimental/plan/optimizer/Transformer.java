@@ -43,5 +43,14 @@ public abstract class Transformer {
      * @throws IOException
      */
     public abstract void transform(OperatorPlan matched) throws IOException;
+    
+    /**
+     * Report what parts of the tree were transformed.  This is so that 
+     * listeners can know which part of the tree to visit and modify
+     * schemas, annotations, etc.  So any nodes that were removed need
+     * will not be in this plan, only nodes that were added or moved.
+     * @return OperatorPlan that describes just the changed nodes.
+     */
+    public abstract OperatorPlan reportChanges();
 
 }
