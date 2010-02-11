@@ -298,11 +298,22 @@ public class DataType {
      * @param o2 Second object
      * @return -1 if o1 is less, 0 if they are equal, 1 if o2 is less.
      */
-    @SuppressWarnings("unchecked")
     public static int compare(Object o1, Object o2) {
+
         byte dt1 = findType(o1);
         byte dt2 = findType(o2);
+        return compare(o1, o2, dt1, dt2);
+    }
 
+    /*
+     * Same as compare(Object o1, Object o2), but does not use reflection to determine the type 
+     * of passed in objects, relying instead on the caller to provide the appropriate values, as
+     * determined by DataType.findType(Object o);
+     * 
+     * Use this version in cases where multiple objects of the same type have to be repeatedly compared.
+     */
+    @SuppressWarnings("unchecked")
+    public static int compare(Object o1, Object o2, byte dt1, byte dt2) {
         if (dt1 == dt2) {
             switch (dt1) {
             case NULL:
