@@ -49,8 +49,6 @@ public class DefaultDataBag extends DefaultAbstractBag {
 
     private static final Log log = LogFactory.getLog(DefaultDataBag.class);
     
-    boolean hasCachedTuple = false;
-    
     public DefaultDataBag() {
         mContents = new ArrayList<Tuple>();
     }
@@ -75,7 +73,6 @@ public class DefaultDataBag extends DefaultAbstractBag {
     }
     
     public Iterator<Tuple> iterator() {
-        hasCachedTuple = false;
         return new DefaultDataBagIterator();
     }
 
@@ -145,6 +142,7 @@ public class DefaultDataBag extends DefaultAbstractBag {
         private int mFilePtr = 0;
         private DataInputStream mIn = null;
         private int mCntr = 0;
+        private boolean hasCachedTuple = false;
 
         DefaultDataBagIterator() {
         }
