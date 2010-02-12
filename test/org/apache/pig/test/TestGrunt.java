@@ -780,7 +780,7 @@ public class TestGrunt extends TestCase {
         PigServer server = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
         PigContext context = server.getPigContext();
 
-        String strCmd = "register 'pig.jar'\n";
+        String strCmd = "register 'pig-withouthadoop.jar'\n";
 
         ByteArrayInputStream cmd = new ByteArrayInputStream(strCmd.getBytes());
         InputStreamReader reader = new InputStreamReader(cmd);
@@ -788,14 +788,14 @@ public class TestGrunt extends TestCase {
         Grunt grunt = new Grunt(new BufferedReader(reader), context);
 
         grunt.exec();
-        assertTrue(context.extraJars.contains(ClassLoader.getSystemResource("pig.jar")));
+        assertTrue(context.extraJars.contains(ClassLoader.getSystemResource("pig-withouthadoop.jar")));
     }
     
     public void testRegisterWithoutQuotes() throws Throwable {
         PigServer server = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
         PigContext context = server.getPigContext();
 
-        String strCmd = "register pig.jar\n";
+        String strCmd = "register pig-withouthadoop.jar\n";
 
         ByteArrayInputStream cmd = new ByteArrayInputStream(strCmd.getBytes());
         InputStreamReader reader = new InputStreamReader(cmd);
@@ -803,6 +803,6 @@ public class TestGrunt extends TestCase {
         Grunt grunt = new Grunt(new BufferedReader(reader), context);
 
         grunt.exec();
-        assertTrue(context.extraJars.contains(ClassLoader.getSystemResource("pig.jar")));
+        assertTrue(context.extraJars.contains(ClassLoader.getSystemResource("pig-withouthadoop.jar")));
     }
 }
