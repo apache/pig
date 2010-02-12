@@ -118,8 +118,8 @@ public abstract class LoadFunc {
 
     /**
      * Retrieves the next tuple to be processed. Implementations should NOT reuse
-     * tuple objects they return across calls and should return a different tuple 
-     * object in each call.
+     * tuple objects (or inner member objects) they return across calls and 
+     * should return a different tuple object in each call.
      * @return the next tuple to be processed or null if there are no more tuples
      * to be processed.
      * @throws IOException if there is an exception while retrieving the next
@@ -265,12 +265,12 @@ public abstract class LoadFunc {
     
     /**
      * This method will be called by Pig both in the front end and back end to
-     * pass a unique signature to the {@link LoadFunc} which it can use to store
-     * information in the {@link UDFContext} which it needs to store between
-     * various method invocations in the front end and back end. A use case is
-     * to store {@link RequiredFieldList} passed to it in 
-     * {@link LoadPushDown#pushProjection(RequiredFieldList)} for use in the
-     * back end before returning tuples in {@link LoadFunc#getNext()}
+     * pass a unique signature to the {@link LoadFunc}. The signature can be used
+     * to store into the {@link UDFContext} any information which the 
+     * {@link LoadFunc} needs to store between various method invocations in the
+     * front end and back end. A use case is to store {@link RequiredFieldList} 
+     * passed to it in {@link LoadPushDown#pushProjection(RequiredFieldList)} for
+     * use in the back end before returning tuples in {@link LoadFunc#getNext()}
      * @param signature a unique signature to identify this LoadFunc
      */
     public void setUDFContextSignature(String signature) {

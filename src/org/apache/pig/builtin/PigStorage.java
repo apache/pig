@@ -72,13 +72,9 @@ LoadPushDown {
     protected final Log mLog = LogFactory.getLog(getClass());
     private String signature;
         
-    long end = Long.MAX_VALUE;
     private byte fieldDel = '\t';
     private ArrayList<Object> mProtoTuple = null;
     private TupleFactory mTupleFactory = TupleFactory.getInstance();
-    private static final int OS_UNIX = 0;
-    private static final int OS_WINDOWS = 1;
-    private static final String UTF8 = "UTF-8";
     private static final int BUFFER_SIZE = 1024;
     
     public PigStorage() {
