@@ -253,7 +253,6 @@ public class ResourceSchema implements Serializable {
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
-        sb.append("rs:");
         stringifyResourceSchema(sb, this, DataType.UNKNOWN) ;
         return sb.toString();
     }
