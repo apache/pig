@@ -91,19 +91,18 @@ public class TestMultipleOutputs {
 
   static String inputPath;
   static String inputFileName = "multi-input.txt";
-  protected static ExecType execType = ExecType.MAPREDUCE;
+  //protected static ExecType execType = ExecType.MAPREDUCE;
+  protected static ExecType execType = ExecType.LOCAL;
   private static MiniCluster cluster;
   protected static PigServer pigServer;
-  // private static Path pathWorking, pathTable1, path2, path3,
-  // pathTable4, pathTable5;
   private static Configuration conf;
   public static String sortKey = null;
 
   private static FileSystem fs;
 
-  private static String zebraJar;
-  private static String whichCluster;
-  private static String multiLocs;
+  private static String zebraJar = null;
+  private static String whichCluster = null;
+  private static String multiLocs = null;
   private static String strTable1 = null;
   private static String strTable2 = null;
   private static String strTable3 = null;
@@ -112,52 +111,54 @@ public class TestMultipleOutputs {
   public static void setUpOnce() throws IOException {
     if (System.getenv("hadoop.log.dir") == null) {
       String base = new File(".").getPath(); // getAbsolutePath();
-      System
-          .setProperty("hadoop.log.dir", new Path(base).toString() + "./logs");
+      System.setProperty("hadoop.log.dir", new Path(base).toString() + "./logs");
     }
 
+    /* By default, we use miniCluster */
     if (System.getProperty("whichCluster") == null) {
-      System.setProperty("whichCluster", "realCluster");
-      System.out.println("should be called");
-      whichCluster = System.getProperty("whichCluster");
+      whichCluster = "miniCluster";
+      System.setProperty("whichCluster", "miniCluster");
     } else {
       whichCluster = System.getProperty("whichCluster");
     }
 
-    System.out.println("clusterddddd: " + whichCluster);
-    System.out.println(" get env hadoop home: " + System.getenv("HADOOP_HOME"));
-    System.out.println(" get env user name: " + System.getenv("USER"));
-    if ((whichCluster.equalsIgnoreCase("realCluster") && System
-        .getenv("HADOOP_HOME") == null)) {
-      System.out.println("Please set HADOOP_HOME");
-      System.exit(0);
-    }
+    System.out.println("cluster: " + whichCluster);
+    
+    if (whichCluster.equals("realCluster")) {
+      System.out.println(" get env hadoop home: " + System.getenv("HADOOP_HOME"));
+      System.out.println(" get env user name: " + System.getenv("USER"));
+      
+      if (System.getenv("HADOOP_HOME") == null) {
+        System.out.println("Please set HADOOP_HOME for realCluster testing mode");
+        System.exit(0);        
+      }
+
+      if (System.getenv("USER") == null) {
+        System.out.println("Please set USER for realCluster testing mode");
+        System.exit(0);        
+      }
+      
+      zebraJar = System.getenv("HADOOP_HOME") + "/lib/zebra.jar";
+
+      File file = new File(zebraJar);
+      if (!file.exists()) {
+        System.out.println("Please place zebra.jar at $HADOOP_HOME/lib");
+        System.exit(0);
+      }
+    }    
 
     conf = new Configuration();
-
-    if ((whichCluster.equalsIgnoreCase("realCluster") && System.getenv("USER") == null)) {
-      System.out.println("Please set USER");
-      System.exit(0);
-    }
-    zebraJar = System.getenv("HADOOP_HOME") + "/lib/zebra.jar";
-
-    File file = new File(zebraJar);
-    if (!file.exists() && whichCluster.equalsIgnoreCase("realCluster")) {
-      System.out.println("Please put zebra.jar at hadoop_home/lib");
-      System.exit(0);
-    }
-
+    
     // set inputPath and output path
     String workingDir = null;
-    if (whichCluster.equalsIgnoreCase("realCluster")) {
-      inputPath = new String("/user/" + System.getenv("USER") + "/"
-          + inputFileName);
+    if( whichCluster.equals("realCluster")) {
+      inputPath = new String("/user/" + System.getenv("USER") + "/" + inputFileName);
       System.out.println("inputPath: " + inputPath);
       multiLocs = new String("/user/" + System.getenv("USER") + "/" + "us"
           + "," + "/user/" + System.getenv("USER") + "/" + "india" + ","
           + "/user/" + System.getenv("USER") + "/" + "japan");
+      
       fs = new Path(inputPath).getFileSystem(conf);
-
     } else {
       RawLocalFileSystem rawLFS = new RawLocalFileSystem();
       fs = new LocalFileSystem(rawLFS);
@@ -167,7 +168,9 @@ public class TestMultipleOutputs {
       multiLocs = new String(workingDir + "/" + "us" + "," + workingDir + "/"
           + "india" + "," + workingDir + "/" + "japan");
     }
+    
     writeToFile(inputPath);
+    
     // check inputPath existence
     File inputFile = new File(inputPath);
     if (!inputFile.exists() && whichCluster.equalsIgnoreCase("realCluster")) {
@@ -181,8 +184,8 @@ public class TestMultipleOutputs {
       System.exit(0);
     }
 
-    if (whichCluster.equalsIgnoreCase("realCluster")) {
-      pigServer = new PigServer(ExecType.MAPREDUCE, ConfigurationUtil
+    if (whichCluster.equals("realCluster")) {
+      pigServer = new PigServer(ExecType.MAPREDUCE, ConfigurationUtil 
           .toProperties(conf));
       pigServer.registerJar(zebraJar);
 
@@ -231,35 +234,35 @@ public class TestMultipleOutputs {
 
   public static void writeToFile (String inputFile) throws IOException{
     if (whichCluster.equalsIgnoreCase("miniCluster")){
-    FileWriter fstream = new FileWriter(inputFile);
-    BufferedWriter out = new BufferedWriter(fstream);
-    out.write("us 2\n");
-    out.write("japan 2\n");
-    out.write("india 4\n");
-    out.write("us 2\n");
-    out.write("japan 1\n");
-    out.write("india 3\n");
-    out.write("nouse 5\n");
-    out.write("nowhere 4\n");
-    out.close();
-    }
-    if (whichCluster.equalsIgnoreCase("realCluster")){
-    FSDataOutputStream fout = fs.create(new Path (inputFile));
-    fout.writeBytes("us 2\n");
-    fout.writeBytes("japan 2\n");
-    fout.writeBytes("india 4\n");
-    fout.writeBytes("us 2\n");
-    fout.writeBytes("japan 1\n");
-    fout.writeBytes("india 3\n");
-    fout.writeBytes("nouse 5\n");
-    fout.writeBytes("nowhere 4\n");
-    fout.close();
+      FileWriter fstream = new FileWriter(inputFile);
+      BufferedWriter out = new BufferedWriter(fstream);
+      out.write("us 2\n");
+      out.write("japan 2\n");
+      out.write("india 4\n");
+      out.write("us 2\n");
+      out.write("japan 1\n");
+      out.write("india 3\n");
+      out.write("nouse 5\n");
+      out.write("nowhere 4\n");
+      out.close();
+    } else if( whichCluster.equalsIgnoreCase("realCluster") ) {
+      FSDataOutputStream fout = fs.create(new Path (inputFile));
+      fout.writeBytes("us 2\n");
+      fout.writeBytes("japan 2\n");
+      fout.writeBytes("india 4\n");
+      fout.writeBytes("us 2\n");
+      fout.writeBytes("japan 1\n");
+      fout.writeBytes("india 3\n");
+      fout.writeBytes("nouse 5\n");
+      fout.writeBytes("nowhere 4\n");
+      fout.close();
     }
   }
   
   public Path generateOutPath(String currentMethod) {
     Path outPath = null;
-    if (whichCluster.equalsIgnoreCase("realCluster")) {
+    if (whichCluster.equalsIgnoreCase("realCluster") || 
+    		whichCluster.equalsIgnoreCase("miniCluster") ) {
       outPath = new Path("/user/" + System.getenv("USER") + "/multiOutput/"
           + currentMethod);
     } else {
@@ -272,7 +275,7 @@ public class TestMultipleOutputs {
 
   public void removeDir(Path outPath) throws IOException {
     String command = null;
-    if (whichCluster.equalsIgnoreCase("realCluster")) {
+    if (whichCluster.equals("realCluster")) {
       command = System.getenv("HADOOP_HOME") + "/bin/hadoop fs -rmr "
           + outPath.toString();
     } else {
@@ -510,7 +513,7 @@ public class TestMultipleOutputs {
     System.out.println("hello sort on word and count");
     String methodName = getCurrentMethodName();
     String myMultiLocs = null;
-    if (whichCluster.equalsIgnoreCase("realCluster")) {
+    if (whichCluster.equalsIgnoreCase("realCluster") ) {
       myMultiLocs = new String("/user/" + System.getenv("USER") + "/" + "us"
           + methodName + "," + "/user/" + System.getenv("USER") + "/" + "india"
           + methodName + "," + "/user/" + System.getenv("USER") + "/" + "japan"

@@ -136,7 +136,10 @@ import org.apache.pig.data.Tuple;
  * <LI>{@link DataBag} : A DataBag is a collection of Tuples.
  * <LI>{@link Tuple} : Yes, Tuple itself can be a datum in another Tuple.
  * </UL>
+ * 
+ * @Deprecated Use (@link org.apache.hadoop.zebra.mapreduce.TableInputFormat) instead
  */
+@Deprecated
 public class TableInputFormat implements InputFormat<BytesWritable, Tuple> {
   static Log LOG = LogFactory.getLog(TableInputFormat.class);
   

@@ -392,10 +392,10 @@ class ColumnGroup {
             "Cannot get key-bounded scanner for unsorted table");
       }
       RawComparable begin =
-          (beginKey != null) ? new ByteArray(beginKey.get(), 0, beginKey
-              .getSize()) : null;
+          (beginKey != null) ? new ByteArray(beginKey.getBytes(), 0, beginKey
+              .getLength()) : null;
       RawComparable end =
-          (endKey != null) ? new ByteArray(endKey.get(), 0, endKey.getSize())
+          (endKey != null) ? new ByteArray(endKey.getBytes(), 0, endKey.getLength())
               : null;
       if (begin != null && end != null) {
         if (comparator.compare(begin, end) >= 0) {
@@ -800,7 +800,8 @@ class ColumnGroup {
             scanner = reader.createScannerByRecordNum(rowRange.startRow, 
                                          rowRange.startRow + rowRange.numRows);
           } else {
-            /* using deprecated API just so that zebra can work with 
+            /* TODO: more investigation is needed for the following.
+             *  using deprecated API just so that zebra can work with 
              * hadoop jar that does not contain HADOOP-6218 (Record ids for
              * TFile). This is expected to be temporary. Later we should 
              * use the undeprecated API.
@@ -865,7 +866,7 @@ class ColumnGroup {
       }
 
       boolean seekTo(BytesWritable key) throws IOException {
-        return scanner.seekTo(key.get(), 0, key.getSize());
+        return scanner.seekTo(key.getBytes(), 0, key.getLength());
       }
 
       boolean advance() throws IOException {
@@ -1093,7 +1094,7 @@ class ColumnGroup {
           return false;
         }
         int index =
-            cgindex.lowerBound(new ByteArray(key.get(), 0, key.getSize()),
+            cgindex.lowerBound(new ByteArray(key.getBytes(), 0, key.getLength()),
                 comparator);
         if (index >= endIndex) {
           seekToEnd();
@@ -1596,9 +1597,9 @@ class ColumnGroup {
       @Override
       public void insert(BytesWritable key, Tuple row) throws IOException {
         TypesUtils.checkCompatible(row, getSchema());
-        DataOutputStream outKey = tfileWriter.prepareAppendKey(key.getSize());
+        DataOutputStream outKey = tfileWriter.prepareAppendKey(key.getLength());
         try {
-          outKey.write(key.get(), 0, key.getSize());
+          outKey.write(key.getBytes(), 0, key.getLength());
         }
         finally {
           outKey.close();

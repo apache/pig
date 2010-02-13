@@ -49,7 +49,6 @@ import org.apache.hadoop.zebra.tfile.Utils;
 import org.apache.hadoop.zebra.tfile.MetaBlockAlreadyExists;
 import org.apache.hadoop.zebra.tfile.MetaBlockDoesNotExist;
 import org.apache.hadoop.zebra.tfile.Utils.Version;
-import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.zebra.io.ColumnGroup.Reader.CGRangeSplit;
 import org.apache.hadoop.zebra.io.ColumnGroup.Reader.CGRowSplit;
 import org.apache.hadoop.zebra.io.ColumnGroup.Reader.CGScanner;
@@ -90,8 +89,6 @@ public class BasicTable {
       new Version((short) 1, (short) 1);
   // name of the BasicTable meta-data file
   private final static String BT_META_FILE = ".btmeta";
-  // column group prefix
-  private final static String CGPathPrefix = "CG";
 
   private final static String DELETED_CG_PREFIX = ".deleted-";
   
@@ -815,7 +812,8 @@ public class BasicTable {
      * A row-based split on the zebra table;
      */
     public static class RowSplit implements Writable {
-      int cgIndex;  // column group index where split lies on;
+		
+	int cgIndex;  // column group index where split lies on;
       CGRowSplit slice; 
 
       RowSplit(int cgidx, CGRowSplit split) {
@@ -1451,7 +1449,7 @@ public class BasicTable {
         }
       }
     }
-
+    
     /**
      * Get the schema of the table.
      * 

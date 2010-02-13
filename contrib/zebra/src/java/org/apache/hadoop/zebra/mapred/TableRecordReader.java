@@ -30,7 +30,10 @@ import org.apache.pig.data.Tuple;
 
 /**
  * Adaptor class to implement RecordReader on top of Scanner.
+ * 
+ * @Deprecated Use (@link org.apache.hadoop.zebra.mapreduce.TableRecordReader) instead
  */
+@Deprecated
 public class TableRecordReader implements RecordReader<BytesWritable, Tuple> {
   private final TableScanner scanner;
   private long count = 0;

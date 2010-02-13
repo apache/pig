@@ -27,6 +27,7 @@ import java.util.Map;
 import junit.framework.Assert;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.LocalFileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.zebra.io.BasicTable;
@@ -85,7 +86,8 @@ public class TestMergeJoin {
    
 
  conf = new Configuration();
-  
+// pigServer = new PigServer(ExecType.LOCAL);
+// fs = LocalFileSystem.get(conf);
     
     pathWorking = fs.getWorkingDirectory();
     pathTable1 = new Path(pathWorking, "table1");
@@ -322,7 +324,14 @@ public class TestMergeJoin {
     pigServer.shutdown();
   }
 
-
+  private void printTuples(Iterator<Tuple> it3) throws ExecException {
+	    Tuple row = null;
+	    while( it3.hasNext() ) {
+	    	row = it3.next();
+	    	System.out.println( "Tuple>>>> " + row.toDelimitedString(","));
+	    }
+  }
+  
   public void verify(Iterator<Tuple> it3) throws ExecException {
     int row = 0;
     Tuple RowValue3 = null;
@@ -459,6 +468,8 @@ public class TestMergeJoin {
     
     String foreach = "records11 = foreach records1 generate a as a, b as b, c as c, d as d, e as e, f as f, r1 as r1, m1 as m1;";
     pigServer.registerQuery(foreach);
+//    System.out.println( "Left table: >>>>>.");
+//    printTuples(pigServer.openIterator("records11"));
    /* Iterator<Tuple> it_ordered = pigServer.openIterator("records1");
     int row_ordered = 0;
     Tuple RowValue_ordered = null;
@@ -482,6 +493,8 @@ public class TestMergeJoin {
         + "' USING org.apache.hadoop.zebra.pig.TableLoader();";
     pigServer.registerQuery(query4);
 
+//    System.out.println( "Right table: >>>>>.");
+//    printTuples(pigServer.openIterator("records2"));
     
     String filter = "records22 = FILTER records2 BY a == '1.9';";
     pigServer.registerQuery(filter);
@@ -532,6 +545,7 @@ public class TestMergeJoin {
      */
     Iterator<Tuple> it3 = joinTable(this.pathTable1.toString(), this.pathTable2.toString(), "e","e" );
     verify(it3);
+    //printTuple( it3 );
   }
 
   @Test

@@ -22,7 +22,6 @@ import java.io.Closeable;
 import java.io.IOException;
 
 import org.apache.hadoop.io.BytesWritable;
-import org.apache.hadoop.zebra.types.Projection;
 import org.apache.hadoop.zebra.schema.Schema;
 import org.apache.pig.data.Tuple;
 

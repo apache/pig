@@ -150,7 +150,7 @@ public class KeyDistribution {
    * Get the block distribution of all data that maps to the key bucket.
    */
   public BlockDistribution getBlockDistribution(BytesWritable key) {
-    ByteArray key0 = new ByteArray(key.get(), 0, key.getSize());
+    ByteArray key0 = new ByteArray(key.getBytes(), 0, key.getLength());
     BlockDistribution bInfo = data.get(key0);
     if (bInfo == null) {
       throw new IllegalArgumentException("Invalid key");

@@ -17,8 +17,6 @@
 
 package org.apache.hadoop.zebra.io;
 
-import java.io.DataOutput;
-import java.io.DataOutputStream;
 import java.io.PrintStream;
 
 /**

@@ -12,6 +12,8 @@ Trunk (unreleased changes)
 
   IMPROVEMENTS
 
+    PIG-1140 Support of Hadoop 2.0 API (xuefuz via yanz)
+
     PIG-1170 new end-to-end and stress test cases (jing1234 via yanz)
 
     PIG-1136 Support of map split on hash keys with leading underscore (xuefuz via yanz)
