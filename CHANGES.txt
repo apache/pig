@@ -93,6 +93,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-1131: Pig simple join does not work when it contains empty lines (ashutoshc)
+
 PIG-834: incorrect plan when algebraic functions are nested (ashutoshc)
 
 PIG-1217: Fix argToFuncMapping in Piggybank Top function (dvryaboy via gates)
