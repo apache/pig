@@ -237,21 +237,20 @@ public abstract class LoadFunc {
         for (String fname: fnames) {
             Path p = new Path(fname.trim());
             URI uri = p.toUri();
-            String scheme = uri.getScheme();
-            if (scheme != null) {
-                scheme = scheme.toLowerCase();
-            }
-            
-            if (scheme != null && !scheme.equals(fsScheme)) {
-                throw new FrontendException("Incompatible file URI scheme: "
-                        + scheme + " : " + fsScheme);               
-            }            
-            String path = uri.getPath();
             // if the supplied location has an authority and is absolute, just
             // use it
-            if(uri.getAuthority() != null && p.isAbsolute()) {
-                fname = p.toString();
-            } else {
+            if(uri.getAuthority() == null || ! p.isAbsolute()) {
+                String scheme = uri.getScheme();
+                if (scheme != null) {
+                    scheme = scheme.toLowerCase();
+                }
+                
+                if (scheme != null && !scheme.equals(fsScheme)) {
+                    throw new FrontendException("Incompatible file URI scheme: "
+                            + scheme + " : " + fsScheme);               
+                }            
+                String path = uri.getPath();
+            
                 fname = (p.isAbsolute()) ? 
                             new Path(rootDir, path).toString() : 
                                 new Path(curDir, path).toString();

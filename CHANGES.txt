@@ -22,6 +22,8 @@ Trunk (unreleased changes)
 
 INCOMPATIBLE CHANGES
 
+PIG-1234: Unable to create input slice for har:// files (pradeepkth)
+
 PIG-1200: Using TableInputFormat in HBaseStorage (zjffdu via pradeepkth)
 
 PIG-1148: Move splitable logic from pig latin to InputFormat (zjffdu via

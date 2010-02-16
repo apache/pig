@@ -51,6 +51,7 @@ import org.apache.pig.impl.logicalLayer.LogicalPlan;
 import org.apache.pig.impl.logicalLayer.LogicalPlanBuilder;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.test.utils.GenPhyOp;
+import org.apache.pig.test.utils.LogicalPlanTester;
 import org.apache.pig.test.utils.TestHelper;
 import org.junit.After;
 import org.junit.Before;
@@ -63,6 +64,7 @@ public class TestLoad extends junit.framework.TestCase {
     
     static MiniCluster cluster = MiniCluster.buildCluster();
     
+    @Override
     @Before
     public void setUp() throws Exception {
         FileLocalizer.deleteTempFiles();
@@ -72,6 +74,7 @@ public class TestLoad extends junit.framework.TestCase {
         };       
     }
         
+    @Override
     @After
     public void tearDown() throws Exception {
     }
@@ -207,7 +210,16 @@ public class TestLoad extends junit.framework.TestCase {
             pc = pig.getPigContext();
             checkLoadPath("usr/pig/{a,c},/usr/pig/b","/tmp/usr/pig/{a,c},/usr/pig/b");
         }
-    }    
+    }
+    
+    @Test
+    public void testNonDfsLocation() throws Exception {
+        LogicalPlanTester lpt = new LogicalPlanTester();
+        String nonDfsUrl = "har://hdfs-namenode/user/foo/";
+        LogicalPlan lp = lpt.buildPlan("a = load '" + nonDfsUrl + "';");
+        LOLoad load = (LOLoad) lp.getRoots().get(0);
+        Assert.assertEquals(nonDfsUrl, load.getInputFile().getFileName());
+    }
 
     private void checkLoadPath(String orig, String expected) throws Exception {
         
