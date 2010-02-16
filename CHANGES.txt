@@ -151,6 +151,9 @@ PIG-922: Logical optimizer: push up project (daijy)
 
 BUG FIXES
 
+PIG-1239: PigContext.connect() should not create a jobClient and jobClient
+should be created on demand when needed (pradeepkth)
+
 PIG-1213: Schema serialization is broken (pradeepkth)
 
 PIG-1191: POCast throws exception for certain sequences of LOAD, FILTER,

@@ -49,6 +49,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.fs.FsShell;
 import org.apache.hadoop.mapred.JobClient;
+import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.RunningJob;
 import org.apache.hadoop.mapred.JobID;
 import org.apache.pig.FuncSpec;
@@ -71,6 +72,7 @@ import org.apache.pig.tools.pigscript.parser.PigScriptParserTokenManager;
 import org.apache.pig.tools.parameters.ParameterSubstitutionPreprocessor;
 import org.apache.pig.impl.util.LogUtils;
 
+@SuppressWarnings("deprecation")
 public class GruntParser extends PigScriptParser {
 
     private final Log log = LogFactory.getLog(getClass());
@@ -203,13 +205,14 @@ public class GruntParser extends PigScriptParser {
         //
         ExecutionEngine execEngine = mPigServer.getPigContext().getExecutionEngine();
         if (execEngine instanceof HExecutionEngine) {
-            mJobClient = ((HExecutionEngine)execEngine).getJobClient();
+            mJobConf = ((HExecutionEngine)execEngine).getJobConf();
         }
         else {
-            mJobClient = null;
+            mJobConf = null;
         }
     }
 
+    @Override
     public void prompt()
     {
         if (mInteractive) {
@@ -217,6 +220,7 @@ public class GruntParser extends PigScriptParser {
         }
     }
     
+    @Override
     protected void quit()
     {
         mDone = true;
@@ -226,6 +230,7 @@ public class GruntParser extends PigScriptParser {
         return mDone;
     }
     
+    @Override
     protected void processDescribe(String alias) throws IOException {
         if(alias==null) {
             alias = mPigServer.getPigContext().getLastAlias();
@@ -233,6 +238,7 @@ public class GruntParser extends PigScriptParser {
         mPigServer.dumpSchema(alias);
     }
 
+    @Override
     protected void processExplain(String alias, String script, boolean isVerbose, 
                                   String format, String target, 
                                   List<String> params, List<String> files) 
@@ -317,10 +323,12 @@ public class GruntParser extends PigScriptParser {
         }
     }
 
+    @Override
     protected void printAliases() throws IOException {
         mPigServer.printAliases();
     }
     
+    @Override
     protected void processRegister(String jar) throws IOException {
         mPigServer.registerJar(jar);
     }
@@ -344,6 +352,7 @@ public class GruntParser extends PigScriptParser {
         return writer.toString();
     }
 
+    @Override
     protected void processScript(String script, boolean batch, 
                                  List<String> params, List<String> files) 
         throws IOException, ParseException {
@@ -416,6 +425,7 @@ public class GruntParser extends PigScriptParser {
         }
     }
 
+    @Override
     protected void processSet(String key, String value) throws IOException, ParseException {
         if (key.equals("debug"))
         {
@@ -460,6 +470,7 @@ public class GruntParser extends PigScriptParser {
         }
     }
     
+    @Override
     protected void processCat(String path) throws IOException
     {
         executeBatch();
@@ -503,6 +514,7 @@ public class GruntParser extends PigScriptParser {
         }
     }
 
+    @Override
     protected void processCD(String path) throws IOException
     {    
         ContainerDescriptor container;
@@ -534,6 +546,7 @@ public class GruntParser extends PigScriptParser {
         }
     }
 
+    @Override
     protected void processDump(String alias) throws IOException
     {
         Iterator<Tuple> result = mPigServer.openIterator(alias);
@@ -544,16 +557,19 @@ public class GruntParser extends PigScriptParser {
         }
     }
     
+    @Override
     protected void processIllustrate(String alias) throws IOException
     {
 	mPigServer.getExamples(alias);
     }
 
+    @Override
     protected void processKill(String jobid) throws IOException
     {
-        if (mJobClient != null) {
+        if (mJobConf != null) {
+            JobClient jc = new JobClient(mJobConf);
             JobID id = JobID.forName(jobid);
-            RunningJob job = mJobClient.getJob(id);
+            RunningJob job = jc.getJob(id);
             if (job == null)
                 System.out.println("Job with id " + jobid + " is not active");
             else
@@ -564,6 +580,7 @@ public class GruntParser extends PigScriptParser {
         }
     }
         
+    @Override
     protected void processLS(String path) throws IOException
     {
         try {
@@ -613,11 +630,13 @@ public class GruntParser extends PigScriptParser {
         System.out.println(elem.toString() + "<r " + replication + ">\t" + len);
     }
     
+    @Override
     protected void processPWD() throws IOException 
     {
         System.out.println(mDfs.getActiveContainer().toString());
     }
 
+    @Override
     protected void printHelp() 
     {
         System.out.println("Commands:");
@@ -636,6 +655,7 @@ public class GruntParser extends PigScriptParser {
         System.out.println("quit");
     }
 
+    @Override
     protected void processMove(String src, String dst) throws IOException
     {
         executeBatch();
@@ -655,6 +675,7 @@ public class GruntParser extends PigScriptParser {
         }
     }
     
+    @Override
     protected void processCopy(String src, String dst) throws IOException
     {
         executeBatch();
@@ -670,6 +691,7 @@ public class GruntParser extends PigScriptParser {
         }
     }
     
+    @Override
     protected void processCopyToLocal(String src, String dst) throws IOException
     {
         executeBatch();
@@ -685,6 +707,7 @@ public class GruntParser extends PigScriptParser {
         }
     }
 
+    @Override
     protected void processCopyFromLocal(String src, String dst) throws IOException
     {
         executeBatch();
@@ -700,12 +723,14 @@ public class GruntParser extends PigScriptParser {
         }
     }
     
+    @Override
     protected void processMkdir(String dir) throws IOException
     {
         ContainerDescriptor dirDescriptor = mDfs.asContainer(dir);
         dirDescriptor.create();
     }
     
+    @Override
     protected void processPig(String cmd) throws IOException
     {
         int start = 1;
@@ -721,6 +746,7 @@ public class GruntParser extends PigScriptParser {
         }
     }
 
+    @Override
     protected void processRemove(String path, String options ) throws IOException
     {
         ElementDescriptor dfsPath = mDfs.asElement(path);
@@ -738,6 +764,7 @@ public class GruntParser extends PigScriptParser {
         }
     }
 
+    @Override
     protected void processFsCommand(String[] cmdTokens) throws IOException{
         try {
             shell.run(cmdTokens);
@@ -773,7 +800,7 @@ public class GruntParser extends PigScriptParser {
     private DataStorage mDfs;
     private DataStorage mLfs;
     private Properties mConf;
-    private JobClient mJobClient;
+    private JobConf mJobConf;
     private boolean mDone;
     private boolean mLoadOnly;
     private ExplainState mExplain;

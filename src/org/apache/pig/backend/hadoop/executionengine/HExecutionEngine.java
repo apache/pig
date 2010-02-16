@@ -90,7 +90,8 @@ public class HExecutionEngine implements ExecutionEngine {
     
     protected DataStorage ds;
     
-    protected JobClient jobClient;
+    @SuppressWarnings("deprecation")
+    protected JobConf jobConf;
 
     // key: the operator key from the logical plan that originated the physical plan
     // val: the operator key for the root of the phyisical plan
@@ -110,11 +111,12 @@ public class HExecutionEngine implements ExecutionEngine {
         this.ds = null;
         
         // to be set in the init method
-        this.jobClient = null;
+        this.jobConf = null;
     }
     
-    public JobClient getJobClient() {
-        return this.jobClient;
+    @SuppressWarnings("deprecation")
+    public JobConf getJobConf() {
+        return this.jobConf;
     }
     
     public Map<OperatorKey, MapRedResult> getMaterializedResults() {
@@ -134,6 +136,7 @@ public class HExecutionEngine implements ExecutionEngine {
         init(this.pigContext.getProperties());
     }
     
+    @SuppressWarnings("deprecation")
     public void init(Properties properties) throws ExecException {
         //First set the ssh socket factory
         setSSHFactory();
@@ -155,13 +158,13 @@ public class HExecutionEngine implements ExecutionEngine {
         // Now add the settings from "properties" object to override any existing properties
         // All of the above is accomplished in the method call below
            
-        JobConf jobConf = new JobConf();
-        jobConf.addResource("pig-cluster-hadoop-site.xml");
+        JobConf jc = new JobConf();
+        jc.addResource("pig-cluster-hadoop-site.xml");
             
         //the method below alters the properties object by overriding the
         //hadoop properties with the values from properties and recomputing
         //the properties
-        recomputeProperties(jobConf, properties);
+        recomputeProperties(jc, properties);
             
         configuration = ConfigurationUtil.toConfiguration(properties);            
         properties = ConfigurationUtil.toProperties(configuration);
@@ -193,15 +196,8 @@ public class HExecutionEngine implements ExecutionEngine {
                 log.info("Connecting to map-reduce job tracker at: " + properties.get(JOB_TRACKER_LOCATION));
         }
 
-        try {
-            // Set job-specific configuration knobs
-            jobClient = new JobClient(new JobConf(configuration));
-        }
-        catch (IOException e) {
-            int errCode = 6009;
-            String msg = "Failed to create job client:" + e.getMessage();
-            throw new ExecException(msg, errCode, PigException.BUG, e);
-        }
+        // Set job-specific configuration knobs
+        jobConf = new JobConf(configuration);
     }
 
     public Properties getConfiguration() throws ExecException {

@@ -109,7 +109,7 @@ public class MapReduceLauncher extends Launcher{
         ExecutionEngine exe = pc.getExecutionEngine();
         ConfigurationValidator.validatePigProperties(exe.getConfiguration());
         Configuration conf = ConfigurationUtil.toConfiguration(exe.getConfiguration());
-        JobClient jobClient = ((HExecutionEngine)exe).getJobClient();
+        JobClient jobClient = new JobClient(((HExecutionEngine)exe).getJobConf());
 
         JobControlCompiler jcc = new JobControlCompiler(pc, conf);
         
