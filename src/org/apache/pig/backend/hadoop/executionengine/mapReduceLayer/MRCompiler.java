@@ -1888,7 +1888,8 @@ public class MRCompiler extends PhyPlanVisitor {
      * @throws PlanException
      * @throws VisitorException
      */
-  	protected Pair<MapReduceOper,Integer> getSamplingJob(POSort sort, MapReduceOper prevJob, List<PhysicalPlan> transformPlans,
+  	@SuppressWarnings("deprecation")
+    protected Pair<MapReduceOper,Integer> getSamplingJob(POSort sort, MapReduceOper prevJob, List<PhysicalPlan> transformPlans,
   			FileSpec lFile, FileSpec sampleFile, int rp, List<PhysicalPlan> sortKeyPlans, 
   			String udfClassName, String[] udfArgs, String sampleLdrClassName ) throws PlanException, VisitorException {
   		
@@ -2064,7 +2065,7 @@ public class MRCompiler extends PhyPlanVisitor {
                     if(val<=0)
                         val = pigContext.defaultParallel;
                     if (val<=0)
-                        val = ((JobConf)((HExecutionEngine)eng).getJobClient().getConf()).getNumReduceTasks();
+                        val = ((JobConf)((HExecutionEngine)eng).getJobConf()).getNumReduceTasks();
                     if (val<=0)
                         val = 1;
                 } catch (Exception e) {

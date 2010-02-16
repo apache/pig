@@ -121,6 +121,9 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-1239: PigContext.connect() should not create a jobClient and jobClient
+should be created on demand when needed (pradeepkth)
+
 PIG-1154: Local Mode fails when hadoop config directory is specified in 
             classpath (ankit.modi via gates)
 
