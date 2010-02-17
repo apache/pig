@@ -54,6 +54,8 @@ Trunk (unreleased changes)
 
   BUG FIXES
 
+    PIG-1115: cleanup of temp files left by failed tasks (gauravj via yanz)
+
     PIG-1167: Hadoop file glob support (yanz)
 
     PIG-1153: Record split exception fix (yanz)

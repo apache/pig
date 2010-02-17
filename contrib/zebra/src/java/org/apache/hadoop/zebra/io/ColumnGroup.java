@@ -1280,6 +1280,7 @@ class ColumnGroup {
    */
   public static class Writer implements Closeable {
     Path path;
+    Path finalOutputPath;
     Configuration conf;
     FileSystem fs;
     CGSchema cgschema;
@@ -1350,6 +1351,7 @@ class ColumnGroup {
         throws IOException, ParseException {
       this.path = path;
       this.conf = conf;
+      this.finalOutputPath = path;
 
       fs = path.getFileSystem(conf);
 
@@ -1379,6 +1381,25 @@ class ColumnGroup {
     }
 
     /**
+     * Reopen an already created ColumnGroup for writing. It accepts
+     * a temporary path for column group where cginserter can write.
+     * RuntimeException will be thrown if the table is already closed, 
+     * or if createMetaBlock() is called by some other process.
+     */
+    public Writer(Path finalPath, Path workPath, Configuration conf) throws IOException,
+        ParseException {
+      this.path = workPath;
+      finalOutputPath = finalPath;
+      this.conf = conf;
+      fs = path.getFileSystem(conf);
+      checkPath(finalOutputPath, false);
+      checkPath(path, true);
+      checkMetaFile(finalOutputPath);
+      cgschema = CGSchema.load(fs, finalOutputPath);
+
+    }    
+    
+    /**
      * Reopen an already created ColumnGroup for writing. RuntimeException will
      * be thrown if the table is already closed, or if createMetaBlock() is
      * called by some other process.
@@ -1386,6 +1407,7 @@ class ColumnGroup {
     public Writer(Path path, Configuration conf) throws IOException,
         ParseException {
       this.path = path;
+      finalOutputPath = path;
       this.conf = conf;
       fs = path.getFileSystem(conf);
       checkPath(path, false);
@@ -1444,9 +1466,9 @@ class ColumnGroup {
 
     private void createIndex() throws IOException {
       MetaFile.Writer metaFile =
-          MetaFile.createWriter(makeMetaFilePath(path), conf);
+          MetaFile.createWriter(makeMetaFilePath(finalOutputPath), conf);
       if (cgschema.isSorted()) {
-        CGIndex index = buildIndex(fs, path, false, conf);
+        CGIndex index = buildIndex(fs, finalOutputPath, false, conf);
         DataOutputStream dos = metaFile.createMetaBlock(BLOCK_NAME_INDEX);
         try {
           index.write(dos);
@@ -1629,7 +1651,9 @@ class ColumnGroup {
           out.close();
           out = null;
           // do renaming only if all the above is successful.
-          fs.rename(new Path(path, tmpName), new Path(path, name));
+//          fs.rename(new Path(path, tmpName), new Path(path, name));
+          fs.rename(new Path(path, tmpName), new Path(finalOutputPath, name));
+
 /*
           if(cgschema.getOwner() != null || cgschema.getGroup() != null) {
             fs.setOwner(new Path(path, name), cgschema.getOwner(), cgschema.getGroup());

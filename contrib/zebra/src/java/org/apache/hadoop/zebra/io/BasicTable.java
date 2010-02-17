@@ -1225,6 +1225,10 @@ public class BasicTable {
     boolean sorted;
     private boolean finished;
     Tuple[] cgTuples;
+    private Path actualOutputPath;
+    private Configuration writerConf;
+
+
 
     /**
      * Create a BasicTable writer. The semantics are as follows:
@@ -1262,6 +1266,8 @@ public class BasicTable {
     public Writer(Path path, String btSchemaString, String btStorageString, String sortColumns,
         String comparator, Configuration conf) throws IOException {
       try {
+      	actualOutputPath = path;
+    	writerConf = conf;    	  
         schemaFile =
             new SchemaFile(path, btSchemaString, btStorageString, sortColumns,
                 comparator, conf);
@@ -1337,15 +1343,20 @@ public class BasicTable {
      */
     public Writer(Path path, Configuration conf) throws IOException {
       try {
+      	actualOutputPath = path;
+    	writerConf = conf;    	  
         schemaFile = new SchemaFile(path, conf);
         int numCGs = schemaFile.getNumOfPhysicalSchemas();
         partition = schemaFile.getPartition();
         sorted = schemaFile.isSorted();
         colGroups = new ColumnGroup.Writer[numCGs];
         cgTuples = new Tuple[numCGs];
+        Path tmpWorkPath = new Path(path, "_temporary");	
         for (int nx = 0; nx < numCGs; nx++) {
           colGroups[nx] =
-            new ColumnGroup.Writer(new Path(path, partition.getCGSchema(nx).getName()),
+            new ColumnGroup.Writer(
+            		new Path(path, partition.getCGSchema(nx).getName()),
+            		new Path(tmpWorkPath, partition.getCGSchema(nx).getName()),
                   conf);
           cgTuples[nx] = TypesUtils.createTuple(colGroups[nx].getSchema());
         }
@@ -1420,6 +1431,7 @@ public class BasicTable {
      */
     @Override
     public void close() throws IOException {
+      cleanupTempDir();	
       if (closed) return;
       closed = true;
       if (!finished)
@@ -1449,6 +1461,23 @@ public class BasicTable {
         }
       }
     }
+
+    /**
+     * Removes the temporary directory underneath
+     * $path/_temporary used to create intermediate data
+     * during recrd writing
+     */
+    
+    private void cleanupTempDir() throws IOException {
+    	FileSystem fileSys = actualOutputPath.getFileSystem(writerConf);
+        Path pathToRemove = new Path(actualOutputPath, "_temporary");
+        if (fileSys.exists(pathToRemove)) {
+            if(!fileSys.delete(pathToRemove, true)) {
+              LOG.error("Failed to delete the temporary output" + 
+                      " directory: " + pathToRemove.toString());            
+            }
+        }
+    }    
     
     /**
      * Get the schema of the table.
