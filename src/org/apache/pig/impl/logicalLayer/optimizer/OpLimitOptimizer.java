@@ -40,7 +40,11 @@ import org.apache.pig.impl.logicalLayer.LOJoin;
 import org.apache.pig.impl.logicalLayer.LOJoin;
 import org.apache.pig.impl.logicalLayer.LogicalOperator;
 import org.apache.pig.impl.logicalLayer.LogicalPlan;
+import org.apache.pig.impl.logicalLayer.LogicalPlanCloner;
 import org.apache.pig.impl.plan.DepthFirstWalker;
+import org.apache.pig.impl.plan.NodeIdGenerator;
+import org.apache.pig.impl.plan.OperatorKey;
+import org.apache.pig.impl.plan.PlanException;
 import org.apache.pig.impl.plan.optimizer.OptimizerException;
 
 /**
@@ -138,7 +142,7 @@ public class OpLimitOptimizer extends LogicalTransformer {
             // Limit cannot be pushed up
             if (predecessor instanceof LOCogroup || predecessor instanceof LOFilter ||
             		predecessor instanceof LOLoad || predecessor instanceof LOSplit ||
-            		predecessor instanceof LOSplitOutput || predecessor instanceof LODistinct || predecessor instanceof LOJoin)
+            		predecessor instanceof LODistinct || predecessor instanceof LOJoin)
             {
             	return;
             }
@@ -233,6 +237,48 @@ public class OpLimitOptimizer extends LogicalTransformer {
             	    String msg = "Can not remove LOLimit after LOLimit";
             		throw new OptimizerException(msg, errCode, PigException.BUG, e);
             	}
+            }
+            // Limit and OrderBy (LOSort) can be separated by split
+            else if (predecessor instanceof LOSplitOutput) {               
+                if(mode == ExecType.LOCAL) {
+                    //We don't need this optimisation to happen in the local mode.
+                    //so we do nothing here.
+                } else {
+                    List<LogicalOperator> grandparants = mPlan
+                            .getPredecessors(predecessor);
+                    // After insertion of splitters, any node in the plan can 
+                    // have at most one predecessor
+                    if (grandparants != null && grandparants.size() != 0
+                            && grandparants.get(0) instanceof LOSplit) {                        
+                        List<LogicalOperator> greatGrandparants = mPlan
+                                .getPredecessors(grandparants.get(0));
+                        if (greatGrandparants != null
+                                && greatGrandparants.size() != 0
+                                && greatGrandparants.get(0) instanceof LOSort) {                           
+                            LOSort sort = (LOSort)greatGrandparants.get(0);
+                            LOSort newSort = new LOSort(
+                                    sort.getPlan(),
+                                    new OperatorKey(
+                                            sort.getOperatorKey().scope,
+                                            NodeIdGenerator
+                                                    .getGenerator()
+                                                    .getNextNodeId(
+                                                            sort.getOperatorKey().scope)),
+                                    sort.getSortColPlans(), 
+                                    sort.getAscendingCols(), 
+                                    sort.getUserFunc()); 
+                                                  
+                            newSort.setLimit(limit.getLimit());
+                            try {
+                                mPlan.replace(limit, newSort);
+                            } catch (PlanException e) {
+                                int errCode = 2012;
+                                String msg = "Can not replace LOLimit with LOSort after splitter";
+                                throw new OptimizerException(msg, errCode, PigException.BUG, e);
+                            }
+                        }
+                    }
+                }
             }
             else {
                 int errCode = 2013;
