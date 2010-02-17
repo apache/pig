@@ -20,6 +20,8 @@ package org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOp
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
@@ -53,6 +55,10 @@ public class POPreCombinerLocalRearrange extends PhysicalOperator {
     protected static final TupleFactory mTupleFactory = TupleFactory.getInstance();
     protected static BagFactory mBagFactory = BagFactory.getInstance();
 
+    private static Log log = LogFactory.getLog(POPreCombinerLocalRearrange.class);
+    
+    private static final Result ERR_RESULT = new Result();
+    
     protected List<PhysicalPlan> plans;
     
     protected List<ExpressionOperator> leafOps;
@@ -115,7 +121,7 @@ public class POPreCombinerLocalRearrange extends PhysicalOperator {
     public Result getNext(Tuple t) throws ExecException {
         
         Result inp = null;
-        Result res = null;
+        Result res = ERR_RESULT;
         while (true) {
             inp = processInput();
             if (inp.returnStatus == POStatus.STATUS_EOP || inp.returnStatus == POStatus.STATUS_ERR)
@@ -160,12 +166,23 @@ public class POPreCombinerLocalRearrange extends PhysicalOperator {
                 case DataType.TUPLE:
                     res = op.getNext(dummyTuple);
                     break;
+                default:
+                    log.error("Invalid result type: "
+                            + DataType.findType(op.getResultType()));
+                    break;
                 }
-                if(res.returnStatus!=POStatus.STATUS_OK)
+                
+                // allow null as group by key
+                if (res.returnStatus != POStatus.STATUS_OK
+                        && res.returnStatus != POStatus.STATUS_NULL) {
                     return new Result();
+                }
+                
                 resLst.add(res);
             }
             res.result = constructLROutput(resLst,(Tuple)inp.result);
+            res.returnStatus = POStatus.STATUS_OK;
+            
             return res;
         }
         return inp;
