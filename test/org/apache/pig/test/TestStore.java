@@ -37,6 +37,7 @@ import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 import org.apache.pig.ExecType;
+import org.apache.pig.PigException;
 import org.apache.pig.PigServer;
 import org.apache.pig.ResourceSchema;
 import org.apache.pig.ResourceStatistics;
@@ -63,9 +64,13 @@ import org.apache.pig.impl.logicalLayer.LogicalPlan;
 import org.apache.pig.impl.logicalLayer.LogicalPlanBuilder;
 import org.apache.pig.impl.logicalLayer.parser.ParseException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.impl.logicalLayer.validators.InputOutputFileVisitor;
+import org.apache.pig.impl.plan.CompilationMessageCollector;
 import org.apache.pig.impl.plan.OperatorKey;
+import org.apache.pig.impl.plan.PlanValidationException;
 import org.apache.pig.pen.physicalOperators.POCounter;
 import org.apache.pig.test.utils.GenRandomData;
+import org.apache.pig.test.utils.LogicalPlanTester;
 import org.apache.pig.test.utils.TestHelper;
 import org.apache.pig.tools.pigstats.PigStats;
 import org.junit.After;
@@ -124,6 +129,56 @@ public class TestStore extends junit.framework.TestCase {
         return new MapReduceLauncher().launchPig(pp, "TestStore", pc);
     }
 
+    @Test
+    public void testValidation() throws Exception{
+        
+        String outputFileName = "test-output.txt";
+        try {
+            LogicalPlanTester lpt = new LogicalPlanTester();
+            lpt.buildPlan("a = load '" + inputFileName + "' as (c:chararray, " +
+                    "i:int,d:double);");
+            LogicalPlan lp = lpt.buildPlan("store a into '" + outputFileName + "' using " +
+                    "PigStorage();");
+            InputOutputFileVisitor visitor = new InputOutputFileVisitor(lp, null, pig.getPigContext());
+            visitor.visit();
+        } catch (PlanValidationException e){
+                // Since output file is not present, validation should pass
+                // and not throw this exception.
+                fail("Store validation test failed.");                
+        } finally {
+            Util.deleteFile(pig.getPigContext(), outputFileName);
+        }
+    }
+    
+    @Test
+    public void testValidationFailure() throws Exception{
+        
+        String input[] = new String[] { "some data" };
+        String outputFileName = "test-output.txt";
+        boolean sawException = false;
+        try {
+            Util.createInputFile(pig.getPigContext(),outputFileName, input);
+            LogicalPlanTester lpt = new LogicalPlanTester(pig.getPigContext());
+            lpt.buildPlan("a = load '" + inputFileName + "' as (c:chararray, " +
+                    "i:int,d:double);");
+            LogicalPlan lp = lpt.buildPlan("store a into '" + outputFileName + 
+                    "' using PigStorage();");
+            InputOutputFileVisitor visitor = new InputOutputFileVisitor(lp, 
+                    new CompilationMessageCollector(), pig.getPigContext());
+            visitor.visit();
+        } catch (PlanValidationException pve){
+            // Since output file is present, validation should fail
+            // and throw this exception 
+            assertEquals(6000,pve.getErrorCode());
+            assertEquals(PigException.REMOTE_ENVIRONMENT, pve.getErrorSource());
+            assertTrue(pve.getCause() instanceof IOException);
+            sawException = true;
+        } finally {
+            assertTrue(sawException);
+            Util.deleteFile(pig.getPigContext(), outputFileName);
+        }
+    }
+    
     @Test
     public void testStore() throws Exception {
         inpDB = GenRandomData.genRandSmallTupDataBag(new Random(), 10, 100);
@@ -402,7 +457,6 @@ public class TestStore extends junit.framework.TestCase {
         public void storeStatistics(ResourceStatistics stats, String location,
                 Configuration conf) throws IOException {
         }
-        
     }
     
     private void checkStorePath(String orig, String expected) throws Exception {

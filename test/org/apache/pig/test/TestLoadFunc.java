@@ -78,10 +78,10 @@ public class TestLoadFunc {
                 LoadFunc.getAbsolutePath(absPath, curHdfsDir));      
     }
     
-    @Test(expected=FrontendException.class)
+    @Test
     public void testGetAbsolutePath4() throws IOException {
-        // test case: incompatible schemes
-        Assert.assertEquals("hdfs://myhost:123455/data/passwd",
+        // test case: non dfs scheme
+        Assert.assertEquals("http://myhost:12345/data/passwd",
                 LoadFunc.getAbsolutePath("http://myhost:12345/data/passwd", 
                 curHdfsDir));      
     }

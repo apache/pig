@@ -121,6 +121,9 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-1216: New load store design does not allow Pig to validate inputs and
+outputs up front (ashutoshc via pradeepkth)
+
 PIG-1239: PigContext.connect() should not create a jobClient and jobClient
 should be created on demand when needed (pradeepkth)
 

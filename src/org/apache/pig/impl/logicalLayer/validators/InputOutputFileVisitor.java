@@ -19,22 +19,19 @@ package org.apache.pig.impl.logicalLayer.validators;
 
 import java.io.IOException;
 
-import org.apache.pig.ExecType; 
+import org.apache.hadoop.mapreduce.Job;
 import org.apache.pig.PigException;
+import org.apache.pig.StoreFunc;
 import org.apache.pig.impl.PigContext ;
-import org.apache.pig.impl.io.FileLocalizer;
-import org.apache.pig.impl.logicalLayer.LOLoad;
 import org.apache.pig.impl.logicalLayer.LOStore;
 import org.apache.pig.impl.logicalLayer.LOVisitor;
 import org.apache.pig.impl.logicalLayer.LogicalOperator;
 import org.apache.pig.impl.logicalLayer.LogicalPlan;
 import org.apache.pig.impl.plan.DepthFirstWalker;
-import org.apache.pig.impl.plan.PlanWalker;
-import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.plan.CompilationMessageCollector;
-import org.apache.pig.impl.plan.CompilationMessageCollector.MessageType;
-import org.apache.pig.backend.datastorage.ElementDescriptor;
+import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.impl.plan.PlanValidationException;
+import org.apache.pig.impl.plan.CompilationMessageCollector.MessageType;
 
 /***
  * Visitor for checking input/output files
@@ -56,85 +53,52 @@ public class InputOutputFileVisitor extends LOVisitor {
         super(plan, new DepthFirstWalker<LogicalOperator, LogicalPlan>(plan));
         pigCtx = pigContext ;
         msgCollector = messageCollector ;
+        
     }
    
     /***
-     * The logic here is just to check that the file(s) do not exist
+     * The logic here is to delegate the validation of output specification
+     * to output format implementation.
      */
     @Override
     protected void visit(LOStore store) throws PlanValidationException{
-        // make sure that the file doesn't exist
-        String filename = store.getOutputFile().getFileName() ;
+
+        StoreFunc sf = store.getStoreFunc();
+        String outLoc = store.getOutputFile().getFileName();
+        Job dummyJob;
+        String errMsg = "Unexpected error. Could not validate the output " +
+        		"specification for: "+outLoc;
+        int errCode = 2116;
         
         try {
-            if (checkFileExists(filename)) {
-                byte errSrc = pigCtx.getErrorSource();
-                int errCode = 0;
-                switch(errSrc) {
-                case PigException.BUG:
-                    errCode = 2002;
-                    break;
-                case PigException.REMOTE_ENVIRONMENT:
-                    errCode = 6000;
-                    break;
-                case PigException.USER_ENVIRONMENT:
-                    errCode = 4000;
-                    break;
-                }
-                String msg = "The output file(s): " + filename 
-                + " already exists";
-                msgCollector.collect(msg, MessageType.Error) ;
-                throw new PlanValidationException(msg, errCode, errSrc);                
-            }
-        } catch (PlanValidationException pve) {
-            throw pve;
+            dummyJob = new Job(ConfigurationUtil.toConfiguration(pigCtx.getProperties()));
+            sf.setStoreLocation(outLoc, dummyJob);
+        } catch (IOException ioe) {
+            msgCollector.collect(errMsg, MessageType.Error) ;
+            throw new PlanValidationException(errMsg, errCode, pigCtx.getErrorSource(), ioe);
+        }
+        try {
+            sf.getOutputFormat().checkOutputSpecs(dummyJob);
         } catch (IOException ioe) {
             byte errSrc = pigCtx.getErrorSource();
-            int errCode = 0;
+            errCode = 0;
             switch(errSrc) {
             case PigException.BUG:
-                errCode = 2003;
+                errCode = 2002;
                 break;
             case PigException.REMOTE_ENVIRONMENT:
-                errCode = 6001;
+                errCode = 6000;
                 break;
             case PigException.USER_ENVIRONMENT:
-                errCode = 4001;
+                errCode = 4000;
                 break;
             }
-
-            String msg = "Cannot read from the storage where the output " 
-                    + filename + " will be stored ";
-            msgCollector.collect(msg, MessageType.Error) ;
-            throw new PlanValidationException(msg, errCode, errSrc, ioe);
-        } catch (Exception e) {
-            int errCode = 2116;
-            String msg = "Unexpected error. Could not check for the existence of the file(s): " + filename;
-            msgCollector.collect(msg, MessageType.Error) ;
-            throw new PlanValidationException(msg, errCode, PigException.BUG, e);
+            errMsg = "Output specification is invalid: "+outLoc;
+            msgCollector.collect(errMsg, MessageType.Error) ;
+            throw new PlanValidationException(errMsg, errCode, errSrc, ioe);
+        } catch (InterruptedException ie) {
+            msgCollector.collect(errMsg, MessageType.Error) ;
+            throw new PlanValidationException(errMsg, errCode, pigCtx.getErrorSource(), ie);
         }
     }
-
-    /***
-     * Check if the file(s) exist. There are two cases :-
-     * 1) Exact match
-     * 2) Globbing match
-     * TODO: Add globbing support in local execution engine 
-     * and then make this check for local FS support too
-     */
-    private boolean checkFileExists(String filename) throws IOException {
-        if (pigCtx.getExecType() == ExecType.LOCAL) {
-            ElementDescriptor elem = pigCtx.getLfs().asElement(filename) ;
-            return elem.exists() ;
-        }
-        else if (pigCtx.getExecType() == ExecType.MAPREDUCE) {
-            // TODO: Have to put the staging from local to HDFS somewhere else
-            // This does actual file check + glob check
-            return FileLocalizer.fileExists(filename, pigCtx) ;
-        }
-        else { // if ExecType is something else) 
-            throw new RuntimeException("Undefined state in " + this.getClass()) ;
-        }
-    }
-
 }
