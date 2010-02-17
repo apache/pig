@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-1226: suuport for additional jar files (thejas via olgan)
+
 PIG-1230: Streaming input in POJoinPackage should use nonspillable bag to
 collect tuples (ashutoshc) 
 

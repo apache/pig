@@ -167,8 +167,32 @@ public class PigServer {
         if (connect) {
             pigContext.connect();
         }
+        
+        addJarsFromProperties();
     }
     
+    private void addJarsFromProperties() throws ExecException {
+        //add jars from properties to extraJars
+        String jar_str = pigContext.getProperties().getProperty("pig.additional.jars");
+        if(jar_str != null){
+            for(String jar : jar_str.split(":")){
+                try {
+                    registerJar(jar);
+                } catch (IOException e) {
+                    int errCode = 4010;
+                    String msg = 
+                        "Failed to register jar :" + jar + ". Caught exception.";
+                    throw new ExecException(
+                            msg,
+                            errCode,
+                            PigException.USER_ENVIRONMENT,
+                            e
+                    );
+                }
+            }
+        }
+    }
+
     public PigContext getPigContext(){
         return pigContext;
     }
