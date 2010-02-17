@@ -21,6 +21,8 @@ package org.apache.hadoop.zebra.pig;
 import java.io.IOException;
 import java.util.Properties;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.conf.Configuration;
@@ -79,10 +81,24 @@ public class TableStorer implements StoreFunc, StoreMetadata {
     public void checkSchema(ResourceSchema schema) throws IOException {
         // Get schemaStr and sortColumnNames from the given schema. In the process, we
         // also validate the schema and sorting info.
-        ResourceSchema.ResourceFieldSchema[] fields = schema.getFields();
-        int[] index = schema.getSortKeys();
+        ResourceSchema.Order[] orders = schema.getSortKeyOrders();
+        boolean descending = false;
+        for (ResourceSchema.Order order : orders)
+        {
+          if (order == ResourceSchema.Order.DESCENDING)
+          {
+            Log LOG = LogFactory.getLog(TableStorer.class);
+            LOG.warn("Sorting in descending order is not supported by Zebra and the table will be unsorted.");
+            descending = true;
+            break;
+          }
+        }
         StringBuilder sortColumnNames = new StringBuilder();
-        for( int i = 0; i< index.length; i++ ) {
+        if (!descending) {
+          ResourceSchema.ResourceFieldSchema[] fields = schema.getFields();
+          int[] index = schema.getSortKeys();
+        
+          for( int i = 0; i< index.length; i++ ) {
             ResourceFieldSchema field = fields[index[i]];
             String name = field.getName();
             if( name == null )
@@ -92,6 +108,7 @@ public class TableStorer implements StoreFunc, StoreMetadata {
             if( i > 0 )
                 sortColumnNames.append( "," );
             sortColumnNames.append( name );
+          }
         }
 
         // Convert resource schema to zebra schema

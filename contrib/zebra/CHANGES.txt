@@ -12,6 +12,8 @@ Trunk (unreleased changes)
 
   IMPROVEMENTS
 
+    PIG-1206 Storing descendingly sorted PIG table as unsorted table (yanz)
+
     PIG-1240 zebra manifest file enhancement (gauravj via yanz)
 
     PIG-1140 Support of Hadoop 2.0 API (xuefuz via yanz)
