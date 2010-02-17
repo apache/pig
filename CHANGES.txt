@@ -95,6 +95,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-1169: Top-N queries produce incorrect results when a store statement is added between order by and limit statement (rding)
+
 PIG-1131: Pig simple join does not work when it contains empty lines (ashutoshc)
 
 PIG-834: incorrect plan when algebraic functions are nested (ashutoshc)
