@@ -20,11 +20,10 @@ package org.apache.pig.impl.logicalLayer;
 
 import java.util.List;
 
-import org.apache.pig.impl.plan.PlanVisitor;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.VisitorException;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+//import org.apache.commons.logging.Log;
+//import org.apache.commons.logging.LogFactory;
 
 /**
  * This abstract class represents the logical Binary Expression Operator
@@ -35,7 +34,7 @@ import org.apache.commons.logging.LogFactory;
 
 public abstract class BinaryExpressionOperator extends ExpressionOperator {
     private static final long serialVersionUID = 2L;
-    private static Log log = LogFactory.getLog(BinaryExpressionOperator.class);
+    // private static Log log = LogFactory.getLog(BinaryExpressionOperator.class);
 
     /**
      * @param plan

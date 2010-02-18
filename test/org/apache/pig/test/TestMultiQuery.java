@@ -108,6 +108,66 @@ public class TestMultiQuery {
         myPig = null;
     }
 
+    public void testMultiQueryJiraPig1169() {
+
+        // test case: Problems with some top N queries
+        
+        String INPUT_FILE = "abc";
+        
+        try {
+    
+            PrintWriter w = new PrintWriter(new FileWriter(INPUT_FILE));
+            w.println("1\t2\t3");
+            w.println("2\t3\t4");
+            w.println("3\t4\t5");
+            w.println("5\t6\t7");
+            w.println("6\t7\t8");
+            w.close();
+    
+            Util.copyFromLocalToCluster(cluster, INPUT_FILE, INPUT_FILE);
+           
+            myPig.setBatchOn();
+    
+            myPig.registerQuery("A = load '" + INPUT_FILE 
+                    + "' as (a:int, b, c);");
+            myPig.registerQuery("A1 = Order A by a desc parallel 3;");
+            myPig.registerQuery("A2 = limit A1 2;");
+            myPig.registerQuery("store A1 into '/tmp/input1';");
+            myPig.registerQuery("store A2 into '/tmp/input2';");
+
+            myPig.executeBatch();
+
+            myPig.registerQuery("B = load '/tmp/input2' as (a:int, b, c);");
+            
+            Iterator<Tuple> iter = myPig.openIterator("B");
+
+            List<Tuple> expectedResults = Util.getTuplesFromConstantTupleStrings(
+                    new String[] { 
+                            "(6,7,8)",
+                            "(5,6,7)"
+                    });
+            
+            int counter = 0;
+            while (iter.hasNext()) {
+                assertEquals(expectedResults.get(counter++).toString(), iter.next().toString());      
+            }
+
+            assertEquals(expectedResults.size(), counter);
+            
+        } catch (Exception e) {
+            e.printStackTrace();
+            Assert.fail();
+        } finally {
+            new File(INPUT_FILE).delete();
+            try {
+                Util.deleteFile(cluster, INPUT_FILE);
+            } catch (IOException e) {
+                e.printStackTrace();
+                Assert.fail();
+            }
+        }
+    }
+  
     public void testMultiQueryJiraPig1171() {
 
         // test case: Problems with some top N queries

@@ -149,12 +149,16 @@ public class TestPigContext extends TestCase {
                 
         // generate jar file
         String jarName = "TestUDFJar.jar";
+        String jarFile = tmpDir.getAbsolutePath() + FILE_SEPARATOR + jarName;
         status = Util.executeShellCommand("jar -cf " + tmpDir.getAbsolutePath() + FILE_SEPARATOR + jarName + 
                               " -C " + tmpDir.getAbsolutePath() + " " + "com");
         assertTrue(status==0);
+        Properties properties = cluster.getProperties();
+        PigContext pigContext = new PigContext(ExecType.MAPREDUCE, properties);
         
-        PigServer pig = new PigServer(pigContext);
-        pig.registerJar(tmpDir.getAbsolutePath() + FILE_SEPARATOR + jarName);
+        //register jar using properties
+        pigContext.getProperties().setProperty("pig.additional.jars", jarFile);
+        PigServer pigServer = new PigServer(pigContext);
 
         PigContext.initializeImportList("com.xxx.udf1:com.xxx.udf2.");
         ArrayList<String> importList = PigContext.getPackageImportList();
@@ -180,7 +184,6 @@ public class TestPigContext extends TestCase {
         }
         Util.createInputFile(cluster, tmpFile.getCanonicalPath(), input);        
         FileLocalizer.deleteTempFiles();
-        PigServer pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
         pigServer.registerQuery("A = LOAD '" + tmpFile.getCanonicalPath() + "' using TestUDF2() AS (num:chararray);");
         pigServer.registerQuery("B = foreach A generate TestUDF1(num);");
         Iterator<Tuple> iter = pigServer.openIterator("B");

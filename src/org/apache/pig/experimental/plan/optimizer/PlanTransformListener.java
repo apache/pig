@@ -18,6 +18,8 @@
 
 package org.apache.pig.experimental.plan.optimizer;
 
+import java.io.IOException;
+
 import org.apache.pig.experimental.plan.OperatorPlan;
 
 /**
@@ -26,9 +28,10 @@ import org.apache.pig.experimental.plan.OperatorPlan;
 public interface PlanTransformListener {
     /**
      * the listener that is notified after a plan is transformed
-     * @param plan  the plan that is transformed
-     * @param transformer the transformer that transforms this plan
+     * @param fp  the full plan that has been transformed
+     * @param tp  a plan containing only the operators that have been transformed
+     * @throws IOException 
      */
-    public void transformed(OperatorPlan plan, Transformer transformer);
+    public void transformed(OperatorPlan fp, OperatorPlan tp) throws IOException;
 
 }

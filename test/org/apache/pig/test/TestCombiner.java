@@ -39,13 +39,40 @@ import org.apache.pig.PigServer;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.data.Tuple;
 
+import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
+import org.apache.pig.impl.logicalLayer.LogicalPlan;
+import org.apache.pig.test.utils.LogicalPlanTester;
 
 public class TestCombiner extends TestCase {
 
-    
-
     MiniCluster cluster = MiniCluster.buildCluster();
+
+    @Test
+    public void testSuccessiveUserFuncs1() throws Exception{
+        
+        LogicalPlanTester tester = new LogicalPlanTester();
+        tester.buildPlan( "a = load 'students.txt' as (c1,c2,c3,c4); ");
+        tester.buildPlan("c = group a by c2; ");
+        tester.buildPlan("f = foreach c generate COUNT(org.apache.pig.builtin.Distinct($1.$2)); ");
+        LogicalPlan lp = tester.buildPlan("store f into 'out';");
+        PigContext pc = new PigServer(ExecType.MAPREDUCE, cluster.getProperties()).getPigContext();
+        assertTrue((Util.buildMRPlan(Util.buildPhysicalPlan(lp,pc),pc).getRoots().get(0).combinePlan.isEmpty()));
+    }
+
+    @Test
+    public void testSuccessiveUserFuncs2() throws Exception{
+        
+        LogicalPlanTester tester = new LogicalPlanTester();
+        tester.buildPlan( "a = load 'students.txt' as (c1,c2,c3,c4); ");
+        tester.buildPlan("c = group a by c2; ");
+        String dummyUDF = JiraPig1030.class.getName();
+        tester.buildPlan("f = foreach c generate COUNT("+dummyUDF+"" +
+        		"(org.apache.pig.builtin.Distinct($1.$2),"+dummyUDF+"())); ");
+        LogicalPlan lp = tester.buildPlan("store f into 'out';");
+        PigContext pc = new PigServer(ExecType.MAPREDUCE, cluster.getProperties()).getPigContext();
+        assertTrue((Util.buildMRPlan(Util.buildPhysicalPlan(lp,pc),pc).getRoots().get(0).combinePlan.isEmpty()));
+    }
     
     @Test
     public void testOnCluster() throws Exception {
@@ -116,7 +143,6 @@ public class TestCombiner extends TestCase {
                 + PigStorage.class.getName() + "(',');");
         return inputFileName;
     }
-    
     
     @Test
     public void testNoCombinerUse() {
@@ -373,7 +399,7 @@ public class TestCombiner extends TestCase {
             return "";
         }
     }
-    
+   
     @Test
     public void testJiraPig1030() {
         // test that combiner is NOT invoked when
@@ -416,4 +442,5 @@ public class TestCombiner extends TestCase {
             }
         }
     }
+
 }

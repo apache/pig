@@ -18,6 +18,12 @@
 
 package org.apache.pig.experimental.logical.expression;
 
+import java.io.IOException;
+import java.util.List;
+
+import org.apache.pig.experimental.logical.relational.LogicalRelationalOperator;
+import org.apache.pig.experimental.logical.relational.LogicalSchema;
+import org.apache.pig.experimental.plan.Operator;
 import org.apache.pig.experimental.plan.OperatorPlan;
 import org.apache.pig.experimental.plan.PlanVisitor;
 
@@ -58,9 +64,9 @@ public class ProjectExpression extends ColumnExpression {
      * @link org.apache.pig.experimental.plan.Operator#accept(org.apache.pig.experimental.plan.PlanVisitor)
      */
     @Override
-    public void accept(PlanVisitor v) {
+    public void accept(PlanVisitor v) throws IOException {
         if (!(v instanceof LogicalExpressionVisitor)) {
-            throw new RuntimeException("Expected LogicalExpressionVisitor");
+            throw new IOException("Expected LogicalExpressionVisitor");
         }
         ((LogicalExpressionVisitor)v).visitProject(this);
 
@@ -104,4 +110,44 @@ public class ProjectExpression extends ColumnExpression {
         this.type = type;
     }
 
+    @Override
+    public void setUid(LogicalRelationalOperator currentOp) throws IOException {
+        LogicalRelationalOperator referent = findReferent(currentOp);
+        
+        LogicalSchema schema = referent.getSchema();
+        if (schema != null) {
+            uid = schema.getField(col).uid;
+        }
+    }
+    
+    /**
+     * Find the LogicalRelationalOperator that this projection refers to.
+     * @param currentOp Current operator this projection is attached to
+     * @return LRO this projection refers to
+     * @throws IOException
+     */
+    public LogicalRelationalOperator findReferent(LogicalRelationalOperator currentOp) throws IOException {
+        List<Operator> preds;
+        preds = currentOp.getPlan().getPredecessors(currentOp);
+        if (preds == null || preds.size() - 1 < input) {
+            throw new IOException("Projection with nothing to reference!");
+        }
+            
+        LogicalRelationalOperator pred =
+            (LogicalRelationalOperator)preds.get(input);
+        if (pred == null) {
+            throw new IOException("Found bad operator in logical plan");
+        }
+        return pred;
+    }
+    
+    @Override
+    public boolean isEqual(Operator other) {
+        if (other != null && other instanceof ProjectExpression) {
+            ProjectExpression po = (ProjectExpression)other;
+            return po.input == input && po.col == col;
+        } else {
+            return false;
+        }
+    }
 }

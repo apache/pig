@@ -35,7 +35,7 @@ public class FuncSpec implements Serializable, Cloneable {
     String className = null;
     String[] ctorArgs = null;
     Schema inputArgsSchema = null;
-    
+   
     /**
      * @param className the name of the class for the udf
      * @param ctorArg the argument for the constructor for the above class
@@ -202,7 +202,34 @@ public class FuncSpec implements Serializable, Cloneable {
     public void setInputArgsSchema(Schema inputArgsSchema) {
         this.inputArgsSchema = inputArgsSchema;
     }
-
+    
+    @Override
+    public boolean equals(Object other) {
+        if (other != null && other instanceof FuncSpec) {
+            FuncSpec ofs = (FuncSpec)other;
+            if (!className.equals(ofs.className)) return false;
+            if (ctorArgs == null && ofs.ctorArgs != null ||
+                    ctorArgs != null && ofs.ctorArgs == null) {
+                return false;
+            }
+           
+            if (ctorArgs != null && ofs.ctorArgs != null) {
+                if (ctorArgs.length != ofs.ctorArgs.length) return false;
+                for (int i = 0; i < ctorArgs.length; i++) {
+                    if (!ctorArgs[i].equals(ofs.ctorArgs[i])) return false;
+                }
+            }
+            return Schema.equals(inputArgsSchema, ofs.inputArgsSchema, false, true);
+        } else {
+            return false;
+        }
+    }
+    
+    @Override
+    public int hashCode() {
+        return getClassName().hashCode() + ctorArgs.length;
+    }
+ 
     @Override
     public FuncSpec clone() throws CloneNotSupportedException {
         String[] args = null;

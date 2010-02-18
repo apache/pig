@@ -29,6 +29,7 @@ import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.InternalCachedBag;
+import org.apache.pig.data.NonSpillableDataBag;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.io.NullableTuple;
 import org.apache.pig.impl.plan.NodeIdGenerator;
@@ -140,14 +141,16 @@ public class POJoinPackage extends POPackage {
             lastInputTuple = false;
             //Put n-1 inputs into bags
             dbs = new DataBag[numInputs];
-            for (int i = 0; i < numInputs; i++) {
+            for (int i = 0; i < numInputs - 1; i++) {
                 dbs[i] = useDefaultBag ? BagFactory.getInstance().newDefaultBag() 
                 // In a very rare case if there is a POStream after this 
                 // POJoinPackage in the pipeline and is also blocking the pipeline;
                 // constructor argument should be 2 * numInputs. But for one obscure
                 // case we don't want to pay the penalty all the time.        
-                        : new InternalCachedBag(numInputs);                    
+                        : new InternalCachedBag(numInputs-1);                    
             }
+            // For last bag, we always use NonSpillableBag.
+            dbs[lastBagIndex] = new NonSpillableDataBag((int)chunkSize);
             
             //For each Nullable tuple in the input, put it
             //into the corresponding bag based on the index,

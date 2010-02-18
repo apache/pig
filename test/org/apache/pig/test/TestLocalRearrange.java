@@ -195,22 +195,29 @@ public class TestLocalRearrange extends junit.framework.TestCase {
         try {
             PrintWriter w = new PrintWriter(new FileWriter(INPUT_FILE));
             w.println("10\t2\t3");
+            w.println("10\t4\t5");
+            w.println("20\t3000\t2");
+            w.println("20\t4000\t3");
             w.println("20\t3\t");
+            w.println("21\t4\t");
+            w.println("22\t5\t");
             w.close();
             Util.copyFromLocalToCluster(cluster, INPUT_FILE, INPUT_FILE);
 
             PigServer myPig = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
 
             myPig.registerQuery("data = load '" + INPUT_FILE + "' as (a0, a1, a2);");
-            myPig.registerQuery("grp = GROUP data BY (((double) a2)/((double) a1) > .001 OR a0 < 11 ? a0 : -1);");
+            myPig.registerQuery("grp = GROUP data BY (((double) a2)/((double) a1) > .001 OR a0 < 11 ? a0 : 0);");
+            myPig.registerQuery("res = FOREACH grp GENERATE group, SUM(data.a1), SUM(data.a2);");
             
             List<Tuple> expectedResults = Util.getTuplesFromConstantTupleStrings(
-                    new String[] { 
-                            "(10,{(10,2,3)})",
-                            "(null,{(20,3,null)})"
+                    new String[] {   
+                            "(0,7000.0,5.0)",
+                            "(10,6.0,8.0)",                            
+                            "(null,12.0,null)"
                     });
             
-            Iterator<Tuple> iter = myPig.openIterator("grp");
+            Iterator<Tuple> iter = myPig.openIterator("res");
             int counter = 0;
             while (iter.hasNext()) {
                 assertEquals(expectedResults.get(counter++).toString(), iter.next().toString());      

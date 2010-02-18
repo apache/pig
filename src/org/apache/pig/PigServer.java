@@ -167,8 +167,32 @@ public class PigServer {
         if (connect) {
             pigContext.connect();
         }
+        
+        addJarsFromProperties();
     }
     
+    private void addJarsFromProperties() throws ExecException {
+        //add jars from properties to extraJars
+        String jar_str = pigContext.getProperties().getProperty("pig.additional.jars");
+        if(jar_str != null){
+            for(String jar : jar_str.split(":")){
+                try {
+                    registerJar(jar);
+                } catch (IOException e) {
+                    int errCode = 4010;
+                    String msg = 
+                        "Failed to register jar :" + jar + ". Caught exception.";
+                    throw new ExecException(
+                            msg,
+                            errCode,
+                            PigException.USER_ENVIRONMENT,
+                            e
+                    );
+                }
+            }
+        }
+    }
+
     public PigContext getPigContext(){
         return pigContext;
     }
@@ -382,7 +406,7 @@ public class PigServer {
      * @throws IOException
      */    
     public void registerQuery(String query, int startLine) throws IOException {            
-    	currDAG.registerQuery(query, startLine);
+        currDAG.registerQuery(query, startLine);
     }
  
     public LogicalPlan clonePlan(String alias) throws IOException {
@@ -828,11 +852,11 @@ public class PigServer {
         }
         
         if(aggregateWarning) {
-        	CompilationMessageCollector.logMessages(collector, MessageType.Warning, aggregateWarning, log);
+            CompilationMessageCollector.logMessages(collector, MessageType.Warning, aggregateWarning, log);
         } else {
-        	for(Enum type: MessageType.values()) {
-        		CompilationMessageCollector.logAllMessages(collector, log);
-        	}
+            for(Enum type: MessageType.values()) {
+                CompilationMessageCollector.logAllMessages(collector, log);
+            }
         }
         
         if (caught != null) {
@@ -840,7 +864,7 @@ public class PigServer {
         }
 
         // optimize
-        if (optimize) {
+        if (optimize && pigContext.getProperties().getProperty("pig.usenewlogicalplan", "false").equals("false")) {
             HashSet<String> optimizerRules = null;
             try {
                 optimizerRules = (HashSet<String>) ObjectSerializer
@@ -890,7 +914,7 @@ public class PigServer {
      * This class holds the internal states of a grunt shell session.
      */
     private class Graph {
-    	
+        
         private Map<LogicalOperator, LogicalPlan> aliases = new HashMap<LogicalOperator, LogicalPlan>();
         
         private Map<OperatorKey, LogicalOperator> opTable = new HashMap<OperatorKey, LogicalOperator>();

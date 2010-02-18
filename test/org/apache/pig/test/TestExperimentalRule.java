@@ -56,6 +56,11 @@ public class TestExperimentalRule extends TestCase {
             super();
         }
 
+        @Override
+        public boolean isEqual(OperatorPlan other) {
+            return false;
+        }
+
     }
     
     private static class OP extends Operator {
@@ -65,6 +70,11 @@ public class TestExperimentalRule extends TestCase {
 
         public void accept(PlanVisitor v) {
             
+        }
+
+        @Override
+        public boolean isEqual(Operator operator) {
+            return false;
         }
     }
     
@@ -100,6 +110,7 @@ public class TestExperimentalRule extends TestCase {
 
     
     OperatorPlan plan = null;
+    Operator join;
     
     public void setUp() {
         plan = new SillyPlan();
@@ -134,7 +145,47 @@ public class TestExperimentalRule extends TestCase {
         plan.connect(t1, f3);
         plan.connect(t1, f4);
         plan.connect(f3, s1);
-        plan.connect(f4, s2);
+        plan.connect(f4, s2); 
+        
+        join = j1;
+    }
+    
+    
+    public void testMultiNode() throws Exception {    
+        //         load --|-join - filter - filter - split |- filter - store
+        //         load --|      
+        // load -- filter-|
+        Operator l3 = new OP_Load("p3", plan);
+        Operator f5 = new OP_Filter("f5", plan);
+        plan.add(l3);
+        plan.add(f5);
+        plan.connect(l3, f5);
+            
+         plan.connect(f5, join);
+       
+        
+         OperatorPlan pattern = new SillyPlan();
+         Operator op1 = new OP_Load("mmm1", pattern);
+         Operator op2 = new OP_Filter("mmm2", pattern);
+         Operator op3 = new OP_Join("mmm3", pattern);
+         pattern.add(op1);
+         pattern.add(op2);
+         pattern.add(op3);
+         pattern.connect(op1, op3);
+         pattern.connect(op2, op3);
+         
+         Rule r = new SillyRule("basic", pattern);
+         List<OperatorPlan> l = r.match(plan);
+         assertEquals(1, l.size());
+         OperatorPlan match = l.get(0);
+         assertEquals(match.size(), 3);
+         assertEquals(match.getSinks().size(), 1);
+         assertEquals(match.getSinks().get(0), join);
+         
+         assertEquals(match.getSources().size(), 2);
+         assertTrue(match.getSources().get(0).getClass().equals(OP_Load.class) || match.getSources().get(0).equals(f5) );
+         assertTrue(match.getSources().get(1).getClass().equals(OP_Load.class) || match.getSources().get(1).equals(f5) );
+         assertNotSame(match.getSources().get(0), match.getSources().get(1));
     }
     
     public void testSingleNodeMatch() {
@@ -146,11 +197,11 @@ public class TestExperimentalRule extends TestCase {
         List<OperatorPlan> l = r.match(plan);
         assertEquals(l.size(), 2);
         
-        Operator m1 = l.get(0).getRoots().get(0);
+        Operator m1 = l.get(0).getSources().get(0);
         assertTrue(m1.getName().equals("p1") || m1.getName().equals("p2"));
         assertEquals(l.get(0).size(), 1);
         
-        Operator m2 = l.get(1).getRoots().get(0);
+        Operator m2 = l.get(1).getSources().get(0);
         assertTrue(m2.getName().equals("p1") || m2.getName().equals("p2"));
         assertEquals(l.get(1).size(), 1);
         assertNotSame(m1.getName(), m2.getName());
@@ -162,12 +213,12 @@ public class TestExperimentalRule extends TestCase {
         l = r.match(plan);
         assertEquals(l.size(), 4);
         
-        m1 = l.get(0).getRoots().get(0);
+        m1 = l.get(0).getSources().get(0);
         assertTrue(m1.getName().equals("f1") || m1.getName().equals("f2") 
                 || m1.getName().equals("f3") || m1.getName().equals("f4"));
         assertEquals(l.get(0).size(), 1);
         
-        m2 = l.get(1).getRoots().get(0);
+        m2 = l.get(1).getSources().get(0);
         assertTrue(m1.getName().equals("f1") || m1.getName().equals("f2") 
                 || m1.getName().equals("f3") || m1.getName().equals("f4"));
         assertEquals(l.get(1).size(), 1);
@@ -180,11 +231,11 @@ public class TestExperimentalRule extends TestCase {
         l = r.match(plan);
         assertEquals(l.size(), 2);
         
-        m1 = l.get(0).getRoots().get(0);
+        m1 = l.get(0).getSources().get(0);
         assertTrue(m1.getName().equals("s1") || m1.getName().equals("s2"));
         assertEquals(l.get(0).size(), 1);
         
-        m2 = l.get(1).getRoots().get(0);
+        m2 = l.get(1).getSources().get(0);
         assertTrue(m2.getName().equals("s1") || m2.getName().equals("s2"));
         assertEquals(l.get(1).size(), 1);
         assertNotSame(m1.getName(), m2.getName());
@@ -196,7 +247,7 @@ public class TestExperimentalRule extends TestCase {
         l = r.match(plan);
         assertEquals(l.size(), 1);
         
-        m1 = l.get(0).getRoots().get(0);
+        m1 = l.get(0).getSources().get(0);
         assertTrue(m1.getName().equals("t1"));
         assertEquals(l.get(0).size(), 1);
         
@@ -207,7 +258,7 @@ public class TestExperimentalRule extends TestCase {
         l = r.match(plan);
         assertEquals(l.size(), 1);
         
-        m1 = l.get(0).getRoots().get(0);
+        m1 = l.get(0).getSources().get(0);
         assertTrue(m1.getName().equals("j1"));
         assertEquals(l.get(0).size(), 1);
       
@@ -223,13 +274,13 @@ public class TestExperimentalRule extends TestCase {
         List<OperatorPlan> l = r.match(plan);
         assertEquals(l.size(), 1);
         
-        assertEquals(l.get(0).getRoots().size(), 2);
-        assertEquals(l.get(0).getLeaves().size(), 2);
+        assertEquals(l.get(0).getSources().size(), 2);
+        assertEquals(l.get(0).getSinks().size(), 2);
         assertEquals(l.get(0).size(), 2);
         
-        Operator m1 = l.get(0).getRoots().get(0);
+        Operator m1 = l.get(0).getSources().get(0);
         assertTrue(m1.getName().equals("p1") || m1.getName().equals("p2"));
-        Operator m2 = l.get(0).getRoots().get(1);
+        Operator m2 = l.get(0).getSources().get(1);
         assertTrue(m2.getName().equals("p1") || m2.getName().equals("p2"));       
         assertNotSame(m1.getName(), m2.getName());
        
@@ -246,13 +297,13 @@ public class TestExperimentalRule extends TestCase {
         l = r.match(plan);
         assertEquals(l.size(), 1);
         
-        assertEquals(l.get(0).getRoots().size(), 1);
-        assertEquals(l.get(0).getLeaves().size(), 1);
+        assertEquals(l.get(0).getSources().size(), 1);
+        assertEquals(l.get(0).getSinks().size(), 1);
         assertEquals(l.get(0).size(), 2);
         
-        m1 = l.get(0).getRoots().get(0);
+        m1 = l.get(0).getSources().get(0);
         assertTrue(m1.getName().equals("j1"));
-        m2 = l.get(0).getLeaves().get(0);
+        m2 = l.get(0).getSinks().get(0);
         assertTrue(m2.getName().equals("f1"));       
        
   
@@ -268,8 +319,8 @@ public class TestExperimentalRule extends TestCase {
         l = r.match(plan);
         assertEquals(2, l.size());
         
-        assertEquals(l.get(0).getRoots().size(), 1);
-        assertEquals(l.get(0).getLeaves().size(), 1);                     
+        assertEquals(l.get(0).getSources().size(), 1);
+        assertEquals(l.get(0).getSinks().size(), 1);                     
         
         // search for 2 loads, then join
         pattern = new SillyPlan();
@@ -301,15 +352,15 @@ public class TestExperimentalRule extends TestCase {
         l = r.match(plan);
         assertEquals(1, l.size());
         
-        assertEquals(l.get(0).getRoots().size(), 1);
-        assertEquals(l.get(0).getLeaves().size(), 2);
+        assertEquals(l.get(0).getSources().size(), 1);
+        assertEquals(l.get(0).getSinks().size(), 2);
         assertEquals(l.get(0).size(), 3);
         
-        m1 = l.get(0).getRoots().get(0);
+        m1 = l.get(0).getSources().get(0);
         assertTrue(m1.getName().equals("t1"));
-        m2 = l.get(0).getLeaves().get(0);
+        m2 = l.get(0).getSinks().get(0);
         assertTrue(m2.getName().equals("f3") || m2.getName().equals("f4"));    
-        m2 = l.get(0).getLeaves().get(1);
+        m2 = l.get(0).getSinks().get(1);
         assertTrue(m2.getName().equals("f3") || m2.getName().equals("f4"));    
     }
    

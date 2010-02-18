@@ -18,12 +18,16 @@
 
 package org.apache.pig.experimental.logical.relational;
 
-import org.apache.pig.FuncSpec;
+import java.io.IOException;
+
+import org.apache.pig.experimental.plan.Operator;
 import org.apache.pig.experimental.plan.PlanVisitor;
+import org.apache.pig.impl.io.FileSpec;
 
 public class LOLoad extends LogicalRelationalOperator {
     
     private LogicalSchema scriptSchema;
+    private FileSpec fs;
 
     /**
      * 
@@ -32,9 +36,10 @@ public class LOLoad extends LogicalRelationalOperator {
      * specified.
      * @param plan logical plan this load is part of.
      */
-    public LOLoad(FuncSpec loader, LogicalSchema schema, LogicalPlan plan) {
+    public LOLoad(FileSpec loader, LogicalSchema schema, LogicalPlan plan) {
        super("LOLoad", plan);
        scriptSchema = schema;
+       fs = loader;
     }
     
     /**
@@ -65,13 +70,35 @@ public class LOLoad extends LogicalRelationalOperator {
         return null;
     }
 
+    public FileSpec getFileSpec() {
+        return fs;
+    }
+    
     @Override
-    public void accept(PlanVisitor v) {
+    public void accept(PlanVisitor v) throws IOException {
         if (!(v instanceof LogicalPlanVisitor)) {
-            throw new RuntimeException("Expected LogicalPlanVisitor");
+            throw new IOException("Expected LogicalPlanVisitor");
         }
         ((LogicalPlanVisitor)v).visitLOLoad(this);
 
     }
-
+    
+    @Override
+    public boolean isEqual(Operator other) {
+        if (other != null && other instanceof LOLoad) {
+            LOLoad ol = (LOLoad)other;
+            if (!checkEquality(ol)) return false;
+            if (fs == null) {
+                if (ol.fs == null) {
+                    return true;
+                }else{
+                    return false;
+                }
+            }
+            
+            return fs.equals(ol.fs);
+        } else {
+            return false;
+        }
+    }
 }

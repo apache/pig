@@ -55,6 +55,15 @@ public class NonSpillableDataBag implements DataBag {
     }
 
     /**
+     * Use this constructor if you know upfront how many tuples you are going
+     * to put in this bag.
+     * @param tupleCount
+     */
+    public NonSpillableDataBag(int tupleCount){
+        mContents = new ArrayList<Tuple>(tupleCount);
+    }
+    
+    /**
      * This constructor creates a bag out of an existing list
      * of tuples by taking ownership of the list and NOT
      * copying the contents of the list.

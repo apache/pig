@@ -28,33 +28,15 @@ import java.util.Stack;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.pig.experimental.plan.BaseOperatorPlan;
 import org.apache.pig.experimental.plan.Operator;
 import org.apache.pig.experimental.plan.OperatorPlan;
-import org.apache.pig.experimental.plan.PlanVisitor;
-import org.apache.pig.impl.util.Pair;
+import org.apache.pig.experimental.plan.OperatorSubPlan;
 
 /**
  * Rules describe a pattern of operators.  They also reference a Transformer.
  * If the pattern of operators is found one or more times in the provided plan,
  * then the optimizer will use the associated Transformer to transform the
  * plan.
- *
- * The syntax for rules is  (x(y, z)) where x is a base node, and y and z are
- * node that precede x.  So the graph for the Pig Latin script:
- * A = load;
- * B = load;
- * C = join A, B;
- * D = filter C
- * would be:  filter(join(load, load));
- * 
- * Rules with multiple end points (leaves) are expressed as (x(), y()) where
- * both x and y are leaves.
- * 
- * It is expected that the name given to each node in the pattern exactly
- * matches the name of the class of the node in the Plan to be matched.  So
- * to build a rule that matched a join followed by a filter in the logical
- * plan, the pattern would be LOFilter(LOJoin).
  */
 public abstract class Rule {
 
@@ -121,7 +103,7 @@ public abstract class Rule {
     public List<OperatorPlan> match(OperatorPlan plan) {
         currentPlan = plan;
         
-        List<Operator> leaves = pattern.getLeaves();
+        List<Operator> leaves = pattern.getSinks();
         
         Iterator<Operator> iter = plan.getOperators();
         List<OperatorPlan> matchedList = new ArrayList<OperatorPlan>();       
@@ -162,11 +144,11 @@ public abstract class Rule {
                                 siblings = plan.getSuccessors(s);
                             }else{
                                 // for a root, we get its siblings by getting all roots
-                                siblings = plan.getRoots();
+                                siblings = plan.getSources();
                             }
                         }catch(IOException e) {
                             // not going to happen
-			    throw new RuntimeException(e);
+                            throw new RuntimeException(e);
                         }
                         int index = siblings.indexOf(op);
                         if (siblings.size()-index < leaves.size()) {
@@ -234,21 +216,14 @@ public abstract class Rule {
     }
     
  
-    private class PatternMatchOperatorPlan implements OperatorPlan {
-        OperatorPlan parent;
-        List<Operator> roots;
-        List<Operator> leaves;
-        Set<Operator> operators;
-
-        public PatternMatchOperatorPlan(OperatorPlan parent) {
-            this.parent = parent;
-            roots = new ArrayList<Operator>();
-            leaves = new ArrayList<Operator>();
-            operators = new HashSet<Operator>();
+    private class PatternMatchOperatorPlan extends OperatorSubPlan {
+        
+        public PatternMatchOperatorPlan(OperatorPlan basePlan) {
+            super(basePlan);
         }    	    	
         
         protected boolean check(List<Operator> planOps) throws IOException {
-            List<Operator> patternOps = pattern.getLeaves();
+            List<Operator> patternOps = pattern.getSinks();
             if (planOps.size() != patternOps.size()) {
                 return false;
             }
@@ -258,10 +233,13 @@ public abstract class Rule {
                 if (!check(planOps.get(i), patternOps.get(i), s)) {
                     return false;
                 }
-                operators.addAll(s);
+                Iterator<Operator> iter = s.iterator();
+                while(iter.hasNext()) {
+                    add(iter.next());
+                }
             }
             
-            if (operators.size() == pattern.size()) {
+            if (size() == pattern.size()) {
                 return true;
             }
             
@@ -283,13 +261,9 @@ public abstract class Rule {
             if (!match(planOp, patternOp)) {
                 return false;
             }
-            
-            if (pattern.getLeaves().contains(patternOp) && !leaves.contains(planOp)) {
-                leaves.add(planOp);
-            }
-            
+                 
             // check if their predecessors match
-            List<Operator> preds1 = parent.getPredecessors(planOp);
+            List<Operator> preds1 = getBasePlan().getPredecessors(planOp);
             List<Operator> preds2 = pattern.getPredecessors(patternOp);
             if (preds1 == null && preds2 != null) {
                 return false;
@@ -300,27 +274,25 @@ public abstract class Rule {
             }
             
             // we've reached the root of the pattern, so a match is found
-            if (preds2 == null || preds2.size() == 0) {
-                if (!roots.contains(planOp)) {
-                    roots.add(planOp);
-                }
+            if (preds2 == null || preds2.size() == 0) {       
                 opers.push(planOp);
                 return true;
             }
             
-            int index = 0;
-            boolean match = true;
+            int index = 0;            
             // look for predecessors 
             while(index < preds1.size()) {
+                boolean match = true;
                 if (match(preds1.get(index), preds2.get(0))) {
                     if ( (preds1.size() - index) < preds2.size()) {
                         return false;
                     }
-                                        
+                             
+                    int oldSize = opers.size();
                     for(int i=0; i<preds2.size(); i++) {
                         if (!check(preds1.get(index+i), preds2.get(i), opers)) {
-                            for(int j=0; j<i; j++) {
-                                opers.pop();
+                            for(int j=opers.size(); j>oldSize; j--) {
+                                opers.pop();                                
                             }
                             match = false;
                             break;
@@ -335,67 +307,6 @@ public abstract class Rule {
             }
             
             return false;
-        }
-        
-        public void add(Operator op) {
-            throw new UnsupportedOperationException("add() can not be called on PatternMatchOperatorPlan");
-        }
-
-        public void connect(Operator from, int fromPos, Operator to, int toPos) {
-            throw new UnsupportedOperationException("connect() can not be called on PatternMatchOperatorPlan");
-        }
-
-        public void connect(Operator from, Operator to) {
-            throw new UnsupportedOperationException("connect() can not be called on PatternMatchOperatorPlan");
-        }
-
-        public Pair<Integer, Integer> disconnect(Operator from, Operator to) throws IOException {
-            throw new UnsupportedOperationException("disconnect() can not be called on PatternMatchOperatorPlan");
-        }
-
-        public List<Operator> getLeaves() {
-            return leaves;
-        }
-
-        public Iterator<Operator> getOperators() {
-            return operators.iterator();
-        }
-
-        public List<Operator> getPredecessors(Operator op) throws IOException {
-            List<Operator> l = parent.getPredecessors(op);
-            List<Operator> list = new ArrayList<Operator>();
-            for(Operator oper: l) {
-                if (operators.contains(oper)) {
-                    list.add(oper);
-                }
-            }
-            
-            return list;
-        }
-
-        public List<Operator> getRoots() {
-            return roots;
-        }
-
-        public List<Operator> getSuccessors(Operator op) throws IOException {
-            List<Operator> l = parent.getSuccessors(op);
-            List<Operator> list = new ArrayList<Operator>();
-            for(Operator oper: l) {
-                if (operators.contains(oper)) {
-                    list.add(oper);
-                }
-            }
-            
-            return list;
-        }
-
-        public void remove(Operator op) throws IOException {
-            throw new UnsupportedOperationException("remove() can not be called on PatternMatchOperatorPlan");
-        }
-
-        public int size() {
-            return operators.size();
-        }
-        
+        }    
     }
 }

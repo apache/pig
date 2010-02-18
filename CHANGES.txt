@@ -55,6 +55,11 @@ manner (rding via pradeepkth)
 
 IMPROVEMENTS
 
+PIG-1226: suuport for additional jar files (thejas via olgan)
+
+PIG-1230: Streaming input in POJoinPackage should use nonspillable bag to
+collect tuples (ashutoshc) 
+
 PIG-1224: Collected group should change to use new (internal) bag (ashutoshc)
 
 PIG-1046: join algorithm specification is within double quotes (ashutoshc)
@@ -126,6 +131,14 @@ outputs up front (ashutoshc via pradeepkth)
 
 PIG-1239: PigContext.connect() should not create a jobClient and jobClient
 should be created on demand when needed (pradeepkth)
+
+PIG-1169: Top-N queries produce incorrect results when a store statement is added between order by and limit statement (rding)
+
+PIG-1131: Pig simple join does not work when it contains empty lines (ashutoshc)
+
+PIG-834: incorrect plan when algebraic functions are nested (ashutoshc)
+
+PIG-1217: Fix argToFuncMapping in Piggybank Top function (dvryaboy via gates)
 
 PIG-1154: Local Mode fails when hadoop config directory is specified in 
             classpath (ankit.modi via gates)

@@ -76,7 +76,7 @@ import org.apache.pig.impl.plan.optimizer.OptimizerException;
  * works for things like generate group, SUM(A.$1 + 1).  But it fails for
  * things like the above.  Certain types of inner plans will never be
  * movable (like filters).  But distinct or order by in the inner plan
- * should be moble.  And, things like:
+ * should be mobile.  And, things like:
  *      C = cogroup A by $0, B by $0;
  *      D = foreach C {
  *          D1 = distinct A;
@@ -427,13 +427,51 @@ public class CombinerOptimizer extends MROpPlanVisitor {
             }
             return ExprType.SIMPLE_PROJECT;
         } else if (leaf instanceof POUserFunc) {
-            return ((POUserFunc)leaf).combinable() ? ExprType.ALGEBRAIC :
-                ExprType.NOT_ALGEBRAIC;
+            
+            POUserFunc userFunc = (POUserFunc)leaf;
+            if(!userFunc.combinable() ){
+                return ExprType.NOT_ALGEBRAIC;
+            }
+            // The leaf userFunc may be combinable, but there might be other 
+            // algebraic userFuncs in the predecessors, if there are
+            // we choose not to fire combiner.
+            CheckCombinableUserFunc ccuf = new CheckCombinableUserFunc(pp);
+            ccuf.visit();
+            return ccuf.exprType;
         } else {
             return ExprType.NOT_ALGEBRAIC;
         }
     }
 
+      private static class CheckCombinableUserFunc extends PhyPlanVisitor{
+
+        private ExprType exprType = ExprType.ALGEBRAIC;
+          
+        public CheckCombinableUserFunc(PhysicalPlan plan) {
+            super(plan, new DependencyOrderWalker<PhysicalOperator, PhysicalPlan>(plan));
+        }
+        
+        @Override
+        public void visit() throws VisitorException {
+            super.visit();
+        }
+         
+        @Override
+        public void visitUserFunc(POUserFunc userFunc) throws VisitorException {
+            
+            /* We already know there is one combinable POUserFunc and its a leaf. So,  
+             * successor of that userFunc is null. We are interested to find
+             * if there is another combinable userFunc somewhere in plan (that 
+             * is a userFunc with successors and is Combinable).
+             */
+            List<PhysicalOperator> succs = this.mPlan.getSuccessors(userFunc);
+            
+            if(succs != null && !succs.isEmpty() && userFunc.combinable()){
+                this.exprType = ExprType.NOT_ALGEBRAIC;                
+            }
+        }
+      }
+    
     // Returns number of fields that this will project, including the added
     // key field if that is necessary
     private void fixUpForeachs(

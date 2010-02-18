@@ -54,8 +54,7 @@ public abstract class BinaryExpression extends LogicalExpression {
      * @throws IOException 
      */
     public LogicalExpression getLhs() throws IOException {
-        return (LogicalExpression)plan.getSuccessors(this).get(0);
-        
+        return (LogicalExpression)plan.getSuccessors(this).get(0);        
     }
 
     /**
@@ -67,5 +66,4 @@ public abstract class BinaryExpression extends LogicalExpression {
         return (LogicalExpression)plan.getSuccessors(this).get(1);
         
     }
-
 }

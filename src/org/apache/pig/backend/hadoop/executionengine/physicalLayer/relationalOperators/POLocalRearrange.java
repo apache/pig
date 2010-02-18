@@ -118,9 +118,6 @@ public class POLocalRearrange extends PhysicalOperator {
     private int mProjectedColsMapSize = 0;
     private int mSecondaryProjectedColsMapSize = 0;
 
-    private ArrayList<Integer> minValuePositions;
-    private int minValuePositionsSize = 0;
-
     private Tuple lrOutput;
     
     private boolean useSecondaryKey = false;
@@ -459,27 +456,14 @@ public class POLocalRearrange extends PhysicalOperator {
 
                 Tuple minimalValue = null;
                 if(!mProjectStar) {
-                    if(minValuePositions == null) {
-                        // the very first time, we will have to build
-                        // the "value" tuple piecemeal but we can
-                        // do better next time round
-                        minValuePositions = new ArrayList<Integer>();
-                        minimalValue = mTupleFactory.newTuple();
-                        // look for individual columns that we are
-                        // projecting
-                        for (int i = 0; i < value.size(); i++) {
-                            if(mProjectedColsMap.get(i) == null) {
-                                // this column was not found in the "key"
-                                // so send it in the "value"
-                                minimalValue.append(value.get(i));
-                                minValuePositions.add(i);
-                            }
-                        }
-                        minValuePositionsSize = minValuePositions.size();
-                    } else {
-                        minimalValue = mTupleFactory.newTuple(minValuePositionsSize);
-                        for(int i = 0; i < minValuePositionsSize; i++) {
-                            minimalValue.set(i, value.get(minValuePositions.get(i)));
+                    minimalValue = mTupleFactory.newTuple();
+                    // look for individual columns that we are
+                    // projecting
+                    for (int i = 0; i < value.size(); i++) {
+                        if(mProjectedColsMap.get(i) == null) {
+                            // this column was not found in the "key"
+                            // so send it in the "value"
+                            minimalValue.append(value.get(i));
                         }
                     }
                 } else {
@@ -487,7 +471,7 @@ public class POLocalRearrange extends PhysicalOperator {
                     // we would send out an empty tuple as
                     // the "value" since all elements are in the
                     // "key"
-                    minimalValue = mTupleFactory.newTuple();
+                    minimalValue = mTupleFactory.newTuple(0);
     
                 }
                 lrOutput.set(2, minimalValue);

@@ -20,7 +20,6 @@ package org.apache.pig.impl.io;
 import java.io.Serializable;
 
 import org.apache.pig.FuncSpec;
-import org.apache.pig.impl.PigContext;
 
 
 /**
@@ -58,5 +57,21 @@ public class FileSpec implements Serializable {
 
     public int getSize() {
         throw new UnsupportedOperationException("File Size not implemented yet");
+    }
+    
+    @Override
+    public boolean equals(Object other) {
+        if (other != null && other instanceof FileSpec) {
+            FileSpec ofs = (FileSpec)other;
+            if (!fileName.equals(ofs.fileName)) return false;
+            return funcSpec.equals(ofs.funcSpec);
+        } else {
+            return false;
+        }
+    }
+    
+    @Override
+    public int hashCode() {
+        return getFuncName().hashCode() + fileName.hashCode();
     }
 }

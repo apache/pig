@@ -98,6 +98,40 @@ public class TestJoin extends TestCase {
     }
 
     @Test
+    public void testJoinWithMissingFieldsInTuples() throws IOException{
+        
+        setUp(ExecType.MAPREDUCE);
+        String[] input1 = {
+                "ff ff ff",
+                "",
+                "",
+                "",
+                "",
+                "ff ff ff",
+                "",
+                ""
+                };
+        String[] input2 = {
+                "",
+                "",
+                "",
+                "",
+                ""
+                };
+        
+        String firstInput = createInputFile(ExecType.MAPREDUCE, "a.txt", input1);
+        String secondInput = createInputFile(ExecType.MAPREDUCE, "b.txt", input2);
+        String script = "a = load 'a.txt'  using PigStorage(' ');" +
+        "b = load 'b.txt'  using PigStorage('\u0001');" +
+        "c = join a by $0, b by $0;";
+        Util.registerMultiLineQuery(pigServer, script);
+        Iterator<Tuple> it = pigServer.openIterator("c");
+        assertFalse(it.hasNext());
+        deleteInputFile(ExecType.MAPREDUCE, firstInput);
+        deleteInputFile(ExecType.MAPREDUCE, secondInput);
+    }
+    
+    @Test
     public void testJoinUnkownSchema() throws Exception {
         // If any of the input schema is unknown, the resulting schema should be unknown as well
         for (ExecType execType : execTypes) {

@@ -58,7 +58,7 @@ public class ReverseDependencyOrderWalker extends PlanWalker {
 
         List<Operator> fifo = new ArrayList<Operator>();
         Set<Operator> seen = new HashSet<Operator>();
-        List<Operator> roots = plan.getRoots();
+        List<Operator> roots = plan.getSources();
         if (roots == null) return;
         for (Operator op : roots) {
             doAllSuccessors(op, seen, fifo);

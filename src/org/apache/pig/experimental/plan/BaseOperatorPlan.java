@@ -60,9 +60,9 @@ public abstract class BaseOperatorPlan implements OperatorPlan {
      * @return all operators in the plan that have no predecessors, or
      * an empty list if the plan is empty.
      */
-    public List<Operator> getRoots() {
+    public List<Operator> getSources() {
         if (roots.size() == 0 && ops.size() > 0) {
-            for (Operator op : ops) {
+            for (Operator op : ops) {               
                 if (toEdges.get(op) == null) {
                     roots.add(op);
                 }
@@ -76,7 +76,7 @@ public abstract class BaseOperatorPlan implements OperatorPlan {
      * @return all operators in the plan that have no successors, or
      * an empty list if the plan is empty.
      */
-    public List<Operator> getLeaves() {
+    public List<Operator> getSinks() {
         if (leaves.size() == 0 && ops.size() > 0) {
             for (Operator op : ops) {
                 if (fromEdges.get(op) == null) {
@@ -200,5 +200,62 @@ public abstract class BaseOperatorPlan implements OperatorPlan {
     public Iterator<Operator> getOperators() {
         return ops.iterator();
     }
-
+   
+    public boolean isEqual(OperatorPlan other) {
+        return isEqual(this, other);
+    }
+    
+    private static boolean checkPredecessors(Operator op1,
+                                      Operator op2) {
+        try {
+            List<Operator> preds = op1.getPlan().getPredecessors(op1);
+            List<Operator> otherPreds = op2.getPlan().getPredecessors(op2);
+            if (preds == null && otherPreds == null) {
+                // intentionally blank
+            } else if (preds == null || otherPreds == null) {
+                return false;
+            } else {
+                if (preds.size() != otherPreds.size()) return false;
+                for (int i = 0; i < preds.size(); i++) {
+                    Operator p1 = preds.get(i);
+                    Operator p2 = otherPreds.get(i);
+                    if (!p1.isEqual(p2)) return false;
+                    if (!checkPredecessors(p1, p2)) return false;
+                }
+            }
+            return true;
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }   
+    
+    protected static boolean isEqual(OperatorPlan p1, OperatorPlan p2) {
+        if (p1 == p2) {
+            return true;
+        }
+        
+        if (p1 != null && p2 != null) {
+            List<Operator> leaves = p1.getSinks();
+            List<Operator> otherLeaves = p2.getSinks();
+            if (leaves.size() != otherLeaves.size()) return false;
+            // Must find some leaf that is equal to each leaf.  There is no
+            // guarantee leaves will be returned in any particular order.
+            boolean foundAll = true;
+            for (Operator op1 : leaves) {
+                boolean foundOne = false;
+                for (Operator op2 : otherLeaves) {
+                    if (op1.isEqual(op2) && checkPredecessors(op1, op2)) {
+                        foundOne = true;
+                        break;
+                    }
+                }
+                foundAll &= foundOne;
+                if (!foundAll) return false;
+            }
+            return foundAll;
+        }
+        
+        return false;
+    }
+    
 }

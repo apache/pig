@@ -93,7 +93,7 @@ public class InputOutputFileVisitor extends LOVisitor {
                 errCode = 4000;
                 break;
             }
-            errMsg = "Output specification is invalid: "+outLoc;
+            errMsg = "Output specification '"+outLoc+"' is invalid or already exists";
             msgCollector.collect(errMsg, MessageType.Error) ;
             throw new PlanValidationException(errMsg, errCode, errSrc, ioe);
         } catch (InterruptedException ie) {

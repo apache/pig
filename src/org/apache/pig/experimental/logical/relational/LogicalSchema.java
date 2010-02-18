@@ -23,8 +23,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.pig.data.DataType;
-
 /**
  * Schema, from a logical perspective.
  */
@@ -32,10 +30,39 @@ public class LogicalSchema {
 
     public static class LogicalFieldSchema {
         public String alias;
-        public DataType type;
+        public byte type;
         public long uid;
         public LogicalSchema schema;
+
+        public LogicalFieldSchema(String alias, LogicalSchema schema,  byte type) {
+            this(alias, schema, type, -1);
+        }
+        
+        public LogicalFieldSchema(String alias, LogicalSchema schema,  byte type, long uid) {
+            this.alias = alias;
+            this.type = type;
+            this.schema = schema;
+            this.uid = uid;
+        }
+        
+        /**
+         * Equality is defined as having the same type and either the same schema
+         * or both null schema.  Alias and uid are not checked.
+         */
+        public boolean isEqual(Object other) {
+            if (other instanceof LogicalFieldSchema) {
+                LogicalFieldSchema ofs = (LogicalFieldSchema)other;
+                if (type != ofs.type) return false;
+                if (schema == null && ofs.schema == null) return true;
+                if (schema == null) return false;
+                else return schema.isEqual(ofs.schema);
+            } else {
+                return false;
+            }
+        }
     }
+
+    
     
     private List<LogicalFieldSchema> fields;
     private Map<String, Integer> aliases;
@@ -51,8 +78,22 @@ public class LogicalSchema {
      */
     public void addField(LogicalFieldSchema field) {
         fields.add(field);
-        if (field.alias != null && field.alias.equals("")) {
+        if (field.alias != null && !field.alias.equals("")) {
             aliases.put(field.alias, fields.size() - 1);
+            int index = 0;
+            while(index != -1) {
+                index = field.alias.indexOf("::", index);
+                if (index != -1) {
+                    String a = field.alias.substring(index+2);
+                    if (aliases.containsKey(a)) {
+                        aliases.remove(a);
+                    }else{
+                        aliases.put(a, fields.size()-1);                       
+                    }
+
+                    index = index +2;
+                }
+            }
         }
     }
     
@@ -62,9 +103,12 @@ public class LogicalSchema {
      * @return field associated with alias, or null if no such field
      */
     public LogicalFieldSchema getField(String alias) {
-        Integer i = aliases.get(alias);
-        if (i == null) return null;
-        else return fields.get(i);
+        Integer index = aliases.get(alias);
+        if (index == null) {
+            return null;
+        }
+
+        return fields.get(index);
     }
 
     /**
@@ -88,8 +132,26 @@ public class LogicalSchema {
      * Get the size of the schema.
      * @return size
      */
-    public Integer size() {
-       return null;
+    public int size() {
+       return fields.size();
+    }
+    
+    /**
+     * Two schemas are equal if they are of equal size and their fields
+     * schemas considered in order are equal.
+     */
+    public boolean isEqual(Object other) {
+        if (other != null && other instanceof LogicalSchema) {
+            LogicalSchema os = (LogicalSchema)other;
+            if (size() != os.size()) return false;
+            for (int i = 0; i < size(); i++) {
+                if (!getField(i).isEqual(os.getField(i))) return false;
+            }
+            return true;
+        } else {
+            return false;
+        }
+        
     }
     
     /**

@@ -18,6 +18,7 @@
 
 package org.apache.pig.experimental.plan;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -26,6 +27,7 @@ public abstract class Operator {
     protected String name;
     protected OperatorPlan plan; // plan that contains this operator
     protected Map<String, Object> annotations;
+    protected final int hashPrime = 31;
 
     public Operator(String n, OperatorPlan p) {
         name = n;
@@ -36,8 +38,9 @@ public abstract class Operator {
     /**
      * Accept a visitor at this node in the graph.
      * @param v Visitor to accept.
+     * @throws IOException 
      */
-    public abstract void accept(PlanVisitor v);
+    public abstract void accept(PlanVisitor v) throws IOException;
 
     public String getName() {
         return name;
@@ -70,4 +73,12 @@ public abstract class Operator {
         return annotations.get(key);
     }
 
+    /**
+     * This is like a shallow equals comparison.
+     * It returns true if two operators have equivalent properties even if they are 
+     * different objects. Here properties mean equivalent plan and equivalent name.
+     * @param operator
+     * @return true if two object have equivalent properties, else false
+     */
+    public abstract boolean isEqual(Operator operator);
 }
