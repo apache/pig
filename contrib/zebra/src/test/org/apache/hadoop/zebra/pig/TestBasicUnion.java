@@ -126,7 +126,8 @@ public class TestBasicUnion {
     for (int i = 0; i < numsInserters; i++) {
       inserters[i].close();
     }
-
+    writer.close();
+    
     /*
      * create 2nd basic table;
      */
@@ -159,7 +160,8 @@ public class TestBasicUnion {
     for (int i = 0; i < numsInserters; i++) {
       inserters[i].close();
     }
-
+    writer.close();
+    
     /*
      * create 3rd basic table;
      */
@@ -192,6 +194,8 @@ public class TestBasicUnion {
     for (int i = 0; i < numsInserters; i++) {
       inserters[i].close();
     }
+    writer.close();
+    
     /*
      * create 4th basic table;
      */
@@ -224,6 +228,7 @@ public class TestBasicUnion {
     for (int i = 0; i < numsInserters; i++) {
       inserters[i].close();
     }
+    writer.close();
     /*
      * create 5th basic table;
      */
@@ -256,7 +261,7 @@ public class TestBasicUnion {
     for (int i = 0; i < numsInserters; i++) {
       inserters[i].close();
     }
-
+    writer.close();
   }
 
   @AfterClass

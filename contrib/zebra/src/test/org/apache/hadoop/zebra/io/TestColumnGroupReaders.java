@@ -67,7 +67,7 @@ public class TestColumnGroupReaders {
 
   @AfterClass
   public static void tearDownOnce() throws IOException {
-    finish();
+    close();
   }
 
   @SuppressWarnings("unchecked")
@@ -175,9 +175,7 @@ public class TestColumnGroupReaders {
     ColumnGroup.Writer writer2 = writeOnePart(null, 2);
     ColumnGroup.Writer writer3 = writeOnePart(null, 3);
 
-    writer1.finish();
-    writer2.finish();
-    writer3.finish();
+    writer3.close();
 
     // read in parts
     readOnePart(1);
@@ -327,7 +325,7 @@ public class TestColumnGroupReaders {
 
   private static void finish() throws IOException {
     if (writer != null) {
-      writer.finish();
+      writer.close();
     }
   }
 

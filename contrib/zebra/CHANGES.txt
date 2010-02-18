@@ -58,6 +58,10 @@ Trunk (unreleased changes)
 
   BUG FIXES
 
+    PIG-1227: Throw exception if column group meta file is missing for an unsorted table (yanz)
+
+    PIG-1201: unnecessary name node calls by each mapper; too big input split serialization size by Pig's Slice implementation (yanz)
+
     PIG-1115: cleanup of temp files left by failed tasks (gauravj via yanz)
 
     PIG-1167: Hadoop file glob support (yanz)

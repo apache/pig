@@ -143,9 +143,12 @@ import org.apache.pig.data.Tuple;
 public class TableInputFormat implements InputFormat<BytesWritable, Tuple> {
   static Log LOG = LogFactory.getLog(TableInputFormat.class);
   
-  private static final String INPUT_EXPR = "mapred.lib.table.input.expr";
-  private static final String INPUT_PROJ = "mapred.lib.table.input.projection";
-  private static final String INPUT_SORT = "mapred.lib.table.input.sort";
+  public static final String INPUT_EXPR = "mapred.lib.table.input.expr";
+  public static final String INPUT_PROJ = "mapred.lib.table.input.projection";
+  public static final String INPUT_SORT = "mapred.lib.table.input.sort";
+  public static final String INPUT_FE = "mapred.lib.table.input.fe";
+  public static final String INPUT_DELETED_CGS = "mapred.lib.table.input.deleted_cgs";
+  static final String DELETED_CG_SEPARATOR_PER_UNION = ";";
 
   /**
    * Set the paths to the input table.
@@ -645,8 +648,7 @@ public class TableInputFormat implements InputFormat<BytesWritable, Tuple> {
   }
   
   private static InputSplit[] getRowSplits(JobConf conf, int numSplits,
-      TableExpr expr, List<BasicTable.Reader> readers, 
-      List<BasicTableStatus> status) throws IOException {
+      TableExpr expr, List<BasicTable.Reader> readers) throws IOException {
     ArrayList<InputSplit> ret = new ArrayList<InputSplit>();
     DummyFileInputFormat helper = new DummyFileInputFormat(getMinSplitSize(conf));
 
@@ -718,25 +720,40 @@ public class TableInputFormat implements InputFormat<BytesWritable, Tuple> {
         new ArrayList<BasicTableStatus>(nLeaves);
 
     try {
+      StringBuilder sb = new StringBuilder();
+      boolean sorted = expr.sortedSplitRequired();
+      boolean first = true;
       for (Iterator<LeafTableInfo> it = leaves.iterator(); it.hasNext();) {
         LeafTableInfo leaf = it.next();
         BasicTable.Reader reader =
           new BasicTable.Reader(leaf.getPath(), conf);
         reader.setProjection(leaf.getProjection());
-        BasicTableStatus s = reader.getStatus();
+        if (sorted)
+        {
+          BasicTableStatus s = reader.getStatus();
+          status.add(s);
+        }
         readers.add(reader);
-        status.add(s);
+        if (first)
+          first = false;
+        else {
+          sb.append(TableInputFormat.DELETED_CG_SEPARATOR_PER_UNION);
+        }
+        sb.append(reader.getDeletedCGs());
       }
+      
+      conf.set(INPUT_FE, "true");
+      conf.set(INPUT_DELETED_CGS, sb.toString());
       
       if (readers.isEmpty()) {
         return new InputSplit[0];
       }
       
-      if (expr.sortedSplitRequired()) {
+      if (sorted) {
         return getSortedSplits(conf, numSplits, expr, readers, status);
       }
        
-      return getRowSplits(conf, numSplits, expr, readers, status);
+      return getRowSplits(conf, numSplits, expr, readers);
     } catch (ParseException e) {
       throw new IOException("Projection parsing failed : "+e.getMessage());
     }

@@ -92,6 +92,8 @@ public class BasicTable {
 
   private final static String DELETED_CG_PREFIX = ".deleted-";
   
+  public final static String DELETED_CG_SEPARATOR_PER_TABLE = ",";
+
   // no public ctor for instantiating a BasicTable object
   private BasicTable() {
     // no-op
@@ -139,7 +141,7 @@ public class BasicTable {
     /* Retry up to numCGs times accounting for other CG deleting threads or processes.*/
     while (triedCount ++ < numCGs) {
       try {
-        schemaFile = new SchemaFile(path, conf);
+        schemaFile = new SchemaFile(path, null, conf);
         break;
       } catch (FileNotFoundException e) {
         LOG.info("Try " + triedCount + " times : " + e.getMessage());
@@ -195,7 +197,7 @@ public class BasicTable {
     } catch (IOException e) {
       // one remote possibility is that another user 
       // already deleted CG. 
-      SchemaFile tempSchema = new SchemaFile(path, conf);
+      SchemaFile tempSchema = new SchemaFile(path, null, conf);
       if (tempSchema.isCGDeleted(cgIdx)) {
         LOG.info(path + " : " + cgName + 
                  " is deleted by someone else. That is ok.");
@@ -278,10 +280,15 @@ public class BasicTable {
      *          Optional configuration parameters.
      * @throws IOException
      */
+
     public Reader(Path path, Configuration conf) throws IOException {
+      this(path, null, conf);
+    }
+    public Reader(Path path, String[] deletedCGs, Configuration conf) throws IOException {
       try {
+        boolean mapper = (deletedCGs != null);
         this.path = path;
-        schemaFile = new SchemaFile(path, conf);
+        schemaFile = new SchemaFile(path, deletedCGs, conf);
         metaReader = MetaFile.createReader(new Path(path, BT_META_FILE), conf);
         // create column group readers
         int numCGs = schemaFile.getNumOfPhysicalSchemas();
@@ -298,7 +305,7 @@ public class BasicTable {
           if (!schemaFile.isCGDeleted(nx)) {
             colGroups[nx] =
               new ColumnGroup.Reader(new Path(path, partition.getCGSchema(nx).getName()),
-                                     conf);
+                                     conf, mapper);
             if (firstValidCG < 0) {
               firstValidCG = nx;
             }
@@ -308,7 +315,8 @@ public class BasicTable {
           else
             cgTuples[nx] = null;
         }
-        buildStatus();
+        if (schemaFile.isSorted())
+          buildStatus();
         closed = false;
       }
       catch (Exception e) {
@@ -407,7 +415,9 @@ public class BasicTable {
     /**
      * Get the status of the BasicTable.
      */
-    public BasicTableStatus getStatus() {
+    public BasicTableStatus getStatus() throws IOException {
+      if (status == null)
+        buildStatus();
       return status;
     }
 
@@ -562,13 +572,16 @@ public class BasicTable {
      * 
      * @param path
      *          The path to the BasicTable.
+     * @deletedCGs
+     *          The deleted column groups from front end; null if unavailable from front end
      * @param conf
      * @return The logical Schema of the table (all columns).
      * @throws IOException
      */
     public static Schema getSchema(Path path, Configuration conf)
         throws IOException {
-      SchemaFile schF = new SchemaFile(path, conf);
+      // fake an empty deleted cg list as getSchema does not care about deleted cgs
+      SchemaFile schF = new SchemaFile(path, new String[0], conf);
       return schF.getLogical();
     }
 
@@ -650,7 +663,7 @@ public class BasicTable {
      * Get index of the column group that will be used for row-based split. 
      * 
      */
-    public int getRowSplitCGIndex() {
+    public int getRowSplitCGIndex() throws IOException {
       // Try to find the largest non-deleted and used column group by projection;
       int largestCGIndex = -1;
       int splitCGIndex = -1;
@@ -722,8 +735,12 @@ public class BasicTable {
     String getStorageString() {
       return schemaFile.getStorageString();
     }
+    
+    public String getDeletedCGs() {
+      return schemaFile.getDeletedCGs();
+    }
 
-    private void buildStatus() {
+    private void buildStatus() throws IOException {
       status = new BasicTableStatus();
       if (firstValidCG >= 0) {
         status.beginKey = colGroups[firstValidCG].getStatus().getBeginKey();
@@ -911,11 +928,12 @@ public class BasicTable {
         int cgIdx = rowSplit.getCGIndex();
         
         CGRowSplit cgSplit = new CGRowSplit();
-        cgSplit.fileIndex = inputCGSplit.fileIndex;
+        cgSplit.name = inputCGSplit.name;
         // startByte and numBytes from inputCGSplit are ignored, since
         // they make sense for only one CG.
         cgSplit.startRow = inputCGSplit.startRow;
         cgSplit.numRows = inputCGSplit.numRows;
+        cgSplit.size = inputCGSplit.size;
         
         if (cgSplit.startRow >= 0) {
           //assume the rows are already set up.
@@ -1345,7 +1363,8 @@ public class BasicTable {
       try {
       	actualOutputPath = path;
     	writerConf = conf;    	  
-        schemaFile = new SchemaFile(path, conf);
+        // fake an empty deleted cg list as no cg should have been deleted now
+        schemaFile = new SchemaFile(path, new String[0], conf);
         int numCGs = schemaFile.getNumOfPhysicalSchemas();
         partition = schemaFile.getPartition();
         sorted = schemaFile.isSorted();
@@ -1677,8 +1696,8 @@ public class BasicTable {
     boolean[] cgDeletedFlags;
    
     // ctor for reading
-    public SchemaFile(Path path, Configuration conf) throws IOException {
-      readSchemaFile(path, conf);
+    public SchemaFile(Path path, String[] deletedCGs, Configuration conf) throws IOException {
+      readSchemaFile(path, deletedCGs, conf);
     }
 
     public Schema[] getPhysicalSchema() {
@@ -1825,7 +1844,7 @@ public class BasicTable {
       outSchema.close();
     }
 
-    private void readSchemaFile(Path path, Configuration conf)
+    private void readSchemaFile(Path path, String[] deletedCGs, Configuration conf)
         throws IOException {
       Path pathSchema = makeSchemaFilePath(path);
       if (!path.getFileSystem(conf).exists(pathSchema)) {
@@ -1872,7 +1891,18 @@ public class BasicTable {
         throw new IOException("parser.RecordSchema failed :" + e.getMessage());
       }
       sorted = WritableUtils.readVInt(in) == 1 ? true : false;
-      setCGDeletedFlags(path, conf);
+      if (deletedCGs == null)
+        setCGDeletedFlags(path, conf);
+      else {
+        for (String deletedCG : deletedCGs)
+        {
+          for (int i = 0; i < cgschemas.length; i++)
+          {
+            if (cgschemas[i].getName().equals(deletedCG))
+              cgDeletedFlags[i] = true;
+          }
+        }
+      }
       if (version.compareTo(new Version((short)1, (short)0)) > 0)
       {
         int numSortColumns = WritableUtils.readVInt(in);
@@ -1942,7 +1972,23 @@ public class BasicTable {
       }
     }
     
-    
+    String getDeletedCGs() {
+      StringBuilder sb = new StringBuilder();
+      // comma separated
+      boolean first = true;
+      for (int i = 0; i < physical.length; i++) {
+        if (cgDeletedFlags[i])
+        {
+          if (first)
+            first = false;
+          else {
+            sb.append(DELETED_CG_SEPARATOR_PER_TABLE);
+          }
+          sb.append(getName(i));
+        }
+      }
+      return sb.toString();
+    }
   }
 
   static public void dumpInfo(String file, PrintStream out, Configuration conf)

@@ -146,6 +146,9 @@ public class TableInputFormat extends InputFormat<BytesWritable, Tuple> {
   private static final String INPUT_EXPR = "mapreduce.lib.table.input.expr";
   private static final String INPUT_PROJ = "mapreduce.lib.table.input.projection";
   private static final String INPUT_SORT = "mapreduce.lib.table.input.sort";
+  static final String INPUT_FE = "mapreduce.lib.table.input.fe";
+  static final String INPUT_DELETED_CGS = "mapreduce.lib.table.input.deleted_cgs";
+  static final String DELETED_CG_SEPARATOR_PER_UNION = ";";
 
   /**
    * Set the paths to the input table.
@@ -624,8 +627,7 @@ public class TableInputFormat extends InputFormat<BytesWritable, Tuple> {
   }
   
   private static List<InputSplit> getRowSplits(Configuration conf,
-      TableExpr expr, List<BasicTable.Reader> readers, 
-      List<BasicTableStatus> status) throws IOException {
+      TableExpr expr, List<BasicTable.Reader> readers) throws IOException {
     ArrayList<InputSplit> ret = new ArrayList<InputSplit>();
     Job job = new Job(conf);
     DummyFileInputFormat helper = new DummyFileInputFormat(job, getMinSplitSize(conf));
@@ -708,24 +710,39 @@ public class TableInputFormat extends InputFormat<BytesWritable, Tuple> {
     		new ArrayList<BasicTableStatus>(nLeaves);
 
     	try {
+        StringBuilder sb = new StringBuilder();
+        boolean sorted = expr.sortedSplitRequired();
+        boolean first = true;
     		for (Iterator<LeafTableInfo> it = leaves.iterator(); it.hasNext();) {
     			LeafTableInfo leaf = it.next();
     			BasicTable.Reader reader =
     				new BasicTable.Reader(leaf.getPath(), conf );
     			reader.setProjection(leaf.getProjection());
-    			BasicTableStatus s = reader.getStatus();
+          if (sorted)
+          {
+    			  BasicTableStatus s = reader.getStatus();
+    		  	status.add(s);
+          }
     			readers.add(reader);
-    			status.add(s);
+          if (first)
+            first = false;
+          else {
+            sb.append(TableInputFormat.DELETED_CG_SEPARATOR_PER_UNION);
+          }
+          sb.append(reader.getDeletedCGs());
     		}
+
+        conf.set(INPUT_FE, "true");
+        conf.set(INPUT_DELETED_CGS, sb.toString());
 
     		if( readers.isEmpty() ) {
     			// I think we should throw exception here.
     			return new ArrayList<InputSplit>();
     		}
 
-    		return expr.sortedSplitRequired() ? 
-    				singleSplit ? getSortedSplits( conf, 1, expr, readers, status ) : getSortedSplits(conf, -1, expr, readers, status) : 
-    					getRowSplits( conf, expr, readers, status );
+    		return sorted ? 
+    				singleSplit ? getSortedSplits( conf, 1, expr, readers, status) : getSortedSplits(conf, -1, expr, readers, status) : 
+    					getRowSplits( conf, expr, readers);
     	} catch (ParseException e) {
     		throw new IOException("Projection parsing failed : "+e.getMessage());
     	} finally {

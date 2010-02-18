@@ -27,6 +27,7 @@ import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.zebra.io.BasicTable;
 import org.apache.hadoop.zebra.io.TableScanner;
 import org.apache.hadoop.zebra.parser.ParseException;
+import org.apache.hadoop.zebra.types.Projection;
 import org.apache.hadoop.zebra.schema.Schema;
 
 /**
@@ -125,7 +126,7 @@ abstract class TableExpr {
   public TableScanner getScanner(UnsortedTableSplit split, String projection,
       Configuration conf) throws IOException, ParseException {
     BasicTable.Reader reader =
-        new BasicTable.Reader(new Path(split.getPath()), conf);
+        new BasicTable.Reader(new Path(split.getPath()), getDeletedCGs(conf), conf);
     reader.setProjection(projection);
     return reader.getScanner(split.getSplit(), true);
   }
@@ -145,7 +146,7 @@ abstract class TableExpr {
   public TableScanner getScanner(RowTableSplit split, String projection,
       Configuration conf) throws IOException, ParseException, ParseException {
     BasicTable.Reader reader =
-        new BasicTable.Reader(new Path(split.getPath()), conf);
+        new BasicTable.Reader(new Path(split.getPath()), getDeletedCGs(conf), conf);
     reader.setProjection(projection);
     return reader.getScanner(true, split.getSplit());
   }
@@ -238,4 +239,31 @@ abstract class TableExpr {
    * dump table info with indent
    */
   protected abstract void dumpInfo(PrintStream ps, Configuration conf, int indent) throws IOException;
+
+  /**
+   * get the deleted cg for tables in union
+   * @param conf The Configuration object
+   * @return
+   */
+  protected final String[] getDeletedCGsPerUnion(Configuration conf) {
+    return getDeletedCGs(conf, TableInputFormat.DELETED_CG_SEPARATOR_PER_UNION);
+  }
+  
+  protected final String[] getDeletedCGs(Configuration conf) {
+    return getDeletedCGs(conf, BasicTable.DELETED_CG_SEPARATOR_PER_TABLE);
+  }
+  
+  private final String[] getDeletedCGs(Configuration conf, String separator) {
+    String[] deletedCGs = null;
+    String fe;
+    if ((fe = conf.get(TableInputFormat.INPUT_FE)) != null && fe.equals("true"))
+    {
+      String original = conf.get(TableInputFormat.INPUT_DELETED_CGS, null);
+      if (original == null)
+        deletedCGs = new String[0]; // empty array needed to indicate it is fe checked
+      else
+        deletedCGs = original.split(separator, -1);
+    }
+    return deletedCGs;
+  }
 }
