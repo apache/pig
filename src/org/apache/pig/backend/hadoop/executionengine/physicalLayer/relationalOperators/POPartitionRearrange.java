@@ -17,43 +17,26 @@
  */
 package org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators;
 
-import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.HashMap;
-import java.util.Iterator;
-
-
-import org.apache.pig.impl.PigContext;
-import org.apache.pig.impl.io.BufferedPositionedInputStream;
-import org.apache.pig.impl.io.FileLocalizer;
-import org.apache.pig.builtin.BinStorage;
 
 import org.apache.pig.backend.executionengine.ExecException;
-import org.apache.pig.data.DataType;
-import org.apache.pig.data.Tuple;
-import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.ExpressionOperator;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
-import org.apache.pig.impl.plan.OperatorKey;
-import org.apache.pig.impl.plan.NodeIdGenerator;
-import org.apache.pig.impl.plan.PlanException;
-import org.apache.pig.impl.plan.VisitorException;
+import org.apache.pig.backend.hadoop.executionengine.util.MapRedUtil;
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
-import org.apache.pig.data.TupleFactory;
-
-import org.apache.pig.impl.io.PigNullableWritable;
-import org.apache.pig.backend.hadoop.HDataType;
 import org.apache.pig.data.DataType;
+import org.apache.pig.data.Tuple;
+import org.apache.pig.impl.PigContext;
+import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.util.Pair;
-import org.apache.pig.data.DefaultTupleFactory;
-import org.apache.pig.backend.hadoop.executionengine.util.MapRedUtil;
 
 
 /**
@@ -68,7 +51,7 @@ public class POPartitionRearrange extends POLocalRearrange {
      * 
      */
     private static final long serialVersionUID = 1L;
-    private String partitionFile;
+    
     private Integer totalReducers = -1;
     // ReducerMap will store the tuple, max reducer index & min reducer index
     private static Map<Object, Pair<Integer, Integer> > reducerMap = new HashMap<Object, Pair<Integer, Integer> >();
@@ -95,26 +78,20 @@ public class POPartitionRearrange extends POLocalRearrange {
         leafOps = new ArrayList<ExpressionOperator>();
     }
 
-	/* Returns the name for the partition sampling file */
-	public String getPartitionFile() {
-		return partitionFile;
-	}
-
-	/* Set the partition sampling file */
-	public void setPartitionFile(String file) {
-		partitionFile = file;
-	}
-
     /* Loads the key distribution file obtained from the sampler */
     private void loadPartitionFile() throws RuntimeException {
+        String keyDistFile = PigMapReduce.sJobConf.get("pig.keyDistFile", "");
+        if (keyDistFile.isEmpty()) {
+            throw new RuntimeException(
+            "Internal error: missing key distribution file property.");
+        }
+
         try {
             Integer [] redCnt = new Integer[1]; 
             
-            reducerMap = MapRedUtil.loadPartitionFile(partitionFile, 
-                    redCnt, 
-                    ConfigurationUtil.toConfiguration(pigContext.getProperties()),
-                    DataType.NULL
-            );
+            reducerMap = MapRedUtil.loadPartitionFileFromLocalCache(
+                    keyDistFile, redCnt, DataType.NULL);
+
             totalReducers = redCnt[0];
             loaded = true;
         } catch (Exception e) {

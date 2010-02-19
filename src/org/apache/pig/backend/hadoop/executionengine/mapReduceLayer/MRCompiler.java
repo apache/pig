@@ -1029,9 +1029,6 @@ public class MRCompiler extends PhyPlanVisitor {
                             addUDFs(plan);
                         }
                 }
-            curMROp.setFrjoin(true);
-            curMROp.setFragment(op.getFragment());
-            curMROp.setReplFiles(op.getReplFiles());
             phyToMROpMap.put(op, curMROp);
         }catch(Exception e){
             int errCode = 2034;
@@ -1491,7 +1488,6 @@ public class MRCompiler extends PhyPlanVisitor {
 				String msg = "Unable to set index on newly created POLocalRearrange.";
 				throw new PlanException(msg, errCode, PigException.BUG, e);
 			}               
-			((POPartitionRearrange)lr).setPartitionFile(partitionFile.getFileName());
 			
 			groups = (List<PhysicalPlan>)joinPlans.get(l.get(1));
 			lr.setPlans(groups);

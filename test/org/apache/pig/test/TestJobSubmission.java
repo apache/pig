@@ -25,8 +25,10 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 
 import org.apache.hadoop.conf.Configuration;
@@ -520,16 +522,17 @@ public class TestJobSubmission extends junit.framework.TestCase{
         JobControlCompiler jcc = new JobControlCompiler(pc, conf);
         
         // Get the sort job
-        JobControl jobControl = jcc.compile(mrPlan, "Test");
-        jcc.updateMROpPlan(new ArrayList<Job>());
-        jobControl = jcc.compile(mrPlan, "Test");
-        jcc.updateMROpPlan(new ArrayList<Job>());
-        jobControl = jcc.compile(mrPlan, "Test");
-        Job job = jobControl.getWaitingJobs().get(0);
-        int parallel = job.getJobConf().getNumReduceTasks();
+        Iterator<MapReduceOper> iter = mrPlan.getKeys().values().iterator();
+        int counter = 0;
+        while (iter.hasNext()) {
+            MapReduceOper op = iter.next();
+            counter++;
+            if (op.isGlobalSort()) {
+                assertTrue(op.getRequestedParallelism()==100);
+            }
+        }
+        assertEquals(3, counter);
 
-        assertTrue(parallel==100);
-        
         pc.defaultParallel = -1;        
     }
     
@@ -552,15 +555,16 @@ public class TestJobSubmission extends junit.framework.TestCase{
         JobControlCompiler jcc = new JobControlCompiler(pc, conf);
         
         // Get the skew join job
-        JobControl jobControl = jcc.compile(mrPlan, "Test");
-        jcc.updateMROpPlan(new ArrayList<Job>());
-        jobControl = jcc.compile(mrPlan, "Test");
-        jcc.updateMROpPlan(new ArrayList<Job>());
-        jobControl = jcc.compile(mrPlan, "Test");
-        Job job = jobControl.getWaitingJobs().get(0);
-        int parallel = job.getJobConf().getNumReduceTasks();
-
-        assertTrue(parallel==100);
+        Iterator<MapReduceOper> iter = mrPlan.getKeys().values().iterator();
+        int counter = 0;
+        while (iter.hasNext()) {
+            MapReduceOper op = iter.next();
+            counter++;
+            if (op.isSkewedJoin()) {
+                assertTrue(op.getRequestedParallelism()==100);
+            }
+        }
+        assertEquals(3, counter);
         
         pc.defaultParallel = -1;        
     }

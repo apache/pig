@@ -107,7 +107,8 @@ public class SkewedPartitioner extends Partitioner<PigNullableWritable, Writable
 
         try {
             Integer [] redCnt = new Integer[1]; 
-            reducerMap = MapRedUtil.loadPartitionFile(keyDistFile, redCnt, job, DataType.TUPLE);
+            reducerMap = MapRedUtil.loadPartitionFileFromLocalCache(
+                    keyDistFile, redCnt, DataType.TUPLE);
             totalReducers = redCnt[0];
         } catch (Exception e) {
             throw new RuntimeException(e);

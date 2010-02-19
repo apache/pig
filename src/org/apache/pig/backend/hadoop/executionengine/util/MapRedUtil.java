@@ -23,6 +23,8 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.util.Progressable;
@@ -45,6 +47,10 @@ import org.apache.pig.impl.util.UDFContext;
  * A class of utility static methods to be used in the hadoop map reduce backend
  */
 public class MapRedUtil {
+
+    private static Log log = LogFactory.getLog(MapRedUtil.class);
+         
+    public static final String FILE_SYSTEM_NAME = "fs.default.name";
 
     /**
      * This method is to be called from an 
@@ -84,12 +90,17 @@ public class MapRedUtil {
      * @param keyType Type of the key to be stored in the return map. It currently treats Tuple as a special case.
      */
     @SuppressWarnings("unchecked")
-    public static <E> Map<E, Pair<Integer, Integer> > loadPartitionFile(String keyDistFile,
-                                        Integer[] totalReducers, Configuration job, byte keyType) throws IOException {
+    public static <E> Map<E, Pair<Integer, Integer>> loadPartitionFileFromLocalCache(
+            String keyDistFile, Integer[] totalReducers, byte keyType)
+            throws IOException {
 
-        Map<E, Pair<Integer, Integer> > reducerMap = new HashMap<E, Pair<Integer, Integer> >();
+        Map<E, Pair<Integer, Integer>> reducerMap = new HashMap<E, Pair<Integer, Integer>>();
 
-        ReadToEndLoader loader = new ReadToEndLoader(new BinStorage(), job, 
+        // use local file system to get the keyDistFile
+        Configuration conf = new Configuration(false);            
+        conf.set(MapRedUtil.FILE_SYSTEM_NAME, "file:///");
+
+        ReadToEndLoader loader = new ReadToEndLoader(new BinStorage(), conf, 
                 keyDistFile, 0);
         DataBag partitionList;
         Tuple t = loader.getNext();
@@ -141,4 +152,5 @@ public class MapRedUtil {
         udfc.addJobConf(job);
         udfc.deserialize();
     }
+
 }

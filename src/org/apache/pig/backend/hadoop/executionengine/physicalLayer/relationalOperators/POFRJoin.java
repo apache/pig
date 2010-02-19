@@ -18,14 +18,20 @@
 package org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.filecache.DistributedCache;
+import org.apache.hadoop.fs.Path;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
@@ -37,6 +43,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.ConstantExpression;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
+import org.apache.pig.backend.hadoop.executionengine.util.MapRedUtil;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.NonSpillableDataBag;
@@ -48,6 +55,7 @@ import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.PlanException;
 import org.apache.pig.impl.plan.VisitorException;
+import org.apache.pig.impl.util.ObjectSerializer;
 
 /**
  * The operator models the join keys using the Local Rearrange operators which
@@ -67,7 +75,7 @@ public class POFRJoin extends PhysicalOperator {
      * 
      */
     private static final long serialVersionUID = 1L;
-    static private Log log = LogFactory.getLog(POFRJoin.class);
+    static private Log log = LogFactory.getLog(POFRJoin.class);          
     // The number in the input list which denotes the fragmented input
     private int fragment;
     // There can be n inputs each being a List<PhysicalPlan>
@@ -311,9 +319,11 @@ public class POFRJoin extends PhysicalOperator {
 
             POLoad ld = new POLoad(new OperatorKey("Repl File Loader", 1L),
                     replFile);
-            PigContext pc = new PigContext(ExecType.MAPREDUCE,
-                    ConfigurationUtil.toProperties(PigMapReduce.sJobConf));
-            pc.connect();
+            
+            Properties props = new Properties();                                          
+            props.setProperty(MapRedUtil.FILE_SYSTEM_NAME, "file:///");
+                         
+            PigContext pc = new PigContext(ExecType.LOCAL, props);   
             ld.setPc(pc);
             // We use LocalRearrange Operator to seperate Key and Values
             // eg. ( a, b, c ) would generate a, ( a, b, c )

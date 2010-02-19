@@ -43,6 +43,7 @@ import org.apache.hadoop.mapred.JobPriority;
 import org.apache.hadoop.mapred.jobcontrol.Job;
 import org.apache.hadoop.mapred.jobcontrol.JobControl;
 import org.apache.pig.ComparisonFunc;
+import org.apache.pig.ExecType;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.PigException;
 import org.apache.pig.ResourceSchema;
@@ -54,6 +55,9 @@ import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.partitioners
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.partitioners.WeightedRangePartitioner;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROperPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POFRJoin;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLoad;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPackage;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
@@ -75,10 +79,13 @@ import org.apache.pig.impl.io.NullableText;
 import org.apache.pig.impl.io.NullableTuple;
 import org.apache.pig.impl.io.PigNullableWritable;
 import org.apache.pig.impl.plan.OperatorKey;
+import org.apache.pig.impl.plan.VisitorException;
+import org.apache.pig.impl.plan.DepthFirstWalker;
 import org.apache.pig.impl.util.JarManager;
 import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.impl.util.Pair;
 import org.apache.pig.impl.util.UDFContext;
+
 
 /**
  * This is compiler class that takes an MROperPlan and converts
@@ -509,6 +516,11 @@ public class JobControlCompiler{
             // currently the parent plan is really used only when POStream is present in the plan
             new PhyPlanSetter(mro.mapPlan).visit();
             new PhyPlanSetter(mro.reducePlan).visit();
+            
+            // this call modifies the ReplFiles names of POFRJoin operators
+            // within the MR plans, must be called before the plans are
+            // serialized
+            setupDistributedCacheForFRJoin(mro, pigContext, conf);
 
             POPackage pack = null;
             if(mro.reducePlan.isEmpty()){
@@ -582,7 +594,9 @@ public class JobControlCompiler{
                 // Only set the quantiles file and sort partitioner if we're a
                 // global sort, not for limit after sort.
                 if (mro.isGlobalSort()) {
-                    conf.set("pig.quantilesFile", mro.getQuantFile());
+                    String symlink = addSingleFileToDistributedCache(
+                            pigContext, conf, mro.getQuantFile(), "pigsample");
+                    conf.set("pig.quantilesFile", symlink);
                     nwJob.setPartitionerClass(WeightedRangePartitioner.class);
                 }
                 
@@ -613,32 +627,15 @@ public class JobControlCompiler{
             }
             
             if (mro.isSkewedJoin()) {
-                conf.set("pig.keyDistFile", mro.getSkewedJoinPartitionFile());
+                String symlink = addSingleFileToDistributedCache(pigContext,
+                        conf, mro.getSkewedJoinPartitionFile(), "pigdistkey");
+                conf.set("pig.keyDistFile", symlink);
                 nwJob.setPartitionerClass(SkewedPartitioner.class);
                 nwJob.setMapperClass(PigMapReduce.MapWithPartitionIndex.class);
                 nwJob.setMapOutputKeyClass(NullablePartitionWritable.class);
                 nwJob.setGroupingComparatorClass(PigGroupingPartitionWritableComparator.class);
             }
       
-            if (mro.isFrjoin()) {
-                // set up distributed cache for the replicated files
-                FileSpec[] replFiles = mro.getReplFiles();
-                ArrayList<String> replicatedPath = new ArrayList<String>();
-                // the first input is not replicated
-                for(int i=0; i < replFiles.length; i++) {
-                    // ignore fragmented file
-                    if (i != mro.getFragment()) {
-                        replicatedPath.add(replFiles[i].getFileName());
-                    }
-                }
-                try {
-                    setupDistributedCache(pigContext, conf, replicatedPath.toArray(new String[0]) , false);
-                } catch (IOException e) {
-                    String msg = "Internal error. Distributed cache could not be set up for the replicated files";
-                    throw new IOException (msg, e);
-                }
-            }
-
             // Serialize the UDF specific context info.
             UDFContext.getUDFContext().serialize(conf);
             Job cjob = new Job(new JobConf(nwJob.getConfiguration()), new ArrayList());
@@ -950,6 +947,16 @@ public class JobControlCompiler{
         }
     }
 
+    private void setupDistributedCacheForFRJoin(MapReduceOper mro,
+            PigContext pigContext, Configuration conf) throws IOException {       
+                    
+        new FRJoinDistributedCacheVisitor(mro.mapPlan, pigContext, conf)
+                .visit();
+             
+        new FRJoinDistributedCacheVisitor(mro.reducePlan, pigContext, conf)
+                .visit();
+    }
+
     private static void setupDistributedCache(PigContext pigContext,
                                               Configuration conf, 
                                               Properties properties, String key, 
@@ -1022,4 +1029,86 @@ public class JobControlCompiler{
             }
         }        
     }
+    
+    private static String addSingleFileToDistributedCache(
+            PigContext pigContext, Configuration conf, String filename,
+            String prefix) throws IOException {
+
+        if (!FileLocalizer.fileExists(filename, pigContext)) {
+            throw new IOException(
+                    "Internal error: skew join partition file "
+                    + filename + " does not exist");
+        }
+                     
+        String symlink = filename;
+                     
+        // XXX Hadoop currently doesn't support distributed cache in local mode.
+        // This line will be removed after the support is added by Hadoop team.
+        if (pigContext.getExecType() != ExecType.LOCAL) {
+            symlink = prefix + "_" 
+                    + Integer.toString(System.identityHashCode(filename)) + "_"
+                    + Long.toString(System.currentTimeMillis());
+            filename = filename + "#" + symlink;
+            setupDistributedCache(pigContext, conf, new String[] { filename },
+                    false);  
+        }
+         
+        return symlink;
+    }
+    
+    private static class FRJoinDistributedCacheVisitor extends PhyPlanVisitor {
+                 
+        private PigContext pigContext = null;
+                
+         private Configuration conf = null;
+         
+         public FRJoinDistributedCacheVisitor(PhysicalPlan plan, 
+                 PigContext pigContext, Configuration conf) {
+             super(plan, new DepthFirstWalker<PhysicalOperator, PhysicalPlan>(
+                     plan));
+             this.pigContext = pigContext;
+             this.conf = conf;
+         }
+         
+         public void visitFRJoin(POFRJoin join) throws VisitorException {
+             
+             // XXX Hadoop currently doesn't support distributed cache in local mode.
+             // This line will be removed after the support is added
+             if (pigContext.getExecType() == ExecType.LOCAL) return;
+             
+             // set up distributed cache for the replicated files
+             FileSpec[] replFiles = join.getReplFiles();
+             ArrayList<String> replicatedPath = new ArrayList<String>();
+             
+             FileSpec[] newReplFiles = new FileSpec[replFiles.length];
+             
+             // the first input is not replicated
+             for (int i = 0; i < replFiles.length; i++) {
+                 // ignore fragmented file
+                 String symlink = "";
+                 if (i != join.getFragment()) {
+                     symlink = "pigrepl_" + join.getOperatorKey().toString() + "_"
+                         + Integer.toString(System.identityHashCode(replFiles[i].getFileName()))
+                         + "_" + Long.toString(System.currentTimeMillis()) 
+                         + "_" + i;
+                     replicatedPath.add(replFiles[i].getFileName() + "#"
+                             + symlink);
+                 }
+                 newReplFiles[i] = new FileSpec(symlink, 
+                         (replFiles[i] == null ? null : replFiles[i].getFuncSpec()));               
+             }
+             
+             join.setReplFiles(newReplFiles);
+             
+             try {
+                 setupDistributedCache(pigContext, conf, replicatedPath
+                         .toArray(new String[0]), false);
+             } catch (IOException e) {
+                 String msg = "Internal error. Distributed cache could not " +
+                               "be set up for the replicated files";
+                 throw new VisitorException(msg, e);
+             }
+         }
+     }
+    
 }

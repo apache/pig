@@ -17,7 +17,6 @@
  */
 package org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.partitioners;
 
-import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -30,21 +29,17 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.RawComparator;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.mapreduce.Partitioner;
-import org.apache.pig.FuncSpec;
 import org.apache.pig.LoadFunc;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.HDataType;
-import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce;
+import org.apache.pig.backend.hadoop.executionengine.util.MapRedUtil;
 import org.apache.pig.builtin.BinStorage;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.InternalMap;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.builtin.FindQuantiles;
-import org.apache.pig.impl.io.BufferedPositionedInputStream;
-import org.apache.pig.impl.io.FileLocalizer;
-import org.apache.pig.impl.io.ReadToEndLoader;
 import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.io.NullableBytesWritable;
 import org.apache.pig.impl.io.NullableDoubleWritable;
@@ -54,8 +49,11 @@ import org.apache.pig.impl.io.NullableLongWritable;
 import org.apache.pig.impl.io.NullableText;
 import org.apache.pig.impl.io.NullableTuple;
 import org.apache.pig.impl.io.PigNullableWritable;
+import org.apache.pig.impl.io.ReadToEndLoader;
 import org.apache.pig.impl.util.ObjectSerializer;
-import org.apache.pig.impl.util.Pair;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
 public class WeightedRangePartitioner extends Partitioner<PigNullableWritable, Writable>   
                                       implements Configurable {
@@ -63,6 +61,8 @@ public class WeightedRangePartitioner extends Partitioner<PigNullableWritable, W
     RawComparator<PigNullableWritable> comparator;
     public static Map<PigNullableWritable,DiscreteProbabilitySampleGenerator> weightedParts 
         = new HashMap<PigNullableWritable, DiscreteProbabilitySampleGenerator>();
+    
+    private static final Log log = LogFactory.getLog(WeightedRangePartitioner.class);
     
     Configuration job;
 
@@ -90,15 +90,23 @@ public class WeightedRangePartitioner extends Partitioner<PigNullableWritable, W
     @Override
     public void setConf(Configuration configuration) {
         job = configuration;
+        
+        String quantilesFile = configuration.get("pig.quantilesFile", "");
 
-        String quantilesFile = job.get("pig.quantilesFile", "");
-
-        if (quantilesFile.length() == 0)
-            throw new RuntimeException(this.getClass().getSimpleName() + " used but no quantiles found");
+        if (quantilesFile.length() == 0) {
+            throw new RuntimeException(this.getClass().getSimpleName()
+                    + " used but no quantiles found");
+        }
         
         try{
-            ReadToEndLoader loader = new ReadToEndLoader(new BinStorage(), job, 
-                    quantilesFile, 0);
+            
+            
+            // use local file system to get the quantilesFile
+            Configuration conf = new Configuration(false);            
+            conf.set(MapRedUtil.FILE_SYSTEM_NAME, "file:///");
+            
+            ReadToEndLoader loader = new ReadToEndLoader(new BinStorage(),
+                    conf, quantilesFile, 0);
             DataBag quantilesList;
             Tuple t = loader.getNext();
             if(t!=null)
