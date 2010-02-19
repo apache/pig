@@ -20,6 +20,7 @@ package org.apache.pig.backend.hadoop.executionengine.mapReduceLayer;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.LinkedList;
@@ -101,7 +102,6 @@ public class MapReduceLauncher extends Launcher{
                                                     JobCreationException,
                                                     Exception {
         long sleepTime = 500;
-        int MAXRETRY_JOBID = 20;
         aggregateWarning = "true".equalsIgnoreCase(pc.getProperties().getProperty("aggregate.warning"));
         MROperPlan mrp = compile(php, pc);
         PigStats stats = new PigStats();
@@ -130,58 +130,66 @@ public class MapReduceLauncher extends Launcher{
 
         while((jc = jcc.compile(mrp, grpName)) != null) {
             
-            List<Job> waitingJobs = jc.getWaitingJobs();
+        	// Initially, all jobs are in wait state.
+            List<Job> jobsWithoutIds = jc.getWaitingJobs();
+            log.info(jobsWithoutIds.size() +" map-reduce job(s) waiting for submission.");
+            
+            String jobTrackerAdd;
+            String port;
+            String jobTrackerLoc;
+            JobConf jobConf = jobsWithoutIds.get(0).getJobConf();
+            try {
+                port = jobConf.get("mapred.job.tracker.http.address");
+                jobTrackerAdd = jobConf.get(HExecutionEngine.JOB_TRACKER_LOCATION);
+                jobTrackerLoc = jobTrackerAdd.substring(0,jobTrackerAdd.indexOf(":")) + port.substring(port.indexOf(":"));
+            }
+            catch(Exception e){
+                // Could not get the job tracker location, most probably we are running in local mode.
+                // If it is the case, we don't print out job tracker location,
+                // because it is meaningless for local mode.
+            	jobTrackerLoc = null;
+                log.debug("Failed to get job tracker location.");
+            }
+            
             completeFailedJobsInThisRun.clear();
             
             Thread jcThread = new Thread(jc);
             jcThread.setUncaughtExceptionHandler(jctExceptionHandler);
-            jcThread.start();
-
-            for (Job job : waitingJobs){
-                int retry = 0;
-                while (job.getState()==Job.WAITING || job.getState()==Job.READY && retry<MAXRETRY_JOBID) {
-                    Thread.sleep(sleepTime);
-                    retry++;
-                }
-                JobConf jConf = job.getJobConf();
-                if (job.getAssignedJobID()!=null)
-                {
-                    log.info("Submitting job: "+job.getAssignedJobID()+" to execution engine.");
-                }
-                // Try to get job tracker, if we cannot get it, then most probably we are running in local mode.
-                // If it is the case, we don't print out job tracker location and hint to kill the job,
-                // because it is meaningless for local mode.
-                try {
-                    String jobTrackerAdd;
-                    String port;
-                    port = jConf.get("mapred.job.tracker.http.address");
-                    
-                    port = port.substring(port.indexOf(":"));
-                    jobTrackerAdd = jConf.get(HExecutionEngine.JOB_TRACKER_LOCATION);
-                    jobTrackerAdd = jobTrackerAdd.substring(0,jobTrackerAdd.indexOf(":"));
-                    log.info("More information at: http://"+ jobTrackerAdd+port+
-                            "/jobdetails.jsp?jobid="+job.getAssignedJobID());
-                    log.info("To kill this job, use: kill "+job.getAssignedJobID());
-                }
-                catch(Exception e){
-                    /* This is extra information Pig is providing to user.
-                       If exception occurs here, job may still complete successfully.
-                       So, pig shouldn't die or even give confusing message to the user. 
-                    */
-                }
-            }
             
+            //All the setup done, now lets launch the jobs.
+            jcThread.start();
+            
+            // Now wait, till we are finished.
             while(!jc.allFinished()){
-                try {
-                    Thread.sleep(sleepTime);
-                } catch (InterruptedException e) {}
-                double prog = (numMRJobsCompl+calculateProgress(jc, jobClient))/totalMRJobs;
-                if(prog>=(lastProg+0.01)){
-                    int perCom = (int)(prog * 100);
-                    if(perCom!=100)
-                        log.info( perCom + "% complete");
-                }
-                lastProg = prog;
+
+            	try { Thread.sleep(sleepTime); } 
+            	catch (InterruptedException e) {}
+            	
+            	List<Job> jobsAssignedIdInThisRun = new ArrayList<Job>();
+
+            	for(Job job : jobsWithoutIds){
+            		if (job.getAssignedJobID() != null){
+
+            			jobsAssignedIdInThisRun.add(job);
+            			log.info("HadoopJobId: "+job.getAssignedJobID());
+            			if(jobTrackerLoc != null){
+            				log.info("More information at: http://"+ jobTrackerLoc+
+            						"/jobdetails.jsp?jobid="+job.getAssignedJobID());
+            			}  
+            		}
+            		else{
+            			// This job is not assigned an id yet.
+            		}
+            	}
+            	jobsWithoutIds.removeAll(jobsAssignedIdInThisRun);
+
+            	double prog = (numMRJobsCompl+calculateProgress(jc, jobClient))/totalMRJobs;
+            	if(prog>=(lastProg+0.01)){
+            		int perCom = (int)(prog * 100);
+            		if(perCom!=100)
+            			log.info( perCom + "% complete");
+            	}
+            	lastProg = prog;
             }
 
             //check for the jobControlException first

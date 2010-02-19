@@ -24,12 +24,10 @@ import java.io.IOException;
 import java.io.PrintStream;
 
 import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.pig.PigException;
 import org.apache.pig.PigWarning;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PigLogger;
-import org.apache.pig.impl.PigContext;
 import org.apache.pig.tools.pigscript.parser.ParseException;
 
 public class LogUtils {
