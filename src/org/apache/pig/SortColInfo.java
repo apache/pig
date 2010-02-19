@@ -22,8 +22,7 @@ import java.io.Serializable;
 import org.apache.pig.impl.util.Utils;
 
 /**
- * A class representing information about a sort column to pass
- * in {@link SortInfo} to storage functions in {@link StoreConfig}
+ * A class representing information about a sort column in {@link SortInfo} 
  */
 public class SortColInfo implements Serializable {
     

@@ -28,7 +28,6 @@ import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.data.DataType;
 import org.apache.pig.impl.logicalLayer.FrontendException;
-import org.apache.pig.impl.util.WrappedIOException;
 
 /**
  * math.ULP implements a binding to the Java function
@@ -74,7 +73,7 @@ public class DoubleUlp extends EvalFunc<Double>{
             Double d = (Double)input.get(0);
 		    return Math.ulp(d);
         } catch(Exception e){
-            throw WrappedIOException.wrap("Caught exception in DoubleUlp", e);
+            throw new IOException("Caught exception in DoubleUlp", e);
         }
     }
             

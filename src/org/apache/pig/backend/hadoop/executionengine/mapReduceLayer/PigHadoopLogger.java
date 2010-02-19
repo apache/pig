@@ -19,9 +19,8 @@ package org.apache.pig.backend.hadoop.executionengine.mapReduceLayer;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.hadoop.mapred.Reporter;
+import org.apache.hadoop.util.Progressable;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PigLogger;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PigProgressable;
 
 /**
  * 
@@ -30,57 +29,58 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PigProgressab
  * warning messages
  */
 public final class PigHadoopLogger implements PigLogger {
-	private static PigHadoopLogger instance = new PigHadoopLogger();  
+    private static PigHadoopLogger instance = new PigHadoopLogger();  
     
-	public static synchronized PigHadoopLogger getInstance() {
-		if (instance == null) {
-			instance = new PigHadoopLogger();
-		}
-		return instance;
-	}	
+    public static synchronized PigHadoopLogger getInstance() {
+        if (instance == null) {
+            instance = new PigHadoopLogger();
+        }
+        return instance;
+    } 
 
-	private static Log log = LogFactory.getLog(PigHadoopLogger.class);
-	private Reporter reporter = null;
-	private boolean aggregate = false;
+    private static Log log = LogFactory.getLog(PigHadoopLogger.class);
+    private Progressable reporter = null;
+    private boolean aggregate = false;
 
     private PigHadoopLogger() {
     }    
 
+    @SuppressWarnings("unchecked")
     public void warn(Object o, String msg, Enum warningEnum) {
-    	String displayMessage = o.getClass().getName() + ": " + msg;
-    	if(aggregate) {
-    		if(reporter != null) {
-    			reporter.incrCounter(warningEnum, 1);
-    		} else {
-    			//TODO:    			
-    			//in local mode of execution if the PigHadoopLogger is used initially,
-    			//then aggregation cannot be performed as the reporter will be null. 
-    			//The reference to a reporter is given by Hadoop at run time. 
-    			//In local mode, due to the absence of Hadoop there will be no reporter
-    			//Just print the warning message as is.
-    			//If a warning message is printed in map reduce mode when aggregation
-    			//is turned on then we have a problem, its a bug.
-    			log.warn(displayMessage);
-    		}
-    	} else {
-        	log.warn(displayMessage);
-    	}
+        String displayMessage = o.getClass().getName() + ": " + msg;
+        if(aggregate) {
+            if(reporter != null) {
+                //reporter.incrCounter(warningEnum, 1);
+            } else {
+                //TODO:
+                //in local mode of execution if the PigHadoopLogger is used initially,
+                //then aggregation cannot be performed as the reporter will be null. 
+                //The reference to a reporter is given by Hadoop at run time. 
+                //In local mode, due to the absence of Hadoop there will be no reporter
+                //Just print the warning message as is.
+                //If a warning message is printed in map reduce mode when aggregation
+                //is turned on then we have a problem, its a bug.
+                log.warn(displayMessage);
+            }
+        } else {
+            log.warn(displayMessage);
+        }
     }    
 
-    public Reporter getReporter() {
+    public Progressable getReporter() {
         return reporter;
     }
 
-    public synchronized void setReporter(Reporter rep) {
-    		this.reporter = rep;
+    public synchronized void setReporter(Progressable rep) {
+        this.reporter = rep;
     }
     
     public boolean getAggregate() {
-    	return aggregate;
+        return aggregate;
     }
     
     public synchronized void setAggregate(boolean aggregate) {
-    		this.aggregate = aggregate;
+        this.aggregate = aggregate;
     }
 
 }

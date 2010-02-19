@@ -40,28 +40,28 @@ extends TestCase
     private String tmpfilepath;
 
     private int DATALEN = 1024;
-
+    MiniCluster cluster = MiniCluster.buildCluster();
+    
     @Override
     protected void setUp()
     throws Exception
     {
-        //pig = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
-        pig = new PigServer("local");
+        pig = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
 
         tmpFile = File.createTempFile( this.getName(), ".txt");
-        PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
+        String input[] = new String[DATALEN];
         for(int i = 0; i < DATALEN; i++) {
-            ps.println(i);
+            input[i] = Integer.toString(i);
         }
-        ps.close();
-
-        tmpfilepath = Util.generateURI(tmpFile.getCanonicalPath());
+        
+        tmpfilepath = tmpFile.getCanonicalPath();
+        Util.createInputFile(cluster, tmpfilepath, input);
     }
 
     protected void tearDown()
     throws Exception
     {
-        tmpFile.delete();
+        Util.deleteFile(cluster, tmpfilepath);
     }
 
     private void verify(String query, int expected_min, int expected_max)

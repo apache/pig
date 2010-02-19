@@ -24,7 +24,6 @@ import org.apache.pig.EvalFunc;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.data.DataType;
-import org.apache.pig.impl.util.WrappedIOException;
 
 /**
  * math.ROUND implements a binding to the Java function
@@ -70,7 +69,7 @@ public class DoubleRound extends EvalFunc<Long>{
             Double d =  (Double)input.get(0);
 		    return Math.round(d);
         } catch (Exception e){
-            throw WrappedIOException.wrap("Caught exception processing input row ", e);
+            throw new IOException("Caught exception processing input row ", e);
         }
 	}
 	

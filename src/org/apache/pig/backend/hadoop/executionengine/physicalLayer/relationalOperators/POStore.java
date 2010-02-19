@@ -70,6 +70,8 @@ public class POStore extends PhysicalOperator {
     // column names and the asc/dsc info
     private SortInfo sortInfo;
     
+    private String signature;
+    
     public POStore(OperatorKey k) {
         this(k, -1, null);
     }
@@ -89,7 +91,7 @@ public class POStore extends PhysicalOperator {
     public void setUp() throws IOException{
         if (impl != null) {
             try{
-                storer = impl.createStoreFunc(sFile, schema, sortInfo);
+                storer = impl.createStoreFunc(this);
             }catch (IOException ioe) {
                 int errCode = 2081;
                 String msg = "Unable to setup the store function.";            
@@ -200,7 +202,13 @@ public class POStore extends PhysicalOperator {
     public Schema getSchema() {
         return schema;
     }
-
+    
+    public StoreFunc getStoreFunc() {
+        StoreFunc sFunc = (StoreFunc)PigContext.instantiateFuncFromSpec(sFile.getFuncSpec());
+        sFunc.setStoreFuncUDFContextSignature(signature);
+        return sFunc;
+    }
+    
     /**
      * @param sortInfo the sortInfo to set
      */
@@ -213,5 +221,13 @@ public class POStore extends PhysicalOperator {
      */
     public SortInfo getSortInfo() {
         return sortInfo;
+    }
+    
+    public String getSignature() {
+        return signature;
+    }
+    
+    public void setSignature(String signature) {
+        this.signature = signature;
     }
 }

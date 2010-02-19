@@ -310,7 +310,7 @@ public class POFRJoin extends PhysicalOperator {
             }
 
             POLoad ld = new POLoad(new OperatorKey("Repl File Loader", 1L),
-                    replFile, false);
+                    replFile);
             PigContext pc = new PigContext(ExecType.MAPREDUCE,
                     ConfigurationUtil.toProperties(PigMapReduce.sJobConf));
             pc.connect();

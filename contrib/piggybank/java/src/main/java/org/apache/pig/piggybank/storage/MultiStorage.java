@@ -12,30 +12,35 @@
  */
 package org.apache.pig.piggybank.storage;
 
+import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.text.NumberFormat;
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
-import java.util.zip.GZIPOutputStream;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileStatus;
+import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.fs.PathFilter;
-import org.apache.hadoop.mapred.FileOutputFormat;
-import org.apache.hadoop.mapred.JobConf;
+import org.apache.hadoop.io.Text;
+import org.apache.hadoop.io.WritableComparable;
+import org.apache.hadoop.io.compress.BZip2Codec;
+import org.apache.hadoop.io.compress.GzipCodec;
+import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.mapreduce.OutputFormat;
+import org.apache.hadoop.mapreduce.RecordWriter;
+import org.apache.hadoop.mapreduce.TaskAttemptContext;
+import org.apache.hadoop.mapreduce.TaskID;
+import org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter;
+import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
+import org.apache.pig.LoadFunc;
+import org.apache.pig.ResourceSchema;
 import org.apache.pig.StoreFunc;
 import org.apache.pig.backend.executionengine.ExecException;
-import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce;
-import org.apache.pig.builtin.PigStorage;
-import org.apache.pig.builtin.Utf8StorageConverter;
 import org.apache.pig.data.Tuple;
-import org.apache.tools.bzip2r.CBZip2OutputStream;
+import org.apache.pig.impl.util.StorageUtil;
 
 /**
  * The UDF is useful for splitting the output data into a bunch of directories
@@ -64,28 +69,13 @@ import org.apache.tools.bzip2r.CBZip2OutputStream;
  * 1 reducer. So in the above case for e.g. there will be only 1 file each under
  * 'a1' and 'a2' directories.
  */
-public class MultiStorage extends Utf8StorageConverter implements StoreFunc {
+public class MultiStorage implements StoreFunc {
 
-  // map of all (key-field-values, PigStorage) received by this store
-  private Map<String, PigStorage> storeMap;
-  private List<OutputStream> outStreamList; // list of all open streams
-  private boolean isAbsolute; // Is the user specified output path absolute
-  private String partition; // Reduce partition ID executing this store
   private Path outputPath; // User specified output Path
-  private Path workOutputPath; // Task specific temporary output path
-  private Compression comp; // Compression type of output data.
   private int splitFieldIndex = -1; // Index of the key field
   private String fieldDel; // delimiter of the output record.
-  private FileSystem fs; // Output file system
-
-  // filter for removing hidden files in a listing
-  public static final PathFilter hiddenPathFilter = new PathFilter() {
-    public boolean accept(Path p) {
-      String name = p.getName();
-      return !name.startsWith("_") && !name.startsWith(".");
-    }
-  };
-
+  private Compression comp; // Compression type of output data.
+  
   // Compression types supported by this store
   enum Compression {
     none, bz2, bz, gz;
@@ -98,7 +88,6 @@ public class MultiStorage extends Utf8StorageConverter implements StoreFunc {
   public MultiStorage(String parentPathStr, String splitFieldIndex,
       String compression) {
     this(parentPathStr, splitFieldIndex, compression, "\\t");
-
   }
 
   /**
@@ -118,11 +107,9 @@ public class MultiStorage extends Utf8StorageConverter implements StoreFunc {
     this.outputPath = new Path(parentPathStr);
     this.splitFieldIndex = Integer.parseInt(splitFieldIndex);
     this.fieldDel = fieldDel;
-    this.storeMap = new HashMap<String, PigStorage>();
-    this.outStreamList = new ArrayList<OutputStream>();
     try {
       this.comp = (compression == null) ? Compression.none : Compression
-          .valueOf(compression.toLowerCase());
+        .valueOf(compression.toLowerCase());
     } catch (IllegalArgumentException e) {
       System.err.println("Exception when converting compression string: "
           + compression + " to enum. No compression will be used");
@@ -130,109 +117,13 @@ public class MultiStorage extends Utf8StorageConverter implements StoreFunc {
     }
   }
 
-  /**
-   * Return the work output path suffixed with the parent output dir name.
-   * 
-   * @param conf
-   * @return
-   * @throws IOException
-   */
-  private Path getWorkOutputPath(JobConf conf) throws IOException {
-    Path outPath = (conf != null) ? new Path(FileOutputFormat
-        .getWorkOutputPath(conf), this.outputPath) : this.outputPath;
-    return outPath;
-  }
+  //--------------------------------------------------------------------------
+  // Implementation of StoreFunc
 
-  /**
-   * Get the partition number of the reduce task in which it is executing.
-   * 
-   * @param conf
-   * @return
-   */
-  private String getPartition(JobConf conf) {
-    int part = (conf != null) ? conf.getInt("mapred.task.partition", -1) : 0;
-    NumberFormat numberFormat = NumberFormat.getInstance();
-    numberFormat.setMinimumIntegerDigits(5);
-    numberFormat.setGroupingUsed(false);
-    return numberFormat.format(part);
-  }
-
-  /**
-   * hack to get the map/reduce task unique ID in which this is running. Also
-   * get the outputPath of the job to be used as base path where field value
-   * specific sub-directories will be created.
-   * 
-   * @throws IOException
-   */
-  private void initJobSpecificParams() throws IOException {
-    this.partition = (this.partition == null) ? getPartition(PigMapReduce.sJobConf)
-        : this.partition;
-    // workOutputPath = workOutputPath/outputPath. Later we will remove the
-    // suffix.
-    this.workOutputPath = (this.workOutputPath == null) ? getWorkOutputPath(PigMapReduce.sJobConf)
-        : this.workOutputPath;
-    if (this.fs == null) {
-      this.fs = (PigMapReduce.sJobConf == null) ? FileSystem
-          .getLocal(new Configuration()) : FileSystem
-          .get(PigMapReduce.sJobConf);
-    }
-  }
-
-  @Override
-  public void bindTo(OutputStream os) throws IOException {
-    // Nothing to bind here as we will be writing each tuple into a split
-    // based on its schema
-  }
-
-  /**
-   * Create an appropriate output stream for the fieldValue.
-   * 
-   * @param fieldValue
-   * @return
-   * @throws IOException
-   */
-  private OutputStream createOutputStream(String fieldValue) throws IOException {
-    Path path = new Path(fieldValue, fieldValue + '-' + partition);
-    Path fieldValueBasedPath = new Path(workOutputPath, path);
-    OutputStream os = null;
-    switch (comp) {
-    case bz:
-    case bz2:
-      os = fs.create(fieldValueBasedPath.suffix(".bz2"), false);
-      os = new CBZip2OutputStream(os);
-      break;
-    case gz:
-      os = fs.create(fieldValueBasedPath.suffix(".gz"), false);
-      os = new GZIPOutputStream(os);
-      break;
-    case none:
-      os = fs.create(fieldValueBasedPath, false);
-    }
-    return os;
-  }
-
-  /**
-   * Retrieve the pig storage corresponding to the field value.
-   * 
-   * @param fieldValue
-   * @return
-   * @throws IOException
-   */
-  private PigStorage getStore(String fieldValue) throws IOException {
-    PigStorage store = storeMap.get(fieldValue);
-    if (store == null) {
-      store = new PigStorage(fieldDel);
-      OutputStream os = createOutputStream(fieldValue);
-      store.bindTo(os);
-      outStreamList.add(os);
-      storeMap.put(fieldValue, store);
-    }
-    return store;
-  }
-
+  private RecordWriter<String, Tuple> writer;
+  
   @Override
   public void putNext(Tuple tuple) throws IOException {
-    initJobSpecificParams();
     if (tuple.size() <= splitFieldIndex) {
       throw new IOException("split field index:" + this.splitFieldIndex
           + " >= tuple size:" + tuple.size());
@@ -243,64 +134,150 @@ public class MultiStorage extends Utf8StorageConverter implements StoreFunc {
     } catch (ExecException exec) {
       throw new IOException(exec);
     }
-    PigStorage store = getStore(String.valueOf(field));
-    store.putNext(tuple);
+    try {
+      writer.write(String.valueOf(field), tuple);
+    } catch (InterruptedException e) {
+      throw new IOException(e);
+    }
   }
-
-  /**
-   * Flush the output streams and call pigStorage.finish() for each pigStorage
-   * object. Clear the map of pigStorage objects and move the final results to
-   * the correct location from the temporary output path since multiquery
-   * implementation might ignore our results.
-   * 
-   * @ throws IOException
-   */
+  
   @Override
-  public void finish() throws IOException {
-    Collection<PigStorage> pigStores = storeMap.values();
-    for (PigStorage store : pigStores) {
-      store.finish();
-    }
-    storeMap.clear();
-    for (OutputStream os : outStreamList) {
-      os.flush();
-      os.close();
-    }
-    outStreamList.clear();
-    // move the results here
-    if (PigMapReduce.sJobConf != null) {
-      Path rem = FileOutputFormat.getWorkOutputPath(PigMapReduce.sJobConf);
-      String pathToRemove = rem.toUri().getPath() + (!isAbsolute ? "/" : "");
-      moveResults(workOutputPath, pathToRemove);
+  public void checkSchema(ResourceSchema s) throws IOException {
+
+  }
+    
+  @SuppressWarnings("unchecked")
+  @Override
+  public OutputFormat getOutputFormat() throws IOException {
+      MultiStorageOutputFormat format = new MultiStorageOutputFormat();
+      format.setKeyValueSeparator(fieldDel);
+      return format;
+  }
+    
+  @SuppressWarnings("unchecked")
+  @Override
+  public void prepareToWrite(RecordWriter writer) throws IOException {
+      this.writer = writer;
+  }
+    
+  @Override
+  public String relToAbsPathForStoreLocation(String location, Path curDir)
+          throws IOException {
+    return LoadFunc.getAbsolutePath(location, curDir);
+  }
+    
+  @Override
+  public void setStoreLocation(String location, Job job) throws IOException {
+    job.getConfiguration().set("mapred.textoutputformat.separator", "");
+    FileOutputFormat.setOutputPath(job, new Path(location));
+    if (comp == Compression.bz2 || comp == Compression.bz) {
+      FileOutputFormat.setCompressOutput(job, true);
+      FileOutputFormat.setOutputCompressorClass(job,  BZip2Codec.class);
+    } else if (comp == Compression.gz) {
+      FileOutputFormat.setCompressOutput(job, true);
+      FileOutputFormat.setOutputCompressorClass(job, GzipCodec.class);
     }
   }
+ 
+  @Override
+  public void setStoreFuncUDFContextSignature(String signature) {
 
-  /**
-   * Moves the files and dir under given path 'p' to the actual path. The API
-   * traverses the workOutputPath recursively and renames the files and
-   * directories by removing 'rem' from their path names
-   * 
-   * @param p
-   *          The
-   * @param rem
-   * @throws IOException
-   */
-  private void moveResults(Path p, String rem) throws IOException {
-    for (FileStatus fstat : fs.listStatus(p, hiddenPathFilter)) {
-      Path src = fstat.getPath();
-      Path dst = new Path(src.toUri().getPath().replace(rem, ""));
-      if (fstat.isDir()) {
-        fs.mkdirs(dst);
-        moveResults(src, rem);
-      } else {
-        fs.rename(src, dst);
+  }
+  
+  //--------------------------------------------------------------------------
+  // Implementation of OutputFormat
+  
+  public static class MultiStorageOutputFormat extends
+  TextOutputFormat<String, Tuple> {
+
+    private String keyValueSeparator = "\\t";
+    private byte fieldDel = '\t';
+  
+    @Override
+    public RecordWriter<String, Tuple> 
+    getRecordWriter(TaskAttemptContext context
+                ) throws IOException, InterruptedException {
+    
+      final TaskAttemptContext ctx = context;
+        
+      return new RecordWriter<String, Tuple>() {
+
+        private Map<String, MyLineRecordWriter> storeMap = 
+              new HashMap<String, MyLineRecordWriter>();
+          
+        private static final int BUFFER_SIZE = 1024;
+          
+        private ByteArrayOutputStream mOut = 
+              new ByteArrayOutputStream(BUFFER_SIZE);
+                           
+        public void write(String key, Tuple val) throws IOException {                
+          int sz = val.size();
+          for (int i = 0; i < sz; i++) {
+            Object field;
+            try {
+              field = val.get(i);
+            } catch (ExecException ee) {
+              throw ee;
+            }
+
+            StorageUtil.putField(mOut, field);
+
+            if (i != sz - 1) {
+              mOut.write(fieldDel);
+            }
+          }
+              
+          getStore(key).write(null, new Text(mOut.toByteArray()));
+
+          mOut.reset();
+        }
+
+        public void close(TaskAttemptContext context) throws IOException { 
+          for (MyLineRecordWriter out : storeMap.values()) {
+            out.close(context);
+          }
+        }
+      
+        private MyLineRecordWriter getStore(String fieldValue) throws IOException {
+          MyLineRecordWriter store = storeMap.get(fieldValue);
+          if (store == null) {                  
+            DataOutputStream os = createOutputStream(fieldValue);
+            store = new MyLineRecordWriter(os, keyValueSeparator);
+            storeMap.put(fieldValue, store);
+          }
+          return store;
+        }
+          
+        private DataOutputStream createOutputStream(String fieldValue) throws IOException {
+          Configuration conf = ctx.getConfiguration();
+          TaskID taskId = ctx.getTaskAttemptID().getTaskID();
+          Path path = new Path(fieldValue, fieldValue + '-' 
+                  + NumberFormat.getInstance().format(taskId.getId()));
+          Path workOutputPath = ((FileOutputCommitter)getOutputCommitter(ctx)).getWorkPath();
+          Path file = new Path(workOutputPath, path);
+          FileSystem fs = file.getFileSystem(conf);                
+          FSDataOutputStream fileOut = fs.create(file, false);
+          return fileOut;
+        }
+          
+      };
+    }
+  
+    public void setKeyValueSeparator(String sep) {
+      keyValueSeparator = sep;
+      fieldDel = StorageUtil.parseFieldDel(keyValueSeparator);  
+    }
+  
+  //------------------------------------------------------------------------
+  //
+  
+    protected static class MyLineRecordWriter
+    extends TextOutputFormat.LineRecordWriter<WritableComparable, Text> {
+
+      public MyLineRecordWriter(DataOutputStream out, String keyValueSeparator) {
+        super(out, keyValueSeparator);
       }
     }
   }
 
-  // @Override
-  public Class getStorePreparationClass() throws IOException {
-    // TODO Auto-generated method stub
-    return null;
-  }
 }

@@ -39,6 +39,7 @@ import org.apache.pig.impl.logicalLayer.LogicalPlanBuilder;
 import org.apache.pig.impl.util.JarManager;
 import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.impl.util.PropertiesUtil;
+import org.apache.pig.impl.util.UDFContext;
 import org.apache.pig.tools.cmdline.CmdLineParser;
 import org.apache.pig.tools.grunt.Grunt;
 import org.apache.pig.impl.util.LogUtils;
@@ -129,6 +130,9 @@ public static void main(String args[])
 
         //by default we keep going on error on the backend
         properties.setProperty("stop.on.failure", ""+false);
+        
+        // set up client side system properties in UDF context
+        UDFContext.getUDFContext().setClientSystemProps();
 
         char opt;
         while ((opt = opts.getNextOpt()) != CmdLineParser.EndOfOpts) {

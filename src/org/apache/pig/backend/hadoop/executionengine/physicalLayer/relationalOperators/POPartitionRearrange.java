@@ -25,6 +25,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 
 
+import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.BufferedPositionedInputStream;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.builtin.BinStorage;
@@ -32,6 +33,7 @@ import org.apache.pig.builtin.BinStorage;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
@@ -66,14 +68,15 @@ public class POPartitionRearrange extends POLocalRearrange {
      * 
      */
     private static final long serialVersionUID = 1L;
-	private String partitionFile;
-	private Integer totalReducers = -1;
-	// ReducerMap will store the tuple, max reducer index & min reducer index
-	private static Map<Object, Pair<Integer, Integer> > reducerMap = new HashMap<Object, Pair<Integer, Integer> >();
-	private boolean loaded;
+    private String partitionFile;
+    private Integer totalReducers = -1;
+    // ReducerMap will store the tuple, max reducer index & min reducer index
+    private static Map<Object, Pair<Integer, Integer> > reducerMap = new HashMap<Object, Pair<Integer, Integer> >();
+    private boolean loaded;
 
-	protected static final BagFactory mBagFactory = BagFactory.getInstance();
-
+    protected static final BagFactory mBagFactory = BagFactory.getInstance();
+    private PigContext pigContext;
+    
     public POPartitionRearrange(OperatorKey k) {
         this(k, -1, null);
     }
@@ -102,17 +105,22 @@ public class POPartitionRearrange extends POLocalRearrange {
 		partitionFile = file;
 	}
 
-	/* Loads the key distribution file obtained from the sampler */
-	private void loadPartitionFile() throws RuntimeException {
-		try {
-			Integer [] redCnt = new Integer[1]; 
-			reducerMap = MapRedUtil.loadPartitionFile(partitionFile, redCnt, null, DataType.NULL);
-			totalReducers = redCnt[0];
-			loaded = true;
-		} catch (Exception e) {
-			throw new RuntimeException(e);
-		}
-	}
+    /* Loads the key distribution file obtained from the sampler */
+    private void loadPartitionFile() throws RuntimeException {
+        try {
+            Integer [] redCnt = new Integer[1]; 
+            
+            reducerMap = MapRedUtil.loadPartitionFile(partitionFile, 
+                    redCnt, 
+                    ConfigurationUtil.toConfiguration(pigContext.getProperties()),
+                    DataType.NULL
+            );
+            totalReducers = redCnt[0];
+            loaded = true;
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
 
     @Override
     public String name() {
@@ -231,6 +239,20 @@ public class POPartitionRearrange extends POLocalRearrange {
 		}
 		
 		return opBag;
+    }
+
+    /**
+     * @param pigContext the pigContext to set
+     */
+    public void setPigContext(PigContext pigContext) {
+        this.pigContext = pigContext;
+    }
+
+    /**
+     * @return the pigContext
+     */
+    public PigContext getPigContext() {
+        return pigContext;
     }
 
     /**

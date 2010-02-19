@@ -1567,7 +1567,7 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
     public void visit(LOLoad loLoad) throws VisitorException {
         String scope = loLoad.getOperatorKey().scope;
         POLoad load = new POLoad(new OperatorKey(scope, nodeGen
-                .getNextNodeId(scope)), loLoad.isSplittable());
+                .getNextNodeId(scope)));
         load.setAlias(loLoad.getAlias());
         load.setLFile(loLoad.getInputFile());
         load.setPc(pc);
@@ -1603,6 +1603,7 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
         store.setAlias(loStore.getPlan().getPredecessors(loStore).get(0).getAlias());
         store.setSFile(loStore.getOutputFile());
         store.setInputSpec(loStore.getInputSpec());
+        store.setSignature(loStore.getSignature());
         try {
             // create a new schema for ourselves so that when
             // we serialize we are not serializing objects that
@@ -1629,6 +1630,23 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
             // check limit's predecessor
             if(op.get(0) instanceof LOLimit) {
                 op = loStore.getPlan().getPredecessors(op.get(0));
+            } else if (op.get(0) instanceof LOSplitOutput) {
+                LOSplitOutput splitOutput = (LOSplitOutput)op.get(0);
+                // We assume this is the LOSplitOutput we injected for this case:
+                // b = order a by $0; store b into '1'; store b into '2';
+                // In this case, we should mark both '1' and '2' as sorted
+                LogicalPlan conditionPlan = splitOutput.getConditionPlan();
+                if (conditionPlan.getRoots().size()==1) {
+                    LogicalOperator root = conditionPlan.getRoots().get(0);
+                    if (root instanceof LOConst) {
+                        Object value = ((LOConst)root).getValue();
+                        if (value instanceof Boolean && (Boolean)value==true) {
+                            LogicalOperator split = splitOutput.getPlan().getPredecessors(splitOutput).get(0);
+                            if (split instanceof LOSplit)
+                                op = loStore.getPlan().getPredecessors(split);
+                        }
+                    }
+                }
             }
             PhysicalOperator sortPhyOp = logToPhyMap.get(op.get(0));
             // if this predecessor is a sort, get
@@ -1808,7 +1826,17 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
         physOp.setResultType(op.getType());
         FuncSpec lfSpec = op.getLoadFuncSpec();
         if(null != lfSpec) {
-            ((POCast) physOp).setLoadFSpec(lfSpec);
+            try {
+                ((POCast) physOp).setFuncSpec(lfSpec);
+            } catch (IOException e) {
+                int errCode = 1053;
+                String msg = "Cannot resolve load function to use for casting" +
+                		" from " + DataType.findTypeName(op.getExpression().
+                		        getType()) + " to " + DataType.findTypeName(op.getType());
+                throw new LogicalToPhysicalTranslatorException(msg, errCode, 
+                        PigException.ERROR, e);
+            }
+                
         }
         try {
             currentPlan.connect(from, physOp);

@@ -25,7 +25,6 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.LoadFunc;
-import org.apache.pig.SamplableLoader;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROpPlanVisitor;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROperPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
@@ -128,11 +127,6 @@ public class SampleOptimizer extends MROpPlanVisitor {
             return;
         }
         POLoad predLoad = (POLoad)r;
-        LoadFunc lf = (LoadFunc)PigContext.instantiateFuncFromSpec(predLoad.getLFile().getFuncSpec());
-        if (!(lf instanceof SamplableLoader)) {
-            log.debug("Predecessor's loader does not implement SamplableLoader");
-            return;
-        }
 
         // The MR job should have one successor.
         List<MapReduceOper> succs = mPlan.getSuccessors(mr);
@@ -179,7 +173,7 @@ public class SampleOptimizer extends MROpPlanVisitor {
         // Second argument is the number of samples per block, read this from the original.
         rslargs[1] = load.getLFile().getFuncSpec().getCtorArgs()[1];
         FileSpec fs = new FileSpec(predFs.getFileName(),new FuncSpec(loadFunc, rslargs));
-        POLoad newLoad = new POLoad(load.getOperatorKey(),load.getRequestedParallelism(), fs, load.isSplittable());
+        POLoad newLoad = new POLoad(load.getOperatorKey(),load.getRequestedParallelism(), fs);
         newLoad.setSignature(predLoad.getSignature());
         try {
             mr.mapPlan.replace(load, newLoad);
@@ -195,7 +189,7 @@ public class SampleOptimizer extends MROpPlanVisitor {
 
         // Second, replace the loader in our successor with whatever the originally used loader was.
         fs = new FileSpec(predFs.getFileName(), predFs.getFuncSpec());
-        newLoad = new POLoad(succLoad.getOperatorKey(), succLoad.getRequestedParallelism(), fs, succLoad.isSplittable());
+        newLoad = new POLoad(succLoad.getOperatorKey(), succLoad.getRequestedParallelism(), fs);
         newLoad.setSignature(predLoad.getSignature());
         try {
             succ.mapPlan.replace(succLoad, newLoad);

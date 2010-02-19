@@ -31,12 +31,10 @@ import org.apache.pig.impl.logicalLayer.schema.Schema;
 public abstract class POStoreImpl {
     /**
      * Set up the storer 
-     * @param sFile - The file the store should write to
-     * @param schema - the schema of the data 
-     * @param sortInfo - sortInfo for any sort columns
+     * @param store - the POStore object
      * @throws IOException
      */
-    public abstract StoreFunc createStoreFunc(FileSpec sFile, Schema schema, SortInfo sortInfo) 
+    public abstract StoreFunc createStoreFunc(POStore store) 
         throws IOException;
     
     /**

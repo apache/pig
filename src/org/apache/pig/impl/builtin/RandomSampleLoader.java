@@ -17,16 +17,24 @@
  */
 package org.apache.pig.impl.builtin;
 
-import org.apache.pig.LoadFunc;
-import org.apache.pig.impl.logicalLayer.FrontendException;
+import java.io.IOException;
+import java.util.Random;
+
+import org.apache.pig.data.Tuple;
 
 /**
- * A loader that samples the data.  This loader can subsume loader that
- * can handle starting in the middle of a record.  Loaders that can
- * handle this should implement the SamplableLoader interface.
+ * A loader that samples the data.  
+ * It randomly samples tuples from input. The number of tuples to be sampled
+ * has to be set before the first call to getNext().
+ *  see documentation of getNext() call.
  */
 public class RandomSampleLoader extends SampleLoader {
  
+    //array to store the sample tuples
+    Tuple [] samples = null;
+    //index into samples array to the next sample to be returned 
+    protected int nextSampleIdx= 0;
+    
     /**
      * Construct with a class of loader to use.
      * @param funcSpec func spec of the loader to use.
@@ -41,17 +49,65 @@ public class RandomSampleLoader extends SampleLoader {
         // set the number of samples
         super.setNumSamples(Integer.valueOf(ns));
     }
-    
-    
+
+    /**
+     * Allocate a buffer for numSamples elements, populate it with the 
+     * first numSamples tuples, and continue scanning rest of the input.
+     * For every ith next() call, we generate a random number r s.t. 0<=r<i,
+     * and if r<numSamples we insert the new tuple into our buffer at position r.
+     * This gives us a random sample of the tuples in the partition.
+     */
     @Override
-    public void setNumSamples(int n) {
-    	// Setting it to 100 as default for order by
-    	super.setNumSamples(100);
-    }
+    public Tuple getNext() throws IOException {
+
+        if(samples != null){
+            return getSample();
+        }
+        //else collect samples
+        samples = new Tuple[numSamples];
+        
+        // populate the samples array with first numSamples tuples
+        Tuple t = null;
+        for(int i=0; i<numSamples; i++){
+            t = loader.getNext();
+            if(t == null)
+                break;
+            samples[i] = t;
+        }
+        
+        // rowNum that starts from 1
+        int rowNum = numSamples+1;
+        Random randGen = new Random();
+
+        if(t != null){ // did not exhaust all tuples
+            while(true){
+                // collect samples until input is exhausted
+                int rand = randGen.nextInt(rowNum);
+                if(rand < numSamples){
+                    // pick this as sample
+                    Tuple sampleTuple = loader.getNext();
+                    if(sampleTuple == null)
+                        break;
+                    samples[rand] = sampleTuple;
+                }else {
+                    //skip tuple
+                    if(!skipNext())
+                        break;
+                }
+                rowNum++;
+            }
+        }        
+        
+        return getSample();
+    } 
     
-    @Override
-    public LoadFunc.RequiredFieldResponse fieldsToRead(RequiredFieldList requiredFieldList) throws FrontendException {
-        return loader.fieldsToRead(requiredFieldList);
+    private Tuple getSample() {
+        if(nextSampleIdx < samples.length){
+            return samples[nextSampleIdx++];
+        }
+        else{
+            return null;
+        }
     }
- 
+
 }

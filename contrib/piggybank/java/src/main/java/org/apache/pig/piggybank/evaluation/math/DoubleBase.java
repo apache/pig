@@ -25,7 +25,6 @@ import java.util.ArrayList;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.data.Tuple;
-import org.apache.pig.impl.util.WrappedIOException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.data.DataType;
 
@@ -49,7 +48,7 @@ public abstract class DoubleBase extends Base{
             Double val = (Double)input.get(0);
             return (val == null ? null : compute(val));
         } catch (Exception e){
-            throw WrappedIOException.wrap("Caught exception processing input of " + this.getClass().getName(), e);
+            throw new IOException("Caught exception processing input of " + this.getClass().getName(), e);
         }
 	}
 

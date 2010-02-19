@@ -31,12 +31,13 @@ import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.BufferedPositionedInputStream;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.FileSpec;
+import org.apache.pig.impl.io.ReadToEndLoader;
 import org.apache.pig.impl.plan.OperatorKey;
+import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
-import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.pen.util.ExampleTuple;
 
@@ -57,14 +58,10 @@ public class POLoad extends PhysicalOperator {
     transient LoadFunc loader = null;
     // The filespec on which the operator is based
     FileSpec lFile;
-    // The stream used to bind to by the loader
-    transient InputStream is;
     // PigContext passed to us by the operator creator
     PigContext pc;
     //Indicates whether the loader setup is done or not
     boolean setUpDone = false;
-    // Indicates whether the filespec is splittable
-    boolean splittable = true;
     // default offset.
     private long offset = 0;
     // Alias for the POLoad
@@ -72,24 +69,23 @@ public class POLoad extends PhysicalOperator {
     
     transient private final Log log = LogFactory.getLog(getClass());
     
-    public POLoad(OperatorKey k, boolean splittable) {
-        this(k,-1, null, splittable);
+    public POLoad(OperatorKey k) {
+        this(k,-1, null);
     }
 
     
-    public POLoad(OperatorKey k, FileSpec lFile, boolean splittable){
-        this(k,-1,lFile, splittable);
+    public POLoad(OperatorKey k, FileSpec lFile){
+        this(k,-1,lFile);
     }
     
-    public POLoad(OperatorKey k, FileSpec lFile, long offset, boolean splittable){
-        this(k,-1,lFile, splittable);
+    public POLoad(OperatorKey k, FileSpec lFile, long offset){
+        this(k,-1,lFile);
         this.offset = offset;
     }
     
-    public POLoad(OperatorKey k, int rp, FileSpec lFile,boolean splittable) {
+    public POLoad(OperatorKey k, int rp, FileSpec lFile) {
         super(k, rp);
         this.lFile = lFile;
-        this.splittable = splittable;
     }
     
     /**
@@ -101,12 +97,14 @@ public class POLoad extends PhysicalOperator {
      */
     public void setUp() throws IOException{
         String filename = lFile.getFileName();
-        loader = (LoadFunc)PigContext.instantiateFuncFromSpec(lFile.getFuncSpec());
-        if (loader instanceof PigStorage)
-            ((PigStorage)loader).setSignature(signature);
-        is = (this.offset == 0) ? FileLocalizer.open(filename, pc) : FileLocalizer.open(filename, this.offset,pc);
+        LoadFunc origloader = 
+            (LoadFunc)PigContext.instantiateFuncFromSpec(lFile.getFuncSpec());
+        loader = new ReadToEndLoader(origloader, 
+                ConfigurationUtil.toConfiguration(pc.getProperties()), 
+                filename,
+                0);
+
         
-        loader.bindTo(filename , new BufferedPositionedInputStream(is), this.offset, Long.MAX_VALUE);
     }
     
     /**
@@ -115,7 +113,6 @@ public class POLoad extends PhysicalOperator {
      * @throws IOException
      */
     public void tearDown() throws IOException{
-        is.close();
         setUpDone = false;
     }
     
@@ -201,14 +198,6 @@ public class POLoad extends PhysicalOperator {
 
     public void setPc(PigContext pc) {
         this.pc = pc;
-    }
-
-
-    /**
-     * @return the splittable
-     */
-    public boolean isSplittable() {
-        return splittable;
     }
 
     public String getSignature() {

@@ -19,13 +19,19 @@
 
 package org.apache.pig.piggybank.test;
 
+import static org.junit.Assert.assertEquals;
+
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
+import org.apache.pig.ResourceSchema;
 import org.apache.pig.data.DataType;
+import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.logicalLayer.LogicalOperator;
@@ -108,4 +114,80 @@ public class TestPigStorageSchema extends TestCase {
         assertTrue("explicit schema overrides metadata", Schema.equals(newSchema, newGenSchema, true, false));
         
     }
+    
+    @Test
+    public void testSchemaConversion() throws Exception {   
+ 
+        Util.createInputFile(cluster, "originput2", 
+                new String[] {"1", "2", "3", "2",
+                              "5", "5", "8", "8",
+                              "8", "9"});
+        
+        pig.registerQuery("A = LOAD 'originput2' using org.apache.pig.piggybank.storage.PigStorageSchema() as (f:int);");
+        pig.registerQuery("B = group A by f;");
+        Schema origSchema = pig.dumpSchema("B");
+        ResourceSchema rs1 = new ResourceSchema(origSchema);
+        pig.registerQuery("STORE B into 'bout' using org.apache.pig.piggybank.storage.PigStorageSchema();");
+        
+        pig.registerQuery("C = LOAD 'bout' using org.apache.pig.piggybank.storage.PigStorageSchema();");
+        Schema genSchema = pig.dumpSchema("C");
+        ResourceSchema rs2 = new ResourceSchema(genSchema);
+        assertTrue("generated schema equals original" , ResourceSchema.equals(rs1, rs2));
+        
+        pig.registerQuery("C1 = LOAD 'bout' as (a0:int, A: {t: (f:int) } );");
+        pig.registerQuery("D = foreach C1 generate a0, SUM(A);");
+
+        List<Tuple> expectedResults = Util.getTuplesFromConstantTupleStrings(
+                new String[] { 
+                        "(1,1L)",
+                        "(2,4L)",
+                        "(3,3L)",
+                        "(5,10L)",
+                        "(8,24L)",
+                        "(9,9L)"
+                });
+        
+        Iterator<Tuple> iter = pig.openIterator("D");
+        int counter = 0;
+        while (iter.hasNext()) {
+            assertEquals(expectedResults.get(counter++).toString(), iter.next().toString());      
+        }
+        
+        assertEquals(expectedResults.size(), counter);
+    }
+    
+    @Test
+    public void testSchemaConversion2() throws Exception {   
+ 
+        pig.registerQuery("A = LOAD 'originput' using org.apache.pig.piggybank.storage.PigStorageSchema(',') as (f1:chararray, f2:int);");
+        pig.registerQuery("B = group A by f1;");
+        Schema origSchema = pig.dumpSchema("B");
+        ResourceSchema rs1 = new ResourceSchema(origSchema);
+        pig.registerQuery("STORE B into 'cout' using org.apache.pig.piggybank.storage.PigStorageSchema();");
+        
+        pig.registerQuery("C = LOAD 'cout' using org.apache.pig.piggybank.storage.PigStorageSchema();");
+        Schema genSchema = pig.dumpSchema("C");
+        ResourceSchema rs2 = new ResourceSchema(genSchema);
+        assertTrue("generated schema equals original" , ResourceSchema.equals(rs1, rs2));
+        
+        pig.registerQuery("C1 = LOAD 'cout' as (a0:chararray, A: {t: (f1:chararray, f2:int) } );");
+        pig.registerQuery("D = foreach C1 generate a0, SUM(A.f2);");
+
+        List<Tuple> expectedResults = Util.getTuplesFromConstantTupleStrings(
+                new String[] { 
+                        "('A',23L)",
+                        "('B',7L)",
+                        "('C',11L)",
+                        "('D',10L)"
+                });
+        
+        Iterator<Tuple> iter = pig.openIterator("D");
+        int counter = 0;
+        while (iter.hasNext()) {
+            assertEquals(expectedResults.get(counter++).toString(), iter.next().toString());      
+        }
+        
+        assertEquals(expectedResults.size(), counter);
+    }
+ 
 }

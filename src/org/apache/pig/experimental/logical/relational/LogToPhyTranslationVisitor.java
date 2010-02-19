@@ -98,7 +98,7 @@ public class LogToPhyTranslationVisitor extends LogicalPlanVisitor {
         // The last parameter here is set to true as we assume all files are 
         // splittable due to LoadStore Refactor
         POLoad load = new POLoad(new OperatorKey(scope, nodeGen
-                .getNextNodeId(scope)), true);
+                .getNextNodeId(scope)));
         load.setAlias(loLoad.getAlias());
         load.setLFile(loLoad.getFileSpec());
         load.setPc(pc);
@@ -173,6 +173,7 @@ public class LogToPhyTranslationVisitor extends LogicalPlanVisitor {
 //        System.err.println("Exiting Filter");
     }
     
+    @Override
     public void visitLOInnerLoad(LOInnerLoad load) throws IOException {
         String scope = DEFAULT_SCOPE;
         
@@ -196,6 +197,7 @@ public class LogToPhyTranslationVisitor extends LogicalPlanVisitor {
         currentPlan.add(exprOp);
     }
     
+    @Override
     public void visitLOForEach(LOForEach foreach) throws IOException {
         String scope = DEFAULT_SCOPE;
         

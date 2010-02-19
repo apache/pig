@@ -24,6 +24,7 @@ import org.apache.pig.ExecType;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.backend.datastorage.DataStorage;
 import org.apache.pig.backend.datastorage.ElementDescriptor;
+import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.FileSpec;
@@ -148,8 +149,9 @@ public class TestInputOutputFileValidator extends TestCase {
             new FileSpec(inputFile, new FuncSpec("org.apache.pig.builtin.PigStorage")) ;
         FileSpec filespec2 =
             new FileSpec(outputFile, new FuncSpec("org.apache.pig.builtin.PigStorage"));
-        LOLoad load = new LOLoad(plan, genNewOperatorKeyId(), filespec1, null, dfs, true) ;       
-        LOStore store = new LOStore(plan, genNewOperatorKeyId(), filespec2) ;
+        LOLoad load = new LOLoad(plan, genNewOperatorKeyId(), filespec1, 
+                ConfigurationUtil.toConfiguration(dfs.getConfiguration())) ;       
+        LOStore store = new LOStore(plan, genNewOperatorKeyId(), filespec2, "new") ;
         
         plan.add(load) ;
         plan.add(store) ;

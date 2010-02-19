@@ -17,72 +17,56 @@
  */
 package org.apache.pig.builtin;
 
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
 import java.io.IOException;
-import java.net.URL;
-import java.nio.charset.Charset;
 import java.util.Map;
 
-import org.apache.pig.ExecType;
+import org.apache.hadoop.io.Text;
+import org.apache.hadoop.mapreduce.InputFormat;
+import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.mapreduce.RecordReader;
+import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
+import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
+import org.apache.pig.LoadCaster;
 import org.apache.pig.LoadFunc;
 import org.apache.pig.PigException;
-import org.apache.pig.backend.datastorage.DataStorage;
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigSplit;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
-import org.apache.pig.impl.io.BufferedPositionedInputStream;
-import org.apache.pig.impl.logicalLayer.FrontendException;
-import org.apache.pig.impl.logicalLayer.schema.Schema;
 
 
 /**
  * This load function simply creates a tuple for each line of text that has a single field that
  * contains the line of text.
  */
-public class TextLoader implements LoadFunc{
-    BufferedPositionedInputStream in;
-    final private static Charset utf8 = Charset.forName("UTF8");
-    long end;
+public class TextLoader extends LoadFunc implements LoadCaster {
+    protected RecordReader in = null;
     private TupleFactory mTupleFactory = TupleFactory.getInstance();
 
-    public void bindTo(String fileName, BufferedPositionedInputStream in, long offset, long end) throws IOException {
-        this.in = in;
-        this.end = end;
-        // Since we are not block aligned we throw away the first
-        // record and count on a different instance to read it
-        if (offset != 0)
-            getNext();
-    }
-
+    @Override
     public Tuple getNext() throws IOException {
-        if (in == null || in.getPosition() > end)
-            return null;
-        String line;
-        if ((line = in.readLine(utf8, (byte)'\n')) != null) {
-            if (line.length()>0 && line.charAt(line.length()-1)=='\r' && System.getProperty("os.name").toUpperCase().startsWith("WINDOWS"))
-                line = line.substring(0, line.length()-1);
-            return mTupleFactory.newTuple(new DataByteArray(line.getBytes()));
+        try {
+            boolean notDone = in.nextKeyValue();
+            if (!notDone) {
+                return null;
+            }                                                                                           
+            Text value = (Text) in.getCurrentValue();
+            byte[] ba = value.getBytes();
+            // make a copy of the bytes representing the input since
+            // TextInputFormat will reuse the byte array
+            return mTupleFactory.newTuple(new DataByteArray(ba, 0, value.getLength()));
+        } catch (InterruptedException e) {
+            throw new IOException("Error getting input");
         }
-        return null;
-    }
-
-    /**
-     * TextLoader does not support conversion to Boolean.
-     * @throws IOException if the value cannot be cast.
-     */
-    public Boolean bytesToBoolean(byte[] b) throws IOException {
-        int errCode = 2109;
-        String msg = "TextLoader does not support conversion to Boolean.";
-        throw new ExecException(msg, errCode, PigException.BUG);
     }
     
     /**
      * TextLoader does not support conversion to Integer
      * @throws IOException if the value cannot be cast.
      */
+    @Override
     public Integer bytesToInteger(byte[] b) throws IOException {
         int errCode = 2109;
         String msg = "TextLoader does not support conversion to Integer.";
@@ -93,6 +77,7 @@ public class TextLoader implements LoadFunc{
      * TextLoader does not support conversion to Long
      * @throws IOException if the value cannot be cast.
      */
+    @Override
     public Long bytesToLong(byte[] b) throws IOException {
         int errCode = 2109;
         String msg = "TextLoader does not support conversion to Long.";
@@ -103,6 +88,7 @@ public class TextLoader implements LoadFunc{
      * TextLoader does not support conversion to Float
      * @throws IOException if the value cannot be cast.
      */
+    @Override
     public Float bytesToFloat(byte[] b) throws IOException {
         int errCode = 2109;
         String msg = "TextLoader does not support conversion to Float.";
@@ -113,6 +99,7 @@ public class TextLoader implements LoadFunc{
      * TextLoader does not support conversion to Double
      * @throws IOException if the value cannot be cast.
      */
+    @Override
     public Double bytesToDouble(byte[] b) throws IOException {
         int errCode = 2109;
         String msg = "TextLoader does not support conversion to Double.";
@@ -125,6 +112,7 @@ public class TextLoader implements LoadFunc{
      * @return String value.
      * @throws IOException if the value cannot be cast.
      */
+    @Override
     public String bytesToCharArray(byte[] b) throws IOException {
         return new String(b);
     }
@@ -133,6 +121,7 @@ public class TextLoader implements LoadFunc{
      * TextLoader does not support conversion to Map
      * @throws IOException if the value cannot be cast.
      */
+    @Override
     public Map<String, Object> bytesToMap(byte[] b) throws IOException {
         int errCode = 2109;
         String msg = "TextLoader does not support conversion to Map.";
@@ -143,6 +132,7 @@ public class TextLoader implements LoadFunc{
      * TextLoader does not support conversion to Tuple
      * @throws IOException if the value cannot be cast.
      */
+    @Override
     public Tuple bytesToTuple(byte[] b) throws IOException {
         int errCode = 2109;
         String msg = "TextLoader does not support conversion to Tuple.";
@@ -157,23 +147,6 @@ public class TextLoader implements LoadFunc{
         int errCode = 2109;
         String msg = "TextLoader does not support conversion to Bag.";
         throw new ExecException(msg, errCode, PigException.BUG);
-    }
-
-    /**
-     * TextLoader doesn't make use of this.
-     */
-    @Override
-    public LoadFunc.RequiredFieldResponse fieldsToRead(LoadFunc.RequiredFieldList requiredFieldList) throws FrontendException {
-        return new LoadFunc.RequiredFieldResponse(false);
-    }
-
-    /**
-     * TextLoader does not provide a schema.
-     */
-    public Schema determineSchema(String fileName, ExecType execType,
-            DataStorage storage) throws IOException {
-        // TODO Auto-generated method stub
-        return null;
     }
 
     public byte[] toBytes(DataBag bag) throws IOException {
@@ -221,4 +194,25 @@ public class TextLoader implements LoadFunc{
         String msg = "TextLoader does not support conversion from Tuple.";
         throw new ExecException(msg, errCode, PigException.BUG);
     }
+
+    @Override
+    public InputFormat getInputFormat() {
+        return new TextInputFormat();
+    }
+
+    @Override
+    public LoadCaster getLoadCaster() {
+        return this;
+    }
+    
+    @Override
+    public void prepareToRead(RecordReader reader, PigSplit split) {
+        in = reader;        
+    }
+
+    @Override
+    public void setLocation(String location, Job job) throws IOException {
+        FileInputFormat.setInputPaths(job, location);
+    }
+
 }

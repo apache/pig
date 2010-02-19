@@ -31,7 +31,6 @@ import org.apache.pig.data.Tuple;
 import org.apache.pig.data.DefaultTupleFactory;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.data.DataType;
-import org.apache.pig.impl.util.WrappedIOException;
 
 /**
 * Computes the correlation between sets of data.  The returned value 
@@ -191,7 +190,7 @@ public class COR extends EvalFunc<DataBag> implements Algebraic,Serializable {
             try{
                 return combine((DataBag)input.get(0));
             }catch(Exception e){
-                throw WrappedIOException.wrap("Caught exception in COR.Intermed", e);
+                throw new IOException("Caught exception in COR.Intermed", e);
             }
         }
     }
@@ -216,7 +215,7 @@ public class COR extends EvalFunc<DataBag> implements Algebraic,Serializable {
             try{
                 combined = combine((DataBag)input.get(0));    
             }catch(Exception e){
-                throw WrappedIOException.wrap("Caught exception in COR.Final", e);
+                throw new IOException("Caught exception in COR.Final", e);
             }
             int count = 0;
             //for each pair of input schema combined contain 2 member. first member
@@ -312,7 +311,7 @@ public class COR extends EvalFunc<DataBag> implements Algebraic,Serializable {
                 output.append(count);
             }
         }catch(Exception e){
-            throw WrappedIOException.wrap("Caught exception in COR.combine", e);
+            throw new IOException("Caught exception in COR.combine", e);
         }
 
         return output;

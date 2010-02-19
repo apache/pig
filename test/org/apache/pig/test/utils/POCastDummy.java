@@ -99,7 +99,6 @@ public class POCastDummy extends ExpressionOperator {
         return new Result();
     }
 
-    @Override
     protected List<ExpressionOperator> getChildExpressions() {		
         return null;
     }    

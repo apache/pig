@@ -24,7 +24,6 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.util.Iterator;
-import java.util.Random;
 
 import junit.framework.TestCase;
 
@@ -32,9 +31,10 @@ import org.apache.pig.EvalFunc;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
-import org.apache.pig.data.*;
+import org.apache.pig.data.Tuple;
+import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.io.FileLocalizer;
-import org.apache.pig.test.utils.*;
+import org.apache.pig.test.utils.FILTERFROMFILE;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -103,7 +103,9 @@ public class TestFilterUDF extends TestCase {
     @Test
     public void testFilterUDF() throws Exception{
         
-        pigServer.registerQuery("A = LOAD '" + Util.generateURI(tmpFile.toString()) + "' as (x:int);");
+        pigServer.registerQuery("A = LOAD '" 
+                + Util.generateURI(tmpFile.toString(), pigServer.getPigContext()) 
+                + "' as (x:int);");
         pigServer.registerQuery("B = filter A by " + MyFilterFunction.class.getName() + "();");
         Iterator<Tuple> iter = pigServer.openIterator("B");
         if(!iter.hasNext()) fail("No Output received");
@@ -133,8 +135,15 @@ public class TestFilterUDF extends TestCase {
                     }
                 );
 
-        pigServer.registerQuery("define FILTER_CRITERION " + FILTERFROMFILE.class.getName() + "('" + FileLocalizer.hadoopify(Util.generateURI(filterFile.toString()), pigServer.getPigContext()) + "');");
-        pigServer.registerQuery("a = LOAD '" + Util.generateURI(inputFile.toString()) + "' as (url:chararray, numvisits:int);");
+        pigServer.registerQuery("define FILTER_CRITERION "
+                + FILTERFROMFILE.class.getName()
+                + "('"
+                + Util.generateURI(filterFile.toString(), pigServer
+                        .getPigContext()) + "');");
+        pigServer.registerQuery("a = LOAD '"
+                + Util.generateURI(inputFile.toString(), pigServer
+                        .getPigContext())
+                + "' as (url:chararray, numvisits:int);");
         pigServer.registerQuery("b = filter a by FILTER_CRITERION(numvisits);");
 
         Tuple expectedTuple = tf.newTuple();
@@ -146,7 +155,5 @@ public class TestFilterUDF extends TestCase {
             Tuple t = iter.next();
             assertTrue(t.equals(expectedTuple));
         }
-
     }
-        
 }

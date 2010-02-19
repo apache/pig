@@ -31,7 +31,6 @@ import org.apache.pig.data.Tuple;
 import org.apache.pig.data.DefaultTupleFactory;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.data.DataType;
-import org.apache.pig.impl.util.WrappedIOException;
 
 /**
 * Computes the covariance between sets of data.  The returned value 
@@ -190,7 +189,7 @@ public class COV extends EvalFunc<DataBag> implements Algebraic,Serializable {
             try{
                 return combine((DataBag)input.get(0));
             }catch(Exception e){
-                throw WrappedIOException.wrap("Caught exception in COV.Intermed", e);
+                throw new IOException("Caught exception in COV.Intermed", e);
             }
         }
     }
@@ -250,7 +249,7 @@ public class COV extends EvalFunc<DataBag> implements Algebraic,Serializable {
                     }
                 }
             }catch(Exception e){
-                throw WrappedIOException.wrap("Caught exception in COV.Intermed", e);
+                throw new IOException("Caught exception in COV.Intermed", e);
             }
 
             return output;
@@ -297,7 +296,7 @@ public class COV extends EvalFunc<DataBag> implements Algebraic,Serializable {
                 output.append(count);
             }
         }catch(Exception e){
-            throw WrappedIOException.wrap("Caught exception processing input", e);
+            throw new IOException("Caught exception processing input", e);
         }
       
         return output;
@@ -324,7 +323,7 @@ public class COV extends EvalFunc<DataBag> implements Algebraic,Serializable {
                 sum_y+=y;
             }
         }catch (Exception e){
-            throw WrappedIOException.wrap("Caught exception processing input", e);
+            throw new IOException("Caught exception processing input", e);
         }
         
         Tuple result = DefaultTupleFactory.getInstance().newTuple(3);

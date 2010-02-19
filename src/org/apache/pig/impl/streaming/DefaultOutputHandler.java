@@ -17,12 +17,7 @@
  */
 package org.apache.pig.impl.streaming;
 
-import java.io.IOException;
-
-import org.apache.pig.LoadFunc;
-import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.impl.PigContext;
-import org.apache.pig.impl.io.BufferedPositionedInputStream;
 import org.apache.pig.impl.streaming.StreamingCommand.HandleSpec;
 
 /**
@@ -31,32 +26,17 @@ import org.apache.pig.impl.streaming.StreamingCommand.HandleSpec;
  * via its <code>stdout</code>.
  */
 public class DefaultOutputHandler extends OutputHandler {
-    BufferedPositionedInputStream stdout;
     
     public DefaultOutputHandler() {
-        deserializer = new PigStorage();
+        deserializer = new PigStreaming();
     }
     
     public DefaultOutputHandler(HandleSpec spec) {
-        deserializer = (LoadFunc)PigContext.instantiateFuncFromSpec(spec.spec);
+        deserializer = (StreamToPig)PigContext.instantiateFuncFromSpec(spec.spec);
     }
 
+    @Override
     public OutputType getOutputType() {
         return OutputType.SYNCHRONOUS;
-    }
-
-    public void bindTo(String fileName, BufferedPositionedInputStream is,
-            long offset, long end) throws IOException {
-        stdout = is;
-        super.bindTo(fileName, stdout, offset, end);
-    }
-
-    public synchronized void close() throws IOException {
-        if(!alreadyClosed) {
-            super.close();
-            stdout.close();
-            stdout = null;
-            alreadyClosed = true;
-        }
     }
 }

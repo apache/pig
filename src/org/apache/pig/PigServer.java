@@ -548,7 +548,7 @@ public class PigServer {
                 }
             }
             
-            LogicalPlan storePlan = QueryParser.generateStorePlan(scope, lp, filename, func, leaf);
+            LogicalPlan storePlan = QueryParser.generateStorePlan(scope, lp, filename, func, leaf, leaf.getAlias(), pigContext);
             List<ExecJob> jobs = executeCompiledLogicalPlan(storePlan);
             if (jobs.size() < 1) {
                 throw new IOException("Couldn't retrieve job.");
@@ -775,7 +775,7 @@ public class PigServer {
             }
             
             lp = QueryParser.generateStorePlan(scope, lp, "fakefile", 
-                                               PigStorage.class.getName(), leaf);
+                                               PigStorage.class.getName(), leaf, "fake", pigContext);
         }
 
         return lp;
@@ -801,7 +801,7 @@ public class PigServer {
         PhysicalPlan pp = compilePp(compiledLp);
         // execute using appropriate engine
         FileLocalizer.clearDeleteOnFail();
-        List<ExecJob> execJobs = pigContext.getExecutionEngine().execute(pp, "execute");
+        List<ExecJob> execJobs = pigContext.getExecutionEngine().execute(pp, "job_pigexec_");
         for (ExecJob execJob: execJobs) {
             if (execJob.getStatus()==ExecJob.JOB_STATUS.FAILED) {
                 FileLocalizer.triggerDeleteOnFail();
@@ -1130,7 +1130,14 @@ public class PigServer {
                     String ofile = store.getOutputFile().getFileName();
                     if (ofile.compareTo(ifile) == 0) {
                         try {
-                            store.getPlan().connect(store, load);
+                            // if there is no path from the load to the store,
+                            // then connect the store to the load to create the
+                            // dependency of the store on the load. If there is
+                            // a path from the load to the store, then we should
+                            // not connect the store to the load and create a cycle
+                            if(!store.getPlan().pathExists(load, store)) {
+                                store.getPlan().connect(store, load);
+                            }
                         } catch (PlanException ex) {
                             int errCode = 2128;
                             String msg = "Failed to connect store with dependent load.";

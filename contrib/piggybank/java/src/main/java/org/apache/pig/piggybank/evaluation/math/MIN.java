@@ -19,17 +19,16 @@
 package org.apache.pig.piggybank.evaluation.math;
 
 import java.io.IOException;
-import java.util.List;
 import java.util.ArrayList;
+import java.util.List;
 
 import org.apache.pig.EvalFunc;
 import org.apache.pig.FuncSpec;
-import org.apache.pig.data.Tuple;
-import org.apache.pig.impl.logicalLayer.schema.Schema;
-import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.data.DataType;
+import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.logicalLayer.FrontendException;
-import org.apache.pig.impl.util.WrappedIOException;
+import org.apache.pig.impl.logicalLayer.schema.Schema;
+
 
 /**
  * math.MIN implements a binding to the Java function
@@ -80,7 +79,7 @@ public class MIN extends EvalFunc<Double>{
             System.err.println("Failed to process input; error - " + nfe.getMessage());
             return null;
         } catch(Exception e){
-            throw WrappedIOException.wrap("Caught exception in MIN.Initial", e);
+            throw new IOException("Caught exception in MIN.Initial", e);
 		}
 		
 	}

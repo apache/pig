@@ -108,6 +108,7 @@ public class TestBasicTableUnionLoader {
     for (int i = 0; i < numsInserters; i++) {
       inserters[i].close();
     }
+    writer.close();
 
     /*
      * create 2nd basic table;
@@ -141,6 +142,7 @@ public class TestBasicTableUnionLoader {
     for (int i = 0; i < numsInserters; i++) {
       inserters[i].close();
     }
+    writer.close();
   }
 
   @AfterClass

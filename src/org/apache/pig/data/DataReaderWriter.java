@@ -20,12 +20,14 @@ package org.apache.pig.data;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
+import java.lang.reflect.Constructor;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.io.Writable;
 import org.apache.pig.backend.executionengine.ExecException;
 
 /**
@@ -98,6 +100,30 @@ public class DataReaderWriter {
         return new String(ba, DataReaderWriter.UTF8);
     }
     
+    public static Writable bytesToWritable(DataInput in) throws IOException {
+        String className = (String) readDatum(in);
+        // create the writeable class . It needs to have a default constructor
+        Class<?> objClass = null ;
+        try {
+            objClass = Class.forName(className);
+        } catch (ClassNotFoundException e) {
+            throw new IOException("Could not find class " + className + 
+                    ", while attempting to de-serialize it ", e);
+        }
+        Writable writable = null;
+        try {
+            writable = (Writable) objClass.newInstance();
+        } catch (Exception e) {
+            String msg = "Could create instance of class " + className + 
+            ", while attempting to de-serialize it. (no default constructor ?)";
+            throw new IOException(msg, e);
+        } 
+        
+        //read the fields of the object from DataInput
+        writable.readFields(in);
+        return writable;
+    }
+    
     public static Object readDatum(DataInput in) throws IOException, ExecException {
         // Read the data type
         byte b = in.readByte();
@@ -149,7 +175,10 @@ public class DataReaderWriter {
 
             case DataType.CHARARRAY: 
                 return bytesToCharArray(in);
-            
+                
+            case DataType.GENERIC_WRITABLECOMPARABLE :
+                return bytesToWritable(in);
+                
             case DataType.NULL:
                 return null;
 
@@ -261,6 +290,13 @@ public class DataReaderWriter {
                 }
                 break;
                                      }
+            case DataType.GENERIC_WRITABLECOMPARABLE :
+                out.writeByte(DataType.GENERIC_WRITABLECOMPARABLE);
+                //store the class name, so we know the class to create on read
+                writeDatum(out, val.getClass().getName());
+                Writable writable = (Writable)val;
+                writable.write(out);
+                break;
 
             case DataType.NULL:
                 out.writeByte(DataType.NULL);

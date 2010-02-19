@@ -140,7 +140,10 @@ import org.apache.hadoop.util.ReflectionUtils;
  * 
  * }
  * </pre>
+ * 
+ * @Deprecated Use (@link org.apache.hadoop.zebra.mapreduce.BasicTableOutputFormat) instead
  */
+@Deprecated
 public class BasicTableOutputFormat implements
     OutputFormat<BytesWritable, Tuple> {
   private static final String OUTPUT_PATH = "mapred.lib.table.output.dir";

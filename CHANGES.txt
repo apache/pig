@@ -22,6 +22,37 @@ Trunk (unreleased changes)
 
 INCOMPATIBLE CHANGES
 
+PIG-1234: Unable to create input slice for har:// files (pradeepkth)
+
+PIG-1200: Using TableInputFormat in HBaseStorage (zjffdu via pradeepkth)
+
+PIG-1148: Move splitable logic from pig latin to InputFormat (zjffdu via
+pradeepkth)
+
+PIG-1141: Make streaming work with the new load-store interfaces (rding via
+pradeepkth)
+
+PIG-1110: Handle compressed file formats -- Gz, BZip with the new proposal
+(rding via pradeepkth)
+
+PIG-1088: change merge join and merge join indexer to work with new LoadFunc
+interface (thejas via pradeepkth)
+
+PIG-879:  Pig should provide a way for input location string in load statement
+to be passed as-is to the Loader (rding via pradeepkth)
+
+PIG-966: load-store-redesign branch: change SampleLoader and subclasses to
+work with new LoadFunc interface (thejas via pradeepkth)
+
+PIG-1094:  Fix unit tests corresponding to source changes so far (pradeepkth)
+
+PIG-1090:  Update sources to reflect recent changes in load-store interfaces
+(pradeepkth)
+
+PIG-1072: ReversibleLoadStoreFunc interface should be removed to enable
+different load and store implementation classes to be used in a reversible
+manner (rding via pradeepkth)
+
 IMPROVEMENTS
 
 PIG-1226: suuport for additional jar files (thejas via olgan)
@@ -50,7 +81,7 @@ PIG-1175: Pig 0.6 Docs - Store v. Dump (chandec via olgan)
 PIG-1102: Collect number of spills per job (sriranjan via olgan)
 
 PIG-1149: Allow instantiation of SampleLoaders with parametrized LoadFuncs
-(dvryaboy via olgan)
+(dvryaboy via pradeepkth)
 
 PIG-1162: Pig 0.6.0 - UDF doc (chandec via olgan)
 
@@ -94,6 +125,12 @@ PIG-1173: pig cannot be built without an internet connection (jmhodges via daijy
 OPTIMIZATIONS
 
 BUG FIXES
+
+PIG-1216: New load store design does not allow Pig to validate inputs and
+outputs up front (ashutoshc via pradeepkth)
+
+PIG-1239: PigContext.connect() should not create a jobClient and jobClient
+should be created on demand when needed (pradeepkth)
 
 PIG-1169: Top-N queries produce incorrect results when a store statement is added between order by and limit statement (rding)
 
@@ -226,6 +263,8 @@ PIG-1037: Converted sorted and distinct bags to use the new active spilling
 PIG-1051: FINDBUGS: NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE (olgan)
 
 PIG-1050: FINDBUGS: DLS_DEAD_LOCAL_STORE: Dead store to local variable (olgan)
+
+PIG-1045: Integration with Hadoop 20 New API (rding via pradeepkth)
 
 PIG-1043: FINDBUGS: SIC_INNER_SHOULD_BE_STATIC: Should be a static inner class
 (olgan)

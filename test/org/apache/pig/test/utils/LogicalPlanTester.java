@@ -59,11 +59,17 @@ public class LogicalPlanTester {
     private Map<OperatorKey, LogicalOperator> logicalOpTable = null ;
     private Map<String, LogicalOperator> aliasOp = null ;
     private Map<String, String> fileNameMap = null ;
+    private PigContext pigContext;
 
     public LogicalPlanTester() {
-        reset() ;
+        this(new PigContext(ExecType.MAPREDUCE, new Properties()));
     }
 
+    public LogicalPlanTester(PigContext pc) {
+        pigContext = pc;
+        reset() ;
+    }
+    
     /***
      * Reset state
      */
@@ -203,7 +209,6 @@ public class LogicalPlanTester {
     private LogicalPlan buildPlan(String query, ClassLoader cldr) {
 
         LogicalPlanBuilder.classloader = LogicalPlanTester.class.getClassLoader() ;
-        PigContext pigContext = new PigContext(ExecType.MAPREDUCE, new Properties());
         try {
             pigContext.connect();
         } catch (ExecException e1) {
@@ -252,7 +257,7 @@ public class LogicalPlanTester {
     private LogicalPlan buildPlanThrowExceptionOnError (String query, ClassLoader cldr) throws IOException, ParseException {
 
         LogicalPlanBuilder.classloader = LogicalPlanTester.class.getClassLoader() ;
-        PigContext pigContext = new PigContext(ExecType.MAPREDUCE, new Properties());
+        
         try {
             pigContext.connect();
         } catch (ExecException e1) {

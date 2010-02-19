@@ -20,7 +20,6 @@ package org.apache.pig.test;
 import static java.util.regex.Matcher.quoteReplacement;
 
 import java.io.BufferedReader;
-import java.io.BufferedWriter;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -39,12 +38,16 @@ import java.util.Map;
 
 import junit.framework.Assert;
 
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
+import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRCompiler;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROperPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.LogToPhyTranslationVisitor;
@@ -56,6 +59,7 @@ import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.PigContext;
+import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.logicalLayer.LogicalPlan;
 import org.apache.pig.impl.logicalLayer.parser.ParseException;
 import org.apache.pig.impl.logicalLayer.parser.QueryParser;
@@ -208,12 +212,26 @@ public class Util {
 	throws IOException {
 		File f = File.createTempFile(tmpFilenamePrefix, tmpFilenameSuffix);
         f.deleteOnExit();
-		PrintWriter pw = new PrintWriter(new OutputStreamWriter(new FileOutputStream(f), "UTF-8"));
-		for (int i=0; i<inputData.length; i++){
-			pw.println(inputData[i]);
-		}
-		pw.close();
+        writeToFile(f, inputData);	
 		return f;
+	}
+	
+	static public File createLocalInputFile(String filename, String[] inputData) 
+    throws IOException {
+        File f = new File(filename);
+        f.deleteOnExit();
+        writeToFile(f, inputData);  
+        return f;
+    }
+	
+	private static void writeToFile(File f, String[] inputData) throws
+	IOException {
+	    PrintWriter pw = new PrintWriter(new OutputStreamWriter(new 
+	            FileOutputStream(f), "UTF-8"));
+        for (int i=0; i<inputData.length; i++){
+            pw.println(inputData[i]);
+        }
+        pw.close();
 	}
 	
 	/**
@@ -230,6 +248,11 @@ public class Util {
                                        String[] inputData) 
     throws IOException {
         FileSystem fs = miniCluster.getFileSystem();
+        createInputFile(fs, fileName, inputData);
+    }
+    
+    static public void createInputFile(FileSystem fs, String fileName, 
+            String[] inputData) throws IOException {
         if(fs.exists(new Path(fileName))) {
             throw new IOException("File " + fileName + " already exists on the minicluster");
         }
@@ -239,23 +262,7 @@ public class Util {
             pw.println(inputData[i]);
         }
         pw.close();
-    }
-    
-    /**
-     * Helper to return the file size on the MiniCluster dfs.
-     * 
-     * @param miniCluster reference to the Minicluster where the file should be created
-     * @param fileName pathname of the file to be created
-     * @throws IOException
-     */
-    static public long getSize(MiniCluster miniCluster, String fileName) 
-    throws IOException {
-        FileSystem fs = miniCluster.getFileSystem();
-        Path p = new Path(fileName);
-        if(!fs.exists(p)) {
-            throw new IOException("File " + fileName + " does not exist on the minicluster");
-        }
-        return fs.getFileStatus(p).getLen();
+
     }
     
     /**
@@ -293,21 +300,36 @@ public class Util {
         fs.delete(new Path(fileName), true);
     }
 
-	/**
-	 * Helper function to check if the result of a Pig Query is in line with 
-	 * expected results.
-	 * 
-	 * @param actualResults Result of the executed Pig query
-	 * @param expectedResults Expected results to validate against
-	 */
-	static public void checkQueryOutputs(Iterator<Tuple> actualResults, 
-			                        Tuple[] expectedResults) {
-	    
-		for (Tuple expected : expectedResults) {
-			Tuple actual = actualResults.next();
-			Assert.assertEquals(expected, actual);
-		}
-	}
+    static public void deleteFile(PigContext pigContext, String fileName) 
+    throws IOException {
+        Configuration conf = ConfigurationUtil.toConfiguration(
+                pigContext.getProperties());
+        FileSystem fs = FileSystem.get(conf);
+        fs.delete(new Path(fileName), true);
+    }
+    
+    static public boolean exists(PigContext pigContext, String fileName) 
+    throws IOException {
+        Configuration conf = ConfigurationUtil.toConfiguration(
+                pigContext.getProperties());
+        FileSystem fs = FileSystem.get(conf);
+        return fs.exists(new Path(fileName));
+    }
+    
+    /**
+    * Helper function to check if the result of a Pig Query is in line with 
+    * expected results.
+    * 
+    * @param actualResults Result of the executed Pig query
+    * @param expectedResults Expected results to validate against
+    */
+    static public void checkQueryOutputs(Iterator<Tuple> actualResults, 
+                                    Tuple[] expectedResults) {
+        for (Tuple expected : expectedResults) {
+            Tuple actual = actualResults.next();
+            Assert.assertEquals(expected.toString(), actual.toString());
+        }
+    }
 
 	/**
 	 * Utility method to copy a file form local filesystem to the dfs on
@@ -330,13 +352,18 @@ public class Util {
 	static public void copyFromClusterToLocal(MiniCluster cluster, String fileNameOnCluster, String localFileName) throws IOException {
 	    PrintWriter writer = new PrintWriter(new FileWriter(localFileName));
 	    
-	    FileSystem fs = cluster.getFileSystem();
+	    FileSystem fs = FileSystem.get(ConfigurationUtil.toConfiguration(
+	            cluster.getProperties()));
         if(!fs.exists(new Path(fileNameOnCluster))) {
             throw new IOException("File " + fileNameOnCluster + " does not exists on the minicluster");
         }
         
         String line = null;
- 	   
+ 	   FileStatus fst = fs.getFileStatus(new Path(fileNameOnCluster));
+ 	   if(fst.isDir()) {
+ 	       throw new IOException("Only files from cluster can be copied locally," +
+ 	       		" " + fileNameOnCluster + " is a directory");
+ 	   }
         FSDataInputStream stream = fs.open(new Path(fileNameOnCluster));
         BufferedReader reader = new BufferedReader(new InputStreamReader(stream));
         while( (line = reader.readLine()) != null) {
@@ -376,20 +403,16 @@ public class Util {
 	    String replacement = quoteReplacement("\\\\");
 	    return str.replaceAll(regex, replacement);
 	}
-	
-	   /**
-     * Helper method to construct URI for local file system. For unix, it will
-     * put "file:" in the front of the path; For Windows, it will put "file:/" in 
-     * front of the path, and also call encodeEscape to replace "\" with "\\"
-     * 
-     * @param str absolute path (under cygwin, should be a windows style path)
-     * @return The resulting string
-     */
-    public static String generateURI(String path)
-    {
-        if (System.getProperty("os.name").toUpperCase().startsWith("WINDOWS"))
-            return "file:/"+encodeEscape(path);
-        return "file:"+path;
+
+    public static String generateURI(String filename, PigContext context) 
+            throws IOException {
+        if (context.getExecType() == ExecType.MAPREDUCE) {
+            return FileLocalizer.hadoopify(filename, context);
+        } else if (context.getExecType() == ExecType.LOCAL) {
+            return filename;
+        } else {
+            throw new IllegalStateException("ExecType: " + context.getExecType());
+        }
     }
 
     public static Schema getSchemaFromString(String schemaString) throws ParseException {
@@ -469,5 +492,18 @@ public class Util {
             }
         }
         return(path.delete());
+    }
+
+    /**
+     * @param pigContext
+     * @param fileName
+     * @param input
+     * @throws IOException 
+     */
+    public static void createInputFile(PigContext pigContext,
+            String fileName, String[] input) throws IOException {
+        Configuration conf = ConfigurationUtil.toConfiguration(
+                pigContext.getProperties());
+        createInputFile(FileSystem.get(conf), fileName, input); 
     }
 }

@@ -23,6 +23,7 @@ import java.util.Map;
 import java.io.IOException;
 
 import org.apache.pig.builtin.PigStorage;
+import org.apache.pig.builtin.Utf8StorageConverter;
 import org.apache.pig.test.utils.GenRandomData;
 import org.apache.pig.test.utils.TestHelper;
 import org.apache.pig.data.Tuple;
@@ -57,14 +58,14 @@ public class TestConversions extends TestCase {
         
         for (int i = 0; i < ia.length; i++) {
             byte[] b = a[i].getBytes();
-            assertEquals(ia[i], ps.bytesToInteger(b));
+            assertEquals(ia[i], ps.getLoadCaster().bytesToInteger(b));
         }
         
         // invalid ints
         a = new String[]{"1234567890123456", "This is an int", ""};
         for (String s : a) {
             byte[] b = s.getBytes();
-            Integer i = ps.bytesToInteger(b);
+            Integer i = ps.getLoadCaster().bytesToInteger(b);
             assertEquals(null, i);            
         }        
     }
@@ -81,14 +82,14 @@ public class TestConversions extends TestCase {
 
         for (int j = 0; j < f.length; j++) {
             byte[] b = a[j].getBytes();            
-            assertEquals(f[j], ps.bytesToFloat(b));
+            assertEquals(f[j], ps.getLoadCaster().bytesToFloat(b));
         }
         
         // invalid floats
         a = new String[]{"1a.1", "23.1234567a890123456",  "This is a float", ""};
         for (String s : a) {
             byte[] b = s.getBytes();
-            Float fl = ps.bytesToFloat(b);
+            Float fl = ps.getLoadCaster().bytesToFloat(b);
             assertEquals(null, fl);
             
         }        
@@ -102,14 +103,14 @@ public class TestConversions extends TestCase {
         Double[] d = {(double)1, -2.345,  12.12334567890123456, 1.02e12, -.23344};
         for (int j = 0; j < d.length; j++) {
             byte[] b = a[j].getBytes();            
-            assertEquals(d[j], ps.bytesToDouble(b));
+            assertEquals(d[j], ps.getLoadCaster().bytesToDouble(b));
         }
         
         // invalid doubles
         a = new String[]{"-0x1.1", "-23a.45",  "This is a double", ""};
         for (String s : a) {
             byte[] b = s.getBytes();
-            Double dl = ps.bytesToDouble(b);
+            Double dl = ps.getLoadCaster().bytesToDouble(b);
             assertEquals(null, dl);
             
         }        
@@ -126,14 +127,14 @@ public class TestConversions extends TestCase {
         
         for (int i = 0; i < la.length; i++) {
             byte[] b = a[i].getBytes();
-            assertEquals(la[i], ps.bytesToLong(b));
+            assertEquals(la[i], ps.getLoadCaster().bytesToLong(b));
         }
         
         // invalid longs
         a = new String[]{"This is a long", "1.0e1000", ""};
         for (String s : a) {
             byte[] b = s.getBytes();
-            Long l = ps.bytesToLong(b);
+            Long l = ps.getLoadCaster().bytesToLong(b);
             assertEquals(null, l);            
         }        
     }
@@ -146,7 +147,7 @@ public class TestConversions extends TestCase {
         
         for (String s : a) {
             byte[] b = s.getBytes();
-            assertEquals(s, ps.bytesToCharArray(b));
+            assertEquals(s, ps.getLoadCaster().bytesToCharArray(b));
         }                        
     }
     
@@ -155,7 +156,7 @@ public class TestConversions extends TestCase {
     {
         for (int i = 0; i < MAX; i++) {
             Tuple t = GenRandomData.genRandSmallBagTextTuple(r, 1, 100);
-            Tuple convertedTuple = ps.bytesToTuple(t.toString().getBytes());
+            Tuple convertedTuple = ps.getLoadCaster().bytesToTuple(t.toString().getBytes());
             assertTrue(TestHelper.tupleEquals(t, convertedTuple));
         }
         
@@ -166,7 +167,7 @@ public class TestConversions extends TestCase {
     {
         for (int i = 0; i < MAX; i++) {
             DataBag b = GenRandomData.genRandFullTupTextDataBag(r,5,100);
-            DataBag convertedBag = ps.bytesToBag(b.toString().getBytes());
+            DataBag convertedBag = ps.getLoadCaster().bytesToBag(b.toString().getBytes());
             assertTrue(TestHelper.bagEquals(b, convertedBag));
         }
         
@@ -179,7 +180,7 @@ public class TestConversions extends TestCase {
         for (int i = 0; i < MAX; i++) {
             Map<String, Object>  m = GenRandomData.genRandMap(r,5);
             String expectedMapString = DataType.mapToString(m);
-            Map<String, Object> convertedMap = ps.bytesToMap(expectedMapString.getBytes());
+            Map<String, Object> convertedMap = ps.getLoadCaster().bytesToMap(expectedMapString.getBytes());
             assertTrue(TestHelper.mapEquals(m, convertedMap));
         }
         
@@ -188,49 +189,49 @@ public class TestConversions extends TestCase {
     @Test
     public void testIntegerToBytes() throws IOException {
         Integer i = r.nextInt();
-        assertTrue(DataType.equalByteArrays(i.toString().getBytes(), ps.toBytes(i)));
+        assertTrue(DataType.equalByteArrays(i.toString().getBytes(), ((Utf8StorageConverter)ps.getLoadCaster()).toBytes(i)));
     }
         
     @Test
     public void testLongToBytes() throws IOException {
         Long l = r.nextLong();
-        assertTrue(DataType.equalByteArrays(l.toString().getBytes(), ps.toBytes(l)));
+        assertTrue(DataType.equalByteArrays(l.toString().getBytes(), ((Utf8StorageConverter)ps.getLoadCaster()).toBytes(l)));
     }
         
     @Test
     public void testFloatToBytes() throws IOException {
         Float f = r.nextFloat();
-        assertTrue(DataType.equalByteArrays(f.toString().getBytes(), ps.toBytes(f)));
+        assertTrue(DataType.equalByteArrays(f.toString().getBytes(), ((Utf8StorageConverter)ps.getLoadCaster()).toBytes(f)));
     }
         
     @Test
     public void testDoubleToBytes() throws IOException {
         Double d = r.nextDouble();
-        assertTrue(DataType.equalByteArrays(d.toString().getBytes(), ps.toBytes(d)));
+        assertTrue(DataType.equalByteArrays(d.toString().getBytes(), ((Utf8StorageConverter)ps.getLoadCaster()).toBytes(d)));
     }
         
     @Test
     public void testCharArrayToBytes() throws IOException {
         String s = GenRandomData.genRandString(r);
-        assertTrue(s.equals(new String(ps.toBytes(s))));
+        assertTrue(s.equals(new String(((Utf8StorageConverter)ps.getLoadCaster()).toBytes(s))));
     }
         
     @Test
     public void testTupleToBytes() throws IOException {
         Tuple t = GenRandomData.genRandSmallBagTextTuple(r, 1, 100);
         //Tuple t = GenRandomData.genRandSmallTuple(r, 100);
-        assertTrue(DataType.equalByteArrays(t.toString().getBytes(), ps.toBytes(t)));
+        assertTrue(DataType.equalByteArrays(t.toString().getBytes(), ((Utf8StorageConverter)ps.getLoadCaster()).toBytes(t)));
     }
         
     @Test
     public void testBagToBytes() throws IOException {
         DataBag b = GenRandomData.genRandFullTupTextDataBag(r,5,100);
-        assertTrue(DataType.equalByteArrays(b.toString().getBytes(), ps.toBytes(b)));
+        assertTrue(DataType.equalByteArrays(b.toString().getBytes(), ((Utf8StorageConverter)ps.getLoadCaster()).toBytes(b)));
     }
         
     @Test
     public void testMapToBytes() throws IOException {
         Map<String, Object>  m = GenRandomData.genRandMap(r,5);
-        assertTrue(DataType.equalByteArrays(DataType.mapToString(m).getBytes(), ps.toBytes(m)));
+        assertTrue(DataType.equalByteArrays(DataType.mapToString(m).getBytes(), ((Utf8StorageConverter)ps.getLoadCaster()).toBytes(m)));
     }
 }

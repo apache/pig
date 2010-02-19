@@ -34,7 +34,7 @@ public abstract class PigExecTestCase extends TestCase {
     
     protected ExecType execType = LOCAL;
     
-    private MiniCluster cluster;
+    protected MiniCluster cluster;
     protected PigServer pigServer;
     
     @Before

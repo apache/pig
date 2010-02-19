@@ -22,18 +22,18 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Properties;
 
-import org.apache.hadoop.mapred.JobConf;
+import org.apache.hadoop.conf.Configuration;
 
 import org.apache.pig.impl.util.ObjectSerializer;
 
 public class UDFContext {
     
-    @SuppressWarnings("deprecation")
-    private JobConf jconf = null;
+    private Configuration jconf = null;
     private HashMap<Integer, Properties> udfConfs;
-
+    private Properties clientSysProps;
+    private static final String CLIENT_SYS_PROPS = "pig.client.sys.props";
+    private static final String UDF_CONTEXT = "pig.udf.context"; 
     private static UDFContext self = null;
-
     private UDFContext() {
         udfConfs = new HashMap<Integer, Properties>();
     }
@@ -45,14 +45,27 @@ public class UDFContext {
         return self;
     }
 
+    // internal pig use only - should NOT be called from user code
+    public void setClientSystemProps() {
+        clientSysProps = System.getProperties();        
+    }
+    
+    /**
+     * Get the System Properties (Read only) as on the client machine from where Pig
+     * was launched. This will include command line properties passed at launch
+     * time
+     * @return client side System Properties including command line properties
+     */
+    public Properties getClientSystemProps() {
+        return clientSysProps;
+    }
     /**
      * Adds the JobConf to this singleton.  Will be 
      * called on the backend by the Map and Reduce 
      * functions so that UDFs can obtain the JobConf
      * on the backend.
      */
-    @SuppressWarnings("deprecation")
-    public void addJobConf(JobConf conf) {
+    public void addJobConf(Configuration conf) {
         jconf = conf;
     }
 
@@ -64,9 +77,8 @@ public class UDFContext {
      * getUDFConf should be used for recording UDF specific
      * information.
      */
-    @SuppressWarnings("deprecation")
-    public JobConf getJobConf() {
-        if (jconf != null)  return new JobConf(jconf);
+    public Configuration getJobConf() {
+        if (jconf != null)  return new Configuration(jconf);
         else return null;
     }
 
@@ -147,8 +159,9 @@ public class UDFContext {
      * @param conf JobConf to serialize into
      * @throws IOException if underlying serialization throws it
      */
-    public void serialize(JobConf conf) throws IOException {
-        conf.set("pig.UDFContext", ObjectSerializer.serialize(udfConfs));
+    public void serialize(Configuration conf) throws IOException {
+        conf.set(UDF_CONTEXT, ObjectSerializer.serialize(udfConfs));
+        conf.set(CLIENT_SYS_PROPS, ObjectSerializer.serialize(clientSysProps));
     }
     
     /**
@@ -159,7 +172,9 @@ public class UDFContext {
      */
     @SuppressWarnings("unchecked")
     public void deserialize() throws IOException {  
-        udfConfs = (HashMap<Integer, Properties>)ObjectSerializer.deserialize(jconf.get("pig.UDFContext"));
+        udfConfs = (HashMap<Integer, Properties>)ObjectSerializer.deserialize(jconf.get(UDF_CONTEXT));
+        clientSysProps = (Properties)ObjectSerializer.deserialize(
+                jconf.get(CLIENT_SYS_PROPS));
     }
     
     @SuppressWarnings("unchecked")

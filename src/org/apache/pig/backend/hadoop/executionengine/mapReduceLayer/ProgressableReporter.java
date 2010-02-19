@@ -17,17 +17,17 @@
  */
 package org.apache.pig.backend.hadoop.executionengine.mapReduceLayer;
 
-import org.apache.hadoop.mapred.Reporter;
+import org.apache.hadoop.util.Progressable;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PigProgressable;
 
 public class ProgressableReporter implements PigProgressable {
-    Reporter rep;
-    
+    Progressable rep;
+
     public ProgressableReporter(){
         
     }
-    
-    public ProgressableReporter(Reporter rep) {
+
+    public ProgressableReporter(Progressable rep) {
         super();
         this.rep = rep;
     }
@@ -38,10 +38,10 @@ public class ProgressableReporter implements PigProgressable {
     }
 
     public void progress(String msg) {
-        rep.setStatus(msg);
+        
     }
 
-    public void setRep(Reporter rep) {
+    public void setRep(Progressable rep) {
         this.rep = rep;
     }
 

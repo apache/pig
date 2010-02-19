@@ -106,7 +106,8 @@ class BasicTableExpr extends TableExpr {
   @Override
   public TableScanner getScanner(BytesWritable begin, BytesWritable end,
       String projection, Configuration conf) throws IOException {
-    BasicTable.Reader reader = new BasicTable.Reader(path, conf);
+    String[] deletedCGs = getDeletedCGs(conf);
+    BasicTable.Reader reader = new BasicTable.Reader(path, deletedCGs, conf);
     try {
       reader.setProjection(projection);
     } catch (ParseException e) {

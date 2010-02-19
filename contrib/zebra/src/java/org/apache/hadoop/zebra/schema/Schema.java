@@ -776,8 +776,9 @@ public class Schema implements Comparable<Schema>, Writable {
             keyentries.add(keys[j]);
           }
         }
+      } else { 
+    	  result.add( new ColumnSchema(pn.mName, null, ColumnType.ANY ) );
       }
-      else result.add(null);
     }
     return result;
   }

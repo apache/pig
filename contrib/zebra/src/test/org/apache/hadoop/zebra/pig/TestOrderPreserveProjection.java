@@ -22,6 +22,8 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.io.Writer;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -429,6 +431,12 @@ public class TestOrderPreserveProjection {
 		Assert.assertEquals(numbRows, table1.length + table2.length);
 	}
 	
+	/**
+	 * This is a negative test case, as we don't support partial sort key match.
+	 * 
+	 * @throws ExecException
+	 * @throws IOException
+	 */
 	@Test
 	public void test_sorted_table_union_03() throws ExecException, IOException {
 		//
@@ -440,38 +448,58 @@ public class TestOrderPreserveProjection {
 		inputTables.put("table1", "a,b,c");  // input table and sort keys
 		inputTables.put("table2", "a,b");  // input table and sort keys
 		
-		// Test with input tables and provided output columns
-		testOrderPreserveUnion(inputTables, "a,b,c,d,e,f,m1,source_table");
+		IOException exception = null;
+		try {
+			// Test with input tables and provided output columns
+			testOrderPreserveUnion(inputTables, "a,b,c,d,e,f,m1,source_table");
+		} catch(IOException ex) {
+			exception = ex;
+		} finally {
+			Assert.assertTrue( exception != null );
+			Assert.assertTrue( getStackTrace( exception ).contains( "Tables of the table union do not possess the same sort property" ) );
+		}
 		
-		// Verify union table
-		ArrayList<ArrayList<Object>> resultTable = new ArrayList<ArrayList<Object>>();
-		
-		addResultRow(resultTable, -1,	-99.0f,	1002L,	51e+2,	"orange",	new DataByteArray("orange"),m2,	1);
-		addResultRow(resultTable, -1,	3.25f,	1000L,	50e+2,	"zebra",	new DataByteArray("zebra"),	m1,	0);
-		addResultRow(resultTable, 5,	-3.25f,	1001L,	51e+2,	"Zebra",	new DataByteArray("Zebra"),	m1,	0);
-		addResultRow(resultTable, 15,	56.0f,	1004L,	50e+2,	"green",	new DataByteArray("green"),	m2,	1);
-		
-		addResultRow(resultTable, 1000,	0.0f,	1002L,	52e+2,	"hadoop",	new DataByteArray("hadoop"),m1,	0);
-		addResultRow(resultTable, 1001,	50.0f,	1008L,	52e+2,	"gray",		new DataByteArray("gray"),	m2,	1);
-		addResultRow(resultTable, 1001,	50.0f,	1000L,	50e+2,	"Pig",		new DataByteArray("Pig"),	m1,	0);
-		addResultRow(resultTable, 1001,	52.0f,	1001L,	50e+2,	"pig",		new DataByteArray("pig"),	m1,	0);
-		
-		addResultRow(resultTable, 1001,	53.0f,	1001L,	52e+2,	"brown",	new DataByteArray("brown"),	m2,	1);
-		addResultRow(resultTable, 1001,	100.0f,	1003L,	55e+2,	"white",	new DataByteArray("white"),	m2,	1);
-		addResultRow(resultTable, 1001,	100.0f,	1003L,	50e+2,	"Apple",	new DataByteArray("Apple"),	m1,	0);
-		addResultRow(resultTable, 1001,	101.0f,	1001L,	50e+2,	"apple",	new DataByteArray("apple"),	m1,	0);
-		
-		addResultRow(resultTable, 1001,	102.0f,	1001L,	52e+2,	"purple",	new DataByteArray("purple"),m2,	1);
-		addResultRow(resultTable, 1002,	28.0f,	1000L,	50e+2,	"Hadoop",	new DataByteArray("Hadoop"),m1,	0);
-		addResultRow(resultTable, 2000,	33.0f,	1006L,	52e+2,	"beige",	new DataByteArray("beige"),	m2,	1);
-		
-		// Verify union table
-		Iterator<Tuple> it = pigServer.openIterator("records1");
-		int numbRows = verifyTable(resultTable, 0, it);
-		
-		Assert.assertEquals(numbRows, table1.length + table2.length);
+//		// Verify union table
+//		ArrayList<ArrayList<Object>> resultTable = new ArrayList<ArrayList<Object>>();
+//		
+//		addResultRow(resultTable, -1,	-99.0f,	1002L,	51e+2,	"orange",	new DataByteArray("orange"),m2,	1);
+//		addResultRow(resultTable, -1,	3.25f,	1000L,	50e+2,	"zebra",	new DataByteArray("zebra"),	m1,	0);
+//		addResultRow(resultTable, 5,	-3.25f,	1001L,	51e+2,	"Zebra",	new DataByteArray("Zebra"),	m1,	0);
+//		addResultRow(resultTable, 15,	56.0f,	1004L,	50e+2,	"green",	new DataByteArray("green"),	m2,	1);
+//		
+//		addResultRow(resultTable, 1000,	0.0f,	1002L,	52e+2,	"hadoop",	new DataByteArray("hadoop"),m1,	0);
+//		addResultRow(resultTable, 1001,	50.0f,	1008L,	52e+2,	"gray",		new DataByteArray("gray"),	m2,	1);
+//		addResultRow(resultTable, 1001,	50.0f,	1000L,	50e+2,	"Pig",		new DataByteArray("Pig"),	m1,	0);
+//		addResultRow(resultTable, 1001,	52.0f,	1001L,	50e+2,	"pig",		new DataByteArray("pig"),	m1,	0);
+//		
+//		addResultRow(resultTable, 1001,	53.0f,	1001L,	52e+2,	"brown",	new DataByteArray("brown"),	m2,	1);
+//		addResultRow(resultTable, 1001,	100.0f,	1003L,	55e+2,	"white",	new DataByteArray("white"),	m2,	1);
+//		addResultRow(resultTable, 1001,	100.0f,	1003L,	50e+2,	"Apple",	new DataByteArray("Apple"),	m1,	0);
+//		addResultRow(resultTable, 1001,	101.0f,	1001L,	50e+2,	"apple",	new DataByteArray("apple"),	m1,	0);
+//		
+//		addResultRow(resultTable, 1001,	102.0f,	1001L,	52e+2,	"purple",	new DataByteArray("purple"),m2,	1);
+//		addResultRow(resultTable, 1002,	28.0f,	1000L,	50e+2,	"Hadoop",	new DataByteArray("Hadoop"),m1,	0);
+//		addResultRow(resultTable, 2000,	33.0f,	1006L,	52e+2,	"beige",	new DataByteArray("beige"),	m2,	1);
+//		
+//		// Verify union table
+//		Iterator<Tuple> it = pigServer.openIterator("records1");
+//		int numbRows = verifyTable(resultTable, 0, it);
+//		
+//		Assert.assertEquals(numbRows, table1.length + table2.length);
 	}
 	
+	/**
+	 * Get stack trace as string that includes nested exceptions
+	 * 
+	 */
+	private static String getStackTrace(Throwable throwable) {
+		Writer writer = new StringWriter();
+		PrintWriter printWriter = new PrintWriter(writer);
+		if (throwable != null)
+			throwable.printStackTrace(printWriter);
+		return writer.toString();
+	}
+
 	@Test
 	public void test_sorted_table_union_04() throws ExecException, IOException {
 		//
@@ -620,7 +648,12 @@ public class TestOrderPreserveProjection {
 		Assert.assertEquals(numbRows, table1.length + table2.length + table5.length);
 	}
 	
-	@Test
+	/**
+	 * Disable this test case as it also belongs to a negative test case, which is already covered in test case 03.
+	 * @throws ExecException
+	 * @throws IOException
+	 */
+	//@Test
 	public void test_sorted_table_union_07() throws ExecException, IOException {
 		//
 		// Test sorted union

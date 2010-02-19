@@ -28,7 +28,11 @@ import java.util.TreeSet;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.pig.LoadFunc;
+import org.apache.pig.LoadPushDown;
 import org.apache.pig.PigException;
+import org.apache.pig.LoadPushDown.RequiredField;
+import org.apache.pig.LoadPushDown.RequiredFieldList;
+import org.apache.pig.LoadPushDown.RequiredFieldResponse;
 import org.apache.pig.data.DataType;
 import org.apache.pig.impl.logicalLayer.ColumnPruner;
 import org.apache.pig.impl.logicalLayer.ExpressionOperator;
@@ -665,24 +669,25 @@ public class PruneColumns extends LogicalTransformer {
     // Prune fields of LOLoad, and use ColumePruner to prune all the downstream logical operators
     private void pruneLoader(LOLoad load, RequiredFields loaderRequiredFields) throws FrontendException
     {
-        LoadFunc.RequiredFieldList requiredFieldList = new LoadFunc.RequiredFieldList(load.getAlias());
-        requiredFieldList.setAllFieldsRequired(false);
+        RequiredFieldList requiredFieldList = new RequiredFieldList();
 
         if (loaderRequiredFields==null || loaderRequiredFields.needAllFields())
             return;
+        Schema loadSchema = load.getSchema();
         for (int i=0;i<loaderRequiredFields.size();i++)
         {
             Pair<Integer, Integer> pair = loaderRequiredFields.getField(i);
             MapKeysInfo mapKeysInfo = loaderRequiredFields.getMapKeysInfo(i);
-            LoadFunc.RequiredField requiredField = new LoadFunc.RequiredField();
+            RequiredField requiredField = new RequiredField();
             requiredField.setIndex(pair.second);
-            requiredField.setType(load.getSchema().getField(pair.second).type);
+            requiredField.setAlias(loadSchema.getField(pair.second).alias);
+            requiredField.setType(loadSchema.getField(pair.second).type);
             if (mapKeysInfo!=null && !mapKeysInfo.needAllKeys())
             {
-                List<LoadFunc.RequiredField> subFieldList = new ArrayList<LoadFunc.RequiredField>();
+                List<RequiredField> subFieldList = new ArrayList<RequiredField>();
                 for (String key : mapKeysInfo.getKeys())
                 {
-                    LoadFunc.RequiredField mapKeyField = new LoadFunc.RequiredField();
+                    RequiredField mapKeyField = new RequiredField();
                     mapKeyField.setIndex(-1);
                     mapKeyField.setType(DataType.UNKNOWN);
                     mapKeyField.setAlias(key);
@@ -698,9 +703,10 @@ public class PruneColumns extends LogicalTransformer {
         }
         
         boolean[] columnRequired = new boolean[load.getSchema().size()];
-        LoadFunc.RequiredFieldResponse response = null;
+        RequiredFieldResponse response = null;
         try {
-            response = load.fieldsToRead(requiredFieldList);
+            response = load.pushProjection(requiredFieldList);    
+            
         } catch (FrontendException e) {
             log.warn("fieldsToRead on "+load+" throw an exception, skip it");
         }
@@ -710,13 +716,13 @@ public class PruneColumns extends LogicalTransformer {
         // we do not prune map keys) and try again
         if (response==null || !response.getRequiredFieldResponse())
         {
-            for (LoadFunc.RequiredField rf : requiredFieldList.getFields())
+            for (RequiredField rf : requiredFieldList.getFields())
             {
                 if (rf.getType() == DataType.MAP)
                     rf.setSubFields(null);
             }
             try {
-                response = load.fieldsToRead(requiredFieldList);
+                response = load.pushProjection(requiredFieldList);    
             } catch (FrontendException e) {
                 log.warn("fieldsToRead on "+load+" throw an exception, skip it");
             }
@@ -727,7 +733,7 @@ public class PruneColumns extends LogicalTransformer {
         if (response==null || !response.getRequiredFieldResponse())
         {
             List<Integer> columnsToProject = new ArrayList<Integer>();
-            for (LoadFunc.RequiredField rf : requiredFieldList.getFields())
+            for (RequiredField rf : requiredFieldList.getFields())
                 columnsToProject.add(rf.getIndex());
             
             forEach = load.insertPlainForEachAfter(columnsToProject);
@@ -764,7 +770,7 @@ public class PruneColumns extends LogicalTransformer {
         else
             log.info("No column pruned for " + load.getAlias());
         message = new StringBuffer();;
-        for (LoadFunc.RequiredField rf : requiredFieldList.getFields())
+        for (RequiredField rf : requiredFieldList.getFields())
         {
             if (rf.getSubFields()!=null)
             {
@@ -776,7 +782,7 @@ public class PruneColumns extends LogicalTransformer {
                 message.append("->[");
                 for (int i=0;i<rf.getSubFields().size();i++)
                 {
-                    LoadFunc.RequiredField keyrf = rf.getSubFields().get(i);
+                    RequiredField keyrf = rf.getSubFields().get(i);
                     message.append(keyrf);
                     if (i!=rf.getSubFields().size()-1)
                         message.append(",");

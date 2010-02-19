@@ -21,7 +21,6 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 
-import org.apache.pig.LoadFunc;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.BufferedPositionedInputStream;
@@ -34,37 +33,29 @@ import org.apache.pig.impl.streaming.StreamingCommand.HandleSpec;
  */
 public class FileOutputHandler extends OutputHandler {
 
-    String fileName;
-    BufferedPositionedInputStream fileInStream;
+    private String fileName;
     
     public FileOutputHandler(HandleSpec handleSpec) throws ExecException {
         fileName = handleSpec.name;
         deserializer = 
-            (LoadFunc) PigContext.instantiateFuncFromSpec(handleSpec.spec);
+            (StreamToPig) PigContext.instantiateFuncFromSpec(handleSpec.spec);
     }
 
+    @Override
     public OutputType getOutputType() {
         return OutputType.ASYNCHRONOUS;
     }
     
+    @Override
     public void bindTo(String fileName, BufferedPositionedInputStream is,
             long offset, long end) throws IOException {
         // This is a trigger to start processing the output from the file ...
         // ... however, we must ignore the input parameters and use ones
         // provided during initialization
         File file = new File(this.fileName);
-        this.fileInStream = 
+        BufferedPositionedInputStream fileInStream = 
             new BufferedPositionedInputStream(new FileInputStream(file)); 
-        super.bindTo(this.fileName, this.fileInStream, 0, file.length());
+        super.bindTo(this.fileName, fileInStream, 0, file.length());
     }
     
-    public synchronized void close() throws IOException {
-        if(!alreadyClosed) {
-            super.close();
-            fileInStream.close();
-            fileInStream = null;
-            alreadyClosed = true;
-        }
-    }
-
 }

@@ -28,7 +28,6 @@ import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.data.DataType;
 import org.apache.pig.impl.logicalLayer.FrontendException;
-import org.apache.pig.impl.util.WrappedIOException;
 
 /**
  * math.nextAfter implements a binding to the Java function
@@ -76,7 +75,7 @@ public class FloatNextAfter extends EvalFunc<Float>{
 			Double second = (Double)input.get(0);
 			return Math.nextAfter(first, second);
 		} catch(Exception e){
-            throw WrappedIOException.wrap("Caught exception in FloatNextAfter", e);
+            throw new IOException("Caught exception in FloatNextAfter", e);
 		}
 	}
 	

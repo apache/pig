@@ -19,36 +19,23 @@ package org.apache.pig.test;
 
 
 import java.io.*;
-import java.util.Iterator;
 import java.util.ArrayList;
+import java.util.Iterator;
 
-import junit.framework.Assert;
 import junit.framework.TestCase;
-import org.junit.Test;
-import org.mortbay.log.Log;
 
-import org.apache.pig.EvalFunc;
 import org.apache.pig.ExecType;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
-import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce;
-import org.apache.pig.builtin.BinStorage;
 import org.apache.pig.builtin.PigStorage;
-import org.apache.pig.data.BagFactory;
-import org.apache.pig.data.DataBag;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.builtin.PoissonSampleLoader;
-import org.apache.pig.impl.builtin.SampleLoader;
 import org.apache.pig.impl.util.Pair;
-import org.apache.pig.impl.util.UDFContext;
-import org.apache.pig.test.utils.TestHelper;
+import org.apache.pig.impl.io.FileSpec;
 import org.junit.After;
 import org.junit.Before;
-import org.apache.pig.impl.io.FileLocalizer;
-import org.apache.pig.impl.io.FileSpec;
-
-import java.util.Properties;
+import org.junit.Test;
 
 
 public class TestPoissonSampleLoader extends TestCase{
@@ -56,74 +43,69 @@ public class TestPoissonSampleLoader extends TestCase{
 
     private PigServer pigServer;
     private MiniCluster cluster = MiniCluster.buildCluster();
-    
+
     public TestPoissonSampleLoader() throws ExecException, IOException{
         pigServer = new PigServer(ExecType.LOCAL, cluster.getProperties());
         pigServer.getPigContext().getProperties().setProperty("pig.skewedjoin.reduce.maxtuple", "5");     
         pigServer.getPigContext().getProperties().setProperty("pig.skewedjoin.reduce.memusage", "0.0001");
         pigServer.getPigContext().getProperties().setProperty("mapred.child.java.opts", "-Xmx512m");
+
         pigServer.getPigContext().getProperties().setProperty("pig.mapsplits.count", "5");
     }
-    
-    
+
+
     @Before
     public void setUp() throws Exception {
         createFiles();
     }
 
     private void createFiles() throws IOException {
-    	PrintWriter w = new PrintWriter(new FileWriter(INPUT_FILE1));
-    	    	
-    	int k = 0;
-    	for(int j=0; j<100; j++) {   	           	        
-   	        w.println("100:apple1:aaa" + k);
-    	    k++;
-    	    w.println("200:orange1:bbb" + k);
-    	    k++;
-    	    w.println("300:strawberry:ccc" + k);
-    	    k++;    	        	    
-    	}
-    	
-    	w.close();
-    	
-    	Util.copyFromLocalToCluster(cluster, INPUT_FILE1, INPUT_FILE1);
+        PrintWriter w = new PrintWriter(new FileWriter(INPUT_FILE1));
+
+        int k = 0;
+        for(int j=0; j<100; j++) {
+            w.println("100:apple1:aaa" + k);
+            k++;
+            w.println("200:orange1:bbb" + k);
+            k++;
+            w.println("300:strawberry:ccc" + k);
+            k++;    	        	    
+        }
+
+        w.close();
+
+        Util.copyFromLocalToCluster(cluster, INPUT_FILE1, INPUT_FILE1);
     }
-    
-    
+
+
     @After
     public void tearDown() throws Exception {
-    	new File(INPUT_FILE1).delete();
-    	
-        Util.deleteFile(cluster, INPUT_FILE1);
-    }
-    
-    
-    public void testComputeSamples() throws IOException{
- 		FileSpec fs = new FileSpec(INPUT_FILE1, new FuncSpec(PigStorage.class.getName()));
-  		
-  		ArrayList<Pair<FileSpec, Boolean>> inputs = new ArrayList<Pair<FileSpec, Boolean> >();
-  		inputs.add(new Pair<FileSpec, Boolean>(fs, true));
-  		Properties p = UDFContext.getUDFContext().getUDFProperties(SampleLoader.class);
-  		p.setProperty("pig.input.0.size", Long.toString(Util.getSize(cluster, INPUT_FILE1)));
-  		
-        // Use 100 as a default value;
-        PoissonSampleLoader ps = new PoissonSampleLoader((new FuncSpec(PigStorage.class.getName())).toString(), "100");
+        new File(INPUT_FILE1).delete();
 
-        // Get the number of samples for the file
-        ps.computeSamples(inputs, pigServer.getPigContext());
-        
-        if (ps.getNumSamples() != 3) {
-        	fail("Compute samples returned the wrong number of samples: " + ps.getNumSamples() + " instead of 3");
-        }
+        Util.deleteFile(cluster, INPUT_FILE1);
     }
 
     @Test
+    public void testNumSamples() throws IOException {
+        pigServer.registerQuery("A = Load '"+INPUT_FILE1+"' Using PoissonSampleLoader('PigStorage()', '100');");
+        Iterator<Tuple> iter = pigServer.openIterator("A");
+        int count = 0;
+        while(iter.hasNext()){
+            count++;
+            iter.next();
+        }
+        assertEquals(count, 1);
+    }
+
+    /*
+     * Test use of LoadFunc with parameters as argument to PoissonSampleLoader
+     */
+    @Test
     public void testInstantiation() throws IOException {
-        Log.info("A = Load '"+INPUT_FILE1+"' Using PoissonSampleLoader('PigStorage(\\\\\\':\\\\\\')', '100')");
         pigServer.registerQuery("A = Load '"+INPUT_FILE1+"' Using PoissonSampleLoader('PigStorage(\\\\\\':\\\\\\')', '100');");
         Iterator<Tuple> iter = pigServer.openIterator("A");
         assertTrue(iter.hasNext());
-        assertEquals(iter.next().size(), 4);
+        assertEquals(5, iter.next().size());
     }
-    
+
 }

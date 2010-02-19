@@ -17,6 +17,7 @@
  */
 package org.apache.pig.backend.hadoop.executionengine.physicalLayer.util;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.LinkedList;
 
@@ -48,7 +49,7 @@ public class PlanHelper {
      * @param plan
      * @return List of stores (could be empty)
      */
-    public static List<POStore> getStores(PhysicalPlan plan) throws VisitorException {
+    public static LinkedList<POStore> getStores(PhysicalPlan plan) throws VisitorException {
         LoadStoreFinder finder = new LoadStoreFinder(plan);
 
         finder.visit();
@@ -60,7 +61,7 @@ public class PlanHelper {
      * @param plan
      * @return List of loads (could be empty)
      */
-    public static List<POLoad> getLoads(PhysicalPlan plan) throws VisitorException {
+    public static LinkedList<POLoad> getLoads(PhysicalPlan plan) throws VisitorException {
         LoadStoreFinder finder = new LoadStoreFinder(plan);
 
         finder.visit();
@@ -85,8 +86,8 @@ public class PlanHelper {
     }
 
     private static class LoadStoreFinder extends PhyPlanVisitor {
-        private List<POLoad> loads;
-        private List<POStore> stores;
+        private LinkedList<POLoad> loads;
+        private LinkedList<POStore> stores;
         
         LoadStoreFinder(PhysicalPlan plan) {
             super(plan, new DependencyOrderWalker<PhysicalOperator, PhysicalPlan>(plan));
@@ -111,11 +112,11 @@ public class PlanHelper {
             loads.add(load);
         }
 
-        public List<POStore> getStores() {
+        public LinkedList<POStore> getStores() {
             return stores;
         }
 
-        public List<POLoad> getLoads() {
+        public LinkedList<POLoad> getLoads() {
             return loads;
         }
     }

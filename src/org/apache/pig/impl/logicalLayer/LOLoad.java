@@ -18,51 +18,48 @@
 package org.apache.pig.impl.logicalLayer;
 
 import java.io.IOException;
-import java.net.URL;
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 import java.util.TreeSet;
 
-import org.apache.pig.ExecType;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.pig.LoadFunc;
+import org.apache.pig.LoadMetadata;
+import org.apache.pig.LoadPushDown;
 import org.apache.pig.PigException;
-import org.apache.pig.StoreFunc;
-import org.apache.pig.backend.datastorage.DataStorage;
+import org.apache.pig.ResourceSchema;
+import org.apache.pig.LoadPushDown.RequiredField;
+import org.apache.pig.LoadPushDown.RequiredFieldList;
+import org.apache.pig.LoadPushDown.RequiredFieldResponse;
 import org.apache.pig.data.DataType;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileSpec;
+import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.impl.logicalLayer.schema.SchemaMergeException;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.ProjectionMap;
 import org.apache.pig.impl.plan.RequiredFields;
 import org.apache.pig.impl.plan.VisitorException;
-import org.apache.pig.impl.plan.optimizer.OptimizerException;
 import org.apache.pig.impl.util.MultiMap;
 import org.apache.pig.impl.util.Pair;
-import org.apache.pig.impl.util.WrappedIOException;
-import org.apache.pig.impl.logicalLayer.parser.ParseException;
-import org.apache.pig.impl.logicalLayer.schema.Schema;
-import org.apache.pig.impl.logicalLayer.schema.SchemaMergeException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.conf.Configuration;
 
 public class LOLoad extends RelationalOperator {
     private static final long serialVersionUID = 2L;
-    protected boolean splittable = true;
 
     private FileSpec mInputFileSpec;
     transient private LoadFunc mLoadFunc;
     private String mSchemaFile;
     private Schema mEnforcedSchema = null ;
-    transient private DataStorage mStorage;
-    private ExecType mExecType;
+    transient private Configuration conf;
     private static Log log = LogFactory.getLog(LOLoad.class);
     private Schema mDeterminedSchema = null;
-    private LoadFunc.RequiredFieldList requiredFieldList;
-
+    private RequiredFieldList requiredFieldList;
+    
     /**
      * @param plan
      *            LogicalPlan this operator is a part of.
@@ -70,26 +67,19 @@ public class LOLoad extends RelationalOperator {
      *            OperatorKey for this operator
      * @param inputFileSpec
      *            the file to be loaded *
-     * @param execType
-     *            the execution mode @see org.apache.pig.ExecType
-     * @param storage
-     *            the underlying storage
-     * @param splittable
-     *            if the input file is splittable (.gz is not)
+     * @param conf
+     *            the read-only configuration object
      *            
-     * 
      */
     public LOLoad(LogicalPlan plan, OperatorKey key, FileSpec inputFileSpec,
-            ExecType execType, DataStorage storage, boolean splittable) throws IOException {
+            Configuration conf) throws IOException {
         super(plan, key);
         mInputFileSpec = inputFileSpec;
         //mSchemaFile = schemaFile;
         // schemaFile is the input file since we are trying
         // to deduce the schema by looking at the input file
         mSchemaFile = inputFileSpec.getFileName();
-        mStorage = storage;
-        mExecType = execType;
-        this.splittable = splittable;
+        this.conf = conf;
         // Generate a psudo alias. Since in the following script, we do not have alias for LOLoad, however, alias is required.
         // a = foreach (load '1') generate b0;
         this.mAlias = ""+key.getId();
@@ -97,12 +87,13 @@ public class LOLoad extends RelationalOperator {
          try { 
              mLoadFunc = (LoadFunc)
                   PigContext.instantiateFuncFromSpec(inputFileSpec.getFuncSpec());
+             mLoadFunc.setUDFContextSignature(getAlias());
         }catch (ClassCastException cce) {
             log.error(inputFileSpec.getFuncSpec() + " should implement the LoadFunc interface.");
-            throw WrappedIOException.wrap(cce);
+            throw new IOException(cce);
         }
          catch (Exception e){ 
-             throw WrappedIOException.wrap(e);
+             throw new IOException(e);
         }
     }
 
@@ -153,11 +144,8 @@ public class LOLoad extends RelationalOperator {
                 }
 
                 if(null == mDeterminedSchema) {
-                    // Zebra loader determineSchema method depends on this signature
-                    if (mStorage!=null)
-                        mStorage.getConfiguration().setProperty("pig.loader.signature", mAlias);
-                    mSchema = mLoadFunc.determineSchema(mSchemaFile, mExecType, mStorage);
-                    mDeterminedSchema  = mSchema;
+                    mSchema = determineSchema();
+                    mDeterminedSchema  = mSchema;    
                 }
                 mIsSchemaComputed = true;
             } catch (IOException ioe) {
@@ -172,6 +160,16 @@ public class LOLoad extends RelationalOperator {
         return mSchema;
     }
     
+    private Schema determineSchema() throws IOException {
+        if(LoadMetadata.class.isAssignableFrom(mLoadFunc.getClass())) {
+            LoadMetadata loadMetadata = (LoadMetadata)mLoadFunc;
+            ResourceSchema rSchema = loadMetadata.getSchema(
+                    mInputFileSpec.getFileName(), conf);
+            return Schema.getPigSchema(rSchema);
+        } else {
+            return null;
+        }
+    }
     /* (non-Javadoc)
      * @see org.apache.pig.impl.logicalLayer.LogicalOperator#setSchema(org.apache.pig.impl.logicalLayer.schema.Schema)
      */
@@ -206,6 +204,7 @@ public class LOLoad extends RelationalOperator {
         return false;
     }
 
+    @Override
     public void visit(LOVisitor v) throws VisitorException {
         v.visit(this);
     }
@@ -220,10 +219,6 @@ public class LOLoad extends RelationalOperator {
      */
     public void setEnforcedSchema(Schema enforcedSchema) {
         this.mEnforcedSchema = enforcedSchema;
-    }
-
-    public boolean isSplittable() {
-        return splittable;
     }
 
     @Override
@@ -264,10 +259,7 @@ public class LOLoad extends RelationalOperator {
             }
         } else {
             try {
-                // Zebra loader determineSchema method depends on this signature
-                if (mStorage!=null)
-                    mStorage.getConfiguration().setProperty("pig.loader.signature", mAlias);
-                inputSchema = mLoadFunc.determineSchema(mSchemaFile, mExecType, mStorage);
+                inputSchema = determineSchema();
             } catch (IOException ioe) {
                 mProjectionMap = null;
                 return mProjectionMap;
@@ -330,13 +322,13 @@ public class LOLoad extends RelationalOperator {
         return result;
     }
     
-    public LoadFunc.RequiredFieldResponse fieldsToRead(LoadFunc.RequiredFieldList requiredFieldList) throws FrontendException
+    public RequiredFieldResponse pushProjection(RequiredFieldList requiredFieldList) throws FrontendException
     {
-        LoadFunc.RequiredFieldResponse response = new LoadFunc.RequiredFieldResponse(false);
+        RequiredFieldResponse response = new RequiredFieldResponse(false);
         if (mSchema == null)
             return response;
         
-        if (requiredFieldList.isAllFieldsRequired())
+        if (requiredFieldList.getFields() == null)
             return response;
         
         if (requiredFieldList.getFields()==null)
@@ -345,16 +337,12 @@ public class LOLoad extends RelationalOperator {
         }
         
         this.requiredFieldList = requiredFieldList;
-        
-        try {
-            response = mLoadFunc.fieldsToRead(requiredFieldList);
-        } catch(AbstractMethodError e) {
-            // this is for backward compatibility wherein some old LoadFunc
-            // which does not implement fieldsToRead() is being
-            // used. In this case, return false response, means we cannot prune any columns
-            response = new LoadFunc.RequiredFieldResponse(false);
+        if(mLoadFunc instanceof LoadPushDown) {
+            response = ((LoadPushDown)mLoadFunc).pushProjection(requiredFieldList);
+        } else {
+            // loadfunc does not support pushing projections
+            response = new RequiredFieldResponse(false);
         }
-        
         if (!response.getRequiredFieldResponse())
             return response;
         
@@ -365,7 +353,7 @@ public class LOLoad extends RelationalOperator {
 
         for (int i=0;i<requiredFieldList.getFields().size();i++)
         {
-            LoadFunc.RequiredField requiredField = requiredFieldList.getFields().get(i); 
+            RequiredField requiredField = requiredFieldList.getFields().get(i); 
             if (requiredField.getIndex()>=0)
                 prunedIndexSet.remove(requiredField.getIndex());
             else
@@ -376,7 +364,7 @@ public class LOLoad extends RelationalOperator {
                     if (index>0)
                         prunedIndexSet.remove(index);
                 } catch (FrontendException e) {
-                    return new LoadFunc.RequiredFieldResponse(false);
+                    return new RequiredFieldResponse(false);
                 }
                 
             }
@@ -391,6 +379,12 @@ public class LOLoad extends RelationalOperator {
         return response;
 
     }
+    
+    @Override
+    public void setAlias(String newAlias) {
+        super.setAlias(newAlias);
+        mLoadFunc.setUDFContextSignature(getAlias());
+    }
 
     @Override
     public boolean pruneColumns(List<Pair<Integer, Integer>> columns)
@@ -398,9 +392,13 @@ public class LOLoad extends RelationalOperator {
         throw new FrontendException("Not implemented");
     }
     
-    public LoadFunc.RequiredFieldList getRequiredFieldList()
+    public RequiredFieldList getRequiredFieldList()
     {
         return requiredFieldList;
+    }
+
+    public Configuration getConfiguration() {
+        return conf;
     }
     
 }

@@ -418,7 +418,7 @@ public class TestOrderPreserveProjectionNegative {
 		} finally {
 			//System.out.println(getStackTrace(exception));
 			Assert.assertNotNull(exception);
-			Assert.assertTrue(getStackTrace(exception).contains("Using Map as key not supported"));
+			Assert.assertTrue(getStackTrace(exception).contains("not of simple type as required for a sort column now"));
 		}
 	}
 	

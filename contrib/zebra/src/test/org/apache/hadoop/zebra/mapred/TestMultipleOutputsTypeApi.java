@@ -93,7 +93,8 @@ public class TestMultipleOutputsTypeApi {
 
   static String inputPath;
   static String inputFileName = "multi-input.txt";
-  protected static ExecType execType = ExecType.MAPREDUCE;
+  //protected static ExecType execType = ExecType.MAPREDUCE;
+  protected static ExecType execType = ExecType.LOCAL;
   private static MiniCluster cluster;
   protected static PigServer pigServer;
   // private static Path pathWorking, pathTable1, path2, path3,
@@ -119,7 +120,7 @@ public class TestMultipleOutputsTypeApi {
     }
 
     if (System.getProperty("whichCluster") == null) {
-      System.setProperty("whichCluster", "realCluster");
+      System.setProperty("whichCluster", "miniCluster");
       System.out.println("should be called");
       whichCluster = System.getProperty("whichCluster");
     } else {

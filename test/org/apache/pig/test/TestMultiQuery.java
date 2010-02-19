@@ -17,11 +17,14 @@
  */
 package org.apache.pig.test;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.io.StringReader;
 import java.util.ArrayList;
@@ -32,19 +35,21 @@ import java.util.List;
 import java.util.Map;
 
 import junit.framework.Assert;
-import junit.framework.TestCase;
 
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.WritableComparable;
-import org.apache.hadoop.mapred.JobConf;
-import org.apache.hadoop.mapred.OutputFormat;
-import org.apache.hadoop.mapred.RecordWriter;
-import org.apache.hadoop.util.Progressable;
+import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.mapreduce.JobContext;
+import org.apache.hadoop.mapreduce.OutputCommitter;
+import org.apache.hadoop.mapreduce.OutputFormat;
+import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.pig.ExecType;
+import org.apache.pig.LoadFunc;
 import org.apache.pig.PigException;
 import org.apache.pig.PigServer;
-import org.apache.pig.StoreConfig;
+import org.apache.pig.ResourceSchema;
 import org.apache.pig.StoreFunc;
 import org.apache.pig.backend.executionengine.ExecJob;
 import org.apache.pig.backend.executionengine.util.ExecTools;
@@ -55,7 +60,6 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOpera
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSplit;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
-import org.apache.pig.backend.hadoop.executionengine.util.MapRedUtil;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
@@ -67,15 +71,31 @@ import org.apache.pig.impl.util.LogUtils;
 import org.apache.pig.tools.grunt.GruntParser;
 import org.apache.pig.tools.pigscript.parser.ParseException;
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
-public class TestMultiQuery extends TestCase {
+public class TestMultiQuery {
 
     private static final MiniCluster cluster = MiniCluster.buildCluster();
 
     private PigServer myPig;
 
+    @BeforeClass
+    public static void setUpBeforeClass() throws IOException {
+        Util.copyFromLocalToCluster(cluster,
+                "test/org/apache/pig/test/data/passwd", "passwd");
+        Util.copyFromLocalToCluster(cluster,
+                "test/org/apache/pig/test/data/passwd2", "passwd2");
+    }
+    
+    @AfterClass
+    public static void tearDownAfterClass() throws IOException {
+        Util.deleteFile(cluster, "passwd");
+        Util.deleteFile(cluster, "passwd2");
+    }
+    
     @Before
     public void setUp() throws Exception {
         cluster.setProperty("opt.multiquery", ""+true);
@@ -328,11 +348,10 @@ public class TestMultiQuery extends TestCase {
     
     @Test
     public void testMultiQueryJiraPig1108() {
-        
         try {
             myPig.setBatchOn();
 
-            myPig.registerQuery("a = load 'file:test/org/apache/pig/test/data/passwd' " 
+            myPig.registerQuery("a = load 'passwd' " 
                     + "using PigStorage(':') as (uname:chararray, passwd:chararray, uid:int, gid:int);");
             myPig.registerQuery("split a into plan1 if (uid > 5), plan2 if ( uid < 5);");
             myPig.registerQuery("b = group plan1 by uname;");
@@ -619,7 +638,7 @@ public class TestMultiQuery extends TestCase {
         try {
             myPig.setBatchOn();
 
-            myPig.registerQuery("a = load 'file:test/org/apache/pig/test/data/passwd' " +
+            myPig.registerQuery("a = load 'passwd' " +
                                  "using PigStorage(':') as (uname:chararray, passwd:chararray, uid:int, gid:int);");
             myPig.registerQuery("b = filter a by uid < 5;");
             myPig.registerQuery("c = filter a by gid >= 5;");
@@ -646,7 +665,7 @@ public class TestMultiQuery extends TestCase {
         try {
             myPig.setBatchOn();
 
-            myPig.registerQuery("a = load 'file:test/org/apache/pig/test/data/passwd' " +
+            myPig.registerQuery("a = load 'passwd' " +
                                  "using PigStorage(':') as (uname:chararray, passwd:chararray, uid:int, gid:int);");
             myPig.registerQuery("b = filter a by uid < 5;");
             myPig.registerQuery("c = filter a by gid >= 5;");
@@ -678,7 +697,7 @@ public class TestMultiQuery extends TestCase {
         try {
             myPig.setBatchOn();
 
-            myPig.registerQuery("a = load 'file:test/org/apache/pig/test/data/passwd' " +
+            myPig.registerQuery("a = load 'passwd' " +
                                  "using PigStorage(':') as (uname:chararray, passwd:chararray, uid:int, gid:int);");
             myPig.registerQuery("b = filter a by uid < 5;");
             myPig.registerQuery("c = filter a by gid >= 5;");
@@ -768,7 +787,7 @@ public class TestMultiQuery extends TestCase {
         try {
             myPig.setBatchOn();
 
-            myPig.registerQuery("a = load 'file:test/org/apache/pig/test/data/passwd' " +
+            myPig.registerQuery("a = load 'passwd' " +
                                  "using PigStorage(':') as (uname:chararray, passwd:chararray, uid:int, gid:int);");
             myPig.registerQuery("b = foreach a generate uname, uid, gid;");
             myPig.registerQuery("c = filter b by uid < 5;");
@@ -802,7 +821,7 @@ public class TestMultiQuery extends TestCase {
         try {
             myPig.setBatchOn();
 
-            myPig.registerQuery("a = load 'file:test/org/apache/pig/test/data/passwd' " +
+            myPig.registerQuery("a = load 'passwd' " +
                                 "using PigStorage(':') as (uname:chararray, passwd:chararray, uid:int, gid:int);");
             myPig.registerQuery("b = group a by uid;");
             myPig.registerQuery("c = group a by gid;");
@@ -831,7 +850,7 @@ public class TestMultiQuery extends TestCase {
         try {
             myPig.setBatchOn();
 
-            myPig.registerQuery("a = load 'file:test/org/apache/pig/test/data/passwd' " +
+            myPig.registerQuery("a = load 'passwd' " +
                                 "using PigStorage(':') as (uname:chararray, passwd:chararray, uid:int, gid:int);");
             myPig.registerQuery("b = group a by uname;");
             myPig.registerQuery("c = group a by gid;");
@@ -859,7 +878,7 @@ public class TestMultiQuery extends TestCase {
         try {
             myPig.setBatchOn();
 
-            myPig.registerQuery("a = load 'file:test/org/apache/pig/test/data/passwd' " +
+            myPig.registerQuery("a = load 'passwd' " +
                                 "using PigStorage(':') as (uname:chararray, passwd:chararray, uid:int, gid:int);");
             myPig.registerQuery("b = group a all;");
             myPig.registerQuery("c = group a by gid;");
@@ -887,7 +906,7 @@ public class TestMultiQuery extends TestCase {
         try {
             myPig.setBatchOn();
 
-            myPig.registerQuery("a = load 'file:test/org/apache/pig/test/data/passwd' " +
+            myPig.registerQuery("a = load 'passwd' " +
                                 "using PigStorage(':') as (uname:chararray, passwd:chararray, uid:int, gid:int);");
             myPig.registerQuery("b = group a by uid;");
             myPig.registerQuery("c = group a by (uname, gid);");
@@ -915,7 +934,7 @@ public class TestMultiQuery extends TestCase {
         try {
             myPig.setBatchOn();
 
-            myPig.registerQuery("a = load 'file:test/org/apache/pig/test/data/passwd' " +
+            myPig.registerQuery("a = load 'passwd' " +
                                 "using PigStorage(':') as (uname:chararray, passwd:chararray, uid:int, gid:int);");
             myPig.registerQuery("b = group a by uid;");
             myPig.registerQuery("c = group a by (uname, gid);");
@@ -997,7 +1016,7 @@ public class TestMultiQuery extends TestCase {
         try {
             myPig.setBatchOn();
 
-            myPig.registerQuery("a = load 'file:test/org/apache/pig/test/data/passwd' " +
+            myPig.registerQuery("a = load 'passwd' " +
                                 "using PigStorage(':') as (uname:chararray, passwd:chararray, uid:int,gid:int);");
             myPig.registerQuery("b = filter a by uid > 5;");
             myPig.registerQuery("store b into '/tmp/output1';");
@@ -1025,9 +1044,9 @@ public class TestMultiQuery extends TestCase {
         try {
             myPig.setBatchOn();
 
-            myPig.registerQuery("a = load 'file:test/org/apache/pig/test/data/passwd' " +
+            myPig.registerQuery("a = load 'passwd' " +
                                 "using PigStorage(':') as (uname:chararray, passwd:chararray, uid:int,gid:int);");
-            myPig.registerQuery("b = load 'file:test/org/apache/pig/test/data/passwd2' " +
+            myPig.registerQuery("b = load 'passwd2' " +
                                 "using PigStorage(':') as (uname:chararray, passwd:chararray, uid:int,gid:int);");
             myPig.registerQuery("c = filter a by uid > 5;");
             myPig.registerQuery("d = filter b by uid > 10;");
@@ -1053,7 +1072,7 @@ public class TestMultiQuery extends TestCase {
         try {
             myPig.setBatchOn();
 
-            myPig.registerQuery("a = load 'file:test/org/apache/pig/test/data/passwd' " +
+            myPig.registerQuery("a = load 'passwd' " +
                                 "using PigStorage(':') as (uname, passwd, uid, gid);");
             myPig.registerQuery("b = foreach a generate uname, uid, gid;");
             myPig.registerQuery("split b into c1 if uid > 5, c2 if uid <= 5 ;"); 
@@ -1081,7 +1100,7 @@ public class TestMultiQuery extends TestCase {
         try {
             myPig.setBatchOn();
 
-            myPig.registerQuery("a = load 'file:test/org/apache/pig/test/data/passwd' " +
+            myPig.registerQuery("a = load 'passwd' " +
                                  "using PigStorage(':') as (uname:chararray, passwd:chararray, uid:int, gid:int);");
             myPig.registerQuery("b = filter a by uid < 5;");
             myPig.registerQuery("c = filter a by uid >= 5 and uid < 10;");
@@ -1117,7 +1136,7 @@ public class TestMultiQuery extends TestCase {
         try {
             myPig.setBatchOn();
 
-            myPig.registerQuery("a = load 'file:test/org/apache/pig/test/data/passwd' " +
+            myPig.registerQuery("a = load 'passwd' " +
                                  "using PigStorage(':') as (uname:chararray, passwd:chararray, uid:int, gid:int);");
             myPig.registerQuery("b = filter a by uid < 5;");
             myPig.registerQuery("c = filter a by uid >= 5 and uid < 10;");
@@ -1153,7 +1172,7 @@ public class TestMultiQuery extends TestCase {
         try {
             myPig.setBatchOn();
 
-            myPig.registerQuery("a = load 'file:test/org/apache/pig/test/data/passwd' " +
+            myPig.registerQuery("a = load 'passwd' " +
                                  "using PigStorage(':') as (uname:chararray, passwd:chararray, uid:int, gid:int);");
             myPig.registerQuery("b = filter a by uid < 5;");
             myPig.registerQuery("c = filter a by uid >= 5;");
@@ -1185,7 +1204,7 @@ public class TestMultiQuery extends TestCase {
         try {
             myPig.setBatchOn();
 
-            myPig.registerQuery("a = load 'file:test/org/apache/pig/test/data/passwd' " +
+            myPig.registerQuery("a = load 'passwd' " +
                                  "using PigStorage(':') as (uname:chararray, passwd:chararray, uid:int, gid:int);");
             myPig.registerQuery("b = filter a by uid < 5;");
             myPig.registerQuery("c = filter a by uid >= 5;");
@@ -1218,7 +1237,7 @@ public class TestMultiQuery extends TestCase {
         try {
             myPig.setBatchOn();
 
-            myPig.registerQuery("a = load 'file:test/org/apache/pig/test/data/passwd' " +
+            myPig.registerQuery("a = load 'passwd' " +
                                  "using PigStorage(':') as (uname:chararray, passwd:chararray, uid:int, gid:int);");
             myPig.registerQuery("b = filter a by uid < 5;");
             myPig.registerQuery("c = filter a by uid >= 5 and uid < 10;");
@@ -1254,7 +1273,7 @@ public class TestMultiQuery extends TestCase {
         try {
             myPig.setBatchOn();
 
-            myPig.registerQuery("a = load 'file:test/org/apache/pig/test/data/passwd' " +
+            myPig.registerQuery("a = load 'passwd' " +
                                  "using PigStorage(':') as (uname:chararray, passwd:chararray, uid:int, gid:int);");
             myPig.registerQuery("b = filter a by uid < 5;");
             myPig.registerQuery("c = filter a by uid >= 5 and uid < 10;");
@@ -1290,7 +1309,7 @@ public class TestMultiQuery extends TestCase {
         try {
             myPig.setBatchOn();
 
-            myPig.registerQuery("a = load 'file:test/org/apache/pig/test/data/passwd' " +
+            myPig.registerQuery("a = load 'passwd' " +
                                  "using PigStorage(':') as (uname:chararray, passwd:chararray, uid:int, gid:int);");
             myPig.registerQuery("b = filter a by uid < 5;");
             myPig.registerQuery("c = filter a by uid >= 5 and uid < 10;");
@@ -1326,7 +1345,7 @@ public class TestMultiQuery extends TestCase {
         try {
             myPig.setBatchOn();
 
-            myPig.registerQuery("a = load 'file:test/org/apache/pig/test/data/passwd' " +
+            myPig.registerQuery("a = load 'passwd' " +
                                  "using PigStorage(':') as (uname:chararray, passwd:chararray, uid:int, gid:int);");
             myPig.registerQuery("b = filter a by uid < 5;");
             myPig.registerQuery("c = filter a by uid >= 5 and uid < 10;");
@@ -1363,7 +1382,7 @@ public class TestMultiQuery extends TestCase {
         try {
             myPig.setBatchOn();
 
-            myPig.registerQuery("a = load 'file:test/org/apache/pig/test/data/passwd' " +
+            myPig.registerQuery("a = load 'passwd' " +
                                  "using PigStorage(':') as (uname:chararray, passwd:chararray, uid:int, gid:int);");
             myPig.registerQuery("b = filter a by uid < 5;");
             myPig.registerQuery("c = filter a by uid >= 5 and uid < 10;");
@@ -1399,7 +1418,7 @@ public class TestMultiQuery extends TestCase {
         try {
             myPig.setBatchOn();
 
-            myPig.registerQuery("a = load 'file:test/org/apache/pig/test/data/passwd' " +
+            myPig.registerQuery("a = load 'passwd' " +
                                  "using PigStorage(':') as (uname:chararray, passwd:chararray, uid:int, gid:int);");
             myPig.registerQuery("b = filter a by uid < 5;");
             myPig.registerQuery("c = filter a by uid >= 5 and uid < 10;");
@@ -1485,7 +1504,7 @@ public class TestMultiQuery extends TestCase {
         try {
             myPig.setBatchOn();
 
-            myPig.registerQuery("A = load 'file:test/org/apache/pig/test/data/passwd' split by 'file';");
+            myPig.registerQuery("A = load 'passwd';");
             myPig.registerQuery("Split A into A1 if $2 > 5, A2 if $2 >= 5;");
             myPig.registerQuery("Split A1 into A3 if $0 > 'm', A4 if $0 >= 'm';");
             myPig.registerQuery("B = group A3 by $2;");
@@ -1519,7 +1538,7 @@ public class TestMultiQuery extends TestCase {
         try {
             myPig.setBatchOn();
 
-            myPig.registerQuery("A = load 'file:test/org/apache/pig/test/data/passwd' split by 'file';");
+            myPig.registerQuery("A = load 'passwd';");
             myPig.registerQuery("Split A into A1 if $2 > 5, A2 if $2 >= 5;");
             myPig.registerQuery("Split A1 into A3 if $0 > 'm', A4 if $0 >= 'm';");
             myPig.registerQuery("B = group A3 by $2;");
@@ -1554,7 +1573,7 @@ public class TestMultiQuery extends TestCase {
         try {
             myPig.setBatchOn();
 
-            myPig.registerQuery("a = load 'file:test/org/apache/pig/test/data/passwd' " +
+            myPig.registerQuery("a = load 'passwd' " +
                                 "using PigStorage(':') as (uname, passwd, uid, gid);");
             myPig.registerQuery("b = foreach a generate uname, passwd, uid, gid;");
             myPig.registerQuery("split b into c1 if uid > 5, c2 if uid <= 5 ;"); 
@@ -1589,7 +1608,7 @@ public class TestMultiQuery extends TestCase {
         try {
             myPig.setBatchOn();
 
-            myPig.registerQuery("a = load 'file:test/org/apache/pig/test/data/passwd' " +
+            myPig.registerQuery("a = load 'passwd' " +
                                 "using PigStorage(':') as (uname, passwd, uid, gid);");
             myPig.registerQuery("b = foreach a generate uname, passwd, uid, gid;");
             myPig.registerQuery("split b into c1 if uid > 5, c2 if uid <= 5 ;"); 
@@ -1625,11 +1644,11 @@ public class TestMultiQuery extends TestCase {
         try {
             myPig.setBatchOn();
 
-            myPig.registerQuery("a = load 'file:test/org/apache/pig/test/data/passwd' " +
+            myPig.registerQuery("a = load 'passwd' " +
                                 "using PigStorage(':') as (uname, passwd, uid, gid);");
             myPig.registerQuery("store a into '/tmp/output1' using BinStorage();");
             myPig.registerQuery("b = load '/tmp/output1' using BinStorage() as (uname, passwd, uid, gid);"); 
-            myPig.registerQuery("c = load 'file:test/org/apache/pig/test/data/passwd2' " +
+            myPig.registerQuery("c = load 'passwd2' " +
                                 "using PigStorage(':') as (uname, passwd, uid, gid);");
             myPig.registerQuery("d = cogroup b by (uname, uid) inner, c by (uname, uid) inner;");
             myPig.registerQuery("e = foreach d generate flatten(b), flatten(c);");
@@ -1655,11 +1674,11 @@ public class TestMultiQuery extends TestCase {
         try {
             myPig.setBatchOn();
 
-            myPig.registerQuery("a = load 'file:test/org/apache/pig/test/data/passwd' " +
+            myPig.registerQuery("a = load 'passwd' " +
                                 "using PigStorage(':') as (uname, passwd, uid, gid);");
             myPig.registerQuery("store a into '/tmp/output1' using BinStorage();");
             myPig.registerQuery("b = load '/tmp/output1' using BinStorage() as (uname, passwd, uid, gid);"); 
-            myPig.registerQuery("c = load 'file:test/org/apache/pig/test/data/passwd2' " +
+            myPig.registerQuery("c = load 'passwd2' " +
                                 "using PigStorage(':') as (uname, passwd, uid, gid);");
             myPig.registerQuery("d = cogroup b by (uname, uid) inner, c by (uname, uid) inner;");
             myPig.registerQuery("e = foreach d generate flatten(b), flatten(c);");
@@ -1686,9 +1705,9 @@ public class TestMultiQuery extends TestCase {
         try {
             myPig.setBatchOn();
 
-            myPig.registerQuery("a = load 'file:test/org/apache/pig/test/data/passwd' " +
+            myPig.registerQuery("a = load 'passwd' " +
                                 "using PigStorage(':') as (uname:chararray, passwd:chararray, uid:int, gid:int);");
-            myPig.registerQuery("b = load 'file:test/org/apache/pig/test/data/passwd' " +
+            myPig.registerQuery("b = load 'passwd' " +
                                 "using PigStorage(':') as (uname:chararray, passwd:chararray, uid:int, gid:int);");
             myPig.registerQuery("c = filter a by uid > 5;");
             myPig.registerQuery("store c into '/tmp/output1';");
@@ -1717,9 +1736,9 @@ public class TestMultiQuery extends TestCase {
         try {
             myPig.setBatchOn();
 
-            myPig.registerQuery("a = load 'file:test/org/apache/pig/test/data/passwd' " +
+            myPig.registerQuery("a = load 'passwd' " +
                                 "using PigStorage(':') as (uname:chararray, passwd:chararray, uid:int, gid:int);");
-            myPig.registerQuery("b = load 'file:test/org/apache/pig/test/data/passwd' " +
+            myPig.registerQuery("b = load 'passwd' " +
                                 "using PigStorage(':') as (uname:chararray, passwd:chararray, uid:int, gid:int);");
             myPig.registerQuery("c = filter a by uid > 5;");
             myPig.registerQuery("store c into '/tmp/output1';");
@@ -1749,7 +1768,7 @@ public class TestMultiQuery extends TestCase {
         try {
             myPig.setBatchOn();
 
-            myPig.registerQuery("a = load 'file:test/org/apache/pig/test/data/passwd' " +
+            myPig.registerQuery("a = load 'passwd' " +
                                 "using PigStorage(':') as (uname:chararray, passwd:chararray, uid:int, gid:int);");
             myPig.registerQuery("split a into b if uid > 500, c if uid <= 500;");
             myPig.registerQuery("store b into '/tmp/output1';");
@@ -1778,7 +1797,7 @@ public class TestMultiQuery extends TestCase {
         try {
             myPig.setBatchOn();
 
-            myPig.registerQuery("a = load 'file:test/org/apache/pig/test/data/passwd' " +
+            myPig.registerQuery("a = load 'passwd' " +
                                 "using PigStorage(':') as (uname:chararray, passwd:chararray, uid:int, gid:int);");
             myPig.registerQuery("split a into a1 if uid > 500, a2 if gid > 500;");
             myPig.registerQuery("b1 = distinct a1;");
@@ -1809,7 +1828,7 @@ public class TestMultiQuery extends TestCase {
         try {            
             myPig.setBatchOn();
             
-            myPig.registerQuery("a = load 'file:test/org/apache/pig/test/data/passwd' " +
+            myPig.registerQuery("a = load 'passwd' " +
                                 "using PigStorage(':') as (uname:chararray, passwd:chararray, uid:int, gid:int);");
             myPig.registerQuery("store a into '/tmp/output1';");
             myPig.registerQuery("b = load '/tmp/output1' using PigStorage(':'); ");
@@ -1836,7 +1855,7 @@ public class TestMultiQuery extends TestCase {
             
             myPig.setBatchOn();
             
-            myPig.registerQuery("a = load 'file:test/org/apache/pig/test/data/passwd' " +
+            myPig.registerQuery("a = load 'passwd' " +
                                 "using PigStorage(':') as (uname:chararray, passwd:chararray, uid:int, gid:int);");
             myPig.registerQuery("store a into '/tmp/output1';");
             myPig.registerQuery("b = load '/tmp/output1' using PigStorage(':'); ");
@@ -1863,7 +1882,7 @@ public class TestMultiQuery extends TestCase {
         try {
             myPig.setBatchOn();
 
-            myPig.registerQuery("a = load 'file:test/org/apache/pig/test/data/passwd' " +
+            myPig.registerQuery("a = load 'passwd' " +
                                 "using PigStorage(':') as (uname:chararray, passwd:chararray, uid:int, gid:int);");
             myPig.registerQuery("b = filter a by uid > 500;");
             myPig.registerQuery("c = filter a by gid > 500;");
@@ -1894,9 +1913,9 @@ public class TestMultiQuery extends TestCase {
         try {
             myPig.setBatchOn();
 
-            myPig.registerQuery("a = load 'file:test/org/apache/pig/test/data/passwd' " +
+            myPig.registerQuery("a = load 'passwd' " +
                                 "using PigStorage(':') as (uname:chararray, passwd:chararray, uid:int,gid:int);");
-            myPig.registerQuery("b = load 'file:test/org/apache/pig/test/data/passwd2' " +
+            myPig.registerQuery("b = load 'passwd2' " +
                                 "using PigStorage(':') as (uname:chararray, passwd:chararray, uid:int,gid:int);");
             myPig.registerQuery("c = filter a by uid > 5;");
             myPig.registerQuery("d = filter b by uid > 10;");
@@ -1927,7 +1946,7 @@ public class TestMultiQuery extends TestCase {
         try {
             myPig.setBatchOn();
 
-            myPig.registerQuery("a = load 'file:test/org/apache/pig/test/data/passwd' " +
+            myPig.registerQuery("a = load 'passwd' " +
                                 "using PigStorage(':') as (uname:chararray, passwd:chararray, uid:int, gid:int);");
             myPig.registerQuery("b = filter a by uid > 5;");
             myPig.registerQuery("c = group b by gid;");
@@ -1956,7 +1975,7 @@ public class TestMultiQuery extends TestCase {
         try {
             myPig.setBatchOn();
 
-            myPig.registerQuery("a = load 'file:test/org/apache/pig/test/data/passwd' " +
+            myPig.registerQuery("a = load 'passwd' " +
                                 "using PigStorage(':') as (uname:chararray, passwd:chararray, uid:int, gid:int);");
             myPig.registerQuery("b = filter a by uid > 5;");
             myPig.registerQuery("c = group b by gid;");
@@ -1987,7 +2006,7 @@ public class TestMultiQuery extends TestCase {
         try {
             myPig.setBatchOn();
 
-            myPig.registerQuery("a = load 'file:test/org/apache/pig/test/data/passwd' " +
+            myPig.registerQuery("a = load 'passwd' " +
                                 "using PigStorage(':') as (uname:chararray, passwd:chararray, uid:int, gid:int);");
             myPig.registerQuery("b = filter a by uid > 5;");
             myPig.registerQuery("c = group b by gid;");
@@ -2021,7 +2040,7 @@ public class TestMultiQuery extends TestCase {
         try {
             myPig.setBatchOn();
 
-            myPig.registerQuery("a = load 'file:test/org/apache/pig/test/data/passwd' " +
+            myPig.registerQuery("a = load 'passwd' " +
                                 "using PigStorage(':') as (uname:chararray, passwd:chararray, uid:int, gid:int);");
             myPig.registerQuery("b = filter a by uid > 500;");
             myPig.registerQuery("c = group b by gid;");
@@ -2061,7 +2080,7 @@ public class TestMultiQuery extends TestCase {
         try {
             myPig.setBatchOn();
 
-            myPig.registerQuery("a = load 'file:test/org/apache/pig/test/data/passwd' " +
+            myPig.registerQuery("a = load 'passwd' " +
                                  "using PigStorage(':') as (uname:chararray, passwd:chararray, uid:int, gid:int);");
             myPig.registerQuery("b = filter a by uid < 5;");
             myPig.registerQuery("c = filter a by uid >= 5 and uid < 10;");
@@ -2174,7 +2193,7 @@ public class TestMultiQuery extends TestCase {
         try {
             myPig.setBatchOn();
 
-            myPig.registerQuery("a = load 'file:test/org/apache/pig/test/data/passwd' " +
+            myPig.registerQuery("a = load 'passwd' " +
                                 "using PigStorage(':') as (uname:chararray, passwd:chararray, uid:int,gid:int);");
             myPig.registerQuery("b = filter a by uid > 5;");
             myPig.registerQuery("store b into '/tmp/output1';");
@@ -2218,7 +2237,7 @@ public class TestMultiQuery extends TestCase {
         try {
             myPig.setBatchOn();
 
-            myPig.registerQuery("a = load 'file:test/org/apache/pig/test/data/passwd' " +
+            myPig.registerQuery("a = load 'passwd' " +
                                 "using PigStorage(':') as (uname:chararray, passwd:chararray, uid:int,gid:int);");
             myPig.registerQuery("b = filter a by uid > 5;");
             myPig.executeBatch();
@@ -2244,7 +2263,7 @@ public class TestMultiQuery extends TestCase {
         try {
             myPig.setBatchOn();
 
-            myPig.registerQuery("a = load 'file:test/org/apache/pig/test/data/passwd' " +
+            myPig.registerQuery("a = load 'passwd' " +
                                 "using PigStorage(':') as (uname:chararray, passwd:chararray, uid:int,gid:int);");
             myPig.registerQuery("b = filter a by uid > 5;");
             myPig.registerQuery("store b into '/tmp/output1';");
@@ -2273,7 +2292,7 @@ public class TestMultiQuery extends TestCase {
         try {
             myPig.setBatchOn();
 
-            myPig.registerQuery("a = load 'file:test/org/apache/pig/test/data/passwd' " +
+            myPig.registerQuery("a = load 'passwd' " +
                                 "using PigStorage(':') as (uname:chararray, passwd:chararray, uid:int,gid:int);");
             myPig.registerQuery("b = filter a by uid > 5;");
             myPig.registerQuery("store b into '/tmp/output1';");
@@ -2299,9 +2318,9 @@ public class TestMultiQuery extends TestCase {
         try {
             myPig.setBatchOn();
 
-            myPig.registerQuery("a = load 'file:test/org/apache/pig/test/data/passwd' " +
+            myPig.registerQuery("a = load 'passwd' " +
                                 "using PigStorage(':') as (uname:chararray, passwd:chararray, uid:int,gid:int);");
-            myPig.registerQuery("b = load 'file:test/org/apache/pig/test/data/passwd2' " +
+            myPig.registerQuery("b = load 'passwd2' " +
                                 "using PigStorage(':') as (uname:chararray, passwd:chararray, uid:int,gid:int);");
             myPig.registerQuery("c = filter a by uid > 5;");
             myPig.registerQuery("d = filter b by uid > 10;");
@@ -2330,7 +2349,7 @@ public class TestMultiQuery extends TestCase {
         try {
             myPig.setBatchOn();
 
-            myPig.registerQuery("a = load 'file:test/org/apache/pig/test/data/passwd' " +
+            myPig.registerQuery("a = load 'passwd' " +
                                 "using PigStorage(':') as (uname:chararray, passwd:chararray, uid:int,gid:int);");
             myPig.registerQuery("b = filter a by uid > 5;");
             myPig.registerQuery("group b by gid;");
@@ -2351,7 +2370,7 @@ public class TestMultiQuery extends TestCase {
         System.out.println("===== multi-query with explain =====");
 
         try {
-            String script = "a = load 'file:test/org/apache/pig/test/data/passwd' "
+            String script = "a = load 'passwd' "
                           + "using PigStorage(':') as (uname:chararray, passwd:chararray, uid:int,gid:int);"
                           + "b = filter a by uid > 5;"
                           + "explain b;"
@@ -2374,7 +2393,7 @@ public class TestMultiQuery extends TestCase {
         System.out.println("===== multi-query with dump =====");
 
         try {
-            String script = "a = load 'file:test/org/apache/pig/test/data/passwd' "
+            String script = "a = load 'passwd' "
                           + "using PigStorage(':') as (uname:chararray, passwd:chararray, uid:int,gid:int);"
                           + "b = filter a by uid > 5;"
                           + "dump b;"
@@ -2397,7 +2416,7 @@ public class TestMultiQuery extends TestCase {
         System.out.println("===== multi-query with describe =====");
 
         try {
-            String script = "a = load 'file:test/org/apache/pig/test/data/passwd' "
+            String script = "a = load 'passwd' "
                           + "using PigStorage(':') as (uname:chararray, passwd:chararray, uid:int,gid:int);"
                           + "b = filter a by uid > 5;"
                           + "describe b;"
@@ -2420,7 +2439,7 @@ public class TestMultiQuery extends TestCase {
         System.out.println("===== multi-query with illustrate =====");
 
         try {
-            String script = "a = load 'file:test/org/apache/pig/test/data/passwd' "
+            String script = "a = load 'passwd' "
                           + "using PigStorage(':') as (uname:chararray, passwd:chararray, uid:int,gid:int);"
                           + "b = filter a by uid > 5;"
                           + "illustrate b;"
@@ -2443,7 +2462,7 @@ public class TestMultiQuery extends TestCase {
         
         try {
             myPig.setBatchOn();
-            myPig.registerQuery("a = load 'file:test/org/apache/pig/test/data/passwd' " +
+            myPig.registerQuery("a = load 'passwd' " +
                                 "using PigStorage(':') as (uname:chararray, passwd:chararray, uid:int,gid:int);");
             myPig.registerQuery("b = filter a by uid>0;");
             myPig.registerQuery("c = filter a by uid>5;");
@@ -2489,7 +2508,7 @@ public class TestMultiQuery extends TestCase {
         
         try {
             myPig.setBatchOn();
-            myPig.registerQuery("a = load 'file:test/org/apache/pig/test/data/passwd' " +
+            myPig.registerQuery("a = load 'passwd' " +
                                 "using PigStorage(':') as (uname:chararray, passwd:chararray, uid:int,gid:int);");
             myPig.registerQuery("b = group a by uname;");
             myPig.registerQuery("store b into '/tmp/output1';");
@@ -2558,7 +2577,7 @@ public class TestMultiQuery extends TestCase {
         
         try {
             myPig.setBatchOn();
-            myPig.registerQuery("a = load 'file:test/org/apache/pig/test/data/passwd' " +
+            myPig.registerQuery("a = load 'passwd' " +
                                 "using PigStorage(':') as (uname:chararray, passwd:chararray, uid:int,gid:int);");
             myPig.registerQuery("b = group a by uname;");
             myPig.registerQuery("store b into '/tmp/output1';");
@@ -2604,7 +2623,7 @@ public class TestMultiQuery extends TestCase {
         
         try {
             myPig.setBatchOn();
-            myPig.registerQuery("a = load 'file:test/org/apache/pig/test/data/passwd';");
+            myPig.registerQuery("a = load 'passwd';");
             myPig.registerQuery("store a into '/tmp/output1' using BinStorage();");
             myPig.registerQuery("a = load '/tmp/output1';");
             myPig.registerQuery("store a into '/tmp/output2';");
@@ -2665,6 +2684,22 @@ public class TestMultiQuery extends TestCase {
         Util.deleteFile(cluster, "output1_checkOutputSpec_test");
         Util.deleteFile(cluster, "output2_checkOutputSpec_test");
     }
+    
+    // A test to verify there is no cycle in the plan if the load location is the same as the store location
+    @Test
+    public void testLoadStoreLoop() {
+        try {
+            String script = "a = load 'dummy'; b = filter a by $0 == 1; store b into 'dummy';\n";
+            GruntParser parser = new GruntParser(new StringReader(script));
+            parser.setInteractive(false);
+            parser.setParams(myPig);
+            myPig.getPigContext().inExplain = true;
+            parser.parseStopOnError();
+        } catch (Exception e) {
+            e.printStackTrace();
+            Assert.fail();
+        }
+    }
 
     public static class DummyStoreWithOutputFormat implements StoreFunc {
         
@@ -2675,33 +2710,7 @@ public class TestMultiQuery extends TestCase {
             // TODO Auto-generated constructor stub
         }
 
-        /* (non-Javadoc)
-         * @see org.apache.pig.StoreFunc#bindTo(java.io.OutputStream)
-         */
-        @Override
-        public void bindTo(OutputStream os) throws IOException {
-            // TODO Auto-generated method stub
-            
-        }
-
-        /* (non-Javadoc)
-         * @see org.apache.pig.StoreFunc#finish()
-         */
-        @Override
-        public void finish() throws IOException {
-            // TODO Auto-generated method stub
-            
-        }
-
-        /* (non-Javadoc)
-         * @see org.apache.pig.StoreFunc#getStorePreparationClass()
-         */
-        @Override
-        @SuppressWarnings("unchecked")
-        public Class getStorePreparationClass() throws IOException {
-            return DummyOutputFormat.class;
-        }
-
+        
         /* (non-Javadoc)
          * @see org.apache.pig.StoreFunc#putNext(org.apache.pig.data.Tuple)
          */
@@ -2710,36 +2719,91 @@ public class TestMultiQuery extends TestCase {
             // TODO Auto-generated method stub
             
         }
+
+
+        /* (non-Javadoc)
+         * @see org.apache.pig.StoreFunc#checkSchema(org.apache.pig.ResourceSchema)
+         */
+        @Override
+        public void checkSchema(ResourceSchema s) throws IOException {
+            // TODO Auto-generated method stub
+            
+        }
+
+
+        /* (non-Javadoc)
+         * @see org.apache.pig.StoreFunc#getOutputFormat()
+         */
+        @Override
+        public org.apache.hadoop.mapreduce.OutputFormat getOutputFormat()
+                throws IOException {
+            return new DummyOutputFormat();
+        }
+
+
+        /* (non-Javadoc)
+         * @see org.apache.pig.StoreFunc#prepareToWrite(org.apache.hadoop.mapreduce.RecordWriter)
+         */
+        @Override
+        public void prepareToWrite(
+                org.apache.hadoop.mapreduce.RecordWriter writer)
+                throws IOException {
+            
+        }
+
+
+        /* (non-Javadoc)
+         * @see org.apache.pig.StoreFunc#relToAbsPathForStoreLocation(java.lang.String, org.apache.hadoop.fs.Path)
+         */
+        @Override
+        public String relToAbsPathForStoreLocation(String location, Path curDir)
+                throws IOException {
+            return LoadFunc.getAbsolutePath(location, curDir);
+        }
+
+
+        /* (non-Javadoc)
+         * @see org.apache.pig.StoreFunc#setStoreLocation(java.lang.String, org.apache.hadoop.mapreduce.Job)
+         */
+        @Override
+        public void setStoreLocation(String location, Job job)
+                throws IOException {
+            Configuration conf = job.getConfiguration();
+            conf.set("mapred.output.dir", location);
+            
+        }
+        
+        @Override
+        public void setStoreFuncUDFContextSignature(String signature) {
+        }
                 
     }
     
     @SuppressWarnings({ "deprecation", "unchecked" })
     public static class DummyOutputFormat
-    implements OutputFormat<WritableComparable, Tuple> {
+    extends OutputFormat<WritableComparable, Tuple> {
 
         public DummyOutputFormat() {
             
         }
-        /* (non-Javadoc)
-         * @see org.apache.hadoop.mapred.OutputFormat#checkOutputSpecs(org.apache.hadoop.fs.FileSystem, org.apache.hadoop.mapred.JobConf)
-         */
         @Override
-        public void checkOutputSpecs(FileSystem ignored, JobConf job)
-                throws IOException {
-            StoreConfig sConfig = MapRedUtil.getStoreConfig(job);
-            FileSystem fs = FileSystem.get(job);
+        public void checkOutputSpecs(JobContext context) throws IOException,
+                InterruptedException {
+            Configuration conf = context.getConfiguration();
+            FileSystem fs = FileSystem.get(conf);
             // create a file to test that this method got called
-            fs.create(new Path(sConfig.getLocation() + "_checkOutputSpec_test"));
+            fs.create(new Path(conf.get("mapred.output.dir") + "_checkOutputSpec_test"));
         }
 
-        /* (non-Javadoc)
-         * @see org.apache.hadoop.mapred.OutputFormat#getRecordWriter(org.apache.hadoop.fs.FileSystem, org.apache.hadoop.mapred.JobConf, java.lang.String, org.apache.hadoop.util.Progressable)
-         */
         @Override
-        public RecordWriter<WritableComparable, Tuple> getRecordWriter(
-                FileSystem ignored, JobConf job, String name,
-                Progressable progress) throws IOException {
-            // TODO Auto-generated method stub
+        public OutputCommitter getOutputCommitter(TaskAttemptContext context)
+                throws IOException, InterruptedException {
+            return null;
+        }
+        @Override
+        public org.apache.hadoop.mapreduce.RecordWriter<WritableComparable, Tuple> getRecordWriter(
+                TaskAttemptContext context) throws IOException,
+                InterruptedException {
             return null;
         }
         

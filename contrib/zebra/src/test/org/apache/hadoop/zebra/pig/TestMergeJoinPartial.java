@@ -29,6 +29,7 @@ import junit.framework.Assert;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.LocalFileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.zebra.io.BasicTable;
@@ -77,9 +78,12 @@ public class TestMergeJoinPartial {
 		} else {
 			pigServer = new PigServer(ExecType.LOCAL);
 		}
+		FileSystem fs = cluster.getFileSystem();
 		
 		conf = new Configuration();
-		FileSystem fs = cluster.getFileSystem();
+//		pigServer = new PigServer(ExecType.LOCAL);
+//		FileSystem fs = LocalFileSystem.get(conf);
+		
 		Path pathWorking = fs.getWorkingDirectory();
 		pathTable1 = new Path(pathWorking, "table1");
 		pathTable2 = new Path(pathWorking, "table2");
