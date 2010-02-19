@@ -55,6 +55,8 @@ manner (rding via pradeepkth)
 
 IMPROVEMENTS
 
+PIG-1218: Use distributed cache to store samples (rding via pradeepkth)
+
 PIG-1226: suuport for additional jar files (thejas via olgan)
 
 PIG-1230: Streaming input in POJoinPackage should use nonspillable bag to

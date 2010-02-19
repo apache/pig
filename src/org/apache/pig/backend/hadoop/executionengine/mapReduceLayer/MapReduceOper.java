@@ -116,12 +116,6 @@ public class MapReduceOper extends Operator<MROpPlanVisitor> {
 
     private String scope;
     
-    
-    //Fragment Replicate Join State
-    boolean frjoin = false;
-    FileSpec[] replFiles = null;
-    int fragment = -1;
-    
     int requestedParallelism = -1;
     
     // Last POLimit value in this map reduce operator, needed by LimitAdjuster
@@ -369,29 +363,6 @@ public class MapReduceOper extends Operator<MROpPlanVisitor> {
     public void setEndOfAllInputInReduce(boolean endOfAllInputInReduce) {
         this.endOfAllInputInReduce = endOfAllInputInReduce;
     }    
-    public int getFragment() {
-        return fragment;
-    }
-
-    public void setFragment(int fragment) {
-        this.fragment = fragment;
-    }
-
-    public boolean isFrjoin() {
-        return frjoin;
-    }
-
-    public void setFrjoin(boolean frjoin) {
-        this.frjoin = frjoin;
-    }
-
-    public FileSpec[] getReplFiles() {
-        return replFiles;
-    }
-
-    public void setReplFiles(FileSpec[] replFiles) {
-        this.replFiles = replFiles;
-    }
 
     public int getRequestedParallelism() {
         return requestedParallelism;
