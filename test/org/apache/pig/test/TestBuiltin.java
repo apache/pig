@@ -17,8 +17,6 @@
  */
 package org.apache.pig.test;
 
-import java.io.File;
-import java.io.PrintWriter;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -26,29 +24,55 @@ import java.util.Map;
 
 import junit.framework.TestCase;
 
-import org.junit.Test;
-
+import org.apache.hadoop.mapreduce.JobContext;
+import org.apache.hadoop.mapreduce.JobID;
+import org.apache.hadoop.mapreduce.OutputFormat;
+import org.apache.hadoop.mapreduce.RecordWriter;
+import org.apache.hadoop.mapreduce.TaskAttemptContext;
+import org.apache.hadoop.mapreduce.TaskAttemptID;
 import org.apache.pig.Algebraic;
-import org.apache.pig.FilterFunc;
-import org.apache.pig.FuncSpec;
+import org.apache.pig.EvalFunc;
+import org.apache.pig.ExecType;
 import org.apache.pig.LoadFunc;
 import org.apache.pig.PigServer;
-import org.apache.pig.ExecType;
-import org.apache.pig.EvalFunc;
 import org.apache.pig.StoreFunc;
 import org.apache.pig.backend.executionengine.ExecException;
-import org.apache.pig.builtin.*;
-import org.apache.pig.data.*;
-import org.apache.pig.data.DefaultAbstractBag.BagDelimiterTuple;
-import org.apache.pig.impl.io.FileLocalizer;
-import org.apache.pig.impl.io.BufferedPositionedInputStream;
+import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigOutputFormat;
+import org.apache.pig.builtin.ARITY;
+import org.apache.pig.builtin.BagSize;
+import org.apache.pig.builtin.CONCAT;
+import org.apache.pig.builtin.COUNT;
+import org.apache.pig.builtin.COUNT_STAR;
+import org.apache.pig.builtin.DIFF;
+import org.apache.pig.builtin.Distinct;
+import org.apache.pig.builtin.MapSize;
+import org.apache.pig.builtin.PigStorage;
+import org.apache.pig.builtin.SIZE;
+import org.apache.pig.builtin.StringConcat;
+import org.apache.pig.builtin.StringSize;
+import org.apache.pig.builtin.TOKENIZE;
+import org.apache.pig.builtin.TextLoader;
+import org.apache.pig.builtin.TupleSize;
+import org.apache.pig.data.BagFactory;
+import org.apache.pig.data.DataBag;
+import org.apache.pig.data.DataByteArray;
+import org.apache.pig.data.DataType;
+import org.apache.pig.data.DefaultBagFactory;
+import org.apache.pig.data.DefaultTupleFactory;
+import org.apache.pig.data.Tuple;
+import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.PigContext;
+import org.apache.pig.impl.io.ReadToEndLoader;
+import org.junit.Test;
 
 public class TestBuiltin extends TestCase {
     
     private String initString = "mapreduce";
     //private String initString = "local";
     MiniCluster cluster = MiniCluster.buildCluster();
+    
+    PigServer pigServer;
 
     TupleFactory tupleFactory = DefaultTupleFactory.getInstance();
     BagFactory bagFactory = DefaultBagFactory.getInstance();
@@ -105,8 +129,9 @@ public class TestBuiltin extends TestCase {
     String[] inputTypeAsString = {"ByteArray", "Integer", "Long", "Float", "Double", "String" };
     
     @Override
-    public void setUp() {
+    public void setUp() throws Exception {
        
+        pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
         // First set up data structs for "base" SUM, MIN and MAX and AVG.
         // The allowed input and expected output data structs for 
         // the "Intermediate" and "Final" stages can be based on the 
@@ -1236,33 +1261,34 @@ public class TestBuiltin extends TestCase {
     // Builtin APPLY Functions
     // ========================
 
-    
-
 
     // Builtin LOAD Functions
     // =======================
     @Test
     public void testLFPig() throws Exception {
-        String input1 = "this:is:delimited:by:a:colon\n";
+        Util.createInputFile(cluster, "input.txt", new String[] 
+                                        {"this:is:delimited:by:a:colon\n"});
         int arity1 = 6;
-
-        LoadFunc p1 = new PigStorage(":");
-        FakeFSInputStream ffis1 = new FakeFSInputStream(input1.getBytes());
-        p1.bindTo(null, new BufferedPositionedInputStream(ffis1), 0, input1.getBytes().length);
+        LoadFunc lf = new PigStorage(":");
+        LoadFunc p1 = new ReadToEndLoader(lf, ConfigurationUtil.
+                toConfiguration(cluster.getProperties()), "input.txt", 0);
         Tuple f1 = p1.getNext();
         assertTrue(f1.size() == arity1);
-
-        LoadFunc p15 = new PigStorage();
-        StringBuilder sb = new StringBuilder();
+        Util.deleteFile(cluster, "input.txt");
+        
         int LOOP_COUNT = 100;
+        String[] input = new String[LOOP_COUNT * LOOP_COUNT];
+        int n = 0;
         for (int i = 0; i < LOOP_COUNT; i++) {
             for (int j = 0; j < LOOP_COUNT; j++) {
-                sb.append(i + "\t" + i + "\t" + j % 2 + "\n");
+                input[n++] = (i + "\t" + i + "\t" + j % 2);
             }
         }
-        byte bytes[] = sb.toString().getBytes();
-        FakeFSInputStream ffis15 = new FakeFSInputStream(bytes);
-        p15.bindTo(null, new BufferedPositionedInputStream(ffis15), 0, bytes.length);
+        Util.createInputFile(cluster, "input.txt", input);
+
+        LoadFunc p15 = new ReadToEndLoader(new PigStorage(), ConfigurationUtil.
+                toConfiguration(cluster.getProperties()), "input.txt", 0);
+        
         int count = 0;
         while (true) {
             Tuple f15 = p15.getNext();
@@ -1272,24 +1298,25 @@ public class TestBuiltin extends TestCase {
             assertEquals(3, f15.size());
         }
         assertEquals(LOOP_COUNT * LOOP_COUNT, count);
-
+        Util.deleteFile(cluster, "input.txt");
+        
         String input2 = ":this:has:a:leading:colon\n";
         int arity2 = 6;
-
-        LoadFunc p2 = new PigStorage(":");
-        FakeFSInputStream ffis2 = new FakeFSInputStream(input2.getBytes());
-        p2.bindTo(null, new BufferedPositionedInputStream(ffis2), 0, input2.getBytes().length);
+        Util.createInputFile(cluster, "input.txt", new String[] {input2});
+        LoadFunc p2 = new ReadToEndLoader(new PigStorage(":"), ConfigurationUtil.
+                toConfiguration(cluster.getProperties()), "input.txt", 0);
         Tuple f2 = p2.getNext();
         assertTrue(f2.size() == arity2);
-
+        Util.deleteFile(cluster, "input.txt");
+        
         String input3 = "this:has:a:trailing:colon:\n";
         int arity3 = 6;
-
-        LoadFunc p3 = new PigStorage(":");
-        FakeFSInputStream ffis3 = new FakeFSInputStream(input3.getBytes());
-        p3.bindTo(null, new BufferedPositionedInputStream(ffis3), 0, input1.getBytes().length);
+        Util.createInputFile(cluster, "input.txt", new String[] {input3});
+        LoadFunc p3 = new ReadToEndLoader(new PigStorage(":"), ConfigurationUtil.
+                toConfiguration(cluster.getProperties()), "input.txt", 0);
         Tuple f3 = p3.getNext();
         assertTrue(f3.size() == arity3);
+        Util.deleteFile(cluster, "input.txt");
     }
 
     /*
@@ -1364,44 +1391,47 @@ public class TestBuiltin extends TestCase {
         String input1 = "This is some text.\nWith a newline in it.\n";
         String expected1 = "This is some text.";
         String expected2 = "With a newline in it.";
-        FakeFSInputStream ffis1 = new FakeFSInputStream(input1.getBytes());
-        LoadFunc text1 = new TextLoader();
-        text1.bindTo(null, new BufferedPositionedInputStream(ffis1), 0, input1.getBytes().length);
+        Util.createInputFile(cluster, "testLFTest-input1.txt", new String[] {input1});
+        LoadFunc text1 = new ReadToEndLoader(new TextLoader(), ConfigurationUtil.
+                toConfiguration(cluster.getProperties()), "testLFTest-input1.txt", 0);
         Tuple f1 = text1.getNext();
         Tuple f2 = text1.getNext();
         assertTrue(expected1.equals(f1.get(0).toString()) &&
             expected2.equals(f2.get(0).toString()));
-
-        String input2 = "";
-        FakeFSInputStream ffis2 = new FakeFSInputStream(input2.getBytes());
-        LoadFunc text2 = new TextLoader();
-        text2.bindTo(null, new BufferedPositionedInputStream(ffis2), 0, input2.getBytes().length);
+        Util.deleteFile(cluster, "testLFTest-input1.txt");
+        Util.createInputFile(cluster, "testLFTest-input2.txt");
+        LoadFunc text2 = new ReadToEndLoader(new TextLoader(), ConfigurationUtil.
+                toConfiguration(cluster.getProperties()), "testLFTest-input2.txt", 0);
         Tuple f3 = text2.getNext();
         assertTrue(f3 == null);
+        Util.deleteFile(cluster, "testLFTest-input2.txt");
     }
 
+    @SuppressWarnings("unchecked")
     @Test
     public void testSFPig() throws Exception {
-        byte[] buf = new byte[1024];
-        FakeFSOutputStream os = new FakeFSOutputStream(buf);
-        StoreFunc sfunc = new PigStorage("\t");
-        sfunc.bindTo(os);
-
+        String inputStr = "amy\tbob\tcharlene\tdavid\terin\tfrank";
+        Util.createInputFile(cluster, "testSFPig-input.txt", new String[]
+                                                                    {inputStr});
         DataByteArray[] input = { new DataByteArray("amy"),
             new DataByteArray("bob"), new DataByteArray("charlene"),
             new DataByteArray("david"), new DataByteArray("erin"),
             new DataByteArray("frank") };
-        Tuple f1 = Util.loadTuple(TupleFactory.getInstance().newTuple(input.length), input);
-
-        sfunc.putNext(f1);
-        sfunc.finish();
+        Tuple f1 = Util.loadTuple(TupleFactory.getInstance().
+                newTuple(input.length), input);
         
-        FakeFSInputStream is = new FakeFSInputStream(buf);
-        LoadFunc lfunc = new PigStorage();
-        lfunc.bindTo(null, new BufferedPositionedInputStream(is), 0, buf.length);
+        String query = "a = load 'testSFPig-input.txt';" +
+        		"store a into 'testSFPig-output.txt';";
+        pigServer.setBatchOn();
+        Util.registerMultiLineQuery(pigServer, query);
+        pigServer.executeBatch();
+        LoadFunc lfunc = new ReadToEndLoader(new PigStorage(), ConfigurationUtil.
+                toConfiguration(cluster.getProperties()), "testSFPig-output.txt", 0); 
         Tuple f2 = lfunc.getNext();
         
-        assertTrue(f1.equals(f2));        
+        assertEquals(f1, f2);
+        Util.deleteFile(cluster, "testSFPig-input.txt");
+        Util.deleteFile(cluster, "testSFPig-output.txt");
     }
     
     @Test

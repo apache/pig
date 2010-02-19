@@ -252,7 +252,7 @@ public class StreamingCommand implements Serializable, Cloneable {
     public HandleSpec getInputSpec() {
         List<HandleSpec> inputSpecs = getHandleSpecs(Handle.INPUT);
         if (inputSpecs == null || inputSpecs.size() == 0) {
-            addHandleSpec(Handle.INPUT, new HandleSpec("stdin", PigStorage.class.getName()));
+            addHandleSpec(Handle.INPUT, new HandleSpec("stdin", PigStreaming.class.getName()));
         }
         return getHandleSpecs(Handle.INPUT).get(0);        
     }
@@ -283,7 +283,7 @@ public class StreamingCommand implements Serializable, Cloneable {
     public HandleSpec getOutputSpec() {
         List<HandleSpec> outputSpecs = getHandleSpecs(Handle.OUTPUT);
         if (outputSpecs == null || outputSpecs.size() == 0) {
-            addHandleSpec(Handle.OUTPUT, new HandleSpec("stdout", PigStorage.class.getName()));
+            addHandleSpec(Handle.OUTPUT, new HandleSpec("stdout", PigStreaming.class.getName()));
         }
         return getHandleSpecs(Handle.OUTPUT).get(0);
     }
@@ -437,7 +437,7 @@ public class StreamingCommand implements Serializable, Cloneable {
          *                   <code>stdout</code> or a file-path)
          */
         public HandleSpec(String handleName) {
-            this(handleName, PigStorage.class.getName());
+            this(handleName, PigStreaming.class.getName());
         }
         
         /**

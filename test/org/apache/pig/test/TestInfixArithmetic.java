@@ -63,13 +63,16 @@ public class TestInfixArithmetic extends TestCase {
             System.err.println("Testing with nulls: " + nullFlags[i]);
             PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
             generateInput(ps, nullFlags[i]);
-            String query = "A = foreach (load '" + Util.generateURI(tmpFile.toString()) + "' using " + PigStorage.class.getName() + "(':')) generate $0, $0 + $1, $1;";
+            String query = "A = foreach (load '"
+                    + Util.generateURI(tmpFile.toString(), pig.getPigContext())
+                    + "' using " + PigStorage.class.getName()
+                    + "(':')) generate $0, $0 + $1, $1;";
             log.info(query);
             pig.registerQuery(query);
-            Iterator it = pig.openIterator("A");
+            Iterator<Tuple> it = pig.openIterator("A");
             tmpFile.delete();
             while(it.hasNext()) {
-                Tuple t = (Tuple)it.next();
+                Tuple t = it.next();
                 Double first = (t.get(0) == null ? null :DataType.toDouble(t.get(0)));
                 Double second = (t.get(1) == null ? null :DataType.toDouble(t.get(1)));
                 Double third = (t.get(2) == null ? null :DataType.toDouble(t.get(2)));
@@ -77,12 +80,9 @@ public class TestInfixArithmetic extends TestCase {
                     assertTrue(second.equals(first + first));
                 } else {
                     assertEquals(null, second);
-                }
-                    
+                }                    
             }
-        }
-        
-        
+        }        
     }
  
     @Test
@@ -92,13 +92,16 @@ public class TestInfixArithmetic extends TestCase {
             System.err.println("Testing with nulls: " + nullFlags[i]);
             PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
             generateInput(ps, nullFlags[i]);
-            String query = "A = foreach (load '" + Util.generateURI(tmpFile.toString()) + "' using " + PigStorage.class.getName() + "(':')) generate $0, $0 - $1, $1 ;";
+            String query = "A = foreach (load '"
+                    + Util.generateURI(tmpFile.toString(), pig.getPigContext())
+                    + "' using " + PigStorage.class.getName()
+                    + "(':')) generate $0, $0 - $1, $1 ;";
             log.info(query);
             pig.registerQuery(query);
-            Iterator it = pig.openIterator("A");
+            Iterator<Tuple> it = pig.openIterator("A");
             tmpFile.delete();
             while(it.hasNext()) {
-                Tuple t = (Tuple)it.next();
+                Tuple t = it.next();
                 Double first = (t.get(0) == null ? null :DataType.toDouble(t.get(0)));
                 Double second = (t.get(1) == null ? null :DataType.toDouble(t.get(1)));
                 Double third = (t.get(2) == null ? null :DataType.toDouble(t.get(2)));
@@ -106,8 +109,7 @@ public class TestInfixArithmetic extends TestCase {
                     assertTrue(second.equals(0.0));
                 } else {
                     assertEquals(null, second);
-                }
-                    
+                }                    
             }
         }
     }
@@ -119,13 +121,16 @@ public class TestInfixArithmetic extends TestCase {
             System.err.println("Testing with nulls: " + nullFlags[i]);
             PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
             generateInput(ps, nullFlags[i]);
-            String query = "A = foreach (load '" + Util.generateURI(tmpFile.toString()) + "' using " + PigStorage.class.getName() + "(':')) generate $0, $0 * $1, $1 ;";
+            String query = "A = foreach (load '"
+                    + Util.generateURI(tmpFile.toString(), pig.getPigContext())
+                    + "' using " + PigStorage.class.getName()
+                    + "(':')) generate $0, $0 * $1, $1 ;";
             log.info(query);
             pig.registerQuery(query);
-            Iterator it = pig.openIterator("A");
+            Iterator<Tuple> it = pig.openIterator("A");
             tmpFile.delete();
             while(it.hasNext()) {
-                Tuple t = (Tuple)it.next();
+                Tuple t = it.next();
                 Double first = (t.get(0) == null ? null :DataType.toDouble(t.get(0)));
                 Double second = (t.get(1) == null ? null :DataType.toDouble(t.get(1)));
                 Double third = (t.get(2) == null ? null :DataType.toDouble(t.get(2)));
@@ -133,8 +138,7 @@ public class TestInfixArithmetic extends TestCase {
                     assertTrue(second.equals(first * first));
                 } else {
                     assertEquals(null, second);
-                }
-                    
+                }                    
             }
         }
     }
@@ -146,13 +150,16 @@ public class TestInfixArithmetic extends TestCase {
             System.err.println("Testing with nulls: " + nullFlags[i]);
             PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
             generateInput(ps, nullFlags[i]);
-            String query = "A = foreach (load '" + Util.generateURI(tmpFile.toString()) + "' using " + PigStorage.class.getName() + "(':')) generate $0, $0 / $1, $1 ;";
+            String query = "A = foreach (load '"
+                    + Util.generateURI(tmpFile.toString(), pig.getPigContext())
+                    + "' using " + PigStorage.class.getName()
+                    + "(':')) generate $0, $0 / $1, $1 ;";
             log.info(query);
             pig.registerQuery(query);
-            Iterator it = pig.openIterator("A");
+            Iterator<Tuple> it = pig.openIterator("A");
             tmpFile.delete();
             while(it.hasNext()) {
-                Tuple t = (Tuple)it.next();
+                Tuple t = it.next();
                 Double first = (t.get(0) == null ? null :DataType.toDouble(t.get(0)));
                 Double second = (t.get(1) == null ? null :DataType.toDouble(t.get(1)));
                 Double third = (t.get(2) == null ? null :DataType.toDouble(t.get(2)));
@@ -160,13 +167,10 @@ public class TestInfixArithmetic extends TestCase {
                     assertTrue(second.equals(1.0));
                 } else {
                     assertEquals(null, second);
-                }
-                    
+                }                    
             }
         }
-        
     }
-    
     
     private void generateInput(PrintStream ps, boolean withNulls) {
         if(withNulls) {
@@ -189,7 +193,5 @@ public class TestInfixArithmetic extends TestCase {
             }
         }
         ps.close();
-    }
-    
-    
+    }    
 }

@@ -305,6 +305,7 @@ public class TestBasicTableIOFormatLocalFS extends TestCase {
     // set map-only job.
     jobConf.setNumReduceTasks(0);
     JobClient.runJob(jobConf);
+    BasicTableOutputFormat.close(jobConf);
   }
 
   /**
@@ -599,6 +600,7 @@ public class TestBasicTableIOFormatLocalFS extends TestCase {
     jobConf.setNumReduceTasks(options.numReducer);
 
     JobClient.runJob(jobConf);
+    BasicTableOutputFormat.close(jobConf);
   }
 
   void reduce(Summary sum, Summary delta) {
@@ -950,6 +952,7 @@ public class TestBasicTableIOFormatLocalFS extends TestCase {
     jobConf.setNumReduceTasks(1);
 
     JobClient.runJob(jobConf);
+    BasicTableOutputFormat.close(jobConf);
   }
 
   void printFreqWords() throws IOException, ParseException {

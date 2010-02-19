@@ -77,11 +77,11 @@ public class TestCommit extends TestCase {
         expected1.set(1, 50.0);
         expected2.set(0, "democrat");
         expected2.set(1, 125.5);
-        File student = Util.createFile(new String[]{"joe smith:18:3.5","amy brown:25:2.5","jim fox:20:4.0","leo fu:55:3.0"});
-        File voter = Util.createFile(new String[]{"amy brown,25,democrat,25.50","amy brown,25,democrat,100","jim fox,20,independent,50.0"});
+        Util.createInputFile(cluster, "student", new String[]{"joe smith:18:3.5","amy brown:25:2.5","jim fox:20:4.0","leo fu:55:3.0"});
+        Util.createInputFile(cluster, "voter", new String[]{"amy brown,25,democrat,25.50","amy brown,25,democrat,100","jim fox,20,independent,50.0"});
         
-        pigServer.registerQuery("a = load '" + Util.generateURI(student.toString()) + "' using " + PigStorage.class.getName() + "(':') as (name, age, gpa);");
-        pigServer.registerQuery("b = load '" + Util.generateURI(voter.toString()) + "' using " + PigStorage.class.getName() + "(',') as (name, age, registration, contributions);");
+        pigServer.registerQuery("a = load 'student' using " + PigStorage.class.getName() + "(':') as (name, age, gpa);");
+        pigServer.registerQuery("b = load 'voter' using " + PigStorage.class.getName() + "(',') as (name, age, registration, contributions);");
         pigServer.registerQuery("c = filter a by age < 50;");
         pigServer.registerQuery("d = filter b by age < 50;");
         pigServer.registerQuery("e = cogroup c by (name, age), d by (name, age);");
@@ -104,14 +104,15 @@ public class TestCommit extends TestCase {
             }
         }
         assertEquals(count, 2);
+        Util.deleteFile(cluster, "student");
+        Util.deleteFile(cluster, "voter");
     } 
     
     @Test
     public void testCheckin2() throws Exception{
         Tuple expected1 = mTf.newTuple(4);             
         Tuple expected2 = mTf.newTuple(4);             
-        String tmpFile1 = "'" + FileLocalizer.getTemporaryPath(null, pigServer.getPigContext()).toString() + "'";
-        File student = Util.createFile(new String[]{"joe smith:18:3.5","amy brown:18:2.5","jim fox:20:4.0","leo fu:55:3.0", "amy smith:20:3.0"});
+        Util.createInputFile(cluster, "testCheckin2-input.txt", new String[]{"joe smith:18:3.5","amy brown:18:2.5","jim fox:20:4.0","leo fu:55:3.0", "amy smith:20:3.0"});
         expected1.set(0, 18);
         expected1.set(1, 1L);
         expected1.set(2, "joe smith");
@@ -121,8 +122,7 @@ public class TestCommit extends TestCase {
         expected2.set(2, "leo fu");
         expected2.set(3, 55);
 
-        pigServer.registerQuery("a = load '" + Util.generateURI(student.toString()) + 
-                                "' using " + PigStorage.class.getName() + "(':') as (name: chararray, age: int, gpa: float);");
+        pigServer.registerQuery("a = load 'testCheckin2-input.txt' using " + PigStorage.class.getName() + "(':') as (name: chararray, age: int, gpa: float);");
         pigServer.registerQuery("b = group a by age;");
         //pigServer.registerQuery("c = foreach b { d = order a by $0;  generate group, COUNT(d), MAX (d), MIN(d.$0);}; ");
         pigServer.registerQuery("c = foreach b { d = filter a by gpa > 2.5;  " + 
@@ -130,8 +130,8 @@ public class TestCommit extends TestCase {
                                 " generate group, COUNT(d), MAX (e.name), MIN(g.$0);};");
         pigServer.registerQuery("h = order c by $1;");
         pigServer.registerQuery("i = limit h 2;");
-        pigServer.store("i", tmpFile1);
-        pigServer.registerQuery("x = load " + tmpFile1 + " as (age: int, cnt: long, max: chararray, min: int);");
+        pigServer.store("i", "testCheckin2-output.txt");
+        pigServer.registerQuery("x = load 'testCheckin2-output.txt' as (age: int, cnt: long, max: chararray, min: int);");
         pigServer.registerQuery("y = foreach x generate age, cnt, max, min;");
         Iterator<Tuple> iter = pigServer.openIterator("y");
         int count = 0;
@@ -151,5 +151,6 @@ public class TestCommit extends TestCase {
             }
         }
         assertEquals(count, 2);
+        Util.deleteFile(cluster, "testCheckin2-input.txt");
     }    
 }

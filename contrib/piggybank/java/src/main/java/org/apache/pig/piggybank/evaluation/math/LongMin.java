@@ -20,7 +20,6 @@ package org.apache.pig.piggybank.evaluation.math;
 
 import java.io.IOException;
 
-import org.apache.pig.impl.util.WrappedIOException;
 import org.apache.pig.EvalFunc;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
@@ -69,7 +68,7 @@ public class LongMin extends EvalFunc<Long>{
             Long second = (Long)input.get(1);
 		    return Math.min(first, second);
         } catch (Exception e){
-            throw WrappedIOException.wrap("Caught exception processing input row ", e);
+            throw new IOException("Caught exception processing input row ", e);
         }
 	}
 	

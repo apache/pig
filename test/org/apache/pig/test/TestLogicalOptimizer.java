@@ -17,18 +17,17 @@
  */
 package org.apache.pig.test;
 
-import java.io.File;
 import java.io.FileInputStream;
-import java.io.PrintWriter;
 
 import org.apache.pig.ExecType;
-import org.apache.pig.impl.logicalLayer.*;
-import org.apache.pig.impl.logicalLayer.optimizer.*;
-import org.apache.pig.test.utils.LogicalPlanTester;
+import org.apache.pig.impl.logicalLayer.LogicalPlan;
+import org.apache.pig.impl.logicalLayer.optimizer.ImplicitSplitInserter;
+import org.apache.pig.impl.logicalLayer.optimizer.LogicalOptimizer;
+import org.apache.pig.impl.logicalLayer.optimizer.OpLimitOptimizer;
+import org.apache.pig.impl.logicalLayer.optimizer.TypeCastInserter;
 import org.apache.pig.impl.plan.optimizer.OptimizerException;
-
+import org.apache.pig.test.utils.LogicalPlanTester;
 import org.junit.Test;
-import org.junit.Before;
 
 /**
  * Test the logical optimizer.
@@ -214,18 +213,6 @@ public class TestLogicalOptimizer extends junit.framework.TestCase {
         TypeCastInserter tci = new TypeCastInserter(lp, "hello");
         try {
             tci.transform(lp.getRoots());
-        } catch(Exception e) {
-            assertTrue(((OptimizerException)e).getErrorCode() == 2052);
-        }
-    }
-    
-    @Test
-    //Test to ensure that the right exception is thrown
-    public void testErrStreamOptimizer() throws Exception {
-        LogicalPlan lp = new LogicalPlan();
-        StreamOptimizer so = new StreamOptimizer(lp, "hello");
-        try {
-            so.transform(lp.getRoots());
         } catch(Exception e) {
             assertTrue(((OptimizerException)e).getErrorCode() == 2052);
         }

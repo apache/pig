@@ -18,34 +18,22 @@
 package org.apache.pig.backend.hadoop.executionengine.mapReduceLayer;
 
 import java.io.IOException;
-import java.io.OutputStream;
-import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.WritableComparable;
-import org.apache.hadoop.mapred.FileOutputFormat;
-import org.apache.hadoop.mapred.JobConf;
-import org.apache.hadoop.mapred.OutputFormat;
-import org.apache.hadoop.mapred.RecordWriter;
-import org.apache.hadoop.mapred.Reporter;
-import org.apache.hadoop.util.Progressable;
-import org.apache.pig.PigException;
-import org.apache.pig.StoreConfig;
+import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.mapreduce.JobContext;
+import org.apache.hadoop.mapreduce.OutputCommitter;
+import org.apache.hadoop.mapreduce.OutputFormat;
+import org.apache.hadoop.mapreduce.RecordWriter;
+import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.pig.StoreFunc;
-import org.apache.pig.backend.executionengine.ExecException;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
+import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.util.PlanHelper;
 import org.apache.pig.backend.hadoop.executionengine.util.MapRedUtil;
-import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.data.Tuple;
-import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.util.ObjectSerializer;
-import org.apache.tools.bzip2r.CBZip2OutputStream;
 
 /**
  * The better half of PigInputFormat which is responsible
@@ -53,157 +41,220 @@ import org.apache.tools.bzip2r.CBZip2OutputStream;
  * image of PigInputFormat having RecordWriter instead
  * of a RecordReader.
  */
-public class PigOutputFormat implements OutputFormat<WritableComparable, Tuple> {
-    public static final String PIG_OUTPUT_FUNC = "pig.output.func";
+@SuppressWarnings("unchecked")
+public class PigOutputFormat extends OutputFormat<WritableComparable, Tuple> {
+    
+    private enum Mode { SINGLE_STORE, MULTI_STORE};
 
-    /**
-     * In general, the mechanism for an OutputFormat in Pig to get hold of the storeFunc
-     * and the metadata information (for now schema and location provided for the store in
-     * the pig script) is through the following Utility static methods:
-     * {@link org.apache.pig.backend.hadoop.executionengine.util.MapRedUtil#getStoreFunc(JobConf)} 
-     * - this will get the {@link org.apache.pig.StoreFunc} reference to use in the RecordWriter.write()
-     * {@link MapRedUtil#getStoreConfig(JobConf)} - this will get the {@link org.apache.pig.StoreConfig}
-     * reference which has metadata like the location (the string supplied with store statement in the script)
-     * and the {@link org.apache.pig.impl.logicalLayer.schema.Schema} of the data. The OutputFormat
-     * should NOT use the location in the StoreConfig to write the output if the location represents a 
-     * Hadoop dfs path. This is because when "speculative execution" is turned on in Hadoop, multiple
-     * attempts for the same task (for a given partition) may be running at the same time. So using the
-     * location will mean that these different attempts will over-write each other's output.
-     * The OutputFormat should use 
-     * {@link org.apache.hadoop.mapred.FileOutputFormat#getWorkOutputPath(JobConf)}
-     * which will provide a safe output directory into which the OutputFormat should write
-     * the part file (given by the name argument in the getRecordWriter() call).
-     */
-    public RecordWriter<WritableComparable, Tuple> getRecordWriter(FileSystem fs, JobConf job,
-            String name, Progressable progress) throws IOException {
-        Path outputDir = FileOutputFormat.getWorkOutputPath(job);
-        return getRecordWriter(fs, job, outputDir, name, progress);
-    }
-
-    public PigRecordWriter getRecordWriter(FileSystem fs, JobConf job,
-            Path outputDir, String name, Progressable progress)
-            throws IOException {
-        StoreFunc store = MapRedUtil.getStoreFunc(job);
-
-        String parentName = FileOutputFormat.getOutputPath(job).getName();
-        int suffixStart = parentName.lastIndexOf('.');
-        if (suffixStart != -1) {
-            String suffix = parentName.substring(suffixStart);
-            if (suffix.equals(".bz") || suffix.equals(".bz2")) {
-                name = name + suffix;
-            }
-        }
-        return new PigRecordWriter(fs, new Path(outputDir, name), store);
-    }
-
-    @SuppressWarnings("deprecation")
-    public void checkOutputSpecs(FileSystem fs, JobConf job) throws IOException {
+    /** hadoop job output directory */
+    public static final String MAPRED_OUTPUT_DIR = "mapred.output.dir";
+    /** hadoop partition number */ 
+    public static final String MAPRED_TASK_PARTITION = "mapred.task.partition";
+    
+    /** the temporary directory for the multi store */
+    public static final String PIG_MAPRED_OUTPUT_DIR = "pig.mapred.output.dir";
+    /** the relative path that can be used to build a temporary
+     * place to store the output from a number of map-reduce tasks*/
+    public static final String PIG_TMP_PATH =  "pig.tmp.path";
+     
+    @Override
+    public RecordWriter<WritableComparable, Tuple> getRecordWriter(TaskAttemptContext taskattemptcontext)
+                throws IOException, InterruptedException {
+        // Setup UDFContext so StoreFunc can make use of it
+        MapRedUtil.setupUDFContext(taskattemptcontext.getConfiguration());
+        List<POStore> mapStores = getStores(taskattemptcontext, 
+                JobControlCompiler.PIG_MAP_STORES);
+        List<POStore> reduceStores = getStores(taskattemptcontext, 
+                JobControlCompiler.PIG_REDUCE_STORES);
         
-        // check if there is any storeFunc which internally has an
-        // OutputFormat - if it does, we should be delegating this call
-        // to it after setting up the StoreFunc and StoreConfig properties
-        // in the JobConf.
-        PhysicalPlan mp = (PhysicalPlan) ObjectSerializer.deserialize(
-                job.get("pig.mapPlan"));
-        List<POStore> mapStores = PlanHelper.getStores(mp);
-        PhysicalPlan rp = (PhysicalPlan) ObjectSerializer.deserialize(
-                    job.get("pig.reducePlan"));
-        List<POStore> reduceStores = new ArrayList<POStore>();
-        if(rp != null) {
-            reduceStores = PlanHelper.getStores(rp);    
-        }
-
-        // In the case of single store in the job, we remove the store
-        // out of the map/reduce plan and in that case, if the store had
-        // an OutputFormat, we would have set that to be the Job's 
-        // OutputFormat (relevant code in JobControlCompiler). We only need
-        // to handle multi store case - to be safe, we check for non zero
-        // store size
-        if(mapStores.size() > 0) {
-            for (POStore store : mapStores) {
-                checkOutputSpecsHelper(fs, store, job);
+        if(mapStores.size() + reduceStores.size() == 1) {
+            // single store case
+            POStore store;
+            if(mapStores.size() == 1) {
+                store = mapStores.get(0);
+            } else {
+                store = reduceStores.get(0);
             }
-        }
-        if(reduceStores.size() > 0) {
-            for (POStore store : reduceStores) {
-                checkOutputSpecsHelper(fs, store, job);
-            }
+            StoreFunc sFunc = store.getStoreFunc();
+            // set output location
+            PigOutputFormat.setLocation(taskattemptcontext, store);
+            // The above call should have update the conf in the JobContext
+            // to have the output location - now call checkOutputSpecs()
+            RecordWriter writer = sFunc.getOutputFormat().getRecordWriter(
+                    taskattemptcontext);
+            return new PigRecordWriter(writer, sFunc, Mode.SINGLE_STORE);
+        } else {
+           // multi store case - in this case, all writing is done through
+           // MapReducePOStoreImpl - set up a dummy RecordWriter
+           return new PigRecordWriter(null, null, Mode.MULTI_STORE);
         }
     }
 
     /**
-     * @param fs 
-     * @param store
-     * @param job
-     * @throws IOException 
+     * Wrapper class which will delegate calls to the actual RecordWriter - this
+     * should only get called in the single store case.
      */
-    @SuppressWarnings({ "unchecked", "deprecation" })
-    private void checkOutputSpecsHelper(FileSystem fs, POStore store, JobConf job) 
-    throws IOException {
-        StoreFunc storeFunc = (StoreFunc)PigContext.instantiateFuncFromSpec(
-                store.getSFile().getFuncSpec());
-        Class sPrepClass = null;
-        try {
-            sPrepClass = storeFunc.getStorePreparationClass();
-        } catch(AbstractMethodError e) {
-            // this is for backward compatibility wherein some old StoreFunc
-            // which does not implement getStorePreparationClass() is being
-            // used. In this case, we want to just use PigOutputFormat
-            sPrepClass = null;
-        }
-        if(sPrepClass != null && OutputFormat.class.isAssignableFrom(sPrepClass)) {
+    @SuppressWarnings("unchecked")
+    static public class PigRecordWriter
+            extends RecordWriter<WritableComparable, Tuple> {
         
-            StoreConfig storeConfig = new StoreConfig(store.getSFile().
-                    getFileName(), store.getSchema(), store.getSortInfo());
-            // make a copy of the conf since we may be dealing with multiple
-            // stores. Set storeFunc and StoreConfig 
-            // pertaining to this store in the copy and use it
-            JobConf confCopy = new JobConf(job);
-            confCopy.set("pig.storeFunc", ObjectSerializer.serialize(
-                    store.getSFile().getFuncSpec().toString()));
-            confCopy.set(JobControlCompiler.PIG_STORE_CONFIG, 
-                    ObjectSerializer.serialize(storeConfig));
-            confCopy.setOutputFormat(sPrepClass);
-            OutputFormat of = confCopy.getOutputFormat();
-            of.checkOutputSpecs(fs, confCopy);
+        /**
+         * the actual RecordWriter
+         */
+        private RecordWriter wrappedWriter;
         
-        }
+        /**
+         * the StoreFunc for the single store
+         */
+        private StoreFunc sFunc;
         
-    }
-
-    static public class PigRecordWriter implements
-            RecordWriter<WritableComparable, Tuple> {
-        private OutputStream os = null;
-
-        private StoreFunc sfunc = null;
-
-        public PigRecordWriter(FileSystem fs, Path file, StoreFunc sfunc)
-                throws IOException {
-            this.sfunc = sfunc;
-            fs.delete(file, true);
-            this.os = fs.create(file);
-            String name = file.getName();
-            if (name.endsWith(".bz") || name.endsWith(".bz2")) {
-                os = new CBZip2OutputStream(os);
+        /**
+         * Single Query or multi query
+         */
+        private Mode mode;
+        
+        public PigRecordWriter(RecordWriter wrappedWriter, StoreFunc sFunc, 
+                Mode mode)
+                throws IOException {            
+            this.mode = mode;
+            
+            if(mode == Mode.SINGLE_STORE) {
+                this.wrappedWriter = wrappedWriter;
+                this.sFunc = sFunc;
+                this.sFunc.prepareToWrite(this.wrappedWriter);
             }
-            this.sfunc.bindTo(os);
         }
 
         /**
          * We only care about the values, so we are going to skip the keys when
          * we write.
          * 
-         * @see org.apache.hadoop.mapred.RecordWriter#write(Object, Object)
+         * @see org.apache.hadoop.mapreduce.RecordWriter#write(Object, Object)
          */
+        @Override
         public void write(WritableComparable key, Tuple value)
-                throws IOException {
-            this.sfunc.putNext(value);
+                throws IOException, InterruptedException {
+            if(mode == Mode.SINGLE_STORE) {
+                sFunc.putNext(value);
+            } else {
+                throw new IOException("Internal Error: Unexpected code path");
+            }
         }
 
-        public void close(Reporter reporter) throws IOException {
-            sfunc.finish();
-            os.close();
+        @Override
+        public void close(TaskAttemptContext taskattemptcontext) throws 
+        IOException, InterruptedException {
+            if(mode == Mode.SINGLE_STORE) {
+                wrappedWriter.close(taskattemptcontext);
+            }
         }
 
+    }
+    
+    /**
+     * Before delegating calls to underlying OutputFormat or OutputCommitter
+     * Pig needs to ensure the Configuration in the JobContext contains
+     * the output location and StoreFunc 
+     * for the specific store - so set these up in the context for this specific 
+     * store
+     * @param jobContext the {@link JobContext}
+     * @param store the POStore
+     * @throws IOException on failure
+     */
+    public static void setLocation(JobContext jobContext, POStore store) throws 
+    IOException {
+        Job storeJob = new Job(jobContext.getConfiguration());
+        StoreFunc storeFunc = store.getStoreFunc();
+        String outputLocation = store.getSFile().getFileName();
+        storeFunc.setStoreLocation(outputLocation, storeJob);
+        
+        // the setStoreLocation() method would indicate to the StoreFunc
+        // to set the output location for its underlying OutputFormat.
+        // Typically OutputFormat's store the output location in the
+        // Configuration - so we need to get the modified Configuration
+        // containing the output location (and any other settings the
+        // OutputFormat might have set) and merge it with the Configuration
+        // we started with so that when this method returns the Configuration
+        // supplied as input has the updates.
+        ConfigurationUtil.mergeConf(jobContext.getConfiguration(), 
+                storeJob.getConfiguration());
+        
+        // Before delegating calls to underlying OutputFormat or OutputCommitter
+        // Pig needs to ensure the Configuration in the JobContext contains
+        // StoreFunc for the specific store - so set this up in the context 
+        // for this specific store
+        updateContextWithStoreInfo(jobContext, store);
+    }
+
+    @Override
+    public void checkOutputSpecs(JobContext jobcontext) throws IOException, InterruptedException {
+        // Setup UDFContext so in StoreFunc can make use of it
+        MapRedUtil.setupUDFContext(jobcontext.getConfiguration());
+        List<POStore> mapStores = getStores(jobcontext, 
+                JobControlCompiler.PIG_MAP_STORES);
+        checkOutputSpecsHelper(mapStores, jobcontext);
+        List<POStore> reduceStores = getStores(jobcontext, 
+                JobControlCompiler.PIG_REDUCE_STORES);
+        checkOutputSpecsHelper(reduceStores, jobcontext);
+    }
+
+    private void checkOutputSpecsHelper(List<POStore> stores, JobContext 
+            jobcontext) throws IOException, InterruptedException {
+        for (POStore store : stores) {
+            // make a copy of the original JobContext so that
+            // each OutputFormat get a different copy 
+            JobContext jobContextCopy = new JobContext(
+                    jobcontext.getConfiguration(), jobcontext.getJobID());
+            
+            // set output location
+            PigOutputFormat.setLocation(jobContextCopy, store);
+            
+            StoreFunc sFunc = store.getStoreFunc();
+            OutputFormat of = sFunc.getOutputFormat();
+            
+            // The above call should have update the conf in the JobContext
+            // to have the output location - now call checkOutputSpecs()
+            of.checkOutputSpecs(jobContextCopy);
+        }
+    }
+    /**
+     * @param jobcontext
+     * @param storeLookupKey
+     * @return
+     * @throws IOException 
+     */
+    private List<POStore> getStores(JobContext jobcontext, String storeLookupKey) 
+    throws IOException {
+        Configuration conf = jobcontext.getConfiguration();
+        return (List<POStore>)ObjectSerializer.deserialize(
+                conf.get(storeLookupKey));
+    }
+    
+    @Override
+    public OutputCommitter getOutputCommitter(TaskAttemptContext 
+            taskattemptcontext) throws IOException, InterruptedException {
+        // We setup UDFContext so in StoreFunc.getOutputFormat, which is called inside 
+        // construct of PigOutputCommitter, can make use of it
+        MapRedUtil.setupUDFContext(taskattemptcontext.getConfiguration());
+        // we return an instance of PigOutputCommitter to Hadoop - this instance
+        // will wrap the real OutputCommitter(s) belonging to the store(s)
+        return new PigOutputCommitter(taskattemptcontext);
+    }
+    
+    /**
+     * Before delegating calls to underlying OutputFormat or OutputCommitter
+     * Pig needs to ensure the Configuration in the {@link JobContext} contains
+     * {@link JobControlCompiler#PIG_STORE_FUNC}. This helper method can be
+     * used to set this up
+     * @param context the job context
+     * @param store the POStore whose information is to be put into the context
+     * @throws IOException in case of failure
+     */
+    public static void updateContextWithStoreInfo(JobContext context, 
+            POStore store) throws IOException {
+        Configuration conf = context.getConfiguration();
+        conf.set(JobControlCompiler.PIG_STORE_FUNC, 
+                store.getSFile().getFuncSpec().toString());
+        
     }
 }

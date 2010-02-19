@@ -53,6 +53,9 @@ import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.PlanException;
 import org.apache.pig.impl.streaming.StreamingCommand;
 import org.apache.pig.impl.streaming.StreamingCommand.HandleSpec;
+import org.apache.pig.impl.streaming.StreamToPig;
+import org.apache.pig.impl.streaming.PigToStream;
+import org.apache.pig.impl.streaming.PigStreaming;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.BagFactory;
@@ -67,6 +70,7 @@ import org.apache.pig.PigException;
 import org.apache.pig.backend.datastorage.DataStorage;
 import org.apache.pig.backend.datastorage.ContainerDescriptor;
 import org.apache.pig.backend.datastorage.ElementDescriptor;
+import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.hadoop.fs.Path;
 import org.apache.pig.impl.util.LinkedMultiMap;
 
@@ -80,7 +84,7 @@ public class QueryParser {
 	private Map<String, LogicalOperator> mapAliasOp;
 	private static Log log = LogFactory.getLog(QueryParser.class);
 	private boolean bracketed = false;
-        private Map<String, String> fileNameMap;
+    private Map<String, String> fileNameMap;
 	
 	private long getNextId() {
 		return nodeIdGen.getNextNodeId(scope);
@@ -100,7 +104,7 @@ public class QueryParser {
 		this.scope = scope;
 		this.nodeIdGen = NodeIdGenerator.getGenerator();
 		this.mapAliasOp = aliasOp;
-                this.fileNameMap = fileNameMap;
+        this.fileNameMap = fileNameMap;
 	}
 	
     public QueryParser(InputStream in,
@@ -132,7 +136,8 @@ public class QueryParser {
                                                 LogicalPlan readFrom,
                                                 String fileName,
                                                 String func,
-                                                LogicalOperator input) throws FrontendException {
+                                                LogicalOperator input,
+                                                String alias, PigContext pigContext) throws FrontendException {
 
         if (func == null) {
             func = PigStorage.class.getName();
@@ -145,12 +150,24 @@ public class QueryParser {
         LogicalPlan storePlan = new LogicalPlan();
 
         LogicalOperator store;
+        FuncSpec funcSpec = new FuncSpec(func);
+        FileSpec fileSpec = new FileSpec(fileName, funcSpec);
         try {
-		store = new LOStore(storePlan,
-							   new OperatorKey(scope, storeNodeId),
-                               new FileSpec(fileName, new FuncSpec(func)));
+            store = new LOStore(storePlan, new OperatorKey(scope, storeNodeId),
+                    fileSpec, alias);
         } catch (IOException ioe) {
             throw new FrontendException(ioe.getMessage(), ioe);
+        }
+        
+        Object obj = PigContext.instantiateFuncFromSpec(funcSpec);
+        StoreFunc stoFunc = (StoreFunc)obj;
+        stoFunc.setStoreFuncUDFContextSignature(LOStore.constructSignature(alias, fileName, funcSpec));
+
+        try {
+            stoFunc.relToAbsPathForStoreLocation(fileName, getCurrentDir(pigContext));
+        } catch (IOException ioe) {
+            FrontendException e = new FrontendException(ioe.getMessage(), ioe);
+            throw e;
         }
         
         try {
@@ -174,100 +191,11 @@ public class QueryParser {
 		return Integer.parseInt(s.substring(1, s.length()));	
 	}
 	    
-    String massageFilename(String filename, PigContext pigContext, boolean isLoad) throws IOException, ParseException {
-
-        String fname;
-
-        // If we converted the file name before, we return the old
-        // result. This is not done for performance but to make sure
-        // we return the same result for relative paths when
-        // re-parsing the same script for execution.
-        // For example if a script has
-        // a = load ...
-        // ...
-        // cd x
-        // ...
-        // store c into 'foo'; => the abs. path for 'foo' would be '/user/<username>/x/foo'
-        // ..
-        // cd y
-        // ..
-        // store f into 'bar'=> the abs. path for 'bar' would be '/user/<username>/x/y/bar' 
-        // While re-parsing, the current working dir is already at /user/<username>/x/y
-        // so translating 'foo' to its absolute path based on that dir would give incorrect
-        // results - hence we store the translations into a map during the first parse for
-        // use during the reparse.
-        if (null != (fname = fileNameMap.get(filename))) {
-            return fname;
-        } else {
-            fname = filename;
-        }
-        
-        String[] fnames = StringUtils.getPathStrings(fname);
-        
-        ArrayList<String> pathStrings = new ArrayList<String>();
-        
-        boolean hadoopify = false;
-
-        for (String strname : fnames) {
-
-            boolean added = false;
-            String scheme, path;
-
-            if (strname.startsWith(FileLocalizer.LOCAL_PREFIX)) {
-                // We don't use hadoop path class to do the parsing,
-                // because our syntax of saying 'file:foo' for relative
-                // paths on the local FS is not a valid URL.
-                scheme = "file";
-                path = strname.substring(FileLocalizer.LOCAL_PREFIX.length());
-            } else {
-                // Path implements a custom uri parsing that takes care of
-                // unescaped characters (think globs). Using "new
-                // URI(fname)" would break.
-                URI uri = new Path(strname).toUri();
-
-                scheme = uri.getScheme();
-                if (scheme != null) {
-                    scheme = scheme.toLowerCase();
-                }
-
-                path = uri.getPath();
-            }
-
-            if (scheme == null || scheme.equals("file") || scheme.equals("hdfs")) {
-                if (pigContext.getExecType() != ExecType.LOCAL) {
-                    if (strname.startsWith(FileLocalizer.LOCAL_PREFIX)) {
-                        if (isLoad) {
-                            strname = FileLocalizer.hadoopify(strname, pigContext);
-                            // in the old code before we were parsing comma separated paths
-                            // the code would return at this point without storing in the
-                            // fileNameMap. So we should remember to not update the fileNameMap
-                            // at the end of this method
-                            hadoopify = true;
-                        }
-                        pathStrings.add(strname);
-                        added = true;
-                    }
-                }    
-                if (!added) {   
-                    DataStorage dfs = pigContext.getDfs();
-                    ContainerDescriptor desc = dfs.getActiveContainer();
-                    ElementDescriptor el = dfs.asElement(desc, path);
-                    strname = el.toString();
-                }
-            }
-
-            if (!added) {
-                pathStrings.add(strname);
-            }
-        }
-
-        fname = StringUtils.join(pathStrings, ",");
-
-        if (!fname.equals(filename) && !hadoopify) {
-            fileNameMap.put(filename, fname);
-        }
-
-        return fname;
+    static Path getCurrentDir(PigContext pigContext) throws IOException {
+        DataStorage dfs = pigContext.getDfs();
+        ContainerDescriptor desc = dfs.getActiveContainer();
+        ElementDescriptor el = dfs.asElement(desc);
+        return new Path(el.toString());
     }
 
 	LogicalOperator parseCogroup(ArrayList<CogroupInput> gis, LogicalPlan lp, LOCogroup.GROUPTYPE type) throws ParseException, PlanException{
@@ -762,7 +690,10 @@ public class QueryParser {
         }
         return true;    
     }
-
+    
+    static String constructFileNameSignature(String fileName, FuncSpec funcSpec) {
+        return fileName+"_"+funcSpec.toString();
+    }
 }
 
 
@@ -906,6 +837,8 @@ class FunctionType {
     public static final byte COMPARISONFUNC = 4;
     public static final byte LOADFUNC = 8; 
     public static final byte STOREFUNC = 16;
+    public static final byte PIGTOSTREAMFUNC = 32;
+    public static final byte STREAMTOPIGFUNC = 64;
 
     public static void tryCasting(Object func, byte funcType) throws Exception {
         switch(funcType) {
@@ -920,6 +853,12 @@ class FunctionType {
             break;
         case FunctionType.STOREFUNC:
 			StoreFunc storeFunc = (StoreFunc) func;
+            break;
+        case FunctionType.PIGTOSTREAMFUNC:
+            PigToStream ptsFunc = (PigToStream) func;
+            break;
+        case FunctionType.STREAMTOPIGFUNC:
+            StreamToPig stpFunc = (StreamToPig) func;
             break;
         default:
             throw new Exception("Received an unknown function type: " + funcType);
@@ -1375,15 +1314,6 @@ LogicalOperator LoadClause(LogicalPlan lp) :
 		(
         <USING>  funcSpec = NonEvalFuncSpec(FunctionType.LOADFUNC)
 		)?
-		(
-		<SPLIT> <BY> t3 = <QUOTEDSTRING>
-		{
-			splitBy = unquote(t3.image);
-			if (splitBy.equalsIgnoreCase("file")) {
-				splittable = false;
-			}
-		}
-		)?
 	)
 	{
 		if (funcSpec == null){
@@ -1392,9 +1322,35 @@ LogicalOperator LoadClause(LogicalPlan lp) :
 			log.debug("LoadClause: funcSpec = " + funcSpec);
 		}
 
+        Object obj = PigContext.instantiateFuncFromSpec(funcSpec);
+        LoadFunc loFunc = (LoadFunc)obj;
         try {
-		    lo = new LOLoad(lp, new OperatorKey(scope, getNextId()), new FileSpec(massageFilename(filename, pigContext, true), funcSpec),
-		              pigContext.getExecType(), pigContext.getFs(), splittable);
+        
+            // If we converted the file name before, we return the old
+            // result. This is not done for performance but to make sure
+            // we return the same result for relative paths when
+            // re-parsing the same script for execution.
+            // For example if a script has
+            // a = load ...
+            // ...
+            // cd x
+            // ...
+            // store c into 'foo'; => the abs. path for 'foo' would be '/user/<username>/x/foo'
+            // ..
+            // cd y
+            // ..
+            // store f into 'bar'=> the abs. path for 'bar' would be '/user/<username>/x/y/bar'
+            // While re-parsing, the current working dir is already at /user/<username>/x/y
+            // so translating 'foo' to its absolute path based on that dir would give incorrect
+            // results - hence we store the translations into a map during the first parse for
+            // use during the reparse.
+            String absolutePath = fileNameMap.get(constructFileNameSignature(filename, funcSpec));
+            if (absolutePath == null) {
+                absolutePath = loFunc.relativeToAbsolutePath(filename, getCurrentDir(pigContext));
+                fileNameMap.put(constructFileNameSignature(filename, funcSpec), absolutePath);
+            }
+            lo = new LOLoad(lp, new OperatorKey(scope, getNextId()), new FileSpec(absolutePath, funcSpec),
+                  ConfigurationUtil.toConfiguration(pigContext.getProperties()));
         } catch (IOException ioe) {
             // The autogenerated parser code only catches RuntimeException and
             // ParseException as special Exceptions. All others are caught as
@@ -2433,8 +2389,8 @@ void InputOutputSpec(StreamingCommand command, StreamingCommand.Handle handle):
 {
     String stream, deserializer;
     StreamingCommand.HandleSpec[] handleSpecs;
-    String functionName = "PigStorage", functionArgs="";
-    byte funcType = (handle.compareTo(StreamingCommand.Handle.INPUT) != 0 ? FunctionType.LOADFUNC : FunctionType.STOREFUNC) ;
+    String functionName = PigStreaming.class.getName(), functionArgs="";
+    byte funcType = (handle.compareTo(StreamingCommand.Handle.INPUT) == 0 ? FunctionType.PIGTOSTREAMFUNC : FunctionType.STREAMTOPIGFUNC) ;
     FuncSpec funcSpec = null;
 } 
 {
@@ -2503,8 +2459,18 @@ LogicalOperator StoreClause(LogicalPlan lp) : {LogicalOperator lo; Token t; Stri
             funcSpec = new FuncSpec(PigStorage.class.getName() + "()");
         }
 
+        Object obj = PigContext.instantiateFuncFromSpec(funcSpec);
+        StoreFunc stoFunc = (StoreFunc)obj;
+        stoFunc.setStoreFuncUDFContextSignature(LOStore.constructSignature(t.image, fileName, funcSpec));
+         
+        // see the comments in LoadClause for reasons to cache absolutePath
+        String absolutePath = fileNameMap.get(constructFileNameSignature(fileName, funcSpec));
+        if (absolutePath == null) {
+            absolutePath = stoFunc.relToAbsPathForStoreLocation(fileName, getCurrentDir(pigContext));
+            fileNameMap.put(constructFileNameSignature(fileName, funcSpec), absolutePath);   
+        }
         LogicalOperator store = new LOStore(lp, new OperatorKey(scope, getNextId()),
-                                            new FileSpec(massageFilename(fileName, pigContext, false), funcSpec));
+                                            new FileSpec(absolutePath, funcSpec), t.image);
 
         LogicalOperator input = mapAliasOp.get(t.image);
         if (input == null)
@@ -3272,6 +3238,8 @@ FuncSpec NonEvalFuncSpec(byte funcType) :
             case FunctionType.COMPARISONFUNC:
             case FunctionType.LOADFUNC:
             case FunctionType.STOREFUNC:
+            case FunctionType.STREAMTOPIGFUNC:
+            case FunctionType.PIGTOSTREAMFUNC:
                 func = pigContext.instantiateFuncFromSpec(funcSpec);
 		        try{
                     FunctionType.tryCasting(func, funcType);

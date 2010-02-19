@@ -19,7 +19,8 @@ package org.apache.pig.impl.streaming;
 
 import java.io.IOException;
 
-import org.apache.pig.LoadFunc;
+import org.apache.hadoop.io.Text;
+import org.apache.hadoop.util.LineReader;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.io.BufferedPositionedInputStream;
 
@@ -41,7 +42,11 @@ public abstract class OutputHandler {
      * It is the responsibility of the concrete sub-classes to setup and
      * manage the deserializer. 
      */  
-    protected LoadFunc deserializer;
+    protected StreamToPig deserializer;
+    
+    protected LineReader in = null;
+
+    private BufferedPositionedInputStream istream;
     
     /**
      * Get the handled <code>OutputType</code>.
@@ -62,8 +67,8 @@ public abstract class OutputHandler {
      */
     public void bindTo(String fileName, BufferedPositionedInputStream is,
                        long offset, long end) throws IOException {
-        deserializer.bindTo(fileName, new BufferedPositionedInputStream(is), 
-                            offset, end);
+        this.istream  = is;
+        this.in = new LineReader(istream);
     }
     
     /**
@@ -73,12 +78,28 @@ public abstract class OutputHandler {
      * @throws IOException
      */
     public Tuple getNext() throws IOException {
-        return deserializer.getNext();
+        if (in == null) {
+            return null;
+        }
+
+        Text value = new Text();
+        int num = in.readLine(value);
+        if (num <= 0) {
+            return null;
+        }
+        
+        return deserializer.deserialize(value.getBytes());
     }
     
     /**
      * Close the <code>OutputHandler</code>.
      * @throws IOException
      */
-    public synchronized void close() throws IOException {}
+    public synchronized void close() throws IOException {
+        if(!alreadyClosed) {
+            istream.close();
+            istream = null;
+            alreadyClosed = true;
+        }
+    }
 }

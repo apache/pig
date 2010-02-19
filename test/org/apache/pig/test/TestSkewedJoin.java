@@ -24,10 +24,6 @@ import java.util.Iterator;
 import junit.framework.Assert;
 import junit.framework.TestCase;
 
-import org.apache.log4j.FileAppender;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
-import org.apache.log4j.SimpleLayout;
 import org.apache.pig.EvalFunc;
 import org.apache.pig.ExecType;
 import org.apache.pig.FuncSpec;
@@ -308,9 +304,9 @@ public class TestSkewedJoin extends TestCase{
          new File("skewedjoin").mkdir();
          // check how many times a key appear in each part- file
          for(int i=0; i<7; i++) {
-        	 Util.copyFromClusterToLocal(cluster, "skewedjoin/part-0000"+i, "skewedjoin/part-0000"+i);
+        	 Util.copyFromClusterToLocal(cluster, "skewedjoin/part-r-0000"+i, "skewedjoin/part-r-0000"+i);
         	 
-        	 BufferedReader reader = new BufferedReader(new FileReader("skewedjoin/part-0000"+i));
+        	 BufferedReader reader = new BufferedReader(new FileReader("skewedjoin/part-r-0000"+i));
       	     String line = null;      	     
       	     while((line = reader.readLine()) != null) {
       	        String[] cols = line.split("\t");
@@ -448,61 +444,4 @@ public class TestSkewedJoin extends TestCase{
         Assert.assertEquals(true, TestHelper.compareBags(dbfrj, dbrj));       
        
     }
-    
-    /* Test to check if the samplers sample different input files in the case of
-     * serial successive joins
-     */
-    public void testSuccessiveJoins() throws IOException {
-        pigServer.registerQuery("A = LOAD '" + INPUT_FILE1 + "' as (id,name);");
-        pigServer.registerQuery("B = LOAD '" + INPUT_FILE2 + "' as (id,name);");
-        pigServer.registerQuery("C = LOAD '" + INPUT_FILE3 + "' as (id,name);");
-
-        DataBag dbfrj = BagFactory.getInstance().newDefaultBag(), dbrj = BagFactory.getInstance().newDefaultBag();
-        {
-            pigServer.registerQuery("D = join A by id, B by id using \"skewed\";");
-            pigServer.registerQuery("E = join D by A::id, C by id using \"skewed\";");
-            Iterator<Tuple> iter = pigServer.openIterator("E");
-                
-            while(iter.hasNext()) {
-                dbfrj.add(iter.next());
-            }
-        }
-        {
-            pigServer.registerQuery("D = join A by id, B by id;");
-            pigServer.registerQuery("E = join D by A::id, C by id;");
-            Iterator<Tuple> iter = pigServer.openIterator("E");
-        
-            while(iter.hasNext()) {
-                dbrj.add(iter.next());
-            }
-        }
-        Assert.assertEquals(dbfrj.size(), dbrj.size());
-        Assert.assertEquals(true, TestHelper.compareBags(dbfrj, dbrj));
-    }
-    
-    public void testMultiQuery() throws IOException {
-        pigServer.registerQuery("A = LOAD '" + INPUT_FILE1 + "' as (id,name);");
-        pigServer.registerQuery("B = FILTER A by id == 100;");
-        pigServer.registerQuery("C = FILTER A by id == 200;");
-        DataBag dbfrj = BagFactory.getInstance().newDefaultBag(), dbrj = BagFactory.getInstance().newDefaultBag();
-        {
-            pigServer.registerQuery("D = join B by id, C by id using \"skewed\";");
-            Iterator<Tuple> iter = pigServer.openIterator("D");
-                
-            while(iter.hasNext()) {
-                dbfrj.add(iter.next());
-            }
-        }
-        {
-            pigServer.registerQuery("D = join B by id, C by id;");
-            Iterator<Tuple> iter = pigServer.openIterator("D");
-        
-            while(iter.hasNext()) {
-                dbrj.add(iter.next());
-            }
-        }
-        Assert.assertEquals(dbfrj.size(), dbrj.size());
-        Assert.assertEquals(true, TestHelper.compareBags(dbfrj, dbrj));
-    }
-    
 }

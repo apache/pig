@@ -25,7 +25,6 @@ import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
-import org.apache.pig.impl.util.WrappedIOException;
 
 /**
  * SearchEngineExtractor takes a url string and extracts the search engine. For example, given
@@ -405,7 +404,7 @@ public class SearchEngineExtractor extends EvalFunc<String> {
 
           return searchEngine;  
       } catch (Exception e) {
-        throw WrappedIOException.wrap("Caught exception processing input row ", e);
+        throw new IOException("Caught exception processing input row ", e);
       }
     }
     

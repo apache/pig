@@ -378,7 +378,7 @@ public class ExpToPhyTranslationVisitor extends LogicalExpressionVisitor {
         pCast.setResultType(op.getType());
         FuncSpec lfSpec = op.getFuncSpec();
         if(null != lfSpec) {
-            pCast.setLoadFSpec(lfSpec);
+            pCast.setFuncSpec(lfSpec);
         }
         try {
             currentPlan.connect(from, pCast);

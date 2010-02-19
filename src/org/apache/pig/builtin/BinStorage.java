@@ -17,46 +17,67 @@
  */
 package org.apache.pig.builtin;
 
-import java.io.BufferedOutputStream;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Properties;
 
-import org.apache.commons.logging.LogFactory;
 import org.apache.commons.logging.Log;
-import org.apache.pig.ExecType;
+import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.mapreduce.InputFormat;
+import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.mapreduce.OutputFormat;
+import org.apache.hadoop.mapreduce.RecordReader;
+import org.apache.hadoop.mapreduce.RecordWriter;
+import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
+import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+import org.apache.pig.Expression;
+import org.apache.pig.FileInputLoadFunc;
+import org.apache.pig.LoadCaster;
 import org.apache.pig.LoadFunc;
+import org.apache.pig.LoadMetadata;
 import org.apache.pig.PigException;
 import org.apache.pig.PigWarning;
-import org.apache.pig.ReversibleLoadStoreFunc;
-import org.apache.pig.SamplableLoader;
-import org.apache.pig.backend.datastorage.DataStorage;
+import org.apache.pig.ResourceSchema;
+import org.apache.pig.ResourceStatistics;
+import org.apache.pig.StoreFunc;
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
+import org.apache.pig.backend.hadoop.datastorage.HDataStorage;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigSplit;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataReaderWriter;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
-import org.apache.pig.impl.io.BufferedPositionedInputStream;
+import org.apache.pig.impl.io.BinStorageInputFormat;
+import org.apache.pig.impl.io.BinStorageOutputFormat;
+import org.apache.pig.impl.io.BinStorageRecordReader;
+import org.apache.pig.impl.io.BinStorageRecordWriter;
 import org.apache.pig.impl.io.FileLocalizer;
-import org.apache.pig.impl.logicalLayer.FrontendException;
+import org.apache.pig.impl.io.ReadToEndLoader;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.util.LogUtils;
 
-public class BinStorage implements ReversibleLoadStoreFunc, SamplableLoader {
+public class BinStorage extends FileInputLoadFunc 
+implements LoadCaster, StoreFunc, LoadMetadata {
+
+    
     public static final int RECORD_1 = 0x01;
     public static final int RECORD_2 = 0x02;
     public static final int RECORD_3 = 0x03;
 
-    protected BufferedPositionedInputStream in = null;
+    Iterator<Tuple>     i              = null;
     private static final Log mLog = LogFactory.getLog(BinStorage.class);
-    private DataInputStream inData = null;
     protected long                end            = Long.MAX_VALUE;
+    
+    private BinStorageRecordReader recReader = null;
+    private BinStorageRecordWriter recWriter = null;
     
     /**
      * Simple binary nested reader format
@@ -65,85 +86,24 @@ public class BinStorage implements ReversibleLoadStoreFunc, SamplableLoader {
     }
 
     @Override
-    public long getPosition() throws IOException {
-        return in.getPosition();
+    public Tuple getNext() throws IOException {
+        if(recReader.nextKeyValue()) {
+            return recReader.getCurrentValue();
+        } else {
+            return null;
+        }
     }
 
     @Override
-    public long skip(long n) throws IOException {
-        return in.skip(n);
-    }
-    
-    public Tuple getNext() throws IOException {
-        
-        int b = 0;
-//      skip to next record
-        while (true) {
-            if (in == null || in.getPosition() >=end) {
-                return null;
-            }
-            // check if we saw RECORD_1 in our last attempt
-            // this can happen if we have the following 
-            // sequence RECORD_1-RECORD_1-RECORD_2-RECORD_3
-            // After reading the second RECORD_1 in the above
-            // sequence, we should not look for RECORD_1 again
-            if(b != RECORD_1) {
-                b = in.read();
-                if(b != RECORD_1 && b != -1) {
-                    continue;
-                }
-                if(b == -1) return null;
-            }
-            b = in.read();
-            if(b != RECORD_2 && b != -1) {
-                continue;
-            }
-            if(b == -1) return null;
-            b = in.read();
-            if(b != RECORD_3 && b != -1) {
-                continue;
-            }
-            if(b == -1) return null;
-            b = in.read();
-            if(b != DataType.TUPLE && b != -1) {
-                continue;
-            }
-            if(b == -1) return null;
-            break;
-        }
-        try {
-            // if we got here, we have seen RECORD_1-RECORD_2-RECORD_3-TUPLE_MARKER
-            // sequence - lets now read the contents of the tuple 
-            return (Tuple)DataReaderWriter.readDatum(inData, DataType.TUPLE);
-        } catch (ExecException ee) {
-            throw ee;
-        }
-    }
-
-    public void bindTo(String fileName, BufferedPositionedInputStream in, long offset, long end) throws IOException {
-        this.in = in;
-        inData = new DataInputStream(in);
-        this.end = end;
-    }
-
-
-    DataOutputStream         out     = null;
-  
-    public void bindTo(OutputStream os) throws IOException {
-        this.out = new DataOutputStream(new BufferedOutputStream(os));
-    }
-
-    public void finish() throws IOException {
-        out.flush();
-    }
-
     public void putNext(Tuple t) throws IOException {
-        out.write(RECORD_1);
-        out.write(RECORD_2);
-        out.write(RECORD_3);
-        t.write(out);
+        try {
+            recWriter.write(null, t);
+        } catch (InterruptedException e) {
+            throw new IOException(e);
+        }
     }
 
+    @Override
     public DataBag bytesToBag(byte[] b){
         DataInputStream dis = new DataInputStream(new ByteArrayInputStream(b));
         try {
@@ -158,6 +118,7 @@ public class BinStorage implements ReversibleLoadStoreFunc, SamplableLoader {
         }        
     }
 
+    @Override
     public String bytesToCharArray(byte[] b) {
         DataInputStream dis = new DataInputStream(new ByteArrayInputStream(b));
         try {
@@ -172,6 +133,7 @@ public class BinStorage implements ReversibleLoadStoreFunc, SamplableLoader {
         }
     }
 
+    @Override
     public Double bytesToDouble(byte[] b) {
         DataInputStream dis = new DataInputStream(new ByteArrayInputStream(b));
         try {
@@ -186,6 +148,7 @@ public class BinStorage implements ReversibleLoadStoreFunc, SamplableLoader {
         }
     }
 
+    @Override
     public Float bytesToFloat(byte[] b) {
         DataInputStream dis = new DataInputStream(new ByteArrayInputStream(b));
         try {
@@ -200,6 +163,7 @@ public class BinStorage implements ReversibleLoadStoreFunc, SamplableLoader {
         }
     }
 
+    @Override
     public Integer bytesToInteger(byte[] b) {
         DataInputStream dis = new DataInputStream(new ByteArrayInputStream(b));
         try {
@@ -214,6 +178,7 @@ public class BinStorage implements ReversibleLoadStoreFunc, SamplableLoader {
         }
     }
 
+    @Override
     public Long bytesToLong(byte[] b) {
         DataInputStream dis = new DataInputStream(new ByteArrayInputStream(b));
         try {
@@ -228,6 +193,7 @@ public class BinStorage implements ReversibleLoadStoreFunc, SamplableLoader {
         }
     }
 
+    @Override
     public Map<String, Object> bytesToMap(byte[] b) {
         DataInputStream dis = new DataInputStream(new ByteArrayInputStream(b));
         try {
@@ -242,6 +208,7 @@ public class BinStorage implements ReversibleLoadStoreFunc, SamplableLoader {
         }
     }
 
+    @Override
     public Tuple bytesToTuple(byte[] b) {
         DataInputStream dis = new DataInputStream(new ByteArrayInputStream(b));
         try {
@@ -254,50 +221,6 @@ public class BinStorage implements ReversibleLoadStoreFunc, SamplableLoader {
         
             return null;
         }
-    }
-
-    /* (non-Javadoc)
-     * @see org.apache.pig.LoadFunc#determineSchema(java.lang.String, org.apache.pig.ExecType, org.apache.pig.backend.datastorage.DataStorage)
-     */
-    public Schema determineSchema(String fileName, ExecType execType,
-            DataStorage storage) throws IOException {
-
-        if (!FileLocalizer.fileExists(fileName, storage)) {
-            // At compile time in batch mode, the file may not exist
-            // (such as intermediate file). Just return null - the
-            // same way as we would if we did not get a valid record
-            return null;
-        }
-        
-        InputStream is = FileLocalizer.open(fileName, execType, storage);
-       
-        bindTo(fileName, new BufferedPositionedInputStream(is), 0, Long.MAX_VALUE);
-        // get the first record from the input file
-        // and figure out the schema from the data in
-        // the first record
-        Tuple t = getNext();
-        is.close();
-        if(t == null) {
-            // we couldn't get a valid record from the input
-            return null;
-        }
-        int numFields = t.size();
-        Schema s = new Schema();
-        for (int i = 0; i < numFields; i++) {
-            try {
-                s.add(DataType.determineFieldSchema(t.get(i)));
-            } catch (Exception e) {
-                int errCode = 2104;
-                String msg = "Error while determining schema of BinStorage data.";
-                throw new ExecException(msg, errCode, PigException.BUG, e);
-            } 
-        }
-        return s;
-    }
-
-    @Override
-    public LoadFunc.RequiredFieldResponse fieldsToRead(LoadFunc.RequiredFieldList requiredFieldList) throws FrontendException {
-        return new LoadFunc.RequiredFieldResponse(false);
     }
 
     public byte[] toBytes(DataBag bag) throws IOException {
@@ -403,25 +326,114 @@ public class BinStorage implements ReversibleLoadStoreFunc, SamplableLoader {
         }
         return baos.toByteArray();
     }
-    public boolean equals(Object obj) {
-        return true;
+    
+    @Override
+    public InputFormat getInputFormat() {
+        return new BinStorageInputFormat();
     }
 
+    @Override
     public int hashCode() {
         return 42; 
     }
 
-    /* (non-Javadoc)
-     * @see org.apache.pig.StoreFunc#getStorePreparationClass()
-     */
     @Override
-    public Class getStorePreparationClass() throws IOException {
-        // TODO Auto-generated method stub
+    public LoadCaster getLoadCaster() {
+        return this;
+    }
+
+    @Override
+    public void prepareToRead(RecordReader reader, PigSplit split) {
+        recReader = (BinStorageRecordReader)reader;
+    }
+
+    @Override
+    public void setLocation(String location, Job job) throws IOException {
+        FileInputFormat.setInputPaths(job, location);
+    }
+
+    @Override
+    public OutputFormat getOutputFormat() {
+        return new BinStorageOutputFormat();
+    }
+
+    @Override
+    public void prepareToWrite(RecordWriter writer) {
+        this.recWriter = (BinStorageRecordWriter) writer;        
+    }
+
+    @Override
+    public void setStoreLocation(String location, Job job) throws IOException {
+        FileOutputFormat.setOutputPath(job, new Path(location));
+    }
+
+    @Override
+    public void checkSchema(ResourceSchema s) throws IOException {
+        
+    }
+
+    @Override
+    public String relToAbsPathForStoreLocation(String location, Path curDir)
+            throws IOException {
+        return LoadFunc.getAbsolutePath(location, curDir);
+    }
+
+    @Override
+    public String[] getPartitionKeys(String location, Configuration conf)
+            throws IOException {
         return null;
     }
 
     @Override
-    public Tuple getSampledTuple() throws IOException {
-        return this.getNext();
+    public ResourceSchema getSchema(String location, Configuration conf)
+            throws IOException {
+        Properties props = ConfigurationUtil.toProperties(conf);
+        // since local mode now is implemented as hadoop's local mode
+        // we can treat either local or hadoop mode as hadoop mode - hence
+        // we can use HDataStorage and FileLocalizer.openDFSFile below
+        HDataStorage storage = new HDataStorage(props);
+        if (!FileLocalizer.fileExists(location, storage)) {
+            // At compile time in batch mode, the file may not exist
+            // (such as intermediate file). Just return null - the
+            // same way as we would if we did not get a valid record
+            return null;
+        }
+        ReadToEndLoader loader = new ReadToEndLoader(this, conf, location, 0);
+        // get the first record from the input file
+        // and figure out the schema from the data in
+        // the first record
+        Tuple t = loader.getNext();
+        if(t == null) {
+            // we couldn't get a valid record from the input
+            return null;
+        }
+        int numFields = t.size();
+        Schema s = new Schema();
+        for (int i = 0; i < numFields; i++) {
+            try {
+                s.add(DataType.determineFieldSchema(t.get(i)));
+            } catch (Exception e) {
+                int errCode = 2104;
+                String msg = "Error while determining schema of BinStorage data.";
+                throw new ExecException(msg, errCode, PigException.BUG, e);
+            } 
+        }
+        return new ResourceSchema(s);
     }
+
+    @Override
+    public ResourceStatistics getStatistics(String location, Configuration conf)
+            throws IOException {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void setPartitionFilter(Expression plan) throws IOException {
+        throw new UnsupportedOperationException();
+    }
+    
+    @Override
+    public void setStoreFuncUDFContextSignature(String signature) {
+    }
+
 }

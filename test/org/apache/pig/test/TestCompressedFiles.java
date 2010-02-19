@@ -31,6 +31,12 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.builtin.DIFF;
+import org.apache.pig.data.BagFactory;
+import org.apache.pig.data.DataBag;
+import org.apache.pig.data.Tuple;
+import org.apache.pig.test.utils.TestHelper;
+
+import junit.framework.Assert;
 import junit.framework.TestCase;
 
 public class TestCompressedFiles extends TestCase {
@@ -74,13 +80,48 @@ public class TestCompressedFiles extends TestCase {
     @Test
     public void testCompressed1() throws Throwable {
         PigServer pig = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
-        pig.registerQuery("A = foreach (cogroup (load '"+Util.generateURI(gzFile.toString())+"') by $1, (load '"+Util.generateURI(datFile.toString()) + "') by $1) generate flatten( " + DIFF.class.getName() + "($1.$1,$2.$1)) ;");
-        Iterator it = pig.openIterator("A");
+        pig.registerQuery("A = foreach (cogroup (load '"
+                + Util.generateURI(gzFile.toString(), pig.getPigContext())
+                + "') by $1, (load '"
+                + Util.generateURI(datFile.toString(), pig.getPigContext())
+                + "') by $1) generate flatten( " + DIFF.class.getName()
+                + "($1.$1,$2.$1)) ;");
+        Iterator<Tuple> it = pig.openIterator("A");
         boolean success = true;
         while(it.hasNext()) {
             success = false;
             log.info(it.next());
         }
         assertTrue(success);
+    }
+    
+    @Test
+    public void testCompressed2() throws Throwable {
+        PigServer pig = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        pig.registerQuery("A = load '"
+                + Util.generateURI(gzFile.toString(), pig.getPigContext())
+                + "';");
+ 
+        DataBag dbGz = BagFactory.getInstance().newDefaultBag(), dbDt = BagFactory.getInstance().newDefaultBag();
+        {
+            Iterator<Tuple> iter = pig.openIterator("A");
+
+            while(iter.hasNext()) {
+                dbGz.add(iter.next());
+            }            
+        }
+        pig.registerQuery("B = load '"        
+                + Util.generateURI(datFile.toString(), pig.getPigContext())
+                + "';");
+        Iterator<Tuple> iter = pig.openIterator("B");
+
+        while(iter.hasNext()) {
+            dbDt.add(iter.next());
+        }
+        
+        Assert.assertTrue(dbGz.size() > 0);
+        Assert.assertTrue(dbDt.size() > 0);
+        Assert.assertEquals(dbGz.size(), dbDt.size());
+        Assert.assertEquals(true, TestHelper.compareBags(dbGz, dbDt));       
     }
 }

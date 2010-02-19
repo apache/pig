@@ -18,36 +18,33 @@
 
 package org.apache.pig.test.utils;
 
-import org.apache.hadoop.hdfs.server.common.HdfsConstants.NodeType;
-import org.apache.pig.backend.datastorage.DataStorage;
-import org.apache.pig.backend.hadoop.datastorage.HDataStorage;
-import org.apache.pig.FuncSpec;
-import org.apache.pig.impl.logicalLayer.LogicalPlan;
-import org.apache.pig.impl.logicalLayer.LOLoad;
-import org.apache.pig.impl.plan.OperatorKey;
-import org.apache.pig.impl.logicalLayer.schema.Schema;
-import org.apache.pig.impl.plan.NodeIdGenerator;
-import org.apache.pig.impl.plan.CompilationMessageCollector;
-import org.apache.pig.impl.io.FileSpec;
-import org.apache.pig.builtin.PigStorage;
-import org.apache.pig.test.TypeGraphPrinter;
-
+import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.ArrayList;
 import java.util.Properties;
-import java.io.IOException;
+
+import org.apache.pig.FuncSpec;
+import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
+import org.apache.pig.builtin.PigStorage;
+import org.apache.pig.impl.io.FileSpec;
+import org.apache.pig.impl.logicalLayer.LOLoad;
+import org.apache.pig.impl.logicalLayer.LogicalPlan;
+import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.impl.plan.CompilationMessageCollector;
+import org.apache.pig.impl.plan.NodeIdGenerator;
+import org.apache.pig.impl.plan.OperatorKey;
+import org.apache.pig.test.TypeGraphPrinter;
 
 public class TypeCheckingTestUtil {
 
     public static LOLoad genDummyLOLoad(LogicalPlan plan)  {
         String pigStorage = PigStorage.class.getName() ;
-        DataStorage dfs = new HDataStorage(new Properties());
         try {
             LOLoad load = new LOLoad(plan,
                                       genNewOperatorKey(),
                                       new FileSpec("pi", new FuncSpec(pigStorage)),
-                                      null, dfs, true) ;
+                                      ConfigurationUtil.toConfiguration(new Properties())) ;
             return load ;
         } catch (IOException e) {
             throw new AssertionError("This cannot happen") ;

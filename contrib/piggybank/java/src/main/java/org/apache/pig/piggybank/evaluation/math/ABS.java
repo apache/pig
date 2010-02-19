@@ -28,7 +28,7 @@ import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.data.DataType;
 import org.apache.pig.impl.logicalLayer.FrontendException;
-import org.apache.pig.impl.util.WrappedIOException;
+
 /**
   * math.ABS implements a binding to the Java function
  * {@link java.lang.Math#abs(double) Math.abs(double)} for computing the
@@ -75,7 +75,7 @@ public class ABS extends EvalFunc<Double>{
             System.err.println("Failed to process input; error - " + nfe.getMessage());
             return null;
         } catch (Exception e){
-            throw WrappedIOException.wrap("Caught exception processing input row ", e);
+            throw new IOException("Caught exception processing input row ", e);
         }
 
 		return Math.abs(d);

@@ -27,6 +27,8 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.executionengine.ExecJob;
+import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileSpec;
@@ -34,6 +36,7 @@ import org.apache.pig.LoadFunc;
 import org.apache.pig.PigException;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.BufferedPositionedInputStream;
+import org.apache.pig.impl.io.ReadToEndLoader;
 import org.apache.pig.tools.pigstats.PigStats;
 
 
@@ -82,11 +85,13 @@ public class HJob implements ExecJob {
         final LoadFunc p;
         
         try{
-             p = (LoadFunc)PigContext.instantiateFuncFromSpec(outFileSpec.getFuncSpec());
-
-             InputStream is = FileLocalizer.open(outFileSpec.getFileName(), pigContext);
-
-             p.bindTo(outFileSpec.getFileName(), new BufferedPositionedInputStream(is), 0, Long.MAX_VALUE);
+             LoadFunc originalLoadFunc = 
+                 (LoadFunc)PigContext.instantiateFuncFromSpec(
+                         outFileSpec.getFuncSpec());
+             
+             p = (LoadFunc) new ReadToEndLoader(originalLoadFunc, 
+                     ConfigurationUtil.toConfiguration(
+                     pigContext.getProperties()), outFileSpec.getFileName(), 0);
 
         }catch (Exception e){
             int errCode = 2088;

@@ -24,7 +24,7 @@ import org.apache.pig.EvalFunc;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.data.DataType;
-import org.apache.pig.impl.util.WrappedIOException;
+
 /**
   * math.ABS implements a binding to the Java function
  * {@link java.lang.Math#abs(double) Math.abs(float)} for computing the
@@ -68,7 +68,7 @@ public class FloatAbs extends EvalFunc<Float>{
         try{
             d = (Float)input.get(0);
         } catch (Exception e){
-            throw WrappedIOException.wrap("Caught exception processing input row ", e);
+            throw new IOException("Caught exception processing input row ", e);
         }
 
 		return Math.abs(d);

@@ -23,7 +23,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.pig.data.Tuple;
 
 /**
- * This interface is intended for use by LoadFunc implementations
+ * This class is intended for use by LoadFunc implementations
  * which have an internal index for sorted data and can use the index
  * to support merge join in pig. Interaction with the index 
  * is abstracted away by the methods in this interface which the pig
@@ -31,25 +31,22 @@ import org.apache.pig.data.Tuple;
  * needs to perform the merge based join.
  * 
  * The sequence of calls made from the pig runtime are:
- * 
+ * {@link IndexableLoadFunc#setUDFContextSignature(String)}
  * {@link IndexableLoadFunc#initialize(Configuration)}
- * IndexableLoadFunc.bindTo(filename, null, 0, LONG.MAX_VALUE);
- * (it's the IndexableLoad's responsibility to create the underlying
- * DFS input stream since indexer should have all the information 
- * required)
- * IndexableLoadFunc.seekNear(keys);
+ * {@link IndexableLoadFunc#setLocation(String, org.apache.hadoop.mapreduce.Job)}
+ * {@link IndexableLoadFunc#seekNear(Tuple)}
  * A series of IndexableLoadFunc.getNext(); calls to perform the join
  * IndexableLoadFunc.close(); 
  * 
  */
-public interface IndexableLoadFunc extends LoadFunc {
+public abstract class IndexableLoadFunc extends LoadFunc {
     
     /**
      * This method is called by pig run time to allow the
      * IndexableLoadFunc to perform any initialization actions
      * @param conf The job configuration object
      */
-    public void initialize(Configuration conf) throws IOException;
+    public abstract void initialize(Configuration conf) throws IOException;
 
     /**
      * This method is called by the pig runtime to indicate
@@ -85,7 +82,7 @@ public interface IndexableLoadFunc extends LoadFunc {
      * @throws IOException When the loadFunc is unable to position
      * to the required point in its input stream
      */
-    public void seekNear(Tuple keys) throws IOException;
+    public abstract void seekNear(Tuple keys) throws IOException;
     
     
     /**
@@ -99,5 +96,5 @@ public interface IndexableLoadFunc extends LoadFunc {
      * @throws IOException if the loadfunc is unable to perform
      * its close actions.
      */
-    public void close() throws IOException;
+    public abstract void close() throws IOException;
 }

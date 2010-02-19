@@ -20,7 +20,6 @@ package org.apache.pig.piggybank.evaluation.math;
 
 import java.io.IOException;
 
-import org.apache.pig.impl.util.WrappedIOException;
 import org.apache.pig.EvalFunc;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
@@ -68,7 +67,7 @@ public class IntAbs extends EvalFunc<Integer>{
         try{
             d = (Integer)input.get(0);
         } catch (Exception e){
-            throw WrappedIOException.wrap("Caught exception processing input row ", e);
+            throw new IOException("Caught exception processing input row ", e);
         }
 
 		return Math.abs(d);

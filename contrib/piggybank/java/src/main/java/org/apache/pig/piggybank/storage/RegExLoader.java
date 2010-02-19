@@ -14,24 +14,23 @@
 package org.apache.pig.piggybank.storage;
 
 import java.io.IOException;
-import java.io.OutputStream;
-import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.apache.pig.ExecType;
+import org.apache.hadoop.io.Text;
+import org.apache.hadoop.mapreduce.InputFormat;
+import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.mapreduce.RecordReader;
+import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
+import org.apache.hadoop.mapreduce.lib.input.LineRecordReader;
+import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
 import org.apache.pig.LoadFunc;
-
-import org.apache.pig.backend.datastorage.DataStorage;
-import org.apache.pig.builtin.Utf8StorageConverter;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigSplit;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.DefaultTupleFactory;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
-import org.apache.pig.impl.io.BufferedPositionedInputStream;
-import org.apache.pig.impl.logicalLayer.schema.Schema;
-import org.apache.pig.impl.logicalLayer.FrontendException;
 
 /**
  * RegExLoader is an abstract class used to parse logs based on a regular expression.
@@ -42,35 +41,32 @@ import org.apache.pig.impl.logicalLayer.FrontendException;
  * Look to org.apache.pig.piggybank.storage.apachelog.CommonLogLoader for example usage.
  */
 
-public abstract class RegExLoader extends  Utf8StorageConverter implements LoadFunc {
-  protected BufferedPositionedInputStream in = null;
-  long end = Long.MAX_VALUE;
-  private byte recordDel = (byte) '\n';
-  private String fieldDel = "\t";
-  final private static Charset utf8 = Charset.forName("UTF8");
-  OutputStream os;
-
+public abstract class RegExLoader extends LoadFunc {
+  private LineRecordReader in = null;
+  
   abstract public Pattern getPattern();
 
-  public RegExLoader() {
-  }
-
+  @Override
   public Tuple getNext() throws IOException {
-    if (in == null || in.getPosition() > end) {
+    if (!in.nextKeyValue()) {
       return null;
     }
+    
     Pattern pattern = getPattern();
     Matcher matcher = pattern.matcher("");
     TupleFactory mTupleFactory = DefaultTupleFactory.getInstance();
     String line;
+    
     boolean tryNext = true;
     while (tryNext) {
-      if ((line = in.readLine(utf8, recordDel)) == null) {
+      Text val = in.getCurrentValue();
+      if (val == null) {
         break;
       }
-      if (line.length() > 0 && line.charAt(line.length() - 1) == '\r')
+      line = val.toString();
+      if (line.length() > 0 && line.charAt(line.length() - 1) == '\r') {
         line = line.substring(0, line.length() - 1);
-
+      }
       matcher = matcher.reset(line);
       ArrayList<DataByteArray> list = new ArrayList<DataByteArray>();
       if (matcher.find()) {
@@ -82,39 +78,25 @@ public abstract class RegExLoader extends  Utf8StorageConverter implements LoadF
       }
     }
 
-
     return null;
   }
-
-  public void bindTo(String fileName, BufferedPositionedInputStream in, long offset, long end) throws IOException {
-    this.in = in;
-    this.end = end;
-
-    // Since we are not block aligned we throw away the first
-    // record and could on a different instance to read it
-    if (offset != 0) {
-      getNext();
-    }
+  
+  @SuppressWarnings("unchecked")
+  @Override
+  public InputFormat getInputFormat() throws IOException {
+      return new TextInputFormat();
   }
 
-  public void bindTo(OutputStream os) throws IOException {
-    this.os = os;
-  }
-
-  public void putNext(Tuple f) throws IOException {
-    os.write((f.toDelimitedString(this.fieldDel) + (char) this.recordDel).getBytes("utf8"));
-  }
-
-  public void finish() throws IOException {
-  }
-
-  public Schema determineSchema(String fileName, ExecType execType, DataStorage storage) throws IOException {
-    return null;
+  @SuppressWarnings("unchecked")
+  @Override
+  public void prepareToRead(RecordReader reader, PigSplit split)
+          throws IOException {
+      in = (LineRecordReader) reader;
   }
 
   @Override
-  public LoadFunc.RequiredFieldResponse fieldsToRead(LoadFunc.RequiredFieldList requiredFieldList) throws FrontendException {
-      return new LoadFunc.RequiredFieldResponse(false);
+  public void setLocation(String location, Job job) throws IOException {
+      FileInputFormat.setInputPaths(job, location);      
   }
 
 }

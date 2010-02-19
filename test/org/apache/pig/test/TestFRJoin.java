@@ -129,7 +129,7 @@ public class TestFRJoin extends TestCase{
         
         private void setUpHashTable() throws IOException {
             FileSpec replFile = new FileSpec(repl,new FuncSpec(PigStorage.class.getName()+"()"));
-            POLoad ld = new POLoad(new OperatorKey("Repl File Loader", 1L), replFile, false);
+            POLoad ld = new POLoad(new OperatorKey("Repl File Loader", 1L), replFile);
             PigContext pc = new PigContext(ExecType.MAPREDUCE,ConfigurationUtil.toProperties(PigMapReduce.sJobConf));
             try {
                 pc.connect();
@@ -139,10 +139,10 @@ public class TestFRJoin extends TestCase{
                 for(Result res=ld.getNext(dummyTuple);res.returnStatus!=POStatus.STATUS_EOP;res=ld.getNext(dummyTuple)){
                     Tuple tup = (Tuple) res.result;
                     LoadFunc lf = ((LoadFunc)pc.instantiateFuncFromSpec(ld.getLFile().getFuncSpec()));
-                    String key = lf.bytesToCharArray(((DataByteArray)tup.get(keyField)).get());
+                    String key = lf.getLoadCaster().bytesToCharArray(((DataByteArray)tup.get(keyField)).get());
                     Tuple csttup = TupleFactory.getInstance().newTuple(2);
                     csttup.set(0, key);
-                    csttup.set(1, lf.bytesToInteger(((DataByteArray)tup.get(1)).get()));
+                    csttup.set(1, lf.getLoadCaster().bytesToInteger(((DataByteArray)tup.get(1)).get()));
                     DataBag vals = null;
                     if(replTbl.containsKey(key)){
                         vals = replTbl.get(key);

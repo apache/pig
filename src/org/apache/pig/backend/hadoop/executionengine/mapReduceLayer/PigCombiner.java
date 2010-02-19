@@ -20,49 +20,36 @@ package org.apache.pig.backend.hadoop.executionengine.mapReduceLayer;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.hadoop.io.Text;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Writable;
-import org.apache.hadoop.mapred.JobConf;
-import org.apache.hadoop.mapred.MapReduceBase;
-import org.apache.hadoop.mapred.Mapper;
-import org.apache.hadoop.mapred.OutputCollector;
-import org.apache.hadoop.mapred.Reducer;
-import org.apache.hadoop.mapred.Reporter;
+import org.apache.hadoop.mapreduce.JobContext;
+import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.log4j.PropertyConfigurator;
-
 import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.HDataType;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PigLogger;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POJoinPackage;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPackage;
-import org.apache.pig.data.DataType;
-import org.apache.pig.data.TargetedTuple;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
-import org.apache.pig.impl.io.PigNullableWritable;
 import org.apache.pig.impl.io.NullableTuple;
-import org.apache.pig.impl.plan.DependencyOrderWalker;
-import org.apache.pig.impl.plan.VisitorException;
+import org.apache.pig.impl.io.PigNullableWritable;
 import org.apache.pig.impl.util.ObjectSerializer;
-import org.apache.pig.impl.util.WrappedIOException;
 
 public class PigCombiner {
 
-    public static JobConf sJobConf = null;
+    public static JobContext sJobContext = null;
     
-    public static class Combine extends MapReduceBase
-            implements
-            Reducer<PigNullableWritable, NullableTuple, PigNullableWritable, Writable> {
+    public static class Combine 
+            extends Reducer<PigNullableWritable, NullableTuple, PigNullableWritable, Writable> {
+        
         private final Log log = LogFactory.getLog(getClass());
 
         private final static Tuple DUMMYTUPLE = null;
@@ -93,9 +80,10 @@ public class PigCombiner {
          */
         @SuppressWarnings("unchecked")
         @Override
-        public void configure(JobConf jConf) {
-            super.configure(jConf);
-            sJobConf = jConf;
+        protected void setup(Context context) throws IOException, InterruptedException {
+            super.setup(context);
+            sJobContext = context;
+            Configuration jConf = context.getConfiguration();
             try {
                 PigContext.setPackageImportList((ArrayList<String>)ObjectSerializer.deserialize(jConf.get("udf.import.list")));
                 pigContext = (PigContext)ObjectSerializer.deserialize(jConf.get("pig.pigContext"));
@@ -134,23 +122,21 @@ public class PigCombiner {
          * The package result is either collected as is, if the reduce plan is
          * empty or after passing through the reduce plan.
          */
-        public void reduce(PigNullableWritable key,
-                Iterator<NullableTuple> tupIter,
-                OutputCollector<PigNullableWritable, Writable> oc,
-                Reporter reporter) throws IOException {
-            
-        	if(!initialized) {
-        		initialized = true;
-	            pigReporter.setRep(reporter);	            
-	            PhysicalOperator.setReporter(pigReporter);
+        @Override
+        protected void reduce(PigNullableWritable key, Iterable<NullableTuple> tupIter, Context context) 
+                throws IOException, InterruptedException {
+            if(!initialized) {
+                initialized = true;
+                pigReporter.setRep(context);
+                PhysicalOperator.setReporter(pigReporter);
 
-	            boolean aggregateWarning = "true".equalsIgnoreCase(pigContext.getProperties().getProperty("aggregate.warning"));
+                boolean aggregateWarning = "true".equalsIgnoreCase(pigContext.getProperties().getProperty("aggregate.warning"));
 
-	            PigHadoopLogger pigHadoopLogger = PigHadoopLogger.getInstance();
-	            pigHadoopLogger.setAggregate(aggregateWarning);
-	            pigHadoopLogger.setReporter(reporter);
-	            PhysicalOperator.setPigLogger(pigHadoopLogger);
-        	}
+                PigHadoopLogger pigHadoopLogger = PigHadoopLogger.getInstance();
+                pigHadoopLogger.setAggregate(aggregateWarning);
+                pigHadoopLogger.setReporter(context);
+                PhysicalOperator.setPigLogger(pigHadoopLogger);
+            }
             
             // In the case we optimize, we combine
             // POPackage and POForeach - so we could get many
@@ -159,32 +145,32 @@ public class PigCombiner {
             // POJoinPacakage.getNext()
             if (pack instanceof POJoinPackage)
             {
-                pack.attachInput(key, tupIter);
+                pack.attachInput(key, tupIter.iterator());
                 while (true)
                 {
-                    if (processOnePackageOutput(oc))
+                    if (processOnePackageOutput(context))
                         break;
                 }
             }
             else {
                 // not optimized, so package will
                 // give only one tuple out for the key
-                pack.attachInput(key, tupIter);
-                processOnePackageOutput(oc);
+                pack.attachInput(key, tupIter.iterator());
+                processOnePackageOutput(context);
             }
             
         }
         
         // return: false-more output
         //         true- end of processing
-        public boolean processOnePackageOutput(OutputCollector<PigNullableWritable, Writable> oc) throws IOException {
+        public boolean processOnePackageOutput(Context oc) throws IOException, InterruptedException {
             try {
                 Result res = pack.getNext(DUMMYTUPLE);
                 if(res.returnStatus==POStatus.STATUS_OK){
                     Tuple packRes = (Tuple)res.result;
                     
                     if(cp.isEmpty()){
-                        oc.collect(null, packRes);
+                        oc.write(null, packRes);
                         return false;
                     }
                     
@@ -207,15 +193,19 @@ public class PigCombiner {
                             // assign the tuple to its slot in the projection.
                             outKey.setIndex(index);
                             val.setIndex(index);
-                            oc.collect(outKey, val);
+
+                            oc.write(outKey, val);
+
                             continue;
                         }
                         
-                        if(redRes.returnStatus==POStatus.STATUS_EOP)
+                        if(redRes.returnStatus==POStatus.STATUS_EOP) {
                             break;
+                        }
                         
-                        if(redRes.returnStatus==POStatus.STATUS_NULL)
+                        if(redRes.returnStatus==POStatus.STATUS_NULL) {
                             continue;
+                        }
                         
                         if(redRes.returnStatus==POStatus.STATUS_ERR){
                             int errCode = 2090;
@@ -229,8 +219,9 @@ public class PigCombiner {
                     }
                 }
                 
-                if(res.returnStatus==POStatus.STATUS_NULL)
+                if(res.returnStatus==POStatus.STATUS_NULL) {
                     return false;
+                }
                 
                 if(res.returnStatus==POStatus.STATUS_ERR){
                     int errCode = 2091;
@@ -254,9 +245,9 @@ public class PigCombiner {
          * Will be called once all the intermediate keys and values are
          * processed. So right place to stop the reporter thread.
          */
-        @Override
-        public void close() throws IOException {
-            super.close();
+        @Override        
+        protected void cleanup(Context context) throws IOException, InterruptedException {
+            super.cleanup(context);
         }
 
         /**

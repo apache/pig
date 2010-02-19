@@ -25,6 +25,7 @@ import java.util.Arrays;
 import org.apache.commons.logging.LogFactory;
 import org.apache.commons.logging.Log;
 
+import org.apache.pig.LoadCaster;
 import org.apache.pig.PigException;
 import org.apache.pig.PigWarning;
 import org.apache.pig.backend.executionengine.ExecException;
@@ -44,7 +45,7 @@ import org.apache.pig.impl.util.LogUtils;
  * and pig data types.  It is intended to be extended by load and store
  * functions (such as PigStorage). 
  */
-abstract public class Utf8StorageConverter {
+public class Utf8StorageConverter implements LoadCaster {
 
     protected BagFactory mBagFactory = BagFactory.getInstance();
     protected TupleFactory mTupleFactory = TupleFactory.getInstance();

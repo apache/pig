@@ -23,7 +23,6 @@ import java.io.IOException;
 import java.io.OutputStream;
 
 import org.apache.pig.PigException;
-import org.apache.pig.StoreFunc;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.streaming.StreamingCommand.HandleSpec;
@@ -34,17 +33,16 @@ import org.apache.pig.impl.streaming.StreamingCommand.HandleSpec;
  * via an external file specified by the user.  
  */
 public class FileInputHandler extends InputHandler {
-
-    String fileName;
+   
     OutputStream fileOutStream;
     
     public FileInputHandler(HandleSpec handleSpec) throws ExecException {
-        fileName = handleSpec.name;
+        String fileName = handleSpec.name;
         serializer = 
-            (StoreFunc) PigContext.instantiateFuncFromSpec(handleSpec.spec);
+            (PigToStream) PigContext.instantiateFuncFromSpec(handleSpec.spec);
         
         try {
-            fileOutStream = new FileOutputStream(new File(fileName)); 
+            fileOutStream = new FileOutputStream(new File(fileName));
             super.bindTo(fileOutStream);
         } catch (IOException fnfe) {
             int errCode = 2046;
@@ -53,23 +51,24 @@ public class FileInputHandler extends InputHandler {
         }
     }
 
+    @Override
     public InputType getInputType() {
         return InputType.ASYNCHRONOUS;
     }
     
+    @Override
     public void bindTo(OutputStream os) throws IOException {
         throw new UnsupportedOperationException("Cannot call bindTo on " +
         		                                "FileInputHandler");
     }
     
     public synchronized void close(Process process) throws IOException {
-        if(!alreadyClosed) {
-            super.close(process);
+        super.close(process);
+        if (fileOutStream != null) {
             fileOutStream.flush();
             fileOutStream.close();
             fileOutStream = null;
-            alreadyClosed = true;
         }
     }
-
+       
 }

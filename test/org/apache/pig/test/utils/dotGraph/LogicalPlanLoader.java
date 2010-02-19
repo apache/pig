@@ -18,21 +18,30 @@
 
 package org.apache.pig.test.utils.dotGraph;
 
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.util.Map;
+
 import org.apache.pig.FuncSpec;
-import org.apache.pig.impl.logicalLayer.*;
-import org.apache.pig.impl.logicalLayer.schema.Schema;
-import org.apache.pig.impl.logicalLayer.parser.QueryParser ;
-import org.apache.pig.impl.logicalLayer.parser.ParseException ;
-import org.apache.pig.impl.logicalLayer.FrontendException ;
-import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.data.DataType;
-
-import java.io.IOException;
-import java.io.ByteArrayInputStream;
-import java.util.Map;
-import java.util.regex.Pattern;
-import java.util.regex.Matcher;
+import org.apache.pig.impl.io.FileSpec;
+import org.apache.pig.impl.logicalLayer.FrontendException;
+import org.apache.pig.impl.logicalLayer.LOCogroup;
+import org.apache.pig.impl.logicalLayer.LOCross;
+import org.apache.pig.impl.logicalLayer.LODistinct;
+import org.apache.pig.impl.logicalLayer.LOFilter;
+import org.apache.pig.impl.logicalLayer.LOForEach;
+import org.apache.pig.impl.logicalLayer.LOLoad;
+import org.apache.pig.impl.logicalLayer.LOSort;
+import org.apache.pig.impl.logicalLayer.LOSplit;
+import org.apache.pig.impl.logicalLayer.LOSplitOutput;
+import org.apache.pig.impl.logicalLayer.LOUnion;
+import org.apache.pig.impl.logicalLayer.LogicalOperator;
+import org.apache.pig.impl.logicalLayer.LogicalPlan;
+import org.apache.pig.impl.logicalLayer.parser.ParseException;
+import org.apache.pig.impl.logicalLayer.parser.QueryParser;
+import org.apache.pig.impl.logicalLayer.schema.Schema;
 
 
 public class LogicalPlanLoader
@@ -95,7 +104,7 @@ public class LogicalPlanLoader
         FileSpec fileSpec = new FileSpec("pi",
                                          new FuncSpec(PigStorage.class.getName())) ;
         try {
-            load = new LOLoad(plan, getKey(node.attributes), fileSpec, null, null, true) ;
+            load = new LOLoad(plan, getKey(node.attributes), fileSpec, null) ;
             fillSchema(load, node.attributes) ;
         }
         catch (IOException ioe) {

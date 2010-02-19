@@ -28,7 +28,7 @@ import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.plan.CompilationMessageCollector;
 import org.apache.pig.impl.plan.PlanValidationException;
 import org.apache.pig.impl.util.MultiMap;
-import org.apache.pig.backend.hadoop.datastorage.HDataStorage;
+import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.data.DataType;
 import org.apache.pig.impl.logicalLayer.schema.Schema.FieldSchema ;
@@ -136,8 +136,6 @@ public class TestTypeCheckingValidatorNoSchema  extends TestCase {
         // Create outer plan
         LogicalPlan plan = new LogicalPlan() ;
 
-        String pigStorage = PigStorage.class.getName() ;
-
         LOLoad load1 = genDummyLOLoad(plan) ;
 
         // set schemas
@@ -233,8 +231,6 @@ public class TestTypeCheckingValidatorNoSchema  extends TestCase {
         // Create outer plan
         LogicalPlan plan = new LogicalPlan() ;
 
-        String pigStorage = PigStorage.class.getName() ;
-
         LOLoad load1 = genDummyLOLoad(plan) ;
 
         // set schemas
@@ -326,8 +322,6 @@ public class TestTypeCheckingValidatorNoSchema  extends TestCase {
         printCurrentMethodName();
         LogicalPlan plan = new LogicalPlan() ;
 
-        String pigStorage = PigStorage.class.getName() ;
-
         LOLoad load1 = genDummyLOLoad(plan) ;
 
         // set schemas
@@ -362,8 +356,6 @@ public class TestTypeCheckingValidatorNoSchema  extends TestCase {
         printCurrentMethodName();
         // Create outer plan
         LogicalPlan plan = new LogicalPlan() ;
-
-        String pigStorage = PigStorage.class.getName() ;
 
         LOLoad load1 = genDummyLOLoad(plan) ;
 
@@ -445,7 +437,7 @@ public class TestTypeCheckingValidatorNoSchema  extends TestCase {
         LOLoad load1 = new LOLoad(plan,
                                   genNewOperatorKey(),
                                   new FileSpec("pi", new FuncSpec(pigStorage)),
-                                  null, new HDataStorage(new Properties()), true) ;
+                                  ConfigurationUtil.toConfiguration(new Properties())) ;
 
         // set schemas
         load1.setEnforcedSchema(null) ;
@@ -509,7 +501,7 @@ public class TestTypeCheckingValidatorNoSchema  extends TestCase {
         LOLoad load1 = new LOLoad(plan,
                                   genNewOperatorKey(),
                                   new FileSpec("pi", new FuncSpec(pigStorage)),
-                                  null, new HDataStorage(new Properties()), true) ;
+                                  ConfigurationUtil.toConfiguration(new Properties())) ;
 
         // set schemas
         load1.setEnforcedSchema(null) ;
@@ -570,8 +562,6 @@ public class TestTypeCheckingValidatorNoSchema  extends TestCase {
         printCurrentMethodName();
         LogicalPlan plan = new LogicalPlan() ;
 
-        String pigStorage = PigStorage.class.getName() ;
-
         LOLoad load1 = genDummyLOLoad(plan) ;
         LOLoad load2 = genDummyLOLoad(plan) ;
 
@@ -621,8 +611,6 @@ public class TestTypeCheckingValidatorNoSchema  extends TestCase {
         printCurrentMethodName();
         LogicalPlan plan = new LogicalPlan() ;
 
-        String pigStorage = PigStorage.class.getName() ;
-
         LOLoad load1 = genDummyLOLoad(plan) ;
         LOLoad load2 = genDummyLOLoad(plan) ;
 
@@ -663,8 +651,6 @@ public class TestTypeCheckingValidatorNoSchema  extends TestCase {
 
         printCurrentMethodName();
         LogicalPlan plan = new LogicalPlan() ;
-
-        String pigStorage = PigStorage.class.getName() ;
 
         LOLoad load1 = genDummyLOLoad(plan) ;
         LOLoad load2 = genDummyLOLoad(plan) ;
@@ -765,8 +751,6 @@ public class TestTypeCheckingValidatorNoSchema  extends TestCase {
 
         printCurrentMethodName();
         LogicalPlan plan = new LogicalPlan() ;
-
-        String pigStorage = PigStorage.class.getName() ;
 
         LOLoad load1 = genDummyLOLoad(plan) ;
         LOLoad load2 = genDummyLOLoad(plan) ;

@@ -34,10 +34,16 @@ import org.junit.Test;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.mapreduce.InputFormat;
+import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.mapreduce.RecordReader;
+import org.apache.pig.LoadCaster;
 import org.apache.pig.LoadFunc;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.datastorage.DataStorage;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigSplit;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.Tuple;
@@ -421,95 +427,37 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
     }
     
     
-    public static class TestStorageFunc implements LoadFunc{
-        public void bindTo(String fileName, BufferedPositionedInputStream is, long offset, long end) throws IOException {
-            
-        }
+    public static class TestStorageFunc extends LoadFunc{
         
         public Tuple getNext() throws IOException {
             return null;
         }
-        
+
         @Override
-        public LoadFunc.RequiredFieldResponse fieldsToRead(LoadFunc.RequiredFieldList requiredFieldList) throws FrontendException {
-            return new LoadFunc.RequiredFieldResponse(false);
-        }
-        
-        public DataBag bytesToBag(byte[] b) throws IOException {
+        public InputFormat getInputFormat() throws IOException {
             return null;
         }
 
-        public Boolean bytesToBoolean(byte[] b) throws IOException {
-            return null;
-        }
-        
-        public String bytesToCharArray(byte[] b) throws IOException {
-            return null;
-        }
-        
-        public Double bytesToDouble(byte[] b) throws IOException {
-            return null;
-        }
-        
-        public Float bytesToFloat(byte[] b) throws IOException {
-            return null;
-        }
-        
-        public Integer bytesToInteger(byte[] b) throws IOException {
+        @Override
+        public LoadCaster getLoadCaster() throws IOException {
             return null;
         }
 
-        public Long bytesToLong(byte[] b) throws IOException {
+        @Override
+        public void prepareToRead(RecordReader reader, PigSplit split)
+                throws IOException {
+            
+        }
+
+        @Override
+        public String relativeToAbsolutePath(String location, Path curDir)
+                throws IOException {
             return null;
         }
 
-        public Map<String, Object> bytesToMap(byte[] b) throws IOException {
-            return null;
-        }
-
-        public Tuple bytesToTuple(byte[] b) throws IOException {
-            return null;
-        }        
-
-	    public byte[] toBytes(DataBag bag) throws IOException {
-            return null;
-	    }
-	
-	    public byte[] toBytes(String s) throws IOException {
-            return null;
-	    }
-	
-	    public byte[] toBytes(Double d) throws IOException {
-            return null;
-	    }
-	
-	    public byte[] toBytes(Float f) throws IOException {
-            return null;
-	    }
-	
-	    public byte[] toBytes(Integer i) throws IOException {
-            return null;
-	    }
-	
-	    public byte[] toBytes(Long l) throws IOException {
-            return null;
-	    }
-	
-	    public byte[] toBytes(Map<String, Object> m) throws IOException {
-            return null;
-	    }
-	
-	    public byte[] toBytes(Tuple t) throws IOException {
-            return null;
-	    }
-
-        /* (non-Javadoc)
-         * @see org.apache.pig.LoadFunc#determineSchema(java.lang.String, org.apache.pig.ExecType, org.apache.pig.backend.datastorage.DataStorage)
-         */
-        public Schema determineSchema(String fileName, ExecType execType,
-                DataStorage storage) throws IOException {
-            // TODO Auto-generated method stub
-            return null;
+        @Override
+        public void setLocation(String location, Job job) throws IOException {
+ 
         }
     }
     

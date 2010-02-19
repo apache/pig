@@ -18,19 +18,12 @@
 
 package org.apache.pig.pen.util;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
 import org.apache.pig.impl.logicalLayer.LOFilter;
 import org.apache.pig.impl.logicalLayer.LOLoad;
 import org.apache.pig.impl.logicalLayer.LOStream;
 import org.apache.pig.impl.logicalLayer.LogicalOperator;
 import org.apache.pig.impl.logicalLayer.LogicalPlan;
 import org.apache.pig.impl.logicalLayer.optimizer.ImplicitSplitInserter;
-import org.apache.pig.impl.logicalLayer.optimizer.OpLimitOptimizer;
-import org.apache.pig.impl.logicalLayer.optimizer.StreamOptimizer;
 import org.apache.pig.impl.logicalLayer.optimizer.TypeCastInserter;
 import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.OperatorKey;
@@ -38,7 +31,6 @@ import org.apache.pig.impl.plan.optimizer.PlanOptimizer;
 import org.apache.pig.impl.plan.optimizer.Rule;
 import org.apache.pig.impl.plan.optimizer.RuleOperator;
 import org.apache.pig.impl.plan.optimizer.RulePlan;
-import org.apache.pig.impl.util.MultiMap;
 
 //This optimiser puts in the bare minimum modifications needed to make sure the plan is functional
 public class FunctionalLogicalOptimizer extends

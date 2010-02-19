@@ -17,47 +17,43 @@
  */
 package org.apache.pig.backend.hadoop.executionengine.mapReduceLayer;
 
-import java.io.DataInput;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-
-import org.apache.hadoop.conf.Configurable;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.filecache.DistributedCache;
-import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.FileStatus;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.hadoop.io.WritableComparable;
 import org.apache.hadoop.io.WritableComparator;
-import org.apache.hadoop.mapred.FileOutputFormat;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.JobPriority;
-import org.apache.hadoop.mapred.OutputFormat;
 import org.apache.hadoop.mapred.jobcontrol.Job;
 import org.apache.hadoop.mapred.jobcontrol.JobControl;
-
 import org.apache.pig.ComparisonFunc;
 import org.apache.pig.FuncSpec;
-import org.apache.pig.LoadFunc;
 import org.apache.pig.PigException;
-import org.apache.pig.StoreConfig;
+import org.apache.pig.ResourceSchema;
 import org.apache.pig.StoreFunc;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.HDataType;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.partitioners.SecondaryKeyPartitioner;
-import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.partitioners.WeightedRangePartitioner;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.partitioners.SkewedPartitioner;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.partitioners.WeightedRangePartitioner;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROperPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLoad;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPackage;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
@@ -70,11 +66,11 @@ import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.io.NullableBytesWritable;
-import org.apache.pig.impl.io.NullablePartitionWritable;
 import org.apache.pig.impl.io.NullableDoubleWritable;
 import org.apache.pig.impl.io.NullableFloatWritable;
 import org.apache.pig.impl.io.NullableIntWritable;
 import org.apache.pig.impl.io.NullableLongWritable;
+import org.apache.pig.impl.io.NullablePartitionWritable;
 import org.apache.pig.impl.io.NullableText;
 import org.apache.pig.impl.io.NullableTuple;
 import org.apache.pig.impl.io.PigNullableWritable;
@@ -115,11 +111,21 @@ public class JobControlCompiler{
     
     private final Log log = LogFactory.getLog(getClass());
     
-    public static final String PIG_STORE_CONFIG = "pig.store.config";
-
     public static final String LOG_DIR = "_logs";
 
     public static final String END_OF_INP_IN_MAP = "pig.invoke.close.in.map";
+    
+    /**
+     * We will serialize the POStore(s) present in map and reduce in lists in
+     * the Hadoop Conf. In the case of Multi stores, we could deduce these from
+     * the map plan and reduce plan but in the case of single store, we remove
+     * the POStore from the plan - in either case, we serialize the POStore(s)
+     * so that PigOutputFormat and PigOutputCommiter can get the POStore(s) in
+     * the same way irrespective of whether it is multi store or single store.
+     */
+    public static final String PIG_MAP_STORES = "pig.map.stores";
+    public static final String PIG_REDUCE_STORES = "pig.reduce.stores";
+    public static final String PIG_STORE_FUNC = "pig.storeFunc";
     
     // A mapping of job to pair of store locations and tmp locations for that job
     private Map<Job, Pair<List<POStore>, Path>> jobStoreMap;
@@ -191,12 +197,12 @@ public class JobControlCompiler{
         for (FileStatus fstat: fs.listStatus(p)) {
             Path src = fstat.getPath();
             if (fstat.isDir()) {
-		log.info("mkdir: "+src);
+                log.info("mkdir: "+src);
                 fs.mkdirs(removePart(src, rem));
                 moveResults(fstat.getPath(), rem, fs);
             } else {
                 Path dst = removePart(src, rem);
-		log.info("mv: "+src+" "+dst);
+                log.info("mv: "+src+" "+dst);
                 fs.rename(src,dst);
             }
         }
@@ -315,10 +321,19 @@ public class JobControlCompiler{
      * @return Job corresponding to mro
      * @throws JobCreationException
      */
-    @SuppressWarnings("unchecked")
-    private Job getJob(MapReduceOper mro, Configuration conf, PigContext pigContext) throws JobCreationException{
-        JobConf jobConf = new JobConf(conf);
-        ArrayList<Pair<FileSpec, Boolean>> inp = new ArrayList<Pair<FileSpec, Boolean>>();
+    @SuppressWarnings({ "unchecked", "deprecation" })
+    private Job getJob(MapReduceOper mro, Configuration config, PigContext pigContext) throws JobCreationException{
+        org.apache.hadoop.mapreduce.Job nwJob = null;
+        
+        try{
+            nwJob = new org.apache.hadoop.mapreduce.Job(config);        
+        }catch(Exception e) {
+            throw new JobCreationException(e);
+        }
+        
+        Configuration conf = nwJob.getConfiguration();
+        
+        ArrayList<FileSpec> inp = new ArrayList<FileSpec>();
         ArrayList<List<OperatorKey>> inpTargets = new ArrayList<List<OperatorKey>>();
         ArrayList<String> inpSignatureLists = new ArrayList<String>();
         ArrayList<POStore> storeLocations = new ArrayList<POStore>();
@@ -326,11 +341,22 @@ public class JobControlCompiler{
         
         //Set the User Name for this job. This will be
         //used as the working directory
-        String user = System.getProperty("user.name");
-        jobConf.setUser(user != null ? user : "Pigster");
+        String user = System.getProperty("user.name");        
+        conf.set("user.name", (user != null ? user : "Pigster"));
         if (pigContext.defaultParallel > 0)
-            jobConf.set("mapred.reduce.tasks", ""+pigContext.defaultParallel);
-
+            conf.set("mapred.reduce.tasks", ""+pigContext.defaultParallel);
+ 
+        conf.set("mapred.mapper.new-api", "true");
+        conf.set("mapred.reducer.new-api", "true");
+        
+        String buffPercent = conf.get("mapred.job.reduce.markreset.buffer.percent");
+        if (buffPercent == null || Double.parseDouble(buffPercent) <= 0) {
+            log.info("mapred.job.reduce.markreset.buffer.percent is not set, set to default 0.3");
+            conf.set("mapred.job.reduce.markreset.buffer.percent", "0.3");
+        }else{
+            log.info("mapred.job.reduce.markreset.buffer.percent is set to " + conf.get("mapred.job.reduce.markreset.buffer.percent"));
+        }        
+                
         try{        
             //Process the POLoads
             List<POLoad> lds = PlanHelper.getLoads(mro.mapPlan);
@@ -338,9 +364,8 @@ public class JobControlCompiler{
             if(lds!=null && lds.size()>0){
                 for (POLoad ld : lds) {
                     
-                    Pair<FileSpec, Boolean> p = new Pair<FileSpec, Boolean>(ld.getLFile(), ld.isSplittable());
                     //Store the inp filespecs
-                    inp.add(p);
+                    inp.add(ld.getLFile());
                     
                     //Store the target operators for tuples read
                     //from this input
@@ -366,18 +391,18 @@ public class JobControlCompiler{
             JarManager.createJar(fos, mro.UDFs, pigContext);
             
             //Start setting the JobConf properties
-            jobConf.setJar(submitJarFile.getPath());
-            jobConf.set("pig.inputs", ObjectSerializer.serialize(inp));
-            jobConf.set("pig.inpTargets", ObjectSerializer.serialize(inpTargets));
-            jobConf.set("pig.inpSignatures", ObjectSerializer.serialize(inpSignatureLists));
-            jobConf.set("pig.pigContext", ObjectSerializer.serialize(pigContext));
-            jobConf.set("udf.import.list", ObjectSerializer.serialize(PigContext.getPackageImportList()));
+            conf.set("mapred.jar", submitJarFile.getPath());
+            conf.set("pig.inputs", ObjectSerializer.serialize(inp));
+            conf.set("pig.inpTargets", ObjectSerializer.serialize(inpTargets));
+            conf.set("pig.inpSignatures", ObjectSerializer.serialize(inpSignatureLists));
+            conf.set("pig.pigContext", ObjectSerializer.serialize(pigContext));
+            conf.set("udf.import.list", ObjectSerializer.serialize(PigContext.getPackageImportList()));
             // this is for unit tests since some don't create PigServer
            
             // if user specified the job name using -D switch, Pig won't reset the name then.
             if (System.getProperty("mapred.job.name") == null && 
                     pigContext.getProperties().getProperty(PigContext.JOB_NAME) != null){
-                jobConf.setJobName(pigContext.getProperties().getProperty(PigContext.JOB_NAME));                
+                nwJob.setJobName(pigContext.getProperties().getProperty(PigContext.JOB_NAME));                
             }
     
             if (pigContext.getProperties().getProperty(PigContext.JOB_PRIORITY) != null) {
@@ -386,7 +411,8 @@ public class JobControlCompiler{
                 String jobPriority = pigContext.getProperties().getProperty(PigContext.JOB_PRIORITY).toUpperCase();
                 try {
                   // Allow arbitrary case; the Hadoop job priorities are all upper case.
-                  jobConf.setJobPriority(JobPriority.valueOf(jobPriority));
+                  conf.set("mapred.job.priority", JobPriority.valueOf(jobPriority).toString());
+                  
                 } catch (IllegalArgumentException e) {
                   StringBuffer sb = new StringBuffer("The job priority must be one of [");
                   JobPriority[] priorities = JobPriority.values();
@@ -400,25 +426,39 @@ public class JobControlCompiler{
             }
 
             // Setup the DistributedCache for this job
-            setupDistributedCache(pigContext, jobConf, pigContext.getProperties(), 
+            setupDistributedCache(pigContext, nwJob.getConfiguration(), pigContext.getProperties(), 
                                   "pig.streaming.ship.files", true);
-            setupDistributedCache(pigContext, jobConf, pigContext.getProperties(), 
+            setupDistributedCache(pigContext, nwJob.getConfiguration(), pigContext.getProperties(), 
                                   "pig.streaming.cache.files", false);
 
-            jobConf.setInputFormat(PigInputFormat.class);
+            nwJob.setInputFormatClass(PigInputFormat.class);
             
             //Process POStore and remove it from the plan
-            List<POStore> mapStores = PlanHelper.getStores(mro.mapPlan);
-            List<POStore> reduceStores = PlanHelper.getStores(mro.reducePlan);
-
+            LinkedList<POStore> mapStores = PlanHelper.getStores(mro.mapPlan);
+            LinkedList<POStore> reduceStores = PlanHelper.getStores(mro.reducePlan);
+            
+            conf.set(PIG_MAP_STORES, ObjectSerializer.serialize(mapStores));
+            conf.set(PIG_REDUCE_STORES, ObjectSerializer.serialize(reduceStores));
+            
             for (POStore st: mapStores) {
                 storeLocations.add(st);
+                StoreFunc sFunc = st.getStoreFunc();
+                if (st.getSchema()!=null)
+                    sFunc.checkSchema(new ResourceSchema(st.getSchema(), st.getSortInfo()));
+                sFunc.setStoreLocation(st.getSFile().getFileName(), nwJob);
             }
 
             for (POStore st: reduceStores) {
                 storeLocations.add(st);
+                StoreFunc sFunc = st.getStoreFunc();
+                if (st.getSchema()!=null)
+                    sFunc.checkSchema(new ResourceSchema(st.getSchema(), st.getSortInfo()));
+                sFunc.setStoreLocation(st.getSFile().getFileName(), nwJob);
             }
 
+            // the OutputFormat we report to Hadoop is always PigOutputFormat
+            nwJob.setOutputFormatClass(PigOutputFormat.class);
+            
             if (mapStores.size() + reduceStores.size() == 1) { // single store case
                 log.info("Setting up single store job");
                 
@@ -432,31 +472,9 @@ public class JobControlCompiler{
                     mro.reducePlan.remove(st);
                 }
 
-                // If the StoreFunc associate with the POStore is implements
-                // getStorePreparationClass() and returns a non null value,
-                // then it could be wanting to implement OutputFormat for writing out to hadoop
-                // Check if this is the case, if so, use the OutputFormat class the 
-                // StoreFunc gives us else use our default PigOutputFormat
-                Object storeFunc = PigContext.instantiateFuncFromSpec(st.getSFile().getFuncSpec());
-                Class sPrepClass = null;
-                try {
-                    sPrepClass = ((StoreFunc)storeFunc).getStorePreparationClass();
-                } catch(AbstractMethodError e) {
-                    // this is for backward compatibility wherein some old StoreFunc
-                    // which does not implement getStorePreparationClass() is being
-                    // used. In this case, we want to just use PigOutputFormat
-                    sPrepClass = null;
-                }
-                if(sPrepClass != null && OutputFormat.class.isAssignableFrom(sPrepClass)) {
-                    jobConf.setOutputFormat(sPrepClass);
-                } else {
-                    jobConf.setOutputFormat(PigOutputFormat.class);
-                }
-                
-                //set out filespecs
+                // set out filespecs
                 String outputPath = st.getSFile().getFileName();
                 FuncSpec outputFuncSpec = st.getSFile().getFuncSpec();
-                FileOutputFormat.setOutputPath(jobConf, new Path(outputPath));
                 
                 // serialize the store func spec using ObjectSerializer
                 // ObjectSerializer.serialize() uses default java serialization
@@ -464,40 +482,28 @@ public class JobControlCompiler{
                 // get encoded as regular characters. Otherwise any control characters
                 // in the store funcspec would break the job.xml which is created by
                 // hadoop from the jobconf.
-                jobConf.set("pig.storeFunc", ObjectSerializer.serialize(outputFuncSpec.toString()));
-                jobConf.set(PIG_STORE_CONFIG, 
-                            ObjectSerializer.serialize(
-                                    new StoreConfig(outputPath, st.getSchema(), st.getSortInfo())));
-
-                jobConf.set("pig.streaming.log.dir", 
+                conf.set(PIG_STORE_FUNC, ObjectSerializer.serialize(outputFuncSpec.toString()));
+                conf.set("pig.streaming.log.dir", 
                             new Path(outputPath, LOG_DIR).toString());
-                jobConf.set("pig.streaming.task.output.dir", outputPath);
+                conf.set("pig.streaming.task.output.dir", outputPath);
             } 
            else { // multi store case
                 log.info("Setting up multi store job");
+                String tmpLocationStr =  FileLocalizer
+                .getTemporaryPath(null, pigContext).toString();
+                tmpLocation = new Path(tmpLocationStr);
 
-                tmpLocation = makeTmpPath();
-
-                FileSystem fs = tmpLocation.getFileSystem(conf);
-                for (POStore st: mapStores) {
-                    Path tmpOut = new Path(
-                        tmpLocation,
-                        PlanHelper.makeStoreTmpPath(st.getSFile().getFileName()));
-                    fs.mkdirs(tmpOut);
-                }
-
-                jobConf.setOutputFormat(PigOutputFormat.class);
-                FileOutputFormat.setOutputPath(jobConf, tmpLocation);
-
-                jobConf.set("pig.streaming.log.dir", 
+                nwJob.setOutputFormatClass(PigOutputFormat.class);
+ 
+                conf.set("pig.streaming.log.dir", 
                             new Path(tmpLocation, LOG_DIR).toString());
-                jobConf.set("pig.streaming.task.output.dir", tmpLocation.toString());
+                conf.set("pig.streaming.task.output.dir", tmpLocation.toString());
            }
 
             // store map key type
             // this is needed when the key is null to create
             // an appropriate NullableXXXWritable object
-            jobConf.set("pig.map.keytype", ObjectSerializer.serialize(new byte[] { mro.mapKeyType }));
+            conf.set("pig.map.keytype", ObjectSerializer.serialize(new byte[] { mro.mapKeyType }));
 
             // set parent plan in all operators in map and reduce plans
             // currently the parent plan is really used only when POStream is present in the plan
@@ -507,14 +513,14 @@ public class JobControlCompiler{
             POPackage pack = null;
             if(mro.reducePlan.isEmpty()){
                 //MapOnly Job
-                jobConf.setMapperClass(PigMapOnly.Map.class);
-                jobConf.setNumReduceTasks(0);
-                jobConf.set("pig.mapPlan", ObjectSerializer.serialize(mro.mapPlan));
+                nwJob.setMapperClass(PigMapOnly.Map.class);
+                nwJob.setNumReduceTasks(0);
+                conf.set("pig.mapPlan", ObjectSerializer.serialize(mro.mapPlan));
                 if(mro.isEndOfAllInputSetInMap()) {
                     // this is used in Map.close() to decide whether the
                     // pipeline needs to be rerun one more time in the close()
                     // The pipeline is rerun if there either was a stream or POMergeJoin
-                    jobConf.set(END_OF_INP_IN_MAP, "true");
+                    conf.set(END_OF_INP_IN_MAP, "true");
                 }
             }
             else{
@@ -523,61 +529,61 @@ public class JobControlCompiler{
                 if(!mro.combinePlan.isEmpty()){
                     POPackage combPack = (POPackage)mro.combinePlan.getRoots().get(0);
                     mro.combinePlan.remove(combPack);
-                    jobConf.setCombinerClass(PigCombiner.Combine.class);
-                    jobConf.set("pig.combinePlan", ObjectSerializer.serialize(mro.combinePlan));
-                    jobConf.set("pig.combine.package", ObjectSerializer.serialize(combPack));
+                    nwJob.setCombinerClass(PigCombiner.Combine.class);
+                    conf.set("pig.combinePlan", ObjectSerializer.serialize(mro.combinePlan));
+                    conf.set("pig.combine.package", ObjectSerializer.serialize(combPack));
                 } else if (mro.needsDistinctCombiner()) {
-                    jobConf.setCombinerClass(DistinctCombiner.Combine.class);
+                    nwJob.setCombinerClass(DistinctCombiner.Combine.class);
                     log.info("Setting identity combiner class.");
                 }
                 pack = (POPackage)mro.reducePlan.getRoots().get(0);
                 mro.reducePlan.remove(pack);
-                jobConf.setMapperClass(PigMapReduce.Map.class);
-                jobConf.setReducerClass(PigMapReduce.Reduce.class);
+                nwJob.setMapperClass(PigMapReduce.Map.class);
+                nwJob.setReducerClass(PigMapReduce.Reduce.class);
                 if (mro.requestedParallelism>0)
-                    jobConf.setNumReduceTasks(mro.requestedParallelism);
+                    nwJob.setNumReduceTasks(mro.requestedParallelism);
 
-                jobConf.set("pig.mapPlan", ObjectSerializer.serialize(mro.mapPlan));
+                conf.set("pig.mapPlan", ObjectSerializer.serialize(mro.mapPlan));
                 if(mro.isEndOfAllInputSetInMap()) {
                     // this is used in Map.close() to decide whether the
                     // pipeline needs to be rerun one more time in the close()
                     // The pipeline is rerun only if there was a stream or merge-join.
-                    jobConf.set(END_OF_INP_IN_MAP, "true");
+                    conf.set(END_OF_INP_IN_MAP, "true");
                 }
-                jobConf.set("pig.reducePlan", ObjectSerializer.serialize(mro.reducePlan));
+                conf.set("pig.reducePlan", ObjectSerializer.serialize(mro.reducePlan));
                 if(mro.isEndOfAllInputSetInReduce()) {
                     // this is used in Map.close() to decide whether the
                     // pipeline needs to be rerun one more time in the close()
                     // The pipeline is rerun only if there was a stream
-                    jobConf.set("pig.stream.in.reduce", "true");
+                    conf.set("pig.stream.in.reduce", "true");
                 }
-                jobConf.set("pig.reduce.package", ObjectSerializer.serialize(pack));
-                jobConf.set("pig.reduce.key.type", Byte.toString(pack.getKeyType())); 
+                conf.set("pig.reduce.package", ObjectSerializer.serialize(pack));
+                conf.set("pig.reduce.key.type", Byte.toString(pack.getKeyType())); 
                 
                 if (mro.getUseSecondaryKey()) {
-                    jobConf.setOutputValueGroupingComparator(PigSecondaryKeyGroupComparator.class);
-                    jobConf.setPartitionerClass(SecondaryKeyPartitioner.class);
-                    jobConf.setOutputKeyComparatorClass(PigSecondaryKeyComparator.class);
-                    jobConf.setOutputKeyClass(NullableTuple.class);
-                    jobConf.set("pig.secondarySortOrder",
+                    nwJob.setGroupingComparatorClass(PigSecondaryKeyGroupComparator.class);
+                    nwJob.setPartitionerClass(SecondaryKeyPartitioner.class);
+                    nwJob.setSortComparatorClass(PigSecondaryKeyComparator.class);
+                    nwJob.setOutputKeyClass(NullableTuple.class);
+                    conf.set("pig.secondarySortOrder",
                             ObjectSerializer.serialize(mro.getSecondarySortOrder()));
 
                 }
                 else
                 {
                     Class<? extends WritableComparable> keyClass = HDataType.getWritableComparableTypes(pack.getKeyType()).getClass();
-                    jobConf.setOutputKeyClass(keyClass);
-                    selectComparator(mro, pack.getKeyType(), jobConf);
+                    nwJob.setOutputKeyClass(keyClass);
+                    selectComparator(mro, pack.getKeyType(), nwJob);
                 }
-                jobConf.setOutputValueClass(NullableTuple.class);
+                nwJob.setOutputValueClass(NullableTuple.class);
             }
         
             if(mro.isGlobalSort() || mro.isLimitAfterSort()){
                 // Only set the quantiles file and sort partitioner if we're a
                 // global sort, not for limit after sort.
                 if (mro.isGlobalSort()) {
-                    jobConf.set("pig.quantilesFile", mro.getQuantFile());
-                    jobConf.setPartitionerClass(WeightedRangePartitioner.class);
+                    conf.set("pig.quantilesFile", mro.getQuantFile());
+                    nwJob.setPartitionerClass(WeightedRangePartitioner.class);
                 }
                 
                 if (mro.isUDFComparatorUsed) {  
@@ -585,12 +591,12 @@ public class JobControlCompiler{
                     for (String compFuncSpec : mro.UDFs) {
                         Class comparator = PigContext.resolveClassName(compFuncSpec);
                         if(ComparisonFunc.class.isAssignableFrom(comparator)) {
-                            jobConf.setMapperClass(PigMapReduce.MapWithComparator.class);
-                            jobConf.setReducerClass(PigMapReduce.ReduceWithComparator.class);
-                            jobConf.set("pig.reduce.package", ObjectSerializer.serialize(pack));
-                            jobConf.set("pig.usercomparator", "true");
-                            jobConf.setOutputKeyClass(NullableTuple.class);
-                            jobConf.setOutputKeyComparatorClass(comparator);
+                            nwJob.setMapperClass(PigMapReduce.MapWithComparator.class);
+                            nwJob.setReducerClass(PigMapReduce.ReduceWithComparator.class);
+                            conf.set("pig.reduce.package", ObjectSerializer.serialize(pack));
+                            conf.set("pig.usercomparator", "true");
+                            nwJob.setOutputKeyClass(NullableTuple.class);
+                            nwJob.setSortComparatorClass(comparator);
                             usercomparator = true;
                             break;
                         }
@@ -601,18 +607,19 @@ public class JobControlCompiler{
                     }
                     
                 } else {
-                    jobConf.set("pig.sortOrder",
+                    conf.set("pig.sortOrder",
                         ObjectSerializer.serialize(mro.getSortOrder()));
                 }
             }
             
             if (mro.isSkewedJoin()) {
-            	jobConf.set("pig.keyDistFile", mro.getSkewedJoinPartitionFile());
-            	jobConf.setPartitionerClass(SkewedPartitioner.class);
-            	jobConf.setMapperClass(PigMapReduce.MapWithPartitionIndex.class);
-				jobConf.setMapOutputKeyClass(NullablePartitionWritable.class);
+                conf.set("pig.keyDistFile", mro.getSkewedJoinPartitionFile());
+                nwJob.setPartitionerClass(SkewedPartitioner.class);
+                nwJob.setMapperClass(PigMapReduce.MapWithPartitionIndex.class);
+                nwJob.setMapOutputKeyClass(NullablePartitionWritable.class);
+                nwJob.setGroupingComparatorClass(PigGroupingPartitionWritableComparator.class);
             }
-            
+      
             if (mro.isFrjoin()) {
                 // set up distributed cache for the replicated files
                 FileSpec[] replFiles = mro.getReplFiles();
@@ -625,22 +632,22 @@ public class JobControlCompiler{
                     }
                 }
                 try {
-                    setupDistributedCache(pigContext, jobConf, replicatedPath.toArray(new String[0]) , false);
+                    setupDistributedCache(pigContext, conf, replicatedPath.toArray(new String[0]) , false);
                 } catch (IOException e) {
                     String msg = "Internal error. Distributed cache could not be set up for the replicated files";
                     throw new IOException (msg, e);
                 }
             }
-            
-            jobConf.setOutputCommitter(PigOutputCommitter.class);
-            Job job = new Job(jobConf);
-            jobStoreMap.put(job,new Pair<List<POStore>, Path>(storeLocations, tmpLocation));
-            
+
             // Serialize the UDF specific context info.
-            UDFContext.getUDFContext().serialize(jobConf);
-            return job;
+            UDFContext.getUDFContext().serialize(conf);
+            Job cjob = new Job(new JobConf(nwJob.getConfiguration()), new ArrayList());
+            jobStoreMap.put(cjob,new Pair<List<POStore>, Path>(storeLocations, tmpLocation));
+            
+            return cjob;
+            
         } catch (JobCreationException jce) {
-        	throw jce;
+            throw jce;
         } catch(Exception e) {
             int errCode = 2017;
             String msg = "Internal error creating job configuration.";
@@ -648,18 +655,11 @@ public class JobControlCompiler{
         }
     }
     
-    private List<PhysicalOperator> getRoots(PhysicalPlan php){
-        List<PhysicalOperator> ret = new ArrayList<PhysicalOperator>();
-        for (PhysicalOperator operator : php.getRoots()) {
-            ret.add(operator);
-        }
-        return ret;
-    }
-
     public static class PigSecondaryKeyGroupComparator extends WritableComparator {
         @SuppressWarnings("unchecked")
         public PigSecondaryKeyGroupComparator() {
-            super(TupleFactory.getInstance().tupleClass());
+//            super(TupleFactory.getInstance().tupleClass(), true);
+            super(NullableTuple.class, true);
         }
 
         @Override
@@ -718,6 +718,7 @@ public class JobControlCompiler{
             super(c);
         }
 
+        @Override
         public int compare(byte[] b1, int s1, int l1, byte[] b2, int s2, int l2){
             return WritableComparator.compareBytes(b1, s1, l1, b2, s2, l2);
         }
@@ -770,11 +771,67 @@ public class JobControlCompiler{
             super(BagFactory.getInstance().newDefaultBag().getClass());
         }
     }
+    
+    // XXX hadoop 20 new API integration: we need to explicitly set the Grouping 
+    // Comparator
+    public static class PigGroupingIntWritableComparator extends WritableComparator {
+        public PigGroupingIntWritableComparator() {
+            super(NullableIntWritable.class, true);
+        }
+    }
+
+    public static class PigGroupingLongWritableComparator extends WritableComparator {
+        public PigGroupingLongWritableComparator() {
+            super(NullableLongWritable.class, true);
+        }
+    }
+
+    public static class PigGroupingFloatWritableComparator extends WritableComparator {
+        public PigGroupingFloatWritableComparator() {
+            super(NullableFloatWritable.class, true);
+        }
+    }
+
+    public static class PigGroupingDoubleWritableComparator extends WritableComparator {
+        public PigGroupingDoubleWritableComparator() {
+            super(NullableDoubleWritable.class, true);
+        }
+    }
+
+    public static class PigGroupingCharArrayWritableComparator extends WritableComparator {
+        public PigGroupingCharArrayWritableComparator() {
+            super(NullableText.class, true);
+        }
+    }
+
+    public static class PigGroupingDBAWritableComparator extends WritableComparator {
+        public PigGroupingDBAWritableComparator() {
+            super(NullableBytesWritable.class, true);
+        }
+    }
+
+    public static class PigGroupingTupleWritableComparator extends WritableComparator {
+        public PigGroupingTupleWritableComparator() {
+            super(NullableTuple.class, true);
+        }
+    }
+    
+    public static class PigGroupingPartitionWritableComparator extends WritableComparator {
+        public PigGroupingPartitionWritableComparator() {
+            super(NullablePartitionWritable.class, true);
+        }
+    }
+
+    public static class PigGroupingBagWritableComparator extends WritableComparator {
+        public PigGroupingBagWritableComparator() {
+            super(BagFactory.getInstance().newDefaultBag().getClass(), true);
+        }
+    }
 
     private void selectComparator(
             MapReduceOper mro,
             byte keyType,
-            JobConf jobConf) throws JobCreationException {
+            org.apache.hadoop.mapreduce.Job job) throws JobCreationException {
         // If this operator is involved in an order by, use the pig specific raw
         // comparators.  If it has a cogroup, we need to set the comparator class
         // to the raw comparator and the grouping comparator class to pig specific
@@ -796,28 +853,28 @@ public class JobControlCompiler{
         }
         if (hasOrderBy) {
             switch (keyType) {
-            case DataType.INTEGER:
-                jobConf.setOutputKeyComparatorClass(PigIntRawComparator.class);
+            case DataType.INTEGER:            	
+                job.setSortComparatorClass(PigIntRawComparator.class);               
                 break;
 
             case DataType.LONG:
-                jobConf.setOutputKeyComparatorClass(PigLongRawComparator.class);
+                job.setSortComparatorClass(PigLongRawComparator.class);               
                 break;
 
             case DataType.FLOAT:
-                jobConf.setOutputKeyComparatorClass(PigFloatRawComparator.class);
+                job.setSortComparatorClass(PigFloatRawComparator.class);
                 break;
 
             case DataType.DOUBLE:
-                jobConf.setOutputKeyComparatorClass(PigDoubleRawComparator.class);
+                job.setSortComparatorClass(PigDoubleRawComparator.class);
                 break;
 
             case DataType.CHARARRAY:
-                jobConf.setOutputKeyComparatorClass(PigTextRawComparator.class);
+                job.setSortComparatorClass(PigTextRawComparator.class);
                 break;
 
             case DataType.BYTEARRAY:
-                jobConf.setOutputKeyComparatorClass(PigBytesRawComparator.class);
+                job.setSortComparatorClass(PigBytesRawComparator.class);
                 break;
 
             case DataType.MAP:
@@ -826,7 +883,7 @@ public class JobControlCompiler{
                 throw new JobCreationException(msg, errCode, PigException.INPUT);
 
             case DataType.TUPLE:
-                jobConf.setOutputKeyComparatorClass(PigTupleRawComparator.class);
+                job.setSortComparatorClass(PigTupleRawComparator.class);
                 break;
 
             case DataType.BAG:
@@ -842,27 +899,33 @@ public class JobControlCompiler{
 
         switch (keyType) {
         case DataType.INTEGER:
-            jobConf.setOutputKeyComparatorClass(PigIntWritableComparator.class);
+            job.setSortComparatorClass(PigIntWritableComparator.class);
+            job.setGroupingComparatorClass(PigGroupingIntWritableComparator.class);
             break;
 
         case DataType.LONG:
-            jobConf.setOutputKeyComparatorClass(PigLongWritableComparator.class);
+            job.setSortComparatorClass(PigLongWritableComparator.class);
+            job.setGroupingComparatorClass(PigGroupingLongWritableComparator.class);
             break;
 
         case DataType.FLOAT:
-            jobConf.setOutputKeyComparatorClass(PigFloatWritableComparator.class);
+            job.setSortComparatorClass(PigFloatWritableComparator.class);
+            job.setGroupingComparatorClass(PigGroupingFloatWritableComparator.class);
             break;
 
         case DataType.DOUBLE:
-            jobConf.setOutputKeyComparatorClass(PigDoubleWritableComparator.class);
+            job.setSortComparatorClass(PigDoubleWritableComparator.class);
+            job.setGroupingComparatorClass(PigGroupingDoubleWritableComparator.class);
             break;
 
         case DataType.CHARARRAY:
-            jobConf.setOutputKeyComparatorClass(PigCharArrayWritableComparator.class);
+            job.setSortComparatorClass(PigCharArrayWritableComparator.class);
+            job.setGroupingComparatorClass(PigGroupingCharArrayWritableComparator.class);
             break;
 
         case DataType.BYTEARRAY:
-            jobConf.setOutputKeyComparatorClass(PigDBAWritableComparator.class);
+            job.setSortComparatorClass(PigDBAWritableComparator.class);
+            job.setGroupingComparatorClass(PigGroupingDBAWritableComparator.class);
             break;
 
         case DataType.MAP:
@@ -871,7 +934,8 @@ public class JobControlCompiler{
             throw new JobCreationException(msg, errCode, PigException.INPUT);
 
         case DataType.TUPLE:
-            jobConf.setOutputKeyComparatorClass(PigTupleWritableComparator.class);
+            job.setSortComparatorClass(PigTupleWritableComparator.class);
+            job.setGroupingComparatorClass(PigGroupingTupleWritableComparator.class);
             break;
 
         case DataType.BAG:

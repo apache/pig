@@ -18,44 +18,42 @@
 package org.apache.pig.impl.builtin;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
-import java.util.zip.GZIPInputStream;
-
 import org.apache.hadoop.conf.Configuration;
-import org.apache.pig.ExecType;
+import org.apache.hadoop.mapreduce.InputFormat;
+import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.IndexableLoadFunc;
+import org.apache.pig.LoadCaster;
 import org.apache.pig.LoadFunc;
 import org.apache.pig.PigException;
-import org.apache.pig.backend.datastorage.DataStorage;
-import org.apache.pig.backend.datastorage.SeekableInputStream;
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigSplit;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLoad;
-import org.apache.pig.data.DataBag;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.PigContext;
-import org.apache.pig.impl.io.BufferedPositionedInputStream;
-import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.FileSpec;
-import org.apache.pig.impl.logicalLayer.FrontendException;
-import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.impl.io.ReadToEndLoader;
 import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.util.ObjectSerializer;
-import org.apache.tools.bzip2r.CBZip2InputStream;
 
 /**
- *
+ * Used by MergeJoin . Takes an index on sorted data
+ * consisting of sorted tuples of the form
+ * (key1,key2..., position,splitIndex) as input. For key given in seekNear(Tuple)
+ * finds the splitIndex that can contain the key and initializes ReadToEndLoader
+ * to read from that splitIndex onwards , in the sequence of splits in the index
  */
-public class DefaultIndexableLoader implements IndexableLoadFunc {
+public class DefaultIndexableLoader extends IndexableLoadFunc {
 
     
     // FileSpec of index file which will be read from HDFS.
@@ -70,20 +68,26 @@ public class DefaultIndexableLoader implements IndexableLoadFunc {
     private String scope;
     private Tuple dummyTuple = null;
     private transient TupleFactory mTupleFactory;
-    private InputStream  is;
-    private String currentFileName;
+
+    private String inpLocation;
     
-    public DefaultIndexableLoader(String loaderFuncSpec, String indexFile, String indexFileLoadFuncSpec, String scope) {
+    public DefaultIndexableLoader(
+            String loaderFuncSpec, 
+            String indexFile,
+            String indexFileLoadFuncSpec,
+            String scope,
+            String inputLocation
+    ) {
         this.rightLoaderFuncSpec = new FuncSpec(loaderFuncSpec);
         this.indexFile = indexFile;
         this.indexFileLoadFuncSpec = indexFileLoadFuncSpec;
         this.scope = scope;
+        this.inpLocation = inputLocation;
     }
     
     @SuppressWarnings("unchecked")
     @Override
     public void seekNear(Tuple keys) throws IOException{
-        
         // some setup
         mTupleFactory = TupleFactory.getInstance();
 
@@ -100,8 +104,7 @@ public class DefaultIndexableLoader implements IndexableLoadFunc {
         // there are multiple Join keys, the tuple itself represents
         // the join key
         Object firstLeftKey = (keys.size() == 1 ? keys.get(0): keys);
-        
-        POLoad ld = new POLoad(genKey(), new FileSpec(indexFile, new FuncSpec(indexFileLoadFuncSpec)), false);
+        POLoad ld = new POLoad(genKey(), new FileSpec(indexFile, new FuncSpec(indexFileLoadFuncSpec)));
         try {
             pc = (PigContext)ObjectSerializer.deserialize(PigMapReduce.sJobConf.get("pig.pigContext"));
         } catch (IOException e) {
@@ -115,6 +118,7 @@ public class DefaultIndexableLoader implements IndexableLoadFunc {
         for(Result res=ld.getNext(dummyTuple);res.returnStatus!=POStatus.STATUS_EOP;res=ld.getNext(dummyTuple))
             index.offer((Tuple) res.result);   
 
+        
         Tuple prevIdxEntry = null;
         Tuple matchedEntry;
      
@@ -128,6 +132,11 @@ public class DefaultIndexableLoader implements IndexableLoadFunc {
                 // Its possible that we hit end of index and still doesn't encounter
                 // idx entry >= left key, in that case return last index entry.
                 matchedEntry = prevIdxEntry;
+                if (prevIdxEntry!=null) {
+                    Object extractedKey = extractKeysFromIdxTuple(prevIdxEntry);
+                    if (extractedKey!=null)
+                        index.add(prevIdxEntry);
+                }
                 break;
             }
             Object extractedKey = extractKeysFromIdxTuple(curIdxEntry);
@@ -137,11 +146,14 @@ public class DefaultIndexableLoader implements IndexableLoadFunc {
             }
             
             if(((Comparable)extractedKey).compareTo(firstLeftKey) >= 0){
+                index.addFirst(curIdxEntry);  // We need to add back the current index Entry because we are reading ahead.
                 if(null == prevIdxEntry)   // very first entry in index.
                     matchedEntry = curIdxEntry;
                 else{
-                    matchedEntry = prevIdxEntry;
-                    index.addFirst(curIdxEntry);  // We need to add back the current index Entry because we are reading ahead.
+                    matchedEntry = prevIdxEntry; 
+                    // start join from previous idx entry, it might have tuples
+                    // with this key                    
+                    index.addFirst(prevIdxEntry);
                 }
                 break;
             }
@@ -168,29 +180,24 @@ public class DefaultIndexableLoader implements IndexableLoadFunc {
                 throw new ExecException(errMsg,errCode,PigException.BUG);
             }
         }
-        initRightLoader(matchedEntry);
+        //add remaining split indexes to splitsAhead array
+        int [] splitsAhead = new int[index.size()];
+        int splitsAheadIdx = 0;
+        for(Tuple t : index){
+            splitsAhead[splitsAheadIdx++] = (Integer) t.get( t.size()-1 );
+        }
+        
+        initRightLoader(splitsAhead);
     }
     
-    private void initRightLoader(Tuple idxEntry) throws IOException{
-
-        // bind loader to file pointed by this index Entry.
-        int keysCnt = idxEntry.size();
-        Long offset = (Long)idxEntry.get(keysCnt-1);
-        if(offset > 0)
-            // Loader will throw away one tuple if we are in the middle of the block. We don't want that.
-            offset -= 1 ;
-        FileSpec lFile = new FileSpec((String)idxEntry.get(keysCnt-2),this.rightLoaderFuncSpec);
-        currentFileName = lFile.getFileName();
-        loader = (LoadFunc)PigContext.instantiateFuncFromSpec(lFile.getFuncSpec());
-        is = FileLocalizer.open(currentFileName, offset, pc);
-        if (currentFileName.endsWith(".bz") || currentFileName.endsWith(".bz2")) {
-            is = new CBZip2InputStream((SeekableInputStream)is, 9);
-        } else if (currentFileName.endsWith(".gz")) {
-            is = new GZIPInputStream(is);
-        }
-
-        
-        loader.bindTo(currentFileName , new BufferedPositionedInputStream(is), offset, Long.MAX_VALUE);
+    private void initRightLoader(int [] splitsToBeRead) throws IOException{
+        //create ReadToEndLoader that will read the given splits in order
+        loader = new ReadToEndLoader(
+                (LoadFunc)PigContext.instantiateFuncFromSpec(rightLoaderFuncSpec),
+                ConfigurationUtil.toConfiguration(pc.getProperties()),
+                inpLocation,
+                splitsToBeRead
+        );
     }
 
     private Object extractKeysFromIdxTuple(Tuple idxTuple) throws ExecException{
@@ -200,8 +207,9 @@ public class DefaultIndexableLoader implements IndexableLoadFunc {
         if(idxTupSize == 3)
             return idxTuple.get(0);
         
-        List<Object> list = new ArrayList<Object>(idxTupSize-2);
-        for(int i=0; i<idxTupSize-2;i++)
+        int numColsInKey = (idxTupSize - 2);
+        List<Object> list = new ArrayList<Object>(numColsInKey);
+        for(int i=0; i < numColsInKey; i++)
             list.add(idxTuple.get(i));
 
         return mTupleFactory.newTupleNoCopy(list);
@@ -211,133 +219,40 @@ public class DefaultIndexableLoader implements IndexableLoadFunc {
         return new OperatorKey(scope,NodeIdGenerator.getGenerator().getNextNodeId(scope));
     }
     
-    /* (non-Javadoc)
-     * @see org.apache.pig.LoadFunc#bindTo(java.lang.String, org.apache.pig.impl.io.BufferedPositionedInputStream, long, long)
-     */
-    @Override
-    public void bindTo(String fileName, BufferedPositionedInputStream is,
-            long offset, long end) throws IOException {
-        
-
-    }
-
-    /* (non-Javadoc)
-     * @see org.apache.pig.LoadFunc#bytesToBag(byte[])
-     */
-    @Override
-    public DataBag bytesToBag(byte[] b) throws IOException {
-        throw new IOException("Method not implemented by design");
-    }
-
-    /* (non-Javadoc)
-     * @see org.apache.pig.LoadFunc#bytesToCharArray(byte[])
-     */
-    @Override
-    public String bytesToCharArray(byte[] b) throws IOException {
-        throw new IOException("Method not implemented by design");
-    }
-
-    /* (non-Javadoc)
-     * @see org.apache.pig.LoadFunc#bytesToDouble(byte[])
-     */
-    @Override
-    public Double bytesToDouble(byte[] b) throws IOException {
-        throw new IOException("Method not implemented by design");
-    }
-
-    /* (non-Javadoc)
-     * @see org.apache.pig.LoadFunc#bytesToFloat(byte[])
-     */
-    @Override
-    public Float bytesToFloat(byte[] b) throws IOException {
-        throw new IOException("Method not implemented by design");
-    }
-
-    /* (non-Javadoc)
-     * @see org.apache.pig.LoadFunc#bytesToInteger(byte[])
-     */
-    @Override
-    public Integer bytesToInteger(byte[] b) throws IOException {
-        throw new IOException("Method not implemented by design");
-    }
-
-    /* (non-Javadoc)
-     * @see org.apache.pig.LoadFunc#bytesToLong(byte[])
-     */
-    @Override
-    public Long bytesToLong(byte[] b) throws IOException {
-        throw new IOException("Method not implemented by design");
-    }
-
-    /* (non-Javadoc)
-     * @see org.apache.pig.LoadFunc#bytesToMap(byte[])
-     */
-    @Override
-    public Map<String, Object> bytesToMap(byte[] b) throws IOException {
-        throw new IOException("Method not implemented by design");
-    }
-
-    /* (non-Javadoc)
-     * @see org.apache.pig.LoadFunc#bytesToTuple(byte[])
-     */
-    @Override
-    public Tuple bytesToTuple(byte[] b) throws IOException {
-        throw new IOException("Method not implemented by design");
-    }
-
-    /* (non-Javadoc)
-     * @see org.apache.pig.LoadFunc#determineSchema(java.lang.String, org.apache.pig.ExecType, org.apache.pig.backend.datastorage.DataStorage)
-     */
-    @Override
-    public Schema determineSchema(String fileName, ExecType execType,
-            DataStorage storage) throws IOException {
-        throw new IOException("Method not implemented by design");
-    }
-
-    /* (non-Javadoc)
-     * @see org.apache.pig.LoadFunc#fieldsToRead(org.apache.pig.impl.logicalLayer.schema.Schema)
-     */
-    @Override
-    public LoadFunc.RequiredFieldResponse fieldsToRead(LoadFunc.RequiredFieldList requiredFieldList) throws FrontendException {
-        return new LoadFunc.RequiredFieldResponse(false);
-    }
-
-    /* (non-Javadoc)
-     * @see org.apache.pig.LoadFunc#getNext()
-     */
     @Override
     public Tuple getNext() throws IOException {
         Tuple t = loader.getNext();
-        if(t == null) {
-            while(true){                        // But next file may be same as previous one, because index may contain multiple entries for same file.
-                Tuple idxEntry = index.poll();
-                if(null == idxEntry) {           // Index is finished too. Right stream is finished. No more tuples.
-                    return null;
-                } else {                           
-                    if(currentFileName.equals((String)idxEntry.get(idxEntry.size()-2))) {
-                        continue;
-                    } else {
-                        initRightLoader(idxEntry);      // bind loader to file and get tuple from it.
-                        return loader.getNext();    
-                    }
-                }
-           }
-        }
         return t;
     }
     
     @Override
     public void close() throws IOException {
-        is.close();
     }
 
-    /* (non-Javadoc)
-     * @see org.apache.pig.IndexableLoadFunc#initialize(org.apache.hadoop.conf.Configuration)
-     */
     @Override
     public void initialize(Configuration conf) throws IOException {
         // nothing to do
         
+    }
+
+    @Override
+    public InputFormat getInputFormat() throws IOException {
+        throw new UnsupportedOperationException();
+    }
+    
+    @Override
+    public LoadCaster getLoadCaster() throws IOException {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void prepareToRead(RecordReader reader, PigSplit split) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void setLocation(String location, Job job) throws IOException {
+        // nothing to do
     }
     
 }

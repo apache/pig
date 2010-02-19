@@ -37,8 +37,6 @@ import org.apache.pig.EvalFunc;
 
 import org.apache.pig.data.Tuple;
 
-import org.apache.pig.impl.util.WrappedIOException;
-
 public class RegexGroupCount extends EvalFunc<Integer> {
 
     private final Pattern pattern_;
@@ -85,7 +83,7 @@ public class RegexGroupCount extends EvalFunc<Integer> {
 
                     i = 6666;
 
-                    throw WrappedIOException.wrap("Caught exception processing RegexGroupCount", e);
+                    throw new IOException("Caught exception processing RegexGroupCount", e);
 
                 }
 

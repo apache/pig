@@ -32,6 +32,7 @@ import org.apache.pig.FilterFunc;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigInputFormat;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
@@ -62,7 +63,7 @@ public class FILTERFROMFILE extends FilterFunc{
 	    
 		lookupTable = new HashMap<String, Boolean>();
 		
-		Properties props = ConfigurationUtil.toProperties(PigInputFormat.sJob);
+		Properties props = ConfigurationUtil.toProperties(PigMapReduce.sJobConf);
 		InputStream is = FileLocalizer.openDFSFile(FilterFileName, props);
 
 		BufferedReader reader = new BufferedReader(new InputStreamReader(is));

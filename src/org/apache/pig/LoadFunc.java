@@ -18,336 +18,262 @@
 package org.apache.pig;
 
 import java.io.IOException;
-import java.io.Serializable;
+import java.net.URI;
+import java.util.AbstractCollection;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 
-import org.apache.pig.backend.datastorage.DataStorage;
-import org.apache.pig.data.DataBag;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.mapreduce.InputFormat;
+import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.mapreduce.RecordReader;
+import org.apache.pig.LoadPushDown.RequiredFieldList;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigSplit;
+import org.apache.pig.builtin.Utf8StorageConverter;
 import org.apache.pig.data.Tuple;
-import org.apache.pig.impl.io.BufferedPositionedInputStream;
 import org.apache.pig.impl.logicalLayer.FrontendException;
-import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.impl.util.UDFContext;
 
 
 /**
- * This interface is used to implement functions to parse records
- * from a dataset.  This also includes functions to cast raw byte data into various
- * datatypes.  These are external functions because we want loaders, whenever
- * possible, to delay casting of datatypes until the last possible moment (i.e.
- * don't do it on load).  This means we need to expose the functionality so that
- * other sections of the code can call back to the loader to do the cast.
+ * <code>LoadFunc</code> provides functions directly associated with reading 
+ * records from data set.
  */
-public interface LoadFunc {
+public abstract class LoadFunc {
+    
     /**
-     * Specifies a portion of an InputStream to read tuples. Because the
-     * starting and ending offsets may not be on record boundaries it is up to
-     * the implementor to deal with figuring out the actual starting and ending
-     * offsets in such a way that an arbitrarily sliced up file will be processed
-     * in its entirety.
-     * <p>
-     * A common way of handling slices in the middle of records is to start at
-     * the given offset and, if the offset is not zero, skip to the end of the
-     * first record (which may be a partial record) before reading tuples.
-     * Reading continues until a tuple has been read that ends at an offset past
-     * the ending offset.
-     * <p>
-     * <b>The load function should not do any buffering on the input stream</b>. Buffering will
-     * cause the offsets returned by is.getPos() to be unreliable.
-     *  
-     * @param fileName the name of the file to be read
-     * @param is the stream representing the file to be processed, and which can also provide its position.
-     * @param offset the offset to start reading tuples.
-     * @param end the ending offset for reading.
-     * @throws IOException
+     * This method is called by the Pig runtime in the front end to convert the
+     * input location to an absolute path if the location is relative. The
+     * loadFunc implementation is free to choose how it converts a relative 
+     * location to an absolute location since this may depend on what the location
+     * string represent (hdfs path or some other data source)
+     * 
+     * @param location location as provided in the "load" statement of the script
+     * @param curDir the current working direction based on any "cd" statements
+     * in the script before the "load" statement. If there are no "cd" statements
+     * in the script, this would be the home directory - 
+     * <pre>/user/<username> </pre>
+     * @return the absolute location based on the arguments passed
+     * @throws IOException if the conversion is not possible
      */
-    public void bindTo(String fileName,
-                       BufferedPositionedInputStream is,
-                       long offset,
-                       long end) throws IOException;
+    public String relativeToAbsolutePath(String location, Path curDir) 
+            throws IOException {      
+        return getAbsolutePath(location, curDir);
+    }    
 
     /**
-     * Retrieves the next tuple to be processed.
+     * Communicate to the loader the location of the object(s) being loaded.  
+     * The location string passed to the LoadFunc here is the return value of 
+     * {@link LoadFunc#relativeToAbsolutePath(String, Path)}. Implementations
+     * should use this method to communicate the location (and any other information)
+     * to its underlying InputFormat through the Job object.
+     * 
+     * This method will be called in the backend multiple times. Implementations
+     * should bear in mind that this method is called multiple times and should
+     * ensure there are no inconsistent side effects due to the multiple calls.
+     * 
+     * @param location Location as returned by 
+     * {@link LoadFunc#relativeToAbsolutePath(String, Path)}
+     * @param job the {@link Job} object
+     * store or retrieve earlier stored information from the {@link UDFContext}
+     * @throws IOException if the location is not valid.
+     */
+    public abstract void setLocation(String location, Job job) throws IOException;
+    
+    /**
+     * This will be called during planning on the front end. This is the
+     * instance of InputFormat (rather than the class name) because the 
+     * load function may need to instantiate the InputFormat in order 
+     * to control how it is constructed.
+     * @return the InputFormat associated with this loader.
+     * @throws IOException if there is an exception during InputFormat 
+     * construction
+     */
+    @SuppressWarnings("unchecked")
+    public abstract InputFormat getInputFormat() throws IOException;
+
+    /**
+     * This will be called on the front end during planning and not on the back 
+     * end during execution.
+     * @return the {@link LoadCaster} associated with this loader. Returning null 
+     * indicates that casts from byte array are not supported for this loader. 
+     * construction
+     * @throws IOException if there is an exception during LoadCaster 
+     */
+    public LoadCaster getLoadCaster() throws IOException {
+        return new Utf8StorageConverter();
+    }
+
+    /**
+     * Initializes LoadFunc for reading data.  This will be called during execution
+     * before any calls to getNext.  The RecordReader needs to be passed here because
+     * it has been instantiated for a particular InputSplit.
+     * @param reader {@link RecordReader} to be used by this instance of the LoadFunc
+     * @param split The input {@link PigSplit} to process
+     * @throws IOException if there is an exception during initialization
+     */
+    @SuppressWarnings("unchecked")
+    public abstract void prepareToRead(RecordReader reader, PigSplit split) throws IOException;
+
+    /**
+     * Retrieves the next tuple to be processed. Implementations should NOT reuse
+     * tuple objects (or inner member objects) they return across calls and 
+     * should return a different tuple object in each call.
      * @return the next tuple to be processed or null if there are no more tuples
      * to be processed.
-     * @throws IOException
+     * @throws IOException if there is an exception while retrieving the next
+     * tuple
      */
-    public Tuple getNext() throws IOException;
+    public abstract Tuple getNext() throws IOException;
+
+    //------------------------------------------------------------------------
     
-    
     /**
-     * Cast data from bytes to integer value.  
-     * @param b byte array to be cast.
-     * @return Integer value.
-     * @throws IOException if the value cannot be cast.
+     * Join multiple strings into a string delimited by the given delimiter.
+     * 
+     * @param s a collection of strings
+     * @param delimiter the delimiter 
+     * @return a 'delimiter' separated string
      */
-    public Integer bytesToInteger(byte[] b) throws IOException;
-
-    /**
-     * Cast data from bytes to long value.  
-     * @param b byte array to be cast.
-     * @return Long value.
-     * @throws IOException if the value cannot be cast.
-     */
-    public Long bytesToLong(byte[] b) throws IOException;
-
-    /**
-     * Cast data from bytes to float value.  
-     * @param b byte array to be cast.
-     * @return Float value.
-     * @throws IOException if the value cannot be cast.
-     */
-    public Float bytesToFloat(byte[] b) throws IOException;
-
-    /**
-     * Cast data from bytes to double value.  
-     * @param b byte array to be cast.
-     * @return Double value.
-     * @throws IOException if the value cannot be cast.
-     */
-    public Double bytesToDouble(byte[] b) throws IOException;
-
-    /**
-     * Cast data from bytes to chararray value.  
-     * @param b byte array to be cast.
-     * @return String value.
-     * @throws IOException if the value cannot be cast.
-     */
-    public String bytesToCharArray(byte[] b) throws IOException;
-
-    /**
-     * Cast data from bytes to map value.  
-     * @param b byte array to be cast.
-     * @return Map value.
-     * @throws IOException if the value cannot be cast.
-     */
-    public Map<String, Object> bytesToMap(byte[] b) throws IOException;
-
-    /**
-     * Cast data from bytes to tuple value.  
-     * @param b byte array to be cast.
-     * @return Tuple value.
-     * @throws IOException if the value cannot be cast.
-     */
-    public Tuple bytesToTuple(byte[] b) throws IOException;
-
-    /**
-     * Cast data from bytes to bag value.  
-     * @param b byte array to be cast.
-     * @return Bag value.
-     * @throws IOException if the value cannot be cast.
-     */
-    public DataBag bytesToBag(byte[] b) throws IOException;
-
-    /**
-     * Indicate to the loader fields that will be needed.  This can be useful for
-     * loaders that access data that is stored in a columnar format where indicating
-     * columns to be accessed a head of time will save scans.  If the loader
-     * function cannot make use of this information, it is free to ignore it.
-     * @param requiredFieldList RequiredFieldList indicating which columns will be needed.
-     */
-    public RequiredFieldResponse fieldsToRead(RequiredFieldList requiredFieldList) throws FrontendException;
-
-    /**
-     * Find the schema from the loader.  This function will be called at parse time
-     * (not run time) to see if the loader can provide a schema for the data.  The
-     * loader may be able to do this if the data is self describing (e.g. JSON).  If
-     * the loader cannot determine the schema, it can return a null.
-     * LoadFunc implementations which need to open the input "fileName", can use 
-     * FileLocalizer.open(String fileName, ExecType execType, DataStorage storage) to get
-     * an InputStream which they can use to initialize their loader implementation. They
-     * can then use this to read the input data to discover the schema. Note: this will
-     * work only when the fileName represents a file on Local File System or Hadoop file 
-     * system
-     * @param fileName Name of the file to be read.(this will be the same as the filename 
-     * in the "load statement of the script)
-     * @param execType - execution mode of the pig script - one of ExecType.LOCAL or ExecType.MAPREDUCE
-     * @param storage - the DataStorage object corresponding to the execType
-     * @return a Schema describing the data if possible, or null otherwise.
-     * @throws IOException.
-     */
-    public Schema determineSchema(String fileName, ExecType execType, DataStorage storage) throws IOException;
-    
-    class RequiredField implements Serializable {
-        // Implementation of the private fields is subject to change but the
-        // getter() interface should remain
-        
-        private static final long serialVersionUID = 1L;
-        
-        // will hold name of the field (would be null if not supplied)
-        private String alias; 
-
-        // will hold the index (position) of the required field (would be -1 if not supplied), index is 0 based
-        private int index; 
-
-        // A list of sub fields in this field (this could be a list of hash keys for example). 
-        // This would be null if the entire field is required and no specific sub fields are required. 
-        // In the initial implementation only one level of subfields will be populated except for bags 
-        // where two levels will be supported as explained in NOTE 2 below.
-        private List<RequiredField> subFields;
-        
-        // true for atomic types like INTEGER, FLOAT, DOUBLE, CHARARRAY, BYTEARRAY, LONG and when all 
-        // subfields from complex types like BAG, TUPLE and MAP are required
-        private boolean allSubFieldsRequired;
-        
-        // Type of this field - the value could be any current PIG DataType (as specified by the constants in DataType class).
-        private byte type;
-
-        /**
-         * @return the alias
-         */
-        public String getAlias() {
-            return alias;
+    public static String join(AbstractCollection<String> s, String delimiter) {
+        if (s.isEmpty()) return "";
+        Iterator<String> iter = s.iterator();
+        StringBuffer buffer = new StringBuffer(iter.next());
+        while (iter.hasNext()) {
+            buffer.append(delimiter);
+            buffer.append(iter.next());
         }
-
-        /**
-         * @return the index
-         */
-        public int getIndex() {
-            return index;
-        }
-
-        
-        /**
-         * @return the required sub fields. The return value is null if all
-         *         subfields are required
-         */
-        public List<RequiredField> getSubFields() {
-            return subFields;
-        }
-        
-        public void setSubFields(List<RequiredField> subFields)
-        {
-            this.subFields = subFields;
-        }
-
-        /**
-         * @return the type
-         */
-        public byte getType() {
-            return type;
-        }
-
-        /**
-         * @return true if all sub fields are required, false otherwise
-         */
-        public boolean isAllSubFieldsRequired() {
-            return allSubFieldsRequired;
-        }
-
-
-        public void setType(byte t) {
-            type = t;
-        }
-        
-        public void setIndex(int i) {
-            index = i;
-        }
-        
-        public void setAlias(String alias)
-        {
-            this.alias = alias;
-        }
-
-        public String toString() {
-            if (index != -1)
-                return "" + index;
-            else if (alias != null)
-                return alias;
-            return "";
-        }
+        return buffer.toString();
     }
 
-    class RequiredFieldList implements Serializable {
-        // Implementation of the private fields is subject to change but the
-        // getter() interface should remain
-        
-        private static final long serialVersionUID = 1L;
-        
-        // list of Required fields, this will be null if all fields are required
-        private List<RequiredField> fields = new ArrayList<RequiredField>(); 
-        
-        // flag to indicate if all fields are required. The Loader implementation should check this flag first and look at the fields ONLY if this is true
-        private boolean allFieldsRequired;
-        
-        private String signature;
+    /**
+     * Parse comma separated path strings into a string array. This method 
+     * escapes commas in the Hadoop glob pattern of the given paths. 
+     * 
+     * This method is borrowed from 
+     * {@link org.apache.hadoop.mapreduce.lib.input.FileInputFormat}. A jira
+     * (MAPREDUCE-1205) is opened to make the same name method there 
+     * accessible. We'll use that method directly when the jira is fixed.
+     * 
+     * @param commaSeparatedPaths a comma separated string
+     * @return an array of path strings
+     */
+    public static String[] getPathStrings(String commaSeparatedPaths) {
+        int length = commaSeparatedPaths.length();
+        int curlyOpen = 0;
+        int pathStart = 0;
+        boolean globPattern = false;
+        List<String> pathStrings = new ArrayList<String>();
 
-        /**
-         * @return the required fields - this will be null if all fields are
-         *         required
-         */
-        public List<RequiredField> getFields() {
-            return fields;
-        }
-
-        public RequiredFieldList(String signature) {
-            this.signature = signature;
-        }
-        
-        public String getSignature() {
-            return signature;
-        }
-        
-        /**
-         * @return true if all fields are required, false otherwise
-         */
-        public boolean isAllFieldsRequired() {
-            return allFieldsRequired;
-        }
-
-        public void setAllFieldsRequired(boolean allRequired) {
-            allFieldsRequired = allRequired;
-        }
-
-        public String toString() {
-            StringBuffer result = new StringBuffer();
-            if (allFieldsRequired)
-                result.append("*");
-            else {
-                result.append("[");
-                for (int i = 0; i < fields.size(); i++) {
-                    result.append(fields.get(i));
-                    if (i != fields.size() - 1)
-                        result.append(",");
+        for (int i=0; i<length; i++) {
+            char ch = commaSeparatedPaths.charAt(i);
+            switch(ch) {
+                case '{' : {
+                    curlyOpen++;
+                    if (!globPattern) {
+                        globPattern = true;
+                    }
+                    break;
                 }
-                result.append("]");
+                case '}' : {
+                    curlyOpen--;
+                    if (curlyOpen == 0 && globPattern) {
+                        globPattern = false;
+                    }
+                    break;
+                }
+                case ',' : {
+                    if (!globPattern) {
+                        pathStrings.add(commaSeparatedPaths.substring(pathStart, i));
+                        pathStart = i + 1 ;
+                    }
+                    break;
+                }
             }
-            return result.toString();
         }
-        
-        public void add(RequiredField rf)
-        {
-            fields.add(rf);
-        }
-    }
+        pathStrings.add(commaSeparatedPaths.substring(pathStart, length));
 
-    class RequiredFieldResponse {
-        // Implementation of the private fields is subject ot change but the
-        // constructor interface should remain
-        
-        // the loader should pass true if the it will return data containing
-        // only the List of RequiredFields in that order. false if the it
-        // will return all fields in the data
-        private boolean requiredFieldRequestHonored;
-
-        public RequiredFieldResponse(boolean requiredFieldRequestHonored) {
-            this.requiredFieldRequestHonored = requiredFieldRequestHonored;
-        }
-
-        // true if the loader will return data containing only the List of
-        // RequiredFields in that order. false if the loader will return all
-        // fields in the data
-        public boolean getRequiredFieldResponse() {
-            return requiredFieldRequestHonored;
-        }
-
-        // the loader should pass true if the it will return data containing
-        // only the List of RequiredFields in that order. false if the it
-        // will return all fields in the data
-        public void setRequiredFieldResponse(boolean honored) {
-            requiredFieldRequestHonored = honored;
-        }
+        return pathStrings.toArray(new String[0]);
     }
     
+    /**
+     * Construct the absolute path from the file location and the current
+     * directory. The current directory is either of the form 
+     * {code}hdfs://<nodename>:<nodeport>/<directory>{code} in Hadoop 
+     * MapReduce mode, or of the form 
+     * {code}file:///<directory>{code} in Hadoop local mode.
+     * 
+     * @param location the location string specified in the load statement
+     * @param curDir the current file system directory
+     * @return the absolute path of file in the file system
+     * @throws FrontendException if the scheme of the location is incompatible
+     *         with the scheme of the file system
+     */
+    public static String getAbsolutePath(String location, Path curDir) 
+            throws FrontendException {
+        
+        if (location == null || curDir == null) {
+            throw new FrontendException(
+                    "location: " + location + " curDir: " + curDir);
+        }
+    
+        URI fsUri = curDir.toUri();
+        String fsScheme = fsUri.getScheme();
+        if (fsScheme == null) {
+            throw new FrontendException("curDir: " + curDir);           
+        }
+        
+        fsScheme = fsScheme.toLowerCase();
+        String authority = fsUri.getAuthority();
+        if(authority == null) {
+            authority = "";
+        }
+        Path rootDir = new Path(fsScheme, authority, "/");
+        
+        ArrayList<String> pathStrings = new ArrayList<String>();
+        
+        String[] fnames = getPathStrings(location);
+        for (String fname: fnames) {
+            Path p = new Path(fname.trim());
+            URI uri = p.toUri();
+            // if the supplied location has an authority and is absolute, just
+            // use it
+            if(uri.getAuthority() == null || ! p.isAbsolute()) {
+                String scheme = uri.getScheme();
+                if (scheme != null) {
+                    scheme = scheme.toLowerCase();
+                }
+                
+                if (scheme != null && !scheme.equals(fsScheme)) {
+                    throw new FrontendException("Incompatible file URI scheme: "
+                            + scheme + " : " + fsScheme);               
+                }            
+                String path = uri.getPath();
+            
+                fname = (p.isAbsolute()) ? 
+                            new Path(rootDir, path).toString() : 
+                                new Path(curDir, path).toString();
+            }
+            fname = fname.replaceFirst("^file:/([^/])", "file:///$1");
+            pathStrings.add(fname);
+        }
+    
+        return join(pathStrings, ",");
+    }
+    
+    /**
+     * This method will be called by Pig both in the front end and back end to
+     * pass a unique signature to the {@link LoadFunc}. The signature can be used
+     * to store into the {@link UDFContext} any information which the 
+     * {@link LoadFunc} needs to store between various method invocations in the
+     * front end and back end. A use case is to store {@link RequiredFieldList} 
+     * passed to it in {@link LoadPushDown#pushProjection(RequiredFieldList)} for
+     * use in the back end before returning tuples in {@link LoadFunc#getNext()}
+     * @param signature a unique signature to identify this LoadFunc
+     */
+    public void setUDFContextSignature(String signature) {
+        // default implementation is a no-op
+    }
+       
 }

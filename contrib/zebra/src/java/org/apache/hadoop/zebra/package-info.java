@@ -39,16 +39,16 @@
  * index-based access).
  * <p>
  * Typically, applications use
- * {@link org.apache.hadoop.zebra.mapred.BasicTableOutputFormat} (which implements
+ * {@link org.apache.hadoop.zebra.mapreduce.BasicTableOutputFormat} (which implements
  * the Hadoop {@link org.apache.hadoop.mapred.OutputFormat} interface) to create
  * BasicTables through MapReduce. And they use
- * {@link org.apache.hadoop.zebra.mapred.TableInputFormat} (which implements the
+ * {@link org.apache.hadoop.zebra.mapreduce.TableInputFormat} (which implements the
  * Hadoop {@link org.apache.hadoop.mapred.InputFormat} to feed the data as their
  * MapReduce input.
  * <p>
  * The API is structured in three packages:
  * <UL>
- * <LI> {@link org.apache.hadoop.zebra.mapred} : The MapReduce layer. It contains
+ * <LI> {@link org.apache.hadoop.zebra.mapreduce} : The MapReduce layer. It contains
  * two classes: BasicTableOutputFormat for creating BasicTable; and
  * TableInputFormat for readding table.
  * 

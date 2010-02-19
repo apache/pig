@@ -24,14 +24,18 @@ import java.util.Map;
 import junit.framework.Assert;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.mapreduce.InputFormat;
+import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.pig.ExecType;
 import org.apache.pig.IndexableLoadFunc;
-import org.apache.pig.LoadFunc;
+import org.apache.pig.LoadCaster;
 import org.apache.pig.PigException;
 import org.apache.pig.PigServer;
-import org.apache.pig.LoadFunc.RequiredFieldList;
 import org.apache.pig.backend.datastorage.DataStorage;
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigSplit;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROperPlan;
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
@@ -51,6 +55,7 @@ import org.junit.Test;
 public class TestMergeJoin {
 
     private static final String INPUT_FILE = "testMergeJoinInput.txt";
+    private static final String INPUT_FILE2 = "testMergeJoinInput2.txt";
     private PigServer pigServer;
     private MiniCluster cluster = MiniCluster.buildCluster();
 
@@ -73,6 +78,8 @@ public class TestMergeJoin {
                 input[k++] = si + "\t" + j;
         }
         Util.createInputFile(cluster, INPUT_FILE, input);
+        
+        Util.createInputFile(cluster, INPUT_FILE2, new String[]{"2"});
     }
 
     /**
@@ -81,6 +88,7 @@ public class TestMergeJoin {
     @After
     public void tearDown() throws Exception {
         Util.deleteFile(cluster, INPUT_FILE);
+        Util.deleteFile(cluster, INPUT_FILE2);
     }
 
     /**
@@ -553,154 +561,84 @@ public class TestMergeJoin {
         Assert.assertFalse(iter.hasNext());
     }
     
+    @Test
+    public void testMergeJoinEmptyIndex() throws IOException{
+        DataBag dbMergeJoin = BagFactory.getInstance().newDefaultBag(), dbshj = BagFactory.getInstance().newDefaultBag();
+        pigServer.registerQuery("A = LOAD '" + INPUT_FILE2 + "';");
+        pigServer.registerQuery("B = LOAD '" + INPUT_FILE + "';");
+        
+        {
+            pigServer.registerQuery("C = join A by $0, B by $0 using \"merge\";");
+            Iterator<Tuple> iter = pigServer.openIterator("C");
+            while(iter.hasNext()) {
+                dbMergeJoin.add(iter.next());
+            }
+        }
+        
+        {
+            pigServer.registerQuery("C = join A by $0, B by $0;");
+            Iterator<Tuple> iter = pigServer.openIterator("C");
+
+            while(iter.hasNext()) {
+                dbshj.add(iter.next());
+            }
+        }
+
+        Assert.assertEquals(dbMergeJoin.size(), dbshj.size());
+        Assert.assertEquals(true, TestHelper.compareBags(dbMergeJoin, dbshj));        
+    }
+    
     /**
      * A dummy loader which implements {@link IndexableLoadFunc} to test
      * that expressions are not allowed as merge join keys when the right input's
      * loader implements {@link IndexableLoadFunc}
      */
-    public static class DummyIndexableLoader implements IndexableLoadFunc {
+    public static class DummyIndexableLoader extends IndexableLoadFunc {
 
         /**
          * 
          */
         public DummyIndexableLoader() {
-            // TODO Auto-generated constructor stub
         }
-        
-        /* (non-Javadoc)
-         * @see org.apache.pig.IndexableLoadFunc#close()
-         */
+ 
         @Override
         public void close() throws IOException {
-            // TODO Auto-generated method stub
-            
+ 
         }
 
-        /* (non-Javadoc)
-         * @see org.apache.pig.IndexableLoadFunc#seekNear(org.apache.pig.data.Tuple)
-         */
         @Override
         public void seekNear(Tuple keys) throws IOException {
-            // TODO Auto-generated method stub
-            
+ 
         }
 
-        /* (non-Javadoc)
-         * @see org.apache.pig.LoadFunc#bindTo(java.lang.String, org.apache.pig.impl.io.BufferedPositionedInputStream, long, long)
-         */
-        @Override
-        public void bindTo(String fileName, BufferedPositionedInputStream is,
-                long offset, long end) throws IOException {
-            // TODO Auto-generated method stub
-            
-        }
-
-        /* (non-Javadoc)
-         * @see org.apache.pig.LoadFunc#bytesToBag(byte[])
-         */
-        @Override
-        public DataBag bytesToBag(byte[] b) throws IOException {
-            // TODO Auto-generated method stub
-            return null;
-        }
-
-        /* (non-Javadoc)
-         * @see org.apache.pig.LoadFunc#bytesToCharArray(byte[])
-         */
-        @Override
-        public String bytesToCharArray(byte[] b) throws IOException {
-            // TODO Auto-generated method stub
-            return null;
-        }
-
-        /* (non-Javadoc)
-         * @see org.apache.pig.LoadFunc#bytesToDouble(byte[])
-         */
-        @Override
-        public Double bytesToDouble(byte[] b) throws IOException {
-            // TODO Auto-generated method stub
-            return null;
-        }
-
-        /* (non-Javadoc)
-         * @see org.apache.pig.LoadFunc#bytesToFloat(byte[])
-         */
-        @Override
-        public Float bytesToFloat(byte[] b) throws IOException {
-            // TODO Auto-generated method stub
-            return null;
-        }
-
-        /* (non-Javadoc)
-         * @see org.apache.pig.LoadFunc#bytesToInteger(byte[])
-         */
-        @Override
-        public Integer bytesToInteger(byte[] b) throws IOException {
-            // TODO Auto-generated method stub
-            return null;
-        }
-
-        /* (non-Javadoc)
-         * @see org.apache.pig.LoadFunc#bytesToLong(byte[])
-         */
-        @Override
-        public Long bytesToLong(byte[] b) throws IOException {
-            // TODO Auto-generated method stub
-            return null;
-        }
-
-        /* (non-Javadoc)
-         * @see org.apache.pig.LoadFunc#bytesToMap(byte[])
-         */
-        @Override
-        public Map<String, Object> bytesToMap(byte[] b) throws IOException {
-            // TODO Auto-generated method stub
-            return null;
-        }
-
-        /* (non-Javadoc)
-         * @see org.apache.pig.LoadFunc#bytesToTuple(byte[])
-         */
-        @Override
-        public Tuple bytesToTuple(byte[] b) throws IOException {
-            // TODO Auto-generated method stub
-            return null;
-        }
-
-        /* (non-Javadoc)
-         * @see org.apache.pig.LoadFunc#determineSchema(java.lang.String, org.apache.pig.ExecType, org.apache.pig.backend.datastorage.DataStorage)
-         */
-        @Override
-        public Schema determineSchema(String fileName, ExecType execType,
-                DataStorage storage) throws IOException {
-            // TODO Auto-generated method stub
-            return null;
-        }
-
-        /* (non-Javadoc)
-         * @see org.apache.pig.LoadFunc#fieldsToRead(org.apache.pig.impl.logicalLayer.schema.Schema)
-         */
-        @Override
-        public LoadFunc.RequiredFieldResponse fieldsToRead(RequiredFieldList requiredFieldList) throws FrontendException {
-            return new LoadFunc.RequiredFieldResponse(false);
-        }
-
-        /* (non-Javadoc)
-         * @see org.apache.pig.LoadFunc#getNext()
-         */
         @Override
         public Tuple getNext() throws IOException {
-            // TODO Auto-generated method stub
             return null;
         }
 
-        /* (non-Javadoc)
-         * @see org.apache.pig.IndexableLoadFunc#initialize(org.apache.hadoop.conf.Configuration)
-         */
         @Override
         public void initialize(Configuration conf) throws IOException {
-            // TODO Auto-generated method stub
-            
+        }
+
+        @Override
+        public InputFormat getInputFormat() throws IOException {
+            return null;
+        }
+
+        @Override
+        public LoadCaster getLoadCaster() throws IOException {            
+            return null;
+        }
+
+        @Override
+        public void prepareToRead(RecordReader reader, PigSplit split)
+                throws IOException {
+
+        }
+
+        @Override
+        public void setLocation(String location, Job job) throws IOException {
+
         }
         
     }

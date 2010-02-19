@@ -165,7 +165,9 @@ public class TestSampleOptimizer {
         }
         ps.close();
 
-        pigServer.registerQuery("A = LOAD '" + Util.generateURI(tmpFile.toString()) + "' using PigStorage() AS (num:int);");
+        pigServer.registerQuery("A = LOAD '" 
+                + Util.generateURI(tmpFile.toString(), pigServer.getPigContext()) 
+                + "' using PigStorage() AS (num:int);");
         pigServer.registerQuery("B = order A by num desc;");
         Iterator<Tuple> result = pigServer.openIterator("B");
 

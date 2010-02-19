@@ -35,17 +35,16 @@ import org.apache.pig.ExecType;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.IndexableLoadFunc;
 import org.apache.pig.LoadFunc;
+import org.apache.pig.OrderedLoadFunc;
 import org.apache.pig.PigException;
 import org.apache.pig.PigWarning;
-import org.apache.pig.SamplableLoader;
 import org.apache.pig.builtin.BinStorage;
 import org.apache.pig.data.DataType;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.builtin.DefaultIndexableLoader;
 import org.apache.pig.impl.builtin.FindQuantiles;
 import org.apache.pig.impl.builtin.PoissonSampleLoader;
-import org.apache.pig.impl.builtin.MergeJoinIndexer;
-import org.apache.pig.impl.builtin.TupleSize;
+import org.apache.pig.impl.builtin.GetMemNumRows;
 import org.apache.pig.impl.builtin.PartitionSkewedKeys;
 import org.apache.pig.impl.builtin.RandomSampleLoader;
 import org.apache.pig.impl.io.FileLocalizer;
@@ -380,7 +379,7 @@ public class MRCompiler extends PhyPlanVisitor {
     }
     
     private POLoad getLoad(){
-        POLoad ld = new POLoad(new OperatorKey(scope,nig.getNextNodeId(scope)), true);
+        POLoad ld = new POLoad(new OperatorKey(scope,nig.getNextNodeId(scope)));
         ld.setPc(pigContext);
         return ld;
     }
@@ -1199,21 +1198,25 @@ public class MRCompiler extends PhyPlanVisitor {
                 String[] indexerArgs = new String[3];
                 FileSpec origRightLoaderFileSpec = rightLoader.getLFile();
                 indexerArgs[0] = origRightLoaderFileSpec.getFuncSpec().toString();
-                 if (! (PigContext.instantiateFuncFromSpec(indexerArgs[0]) instanceof SamplableLoader)){
-                     int errCode = 1104;
-                     String errMsg = "Right input of merge-join must implement SamplableLoader interface. The specified loader " + indexerArgs[0] + " doesn't implement it";
-                     throw new MRCompilerException(errMsg,errCode);
-                 }
+                if (! (PigContext.instantiateFuncFromSpec(indexerArgs[0]) instanceof OrderedLoadFunc)){
+                    int errCode = 1104;
+                    String errMsg = "Right input of merge-join must implement " +
+                    "OrderedLoadFunc interface. The specified loader " 
+                    + indexerArgs[0] + " doesn't implement it";
+                    throw new MRCompilerException(errMsg,errCode);
+                }
                 List<PhysicalPlan> rightInpPlans = joinOp.getInnerPlansOf(1);
                 indexerArgs[1] = ObjectSerializer.serialize((Serializable)rightInpPlans);
                 indexerArgs[2] = ObjectSerializer.serialize(rightPipelinePlan);
                 FileSpec lFile = new FileSpec(rightLoader.getLFile().getFileName(),new FuncSpec(MergeJoinIndexer.class.getName(), indexerArgs));
                 rightLoader.setLFile(lFile);
     
-                // Loader of mro will return a tuple of form (key1, key2, ..,filename, offset)
+                // Loader of mro will return a tuple of form - 
+                // (keyFirst1, keyFirst2, .. , position, splitIndex) See MergeJoinIndexer
                 // Now set up a POLocalRearrange which has "all" as the key and tuple fetched
                 // by loader as the "value" of POLocalRearrange
-                // Sorting of index can possibly be achieved by using Hadoop sorting between map and reduce instead of Pig doing sort. If that is so, 
+                // Sorting of index can possibly be achieved by using Hadoop sorting 
+                // between map and reduce instead of Pig doing sort. If that is so, 
                 // it will simplify lot of the code below.
                 
                 PhysicalPlan lrPP = new PhysicalPlan();
@@ -1279,11 +1282,12 @@ public class MRCompiler extends PhyPlanVisitor {
                 rightMROpr.setReduceDone(true);
                 
                 // set up the DefaultIndexableLoader for the join operator
-                String[] defaultIndexableLoaderArgs = new String[4];
+                String[] defaultIndexableLoaderArgs = new String[5];
                 defaultIndexableLoaderArgs[0] = origRightLoaderFileSpec.getFuncSpec().toString();
                 defaultIndexableLoaderArgs[1] = strFile.getFileName();
                 defaultIndexableLoaderArgs[2] = strFile.getFuncSpec().toString();
                 defaultIndexableLoaderArgs[3] = joinOp.getOperatorKey().scope;
+                defaultIndexableLoaderArgs[4] = origRightLoaderFileSpec.getFileName();
                 joinOp.setRightLoaderFuncSpec((new FuncSpec(DefaultIndexableLoader.class.getName(), defaultIndexableLoaderArgs)));
                 joinOp.setRightInputFileName(origRightLoaderFileSpec.getFileName());    
                  
@@ -1402,6 +1406,7 @@ public class MRCompiler extends PhyPlanVisitor {
 				throw new VisitorException("POSkewedJoin operator has " + compiledInputs.length + " inputs. It should have 2.");
 			}
 			
+			//change plan to store the first join input into a temp file
 			FileSpec fSpec = getTempFileSpec();
 			MapReduceOper mro = compiledInputs[0];
 			POStore str = getStore();
@@ -1475,7 +1480,10 @@ public class MRCompiler extends PhyPlanVisitor {
 			}     		      
 			
 			// run POPartitionRearrange for second join table
-			lr = new POPartitionRearrange(new OperatorKey(scope,nig.getNextNodeId(scope)), rp);            
+			POPartitionRearrange pr = 
+			    new POPartitionRearrange(new OperatorKey(scope,nig.getNextNodeId(scope)), rp);
+			pr.setPigContext(pigContext);
+			lr = pr;
 			try {
 				lr.setIndex(1);
 			} catch (ExecException e) {
@@ -1832,7 +1840,7 @@ public class MRCompiler extends PhyPlanVisitor {
         
     	PhysicalPlan ep = new PhysicalPlan();
     	POUserFunc uf = new POUserFunc(new OperatorKey(scope,nig.getNextNodeId(scope)), -1, ufInps,
-    	            new FuncSpec(TupleSize.class.getName(), (String[])null));
+    	            new FuncSpec(GetMemNumRows.class.getName(), (String[])null));
     	uf.setResultType(DataType.TUPLE);
     	ep.add(uf);     
     	ep.add(prjStar);
@@ -1848,7 +1856,7 @@ public class MRCompiler extends PhyPlanVisitor {
     		String inputFile = lFile.getFileName();
 
     		return getSamplingJob(sort, prevJob, transformPlans, lFile, sampleFile, rp, null, 
-    							PartitionSkewedKeys.class.getName(), new String[]{per, mc, inputFile}, PoissonSampleLoader.class.getName());
+    							PartitionSkewedKeys.class.getName(), new String[]{per, mc, inputFile}, RandomSampleLoader.class.getName());
     	}catch(Exception e) {
     		throw new PlanException(e);
     	}
@@ -1880,7 +1888,8 @@ public class MRCompiler extends PhyPlanVisitor {
      * @throws PlanException
      * @throws VisitorException
      */
-  	protected Pair<MapReduceOper,Integer> getSamplingJob(POSort sort, MapReduceOper prevJob, List<PhysicalPlan> transformPlans,
+  	@SuppressWarnings("deprecation")
+    protected Pair<MapReduceOper,Integer> getSamplingJob(POSort sort, MapReduceOper prevJob, List<PhysicalPlan> transformPlans,
   			FileSpec lFile, FileSpec sampleFile, int rp, List<PhysicalPlan> sortKeyPlans, 
   			String udfClassName, String[] udfArgs, String sampleLdrClassName ) throws PlanException, VisitorException {
   		
@@ -2056,7 +2065,7 @@ public class MRCompiler extends PhyPlanVisitor {
                     if(val<=0)
                         val = pigContext.defaultParallel;
                     if (val<=0)
-                        val = ((JobConf)((HExecutionEngine)eng).getJobClient().getConf()).getNumReduceTasks();
+                        val = ((JobConf)((HExecutionEngine)eng).getJobConf()).getNumReduceTasks();
                     if (val<=0)
                         val = 1;
                 } catch (Exception e) {

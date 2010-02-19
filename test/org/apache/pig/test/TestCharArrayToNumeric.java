@@ -68,6 +68,17 @@ public class TestCharArrayToNumeric extends TestCase {
 	private Integer MaxInteger = Integer.MAX_VALUE;
 
 	private Integer MinInteger = Integer.MIN_VALUE;
+	
+	MiniCluster cluster = MiniCluster.buildCluster();
+	PigServer pig;
+	
+	/* (non-Javadoc)
+	 * @see junit.framework.TestCase#setUp()
+	 */
+	@Override
+	protected void setUp() throws Exception {
+	    pig = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+	}
 
 	public static OperatorKey newOperatorKey() {
 		long newId = NodeIdGenerator.getGenerator().getNextNodeId("scope");
@@ -151,35 +162,30 @@ public class TestCharArrayToNumeric extends TestCase {
 	}
 
 
-	public void testCharArray2FloatAndDoubleScript() {
+	public void testCharArray2FloatAndDoubleScript() throws IOException {
 
 		// create a input file with format (key,value)
 		int size = 100;
-		String[] numbers = new String[size];
+		String[] numbers = new String[size + 1];
 		Random rand = new Random();
 		Map<Integer, Double> map = new HashMap<Integer, Double>();
-		File inputFile = null;
 
 		try {
-			inputFile = File.createTempFile("pig_jira_893", ".txt");
-			PrintStream ps = new PrintStream(new FileOutputStream(inputFile));
 			for (int i = 0; i < numbers.length; ++i) {
 				int key = i;
 				double value = rand.nextDouble() * 100;
-				ps.println(key + "\t" + value);
+				numbers[i] = (key + "\t" + value);
 				map.put(key, value);
 			}
 			// append a null at the last line, to test string which can not been
 			// cast
-			ps.println(numbers.length + "\t" + "null");
+			numbers[numbers.length - 1] = (numbers.length + "\t" + "null");
 			map.put(numbers.length, null);
-
+		    Util.createInputFile(cluster, "pig_jira_893-input1.txt", numbers);
 			byte[] numericTypes = new byte[] { DataType.DOUBLE, DataType.FLOAT, };
 			for (byte type : numericTypes) {
-				PigServer pig = new PigServer(ExecType.LOCAL);
-				pig.registerQuery("A = Load '"
-						+ Util.generateURI(inputFile.getCanonicalPath())
-						+ "' AS (key:int,value:chararray);");
+				pig.registerQuery("A = Load 'pig_jira_893-input1.txt' AS " +
+						"(key:int,value:chararray);");
 				pig.registerQuery("B = FOREACH A GENERATE key,("
 						+ DataType.findTypeName(type) + ")value;");
 				Iterator<Tuple> iter = pig.openIterator("B");
@@ -217,41 +223,35 @@ public class TestCharArrayToNumeric extends TestCase {
 			e.printStackTrace();
 			fail();
 		} finally {
-			if (inputFile != null) {
-				inputFile.delete();
-			}
+			Util.deleteFile(cluster, "pig_jira_893-input1.txt");
 		}
 	}
 
-	public void testCharArrayToIntAndLongScript() {
+	public void testCharArrayToIntAndLongScript() throws IOException {
 
 		// create a input file with format (key,value)
 		int size = 100;
-		String[] numbers = new String[size];
+		String[] numbers = new String[size + 1];
 		Random rand = new Random();
 		Map<Integer, Long> map = new HashMap<Integer, Long>();
 		File inputFile = null;
 
 		try {
-			inputFile = File.createTempFile("pig_jira_893", ".txt");
-			PrintStream ps = new PrintStream(new FileOutputStream(inputFile));
 			for (int i = 0; i < numbers.length; ++i) {
 				int key = i;
 				long value = rand.nextInt(100);
-				ps.println(key + "\t" + value);
+				numbers[i] = (key + "\t" + value);
 				map.put(key, value);
 			}
 			// append a null at the last line, to test string which can not been
 			// cast
-			ps.println(numbers.length + "\t" + "null");
+			numbers[numbers.length - 1] = (numbers.length + "\t" + "null");
 			map.put(numbers.length, null);
-
+            Util.createInputFile(cluster, "pig_jira_893-input2.txt", numbers);
 			byte[] numericTypes = new byte[] { DataType.INTEGER, DataType.LONG, };
 			for (byte type : numericTypes) {
-				PigServer pig = new PigServer(ExecType.LOCAL);
-				pig.registerQuery("A = Load '"
-						+ Util.generateURI(inputFile.getCanonicalPath())
-						+ "' AS (key:int,value:chararray);");
+				pig.registerQuery("A = Load 'pig_jira_893-input2.txt' AS " +
+						"(key:int,value:chararray);");
 				pig.registerQuery("B = FOREACH A GENERATE key,("
 						+ DataType.findTypeName(type) + ")value;");
 				Iterator<Tuple> iter = pig.openIterator("B");
@@ -290,9 +290,7 @@ public class TestCharArrayToNumeric extends TestCase {
 			e.printStackTrace();
 			fail();
 		} finally {
-			if (inputFile != null) {
-				inputFile.delete();
-			}
+			Util.deleteFile(cluster, "pig_jira_893-input2.txt");
 		}
 	}
 }

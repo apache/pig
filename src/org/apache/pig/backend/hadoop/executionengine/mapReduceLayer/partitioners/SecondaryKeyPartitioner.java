@@ -17,17 +17,17 @@
  */
 package org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.partitioners;
 
+import org.apache.hadoop.conf.Configurable;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Writable;
-import org.apache.hadoop.io.WritableComparable;
-import org.apache.hadoop.mapred.JobConf;
-import org.apache.hadoop.mapred.Partitioner;
-import org.apache.hadoop.mapred.lib.HashPartitioner;
+import org.apache.hadoop.mapreduce.lib.partition.HashPartitioner;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.HDataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.io.PigNullableWritable;
 
-public class SecondaryKeyPartitioner extends HashPartitioner<PigNullableWritable, Writable> implements Partitioner<PigNullableWritable, Writable>{
+public class SecondaryKeyPartitioner extends HashPartitioner<PigNullableWritable
+, Writable> implements Configurable {
     Byte kt;
     @Override
     public int getPartition(PigNullableWritable key, Writable value,
@@ -42,9 +42,13 @@ public class SecondaryKeyPartitioner extends HashPartitioner<PigNullableWritable
     }
 
     @Override
-    public void configure(JobConf job) {
-        super.configure(job);
-        String kts = job.get("pig.reduce.key.type");
+    public Configuration getConf() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void setConf(Configuration conf) {
+        String kts = conf.get("pig.reduce.key.type");
         kt = Byte.valueOf(kts);
     }
 }

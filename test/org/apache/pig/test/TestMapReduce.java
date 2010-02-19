@@ -25,28 +25,20 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.PrintStream;
-import java.net.URL;
-import java.text.DecimalFormat;
-import java.util.HashMap;
 import java.util.Iterator;
-import java.util.Map;
-import java.util.Properties;
 
 import junit.framework.TestCase;
-
-import org.junit.Test;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.pig.EvalFunc;
-import org.apache.pig.FuncSpec;
-import org.apache.pig.LoadFunc;
-import org.apache.pig.PigServer;
-import org.apache.pig.StoreFunc;
 import org.apache.pig.ExecType;
-import org.apache.pig.LoadFunc.RequiredFieldList;
+import org.apache.pig.FuncSpec;
+import org.apache.pig.PigServer;
+import org.apache.pig.backend.datastorage.ElementDescriptor;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.builtin.COUNT;
+import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
@@ -54,13 +46,9 @@ import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
-import org.apache.pig.impl.io.BufferedPositionedInputStream;
-import org.apache.pig.impl.logicalLayer.FrontendException;
-import org.apache.pig.impl.logicalLayer.schema.Schema;
-import org.apache.pig.backend.datastorage.DataStorage;
-import org.apache.pig.backend.datastorage.ElementDescriptor;
-import org.junit.Before;
 import org.apache.pig.test.utils.TestHelper;
+import org.junit.Before;
+import org.junit.Test;
 
 public class TestMapReduce extends TestCase {
 
@@ -125,7 +113,10 @@ public class TestMapReduce extends TestCase {
             System.setProperty("pig.overrideBlockSize", Integer.toString(offsets[i]));
             PigContext pigContext = new PigContext(ExecType.MAPREDUCE, cluster.getProperties());
             PigServer pig = new PigServer(pigContext);
-            pig.registerQuery("a = load 'file:test/org/apache/pig/test/data/bzipTest.bz2';");
+            pig.registerQuery("a = load '"
+                    + Util.generateURI(
+                            "file:test/org/apache/pig/test/data/bzipTest.bz2",
+                            pig.getPigContext()) + "';");
             //pig.registerQuery("a = foreach (group (load 'file:test/org/apache/pig/test/data/bzipTest.bz2') all) generate COUNT($1);");
             Iterator<Tuple> it = pig.openIterator("a");
             int count = 0;
@@ -143,11 +134,13 @@ public class TestMapReduce extends TestCase {
     @Test
     public Double bigGroupAll( File tmpFile ) throws Throwable {
 
-        String query = "foreach (group (load '" + Util.generateURI(tmpFile.toString()) + "') all) generate " + COUNT.class.getName() + "($1) ;";
+        String query = "foreach (group (load '"
+                + Util.generateURI(tmpFile.toString(), pig.getPigContext())
+                + "') all) generate " + COUNT.class.getName() + "($1) ;";
         System.out.println(query);
         pig.registerQuery("asdf_id = " + query);
-        Iterator it = pig.openIterator("asdf_id");
-        Tuple t = (Tuple)it.next();
+        Iterator<Tuple> it = pig.openIterator("asdf_id");
+        Tuple t = it.next();
 
         return  DataType.toDouble(t.get(0));
     }
@@ -195,7 +188,7 @@ public class TestMapReduce extends TestCase {
         }
     }
 
-    static public class MyStorage implements LoadFunc, StoreFunc {
+    static public class MyStorage extends PigStorage {
 
         final static int COUNT = 10;
 
@@ -204,9 +197,16 @@ public class TestMapReduce extends TestCase {
 
         public void setNulls(boolean hasNulls ) { this.hasNulls=hasNulls; }
 
-        public void bindTo(String fileName, BufferedPositionedInputStream is, long offset, long end) throws IOException {
+        /**
+         * 
+         */
+        public MyStorage() {
+            // initialize delimiter to be "-" for output
+            // since that is the delimiter in the tests below
+            super("-");
         }
-
+        
+        @Override
         public Tuple getNext() throws IOException {
             if (count < COUNT) {
 
@@ -215,117 +215,6 @@ public class TestMapReduce extends TestCase {
 
             }
 
-            return null;
-        }
-
-
-        OutputStream os;
-        public void bindTo(OutputStream os) throws IOException {
-            this.os = os;
-        }
-
-        public void finish() throws IOException {
-            
-        }
-
-        public void putNext(Tuple f) throws IOException {
-            try {
-                os.write((f.toDelimitedString("-")+"\n").getBytes());            
-            } catch (ExecException ee) {
-                IOException ioe = new IOException(ee.getMessage());
-                ioe.initCause(ee);
-                throw ioe;
-            }
-        }
-
-        public Boolean bytesToBoolean(byte[] b) throws IOException {
-            return false;
-        }
-    
-        public Integer bytesToInteger(byte[] b) throws IOException {
-            return 0;
-        }
-
-        public Long bytesToLong(byte[] b) throws IOException {
-            return 0L;
-        }
-
-        public Float bytesToFloat(byte[] b) throws IOException {
-            return 0.0f;
-        }
-
-        public Double bytesToDouble(byte[] b) throws IOException {
-            return 0.0;
-        }
-
-        public String bytesToCharArray(byte[] b) throws IOException {
-            return "";
-        }
-
-        public Map<String, Object> bytesToMap(byte[] b) throws IOException {
-            return new HashMap<String, Object>();
-        }
-
-        public Tuple bytesToTuple(byte[] b) throws IOException {
-            return null;
-        }
-
-        public DataBag bytesToBag(byte[] b) throws IOException {
-            return null;
-        }
-
-        @Override
-        public LoadFunc.RequiredFieldResponse fieldsToRead(RequiredFieldList requiredFieldList) throws FrontendException {
-            return null;
-        }
-
-	    public byte[] toBytes(DataBag bag) throws IOException {
-	        return null;
-	    }
-	
-	    public byte[] toBytes(String s) throws IOException {
-	        return s.getBytes();
-	    }
-	
-	    public byte[] toBytes(Double d) throws IOException {
-	        return d.toString().getBytes();
-	    }
-	
-	    public byte[] toBytes(Float f) throws IOException {
-	        return f.toString().getBytes();
-	    }
-	
-	    public byte[] toBytes(Integer i) throws IOException {
-	        return i.toString().getBytes();
-	    }
-	
-	    public byte[] toBytes(Long l) throws IOException {
-	        return l.toString().getBytes();
-	    }
-	
-	    public byte[] toBytes(Map<String, Object> m) throws IOException {
-	        return m.toString().getBytes();
-	    }
-	
-	    public byte[] toBytes(Tuple t) throws IOException {
-	        return null;
-	    }
-
-        /* (non-Javadoc)
-         * @see org.apache.pig.LoadFunc#determineSchema(java.lang.String, org.apache.pig.ExecType, org.apache.pig.backend.datastorage.DataStorage)
-         */
-        public Schema determineSchema(String fileName, ExecType execType,
-                DataStorage storage) throws IOException {
-            // TODO Auto-generated method stub
-            return null;
-        }
-
-        /* (non-Javadoc)
-         * @see org.apache.pig.StoreFunc#getStorePreparationClass()
-         */
-        @Override
-        public Class getStorePreparationClass() throws IOException {
-            // TODO Auto-generated method stub
             return null;
         }
 
@@ -342,8 +231,10 @@ public class TestMapReduce extends TestCase {
         }
         ps.close();
 
-	//Load, Execute and Store query
-        String query = "foreach (load '"+Util.generateURI(tmpFile.toString())+"') generate $0,$1;";
+        //Load, Execute and Store query
+        String query = "foreach (load '"
+                + Util.generateURI(tmpFile.toString(), pig.getPigContext())
+                + "') generate $0,$1;";
         System.out.println(query);
         pig.registerQuery("asdf_id = " + query);
         try {
@@ -352,7 +243,7 @@ public class TestMapReduce extends TestCase {
         pig.store("asdf_id", "frog", MyStorage.class.getName()+"()");
 
 
-	//verify query
+        //verify query
 
         InputStream is = FileLocalizer.open("frog", pig.getPigContext());
         BufferedReader br = new BufferedReader(new InputStreamReader(is));
@@ -392,7 +283,9 @@ public class TestMapReduce extends TestCase {
         File tmpFile=TestHelper.createTempFile(data) ;
 
 	//Load, Execute and Store query
-        String query = "foreach (load '"+Util.generateURI(tmpFile.toString())+"') generate $0,$1;";
+        String query = "foreach (load '"
+                + Util.generateURI(tmpFile.toString(), pig.getPigContext())
+                + "') generate $0,$1;";
         System.out.println(query);
         pig.registerQuery("asdf_id = " + query);
         try {
@@ -435,16 +328,20 @@ public class TestMapReduce extends TestCase {
         ps.close();
 
         // execute query
-        String query = "foreach (group (load '"+Util.generateURI(tmpFile.toString())+"' using " + MyStorage.class.getName() + "()) by " + MyGroup.class.getName() + "('all')) generate flatten(" + MyApply.class.getName() + "($1)) ;";
+        String query = "foreach (group (load '"
+                + Util.generateURI(tmpFile.toString(), pig.getPigContext())
+                + "' using " + MyStorage.class.getName() + "()) by "
+                + MyGroup.class.getName() + "('all')) generate flatten("
+                + MyApply.class.getName() + "($1)) ;";
         System.out.println(query);
         pig.registerQuery("asdf_id = " + query);
 
         //Verfiy query
-        Iterator it = pig.openIterator("asdf_id");
+        Iterator<Tuple> it = pig.openIterator("asdf_id");
         Tuple t;
         int count = 0;
         while(it.hasNext()) {
-            t = (Tuple) it.next();
+            t = it.next();
             assertEquals(t.get(0).toString(), "Got");
             Integer.parseInt(t.get(1).toString());
             count++;
@@ -469,16 +366,20 @@ public class TestMapReduce extends TestCase {
         ps.close();
 
         // execute query
-        String query = "foreach (group (load '"+Util.generateURI(tmpFile.toString())+"' using " + MyStorage.class.getName() + "()) by " + MyGroup.class.getName() + "('all')) generate flatten(" + MyApply.class.getName() + "($1)) ;";
+        String query = "foreach (group (load '"
+                + Util.generateURI(tmpFile.toString(), pig.getPigContext())
+                + "' using " + MyStorage.class.getName() + "()) by "
+                + MyGroup.class.getName() + "('all')) generate flatten("
+                + MyApply.class.getName() + "($1)) ;";
         System.out.println(query);
         pig.registerQuery("asdf_id = " + query);
 
         //Verfiy query
-        Iterator it = pig.openIterator("asdf_id");
+        Iterator<Tuple> it = pig.openIterator("asdf_id");
         Tuple t;
         int count = 0;
         while(it.hasNext()) {
-            t = (Tuple) it.next();
+            t = it.next();
             assertEquals(t.get(0).toString(), "Got");
             Integer.parseInt(t.get(1).toString());
             count++;
@@ -499,15 +400,19 @@ public class TestMapReduce extends TestCase {
         ps.close();
         pig.registerFunction("foo",
             new FuncSpec(MyApply.class.getName()+"('foo')"));
-        String query = "foreach (group (load '"+Util.generateURI(tmpFile.toString())+"' using " + MyStorage.class.getName() + "()) by " + MyGroup.class.getName() + "('all')) generate flatten(foo($1)) ;";
+        String query = "foreach (group (load '"
+                + Util.generateURI(tmpFile.toString(), pig.getPigContext())
+                + "' using " + MyStorage.class.getName() + "()) by "
+                + MyGroup.class.getName()
+                + "('all')) generate flatten(foo($1)) ;";
         System.out.println(query);
         pig.registerQuery("asdf_id = " + query);
-        Iterator it = pig.openIterator("asdf_id");
+        Iterator<Tuple> it = pig.openIterator("asdf_id");
         tmpFile.delete();
         Tuple t;
         int count = 0;
         while(it.hasNext()) {
-            t = (Tuple) it.next();
+            t = it.next();
             assertEquals("foo", t.get(0).toString());
             Integer.parseInt(t.get(1).toString());
             count++;
@@ -544,15 +449,19 @@ public class TestMapReduce extends TestCase {
         ps.close();
         pig.registerFunction("foo",
             new FuncSpec(MyApply.class.getName()+"('foo')"));
-        String query = "foreach (group (load '"+Util.generateURI(tmpFile.toString())+"' using " + MyStorage.class.getName() + "()) by " + MyGroup.class.getName() + "('all')) generate flatten(foo($1)) ;";
+        String query = "foreach (group (load '"
+                + Util.generateURI(tmpFile.toString(), pig.getPigContext())
+                + "' using " + MyStorage.class.getName() + "()) by "
+                + MyGroup.class.getName()
+                + "('all')) generate flatten(foo($1)) ;";
         System.out.println(query);
         pig.registerQuery("asdf_id = " + query);
-        Iterator it = pig.openIterator("asdf_id");
+        Iterator<Tuple> it = pig.openIterator("asdf_id");
         tmpFile.delete();
         Tuple t;
         int count = 0;
         while(it.hasNext()) {
-            t = (Tuple) it.next();
+            t = it.next();
             assertEquals("foo", t.get(0).toString());
 
             if ( t.get(1).toString() != "" ) {

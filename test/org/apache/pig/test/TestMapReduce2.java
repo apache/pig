@@ -20,6 +20,8 @@ package org.apache.pig.test;
 
 import junit.framework.Assert;
 import junit.framework.TestCase;
+
+import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.test.utils.TestHelper;
@@ -32,13 +34,12 @@ import java.util.Iterator;
 
 public class TestMapReduce2 extends TestCase {
 
-    private String initString = "mapreduce";
     MiniCluster cluster = MiniCluster.buildCluster();
 
     private PigServer pig ;
 
     public TestMapReduce2() throws Throwable {
-        pig = new PigServer(initString) ;
+        pig = new PigServer(ExecType.MAPREDUCE, cluster.getProperties()) ;
     }
 
 
@@ -46,8 +47,12 @@ public class TestMapReduce2 extends TestCase {
     public void testUnion1() throws Exception {
         File tmpFile1 = genDataSetFile(false, 30 ) ;
         File tmpFile2 = genDataSetFile(false, 50 ) ;
-        pig.registerQuery("a = load '" + Util.generateURI(tmpFile1.toString()) + "'; ") ;
-        pig.registerQuery("b = load '" + Util.generateURI(tmpFile2.toString()) + "'; ") ;
+        pig.registerQuery("a = load '"
+                + Util.generateURI(tmpFile1.toString(), pig.getPigContext())
+                + "'; ");
+        pig.registerQuery("b = load '"
+                + Util.generateURI(tmpFile2.toString(), pig.getPigContext())
+                + "'; ");
         pig.registerQuery("c = union a, b; ") ;
         
         verifyUnion( "c", 30 + 50 );
@@ -58,9 +63,13 @@ public class TestMapReduce2 extends TestCase {
 
         File tmpFile1 = genDataSetFile(true, 30 ) ;
         File tmpFile2 = genDataSetFile(true, 50 ) ;
-        pig.registerQuery("a = load '" + Util.generateURI(tmpFile1.toString()) + "'; ") ;
-        pig.registerQuery("b = load '" + Util.generateURI(tmpFile2.toString()) + "'; ") ;
-        pig.registerQuery("c = union a, b; ") ;
+        pig.registerQuery("a = load '"
+                + Util.generateURI(tmpFile1.toString(), pig.getPigContext())
+                + "'; ");
+        pig.registerQuery("b = load '"
+                + Util.generateURI(tmpFile2.toString(), pig.getPigContext())
+                + "'; ");
+        pig.registerQuery("c = union a, b; ");
 
         verifyUnion( "c", 30 + 50 );
     }
@@ -70,8 +79,12 @@ public class TestMapReduce2 extends TestCase {
 
         File tmpFile1 = genDataSetFile(false, 30) ;
         File tmpFile2 = genDataSetFile(false, 50) ;
-        pig.registerQuery("a = load '" + Util.generateURI(tmpFile1.toString()) + "'; ") ;
-        pig.registerQuery("b = load '" + Util.generateURI(tmpFile2.toString()) + "'; ") ;
+        pig.registerQuery("a = load '"
+                + Util.generateURI(tmpFile1.toString(), pig.getPigContext())
+                + "'; ");
+        pig.registerQuery("b = load '"
+                + Util.generateURI(tmpFile2.toString(), pig.getPigContext())
+                + "'; ");
         pig.registerQuery("a1 = foreach a generate $0, $1; ") ;
         pig.registerQuery("b1 = foreach b generate $0, $1; ") ;
         pig.registerQuery("c = union a1, b1; ") ;
@@ -83,8 +96,12 @@ public class TestMapReduce2 extends TestCase {
     public void testUnion2WithNulls() throws Exception {
         File tmpFile1 = genDataSetFile(true, 30) ;
         File tmpFile2 = genDataSetFile(true, 50) ;
-        pig.registerQuery("a = load '" + Util.generateURI(tmpFile1.toString()) + "'; ") ;
-        pig.registerQuery("b = load '" + Util.generateURI(tmpFile2.toString()) + "'; ") ;
+        pig.registerQuery("a = load '"
+                + Util.generateURI(tmpFile1.toString(), pig.getPigContext())
+                + "'; ");
+        pig.registerQuery("b = load '"
+                + Util.generateURI(tmpFile2.toString(), pig.getPigContext())
+                + "'; ");
         pig.registerQuery("a1 = foreach a generate $0, $1; ") ;
         pig.registerQuery("b1 = foreach b generate $0, $1; ") ;
         pig.registerQuery("c = union a1, b1; ") ;

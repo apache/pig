@@ -24,7 +24,6 @@ import org.apache.pig.EvalFunc;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.data.DataType;
-import org.apache.pig.impl.util.WrappedIOException;
 
 /**
   * math.ABS implements a binding to the Java function
@@ -69,7 +68,7 @@ public class LongAbs extends EvalFunc<Long>{
         try{
             d = (Long)input.get(0);
         } catch (Exception e){
-            throw WrappedIOException.wrap("Caught exception processing input row ", e);
+            throw new IOException("Caught exception processing input row ", e);
         }
 
 		return Math.abs(d);

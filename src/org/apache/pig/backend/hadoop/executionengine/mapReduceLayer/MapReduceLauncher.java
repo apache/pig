@@ -35,6 +35,7 @@ import org.apache.hadoop.mapred.JobID;
 import org.apache.hadoop.mapred.RunningJob;
 import org.apache.hadoop.mapred.jobcontrol.Job;
 import org.apache.hadoop.mapred.jobcontrol.JobControl;
+import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigException;
 import org.apache.pig.PigWarning;
@@ -111,7 +112,7 @@ public class MapReduceLauncher extends Launcher{
         ExecutionEngine exe = pc.getExecutionEngine();
         ConfigurationValidator.validatePigProperties(exe.getConfiguration());
         Configuration conf = ConfigurationUtil.toConfiguration(exe.getConfiguration());
-        JobClient jobClient = ((HExecutionEngine)exe).getJobClient();
+        JobClient jobClient = new JobClient(((HExecutionEngine)exe).getJobConf());
 
         JobControlCompiler jcc = new JobControlCompiler(pc, conf);
         
@@ -282,6 +283,18 @@ public class MapReduceLauncher extends Launcher{
             for(Job job : succJobs){
                 List<POStore> sts = jcc.getStores(job);
                 for (POStore st: sts) {
+                    // Currently (as of Feb 3 2010), hadoop's local mode does not
+                    // call cleanupJob on OutputCommitter (see https://issues.apache.org/jira/browse/MAPREDUCE-1447)
+                    // So to workaround that bug, we are calling setStoreSchema on
+                    // StoreFunc's which implement StoreMetadata here
+                    /**********************************************************/
+                    // NOTE: THE FOLLOWING IF SHOULD BE REMOVED ONCE MAPREDUCE-1447
+                    // IS FIXED - TestStore.testSetStoreSchema() should fail at
+                    // that time and removing this code should fix it.
+                    /**********************************************************/
+                    if(pc.getExecType() == ExecType.LOCAL) {
+                        storeSchema(job, st);
+                    }
                     if (!st.isTmpStore()) {
                         succeededStores.add(st.getSFile());
                         finalStores++;
@@ -441,6 +454,19 @@ public class MapReduceLauncher extends Launcher{
         
         return plan;
     }
+    
+    /**
+     * @param job
+     * @param st
+     * @throws IOException 
+     */
+    private void storeSchema(Job job, POStore st) throws IOException {
+        JobContext jc = new JobContext(job.getJobConf(), 
+                new org.apache.hadoop.mapreduce.JobID());
+        JobContext updatedJc = PigOutputCommitter.setUpContext(jc, st);
+        PigOutputCommitter.storeCleanup(st, updatedJc.getConfiguration());
+    }
+
     
     /**
      * An exception handler class to handle exceptions thrown by the job controller thread

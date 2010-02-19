@@ -21,132 +21,179 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Properties;
 
-import org.apache.pig.LoadFunc;
-import org.apache.pig.PigException;
+
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.PigContext;
-import org.apache.pig.impl.io.BufferedPositionedInputStream;
-import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.FileSpec;
-import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.util.Pair;
-import org.apache.pig.impl.util.UDFContext;
-import org.apache.pig.impl.builtin.PartitionSkewedKeys;
 
 /**
- * Currently skipInterval is similar to the randomsampleloader. However, if we were to use an
- * uniform distribution, we could precompute the intervals and read it from a file.
- *
+ * See "Skewed Join sampler" in http://wiki.apache.org/pig/PigSampler
  */
 public class PoissonSampleLoader extends SampleLoader {
-	
-	// Base number of samples needed
-	private long baseNumSamples;
-	
-	/// Count of the map splits
-	private static final String MAPSPLITS_COUNT = "pig.mapsplits.count";
-	
-	/// Conversion factor accounts for the various encodings, compression etc
-	private static final String CONV_FACTOR = "pig.inputfile.conversionfactor";
-	
-	/// For a given mean and a confidence, a sample rate is obtained from a poisson cdf
-	private static final String SAMPLE_RATE = "pig.sksampler.samplerate";
-	
-	/// % of memory available for the input data. This is currenty equal to the memory available
-	/// for the skewed join
-	private static final String PERC_MEM_AVAIL = "pig.skewedjoin.reduce.memusage";
-	
-	// 17 is not a magic number. It can be obtained by using a poisson cumulative distribution function with the mean
-	// set to 10 (emperically, minimum number of samples) and the confidence set to 95%
-	private static final int DEFAULT_SAMPLE_RATE = 17;
-	
-	// By default the data is multiplied by 2 to account for the encoding
-	private static final int DEFAULT_CONV_FACTOR = 2;
-	
+    
+    // marker string to mark the last sample row, which has total number or rows
+    // seen by this map instance
+    // this string will be in the 2nd last column of the last sample row
+    // it is used by GetMemNumRows
+    public static final String NUMROWS_TUPLE_MARKER = 
+        "\u4956\u3838_pig_inTeRnal-spEcial_roW_num_tuple3kt579CFLehkblah";
+    
+    //num of rows sampled so far
+    private int numRowsSampled = 0;
+    
+    //average size of tuple in memory, for tuples sampled
+    private long avgTupleMemSz = 0;
+    
+    //current row number 
+    private long rowNum = 0;
+    
+    // number of tuples to skip after each sample
+    long skipInterval = -1;
 
-	public PoissonSampleLoader(String funcSpec, String ns) {
-		super(funcSpec);
-		super.setNumSamples(Integer.valueOf(ns)); // will be overridden
-	}
-	
-	// n is the number of map tasks
-	@Override
-	public void setNumSamples(int n) {
-		super.setNumSamples(n); // will be overridden
-	}
-	
-	/**
-	 * Computes the number of samples for the loader
-	 * 
-	 * @param inputs : Set to pig inputs
-	 * @param pc : PigContext object
-	 * 
-	 */
-	@Override
-	public void computeSamples(ArrayList<Pair<FileSpec, Boolean>> inputs, PigContext pc) throws ExecException {
-	    
-		int numSplits, convFactor, sampleRate;
-		Properties pcProps = pc.getProperties();
-		
-		// Set default values for the various parameters
-		try {
-			numSplits = Integer.valueOf(pcProps.getProperty(MAPSPLITS_COUNT));
-		} catch (NumberFormatException e) {
-			String msg = "Couldn't retrieve the number of maps in the job";
-			throw new ExecException(msg);
-		}
-		
-		try {
-			convFactor = Integer.valueOf(pcProps.getProperty(CONV_FACTOR));
-		} catch (NumberFormatException e) {
-			convFactor = DEFAULT_CONV_FACTOR;
-		}
-		
-		try {
-			sampleRate = Integer.valueOf(pcProps.getProperty(SAMPLE_RATE));
-		} catch (NumberFormatException e) {
-			sampleRate = DEFAULT_SAMPLE_RATE;
-		}
-		
-		// % of memory available for the records
-		float heapPerc = PartitionSkewedKeys.DEFAULT_PERCENT_MEMUSAGE;
+    // bytes in input to skip after every sample. 
+    // divide this by avgTupleMemSize to get skipInterval 
+    private long memToSkipPerSample = 0;
+    
+    // has the special row with row number information been returned
+    private boolean numRowSplTupleReturned = false;
+    
+    /// For a given mean and a confidence, a sample rate is obtained from a poisson cdf
+    private static final String SAMPLE_RATE = "pig.sksampler.samplerate";
+    
+    // 17 is not a magic number. It can be obtained by using a poisson cumulative distribution function with the mean
+    // set to 10 (emperically, minimum number of samples) and the confidence set to 95%
+    private static final int DEFAULT_SAMPLE_RATE = 17;
+        
+    private int sampleRate = DEFAULT_SAMPLE_RATE;
+    
+    /// % of memory available for the input data. This is currenty equal to the memory available
+    /// for the skewed join
+    private static final String PERC_MEM_AVAIL = "pig.skewedjoin.reduce.memusage";
+
+    private double heapPerc = PartitionSkewedKeys.DEFAULT_PERCENT_MEMUSAGE;
+    
+    // new Sample tuple
+    private Tuple newSample = null;
+        
+//  private final Log log = LogFactory.getLog(getClass());
+    
+    public PoissonSampleLoader(String funcSpec, String ns) {
+        super(funcSpec);
+        super.setNumSamples(Integer.valueOf(ns)); // will be overridden
+    }
+
+    @Override
+    public Tuple getNext() throws IOException {
+        if(numRowSplTupleReturned){
+            // row num special row has been returned after all inputs 
+            // were read, nothing more to read 
+            return null;
+        }
+
+
+        if(skipInterval == -1){
+            //select first tuple as sample and calculate
+            // number of tuples to be skipped 
+            Tuple t = loader.getNext();
+            if(t == null)
+                return createNumRowTuple(null);
+            long availRedMem = (long) (Runtime.getRuntime().maxMemory() * heapPerc);
+            memToSkipPerSample = availRedMem/sampleRate;
+            updateSkipInterval(t);
+
+            rowNum++;
+            newSample = t;
+        }
+
+        // skip tuples
+        for(long numSkipped  = 0; numSkipped < skipInterval; numSkipped++){
+            if(!skipNext()){
+                return createNumRowTuple(newSample);
+            }
+            rowNum++;
+        }
+
+        // skipped enough, get new sample
+        Tuple t = loader.getNext();
+        if(t == null)
+            return createNumRowTuple(newSample);
+        updateSkipInterval(t);
+        rowNum++;
+        Tuple currentSample = newSample;
+        newSample = t;
+        return currentSample;
+    }
+
+    /**
+     * Update the average tuple size base on newly sampled tuple t
+     * and recalculate skipInterval
+     * @param t - tuple
+     */
+    private void updateSkipInterval(Tuple t) {
+        avgTupleMemSz = 
+            ((avgTupleMemSz*numRowsSampled) + t.getMemorySize())/(numRowsSampled + 1);
+        skipInterval = memToSkipPerSample/avgTupleMemSz;
+        
+            // skipping fewer number of rows the first few times, to reduce 
+            // the probability of first tuples size (if much smaller than rest) 
+        // resulting in 
+            // very few samples being sampled. Sampling a little extra is OK
+        if(numRowsSampled < 5)
+            skipInterval = skipInterval/(10-numRowsSampled);
+        ++numRowsSampled;
+
+    }
+
+    /**
+     * @param sample - sample tuple
+     * @return - Tuple appended with special marker string column, num-rows column
+     * @throws ExecException
+     */
+    private Tuple createNumRowTuple(Tuple sample) throws ExecException {
+        if(rowNum == 0 || sample == null)
+            return null;
+        TupleFactory factory = TupleFactory.getInstance();
+        Tuple t = factory.newTuple(sample.size() + 2);
+        for(int i=0; i<sample.size(); i++){
+            t.set(i, sample.get(i));
+        }
+        t.set(sample.size(), NUMROWS_TUPLE_MARKER);
+        t.set(sample.size() + 1, rowNum);
+        numRowSplTupleReturned = true;
+        return t;
+    }
+
+    /**
+     * Computes the number of samples for the loader
+     * 
+     * @param inputs : Set to pig inputs
+     * @param pc : PigContext object
+     * 
+     */
+    @Override
+    public void computeSamples(ArrayList<Pair<FileSpec, Boolean>> inputs, 
+            PigContext pc) throws ExecException {
+        Properties pcProps = pc.getProperties();
+
+        // % of memory available for the records
+        heapPerc = PartitionSkewedKeys.DEFAULT_PERCENT_MEMUSAGE;
         if (pcProps.getProperty(PERC_MEM_AVAIL) != null) {
             try {
                 heapPerc = Float.valueOf(pcProps.getProperty(PERC_MEM_AVAIL));
-            } catch (NumberFormatException e) {
+            }catch(NumberFormatException e) {
                 // ignore, use default value
             }
         }
 
-        // We are concerned with the size of the first input. In case of globs / directories, 
-        // this size is the total size of all the files present in them
-        Properties p = UDFContext.getUDFContext().getUDFProperties(SampleLoader.class);
-        Long iSize = Long.valueOf((String) p.get("pig.input.0.size"));
+        try {
+            sampleRate = Integer.valueOf(pcProps.getProperty(SAMPLE_RATE));
+        } catch (NumberFormatException e) {
+            sampleRate = DEFAULT_SAMPLE_RATE;
+        }
 
-        // calculate the base number of samples
-		try {
-		    float f = (Runtime.getRuntime().maxMemory() * heapPerc) / (float) (iSize * convFactor);
-			baseNumSamples = (long) Math.ceil(1.0 / f);
-		} catch (ArithmeticException e) {
-			int errCode = 1105;
-			String msg = "Heap percentage / Conversion factor cannot be set to 0";
-			throw new ExecException(msg,errCode,PigException.INPUT);
-		}
-		
-		// set the number of samples
-		int n = (int) ((baseNumSamples * sampleRate) / numSplits);
-		
-		// set the minimum number of samples to 1
-		n = (n > 1) ? n : 1;
-		setNumSamples(n);
-
-	}
-	
-	@Override
-	public LoadFunc.RequiredFieldResponse fieldsToRead(RequiredFieldList requiredFields) throws FrontendException {
-        return new LoadFunc.RequiredFieldResponse(false);
     }
 
 }

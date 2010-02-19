@@ -17,55 +17,68 @@
  */
 package org.apache.pig.test;
 
-import java.util.*;
-
-import org.apache.pig.ExecType;
-
-import java.io.File;
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Random;
 
 import junit.framework.Assert;
-import org.apache.pig.impl.plan.OperatorKey;
 
-import org.apache.pig.FuncSpec;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.Text;
+import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.mapreduce.OutputFormat;
+import org.apache.hadoop.mapreduce.RecordWriter;
+import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
+import org.apache.pig.ExecType;
+import org.apache.pig.PigException;
+import org.apache.pig.PigServer;
+import org.apache.pig.ResourceSchema;
+import org.apache.pig.ResourceStatistics;
+import org.apache.pig.StoreFunc;
+import org.apache.pig.StoreMetadata;
+import org.apache.pig.backend.datastorage.DataStorage;
+import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MapReduceLauncher;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POProject;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
+import org.apache.pig.builtin.BinStorage;
 import org.apache.pig.builtin.PigStorage;
-import org.apache.pig.data.DefaultBagFactory;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
+import org.apache.pig.data.DefaultBagFactory;
 import org.apache.pig.data.DefaultTuple;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
-import org.apache.pig.PigServer;
-import org.apache.pig.impl.io.FileLocalizer;
-import org.apache.pig.impl.io.FileSpec;
-import org.apache.pig.pen.physicalOperators.POCounter;
-import org.apache.pig.backend.executionengine.ExecException;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POProject;
-import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MapReduceLauncher;
-import org.apache.pig.test.utils.GenPhyOp;
-import org.apache.pig.test.utils.GenRandomData;
-import org.apache.pig.test.utils.TestHelper;
-import org.apache.pig.tools.pigstats.PigStats;
 import org.apache.pig.impl.logicalLayer.LOStore;
 import org.apache.pig.impl.logicalLayer.LogicalOperator;
 import org.apache.pig.impl.logicalLayer.LogicalPlan;
 import org.apache.pig.impl.logicalLayer.LogicalPlanBuilder;
-import org.apache.pig.backend.datastorage.DataStorage;
+import org.apache.pig.impl.logicalLayer.parser.ParseException;
+import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.impl.logicalLayer.validators.InputOutputFileVisitor;
+import org.apache.pig.impl.plan.CompilationMessageCollector;
+import org.apache.pig.impl.plan.OperatorKey;
+import org.apache.pig.impl.plan.PlanValidationException;
+import org.apache.pig.pen.physicalOperators.POCounter;
+import org.apache.pig.test.utils.GenRandomData;
+import org.apache.pig.test.utils.LogicalPlanTester;
+import org.apache.pig.test.utils.TestHelper;
+import org.apache.pig.tools.pigstats.PigStats;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
 public class TestStore extends junit.framework.TestCase {
     POStore st;
-    FileSpec fSpec;
     DataBag inpDB;
     static MiniCluster cluster = MiniCluster.buildCluster();
     PigContext pc;
@@ -75,34 +88,17 @@ public class TestStore extends junit.framework.TestCase {
         
     String inputFileName;
     String outputFileName;
-
+        
+    @Override
     @Before
     public void setUp() throws Exception {
         pig = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
         pc = pig.getPigContext();
         inputFileName = "/tmp/TestStore-" + new Random().nextLong() + ".txt";
         outputFileName = "/tmp/TestStore-output-" + new Random().nextLong() + ".txt";
-        /*
-        st = GenPhyOp.topStoreOp();
-        pcount = new POCounter(new OperatorKey("", (new Random()).nextLong()));
-        fSpec = new FileSpec("file:/tmp/storeTest.txt",
-                      new FuncSpec(PigStorage.class.getName(), new String[]{":"}));
-        st.setSFile(fSpec);
-
-        FileLocalizer.deleteTempFiles();
-        pig = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
-        pc = pig.getPigContext();
-
-        //st.setStoreImpl(new LocalPOStoreImpl(pc));
-        
-        proj = GenPhyOp.exprProject();
-        proj.setColumn(0);
-        proj.setResultType(DataType.TUPLE);
-        proj.setOverloaded(true);
-        List<PhysicalOperator> inps = new ArrayList<PhysicalOperator>();
-        */
     }
 
+    @Override
     @After
     public void tearDown() throws Exception {
         Util.deleteFile(cluster, inputFileName);
@@ -118,39 +114,7 @@ public class TestStore extends junit.framework.TestCase {
         pig.setBatchOn();
         Util.registerMultiLineQuery(pig, script);
         pig.executeBatch();
-        Util.copyFromClusterToLocal(cluster, outputFileName + "/part-00000", outputFileName);
-    }
-
-    private void setUpInputFileOnCluster(DataBag inpD) throws IOException {
-        String[] data = new String[(int) inpD.size()];
-        int i = 0;
-        for (Tuple tuple : inpD) {
-            data[i] = toDelimitedString(tuple, "\t");
-            i++;
-        } 
-        Util.createInputFile(cluster, inputFileName, data);
-    }
-
-    @SuppressWarnings("unchecked")
-    private String toDelimitedString(Tuple t, String delim) throws ExecException {
-        StringBuilder buf = new StringBuilder();
-        for (int i = 0; i < t.size(); i++) {
-            Object field = t.get(i);
-            if(field == null) {
-                buf.append("");
-            } else {
-                if(field instanceof Map) {
-                    Map<String, Object> m = (Map<String, Object>)field;
-                    buf.append(DataType.mapToString(m));
-                } else {
-                    buf.append(field.toString());
-                }
-            }
-                                                                                                                                    
-            if (i != t.size() - 1)
-                buf.append(delim);
-        }
-        return buf.toString();
+        Util.copyFromClusterToLocal(cluster, outputFileName + "/part-m-00000", outputFileName);
     }
 
     private PigStats store() throws Exception {
@@ -166,10 +130,60 @@ public class TestStore extends junit.framework.TestCase {
     }
 
     @Test
+    public void testValidation() throws Exception{
+        
+        String outputFileName = "test-output.txt";
+        try {
+            LogicalPlanTester lpt = new LogicalPlanTester();
+            lpt.buildPlan("a = load '" + inputFileName + "' as (c:chararray, " +
+                    "i:int,d:double);");
+            LogicalPlan lp = lpt.buildPlan("store a into '" + outputFileName + "' using " +
+                    "PigStorage();");
+            InputOutputFileVisitor visitor = new InputOutputFileVisitor(lp, null, pig.getPigContext());
+            visitor.visit();
+        } catch (PlanValidationException e){
+                // Since output file is not present, validation should pass
+                // and not throw this exception.
+                fail("Store validation test failed.");                
+        } finally {
+            Util.deleteFile(pig.getPigContext(), outputFileName);
+        }
+    }
+    
+    @Test
+    public void testValidationFailure() throws Exception{
+        
+        String input[] = new String[] { "some data" };
+        String outputFileName = "test-output.txt";
+        boolean sawException = false;
+        try {
+            Util.createInputFile(pig.getPigContext(),outputFileName, input);
+            LogicalPlanTester lpt = new LogicalPlanTester(pig.getPigContext());
+            lpt.buildPlan("a = load '" + inputFileName + "' as (c:chararray, " +
+                    "i:int,d:double);");
+            LogicalPlan lp = lpt.buildPlan("store a into '" + outputFileName + 
+                    "' using PigStorage();");
+            InputOutputFileVisitor visitor = new InputOutputFileVisitor(lp, 
+                    new CompilationMessageCollector(), pig.getPigContext());
+            visitor.visit();
+        } catch (PlanValidationException pve){
+            // Since output file is present, validation should fail
+            // and throw this exception 
+            assertEquals(6000,pve.getErrorCode());
+            assertEquals(PigException.REMOTE_ENVIRONMENT, pve.getErrorSource());
+            assertTrue(pve.getCause() instanceof IOException);
+            sawException = true;
+        } finally {
+            assertTrue(sawException);
+            Util.deleteFile(pig.getPigContext(), outputFileName);
+        }
+    }
+    
+    @Test
     public void testStore() throws Exception {
         inpDB = GenRandomData.genRandSmallTupDataBag(new Random(), 10, 100);
         storeAndCopyLocally(inpDB);
-
+        
         int size = 0;
         BufferedReader br = new BufferedReader(new FileReader(outputFileName));
         for(String line=br.readLine();line!=null;line=br.readLine()){
@@ -188,27 +202,61 @@ public class TestStore extends junit.framework.TestCase {
         assertEquals(true, size==inpDB.size());
     }
 
+    /**
+     * @param inpD
+     * @throws IOException 
+     */
+    private void setUpInputFileOnCluster(DataBag inpD) throws IOException {
+        String[] data = new String[(int) inpD.size()];
+        int i = 0;
+        for (Tuple tuple : inpD) {
+            data[i] = toDelimitedString(tuple, "\t");
+            i++;
+        } 
+        Util.createInputFile(cluster, inputFileName, data);
+    }
+    
+    @SuppressWarnings("unchecked")
+    private String toDelimitedString(Tuple t, String delim) throws ExecException {
+        StringBuilder buf = new StringBuilder();
+        for (int i = 0; i < t.size(); i++) {
+            Object field = t.get(i);
+            if(field == null) {
+                buf.append("");
+            } else {
+                if(field instanceof Map) {
+                    Map<String, Object> m = (Map<String, Object>)field;
+                    buf.append(DataType.mapToString(m));
+                } else {
+                    buf.append(field.toString());
+                }
+            }
+            
+            if (i != t.size() - 1)
+                buf.append(delim);
+        }
+        return buf.toString();
+    }
+
     @Test
     public void testStoreComplexData() throws Exception {
         inpDB = GenRandomData.genRandFullTupTextDataBag(new Random(), 10, 100);
         storeAndCopyLocally(inpDB);
         PigStorage ps = new PigStorage(":");
-
         int size = 0;
         BufferedReader br = new BufferedReader(new FileReader(outputFileName));
         for(String line=br.readLine();line!=null;line=br.readLine()){
             String[] flds = line.split(":",-1);
             Tuple t = new DefaultTuple();
-            t.append(flds[0].compareTo("")!=0 ? ps.bytesToBag(flds[0].getBytes()) : null);
-            t.append(flds[1].compareTo("")!=0 ? ps.bytesToCharArray(flds[1].getBytes()) : null);
-            t.append(flds[2].compareTo("")!=0 ? ps.bytesToCharArray(flds[2].getBytes()) : null);
-            t.append(flds[3].compareTo("")!=0 ? ps.bytesToDouble(flds[3].getBytes()) : null);
-            t.append(flds[4].compareTo("")!=0 ? ps.bytesToFloat(flds[4].getBytes()) : null);
-            t.append(flds[5].compareTo("")!=0 ? ps.bytesToInteger(flds[5].getBytes()) : null);
-            t.append(flds[6].compareTo("")!=0 ? ps.bytesToLong(flds[6].getBytes()) : null);
-            t.append(flds[7].compareTo("")!=0 ? ps.bytesToMap(flds[7].getBytes()) : null);
-            t.append(flds[8].compareTo("")!=0 ? ps.bytesToTuple(flds[8].getBytes()) : null);
-            
+            t.append(flds[0].compareTo("")!=0 ? ps.getLoadCaster().bytesToBag(flds[0].getBytes()) : null);
+            t.append(flds[1].compareTo("")!=0 ? ps.getLoadCaster().bytesToCharArray(flds[1].getBytes()) : null);
+            t.append(flds[2].compareTo("")!=0 ? ps.getLoadCaster().bytesToCharArray(flds[2].getBytes()) : null);
+            t.append(flds[3].compareTo("")!=0 ? ps.getLoadCaster().bytesToDouble(flds[3].getBytes()) : null);
+            t.append(flds[4].compareTo("")!=0 ? ps.getLoadCaster().bytesToFloat(flds[4].getBytes()) : null);
+            t.append(flds[5].compareTo("")!=0 ? ps.getLoadCaster().bytesToInteger(flds[5].getBytes()) : null);
+            t.append(flds[6].compareTo("")!=0 ? ps.getLoadCaster().bytesToLong(flds[6].getBytes()) : null);
+            t.append(flds[7].compareTo("")!=0 ? ps.getLoadCaster().bytesToMap(flds[7].getBytes()) : null);
+            t.append(flds[8].compareTo("")!=0 ? ps.getLoadCaster().bytesToTuple(flds[8].getBytes()) : null);
             assertEquals(true, TestHelper.bagContains(inpDB, t));
             ++size;
         }
@@ -221,9 +269,7 @@ public class TestStore extends junit.framework.TestCase {
         inpDB = DefaultBagFactory.getInstance().newDefaultBag();
         inpDB.add(inputTuple);
         storeAndCopyLocally(inpDB);
-
         PigStorage ps = new PigStorage(":");
-        
         int size = 0;
         BufferedReader br = new BufferedReader(new FileReader(outputFileName));
         for(String line=br.readLine();line!=null;line=br.readLine()){
@@ -231,22 +277,55 @@ public class TestStore extends junit.framework.TestCase {
             System.err.println(line);
             String[] flds = line.split(":",-1);
             Tuple t = new DefaultTuple();
-            t.append(flds[0].compareTo("")!=0 ? ps.bytesToBag(flds[0].getBytes()) : null);
-            t.append(flds[1].compareTo("")!=0 ? ps.bytesToCharArray(flds[1].getBytes()) : null);
-            t.append(flds[2].compareTo("")!=0 ? ps.bytesToCharArray(flds[2].getBytes()) : null);
-            t.append(flds[3].compareTo("")!=0 ? ps.bytesToDouble(flds[3].getBytes()) : null);
-            t.append(flds[4].compareTo("")!=0 ? ps.bytesToFloat(flds[4].getBytes()) : null);
-            t.append(flds[5].compareTo("")!=0 ? ps.bytesToInteger(flds[5].getBytes()) : null);
-            t.append(flds[6].compareTo("")!=0 ? ps.bytesToLong(flds[6].getBytes()) : null);
-            t.append(flds[7].compareTo("")!=0 ? ps.bytesToMap(flds[7].getBytes()) : null);
-            t.append(flds[8].compareTo("")!=0 ? ps.bytesToTuple(flds[8].getBytes()) : null);
-            t.append(flds[9].compareTo("")!=0 ? ps.bytesToCharArray(flds[9].getBytes()) : null);
-            
+            t.append(flds[0].compareTo("")!=0 ? ps.getLoadCaster().bytesToBag(flds[0].getBytes()) : null);
+            t.append(flds[1].compareTo("")!=0 ? ps.getLoadCaster().bytesToCharArray(flds[1].getBytes()) : null);
+            t.append(flds[2].compareTo("")!=0 ? ps.getLoadCaster().bytesToCharArray(flds[2].getBytes()) : null);
+            t.append(flds[3].compareTo("")!=0 ? ps.getLoadCaster().bytesToDouble(flds[3].getBytes()) : null);
+            t.append(flds[4].compareTo("")!=0 ? ps.getLoadCaster().bytesToFloat(flds[4].getBytes()) : null);
+            t.append(flds[5].compareTo("")!=0 ? ps.getLoadCaster().bytesToInteger(flds[5].getBytes()) : null);
+            t.append(flds[6].compareTo("")!=0 ? ps.getLoadCaster().bytesToLong(flds[6].getBytes()) : null);
+            t.append(flds[7].compareTo("")!=0 ? ps.getLoadCaster().bytesToMap(flds[7].getBytes()) : null);
+            t.append(flds[8].compareTo("")!=0 ? ps.getLoadCaster().bytesToTuple(flds[8].getBytes()) : null);
+            t.append(flds[9].compareTo("")!=0 ? ps.getLoadCaster().bytesToCharArray(flds[9].getBytes()) : null);
             assertTrue(TestHelper.tupleEquals(inputTuple, t));
             ++size;
         }
     }
+    @Test
+    public void testBinStorageGetSchema() throws IOException, ParseException {
+        String input[] = new String[] { "hello\t1\t10.1", "bye\t2\t20.2" };
+        String inputFileName = "testGetSchema-input.txt";
+        String outputFileName = "testGetSchema-output.txt";
+        try {
+            Util.createInputFile(pig.getPigContext(), 
+                    inputFileName, input);
+            String query = "a = load '" + inputFileName + "' as (c:chararray, " +
+                    "i:int,d:double);store a into '" + outputFileName + "' using " +
+                            "BinStorage();";
+            pig.setBatchOn();
+            Util.registerMultiLineQuery(pig, query);
+            pig.executeBatch();
+            ResourceSchema rs = new BinStorage().getSchema(outputFileName, 
+                    ConfigurationUtil.toConfiguration(pig.getPigContext().
+                            getProperties()));
+            Schema expectedSchema = Util.getSchemaFromString(
+                    "c:chararray,i:int,d:double");
+            Assert.assertTrue("Checking binstorage getSchema output", Schema.equals( 
+                    expectedSchema, Schema.getPigSchema(rs), true, true));
+        } finally {
+            Util.deleteFile(pig.getPigContext(), inputFileName);
+            Util.deleteFile(pig.getPigContext(), outputFileName);
+        }
+    }
 
+    private static void randomizeBytes(byte[] data, int offset, int length) {
+        Random random = new Random();
+        for(int i=offset + length - 1; i >= offset; --i) {
+            data[i] = (byte) random.nextInt(256);
+        }
+    }
+
+    
     @Test
     public void testStoreRemoteRel() throws Exception {
         checkStorePath("test","/tmp/test");
@@ -277,6 +356,109 @@ public class TestStore extends junit.framework.TestCase {
         checkStorePath("/tmp/foo/../././","/tmp");
     }
 
+    @Test
+    public void testSetStoreSchema() throws Exception {
+        PigServer ps = null;
+        String storeSchemaOutputFile = outputFileName + "_storeSchema_test";
+        try {
+            ExecType[] modes = new ExecType[] { ExecType.MAPREDUCE, ExecType.LOCAL};
+            String[] inputData = new String[]{"hello\tworld", "bye\tworld"};
+            
+            String script = "a = load '"+ inputFileName + "';" +
+            		"store a into '" + outputFileName + "' using " + 
+            		DummyStore.class.getName() + "();";
+            
+            for (ExecType execType : modes) {
+                if(execType == ExecType.MAPREDUCE) {
+                    ps = new PigServer(ExecType.MAPREDUCE, 
+                            cluster.getProperties());
+                    Util.deleteFile(ps.getPigContext(), inputFileName);
+                    Util.deleteFile(ps.getPigContext(), outputFileName);
+                    Util.deleteFile(ps.getPigContext(), storeSchemaOutputFile);
+                } else {
+                    ps = new PigServer(ExecType.LOCAL);
+                    Util.deleteFile(ps.getPigContext(), inputFileName);
+                    Util.deleteFile(ps.getPigContext(), outputFileName);
+                    Util.deleteFile(ps.getPigContext(), storeSchemaOutputFile);
+                }
+                ps.setBatchOn();
+                Util.createInputFile(ps.getPigContext(), 
+                        inputFileName, inputData);
+                Util.registerMultiLineQuery(ps, script);
+                ps.executeBatch();
+                assertEquals(
+                        "Checking if file indicating that storeSchema was " +
+                        "called exists in " + execType + " mode", true, 
+                        Util.exists(ps.getPigContext(), storeSchemaOutputFile));
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            Assert.fail("Exception encountered - hence failing:" + e);
+        } finally {
+            Util.deleteFile(ps.getPigContext(), inputFileName);
+            Util.deleteFile(ps.getPigContext(), outputFileName);
+            Util.deleteFile(ps.getPigContext(), storeSchemaOutputFile);
+        }
+    }
+    
+    public static class DummyStore implements StoreFunc, StoreMetadata{
+
+        @Override
+        public void checkSchema(ResourceSchema s) throws IOException {
+            
+        }
+
+        @Override
+        public OutputFormat getOutputFormat() throws IOException {
+            // we don't really write in the test - so this is just to keep
+            // Pig/hadoop happy
+            return new TextOutputFormat<Long, Text>();
+        }
+
+        @Override
+        public void prepareToWrite(RecordWriter writer) throws IOException {
+            
+        }
+
+        @Override
+        public void putNext(Tuple t) throws IOException {
+            // we don't really write anything out            
+        }
+
+        @Override
+        public String relToAbsPathForStoreLocation(String location, Path curDir)
+                throws IOException {
+            return location;
+        }
+
+        @Override
+        public void setStoreFuncUDFContextSignature(String signature) {
+            
+        }
+
+        @Override
+        public void setStoreLocation(String location, Job job)
+                throws IOException {
+            FileOutputFormat.setOutputPath(job, new Path(location));
+        }
+
+        @Override
+        public void storeSchema(ResourceSchema schema, String location,
+                Configuration conf) throws IOException {
+            FileSystem fs = FileSystem.get(conf);
+            // create a file to test that this method got called - if it gets called
+            // multiple times, the create will throw an Exception
+            fs.create(
+                    new Path(conf.get("mapred.output.dir") + "_storeSchema_test"),
+                    false);
+        }
+
+        @Override
+        public void storeStatistics(ResourceStatistics stats, String location,
+                Configuration conf) throws IOException {
+        }
+    }
+    
     private void checkStorePath(String orig, String expected) throws Exception {
         checkStorePath(orig, expected, false);
     }

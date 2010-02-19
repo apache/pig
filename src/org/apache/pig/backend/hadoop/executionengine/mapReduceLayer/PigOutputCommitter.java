@@ -19,123 +19,285 @@ package org.apache.pig.backend.hadoop.executionengine.mapReduceLayer;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.mapred.FileOutputCommitter;
-import org.apache.hadoop.mapred.JobConf;
-import org.apache.hadoop.mapred.JobContext;
-import org.apache.pig.CommittableStoreFunc;
-import org.apache.pig.StoreConfig;
+import org.apache.hadoop.mapreduce.JobContext;
+import org.apache.hadoop.mapreduce.OutputCommitter;
+import org.apache.hadoop.mapreduce.TaskAttemptContext;
+import org.apache.pig.ResourceSchema;
 import org.apache.pig.StoreFunc;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
+import org.apache.pig.StoreMetadata;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.util.PlanHelper;
 import org.apache.pig.backend.hadoop.executionengine.util.MapRedUtil;
 import org.apache.pig.impl.PigContext;
+import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.util.ObjectSerializer;
+import org.apache.pig.impl.util.Pair;
 
 /**
  * A specialization of the default FileOutputCommitter to allow
- * pig to call commit() on the StoreFunc's associated with the stores
- * in a job IF the StoreFunc's are CommittableStoreFunc's
+ * pig to inturn delegate calls to the OutputCommiter(s) of the 
+ * StoreFunc(s)' OutputFormat(s).
  */
-@SuppressWarnings("deprecation")
-public class PigOutputCommitter extends FileOutputCommitter {
+public class PigOutputCommitter extends OutputCommitter {
+    
+    /**
+     * OutputCommitter(s) of Store(s) in the map
+     */
+    List<Pair<OutputCommitter, POStore>> mapOutputCommitters;
+    
+    /**
+     * OutputCommitter(s) of Store(s) in the reduce
+     */
+    List<Pair<OutputCommitter, POStore>> reduceOutputCommitters;
+    
+    /**
+     * Store(s) in the map
+     */
+    List<POStore> mapStores;
+    
+    /**
+     * Store(s) in the reduce
+     */
+    List<POStore> reduceStores;
+    
+    /**
+     * @param context
+     * @throws IOException
+     */
+    public PigOutputCommitter(TaskAttemptContext context)
+            throws IOException {
+        // create and store the map and reduce output committers
+        mapOutputCommitters = getCommitters(context, 
+                JobControlCompiler.PIG_MAP_STORES);
+        reduceOutputCommitters = getCommitters(context, 
+                JobControlCompiler.PIG_REDUCE_STORES);
+        
+    }
+
+    /**
+     * @param conf
+     * @param storeLookupKey
+     * @return
+     * @throws IOException 
+     */
+    @SuppressWarnings("unchecked")
+    private List<Pair<OutputCommitter, POStore>> getCommitters(
+            TaskAttemptContext context,
+            String storeLookupKey) throws IOException {
+        Configuration conf = context.getConfiguration();
+        
+        // if there is a udf in the plan we would need to know the import
+        // path so we can instantiate the udf. This is required because
+        // we will be deserializing the POStores out of the plan in the next
+        // line below. The POStore inturn has a member reference to the Physical
+        // plan it is part of - so the deserialization goes deep and while
+        // deserializing the plan, the udf.import.list may be needed.
+        PigContext.setPackageImportList((ArrayList<String>)ObjectSerializer.
+                deserialize(conf.get("udf.import.list")));
+        LinkedList<POStore> stores = (LinkedList<POStore>) ObjectSerializer.
+        deserialize(conf.get(storeLookupKey));
+        List<Pair<OutputCommitter, POStore>> committers = 
+            new ArrayList<Pair<OutputCommitter,POStore>>();
+        for (POStore store : stores) {
+            StoreFunc sFunc = store.getStoreFunc();
+            
+            TaskAttemptContext updatedContext = setUpContext(context, store);
+            try {
+                committers.add(new Pair<OutputCommitter, POStore>(
+                        sFunc.getOutputFormat().getOutputCommitter(
+                                updatedContext), store));
+            } catch (InterruptedException e) {
+                throw new IOException(e);
+            }
+        }
+        return committers;
+        
+    }
+    
+    private TaskAttemptContext setUpContext(TaskAttemptContext context, 
+            POStore store) throws IOException {
+        // Setup UDFContext so StoreFunc can make use of it
+        MapRedUtil.setupUDFContext(context.getConfiguration());
+        // make a copy of the context so that the actions after this call
+        // do not end up updating the same context
+        TaskAttemptContext contextCopy = new TaskAttemptContext(
+                context.getConfiguration(), context.getTaskAttemptID());
+        
+        // call setLocation() on the storeFunc so that if there are any
+        // side effects like setting map.output.dir on the Configuration
+        // in the Context are needed by the OutputCommitter, those actions
+        // will be done before the committer is created. Also the String 
+        // version of StoreFunc for the specific store need
+        // to be set up in the context in case the committer needs them
+        PigOutputFormat.setLocation(contextCopy, store);
+        return contextCopy;   
+    }
+    
+    static JobContext setUpContext(JobContext context, 
+            POStore store) throws IOException {
+        // make a copy of the context so that the actions after this call
+        // do not end up updating the same context
+        JobContext contextCopy = new JobContext(
+                context.getConfiguration(), context.getJobID());
+        
+        // call setLocation() on the storeFunc so that if there are any
+        // side effects like setting map.output.dir on the Configuration
+        // in the Context are needed by the OutputCommitter, those actions
+        // will be done before the committer is created. Also the String 
+        // version of StoreFunc for the specific store need
+        // to be set up in the context in case the committer needs them
+        PigOutputFormat.setLocation(contextCopy, store);
+        return contextCopy;   
+    }
+
+    static void storeCleanup(POStore store, Configuration conf)
+            throws IOException {
+        StoreFunc storeFunc = store.getStoreFunc();
+        if (storeFunc instanceof StoreMetadata) {
+            Schema schema = store.getSchema();
+            if (schema != null) {
+                ((StoreMetadata) storeFunc).storeSchema(
+                        new ResourceSchema(schema, store.getSortInfo()), store.getSFile()
+                                .getFileName(), conf);
+            }
+        }
+    }
     
     /* (non-Javadoc)
      * @see org.apache.hadoop.mapred.FileOutputCommitter#cleanupJob(org.apache.hadoop.mapred.JobContext)
      */
-    @SuppressWarnings({ "unchecked", "deprecation" })
     @Override
     public void cleanupJob(JobContext context) throws IOException {
-        Configuration conf = context.getConfiguration();
-        // the following is needed to correctly deserialize udfs in
-        // the map and reduce plans below
-        PigContext.setPackageImportList((ArrayList<String>)ObjectSerializer.
-                deserialize(conf.get("udf.import.list")));
-        super.cleanupJob(context);
-        
-        
-        // call commit() on the StoreFunc's associated with the stores
-        // in the job IF the StoreFunc's are CommittableStoreFunc's
-        // look for storeFuncs in the conf - there are two cases
-        // 1) Job with single store - in this case, there would be storefunc
-        // stored in the conf which we can use
-        // 2) Multi store case - in this case, there is no single storefunc
-        // in the conf - instead we would need to look at the
-        // map and reduce plans and get the POStores out of it and then get hold
-        // of the respective StoreFuncs
-        String sFuncString = conf.get("pig.storeFunc");
-        PhysicalPlan mp = (PhysicalPlan) ObjectSerializer.deserialize(
-                    conf.get("pig.mapPlan"));
-        List<POStore> mapStores = PlanHelper.getStores(mp);
-        PhysicalPlan rp = (PhysicalPlan) ObjectSerializer.deserialize(
-                    conf.get("pig.reducePlan"));
-        List<POStore> reduceStores = new ArrayList<POStore>();
-        if(rp != null) {
-            reduceStores = PlanHelper.getStores(rp);    
+        // call clean up on all map and reduce committers
+        for (Pair<OutputCommitter, POStore> mapCommitter : mapOutputCommitters) {            
+            JobContext updatedContext = setUpContext(context, 
+                    mapCommitter.second);
+            storeCleanup(mapCommitter.second, updatedContext.getConfiguration());
+            mapCommitter.first.cleanupJob(updatedContext);
         }
-        // In single store case, we would have removed the store from the
-        // plan in JobControlCompiler
-        if(sFuncString != null && (mapStores.size() + reduceStores.size() == 0)) {
-            // single store case
-            StoreFunc sFunc = MapRedUtil.getStoreFunc(new JobConf(conf));
-            commit(sFunc, conf, conf.get(JobControlCompiler.PIG_STORE_CONFIG),
-                    sFuncString);
-        } else {
-            // multi store case
-            commitStores(mapStores, conf);
-            commitStores(reduceStores, conf);
-            
+        for (Pair<OutputCommitter, POStore> reduceCommitter : 
+            reduceOutputCommitters) {            
+            JobContext updatedContext = setUpContext(context, 
+                    reduceCommitter.second);
+            storeCleanup(reduceCommitter.second, updatedContext.getConfiguration());
+            reduceCommitter.first.cleanupJob(updatedContext);
         }
+       
     }
 
-    private void commit(StoreFunc sFunc, Configuration conf,
-            StoreConfig storeConfig, String sFuncString) throws IOException {
-        if(sFunc != null && CommittableStoreFunc.class.isAssignableFrom(
-                sFunc.getClass())) {
-            CommittableStoreFunc csFunc = (CommittableStoreFunc)sFunc;
-            // make a copy of the conf since we may be committing multiple
-            // stores and set storeFunc and StoreConfig 
-            // pertaining to this store in the copy and use it
-            Configuration confCopy = new Configuration(conf);
-            confCopy.set("pig.storeFunc", ObjectSerializer.serialize(
-                    sFuncString));
-            confCopy.set(JobControlCompiler.PIG_STORE_CONFIG, 
-                    ObjectSerializer.serialize(storeConfig));
-            
-            csFunc.commit(confCopy);
+    /* (non-Javadoc)
+     * @see org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter#abortTask(org.apache.hadoop.mapreduce.TaskAttemptContext)
+     */
+    @Override
+    public void abortTask(TaskAttemptContext context) throws IOException {        
+        if(context.getTaskAttemptID().isMap()) {
+            for (Pair<OutputCommitter, POStore> mapCommitter : 
+                mapOutputCommitters) {
+                TaskAttemptContext updatedContext = setUpContext(context, 
+                        mapCommitter.second);
+                mapCommitter.first.abortTask(updatedContext);
+            } 
+        } else {
+            for (Pair<OutputCommitter, POStore> reduceCommitter : 
+                reduceOutputCommitters) {
+                TaskAttemptContext updatedContext = setUpContext(context, 
+                        reduceCommitter.second);
+                reduceCommitter.first.abortTask(updatedContext);
+            } 
         }
     }
     
-    private void commit(StoreFunc sFunc, Configuration conf,
-            String storeConfigSerializedString, String sFuncString) throws IOException {
-        if(sFunc != null && CommittableStoreFunc.class.isAssignableFrom(
-                sFunc.getClass())) {
-            CommittableStoreFunc csFunc = (CommittableStoreFunc)sFunc;
-            // make a copy of the conf since we may be committing multple
-            // sores and set storeFunc and StoreConfig 
-            // pertaining to this store in the copy and use it
-            Configuration confCopy = new Configuration(conf);
-            confCopy.set("pig.storeFunc", ObjectSerializer.serialize(
-                    sFuncString));
-            confCopy.set(JobControlCompiler.PIG_STORE_CONFIG, 
-                    storeConfigSerializedString);
-            
-            csFunc.commit(confCopy);
+    /* (non-Javadoc)
+     * @see org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter#commitTask(org.apache.hadoop.mapreduce.TaskAttemptContext)
+     */
+    @Override
+    public void commitTask(TaskAttemptContext context) throws IOException {
+        if(context.getTaskAttemptID().isMap()) {
+            for (Pair<OutputCommitter, POStore> mapCommitter : 
+                mapOutputCommitters) {
+                TaskAttemptContext updatedContext = setUpContext(context, 
+                        mapCommitter.second);
+                mapCommitter.first.commitTask(updatedContext);
+            } 
+        } else {
+            for (Pair<OutputCommitter, POStore> reduceCommitter : 
+                reduceOutputCommitters) {
+                TaskAttemptContext updatedContext = setUpContext(context, 
+                        reduceCommitter.second);
+                reduceCommitter.first.commitTask(updatedContext);
+            } 
         }
     }
     
-    private void commitStores(List<POStore> stores, Configuration conf)
-    throws IOException {
-        for (POStore store : stores) {
-            StoreFunc sFunc = (StoreFunc)PigContext.instantiateFuncFromSpec(
-                    store.getSFile().getFuncSpec());
-            StoreConfig storeConfig = new StoreConfig(store.getSFile().
-                    getFileName(), store.getSchema(), store.getSortInfo());
-            commit(sFunc, conf, storeConfig, 
-                    store.getSFile().getFuncSpec().toString());
+    /* (non-Javadoc)
+     * @see org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter#needsTaskCommit(org.apache.hadoop.mapreduce.TaskAttemptContext)
+     */
+    @Override
+    public boolean needsTaskCommit(TaskAttemptContext context)
+            throws IOException {
+        boolean needCommit = false;
+        if(context.getTaskAttemptID().isMap()) {
+            for (Pair<OutputCommitter, POStore> mapCommitter : 
+                mapOutputCommitters) {
+                TaskAttemptContext updatedContext = setUpContext(context, 
+                        mapCommitter.second);
+                needCommit = needCommit || 
+                mapCommitter.first.needsTaskCommit(updatedContext);
+            } 
+            return needCommit;
+        } else {
+            for (Pair<OutputCommitter, POStore> reduceCommitter : 
+                reduceOutputCommitters) {
+                TaskAttemptContext updatedContext = setUpContext(context, 
+                        reduceCommitter.second);
+                needCommit = needCommit || 
+                reduceCommitter.first.needsTaskCommit(updatedContext);
+            } 
+            return needCommit;
+        }
+    }
+    
+    /* (non-Javadoc)
+     * @see org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter#setupJob(org.apache.hadoop.mapreduce.JobContext)
+     */
+    @Override
+    public void setupJob(JobContext context) throws IOException {
+        // call set up on all map and reduce committers
+        for (Pair<OutputCommitter, POStore> mapCommitter : mapOutputCommitters) {
+            JobContext updatedContext = setUpContext(context, 
+                    mapCommitter.second);
+            mapCommitter.first.setupJob(updatedContext);
+        }
+        for (Pair<OutputCommitter, POStore> reduceCommitter : 
+            reduceOutputCommitters) {
+            JobContext updatedContext = setUpContext(context, 
+                    reduceCommitter.second);
+            reduceCommitter.first.setupJob(updatedContext);
+        }
+    }
+    
+    /* (non-Javadoc)
+     * @see org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter#setupTask(org.apache.hadoop.mapreduce.TaskAttemptContext)
+     */
+    @Override
+    public void setupTask(TaskAttemptContext context) throws IOException {
+        if(context.getTaskAttemptID().isMap()) {
+            for (Pair<OutputCommitter, POStore> mapCommitter : 
+                mapOutputCommitters) {
+                TaskAttemptContext updatedContext = setUpContext(context, 
+                        mapCommitter.second);
+                mapCommitter.first.setupTask(updatedContext);
+            } 
+        } else {
+            for (Pair<OutputCommitter, POStore> reduceCommitter : 
+                reduceOutputCommitters) {
+                TaskAttemptContext updatedContext = setUpContext(context, 
+                        reduceCommitter.second);
+                reduceCommitter.first.setupTask(updatedContext);
+            } 
         }
     }
 }

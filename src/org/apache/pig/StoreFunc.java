@@ -18,9 +18,13 @@
 package org.apache.pig;
 
 import java.io.IOException;
-import java.io.OutputStream;
 
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.mapreduce.OutputFormat;
+import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.impl.util.UDFContext;
 
 
 /**
@@ -31,50 +35,93 @@ import org.apache.pig.data.Tuple;
 */
 
 public interface StoreFunc {
-    
+
     /**
-     * Specifies the OutputStream to write to. This will be called before
-     * store(Tuple) is invoked.
+     * This method is called by the Pig runtime in the front end to convert the
+     * output location to an absolute path if the location is relative. The
+     * StoreFunc implementation is free to choose how it converts a relative 
+     * location to an absolute location since this may depend on what the location
+     * string represent (hdfs path or some other data source). 
+     * The static method {@link LoadFunc#getAbsolutePath} provides a default 
+     * implementation for hdfs and hadoop local file system and it can be used
+     * to implement this method.  
      * 
-     * @param os The stream to write tuples to.
-     * @throws IOException
+     * @param location location as provided in the "store" statement of the script
+     * @param curDir the current working direction based on any "cd" statements
+     * in the script before the "store" statement. If there are no "cd" statements
+     * in the script, this would be the home directory - 
+     * <pre>/user/<username> </pre>
+     * @return the absolute location based on the arguments passed
+     * @throws IOException if the conversion is not possible
      */
-    public abstract void bindTo(OutputStream os) throws IOException;
+    String relToAbsPathForStoreLocation(String location, Path curDir) throws IOException;
+
+    /**
+     * Return the OutputFormat associated with StoreFunc.  This will be called
+     * on the front end during planning and not on the backend during
+     * execution. 
+     * @return the {@link OutputFormat} associated with StoreFunc
+     * @throws IOException if an exception occurs while constructing the 
+     * OutputFormat
+     *
+     */
+    OutputFormat getOutputFormat() throws IOException;
+
+    /**
+     * Communicate to the store function the location used in Pig Latin to refer 
+     * to the object(s) being stored.  That is, if the PL script is
+     * <b>store A into 'bla'</b>
+     * then 'bla' is the location.  This location should be either a file name
+     * or a URI.  If it does not have a URI scheme Pig will assume it is a 
+     * filename.  
+     * This method will be called in the frontend and backend multiple times. Implementations
+     * should bear in mind that this method is called multiple times and should
+     * ensure there are no inconsistent side effects due to the multiple calls.
+     * 
+
+     * @param location Location indicated in store statement.
+     * @param job The {@link Job} object
+     * @throws IOException if the location is not valid.
+     */
+    void setStoreLocation(String location, Job job) throws IOException;
+ 
+    /**
+     * Set the schema for data to be stored.  This will be called on the
+     * front end during planning if the store is associated with a schema.
+     * A Store function should implement this function to
+     * check that a given schema is acceptable to it.  For example, it
+     * can check that the correct partition keys are included;
+     * a storage function to be written directly to an OutputFormat can
+     * make sure the schema will translate in a well defined way.  
+     * @param s to be checked
+     * @throws IOException if this schema is not acceptable.  It should include
+     * a detailed error message indicating what is wrong with the schema.
+     */
+    void checkSchema(ResourceSchema s) throws IOException;
+
+    /**
+     * Initialize StoreFunc to write data.  This will be called during
+     * execution before the call to putNext.
+     * @param writer RecordWriter to use.
+     * @throws IOException if an exception occurs during initialization
+     */
+    void prepareToWrite(RecordWriter writer) throws IOException;
 
     /**
      * Write a tuple the output stream to which this instance was
      * previously bound.
      * 
-     * @param f the tuple to store.
-     * @throws IOException
+     * @param t the tuple to store.
+     * @throws IOException if an exception occurs during the write
      */
-    public abstract void putNext(Tuple f) throws IOException;
-
-    /**
-     * Do any kind of post processing because the last tuple has been
-     * stored. DO NOT CLOSE THE STREAM in this method. The stream will be
-     * closed later outside of this function.
-     * 
-     * @throws IOException
-     */
-    public abstract void finish() throws IOException;
+    void putNext(Tuple t) throws IOException;
     
     /**
-     * Specify a backend specific class to use to prepare for
-     * storing output.  In the Hadoop case, this can return an
-     * OutputFormat that will be used instead of PigOutputFormat.  The 
-     * framework will call this function and if a Class is returned
-     * that implements OutputFormat it will be used. For more details on how
-     * the OutputFormat should interact with Pig, see 
-     * {@link org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigOutputFormat#getRecordWriter(org.apache.hadoop.fs.FileSystem, org.apache.hadoop.mapred.JobConf, String, org.apache.hadoop.util.Progressable)}
-     * @return Backend specific class used to prepare for storing output.
-     * If the {@link StoreFunc} implementation does not have a class to prepare
-     * for storing output, it can return null and a default Pig implementation
-     * will be used to prepare for storing output.
-     * @throws IOException if the class does not implement the expected
-     * interface(s).
+     * This method will be called by Pig both in the front end and back end to
+     * pass a unique signature to the {@link StoreFunc} which it can use to store
+     * information in the {@link UDFContext} which it needs to store between
+     * various method invocations in the front end and back end. 
+     * @param signature a unique signature to identify this StoreFunc
      */
-    public Class getStorePreparationClass() throws IOException;
-
-    
+    public void setStoreFuncUDFContextSignature(String signature);
 }

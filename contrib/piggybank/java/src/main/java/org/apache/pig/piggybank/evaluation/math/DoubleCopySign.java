@@ -25,7 +25,6 @@ import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.data.DataType;
 import org.apache.pig.impl.logicalLayer.FrontendException;
-import org.apache.pig.impl.util.WrappedIOException;
 
 /**
  * math.copySign implements a binding to the Java function
@@ -73,7 +72,7 @@ public class DoubleCopySign extends EvalFunc<Double>{
 			double second = (Double)input.get(1);
 			return Math.copySign(first, second);
         } catch(Exception e){
-            throw WrappedIOException.wrap("Caught exception processing input row ", e);
+            throw new IOException("Caught exception processing input row ", e);
 		}
 	}
 	

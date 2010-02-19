@@ -17,31 +17,42 @@
  */
 package org.apache.pig.builtin;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.util.ArrayList;
-import java.util.Map;
-import java.util.Iterator;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Properties;
 
-import org.apache.commons.logging.LogFactory;
 import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
-import org.apache.pig.ExecType;
+import org.apache.hadoop.io.WritableComparable;
+import org.apache.hadoop.io.compress.BZip2Codec;
+import org.apache.hadoop.io.compress.GzipCodec;
+import org.apache.hadoop.mapreduce.InputFormat;
+import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.mapreduce.OutputFormat;
+import org.apache.hadoop.mapreduce.RecordReader;
+import org.apache.hadoop.mapreduce.RecordWriter;
+import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
+import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
+import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
+import org.apache.pig.FileInputLoadFunc;
 import org.apache.pig.LoadFunc;
+import org.apache.pig.LoadPushDown;
 import org.apache.pig.PigException;
-import org.apache.pig.SamplableLoader;
-import org.apache.pig.ReversibleLoadStoreFunc;
-import org.apache.pig.backend.datastorage.DataStorage;
+import org.apache.pig.ResourceSchema;
+import org.apache.pig.StoreFunc;
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigSplit;
 import org.apache.pig.data.DataByteArray;
-import org.apache.pig.data.DataBag;
-import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
-import org.apache.pig.impl.io.BufferedPositionedInputStream;
-import org.apache.pig.impl.io.PigLineRecordReader;
+import org.apache.pig.data.TupleFactory;
+import org.apache.pig.impl.util.StorageUtil;
 import org.apache.pig.impl.logicalLayer.FrontendException;
-import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.impl.util.UDFContext;
 
@@ -50,24 +61,24 @@ import org.apache.pig.impl.util.UDFContext;
  * delimiter is given as a regular expression. See String.split(delimiter) and
  * http://java.sun.com/j2se/1.5.0/docs/api/java/util/regex/Pattern.html for more information.
  */
-public class PigStorage extends Utf8StorageConverter
-        implements ReversibleLoadStoreFunc, SamplableLoader {
-    protected PigLineRecordReader in = null;
+public class PigStorage extends FileInputLoadFunc implements StoreFunc, 
+LoadPushDown {
+    protected RecordReader in = null;
+    protected RecordWriter writer = null;
     protected final Log mLog = LogFactory.getLog(getClass());
     private String signature;
         
-    long end = Long.MAX_VALUE;
-    protected byte recordDel = '\n';
-    protected byte fieldDel = '\t';
+    private byte fieldDel = '\t';
     private ArrayList<Object> mProtoTuple = null;
+    private TupleFactory mTupleFactory = TupleFactory.getInstance();
+    private static final int BUFFER_SIZE = 1024;
+    
+    public PigStorage() {
+    }
     
     private boolean[] mRequiredColumns = null;
     
     private boolean mRequiredColumnsInitialized = false;
-
-    protected static final String UTF8 = "UTF-8";
-    
-    public PigStorage() {}
 
     /**
      * Constructs a Pig loader that uses specified regex as a field delimiter.
@@ -78,51 +89,10 @@ public class PigStorage extends Utf8StorageConverter
      */
     public PigStorage(String delimiter) {
         this();
-        if (delimiter.length() == 1) {
-            this.fieldDel = (byte)delimiter.charAt(0);
-        } else if (delimiter.length() > 1 && delimiter.charAt(0) == '\\') {
-            switch (delimiter.charAt(1)) {
-            case 't':
-                this.fieldDel = (byte)'\t';
-                break;
-
-            case 'x':
-            case 'u':
-                this.fieldDel =
-                    Integer.valueOf(delimiter.substring(2)).byteValue();
-                break;
-
-            default:                
-                throw new RuntimeException("Unknown delimiter " + delimiter);
-            }
-        } else {            
-            throw new RuntimeException("PigStorage delimeter must be a single character");
-        }
+        fieldDel = StorageUtil.parseFieldDel(delimiter);        
     }
 
-    public long getPosition() throws IOException {
-        return in.getPosition();
-    }
-
-    public long skip(long n) throws IOException {
-        
-        Text t = new Text();
-        long sofar = 0;
-        while (sofar < n) {
-            /*
-             *  By calling next we skip more than required bytes
-             *  but this skip will be only until end of record.. aka line
-             */
-            if (in.next( t)) {
-                sofar += t.getLength() + 1;
-            } else {
-                // End of file
-                return sofar;
-            } 
-        }
-        return sofar;
-    }
-
+    @Override
     public Tuple getNext() throws IOException {
         if (!mRequiredColumnsInitialized) {
             if (signature!=null) {
@@ -131,166 +101,43 @@ public class PigStorage extends Utf8StorageConverter
             }
             mRequiredColumnsInitialized = true;
         }
-        if (in == null || in.getPosition() > end) {
-            return null;
-        }
-
-        Text value = new Text();
-        boolean notDone = in.next(value);
-        if (!notDone) {
-            return null;
-        }                                                                                           
-
-        byte[] buf = value.getBytes();
-        int len = value.getLength();
-        int start = 0;
-        int fieldID = 0;
-        for (int i = 0; i < len; i++) {
-            if (buf[i] == fieldDel) {
-                if (mRequiredColumns==null || (mRequiredColumns.length>fieldID && mRequiredColumns[fieldID]))
-                    readField(buf, start, i);
-                start = i + 1;
-                fieldID++;
-            }
-        }
-        // pick up the last field
-        if (start <= len && (mRequiredColumns==null || (mRequiredColumns.length>fieldID && mRequiredColumns[fieldID]))) {
-            readField(buf, start, len);
-        }
-        Tuple t =  mTupleFactory.newTupleNoCopy(mProtoTuple);
-        // System.out.println( "Arity:" + t.size() + " Value: " + value.toString() );
-        mProtoTuple = null;
-        return t;
-
-    }
-
-    public Tuple getSampledTuple() throws IOException {     
-        return getNext();
-    }
-
-    public void bindTo(String fileName, BufferedPositionedInputStream in, long offset, long end) throws IOException {
-        this.in = new PigLineRecordReader( in, offset, end );
-        this.end = end;
-        
-        // Since we are not block aligned we throw away the first
-        // record and cound on a different instance to read it
-        if (offset != 0) {
-            getNext();
-        }
-    }
-    
-    OutputStream mOut;
-    public void bindTo(OutputStream os) throws IOException {
-        mOut = os;
-    }
-
-    @SuppressWarnings("unchecked")
-    private void putField(Object field) throws IOException {
-        //string constants for each delimiter
-        String tupleBeginDelim = "(";
-        String tupleEndDelim = ")";
-        String bagBeginDelim = "{";
-        String bagEndDelim = "}";
-        String mapBeginDelim = "[";
-        String mapEndDelim = "]";
-        String fieldDelim = ",";
-        String mapKeyValueDelim = "#";
-
-        switch (DataType.findType(field)) {
-        case DataType.NULL:
-            break; // just leave it empty
-
-        case DataType.BOOLEAN:
-            mOut.write(((Boolean)field).toString().getBytes());
-            break;
-
-        case DataType.INTEGER:
-            mOut.write(((Integer)field).toString().getBytes());
-            break;
-
-        case DataType.LONG:
-            mOut.write(((Long)field).toString().getBytes());
-            break;
-
-        case DataType.FLOAT:
-            mOut.write(((Float)field).toString().getBytes());
-            break;
-
-        case DataType.DOUBLE:
-            mOut.write(((Double)field).toString().getBytes());
-            break;
-
-        case DataType.BYTEARRAY: {
-            byte[] b = ((DataByteArray)field).get();
-            mOut.write(b, 0, b.length);
-            break;
-                                 }
-
-        case DataType.CHARARRAY:
-            // oddly enough, writeBytes writes a string
-            mOut.write(((String)field).getBytes(UTF8));
-            break;
-
-        case DataType.MAP:
-            boolean mapHasNext = false;
-            Map<String, Object> m = (Map<String, Object>)field;
-            mOut.write(mapBeginDelim.getBytes(UTF8));
-            for(Map.Entry<String, Object> e: m.entrySet()) {
-                if(mapHasNext) {
-                    mOut.write(fieldDelim.getBytes(UTF8));
-                } else {
-                    mapHasNext = true;
-                }
-                putField(e.getKey());
-                mOut.write(mapKeyValueDelim.getBytes(UTF8));
-                putField(e.getValue());
-            }
-            mOut.write(mapEndDelim.getBytes(UTF8));
-            break;
-
-        case DataType.TUPLE:
-            boolean tupleHasNext = false;
-            Tuple t = (Tuple)field;
-            mOut.write(tupleBeginDelim.getBytes(UTF8));
-            for(int i = 0; i < t.size(); ++i) {
-                if(tupleHasNext) {
-                    mOut.write(fieldDelim.getBytes(UTF8));
-                } else {
-                    tupleHasNext = true;
-                }
-                try {
-                    putField(t.get(i));
-                } catch (ExecException ee) {
-                    throw ee;
+        try {
+            boolean notDone = in.nextKeyValue();
+            if (!notDone) {
+                return null;
+            }                                                                                           
+            Text value = (Text) in.getCurrentValue();
+            byte[] buf = value.getBytes();
+            int len = value.getLength();
+            int start = 0;
+            int fieldID = 0;
+            for (int i = 0; i < len; i++) {
+                if (buf[i] == fieldDel) {
+                    if (mRequiredColumns==null || (mRequiredColumns.length>fieldID && mRequiredColumns[fieldID]))
+                        readField(buf, start, i);
+                    start = i + 1;
+                    fieldID++;
                 }
             }
-            mOut.write(tupleEndDelim.getBytes(UTF8));
-            break;
-
-        case DataType.BAG:
-            boolean bagHasNext = false;
-            mOut.write(bagBeginDelim.getBytes(UTF8));
-            Iterator<Tuple> tupleIter = ((DataBag)field).iterator();
-            while(tupleIter.hasNext()) {
-                if(bagHasNext) {
-                    mOut.write(fieldDelim.getBytes(UTF8));
-                } else {
-                    bagHasNext = true;
-                }
-                putField((Object)tupleIter.next());
+            // pick up the last field
+            if (start <= len && (mRequiredColumns==null || (mRequiredColumns.length>fieldID && mRequiredColumns[fieldID]))) {
+                readField(buf, start, len);
             }
-            mOut.write(bagEndDelim.getBytes(UTF8));
-            break;
-            
-        default: {
-            int errCode = 2108;
-            String msg = "Could not determine data type of field: " + field;
-            throw new ExecException(msg, errCode, PigException.BUG);
+            Tuple t =  mTupleFactory.newTupleNoCopy(mProtoTuple);
+            mProtoTuple = null;
+            return t;
+        } catch (InterruptedException e) {
+            int errCode = 6018;
+            String errMsg = "Error while reading input";
+            throw new ExecException(errMsg, errCode, 
+                    PigException.REMOTE_ENVIRONMENT, e);
         }
-        
-        }
+      
     }
 
+    ByteArrayOutputStream mOut = new ByteArrayOutputStream(BUFFER_SIZE);
+
+    @Override
     public void putNext(Tuple f) throws IOException {
         // I have to convert integer fields to string, and then to bytes.
         // If I use a DataOutputStream to convert directly from integer to
@@ -304,18 +151,19 @@ public class PigStorage extends Utf8StorageConverter
                 throw ee;
             }
 
-            putField(field);
+            StorageUtil.putField(mOut, field);
 
-            if (i == sz - 1) {
-                // last field in tuple.
-                mOut.write(recordDel);
-            } else {
+            if (i != sz - 1) {
                 mOut.write(fieldDel);
             }
         }
-    }
-
-    public void finish() throws IOException {
+        Text text = new Text(mOut.toByteArray());
+        try {
+            writer.write(null, text);
+            mOut.reset();
+        } catch (InterruptedException e) {
+            throw new IOException(e);
+        }
     }
 
     private void readField(byte[] buf, int start, int end) {
@@ -331,24 +179,14 @@ public class PigStorage extends Utf8StorageConverter
         }
     }
 
-    /* (non-Javadoc)
-     * @see org.apache.pig.LoadFunc#determineSchema(java.lang.String, org.apache.pig.ExecType, org.apache.pig.backend.datastorage.DataStorage)
-     */
-    public Schema determineSchema(String fileName, ExecType execType,
-            DataStorage storage) throws IOException {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
     @Override
-    public LoadFunc.RequiredFieldResponse fieldsToRead(LoadFunc.RequiredFieldList requiredFieldList) throws FrontendException {
+    public RequiredFieldResponse pushProjection(RequiredFieldList requiredFieldList) throws FrontendException {
         if (requiredFieldList == null)
             return null;
-        signature = requiredFieldList.getSignature();
-        if (!requiredFieldList.isAllFieldsRequired())
+        if (requiredFieldList.getFields() != null)
         {
             int lastColumn = -1;
-            for (LoadFunc.RequiredField rf: requiredFieldList.getFields())
+            for (RequiredField rf: requiredFieldList.getFields())
             {
                 if (rf.getIndex()>lastColumn)
                 {
@@ -356,7 +194,7 @@ public class PigStorage extends Utf8StorageConverter
                 }
             }
             mRequiredColumns = new boolean[lastColumn+1];
-            for (LoadFunc.RequiredField rf: requiredFieldList.getFields())
+            for (RequiredField rf: requiredFieldList.getFields())
             {
                 if (rf.getIndex()!=-1)
                     mRequiredColumns[rf.getIndex()] = true;
@@ -370,9 +208,10 @@ public class PigStorage extends Utf8StorageConverter
                 throw new RuntimeException("Cannot serialize mRequiredColumns");
             }
         }
-        return new LoadFunc.RequiredFieldResponse(true);
+        return new RequiredFieldResponse(true);
     }
     
+    @Override
     public boolean equals(Object obj) {
         if (obj instanceof PigStorage)
             return equals((PigStorage)obj);
@@ -384,21 +223,74 @@ public class PigStorage extends Utf8StorageConverter
         return this.fieldDel == other.fieldDel;
     }
 
+    @Override
+    public InputFormat getInputFormat() {
+        return new TextInputFormat();
+    }
+
+    @Override
+    public void prepareToRead(RecordReader reader, PigSplit split) {
+        in = reader;
+    }
+
+    @Override
+    public void setLocation(String location, Job job)
+            throws IOException {
+        FileInputFormat.setInputPaths(job, location);
+    }
+
+    @Override
+    public OutputFormat getOutputFormat() {
+        return new TextOutputFormat<WritableComparable, Text>();
+    }
+
+    @Override
+    public void prepareToWrite(RecordWriter writer) {
+        this.writer = writer;        
+    }
+
+    @Override
+    public void setStoreLocation(String location, Job job) throws IOException {
+        job.getConfiguration().set("mapred.textoutputformat.separator", "");
+        FileOutputFormat.setOutputPath(job, new Path(location));
+        if (location.endsWith(".bz2")) {
+            FileOutputFormat.setCompressOutput(job, true);
+            FileOutputFormat.setOutputCompressorClass(job,  BZip2Codec.class);
+        }  else if (location.endsWith(".gz")) {
+            FileOutputFormat.setCompressOutput(job, true);
+            FileOutputFormat.setOutputCompressorClass(job, GzipCodec.class);
+        }
+    }
+
+    @Override
+    public void checkSchema(ResourceSchema s) throws IOException {
+
+    }
+
+    @Override
+    public String relToAbsPathForStoreLocation(String location, Path curDir)
+            throws IOException {
+        return LoadFunc.getAbsolutePath(location, curDir);
+    }
+
+    @Override
     public int hashCode() {
         return (int)fieldDel;
     }
 
-    /* (non-Javadoc)
-     * @see org.apache.pig.StoreFunc#getStorePreparationClass()
-     */
-   
-    public Class getStorePreparationClass() throws IOException {
-        // TODO Auto-generated method stub
-        return null;
-    }
     
-    public void setSignature(String signature) {
+    @Override
+    public void setUDFContextSignature(String signature) {
         this.signature = signature; 
+    }
+
+    @Override
+    public List<OperatorSet> getFeatures() {
+        return Arrays.asList(LoadPushDown.OperatorSet.PROJECTION);
+    }
+
+    @Override
+    public void setStoreFuncUDFContextSignature(String signature) {
     }
 
 }

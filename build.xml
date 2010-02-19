@@ -535,7 +535,7 @@
                     <!-- Excluded under Windows.-->
                     <exclude name="**/TestHBaseStorage.java" if="isWindows" />
                     <!-- Excluced because we don't want to run them -->
-                    <!-- <exclude name="**/TestHBaseStorage.java" /> -->
+                    <exclude name="**/TestCounters.java" />
                     <exclude name="**/PigExecTestCase.java" />
                     <exclude name="**/TypeCheckingTestUtil.java" />
                     <exclude name="**/TypeGraphPrinter.java" />

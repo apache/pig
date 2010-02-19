@@ -402,9 +402,13 @@ public class TestSecondarySort extends TestCase {
         ps2.println("1\t4\t4");
         ps2.println("2\t3\t1");
         ps2.close();
+        Util.copyFromLocalToCluster(cluster, tmpFile1.getCanonicalPath(), 
+                tmpFile1.getCanonicalPath());
+        Util.copyFromLocalToCluster(cluster, tmpFile2.getCanonicalPath(), 
+                tmpFile2.getCanonicalPath());
 
-        pigServer.registerQuery("A = LOAD '" + Util.generateURI(tmpFile1.toString()) + "' AS (a0, a1, a2);");
-        pigServer.registerQuery("B = LOAD '" + Util.generateURI(tmpFile2.toString()) + "' AS (b0, b1, b2);");
+        pigServer.registerQuery("A = LOAD '" + tmpFile1.getCanonicalPath() + "' AS (a0, a1, a2);");
+        pigServer.registerQuery("B = LOAD '" + tmpFile2.getCanonicalPath() + "' AS (b0, b1, b2);");
         pigServer.registerQuery("C = cogroup A by a0, B by b0 parallel 2;");
         pigServer.registerQuery("D = foreach C { E = limit A 10; F = E.a1; G = DISTINCT F; generate group, COUNT(G);};");
         Iterator<Tuple> iter = pigServer.openIterator("D");
@@ -413,6 +417,8 @@ public class TestSecondarySort extends TestCase {
         assertTrue(iter.hasNext());
         assertTrue(iter.next().toString().equals("(2,1L)"));
         assertFalse(iter.hasNext());
+        Util.deleteFile(cluster, tmpFile1.getCanonicalPath());
+        Util.deleteFile(cluster, tmpFile2.getCanonicalPath());
     }
     
     public void testNestedDistinctEndToEnd2() throws Exception{
@@ -425,8 +431,9 @@ public class TestSecondarySort extends TestCase {
         ps1.println("1\t2\t4");
         ps1.println("2\t3\t4");
         ps1.close();
-        
-        pigServer.registerQuery("A = LOAD '" + Util.generateURI(tmpFile1.toString()) + "' AS (a0, a1, a2);");
+        Util.copyFromLocalToCluster(cluster, tmpFile1.getCanonicalPath(), 
+                tmpFile1.getCanonicalPath());
+        pigServer.registerQuery("A = LOAD '" + tmpFile1.getCanonicalPath() + "' AS (a0, a1, a2);");
         pigServer.registerQuery("B = group A by $0 parallel 2;");
         pigServer.registerQuery("C = foreach B { D = distinct A; generate group, D;};");
         Iterator<Tuple> iter = pigServer.openIterator("C");
@@ -435,6 +442,7 @@ public class TestSecondarySort extends TestCase {
         assertTrue(iter.hasNext());
         assertTrue(iter.next().toString().equals("(2,{(2,3,4)})"));
         assertFalse(iter.hasNext());
+        Util.deleteFile(cluster, tmpFile1.getCanonicalPath());
     }
     
     public void testNestedSortEndToEnd1() throws Exception{
@@ -447,8 +455,9 @@ public class TestSecondarySort extends TestCase {
         ps1.println("1\t2\t4");
         ps1.println("2\t3\t4");
         ps1.close();
-        
-        pigServer.registerQuery("A = LOAD '" + Util.generateURI(tmpFile1.toString()) + "' AS (a0, a1, a2);");
+        Util.copyFromLocalToCluster(cluster, tmpFile1.getCanonicalPath(), 
+                tmpFile1.getCanonicalPath());
+        pigServer.registerQuery("A = LOAD '" + tmpFile1.getCanonicalPath() + "' AS (a0, a1, a2);");
         pigServer.registerQuery("B = group A by $0 parallel 2;");
         pigServer.registerQuery("C = foreach B { D = limit A 10; E = order D by $1; generate group, E;};");
         Iterator<Tuple> iter = pigServer.openIterator("C");
@@ -457,6 +466,7 @@ public class TestSecondarySort extends TestCase {
         assertTrue(iter.hasNext());
         assertTrue(iter.next().toString().equals("(2,{(2,3,4)})"));
         assertFalse(iter.hasNext());
+        Util.deleteFile(cluster, tmpFile1.getCanonicalPath());
     }
     
     public void testNestedSortEndToEnd2() throws Exception{
@@ -469,8 +479,9 @@ public class TestSecondarySort extends TestCase {
         ps1.println("1\t8\t4");
         ps1.println("2\t3\t4");
         ps1.close();
-        
-        pigServer.registerQuery("A = LOAD '" + Util.generateURI(tmpFile1.toString()) + "' AS (a0, a1, a2);");
+        Util.copyFromLocalToCluster(cluster, tmpFile1.getCanonicalPath(), 
+                tmpFile1.getCanonicalPath());
+        pigServer.registerQuery("A = LOAD '" + tmpFile1.getCanonicalPath() + "' AS (a0, a1, a2);");
         pigServer.registerQuery("B = group A by $0 parallel 2;");
         pigServer.registerQuery("C = foreach B { D = order A by a1 desc; generate group, D;};");
         Iterator<Tuple> iter = pigServer.openIterator("C");
@@ -479,11 +490,15 @@ public class TestSecondarySort extends TestCase {
         assertTrue(iter.hasNext());
         assertTrue(iter.next().toString().equals("(2,{(2,3,4)})"));
         assertFalse(iter.hasNext());
+        Util.deleteFile(cluster, tmpFile1.getCanonicalPath());
     }
     
     public void testNestedSortMultiQueryEndToEnd1() throws Exception{
         pigServer.setBatchOn();
-        pigServer.registerQuery("a = load 'file:test/org/apache/pig/test/data/passwd'" +
+        Util.copyFromLocalToCluster(cluster, 
+                "test/org/apache/pig/test/data/passwd",
+                "testNestedSortMultiQueryEndToEnd1-input.txt");
+        pigServer.registerQuery("a = load 'testNestedSortMultiQueryEndToEnd1-input.txt'" +
                 " using PigStorage(':') as (uname:chararray, passwd:chararray, uid:int, gid:int);");
         pigServer.registerQuery("b = group a by uname parallel 2;");
         pigServer.registerQuery("c = group a by gid parallel 2;");
@@ -498,5 +513,6 @@ public class TestSecondarySort extends TestCase {
         }
         FileLocalizer.delete("/tmp/output1", pigServer.getPigContext());
         FileLocalizer.delete("/tmp/output2", pigServer.getPigContext());
+        Util.deleteFile(cluster, "testNestedSortMultiQueryEndToEnd1-input.txt");
     }
 }

@@ -29,7 +29,6 @@ import org.apache.pig.data.DataBag;
 import org.apache.pig.data.InternalDistinctBag;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
-import org.apache.pig.impl.util.WrappedIOException;
 
 /**
  * Find the distinct set of tuples in a bag.

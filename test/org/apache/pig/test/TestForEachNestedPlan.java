@@ -20,6 +20,7 @@ package org.apache.pig.test;
 
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
+import org.apache.pig.ExecType;
 import org.apache.pig.test.utils.TestHelper;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.logicalLayer.parser.ParseException;
@@ -54,8 +55,8 @@ public class TestForEachNestedPlan extends TestCase {
             System.err.println("Running testInnerOrderBy with nullFlags set to :"
                             + nullFlags[i]);
             File tmpFile = genDataSetFile1(nullFlags[i]);
-            pig.registerQuery("a = load '"
-                    + Util.generateURI(tmpFile.toString()) + "'; ");
+            pig.registerQuery("a = load '" 
+                    + Util.generateURI(tmpFile.toString(), pig.getPigContext()) + "'; ");
             pig.registerQuery("b = group a by $0; ");
             pig.registerQuery("c = foreach b { " + "     c1 = order $1 by *; "
                     + "    generate flatten(c1); " + "};");
@@ -74,8 +75,8 @@ public class TestForEachNestedPlan extends TestCase {
     @Test
     public void testInnerOrderByStarWithSchema() throws Exception {        
         File tmpFile = genDataSetFile1(false);
-        pig.registerQuery("a = load '" + Util.generateURI(tmpFile.toString())
-                + "' as (a0, a1);");
+        pig.registerQuery("a = load '" + Util.generateURI(tmpFile.toString(), 
+                pig.getPigContext()) + "' as (a0, a1);");
         pig.registerQuery("b = group a by a0; ");
         pig.registerQuery("c = foreach b { d = order a by *; "
                 + "  generate group, d; };");
