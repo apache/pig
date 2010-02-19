@@ -257,9 +257,6 @@ public static void main(String args[])
         // create the context with the parameter
         PigContext pigContext = new PigContext(execType, properties);
 
-        // configure logging
-        configureLog4J(properties, pigContext);
-        
         if(logFileName == null && !userSpecifiedLog) {
 	    logFileName = validateLogFile(properties.getProperty("pig.logfile"), null);
 	}
@@ -269,6 +266,10 @@ public static void main(String args[])
         }
         
         pigContext.getProperties().setProperty("pig.logfile", (logFileName == null? "": logFileName));
+     
+        // configure logging
+        configureLog4J(properties, pigContext);
+        
         
         if(optimizerRules.size() > 0) {
         	pigContext.getProperties().setProperty("pig.optimizer.rules", ObjectSerializer.serialize(optimizerRules));
@@ -472,26 +473,26 @@ private static void configureLog4J(Properties properties, PigContext pigContext)
         }
     }
     if (props.size() == 0) {
-        props.setProperty("log4j.rootLogger", "INFO, PIGCONSOLE");
         props.setProperty("log4j.logger.org.apache.pig", logLevel.toString());
-        props.setProperty("log4j.appender.PIGCONSOLE",
-                "org.apache.log4j.ConsoleAppender");
-        props.setProperty("log4j.appender.PIGCONSOLE.layout",
-                "org.apache.log4j.PatternLayout");
-        props.setProperty("log4j.appender.PIGCONSOLE.target", "System.err");
-
-        if (!brief) {
-            // non-brief logging - timestamps
-            props.setProperty(
-                    "log4j.appender.PIGCONSOLE.layout.ConversionPattern",
-                    "%d [%t] %-5p %c - %m%n");
-        } else {
-            // brief logging - no timestamps
-            props.setProperty(
-                    "log4j.appender.PIGCONSOLE.layout.ConversionPattern",
-                    "%m%n");
+        if((logLevelString = System.getProperty("pig.logfile.level")) == null){
+            props.setProperty("log4j.rootLogger", "INFO, PIGCONSOLE");
         }
+        else{
+            logLevel = Level.toLevel(logLevelString, Level.INFO);
+            props.setProperty("log4j.logger.org.apache.pig", logLevel.toString());
+            props.setProperty("log4j.rootLogger", "INFO, PIGCONSOLE, F");
+            props.setProperty("log4j.appender.F","org.apache.log4j.RollingFileAppender");
+            props.setProperty("log4j.appender.F.File",properties.getProperty("pig.logfile"));
+            props.setProperty("log4j.appender.F.layout","org.apache.log4j.PatternLayout");
+            props.setProperty("log4j.appender.F.layout.ConversionPattern", brief ? "%m%n" : "%d [%t] %-5p %c - %m%n");
+        }
+        
+        props.setProperty("log4j.appender.PIGCONSOLE","org.apache.log4j.ConsoleAppender");    
+        props.setProperty("log4j.appender.PIGCONSOLE.target", "System.err");        
+        props.setProperty("log4j.appender.PIGCONSOLE.layout","org.apache.log4j.PatternLayout");
+        props.setProperty("log4j.appender.PIGCONSOLE.layout.ConversionPattern", brief ? "%m%n" : "%d [%t] %-5p %c - %m%n");
     }
+
     PropertyConfigurator.configure(props);
     logLevel = Logger.getLogger("org.apache.pig").getLevel();
     Properties backendProps = pigContext.getLog4jProperties();

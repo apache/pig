@@ -126,6 +126,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-1215: Make Hadoop jobId more prominent in the client log (ashutoshc)
+
 PIG-1216: New load store design does not allow Pig to validate inputs and
 outputs up front (ashutoshc via pradeepkth)
 
