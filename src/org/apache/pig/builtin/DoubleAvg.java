@@ -277,7 +277,7 @@ public class DoubleAvg extends EvalFunc<Double> implements Algebraic, Accumulato
     @Override
     public Double getValue() {
         Double avg = null;
-        if (intermediateCount > 0) {
+        if (intermediateCount != null && intermediateCount > 0) {
             avg = new Double(intermediateSum / intermediateCount);
         }
         return avg;
