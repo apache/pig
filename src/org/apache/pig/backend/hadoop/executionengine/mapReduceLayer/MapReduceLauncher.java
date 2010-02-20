@@ -457,9 +457,12 @@ public class MapReduceLauncher extends Launcher{
         EndOfAllInputSetter checker = new EndOfAllInputSetter(plan);
         checker.visit();
         
-        AccumulatorOptimizer accum = new AccumulatorOptimizer(plan);
-        accum.visit();
-        
+        boolean isAccum = 
+            "true".equalsIgnoreCase(pc.getProperties().getProperty("opt.accumulator","true"));
+        if (isAccum) {
+            AccumulatorOptimizer accum = new AccumulatorOptimizer(plan);
+            accum.visit();
+        }
         return plan;
     }
     

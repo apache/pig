@@ -130,6 +130,9 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-1241: Accumulator is turned on when a map is used with a non-accumulative
+UDF (yinghe vi olgan)
+
 PIG-1215: Make Hadoop jobId more prominent in the client log (ashutoshc)
 
 PIG-1216: New load store design does not allow Pig to validate inputs and

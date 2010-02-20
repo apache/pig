@@ -155,7 +155,7 @@ public class AccumulatorOptimizer extends MROpPlanVisitor {
         }
         
         if (po instanceof POMapLookUp) {
-            return true;
+            return check(po.getInputs().get(0));
         }
         
         if (po instanceof POProject) {
