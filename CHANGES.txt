@@ -55,6 +55,8 @@ manner (rding via pradeepkth)
 
 IMPROVEMENTS
 
+PIG-1233: NullPointerException in AVG  (ankur via olgan)
+
 PIG-1218: Use distributed cache to store samples (rding via pradeepkth)
 
 PIG-1226: suuport for additional jar files (thejas via olgan)

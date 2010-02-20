@@ -274,7 +274,7 @@ public class LongAvg extends EvalFunc<Double> implements Algebraic, Accumulator<
     @Override
     public Double getValue() {
         Double avg = null;
-        if (intermediateCount > 0) {
+        if (intermediateCount != null && intermediateCount > 0) {
             avg = new Double(intermediateSum / intermediateCount);
         }
         return avg;
