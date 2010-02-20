@@ -33,6 +33,7 @@ public class TestAccumulator extends TestCase{
     private static final String INPUT_FILE = "AccumulatorInput.txt";
     private static final String INPUT_FILE2 = "AccumulatorInput2.txt";
     private static final String INPUT_FILE3 = "AccumulatorInput3.txt";
+    private static final String INPUT_FILE4 = "AccumulatorInput4.txt";
  
     private PigServer pigServer;
     private MiniCluster cluster = MiniCluster.buildCluster();
@@ -50,6 +51,7 @@ public class TestAccumulator extends TestCase{
     
     @Before
     public void setUp() throws Exception {
+        pigServer.getPigContext().getProperties().remove("opt.accumulator");
         createFiles();
     }
 
@@ -94,6 +96,16 @@ public class TestAccumulator extends TestCase{
         w.close();   
         
         Util.copyFromLocalToCluster(cluster, INPUT_FILE3, INPUT_FILE3);
+        
+        w = new PrintWriter(new FileWriter(INPUT_FILE4));
+        
+        w.println("100\thttp://ibm.com,ibm");    	
+        w.println("100\thttp://ibm.com,ibm");
+        w.println("200\thttp://yahoo.com,yahoo");    	
+        w.println("300\thttp://sun.com,sun");
+        w.close();   
+        
+        Util.copyFromLocalToCluster(cluster, INPUT_FILE4, INPUT_FILE4);
     }
     
     @After
@@ -103,7 +115,9 @@ public class TestAccumulator extends TestCase{
         new File(INPUT_FILE2).delete();
         Util.deleteFile(cluster, INPUT_FILE2);
         new File(INPUT_FILE3).delete();
-        Util.deleteFile(cluster, INPUT_FILE3);
+        Util.deleteFile(cluster, INPUT_FILE3);        
+        new File(INPUT_FILE4).delete();
+        Util.deleteFile(cluster, INPUT_FILE4);
     }
     
     public void testAccumBasic() throws IOException{
@@ -486,17 +500,58 @@ public class TestAccumulator extends TestCase{
         }    
     }
 
-	// Pig 1105
+    // Pig 1105
     public void testAccumCountStar() throws IOException{
         pigServer.registerQuery("A = load '" + INPUT_FILE3 + "' as (id:int, v:double);");
         pigServer.registerQuery("C = group A by id;");
         pigServer.registerQuery("D = foreach C generate group, COUNT_STAR(A.id);");
 
-		try {
-			Iterator<Tuple> iter = pigServer.openIterator("D");
-		} catch (Exception e) {
-			fail("COUNT_STAR should be supported by accumulator interface");
-		}      
-	}
-	
+        try {
+            Iterator<Tuple> iter = pigServer.openIterator("D");
+        } catch (Exception e) {
+            fail("COUNT_STAR should be supported by accumulator interface");
+        }      
+    }
+    
+    
+    public void testAccumulatorOff() throws IOException{
+        pigServer.getPigContext().getProperties().setProperty("opt.accumulator", "false");
+        
+        pigServer.registerQuery("A = load '" + INPUT_FILE2 + "' as (id:int, fruit);");
+        pigServer.registerQuery("B = group A by id;");
+        pigServer.registerQuery("C = foreach B generate group, org.apache.pig.test.utils.AccumulativeSumBag(A);");
+        
+        try {
+            Iterator<Tuple> iter = pigServer.openIterator("C");
+            int c = 0;
+            while(iter.hasNext()) {
+                iter.next();
+                c++;
+            }
+            fail("Accumulator should be off.");
+        }catch(Exception e) {
+            // we should get exception
+        }
+        
+    }              
+    
+    public void testAccumWithMap() throws IOException{
+        pigServer.registerQuery("A = load '" + INPUT_FILE4 + "' as (id, url);");
+        pigServer.registerQuery("B = group A by (id, url);");
+        pigServer.registerQuery("C = foreach B generate COUNT(A), org.apache.pig.test.utils.URLPARSE(group.url)#'url';");                     
+
+        HashMap<Integer, String> expected = new HashMap<Integer, String>();
+        expected.put(2, "http://ibm.com");
+        expected.put(1, "http://yahoo.com");
+        expected.put(1, "http://sun.com");        
+                  
+        Iterator<Tuple> iter = pigServer.openIterator("C");
+        
+        while(iter.hasNext()) {
+            Tuple t = iter.next();
+            assertEquals(expected.get((Long)t.get(0)), (String)t.get(1));                
+        }                                   
+    }        
+    
+
 }
