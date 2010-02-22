@@ -15,31 +15,41 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.pig.impl.streaming;
+package org.apache.pig;
 
 import java.io.IOException;
 
 import org.apache.pig.data.Tuple;
 
 /**
- * The interface used for the custom mapping of a {@link Tuple} to a byte
- * array. The byte array is fed to the stdin of the streaming process.
+ * The interface used for the custom mapping of a byte array, received from
+ * the stdout of the streaming process, to a {@link Tuple}. 
  * 
- * This interface, together with {@link StreamToPig}, is designed to provide
+ * This interface, together with {@link PigToStream}, is designed to provide
  * a common protocol for data exchange between Pig runtime and streaming 
  * executables.
+ * 
+ * The method <code>getLoadCaster</code> is called by Pig to convert the 
+ * fields in the byte array to typed fields of the Tuple based on a given
+ * schema.
  * 
  * Typically, user implements this interface for a particular type of 
  * stream command and specifies the implementation class in the Pig DEFINE
  * statement. 
- * 
  */
-public interface PigToStream {
-    
+public interface StreamToPig {
     /**
-     * Given a tuple, produce an array of bytes to be passed to the streaming
-     * executable.
+     *  Given a byte array from a streaming executable, produce a tuple.
      */
-    public byte[] serialize(Tuple t) throws IOException;
+    public Tuple deserialize(byte[] bytes) throws IOException;
+
+    /**
+     * This will be called on the front end during planning and not on the back 
+     * end during execution.
+     * 
+     * @return the {@link LoadCaster} associated with this object. 
+     * @throws IOException if there is an exception during LoadCaster 
+     */
+    public LoadCaster getLoadCaster() throws IOException;
 
 }

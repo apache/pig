@@ -19,7 +19,9 @@ package org.apache.pig.impl.streaming;
 
 import java.io.IOException;
 
+import org.apache.pig.PigToStream;
 import org.apache.pig.impl.PigContext;
+import org.apache.pig.builtin.PigStreaming;
 import org.apache.pig.impl.streaming.StreamingCommand.HandleSpec;
 
 /**

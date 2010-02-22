@@ -32,7 +32,7 @@ import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.builtin.PigStorage;
-import org.apache.pig.impl.streaming.PigStreaming;
+import org.apache.pig.builtin.PigStreaming;
 
 /**
  * This util class provides methods that are shared by storage class 
