@@ -20,6 +20,7 @@ package org.apache.pig.impl.streaming;
 import java.io.IOException;
 import java.io.OutputStream;
 
+import org.apache.pig.PigToStream;
 import org.apache.pig.data.Tuple;
 
 /**

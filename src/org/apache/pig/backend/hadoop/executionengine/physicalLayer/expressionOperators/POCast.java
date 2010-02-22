@@ -42,7 +42,7 @@ import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.VisitorException;
-import org.apache.pig.impl.streaming.StreamToPig;
+import org.apache.pig.StreamToPig;
 import org.apache.pig.impl.util.CastUtils;
 
 /**

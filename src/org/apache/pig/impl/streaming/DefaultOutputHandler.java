@@ -17,7 +17,9 @@
  */
 package org.apache.pig.impl.streaming;
 
+import org.apache.pig.StreamToPig;
 import org.apache.pig.impl.PigContext;
+import org.apache.pig.builtin.PigStreaming;
 import org.apache.pig.impl.streaming.StreamingCommand.HandleSpec;
 
 /**

@@ -22,6 +22,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.StreamToPig;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.BufferedPositionedInputStream;
 import org.apache.pig.impl.streaming.StreamingCommand.HandleSpec;

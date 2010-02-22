@@ -15,14 +15,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.pig.impl.streaming;
+package org.apache.pig.builtin;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
 import org.apache.hadoop.io.Text;
 import org.apache.pig.LoadCaster;
-import org.apache.pig.builtin.Utf8StorageConverter;
+import org.apache.pig.PigToStream;
+import org.apache.pig.StreamToPig;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.util.StorageUtil;
 
