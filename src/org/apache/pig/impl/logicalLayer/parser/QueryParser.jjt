@@ -63,8 +63,8 @@ import org.apache.pig.data.DataBag;
 import org.apache.pig.EvalFunc;
 import org.apache.pig.ComparisonFunc;
 import org.apache.pig.LoadFunc;
-import org.apache.pig.StoreFunc;
 import org.apache.pig.FuncSpec;
+import org.apache.pig.StoreFuncInterface;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.PigException;
 import org.apache.pig.backend.datastorage.DataStorage;
@@ -160,7 +160,7 @@ public class QueryParser {
         }
         
         Object obj = PigContext.instantiateFuncFromSpec(funcSpec);
-        StoreFunc stoFunc = (StoreFunc)obj;
+        StoreFuncInterface stoFunc = (StoreFuncInterface)obj;
         stoFunc.setStoreFuncUDFContextSignature(LOStore.constructSignature(alias, fileName, funcSpec));
 
         try {
@@ -852,7 +852,7 @@ class FunctionType {
 			LoadFunc loadFunc = (LoadFunc) func;
             break;
         case FunctionType.STOREFUNC:
-			StoreFunc storeFunc = (StoreFunc) func;
+			StoreFuncInterface storeFunc = (StoreFuncInterface) func;
             break;
         case FunctionType.PIGTOSTREAMFUNC:
             PigToStream ptsFunc = (PigToStream) func;
@@ -2460,7 +2460,7 @@ LogicalOperator StoreClause(LogicalPlan lp) : {LogicalOperator lo; Token t; Stri
         }
 
         Object obj = PigContext.instantiateFuncFromSpec(funcSpec);
-        StoreFunc stoFunc = (StoreFunc)obj;
+        StoreFuncInterface stoFunc = (StoreFuncInterface)obj;
         stoFunc.setStoreFuncUDFContextSignature(LOStore.constructSignature(t.image, fileName, funcSpec));
          
         // see the comments in LoadClause for reasons to cache absolutePath

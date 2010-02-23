@@ -26,20 +26,12 @@ import java.util.Map;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.util.Progressable;
-import org.apache.pig.PigException;
-import org.apache.pig.StoreFunc;
-import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.builtin.BinStorage;
-import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.DefaultTupleFactory;
 import org.apache.pig.data.Tuple;
-import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.ReadToEndLoader;
-import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.impl.util.Pair;
 import org.apache.pig.impl.util.UDFContext;
 
@@ -53,40 +45,10 @@ public class MapRedUtil {
     public static final String FILE_SYSTEM_NAME = "fs.default.name";
 
     /**
-     * This method is to be called from an 
-     * {@link org.apache.hadoop.mapred.OutputFormat#getRecordWriter(
-     * FileSystem, org.apache.hadoop.mapred.JobConf, String, Progressable)}
-     * method to obtain a reference to the {@link org.apache.pig.StoreFunc} object to be used by
-     * that OutputFormat to perform the write() operation
-     * @param conf the JobConf object
-     * @return the StoreFunc reference
-     * @throws ExecException
-     */
-    public static StoreFunc getStoreFunc(Configuration conf) throws ExecException {
-        StoreFunc store;
-        try {
-            String storeFunc = conf.get("pig.storeFunc", "");
-            if (storeFunc.length() == 0) {
-                store = new PigStorage();
-            } else {
-                storeFunc = (String) ObjectSerializer.deserialize(storeFunc);
-                store = (StoreFunc) PigContext
-                        .instantiateFuncFromSpec(storeFunc);
-            }
-        } catch (Exception e) {
-            int errCode = 2081;
-            String msg = "Unable to setup the store function.";
-            throw new ExecException(msg, errCode, PigException.BUG, e);
-        }
-        return store;
-    }
-    
-    /**
      * Loads the key distribution sampler file
      *
      * @param keyDistFile the name for the distribution file
      * @param totalReducers gets set to the total number of reducers as found in the dist file
-     * @param job Ref to a jobCong object
      * @param keyType Type of the key to be stored in the return map. It currently treats Tuple as a special case.
      */
     @SuppressWarnings("unchecked")

@@ -27,7 +27,7 @@ import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.hadoop.mapreduce.OutputCommitter;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.pig.ResourceSchema;
-import org.apache.pig.StoreFunc;
+import org.apache.pig.StoreFuncInterface;
 import org.apache.pig.StoreMetadata;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.backend.hadoop.executionengine.util.MapRedUtil;
@@ -102,7 +102,7 @@ public class PigOutputCommitter extends OutputCommitter {
         List<Pair<OutputCommitter, POStore>> committers = 
             new ArrayList<Pair<OutputCommitter,POStore>>();
         for (POStore store : stores) {
-            StoreFunc sFunc = store.getStoreFunc();
+            StoreFuncInterface sFunc = store.getStoreFunc();
             
             TaskAttemptContext updatedContext = setUpContext(context, store);
             try {
@@ -155,7 +155,7 @@ public class PigOutputCommitter extends OutputCommitter {
 
     static void storeCleanup(POStore store, Configuration conf)
             throws IOException {
-        StoreFunc storeFunc = store.getStoreFunc();
+        StoreFuncInterface storeFunc = store.getStoreFunc();
         if (storeFunc instanceof StoreMetadata) {
             Schema schema = store.getSchema();
             if (schema != null) {

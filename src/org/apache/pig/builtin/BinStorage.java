@@ -46,7 +46,7 @@ import org.apache.pig.PigException;
 import org.apache.pig.PigWarning;
 import org.apache.pig.ResourceSchema;
 import org.apache.pig.ResourceStatistics;
-import org.apache.pig.StoreFunc;
+import org.apache.pig.StoreFuncInterface;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.datastorage.HDataStorage;
@@ -65,7 +65,7 @@ import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.util.LogUtils;
 
 public class BinStorage extends FileInputLoadFunc 
-implements LoadCaster, StoreFunc, LoadMetadata {
+implements LoadCaster, StoreFuncInterface, LoadMetadata {
 
     
     public static final int RECORD_1 = 0x01;

@@ -24,26 +24,27 @@ import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.OutputFormat;
 import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.pig.data.Tuple;
-import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.util.UDFContext;
 
 
 /**
-* This abstract class is used to implement functions to write records
+* This interface is used to implement functions to write records
 * from a dataset.
 * 
 *
 */
 
-public abstract class StoreFunc implements StoreFuncInterface {
+public interface StoreFuncInterface {
 
     /**
      * This method is called by the Pig runtime in the front end to convert the
      * output location to an absolute path if the location is relative. The
-     * StoreFunc implementation is free to choose how it converts a relative 
+     * StoreFuncInterface implementation is free to choose how it converts a relative 
      * location to an absolute location since this may depend on what the location
      * string represent (hdfs path or some other data source). 
-     *  
+     * The static method {@link LoadFunc#getAbsolutePath} provides a default 
+     * implementation for hdfs and hadoop local file system and it can be used
+     * to implement this method.  
      * 
      * @param location location as provided in the "store" statement of the script
      * @param curDir the current working direction based on any "cd" statements
@@ -51,24 +52,20 @@ public abstract class StoreFunc implements StoreFuncInterface {
      * in the script, this would be the home directory - 
      * <pre>/user/<username> </pre>
      * @return the absolute location based on the arguments passed
-     * @throws IOException 
      * @throws IOException if the conversion is not possible
      */
-    public String relToAbsPathForStoreLocation(String location, Path curDir) 
-    throws IOException {
-        return LoadFunc.getAbsolutePath(location, curDir);
-    }
+    String relToAbsPathForStoreLocation(String location, Path curDir) throws IOException;
 
     /**
-     * Return the OutputFormat associated with StoreFunc.  This will be called
+     * Return the OutputFormat associated with StoreFuncInterface.  This will be called
      * on the front end during planning and not on the backend during
      * execution. 
-     * @return the {@link OutputFormat} associated with StoreFunc
+     * @return the {@link OutputFormat} associated with StoreFuncInterface
      * @throws IOException if an exception occurs while constructing the 
      * OutputFormat
      *
      */
-    public abstract OutputFormat getOutputFormat() throws IOException;
+    OutputFormat getOutputFormat() throws IOException;
 
     /**
      * Communicate to the store function the location used in Pig Latin to refer 
@@ -86,7 +83,7 @@ public abstract class StoreFunc implements StoreFuncInterface {
      * @param job The {@link Job} object
      * @throws IOException if the location is not valid.
      */
-    public abstract void setStoreLocation(String location, Job job) throws IOException;
+    void setStoreLocation(String location, Job job) throws IOException;
  
     /**
      * Set the schema for data to be stored.  This will be called on the
@@ -100,17 +97,15 @@ public abstract class StoreFunc implements StoreFuncInterface {
      * @throws IOException if this schema is not acceptable.  It should include
      * a detailed error message indicating what is wrong with the schema.
      */
-    public void checkSchema(ResourceSchema s) throws IOException {
-        // default implementation is a no-op
-    }
+    void checkSchema(ResourceSchema s) throws IOException;
 
     /**
-     * Initialize StoreFunc to write data.  This will be called during
+     * Initialize StoreFuncInterface to write data.  This will be called during
      * execution before the call to putNext.
      * @param writer RecordWriter to use.
      * @throws IOException if an exception occurs during initialization
      */
-    public abstract void prepareToWrite(RecordWriter writer) throws IOException;
+    void prepareToWrite(RecordWriter writer) throws IOException;
 
     /**
      * Write a tuple the output stream to which this instance was
@@ -119,16 +114,14 @@ public abstract class StoreFunc implements StoreFuncInterface {
      * @param t the tuple to store.
      * @throws IOException if an exception occurs during the write
      */
-    public abstract void putNext(Tuple t) throws IOException;
+    void putNext(Tuple t) throws IOException;
     
     /**
      * This method will be called by Pig both in the front end and back end to
-     * pass a unique signature to the {@link StoreFunc} which it can use to store
+     * pass a unique signature to the {@link StoreFuncInterface} which it can use to store
      * information in the {@link UDFContext} which it needs to store between
      * various method invocations in the front end and back end. 
-     * @param signature a unique signature to identify this StoreFunc
+     * @param signature a unique signature to identify this StoreFuncInterface
      */
-    public void setStoreFuncUDFContextSignature(String signature) {
-        // default implementation is a no-op
-    }
+    public void setStoreFuncUDFContextSignature(String signature);
 }

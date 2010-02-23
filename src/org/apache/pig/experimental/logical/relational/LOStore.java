@@ -21,7 +21,7 @@ import java.io.IOException;
 
 //import org.apache.commons.logging.Log;
 //import org.apache.commons.logging.LogFactory;
-import org.apache.pig.StoreFunc;
+import org.apache.pig.StoreFuncInterface;
 import org.apache.pig.experimental.plan.Operator;
 import org.apache.pig.experimental.plan.PlanVisitor;
 import org.apache.pig.impl.PigContext;
@@ -31,7 +31,7 @@ public class LOStore extends LogicalRelationalOperator {
     private static final long serialVersionUID = 2L;
 
     private FileSpec output;  
-    transient private StoreFunc storeFunc;
+    transient private StoreFuncInterface storeFunc;
     
     //private static Log log = LogFactory.getLog(LOStore.class);
     
@@ -45,7 +45,7 @@ public class LOStore extends LogicalRelationalOperator {
         output = outputFileSpec;
       
         try { 
-             storeFunc = (StoreFunc) PigContext.instantiateFuncFromSpec(outputFileSpec.getFuncSpec()); 
+             storeFunc = (StoreFuncInterface) PigContext.instantiateFuncFromSpec(outputFileSpec.getFuncSpec()); 
         } catch (Exception e) { 
             throw new RuntimeException("Failed to instantiate StoreFunc.", e);
         }
@@ -55,7 +55,7 @@ public class LOStore extends LogicalRelationalOperator {
         return output;
     }
     
-    public StoreFunc getStoreFunc() {
+    public StoreFuncInterface getStoreFunc() {
         return storeFunc;
     }
     

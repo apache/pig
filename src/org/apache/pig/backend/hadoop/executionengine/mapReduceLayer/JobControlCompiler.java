@@ -47,7 +47,7 @@ import org.apache.pig.ExecType;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.PigException;
 import org.apache.pig.ResourceSchema;
-import org.apache.pig.StoreFunc;
+import org.apache.pig.StoreFuncInterface;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.HDataType;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.partitioners.SecondaryKeyPartitioner;
@@ -449,7 +449,7 @@ public class JobControlCompiler{
             
             for (POStore st: mapStores) {
                 storeLocations.add(st);
-                StoreFunc sFunc = st.getStoreFunc();
+                StoreFuncInterface sFunc = st.getStoreFunc();
                 if (st.getSchema()!=null)
                     sFunc.checkSchema(new ResourceSchema(st.getSchema(), st.getSortInfo()));
                 sFunc.setStoreLocation(st.getSFile().getFileName(), nwJob);
@@ -457,7 +457,7 @@ public class JobControlCompiler{
 
             for (POStore st: reduceStores) {
                 storeLocations.add(st);
-                StoreFunc sFunc = st.getStoreFunc();
+                StoreFuncInterface sFunc = st.getStoreFunc();
                 if (st.getSchema()!=null)
                     sFunc.checkSchema(new ResourceSchema(st.getSchema(), st.getSortInfo()));
                 sFunc.setStoreLocation(st.getSFile().getFileName(), nwJob);
@@ -1070,7 +1070,8 @@ public class JobControlCompiler{
              this.conf = conf;
          }
          
-         public void visitFRJoin(POFRJoin join) throws VisitorException {
+         @Override
+        public void visitFRJoin(POFRJoin join) throws VisitorException {
              
              // XXX Hadoop currently doesn't support distributed cache in local mode.
              // This line will be removed after the support is added

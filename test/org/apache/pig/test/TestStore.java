@@ -401,7 +401,7 @@ public class TestStore extends junit.framework.TestCase {
         }
     }
     
-    public static class DummyStore implements StoreFunc, StoreMetadata{
+    public static class DummyStore extends StoreFunc implements StoreMetadata{
 
         @Override
         public void checkSchema(ResourceSchema s) throws IOException {

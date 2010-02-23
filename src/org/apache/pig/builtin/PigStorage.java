@@ -45,15 +45,15 @@ import org.apache.pig.LoadFunc;
 import org.apache.pig.LoadPushDown;
 import org.apache.pig.PigException;
 import org.apache.pig.ResourceSchema;
-import org.apache.pig.StoreFunc;
+import org.apache.pig.StoreFuncInterface;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigSplit;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
-import org.apache.pig.impl.util.StorageUtil;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.util.ObjectSerializer;
+import org.apache.pig.impl.util.StorageUtil;
 import org.apache.pig.impl.util.UDFContext;
 
 /**
@@ -61,7 +61,7 @@ import org.apache.pig.impl.util.UDFContext;
  * delimiter is given as a regular expression. See String.split(delimiter) and
  * http://java.sun.com/j2se/1.5.0/docs/api/java/util/regex/Pattern.html for more information.
  */
-public class PigStorage extends FileInputLoadFunc implements StoreFunc, 
+public class PigStorage extends FileInputLoadFunc implements StoreFuncInterface, 
 LoadPushDown {
     protected RecordReader in = null;
     protected RecordWriter writer = null;

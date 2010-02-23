@@ -22,7 +22,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.OutputFormat;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
-import org.apache.pig.StoreFunc;
+import org.apache.pig.StoreFuncInterface;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStoreImpl;
 /**
@@ -55,10 +55,10 @@ public class MapReducePOStoreImpl extends POStoreImpl {
     
     @SuppressWarnings("unchecked")
     @Override
-    public StoreFunc createStoreFunc(POStore store) 
+    public StoreFuncInterface createStoreFunc(POStore store) 
         throws IOException {
 
-        StoreFunc storeFunc = store.getStoreFunc();
+        StoreFuncInterface storeFunc = store.getStoreFunc();
 
         // call the setStoreLocation on the storeFunc giving it the
         // Job. Typically this will result in the OutputFormat of the

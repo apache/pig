@@ -18,25 +18,23 @@
 package org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators;
 
 import java.io.IOException;
-import java.io.OutputStream;
 import java.util.List;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.pig.PigException;
 import org.apache.pig.SortInfo;
-import org.apache.pig.StoreFunc;
+import org.apache.pig.StoreFuncInterface;
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
-import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.plan.OperatorKey;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.impl.plan.VisitorException;
 
 /**
@@ -51,7 +49,7 @@ public class POStore extends PhysicalOperator {
 
     private static final long serialVersionUID = 1L;
     private static Result empty = new Result(POStatus.STATUS_NULL, null);
-    transient private StoreFunc storer;    
+    transient private StoreFuncInterface storer;    
     transient private final Log log = LogFactory.getLog(getClass());
     transient private POStoreImpl impl;
     private FileSpec sFile;
@@ -203,8 +201,8 @@ public class POStore extends PhysicalOperator {
         return schema;
     }
     
-    public StoreFunc getStoreFunc() {
-        StoreFunc sFunc = (StoreFunc)PigContext.instantiateFuncFromSpec(sFile.getFuncSpec());
+    public StoreFuncInterface getStoreFunc() {
+        StoreFuncInterface sFunc = (StoreFuncInterface)PigContext.instantiateFuncFromSpec(sFile.getFuncSpec());
         sFunc.setStoreFuncUDFContextSignature(signature);
         return sFunc;
     }
