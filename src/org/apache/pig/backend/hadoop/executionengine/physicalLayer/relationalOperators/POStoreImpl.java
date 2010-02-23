@@ -19,10 +19,7 @@ package org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOp
 
 import java.io.IOException;
 
-import org.apache.pig.SortInfo;
-import org.apache.pig.StoreFunc;
-import org.apache.pig.impl.io.FileSpec;
-import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.StoreFuncInterface;
 
 /**
  * This class is used to specify the actual behavior of the store
@@ -34,7 +31,7 @@ public abstract class POStoreImpl {
      * @param store - the POStore object
      * @throws IOException
      */
-    public abstract StoreFunc createStoreFunc(POStore store) 
+    public abstract StoreFuncInterface createStoreFunc(POStore store) 
         throws IOException;
     
     /**

@@ -30,7 +30,7 @@ import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.TaskAttemptID;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.LoadFunc;
-import org.apache.pig.StoreFunc;
+import org.apache.pig.StoreFuncInterface;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigOutputFormat;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
@@ -71,7 +71,7 @@ public class PigFile {
         Configuration conf = ConfigurationUtil.toConfiguration(pigContext.getProperties());
         // create a simulated JobContext
         JobContext jc = new JobContext(conf, new JobID());
-        StoreFunc sfunc = (StoreFunc)PigContext.instantiateFuncFromSpec(
+        StoreFuncInterface sfunc = (StoreFuncInterface)PigContext.instantiateFuncFromSpec(
                 storeFuncSpec);
         OutputFormat<?,?> of = sfunc.getOutputFormat();
         
@@ -105,6 +105,7 @@ public class PigFile {
         oc.cleanupJob(jc);
     }
 
+    @Override
     public String toString() {
         return "PigFile: file: " + this.file + ", append: " + this.append;
     }

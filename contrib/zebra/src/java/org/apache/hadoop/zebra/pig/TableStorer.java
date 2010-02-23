@@ -52,7 +52,7 @@ import org.apache.pig.impl.util.UDFContext;
 /**
  * Pig LoadFunc implementation for Zebra Table
  */
-public class TableStorer implements StoreFunc, StoreMetadata {
+public class TableStorer extends StoreFunc implements StoreMetadata {
     private static final String UDFCONTEXT_OUTPUT_SCHEMA = "zebra.UDFContext.outputSchema";
     private static final String UDFCONTEXT_SORT_INFO = "zebra.UDFContext.sortInfo";
 

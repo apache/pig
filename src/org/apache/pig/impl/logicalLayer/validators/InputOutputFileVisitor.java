@@ -21,7 +21,7 @@ import java.io.IOException;
 
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.pig.PigException;
-import org.apache.pig.StoreFunc;
+import org.apache.pig.StoreFuncInterface;
 import org.apache.pig.impl.PigContext ;
 import org.apache.pig.impl.logicalLayer.LOStore;
 import org.apache.pig.impl.logicalLayer.LOVisitor;
@@ -63,7 +63,7 @@ public class InputOutputFileVisitor extends LOVisitor {
     @Override
     protected void visit(LOStore store) throws PlanValidationException{
 
-        StoreFunc sf = store.getStoreFunc();
+        StoreFuncInterface sf = store.getStoreFunc();
         String outLoc = store.getOutputFile().getFileName();
         Job dummyJob;
         String errMsg = "Unexpected error. Could not validate the output " +

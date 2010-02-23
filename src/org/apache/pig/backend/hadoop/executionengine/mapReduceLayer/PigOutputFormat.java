@@ -28,7 +28,7 @@ import org.apache.hadoop.mapreduce.OutputCommitter;
 import org.apache.hadoop.mapreduce.OutputFormat;
 import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
-import org.apache.pig.StoreFunc;
+import org.apache.pig.StoreFuncInterface;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.backend.hadoop.executionengine.util.MapRedUtil;
@@ -75,7 +75,7 @@ public class PigOutputFormat extends OutputFormat<WritableComparable, Tuple> {
             } else {
                 store = reduceStores.get(0);
             }
-            StoreFunc sFunc = store.getStoreFunc();
+            StoreFuncInterface sFunc = store.getStoreFunc();
             // set output location
             PigOutputFormat.setLocation(taskattemptcontext, store);
             // The above call should have update the conf in the JobContext
@@ -106,14 +106,14 @@ public class PigOutputFormat extends OutputFormat<WritableComparable, Tuple> {
         /**
          * the StoreFunc for the single store
          */
-        private StoreFunc sFunc;
+        private StoreFuncInterface sFunc;
         
         /**
          * Single Query or multi query
          */
         private Mode mode;
         
-        public PigRecordWriter(RecordWriter wrappedWriter, StoreFunc sFunc, 
+        public PigRecordWriter(RecordWriter wrappedWriter, StoreFuncInterface sFunc, 
                 Mode mode)
                 throws IOException {            
             this.mode = mode;
@@ -164,7 +164,7 @@ public class PigOutputFormat extends OutputFormat<WritableComparable, Tuple> {
     public static void setLocation(JobContext jobContext, POStore store) throws 
     IOException {
         Job storeJob = new Job(jobContext.getConfiguration());
-        StoreFunc storeFunc = store.getStoreFunc();
+        StoreFuncInterface storeFunc = store.getStoreFunc();
         String outputLocation = store.getSFile().getFileName();
         storeFunc.setStoreLocation(outputLocation, storeJob);
         
@@ -209,7 +209,7 @@ public class PigOutputFormat extends OutputFormat<WritableComparable, Tuple> {
             // set output location
             PigOutputFormat.setLocation(jobContextCopy, store);
             
-            StoreFunc sFunc = store.getStoreFunc();
+            StoreFuncInterface sFunc = store.getStoreFunc();
             OutputFormat of = sFunc.getOutputFormat();
             
             // The above call should have update the conf in the JobContext

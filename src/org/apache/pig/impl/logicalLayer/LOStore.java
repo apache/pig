@@ -22,7 +22,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.pig.FuncSpec;
-import org.apache.pig.StoreFunc; 
+import org.apache.pig.StoreFuncInterface;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.plan.OperatorKey;
@@ -45,7 +45,7 @@ public class LOStore extends RelationalOperator {
     
     private String signature;
 
-    transient private StoreFunc mStoreFunc;
+    transient private StoreFuncInterface mStoreFunc;
     private static Log log = LogFactory.getLog(LOStore.class);
 
     /**
@@ -68,7 +68,7 @@ public class LOStore extends RelationalOperator {
         // Also remove the commented out import org.apache.pig.impl.PigContext
 
         try { 
-             mStoreFunc = (StoreFunc) PigContext.instantiateFuncFromSpec(outputFileSpec.getFuncSpec());
+             mStoreFunc = (StoreFuncInterface) PigContext.instantiateFuncFromSpec(outputFileSpec.getFuncSpec());
              this.mAlias = alias;
              this.signature = constructSignature(mAlias, outputFileSpec.getFileName(), mOutputFile.getFuncSpec());
              mStoreFunc.setStoreFuncUDFContextSignature(this.signature);
@@ -89,7 +89,7 @@ public class LOStore extends RelationalOperator {
     
     public void setOutputFile(FileSpec outputFileSpec) throws IOException {
         try { 
-            mStoreFunc = (StoreFunc) PigContext.instantiateFuncFromSpec(outputFileSpec.getFuncSpec()); 
+            mStoreFunc = (StoreFuncInterface) PigContext.instantiateFuncFromSpec(outputFileSpec.getFuncSpec()); 
        } catch (Exception e) { 
            IOException ioe = new IOException(e.getMessage()); 
            ioe.setStackTrace(e.getStackTrace());
@@ -98,7 +98,7 @@ public class LOStore extends RelationalOperator {
        mOutputFile = outputFileSpec;
     }
 
-    public StoreFunc getStoreFunc() {
+    public StoreFuncInterface getStoreFunc() {
         return mStoreFunc;
     }
 
@@ -124,6 +124,7 @@ public class LOStore extends RelationalOperator {
         return true;
     }
 
+    @Override
     public void visit(LOVisitor v) throws VisitorException {
         v.visit(this);
     }

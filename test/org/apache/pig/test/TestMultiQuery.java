@@ -2701,7 +2701,7 @@ public class TestMultiQuery {
         }
     }
 
-    public static class DummyStoreWithOutputFormat implements StoreFunc {
+    public static class DummyStoreWithOutputFormat extends StoreFunc {
         
         /**
          * 

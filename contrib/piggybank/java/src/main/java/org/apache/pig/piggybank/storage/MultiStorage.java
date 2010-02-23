@@ -69,7 +69,7 @@ import org.apache.pig.impl.util.StorageUtil;
  * 1 reducer. So in the above case for e.g. there will be only 1 file each under
  * 'a1' and 'a2' directories.
  */
-public class MultiStorage implements StoreFunc {
+public class MultiStorage extends StoreFunc {
 
   private Path outputPath; // User specified output Path
   private int splitFieldIndex = -1; // Index of the key field
@@ -141,11 +141,6 @@ public class MultiStorage implements StoreFunc {
     }
   }
   
-  @Override
-  public void checkSchema(ResourceSchema s) throws IOException {
-
-  }
-    
   @SuppressWarnings("unchecked")
   @Override
   public OutputFormat getOutputFormat() throws IOException {
@@ -161,12 +156,6 @@ public class MultiStorage implements StoreFunc {
   }
     
   @Override
-  public String relToAbsPathForStoreLocation(String location, Path curDir)
-          throws IOException {
-    return LoadFunc.getAbsolutePath(location, curDir);
-  }
-    
-  @Override
   public void setStoreLocation(String location, Job job) throws IOException {
     job.getConfiguration().set("mapred.textoutputformat.separator", "");
     FileOutputFormat.setOutputPath(job, new Path(location));
@@ -179,11 +168,6 @@ public class MultiStorage implements StoreFunc {
     }
   }
  
-  @Override
-  public void setStoreFuncUDFContextSignature(String signature) {
-
-  }
-  
   //--------------------------------------------------------------------------
   // Implementation of OutputFormat
   
@@ -210,6 +194,7 @@ public class MultiStorage implements StoreFunc {
         private ByteArrayOutputStream mOut = 
               new ByteArrayOutputStream(BUFFER_SIZE);
                            
+        @Override
         public void write(String key, Tuple val) throws IOException {                
           int sz = val.size();
           for (int i = 0; i < sz; i++) {
@@ -232,6 +217,7 @@ public class MultiStorage implements StoreFunc {
           mOut.reset();
         }
 
+        @Override
         public void close(TaskAttemptContext context) throws IOException { 
           for (MyLineRecordWriter out : storeMap.values()) {
             out.close(context);
