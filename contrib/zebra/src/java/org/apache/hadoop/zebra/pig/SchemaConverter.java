@@ -158,23 +158,35 @@ class SchemaConverter {
             ColumnSchema cSchema) {
         ResourceFieldSchema field = new ResourceFieldSchema();
 
-        if( cSchema.getType() == ColumnType.COLLECTION && cSchema.getSchema().getNumColumns() > 1 ) {
-            field.setType( ColumnType.RECORD.pigDataType() );
-            field.setSchema( convertToResourceSchema( cSchema.getSchema() ) );
-        } else if( cSchema.getType() ==ColumnType.ANY && cSchema.getName().isEmpty() ) { // For anonymous column
+        if( cSchema.getType() ==ColumnType.ANY && cSchema.getName().isEmpty() ) { // For anonymous column
             field.setName( null );
             field.setType(  DataType.UNKNOWN );
             field.setSchema( null );
         } else {
             field.setName( cSchema.getName() );
             field.setType( cSchema.getType().pigDataType() );
-            if( cSchema.getType() == ColumnType.MAP )
+            if( cSchema.getType() == ColumnType.MAP ) {
+            	// Pig doesn't want any schema for a map field.
                 field.setSchema( null );
-            else
-                field.setSchema( convertToResourceSchema( cSchema.getSchema() ) );
+            } else {
+            	org.apache.hadoop.zebra.schema.Schema fs = cSchema.getSchema();
+            	ResourceSchema rs = convertToResourceSchema( fs  );
+            	if( cSchema.getType() == ColumnType.COLLECTION ) {
+            		int count = fs.getNumColumns();
+            		if( count > 1 || ( count == 1 && fs.getColumn( 0 ).getType() != ColumnType.RECORD ) ) {
+            			// Pig requires a record (tuple) as the schema for a BAG field.
+            			ResourceFieldSchema fieldSchema = new ResourceFieldSchema();
+            			fieldSchema.setSchema( rs );
+            			fieldSchema.setType( ColumnType.RECORD.pigDataType() );
+            			rs = new ResourceSchema();
+            			rs.setFields( new ResourceFieldSchema[] { fieldSchema } );
+            		}
+            	}
+                field.setSchema( rs );
+            }
         }
 
         return field;
     }
-
+  
 }
