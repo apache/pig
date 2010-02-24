@@ -59,6 +59,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlan
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POFRJoin;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLoad;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POMergeJoin;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPackage;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.util.PlanHelper;
@@ -219,26 +220,6 @@ public class JobControlCompiler{
         URI uri = src.toUri();
         String pathStr = uri.getPath().replace(part, "");
         return new Path(pathStr);
-    }
-
-    private Path makeTmpPath() throws IOException {
-        Path tmpPath = null;
-        for (int tries = 0;;) {
-            try {
-                tmpPath = 
-                    new Path(FileLocalizer
-                             .getTemporaryPath(null, pigContext).toString());
-                FileSystem fs = tmpPath.getFileSystem(conf);
-                tmpPath = tmpPath.makeQualified(fs);
-                fs.mkdirs(tmpPath);
-                break;
-            } catch (IOException ioe) {
-                if (++tries==100) {
-                    throw ioe;
-                }
-            }
-        }
-        return tmpPath;
     }
 
     /**
@@ -520,7 +501,7 @@ public class JobControlCompiler{
             // this call modifies the ReplFiles names of POFRJoin operators
             // within the MR plans, must be called before the plans are
             // serialized
-            setupDistributedCacheForFRJoin(mro, pigContext, conf);
+            setupDistributedCacheForJoin(mro, pigContext, conf);
 
             POPackage pack = null;
             if(mro.reducePlan.isEmpty()){
@@ -653,13 +634,13 @@ public class JobControlCompiler{
     }
     
     public static class PigSecondaryKeyGroupComparator extends WritableComparator {
-        @SuppressWarnings("unchecked")
         public PigSecondaryKeyGroupComparator() {
 //            super(TupleFactory.getInstance().tupleClass(), true);
             super(NullableTuple.class, true);
         }
 
-        @Override
+        @SuppressWarnings("unchecked")
+		@Override
         public int compare(WritableComparable a, WritableComparable b)
         {
             PigNullableWritable wa = (PigNullableWritable)a;
@@ -947,13 +928,13 @@ public class JobControlCompiler{
         }
     }
 
-    private void setupDistributedCacheForFRJoin(MapReduceOper mro,
+    private void setupDistributedCacheForJoin(MapReduceOper mro,
             PigContext pigContext, Configuration conf) throws IOException {       
                     
-        new FRJoinDistributedCacheVisitor(mro.mapPlan, pigContext, conf)
+        new JoinDistributedCacheVisitor(mro.mapPlan, pigContext, conf)
                 .visit();
              
-        new FRJoinDistributedCacheVisitor(mro.reducePlan, pigContext, conf)
+        new JoinDistributedCacheVisitor(mro.reducePlan, pigContext, conf)
                 .visit();
     }
 
@@ -1056,13 +1037,13 @@ public class JobControlCompiler{
         return symlink;
     }
     
-    private static class FRJoinDistributedCacheVisitor extends PhyPlanVisitor {
+    private static class JoinDistributedCacheVisitor extends PhyPlanVisitor {
                  
         private PigContext pigContext = null;
                 
          private Configuration conf = null;
          
-         public FRJoinDistributedCacheVisitor(PhysicalPlan plan, 
+         public JoinDistributedCacheVisitor(PhysicalPlan plan, 
                  PigContext pigContext, Configuration conf) {
              super(plan, new DepthFirstWalker<PhysicalOperator, PhysicalPlan>(
                      plan));
@@ -1109,6 +1090,29 @@ public class JobControlCompiler{
                                "be set up for the replicated files";
                  throw new VisitorException(msg, e);
              }
+         }
+         
+         @Override
+         public void visitMergeJoin(POMergeJoin join) throws VisitorException {
+             
+        	 // XXX Hadoop currently doesn't support distributed cache in local mode.
+             // This line will be removed after the support is added
+             if (pigContext.getExecType() == ExecType.LOCAL) return;
+             
+             String indexFile = join.getIndexFile();
+             
+             // merge join may not use an index file
+             if (indexFile == null) return;
+             
+             try {
+                String symlink = addSingleFileToDistributedCache(pigContext,
+                        conf, indexFile, "indexfile_");
+                join.setIndexFile(symlink);
+            } catch (IOException e) {
+                String msg = "Internal error. Distributed cache could not " +
+                        "be set up for merge join index file";
+                throw new VisitorException(msg, e);
+            }
          }
      }
     

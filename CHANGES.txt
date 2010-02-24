@@ -133,6 +133,9 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-1079: Modify merge join to use distributed cache to maintain the index
+(rding)
+
 PIG-1241: Accumulator is turned on when a map is used with a non-accumulative
 UDF (yinghe vi olgan)
 

@@ -40,6 +40,7 @@ import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.PigContext;
+import org.apache.pig.impl.builtin.DefaultIndexableLoader;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.OperatorKey;
@@ -87,6 +88,8 @@ public class POMergeJoin extends PhysicalOperator {
     private FuncSpec rightLoaderFuncSpec;
 
     private String rightInputFileName;
+    
+    private String indexFile;
 
     // Buffer to hold accumulated left tuples.
     private List<Tuple> leftTuples;
@@ -131,6 +134,7 @@ public class POMergeJoin extends PhysicalOperator {
         mTupleFactory = TupleFactory.getInstance();
         leftTuples = new ArrayList<Tuple>(arrayListSize);
         this.createJoinPlans(inpPlans,keyTypes);
+        this.indexFile = null;
     }
 
     /**
@@ -384,9 +388,15 @@ public class POMergeJoin extends PhysicalOperator {
         }
     }
     
-    @SuppressWarnings("unchecked")
     private void seekInRightStream(Object firstLeftKey) throws IOException{
         rightLoader = (IndexableLoadFunc)PigContext.instantiateFuncFromSpec(rightLoaderFuncSpec);
+        
+        // check if hadoop distributed cache is used
+        if (indexFile != null && rightLoader instanceof DefaultIndexableLoader) {
+            DefaultIndexableLoader loader = (DefaultIndexableLoader)rightLoader;
+            loader.setIndexFile(indexFile);
+        }
+        
         // Pass signature of the loader to rightLoader
         // make a copy of the conf to use in calls to rightLoader.
         Configuration conf = new Configuration(PigMapReduce.sJobConf);
@@ -544,5 +554,13 @@ public class POMergeJoin extends PhysicalOperator {
     
     public void setSignature(String signature) {
         this.signature = signature;
+    }
+
+    public void setIndexFile(String indexFile) {
+        this.indexFile = indexFile;
+    }
+
+    public String getIndexFile() {
+        return indexFile;
     }
 }

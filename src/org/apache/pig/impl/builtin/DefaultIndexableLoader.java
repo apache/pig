@@ -21,10 +21,13 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Properties;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.RecordReader;
+import org.apache.pig.ExecType;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.IndexableLoadFunc;
 import org.apache.pig.LoadCaster;
@@ -37,6 +40,7 @@ import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigSplit;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLoad;
+import org.apache.pig.backend.hadoop.executionengine.util.MapRedUtil;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.PigContext;
@@ -64,7 +68,7 @@ public class DefaultIndexableLoader extends IndexableLoadFunc {
     // Index is modeled as FIFO queue and LinkedList implements java Queue interface.  
     private LinkedList<Tuple> index;
     private FuncSpec rightLoaderFuncSpec;
-    private PigContext pc;
+
     private String scope;
     private Tuple dummyTuple = null;
     private transient TupleFactory mTupleFactory;
@@ -105,14 +109,11 @@ public class DefaultIndexableLoader extends IndexableLoadFunc {
         // the join key
         Object firstLeftKey = (keys.size() == 1 ? keys.get(0): keys);
         POLoad ld = new POLoad(genKey(), new FileSpec(indexFile, new FuncSpec(indexFileLoadFuncSpec)));
-        try {
-            pc = (PigContext)ObjectSerializer.deserialize(PigMapReduce.sJobConf.get("pig.pigContext"));
-        } catch (IOException e) {
-            int errCode = 2094;
-            String msg = "Unable to deserialize pig context.";
-            throw new ExecException(msg,errCode,e);
-        }
-        pc.connect();
+                
+        Properties props = new Properties();                                          
+        props.setProperty(MapRedUtil.FILE_SYSTEM_NAME, "file:///");
+ 
+        PigContext pc = new PigContext(ExecType.LOCAL, props);
         ld.setPc(pc);
         index = new LinkedList<Tuple>();
         for(Result res=ld.getNext(dummyTuple);res.returnStatus!=POStatus.STATUS_EOP;res=ld.getNext(dummyTuple))
@@ -191,6 +192,8 @@ public class DefaultIndexableLoader extends IndexableLoadFunc {
     }
     
     private void initRightLoader(int [] splitsToBeRead) throws IOException{
+        PigContext pc = (PigContext) ObjectSerializer
+                .deserialize(PigMapReduce.sJobConf.get("pig.pigContext"));
         //create ReadToEndLoader that will read the given splits in order
         loader = new ReadToEndLoader(
                 (LoadFunc)PigContext.instantiateFuncFromSpec(rightLoaderFuncSpec),
@@ -255,4 +258,8 @@ public class DefaultIndexableLoader extends IndexableLoadFunc {
         // nothing to do
     }
     
+    public void setIndexFile(String indexFile) {
+        this.indexFile = indexFile;
+    }
+
 }
