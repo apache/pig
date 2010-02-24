@@ -241,6 +241,8 @@ PIG-1189: StoreFunc UDF should ship to the backend automatically without
 
 PIG-1212: LogicalPlan.replaceAndAddSucessors produce wrong result when successors are null (daijy)
 
+PIG-1255: Tiny code cleanup for serialization code for PigSplit (daijy)
+
 Release 0.6.0 - Unreleased
 
 INCOMPATIBLE CHANGES
