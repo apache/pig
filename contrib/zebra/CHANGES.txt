@@ -4,6 +4,8 @@ Trunk (unreleased changes)
 
   INCOMPATIBLE CHANGES
 
+    PIG-1164 Addition of smoke tests (gauravj via yanz)
+
     PIG-1122 Changed version number of pig dev core jar used in Zebra build from 0.6.0 to 0.7.0
         to match Pig version number (yanz)
 
