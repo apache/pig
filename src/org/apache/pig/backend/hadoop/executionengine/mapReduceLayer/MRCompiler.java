@@ -1286,7 +1286,9 @@ public class MRCompiler extends PhyPlanVisitor {
                 defaultIndexableLoaderArgs[3] = joinOp.getOperatorKey().scope;
                 defaultIndexableLoaderArgs[4] = origRightLoaderFileSpec.getFileName();
                 joinOp.setRightLoaderFuncSpec((new FuncSpec(DefaultIndexableLoader.class.getName(), defaultIndexableLoaderArgs)));
-                joinOp.setRightInputFileName(origRightLoaderFileSpec.getFileName());    
+                joinOp.setRightInputFileName(origRightLoaderFileSpec.getFileName());  
+                
+                joinOp.setIndexFile(strFile.getFileName());
                  
             }
             
