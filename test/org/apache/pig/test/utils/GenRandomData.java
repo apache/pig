@@ -21,10 +21,14 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
 
+import org.apache.pig.ResourceSchema;
+import org.apache.pig.ResourceSchema.ResourceFieldSchema;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataByteArray;
+import org.apache.pig.data.DataType;
 import org.apache.pig.data.DefaultBagFactory;
 import org.apache.pig.data.DefaultTuple;
+import org.apache.pig.data.DefaultTupleFactory;
 import org.apache.pig.data.Tuple;
 
 public class GenRandomData {
@@ -37,7 +41,7 @@ public class GenRandomData {
             return ret;
         }
         for(int i=0;i<numEnt;i++){
-            ret.put(genRandString(r), genRandString(r));
+            ret.put(genRandString(r), new DataByteArray(genRandString(r).getBytes()));
         }
         return ret;
     }
@@ -73,6 +77,20 @@ public class GenRandomData {
         return new DataByteArray(genRandString(r).getBytes());
     }
     
+    public static ResourceFieldSchema getSmallTupleFieldSchema(){
+        ResourceFieldSchema stringfs = new ResourceFieldSchema();
+        stringfs.setType(DataType.CHARARRAY);
+        ResourceFieldSchema intfs = new ResourceFieldSchema();
+        intfs.setType(DataType.INTEGER);
+        
+        ResourceSchema tupleSchema = new ResourceSchema();
+        tupleSchema.setFields(new ResourceFieldSchema[]{stringfs, intfs});
+        ResourceFieldSchema tuplefs = new ResourceFieldSchema();
+        tuplefs.setSchema(tupleSchema);
+        tuplefs.setType(DataType.TUPLE);
+        
+        return tuplefs;
+    }
     public static Tuple genRandSmallTuple(Random r, int limit){
         if(r==null){
             Tuple t = new DefaultTuple();
@@ -125,6 +143,18 @@ public class GenRandomData {
         return db;
     }
     
+    public static ResourceFieldSchema getSmallTupDataBagFieldSchema() {
+        ResourceFieldSchema tuplefs = getSmallTupleFieldSchema();
+        
+        ResourceSchema bagSchema = new ResourceSchema();
+        bagSchema.setFields(new ResourceFieldSchema[]{tuplefs});
+        ResourceFieldSchema bagfs = new ResourceFieldSchema();
+        bagfs.setSchema(bagSchema);
+        bagfs.setType(DataType.BAG);
+        
+        return bagfs;
+    }
+    
     public static DataBag genRandSmallTupDataBag(Random r, int num, int limit){
         if(r==null) {
             DataBag db = DefaultBagFactory.getInstance().newDefaultBag();
@@ -158,6 +188,39 @@ public class GenRandomData {
         t.append(genRandMap(r, num));
         t.append(genRandSmallTuple(r, 100));
         return t;
+    }
+    
+    public static ResourceFieldSchema getSmallBagTextTupleFieldSchema(){
+        ResourceFieldSchema stringfs = new ResourceFieldSchema();
+        stringfs.setType(DataType.CHARARRAY);
+        
+        ResourceFieldSchema intfs = new ResourceFieldSchema();
+        intfs.setType(DataType.INTEGER);
+    	
+        ResourceFieldSchema bagfs = getSmallTupDataBagFieldSchema();
+        
+        ResourceFieldSchema floatfs = new ResourceFieldSchema();
+        floatfs.setType(DataType.FLOAT);
+        
+        ResourceFieldSchema doublefs = new ResourceFieldSchema();
+        doublefs.setType(DataType.DOUBLE);
+        
+        ResourceFieldSchema longfs = new ResourceFieldSchema();
+        longfs.setType(DataType.LONG);
+        
+        ResourceFieldSchema mapfs = new ResourceFieldSchema();
+        mapfs.setType(DataType.MAP);
+        
+        ResourceFieldSchema tuplefs = getSmallTupleFieldSchema();
+        
+        ResourceSchema outSchema = new ResourceSchema();
+        outSchema.setFields(new ResourceFieldSchema[]{bagfs, stringfs, stringfs, doublefs, floatfs,
+                intfs, longfs, mapfs, tuplefs});
+        ResourceFieldSchema outfs = new ResourceFieldSchema();
+        outfs.setSchema(outSchema);
+        outfs.setType(DataType.TUPLE);
+        
+        return outfs;
     }
     
     public static Tuple genRandSmallBagTextTuple(Random r, int num, int limit){
@@ -199,6 +262,18 @@ public class GenRandomData {
         return db;
     }
 
+    public static ResourceFieldSchema getFullTupTextDataBagFieldSchema(){
+        ResourceFieldSchema tuplefs = getSmallBagTextTupleFieldSchema();
+        
+        ResourceSchema outBagSchema = new ResourceSchema();
+        outBagSchema.setFields(new ResourceFieldSchema[]{tuplefs});
+        ResourceFieldSchema outBagfs = new ResourceFieldSchema();
+        outBagfs.setSchema(outBagSchema);
+        outBagfs.setType(DataType.BAG);
+        
+        return outBagfs;
+    }
+    
     public static DataBag genRandFullTupTextDataBag(Random r, int num, int limit){
         if(r==null) {
             DataBag db = DefaultBagFactory.getInstance().newDefaultBag();
@@ -259,5 +334,85 @@ public class GenRandomData {
         t.append(null);
         return t;
     }
+    
+    public static DataBag genFloatDataBag(Random r, int column, int row) {
+        DataBag db = DefaultBagFactory.getInstance().newDefaultBag();
+        for (int i=0;i<row;i++) {
+            Tuple t = DefaultTupleFactory.getInstance().newTuple();
+            for (int j=0;j<column;j++) {
+                t.append(r.nextFloat()*1000);
+            }
+            db.add(t);
+        }
+        return db;
+    }
+    
+    public static ResourceFieldSchema getFloatDataBagFieldSchema(int column) {
+        ResourceFieldSchema intfs = new ResourceFieldSchema();
+        intfs.setType(DataType.INTEGER);
+        
+        ResourceSchema tupleSchema = new ResourceSchema();
+        ResourceFieldSchema[] fss = new ResourceFieldSchema[column];
+        for (int i=0;i<column;i++) {
+            fss[i] = intfs;
+        }
+        tupleSchema.setFields(fss);
+        ResourceFieldSchema tuplefs = new ResourceFieldSchema();
+        tuplefs.setSchema(tupleSchema);
+        tuplefs.setType(DataType.TUPLE);
+        
+        ResourceSchema bagSchema = new ResourceSchema();
+        bagSchema.setFields(new ResourceFieldSchema[]{tuplefs});
+        ResourceFieldSchema bagfs = new ResourceFieldSchema();
+        bagfs.setSchema(bagSchema);
+        bagfs.setType(DataType.BAG);
+        
+        return bagfs;
+    }
+    
+    public static Tuple genMixedTupleToConvert(Random r) {
+        Tuple t = DefaultTupleFactory.getInstance().newTuple();
+        t.append(r.nextInt());
+        t.append(r.nextInt());
+        long l = 0;
+        while (l<=Integer.MAX_VALUE && l>=Integer.MIN_VALUE)
+            l = r.nextLong();
+        t.append(l);
+        t.append(r.nextFloat()*1000);
+        t.append(r.nextDouble()*10000);
+        t.append(genRandString(r));
+        t.append("K"+genRandString(r));
+        t.append("K"+genRandString(r));
+        t.append("K"+genRandString(r));
+        if (r.nextFloat()>0.5)
+            t.append("true");
+        else
+            t.append("false");
+        return t;
+    }
+    
+    public static ResourceFieldSchema getMixedTupleToConvertFieldSchema() {
+        ResourceFieldSchema stringfs = new ResourceFieldSchema();
+        stringfs.setType(DataType.CHARARRAY);
+        ResourceFieldSchema intfs = new ResourceFieldSchema();
+        intfs.setType(DataType.INTEGER);
+        ResourceFieldSchema longfs = new ResourceFieldSchema();
+        longfs.setType(DataType.LONG);
+        ResourceFieldSchema floatfs = new ResourceFieldSchema();
+        floatfs.setType(DataType.FLOAT);
+        ResourceFieldSchema doublefs = new ResourceFieldSchema();
+        doublefs.setType(DataType.DOUBLE);
+        ResourceFieldSchema booleanfs = new ResourceFieldSchema();
+        booleanfs.setType(DataType.BOOLEAN);
+        
+        ResourceSchema tupleSchema = new ResourceSchema();
+        tupleSchema.setFields(new ResourceFieldSchema[]{stringfs, longfs, intfs, doublefs, floatfs, stringfs, intfs, doublefs, floatfs, booleanfs});
+        ResourceFieldSchema tuplefs = new ResourceFieldSchema();
+        tuplefs.setSchema(tupleSchema);
+        tuplefs.setType(DataType.TUPLE);
+        
+        return tuplefs;
+    }
+
     
 }

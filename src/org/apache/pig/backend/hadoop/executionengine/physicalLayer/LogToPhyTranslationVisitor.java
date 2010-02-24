@@ -40,6 +40,7 @@ import org.apache.pig.data.NonSpillableDataBag;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.PigContext;
+import org.apache.pig.ResourceSchema.ResourceFieldSchema;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.*;
@@ -1815,7 +1816,7 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
     @Override
     public void visit(LOCast op) throws VisitorException {
         String scope = op.getOperatorKey().scope;
-        ExpressionOperator physOp = new POCast(new OperatorKey(scope, nodeGen
+        POCast physOp = new POCast(new OperatorKey(scope, nodeGen
                 .getNextNodeId(scope)), op.getRequestedParallelism());
         physOp.setAlias(op.getAlias());
         currentPlan.add(physOp);
@@ -1824,10 +1825,19 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
         ExpressionOperator from = (ExpressionOperator) logToPhyMap.get(op
                 .getExpression());
         physOp.setResultType(op.getType());
+        try {
+            if (op.getType()==DataType.BAG || op.getType()==DataType.TUPLE) {
+                physOp.setFieldSchema(new ResourceFieldSchema(op.getFieldSchema()));
+            }
+        } catch (FrontendException e) {
+            int errCode = 2216;
+            String msg = "Cannot get field schema for "+op;
+            throw new LogicalToPhysicalTranslatorException(msg, errCode, PigException.BUG, e);
+        }
         FuncSpec lfSpec = op.getLoadFuncSpec();
         if(null != lfSpec) {
             try {
-                ((POCast) physOp).setFuncSpec(lfSpec);
+                physOp.setFuncSpec(lfSpec);
             } catch (IOException e) {
                 int errCode = 1053;
                 String msg = "Cannot resolve load function to use for casting" +

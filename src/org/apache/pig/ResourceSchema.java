@@ -125,12 +125,22 @@ public class ResourceSchema implements Serializable {
                 
         @Override
         public String toString() {
+            return getDescription(true);
+        }
+        
+        public String getCastString() {
+            return getDescription(false);
+        }
+        
+        private String getDescription(boolean printAlias) {
             StringBuilder sb = new StringBuilder();
-            sb.append(this.name).append(":");
-            if (DataType.isAtomic(this.type)) {
+            if (printAlias)
+                sb.append(this.name).append(":");
+            if (DataType.isAtomic(this.type)||this.type==DataType.MAP) {
                 sb.append(DataType.findTypeName(this.type));
             } else {
-                stringifyResourceSchema(sb, this.schema, this.type);
+                if (this.schema!=null)
+                    stringifyResourceSchema(sb, this.schema, this.type, printAlias);
             }
             return sb.toString();
         }
@@ -253,12 +263,12 @@ public class ResourceSchema implements Serializable {
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
-        stringifyResourceSchema(sb, this, DataType.UNKNOWN) ;
+        stringifyResourceSchema(sb, this, DataType.UNKNOWN, true) ;
         return sb.toString();
     }
     
     private static void stringifyResourceSchema(StringBuilder sb, 
-            ResourceSchema rs, byte type) {
+            ResourceSchema rs, byte type, boolean printAlias) {
         if (type == DataType.UNKNOWN) {
             sb.append("<");
         } else if (type == DataType.BAG) {
@@ -268,7 +278,7 @@ public class ResourceSchema implements Serializable {
         }
         
         for (int i=0; i<rs.getFields().length; i++) {
-            sb.append(rs.getFields()[i].toString());
+            sb.append(rs.getFields()[i].getDescription(printAlias));
             if (i < rs.getFields().length - 1) {
                 sb.append(",");
             }

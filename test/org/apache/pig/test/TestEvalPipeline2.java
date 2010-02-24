@@ -235,7 +235,11 @@ public class TestEvalPipeline2 extends TestCase {
 
         //tuple 4 - integer exceeds size limit
         tup = it.next();
-        assertTrue(tup.get(0) == null);
+        assertTrue(tup.get(0) instanceof DataBag);
+        DataBag db = (DataBag)tup.get(0);
+        assertTrue(db.iterator().hasNext());
+        Tuple innerTuple = (Tuple)db.iterator().next();
+        assertTrue(innerTuple.get(0)==null);
 
         //tuple 5 
         tup = it.next();
@@ -271,7 +275,7 @@ public class TestEvalPipeline2 extends TestCase {
 
         //tuple 1 
         tup = it.next();
-        assertTrue(tup.get(0) != null);
+        assertTrue(tup.get(0) == null);
         
         //tuple 2 -malformed tuple
         tup = it.next();
@@ -281,9 +285,9 @@ public class TestEvalPipeline2 extends TestCase {
         tup = it.next();
         assertTrue(tup.get(0) == null);
 
-        //tuple 5 
+        //tuple 4
         tup = it.next();
-        assertTrue(tup.get(0) != null);
+        assertTrue(tup.get(0) == null);
 
         Util.deleteFile(cluster, "table_bs_ac_clxt");
     }

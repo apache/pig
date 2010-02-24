@@ -22,6 +22,8 @@ import java.util.Random;
 import java.util.Map;
 import java.io.IOException;
 
+import org.apache.pig.ResourceSchema;
+import org.apache.pig.ResourceSchema.ResourceFieldSchema;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.builtin.Utf8StorageConverter;
 import org.apache.pig.test.utils.GenRandomData;
@@ -31,6 +33,9 @@ import org.apache.pig.data.TupleFactory;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.DataType;
+import org.apache.pig.impl.logicalLayer.parser.ParseException;
+import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.impl.util.Utils;
 
 import org.junit.Test;
 
@@ -156,7 +161,10 @@ public class TestConversions extends TestCase {
     {
         for (int i = 0; i < MAX; i++) {
             Tuple t = GenRandomData.genRandSmallBagTextTuple(r, 1, 100);
-            Tuple convertedTuple = ps.getLoadCaster().bytesToTuple(t.toString().getBytes());
+            
+            ResourceFieldSchema fs = GenRandomData.getSmallBagTextTupleFieldSchema();
+            
+            Tuple convertedTuple = ps.getLoadCaster().bytesToTuple(t.toString().getBytes(), fs);
             assertTrue(TestHelper.tupleEquals(t, convertedTuple));
         }
         
@@ -165,9 +173,11 @@ public class TestConversions extends TestCase {
     @Test
     public  void testBytesToBag() throws IOException
     {
+        ResourceFieldSchema fs = GenRandomData.getFullTupTextDataBagFieldSchema();
+        
         for (int i = 0; i < MAX; i++) {
             DataBag b = GenRandomData.genRandFullTupTextDataBag(r,5,100);
-            DataBag convertedBag = ps.getLoadCaster().bytesToBag(b.toString().getBytes());
+            DataBag convertedBag = ps.getLoadCaster().bytesToBag(b.toString().getBytes(), fs);
             assertTrue(TestHelper.bagEquals(b, convertedBag));
         }
         
@@ -233,5 +243,131 @@ public class TestConversions extends TestCase {
     public void testMapToBytes() throws IOException {
         Map<String, Object>  m = GenRandomData.genRandMap(r,5);
         assertTrue(DataType.equalByteArrays(DataType.mapToString(m).getBytes(), ((Utf8StorageConverter)ps.getLoadCaster()).toBytes(m)));
+    }
+    
+    @Test
+    public void testBytesToBagWithConversion() throws IOException {
+        DataBag b = GenRandomData.genFloatDataBag(r,5,100);
+        ResourceFieldSchema fs = GenRandomData.getFloatDataBagFieldSchema(5);
+        DataBag convertedBag = ps.getLoadCaster().bytesToBag(b.toString().getBytes(), fs);
+        
+        Iterator<Tuple> iter1 = b.iterator();
+        Iterator<Tuple> iter2 = convertedBag.iterator();
+        for (int i=0;i<100;i++) {
+            Tuple t1 = (Tuple)iter1.next();
+            assertTrue(iter2.hasNext());
+            Tuple t2 = (Tuple)iter2.next();
+            for (int j=0;j<5;j++) {
+                assertTrue(t2.get(j) instanceof Integer);
+                float expectedValue = (Float)(t1.get(j));
+                assertTrue((Integer)t2.get(j)==(int)expectedValue);
+            }
+        }
+    }
+    
+    @Test
+    public void testBytesToTupleWithConversion() throws IOException {
+        for (int i=0;i<100;i++) {
+            Tuple t = GenRandomData.genMixedTupleToConvert(r);
+            ResourceFieldSchema fs = GenRandomData.getMixedTupleToConvertFieldSchema();
+            Tuple convertedTuple = ps.getLoadCaster().bytesToTuple(t.toString().getBytes(), fs);
+            
+            assertTrue(convertedTuple.get(0) instanceof String);
+            assertTrue(convertedTuple.get(0).equals(((Integer)t.get(0)).toString()));            
+            
+            assertTrue(convertedTuple.get(1) instanceof Long);
+            Integer origValue1 = (Integer)t.get(1);
+            assertTrue(convertedTuple.get(1).equals(new Long(origValue1.longValue())));
+            
+            assertTrue(convertedTuple.get(2)==null);
+            
+            assertTrue(convertedTuple.get(3) instanceof Double);
+            Float origValue3 = (Float)t.get(3);
+            assertTrue(((Double)convertedTuple.get(3) - origValue3.doubleValue())<0.01);
+            
+            assertTrue(convertedTuple.get(4) instanceof Float);
+            Double origValue4 = (Double)t.get(4);
+            assertTrue(((Float)convertedTuple.get(4) - origValue4.floatValue())<0.01);
+            
+            assertTrue(convertedTuple.get(5) instanceof String);
+            assertTrue(convertedTuple.get(5).equals(t.get(5)));
+            
+            assertTrue(convertedTuple.get(6)==null);
+            
+            assertTrue(convertedTuple.get(7)==null);
+            
+            assertTrue(convertedTuple.get(8)==null);
+            
+            assertTrue(convertedTuple.get(9) instanceof Boolean);
+            String origValue9 = (String)t.get(9);
+            assertTrue(new Boolean(origValue9).equals(convertedTuple.get(9)));
+        }
+    }
+    
+    public void testBytesToComplexTypeMisc() throws IOException, ParseException {
+        String s = "(a,b";
+        Schema schema = Utils.getSchemaFromString("t:tuple(a:chararray, b:chararray)");
+        ResourceFieldSchema rfs = new ResourceSchema(schema).getFields()[0];
+        Tuple t = ps.getLoadCaster().bytesToTuple(s.getBytes(), rfs);
+        assertTrue(t==null);
+        
+        s = "{(a,b}";
+        schema = Utils.getSchemaFromString("b:bag{t:tuple(a:chararray, b:chararray)}");
+        rfs = new ResourceSchema(schema).getFields()[0];
+        DataBag b = ps.getLoadCaster().bytesToBag(s.getBytes(), rfs);
+        assertTrue(b==null);
+        
+        s = "{(a,b)";
+        schema = Utils.getSchemaFromString("b:bag{t:tuple(a:chararray, b:chararray)}");
+        rfs = new ResourceSchema(schema).getFields()[0];
+        b = ps.getLoadCaster().bytesToBag(s.getBytes(), rfs);
+        assertTrue(b==null);
+        
+        s = "[ab]";
+        Map<String, Object> m = ps.getLoadCaster().bytesToMap(s.getBytes());
+        assertTrue(m==null);
+        
+        s = "[a#b";
+        m = ps.getLoadCaster().bytesToMap(s.getBytes());
+        assertTrue(m==null);
+        
+        s = "[a#]";
+        m = ps.getLoadCaster().bytesToMap(s.getBytes());
+        Map.Entry<String, Object> entry = m.entrySet().iterator().next();
+        assertTrue(entry.getKey().equals("a"));
+        assertTrue(entry.getValue()==null);
+        
+        s = "[#]";
+        m = ps.getLoadCaster().bytesToMap(s.getBytes());
+        assertTrue(m==null);
+        
+        s = "(a,b)";
+        schema = Utils.getSchemaFromString("t:tuple()");
+        rfs = new ResourceSchema(schema).getFields()[0];
+        t = ps.getLoadCaster().bytesToTuple(s.getBytes(), rfs);
+        assertTrue(t.size()==1);
+        assertTrue(t.get(0) instanceof DataByteArray);
+        assertTrue(t.get(0).toString().equals("a,b"));
+        
+        s = "[a#(1,2,3)]";
+        m = ps.getLoadCaster().bytesToMap(s.getBytes());
+        entry = m.entrySet().iterator().next();
+        assertTrue(entry.getKey().equals("a"));
+        assertTrue(entry.getValue() instanceof DataByteArray);
+        assertTrue(entry.getValue().toString().equals("(1,2,3)"));
+        
+        s = "(a,b,(123,456,{(1,2,3)}))";
+        schema = Utils.getSchemaFromString("t:tuple()");
+        rfs = new ResourceSchema(schema).getFields()[0];
+        t = ps.getLoadCaster().bytesToTuple(s.getBytes(), rfs);
+        assertTrue(t.size()==1);
+        assertTrue(t.get(0) instanceof DataByteArray);
+        assertTrue(t.get(0).toString().equals("a,b,(123,456,{(1,2,3)})"));
+        
+        s = "(a,b,(123,456,{(1,2,3}))";
+        schema = Utils.getSchemaFromString("t:tuple()");
+        rfs = new ResourceSchema(schema).getFields()[0];
+        t = ps.getLoadCaster().bytesToTuple(s.getBytes(), rfs);
+        assertTrue(t==null);
     }
 }

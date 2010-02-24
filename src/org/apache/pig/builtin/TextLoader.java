@@ -29,6 +29,7 @@ import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
 import org.apache.pig.LoadCaster;
 import org.apache.pig.LoadFunc;
 import org.apache.pig.PigException;
+import org.apache.pig.ResourceSchema.ResourceFieldSchema;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigSplit;
 import org.apache.pig.data.DataBag;
@@ -133,7 +134,7 @@ public class TextLoader extends LoadFunc implements LoadCaster {
      * @throws IOException if the value cannot be cast.
      */
     @Override
-    public Tuple bytesToTuple(byte[] b) throws IOException {
+    public Tuple bytesToTuple(byte[] b, ResourceFieldSchema schema) throws IOException {
         int errCode = 2109;
         String msg = "TextLoader does not support conversion to Tuple.";
         throw new ExecException(msg, errCode, PigException.BUG);
@@ -143,7 +144,7 @@ public class TextLoader extends LoadFunc implements LoadCaster {
      * TextLoader does not support conversion to Bag
      * @throws IOException if the value cannot be cast.
      */
-    public DataBag bytesToBag(byte[] b) throws IOException {
+    public DataBag bytesToBag(byte[] b, ResourceFieldSchema schema) throws IOException {
         int errCode = 2109;
         String msg = "TextLoader does not support conversion to Bag.";
         throw new ExecException(msg, errCode, PigException.BUG);

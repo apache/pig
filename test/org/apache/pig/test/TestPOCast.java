@@ -32,6 +32,7 @@ import org.apache.pig.ExecType;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.LoadCaster;
 import org.apache.pig.LoadFunc;
+import org.apache.pig.ResourceSchema.ResourceFieldSchema;
 import org.apache.pig.backend.datastorage.DataStorage;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.BagFactory;
@@ -919,7 +920,7 @@ public class TestPOCast extends TestCase {
             return null;
         }
         
-        public DataBag bytesToBag(byte[] b) throws IOException {
+        public DataBag bytesToBag(byte[] b, ResourceFieldSchema s) throws IOException {
             return null;
         }
 
@@ -956,7 +957,7 @@ public class TestPOCast extends TestCase {
           return null;
         }
 
-        public Tuple bytesToTuple(byte[] b) throws IOException {
+        public Tuple bytesToTuple(byte[] b, ResourceFieldSchema s) throws IOException {
             return null;
         }
 

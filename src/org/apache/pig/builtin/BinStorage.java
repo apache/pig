@@ -45,6 +45,7 @@ import org.apache.pig.LoadMetadata;
 import org.apache.pig.PigException;
 import org.apache.pig.PigWarning;
 import org.apache.pig.ResourceSchema;
+import org.apache.pig.ResourceSchema.ResourceFieldSchema;
 import org.apache.pig.ResourceStatistics;
 import org.apache.pig.StoreFuncInterface;
 import org.apache.pig.backend.executionengine.ExecException;
@@ -104,7 +105,7 @@ implements LoadCaster, StoreFuncInterface, LoadMetadata {
     }
 
     @Override
-    public DataBag bytesToBag(byte[] b){
+    public DataBag bytesToBag(byte[] b, ResourceFieldSchema schema){
         DataInputStream dis = new DataInputStream(new ByteArrayInputStream(b));
         try {
             return DataReaderWriter.bytesToBag(dis);
@@ -209,7 +210,7 @@ implements LoadCaster, StoreFuncInterface, LoadMetadata {
     }
 
     @Override
-    public Tuple bytesToTuple(byte[] b) {
+    public Tuple bytesToTuple(byte[] b, ResourceFieldSchema schema) {
         DataInputStream dis = new DataInputStream(new ByteArrayInputStream(b));
         try {
             return DataReaderWriter.bytesToTuple(dis);
