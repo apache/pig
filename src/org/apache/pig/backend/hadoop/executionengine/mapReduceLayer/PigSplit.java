@@ -133,10 +133,10 @@ public class PigSplit extends InputSplit implements Writable, Configurable {
             wrappedSplit = (InputSplit) 
             ReflectionUtils.newInstance(splitClass, conf);
             SerializationFactory sf = new SerializationFactory(conf);
+            // The correct call sequence for Deserializer is, we shall open, then deserialize, but we shall not close
             Deserializer d = sf.getDeserializer(splitClass);
             d.open((InputStream) is);
             d.deserialize(wrappedSplit);
-            d.close();
         } catch (ClassNotFoundException e) {
             throw new IOException(e);
         }
@@ -151,9 +151,9 @@ public class PigSplit extends InputSplit implements Writable, Configurable {
         SerializationFactory sf = new SerializationFactory(conf);
         Serializer s = 
             sf.getSerializer(wrappedSplit.getClass());
+        // The correct call sequence for Serializer is, we shall open, then serialize, but we shall not close
         s.open((OutputStream) os);
         s.serialize(wrappedSplit);
-        s.close();
         
     }
 
