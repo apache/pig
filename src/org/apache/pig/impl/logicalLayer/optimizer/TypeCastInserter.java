@@ -171,6 +171,7 @@ public class TypeCastInserter extends LogicalTransformer {
                             // from the type specified - so we need to cast
                             LOCast cast = new LOCast(p, 
                                         OperatorKey.genOpKey(scope), fs.type);
+                            cast.setFieldSchema(fs);
                             p.add(cast);
                             p.connect(proj, cast);
                             

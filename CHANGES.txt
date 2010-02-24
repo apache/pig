@@ -243,6 +243,8 @@ PIG-1212: LogicalPlan.replaceAndAddSucessors produce wrong result when successor
 
 PIG-1255: Tiny code cleanup for serialization code for PigSplit (daijy)
 
+PIG-613: Casting elements inside a tuple does not take effect (daijy)
+
 Release 0.6.0 - Unreleased
 
 INCOMPATIBLE CHANGES

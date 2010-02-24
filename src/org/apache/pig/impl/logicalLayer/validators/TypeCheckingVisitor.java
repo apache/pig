@@ -244,7 +244,7 @@ public class TypeCheckingVisitor extends LOVisitor {
         if(map.getMap().getType() != DataType.MAP) {
             // insert cast if the predecessor does not
             // return map
-            insertCast(map, DataType.MAP, map.getMap());
+            insertCast(map, DataType.MAP, null, map.getMap());
         }
 
     }
@@ -275,7 +275,7 @@ public class TypeCheckingVisitor extends LOVisitor {
     }
 
     private void insertCastForRegexp(LORegexp rg) throws VisitorException {
-        insertCast(rg, DataType.CHARARRAY, rg.getOperand());
+        insertCast(rg, DataType.CHARARRAY, null, rg.getOperand());
     }
 
     public void visit(LOAnd binOp) throws VisitorException {
@@ -978,23 +978,31 @@ public class TypeCheckingVisitor extends LOVisitor {
 
     private void insertLeftCastForBinaryOp(BinaryExpressionOperator binOp,
                                            byte toType ) throws VisitorException {
-        insertCast(binOp, toType, binOp.getLhsOperand());
+        insertCast(binOp, toType, null, binOp.getLhsOperand());
     }
 
     private void insertRightCastForBinaryOp(BinaryExpressionOperator binOp,
                                             byte toType ) throws VisitorException {
-        insertCast(binOp, toType, binOp.getRhsOperand());
+        insertCast(binOp, toType, null, binOp.getRhsOperand());
     }
 
 
     private void insertCast(ExpressionOperator node,
-                            byte toType, ExpressionOperator predecessor) 
+                            byte toType, FieldSchema toFs, ExpressionOperator predecessor) 
     throws VisitorException {
         LogicalPlan currentPlan = mCurrentWalker.getPlan() ;
         collectCastWarning(node, predecessor.getType(), toType);
 
         OperatorKey newKey = genNewOperatorKey(node);
         LOCast cast = new LOCast(currentPlan, newKey, toType) ;
+        try {
+            if (toFs!=null)
+                cast.setFieldSchema(toFs);
+        } catch (FrontendException e) {
+            int errCode = 2217;
+            String msg = "Problem setFieldSchema for " + node + " ";
+            throw new TypeCheckerException(msg, errCode, PigException.BUG, e);
+        }
         currentPlan.add(cast) ;
         try {
             currentPlan.insertBetween(predecessor, cast, node);
@@ -1053,7 +1061,7 @@ public class TypeCheckingVisitor extends LOVisitor {
     }
 
     private void insertCastForUniOp(UnaryExpressionOperator uniOp, byte toType) throws VisitorException {
-        insertCast(uniOp, toType, uniOp.getOperand());
+        insertCast(uniOp, toType, null, uniOp.getOperand());
     }
     
     // Currently there is no input type information support in UserFunc
@@ -1584,7 +1592,7 @@ public class TypeCheckingVisitor extends LOVisitor {
             if(fFSch.type==tFSch.type) {
                 continue;
             }
-            insertCast(udf, tFSch.type, args.get(i));
+            insertCast(udf, tFSch.type, tFSch, args.get(i));
         }
     }
 
@@ -1610,10 +1618,10 @@ public class TypeCheckingVisitor extends LOVisitor {
         if (DataType.isNumberType(lhsType) && DataType.isNumberType(rhsType)) {
             byte biggerType = lhsType > rhsType ? lhsType:rhsType ;
             if (biggerType > lhsType) {
-                insertLeftCastForBinCond(binCond, biggerType) ;
+                insertLeftCastForBinCond(binCond, biggerType, null) ;
             }
             else if (biggerType > rhsType) {
-                insertRightCastForBinCond(binCond, biggerType) ;
+                insertRightCastForBinCond(binCond, biggerType, null) ;
             }
             binCond.setType(biggerType) ;
         } 
@@ -1621,23 +1629,35 @@ public class TypeCheckingVisitor extends LOVisitor {
                 && ((rhsType == DataType.CHARARRAY) || (DataType
                         .isNumberType(rhsType)))) {
             // Cast byte array to the type on rhs
-            insertLeftCastForBinCond(binCond, rhsType);
+            insertLeftCastForBinCond(binCond, rhsType, null);
             binCond.setType(DataType.mergeType(lhsType, rhsType));
         } else if ((rhsType == DataType.BYTEARRAY)
                 && ((lhsType == DataType.CHARARRAY) || (DataType
                         .isNumberType(lhsType)))) {
             // Cast byte array to the type on lhs
-            insertRightCastForBinCond(binCond, lhsType);
+            insertRightCastForBinCond(binCond, lhsType, null);
             binCond.setType(DataType.mergeType(lhsType, rhsType));
         }
         // A constant null is always bytearray - so cast it
         // to rhs type
         else if (binCond.getLhsOp() instanceof LOConst
                 && ((LOConst) binCond.getLhsOp()).getValue() == null) {
-            insertLeftCastForBinCond(binCond, rhsType);
+            try {
+                insertLeftCastForBinCond(binCond, rhsType, binCond.getRhsOp().getFieldSchema());
+            } catch (FrontendException e) {
+                int errCode = 2216;
+                String msg = "Problem getting fieldSchema for " +binCond.getRhsOp();
+                throw new TypeCheckerException(msg, errCode, PigException.BUG, e);
+            }
         } else if (binCond.getRhsOp() instanceof LOConst
                 && ((LOConst) binCond.getRhsOp()).getValue() == null) {
-            insertRightCastForBinCond(binCond, lhsType);
+            try {
+                insertRightCastForBinCond(binCond, lhsType, binCond.getLhsOp().getFieldSchema());
+            } catch (FrontendException e) {
+                int errCode = 2216;
+                String msg = "Problem getting fieldSchema for " +binCond.getRhsOp();
+                throw new TypeCheckerException(msg, errCode, PigException.BUG, e);
+            }
         } else if (lhsType == rhsType) {
             // Matching schemas if we're working with tuples
             if (DataType.isSchemaType(lhsType)) {            
@@ -1683,12 +1703,12 @@ public class TypeCheckingVisitor extends LOVisitor {
 
     }
 
-    private void insertLeftCastForBinCond(LOBinCond binCond, byte toType) throws VisitorException {
-        insertCast(binCond, toType, binCond.getLhsOp());
+    private void insertLeftCastForBinCond(LOBinCond binCond, byte toType, FieldSchema toFs) throws VisitorException {
+        insertCast(binCond, toType, toFs, binCond.getLhsOp());
     }
 
-    private void insertRightCastForBinCond(LOBinCond binCond, byte toType) throws VisitorException {
-        insertCast(binCond, toType, binCond.getRhsOp());
+    private void insertRightCastForBinCond(LOBinCond binCond, byte toType, FieldSchema toFs) throws VisitorException {
+        insertCast(binCond, toType, toFs, binCond.getRhsOp());
     }
 
     /**

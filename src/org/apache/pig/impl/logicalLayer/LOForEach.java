@@ -236,10 +236,9 @@ public class LOForEach extends RelationalOperator {
 					                throw new FrontendException(msg, errCode, PigException.INPUT, false, null);
 					            }
 					            s = tupleFS.schema;
-							    
-							}
-							if(null != s) {
-								for(int i = 0; i < s.size(); ++i) {
+					        }
+						    if(null != s && s.size()!=0) {
+						        for(int i = 0; i < s.size(); ++i) {
                                     Schema.FieldSchema fs;
                                     fs = new Schema.FieldSchema(s.getField(i));
                                     fs.setParent(s.getField(i).canonicalName, op);

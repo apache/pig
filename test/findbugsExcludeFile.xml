@@ -329,4 +329,9 @@
         <Method name = "launchPig" />
         <Bug pattern="DE_MIGHT_IGNORE" />
     </Match>
+    <Match>
+        <Class name="org.apache.pig.builtin.Utf8StorageConverter" />
+        <Method name = "bytesToBoolean" />
+        <Bug pattern="NP_BOOLEAN_RETURN_NULL" />
+    </Match>
 </FindBugsFilter>

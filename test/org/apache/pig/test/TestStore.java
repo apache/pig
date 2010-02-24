@@ -43,6 +43,7 @@ import org.apache.pig.ResourceSchema;
 import org.apache.pig.ResourceStatistics;
 import org.apache.pig.StoreFunc;
 import org.apache.pig.StoreMetadata;
+import org.apache.pig.ResourceSchema.ResourceFieldSchema;
 import org.apache.pig.backend.datastorage.DataStorage;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
@@ -248,7 +249,11 @@ public class TestStore extends junit.framework.TestCase {
         for(String line=br.readLine();line!=null;line=br.readLine()){
             String[] flds = line.split(":",-1);
             Tuple t = new DefaultTuple();
-            t.append(flds[0].compareTo("")!=0 ? ps.getLoadCaster().bytesToBag(flds[0].getBytes()) : null);
+            
+            ResourceFieldSchema bagfs = GenRandomData.getSmallTupDataBagFieldSchema();
+            ResourceFieldSchema tuplefs = GenRandomData.getSmallTupleFieldSchema();
+            
+            t.append(flds[0].compareTo("")!=0 ? ps.getLoadCaster().bytesToBag(flds[0].getBytes(), bagfs) : null);
             t.append(flds[1].compareTo("")!=0 ? ps.getLoadCaster().bytesToCharArray(flds[1].getBytes()) : null);
             t.append(flds[2].compareTo("")!=0 ? ps.getLoadCaster().bytesToCharArray(flds[2].getBytes()) : null);
             t.append(flds[3].compareTo("")!=0 ? ps.getLoadCaster().bytesToDouble(flds[3].getBytes()) : null);
@@ -256,7 +261,7 @@ public class TestStore extends junit.framework.TestCase {
             t.append(flds[5].compareTo("")!=0 ? ps.getLoadCaster().bytesToInteger(flds[5].getBytes()) : null);
             t.append(flds[6].compareTo("")!=0 ? ps.getLoadCaster().bytesToLong(flds[6].getBytes()) : null);
             t.append(flds[7].compareTo("")!=0 ? ps.getLoadCaster().bytesToMap(flds[7].getBytes()) : null);
-            t.append(flds[8].compareTo("")!=0 ? ps.getLoadCaster().bytesToTuple(flds[8].getBytes()) : null);
+            t.append(flds[8].compareTo("")!=0 ? ps.getLoadCaster().bytesToTuple(flds[8].getBytes(), tuplefs) : null);
             assertEquals(true, TestHelper.bagContains(inpDB, t));
             ++size;
         }
@@ -277,7 +282,25 @@ public class TestStore extends junit.framework.TestCase {
             System.err.println(line);
             String[] flds = line.split(":",-1);
             Tuple t = new DefaultTuple();
-            t.append(flds[0].compareTo("")!=0 ? ps.getLoadCaster().bytesToBag(flds[0].getBytes()) : null);
+            
+            ResourceFieldSchema stringfs = new ResourceFieldSchema();
+            stringfs.setType(DataType.CHARARRAY);
+            ResourceFieldSchema intfs = new ResourceFieldSchema();
+            intfs.setType(DataType.INTEGER);
+            
+            ResourceSchema tupleSchema = new ResourceSchema();
+            tupleSchema.setFields(new ResourceFieldSchema[]{stringfs, intfs});
+            ResourceFieldSchema tuplefs = new ResourceFieldSchema();
+            tuplefs.setSchema(tupleSchema);
+            tuplefs.setType(DataType.TUPLE);
+            
+            ResourceSchema bagSchema = new ResourceSchema();
+            bagSchema.setFields(new ResourceFieldSchema[]{tuplefs});
+            ResourceFieldSchema bagfs = new ResourceFieldSchema();
+            bagfs.setSchema(bagSchema);
+            bagfs.setType(DataType.BAG);
+            
+            t.append(flds[0].compareTo("")!=0 ? ps.getLoadCaster().bytesToBag(flds[0].getBytes(), bagfs) : null);
             t.append(flds[1].compareTo("")!=0 ? ps.getLoadCaster().bytesToCharArray(flds[1].getBytes()) : null);
             t.append(flds[2].compareTo("")!=0 ? ps.getLoadCaster().bytesToCharArray(flds[2].getBytes()) : null);
             t.append(flds[3].compareTo("")!=0 ? ps.getLoadCaster().bytesToDouble(flds[3].getBytes()) : null);
@@ -285,7 +308,7 @@ public class TestStore extends junit.framework.TestCase {
             t.append(flds[5].compareTo("")!=0 ? ps.getLoadCaster().bytesToInteger(flds[5].getBytes()) : null);
             t.append(flds[6].compareTo("")!=0 ? ps.getLoadCaster().bytesToLong(flds[6].getBytes()) : null);
             t.append(flds[7].compareTo("")!=0 ? ps.getLoadCaster().bytesToMap(flds[7].getBytes()) : null);
-            t.append(flds[8].compareTo("")!=0 ? ps.getLoadCaster().bytesToTuple(flds[8].getBytes()) : null);
+            t.append(flds[8].compareTo("")!=0 ? ps.getLoadCaster().bytesToTuple(flds[8].getBytes(), tuplefs) : null);
             t.append(flds[9].compareTo("")!=0 ? ps.getLoadCaster().bytesToCharArray(flds[9].getBytes()) : null);
             assertTrue(TestHelper.tupleEquals(inputTuple, t));
             ++size;

@@ -17,27 +17,27 @@
  */
 package org.apache.pig.builtin;
 
-import java.io.IOException;
-import java.util.Map;
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Stack;
 
-import org.apache.commons.logging.LogFactory;
 import org.apache.commons.logging.Log;
-
+import org.apache.commons.logging.LogFactory;
 import org.apache.pig.LoadCaster;
-import org.apache.pig.PigException;
 import org.apache.pig.PigWarning;
-import org.apache.pig.backend.executionengine.ExecException;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PigLogger;
+import org.apache.pig.ResourceSchema.ResourceFieldSchema;
+import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
+import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.DataType;
+import org.apache.pig.data.DefaultBagFactory;
+import org.apache.pig.data.DefaultTupleFactory;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
-import org.apache.pig.data.BagFactory;
-import org.apache.pig.data.parser.ParseException;
-import org.apache.pig.data.parser.TextDataParser;
 import org.apache.pig.impl.util.LogUtils;
 
 /**
@@ -53,40 +53,246 @@ public class Utf8StorageConverter implements LoadCaster {
 
     private Integer mMaxInt = Integer.valueOf(Integer.MAX_VALUE);
     private Long mMaxLong = Long.valueOf(Long.MAX_VALUE);
-    private TextDataParser dataParser = null;
+    private static final int BUFFER_SIZE = 1024;
         
     public Utf8StorageConverter() {
     }
 
-    private Object parseFromBytes(byte[] b) throws ParseException {
-        ByteArrayInputStream in = new ByteArrayInputStream(b);
-        if(dataParser == null) {
-            dataParser = new TextDataParser(in);
-        } else {
-            dataParser.ReInit(in);
+    private char findStartChar(char start) throws IOException{
+        switch (start) {
+        case ')': return '(';
+        case ']': return '[';
+        case '}': return '{';
+        default: throw new IOException("Unknown start character");
         }
-        return dataParser.Parse();
+    }
+    
+    private DataBag consumeBag(ByteArrayInputStream in, ResourceFieldSchema fieldSchema) throws IOException {
+        if (fieldSchema==null) {
+            throw new IOException("Schema is null");
+        }
+        ResourceFieldSchema[] fss=fieldSchema.getSchema().getFields();;
+        Tuple t;
+        int buf;
+        while ((buf=in.read())!='{') {
+            if (buf==-1) {
+                throw new IOException("Unexpect end of bag");
+            }
+        }
+        if (fss.length!=1)
+            throw new IOException("Only tuple is allowed inside bag schema");
+        ResourceFieldSchema fs = fss[0];
+        DataBag db = DefaultBagFactory.getInstance().newDefaultBag();
+        while (true) {
+            t = consumeTuple(in, fs);
+            db.add(t);
+            while ((buf=in.read())!='}'&&buf!=',') {
+                if (buf==-1) {
+                    throw new IOException("Unexpect end of bag");
+                }
+            }
+            if (buf=='}')
+                break;
+        }
+        return db;
+    }
+    
+    private Tuple consumeTuple(ByteArrayInputStream in, ResourceFieldSchema fieldSchema) throws IOException {
+        if (fieldSchema==null) {
+            throw new IOException("Schema is null");
+        }
+        int buf;
+        ByteArrayOutputStream mOut;
+        
+        while ((buf=in.read())!='(') {
+            if (buf==-1) {
+                throw new IOException("Unexpect end of tuple");
+            }
+        }
+        Tuple t = DefaultTupleFactory.getInstance().newTuple();
+        if (fieldSchema.getSchema()!=null && fieldSchema.getSchema().getFields().length!=0) {
+            ResourceFieldSchema[] fss = fieldSchema.getSchema().getFields();
+            // Interpret item inside tuple one by one based on the inner schema
+            for (int i=0;i<fss.length;i++) {
+                Object field;
+                ResourceFieldSchema fs = fss[i];
+                int delimit = ',';
+                if (i==fss.length-1)
+                    delimit = ')';
+                
+                if (DataType.isComplex(fs.getType())) {
+                    field = consumeComplexType(in, fs);
+                    while ((buf=in.read())!=delimit) {
+                        if (buf==-1) {
+                            throw new IOException("Unexpect end of tuple");
+                        }
+                    }
+                }
+                else {
+                    mOut = new ByteArrayOutputStream(BUFFER_SIZE);
+                    while ((buf=in.read())!=delimit) {
+                        if (buf==-1) {
+                            throw new IOException("Unexpect end of tuple");
+                        }
+                        if (buf==delimit)
+                            break;
+                        mOut.write(buf);
+                    }
+                    field = parseSimpleType(mOut.toByteArray(), fs);
+                }
+                t.append(field);
+            }
+        }
+        else {
+            // No inner schema, treat everything inside tuple as bytearray
+            Stack<Character> level = new Stack<Character>();  // keep track of nested tuple/bag/map. We do not interpret, save them as bytearray
+            mOut = new ByteArrayOutputStream(BUFFER_SIZE);
+            while (true) {
+                buf=in.read();
+                if (buf==-1) {
+                    throw new IOException("Unexpect end of tuple");
+                }
+                if (buf=='['||buf=='{'||buf=='(') {
+                    level.push((char)buf);
+                }
+                else if (buf==')' && level.isEmpty()) // End of tuple
+                    break;
+                else if (buf==']' ||buf=='}'||buf==')')
+                {
+                    if (level.peek()==findStartChar((char)buf))
+                        level.pop();
+                    else
+                        throw new IOException("Malformed tuple");
+                }
+                mOut.write(buf);
+            }
+            DataByteArray value = new DataByteArray(mOut.toByteArray());
+            t.append(value);
+        }
+        return t;
+    }
+    
+    private Map<String, Object> consumeMap(ByteArrayInputStream in, ResourceFieldSchema fieldSchema) throws IOException {
+        if (fieldSchema==null) {
+            throw new IOException("Schema is null");
+        }
+        int buf;
+        
+        while ((buf=in.read())!='[') {
+            if (buf==-1) {
+                throw new IOException("Unexpect end of map");
+            }
+        }
+        HashMap<String, Object> m = new HashMap<String, Object>();
+        ByteArrayOutputStream mOut = new ByteArrayOutputStream(BUFFER_SIZE);
+        while (true) {
+            // Read key (assume key can not contains special character such as #, (, [, {, }, ], )
+            while ((buf=in.read())!='#') {
+                if (buf==-1) {
+                    throw new IOException("Unexpect end of map");
+                }
+                mOut.write(buf);
+            }
+            String key = bytesToCharArray(mOut.toByteArray());
+            if (key.length()==0)
+                throw new IOException("Map key can not be null");
+            
+            // Read value
+            mOut.reset();
+            Stack<Character> level = new Stack<Character>(); // keep track of nested tuple/bag/map. We do not interpret, save them as bytearray
+            while (true) {
+                buf=in.read();
+                if (buf==-1) {
+                    throw new IOException("Unexpect end of map");
+                }
+                if (buf=='['||buf=='{'||buf=='(') {
+                    level.push((char)buf);
+                }
+                else if (buf==']' && level.isEmpty()) // End of map
+                    break;
+                else if (buf==']' ||buf=='}'||buf==')')
+                {
+                    if (level.peek()==findStartChar((char)buf))
+                        level.pop();
+                    else
+                        throw new IOException("Malformed map");
+                } else if (buf==','&&level.isEmpty()) { // Current map item complete
+                    break;
+                }
+                mOut.write(buf);
+            }
+            DataByteArray value = null;
+            if (mOut.size()>0)
+                value = new DataByteArray(mOut.toByteArray());
+            m.put(key, value);
+            mOut.reset();
+            if (buf==']')
+                break;
+        }
+        return m;
+    }
+    
+    private Object consumeComplexType(ByteArrayInputStream in, ResourceFieldSchema complexFieldSchema) throws IOException {
+        Object field;
+        switch (complexFieldSchema.getType()) {
+        case DataType.BAG:
+            field = consumeBag(in, complexFieldSchema);
+            break;
+        case DataType.TUPLE:
+            field = consumeTuple(in, complexFieldSchema);
+            break;
+        case DataType.MAP:
+            field = consumeMap(in, complexFieldSchema);
+            break;
+        default:
+            throw new IOException("Unknown complex data type");
+        }
+        return field;
+    }
+    
+    private Object parseSimpleType(byte[] b, ResourceFieldSchema simpleFieldSchema) throws IOException {
+        Object field;
+        switch (simpleFieldSchema.getType()) {
+        case DataType.INTEGER:
+            field = bytesToInteger(b);
+            break;
+        case DataType.LONG:
+            field = bytesToLong(b);
+            break;
+        case DataType.FLOAT:
+            field = bytesToFloat(b);
+            break;
+        case DataType.DOUBLE:
+            field = bytesToDouble(b);
+            break;
+        case DataType.CHARARRAY:
+            field = bytesToCharArray(b);
+            break;
+        case DataType.BYTEARRAY:
+            field = new DataByteArray(b);
+            break;
+        case DataType.BOOLEAN:
+            field = bytesToBoolean(b);
+            break;
+        default:
+            throw new IOException("Unknown simple data type");
+        }
+        return field;
     }
 
-    public DataBag bytesToBag(byte[] b) throws IOException {
+    public DataBag bytesToBag(byte[] b, ResourceFieldSchema schema) throws IOException {
         if(b == null)
             return null;
         DataBag db;
         try {
-            db = (DataBag)parseFromBytes(b);
-        } catch (ParseException pe) {
+            ByteArrayInputStream in = new ByteArrayInputStream(b);
+            db = consumeBag(in, schema);
+        } catch (IOException e) {
             LogUtils.warn(this, "Unable to interpret value " + Arrays.toString(b) + " in field being " +
                     "converted to type bag, caught ParseException <" +
-                    pe.getMessage() + "> field discarded", 
-                    PigWarning.FIELD_DISCARDED_TYPE_CONVERSION_FAILED, mLog);
-            return null;       
-        }catch (Exception e){
-            // can happen if parseFromBytes identifies it as being of different type
-            LogUtils.warn(this, "Unable to interpret value " + Arrays.toString(b) + " in field being " +
-                    "converted to type bag, caught Exception <" +
                     e.getMessage() + "> field discarded", 
                     PigWarning.FIELD_DISCARDED_TYPE_CONVERSION_FAILED, mLog);
-            return null;       
+            return null;
         }
         return db;
     }
@@ -132,6 +338,13 @@ public class Utf8StorageConverter implements LoadCaster {
                     PigWarning.FIELD_DISCARDED_TYPE_CONVERSION_FAILED, mLog);
             return null;
         }
+    }
+    
+    public Boolean bytesToBoolean(byte[] b) throws IOException {
+        if(b == null)
+            return null;
+        String s = new String(b);
+        return Boolean.valueOf(s);
     }
 
     public Integer bytesToInteger(byte[] b) throws IOException {
@@ -208,19 +421,15 @@ public class Utf8StorageConverter implements LoadCaster {
         if(b == null)
             return null;
         Map<String, Object> map;
+        ResourceFieldSchema fs = new ResourceFieldSchema();
+        fs.setType(DataType.MAP);
         try {
-            map = (Map<String, Object>)parseFromBytes(b);
+            ByteArrayInputStream in = new ByteArrayInputStream(b);
+            map = consumeMap(in, fs);
         }
-        catch (ParseException pe) {
+        catch (IOException e) {
             LogUtils.warn(this, "Unable to interpret value " + Arrays.toString(b) + " in field being " +
                     "converted to type map, caught ParseException <" +
-                    pe.getMessage() + "> field discarded", 
-                    PigWarning.FIELD_DISCARDED_TYPE_CONVERSION_FAILED, mLog);
-            return null;       
-        }catch (Exception e){
-            // can happen if parseFromBytes identifies it as being of different type
-            LogUtils.warn(this, "Unable to interpret value " + Arrays.toString(b) + " in field being " +
-                    "converted to type map, caught Exception <" +
                     e.getMessage() + "> field discarded", 
                     PigWarning.FIELD_DISCARDED_TYPE_CONVERSION_FAILED, mLog);
             return null;       
@@ -228,27 +437,23 @@ public class Utf8StorageConverter implements LoadCaster {
         return map;
     }
 
-    public Tuple bytesToTuple(byte[] b) throws IOException {
+    public Tuple bytesToTuple(byte[] b, ResourceFieldSchema fieldSchema) throws IOException {
         if(b == null)
             return null;
         Tuple t;
+        
         try {
-            t = (Tuple)parseFromBytes(b);
+            ByteArrayInputStream in = new ByteArrayInputStream(b);
+            t = consumeTuple(in, fieldSchema);
         } 
-        catch (ParseException pe) {
+        catch (IOException e) {
             LogUtils.warn(this, "Unable to interpret value " + Arrays.toString(b) + " in field being " +
                     "converted to type tuple, caught ParseException <" +
-                    pe.getMessage() + "> field discarded", 
-                    PigWarning.FIELD_DISCARDED_TYPE_CONVERSION_FAILED, mLog);
-            return null;       
-        }catch (Exception e){
-            // can happen if parseFromBytes identifies it as being of different type
-            LogUtils.warn(this, "Unable to interpret value " + Arrays.toString(b) + " in field being " +
-                    "converted to type tuple, caught Exception <" +
                     e.getMessage() + "> field discarded", 
                     PigWarning.FIELD_DISCARDED_TYPE_CONVERSION_FAILED, mLog);
             return null;       
         }
+
         return t;
     }
 

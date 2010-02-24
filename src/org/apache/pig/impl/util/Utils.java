@@ -17,6 +17,13 @@
  */
 package org.apache.pig.impl.util;
 
+import java.io.ByteArrayInputStream;
+
+import org.apache.pig.data.DataType;
+import org.apache.pig.impl.logicalLayer.parser.ParseException;
+import org.apache.pig.impl.logicalLayer.parser.QueryParser;
+import org.apache.pig.impl.logicalLayer.schema.Schema;
+
 /**
  * Class with utility static methods
  */
@@ -69,6 +76,17 @@ public class Utils {
             return false;
         }
     }
+    
+    public static Schema getSchemaFromString(String schemaString) throws ParseException {
+        return Utils.getSchemaFromString(schemaString, DataType.BYTEARRAY);
+    }
 
+    public static Schema getSchemaFromString(String schemaString, byte defaultType) throws ParseException {
+        ByteArrayInputStream stream = new ByteArrayInputStream(schemaString.getBytes()) ;
+        QueryParser queryParser = new QueryParser(stream) ;
+        Schema schema = queryParser.TupleSchema() ;
+        Schema.setSchemaDefaultType(schema, defaultType);
+        return schema;
+    }
     
 }

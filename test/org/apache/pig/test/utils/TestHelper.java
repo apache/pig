@@ -261,7 +261,7 @@ public class TestHelper {
         for(String key: expectedMap.keySet()) {
             Object v = convertedMap.get(key);
             String convertedValue = new String(((DataByteArray)v).get());
-            if(!expectedMap.get(key).equals(convertedValue)) {
+            if(!expectedMap.get(key).toString().equals(convertedValue)) {
                 return false;
             }
         }

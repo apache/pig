@@ -29,6 +29,7 @@ import org.apache.pig.FuncSpec;
 import org.apache.pig.LoadCaster;
 import org.apache.pig.LoadFunc;
 import org.apache.pig.PigException;
+import org.apache.pig.ResourceSchema.ResourceFieldSchema;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
@@ -57,6 +58,7 @@ public class POCast extends ExpressionOperator {
     private boolean castNotNeeded = false;
     private Byte realType = null;
     private transient List<ExpressionOperator> child;
+    private ResourceFieldSchema fieldSchema = null;
 
     private static final long serialVersionUID = 1L;
 
@@ -97,7 +99,12 @@ public class POCast extends ExpressionOperator {
 
     @Override
     public String name() {
-        return "Cast" + "[" + DataType.findTypeName(resultType) + "]" + " - "
+        if (resultType==DataType.BAG||resultType==DataType.TUPLE)
+            return "Cast" + "[" + DataType.findTypeName(resultType)+":"
+            + fieldSchema.getCastString() + "]" + " - "
+            + mKey.toString();
+        else
+            return "Cast" + "[" + DataType.findTypeName(resultType) + "]" + " - "
                 + mKey.toString();
     }
 
@@ -762,7 +769,7 @@ public class POCast extends ExpressionOperator {
                 }
                 try {
                     if (null != caster) {
-                        res.result = caster.bytesToTuple(dba.get());
+                        res.result = caster.bytesToTuple(dba.get(), fieldSchema);
                     } else {
                         int errCode = 1075;
                         String msg = "Received a bytearray from the UDF. Cannot determine how to convert the bytearray to tuple.";
@@ -850,7 +857,7 @@ public class POCast extends ExpressionOperator {
                 }
                 try {
                     if (null != caster) {
-                        res.result = caster.bytesToBag(dba.get());
+                        res.result = caster.bytesToBag(dba.get(), fieldSchema);
                     } else {
                         int errCode = 1075;
                         String msg = "Received a bytearray from the UDF. Cannot determine how to convert the bytearray to bag.";
@@ -992,6 +999,7 @@ public class POCast extends ExpressionOperator {
                 .getGenerator().getNextNodeId(mKey.scope)));
         clone.cloneHelper(this);
         clone.funcSpec = funcSpec;
+        clone.fieldSchema = fieldSchema;
         try {
             clone.instantiateFunc();
         } catch (IOException e) {
@@ -1015,6 +1023,10 @@ public class POCast extends ExpressionOperator {
         }
         
         return child;				
+    }
+    
+    public void setFieldSchema(ResourceFieldSchema s) {
+        fieldSchema = s;
     }
 
 }
