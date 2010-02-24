@@ -215,6 +215,9 @@ to call at top-level: ant deploy-contrib compile-core-test
           <not>
             <filename name="**/TestColumnSecurity.java"/>
           </not>
+          <not>
+            <filename name="**/TestSmoke*.java"/>
+          </not>
 
         </fileset> 
       </batchtest>
@@ -324,4 +327,30 @@ to call at top-level: ant deploy-contrib compile-core-test
          	</current>
        </clover-report>
   </target> 
+  <target name="smoke-jar" depends="compile,test">
+      <jar destfile="${build.test}/zebra_smoke.jar"
+	       basedir="${build.test}"
+		   includes="**/TestSmokeMR*.class, **/TestTableLoaderP*.class"
+	  />
+  </target>
+  <target name="package-tests" depends="smoke-jar">
+    <tar longfile="gnu" destfile="${build.test}/zebra_smoke.tar">
+    <tarfileset dir="${src.test}/smoke"
+             fullpath="bin/zebra_smoke_run.pl"
+             preserveLeadingSlashes="true">
+      <include name="zebra_smoke_run.pl"/>
+    </tarfileset>
+    <tarfileset dir="${build.test}/../../../ivy/lib/Pig"
+             fullpath="lib/junit-4.5.jar"
+             preserveLeadingSlashes="true">
+      <include name="junit-4.5.jar"/>
+    </tarfileset>
+    <tarfileset dir="${build.test}"
+             fullpath="lib/zebra_smoke.jar"
+             preserveLeadingSlashes="true">
+      <include name="zebra_smoke.jar"/>
+    </tarfileset>
+   </tar>
+  </target>
 </project>
+
