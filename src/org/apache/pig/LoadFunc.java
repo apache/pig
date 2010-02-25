@@ -269,7 +269,8 @@ public abstract class LoadFunc {
      * {@link LoadFunc} needs to store between various method invocations in the
      * front end and back end. A use case is to store {@link RequiredFieldList} 
      * passed to it in {@link LoadPushDown#pushProjection(RequiredFieldList)} for
-     * use in the back end before returning tuples in {@link LoadFunc#getNext()}
+     * use in the back end before returning tuples in {@link LoadFunc#getNext()}.
+     * This method will be call before other methods in {@link LoadFunc}
      * @param signature a unique signature to identify this LoadFunc
      */
     public void setUDFContextSignature(String signature) {

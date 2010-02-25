@@ -80,6 +80,8 @@ public abstract class StoreFunc implements StoreFuncInterface {
      * This method will be called in the frontend and backend multiple times. Implementations
      * should bear in mind that this method is called multiple times and should
      * ensure there are no inconsistent side effects due to the multiple calls.
+     * {@link #checkSchema(ResourceSchema)} will be called before any call to
+     * {@link #setStoreLocation(String, Job)}.
      * 
 
      * @param location Location indicated in store statement.
@@ -125,7 +127,8 @@ public abstract class StoreFunc implements StoreFuncInterface {
      * This method will be called by Pig both in the front end and back end to
      * pass a unique signature to the {@link StoreFunc} which it can use to store
      * information in the {@link UDFContext} which it needs to store between
-     * various method invocations in the front end and back end. 
+     * various method invocations in the front end and back end. This method 
+     * will be called before other methods in {@link StoreFunc}.
      * @param signature a unique signature to identify this StoreFunc
      */
     public void setStoreFuncUDFContextSignature(String signature) {
