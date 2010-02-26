@@ -54,7 +54,13 @@ import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.logicalLayer.FrontendException;
+import org.apache.pig.impl.logicalLayer.LOConst;
+import org.apache.pig.impl.logicalLayer.LOLimit;
 import org.apache.pig.impl.logicalLayer.LOLoad;
+import org.apache.pig.impl.logicalLayer.LOSort;
+import org.apache.pig.impl.logicalLayer.LOSplit;
+import org.apache.pig.impl.logicalLayer.LOSplitOutput;
+import org.apache.pig.impl.logicalLayer.LOVisitor;
 import org.apache.pig.impl.logicalLayer.LogicalOperator;
 import org.apache.pig.impl.logicalLayer.LogicalPlan;
 import org.apache.pig.impl.logicalLayer.LogicalPlanBuilder;
@@ -66,12 +72,15 @@ import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.logicalLayer.validators.LogicalPlanValidationExecutor;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.impl.plan.CompilationMessageCollector;
+import org.apache.pig.impl.plan.DependencyOrderWalker;
+import org.apache.pig.impl.plan.DepthFirstWalker;
 import org.apache.pig.impl.plan.OperatorKey;
+import org.apache.pig.impl.plan.PlanWalker;
+import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.plan.CompilationMessageCollector.MessageType;
 import org.apache.pig.impl.streaming.StreamingCommand;
 import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.impl.util.PropertiesUtil;
-import org.apache.pig.impl.util.UDFContext;
 import org.apache.pig.impl.logicalLayer.LODefine;
 import org.apache.pig.impl.logicalLayer.LOStore;
 import org.apache.pig.pen.ExampleGenerator;
@@ -837,6 +846,9 @@ public class PigServer {
         PlanSetter ps = new PlanSetter(lpClone);
         ps.visit();
         
+        SortInfoSetter sortInfoSetter = new SortInfoSetter(lpClone);
+        sortInfoSetter.visit();
+        
         // run through validator
         CompilationMessageCollector collector = new CompilationMessageCollector() ;
         FrontendException caught = null;
@@ -908,6 +920,56 @@ public class PigServer {
             throw new FrontendException(msg, errCode, PigException.INPUT, false, null);
         }        
         return lp;
+    }
+    
+    public static class SortInfoSetter extends LOVisitor{
+
+        public SortInfoSetter(LogicalPlan plan) {
+            super(plan, new DependencyOrderWalker<LogicalOperator, LogicalPlan>(plan));
+        }
+
+        @Override
+        protected void visit(LOStore store) throws VisitorException {
+            
+            LogicalOperator storePred = store.getPlan().getPredecessors(store).get(0);
+            if(storePred == null){
+                int errCode = 2051;
+                String msg = "Did not find a predecessor for Store." ;
+                throw new VisitorException(msg, errCode, PigException.BUG);    
+            }
+            
+            SortInfo sortInfo = null;
+            if(storePred instanceof LOLimit) {
+                storePred = store.getPlan().getPredecessors(storePred).get(0);
+            } else if (storePred instanceof LOSplitOutput) {
+                LOSplitOutput splitOutput = (LOSplitOutput)storePred;
+                // We assume this is the LOSplitOutput we injected for this case:
+                // b = order a by $0; store b into '1'; store b into '2';
+                // In this case, we should mark both '1' and '2' as sorted
+                LogicalPlan conditionPlan = splitOutput.getConditionPlan();
+                if (conditionPlan.getRoots().size()==1) {
+                    LogicalOperator root = conditionPlan.getRoots().get(0);
+                    if (root instanceof LOConst) {
+                        Object value = ((LOConst)root).getValue();
+                        if (value instanceof Boolean && (Boolean)value==true) {
+                            LogicalOperator split = splitOutput.getPlan().getPredecessors(splitOutput).get(0);
+                            if (split instanceof LOSplit)
+                                storePred = store.getPlan().getPredecessors(split).get(0);
+                        }
+                    }
+                }
+            }
+            // if this predecessor is a sort, get
+            // the sort info.
+            if(storePred instanceof LOSort) {
+                try {
+                    sortInfo = ((LOSort)storePred).getSortInfo();
+                } catch (FrontendException e) {
+                    throw new VisitorException(e);
+                }
+            }
+            store.setSortInfo(sortInfo);
+        }
     }
 
     /*

@@ -65,8 +65,6 @@ public class TestInputOutputFileValidator extends TestCase {
     }
     
        
-// Comment out until PIG-1251 solved
-/*
     @Test
     public void testLocalModeNegative2() throws Throwable {
         
@@ -93,7 +91,6 @@ public class TestInputOutputFileValidator extends TestCase {
         }        
 
     }
-*/    
         
     @Test
     public void testMapReduceModeInputPositive() throws Throwable {
@@ -114,8 +111,6 @@ public class TestInputOutputFileValidator extends TestCase {
 
     }
     
-// Comment out until PIG-1251 solved
-/*       
     @Test
     public void testMapReduceModeInputNegative2() throws Throwable {
         
@@ -142,7 +137,6 @@ public class TestInputOutputFileValidator extends TestCase {
         }       
 
     }
-*/    
         
     private LogicalPlan genNewLoadStorePlan(String inputFile,
                                             String outputFile, DataStorage dfs) 

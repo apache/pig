@@ -431,16 +431,12 @@ public class JobControlCompiler{
             for (POStore st: mapStores) {
                 storeLocations.add(st);
                 StoreFuncInterface sFunc = st.getStoreFunc();
-                if (st.getSchema()!=null)
-                    sFunc.checkSchema(new ResourceSchema(st.getSchema(), st.getSortInfo()));
                 sFunc.setStoreLocation(st.getSFile().getFileName(), nwJob);
             }
 
             for (POStore st: reduceStores) {
                 storeLocations.add(st);
                 StoreFuncInterface sFunc = st.getStoreFunc();
-                if (st.getSchema()!=null)
-                    sFunc.checkSchema(new ResourceSchema(st.getSchema(), st.getSortInfo()));
                 sFunc.setStoreLocation(st.getSFile().getFileName(), nwJob);
             }
 

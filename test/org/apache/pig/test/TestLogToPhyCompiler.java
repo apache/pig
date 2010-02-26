@@ -613,6 +613,8 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
         lpt.buildPlan("a = load 'bla' as (i:int, n:chararray, d:double);");
         lpt.buildPlan("b = order a by i, d;");
         LogicalPlan lp = lpt.buildPlan("store b into 'foo';");
+        PigServer.SortInfoSetter siSetter = new PigServer.SortInfoSetter(lp); 
+        siSetter.visit();
         PhysicalPlan pp = buildPhysicalPlan(lp);
         SortInfo si = ((POStore)(pp.getLeaves().get(0))).getSortInfo();
         SortInfo expected = getSortInfo(
@@ -635,6 +637,8 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
         lpt.buildPlan("b = filter a by i > 10;");
         lpt.buildPlan("c = order b by i desc, d;");
         LogicalPlan lp = lpt.buildPlan("store c into 'foo';");
+        PigServer.SortInfoSetter siSetter = new PigServer.SortInfoSetter(lp); 
+        siSetter.visit();
         PhysicalPlan pp = buildPhysicalPlan(lp);
         SortInfo si = ((POStore)(pp.getLeaves().get(0))).getSortInfo();
         SortInfo expected = getSortInfo(
@@ -657,6 +661,8 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
         lpt.buildPlan("a = load 'bla' as (i:int, n:chararray, d:double);");
         lpt.buildPlan("b = filter a by i > 10;");
         LogicalPlan lp = lpt.buildPlan("store b into 'foo';");
+        PigServer.SortInfoSetter siSetter = new PigServer.SortInfoSetter(lp); 
+        siSetter.visit();
         PhysicalPlan pp = buildPhysicalPlan(lp);
         SortInfo si = ((POStore)(pp.getLeaves().get(0))).getSortInfo();
         assertEquals(null, si);
@@ -675,6 +681,8 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
         lpt.buildPlan("c = filter b by i > 10;");
         LogicalPlan lp = lpt.buildPlan("store c into 'foo';");
         PhysicalPlan pp = buildPhysicalPlan(lp);
+        PigServer.SortInfoSetter siSetter = new PigServer.SortInfoSetter(lp); 
+        siSetter.visit();
         SortInfo si = ((POStore)(pp.getLeaves().get(0))).getSortInfo();
         assertEquals(null, si);
     }
@@ -691,6 +699,8 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
         lpt.buildPlan("b = order a by i, d desc;");
         lpt.buildPlan("c = limit b 10;");
         LogicalPlan lp = lpt.buildPlan("store c into 'foo';");
+        PigServer.SortInfoSetter siSetter = new PigServer.SortInfoSetter(lp); 
+        siSetter.visit();
         LOPrinter lpr = new LOPrinter(System.err, lp);
         lpr.visit();
         PhysicalPlan pp = buildPhysicalPlan(lp);
@@ -750,6 +760,8 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
         lpt.buildPlan("a = load 'bla' ;");
         lpt.buildPlan("b = order a by $0;");
         LogicalPlan lp = lpt.buildPlan("store b into 'foo';");
+        PigServer.SortInfoSetter siSetter = new PigServer.SortInfoSetter(lp); 
+        siSetter.visit();
         PhysicalPlan pp = buildPhysicalPlan(lp);
         SortInfo si = ((POStore)(pp.getLeaves().get(0))).getSortInfo();
         SortInfo expected = getSortInfo(Arrays.asList(new String[] {null}),

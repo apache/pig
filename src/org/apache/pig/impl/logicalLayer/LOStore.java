@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.pig.FuncSpec;
+import org.apache.pig.SortInfo;
 import org.apache.pig.StoreFuncInterface;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileSpec;
@@ -47,6 +48,16 @@ public class LOStore extends RelationalOperator {
 
     transient private StoreFuncInterface mStoreFunc;
     private static Log log = LogFactory.getLog(LOStore.class);
+    
+    private SortInfo sortInfo;
+
+    public SortInfo getSortInfo() {
+        return sortInfo;
+    }
+
+    public void setSortInfo(SortInfo sortInfo) {
+        this.sortInfo = sortInfo;
+    }
 
     /**
      * @param plan

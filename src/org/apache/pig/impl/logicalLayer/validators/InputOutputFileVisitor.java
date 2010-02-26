@@ -21,8 +21,10 @@ import java.io.IOException;
 
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.pig.PigException;
+import org.apache.pig.ResourceSchema;
 import org.apache.pig.StoreFuncInterface;
 import org.apache.pig.impl.PigContext ;
+import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.LOStore;
 import org.apache.pig.impl.logicalLayer.LOVisitor;
 import org.apache.pig.impl.logicalLayer.LogicalOperator;
@@ -65,10 +67,23 @@ public class InputOutputFileVisitor extends LOVisitor {
 
         StoreFuncInterface sf = store.getStoreFunc();
         String outLoc = store.getOutputFile().getFileName();
-        Job dummyJob;
         String errMsg = "Unexpected error. Could not validate the output " +
-        		"specification for: "+outLoc;
+        "specification for: "+outLoc;
         int errCode = 2116;
+
+        try {
+            if(store.getSchema() != null){
+                sf.checkSchema(new ResourceSchema(store.getSchema(), store.getSortInfo()));                
+            }
+        } catch (FrontendException e) {
+            msgCollector.collect(errMsg, MessageType.Error) ;
+            throw new PlanValidationException(errMsg, errCode, pigCtx.getErrorSource(), e);
+        } catch (IOException e) {
+            msgCollector.collect(errMsg, MessageType.Error) ;
+            throw new PlanValidationException(errMsg, errCode, pigCtx.getErrorSource(), e);
+        }
+
+        Job dummyJob;
         
         try {
             dummyJob = new Job(ConfigurationUtil.toConfiguration(pigCtx.getProperties()));

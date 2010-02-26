@@ -58,6 +58,8 @@ manner (rding via pradeepkth)
 
 IMPROVEMENTS
 
+PIG-1251: Move SortInfo calculation earlier in compilation (ashutoshc)
+
 PIG-1233: NullPointerException in AVG  (ankur via olgan)
 
 PIG-1218: Use distributed cache to store samples (rding via pradeepkth)
