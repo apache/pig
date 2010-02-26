@@ -62,9 +62,7 @@ public class LogicalPlanValidationExecutor
         if (!pigContext.inExplain) {
             // When running explain we don't want to check for input
             // files.
-            // Temporarily disabling InputOutputFileValidator on trunk
-            // till PIG-1251 and PIG-1216 are addressed.
-            //validatorList.add(new InputOutputFileValidator(pigContext)) ;
+            validatorList.add(new InputOutputFileValidator(pigContext)) ;
         }
         // This one has to be done before the type checker.
         //validatorList.add(new TypeCastInserterValidator()) ;
