@@ -20,6 +20,7 @@ package org.apache.pig;
 import java.io.IOException;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.mapreduce.Job;
 
 /**
  * This interface defines how to retrieve metadata related to data to be loaded.
@@ -32,14 +33,16 @@ public interface LoadMetadata {
      * Get a schema for the data to be loaded.  
      * @param location Location as returned by 
      * {@link LoadFunc#relativeToAbsolutePath(String, org.apache.hadoop.fs.Path)}
-     * @param conf The {@link Configuration} object 
+     * @param job The {@link Job} object - this should be used only to obtain 
+     * cluster properties through {@link Job#getConfiguration()} and not to set/query
+     * any runtime job information.  
      * @return schema for the data to be loaded. This schema should represent
      * all tuples of the returned data.  If the schema is unknown or it is
      * not possible to return a schema that represents all returned data,
      * then null should be returned.
      * @throws IOException if an exception occurs while determining the schema
      */
-    ResourceSchema getSchema(String location, Configuration conf) throws 
+    ResourceSchema getSchema(String location, Job job) throws 
     IOException;
 
     /**
@@ -47,31 +50,35 @@ public interface LoadMetadata {
      * available, then null should be returned.
      * @param location Location as returned by 
      * {@link LoadFunc#relativeToAbsolutePath(String, org.apache.hadoop.fs.Path)}
-     * @param conf The {@link Configuration} object
+     * @param job The {@link Job} object - this should be used only to obtain 
+     * cluster properties through {@link Job#getConfiguration()} and not to set/query
+     * any runtime job information.  
      * @return statistics about the data to be loaded.  If no statistics are
      * available, then null should be returned.
      * @throws IOException if an exception occurs while retrieving statistics
      */
-    ResourceStatistics getStatistics(String location, Configuration conf) 
+    ResourceStatistics getStatistics(String location, Job job) 
     throws IOException;
 
     /**
      * Find what columns are partition keys for this input.
      * @param location Location as returned by 
      * {@link LoadFunc#relativeToAbsolutePath(String, org.apache.hadoop.fs.Path)}
-     * @param conf The {@link Configuration} object
+     * @param job The {@link Job} object - this should be used only to obtain 
+     * cluster properties through {@link Job#getConfiguration()} and not to set/query
+     * any runtime job information.  
      * @return array of field names of the partition keys. Implementations 
      * should return null to indicate that there are no partition keys
      * @throws IOException if an exception occurs while retrieving partition keys
      */
-    String[] getPartitionKeys(String location, Configuration conf) 
+    String[] getPartitionKeys(String location, Job job) 
     throws IOException;
 
     /**
      * Set the filter for partitioning.  It is assumed that this filter
      * will only contain references to fields given as partition keys in
      * getPartitionKeys. So if the implementation returns null in 
-     * {@link #getPartitionKeys(String, Configuration)}, then this method is not
+     * {@link #getPartitionKeys(String, Job)}, then this method is not
      * called by pig runtime. This method is also not called by the pig runtime
      * if there are no partition filter conditions. 
      * @param partitionFilter that describes filter for partitioning

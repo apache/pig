@@ -27,6 +27,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.mapreduce.Job;
 import org.apache.pig.Expression;
 import org.apache.pig.LoadMetadata;
 import org.apache.pig.StoreMetadata;
@@ -131,7 +132,7 @@ public class JsonMetadata implements LoadMetadata, StoreMetadata {
     // Implementation of LoadMetaData interface
     
     @Override
-    public String[] getPartitionKeys(String location, Configuration conf) {
+    public String[] getPartitionKeys(String location, Job job) {
         return null;
     }
 
@@ -147,7 +148,8 @@ public class JsonMetadata implements LoadMetadata, StoreMetadata {
      * TODO location and conf params are ignored in favor of initialzation data 
      */
     @Override
-    public ResourceSchema getSchema(String location, Configuration conf) throws IOException {     
+    public ResourceSchema getSchema(String location, Job job) throws IOException {     
+        Configuration conf = job.getConfiguration();
         Set<ElementDescriptor> schemaFileSet = null;
         try {
             schemaFileSet = findMetaFile(location, schemaFileName, conf);
@@ -188,7 +190,8 @@ public class JsonMetadata implements LoadMetadata, StoreMetadata {
      * @see org.apache.pig.LoadMetadata#getStatistics(String, Configuration)
      */
     @Override
-    public ResourceStatistics getStatistics(String location, Configuration conf) throws IOException {
+    public ResourceStatistics getStatistics(String location, Job job) throws IOException {
+        Configuration conf = job.getConfiguration();
         Set<ElementDescriptor> statFileSet = null;
         try {
             statFileSet = findMetaFile(location, statFileName, conf);
@@ -224,7 +227,8 @@ public class JsonMetadata implements LoadMetadata, StoreMetadata {
     // Implementation of StoreMetaData interface
     
     @Override
-    public void storeStatistics(ResourceStatistics stats, String location, Configuration conf) throws IOException {
+    public void storeStatistics(ResourceStatistics stats, String location, Job job) throws IOException {
+        Configuration conf = job.getConfiguration();
         DataStorage storage = new HDataStorage(ConfigurationUtil.toProperties(conf));
         ElementDescriptor statFilePath = storage.asElement(location, statFileName);
         if(!statFilePath.exists() && stats != null) {
@@ -241,7 +245,8 @@ public class JsonMetadata implements LoadMetadata, StoreMetadata {
     }
 
     @Override
-    public void storeSchema(ResourceSchema schema, String location, Configuration conf) throws IOException {
+    public void storeSchema(ResourceSchema schema, String location, Job job) throws IOException {
+        Configuration conf = job.getConfiguration();
         DataStorage storage = new HDataStorage(ConfigurationUtil.toProperties(conf));
         ElementDescriptor schemaFilePath = storage.asElement(location, schemaFileName);
         if(!schemaFilePath.exists() && schema != null) {

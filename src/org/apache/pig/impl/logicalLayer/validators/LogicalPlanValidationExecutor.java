@@ -56,19 +56,25 @@ public class LogicalPlanValidationExecutor
      */
     
     public LogicalPlanValidationExecutor(LogicalPlan plan,
-                                         PigContext pigContext) {
+                                         PigContext pigContext, 
+                                         boolean beforeOptimizer) {
    
         // Default validations
-        if (!pigContext.inExplain) {
+        if (!pigContext.inExplain && !beforeOptimizer) {
             // When running explain we don't want to check for input
-            // files.
+            // files. - run this validator after optimizer for two reasons
+            // 1) input/output may get changed (optimized away)
+            // 2) we will call checkSchema on the StoreFunc for the store(s) 
+            // in this validator and the schema should contain correct schema 
+            // after optimization
             validatorList.add(new InputOutputFileValidator(pigContext)) ;
+        } else if (beforeOptimizer) {
+            // This one has to be done before the type checker.
+            //validatorList.add(new TypeCastInserterValidator()) ;
+            validatorList.add(new TypeCheckingValidator()) ;
+            
+            validatorList.add(new SchemaAliasValidator()) ;
         }
-        // This one has to be done before the type checker.
-        //validatorList.add(new TypeCastInserterValidator()) ;
-        validatorList.add(new TypeCheckingValidator()) ;
-        
-        validatorList.add(new SchemaAliasValidator()) ;
     }    
 
     public void validate(LogicalPlan plan,

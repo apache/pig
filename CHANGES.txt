@@ -22,6 +22,10 @@ Trunk (unreleased changes)
 
 INCOMPATIBLE CHANGES
 
+PIG-1265: Change LoadMetadata and StoreMetadata to use Job instead of
+Configuraiton and add a cleanupOnFailure method to StoreFuncInterface
+(pradeepkth)
+
 PIG-1250:  Make StoreFunc an abstract class and create a mirror interface
 called StoreFuncInterface (pradeepkth)
 

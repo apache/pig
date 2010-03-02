@@ -280,15 +280,14 @@ public class TableLoader extends IndexableLoadFunc implements LoadMetadata, Load
      }
 
      @Override
-     public String[] getPartitionKeys(String location, Configuration conf)
+     public String[] getPartitionKeys(String location, Job job)
      throws IOException {
          return null;
      }
 
      @Override
-     public ResourceSchema getSchema(String location, Configuration conf) throws IOException {
-         Path[] paths = getPathsFromLocation( location, conf );
-         Job job = new Job(conf);
+     public ResourceSchema getSchema(String location, Job job) throws IOException {
+         Path[] paths = getPathsFromLocation( location, job.getConfiguration());
          TableInputFormat.setInputPaths( job, paths );
 
          Schema tableSchema = null;
@@ -325,7 +324,7 @@ public class TableLoader extends IndexableLoadFunc implements LoadMetadata, Load
      }
 
      @Override
-     public ResourceStatistics getStatistics(String location, Configuration conf)
+     public ResourceStatistics getStatistics(String location, Job job)
      throws IOException {
          // Statistics is not supported.
          return null;

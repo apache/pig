@@ -26,6 +26,7 @@ import java.util.Properties;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.WritableComparable;
@@ -45,6 +46,7 @@ import org.apache.pig.LoadFunc;
 import org.apache.pig.LoadPushDown;
 import org.apache.pig.PigException;
 import org.apache.pig.ResourceSchema;
+import org.apache.pig.StoreFunc;
 import org.apache.pig.StoreFuncInterface;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigSplit;
@@ -135,7 +137,7 @@ LoadPushDown {
       
     }
 
-    ByteArrayOutputStream mOut = new ByteArrayOutputStream(BUFFER_SIZE);
+    protected ByteArrayOutputStream mOut = new ByteArrayOutputStream(BUFFER_SIZE);
 
     @Override
     public void putNext(Tuple f) throws IOException {
@@ -291,6 +293,12 @@ LoadPushDown {
 
     @Override
     public void setStoreFuncUDFContextSignature(String signature) {
+    }
+
+    @Override
+    public void cleanupOnFailure(String location, Job job)
+            throws IOException {
+        StoreFunc.cleanupOnFailureImpl(location, job);
     }
 
 }

@@ -20,17 +20,16 @@ package org.apache.pig.backend.hadoop.executionengine.mapReduceLayer;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
-import java.util.List;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.Arrays;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapred.JobClient;
 import org.apache.hadoop.mapred.JobID;
 import org.apache.hadoop.mapred.RunningJob;
@@ -40,17 +39,13 @@ import org.apache.hadoop.mapred.jobcontrol.JobControl;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
-import org.apache.pig.backend.executionengine.ExecutionEngine;
-import org.apache.pig.backend.hadoop.datastorage.HConfiguration;
-import org.apache.pig.backend.hadoop.executionengine.HExecutionEngine;
-import org.apache.pig.impl.PigContext;
-import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROperPlan;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
+import org.apache.pig.impl.PigContext;
+import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.plan.PlanException;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.util.LogUtils;
-import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.tools.pigstats.PigStats;
 
 public abstract class Launcher {
@@ -62,8 +57,8 @@ public abstract class Launcher {
     boolean outOfMemory = false;
     static final String OOM_ERR = "OutOfMemoryError";
 
-    protected List<FileSpec> succeededStores = null;
-    protected List<FileSpec> failedStores = null;
+    protected List<POStore> succeededStores = null;
+    protected List<POStore> failedStores = null;
     
     protected Launcher(){
         totalHadoopTimeSpent = 0;
@@ -75,21 +70,19 @@ public abstract class Launcher {
     }
 
     /**
-     * Returns a list of locations of results that have been
-     * successfully completed.
-     * @return A list of filspecs that corresponds to the locations of
-     * the successful stores.
+     *
+     * @return A list of {@link POStore} objects corresponding to the store
+     * statements that were successful
      */
-    public List<FileSpec> getSucceededFiles() {
+    public List<POStore> getSucceededFiles() {
         return succeededStores;
     }
 
     /**
-     * Returns a list of locations of results that have failed.
-     * @return A list of filspecs that corresponds to the locations of
-     * the failed stores.
+     * @return A list of {@link POStore} objects corresponding to the store
+     * statements that failed
      */
-    public List<FileSpec> getFailedFiles() {
+    public List<POStore> getFailedFiles() {
         return failedStores;
     }
 
@@ -97,8 +90,8 @@ public abstract class Launcher {
      * Resets the state after a launch
      */
     public void reset() {
-        succeededStores = new LinkedList<FileSpec>();
-        failedStores = new LinkedList<FileSpec>();
+        succeededStores = new LinkedList<POStore>();
+        failedStores = new LinkedList<POStore>();
     }
 
     /**

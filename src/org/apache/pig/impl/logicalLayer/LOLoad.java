@@ -47,6 +47,7 @@ import org.apache.pig.impl.util.Pair;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.mapreduce.Job;
 
 public class LOLoad extends RelationalOperator {
     private static final long serialVersionUID = 2L;
@@ -164,7 +165,7 @@ public class LOLoad extends RelationalOperator {
         if(LoadMetadata.class.isAssignableFrom(mLoadFunc.getClass())) {
             LoadMetadata loadMetadata = (LoadMetadata)mLoadFunc;
             ResourceSchema rSchema = loadMetadata.getSchema(
-                    mInputFileSpec.getFileName(), conf);
+                    mInputFileSpec.getFileName(), new Job(conf));
             return Schema.getPigSchema(rSchema);
         } else {
             return null;

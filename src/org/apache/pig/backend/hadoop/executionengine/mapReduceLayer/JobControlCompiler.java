@@ -133,7 +133,6 @@ public class JobControlCompiler{
      */
     public static final String PIG_MAP_STORES = "pig.map.stores";
     public static final String PIG_REDUCE_STORES = "pig.reduce.stores";
-    public static final String PIG_STORE_FUNC = "pig.storeFunc";
     
     // A mapping of job to pair of store locations and tmp locations for that job
     private Map<Job, Pair<List<POStore>, Path>> jobStoreMap;
@@ -460,13 +459,6 @@ public class JobControlCompiler{
                 String outputPath = st.getSFile().getFileName();
                 FuncSpec outputFuncSpec = st.getSFile().getFuncSpec();
                 
-                // serialize the store func spec using ObjectSerializer
-                // ObjectSerializer.serialize() uses default java serialization
-                // and then further encodes the output so that control characters
-                // get encoded as regular characters. Otherwise any control characters
-                // in the store funcspec would break the job.xml which is created by
-                // hadoop from the jobconf.
-                conf.set(PIG_STORE_FUNC, ObjectSerializer.serialize(outputFuncSpec.toString()));
                 conf.set("pig.streaming.log.dir", 
                             new Path(outputPath, LOG_DIR).toString());
                 conf.set("pig.streaming.task.output.dir", outputPath);

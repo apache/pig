@@ -21,6 +21,7 @@ package org.apache.pig.piggybank.storage;
 import java.io.IOException;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.mapreduce.Job;
 import org.apache.pig.Expression;
 import org.apache.pig.LoadMetadata;
 import org.apache.pig.ResourceSchema;
@@ -55,13 +56,13 @@ public class PigStorageSchema extends PigStorage implements LoadMetadata, StoreM
     
     @Override
     public ResourceSchema getSchema(String location,
-            Configuration conf) throws IOException {
-        return (new JsonMetadata()).getSchema(location, conf);
+            Job job) throws IOException {
+        return (new JsonMetadata()).getSchema(location, job);
     }
 
     @Override
     public ResourceStatistics getStatistics(String location,
-            Configuration conf) throws IOException {        
+            Job job) throws IOException {        
         return null;
     }
 
@@ -71,7 +72,7 @@ public class PigStorageSchema extends PigStorage implements LoadMetadata, StoreM
     }
     
     @Override
-    public String[] getPartitionKeys(String location, Configuration conf)
+    public String[] getPartitionKeys(String location, Job job)
             throws IOException {
         return null;
     }
@@ -81,18 +82,18 @@ public class PigStorageSchema extends PigStorage implements LoadMetadata, StoreM
 
     @Override
     public void storeSchema(ResourceSchema schema, String location,
-            Configuration conf) throws IOException {
+            Job job) throws IOException {
         JsonMetadata metadataWriter = new JsonMetadata();
         byte fieldDel = '\t';
         byte recordDel = '\n';
         metadataWriter.setFieldDel(fieldDel);
         metadataWriter.setRecordDel(recordDel);
-        metadataWriter.storeSchema(schema, location, conf);               
+        metadataWriter.storeSchema(schema, location, job);               
     }
 
     @Override
     public void storeStatistics(ResourceStatistics stats, String location,
-            Configuration conf) throws IOException {
+            Job job) throws IOException {
         
     }
 }

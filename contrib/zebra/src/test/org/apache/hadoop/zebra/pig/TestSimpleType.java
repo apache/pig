@@ -437,15 +437,19 @@ public class TestSimpleType {
       System.out.println(RowValue);
     }
 
-    Path newPath = new Path(getCurrentMethodName());
-    ExecJob pigJob = pigServer
-        .store(
-            "records",
-            new Path(newPath, "store").toString(),
-            TableStorer.class.getCanonicalName()
-                + "('[s7, s2]; [s3, s4]')");
-    Assert.assertNotNull(pigJob.getException());
-    System.out.println(pigJob.getException());
+    try {
+        Path newPath = new Path(getCurrentMethodName());
+        ExecJob pigJob = pigServer
+            .store(
+                "records",
+                new Path(newPath, "store").toString(),
+                TableStorer.class.getCanonicalName()
+                    + "('[s7, s2]; [s3, s4]')");
+    } catch (Exception e) {
+        System.out.println(e);
+        return;
+    }
+    Assert.fail("Exception expected");
   }
 
   @Test
@@ -462,16 +466,20 @@ public class TestSimpleType {
       System.out.println(RowValue);
     }
 
-    Path newPath = new Path(getCurrentMethodName());
-    
-    ExecJob pigJob = pigServer
-          .store(
-              "records",
-              new Path(newPath, "store").toString(),
-              TableStorer.class.getCanonicalName()
-                  + "('[s1, s2]; [s1, s4]')");
-      Assert.assertNotNull(pigJob.getException());
-      System.out.println(pigJob.getException());
+    try {
+        Path newPath = new Path(getCurrentMethodName());
+        
+        ExecJob pigJob = pigServer
+              .store(
+                  "records",
+                  new Path(newPath, "store").toString(),
+                  TableStorer.class.getCanonicalName()
+                      + "('[s1, s2]; [s1, s4]')");
+    } catch(Exception e) {
+        System.out.println(e);
+        return;
+    }
+    Assert.fail("Exception expected");
   }
 
   @Test
@@ -487,17 +495,21 @@ public class TestSimpleType {
       Tuple RowValue = it.next();
       System.out.println(RowValue);
     }
+    try{
+        Path newPath = new Path(getCurrentMethodName());
+    
+        ExecJob pigJob = pigServer
+            .store(
+                "records",
+                new Path(newPath, "store").toString(),
+                TableStorer.class.getCanonicalName()
+                    + "('[s1]; [s1]')");
+    } catch(Exception e) {
+        System.out.println(e);
+        return;
+    }
+    Assert.fail("Exception expected");
 
-    Path newPath = new Path(getCurrentMethodName());
-
-    ExecJob pigJob = pigServer
-        .store(
-            "records",
-            new Path(newPath, "store").toString(),
-            TableStorer.class.getCanonicalName()
-                + "('[s1]; [s1]')");
-    Assert.assertNotNull(pigJob.getException());
-    System.out.println(pigJob.getException());
   }
 
   // @Test
@@ -541,13 +553,17 @@ public class TestSimpleType {
     // Use pig STORE to store testing data
     //
     System.out.println("path = " + path);
-    ExecJob pigJob = pigServer
-        .store(
-            "records",
-            path.toString(),
-            TableStorer.class.getCanonicalName()
-                + "('[s1, s2]; [s3, s4]')");
-    Assert.assertNotNull(pigJob.getException());
-    System.out.println("pig job exception : " + pigJob.getException());
+    try {
+        ExecJob pigJob = pigServer
+            .store(
+                "records",
+                path.toString(),
+                TableStorer.class.getCanonicalName()
+                    + "('[s1, s2]; [s3, s4]')");
+    } catch(Exception e) {
+        System.out.println(e);
+        return;
+    }
+    Assert.fail("Exception expected");
   }
 }

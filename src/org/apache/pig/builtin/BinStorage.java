@@ -45,6 +45,7 @@ import org.apache.pig.LoadMetadata;
 import org.apache.pig.PigException;
 import org.apache.pig.PigWarning;
 import org.apache.pig.ResourceSchema;
+import org.apache.pig.StoreFunc;
 import org.apache.pig.ResourceSchema.ResourceFieldSchema;
 import org.apache.pig.ResourceStatistics;
 import org.apache.pig.StoreFuncInterface;
@@ -380,14 +381,15 @@ implements LoadCaster, StoreFuncInterface, LoadMetadata {
     }
 
     @Override
-    public String[] getPartitionKeys(String location, Configuration conf)
+    public String[] getPartitionKeys(String location, Job job)
             throws IOException {
         return null;
     }
 
     @Override
-    public ResourceSchema getSchema(String location, Configuration conf)
+    public ResourceSchema getSchema(String location, Job job)
             throws IOException {
+        Configuration conf = job.getConfiguration();
         Properties props = ConfigurationUtil.toProperties(conf);
         // since local mode now is implemented as hadoop's local mode
         // we can treat either local or hadoop mode as hadoop mode - hence
@@ -423,7 +425,7 @@ implements LoadCaster, StoreFuncInterface, LoadMetadata {
     }
 
     @Override
-    public ResourceStatistics getStatistics(String location, Configuration conf)
+    public ResourceStatistics getStatistics(String location, Job job)
             throws IOException {
         throw new UnsupportedOperationException();
     }
@@ -435,6 +437,11 @@ implements LoadCaster, StoreFuncInterface, LoadMetadata {
     
     @Override
     public void setStoreFuncUDFContextSignature(String signature) {
+    }
+
+    @Override
+    public void cleanupOnFailure(String location, Job job) throws IOException {
+        StoreFunc.cleanupOnFailureImpl(location, job);
     }
 
 }

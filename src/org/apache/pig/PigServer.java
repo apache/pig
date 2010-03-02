@@ -36,6 +36,7 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.Stack;
 
+import org.apache.hadoop.mapreduce.Job;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.apache.pig.impl.plan.PlanException;
@@ -70,7 +71,9 @@ import org.apache.pig.impl.logicalLayer.parser.ParseException;
 import org.apache.pig.impl.logicalLayer.parser.QueryParser;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.logicalLayer.validators.LogicalPlanValidationExecutor;
+import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.impl.plan.CompilationMessageCollector;
 import org.apache.pig.impl.plan.DependencyOrderWalker;
 import org.apache.pig.impl.plan.DepthFirstWalker;
@@ -539,7 +542,7 @@ public class PigServer {
         }
 
         try {
-            LogicalPlan lp = compileLp(id);
+            LogicalPlan lp = clonePlan(id);
 
             // MRCompiler needs a store to be the leaf - hence
             // add a store to the plan to explain
@@ -557,7 +560,8 @@ public class PigServer {
                 }
             }
             
-            LogicalPlan storePlan = QueryParser.generateStorePlan(scope, lp, filename, func, leaf, leaf.getAlias(), pigContext);
+            LogicalPlan unCompiledstorePlan = QueryParser.generateStorePlan(scope, lp, filename, func, leaf, leaf.getAlias(), pigContext);
+            LogicalPlan storePlan = compileLp(unCompiledstorePlan, true);
             List<ExecJob> jobs = executeCompiledLogicalPlan(storePlan);
             if (jobs.size() < 1) {
                 throw new IOException("Couldn't retrieve job.");
@@ -813,8 +817,13 @@ public class PigServer {
         List<ExecJob> execJobs = pigContext.getExecutionEngine().execute(pp, "job_pigexec_");
         for (ExecJob execJob: execJobs) {
             if (execJob.getStatus()==ExecJob.JOB_STATUS.FAILED) {
-                FileLocalizer.triggerDeleteOnFail();
-                break;
+                POStore store = execJob.getPOStore();
+                try {
+                    store.getStoreFunc().cleanupOnFailure(store.getSFile().getFileName(),
+                            new Job(ConfigurationUtil.toConfiguration(execJob.getConfiguration())));
+                } catch (IOException e) {
+                    throw new ExecException(e);
+                }
             }
         }
         return execJobs;
@@ -841,21 +850,66 @@ public class PigServer {
             String msg = "Unable to clone plan before compiling";
             throw new FrontendException(msg, errCode, PigException.BUG, e);
         }
-        
+        return compileLp(lpClone, optimize);
+    }
+    
+    @SuppressWarnings("unchecked")
+    private  LogicalPlan compileLp(LogicalPlan lp, boolean optimize) throws
+    FrontendException {
         // Set the logical plan values correctly in all the operators
-        PlanSetter ps = new PlanSetter(lpClone);
+        PlanSetter ps = new PlanSetter(lp);
         ps.visit();
-        
-        SortInfoSetter sortInfoSetter = new SortInfoSetter(lpClone);
-        sortInfoSetter.visit();
         
         // run through validator
         CompilationMessageCollector collector = new CompilationMessageCollector() ;
+        boolean isBeforeOptimizer = true;
+        validate(lp, collector, isBeforeOptimizer);
+        
+
+        // optimize
+        if (optimize && pigContext.getProperties().getProperty("pig.usenewlogicalplan", "false").equals("false")) {
+            HashSet<String> optimizerRules = null;
+            try {
+                optimizerRules = (HashSet<String>) ObjectSerializer
+                        .deserialize(pigContext.getProperties().getProperty(
+                                "pig.optimizer.rules"));
+            } catch (IOException ioe) {
+                int errCode = 2110;
+                String msg = "Unable to deserialize optimizer rules.";
+                throw new FrontendException(msg, errCode, PigException.BUG, ioe);
+            }
+
+            LogicalOptimizer optimizer = new LogicalOptimizer(lp, pigContext.getExecType(), optimizerRules);
+            optimizer.optimize();
+        }
+
+        // compute whether output data is sorted or not
+        SortInfoSetter sortInfoSetter = new SortInfoSetter(lp);
+        sortInfoSetter.visit();
+        
+        // run validations to be done after optimization
+        isBeforeOptimizer = false;
+        validate(lp, collector, isBeforeOptimizer);
+        
+        return lp;
+    }
+
+    private PhysicalPlan compilePp(LogicalPlan lp) throws ExecException {
+        // translate lp to physical plan
+        PhysicalPlan pp = pigContext.getExecutionEngine().compile(lp, null);
+
+        // TODO optimize
+
+        return pp;
+    }
+
+    private void validate(LogicalPlan lp, CompilationMessageCollector collector,
+            boolean isBeforeOptimizer) throws FrontendException {
         FrontendException caught = null;
         try {
             LogicalPlanValidationExecutor validator = 
-                new LogicalPlanValidationExecutor(lpClone, pigContext);
-            validator.validate(lpClone, collector);
+                new LogicalPlanValidationExecutor(lp, pigContext, isBeforeOptimizer);
+            validator.validate(lp, collector);
         } catch (FrontendException fe) {
             // Need to go through and see what the collector has in it.  But
             // remember what we've caught so we can wrap it into what we
@@ -874,36 +928,7 @@ public class PigServer {
         if (caught != null) {
             throw caught;
         }
-
-        // optimize
-        if (optimize && pigContext.getProperties().getProperty("pig.usenewlogicalplan", "false").equals("false")) {
-            HashSet<String> optimizerRules = null;
-            try {
-                optimizerRules = (HashSet<String>) ObjectSerializer
-                        .deserialize(pigContext.getProperties().getProperty(
-                                "pig.optimizer.rules"));
-            } catch (IOException ioe) {
-                int errCode = 2110;
-                String msg = "Unable to deserialize optimizer rules.";
-                throw new FrontendException(msg, errCode, PigException.BUG, ioe);
-            }
-
-            LogicalOptimizer optimizer = new LogicalOptimizer(lpClone, pigContext.getExecType(), optimizerRules);
-            optimizer.optimize();
-        }
-
-        return lpClone;
     }
-
-    private PhysicalPlan compilePp(LogicalPlan lp) throws ExecException {
-        // translate lp to physical plan
-        PhysicalPlan pp = pigContext.getExecutionEngine().compile(lp, null);
-
-        // TODO optimize
-
-        return pp;
-    }
-
     private LogicalPlan getPlanFromAlias(
             String alias,
             String operation) throws FrontendException {
@@ -1128,6 +1153,7 @@ public class PigServer {
             }
         }
 
+        @Override
         protected Graph clone() {
             // There are two choices on how we clone the logical plan
             // 1 - we really clone each operator and connect up the cloned operators

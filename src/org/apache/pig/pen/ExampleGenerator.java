@@ -214,13 +214,19 @@ public class ExampleGenerator {
         CompilationMessageCollector collector = new CompilationMessageCollector();
         FrontendException caught = null;
         try {
+            boolean isBeforeOptimizer = true;
             LogicalPlanValidationExecutor validator = new LogicalPlanValidationExecutor(
-                    plan, pigContext);
+                    plan, pigContext, isBeforeOptimizer);
             validator.validate(plan, collector);
 
             FunctionalLogicalOptimizer optimizer = new FunctionalLogicalOptimizer(
                     plan);
             optimizer.optimize();
+            
+            isBeforeOptimizer = false;
+            validator = new LogicalPlanValidationExecutor(
+                    plan, pigContext, isBeforeOptimizer);
+            validator.validate(plan, collector);
         } catch (FrontendException fe) {
             // Need to go through and see what the collector has in it. But
             // remember what we've caught so we can wrap it into what we

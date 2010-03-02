@@ -505,20 +505,20 @@ public class TestPartitionFilterOptimization extends TestCase {
         }
 
         @Override
-        public String[] getPartitionKeys(String location, Configuration conf)
+        public String[] getPartitionKeys(String location, Job job)
                 throws IOException {
             return partCols;
         }
 
         @Override
-        public ResourceSchema getSchema(String location, Configuration conf)
+        public ResourceSchema getSchema(String location, Job job)
                 throws IOException {
             return new ResourceSchema(schema);
         }
 
         @Override
         public ResourceStatistics getStatistics(String location,
-                Configuration conf) throws IOException {
+                Job job) throws IOException {
             return null;
         }
 

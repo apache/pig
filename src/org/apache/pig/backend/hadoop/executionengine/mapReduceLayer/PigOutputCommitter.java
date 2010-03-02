@@ -23,6 +23,7 @@ import java.util.LinkedList;
 import java.util.List;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.hadoop.mapreduce.OutputCommitter;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
@@ -129,9 +130,7 @@ public class PigOutputCommitter extends OutputCommitter {
         // call setLocation() on the storeFunc so that if there are any
         // side effects like setting map.output.dir on the Configuration
         // in the Context are needed by the OutputCommitter, those actions
-        // will be done before the committer is created. Also the String 
-        // version of StoreFunc for the specific store need
-        // to be set up in the context in case the committer needs them
+        // will be done before the committer is created. 
         PigOutputFormat.setLocation(contextCopy, store);
         return contextCopy;   
     }
@@ -161,14 +160,11 @@ public class PigOutputCommitter extends OutputCommitter {
             if (schema != null) {
                 ((StoreMetadata) storeFunc).storeSchema(
                         new ResourceSchema(schema, store.getSortInfo()), store.getSFile()
-                                .getFileName(), conf);
+                                .getFileName(), new Job(conf));
             }
         }
     }
     
-    /* (non-Javadoc)
-     * @see org.apache.hadoop.mapred.FileOutputCommitter#cleanupJob(org.apache.hadoop.mapred.JobContext)
-     */
     @Override
     public void cleanupJob(JobContext context) throws IOException {
         // call clean up on all map and reduce committers
@@ -188,9 +184,6 @@ public class PigOutputCommitter extends OutputCommitter {
        
     }
 
-    /* (non-Javadoc)
-     * @see org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter#abortTask(org.apache.hadoop.mapreduce.TaskAttemptContext)
-     */
     @Override
     public void abortTask(TaskAttemptContext context) throws IOException {        
         if(context.getTaskAttemptID().isMap()) {
@@ -210,9 +203,6 @@ public class PigOutputCommitter extends OutputCommitter {
         }
     }
     
-    /* (non-Javadoc)
-     * @see org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter#commitTask(org.apache.hadoop.mapreduce.TaskAttemptContext)
-     */
     @Override
     public void commitTask(TaskAttemptContext context) throws IOException {
         if(context.getTaskAttemptID().isMap()) {
@@ -232,9 +222,6 @@ public class PigOutputCommitter extends OutputCommitter {
         }
     }
     
-    /* (non-Javadoc)
-     * @see org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter#needsTaskCommit(org.apache.hadoop.mapreduce.TaskAttemptContext)
-     */
     @Override
     public boolean needsTaskCommit(TaskAttemptContext context)
             throws IOException {
@@ -260,9 +247,6 @@ public class PigOutputCommitter extends OutputCommitter {
         }
     }
     
-    /* (non-Javadoc)
-     * @see org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter#setupJob(org.apache.hadoop.mapreduce.JobContext)
-     */
     @Override
     public void setupJob(JobContext context) throws IOException {
         // call set up on all map and reduce committers
@@ -279,9 +263,6 @@ public class PigOutputCommitter extends OutputCommitter {
         }
     }
     
-    /* (non-Javadoc)
-     * @see org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter#setupTask(org.apache.hadoop.mapreduce.TaskAttemptContext)
-     */
     @Override
     public void setupTask(TaskAttemptContext context) throws IOException {
         if(context.getTaskAttemptID().isMap()) {

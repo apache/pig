@@ -306,14 +306,16 @@ public class HExecutionEngine implements ExecutionEngine {
         try {
             PigStats stats = launcher.launchPig(plan, jobName, pigContext);
 
-            for (FileSpec spec: launcher.getSucceededFiles()) {
+            for (POStore store: launcher.getSucceededFiles()) {
+                FileSpec spec = store.getSFile();
                 String alias = leafMap.containsKey(spec.toString()) ? leafMap.get(spec.toString()).getAlias() : null;
-                jobs.add(new HJob(ExecJob.JOB_STATUS.COMPLETED, pigContext, spec, alias, stats));
+                jobs.add(new HJob(ExecJob.JOB_STATUS.COMPLETED, pigContext, store, alias, stats));
             }
 
-            for (FileSpec spec: launcher.getFailedFiles()) {
+            for (POStore store: launcher.getFailedFiles()) {
+                FileSpec spec = store.getSFile();
                 String alias = leafMap.containsKey(spec.toString()) ? leafMap.get(spec.toString()).getAlias() : null;
-                HJob j = new HJob(ExecJob.JOB_STATUS.FAILED, pigContext, spec, alias, stats);
+                HJob j = new HJob(ExecJob.JOB_STATUS.FAILED, pigContext, store, alias, stats);
                 j.setException(launcher.getError(spec));
                 jobs.add(j);
             }

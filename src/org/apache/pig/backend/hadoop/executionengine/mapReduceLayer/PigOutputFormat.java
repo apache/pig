@@ -178,12 +178,6 @@ public class PigOutputFormat extends OutputFormat<WritableComparable, Tuple> {
         // supplied as input has the updates.
         ConfigurationUtil.mergeConf(jobContext.getConfiguration(), 
                 storeJob.getConfiguration());
-        
-        // Before delegating calls to underlying OutputFormat or OutputCommitter
-        // Pig needs to ensure the Configuration in the JobContext contains
-        // StoreFunc for the specific store - so set this up in the context 
-        // for this specific store
-        updateContextWithStoreInfo(jobContext, store);
     }
 
     @Override
@@ -239,22 +233,5 @@ public class PigOutputFormat extends OutputFormat<WritableComparable, Tuple> {
         // we return an instance of PigOutputCommitter to Hadoop - this instance
         // will wrap the real OutputCommitter(s) belonging to the store(s)
         return new PigOutputCommitter(taskattemptcontext);
-    }
-    
-    /**
-     * Before delegating calls to underlying OutputFormat or OutputCommitter
-     * Pig needs to ensure the Configuration in the {@link JobContext} contains
-     * {@link JobControlCompiler#PIG_STORE_FUNC}. This helper method can be
-     * used to set this up
-     * @param context the job context
-     * @param store the POStore whose information is to be put into the context
-     * @throws IOException in case of failure
-     */
-    public static void updateContextWithStoreInfo(JobContext context, 
-            POStore store) throws IOException {
-        Configuration conf = context.getConfiguration();
-        conf.set(JobControlCompiler.PIG_STORE_FUNC, 
-                store.getSFile().getFuncSpec().toString());
-        
     }
 }
