@@ -18,13 +18,18 @@
 package org.apache.pig.test;
 
 import java.io.* ;
+import java.util.Iterator;
 import java.util.Properties;
 
 import org.apache.pig.ExecType; 
 import org.apache.pig.FuncSpec;
+import org.apache.pig.PigServer;
 import org.apache.pig.backend.datastorage.DataStorage;
 import org.apache.pig.backend.datastorage.ElementDescriptor;
+import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
+import org.apache.pig.backend.hadoop.executionengine.util.MapRedUtil;
+import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.FileSpec;
@@ -37,7 +42,10 @@ import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.logicalLayer.validators.* ;
 import org.apache.pig.impl.plan.CompilationMessageCollector;
 import org.apache.pig.impl.plan.CompilationMessageCollector.MessageType; 
+import org.apache.pig.impl.util.LogUtils;
 import org.junit.Test;
+
+import junit.framework.Assert;
 import junit.framework.TestCase;
 
 public class TestInputOutputFileValidator extends TestCase {
@@ -57,7 +65,8 @@ public class TestInputOutputFileValidator extends TestCase {
         LogicalPlan plan = genNewLoadStorePlan(inputfile, outputfile, ctx.getFs()) ;        
         
         CompilationMessageCollector collector = new CompilationMessageCollector() ;        
-        LogicalPlanValidationExecutor executor = new LogicalPlanValidationExecutor(plan, ctx) ;
+        boolean isBeforeOptimizer = false; // we are not optimizing in this testcase
+        LogicalPlanValidationExecutor executor = new LogicalPlanValidationExecutor(plan, ctx, isBeforeOptimizer) ;
         executor.validate(plan, collector) ;
         
         assertFalse(collector.hasError()) ;
@@ -77,7 +86,8 @@ public class TestInputOutputFileValidator extends TestCase {
         LogicalPlan plan = genNewLoadStorePlan(inputfile, outputfile, ctx.getDfs()) ;        
         
         CompilationMessageCollector collector = new CompilationMessageCollector() ;        
-        LogicalPlanValidationExecutor executor = new LogicalPlanValidationExecutor(plan, ctx) ;
+        boolean isBeforeOptimizer = false; // we are not optimizing in this testcase
+        LogicalPlanValidationExecutor executor = new LogicalPlanValidationExecutor(plan, ctx, isBeforeOptimizer) ;
         try {
             executor.validate(plan, collector) ;
             fail("Expected to fail.");
@@ -104,7 +114,8 @@ public class TestInputOutputFileValidator extends TestCase {
         LogicalPlan plan = genNewLoadStorePlan(inputfile, outputfile, ctx.getDfs()) ;                     
         
         CompilationMessageCollector collector = new CompilationMessageCollector() ;        
-        LogicalPlanValidationExecutor executor = new LogicalPlanValidationExecutor(plan, ctx) ;
+        boolean isBeforeOptimizer = false; // we are not optimizing in this testcase
+        LogicalPlanValidationExecutor executor = new LogicalPlanValidationExecutor(plan, ctx, isBeforeOptimizer) ;
         executor.validate(plan, collector) ;
             
         assertFalse(collector.hasError()) ;
@@ -123,7 +134,8 @@ public class TestInputOutputFileValidator extends TestCase {
         LogicalPlan plan = genNewLoadStorePlan(inputfile, outputfile, ctx.getDfs()) ;                     
         
         CompilationMessageCollector collector = new CompilationMessageCollector() ;        
-        LogicalPlanValidationExecutor executor = new LogicalPlanValidationExecutor(plan, ctx) ;
+        boolean isBeforeOptimizer = false; // we are not optimizing in this testcase
+        LogicalPlanValidationExecutor executor = new LogicalPlanValidationExecutor(plan, ctx, isBeforeOptimizer) ;
         try {
             executor.validate(plan, collector) ;
             fail("Excepted to fail.");
@@ -136,6 +148,93 @@ public class TestInputOutputFileValidator extends TestCase {
             assertEquals(collector.get(i).getMessageType(), MessageType.Error) ;
         }       
 
+    }
+    
+    /**
+     * Testcase to ensure Input output validation allows store to a location
+     * that does not exist when using {@link PigServer#store(String, String)}
+     * @throws Exception
+     */
+    @Test
+    public void testPigServerStore() throws Exception {
+        String input = "input.txt";
+        String output= "output.txt";
+        String data[] = new String[] {"hello\tworld"};
+        ExecType[] modes = new ExecType[] {ExecType.MAPREDUCE, ExecType.LOCAL};
+        PigServer pig = null;
+        for (ExecType execType : modes) {
+            try {
+                if(execType == ExecType.MAPREDUCE) {
+                    pig = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+                } else {
+                    Properties props = new Properties();
+                    props.put(MapRedUtil.FILE_SYSTEM_NAME, "file:///");
+                    pig = new PigServer(ExecType.LOCAL, props);
+                }
+                // reinitialize FileLocalizer for each mode
+                // this is need for the tmp file creation as part of
+                // PigServer.openIterator
+                FileLocalizer.setInitialized(false);
+                Util.deleteFile(pig.getPigContext(), input);
+                Util.deleteFile(pig.getPigContext(), output);
+                Util.createInputFile(pig.getPigContext(), input, data);
+                pig.registerQuery("a = load '" + input + "';");
+                pig.store("a", output);
+                pig.registerQuery("b = load '" + output + "';");
+                Iterator<Tuple> it = pig.openIterator("b");
+                Tuple t = it.next();
+                Assert.assertEquals("hello", t.get(0).toString());
+                Assert.assertEquals("world", t.get(1).toString());
+                Assert.assertEquals(false, it.hasNext());
+            } finally {
+                Util.deleteFile(pig.getPigContext(), input);
+                Util.deleteFile(pig.getPigContext(), output);
+            }
+        }
+    }
+    
+    /**
+     * Test case to test that Input output file validation catches the case
+     * where the output file exists when using 
+     * {@link PigServer#store(String, String)}
+     * @throws Exception
+     */
+    @Test
+    public void testPigServerStoreNeg() throws Exception {
+        String input = "input.txt";
+        String output= "output.txt";
+        String data[] = new String[] {"hello\tworld"};
+        ExecType[] modes = new ExecType[] {ExecType.MAPREDUCE, ExecType.LOCAL};
+        PigServer pig = null;
+        for (ExecType execType : modes) {
+            try {
+                boolean exceptionCaught = false;
+                if(execType == ExecType.MAPREDUCE) {
+                    pig = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+                } else {
+                    Properties props = new Properties();
+                    props.put(MapRedUtil.FILE_SYSTEM_NAME, "file:///");
+                    pig = new PigServer(ExecType.LOCAL, props);
+                }
+                Util.deleteFile(pig.getPigContext(), input);
+                Util.deleteFile(pig.getPigContext(), output);
+                Util.createInputFile(pig.getPigContext(), input, data);
+                Util.createInputFile(pig.getPigContext(), output, data);
+                try {
+                    pig.registerQuery("a = load '" + input + "';");
+                    pig.store("a", output);
+                } catch (Exception e) {
+                    assertEquals(6000, LogUtils.getPigException(e).getErrorCode());
+                    exceptionCaught = true;
+                }
+                if(!exceptionCaught) {
+                    Assert.fail("Expected exception to be caught");
+                }
+            } finally {
+                Util.deleteFile(pig.getPigContext(), input);
+                Util.deleteFile(pig.getPigContext(), output);
+            }
+        }
     }
         
     private LogicalPlan genNewLoadStorePlan(String inputFile,

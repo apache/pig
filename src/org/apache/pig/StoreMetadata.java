@@ -21,6 +21,7 @@ package org.apache.pig;
 import java.io.IOException;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.mapreduce.Job;
 import org.apache.pig.ResourceSchema;
 import org.apache.pig.ResourceStatistics;
 
@@ -34,15 +35,19 @@ public interface StoreMetadata {
 
     /**
      * Store statistics about the data being written.
-     * 
+     * @param job The {@link Job} object - this should be used only to obtain 
+     * cluster properties through {@link Job#getConfiguration()} and not to set/query
+     * any runtime job information.  
      * @throws IOException 
      */
-    void storeStatistics(ResourceStatistics stats, String location, Configuration conf) throws IOException;
+    void storeStatistics(ResourceStatistics stats, String location, Job job) throws IOException;
 
     /**
      * Store schema of the data being written
-     * 
+     * @param job The {@link Job} object - this should be used only to obtain 
+     * cluster properties through {@link Job#getConfiguration()} and not to set/query
+     * any runtime job information.  
      * @throws IOException 
      */
-    void storeSchema(ResourceSchema schema, String location, Configuration conf) throws IOException;
+    void storeSchema(ResourceSchema schema, String location, Job job) throws IOException;
 }

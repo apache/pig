@@ -163,10 +163,11 @@ public class TableStorer extends StoreFunc implements StoreMetadata {
     }
 
     @Override
-    public void storeSchema(ResourceSchema schema, String location, Configuration conf)
+    public void storeSchema(ResourceSchema schema, String location, Job job)
     throws IOException {
     	// no-op. We do close at cleanupJob().
-        BasicTable.Writer write = new BasicTable.Writer( new Path( location ), conf );
+        BasicTable.Writer write = new BasicTable.Writer( new Path( location ), 
+                job.getConfiguration());
         write.close();
     }
 
@@ -177,7 +178,7 @@ public class TableStorer extends StoreFunc implements StoreMetadata {
 
     @Override
     public void storeStatistics(ResourceStatistics stats, String location,
-            Configuration conf) throws IOException {
+            Job job) throws IOException {
         // no-op
     }
 

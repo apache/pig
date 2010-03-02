@@ -276,9 +276,8 @@ public class MapReduceLauncher extends Launcher{
                         finalStores++;
                         log.error("Failed to produce result in: \""+st.getSFile().getFileName()+"\"");
                     }
-                    failedStores.add(st.getSFile());
+                    failedStores.add(st);
                     failureMap.put(st.getSFile(), backendException);
-                    FileLocalizer.registerDeleteOnFail(st.getSFile().getFileName(), pc);
                     //log.error("Failed to produce result in: \""+st.getSFile().getFileName()+"\"");
                 }
             }
@@ -304,7 +303,7 @@ public class MapReduceLauncher extends Launcher{
                         storeSchema(job, st);
                     }
                     if (!st.isTmpStore()) {
-                        succeededStores.add(st.getSFile());
+                        succeededStores.add(st);
                         finalStores++;
                         log.info("Successfully stored result in: \""+st.getSFile().getFileName()+"\"");
                     }

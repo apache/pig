@@ -22,6 +22,7 @@ import java.util.Iterator;
 import java.util.Properties;
 import java.io.OutputStream;
 
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.tools.pigstats.PigStats;
 
@@ -80,6 +81,12 @@ public interface ExecJob {
      * @return statistics relevant to the execution engine
      */
     public PigStats getStatistics();
+    
+    /**
+     * 
+     * @return {@link POStore} object associated with the store 
+     */
+    public POStore getPOStore();
 
     /**
      * hook for asynchronous notification of job completion pushed from the back-end

@@ -19,23 +19,20 @@
 package org.apache.pig.backend.hadoop.executionengine;
 
 import java.io.OutputStream;
-import java.io.InputStream;
 import java.util.Iterator;
 import java.util.Properties;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.pig.LoadFunc;
+import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.executionengine.ExecJob;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
-import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileSpec;
-import org.apache.pig.LoadFunc;
-import org.apache.pig.PigException;
-import org.apache.pig.impl.io.FileLocalizer;
-import org.apache.pig.impl.io.BufferedPositionedInputStream;
 import org.apache.pig.impl.io.ReadToEndLoader;
 import org.apache.pig.tools.pigstats.PigStats;
 
@@ -49,26 +46,29 @@ public class HJob implements ExecJob {
     protected FileSpec outFileSpec;
     protected Exception backendException;
     protected String alias;
+    protected POStore poStore;
     private PigStats stats;
     
     public HJob(JOB_STATUS status,
                 PigContext pigContext,
-                FileSpec outFileSpec,
+                POStore store,
                 String alias) {
         this.status = status;
         this.pigContext = pigContext;
-        this.outFileSpec = outFileSpec;
+        this.poStore = store;
+        this.outFileSpec = poStore.getSFile();
         this.alias = alias;
     }
     
     public HJob(JOB_STATUS status,
             PigContext pigContext,
-            FileSpec outFileSpec,
+            POStore store,
             String alias,
             PigStats stats) {
         this.status = status;
         this.pigContext = pigContext;
-        this.outFileSpec = outFileSpec;
+        this.poStore = store;
+        this.outFileSpec = poStore.getSFile();
         this.alias = alias;
         this.stats = stats;
     }
@@ -143,8 +143,7 @@ public class HJob implements ExecJob {
     }
 
     public Properties getConfiguration() {
-        Properties props = new Properties();
-        return props;
+        return pigContext.getProperties();
     }
 
     public PigStats getStatistics() {
@@ -183,5 +182,13 @@ public class HJob implements ExecJob {
     @Override
     public String getAlias() throws ExecException {
         return alias;
+    }
+
+    /**
+     * @return the poStore
+     */
+    @Override
+    public POStore getPOStore() {
+        return poStore;
     }
 }

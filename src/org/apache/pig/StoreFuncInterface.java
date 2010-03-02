@@ -68,18 +68,16 @@ public interface StoreFuncInterface {
     OutputFormat getOutputFormat() throws IOException;
 
     /**
-     * Communicate to the store function the location used in Pig Latin to refer 
-     * to the object(s) being stored.  That is, if the PL script is
-     * <b>store A into 'bla'</b>
-     * then 'bla' is the location.  This location should be either a file name
-     * or a URI.  If it does not have a URI scheme Pig will assume it is a 
-     * filename.  
+     * Communicate to the storer the location where the data needs to be stored.  
+     * The location string passed to the {@link StoreFuncInterface} here is the 
+     * return value of {@link StoreFuncInterface#relToAbsPathForStoreLocation(String, Path)}
      * This method will be called in the frontend and backend multiple times. Implementations
      * should bear in mind that this method is called multiple times and should
      * ensure there are no inconsistent side effects due to the multiple calls.
      * 
 
-     * @param location Location indicated in store statement.
+     * @param location Location returned by 
+     * {@link StoreFuncInterface#relToAbsPathForStoreLocation(String, Path)}
      * @param job The {@link Job} object
      * @throws IOException if the location is not valid.
      */
@@ -124,4 +122,16 @@ public interface StoreFuncInterface {
      * @param signature a unique signature to identify this StoreFuncInterface
      */
     public void setStoreFuncUDFContextSignature(String signature);
+
+    /**
+     * This method will be called by Pig if the job which contains this store
+     * fails. Implementations can clean up output locations in this method to
+     * ensure that no incorrect/incomplete results are left in the output location
+     * @param location Location returned by 
+     * {@link StoreFuncInterface#relToAbsPathForStoreLocation(String, Path)}
+     * @param job The {@link Job} object - this should be used only to obtain 
+     * cluster properties through {@link Job#getConfiguration()} and not to set/query
+     * any runtime job information. 
+     */
+    void cleanupOnFailure(String location, Job job) throws IOException;
 }

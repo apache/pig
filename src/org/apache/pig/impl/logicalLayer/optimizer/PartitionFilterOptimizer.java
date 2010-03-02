@@ -24,6 +24,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.hadoop.mapreduce.Job;
 import org.apache.pig.Expression;
 import org.apache.pig.LoadFunc;
 import org.apache.pig.LoadMetadata;
@@ -128,7 +129,7 @@ public class PartitionFilterOptimizer extends
         loadMetadata = (LoadMetadata)loadFunc;
         try {
             partitionKeys = loadMetadata.getPartitionKeys(
-                    loLoad.getInputFile().getFileName(), loLoad.getConfiguration());
+                    loLoad.getInputFile().getFileName(), new Job(loLoad.getConfiguration()));
             if(partitionKeys == null || partitionKeys.length == 0) {
                 return false;
             }

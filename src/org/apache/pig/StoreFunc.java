@@ -19,12 +19,12 @@ package org.apache.pig;
 
 import java.io.IOException;
 
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.OutputFormat;
 import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.pig.data.Tuple;
-import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.util.UDFContext;
 
 
@@ -54,6 +54,7 @@ public abstract class StoreFunc implements StoreFuncInterface {
      * @throws IOException 
      * @throws IOException if the conversion is not possible
      */
+    @Override
     public String relToAbsPathForStoreLocation(String location, Path curDir) 
     throws IOException {
         return LoadFunc.getAbsolutePath(location, curDir);
@@ -71,12 +72,9 @@ public abstract class StoreFunc implements StoreFuncInterface {
     public abstract OutputFormat getOutputFormat() throws IOException;
 
     /**
-     * Communicate to the store function the location used in Pig Latin to refer 
-     * to the object(s) being stored.  That is, if the PL script is
-     * <b>store A into 'bla'</b>
-     * then 'bla' is the location.  This location should be either a file name
-     * or a URI.  If it does not have a URI scheme Pig will assume it is a 
-     * filename.  
+     * Communicate to the storer the location where the data needs to be stored.  
+     * The location string passed to the {@link StoreFunc} here is the 
+     * return value of {@link StoreFunc#relToAbsPathForStoreLocation(String, Path)} 
      * This method will be called in the frontend and backend multiple times. Implementations
      * should bear in mind that this method is called multiple times and should
      * ensure there are no inconsistent side effects due to the multiple calls.
@@ -84,7 +82,8 @@ public abstract class StoreFunc implements StoreFuncInterface {
      * {@link #setStoreLocation(String, Job)}.
      * 
 
-     * @param location Location indicated in store statement.
+     * @param location Location returned by 
+     * {@link StoreFunc#relToAbsPathForStoreLocation(String, Path)}
      * @param job The {@link Job} object
      * @throws IOException if the location is not valid.
      */
@@ -102,6 +101,7 @@ public abstract class StoreFunc implements StoreFuncInterface {
      * @throws IOException if this schema is not acceptable.  It should include
      * a detailed error message indicating what is wrong with the schema.
      */
+    @Override
     public void checkSchema(ResourceSchema s) throws IOException {
         // default implementation is a no-op
     }
@@ -131,7 +131,41 @@ public abstract class StoreFunc implements StoreFuncInterface {
      * will be called before other methods in {@link StoreFunc}.
      * @param signature a unique signature to identify this StoreFunc
      */
+    @Override
     public void setStoreFuncUDFContextSignature(String signature) {
         // default implementation is a no-op
+    }
+    
+    /**
+     * This method will be called by Pig if the job which contains this store
+     * fails. Implementations can clean up output locations in this method to
+     * ensure that no incorrect/incomplete results are left in the output location.
+     * The implementation in {@link StoreFunc} deletes the output location if it
+     * is a {@link FileSystem} location.
+     * @param location Location returned by 
+     * {@link StoreFunc#relToAbsPathForStoreLocation(String, Path)}
+     * @param job The {@link Job} object - this should be used only to obtain 
+     * cluster properties through {@link Job#getConfiguration()} and not to set/query
+     * any runtime job information. 
+     */
+    @Override
+    public void cleanupOnFailure(String location, Job job) 
+    throws IOException {
+        cleanupOnFailureImpl(location, job);
+    }
+    
+    /**
+     * Implementation for {@link #cleanupOnFailure(String, Job)}
+     * @param location
+     * @param job
+     * @throws IOException
+     */
+    public static void cleanupOnFailureImpl(String location, Job job) 
+    throws IOException {
+        FileSystem fs = FileSystem.get(job.getConfiguration());
+        Path path = new Path(location);
+        if(fs.exists(path)){
+            fs.delete(path, true);
+        }    
     }
 }
