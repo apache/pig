@@ -4,6 +4,8 @@ Trunk (unreleased changes)
 
   INCOMPATIBLE CHANGES
 
+    PIG-1164 Addition of smoke tests (gauravj via yanz)
+
   IMPROVEMENTS
 
     PIG-1206 Storing descendingly sorted PIG table as unsorted table (yanz)
