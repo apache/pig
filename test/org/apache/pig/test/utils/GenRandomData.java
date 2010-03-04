@@ -17,6 +17,7 @@
  */
 package org.apache.pig.test.utils;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
@@ -77,7 +78,7 @@ public class GenRandomData {
         return new DataByteArray(genRandString(r).getBytes());
     }
     
-    public static ResourceFieldSchema getSmallTupleFieldSchema(){
+    public static ResourceFieldSchema getSmallTupleFieldSchema() throws IOException{
         ResourceFieldSchema stringfs = new ResourceFieldSchema();
         stringfs.setType(DataType.CHARARRAY);
         ResourceFieldSchema intfs = new ResourceFieldSchema();
@@ -143,7 +144,7 @@ public class GenRandomData {
         return db;
     }
     
-    public static ResourceFieldSchema getSmallTupDataBagFieldSchema() {
+    public static ResourceFieldSchema getSmallTupDataBagFieldSchema() throws IOException {
         ResourceFieldSchema tuplefs = getSmallTupleFieldSchema();
         
         ResourceSchema bagSchema = new ResourceSchema();
@@ -190,7 +191,7 @@ public class GenRandomData {
         return t;
     }
     
-    public static ResourceFieldSchema getSmallBagTextTupleFieldSchema(){
+    public static ResourceFieldSchema getSmallBagTextTupleFieldSchema() throws IOException{
         ResourceFieldSchema stringfs = new ResourceFieldSchema();
         stringfs.setType(DataType.CHARARRAY);
         
@@ -262,7 +263,7 @@ public class GenRandomData {
         return db;
     }
 
-    public static ResourceFieldSchema getFullTupTextDataBagFieldSchema(){
+    public static ResourceFieldSchema getFullTupTextDataBagFieldSchema() throws IOException{
         ResourceFieldSchema tuplefs = getSmallBagTextTupleFieldSchema();
         
         ResourceSchema outBagSchema = new ResourceSchema();
@@ -347,7 +348,7 @@ public class GenRandomData {
         return db;
     }
     
-    public static ResourceFieldSchema getFloatDataBagFieldSchema(int column) {
+    public static ResourceFieldSchema getFloatDataBagFieldSchema(int column) throws IOException {
         ResourceFieldSchema intfs = new ResourceFieldSchema();
         intfs.setType(DataType.INTEGER);
         
@@ -391,7 +392,7 @@ public class GenRandomData {
         return t;
     }
     
-    public static ResourceFieldSchema getMixedTupleToConvertFieldSchema() {
+    public static ResourceFieldSchema getMixedTupleToConvertFieldSchema() throws IOException {
         ResourceFieldSchema stringfs = new ResourceFieldSchema();
         stringfs.setType(DataType.CHARARRAY);
         ResourceFieldSchema intfs = new ResourceFieldSchema();

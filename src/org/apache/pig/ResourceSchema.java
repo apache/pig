@@ -18,6 +18,7 @@
 
 package org.apache.pig;
 
+import java.io.IOException;
 import java.io.Serializable;
 import java.util.Arrays;
 import java.util.List;
@@ -25,6 +26,7 @@ import java.util.List;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.pig.data.DataType;
+import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.logicalLayer.schema.Schema.FieldSchema;
 
@@ -118,11 +120,35 @@ public class ResourceSchema implements Serializable {
             return schema;
         }
 
-        public ResourceFieldSchema setSchema(ResourceSchema schema) {
+        public ResourceFieldSchema setSchema(ResourceSchema schema) throws 
+        IOException {
+            validateSchema(schema);
             this.schema = schema;
             return this;
         }
                 
+        /**
+         * @param schema
+         */
+        private void validateSchema(ResourceSchema schema) throws IOException {
+            if(type == DataType.BAG && schema != null) {
+                ResourceFieldSchema[] subFields = schema.getFields();
+                if (subFields.length == 1) {
+                    if (subFields[0].type != DataType.TUPLE) {
+                        throwInvalidSchemaException();
+                    }
+                } else {
+                    throwInvalidSchemaException();
+                }
+            }
+        }
+        
+        public static void throwInvalidSchemaException() throws FrontendException {
+            int errCode = 2218;
+            throw new FrontendException("Invalid resource schema: " +
+            "bag schema must have tuple as its field", errCode, PigException.BUG);   
+        }
+
         @Override
         public String toString() {
             return getDescription(true);

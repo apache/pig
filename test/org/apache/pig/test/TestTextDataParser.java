@@ -17,6 +17,7 @@
  */
 package org.apache.pig.test;
 
+import java.io.IOException;
 import java.util.Map;
 
 import org.junit.Test;
@@ -43,7 +44,7 @@ public class TestTextDataParser extends junit.framework.TestCase {
     PigStorage ps = new PigStorage();
     
 
-    ResourceFieldSchema getTupleFieldSchema() {
+    ResourceFieldSchema getTupleFieldSchema() throws IOException {
         ResourceFieldSchema stringfs = new ResourceFieldSchema();
         stringfs.setType(DataType.CHARARRAY);
         ResourceFieldSchema intfs = new ResourceFieldSchema();
@@ -58,7 +59,7 @@ public class TestTextDataParser extends junit.framework.TestCase {
         return tuplefs;
     }
     
-    public ResourceFieldSchema getBagFieldSchema(){
+    public ResourceFieldSchema getBagFieldSchema() throws IOException{
         ResourceFieldSchema tuplefs = getTupleFieldSchema();
         
         ResourceSchema outBagSchema = new ResourceSchema();

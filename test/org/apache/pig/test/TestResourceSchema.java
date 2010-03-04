@@ -21,6 +21,7 @@ package org.apache.pig.test;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -124,9 +125,10 @@ public class TestResourceSchema {
      * Test that Pig Schema is correctly created given a
      * ResourceSchema and vice versa. Test also that 
      * TwoLevelAccess flag is set for Pig Schema when needed.
+     * @throws IOException 
      */
     @Test
-    public void testToPigSchemaWithTwoLevelAccess() throws FrontendException {
+    public void testToPigSchemaWithTwoLevelAccess() throws IOException {
         ResourceFieldSchema[] level0 = 
             new ResourceFieldSchema[] {
                 new ResourceFieldSchema()
@@ -182,9 +184,10 @@ public class TestResourceSchema {
     
     /**
      * Test invalid Resource Schema: multiple fields for a bag
+     * @throws IOException 
      */
     @Test(expected=FrontendException.class) 
-    public void testToPigSchemaWithInvalidSchema() throws FrontendException {
+    public void testToPigSchemaWithInvalidSchema() throws IOException {
         ResourceFieldSchema[] level0 = new ResourceFieldSchema[] {
                 new ResourceFieldSchema()
                     .setName("fld0").setType(DataType.CHARARRAY),
@@ -201,18 +204,14 @@ public class TestResourceSchema {
                 new ResourceFieldSchema()
                     .setName("t2").setType(DataType.BAG).setSchema(rSchema0)
         };
-        
-        ResourceSchema rSchema2 = new ResourceSchema()
-            .setFields(level2);        
-        
-        Schema.getPigSchema(rSchema2);               
     }
 
     /**
      * Test invalid Resource Schema: bag without tuple field
+     * @throws IOException 
      */
     @Test(expected=FrontendException.class) 
-    public void testToPigSchemaWithInvalidSchema2() throws FrontendException {
+    public void testToPigSchemaWithInvalidSchema2() throws IOException {
         ResourceFieldSchema[] level0 = new ResourceFieldSchema[] {
                 new ResourceFieldSchema()
                     .setName("fld0").setType(DataType.CHARARRAY)
@@ -225,11 +224,7 @@ public class TestResourceSchema {
                 new ResourceFieldSchema()
                     .setName("t2").setType(DataType.BAG).setSchema(rSchema0)
         };
-        
-        ResourceSchema rSchema2 = new ResourceSchema()
-            .setFields(level2);        
-        
-        Schema.getPigSchema(rSchema2);               
+         
     }
     
     /**
