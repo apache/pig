@@ -22,6 +22,10 @@ Trunk (unreleased changes)
 
 INCOMPATIBLE CHANGES
 
+PIG-1259: ResourceFieldSchema.setSchema should not allow a bag field without a
+Tuple as its only sub field (the tuple itself can have a schema with > 1
+subfields) (pradeepkth)
+
 PIG-1265: Change LoadMetadata and StoreMetadata to use Job instead of
 Configuraiton and add a cleanupOnFailure method to StoreFuncInterface
 (pradeepkth)

@@ -1623,15 +1623,13 @@ public class Schema implements Serializable, Cloneable {
                     if (fs.schema.size() == 1) {
                         FieldSchema innerFs = fs.schema.getField(0);
                         if (innerFs.type != DataType.TUPLE) {
-                            throw new FrontendException("Invalide resource schema: " +
-                                    "bag schema must have tuple as its field.");
+                            ResourceFieldSchema.throwInvalidSchemaException();
                         }
                         if (innerFs.schema != null) { // allow partial schema                      
                             fs.schema.setTwoLevelAccessRequired(true);
                         }
                     } else {
-                        throw new FrontendException("Invalide resource schema: " +
-                        		"bag schema should have exact one field.");
+                        ResourceFieldSchema.throwInvalidSchemaException();
                     }
                 } 
             }
