@@ -153,15 +153,18 @@ public class PoissonSampleLoader extends SampleLoader {
      * @throws ExecException
      */
     private Tuple createNumRowTuple(Tuple sample) throws ExecException {
-        if(rowNum == 0 || sample == null)
-            return null;
-        TupleFactory factory = TupleFactory.getInstance();
-        Tuple t = factory.newTuple(sample.size() + 2);
-        for(int i=0; i<sample.size(); i++){
-            t.set(i, sample.get(i));
+        int sz = (sample == null) ? 0 : sample.size();
+        TupleFactory factory = TupleFactory.getInstance();       
+        Tuple t = factory.newTuple(sz + 2);
+ 
+        if (sample != null) {
+            for(int i=0; i<sample.size(); i++){
+                t.set(i, sample.get(i));
+            }
         }
-        t.set(sample.size(), NUMROWS_TUPLE_MARKER);
-        t.set(sample.size() + 1, rowNum);
+        
+        t.set(sz, NUMROWS_TUPLE_MARKER);
+        t.set(sz + 1, rowNum);
         numRowSplTupleReturned = true;
         return t;
     }

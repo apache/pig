@@ -31,6 +31,7 @@ import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.DefaultTupleFactory;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.impl.builtin.PartitionSkewedKeys;
 import org.apache.pig.impl.io.ReadToEndLoader;
 import org.apache.pig.impl.util.Pair;
 import org.apache.pig.impl.util.UDFContext;
@@ -72,8 +73,8 @@ public class MapRedUtil {
         // The keydist file is structured as (key, min, max)
         // min, max being the index of the reducers
         Map<String, Object > distMap = (Map<String, Object>) t.get (0);
-        partitionList = (DataBag) distMap.get("partition.list");
-        totalReducers[0] = Integer.valueOf(""+distMap.get("totalreducers"));
+        partitionList = (DataBag) distMap.get(PartitionSkewedKeys.PARTITION_LIST);
+        totalReducers[0] = Integer.valueOf(""+distMap.get(PartitionSkewedKeys.TOTAL_REDUCERS));
         Iterator<Tuple> it = partitionList.iterator();
         while (it.hasNext()) {
             Tuple idxTuple = it.next();

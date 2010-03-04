@@ -248,7 +248,7 @@ public class PartitionSkewedKeys extends EvalFunc<Map<String, Object>> {
 	    }
 
 	    // this is not a skewed key
-	    if (redCount == 1) {
+	    if (redCount <= 1) {
 	        return new Pair<Tuple, Integer>(null, 1);
 	    }
 
