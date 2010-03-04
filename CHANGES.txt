@@ -139,6 +139,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-1273: Skewed join throws error (rding)
+
 PIG-1267: Problems with partition filter optimizer (rding)
 
 PIG-1079: Modify merge join to use distributed cache to maintain the index

@@ -444,4 +444,41 @@ public class TestSkewedJoin extends TestCase{
         Assert.assertEquals(true, TestHelper.compareBags(dbfrj, dbrj));       
        
     }
+    
+    public void testSkewedJoinEmptyInput() throws IOException {
+        String LEFT_INPUT_FILE = "left.dat";
+        String RIGHT_INPUT_FILE = "right.dat";
+        
+        PrintWriter w = new PrintWriter(new FileWriter(LEFT_INPUT_FILE));
+        w.println("1");
+        w.println("2");
+        w.println("3");
+        w.println("5");
+        w.close();
+        
+        Util.copyFromLocalToCluster(cluster, LEFT_INPUT_FILE, LEFT_INPUT_FILE);
+        
+        PrintWriter w2 = new PrintWriter(new FileWriter(RIGHT_INPUT_FILE));
+        w2.println("1\tone");
+        w2.println("2\ttwo");
+        w2.println("3\tthree");
+
+        w2.close();
+
+        Util.copyFromLocalToCluster(cluster, RIGHT_INPUT_FILE, RIGHT_INPUT_FILE);
+        
+        pigServer.registerQuery("a = load 'left.dat' as (nums:chararray);");
+        pigServer.registerQuery("b = load 'right.dat' as (number:chararray,text:chararray);");
+        pigServer.registerQuery("c = filter a by nums == '7';");
+        pigServer.registerQuery("d = join c by nums LEFT OUTER, b by number USING 'skewed';");
+        
+        Iterator<Tuple> iter = pigServer.openIterator("d");
+        
+        Assert.assertFalse(iter.hasNext());
+        
+        new File(LEFT_INPUT_FILE).delete();
+        Util.deleteFile(cluster, LEFT_INPUT_FILE);
+        new File(RIGHT_INPUT_FILE).delete();
+        Util.deleteFile(cluster, RIGHT_INPUT_FILE);            
+    }
 }
