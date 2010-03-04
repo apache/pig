@@ -19,10 +19,11 @@ package org.apache.pig.impl.logicalLayer.optimizer;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.pig.Expression;
@@ -31,7 +32,6 @@ import org.apache.pig.LoadMetadata;
 import org.apache.pig.PigException;
 import org.apache.pig.Expression.BinaryExpression;
 import org.apache.pig.Expression.Column;
-import org.apache.pig.Expression.OpType;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.LOFilter;
 import org.apache.pig.impl.logicalLayer.LOLoad;
@@ -69,9 +69,9 @@ public class PartitionFilterOptimizer extends
     private LOFilter loFilter;
     
     /**
-     * flag to ensure we only do the optimization once for performance reasons
+     * to ensure we only do the optimization once for performance reasons
      */
-    private boolean alreadyCalled = false;
+    private Set<LogicalOperator> alreadyChecked = new HashSet<LogicalOperator>();
     
     /**
      * a map between column names as reported in 
@@ -98,13 +98,6 @@ public class PartitionFilterOptimizer extends
     @Override
     public boolean check(List<LogicalOperator> nodes) throws OptimizerException 
     {
-        if(!alreadyCalled) {
-            // first call
-            alreadyCalled = true;
-        } else {
-            // already called, just return
-            return false; 
-        }
         if((nodes == null) || (nodes.size() <= 0)) {
             int errCode = 2052;
             String msg = "Internal error. Cannot retrieve operator from null " +
@@ -112,6 +105,9 @@ public class PartitionFilterOptimizer extends
             throw new OptimizerException(msg, errCode, PigException.BUG);
         }
         if(nodes.size() != 1|| !(nodes.get(0) instanceof LOLoad)) {
+            return false;
+        }
+        if (!alreadyChecked.add(nodes.get(0))) {
             return false;
         }
         loLoad = (LOLoad)nodes.get(0);
@@ -164,7 +160,7 @@ public class PartitionFilterOptimizer extends
                 updateMappedColNames(partitionFilter);
                 loadMetadata.setPartitionFilter(partitionFilter);
                 if(pColFilterFinder.isFilterRemovable()) {
-                    // remove this filter from the plan
+                    // remove this filter from the plan                  
                     mPlan.removeAndReconnect(loFilter);
                 }
             }

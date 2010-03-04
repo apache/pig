@@ -45,6 +45,7 @@ import org.apache.pig.impl.logicalLayer.LOLoad;
 import org.apache.pig.impl.logicalLayer.LogicalOperator;
 import org.apache.pig.impl.logicalLayer.LogicalPlan;
 import org.apache.pig.impl.logicalLayer.PColFilterExtractor;
+import org.apache.pig.impl.logicalLayer.PlanSetter;
 import org.apache.pig.impl.logicalLayer.parser.ParseException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.util.LogUtils;
@@ -418,6 +419,46 @@ public class TestPartitionFilterOptimization extends TestCase {
                 toString().toLowerCase();
         assertEquals("checking trimmed filter expression:", 
                 "((age >= 20) and (f3 == 15))", actual);
+    }
+    
+    /**
+     * Test PIG-1267
+     * @throws Exception
+     */
+    @Test
+    public void testColNameMapping5() throws Exception {
+        TestLoader.partFilter = null;
+        lpTester.buildPlan("a = load 'foo' using "
+            + TestLoader.class.getName() + 
+            "('mrkt:chararray, a1:chararray, a2:chararray, srcid:int, bcookie:chararray', " +
+            "'srcid');");
+        lpTester.buildPlan("b = load 'bar' using "
+                + TestLoader.class.getName() + 
+                "('dstid:int, b1:int, b2:int, srcid:int, bcookie:chararray, mrkt:chararray'," +
+                "'srcid');");
+        lpTester.buildPlan("a1 = filter a by srcid == 10;");
+        lpTester.buildPlan("b1 = filter b by srcid == 20;");
+        lpTester.buildPlan("c = join a1 by bcookie, b1 by bcookie;");
+        LogicalPlan lp = lpTester
+                .buildPlan("d = foreach c generate $4 as bcookie:chararray, " +
+                		"$5 as dstid:int, $0 as mrkt:chararray;");
+        
+        new PlanSetter(lp).visit();
+        
+        lpTester.typeCheckPlan(lp);
+        lpTester.optimizePlan(lp);
+ 
+        assertEquals("checking partition filter:",             
+                    "(srcid == 20)",
+                    TestLoader.partFilter.toString());
+        
+        int counter = 0;
+        Iterator<LogicalOperator> iter = lp.getKeys().values().iterator();
+        while (iter.hasNext()) {
+            assertTrue(!(iter.next() instanceof LOFilter));
+            counter++;
+        }      
+        assertEquals(counter, 6);
     }
     
     //// helper methods ///////
