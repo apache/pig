@@ -669,7 +669,10 @@ public abstract class OperatorPlan<E extends Operator> implements Iterable<E>, S
             pred = preds.get(0);
             disconnect(pred, node);
         }
-
+        
+        int oldPos = -1;
+        int newPos = -1;
+        
         List<E> succs = getSuccessors(node);
         E succ = null;
         if (succs != null) {
@@ -681,13 +684,51 @@ public abstract class OperatorPlan<E extends Operator> implements Iterable<E>, S
                 throw pe;
             }
             succ = succs.get(0);
+            List<E> plst = getPredecessors(succ);
+            for (int i=0; i<plst.size(); i++) {
+                if (plst.get(i).equals(node)) {
+                    oldPos = i;
+                }
+            }
             disconnect(node, succ);
         }
 
         remove(node);
         if (pred != null && succ != null) {
             connect(pred, succ);
-            succ.rewire(node, 0, pred, true);
+            List<E> plst = getPredecessors(succ);
+            for (int i=0; i<plst.size(); i++) {
+                if (plst.get(i).equals(pred)) {
+                    newPos = i;
+                }
+            }
+            
+            if (oldPos < 0 || newPos < 0) {
+                throw new PlanException("Invalid position index: " + oldPos                        
+                        + " : " + newPos);
+            }
+            
+            if (oldPos != newPos) {            
+                List<E> nlst = new ArrayList<E>();
+                for (int i=0; i<plst.size(); i++) {
+                    E nod = plst.get(i);
+                    if (i == oldPos) {
+                        nlst.add(pred);
+                    }
+                    if (i == newPos) continue;
+                    nlst.add(nod);
+                }
+                
+                if (nlst.size() != plst.size()) {
+                    throw new PlanException("Invalid list size: " + nlst.size()
+                            + " : " + plst.size());
+                }
+                         
+                mToEdges.removeKey(succ);
+                mToEdges.put(succ, nlst);
+            }
+            
+            succ.rewire(node, oldPos, pred, true);
         }
     }
 
