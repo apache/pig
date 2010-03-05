@@ -143,6 +143,9 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-1261: PigStorageSchema broke after changes to ResourceSchema (dvryaboy via
+daijy)
+
 PIG-1053: Put pig.properties back into release distribution (gates).
 
 PIG-1273: Skewed join throws error (rding)
