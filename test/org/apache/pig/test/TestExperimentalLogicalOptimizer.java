@@ -31,7 +31,6 @@ import org.apache.pig.experimental.logical.relational.LOFilter;
 import org.apache.pig.experimental.logical.relational.LOJoin;
 import org.apache.pig.experimental.logical.relational.LOLoad;
 import org.apache.pig.experimental.logical.relational.LogicalPlan;
-import org.apache.pig.experimental.logical.relational.LogicalRelationalOperator;
 import org.apache.pig.experimental.logical.relational.LogicalSchema;
 import org.apache.pig.experimental.logical.relational.LOJoin.JOINTYPE;
 import org.apache.pig.impl.io.FileSpec;
@@ -104,7 +103,9 @@ public class TestExperimentalLogicalOptimizer extends TestCase {
         	mm.put(1, bprojplan);
         	LOJoin C = new LOJoin(lp, mm, JOINTYPE.HASH, new boolean[] {true, true});
         	C.neverUseForRealSetSchema(cschema);
-        	lp.add(new LogicalRelationalOperator[] {A, B}, C, null);
+        	lp.add(C);
+        	lp.connect(A, C);
+        	lp.connect(B, C);
         
         	// D = filter
         	LogicalExpressionPlan filterPlan = new LogicalExpressionPlan();
@@ -133,7 +134,8 @@ public class TestExperimentalLogicalOptimizer extends TestCase {
         	LOFilter D = new LOFilter(lp, filterPlan);
         	D.neverUseForRealSetSchema(cschema);
         	// Connect D to B, since the transform has happened.
-            lp.add(C, D, (LogicalRelationalOperator)null);
+        	lp.add(D);
+        	lp.connect(C, D);
         }
         
         LogicalPlanOptimizer optimizer = new LogicalPlanOptimizer(lp, 500);
@@ -161,7 +163,8 @@ public class TestExperimentalLogicalOptimizer extends TestCase {
 	        
         	LOFilter DA = new LOFilter(expected, DAfilterPlan);
         	DA.neverUseForRealSetSchema(aschema);
-        	expected.add(A, DA, (LogicalRelationalOperator)null);
+        	expected.add(DA);
+        	expected.connect(A, DA);
 	        
         	// B = load
         	LogicalSchema bschema = new LogicalSchema();
@@ -183,7 +186,8 @@ public class TestExperimentalLogicalOptimizer extends TestCase {
 	        
         	LOFilter DB = new LOFilter(expected, DBfilterPlan);
         	DB.neverUseForRealSetSchema(bschema);
-        	expected.add(B, DB, (LogicalRelationalOperator)null);
+        	expected.add(DB);
+        	expected.connect(B, DB);
 	        
         	// C = join
         	LogicalSchema cschema = new LogicalSchema();
@@ -211,7 +215,9 @@ public class TestExperimentalLogicalOptimizer extends TestCase {
         	mm.put(1, bprojplan);
         	LOJoin C = new LOJoin(expected, mm, JOINTYPE.HASH, new boolean[] {true, true});
         	C.neverUseForRealSetSchema(cschema);
-        	expected.add(new LogicalRelationalOperator[] {DA, DB}, C, null);
+        	expected.add(C);
+        	expected.connect(DA, C);
+        	expected.connect(DB, C);
 	        
         	// D = filter
         	LogicalExpressionPlan filterPlan = new LogicalExpressionPlan();
@@ -229,7 +235,8 @@ public class TestExperimentalLogicalOptimizer extends TestCase {
 	        
         	LOFilter D = new LOFilter(expected, filterPlan);
         	D.neverUseForRealSetSchema(cschema);
-        	expected.add(C, D, (LogicalRelationalOperator)null);
+        	expected.add(D);
+        	expected.connect(C, D);
         }
         
         assertTrue( lp.isEqual(expected) );

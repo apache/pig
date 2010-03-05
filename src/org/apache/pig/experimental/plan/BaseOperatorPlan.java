@@ -19,6 +19,7 @@
 package org.apache.pig.experimental.plan;
 
 import java.io.IOException;
+import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -27,6 +28,10 @@ import java.util.Set;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.pig.experimental.logical.optimizer.PlanPrinter;
+import org.apache.pig.impl.logicalLayer.DotLOPrinter;
+import org.apache.pig.impl.logicalLayer.LOPrinter;
+import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.util.Pair;
 
 public abstract class BaseOperatorPlan implements OperatorPlan {
@@ -258,4 +263,13 @@ public abstract class BaseOperatorPlan implements OperatorPlan {
         return false;
     }
     
+    public void explain(PrintStream ps, String format, boolean verbose) 
+    throws IOException {
+        ps.println("#-----------------------------------------------");
+        ps.println("# New Logical Plan:");
+        ps.println("#-----------------------------------------------");
+
+        PlanPrinter npp = new PlanPrinter(this, ps);
+        npp.visit();
+}
 }

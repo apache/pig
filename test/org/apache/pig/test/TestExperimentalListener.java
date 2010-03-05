@@ -120,14 +120,18 @@ public class TestExperimentalListener extends TestCase {
         LOFilter D = new LOFilter(lp, filterPlan);
         D.neverUseForRealSetSchema(cschema);
         // Connect D to B, since the transform has happened.
-        lp.add(B, D, (LogicalRelationalOperator)null);
+        lp.add(D);
+        lp.connect(B, D);
         
         // Now add in C, connected to A and D.
-        lp.add(new LogicalRelationalOperator[] {A, D}, C, null);
+        lp.add(C);
+        lp.connect(A, C);
+        lp.connect(D, C);
         
         changedPlan = new LogicalPlan();
         changedPlan.add(D);
-        changedPlan.add(D, C, (LogicalRelationalOperator)null);
+        changedPlan.add(C);
+        changedPlan.connect(D, C);
     }
     
     private static class SillySameVisitor extends AllSameVisitor {
@@ -156,7 +160,6 @@ public class TestExperimentalListener extends TestCase {
     public void testAllSameVisitor() throws IOException {
         SillySameVisitor v = new SillySameVisitor(lp);
         v.visit();
-        System.out.println(v.toString());
         assertTrue("LOLoad LOJoin LOLoad LOFilter ".equals(v.toString()) ||
             "LOLoad LOFilter LOJoin LOLoad ".equals(v.toString()));
         

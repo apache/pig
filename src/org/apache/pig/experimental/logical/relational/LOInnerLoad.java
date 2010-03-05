@@ -19,6 +19,8 @@ package org.apache.pig.experimental.logical.relational;
 
 import java.io.IOException;
 
+import org.apache.pig.experimental.logical.expression.LogicalExpressionPlan;
+import org.apache.pig.experimental.logical.expression.ProjectExpression;
 import org.apache.pig.experimental.plan.Operator;
 import org.apache.pig.experimental.plan.OperatorPlan;
 import org.apache.pig.experimental.plan.PlanVisitor;
@@ -28,13 +30,19 @@ import org.apache.pig.experimental.plan.PlanVisitor;
  * It can only be used in the inner plan of LOForEach
  *
  */
-public class LOInnerLoad extends LogicalRelationalOperator {
-    private int colNum;
+public class LOInnerLoad extends LogicalRelationalOperator {    
+    private ProjectExpression prj; 
     private LOForEach foreach;
 
     public LOInnerLoad(OperatorPlan plan, LOForEach foreach, int colNum) {
-        super("LOInnerLoad", plan);
-        this.colNum = colNum;
+        super("LOInnerLoad", plan);        
+        
+        // store column number as a ProjectExpression in a plan 
+        // to be able to dynamically adjust column number during optimization
+        LogicalExpressionPlan exp = new LogicalExpressionPlan();
+        
+        // we don't care about type, so set to -1
+        prj = new ProjectExpression(exp, (byte)-1, 0, colNum);
         this.foreach = foreach;
     }
 
@@ -47,15 +55,29 @@ public class LOInnerLoad extends LogicalRelationalOperator {
         LogicalPlan p = (LogicalPlan)foreach.getPlan();
         try {
             LogicalRelationalOperator op = (LogicalRelationalOperator)p.getPredecessors(foreach).get(0);
-            if (op.getSchema() != null) {
-                schema = new LogicalSchema();                
-                schema.addField(op.getSchema().getField(colNum));
+            LogicalSchema s = op.getSchema();
+            if (s != null) {
+                schema = new LogicalSchema();      
+                long uid = prj.getUid();
+                for(int i=0; i<s.size(); i++) {
+                    if (uid == s.getField(i).uid) {
+                        schema.addField(s.getField(i));
+                    }
+                }
+            }
+            
+            if ( schema != null && schema.size() == 0) {
+                schema = null;
             }
         }catch(Exception e) {
             throw new RuntimeException(e);
         }
         
         return schema;
+    }
+    
+    public LogicalExpressionPlan getExpression() {
+        return (LogicalExpressionPlan)prj.getPlan();
     }
 
     @Override
@@ -64,7 +86,7 @@ public class LOInnerLoad extends LogicalRelationalOperator {
             return false;
         }
         
-        return (colNum == ((LOInnerLoad)other).colNum);
+        return (getColNum() == ((LOInnerLoad)other).getColNum());
     }    
     
     @Override
@@ -76,7 +98,7 @@ public class LOInnerLoad extends LogicalRelationalOperator {
     }
 
     public int getColNum() {
-        return colNum;
+        return prj.getColNum();
     }
     
     /**

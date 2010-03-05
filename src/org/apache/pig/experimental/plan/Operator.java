@@ -74,6 +74,15 @@ public abstract class Operator {
     }
 
     /**
+     * Remove an annotation
+     * @param key the key of the annotation
+     * @return the original value of the annotation
+     */
+    public Object removeAnnotation(String key) {
+        return annotations.remove(key);
+    }
+    
+    /**
      * This is like a shallow equals comparison.
      * It returns true if two operators have equivalent properties even if they are 
      * different objects. Here properties mean equivalent plan and equivalent name.

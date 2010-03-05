@@ -35,7 +35,6 @@ import org.apache.pig.experimental.logical.relational.LOJoin;
 import org.apache.pig.experimental.logical.relational.LOLoad;
 import org.apache.pig.experimental.logical.relational.LogicalPlan;
 import org.apache.pig.experimental.logical.relational.LogicalPlanVisitor;
-import org.apache.pig.experimental.logical.relational.LogicalRelationalOperator;
 import org.apache.pig.experimental.logical.relational.LogicalSchema;
 import org.apache.pig.experimental.logical.relational.LOJoin.JOINTYPE;
 import org.apache.pig.experimental.plan.BaseOperatorPlan;
@@ -684,8 +683,9 @@ public class TestExperimentalOperatorPlan extends TestCase {
     public void testLogicalPlanVisitor() throws IOException {
         LogicalPlan lp = new LogicalPlan();
         LOLoad load = new LOLoad(null, null, lp);
-        lp.add((LogicalRelationalOperator)null, load,
-            (LogicalRelationalOperator)null);
+        /*lp.add((LogicalRelationalOperator)null, load,
+            (LogicalRelationalOperator)null);*/
+        lp.add(load);
         
         TestLogicalVisitor v = new TestLogicalVisitor(lp);
         v.visit();
@@ -838,7 +838,9 @@ public class TestExperimentalOperatorPlan extends TestCase {
             mm.put(1, bprojplan);
             LOJoin C = new LOJoin(lp, mm, JOINTYPE.HASH, new boolean[] {true, true});
             C.neverUseForRealSetSchema(cschema);
-            lp.add(new LogicalRelationalOperator[] {A, B}, C, null);
+            lp.add(C);
+            lp.connect(A, C);
+            lp.connect(B, C);
             
             // D = filter
             LogicalExpressionPlan filterPlan = new LogicalExpressionPlan();
@@ -847,7 +849,8 @@ public class TestExperimentalOperatorPlan extends TestCase {
             new EqualExpression(filterPlan, fy, fc);
             LOFilter D = new LOFilter(lp, filterPlan);
             D.neverUseForRealSetSchema(cschema);
-            lp.add(C, D, (LogicalRelationalOperator)null);
+            lp.add(D);
+            lp.connect(C, D);
         }
         
         // Build a second similar plan to test equality
@@ -885,7 +888,10 @@ public class TestExperimentalOperatorPlan extends TestCase {
             mm.put(1, bprojplan);
             LOJoin C = new LOJoin(lp1, mm, JOINTYPE.HASH, new boolean[] {true, true});
             C.neverUseForRealSetSchema(cschema);
-            lp1.add(new LogicalRelationalOperator[] {A, B}, C, null);
+            lp1.add(C);
+            lp1.connect(A, C);
+            lp1.connect(B, C);
+                
             
             // D = filter
             LogicalExpressionPlan filterPlan = new LogicalExpressionPlan();
@@ -894,7 +900,9 @@ public class TestExperimentalOperatorPlan extends TestCase {
             new EqualExpression(filterPlan, fy, fc);
             LOFilter D = new LOFilter(lp1, filterPlan);
             D.neverUseForRealSetSchema(cschema);
-            lp1.add(C, D, (LogicalRelationalOperator)null);
+            lp1.add(D);
+            lp1.connect(C, D);
+                
         }
         
         assertTrue( lp.isEqual(lp1));
@@ -1095,7 +1103,9 @@ public class TestExperimentalOperatorPlan extends TestCase {
         mm1.put(1, bprojplan1);
         LOJoin C1 = new LOJoin(lp, mm1, JOINTYPE.HASH, new boolean[] {true, true});
         C1.neverUseForRealSetSchema(jcschema1);
-        lp.add(new LogicalRelationalOperator[] {A1, B1}, C1, null);
+        lp.add(C1);
+        lp.connect(A1, C1);
+        lp.connect(B1, C1);
         
         // A = load
         LogicalSchema jaschema2 = new LogicalSchema();
@@ -1129,7 +1139,9 @@ public class TestExperimentalOperatorPlan extends TestCase {
         mm2.put(1, bprojplan2);
         LOJoin C2 = new LOJoin(lp, mm2, JOINTYPE.SKEWED, new boolean[] {true, true});
         C2.neverUseForRealSetSchema(jcschema2);
-        lp.add(new LogicalRelationalOperator[] {A2, B2}, C2, null);
+        lp.add(C2);
+        lp.connect(A2, C2);
+        lp.connect(B2, C2);
         
         assertFalse(C1.isEqual(C2));
     }
@@ -1168,7 +1180,10 @@ public class TestExperimentalOperatorPlan extends TestCase {
         mm1.put(1, bprojplan1);
         LOJoin C1 = new LOJoin(lp, mm1, JOINTYPE.HASH, new boolean[] {true, true});
         C1.neverUseForRealSetSchema(jcschema1);
-        lp.add(new LogicalRelationalOperator[] {A1, B1}, C1, null);
+        lp.add(C1);
+        lp.connect(A1, C1);
+        lp.connect(B1, C1);
+        
  
         // Test different inner status
         // A = load
@@ -1203,7 +1218,10 @@ public class TestExperimentalOperatorPlan extends TestCase {
         mm3.put(1, bprojplan3);
         LOJoin C3 = new LOJoin(lp, mm3, JOINTYPE.HASH, new boolean[] {true, false});
         C3.neverUseForRealSetSchema(jcschema3);
-        lp.add(new LogicalRelationalOperator[] {A3, B3}, C3, null);
+        lp.add(C3);
+        lp.connect(A3, C3);
+        lp.connect(B3, C3);
+        
         
         assertFalse(C1.isEqual(C3));
     }
@@ -1242,7 +1260,9 @@ public class TestExperimentalOperatorPlan extends TestCase {
         mm1.put(1, bprojplan1);
         LOJoin C1 = new LOJoin(lp, mm1, JOINTYPE.HASH, new boolean[] {true, true});
         C1.neverUseForRealSetSchema(jcschema1);
-        lp.add(new LogicalRelationalOperator[] {A1, B1}, C1, null);
+        lp.add(C1);
+        lp.connect(A1, C1);
+        lp.connect(B1, C1);
  
         // A = load
         LogicalSchema jaschema5 = new LogicalSchema();
@@ -1287,7 +1307,10 @@ public class TestExperimentalOperatorPlan extends TestCase {
         mm5.put(2, betaprojplan5);
         LOJoin C5 = new LOJoin(lp, mm5, JOINTYPE.HASH, new boolean[] {true, true});
         C5.neverUseForRealSetSchema(jcschema5);
-        lp.add(new LogicalRelationalOperator[] {A5, B5, Beta5}, C5, null);
+        lp.add(C5);
+        lp.connect(A5, C5);
+        lp.connect(B5, C5);
+        lp.connect(Beta5, C5);
         
         assertFalse(C1.isEqual(C5));
     }
@@ -1333,7 +1356,10 @@ public class TestExperimentalOperatorPlan extends TestCase {
         mm6.put(1, b2projplan6);
         LOJoin C6 = new LOJoin(lp, mm6, JOINTYPE.HASH, new boolean[] {true, true});
         C6.neverUseForRealSetSchema(jcschema6);
-        lp.add(new LogicalRelationalOperator[] {A6, B6}, C6, null);
+        lp.add(C6);
+        lp.connect(A6, C6);
+        lp.connect(B6, C6);
+        
         
         LogicalSchema jaschema7 = new LogicalSchema();
         jaschema7.addField(new LogicalSchema.LogicalFieldSchema(
@@ -1371,7 +1397,9 @@ public class TestExperimentalOperatorPlan extends TestCase {
         mm7.put(1, b2projplan7);
         LOJoin C7 = new LOJoin(lp, mm7, JOINTYPE.HASH, new boolean[] {true, true});
         C7.neverUseForRealSetSchema(jcschema7);
-        lp.add(new LogicalRelationalOperator[] {A7, B7}, C7, null);
+        lp.add(C7);
+        lp.connect(A7, C7);
+        lp.connect(B7, C7);
         
         assertFalse(C6.isEqual(C7));
     }
@@ -1417,7 +1445,9 @@ public class TestExperimentalOperatorPlan extends TestCase {
         mm6.put(1, b2projplan6);
         LOJoin C6 = new LOJoin(lp, mm6, JOINTYPE.HASH, new boolean[] {true, true});
         C6.neverUseForRealSetSchema(jcschema6);
-        lp.add(new LogicalRelationalOperator[] {A6, B6}, C6, null);
+        lp.add(C6);
+        lp.connect(A6, C6);
+        lp.connect(B6, C6);
         
         // Test different different number of join keys
         LogicalSchema jaschema8 = new LogicalSchema();
@@ -1453,7 +1483,9 @@ public class TestExperimentalOperatorPlan extends TestCase {
         mm8.put(1, bprojplan8);
         LOJoin C8 = new LOJoin(lp, mm8, JOINTYPE.HASH, new boolean[] {true, true});
         C8.neverUseForRealSetSchema(jcschema8);
-        lp.add(new LogicalRelationalOperator[] {A8, B8}, C8, null);
+        lp.add(C8);
+        lp.connect(A8, C8);
+        lp.connect(B8, C8);
         
         assertFalse(C6.isEqual(C8));
     }
@@ -1478,7 +1510,8 @@ public class TestExperimentalOperatorPlan extends TestCase {
         cschema.addField(new LogicalSchema.LogicalFieldSchema(
             "x", null, DataType.INTEGER));
         D1.neverUseForRealSetSchema(cschema);
-        lp1.add(A1, D1, (LogicalRelationalOperator)null);
+        lp1.add(D1);
+        lp1.connect(A1, D1);
         
         LogicalPlan lp2 = new LogicalPlan();
         LOLoad A2 = new LOLoad(new FileSpec("/abc",
@@ -1492,7 +1525,8 @@ public class TestExperimentalOperatorPlan extends TestCase {
         new EqualExpression(fp2, fy2, fc2);
         LOFilter D2 = new LOFilter(lp2, fp2);
         D2.neverUseForRealSetSchema(cschema);
-        lp2.add(A2, D2, (LogicalRelationalOperator)null);
+        lp2.add(D2);
+        lp2.connect(A2, D2);
         
         assertFalse(D1.isEqual(D2));
     }

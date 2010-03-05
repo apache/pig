@@ -20,6 +20,7 @@ package org.apache.pig.experimental.logical.expression;
 
 import java.io.IOException;
 
+import org.apache.pig.data.DataType;
 import org.apache.pig.experimental.logical.relational.LogicalRelationalOperator;
 import org.apache.pig.experimental.plan.Operator;
 import org.apache.pig.experimental.plan.OperatorPlan;
@@ -93,5 +94,13 @@ public abstract class LogicalExpression extends Operator {
      */
     public void neverUseForRealSetUid(long uid) {
         this.uid = uid;
+    }
+    
+    public String toString() {
+        StringBuilder msg = new StringBuilder();
+
+        msg.append("(Name: " + name + " Type: " + DataType.findTypeName(type) + " Uid: " + uid + ")");
+
+        return msg.toString();
     }
 }

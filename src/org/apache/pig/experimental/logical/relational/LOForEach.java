@@ -18,6 +18,7 @@
 package org.apache.pig.experimental.logical.relational;
 
 import java.io.IOException;
+import java.util.Iterator;
 import java.util.List;
 
 import org.apache.pig.experimental.plan.Operator;
@@ -49,6 +50,17 @@ public class LOForEach extends LogicalRelationalOperator {
         }
         
         return innerPlan.isEqual(((LOForEach)other).innerPlan);
+    }
+    
+    public void resetSchema() {
+        super.resetSchema();
+        
+        // reset schema in the inner plan
+        Iterator<Operator> iter = innerPlan.getOperators();
+        while(iter.hasNext()) {
+             LogicalRelationalOperator op = (LogicalRelationalOperator)iter.next();
+             op.resetSchema();
+        }
     }
        
     @Override

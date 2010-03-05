@@ -19,26 +19,38 @@ package org.apache.pig.experimental.logical;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 
 import org.apache.pig.data.DataType;
+import org.apache.pig.experimental.logical.expression.AddExpression;
 import org.apache.pig.experimental.logical.expression.AndExpression;
 import org.apache.pig.experimental.logical.expression.CastExpression;
 import org.apache.pig.experimental.logical.expression.ConstantExpression;
+import org.apache.pig.experimental.logical.expression.DivideExpression;
 import org.apache.pig.experimental.logical.expression.EqualExpression;
 import org.apache.pig.experimental.logical.expression.GreaterThanEqualExpression;
 import org.apache.pig.experimental.logical.expression.GreaterThanExpression;
+import org.apache.pig.experimental.logical.expression.IsNullExpression;
 import org.apache.pig.experimental.logical.expression.LessThanEqualExpression;
 import org.apache.pig.experimental.logical.expression.LessThanExpression;
 import org.apache.pig.experimental.logical.expression.LogicalExpression;
 import org.apache.pig.experimental.logical.expression.LogicalExpressionPlan;
+import org.apache.pig.experimental.logical.expression.MapLookupExpression;
+import org.apache.pig.experimental.logical.expression.ModExpression;
+import org.apache.pig.experimental.logical.expression.MultiplyExpression;
+import org.apache.pig.experimental.logical.expression.NegativeExpression;
+import org.apache.pig.experimental.logical.expression.NotEqualExpression;
+import org.apache.pig.experimental.logical.expression.NotExpression;
 import org.apache.pig.experimental.logical.expression.OrExpression;
 import org.apache.pig.experimental.logical.expression.ProjectExpression;
+import org.apache.pig.experimental.logical.expression.SubtractExpression;
 import org.apache.pig.experimental.logical.relational.LOInnerLoad;
 import org.apache.pig.experimental.logical.relational.LogicalRelationalOperator;
 import org.apache.pig.experimental.logical.relational.LogicalSchema;
 import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.logicalLayer.ExpressionOperator;
+import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.LOAdd;
 import org.apache.pig.impl.logicalLayer.LOAnd;
 import org.apache.pig.impl.logicalLayer.LOBinCond;
@@ -82,6 +94,7 @@ import org.apache.pig.impl.logicalLayer.LogicalOperator;
 import org.apache.pig.impl.logicalLayer.LogicalPlan;
 import org.apache.pig.impl.logicalLayer.LOJoin.JOINTYPE;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.impl.logicalLayer.schema.Schema.FieldSchema;
 import org.apache.pig.impl.plan.DependencyOrderWalker;
 import org.apache.pig.impl.plan.PlanWalker;
 import org.apache.pig.impl.plan.VisitorException;
@@ -207,12 +220,52 @@ public class LogicalPlanMigrationVistor extends LOVisitor {
         innerPlan.add(gen);                
         
         List<LogicalPlan> ll = forEach.getForEachPlans();
+        int index = 0;
         for(int i=0; i<ll.size(); i++) {
             LogicalPlan lp = ll.get(i);
             ForeachInnerPlanVisitor v = new ForeachInnerPlanVisitor(newForeach, forEach, lp);
             v.visit();
-                        
-            innerPlan.connect(v.lastOp, gen);                       
+                                    
+            // get the logical plan for this inner plan and merge it as subplan of LOGenerator            
+            if (v.tmpPlan.size() > 0) {
+                // add all operators into innerplan
+                Iterator<org.apache.pig.experimental.plan.Operator> iter = v.tmpPlan.getOperators();
+                while(iter.hasNext()) {
+                    innerPlan.add(iter.next());
+                }
+                
+                // connect sinks to generator
+                // the list returned may not be in correct order, so check annotation             
+                // to guarantee correct order
+                List<org.apache.pig.experimental.plan.Operator> s = v.tmpPlan.getSinks();
+                for(int j=0; j<s.size(); j++) {
+                    for(org.apache.pig.experimental.plan.Operator op: s) {
+                        if (Integer.valueOf(j+index).equals(op.getAnnotation("inputNo"))) {
+                            innerPlan.connect(op, gen);        
+                            break;
+                        }            	
+                    }
+                }
+                index += s.size();
+                
+                // copy connections 
+                iter = v.tmpPlan.getOperators();
+                while(iter.hasNext()) {
+                    org.apache.pig.experimental.plan.Operator op = iter.next();
+                    op.removeAnnotation("inputNo");
+                    try{
+                        List<org.apache.pig.experimental.plan.Operator> succ = v.tmpPlan.getSuccessors(op);
+                        if (succ != null) {
+                            for(org.apache.pig.experimental.plan.Operator ss: succ) {
+                                innerPlan.connect(op, ss);
+                            }
+                        }
+                    }catch(Exception e) {
+                        throw new VisitorException(e);
+                    }
+                }                     
+            }
+           
             expPlans.add(v.exprPlan);
         }
         
@@ -362,7 +415,6 @@ public class LogicalPlanMigrationVistor extends LOVisitor {
         }
         
         public void visit(LOConst con) throws VisitorException{
-
             ConstantExpression ce = new ConstantExpression(exprPlan, con.getType(), con.getValue());
             
              exprPlan.add(ce);
@@ -403,7 +455,8 @@ public class LogicalPlanMigrationVistor extends LOVisitor {
                     
             LessThanEqualExpression eq = new LessThanEqualExpression
             (exprPlan, exprOpsMap.get(left), exprOpsMap.get(right));
-            exprOpsMap.put(op, eq);        }
+            exprOpsMap.put(op, eq);
+        }
 
         public void visit(LOEqual op) throws VisitorException {		
             ExpressionOperator left = op.getLhsOperand();
@@ -435,36 +488,86 @@ public class LogicalPlanMigrationVistor extends LOVisitor {
         }
 
         public void visit(LONotEqual op) throws VisitorException {
-            throw new VisitorException("LONotEqual is not supported.");
+            ExpressionOperator left = op.getLhsOperand();
+            ExpressionOperator right = op.getRhsOperand();
+                    
+            NotEqualExpression eq = new NotEqualExpression(exprPlan, 
+                    exprOpsMap.get(left), exprOpsMap.get(right));
+            exprOpsMap.put(op, eq);
         }
 
-        public void visit(LOAdd op) throws VisitorException {		
-            throw new VisitorException("LOAdd is not supported.");
+        public void visit(LOAdd binOp) throws VisitorException {		
+            ExpressionOperator left = binOp.getLhsOperand();
+            ExpressionOperator right = binOp.getRhsOperand();
+            
+            AddExpression ae = new AddExpression(exprPlan, binOp.getType()
+                    , exprOpsMap.get(left), exprOpsMap.get(right));
+            exprOpsMap.put(binOp, ae);   
         }
 
-        public void visit(LOSubtract op) throws VisitorException {
-            throw new VisitorException("LOSubtract is not supported.");
+        public void visit(LOSubtract binOp) throws VisitorException {
+            ExpressionOperator left = binOp.getLhsOperand();
+            ExpressionOperator right = binOp.getRhsOperand();
+            
+            SubtractExpression ae = new SubtractExpression(exprPlan, binOp.getType()
+                    , exprOpsMap.get(left), exprOpsMap.get(right));
+            exprOpsMap.put(binOp, ae);
         }
 
-        public void visit(LOMultiply op) throws VisitorException {
-            throw new VisitorException("LOMultiply is not supported.");
+        public void visit(LOMultiply binOp) throws VisitorException {
+            ExpressionOperator left = binOp.getLhsOperand();
+            ExpressionOperator right = binOp.getRhsOperand();
+            
+            MultiplyExpression ae = new MultiplyExpression(exprPlan, binOp.getType()
+                    , exprOpsMap.get(left), exprOpsMap.get(right));
+            exprOpsMap.put(binOp, ae);
         }
 
-        public void visit(LODivide op) throws VisitorException {
-            throw new VisitorException("LODivide is not supported.");
+        public void visit(LODivide binOp) throws VisitorException {
+            ExpressionOperator left = binOp.getLhsOperand();
+            ExpressionOperator right = binOp.getRhsOperand();
+            
+            DivideExpression ae = new DivideExpression(exprPlan, binOp.getType()
+                    , exprOpsMap.get(left), exprOpsMap.get(right));
+            exprOpsMap.put(binOp, ae);
         }
 
-        public void visit(LOMod op) throws VisitorException {
-            throw new VisitorException("LOMod is not supported.");
+        public void visit(LOMod binOp) throws VisitorException {
+            ExpressionOperator left = binOp.getLhsOperand();
+            ExpressionOperator right = binOp.getRhsOperand();
+            
+            ModExpression ae = new ModExpression(exprPlan, binOp.getType()
+                    , exprOpsMap.get(left), exprOpsMap.get(right));
+            exprOpsMap.put(binOp, ae);
         }
 
         
-        public void visit(LONegative op) throws VisitorException {
-            throw new VisitorException("LONegative is not supported.");
+        public void visit(LONegative uniOp) throws VisitorException {
+            ExpressionOperator exp = uniOp.getOperand();
+            NegativeExpression op = new NegativeExpression(exprPlan, exp.getType(), exprOpsMap.get(exp));
+            exprOpsMap.put(uniOp, op);
         }
 
-        public void visit(LOMapLookup op) throws VisitorException {
-            throw new VisitorException("LOMapLookup is not supported.");
+        public void visit(LOMapLookup colOp) throws VisitorException {
+            FieldSchema fieldSchema;
+            try {
+                fieldSchema = colOp.getFieldSchema();
+            } catch (FrontendException e) {
+                throw new VisitorException( e.getMessage() );
+            }
+            
+            LogicalSchema.LogicalFieldSchema logfieldSchema = 
+                new LogicalSchema.LogicalFieldSchema( fieldSchema.alias, 
+                        translateSchema(fieldSchema.schema), fieldSchema.type);
+            
+            LogicalExpression map = exprOpsMap.get( colOp.getMap() );
+            
+            MapLookupExpression op = new MapLookupExpression(exprPlan, 
+                    colOp.getValueType(), colOp.getLookUpKey(),  logfieldSchema);
+            
+            exprPlan.connect(op, map);
+            
+            exprOpsMap.put(colOp, op);
         }
 
         public void visit(LOAnd binOp) throws VisitorException {
@@ -484,11 +587,15 @@ public class LogicalPlanMigrationVistor extends LOVisitor {
         }
 
         public void visit(LONot uniOp) throws VisitorException {
-            throw new VisitorException("LONot is not supported.");
+            ExpressionOperator exp = uniOp.getOperand();
+            NotExpression not = new NotExpression(exprPlan, DataType.BOOLEAN, exprOpsMap.get(exp));
+            exprOpsMap.put(uniOp, not);
         }
 
         public void visit(LOIsNull uniOp) throws VisitorException {
-            throw new VisitorException("LOIsNull is not supported.");
+            ExpressionOperator exp = uniOp.getOperand();
+            IsNullExpression isNull = new IsNullExpression(exprPlan, DataType.BOOLEAN, exprOpsMap.get(exp));
+            exprOpsMap.put(uniOp, isNull);
         }
     }
     
@@ -497,20 +604,28 @@ public class LogicalPlanMigrationVistor extends LOVisitor {
     public class ForeachInnerPlanVisitor extends LogicalExpPlanMigrationVistor {
         private org.apache.pig.experimental.logical.relational.LOForEach foreach;
         private LOForEach oldForeach;
-        private org.apache.pig.experimental.logical.relational.LOGenerate gen;
-        private org.apache.pig.experimental.logical.relational.LogicalPlan newInnerPlan;
-               
+        private int inputNo;
         private HashMap<LogicalOperator, LogicalRelationalOperator> innerOpsMap;
-        private LogicalRelationalOperator lastOp;
+        private org.apache.pig.experimental.logical.relational.LogicalPlan tmpPlan;
 
         public ForeachInnerPlanVisitor(org.apache.pig.experimental.logical.relational.LOForEach foreach, LOForEach oldForeach, LogicalPlan plan) {
             super(plan);	
             this.foreach = foreach;
-            newInnerPlan = foreach.getInnerPlan();
-            gen = (org.apache.pig.experimental.logical.relational.LOGenerate)newInnerPlan.getSinks().get(0);
+            org.apache.pig.experimental.logical.relational.LogicalPlan newInnerPlan = foreach.getInnerPlan();
+            org.apache.pig.experimental.plan.Operator gen = newInnerPlan.getSinks().get(0);
+            try {
+                inputNo = 0;
+                List<org.apache.pig.experimental.plan.Operator> suc = newInnerPlan.getPredecessors(gen);
+                if (suc != null) {
+                    inputNo = suc.size();
+                }
+            }catch(Exception e) {
+                throw new RuntimeException(e);
+            }        
             this.oldForeach = oldForeach;
                         
             innerOpsMap = new HashMap<LogicalOperator, LogicalRelationalOperator>();
+            tmpPlan = new org.apache.pig.experimental.logical.relational.LogicalPlan();
         }      
         
         public void visit(LOProject project) throws VisitorException {
@@ -520,33 +635,21 @@ public class LogicalPlanMigrationVistor extends LOVisitor {
                 // if this projection is to get a field from outer plan, change it
                 // to LOInnerLoad
                 
-                LOInnerLoad innerLoad = new LOInnerLoad(newInnerPlan, foreach, project.getCol());               
-                newInnerPlan.add(innerLoad);
-                
-                List<LogicalOperator> ll = mPlan.getSuccessors(project);
-                if (ll == null || ll.get(0) instanceof ExpressionOperator || project.isStar()) {  
-                    int size = 0;
-                    try {
-                        List<org.apache.pig.experimental.plan.Operator> suc = newInnerPlan.getPredecessors(gen);
-                        if (suc != null) {
-                            size = suc.size();
-                        }
-                    }catch(Exception e) {
-                        throw new VisitorException(e);
-                    }
-                     
-                    lastOp = innerLoad;
-                    
-                    ProjectExpression pe = new ProjectExpression(exprPlan, project.getType(), size, 0);                              
-                    exprPlan.add(pe);
-                    exprOpsMap.put(project, pe);       
-                    translateConnection(project, pe);            
-                } else {
-                    innerOpsMap.put(project, innerLoad);
-                }
-            } else {
-                super.visit(project);
-            }
+                LOInnerLoad innerLoad = new LOInnerLoad(tmpPlan, foreach, project.getCol());    
+                // mark the input index of this subtree under LOGenerate
+                // the successors of innerLoad should also annotatet the same inputNo
+                innerLoad.annotate("inputNo", Integer.valueOf(inputNo));
+                tmpPlan.add(innerLoad);                
+                innerOpsMap.put(project, innerLoad);                
+            } 
+            
+            List<LogicalOperator> ll = mPlan.getSuccessors(project);
+            if (ll == null || ll.get(0) instanceof ExpressionOperator) {                      
+                ProjectExpression pe = new ProjectExpression(exprPlan, project.getType(), inputNo++, 0);                              
+                exprPlan.add(pe);
+                exprOpsMap.put(project, pe);       
+                translateConnection(project, pe);            
+            } 
         }       
         
         public void visit(LOForEach foreach) throws VisitorException {

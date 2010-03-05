@@ -138,7 +138,6 @@ public class TestExperimentalFilterAboveForeach extends TestCase {
             assertTrue("Failed to set a valid uid", false );
         }
         
-        
         // run filter rule
         Rule r = new FilterAboveForeach("FilterAboveFlatten");
         Set<Rule> s = new HashSet<Rule>();
@@ -357,6 +356,8 @@ public class TestExperimentalFilterAboveForeach extends TestCase {
         
         assertTrue( plan.getPredecessors(filter).contains(load) );
         assertEquals( 1, plan.getPredecessors(filter).size() );
+        assertEquals( load.getSchema().getField(0).uid, namePrj2.getUid() );
+        assertEquals( namePrj2.getUid(), prjName.getUid() );
         
         assertTrue( foreach.getInnerPlan().getSinks().contains(generate) );
         assertEquals( 1, foreach.getInnerPlan().getSinks().size() );
@@ -528,6 +529,10 @@ public class TestExperimentalFilterAboveForeach extends TestCase {
         assertTrue( plan.getPredecessors(filter).contains(filter2) );
         assertEquals( 1, plan.getPredecessors(filter).size() );
         
+        assertEquals( load.getSchema().getField(0).uid, namePrj2.getUid() );
+        assertEquals( namePrj2.getUid(), name2Prj2.getUid() );
+        assertEquals( name2Prj2.getUid(), prjName.getUid() );
+        
         assertTrue( foreach.getInnerPlan().getSinks().contains(generate) );
         assertEquals( 1, foreach.getInnerPlan().getSinks().size() );
         assertTrue( foreach.getInnerPlan().getSources().contains(innerLoad) );
@@ -694,6 +699,9 @@ public void testMultipleFilterNotPossible() throws Exception {
         assertTrue( plan.getPredecessors(foreach).contains(load) );
         assertEquals( 1, plan.getPredecessors(foreach).size() );
         
+        assertFalse( prjCuisines.getUid() == namePrj2.getUid() );
+        assertFalse( prjCuisines.getUid() == name2Prj2.getUid() );
+        
         assertTrue( plan.getPredecessors(filter).contains(filter2) );
         assertEquals( 1, plan.getPredecessors(filter).size() );
         
@@ -835,6 +843,8 @@ public void testMultipleFilterNotPossible() throws Exception {
         
         assertTrue( plan.getPredecessors(stor).contains(filter) ); 
         assertEquals( 1, plan.getPredecessors(stor).size() );
+        
+        assertFalse( prjCuisines.getUid() == namePrj2.getUid() );
         
         assertTrue( plan.getPredecessors(filter).contains(foreach) );
         assertEquals( 1, plan.getPredecessors(filter).size() );
@@ -985,6 +995,9 @@ public void testMultipleFilterNotPossible() throws Exception {
         assertTrue( plan.getPredecessors(foreach).contains(filter) );
         assertEquals( 1, plan.getPredecessors(foreach).size() );
         
+        assertEquals( load.getSchema().getField(0).uid , namePrj2.getUid() );
+        assertEquals( namePrj2.getUid(), prjName.getUid() );
+        
         assertTrue( foreach.getInnerPlan().getSinks().contains(generate) );
         assertEquals( 1, foreach.getInnerPlan().getSinks().size() );
         assertTrue( foreach.getInnerPlan().getSources().contains(innerLoad) );
@@ -1004,201 +1017,4 @@ public void testMultipleFilterNotPossible() throws Exception {
         }
         
     }
-    
-//    public class MyPrintVisitor extends AllExpressionVisitor {
-//
-//        private PrintStream mStream = null;
-//        private String TAB1 = "    ";
-//        private String TABMore = "|   ";
-//        private String LSep = "|\n|---";
-//        private String USep = "|   |\n|   ";
-//        private int levelCntr = -1;
-//        private boolean isVerbose = true;
-//        
-//        public MyPrintVisitor(OperatorPlan plan, PrintStream ps) {
-//            super(plan, new DepthFirstWalker(plan));
-//            mStream = ps;
-//        }
-//
-//        @Override
-//        protected LogicalExpressionVisitor getVisitor(LogicalExpressionPlan expr) {
-//            // TODO Auto-generated method stub
-//            return null;
-//        }      
-//        
-//        @Override
-//        public void visit() throws VisitorException {
-//            try {
-//                mStream.write(depthFirstLP().getBytes());
-//            } catch (IOException e) {
-//                throw new VisitorException(e);
-//            }
-//        }
-//
-//        public void setVerbose(boolean verbose) {
-//            isVerbose = verbose;
-//        }
-//
-//        public void print(OutputStream printer) throws VisitorException, IOException {
-//            printer.write(depthFirstLP().getBytes());
-//        }
-//
-//        class LogicalRelationalOperatorCompare implements Comparator<LogicalRelationalOperator> {
-//
-//            @Override
-//            public int compare(LogicalRelationalOperator o1,
-//                    LogicalRelationalOperator o2) {
-//                return 0;
-//            }
-//            
-//        }
-//
-//        protected String depthFirstLP() throws VisitorException, IOException {
-//            StringBuilder sb = new StringBuilder();
-//            List<Operator> leaves = plan.getSinks();
-//            // Collections.sort(leaves, c)
-//            for (Operator leaf : leaves) {
-//                sb.append(depthFirst(leaf));
-//                sb.append("\n");
-//            }
-//            //sb.delete(sb.length() - "\n".length(), sb.length());
-//            //sb.delete(sb.length() - "\n".length(), sb.length());
-//            return sb.toString();
-//        }
-//        
-//        private String planString(LogicalPlan lp) throws VisitorException, IOException {
-//            StringBuilder sb = new StringBuilder();
-//            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-//            if(lp!=null)
-//                lp.explain(baos, mStream);
-//            else
-//                return "";
-//            sb.append(USep);
-//            sb.append(shiftStringByTabs(baos.toString(), 2));
-//            return sb.toString();
-//        }
-//        
-//        private String planString(
-//                List<LogicalPlan> logicalPlanList) throws VisitorException, IOException {
-//            StringBuilder sb = new StringBuilder();
-//            if(logicalPlanList!=null)
-//                for (LogicalPlan lp : logicalPlanList) {
-//                    sb.append(planString(lp));
-//                }
-//            return sb.toString();
-//        }
-//
-//        private String depthFirst(Operator node) throws VisitorException, IOException {
-//            StringBuilder sb = new StringBuilder(node.getName());
-//            if(node instanceof LogicalExpression) {
-//                sb.append(" FieldSchema: ");
-//                try {
-//                    sb.append(((LogicalExpression)node).getUid());
-//                    sb.append(" Type: " + DataType.findTypeName(((LogicalExpression)node).getType()));
-//                } catch (Exception e) {
-//                    sb.append("Caught Exception: " + e.getMessage());
-//                }
-//            } else if( node instanceof LogicalRelationalOperator ){
-//                sb.append(" Schema: ");
-//                try {
-//                    sb.append(((LogicalRelationalOperator)node).getSchema());
-//                } catch (Exception e) {
-//                    sb.append("Caught exception: " + e.getMessage());
-//                }
-//            }
-//
-//            sb.append("\n");
-//
-//            if (isVerbose) {
-//                if(node instanceof LOFilter){
-//                    sb.append(planString(((LOFilter)node).getComparisonPlan()));
-//                }
-//                else if(node instanceof LOForEach){
-//                    sb.append(planString(((LOForEach)node).getForEachPlans()));        
-//                }
-//                else if(node instanceof LOGenerate){
-//                    sb.append(planString(((LOGenerate)node).getGeneratePlans())); 
-//                    
-//                }
-//                else if(node instanceof LOCogroup){
-//                    MultiMap<LogicalOperator, LogicalPlan> plans = ((LOCogroup)node).getGroupByPlans();
-//                    for (LogicalOperator lo : plans.keySet()) {
-//                        // Visit the associated plans
-//                        for (LogicalPlan plan : plans.get(lo)) {
-//                            sb.append(planString(plan));
-//                        }
-//                    }
-//                }
-//                else if(node instanceof LOJoin){
-//                    MultiMap<LogicalOperator, LogicalPlan> plans = ((LOJoin)node).getJoinPlans();
-//                    for (LogicalOperator lo : plans.keySet()) {
-//                        // Visit the associated plans
-//                        for (LogicalPlan plan : plans.get(lo)) {
-//                            sb.append(planString(plan));
-//                        }
-//                    }
-//                }
-//                else if(node instanceof LOJoin){
-//                    MultiMap<LogicalOperator, LogicalPlan> plans = ((LOJoin)node).getJoinPlans();
-//                    for (LogicalOperator lo : plans.keySet()) {
-//                        // Visit the associated plans
-//                        for (LogicalPlan plan : plans.get(lo)) {
-//                            sb.append(planString(plan));
-//                        }
-//                    }
-//                }
-//                else if(node instanceof LOSort){
-//                    sb.append(planString(((LOSort)node).getSortColPlans())); 
-//                }
-//                else if(node instanceof LOSplitOutput){
-//                    sb.append(planString(((LOSplitOutput)node).getConditionPlan()));
-//                }
-//                else if (node instanceof LOProject) {
-//                    sb.append("Input: ");
-//                    sb.append(((LOProject)node).getExpression().name());
-//                }
-//            }
-//            
-//            List<LogicalOperator> originalPredecessors =  mPlan.getPredecessors(node);
-//            if (originalPredecessors == null)
-//                return sb.toString();
-//            
-//            List<LogicalOperator> predecessors =  new ArrayList<LogicalOperator>(originalPredecessors);
-//            
-//            Collections.sort(predecessors);
-//            int i = 0;
-//            for (LogicalOperator pred : predecessors) {
-//                i++;
-//                String DFStr = depthFirst(pred);
-//                if (DFStr != null) {
-//                    sb.append(LSep);
-//                    if (i < predecessors.size())
-//                        sb.append(shiftStringByTabs(DFStr, 2));
-//                    else
-//                        sb.append(shiftStringByTabs(DFStr, 1));
-//                }
-//            }
-//            return sb.toString();
-//        }
-//
-//        private String shiftStringByTabs(String DFStr, int TabType) {
-//            StringBuilder sb = new StringBuilder();
-//            String[] spl = DFStr.split("\n");
-//
-//            String tab = (TabType == 1) ? TAB1 : TABMore;
-//
-//            sb.append(spl[0] + "\n");
-//            for (int i = 1; i < spl.length; i++) {
-//                sb.append(tab);
-//                sb.append(spl[i]);
-//                sb.append("\n");
-//            }
-//            return sb.toString();
-//        }
-//
-//        private void dispTabs() {
-//            for (int i = 0; i < levelCntr; i++)
-//                System.out.print(TAB1);
-//        }
-//    }
 }

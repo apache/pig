@@ -98,4 +98,14 @@ public abstract class AllExpressionVisitor extends LogicalPlanVisitor {
             v.visit();
         }
     }
+    
+    public void visitLOInnerLoad(LOInnerLoad load) throws IOException {
+        // the expression in LOInnerLoad contains info relative from LOForEach
+        // so use LOForeach as currentOp
+        currentOp = load.getLOForEach();
+        LogicalExpressionPlan exp = load.getExpression();
+       
+        LogicalExpressionVisitor v = getVisitor(exp);
+        v.visit();       
+    }
 }

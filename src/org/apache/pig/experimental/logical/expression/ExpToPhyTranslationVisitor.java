@@ -26,17 +26,28 @@ import org.apache.pig.FuncSpec;
 import org.apache.pig.PigException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.LogicalToPhysicalTranslatorException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.Add;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.BinaryComparisonOperator;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.BinaryExpressionOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.ConstantExpression;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.Divide;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.EqualToExpr;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.ExpressionOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.GreaterThanExpr;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.LessThanExpr;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.Mod;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.Multiply;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.NotEqualToExpr;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POAnd;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POCast;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POIsNull;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POMapLookUp;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.PONegative;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.PONot;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POOr;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POProject;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.PORelationToExprProject;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.Subtract;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.data.DataType;
 import org.apache.pig.experimental.logical.relational.LogicalRelationalOperator;
@@ -87,24 +98,26 @@ public class ExpToPhyTranslationVisitor extends LogicalExpressionVisitor {
     public PhysicalPlan getPhysicalPlan() {
         return currentPlan;
     }
-
-    @Override
-    public void visitAnd( AndExpression op ) throws IOException {
-        String scope = DEFAULT_SCOPE;
-//        System.err.println("Entering And");
-        BinaryComparisonOperator exprOp = new POAnd(new OperatorKey(scope, nodeGen.getNextNodeId(scope)));
+    
+    private void attachBinaryComparisonOperator( BinaryExpression op, 
+            BinaryComparisonOperator exprOp ) throws IOException {
         // We dont have aliases in ExpressionOperators
         // exprOp.setAlias(op.getAlias());
-        exprOp.setLhs((ExpressionOperator)logToPhyMap.get(op.getLhs()));
-        exprOp.setRhs((ExpressionOperator)logToPhyMap.get(op.getRhs()));
-        OperatorPlan oPlan = op.getPlan();
         
+        
+        exprOp.setOperandType(op.getLhs().getType());
+        exprOp.setLhs((ExpressionOperator) logToPhyMap.get(op.getLhs()));
+        exprOp.setRhs((ExpressionOperator) logToPhyMap.get(op.getRhs()));
+        OperatorPlan oPlan = op.getPlan();
+
         currentPlan.add(exprOp);
         logToPhyMap.put(op, exprOp);
-        
+
         List<Operator> successors = oPlan.getSuccessors(op);
-        if(successors == null) return;
-        for(Operator lo : successors) {
+        if (successors == null) {
+            return;
+        }
+        for (Operator lo : successors) {
             PhysicalOperator from = logToPhyMap.get(lo);
             try {
                 currentPlan.connect(from, exprOp);
@@ -114,213 +127,130 @@ public class ExpToPhyTranslationVisitor extends LogicalExpressionVisitor {
                 throw new LogicalToPhysicalTranslatorException(msg, errCode, PigException.BUG, e);
             }
         }
-//        System.err.println("Exiting And");
+    }
+    
+    private void attachBinaryExpressionOperator( BinaryExpression op, 
+            BinaryExpressionOperator exprOp ) throws IOException {
+        // We dont have aliases in ExpressionOperators
+        // exprOp.setAlias(op.getAlias());
+        
+        
+        exprOp.setResultType(op.getLhs().getType());
+        exprOp.setLhs((ExpressionOperator) logToPhyMap.get(op.getLhs()));
+        exprOp.setRhs((ExpressionOperator) logToPhyMap.get(op.getRhs()));
+        OperatorPlan oPlan = op.getPlan();
+
+        currentPlan.add(exprOp);
+        logToPhyMap.put(op, exprOp);
+
+        List<Operator> successors = oPlan.getSuccessors(op);
+        if (successors == null) {
+            return;
+        }
+        for (Operator lo : successors) {
+            PhysicalOperator from = logToPhyMap.get(lo);
+            try {
+                currentPlan.connect(from, exprOp);
+            } catch (PlanException e) {
+                int errCode = 2015;
+                String msg = "Invalid physical operators in the physical plan" ;
+                throw new LogicalToPhysicalTranslatorException(msg, errCode, PigException.BUG, e);
+            }
+        }
+    }
+
+    @Override
+    public void visitAnd( AndExpression op ) throws IOException {
+        
+//        System.err.println("Entering And");
+        BinaryComparisonOperator exprOp = new POAnd(new OperatorKey(DEFAULT_SCOPE, nodeGen.getNextNodeId(DEFAULT_SCOPE)));
+        
+        attachBinaryComparisonOperator(op, exprOp);
     }
     
     @Override
     public void visitOr( OrExpression op ) throws IOException {
-        String scope = DEFAULT_SCOPE;
+        
 //        System.err.println("Entering Or");
-        BinaryComparisonOperator exprOp = new POOr(new OperatorKey(scope, nodeGen.getNextNodeId(scope)));
-        // We dont have aliases in ExpressionOperators
-        // exprOp.setAlias(op.getAlias());
-        exprOp.setLhs((ExpressionOperator)logToPhyMap.get(op.getLhs()));
-        exprOp.setRhs((ExpressionOperator)logToPhyMap.get(op.getRhs()));
-        OperatorPlan oPlan = op.getPlan();
+        BinaryComparisonOperator exprOp = new POOr(new OperatorKey(DEFAULT_SCOPE, nodeGen.getNextNodeId(DEFAULT_SCOPE)));
         
-        currentPlan.add(exprOp);
-        logToPhyMap.put(op, exprOp);
-        
-        List<Operator> successors = oPlan.getSuccessors(op);
-        if(successors == null) return;
-        for(Operator lo : successors) {
-            PhysicalOperator from = logToPhyMap.get(lo);
-            try {
-                currentPlan.connect(from, exprOp);
-            } catch (PlanException e) {
-                int errCode = 2015;
-                String msg = "Invalid physical operators in the physical plan" ;
-                throw new LogicalToPhysicalTranslatorException(msg, errCode, PigException.BUG, e);
-            }
-        }
-//        System.err.println("Exiting Or");
+        attachBinaryComparisonOperator(op, exprOp);
     }
     
     @Override
     public void visitEqual( EqualExpression op ) throws IOException {
-        String scope = DEFAULT_SCOPE;
-        BinaryComparisonOperator exprOp = new EqualToExpr(new OperatorKey(
-                scope, nodeGen.getNextNodeId(scope)));
-        // We dont have aliases in ExpressionOperators
-        // exprOp.setAlias(op.getAlias());
-        exprOp.setOperandType(op.getLhs().getType());
-        exprOp.setLhs((ExpressionOperator) logToPhyMap.get(op.getLhs()));
-        exprOp.setRhs((ExpressionOperator) logToPhyMap.get(op.getRhs()));
-        OperatorPlan oPlan = op.getPlan();
         
-        currentPlan.add(exprOp);
-        logToPhyMap.put(op, exprOp);
-
-        List<Operator> successors = oPlan.getSuccessors(op);
-        if (successors == null) {
-            return;
-        }
-        for (Operator lo : successors) {
-            PhysicalOperator from = logToPhyMap.get(lo);
-            try {
-                currentPlan.connect(from, exprOp);
-            } catch (PlanException e) {
-                int errCode = 2015;
-                String msg = "Invalid physical operators in the physical plan" ;
-                throw new LogicalToPhysicalTranslatorException(msg, errCode, PigException.BUG, e);
-            }
-        }
+        BinaryComparisonOperator exprOp = new EqualToExpr(new OperatorKey(
+                DEFAULT_SCOPE, nodeGen.getNextNodeId(DEFAULT_SCOPE)));
+        
+        attachBinaryComparisonOperator(op, exprOp);
+    }
+    
+    @Override
+    public void visitNotEqual( NotEqualExpression op ) throws IOException {
+        
+        BinaryComparisonOperator exprOp = new NotEqualToExpr(new OperatorKey(
+                DEFAULT_SCOPE, nodeGen.getNextNodeId(DEFAULT_SCOPE)));
+        
+        attachBinaryComparisonOperator(op, exprOp);
     }
     
     @Override
     public void visitGreaterThan( GreaterThanExpression op ) throws IOException {
-        String scope = DEFAULT_SCOPE;
-        BinaryComparisonOperator exprOp = new GreaterThanExpr(new OperatorKey(
-                scope, nodeGen.getNextNodeId(scope)));
-        // We dont have aliases in ExpressionOperators
-        // exprOp.setAlias(op.getAlias());
-        exprOp.setOperandType(op.getLhs().getType());
-        exprOp.setLhs((ExpressionOperator) logToPhyMap.get(op.getLhs()));
-        exprOp.setRhs((ExpressionOperator) logToPhyMap.get(op.getRhs()));
-        OperatorPlan oPlan = op.getPlan();
         
-        currentPlan.add(exprOp);
-        logToPhyMap.put(op, exprOp);
-
-        List<Operator> successors = oPlan.getSuccessors(op);
-        if (successors == null) {
-            return;
-        }
-        for (Operator lo : successors) {
-            PhysicalOperator from = logToPhyMap.get(lo);
-            try {
-                currentPlan.connect(from, exprOp);
-            } catch (PlanException e) {
-                int errCode = 2015;
-                String msg = "Invalid physical operators in the physical plan" ;
-                throw new LogicalToPhysicalTranslatorException(msg, errCode, PigException.BUG, e);
-            }
-        }
+        BinaryComparisonOperator exprOp = new GreaterThanExpr(new OperatorKey(
+                DEFAULT_SCOPE, nodeGen.getNextNodeId(DEFAULT_SCOPE)));
+        
+        attachBinaryComparisonOperator(op, exprOp);
     }
     
     @Override
     public void visitGreaterThanEqual( GreaterThanEqualExpression op ) throws IOException {
-        String scope = DEFAULT_SCOPE;
-        BinaryComparisonOperator exprOp = new LessThanExpr(new OperatorKey(
-                scope, nodeGen.getNextNodeId(scope)));
-        // We dont have aliases in ExpressionOperators
-        // exprOp.setAlias(op.getAlias());
-        exprOp.setOperandType(op.getLhs().getType());
-        exprOp.setLhs((ExpressionOperator) logToPhyMap.get(op.getLhs()));
-        exprOp.setRhs((ExpressionOperator) logToPhyMap.get(op.getRhs()));
-        OperatorPlan oPlan = op.getPlan();
         
-        currentPlan.add(exprOp);
-        logToPhyMap.put(op, exprOp);
-
-        List<Operator> successors = oPlan.getSuccessors(op);
-        if (successors == null) {
-            return;
-        }
-        for (Operator lo : successors) {
-            PhysicalOperator from = logToPhyMap.get(lo);
-            try {
-                currentPlan.connect(from, exprOp);
-            } catch (PlanException e) {
-                int errCode = 2015;
-                String msg = "Invalid physical operators in the physical plan" ;
-                throw new LogicalToPhysicalTranslatorException(msg, errCode, PigException.BUG, e);
-            }
-        }
+        BinaryComparisonOperator exprOp = new LessThanExpr(new OperatorKey(
+                DEFAULT_SCOPE, nodeGen.getNextNodeId(DEFAULT_SCOPE)));
+        
+        attachBinaryComparisonOperator(op, exprOp);
     }
     
     @Override
     public void visitLessThan( LessThanExpression op ) throws IOException {
-        String scope = DEFAULT_SCOPE;
-        BinaryComparisonOperator exprOp = new LessThanExpr(new OperatorKey(
-                scope, nodeGen.getNextNodeId(scope)));
-        // We dont have aliases in ExpressionOperators
-        // exprOp.setAlias(op.getAlias());
-        exprOp.setOperandType(op.getLhs().getType());
-        exprOp.setLhs((ExpressionOperator) logToPhyMap.get(op.getLhs()));
-        exprOp.setRhs((ExpressionOperator) logToPhyMap.get(op.getRhs()));
-        OperatorPlan oPlan = op.getPlan();
         
-        currentPlan.add(exprOp);
-        logToPhyMap.put(op, exprOp);
-
-        List<Operator> successors = oPlan.getSuccessors(op);
-        if (successors == null) {
-            return;
-        }
-        for (Operator lo : successors) {
-            PhysicalOperator from = logToPhyMap.get(lo);
-            try {
-                currentPlan.connect(from, exprOp);
-            } catch (PlanException e) {
-                int errCode = 2015;
-                String msg = "Invalid physical operators in the physical plan" ;
-                throw new LogicalToPhysicalTranslatorException(msg, errCode, PigException.BUG, e);
-            }
-        }
+        BinaryComparisonOperator exprOp = new LessThanExpr(new OperatorKey(
+                DEFAULT_SCOPE, nodeGen.getNextNodeId(DEFAULT_SCOPE)));
+        
+        attachBinaryComparisonOperator(op, exprOp);
     }
     
     
     @Override
     public void visitLessThanEqual( LessThanEqualExpression op ) throws IOException {
-        String scope = DEFAULT_SCOPE;
-        BinaryComparisonOperator exprOp = new LessThanExpr(new OperatorKey(
-                scope, nodeGen.getNextNodeId(scope)));
-        // We dont have aliases in ExpressionOperators
-        // exprOp.setAlias(op.getAlias());
-        exprOp.setOperandType(op.getLhs().getType());
-        exprOp.setLhs((ExpressionOperator) logToPhyMap.get(op.getLhs()));
-        exprOp.setRhs((ExpressionOperator) logToPhyMap.get(op.getRhs()));
-        OperatorPlan oPlan = op.getPlan();
         
-        currentPlan.add(exprOp);
-        logToPhyMap.put(op, exprOp);
-
-        List<Operator> successors = oPlan.getSuccessors(op);
-        if (successors == null) {
-            return;
-        }
-        for (Operator lo : successors) {
-            PhysicalOperator from = logToPhyMap.get(lo);
-            try {
-                currentPlan.connect(from, exprOp);
-            } catch (PlanException e) {
-                int errCode = 2015;
-                String msg = "Invalid physical operators in the physical plan" ;
-                throw new LogicalToPhysicalTranslatorException(msg, errCode, PigException.BUG, e);
-            }
-        }
+        BinaryComparisonOperator exprOp = new LessThanExpr(new OperatorKey(
+                DEFAULT_SCOPE, nodeGen.getNextNodeId(DEFAULT_SCOPE)));
+        
+        attachBinaryComparisonOperator(op, exprOp);
     }
     
     @Override
     public void visitProject(ProjectExpression op) throws IOException {
-        String scope = DEFAULT_SCOPE;
 //        System.err.println("Entering Project");
         POProject exprOp;
        
         if(op.getType() == DataType.BAG) {
-            exprOp = new PORelationToExprProject(new OperatorKey(scope, nodeGen
-                .getNextNodeId(scope)));
+            exprOp = new PORelationToExprProject(new OperatorKey(DEFAULT_SCOPE, nodeGen
+                .getNextNodeId(DEFAULT_SCOPE)));
          } else {
-            exprOp = new POProject(new OperatorKey(scope, nodeGen
-                .getNextNodeId(scope)));
+            exprOp = new POProject(new OperatorKey(DEFAULT_SCOPE, nodeGen
+                .getNextNodeId(DEFAULT_SCOPE)));
         }
+        
         // We dont have aliases in ExpressionOperators
         // exprOp.setAlias(op.getAlias());
         exprOp.setResultType(op.getType());
         exprOp.setColumn(op.getColNum());
+        exprOp.setStar(false);
         // TODO implement this
-//        exprOp.setStar(op.isStar());
 //        exprOp.setOverloaded(op.getOverloaded());
         logToPhyMap.put(op, exprOp);
         currentPlan.add(exprOp);
@@ -349,11 +279,33 @@ public class ExpToPhyTranslationVisitor extends LogicalExpressionVisitor {
     }
     
     @Override
+    public void visitMapLookup( MapLookupExpression op ) throws IOException {
+        ExpressionOperator physOp = new POMapLookUp(new OperatorKey(DEFAULT_SCOPE,
+                nodeGen.getNextNodeId(DEFAULT_SCOPE)));
+        ((POMapLookUp)physOp).setLookUpKey(op.getLookupKey() );
+        physOp.setResultType(op.getType());
+        physOp.setAlias(op.getFieldSchema().alias);
+        currentPlan.add(physOp);
+
+        logToPhyMap.put(op, physOp);
+
+        ExpressionOperator from = (ExpressionOperator) logToPhyMap.get(op
+                .getMap());
+        try {
+            currentPlan.connect(from, physOp);
+        } catch (PlanException e) {
+            int errCode = 2015;
+            String msg = "Invalid physical operators in the physical plan" ;
+            throw new LogicalToPhysicalTranslatorException(msg, errCode, PigException.BUG, e);
+        }
+    }
+    
+    @Override
     public void visitConstant(org.apache.pig.experimental.logical.expression.ConstantExpression op) throws IOException {
-        String scope = DEFAULT_SCOPE;
+        
 //        System.err.println("Entering Constant");
-        ConstantExpression ce = new ConstantExpression(new OperatorKey(scope,
-                nodeGen.getNextNodeId(scope)));
+        ConstantExpression ce = new ConstantExpression(new OperatorKey(DEFAULT_SCOPE,
+                nodeGen.getNextNodeId(DEFAULT_SCOPE)));
         // We dont have aliases in ExpressionOperators
         // ce.setAlias(op.getAlias());
         ce.setValue(op.getValue());
@@ -366,9 +318,8 @@ public class ExpToPhyTranslationVisitor extends LogicalExpressionVisitor {
     
     @Override
     public void visitCast( CastExpression op ) throws IOException {
-        String scope = DEFAULT_SCOPE;
-        POCast pCast = new POCast(new OperatorKey(scope, nodeGen
-                .getNextNodeId(scope)));
+        POCast pCast = new POCast(new OperatorKey(DEFAULT_SCOPE, nodeGen
+                .getNextNodeId(DEFAULT_SCOPE)));
 //        physOp.setAlias(op.getAlias());
         currentPlan.add(pCast);
 
@@ -387,5 +338,101 @@ public class ExpToPhyTranslationVisitor extends LogicalExpressionVisitor {
             String msg = "Invalid physical operators in the physical plan" ;
             throw new LogicalToPhysicalTranslatorException(msg, errCode, PigException.BUG, e);
         }
+    }
+    
+    @Override
+    public void visitNot( NotExpression op ) throws IOException {
+        
+        PONot pNot = new PONot(new OperatorKey(DEFAULT_SCOPE, nodeGen
+                .getNextNodeId(DEFAULT_SCOPE)));
+//        physOp.setAlias(op.getAlias());
+        currentPlan.add(pNot);
+
+        logToPhyMap.put(op, pNot);
+        ExpressionOperator from = (ExpressionOperator) logToPhyMap.get(op
+                .getExpression());
+        pNot.setResultType(op.getType());        
+        try {
+            currentPlan.connect(from, pNot);
+        } catch (PlanException e) {
+            int errCode = 2015;
+            String msg = "Invalid physical operators in the physical plan" ;
+            throw new LogicalToPhysicalTranslatorException(msg, errCode, PigException.BUG, e);
+        }
+    }
+    
+    @Override
+    public void visitIsNull( IsNullExpression op ) throws IOException {
+        POIsNull pIsNull = new POIsNull(new OperatorKey(DEFAULT_SCOPE, nodeGen
+                .getNextNodeId(DEFAULT_SCOPE)));
+//        physOp.setAlias(op.getAlias());
+        currentPlan.add(pIsNull);
+
+        logToPhyMap.put(op, pIsNull);
+        ExpressionOperator from = (ExpressionOperator) logToPhyMap.get(op
+                .getExpression());
+        pIsNull.setResultType(op.getType());        
+        try {
+            currentPlan.connect(from, pIsNull);
+        } catch (PlanException e) {
+            int errCode = 2015;
+            String msg = "Invalid physical operators in the physical plan" ;
+            throw new LogicalToPhysicalTranslatorException(msg, errCode, PigException.BUG, e);
+        }
+    }
+
+    @Override
+    public void visitNegative( NegativeExpression op ) throws IOException {
+        PONegative pNegative = new PONegative(new OperatorKey(DEFAULT_SCOPE, nodeGen
+                .getNextNodeId(DEFAULT_SCOPE)));
+//        physOp.setAlias(op.getAlias());
+        currentPlan.add(pNegative);
+
+        logToPhyMap.put(op, pNegative);
+        ExpressionOperator from = (ExpressionOperator) logToPhyMap.get(op
+                .getExpression());
+        pNegative.setResultType(op.getType());        
+        try {
+            currentPlan.connect(from, pNegative);
+        } catch (PlanException e) {
+            int errCode = 2015;
+            String msg = "Invalid physical operators in the physical plan" ;
+            throw new LogicalToPhysicalTranslatorException(msg, errCode, PigException.BUG, e);
+        }
+    }
+    
+    @Override
+    public void visitAdd( AddExpression op ) throws IOException {        
+        BinaryExpressionOperator exprOp = new Add(new OperatorKey(DEFAULT_SCOPE, nodeGen.getNextNodeId(DEFAULT_SCOPE)));        
+        
+        attachBinaryExpressionOperator(op, exprOp);
+    }
+    
+    @Override
+    public void visitSubtract( SubtractExpression op ) throws IOException {        
+        BinaryExpressionOperator exprOp = new Subtract(new OperatorKey(DEFAULT_SCOPE, nodeGen.getNextNodeId(DEFAULT_SCOPE)));        
+        
+        attachBinaryExpressionOperator(op, exprOp);
+    }
+    
+    @Override
+    public void visitMultiply( MultiplyExpression op ) throws IOException {        
+        BinaryExpressionOperator exprOp = new Multiply(new OperatorKey(DEFAULT_SCOPE, nodeGen.getNextNodeId(DEFAULT_SCOPE)));        
+        
+        attachBinaryExpressionOperator(op, exprOp);
+    }
+    
+    @Override
+    public void visitDivide( DivideExpression op ) throws IOException {        
+        BinaryExpressionOperator exprOp = new Divide(new OperatorKey(DEFAULT_SCOPE, nodeGen.getNextNodeId(DEFAULT_SCOPE)));        
+        
+        attachBinaryExpressionOperator(op, exprOp);
+    }
+    
+    @Override
+    public void visitMod( ModExpression op ) throws IOException {        
+        BinaryExpressionOperator exprOp = new Mod(new OperatorKey(DEFAULT_SCOPE, nodeGen.getNextNodeId(DEFAULT_SCOPE)));        
+        
+        attachBinaryExpressionOperator(op, exprOp);
     }
 }

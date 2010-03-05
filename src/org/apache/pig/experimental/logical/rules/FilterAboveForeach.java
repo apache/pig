@@ -38,6 +38,12 @@ import org.apache.pig.experimental.plan.optimizer.Rule;
 import org.apache.pig.experimental.plan.optimizer.Transformer;
 import org.apache.pig.impl.util.Pair;
 
+/**
+ * This Rule moves Filter Above Foreach.
+ * It checks if uid on which filter works on
+ * is present in the predecessor of foreach.
+ * If so it transforms it.
+ */
 public class FilterAboveForeach extends Rule {
 
     public FilterAboveForeach(String n) {
@@ -47,7 +53,7 @@ public class FilterAboveForeach extends Rule {
     @Override
     protected OperatorPlan buildPattern() {
         // the pattern that this rule looks for
-        // is foreach -> flatten -> filter
+        // is foreach -> filter
         LogicalPlan plan = new LogicalPlan();
         LogicalRelationalOperator foreach = new LOForEach(plan);
         LogicalRelationalOperator filter = new LOFilter(plan);
@@ -84,25 +90,6 @@ public class FilterAboveForeach extends Rule {
             
             // This would be a strange case
             if( foreach == null ) return false;
-            
-            List<Operator> sinks = foreach.getInnerPlan().getSinks();            
-            if( ! ( sinks.size() == 1 && (sinks.get(0) instanceof LOGenerate ) ) ) {
-                return false;
-            }
-
-//            LOGenerate generate = (LOGenerate)sinks.get(0);
-//            // We check if we have any flatten
-//            // Other cases are handled by other Optimizers
-//            boolean hasFlatten = false;            
-//            for( boolean flattenFlag : generate.getFlattenFlags() ) {
-//                if( flattenFlag ) {
-//                    hasFlatten = true;
-//                    break;
-//                }
-//            }
-//
-//            if( !hasFlatten )
-//                return false;             
             
             iter = matched.getOperators();
             while( iter.hasNext() ) {
@@ -147,6 +134,11 @@ public class FilterAboveForeach extends Rule {
             return false;            
         }
         
+        /**
+         * Get all uids from Projections of this FilterOperator
+         * @param filter
+         * @return Set of uid
+         */
         private Set<Long> getFilterProjectionUids( LOFilter filter ) {
             Set<Long> uids = new HashSet<Long>();
             if( filter != null ) {
@@ -163,7 +155,12 @@ public class FilterAboveForeach extends Rule {
             return uids;
         }
         
-        // check if a relational operator contains all of the specified uids
+        /**
+         * checks if a relational operator contains all of the specified uids
+         * @param op LogicalRelational operator that should contain the uid
+         * @param uids Uids to check for
+         * @return true if given LogicalRelationalOperator has all the given uids
+         */
         private boolean hasAll(LogicalRelationalOperator op, Set<Long> uids) {
             LogicalSchema schema = op.getSchema();
             List<LogicalSchema.LogicalFieldSchema> fields = schema.getFields();
@@ -223,14 +220,17 @@ public class FilterAboveForeach extends Rule {
             /*
              *          ForEachPred
              *               |
-             *            ForEach
+             *            ForEach         
              *               |
              *             Filter*
+             *      ( These are filters
+             *      which cannot be moved )
              *               |
              *           FilterPred                 
-             *  ( has to be a Filter or ForEach )
+             *         ( is a Filter )
              *               |
              *             Filter
+             *        ( To be moved ) 
              *               |
              *            FilterSuc
              *              
@@ -243,15 +243,23 @@ public class FilterAboveForeach extends Rule {
              *            ForEachPred
              *               |
              *            Filter
+             *     ( After being Moved )
              *               |
              *            ForEach
              *               |
              *             Filter*
+             *       ( These are filters
+             *      which cannot be moved )
              *               |
              *           FilterPred                 
-             *  ( has to be a Filter or ForEach )
+             *         ( is a Filter )
              *               |
              *            FilterSuc
+             *            
+             *  Above plan is assuming we are modifying the filter in middle.
+             *  If we are modifying the first filter after ForEach then
+             *  -- * (kleene star) becomes zero
+             *  -- And ForEach is FilterPred 
              */
             
             Pair<Integer, Integer> forEachPredPlaces = currentPlan.disconnect(forEachPred, foreach);

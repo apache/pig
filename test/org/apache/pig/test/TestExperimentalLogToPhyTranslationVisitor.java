@@ -17,14 +17,22 @@
  */
 package org.apache.pig.test;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.util.List;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.Add;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.Divide;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.EqualToExpr;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.GreaterThanExpr;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.LessThanExpr;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.Mod;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.Multiply;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POCast;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.PONegative;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POProject;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.Subtract;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POFilter;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POForEach;
@@ -36,15 +44,29 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.ConstantExpression;
 import org.apache.pig.data.DataType;
 import org.apache.pig.experimental.logical.LogicalPlanMigrationVistor;
+import org.apache.pig.experimental.logical.expression.AddExpression;
+import org.apache.pig.experimental.logical.expression.DivideExpression;
+import org.apache.pig.experimental.logical.expression.IsNullExpression;
 import org.apache.pig.experimental.logical.expression.LogicalExpression;
+import org.apache.pig.experimental.logical.expression.LogicalExpressionPlan;
+import org.apache.pig.experimental.logical.expression.ModExpression;
+import org.apache.pig.experimental.logical.expression.MultiplyExpression;
+import org.apache.pig.experimental.logical.expression.NegativeExpression;
+import org.apache.pig.experimental.logical.expression.NotExpression;
+import org.apache.pig.experimental.logical.expression.ProjectExpression;
+import org.apache.pig.experimental.logical.expression.SubtractExpression;
+import org.apache.pig.experimental.logical.optimizer.PlanPrinter;
 import org.apache.pig.experimental.logical.optimizer.UidStamper;
+import org.apache.pig.experimental.logical.relational.LOFilter;
+import org.apache.pig.experimental.logical.relational.LOForEach;
+import org.apache.pig.experimental.logical.relational.LOGenerate;
+import org.apache.pig.experimental.logical.relational.LOLoad;
 import org.apache.pig.experimental.logical.relational.LogToPhyTranslationVisitor;
 import org.apache.pig.experimental.logical.relational.LogicalRelationalOperator;
 import org.apache.pig.experimental.logical.relational.LogicalSchema;
 import org.apache.pig.experimental.logical.relational.LogicalSchema.LogicalFieldSchema;
-import org.apache.pig.experimental.plan.Operator;
 import org.apache.pig.experimental.plan.OperatorPlan;
-import org.apache.pig.experimental.plan.PlanVisitor;
+import org.apache.pig.impl.logicalLayer.LOIsNull;
 import org.apache.pig.impl.logicalLayer.LogicalPlan;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.test.utils.LogicalPlanTester;
@@ -466,7 +488,6 @@ public class TestExperimentalLogToPhyTranslationVisitor extends TestCase {
         PhysicalPlan phyPlan = translatePlan(newLogicalPlan);
         
         assertEquals(phyPlan.size(), 3);
-        POLoad load = (POLoad)phyPlan.getRoots().get(0);        
         assertEquals(phyPlan.getLeaves().get(0).getClass(), POStore.class);
         POForEach foreach = (POForEach)phyPlan.getSuccessors(phyPlan.getRoots().get(0)).get(0);
         
@@ -476,13 +497,13 @@ public class TestExperimentalLogToPhyTranslationVisitor extends TestCase {
         assertEquals(inner.size(), 1);
         POProject prj = (POProject)inner.getRoots().get(0);
         assertEquals(prj.getColumn(), 0);
-        assertEquals(prj.getInputs().get(0), load);
-        
+        assertEquals(prj.getInputs(), null);
+
         inner = foreach.getInputPlans().get(1);
         assertEquals(inner.size(), 1);
         prj = (POProject)inner.getRoots().get(0);
         assertEquals(prj.getColumn(), 1);
-        assertEquals(prj.getInputs().get(0), load);
+        assertEquals(prj.getInputs(), null);
         Boolean[] flat = foreach.getToBeFlattened().toArray(new Boolean[0]);
         assertFalse(flat[0]);
         assertFalse(flat[1]);
@@ -512,7 +533,6 @@ public class TestExperimentalLogToPhyTranslationVisitor extends TestCase {
         PhysicalPlan phyPlan = translatePlan(newLogicalPlan);
         
         assertEquals(phyPlan.size(), 3);
-        POLoad load = (POLoad)phyPlan.getRoots().get(0);        
         assertEquals(phyPlan.getLeaves().get(0).getClass(), POStore.class);
         POForEach foreach = (POForEach)phyPlan.getSuccessors(phyPlan.getRoots().get(0)).get(0);
         
@@ -522,16 +542,449 @@ public class TestExperimentalLogToPhyTranslationVisitor extends TestCase {
         assertEquals(inner.size(), 1);
         POProject prj = (POProject)inner.getRoots().get(0);
         assertEquals(prj.getColumn(), 0);
-        assertEquals(prj.getInputs().get(0), load);
+        assertEquals(prj.getInputs(), null);
         
         inner = foreach.getInputPlans().get(1);
         assertEquals(inner.size(), 1);
         prj = (POProject)inner.getRoots().get(0);
         assertEquals(prj.getColumn(), 1);
-        assertEquals(prj.getInputs().get(0), load);
+        assertEquals(prj.getInputs(), null);
         Boolean[] flat = foreach.getToBeFlattened().toArray(new Boolean[0]);
         assertFalse(flat[0]);
         assertTrue(flat[1]);
+    }
+    
+    public void testPlanwithPlus() throws Exception {
+        LogicalPlanTester lpt = new LogicalPlanTester();
+        lpt.buildPlan("a = load 'd.txt' as (a:int, b:int);");
+        lpt.buildPlan("b = foreach a generate a+b;");        
+        LogicalPlan plan = lpt.buildPlan("store b into 'empty';");  
+        
+        org.apache.pig.experimental.logical.relational.LogicalPlan newLogicalPlan = migratePlan(plan);
+        LogicalRelationalOperator ld =  (LogicalRelationalOperator)newLogicalPlan.getSources().get(0);
+        assertEquals( LOLoad.class, ld.getClass() );
+        LOLoad load = (LOLoad)ld;
+        LogicalSchema ls = load.getSchema();
+        
+        PhysicalPlan phyPlan = translatePlan(newLogicalPlan);
+        
+        PhysicalOperator pFE = phyPlan.getSuccessors( phyPlan.getRoots().get(0) ).get(0);
+        assertEquals( POForEach.class, pFE.getClass() );
+        POForEach pForEach = (POForEach)pFE;
+        PhysicalPlan inputPln = pForEach.getInputPlans().get(0);
+        
+        assertEquals(1, ls.getField(0).uid);
+        assertEquals(2, ls.getField(1).uid);
+        
+        LogicalRelationalOperator fe = 
+            (LogicalRelationalOperator) newLogicalPlan.getSuccessors(load).get(0);
+        assertEquals( LOForEach.class, fe.getClass() );
+        LOForEach forEach = (LOForEach)fe;
+        
+        org.apache.pig.experimental.logical.relational.LogicalPlan innerPlan = 
+            forEach.getInnerPlan();
+        
+        assertEquals( 1, innerPlan.getSinks().size() );        
+        assertEquals( LOGenerate.class, innerPlan.getSinks().get(0).getClass() );
+        LOGenerate gen = (LOGenerate)innerPlan.getSinks().get(0);
+        assertEquals( 1, gen.getOutputPlans().size() );
+        LogicalExpressionPlan genExp = gen.getOutputPlans().get(0);
+        
+        assertEquals( 1, genExp.getSources().size() );
+        
+        
+        // Main Tests start here
+        assertEquals( AddExpression.class, genExp.getSources().get(0).getClass() );
+        AddExpression add = (AddExpression) genExp.getSources().get(0);
+        assertEquals( ls.getField(0).uid, add.getLhs().getUid() );
+        assertEquals( ls.getField(1).uid, add.getRhs().getUid() );
+        assertTrue( ls.getField(0).uid != add.getUid() );
+        assertTrue( ls.getField(1).uid != add.getUid() );
+        
+        assertEquals( 1, inputPln.getLeaves().size() );
+        assertEquals( Add.class, inputPln.getLeaves().get(0).getClass() );
+        Add pAdd = (Add) inputPln.getLeaves().get(0);
+        assertEquals( 2, inputPln.getRoots().size() );
+        assertEquals( POProject.class, pAdd.getLhs().getClass() );
+        assertEquals( POProject.class, pAdd.getRhs().getClass() );
+    }
+    
+    public void testPlanwithSubtract() throws Exception {
+        LogicalPlanTester lpt = new LogicalPlanTester();
+        lpt.buildPlan("a = load 'd.txt' as (a:int, b:int);");
+        lpt.buildPlan("b = foreach a generate a-b;");        
+        LogicalPlan plan = lpt.buildPlan("store b into 'empty';");  
+        
+        org.apache.pig.experimental.logical.relational.LogicalPlan newLogicalPlan = migratePlan(plan);
+        LogicalRelationalOperator ld =  (LogicalRelationalOperator)newLogicalPlan.getSources().get(0);
+        assertEquals( LOLoad.class, ld.getClass() );
+        LOLoad load = (LOLoad)ld;
+        LogicalSchema ls = load.getSchema();
+        
+        PhysicalPlan phyPlan = translatePlan(newLogicalPlan);
+        
+        PhysicalOperator pFE = phyPlan.getSuccessors( phyPlan.getRoots().get(0) ).get(0);
+        assertEquals( POForEach.class, pFE.getClass() );
+        POForEach pForEach = (POForEach)pFE;
+        PhysicalPlan inputPln = pForEach.getInputPlans().get(0);
+        
+        assertEquals(1, ls.getField(0).uid);
+        assertEquals(2, ls.getField(1).uid);
+        
+        LogicalRelationalOperator fe = 
+            (LogicalRelationalOperator) newLogicalPlan.getSuccessors(load).get(0);
+        assertEquals( LOForEach.class, fe.getClass() );
+        LOForEach forEach = (LOForEach)fe;
+        
+        org.apache.pig.experimental.logical.relational.LogicalPlan innerPlan = 
+            forEach.getInnerPlan();
+        
+        assertEquals( 1, innerPlan.getSinks().size() );        
+        assertEquals( LOGenerate.class, innerPlan.getSinks().get(0).getClass() );
+        LOGenerate gen = (LOGenerate)innerPlan.getSinks().get(0);
+        assertEquals( 1, gen.getOutputPlans().size() );
+        LogicalExpressionPlan genExp = gen.getOutputPlans().get(0);
+        
+        assertEquals( 1, genExp.getSources().size() );
+        
+        // Main Tests start here
+        assertEquals( SubtractExpression.class, genExp.getSources().get(0).getClass() );
+        SubtractExpression add = (SubtractExpression) genExp.getSources().get(0);
+        assertEquals( ls.getField(0).uid, add.getLhs().getUid() );
+        assertEquals( ls.getField(1).uid, add.getRhs().getUid() );
+        assertTrue( ls.getField(0).uid != add.getUid() );
+        assertTrue( ls.getField(1).uid != add.getUid() );
+        
+        assertEquals( 1, inputPln.getLeaves().size() );
+        assertEquals( Subtract.class, inputPln.getLeaves().get(0).getClass() );
+        Subtract pSubtract = (Subtract) inputPln.getLeaves().get(0);
+        assertEquals( 2, inputPln.getRoots().size() );
+        assertEquals( POProject.class, pSubtract.getLhs().getClass() );
+        assertEquals( POProject.class, pSubtract.getRhs().getClass() );
+    }
+    
+    public void testPlanwithMultiply() throws Exception {
+        LogicalPlanTester lpt = new LogicalPlanTester();
+        lpt.buildPlan("a = load 'd.txt' as (a:int, b:int);");
+        lpt.buildPlan("b = foreach a generate a*b;");        
+        LogicalPlan plan = lpt.buildPlan("store b into 'empty';");  
+        
+        org.apache.pig.experimental.logical.relational.LogicalPlan newLogicalPlan = migratePlan(plan);
+        LogicalRelationalOperator ld =  (LogicalRelationalOperator)newLogicalPlan.getSources().get(0);
+        assertEquals( LOLoad.class, ld.getClass() );
+        LOLoad load = (LOLoad)ld;
+        LogicalSchema ls = load.getSchema();
+        
+        PhysicalPlan phyPlan = translatePlan(newLogicalPlan);
+        
+        PhysicalOperator pFE = phyPlan.getSuccessors( phyPlan.getRoots().get(0) ).get(0);
+        assertEquals( POForEach.class, pFE.getClass() );
+        POForEach pForEach = (POForEach)pFE;
+        PhysicalPlan inputPln = pForEach.getInputPlans().get(0);
+        
+        assertEquals(1, ls.getField(0).uid);
+        assertEquals(2, ls.getField(1).uid);
+        
+        LogicalRelationalOperator fe = 
+            (LogicalRelationalOperator) newLogicalPlan.getSuccessors(load).get(0);
+        assertEquals( LOForEach.class, fe.getClass() );
+        LOForEach forEach = (LOForEach)fe;
+        
+        org.apache.pig.experimental.logical.relational.LogicalPlan innerPlan = 
+            forEach.getInnerPlan();
+        
+        assertEquals( 1, innerPlan.getSinks().size() );        
+        assertEquals( LOGenerate.class, innerPlan.getSinks().get(0).getClass() );
+        LOGenerate gen = (LOGenerate)innerPlan.getSinks().get(0);
+        assertEquals( 1, gen.getOutputPlans().size() );
+        LogicalExpressionPlan genExp = gen.getOutputPlans().get(0);
+        
+        assertEquals( 1, genExp.getSources().size() );
+        
+        // Main Tests start here
+        assertEquals( MultiplyExpression.class, genExp.getSources().get(0).getClass() );
+        MultiplyExpression add = (MultiplyExpression) genExp.getSources().get(0);
+        assertEquals( ls.getField(0).uid, add.getLhs().getUid() );
+        assertEquals( ls.getField(1).uid, add.getRhs().getUid() );
+        assertTrue( ls.getField(0).uid != add.getUid() );
+        assertTrue( ls.getField(1).uid != add.getUid() );
+        
+        assertEquals( 1, inputPln.getLeaves().size() );
+        assertEquals( Multiply.class, inputPln.getLeaves().get(0).getClass() );
+        Multiply pMultiply = (Multiply) inputPln.getLeaves().get(0);
+        assertEquals( 2, inputPln.getRoots().size() );
+        assertEquals( POProject.class, pMultiply.getLhs().getClass() );
+        assertEquals( POProject.class, pMultiply.getRhs().getClass() );
+    }
+    
+    public void testPlanwithDivide() throws Exception {
+        LogicalPlanTester lpt = new LogicalPlanTester();
+        lpt.buildPlan("a = load 'd.txt' as (a:int, b:int);");
+        lpt.buildPlan("b = foreach a generate a/b;");        
+        LogicalPlan plan = lpt.buildPlan("store b into 'empty';");  
+        
+        org.apache.pig.experimental.logical.relational.LogicalPlan newLogicalPlan = migratePlan(plan);
+        LogicalRelationalOperator ld =  (LogicalRelationalOperator)newLogicalPlan.getSources().get(0);
+        assertEquals( LOLoad.class, ld.getClass() );
+        LOLoad load = (LOLoad)ld;
+        LogicalSchema ls = load.getSchema();
+        
+        PhysicalPlan phyPlan = translatePlan(newLogicalPlan);
+        
+        PhysicalOperator pFE = phyPlan.getSuccessors( phyPlan.getRoots().get(0) ).get(0);
+        assertEquals( POForEach.class, pFE.getClass() );
+        POForEach pForEach = (POForEach)pFE;
+        PhysicalPlan inputPln = pForEach.getInputPlans().get(0);
+        
+        assertEquals(1, ls.getField(0).uid);
+        assertEquals(2, ls.getField(1).uid);
+        
+        LogicalRelationalOperator fe = 
+            (LogicalRelationalOperator) newLogicalPlan.getSuccessors(load).get(0);
+        assertEquals( LOForEach.class, fe.getClass() );
+        LOForEach forEach = (LOForEach)fe;
+        
+        org.apache.pig.experimental.logical.relational.LogicalPlan innerPlan = 
+            forEach.getInnerPlan();
+        
+        assertEquals( 1, innerPlan.getSinks().size() );        
+        assertEquals( LOGenerate.class, innerPlan.getSinks().get(0).getClass() );
+        LOGenerate gen = (LOGenerate)innerPlan.getSinks().get(0);
+        assertEquals( 1, gen.getOutputPlans().size() );
+        LogicalExpressionPlan genExp = gen.getOutputPlans().get(0);
+        
+        assertEquals( 1, genExp.getSources().size() );
+        
+        // Main Tests start here
+        assertEquals( DivideExpression.class, genExp.getSources().get(0).getClass() );
+        DivideExpression add = (DivideExpression) genExp.getSources().get(0);
+        assertEquals( ls.getField(0).uid, add.getLhs().getUid() );
+        assertEquals( ls.getField(1).uid, add.getRhs().getUid() );
+        assertTrue( ls.getField(0).uid != add.getUid() );
+        assertTrue( ls.getField(1).uid != add.getUid() );
+        
+        assertEquals( 1, inputPln.getLeaves().size() );
+        assertEquals( Divide.class, inputPln.getLeaves().get(0).getClass() );
+        Divide pDivide = (Divide) inputPln.getLeaves().get(0);
+        assertEquals( 2, inputPln.getRoots().size() );
+        assertEquals( POProject.class, pDivide.getLhs().getClass() );
+        assertEquals( POProject.class, pDivide.getRhs().getClass() );
+    }
+    
+    public void testPlanwithMod() throws Exception {
+        LogicalPlanTester lpt = new LogicalPlanTester();
+        lpt.buildPlan("a = load 'd.txt' as (a:int, b:int);");
+        lpt.buildPlan("b = foreach a generate a%b;");        
+        LogicalPlan plan = lpt.buildPlan("store b into 'empty';");  
+        
+        org.apache.pig.experimental.logical.relational.LogicalPlan newLogicalPlan = migratePlan(plan);
+        LogicalRelationalOperator ld =  (LogicalRelationalOperator)newLogicalPlan.getSources().get(0);
+        assertEquals( LOLoad.class, ld.getClass() );
+        LOLoad load = (LOLoad)ld;
+        LogicalSchema ls = load.getSchema();
+        
+        PhysicalPlan phyPlan = translatePlan(newLogicalPlan);
+        
+        PhysicalOperator pFE = phyPlan.getSuccessors( phyPlan.getRoots().get(0) ).get(0);
+        assertEquals( POForEach.class, pFE.getClass() );
+        POForEach pForEach = (POForEach)pFE;
+        PhysicalPlan inputPln = pForEach.getInputPlans().get(0);
+        
+        assertEquals(1, ls.getField(0).uid);
+        assertEquals(2, ls.getField(1).uid);
+        
+        LogicalRelationalOperator fe = 
+            (LogicalRelationalOperator) newLogicalPlan.getSuccessors(load).get(0);
+        assertEquals( LOForEach.class, fe.getClass() );
+        LOForEach forEach = (LOForEach)fe;
+        
+        org.apache.pig.experimental.logical.relational.LogicalPlan innerPlan = 
+            forEach.getInnerPlan();
+        
+        assertEquals( 1, innerPlan.getSinks().size() );        
+        assertEquals( LOGenerate.class, innerPlan.getSinks().get(0).getClass() );
+        LOGenerate gen = (LOGenerate)innerPlan.getSinks().get(0);
+        assertEquals( 1, gen.getOutputPlans().size() );
+        LogicalExpressionPlan genExp = gen.getOutputPlans().get(0);
+        
+        assertEquals( 1, genExp.getSources().size() );
+        
+        // Main Tests start here
+        assertEquals( ModExpression.class, genExp.getSources().get(0).getClass() );
+        ModExpression add = (ModExpression) genExp.getSources().get(0);
+        assertEquals( ls.getField(0).uid, add.getLhs().getUid() );
+        assertEquals( ls.getField(1).uid, add.getRhs().getUid() );
+        assertTrue( ls.getField(0).uid != add.getUid() );
+        assertTrue( ls.getField(1).uid != add.getUid() );
+        
+        assertEquals( 1, inputPln.getLeaves().size() );
+        assertEquals( Mod.class, inputPln.getLeaves().get(0).getClass() );
+        Mod pMod = (Mod) inputPln.getLeaves().get(0);
+        assertEquals( 2, inputPln.getRoots().size() );
+        assertEquals( POProject.class, pMod.getLhs().getClass() );
+        assertEquals( POProject.class, pMod.getRhs().getClass() );
+    }
+    
+    public void testPlanwithNegative() throws Exception {
+        LogicalPlanTester lpt = new LogicalPlanTester();
+        lpt.buildPlan("a = load 'd.txt' as (a:int, b:int);");
+        lpt.buildPlan("b = foreach a generate -a;");        
+        LogicalPlan plan = lpt.buildPlan("store b into 'empty';");  
+        
+        org.apache.pig.experimental.logical.relational.LogicalPlan newLogicalPlan = migratePlan(plan);
+        LogicalRelationalOperator ld =  (LogicalRelationalOperator)newLogicalPlan.getSources().get(0);
+        assertEquals( LOLoad.class, ld.getClass() );
+        LOLoad load = (LOLoad)ld;
+        LogicalSchema ls = load.getSchema();
+        
+        PhysicalPlan phyPlan = translatePlan(newLogicalPlan);
+        
+        PhysicalOperator pFE = phyPlan.getSuccessors( phyPlan.getRoots().get(0) ).get(0);
+        assertEquals( POForEach.class, pFE.getClass() );
+        POForEach pForEach = (POForEach)pFE;
+        PhysicalPlan inputPln = pForEach.getInputPlans().get(0);
+        
+        assertEquals(1, ls.getField(0).uid);
+        assertEquals(2, ls.getField(1).uid);
+        
+        LogicalRelationalOperator fe = 
+            (LogicalRelationalOperator) newLogicalPlan.getSuccessors(load).get(0);
+        assertEquals( LOForEach.class, fe.getClass() );
+        LOForEach forEach = (LOForEach)fe;
+        
+        org.apache.pig.experimental.logical.relational.LogicalPlan innerPlan = 
+            forEach.getInnerPlan();
+        
+        assertEquals( 1, innerPlan.getSinks().size() );        
+        assertEquals( LOGenerate.class, innerPlan.getSinks().get(0).getClass() );
+        LOGenerate gen = (LOGenerate)innerPlan.getSinks().get(0);
+        assertEquals( 1, gen.getOutputPlans().size() );
+        LogicalExpressionPlan genExp = gen.getOutputPlans().get(0);
+        
+        assertEquals( 1, genExp.getSources().size() );
+        
+        // Main Tests start here
+        assertEquals( NegativeExpression.class, genExp.getSources().get(0).getClass() );
+        NegativeExpression add = (NegativeExpression) genExp.getSources().get(0);
+        assertEquals( ls.getField(0).uid, add.getExpression().getUid() );
+        assertTrue( ls.getField(0).uid != add.getUid() );
+        assertTrue( ls.getField(1).uid != add.getUid() );
+        
+        assertEquals( 1, inputPln.getLeaves().size() );
+        assertEquals( PONegative.class, inputPln.getLeaves().get(0).getClass() );
+        PONegative pNegative = (PONegative) inputPln.getLeaves().get(0);
+        assertEquals( 1, inputPln.getRoots().size() );
+        assertEquals( POProject.class, pNegative.getInputs().get(0).getClass() );
+    }
+    
+    public void testPlanwithisNull() throws Exception {
+        LogicalPlanTester lpt = new LogicalPlanTester();
+        lpt.buildPlan("a = load 'd.txt' as (a:int, b:int);");
+        lpt.buildPlan("b = filter a by a is null;");        
+        LogicalPlan plan = lpt.buildPlan("store b into 'empty';");  
+        
+        org.apache.pig.experimental.logical.relational.LogicalPlan newLogicalPlan = migratePlan(plan);
+        LogicalRelationalOperator ld =  (LogicalRelationalOperator)newLogicalPlan.getSources().get(0);
+        assertEquals( LOLoad.class, ld.getClass() );
+        LOLoad load = (LOLoad)ld;
+        LogicalSchema ls = load.getSchema();
+        
+        PhysicalPlan phyPlan = translatePlan(newLogicalPlan);
+        
+        printPlan(plan);
+        printPlan(newLogicalPlan);
+        printPlan(phyPlan);
+        
+        assertEquals(1, ls.getField(0).uid);
+        assertEquals(2, ls.getField(1).uid);
+        
+        LogicalRelationalOperator fil = (LogicalRelationalOperator)
+        newLogicalPlan.getSuccessors( newLogicalPlan.getSources().get(0) ).get(0);
+        assertEquals( LOFilter.class, 
+                fil.getClass() );
+        LOFilter filter = (LOFilter)fil;
+        
+        LogicalExpressionPlan filPlan = filter.getFilterPlan();
+        
+        assertEquals( 1, filPlan.getSources().size() );
+        assertEquals( 2, filPlan.size() );
+        assertEquals( 1, filPlan.getSinks().size() );
+        assertEquals( IsNullExpression.class, filPlan.getSources().get(0).getClass() );
+        IsNullExpression isNull = (IsNullExpression)filPlan.getSources().get(0);
+        assertTrue( ls.getField(0).uid != isNull.getUid() );
+        assertTrue( ls.getField(1).uid != isNull.getUid() );
+        
+        assertEquals( ProjectExpression.class, isNull.getExpression().getClass() );
+        ProjectExpression prj = (ProjectExpression) isNull.getExpression();
+        assertEquals( ls.getField(0).uid, prj.getUid() );
+    }
+    
+    public void testPlanwithisNotNull() throws Exception {
+        LogicalPlanTester lpt = new LogicalPlanTester();
+        lpt.buildPlan("a = load 'd.txt' as (a:int, b:int);");
+        lpt.buildPlan("b = filter a by a is not null;");        
+        LogicalPlan plan = lpt.buildPlan("store b into 'empty';");  
+        
+        org.apache.pig.experimental.logical.relational.LogicalPlan newLogicalPlan = migratePlan(plan);
+        LogicalRelationalOperator ld =  (LogicalRelationalOperator)newLogicalPlan.getSources().get(0);
+        assertEquals( LOLoad.class, ld.getClass() );
+        LOLoad load = (LOLoad)ld;
+        LogicalSchema ls = load.getSchema();
+        
+        PhysicalPlan phyPlan = translatePlan(newLogicalPlan);
+        
+        printPlan(plan);
+        printPlan(newLogicalPlan);
+        printPlan(phyPlan);
+        
+        assertEquals(1, ls.getField(0).uid);
+        assertEquals(2, ls.getField(1).uid);
+        
+        LogicalRelationalOperator fil = (LogicalRelationalOperator)
+        newLogicalPlan.getSuccessors( newLogicalPlan.getSources().get(0) ).get(0);
+        assertEquals( LOFilter.class, 
+                fil.getClass() );
+        LOFilter filter = (LOFilter)fil;
+        
+        LogicalExpressionPlan filPlan = filter.getFilterPlan();
+        
+        assertEquals( 1, filPlan.getSources().size() );
+        assertEquals( 3, filPlan.size() );
+        assertEquals( 1, filPlan.getSinks().size() );
+        assertEquals( NotExpression.class, filPlan.getSources().get(0).getClass() );
+        NotExpression notExp = (NotExpression)filPlan.getSources().get(0);
+        assertTrue( ls.getField(0).uid != notExp.getUid() );
+        assertTrue( ls.getField(1).uid != notExp.getUid() );
+        assertEquals( IsNullExpression.class, notExp.getExpression().getClass() );
+        IsNullExpression isNull = (IsNullExpression)notExp.getExpression();
+        assertTrue( ls.getField(0).uid != isNull.getUid() );
+        assertTrue( ls.getField(1).uid != isNull.getUid() );
+        
+        assertEquals( ProjectExpression.class, isNull.getExpression().getClass() );
+        ProjectExpression prj = (ProjectExpression) isNull.getExpression();
+        assertEquals( ls.getField(0).uid, prj.getUid() );
+    }
+    
+    public void printPlan(org.apache.pig.experimental.logical.relational.LogicalPlan logicalPlan ) throws Exception {
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        PrintStream ps = new PrintStream(out);
+        PlanPrinter pp = new PlanPrinter(logicalPlan,ps);
+        pp.visit();
+        System.err.println(out.toString());
+    }
+    
+    public void printPlan(LogicalPlan logicalPlan) throws Exception {
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        PrintStream ps = new PrintStream(out);
+        logicalPlan.explain(ps, "text", true);
+        System.err.println(out.toString());
+    }
+    
+    public void printPlan(PhysicalPlan physicalPlan) throws Exception {
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        PrintStream ps = new PrintStream(out);
+        physicalPlan.explain(ps, "text", true);
+        System.err.println(out.toString());
     }
     
 }

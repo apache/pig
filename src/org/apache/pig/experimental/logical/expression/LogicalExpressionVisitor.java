@@ -68,4 +68,34 @@ public abstract class LogicalExpressionVisitor extends PlanVisitor {
     
     public void visitLessThanEqual(LessThanEqualExpression op) throws IOException {
     }
+
+    public void visitNotEqual(NotEqualExpression op) throws IOException { 
+    }
+
+    public void visitNot(NotExpression op ) throws IOException {
+    }
+
+    public void visitIsNull(IsNullExpression op) throws IOException {
+    }
+    
+    public void visitNegative(NegativeExpression op) throws IOException {
+    }
+    
+    public void visitAdd(AddExpression op) throws IOException {
+    }
+    
+    public void visitSubtract(SubtractExpression op) throws IOException {
+    }
+    
+    public void visitMultiply(MultiplyExpression op) throws IOException {
+    }
+    
+    public void visitMod(ModExpression op) throws IOException {
+    }
+    
+    public void visitDivide(DivideExpression op) throws IOException {
+    }
+
+    public void visitMapLookup(MapLookupExpression op) throws IOException {
+    }
 }

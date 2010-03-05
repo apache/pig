@@ -117,7 +117,7 @@ public interface OperatorPlan {
      * This is like a shallow comparison.
      * Two plans are equal if they have equivalent operators and equivalent 
      * structure.
-     * @param other object to compare
+     * @param other  object to compare
      * @return boolean if both the plans are equivalent
      */
     public boolean isEqual( OperatorPlan other );
