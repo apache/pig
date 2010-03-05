@@ -569,6 +569,7 @@
     <target name="package" depends="docs, api-report" description="Create a Pig release">
         <mkdir dir="${dist.dir}" />
         <mkdir dir="${dist.dir}/lib" />
+        <mkdir dir="${dist.dir}/conf" />
         <mkdir dir="${dist.dir}/scripts" />
         <mkdir dir="${dist.dir}/docs" />
         <mkdir dir="${dist.dir}/docs/api" />
@@ -595,6 +596,8 @@
         <copy todir="${dist.dir}/docs">
             <fileset dir="${build.docs}" />
         </copy>
+
+		<copy todir="${dist.dir}/conf" file="conf/pig.properties"/>
 
         <copy todir="${dist.dir}/src" includeEmptyDirs="true">
             <fileset dir="${src.dir}" />
