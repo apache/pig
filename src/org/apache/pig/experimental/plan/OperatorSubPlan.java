@@ -53,6 +53,8 @@ public class OperatorSubPlan implements OperatorPlan {
     
     public void add(Operator op) {
         operators.add(op);
+        leaves.clear();
+        roots.clear();
     }
 
     public void connect(Operator from, int fromPos, Operator to, int toPos) {

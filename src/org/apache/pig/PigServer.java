@@ -52,6 +52,10 @@ import org.apache.pig.builtin.BinStorage;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.experimental.logical.LogicalPlanMigrationVistor;
+import org.apache.pig.experimental.logical.optimizer.LogicalPlanOptimizer;
+import org.apache.pig.experimental.logical.optimizer.PlanPrinter;
+import org.apache.pig.experimental.logical.optimizer.UidStamper;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.logicalLayer.FrontendException;
@@ -619,6 +623,20 @@ public class PigServer {
             }
             PhysicalPlan pp = compilePp(lp);
             lp.explain(lps, format, verbose);
+            if( pigContext.getProperties().getProperty("pig.usenewlogicalplan", "false").equals("true") ) {
+                LogicalPlanMigrationVistor migrator = new LogicalPlanMigrationVistor(lp);
+                migrator.visit();
+                org.apache.pig.experimental.logical.relational.LogicalPlan newPlan = migrator.getNewLogicalPlan();
+                
+                // set uids
+                UidStamper stamper = new UidStamper(newPlan);
+                stamper.visit();
+
+                LogicalPlanOptimizer optimizer = new LogicalPlanOptimizer(newPlan, 3);
+                optimizer.optimize();                
+                
+                newPlan.explain(lps, format, verbose);
+            }
             pp.explain(pps, format, verbose);
             pigContext.getExecutionEngine().explain(pp, eps, format, verbose);
             if (markAsExecute) {

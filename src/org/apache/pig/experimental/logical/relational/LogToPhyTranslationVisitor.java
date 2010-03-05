@@ -187,11 +187,6 @@ public class LogToPhyTranslationVisitor extends LogicalPlanVisitor {
         exprOp.setColumn(load.getColNum());
         
         // set input to POProject to the predecessor of foreach
-        List<PhysicalOperator> l = new ArrayList<PhysicalOperator>();
-        LOForEach foreach = load.getLOForEach();        
-        Operator pred = foreach.getPlan().getPredecessors(foreach).get(0);
-        l.add(logToPhyMap.get(pred));
-        exprOp.setInputs(l);
         
         logToPhyMap.put(load, exprOp);
         currentPlan.add(exprOp);
@@ -214,19 +209,10 @@ public class LogToPhyTranslationVisitor extends LogicalPlanVisitor {
         // we need to translate each predecessor of LOGenerate into a physical plan.
         // The physical plan should contain the expression plan for this predecessor plus
         // the subtree starting with this predecessor
-        for (int i=0; i<preds.size(); i++) {
+        for (int i=0; i<exps.size(); i++) {
             currentPlan = new PhysicalPlan();
-            // translate the predecessors into a physical plan
-            PlanWalker childWalker = new SubtreeDependencyOrderWalker(inner, preds.get(i));
-            pushWalker(childWalker);
-            childWalker.walk(this);
-            popWalker();
-            
-            // get the leaf of partially translated plan
-            PhysicalOperator leaf = currentPlan.getLeaves().get(0);
-            
-            // add up the expressions
-            childWalker = new ReverseDependencyOrderWalker(exps.get(i));
+            // translate the expression plan
+            PlanWalker childWalker = new ReverseDependencyOrderWalker(exps.get(i));
             pushWalker(childWalker);
             childWalker.walk(new ExpToPhyTranslationVisitor(exps.get(i),
                     childWalker, gen, currentPlan, logToPhyMap ));            
@@ -237,29 +223,34 @@ public class LogToPhyTranslationVisitor extends LogicalPlanVisitor {
                 PhysicalOperator op = logToPhyMap.get(l);
                 if (l instanceof ProjectExpression) {
                     int input = ((ProjectExpression)l).getInputNum();
+                    
+                    // for each sink projection, get its input logical plan and translate it
                     Operator pred = preds.get(input);
+                    childWalker = new SubtreeDependencyOrderWalker(inner, pred);
+                    pushWalker(childWalker);
+                    childWalker.walk(this);
+                    popWalker();
+                    
+                    // get the physical operator of the leaf of input logical plan
+                    PhysicalOperator leaf = logToPhyMap.get(pred);                    
+                    
                     if (pred instanceof LOInnerLoad) {
-                        List<PhysicalOperator> ll = currentPlan.getSuccessors(op);     
-                        PhysicalOperator[] ll2 = null;
-                        if (ll != null) {
-                            ll2 = ll.toArray(new PhysicalOperator[0]);
-                        }
-                        currentPlan.remove(op);
-                        if (ll2 != null) {                        	
-                            for(PhysicalOperator suc: ll2) {
-                                currentPlan.connect(leaf, suc);
-                            }
-                        }
-                        
-                        innerPlans.add(currentPlan);
-                        
-                        continue;
+                        // if predecessor is only an LOInnerLoad, remove the project that
+                        // comes from LOInnerLoad and change the column of project that
+                        // comes from expression plan
+                        currentPlan.remove(leaf);
+                        logToPhyMap.remove(pred);
+                        ((POProject)op).setColumn( ((POProject)leaf).getColumn() );
+                           
+                    }else{                    
+                        currentPlan.connect(leaf, op);
                     }
                 }
-                
-                currentPlan.connect(leaf, op);                
-                innerPlans.add(currentPlan);
-            }                        
+            }  
+           
+            
+            
+            innerPlans.add(currentPlan);
         }
         
         currentPlan = currentPlans.pop();

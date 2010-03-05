@@ -284,11 +284,45 @@ public class TestLogicalPlanMigrationVisitor extends TestCase {
         aschema.addField(new LogicalSchema.LogicalFieldSchema("d", aschema2, DataType.BAG));  
         
         assertTrue(aschema.isEqual(op.getSchema()));
-    }
+        
+        // check with defined data type
+        lpt = new LogicalPlanTester();
+        lpt.buildPlan("a = load '/test/d.txt' as (id, d:bag{t:(v:int, s)});");
+        lpt.buildPlan("b = foreach a generate id, FLATTEN(d);");        
+        plan = lpt.buildPlan("store b into '/test/empty';");
+                
+        newPlan = migratePlan(plan);
+        op = (LogicalRelationalOperator)newPlan.getSinks().get(0);
+        op = (LogicalRelationalOperator)newPlan.getPredecessors(op).get(0);
+        LogicalSchema schema = op.getSchema();
+        
+        aschema = new LogicalSchema();
+        aschema.addField(new LogicalSchema.LogicalFieldSchema("id", null, DataType.BYTEARRAY));
+        aschema.addField(new LogicalSchema.LogicalFieldSchema("v", null, DataType.INTEGER));
+        aschema.addField(new LogicalSchema.LogicalFieldSchema("s", null, DataType.BYTEARRAY));
+        assertTrue(schema.isEqual(aschema));
+      
+    
+        // test with add
+        lpt = new LogicalPlanTester();
+        lpt.buildPlan("a = load '/test/d.txt' as (id, v:int, s:int);");
+        lpt.buildPlan("b = foreach a generate id, v+s;");        
+        plan = lpt.buildPlan("store b into '/test/empty';");
+        
+        newPlan = migratePlan(plan);
+        op = (LogicalRelationalOperator)newPlan.getSinks().get(0);
+        op = (LogicalRelationalOperator)newPlan.getPredecessors(op).get(0);
+        schema = op.getSchema();
+        
+        aschema = new LogicalSchema();
+        aschema.addField(new LogicalSchema.LogicalFieldSchema("id", null, DataType.BYTEARRAY));
+        aschema.addField(new LogicalSchema.LogicalFieldSchema(null, null, DataType.INTEGER));
+        assertTrue(schema.isEqual(aschema));
+    }       
     
     public void testForeachPlan2() throws Exception {
         LogicalPlanTester lpt = new LogicalPlanTester();
-        lpt.buildPlan("a = load '/test/d.txt' as (id, d:bag{t:(v, s)});");
+        lpt.buildPlan("a = load '/test/d.txt' as (id, d:bag{t:(id:int, s)});");
         lpt.buildPlan("b = foreach a generate id, FLATTEN(d);");        
         LogicalPlan plan = lpt.buildPlan("store b into '/test/empty';");
         
@@ -302,7 +336,7 @@ public class TestLogicalPlanMigrationVisitor extends TestCase {
         aschema.addField(new LogicalSchema.LogicalFieldSchema("id", null, DataType.BYTEARRAY));
         LogicalSchema aschema2 = new LogicalSchema();
         LogicalSchema aschema3 = new LogicalSchema();
-        aschema3.addField(new LogicalSchema.LogicalFieldSchema("v", null, DataType.BYTEARRAY));
+        aschema3.addField(new LogicalSchema.LogicalFieldSchema("id", null, DataType.INTEGER));
         aschema3.addField(new LogicalSchema.LogicalFieldSchema("s", null, DataType.BYTEARRAY));
         aschema2.addField(new LogicalSchema.LogicalFieldSchema("t", aschema3, DataType.TUPLE));
         aschema.addField(new LogicalSchema.LogicalFieldSchema("d", aschema2, DataType.BAG));        
@@ -351,9 +385,11 @@ public class TestLogicalPlanMigrationVisitor extends TestCase {
         LogicalSchema schema = foreach2.getSchema();
         aschema = new LogicalSchema();
         aschema.addField(new LogicalSchema.LogicalFieldSchema("id", null, DataType.BYTEARRAY));
-        aschema.addField(new LogicalSchema.LogicalFieldSchema("v", null, DataType.BYTEARRAY));
+        aschema.addField(new LogicalSchema.LogicalFieldSchema("d::id", null, DataType.INTEGER));
         aschema.addField(new LogicalSchema.LogicalFieldSchema("s", null, DataType.BYTEARRAY));
         assertTrue(schema.isEqual(aschema));
+        assertTrue(schema.getField("id")==schema.getField(0));
+        assertTrue(schema.getField("d::id")==schema.getField(1));
     }
     
     private org.apache.pig.experimental.logical.relational.LogicalPlan migratePlan(LogicalPlan lp) throws VisitorException{

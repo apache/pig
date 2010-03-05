@@ -21,6 +21,7 @@ package org.apache.pig.experimental.logical.optimizer;
 import java.io.IOException;
 
 import org.apache.pig.experimental.logical.relational.LOFilter;
+import org.apache.pig.experimental.logical.relational.LOForEach;
 import org.apache.pig.experimental.logical.relational.LOJoin;
 import org.apache.pig.experimental.logical.relational.LOLoad;
 import org.apache.pig.experimental.logical.relational.LOStore;
@@ -71,4 +72,7 @@ public abstract class AllSameVisitor extends LogicalPlanVisitor {
         execute(store);
     }
     
+    public void visitLOForEach(LOForEach foreach) throws IOException {
+        execute(foreach);
+    }
 }

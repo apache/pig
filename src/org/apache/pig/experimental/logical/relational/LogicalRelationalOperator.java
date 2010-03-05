@@ -140,5 +140,13 @@ abstract public class LogicalRelationalOperator extends Operator {
             if (!s.isEqual(os)) return false;
         }
         return true;
-    } 
+    }
+    
+    public String toString() {
+        StringBuilder msg = new StringBuilder();
+
+        msg.append("(Name: " + name + " Schema: " + getSchema() + ")");
+
+        return msg.toString();
+    }
 }

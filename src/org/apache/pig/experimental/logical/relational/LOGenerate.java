@@ -48,20 +48,13 @@ public class LOGenerate extends LogicalRelationalOperator {
         schema = new LogicalSchema();
         
         for(int i=0; i<outputPlans.size(); i++) {
-            LogicalExpression exp = (LogicalExpression)outputPlans.get(i).getSinks().get(0);
+            LogicalExpression exp = (LogicalExpression)outputPlans.get(i).getSources().get(0);
             byte t = exp.getType();
             LogicalSchema fieldSchema = null;
             String alias = null;
             
-            // if type is primitive, just add to schema
-            if (t != DataType.TUPLE && t != DataType.BAG) {
-                LogicalFieldSchema f = new LogicalSchema.LogicalFieldSchema(alias, fieldSchema, t, exp.getUid());                
-                schema.addField(f);
-                continue;
-            }
-                       
             // for tuple and bag type, if there is projection, calculate schema of this field
-            if (exp instanceof ProjectExpression) {
+            if (exp instanceof ProjectExpression) {                
                 LogicalRelationalOperator op = null;
                 try{
                     op = ((ProjectExpression)exp).findReferent(this);
@@ -74,7 +67,14 @@ public class LOGenerate extends LogicalRelationalOperator {
                     alias = s.getField(((ProjectExpression)exp).getColNum()).alias;
                 }
             }
-                
+            
+            // if type is primitive, just add to schema
+            if (t != DataType.TUPLE && t != DataType.BAG) {
+                LogicalFieldSchema f = new LogicalSchema.LogicalFieldSchema(alias, fieldSchema, t, exp.getUid());                
+                schema.addField(f);
+                continue;
+            }
+            
             // if flatten is set, set schema of tuple field to this schema
             if (flattenFlags[i]) {
                 if (t == DataType.BAG) {
@@ -91,7 +91,8 @@ public class LOGenerate extends LogicalRelationalOperator {
                 if (fieldSchema != null) {
                     List<LogicalFieldSchema> ll = fieldSchema.getFields();
                     for(LogicalFieldSchema f: ll) {
-                        schema.addField(f);
+                        LogicalFieldSchema nf = new LogicalSchema.LogicalFieldSchema(alias+"::"+f.alias, f.schema, f.type, f.uid); 
+                        schema.addField(nf);
                     }                               
                 } else {
                     schema = null;
@@ -102,7 +103,6 @@ public class LOGenerate extends LogicalRelationalOperator {
                  schema.addField(f);  
             }                                                      
         }
-        
         return schema;
     }
 
@@ -148,4 +148,12 @@ public class LOGenerate extends LogicalRelationalOperator {
             ((LogicalPlanVisitor)v).visitLOGenerate(this);
     }
 
+    @Override
+    public String toString() {
+        StringBuilder msg = new StringBuilder();
+
+        msg.append("(Name: " + name + " Schema: " + getSchema() + ")");
+
+        return msg.toString();
+    }
 }

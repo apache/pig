@@ -117,6 +117,10 @@ public class ProjectExpression extends ColumnExpression {
         LogicalSchema schema = referent.getSchema();
         if (schema != null) {
             uid = schema.getField(col).uid;
+        } else {
+            // If the schema of referent is null, we kindof create a uid so we 
+            // can track it in remaining plan
+            uid = getNextUid();
         }
     }
     
@@ -149,5 +153,13 @@ public class ProjectExpression extends ColumnExpression {
         } else {
             return false;
         }
+    }
+    
+    public String toString() {
+        StringBuilder msg = new StringBuilder();
+
+        msg.append("(Name: " + name + " Type: " + type + " Uid: " + uid + " Input: " + input + " Column: " + col + ")");
+
+        return msg.toString();
     }
 }

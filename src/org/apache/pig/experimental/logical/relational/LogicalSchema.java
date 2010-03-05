@@ -23,6 +23,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.pig.data.DataType;
+import org.apache.pig.impl.util.Pair;
+
 /**
  * Schema, from a logical perspective.
  */
@@ -60,16 +63,31 @@ public class LogicalSchema {
                 return false;
             }
         }
+        
+        public String toString() {
+            if( type == DataType.BAG ) {
+                if( schema == null ) {
+                    return ( alias + "#" + uid + ":bag{}#" );
+                }
+                return ( alias + "#" + uid + ":bag{" + schema.toString() + "}" );
+            } else if( type == DataType.TUPLE ) {
+                if( schema == null ) {
+                    return ( alias + "#" + uid + ":tuple{}" );
+                }
+                return ( alias + "#" + uid + ":tuple(" + schema.toString() + ")" );
+            }
+            return ( alias + "#" + uid + ":" + DataType.findTypeName(type) );
+        }
     }
 
     
     
     private List<LogicalFieldSchema> fields;
-    private Map<String, Integer> aliases;
+    private Map<String, Pair<Integer, Boolean>> aliases;
     
     public LogicalSchema() {
         fields = new ArrayList<LogicalFieldSchema>();
-        aliases = new HashMap<String, Integer>();
+        aliases = new HashMap<String, Pair<Integer, Boolean>>();
     }
     
     /**
@@ -79,16 +97,25 @@ public class LogicalSchema {
     public void addField(LogicalFieldSchema field) {
         fields.add(field);
         if (field.alias != null && !field.alias.equals("")) {
-            aliases.put(field.alias, fields.size() - 1);
+            // put the full name of this field into aliases map
+            // boolean in the pair indicates if this alias is full name
+            aliases.put(field.alias, new Pair<Integer, Boolean>(fields.size()-1, true));
             int index = 0;
+            
+            // check and put short names into alias map if there is no conflict
             while(index != -1) {
                 index = field.alias.indexOf("::", index);
                 if (index != -1) {
                     String a = field.alias.substring(index+2);
                     if (aliases.containsKey(a)) {
-                        aliases.remove(a);
+                        // remove conflict if the conflict is not full name
+                        // we can never remove full name
+                        if (!aliases.get(a).second) {
+                            aliases.remove(a);
+                        }
                     }else{
-                        aliases.put(a, fields.size()-1);                       
+                        // put alias into map and indicate it is a short name
+                        aliases.put(a, new Pair<Integer, Boolean>(fields.size()-1, false));                       
                     }
 
                     index = index +2;
@@ -103,12 +130,12 @@ public class LogicalSchema {
      * @return field associated with alias, or null if no such field
      */
     public LogicalFieldSchema getField(String alias) {
-        Integer index = aliases.get(alias);
-        if (index == null) {
+        Pair<Integer, Boolean> p = aliases.get(alias);
+        if (p == null) {
             return null;
         }
 
-        return fields.get(index);
+        return fields.get(p.first);
     }
 
     /**
@@ -163,6 +190,18 @@ public class LogicalSchema {
     public static LogicalSchema merge(LogicalSchema s1, LogicalSchema s2) {
         // TODO
         return null;
+    }
+    
+    public String toString() {
+        StringBuilder str = new StringBuilder();
+        
+        for( LogicalFieldSchema field : fields ) {
+            str.append( field.toString() + "," );
+        }
+        if( fields.size() != 0 ) {
+            str.deleteCharAt( str.length() -1 );
+        }
+        return str.toString();
     }
     
 }

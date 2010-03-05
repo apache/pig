@@ -21,19 +21,29 @@ package org.apache.pig.experimental.logical.optimizer;
 import java.io.IOException;
 import java.util.List;
 
+import org.apache.pig.experimental.logical.expression.AddExpression;
 import org.apache.pig.experimental.logical.expression.AndExpression;
 import org.apache.pig.experimental.logical.expression.CastExpression;
 import org.apache.pig.experimental.logical.expression.ConstantExpression;
+import org.apache.pig.experimental.logical.expression.DivideExpression;
 import org.apache.pig.experimental.logical.expression.EqualExpression;
 import org.apache.pig.experimental.logical.expression.GreaterThanEqualExpression;
 import org.apache.pig.experimental.logical.expression.GreaterThanExpression;
+import org.apache.pig.experimental.logical.expression.IsNullExpression;
 import org.apache.pig.experimental.logical.expression.LessThanEqualExpression;
 import org.apache.pig.experimental.logical.expression.LessThanExpression;
 import org.apache.pig.experimental.logical.expression.LogicalExpression;
 import org.apache.pig.experimental.logical.expression.LogicalExpressionPlan;
 import org.apache.pig.experimental.logical.expression.LogicalExpressionVisitor;
+import org.apache.pig.experimental.logical.expression.MapLookupExpression;
+import org.apache.pig.experimental.logical.expression.ModExpression;
+import org.apache.pig.experimental.logical.expression.MultiplyExpression;
+import org.apache.pig.experimental.logical.expression.NegativeExpression;
+import org.apache.pig.experimental.logical.expression.NotEqualExpression;
+import org.apache.pig.experimental.logical.expression.NotExpression;
 import org.apache.pig.experimental.logical.expression.OrExpression;
 import org.apache.pig.experimental.logical.expression.ProjectExpression;
+import org.apache.pig.experimental.logical.expression.SubtractExpression;
 import org.apache.pig.experimental.logical.relational.LOLoad;
 import org.apache.pig.experimental.logical.relational.LogicalSchema;
 import org.apache.pig.experimental.logical.relational.LogicalSchema.LogicalFieldSchema;
@@ -98,6 +108,11 @@ public class UidStamper extends AllExpressionVisitor {
         public void visitProject(ProjectExpression project) throws IOException {
             project.setUid(currentOp);
         }
+        
+        @Override
+        public void visitMapLookup( MapLookupExpression op ) throws IOException {
+            op.setUid(currentOp);
+        }
     
         @Override
         public void visitConstant(ConstantExpression constant) throws IOException {
@@ -107,6 +122,48 @@ public class UidStamper extends AllExpressionVisitor {
         @Override
         public void visitCast(CastExpression cast) throws IOException {
             cast.setUid(currentOp);
+        }
+        
+        @Override
+        public void visitNotEqual(NotEqualExpression exp) throws IOException { 
+            exp.setUid(currentOp);
+        }
+
+        @Override
+        public void visitNot(NotExpression exp ) throws IOException {
+            exp.setUid(currentOp);
+        }
+
+        @Override
+        public void visitIsNull(IsNullExpression exp) throws IOException {
+            exp.setUid(currentOp);
+        }
+        
+        @Override
+        public void visitNegative(NegativeExpression exp) throws IOException {
+            exp.setUid(currentOp);
+        }
+        
+        @Override
+        public void visitAdd(AddExpression exp) throws IOException {
+            exp.setUid(currentOp);
+        }
+        
+        @Override
+        public void visitSubtract(SubtractExpression exp) throws IOException {
+            exp.setUid(currentOp);
+        }
+       
+        public void visitMultiply(MultiplyExpression op) throws IOException {
+            op.setUid(currentOp);
+        }
+        
+        public void visitMod(ModExpression op) throws IOException {
+            op.setUid(currentOp);
+        }
+        
+        public void visitDivide(DivideExpression op) throws IOException {
+            op.setUid(currentOp);
         }
     }
     

@@ -20,14 +20,18 @@ package org.apache.pig.experimental.logical.relational;
 
 import java.io.IOException;
 
+import org.apache.pig.LoadFunc;
+import org.apache.pig.LoadPushDown;
 import org.apache.pig.experimental.plan.Operator;
 import org.apache.pig.experimental.plan.PlanVisitor;
+import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileSpec;
 
 public class LOLoad extends LogicalRelationalOperator {
     
     private LogicalSchema scriptSchema;
     private FileSpec fs;
+    private transient LoadPushDown loadFunc;
 
     /**
      * 
@@ -40,6 +44,25 @@ public class LOLoad extends LogicalRelationalOperator {
        super("LOLoad", plan);
        scriptSchema = schema;
        fs = loader;
+    }
+    
+    public LoadPushDown getLoadPushDown() {
+        try { 
+            if (loadFunc == null) {
+                Object obj = PigContext.instantiateFuncFromSpec(fs.getFuncSpec());
+                if (obj instanceof LoadPushDown) {
+                    loadFunc = (LoadPushDown)obj;
+                }
+            }
+            
+            return loadFunc;
+        }catch (ClassCastException cce) {
+            throw new RuntimeException(fs.getFuncSpec() + " should implement the LoadFunc interface.");    		
+        }
+    }
+    
+    public void setScriptSchema(LogicalSchema schema) {
+        scriptSchema = schema;
     }
     
     /**
