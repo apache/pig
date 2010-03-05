@@ -154,7 +154,7 @@ public class ResourceSchema implements Serializable {
             return getDescription(true);
         }
         
-        public String getCastString() {
+        public String calcCastString() {
             return getDescription(false);
         }
         

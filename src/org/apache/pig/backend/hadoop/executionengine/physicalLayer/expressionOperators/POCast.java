@@ -101,7 +101,7 @@ public class POCast extends ExpressionOperator {
     public String name() {
         if (resultType==DataType.BAG||resultType==DataType.TUPLE)
             return "Cast" + "[" + DataType.findTypeName(resultType)+":"
-            + fieldSchema.getCastString() + "]" + " - "
+            + fieldSchema.calcCastString() + "]" + " - "
             + mKey.toString();
         else
             return "Cast" + "[" + DataType.findTypeName(resultType) + "]" + " - "
