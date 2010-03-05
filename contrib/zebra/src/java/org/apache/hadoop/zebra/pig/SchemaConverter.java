@@ -18,6 +18,8 @@
 
 package org.apache.hadoop.zebra.pig;
 
+import java.io.IOException;
+
 import org.apache.hadoop.zebra.parser.ParseException;
 import org.apache.hadoop.zebra.schema.ColumnType;
 import org.apache.hadoop.zebra.schema.Schema.ColumnSchema;
@@ -136,7 +138,8 @@ class SchemaConverter {
         return schema;
     }
 
-    public static ResourceSchema convertToResourceSchema(org.apache.hadoop.zebra.schema.Schema tSchema) {
+    public static ResourceSchema convertToResourceSchema(org.apache.hadoop.zebra.schema.Schema tSchema)
+    throws IOException {
         if( tSchema == null )
             return null;
 
@@ -154,8 +157,8 @@ class SchemaConverter {
         return rSchema;
     }
 
-    public static ResourceFieldSchema convertToResourceFieldSchema(
-            ColumnSchema cSchema) {
+    private static ResourceFieldSchema convertToResourceFieldSchema(
+            ColumnSchema cSchema) throws IOException {
         ResourceFieldSchema field = new ResourceFieldSchema();
 
         if( cSchema.getType() ==ColumnType.ANY && cSchema.getName().isEmpty() ) { // For anonymous column

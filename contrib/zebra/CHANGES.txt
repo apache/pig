@@ -60,6 +60,8 @@ Trunk (unreleased changes)
 
   BUG FIXES
 
+    PIG-1276: Pig resource schema interface changed, so Zebra needs to catch exception thrown from the new interfaces. (xuefuz via yanz)
+
     PIG-1256: Bag field should always contain a tuple type as the field schema in ResourceSchema object converted from Zebra Schema (xuefuz via yanz)
 
     PIG-1227: Throw exception if column group meta file is missing for an unsorted table (yanz)
