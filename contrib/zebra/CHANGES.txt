@@ -58,6 +58,8 @@ Trunk (unreleased changes)
 
   OPTIMIZATIONS
 
+    PIG-1198: performance improvements through use of unsorted input splits that span multiple files (yanz)
+
   BUG FIXES
 
     PIG-1276: Pig resource schema interface changed, so Zebra needs to catch exception thrown from the new interfaces. (xuefuz via yanz)

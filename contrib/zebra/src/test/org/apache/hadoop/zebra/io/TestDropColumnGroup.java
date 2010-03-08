@@ -174,13 +174,13 @@ public class TestDropColumnGroup {
         false }, numRows);
 
     TestBasicTable.doRangeSplit(new int[] { 4, 0, 2 }, numRows,
-        "a, b, e, f, x", path);
+        "a, b, c, e, f, x", path);
 
     // Remove another CG.
     BasicTable.dropColumnGroup(path, conf, "CG0");
 
     TestBasicTable.doRangeSplit(new int[] { 4, 0, 2, 3, 1 }, numRows,
-        "a, y, e, f, x", path);
+        "a, y, c, e, f, x", path);
 
     BasicTable.drop(path, conf);
   }

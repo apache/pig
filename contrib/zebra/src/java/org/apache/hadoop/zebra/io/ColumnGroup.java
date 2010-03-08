@@ -522,11 +522,21 @@ class ColumnGroup {
       }
 
       BlockDistribution ret = new BlockDistribution();
-      if (split.name != null)
+      for (int i = 0; i < split.length; i++)
       {
-        FileStatus tfileStatus = fs.getFileStatus(new Path(path, split.name)); 
+        FileStatus tfileStatus = fs.getFileStatus(new Path(path, split.names[i]));
         
-        BlockLocation[] locations = fs.getFileBlockLocations(tfileStatus, split.startByte, split.numBytes);
+        BlockLocation[] locations = null;
+        if (i == 0) {
+        if (split.startByteFirst != -1)
+          locations = fs.getFileBlockLocations(tfileStatus, split.startByteFirst, split.numBytesFirst);
+        } else if (i == split.length - 1) {
+           if (split.startByteLast != -1)
+             locations = fs.getFileBlockLocations(tfileStatus, split.startByteLast, split.numBytesLast);
+        }
+        if (locations == null)
+          locations = fs.getFileBlockLocations(tfileStatus, 0, tfileStatus.getLen());
+
         for (BlockLocation l : locations) {
           ret.add(l);
         }
@@ -541,44 +551,86 @@ class ColumnGroup {
     * It is assumed that 'startByte' and 'numBytes' in rowSplit itself
     * are not valid.
     */
-    void fillRowSplit(CGRowSplit rowSplit, long startOffset, long length) 
-                      throws IOException {
+    void fillRowSplit(CGRowSplit rowSplit, CGRowSplit src)throws IOException {
 
-      if (rowSplit.name == null)
+      if (src.names == null || src.length == 0)
         return;
 
-      Path tfPath = new Path(path, rowSplit.name);
-
-      long size = rowSplit.size;
-      if (size == 0)
+      boolean noSizeInIndex = false;
+      long[] sizes = rowSplit.sizes;
+      if (sizes == null)
       {
         /* the on disk table is sorted. Later this will be made unnecessary when
          * CGIndexEntry serializes its bytes field and the meta file versioning is
          * supported.
          */ 
-        FileStatus tfile = fs.getFileStatus(tfPath);
-        size = tfile.getLen();
+        noSizeInIndex = true;
       }
+      rowSplit.names = src.names;
+      rowSplit.length = src.length;
+      rowSplit.startByteFirst = src.startByteFirst;
+      rowSplit.numBytesFirst = src.numBytesFirst;
+      rowSplit.startByteLast = src.startByteLast;
+      rowSplit.numBytesLast = src.numBytesLast;
+
+      Path firstPath = null, lastPath;
       TFile.Reader reader = null;
       
-      try {
-        reader = new TFile.Reader(fs.open(tfPath),
-                                  size, conf);
+      if (src.startByteFirst != -1)
+      {
+        firstPath = new Path(path, rowSplit.names[0]);
+        long size;
+        if (noSizeInIndex)
+        {
+          FileStatus tfile = fs.getFileStatus(firstPath);
+          size = tfile.getLen();
+        } else
+          size = sizes[0];
+        reader = new TFile.Reader(fs.open(firstPath), size, conf);
+        try {
+          long startRow = reader.getRecordNumNear(src.startByteFirst);
+          long endRow = reader.getRecordNumNear(src.startByteFirst + src.numBytesFirst);
 
-        long startRow = reader.getRecordNumNear(startOffset);
-        long endRow = reader.getRecordNumNear(startOffset + length);
-
-        if (endRow < startRow) {
-          endRow = startRow;
-        }
-
-        rowSplit.startRow = startRow;
-        rowSplit.numRows = endRow - startRow;
-      } finally {
-        if (reader != null) {
+          if (endRow < startRow)
+            endRow = startRow;
+          rowSplit.startRowFirst = startRow;
+          rowSplit.numRowsFirst = endRow - startRow;
+        } catch (IOException e) {
           reader.close();
+          throw e;
         }
       }
+      if (src.startByteLast != -1 && rowSplit.length > 1)
+      {
+        lastPath = new Path(path, rowSplit.names[rowSplit.length - 1]);
+        if (reader == null || !firstPath.equals(lastPath))
+        {
+          if (reader != null)
+            reader.close();
+          long size;
+          if (noSizeInIndex)
+          {
+            FileStatus tfile = fs.getFileStatus(lastPath);
+            size = tfile.getLen();
+          } else
+            size = sizes[rowSplit.length - 1];
+          reader = new TFile.Reader(fs.open(lastPath), size, conf);
+        }
+        try {
+          long startRow = reader.getRecordNumNear(src.startByteLast);
+          long endRow = reader.getRecordNumNear(src.startByteLast + src.numBytesLast);
+
+          if (endRow < startRow)
+            endRow = startRow;
+          rowSplit.startRowLast = startRow;
+          rowSplit.numRowsLast = endRow - startRow;
+        } catch (IOException e) {
+          reader.close();
+          throw e;
+        }
+      }
+      if (reader != null)
+        reader.close();
     }
     
     /**
@@ -770,22 +822,55 @@ class ColumnGroup {
      * @return A list of CGRowSplit objects. 
      *         
      */
-    public List<CGRowSplit> rowSplit(long[] starts, long[] lengths, Path[] paths) throws IOException {
+    public List<CGRowSplit> rowSplit(long[] starts, long[] lengths, Path[] paths, int[] batches, int numBatches) throws IOException {
       List<CGRowSplit> lst = new ArrayList<CGRowSplit>();
+      CGRowSplit cgRowSplit;
+      long startFirst, bytesFirst, startLast, bytesLast;
+      int length;
        
-      for (int i=0; i<starts.length; i++) {
-        long start = starts[i];
-        long length = lengths[i];
-        Path path = paths[i];
-        if (cgindex == null)
-          cgindex = buildIndex(fs, this.path, dirty, conf);
-        long size = cgindex.get(cgindex.getFileIndex(path)).bytes;
-        lst.add(new CGRowSplit(path.getName(), start, length, size));
+      if (numBatches > 0 && cgindex == null)
+        cgindex = buildIndex(fs, this.path, dirty, conf);
+
+      for (int i=0; i< numBatches; i++) {
+        int indexFirst = batches[i];
+        int indexLast = batches[i+1] - 1;
+        startFirst = starts[indexFirst];
+        bytesFirst = lengths[indexFirst];
+        startLast = starts[indexLast];
+        bytesLast = lengths[indexLast];
+        length = batches[i+1] - batches[i];
+        String[] namesInSplit = new String[length];
+        long[] sizesInSplit = new long[length];
+        for (int j = 0; j < length; j++)
+        {
+          namesInSplit[j] = paths[indexFirst+j].getName();
+          sizesInSplit[j] = cgindex.get(cgindex.getFileIndex(paths[indexFirst+j])).bytes;
+        }
+        cgRowSplit = new CGRowSplit(namesInSplit, sizesInSplit, fs, conf, length, 
+                startFirst, bytesFirst, startLast, bytesLast);
+        lst.add(cgRowSplit);
       }
       
       return lst;
-    } 
+    }
     
+    void rearrangeFileIndices(FileStatus[] fileStatus) throws IOException {
+      int size = fileStatus.length;
+      FileStatus[] result = new FileStatus[size];
+      if (cgindex == null)
+        cgindex = buildIndex(fs, path, dirty, conf);
+      if (size < cgindex.size())
+        throw new AssertionError("Incorrect file list size");
+      for (int j, i = 0; i < size; i++)
+      {
+        j = cgindex.getFileIndex(fileStatus[i].getPath());
+        if (j != -1)
+          result[j] = fileStatus[i];
+      }
+      for (int i = 0; i < size; i++)
+        fileStatus[i] = result[i];
+    }
+
     /**
      * Is the ColumnGroup sorted?
      * 
@@ -814,7 +899,7 @@ class ColumnGroup {
       TupleReader tupleReader;
 
       TFileScanner(FileSystem fs, Path path, CGRowSplit rowRange, 
-                    RawComparable begin, RawComparable end, 
+                    RawComparable begin, RawComparable end, boolean first, boolean last,
                     CGSchema cgschema, Projection projection,
           Configuration conf) throws IOException, ParseException {
         try {
@@ -823,9 +908,15 @@ class ColumnGroup {
            * compressor is inside cgschema
            */
           reader = new TFile.Reader(ins, fs.getFileStatus(path).getLen(), conf);
-          if (rowRange != null) {
-            scanner = reader.createScannerByRecordNum(rowRange.startRow, 
-                                         rowRange.startRow + rowRange.numRows);
+          if (rowRange != null && rowRange.startByteFirst != -1) {
+            if (first && rowRange.startByteFirst != -1)
+              scanner = reader.createScannerByRecordNum(rowRange.startRowFirst, 
+                                              rowRange.startRowFirst + rowRange.numRowsFirst);
+            else if (last && rowRange.startByteLast != -1)
+              scanner = reader.createScannerByRecordNum(rowRange.startRowLast, 
+                  rowRange.startRowLast + rowRange.numRowsLast);
+            else
+              scanner = reader.createScanner();
           } else {
             /* TODO: more investigation is needed for the following.
              *  using deprecated API just so that zebra can work with 
@@ -941,11 +1032,36 @@ class ColumnGroup {
      */
     class CGScanner implements TableScanner {
       private Projection logicalSchema = null;
-      private TFileScanner[] scanners;
+      private TFileScannerInfo[] scanners;
       private boolean closeReader;
       private int beginIndex, endIndex;
       private int current; // current scanner
       private boolean scannerClosed = true;
+      private CGRowSplit rowRange;
+      private TFileScanner scanner;
+      
+      private class TFileScannerInfo {
+        boolean first, last;
+        Path path;
+        RawComparable begin, end;
+        TFileScannerInfo(boolean first, boolean last, Path path, RawComparable begin, RawComparable end) {
+          this.first = first;
+          this.last = last;
+          this.begin = begin;
+          this.end = end;
+          this.path = path;
+        }
+        
+        TFileScanner getTFileScanner() throws IOException {
+          try {
+            return new TFileScanner(fs, path, rowRange, 
+                  begin, end, first, last, cgschema, logicalSchema, conf);
+          } catch (ParseException e) {
+            throw new IOException(e.getMessage());
+          }
+        }
+      }
+
 
       CGScanner(CGRangeSplit split, boolean closeReader) throws IOException,
       ParseException {
@@ -970,9 +1086,8 @@ class ColumnGroup {
        */
       CGScanner(CGRowSplit rowRange, boolean closeReader) 
                  throws IOException, ParseException {
-        
         beginIndex = 0;
-        endIndex = 1;
+        endIndex = rowRange.length;
         init(rowRange, null, null, closeReader);
       }
       
@@ -995,49 +1110,52 @@ class ColumnGroup {
       private void init(CGRowSplit rowRange, RawComparable beginKey, 
                         RawComparable endKey, boolean doClose) 
              throws IOException, ParseException {
+        this.rowRange = rowRange;
         if (beginIndex > endIndex) {
           throw new IllegalArgumentException("beginIndex > endIndex");
         }
         logicalSchema = ColumnGroup.Reader.this.getProjection();
-        List<TFileScanner> tmpScanners =
-            new ArrayList<TFileScanner>(endIndex - beginIndex);
+        List<TFileScannerInfo> tmpScanners =
+            new ArrayList<TFileScannerInfo>(endIndex - beginIndex);
         try {
+          boolean first, last, realFirst = true;
+          Path myPath;
           for (int i = beginIndex; i < endIndex; ++i) {
-            RawComparable begin = (i == beginIndex) ? beginKey : null;
-            RawComparable end = (i == endIndex - 1) ? endKey : null;
-            TFileScanner scanner;
-            if (rowRange != null)
-              scanner =
-                new TFileScanner(fs, new Path(path, rowRange.name), rowRange, 
-                                 begin, end,
-                                 cgschema, logicalSchema, conf);
+            first = (i == beginIndex);
+            last = (i == endIndex -1);
+            RawComparable begin = first ? beginKey : null;
+            RawComparable end = last ? endKey : null;
+            TFileScannerInfo scanner;
+            if (rowRange == null)
+              myPath = cgindex.getPath(i, path);
             else
-              scanner =
-                new TFileScanner(fs, cgindex.getPath(i, path), null, 
-                                 begin, end,
-                                 cgschema, logicalSchema, conf);
-            // skip empty scanners.
-            if (!scanner.atEnd()) {
-              tmpScanners.add(scanner);
-            }
-            else {
-              scanner.close();
+              myPath = new Path(path, rowRange.names[i]);
+            scanner =
+                new TFileScannerInfo(first, last, myPath, begin, end);
+            if (realFirst) {
+              this.scanner = scanner.getTFileScanner();
+              if (this.scanner.atEnd()) {
+                this.scanner.close();
+                this.scanner = null;
+              } else {
+                realFirst = false;
+                tmpScanners.add(scanner);
+              }
+            } else {
+              TFileScanner myScanner = scanner.getTFileScanner();
+              if (!myScanner.atEnd())
+                tmpScanners.add(scanner);
+              myScanner.close();
             }
           }
-          scanners = tmpScanners.toArray(new TFileScanner[tmpScanners.size()]);
+          scanners = tmpScanners.toArray(new TFileScannerInfo[tmpScanners.size()]);
           this.closeReader = doClose;
           scannerClosed = false;
         }
         finally {
           if (scannerClosed) { // failed to initialize the object.
-            for (int i = 0; i < tmpScanners.size(); ++i) {
-              try {
-                tmpScanners.get(i).close();
-              }
-              catch (Exception e) {
-                // no op
-              }
-            }
+            if (scanner != null)
+              scanner.close();
           }
         }
       }
@@ -1047,7 +1165,7 @@ class ColumnGroup {
           if (atEnd()) {
             throw new EOFException("No more key-value to read");
           }
-          scanners[current].getKey(key);
+          scanner.getKey(key);
         }
 
         @Override
@@ -1056,19 +1174,19 @@ class ColumnGroup {
             throw new EOFException("No more key-value to read");
           }
           try {
-            scanners[current].getValue(row);
+            scanner.getValue(row);
           } catch (ParseException e) {
             throw new IOException("Invalid Projection: "+e.getMessage());
           }
         }
 
       public void getCGKey(BytesWritable key) throws IOException {
-        scanners[current].getKey(key);
+        scanner.getKey(key);
       }
 
       public void getCGValue(Tuple row) throws IOException {
         try {
-            scanners[current].getValue(row);
+            scanner.getValue(row);
           } catch (ParseException e) {
             throw new IOException("Invalid Projection: "+e.getMessage());
           }
@@ -1085,29 +1203,41 @@ class ColumnGroup {
 
       @Override
       public boolean advance() throws IOException {
-          if (atEnd()) {
-            return false;
-          }
-          scanners[current].advance();
-          if (scanners[current].atEnd()) {
+        if (atEnd()) {
+          return false;
+        }
+        scanner.advance();
+        while (true)
+        {
+          if (scanner.atEnd()) {
+            scanner.close();
+            scanner = null;
             ++current;
             if (!atEnd()) {
-              scanners[current].rewind();
-            }
-          }
-          return true;
+              scanner = scanners[current].getTFileScanner();
+            } else
+              return false;
+          } else
+            return true;
         }
+      }
 
       public boolean advanceCG() throws IOException {
-          scanners[current].advance();
-          if (scanners[current].atEnd()) {
+        scanner.advance();
+        while (true)
+        {
+          if (scanner.atEnd()) {
+            scanner.close();
+            scanner = null;
             ++current;
             if (!atEnd()) {
-              scanners[current].rewind();
-            }
-          }
-          return true;
+              scanner = scanners[current].getTFileScanner();
+            } else
+              return false;
+          } else
+            return true;
         }
+      }
 
       @Override
       public boolean atEnd() throws IOException {
@@ -1136,12 +1266,34 @@ class ColumnGroup {
           index = beginIndex;
         }
 
+        int prevCurrent = current;
         current = index - beginIndex;
-        return scanners[current].seekTo(key);
+        if (current != prevCurrent)
+        {
+          if (scanner != null)
+          {
+            try {
+              scanner.close();
+            } catch (Exception e) {
+              // no-op
+            }
+          }
+          scanner = scanners[current].getTFileScanner();
+        }
+        return scanner.seekTo(key);
       }
 
       @Override
       public void seekToEnd() throws IOException {
+        if (scanner != null)
+        {
+          try {
+            scanner.close();
+          } catch (Exception e) {
+            // no-op
+          }
+        }
+        scanner = null;
         current = scanners.length;
       }
 
@@ -1149,11 +1301,12 @@ class ColumnGroup {
       public void close() throws IOException {
         if (!scannerClosed) {
           scannerClosed = true;
-          for (int i = 0; i < scanners.length; ++i) {
+          if (scanner != null)
+          {
             try {
-              scanners[i].close();
-            }
-            catch (Exception e) {
+              scanner.close();
+              scanner = null;
+            } catch (Exception e) {
               // no-op
             }
           }
@@ -1191,18 +1344,35 @@ class ColumnGroup {
     }
     
     public static class CGRowSplit implements Writable {
-      String name;
-      long startByte = -1;
-      long numBytes = -1;
-      long startRow = -1;
-      long numRows = -1;
-      long size = 0; // size of the file in the selected CG 
+      int length; // number of files in the batch
+      long startByteFirst = -1;
+      long numBytesFirst;
+      long startRowFirst = -1;
+      long numRowsFirst = -1;
+      long startByteLast = -1;
+      long numBytesLast;
+      long startRowLast = -1;
+      long numRowsLast = -1;
+      String[] names;
+      long[] sizes = null;
 
-      CGRowSplit(String name, long start, long len, long size) {
-        this.name = name;
-        this.startByte = start;
-        this.numBytes = len;
-        this.size = size;
+      CGRowSplit(String[] names, long[] sizes, FileSystem fs, Configuration conf,
+          int length, long startFirst, long bytesFirst,
+          long startLast, long bytesLast) throws IOException {
+        this.names = names;
+        this.sizes = sizes;
+        this.length = length;
+
+        if (startFirst != -1)
+        {
+          startByteFirst = startFirst;
+          numBytesFirst = bytesFirst;
+        }
+        if (startLast != -1 && this.length > 1)
+        {
+          startByteLast = startLast;
+          numBytesLast = bytesLast;
+        }
       }
 
       public CGRowSplit() {
@@ -1212,35 +1382,64 @@ class ColumnGroup {
       @Override
       public String toString() {
         StringBuilder sb = new StringBuilder();
-        sb.append("{name = " + name + "}\n");       
-        sb.append("{startByte = " + startByte + "}\n");
-        sb.append("{numBytes = " + numBytes + "}\n");
-        sb.append("{startRow = " + startRow + "}\n");
-        sb.append("{numRows = " + numRows + "}\n");
-        sb.append("{size = " + size + "}\n");
+        sb.append("{length = " + length + "}\n");
+        for (int i = 0; i < length; i++)
+        {
+          sb.append("{name = " + names[i] + "}\n");
+          sb.append("{size = " + sizes[i] + "}\n");
+        }
+        sb.append("{startByteFirst = " + startByteFirst + "}\n");
+        sb.append("{numBytesFirst = " + numBytesFirst + "}\n");
+        sb.append("{startRowFirst = " + startRowFirst + "}\n");
+        sb.append("{numRowsFirst = " + numRowsFirst + "}\n");
+        sb.append("{startByteLast = " + startByteLast + "}\n");
+        sb.append("{numBytesLast = " + numBytesLast + "}\n");
+        sb.append("{startRowLast = " + startRowLast + "}\n");
+        sb.append("{numRowsLast = " + numRowsLast + "}\n");
         
         return sb.toString();
       }
 
       @Override
       public void readFields(DataInput in) throws IOException {
-        name = Utils.readString(in);
-        startByte = Utils.readVLong(in);
-        numBytes = Utils.readVLong(in);
-        startRow = Utils.readVLong(in);
-        numRows = Utils.readVLong(in);
-        size = Utils.readVLong(in);
+        length = Utils.readVInt(in);
+        if (length > 0)
+        {
+          names = new String[length];
+          sizes = new long[length];
+        }
+        for (int i = 0; i < length; i++)
+        {
+          names[i] = Utils.readString(in);
+          sizes[i] = Utils.readVLong(in);
+        }
+        startByteFirst = Utils.readVLong(in);
+        numBytesFirst = Utils.readVLong(in);
+        startRowFirst = Utils.readVLong(in);
+        numRowsFirst = Utils.readVLong(in);
+        startByteLast = Utils.readVLong(in);
+        numBytesLast = Utils.readVLong(in);
+        startRowLast = Utils.readVLong(in);
+        numRowsLast = Utils.readVLong(in);
       }
 
       @Override
       public void write(DataOutput out) throws IOException {
-        Utils.writeString(out, name);
-        Utils.writeVLong(out, startByte);
-        Utils.writeVLong(out, numBytes);
-        Utils.writeVLong(out, startRow);
-        Utils.writeVLong(out, numRows);
-        Utils.writeVLong(out, size);
-      }      
+        Utils.writeVInt(out, length);
+        for (int i = 0; i < length; i++)
+        {
+          Utils.writeString(out, names[i]);
+          Utils.writeVLong(out, sizes[i]);
+        }
+        Utils.writeVLong(out, startByteFirst);
+        Utils.writeVLong(out, numBytesFirst);
+        Utils.writeVLong(out, startRowFirst);
+        Utils.writeVLong(out, numRowsFirst);
+        Utils.writeVLong(out, startByteLast);
+        Utils.writeVLong(out, numBytesLast);
+        Utils.writeVLong(out, startRowLast);
+        Utils.writeVLong(out, numRowsLast);
+      }
     }
     
     private static class SplitColumn {
@@ -1852,7 +2051,7 @@ class ColumnGroup {
           return cgie.getIndex(); 
         }
       }
-      throw new IOException("File " + filename + " is not in the column group index"); 
+      return -1;
     }
 
     int size() {
