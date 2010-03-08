@@ -29,6 +29,8 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.PathFilter;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.WritableUtils;
 import org.apache.hadoop.io.RawComparator;
@@ -38,6 +40,7 @@ import org.apache.hadoop.mapred.FileSplit;
 import org.apache.hadoop.mapred.InputFormat;
 import org.apache.hadoop.mapred.InputSplit;
 import org.apache.hadoop.mapred.JobConf;
+import org.apache.hadoop.mapred.InvalidInputException;
 import org.apache.hadoop.mapred.RecordReader;
 import org.apache.hadoop.mapred.Reporter;
 import org.apache.hadoop.zebra.io.BasicTable;
@@ -379,7 +382,6 @@ public class TableInputFormat implements InputFormat<BytesWritable, Tuple> {
 		 {
 			 throw new IOException("The table is not properly sorted");
 		 }
-		 setSorted(conf);
 	 } else {
 		 List<LeafTableInfo> leaves = expr.getLeafTables(null);
 		 for (Iterator<LeafTableInfo> it = leaves.iterator(); it.hasNext(); )
@@ -403,9 +405,9 @@ public class TableInputFormat implements InputFormat<BytesWritable, Tuple> {
          }
        }
 		 }
-		 // need key range input splits for sorted table union
-		 setSorted(conf);
 	 }
+	 // need key range input splits for sorted table union
+	 setSorted(conf);
   }
   
   /**
@@ -635,8 +637,48 @@ public class TableInputFormat implements InputFormat<BytesWritable, Tuple> {
   }
   
   private static class DummyFileInputFormat extends FileInputFormat<BytesWritable, Tuple> {
-    public DummyFileInputFormat(long minSplitSize) {
+    /**
+     * the next constant and class are copies from FileInputFormat
+     */
+    private static final PathFilter hiddenFileFilter = new PathFilter(){
+        public boolean accept(Path p){
+          String name = p.getName(); 
+          return !name.startsWith("_") && !name.startsWith("."); 
+        }
+      }; 
+
+    /**
+     * Proxy PathFilter that accepts a path only if all filters given in the
+     * constructor do. Used by the listPaths() to apply the built-in
+     * hiddenFileFilter together with a user provided one (if any).
+     */
+    private static class MultiPathFilter implements PathFilter {
+      private List<PathFilter> filters;
+
+      public MultiPathFilter(List<PathFilter> filters) {
+        this.filters = filters;
+      }
+
+      public boolean accept(Path path) {
+        for (PathFilter filter : filters) {
+          if (!filter.accept(path)) {
+            return false;
+          }
+        }
+        return true;
+      }
+    }
+    private Integer[] fileNumbers = null;
+
+    private List<BasicTable.Reader> readers;
+
+    public Integer[] getFileNumbers() {
+      return fileNumbers;
+    }
+
+    public DummyFileInputFormat(long minSplitSize, List<BasicTable.Reader> readers) {
       super.setMinSplitSize(minSplitSize);
+      this.readers = readers;
     }
     
     @Override
@@ -645,12 +687,93 @@ public class TableInputFormat implements InputFormat<BytesWritable, Tuple> {
       // no-op
       return null;
     }
+
+    @Override
+    public long computeSplitSize(long goalSize, long minSize, long blockSize) {
+      return super.computeSplitSize(goalSize, minSize, blockSize);
+    }
+
+    /**
+     * copy from FileInputFormat: add assignment to table file numbers
+     */
+    @Override
+    public FileStatus[] listStatus(JobConf job) throws IOException {
+      Path[] dirs = getInputPaths(job);
+      if (dirs.length == 0) {
+        throw new IOException("No input paths specified in job");
+      }
+
+      List<FileStatus> result = new ArrayList<FileStatus>();
+      List<IOException> errors = new ArrayList<IOException>();
+      
+      // creates a MultiPathFilter with the hiddenFileFilter and the
+      // user provided one (if any).
+      List<PathFilter> filters = new ArrayList<PathFilter>();
+      filters.add(hiddenFileFilter);
+      PathFilter jobFilter = getInputPathFilter(job);
+      if (jobFilter != null) {
+        filters.add(jobFilter);
+      }
+      PathFilter inputFilter = new MultiPathFilter(filters);
+
+      ArrayList<Integer> fileNumberList  = new ArrayList<Integer>();
+      int index = 0;
+      for (Path p: dirs) {
+        FileSystem fs = p.getFileSystem(job); 
+        FileStatus[] matches = fs.globStatus(p, inputFilter);
+        if (matches == null) {
+          errors.add(new IOException("Input path does not exist: " + p));
+        } else if (matches.length == 0) {
+          errors.add(new IOException("Input Pattern " + p + " matches 0 files"));
+        } else {
+          for (FileStatus globStat: matches) {
+            if (globStat.isDir()) {
+              FileStatus[] fileStatuses = fs.listStatus(globStat.getPath(), inputFilter);
+              // reorder according to CG index
+              BasicTable.Reader reader = readers.get(index);
+              reader.rearrangeFileIndices(fileStatuses);
+              for(FileStatus stat: fileStatuses) {
+                if (stat != null)
+                  result.add(stat);
+              }
+              fileNumberList.add(fileStatuses.length);
+            } else {
+              result.add(globStat);
+              fileNumberList.add(1);
+            }
+          }
+        }
+        index++;
+      }
+      fileNumbers = new Integer[fileNumberList.size()];
+      fileNumberList.toArray(fileNumbers);
+
+      if (!errors.isEmpty()) {
+        throw new InvalidInputException(errors);
+      }
+      LOG.info("Total input paths to process : " + result.size()); 
+      return result.toArray(new FileStatus[result.size()]);
+    }
   }
   
   private static InputSplit[] getRowSplits(JobConf conf, int numSplits,
-      TableExpr expr, List<BasicTable.Reader> readers) throws IOException {
+      TableExpr expr, List<BasicTable.Reader> readers,
+      List<BasicTableStatus> status) throws IOException {
     ArrayList<InputSplit> ret = new ArrayList<InputSplit>();
-    DummyFileInputFormat helper = new DummyFileInputFormat(getMinSplitSize(conf));
+
+    long minSplitSize = getMinSplitSize(conf);
+  
+    long minSize = Math.max(conf.getLong("mapred.min.split.size", 1), minSplitSize);
+    long totalBytes = 0;
+    for (Iterator<BasicTableStatus> it = status.iterator(); it.hasNext(); )
+    {
+      totalBytes += it.next().getSize();
+    }
+    long goalSize = totalBytes / (numSplits < 1 ? 1 : numSplits);
+    StringBuilder sb = new StringBuilder();
+    boolean first = true;
+    PathFilter filter = null;
+    List<BasicTable.Reader> realReaders = new ArrayList<BasicTable.Reader>();
 
     for (int i = 0; i < readers.size(); ++i) {
       BasicTable.Reader reader = readers.get(i);
@@ -660,28 +783,116 @@ public class TableInputFormat implements InputFormat<BytesWritable, Tuple> {
       /* We can create input splits only if there does exist a valid column group for split.
        * Otherwise, we do not create input splits. */
       if (splitCGIndex >= 0) {        
-        Path path = new Path (reader.getPath().toString() + "/" + reader.getName(splitCGIndex));
-        DummyFileInputFormat.setInputPaths(conf, path);
-        PathFilter filter = reader.getPathFilter(conf);
-        DummyFileInputFormat.setInputPathFilter(conf, filter.getClass());
-        InputSplit[] inputSplits = helper.getSplits(conf, (numSplits < 1 ? 1 : numSplits));
+        realReaders.add(reader);
+        if (first)
+        {
+          // filter is identical across tables
+          filter = reader.getPathFilter(conf);
+          first = false;
+        } else
+          sb.append(",");
+        sb.append(reader.getPath().toString() + "/" + reader.getName(splitCGIndex));
+      }
+    }
+    
+    DummyFileInputFormat helper = new DummyFileInputFormat(minSplitSize, realReaders);
+
+    if (!realReaders.isEmpty())
+    {
+      DummyFileInputFormat.setInputPaths(conf, sb.toString());
+      DummyFileInputFormat.setInputPathFilter(conf, filter.getClass());
+      InputSplit[] inputSplits = helper.getSplits(conf, (numSplits < 1 ? 1 : numSplits));
+
+      int batchesPerSplit = inputSplits.length / (numSplits < 1 ? 1 : numSplits);
+      if (batchesPerSplit <= 0)
+        batchesPerSplit = 1;
+
+      /*
+       * Potential file batching optimizations include:
+       * 1) sort single file inputSplits in the descending order of their sizes so
+       *    that the ops of new file opens are spread to a maximum degree;
+       * 2) batching the files with maximum block distribution affinities into the same input split
+       */
+
+      int[] inputSplitBoundaries = new int[realReaders.size()];
+      long start, prevStart = Long.MIN_VALUE;
+      int tableIndex = 0, fileNumber = 0;
+      Integer[] fileNumbers = helper.getFileNumbers();
+      if (fileNumbers.length != realReaders.size())
+        throw new IOException("Number of tables in input paths of input splits is incorrect.");
+      for (int j=0; j<inputSplits.length; j++) {
+        FileSplit fileSplit = (FileSplit) inputSplits[j];
+        start = fileSplit.getStart();
+        if (start <= prevStart)
+        {
+          fileNumber++;
+          if (fileNumber >= fileNumbers[tableIndex])
+          {
+            inputSplitBoundaries[tableIndex++] = j;
+            fileNumber = 0;
+          }
+        }
+        prevStart = start;
+      }
+      inputSplitBoundaries[tableIndex++] =  inputSplits.length;
+      if (tableIndex != realReaders.size())
+        throw new IOException("Number of tables in input splits is incorrect.");
+      for (tableIndex = 0; tableIndex < realReaders.size(); tableIndex++)
+      {
+        int startSplitIndex = (tableIndex == 0 ? 0 : inputSplitBoundaries[tableIndex - 1]);
+        int splitLen = (tableIndex == 0 ? inputSplitBoundaries[0] :
+            inputSplitBoundaries[tableIndex] - inputSplitBoundaries[tableIndex-1]);
+        BasicTable.Reader reader = realReaders.get(tableIndex);
+        /* Get the index of the column group that will be used for row-split.*/
+        int splitCGIndex = reader.getRowSplitCGIndex();
         
-        long starts[] = new long[inputSplits.length];
-        long lengths[] = new long[inputSplits.length];
-        Path paths[] = new Path [inputSplits.length];
-        for (int j=0; j<inputSplits.length; j++) {
+        long starts[] = new long[splitLen];
+        long lengths[] = new long[splitLen];
+        int batches[] = new int[splitLen + 1];
+        batches[0] = 0;
+        int numBatches = 0;
+        int batchSize = 0;
+        Path paths[] = new Path [splitLen];
+        long totalLen = 0;
+        final double SPLIT_SLOP = 1.1;
+        int endSplitIndex = startSplitIndex + splitLen;
+        for (int j=startSplitIndex; j< endSplitIndex; j++) {
           FileSplit fileSplit = (FileSplit) inputSplits[j];
           Path p = fileSplit.getPath();
-          long start = fileSplit.getStart();
+          long blockSize = p.getFileSystem(conf).getBlockSize(p);
+          long splitSize = (long) (helper.computeSplitSize(goalSize, minSize, blockSize) * SPLIT_SLOP);
+          start = fileSplit.getStart();
           long length = fileSplit.getLength();
+          int index = j - startSplitIndex;
+          starts[index] = start;
+          lengths[index] = length;
+          totalLen += length;
+          paths[index] = p;
+          if (totalLen >= splitSize)
+          {
 
-          starts[j] = start;
-          lengths[j] = length;
-          paths[j] = p;
+             for (int ii = batches[numBatches] + 1; ii < index - 1; ii++)
+               starts[ii] = -1; // all intermediate files are not split
+             batches[++numBatches] = index;
+             batchSize = 1;
+             totalLen = length;
+          } else if (batchSize + 1 > batchesPerSplit) {
+            for (int ii = batches[numBatches] + 1; ii < index - 1; ii++)
+              starts[ii] = -1; // all intermediate files are not split
+            batches[++numBatches] = index;
+            batchSize = 1;
+            totalLen = length;
+          } else {
+            batchSize++;
+          }
         }
+        for (int ii = batches[numBatches] + 1; ii < splitLen - 1; ii++)
+          starts[ii] = -1; // all intermediate files are not split
+        if (splitLen > 0)
+          batches[++numBatches] = splitLen;
         
-        List<RowSplit> subSplits = reader.rowSplit(starts, lengths, paths, splitCGIndex);
-  
+        List<RowSplit> subSplits = reader.rowSplit(starts, lengths, paths, splitCGIndex, batches, numBatches);
+    
         for (Iterator<RowSplit> it = subSplits.iterator(); it.hasNext();) {
           RowSplit subSplit = it.next();
           RowTableSplit split = new RowTableSplit(reader, subSplit, conf);
@@ -689,7 +900,7 @@ public class TableInputFormat implements InputFormat<BytesWritable, Tuple> {
         }
       }
     }
-    
+
     LOG.info("getSplits : returning " + ret.size() + " row splits.");
     return ret.toArray(new InputSplit[ret.size()]);
   }
@@ -728,11 +939,8 @@ public class TableInputFormat implements InputFormat<BytesWritable, Tuple> {
         BasicTable.Reader reader =
           new BasicTable.Reader(leaf.getPath(), conf);
         reader.setProjection(leaf.getProjection());
-        if (sorted)
-        {
-          BasicTableStatus s = reader.getStatus();
-          status.add(s);
-        }
+        BasicTableStatus s = reader.getStatus();
+        status.add(s);
         readers.add(reader);
         if (first)
           first = false;
@@ -753,7 +961,7 @@ public class TableInputFormat implements InputFormat<BytesWritable, Tuple> {
         return getSortedSplits(conf, numSplits, expr, readers, status);
       }
        
-      return getRowSplits(conf, numSplits, expr, readers);
+      return getRowSplits(conf, numSplits, expr, readers, status);
     } catch (ParseException e) {
       throw new IOException("Projection parsing failed : "+e.getMessage());
     }
