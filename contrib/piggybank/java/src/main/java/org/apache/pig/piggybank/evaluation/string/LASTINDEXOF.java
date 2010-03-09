@@ -19,42 +19,47 @@
 package org.apache.pig.piggybank.evaluation.string;
 
 import java.io.IOException;
-import java.util.List;
-import java.util.ArrayList;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.pig.EvalFunc;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.DataType;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
-import org.apache.pig.impl.logicalLayer.FrontendException;
-import org.apache.pig.FuncSpec;
-
 
 /**
- * string.INSTR implements eval function to search for the last occurance of a string
+ * string.INSTR implements eval function to search for the last occurrence of a string<br>
+ * Returns null on error<br>
  * Example:
+ * <code>
  *      register pigudfs.jar;
  *      A = load 'mydata' as (name);
  *      B = foreach A generate string.LASTINDEXOF(name, ",");
  *      dump B;
+ * </code>
  */
-public class LASTINDEXOF extends EvalFunc<Integer>
-{
+public class LASTINDEXOF extends EvalFunc<Integer> {
+    private static final Log log = LogFactory.getLog(LASTINDEXOF.class);
+
     /**
-     * Method invoked on every tuple during foreach evaluation
-     * @param input tuple; first column is assumed to have the column to convert
+     * Finds the last location of a substring in a given string.
+     * @param input tuple:<ol>
+     * <li>the string to process
+     * <li>the substring to find
+     * </ol>
      * @exception java.io.IOException
+     * @return last location of substring, or null in case of processing errors.
      */
     public Integer exec(Tuple input) throws IOException {
-        if (input == null || input.size() == 0)
+        if (input == null || input.size() < 2)
             return null;
 
-        try{
+        try {
             String str = (String)input.get(0);
             String search = (String)input.get(1);
             return str.lastIndexOf(search);
-        }catch(Exception e){
-            System.err.println("Failed to process input; error - " + e.getMessage());
+        } catch(Exception e) {
+            log.warn("Failed to process input; error - " + e.getMessage());
             return null;
         }
     }

@@ -19,56 +19,53 @@
 package org.apache.pig.piggybank.evaluation.string;
 
 import java.io.IOException;
-import java.util.List;
-import java.util.ArrayList;
 
 import org.apache.pig.EvalFunc;
+import org.apache.pig.PigWarning;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.DataType;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
-import org.apache.pig.impl.logicalLayer.FrontendException;
-import org.apache.pig.FuncSpec;
+
 
 
 /**
  * string.SUBSTRING implements eval function to get a part of a string.
- * Example:
+ * Example:<code>
  *      register pigudfs.jar;
  *      A = load 'mydata' as (name);
  *      B = foreach A generate string.SUBSTRING(name, 10, 12);
  *      dump B;
+ *      </code>
+ * First argument is the string to take a substring of.<br>
+ * Second argument is the index of the first character of substring.<br>
+ * Third argument is the index of the last character of substring.<br>
+ * if the last argument is past the end of the string, substring of (beginIndex, length(str)) is returned.
  */
-public class SUBSTRING extends EvalFunc<String>
-{
+public class SUBSTRING extends EvalFunc<String> {
+
     /**
      * Method invoked on every tuple during foreach evaluation
      * @param input tuple; first column is assumed to have the column to convert
      * @exception java.io.IOException
      */
     public String exec(Tuple input) throws IOException {
-        if (input == null || input.size() == 0)
+        if (input == null || input.size() < 3) {
+            log.warn("invalid number of arguments to SUBSTRING");
             return null;
-
-        try{
+        }
+        try {
             String source = (String)input.get(0);
             Integer beginindex = (Integer)input.get(1);
             Integer endindex = (Integer)input.get(2);
-            return source.substring(beginindex, endindex);
-        }catch(Exception e){
-            System.err.println("Failed to process input; error - " + e.getMessage());
+            return source.substring(beginindex, Math.min(source.length(), endindex));
+        } catch (NullPointerException npe) {
+            log.warn(npe.toString());
+            return null;
+        } catch (ClassCastException e) {
+            log.warn(e.toString());
             return null;
         }
     }
-
-    //@Override
-//    /**
-//     * This method gives a name to the column.
-//     * @param input - schema of the input data
-//     * @return schema of the input data
-//     */
-//    public Schema outputSchema(Schema input) {
-//        return new Schema(new Schema.FieldSchema(getSchemaName(this.getClass().getName().toLowerCase(), input), DataType.CHARARRAY));
-//    }
 
     @Override
     public Schema outputSchema(Schema input) {

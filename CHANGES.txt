@@ -66,6 +66,8 @@ manner (rding via pradeepkth)
 
 IMPROVEMENTS
 
+PIG-1248: [piggybank] some useful String functions (dvryaboy)
+
 PIG-1251: Move SortInfo calculation earlier in compilation (ashutoshc)
 
 PIG-1233: NullPointerException in AVG  (ankur via olgan)

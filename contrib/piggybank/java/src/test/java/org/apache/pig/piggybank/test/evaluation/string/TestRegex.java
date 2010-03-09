@@ -17,11 +17,14 @@
  */
 package org.apache.pig.piggybank.test.evaluation.string;
 
+import java.io.IOException;
+
 import junit.framework.TestCase;
 
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.piggybank.evaluation.string.RegexExtract;
+import org.apache.pig.piggybank.evaluation.string.RegexExtractAll;
 import org.apache.pig.piggybank.evaluation.string.RegexMatch;
 import org.junit.Test;
 
@@ -71,6 +74,35 @@ public class TestRegex extends TestCase {
         assertTrue(r.equals("term1"));
         r = func.exec(t2);
         assertTrue(r==null);
+        r = func.exec(t3);
+        assertTrue(r==null);
+    }
+    
+    @Test
+    public void testRegexExtractAll() throws IOException {
+        String matchRegex = "^(.+)\\b\\s+is a\\s+\\b(.+)$";
+        TupleFactory tupleFactory = TupleFactory.getInstance();
+        Tuple t1 = tupleFactory.newTuple(2);
+        t1.set(0,"this is a match");
+        t1.set(1, matchRegex);
+        
+        Tuple t2 = tupleFactory.newTuple(2);
+        t2.set(0, "no match");
+        t2.set(1, matchRegex);
+        
+        Tuple t3 = tupleFactory.newTuple(2);
+        t3.set(0, null);
+        t3.set(1, matchRegex);
+     
+        RegexExtractAll func = new RegexExtractAll();
+        Tuple r = func.exec(t1);
+        assertEquals(r.size(), 2);
+        assertEquals("this", r.get(0));
+        assertEquals("match", r.get(1));
+        
+        r = func.exec(t2);
+        assertTrue(r==null);
+        
         r = func.exec(t3);
         assertTrue(r==null);
     }
