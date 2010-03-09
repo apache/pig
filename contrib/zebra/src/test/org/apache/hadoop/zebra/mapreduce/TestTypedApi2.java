@@ -28,13 +28,11 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.StringTokenizer;
-import java.util.TreeMap;
-
 import junit.framework.Assert;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.LocalFileSystem;
@@ -45,19 +43,18 @@ import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.RawComparator;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.WritableComparator;
-import org.apache.hadoop.io.file.tfile.RawComparable;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
+import org.apache.hadoop.util.Tool;
+import org.apache.hadoop.util.ToolRunner;
 import org.apache.hadoop.zebra.mapreduce.BasicTableOutputFormat;
 import org.apache.hadoop.zebra.mapreduce.ZebraOutputPartition;
-import org.apache.hadoop.zebra.mapreduce.ZebraProjection;
 import org.apache.hadoop.zebra.mapreduce.ZebraSchema;
 import org.apache.hadoop.zebra.mapreduce.ZebraSortInfo;
 import org.apache.hadoop.zebra.mapreduce.ZebraStorageHint;
-import org.apache.hadoop.zebra.mapreduce.TestBasicTableIOFormatLocalFS.InvIndex;
 import org.apache.hadoop.zebra.parser.ParseException;
 import org.apache.hadoop.zebra.schema.Schema;
 import org.apache.hadoop.zebra.types.TypesUtils;
@@ -66,13 +63,11 @@ import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
-import org.apache.pig.data.DataBag;
-import org.apache.pig.data.DefaultTuple;
+
 import org.apache.pig.data.Tuple;
 import org.apache.pig.test.MiniCluster;
 import org.junit.BeforeClass;
 import org.junit.Test;
-
 
 /**
  * This is a sample a complete MR sample code for Table. It doens't contain
@@ -93,7 +88,7 @@ import org.junit.Test;
  * 
  * 
  */
-public class TestTypedApi2 {
+public class TestTypedApi2 extends Configured implements Tool{
 	static String inputPath;
 	static String inputFileName = "multi-input.txt";
 	protected static ExecType execType = ExecType.LOCAL;
@@ -117,40 +112,42 @@ public class TestTypedApi2 {
 	public static void setUpOnce() throws IOException {
 		if (System.getenv("hadoop.log.dir") == null) {
 			String base = new File(".").getPath(); // getAbsolutePath();
-			System
-			.setProperty("hadoop.log.dir", new Path(base).toString() + "./logs");
+			System.setProperty("hadoop.log.dir", new Path(base).toString() + "./logs");
 		}
 
-		if (System.getProperty("whichCluster") == null) {
-			System.setProperty("whichCluster", "miniCluster");
-			System.out.println("should be called");
-			whichCluster = System.getProperty("whichCluster");
-		} else {
-			whichCluster = System.getProperty("whichCluster");
-		}
+    // by default we use miniCluster
+    if (System.getenv("whichCluster") == null) {
+      whichCluster = "miniCluster";
+    } else {
+      whichCluster = System.getenv("whichCluster");
+    }
 
-		System.out.println("clusterddddd: " + whichCluster);
-		System.out.println(" get env hadoop home: " + System.getenv("HADOOP_HOME"));
-		System.out.println(" get env user name: " + System.getenv("USER"));
-		if ((whichCluster.equalsIgnoreCase("realCluster") && System
-				.getenv("HADOOP_HOME") == null)) {
-			System.out.println("Please set HADOOP_HOME");
-			System.exit(0);
-		}
+    if (conf == null) {
+      conf = new Configuration();
+    }
+    
+    if (whichCluster.equals("realCluster")) {
+      System.out.println(" get env hadoop home: " + System.getenv("HADOOP_HOME"));
+      System.out.println(" get env user name: " + System.getenv("USER"));
+      
+      if (System.getenv("HADOOP_HOME") == null) {
+        System.out.println("Please set HADOOP_HOME for realCluster testing mode");
+        System.exit(0);        
+      }
+      
+      if (System.getenv("USER") == null) {
+        System.out.println("Please set USER for realCluster testing mode");
+        System.exit(0);        
+      }
+      
+      zebraJar = System.getenv("HADOOP_HOME") + "/lib/zebra.jar";
 
-		conf = new Configuration();
-
-		if ((whichCluster.equalsIgnoreCase("realCluster") && System.getenv("USER") == null)) {
-			System.out.println("Please set USER");
-			System.exit(0);
-		}
-		zebraJar = System.getenv("HADOOP_HOME") + "/lib/zebra.jar";
-
-		File file = new File(zebraJar);
-		if (!file.exists() && whichCluster.equalsIgnoreCase("realCluster")) {
-			System.out.println("Please put zebra.jar at hadoop_home/lib");
-			System.exit(0);
-		}
+      File file = new File(zebraJar);
+      if (!file.exists()) {
+        System.out.println("Please place zebra.jar at $HADOOP_HOME/lib");
+        System.exit(0);
+      }
+    }
 
 		// set inputPath and output path
 		String workingDir = null;
@@ -626,7 +623,6 @@ public class TestTypedApi2 {
 			else
 				return 1;
 		}
-
 	}
 
 	public static final class MemcmpRawComparator implements
@@ -647,8 +643,9 @@ public class TestTypedApi2 {
 			Path... paths) throws ParseException, IOException, Exception,
 			org.apache.hadoop.zebra.parser.ParseException {
 
-		Job job = new Job();
-		job.setJobName("TestTypedAPI");
+		Job job = new Job(conf);
+		job.setJobName("TestTypedApi2");
+		job.setJarByClass(TestTypedApi2.class);
 		Configuration conf = job.getConfiguration();
 		conf.set("table.output.tfile.compression", "gz");
 		conf.set("sortKey", sortKey);
@@ -683,11 +680,23 @@ public class TestTypedApi2 {
 		BasicTableOutputFormat.close( job );
 	}
 
-	public static void main(String[] args) throws ParseException,
-	org.apache.hadoop.zebra.parser.ParseException, Exception {
+	@Override
+	public int run(String[] args) throws Exception {
 		TestTypedApi2 test = new TestTypedApi2();
 		TestTypedApi2.setUpOnce();
 		test.test1();
 
+		return 0;
 	}
+	
+  public static void main(String[] args) throws Exception {
+    //XXX
+    System.out.println("*******************  this is new today");
+
+    conf = new Configuration();
+    
+    int res = ToolRunner.run(conf, new TestTypedApi2(), args);
+    
+    System.exit(res);
+  }
 }

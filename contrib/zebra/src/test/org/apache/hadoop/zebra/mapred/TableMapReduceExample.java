@@ -20,6 +20,7 @@ package org.apache.hadoop.zebra.mapred;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.IntWritable;
@@ -70,8 +71,9 @@ import java.util.Iterator;
  */
 
 public class TableMapReduceExample extends Configured implements Tool {
+  private static Configuration conf = null;
 
-  static class Map extends MapReduceBase implements
+  static class MyMap extends MapReduceBase implements
       Mapper<LongWritable, Text, BytesWritable, Tuple> {
     private BytesWritable bytesKey;
     private Tuple tupleRow;
@@ -159,6 +161,7 @@ public class TableMapReduceExample extends Configured implements Tool {
    * @param args
    *          arguments with exception of Tools understandable ones.
    */
+  @Override
   public int run(String[] args) throws Exception {
     if (args == null || args.length != 3) {
       System.out
@@ -169,18 +172,23 @@ public class TableMapReduceExample extends Configured implements Tool {
     /*
      * First MR Job creating a Table with two columns
      */
-    JobConf jobConf = new JobConf();
+    //Configuration conf = getConf();
+    JobConf jobConf = new JobConf(conf);
+    jobConf.setJarByClass(TableMapReduceExample.class);
+
     jobConf.setJobName("TableMapReduceExample");
     jobConf.set("table.output.tfile.compression", "none");
 
     // Input settings
     jobConf.setInputFormat(TextInputFormat.class);
-    jobConf.setMapperClass(Map.class);
+    jobConf.setMapperClass(MyMap.class);
     FileInputFormat.setInputPaths(jobConf, new Path(args[0]));
-
+    //FileInputFormat.setInputPaths(jobConf, new Path("/tmp/input.txt"));
+    
     // Output settings
     jobConf.setOutputFormat(BasicTableOutputFormat.class);
     BasicTableOutputFormat.setOutputPath(jobConf, new Path(args[1]));
+    //BasicTableOutputFormat.setOutputPath(jobConf, new Path("/tmp/t1"));
 
     // set the logical schema with 2 columns
     BasicTableOutputFormat.setSchema(jobConf, "word:string, count:int");
@@ -193,14 +201,17 @@ public class TableMapReduceExample extends Configured implements Tool {
 
     // Run Job
     JobClient.runJob(jobConf);
+    
 
     /*
      * Second MR Job for Table Projection of count column
      */
-    JobConf projectionJobConf = new JobConf();
+    //JobConf projectionJobConf = new JobConf();
+    JobConf projectionJobConf = new JobConf(conf);
     projectionJobConf.setJobName("TableProjectionMapReduceExample");
 
     // Input settings
+    projectionJobConf.setJarByClass(TableMapReduceExample.class);
     projectionJobConf.setMapperClass(ProjectionMap.class);
     projectionJobConf.setInputFormat(TableInputFormat.class);
     TableInputFormat.setProjection(projectionJobConf, "count");
@@ -210,7 +221,13 @@ public class TableMapReduceExample extends Configured implements Tool {
 
     // Output settings
     projectionJobConf.setOutputFormat(TextOutputFormat.class);
-    FileOutputFormat.setOutputPath(projectionJobConf, new Path(args[2]));
+    Path p2 = new Path(args[2]);
+    FileSystem fs = p2.getFileSystem(conf);
+    if (fs.exists(p2)) {
+      fs.delete(p2, true);
+    }
+    FileOutputFormat.setOutputPath(projectionJobConf, p2);
+    
     projectionJobConf.setReducerClass(ProjectionReduce.class);
     projectionJobConf.setCombinerClass(ProjectionReduce.class);
 
@@ -221,8 +238,13 @@ public class TableMapReduceExample extends Configured implements Tool {
   }
 
   public static void main(String[] args) throws Exception {
-    int res = ToolRunner.run(new Configuration(), new TableMapReduceExample(),
-        args);
+    System.out.println("*******************  this is new now");
+
+    conf = new Configuration();
+    
+    //int res = ToolRunner.run(new Configuration(), new TableMapReduceExample(), args);
+    int res = ToolRunner.run(conf, new TableMapReduceExample(), args);
+    
     System.exit(res);
   }
 }
