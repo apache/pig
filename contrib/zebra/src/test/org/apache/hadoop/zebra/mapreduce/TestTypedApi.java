@@ -33,6 +33,7 @@ import java.util.StringTokenizer;
 import junit.framework.Assert;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.LocalFileSystem;
@@ -48,6 +49,8 @@ import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
+import org.apache.hadoop.util.Tool;
+import org.apache.hadoop.util.ToolRunner;
 import org.apache.hadoop.zebra.io.BasicTable;
 import org.apache.hadoop.zebra.parser.ParseException;
 import org.apache.hadoop.zebra.schema.Schema;
@@ -88,7 +91,7 @@ import org.apache.hadoop.zebra.mapreduce.ZebraStorageHint;
  * 
  * 
  */
-public class TestTypedApi {
+public class TestTypedApi extends Configured implements Tool {
 	static String inputPath;
 	static String inputFileName = "multi-input.txt";
 	protected static ExecType execType = ExecType.LOCAL;
@@ -112,40 +115,42 @@ public class TestTypedApi {
 	public static void setUpOnce() throws IOException {
 		if (System.getenv("hadoop.log.dir") == null) {
 			String base = new File(".").getPath(); // getAbsolutePath();
-			System
-			.setProperty("hadoop.log.dir", new Path(base).toString() + "./logs");
+			System.setProperty("hadoop.log.dir", new Path(base).toString() + "./logs");
 		}
 
-		if (System.getProperty("whichCluster") == null) {
-			System.setProperty("whichCluster", "miniCluster");
-			System.out.println("should be called");
-			whichCluster = System.getProperty("whichCluster");
-		} else {
-			whichCluster = System.getProperty("whichCluster");
-		}
+	   // by default we use miniCluster
+    if (System.getenv("whichCluster") == null) {
+      whichCluster = "miniCluster";
+    } else {
+      whichCluster = System.getenv("whichCluster");
+    }
 
-		System.out.println("clusterddddd: " + whichCluster);
-		System.out.println(" get env hadoop home: " + System.getenv("HADOOP_HOME"));
-		System.out.println(" get env user name: " + System.getenv("USER"));
-		if ((whichCluster.equalsIgnoreCase("realCluster") && System
-				.getenv("HADOOP_HOME") == null)) {
-			System.out.println("Please set HADOOP_HOME");
-			System.exit(0);
-		}
+    if (conf == null) {
+      conf = new Configuration();
+    }
+    
+    if (whichCluster.equals("realCluster")) {
+      System.out.println(" get env hadoop home: " + System.getenv("HADOOP_HOME"));
+      System.out.println(" get env user name: " + System.getenv("USER"));
+      
+      if (System.getenv("HADOOP_HOME") == null) {
+        System.out.println("Please set HADOOP_HOME for realCluster testing mode");
+        System.exit(0);        
+      }
+      
+      if (System.getenv("USER") == null) {
+        System.out.println("Please set USER for realCluster testing mode");
+        System.exit(0);        
+      }
+      
+      zebraJar = System.getenv("HADOOP_HOME") + "/lib/zebra.jar";
 
-		conf = new Configuration();
-
-		if ((whichCluster.equalsIgnoreCase("realCluster") && System.getenv("USER") == null)) {
-			System.out.println("Please set USER");
-			System.exit(0);
-		}
-		zebraJar = System.getenv("HADOOP_HOME") + "/lib/zebra.jar";
-
-		File file = new File(zebraJar);
-		if (!file.exists() && whichCluster.equalsIgnoreCase("realCluster")) {
-			System.out.println("Please put zebra.jar at hadoop_home/lib");
-			System.exit(0);
-		}
+      File file = new File(zebraJar);
+      if (!file.exists()) {
+        System.out.println("Please place zebra.jar at $HADOOP_HOME/lib");
+        System.exit(0);
+      }
+    }
 
 		// set inputPath and output path
 		String workingDir = null;
@@ -520,7 +525,6 @@ public class TestTypedApi {
 		runMR(sortKey, schema, storageHint, paths.toArray(new Path[2]));
 		checkTable(myMultiLocs);
 		System.out.println("DONE test " + getCurrentMethodName());
-
 	}
 
 	@Test(expected = ParseException.class)
@@ -562,8 +566,21 @@ public class TestTypedApi {
 		removeDir(new Path(strTable2));
 		String schema = "{, count:int";
 		String storageHint = "[word];[count]";
-		runMR(sortKey, schema, storageHint, paths.toArray(new Path[2]));
-
+		
+    if (whichCluster.equals("realCluster")) {
+      try { 
+        runMR(sortKey, schema, storageHint, paths.toArray(new Path[2]));
+      } catch (ParseException e) {
+        System.out.println(e.getMessage());
+        return;
+      }
+      // should not reach here
+      Assert.fail("in try, should have thrown exception");
+      System.out.println("done test 2");
+    } else {
+      runMR(sortKey, schema, storageHint, paths.toArray(new Path[2]));
+      System.out.println("done test 2");
+    }
 	}
 
 	@Test(expected = IOException.class)
@@ -605,8 +622,21 @@ public class TestTypedApi {
 		removeDir(new Path(strTable2));
 		String schema = "word:string, count:int";
 		String storageHint = "[word];[count]";
-		runMR(sortKey, schema, storageHint, paths.toArray(new Path[2]));
-
+		
+    if (whichCluster.equals("realCluster")) {
+      try {
+        runMR(sortKey, schema, storageHint, paths.toArray(new Path[2]));
+      } catch (IOException e) {
+        System.out.println(e.getMessage());
+        return;
+      }
+      // should not reach here
+      Assert.fail("in try, should have thrown exception");
+      System.out.println("done test 3");
+    } else {
+      runMR(sortKey, schema, storageHint, paths.toArray(new Path[2]));
+      System.out.println("done test 3");
+    }
 	}
 
 	@Test(expected = IOException.class)
@@ -615,7 +645,7 @@ public class TestTypedApi {
 		/*
 		 * test negative test case. sort key is empty string
 		 */
-		System.out.println("******Starttt  testcase: " + getCurrentMethodName());
+		System.out.println("******Start  testcase: " + getCurrentMethodName());
 		List<Path> paths = new ArrayList<Path>(1);
 
 		sortKey = "";
@@ -648,8 +678,21 @@ public class TestTypedApi {
 		removeDir(new Path(strTable2));
 		String schema = "word:string, count:int";
 		String storageHint = "[word];[count]";
-		runMR(sortKey, schema, storageHint, paths.toArray(new Path[2]));
-
+		
+    if (whichCluster.equals("realCluster")) {
+      try {
+        runMR(sortKey, schema, storageHint, paths.toArray(new Path[2]));
+      } catch (IOException e) {
+        System.out.println(e.getMessage());
+        return;
+      }
+      // should not reach here
+      Assert.fail("in try, should have thrown exception");
+      System.out.println("done test 4");
+    } else {
+      runMR(sortKey, schema, storageHint, paths.toArray(new Path[2]));
+      System.out.println("done test 4");
+    }
 	}
 
 	@Test(expected = NullPointerException.class)
@@ -691,8 +734,21 @@ public class TestTypedApi {
 		removeDir(new Path(strTable2));
 		String schema = "word:string, count:int";
 		String storageHint = "[word];[count]";
-		runMR(sortKey, schema, storageHint, paths.toArray(new Path[2]));
 
+    if (whichCluster.equals("realCluster")) {
+      try {
+        runMR(sortKey, schema, storageHint, paths.toArray(new Path[2]));
+      } catch (NullPointerException e) {
+        System.out.println(e.getMessage());
+        return;
+      }
+      // should not reach here
+      Assert.fail("in try, should have thrown exception");
+      System.out.println("done test 5");
+    } else {
+      runMR(sortKey, schema, storageHint, paths.toArray(new Path[2]));
+      System.out.println("done test 5");
+    }
 	}
 
 	@Test(expected = ParseException.class)
@@ -734,8 +790,22 @@ public class TestTypedApi {
 		removeDir(new Path(strTable2));
 		String schema = "word:string, count:int";
 		String storageHint = "[none-exist-column]";
-		runMR(sortKey, schema, storageHint, paths.toArray(new Path[2]));
+		//runMR(sortKey, schema, storageHint, paths.toArray(new Path[2]));
 
+    if (whichCluster.equals("realCluster")) {
+      try {
+        runMR(sortKey, schema, storageHint, paths.toArray(new Path[2]));
+      } catch (ParseException e) {
+        System.out.println(e.getMessage());
+        return;
+      }
+      // should not reach here
+      Assert.fail("in try, should have thrown exception");
+      System.out.println("done test 6");
+    } else {
+      runMR(sortKey, schema, storageHint, paths.toArray(new Path[2]));
+      System.out.println("done test 6");
+    }
 	}
 
 	@Test(expected = ParseException.class)
@@ -778,8 +848,22 @@ public class TestTypedApi {
 		removeDir(new Path(strTable2));
 		String schema = "word:string, count:int";
 		String storageHint = "none-exist-column]";
-		runMR(sortKey, schema, storageHint, paths.toArray(new Path[2]));
+		//runMR(sortKey, schema, storageHint, paths.toArray(new Path[2]));
 
+    if (whichCluster.equals("realCluster")) {
+      try {
+        runMR(sortKey, schema, storageHint, paths.toArray(new Path[2]));
+      } catch (ParseException e) {
+        System.out.println(e.getMessage());
+        return;
+      }
+      // should not reach here
+      Assert.fail("in try, should have thrown exception");
+      System.out.println("done test 7");
+    } else {
+      runMR(sortKey, schema, storageHint, paths.toArray(new Path[2]));
+      System.out.println("done test 7");
+    }
 	}
 
 	@Test(expected = ParseException.class)
@@ -822,8 +906,23 @@ public class TestTypedApi {
 		removeDir(new Path(strTable2));
 		String schema = "word:string, count:int,word:string, count:int";
 		String storageHint = "[word];[count]";
-		runMR(sortKey, schema, storageHint, paths.toArray(new Path[2]));
+		//runMR(sortKey, schema, storageHint, paths.toArray(new Path[2]));
+		
+    if (whichCluster.equals("realCluster")) {
+      try {
+        runMR(sortKey, schema, storageHint, paths.toArray(new Path[2]));
+      } catch (ParseException e) {
+        System.out.println(e.getMessage());
+        return;
+      }
 
+      // should not reach here
+      Assert.fail("in try, should have thrown exception");
+      System.out.println("done test 8");
+    } else {
+      runMR(sortKey, schema, storageHint, paths.toArray(new Path[2]));
+      System.out.println("done test 8");
+    }
 	}
 
 	@Test(expected = ParseException.class)
@@ -866,7 +965,23 @@ public class TestTypedApi {
 		removeDir(new Path(strTable2));
 		String schema = "word:string, count:inttt";
 		String storageHint = "[word];[count]";
-		runMR(sortKey, schema, storageHint, paths.toArray(new Path[2]));
+		//runMR(sortKey, schema, storageHint, paths.toArray(new Path[2]));
+		
+    if (whichCluster.equals("realCluster")) {
+      try {
+        runMR(sortKey, schema, storageHint, paths.toArray(new Path[2]));
+      } catch (ParseException e) {
+        System.out.println(e.getMessage());
+        return;
+      }
+
+      // should not reach here
+      Assert.fail("in try, should have thrown exception");
+      System.out.println("done test 9");
+    } else {
+      runMR(sortKey, schema, storageHint, paths.toArray(new Path[2]));
+      System.out.println("done test 9");
+    }
 
 	}
 
@@ -910,8 +1025,24 @@ public class TestTypedApi {
 		removeDir(new Path(strTable2));
 		String schema = "word:string; count:int";
 		String storageHint = "[word];[count]";
-		runMR(sortKey, schema, storageHint, paths.toArray(new Path[2]));
-		System.out.println("done test 10");
+		//runMR(sortKey, schema, storageHint, paths.toArray(new Path[2]));
+		
+    if (whichCluster.equals("realCluster")) {
+      try {
+        runMR(sortKey, schema, storageHint, paths.toArray(new Path[2]));
+      } catch (ParseException e) {
+        System.out.println(e.getMessage());
+        return;
+      }
+     
+      // should not reach here
+      Assert.fail("in try, should have thrown exception");
+      System.out.println("done test 10");
+      
+    } else {
+      runMR(sortKey, schema, storageHint, paths.toArray(new Path[2]));
+      System.out.println("done test 10");
+    }    
 	}
 
 	static class MapClass extends
@@ -1047,8 +1178,9 @@ public class TestTypedApi {
 			Path... paths) throws ParseException, IOException, Exception,
 			org.apache.hadoop.zebra.parser.ParseException {
 
-		Job job = new Job();
+		Job job = new Job(conf);
 		job.setJobName("TestTypedAPI");
+		job.setJarByClass(TestTypedApi.class);
 		Configuration conf = job.getConfiguration();
 		conf.set("table.output.tfile.compression", "gz");
 		conf.set("sortKey", sortKey);
@@ -1079,19 +1211,35 @@ public class TestTypedApi {
 		BasicTableOutputFormat.close( job );
 	}
 
-	public static void main(String[] args) throws ParseException,
-	org.apache.hadoop.zebra.parser.ParseException, Exception {
+	@Override
+	public int run(String[] args) throws Exception {
 		TestTypedApi test = new TestTypedApi();
 		TestTypedApi.setUpOnce();
 		test.test1();
 		test.test2();
 		test.test3();
-		test.test4();
+		
+    // backend exception - will migrate later
+		//test.test4();
+		
 		test.test5();
 		test.test6();
 		test.test7();
 		test.test8();
 		test.test9();
 		test.test10();
+		
+		return 0;
 	}
+  
+  public static void main(String[] args) throws Exception {
+    //XXX
+    System.out.println("*******************  this is new today");
+
+    conf = new Configuration();
+    
+    int res = ToolRunner.run(conf, new TestTypedApi(), args);
+    
+    System.exit(res);
+  }
 }

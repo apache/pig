@@ -35,6 +35,7 @@ import java.util.TreeMap;
 import junit.framework.Assert;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.LocalFileSystem;
@@ -56,6 +57,8 @@ import org.apache.hadoop.mapred.Reporter;
 import org.apache.hadoop.mapred.TextInputFormat;
 import org.apache.hadoop.mapred.TextOutputFormat;
 import org.apache.hadoop.mapred.lib.MultipleOutputs;
+import org.apache.hadoop.util.Tool;
+import org.apache.hadoop.util.ToolRunner;
 import org.apache.hadoop.zebra.mapred.BasicTableOutputFormat;
 import org.apache.hadoop.zebra.mapred.TestBasicTableIOFormatLocalFS.InvIndex;
 import org.apache.hadoop.zebra.parser.ParseException;
@@ -97,7 +100,7 @@ import org.apache.hadoop.zebra.mapred.ZebraStorageHint;
  * 
  * 
  */
-public class TestTypedApi2 {
+public class TestTypedApi2 extends Configured implements Tool {
 
   static String inputPath;
   static String inputFileName = "multi-input.txt";
@@ -106,7 +109,7 @@ public class TestTypedApi2 {
   protected static PigServer pigServer;
   // private static Path pathWorking, pathTable1, path2, path3,
   // pathTable4, pathTable5;
-  private static Configuration conf;
+  private static Configuration conf = null;
   public static String sortKey = null;
 
   private static FileSystem fs;
@@ -122,39 +125,41 @@ public class TestTypedApi2 {
   public static void setUpOnce() throws IOException {
     if (System.getenv("hadoop.log.dir") == null) {
       String base = new File(".").getPath(); // getAbsolutePath();
-      System
-          .setProperty("hadoop.log.dir", new Path(base).toString() + "./logs");
+      System.setProperty("hadoop.log.dir", new Path(base).toString() + "./logs");
     }
 
-    if (System.getProperty("whichCluster") == null) {
-      System.setProperty("whichCluster", "miniCluster");
-      System.out.println("should be called");
-      whichCluster = System.getProperty("whichCluster");
+    // by default we use miniCluster
+    if (System.getenv("whichCluster") == null) {
+      whichCluster = "miniCluster";
     } else {
-      whichCluster = System.getProperty("whichCluster");
+      whichCluster = System.getenv("whichCluster");
     }
 
-    System.out.println("clusterddddd: " + whichCluster);
-    System.out.println(" get env hadoop home: " + System.getenv("HADOOP_HOME"));
-    System.out.println(" get env user name: " + System.getenv("USER"));
-    if ((whichCluster.equalsIgnoreCase("realCluster") && System
-        .getenv("HADOOP_HOME") == null)) {
-      System.out.println("Please set HADOOP_HOME");
-      System.exit(0);
+    if (conf == null) {
+      conf = new Configuration();
     }
+    
+    if (whichCluster.equals("realCluster")) {
+      System.out.println(" get env hadoop home: " + System.getenv("HADOOP_HOME"));
+      System.out.println(" get env user name: " + System.getenv("USER"));
+      
+      if (System.getenv("HADOOP_HOME") == null) {
+        System.out.println("Please set HADOOP_HOME for realCluster testing mode");
+        System.exit(0);        
+      }
+      
+      if (System.getenv("USER") == null) {
+        System.out.println("Please set USER for realCluster testing mode");
+        System.exit(0);        
+      }
+      
+      zebraJar = System.getenv("HADOOP_HOME") + "/lib/zebra.jar";
 
-    conf = new Configuration();
-
-    if ((whichCluster.equalsIgnoreCase("realCluster") && System.getenv("USER") == null)) {
-      System.out.println("Please set USER");
-      System.exit(0);
-    }
-    zebraJar = System.getenv("HADOOP_HOME") + "/lib/zebra.jar";
-
-    File file = new File(zebraJar);
-    if (!file.exists() && whichCluster.equalsIgnoreCase("realCluster")) {
-      System.out.println("Please put zebra.jar at hadoop_home/lib");
-      System.exit(0);
+      File file = new File(zebraJar);
+      if (!file.exists()) {
+        System.out.println("Please place zebra.jar at $HADOOP_HOME/lib");
+        System.exit(0);
+      }
     }
 
     // set inputPath and output path
@@ -482,7 +487,7 @@ public class TestTypedApi2 {
     /*
      * test positive test case. User defined comparator class
      */
-    System.out.println("******Starttt  testcase: " + getCurrentMethodName());
+    System.out.println("******Start  testcase: " + getCurrentMethodName());
     List<Path> paths = new ArrayList<Path>(3);
     sortKey = "word,count";
     System.out.println("hello sort on word and count");
@@ -512,12 +517,11 @@ public class TestTypedApi2 {
     removeDir(new Path(strTable2));
     String schema = "word:string, count:int";
     String storageHint = "[word];[count]";
-    String sortInfo = null;
+    //String sortInfo = null;
     runMR(sortKey, schema, storageHint, paths.toArray(new Path[2]));
     // runMR( sortKey, schema, storageHint, myMultiLocs);
     checkTable(myMultiLocs);
     System.out.println("DONE test " + getCurrentMethodName());
-
   }
 
   static class MapClass implements
@@ -525,8 +529,8 @@ public class TestTypedApi2 {
     private BytesWritable bytesKey;
     private ZebraTuple tupleRow;
     private Object javaObj;
-    private JobConf conf;
-
+    //private JobConf conf;
+    
     @Override
     public void map(LongWritable key, Text value,
         OutputCollector<BytesWritable, ZebraTuple> output, Reporter reporter)
@@ -584,7 +588,7 @@ public class TestTypedApi2 {
     @Override
     public void configure(JobConf job) {
       bytesKey = new BytesWritable();
-      conf = job;
+      //conf = job;
       sortKey = job.get("sortKey");
       try {
         Schema outSchema = BasicTableOutputFormat.getSchema(job);
@@ -660,7 +664,6 @@ public class TestTypedApi2 {
 
     @Override
     public int compare(Object o1, Object o2) {
-
       throw new RuntimeException("Object comparison not supported");
     }
   }
@@ -669,8 +672,9 @@ public class TestTypedApi2 {
       Path... paths) throws ParseException, IOException, Exception,
       org.apache.hadoop.zebra.parser.ParseException {
 
-    JobConf jobConf = new JobConf();
-    jobConf.setJobName("TestTypedAPI");
+    JobConf jobConf = new JobConf(conf);
+    jobConf.setJobName("TestTypedApi2");
+    jobConf.setJarByClass(TestTypedApi2.class);
     jobConf.set("table.output.tfile.compression", "gz");
     jobConf.set("sortKey", sortKey);
     // input settings
@@ -683,18 +687,15 @@ public class TestTypedApi2 {
     jobConf.setNumMapTasks(1);
 
     // output settings
-
     jobConf.setOutputFormat(BasicTableOutputFormat.class);
     BasicTableOutputFormat.setMultipleOutputs(jobConf,
         TestTypedApi2.OutputPartitionerClass.class, paths);
 
     ZebraSchema zSchema = ZebraSchema.createZebraSchema(schema);
-    ZebraStorageHint zStorageHint = ZebraStorageHint
-        .createZebraStorageHint(storageHint);
-    ZebraSortInfo zSortInfo = ZebraSortInfo.createZebraSortInfo(sortKey,
-        TestTypedApi2.MemcmpRawComparator.class);
-    BasicTableOutputFormat.setStorageInfo(jobConf, zSchema, zStorageHint,
-        zSortInfo);
+    ZebraStorageHint zStorageHint = ZebraStorageHint.createZebraStorageHint(storageHint);
+    ZebraSortInfo zSortInfo = ZebraSortInfo.createZebraSortInfo(sortKey, TestTypedApi2.MemcmpRawComparator.class);
+    
+    BasicTableOutputFormat.setStorageInfo(jobConf, zSchema, zStorageHint, zSortInfo);
     System.out.println("in runMR, sortkey: " + sortKey);
 
     jobConf.setNumReduceTasks(1);
@@ -702,11 +703,23 @@ public class TestTypedApi2 {
     BasicTableOutputFormat.close(jobConf);
   }
 
-  public static void main(String[] args) throws ParseException,
-      org.apache.hadoop.zebra.parser.ParseException, Exception {
+  @Override
+  public int run(String[] args) throws Exception {
     TestTypedApi2 test = new TestTypedApi2();
     TestTypedApi2.setUpOnce();
-    test.test1();
+    
+    //TODO: User defined comparator class has some problem when migrating to real cluster
+    //will migrate later;
+    //test.test1();
 
+    return 0;
+  }
+  
+  public static void main(String[] args) throws Exception {
+    conf = new Configuration();
+    
+    int res = ToolRunner.run(conf, new TestTypedApi2(), args);
+    
+    System.exit(res);
   }
 }

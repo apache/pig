@@ -33,6 +33,7 @@ import java.util.TreeMap;
 import junit.framework.Assert;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.LocalFileSystem;
@@ -51,6 +52,8 @@ import org.apache.hadoop.mapred.Reporter;
 import org.apache.hadoop.mapred.TextInputFormat;
 import org.apache.hadoop.mapred.TextOutputFormat;
 import org.apache.hadoop.mapred.lib.MultipleOutputs;
+import org.apache.hadoop.util.Tool;
+import org.apache.hadoop.util.ToolRunner;
 import org.apache.hadoop.zebra.mapred.BasicTableOutputFormat;
 import org.apache.hadoop.zebra.mapred.TestBasicTableIOFormatLocalFS.InvIndex;
 import org.apache.hadoop.zebra.parser.ParseException;
@@ -87,15 +90,14 @@ import org.junit.Test;
  * 
  * 
  */
-public class TestMultipleOutputs {
+public class TestMultipleOutputs extends Configured implements Tool {
 
   static String inputPath;
   static String inputFileName = "multi-input.txt";
-  //protected static ExecType execType = ExecType.MAPREDUCE;
   protected static ExecType execType = ExecType.LOCAL;
   private static MiniCluster cluster;
   protected static PigServer pigServer;
-  private static Configuration conf;
+  private static Configuration conf = null;
   public static String sortKey = null;
 
   private static FileSystem fs;
@@ -114,15 +116,18 @@ public class TestMultipleOutputs {
       System.setProperty("hadoop.log.dir", new Path(base).toString() + "./logs");
     }
 
-    /* By default, we use miniCluster */
-    if (System.getProperty("whichCluster") == null) {
+    // By default, we use miniCluster
+    if (System.getenv("whichCluster") == null) {
       whichCluster = "miniCluster";
-      System.setProperty("whichCluster", "miniCluster");
     } else {
-      whichCluster = System.getProperty("whichCluster");
+      whichCluster = System.getenv("whichCluster");
     }
 
     System.out.println("cluster: " + whichCluster);
+    
+    if (conf == null) {
+      conf = new Configuration();
+    }
     
     if (whichCluster.equals("realCluster")) {
       System.out.println(" get env hadoop home: " + System.getenv("HADOOP_HOME"));
@@ -132,7 +137,7 @@ public class TestMultipleOutputs {
         System.out.println("Please set HADOOP_HOME for realCluster testing mode");
         System.exit(0);        
       }
-
+      
       if (System.getenv("USER") == null) {
         System.out.println("Please set USER for realCluster testing mode");
         System.exit(0);        
@@ -145,9 +150,7 @@ public class TestMultipleOutputs {
         System.out.println("Please place zebra.jar at $HADOOP_HOME/lib");
         System.exit(0);
       }
-    }    
-
-    conf = new Configuration();
+    }
     
     // set inputPath and output path
     String workingDir = null;
@@ -185,8 +188,7 @@ public class TestMultipleOutputs {
     }
 
     if (whichCluster.equals("realCluster")) {
-      pigServer = new PigServer(ExecType.MAPREDUCE, ConfigurationUtil 
-          .toProperties(conf));
+      pigServer = new PigServer(ExecType.MAPREDUCE, ConfigurationUtil.toProperties(conf));
       pigServer.registerJar(zebraJar);
 
     }
@@ -196,18 +198,19 @@ public class TestMultipleOutputs {
         cluster = MiniCluster.buildCluster();
         pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
         fs = cluster.getFileSystem();
-
       } else {
         pigServer = new PigServer(ExecType.LOCAL);
       }
     }
   }
+  
   @AfterClass
   public static void tearDown() throws Exception {
     if (whichCluster.equalsIgnoreCase("miniCluster")) {
-    pigServer.shutdown();
+      pigServer.shutdown();
     }
   }
+  
   public String getCurrentMethodName() {
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     PrintWriter pw = new PrintWriter(baos);
@@ -611,7 +614,6 @@ public class TestMultipleOutputs {
     private BytesWritable bytesKey;
     private Tuple tupleRow;
     private Object javaObj;
-    private JobConf conf;
 
     @Override
     public void map(LongWritable key, Text value,
@@ -670,7 +672,7 @@ public class TestMultipleOutputs {
     @Override
     public void configure(JobConf job) {
       bytesKey = new BytesWritable();
-      conf = job;
+      //conf = job;
       sortKey = job.get("sortKey");
       try {
         Schema outSchema = BasicTableOutputFormat.getSchema(job);
@@ -738,16 +740,18 @@ public class TestMultipleOutputs {
 
       return 0;
     }
-
   }
 
   public void runMR(String myMultiLocs, String sortKey) throws ParseException,
       IOException, Exception, org.apache.hadoop.zebra.parser.ParseException {
-
-    JobConf jobConf = new JobConf();
-    jobConf.setJobName("tableMRSample");
+    
+    JobConf jobConf = new JobConf(conf);
+    
+    jobConf.setJobName("TestMultipleOutputs");
+    jobConf.setJarByClass(TestMultipleOutputs.class);
     jobConf.set("table.output.tfile.compression", "gz");
     jobConf.set("sortKey", sortKey);
+    
     // input settings
     jobConf.setInputFormat(TextInputFormat.class);
     jobConf.setMapperClass(TestMultipleOutputs.MapClass.class);
@@ -758,10 +762,8 @@ public class TestMultipleOutputs {
     jobConf.setNumMapTasks(1);
 
     // output settings
-
     jobConf.setOutputFormat(BasicTableOutputFormat.class);
-    BasicTableOutputFormat.setMultipleOutputs(jobConf, myMultiLocs,
-        TestMultipleOutputs.OutputPartitionerClass.class);
+    BasicTableOutputFormat.setMultipleOutputs(jobConf, myMultiLocs, TestMultipleOutputs.OutputPartitionerClass.class);
 
     // set the logical schema with 2 columns
     BasicTableOutputFormat.setSchema(jobConf, "word:string, count:int");
@@ -769,20 +771,31 @@ public class TestMultipleOutputs {
     BasicTableOutputFormat.setStorageHint(jobConf, "[word];[count]");
     BasicTableOutputFormat.setSortInfo(jobConf, sortKey);
     System.out.println("in runMR, sortkey: " + sortKey);
+    
     // set map-only job.
     jobConf.setNumReduceTasks(1);
     JobClient.runJob(jobConf);
     BasicTableOutputFormat.close(jobConf);
   }
-
-  public static void main(String[] args) throws ParseException,
-      org.apache.hadoop.zebra.parser.ParseException, Exception {
+  
+  @Override
+  public int run(String[] args) throws Exception {
     TestMultipleOutputs test = new TestMultipleOutputs();
     TestMultipleOutputs.setUpOnce();
-    System.out.println("after setup");
     test.test1();
     test.test2();
     test.test3();
+    
+    return 0;
+  }
+  
+  public static void main(String[] args) throws Exception {
+    System.out.println("*******************  this is new today");
 
+    conf = new Configuration();
+    
+    int res = ToolRunner.run(conf, new TestMultipleOutputs(), args);
+    
+    System.exit(res);
   }
 }
