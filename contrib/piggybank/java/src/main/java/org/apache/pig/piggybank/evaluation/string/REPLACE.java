@@ -19,24 +19,25 @@
 package org.apache.pig.piggybank.evaluation.string;
 
 import java.io.IOException;
-import java.util.List;
-import java.util.ArrayList;
 
 import org.apache.pig.EvalFunc;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.DataType;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
-import org.apache.pig.impl.logicalLayer.FrontendException;
-import org.apache.pig.FuncSpec;
 
 
 /**
- * string.REPLACE implements eval function to replace part ofa string.
- * Example:
+ * string.REPLACE implements eval function to replace part of a string.
+ * Example:<code>
  *      register pigudfs.jar;
  *      A = load 'mydata' as (name);
  *      B = foreach A generate string.REPLACE(name, 'blabla', 'bla');
  *      dump B;
+ *      </code>
+ * The first argument is a string on which to perform the operation. The second argument
+ * is treated as a regular expression. The third argument is the replacement string.
+ * This is a wrapper around Java's String.replaceAll(String, String);
+ * 
  */
 public class REPLACE extends EvalFunc<String>
 {
@@ -46,7 +47,7 @@ public class REPLACE extends EvalFunc<String>
      * @exception java.io.IOException
      */
     public String exec(Tuple input) throws IOException {
-        if (input == null || input.size() == 0)
+        if (input == null || input.size() < 3)
             return null;
 
         try{
@@ -55,20 +56,10 @@ public class REPLACE extends EvalFunc<String>
             String replacewith = (String)input.get(2);
             return source.replaceAll(target, replacewith);
         }catch(Exception e){
-            System.err.println("Failed to process input; error - " + e.getMessage());
+            log.warn("Failed to process input; error - " + e.getMessage());
             return null;
         }
     }
-
-    //@Override
-//    /**
-//     * This method gives a name to the column.
-//     * @param input - schema of the input data
-//     * @return schema of the input data
-//     */
-//    public Schema outputSchema(Schema input) {
-//        return new Schema(new Schema.FieldSchema(getSchemaName(this.getClass().getName().toLowerCase(), input), DataType.CHARARRAY));
-//    }
 
     @Override
     public Schema outputSchema(Schema input) {

@@ -38,8 +38,8 @@ import org.apache.pig.FuncSpec;
  *      B = foreach A generate string.LOWER(name);
  *      dump B;
  */
-public class LOWER extends EvalFunc<String>
-{
+public class LOWER extends EvalFunc<String> {
+
     /**
      * Method invoked on every tuple during foreach evaluation
      * @param input tuple; first column is assumed to have the column to convert
@@ -49,21 +49,21 @@ public class LOWER extends EvalFunc<String>
         if (input == null || input.size() == 0)
             return null;
 
-        try{
+        try {
             String str = (String)input.get(0);
             return str.toLowerCase();
-        }catch(Exception e){
-            System.err.println("Failed to process input; error - " + e.getMessage());
+        } catch(Exception e){
+            log.warn("Failed to process input; error - " + e.getMessage());
             return null;
         }
     }
 
-    //@Override
     /**
      * This method gives a name to the column.
      * @param input - schema of the input data
      * @return schema of the input data
      */
+    @Override
     public Schema outputSchema(Schema input) {
         return new Schema(new Schema.FieldSchema(getSchemaName(this.getClass().getName().toLowerCase(), input), DataType.CHARARRAY));
     }
