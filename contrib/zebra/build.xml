@@ -225,7 +225,88 @@ to call at top-level: ant deploy-contrib compile-core-test
     <fail if="tests.failed">Tests failed!</fail>
   </target>
 
-  <!-- ================================================================== -->
+	  <!-- ================================================================== -->
+	  <!-- Run pig-related test cases only                                    -->
+	  <!-- ================================================================== -->
+	  <target name="pigtest" depends="compile-test, compile" if="test.available">
+	    <echo message="contrib: ${name}"/>
+	    <delete dir="${pig.log.dir}"/>
+	    <mkdir dir="${pig.log.dir}"/>
+	    <junit
+	      printsummary="yes" showoutput="${test.output}" 
+	      haltonfailure="no" fork="yes" maxmemory="1024m"
+	      errorProperty="tests.failed" failureProperty="tests.failed"
+	      timeout="${test.timeout}">
+	      
+	      <sysproperty key="test.build.data" value="${build.test}/data"/>
+	      <sysproperty key="build.test" value="${build.test}"/>
+	      <sysproperty key="contrib.name" value="${name}"/>
+	      <sysproperty key="hadoop.log.dir" value="${pig.log.dir}"/>
+	      <sysproperty key="whichCluster" value="miniCluster"/>
+	      <!-- requires fork=yes for: 
+	        relative File paths to use the specified user.dir 
+	        classpath to use build/contrib/*.jar
+	      -->
+	      <sysproperty key="user.dir" value="${build.test}/data"/>
+	      
+	      <sysproperty key="fs.default.name" value="${fs.default.name}"/>
+	      <sysproperty key="pig.test.localoutputfile" value="${pig.test.localoutputfile}"/>
+	      <sysproperty key="pig.log.dir" value="${pig.log.dir}"/> 
+	      <classpath refid="test.classpath"/>
+	      <formatter type="${test.junit.output.format}" />
+
+	      <!-- For the time being, we disable some test case to reduce the running time -->
+	      <batchtest todir="${build.test}">
+	        <fileset dir="${src.test}" includes="**/pig/Test*.java" excludes="**/pig/TestCheckin*.java">
+	          <not>
+	            <filename name="**/pig/TestRealCluster.java"/> <!-- This requires a real cluster anyway-->
+	          </not>
+		          <not>
+		            <filename name="**/pig/TestMergeJoinNegative.java"/>
+		          </not>
+		          <not>
+		            <filename name="**/pig/TestMergeJoin.java"/>
+		          </not>
+		          <not>
+		            <filename name="**/pig/TestMergeJoinEmpty.java"/>
+		          </not>
+		          <not>
+		            <filename name="**/pig/TestMergeJoinPartial.java"/>
+		          </not>
+		          <not>
+		            <filename name="**/pig/TestSimpleType.java"/>
+		          </not>
+		          <not>
+		            <filename name="**/pig/TestOrderPreserveMultiTable.java"/>
+		          </not>
+		          <not>
+		            <filename name="**/pig/TestOrderPreserveMultiTableGlob.java"/>
+		          </not>
+		          <not>
+		            <filename name="**/pig/TestOrderPreserveProjection.java"/>
+		          </not>
+		          <not>
+		            <filename name="**/pig/TestOrderPreserveProjectionNegative.java"/>
+		          </not>
+		          <not>
+		            <filename name="**/pig/TestOrderPreserveSimple.java"/>
+		          </not>
+		          <not>
+		            <filename name="**/pig/TestTableMergeJoinFloat.java"/>
+		          </not>
+		          <not>
+		            <filename name="**/pig/TestTableMergeJoinInteger.java"/>
+		          </not>
+		          <not>
+		            <filename name="**/pig/TestOrderPreserveVariableTable.java"/>
+		          </not>
+	        </fileset> 
+	      </batchtest>
+	    </junit>
+	    <fail if="tests.failed">Tests failed!</fail>
+	  </target>
+
+	<!-- ================================================================== -->
   <!-- findbugs                                                           -->
   <!-- ================================================================== -->
   <target name="findbugs" depends="check-for-findbugs, jar" if="findbugs.present" description="Run findbugs if present">
