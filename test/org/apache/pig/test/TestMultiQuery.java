@@ -108,6 +108,68 @@ public class TestMultiQuery {
         myPig = null;
     }
 
+    @Test
+    public void testMultiQueryJiraPig1252() {
+
+        // test case: Problems with secondary key optimization and multiquery
+        // diamond optimization
+        
+        String INPUT_FILE = "abc";
+        
+        try {
+    
+            PrintWriter w = new PrintWriter(new FileWriter(INPUT_FILE));
+            w.println("1\t2\t3");
+            w.println("2\t3\t4");
+            w.println("3\t\t5");
+            w.println("5\t6\t6");
+            w.println("6\t\t7");
+            w.close();
+    
+            Util.copyFromLocalToCluster(cluster, INPUT_FILE, INPUT_FILE);
+           
+            myPig.setBatchOn();
+    
+            myPig.registerQuery("A = load '" + INPUT_FILE + "' as (col1, col2, col3);");
+            myPig.registerQuery("B = foreach A generate (chararray) col1, " +
+            		"(chararray) ((col2 is not null) ?  " +
+            		"col2 : (col3 < 6 ? col3 : '')) as splitcond;");
+            myPig.registerQuery("split B into C if splitcond !=  '', D if splitcond == '';");
+            myPig.registerQuery("E = group C by splitcond;");
+            myPig.registerQuery("F = foreach E { orderedData = order C by $1, $0; generate flatten(orderedData); };");
+       
+            Iterator<Tuple> iter = myPig.openIterator("F");
+
+            List<Tuple> expectedResults = Util.getTuplesFromConstantTupleStrings(
+                    new String[] { 
+                            "(1,2)",
+                            "(2,3)",
+                            "(3,5)",
+                            "(5,6)"
+                    });
+            
+            int counter = 0;
+            while (iter.hasNext()) {
+                assertEquals(expectedResults.get(counter++).toString(), iter.next().toString());                  
+            }
+
+            assertEquals(expectedResults.size(), counter);
+            
+        } catch (Exception e) {
+            e.printStackTrace();
+            Assert.fail();
+        } finally {
+            new File(INPUT_FILE).delete();
+            try {
+                Util.deleteFile(cluster, INPUT_FILE);
+            } catch (IOException e) {
+                e.printStackTrace();
+                Assert.fail();
+            }
+        }
+    }
+ 
+    @Test
     public void testMultiQueryJiraPig1169() {
 
         // test case: Problems with some top N queries
@@ -168,6 +230,7 @@ public class TestMultiQuery {
         }
     }
   
+    @Test
     public void testMultiQueryJiraPig1171() {
 
         // test case: Problems with some top N queries
@@ -225,6 +288,7 @@ public class TestMultiQuery {
         }
     }
     
+    @Test
     public void testMultiQueryJiraPig1157() {
 
         // test case: Sucessive replicated joins do not generate Map Reduce plan and fails due to OOM
@@ -285,6 +349,7 @@ public class TestMultiQuery {
         }
     }
     
+    @Test
     public void testMultiQueryJiraPig1068() {
 
         // test case: COGROUP fails with 'Type mismatch in key from map: 

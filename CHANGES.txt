@@ -145,6 +145,9 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-1252: Diamond splitter does not generate correct results when using
+Multi-query optimization (rding)
+
 PIG-1260: Param Subsitution results in parser error if there is no EOL after
 last line in script (rding)
 
