@@ -145,6 +145,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-1238: Dump does not respect the schema (rding)
+
 PIG-1261: PigStorageSchema broke after changes to ResourceSchema (dvryaboy via
 daijy)
 
