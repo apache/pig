@@ -30,6 +30,10 @@ import java.util.Map;
 
 import org.apache.pig.data.Tuple;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.BinaryExpressionOperator;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.ExpressionOperator;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POBinCond;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.UnaryComparisonOperator;
 import org.apache.pig.impl.plan.OperatorPlan;
 import org.apache.pig.impl.plan.PlanException;
 import org.apache.pig.impl.plan.VisitorException;
@@ -263,6 +267,26 @@ public class PhysicalPlan extends OperatorPlan<PhysicalOperator> implements Clon
                 newInputs.add(cloneIOp);
             }
             cloneOp.setInputs(newInputs);
+        }
+        
+        for (PhysicalOperator op : mOps.keySet()) {
+            if (op instanceof UnaryComparisonOperator) {
+                UnaryComparisonOperator orig = (UnaryComparisonOperator)op;
+                UnaryComparisonOperator cloneOp = (UnaryComparisonOperator)matches.get(op);
+                cloneOp.setExpr((ExpressionOperator)matches.get(orig.getExpr()));
+                cloneOp.setOperandType(orig.getOperandType());
+            } else if (op instanceof BinaryExpressionOperator) {
+                BinaryExpressionOperator orig = (BinaryExpressionOperator)op;
+                BinaryExpressionOperator cloneOp = (BinaryExpressionOperator)matches.get(op);
+                cloneOp.setRhs((ExpressionOperator)matches.get(orig.getRhs()));
+                cloneOp.setLhs((ExpressionOperator)matches.get(orig.getLhs()));
+            } else if (op instanceof POBinCond) {
+                POBinCond orig = (POBinCond)op;
+                POBinCond cloneOp = (POBinCond)matches.get(op);
+                cloneOp.setRhs((ExpressionOperator)matches.get(orig.getRhs()));
+                cloneOp.setLhs((ExpressionOperator)matches.get(orig.getLhs()));
+                cloneOp.setCond((ExpressionOperator)matches.get(orig.getCond()));
+            }
         }
 
         return clone;
