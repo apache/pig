@@ -38,22 +38,11 @@ import org.apache.pig.LoadFunc;
 import org.apache.pig.OrderedLoadFunc;
 import org.apache.pig.PigException;
 import org.apache.pig.PigWarning;
-import org.apache.pig.builtin.BinStorage;
-import org.apache.pig.data.DataType;
-import org.apache.pig.impl.PigContext;
-import org.apache.pig.impl.builtin.DefaultIndexableLoader;
-import org.apache.pig.impl.builtin.FindQuantiles;
-import org.apache.pig.impl.builtin.PoissonSampleLoader;
-import org.apache.pig.impl.builtin.GetMemNumRows;
-import org.apache.pig.impl.builtin.PartitionSkewedKeys;
-import org.apache.pig.impl.builtin.RandomSampleLoader;
-import org.apache.pig.impl.io.FileLocalizer;
-import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.executionengine.ExecutionEngine;
 import org.apache.pig.backend.hadoop.executionengine.HExecutionEngine;
-import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROperPlan;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROpPlanVisitor;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROperPlan;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.UDFFinder;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.ConstantExpression;
@@ -61,26 +50,38 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POUserFunc;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POFRJoin;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POForEach;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POCollectedGroup;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.PODistinct;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POFRJoin;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POFilter;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POForEach;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POGlobalRearrange;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POJoinPackage;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLimit;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLoad;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLocalRearrange;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POMergeJoin;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPackage;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPackageLite;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPartitionRearrange;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPackage;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSkewedJoin;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSort;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSplit;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStream;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POUnion;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POCollectedGroup;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.util.PlanHelper;
+import org.apache.pig.builtin.BinStorage;
+import org.apache.pig.data.DataType;
+import org.apache.pig.impl.PigContext;
+import org.apache.pig.impl.builtin.DefaultIndexableLoader;
+import org.apache.pig.impl.builtin.FindQuantiles;
+import org.apache.pig.impl.builtin.GetMemNumRows;
+import org.apache.pig.impl.builtin.PartitionSkewedKeys;
+import org.apache.pig.impl.builtin.PoissonSampleLoader;
+import org.apache.pig.impl.builtin.RandomSampleLoader;
+import org.apache.pig.impl.io.FileLocalizer;
+import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.plan.CompilationMessageCollector;
 import org.apache.pig.impl.plan.DepthFirstWalker;
 import org.apache.pig.impl.plan.NodeIdGenerator;
@@ -94,7 +95,6 @@ import org.apache.pig.impl.util.CompilerUtils;
 import org.apache.pig.impl.util.MultiMap;
 import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.impl.util.Pair;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.util.PlanHelper;
 
 /**
  * The compiler that compiles a given physical plan
@@ -2414,7 +2414,7 @@ public class MRCompiler extends PhyPlanVisitor {
         {
             for (MapReduceOper mr:opsToAdjust)
             {
-                if (mr.reducePlan.isEmpty()) return;
+                if (mr.reducePlan.isEmpty()) continue;
                 List<PhysicalOperator> mpLeaves = mr.reducePlan.getLeaves();
                 if (mpLeaves.size() != 1) {
                     int errCode = 2024; 
@@ -2442,28 +2442,33 @@ public class MRCompiler extends PhyPlanVisitor {
                 POLimit pLimit = new POLimit(new OperatorKey(scope,nig.getNextNodeId(scope)));
                 pLimit.setLimit(mr.limit);
                 limitAdjustMROp.mapPlan.addAsLeaf(pLimit);
-                if (mr.isGlobalSort()) 
+                if (mr.isGlobalSort()) {
                     connectMapToReduceLimitedSort(limitAdjustMROp, mr);
-                else
+                } else {
                     simpleConnectMapToReduce(limitAdjustMROp);
+                }
                 POLimit pLimit2 = new POLimit(new OperatorKey(scope,nig.getNextNodeId(scope)));
                 pLimit2.setLimit(mr.limit);
                 limitAdjustMROp.reducePlan.addAsLeaf(pLimit2);
-                POStore st = getStore();
-                st.setSFile(oldSpec);
-                st.setIsTmpStore(oldIsTmpStore);
-                limitAdjustMROp.reducePlan.addAsLeaf(st);
-                limitAdjustMROp.requestedParallelism = 1;
-                limitAdjustMROp.setLimitOnly(true);
+
                 // If the operator we're following has global sort set, we
                 // need to indicate that this is a limit after a sort.
                 // This will assure that we get the right sort comparator
                 // set.  Otherwise our order gets wacked (PIG-461).
                 if (mr.isGlobalSort()) 
                 {
+                    fixProjectionAfterLimit(limitAdjustMROp, mr);
                     limitAdjustMROp.setLimitAfterSort(true);
                     limitAdjustMROp.setSortOrder(mr.getSortOrder());
                 }
+                
+                POStore st = getStore();
+                st.setSFile(oldSpec);
+                st.setIsTmpStore(oldIsTmpStore);
+                limitAdjustMROp.reducePlan.addAsLeaf(st);
+                limitAdjustMROp.requestedParallelism = 1;
+                limitAdjustMROp.setLimitOnly(true);
+                
                 List<MapReduceOper> successorList = MRPlan.getSuccessors(mr);
                 MapReduceOper successors[] = null;
                 
@@ -2492,6 +2497,32 @@ public class MRCompiler extends PhyPlanVisitor {
                             MRPlan.connect(limitAdjustMROp, nextMr);                        
                     }
                 }
+            }
+        }
+        
+        // Move all operators between POLimit and POStore in reducer plan 
+        // from sortMROp to the new MROp so that the sort keys aren't lost by 
+        // projection in sortMROp.
+        private void fixProjectionAfterLimit(MapReduceOper mro,
+                MapReduceOper sortMROp) throws PlanException, VisitorException {
+                        
+            PhysicalOperator op = sortMROp.reducePlan.getLeaves().get(0);
+            
+            while (true) {
+                List<PhysicalOperator> preds = sortMROp.reducePlan
+                        .getPredecessors(op);
+                op = preds.get(0); 
+                if (op instanceof POLimit) break;
+            }
+            
+            while (true) {
+                List<PhysicalOperator> succes = sortMROp.reducePlan
+                        .getSuccessors(op);
+                PhysicalOperator succ = succes.get(0);               
+                if (succ instanceof POStore) break;
+            
+                sortMROp.reducePlan.removeAndReconnect(succ);
+                mro.reducePlan.addAsLeaf(succ);
             }
         }
     }
