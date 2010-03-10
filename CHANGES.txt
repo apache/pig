@@ -145,6 +145,9 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-1260: Param Subsitution results in parser error if there is no EOL after
+last line in script (rding)
+
 PIG-1238: Dump does not respect the schema (rding)
 
 PIG-1261: PigStorageSchema broke after changes to ResourceSchema (dvryaboy via

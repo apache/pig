@@ -81,6 +81,19 @@ public class ParameterSubstitutionPreprocessor {
             }
         }
 
+        // In case there is no EOL before EOF, add EOL for each line
+        String line = null;
+        StringBuilder blder = new StringBuilder();       
+        try {
+            while ((line = pigInput.readLine()) != null) { 
+                blder.append(line).append("\n");
+            }
+        } catch (IOException e) {
+            throw new ParseException(e.getMessage());
+        }
+                
+        pigInput = new BufferedReader(new StringReader(blder.toString()));
+        
         // perform the substitution
         parsePigFile(pigInput , pigOutput);
     }

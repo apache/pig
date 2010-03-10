@@ -27,12 +27,15 @@ import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.tools.grunt.Grunt;
+import org.apache.pig.tools.parameters.ParameterSubstitutionPreprocessor;
 import org.apache.pig.tools.pigscript.parser.ParseException;
 import org.apache.pig.impl.util.LogUtils;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStreamReader;
 import java.io.BufferedReader;
+import java.io.StringReader;
+import java.io.StringWriter;
 
 public class TestGrunt extends TestCase {
     MiniCluster cluster = MiniCluster.buildCluster();
@@ -835,5 +838,24 @@ public class TestGrunt extends TestCase {
 
         grunt.exec();
         assertTrue(context.extraJars.contains(ClassLoader.getSystemResource("pig-withouthadoop.jar")));
+    }
+    
+    public void testScriptMissingLastNewLine() throws Throwable {   
+        PigServer server = new PigServer(ExecType.LOCAL);
+        PigContext context = server.getPigContext();
+        
+        String strCmd = "A = load 'bar';\nB = foreach A generate $0;";
+        
+        ParameterSubstitutionPreprocessor psp = new ParameterSubstitutionPreprocessor(50);
+        BufferedReader pin = new BufferedReader(new StringReader(strCmd));  
+        StringWriter writer = new StringWriter();
+        psp.genSubstitutedFile(pin, writer, null, null);
+        pin = new BufferedReader(new StringReader(writer.toString()));
+             
+        Grunt grunt = new Grunt(pin, context);
+        int results[] = grunt.exec();
+        for (int i=0; i<results.length; i++) {
+            assertTrue(results[i] == 0);
+        }
     }
 }
