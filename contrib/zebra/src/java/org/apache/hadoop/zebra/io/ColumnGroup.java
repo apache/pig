@@ -1519,6 +1519,7 @@ class ColumnGroup {
     FileSystem fs;
     CGSchema cgschema;
     private boolean finished, closed;
+    CGIndex index;
 
     /**
      * Create a ColumnGroup writer. The semantics are as follows:
@@ -1700,8 +1701,8 @@ class ColumnGroup {
 
     private void createIndex() throws IOException {
       MetaFile.Writer metaFile =
-      MetaFile.createWriter(makeMetaFilePath(finalOutputPath), conf);
-      CGIndex index = buildIndex(fs, finalOutputPath, false, conf);
+        MetaFile.createWriter(makeMetaFilePath(finalOutputPath), conf);
+      index = buildIndex(fs, finalOutputPath, false, conf);
       DataOutputStream dos = metaFile.createMetaBlock(BLOCK_NAME_INDEX);
       try {
         index.write(dos);
