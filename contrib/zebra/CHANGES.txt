@@ -14,6 +14,8 @@ Trunk (unreleased changes)
 
   IMPROVEMENTS
 
+    PIG-1207 Data sanity check should be performed at the end of writing instead of later at query time (yanz)
+
     PIG-1206 Storing descendingly sorted PIG table as unsorted table (yanz)
 
     PIG-1240 zebra manifest file enhancement (gauravj via yanz)

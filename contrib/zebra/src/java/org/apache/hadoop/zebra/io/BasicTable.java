@@ -1459,9 +1459,33 @@ public class BasicTable {
       if (!finished)
         finish();
       try {
+        ColumnGroup.CGIndex firstCGIndex = null, cgIndex;
+        int first = -1;
         for (int nx = 0; nx < colGroups.length; nx++) {
           if (colGroups[nx] != null) {
             colGroups[nx].close();
+            if (first == -1)
+            {
+              first = nx;
+              firstCGIndex = colGroups[nx].index;
+            } else {
+              cgIndex = colGroups[nx].index;
+              if (cgIndex.size() != firstCGIndex.size())
+                throw new IOException("Column Group "+colGroups[nx].path.getName()+
+                    " has different number of files than in column group " + colGroups[first].path.getName());
+              int size = firstCGIndex.size();
+              for (int i = 0; i < size; i++)
+              {
+                if (!cgIndex.get(i).name.equals(firstCGIndex.get(i).name))
+                  throw new IOException("File["+i+"] in Column Group "+colGroups[nx].path.getName()+
+                      " has a different name: "+cgIndex.get(i).name+" than " + 
+                      firstCGIndex.get(i).name + " in column group " + colGroups[first].path.getName());
+                if (cgIndex.get(i).rows != firstCGIndex.get(i).rows)
+                  throw new IOException("File "+cgIndex.get(i).name+"Column Group "+colGroups[nx].path.getName()+
+                      " has a different number of rows, " + cgIndex.get(i).rows + ", than " +
+                      firstCGIndex.get(i).rows + " in column group " + colGroups[first].path.getName());
+              }
+            }
           }
         }
         metaWriter.close();
