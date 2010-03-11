@@ -216,5 +216,14 @@ public class TestTextDataParser extends junit.framework.TestCase {
         expectedTuple.set(1, "b");
         expectedBag.add(expectedTuple);
         assertTrue(b.equals(expectedBag));
+    }
+    
+    @Test
+    public void testEmptyBag() throws Exception{
+        String myBag = "{}";
+        Object o = ps.getLoadCaster().bytesToBag(myBag.getBytes(), getBagFieldSchema());
+        assertTrue(o instanceof DataBag);
+        DataBag b = (DataBag)o;
+        assertTrue(b.size()==0);
     }    
 }

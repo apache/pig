@@ -20,6 +20,7 @@ package org.apache.pig.builtin;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.PushbackInputStream;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -67,7 +68,7 @@ public class Utf8StorageConverter implements LoadCaster {
         }
     }
     
-    private DataBag consumeBag(ByteArrayInputStream in, ResourceFieldSchema fieldSchema) throws IOException {
+    private DataBag consumeBag(PushbackInputStream in, ResourceFieldSchema fieldSchema) throws IOException {
         if (fieldSchema==null) {
             throw new IOException("Schema is null");
         }
@@ -85,7 +86,8 @@ public class Utf8StorageConverter implements LoadCaster {
         DataBag db = DefaultBagFactory.getInstance().newDefaultBag();
         while (true) {
             t = consumeTuple(in, fs);
-            db.add(t);
+            if (t!=null)
+                db.add(t);
             while ((buf=in.read())!='}'&&buf!=',') {
                 if (buf==-1) {
                     throw new IOException("Unexpect end of bag");
@@ -97,16 +99,20 @@ public class Utf8StorageConverter implements LoadCaster {
         return db;
     }
     
-    private Tuple consumeTuple(ByteArrayInputStream in, ResourceFieldSchema fieldSchema) throws IOException {
+    private Tuple consumeTuple(PushbackInputStream in, ResourceFieldSchema fieldSchema) throws IOException {
         if (fieldSchema==null) {
             throw new IOException("Schema is null");
         }
         int buf;
         ByteArrayOutputStream mOut;
         
-        while ((buf=in.read())!='(') {
+        while ((buf=in.read())!='('||buf=='}') {
             if (buf==-1) {
                 throw new IOException("Unexpect end of tuple");
+            }
+            if (buf=='}') {
+                in.unread(buf);
+                return null;
             }
         }
         Tuple t = DefaultTupleFactory.getInstance().newTuple();
@@ -172,7 +178,7 @@ public class Utf8StorageConverter implements LoadCaster {
         return t;
     }
     
-    private Map<String, Object> consumeMap(ByteArrayInputStream in, ResourceFieldSchema fieldSchema) throws IOException {
+    private Map<String, Object> consumeMap(PushbackInputStream in, ResourceFieldSchema fieldSchema) throws IOException {
         if (fieldSchema==null) {
             throw new IOException("Schema is null");
         }
@@ -232,7 +238,7 @@ public class Utf8StorageConverter implements LoadCaster {
         return m;
     }
     
-    private Object consumeComplexType(ByteArrayInputStream in, ResourceFieldSchema complexFieldSchema) throws IOException {
+    private Object consumeComplexType(PushbackInputStream in, ResourceFieldSchema complexFieldSchema) throws IOException {
         Object field;
         switch (complexFieldSchema.getType()) {
         case DataType.BAG:
@@ -285,7 +291,8 @@ public class Utf8StorageConverter implements LoadCaster {
             return null;
         DataBag db;
         try {
-            ByteArrayInputStream in = new ByteArrayInputStream(b);
+            ByteArrayInputStream bis = new ByteArrayInputStream(b);
+            PushbackInputStream in = new PushbackInputStream(bis);
             db = consumeBag(in, schema);
         } catch (IOException e) {
             LogUtils.warn(this, "Unable to interpret value " + Arrays.toString(b) + " in field being " +
@@ -424,7 +431,8 @@ public class Utf8StorageConverter implements LoadCaster {
         ResourceFieldSchema fs = new ResourceFieldSchema();
         fs.setType(DataType.MAP);
         try {
-            ByteArrayInputStream in = new ByteArrayInputStream(b);
+            ByteArrayInputStream bis = new ByteArrayInputStream(b);
+            PushbackInputStream in = new PushbackInputStream(bis);
             map = consumeMap(in, fs);
         }
         catch (IOException e) {
@@ -443,7 +451,8 @@ public class Utf8StorageConverter implements LoadCaster {
         Tuple t;
         
         try {
-            ByteArrayInputStream in = new ByteArrayInputStream(b);
+            ByteArrayInputStream bis = new ByteArrayInputStream(b);
+            PushbackInputStream in = new PushbackInputStream(bis);
             t = consumeTuple(in, fieldSchema);
         } 
         catch (IOException e) {
