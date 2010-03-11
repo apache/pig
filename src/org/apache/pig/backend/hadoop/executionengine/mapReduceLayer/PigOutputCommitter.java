@@ -55,16 +55,6 @@ public class PigOutputCommitter extends OutputCommitter {
     List<Pair<OutputCommitter, POStore>> reduceOutputCommitters;
     
     /**
-     * Store(s) in the map
-     */
-    List<POStore> mapStores;
-    
-    /**
-     * Store(s) in the reduce
-     */
-    List<POStore> reduceStores;
-    
-    /**
      * @param context
      * @throws IOException
      */

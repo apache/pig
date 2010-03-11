@@ -69,7 +69,7 @@ public class POCross extends PhysicalOperator {
     @Override
     public void visit(PhyPlanVisitor v) throws VisitorException {
         // TODO Auto-generated method stub
-        v.visitCross(this);
+        v.visitPenCross(this);
 
     }
     

@@ -66,6 +66,8 @@ manner (rding via pradeepkth)
 
 IMPROVEMENTS
 
+PIG-1262: Additional findbugs and javac warnings (daijy)
+
 PIG-1248: [piggybank] some useful String functions (dvryaboy)
 
 PIG-1251: Move SortInfo calculation earlier in compilation (ashutoshc)

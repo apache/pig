@@ -80,7 +80,7 @@ public class POCogroup extends PhysicalOperator {
     @Override
     public void visit(PhyPlanVisitor v) throws VisitorException {
 	// TODO Auto-generated method stub
-	v.visitCogroup(this);
+	v.visitPenCogroup(this);
 
     }
 

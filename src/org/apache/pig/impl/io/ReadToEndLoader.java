@@ -136,6 +136,7 @@ public class ReadToEndLoader extends LoadFunc {
         init();
     }
     
+    @SuppressWarnings("unchecked")
     private void init() throws IOException {
         // make a copy so that if the underlying InputFormat writes to the
         // conf, we don't affect the caller's copy

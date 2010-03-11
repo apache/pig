@@ -334,4 +334,77 @@
         <Method name = "bytesToBoolean" />
         <Bug pattern="NP_BOOLEAN_RETURN_NULL" />
     </Match>
+    <Match>
+        <Class name="org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce" />
+        <Field name = "sJobContext" />
+        <Bug pattern="MS_CANNOT_BE_FINAL" />
+    </Match>
+    <Match>
+        <Class name="org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.partitioners.WeightedRangePartitioner" />
+        <Method name = "setConf" />
+        <Bug pattern="REC_CATCH_EXCEPTION" />
+    </Match>
+    <Match>
+        <Class name="org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSort$UDFSortComparator" />
+        <Bug pattern="SE_INNER_CLASS" />
+    </Match>
+    <Match>
+        <Class name="org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSort$SortComparator" />
+        <Bug pattern="SE_INNER_CLASS" />
+    </Match>
+    <Match>
+        <Class name="org.apache.pig.data.DataByteArray" />
+        <Method name = "equals" />
+        <Bug pattern="EQ_UNUSUAL" />
+    </Match>
+    <Match>
+        <Class name="org.apache.pig.data.DefaultAbstractBag" />
+        <Method name = "equals" />
+        <Bug pattern="EQ_UNUSUAL" />
+    </Match>
+    <Match>
+        <Class name="org.apache.pig.data.DefaultTuple" />
+        <Method name = "equals" />
+        <Bug pattern="EQ_UNUSUAL" />
+    </Match>
+    <Match>
+        <Class name="org.apache.pig.data.NonSpillableDataBag" />
+        <Method name = "equals" />
+        <Bug pattern="EQ_UNUSUAL" />
+    </Match>
+    <Match>
+        <Class name="org.apache.pig.data.SingleTupleBag" />
+        <Method name = "equals" />
+        <Bug pattern="EQ_ALWAYS_TRUE" />
+    </Match>
+    <Match>
+        <Class name="org.apache.pig.data.SortedDataBag$DefaultComparator" />
+        <Method name = "equals" />
+        <Bug pattern="EQ_ALWAYS_FALSE" />
+    </Match>
+    <Match>
+        <Class name="org.apache.pig.data.SortedDataBag" />
+        <Method name = "equals" />
+        <Bug pattern="EQ_ALWAYS_FALSE" />
+    </Match>
+    <Match>
+        <Class name="org.apache.pig.impl.io.PigNullableWritable" />
+        <Method name = "equals" />
+        <Bug pattern="EQ_UNUSUAL" />
+    </Match>
+    <Match>
+        <Class name="org.apache.pig.impl.logicalLayer.schema.Schema" />
+        <Method name = "equals" />
+        <Bug pattern="NP_NULL_ON_SOME_PATH_MIGHT_BE_INFEASIBLE" />
+    </Match>
+    <Match>
+        <Class name="org.apache.pig.impl.logicalLayer.schema.Schema$FieldSchema" />
+        <Method name = "equals" />
+        <Bug pattern="NP_NULL_ON_SOME_PATH_MIGHT_BE_INFEASIBLE" />
+    </Match>
+    <Match>
+        <Class name="org.apache.tools.bzip2r.BZip2Constants" />
+        <Field name = "rNums" />
+        <Bug pattern="MS_OOI_PKGPROTECT" />
+    </Match>
 </FindBugsFilter>

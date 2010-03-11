@@ -2063,7 +2063,7 @@ public class MRCompiler extends PhyPlanVisitor {
                     if(val<=0)
                         val = pigContext.defaultParallel;
                     if (val<=0)
-                        val = ((JobConf)((HExecutionEngine)eng).getJobConf()).getNumReduceTasks();
+                        val = ((HExecutionEngine)eng).getJobConf().getNumReduceTasks();
                     if (val<=0)
                         val = 1;
                 } catch (Exception e) {

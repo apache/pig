@@ -59,7 +59,7 @@ public class WeightedRangePartitioner extends Partitioner<PigNullableWritable, W
                                       implements Configurable {
     PigNullableWritable[] quantiles;
     RawComparator<PigNullableWritable> comparator;
-    public static Map<PigNullableWritable,DiscreteProbabilitySampleGenerator> weightedParts 
+    final public static Map<PigNullableWritable,DiscreteProbabilitySampleGenerator> weightedParts 
         = new HashMap<PigNullableWritable, DiscreteProbabilitySampleGenerator>();
     
     private static final Log log = LogFactory.getLog(WeightedRangePartitioner.class);

@@ -123,6 +123,7 @@ public class PigSplit extends InputSplit implements Writable, Configurable {
         return wrappedSplit.getLength();
     }
     
+    @SuppressWarnings("unchecked")
     public void readFields(DataInput is) throws IOException {
         splitIndex = is.readInt();
         inputIndex = is.readInt();
@@ -130,8 +131,7 @@ public class PigSplit extends InputSplit implements Writable, Configurable {
         String splitClassName = is.readUTF();
         try {
             Class splitClass = conf.getClassByName(splitClassName);
-            wrappedSplit = (InputSplit) 
-            ReflectionUtils.newInstance(splitClass, conf);
+            wrappedSplit = (InputSplit)ReflectionUtils.newInstance(splitClass, conf);
             SerializationFactory sf = new SerializationFactory(conf);
             // The correct call sequence for Deserializer is, we shall open, then deserialize, but we shall not close
             Deserializer d = sf.getDeserializer(splitClass);
@@ -143,6 +143,7 @@ public class PigSplit extends InputSplit implements Writable, Configurable {
         
     }
 
+    @SuppressWarnings("unchecked")
     public void write(DataOutput os) throws IOException {
         os.writeInt(splitIndex);
         os.writeInt(inputIndex);
