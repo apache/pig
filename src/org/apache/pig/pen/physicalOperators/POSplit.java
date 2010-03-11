@@ -84,7 +84,7 @@ public class POSplit extends PhysicalOperator {
 
     @Override
     public void visit(PhyPlanVisitor v) throws VisitorException {
-	v.visitSplit(this);
+	v.visitPenSplit(this);
     }
 
     @Override

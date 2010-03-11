@@ -146,7 +146,6 @@ public class LogUtils {
             }
             fos.write(bs.toString().getBytes("UTF-8"));
             fos.write(marker.getBytes("UTF-8"));
-            fos.close();
             if(displayFooter) {
                 if(verbose) {
                     System.err.println("Details also at logfile: " + logFileName);
@@ -157,6 +156,11 @@ public class LogUtils {
         } catch (IOException ioe) {
             log.warn("Could not write to log file: " + logFileName + " :" + ioe.getMessage());
             log.error(bs.toString());
+        } finally {
+            try {
+                fos.close();
+            } catch (IOException e) {
+            }
         }
     }
     
@@ -189,10 +193,14 @@ public class LogUtils {
                     fos.write((message + "\n\n").getBytes("UTF-8"));
                 }
             }
-            fos.close();
         } catch (IOException ioe) {
             log.warn("Could not write to log file: " + logFileName + " :" + ioe.getMessage());
             log.error(message);
+        } finally {
+            try {
+                fos.close();
+            } catch (IOException e) {
+            }
         }
     }
 

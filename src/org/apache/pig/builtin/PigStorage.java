@@ -139,6 +139,7 @@ LoadPushDown {
 
     protected ByteArrayOutputStream mOut = new ByteArrayOutputStream(BUFFER_SIZE);
 
+    @SuppressWarnings("unchecked")
     @Override
     public void putNext(Tuple f) throws IOException {
         // I have to convert integer fields to string, and then to bytes.
@@ -200,8 +201,6 @@ LoadPushDown {
             {
                 if (rf.getIndex()!=-1)
                     mRequiredColumns[rf.getIndex()] = true;
-                else
-                    mRequiredColumns[rf.getIndex()] = false;
             }
             Properties p = UDFContext.getUDFContext().getUDFProperties(this.getClass());
             try {

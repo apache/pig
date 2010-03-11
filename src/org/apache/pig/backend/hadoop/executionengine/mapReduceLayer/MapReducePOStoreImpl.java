@@ -69,7 +69,7 @@ public class MapReducePOStoreImpl extends POStoreImpl {
         PigOutputFormat.setLocation(context, store);
         OutputFormat outputFormat = null;
         try {
-            outputFormat = (OutputFormat)storeFunc.getOutputFormat();
+            outputFormat = storeFunc.getOutputFormat();
 
             // create a new record writer
             writer = outputFormat.getRecordWriter(context);

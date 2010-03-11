@@ -360,7 +360,7 @@ public class SecondaryKeyOptimizer extends MROpPlanVisitor {
                 if (!found)
                 {
                     int errorCode = 2214;
-                    new VisitorException("Cannot find POLocalRearrange to set secondary plan", errorCode);
+                    throw new VisitorException("Cannot find POLocalRearrange to set secondary plan", errorCode);
                 }
             }
             POPackage pack = (POPackage) root;
