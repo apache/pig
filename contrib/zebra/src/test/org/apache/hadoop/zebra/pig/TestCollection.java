@@ -64,7 +64,7 @@ import org.junit.Test;
  */
 public class TestCollection {
 
-  final static String STR_SCHEMA = "c:collection(a:double, b:float, c:bytes)";
+  final static String STR_SCHEMA = "c:collection(record(a:double, b:float, c:bytes))";
   final static String STR_STORAGE = "[c]";
   private static Configuration conf;
   private static FileSystem fs;
@@ -148,7 +148,7 @@ public class TestCollection {
     TableInserter inserter = writer1.getInserter("part" + part, true);
     TypesUtils.resetTuple(tuple);
     DataBag bagColl = TypesUtils.createBag();
-    Schema schColl = schema.getColumn(0).getSchema();
+    Schema schColl = schema.getColumn(0).getSchema().getColumn(0).getSchema();
     Tuple tupColl1 = TypesUtils.createTuple(schColl);
     Tuple tupColl2 = TypesUtils.createTuple(schColl);
     byte[] abs1 = new byte[3];

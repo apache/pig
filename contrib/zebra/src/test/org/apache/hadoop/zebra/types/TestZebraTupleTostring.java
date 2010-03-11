@@ -127,7 +127,7 @@ public class TestZebraTupleTostring {
   @Test
   public void testCollection() throws IOException, ParseException {
     String STR_SCHEMA = 
-      "c1:collection(a:double, b:float, c:bytes),c2:collection(r1:record(f1:int, f2:string), d:string),c3:collection(c3_1:collection(e:int,f:bool))";
+      "c1:collection(record(a:double, b:float, c:bytes)),c2:collection(record(r1:record(f1:int, f2:string), d:string)),c3:collection(record(c3_1:collection(record(e:int,f:bool))))";
     Schema schema = new Schema(STR_SCHEMA);
     Tuple tuple = TypesUtils.createTuple(schema);
     TypesUtils.resetTuple(tuple);

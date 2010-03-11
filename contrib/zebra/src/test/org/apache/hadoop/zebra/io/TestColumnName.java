@@ -51,11 +51,11 @@ import org.junit.Test;
  */
 public class TestColumnName {
 	final static String STR_SCHEMA = 
-		"f1:bool, r:record(f11:int, f12:long), m:map(string), c:collection(f13:double, f14:float, f15:bytes)";
+		"f1:bool, r:record(f11:int, f12:long), m:map(string), c:collection(record(f13:double, f14:float, f15:bytes))";
 	final static String STR_STORAGE = "[r.f12, f1, m#{b}]; [m#{_a}, r.f11]";
 
 	final static String INVALID_STR_SCHEMA = 
-		"_f1:bool, _r:record(f11:int, _f12:long), _m:map(string), _c:collection(_f13:double, _f14:float, _f15:bytes)";
+		"_f1:bool, _r:record(f11:int, _f12:long), _m:map(string), _c:collection(record(_f13:double, _f14:float, _f15:bytes))";
 	final static String INVALID_STR_STORAGE = "[_r.f12, _f1, _m#{b}]; [_m#{_a}, _r.f11]";
 
 	private static Configuration conf = new Configuration();
@@ -104,7 +104,7 @@ public class TestColumnName {
 		tuple.set(2, map);
 
 		DataBag bagColl = TypesUtils.createBag();
-		Schema schColl = schema.getColumn(3).getSchema();
+		Schema schColl = schema.getColumn(3).getSchema().getColumn(0).getSchema();
 		Tuple tupColl1 = TypesUtils.createTuple(schColl);
 		Tuple tupColl2 = TypesUtils.createTuple(schColl);
 		byte[] abs1 = new byte[3];

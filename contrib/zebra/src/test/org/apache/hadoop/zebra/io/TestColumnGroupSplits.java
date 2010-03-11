@@ -22,7 +22,6 @@ import java.util.Iterator;
 import java.util.Map;
 
 import junit.framework.Assert;
-import junit.framework.TestCase;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
@@ -52,7 +51,7 @@ import org.junit.Test;
  */
 public class TestColumnGroupSplits {
   final static String outputFile = "TestColumnGroupSplits";
-  final static String STR_SCHEMA = "f1:bool, r:record(f11:int, f12:long), m:map(string), c:collection(f13:double, f14:float, f15:bytes)";
+  final static String STR_SCHEMA = "f1:bool, r:record(f11:int, f12:long), m:map(string), c:collection(record(f13:double, f14:float, f15:bytes))";
   final static private Configuration conf = new Configuration();
   static private FileSystem fs;
   static private Path path;
@@ -85,7 +84,7 @@ public class TestColumnGroupSplits {
     // schema for "r:record..."
     Schema schRecord = writer.getSchema().getColumn(1).getSchema();
     Tuple tupRecord = TypesUtils.createTuple(schRecord);
-    Schema schColl = schema.getColumn(3).getSchema();
+    Schema schColl = schema.getColumn(3).getSchema().getColumn(0).getSchema();
     DataBag bagColl = TypesUtils.createBag();
     Tuple tupColl1 = TypesUtils.createTuple(schColl);
     Tuple tupColl2 = TypesUtils.createTuple(schColl);
@@ -390,132 +389,6 @@ public class TestColumnGroupSplits {
     scanner.getValue(row);
     Assert.assertEquals(1002L, row.get(0));
     Assert.assertNull(row.get(1));
-
-    scanner.close();
-    reader.close();
-  }
-
-  @Test
-  // normal one collection column projection
-  public void testOneCollectionColumnProjection() throws Exception {
-    System.out.println("testOneCollectionColumnProjection");
-    ColumnGroup.Reader reader = new ColumnGroup.Reader(path, conf);
-    reader.setProjection("c.f13, f1, c.XYZ");
-
-    Tuple row = TypesUtils.createTuple(reader.getSchema());
-    TableScanner scanner = reader.getScanner(null, false);
-    BytesWritable key = new BytesWritable();
-
-    scanner.getKey(key);
-    Assert.assertEquals(key, new BytesWritable("k1".getBytes()));
-    scanner.getValue(row);
-    DataBag bagColl = (DataBag) row.get(0);
-
-    boolean f1 = (Boolean) (row.get(1));
-    Assert.assertEquals(true, f1);
-
-    Iterator<Tuple> itorColl = bagColl.iterator();
-    Tuple tupColl = itorColl.next();
-    Assert.assertEquals(3.1415926, tupColl.get(0));
-    try {
-      Object obj = tupColl.get(1);
-      Assert.fail("Failed to catch 'out of boundary' exceptions.");
-    } catch (IndexOutOfBoundsException e) {
-      // no op, expecting out of bounds exceptions
-    }
-    tupColl = itorColl.next();
-    Assert.assertEquals(123.456789, tupColl.get(0));
-    Assert.assertNull(row.get(2));
-    try {
-      row.get(3);
-      Assert.fail("Failed to catch 'out of boundary' exceptions.");
-    } catch (IndexOutOfBoundsException e) {
-      // no op, expecting out of bounds exceptions
-    }
-
-    scanner.advance();
-    scanner.getKey(key);
-    Assert.assertEquals(key, new BytesWritable("k2".getBytes()));
-    TypesUtils.resetTuple(row);
-    scanner.getValue(row);
-
-    f1 = (Boolean) row.get(1);
-    Assert.assertEquals(false, f1);
-
-    bagColl.clear();
-    bagColl = (DataBag) row.get(0);
-    itorColl = bagColl.iterator();
-    tupColl = itorColl.next();
-    Assert.assertEquals(7654.321, tupColl.get(0));
-    tupColl = itorColl.next();
-    Assert.assertEquals(0.123456789, tupColl.get(0));
-    Assert.assertNull(row.get(2));
-
-    scanner.close();
-    reader.close();
-  }
-
-  // test columns from different types of columns in random order
-  @Test
-  @SuppressWarnings("unchecked")
-  public void testMixedColumnProjection() throws Exception {
-    System.out.println("testMixedColumnProjection");
-    ColumnGroup.Reader reader = new ColumnGroup.Reader(path, conf);
-    // TODO: add map field later
-    reader.setProjection("c.f14, f1, r.f11, XYZ");
-
-    Tuple row = TypesUtils.createTuple(reader.getSchema());
-    TableScanner scanner = reader.getScanner(null, false);
-    BytesWritable key = new BytesWritable();
-
-    scanner.getKey(key);
-    Assert.assertEquals(key, new BytesWritable("k1".getBytes()));
-    scanner.getValue(row);
-    DataBag bagColl = (DataBag) row.get(0);
-    Iterator<Tuple> itorColl = bagColl.iterator();
-    Tuple tupColl = itorColl.next();
-    Assert.assertEquals(1.6, tupColl.get(0));
-    // make sure only 1 element returned in the collection
-    try {
-      Object obj = tupColl.get(1);
-      Assert.fail("Failed to catch 'out of boundary' exceptions.");
-    } catch (IndexOutOfBoundsException e) {
-      // no op, expecting out of bounds exceptions
-    }
-    tupColl = itorColl.next();
-    Assert.assertEquals(100, tupColl.get(0));
-    try {
-      Object obj = tupColl.get(1);
-      Assert.fail("Failed to catch 'out of boundary' exceptions.");
-    } catch (IndexOutOfBoundsException e) {
-      // no op, expecting out of bounds exceptions
-    }
-    Assert.assertFalse(itorColl.hasNext());
-    Assert.assertEquals(true, row.get(1));
-    Assert.assertEquals(1, row.get(2));
-    Assert.assertNull(row.get(3));
-    try {
-      Object obj = row.get(4);
-      Assert.fail("Failed to catch 'out of boundary' exceptions.");
-    } catch (IndexOutOfBoundsException e) {
-      // no op, expecting out of bounds exceptions
-    }
-
-    scanner.advance();
-    scanner.getKey(key);
-    Assert.assertEquals(key, new BytesWritable("k2".getBytes()));
-    TypesUtils.resetTuple(row);
-    scanner.getValue(row);
-    bagColl.clear();
-    bagColl = (DataBag) row.get(0);
-    itorColl = bagColl.iterator();
-    tupColl = itorColl.next();
-    Assert.assertEquals(0.0001, tupColl.get(0));
-    tupColl = itorColl.next();
-    Assert.assertEquals(0.3333, tupColl.get(0));
-    Assert.assertEquals(false, row.get(1));
-    Assert.assertEquals(2, row.get(2));
-    Assert.assertNull(row.get(3));
 
     scanner.close();
     reader.close();

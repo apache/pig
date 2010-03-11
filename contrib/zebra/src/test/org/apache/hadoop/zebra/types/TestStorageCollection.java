@@ -35,7 +35,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 public class TestStorageCollection {
-  String strSch = "c1:collection(f1:int, f2:int), c2:collection(c3:collection(f3:float, f4))";
+  String strSch = "c1:collection(record(f1:int, f2:int)), c2:collection(record(c3:collection(record(f3:float, f4))))";
   TableSchemaParser parser;
   Schema schema;
 

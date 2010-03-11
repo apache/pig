@@ -47,7 +47,7 @@ import org.junit.Test;
  * 
  */
 public class TestMapSplitSchemaStorageColumnOutOfOrder {
-  final static String STR_SCHEMA = "column1:bytes,column2:bytes, column3:bytes,column4:bytes,column5:map(String),column6:map(String),column7:map(String),column8:collection(f1:map(String))";   
+  final static String STR_SCHEMA = "column1:bytes,column2:bytes, column3:bytes,column4:bytes,column5:map(String),column6:map(String),column7:map(String),column8:collection(record(f1:map(String)))";   
   final static String STR_STORAGE = "[column1,column2,column3,column4];[column5#{key51|key52|key53|key54|key55|key56},column7#{key71|key72|key73|key74|key75}];[column5,column7,column6];[column8]";
   private static Configuration conf;
   private static Path path;

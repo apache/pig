@@ -31,7 +31,7 @@ import org.junit.Test;
 public class TestSchemaCollection {
   @Test
   public void testSchemaValid1() throws ParseException {
-    String strSch = "c1:collection(f1:int, f2:int), c2:collection(c3:collection(f3:float, f4))";
+    String strSch = "c1:collection(record(f1:int, f2:int)), c2:collection(record(c3:collection(record(f3:float, f4))))";
     TableSchemaParser parser;
     Schema schema;
 
@@ -50,24 +50,24 @@ public class TestSchemaCollection {
 
     // test 2nd level schema;
     Schema f1Schema = f1.getSchema();
-    ColumnSchema f11 = f1Schema.getColumn(0);
+    ColumnSchema f11 = f1Schema.getColumn(0).getSchema().getColumn(0);
     Assert.assertEquals("f1", f11.getName());
     Assert.assertEquals(ColumnType.INT, f11.getType());
-    ColumnSchema f12 = f1Schema.getColumn(1);
+    ColumnSchema f12 = f1Schema.getColumn(0).getSchema().getColumn(1);
     Assert.assertEquals("f2", f12.getName());
     Assert.assertEquals(ColumnType.INT, f12.getType());
 
     Schema f2Schema = f2.getSchema();
-    ColumnSchema f21 = f2Schema.getColumn(0);
+    ColumnSchema f21 = f2Schema.getColumn(0).getSchema().getColumn(0);
     Assert.assertEquals("c3", f21.getName());
     Assert.assertEquals(ColumnType.COLLECTION, f21.getType());
 
     // test 3rd level schema;
     Schema f21Schema = f21.getSchema();
-    ColumnSchema f211 = f21Schema.getColumn(0);
+    ColumnSchema f211 = f21Schema.getColumn(0).getSchema().getColumn(0);
     Assert.assertEquals("f3", f211.getName());
     Assert.assertEquals(ColumnType.FLOAT, f211.getType());
-    ColumnSchema f212 = f21Schema.getColumn(1);
+    ColumnSchema f212 = f21Schema.getColumn(0).getSchema().getColumn(1);
     Assert.assertEquals("f4", f212.getName());
     Assert.assertEquals(ColumnType.BYTES, f212.getType());
   }
@@ -75,7 +75,7 @@ public class TestSchemaCollection {
   @Test
   public void testSchemaInvalid1() throws ParseException, Exception {
     try {
-      String strSch = "c1:collection(f1:int, f2:int), c2:collection(c3:collection(f3:float, f4)))";
+      String strSch = "c1:collection(record(f1:int, f2:int)), c2:collection(record(c3:collection(record(f3:float, f4)))))";
       TableSchemaParser parser;
       Schema schema;
 
@@ -84,10 +84,41 @@ public class TestSchemaCollection {
       System.out.println(schema);
     } catch (Exception e) {
       String errMsg = e.getMessage();
-      String str = "Encountered \" \")\" \") \"\" at line 1, column 74.";
+      String str = "Encountered \" \")\" \") \"\" at line 1, column 98.";
       System.out.println(errMsg);
       System.out.println(str);
       Assert.assertEquals(errMsg.startsWith(str), true);
     }
   }
+  
+  @Test
+  public void testInvalidCollectionSchema() throws ParseException {
+	    String[] strSchs = { "c0:int, c1:collection(f1:int, f2:string)",
+	    		             "c0:int, c1:collection(f1:int)",
+	    		             "c0:int, c1:collection(int)" };
+	    for( String strSch : strSchs ) {
+		    TableSchemaParser parser = new TableSchemaParser( new StringReader( strSch ) );
+		    try {
+		    	parser.RecordSchema(null);
+		    } catch(ParseException ex) {
+		    	System.out.println( "Catch expected exception for schema: " + strSch );
+		    	
+		    	continue;
+		    }
+		    Assert.fail( "Exception expected for invalid schemes: "+  strSch );
+	    }
+  }
+  
+//  private void printSchema(Schema schema, int indent) {
+//	    for( int i = 0; i < schema.getNumColumns(); i++ ) {
+//	    	ColumnSchema cs = schema.getColumn( i );
+//	    	for( int j = 0; j < indent; j++ )
+//	    		System.out.print( "\t" );
+//	    	System.out.println( cs.getName() + ": " + cs.getType().toString() );
+//	    	if( cs.getSchema() != null )
+//	    		printSchema( cs.getSchema(), indent + 1 );
+//	    }
+//	  
+//  }
+  
 }
