@@ -205,17 +205,14 @@ Schema.ColumnSchema SchemaCollection() throws ParseException :
 
 Schema.ColumnSchema SchemaCollectionEntry(String id) throws ParseException :
 {
-	Schema s = null;
 	Schema.ColumnSchema fs = null;
 }
 {
   (
-  s= RecordSchemaInternal()
-| fs = AnonymousColumnSchema()
+  	fs = AnonymousSchemaRecord() | fs = SchemaRecord()
   )
-	{ if (s == null) s = new Schema(fs);
-    fs = new Schema.ColumnSchema(id, s, ColumnType.COLLECTION);
-    return fs;
+  {
+    return new Schema.ColumnSchema(id, new Schema(fs), ColumnType.COLLECTION);
   }
 }
 

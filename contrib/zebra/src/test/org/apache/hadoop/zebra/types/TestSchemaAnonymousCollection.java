@@ -31,7 +31,7 @@ import org.junit.Test;
 public class TestSchemaAnonymousCollection {
   @Test
   public void testSchemaValid1() throws ParseException {
-    String strSch = "c1:collection(f1:int, f2:int), c2:collection(collection(record(f3:float, f4)))";
+    String strSch = "c1:collection(Record(f1:int, f2:int)), c2:collection(record(f5:collection(record(f3:float, f4))))";
     TableSchemaParser parser;
     Schema schema;
 
@@ -50,22 +50,22 @@ public class TestSchemaAnonymousCollection {
 
     // test 2nd level schema;
     Schema f1Schema = f1.getSchema();
-    ColumnSchema f11 = f1Schema.getColumn(0);
+    ColumnSchema f11 = f1Schema.getColumn(0).getSchema().getColumn(0);
     Assert.assertEquals("f1", f11.getName());
     Assert.assertEquals(ColumnType.INT, f11.getType());
-    ColumnSchema f12 = f1Schema.getColumn(1);
+    ColumnSchema f12 = f1Schema.getColumn(0).getSchema().getColumn(1);
     Assert.assertEquals("f2", f12.getName());
     Assert.assertEquals(ColumnType.INT, f12.getType());
 
     Schema f2Schema = f2.getSchema();
     ColumnSchema f21 = f2Schema.getColumn(0);
     Assert.assertNull(f21.getName());
-    Assert.assertEquals(ColumnType.COLLECTION, f21.getType());
+    Assert.assertEquals(ColumnType.RECORD, f21.getType());
 
     // test 3rd level schema;
     Schema f21Schema = f21.getSchema();
     ColumnSchema f211 = f21Schema.getColumn(0);
-    Assert.assertNull(f211.getName());
+    Assert.assertTrue(f211.getName().equals("f5"));
     Assert.assertEquals(ColumnType.COLLECTION, f211.getType());
     Schema f211Schema = f211.getSchema();
     

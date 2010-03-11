@@ -16,20 +16,11 @@
  */
 package org.apache.hadoop.zebra.io;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.PrintWriter;
-import java.lang.reflect.Array;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
-import java.util.Random;
-import java.util.StringTokenizer;
 
 import junit.framework.Assert;
-import junit.framework.TestCase;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
@@ -42,10 +33,8 @@ import org.apache.hadoop.zebra.io.TableInserter;
 import org.apache.hadoop.zebra.io.TableScanner;
 import org.apache.hadoop.zebra.io.BasicTable.Reader.RangeSplit;
 import org.apache.hadoop.zebra.parser.ParseException;
-import org.apache.hadoop.zebra.types.Projection;
 import org.apache.hadoop.zebra.schema.Schema;
 import org.apache.hadoop.zebra.types.TypesUtils;
-import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.Tuple;
@@ -60,7 +49,7 @@ import org.junit.Test;
  */
 public class TestCollection {
 
-  final static String STR_SCHEMA = "c:collection(a:double, b:float, c:bytes),c2:collection(r1:record(f1:int, f2:string), d:string),c3:collection(c3_1:collection(e:int,f:bool))";
+  final static String STR_SCHEMA = "c:collection(record(a:double, b:float, c:bytes)),c2:collection(record(r1:record(f1:int, f2:string), d:string)),c3:collection(record(c3_1:collection(record(e:int,f:bool))))";
   final static String STR_STORAGE = "[c]";
   private static Configuration conf;
   private static Path path;
@@ -92,12 +81,12 @@ public class TestCollection {
     TableInserter inserter = writer1.getInserter("part" + part, true);
     TypesUtils.resetTuple(tuple);
     DataBag bag1 = TypesUtils.createBag();
-    Schema schColl = schema.getColumn(0).getSchema();
+    Schema schColl = schema.getColumn(0).getSchema().getColumn(0).getSchema();
     Tuple tupColl1 = TypesUtils.createTuple(schColl);
     Tuple tupColl2 = TypesUtils.createTuple(schColl);
 
     DataBag bag2 = TypesUtils.createBag();
-    Schema schColl2 = schema.getColumn(1).getSchema();
+    Schema schColl2 = schema.getColumn(1).getSchema().getColumn(0).getSchema();
     Tuple tupColl2_1 = TypesUtils.createTuple(schColl2);
     Tuple tupColl2_2 = TypesUtils.createTuple(schColl2);
     Tuple collRecord1;
@@ -117,7 +106,6 @@ public class TestCollection {
 
     // c3:collection(c3_1:collection(e:int,f:bool))
     DataBag bag3 = TypesUtils.createBag();
-    Schema schColl3 = schema.getColumn(2).getSchema();
     DataBag bag3_1 = TypesUtils.createBag();
     DataBag bag3_2 = TypesUtils.createBag();
 
@@ -502,156 +490,19 @@ public class TestCollection {
     reader.close();
   }
 
-  // read, should support project to 2nd level
+  // Negative test case. Projection on fields in collection is not supported.
   @Test
-  public void testRead5() throws IOException, ParseException {
-    String projection = new String("c.a");
-    BasicTable.Reader reader = new BasicTable.Reader(path, conf);
-    reader.setProjection(projection);
-    List<RangeSplit> splits = reader.rangeSplit(1);
-    TableScanner scanner = reader.getScanner(splits.get(0), true);
-    BytesWritable key = new BytesWritable();
-    Tuple RowValue = TypesUtils.createTuple(scanner.getSchema());
-
-    scanner.getKey(key);
-    // Assert.assertEquals(key, new BytesWritable("k11".getBytes()));
-    scanner.getValue(RowValue);
-    System.out.println("test read 5: row: " + RowValue.toString());
-    // test read 5: row: ({(3.1415926),(123.456789)})
-    Iterator<Tuple> it = ((DataBag) RowValue.get(0)).iterator();
-    int list = 0;
-    while (it.hasNext()) {
-      Tuple cur = it.next();
-      System.out.println(cur.get(0));
-      list++;
-      if (list == 1) {
-        Assert.assertEquals(3.1415926, cur.get(0));
-        try {
-          cur.get(1);
-          Assert.fail("Should throw index out of bounds exception");
-        } catch (Exception e) {
-          System.out.println(e);
-        }
-
-      }
-      if (list == 2) {
-        Assert.assertEquals(123.456789, cur.get(0));
-        try {
-          cur.get(1);
-          Assert.fail("Should throw index out of bounds exception");
-        } catch (Exception e) {
-          System.out.println(e);
-        }
-      }
-    }
-    scanner.advance();
-    scanner.getValue(RowValue);
-    Iterator<Tuple> it2 = ((DataBag) RowValue.get(0)).iterator();
-    int list2 = 0;
-    while (it2.hasNext()) {
-      Tuple cur = it2.next();
-      System.out.println(cur.get(0));
-      list2++;
-      if (list2 == 1) {
-        Assert.assertEquals(7654.321, cur.get(0));
-        try {
-          cur.get(1);
-          Assert.fail("Should throw index out of bounds exception");
-        } catch (Exception e) {
-          System.out.println(e);
-        }
-      }
-      if (list2 == 2) {
-        Assert.assertEquals(0.123456789, cur.get(0));
-        try {
-          cur.get(1);
-          Assert.fail("Should throw index out of bounds exception");
-        } catch (Exception e) {
-          System.out.println(e);
-        }
-      }
-    }
-
-    reader.close();
-  }
-
-  // read, should support project to 2nd level
-  // final static String STR_SCHEMA =
-  // "c:collection(a:double, b:float, c:bytes),c2:collection(r1:record(f1:int, f2:string), d:string),c3:collection(c3_1:collection(e:int,f:bool))";
-  @Test
-  public void testRead6() throws IOException, ParseException {
-    String projection = new String("c2.r1");
-    BasicTable.Reader reader = new BasicTable.Reader(path, conf);
-    reader.setProjection(projection);
-    List<RangeSplit> splits = reader.rangeSplit(1);
-    TableScanner scanner = reader.getScanner(splits.get(0), true);
-    BytesWritable key = new BytesWritable();
-    Tuple RowValue = TypesUtils.createTuple(scanner.getSchema());
-
-    scanner.getKey(key);
-    // Assert.assertEquals(key, new BytesWritable("k11".getBytes()));
-    scanner.getValue(RowValue);
-    System.out.println("test read 6 :row: " + RowValue.toString());
-    // test read 6 :row: ({((1,record1_string1)),((2,record2_string1))})
-    Iterator<Tuple> it = ((DataBag) RowValue.get(0)).iterator();
-    int list = 0;
-    while (it.hasNext()) {
-      Tuple cur = it.next();
-      System.out.println(cur.get(0));
-      list++;
-      if (list == 1) {
-        Assert.assertEquals(1, ((Tuple) cur.get(0)).get(0));
-        Assert.assertEquals("record1_string1", ((Tuple) cur.get(0)).get(1));
-        try {
-          cur.get(1);
-          Assert.fail("Should throw index out of bounds exception");
-        } catch (Exception e) {
-          System.out.println(e);
-        }
-
-      }
-      if (list == 2) {
-        Assert.assertEquals(2, ((Tuple) cur.get(0)).get(0));
-        Assert.assertEquals("record2_string1", ((Tuple) cur.get(0)).get(1));
-        try {
-          cur.get(1);
-          Assert.fail("Should throw index out of bounds exception");
-        } catch (Exception e) {
-          System.out.println(e);
-        }
-      }
-    }
-    scanner.advance();
-    scanner.getValue(RowValue);
-    Iterator<Tuple> it2 = ((DataBag) RowValue.get(0)).iterator();
-    int list2 = 0;
-    while (it2.hasNext()) {
-      Tuple cur = it2.next();
-      System.out.println(cur.get(0));
-      list2++;
-      if (list2 == 1) {
-        Assert.assertEquals(3, ((Tuple) cur.get(0)).get(0));
-        Assert.assertEquals("record1_string2", ((Tuple) cur.get(0)).get(1));
-        try {
-          cur.get(1);
-          Assert.fail("Should throw index out of bounds exception");
-        } catch (Exception e) {
-          System.out.println(e);
-        }
-      }
-      if (list2 == 2) {
-        Assert.assertEquals(4, ((Tuple) cur.get(0)).get(0));
-        Assert.assertEquals("record2_string2", ((Tuple) cur.get(0)).get(1));
-        try {
-          cur.get(1);
-          Assert.fail("Should throw index out of bounds exception");
-        } catch (Exception e) {
-          System.out.println(e);
-        }
-      }
-    }
-
-    reader.close();
+  public void testRead5() throws IOException {
+	  try {
+		  String projection = new String("c.a");
+		  BasicTable.Reader reader = new BasicTable.Reader(path, conf);
+		  reader.setProjection(projection);
+	  } catch(ParseException ex) {
+		  System.out.println( "caught expected exception: " + ex );
+		  return;
+	  }
+	  
+	  Assert.fail( "Test case failure: projection on collection field or record field is not supported." );
   }
 
   // read, should support project to 3rd level TODO: construct scanner failed
@@ -804,159 +655,6 @@ public class TestCollection {
       if (list2 == 2) {
         Assert.assertEquals(4, ((Tuple) cur.get(0)).get(0));
         Assert.assertEquals("record2_string2", ((Tuple) cur.get(0)).get(1));
-        try {
-          cur.get(1);
-          Assert.fail("Should throw index out of bounds exception");
-        } catch (Exception e) {
-          System.out.println(e);
-        }
-      }
-    }
-
-    reader.close();
-  }
-
-  // read stitch simple + record stitch
-  // final static String STR_SCHEMA =
-  // "c:collection(a:double, b:float, c:bytes),c2:collection(r1:record(f1:int, f2:string), d:string),c3:collection(c3_1:collection(e:int,f:bool))";
-  @Test
-  public void testRead9() throws IOException, ParseException {
-    String projection = new String("c.a, c2.r1");
-    BasicTable.Reader reader = new BasicTable.Reader(path, conf);
-    reader.setProjection(projection);
-    List<RangeSplit> splits = reader.rangeSplit(1);
-    TableScanner scanner = reader.getScanner(splits.get(0), true);
-    BytesWritable key = new BytesWritable();
-    Tuple RowValue = TypesUtils.createTuple(scanner.getSchema());
-
-    scanner.getKey(key);
-    // Assert.assertEquals(key, new BytesWritable("k11".getBytes()));
-    scanner.getValue(RowValue);
-    System.out.println("read 9: " + RowValue.toString());
-    // read 9:
-    // ({(3.1415926),(123.456789)},{((1,record1_string1)),((2,record2_string1))})
-    Iterator<Tuple> it = ((DataBag) RowValue.get(0)).iterator();
-    int list = 0;
-    while (it.hasNext()) {
-      Tuple cur = it.next();
-      System.out.println(cur.get(0));
-      list++;
-      if (list == 1) {
-        Assert.assertEquals(3.1415926, cur.get(0));
-        try {
-          cur.get(1);
-          Assert.fail("Should throw index out of bounds exception");
-        } catch (Exception e) {
-          System.out.println(e);
-        }
-      }
-      if (list == 2) {
-        Assert.assertEquals(123.456789, cur.get(0));
-        try {
-          cur.get(1);
-          Assert.fail("Should throw index out of bounds exception");
-        } catch (Exception e) {
-          System.out.println(e);
-        }
-      }
-    }
-    Iterator<Tuple> it2 = ((DataBag) RowValue.get(1)).iterator();
-    list = 0;
-    while (it2.hasNext()) {
-      Tuple cur = it2.next();
-      System.out.println(cur.get(0));
-      list++;
-      if (list == 1) {
-        Assert.assertEquals(1, ((Tuple) cur.get(0)).get(0));
-        Assert.assertEquals("record1_string1", ((Tuple) cur.get(0)).get(1));
-        try {
-          ((Tuple) cur.get(0)).get(2);
-          Assert.fail("Should throw index out of bounds exception");
-        } catch (Exception e) {
-          System.out.println(e);
-        }
-        try {
-          cur.get(1);
-          Assert.fail("Should throw index out of bounds exception");
-        } catch (Exception e) {
-          System.out.println(e);
-        }
-      }
-      if (list == 2) {
-        Assert.assertEquals(2, ((Tuple) cur.get(0)).get(0));
-        Assert.assertEquals("record2_string1", ((Tuple) cur.get(0)).get(1));
-        try {
-          ((Tuple) cur.get(0)).get(2);
-          Assert.fail("Should throw index out of bounds exception");
-        } catch (Exception e) {
-          System.out.println(e);
-        }
-        try {
-          cur.get(1);
-          Assert.fail("Should throw index out of bounds exception");
-        } catch (Exception e) {
-          System.out.println(e);
-        }
-      }
-    }
-    scanner.advance();
-    scanner.getValue(RowValue);
-    Iterator<Tuple> it3 = ((DataBag) RowValue.get(0)).iterator();
-    while (it3.hasNext()) {
-      Tuple cur = it3.next();
-      System.out.println(cur.get(0));
-      list++;
-      if (list == 1) {
-        Assert.assertEquals(7654.321, cur.get(0));
-        try {
-          cur.get(1);
-          Assert.fail("Should throw index out of bounds exception");
-        } catch (Exception e) {
-          System.out.println(e);
-        }
-      }
-      if (list == 2) {
-        Assert.assertEquals(0.123456789, cur.get(0));
-        try {
-          cur.get(1);
-          Assert.fail("Should throw index out of bounds exception");
-        } catch (Exception e) {
-          System.out.println(e);
-        }
-      }
-    }
-
-    Iterator<Tuple> it4 = ((DataBag) RowValue.get(1)).iterator();
-    list = 0;
-    while (it4.hasNext()) {
-      Tuple cur = it4.next();
-      System.out.println(cur.get(0));
-      list++;
-      if (list == 1) {
-        Assert.assertEquals(3, ((Tuple) cur.get(0)).get(0));
-        Assert.assertEquals("record1_string2", ((Tuple) cur.get(0)).get(1));
-        try {
-          ((Tuple) cur.get(0)).get(2);
-          Assert.fail("Should throw index out of bounds exception");
-        } catch (Exception e) {
-          System.out.println(e);
-        }
-        try {
-          cur.get(1);
-          Assert.fail("Should throw index out of bounds exception");
-        } catch (Exception e) {
-          System.out.println(e);
-        }
-      }
-      if (list == 2) {
-        Assert.assertEquals(4, ((Tuple) cur.get(0)).get(0));
-        Assert.assertEquals("record2_string2", ((Tuple) cur.get(0)).get(1));
-        try {
-          ((Tuple) cur.get(0)).get(2);
-          Assert.fail("Should throw index out of bounds exception");
-        } catch (Exception e) {
-          System.out.println(e);
-        }
         try {
           cur.get(1);
           Assert.fail("Should throw index out of bounds exception");

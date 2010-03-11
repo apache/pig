@@ -53,7 +53,7 @@ import org.junit.Test;
  * 
  */
 public class TestMixedType1 {
-  final static String STR_SCHEMA = "s1:bool, s2:int, s3:long, s4:float, s5:string, s6:bytes, r1:record(f1:int, f2:long), r2:record(r3:record(f3:float, f4)), m1:map(string),m2:map(map(int)), c:collection(f13:double, f14:float, f15:bytes)";
+  final static String STR_SCHEMA = "s1:bool, s2:int, s3:long, s4:float, s5:string, s6:bytes, r1:record(f1:int, f2:long), r2:record(r3:record(f3:float, f4)), m1:map(string),m2:map(map(int)), c:collection(record(f13:double, f14:float, f15:bytes))";
   final static String STR_STORAGE = "[s1, s2]; [m1#{a}]; [r1.f1]; [s3, s4, r2.r3.f3]; [s5, s6, m2#{x|y}]; [r1.f2, m1#{b}]; [r2.r3.f4, m2#{z}]";
   private static Configuration conf;
   private static Path path;
@@ -152,7 +152,7 @@ public class TestMixedType1 {
 
     // c:collection(f13:double, f14:float, f15:bytes)
     DataBag bagColl = TypesUtils.createBag();
-    Schema schColl = schema.getColumn(10).getSchema();
+    Schema schColl = schema.getColumn(10).getSchema().getColumn(0).getSchema();
     Tuple tupColl1 = TypesUtils.createTuple(schColl);
     Tuple tupColl2 = TypesUtils.createTuple(schColl);
     byte[] abs1 = new byte[3];

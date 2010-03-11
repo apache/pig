@@ -51,7 +51,7 @@ import org.junit.Test;
  * 
  */
 public class TestBasicTableMapSplits {
-  final static String STR_SCHEMA = "f1:bool, r:record(f11:int, f12:long), m:map(string), c:collection(f13:double, f14:float, f15:bytes)";
+  final static String STR_SCHEMA = "f1:bool, r:record(f11:int, f12:long), m:map(string), c:collection(record(f13:double, f14:float, f15:bytes))";
   final static String STR_STORAGE = "[r.f12, f1, m#{b}]; [m#{a}, r.f11]";
   private static Configuration conf;
   private static Path path;
@@ -104,7 +104,7 @@ public class TestBasicTableMapSplits {
     tuple.set(2, map);
 
     DataBag bagColl = TypesUtils.createBag();
-    Schema schColl = schema.getColumn(3).getSchema();
+    Schema schColl = schema.getColumn(3).getSchema().getColumn(0).getSchema();
     Tuple tupColl1 = TypesUtils.createTuple(schColl);
     Tuple tupColl2 = TypesUtils.createTuple(schColl);
     byte[] abs1 = new byte[3];

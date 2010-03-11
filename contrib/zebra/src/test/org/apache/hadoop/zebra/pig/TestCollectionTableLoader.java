@@ -22,8 +22,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Iterator;
 
-import junit.framework.TestCase;
-
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -39,9 +37,7 @@ import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.test.MiniCluster;
-import org.junit.After;
 import org.junit.AfterClass;
-import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -74,7 +70,7 @@ public class TestCollectionTableLoader {
     BasicTable.drop(pathTable, conf);
 
     BasicTable.Writer writer = new BasicTable.Writer(pathTable,
-        "c:collection(a:double, b:float, c:bytes)", "[c]", conf);
+        "c:collection(record(a:double, b:float, c:bytes))", "[c]", conf);
     Schema schema = writer.getSchema();
     Tuple tuple = TypesUtils.createTuple(schema);
 
@@ -90,7 +86,7 @@ public class TestCollectionTableLoader {
         TypesUtils.resetTuple(tuple);
 
         DataBag bagColl = TypesUtils.createBag();
-        Schema schColl = schema.getColumn(0).getSchema();
+        Schema schColl = schema.getColumn(0).getSchema().getColumn(0).getSchema();
         Tuple tupColl1 = TypesUtils.createTuple(schColl);
         Tuple tupColl2 = TypesUtils.createTuple(schColl);
         byte[] abs1 = new byte[3];
@@ -138,4 +134,5 @@ public class TestCollectionTableLoader {
       System.out.println(cur);
     }
   }
+
 }

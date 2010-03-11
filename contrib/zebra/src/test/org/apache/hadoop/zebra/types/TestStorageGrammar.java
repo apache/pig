@@ -52,7 +52,7 @@ import org.junit.Test;
  */
 public class TestStorageGrammar {
 
-  final static String STR_SCHEMA = "s1:bool, s2:int, s3:long, s4:float, s5:string, s6:bytes, r1:record(f1:int, f2:long), r2:record(r3:record(f3:float, f4)), m1:map(string),m2:map(map(int)), c:collection(f13:double, f14:float, f15:bytes),s7:string, s8:string, s9:string, s10:string, s11:string, s12:string, s13:string, s14:string, s15:string, s16:string, s17:string, s18:string, s19:string, s20:string, s21:string, s22:string, s23:string";
+  final static String STR_SCHEMA = "s1:bool, s2:int, s3:long, s4:float, s5:string, s6:bytes, r1:record(f1:int, f2:long), r2:record(r3:record(f3:float, f4)), m1:map(string),m2:map(map(int)), c:collection(record(f13:double, f14:float, f15:bytes)),s7:string, s8:string, s9:string, s10:string, s11:string, s12:string, s13:string, s14:string, s15:string, s16:string, s17:string, s18:string, s19:string, s20:string, s21:string, s22:string, s23:string";
   static String STR_STORAGE = null;
   final private static Configuration conf = new Configuration();
   private static Path path;
@@ -210,7 +210,7 @@ public class TestStorageGrammar {
 
     // c:collection(f13:double, f14:float, f15:bytes)
     DataBag bagColl = TypesUtils.createBag();
-    Schema schColl = schema.getColumn(10).getSchema();
+    Schema schColl = schema.getColumn(10).getSchema().getColumn(0).getSchema();
     Tuple tupColl1 = TypesUtils.createTuple(schColl);
     Tuple tupColl2 = TypesUtils.createTuple(schColl);
     byte[] abs1 = new byte[3];
@@ -395,7 +395,7 @@ public class TestStorageGrammar {
 
   @Test
   public void test4() throws IOException, ParseException {
-    String schema = "s3:string, s4:string, r2:record(r3:record(f3:float, f4)), c:collection(f13:double, f14:float, f15:bytes)";
+    String schema = "s3:string, s4:string, r2:record(r3:record(f3:float, f4)), c:collection(record(f13:double, f14:float, f15:bytes))";
     String storage = "[s3, s4, r2.r3.f3, c] SERIALIZE BY pig SECURE BY uid:"
         + user + " gid:" + group + " perm:777 COMPRESS BY gz";
     Path path1 = new Path(path.toString() + "4");

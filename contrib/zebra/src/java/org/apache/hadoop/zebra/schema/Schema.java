@@ -929,6 +929,8 @@ public class Schema implements Comparable<Schema>, Writable {
         if (fs.type != ColumnType.RECORD && fs.type != ColumnType.COLLECTION)
           throw new ParseException(name
               + " is not of type RECORD or COLLECTION");
+        else if( fs.type == ColumnType.COLLECTION ) 
+		  throw new ParseException( name + "Projection within COLLECTION is not supported" );
         currentName = currentName.substring(fieldIndex + 1);
         if (currentName.length() == 0)
           throw new ParseException("Column " + name

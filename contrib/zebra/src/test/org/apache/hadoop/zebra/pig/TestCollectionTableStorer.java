@@ -76,7 +76,7 @@ public class TestCollectionTableStorer {
 
     System.out.println("table path=" + pathTable);
     BasicTable.Writer writer = new BasicTable.Writer(pathTable,
-        "c:collection(a:double, b:float, c:bytes)", "[c]", conf);
+        "c:collection(record(a:double, b:float, c:bytes))", "[c]", conf);
     Schema schema = writer.getSchema();
     Tuple tuple = TypesUtils.createTuple(schema);
 
@@ -92,7 +92,7 @@ public class TestCollectionTableStorer {
         TypesUtils.resetTuple(tuple);
 
         DataBag bagColl = TypesUtils.createBag();
-        Schema schColl = schema.getColumn(0).getSchema();
+        Schema schColl = schema.getColumn(0).getSchema().getColumn(0).getSchema();
         Tuple tupColl1 = TypesUtils.createTuple(schColl);
         Tuple tupColl2 = TypesUtils.createTuple(schColl);
         byte[] abs1 = new byte[3];

@@ -65,9 +65,9 @@ public class TestUnionMixedTypes {
   protected static PigServer pigServer;
   private static Path pathWorking, pathTable1, pathTable2;
   private static Configuration conf;
-  final static String STR_SCHEMA1 = "a:collection(a:string, b:string),b:map(string),c:record(f1:string, f2:string),d";
+  final static String STR_SCHEMA1 = "a:collection(record(a:string, b:string)),b:map(string),c:record(f1:string, f2:string),d";
   final static String STR_STORAGE1 = "[a,d];[b#{k1|k2}];[c]";
-  final static String STR_SCHEMA2 = "a:collection(a:string, b:string),b:map(string),c:record(f1:string, f2:string),e";
+  final static String STR_SCHEMA2 = "a:collection(record(a:string, b:string)),b:map(string),c:record(f1:string, f2:string),e";
   final static String STR_STORAGE2 = "[a,e];[b#{k1}];[c.f1]";
 
   @BeforeClass
@@ -106,7 +106,7 @@ public class TestUnionMixedTypes {
 
     TypesUtils.resetTuple(tuple);
     DataBag bag1 = TypesUtils.createBag();
-    Schema schColl = schema.getColumn(0).getSchema();
+    Schema schColl = schema.getColumn(0).getSchema().getColumn(0).getSchema();
     Tuple tupColl1 = TypesUtils.createTuple(schColl);
     Tuple tupColl2 = TypesUtils.createTuple(schColl);
 

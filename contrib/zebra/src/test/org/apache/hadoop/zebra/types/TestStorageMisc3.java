@@ -35,7 +35,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 public class TestStorageMisc3 {
-  String strSch = "c:collection(r:record(f1:int, f2:int)), m1:map(int)";
+  String strSch = "c:collection(record(f1:int, f2:int)), m1:map(int)";
   TableSchemaParser parser;
   Schema schema;
 

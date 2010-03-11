@@ -66,6 +66,8 @@ Trunk (unreleased changes)
 
   BUG FIXES
 
+    PIG-1269 Restrict schema definition for collection (xuefuz via yanz)
+
     PIG-1253: make map/reduce test cases run on real cluster (chaow via yanz)
 
     PIG-1276: Pig resource schema interface changed, so Zebra needs to catch exception thrown from the new interfaces. (xuefuz via yanz)
