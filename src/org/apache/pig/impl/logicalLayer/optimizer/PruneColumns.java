@@ -220,25 +220,12 @@ public class PruneColumns extends LogicalTransformer {
             {
                 List<RequiredFields> requiredInputFieldsList = new ArrayList<RequiredFields>();
                 RequiredFields requiredFields = new RequiredFields(false);
-                for (int i=0;i<mPlan.getSuccessors(rlo).size();i++)
+                for (RequiredFields rf : requiredOutputInfo.requiredFieldsList)
                 {
-                    RequiredFields rf = null;
-                    try {
-                        rf = requiredOutputInfo.requiredFieldsList.get(i);
-                    } catch (Exception e) {
-                    }
                     if (rf!=null)
                     {
                         rf.reIndex(0);
                         requiredFields.merge(rf);
-                    } else {
-                        // need all fields
-                        List<Pair<Integer, Integer>> l = new ArrayList<Pair<Integer, Integer>>();
-                        for (int j=0;j<rlo.getSchema().size();j++)
-                            l.add(new Pair<Integer, Integer>(0, j));
-                        rf = new RequiredFields(l);
-                        requiredFields.merge(rf);
-                        break;
                     }
                 }
                 requiredInputFieldsList.add(requiredFields);
