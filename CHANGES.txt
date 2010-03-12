@@ -147,6 +147,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-1272: Column pruner causes wrong results (daijy)
+
 PIG-1275: empty bag in PigStorage read as null (daijy)
 
 PIG-1252: Diamond splitter does not generate correct results when using
