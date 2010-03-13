@@ -125,33 +125,12 @@ public class WeightedRangePartitioner extends Partitioner<PigNullableWritable, W
                             new DiscreteProbabilitySampleGenerator(probVec));
                 }
             }
-            else {
-                ArrayList<FileSpec> inp = 
-                    (ArrayList<FileSpec>)
-                    ObjectSerializer.deserialize(job.get("pig.inputs", ""));
-                //order-by MR job will have only one input
-                FileSpec fileSpec = inp.get(0);
-                LoadFunc inpLoad =
-                    (LoadFunc)PigContext.instantiateFuncFromSpec(fileSpec.getFuncSpec());
-                List<String> inpSignatureLists = 
-                    (ArrayList<String>)ObjectSerializer.deserialize(
-                            job.get("pig.inpSignatures"));
-                // signature can be null for intermediate jobs where it will not
-                // be required to be passed down
-                if(inpSignatureLists.get(0) != null) {
-                    inpLoad.setUDFContextSignature(inpSignatureLists.get(0));
-                }
-                
-                ReadToEndLoader r2eLoad = new ReadToEndLoader(inpLoad, job, 
-                        fileSpec.getFileName(), 0);
-
-                if (r2eLoad.getNext() != null)
-                {
-                    throw new RuntimeException("Empty samples file and non-empty input file");
-                }
-                // Otherwise, we do not put anything to weightedParts
-            }
-            
+            // else - the quantiles file is empty - unless we have a bug, the 
+            // input must also be empty in which case we don't need to put
+            // anything in weightedParts since getPartition() should never get
+            // called. If the quantiles file is empty due to either a bug or
+            // a transient failure situation on the dfs, then weightedParts will
+            // not be populated and the job will fail in getPartition()
         }catch (Exception e){
             throw new RuntimeException(e);
         }

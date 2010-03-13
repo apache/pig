@@ -66,6 +66,9 @@ manner (rding via pradeepkth)
 
 IMPROVEMENTS
 
+PIG-1290: WeightedRangePartitioner should not check if input is empty if
+quantile file is empty (pradeepkth)
+
 PIG-1262: Additional findbugs and javac warnings (daijy)
 
 PIG-1248: [piggybank] some useful String functions (dvryaboy)
