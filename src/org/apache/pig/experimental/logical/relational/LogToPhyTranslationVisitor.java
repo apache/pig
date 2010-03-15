@@ -23,12 +23,15 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Stack;
+
+import org.apache.pig.FuncSpec;
 import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.LogicalToPhysicalTranslatorException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POProject;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POCollectedGroup;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POFRJoin;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POFilter;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POForEach;
@@ -38,10 +41,14 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POMergeJoin;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPackage;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSkewedJoin;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSplit;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POUnion;
+import org.apache.pig.builtin.BinStorage;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
+import org.apache.pig.experimental.logical.expression.BagDereferenceExpression;
 import org.apache.pig.experimental.logical.expression.ExpToPhyTranslationVisitor;
 import org.apache.pig.experimental.logical.expression.LogicalExpressionPlan;
 import org.apache.pig.experimental.logical.expression.ProjectExpression;
@@ -53,7 +60,10 @@ import org.apache.pig.experimental.plan.PlanWalker;
 import org.apache.pig.experimental.plan.ReverseDependencyOrderWalker;
 import org.apache.pig.experimental.plan.SubtreeDependencyOrderWalker;
 import org.apache.pig.impl.PigContext;
+import org.apache.pig.impl.io.FileLocalizer;
+import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.logicalLayer.FrontendException;
+import org.apache.pig.impl.logicalLayer.LogicalOperator;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.logicalLayer.schema.Schema.FieldSchema;
 import org.apache.pig.impl.plan.NodeIdGenerator;
@@ -185,6 +195,7 @@ public class LogToPhyTranslationVisitor extends LogicalPlanVisitor {
             exprOp.setResultType(s.getField(0).type);
         }
         exprOp.setColumn(load.getColNum());
+        exprOp.setStar(load.getProjection().isProjectStar());        
         
         // set input to POProject to the predecessor of foreach
         
@@ -221,8 +232,8 @@ public class LogToPhyTranslationVisitor extends LogicalPlanVisitor {
             List<Operator> leaves = exps.get(i).getSinks();
             for(Operator l: leaves) {
                 PhysicalOperator op = logToPhyMap.get(l);
-                if (l instanceof ProjectExpression) {
-                    int input = ((ProjectExpression)l).getInputNum();
+                if (l instanceof ProjectExpression ) {
+                    int input = ((ProjectExpression)l).getInputNum();                    
                     
                     // for each sink projection, get its input logical plan and translate it
                     Operator pred = preds.get(input);
@@ -240,16 +251,15 @@ public class LogToPhyTranslationVisitor extends LogicalPlanVisitor {
                         // comes from expression plan
                         currentPlan.remove(leaf);
                         logToPhyMap.remove(pred);
+
                         ((POProject)op).setColumn( ((POProject)leaf).getColumn() );
-                           
+                        ((POProject)op).setStar(((POProject)leaf).isStar());
+
                     }else{                    
                         currentPlan.connect(leaf, op);
                     }
                 }
             }  
-           
-            
-            
             innerPlans.add(currentPlan);
         }
         
@@ -416,6 +426,127 @@ public class LogToPhyTranslationVisitor extends LogicalPlanVisitor {
     }
     
     @Override
+    public void visitLOCogroup( LOCogroup cg ) throws IOException {
+        if (cg.getGroupType() == LOCogroup.GROUPTYPE.COLLECTED) {
+            translateCollectedCogroup(cg);
+        } else {
+            translateRegularCogroup(cg);
+        }
+    }
+    
+    private void translateRegularCogroup(LOCogroup cg) throws IOException {
+        List<Operator> preds = plan.getPredecessors(cg);
+        
+        POGlobalRearrange poGlobal = new POGlobalRearrange(new OperatorKey(
+                DEFAULT_SCOPE, nodeGen.getNextNodeId(DEFAULT_SCOPE)), cg.getRequestedParallelisam() );
+        poGlobal.setAlias(cg.getAlias());
+        POPackage poPackage = new POPackage(new OperatorKey(DEFAULT_SCOPE, nodeGen
+                .getNextNodeId(DEFAULT_SCOPE)), cg.getRequestedParallelisam());
+        poPackage.setAlias(cg.getAlias());
+        currentPlan.add(poGlobal);
+        currentPlan.add(poPackage);
+
+        try {
+            currentPlan.connect(poGlobal, poPackage);
+        } catch (PlanException e1) {
+            int errCode = 2015;
+            String msg = "Invalid physical operators in the physical plan" ;
+            throw new LogicalToPhysicalTranslatorException(msg, errCode, PigException.BUG, e1);
+        }
+
+        Byte type = null;
+        for( int i = 0 ; i < preds.size(); i++ ) {
+            ArrayList<LogicalExpressionPlan> exprPlans = 
+                (ArrayList<LogicalExpressionPlan>) cg.getExpressionPlans().get(i);
+            
+            POLocalRearrange physOp = new POLocalRearrange(new OperatorKey(
+                    DEFAULT_SCOPE, nodeGen.getNextNodeId(DEFAULT_SCOPE)), cg.getRequestedParallelisam() );
+            physOp.setAlias(cg.getAlias());
+            
+            List<PhysicalPlan> pExprPlans = translateExpressionPlans( cg, exprPlans );
+            
+            try {
+                physOp.setPlans(pExprPlans);
+            } catch (PlanException pe) {
+                int errCode = 2071;
+                String msg = "Problem with setting up local rearrange's plans.";
+                throw new LogicalToPhysicalTranslatorException(msg, errCode, PigException.BUG, pe);
+            }
+            try {
+                physOp.setIndex(i);
+            } catch (ExecException e1) {
+                // int errCode = 2058;
+                String msg = "Unable to set index on newly create POLocalRearrange.";
+                throw new IOException(msg);
+            }
+            if (exprPlans.size() > 1) {
+                type = DataType.TUPLE;
+                physOp.setKeyType(type);
+            } else {
+                type = pExprPlans.get(0).getLeaves().get(0).getResultType();
+                physOp.setKeyType(type);
+            }
+            physOp.setResultType(DataType.TUPLE);
+
+            currentPlan.add(physOp);
+
+            try {
+                currentPlan.connect(logToPhyMap.get(preds.get(i)), physOp);
+                currentPlan.connect(physOp, poGlobal);
+            } catch (PlanException e) {
+                int errCode = 2015;
+                String msg = "Invalid physical operators in the physical plan" ;
+                throw new LogicalToPhysicalTranslatorException(msg, errCode, PigException.BUG, e);
+            }
+        }
+        
+        poPackage.setKeyType(type);
+        poPackage.setResultType(DataType.TUPLE);
+        poPackage.setNumInps(preds.size());
+        poPackage.setInner(cg.getInner());
+        logToPhyMap.put(cg, poPackage);
+    }
+    
+    private void translateCollectedCogroup(LOCogroup cg) throws IOException {
+        // can have only one input
+        LogicalRelationalOperator pred = (LogicalRelationalOperator) plan.getPredecessors(cg).get(0);
+        List<LogicalExpressionPlan> exprPlans = (List<LogicalExpressionPlan>) cg.getExpressionPlans().get(0);
+        POCollectedGroup physOp = new POCollectedGroup(new OperatorKey(
+                DEFAULT_SCOPE, nodeGen.getNextNodeId(DEFAULT_SCOPE)));
+        physOp.setAlias(cg.getAlias());
+        List<PhysicalPlan> pExprPlans = translateExpressionPlans(cg, exprPlans);
+        
+        try {
+            physOp.setPlans(pExprPlans);
+        } catch (PlanException pe) {
+            int errCode = 2071;
+            String msg = "Problem with setting up map group's plans.";
+            throw new LogicalToPhysicalTranslatorException(msg, errCode, PigException.BUG, pe);
+        }
+        Byte type = null;
+        if (exprPlans.size() > 1) {
+            type = DataType.TUPLE;
+            physOp.setKeyType(type);
+        } else {
+            type = pExprPlans.get(0).getLeaves().get(0).getResultType();
+            physOp.setKeyType(type);
+        }
+        physOp.setResultType(DataType.TUPLE);
+
+        currentPlan.add(physOp);
+              
+        try {
+            currentPlan.connect(logToPhyMap.get(pred), physOp);
+        } catch (PlanException e) {
+            int errCode = 2015;
+            String msg = "Invalid physical operators in the physical plan" ;
+            throw new LogicalToPhysicalTranslatorException(msg, errCode, PigException.BUG, e);
+        }
+
+        logToPhyMap.put(cg, physOp);
+    }
+    
+    @Override
     public void visitLOJoin(LOJoin loj) throws IOException {
         String scope = DEFAULT_SCOPE;
 //        System.err.println("Entering Join");
@@ -448,23 +579,6 @@ public class LogToPhyTranslationVisitor extends LogicalPlanVisitor {
             // Convert the expression plan into physical Plan
             List<PhysicalPlan> exprPlans = translateExpressionPlans(loj, plans);
 
-//            currentPlans.push(currentPlan);
-//            for (LogicalExpressionPlan lp : plans) {
-//                currentPlan = new PhysicalPlan();
-//                
-//                // We spawn a new Dependency Walker and use it 
-//                PlanWalker childWalker = currentWalker.spawnChildWalker(lp);
-//                pushWalker(childWalker);
-//                // We create a new ExpToPhyTranslationVisitor to walk the ExpressionPlan
-//                currentWalker.walk(
-//                        new ExpToPhyTranslationVisitor(currentWalker.getPlan(), 
-//                                childWalker) );
-//                
-//                exprPlans.add(currentPlan);
-//                popWalker();
-//            }
-//            currentPlan = currentPlans.pop();
-            
             ppLists.add(exprPlans);
             joinPlans.put(physOp, exprPlans);
             
@@ -745,6 +859,128 @@ public class LogToPhyTranslationVisitor extends LogicalPlanVisitor {
 //        System.err.println("Exiting Join");
     }
     
+    @Override
+    public void visitLOUnion(LOUnion loUnion) throws IOException {
+        String scope = DEFAULT_SCOPE;
+        POUnion physOp = new POUnion(new OperatorKey(scope,nodeGen.getNextNodeId(scope)), loUnion.getRequestedParallelisam());
+        physOp.setAlias(loUnion.getAlias());
+        currentPlan.add(physOp);
+        physOp.setResultType(DataType.BAG);
+        logToPhyMap.put(loUnion, physOp);
+        List<Operator> ops = plan.getPredecessors(loUnion);
+
+        for (Operator l : ops) {
+            PhysicalOperator from = logToPhyMap.get(l);
+            try {
+                currentPlan.connect(from, physOp);
+            } catch (PlanException e) {
+                int errCode = 2015;
+                String msg = "Invalid physical operators in the physical plan" ;
+                throw new LogicalToPhysicalTranslatorException(msg, errCode, PigException.BUG, e);
+            }
+        }
+    }
+    
+    @Override
+    public void visitLOSplit(LOSplit loSplit) throws IOException {
+        String scope = DEFAULT_SCOPE;
+        POSplit physOp = new POSplit(new OperatorKey(scope, nodeGen
+                .getNextNodeId(scope)), loSplit.getRequestedParallelisam());
+        physOp.setAlias(loSplit.getAlias());
+        FileSpec splStrFile;
+        try {
+            splStrFile = new FileSpec(FileLocalizer.getTemporaryPath(null, pc).toString(),new FuncSpec(BinStorage.class.getName()));
+        } catch (IOException e1) {
+            byte errSrc = pc.getErrorSource();
+            int errCode = 0;
+            switch(errSrc) {
+            case PigException.BUG:
+                errCode = 2016;
+                break;
+            case PigException.REMOTE_ENVIRONMENT:
+                errCode = 6002;
+                break;
+            case PigException.USER_ENVIRONMENT:
+                errCode = 4003;
+                break;
+            }
+            String msg = "Unable to obtain a temporary path." ;
+            throw new LogicalToPhysicalTranslatorException(msg, errCode, errSrc, e1);
+
+        }
+        physOp.setSplitStore(splStrFile);
+        logToPhyMap.put(loSplit, physOp);
+
+        currentPlan.add(physOp);
+
+        List<Operator> op = plan.getPredecessors(loSplit); 
+        PhysicalOperator from;
+        
+        if(op != null) {
+            from = logToPhyMap.get(op.get(0));
+        } else {
+            int errCode = 2051;
+            String msg = "Did not find a predecessor for Split." ;
+            throw new LogicalToPhysicalTranslatorException(msg, errCode, PigException.BUG);            
+        }        
+
+        try {
+            currentPlan.connect(from, physOp);
+        } catch (PlanException e) {
+            int errCode = 2015;
+            String msg = "Invalid physical operators in the physical plan" ;
+            throw new LogicalToPhysicalTranslatorException(msg, errCode, PigException.BUG, e);
+        }
+    }
+    
+    @Override
+    public void visitLOSplitOutput(LOSplitOutput loSplitOutput) throws IOException {
+        String scope = DEFAULT_SCOPE;
+//        System.err.println("Entering Filter");
+        POFilter poFilter = new POFilter(new OperatorKey(scope, nodeGen
+                .getNextNodeId(scope)), loSplitOutput.getRequestedParallelisam());
+        poFilter.setAlias(loSplitOutput.getAlias());
+        poFilter.setResultType(DataType.BAG);
+        currentPlan.add(poFilter);
+        logToPhyMap.put(loSplitOutput, poFilter);
+        currentPlans.push(currentPlan);
+
+        currentPlan = new PhysicalPlan();
+
+//        PlanWalker childWalker = currentWalker
+//                .spawnChildWalker(filter.getFilterPlan());
+        PlanWalker childWalker = new ReverseDependencyOrderWalker(loSplitOutput.getFilterPlan());
+        pushWalker(childWalker);
+        //currentWalker.walk(this);
+        currentWalker.walk(
+                new ExpToPhyTranslationVisitor( currentWalker.getPlan(), 
+                        childWalker, loSplitOutput, currentPlan, logToPhyMap ) );
+        popWalker();
+
+        poFilter.setPlan(currentPlan);
+        currentPlan = currentPlans.pop();
+
+        List<Operator> op = loSplitOutput.getPlan().getPredecessors(loSplitOutput);
+
+        PhysicalOperator from;
+        if(op != null) {
+            from = logToPhyMap.get(op.get(0));
+        } else {
+            int errCode = 2051;
+            String msg = "Did not find a predecessor for Filter." ;
+            throw new LogicalToPhysicalTranslatorException(msg, errCode, PigException.BUG);
+        }
+        
+        try {
+            currentPlan.connect(from, poFilter);
+        } catch (PlanException e) {
+            int errCode = 2015;
+            String msg = "Invalid physical operators in the physical plan" ;
+            throw new LogicalToPhysicalTranslatorException(msg, errCode, PigException.BUG, e);
+        }
+//        System.err.println("Exiting Filter");
+    }
+
     /**
      * updates plan with check for empty bag and if bag is empty to flatten a bag
      * with as many null's as dictated by the schema

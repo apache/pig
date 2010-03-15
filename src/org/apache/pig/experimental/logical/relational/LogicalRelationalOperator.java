@@ -124,7 +124,7 @@ abstract public class LogicalRelationalOperator extends Operator {
      * is defined here as having equal schemas and  predecessors that are equal.
      * This is intended to be used by operators' equals methods.
      * @param other LogicalRelationalOperator to compare predecessors against
-     * @return true if the equals() methods of this node's predecessor(s) returns
+     * @return true if the isEquals() methods of this node's predecessor(s) returns
      * true when invoked with other's predecessor(s).
      */
     protected boolean checkEquality(LogicalRelationalOperator other) {

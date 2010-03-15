@@ -98,4 +98,17 @@ public abstract class LogicalExpressionVisitor extends PlanVisitor {
 
     public void visitMapLookup(MapLookupExpression op) throws IOException {
     }
+
+    public void visitBinCond(BinCondExpression op) throws IOException {        
+    }
+
+    public void visitUserFunc(UserFuncExpression op) throws IOException {
+    }
+
+    public void visitBagDereference(
+            BagDereferenceExpression bagDerefenceExpression) throws IOException {
+    }
+
+    public void visitRegex(RegexExpression op) throws IOException {
+    }
 }

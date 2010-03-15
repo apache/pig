@@ -172,13 +172,13 @@ public class PushUpFilter extends Rule {
         // check if a relational operator contains all of the specified uids
         private boolean hasAll(LogicalRelationalOperator op, Set<Long> uids) {
             LogicalSchema schema = op.getSchema();
-            List<LogicalSchema.LogicalFieldSchema> fields = schema.getFields();
-            Set<Long> all = new HashSet<Long>();
-            for(LogicalSchema.LogicalFieldSchema f:fields) {
-                all.add(f.uid);
+            for(long uid: uids) {
+                if (schema.findField(uid) == -1) {
+                    return false;
+                }
             }
             
-            return all.containsAll(uids);
+            return true;
         }
            
         @Override

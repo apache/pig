@@ -18,6 +18,10 @@
 
 package org.apache.pig.experimental.logical.relational;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.PrintStream;
+
 import org.apache.pig.experimental.plan.BaseOperatorPlan;
 import org.apache.pig.experimental.plan.OperatorPlan;
 
@@ -50,5 +54,4 @@ public class LogicalPlan extends BaseOperatorPlan {
         
         return super.isEqual(other);   
     }
-    
 }

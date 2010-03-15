@@ -18,10 +18,13 @@
 package org.apache.pig.experimental.logical.expression;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Stack;
 
+import org.apache.pig.ComparisonFunc;
+import org.apache.pig.EvalFunc;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.PigException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.LogicalToPhysicalTranslatorException;
@@ -39,6 +42,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.Multiply;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.NotEqualToExpr;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POAnd;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POBinCond;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POCast;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POIsNull;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POMapLookUp;
@@ -46,7 +50,10 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.PONot;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POOr;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POProject;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.PORegexp;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.PORelationToExprProject;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POUserComparisonFunc;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POUserFunc;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.Subtract;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.data.DataType;
@@ -56,6 +63,7 @@ import org.apache.pig.experimental.plan.Operator;
 import org.apache.pig.experimental.plan.OperatorPlan;
 import org.apache.pig.experimental.plan.PlanWalker;
 import org.apache.pig.impl.PigContext;
+import org.apache.pig.impl.logicalLayer.LogicalOperator;
 import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.PlanException;
@@ -234,48 +242,23 @@ public class ExpToPhyTranslationVisitor extends LogicalExpressionVisitor {
     
     @Override
     public void visitProject(ProjectExpression op) throws IOException {
-//        System.err.println("Entering Project");
         POProject exprOp;
        
-        if(op.getType() == DataType.BAG) {
-            exprOp = new PORelationToExprProject(new OperatorKey(DEFAULT_SCOPE, nodeGen
-                .getNextNodeId(DEFAULT_SCOPE)));
-         } else {
+//        if(op.getType() == DataType.BAG) {
+//            exprOp = new PORelationToExprProject(new OperatorKey(DEFAULT_SCOPE, nodeGen
+//                .getNextNodeId(DEFAULT_SCOPE)));
+//         } else {
             exprOp = new POProject(new OperatorKey(DEFAULT_SCOPE, nodeGen
                 .getNextNodeId(DEFAULT_SCOPE)));
-        }
+//        }
         
-        // We dont have aliases in ExpressionOperators
-        // exprOp.setAlias(op.getAlias());
         exprOp.setResultType(op.getType());
         exprOp.setColumn(op.getColNum());
-        exprOp.setStar(false);
+        exprOp.setStar(op.isProjectStar());
         // TODO implement this
 //        exprOp.setOverloaded(op.getOverloaded());
         logToPhyMap.put(op, exprOp);
-        currentPlan.add(exprOp);
-        
-        // We only have one input so connection is required from only one predecessor
-//        PhysicalOperator from = logToPhyMap.get(op.findReferent(currentOp));
-//        currentPlan.connect(from, exprOp);
-        
-//        List<Operator> predecessors = lp.getPredecessors(op);
-//
-//        // Project might not have any predecessors
-//        if (predecessors == null)
-//            return;
-//
-//        for (Operator lo : predecessors) {
-//            PhysicalOperator from = logToPhyMap.get(lo);
-//            try {
-//                currentPlan.connect(from, exprOp);
-//            } catch (PlanException e) {
-//                int errCode = 2015;
-//                String msg = "Invalid physical operators in the physical plan" ;
-//                throw new LogicalToPhysicalTranslatorException(msg, errCode, PigException.BUG, e);
-//            }
-//        }
-//        System.err.println("Exiting Project");
+        currentPlan.add(exprOp);        
     }
     
     @Override
@@ -351,7 +334,9 @@ public class ExpToPhyTranslationVisitor extends LogicalExpressionVisitor {
         logToPhyMap.put(op, pNot);
         ExpressionOperator from = (ExpressionOperator) logToPhyMap.get(op
                 .getExpression());
-        pNot.setResultType(op.getType());        
+        pNot.setExpr(from);
+        pNot.setResultType(op.getType());
+        pNot.setOperandType(op.getType());
         try {
             currentPlan.connect(from, pNot);
         } catch (PlanException e) {
@@ -371,7 +356,9 @@ public class ExpToPhyTranslationVisitor extends LogicalExpressionVisitor {
         logToPhyMap.put(op, pIsNull);
         ExpressionOperator from = (ExpressionOperator) logToPhyMap.get(op
                 .getExpression());
-        pIsNull.setResultType(op.getType());        
+        pIsNull.setExpr(from);
+        pIsNull.setResultType(op.getType());
+        pIsNull.setOperandType(op.getType());
         try {
             currentPlan.connect(from, pIsNull);
         } catch (PlanException e) {
@@ -409,6 +396,13 @@ public class ExpToPhyTranslationVisitor extends LogicalExpressionVisitor {
     }
     
     @Override
+    public void visitRegex( RegexExpression op ) throws IOException {        
+        BinaryExpressionOperator exprOp = new PORegexp(new OperatorKey(DEFAULT_SCOPE, nodeGen.getNextNodeId(DEFAULT_SCOPE)));        
+        
+        attachBinaryExpressionOperator(op, exprOp);
+    }
+    
+    @Override
     public void visitSubtract( SubtractExpression op ) throws IOException {        
         BinaryExpressionOperator exprOp = new Subtract(new OperatorKey(DEFAULT_SCOPE, nodeGen.getNextNodeId(DEFAULT_SCOPE)));        
         
@@ -434,5 +428,86 @@ public class ExpToPhyTranslationVisitor extends LogicalExpressionVisitor {
         BinaryExpressionOperator exprOp = new Mod(new OperatorKey(DEFAULT_SCOPE, nodeGen.getNextNodeId(DEFAULT_SCOPE)));        
         
         attachBinaryExpressionOperator(op, exprOp);
+    }
+    
+    @Override
+    public void visitBinCond( BinCondExpression op ) throws IOException {
+        
+        POBinCond exprOp = new POBinCond( new OperatorKey(DEFAULT_SCOPE,
+                nodeGen.getNextNodeId(DEFAULT_SCOPE)) );
+        
+        exprOp.setResultType(op.getType());
+        exprOp.setCond((ExpressionOperator) logToPhyMap.get(op.getCondition()));
+        exprOp.setLhs((ExpressionOperator) logToPhyMap.get(op.getLhs()));
+        exprOp.setRhs((ExpressionOperator) logToPhyMap.get(op.getRhs()));
+        OperatorPlan oPlan = op.getPlan();
+
+        currentPlan.add(exprOp);
+        logToPhyMap.put(op, exprOp);
+
+        List<Operator> successors = oPlan.getSuccessors(op);
+        if (successors == null) {
+            return;
+        }
+        for (Operator lo : successors) {
+            PhysicalOperator from = logToPhyMap.get(lo);
+            try {
+                currentPlan.connect(from, exprOp);
+            } catch (PlanException e) {
+                int errCode = 2015;
+                String msg = "Invalid physical operators in the physical plan" ;
+                throw new LogicalToPhysicalTranslatorException(msg, errCode, PigException.BUG, e);
+            }
+        }
+    }
+    
+    @SuppressWarnings("unchecked")
+    @Override
+    public void visitUserFunc( UserFuncExpression op ) throws IOException {       
+        Object f = PigContext.instantiateFuncFromSpec(op.getFuncSpec());
+        PhysicalOperator p;
+        if (f instanceof EvalFunc) {
+            p = new POUserFunc(new OperatorKey(DEFAULT_SCOPE, nodeGen
+                    .getNextNodeId(DEFAULT_SCOPE)), -1,
+                    null, op.getFuncSpec(), (EvalFunc) f);
+        } else {
+            p = new POUserComparisonFunc(new OperatorKey(DEFAULT_SCOPE, nodeGen
+                    .getNextNodeId(DEFAULT_SCOPE)), -1,
+                    null, op.getFuncSpec(), (ComparisonFunc) f);
+        }
+        p.setResultType(op.getType());
+        currentPlan.add(p);
+        List<LogicalExpression> fromList = op.getArguments();
+        if(fromList!=null){
+            for (LogicalExpression inputOperator : fromList) {
+                PhysicalOperator from = logToPhyMap.get(inputOperator);
+                try {
+                    currentPlan.connect(from, p);
+                } catch (PlanException e) {
+                    int errCode = 2015;
+                    String msg = "Invalid physical operators in the physical plan" ;
+                    throw new LogicalToPhysicalTranslatorException(msg, errCode, PigException.BUG, e);
+                }
+            }
+        }
+        logToPhyMap.put(op, p);
+    }
+    
+    @Override
+    public void visitBagDereference( BagDereferenceExpression op ) throws IOException {
+        POProject exprOp = new POProject(new OperatorKey(DEFAULT_SCOPE, nodeGen
+                .getNextNodeId(DEFAULT_SCOPE)));
+
+        exprOp.setResultType(op.getType());
+        exprOp.setColumns((ArrayList<Integer>)op.getBagColumns());        
+        exprOp.setStar(false);
+        logToPhyMap.put(op, exprOp);
+        currentPlan.add(exprOp);
+        
+        PhysicalOperator from = logToPhyMap.get( op.getProjectExpression() );
+        
+        if( from != null ) {
+            currentPlan.connect(from, exprOp);
+        }
     }
 }

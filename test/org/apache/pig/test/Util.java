@@ -21,6 +21,7 @@ import static java.util.regex.Matcher.quoteReplacement;
 
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.FileReader;
@@ -29,6 +30,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
+import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -58,6 +60,7 @@ import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
+import org.apache.pig.experimental.logical.optimizer.PlanPrinter;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.logicalLayer.LogicalPlan;
@@ -506,4 +509,28 @@ public class Util {
                 pigContext.getProperties());
         createInputFile(FileSystem.get(conf), fileName, input); 
     }
+    
+    public static void printPlan(org.apache.pig.experimental.logical.relational.LogicalPlan logicalPlan ) throws Exception {
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        PrintStream ps = new PrintStream(out);
+        PlanPrinter pp = new PlanPrinter(logicalPlan,ps);
+        pp.visit();
+        System.err.println(out.toString());
+    }
+
+    public static void printPlan(LogicalPlan logicalPlan) throws Exception {
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        PrintStream ps = new PrintStream(out);
+        logicalPlan.explain(ps, "text", true);
+        System.err.println(out.toString());
+    }
+
+    public static void printPlan(PhysicalPlan physicalPlan) throws Exception {
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        PrintStream ps = new PrintStream(out);
+        physicalPlan.explain(ps, "text", true);
+        System.err.println(out.toString());
+    }
+
+
 }

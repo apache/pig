@@ -21,11 +21,13 @@ package org.apache.pig.experimental.logical.optimizer;
 import java.io.IOException;
 import java.util.List;
 
+import org.apache.pig.experimental.logical.expression.BagDereferenceExpression;
 import org.apache.pig.experimental.logical.expression.LogicalExpressionPlan;
 import org.apache.pig.experimental.logical.expression.LogicalExpressionVisitor;
 import org.apache.pig.experimental.logical.expression.ProjectExpression;
 import org.apache.pig.experimental.logical.relational.LogicalRelationalOperator;
 import org.apache.pig.experimental.logical.relational.LogicalSchema;
+import org.apache.pig.experimental.plan.DependencyOrderWalker;
 import org.apache.pig.experimental.plan.DepthFirstWalker;
 import org.apache.pig.experimental.plan.Operator;
 import org.apache.pig.experimental.plan.OperatorPlan;
@@ -58,6 +60,11 @@ public class ProjectionPatcher implements PlanTransformListener {
         
         @Override
         public void visitProject(ProjectExpression p) throws IOException {
+            // if projection is for everything, just return
+            if (p.isProjectStar()) {
+                return;
+            }
+            
             // Get the uid for this projection.  It must match the uid of the 
             // value it is projecting.
             long myUid = p.getUid();
@@ -79,14 +86,13 @@ public class ProjectionPatcher implements PlanTransformListener {
                 throw new IOException("Couldn't find matching uid for project");
             }
             p.setColNum(match);
-        }
-        
+        }        
     }
     
     private static class ProjectionFinder extends AllExpressionVisitor {
 
         public ProjectionFinder(OperatorPlan plan) {
-            super(plan, new DepthFirstWalker(plan));
+            super(plan, new DependencyOrderWalker(plan));
         }
 
         @Override

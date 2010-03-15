@@ -55,7 +55,10 @@ public class SchemaPatcher implements PlanTransformListener {
         @Override
         protected void execute(LogicalRelationalOperator op) throws IOException {
             op.resetSchema();
-            op.getSchema();
+            
+            // can not call get schema at this point, because projections have not been
+            // adjusted. So only clean it up 
+            // op.getSchema();
         }
         
     }

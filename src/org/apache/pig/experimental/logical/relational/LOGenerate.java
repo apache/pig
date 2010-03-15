@@ -63,6 +63,13 @@ public class LOGenerate extends LogicalRelationalOperator {
                 }
                 LogicalSchema s = op.getSchema();
                 if (s != null) {
+                    if (((ProjectExpression)exp).isProjectStar()) {
+                        for(LogicalFieldSchema f: s.getFields()) {
+                            schema.addField(f);
+                        }
+                        continue;
+                    }
+                    
                     fieldSchema = s.getField(((ProjectExpression)exp).getColNum()).schema;
                     alias = s.getField(((ProjectExpression)exp).getColNum()).alias;
                 }
@@ -112,6 +119,10 @@ public class LOGenerate extends LogicalRelationalOperator {
     
     public boolean[] getFlattenFlags() {
         return flattenFlags;
+    }
+    
+    public void setFlattenFlags(boolean[] flatten) {
+        flattenFlags = flatten;
     }
     
     @Override
