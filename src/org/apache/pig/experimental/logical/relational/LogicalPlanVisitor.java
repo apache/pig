@@ -62,4 +62,16 @@ public abstract class LogicalPlanVisitor extends PlanVisitor {
     
     public void visitLOInnerLoad(LOInnerLoad load) throws IOException {
     }
+
+    public void visitLOCogroup(LOCogroup loCogroup) throws IOException {
+    }
+    
+    public void visitLOSplit(LOSplit loSplit) throws IOException {
+    }
+    
+    public void visitLOSplitOutput(LOSplitOutput loSplitOutput) throws IOException {
+    }
+    
+    public void visitLOUnion(LOUnion loUnion) throws IOException {
+    }
 }

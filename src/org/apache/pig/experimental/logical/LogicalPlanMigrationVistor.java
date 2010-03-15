@@ -19,12 +19,13 @@ package org.apache.pig.experimental.logical;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 
 import org.apache.pig.data.DataType;
 import org.apache.pig.experimental.logical.expression.AddExpression;
 import org.apache.pig.experimental.logical.expression.AndExpression;
+import org.apache.pig.experimental.logical.expression.BagDereferenceExpression;
+import org.apache.pig.experimental.logical.expression.BinCondExpression;
 import org.apache.pig.experimental.logical.expression.CastExpression;
 import org.apache.pig.experimental.logical.expression.ConstantExpression;
 import org.apache.pig.experimental.logical.expression.DivideExpression;
@@ -44,10 +45,13 @@ import org.apache.pig.experimental.logical.expression.NotEqualExpression;
 import org.apache.pig.experimental.logical.expression.NotExpression;
 import org.apache.pig.experimental.logical.expression.OrExpression;
 import org.apache.pig.experimental.logical.expression.ProjectExpression;
+import org.apache.pig.experimental.logical.expression.RegexExpression;
 import org.apache.pig.experimental.logical.expression.SubtractExpression;
+import org.apache.pig.experimental.logical.expression.UserFuncExpression;
 import org.apache.pig.experimental.logical.relational.LOInnerLoad;
 import org.apache.pig.experimental.logical.relational.LogicalRelationalOperator;
 import org.apache.pig.experimental.logical.relational.LogicalSchema;
+import org.apache.pig.experimental.plan.Operator;
 import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.logicalLayer.ExpressionOperator;
 import org.apache.pig.impl.logicalLayer.FrontendException;
@@ -92,6 +96,7 @@ import org.apache.pig.impl.logicalLayer.LOUserFunc;
 import org.apache.pig.impl.logicalLayer.LOVisitor;
 import org.apache.pig.impl.logicalLayer.LogicalOperator;
 import org.apache.pig.impl.logicalLayer.LogicalPlan;
+import org.apache.pig.impl.logicalLayer.LOCogroup.GROUPTYPE;
 import org.apache.pig.impl.logicalLayer.LOJoin.JOINTYPE;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.logicalLayer.schema.Schema.FieldSchema;
@@ -100,6 +105,9 @@ import org.apache.pig.impl.plan.PlanWalker;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.util.MultiMap;
 
+/**
+ * Translate old logical plan into new logical plan
+ */
 public class LogicalPlanMigrationVistor extends LOVisitor { 
     private org.apache.pig.experimental.logical.relational.LogicalPlan logicalPlan;
     private HashMap<LogicalOperator, LogicalRelationalOperator> opsMap;
@@ -153,7 +161,39 @@ public class LogicalPlanMigrationVistor extends LOVisitor {
     }
     
     public void visit(LOCogroup cg) throws VisitorException {
-        throw new VisitorException("LOCogroup is not supported.");
+        
+        // Get the GroupType information
+        org.apache.pig.experimental.logical.relational.LOCogroup.GROUPTYPE grouptype;
+        if( cg.getGroupType() == GROUPTYPE.COLLECTED ) {
+            grouptype = org.apache.pig.experimental.logical.relational.LOCogroup.GROUPTYPE.COLLECTED;
+        } else {
+            grouptype = org.apache.pig.experimental.logical.relational.LOCogroup.GROUPTYPE.REGULAR;
+        }
+        
+        // Convert the multimap of expressionplans to a new way
+        ArrayList<LogicalOperator> inputs = (ArrayList<LogicalOperator>) cg.getInputs();
+        MultiMap<Integer, LogicalExpressionPlan> newExpressionPlans = 
+            new MultiMap<Integer, LogicalExpressionPlan>();
+        
+        for( int i = 0; i < inputs.size(); i++ ) {
+            ArrayList<LogicalPlan> plans = 
+                (ArrayList<LogicalPlan>) cg.getGroupByPlans().get(inputs.get(i));
+            for( LogicalPlan plan : plans ) {
+                LogicalExpressionPlan expPlan = translateExpressionPlan(plan);
+                newExpressionPlans.put(Integer.valueOf(i), expPlan);
+            }
+        }
+
+        org.apache.pig.experimental.logical.relational.LOCogroup newCogroup =
+            new org.apache.pig.experimental.logical.relational.LOCogroup
+            (logicalPlan, newExpressionPlans, grouptype, cg.getInner(), 
+                    cg.getRequestedParallelism() );
+        
+        newCogroup.setAlias(cg.getAlias());
+        
+        logicalPlan.add(newCogroup);
+        opsMap.put(cg, newCogroup);
+        translateConnection(cg, newCogroup);
     }
 
     public void visit(LOJoin loj) throws VisitorException {
@@ -220,51 +260,10 @@ public class LogicalPlanMigrationVistor extends LOVisitor {
         innerPlan.add(gen);                
         
         List<LogicalPlan> ll = forEach.getForEachPlans();
-        int index = 0;
         for(int i=0; i<ll.size(); i++) {
             LogicalPlan lp = ll.get(i);
             ForeachInnerPlanVisitor v = new ForeachInnerPlanVisitor(newForeach, forEach, lp);
-            v.visit();
-                                    
-            // get the logical plan for this inner plan and merge it as subplan of LOGenerator            
-            if (v.tmpPlan.size() > 0) {
-                // add all operators into innerplan
-                Iterator<org.apache.pig.experimental.plan.Operator> iter = v.tmpPlan.getOperators();
-                while(iter.hasNext()) {
-                    innerPlan.add(iter.next());
-                }
-                
-                // connect sinks to generator
-                // the list returned may not be in correct order, so check annotation             
-                // to guarantee correct order
-                List<org.apache.pig.experimental.plan.Operator> s = v.tmpPlan.getSinks();
-                for(int j=0; j<s.size(); j++) {
-                    for(org.apache.pig.experimental.plan.Operator op: s) {
-                        if (Integer.valueOf(j+index).equals(op.getAnnotation("inputNo"))) {
-                            innerPlan.connect(op, gen);        
-                            break;
-                        }            	
-                    }
-                }
-                index += s.size();
-                
-                // copy connections 
-                iter = v.tmpPlan.getOperators();
-                while(iter.hasNext()) {
-                    org.apache.pig.experimental.plan.Operator op = iter.next();
-                    op.removeAnnotation("inputNo");
-                    try{
-                        List<org.apache.pig.experimental.plan.Operator> succ = v.tmpPlan.getSuccessors(op);
-                        if (succ != null) {
-                            for(org.apache.pig.experimental.plan.Operator ss: succ) {
-                                innerPlan.connect(op, ss);
-                            }
-                        }
-                    }catch(Exception e) {
-                        throw new VisitorException(e);
-                    }
-                }                     
-            }
+            v.visit();           
            
             expPlans.add(v.exprPlan);
         }
@@ -305,9 +304,16 @@ public class LogicalPlanMigrationVistor extends LOVisitor {
     }
 
     public void visit(LOSplit split) throws VisitorException {
-        throw new VisitorException("LOSplit is not supported.");
+        org.apache.pig.experimental.logical.relational.LOSplit newSplit = 
+            new org.apache.pig.experimental.logical.relational.LOSplit(logicalPlan);
+     
+        newSplit.setAlias(split.getAlias());
+        newSplit.setRequestedParallelism(split.getRequestedParallelism());
+        
+        logicalPlan.add(newSplit);
+        opsMap.put(split, newSplit);
+        translateConnection(split, newSplit);
     }
-
 
     public void visit(LOGenerate g) throws VisitorException {
         throw new VisitorException("LOGenerate is not supported.");
@@ -347,12 +353,31 @@ public class LogicalPlanMigrationVistor extends LOVisitor {
         translateConnection(store, newStore);
     }    
 
-    public void visit(LOUnion u) throws VisitorException {
-        throw new VisitorException("LOUnion is not supported.");
+    public void visit(LOUnion union) throws VisitorException {
+        org.apache.pig.experimental.logical.relational.LOUnion newUnion = 
+            new org.apache.pig.experimental.logical.relational.LOUnion(logicalPlan);
+        
+        newUnion.setAlias(union.getAlias());
+        newUnion.setRequestedParallelism(union.getRequestedParallelism());
+        logicalPlan.add(newUnion);
+        opsMap.put(union, newUnion);
+        translateConnection(union, newUnion);
     }
 
-    public void visit(LOSplitOutput sop) throws VisitorException {
-        throw new VisitorException("LOSplitOutput is not supported.");
+    public void visit(LOSplitOutput splitOutput) throws VisitorException {
+        org.apache.pig.experimental.logical.relational.LOSplitOutput newSplitOutput = 
+            new org.apache.pig.experimental.logical.relational.LOSplitOutput(logicalPlan);
+        
+        LogicalPlan filterPlan = splitOutput.getConditionPlan();
+        LogicalExpressionPlan newFilterPlan = translateExpressionPlan(filterPlan);
+      
+        newSplitOutput.setFilterPlan(newFilterPlan);
+        newSplitOutput.setAlias(splitOutput.getAlias());
+        newSplitOutput.setRequestedParallelism(splitOutput.getRequestedParallelism());
+        
+        logicalPlan.add(newSplitOutput);
+        opsMap.put(splitOutput, newSplitOutput);
+        translateConnection(splitOutput, newSplitOutput);
     }
 
     public void visit(LODistinct dt) throws VisitorException {
@@ -363,6 +388,7 @@ public class LogicalPlanMigrationVistor extends LOVisitor {
         throw new VisitorException("LOCross is not supported.");
     }
     
+    // visitor to translate expressions
     public class LogicalExpPlanMigrationVistor extends LOVisitor { 
         
         protected org.apache.pig.experimental.logical.expression.LogicalExpressionPlan exprPlan;
@@ -393,21 +419,14 @@ public class LogicalPlanMigrationVistor extends LOVisitor {
         
         public void visit(LOProject project) throws VisitorException {
             int col = project.getCol();
+            
             LogicalOperator lg = project.getExpression();
             LogicalOperator succed = oldLogicalPlan.getSuccessors(lg).get(0);
             int input = oldLogicalPlan.getPredecessors(succed).indexOf(lg);
                         
             // get data type of projection
-            byte t = DataType.BYTEARRAY;
-            try {
-                Schema s = lg.getSchema();
-                if (s != null) {
-                    t = s.getField(col).type;
-                }
-            }catch(Exception e) {
-                throw new VisitorException(e);
-            }
-            ProjectExpression pe = new ProjectExpression(exprPlan, t, input, col);          
+            byte t = project.getType();            
+            ProjectExpression pe = new ProjectExpression(exprPlan, t, input, project.isStar()?-1:col);          
             
             exprPlan.add(pe);
             exprOpsMap.put(project, pe);       
@@ -466,12 +485,27 @@ public class LogicalPlanMigrationVistor extends LOVisitor {
             exprOpsMap.put(op, eq);
         }
 
-        public void visit(LOUserFunc func) throws VisitorException {
-            throw new VisitorException("LOUserFunc is not supported.");
+        public void visit(LOUserFunc op) throws VisitorException {
+            UserFuncExpression exp = new UserFuncExpression(exprPlan, op.getFuncSpec(), op.getType());
+            
+            List<ExpressionOperator> args = op.getArguments();
+            
+            for( ExpressionOperator arg : args ) {
+                LogicalExpression expArg = exprOpsMap.get(arg);
+                exprPlan.connect(exp, expArg);
+            }
+            
+            exprOpsMap.put(op, exp);
         }
 
-        public void visit(LOBinCond binCond) throws VisitorException {
-            throw new VisitorException("LOBinCond is not supported.");
+        public void visit(LOBinCond op) throws VisitorException {
+            ExpressionOperator condition = op.getCond();
+            ExpressionOperator left = op.getLhsOp();
+            ExpressionOperator right = op.getRhsOp();
+            
+            BinCondExpression exp = new BinCondExpression(exprPlan, op.getType(), 
+                    exprOpsMap.get(condition), exprOpsMap.get(left), exprOpsMap.get(right));
+            exprOpsMap.put(op, exp);
         }
 
         public void visit(LOCast cast) throws VisitorException {
@@ -483,8 +517,13 @@ public class LogicalPlanMigrationVistor extends LOVisitor {
             exprOpsMap.put(cast, c);
         }
         
-        public void visit(LORegexp regexp) throws VisitorException {
-            throw new VisitorException("LORegexp is not supported.");
+        public void visit(LORegexp binOp) throws VisitorException {
+            ExpressionOperator left = binOp.getLhsOperand();
+            ExpressionOperator right = binOp.getRhsOperand();
+            
+            RegexExpression ae = new RegexExpression(exprPlan, binOp.getType()
+                    , exprOpsMap.get(left), exprOpsMap.get(right));
+            exprOpsMap.put(binOp, ae);
         }
 
         public void visit(LONotEqual op) throws VisitorException {
@@ -502,7 +541,7 @@ public class LogicalPlanMigrationVistor extends LOVisitor {
             
             AddExpression ae = new AddExpression(exprPlan, binOp.getType()
                     , exprOpsMap.get(left), exprOpsMap.get(right));
-            exprOpsMap.put(binOp, ae);   
+            exprOpsMap.put(binOp, ae);
         }
 
         public void visit(LOSubtract binOp) throws VisitorException {
@@ -600,19 +639,23 @@ public class LogicalPlanMigrationVistor extends LOVisitor {
     }
     
     // visitor to translate the inner plan of foreach
-    // it has all the operators allowed in the inner plan of foreach
+    // it contains methods to translate all the operators that are allowed 
+    // in the inner plan of foreach
     public class ForeachInnerPlanVisitor extends LogicalExpPlanMigrationVistor {
         private org.apache.pig.experimental.logical.relational.LOForEach foreach;
+        private org.apache.pig.experimental.logical.relational.LogicalPlan newInnerPlan;
         private LOForEach oldForeach;
+        private org.apache.pig.experimental.plan.Operator gen;
         private int inputNo;
         private HashMap<LogicalOperator, LogicalRelationalOperator> innerOpsMap;
-        private org.apache.pig.experimental.logical.relational.LogicalPlan tmpPlan;
 
         public ForeachInnerPlanVisitor(org.apache.pig.experimental.logical.relational.LOForEach foreach, LOForEach oldForeach, LogicalPlan plan) {
             super(plan);	
             this.foreach = foreach;
-            org.apache.pig.experimental.logical.relational.LogicalPlan newInnerPlan = foreach.getInnerPlan();
-            org.apache.pig.experimental.plan.Operator gen = newInnerPlan.getSinks().get(0);
+            newInnerPlan = foreach.getInnerPlan();
+            
+            // get next inputNo 
+            gen = newInnerPlan.getSinks().get(0);
             try {
                 inputNo = 0;
                 List<org.apache.pig.experimental.plan.Operator> suc = newInnerPlan.getPredecessors(gen);
@@ -624,8 +667,7 @@ public class LogicalPlanMigrationVistor extends LOVisitor {
             }        
             this.oldForeach = oldForeach;
                         
-            innerOpsMap = new HashMap<LogicalOperator, LogicalRelationalOperator>();
-            tmpPlan = new org.apache.pig.experimental.logical.relational.LogicalPlan();
+            innerOpsMap = new HashMap<LogicalOperator, LogicalRelationalOperator>();            
         }      
         
         public void visit(LOProject project) throws VisitorException {
@@ -635,20 +677,48 @@ public class LogicalPlanMigrationVistor extends LOVisitor {
                 // if this projection is to get a field from outer plan, change it
                 // to LOInnerLoad
                 
-                LOInnerLoad innerLoad = new LOInnerLoad(tmpPlan, foreach, project.getCol());    
-                // mark the input index of this subtree under LOGenerate
-                // the successors of innerLoad should also annotatet the same inputNo
-                innerLoad.annotate("inputNo", Integer.valueOf(inputNo));
-                tmpPlan.add(innerLoad);                
+                LOInnerLoad innerLoad = new LOInnerLoad(newInnerPlan, foreach, project.isStar()?-1:project.getCol());    
+                
+                newInnerPlan.add(innerLoad);                
                 innerOpsMap.put(project, innerLoad);                
-            } 
             
-            List<LogicalOperator> ll = mPlan.getSuccessors(project);
-            if (ll == null || ll.get(0) instanceof ExpressionOperator) {                      
-                ProjectExpression pe = new ProjectExpression(exprPlan, project.getType(), inputNo++, 0);                              
-                exprPlan.add(pe);
-                exprOpsMap.put(project, pe);       
-                translateConnection(project, pe);            
+            
+                LogicalOperator succ = null;
+                if (mPlan.getSuccessors(project) != null) {
+                    succ = mPlan.getSuccessors(project).get(0);
+                }
+                
+                // The logical plan part for this foreach plan is done, add ProjectExpression 
+                // into expression plan.
+                if (succ == null || succ instanceof ExpressionOperator) {
+                                      
+                    // The logical plan part is done, add this sub plan under LOGenerate, 
+                    // and prepare for the expression plan
+                    newInnerPlan.connect(innerLoad, gen);        
+                    
+                    List<LogicalOperator> ll = mPlan.getSuccessors(project);
+                    if (ll == null || ll.get(0) instanceof ExpressionOperator) {                      
+                        ProjectExpression pe = new ProjectExpression(exprPlan, project.getType(), inputNo++, project.isStar()?-1:0);                              
+                        exprPlan.add(pe);
+                        exprOpsMap.put(project, pe);       
+                        translateConnection(project, pe);
+                    } 
+                }
+            }
+
+            // This case occurs when there are two projects one after another
+            // These projects in combination project a column (bag) out of a tuple 
+            // and then project a column out of this projected bag
+            // Here we merge these two projects into one BagDereferenceExpression
+            if( op instanceof LOProject ) {
+                ProjectExpression projectExp = (ProjectExpression) exprOpsMap.get(op);
+                
+                // Add the bag in the plan
+                BagDereferenceExpression bagDR = new BagDereferenceExpression( 
+                        exprPlan, project.getType(), project.getProjection(), projectExp);                
+                exprOpsMap.put(project, bagDR);
+                                
+                translateConnection( project, bagDR );                
             } 
         }       
         

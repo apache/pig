@@ -20,11 +20,15 @@ package org.apache.pig.experimental.logical.optimizer;
 
 import java.io.IOException;
 
+import org.apache.pig.experimental.logical.relational.LOCogroup;
 import org.apache.pig.experimental.logical.relational.LOFilter;
 import org.apache.pig.experimental.logical.relational.LOForEach;
 import org.apache.pig.experimental.logical.relational.LOJoin;
 import org.apache.pig.experimental.logical.relational.LOLoad;
+import org.apache.pig.experimental.logical.relational.LOSplit;
+import org.apache.pig.experimental.logical.relational.LOSplitOutput;
 import org.apache.pig.experimental.logical.relational.LOStore;
+import org.apache.pig.experimental.logical.relational.LOUnion;
 import org.apache.pig.experimental.logical.relational.LogicalPlanVisitor;
 import org.apache.pig.experimental.logical.relational.LogicalRelationalOperator;
 import org.apache.pig.experimental.plan.OperatorPlan;
@@ -63,6 +67,11 @@ public abstract class AllSameVisitor extends LogicalPlanVisitor {
     }
 
     @Override
+    public void visitLOCogroup(LOCogroup cg) throws IOException {
+        execute(cg);
+    }
+
+    @Override
     public void visitLOLoad(LOLoad load) throws IOException {
         execute(load);
     }
@@ -72,7 +81,23 @@ public abstract class AllSameVisitor extends LogicalPlanVisitor {
         execute(store);
     }
     
+    @Override
     public void visitLOForEach(LOForEach foreach) throws IOException {
         execute(foreach);
+    }
+    
+    @Override
+    public void visitLOSplit(LOSplit split) throws IOException {
+        execute(split);
+    }
+    
+    @Override
+    public void visitLOSplitOutput(LOSplitOutput splitOutput) throws IOException {
+        execute(splitOutput);
+    }
+    
+    @Override
+    public void visitLOUnion(LOUnion union) throws IOException {
+        execute(union);
     }
 }

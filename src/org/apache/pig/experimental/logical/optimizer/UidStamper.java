@@ -23,6 +23,8 @@ import java.util.List;
 
 import org.apache.pig.experimental.logical.expression.AddExpression;
 import org.apache.pig.experimental.logical.expression.AndExpression;
+import org.apache.pig.experimental.logical.expression.BagDereferenceExpression;
+import org.apache.pig.experimental.logical.expression.BinCondExpression;
 import org.apache.pig.experimental.logical.expression.CastExpression;
 import org.apache.pig.experimental.logical.expression.ConstantExpression;
 import org.apache.pig.experimental.logical.expression.DivideExpression;
@@ -43,7 +45,9 @@ import org.apache.pig.experimental.logical.expression.NotEqualExpression;
 import org.apache.pig.experimental.logical.expression.NotExpression;
 import org.apache.pig.experimental.logical.expression.OrExpression;
 import org.apache.pig.experimental.logical.expression.ProjectExpression;
+import org.apache.pig.experimental.logical.expression.RegexExpression;
 import org.apache.pig.experimental.logical.expression.SubtractExpression;
+import org.apache.pig.experimental.logical.expression.UserFuncExpression;
 import org.apache.pig.experimental.logical.relational.LOLoad;
 import org.apache.pig.experimental.logical.relational.LogicalSchema;
 import org.apache.pig.experimental.logical.relational.LogicalSchema.LogicalFieldSchema;
@@ -154,15 +158,38 @@ public class UidStamper extends AllExpressionVisitor {
             exp.setUid(currentOp);
         }
        
+        @Override
         public void visitMultiply(MultiplyExpression op) throws IOException {
             op.setUid(currentOp);
         }
         
+        @Override
         public void visitMod(ModExpression op) throws IOException {
             op.setUid(currentOp);
         }
         
+        @Override
         public void visitDivide(DivideExpression op) throws IOException {
+            op.setUid(currentOp);
+        }
+        
+        @Override
+        public void visitBinCond(BinCondExpression op) throws IOException {
+            op.setUid(currentOp);
+        }
+        
+        @Override
+        public void visitUserFunc(UserFuncExpression op) throws IOException {
+            op.setUid(currentOp);
+        }
+        
+        @Override
+        public void visitBagDereference(BagDereferenceExpression op) throws IOException {
+            op.setUid(currentOp);
+        }
+        
+        @Override
+        public void visitRegex(RegexExpression op) throws IOException {
             op.setUid(currentOp);
         }
     }

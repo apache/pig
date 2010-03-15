@@ -31,7 +31,7 @@ public class LOLoad extends LogicalRelationalOperator {
     
     private LogicalSchema scriptSchema;
     private FileSpec fs;
-    private transient LoadPushDown loadFunc;
+    private transient LoadFunc loadFunc;
 
     /**
      * 
@@ -46,13 +46,11 @@ public class LOLoad extends LogicalRelationalOperator {
        fs = loader;
     }
     
-    public LoadPushDown getLoadPushDown() {
+    public LoadFunc getLoadFunc() {
         try { 
             if (loadFunc == null) {
-                Object obj = PigContext.instantiateFuncFromSpec(fs.getFuncSpec());
-                if (obj instanceof LoadPushDown) {
-                    loadFunc = (LoadPushDown)obj;
-                }
+                loadFunc = (LoadFunc)PigContext.instantiateFuncFromSpec(fs.getFuncSpec());
+                loadFunc.setUDFContextSignature(getAlias());               
             }
             
             return loadFunc;

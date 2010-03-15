@@ -18,6 +18,7 @@
 
 package org.apache.pig.experimental.plan;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.ArrayList;
@@ -271,5 +272,17 @@ public abstract class BaseOperatorPlan implements OperatorPlan {
 
         PlanPrinter npp = new PlanPrinter(this, ps);
         npp.visit();
-}
+    }
+    
+    @Override
+    public String toString() {
+        ByteArrayOutputStream os = new ByteArrayOutputStream();
+        PrintStream ps = new PrintStream(os);
+        try {
+            explain(ps,"",false);
+        } catch (IOException e) {
+            return "";
+        }
+        return os.toString();
+    }   
 }

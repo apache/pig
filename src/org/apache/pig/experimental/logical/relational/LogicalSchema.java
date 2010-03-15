@@ -63,7 +63,7 @@ public class LogicalSchema {
                 return false;
             }
         }
-        
+               
         public String toString() {
             if( type == DataType.BAG ) {
                 if( schema == null ) {
@@ -180,6 +180,32 @@ public class LogicalSchema {
         }
         
     }
+    
+    /**
+     * Look for the index of the field that contains the specified uid
+     * @param uid the uid to look for
+     * @return the index of the field, -1 if not found
+     */
+    public int findField(long uid) {            
+        
+        for(int i=0; i< size(); i++) {
+            LogicalFieldSchema f = getField(i);
+            // if this field has the same uid, then return this field
+            if (f.uid == uid) {
+                return i;
+            } 
+            
+            // if this field has a schema, check its schema
+            if (f.schema != null) {
+                if (f.schema.findField(uid) != -1) {
+                    return i;
+                }
+            }
+        }
+        
+        return -1;
+    }
+    
     
     /**
      * Merge two schemas.

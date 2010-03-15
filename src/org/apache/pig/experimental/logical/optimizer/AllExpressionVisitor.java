@@ -20,18 +20,22 @@ package org.apache.pig.experimental.logical.optimizer;
 
 import java.io.IOException;
 import java.util.Collection;
+import java.util.List;
 
 import org.apache.pig.experimental.logical.expression.LogicalExpressionPlan;
 import org.apache.pig.experimental.logical.expression.LogicalExpressionVisitor;
+import org.apache.pig.experimental.logical.relational.LOCogroup;
 import org.apache.pig.experimental.logical.relational.LOFilter;
 import org.apache.pig.experimental.logical.relational.LOForEach;
 import org.apache.pig.experimental.logical.relational.LOGenerate;
 import org.apache.pig.experimental.logical.relational.LOInnerLoad;
 import org.apache.pig.experimental.logical.relational.LOJoin;
+import org.apache.pig.experimental.logical.relational.LOSplitOutput;
 import org.apache.pig.experimental.logical.relational.LogicalPlanVisitor;
 import org.apache.pig.experimental.logical.relational.LogicalRelationalOperator;
 import org.apache.pig.experimental.plan.OperatorPlan;
 import org.apache.pig.experimental.plan.PlanWalker;
+import org.apache.pig.impl.util.MultiMap;
 
 /**
  * A visitor that walks a logical plan and then applies a given
@@ -78,6 +82,19 @@ public abstract class AllExpressionVisitor extends LogicalPlanVisitor {
     }
     
     @Override
+    public void visitLOCogroup(LOCogroup cg) throws IOException {
+        currentOp = cg;
+        MultiMap<Integer, LogicalExpressionPlan> expressionPlans = cg.getExpressionPlans();
+        for( Integer key : expressionPlans.keySet() ) {
+            Collection<LogicalExpressionPlan> exprPlans = expressionPlans.get(key);
+            for( LogicalExpressionPlan plan : exprPlans ) {
+                LogicalExpressionVisitor v = getVisitor(plan);
+                v.visit();
+            }
+        }
+    }
+    
+    @Override
     public void visitLOForEach(LOForEach foreach) throws IOException {
         currentOp = foreach;
         // We have an Inner OperatorPlan in ForEach, so we go ahead
@@ -99,13 +116,21 @@ public abstract class AllExpressionVisitor extends LogicalPlanVisitor {
         }
     }
     
+    @Override
     public void visitLOInnerLoad(LOInnerLoad load) throws IOException {
         // the expression in LOInnerLoad contains info relative from LOForEach
         // so use LOForeach as currentOp
         currentOp = load.getLOForEach();
-        LogicalExpressionPlan exp = load.getExpression();
+        LogicalExpressionPlan exp = (LogicalExpressionPlan)load.getProjection().getPlan();
        
         LogicalExpressionVisitor v = getVisitor(exp);
         v.visit();       
+    }
+    
+    @Override
+    public void visitLOSplitOutput(LOSplitOutput splitOutput) throws IOException {
+        currentOp = splitOutput;
+        LogicalExpressionVisitor v = getVisitor(splitOutput.getFilterPlan());
+        v.visit();
     }
 }

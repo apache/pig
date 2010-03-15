@@ -22,6 +22,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.pig.experimental.logical.rules.AddForEach;
+import org.apache.pig.experimental.logical.rules.ColumnMapKeyPrune;
 import org.apache.pig.experimental.logical.rules.FilterAboveForeach;
 import org.apache.pig.experimental.logical.rules.MergeFilter;
 import org.apache.pig.experimental.logical.rules.PushUpFilter;
@@ -77,20 +79,20 @@ public class LogicalPlanOptimizer extends PlanOptimizer {
         
         // Prune Set Marker
         // This set is used for pruning columns and maps
-        // This set only marks the items required for prunning
-        // Next set does the prunning
-//        s = new HashSet<Rule>();
-//        ls.add(s);
-//        // Add the PruneMap Filter
-//        r = new PruneMapKeys("PruneMapKeys");
-//        s.add(r);
-//        
-//        s = new HashSet<Rule>();
-//        ls.add(s);
-//        // Add the Prunner
-//        r = new PruneMapKeys("PruneMapKeys");
-//        s.add(r);
-
+      
+        s = new HashSet<Rule>();
+        ls.add(s);
+        // Add the PruneMap Filter
+        r = new ColumnMapKeyPrune("ColumnMapKeyPrune");
+        s.add(r);
+        
+        // Add LOForEach operator to trim off columns
+        
+        s = new HashSet<Rule>();
+        ls.add(s);
+        // Add the AddForEach
+        r = new AddForEach("AddForEach");
+        s.add(r);
         
         return ls;
     }

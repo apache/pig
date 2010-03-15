@@ -28,6 +28,8 @@ import java.util.Stack;
 
 import org.apache.pig.experimental.logical.expression.AddExpression;
 import org.apache.pig.experimental.logical.expression.AndExpression;
+import org.apache.pig.experimental.logical.expression.BagDereferenceExpression;
+import org.apache.pig.experimental.logical.expression.BinCondExpression;
 import org.apache.pig.experimental.logical.expression.CastExpression;
 import org.apache.pig.experimental.logical.expression.ConstantExpression;
 import org.apache.pig.experimental.logical.expression.DivideExpression;
@@ -48,13 +50,19 @@ import org.apache.pig.experimental.logical.expression.NotEqualExpression;
 import org.apache.pig.experimental.logical.expression.NotExpression;
 import org.apache.pig.experimental.logical.expression.OrExpression;
 import org.apache.pig.experimental.logical.expression.ProjectExpression;
+import org.apache.pig.experimental.logical.expression.RegexExpression;
 import org.apache.pig.experimental.logical.expression.SubtractExpression;
+import org.apache.pig.experimental.logical.expression.UserFuncExpression;
+import org.apache.pig.experimental.logical.relational.LOCogroup;
 import org.apache.pig.experimental.logical.relational.LOFilter;
 import org.apache.pig.experimental.logical.relational.LOForEach;
 import org.apache.pig.experimental.logical.relational.LOGenerate;
 import org.apache.pig.experimental.logical.relational.LOInnerLoad;
 import org.apache.pig.experimental.logical.relational.LOLoad;
+import org.apache.pig.experimental.logical.relational.LOSplit;
+import org.apache.pig.experimental.logical.relational.LOSplitOutput;
 import org.apache.pig.experimental.logical.relational.LOStore;
+import org.apache.pig.experimental.logical.relational.LOUnion;
 import org.apache.pig.experimental.logical.relational.LogicalRelationalOperator;
 import org.apache.pig.experimental.plan.DepthFirstWalker;
 import org.apache.pig.experimental.plan.Operator;
@@ -63,6 +71,7 @@ import org.apache.pig.experimental.plan.PlanVisitor;
 import org.apache.pig.experimental.plan.PlanWalker;
 import org.apache.pig.experimental.plan.ReverseDependencyOrderWalker;
 import org.apache.pig.impl.plan.optimizer.Rule.WalkerAlgo;
+import org.apache.pig.impl.util.MultiMap;
 
 public class PlanPrinter extends AllExpressionVisitor {
 
@@ -272,6 +281,26 @@ public class PlanPrinter extends AllExpressionVisitor {
         public void visitDivide(DivideExpression exp) throws IOException {
             simplevisit(exp);
         }
+        
+        @Override
+        public void visitBinCond(BinCondExpression exp ) throws IOException {
+            simplevisit(exp);
+        }
+        
+        @Override
+        public void visitUserFunc(UserFuncExpression exp) throws IOException {
+            simplevisit(exp);
+        }
+        
+        @Override
+        public void visitBagDereference(BagDereferenceExpression exp) throws IOException {
+            simplevisit(exp);
+        }
+        
+        @Override
+        public void visitRegex(RegexExpression op) throws IOException {
+            simplevisit(op);
+        }
     }
 
     @Override
@@ -327,6 +356,47 @@ public class PlanPrinter extends AllExpressionVisitor {
     public void visitLOInnerLoad(LOInnerLoad op) throws IOException {
         printLevel();
         stream.println( op.toString() );
+    }
+    
+    @Override
+    public void visitLOCogroup(LOCogroup op) throws IOException {
+        printLevel();
+        stream.println( op.toString() );
+        MultiMap<Integer,LogicalExpressionPlan> exprPlans = op.getExpressionPlans();
+        for( Integer key : exprPlans.keySet() ) {
+            Collection<LogicalExpressionPlan> plans = exprPlans.get(key);
+            LogicalExpressionVisitor v = null;
+            level++;
+            for( LogicalExpressionPlan plan : plans ) {
+                v = getVisitor(plan);
+                v.visit();
+            }
+            level--;
+        }
+    }
+    
+    @Override
+    public void visitLOSplitOutput(LOSplitOutput op) throws IOException {
+        printLevel();
+        stream.println( op.toString() );
+        LogicalExpressionVisitor v = getVisitor(op.getFilterPlan());
+        level++;
+        v.visit();
+        level--;
+    }
+    
+    @Override
+    public void visitLOSplit(LOSplit op) throws IOException {
+        printLevel();
+        stream.println( op.toString() );
+        level++;
+    }
+    
+    @Override
+    public void visitLOUnion(LOUnion op) throws IOException {
+        printLevel();
+        stream.println( op.toString() );
+        level++;
     }
 
     public String toString() {

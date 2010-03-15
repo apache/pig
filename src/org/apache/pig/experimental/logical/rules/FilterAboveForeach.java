@@ -67,10 +67,10 @@ public class FilterAboveForeach extends Rule {
 
     @Override
     public Transformer getNewTransformer() {
-        return new FilterAboveFlattenTransformer();
+        return new FilterAboveForEachTransformer();
     }
     
-    public class FilterAboveFlattenTransformer extends Transformer {
+    public class FilterAboveForEachTransformer extends Transformer {
 
         LOFilter filter = null;
         LOForEach foreach = null;
@@ -111,11 +111,6 @@ public class FilterAboveForeach extends Rule {
                 for(int j=0; j< preds.size(); j++) {
                     LogicalRelationalOperator logRelOp = (LogicalRelationalOperator)preds.get(j);
                     if (hasAll( logRelOp, uids) ) {
-                        // If any of the uids are of complex type then we 
-                        // cannot think about moving this filter.
-                        if( containsComplexType(logRelOp.getSchema(), uids ) ) {
-                            break;
-                        }
                         forEachPred = (LogicalRelationalOperator) preds.get(j);
                         return true;
                     }
@@ -161,39 +156,32 @@ public class FilterAboveForeach extends Rule {
          * @param uids Uids to check for
          * @return true if given LogicalRelationalOperator has all the given uids
          */
-        private boolean hasAll(LogicalRelationalOperator op, Set<Long> uids) {
-            LogicalSchema schema = op.getSchema();
-            List<LogicalSchema.LogicalFieldSchema> fields = schema.getFields();
-            Set<Long> all = new HashSet<Long>();
-            for(LogicalSchema.LogicalFieldSchema f:fields) {
-                all.add(f.uid);
-            }
+        private boolean hasAll(LogicalRelationalOperator op, Set<Long> uids) {                        
+            Set<Long> all = getAllProjectableUids(op.getSchema());            
             return all.containsAll(uids);
         }
         
-        /**
-         * This function checks if any of the fields mentioned are a Bug or Tuple.
-         * If so we cannot move the filter above the operator having the schema
-         * @param schema Schema of the operator we are investigating
-         * @param uids Uids of the fields we are checking for
-         * @return true if one of the uid belong to a complex type
+        /*
+         * Projectable set of uids are uids of fields of type except a bag
          */
-        private boolean containsComplexType(LogicalSchema schema, Set<Long> uids) {
-            List<LogicalSchema.LogicalFieldSchema> fields = schema.getFields();
-
-            for(LogicalSchema.LogicalFieldSchema f:fields) {
-                if ( ( f.type == DataType.BAG || f.type == DataType.TUPLE ) ) {
-                    if( uids.contains( f.uid ) ) {
-                        return true;
-                    }
-                    if( f.schema != null && containsComplexType(f.schema, uids) ) {
-                        return true;
-                    }
+        private Set<Long> getAllProjectableUids( LogicalSchema schema ) {
+            Set<Long> uids = new HashSet<Long>();
+            
+            if( schema == null ) {
+                return uids;
+            }
+            
+            for( LogicalSchema.LogicalFieldSchema field : schema.getFields() ) {
+                if( field.type == DataType.TUPLE ) {
+                    uids.addAll( getAllProjectableUids(field.schema ) );
+                }
+                if( field.type != DataType.BAG ) {
+                    uids.add( field.uid );
                 }
             }
-            return false;
+            return uids;
         }
-
+        
         @Override
         public OperatorPlan reportChanges() {            
             return subPlan;

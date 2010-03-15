@@ -83,6 +83,10 @@ public class ProjectExpression extends ColumnExpression {
     }
     
    
+    public void setInputNum(int inputNum) {
+        input = inputNum;
+    }
+    
     /**
      * Column number this project references.  The column number is the column
      * in the relational operator that contains this expression.  The count
@@ -110,15 +114,20 @@ public class ProjectExpression extends ColumnExpression {
         this.type = type;
     }
 
+    public boolean isProjectStar() {
+        return col<0;
+    }
+    
     @Override
     public void setUid(LogicalRelationalOperator currentOp) throws IOException {
         LogicalRelationalOperator referent = findReferent(currentOp);
         
         LogicalSchema schema = referent.getSchema();
-        if (schema != null) {
+        if (schema != null && !isProjectStar()) {
             uid = schema.getField(col).uid;
         } else {
-            // If the schema of referent is null, we kindof create a uid so we 
+            // If the schema of referent is null, or this is to project the whole tuple,
+            // we kindof create a uid so we 
             // can track it in remaining plan
             uid = getNextUid();
         }
@@ -133,7 +142,7 @@ public class ProjectExpression extends ColumnExpression {
     public LogicalRelationalOperator findReferent(LogicalRelationalOperator currentOp) throws IOException {
         List<Operator> preds;
         preds = currentOp.getPlan().getPredecessors(currentOp);
-        if (preds == null || preds.size() - 1 < input) {
+        if (preds == null || input >= preds.size()) {
             throw new IOException("Projection with nothing to reference!");
         }
             

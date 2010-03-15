@@ -21,17 +21,22 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.List;
+
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.Add;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.ConstantExpression;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.Divide;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.EqualToExpr;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.GreaterThanExpr;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.LessThanExpr;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.Mod;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.Multiply;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POBinCond;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POCast;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.PONegative;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POProject;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.PORelationToExprProject;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POUserFunc;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.Subtract;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POFilter;
@@ -41,12 +46,14 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLocalRearrange;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPackage;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.ConstantExpression;
 import org.apache.pig.data.DataType;
 import org.apache.pig.experimental.logical.LogicalPlanMigrationVistor;
 import org.apache.pig.experimental.logical.expression.AddExpression;
+import org.apache.pig.experimental.logical.expression.BagDereferenceExpression;
+import org.apache.pig.experimental.logical.expression.BinCondExpression;
 import org.apache.pig.experimental.logical.expression.DivideExpression;
 import org.apache.pig.experimental.logical.expression.IsNullExpression;
+import org.apache.pig.experimental.logical.expression.LessThanExpression;
 import org.apache.pig.experimental.logical.expression.LogicalExpression;
 import org.apache.pig.experimental.logical.expression.LogicalExpressionPlan;
 import org.apache.pig.experimental.logical.expression.ModExpression;
@@ -55,7 +62,7 @@ import org.apache.pig.experimental.logical.expression.NegativeExpression;
 import org.apache.pig.experimental.logical.expression.NotExpression;
 import org.apache.pig.experimental.logical.expression.ProjectExpression;
 import org.apache.pig.experimental.logical.expression.SubtractExpression;
-import org.apache.pig.experimental.logical.optimizer.PlanPrinter;
+import org.apache.pig.experimental.logical.expression.UserFuncExpression;
 import org.apache.pig.experimental.logical.optimizer.UidStamper;
 import org.apache.pig.experimental.logical.relational.LOFilter;
 import org.apache.pig.experimental.logical.relational.LOForEach;
@@ -66,7 +73,6 @@ import org.apache.pig.experimental.logical.relational.LogicalRelationalOperator;
 import org.apache.pig.experimental.logical.relational.LogicalSchema;
 import org.apache.pig.experimental.logical.relational.LogicalSchema.LogicalFieldSchema;
 import org.apache.pig.experimental.plan.OperatorPlan;
-import org.apache.pig.impl.logicalLayer.LOIsNull;
 import org.apache.pig.impl.logicalLayer.LogicalPlan;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.test.utils.LogicalPlanTester;
@@ -891,10 +897,6 @@ public class TestExperimentalLogToPhyTranslationVisitor extends TestCase {
         
         PhysicalPlan phyPlan = translatePlan(newLogicalPlan);
         
-        printPlan(plan);
-        printPlan(newLogicalPlan);
-        printPlan(phyPlan);
-        
         assertEquals(1, ls.getField(0).uid);
         assertEquals(2, ls.getField(1).uid);
         
@@ -933,10 +935,6 @@ public class TestExperimentalLogToPhyTranslationVisitor extends TestCase {
         
         PhysicalPlan phyPlan = translatePlan(newLogicalPlan);
         
-        printPlan(plan);
-        printPlan(newLogicalPlan);
-        printPlan(phyPlan);
-        
         assertEquals(1, ls.getField(0).uid);
         assertEquals(2, ls.getField(1).uid);
         
@@ -965,26 +963,390 @@ public class TestExperimentalLogToPhyTranslationVisitor extends TestCase {
         assertEquals( ls.getField(0).uid, prj.getUid() );
     }
     
-    public void printPlan(org.apache.pig.experimental.logical.relational.LogicalPlan logicalPlan ) throws Exception {
-        ByteArrayOutputStream out = new ByteArrayOutputStream();
-        PrintStream ps = new PrintStream(out);
-        PlanPrinter pp = new PlanPrinter(logicalPlan,ps);
-        pp.visit();
-        System.err.println(out.toString());
+    public void testPlanwithBinCond() throws Exception {
+        LogicalPlanTester lpt = new LogicalPlanTester();
+        lpt.buildPlan("a = load 'd.txt' as (a:int, b:int);");
+        lpt.buildPlan("b = foreach a generate ( a < b ? b : a );");        
+        LogicalPlan plan = lpt.buildPlan("store b into 'empty';");  
+        
+        org.apache.pig.experimental.logical.relational.LogicalPlan newLogicalPlan = migratePlan(plan);
+        LogicalRelationalOperator ld =  (LogicalRelationalOperator)newLogicalPlan.getSources().get(0);
+        assertEquals( LOLoad.class, ld.getClass() );
+        LOLoad load = (LOLoad)ld;
+        LogicalSchema ls = load.getSchema();
+        
+        PhysicalPlan phyPlan = translatePlan(newLogicalPlan);
+        
+        PhysicalOperator pFE = phyPlan.getSuccessors( phyPlan.getRoots().get(0) ).get(0);
+        assertEquals( POForEach.class, pFE.getClass() );
+        POForEach pForEach = (POForEach)pFE;
+        PhysicalPlan inputPln = pForEach.getInputPlans().get(0);
+        
+        assertEquals(1, ls.getField(0).uid);
+        assertEquals(2, ls.getField(1).uid);
+        
+        LogicalRelationalOperator fe = 
+            (LogicalRelationalOperator) newLogicalPlan.getSuccessors(load).get(0);
+        assertEquals( LOForEach.class, fe.getClass() );
+        LOForEach forEach = (LOForEach)fe;
+        
+        org.apache.pig.experimental.logical.relational.LogicalPlan innerPlan = 
+            forEach.getInnerPlan();
+        
+        assertEquals( 1, innerPlan.getSinks().size() );        
+        assertEquals( LOGenerate.class, innerPlan.getSinks().get(0).getClass() );
+        LOGenerate gen = (LOGenerate)innerPlan.getSinks().get(0);
+        assertEquals( 1, gen.getOutputPlans().size() );
+        LogicalExpressionPlan genExp = gen.getOutputPlans().get(0);
+        
+        assertEquals( 1, genExp.getSources().size() );
+        
+        // Main Tests start here
+        assertEquals( BinCondExpression.class, genExp.getSources().get(0).getClass() );
+        BinCondExpression add = (BinCondExpression) genExp.getSources().get(0);
+        assertEquals( LessThanExpression.class, add.getCondition().getClass() );
+        LessThanExpression lessThan = (LessThanExpression) add.getCondition();
+        assertEquals( ProjectExpression.class, lessThan.getLhs().getClass() );
+        ProjectExpression prj1 = ((ProjectExpression)lessThan.getLhs());
+        ProjectExpression prj2 = ((ProjectExpression)lessThan.getRhs());
+        assertEquals( ls.getField(0).uid, prj1.getUid() );
+        assertEquals( ProjectExpression.class, lessThan.getRhs().getClass() );
+        assertEquals( ls.getField(1).uid, prj2.getUid() );
+        
+        assertEquals( ProjectExpression.class, add.getLhs().getClass() );
+        ProjectExpression prj3 = ((ProjectExpression)add.getLhs());
+        assertEquals( ls.getField(1).uid, prj3.getUid() );
+        assertEquals( ProjectExpression.class, add.getRhs().getClass() );
+        ProjectExpression prj4 = ((ProjectExpression)add.getRhs());
+        assertEquals( ls.getField(0).uid, prj4.getUid() );
+        
+        
+        assertEquals( 4, inputPln.getRoots().size() ); 
+        for( PhysicalOperator p : inputPln.getRoots() ) {
+            assertEquals( POProject.class, p.getClass() );
+        }
+        assertEquals( 1, inputPln.getLeaves().size() );
+        assertEquals( POBinCond.class, inputPln.getLeaves().get(0).getClass() );
+        POBinCond binCond = (POBinCond) inputPln.getLeaves().get(0);
+        assertEquals( POProject.class, binCond.getLhs().getClass() );
+        POProject prj_1 = (POProject)binCond.getLhs();
+        assertEquals( 1, prj_1.getColumn() );
+        assertEquals( POProject.class, binCond.getRhs().getClass() );
+        POProject prj_2 = (POProject) binCond.getRhs();
+        assertEquals( 0, prj_2.getColumn() );
+        assertEquals( LessThanExpr.class, binCond.getCond().getClass() );
+        LessThanExpr lessThan_p = (LessThanExpr) binCond.getCond();
+        
+        assertEquals( POProject.class, lessThan_p.getLhs().getClass() );
+        POProject prj_3 = (POProject) lessThan_p.getLhs();
+        assertEquals( 0, prj_3.getColumn() );
+        assertEquals( POProject.class, lessThan_p.getRhs().getClass() );
+        POProject prj_4 = (POProject) lessThan_p.getRhs();
+        assertEquals( 1, prj_4.getColumn() );
     }
     
-    public void printPlan(LogicalPlan logicalPlan) throws Exception {
-        ByteArrayOutputStream out = new ByteArrayOutputStream();
-        PrintStream ps = new PrintStream(out);
-        logicalPlan.explain(ps, "text", true);
-        System.err.println(out.toString());
+    public void testPlanwithUserFunc() throws Exception {
+        LogicalPlanTester lpt = new LogicalPlanTester();
+        lpt.buildPlan("a = load 'd.txt' as (a:int, b:bag{t:tuple(b_a:int,b_b:int)});");
+        lpt.buildPlan("b = foreach a generate a,COUNT(b);");
+        LogicalPlan plan = lpt.buildPlan("store b into 'empty';");  
+        
+        org.apache.pig.experimental.logical.relational.LogicalPlan newLogicalPlan = migratePlan(plan);
+        LogicalRelationalOperator ld =  (LogicalRelationalOperator)newLogicalPlan.getSources().get(0);
+        assertEquals( LOLoad.class, ld.getClass() );
+        LOLoad load = (LOLoad)ld;
+        LogicalSchema ls = load.getSchema();
+        
+        PhysicalPlan phyPlan = translatePlan(newLogicalPlan);
+        
+        PhysicalOperator pFE = phyPlan.getSuccessors( phyPlan.getRoots().get(0) ).get(0);
+        assertEquals( POForEach.class, pFE.getClass() );
+        POForEach pForEach = (POForEach)pFE;
+        PhysicalPlan inputPln1 = pForEach.getInputPlans().get(0);
+        
+        assertEquals(1, ls.getField(0).uid);
+        assertEquals(2, ls.getField(1).uid);
+        
+        LogicalRelationalOperator fe = 
+            (LogicalRelationalOperator) newLogicalPlan.getSuccessors(load).get(0);
+        assertEquals( LOForEach.class, fe.getClass() );
+        LOForEach forEach = (LOForEach)fe;
+        
+        org.apache.pig.experimental.logical.relational.LogicalPlan innerPlan = 
+            forEach.getInnerPlan();
+        
+        assertEquals( 1, innerPlan.getSinks().size() );        
+        assertEquals( LOGenerate.class, innerPlan.getSinks().get(0).getClass() );
+        LOGenerate gen = (LOGenerate)innerPlan.getSinks().get(0);
+        assertEquals( 2, gen.getOutputPlans().size() );
+        
+        LogicalExpressionPlan genExp1 = gen.getOutputPlans().get(0);
+        
+        assertEquals( 1, genExp1.getSources().size() );
+        assertEquals( ProjectExpression.class, genExp1.getSources().get(0).getClass() );
+        ProjectExpression prj1  = (ProjectExpression) genExp1.getSources().get(0);
+        assertEquals( ls.getField(0).uid, prj1.getUid() );
+        
+        LogicalExpressionPlan genExp2 = gen.getOutputPlans().get(1);
+        assertEquals( UserFuncExpression.class, genExp2.getSources().get(0).getClass() );
+        assertEquals( ProjectExpression.class, genExp2.getSinks().get(0).getClass() );
+        ProjectExpression prj2 = (ProjectExpression)genExp2.getSinks().get(0);
+        assertEquals( ls.getField(1).uid, prj2.getUid() );
+        
+        assertEquals( 1, inputPln1.getLeaves().size() );
+        assertEquals( 1, inputPln1.getRoots().size() );
+        assertEquals( POProject.class, inputPln1.getLeaves().get(0).getClass() );
+        assertEquals( 0, (( POProject) inputPln1.getLeaves().get(0)).getColumn() );
+        PhysicalPlan inputPln2 = pForEach.getInputPlans().get(1);
+        assertEquals( POUserFunc.class, inputPln2.getLeaves().get(0).getClass() );
+        assertEquals( "org.apache.pig.builtin.COUNT", 
+                ((POUserFunc) inputPln2.getLeaves().get(0)).getFuncSpec().getClassName() );
+        assertEquals( POProject.class, inputPln2.getRoots().get(0).getClass() );
+        assertEquals( 1, ((POProject)inputPln2.getRoots().get(0)).getColumn() );
+        
     }
     
-    public void printPlan(PhysicalPlan physicalPlan) throws Exception {
-        ByteArrayOutputStream out = new ByteArrayOutputStream();
-        PrintStream ps = new PrintStream(out);
-        physicalPlan.explain(ps, "text", true);
-        System.err.println(out.toString());
+    public void testPlanwithUserFunc2() throws Exception {
+        // This one uses BagDereferenceExpression
+        LogicalPlanTester lpt = new LogicalPlanTester();
+        lpt.buildPlan("a = load 'd.txt' as (a:int, b:bag{t:tuple(b_a:int,b_b:int)});");
+        lpt.buildPlan("b = foreach a generate a,COUNT(b.b_a);");
+        LogicalPlan plan = lpt.buildPlan("store b into 'empty';");  
+        
+        org.apache.pig.experimental.logical.relational.LogicalPlan newLogicalPlan = migratePlan(plan);
+        LogicalRelationalOperator ld =  (LogicalRelationalOperator)newLogicalPlan.getSources().get(0);
+        assertEquals( LOLoad.class, ld.getClass() );
+        LOLoad load = (LOLoad)ld;
+        LogicalSchema ls = load.getSchema();
+        
+        PhysicalPlan phyPlan = translatePlan(newLogicalPlan);
+        
+        PhysicalOperator pFE = phyPlan.getSuccessors( phyPlan.getRoots().get(0) ).get(0);
+        assertEquals( POForEach.class, pFE.getClass() );
+        POForEach pForEach = (POForEach)pFE;
+        PhysicalPlan inputPln = pForEach.getInputPlans().get(0);
+        
+        assertEquals(1, ls.getField(0).uid);
+        assertEquals(2, ls.getField(1).uid);
+        
+        LogicalRelationalOperator fe = 
+            (LogicalRelationalOperator) newLogicalPlan.getSuccessors(load).get(0);
+        assertEquals( LOForEach.class, fe.getClass() );
+        LOForEach forEach = (LOForEach)fe;
+        
+        org.apache.pig.experimental.logical.relational.LogicalPlan innerPlan = 
+            forEach.getInnerPlan();
+        
+        assertEquals( 1, innerPlan.getSinks().size() );        
+        assertEquals( LOGenerate.class, innerPlan.getSinks().get(0).getClass() );
+        LOGenerate gen = (LOGenerate)innerPlan.getSinks().get(0);
+        assertEquals( 2, gen.getOutputPlans().size() );
+        
+        LogicalExpressionPlan genExp1 = gen.getOutputPlans().get(0);
+        
+        assertEquals( 1, genExp1.getSources().size() );
+        assertEquals( ProjectExpression.class, genExp1.getSources().get(0).getClass() );
+        ProjectExpression prj1  = (ProjectExpression) genExp1.getSources().get(0);
+        assertEquals( ls.getField(0).uid, prj1.getUid() );
+        
+        LogicalExpressionPlan genExp2 = gen.getOutputPlans().get(1);
+        assertEquals( UserFuncExpression.class, genExp2.getSources().get(0).getClass() );
+        assertEquals( ProjectExpression.class, genExp2.getSinks().get(0).getClass() );
+        ProjectExpression prj2 = (ProjectExpression)genExp2.getSinks().get(0);
+        assertEquals( ls.getField(1).uid, prj2.getUid() );
+        assertEquals( BagDereferenceExpression.class, genExp2.getPredecessors(prj2).get(0).getClass() );
+        assertEquals( 0, ((BagDereferenceExpression)genExp2.getPredecessors(prj2).get(0)).getBagColNum() );
+        
+        assertEquals( 1, inputPln.getRoots().size() );
+        assertEquals( POProject.class, inputPln.getRoots().get(0).getClass() );
+        assertEquals( 0, ((POProject)inputPln.getRoots().get(0)).getColumn() );
+        
+        PhysicalPlan inputPln2 = pForEach.getInputPlans().get(1);
+        assertEquals( 1, inputPln2.getRoots().size() );
+        assertEquals( POProject.class, inputPln2.getRoots().get(0).getClass() );
+        assertEquals(1, ((POProject)inputPln2.getRoots().get(0)).getColumn() );
+        assertEquals( POUserFunc.class, inputPln2.getLeaves().get(0).getClass() );
+        assertEquals( "org.apache.pig.builtin.COUNT", 
+                ((POUserFunc)inputPln2.getLeaves().get(0)).getFuncSpec().getClassName() );
+        
+        POProject prj3 = (POProject)inputPln2.getRoots().get(0);
+        assertEquals( POProject.class, inputPln2.getSuccessors(prj3).get(0).getClass() );
+        assertEquals( 0, ((POProject)inputPln2.getSuccessors(prj3).get(0)).getColumn() );
+    }    
+    
+    public void testCogroup() throws Exception {
+        LogicalPlanTester lpt = new LogicalPlanTester();
+        lpt.buildPlan("a = load 'd.txt' as (name:chararray, age:int, gpa:float);");
+        lpt.buildPlan("b = group a by name;");
+        LogicalPlan plan = lpt.buildPlan("store b into 'empty';");  
+        
+        org.apache.pig.experimental.logical.relational.LogicalPlan newLogicalPlan = migratePlan(plan);
+        
+        PhysicalPlan phyPlan = translatePlan(newLogicalPlan);
+        
+        assertEquals( 1, phyPlan.getRoots().size() );
+        assertEquals( POLoad.class, phyPlan.getRoots().get(0).getClass() );
+        POLoad load = (POLoad)phyPlan.getRoots().get(0);
+        
+        assertEquals( POLocalRearrange.class, phyPlan.getSuccessors(load).get(0).getClass() );
+        POLocalRearrange localR = (POLocalRearrange)phyPlan.getSuccessors(load).get(0);
+        assertEquals( 1, localR.getInputs().size() );
+        assertEquals( 1, localR.getPlans().size() );
+        PhysicalPlan cogroupPlan = localR.getPlans().get(0);
+        assertEquals( 1, cogroupPlan.getLeaves().size() );        
+        assertEquals( POProject.class, cogroupPlan.getLeaves().get(0).getClass() );
+        POProject prj = (POProject)cogroupPlan.getLeaves().get(0);
+        assertEquals( 0, prj.getColumn() );
+        assertEquals( DataType.CHARARRAY, prj.getResultType() );
+        
+        assertEquals( POGlobalRearrange.class, phyPlan.getSuccessors(localR).get(0).getClass() );
+        POGlobalRearrange globalR = (POGlobalRearrange)phyPlan.getSuccessors(localR).get(0);
+        assertEquals( DataType.TUPLE, globalR.getResultType() );
+        
+        assertEquals( POPackage.class, phyPlan.getSuccessors(globalR).get(0).getClass() );
+        POPackage pack = (POPackage)phyPlan.getSuccessors(globalR).get(0);
+        assertEquals( DataType.TUPLE, pack.getResultType() );
     }
     
+    public void testCogroup2() throws Exception {
+        LogicalPlanTester lpt = new LogicalPlanTester();
+        lpt.buildPlan("a = load 'd.txt' as (name:chararray, age:int, gpa:float);");
+        lpt.buildPlan("b = group a by ( name, age );");
+        LogicalPlan plan = lpt.buildPlan("store b into 'empty';");  
+        
+        org.apache.pig.experimental.logical.relational.LogicalPlan newLogicalPlan = migratePlan(plan);
+        
+        PhysicalPlan phyPlan = translatePlan(newLogicalPlan);
+        
+        assertEquals( 1, phyPlan.getRoots().size() );
+        assertEquals( POLoad.class, phyPlan.getRoots().get(0).getClass() );
+        POLoad load = (POLoad)phyPlan.getRoots().get(0);
+        
+        assertEquals( POLocalRearrange.class, phyPlan.getSuccessors(load).get(0).getClass() );
+        POLocalRearrange localR = (POLocalRearrange)phyPlan.getSuccessors(load).get(0);
+        assertEquals( 1, localR.getInputs().size() );
+        assertEquals( 2, localR.getPlans().size() );
+        PhysicalPlan cogroupPlan = localR.getPlans().get(0);
+        assertEquals( 1, cogroupPlan.getLeaves().size() );        
+        assertEquals( POProject.class, cogroupPlan.getLeaves().get(0).getClass() );
+        POProject prj = (POProject)cogroupPlan.getLeaves().get(0);
+        assertEquals( 0, prj.getColumn() );
+        assertEquals( DataType.CHARARRAY, prj.getResultType() );
+        
+        PhysicalPlan cogroupPlan2 = localR.getPlans().get(1);
+        POProject prj2 = (POProject)cogroupPlan2.getLeaves().get(0);
+        assertEquals( 1, prj2.getColumn() );
+        assertEquals( DataType.INTEGER, prj2.getResultType() );
+        
+        assertEquals( POGlobalRearrange.class, phyPlan.getSuccessors(localR).get(0).getClass() );
+        POGlobalRearrange globalR = (POGlobalRearrange)phyPlan.getSuccessors(localR).get(0);
+        assertEquals( DataType.TUPLE, globalR.getResultType() );
+        
+        assertEquals( POPackage.class, phyPlan.getSuccessors(globalR).get(0).getClass() );
+        POPackage pack = (POPackage)phyPlan.getSuccessors(globalR).get(0);
+        assertEquals( DataType.TUPLE, pack.getResultType() );
+    }
+    
+    public void testCogroup3() throws Exception {
+        LogicalPlanTester lpt = new LogicalPlanTester();
+        lpt.buildPlan("a = load 'd.txt' as (name:chararray, age:int, gpa:float);");
+        lpt.buildPlan("b = load 'e.txt' as (name:chararray, age:int, gpa:float);");
+        lpt.buildPlan("c = group a by name, b by name;");
+        LogicalPlan plan = lpt.buildPlan("store c into 'empty';");  
+        
+        org.apache.pig.experimental.logical.relational.LogicalPlan newLogicalPlan = migratePlan(plan);
+        
+        PhysicalPlan phyPlan = translatePlan(newLogicalPlan);
+        
+        assertEquals( 2, phyPlan.getRoots().size() );
+        assertEquals( POLoad.class, phyPlan.getRoots().get(0).getClass() );
+        POLoad load = (POLoad)phyPlan.getRoots().get(0);
+        
+        assertEquals( POLocalRearrange.class, phyPlan.getSuccessors(load).get(0).getClass() );
+        POLocalRearrange localR = (POLocalRearrange)phyPlan.getSuccessors(load).get(0);
+        assertEquals( 1, localR.getPlans().size() );
+        PhysicalPlan cogroupPlan = localR.getPlans().get(0);
+        assertEquals( 1, cogroupPlan.getLeaves().size() );        
+        assertEquals( POProject.class, cogroupPlan.getLeaves().get(0).getClass() );
+        POProject prj = (POProject)cogroupPlan.getLeaves().get(0);
+        assertEquals( 0, prj.getColumn() );
+        assertEquals( DataType.CHARARRAY, prj.getResultType() );
+        
+        assertEquals( POGlobalRearrange.class, phyPlan.getSuccessors(localR).get(0).getClass() );
+        POGlobalRearrange globalR = (POGlobalRearrange)phyPlan.getSuccessors(localR).get(0);
+        assertEquals( DataType.TUPLE, globalR.getResultType() );
+        
+        assertEquals( POLoad.class, phyPlan.getRoots().get(1).getClass() );
+        POLoad load2 = (POLoad)phyPlan.getRoots().get(0);
+        
+        assertEquals( POLocalRearrange.class, phyPlan.getSuccessors(load2).get(0).getClass() );
+        POLocalRearrange localR2 = (POLocalRearrange)phyPlan.getSuccessors(load2).get(0);
+        assertEquals( 1, localR2.getPlans().size() );
+        PhysicalPlan cogroupPlan2 = localR2.getPlans().get(0);
+        POProject prj2 = (POProject)cogroupPlan2.getLeaves().get(0);
+        assertEquals( 0, prj2.getColumn() );
+        assertEquals( DataType.CHARARRAY, prj2.getResultType() );
+        
+        assertEquals( POPackage.class, phyPlan.getSuccessors(globalR).get(0).getClass() );
+        POPackage pack = (POPackage)phyPlan.getSuccessors(globalR).get(0);
+        assertEquals( DataType.TUPLE, pack.getResultType() );
+    }
+    
+    public void testCogroup4() throws Exception {
+        LogicalPlanTester lpt = new LogicalPlanTester();
+        lpt.buildPlan("a = load 'd.txt' as (name:chararray, age:int, gpa:float);");
+        lpt.buildPlan("b = load 'e.txt' as (name:chararray, age:int, gpa:float);");
+        lpt.buildPlan("c = group a by ( name, age ), b by ( name, age );");
+        LogicalPlan plan = lpt.buildPlan("store c into 'empty';");  
+        
+        org.apache.pig.experimental.logical.relational.LogicalPlan newLogicalPlan = migratePlan(plan);
+        
+        PhysicalPlan phyPlan = translatePlan(newLogicalPlan);
+        
+        assertEquals( 2, phyPlan.getRoots().size() );
+        assertEquals( POLoad.class, phyPlan.getRoots().get(0).getClass() );
+        POLoad load = (POLoad)phyPlan.getRoots().get(0);
+        
+        assertEquals( POLocalRearrange.class, phyPlan.getSuccessors(load).get(0).getClass() );
+        POLocalRearrange localR = (POLocalRearrange)phyPlan.getSuccessors(load).get(0);
+        assertEquals( 2, localR.getPlans().size() );
+        PhysicalPlan cogroupPlan = localR.getPlans().get(0);
+        assertEquals( 1, cogroupPlan.getLeaves().size() );        
+        assertEquals( POProject.class, cogroupPlan.getLeaves().get(0).getClass() );
+        POProject prj = (POProject)cogroupPlan.getLeaves().get(0);
+        assertEquals( 0, prj.getColumn() );
+        assertEquals( DataType.CHARARRAY, prj.getResultType() );
+        
+        PhysicalPlan cogroupPlan2 = localR.getPlans().get(1);
+        assertEquals( 1, cogroupPlan2.getLeaves().size() );        
+        assertEquals( POProject.class, cogroupPlan2.getLeaves().get(0).getClass() );
+        POProject prj2 = (POProject)cogroupPlan2.getLeaves().get(0);
+        assertEquals( 1, prj2.getColumn() );
+        assertEquals( DataType.INTEGER, prj2.getResultType() );
+        
+        assertEquals( POGlobalRearrange.class, phyPlan.getSuccessors(localR).get(0).getClass() );
+        POGlobalRearrange globalR = (POGlobalRearrange)phyPlan.getSuccessors(localR).get(0);
+        assertEquals( DataType.TUPLE, globalR.getResultType() );
+        
+        assertEquals( POLoad.class, phyPlan.getRoots().get(1).getClass() );
+        POLoad load2 = (POLoad)phyPlan.getRoots().get(0);
+        
+        assertEquals( POLocalRearrange.class, phyPlan.getSuccessors(load2).get(0).getClass() );
+        
+        POLocalRearrange localR3 = (POLocalRearrange)phyPlan.getSuccessors(load2).get(0);
+        assertEquals( 2, localR3.getPlans().size() );
+        PhysicalPlan cogroupPlan3 = localR3.getPlans().get(0);
+        POProject prj3 = (POProject)cogroupPlan3.getLeaves().get(0);
+        assertEquals( 0, prj3.getColumn() );
+        assertEquals( DataType.CHARARRAY, prj3.getResultType() );
+        
+        PhysicalPlan cogroupPlan4 = localR3.getPlans().get(1);
+        POProject prj4 = (POProject)cogroupPlan4.getLeaves().get(0);
+        assertEquals( 1, prj4.getColumn() );
+        assertEquals( DataType.INTEGER, prj4.getResultType() );
+        
+        assertEquals( POPackage.class, phyPlan.getSuccessors(globalR).get(0).getClass() );
+        POPackage pack = (POPackage)phyPlan.getSuccessors(globalR).get(0);
+        assertEquals( DataType.TUPLE, pack.getResultType() );
+    }
 }

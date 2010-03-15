@@ -19,7 +19,10 @@ package org.apache.pig.test;
 
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.apache.pig.FuncSpec;
 import org.apache.pig.data.DataType;
@@ -32,6 +35,7 @@ import org.apache.pig.experimental.logical.expression.LogicalExpression;
 import org.apache.pig.experimental.logical.expression.LogicalExpressionPlan;
 import org.apache.pig.experimental.logical.expression.ProjectExpression;
 import org.apache.pig.experimental.logical.optimizer.UidStamper;
+import org.apache.pig.experimental.logical.relational.LOCogroup;
 import org.apache.pig.experimental.logical.relational.LOForEach;
 import org.apache.pig.experimental.logical.relational.LOGenerate;
 import org.apache.pig.experimental.logical.relational.LOInnerLoad;
@@ -40,9 +44,12 @@ import org.apache.pig.experimental.logical.relational.LOLoad;
 import org.apache.pig.experimental.logical.relational.LOStore;
 import org.apache.pig.experimental.logical.relational.LogicalRelationalOperator;
 import org.apache.pig.experimental.logical.relational.LogicalSchema;
+import org.apache.pig.experimental.logical.relational.LogicalSchema.LogicalFieldSchema;
+import org.apache.pig.experimental.plan.Operator;
 import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.logicalLayer.LogicalPlan;
 import org.apache.pig.impl.plan.VisitorException;
+import org.apache.pig.impl.util.MultiMap;
 import org.apache.pig.test.utils.LogicalPlanTester;
 
 import junit.framework.TestCase;
@@ -390,6 +397,354 @@ public class TestLogicalPlanMigrationVisitor extends TestCase {
         assertTrue(schema.isEqual(aschema));
         assertTrue(schema.getField("id")==schema.getField(0));
         assertTrue(schema.getField("d::id")==schema.getField(1));
+    }
+    
+    public void testCoGroup() throws Exception {
+        LogicalPlanTester lpt = new LogicalPlanTester();
+        lpt.buildPlan("a = load '/test/d.txt' as (name:chararray, age:int, gpa:float);");
+        lpt.buildPlan("b = group a by name;");        
+        LogicalPlan plan = lpt.buildPlan("store b into '/test/empty';");
+        
+        // check basics
+        org.apache.pig.experimental.logical.relational.LogicalPlan newPlan = migratePlan(plan);
+        
+        LogicalSchema loadSchema = 
+            ((LogicalRelationalOperator)newPlan.getSources().get(0)).getSchema();
+        
+        Set<Long> uids = getAllUids(loadSchema);
+        
+        LogicalRelationalOperator op = (LogicalRelationalOperator) 
+            newPlan.getSuccessors( newPlan.getSources().get(0) ).get(0);
+        assertEquals( LOCogroup.class, op.getClass() );
+        LogicalSchema schema = op.getSchema();
+        
+        assertEquals( 2, schema.size() );
+        assertEquals( DataType.CHARARRAY, schema.getField(0).type );
+        assertEquals( false, uids.contains( schema.getField(0).uid ) );
+        assertEquals( 0, schema.getField(0).alias.compareTo("group") );
+        
+        
+        assertEquals( DataType.BAG, schema.getField(1).type );
+        
+        assertEquals( DataType.CHARARRAY, schema.getField(1).schema.getField(0).type );
+        assertEquals( 0, schema.getField(1).schema.getField(0).alias.compareTo("name") );
+        assertEquals( loadSchema.getField(0).uid, schema.getField(1).schema.getField(0).uid );
+        assertEquals( DataType.INTEGER, schema.getField(1).schema.getField(1).type );
+        assertEquals( 0, schema.getField(1).schema.getField(1).alias.compareTo("age") );
+        assertEquals( loadSchema.getField(1).uid, schema.getField(1).schema.getField(1).uid );
+        assertEquals( DataType.FLOAT, schema.getField(1).schema.getField(2).type );
+        assertEquals( 0, schema.getField(1).schema.getField(2).alias.compareTo("gpa") );
+        assertEquals( loadSchema.getField(2).uid, schema.getField(1).schema.getField(2).uid );
+        
+        uids.add(Long.valueOf( schema.getField(0).uid ) );
+        assertEquals( false, uids.contains( schema.getField(1).uid ) );
+        
+        assertEquals( LOCogroup.class, newPlan.getSuccessors(newPlan.getSources().get(0)).get(0).getClass() );
+        LOCogroup cogroup = (LOCogroup) newPlan.getSuccessors(newPlan.getSources().get(0)).get(0);
+        
+        MultiMap<Integer, LogicalExpressionPlan> expressionPlans = cogroup.getExpressionPlans();
+        assertEquals( 1, expressionPlans.size() );
+        List<LogicalExpressionPlan> plans = (List<LogicalExpressionPlan>) expressionPlans.get(Integer.valueOf(0));
+        assertEquals( 1, plans.size() );
+        
+        LogicalExpressionPlan exprPlan = plans.get(0);
+        assertEquals( 1, exprPlan.getSinks().size() );
+        assertEquals( ProjectExpression.class, exprPlan.getSinks().get(0).getClass() );
+        ProjectExpression prj = (ProjectExpression) exprPlan.getSinks().get(0);
+        assertEquals( loadSchema.getField(0).uid, prj.getUid() );
+        assertEquals( 0, prj.getColNum() );
+        assertEquals( 0, prj.getInputNum() );
+    }
+    
+    public void testCoGroup2() throws Exception {
+        LogicalPlanTester lpt = new LogicalPlanTester();
+        lpt.buildPlan("a = load '/test/d.txt' as (name:chararray, age:int, gpa:float);");
+        lpt.buildPlan("b = group a by ( name, age );");
+        LogicalPlan plan = lpt.buildPlan("store b into '/test/empty';");
+        
+        // check basics
+        org.apache.pig.experimental.logical.relational.LogicalPlan newPlan = migratePlan(plan);
+
+        LogicalSchema loadSchema = 
+            ((LogicalRelationalOperator)newPlan.getSources().get(0)).getSchema();
+        
+        Set<Long> uids = getAllUids(loadSchema);
+        
+        LogicalRelationalOperator op = (LogicalRelationalOperator) 
+            newPlan.getSuccessors( newPlan.getSources().get(0) ).get(0);
+        assertEquals( LOCogroup.class, op.getClass() );
+        LogicalSchema schema = op.getSchema();
+        
+        assertEquals( 2, schema.size() );
+        assertEquals( DataType.TUPLE, schema.getField(0).type );
+        assertEquals( false, uids.contains( schema.getField(0).uid ) );
+        assertEquals( 0, schema.getField(0).alias.compareTo("group") );
+        assertEquals( DataType.CHARARRAY, schema.getField(0).schema.getField(0).type );        
+        assertEquals( DataType.INTEGER, schema.getField(0).schema.getField(1).type );
+        
+        assertEquals( DataType.BAG, schema.getField(1).type );
+        
+        assertEquals( DataType.CHARARRAY, schema.getField(1).schema.getField(0).type );
+        assertEquals( 0, schema.getField(1).schema.getField(0).alias.compareTo("name") );
+        assertEquals( loadSchema.getField(0).uid, schema.getField(1).schema.getField(0).uid );
+        assertEquals( DataType.INTEGER, schema.getField(1).schema.getField(1).type );
+        assertEquals( 0, schema.getField(1).schema.getField(1).alias.compareTo("age") );
+        assertEquals( loadSchema.getField(1).uid, schema.getField(1).schema.getField(1).uid );
+        assertEquals( DataType.FLOAT, schema.getField(1).schema.getField(2).type );
+        assertEquals( 0, schema.getField(1).schema.getField(2).alias.compareTo("gpa") );
+        assertEquals( loadSchema.getField(2).uid, schema.getField(1).schema.getField(2).uid );
+        
+        
+        // We are doing Uid tests at the end as the uids should not repeat
+        uids.add(Long.valueOf( schema.getField(0).uid ) );
+        assertEquals( false, uids.contains( schema.getField(0).schema.getField(0).uid ) );
+        uids.add( Long.valueOf( schema.getField(0).schema.getField(0).uid ) );
+        assertEquals( false, uids.contains( schema.getField(0).schema.getField(1).uid ) );
+        uids.add( Long.valueOf( schema.getField(0).schema.getField(1).uid ) );        
+        assertEquals( false, uids.contains( schema.getField(1).uid ) );
+        
+        assertEquals( LOCogroup.class, newPlan.getSuccessors(newPlan.getSources().get(0)).get(0).getClass() );
+        LOCogroup cogroup = (LOCogroup) newPlan.getSuccessors(newPlan.getSources().get(0)).get(0);
+        
+        MultiMap<Integer, LogicalExpressionPlan> expressionPlans = cogroup.getExpressionPlans();
+        assertEquals( 1, expressionPlans.size() );
+        List<LogicalExpressionPlan> plans = (List<LogicalExpressionPlan>) expressionPlans.get(Integer.valueOf(0));
+        assertEquals( 2, plans.size() );
+        
+        LogicalExpressionPlan exprPlan = plans.get(0);
+        assertEquals( 1, exprPlan.getSinks().size() );
+        assertEquals( ProjectExpression.class, exprPlan.getSinks().get(0).getClass() );
+        ProjectExpression prj = (ProjectExpression) exprPlan.getSinks().get(0);
+        assertEquals( loadSchema.getField(0).uid, prj.getUid() );
+        assertEquals( 0, prj.getColNum() );
+        assertEquals( 0, prj.getInputNum() );
+        
+        LogicalExpressionPlan exprPlan2 = plans.get(1);
+        assertEquals( 1, exprPlan2.getSinks().size() );
+        assertEquals( ProjectExpression.class, exprPlan2.getSinks().get(0).getClass() );
+        ProjectExpression prj2 = (ProjectExpression) exprPlan2.getSinks().get(0);
+        assertEquals( loadSchema.getField(1).uid, prj2.getUid() );
+        assertEquals( 1, prj2.getColNum() );
+        assertEquals( 0, prj2.getInputNum() );
+    }
+    
+    public void testCoGroup3() throws Exception {
+        LogicalPlanTester lpt = new LogicalPlanTester();
+        lpt.buildPlan("a = load '/test/d.txt' as (name:chararray, age:int, gpa:float);");
+        lpt.buildPlan("b = load '/test/e.txt' as (name:chararray, blah:chararray );");
+        lpt.buildPlan("c = group a by name, b by name;");
+        LogicalPlan plan = lpt.buildPlan("store c into '/test/empty';");
+        
+        // check basics
+        org.apache.pig.experimental.logical.relational.LogicalPlan newPlan = migratePlan(plan);
+        
+        assertEquals( LOCogroup.class, newPlan.getSuccessors( newPlan.getSources().get(0) ).get(0).getClass() );
+        LOCogroup cogroup = (LOCogroup) newPlan.getSuccessors( newPlan.getSources().get(0) ).get(0);
+        
+        // Reason for this strange way of getting the load schema is to maintain the sequence correctly        
+        LogicalSchema loadSchema = 
+            ((LogicalRelationalOperator)newPlan.getPredecessors(cogroup).get(0)).getSchema();
+        
+        LogicalSchema load2Schema = 
+            ((LogicalRelationalOperator)newPlan.getPredecessors(cogroup).get(1)).getSchema();
+        
+        Set<Long> uids = getAllUids(loadSchema);
+        uids.addAll( getAllUids( load2Schema ) );
+        
+        LogicalRelationalOperator op = (LogicalRelationalOperator) 
+            newPlan.getSuccessors( newPlan.getSources().get(0) ).get(0);
+        assertEquals( LOCogroup.class, op.getClass() );
+        LogicalSchema schema = op.getSchema();
+        
+        assertEquals( 3, schema.size() );
+        assertEquals( DataType.CHARARRAY, schema.getField(0).type );
+        assertEquals( false, uids.contains( schema.getField(0).uid ) );
+        assertEquals( 0, schema.getField(0).alias.compareTo("group") );
+
+        assertEquals( DataType.BAG, schema.getField(1).type );
+        
+        assertEquals( DataType.CHARARRAY, schema.getField(1).schema.getField(0).type );
+        assertEquals( 0, schema.getField(1).schema.getField(0).alias.compareTo("name") );
+        assertEquals( loadSchema.getField(0).uid, schema.getField(1).schema.getField(0).uid );
+        assertEquals( DataType.INTEGER, schema.getField(1).schema.getField(1).type );
+        assertEquals( 0, schema.getField(1).schema.getField(1).alias.compareTo("age") );
+        assertEquals( loadSchema.getField(1).uid, schema.getField(1).schema.getField(1).uid );
+        assertEquals( DataType.FLOAT, schema.getField(1).schema.getField(2).type );
+        assertEquals( 0, schema.getField(1).schema.getField(2).alias.compareTo("gpa") );
+        assertEquals( loadSchema.getField(2).uid, schema.getField(1).schema.getField(2).uid );
+        
+        assertEquals( DataType.BAG, schema.getField(2).type );
+        
+        assertEquals( DataType.CHARARRAY, schema.getField(2).schema.getField(0).type );
+        assertEquals( 0, schema.getField(2).schema.getField(0).alias.compareTo("name") );
+        assertEquals( load2Schema.getField(0).uid, schema.getField(2).schema.getField(0).uid );
+        assertEquals( DataType.CHARARRAY, schema.getField(2).schema.getField(1).type );
+        assertEquals( 0, schema.getField(2).schema.getField(1).alias.compareTo("blah") );
+        assertEquals( load2Schema.getField(1).uid, schema.getField(2).schema.getField(1).uid );        
+        
+        
+        // We are doing Uid tests at the end as the uids should not repeat                
+        assertEquals( false, uids.contains( schema.getField(1).uid ) );
+        uids.add( schema.getField(1).uid );
+        assertEquals( false, uids.contains( schema.getField(2).uid) );
+        
+        MultiMap<Integer, LogicalExpressionPlan> expressionPlans = cogroup.getExpressionPlans();
+        assertEquals( 2, expressionPlans.size() );
+        List<LogicalExpressionPlan> plans = (List<LogicalExpressionPlan>) expressionPlans.get(Integer.valueOf(0));
+        assertEquals( 1, plans.size() );
+        
+        List<LogicalExpressionPlan> plans2 = (List<LogicalExpressionPlan>) expressionPlans.get(Integer.valueOf(1));
+        assertEquals( 1, plans2.size() );
+        
+        LogicalExpressionPlan exprPlan = plans.get(0);
+        assertEquals( 1, exprPlan.getSinks().size() );
+        assertEquals( ProjectExpression.class, exprPlan.getSinks().get(0).getClass() );
+        ProjectExpression prj = (ProjectExpression) exprPlan.getSinks().get(0);
+        assertEquals( loadSchema.getField(0).uid, prj.getUid() );
+        assertEquals( 0, prj.getColNum() );
+        assertEquals( 0, prj.getInputNum() );
+        
+        LogicalExpressionPlan exprPlan2 = plans2.get(0);
+        assertEquals( 1, exprPlan2.getSinks().size() );
+        assertEquals( ProjectExpression.class, exprPlan2.getSinks().get(0).getClass() );
+        ProjectExpression prj2 = (ProjectExpression) exprPlan2.getSinks().get(0);
+        assertEquals( load2Schema.getField(0).uid, prj2.getUid() );
+        assertEquals( 0, prj2.getColNum() );
+        assertEquals( 1, prj2.getInputNum() );
+    }
+    
+    public void testCoGroup4() throws Exception {
+        LogicalPlanTester lpt = new LogicalPlanTester();
+        lpt.buildPlan("a = load '/test/d.txt' as (name:chararray, age:int, gpa:float);");
+        lpt.buildPlan("b = load '/test/e.txt' as (name:chararray, age:int, blah:chararray );");
+        lpt.buildPlan("c = group a by ( name, age ), b by ( name, age );");
+        LogicalPlan plan = lpt.buildPlan("store c into '/test/empty';");
+        
+        // check basics
+        org.apache.pig.experimental.logical.relational.LogicalPlan newPlan = migratePlan(plan);
+        
+        assertEquals( LOCogroup.class, newPlan.getSuccessors( newPlan.getSources().get(0) ).get(0).getClass() );
+        LOCogroup cogroup = (LOCogroup) newPlan.getSuccessors( newPlan.getSources().get(0) ).get(0);
+        
+        // Reason for this strange way of getting the load schema is to maintain the sequence correctly        
+        LogicalSchema loadSchema = 
+            ((LogicalRelationalOperator)newPlan.getPredecessors(cogroup).get(0)).getSchema();
+        
+        LogicalSchema load2Schema = 
+            ((LogicalRelationalOperator)newPlan.getPredecessors(cogroup).get(1)).getSchema();
+        
+        Set<Long> uids = getAllUids(loadSchema);
+        uids.addAll( getAllUids( load2Schema ) );
+        
+        LogicalRelationalOperator op = (LogicalRelationalOperator) 
+            newPlan.getSuccessors( newPlan.getSources().get(0) ).get(0);
+        assertEquals( LOCogroup.class, op.getClass() );
+        LogicalSchema schema = op.getSchema();
+        
+        assertEquals( 3, schema.size() );
+        assertEquals( DataType.TUPLE, schema.getField(0).type );
+        assertEquals( false, uids.contains( schema.getField(0).uid ) );
+        assertEquals( 0, schema.getField(0).alias.compareTo("group") );
+        assertEquals( DataType.CHARARRAY, schema.getField(0).schema.getField(0).type );
+        assertEquals( 0, schema.getField(0).schema.getField(0).alias.compareTo("name") );
+        assertEquals( DataType.INTEGER, schema.getField(0).schema.getField(1).type );
+        assertEquals( 0, schema.getField(0).schema.getField(1).alias.compareTo("age") );                
+               
+
+        assertEquals( DataType.BAG, schema.getField(1).type );
+        
+        assertEquals( DataType.CHARARRAY, schema.getField(1).schema.getField(0).type );
+        assertEquals( 0, schema.getField(1).schema.getField(0).alias.compareTo("name") );
+        assertEquals( loadSchema.getField(0).uid, schema.getField(1).schema.getField(0).uid );
+        assertEquals( DataType.INTEGER, schema.getField(1).schema.getField(1).type );
+        assertEquals( 0, schema.getField(1).schema.getField(1).alias.compareTo("age") );
+        assertEquals( loadSchema.getField(1).uid, schema.getField(1).schema.getField(1).uid );
+        assertEquals( DataType.FLOAT, schema.getField(1).schema.getField(2).type );
+        assertEquals( 0, schema.getField(1).schema.getField(2).alias.compareTo("gpa") );
+        assertEquals( loadSchema.getField(2).uid, schema.getField(1).schema.getField(2).uid );
+        
+        assertEquals( DataType.BAG, schema.getField(2).type );
+        
+        assertEquals( DataType.CHARARRAY, schema.getField(2).schema.getField(0).type );
+        assertEquals( 0, schema.getField(2).schema.getField(0).alias.compareTo("name") );
+        assertEquals( load2Schema.getField(0).uid, schema.getField(2).schema.getField(0).uid );
+        assertEquals( DataType.INTEGER, schema.getField(2).schema.getField(1).type );
+        assertEquals( 0, schema.getField(2).schema.getField(1).alias.compareTo("age") );
+        assertEquals( load2Schema.getField(1).uid, schema.getField(2).schema.getField(1).uid );
+        assertEquals( DataType.CHARARRAY, schema.getField(2).schema.getField(2).type );
+        assertEquals( 0, schema.getField(2).schema.getField(2).alias.compareTo("blah") );
+        assertEquals( load2Schema.getField(2).uid, schema.getField(2).schema.getField(2).uid );        
+        
+        
+        // We are doing Uid tests at the end as the uids should not repeat
+        assertEquals( false, uids.contains( schema.getField(0).schema.getField(0).uid ) );
+        assertEquals( false, uids.contains( schema.getField(0).schema.getField(1).uid ) );
+        assertEquals( false, uids.contains( schema.getField(1).uid ) );
+        uids.add( schema.getField(1).uid );
+        assertEquals( false, uids.contains( schema.getField(2).uid) );
+        
+        
+        MultiMap<Integer, LogicalExpressionPlan> expressionPlans = cogroup.getExpressionPlans();
+        assertEquals( 2, expressionPlans.size() );
+        List<LogicalExpressionPlan> plans = (List<LogicalExpressionPlan>) expressionPlans.get(Integer.valueOf(0));
+        assertEquals( 2, plans.size() );
+        
+        List<LogicalExpressionPlan> plans2 = (List<LogicalExpressionPlan>) expressionPlans.get(Integer.valueOf(1));
+        assertEquals( 2, plans2.size() );
+        
+        LogicalExpressionPlan exprPlan = plans.get(0);
+        assertEquals( 1, exprPlan.getSinks().size() );
+        assertEquals( ProjectExpression.class, exprPlan.getSinks().get(0).getClass() );
+        ProjectExpression prj = (ProjectExpression) exprPlan.getSinks().get(0);
+        assertEquals( loadSchema.getField(0).uid, prj.getUid() );
+        assertEquals( 0, prj.getColNum() );
+        assertEquals( 0, prj.getInputNum() );
+        
+        LogicalExpressionPlan exprPlan2 = plans.get(1);
+        assertEquals( 1, exprPlan2.getSinks().size() );
+        assertEquals( ProjectExpression.class, exprPlan2.getSinks().get(0).getClass() );
+        ProjectExpression prj2 = (ProjectExpression) exprPlan2.getSinks().get(0);
+        assertEquals( loadSchema.getField(1).uid, prj2.getUid() );
+        assertEquals( 1, prj2.getColNum() );
+        assertEquals( 0, prj2.getInputNum() );        
+        
+        LogicalExpressionPlan exprPlan3 = plans2.get(0);
+        assertEquals( 1, exprPlan3.getSinks().size() );
+        assertEquals( ProjectExpression.class, exprPlan3.getSinks().get(0).getClass() );
+        ProjectExpression prj3 = (ProjectExpression) exprPlan3.getSinks().get(0);
+        assertEquals( load2Schema.getField(0).uid, prj3.getUid() );
+        assertEquals( 0, prj3.getColNum() );
+        assertEquals( 1, prj3.getInputNum() );
+        
+        LogicalExpressionPlan exprPlan4 = plans2.get(1);
+        assertEquals( 1, exprPlan4.getSinks().size() );
+        assertEquals( ProjectExpression.class, exprPlan4.getSinks().get(0).getClass() );
+        ProjectExpression prj4 = (ProjectExpression) exprPlan4.getSinks().get(0);
+        assertEquals( load2Schema.getField(1).uid, prj4.getUid() );
+        assertEquals( 1, prj4.getColNum() );
+        assertEquals( 1, prj4.getInputNum() );
+    }
+    
+    /**
+     * Obtains all the uids from the schema
+     * @param schema
+     * @return Set of uids from this schema. Its a recursive call
+     */
+    private Set<Long> getAllUids( LogicalSchema schema ) {
+        Set<Long> uids = new HashSet<Long>();
+        
+        if( schema != null ) {
+            for( LogicalFieldSchema fieldSchema : schema.getFields() ) {
+                if( ( fieldSchema.type == DataType.BAG || 
+                        fieldSchema.type == DataType.TUPLE ) &&
+                        fieldSchema.schema != null ) {
+                    uids.addAll( getAllUids( fieldSchema.schema ) );
+                } else {
+                    uids.add( fieldSchema.uid );
+                }
+            }
+        }
+        return uids;
     }
     
     private org.apache.pig.experimental.logical.relational.LogicalPlan migratePlan(LogicalPlan lp) throws VisitorException{

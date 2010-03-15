@@ -57,27 +57,27 @@ public class LOInnerLoad extends LogicalRelationalOperator {
             LogicalRelationalOperator op = (LogicalRelationalOperator)p.getPredecessors(foreach).get(0);
             LogicalSchema s = op.getSchema();
             if (s != null) {
-                schema = new LogicalSchema();      
-                long uid = prj.getUid();
-                for(int i=0; i<s.size(); i++) {
-                    if (uid == s.getField(i).uid) {
-                        schema.addField(s.getField(i));
-                    }
+                if (prj.isProjectStar()) {
+                    schema = s;
+                } else {
+                    schema = new LogicalSchema();                  
+                    schema.addField(s.getField(getColNum()));           
                 }
-            }
+            }            
             
             if ( schema != null && schema.size() == 0) {
                 schema = null;
             }
         }catch(Exception e) {
+            e.printStackTrace();
             throw new RuntimeException(e);
         }
         
         return schema;
     }
     
-    public LogicalExpressionPlan getExpression() {
-        return (LogicalExpressionPlan)prj.getPlan();
+    public ProjectExpression getProjection() {
+        return prj;
     }
 
     @Override
