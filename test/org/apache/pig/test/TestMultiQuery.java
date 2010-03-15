@@ -322,9 +322,9 @@ public class TestMultiQuery {
 
             List<Tuple> expectedResults = Util.getTuplesFromConstantTupleStrings(
                     new String[] { 
-                            "(1L,1L,'apple',1L,{(1L)})",
-                            "(2L,2L,'orange',2L,{(2L)})",
-                            "(3L,3L,'persimmon',3L,{(3L)})"
+                            "(1L,'apple',3,1L,'apple',1L,{(1L)})",
+                            "(2L,'orange',4,2L,'orange',2L,{(2L)})",
+                            "(3L,'persimmon',5,3L,'persimmon',3L,{(3L)})"
                     });
             
             int counter = 0;
