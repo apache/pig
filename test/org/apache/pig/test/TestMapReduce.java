@@ -26,6 +26,8 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.PrintStream;
 import java.util.Iterator;
+import java.util.Properties;
+import java.util.Map.Entry;
 
 import junit.framework.TestCase;
 
@@ -110,8 +112,13 @@ public class TestMapReduce extends TestCase {
     public void testBZip2Aligned() throws Throwable {
         int offsets[] = { 219642, 219643, 219644, 552019, 552020 };
         for(int i = 1; i < offsets.length; i ++) {
-            System.setProperty("pig.overrideBlockSize", Integer.toString(offsets[i]));
-            PigContext pigContext = new PigContext(ExecType.MAPREDUCE, cluster.getProperties());
+            
+            Properties props = new Properties();
+            for (Entry<Object, Object> entry : cluster.getProperties().entrySet()) {
+                props.put(entry.getKey(), entry.getValue());
+            }
+            props.setProperty("mapred.max.split.size", Integer.toString(offsets[i]));
+            PigContext pigContext = new PigContext(ExecType.MAPREDUCE, props);
             PigServer pig = new PigServer(pigContext);
             pig.registerQuery("a = load '"
                     + Util.generateURI(

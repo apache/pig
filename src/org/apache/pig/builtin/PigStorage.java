@@ -32,6 +32,7 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.WritableComparable;
 import org.apache.hadoop.io.compress.BZip2Codec;
 import org.apache.hadoop.io.compress.GzipCodec;
+import org.apache.pig.bzip2r.Bzip2TextInputFormat;
 import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.OutputFormat;
@@ -74,6 +75,7 @@ LoadPushDown {
     private ArrayList<Object> mProtoTuple = null;
     private TupleFactory mTupleFactory = TupleFactory.getInstance();
     private static final int BUFFER_SIZE = 1024;
+    private String loadLocation;
     
     public PigStorage() {
     }
@@ -226,7 +228,11 @@ LoadPushDown {
 
     @Override
     public InputFormat getInputFormat() {
-        return new TextInputFormat();
+        if(loadLocation.endsWith("bz2") || loadLocation.endsWith("bz")) {
+            return new Bzip2TextInputFormat();
+        } else {
+            return new TextInputFormat();
+        }
     }
 
     @Override
@@ -237,6 +243,7 @@ LoadPushDown {
     @Override
     public void setLocation(String location, Job job)
             throws IOException {
+        loadLocation = location;
         FileInputFormat.setInputPaths(job, location);
     }
 
@@ -254,7 +261,7 @@ LoadPushDown {
     public void setStoreLocation(String location, Job job) throws IOException {
         job.getConfiguration().set("mapred.textoutputformat.separator", "");
         FileOutputFormat.setOutputPath(job, new Path(location));
-        if (location.endsWith(".bz2")) {
+        if (location.endsWith(".bz2") || location.endsWith("bz")) {
             FileOutputFormat.setCompressOutput(job, true);
             FileOutputFormat.setOutputCompressorClass(job,  BZip2Codec.class);
         }  else if (location.endsWith(".gz")) {

@@ -32,6 +32,7 @@ import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintStream;
 import java.io.PrintWriter;
+import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -67,6 +68,8 @@ import org.apache.pig.impl.logicalLayer.LogicalPlan;
 import org.apache.pig.impl.logicalLayer.parser.ParseException;
 import org.apache.pig.impl.logicalLayer.parser.QueryParser;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.tools.grunt.Grunt;
+import org.apache.pig.tools.grunt.GruntParser;
 
 public class Util {
     private static BagFactory mBagFactory = BagFactory.getInstance();
@@ -343,13 +346,17 @@ public class Util {
 	 * @throws IOException
 	 */
 	static public void copyFromLocalToCluster(MiniCluster cluster, String localFileName, String fileNameOnCluster) throws IOException {
-	    BufferedReader reader = new BufferedReader(new FileReader(localFileName));
-	    String line = null;
-	    List<String> contents = new ArrayList<String>();
-	    while((line = reader.readLine()) != null) {
-	        contents.add(line);
-	    }
-	    Util.createInputFile(cluster, fileNameOnCluster, contents.toArray(new String[0]));
+        PigServer ps = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        String script = "fs -put " + localFileName + " " + fileNameOnCluster;
+
+	    GruntParser parser = new GruntParser(new StringReader(script));
+        parser.setInteractive(false);
+        parser.setParams(ps);
+        try {
+            parser.parseStopOnError();
+        } catch (org.apache.pig.tools.pigscript.parser.ParseException e) {
+            throw new IOException(e);
+        }
 	}
 	
 	static public void copyFromClusterToLocal(MiniCluster cluster, String fileNameOnCluster, String localFileName) throws IOException {
