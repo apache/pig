@@ -19,22 +19,22 @@ package org.apache.pig;
 
 import java.io.IOException;
 import org.apache.hadoop.io.WritableComparable;
+import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.lib.input.FileSplit;
-import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigSplit;
 
 /**
  * This class provides an implementation of OrderedLoadFunc interface
  * which can be optionally re-used by LoadFuncs that use FileInputFormat, by
  * having this as a super class
  */
-public abstract class FileInputLoadFunc extends OrderedLoadFunc {
+public abstract class FileInputLoadFunc extends LoadFunc implements OrderedLoadFunc  {
     
     @Override
-    public WritableComparable<?> getSplitComparable(PigSplit split)
+    public WritableComparable<?> getSplitComparable(InputSplit split)
     throws IOException{
         FileSplit fileSplit = null;
-        if(split.getWrappedSplit() instanceof FileSplit){
-            fileSplit = (FileSplit)split.getWrappedSplit();
+        if(split instanceof FileSplit){
+            fileSplit = (FileSplit)split;
         }else{
             throw new RuntimeException("LoadFunc expected split of type FileSplit");
         }
@@ -46,5 +46,3 @@ public abstract class FileInputLoadFunc extends OrderedLoadFunc {
     }
 
 }
-
-

@@ -28,6 +28,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.IndexableLoadFunc;
+import org.apache.pig.LoadFunc;
 import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce;
@@ -69,7 +70,7 @@ public class POMergeJoin extends PhysicalOperator {
     //The Local Rearrange operators modeling the join key
     private POLocalRearrange[] LRs;
 
-    private transient IndexableLoadFunc rightLoader;
+    private transient LoadFunc rightLoader;
     private OperatorKey opKey;
 
     private Object prevLeftKey;
@@ -245,7 +246,7 @@ public class POMergeJoin extends PhysicalOperator {
                         else{           // This is end of all input and this is last join output.
                             // Right loader in this case wouldn't get a chance to close input stream. So, we close it ourself.
                             try {
-                                rightLoader.close();
+                                ((IndexableLoadFunc)rightLoader).close();
                             } catch (IOException e) {
                                 // Non-fatal error. We can continue.
                                 log.error("Received exception while trying to close right side file: " + e.getMessage());
@@ -377,7 +378,7 @@ public class POMergeJoin extends PhysicalOperator {
                 if(this.parentPlan.endOfAllInput){  // This is end of all input and this is last time we will read right input.
                     // Right loader in this case wouldn't get a chance to close input stream. So, we close it ourself.
                     try {
-                        rightLoader.close();
+                        ((IndexableLoadFunc)rightLoader).close();
                     } catch (IOException e) {
                      // Non-fatal error. We can continue.
                         log.error("Received exception while trying to close right side file: " + e.getMessage());
@@ -389,7 +390,7 @@ public class POMergeJoin extends PhysicalOperator {
     }
     
     private void seekInRightStream(Object firstLeftKey) throws IOException{
-        rightLoader = (IndexableLoadFunc)PigContext.instantiateFuncFromSpec(rightLoaderFuncSpec);
+        rightLoader = (LoadFunc)PigContext.instantiateFuncFromSpec(rightLoaderFuncSpec);
         
         // check if hadoop distributed cache is used
         if (indexFile != null && rightLoader instanceof DefaultIndexableLoader) {
@@ -399,12 +400,11 @@ public class POMergeJoin extends PhysicalOperator {
         
         // Pass signature of the loader to rightLoader
         // make a copy of the conf to use in calls to rightLoader.
-        Configuration conf = new Configuration(PigMapReduce.sJobConf);
         rightLoader.setUDFContextSignature(signature);
-        Job job = new Job(conf);
+        Job job = new Job(new Configuration(PigMapReduce.sJobConf));
         rightLoader.setLocation(rightInputFileName, job);
-        rightLoader.initialize(job.getConfiguration());
-        rightLoader.seekNear(
+        ((IndexableLoadFunc)rightLoader).initialize(job.getConfiguration());
+        ((IndexableLoadFunc)rightLoader).seekNear(
                 firstLeftKey instanceof Tuple ? (Tuple)firstLeftKey : mTupleFactory.newTuple(firstLeftKey));
     }
 

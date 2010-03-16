@@ -31,15 +31,15 @@ import org.apache.pig.data.Tuple;
  * needs to perform the merge based join.
  * 
  * The sequence of calls made from the pig runtime are:
- * {@link IndexableLoadFunc#setUDFContextSignature(String)}
+ * {@link LoadFunc#setUDFContextSignature(String)}
  * {@link IndexableLoadFunc#initialize(Configuration)}
- * {@link IndexableLoadFunc#setLocation(String, org.apache.hadoop.mapreduce.Job)}
+ * {@link LoadFunc#setLocation(String, org.apache.hadoop.mapreduce.Job)}
  * {@link IndexableLoadFunc#seekNear(Tuple)}
  * A series of IndexableLoadFunc.getNext(); calls to perform the join
  * IndexableLoadFunc.close(); 
  * 
  */
-public abstract class IndexableLoadFunc extends LoadFunc {
+public interface IndexableLoadFunc {
     
     /**
      * This method is called by pig run time to allow the

@@ -21,7 +21,8 @@ package org.apache.pig;
 import java.io.IOException;
 
 import org.apache.hadoop.io.WritableComparable;
-import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigSplit;
+import org.apache.hadoop.mapreduce.InputSplit;
+
 
 /**
  * Implementing this interface indicates to Pig that a given loader
@@ -29,8 +30,9 @@ import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigSplit;
  * WritableComparable object is stored in the index created by
  *  MergeJoin sampling MR job to get an ordered sequence of splits.
  * This is necessary when the sort key spans multiple splits.
+ * @since Pig 0.7
  */
-public abstract class OrderedLoadFunc extends LoadFunc {
+public interface OrderedLoadFunc {
 
     /**
      * The WritableComparable object returned will be used to compare
@@ -39,7 +41,7 @@ public abstract class OrderedLoadFunc extends LoadFunc {
      * @return WritableComparable representing the position of the split in input
      * @throws IOException
      */
-    public abstract WritableComparable<?> getSplitComparable(PigSplit split) 
+    public WritableComparable<?> getSplitComparable(InputSplit split) 
     throws IOException;
 
 }
