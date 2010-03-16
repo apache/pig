@@ -25,13 +25,22 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Properties;
+import java.util.Map.Entry;
 
+import junit.framework.Assert;
+
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FSDataInputStream;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
-import org.apache.pig.test.utils.LocalSeekableInputStream;
-import org.apache.pig.backend.datastorage.ElementDescriptor;
+import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.impl.PigContext;
 import org.apache.tools.bzip2r.CBZip2InputStream;
 import org.apache.tools.bzip2r.CBZip2OutputStream;
 import org.junit.Test;
@@ -68,15 +77,10 @@ public class TestBZip {
                 + "';");
         pig.registerQuery("A = foreach (group (filter AA by $0 > 0) all) generate flatten($1);");
         pig.registerQuery("store A into '" + out.getAbsolutePath() + "';");
-        
-        File dir = new File("testbzip");     
-        deleteFiles(dir);
-        
-        processCopyToLocal(pig, out.getAbsolutePath(), dir.getAbsolutePath());
-        
-        LocalSeekableInputStream is = new LocalSeekableInputStream(
-                new File(dir.getAbsolutePath() + "/part-r-00000.bz2")); 
-        
+        FileSystem fs = FileSystem.get(ConfigurationUtil.toConfiguration(
+                pig.getPigContext().getProperties()));
+        FSDataInputStream is = fs.open(new Path(out.getAbsolutePath() + 
+                "/part-r-00000.bz2"));
         CBZip2InputStream cis = new CBZip2InputStream(is);
         
         // Just a sanity check, to make sure it was a bzip file; we
@@ -101,8 +105,67 @@ public class TestBZip {
         
         in.delete();
         out.delete();
+    }
+    
+    /** 
+     * Tests that '\n', '\r' and '\r\n' are treated as record delims when using
+     * bzip just like they are when using uncompressed text
+     */
+    @Test
+    public void testRecordDelims() throws Exception {
+        String[] inputData = new String[] {
+                "1\t2\r3\t4", // '\r' case - this will be split into two tuples
+                "5\t6\r", // '\r\n' case
+                "7\t8", // '\n' case
+                "9\t10\r" // '\r\n' at the end of file
+        };
         
-        deleteFiles(dir);
+        // bzip compressed input
+        File in = File.createTempFile("junit", ".bz2");
+        String compressedInputFileName = in.getAbsolutePath();
+        in.deleteOnExit();
+        String unCompressedInputFileName = "testRecordDelims-uncomp.txt";
+        Util.createInputFile(cluster, unCompressedInputFileName, inputData);
+        
+        try {
+            CBZip2OutputStream cos = 
+                new CBZip2OutputStream(new FileOutputStream(in));
+            for (int i = 0; i < inputData.length; i++) {
+                StringBuffer sb = new StringBuffer();
+                sb.append(inputData[i]).append("\n");
+                byte bytes[] = sb.toString().getBytes();
+                cos.write(bytes);
+            }
+            cos.close();
+            
+            Util.copyFromLocalToCluster(cluster, compressedInputFileName,
+                    compressedInputFileName);
+            
+            // pig script to read uncompressed input
+            String script = "a = load '" + unCompressedInputFileName +"';";
+            PigServer pig = new PigServer(ExecType.MAPREDUCE, cluster
+                    .getProperties());
+            pig.registerQuery(script);
+            Iterator<Tuple> it1 = pig.openIterator("a");
+            
+            // pig script to read compressed input
+            script = "a = load '" + compressedInputFileName +"';";
+            pig.registerQuery(script);
+            Iterator<Tuple> it2 = pig.openIterator("a");
+            
+            while(it1.hasNext()) {
+                Tuple t1 = it1.next();
+                Tuple t2 = it2.next();
+                Assert.assertEquals(t1, t2);
+            }
+            
+            Assert.assertFalse(it2.hasNext());
+        
+        } finally {
+            in.delete();
+            Util.deleteFile(cluster, unCompressedInputFileName);
+        }
+        
     }
     
     /**
@@ -130,15 +193,10 @@ public class TestBZip {
                 + "';");
         pig.registerQuery("A=foreach (group (filter AA by $0 < '0') all) generate flatten($1);");
         pig.registerQuery("store A into '" + out.getAbsolutePath() + "';");
-            
-        File dir = new File("testbzip2");     
-        deleteFiles(dir);
-        
-        processCopyToLocal(pig, out.getAbsolutePath(), dir.getAbsolutePath());
-        
-        LocalSeekableInputStream is = new LocalSeekableInputStream(
-                new File(dir.getAbsolutePath() + "/part-r-00000.bz2")); 
-        
+        FileSystem fs = FileSystem.get(ConfigurationUtil.toConfiguration(
+                pig.getPigContext().getProperties()));
+        FSDataInputStream is = fs.open(new Path(out.getAbsolutePath() + 
+                "/part-r-00000.bz2"));
         CBZip2InputStream cis = new CBZip2InputStream(is);
         
         // Just a sanity check, to make sure it was a bzip file; we
@@ -152,7 +210,6 @@ public class TestBZip {
         in.delete();
         out.delete();
         
-        deleteFiles(dir);
     }
 
     /**
@@ -166,32 +223,86 @@ public class TestBZip {
                 tmp));
         cos.close();
         assertNotSame(0, tmp.length());
+        FileSystem fs = FileSystem.getLocal(new Configuration(false));
         CBZip2InputStream cis = new CBZip2InputStream(
-                new LocalSeekableInputStream(tmp));
+                fs.open(new Path(tmp.getAbsolutePath())));
         assertEquals(-1, cis.read(new byte[100]));
         cis.close();
         tmp.delete();
     }
     
-    private void processCopyToLocal(PigServer pig, String src, String dst) 
-            throws IOException {
-
-        ElementDescriptor srcPath = pig.getPigContext().getDfs().asElement(src);
-        ElementDescriptor dstPath = pig.getPigContext().getLfs().asElement(dst);
-            
-        srcPath.copy(dstPath, false);
+    /**
+     * Tests the case where a bzip block ends exactly at the end of the {@link InputSplit}
+     * with the block header ending a few bits into the last byte of current
+     * InputSplit. This case results in dropped records in Pig 0.6 release
+     */
+    @Test
+    public void testBlockHeaderEndingAtSplitNotByteAligned() throws IOException {
+        String inputFileName = 
+            "test/org/apache/pig/test/data/recordLossblockHeaderEndsAt136500.txt.bz2";
+        Long expectedCount = 74999L; // number of lines in above file
+        // the first block in the above file exactly ends a few bits into the 
+        // byte at position 136500 
+        int splitSize = 136500;
+        Util.copyFromLocalToCluster(cluster, inputFileName, inputFileName);
+        testCount(inputFileName, expectedCount, splitSize);
     }
     
-    private void deleteFiles(File file) {
-        if (!file.exists()) return;
-            
-        if (file.isDirectory()) {
-            File[] files = file.listFiles();
-            for (File f : files) {
-                deleteFiles(f);
+    /**
+     *  Tests the case where a bzip block ends exactly at the end of the input 
+     *  split (byte aligned with the last byte) and the last byte is a carriage
+     *  return.
+     */
+    @Test
+    public void testBlockHeaderEndingWithCR() throws IOException {
+        String inputFileName = 
+            "test/org/apache/pig/test/data/blockEndingInCR.txt.bz2";
+        // number of lines in above file (the value is 1 more than bzcat | wc -l
+        // since there is a '\r' which is also treated as a record delim
+        Long expectedCount = 82094L; 
+        // the first block in the above file exactly ends at the byte at 
+        // position 136498 and the last byte is a carriage return ('\r') 
+        int splitSize = 136498;
+        Util.copyFromLocalToCluster(cluster, inputFileName, inputFileName);
+        testCount(inputFileName, expectedCount, splitSize);
+    }
+    
+    /**
+     * Tests the case where a bzip block ends exactly at the end of the input
+     * split and has more data which results in overcounting (record duplication)
+     * in Pig 0.6
+     */
+    @Test
+    public void testBlockHeaderEndingAtSplitOverCounting() throws IOException {
+        String inputFileName = 
+            "test/org/apache/pig/test/data/blockHeaderEndsAt136500.txt.bz2";
+        Long expectedCount = 1041046L; // number of lines in above file
+        // the first block in the above file exactly ends a few bits into the 
+        // byte at position 136500 
+        int splitSize = 136500;
+        Util.copyFromLocalToCluster(cluster, inputFileName, inputFileName);
+        testCount(inputFileName, expectedCount, splitSize);
+    }
+    
+    private void testCount(String inputFileName, Long expectedCount, 
+            int splitSize) throws IOException {
+        try {
+            String script = "a = load '" + inputFileName + "';" +
+            		"b = group a all;" +
+            		"c = foreach b generate COUNT_STAR(a);";
+            Properties props = new Properties();
+            for (Entry<Object, Object> entry : cluster.getProperties().entrySet()) {
+                props.put(entry.getKey(), entry.getValue());
             }
+            props.setProperty("mapred.max.split.size", Integer.toString(splitSize));
+            PigContext pigContext = new PigContext(ExecType.MAPREDUCE, props);
+            PigServer pig = new PigServer(pigContext);
+            Util.registerMultiLineQuery(pig, script);
+            Iterator<Tuple> it = pig.openIterator("c");
+            Long result = (Long) it.next().get(0);
+            assertEquals(expectedCount, result);
+        } finally {
+            Util.deleteFile(cluster, inputFileName);
         }
-        System.out.println("delete file: " + file.getAbsolutePath() 
-                + " : " + file.delete());
     }
 }

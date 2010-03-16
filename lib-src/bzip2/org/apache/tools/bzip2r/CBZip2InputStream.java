@@ -76,10 +76,10 @@
  */
 package org.apache.tools.bzip2r;
 
-import java.io.IOException;
 import java.io.InputStream;
-
-import org.apache.pig.backend.datastorage.SeekableInputStream;
+import java.io.IOException;
+import org.apache.hadoop.fs.FSDataInputStream;
+import org.apache.hadoop.mapreduce.InputSplit;
 
 /**
  * An input stream that decompresses from the BZip2 format (without the file
@@ -127,7 +127,13 @@ public class CBZip2InputStream extends InputStream implements BZip2Constants {
 
     private boolean blockRandomised;
 
+    // a buffer to keep the read byte
     private int bsBuff;
+    
+    // since bzip is bit-aligned at block boundaries there can be a case wherein
+    // only few bits out of a read byte are consumed and the remaining bits
+    // need to be consumed while processing the next block.
+    // indicate how many bits in bsBuff have not been processed yet
     private int bsLive;
     private CRC mCrc = new CRC();
 
@@ -154,7 +160,7 @@ public class CBZip2InputStream extends InputStream implements BZip2Constants {
     private int[][] perm = new int[N_GROUPS][MAX_ALPHA_SIZE];
     private int[] minLens = new int[N_GROUPS];
 
-    private SeekableInputStream innerBsStream;
+    private FSDataInputStream innerBsStream;
     long readLimit = Long.MAX_VALUE;
     public long getReadLimit() {
         return readLimit;
@@ -192,13 +198,20 @@ public class CBZip2InputStream extends InputStream implements BZip2Constants {
     int j2;
     char z;
     
-    // The positioning is a bit tricky. we set newPos when we start reading a new block
-    // and we set retPos to newPos once we have read a character from that block.
-    // see getPos() for more detail
-    private long retPos, newPos = -1;
+    // see comment in getPos()
+    private long retPos = -1;
+    // the position offset which corresponds to the end of the InputSplit that
+    // will be processed by this instance 
+    private long endOffsetOfSplit;
 
-    public CBZip2InputStream(SeekableInputStream zStream, int blockSize) throws IOException {
-        retPos = newPos = zStream.tell();
+    private boolean signalToStopReading;
+
+    public CBZip2InputStream(FSDataInputStream zStream, int blockSize, long end)
+    throws IOException {
+        endOffsetOfSplit = end;
+        // initialize retPos to the beginning of the current InputSplit
+        // see comments in getPos() to understand how this is used.
+        retPos = zStream.getPos();
     	ll8 = null;
         tt = null;
         checkComputedCombinedCRC = blockSize == -1;
@@ -208,19 +221,26 @@ public class CBZip2InputStream extends InputStream implements BZip2Constants {
         setupBlock();
     }
     
-    public CBZip2InputStream(SeekableInputStream zStream) throws IOException {
-    	this(zStream, -1);
+    public CBZip2InputStream(FSDataInputStream zStream) throws IOException {
+    	this(zStream, -1, Long.MAX_VALUE);
     }
 
+    @Override
     public int read() throws IOException {
         if (streamEnd) {
             return -1;
         } else {
-            if (retPos < newPos) {
-                retPos = newPos;
-            } else {
-                retPos = newPos+1;
+            
+            // if we just started reading a bzip block which starts at a position
+            // >= end of current split, then we should set up retpos such that
+            // after a record is read, future getPos() calls will get a value
+            // > end of current split - this way we will read only one record out
+            // of this bzip block - the rest of the records from this bzip block
+            // should be read by the next map task while processing the next split
+            if(signalToStopReading) {
+                retPos = endOffsetOfSplit + 1;
             }
+            
             int retChar = currentChar;
             switch(currentState) {
             case START_BLOCK_STATE:
@@ -249,12 +269,17 @@ public class CBZip2InputStream extends InputStream implements BZip2Constants {
     }
 
     /**
-     * This is supposed to approximate the position in the underlying stream. However,
-     * with compression, the underlying stream position is very vague. One position may
-     * have multiple positions and visa versa. So we do something very subtle:
-     * The position of the first byte of a compressed block will have the position of
-     * the block header at the start of the block. Every byte after the first byte will
-     * be one plus the position of the block header.
+     * getPos is used by the caller to know when the processing of the current 
+     * {@link InputSplit} is complete. In this method, as we read each bzip
+     * block, we keep returning the beginning of the {@link InputSplit} as the
+     * return value until we hit a block  which starts at a position >= end of
+     * current split. At that point we should set up retpos such that after a 
+     * record is read, future getPos() calls will get a value > end of current 
+     * split - this way we will read only one record out of that bzip block - 
+     * the rest of the records from that bzip block should be read by the next 
+     * map task while processing the next split
+     * @return
+     * @throws IOException
      */
     public long getPos() throws IOException{
         return retPos;
@@ -291,8 +316,9 @@ public class CBZip2InputStream extends InputStream implements BZip2Constants {
             streamEnd = true;
             return;
         }
-
-        newPos = innerBsStream.tell();
+        
+        // position before beginning of bzip block header        
+        long pos = innerBsStream.getPos();
         if (!searchForMagic) {
             char magic1, magic2, magic3, magic4;
             char magic5, magic6;
@@ -324,13 +350,31 @@ public class CBZip2InputStream extends InputStream implements BZip2Constants {
                 magic <<= 1;
                 magic &= mask;
                 magic |= bsR(1);
+                // if we just found the block header, the beginning of the bzip 
+                // header would be 6 bytes before the current stream position
+                // when we eventually break from this while(), if it is because
+                // we found a block header then pos will have the correct start
+                // of header position
+                pos = innerBsStream.getPos() - 6;
             }
             if (magic == eos) {
                 complete();
                 return;
             }
+            
+        }
+        // if the previous block finished a few bits into the previous byte,
+        // then we will first be reading the remaining bits from the previous
+        // byte - so logically pos needs to be one behind
+        if(bsLive > 0)  {
+            pos--;
         }
         
+        if(pos >= endOffsetOfSplit) {
+            // we have reached a block which begins exactly at the next InputSplit
+            // or >1 byte into the next InputSplit - lets record this fact
+            signalToStopReading = true;
+        }
         storedBlockCRC = bsGetInt32();
 
         if (bsR(1) == 1) {
@@ -389,7 +433,7 @@ public class CBZip2InputStream extends InputStream implements BZip2Constants {
         }
     }
 
-    private void bsSetStream(SeekableInputStream f) {
+    private void bsSetStream(FSDataInputStream f) {
         innerBsStream = f;
         bsLive = 0;
         bsBuff = 0;
