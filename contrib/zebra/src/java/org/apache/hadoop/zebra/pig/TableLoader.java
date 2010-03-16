@@ -45,6 +45,7 @@ import org.apache.hadoop.zebra.schema.Schema.ColumnSchema;
 import org.apache.hadoop.zebra.types.Projection;
 import org.apache.hadoop.zebra.types.SortInfo;
 import org.apache.pig.Expression;
+import org.apache.pig.LoadFunc;
 import org.apache.pig.LoadMetadata;
 import org.apache.pig.LoadPushDown;
 import org.apache.pig.ResourceSchema;
@@ -60,7 +61,8 @@ import org.apache.pig.IndexableLoadFunc;
 /**
  * Pig IndexableLoadFunc and Slicer for Zebra Table
  */
-public class TableLoader extends IndexableLoadFunc implements LoadMetadata, LoadPushDown {
+public class TableLoader extends LoadFunc implements LoadMetadata, LoadPushDown,
+        IndexableLoadFunc{
     static final Log LOG = LogFactory.getLog(TableLoader.class);
 
     private static final String UDFCONTEXT_PROJ_STRING = "zebra.UDFContext.projectionString";
