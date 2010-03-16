@@ -31,6 +31,7 @@ import java.util.Set;
 
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.mapred.JobConf;
+import org.apache.pig.CollectableLoadFunc;
 import org.apache.pig.ExecType;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.IndexableLoadFunc;
@@ -906,18 +907,61 @@ public class MRCompiler extends PhyPlanVisitor {
 
     @Override
     public void visitCollectedGroup(POCollectedGroup op) throws VisitorException {
-        try{
-            nonBlocking(op);
-            List<PhysicalPlan> plans = op.getPlans();
-            if(plans!=null)
-                for(PhysicalPlan ep : plans)
-                    addUDFs(ep);
-            phyToMROpMap.put(op, curMROp);
-        }catch(Exception e){
-            int errCode = 2034;
-            String msg = "Error compiling operator " + op.getClass().getSimpleName();
-            throw new MRCompilerException(msg, errCode, PigException.BUG, e);
+        
+        if(!curMROp.mapDone){
+            
+            List<PhysicalOperator> roots = curMROp.mapPlan.getRoots();
+            if(roots.size() != 1){
+                int errCode = 2171;
+                String errMsg = "Expected one but found more then one root physical operator in physical plan.";
+                throw new MRCompilerException(errMsg,errCode,PigException.BUG);
+            }
+            
+            PhysicalOperator phyOp = roots.get(0);
+            if(! (phyOp instanceof POLoad)){
+                int errCode = 2172;
+                String errMsg = "Expected physical operator at root to be POLoad. Found : "+phyOp.getClass().getCanonicalName();
+                throw new MRCompilerException(errMsg,errCode,PigException.BUG);
+            }
+            
+            POLoad loader = (POLoad)phyOp;
+            LoadFunc loadFunc = (LoadFunc) PigContext.instantiateFuncFromSpec(loader.getLFile().getFuncSpec());
+            try {
+                if(!(loadFunc instanceof CollectableLoadFunc)){
+                    throw new MRCompilerException("While using 'collected' on group; data must be loaded via loader implementing CollectableLoadFunc.");
+                }
+                ((CollectableLoadFunc)loadFunc).ensureAllKeyInstancesInSameSplit();
+            } catch (MRCompilerException e){
+                throw (e);
+            } catch (IOException e) {
+                int errCode = 2034;
+                String msg = "Error compiling operator " + op.getClass().getSimpleName();
+                throw new MRCompilerException(msg, errCode, PigException.BUG, e);
+            }
+
+            try{
+                nonBlocking(op);
+                List<PhysicalPlan> plans = op.getPlans();
+                if(plans!=null)
+                    for(PhysicalPlan ep : plans)
+                        addUDFs(ep);
+                phyToMROpMap.put(op, curMROp);
+            }catch(Exception e){
+                int errCode = 2034;
+                String msg = "Error compiling operator " + op.getClass().getSimpleName();
+                throw new MRCompilerException(msg, errCode, PigException.BUG, e);
+            }    
         }
+        else if(!curMROp.reduceDone){
+            String msg = "Blocking operators are not allowed before Collected Group. Consider dropping using 'collected'.";
+            throw new MRCompilerException(msg, PigException.BUG);   
+        }
+        else{
+            int errCode = 2022;
+            String msg = "Both map and reduce phases have been done. This is unexpected while compiling.";
+            throw new MRCompilerException(msg, errCode, PigException.BUG);   
+        }
+        
     }
 
     @Override

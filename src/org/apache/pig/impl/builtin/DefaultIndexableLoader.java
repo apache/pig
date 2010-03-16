@@ -57,7 +57,7 @@ import org.apache.pig.impl.util.ObjectSerializer;
  * finds the splitIndex that can contain the key and initializes ReadToEndLoader
  * to read from that splitIndex onwards , in the sequence of splits in the index
  */
-public class DefaultIndexableLoader extends IndexableLoadFunc {
+public class DefaultIndexableLoader extends LoadFunc implements IndexableLoadFunc{
 
     
     // FileSpec of index file which will be read from HDFS.

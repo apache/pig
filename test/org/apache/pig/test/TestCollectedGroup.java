@@ -24,9 +24,8 @@ import java.util.List;
 import junit.framework.Assert;
 import junit.framework.TestCase;
 
-import org.apache.pig.EvalFunc;
+import org.apache.pig.CollectableLoadFunc;
 import org.apache.pig.ExecType;
-import org.apache.pig.FuncSpec;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.BagFactory;
@@ -34,8 +33,11 @@ import org.apache.pig.data.DataBag;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.test.utils.LogicalPlanTester;
 import org.apache.pig.test.utils.TestHelper;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRCompilerException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POCollectedGroup;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
+import org.apache.pig.builtin.PigStorage;
+import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.logicalLayer.LOCogroup;
 import org.apache.pig.impl.logicalLayer.LogicalPlan;
 import org.apache.pig.impl.plan.OperatorKey;
@@ -79,6 +81,20 @@ public class TestCollectedGroup extends TestCase {
         Util.deleteFile(cluster, INPUT_FILE);
     }
     
+    public void testNonCollectableLoader() throws Exception{
+        LogicalPlanTester lpt = new LogicalPlanTester();
+        lpt.buildPlan("A = LOAD '" + INPUT_FILE + "' as (id, name, grade);");
+        LogicalPlan lp = lpt.buildPlan("B = group A by id using 'collected';");
+        PigContext pc = new PigContext(ExecType.MAPREDUCE,cluster.getProperties());
+        pc.connect();
+        try {
+            Util.buildMRPlan(Util.buildPhysicalPlan(lp, pc),pc);  
+            fail("Must throw MRCompiler Exception");
+        } catch (Exception e) {
+            assertTrue(e instanceof MRCompilerException);
+        }
+    }
+
     public void testCollectedGrpSpecifiedInSingleQuotes1(){
         
         LogicalPlanTester lpt = new LogicalPlanTester();
@@ -149,8 +165,7 @@ public class TestCollectedGroup extends TestCase {
     public void testMapsideGroupByOneColumn() throws IOException{
         pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
 
-        pigServer.registerQuery("A = LOAD '" + INPUT_FILE + "' as (id, name, grade);");
-    
+        pigServer.registerQuery("A = LOAD '" + INPUT_FILE + "' using "+DummyCollectableLoader.class.getName() +"() as (id, name, grade);");
         try {
             DataBag dbfrj = BagFactory.getInstance().newDefaultBag();
             DataBag dbshj = BagFactory.getInstance().newDefaultBag();
@@ -176,6 +191,7 @@ public class TestCollectedGroup extends TestCase {
             Assert.assertEquals(true, TestHelper.compareBags(dbfrj, dbshj));
 
         } catch (Exception e) {
+            e.printStackTrace();
             fail(e.getMessage());
         }
     }
@@ -183,8 +199,8 @@ public class TestCollectedGroup extends TestCase {
     public void testMapsideGroupByMultipleColumns() throws IOException{
         pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
 
-        pigServer.registerQuery("A = LOAD '" + INPUT_FILE + "' as (id, name, grade);");
-    
+        pigServer.registerQuery("A = LOAD '" + INPUT_FILE + "' using "+DummyCollectableLoader.class.getName() +"() as (id, name, grade);");
+        
         try {
             DataBag dbfrj = BagFactory.getInstance().newDefaultBag();
             DataBag dbshj = BagFactory.getInstance().newDefaultBag();
@@ -210,6 +226,7 @@ public class TestCollectedGroup extends TestCase {
             Assert.assertEquals(true, TestHelper.compareBags(dbfrj, dbshj));
 
         } catch (Exception e) {
+            e.printStackTrace();
             fail(e.getMessage());
         }
     }
@@ -217,8 +234,8 @@ public class TestCollectedGroup extends TestCase {
     public void testMapsideGroupByStar() throws IOException{
         pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
 
-        pigServer.registerQuery("A = LOAD '" + INPUT_FILE + "' as (id, name, grade);");
-    
+        pigServer.registerQuery("A = LOAD '" + INPUT_FILE + "' using "+DummyCollectableLoader.class.getName() +"() as (id, name, grade);");
+        
         try {
             DataBag dbfrj = BagFactory.getInstance().newDefaultBag();
             DataBag dbshj = BagFactory.getInstance().newDefaultBag();
@@ -244,8 +261,16 @@ public class TestCollectedGroup extends TestCase {
             Assert.assertEquals(true, TestHelper.compareBags(dbfrj, dbshj));
 
         } catch (Exception e) {
+            e.printStackTrace();
             fail(e.getMessage());
         }
     }
 
+    public static class DummyCollectableLoader extends PigStorage implements CollectableLoadFunc{
+
+        @Override
+        public void ensureAllKeyInstancesInSameSplit() throws IOException {
+        }
+        
+    }
 }

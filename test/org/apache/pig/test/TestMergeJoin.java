@@ -31,6 +31,7 @@ import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.pig.ExecType;
 import org.apache.pig.IndexableLoadFunc;
 import org.apache.pig.LoadCaster;
+import org.apache.pig.LoadFunc;
 import org.apache.pig.PigException;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.datastorage.DataStorage;
@@ -593,7 +594,7 @@ public class TestMergeJoin {
      * that expressions are not allowed as merge join keys when the right input's
      * loader implements {@link IndexableLoadFunc}
      */
-    public static class DummyIndexableLoader extends IndexableLoadFunc {
+    public static class DummyIndexableLoader extends LoadFunc implements IndexableLoadFunc{
 
         /**
          * 

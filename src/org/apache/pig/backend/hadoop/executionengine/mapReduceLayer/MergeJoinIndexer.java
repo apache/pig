@@ -19,7 +19,6 @@ package org.apache.pig.backend.hadoop.executionengine.mapReduceLayer;
 
 import java.io.IOException;
 import java.util.List;
-import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.WritableComparable;
 import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.hadoop.mapreduce.Job;
@@ -57,7 +56,7 @@ public class MergeJoinIndexer  extends LoadFunc{
     private PhysicalOperator rightPipelineLeaf;
     private PhysicalOperator rightPipelineRoot;
     private Tuple dummyTuple = null;
-    private OrderedLoadFunc loader;
+    private LoadFunc loader;
     private PigSplit pigSplit = null;
     
     /** @param funcSpec : Loader specification.
@@ -70,7 +69,7 @@ public class MergeJoinIndexer  extends LoadFunc{
     @SuppressWarnings("unchecked")
     public MergeJoinIndexer(String funcSpec, String innerPlan, String serializedPhyPlan) throws ExecException{
         
-        loader = (OrderedLoadFunc)PigContext.instantiateFuncFromSpec(funcSpec);
+        loader = (LoadFunc)PigContext.instantiateFuncFromSpec(funcSpec);
         try {
             List<PhysicalPlan> innerPlans = (List<PhysicalPlan>)ObjectSerializer.deserialize(innerPlan);
             lr = new POLocalRearrange(new OperatorKey("MergeJoin Indexer",NodeIdGenerator.getGenerator().getNextNodeId("MergeJoin Indexer")));
@@ -101,7 +100,7 @@ public class MergeJoinIndexer  extends LoadFunc{
         
         if(!firstRec)   // We sample only one record per block.
             return null;
-        WritableComparable<?> position = loader.getSplitComparable(pigSplit);
+        WritableComparable<?> position = ((OrderedLoadFunc)loader).getSplitComparable(pigSplit.getWrappedSplit());
         Object key = null;
         Tuple wrapperTuple = mTupleFactory.newTuple(keysCnt+2);
         
