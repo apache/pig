@@ -288,7 +288,7 @@ PIG-1255: Tiny code cleanup for serialization code for PigSplit (daijy)
 
 PIG-613: Casting elements inside a tuple does not take effect (daijy)
 
-Release 0.6.0 - Unreleased
+Release 0.6.0
 
 INCOMPATIBLE CHANGES
 
