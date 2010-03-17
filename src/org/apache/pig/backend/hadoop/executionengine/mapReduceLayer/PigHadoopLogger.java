@@ -19,7 +19,8 @@ package org.apache.pig.backend.hadoop.executionengine.mapReduceLayer;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.hadoop.util.Progressable;
+import org.apache.hadoop.mapreduce.Counter;
+import org.apache.hadoop.mapreduce.TaskInputOutputContext;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PigLogger;
 
 /**
@@ -39,7 +40,7 @@ public final class PigHadoopLogger implements PigLogger {
     } 
 
     private static Log log = LogFactory.getLog(PigHadoopLogger.class);
-    private Progressable reporter = null;
+    private TaskInputOutputContext<?, ?, ?, ?> taskIOContext = null;
     private boolean aggregate = false;
 
     private PigHadoopLogger() {
@@ -49,8 +50,9 @@ public final class PigHadoopLogger implements PigLogger {
     public void warn(Object o, String msg, Enum warningEnum) {
         String displayMessage = o.getClass().getName() + ": " + msg;
         if(aggregate) {
-            if(reporter != null) {
-                //reporter.incrCounter(warningEnum, 1);
+            if(taskIOContext != null) {
+                Counter c = taskIOContext.getCounter(warningEnum);
+                c.increment(1);
             } else {
                 //TODO:
                 //in local mode of execution if the PigHadoopLogger is used initially,
@@ -67,12 +69,12 @@ public final class PigHadoopLogger implements PigLogger {
         }
     }    
 
-    public Progressable getReporter() {
-        return reporter;
+    public TaskInputOutputContext<?, ?, ?, ?> getTaskIOContext() {
+        return taskIOContext;
     }
 
-    public synchronized void setReporter(Progressable rep) {
-        this.reporter = rep;
+    public synchronized void setTaskIOContext(TaskInputOutputContext<?, ?, ?, ?> tioc) {
+        this.taskIOContext = tioc;
     }
     
     public boolean getAggregate() {
