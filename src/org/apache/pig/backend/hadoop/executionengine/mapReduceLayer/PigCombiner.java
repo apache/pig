@@ -134,7 +134,7 @@ public class PigCombiner {
 
                 PigHadoopLogger pigHadoopLogger = PigHadoopLogger.getInstance();
                 pigHadoopLogger.setAggregate(aggregateWarning);
-                pigHadoopLogger.setReporter(context);
+                pigHadoopLogger.setTaskIOContext(context);
                 PhysicalOperator.setPigLogger(pigHadoopLogger);
             }
             

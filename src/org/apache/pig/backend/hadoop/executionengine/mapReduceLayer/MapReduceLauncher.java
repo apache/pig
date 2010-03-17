@@ -325,12 +325,13 @@ public class MapReduceLauncher extends Launcher{
         // scripts mess up the stats reporting from hadoop.
         List<String> rji = stats.getRootJobIDs();
         if ( (rji != null && rji.size() == 1 && finalStores == 1) || pc.getExecType() == ExecType.LOCAL ) {
-            if(stats.getRecordsWritten()==-1) {
+            // currently counters are not working in local mode - see PIG-1286
+            if(stats.getRecordsWritten()==-1 || pc.getExecType() == ExecType.LOCAL) {
                 log.info("Records written : Unable to determine number of records written");
             } else {
                 log.info("Records written : " + stats.getRecordsWritten());
             }
-            if(stats.getBytesWritten()==-1) {
+            if(stats.getBytesWritten()==-1 || pc.getExecType() == ExecType.LOCAL) {
                 log.info("Bytes written : Unable to determine number of bytes written");
             } else {
                 log.info("Bytes written : " + stats.getBytesWritten());

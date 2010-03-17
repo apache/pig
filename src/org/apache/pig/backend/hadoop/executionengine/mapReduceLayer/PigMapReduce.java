@@ -338,7 +338,7 @@ public class PigMapReduce {
 
                 PigHadoopLogger pigHadoopLogger = PigHadoopLogger.getInstance();
                 pigHadoopLogger.setAggregate(aggregateWarning);
-                pigHadoopLogger.setReporter(context);
+                pigHadoopLogger.setTaskIOContext(context);
                 
                 PhysicalOperator.setPigLogger(pigHadoopLogger);
 
@@ -550,7 +550,7 @@ public class PigMapReduce {
                 
                 PigHadoopLogger pigHadoopLogger = PigHadoopLogger.getInstance();
                 pigHadoopLogger.setAggregate(aggregateWarning);
-                pigHadoopLogger.setReporter(context);
+                pigHadoopLogger.setTaskIOContext(context);
                 PhysicalOperator.setPigLogger(pigHadoopLogger);
                 
                 for (POStore store: stores) {
