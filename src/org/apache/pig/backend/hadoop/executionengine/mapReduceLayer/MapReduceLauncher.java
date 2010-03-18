@@ -336,6 +336,16 @@ public class MapReduceLauncher extends Launcher{
             } else {
                 log.info("Bytes written : " + stats.getBytesWritten());
             }
+            if(stats.getSMMSpillCount()==-1) {
+                log.info("Spillable Memory Manager spill count : Unable to determine spillable memory manager spill count");
+            } else {
+                log.info("Spillable Memory Manager spill count : " + stats.getSMMSpillCount());
+            }
+            if(stats.getProactiveSpillCount() == -1) {
+                log.info("Proactive spill count : Unable to determine proactive spill count");
+            } else {
+                log.info("Proactive spill count : " + stats.getProactiveSpillCount());
+            }
         }
 
         if (!failed) {

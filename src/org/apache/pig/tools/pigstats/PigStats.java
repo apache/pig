@@ -316,6 +316,21 @@ public class PigStats {
         return spillCount;
     }
     
+    public long getProactiveSpillCount() {
+        long spillCount = 0;
+        for (String jid : rootJobIDs) {
+            Map<String, String> jobStats = stats.get(jid);
+            if (jobStats == null) continue;
+            if (Long.parseLong(jobStats.get("PIG_STATS_PROACTIVE_SPILL_COUNT"))==-1L)
+            {
+                spillCount = -1L;
+                break;
+            }
+            spillCount += Long.parseLong(jobStats.get("PIG_STATS_PROACTIVE_SPILL_COUNT"));
+        }
+        return spillCount;
+    }
+    
     private long getLocalBytesWritten() {
     	for(PhysicalOperator op : php.getLeaves())
     		return Long.parseLong(stats.get(op.toString()).get("PIG_STATS_LOCAL_BYTES_WRITTEN"));
