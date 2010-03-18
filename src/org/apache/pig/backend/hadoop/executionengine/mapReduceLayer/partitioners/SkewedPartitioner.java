@@ -80,7 +80,7 @@ public class SkewedPartitioner extends Partitioner<PigNullableWritable, Writable
         indexes = reducerMap.get(keyTuple);
         // if the reducerMap does not contain the key, do the default hash based partitioning
         if (indexes == null) {
-            return (Math.abs(keyTuple.hashCode()) % totalReducers);
+            return (Math.abs(keyTuple.hashCode() % totalReducers));
         }
 
         if (currentIndexMap.containsKey(keyTuple)) {

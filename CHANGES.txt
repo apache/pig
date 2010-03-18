@@ -157,6 +157,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-1296: Skewed join fail due to negative partition index (daijy)
+
 PIG-1293: pig wrapper script tends to fail if pig is in the path and PIG_HOME
 isn't set (aw via gates)
 
