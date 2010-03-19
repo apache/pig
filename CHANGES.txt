@@ -157,6 +157,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-1289: PIG Join fails while doing a filter on joined data (daijy)
+
 PIG-1266: Show spill count on the pig console at the end of the job (sriranjan
 via rding)
 
