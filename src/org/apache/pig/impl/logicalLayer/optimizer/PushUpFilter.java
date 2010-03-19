@@ -31,6 +31,7 @@ import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.LOCast;
 import org.apache.pig.impl.logicalLayer.LOCogroup;
 import org.apache.pig.impl.logicalLayer.LOCross;
+import org.apache.pig.impl.logicalLayer.LOIsNull;
 import org.apache.pig.impl.logicalLayer.LOJoin;
 import org.apache.pig.impl.logicalLayer.LOFilter;
 import org.apache.pig.impl.logicalLayer.LOForEach;
@@ -231,8 +232,32 @@ public class PushUpFilter extends LogicalTransformer {
                         return false;
                     }
                 }
-                mPushBefore = true;
+                
                 mPushBeforeInput = grandParentIndexes.iterator().next();
+                
+                if (predecessor instanceof LOJoin) {
+                    boolean otherBranchContainOuter = false;
+                    boolean sawInner = false;
+                    for (int i=0;i<=mPlan.getSuccessors(predecessor).size();i++) {
+                        // We do not push filter if any other branch is outer
+                        // See PIG-1289
+                        // Also in LOJoin, innerFlag==true indicate that branch is the outer join side
+                        // which has the exact opposite semantics
+                        // If all innerFlag is true, that implies a regular join
+                        if (i!=mPushBeforeInput && ((LOJoin)predecessor).getInnerFlags()[i]) {
+                            otherBranchContainOuter = true;
+                        }
+                        if (((LOJoin)predecessor).getInnerFlags()[i]==false) {
+                            sawInner = true;
+                        }
+                    }
+                    if (otherBranchContainOuter && sawInner) {
+                        mPushBeforeInput = -1;
+                        return false;
+                    }
+                }
+                
+                mPushBefore = true;
                 return true;
 
             } else if (predecessor instanceof LOForEach) {
