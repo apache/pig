@@ -68,6 +68,8 @@ manner (rding via pradeepkth)
 
 IMPROVEMENTS
 
+PIG-1117: Pig reading hive columnar rc tables (gerritjvv via dvryaboy)
+
 PIG-1287: Use hadoop-0.20.2 with pig 0.7.0 release (pradeepkth)
 
 PIG-1257: PigStorage per the new load-store redesign should support splitting
