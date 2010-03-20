@@ -83,7 +83,6 @@ public class InternalCachedBag extends DefaultAbstractBag {
         }
                 
         if(mContents.size() < cacheLimit)  {
-            mMemSizeChanged = true;
             mContents.add(t);           
             if(mContents.size() < 100)
             {
