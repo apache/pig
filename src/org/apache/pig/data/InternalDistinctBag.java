@@ -149,7 +149,6 @@ public class InternalDistinctBag extends DefaultAbstractBag {
     	}
     	            	
         if (mContents.add(t)) {
-        	mMemSizeChanged = true;
         	mSize ++;
                 
         	 // check how many tuples memory can hold by getting average
@@ -227,7 +226,6 @@ public class InternalDistinctBag extends DefaultAbstractBag {
             }
         }
         mContents.clear();
-        mMemSizeChanged = true;
         memUsage = 0;
 
         // Increment the spill count

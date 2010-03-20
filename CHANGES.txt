@@ -159,6 +159,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-1307: when we spill the DefaultDataBag we are not setting the sized changed flag to be true. (breed via daijy)
+
 PIG-1298: Restore file traversal behavior to Pig loaders (rding)
 
 PIG-1289: PIG Join fails while doing a filter on joined data (daijy)

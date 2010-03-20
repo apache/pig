@@ -61,7 +61,7 @@ public abstract class DefaultAbstractBag implements DataBag {
     // to run through the disk when people ask.
     protected long mSize = 0;
 
-    protected boolean mMemSizeChanged = false;
+    protected int mLastContentsSize = -1;
 
     protected long mMemSize = 0;
 
@@ -78,7 +78,6 @@ public abstract class DefaultAbstractBag implements DataBag {
      */
     public void add(Tuple t) {
         synchronized (mContents) {
-            mMemSizeChanged = true;
             mSize++;
             mContents.add(t);
         }
@@ -90,7 +89,6 @@ public abstract class DefaultAbstractBag implements DataBag {
      */
     public void addAll(DataBag b) {
         synchronized (mContents) {
-            mMemSizeChanged = true;
             mSize += b.size();
             Iterator<Tuple> i = b.iterator();
             while (i.hasNext()) mContents.add(i.next());
@@ -103,7 +101,6 @@ public abstract class DefaultAbstractBag implements DataBag {
      */
     public void addAll(Collection<Tuple> c) {
         synchronized (mContents) {
-            mMemSizeChanged = true;
             mSize += c.size();
             Iterator<Tuple> i = c.iterator();
             while (i.hasNext()) mContents.add(i.next());
@@ -114,22 +111,24 @@ public abstract class DefaultAbstractBag implements DataBag {
      * Return the size of memory usage.
      */
     public long getMemorySize() {
-        if (!mMemSizeChanged) return mMemSize;
-
-        long used = 0;
-        // I can't afford to talk through all the tuples every time the
-        // memory manager wants to know if it's time to dump.  Just sample
-        // the first 100 and see what we get.  This may not be 100%
-        // accurate, but it's just an estimate anyway.
         int j;
         int numInMem = 0;
+        long used = 0;
+
         synchronized (mContents) {
+            if (mLastContentsSize == mContents.size()) return mMemSize;
+
+            // I can't afford to talk through all the tuples every time the
+            // memory manager wants to know if it's time to dump.  Just sample
+            // the first 100 and see what we get.  This may not be 100%
+            // accurate, but it's just an estimate anyway.
             numInMem = mContents.size();
             // Measure only what's in memory, not what's on disk.
             Iterator<Tuple> i = mContents.iterator();
             for (j = 0; i.hasNext() && j < 100; j++) { 
                 used += i.next().getMemorySize();
             }
+            mLastContentsSize = numInMem;
         }
 
         if (numInMem > 100) {
@@ -150,7 +149,6 @@ public abstract class DefaultAbstractBag implements DataBag {
         }
         
         mMemSize = used;
-        mMemSizeChanged = false;
         return used;
     }
 
