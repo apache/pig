@@ -92,9 +92,33 @@ public class TestMergeJoin {
         Util.deleteFile(cluster, INPUT_FILE2);
     }
 
-    /**
-     * Test method for {@link org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POMergeJoin#getNext(org.apache.pig.data.Tuple)}.
-     */
+    @Test
+    public void testRecursiveFileListing() throws IOException{
+        Util.createInputFile(cluster, "foo/bar/test.dat", new String[]{"2"});
+        pigServer.registerQuery("A = LOAD 'foo';");
+        pigServer.registerQuery("B = LOAD 'foo';");
+        DataBag dbMergeJoin = BagFactory.getInstance().newDefaultBag(), dbshj = BagFactory.getInstance().newDefaultBag();
+        {
+            pigServer.registerQuery("C = join A by $0, B by $0 using 'merge';");
+            Iterator<Tuple> iter = pigServer.openIterator("C");
+
+            while(iter.hasNext()) {
+                dbMergeJoin.add(iter.next());
+            }
+        }
+        {
+            pigServer.registerQuery("C = join A by $0, B by $0;");
+            Iterator<Tuple> iter = pigServer.openIterator("C");
+
+            while(iter.hasNext()) {
+                dbshj.add(iter.next());
+            }
+        }
+        Assert.assertEquals(dbMergeJoin.size(), dbshj.size());
+        Assert.assertEquals(true, TestHelper.compareBags(dbMergeJoin, dbshj));
+        Util.deleteFile(cluster,"foo/bar/test.dat");
+    }
+    
     @Test
     public void testMergeJoinSimplest() throws IOException{
         pigServer.registerQuery("A = LOAD '" + INPUT_FILE + "';");

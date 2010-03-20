@@ -19,13 +19,19 @@
 package org.apache.pig.backend.hadoop.executionengine.util;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileStatus;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.PathFilter;
 import org.apache.pig.builtin.BinStorage;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
@@ -116,4 +122,50 @@ public class MapRedUtil {
         udfc.deserialize();
     }
 
+    /**
+     * Get all files recursively from the given list of files
+     * 
+     * @param files a list of FileStatus
+     * @param conf the configuration object
+     * @return the list of fileStatus that contains all the files in the given
+     *         list and, recursively, all the files inside the directories in 
+     *         the given list
+     * @throws IOException
+     */
+    public static List<FileStatus> getAllFileRecursively(
+            List<FileStatus> files, Configuration conf) throws IOException {
+        List<FileStatus> result = new ArrayList<FileStatus>();
+        int len = files.size();
+        for (int i = 0; i < len; ++i) {
+            FileStatus file = files.get(i);
+            if (file.isDir()) {
+                Path p = file.getPath();
+                FileSystem fs = p.getFileSystem(conf);
+                addInputPathRecursively(result, fs, p, hiddenFileFilter);
+            } else {
+                result.add(file);
+            }
+        }
+        log.info("Total input paths to process : " + result.size()); 
+        return result;
+    }
+    
+    private static void addInputPathRecursively(List<FileStatus> result,
+            FileSystem fs, Path path, PathFilter inputFilter) 
+            throws IOException {
+        for (FileStatus stat: fs.listStatus(path, inputFilter)) {
+            if (stat.isDir()) {
+                addInputPathRecursively(result, fs, stat.getPath(), inputFilter);
+            } else {
+                result.add(stat);
+            }
+        }
+    }          
+
+    private static final PathFilter hiddenFileFilter = new PathFilter(){
+        public boolean accept(Path p){
+            String name = p.getName(); 
+            return !name.startsWith("_") && !name.startsWith("."); 
+        }
+    };    
 }
