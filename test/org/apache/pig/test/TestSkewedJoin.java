@@ -481,4 +481,34 @@ public class TestSkewedJoin extends TestCase{
         new File(RIGHT_INPUT_FILE).delete();
         Util.deleteFile(cluster, RIGHT_INPUT_FILE);            
     }
+    
+    public void testRecursiveFileListing() throws IOException {
+        String LOCAL_INPUT_FILE = "test.dat";
+        String INPUT_FILE = "foo/bar/test.dat";
+        
+        PrintWriter w = new PrintWriter(new FileWriter(LOCAL_INPUT_FILE));
+        w.println("1");
+        w.println("2");
+        w.println("3");
+        w.println("5");
+        w.close();
+        
+        Util.copyFromLocalToCluster(cluster, LOCAL_INPUT_FILE, INPUT_FILE);
+        
+        pigServer.registerQuery("a = load 'foo' as (nums:chararray);");
+        pigServer.registerQuery("b = load 'foo' as (nums:chararray);");
+        pigServer.registerQuery("d = join a by nums, b by nums USING 'skewed';");
+        
+        Iterator<Tuple> iter = pigServer.openIterator("d");
+        int count = 0;
+        while (iter.hasNext()) {
+            iter.next();
+            count++;
+        }
+        Assert.assertEquals(4, count);
+        
+        new File(LOCAL_INPUT_FILE).delete();
+        Util.deleteFile(cluster, INPUT_FILE);
+          
+    }
 }

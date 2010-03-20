@@ -15,30 +15,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.pig.impl.io;
+package org.apache.pig.backend.hadoop.executionengine.mapReduceLayer;
 
 import java.io.IOException;
+import java.util.List;
 
-import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapreduce.InputSplit;
-import org.apache.hadoop.mapreduce.RecordReader;
-import org.apache.hadoop.mapreduce.TaskAttemptContext;
-import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigFileInputFormat;
-import org.apache.pig.data.Tuple;
+import org.apache.hadoop.fs.FileStatus;
+import org.apache.hadoop.mapreduce.JobContext;
+import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
+import org.apache.pig.backend.hadoop.executionengine.util.MapRedUtil;
 
-/**
- *
- */
-public class BinStorageInputFormat extends PigFileInputFormat<Text, Tuple> {
+public class PigTextInputFormat extends TextInputFormat {
 
-    /* (non-Javadoc)
-     * @see org.apache.hadoop.mapreduce.InputFormat#createRecordReader(org.apache.hadoop.mapreduce.InputSplit, org.apache.hadoop.mapreduce.TaskAttemptContext)
+    /*
+     * This is to support multi-level/recursive directory listing until 
+     * MAPREDUCE-1577 is fixed.
      */
     @Override
-    public RecordReader<Text, Tuple> createRecordReader(InputSplit split,
-            TaskAttemptContext context) throws IOException,
-            InterruptedException {
-        return new BinStorageRecordReader();
+    protected List<FileStatus> listStatus(JobContext job) throws IOException {        
+        return MapRedUtil.getAllFileRecursively(super.listStatus(job), 
+                job.getConfiguration());             
     }
-
+    
 }
