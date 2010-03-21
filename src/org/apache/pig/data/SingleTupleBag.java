@@ -43,7 +43,7 @@ public class SingleTupleBag implements DataBag {
     public SingleTupleBag(Tuple t) {
         item = t;
     }
-    
+
     /* (non-Javadoc)
      * @see org.apache.pig.data.DataBag#add(org.apache.pig.data.Tuple)
      * NOTE: It is the user's responsibility to ensure only a single
@@ -131,10 +131,16 @@ public class SingleTupleBag implements DataBag {
      */
     @Override
     public void readFields(DataInput in) throws IOException {
-        // TODO Auto-generated method stub
-        int errCode = 2113;
-        String msg = "SingleTupleBag should never be serialized or serialized.";
-        throw new ExecException(msg, errCode, PigException.BUG);
+        long size = in.readLong();
+
+        for (long i = 0; i < size; i++) {
+            try {
+                Object o = DataReaderWriter.readDatum(in);
+                add((Tuple)o);
+            } catch (ExecException ee) {
+                throw ee;
+            }
+        }
     }
 
     /* (non-Javadoc)
@@ -142,10 +148,12 @@ public class SingleTupleBag implements DataBag {
      */
     @Override
     public void write(DataOutput out) throws IOException {
-        // TODO Auto-generated method stub
-        int errCode = 2113;
-        String msg = "SingleTupleBag should never be serialized or serialized.";
-        throw new ExecException(msg, errCode, PigException.BUG);
+        out.writeLong(size());
+        Iterator<Tuple> it = iterator();
+        while (it.hasNext()) {
+            Tuple item = it.next();
+            item.write(out);
+        }    
     }
 
     /* (non-Javadoc)
@@ -175,7 +183,7 @@ public class SingleTupleBag implements DataBag {
         public boolean hasNext() {
             return !nextDone;
         }
-        
+
         /* (non-Javadoc)
          * @see java.util.Iterator#next()
          */
@@ -183,9 +191,9 @@ public class SingleTupleBag implements DataBag {
         public Tuple next() {
             nextDone = true;
             return item;
-            
+
         }
-        
+
         /* (non-Javadoc)
          * @see java.util.Iterator#remove()
          */
@@ -194,7 +202,7 @@ public class SingleTupleBag implements DataBag {
             throw new RuntimeException("SingleTupleBag.iterator().remove() is not allowed");    
         }
     }
-    
+
     /**
      * Write the bag into a string. */
     @Override

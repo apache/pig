@@ -18,7 +18,12 @@
 package org.apache.pig.test;
 
 import java.util.*;
+import java.io.DataInputStream;
+import java.io.DataOutput;
+import java.io.DataOutputStream;
 import java.io.IOException;
+import java.io.PipedInputStream;
+import java.io.PipedOutputStream;
 
 import org.junit.Test;
 import org.apache.pig.data.*;
@@ -1103,6 +1108,21 @@ public class TestDataBag extends junit.framework.TestCase {
         
         DataBag bg5 = new InternalCachedBag(0, 0);
         processDataBag(bg5, false);
+    }
+    
+    // See PIG-1285
+    @Test
+    public void testSerializeSingleTupleBag() throws Exception {
+        Tuple t = Util.createTuple(new String[] {"foo", "bar", "baz"});
+        DataBag stBag = new SingleTupleBag(t);
+        PipedOutputStream pos = new PipedOutputStream();
+        DataOutputStream dos = new DataOutputStream(pos);
+        PipedInputStream pis = new PipedInputStream(pos);
+        DataInputStream dis = new DataInputStream(pis);
+        stBag.write(dos);
+        DataBag dfBag = new DefaultDataBag();
+        dfBag.readFields(dis);
+        assertTrue(dfBag.equals(stBag));
     }
     
     void processDataBag(DataBag bg, boolean doSpill) {
