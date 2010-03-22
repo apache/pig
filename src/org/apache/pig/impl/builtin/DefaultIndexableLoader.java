@@ -194,13 +194,18 @@ public class DefaultIndexableLoader extends LoadFunc implements IndexableLoadFun
     private void initRightLoader(int [] splitsToBeRead) throws IOException{
         PigContext pc = (PigContext) ObjectSerializer
                 .deserialize(PigMapReduce.sJobConf.get("pig.pigContext"));
+        
+        Configuration conf = ConfigurationUtil.toConfiguration(pc.getProperties());
+        
+        // Hadoop security need this property to be set
+        if (System.getenv("HADOOP_TOKEN_FILE_LOCATION") != null) {
+            conf.set("mapreduce.job.credentials.binary", 
+                    System.getenv("HADOOP_TOKEN_FILE_LOCATION"));
+        }
+        
         //create ReadToEndLoader that will read the given splits in order
-        loader = new ReadToEndLoader(
-                (LoadFunc)PigContext.instantiateFuncFromSpec(rightLoaderFuncSpec),
-                ConfigurationUtil.toConfiguration(pc.getProperties()),
-                inpLocation,
-                splitsToBeRead
-        );
+        loader = new ReadToEndLoader((LoadFunc)PigContext.instantiateFuncFromSpec(rightLoaderFuncSpec),
+                conf, inpLocation, splitsToBeRead);
     }
 
     private Object extractKeysFromIdxTuple(Tuple idxTuple) throws ExecException{
