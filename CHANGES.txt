@@ -68,6 +68,9 @@ manner (rding via pradeepkth)
 
 IMPROVEMENTS
 
+PIG-1325: Provide a way to exclude a testcase when running "ant test"
+(pradeepkth)
+
 PIG-1312: Make Pig work with hadoop security (daijy)
 
 PIG-1308: Inifinite loop in JobClient when reading from BinStorage Message:
