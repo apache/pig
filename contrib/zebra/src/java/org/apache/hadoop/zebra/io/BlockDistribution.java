@@ -39,10 +39,10 @@ public class BlockDistribution {
   private long uniqueBytes;
   private Map<String, Long> dataDistri; // map from host names to bytes.
 
-  BlockDistribution() {
+  public BlockDistribution() {
     dataDistri = new HashMap<String, Long>();
   }
-
+  
   void add(long bytes, Map<String, Long> distri) {
     this.uniqueBytes += bytes;
     reduceDataDistri(dataDistri, distri);
@@ -58,7 +58,7 @@ public class BlockDistribution {
       lv.put(key, (sum == null) ? delta : sum + delta);
     }
   }
-
+  
   void add(BlockLocation blkLocation) throws IOException {
     long blkLen = blkLocation.getLength();
     Map<String, Long> tmp = new HashMap<String, Long>();

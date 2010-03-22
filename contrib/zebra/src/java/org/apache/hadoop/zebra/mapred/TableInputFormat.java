@@ -382,7 +382,7 @@ public class TableInputFormat implements InputFormat<BytesWritable, Tuple> {
 		 {
 			 throw new IOException("The table is not properly sorted");
 		 }
-	 } else {
+    } else {
 		 List<LeafTableInfo> leaves = expr.getLeafTables(null);
 		 for (Iterator<LeafTableInfo> it = leaves.iterator(); it.hasNext(); )
 		 {
@@ -406,8 +406,8 @@ public class TableInputFormat implements InputFormat<BytesWritable, Tuple> {
        }
 		 }
 	 }
-	 // need key range input splits for sorted table union
-	 setSorted(conf);
+    // need key range input splits for sorted table union
+    setSorted(conf);
   }
   
   /**
@@ -509,7 +509,7 @@ public class TableInputFormat implements InputFormat<BytesWritable, Tuple> {
       BlockDistribution bd = null;
       for (Iterator<BasicTable.Reader> it = readers.iterator(); it.hasNext();) {
         BasicTable.Reader reader = it.next();
-        bd = BlockDistribution.sum(bd, reader.getBlockDistribution((RangeSplit)null));
+        bd = BlockDistribution.sum(bd, reader.getBlockDistribution((RangeSplit) null));
       }
       
       SortedTableSplit split = new SortedTableSplit(null, null, bd, conf);
@@ -519,44 +519,49 @@ public class TableInputFormat implements InputFormat<BytesWritable, Tuple> {
     // TODO: Does it make sense to interleave keys for all leaf tables if
     // numSplits <= 0 ?
     int nLeaves = readers.size();
-    KeyDistribution keyDistri = null;
+    BlockDistribution lastBd = new BlockDistribution();
+    ArrayList<KeyDistribution> btKeyDistributions = new ArrayList<KeyDistribution>();
     for (int i = 0; i < nLeaves; ++i) {
       KeyDistribution btKeyDistri =
           readers.get(i).getKeyDistribution(
               (numSplits <= 0) ? -1 :
-              Math.max(numSplits * 5 / nLeaves, numSplits));
-      keyDistri = KeyDistribution.sum(keyDistri, btKeyDistri);
+              Math.max(numSplits * 5 / nLeaves, numSplits), nLeaves, lastBd);
+      btKeyDistributions.add(btKeyDistri);
     }
+    int btSize = btKeyDistributions.size();
+    KeyDistribution[] btKds = new KeyDistribution[btSize];
+    Object[] btArray = btKeyDistributions.toArray();
+    for (int i = 0; i < btSize; i++)
+      btKds[i] = (KeyDistribution) btArray[i];
     
+    KeyDistribution keyDistri = KeyDistribution.merge(btKds);
+
     if (keyDistri == null) {
       // should never happen.
       SortedTableSplit split = new SortedTableSplit(null, null, null, conf);
       return new InputSplit[] { split };
     }
     
-    if (numSplits > 0) {
-      keyDistri.resize(numSplits);
-    }
+    keyDistri.resize(lastBd);
     
-    RawComparable[] rawKeys = keyDistri.getKeys();
-    BytesWritable[] keys = new BytesWritable[rawKeys.length];
-    for (int i=0; i<keys.length; ++i) {
-      RawComparable rawKey = rawKeys[i];
-      keys[i] = new BytesWritable();
-      keys[i].setSize(rawKey.size());
-      System.arraycopy(rawKey.buffer(), rawKey.offset(), keys[i].get(), 0,
-          rawKey.size());
-    }
-    
-    // TODO: Should we change to RawComparable to avoid the creation of
-    // BytesWritables?
-    for (int i = 0; i < keys.length; ++i) {
-      BytesWritable begin = (i == 0) ? null : keys[i - 1];
-      BytesWritable end = (i == keys.length - 1) ? null : keys[i];
-      BlockDistribution bd = keyDistri.getBlockDistribution(keys[i]);
-      SortedTableSplit split = new SortedTableSplit(begin, end, bd, conf);
+    RawComparable[] keys = keyDistri.getKeys();
+    for (int i = 0; i <= keys.length; ++i) {
+      RawComparable begin = (i == 0) ? null : keys[i - 1];
+      RawComparable end = (i == keys.length) ? null : keys[i];
+      BlockDistribution bd;
+      if (i < keys.length)
+        bd = keyDistri.getBlockDistribution(keys[i]);
+      else
+        bd = lastBd;
+      BytesWritable beginB = null, endB = null;
+      if (begin != null)
+        beginB = new BytesWritable(begin.buffer());
+      if (end != null)
+        endB = new BytesWritable(end.buffer());
+      SortedTableSplit split = new SortedTableSplit(beginB, endB, bd, conf);
       splits.add(split);
     }
+
     return splits.toArray(new InputSplit[splits.size()]);
   }
   

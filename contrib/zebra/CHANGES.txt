@@ -66,6 +66,8 @@ Trunk (unreleased changes)
 
   BUG FIXES
 
+    PIG-1258 Number of sorted input splits is unusually high (yanz)
+
     PIG-1269 Restrict schema definition for collection (xuefuz via yanz)
 
     PIG-1253: make map/reduce test cases run on real cluster (chaow via yanz)

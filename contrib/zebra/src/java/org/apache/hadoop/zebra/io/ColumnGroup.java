@@ -90,7 +90,7 @@ class ColumnGroup {
   private final static String CONF_MIN_SPLIT_SIZE = "table.input.split.minSize";
   private final static int DEFAULT_MIN_SPLIT_SIZE = 64 * 1024;
 
-  private static final double SPLIT_SLOP = 1.1; // 10% slop
+  static final double SPLIT_SLOP = 1.1; // 10% slop
 
   // excluding files start with the following prefix, may change to regex
   private final static String CONF_NON_DATAFILE_PREFIX =
@@ -101,6 +101,9 @@ class ColumnGroup {
   private final static String SCHEMA_FILE = ".schema";
   // meta data TFile for entire CG, used as a flag of closed CG
   final static String META_FILE = ".meta";
+
+  // sorted table key ranges for default sorted table split generations
+  private final static String KEY_RANGE_FOR_DEFAULT_SORTED_SPLIT = ".keyrange";
 
   static final String BLOCK_NAME_INDEX = "ColumnGroup.index";
 
@@ -527,22 +530,49 @@ class ColumnGroup {
         FileStatus tfileStatus = fs.getFileStatus(new Path(path, split.names[i]));
         
         BlockLocation[] locations = null;
+        long len = 0;
         if (i == 0) {
-        if (split.startByteFirst != -1)
-          locations = fs.getFileBlockLocations(tfileStatus, split.startByteFirst, split.numBytesFirst);
+          if (split.startByteFirst != -1)
+          {
+            len = split.numBytesFirst;
+            locations = fs.getFileBlockLocations(tfileStatus, split.startByteFirst, len);
+          }
         } else if (i == split.length - 1) {
-           if (split.startByteLast != -1)
-             locations = fs.getFileBlockLocations(tfileStatus, split.startByteLast, split.numBytesLast);
+           if (split.numBytesLast != -1)
+           {
+             len = split.numBytesLast;
+             locations = fs.getFileBlockLocations(tfileStatus, 0, len);
+           }
         }
+
         if (locations == null)
-          locations = fs.getFileBlockLocations(tfileStatus, 0, tfileStatus.getLen());
+        {
+          len = tfileStatus.getLen();
+          locations = fs.getFileBlockLocations(tfileStatus, 0, len);
+        }
 
         for (BlockLocation l : locations) {
           ret.add(l);
         }
-      } 
+      }
       return ret;
     }
+
+  private int getStartBlockIndex(long[] startOffsets, long offset)
+  {
+    int index = Arrays.binarySearch(startOffsets, offset);
+    if (index < 0)
+      index = -index - 2;
+    return index;
+  }
+  
+  private int getEndBlockIndex(long[] startOffsets, long offset)
+  {
+    int index = Arrays.binarySearch(startOffsets, offset);
+    if (index < 0)
+      index = -index - 1;
+    return index;
+  }
 
    /**
     * Sets startRow and number of rows in rowSplit based on
@@ -551,7 +581,7 @@ class ColumnGroup {
     * It is assumed that 'startByte' and 'numBytes' in rowSplit itself
     * are not valid.
     */
-    void fillRowSplit(CGRowSplit rowSplit, CGRowSplit src)throws IOException {
+    void fillRowSplit(CGRowSplit rowSplit, CGRowSplit src) throws IOException {
 
       if (src.names == null || src.length == 0)
         return;
@@ -570,7 +600,6 @@ class ColumnGroup {
       rowSplit.length = src.length;
       rowSplit.startByteFirst = src.startByteFirst;
       rowSplit.numBytesFirst = src.numBytesFirst;
-      rowSplit.startByteLast = src.startByteLast;
       rowSplit.numBytesLast = src.numBytesLast;
 
       Path firstPath = null, lastPath;
@@ -600,7 +629,7 @@ class ColumnGroup {
           throw e;
         }
       }
-      if (src.startByteLast != -1 && rowSplit.length > 1)
+      if (src.numBytesLast != -1 && rowSplit.length > 1)
       {
         lastPath = new Path(path, rowSplit.names[rowSplit.length - 1]);
         if (reader == null || !firstPath.equals(lastPath))
@@ -617,13 +646,8 @@ class ColumnGroup {
           reader = new TFile.Reader(fs.open(lastPath), size, conf);
         }
         try {
-          long startRow = reader.getRecordNumNear(src.startByteLast);
-          long endRow = reader.getRecordNumNear(src.startByteLast + src.numBytesLast);
-
-          if (endRow < startRow)
-            endRow = startRow;
-          rowSplit.startRowLast = startRow;
-          rowSplit.numRowsLast = endRow - startRow;
+          long endRow = reader.getRecordNumNear(src.numBytesLast);
+          rowSplit.numRowsLast = endRow;
         } catch (IOException e) {
           reader.close();
           throw e;
@@ -642,15 +666,45 @@ class ColumnGroup {
      * 
      * @param n
      *          Targeted size of the sampling.
+     * @param nTables
+     *          Number of tables in a union
      * @return KeyDistribution object.
      * @throws IOException
      */
-    public KeyDistribution getKeyDistribution(int n) throws IOException {
+    public KeyDistribution getKeyDistribution(int n, int nTables, BlockDistribution lastBd) throws IOException {
       // TODO: any need for similar capability for unsorted for sorted CGs?
       if (!isSorted()) {
         throw new IOException("Cannot get key distribution for unsorted table");
       }
       KeyDistribution ret = new KeyDistribution(comparator);
+
+      if (n < 0)
+      {
+        /*
+        Path keyRangeFile = new Path(path, KEY_RANGE_FOR_DEFAULT_SORTED_SPLIT);
+        if (fs.exists(keyRangeFile))
+        {
+          try {
+            FSDataInputStream ins = fs.open(keyRangeFile);
+            long minStepSize = ins.readLong();
+            int size = ins.readInt();
+            for (int i = 0; i < size; i++)
+            {
+              BytesWritable keyIn = new BytesWritable();
+              keyIn.readFields(ins);
+              ByteArray key = new ByteArray(keyIn.getBytes());
+              ret.add(key);
+            }
+            ret.setMinStepSize(minStepSize);
+            return ret;
+          } catch (Exception e) {
+            // no-op
+          }
+        }
+        */
+        n = 1;
+      }
+
       Path[] paths = new Path[cgindex.size()];
       FileStatus[] tfileStatus = new FileStatus[paths.length];
       long totalBytes = 0;
@@ -659,48 +713,73 @@ class ColumnGroup {
         tfileStatus[i] = fs.getFileStatus(paths[i]);
         totalBytes += tfileStatus[i].getLen();
       }
-      // variable.
 
-      final long EPSILON = (long) (getMinSplitSize(conf) * (SPLIT_SLOP - 1));
+      final long minSize = getMinSplitSize(conf);
+      final long EPSILON = (long) (minSize * (SPLIT_SLOP - 1));
       long goalSize = totalBytes / n;
-      goalSize = Math.max(getMinSplitSize(conf), goalSize);
+      long batchSize = 0;
+      BlockDistribution bd = new BlockDistribution();;
+      RawComparable prevKey = null;
+
+      long minStepSize = -1;
+      FSDataInputStream nextFsdis = null;
+      TFile.Reader nextReader = null;
       for (int i = 0; i < paths.length; ++i) {
         FileStatus fstatus = tfileStatus[i];
         long blkSize = fstatus.getBlockSize();
         long fileLen = fstatus.getLen();
-        long stepSize =
-            (goalSize > blkSize) ? goalSize / blkSize * blkSize : blkSize
-                / (blkSize / goalSize);
+        long stepSize = Math.max(minSize,
+            (goalSize < blkSize) ? goalSize : blkSize);
+        if (minStepSize== -1 || minStepSize > stepSize)
+          minStepSize = stepSize;
+        // adjust the block size by the scaling factor
+        blkSize /= nTables;
+        stepSize = Math.max(minSize,
+          (goalSize < blkSize) ? goalSize : blkSize);
         FSDataInputStream fsdis = null;
         TFile.Reader reader = null;
         long remainLen = fileLen;
-        boolean done = false;
         try {
-          fsdis = fs.open(paths[i]);
-          reader = new TFile.Reader(fsdis, tfileStatus[i].getLen(), conf);
+          if (nextReader == null)
+          {
+            fsdis = fs.open(paths[i]);
+            reader = new TFile.Reader(fsdis, fileLen, conf);
+          } else {
+            fsdis = nextFsdis;
+            reader = nextReader;
+          }
+          BlockLocation[] locations =
+              fs.getFileBlockLocations(fstatus, 0, fileLen);
+          if (locations.length == 0) {
+            throw new AssertionError(
+                "getFileBlockLocations returns 0 location");
+          }
+
+          Arrays.sort(locations, new Comparator<BlockLocation>() {
+            @Override
+            public int compare(BlockLocation o1, BlockLocation o2) {
+              long diff = o1.getOffset() - o2.getOffset();
+              if (diff < 0) return -1;
+              if (diff > 0) return 1;
+              return 0;
+            }
+          });
+          
+          long[] startOffsets = new long[locations.length];
+
+          for (int ii = 0; ii < locations.length; ii++)
+            startOffsets[ii] = locations[ii].getOffset();
+
+          boolean done = false;
           while ((remainLen > 0) && !done) {
             long splitBytes =
-                (remainLen > stepSize * SPLIT_SLOP) ? stepSize : remainLen;
+                remainLen > stepSize ? stepSize : remainLen;
             long offsetBegin = fileLen - remainLen;
             long offsetEnd = offsetBegin + splitBytes;
-            BlockLocation[] locations =
-                fs.getFileBlockLocations(fstatus, offsetBegin, splitBytes);
-            if (locations.length == 0) {
-              throw new AssertionError(
-                  "getFileBlockLocations returns 0 location");
-            }
-
-            Arrays.sort(locations, new Comparator<BlockLocation>() {
-              @Override
-              public int compare(BlockLocation o1, BlockLocation o2) {
-                long diff = o1.getOffset() - o2.getOffset();
-                if (diff < 0) return -1;
-                if (diff > 0) return 1;
-                return 0;
-              }
-            });
-            BlockLocation firstBlock = locations[0];
-            BlockLocation lastBlock = locations[locations.length - 1];
+            int indexBegin = getStartBlockIndex(startOffsets, offsetBegin);
+            int indexEnd = getEndBlockIndex(startOffsets, offsetEnd);
+            BlockLocation firstBlock = locations[indexBegin];
+            BlockLocation lastBlock = locations[indexEnd-1];
             long lastBlockOffsetBegin = lastBlock.getOffset();
             long lastBlockOffsetEnd =
                 lastBlockOffsetBegin + lastBlock.getLength();
@@ -719,6 +798,7 @@ class ColumnGroup {
             	// only if this is not the last chunk
                 offsetEnd = lastBlockOffsetBegin;
                 splitBytes = offsetEnd - offsetBegin;
+                indexEnd--;
               }
             }
             else if ((lastBlockOffsetEnd > offsetEnd)
@@ -732,22 +812,44 @@ class ColumnGroup {
             if (key == null) {
               offsetEnd = fileLen;
               splitBytes = offsetEnd - offsetBegin;
-              key = reader.getLastKey();
+              if (i < paths.length-1)
+              {
+                nextFsdis = fs.open(paths[i+1]);
+                nextReader = new TFile.Reader(nextFsdis, tfileStatus[i+1].getLen(), conf);
+                key = nextReader.getFirstKey();
+              }
               done = true; // TFile index too large? Is it necessary now?
             }
             remainLen -= splitBytes;
+            batchSize += splitBytes;
 
-            BlockDistribution bd = new BlockDistribution();
-            for (BlockLocation l : locations) {
-              long blkBeginOffset = l.getOffset();
-              long blkEndOffset = blkBeginOffset + l.getLength();
-              if (blkBeginOffset < offsetBegin) blkBeginOffset = offsetBegin;
-              if (blkEndOffset > offsetEnd) blkEndOffset = offsetEnd;
-              if (blkEndOffset > blkBeginOffset) {
-                bd.add(l, blkEndOffset - blkBeginOffset);
+            if (key != null && batchSize >= stepSize)
+            {
+              if (batchSize - splitBytes < EPSILON || splitBytes < EPSILON)
+              {
+                // the last chunk or this chunk is small enough to create a new range for this key
+                setBlockDistribution(bd, reader, locations, fstatus, startOffsets, prevKey, key);
+                ret.add(key, bd);
+                batchSize = 0;
+                bd = new BlockDistribution();
+              } else {
+                ret.add(prevKey, bd);
+                batchSize = splitBytes;
+                bd = new BlockDistribution();
+                if (batchSize >= stepSize)
+                {
+                  setBlockDistribution(bd, reader, locations, fstatus, startOffsets, prevKey, key);
+                  ret.add(key, bd);
+                  batchSize = 0;
+                  bd = new BlockDistribution();
+                } else {
+                  setBlockDistribution(bd, reader, locations, fstatus, startOffsets, prevKey, key);
+                }
               }
+            } else {
+              setBlockDistribution(bd, reader, locations, fstatus, startOffsets, prevKey, key);
             }
-            ret.add(key, bd);
+            prevKey = key;
           }
         }
         finally {
@@ -769,8 +871,45 @@ class ColumnGroup {
           }
         }
       }
-
+      if (lastBd != null)
+        lastBd.add(bd);
+      ret.setMinStepSize(minStepSize);
+      
       return ret;
+    }
+
+    private void setBlockDistribution(BlockDistribution bd, TFile.Reader reader,
+        BlockLocation[] locations, FileStatus fileStatus, long[] startOffsets,
+        RawComparable begin, RawComparable end) throws IOException
+    {
+      long beginOffset, endOffset = -1;
+      if (begin == null)
+        beginOffset = 0;
+      else
+        beginOffset = reader.getOffsetForKey(begin);
+      if (end != null)
+      {
+        if (begin == null)
+          begin = reader.getFirstKey();
+        /* Only if the key range is empty. This is needed because TFile has a 16-byte
+         * Magic that causes getOffsetForKey to return 16 (not 0) even on the first key.
+         */
+        if (comparator.compare(begin, end) != 0)
+          endOffset = reader.getOffsetForKey(end);
+      }
+      int startBlockIndex = (beginOffset == 0 ? 0 : getStartBlockIndex(startOffsets, beginOffset));
+      BlockLocation l;
+      int endBlockIndex = (end == null ? locations.length : endOffset == -1 ?
+          startBlockIndex : getEndBlockIndex(startOffsets, endOffset));
+      for (int ii = startBlockIndex; ii < endBlockIndex; ii++) {
+        l = locations[ii];
+        long blkBeginOffset = l.getOffset();
+        long blkEndOffset = blkBeginOffset + l.getLength();
+        if (blkEndOffset > blkBeginOffset) {
+          bd.add(l, blkEndOffset - blkBeginOffset);
+        }
+      }
+      return;
     }
 
     /**
@@ -807,7 +946,6 @@ class ColumnGroup {
         lst.add(new CGRangeSplit(beginIndex, endIndex - beginIndex));
         beginIndex = endIndex;
       }
-
       return lst;
     }
 
@@ -822,21 +960,35 @@ class ColumnGroup {
      * @return A list of CGRowSplit objects. 
      *         
      */
-    public List<CGRowSplit> rowSplit(long[] starts, long[] lengths, Path[] paths, int[] batches, int numBatches) throws IOException {
+    public List<CGRowSplit> rowSplit(long[] starts, long[] lengths, Path[] paths,
+        int[] batches, int numBatches) throws IOException {
       List<CGRowSplit> lst = new ArrayList<CGRowSplit>();
       CGRowSplit cgRowSplit;
-      long startFirst, bytesFirst, startLast, bytesLast;
+      long startFirst, bytesFirst, bytesLast;
       int length;
        
-      if (numBatches > 0 && cgindex == null)
+      if (numBatches == 0)
+      {
+        cgRowSplit = new CGRowSplit(null, null, 0, -1, 0, 0);
+        lst.add(cgRowSplit);
+        return lst;
+      }
+
+      if (cgindex == null)
         cgindex = buildIndex(fs, this.path, dirty, conf);
+
+      if (cgindex.size() == 0)
+      {
+        cgRowSplit = new CGRowSplit(null, null, 0, -1, 0, 0);
+        lst.add(cgRowSplit);
+        return lst;
+      }
 
       for (int i=0; i< numBatches; i++) {
         int indexFirst = batches[i];
         int indexLast = batches[i+1] - 1;
         startFirst = starts[indexFirst];
         bytesFirst = lengths[indexFirst];
-        startLast = starts[indexLast];
         bytesLast = lengths[indexLast];
         length = batches[i+1] - batches[i];
         String[] namesInSplit = new String[length];
@@ -846,8 +998,8 @@ class ColumnGroup {
           namesInSplit[j] = paths[indexFirst+j].getName();
           sizesInSplit[j] = cgindex.get(cgindex.getFileIndex(paths[indexFirst+j])).bytes;
         }
-        cgRowSplit = new CGRowSplit(namesInSplit, sizesInSplit, fs, conf, length, 
-                startFirst, bytesFirst, startLast, bytesLast);
+        cgRowSplit = new CGRowSplit(namesInSplit, sizesInSplit, length, 
+                startFirst, bytesFirst, bytesLast);
         lst.add(cgRowSplit);
       }
       
@@ -912,9 +1064,8 @@ class ColumnGroup {
             if (first && rowRange.startByteFirst != -1)
               scanner = reader.createScannerByRecordNum(rowRange.startRowFirst, 
                                               rowRange.startRowFirst + rowRange.numRowsFirst);
-            else if (last && rowRange.startByteLast != -1)
-              scanner = reader.createScannerByRecordNum(rowRange.startRowLast, 
-                  rowRange.startRowLast + rowRange.numRowsLast);
+            else if (last && rowRange.numBytesLast != -1)
+              scanner = reader.createScannerByRecordNum(0, rowRange.numRowsLast);
             else
               scanner = reader.createScanner();
           } else {
@@ -977,6 +1128,7 @@ class ColumnGroup {
         DataInputStream dis = scanner.entry().getValueStream();
         try {
           tupleReader.get(dis, val);
+          
         }
         finally {
           dis.close();
@@ -1349,16 +1501,13 @@ class ColumnGroup {
       long numBytesFirst;
       long startRowFirst = -1;
       long numRowsFirst = -1;
-      long startByteLast = -1;
-      long numBytesLast;
-      long startRowLast = -1;
+      long numBytesLast = -1;
       long numRowsLast = -1;
       String[] names;
       long[] sizes = null;
 
-      CGRowSplit(String[] names, long[] sizes, FileSystem fs, Configuration conf,
-          int length, long startFirst, long bytesFirst,
-          long startLast, long bytesLast) throws IOException {
+      CGRowSplit(String[] names, long[] sizes, int length, long startFirst, long bytesFirst,
+          long bytesLast) throws IOException {
         this.names = names;
         this.sizes = sizes;
         this.length = length;
@@ -1368,9 +1517,8 @@ class ColumnGroup {
           startByteFirst = startFirst;
           numBytesFirst = bytesFirst;
         }
-        if (startLast != -1 && this.length > 1)
+        if (bytesLast != -1 && this.length > 1)
         {
-          startByteLast = startLast;
           numBytesLast = bytesLast;
         }
       }
@@ -1392,9 +1540,7 @@ class ColumnGroup {
         sb.append("{numBytesFirst = " + numBytesFirst + "}\n");
         sb.append("{startRowFirst = " + startRowFirst + "}\n");
         sb.append("{numRowsFirst = " + numRowsFirst + "}\n");
-        sb.append("{startByteLast = " + startByteLast + "}\n");
         sb.append("{numBytesLast = " + numBytesLast + "}\n");
-        sb.append("{startRowLast = " + startRowLast + "}\n");
         sb.append("{numRowsLast = " + numRowsLast + "}\n");
         
         return sb.toString();
@@ -1417,9 +1563,7 @@ class ColumnGroup {
         numBytesFirst = Utils.readVLong(in);
         startRowFirst = Utils.readVLong(in);
         numRowsFirst = Utils.readVLong(in);
-        startByteLast = Utils.readVLong(in);
         numBytesLast = Utils.readVLong(in);
-        startRowLast = Utils.readVLong(in);
         numRowsLast = Utils.readVLong(in);
       }
 
@@ -1435,9 +1579,7 @@ class ColumnGroup {
         Utils.writeVLong(out, numBytesFirst);
         Utils.writeVLong(out, startRowFirst);
         Utils.writeVLong(out, numRowsFirst);
-        Utils.writeVLong(out, startByteLast);
         Utils.writeVLong(out, numBytesLast);
-        Utils.writeVLong(out, startRowLast);
         Utils.writeVLong(out, numRowsLast);
       }
     }
@@ -1876,7 +2018,6 @@ class ColumnGroup {
           out.close();
           out = null;
           // do renaming only if all the above is successful.
-//          fs.rename(new Path(path, tmpName), new Path(path, name));
           fs.rename(new Path(path, tmpName), new Path(finalOutputPath, name));
 
 /*
