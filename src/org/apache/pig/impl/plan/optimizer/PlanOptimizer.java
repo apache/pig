@@ -64,9 +64,11 @@ public abstract class PlanOptimizer<O extends Operator, P extends OperatorPlan<O
      * method of the associated Transformer to give the it a chance to
      * check whether it really wants to do the optimization.  If that
      * returns true as well, then Transformer.transform is called. 
+     * @return number of iterations the optimizer tried check and transform for
+     * the various rules
      * @throws OptimizerException
      */
-    public void optimize() throws OptimizerException {
+    public int optimize() throws OptimizerException {
         //TODO
         //made the method non-final
         //we need a call back for transformer specific actions
@@ -94,5 +96,6 @@ public abstract class PlanOptimizer<O extends Operator, P extends OperatorPlan<O
                 }
             }
         } while(sawMatch && ++numIterations < mMaxIterations);
+        return numIterations;
     }
 }

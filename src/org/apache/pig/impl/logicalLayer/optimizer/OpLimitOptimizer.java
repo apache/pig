@@ -87,6 +87,34 @@ public class OpLimitOptimizer extends LogicalTransformer {
                         + (lo == null ? lo : lo.getClass().getSimpleName());
                 throw new OptimizerException(msg, errCode, PigException.BUG);
             }
+            List<LogicalOperator> predecessors = mPlan.getPredecessors(lo);
+            if (predecessors.size()!=1) {
+                int errCode = 2008;
+                String msg = "Limit cannot have more than one input. Found " + predecessors.size() + " inputs.";
+                throw new OptimizerException(msg, errCode, PigException.BUG);
+            }
+            LogicalOperator predecessor = predecessors.get(0);
+            
+            // Limit cannot be pushed up
+            if (predecessor instanceof LOCogroup || predecessor instanceof LOFilter ||
+                    predecessor instanceof LOLoad || predecessor instanceof LOSplit ||
+                    predecessor instanceof LODistinct || predecessor instanceof LOJoin)
+            {
+                return false;
+            }
+            // Limit cannot be pushed in front of ForEach if it has a flatten
+            if (predecessor instanceof LOForEach)
+            {
+                LOForEach loForEach = (LOForEach)predecessor;
+                List<Boolean> mFlatten = loForEach.getFlatten();
+                boolean hasFlatten = false;
+                for (Boolean b:mFlatten)
+                    if (b.equals(true)) hasFlatten = true;
+                
+                if (hasFlatten) {
+                    return false;
+                }
+            }
         } catch (Exception e) {
             int errCode = 2049;
             String msg = "Error while performing checks to optimize limit operator.";
