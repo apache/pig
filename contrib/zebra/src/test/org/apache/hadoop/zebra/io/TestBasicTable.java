@@ -170,13 +170,14 @@ public class TestBasicTable {
     BasicTable.Reader reader = new BasicTable.Reader(path, conf);
     reader.setProjection(strProjection);
     long totalBytes = reader.getStatus().getSize();
-    KeyDistribution keyDistri = reader.getKeyDistribution(numSplits * 10);
-    Assert.assertEquals(totalBytes, keyDistri.length());
+    BlockDistribution lastBd = new BlockDistribution();
+    KeyDistribution keyDistri = reader.getKeyDistribution(numSplits * 10, 1, lastBd);
+    Assert.assertEquals(totalBytes, keyDistri.length()+lastBd.getLength());
     reader.close();
     BytesWritable[] keys = null;
     if (keyDistri.size() >= numSplits) {
-      keyDistri.resize(numSplits);
-      Assert.assertEquals(totalBytes, keyDistri.length());
+      keyDistri.resize(lastBd);
+      Assert.assertEquals(totalBytes, keyDistri.length()+lastBd.getLength());
       RawComparable[] rawComparables = keyDistri.getKeys();
       keys = new BytesWritable[rawComparables.length];
       for (int i = 0; i < keys.length; ++i) {

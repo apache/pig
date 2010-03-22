@@ -1059,6 +1059,25 @@ public class TFile {
       return new ByteArray(tfileIndex.getEntry(blockIndex).key);
     }
 
+    public long getOffsetForKey(RawComparable key) throws IOException {
+      Location l = getBlockContainsKey(key, false);
+      int blockIndex = l.getBlockIndex();
+      if (blockIndex == end.blockIndex)
+      {
+        if (blockIndex > 0)
+        {
+          BCFile.Reader.BlockReader blkReader = readerBCF.getDataBlock(blockIndex - 1);
+          return blkReader.getStartPos() + blkReader.getCompressedSize();
+        } else
+          return 0;
+      } else
+        return readerBCF.getDataBlock(blockIndex).getStartPos();
+    }
+    
+    public long getLastDataOffset() throws IOException {
+      BCFile.Reader.BlockReader blkReader = readerBCF.getDataBlock(end.blockIndex - 1);
+      return blkReader.getStartPos() + blkReader.getCompressedSize();
+    }
     /**
      * Get a scanner than can scan the whole TFile.
      * 

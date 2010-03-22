@@ -44,7 +44,6 @@ import org.apache.hadoop.fs.PathFilter;
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.WritableUtils;
-import org.apache.hadoop.zebra.tfile.RawComparable;
 import org.apache.hadoop.zebra.tfile.TFile;
 import org.apache.hadoop.zebra.tfile.Utils;
 import org.apache.hadoop.zebra.tfile.MetaBlockAlreadyExists;
@@ -474,21 +473,18 @@ public class BasicTable {
      * 
      * @param n
      *          Targeted size of the sampling.
+     * @param nTables
+     *          Number of tables in union
      * @return KeyDistribution object.
      * @throws IOException
      */
-    public KeyDistribution getKeyDistribution(int n) throws IOException {
-      KeyDistribution kd =
-          new KeyDistribution(TFile.makeComparator(schemaFile.getComparator()));
-      for (int nx = 0; nx < colGroups.length; nx++) {
-        if (!isCGDeleted(nx)) {
-           kd.add(colGroups[nx].getKeyDistribution(n));
-        }
+    public KeyDistribution getKeyDistribution(int n, int nTables, BlockDistribution lastBd) throws IOException {
+      if (firstValidCG >= 0)
+      {
+        // pick the largest CG as in the row split case
+        return colGroups[getRowSplitCGIndex()].getKeyDistribution(n, nTables, lastBd);
       }
-      if (n >= 0 && kd.size() > (int) (n * 1.5)) {
-        kd.resize(n);
-      }
-      return kd;
+      return null;
     }
 
     /**
@@ -650,7 +646,8 @@ public class BasicTable {
      *         construct a TableScanner later. 
      *         
      */
-    public List<RowSplit> rowSplit(long[] starts, long[] lengths, Path[] paths, int splitCGIndex, int[] batchSizes, int numBatches) throws IOException {
+    public List<RowSplit> rowSplit(long[] starts, long[] lengths, Path[] paths,
+        int splitCGIndex, int[] batchSizes, int numBatches) throws IOException {
       List<RowSplit> ret;      
       List<CGRowSplit> cgSplits = colGroups[splitCGIndex].rowSplit(starts, lengths, paths, batchSizes, numBatches);
       int numSlices = cgSplits.size();
@@ -679,6 +676,7 @@ public class BasicTable {
      */
     public int getRowSplitCGIndex() throws IOException {
       // Try to find the largest non-deleted and used column group by projection;
+      // Try to find the largest non-deleted and used column group by projection;
       if (rowSplitCGIndex == -1)
       {
         int largestCGIndex = -1;
@@ -702,7 +700,7 @@ public class BasicTable {
           rowSplitCGIndex = largestCGIndex;
         } else if (firstValidCG >= 0) { /* If all projection columns are either deleted or non-existing,
                                         then we use the first non-deleted column group to do split if it exists. */
-          rowSplitCGIndex = firstValidCG; 
+          rowSplitCGIndex = firstValidCG;
         } 
       } 
       return rowSplitCGIndex;
@@ -844,8 +842,7 @@ public class BasicTable {
      * A row-based split on the zebra table;
      */
     public static class RowSplit implements Writable {
-		
-	int cgIndex;  // column group index where split lies on;
+      int cgIndex;  // column group index where split lies on;
       CGRowSplit slice; 
 
       RowSplit(int cgidx, CGRowSplit split) {
@@ -931,7 +928,7 @@ public class BasicTable {
                        Partition partition) throws IOException {
         init(rowSplit, null, null, null, closeReader, partition);
       }      
-    
+
       /**
        * Creates new CGRowSplit. If the startRow in rowSplit is not set 
        * (i.e. < 0), it sets the startRow and numRows based on 'startByte' 
@@ -943,12 +940,11 @@ public class BasicTable {
         int cgIdx = rowSplit.getCGIndex();
         
         CGRowSplit cgSplit = new CGRowSplit();
-        
+
         // Find the row range :
         if (isCGDeleted(cgIdx)) {
           throw new IOException("CG " + cgIdx + " is deleted.");
         }
-        
         //fill the row numbers.
         colGroups[cgIdx].fillRowSplit(cgSplit, inputCGSplit);
         return cgSplit;
