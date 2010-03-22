@@ -210,12 +210,6 @@ to call at top-level: ant deploy-contrib compile-core-test
       <batchtest todir="${build.test}">
         <fileset dir="${src.test}" includes="**/Test*.java" excludes="**/TestCheckin*.java">
           <not>
-            <filename name="**/TestRealCluster.java"/>
-          </not>
-          <not>
-            <filename name="**/TestColumnSecurity.java"/>
-          </not>
-          <not>
             <filename name="**/TestSmoke*.java"/>
           </not>
 

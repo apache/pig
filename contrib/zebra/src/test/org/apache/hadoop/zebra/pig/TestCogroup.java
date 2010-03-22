@@ -32,6 +32,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.BytesWritable;
+import org.apache.hadoop.zebra.BaseTestCase;
 import org.apache.hadoop.zebra.io.BasicTable;
 import org.apache.hadoop.zebra.io.TableInserter;
 import org.apache.hadoop.zebra.pig.TableStorer;
@@ -57,77 +58,18 @@ import org.junit.Test;
  * app/debug configuration, when run this from inside the Eclipse.
  * 
  */
-public class TestCogroup {
-  protected static ExecType execType = ExecType.MAPREDUCE;
-  private static MiniCluster cluster;
-  protected static PigServer pigServer;
+public class TestCogroup extends BaseTestCase
+{
   private static Path pathTable;
-  private static Configuration conf;
-  private static FileSystem fs;
-  private static String zebraJar;
-  private static String whichCluster;
+
 
   @BeforeClass
   public static void setUp() throws Exception {
-    if (System.getProperty("hadoop.log.dir") == null) {
-      String base = new File(".").getPath(); // getAbsolutePath();
-      System
-          .setProperty("hadoop.log.dir", new Path(base).toString() + "./logs");
-    }
 
-    // if whichCluster is not defined, or defined something other than
-    // "realCluster" or "miniCluster", set it to "miniCluster"
-    if (System.getProperty("whichCluster") == null
-        || ((!System.getProperty("whichCluster")
-            .equalsIgnoreCase("realCluster")) && (!System.getProperty(
-            "whichCluster").equalsIgnoreCase("miniCluster")))) {
-      System.setProperty("whichCluster", "miniCluster");
-      whichCluster = System.getProperty("whichCluster");
-    } else {
-      whichCluster = System.getProperty("whichCluster");
-    }
+    init();
+    pathTable = getTableFullPath("TestCogroup");
+    removeDir(pathTable);
 
-    System.out.println("cluster: " + whichCluster);
-    if (whichCluster.equalsIgnoreCase("realCluster")
-        && System.getenv("HADOOP_HOME") == null) {
-      System.out.println("Please set HADOOP_HOME");
-      System.exit(0);
-    }
-
-    conf = new Configuration();
-
-    if (whichCluster.equalsIgnoreCase("realCluster")
-        && System.getenv("USER") == null) {
-      System.out.println("Please set USER");
-      System.exit(0);
-    }
-    zebraJar = System.getenv("HADOOP_HOME") + "/../jars/zebra.jar";
-    File file = new File(zebraJar);
-    if (!file.exists() && whichCluster.equalsIgnoreCase("realCulster")) {
-      System.out.println("Please put zebra.jar at hadoop_home/../jars");
-      System.exit(0);
-    }
-
-    if (whichCluster.equalsIgnoreCase("realCluster")) {
-      pigServer = new PigServer(ExecType.MAPREDUCE, ConfigurationUtil
-          .toProperties(conf));
-      pigServer.registerJar(zebraJar);
-      pathTable = new Path("/user/" + System.getenv("USER")
-          + "/TestTableMergeJoinAfterFilter");
-      fs = pathTable.getFileSystem(conf);
-    }
-
-    if (whichCluster.equalsIgnoreCase("miniCluster")) {
-      if (execType == ExecType.MAPREDUCE) {
-        cluster = MiniCluster.buildCluster();
-        pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
-        fs = cluster.getFileSystem();
-        pathTable = new Path(fs.getWorkingDirectory() + "/TestTableMergeJoinAfterFilter");
-        System.out.println("path1 =" + pathTable);
-      } else {
-        pigServer = new PigServer(ExecType.LOCAL);
-      }
-    }
     BasicTable.Writer writer = new BasicTable.Writer(pathTable,
         "SF_a:string,SF_b:string,SF_c,SF_d,SF_e,SF_f,SF_g",
         "[SF_a, SF_b, SF_c]; [SF_e, SF_f, SF_g]", conf);
@@ -225,7 +167,9 @@ public class TestCogroup {
     String foreach = "records6 = foreach records5 generate flatten(records3), flatten(records4);";
     pigServer.registerQuery(foreach);
 
-    Path newPath = new Path(getCurrentMethodName());
+    Path newPath = new Path("testStorer");
+    System.out.println("newPath = " + newPath);
+    removeDir(newPath);
 
     /*
      * Table1 creation
@@ -237,5 +181,7 @@ public class TestCogroup {
             TableStorer.class.getCanonicalName()
                 + "('[records3::SF_a]; [records4::SF_a]')");
     Assert.assertNull(pigJob.getException());
+    
+    removeDir(newPath);
   }
 }

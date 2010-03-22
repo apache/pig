@@ -18,15 +18,12 @@
 
 package org.apache.hadoop.zebra.pig;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import junit.framework.Assert;
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.zebra.io.BasicTable;
@@ -37,27 +34,18 @@ import org.apache.hadoop.zebra.pig.TableStorer;
 import org.apache.hadoop.zebra.schema.Schema;
 import org.apache.hadoop.zebra.parser.ParseException;
 import org.apache.hadoop.zebra.types.TypesUtils;
-import org.apache.pig.ExecType;
-import org.apache.pig.PigServer;
+import org.apache.hadoop.zebra.BaseTestCase;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.executionengine.ExecJob;
-import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.Tuple;
-import org.apache.pig.test.MiniCluster;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-public class TestMergeJoinPrune {
-  protected static ExecType execType = ExecType.MAPREDUCE;
-  private static MiniCluster cluster;
-  protected static PigServer pigServer;
-  private static Configuration conf;
-  private static FileSystem fs;
+public class TestMergeJoinPrune extends BaseTestCase {
   final static int numsBatch = 1;
   final static int numsInserters = 1;
-  static Path pathWorking;
   static Path pathTable1;
   static Path pathTable2;
   final static String STR_SCHEMA1 = "a:int,b:float,c:long,d:double,e:string,f:bytes,r1:record(f1:string, f2:string),m1:map(string)";
@@ -66,75 +54,16 @@ public class TestMergeJoinPrune {
   final static String STR_STORAGE1 = "[a, b, c]; [e, f]; [r1.f1]; [m1#{a}]";
   final static String STR_STORAGE2 = "[a];[b]; [c]; [e]; [f]; [r1.f1]; [m1#{a}]";
  
-  private static String zebraJar;
-  private static String whichCluster;
-  
   private static int t1;
 
   @BeforeClass
   public static void setUp() throws Exception {
-    if (System.getProperty("hadoop.log.dir") == null) {
-      String base = new File(".").getPath(); // getAbsolutePath();
-      System
-          .setProperty("hadoop.log.dir", new Path(base).toString() + "./logs");
-    }
-
-    // if whichCluster is not defined, or defined something other than
-    // "realCluster" or "miniCluster", set it to "miniCluster"
-    if (System.getProperty("whichCluster") == null
-        || ((!System.getProperty("whichCluster")
-            .equalsIgnoreCase("realCluster")) && (!System.getProperty(
-            "whichCluster").equalsIgnoreCase("miniCluster")))) {
-      System.setProperty("whichCluster", "miniCluster");
-      whichCluster = System.getProperty("whichCluster");
-    } else {
-      whichCluster = System.getProperty("whichCluster");
-    }
-
-    System.out.println("cluster: " + whichCluster);
-    if (whichCluster.equalsIgnoreCase("realCluster")
-        && System.getenv("HADOOP_HOME") == null) {
-      System.out.println("Please set HADOOP_HOME");
-      System.exit(0);
-    }
-
-    conf = new Configuration();
-
-    if (whichCluster.equalsIgnoreCase("realCluster")
-        && System.getenv("USER") == null) {
-      System.out.println("Please set USER");
-      System.exit(0);
-    }
-    zebraJar = System.getenv("HADOOP_HOME") + "/../jars/zebra.jar";
-    File file = new File(zebraJar);
-    if (!file.exists() && whichCluster.equalsIgnoreCase("realCulster")) {
-      System.out.println("Please put zebra.jar at hadoop_home/../jars");
-      System.exit(0);
-    }
-
-    if (whichCluster.equalsIgnoreCase("realCluster")) {
-      pigServer = new PigServer(ExecType.MAPREDUCE, ConfigurationUtil
-          .toProperties(conf));
-      pigServer.registerJar(zebraJar);
-      pathTable1 = new Path("/user/" + System.getenv("USER")
-          + "/TestMergeJoin1");
-      pathTable2 = new Path("/user/" + System.getenv("USER")
-          + "/TestMergeJoin2");
-      fs = pathTable1.getFileSystem(conf);
-    }
-
-    if (whichCluster.equalsIgnoreCase("miniCluster")) {
-      if (execType == ExecType.MAPREDUCE) {
-        cluster = MiniCluster.buildCluster();
-        pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
-        fs = cluster.getFileSystem();
-        pathTable1 = new Path(fs.getWorkingDirectory() + "/TestMergeJoin1");
-        pathTable2 = new Path(fs.getWorkingDirectory() + "/TestMergeJoin2");
-        System.out.println("path1 =" + pathTable1);
-      } else {
-        pigServer = new PigServer(ExecType.LOCAL);
-      }
-    }
+    init();
+    pathTable1 = getTableFullPath("TestMergeJoinPrune1");
+    pathTable2 = getTableFullPath("TestMergeJoinPrune2");    
+    removeDir(pathTable1);
+    removeDir(pathTable2);
+    
     createFirstTable();
     createSecondTable();
   }
@@ -230,7 +159,6 @@ public class TestMergeJoinPrune {
     reader.setProjection(projection);
     List<RangeSplit> splits = reader.rangeSplit(1);
     TableScanner scanner = reader.getScanner(splits.get(0), true);
-    BytesWritable key = new BytesWritable();
     Tuple RowValue = TypesUtils.createTuple(scanner.getSchema());
   
     scanner.getValue(RowValue);
@@ -339,7 +267,6 @@ public class TestMergeJoinPrune {
     reader.setProjection(projection);
     List<RangeSplit> splits = reader.rangeSplit(1);
     TableScanner scanner = reader.getScanner(splits.get(0), true);
-    BytesWritable key = new BytesWritable();
     Tuple RowValue = TypesUtils.createTuple(scanner.getSchema());
 
     scanner.getValue(RowValue);
@@ -364,25 +291,6 @@ public class TestMergeJoinPrune {
     pigServer.shutdown();
     BasicTable.drop(pathTable1, conf);
     BasicTable.drop(pathTable2, conf);
-    
-  }
-
-  public void removeDir(Path outPath) throws IOException {
-    String command = null;
-    if (whichCluster.equalsIgnoreCase("realCluster")) {
-    command = System.getenv("HADOOP_HOME") +"/bin/hadoop fs -rmr " + outPath.toString();
-    }
-    else{
-    command = "rm -rf " + outPath.toString();
-    }
-    Runtime runtime = Runtime.getRuntime();
-    Process proc = runtime.exec(command);
-    int exitVal = -1;
-    try {
-      exitVal = proc.waitFor();
-    } catch (InterruptedException e) {
-      System.err.println(e);
-    }
     
   }
 
@@ -465,12 +373,12 @@ public class TestMergeJoinPrune {
   }
 
   public Iterator<Tuple> joinTable(String table1, String table2, String sortkey1, String sortkey2) throws IOException {
-    String query1 = "records1 = LOAD '" + this.pathTable1.toString()
+    String query1 = "records1 = LOAD '" + pathTable1.toString()
         + "' USING org.apache.hadoop.zebra.pig.TableLoader();";
     System.out.println("query1:" + query1);
     pigServer.registerQuery(query1);
 
-    String query2 = "records2 = LOAD '" + this.pathTable2.toString()
+    String query2 = "records2 = LOAD '" + pathTable2.toString()
         + "' USING org.apache.hadoop.zebra.pig.TableLoader();";
     System.out.println("query2:" + query2);
     pigServer.registerQuery(query2);
@@ -481,9 +389,9 @@ public class TestMergeJoinPrune {
     pigServer.registerQuery(orderby2);
 
    
-    this.t1++;
+    t1++;
     
-    String table1path = this.pathTable1.toString() + Integer.toString(this.t1);
+    String table1path = pathTable1.toString() + Integer.toString(t1);
      
 
 ExecJob pigJob =pigServer.store("sort1", table1path, TableStorer.class.getCanonicalName()

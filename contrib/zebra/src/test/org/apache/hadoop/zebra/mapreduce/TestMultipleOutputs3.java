@@ -30,12 +30,8 @@ import java.util.StringTokenizer;
 import junit.framework.Assert;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.FSDataOutputStream;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.LocalFileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
@@ -53,13 +49,11 @@ import org.apache.hadoop.zebra.schema.Schema;
 import org.apache.hadoop.zebra.types.TypesUtils;
 import org.apache.hadoop.zebra.types.ZebraTuple;
 import org.apache.pig.ExecType;
-import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
-import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.data.Tuple;
-import org.apache.pig.test.MiniCluster;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.apache.hadoop.zebra.BaseTestCase;
 
 /**
  * This is a sample a complete MR sample code for Table. It doens't contain
@@ -80,119 +74,22 @@ import org.junit.Test;
  * 
  * 
  */
-public class TestMultipleOutputs3 extends Configured implements Tool {
+public class TestMultipleOutputs3 extends BaseTestCase implements Tool {
 
   static String inputPath;
   static String inputFileName = "multi-input.txt";
-  protected static ExecType execType = ExecType.LOCAL;
-  private static MiniCluster cluster;
-  protected static PigServer pigServer;
-  // private static Path pathWorking, pathTable1, path2, path3,
-  // pathTable4, pathTable5;
-  private static Configuration conf;
   public static String sortKey = null;
 
-  private static FileSystem fs;
-
-  private static String zebraJar;
-  private static String whichCluster;
-  private static String multiLocs;
   private static String strTable1 = null;
   private static String strTable2 = null;
-  private static String strTable3 = null;
 
   @BeforeClass
-  public static void setUpOnce() throws IOException {
-    if (System.getenv("hadoop.log.dir") == null) {
-      String base = new File(".").getPath(); // getAbsolutePath();
-      System
-          .setProperty("hadoop.log.dir", new Path(base).toString() + "./logs");
-    }
-
-    // by default we use miniCluster
-    if (System.getenv("whichCluster") == null) {
-      whichCluster = "miniCluster";
-    } else {
-      whichCluster = System.getenv("whichCluster");
-    }
-
-    if (conf == null) {
-      conf = new Configuration();
-    }
+  public static void setUpOnce() throws Exception {
+    init();
     
-    if (whichCluster.equals("realCluster")) {
-      System.out.println(" get env hadoop home: " + System.getenv("HADOOP_HOME"));
-      System.out.println(" get env user name: " + System.getenv("USER"));
-      
-      if (System.getenv("HADOOP_HOME") == null) {
-        System.out.println("Please set HADOOP_HOME for realCluster testing mode");
-        System.exit(0);        
-      }
-      
-      if (System.getenv("USER") == null) {
-        System.out.println("Please set USER for realCluster testing mode");
-        System.exit(0);        
-      }
-      
-      zebraJar = System.getenv("HADOOP_HOME") + "/lib/zebra.jar";
+    inputPath = getTableFullPath(inputFileName).toString();
 
-      File file = new File(zebraJar);
-      if (!file.exists()) {
-        System.out.println("Please place zebra.jar at $HADOOP_HOME/lib");
-        System.exit(0);
-      }
-    }
-
-    // set inputPath and output path
-    String workingDir = null;
-    if (whichCluster.equalsIgnoreCase("realCluster")) {
-      inputPath = new String("/user/" + System.getenv("USER") + "/"
-          + inputFileName);
-      System.out.println("inputPath: " + inputPath);
-      multiLocs = new String("/user/" + System.getenv("USER") + "/" + "us"
-          + "," + "/user/" + System.getenv("USER") + "/" + "india" + ","
-          + "/user/" + System.getenv("USER") + "/" + "japan");
-      fs = new Path(inputPath).getFileSystem(conf);
-    } else {
-      RawLocalFileSystem rawLFS = new RawLocalFileSystem();
-      fs = new LocalFileSystem(rawLFS);
-      workingDir = fs.getWorkingDirectory().toString().split(":")[1];
-      inputPath = new String(workingDir + "/" + inputFileName);
-      System.out.println("inputPath: " + inputPath);
-      multiLocs = new String(workingDir + "/" + "us" + "," + workingDir + "/"
-          + "india" + "," + workingDir + "/" + "japan");
-    }
     writeToFile(inputPath);
-    // check inputPath existence
-    File inputFile = new File(inputPath);
-    if (!inputFile.exists() && whichCluster.equalsIgnoreCase("realCluster")) {
-      System.out.println("Please put inputFile in hdfs: " + inputPath);
-      // System.exit(0);
-    }
-    if (!inputFile.exists() && whichCluster.equalsIgnoreCase("miniCluster")) {
-      System.out
-          .println("Please put inputFile under workingdir. working dir is : "
-              + workingDir);
-      System.exit(0);
-    }
-
-    if (whichCluster.equalsIgnoreCase("realCluster")) {
-      pigServer = new PigServer(ExecType.MAPREDUCE, ConfigurationUtil
-          .toProperties(conf));
-      pigServer.registerJar(zebraJar);
-
-    }
-
-    if (whichCluster.equalsIgnoreCase("miniCluster")) {
-      if (execType == ExecType.MAPREDUCE) {
-        cluster = MiniCluster.buildCluster();
-        pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
-        fs = cluster.getFileSystem();
-
-      } else {
-        pigServer = new PigServer(ExecType.LOCAL);
-      }
-    }
   }
 
   public String getCurrentMethodName() {
@@ -218,73 +115,34 @@ public class TestMultipleOutputs3 extends Configured implements Tool {
     }
     return methodName;
   }
-  public static void writeToFile (String inputFile) throws IOException{
-    if (whichCluster.equalsIgnoreCase("miniCluster")){
-    FileWriter fstream = new FileWriter(inputFile);
-    BufferedWriter out = new BufferedWriter(fstream);
-    out.write("us 2\n");
-    out.write("japan 2\n");
-    out.write("india 4\n");
-    out.write("us 2\n");
-    out.write("japan 1\n");
-    out.write("india 3\n");
-    out.write("nouse 5\n");
-    out.write("nowhere 4\n");
-    out.close();
-    }
-    if (whichCluster.equalsIgnoreCase("realCluster")){
-    FSDataOutputStream fout = fs.create(new Path (inputFile));
-    fout.writeBytes("us 2\n");
-    fout.writeBytes("japan 2\n");
-    fout.writeBytes("india 4\n");
-    fout.writeBytes("us 2\n");
-    fout.writeBytes("japan 1\n");
-    fout.writeBytes("india 3\n");
-    fout.writeBytes("nouse 5\n");
-    fout.writeBytes("nowhere 4\n");
-    fout.close();
-    }
-  }
   
-  public Path generateOutPath(String currentMethod) {
-    Path outPath = null;
-    if (whichCluster.equalsIgnoreCase("realCluster")) {
-      outPath = new Path("/user/" + System.getenv("USER") + "/multiOutput/"
-          + currentMethod);
-    } else {
-      String workingDir = fs.getWorkingDirectory().toString().split(":")[1];
-      outPath = new Path(workingDir + "/multiOutput/" + currentMethod);
-      System.out.println("output file: " + outPath.toString());
+  public static void writeToFile (String inputFile) throws IOException{
+    if (mode == TestMode.local) {
+      FileWriter fstream = new FileWriter(inputFile);
+      BufferedWriter out = new BufferedWriter(fstream);
+      out.write("us 2\n");
+      out.write("japan 2\n");
+      out.write("india 4\n");
+      out.write("us 2\n");
+      out.write("japan 1\n");
+      out.write("india 3\n");
+      out.write("nouse 5\n");
+      out.write("nowhere 4\n");
+      out.close();
     }
-    return outPath;
-  }
-
-  public void removeDir(Path outPath) throws IOException {
-    String command = null;
-    if (whichCluster.equalsIgnoreCase("realCluster")) {
-      command = System.getenv("HADOOP_HOME") + "/bin/hadoop fs -rmr "
-          + outPath.toString();
-    } else {
-      StringTokenizer st = new StringTokenizer(outPath.toString(), ":");
-      int count = 0;
-      String file = null;
-      while (st.hasMoreElements()) {
-        count++;
-        String token = st.nextElement().toString();
-        if (count == 2)
-          file = token;
-      }
-      command = "rm -rf " + file;
+    
+    if (mode == TestMode.cluster) {
+      FSDataOutputStream fout = fs.create(new Path (inputFile));
+      fout.writeBytes("us 2\n");
+      fout.writeBytes("japan 2\n");
+      fout.writeBytes("india 4\n");
+      fout.writeBytes("us 2\n");
+      fout.writeBytes("japan 1\n");
+      fout.writeBytes("india 3\n");
+      fout.writeBytes("nouse 5\n");
+      fout.writeBytes("nowhere 4\n");
+      fout.close();
     }
-    Runtime runtime = Runtime.getRuntime();
-    Process proc = runtime.exec(command);
-    int exitVal = -1;
-    try {
-      exitVal = proc.waitFor();
-    } catch (InterruptedException e) {
-      System.err.println(e);
-    }
-
   }
 
   public static void getTablePaths(String myMultiLocs) {
@@ -302,8 +160,7 @@ public class TestMultipleOutputs3 extends Configured implements Tool {
         strTable1 = token;
       if (count == 2)
         strTable2 = token;
-      if (count == 3)
-        strTable3 = token;
+
       System.out.println("token = " + token);
     }
   }
@@ -469,22 +326,16 @@ public class TestMultipleOutputs3 extends Configured implements Tool {
     /*
      * test combine sort keys
      */
-    System.out.println("******Starttt  testcase: " + getCurrentMethodName());
+    System.out.println("******Start  testcase: " + getCurrentMethodName());
     sortKey = "word,count";
     System.out.println("hello sort on word and count");
     String methodName = getCurrentMethodName();
     String myMultiLocs = null;
-    if (whichCluster.equalsIgnoreCase("realCluster")) {
-      myMultiLocs = new String("/user/" + System.getenv("USER") + "/" + "us"
-          + methodName + "," + "/user/" + System.getenv("USER") + "/"
-          + "others" + methodName);
-    } else {
-      RawLocalFileSystem rawLFS = new RawLocalFileSystem();
-      fs = new LocalFileSystem(rawLFS);
-      myMultiLocs = new String(fs.getWorkingDirectory() + "/" + "us"
-          + methodName + "," + fs.getWorkingDirectory() + "/" + "others"
-          + methodName);
-    }
+    
+    String str1 = getTableFullPath("us" + methodName).toString();
+    String str2 = getTableFullPath("others" + methodName).toString();
+    myMultiLocs = str1 + "," + str2;
+    
     getTablePaths(myMultiLocs);
     removeDir(new Path(strTable1));
     removeDir(new Path(strTable2));
@@ -650,13 +501,10 @@ public class TestMultipleOutputs3 extends Configured implements Tool {
   }
   
   public static void main(String[] args) throws Exception {
-    //XXX
-    System.out.println("*******************  this is new today");
-
     conf = new Configuration();
     
     int res = ToolRunner.run(conf, new TestMultipleOutputs3(), args);
-    
+    System.out.println("PASS");    
     System.exit(res);
   }
 }

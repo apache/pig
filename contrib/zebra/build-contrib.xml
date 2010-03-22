@@ -208,7 +208,6 @@
      encoding="${build.encoding}"
      srcdir="${src.test}"
      includes="**/*.java"
-     excludes="**/TestColumnSecurity.java"
      destdir="${build.test}"
      debug="${javac.debug}">
       <classpath refid="test.classpath"/>

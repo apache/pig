@@ -17,38 +17,24 @@ package org.apache.hadoop.zebra.pig;
  * the License.
  */
 
-import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
-import java.util.Random;
 
 import junit.framework.Assert;
-import junit.framework.TestCase;
 
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.LocalFileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.zebra.io.BasicTable;
 import org.apache.hadoop.zebra.io.TableInserter;
-import org.apache.hadoop.zebra.io.TableScanner;
-import org.apache.hadoop.zebra.io.BasicTable.Reader.RangeSplit;
 import org.apache.hadoop.zebra.parser.ParseException;
-import org.apache.hadoop.zebra.types.Projection;
 import org.apache.hadoop.zebra.schema.Schema;
+import org.apache.hadoop.zebra.BaseTestCase;
 import org.apache.hadoop.zebra.types.TypesUtils;
-import org.apache.pig.ExecType;
-import org.apache.pig.PigServer;
-import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.Tuple;
-import org.apache.pig.test.MiniCluster;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -58,40 +44,20 @@ import org.junit.Test;
  * Test projections on complicated column types.
  * 
  */
-public class TestMixedType1 {
+public class TestMixedType1 extends BaseTestCase {
   final static String STR_SCHEMA = "s1:bool, s2:int, s3:long, s4:float, s5:string, s6:bytes, r1:record(f1:int, f2:long), r2:record(r3:record(f3:float, f4)), m1:map(string),m2:map(map(int)), c:collection(record(f13:double, f14:float, f15:bytes))";
   final static String STR_STORAGE = "[s1, s2]; [m1#{a}]; [r1.f1]; [s3, s4, r2.r3.f3]; [s5, s6, m2#{x|y}]; [r1.f2, m1#{b}]; [r2.r3.f4, m2#{z}]";
-  private static Configuration conf;
-  private static FileSystem fs;
 
-  protected static ExecType execType = ExecType.MAPREDUCE;
-  private static MiniCluster cluster;
-  protected static PigServer pigServer;
   private static Path path;
 
   @BeforeClass
-  public static void setUpOnce() throws IOException {
+  public static void setUpOnce() throws IOException, Exception {
     System.out.println("ONCE SETUP !! ---------");
-    if (System.getProperty("hadoop.log.dir") == null) {
-      String base = new File(".").getPath(); // getAbsolutePath();
-      System
-          .setProperty("hadoop.log.dir", new Path(base).toString() + "./logs");
-    }
-
-    if (execType == ExecType.MAPREDUCE) {
-      cluster = MiniCluster.buildCluster();
-      pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
-    } else {
-      pigServer = new PigServer(ExecType.LOCAL);
-    }
-
-    conf = new Configuration();
-    FileSystem fs = cluster.getFileSystem();
-    Path pathWorking = fs.getWorkingDirectory();
-    // path = new Path(pathWorking, this.getClass().getSimpleName());
-    path = fs.getWorkingDirectory();
-    System.out.println("path =" + path);
-
+    init();
+    
+    path = getTableFullPath("");  
+    removeDir(path);
+    
     BasicTable.Writer writer = new BasicTable.Writer(path, STR_SCHEMA,
         STR_STORAGE, conf);
     writer.finish();

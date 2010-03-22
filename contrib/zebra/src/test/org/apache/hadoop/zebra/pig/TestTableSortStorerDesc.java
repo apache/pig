@@ -40,6 +40,7 @@ import org.apache.hadoop.zebra.types.TypesUtils;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.test.MiniCluster;
 import org.junit.After;
@@ -47,6 +48,8 @@ import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.apache.hadoop.zebra.BaseTestCase;
+
 
 /**
  * Note:
@@ -55,32 +58,16 @@ import org.junit.Test;
  * app/debug configuration, when run this from inside the Eclipse.
  * 
  */
-public class TestTableSortStorerDesc {
-  protected static ExecType execType = ExecType.MAPREDUCE;
-  private static MiniCluster cluster;
-  protected static PigServer pigServer;
+public class TestTableSortStorerDesc extends BaseTestCase {
   private static Path pathTable;
-
+  
   @BeforeClass
   public static void setUp() throws Exception {
-    if (System.getProperty("hadoop.log.dir") == null) {
-      String base = new File(".").getPath(); // getAbsolutePath();
-      System
-          .setProperty("hadoop.log.dir", new Path(base).toString() + "./logs");
-    }
 
-    if (execType == ExecType.MAPREDUCE) {
-      cluster = MiniCluster.buildCluster();
-      pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
-    } else {
-      pigServer = new PigServer(ExecType.LOCAL);
-    }
-
-    Configuration conf = new Configuration();
-    FileSystem fs = cluster.getFileSystem();
-    Path pathWorking = fs.getWorkingDirectory();
-    pathTable = new Path(pathWorking, "TestTableSortStorerDesc");
-    System.out.println("pathTable =" + pathTable);
+    init();
+    pathTable = getTableFullPath("TestTableSortStorerDesc");
+    removeDir(pathTable);
+    
     BasicTable.Writer writer = new BasicTable.Writer(pathTable,
         "SF_a:string,SF_b,SF_c,SF_d,SF_e,SF_f,SF_g",
         "[SF_a, SF_b, SF_c]; [SF_e, SF_f, SF_g]", conf);

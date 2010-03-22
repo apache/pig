@@ -18,37 +18,26 @@
 
 package org.apache.hadoop.zebra.pig;
 
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
-import java.io.PrintWriter;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
-import java.util.Random;
-import java.util.StringTokenizer;
-
 import junit.framework.Assert;
-import junit.framework.TestCase;
-
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.LocalFileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.BytesWritable;
+import org.apache.hadoop.zebra.BaseTestCase;
 import org.apache.hadoop.zebra.io.BasicTable;
 import org.apache.hadoop.zebra.io.TableInserter;
 import org.apache.hadoop.zebra.io.TableScanner;
 import org.apache.hadoop.zebra.io.BasicTable.Reader.RangeSplit;
 import org.apache.hadoop.zebra.parser.ParseException;
-import org.apache.hadoop.zebra.types.Projection;
 import org.apache.hadoop.zebra.schema.Schema;
 import org.apache.hadoop.zebra.types.TypesUtils;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
-import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.Tuple;
@@ -62,81 +51,24 @@ import org.junit.Test;
  * Test projections on complicated column types.
  * 
  */
-public class TestCollection {
-
+public class TestCollection extends BaseTestCase
+{
   final static String STR_SCHEMA = "c:collection(record(a:double, b:float, c:bytes))";
   final static String STR_STORAGE = "[c]";
-  private static Configuration conf;
-  private static FileSystem fs;
 
-  protected static ExecType execType = ExecType.MAPREDUCE;
-  private static MiniCluster cluster;
-  protected static PigServer pigServer;
   private static Path path;
 
   @BeforeClass
-  public static void setUpOnce() throws IOException {
+  public static void setUp() throws Exception {
 
-    System.out.println("ONCE SETUP !! ---------");
-    if (System.getProperty("hadoop.log.dir") == null) {
-      String base = new File(".").getPath(); // getAbsolutePath();
-      System
-          .setProperty("hadoop.log.dir", new Path(base).toString() + "./logs");
-    }
+    init();
 
-    if (execType == ExecType.MAPREDUCE) {
-      cluster = MiniCluster.buildCluster();
-      pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
-    } else {
-      pigServer = new PigServer(ExecType.LOCAL);
-    }
-
-    conf = new Configuration();
-    FileSystem fs = cluster.getFileSystem();
-    Path pathWorking = fs.getWorkingDirectory();
-    // path = new Path(pathWorking, this.getClass().getSimpleName());
-    path = fs.getWorkingDirectory();
-    System.out.println("path =" + path);
+    path = getTableFullPath("TestCollection");
+    removeDir(path);
 
     BasicTable.Writer writer = new BasicTable.Writer(path, STR_SCHEMA,
         STR_STORAGE, conf);
-    /*
-     * conf = new Configuration();
-     * conf.setInt("table.output.tfile.minBlock.size", 64 * 1024);
-     * conf.setInt("table.input.split.minSize", 64 * 1024);
-     * conf.set("table.output.tfile.compression", "none");
-     * 
-     * RawLocalFileSystem rawLFS = new RawLocalFileSystem(); fs = new
-     * LocalFileSystem(rawLFS); path = new Path(fs.getWorkingDirectory(),
-     * this.getClass() .getSimpleName()); fs = path.getFileSystem(conf); // drop
-     * any previous tables BasicTable.drop(path, conf); BasicTable.Writer writer
-     * = new BasicTable.Writer(path, STR_SCHEMA, STR_STORAGE, false, conf);
-     */
-    /*
-     * /* Schema schema = writer.getSchema(); Tuple tuple =
-     * TypesUtils.createTuple(schema);
-     * 
-     * final int numsBatch = 10; final int numsInserters = 2; TableInserter[]
-     * inserters = new TableInserter[numsInserters]; for (int i = 0; i <
-     * numsInserters; i++) { inserters[i] = writer.getInserter("ins" + i,
-     * false); }
-     * 
-     * for (int b = 0; b < numsBatch; b++) { for (int i = 0; i < numsInserters;
-     * i++) { TypesUtils.resetTuple(tuple);
-     * 
-     * DataBag bagColl = TypesUtils.createBag(); Schema schColl =
-     * schema.getColumn(0).getSchema(); Tuple tupColl1 =
-     * TypesUtils.createTuple(schColl); Tuple tupColl2 =
-     * TypesUtils.createTuple(schColl); byte[] abs1 = new byte[3]; byte[] abs2 =
-     * new byte[4]; tupColl1.set(0, 3.1415926); tupColl1.set(1, 1.6); abs1[0] =
-     * 11; abs1[1] = 12; abs1[2] = 13; tupColl1.set(2, new DataByteArray(abs1));
-     * bagColl.add(tupColl1); tupColl2.set(0, 123.456789); tupColl2.set(1, 100);
-     * abs2[0] = 21; abs2[1] = 22; abs2[2] = 23; abs2[3] = 24; tupColl2.set(2,
-     * new DataByteArray(abs2)); bagColl.add(tupColl2); tuple.set(0, bagColl);
-     * 
-     * inserters[i].insert(new BytesWritable(("key" + i).getBytes()), tuple); }
-     * } for (int i = 0; i < numsInserters; i++) { inserters[i].close(); }
-     */
+   
 
     writer.finish();
 
@@ -278,6 +210,7 @@ public class TestCollection {
   }
 
   // Negative none exist column, TODO: failed, throw null pointer
+  @Test
   public void testReadNeg2() throws IOException, ParseException {
     String query = "records = LOAD '" + path.toString()
         + "' USING org.apache.hadoop.zebra.pig.TableLoader('d');";

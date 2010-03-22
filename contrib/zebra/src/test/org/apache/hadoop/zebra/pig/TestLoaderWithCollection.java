@@ -18,22 +18,13 @@
 
 package org.apache.hadoop.zebra.pig;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.Iterator;
-
-
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.LocalFileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.BytesWritable;
+import org.apache.hadoop.zebra.BaseTestCase;
 import org.apache.hadoop.zebra.io.BasicTable;
 import org.apache.hadoop.zebra.io.TableInserter;
 import org.apache.hadoop.zebra.schema.Schema;
 import org.apache.hadoop.zebra.types.TypesUtils;
-import org.apache.pig.ExecType;
-import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.Tuple;
@@ -41,26 +32,18 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-public class TestLoaderWithCollection {
-    protected static PigServer pigServer;
+import java.io.IOException;
+import java.util.Iterator;
+
+public class TestLoaderWithCollection extends BaseTestCase
+{
     private static Path pathTable;
 
     @BeforeClass
     public static void setUp() throws Exception {
-        if (System.getProperty("hadoop.log.dir") == null) {
-            String base = new File(".").getPath();
-            System
-            .setProperty("hadoop.log.dir", new Path(base).toString() + "./logs");
-        }
-
-        pigServer = new PigServer(ExecType.LOCAL);
-        Configuration conf = new Configuration();
-        FileSystem fs = LocalFileSystem.get(conf);
-
-        Path pathWorking = fs.getWorkingDirectory();
-        pathTable = new Path(pathWorking, "TestCollectionTable");
-        // drop any previous tables
-        BasicTable.drop(pathTable, conf);
+      init();
+      pathTable = getTableFullPath("TestMapTableLoader");
+      removeDir(pathTable);
 
         BasicTable.Writer writer = new BasicTable.Writer(pathTable,
                 "c:collection(record(a:double))", "[c]", conf);
@@ -114,5 +97,4 @@ public class TestLoaderWithCollection {
             System.out.println(cur);
         }
     }
-
 }

@@ -19,15 +19,12 @@
 package org.apache.hadoop.zebra.pig;
 
 import java.io.ByteArrayOutputStream;
-import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.Iterator;
 import java.util.ArrayList;
 import java.util.StringTokenizer;
 
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.zebra.io.BasicTable;
@@ -35,14 +32,11 @@ import org.apache.hadoop.zebra.io.TableInserter;
 import org.apache.hadoop.zebra.pig.TableStorer;
 import org.apache.hadoop.zebra.schema.Schema;
 import org.apache.hadoop.zebra.types.TypesUtils;
-import org.apache.pig.ExecType;
-import org.apache.pig.PigServer;
+import org.apache.hadoop.zebra.BaseTestCase;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.executionengine.ExecJob;
-import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.Tuple;
-import org.apache.pig.test.MiniCluster;
 
 import junit.framework.Assert;
 import org.junit.AfterClass;
@@ -50,7 +44,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 
-public class TestOrderPreserveMultiTableGlob {
+public class TestOrderPreserveMultiTableGlob extends BaseTestCase {
 	
 	final static int NUMB_TABLE = 10;  		// number of tables for stress test
 	final static int NUMB_TABLE_ROWS = 5;	// number of rows for each table
@@ -61,92 +55,23 @@ public class TestOrderPreserveMultiTableGlob {
 	static int fileId = 0;
 	static int sortId = 0;
 	
-	protected static ExecType execType = ExecType.MAPREDUCE;
-	private static MiniCluster cluster;
-	protected static PigServer pigServer;
 	protected static ExecJob pigJob;
 	
 	private static ArrayList<Path> pathTables;
 	private static int totalTableRows =0;
 	
-	private static Configuration conf;
-	private static FileSystem fs;
-	
-	private static String zebraJar;
-	private static String whichCluster;
-	
 	@BeforeClass
 	public static void setUp() throws Exception {
-		if (System.getProperty("hadoop.log.dir") == null) {
-			String base = new File(".").getPath(); // getAbsolutePath();
-			System.setProperty("hadoop.log.dir", new Path(base).toString() + "./logs");
-		}
+		init();
 		
-		// if whichCluster is not defined, or defined something other than
-		// "realCluster" or "miniCluster", set it to "realCluster"
-		if (System.getProperty("whichCluster") == null
-				|| ((!System.getProperty("whichCluster")
-						.equalsIgnoreCase("realCluster")) && (!System.getProperty(
-						"whichCluster").equalsIgnoreCase("miniCluster")))) {
-			System.setProperty("whichCluster", "miniCluster");
-			whichCluster = System.getProperty("whichCluster");
-		} else {
-			whichCluster = System.getProperty("whichCluster");
+
+		pathTables = new ArrayList<Path>();
+		for (int i=0; i<NUMB_TABLE; ++i) {
+			Path pathTable = getTableFullPath("TestOderPerserveMultiTable" + i);
+			pathTables.add(pathTable);
+			removeDir(pathTable);
 		}
-		
-		System.out.println("cluster: " + whichCluster);
-		if (whichCluster.equalsIgnoreCase("realCluster")
-				&& System.getenv("HADOOP_HOME") == null) {
-			System.out.println("Please set HADOOP_HOME");
-			System.exit(0);
-		}
-		
-		conf = new Configuration();
-		
-		if (whichCluster.equalsIgnoreCase("realCluster")
-				&& System.getenv("USER") == null) {
-			System.out.println("Please set USER");
-			System.exit(0);
-		}
-		zebraJar = System.getenv("HADOOP_HOME") + "/../jars/zebra.jar";
-		File file = new File(zebraJar);
-		if (!file.exists() && whichCluster.equalsIgnoreCase("realCulster")) {
-			System.out.println("Please put zebra.jar at hadoop_home/../jars");
-			System.exit(0);
-		}
-		
-		if (whichCluster.equalsIgnoreCase("realCluster")) {
-			pigServer = new PigServer(ExecType.MAPREDUCE, ConfigurationUtil
-					.toProperties(conf));
-			pigServer.registerJar(zebraJar);
 			
-			pathTables = new ArrayList<Path>();
-			for (int i=0; i<NUMB_TABLE; ++i) {
-				Path pathTable = new Path("/user/" + System.getenv("USER")
-						+ "/TestOderPerserveMultiTable" + i);
-				pathTables.add(pathTable);
-				removeDir(pathTable);
-			}
-			fs = pathTables.get(0).getFileSystem(conf);
-		}
-		
-		if (whichCluster.equalsIgnoreCase("miniCluster")) {
-			if (execType == ExecType.MAPREDUCE) {
-				cluster = MiniCluster.buildCluster();
-				pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
-				fs = cluster.getFileSystem();
-				
-				pathTables = new ArrayList<Path>();
-				for (int i=0; i<NUMB_TABLE; ++i) {
-					Path pathTable = new Path(fs.getWorkingDirectory()
-							+ "/TestOderPerserveMultiTable" + i);
-					pathTables.add(pathTable);
-					removeDir(pathTable);
-				}
-			} else {
-				pigServer = new PigServer(ExecType.LOCAL);
-			}
-		}
 		
 		// Create tables
 		for (int i=0; i<NUMB_TABLE; ++i) {
@@ -195,24 +120,6 @@ public class TestOrderPreserveMultiTableGlob {
 	@AfterClass
 	public static void tearDown() throws Exception {
 		pigServer.shutdown();
-	}
-	
-	public static void removeDir(Path outPath) throws IOException {
-		String command = null;
-		if (whichCluster.equalsIgnoreCase("realCluster")) {
-			command = System.getenv("HADOOP_HOME") +"/bin/hadoop fs -rmr " + outPath.toString();
-		}
-		else{
-			command = "rm -rf " + outPath.toString();
-		}
-		Runtime runtime = Runtime.getRuntime();
-		Process proc = runtime.exec(command);
-		int exitVal = -1;
-		try {
-			exitVal = proc.waitFor();
-		} catch (InterruptedException e) {
-			System.err.println(e);
-		}
 	}
 	
 	private Iterator<Tuple> testOrderPreserveUnion(ArrayList<String> inputTables, String sortkey, String columns)
