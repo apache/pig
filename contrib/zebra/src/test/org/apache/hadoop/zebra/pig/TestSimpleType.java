@@ -17,45 +17,26 @@
 package org.apache.hadoop.zebra.pig;
 
 import java.io.ByteArrayOutputStream;
-import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.util.HashMap;
 import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
 import java.util.StringTokenizer;
 
 import junit.framework.Assert;
-import junit.framework.TestCase;
-
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.LocalFileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.zebra.io.BasicTable;
 import org.apache.hadoop.zebra.io.TableInserter;
-import org.apache.hadoop.zebra.io.TableScanner;
-import org.apache.hadoop.zebra.io.BasicTable.Reader.RangeSplit;
 import org.apache.hadoop.zebra.pig.TableStorer;
 import org.apache.hadoop.zebra.parser.ParseException;
-import org.apache.hadoop.zebra.types.Projection;
 import org.apache.hadoop.zebra.schema.Schema;
 import org.apache.hadoop.zebra.types.TypesUtils;
-import org.apache.pig.ExecType;
-import org.apache.pig.PigServer;
+import org.apache.hadoop.zebra.BaseTestCase;
 import org.apache.pig.backend.executionengine.ExecException;
-import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.Tuple;
-import org.apache.pig.test.MiniCluster;
 import org.apache.pig.backend.executionengine.ExecJob;
-import org.junit.After;
 import org.junit.AfterClass;
-import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -64,40 +45,19 @@ import org.junit.Test;
  * Test projections on complicated column types.
  * 
  */
-public class TestSimpleType {
+public class TestSimpleType extends BaseTestCase {
 
   final static String STR_SCHEMA = "s1:bool, s2:int, s3:long, s4:float, s5:string, s6:bytes";
   final static String STR_STORAGE = "[s1, s2]; [s3, s4]; [s5, s6]";
-  private static Configuration conf;
-  private static FileSystem fs;
-
-  protected static ExecType execType = ExecType.MAPREDUCE;
-  private static MiniCluster cluster;
-  protected static PigServer pigServer;
   private static Path path;
 
   @BeforeClass
-  public static void setUpOnce() throws IOException {
-    System.out.println("ONCE SETUP !! ---------");
-    if (System.getProperty("hadoop.log.dir") == null) {
-      String base = new File(".").getPath(); // getAbsolutePath();
-      System
-          .setProperty("hadoop.log.dir", new Path(base).toString() + "./logs");
-    }
+  public static void setUpOnce() throws IOException, Exception {
+    init();
 
-    if (execType == ExecType.MAPREDUCE) {
-      cluster = MiniCluster.buildCluster();
-      pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
-    } else {
-      pigServer = new PigServer(ExecType.LOCAL);
-    }
 
-    conf = new Configuration();
-    FileSystem fs = cluster.getFileSystem();
-    Path pathWorking = fs.getWorkingDirectory();
-    // path = new Path(pathWorking, this.getClass().getSimpleName());
-    path = fs.getWorkingDirectory();
-    System.out.println("path =" + path);
+    path = getTableFullPath("TesMapType");
+    removeDir(path);
 
     BasicTable.Writer writer = new BasicTable.Writer(path, STR_SCHEMA,
         STR_STORAGE, conf);

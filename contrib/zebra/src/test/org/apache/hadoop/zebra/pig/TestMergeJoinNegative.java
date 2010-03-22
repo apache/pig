@@ -18,14 +18,10 @@
 
 package org.apache.hadoop.zebra.pig;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
 
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.zebra.io.BasicTable;
@@ -33,18 +29,16 @@ import org.apache.hadoop.zebra.io.TableInserter;
 import org.apache.hadoop.zebra.pig.TableStorer;
 import org.apache.hadoop.zebra.schema.Schema;
 import org.apache.hadoop.zebra.types.TypesUtils;
-import org.apache.pig.ExecType;
-import org.apache.pig.PigServer;
+import org.apache.hadoop.zebra.BaseTestCase;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.Tuple;
-import org.apache.pig.test.MiniCluster;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
 
-public class TestMergeJoinNegative {
+public class TestMergeJoinNegative extends BaseTestCase {
 	
 	final static String STR_SCHEMA1 = "a:int,b:float,c:long,d:double,e:string,f:bytes,m1:map(string)";
 	final static String STR_STORAGE1 = "[a, b, c]; [e, f]; [m1#{a}]";
@@ -55,37 +49,24 @@ public class TestMergeJoinNegative {
 	
 	static int fileId = 0;
 	
-	protected static ExecType execType = ExecType.MAPREDUCE;
-	private static MiniCluster cluster;
-	protected static PigServer pigServer;
 	private static Path pathTable1;
 	private static Path pathTable2;
 	private static Path pathTable3;
 	private static Path pathTable4;
-	private static Configuration conf;
 	
 	@BeforeClass
 	public static void setUp() throws Exception {
-		if (System.getProperty("hadoop.log.dir") == null) {
-			String base = new File(".").getPath(); // getAbsolutePath();
-			System.setProperty("hadoop.log.dir", new Path(base).toString() + "./logs");
-		}
-
-		if (execType == ExecType.MAPREDUCE) {
-			cluster = MiniCluster.buildCluster();
-			pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
-		} else {
-			pigServer = new PigServer(ExecType.LOCAL);
-		}
-		
-		conf = new Configuration();
-		FileSystem fs = cluster.getFileSystem();
-		Path pathWorking = fs.getWorkingDirectory();
-		pathTable1 = new Path(pathWorking, "table1");
-		pathTable2 = new Path(pathWorking, "table2");
-		pathTable3 = new Path(pathWorking, "table3");
-		pathTable4 = new Path(pathWorking, "table4");
-		
+    init();
+    
+    pathTable1 = getTableFullPath("TestMergeJoinNegative1");
+    pathTable2 = getTableFullPath("TestMergeJoinNegative2"); 
+    pathTable3 = getTableFullPath("TestMergeJoinNegative3");
+    pathTable4 = getTableFullPath("TestMergeJoinNegative4");
+    removeDir(pathTable1);
+    removeDir(pathTable2);
+    removeDir(pathTable3);
+    removeDir(pathTable4);
+    
 		// Create table1 data
 		Map<String, String> m1 = new HashMap<String, String>();
 		m1.put("a","m1-a");
@@ -219,7 +200,7 @@ public class TestMergeJoinNegative {
 			" USING \"merge\";";    // n2 is wrong data type
 		pigServer.registerQuery(join);
 		
-		Iterator<Tuple> it = pigServer.openIterator("joinRecords");  // get iterator to trigger error
+		pigServer.openIterator("joinRecords");  // get iterator to trigger error
 	}
 	
 	@Test(expected = IOException.class)
@@ -263,7 +244,7 @@ public class TestMergeJoinNegative {
 			" USING \"merge\";";
 		pigServer.registerQuery(join);
 		
-		Iterator<Tuple> it = pigServer.openIterator("joinRecords");  // get iterator to trigger error
+		pigServer.openIterator("joinRecords");  // get iterator to trigger error
 	}
 	
 	@Test(expected = IOException.class)
@@ -303,7 +284,7 @@ public class TestMergeJoinNegative {
 			" USING \"merge\";";
 		pigServer.registerQuery(join);
 		
-		Iterator<Tuple> it = pigServer.openIterator("joinRecords");  // get iterator to trigger error
+		pigServer.openIterator("joinRecords");  // get iterator to trigger error
 	}
 	
 	@Test(expected = IOException.class)
@@ -343,7 +324,7 @@ public class TestMergeJoinNegative {
 			" USING \"merge\";";
 		pigServer.registerQuery(join);
 		
-		Iterator<Tuple> it = pigServer.openIterator("joinRecords");  // get iterator to trigger error
+		pigServer.openIterator("joinRecords");  // get iterator to trigger error
 	}
 	
 	@Test(expected = IOException.class)
@@ -546,7 +527,7 @@ public class TestMergeJoinNegative {
 			" USING \"merge\";";					// sort key a is different data type for records1 and records4
 		pigServer.registerQuery(join);
 		
-		Iterator<Tuple> it = pigServer.openIterator("joinRecords");  // get iterator to trigger error
+	  pigServer.openIterator("joinRecords");  // get iterator to trigger error
 	}
 	
 }

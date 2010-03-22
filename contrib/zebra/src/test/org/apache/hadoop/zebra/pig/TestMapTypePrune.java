@@ -16,126 +16,47 @@
  */
 package org.apache.hadoop.zebra.pig;
 
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.IOException;
-import java.io.PrintWriter;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
-import java.util.StringTokenizer;
-
 import junit.framework.Assert;
-import junit.framework.TestCase;
-
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.LocalFileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.BytesWritable;
-import org.apache.hadoop.record.Record;
+import org.apache.hadoop.zebra.BaseTestCase;
 import org.apache.hadoop.zebra.io.BasicTable;
+import org.apache.hadoop.zebra.io.BasicTable.Reader.RangeSplit;
 import org.apache.hadoop.zebra.io.TableInserter;
 import org.apache.hadoop.zebra.io.TableScanner;
-import org.apache.hadoop.zebra.io.BasicTable.Reader.RangeSplit;
 import org.apache.hadoop.zebra.parser.ParseException;
-import org.apache.hadoop.zebra.types.Projection;
 import org.apache.hadoop.zebra.schema.Schema;
 import org.apache.hadoop.zebra.types.TypesUtils;
-import org.apache.pig.ExecType;
-import org.apache.pig.PigServer;
-import org.apache.pig.backend.executionengine.ExecException;
-import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
-import org.apache.pig.test.MiniCluster;
-import org.apache.pig.data.DataBag;
-import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.Tuple;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
+
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 
 /**
  * 
  * Test projections on complicated column types.
  * 
  */
-public class TestMapTypePrune {
+public class TestMapTypePrune extends BaseTestCase
+{
   final static String STR_SCHEMA = "m1:map(string),m2:map(map(int)), m4:map(map(record(f1:int,f2:string)))";
   final static String STR_STORAGE = "[m1#{a}];[m2#{x|y}]; [m1#{b}, m2#{z}]; [m4#{a4}]; [m4#{b4|c4}]";
 
-  protected static ExecType execType = ExecType.MAPREDUCE;
-  private static MiniCluster cluster;
-  protected static PigServer pigServer;
   private static Path pathTable;
-  private static Configuration conf;
-  private static FileSystem fs;
-  private static String zebraJar;
-  private static String whichCluster;
+
 
   @BeforeClass
   public static void setUp() throws Exception {
-    if (System.getProperty("hadoop.log.dir") == null) {
-      String base = new File(".").getPath(); // getAbsolutePath();
-      System
-          .setProperty("hadoop.log.dir", new Path(base).toString() + "./logs");
-    }
+    init();
+    pathTable = getTableFullPath(TestMapTypePrune.class.getSimpleName()) ;
+    removeDir(pathTable);
 
-    // if whichCluster is not defined, or defined something other than
-    // "realCluster" or "miniCluster", set it to "miniCluster"
-    if (System.getProperty("whichCluster") == null
-        || ((!System.getProperty("whichCluster")
-            .equalsIgnoreCase("realCluster")) && (!System.getProperty(
-            "whichCluster").equalsIgnoreCase("miniCluster")))) {
-      System.setProperty("whichCluster", "miniCluster");
-      whichCluster = System.getProperty("whichCluster");
-    } else {
-      whichCluster = System.getProperty("whichCluster");
-    }
-
-    System.out.println("cluster: " + whichCluster);
-    if (whichCluster.equalsIgnoreCase("realCluster")
-        && System.getenv("HADOOP_HOME") == null) {
-      System.out.println("Please set HADOOP_HOME");
-      System.exit(0);
-    }
-
-    conf = new Configuration();
-
-    if (whichCluster.equalsIgnoreCase("realCluster")
-        && System.getenv("USER") == null) {
-      System.out.println("Please set USER");
-      System.exit(0);
-    }
-    zebraJar = System.getenv("HADOOP_HOME") + "/../jars/zebra.jar";
-    File file = new File(zebraJar);
-    if (!file.exists() && whichCluster.equalsIgnoreCase("realCulster")) {
-      System.out.println("Please put zebra.jar at hadoop_home/../jars");
-      System.exit(0);
-    }
-
-    if (whichCluster.equalsIgnoreCase("realCluster")) {
-      pigServer = new PigServer(ExecType.MAPREDUCE, ConfigurationUtil
-          .toProperties(conf));
-      pigServer.registerJar(zebraJar);
-      pathTable = new Path("/user/" + System.getenv("USER")
-          + "/TestMapType");
-      fs = pathTable.getFileSystem(conf);
-    }
-
-    if (whichCluster.equalsIgnoreCase("miniCluster")) {
-      if (execType == ExecType.MAPREDUCE) {
-        cluster = MiniCluster.buildCluster();
-        pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
-        fs = cluster.getFileSystem();
-        pathTable = new Path(fs.getWorkingDirectory() + "TesMapType");
-        System.out.println("path1 =" + pathTable);
-      } else {
-        pigServer = new PigServer(ExecType.LOCAL);
-      }
-    }
     BasicTable.Writer writer = new BasicTable.Writer(pathTable, STR_SCHEMA,
         STR_STORAGE, conf);
     writer.finish();

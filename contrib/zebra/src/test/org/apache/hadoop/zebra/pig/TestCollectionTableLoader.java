@@ -18,58 +18,37 @@
 
 package org.apache.hadoop.zebra.pig;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.Iterator;
-
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.BytesWritable;
+import org.apache.hadoop.zebra.BaseTestCase;
 import org.apache.hadoop.zebra.io.BasicTable;
 import org.apache.hadoop.zebra.io.TableInserter;
 import org.apache.hadoop.zebra.schema.Schema;
 import org.apache.hadoop.zebra.types.TypesUtils;
-import org.apache.pig.ExecType;
-import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.Tuple;
-import org.apache.pig.test.MiniCluster;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-public class TestCollectionTableLoader {
-  protected static ExecType execType = ExecType.MAPREDUCE;
-  private static MiniCluster cluster;
-  protected static PigServer pigServer;
-  private static Path pathTable;
+import java.io.IOException;
+import java.util.Iterator;
+
+public class TestCollectionTableLoader extends BaseTestCase
+{
+
+  private static Path path;
 
   @BeforeClass
   public static void setUp() throws Exception {
-    if (System.getProperty("hadoop.log.dir") == null) {
-      String base = new File(".").getPath(); // getAbsolutePath();
-      System
-          .setProperty("hadoop.log.dir", new Path(base).toString() + "./logs");
-    }
+    init();
 
-    if (execType == ExecType.MAPREDUCE) {
-      cluster = MiniCluster.buildCluster();
-      pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
-    } else {
-      pigServer = new PigServer(ExecType.LOCAL);
-    }
+    path = getTableFullPath("TestCollectionTableLoader");
+    removeDir(path);
 
-    Configuration conf = new Configuration();
-    FileSystem fs = cluster.getFileSystem();
-    Path pathWorking = fs.getWorkingDirectory();
-    pathTable = new Path(pathWorking, "TestCollectionTable");
-    // drop any previous tables
-    BasicTable.drop(pathTable, conf);
-
-    BasicTable.Writer writer = new BasicTable.Writer(pathTable,
+    BasicTable.Writer writer = new BasicTable.Writer(path,
         "c:collection(record(a:double, b:float, c:bytes))", "[c]", conf);
     Schema schema = writer.getSchema();
     Tuple tuple = TypesUtils.createTuple(schema);
@@ -114,7 +93,7 @@ public class TestCollectionTableLoader {
     for (int i = 0; i < numsInserters; i++) {
       inserters[i].close();
     }
-    writer.close();
+	writer.close();
   }
 
   @AfterClass
@@ -124,7 +103,7 @@ public class TestCollectionTableLoader {
 
   @Test
   public void testReader() throws ExecException, IOException {
-    String query = "records = LOAD '" + pathTable.toString()
+    String query = "records = LOAD '" + path.toString()
         + "' USING org.apache.hadoop.zebra.pig.TableLoader('c');";
     System.out.println(query);
     pigServer.registerQuery(query);

@@ -18,33 +18,25 @@
 
 package org.apache.hadoop.zebra.pig;
 
-import java.io.File;
+import junit.framework.Assert;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.BytesWritable;
+import org.apache.hadoop.zebra.BaseTestCase;
+import org.apache.hadoop.zebra.io.BasicTable;
+import org.apache.hadoop.zebra.io.TableInserter;
+import org.apache.hadoop.zebra.schema.Schema;
+import org.apache.hadoop.zebra.types.TypesUtils;
+import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.backend.executionengine.ExecJob;
+import org.apache.pig.data.Tuple;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
+import org.junit.Test;
+
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
-
-import junit.framework.TestCase;
-
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.BytesWritable;
-import org.apache.hadoop.zebra.io.BasicTable;
-import org.apache.hadoop.zebra.io.TableInserter;
-import org.apache.hadoop.zebra.pig.TableStorer;
-import org.apache.hadoop.zebra.schema.Schema;
-import org.apache.hadoop.zebra.types.TypesUtils;
-import org.apache.pig.ExecType;
-import org.apache.pig.PigServer;
-import org.apache.pig.backend.executionengine.ExecException;
-import org.apache.pig.data.Tuple;
-import org.apache.pig.test.MiniCluster;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
 
 /**
  * Note:
@@ -53,33 +45,18 @@ import org.junit.Test;
  * app/debug configuration, when run this from inside the Eclipse.
  * 
  */
-public class TestMapTableStorer {
-  protected static ExecType execType = ExecType.MAPREDUCE;
-  private static MiniCluster cluster;
-  protected static PigServer pigServer;
-  private static Path pathTable;
+public class TestMapTableStorer extends BaseTestCase
+{
+
+  private static Path pathTable ;
+
 
   @BeforeClass
   public static void setUp() throws Exception {
-    if (System.getProperty("hadoop.log.dir") == null) {
-      String base = new File(".").getPath(); // getAbsolutePath();
-      System
-          .setProperty("hadoop.log.dir", new Path(base).toString() + "./logs");
-    }
+    init();
+    pathTable = getTableFullPath(TestMapTableStorer.class.getSimpleName()) ;
+    removeDir(pathTable);
 
-    if (execType == ExecType.MAPREDUCE) {
-      cluster = MiniCluster.buildCluster();
-      pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
-    } else {
-      pigServer = new PigServer(ExecType.LOCAL);
-    }
-
-    Configuration conf = new Configuration();
-    FileSystem fs = cluster.getFileSystem();
-    Path pathWorking = fs.getWorkingDirectory();
-
-    pathTable = new Path(pathWorking, "TestMapTableStorer");
-    System.out.println("table path=" + pathTable);
     BasicTable.Writer writer = new BasicTable.Writer(pathTable,
         "m:map(string)", "[m#{a}]", conf);
     Schema schema = writer.getSchema();
@@ -129,9 +106,10 @@ public class TestMapTableStorer {
       System.out.println(cur);
     }
 
-    pigServer
-        .store("records", new Path(pathTable, "store").toString(),
-            TableStorer.class.getCanonicalName()
-                + "('[m#{a|b}]')");
+    ExecJob pigJob = pigServer.store("records", new Path(pathTable, "store")
+        .toString(), TableStorer.class.getCanonicalName() + "('[m#{a|b}]')");
+
+    Assert.assertNull(pigJob.getException());
+
   }
 }

@@ -18,67 +18,38 @@
 
 package org.apache.hadoop.zebra.pig;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.Iterator;
-import java.util.List;
-
 import junit.framework.Assert;
-import junit.framework.TestCase;
-
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.BytesWritable;
+import org.apache.hadoop.zebra.BaseTestCase;
 import org.apache.hadoop.zebra.io.BasicTable;
 import org.apache.hadoop.zebra.io.TableInserter;
-import org.apache.hadoop.zebra.io.TableScanner;
-import org.apache.hadoop.zebra.io.BasicTable.Reader.RangeSplit;
-import org.apache.hadoop.zebra.parser.ParseException;
 import org.apache.hadoop.zebra.schema.Schema;
 import org.apache.hadoop.zebra.types.TypesUtils;
-import org.apache.pig.ExecType;
-import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.Tuple;
-import org.apache.pig.test.MiniCluster;
-import org.junit.After;
 import org.junit.AfterClass;
-import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-public class TestBasicTableUnionLoader {
-  protected static ExecType execType = ExecType.MAPREDUCE;
-  private static MiniCluster cluster;
-  protected static PigServer pigServer;
-  private static Path pathWorking, pathTable1, pathTable2;
-  private static Configuration conf;
 
+public class TestBasicTableUnionLoader extends BaseTestCase {
+  private static Path pathTable1, pathTable2;
+  
   @BeforeClass
   public static void setUp() throws Exception {
-    if (System.getProperty("hadoop.log.dir") == null) {
-      String base = new File(".").getPath(); // getAbsolutePath();
-      System
-          .setProperty("hadoop.log.dir", new Path(base).toString() + "./logs");
-    }
-
-    if (execType == ExecType.MAPREDUCE) {
-      cluster = MiniCluster.buildCluster();
-      pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
-    } else {
-      pigServer = new PigServer(ExecType.LOCAL);
-    }
-
-    conf = new Configuration();
-    FileSystem fs = cluster.getFileSystem();
-    pathWorking = fs.getWorkingDirectory();
+    init();
+    
+    pathTable1 = getTableFullPath("TestBasicTableUnionLoader1");
+    pathTable2 = getTableFullPath("TestBasicTableUnionLoader2");    
+    removeDir(pathTable1);
+    removeDir(pathTable2);
 
     /*
      * create 1st basic table;
      */
-    pathTable1 = new Path(pathWorking, "TestBasicTableUnion" + "1");
-    System.out.println("pathTable1 =" + pathTable1);
 
     BasicTable.Writer writer = new BasicTable.Writer(pathTable1,
         "a:string,b,c:string", "[a,b];[c]", conf);
@@ -109,12 +80,10 @@ public class TestBasicTableUnionLoader {
       inserters[i].close();
     }
     writer.close();
-
+    
     /*
      * create 2nd basic table;
      */
-    pathTable2 = new Path(pathWorking, "TestBasicTableUnion" + "2");
-    System.out.println("pathTable2 =" + pathTable2);
 
     writer = new BasicTable.Writer(pathTable2, "a:string,b,d:string",
         "[a,b];[d]", conf);
@@ -142,7 +111,7 @@ public class TestBasicTableUnionLoader {
     for (int i = 0; i < numsInserters; i++) {
       inserters[i].close();
     }
-    writer.close();
+	  writer.close();
   }
 
   @AfterClass
@@ -152,14 +121,9 @@ public class TestBasicTableUnionLoader {
 
   @Test
   public void testReader() throws ExecException, IOException {
-    /*
-     * remove hdfs prefix part like "hdfs://localhost.localdomain:42540" pig
-     * will fill that in.
-     */
-    String str1 = pathTable1.toString().substring(
-        pathTable1.toString().indexOf("/", 7), pathTable1.toString().length());
-    String str2 = pathTable2.toString().substring(
-        pathTable2.toString().indexOf("/", 7), pathTable2.toString().length());
+    String str1 = pathTable1.toString();
+    String str2 = pathTable2.toString();    
+
     String query = "records = LOAD '" + str1 + "," + str2
         + "' USING org.apache.hadoop.zebra.pig.TableLoader('a, b, c, d');";
     System.out.println(query);
@@ -170,22 +134,37 @@ public class TestBasicTableUnionLoader {
     Tuple cur;
     while (it.hasNext()) {
       cur = it.next();
-      System.out.println(cur);
       cnt++;
+      
       if (cnt == 1) {
-        Assert.assertEquals("0_00", cur.get(0));
-        Assert.assertEquals("0_01", cur.get(1));
-        Assert.assertEquals("0_02", cur.get(2));
-        Assert.assertEquals(null, cur.get(3));
+        String col0 = (String)cur.get(0);
+        Assert.assertTrue(col0.equals("0_00") || col0.equals("0_10"));
+        
+        String col1 = (String)cur.get(1);
+        Assert.assertTrue(col1.equals("0_01") || col1.equals("0_11"));
+        
+        String col2 = (String)cur.get(2);
+        Assert.assertTrue(col2 == null || col2.equals("0_02") || col2.equals("0_12"));
+        
+        String col3 = (String)cur.get(3);
+        Assert.assertTrue(col3 == null || col3.equals("0_02") || col3.equals("0_12"));
       }
+      
       if (cnt == 21) {
-        Assert.assertEquals("0_00", cur.get(0));
-        Assert.assertEquals("0_01", cur.get(1));
-        Assert.assertEquals(null, cur.get(2));
-        Assert.assertEquals("0_02", cur.get(3));
+        String col0 = (String)cur.get(0);
+        Assert.assertTrue(col0.equals("0_00") || col0.equals("0_10"));
+        
+        String col1 = (String)cur.get(1);
+        Assert.assertTrue(col1.equals("0_01") || col1.equals("0_11"));
+        
+        String col2 = (String)cur.get(2);
+        Assert.assertTrue(col2 == null || col2.equals("0_02") || col2.equals("0_12"));
+        
+        String col3 = (String)cur.get(3);
+        Assert.assertTrue(col3 == null || col3.equals("0_02") || col3.equals("0_12"));        
       }
     }
+    
     Assert.assertEquals(cnt, 40);
   }
-
 }

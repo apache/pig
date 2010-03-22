@@ -22,19 +22,12 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.Map;
 import java.util.StringTokenizer;
-import java.util.TreeMap;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.FSDataOutputStream;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.LocalFileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
@@ -48,20 +41,14 @@ import org.apache.hadoop.mapred.Reporter;
 import org.apache.hadoop.mapred.TextInputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
+import org.apache.hadoop.zebra.BaseTestCase;
 import org.apache.hadoop.zebra.mapred.BasicTableOutputFormat;
-import org.apache.hadoop.zebra.mapred.TestBasicTableIOFormatLocalFS.InvIndex;
 import org.apache.hadoop.zebra.parser.ParseException;
 import org.apache.hadoop.zebra.schema.Schema;
 import org.apache.hadoop.zebra.types.TypesUtils;
 import org.apache.hadoop.zebra.types.ZebraTuple;
-import org.apache.pig.ExecType;
-import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
-import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
-import org.apache.pig.data.DataBag;
-import org.apache.pig.data.DefaultTuple;
 import org.apache.pig.data.Tuple;
-import org.apache.pig.test.MiniCluster;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 
@@ -82,21 +69,12 @@ import org.junit.BeforeClass;
  * </pre>
  * 
  */
-public class TestSmokeMR extends Configured implements Tool{
+public class TestSmokeMR extends BaseTestCase implements Tool{
   static String inputPath;
   static String outputPath;
   static String inputFileName = "smoke.txt";
   static String outputTableName ="smokeTable";
-  protected static ExecType execType = ExecType.MAPREDUCE;
-  private static MiniCluster cluster;
-  protected static PigServer pigServer;
-  private static Configuration conf;
   public static String sortKey = null;
-
-  private static FileSystem fs;
-
-  private static String zebraJar;
-  private static String whichCluster;
  
 	static class MapClass implements
       Mapper<LongWritable, Text, BytesWritable, Tuple> {
@@ -194,98 +172,13 @@ public class TestSmokeMR extends Configured implements Tool{
   
   @BeforeClass
   public static void setUpOnce() throws IOException {
-    if (System.getenv("hadoop.log.dir") == null) {
-      String base = new File(".").getPath(); // getAbsolutePath();
-      System
-          .setProperty("hadoop.log.dir", new Path(base).toString() + "./logs");
-    }
-
-    if (System.getProperty("whichCluster") == null) {
-      System.setProperty("whichCluster", "realCluster");
-      System.out.println("should be called");
-      whichCluster = System.getProperty("whichCluster");
-    } else {
-      whichCluster = System.getProperty("whichCluster");
-    }
-
-    System.out.println("clusterddddd: " + whichCluster);
-    System.out.println(" get env hadoop home: " + System.getenv("HADOOP_HOME"));
-    System.out.println(" get env user name: " + System.getenv("USER"));
-    if ((whichCluster.equalsIgnoreCase("realCluster") && System
-        .getenv("HADOOP_HOME") == null)) {
-      System.out.println("Please set HADOOP_HOME");
-      System.exit(0);
-    }
-
-    if ( conf == null ) {
-      conf = new Configuration();
-    }
-
-    if ((whichCluster.equalsIgnoreCase("realCluster") && System.getenv("USER") == null)) {
-      System.out.println("Please set USER");
-      System.exit(0);
-    }
-//    zebraJar = System.getenv("HADOOP_HOME") + "/lib/zebra.jar";
-    zebraJar = System.getenv("ZEBRA_JAR");
-    File file = new File(zebraJar);
-    if (!file.exists() && whichCluster.equalsIgnoreCase("realCluster")) {
-      System.out.println("Please put zebra.jar at hadoop_home/lib");
-   //   System.exit(0);
-    }
-
-    // set inputPath and outPath
-    String workingDir = null;
-    if (whichCluster.equalsIgnoreCase("realCluster")) {
-      inputPath = new String("/user/" + System.getenv("USER") + "/"
-          + inputFileName);
-      System.out.println("inputPath: " + inputPath);
-      outputPath =  new String("/user/" + System.getenv("USER") + "/" +outputTableName);
-      fs = new Path(inputPath).getFileSystem(conf);
-
-    } else {
-      RawLocalFileSystem rawLFS = new RawLocalFileSystem();
-      fs = new LocalFileSystem(rawLFS);
-      workingDir = fs.getWorkingDirectory().toString().split(":")[1];
-      inputPath = new String(workingDir + "/" + inputFileName);
-      outputPath = new String(workingDir + "/" + outputTableName);
-      System.out.println("inputPath: " + inputPath);
- 
-    }
-    writeToFile(inputPath);
-    // check inputPath existence
-    File inputFile = new File(inputPath);
-    if (!inputFile.exists() && whichCluster.equalsIgnoreCase("realCluster")) {
-      System.out.println("Please put inputFile in hdfs: " + inputPath);
-      // System.exit(0);
-    }
-    if (!inputFile.exists() && whichCluster.equalsIgnoreCase("miniCluster")) {
-      System.out
-          .println("Please put inputFile under workingdir. working dir is : "
-              + workingDir);
-      System.exit(0);
-    }
-
-    if (whichCluster.equalsIgnoreCase("realCluster")) {
-      pigServer = new PigServer(ExecType.MAPREDUCE, ConfigurationUtil
-          .toProperties(conf));
-      pigServer.registerJar(zebraJar);
-
-    }
-
-    if (whichCluster.equalsIgnoreCase("miniCluster")) {
-      if (execType == ExecType.MAPREDUCE) {
-        cluster = MiniCluster.buildCluster();
-        pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
-        fs = cluster.getFileSystem();
-
-      } else {
-        pigServer = new PigServer(ExecType.LOCAL);
-      }
-    }
+      inputPath = getTableFullPath( inputFileName ).toString();
+      outputPath =  getTableFullPath(outputTableName).toString();
+      writeToFile(inputPath);
   }
 
   public static void writeToFile(String inputFile) throws IOException {
-    if (whichCluster.equalsIgnoreCase("miniCluster")) {
+    if ( mode == TestMode.cluster ) {
       FileWriter fstream = new FileWriter(inputFile);
       BufferedWriter out = new BufferedWriter(fstream);
       out.write("us 2\n");
@@ -297,8 +190,7 @@ public class TestSmokeMR extends Configured implements Tool{
       out.write("nouse 5\n");
       out.write("nowhere 4\n");
       out.close();
-    }
-    if (whichCluster.equalsIgnoreCase("realCluster")) {
+    } else {
       FSDataOutputStream fout = fs.create(new Path(inputFile));
       fout.writeBytes("us 2\n");
       fout.writeBytes("japan 2\n");
@@ -311,29 +203,10 @@ public class TestSmokeMR extends Configured implements Tool{
       fout.close();
     }
   }
-  public static void checkTableExists(boolean expected, String strDir)
-      throws IOException {
 
-    File theDir = null;
-    boolean actual = false;
-    if (whichCluster.equalsIgnoreCase("miniCluster")) {
-      theDir = new File(strDir.split(":")[1]);
-      actual = theDir.exists();
-
-    }
-    if (whichCluster.equalsIgnoreCase("realCluster")) {
-      theDir = new File(strDir.split(":")[0]);
-      actual = fs.exists(new Path(theDir.toString()));
-    }
-    System.out.println("the dir : " + theDir.toString());
-
-    if (actual != expected) {
-      Assert.fail("dir exists or not is different from what expected.");
-    }
-  }
   public static void removeDir(Path outPath) throws IOException {
     String command = null;
-    if (whichCluster.equalsIgnoreCase("realCluster")) {
+    if ( mode == TestMode.cluster ) {
       command = System.getenv("HADOOP_HOME") + "/bin/hadoop fs -rmr "
           + outPath.toString();
     } else {

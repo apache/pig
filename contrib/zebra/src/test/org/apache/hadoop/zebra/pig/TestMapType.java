@@ -16,92 +16,53 @@
  */
 package org.apache.hadoop.zebra.pig;
 
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.IOException;
-import java.io.PrintWriter;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
-import java.util.StringTokenizer;
-
 import junit.framework.Assert;
-import junit.framework.TestCase;
-
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.LocalFileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.BytesWritable;
-import org.apache.hadoop.record.Record;
+import org.apache.hadoop.zebra.BaseTestCase;
 import org.apache.hadoop.zebra.io.BasicTable;
+import org.apache.hadoop.zebra.io.BasicTable.Reader.RangeSplit;
 import org.apache.hadoop.zebra.io.TableInserter;
 import org.apache.hadoop.zebra.io.TableScanner;
-import org.apache.hadoop.zebra.io.BasicTable.Reader.RangeSplit;
 import org.apache.hadoop.zebra.parser.ParseException;
-import org.apache.hadoop.zebra.types.Projection;
 import org.apache.hadoop.zebra.schema.Schema;
 import org.apache.hadoop.zebra.types.TypesUtils;
-import org.apache.pig.ExecType;
-import org.apache.pig.PigServer;
-import org.apache.pig.backend.executionengine.ExecException;
-import org.apache.pig.test.MiniCluster;
-import org.apache.pig.data.DataBag;
-import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.Tuple;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
+
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 
 /**
  * 
  * Test projections on complicated column types.
  * 
  */
-public class TestMapType {
+public class TestMapType extends BaseTestCase
+{
   final static String STR_SCHEMA = "m1:map(string),m2:map(map(int)), m4:map(map(record(f1:int,f2:string)))";
   final static String STR_STORAGE = "[m1#{a}];[m2#{x|y}]; [m1#{b}, m2#{z}]; [m4#{a4}]; [m4#{b4|c4}]";
 
-  private static Configuration conf;
-  private static FileSystem fs;
+  private static Path pathTable;
 
-  protected static ExecType execType = ExecType.MAPREDUCE;
-  private static MiniCluster cluster;
-  protected static PigServer pigServer;
-  private static Path path;
 
   @BeforeClass
-  public static void setUpOnce() throws IOException {
-    System.out.println("ONCE SETUP !! ---------");
-    if (System.getProperty("hadoop.log.dir") == null) {
-      String base = new File(".").getPath(); // getAbsolutePath();
-      System
-          .setProperty("hadoop.log.dir", new Path(base).toString() + "./logs");
-    }
+  public static void setUp() throws Exception {
+    init();
+    pathTable = getTableFullPath(TestMapType.class.getSimpleName()) ;
+    removeDir(pathTable);
 
-    if (execType == ExecType.MAPREDUCE) {
-      cluster = MiniCluster.buildCluster();
-      pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
-    } else {
-      pigServer = new PigServer(ExecType.LOCAL);
-    }
-
-    conf = new Configuration();
-    FileSystem fs = cluster.getFileSystem();
-    Path pathWorking = fs.getWorkingDirectory();
-    // path = new Path(pathWorking, this.getClass().getSimpleName());
-    path = fs.getWorkingDirectory();
-    System.out.println("path =" + path);
-
-    BasicTable.Writer writer = new BasicTable.Writer(path, STR_SCHEMA,
+    BasicTable.Writer writer = new BasicTable.Writer(pathTable, STR_SCHEMA,
         STR_STORAGE, conf);
     writer.finish();
     Schema schema = writer.getSchema();
     Tuple tuple = TypesUtils.createTuple(schema);
-    BasicTable.Writer writer1 = new BasicTable.Writer(path, conf);
+    BasicTable.Writer writer1 = new BasicTable.Writer(pathTable, conf);
     int part = 0;
     TableInserter inserter = writer1.getInserter("part" + part, true);
     TypesUtils.resetTuple(tuple);
@@ -254,14 +215,14 @@ public class TestMapType {
 
   @AfterClass
   public static void tearDownOnce() throws IOException {
-    BasicTable.drop(path, conf);
+    BasicTable.drop(pathTable, conf);
   }
 
   // read one map
   @Test
   public void testReadSimpleMap() throws IOException, ParseException {
 
-    String query = "records = LOAD '" + path.toString()
+    String query = "records = LOAD '" + pathTable.toString()
         + "' USING org.apache.hadoop.zebra.pig.TableLoader('m1#{a}');";
     System.out.println(query);
     pigServer.registerQuery(query);
@@ -284,7 +245,7 @@ public class TestMapType {
   @Test
   public void testReadMapOfMap() throws IOException, ParseException {
     String query = "records = LOAD '"
-        + path.toString()
+        + pathTable.toString()
         + "' USING org.apache.hadoop.zebra.pig.TableLoader('m1#{b}, m2#{x|z}');";
     System.out.println(query);
     pigServer.registerQuery(query);
@@ -330,7 +291,7 @@ public class TestMapType {
   @Test
   public void testReadMapOfRecord1() throws IOException, ParseException {
     String query = "records = LOAD '"
-        + path.toString()
+        + pathTable.toString()
         + "' USING org.apache.hadoop.zebra.pig.TableLoader('m1#{b}, m4#{a4|c4}');";
     System.out.println(query);
     pigServer.registerQuery(query);
@@ -389,7 +350,7 @@ public class TestMapType {
   @Test
   // Positive? map object column through pig loader
   public void testRead4() throws IOException, ParseException {
-    String query = "records = LOAD '" + path.toString()
+    String query = "records = LOAD '" + pathTable.toString()
         + "' USING org.apache.hadoop.zebra.pig.TableLoader('m1');";
 
     pigServer.registerQuery(query);
@@ -422,7 +383,7 @@ public class TestMapType {
   @Test
   // Negative non-exist column through pig loader
   public void testReadNeg1() throws IOException, ParseException {
-    String query = "records = LOAD '" + path.toString()
+    String query = "records = LOAD '" + pathTable.toString()
         + "' USING org.apache.hadoop.zebra.pig.TableLoader('m5');";
 
     pigServer.registerQuery(query);
@@ -445,7 +406,7 @@ public class TestMapType {
   // non-existent column name through I/O
   public void testNeg2() throws IOException, ParseException {
     String projection = new String("m5");
-    BasicTable.Reader reader = new BasicTable.Reader(path, conf);
+    BasicTable.Reader reader = new BasicTable.Reader(pathTable, conf);
     reader.setProjection(projection);
 
     List<RangeSplit> splits = reader.rangeSplit(1);

@@ -18,7 +18,6 @@
 
 package org.apache.hadoop.zebra.pig;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -27,9 +26,6 @@ import java.util.ArrayList;
 
 import junit.framework.Assert;
 
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.LocalFileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.zebra.io.BasicTable;
@@ -37,56 +33,36 @@ import org.apache.hadoop.zebra.io.TableInserter;
 import org.apache.hadoop.zebra.pig.TableStorer;
 import org.apache.hadoop.zebra.schema.Schema;
 import org.apache.hadoop.zebra.types.TypesUtils;
-import org.apache.pig.ExecType;
-import org.apache.pig.PigServer;
+import org.apache.hadoop.zebra.BaseTestCase;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.Tuple;
-import org.apache.pig.test.MiniCluster;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
 
-public class TestMergeJoinPartial {
+public class TestMergeJoinPartial extends BaseTestCase {
 	
 	final static String STR_SCHEMA1 = "a:int,b:float,c:long,d:double,e:string,f:bytes,m1:map(string)";
 	final static String STR_STORAGE1 = "[a, b, c]; [e, f]; [m1#{a}]";
 	
 	static int fileId = 0;
 	
-	protected static ExecType execType = ExecType.MAPREDUCE;
-	private static MiniCluster cluster;
-	protected static PigServer pigServer;
 	private static Path pathTable1;
 	private static Path pathTable2;
-	private static Configuration conf;
 	
 	private static Object[][] table1;
 	private static Object[][] table2;
 	
 	@BeforeClass
 	public static void setUp() throws Exception {
-		if (System.getProperty("hadoop.log.dir") == null) {
-			String base = new File(".").getPath(); // getAbsolutePath();
-			System.setProperty("hadoop.log.dir", new Path(base).toString() + "./logs");
-		}
-
-		if (execType == ExecType.MAPREDUCE) {
-			cluster = MiniCluster.buildCluster();
-			pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
-		} else {
-			pigServer = new PigServer(ExecType.LOCAL);
-		}
-		FileSystem fs = cluster.getFileSystem();
-		
-		conf = new Configuration();
-//		pigServer = new PigServer(ExecType.LOCAL);
-//		FileSystem fs = LocalFileSystem.get(conf);
-		
-		Path pathWorking = fs.getWorkingDirectory();
-		pathTable1 = new Path(pathWorking, "table1");
-		pathTable2 = new Path(pathWorking, "table2");
+    init();
+    
+    pathTable1 = getTableFullPath("TestMergeJoinPartial1");
+    pathTable2 = getTableFullPath("TestMergeJoinPartial2");    
+    removeDir(pathTable1);
+    removeDir(pathTable2);
 		
 		// Create table1 data
 		Map<String, String> m1 = new HashMap<String, String>();
@@ -329,7 +305,7 @@ public class TestMergeJoinPartial {
 			" USING \"merge\";";
 		pigServer.registerQuery(join);
 		
-		Iterator<Tuple> it = pigServer.openIterator("joinRecords");  // get iterator to trigger error
+		pigServer.openIterator("joinRecords");  // get iterator to trigger error
 	}
 	
 	public void printTable(String tablename) throws IOException {

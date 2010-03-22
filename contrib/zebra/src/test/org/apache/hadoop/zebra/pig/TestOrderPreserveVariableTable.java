@@ -20,7 +20,6 @@
 package org.apache.hadoop.zebra.pig;
 
 import java.io.ByteArrayOutputStream;
-import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.HashMap;
@@ -30,9 +29,6 @@ import java.util.ArrayList;
 import java.util.StringTokenizer;
 
 import junit.framework.Assert;
-
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.zebra.io.BasicTable;
@@ -40,19 +36,17 @@ import org.apache.hadoop.zebra.io.TableInserter;
 import org.apache.hadoop.zebra.pig.TableStorer;
 import org.apache.hadoop.zebra.schema.Schema;
 import org.apache.hadoop.zebra.types.TypesUtils;
-import org.apache.pig.ExecType;
-import org.apache.pig.PigServer;
+import org.apache.hadoop.zebra.BaseTestCase;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.executionengine.ExecJob;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.Tuple;
-import org.apache.pig.test.MiniCluster;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
 
-public class TestOrderPreserveVariableTable {
+public class TestOrderPreserveVariableTable extends BaseTestCase {
 	
 	final static String TABLE1_SCHEMA = "a:int,b:float,c:long,d:double,e:string,f:bytes,m1:map(string)";
 	final static String TABLE1_STORAGE = "[a, b, c]; [d, e, f]; [m1#{a}]";
@@ -69,9 +63,6 @@ public class TestOrderPreserveVariableTable {
 	static int fileId = 0;
 	static int sortId = 0;
 	
-	protected static ExecType execType = ExecType.MAPREDUCE;
-	private static MiniCluster cluster;
-	protected static PigServer pigServer;
 	protected static ExecJob pigJob;
 	
 	private static Path pathTable1;
@@ -80,8 +71,6 @@ public class TestOrderPreserveVariableTable {
 	private static Path pathTable4;
 	private static HashMap<String, String> tableStorage;
 	
-	private static Configuration conf;
-	
 	private static Object[][] table1;
 	private static Object[][] table2;
 	private static Object[][] table3;
@@ -89,30 +78,21 @@ public class TestOrderPreserveVariableTable {
 	
 	private static Map<String, String> m1;
 	private static Map<String, String> m2;
-	
-	@BeforeClass
-	public static void setUp() throws Exception {
-		if (System.getProperty("hadoop.log.dir") == null) {
-			String base = new File(".").getPath(); // getAbsolutePath();
-			System.setProperty("hadoop.log.dir", new Path(base).toString() + "./logs");
-		}
 
-		if (execType == ExecType.MAPREDUCE) {
-			cluster = MiniCluster.buildCluster();
-			pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
-		} else {
-			pigServer = new PigServer(ExecType.LOCAL);
-		}
-		
-		conf = new Configuration();
-		FileSystem fs = cluster.getFileSystem();
-		Path pathWorking = fs.getWorkingDirectory();
-		
-		pathTable1 = new Path(pathWorking, "table1");
-		pathTable2 = new Path(pathWorking, "table2");
-		pathTable3 = new Path(pathWorking, "table3");
-		pathTable4 = new Path(pathWorking, "table4");
-		
+  @BeforeClass
+  public static void setUp() throws Exception {
+    init();
+    
+    pathTable1 = getTableFullPath("TestOrderPreserveVariableTable1");
+    pathTable2 = getTableFullPath("TestOrderPreserveVariableTable2");
+    pathTable3 = getTableFullPath("TestOrderPreserveVariableTable3");
+    pathTable4 = getTableFullPath("TestOrderPreserveVariableTable4");
+  
+    removeDir(pathTable1);
+    removeDir(pathTable2);
+    removeDir(pathTable3);
+    removeDir(pathTable4);
+    
 		// Create table1 data
 		m1 = new HashMap<String, String>();
 		m1.put("a","m1-a");

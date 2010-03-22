@@ -29,6 +29,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.BytesWritable;
+import org.apache.hadoop.zebra.BaseTestCase;
 import org.apache.hadoop.zebra.io.BasicTable;
 import org.apache.hadoop.zebra.io.TableInserter;
 import org.apache.hadoop.zebra.io.TableScanner;
@@ -53,80 +54,15 @@ import org.junit.Test;
  * app/debug configuration, when run this from inside the Eclipse.
  * 
  */
-public class TestGlobTableLoader{
-  protected static ExecType execType = ExecType.MAPREDUCE;
-  private static MiniCluster cluster;
-  protected static PigServer pigServer;
+public class TestGlobTableLoader extends BaseTestCase {
+
   private static Path pathTable;
-  private static Configuration conf;
-  private static String zebraJar;
-  private static String whichCluster;
-  private static FileSystem fs;
+
   @BeforeClass
   public static void setUp() throws Exception {
-    if (System.getProperty("hadoop.log.dir") == null) {
-      String base = new File(".").getPath(); // getAbsolutePath();
-      System
-          .setProperty("hadoop.log.dir", new Path(base).toString() + "./logs");
-    }
-
-    // if whichCluster is not defined, or defined something other than
-    // "realCluster" or "miniCluster", set it to "miniCluster"
-    if (System.getProperty("whichCluster") == null
-        || ((!System.getProperty("whichCluster")
-            .equalsIgnoreCase("realCluster")) && (!System.getProperty(
-            "whichCluster").equalsIgnoreCase("miniCluster")))) {
-      System.setProperty("whichCluster", "miniCluster");
-      whichCluster = System.getProperty("whichCluster");
-    } else {
-      whichCluster = System.getProperty("whichCluster");
-    }
-
-    System.out.println("cluster: " + whichCluster);
-    if (whichCluster.equalsIgnoreCase("realCluster")
-        && System.getenv("HADOOP_HOME") == null) {
-      System.out.println("Please set HADOOP_HOME");
-      System.exit(0);
-    }
-
-    conf = new Configuration();
-
-    if (whichCluster.equalsIgnoreCase("realCluster")
-        && System.getenv("USER") == null) {
-      System.out.println("Please set USER");
-      System.exit(0);
-    }
-    zebraJar = System.getenv("HADOOP_HOME") + "/../jars/zebra.jar";
-    File file = new File(zebraJar);
-    if (!file.exists() && whichCluster.equalsIgnoreCase("realCulster")) {
-      System.out.println("Please put zebra.jar at hadoop_home/../jars");
-      System.exit(0);
-    }
-
-    if (whichCluster.equalsIgnoreCase("realCluster")) {
-      pigServer = new PigServer(ExecType.MAPREDUCE, ConfigurationUtil
-          .toProperties(conf));
-      pigServer.registerJar(zebraJar);
-      pathTable = new Path("/user/" + System.getenv("USER")
-          + "/TestMapTableLoader");
-      removeDir(pathTable);
-      fs = pathTable.getFileSystem(conf);
-    }
-
-    if (whichCluster.equalsIgnoreCase("miniCluster")) {
-      if (execType == ExecType.MAPREDUCE) {
-        cluster = MiniCluster.buildCluster();
-        pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
-        fs = cluster.getFileSystem();
-        pathTable = new Path(fs.getWorkingDirectory()
-            + "/TestMapTableLoader1");
-        removeDir(pathTable);
-        System.out.println("path1 =" + pathTable);
-      } else {
-        pigServer = new PigServer(ExecType.LOCAL);
-      }
-    }
-
+    init();
+    pathTable = getTableFullPath("TestGlobTableLoader");
+    removeDir(pathTable);
 
     BasicTable.Writer writer = new BasicTable.Writer(pathTable,
         "m1:map(string)", "[m1#{a}]", conf);
@@ -159,30 +95,12 @@ public class TestGlobTableLoader{
     for (int i = 0; i < numsInserters; i++) {
       inserters[i].close();
     }
-    writer.close();
+  	writer.close();
   }
 
   @AfterClass
   public static void tearDown() throws Exception {
     pigServer.shutdown();
-  }
-  public static void removeDir(Path outPath) throws IOException {
-    String command = null;
-    if (whichCluster.equalsIgnoreCase("realCluster")) {
-    command = System.getenv("HADOOP_HOME") +"/bin/hadoop fs -rmr " + outPath.toString();
-    }
-    else{
-    command = "rm -rf " + outPath.toString();
-    }
-    Runtime runtime = Runtime.getRuntime();
-    Process proc = runtime.exec(command);
-    int exitVal = -1;
-    try {
-      exitVal = proc.waitFor();
-    } catch (InterruptedException e) {
-      System.err.println(e);
-    }
-    
   }
 
   // @Test
@@ -218,8 +136,9 @@ public class TestGlobTableLoader{
 
   @Test
   public void testReader() throws ExecException, IOException {
-    pathTable = new Path("/user/" + System.getenv("USER")
-        + "/{TestMapTableLoader1}");
+    //pathTable = new Path("/user/" + System.getenv("USER") + "/{TestGlobTableLoader}");
+    pathTable = getTableFullPath("{TestGlobTableLoader}");
+    
     String query = "records = LOAD '" + pathTable.toString()
         + "' USING org.apache.hadoop.zebra.pig.TableLoader('m1#{a}');";
     System.out.println(query);

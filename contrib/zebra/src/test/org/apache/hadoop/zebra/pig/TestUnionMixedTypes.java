@@ -42,6 +42,7 @@ import org.apache.hadoop.zebra.types.TypesUtils;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.Tuple;
@@ -51,6 +52,8 @@ import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.apache.hadoop.zebra.BaseTestCase;
+
 
 /**
  * Note:
@@ -59,12 +62,8 @@ import org.junit.Test;
  * app/debug configuration, when run this from inside the Eclipse.
  * 
  */
-public class TestUnionMixedTypes {
-  protected static ExecType execType = ExecType.MAPREDUCE;
-  private static MiniCluster cluster;
-  protected static PigServer pigServer;
+public class TestUnionMixedTypes extends BaseTestCase {
   private static Path pathWorking, pathTable1, pathTable2;
-  private static Configuration conf;
   final static String STR_SCHEMA1 = "a:collection(record(a:string, b:string)),b:map(string),c:record(f1:string, f2:string),d";
   final static String STR_STORAGE1 = "[a,d];[b#{k1|k2}];[c]";
   final static String STR_SCHEMA2 = "a:collection(record(a:string, b:string)),b:map(string),c:record(f1:string, f2:string),e";
@@ -72,28 +71,17 @@ public class TestUnionMixedTypes {
 
   @BeforeClass
   public static void setUpOnce() throws Exception {
-    if (System.getProperty("hadoop.log.dir") == null) {
-      String base = new File(".").getPath(); // getAbsolutePath();
-      System
-          .setProperty("hadoop.log.dir", new Path(base).toString() + "./logs");
-    }
 
-    if (execType == ExecType.MAPREDUCE) {
-      cluster = MiniCluster.buildCluster();
-      pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
-    } else {
-      pigServer = new PigServer(ExecType.LOCAL);
-    }
+    init();
+    pathTable1 = getTableFullPath("TestUnionMixedTypes1");
+    pathTable2 = getTableFullPath("TestUnionMixedTypes2");
+    removeDir(pathTable1);
+    removeDir(pathTable2);
 
-    conf = new Configuration();
-    FileSystem fs = cluster.getFileSystem();
-    pathWorking = fs.getWorkingDirectory();
 
     /*
      * create 1st basic table;
      */
-    pathTable1 = new Path(pathWorking, "1");
-    System.out.println("pathTable1 =" + pathTable1);
 
     BasicTable.Writer writer = new BasicTable.Writer(pathTable1, STR_SCHEMA1,
         STR_STORAGE1, conf);
@@ -180,8 +168,6 @@ public class TestUnionMixedTypes {
     /*
      * create 2nd basic table;
      */
-    pathTable2 = new Path(pathWorking, "2");
-    System.out.println("pathTable2 =" + pathTable2);
 
     BasicTable.Writer writer2 = new BasicTable.Writer(pathTable2, STR_SCHEMA2,
         STR_STORAGE2, conf);
@@ -268,14 +254,10 @@ public class TestUnionMixedTypes {
   @Test
   // all fields
   public void testReader1() throws ExecException, IOException {
-    /*
-     * remove hdfs prefix part like "hdfs://localhost.localdomain:42540" pig
-     * will fill that in.
-     */
-    String str1 = pathTable1.toString().substring(
-        pathTable1.toString().indexOf("/", 7), pathTable1.toString().length());
-    String str2 = pathTable2.toString().substring(
-        pathTable2.toString().indexOf("/", 7), pathTable2.toString().length());
+    String str1 = pathTable1.toString();
+    String str2 = pathTable2.toString();
+
+    
     String query = "records = LOAD '"
         + str1
         + ","
@@ -359,15 +341,7 @@ public class TestUnionMixedTypes {
   @Test
   // one common field only
   public void testReader2() throws ExecException, IOException {
-    /*
-     * remove hdfs prefix part like "hdfs://localhost.localdomain:42540" pig
-     * will fill that in.
-     */
-    String str1 = pathTable1.toString().substring(
-        pathTable1.toString().indexOf("/", 7), pathTable1.toString().length());
-    String str2 = pathTable2.toString().substring(
-        pathTable2.toString().indexOf("/", 7), pathTable2.toString().length());
-    String query = "records = LOAD '" + str1 + "," + str2
+    String query = "records = LOAD '" + pathTable1.toString() + "," + pathTable2.toString()
         + "' USING org.apache.hadoop.zebra.pig.TableLoader('b#{k1}');";
     System.out.println(query);
 
@@ -435,12 +409,7 @@ public class TestUnionMixedTypes {
   @Test
   // one field which exists in one table only
   public void testReader3() throws ExecException, IOException {
-
-    String str1 = pathTable1.toString().substring(
-        pathTable1.toString().indexOf("/", 7), pathTable1.toString().length());
-    String str2 = pathTable2.toString().substring(
-        pathTable2.toString().indexOf("/", 7), pathTable2.toString().length());
-    String query = "records = LOAD '" + str1 + "," + str2
+    String query = "records = LOAD '" + pathTable1.toString() + "," + pathTable2.toString()
         + "' USING org.apache.hadoop.zebra.pig.TableLoader('d');";
     System.out.println(query);
 
