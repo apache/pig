@@ -543,6 +543,7 @@
                     <exclude name="**/TestOrderBy2.java" />
                     <exclude name="**/TestPi.java" />
                     <exclude name="**/nightly/**" />
+                    <exclude name="**/${exclude.testcase}.java" if="exclude.testcase" />
                 </fileset>
             </batchtest>
             <batchtest fork="yes" todir="${test.log.dir}" if="testcase">
