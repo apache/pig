@@ -68,6 +68,10 @@ manner (rding via pradeepkth)
 
 IMPROVEMENTS
 
+PIG-1308: Inifinite loop in JobClient when reading from BinStorage Message:
+[org.apache.hadoop.mapreduce.lib.input.FileInputFormat - Total input paths to
+process : 2] (pradeepkth)
+
 PIG-1285: Allow SingleTupleBag to be serialized (dvryaboy)
 
 PIG-1117: Pig reading hive columnar rc tables (gerritjvv via dvryaboy)

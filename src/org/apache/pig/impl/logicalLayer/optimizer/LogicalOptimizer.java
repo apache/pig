@@ -185,7 +185,7 @@ public class LogicalOptimizer extends
     }
 
     @Override
-    public final void optimize() throws OptimizerException {
+    public final int optimize() throws OptimizerException {
         //the code that follows is a copy of the code in the
         //base class. see the todo note in the base class
         boolean sawMatch = false;
@@ -240,5 +240,6 @@ public class LogicalOptimizer extends
                 ((PruneColumns)pruneRule.getTransformer()).prune();
             }
         }
+        return numIterations;
     }
 }

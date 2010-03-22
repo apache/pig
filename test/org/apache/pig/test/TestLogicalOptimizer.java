@@ -54,10 +54,10 @@ public class TestLogicalOptimizer extends junit.framework.TestCase {
         return rep;
     }
     
-    public static void optimizePlan(LogicalPlan plan) throws Exception
+    public static int optimizePlan(LogicalPlan plan) throws Exception
     {
         LogicalOptimizer optimizer = new LogicalOptimizer(plan);
-        optimizer.optimize();
+        return optimizer.optimize();
     }
     
     public static void optimizePlan(LogicalPlan plan, ExecType mode) throws OptimizerException {
@@ -193,6 +193,23 @@ public class TestLogicalOptimizer extends junit.framework.TestCase {
         compareWithGoldenFile(plan, FILE_BASE_LOCATION + "optlimitplan10.dot");
     }
 
+    /**
+     * Test that {@link OpLimitOptimizer} returns false on the check if 
+     * pre-conditions for pushing limit up are not met
+     * @throws Exception
+     */
+    @Test
+    public void testOpLimitOptimizerCheck() throws Exception {
+        planTester.buildPlan("A = load 'myfile';");
+        planTester.buildPlan("B = foreach A generate $0;");
+        LogicalPlan plan = planTester.buildPlan("C = limit B 100;");
+        LogicalOptimizerDerivative optimizer = new LogicalOptimizerDerivative(plan);
+        int numIterations = optimizer.optimize();
+        assertFalse("Checking number of iterations of the optimizer [actual = "
+                + numIterations + ", expected < " + optimizer.getMaxIterations() + 
+                "]", optimizer.getMaxIterations() == numIterations);
+    
+    }
     
     @Test
     //Test to ensure that the right exception is thrown
@@ -236,6 +253,18 @@ public class TestLogicalOptimizer extends junit.framework.TestCase {
     public void testOPLimit11Optimizer() throws Exception {
         LogicalPlan plan = planTester.buildPlan("B = foreach (limit (order (load 'myfile' AS (a0, a1, a2)) by $1) 10) generate $0;");
         optimizePlan(plan);
+    }
+
+    // a subclass of LogicalOptimizer which can return the maximum iterations
+    // the optimizer would try the check() and transform() methods 
+    static class LogicalOptimizerDerivative extends LogicalOptimizer {
+        public LogicalOptimizerDerivative(LogicalPlan plan) {
+            super(plan);
+        }
+        
+        public int getMaxIterations() {
+            return mMaxIterations;
+        }
     }
 }
 
