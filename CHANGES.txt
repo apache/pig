@@ -68,6 +68,8 @@ manner (rding via pradeepkth)
 
 IMPROVEMENTS
 
+PIG-1312: Make Pig work with hadoop security (daijy)
+
 PIG-1308: Inifinite loop in JobClient when reading from BinStorage Message:
 [org.apache.hadoop.mapreduce.lib.input.FileInputFormat - Total input paths to
 process : 2] (pradeepkth)
