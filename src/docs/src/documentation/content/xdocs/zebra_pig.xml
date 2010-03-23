@@ -165,7 +165,7 @@ register $LOCATION/zebra-$version.jar;
 -- "s1:bool, s2:int, s3:long, s4:float, s5:string, s6:bytes,
 --  r1:record(f1:int, f2:long), r2:record(r3:record(f3:float, f4)), 
 --  m1:map(string),m2:map(map(int)), 
---  c:collection(f13:double, f14:float, f15:bytes)";
+--  c:collection (r1:record(f13:double, f14:float, f15:bytes))";
 
 -- STR_STORAGE = 
 -- "[s1, s2]; [m1#{a}]; [r1.f1]; [s3, s4, r2.r3.f3]; 

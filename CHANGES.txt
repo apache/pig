@@ -68,6 +68,8 @@ manner (rding via pradeepkth)
 
 IMPROVEMENTS
 
+PIG-1320: documentation updates for Pig 0.7.0 (chandec via olgan)
+
 PIG-1325: Provide a way to exclude a testcase when running "ant test"
 (pradeepkth)
 

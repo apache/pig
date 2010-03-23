@@ -193,11 +193,11 @@ If the type is omitted, the field defaults to type bytes.
    <title>Examples</title>
    <p>In this example the schema specifies names and types for 3 columns.</p>
 <source>
-ZebraSchema.createZebraSchema(jobconf, “s1:string, f1:float, i1:int”);
+ZebraSchema.createZebraSchema(JobContext, “s1:string, f1:float, i1:int”);
 </source>   
    <p>In this example the schema specifies names for 3 columns; all 3 columns default to type bytes.</p>
 <source>
-ZebraSchema.createZebraSchema(jobconf, “f1, f2, f3”);
+ZebraSchema.createZebraSchema(JobContext, “f1, f2, f3”);
 </source> 
 </section>
 
@@ -248,11 +248,11 @@ ZebraSchema.createZebraSchema(jobconf, “f1, f2, f3”);
    <title>Examples</title>
    <p>In this example the schema specifies a record with two fields.  </p>
 <source>
-ZebraSchema.createZebraSchema(jobconf, “r1:record(f1:int,f2:long)”);
+ZebraSchema.createZebraSchema(JobContext, “r1:record(f1:int,f2:long)”);
 </source>   
    <p>In this example the schema specifies a record with two fields. Note that f2 will default to type bytes.</p>
 <source>
-ZebraSchema.createZebraSchema(jobconf, “r1:record(r2:record(f1:int,f2)”);
+ZebraSchema.createZebraSchema(JobContext, “r1:record(r2:record(f1:int,f2)”);
 </source> 
 </section>
     </section>
@@ -264,7 +264,7 @@ ZebraSchema.createZebraSchema(jobconf, “r1:record(r2:record(f1:int,f2)”);
    <p>A collection is a set of records.</p>
    <section>
    <title>Syntax</title>
-   <p>collection_alias:collection (record)</p>
+   <p>collection_alias:collection ([record_alias:]record(...))</p>
 </section>   
    
    <section>
@@ -272,7 +272,7 @@ ZebraSchema.createZebraSchema(jobconf, “r1:record(r2:record(f1:int,f2)”);
    <table>
 		<tr>
 			<td>collection_alias</td>
-			<td>The name assigned to the collection column.</td>
+			<td>The name assigned to the collection.</td>
 		</tr>
 	    <tr>
 			<td>:collection</td>
@@ -282,28 +282,31 @@ ZebraSchema.createZebraSchema(jobconf, “r1:record(r2:record(f1:int,f2)”);
 			<td>(  )</td>
 			<td>The collection notation, a set of parentheses.</td>
 		</tr>
+		<tr>
+			<td>record_alias</td>
+			<td>The name assigned to the record.</td>
+		</tr>
 	    <tr>
 			<td> record</td>
-			<td>A record, specified one of two ways: <br></br>
-•	Explicit (see Record)<br></br>
-c1:collection(r1:record(f1:int,f2:long))”);<br></br>
-•	Implicit <br></br>
-c1:collection(f1:int,f2:long)”);
-</td>
+			
+			<td> The record designator. The <a href="zebra_reference.html#Schemas+for+Records">record</a>   
+			can be specified with or without the record alias:
+                 <ul>
+                      <li>c1:collection(r1:record(f1:int,f2:long));</li>
+                      <li>c1:collection(record(f1:int,f2:long));</li>
+                 </ul>
+            </td>
 		</tr>		
     </table>
 </section>
 
    <section>
    <title>Examples</title>
-   <p>In this example the schema specifies a collection with a record consisting of  two fields (explicit record notation).</p>
+   <p>In this example the schema specifies a collection of records, each consisting of two fields.</p>
 <source>
-ZebraSchema.createZebraSchema(jobconf, “c1:collection(r1:record(f1:int,f2:long))”);
+ZebraSchema.createZebraSchema(jobContext, “c1:collection(r1:record(f1:int,f2:long))”);
 </source>   
-   <p>In this example the schema specifies a collection with a  record consisting of  two fields (implicit record notation).</p>
-<source>
-ZebraSchema.createZebraSchema(jobconf, “c1:collection(f1:int,f2:long)”);
-</source> 
+ 
 </section>
     </section>
    
@@ -345,11 +348,11 @@ Note that the map’s key is always type string and is not specified.
    <title>Examples</title>
    <p>In this example the schema specifies a map with value of type string.</p>
 <source>
-ZebraSchema.createZebraSchema(jobconf, “m1:map(string)”);
+ZebraSchema.createZebraSchema(jJobContext, “m1:map(string)”);
 </source>   
    <p>In this example the schema specifies a map with value of type map (with a value of type int).</p>
 <source>
-ZebraSchema.createZebraSchema(jobconf, “m2:map(map(int))”);
+ZebraSchema.createZebraSchema(JobContext, “m2:map(map(int))”);
 </source> 
 </section>
     </section> 

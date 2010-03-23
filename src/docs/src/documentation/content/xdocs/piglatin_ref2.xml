@@ -162,7 +162,7 @@ Also, be sure to review the information in the <ulink url="cookbook.html">Pig Co
       
          <row>
             <entry> <para>-- B </para> </entry>
-            <entry> <para>bag, BinaryDeserializer, BinarySerializer, BinStorage, by, bytearray </para> </entry>
+            <entry> <para>bag, BinStorage, by, bytearray </para> </entry>
          </row>   
 
          <row>
@@ -1996,7 +1996,7 @@ $ pig –param_file myparams script2.pig
    <title>Example: Specifying parameters using the declare statement</title>
    <para>In this example the command is executed and its stdout is used as the parameter value.</para>
 <programlisting>
-%declare CMD `generate_date`;
+%declare CMD 'generate_date';
 A = LOAD '/data/mydata/$CMD';
 B = FILTER A BY $0>'5';
 
@@ -2035,7 +2035,7 @@ $ pig –param data=mydata myscript.pig
    <title>Example: Specifying parameter values as a command</title>
    <para>In this example the command is enclosed in back ticks. First, the parameters mycmd and date are substituted when the declare statement is encountered. Then the resulting command is executed and its stdout is placed in the path before the load statement is run.</para>
 <programlisting>
-%declare CMD `$mycmd $date`;
+%declare CMD '$mycmd $date';
 A = LOAD '/data/mydata/$CMD';
 B = FILTER A BY $0>'5';
  
@@ -5309,8 +5309,8 @@ DUMP X;
 
    <para>Another FLATTEN example. Here, relations A and B both have a column x. When forming relation E,  you need to use the :: operator to identify which column x to use - either relation A column x (A::x) or relation B column x (B::x). This example uses relation A column x (A::x).</para>
 <programlisting>
-A = load ‘data’ as (x, y);
-B = load ‘data’ as (x, z);
+A = load 'data' as (x, y);
+B = load 'data' as (x, z);
 C = cogroup A by x, B by x;
 D = foreach C generate flatten(A), flatten(b);
 E = group D by A::x;
@@ -5368,7 +5368,7 @@ readability, programmers usually use GROUP when only one relation is involved an
    <informaltable frame="all">
       <tgroup cols="1"><tbody><row>
             <entry>
-               <para>alias = GROUP alias { ALL | BY expression} [, alias ALL | BY expression …]  [USING "collected"] [PARALLEL n];</para>
+               <para>alias = GROUP alias { ALL | BY expression} [, alias ALL | BY expression …]  [USING 'collected'] [PARALLEL n];</para>
             </entry>
          </row></tbody></tgroup>
    </informaltable></section>
@@ -5422,7 +5422,7 @@ readability, programmers usually use GROUP when only one relation is involved an
          </row>
          <row>
             <entry>
-               <para>"collected"</para>
+               <para>'collected'</para>
             </entry>
             <entry>
                <para>Allows for more efficient computation of a group if the loader guarantees that the data for the 
@@ -5641,7 +5641,7 @@ DUMP X;
    <informaltable frame="all">
       <tgroup cols="1"><tbody><row>
             <entry>
-               <para>alias = JOIN alias BY {expression|'('expression [, expression …]')'} (, alias BY {expression|'('expression [, expression …]')'} …) [USING "replicated" | "skewed" | "merge"] [PARALLEL n];  </para>
+               <para>alias = JOIN alias BY {expression|'('expression [, expression …]')'} (, alias BY {expression|'('expression [, expression …]')'} …) [USING 'replicated' | 'skewed' | 'merge'] [PARALLEL n];  </para>
             </entry>
          </row></tbody></tgroup>
    </informaltable></section>
@@ -5684,7 +5684,7 @@ DUMP X;
          </row>
          <row>
             <entry>
-               <para>"replicated"</para>
+               <para>'replicated'</para>
             </entry>
             <entry>
                <para>Use to perform replicated joins (see <ulink url="piglatin_ref1.html#Replicated+Joins">Replicated Joins</ulink>).</para>
@@ -5693,7 +5693,7 @@ DUMP X;
          
                   <row>
             <entry>
-               <para>"skewed"</para>
+               <para>'skewed'</para>
             </entry>
             <entry>
                <para>Use to perform skewed joins (see <ulink url="piglatin_ref1.html#Skewed+Joins">Skewed Joins</ulink>).</para>
@@ -5702,7 +5702,7 @@ DUMP X;
          
                   <row>
             <entry>
-               <para>"merge"</para>
+               <para>'merge'</para>
             </entry>
             <entry>
                <para>Use to perform merge joins (see <ulink url="piglatin_ref1.html#Merge+Joins">Merge Joins</ulink>).</para>
@@ -5793,7 +5793,7 @@ DUMP X;
       <tgroup cols="1"><tbody><row>
             <entry>
                <para>alias = JOIN left-alias BY left-alias-column [LEFT|RIGHT|FULL] [OUTER], right-alias BY right-alias-column 
-               [USING "replicated" | "skewed"] [PARALLEL n];  </para>
+               [USING 'replicated' | 'skewed'] [PARALLEL n];  </para>
             </entry>
          </row></tbody></tgroup>
    </informaltable>
@@ -5875,7 +5875,7 @@ DUMP X;
          </row>
          <row>
             <entry>
-               <para>"replicated"</para>
+               <para>'replicated'</para>
             </entry>
             <entry>
                <para>Use to perform replicated joins (see <ulink url="piglatin_ref1.html#Replicated+Joins">Replicated Joins</ulink>).</para>
@@ -5885,7 +5885,7 @@ DUMP X;
          
                   <row>
             <entry>
-               <para>"skewed"</para>
+               <para>'skewed'</para>
             </entry>
             <entry>
                <para>Use to perform skewed joins (see <ulink url="piglatin_ref1.html#Skewed+Joins">Skewed Joins</ulink>).</para>
@@ -5951,16 +5951,16 @@ C = JOIN A BY $0 FULL, B BY $0;
 
 <para>This example shows a replicated left outer join.</para>
 <programlisting>
-A = LOAD ‘large’;
-B = LOAD ‘tiny’;
-C= JOIN A BY $0 LEFT, B BY $0 USING "replicated";
+A = LOAD 'large';
+B = LOAD 'tiny';
+C= JOIN A BY $0 LEFT, B BY $0 USING 'replicated';
 </programlisting>
 
 <para>This example shows a skewed full outer join.</para>
 <programlisting>
-A = LOAD  ‘studenttab’ as (name, age, gpa);
-B = LOAD  'votertab' as (name, age, registration, contribution);
-C = JOIN A BY name FULL, B BY name USING "skewed";
+A = LOAD 'studenttab' as (name, age, gpa);
+B = LOAD 'votertab' as (name, age, registration, contribution);
+C = JOIN A BY name FULL, B BY name USING 'skewed';
 </programlisting>
 
 </section>
@@ -6100,7 +6100,9 @@ DUMP X;
                <para>The load function. </para>
                <itemizedlist>
                   <listitem>
-                     <para>You can use a built-in function (see the load/store functions). PigStorage is the default load function and does not need to be specified (simply omit the USING clause).</para>
+                  
+                  
+                     <para>You can use a built-in function (see the <ulink url="#Load%2FStore+Functions">Load/Store Functions</ulink>). PigStorage is the default load function and does not need to be specified (simply omit the USING clause).</para>
                   </listitem>
                   <listitem>
                      <para>You can write your own load function  
@@ -6514,10 +6516,13 @@ DUMP Z;
                <para>The store function.</para>
                <itemizedlist>
                   <listitem>
-                     <para>You can use a built-in function (see the Load/Store Functions). PigStorage is the default load function and does not need to be specified (simply omit the USING clause).</para>
+                  
+                  
+                     <para>You can use a built-in function (see the <ulink url="#Load%2FStore+Functions">Load/Store Functions</ulink>). PigStorage is the default store function and does not need to be specified (simply omit the USING clause).</para>
                   </listitem>
                   <listitem>
-                     <para>You can write your own store function (see the User-Defined Function Manual) if your data is in a format that cannot be processed by the built-in functions.</para>
+                     <para>You can write your own store function  
+                     if your data is in a format that cannot be processed by the built-in functions (see the <ulink url="udf.html">Pig UDF Manual</ulink>).</para>
                   </listitem>
                </itemizedlist>
             </entry>
@@ -6545,7 +6550,7 @@ DUMP A;
 (7,2,5)
 (8,4,3)
 
-STORE A INTO ‘myoutput’ USING PigStorage (‘*’);
+STORE A INTO 'myoutput' USING PigStorage ('*');
 
 CAT myoutput;
 1*2*3
@@ -6600,7 +6605,7 @@ a:8,b:4,c:3
    <informaltable frame="all">
       <tgroup cols="1"><tbody><row>
             <entry>
-               <para>alias = STREAM alias [, alias …] THROUGH {`command` | cmd_alias } [AS schema] ;</para>
+               <para>alias = STREAM alias [, alias …] THROUGH {'command' | cmd_alias } [AS schema] ;</para>
             </entry>
          </row></tbody></tgroup>
    </informaltable></section>
@@ -6626,7 +6631,7 @@ a:8,b:4,c:3
          </row>
          <row>
             <entry>
-               <para>`command`</para>
+               <para>'command'</para>
             </entry>
             <entry>
                <para>A command, including the arguments, enclosed in back tics (where a command is anything that can be executed).</para>
@@ -6665,13 +6670,13 @@ a:8,b:4,c:3
 <programlisting>
 A = LOAD 'data';
 
-B = STREAM A THROUGH `stream.pl -n 5`;
+B = STREAM A THROUGH 'stream.pl -n 5';
 </programlisting>
    <para>When used with a cmd_alias, a stream statement could look like this, where cmd is the defined alias.</para>
 <programlisting>
 A = LOAD 'data';
 
-DEFINE cmd `stream.pl –n 5`;
+DEFINE cmd 'stream.pl –n 5';
 
 B = STREAM A THROUGH cmd;
 </programlisting>
@@ -6700,7 +6705,7 @@ B = STREAM A THROUGH cmd;
 <programlisting>
 A = LOAD 'data';
 
-B = STREAM A THROUGH `stream.pl`;
+B = STREAM A THROUGH 'stream.pl';
 </programlisting>
    
    <para>In this example the data is grouped.</para>
@@ -6711,7 +6716,7 @@ B = GROUP A BY $1;
 
 C = FOREACH B FLATTEN(A);
 
-D = STREAM C THROUGH `stream.pl`
+D = STREAM C THROUGH 'stream.pl';
 </programlisting>
    
    <para>In this example the data is grouped and ordered.</para>
@@ -6725,7 +6730,7 @@ C = FOREACH B {
       GENERATE D;
 }
 
-E = STREAM C THROUGH `stream.pl`;
+E = STREAM C THROUGH 'stream.pl';
 </programlisting>
    </section>
    
@@ -6733,7 +6738,7 @@ E = STREAM C THROUGH `stream.pl`;
    <title>Example: Schemas</title>
    <para>In this example a schema is specified as part of the STREAM statement.</para>
 <programlisting>
-X = STREAM A THROUGH `stream.pl` as (f1:int, f2;int, f3:int);
+X = STREAM A THROUGH 'stream.pl' as (f1:int, f2;int, f3:int);
 </programlisting>
    </section>
    
@@ -7240,7 +7245,7 @@ ILLUSTRATE num_user_visits;
    <informaltable frame="all">
       <tgroup cols="1"><tbody><row>
             <entry>
-               <para>DEFINE alias {function | [`command` [input] [output] [ship] [cache]] };</para>
+               <para>DEFINE alias {function | ['command' [input] [output] [ship] [cache]] };</para>
             </entry>
          </row></tbody></tgroup>
    </informaltable></section>
@@ -7386,10 +7391,10 @@ ILLUSTRATE num_user_visits;
 		<listitem>
 			<para>It is safe only to ship files to be executed from the current working directory on the task on the cluster.</para>
 			<programlisting>
-OP = stream IP through `script`;
+OP = stream IP through 'script';
 or
-DEFINE CMD `script` ship('/a/b/script');
-OP = stream IP through CMD`;
+DEFINE CMD 'script' ship('/a/b/script');
+OP = stream IP through 'CMD';
 </programlisting>
 		</listitem>
 	    <listitem>
@@ -7423,9 +7428,9 @@ OP = stream IP through CMD`;
 		<listitem>
 			<para>If Pig determines that it needs to auto-ship an absolute path it will not ship it at all since there is no way to ship files to the necessary location (lack of permissions and so on). </para>
 			<programlisting>
-OP = stream IP through `/a/b/c/script`;
+OP = stream IP through '/a/b/c/script';
 or 
-OP = stream IP through `perl /a/b/c/script.pl`;
+OP = stream IP through 'perl /a/b/c/script.pl';
 </programlisting>
 		</listitem>
 	    <listitem>
@@ -7446,19 +7451,19 @@ OP = stream IP through `perl /a/b/c/script.pl`;
  <title>Example: Input/Output</title>
  <para>In this example PigStorage is the default serialization/deserialization function. The tuples from relation A are converted to tab-delimited lines that are passed to the script.</para>
 <programlisting>
-X = STREAM A THROUGH `stream.pl`;
+X = STREAM A THROUGH 'stream.pl';
 </programlisting>
    
    <para>In this example PigStorage is used as the serialization/deserialization function, but a comma is used as the delimiter.</para>
 <programlisting>
-DEFINE Y `stream.pl` INPUT(stdin USING PigStorage(',')) OUTPUT (stdout USING PigStorage(','));
+DEFINE Y 'stream.pl' INPUT(stdin USING PigStorage(',')) OUTPUT (stdout USING PigStorage(','));
 
 X = STREAM A THROUGH Y;
 </programlisting>
    
    <para>In this example user-defined serialization/deserialization functions are used with the script.</para>
 <programlisting>
-DEFINE Y `stream.pl` INPUT(stdin USING MySerializer) OUTPUT (stdout USING MyDeserializer);
+DEFINE Y 'stream.pl' INPUT(stdin USING MySerializer) OUTPUT (stdout USING MyDeserializer);
 
 X = STREAM A THROUGH Y;
 </programlisting>
@@ -7468,14 +7473,14 @@ X = STREAM A THROUGH Y;
    <title>Example: Ship/Cache</title>
    <para>In this example ship is used to send the script to the cluster compute nodes.</para>
 <programlisting>
-DEFINE Y `stream.pl` SHIP('/work/stream.pl');
+DEFINE Y 'stream.pl' SHIP('/work/stream.pl');
 
 X = STREAM A THROUGH Y;
 </programlisting>
    
    <para>In this example cache is used to specify a file located on the cluster compute nodes.</para>
 <programlisting>
-DEFINE Y `stream.pl data.gz` SHIP('/work/stream.pl') CACHE('/input/data.gz#data.gz');
+DEFINE Y 'stream.pl data.gz' SHIP('/work/stream.pl') CACHE('/input/data.gz#data.gz');
 
 X = STREAM A THROUGH Y;
 </programlisting>
@@ -7485,7 +7490,7 @@ X = STREAM A THROUGH Y;
    <title>Example: Logging</title>
    <para>In this example the streaming stderr is stored in the _logs/&lt;dir&gt; directory of the job's output directory. Because the job can have multiple streaming applications associated with it, you need to ensure that different directory names are used to avoid conflicts. Pig stores up to 100 tasks per streaming job.</para>
 <programlisting>
-DEFINE Y `stream.pl` stderr('&lt;dir&gt;' limit 100);
+DEFINE Y 'stream.pl' stderr('&lt;dir&gt;' limit 100);
 
 X = STREAM A THROUGH Y;
 </programlisting>
@@ -7506,9 +7511,9 @@ B = FOREACH A GENERATE myFunc($0);
 <programlisting>
 A = LOAD 'data';
 
-DEFINE cmd `stream_cmd –input file.dat`
+DEFINE cmd 'stream_cmd –input file.dat';
 
-B = STREAM A through cmd.
+B = STREAM A through cmd;
 </programlisting>
 </section>
 </section>
@@ -7542,7 +7547,8 @@ B = STREAM A through cmd.
    
    <section>
    <title>Usage</title>
-   <para>Use the REGISTER statement to specify the path of a Java JAR file containing UDFs.</para>
+   <para>Use the REGISTER statement inside a Pig script to specify the path of a Java JAR file containing UDFs. </para>
+   <para>You can register additional files (to use with your Pig script) via the command line using the -Dpig.additional.jars option.</para>
    <para>For more information about UDFs, see the User Defined Function Guide. Note that Pig currently only supports functions written in Java.</para></section>
    
    <section>
@@ -7552,14 +7558,17 @@ B = STREAM A through cmd.
 /src $ java -jar pig.jar –
 
 REGISTER /src/myfunc.jar;
-
 A = LOAD 'students';
-
 B = FOREACH A GENERATE myfunc.MyEvalFunc($0);
 </programlisting>
-   <para>
+   
+   <para>In this example additional jar files are registered via the command line.</para>
+<programlisting>
+pig -Dpig.additional.jars=my.jar:your.jar script.pig
+</programlisting>
 
-   </para></section></section>
+
+   <para></para></section></section>
    </section>
    
    <!-- BUILT-IN FUNCTIONS --> 
@@ -8575,90 +8584,11 @@ DUMP X;
    
    <section>
    <title>Load/Store Functions</title>
-   <para>Load/Store functions determine how data goes into Pig and comes out of Pig. In addition to the Pig built-in load/store functions, you can also write your functions (see the User-Defined Function Manual).</para>
+   <para>Load/Store functions determine how data goes into Pig and comes out of Pig. 
+   Pig provides a set of built-in load/store functions, described in the sections below. 
+   You can also write your own load/store functions  (see the <ulink url="udf.html#Load%2FStore+Functions">Pig UDF Manual</ulink>).</para>
    
-   <section>
-   <title>BinarySerializer</title>
-   <para>Converts a file to a byte stream.</para>
-   
-   <section>
-   <title>Syntax</title>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>BinarySerializer()        </para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable></section>
-   
-   <section>
-   <title>Terms</title>
-   <informaltable frame="all">
-      <tgroup cols="2"><tbody><row>
-            <entry>
-               <para>none</para>
-            </entry>
-            <entry>
-               <para>no parameters</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable></section>
-   
-   <section>
-   <title>Usage</title>
-   <para>Use the BinarySerializer with the DEFINE operator to convert a file to a byte stream. No Formatting or interpretation takes place.</para></section>
-   
-   <section>
-   <title>Example</title>
-   <para>In this example the BinarySerializer and BinaryDeserializer are use to convert data to and from streaming format.</para>
-<programlisting>
-DEFINE Y `stream.pl` INPUT(stdin USING BinarySerializer()) OUTPUT (stdout USING BinaryDeserializer());
 
-X = STREAM A THROUGH Y;
-</programlisting>
-   </section></section>
-   
-   <section>
-   <title>BinaryDeserializer</title>
-   <para>Converts a byte stream into a file.</para>
-   
-   <section>
-   <title>Syntax</title>
-   <informaltable frame="all">
-      <tgroup cols="1"><tbody><row>
-            <entry>
-               <para>BinarySerializer()        </para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable></section>
-   
-   <section>
-   <title>Terms</title>
-   <informaltable frame="all">
-      <tgroup cols="2"><tbody><row>
-            <entry>
-               <para>none</para>
-            </entry>
-            <entry>
-               <para>no parameters</para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable></section>
-   
-   <section>
-   <title>Usage</title>
-   <para>Use the BinaryDeserializer with the DEFINE operator to convert a byte stream into a file. No Formatting or interpretation takes place.</para></section>
-   
-   <section>
-   <title>Example</title>
-   <para>In this example the BinarySerializer and BinaryDeserializer are use to convert data to and from streaming format.</para>
-<programlisting>
-DEFINE Y `stream.pl` INPUT(stdin USING BinarySerializer()) OUTPUT (stdout USING BinaryDeserializer());
-
-X = STREAM A THROUGH Y;
-</programlisting>
-   </section></section>
-   
    <section>
    <title>BinStorage</title>
    <para>Loads and stores data in machine-readable format.</para>
@@ -8689,6 +8619,7 @@ X = STREAM A THROUGH Y;
    <section>
    <title>Usage</title>
    <para>BinStorage works with data that is represented on disk in machine-readable format.</para>
+   <para>BinStorage does not support compression.</para>
    <para>BinStorage is used internally by Pig to store the temporary data that is created between multiple map/reduce jobs.</para></section>
    
    <section>
@@ -8732,15 +8663,19 @@ STORE X into 'output' USING BinStorage();
    
    <section>
    <title>Usage</title>
-   <para>PigStorage is the default function for the LOAD and STORE operators. PigStorage works with structured text files (in human-readable UTF-8 format) and bzip compressed text files. PigStorage also works with simple and complex data types.</para>
+   <para>PigStorage is the default function for the LOAD and STORE operators and works with both simple and complex data types. </para>
+   
+   <para>PigStorage supports structured text files (in human-readable UTF-8 format).</para>
+   
+   <para>PigStorage also supports gzip (.gz) and bzip(.bz or .bz2) compressed files. PigStorage correctly reads compressed files as long as they are NOT CONCATENATED files generated in this manner: cat *.gz > text/concat.gz  OR cat *.bz > text/concat.bz (OR cat *.bz2 > text/concat.bz2). If you use concatenated gzip or bzip files with your Pig jobs, you will not see a failure but the results will be INCORRECT.</para>
 
   <para>Load statements – PigStorage expects data to be formatted using field delimiters, either the tab character  ('\t') or other specified character.</para>
 
    <para>Store statements – PigStorage outputs data using field deliminters, either the tab character  ('\t') or other specified character, and the line feed record delimiter ('\n').  </para>
 
-   <para>Field Deliminters – For load and store statements the default field delimiter is the tab character ('\t'). You can use other characters as field delimiters, but separators such as ^A or Ctrl-A should be represented in Unicode (\u0001) using UTF-16 encoding (see Wikipedia <ulink url="http://en.wikipedia.org/wiki/ASCII">ASCII</ulink>, <ulink url="http://en.wikipedia.org/wiki/Unicode">Unicode</ulink>, and <ulink url="http://en.wikipedia.org/wiki/UTF-16">UTF-16</ulink>).</para>
+   <para>Field Delimiters – For load and store statements the default field delimiter is the tab character ('\t'). You can use other characters as field delimiters, but separators such as ^A or Ctrl-A should be represented in Unicode (\u0001) using UTF-16 encoding (see Wikipedia <ulink url="http://en.wikipedia.org/wiki/ASCII">ASCII</ulink>, <ulink url="http://en.wikipedia.org/wiki/Unicode">Unicode</ulink>, and <ulink url="http://en.wikipedia.org/wiki/UTF-16">UTF-16</ulink>).</para>
    
-   <para>Record Deliminters – For load statements Pig interprets the line feed ( '\n' ), carriage return ( '\r' or CTRL-M) and combined CR + LF ( '\r\n' ) characters as record delimiters (do not use these characters as field delimiters). For store statements Pig uses the line feed ('\n') character as the record delimiter. For load and store statements, if the input file is a bzip file (ending in .bz or .bz2), Pig uses the line feed ('\n') character as the record delimiter.</para>
+   <para>Record Deliminters – For load statements Pig interprets the line feed ( '\n' ), carriage return ( '\r' or CTRL-M) and combined CR + LF ( '\r\n' ) characters as record delimiters (do not use these characters as field delimiters). For store statements Pig uses the line feed ('\n') character as the record delimiter.</para>
    </section>
    
    <section>
@@ -8827,7 +8762,10 @@ STORE X INTO 'output' USING PigDump();
    
    <section>
    <title>Usage</title>
-   <para>TextLoader works with unstructured data in UTF8 format. Each resulting tuple contains a single field with one line of input text. TextLoader cannot be used to store data.</para></section>
+   <para>TextLoader works with unstructured data in UTF8 format. Each resulting tuple contains a single field with one line of input text. </para>
+   <para>Currently, TextLoader support for compression is limited.</para>  
+   <para>TextLoader cannot be used to store data.</para>
+   </section>
    
    <section>
    <title>Example</title>
@@ -9788,7 +9726,8 @@ grunt&gt; run –param out=myoutput myscript.pig
                <para>a whole number </para>
             </entry>
             <entry>
-               <para>Sets the number of reducers for all MapReduce jobs generated by Pig.</para>
+               <para>Sets the number of reducers for all MapReduce jobs generated by Pig 
+              (see  <ulink url="cookbook.html#Use+the+PARALLEL+Clause">Use the PARALLEL Clause</ulink>).</para>
             </entry>
          </row>
          <row>
@@ -9847,11 +9786,23 @@ grunt&gt; run –param out=myoutput myscript.pig
    <title>Example</title>
    <para>In this example debug is set on, the job is assigned a name, and the number of reducers is set to 100.</para>
 <programlisting>
-grunt&gt; set debug on
+grunt&gt; set debug 'on'
 grunt&gt; set job.name 'my job'
 grunt&gt; set default_parallel 100
 </programlisting>
-   </section></section>
+
+
+<para>In this example default_parallel is set in the Pig script; all MapReduce jobs that get launched will use 20 reducers.</para>
+<programlisting>
+SET DEFAULT_PARALLEL 20;
+A = LOAD 'myfile.txt' USING PigStorage() AS (t, u, v);
+B = GROUP A BY t;
+C = FOREACH B GENERATE group, COUNT(A.t) as mycount;
+D = ORDER C BY mycount;
+STORE D INTO 'mysortedcount' USING PigStorage();
+</programlisting>
+
+</section></section>
    
    
    </section>
