@@ -310,21 +310,21 @@ With multi-query execution, the script will process A and dump A' as a side-effe
 	<p>DUMP Example: In this script, because the DUMP command is interactive, the multi-query execution will be disabled and two separate jobs will be created to execute this script. The first job will execute A > B > DUMP while the second job will execute A > B > C > STORE.</p>
 	
 <source>
-A = LOAD ‘input’ AS (x, y, z);
+A = LOAD 'input' AS (x, y, z);
 B = FILTER A BY x > 5;
 DUMP B;
 C = FOREACH B GENERATE y, z;
-STORE C INTO ‘output’;
+STORE C INTO 'output';
 </source>
 	
 	<p>STORE Example: In this script, multi-query optimization will kick in allowing the entire script to be executed as a single job. Two outputs are produced: output1 and output2.</p>
 	
 <source>
-A = LOAD ‘input’ AS (x, y, z);
+A = LOAD 'input' AS (x, y, z);
 B = FILTER A BY x > 5;
-STORE B INTO ‘output1’;
+STORE B INTO 'output1';
 C = FOREACH B GENERATE y, z;
-STORE C INTO ‘output2’;	
+STORE C INTO 'output2';	
 </source>
 
 </section>
@@ -387,10 +387,10 @@ STORE A INTO 'out1';
 	</ol>	
 	
 	<p>Arguments used in a LOAD statement that have a scheme other than "hdfs" or "file" will not be expanded and passed to the LoadFunc/Slicer unchanged.</p>
-	<p>In the SQL case, the SQLLoader function is invoked with "sql://mytable". </p>
+	<p>In the SQL case, the SQLLoader function is invoked with 'sql://mytable'. </p>
 
 <source>
-A = LOAD "sql://mytable" USING SQLLoader();
+A = LOAD 'sql://mytable' USING SQLLoader();
 </source>
 </section>
 
@@ -515,7 +515,7 @@ tiny = LOAD 'tiny_data' AS (t1,t2,t3);
 
 mini = LOAD 'mini_data' AS (m1,m2,m3);
 
-C = JOIN big BY b1, tiny BY t1, mini BY m1 USING "replicated";
+C = JOIN big BY b1, tiny BY t1, mini BY m1 USING 'replicated';
 </source>
 </section>
 
@@ -538,7 +538,8 @@ Parallel joins are vulnerable to the presence of skew in the underlying data.
 If the underlying data is sufficiently skewed, load imbalances will swamp any of the parallelism gains. 
 In order to counteract this problem, skewed join computes a histogram of the key space and uses this 
 data to allocate reducers for a given key. Skewed join does not place a restriction on the size of the input keys. 
-It accomplishes this by splitting one of the input on the join predicate and streaming the other input. 
+It accomplishes this by splitting the left input on the join predicate and streaming the right input. The left input is 
+sampled to create the histogram.
 </p>
 
 <p>
@@ -553,7 +554,7 @@ associated with a given key is too large to fit in memory.
 <source>
 big = LOAD 'big_data' AS (b1,b2,b3);
 massive = LOAD 'massive_data' AS (m1,m2,m3);
-C = JOIN big BY b1, massive BY m1 USING "skewed";
+C = JOIN big BY b1, massive BY m1 USING 'skewed';
 </source>
 </section>
 
@@ -604,7 +605,7 @@ and the right input of the join to be the side file. It then samples records fro
 <title>Usage</title>
 <p>Perform a merge join with the USING clause (see <a href="piglatin_ref2.html#JOIN+%28inner%29">inner joins</a>).</p>
 <source>
-C = JOIN A BY a1, B BY b1 USING "merge";
+C = JOIN A BY a1, B BY b1 USING 'merge';
 </source>
 </section>
 
@@ -622,8 +623,8 @@ key when read starting at a and ending in b. Likewise if an input directory has 
 part-00002 and part-00003, the data should be sorted if the files are read in the sequence part-00000, part-00001, 
 part-00002 and part-00003. </li>
 <li>The merge join only has two inputs </li>
-<li>The loadfunc for the right input of the join should implement the SamplableLoader interface (PigStorage does 
-implement the SamplableLoader interface). </li>
+<li>The loadfunc for the right input of the join should implement the OrderedLoadFunc interface (PigStorage does 
+implement the OrderedLoadFunc interface). </li>
 <li>Only inner join will be supported </li>
 
 <li>Between the load of the sorted input and the merge join statement there can only be filter statements and 
@@ -759,9 +760,8 @@ D = JOIN C BY $1, B BY $1;
  <!-- MEMORY MANAGEMENT -->
 <section>
 <title>Memory Management</title>
-<p>For Pig 0.6.0 we changed how Pig decides when to spill bags to disk. In the past, Pig tried to figure out when an application was getting close to memory limit and then spill at that time. However, because Java does not include an accurate way to determine when to spill, Pig often ran out of memory. </p>
 
-<p>In the current version, we allocate a fix amount of memory to store bags and spill to disk as soon as the memory limit is reached. This is very similar to how Hadoop decides when to spill data accumulated by the combiner. </p>
+<p>Pig allocates a fix amount of memory to store bags and spills to disk as soon as the memory limit is reached. This is very similar to how Hadoop decides when to spill data accumulated by the combiner. </p>
 
 <p>The amount of memory allocated to bags is determined by pig.cachedbag.memusage; the default is set to 10% of available memory. Note that this memory is shared across all large bags used by the application.</p>
 

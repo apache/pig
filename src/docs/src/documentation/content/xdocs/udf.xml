@@ -734,146 +734,395 @@ pig -cp sds.jar -Dudf.import.list=com.yahoo.yst.sds.ULT myscript.pig
 
 </section>
 
+<!-- BEGIN LOAD/STORE FUNCTIONS -->
 <section>
 <title> Load/Store Functions</title>
 
-<p>These user-defined functions control how data goes into Pig and comes out of Pig. Often, the same function handles both input and output but that does not have to be the case. </p>
-
+<p>The load/store user-defined functions control how data goes into Pig and comes out of Pig. Often, the same function handles both input and output but that does not have to be the case. </p>
+<p>
+With Pig 0.7.0, the Pig load/store API moves closer to using Hadoop's InputFormat and OutputFormat classes.
+This enables Pig users/developers to create new LoadFunc and StoreFunc implementation based on existing Hadoop InputFormat and OutputFormat classes with minimal code. The complexity of reading the data and creating a record will now lie in the InputFormat and likewise on the writing end, the complexity of writing will lie in the OutputFormat. This enables Pig to easily read/write data in new storage formats as and when an Hadoop InputFormat and OutputFormat is available for them. </p>
+<p>
+<strong>Note:</strong> Both the LoadFunc and StoreFunc implementations should use the Hadoop 20 API based classes (InputFormat/OutputFormat and related classes) under the <strong>new</strong> org.apache.hadoop.mapreduce package instead of the old org.apache.hadoop.mapred package. 
+</p>
 
 <section>
 <title> Load Functions</title>
+<p><a href="http://svn.apache.org/viewvc/hadoop/pig/trunk/src/org/apache/pig/LoadFunc.java?view=markup">LoadFunc</a> 
+abstract class has the main methods for loading data and for most use cases it would suffice to extend it. There are 3 other optional interfaces which can be implemented to achieve extended functionality: </p>
 
-<p>Every load function needs to implement the <code>LoadFunc</code> interface. An abbreviated version is shown below. The full definition can be seen <a href="http://svn.apache.org/viewvc/hadoop/pig/trunk/src/org/apache/pig/LoadFunc.java?view=markup"> here</a>. </p>
-
-<source>
-public interface LoadFunc {
-    public void bindTo(String fileName, BufferedPositionedInputStream is, long offset, long end) throws IOException;
-    public Tuple getNext() throws IOException;
-    // conversion functions
-    public Integer bytesToInteger(byte[] b) throws IOException;
-    public Long bytesToLong(byte[] b) throws IOException;
-    ......
-    public RequiredFieldResponse fieldsToRead(RequiredFieldList requiredFieldList) throws FrontendException;
-    public Schema determineSchema(String fileName, ExecType execType, DataStorage storage) throws IOException;
-</source>
-
-<p><strong>bindTo</strong></p>
-<p>The <code>bindTo</code> function is called once by each Pig task before it starts processing data. It is intended to connect the function to its input. It provides the following information: </p>
 <ul>
-<li><p> <code>fileName</code> - The name of the file from which the data is read. Not used most of the time </p>
-</li>
-<li><p> <code>is</code> - The input stream from which the data is read. It is already positioned at the place where the function needs to start reading </p>
-</li>
-<li><p> <code>offset</code> - The offset into the stream from which to read. It is equivalent to <code>is.getPosition()</code> and not strictly needed </p>
-</li>
-<li><p> <code>end</code> - The position of the last byte that should be read by the function. </p>
-</li>
+<li><a href="http://svn.apache.org/viewvc/hadoop/pig/trunk/src/org/apache/pig/LoadMetadata.java?view=markup">LoadMetadata</a> 
+has methods to deal with metadata - most implementation of loaders don't need to implement this unless they interact with some metadata system. The getSchema() method in this interface provides a way for loader implementations to communicate the schema of the data back to pig. If a loader implementation returns data comprised of fields of real types (rather than DataByteArray fields), it should provide the schema describing the data returned through the getSchema() method. The other methods are concerned with other types of metadata like partition keys and statistics. Implementations can return null return values for these methods if they are not applicable for that implementation.</li>
+<li><a href="http://svn.apache.org/viewvc/hadoop/pig/trunk/src/org/apache/pig/LoadPushDown.java?view=markup">LoadPushDown</a> 
+has methods to push operations from pig runtime into loader implementations - currently only projections .i.e the pushProjection() method is called by Pig to communicate to the loader what exact fields are required in the pig script. The loader implementation can choose to honor the request or respond that it will not honor the request and return all fields in the data. If a loader implementation is able to efficiently return only required fields, it should implement LoadPushDown to improve query performance. (Irrespective of whether the implementation can or cannot return only the required fields, if the implementation also implements getSchema(), the schema returned in getSchema() should be for the entire tuple of data.) </li>
+<li><a href="http://svn.apache.org/viewvc/hadoop/pig/trunk/src/org/apache/pig/LoadCaster.java?view=markup">LoadCaster</a> 
+has methods to convert byte arrays to specific types. A loader implementation should implement this if casts (implicit or explicit) from DataByteArray fields to other types need to be supported. </li>
 </ul>
 
-<p>In the Hadoop world, the input data is treated as a continuous stream of bytes. A <code>slicer</code>, discussed in the Advanced Topics section, is used to split the data into chunks with each chunk going to a particular task for processing. This chunk is what <code>bindTo</code> provides to the UDF. Note that unless you use a custom slicer, the default slicer is not aware of tuple boundaries. This means that the chunk you get can start and end in the middle of a particular tuple. One common approach is to skip the first partial tuple and continue past the end position to finish processing a tuple. This is what <code>PigStorage</code> does as the example later in this section shows. </p>
+ <p>The LoadFunc abstract class is the main class to extend for implementing a loader. The methods which need to be overriden are explained below:</p>
+ <ul>
+ <li>getInputFormat() :This method will be called by Pig to get the InputFormat used by the loader. The methods in the InputFormat (and underlying RecordReader) will be called by pig in the same manner (and in the same context) as by Hadoop in a map-reduce java program. If the InputFormat is a hadoop packaged one, the implementation should use the new API based one under org.apache.hadoop.mapreduce. If it is a custom InputFormat, it should be implemented using the new API in org.apache.hadoop.mapreduce. If a custom loader using a text-based InputFormat or a file based InputFormat would like to read files in all subdirectories under a given input directory recursively, then it should use the PigFileInputFormat and PigTextInputFormat classes provided in org.apache.pig.backend.hadoop.executionengine.mapReduceLayer. This is to work around the current limitation in Hadoop's TextInputFormat and FileInputFormat which only read one level down from provided input directory. So for example if the input in the load statement is 'dir1' and there are subdirs 'dir2' and 'dir2/dir3' underneath dir1, using Hadoop's TextInputFormat or FileInputFormat only files under 'dir1' can be read. Using PigFileInputFormat or PigTextInputFormat (or by extending them), files in all the directories can be read. </li>
+ <li>setLocation() :This method is called by Pig to communicate the load location to the loader. The loader should use this method to communicate the same information to the underlying InputFormat. This method is called multiple times by pig - implementations should bear this in mind and should ensure there are no inconsistent side effects due to the multiple calls. </li>
+ <li>prepareToRead() : Through this method the RecordReader associated with the InputFormat provided by the LoadFunc is passed to the LoadFunc. The RecordReader can then be used by the implementation in getNext() to return a tuple representing a record of data back to pig. </li>
+ <li>getNext() :The meaning of getNext() has not changed and is called by Pig runtime to get the next tuple in the data - in this method the implementation should use the the underlying RecordReader and construct the tuple to return. </li>
+ </ul>
 
-<p><strong>getNext</strong></p>
-<p>The <code>getNext</code> function reads the input stream and constructs the next tuple. It returns <code>null</code> when it is done with processing and throws an <code>IOException</code> if it fails to process an input tuple. </p>
+ <p>The following methods have default implementations in LoadFunc and should be overridden only if needed: </p>
+ <ul>
+ <li>setUdfContextSignature():This method will be called by Pig both in the front end and back end to pass a unique signature to the Loader. The signature can be used to store into the UDFContext any information which the Loader needs to store between various method invocations in the front end and back end. A use case is to store RequiredFieldList passed to it in LoadPushDown.pushProjection(RequiredFieldList) for use in the back end before returning tuples in getNext(). The default implementation in LoadFunc has an empty body. This method will be called before other methods. </li>
+ <li>relativeToAbsolutePath():Pig runtime will call this method to allow the Loader to convert a relative load location to an absolute location. The default implementation provided in LoadFunc handles this for FileSystem locations. If the load source is something else, loader implementation may choose to override this.</li>
+ </ul>
 
-<p><strong>conversion routines</strong></p>
-<p>Next is a bunch of conversion routines that convert data from <code>bytearray</code> to the requested type. This requires further explanation. By default, we would like the loader to do as little per-tuple processing as possible. This is because many tuples can be thrown out during filtering or joins. Also, many fields might not get used because they get projected out. If the data needs to be converted into another form, we would like this conversion to happen as late as possible. The majority of the loaders should return the data as bytearrays and the Pig will request a conversion from bytearray to the actual type when needed. Let's looks at the example below: </p>
-
-<source>
-A = load 'student_data' using PigStorage() as (name: chararray, age: int, gpa: float);
-B = filter A by age >25;
-C = foreach B generate name;
-dump C;
-</source>
-
-<p>In this query, only <code>age</code> needs to be converted to its actual type (=int=) right away. <code>name</code> only needs to be converted in the next step of processing where the data is likely to be much smaller. <code>gpa</code> is not used at all and will never need to be converted. </p>
-
-<p>This is the main reason for Pig to separate the reading of the data (which can happen immediately) from the converting of the data (to the right type, which can happen later). For ASCII data, Pig provides <code>Utf8StorageConverter</code> that your loader class can extend and will take care of all the conversion routines. The code for it can be found <a href="http://svn.apache.org/viewvc/hadoop/pig/trunk/src/org/apache/pig/builtin/Utf8StorageConverter.java?view=markup"> here</a>. </p>
-
-<p>Note that conversion rutines should return null values for data that can't be converted to the specified type. </p>
-
-<p>Loaders that work with binary data like <code>BinStorage</code> are not going to use this model. Instead, they will produce objects of the appropriate types. However, they might still need to define conversion routines in case some of the fields in a tuple are of type <code>bytearray</code>. </p>
-
-<p><strong>fieldsToRead</strong></p>
+<p><strong>Example Implementation</strong></p>
 <p>
-The intent of the <code>fieldsToRead</code> function is to reduce the amount of data returned from the loader. Pig will evaluate the script and determine the minimal set of columns needed to execute it. This information will be passed to the <code>fieldsToRead</code> function of the loader in the <code>requiredFieldList</code> parameter. The parameter is of type <code>RequiredFieldList</code> that is defined as part of the
-<a href="http://svn.apache.org/viewvc/hadoop/pig/branches/branch-0.6/src/org/apache/pig/LoadFunc.java?view=markup">LoadFunc</a> interface. 
-If the loader chooses not to purge unneeded columns, it can use the following implementation:
+The loader implementation in the example is a loader for text data with line delimiter as '\n' and '\t' as default field delimiter (which can be overridden by passing a different field delimiter in the constructor) - this is similar to current PigStorage loader in Pig. The implementation uses an existing Hadoop supported !Inputformat - TextInputFormat as the underlying InputFormat.
 </p>
 <source>
-public LoadFunc.RequiredFieldResponse fieldsToRead(LoadFunc.RequiredFieldList requiredFieldList) throws FrontendException {
-        return new LoadFunc.RequiredFieldResponse(false);
+public class SimpleTextLoader extends LoadFunc {
+    protected RecordReader in = null;
+    private byte fieldDel = '\t';
+    private ArrayList&lt;Object&gt; mProtoTuple = null;
+    private TupleFactory mTupleFactory = TupleFactory.getInstance();
+    private static final int BUFFER_SIZE = 1024;
+
+    public SimpleTextLoader() {
+    }
+
+    /**
+     * Constructs a Pig loader that uses specified character as a field delimiter.
+     *
+     * @param delimiter
+     *            the single byte character that is used to separate fields.
+     *            ("\t" is the default.)
+     */
+    public SimpleTextLoader(String delimiter) {
+        this();
+        if (delimiter.length() == 1) {
+            this.fieldDel = (byte)delimiter.charAt(0);
+        } else if (delimiter.length() &gt;  1 &amp; &amp; delimiter.charAt(0) == '\\') {
+            switch (delimiter.charAt(1)) {
+            case 't':
+                this.fieldDel = (byte)'\t';
+                break;
+
+            case 'x':
+               fieldDel =
+                    Integer.valueOf(delimiter.substring(2), 16).byteValue();
+               break;
+
+            case 'u':
+                this.fieldDel =
+                    Integer.valueOf(delimiter.substring(2)).byteValue();
+                break;
+
+            default:
+                throw new RuntimeException("Unknown delimiter " + delimiter);
+            }
+        } else {
+            throw new RuntimeException("PigStorage delimeter must be a single character");
+        }
+    }
+
+    @Override
+    public Tuple getNext() throws IOException {
+        try {
+            boolean notDone = in.nextKeyValue();
+            if (!notDone) {
+                return null;
+            }
+            Text value = (Text) in.getCurrentValue();
+            byte[] buf = value.getBytes();
+            int len = value.getLength();
+            int start = 0;
+
+            for (int i = 0; i &lt; len; i++) {
+                if (buf[i] == fieldDel) {
+                    readField(buf, start, i);
+                    start = i + 1;
+                }
+            }
+            // pick up the last field
+            readField(buf, start, len);
+
+            Tuple t =  mTupleFactory.newTupleNoCopy(mProtoTuple);
+            mProtoTuple = null;
+            return t;
+        } catch (InterruptedException e) {
+            int errCode = 6018;
+            String errMsg = "Error while reading input";
+            throw new ExecException(errMsg, errCode,
+                    PigException.REMOTE_ENVIRONMENT, e);
+        }
+
+    }
+
+    private void readField(byte[] buf, int start, int end) {
+        if (mProtoTuple == null) {
+            mProtoTuple = new ArrayList&lt;Object&gt;();
+        }
+
+        if (start == end) {
+            // NULL value
+            mProtoTuple.add(null);
+        } else {
+            mProtoTuple.add(new DataByteArray(buf, start, end));
+        }
+    }
+
+    @Override
+    public InputFormat getInputFormat() {
+        return new TextInputFormat();
+    }
+
+    @Override
+    public void prepareToRead(RecordReader reader, PigSplit split) {
+        in = reader;
+    }
+
+    @Override
+    public void setLocation(String location, Job job)
+            throws IOException {
+        FileInputFormat.setInputPaths(job, location);
+    }
 }
 </source>
 
-<p>
-This tells Pig that it should expect the entire column set from the loader. We expect that most loaders will stick to this implementation. In our tests of PigStorage, we saw about 5% improvement when selecting 5 columns out of 40. The loaders that should take advantage of this functionality are the ones, like Zebra, that can pass this information directly to the storage layer. For an example of <code>fieldsToRead</code> see the implementation in <a href="http://svn.apache.org/viewvc/hadoop/pig/branches/branch-0.6/src/org/apache/pig/builtin/PigStorage.java?view=markup"> PigStorage</a>.
-</p>
-
-<p><strong>determineSchema</strong></p>
-<p>The <code>determineSchema</code> function must be implemented by loaders that return real data types rather than <code>bytearray</code> fields. Other loaders should just return <code>null</code>. The idea here is that Pig needs to know the actual types it will be getting; Pig will call <code>determineSchema</code> on the client side to get this information. The function is provided as a way to sample the data to determine its schema.  </p>
-
-<p>Here is the example of the function implemented by =BinStorage=: </p>
-
-<source>
-public Schema determineSchema(String fileName, ExecType execType, DataStorage storage) throws IOException {
-    InputStream is = FileLocalizer.open(fileName, execType, storage);
-    bindTo(fileName, new BufferedPositionedInputStream(is), 0, Long.MAX_VALUE);
-        // get the first record from the input file and figure out the schema 
-        Tuple t = getNext();
-        if(t == null) return null;
-        int numFields = t.size();
-        Schema s = new Schema();
-        for (int i = 0; i  numFields; i++) {
-            try {
-                s.add(DataType.determineFieldSchema(t.get(i)));
-            } catch (Exception e) {
-                throw WrappedIOException.wrap(e);
-            }
-        }
-        return s;
-    }
-</source>
-
-<p>Note that this approach assumes that the data has a uniform schema. The function needs to make sure that the data it produces conforms to the schema returned by <code>determineSchema</code>, otherwise the processing will fail. This means producing the right number of fields in the tuple (dropping fields or emitting null values if needed) and producing fields of the right type (again emitting null values as needed). </p>
-<p>For complete examples, see <a  href="http://svn.apache.org/viewvc/hadoop/pig/trunk/src/org/apache/pig/builtin/BinStorage.java?view=markup">BinStorage</a> and <a href="http://svn.apache.org/viewvc/hadoop/pig/trunk/src/org/apache/pig/builtin/PigStorage.java?view=markup"> PigStorage</a>. </p>
-
 </section>
+<!-- END LOAD FUNCTION -->
 
 <section>
 <title> Store Functions</title>
 
-<p>All store functions need to implement the <code>StoreFunc</code> interface: </p>
+<p><a href="http://svn.apache.org/viewvc/hadoop/pig/trunk/src/org/apache/pig/StoreFunc.java?view=markup">StoreFunc</a> 
+abstract class has the main methods for storing data and for most use cases it should suffice to extend it. There is an optional interface which can be implemented to achieve extended functionality: </p>
+<ul>
+<li><a href="http://svn.apache.org/viewvc/hadoop/pig/trunk/src/org/apache/pig/StoreMetadata.java?view=markup">StoreMetadata:</a> 
+This interface has methods to interact with metadata systems to store schema and store statistics. This interface is truely optional and should only be implemented if metadata needs to stored. </li>
+</ul>
+
+<p>The methods which need to be overridden in StoreFunc are explained below: </p>
+<ul>
+<li>getOutputFormat(): This method will be called by Pig to get the OutputFormat used by the storer. The methods in the OutputFormat (and underlying RecordWriter and OutputCommitter) will be called by pig in the same manner (and in the same context) as by Hadoop in a map-reduce java program. If the OutputFormat is a hadoop packaged one, the implementation should use the new API based one under org.apache.hadoop.mapreduce. If it is a custom OutputFormat, it should be implemented using the new API under org.apache.hadoop.mapreduce. The checkOutputSpecs() method of the OutputFormat will be called by pig to check the output location up-front. This method will also be called as part of the Hadoop call sequence when the job is launched. So implementations should ensure that this method can be called multiple times without inconsistent side effects. </li>
+<li>setStoreLocation(): This method is called by Pig to communicate the store location to the storer. The storer should use this method to communicate the same information to the underlying OutputFormat. This method is called multiple times by pig - implementations should bear in mind that this method is called multiple times and should ensure there are no inconsistent side effects due to the multiple calls. </li>
+<li>prepareToWrite(): In the new API, writing of the data is through the OutputFormat provided by the StoreFunc. In prepareToWrite() the RecordWriter associated with the OutputFormat provided by the StoreFunc is passed to the StoreFunc. The RecordWriter can then be used by the implementation in putNext() to write a tuple representing a record of data in a manner expected by the RecordWriter. </li>
+<li>putNext(): The meaning of putNext() has not changed and is called by Pig runtime to write the next tuple of data - in the new API, this is the method wherein the implementation will use the the underlying RecordWriter to write the Tuple out.</li>
+</ul>
+
+<p>The following methods have default implementations in StoreFunc and should be overridden only if necessary: </p>
+<ul>
+<li>setStoreFunc!UDFContextSignature(): This method will be called by Pig both in the front end and back end to pass a unique signature to the Storer. The signature can be used to store into the UDFContext any information which the Storer needs to store between various method invocations in the front end and back end. The default implementation in StoreFunc has an empty body. This method will be called before other methods. 
+</li>
+<li>relToAbsPathForStoreLocation(): Pig runtime will call this method to allow the Storer to convert a relative store location to an absolute location. An implementation is provided in StoreFunc which handles this for FileSystem based locations. </li>
+<li>checkSchema(): A Store function should implement this function to check that a given schema describing the data to be written is acceptable to it. The default implementation in StoreFunc has an empty body. This method will be called before any calls to setStoreLocation(). </li>
+</ul>
+
+<p><strong>Example Implementation</strong></p>
+<p>
+The storer implementation in the example is a storer for text data with line delimiter as '\n' and '\t' as default field delimiter (which can be overridden by passing a different field delimiter in the constructor) - this is similar to current PigStorage storer in Pig. The implementation uses an existing Hadoop supported OutputFormat - TextOutputFormat as the underlying OutputFormat. 
+</p>
 
 <source>
-public interface StoreFunc {
-    public abstract void bindTo(OutputStream os) throws IOException;
-    public abstract void putNext(Tuple f) throws IOException;
-    public abstract void finish() throws IOException;
+public class SimpleTextStorer extends StoreFunc {
+    protected RecordWriter writer = null;
+
+    private byte fieldDel = '\t';
+    private static final int BUFFER_SIZE = 1024;
+    private static final String UTF8 = "UTF-8";
+    public PigStorage() {
+    }
+
+    public PigStorage(String delimiter) {
+        this();
+        if (delimiter.length() == 1) {
+            this.fieldDel = (byte)delimiter.charAt(0);
+        } else if (delimiter.length() > 1delimiter.charAt(0) == '\\') {
+            switch (delimiter.charAt(1)) {
+            case 't':
+                this.fieldDel = (byte)'\t';
+                break;
+
+            case 'x':
+               fieldDel =
+                    Integer.valueOf(delimiter.substring(2), 16).byteValue();
+               break;
+            case 'u':
+                this.fieldDel =
+                    Integer.valueOf(delimiter.substring(2)).byteValue();
+                break;
+
+            default:
+                throw new RuntimeException("Unknown delimiter " + delimiter);
+            }
+        } else {
+            throw new RuntimeException("PigStorage delimeter must be a single character");
+        }
+    }
+
+    ByteArrayOutputStream mOut = new ByteArrayOutputStream(BUFFER_SIZE);
+
+    @Override
+    public void putNext(Tuple f) throws IOException {
+        int sz = f.size();
+        for (int i = 0; i &lt; sz; i++) {
+            Object field;
+            try {
+                field = f.get(i);
+            } catch (ExecException ee) {
+                throw ee;
+            }
+
+            putField(field);
+
+            if (i != sz - 1) {
+                mOut.write(fieldDel);
+            }
+        }
+        Text text = new Text(mOut.toByteArray());
+        try {
+            writer.write(null, text);
+            mOut.reset();
+        } catch (InterruptedException e) {
+            throw new IOException(e);
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private void putField(Object field) throws IOException {
+        //string constants for each delimiter
+        String tupleBeginDelim = "(";
+        String tupleEndDelim = ")";
+        String bagBeginDelim = "{";
+        String bagEndDelim = "}";
+        String mapBeginDelim = "[";
+        String mapEndDelim = "]";
+        String fieldDelim = ",";
+        String mapKeyValueDelim = "#";
+
+        switch (DataType.findType(field)) {
+        case DataType.NULL:
+            break; // just leave it empty
+
+        case DataType.BOOLEAN:
+            mOut.write(((Boolean)field).toString().getBytes());
+            break;
+
+        case DataType.INTEGER:
+            mOut.write(((Integer)field).toString().getBytes());
+            break;
+
+        case DataType.LONG:
+            mOut.write(((Long)field).toString().getBytes());
+            break;
+
+        case DataType.FLOAT:
+            mOut.write(((Float)field).toString().getBytes());
+            break;
+
+        case DataType.DOUBLE:
+            mOut.write(((Double)field).toString().getBytes());
+            break;
+
+        case DataType.BYTEARRAY: {
+            byte[] b = ((DataByteArray)field).get();
+            mOut.write(b, 0, b.length);
+            break;
+                                 }
+
+        case DataType.CHARARRAY:
+            // oddly enough, writeBytes writes a string
+            mOut.write(((String)field).getBytes(UTF8));
+            break;
+
+        case DataType.MAP:
+            boolean mapHasNext = false;
+            Map&lt;String, Object&gt; m = (Map&lt;String, Object&gt;)field;
+            mOut.write(mapBeginDelim.getBytes(UTF8));
+            for(Map.Entry&lt;String, Object&gt; e: m.entrySet()) {
+                if(mapHasNext) {
+                    mOut.write(fieldDelim.getBytes(UTF8));
+                } else {
+                    mapHasNext = true;
+                }
+                putField(e.getKey());
+                mOut.write(mapKeyValueDelim.getBytes(UTF8));
+                putField(e.getValue());
+            }
+            mOut.write(mapEndDelim.getBytes(UTF8));
+            break;
+
+        case DataType.TUPLE:
+            boolean tupleHasNext = false;
+            Tuple t = (Tuple)field;
+            mOut.write(tupleBeginDelim.getBytes(UTF8));
+            for(int i = 0; i &lt; t.size(); ++i) {
+                if(tupleHasNext) {
+                    mOut.write(fieldDelim.getBytes(UTF8));
+                } else {
+                    tupleHasNext = true;
+                }
+                try {
+                    putField(t.get(i));
+                } catch (ExecException ee) {
+                    throw ee;
+                }
+            }
+            mOut.write(tupleEndDelim.getBytes(UTF8));
+            break;
+
+        case DataType.BAG:
+            boolean bagHasNext = false;
+            mOut.write(bagBeginDelim.getBytes(UTF8));
+            Iterator&lt;Tuple&gt; tupleIter = ((DataBag)field).iterator();
+            while(tupleIter.hasNext()) {
+                if(bagHasNext) {
+                    mOut.write(fieldDelim.getBytes(UTF8));
+                } else {
+                    bagHasNext = true;
+                }
+                putField((Object)tupleIter.next());
+            }
+            mOut.write(bagEndDelim.getBytes(UTF8));
+            break;
+
+        default: {
+            int errCode = 2108;
+            String msg = "Could not determine data type of field: " + field;
+            throw new ExecException(msg, errCode, PigException.BUG);
+        }
+
+        }
+    }
+
+    @Override
+    public OutputFormat getOutputFormat() {
+        return new TextOutputFormat&lt;WritableComparable, Text&gt;();
+    }
+
+    @Override
+    public void prepareToWrite(RecordWriter writer) {
+        this.writer = writer;
+    }
+
+    @Override
+    public void setStoreLocation(String location, Job job) throws IOException {
+        job.getConfiguration().set("mapred.textoutputformat.separator", "");
+        FileOutputFormat.setOutputPath(job, new Path(location));
+        if (location.endsWith(".bz2")) {
+            FileOutputFormat.setCompressOutput(job, true);
+            FileOutputFormat.setOutputCompressorClass(job,  BZip2Codec.class);
+        }  else if (location.endsWith(".gz")) {
+            FileOutputFormat.setCompressOutput(job, true);
+            FileOutputFormat.setOutputCompressorClass(job, GzipCodec.class);
+        }
+    }
 }
 </source>
 
-<p>The <code>bindTo</code> method is called in the beginning of the processing to connect the store function to the output stream it will write to. The <code>putNext</code> method is called for every tuple to be stored and is responsible for writing the tuple into the output. The <code>finish</code> function is called at the end of the processing to do all needed cleanup like flushing the output stream. </p>
-<p>Here is an example of a simple store function that writes data as a string returned from the <code>toString</code> function. </p>
-
-<source>
-public class StringStore implements StoreFunc {
-    OutputStream os;
-    private byte recordDel = (byte)'\n';
-    public void bindTo(OutputStream os) throws IOException
-    {
-        this.os = os;
-    }
-    public void putNext(Tuple t) throws IOException
-    {
-        os.write((t.toString() + (char)this.recordDel).getBytes("utf8"));
-    }
-    public void finish() throws IOException
-    {
-         os.flush();
-    }
-}
-</source>
-</section></section>
+</section>
+<!-- END STORE FUNCTION -->
+</section>
+<!-- END LOAD/STORE FUNCTIONS -->
 
 <section>
 <title> Comparison Functions</title>

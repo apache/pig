@@ -42,7 +42,7 @@
    <title>Prerequisites</title> 
    <p>Zebra requires:</p>
    <ul>
-   <li>Pig 0.6.0 or later</li>
+   <li>Pig 0.7.0 or later</li>
    <li>Hadoop 0.20.1 or later</li>
    </ul>
    <p></p>

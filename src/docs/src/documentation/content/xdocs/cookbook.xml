@@ -246,17 +246,28 @@ For more information see <a href="piglatin_ref1.html#Specialized+Joins">Speciali
 <a href="piglatin_ref2.html#JOIN+%28inner%29">JOIN (inner)</a>, 
 <a href="piglatin_ref2.html#JOIN+%28outer%29">JOIN (outer)</a>, and
 <a href="piglatin_ref2.html#ORDER">ORDER</a>.
+</p>
  
-You can also set the value of PARALLEL for all scripts using the <a href="piglatin_ref2.html#set">set</a> command.</p>
+<p>You can also set the value of PARALLEL for all Pig scripts using the <a href="piglatin_ref2.html#set">set default parallel</a> command.</p>
 
-<p>Example</p>
-
+<p>In this example PARALLEL is used with the GROUP operator. </p>
 <source>
-A = load 'myfile' as (t, u, v);
-B = group A by t PARALLEL 18;
+A = LOAD 'myfile' AS (t, u, v);
+B = GROUP A BY t PARALLEL 18;
 .....
 </source>
+
+<p>In this example all the MapReduce jobs that get launched use 20 reducers.</p>
+<source>
+SET DEFAULT_PARALLEL 20;
+A = LOAD ‘myfile.txt’ USING PigStorage() AS (t, u, v);
+B = GROUP A BY t;
+C = FOREACH B GENERATE group, COUNT(A.t) as mycount;
+D = ORDER C BY mycount;
+STORE D INTO ‘mysortedcount’ USING PigStorage();
+</source>
 </section>
+
 
 <section>
 <title>Use the LIMIT Operator</title>
