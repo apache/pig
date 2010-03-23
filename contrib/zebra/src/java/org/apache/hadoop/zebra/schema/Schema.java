@@ -750,7 +750,11 @@ public class Schema implements Comparable<Schema>, Writable {
     for (int i = 0; i < ncols; i++) {
 	    if (Projection.isVirtualColumn(projcols[i]))
 	    {
-	      result.add(null);
+	      mycs = 
+	    	  new ColumnSchema(
+	    		  Projection.source_table_vcolumn_name, null, ColumnType.INT
+	    	  );	
+	      result.add(mycs);
 	      continue;
 	    }
       pn.setName(projcols[i]);
