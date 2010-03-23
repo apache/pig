@@ -68,6 +68,8 @@ Trunk (unreleased changes)
 
   BUG FIXES
 
+    PIG-1318 Invalid type for source_table field when using order-preserving Sorted Table Union (gauravj via yanz)
+
     PIG-1258 Number of sorted input splits is unusually high (yanz)
 
     PIG-1269 Restrict schema definition for collection (xuefuz via yanz)
