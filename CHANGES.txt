@@ -24,6 +24,10 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-1317: LOLoad should cache results of LoadMetadata.getSchema() for use in
+subsequent calls to LOLoad.getSchema() or LOLoad.determineSchema()
+(pradeepkth)
+
 OPTIMIZATIONS
 
 BUG FIXES

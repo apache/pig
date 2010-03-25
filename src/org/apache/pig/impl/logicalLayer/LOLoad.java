@@ -60,6 +60,8 @@ public class LOLoad extends RelationalOperator {
     private static Log log = LogFactory.getLog(LOLoad.class);
     private Schema mDeterminedSchema = null;
     private RequiredFieldList requiredFieldList;
+
+    private boolean mDeterminedSchemaCached = false;
     
     /**
      * @param plan
@@ -146,7 +148,6 @@ public class LOLoad extends RelationalOperator {
 
                 if(null == mDeterminedSchema) {
                     mSchema = determineSchema();
-                    mDeterminedSchema  = mSchema;    
                 }
                 mIsSchemaComputed = true;
             } catch (IOException ioe) {
@@ -162,13 +163,18 @@ public class LOLoad extends RelationalOperator {
     }
     
     private Schema determineSchema() throws IOException {
-        if(LoadMetadata.class.isAssignableFrom(mLoadFunc.getClass())) {
-            LoadMetadata loadMetadata = (LoadMetadata)mLoadFunc;
-            ResourceSchema rSchema = loadMetadata.getSchema(
-                    mInputFileSpec.getFileName(), new Job(conf));
-            return Schema.getPigSchema(rSchema);
+        if(!mDeterminedSchemaCached) {
+            if(LoadMetadata.class.isAssignableFrom(mLoadFunc.getClass())) {
+                LoadMetadata loadMetadata = (LoadMetadata)mLoadFunc;
+                ResourceSchema rSchema = loadMetadata.getSchema(
+                        mInputFileSpec.getFileName(), new Job(conf));
+                mDeterminedSchema = Schema.getPigSchema(rSchema);
+            } 
+            // set the flag so that future calls just use mDeterminedSchema
+            mDeterminedSchemaCached = true;
+            return mDeterminedSchema;
         } else {
-            return null;
+            return mDeterminedSchema;
         }
     }
     /* (non-Javadoc)
