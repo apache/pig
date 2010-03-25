@@ -17,15 +17,27 @@
  */
 package org.apache.pig.test;
 
+import java.io.File;
 import java.io.FileInputStream;
+import java.io.IOException;
 
+import org.apache.hadoop.mapreduce.Job;
 import org.apache.pig.ExecType;
+import org.apache.pig.Expression;
+import org.apache.pig.LoadMetadata;
+import org.apache.pig.ResourceSchema;
+import org.apache.pig.ResourceStatistics;
+import org.apache.pig.builtin.BinStorage;
+import org.apache.pig.impl.logicalLayer.LOPrinter;
 import org.apache.pig.impl.logicalLayer.LogicalPlan;
+import org.apache.pig.impl.logicalLayer.PlanSetter;
 import org.apache.pig.impl.logicalLayer.optimizer.ImplicitSplitInserter;
 import org.apache.pig.impl.logicalLayer.optimizer.LogicalOptimizer;
 import org.apache.pig.impl.logicalLayer.optimizer.OpLimitOptimizer;
 import org.apache.pig.impl.logicalLayer.optimizer.TypeCastInserter;
+import org.apache.pig.impl.logicalLayer.parser.ParseException;
 import org.apache.pig.impl.plan.optimizer.OptimizerException;
+import org.apache.pig.impl.util.Utils;
 import org.apache.pig.test.utils.LogicalPlanTester;
 import org.junit.Test;
 
@@ -255,6 +267,37 @@ public class TestLogicalOptimizer extends junit.framework.TestCase {
         optimizePlan(plan);
     }
 
+    /**
+     * test to check that {@link LoadMetadata#getSchema(String, Job)} is called
+     * only once even if the optimizer is fired and schemas and projection maps
+     * are rebuilt
+     */
+    @Test
+    public void testLoadGetSchemaCalledOnce() throws Exception {
+        String checkFileName = "checkLoadGetSchemaCalledOnce.txt";
+        new File(checkFileName).delete();
+        try{
+            
+            planTester.buildPlan("A = load 'myfile' using " 
+                    + DummyMetadataLoader.class.getName() + "('"+ checkFileName +"');");
+            planTester.buildPlan("B = foreach A generate $0 ;");
+            LogicalPlan plan = planTester.buildPlan("C = limit B 10;");
+            new LOPrinter(System.err, plan).visit();
+            // Set the logical plan values correctly in all the operators
+            PlanSetter ps = new PlanSetter(plan);
+            ps.visit();
+            // the optimizer should run atleast one iteration 
+            LogicalOptimizerDerivative optimizer = 
+                new LogicalOptimizerDerivative(plan);
+            int numIterations = optimizer.optimize();
+            assertTrue(numIterations > 0);
+            assertTrue(new File(checkFileName).exists());
+        } finally {
+            new File(checkFileName).delete();
+        }
+    
+    }
+    
     // a subclass of LogicalOptimizer which can return the maximum iterations
     // the optimizer would try the check() and transform() methods 
     static class LogicalOptimizerDerivative extends LogicalOptimizer {
@@ -265,6 +308,60 @@ public class TestLogicalOptimizer extends junit.framework.TestCase {
         public int getMaxIterations() {
             return mMaxIterations;
         }
+    }
+    
+    /**
+     * A dummy loader which extends {@link LoadMetadata} and in the 
+     * {@link LoadMetadata#getSchema(String, Job)} implementation checks that 
+     * the method is only called once.
+     */
+    public static class DummyMetadataLoader extends BinStorage implements LoadMetadata {
+        
+        String checkFileName;
+        
+        public DummyMetadataLoader() {
+            
+        }
+        
+        public DummyMetadataLoader(String checkFileName) {
+            this.checkFileName = checkFileName;
+        }
+        
+        @Override
+        public String[] getPartitionKeys(String location, Job job)
+                throws IOException {
+            return null;
+        }
+
+        @Override
+        public ResourceSchema getSchema(String location, Job job)
+                throws IOException {
+            try {
+                
+                // the create() below will fail is this method gets called
+                // more than once
+                if(!new File(checkFileName).createNewFile()) {
+                    throw new RuntimeException(checkFileName + " already exists!");
+                }
+                return new ResourceSchema(
+                        Utils.getSchemaFromString("a:chararray,b:int"));
+            } catch (ParseException e) {
+                throw new IOException(e);
+            }
+        }
+
+        @Override
+        public ResourceStatistics getStatistics(String location, Job job)
+                throws IOException {
+            return null;
+        }
+
+        @Override
+        public void setPartitionFilter(Expression partitionFilter)
+                throws IOException {
+            
+        }
+        
     }
 }
 

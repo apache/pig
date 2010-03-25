@@ -68,6 +68,10 @@ manner (rding via pradeepkth)
 
 IMPROVEMENTS
 
+PIG-1317: LOLoad should cache results of LoadMetadata.getSchema() for use in
+subsequent calls to LOLoad.getSchema() or LOLoad.determineSchema()
+(pradeepkth)
+
 PIG-1320: documentation updates for Pig 0.7.0 (chandec via olgan)
 
 PIG-1325: Provide a way to exclude a testcase when running "ant test"
