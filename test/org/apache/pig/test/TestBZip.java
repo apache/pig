@@ -32,6 +32,7 @@ import junit.framework.Assert;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
+import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.InputSplit;
@@ -235,17 +236,28 @@ public class TestBZip {
      * Tests the case where a bzip block ends exactly at the end of the {@link InputSplit}
      * with the block header ending a few bits into the last byte of current
      * InputSplit. This case results in dropped records in Pig 0.6 release
+     * This test also tests that bzip files couple of dirs deep can be read by
+     * specifying the top level dir.
      */
     @Test
     public void testBlockHeaderEndingAtSplitNotByteAligned() throws IOException {
+        // the actual input file is at
+        // test/org/apache/pig/test/data/bzipdir1.bz2/bzipdir2.bz2/recordLossblockHeaderEndsAt136500.txt.bz2
+        // In this test we will load test/org/apache/pig/test/data/bzipdir1.bz2 to also
+        // test that the BZip2TextInputFormat can read subdirs recursively
         String inputFileName = 
-            "test/org/apache/pig/test/data/recordLossblockHeaderEndsAt136500.txt.bz2";
+            "test/org/apache/pig/test/data/bzipdir1.bz2";
         Long expectedCount = 74999L; // number of lines in above file
         // the first block in the above file exactly ends a few bits into the 
         // byte at position 136500 
         int splitSize = 136500;
-        Util.copyFromLocalToCluster(cluster, inputFileName, inputFileName);
-        testCount(inputFileName, expectedCount, splitSize);
+        try {
+            Util.copyFromLocalToCluster(cluster, inputFileName, inputFileName);
+            testCount(inputFileName, expectedCount, splitSize, "PigStorage()");
+            testCount(inputFileName, expectedCount, splitSize, "TextLoader()");
+        } finally {
+            Util.deleteFile(cluster, inputFileName);
+        }
     }
     
     /**
@@ -262,47 +274,75 @@ public class TestBZip {
         Long expectedCount = 82094L; 
         // the first block in the above file exactly ends at the byte at 
         // position 136498 and the last byte is a carriage return ('\r') 
-        int splitSize = 136498;
-        Util.copyFromLocalToCluster(cluster, inputFileName, inputFileName);
-        testCount(inputFileName, expectedCount, splitSize);
+        try {
+            int splitSize = 136498;
+            Util.copyFromLocalToCluster(cluster, inputFileName, inputFileName);
+            testCount(inputFileName, expectedCount, splitSize, "PigStorage()");
+        } finally {
+            Util.deleteFile(cluster, inputFileName);
+        }
     }
     
     /**
      * Tests the case where a bzip block ends exactly at the end of the input
      * split and has more data which results in overcounting (record duplication)
      * in Pig 0.6
+     * 
      */
     @Test
     public void testBlockHeaderEndingAtSplitOverCounting() throws IOException {
+       
         String inputFileName = 
             "test/org/apache/pig/test/data/blockHeaderEndsAt136500.txt.bz2";
         Long expectedCount = 1041046L; // number of lines in above file
         // the first block in the above file exactly ends a few bits into the 
         // byte at position 136500 
         int splitSize = 136500;
-        Util.copyFromLocalToCluster(cluster, inputFileName, inputFileName);
-        testCount(inputFileName, expectedCount, splitSize);
-    }
-    
-    private void testCount(String inputFileName, Long expectedCount, 
-            int splitSize) throws IOException {
         try {
-            String script = "a = load '" + inputFileName + "';" +
-            		"b = group a all;" +
-            		"c = foreach b generate COUNT_STAR(a);";
-            Properties props = new Properties();
-            for (Entry<Object, Object> entry : cluster.getProperties().entrySet()) {
-                props.put(entry.getKey(), entry.getValue());
-            }
-            props.setProperty("mapred.max.split.size", Integer.toString(splitSize));
-            PigContext pigContext = new PigContext(ExecType.MAPREDUCE, props);
-            PigServer pig = new PigServer(pigContext);
-            Util.registerMultiLineQuery(pig, script);
-            Iterator<Tuple> it = pig.openIterator("c");
-            Long result = (Long) it.next().get(0);
-            assertEquals(expectedCount, result);
+            Util.copyFromLocalToCluster(cluster, inputFileName, inputFileName);
+            testCount(inputFileName, expectedCount, splitSize, "PigStorage()");
         } finally {
             Util.deleteFile(cluster, inputFileName);
         }
+    }
+    
+    private void testCount(String inputFileName, Long expectedCount, 
+            int splitSize, String loadFuncSpec) throws IOException {
+        String outputFile = "/tmp/bz-output";
+        // simple load-store script to verify that the bzip input is getting
+        // split
+        String scriptToTestSplitting = "a = load '" +inputFileName + "' using " +
+        loadFuncSpec + "; store a into '" + outputFile + "';";
+        
+        String script = "a = load '" + inputFileName + "';" +
+        		"b = group a all;" +
+        		"c = foreach b generate COUNT_STAR(a);";
+        Properties props = new Properties();
+        for (Entry<Object, Object> entry : cluster.getProperties().entrySet()) {
+            props.put(entry.getKey(), entry.getValue());
+        }
+        props.setProperty("mapred.max.split.size", Integer.toString(splitSize));
+        PigContext pigContext = new PigContext(ExecType.MAPREDUCE, props);
+        PigServer pig = new PigServer(pigContext);
+        FileSystem fs = FileSystem.get(ConfigurationUtil.toConfiguration(props));
+        fs.delete(new Path(outputFile), true);
+        Util.registerMultiLineQuery(pig, scriptToTestSplitting);
+        
+        // verify that > 1 maps were launched due to splitting of the bzip input
+        FileStatus[] files = fs.listStatus(new Path(outputFile));
+        int numPartFiles = 0;
+        for (FileStatus fileStatus : files) {
+            if(fileStatus.getPath().getName().startsWith("part")) {
+                numPartFiles++;
+            }
+        }
+        assertEquals(true, numPartFiles > 0);
+        
+        // verify record count to verify we read bzip data correctly
+        Util.registerMultiLineQuery(pig, script);
+        Iterator<Tuple> it = pig.openIterator("c");
+        Long result = (Long) it.next().get(0);
+        assertEquals(expectedCount, result);
+        
     }
 }
