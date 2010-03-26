@@ -1377,15 +1377,23 @@ public class TestBuiltin extends TestCase {
     }
     */
 
-    
+    /**
+     * test {@link TextLoader} - this also tests that {@link TextLoader} is capable
+     * of reading data a couple of dirs deep when the input specified is the top
+     * level directory
+     */
     @Test
     public void testLFText() throws Exception {
         String input1 = "This is some text.\nWith a newline in it.\n";
         String expected1 = "This is some text.";
         String expected2 = "With a newline in it.";
-        Util.createInputFile(cluster, "testLFTest-input1.txt", new String[] {input1});
+        Util.createInputFile(cluster, 
+                "/tmp/testLFTextdir1/testLFTextdir2/testLFTest-input1.txt", 
+                new String[] {input1});
+        // check that loading the top level dir still reading the file a couple
+        // of subdirs below
         LoadFunc text1 = new ReadToEndLoader(new TextLoader(), ConfigurationUtil.
-                toConfiguration(cluster.getProperties()), "testLFTest-input1.txt", 0);
+                toConfiguration(cluster.getProperties()), "/tmp/testLFTextdir1", 0);
         Tuple f1 = text1.getNext();
         Tuple f2 = text1.getNext();
         assertTrue(expected1.equals(f1.get(0).toString()) &&
