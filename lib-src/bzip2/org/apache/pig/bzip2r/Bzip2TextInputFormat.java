@@ -31,12 +31,12 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
-import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.FileSplit;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigFileInputFormat;
 import org.apache.tools.bzip2r.CBZip2InputStream;
 
 @SuppressWarnings("unchecked")
-public class Bzip2TextInputFormat extends FileInputFormat {
+public class Bzip2TextInputFormat extends PigFileInputFormat {
 
     /**
      * Treats keys as offset in file and value as line. Since the input file is

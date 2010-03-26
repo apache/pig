@@ -25,13 +25,14 @@ import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
-import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
 import org.apache.pig.LoadCaster;
 import org.apache.pig.LoadFunc;
 import org.apache.pig.PigException;
 import org.apache.pig.ResourceSchema.ResourceFieldSchema;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigSplit;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigTextInputFormat;
+import org.apache.pig.bzip2r.Bzip2TextInputFormat;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.Tuple;
@@ -45,6 +46,7 @@ import org.apache.pig.data.TupleFactory;
 public class TextLoader extends LoadFunc implements LoadCaster {
     protected RecordReader in = null;
     private TupleFactory mTupleFactory = TupleFactory.getInstance();
+    private String loadLocation;
 
     @Override
     public Tuple getNext() throws IOException {
@@ -198,7 +200,11 @@ public class TextLoader extends LoadFunc implements LoadCaster {
 
     @Override
     public InputFormat getInputFormat() {
-        return new TextInputFormat();
+        if(loadLocation.endsWith("bz2") || loadLocation.endsWith("bz")) {
+            return new Bzip2TextInputFormat();
+        } else {
+            return new PigTextInputFormat();
+        }
     }
 
     @Override
@@ -213,6 +219,7 @@ public class TextLoader extends LoadFunc implements LoadCaster {
 
     @Override
     public void setLocation(String location, Job job) throws IOException {
+        loadLocation = location;
         FileInputFormat.setInputPaths(job, location);
     }
 
