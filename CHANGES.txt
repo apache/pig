@@ -24,6 +24,9 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-1316: TextLoader should use Bzip2TextInputFormat for bzip files so that
+bzip files can be efficiently processed by splitting the files (pradeepkth)
+
 PIG-1317: LOLoad should cache results of LoadMetadata.getSchema() for use in
 subsequent calls to LOLoad.getSchema() or LOLoad.determineSchema()
 (pradeepkth)
