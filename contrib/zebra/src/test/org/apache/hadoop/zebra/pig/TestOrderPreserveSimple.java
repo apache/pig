@@ -189,34 +189,37 @@ public class TestOrderPreserveSimple extends BaseTestCase {
 		//
 		// Test sorted union with two tables with: int
 		//
-		orderPreserveUnion("a", "a,b,c,d,e,f,m1");
+		orderPreserveUnion("a", "a,b,c,d,e,f,m1, source_table");
 		
 		// Verify union table
-		ArrayList<ArrayList<Object>> resultTable = new ArrayList<ArrayList<Object>>();
+		HashMap<Integer, ArrayList<ArrayList<Object>>> resultTable
+	  		= new HashMap<Integer, ArrayList<ArrayList<Object>>>();
 		
-		addResultRow(resultTable, -1,	3.25f,	1000L,	50e+2,	"zebra",	new DataByteArray("zebra"),	m1);
-		addResultRow(resultTable, -1,	-99.0f,	1002L,	51e+2,	"orange",	new DataByteArray("orange"),m2);
-		addResultRow(resultTable, 5,	-3.25f,	1001L,	51e+2,	"Zebra",	new DataByteArray("Zebra"),	m1);
-		addResultRow(resultTable, 15,	56.0f,	1004L,	50e+2,	"green",	new DataByteArray("green"),	m2);
-		
-		addResultRow(resultTable, 1000,	0.0f,	1002L,	52e+2,	"hadoop",	new DataByteArray("hadoop"),m1);
-		addResultRow(resultTable, 1001,	100.0f,	1003L,	55e+2,	"white",	new DataByteArray("white"),	m2);
-		addResultRow(resultTable, 1001,	100.0f,	1003L,	50e+2,	"Apple",	new DataByteArray("Apple"),	m1);
-		addResultRow(resultTable, 1001,	102.0f,	1001L,	52e+2,	"purple",	new DataByteArray("purple"),m2);
-		
-		addResultRow(resultTable, 1001,	101.0f,	1001L,	50e+2,	"apple",	new DataByteArray("apple"),	m1);
-		addResultRow(resultTable, 1001,	50.0f,	1008L,	52e+2,	"gray",		new DataByteArray("gray"),	m2);
-		addResultRow(resultTable, 1001,	101.0f,	1001L,	50e+2,	"apple",	new DataByteArray("apple"),	m1);
-		addResultRow(resultTable, 1001,	53.0f,	1001L,	52e+2,	"brown",	new DataByteArray("brown"),	m2);
-		
-		addResultRow(resultTable, 1001,	50.0f,	1000L,	50e+2,	"Pig",		new DataByteArray("Pig"),	m1);
-		addResultRow(resultTable, 1001,	52.0f,	1001L,	50e+2,	"pig",		new DataByteArray("pig"),	m1);
-		addResultRow(resultTable, 1002,	28.0f,	1000L,	50e+2,	"Hadoop",	new DataByteArray("Hadoop"),m1);
-		addResultRow(resultTable, 2000,	33.0f,	1006L,	52e+2,	"beige",	new DataByteArray("beige"),	m2);
-		
+		ArrayList<ArrayList<Object>> rows = new ArrayList<ArrayList<Object>>();
+    addResultRow(rows, -1,   3.25f,  1000L,  50e+2,  "zebra",  new DataByteArray("zebra"), m1);
+    addResultRow(rows,  5,    -3.25f, 1001L,  51e+2,  "Zebra",  new DataByteArray("Zebra"), m1);  
+    addResultRow(rows, 1000, 0.0f, 1002L,  52e+2,  "hadoop", new DataByteArray("hadoop"),m1);
+    addResultRow(rows, 1001, 100.0f, 1003L,  50e+2,  "Apple",  new DataByteArray("Apple"), m1);
+    addResultRow(rows, 1001, 101.0f, 1001L,  50e+2,  "apple",  new DataByteArray("apple"), m1);
+    addResultRow(rows, 1001, 101.0f, 1001L,  50e+2,  "apple",  new DataByteArray("apple"), m1);
+    addResultRow(rows, 1001, 50.0f,  1000L,  50e+2,  "Pig",    new DataByteArray("Pig"), m1);
+    addResultRow(rows, 1001, 52.0f,  1001L,  50e+2,  "pig",    new DataByteArray("pig"), m1);
+    addResultRow(rows, 1002, 28.0f,  1000L,  50e+2,  "Hadoop", new DataByteArray("Hadoop"),m1);
+		resultTable.put(0, rows);
+    
+		rows = new ArrayList<ArrayList<Object>>();
+		addResultRow(rows, -1,   -99.0f, 1002L,  51e+2,  "orange", new DataByteArray("orange"),m2);
+    addResultRow(rows, 15,   56.0f,  1004L,  50e+2,  "green",  new DataByteArray("green"), m2);
+    addResultRow(rows, 1001, 100.0f, 1003L,  55e+2,  "white",  new DataByteArray("white"), m2);
+    addResultRow(rows, 1001, 102.0f, 1001L,  52e+2,  "purple", new DataByteArray("purple"),m2);
+    addResultRow(rows, 1001, 50.0f,  1008L,  52e+2,  "gray",   new DataByteArray("gray"),  m2);
+    addResultRow(rows, 1001, 53.0f,  1001L,  52e+2,  "brown",  new DataByteArray("brown"), m2);
+    addResultRow(rows, 2000, 33.0f,  1006L,  52e+2,  "beige",  new DataByteArray("beige"), m2);
+    resultTable.put(1, rows);
+    
 		// Verify union table
 		Iterator<Tuple> it = pigServer.openIterator("records1");
-		int numbRows = verifyTable(resultTable, 0, it);
+		int numbRows = verifyTable(resultTable, 0, 7, it);
 		
 		Assert.assertEquals(numbRows, table1.length + table2.length);
 	}
@@ -229,31 +232,35 @@ public class TestOrderPreserveSimple extends BaseTestCase {
 		orderPreserveUnion("a", "source_table,a,b,c,d,e,f,m1");
 		
 		// Verify union table
-		ArrayList<ArrayList<Object>> resultTable = new ArrayList<ArrayList<Object>>();
+		HashMap<Integer, ArrayList<ArrayList<Object>>> resultTable
+		  = new HashMap<Integer, ArrayList<ArrayList<Object>>>();
 		
-		addResultRow(resultTable, 0,	-1,		3.25f,	1000L,	50e+2,	"zebra",	new DataByteArray("zebra"),	m1);
-		addResultRow(resultTable, 1,	-1,		-99.0f,	1002L,	51e+2,	"orange",	new DataByteArray("orange"),m2);
-		addResultRow(resultTable, 0,	5,		-3.25f,	1001L,	51e+2,	"Zebra",	new DataByteArray("Zebra"),	m1);
-		addResultRow(resultTable, 1,	15,		56.0f,	1004L,	50e+2,	"green",	new DataByteArray("green"),	m2);
+		ArrayList<ArrayList<Object>> rows = new ArrayList<ArrayList<Object>>();
+		addResultRow(rows, 0,  -1,   3.25f,  1000L,  50e+2,  "zebra",  new DataByteArray("zebra"), m1);
+		addResultRow(rows, 0,	5,		-3.25f,	1001L,	51e+2,	"Zebra",	new DataByteArray("Zebra"),	m1);	
+		addResultRow(rows, 0,	1000,	0.0f,	1002L,	52e+2,	"hadoop",	new DataByteArray("hadoop"),m1);
+		addResultRow(rows, 0,	1001,	100.0f,	1003L,	50e+2,	"Apple",	new DataByteArray("Apple"),	m1);
+		addResultRow(rows, 0,	1001,	101.0f,	1001L,	50e+2,	"apple",	new DataByteArray("apple"),	m1);
+		addResultRow(rows, 0,	1001,	101.0f,	1001L,	50e+2,	"apple",	new DataByteArray("apple"),	m1);
+		addResultRow(rows, 0,	1001,	50.0f,	1000L,	50e+2,	"Pig",		new DataByteArray("Pig"),	m1);
+		addResultRow(rows, 0,	1001,	52.0f,	1001L,	50e+2,	"pig",		new DataByteArray("pig"),	m1);
+		addResultRow(rows, 0,	1002,	28.0f,	1000L,	50e+2,	"Hadoop",	new DataByteArray("Hadoop"),m1);
+		resultTable.put(0, rows);
 		
-		addResultRow(resultTable, 0,	1000,	0.0f,	1002L,	52e+2,	"hadoop",	new DataByteArray("hadoop"),m1);
-		addResultRow(resultTable, 1,	1001,	100.0f,	1003L,	55e+2,	"white",	new DataByteArray("white"),	m2);
-		addResultRow(resultTable, 0,	1001,	100.0f,	1003L,	50e+2,	"Apple",	new DataByteArray("Apple"),	m1);
-		addResultRow(resultTable, 1,	1001,	102.0f,	1001L,	52e+2,	"purple",	new DataByteArray("purple"),m2);
+		rows = new ArrayList<ArrayList<Object>>();
+		addResultRow(rows, 1,	-1,		-99.0f,	1002L,	51e+2,	"orange",	new DataByteArray("orange"),m2);
+		addResultRow(rows, 1,  15,   56.0f,  1004L,  50e+2,  "green",  new DataByteArray("green"), m2);
+		addResultRow(rows, 1,  1001, 100.0f, 1003L,  55e+2,  "white",  new DataByteArray("white"), m2);
+		addResultRow(rows, 1,  1001, 102.0f, 1001L,  52e+2,  "purple", new DataByteArray("purple"),m2);
+		addResultRow(rows, 1,  1001, 50.0f,  1008L,  52e+2,  "gray",   new DataByteArray("gray"),  m2);
+		addResultRow(rows, 1,  1001, 53.0f,  1001L,  52e+2,  "brown",  new DataByteArray("brown"), m2);
+		addResultRow(rows, 1,  2000, 33.0f,  1006L,  52e+2,  "beige",  new DataByteArray("beige"), m2);
+		resultTable.put(1, rows);
 		
-		addResultRow(resultTable, 0,	1001,	101.0f,	1001L,	50e+2,	"apple",	new DataByteArray("apple"),	m1);
-		addResultRow(resultTable, 1,	1001,	50.0f,	1008L,	52e+2,	"gray",		new DataByteArray("gray"),	m2);
-		addResultRow(resultTable, 0,	1001,	101.0f,	1001L,	50e+2,	"apple",	new DataByteArray("apple"),	m1);
-		addResultRow(resultTable, 1,	1001,	53.0f,	1001L,	52e+2,	"brown",	new DataByteArray("brown"),	m2);
-		
-		addResultRow(resultTable, 0,	1001,	50.0f,	1000L,	50e+2,	"Pig",		new DataByteArray("Pig"),	m1);
-		addResultRow(resultTable, 0,	1001,	52.0f,	1001L,	50e+2,	"pig",		new DataByteArray("pig"),	m1);
-		addResultRow(resultTable, 0,	1002,	28.0f,	1000L,	50e+2,	"Hadoop",	new DataByteArray("Hadoop"),m1);
-		addResultRow(resultTable, 1,	2000,	33.0f,	1006L,	52e+2,	"beige",	new DataByteArray("beige"),	m2);
 		
 		// Verify union table
 		Iterator<Tuple> it = pigServer.openIterator("records1");
-		int numbRows = verifyTable(resultTable, 1, it);
+		int numbRows = verifyTable(resultTable, 1, 0, it);
 		
 		Assert.assertEquals(numbRows, table1.length + table2.length);
 	}
@@ -266,31 +273,34 @@ public class TestOrderPreserveSimple extends BaseTestCase {
 		orderPreserveUnion("b", "source_table,b,a,c,d,e,f,m1");
 		
 		// Verify union table
-		ArrayList<ArrayList<Object>> resultTable = new ArrayList<ArrayList<Object>>();
+		HashMap<Integer, ArrayList<ArrayList<Object>>> resultTable =
+      new HashMap<Integer, ArrayList<ArrayList<Object>>>();
 		
-		addResultRow(resultTable, 1,	-99.0f,	-1,		1002L,	51e+2,	"orange",	new DataByteArray("orange"),m2);
-		addResultRow(resultTable, 0,	-3.25f,	5,		1001L,	51e+2,	"Zebra",	new DataByteArray("Zebra"),	m1);
-		addResultRow(resultTable, 0,	0.0f,	1000,	1002L,	52e+2,	"hadoop",	new DataByteArray("hadoop"),m1);
-		addResultRow(resultTable, 0,	3.25f,	-1,		1000L,	50e+2,	"zebra",	new DataByteArray("zebra"),	m1);
+		ArrayList<ArrayList<Object>> rows = new ArrayList<ArrayList<Object>>();
+		addResultRow(rows, 0,	-3.25f,	5,		1001L,	51e+2,	"Zebra",	new DataByteArray("Zebra"),	m1);
+		addResultRow(rows, 0,	0.0f,	1000,	1002L,	52e+2,	"hadoop",	new DataByteArray("hadoop"),m1);
+		addResultRow(rows, 0,	3.25f,	-1,		1000L,	50e+2,	"zebra",	new DataByteArray("zebra"),	m1);	
+		addResultRow(rows, 0,	28.0f,	1002,	1000L,	50e+2,	"Hadoop",	new DataByteArray("Hadoop"),m1);
+		addResultRow(rows, 0,	50.0f,	1001,	1000L,	50e+2,	"Pig",		new DataByteArray("Pig"),	m1);	
+		addResultRow(rows, 0,	52.0f,	1001,	1001L,	50e+2,	"pig",		new DataByteArray("pig"),	m1);
+		addResultRow(rows, 0,	100.0f,	1001,	1003L,	50e+2,	"Apple",	new DataByteArray("Apple"),	m1);
+		addResultRow(rows, 0,	101.0f,	1001,	1001L,	50e+2,	"apple",	new DataByteArray("apple"),	m1);
+		addResultRow(rows, 0,	101.0f,	1001,	1001L,	50e+2,	"apple",	new DataByteArray("apple"),	m1);
+		resultTable.put(0, rows);
 		
-		addResultRow(resultTable, 0,	28.0f,	1002,	1000L,	50e+2,	"Hadoop",	new DataByteArray("Hadoop"),m1);
-		addResultRow(resultTable, 1,	33.0f,	2000,	1006L,	52e+2,	"beige",	new DataByteArray("beige"),	m2);
-		addResultRow(resultTable, 0,	50.0f,	1001,	1000L,	50e+2,	"Pig",		new DataByteArray("Pig"),	m1);
-		addResultRow(resultTable, 1,	50.0f,	1001,	1008L,	52e+2,	"gray",		new DataByteArray("gray"),	m2);
-		
-		addResultRow(resultTable, 0,	52.0f,	1001,	1001L,	50e+2,	"pig",		new DataByteArray("pig"),	m1);
-		addResultRow(resultTable, 1,	53.0f,	1001,	1001L,	52e+2,	"brown",	new DataByteArray("brown"),	m2);
-		addResultRow(resultTable, 1,	56.0f,	15,		1004L,	50e+2,	"green",	new DataByteArray("green"),	m2);
-		addResultRow(resultTable, 0,	100.0f,	1001,	1003L,	50e+2,	"Apple",	new DataByteArray("Apple"),	m1);
-		
-		addResultRow(resultTable, 1,	100.0f,	1001,	1003L,	55e+2,	"white",	new DataByteArray("white"),	m2);
-		addResultRow(resultTable, 0,	101.0f,	1001,	1001L,	50e+2,	"apple",	new DataByteArray("apple"),	m1);
-		addResultRow(resultTable, 0,	101.0f,	1001,	1001L,	50e+2,	"apple",	new DataByteArray("apple"),	m1);
-		addResultRow(resultTable, 1,	102.0f,	1001,	1001L,	52e+2,	"purple",	new DataByteArray("purple"),m2);
-		
+		rows = new ArrayList<ArrayList<Object>>();
+		addResultRow(rows, 1,	-99.0f,	-1,		1002L,	51e+2,	"orange",	new DataByteArray("orange"),m2);
+		addResultRow(rows, 1,  33.0f,  2000, 1006L,  52e+2,  "beige",  new DataByteArray("beige"), m2);
+		addResultRow(rows, 1,  50.0f,  1001, 1008L,  52e+2,  "gray",   new DataByteArray("gray"),  m2);
+		addResultRow(rows, 1,  53.0f,  1001, 1001L,  52e+2,  "brown",  new DataByteArray("brown"), m2);
+    addResultRow(rows, 1,  56.0f,  15,   1004L,  50e+2,  "green",  new DataByteArray("green"), m2);
+    addResultRow(rows, 1,  100.0f, 1001, 1003L,  55e+2,  "white",  new DataByteArray("white"), m2);
+    addResultRow(rows, 1,  102.0f, 1001, 1001L,  52e+2,  "purple", new DataByteArray("purple"),m2);
+		resultTable.put(1, rows);
+    
 		// Verify union table
 		Iterator<Tuple> it = pigServer.openIterator("records1");
-		int numbRows = verifyTable(resultTable, 1, it);
+		int numbRows = verifyTable(resultTable, 1, 0, it);
 		
 		Assert.assertEquals(numbRows, table1.length + table2.length);
 	}
@@ -303,31 +313,33 @@ public class TestOrderPreserveSimple extends BaseTestCase {
 		orderPreserveUnion("c", "source_table,c,a,b,d,e,f,m1");
 		
 		// Verify union table
-		ArrayList<ArrayList<Object>> resultTable = new ArrayList<ArrayList<Object>>();
+		HashMap<Integer, ArrayList<ArrayList<Object>>> resultTable = new HashMap<Integer, ArrayList<ArrayList<Object>>>();
 		
-		addResultRow(resultTable, 0,	1000L,	-1,		3.25f,	50e+2,	"zebra",	new DataByteArray("zebra"),	m1);
-		addResultRow(resultTable, 0,	1000L,	1001,	50.0f,	50e+2,	"Pig",		new DataByteArray("Pig"),	m1);
-		addResultRow(resultTable, 0,	1000L,	1002,	28.0f,	50e+2,	"Hadoop",	new DataByteArray("Hadoop"),m1);
-		addResultRow(resultTable, 1,	1001L,	1001,	102.0f,	52e+2,	"purple",	new DataByteArray("purple"),m2);
+		ArrayList<ArrayList<Object>> rows = new ArrayList<ArrayList<Object>>();
+    addResultRow(rows, 0,  1000L,  -1,   3.25f,  50e+2,  "zebra",  new DataByteArray("zebra"), m1);
+    addResultRow(rows, 0,  1000L,  1001, 50.0f,  50e+2,  "Pig",    new DataByteArray("Pig"), m1);
+    addResultRow(rows, 0,  1000L,  1002, 28.0f,  50e+2,  "Hadoop", new DataByteArray("Hadoop"),m1);
+		addResultRow(rows, 0,	1001L,	5,		-3.25f,	51e+2,	"Zebra",	new DataByteArray("Zebra"),	m1);
+		addResultRow(rows, 0,	1001L,	1001,	101.0f,	50e+2,	"apple",	new DataByteArray("apple"),	m1);
+		addResultRow(rows, 0,	1001L,	1001,	101.0f,	50e+2,	"apple",	new DataByteArray("apple"),	m1);
+		addResultRow(rows, 0,	1001L,	1001,	52.0f,	50e+2,	"pig",		new DataByteArray("pig"),	m1);
+		addResultRow(rows, 0,	1002L,	1000,	0.0f,	52e+2,	"hadoop",	new DataByteArray("hadoop"),m1);
+		addResultRow(rows, 0,	1003L,	1001,	100.0f,	50e+2,	"Apple",	new DataByteArray("Apple"),	m1);
+		resultTable.put(0, rows);
 		
-		addResultRow(resultTable, 0,	1001L,	5,		-3.25f,	51e+2,	"Zebra",	new DataByteArray("Zebra"),	m1);
-		addResultRow(resultTable, 1,	1001L,	1001,	53.0f,	52e+2,	"brown",	new DataByteArray("brown"),	m2);
-		addResultRow(resultTable, 0,	1001L,	1001,	101.0f,	50e+2,	"apple",	new DataByteArray("apple"),	m1);
-		addResultRow(resultTable, 0,	1001L,	1001,	101.0f,	50e+2,	"apple",	new DataByteArray("apple"),	m1);
-		
-		addResultRow(resultTable, 0,	1001L,	1001,	52.0f,	50e+2,	"pig",		new DataByteArray("pig"),	m1);
-		addResultRow(resultTable, 1,	1002L,	-1,		-99.0f,	51e+2,	"orange",	new DataByteArray("orange"),m2);
-		addResultRow(resultTable, 0,	1002L,	1000,	0.0f,	52e+2,	"hadoop",	new DataByteArray("hadoop"),m1);
-		addResultRow(resultTable, 1,	1003L,	1001,	100.0f,	55e+2,	"white",	new DataByteArray("white"),	m2);
-		
-		addResultRow(resultTable, 0,	1003L,	1001,	100.0f,	50e+2,	"Apple",	new DataByteArray("Apple"),	m1);
-		addResultRow(resultTable, 1,	1004L,	15,		56.0f,	50e+2,	"green",	new DataByteArray("green"),	m2);
-		addResultRow(resultTable, 1,	1006L,	2000,	33.0f,	52e+2,	"beige",	new DataByteArray("beige"),	m2);
-		addResultRow(resultTable, 1,	1008L,	1001,	50.0f,	52e+2,	"gray",		new DataByteArray("gray"),	m2);
+		rows = new ArrayList<ArrayList<Object>>();
+		addResultRow(rows, 1,	1001L,	1001,	102.0f,	52e+2,	"purple",	new DataByteArray("purple"),m2);
+		addResultRow(rows, 1,  1001L,  1001, 53.0f,  52e+2,  "brown",  new DataByteArray("brown"), m2);
+		addResultRow(rows, 1,  1002L,  -1,   -99.0f, 51e+2,  "orange", new DataByteArray("orange"),m2);
+		addResultRow(rows, 1,  1003L,  1001, 100.0f, 55e+2,  "white",  new DataByteArray("white"), m2);
+		addResultRow(rows, 1,  1004L,  15,   56.0f,  50e+2,  "green",  new DataByteArray("green"), m2);
+    addResultRow(rows, 1,  1006L,  2000, 33.0f,  52e+2,  "beige",  new DataByteArray("beige"), m2);
+    addResultRow(rows, 1,  1008L,  1001, 50.0f,  52e+2,  "gray",   new DataByteArray("gray"),  m2);
+		resultTable.put(1, rows);
 		
 		// Verify union table
 		Iterator<Tuple> it = pigServer.openIterator("records1");
-		int numbRows = verifyTable(resultTable, 1, it);
+		int numbRows = verifyTable(resultTable, 1, 0, it);
 		
 		Assert.assertEquals(numbRows, table1.length + table2.length);
 	}
@@ -340,31 +352,33 @@ public class TestOrderPreserveSimple extends BaseTestCase {
 		orderPreserveUnion("d", "source_table,d,a,b,c,e,f,m1");
 		
 		// Verify union table
-		ArrayList<ArrayList<Object>> resultTable = new ArrayList<ArrayList<Object>>();
+		HashMap<Integer, ArrayList<ArrayList<Object>>> resultTable = new HashMap<Integer, ArrayList<ArrayList<Object>>>();
 		
-		addResultRow(resultTable, 0,50e+2,	-1,		3.25f,	1000L,	"zebra",	new DataByteArray("zebra"),	m1);
-		addResultRow(resultTable, 1,50e+2,	15,		56.0f,	1004L,	"green",	new DataByteArray("green"),	m2);
-		addResultRow(resultTable, 0,50e+2,	1001,	100.0f,	1003L,	"Apple",	new DataByteArray("Apple"),	m1);
-		addResultRow(resultTable, 0,50e+2,	1001,	101.0f,	1001L,	"apple",	new DataByteArray("apple"),	m1);
+		ArrayList<ArrayList<Object>> rows = new ArrayList<ArrayList<Object>>();
+    addResultRow(rows, 0,50e+2,  -1,   3.25f,  1000L,  "zebra",  new DataByteArray("zebra"), m1);
+		addResultRow(rows, 0,50e+2,	1001,	100.0f,	1003L,	"Apple",	new DataByteArray("Apple"),	m1);
+		addResultRow(rows, 0,50e+2,	1001,	101.0f,	1001L,	"apple",	new DataByteArray("apple"),	m1);
+		addResultRow(rows, 0,50e+2,	1001,	101.0f,	1001L,	"apple",	new DataByteArray("apple"),	m1);
+		addResultRow(rows, 0,50e+2,	1001,	50.0f,	1000L,	"Pig",		new DataByteArray("Pig"),	m1);
+		addResultRow(rows, 0,50e+2,	1001,	52.0f,	1001L,	"pig",		new DataByteArray("pig"),	m1);
+		addResultRow(rows, 0,50e+2,	1002,	28.0f,	1000L,	"Hadoop",	new DataByteArray("Hadoop"),m1);
+		addResultRow(rows, 0,51e+2,	5,		-3.25f,	1001L,	"Zebra",	new DataByteArray("Zebra"),	m1);
+		addResultRow(rows, 0,52e+2,	1000,	0.0f,	1002L,	"hadoop",	new DataByteArray("hadoop"),m1);
+		resultTable.put(0, rows);
 		
-		addResultRow(resultTable, 0,50e+2,	1001,	101.0f,	1001L,	"apple",	new DataByteArray("apple"),	m1);
-		addResultRow(resultTable, 0,50e+2,	1001,	50.0f,	1000L,	"Pig",		new DataByteArray("Pig"),	m1);
-		addResultRow(resultTable, 0,50e+2,	1001,	52.0f,	1001L,	"pig",		new DataByteArray("pig"),	m1);
-		addResultRow(resultTable, 0,50e+2,	1002,	28.0f,	1000L,	"Hadoop",	new DataByteArray("Hadoop"),m1);
-		
-		addResultRow(resultTable, 1,51e+2,	-1,		-99.0f,	1002L,	"orange",	new DataByteArray("orange"),m2);
-		addResultRow(resultTable, 0,51e+2,	5,		-3.25f,	1001L,	"Zebra",	new DataByteArray("Zebra"),	m1);
-		addResultRow(resultTable, 1,52e+2,	1001,	102.0f,	1001L,	"purple",	new DataByteArray("purple"),m2);
-		addResultRow(resultTable, 0,52e+2,	1000,	0.0f,	1002L,	"hadoop",	new DataByteArray("hadoop"),m1);
-		
-		addResultRow(resultTable, 1,52e+2,	1001,	50.0f,	1008L,	"gray",		new DataByteArray("gray"),	m2);
-		addResultRow(resultTable, 1,52e+2,	1001,	53.0f,	1001L,	"brown",	new DataByteArray("brown"),	m2);
-		addResultRow(resultTable, 1,52e+2,	2000,	33.0f,	1006L,	"beige",	new DataByteArray("beige"),	m2);
-		addResultRow(resultTable, 1,55e+2,	1001,	100.0f,	1003L,	"white",	new DataByteArray("white"),	m2);
+		rows = new ArrayList<ArrayList<Object>>();
+		addResultRow(rows, 1,50e+2,	15,		56.0f,	1004L,	"green",	new DataByteArray("green"),	m2);
+		addResultRow(rows, 1,51e+2,  -1,   -99.0f, 1002L,  "orange", new DataByteArray("orange"),m2);
+		addResultRow(rows, 1,52e+2,  1001, 102.0f, 1001L,  "purple", new DataByteArray("purple"),m2);
+		addResultRow(rows, 1,52e+2,  1001, 50.0f,  1008L,  "gray",   new DataByteArray("gray"),  m2);
+    addResultRow(rows, 1,52e+2,  1001, 53.0f,  1001L,  "brown",  new DataByteArray("brown"), m2);
+    addResultRow(rows, 1,52e+2,  2000, 33.0f,  1006L,  "beige",  new DataByteArray("beige"), m2);
+    addResultRow(rows, 1,55e+2,  1001, 100.0f, 1003L,  "white",  new DataByteArray("white"), m2);
+		resultTable.put(1, rows);
 		
 		// Verify union table
 		Iterator<Tuple> it = pigServer.openIterator("records1");
-		int numbRows = verifyTable(resultTable, 1, it);
+		int numbRows = verifyTable(resultTable, 1, 0, it);
 		
 		Assert.assertEquals(numbRows, table1.length + table2.length);
 	}
@@ -377,31 +391,33 @@ public class TestOrderPreserveSimple extends BaseTestCase {
 		orderPreserveUnion("e", "source_table,e,a,b,c,d,f,m1");
 		
 		// Verify union table
-		ArrayList<ArrayList<Object>> resultTable = new ArrayList<ArrayList<Object>>();
+		HashMap<Integer, ArrayList<ArrayList<Object>>> resultTable = new HashMap<Integer, ArrayList<ArrayList<Object>>>();
 		
-		addResultRow(resultTable, 0,"Apple",	1001,	100.0f,	1003L,	50e+2,	new DataByteArray("Apple"),	m1);
-		addResultRow(resultTable, 0,"Hadoop",	1002,	28.0f,	1000L,	50e+2,	new DataByteArray("Hadoop"),m1);
-		addResultRow(resultTable, 0,"Pig",		1001,	50.0f,	1000L,	50e+2,	new DataByteArray("Pig"),	m1);
-		addResultRow(resultTable, 0,"Zebra",	5,		-3.25f,	1001L,	51e+2,	new DataByteArray("Zebra"),	m1);
+		ArrayList<ArrayList<Object>> rows = new ArrayList<ArrayList<Object>>();
+		addResultRow(rows, 0,"Apple",	1001,	100.0f,	1003L,	50e+2,	new DataByteArray("Apple"),	m1);
+		addResultRow(rows, 0,"Hadoop",	1002,	28.0f,	1000L,	50e+2,	new DataByteArray("Hadoop"),m1);
+		addResultRow(rows, 0,"Pig",		1001,	50.0f,	1000L,	50e+2,	new DataByteArray("Pig"),	m1);
+		addResultRow(rows, 0,"Zebra",	5,		-3.25f,	1001L,	51e+2,	new DataByteArray("Zebra"),	m1);
+		addResultRow(rows, 0,"apple",	1001,	101.0f,	1001L,	50e+2,	new DataByteArray("apple"),	m1);
+		addResultRow(rows, 0,"apple",	1001,	101.0f,	1001L,	50e+2,	new DataByteArray("apple"),	m1);
+		addResultRow(rows, 0,"hadoop",	1000,	0.0f,	1002L,	52e+2,	new DataByteArray("hadoop"),m1);
+		addResultRow(rows, 0,"pig",		1001,	52.0f,	1001L,	50e+2,	new DataByteArray("pig"),	m1);
+		addResultRow(rows, 0,"zebra",	-1,		3.25f,	1000L,	50e+2,	new DataByteArray("zebra"),	m1);
+		resultTable.put(0, rows);
 		
-		addResultRow(resultTable, 0,"apple",	1001,	101.0f,	1001L,	50e+2,	new DataByteArray("apple"),	m1);
-		addResultRow(resultTable, 0,"apple",	1001,	101.0f,	1001L,	50e+2,	new DataByteArray("apple"),	m1);
-		addResultRow(resultTable, 1,"beige",	2000,	33.0f,	1006L,	52e+2,	new DataByteArray("beige"),	m2);
-		addResultRow(resultTable, 1,"brown",	1001,	53.0f,	1001L,	52e+2,	new DataByteArray("brown"),	m2);
-		
-		addResultRow(resultTable, 1,"gray",		1001,	50.0f,	1008L,	52e+2,	new DataByteArray("gray"),	m2);
-		addResultRow(resultTable, 1,"green",	15,		56.0f,	1004L,	50e+2,	new DataByteArray("green"),	m2);
-		addResultRow(resultTable, 0,"hadoop",	1000,	0.0f,	1002L,	52e+2,	new DataByteArray("hadoop"),m1);
-		addResultRow(resultTable, 1,"orange",	-1,		-99.0f,	1002L,	51e+2,	new DataByteArray("orange"),m2);
-		
-		addResultRow(resultTable, 0,"pig",		1001,	52.0f,	1001L,	50e+2,	new DataByteArray("pig"),	m1);
-		addResultRow(resultTable, 1,"purple",	1001,	102.0f,	1001L,	52e+2,	new DataByteArray("purple"),m2);
-		addResultRow(resultTable, 1,"white",	1001,	100.0f,	1003L,	55e+2,	new DataByteArray("white"),	m2);
-		addResultRow(resultTable, 0,"zebra",	-1,		3.25f,	1000L,	50e+2,	new DataByteArray("zebra"),	m1);
-		
+		rows = new ArrayList<ArrayList<Object>>();
+		addResultRow(rows, 1,"beige",  2000, 33.0f,  1006L,  52e+2,  new DataByteArray("beige"), m2);
+    addResultRow(rows, 1,"brown",  1001, 53.0f,  1001L,  52e+2,  new DataByteArray("brown"), m2);
+    addResultRow(rows, 1,"gray",   1001, 50.0f,  1008L,  52e+2,  new DataByteArray("gray"),  m2);
+    addResultRow(rows, 1,"green",  15,   56.0f,  1004L,  50e+2,  new DataByteArray("green"), m2);
+    addResultRow(rows, 1,"orange", -1,   -99.0f, 1002L,  51e+2,  new DataByteArray("orange"),m2);
+    addResultRow(rows, 1,"purple", 1001, 102.0f, 1001L,  52e+2,  new DataByteArray("purple"),m2);
+    addResultRow(rows, 1,"white",  1001, 100.0f, 1003L,  55e+2,  new DataByteArray("white"), m2);
+		resultTable.put(1, rows);
+    
 		// Verify union table
 		Iterator<Tuple> it = pigServer.openIterator("records1");
-		int numbRows = verifyTable(resultTable, 1, it);
+		int numbRows = verifyTable(resultTable, 1, 0, it);
 		
 		Assert.assertEquals(numbRows, table1.length + table2.length);
 	}
@@ -414,111 +430,38 @@ public class TestOrderPreserveSimple extends BaseTestCase {
 		orderPreserveUnion("f", "source_table,f,a,b,c,d,e,m1");
 		
 		// Verify union table
-		ArrayList<ArrayList<Object>> resultTable = new ArrayList<ArrayList<Object>>();
+		HashMap<Integer, ArrayList<ArrayList<Object>>> resultTable = new HashMap<Integer, ArrayList<ArrayList<Object>>>();
 		
-		addResultRow(resultTable, 0,new DataByteArray("Apple"),	1001,	100.0f,	1003L,	50e+2,	"Apple",	m1);
-		addResultRow(resultTable, 0,new DataByteArray("Hadoop"),1002,	28.0f,	1000L,	50e+2,	"Hadoop",	m1);
-		addResultRow(resultTable, 0,new DataByteArray("Pig"),	1001,	50.0f,	1000L,	50e+2,	"Pig",		m1);
-		addResultRow(resultTable, 0,new DataByteArray("Zebra"),	5,		-3.25f,	1001L,	51e+2,	"Zebra",	m1);
+		ArrayList<ArrayList<Object>> rows = new ArrayList<ArrayList<Object>>();
+		addResultRow(rows, 0,new DataByteArray("Apple"),	1001,	100.0f,	1003L,	50e+2,	"Apple",	m1);
+		addResultRow(rows, 0,new DataByteArray("Hadoop"),1002,	28.0f,	1000L,	50e+2,	"Hadoop",	m1);
+		addResultRow(rows, 0,new DataByteArray("Pig"),	1001,	50.0f,	1000L,	50e+2,	"Pig",		m1);
+		addResultRow(rows, 0,new DataByteArray("Zebra"),	5,		-3.25f,	1001L,	51e+2,	"Zebra",	m1);	
+		addResultRow(rows, 0,new DataByteArray("apple"),	1001,	101.0f,	1001L,	50e+2,	"apple",	m1);
+		addResultRow(rows, 0,new DataByteArray("apple"),	1001,	101.0f,	1001L,	50e+2,	"apple",	m1);
+		addResultRow(rows, 0,new DataByteArray("hadoop"),1000,	0.0f,	1002L,	52e+2,	"hadoop",	m1);
+		addResultRow(rows, 0,new DataByteArray("pig"),	1001,	52.0f,	1001L,	50e+2,	"pig",		m1);
+		addResultRow(rows, 0,new DataByteArray("zebra"),	-1,		3.25f,	1000L,	50e+2,	"zebra",	m1);
+		resultTable.put(0, rows);
 		
-		addResultRow(resultTable, 0,new DataByteArray("apple"),	1001,	101.0f,	1001L,	50e+2,	"apple",	m1);
-		addResultRow(resultTable, 0,new DataByteArray("apple"),	1001,	101.0f,	1001L,	50e+2,	"apple",	m1);
-		addResultRow(resultTable, 1,new DataByteArray("beige"),	2000,	33.0f,	1006L,	52e+2,	"beige",	m2);
-		addResultRow(resultTable, 1,new DataByteArray("brown"),	1001,	53.0f,	1001L,	52e+2,	"brown",	m2);
-		
-		addResultRow(resultTable, 1,new DataByteArray("gray"),	1001,	50.0f,	1008L,	52e+2,	"gray",		m2);
-		addResultRow(resultTable, 1,new DataByteArray("green"),	15,		56.0f,	1004L,	50e+2,	"green",	m2);
-		addResultRow(resultTable, 0,new DataByteArray("hadoop"),1000,	0.0f,	1002L,	52e+2,	"hadoop",	m1);
-		addResultRow(resultTable, 1,new DataByteArray("orange"),-1,		-99.0f,	1002L,	51e+2,	"orange",	m2);
-		
-		addResultRow(resultTable, 0,new DataByteArray("pig"),	1001,	52.0f,	1001L,	50e+2,	"pig",		m1);
-		addResultRow(resultTable, 1,new DataByteArray("purple"),1001,	102.0f,	1001L,	52e+2,	"purple",	m2);
-		addResultRow(resultTable, 1,new DataByteArray("white"),	1001,	100.0f,	1003L,	55e+2,	"white",	m2);
-		addResultRow(resultTable, 0,new DataByteArray("zebra"),	-1,		3.25f,	1000L,	50e+2,	"zebra",	m1);
-		
+		rows = new ArrayList<ArrayList<Object>>();
+		addResultRow(rows, 1,new DataByteArray("beige"), 2000, 33.0f,  1006L,  52e+2,  "beige",  m2);
+    addResultRow(rows, 1,new DataByteArray("brown"), 1001, 53.0f,  1001L,  52e+2,  "brown",  m2);
+    
+    addResultRow(rows, 1,new DataByteArray("gray"),  1001, 50.0f,  1008L,  52e+2,  "gray",   m2);
+    addResultRow(rows, 1,new DataByteArray("green"), 15,   56.0f,  1004L,  50e+2,  "green",  m2);
+    addResultRow(rows, 1,new DataByteArray("orange"),-1,   -99.0f, 1002L,  51e+2,  "orange", m2);
+    addResultRow(rows, 1,new DataByteArray("purple"),1001, 102.0f, 1001L,  52e+2,  "purple", m2);
+    addResultRow(rows, 1,new DataByteArray("white"), 1001, 100.0f, 1003L,  55e+2,  "white",  m2);
+		resultTable.put(1, rows);
+    
 		// Verify union table
 		Iterator<Tuple> it = pigServer.openIterator("records1");
-		int numbRows = verifyTable(resultTable, 1, it);
+		int numbRows = verifyTable(resultTable, 1, 0, it);
 		
 		Assert.assertEquals(numbRows, table1.length + table2.length);
-	}
-	
-	/**
-	 * Verify union output table with expected results
-	 * 
-	 */
-	private int verifyTable(ArrayList<ArrayList<Object>> resultTable, int keyColumn, Iterator<Tuple> it) throws IOException {
-		int numbRows = 0;
-		int index = 0;
-		Object value = resultTable.get(index).get(keyColumn);  // get value of primary key
-		
-		while (it.hasNext()) {
-			Tuple rowValues = it.next();
-			
-			// If last primary sort key does match then search for next matching key
-			if (! compareObj(value, rowValues.get(keyColumn))) {
-				int subIndex = index + 1;
-				while (subIndex < resultTable.size()) {
-					if ( ! compareObj(value, resultTable.get(subIndex).get(keyColumn)) ) {  // found new key
-						index = subIndex;
-						value = resultTable.get(index).get(keyColumn);
-						break;
-					}
-					++subIndex;
-				}
-				Assert.assertEquals("Table comparison error for row : " + numbRows + " - no key found for : "
-					+ rowValues.get(keyColumn), value, rowValues.get(keyColumn));
-			}
-			// Search for matching row with this primary key
-			int subIndex = index;
-			
-			while (subIndex < resultTable.size()) {
-				// Compare row
-				ArrayList<Object> resultRow = resultTable.get(subIndex);
-				if ( compareRow(rowValues, resultRow) )
-					break; // found matching row
-				++subIndex;
-				Assert.assertEquals("Table comparison error for row : " + numbRows + " - no matching row found for : "
-					+ rowValues.get(keyColumn), value, resultTable.get(subIndex).get(keyColumn));
-			}
-			++numbRows;
-		}
-		Assert.assertEquals(resultTable.size(), numbRows);  // verify expected row count
-		return numbRows;
-	}
-	
-	/**
-	 * Compare table rows
-	 * 
-	 */
-	private boolean compareRow(Tuple rowValues, ArrayList<Object> resultRow) throws IOException {
-		boolean result = true;
-		Assert.assertEquals(resultRow.size(), rowValues.size());
-		for (int i = 0; i < rowValues.size(); ++i) {
-			if (! compareObj(rowValues.get(i), resultRow.get(i)) ) {
-				result = false;
-				break;
-			}
-		}
-		return result;
-	}
-	
-	/**
-	 * Compare table values
-	 * 
-	 */
-	private boolean compareObj(Object object1, Object object2) {
-		if (object1 == null) {
-			if (object2 == null)
-				return true;
-			else
-				return false;
-		} else if (object1.equals(object2))
-			return true;
-		else
-			return false;
-	}
-	
+	}	
+
 	/**
 	 *Add a row to expected results table
 	 * 

@@ -19,45 +19,32 @@
 package org.apache.hadoop.zebra.mapreduce;
 
 import java.io.ByteArrayOutputStream;
-import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
-import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.BytesWritable;
-import org.apache.hadoop.io.RawComparator;
-import org.apache.hadoop.io.WritableComparator;
-import org.apache.hadoop.mapred.FileInputFormat;
-import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.zebra.io.BasicTable;
 import org.apache.hadoop.zebra.io.TableInserter;
 import org.apache.hadoop.zebra.io.TableScanner;
-import org.apache.hadoop.zebra.io.BasicTable.Reader.RangeSplit;
 import org.apache.hadoop.zebra.mapreduce.SortedTableSplit;
 import org.apache.hadoop.zebra.mapreduce.TableInputFormat;
 import org.apache.hadoop.zebra.parser.ParseException;
 import org.apache.hadoop.zebra.pig.TableStorer;
 import org.apache.hadoop.zebra.schema.Schema;
 import org.apache.hadoop.zebra.types.TypesUtils;
-import org.apache.pig.ExecType;
-import org.apache.pig.PigServer;
+import org.apache.hadoop.zebra.BaseTestCase;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.executionengine.ExecJob;
-import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.Tuple;
-import org.apache.pig.test.MiniCluster;
 import org.junit.Assert;
 
 /**
@@ -66,25 +53,15 @@ import org.junit.Assert;
  * Utility for verifying tables created during Zebra Stress Testing
  * 
  */
-public class ToolTestComparator {
+public class ToolTestComparator extends BaseTestCase {
 	final static String TABLE_SCHEMA = "count:int,seed:int,int1:int,int2:int,str1:string,str2:string,byte1:bytes,"
 		+ "byte2:bytes,float1:float,long1:long,double1:double,m1:map(string),r1:record(f1:string, f2:string),"
-		+ "c1:collection(a:string, b:string)";
+		+ "c1:collection(record(a:string, b:string))";
 	final static String TABLE_STORAGE = "[count,seed,int1,int2,str1,str2,byte1,byte2,float1,long1,double1];[m1#{a}];[r1,c1]";
 
 	private static Random generator = new Random();
 
-	private static Configuration conf;
-	private static FileSystem fs;
-
-	protected static ExecType execType = ExecType.MAPREDUCE;
-	private static MiniCluster cluster;
-	protected static PigServer pigServer;
 	protected static ExecJob pigJob;
-	private static Path path;
-
-	private static String zebraJar;
-	private static String whichCluster;
 
 	private static int totalNumbCols;
 	private static long totalNumbVerifiedRows;
@@ -93,65 +70,7 @@ public class ToolTestComparator {
 	 * Setup and initialize environment
 	 */
 	public static void setUp() throws Exception {
-		System.out.println("setUp()");
-		if (System.getProperty("hadoop.log.dir") == null) {
-			String base = new File(".").getPath(); // getAbsolutePath();
-			System
-			.setProperty("hadoop.log.dir", new Path(base).toString() + "./logs");
-		}
-
-
-		if (System.getProperty("whichCluster") == null) {
-			System.setProperty("whichCluster", "miniCluster");
-			whichCluster = System.getProperty("whichCluster");
-		} else {
-			whichCluster = System.getProperty("whichCluster");
-		}
-
-		System.out.println("cluster: " + whichCluster);
-		if (whichCluster.equalsIgnoreCase("realCluster")
-				&& System.getenv("HADOOP_HOME") == null) {
-			System.out.println("Please set HADOOP_HOME");
-			System.exit(0);
-		}
-
-		conf = new Configuration();
-
-		if (whichCluster.equalsIgnoreCase("realCluster")
-				&& System.getenv("USER") == null) {
-			System.out.println("Please set USER");
-			System.exit(0);
-		}
-		zebraJar = System.getenv("HADOOP_HOME") + "/../jars/zebra.jar";
-		File file = new File(zebraJar);
-		if (!file.exists() && whichCluster.equalsIgnoreCase("realCulster")) {
-			System.out.println("Please put zebra.jar at hadoop_home/../jars");
-			System.exit(0);
-		}
-
-		if (whichCluster.equalsIgnoreCase("realCluster")) {
-			System.out.println("Running realCluster");
-			pigServer = new PigServer(ExecType.MAPREDUCE, ConfigurationUtil
-					.toProperties(conf));
-			pigServer.registerJar(zebraJar);
-			path = new Path("/user/" + System.getenv("USER") + "/TestComparator");
-			// removeDir(path);
-			fs = path.getFileSystem(conf);
-		}
-
-		if (whichCluster.equalsIgnoreCase("miniCluster")) {
-			System.out.println("Running miniCluster");
-			if (execType == ExecType.MAPREDUCE) {
-				cluster = MiniCluster.buildCluster();
-				pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
-				fs = cluster.getFileSystem();
-				path = new Path(fs.getWorkingDirectory() + "/TestComparator");
-				// removeDir(path);
-				System.out.println("path1 =" + path);
-			} else {
-				pigServer = new PigServer(ExecType.LOCAL);
-			}
-		}
+		init();
 	}
 
 	/**
@@ -389,7 +308,7 @@ public class ToolTestComparator {
 
 			while (it1.hasNext()) {
 				++numbRows1; // increment row count
-				Tuple rowValue = it1.next();
+				it1.next();
 			}
 			numbRows.add(numbRows1);
 			numbUnionRows += numbRows1;
@@ -499,13 +418,15 @@ public class ToolTestComparator {
 			tuple.set(12, tupRecord1);
 
 			// insert collection1
-			tupColl1.set(0, "c1 a " + seed);
-			tupColl1.set(1, "c1 a " + i);
-			bag1.add(tupColl1); // first collection item
+			// tupColl1.set(0, "c1 a " + seed);
+			// tupColl1.set(1, "c1 a " + i);
+			// bag1.add(tupColl1); // first collection item
+      bag1.add(tupRecord1); // first collection item
+      bag1.add(tupRecord1); // second collection item
 
-			tupColl2.set(0, "c1 b " + seed);
-			tupColl2.set(1, "c1 b " + i);
-			bag1.add(tupColl2); // second collection item
+			// tupColl2.set(0, "c1 b " + seed);
+			// tupColl2.set(1, "c1 b " + i);
+			// bag1.add(tupColl2); // second collection item
 
 			tuple.set(13, bag1);
 
@@ -604,7 +525,7 @@ public class ToolTestComparator {
 		TableInputFormat.requireSortedTable(job, null);
 		TableInputFormat tif = new TableInputFormat();
 
-		SortedTableSplit split = (SortedTableSplit) tif.getSplits(job).get(0);
+		SortedTableSplit split = (SortedTableSplit) tif.getSplits(job, true).get(0);
 
 		TableScanner scanner = reader.getScanner(split.getBegin(), split.getEnd(), true);
 		BytesWritable key = new BytesWritable();
@@ -731,12 +652,9 @@ public class ToolTestComparator {
 		TableInputFormat.setInputPaths(job, new Path(pathTable1));
 
 		TableInputFormat.requireSortedTable(job, null);
-		TableInputFormat tif = new TableInputFormat();
-
 
 		TableScanner scanner = reader.getScanner(null, null, true);
 		BytesWritable key = new BytesWritable();
-		Tuple rowValue = TypesUtils.createTuple(scanner.getSchema());
 
 		while (!scanner.atEnd()) {
 			++numbRows;
@@ -745,41 +663,6 @@ public class ToolTestComparator {
 		}
 		System.out.println("\nTable Path : " + pathTable1);
 		System.out.println("Table Row number : " + numbRows);
-	}
-	/**
-	 * Compare table rows
-	 * 
-	 */
-	private static boolean compareRow(Tuple rowValues1, Tuple rowValues2)
-	throws IOException {
-		boolean result = true;
-		Assert.assertEquals(rowValues1.size(), rowValues2.size());
-		for (int i = 0; i < rowValues1.size(); ++i) {
-			if (!compareObj(rowValues1.get(i), rowValues2.get(i))) {
-				System.out.println("DEBUG: " + " RowValue.get(" + i
-						+ ") value compare error : " + rowValues1.get(i) + " : "
-						+ rowValues2.get(i));
-				result = false;
-				break;
-			}
-		}
-		return result;
-	}
-
-	/**
-	 * Compare table values
-	 * 
-	 */
-	private static boolean compareObj(Object object1, Object object2) {
-		if (object1 == null) {
-			if (object2 == null)
-				return true;
-			else
-				return false;
-		} else if (object1.equals(object2))
-			return true;
-		else
-			return false;
 	}
 
 	/**
@@ -834,28 +717,6 @@ public class ToolTestComparator {
 		}
 		System.out.println("\nRow count : " + numbRows);
 		return numbRows;
-	}
-
-	/**
-	 * Remove directory
-	 * 
-	 */
-	public static void removeDir(Path outPath) throws IOException {
-		String command = null;
-		if (whichCluster.equalsIgnoreCase("realCluster")) {
-			command = System.getenv("HADOOP_HOME") + "/bin/hadoop fs -rmr "
-			+ outPath.toString();
-		} else {
-			command = "rm -rf " + outPath.toString();
-		}
-		Runtime runtime = Runtime.getRuntime();
-		Process proc = runtime.exec(command);
-		int exitVal = -1;
-		try {
-			exitVal = proc.waitFor();
-		} catch (InterruptedException e) {
-			System.err.println(e);
-		}
 	}
 
 	/**
@@ -1021,7 +882,6 @@ public class ToolTestComparator {
 				// Verify merge-join table is in sorted order
 				verifyMergeJoin(pathTable1, sortCol, sortString, numbCols, rowMod,verifyDataColName);
 			} else if (verifyOption.equals("sorted-union")) {
-				Object lastVal = null;
 
 				// Verify sorted-union table is in sorted order
 				verifySortedUnion(unionPaths, pathTable1, sortCol, sortString,
@@ -1045,7 +905,6 @@ public class ToolTestComparator {
 				// Create sorted table
 				createsortedtable(pathTable1, pathTable2, sortString, debug);
 			}else if (verifyOption.equals("printrownumber")) {
-				Object lastVal = null;
 				//print total number of rows of the table
 				printRowNumber(pathTable1,sortString);
 			}
