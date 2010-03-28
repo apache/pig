@@ -186,8 +186,11 @@ public class TestSortedTableUnion extends BaseTestCase{
         + "' USING org.apache.hadoop.zebra.pig.TableLoader('', 'sorted');";
     pigServer.registerQuery(query4);
 
+    String query5 = "records3 = ORDER records2 BY SF_a;";
+    pigServer.registerQuery(query5);
+
     // check JOIN content
-    Iterator<Tuple> it3 = pigServer.openIterator("records2");
+    Iterator<Tuple> it3 = pigServer.openIterator("records3");
     int row = 0, index;
     Tuple RowValue3 = null;
     while (it3.hasNext()) {

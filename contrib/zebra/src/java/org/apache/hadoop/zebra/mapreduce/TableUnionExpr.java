@@ -29,7 +29,6 @@ import java.util.concurrent.PriorityBlockingQueue;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.zebra.io.BasicTable;
-import org.apache.hadoop.zebra.io.BasicTableStatus;
 import org.apache.hadoop.zebra.io.TableScanner;
 import org.apache.hadoop.zebra.parser.ParseException;
 import org.apache.hadoop.zebra.types.Projection;
@@ -156,6 +155,13 @@ class TableUnionExpr extends CompositeTableExpr {
     if (virtualColumnIndices != null && n == 1)
       throw new IllegalArgumentException("virtual column requires union of multiple tables");
     return new SortedTableUnionScanner(scanners, Projection.getVirtualColumnIndices(projection));
+  }
+  
+  @Override
+  public TableScanner getScanner(RowTableSplit split, String projection,
+      Configuration conf) throws IOException, ParseException {
+    BasicTableExpr expr = (BasicTableExpr) composite.get(split.getTableIndex());
+    return expr.getScanner(split, projection, conf);
   }
 }
 

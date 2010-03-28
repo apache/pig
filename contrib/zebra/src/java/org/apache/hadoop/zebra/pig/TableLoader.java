@@ -38,6 +38,8 @@ import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.zebra.io.BasicTable;
 import org.apache.hadoop.zebra.mapreduce.TableInputFormat;
 import org.apache.hadoop.zebra.mapreduce.TableRecordReader;
+import org.apache.hadoop.zebra.mapreduce.TableInputFormat.SplitMode;
+import org.apache.hadoop.zebra.mapreduce.ZebraSortInfo;
 import org.apache.hadoop.zebra.parser.ParseException;
 import org.apache.hadoop.zebra.schema.ColumnType;
 import org.apache.hadoop.zebra.schema.Schema;
@@ -57,15 +59,17 @@ import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.util.UDFContext;
 import org.apache.hadoop.zebra.pig.comparator.*;
 import org.apache.pig.IndexableLoadFunc;
+import org.apache.pig.CollectableLoadFunc;
 
 /**
  * Pig IndexableLoadFunc and Slicer for Zebra Table
  */
 public class TableLoader extends LoadFunc implements LoadMetadata, LoadPushDown,
-        IndexableLoadFunc{
+        IndexableLoadFunc, CollectableLoadFunc {
     static final Log LOG = LogFactory.getLog(TableLoader.class);
 
     private static final String UDFCONTEXT_PROJ_STRING = "zebra.UDFContext.projectionString";
+    private static final String UDFCONTEXT_GLOBAL_SORTING = "zebra.UDFContext.globalSorting";
 
     private String projectionString;
 
@@ -170,14 +174,19 @@ public class TableLoader extends LoadFunc implements LoadMetadata, LoadPushDown,
      * @throws IOException
      */
     private void setProjection(Job job) throws IOException {
+      Properties properties = UDFContext.getUDFContext().getUDFProperties( 
+          this.getClass(), new String[]{ udfContextSignature } );
+      boolean requireGlobalOrder = "true".equals(properties.getProperty( UDFCONTEXT_GLOBAL_SORTING));
+      if (requireGlobalOrder && !sorted)
+        throw new IOException("Global sorting can be only asked on table loaded as sorted");
         if( sorted ) {
-            TableInputFormat.requireSortedTable( job, null );
+            SplitMode splitMode = 
+              requireGlobalOrder ? SplitMode.GLOBALLY_SORTED : SplitMode.LOCALLY_SORTED;
+            TableInputFormat.setSplitMode(job, splitMode, null);
             sortInfo = TableInputFormat.getSortInfo( job );
         }
         
         try {
-            Properties properties = UDFContext.getUDFContext().getUDFProperties( 
-                    this.getClass(), new String[]{ udfContextSignature } );
             String prunedProjStr = properties.getProperty( UDFCONTEXT_PROJ_STRING );
             
             if( prunedProjStr != null ) {
@@ -414,4 +423,11 @@ public class TableLoader extends LoadFunc implements LoadMetadata, LoadPushDown,
         public void setUDFContextSignature(String signature) {
             udfContextSignature = signature;
         }
+        
+    @Override
+    public void ensureAllKeyInstancesInSameSplit() throws IOException {
+      Properties properties = UDFContext.getUDFContext().getUDFProperties(this.getClass(),
+          new String[] { udfContextSignature } );
+      properties.setProperty(UDFCONTEXT_GLOBAL_SORTING, "true");
+    }
 }
