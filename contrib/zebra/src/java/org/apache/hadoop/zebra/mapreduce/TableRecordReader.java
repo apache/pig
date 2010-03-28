@@ -53,19 +53,18 @@ public class TableRecordReader extends RecordReader<BytesWritable, Tuple> {
    */
   public TableRecordReader(TableExpr expr, String projection,
       InputSplit split, JobContext jobContext) throws IOException, ParseException {
-	Configuration conf = jobContext.getConfiguration();
-    if (expr.sortedSplitRequired()) {
+	  Configuration conf = jobContext.getConfiguration();
+	  if (split instanceof RowTableSplit) {
+      RowTableSplit rowSplit = (RowTableSplit) split;
+      if ((!expr.sortedSplitRequired() || rowSplit.getTableIndex() == -1) &&
+          Projection.getVirtualColumnIndices(projection) != null)
+        throw new IllegalArgumentException("virtual column requires union of multiple sorted tables");
+      scanner = expr.getScanner(rowSplit, projection, conf);
+	  } else {
       SortedTableSplit tblSplit = (SortedTableSplit) split;
       scanner =
           expr.getScanner(tblSplit.getBegin(), tblSplit.getEnd(), projection,
               conf);
-    } else if (split != null && split instanceof RowTableSplit) {
-      RowTableSplit rowSplit = (RowTableSplit) split;
-      scanner = expr.getScanner(rowSplit, projection, conf);
-    }
-    else {
-      UnsortedTableSplit tblSplit = (UnsortedTableSplit) split;
-      scanner = expr.getScanner(tblSplit, projection, conf);
     }
   }
   

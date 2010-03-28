@@ -198,7 +198,10 @@ public class TestSortedTableUnionSourceTableProj extends BaseTestCase{
       RowValue3 = it4.next();
       Assert.assertEquals(2, RowValue3.size());
       row++;
-      index = (row-1)/2;
+      if (row < 11)
+        index = row-1;
+      else
+        index = row-11;
       Assert.assertEquals(index+"_00", RowValue3.get(0));
     }
     Assert.assertEquals(20, row);

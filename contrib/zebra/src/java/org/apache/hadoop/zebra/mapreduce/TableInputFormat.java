@@ -144,6 +144,12 @@ import org.apache.pig.data.Tuple;
  * </UL>
  */
 public class TableInputFormat extends InputFormat<BytesWritable, Tuple> {
+  public enum SplitMode {
+    UNSORTED, /* Data is not sorted. Default split mode*/
+    LOCALLY_SORTED, /* Output by the each mapper is sorted */
+    GLOBALLY_SORTED /* Output is locally sorted and the key ranges are not overlapped, not even on boundary */
+  };
+    
   static Log LOG = LogFactory.getLog(TableInputFormat.class);
   
   private static final String INPUT_EXPR = "mapreduce.lib.table.input.expr";
@@ -151,6 +157,10 @@ public class TableInputFormat extends InputFormat<BytesWritable, Tuple> {
   private static final String INPUT_SORT = "mapreduce.lib.table.input.sort";
   static final String INPUT_FE = "mapreduce.lib.table.input.fe";
   static final String INPUT_DELETED_CGS = "mapreduce.lib.table.input.deleted_cgs";
+  private static final String INPUT_SPLIT_MODE = "mapreduce.lib.table.input.split_mode";
+  private static final String UNSORTED = "unsorted";
+  private static final String GLOBALLY_SORTED = "globally_sorted";
+  private static final String LOCALLY_SORTED = "locally_sorted";
   static final String DELETED_CG_SEPARATOR_PER_UNION = ";";
 
   /**
@@ -316,14 +326,26 @@ public class TableInputFormat extends InputFormat<BytesWritable, Tuple> {
     return null;
   }
       
-  /**
-   * Set requirement for sorted table
-   *
-   *@param conf
-   *          Configuration object.
-   */
-  private static void setSorted(Configuration conf) {
+  private static boolean globalOrderingRequired(JobContext jobContext)
+  {
+    Configuration conf = jobContext.getConfiguration();
+    String result = conf.get(INPUT_SPLIT_MODE, UNSORTED);
+    return result.equalsIgnoreCase(GLOBALLY_SORTED);
+  }
+
+  private static void setSorted(JobContext jobContext) {
+    Configuration conf = jobContext.getConfiguration();
     conf.setBoolean(INPUT_SORT, true);
+  }
+  
+  private static void setSorted(JobContext jobContext, SplitMode sm)
+  {
+    setSorted(jobContext);
+    Configuration conf = jobContext.getConfiguration();
+	  if (sm == SplitMode.GLOBALLY_SORTED)
+      conf.set(INPUT_SPLIT_MODE, GLOBALLY_SORTED);
+    else if (sm == SplitMode.LOCALLY_SORTED)
+      conf.set(INPUT_SPLIT_MODE, LOCALLY_SORTED);
   }
   
   /**
@@ -368,13 +390,33 @@ public class TableInputFormat extends InputFormat<BytesWritable, Tuple> {
   /**
    * Requires sorted table or table union
    * 
+   * @deprecated
+   * 
    * @param jobContext
    *          JobContext object.
    * @param sortInfo
    *          ZebraSortInfo object containing sorting information.
    *        
    */
-  public static void requireSortedTable(JobContext jobContext, ZebraSortInfo sortInfo) throws IOException {
+  
+   public static void requireSortedTable(JobContext jobContext, ZebraSortInfo sortInfo) throws IOException {
+     setSplitMode(jobContext, SplitMode.GLOBALLY_SORTED, sortInfo);
+   }
+
+  /**
+   * 
+   * @param conf
+   *          JonConf object
+   * @param sm
+   *          Split mode: unsorted, globally sorted, locally sorted. Default is unsorted
+   * @param sortInfo
+   *          ZebraSortInfo object containing sorting information. Will be ignored if
+   *          the split mode is null or unsorted
+   * @throws IOException
+   */
+  public static void setSplitMode(JobContext jobContext, SplitMode sm, ZebraSortInfo sortInfo) throws IOException {
+   if (sm == null || sm == SplitMode.UNSORTED)
+    return;
 	 TableExpr expr = getInputExpr( jobContext );
      Configuration conf = jobContext.getConfiguration();
 	 String comparatorName = null;
@@ -428,8 +470,7 @@ public class TableInputFormat extends InputFormat<BytesWritable, Tuple> {
        }
 		 }
 	 }
-   // need key range input splits for sorted table union
-   	 setSorted(conf);
+	 setSorted(jobContext, sm);
   }
   
   /**
@@ -599,6 +640,7 @@ public class TableInputFormat extends InputFormat<BytesWritable, Tuple> {
       SortedTableSplit split = new SortedTableSplit(beginB, endB, bd, conf);
       splits.add(split);
     }
+    LOG.info("getSplits : returning " + splits.size() + " sorted splits.");
     return splits;
   }
   
@@ -716,7 +758,8 @@ public class TableInputFormat extends InputFormat<BytesWritable, Tuple> {
               FileStatus[] fileStatuses = fs.listStatus(globStat.getPath(), inputFilter);
               // reorder according to CG index
               BasicTable.Reader reader = readers.get(index);
-              reader.rearrangeFileIndices(fileStatuses);
+              if (fileStatuses.length > 1)
+                reader.rearrangeFileIndices(fileStatuses);
               for(FileStatus stat: fileStatuses) {
                 if (stat != null)
                   result.add(stat);
@@ -758,6 +801,7 @@ public class TableInputFormat extends InputFormat<BytesWritable, Tuple> {
     boolean first = true;
     PathFilter filter = null;
     List<BasicTable.Reader> realReaders = new ArrayList<BasicTable.Reader>();
+    int[] realReaderIndices = new int[readers.size()];
 
     for (int i = 0; i < readers.size(); ++i) {
       BasicTable.Reader reader = readers.get(i);
@@ -766,7 +810,8 @@ public class TableInputFormat extends InputFormat<BytesWritable, Tuple> {
       
       /* We can create input splits only if there does exist a valid column group for split.
        * Otherwise, we do not create input splits. */
-      if (splitCGIndex >= 0) {        
+      if (splitCGIndex >= 0) {
+        realReaderIndices[realReaders.size()] = i;
         realReaders.add(reader);
          if (first)
          {
@@ -862,11 +907,13 @@ public class TableInputFormat extends InputFormat<BytesWritable, Tuple> {
         if (splitLen > 0)
           batches[++numBatches] = splitLen;
         
-        List<RowSplit> subSplits = reader.rowSplit(starts, lengths, paths, splitCGIndex, batches, numBatches);
+        List<RowSplit> subSplits = reader.rowSplit(starts, lengths, paths, splitCGIndex,
+            batches, numBatches);
         
+        int realTableIndex = realReaderIndices[tableIndex];
         for (Iterator<RowSplit> it = subSplits.iterator(); it.hasNext();) {
           RowSplit subSplit = it.next();
-          RowTableSplit split = new RowTableSplit(reader, subSplit, conf);
+          RowTableSplit split = new RowTableSplit(reader, subSplit, realTableIndex, conf);
           ret.add(split);
         }
       }
@@ -884,7 +931,7 @@ public class TableInputFormat extends InputFormat<BytesWritable, Tuple> {
 	    return getSplits( jobContext, false );
     }
 
-    private List<InputSplit> getSplits(JobContext jobContext, boolean singleSplit) throws IOException {
+    List<InputSplit> getSplits(JobContext jobContext, boolean singleSplit) throws IOException {
     	Configuration conf = jobContext.getConfiguration();
     	TableExpr expr = getInputExpr( conf );
     	if( getSorted(conf) ) {
@@ -938,9 +985,20 @@ public class TableInputFormat extends InputFormat<BytesWritable, Tuple> {
     			return new ArrayList<InputSplit>();
     		}
 
-    		return sorted ? 
-    				singleSplit ? getSortedSplits( conf, 1, expr, readers, status) : getSortedSplits(conf, -1, expr, readers, status) : 
-    					getRowSplits( conf, expr, readers, status);
+        List<InputSplit> result;
+        if (sorted)
+        {
+          if (singleSplit)
+            result = getSortedSplits( conf, 1, expr, readers, status);
+          else if (globalOrderingRequired(jobContext))
+            result = getSortedSplits(conf, -1, expr, readers, status);
+          else
+            result = getRowSplits( conf, expr, readers, status);
+        } else
+          result = getRowSplits( conf, expr, readers, status);
+
+        return result;
+
     	} catch (ParseException e) {
     		throw new IOException("Projection parsing failed : "+e.getMessage());
     	} finally {
@@ -1166,15 +1224,17 @@ class RowTableSplit extends InputSplit implements Writable{
   /**
      * 
      */
-String path = null;
+  String path = null;
+  int tableIndex = 0;
   RowSplit split = null;
   String[] hosts = null;
   long length = 1;
 
-  public RowTableSplit(Reader reader, RowSplit split, Configuration conf)
+  public RowTableSplit(Reader reader, RowSplit split, int tableIndex, Configuration conf)
       throws IOException {
     this.path = reader.getPath();
     this.split = split;
+    this.tableIndex = tableIndex;
     BlockDistribution dataDist = reader.getBlockDistribution(split);
     if (dataDist != null) {
       length = dataDist.getLength();
@@ -1199,6 +1259,7 @@ String path = null;
 
   @Override
   public void readFields(DataInput in) throws IOException {
+    tableIndex = WritableUtils.readVInt(in); 
     path = WritableUtils.readString(in);
     int bool = WritableUtils.readVInt(in);
     if (bool == 1) {
@@ -1214,6 +1275,7 @@ String path = null;
 
   @Override
   public void write(DataOutput out) throws IOException {
+    WritableUtils.writeVInt(out, tableIndex);
     WritableUtils.writeString(out, path);
     if (split == null) {
       WritableUtils.writeVInt(out, 0);
@@ -1232,5 +1294,9 @@ String path = null;
   
   public RowSplit getSplit() {
     return split;
+  }
+  
+  public int getTableIndex() {
+    return tableIndex;
   }
 }

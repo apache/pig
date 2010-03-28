@@ -37,7 +37,7 @@ public class ToolTestComparator extends BaseTestCase {
 
   final static String TABLE_SCHEMA = "count:int,seed:int,int1:int,int2:int,str1:string,str2:string,byte1:bytes,"
       + "byte2:bytes,float1:float,long1:long,double1:double,m1:map(string),r1:record(f1:string, f2:string),"
-      + "c1:collection(a:string, b:string)";
+      + "c1:collection(record(a:string, b:string))";
   final static String TABLE_STORAGE = "[count,seed,int1,int2,str1,str2,byte1,byte2,float1,long1,double1];[m1#{a}];[r1,c1]";
 
   private static Random generator = new Random();
@@ -399,13 +399,15 @@ public class ToolTestComparator extends BaseTestCase {
       tuple.set(12, tupRecord1);
 
       // insert collection1
-      tupColl1.set(0, "c1 a " + seed);
-      tupColl1.set(1, "c1 a " + i);
-      bag1.add(tupColl1); // first collection item
+      // tupColl1.set(0, "c1 a " + seed);
+      // tupColl1.set(1, "c1 a " + i);
+      // bag1.add(tupColl1); // first collection item
+      bag1.add(tupRecord1); // first collection item
+      bag1.add(tupRecord1); // second collection item
 
-      tupColl2.set(0, "c1 b " + seed);
-      tupColl2.set(1, "c1 b " + i);
-      bag1.add(tupColl2); // second collection item
+      // tupColl2.set(0, "c1 b " + seed);
+      // tupColl2.set(1, "c1 b " + i);
+      // bag1.add(tupColl2); // second collection item
 
       tuple.set(13, bag1);
 

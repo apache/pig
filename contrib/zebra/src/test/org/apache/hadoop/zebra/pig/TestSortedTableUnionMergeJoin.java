@@ -194,7 +194,10 @@ public class TestSortedTableUnionMergeJoin extends BaseTestCase {
     pigServer.registerQuery(join);
 
     // check JOIN content
-    Iterator<Tuple> it3 = pigServer.openIterator("records2");
+    String query5 = "records3 = ORDER records2 BY SF_a;";
+    pigServer.registerQuery(query5);
+
+    Iterator<Tuple> it3 = pigServer.openIterator("records3");
     int row = 0, index;
     Tuple RowValue3 = null;
     while (it3.hasNext()) {
