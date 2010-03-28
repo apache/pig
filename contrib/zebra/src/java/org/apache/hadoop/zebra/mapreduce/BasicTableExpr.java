@@ -29,6 +29,8 @@ import org.apache.hadoop.zebra.io.BasicTable;
 import org.apache.hadoop.zebra.io.TableScanner;
 import org.apache.hadoop.zebra.parser.ParseException;
 import org.apache.hadoop.zebra.schema.Schema;
+import org.apache.hadoop.zebra.types.Projection;
+import org.apache.pig.data.Tuple;
 
 /**
  * Table expression for reading a BasicTable.
@@ -117,6 +119,12 @@ class BasicTableExpr extends TableExpr {
   } 
 
   @Override
+  public TableScanner getScanner(RowTableSplit split, String projection,
+      Configuration conf) throws IOException, ParseException {
+    return new BasicTableScanner(split, projection, conf);
+  }
+  
+  @Override
   public Schema getSchema(Configuration conf) throws IOException {
     return BasicTable.Reader.getSchema(path, conf);
   }
@@ -130,5 +138,76 @@ class BasicTableExpr extends TableExpr {
   protected void dumpInfo(PrintStream ps, Configuration conf, int indent) throws IOException
   {
     BasicTable.dumpInfo(path.toString(), ps, conf, indent);
+  }
+  
+  /**
+   * Basic Table Scanner
+   */
+  class BasicTableScanner implements TableScanner {
+    private int tableIndex = -1;
+    private Integer[] virtualColumnIndices = null;
+    private TableScanner scanner = null;
+    
+    BasicTableScanner(RowTableSplit split, String projection,
+        Configuration conf) throws IOException, ParseException, ParseException {
+      tableIndex = split.getTableIndex();
+      virtualColumnIndices = Projection.getVirtualColumnIndices(projection);
+      BasicTable.Reader reader =
+        new BasicTable.Reader(new Path(split.getPath()), getDeletedCGs(conf), conf);
+      reader.setProjection(projection);
+      scanner = reader.getScanner(true, split.getSplit());
+    }
+    
+    @Override
+    public boolean advance() throws IOException {
+      return scanner.advance();
+    }
+    
+    @Override
+    public boolean atEnd() throws IOException {
+      return scanner.atEnd();
+    }
+    
+    @Override
+    public Schema getSchema() {
+      return scanner.getSchema();
+    }
+    
+    @Override
+    public void getKey(BytesWritable key) throws IOException {
+      scanner.getKey(key);
+    }
+    
+    @Override
+    public void getValue(Tuple row) throws IOException {
+      scanner.getValue(row);
+      if (virtualColumnIndices != null)
+      {
+        for (int i = 0; i < virtualColumnIndices.length; i++)
+        {
+          row.set(virtualColumnIndices[i], tableIndex);
+        }
+      }
+    }
+    
+    @Override
+    public boolean seekTo(BytesWritable key) throws IOException {
+      return scanner.seekTo(key);
+    }
+    
+    @Override
+    public void seekToEnd() throws IOException {
+      scanner.seekToEnd();
+    }
+    
+    @Override 
+    public void close() throws IOException {
+      scanner.close();
+    }
+    
+    @Override
+    public String getProjection() {
+      return scanner.getProjection();
+    }
   }
 }

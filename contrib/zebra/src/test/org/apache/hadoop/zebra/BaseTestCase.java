@@ -20,6 +20,9 @@ package org.apache.hadoop.zebra;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
 
 import junit.framework.Assert;
 
@@ -31,6 +34,7 @@ import org.apache.hadoop.conf.Configured;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
+import org.apache.pig.data.Tuple;
 
 public class BaseTestCase extends Configured {
   protected static PigServer pigServer = null;
@@ -124,6 +128,45 @@ public class BaseTestCase extends Configured {
     } else {
       return new Path(fs.getWorkingDirectory().toString().split(":")[1] + "/" + tableName);    
     }
+  }
+  
+  /**
+   * Verify union output table with expected results
+   * 
+   */
+  protected int verifyTable(HashMap<Integer, ArrayList<ArrayList<Object>>> resultTable,
+      int keyColumn, int tblIdxCol, Iterator<Tuple> it) throws IOException {
+    int numbRows = 0;
+    int index = 0, rowIndex = -1, rowCount = -1, prevIndex = -1;
+    Object value;
+    boolean first = true;
+    ArrayList<ArrayList<Object>> rows = null;
+    
+    while (it.hasNext()) {
+      Tuple rowValues = it.next();
+      
+      if (first) {
+        index = (Integer) rowValues.get(tblIdxCol);
+        Assert.assertNotSame(prevIndex, index);
+        rows = resultTable.get(index);
+        rowIndex = 0;
+        rowCount = rows.size();
+        first = false;
+      }
+      value = rows.get(rowIndex++).get(keyColumn);
+      Assert.assertEquals("Table comparison error for row : " + numbRows + " - no key found for : "
+          + rowValues.get(keyColumn), value, rowValues.get(keyColumn));
+      
+      if (rowIndex == rowCount)
+      {
+        // current table is run out; start on a new table for next iteration
+        first = true;
+        prevIndex = index;
+      }
+      
+      ++numbRows;
+    }
+    return numbRows;
   }
   
   public static void checkTableExists(boolean expected, String strDir) throws IOException {  
