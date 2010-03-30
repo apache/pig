@@ -762,8 +762,12 @@ has methods to convert byte arrays to specific types. A loader implementation sh
 
  <p>The LoadFunc abstract class is the main class to extend for implementing a loader. The methods which need to be overriden are explained below:</p>
  <ul>
- <li>getInputFormat() :This method will be called by Pig to get the InputFormat used by the loader. The methods in the InputFormat (and underlying RecordReader) will be called by pig in the same manner (and in the same context) as by Hadoop in a map-reduce java program. If the InputFormat is a hadoop packaged one, the implementation should use the new API based one under org.apache.hadoop.mapreduce. If it is a custom InputFormat, it should be implemented using the new API in org.apache.hadoop.mapreduce. If a custom loader using a text-based InputFormat or a file based InputFormat would like to read files in all subdirectories under a given input directory recursively, then it should use the PigFileInputFormat and PigTextInputFormat classes provided in org.apache.pig.backend.hadoop.executionengine.mapReduceLayer. This is to work around the current limitation in Hadoop's TextInputFormat and FileInputFormat which only read one level down from provided input directory. So for example if the input in the load statement is 'dir1' and there are subdirs 'dir2' and 'dir2/dir3' underneath dir1, using Hadoop's TextInputFormat or FileInputFormat only files under 'dir1' can be read. Using PigFileInputFormat or PigTextInputFormat (or by extending them), files in all the directories can be read. </li>
+ <li>getInputFormat() :This method is called by Pig to get the InputFormat used by the loader. The methods in the InputFormat (and underlying RecordReader) are called by Pig in the same manner (and in the same context) as by Hadoop in a MapReduce java program. If the InputFormat is a Hadoop packaged one, the implementation should use the new API based one under org.apache.hadoop.mapreduce. If it is a custom InputFormat, it should be implemented using the new API in org.apache.hadoop.mapreduce.<br></br> <br></br> 
+ 
+ If a custom loader using a text-based InputFormat or a file-based InputFormat would like to read files in all subdirectories under a given input directory recursively, then it should use the PigTextInputFormat and PigFileInputFormat classes provided in org.apache.pig.backend.hadoop.executionengine.mapReduceLayer. The Pig InputFormat classes work around a current limitation in the Hadoop TextInputFormat and FileInputFormat classes which only read one level down from the provided input directory. For example, if the input in the load statement is 'dir1' and there are subdirs 'dir2' and 'dir2/dir3' beneath dir1, the Hadoop TextInputFormat and FileInputFormat classes read the files under 'dir1' only. Using PigTextInputFormat or PigFileInputFormat (or by extending them), the files in all the directories can be read. </li>
+ 
  <li>setLocation() :This method is called by Pig to communicate the load location to the loader. The loader should use this method to communicate the same information to the underlying InputFormat. This method is called multiple times by pig - implementations should bear this in mind and should ensure there are no inconsistent side effects due to the multiple calls. </li>
+ 
  <li>prepareToRead() : Through this method the RecordReader associated with the InputFormat provided by the LoadFunc is passed to the LoadFunc. The RecordReader can then be used by the implementation in getNext() to return a tuple representing a record of data back to pig. </li>
  <li>getNext() :The meaning of getNext() has not changed and is called by Pig runtime to get the next tuple in the data - in this method the implementation should use the the underlying RecordReader and construct the tuple to return. </li>
  </ul>
@@ -1124,13 +1128,6 @@ public class SimpleTextStorer extends StoreFunc {
 </section>
 <!-- END LOAD/STORE FUNCTIONS -->
 
-<section>
-<title> Comparison Functions</title>
-
-<p>Comparison UDFs are mostly obsolete now. They were added to the language because, at that time, the <code>ORDER</code> operator had two significant shortcomings. First, it did not allow descending order and, second, it only supported alphanumeric order. </p>
-<p>The latest version of Pig solves both of these issues. The <a href="http://wiki.apache.org/pig/UserDefinedOrdering"> pointer</a> to the original documentation is provided here for completeness. </p>
-
-</section>
 
 <section>
 <title>Builtin Functions and Function Repositories</title>

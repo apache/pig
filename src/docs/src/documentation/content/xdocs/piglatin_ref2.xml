@@ -6976,7 +6976,7 @@ DUMP B;
    <informaltable frame="all">
       <tgroup cols="1"><tbody><row>
             <entry>
-               <para>EXPLAIN [–out path] [-brief] [-dot] [–param param_name = param_value] [–param_file file_name] alias; </para>
+               <para>EXPLAIN [–script pigscript] [–out path] [–brief] [–dot] [–param param_name = param_value] [–param_file file_name] alias; </para>
             </entry>
          </row></tbody></tgroup>
    </informaltable></section>
@@ -6985,14 +6985,23 @@ DUMP B;
    <title>Terms</title>
    <informaltable frame="all">
    <tgroup cols="2"><tbody>
-      
          <row>
             <entry>
-               <para>–out path</para>
+               <para>–script</para>
             </entry>
             <entry>
-               <para>Will generate logical_plan.[txt||dot], physical_plan.[text||dot], exec_plan.[text||dot] in the specified directory (path).</para>
-               <para>Default (no path given): Stdout </para>
+               <para>Use to specify a pig script.</para>
+            </entry>
+         </row>      
+
+         <row>
+            <entry>
+               <para>–out</para>
+            </entry>
+            <entry>
+               <para>Use to specify the output path (directory).</para>
+               <para>Will generate a logical_plan[.txt|.dot], physical_plan[.text|.dot], exec_plan[.text|.dot] file in the specified path.</para>
+               <para>Default (no path specified): Stdout </para>
             </entry>
          </row>
 
@@ -7010,9 +7019,10 @@ DUMP B;
                <para>–dot</para>
             </entry>
             <entry>
-               <para>Dot mode: outputs a format that can be passed to dot for graphical display.</para>
-               <para>Text mode: multiple output (split) will be broken out in sections.  </para>
-               <para>Default: Text </para>
+
+               <para>Text mode (default): multiple output (split) will be broken out in sections.  </para>
+               <para>Dot mode: outputs a format that can be passed to the dot utility for graphical display – 
+               will generate a directed-acyclic-graph (DAG) of the plans in any supported format (.gif, .jpg ...).</para>
             </entry>
          </row>
 
@@ -7295,7 +7305,7 @@ ILLUSTRATE num_user_visits;
                      <para>USING – Keyword.</para>
                   </listitem>
                   <listitem>
-                     <para>serializer – A function that converts data from tuples to stream format. PigStorage is the default serializer. You can also write your own UDF.</para>
+                     <para>serializer – PigStream is the default serializer. </para>
                   </listitem>
                </itemizedlist>
             </entry>
@@ -7318,7 +7328,7 @@ ILLUSTRATE num_user_visits;
                      <para>USING – Keyword.</para>
                   </listitem>
                   <listitem>
-                     <para>deserializer – A function that converts data from stream format to tuples. PigStorage is the default deserializer. You can also write your own UDF.</para>
+                     <para>deserializer – PigStream is the default deserializer. </para>
                   </listitem>
                </itemizedlist>
             </entry>
@@ -7365,7 +7375,7 @@ ILLUSTRATE num_user_visits;
    <para>Use DEFINE to specify a function when:</para>
    <itemizedlist>
       <listitem>
-         <para>The function has a log package name that you don't want to include in a script, especially if you call the function several times in that script.</para>
+         <para>The function has a long package name that you don't want to include in a script, especially if you call the function several times in that script.</para>
       </listitem>
       <listitem>
          <para>The constructor for the function takes string parameters. If you need to use different constructor parameters for different calls to the function you will need to create multiple defines – one for each parameter set.</para>
@@ -7375,8 +7385,46 @@ ILLUSTRATE num_user_visits;
    
    <section
    ><title>About Input and Output</title>
-   <para>Serialization is needed to convert data from tuples to a format that can be processed by the streaming application. Deserialization is needed to convert the output from the streaming application back into tuples.</para>
-   <para>PigStorage, the default serialization/deserialization function, converts tuples to tab-delimited lines. Pig's BinarySerializer and BinaryDeserializer functions treat the entire file as a byte stream (no formatting or interpretation takes place). You can also write your own serialization/deserialization functions.</para>
+   <para>Serialization is needed to convert data from tuples to a format that can be processed by the streaming application. Deserialization is needed to convert the output from the streaming application back into tuples. PigStreaming is the default serialization/deserialization function.</para>
+   
+<para>Streaming uses the same default format as PigStorage to serialize/deserialize the data. If you want to explicitly specify a format, you can do it as show below (see more examples in the Examples: Input/Output section).  </para> 
+
+<programlisting>
+DEFINE CMD 'perl PigStreaming.pl - nameMap' input(stdin using PigStreaming(',')) output(stdout using PigStreaming(','));
+A = LOAD 'file';
+B = STREAM B THROUGH CMD;
+</programlisting>  
+
+<para>If you need an alternative format, you will need to create a custom serializer/deserializer by implementing the following interfaces.</para>
+
+<programlisting>
+interface PigToStream {
+
+        /**
+         * Given a tuple, produce an array of bytes to be passed to the streaming
+         * executable.
+         */
+        public byte[] serialize(Tuple t) throws IOException;
+    }
+
+    interface StreamToPig {
+
+        /**
+         *  Given a byte array from a streaming executable, produce a tuple.
+         */
+        public Tuple deserialize(byte[]) throws IOException;
+
+        /**
+         * This will be called on the front end during planning and not on the back
+         * end during execution.
+         *
+         * @return the {@link LoadCaster} associated with this object.
+         * @throws IOException if there is an exception during LoadCaster
+         */
+        public LoadCaster getLoadCaster() throws IOException;
+    }
+</programlisting>  
+   
    </section>
    
    <section>
@@ -7448,15 +7496,15 @@ OP = stream IP through 'perl /a/b/c/script.pl';
       </section>
    
  <section>
- <title>Example: Input/Output</title>
- <para>In this example PigStorage is the default serialization/deserialization function. The tuples from relation A are converted to tab-delimited lines that are passed to the script.</para>
+ <title>Examples: Input/Output</title>
+ <para>In this example PigStreaming is the default serialization/deserialization function. The tuples from relation A are converted to tab-delimited lines that are passed to the script.</para>
 <programlisting>
 X = STREAM A THROUGH 'stream.pl';
 </programlisting>
    
-   <para>In this example PigStorage is used as the serialization/deserialization function, but a comma is used as the delimiter.</para>
+   <para>In this example PigStreaming is used as the serialization/deserialization function, but a comma is used as the delimiter.</para>
 <programlisting>
-DEFINE Y 'stream.pl' INPUT(stdin USING PigStorage(',')) OUTPUT (stdout USING PigStorage(','));
+DEFINE Y 'stream.pl' INPUT(stdin USING PigStreaming(',')) OUTPUT (stdout USING PigStreaming(','));
 
 X = STREAM A THROUGH Y;
 </programlisting>
@@ -7470,7 +7518,7 @@ X = STREAM A THROUGH Y;
    </section>
    
    <section>
-   <title>Example: Ship/Cache</title>
+   <title>Examples: Ship/Cache</title>
    <para>In this example ship is used to send the script to the cluster compute nodes.</para>
 <programlisting>
 DEFINE Y 'stream.pl' SHIP('/work/stream.pl');
@@ -7487,7 +7535,7 @@ X = STREAM A THROUGH Y;
    </section>
    
    <section>
-   <title>Example: Logging</title>
+   <title>Examples: Logging</title>
    <para>In this example the streaming stderr is stored in the _logs/&lt;dir&gt; directory of the job's output directory. Because the job can have multiple streaming applications associated with it, you need to ensure that different directory names are used to avoid conflicts. Pig stores up to 100 tasks per streaming job.</para>
 <programlisting>
 DEFINE Y 'stream.pl' stderr('&lt;dir&gt;' limit 100);
@@ -8590,6 +8638,43 @@ DUMP X;
    
 
    <section>
+   <title>Handling Compression</title>
+
+<para>Support for compression is determined by the load/store function. PigStorage and TextLoader support gzip and bzip compression for both read (load) and write (store). BinStorage does not support compression.</para>
+
+<para>To work with gzip compressed files, input/output files need to have a .gz extension. Gzipped files cannot be split across multiple maps; this means that the number of maps created is equal to the number of part files in the input location.</para>
+
+<programlisting>
+A = load ‘myinput.gz’;
+store A into ‘myoutput.gz’; 
+</programlisting>
+
+<para>To work with bzip compressed files, the input/output files need to have a .bz or .bz2 extension. Because the compression is block-oriented, bzipped files can be split across multiple maps.</para>
+
+<programlisting>
+A = load ‘myinput.bz’;
+store A into ‘myoutput.bz’; 
+</programlisting>
+
+<para>Note: PigStorage and TextLoader correctly read compressed files as long as they are NOT CONCATENATED FILES generated in this manner: </para>
+  <itemizedlist>
+      <listitem>
+         <para>cat *.gz > text/concat.gz</para>
+      </listitem>
+      <listitem>
+         <para>cat *.bz > text/concat.bz </para>
+      </listitem>
+      <listitem>
+         <para>cat *.bz2 > text/concat.bz2</para>
+      </listitem>
+   </itemizedlist>
+
+<para>If you use concatenated gzip or bzip files with your Pig jobs, you will NOT see a failure but the results will be INCORRECT.</para>
+<para></para>
+
+</section>
+
+   <section>
    <title>BinStorage</title>
    <para>Loads and stores data in machine-readable format.</para>
    
@@ -8618,9 +8703,10 @@ DUMP X;
    
    <section>
    <title>Usage</title>
-   <para>BinStorage works with data that is represented on disk in machine-readable format.</para>
-   <para>BinStorage does not support compression.</para>
-   <para>BinStorage is used internally by Pig to store the temporary data that is created between multiple map/reduce jobs.</para></section>
+   <para>BinStorage works with data that is represented on disk in machine-readable format. 
+   BinStorage does NOT support <ulink url="#Handling+Compression">compression</ulink>.</para>
+   
+      <para>BinStorage is used internally by Pig to store the temporary data that is created between multiple map/reduce jobs.</para></section>
    
    <section>
    <title>Example</title>
@@ -8665,9 +8751,7 @@ STORE X into 'output' USING BinStorage();
    <title>Usage</title>
    <para>PigStorage is the default function for the LOAD and STORE operators and works with both simple and complex data types. </para>
    
-   <para>PigStorage supports structured text files (in human-readable UTF-8 format).</para>
-   
-   <para>PigStorage also supports gzip (.gz) and bzip(.bz or .bz2) compressed files. PigStorage correctly reads compressed files as long as they are NOT CONCATENATED files generated in this manner: cat *.gz > text/concat.gz  OR cat *.bz > text/concat.bz (OR cat *.bz2 > text/concat.bz2). If you use concatenated gzip or bzip files with your Pig jobs, you will not see a failure but the results will be INCORRECT.</para>
+   <para>PigStorage supports structured text files (in human-readable UTF-8 format). PigStorage also supports <ulink url="#Handling+Compression">compression</ulink>.</para>
 
   <para>Load statements – PigStorage expects data to be formatted using field delimiters, either the tab character  ('\t') or other specified character.</para>
 
@@ -8762,7 +8846,7 @@ STORE X INTO 'output' USING PigDump();
    
    <section>
    <title>Usage</title>
-   <para>TextLoader works with unstructured data in UTF8 format. Each resulting tuple contains a single field with one line of input text. </para>
+   <para>TextLoader works with unstructured data in UTF8 format. Each resulting tuple contains a single field with one line of input text. TextLoader also supports <ulink url="#Handling+Compression">compression</ulink>.</para>
    <para>Currently, TextLoader support for compression is limited.</para>  
    <para>TextLoader cannot be used to store data.</para>
    </section>

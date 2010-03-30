@@ -272,7 +272,7 @@ STORE D INTO ‘mysortedcount’ USING PigStorage();
 <section>
 <title>Use the LIMIT Operator</title>
 
-<p>A lot of the times, you are not interested in the entire output but either a sample or top results. In those cases, using LIMIT can yeild a much better performance as we push the limit as high as possible to minimize the amount of data travelling through the pipeline. </p>
+<p>Often you are not interested in the entire output but rather a sample or top results. In such cases, using LIMIT can yield a much better performance as we push the limit as high as possible to minimize the amount of data travelling through the pipeline. </p>
 <p>Sample: 
 </p>
 
