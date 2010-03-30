@@ -24,6 +24,21 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+OPTIMIZATIONS
+
+BUG FIXES
+
+
+PIG 0.7.0
+
+INCOMPATIBLE CHANGES
+
+IMPROVEMENTS
+
+PIG-1310 
+ISO Date UDFs: Conversion, Trucation and Date Math (piggybank) (rjurney via
+gates)
+
 PIG-1284 Added XMLLoader to piggybank (aloknsingh via gates)
 
 OPTIMIZATIONS
