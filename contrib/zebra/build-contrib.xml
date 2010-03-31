@@ -23,7 +23,7 @@
 
   <property name="name" value="${ant.project.name}"/>
   <property name="root" value="${basedir}"/>
-  <property name="version" value="0.7.0-dev"/>
+  <property name="version" value="0.8.0-dev"/>
 
   <!-- Load all the default properties, and any the user wants    -->
   <!-- to contribute (without having to type -D or edit this file -->
@@ -53,7 +53,7 @@
   <property name="build.examples" location="${build.dir}/examples"/>
   <property name="pig.log.dir" location="${build.dir}/test/logs"/>
   <property name="hadoop.jarfile" value="hadoop20.jar" />
-  <property name="pig.jarfile" value="pig-0.7.0-dev-core.jar" />
+  <property name="pig.jarfile" value="pig-0.8.0-dev-core.jar" />
   <property name="hbase.jarfile" value="hbase-0.18.1.jar" />
   <property name="hbase.test.jarfile" value="hbase-0.18.1-test.jar" />
 

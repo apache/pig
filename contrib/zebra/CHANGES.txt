@@ -70,6 +70,8 @@ Trunk (unreleased changes)
 
   BUG FIXES
 
+    PIG-1340 The zebra version number should be changed from 0.7 to 0.8 (yanz)
+
     PIG-1318 Invalid type for source_table field when using order-preserving Sorted Table Union (gauravj via yanz)
 
     PIG-1258 Number of sorted input splits is unusually high (yanz)
