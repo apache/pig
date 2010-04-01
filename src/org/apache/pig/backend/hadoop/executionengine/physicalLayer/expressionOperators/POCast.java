@@ -1028,5 +1028,9 @@ public class POCast extends ExpressionOperator {
     public void setFieldSchema(ResourceFieldSchema s) {
         fieldSchema = s;
     }
+    
+    public FuncSpec getFuncSpec() {
+        return funcSpec;
+    }
 
 }
