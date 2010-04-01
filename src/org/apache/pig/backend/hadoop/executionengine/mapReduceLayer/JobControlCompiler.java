@@ -425,9 +425,6 @@ public class JobControlCompiler{
             LinkedList<POStore> mapStores = PlanHelper.getStores(mro.mapPlan);
             LinkedList<POStore> reduceStores = PlanHelper.getStores(mro.reducePlan);
             
-            conf.set(PIG_MAP_STORES, ObjectSerializer.serialize(mapStores));
-            conf.set(PIG_REDUCE_STORES, ObjectSerializer.serialize(reduceStores));
-            
             for (POStore st: mapStores) {
                 storeLocations.add(st);
                 StoreFuncInterface sFunc = st.getStoreFunc();
@@ -448,11 +445,11 @@ public class JobControlCompiler{
                 
                 POStore st;
                 if (reduceStores.isEmpty()) {
-                    st = mapStores.remove(0);
+                    st = mapStores.get(0);
                     mro.mapPlan.remove(st);
                 }
                 else {
-                    st = reduceStores.remove(0);
+                    st = reduceStores.get(0);
                     mro.reducePlan.remove(st);
                 }
 
@@ -605,6 +602,13 @@ public class JobControlCompiler{
                 nwJob.setMapOutputKeyClass(NullablePartitionWritable.class);
                 nwJob.setGroupingComparatorClass(PigGroupingPartitionWritableComparator.class);
             }
+            
+            // unset inputs for POStore, otherwise, map/reduce plan will be unnecessarily deserialized 
+            for (POStore st: mapStores) { st.setInputs(null); st.setParentPlan(null);}
+            for (POStore st: reduceStores) { st.setInputs(null); st.setParentPlan(null);}
+
+            conf.set(PIG_MAP_STORES, ObjectSerializer.serialize(mapStores));
+            conf.set(PIG_REDUCE_STORES, ObjectSerializer.serialize(reduceStores));
       
             // Serialize the UDF specific context info.
             UDFContext.getUDFContext().serialize(conf);
