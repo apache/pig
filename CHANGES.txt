@@ -193,6 +193,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-1335: UDFFinder should find LoadFunc used by POCast (daijy)
+
 PIG-1307: when we spill the DefaultDataBag we are not setting the sized changed flag to be true. (breed via daijy)
 
 PIG-1298: Restore file traversal behavior to Pig loaders (rding)
