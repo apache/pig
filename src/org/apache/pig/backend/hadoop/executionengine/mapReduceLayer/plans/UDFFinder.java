@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POCast;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POUserComparisonFunc;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POUserFunc;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
@@ -91,5 +92,10 @@ public class UDFFinder extends PhyPlanVisitor {
         UDFs.add(compFunc.getFuncSpec().toString());
     }
     
+    @Override
+    public void visitCast(POCast op) {
+        if (op.getFuncSpec()!=null)
+        UDFs.add(op.getFuncSpec().toString());
+    }
     
 }
