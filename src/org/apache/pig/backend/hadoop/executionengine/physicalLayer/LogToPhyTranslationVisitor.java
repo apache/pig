@@ -23,20 +23,13 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
 import java.util.Stack;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.pig.ComparisonFunc;
 import org.apache.pig.EvalFunc;
 import org.apache.pig.FuncSpec;
-import org.apache.pig.LoadFunc;
 import org.apache.pig.PigException;
-import org.apache.pig.SortInfo;
-import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
-import org.apache.pig.data.NonSpillableDataBag;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.PigContext;
@@ -48,7 +41,6 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.ExpressionOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.BinaryExpressionOperator;
 import org.apache.pig.builtin.BinStorage;
-import org.apache.pig.builtin.IsEmpty;
 import org.apache.pig.impl.builtin.GFCross;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.FileSpec;
@@ -666,14 +658,94 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
     @Override
     public void visit(LOCogroup cg) throws VisitorException {
             
-        if (cg.getGroupType() == LOCogroup.GROUPTYPE.COLLECTED) {
-
+        switch (cg.getGroupType()) {
+        
+        case COLLECTED:
             translateCollectedCogroup(cg);
+            break;
 
-        } else {
-            
+        case REGULAR:
             translateRegularCogroup(cg);
+            break;
+            
+        case MERGE:
+            translateMergeCogroup(cg);
+            break;
+            
+        default:
+            throw new LogicalToPhysicalTranslatorException("Unknown CoGroup Modifier",PigException.BUG);
         }
+    }
+    
+    private void translateMergeCogroup(LOCogroup loCogrp) throws VisitorException{
+        
+        String scope = loCogrp.getOperatorKey().scope;
+        List<LogicalOperator> inputs = loCogrp.getInputs();
+        
+        // LocalRearrange corresponding to each of input 
+        // LR is needed to extract keys out of the tuples.
+        
+        POLocalRearrange[] innerLRs = new POLocalRearrange[inputs.size()];
+        int count = 0;
+        List<PhysicalOperator> inpPOs = new ArrayList<PhysicalOperator>(inputs.size());
+        
+        for (LogicalOperator op : inputs) {
+            PhysicalOperator physOp = logToPhyMap.get(op);
+            inpPOs.add(physOp);
+            
+            List<LogicalPlan> plans = (List<LogicalPlan>)loCogrp.getGroupByPlans().get(op);
+            POLocalRearrange poInnerLR = new POLocalRearrange(new OperatorKey(scope, nodeGen.getNextNodeId(scope)));
+            poInnerLR.setAlias(loCogrp.getAlias());
+            // LR will contain list of physical plans, because there could be
+            // multiple keys and each key can be an expression.
+            List<PhysicalPlan> exprPlans = new ArrayList<PhysicalPlan>();
+            currentPlans.push(currentPlan);
+            for (LogicalPlan lp : plans) {
+                currentPlan = new PhysicalPlan();
+                PlanWalker<LogicalOperator, LogicalPlan> childWalker = mCurrentWalker
+                        .spawnChildWalker(lp);
+                pushWalker(childWalker);
+                mCurrentWalker.walk(this);
+                exprPlans.add(currentPlan);
+                popWalker();
+            }
+            currentPlan = currentPlans.pop();
+            try {
+                poInnerLR.setPlans(exprPlans);
+            } catch (PlanException pe) {
+                int errCode = 2071;
+                String msg = "Problem with setting up local rearrange's plans.";
+                throw new LogicalToPhysicalTranslatorException(msg, errCode, PigException.BUG, pe);
+            }
+            innerLRs[count] = poInnerLR;
+            try {
+                poInnerLR.setIndex(count++);
+            } catch (ExecException e1) {
+                int errCode = 2058;
+                String msg = "Unable to set index on newly create POLocalRearrange.";
+                throw new VisitorException(msg, errCode, PigException.BUG, e1);
+            }
+            poInnerLR.setKeyType(plans.size() > 1 ? DataType.TUPLE : 
+                        exprPlans.get(0).getLeaves().get(0).getResultType());
+            poInnerLR.setResultType(DataType.TUPLE);
+        }
+        
+        POMergeCogroup poCogrp = new POMergeCogroup(new OperatorKey(
+                scope, nodeGen.getNextNodeId(scope)),inpPOs,innerLRs,
+                loCogrp.getRequestedParallelism());
+        poCogrp.setAlias(loCogrp.getAlias());
+        poCogrp.setResultType(DataType.TUPLE);
+        currentPlan.add(poCogrp);
+        for (LogicalOperator op : inputs) {
+            try {
+                currentPlan.connect(logToPhyMap.get(op), poCogrp);
+            } catch (PlanException e) {
+                int errCode = 2015;
+                String msg = "Invalid physical operators in the physical plan" ;
+                throw new LogicalToPhysicalTranslatorException(msg, errCode, PigException.BUG, e);
+            }
+        }
+        logToPhyMap.put(loCogrp, poCogrp);
     }
     
     private void translateRegularCogroup(LOCogroup cg) throws VisitorException {

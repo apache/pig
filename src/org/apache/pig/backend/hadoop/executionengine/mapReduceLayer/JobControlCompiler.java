@@ -59,6 +59,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlan
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POFRJoin;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLoad;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POMergeCogroup;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POMergeJoin;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPackage;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
@@ -808,7 +809,7 @@ public class JobControlCompiler{
         // global sort set (because in that case it's the sampling job) or if
         // it's a limit after a sort. 
         boolean hasOrderBy = false;
-        if (mro.isGlobalSort() || mro.isLimitAfterSort()) {
+        if (mro.isGlobalSort() || mro.isLimitAfterSort() || mro.usingTypedComparator()) {
             hasOrderBy = true;
         } else {
             List<MapReduceOper> succs = plan.getSuccessors(mro);
@@ -1102,6 +1103,29 @@ public class JobControlCompiler{
                 throw new VisitorException(msg, e);
             }
          }
+         
+         @Override
+        public void visitMergeCoGroup(POMergeCogroup mergeCoGrp)
+                throws VisitorException {
+          
+             // XXX Hadoop currently doesn't support distributed cache in local mode.
+             // This line will be removed after the support is added
+             if (pigContext.getExecType() == ExecType.LOCAL) return;
+             
+             String indexFile = mergeCoGrp.getIndexFileName();
+             
+             if (indexFile == null) throw new VisitorException("No index file");
+             
+             try {
+                String symlink = addSingleFileToDistributedCache(pigContext,
+                        conf, indexFile, "indexfile_mergecogrp_");
+                mergeCoGrp.setIndexFileName(symlink);
+            } catch (IOException e) {
+                String msg = "Internal error. Distributed cache could not " +
+                        "be set up for merge cogrp index file";
+                throw new VisitorException(msg, e);
+            }
+        }
      }
     
 }
