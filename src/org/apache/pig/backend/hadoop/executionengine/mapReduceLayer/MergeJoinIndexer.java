@@ -58,6 +58,7 @@ public class MergeJoinIndexer  extends LoadFunc{
     private Tuple dummyTuple = null;
     private LoadFunc loader;
     private PigSplit pigSplit = null;
+    private boolean ignoreNullKeys;
     
     /** @param funcSpec : Loader specification.
      *  @param innerPlan : This is serialized version of LR plan. We 
@@ -67,12 +68,16 @@ public class MergeJoinIndexer  extends LoadFunc{
      * @throws ExecException 
      */
     @SuppressWarnings("unchecked")
-    public MergeJoinIndexer(String funcSpec, String innerPlan, String serializedPhyPlan) throws ExecException{
+    public MergeJoinIndexer(String funcSpec, String innerPlan, String serializedPhyPlan, 
+            String udfCntxtSignature, String scope, String ignoreNulls) throws ExecException{
         
         loader = (LoadFunc)PigContext.instantiateFuncFromSpec(funcSpec);
+        loader.setUDFContextSignature(udfCntxtSignature);
+        this.ignoreNullKeys = Boolean.parseBoolean(ignoreNulls);
+        
         try {
             List<PhysicalPlan> innerPlans = (List<PhysicalPlan>)ObjectSerializer.deserialize(innerPlan);
-            lr = new POLocalRearrange(new OperatorKey("MergeJoin Indexer",NodeIdGenerator.getGenerator().getNextNodeId("MergeJoin Indexer")));
+            lr = new POLocalRearrange(new OperatorKey(scope,NodeIdGenerator.getGenerator().getNextNodeId(scope)));
             lr.setPlans(innerPlans);
             keysCnt = innerPlans.size();
             precedingPhyPlan = (PhysicalPlan)ObjectSerializer.deserialize(serializedPhyPlan);
@@ -121,7 +126,7 @@ public class MergeJoinIndexer  extends LoadFunc{
                 lr.attachInput(readTuple);
                 key = ((Tuple)lr.getNext(dummyTuple).result).get(1);
                 lr.detachInput();
-                if ( null == key) // Tuple with null key. Drop it.
+                if ( null == key && ignoreNullKeys) // Tuple with null key. Drop it.
                     continue;
                 break;      
             }
@@ -141,7 +146,7 @@ public class MergeJoinIndexer  extends LoadFunc{
                     lr.attachInput((Tuple)res.result);
                     key = ((Tuple)lr.getNext(dummyTuple).result).get(1);
                     lr.detachInput();
-                    if ( null == key) // Tuple with null key. Drop it.
+                    if ( null == key && ignoreNullKeys) // Tuple with null key. Drop it.
                         continue;
                      fetchNewTup = false;
                     break;

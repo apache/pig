@@ -61,6 +61,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLimit;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLoad;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLocalRearrange;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POMergeCogroup;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POMergeJoin;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPackage;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPackageLite;
@@ -766,7 +767,7 @@ public class MRCompiler extends PhyPlanVisitor {
         }
     }
     
-    public void connectMapToReduceLimitedSort(MapReduceOper mro, MapReduceOper sortMROp) throws PlanException, VisitorException
+    private void connectMapToReduceLimitedSort(MapReduceOper mro, MapReduceOper sortMROp) throws PlanException, VisitorException
     {
         POLocalRearrange slr = (POLocalRearrange)sortMROp.mapPlan.getLeaves().get(0);
         
@@ -795,7 +796,7 @@ public class MRCompiler extends PhyPlanVisitor {
         mro.reducePlan.addAsLeaf(getPlainForEachOP());
     }
     
-    public void simpleConnectMapToReduce(MapReduceOper mro) throws PlanException
+    private void simpleConnectMapToReduce(MapReduceOper mro) throws PlanException
     {
         PhysicalPlan ep = new PhysicalPlan();
         POProject prjStar = new POProject(new OperatorKey(scope,nig.getNextNodeId(scope)));
@@ -830,7 +831,7 @@ public class MRCompiler extends PhyPlanVisitor {
         mro.reducePlan.addAsLeaf(getPlainForEachOP());
     }
     
-    public POForEach getPlainForEachOP()
+    private POForEach getPlainForEachOP()
     {
         List<PhysicalPlan> eps1 = new ArrayList<PhysicalPlan>();
         List<Boolean> flat1 = new ArrayList<Boolean>();
@@ -925,11 +926,12 @@ public class MRCompiler extends PhyPlanVisitor {
             }
             
             POLoad loader = (POLoad)phyOp;
-            LoadFunc loadFunc = (LoadFunc) PigContext.instantiateFuncFromSpec(loader.getLFile().getFuncSpec());
+            Object loadFunc = PigContext.instantiateFuncFromSpec(loader.getLFile().getFuncSpec());
             try {
-                if(!(loadFunc instanceof CollectableLoadFunc)){
+                if(!(CollectableLoadFunc.class.isAssignableFrom(loadFunc.getClass()))){
                     throw new MRCompilerException("While using 'collected' on group; data must be loaded via loader implementing CollectableLoadFunc.");
                 }
+                ((LoadFunc)loadFunc).setUDFContextSignature(loader.getSignature());
                 ((CollectableLoadFunc)loadFunc).ensureAllKeyInstancesInSameSplit();
             } catch (MRCompilerException e){
                 throw (e);
@@ -1081,6 +1083,184 @@ public class MRCompiler extends PhyPlanVisitor {
         }
     }
 
+    /** Leftmost relation is referred as base relation (this is the one fed into mappers.) 
+     *  First, close all MROpers except for first one (referred as baseMROPer)
+     *  Then, create a MROper which will do indexing job (idxMROper)
+     *  Connect idxMROper before the mappedMROper in the MRPlan.
+     */
+
+    @Override
+    public void visitMergeCoGroup(POMergeCogroup poCoGrp) throws VisitorException {
+
+        if(compiledInputs.length < 2){
+            String errMsg = "Merge Cogroup work on two or more relations." +
+            		"To use map-side group-by on single relation, use 'collected' qualifier.";
+            throw new MRCompilerException(errMsg);
+        }
+            
+        List<FuncSpec> funcSpecs = new ArrayList<FuncSpec>(compiledInputs.length-1);
+        List<String> fileSpecs = new ArrayList<String>(compiledInputs.length-1);
+        List<String> loaderSigns = new ArrayList<String>(compiledInputs.length-1);
+        
+        try{
+            // Iterate through all the MROpers, disconnect side MROPers from 
+            // MROPerPlan and collect all the information needed in different lists.
+            
+            for(int i=0 ; i < compiledInputs.length; i++){
+                
+                MapReduceOper mrOper = compiledInputs[i];
+                PhysicalPlan mapPlan = mrOper.mapPlan;
+                if(mapPlan.getRoots().size() != 1){
+                    int errCode = 2171;
+                    String errMsg = "Expected one but found more then one root physical operator in physical plan.";
+                    throw new MRCompilerException(errMsg,errCode,PigException.BUG);
+                }
+
+                PhysicalOperator rootPOOp = mapPlan.getRoots().get(0);
+                if(! (rootPOOp instanceof POLoad)){
+                    int errCode = 2172;
+                    String errMsg = "Expected physical operator at root to be POLoad. Found : "+rootPOOp.getClass().getCanonicalName();
+                    throw new MRCompilerException(errMsg,errCode);
+                }
+                
+                POLoad sideLoader = (POLoad)rootPOOp;
+                FileSpec loadFileSpec = sideLoader.getLFile();
+                FuncSpec funcSpec = loadFileSpec.getFuncSpec();
+                Object loadfunc = PigContext.instantiateFuncFromSpec(funcSpec);
+                if(i == 0){
+                    
+                    if(!(CollectableLoadFunc.class.isAssignableFrom(loadfunc.getClass())))
+                        throw new MRCompilerException("Base loader in Cogroup must implement CollectableLoadFunc.");
+                    
+                    ((LoadFunc)loadfunc).setUDFContextSignature(sideLoader.getSignature());
+                    ((CollectableLoadFunc)loadfunc).ensureAllKeyInstancesInSameSplit();
+                    continue;
+                }
+                if(!(IndexableLoadFunc.class.isAssignableFrom(loadfunc.getClass())))
+                    throw new MRCompilerException("Side loaders in cogroup must implement IndexableLoadFunc.");
+                
+                funcSpecs.add(funcSpec);
+                fileSpecs.add(loadFileSpec.getFileName());
+                loaderSigns.add(sideLoader.getSignature());
+                MRPlan.remove(mrOper);
+            }
+            
+            poCoGrp.setSideLoadFuncs(funcSpecs);
+            poCoGrp.setSideFileSpecs(fileSpecs);
+            poCoGrp.setLoaderSignatures(loaderSigns);
+            
+            // Use map-reduce operator of base relation for the cogroup operation.
+            MapReduceOper baseMROp = phyToMROpMap.get(poCoGrp.getInputs().get(0));
+            if(baseMROp.mapDone || !baseMROp.reducePlan.isEmpty())
+                throw new MRCompilerException("Currently merged cogroup is not supported after blocking operators.");
+            
+            // Create new map-reduce operator for indexing job and then configure it.
+            MapReduceOper indexerMROp = getMROp();
+            FileSpec idxFileSpec = getIndexingJob(indexerMROp, baseMROp, poCoGrp.getLRInnerPlansOf(0));
+            poCoGrp.setIdxFuncSpec(idxFileSpec.getFuncSpec());
+            poCoGrp.setIndexFileName(idxFileSpec.getFileName());
+            
+            baseMROp.mapPlan.addAsLeaf(poCoGrp);
+            MRPlan.add(indexerMROp);
+            MRPlan.connect(indexerMROp, baseMROp);
+
+            phyToMROpMap.put(poCoGrp,baseMROp);
+            // Going forward, new operators should be added in baseMRop. To make
+            // sure, reset curMROp.
+            curMROp = baseMROp;
+        }
+        catch (ExecException e){
+           throw new MRCompilerException(e.getDetailedMessage(),e.getErrorCode(),e.getErrorSource(),e);
+        }
+        catch (MRCompilerException mrce){
+            throw(mrce);
+        }
+        catch (CloneNotSupportedException e) {
+            throw new MRCompilerException(e);
+        }
+        catch(PlanException e){
+            int errCode = 2034;
+            String msg = "Error compiling operator " + poCoGrp.getClass().getCanonicalName();
+            throw new MRCompilerException(msg, errCode, PigException.BUG, e);
+        }
+        catch (IOException e){
+            int errCode = 3000;
+            String errMsg = "IOException caught while compiling POMergeCoGroup";
+            throw new MRCompilerException(errMsg, errCode,e);
+        }
+    }
+    
+    // Sets up the indexing job for map-side cogroups.
+    private FileSpec getIndexingJob(MapReduceOper indexerMROp, 
+            final MapReduceOper baseMROp, final List<PhysicalPlan> mapperLRInnerPlans)
+        throws MRCompilerException, PlanException, ExecException, IOException, CloneNotSupportedException {
+        
+        // First replace loader with  MergeJoinIndexer.
+        PhysicalPlan baseMapPlan = baseMROp.mapPlan;
+        POLoad baseLoader = (POLoad)baseMapPlan.getRoots().get(0);                            
+        FileSpec origLoaderFileSpec = baseLoader.getLFile();
+        FuncSpec funcSpec = origLoaderFileSpec.getFuncSpec();
+        Object loadFunc = PigContext.instantiateFuncFromSpec(funcSpec);
+        
+        if (! (OrderedLoadFunc.class.isAssignableFrom(loadFunc.getClass()))){
+            int errCode = 1104;
+            String errMsg = "Base relation of merge-coGroup must implement " +
+            "OrderedLoadFunc interface. The specified loader " 
+            + funcSpec + " doesn't implement it";
+            throw new MRCompilerException(errMsg,errCode);
+        }
+        
+        String[] indexerArgs = new String[6];
+        indexerArgs[0] = funcSpec.toString();
+        indexerArgs[1] = ObjectSerializer.serialize((Serializable)mapperLRInnerPlans);
+        indexerArgs[3] = baseLoader.getSignature();
+        indexerArgs[4] = baseLoader.getOperatorKey().scope;
+        indexerArgs[5] = Boolean.toString(false); // we care for nulls. 
+            
+        PhysicalPlan phyPlan;
+        if (baseMapPlan.getSuccessors(baseLoader) == null 
+                || baseMapPlan.getSuccessors(baseLoader).isEmpty()){
+         // Load-Load-Cogroup case.
+            phyPlan = null; 
+        }
+            
+        else{ // We got something. Yank it and set it as inner plan.
+            phyPlan = baseMapPlan.clone();
+            PhysicalOperator root = phyPlan.getRoots().get(0);
+            phyPlan.disconnect(root, phyPlan.getSuccessors(root).get(0));
+            phyPlan.remove(root);
+
+        }
+        indexerArgs[2] = ObjectSerializer.serialize(phyPlan);
+
+        POLoad idxJobLoader = getLoad();
+        idxJobLoader.setLFile(new FileSpec(origLoaderFileSpec.getFileName(),
+                new FuncSpec(MergeJoinIndexer.class.getName(), indexerArgs)));
+        indexerMROp.mapPlan.add(idxJobLoader);
+        
+        // Loader of mro will return a tuple of form - 
+        // (key1, key2, .. , WritableComparable, splitIndex). See MergeJoinIndexer for details.
+        
+        // After getting an index entry in each mapper, send all of them to one 
+        // reducer where they will be sorted on the way by Hadoop.
+        simpleConnectMapToReduce(indexerMROp);
+        
+        indexerMROp.requestedParallelism = 1; // we need exactly one reducer for indexing job.
+        
+        // We want to use typed tuple comparator for this job, instead of default 
+        // raw binary comparator used by Pig, to make sure index entries are 
+        // sorted correctly by Hadoop.
+        indexerMROp.useTypedComparator(true); 
+
+        POStore st = getStore();
+        FileSpec strFile = getTempFileSpec();
+        st.setSFile(strFile);
+        indexerMROp.reducePlan.addAsLeaf(st);
+        indexerMROp.setReduceDone(true);
+
+        return strFile;
+    }
+    
     /** Since merge-join works on two inputs there are exactly two MROper predecessors identified  as left and right.
      *  Instead of merging two operators, both are used to generate a MR job each. First MR oper is run to generate on-the-fly index on right side.
      *  Second is used to actually do the join. First MR oper is identified as rightMROper and second as curMROper.
@@ -1193,7 +1373,7 @@ public class MRCompiler extends PhyPlanVisitor {
             }
             
             joinOp.setupRightPipeline(rightPipelinePlan);
-	    rightMROpr.requestedParallelism = 1; // we need exactly one reducer for indexing job.        
+            rightMROpr.requestedParallelism = 1; // we need exactly one reducer for indexing job.        
             
             // At this point, we must be operating on map plan of right input and it would contain nothing else other then a POLoad.
             POLoad rightLoader = (POLoad)rightMROpr.mapPlan.getRoots().get(0);            
@@ -1235,8 +1415,9 @@ public class MRCompiler extends PhyPlanVisitor {
                     }
                 }
             } else {
+                
                 // Replace POLoad with  indexer.
-                String[] indexerArgs = new String[3];
+                String[] indexerArgs = new String[6];
                 FileSpec origRightLoaderFileSpec = rightLoader.getLFile();
                 indexerArgs[0] = origRightLoaderFileSpec.getFuncSpec().toString();
                 if (! (PigContext.instantiateFuncFromSpec(indexerArgs[0]) instanceof OrderedLoadFunc)){
@@ -1249,73 +1430,19 @@ public class MRCompiler extends PhyPlanVisitor {
                 List<PhysicalPlan> rightInpPlans = joinOp.getInnerPlansOf(1);
                 indexerArgs[1] = ObjectSerializer.serialize((Serializable)rightInpPlans);
                 indexerArgs[2] = ObjectSerializer.serialize(rightPipelinePlan);
+                indexerArgs[3] = rightLoader.getSignature();
+                indexerArgs[4] = rightLoader.getOperatorKey().scope;
+                indexerArgs[5] = Boolean.toString(true);
+                
                 FileSpec lFile = new FileSpec(rightLoader.getLFile().getFileName(),new FuncSpec(MergeJoinIndexer.class.getName(), indexerArgs));
                 rightLoader.setLFile(lFile);
     
                 // Loader of mro will return a tuple of form - 
                 // (keyFirst1, keyFirst2, .. , position, splitIndex) See MergeJoinIndexer
-                // Now set up a POLocalRearrange which has "all" as the key and tuple fetched
-                // by loader as the "value" of POLocalRearrange
-                // Sorting of index can possibly be achieved by using Hadoop sorting 
-                // between map and reduce instead of Pig doing sort. If that is so, 
-                // it will simplify lot of the code below.
+
+                simpleConnectMapToReduce(rightMROpr);
+                rightMROpr.useTypedComparator(true);
                 
-                PhysicalPlan lrPP = new PhysicalPlan();
-                ConstantExpression ce = new ConstantExpression(new OperatorKey(scope,nig.getNextNodeId(scope)));
-                ce.setValue("all");
-                ce.setResultType(DataType.CHARARRAY);
-                lrPP.add(ce);
-    
-                List<PhysicalPlan> lrInnerPlans = new ArrayList<PhysicalPlan>();
-                lrInnerPlans.add(lrPP);
-    
-                POLocalRearrange lr = new POLocalRearrange(new OperatorKey(scope,nig.getNextNodeId(scope)));
-                lr.setIndex(0);
-                lr.setKeyType(DataType.CHARARRAY);
-                lr.setPlans(lrInnerPlans);
-                lr.setResultType(DataType.TUPLE);
-                rightMROpr.mapPlan.addAsLeaf(lr);
-    
-                rightMROpr.setMapDone(true);
-    
-                // On the reduce side of this indexing job, there will be a global rearrange followed by POSort.
-                // Output of POSort will be index file dumped on the DFS.
-    
-                // First add POPackage.
-                POPackage pkg = new POPackage(new OperatorKey(scope,nig.getNextNodeId(scope)));
-                pkg.setKeyType(DataType.CHARARRAY);
-                pkg.setNumInps(1); 
-                pkg.setInner(new boolean[]{false});
-                rightMROpr.reducePlan.add(pkg);
-    
-                // Next project tuples from the bag created by POPackage.
-                POProject topPrj = new POProject(new OperatorKey(scope,nig.getNextNodeId(scope)));
-                topPrj.setColumn(1);
-                topPrj.setResultType(DataType.TUPLE);
-                topPrj.setOverloaded(true);
-                rightMROpr.reducePlan.add(topPrj);
-                rightMROpr.reducePlan.connect(pkg, topPrj);
-    
-                // Now create and add POSort. Sort plan is project *.
-                List<PhysicalPlan> sortPlans = new ArrayList<PhysicalPlan>(1);
-                PhysicalPlan innerSortPlan = new PhysicalPlan();
-                POProject prj = new POProject(new OperatorKey(scope,nig.getNextNodeId(scope)));
-                prj.setStar(true);
-                prj.setOverloaded(false);
-                prj.setResultType(DataType.TUPLE);
-                innerSortPlan.add(prj);
-                sortPlans.add(innerSortPlan);
-    
-                // Currently we assume all columns are in asc order.
-                // Add two because filename and offset are added by Indexer in addition to keys.
-                List<Boolean>  mAscCols = new ArrayList<Boolean>(rightInpPlans.size()+2);
-                for(int i=0; i< rightInpPlans.size()+2; i++)
-                    mAscCols.add(true);
-    
-                POSort sortOp = new POSort(new OperatorKey(scope,nig.getNextNodeId(scope)),1, null, sortPlans, mAscCols, null);
-                rightMROpr.reducePlan.add(sortOp);
-                rightMROpr.reducePlan.connect(topPrj, sortOp);
-    
                 POStore st = getStore();
                 FileSpec strFile = getTempFileSpec();
                 st.setSFile(strFile);
@@ -1333,11 +1460,7 @@ public class MRCompiler extends PhyPlanVisitor {
                 joinOp.setRightInputFileName(origRightLoaderFileSpec.getFileName());  
                 
                 joinOp.setIndexFile(strFile.getFileName());
-                 
             }
-            
-   
-//            joinOp.setIndexFile(strFile);
             
             // We are done with right side. Lets work on left now.
             // Join will be materialized in leftMROper.
@@ -1656,7 +1779,7 @@ public class MRCompiler extends PhyPlanVisitor {
         throw new PlanException(msg, errCode, PigException.BUG);
     }
     
-    public MapReduceOper getSortJob(
+    private MapReduceOper getSortJob(
             POSort sort,
             MapReduceOper quantJob,
             FileSpec lFile,
@@ -1817,7 +1940,7 @@ public class MRCompiler extends PhyPlanVisitor {
         return mro;
     }
 
-    public Pair<MapReduceOper,Integer> getQuantileJob(
+    private Pair<MapReduceOper,Integer> getQuantileJob(
             POSort inpSort,
             MapReduceOper prevJob,
             FileSpec lFile,
@@ -1853,7 +1976,7 @@ public class MRCompiler extends PhyPlanVisitor {
     /**
      * Create Sampling job for skewed join.
      */
-    public Pair<MapReduceOper, Integer> getSkewedJoinSampleJob(POSkewedJoin op, MapReduceOper prevJob, 
+    private Pair<MapReduceOper, Integer> getSkewedJoinSampleJob(POSkewedJoin op, MapReduceOper prevJob, 
     		FileSpec lFile, FileSpec sampleFile, int rp ) throws PlanException, VisitorException {
     	    	
     	MultiMap<PhysicalOperator, PhysicalPlan> joinPlans = op.getJoinPlans();
@@ -1931,7 +2054,7 @@ public class MRCompiler extends PhyPlanVisitor {
      * @throws VisitorException
      */
   	@SuppressWarnings("deprecation")
-    protected Pair<MapReduceOper,Integer> getSamplingJob(POSort sort, MapReduceOper prevJob, List<PhysicalPlan> transformPlans,
+    private Pair<MapReduceOper,Integer> getSamplingJob(POSort sort, MapReduceOper prevJob, List<PhysicalPlan> transformPlans,
   			FileSpec lFile, FileSpec sampleFile, int rp, List<PhysicalPlan> sortKeyPlans, 
   			String udfClassName, String[] udfArgs, String sampleLdrClassName ) throws PlanException, VisitorException {
   		

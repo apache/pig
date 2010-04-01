@@ -50,7 +50,8 @@ public class LOCogroup extends RelationalOperator {
      */
     public static enum GROUPTYPE {
         REGULAR,    // Regular (co)group
-        COLLECTED   // Collected group
+        COLLECTED,   // Collected group
+        MERGE       // Map-side CoGroup on sorted data
     };
 
     /**

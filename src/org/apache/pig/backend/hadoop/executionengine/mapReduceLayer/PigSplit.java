@@ -125,6 +125,7 @@ public class PigSplit extends InputSplit implements Writable, Configurable {
     
     @SuppressWarnings("unchecked")
     public void readFields(DataInput is) throws IOException {
+        totalSplits = is.readInt();
         splitIndex = is.readInt();
         inputIndex = is.readInt();
         targetOps = (ArrayList<OperatorKey>) readObject(is);
@@ -145,6 +146,7 @@ public class PigSplit extends InputSplit implements Writable, Configurable {
 
     @SuppressWarnings("unchecked")
     public void write(DataOutput os) throws IOException {
+        os.writeInt(totalSplits);
         os.writeInt(splitIndex);
         os.writeInt(inputIndex);
         writeObject(targetOps, os);
@@ -185,7 +187,7 @@ public class PigSplit extends InputSplit implements Writable, Configurable {
     // package level access because we don't want LoadFunc implementations
     // to get this information - this is to be used only from
     // MergeJoinIndexer
-    int getSplitIndex() {
+    public int getSplitIndex() {
         return splitIndex;
     }
 

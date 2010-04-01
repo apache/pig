@@ -18,9 +18,12 @@
 package org.apache.pig.test.utils;
 
 import java.io.*;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Random;
+import java.util.Set;
+import java.util.Map.Entry;
 
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataBag;
@@ -56,7 +59,6 @@ public class TestHelper {
         if (db1.size() != db2.size())
             return false;
         
-        int i=-1;
         boolean equal = true;
         for (Tuple tuple : db2) {
             boolean contains = false;
@@ -70,10 +72,35 @@ public class TestHelper {
                 equal = false;
                 break;
             }
-            /*if(++i%dispAfterNumTuples==0)
-                System.out.println(i/dispAfterNumTuples);*/
         }
         return equal;
+    }
+    
+    public static boolean compareCogroupOutputs(DataBag db1, DataBag db2) throws ExecException{
+        
+        if (db1.size() != db2.size())
+            return false;
+        
+        Map<Object,DataBag> first  = new HashMap<Object, DataBag>();
+        for (Tuple t : db1)
+           first.put(t.get(0), (DataBag)t.get(1)); 
+        
+        Map<Object,DataBag> second = new HashMap<Object, DataBag>();
+        for (Tuple t : db2)
+            second.put(t.get(0), (DataBag)t.get(1)); 
+        
+        Set<Entry<Object,DataBag>> entrySet =  first.entrySet();
+        
+        for (Entry<Object,DataBag> entry : entrySet){
+            Object key = entry.getKey();
+            DataBag bagOfSecond = second.get(key);
+            if(bagOfSecond == null)
+                return false;
+            boolean cmpVal = compareBags(bagOfSecond, entry.getValue());
+            if(cmpVal == false)
+                return false;
+        }
+        return true;
     }
     
     public static DataBag projectBag(DataBag db2, int i) throws ExecException {
