@@ -968,6 +968,24 @@ public class TestMRCompiler extends junit.framework.TestCase {
         
     }
     
+    @Test
+    public void testCastFuncShipped() throws Exception{
+        
+        planTester.buildPlan("a = load '/tmp/input1' using " + PigStorageNoDefCtor.class.getName() + 
+                "('\t') as (a0, a1, a2);");
+        planTester.buildPlan("b = group a by a0;");
+        planTester.buildPlan("c = foreach b generate flatten(a);");
+        planTester.buildPlan("d = order c by a0;");
+        planTester.buildPlan("e = foreach d generate a1+a2;");
+        LogicalPlan lp = planTester.buildPlan("store e into '/tmp';");
+        planTester.typeCheckPlan(lp);
+        
+        PhysicalPlan pp = Util.buildPhysicalPlan(lp, pc);
+        MROperPlan mp = Util.buildMRPlan(pp, pc);
+        MapReduceOper op = mp.getLeaves().get(0);
+        assertTrue(op.UDFs.contains(new FuncSpec(PigStorageNoDefCtor.class.getName())+"('\t')"));
+    }
+    
     private void run(PhysicalPlan pp, String expectedFile) throws Exception {
         String compiledPlan, goldenPlan = null;
         int MAX_SIZE = 100000;
