@@ -179,6 +179,9 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-1346: In unit tests Util.executeShellCommand relies on java commands being
+in the path and does not consider JAVA_HOME (pradeepkth)
+
 PIG-1336: Optimize POStore serialized into JobConf (daijy)
 
 PIG-1335: UDFFinder should find LoadFunc used by POCast (daijy)

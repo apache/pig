@@ -144,13 +144,13 @@ public class TestPigContext extends TestCase {
         
         // compile
         int status;
-        status = Util.executeShellCommand("javac -cp "+System.getProperty("java.class.path") + " " + udf1JavaSrc);
-        status = Util.executeShellCommand("javac -cp "+System.getProperty("java.class.path") + " " + udf2JavaSrc);
+        status = Util.executeJavaCommand("javac -cp "+System.getProperty("java.class.path") + " " + udf1JavaSrc);
+        status = Util.executeJavaCommand("javac -cp "+System.getProperty("java.class.path") + " " + udf2JavaSrc);
                 
         // generate jar file
         String jarName = "TestUDFJar.jar";
         String jarFile = tmpDir.getAbsolutePath() + FILE_SEPARATOR + jarName;
-        status = Util.executeShellCommand("jar -cf " + tmpDir.getAbsolutePath() + FILE_SEPARATOR + jarName + 
+        status = Util.executeJavaCommand("jar -cf " + tmpDir.getAbsolutePath() + FILE_SEPARATOR + jarName + 
                               " -C " + tmpDir.getAbsolutePath() + " " + "com");
         assertTrue(status==0);
         Properties properties = cluster.getProperties();
