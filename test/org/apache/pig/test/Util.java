@@ -449,7 +449,12 @@ public class Util {
         pigServer.registerScript(f.getCanonicalPath());
     }
     
-    public static int executeShellCommand(String cmd) throws Exception {
+    public static int executeJavaCommand(String cmd) throws Exception {
+        String javaHome = System.getenv("JAVA_HOME");
+        if(javaHome != null) {
+            String fileSeparator = System.getProperty("file.separator");
+            cmd = javaHome + fileSeparator + "bin" + fileSeparator + cmd;
+        }
         Process cmdProc = Runtime.getRuntime().exec(cmd);
         
         cmdProc.waitFor();

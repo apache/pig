@@ -151,6 +151,9 @@ PIG-922: Logical optimizer: push up project (daijy)
 
 BUG FIXES
 
+PIG-1346:  In unit tests Util.executeShellCommand relies on java commands
+being in the path and does not consider JAVA_HOME (pradeepkth)
+
 PIG-1239: PigContext.connect() should not create a jobClient and jobClient
 should be created on demand when needed (pradeepkth)
 
