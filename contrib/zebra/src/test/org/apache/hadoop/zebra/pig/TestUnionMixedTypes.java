@@ -349,60 +349,18 @@ public class TestUnionMixedTypes extends BaseTestCase {
     Iterator<Tuple> it = pigServer.openIterator("records");
 
     Tuple cur = null;
+    String[] expected1 = new String[]{"k11", "k12", "k13", "k14" };
+    String[] expected2 = new String[]{"k13", "k14", "k11", "k12" };
     int i = 0;
-    int j = 0;
     // total 4 lines
     while (it.hasNext()) {
       cur = it.next();
-
+      String key = ((Map<String, String>) cur.get(0)).get("k1");
+      Assert.assertTrue( expected1[i].equals( key ) || expected2[i].equals( key ) );
       i++;
       System.out.println(" line : " + i + " : " + cur.toString());
 
-      // first line
-
-      if (i == 1) {
-        System.out.println("i is : " + i);
-
-        Assert.assertEquals("k11", ((Map) cur.get(0)).get("k1"));
-        Assert.assertEquals(null, ((Map) cur.get(0)).get("k2"));
-      }
-
-      if (i == 2) {
-        Assert.assertEquals("k12", ((Map) cur.get(0)).get("k1"));
-        Assert.assertEquals(null, ((Map) cur.get(0)).get("k2"));
-        try {
-          cur.get(1);
-          Assert.fail("should throw index out of bound exception");
-        } catch (Exception e) {
-          e.printStackTrace();
-        }
-      }
-      if (i == 3) {
-        System.out.println("i is : " + i);
-
-        Assert.assertEquals("k13", ((Map) cur.get(0)).get("k1"));
-        Assert.assertEquals(null, ((Map) cur.get(0)).get("k2"));
-        try {
-          cur.get(1);
-          Assert.fail("should throw index out of bound exception");
-        } catch (Exception e) {
-          e.printStackTrace();
-        }
-      }
-
-      if (i == 4) {
-        System.out.println("i should see this line. ");
-        Assert.assertEquals("k14", ((Map) cur.get(0)).get("k1"));
-        Assert.assertEquals(null, ((Map) cur.get(0)).get("k2"));
-        try {
-          cur.get(1);
-          Assert.fail("should throw index out of bound exception");
-        } catch (Exception e) {
-          e.printStackTrace();
-        }
-      }
-    }// outer while
-
+    }
     Assert.assertEquals(4, i);
   }
 

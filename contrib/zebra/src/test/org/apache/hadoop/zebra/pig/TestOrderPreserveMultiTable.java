@@ -21,6 +21,7 @@ package org.apache.hadoop.zebra.pig;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.ArrayList;
 import java.util.StringTokenizer;
@@ -182,123 +183,30 @@ public class TestOrderPreserveMultiTable extends BaseTestCase {
 		testOrderPreserveUnion(inputTables, "int1", "int1, source_table, str1, byte1");
 		
 		// Create results table for verification
-		ArrayList<ArrayList<Object>> resultTable = new ArrayList<ArrayList<Object>>();
+		HashMap<Integer, ArrayList<ArrayList<Object>>> resultTable = 
+      new HashMap<Integer, ArrayList<ArrayList<Object>>>();
 		for (int i=0; i<NUMB_TABLE; ++i) {
+		  ArrayList<ArrayList<Object>> rows = new ArrayList<ArrayList<Object>>();
 			for (int j=0; j<NUMB_TABLE_ROWS; ++j) {
 				ArrayList<Object> resultRow = new ArrayList<Object>();
-				
 				resultRow.add(i);	// int1
 				resultRow.add(i);	// source_table
 				resultRow.add(new String("string" + j));	// str1
 				resultRow.add(new DataByteArray("byte" + (NUMB_TABLE_ROWS - j)));	// byte1
-				
-				resultTable.add(resultRow);
+				rows.add(resultRow);
 			}
+			resultTable.put(i, rows);
 		}
 		
 		// Verify union table
 		Iterator<Tuple> it = pigServer.openIterator("records1");
-		int numbRows = verifyTable(resultTable, 0, it);
+		int numbRows = verifyTable(resultTable, 0, 1, it);
 		
 		Assert.assertEquals(totalTableRows, numbRows);
 		
 		// Print Table
 		//printTable("records1");
-	}
-	
-	/**
-	 * Verify union output table with expected results
-	 * 
-	 */
-	private int verifyTable(ArrayList<ArrayList<Object>> resultTable, int keyColumn, Iterator<Tuple> it) throws IOException {
-		int numbRows = 0;
-		int index = 0;
-		Object value = resultTable.get(index).get(keyColumn);  // get value of primary key
-		
-		while (it.hasNext()) {
-			Tuple rowValues = it.next();
-			
-			// If last primary sort key does match then search for next matching key
-			if (! compareObj(value, rowValues.get(keyColumn))) {
-				int subIndex = index + 1;
-				while (subIndex < resultTable.size()) {
-					if ( ! compareObj(value, resultTable.get(subIndex).get(keyColumn)) ) {  // found new key
-						index = subIndex;
-						value = resultTable.get(index).get(keyColumn);
-						break;
-					}
-					++subIndex;
-				}
-				Assert.assertEquals("Table comparison error for row : " + numbRows + " - no key found for : "
-					+ rowValues.get(keyColumn), value, rowValues.get(keyColumn));
-			}
-			// Search for matching row with this primary key
-			int subIndex = index;
-			
-			while (subIndex < resultTable.size()) {
-				// Compare row
-				ArrayList<Object> resultRow = resultTable.get(subIndex);
-				if ( compareRow(rowValues, resultRow) )
-					break; // found matching row
-				++subIndex;
-				Assert.assertEquals("Table comparison error for row : " + numbRows + " - no matching row found for : "
-					+ rowValues.get(keyColumn), value, resultTable.get(subIndex).get(keyColumn));
-			}
-			++numbRows;
-		}
-		Assert.assertEquals(resultTable.size(), numbRows);  // verify expected row count
-		return numbRows;
-	}
-	
-	/**
-	 * Compare table rows
-	 * 
-	 */
-	private boolean compareRow(Tuple rowValues, ArrayList<Object> resultRow) throws IOException {
-		boolean result = true;
-		Assert.assertEquals(resultRow.size(), rowValues.size());
-		for (int i = 0; i < rowValues.size(); ++i) {
-			if (! compareObj(rowValues.get(i), resultRow.get(i)) ) {
-				result = false;
-				break;
-			}
-		}
-		return result;
-	}
-	
-	/**
-	 * Compare table values
-	 * 
-	 */
-	private boolean compareObj(Object object1, Object object2) {
-		if (object1 == null) {
-			if (object2 == null)
-				return true;
-			else
-				return false;
-		} else if (object1.equals(object2))
-			return true;
-		else
-			return false;
-	}
-	
-	/**
-	 * Print Pig Table (for debugging)
-	 * 
-	 */
-	private int printTable(String tablename) throws IOException {
-		Iterator<Tuple> it1 = pigServer.openIterator(tablename);
-		int numbRows = 0;
-		while (it1.hasNext()) {
-			Tuple RowValue1 = it1.next();
-			++numbRows;
-			System.out.println();
-			for (int i = 0; i < RowValue1.size(); ++i)
-				System.out.println("DEBUG: " + tablename + " RowValue.get(" + i + ") = " + RowValue1.get(i));
-		}
-		System.out.println("\nRow count : " + numbRows);
-		return numbRows;
-	}
+	}	
 	
 	/**
 	 * Return the name of the routine that called getCurrentMethodName
