@@ -70,6 +70,8 @@ Trunk (unreleased changes)
 
   BUG FIXES
 
+    PIG-1349 Hubson test failure in test case TestBasicUnion (xuefuz via yanz)
+
     PIG-1318 Invalid type for source_table field when using order-preserving Sorted Table Union (gauravj via yanz)
 
     PIG-1258 Number of sorted input splits is unusually high (yanz)
