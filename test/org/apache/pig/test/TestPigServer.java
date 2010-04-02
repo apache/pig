@@ -246,7 +246,7 @@ public class TestPigServer extends TestCase {
         
         // compile
         int status;
-        status = Util.executeShellCommand("javac " + dir + FILE_SEPARATOR + subDir +
+        status = Util.executeJavaCommand("javac " + dir + FILE_SEPARATOR + subDir +
                                FILE_SEPARATOR + className + ".java");
         assertTrue(status==0);
 
@@ -255,7 +255,7 @@ public class TestPigServer extends TestCase {
                   FILE_SEPARATOR + className + ".java")).delete();
 
         // generate jar file
-        status = Util.executeShellCommand("jar -cf " + dir + FILE_SEPARATOR + jarName + " " +
+        status = Util.executeJavaCommand("jar -cf " + dir + FILE_SEPARATOR + jarName + " " +
                               "-C " + dir + " " + subDir);
         assertTrue(status==0);
         
