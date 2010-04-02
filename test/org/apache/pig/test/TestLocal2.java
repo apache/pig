@@ -235,7 +235,7 @@ public class TestLocal2 extends TestCase {
         try {
             pigFile.createNewFile();
             int status,status2;
-            status = Util.executeShellCommand("java -cp "+ 
+            status = Util.executeJavaCommand("java -cp "+ 
                     System.getProperty("java.class.path") + 
                     "  org.apache.pig.Main -x local " + pigFile.getAbsolutePath() );
 
@@ -253,7 +253,7 @@ public class TestLocal2 extends TestCase {
             PrintStream ps = new PrintStream(siteFile);
             ps.print(contents);
             ps.close();
-            status2 = Util.executeShellCommand("java -cp "+ 
+            status2 = Util.executeJavaCommand("java -cp "+ 
                     System.getProperty("java.class.path") + 
                     "  org.apache.pig.Main -x local " + pigFile.getAbsolutePath() );
             assertEquals( "Without a mapred-site.xml pig should just run", 0, status );
