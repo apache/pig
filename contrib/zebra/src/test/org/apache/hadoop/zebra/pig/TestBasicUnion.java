@@ -670,83 +670,35 @@ public class TestBasicUnion extends BaseTestCase {
   @Test
   // union two tables with different column numbers and column positions
   public void testReader6() throws ExecException, IOException {
-
     pigServer.registerQuery(constructQuery(path1, path5, "'b,a'"));
     Iterator<Tuple> it = pigServer.openIterator("records");
 
     int i = 0;
-    int k = -1;
+    int count = 0;
     Tuple cur = null;
-    int t = -1;
-    int j = -1;
 
+    String[] exp1 = new String[] { "0_01", "1_01", "2_01", "3_01", "4_01", "5_01", "6_01", "7_01", "8_01", "9_01", 
+    		                       "0_11", "1_11", "2_11", "3_11", "4_11", "5_11", "6_11", "7_11", "8_11", "9_11"};
+    String[] exp2 = new String[] { "0_00", "1_00", "2_00", "3_00", "4_00", "5_00", "6_00", "7_00", "8_00", "9_00", 
+                                   "0_10", "1_10", "2_10", "3_10", "4_10", "5_10", "6_10", "7_10", "8_10", "9_10"};
     while (it.hasNext()) {
+      count++;
       cur = it.next();
-
-      System.out.println("cur: " + cur);
-      // first table
-      if (i <= 9) {
-        System.out.println("first table first part: " + cur.toString());
-        Assert.assertEquals(i + "_01", cur.get(0));
-        Assert.assertEquals(i + "_00", cur.get(1));
-        try {
+      System.out.println("cur #" + i + ": " + cur);
+      try {
           cur.get(2);
           Assert.fail("should throw index out of bound exception");
-        } catch (Exception e) {
-
-        }
-
-      }
-      if (i >= 10) {
-        k++;
-      }
-      if (k <= 9 && k >= 0) {
-        System.out.println("first table second part:  : " + cur.toString());
-        Assert.assertEquals(k + "_11", cur.get(0));
-        Assert.assertEquals(k + "_10", cur.get(1));
-        try {
-          cur.get(2);
-          Assert.fail("should throw index out of bound exception");
-        } catch (Exception e) {
-
-        }
-
+      } catch (Exception e) {
       }
 
-      // second table
-      if (k >= 10) {
-        t++;
-      }
-      if (t <= 9 && t >= 0) {
-        System.out.println("second table first part: " + cur.toString());
-        Assert.assertEquals(t + "_00", cur.get(0));
-        Assert.assertEquals(t + "_01", cur.get(1));
-        try {
-          cur.get(2);
-          Assert.fail("should throw index out of bound exception");
-        } catch (Exception e) {
-
-        }
-
-      }
-      if (t >= 10) {
-        j++;
-      }
-      if (j <= 9 && j >= 0) {
-        System.out.println("second table first part: " + cur.toString());
-        Assert.assertEquals(j + "_10", cur.get(0));
-        Assert.assertEquals(j + "_11", cur.get(1));
-        try {
-          cur.get(2);
-          Assert.fail("should throw index out of bound exception");
-        } catch (Exception e) {
-
-        }
-
-      }
-      i++;
+      String b = (String)cur.get(0);
+      String a = (String)cur.get(1);
+      Assert.assertTrue( b.equals(exp1[i]) || b.equals(exp2[i]) );
+      Assert.assertTrue( a.equals(exp2[i]) || a.equals(exp1[i]) );
+      if( ++i == 20 )
+    	  i = 0;
     }// while
-    Assert.assertEquals(40, i);
+    Assert.assertEquals(40, count);
   }
 
   // both paths is hdfs:///../jars. mini cluster need to substr, real cluster
