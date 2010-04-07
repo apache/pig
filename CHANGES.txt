@@ -179,6 +179,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-1352: piggybank UPPER udf throws exception if argument is null (thejas)
+
 PIG-1346: In unit tests Util.executeShellCommand relies on java commands being
 in the path and does not consider JAVA_HOME (pradeepkth)
 
