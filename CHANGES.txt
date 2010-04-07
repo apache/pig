@@ -42,6 +42,8 @@ PIG-1313: PigServer leaks memory over time (billgraham via daijy)
 PIG-1346: In unit tests Util.executeShellCommand relies on java commands being
 in the path and does not consider JAVA_HOME (pradeepkth)
 
+PIG-1352: piggybank UPPER udf throws exception if argument is null
+
 Release 0.7.0 - Unreleased
 
 INCOMPATIBLE CHANGES

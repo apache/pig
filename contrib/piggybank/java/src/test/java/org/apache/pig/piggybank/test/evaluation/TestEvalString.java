@@ -50,7 +50,11 @@ public class TestEvalString extends TestCase {
 
         String output = func.exec(input);
         assertTrue(output.equals(expected));
-
+        
+        String in2 = null;
+        Tuple input2 = DefaultTupleFactory.getInstance().newTuple(in2);
+        assertEquals("upper null value",null, func.exec(input2));
+        
         // test schema creation
 
         // FIXME
