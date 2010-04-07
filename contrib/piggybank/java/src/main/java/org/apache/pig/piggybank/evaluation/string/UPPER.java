@@ -48,18 +48,23 @@ public class UPPER extends EvalFunc<String> {
      * @exception IOException
      */
     public String exec(Tuple input) throws IOException {
-        if (input == null || input.size() == 0)
+        if (input == null || input.size() == 0 || input.get(0) == null)
             return null;
 
         String str = null;
         try {
             str = (String)input.get(0);
-        } catch (ClassCastException e) {
+            return str.toUpperCase();
+        }
+        catch (ClassCastException e) {
             warn("unable to cast input "+input.get(0)+" of class "+
                     input.get(0).getClass()+" to String", PigWarning.UDF_WARNING_1);
             return null;
         }
-        return str.toUpperCase();
+        catch(Exception e){
+            warn("Error processing input "+input.get(0), PigWarning.UDF_WARNING_1);
+            return null;
+        }
     }
 
     /**
