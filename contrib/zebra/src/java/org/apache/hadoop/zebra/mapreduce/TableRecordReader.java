@@ -56,10 +56,6 @@ public class TableRecordReader extends RecordReader<BytesWritable, Tuple> {
 	  Configuration conf = jobContext.getConfiguration();
 	  if( split instanceof RowTableSplit ) {
 		  RowTableSplit rowSplit = (RowTableSplit)split;
-		  if( Projection.getVirtualColumnIndices( projection ) != null && 
-		      ( !expr.sortedSplitRequired() || rowSplit.getTableIndex() == -1 )  ) {
-			  throw new IllegalArgumentException("virtual column requires union of multiple sorted tables");
-		  }
 		  scanner = expr.getScanner(rowSplit, projection, conf);
 	  } else {
 		  SortedTableSplit tblSplit = (SortedTableSplit)split;
