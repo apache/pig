@@ -26,46 +26,47 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.Iterator;
+import java.util.Properties;
+import java.util.Map.Entry;
 
 import junit.framework.Assert;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POProject;
 import org.apache.pig.data.Tuple;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
+import org.apache.pig.impl.io.FileLocalizer;
+import org.junit.Before;
 import org.junit.Test;
 
-public class TestPigStorage {
+public class TestPigStorage  {
         
     protected final Log log = LogFactory.getLog(getClass());
     
     private static MiniCluster cluster = MiniCluster.buildCluster();
-    private static PigServer pigServer = null;
     
-    
-    @BeforeClass
-    public static void setup() {
-        try {
-            pigServer = new PigServer(MAPREDUCE, cluster.getProperties());
-        } catch (ExecException e) {
-            e.printStackTrace();
-            Assert.fail();
-        }
-    }
-    
-    @AfterClass
-    public static void shutdown() {
-        pigServer.shutdown();
+    @Before
+    public void setup() {
+        // some tests are in map-reduce mode and some in local - so before
+        // each test, we will de-initialize FileLocalizer so that temp files
+        // are created correctly depending on the ExecType in the test.
+        FileLocalizer.setInitialized(false);
     }
     
     @Test
-    public void testBlockBoundary() {
+    public void testBlockBoundary() throws ExecException {
         
         // This tests PigStorage loader with records exectly 
         // on the boundary of the file blocks.
+        Properties props = new Properties();
+        for (Entry<Object, Object> entry : cluster.getProperties().entrySet()) {
+            props.put(entry.getKey(), entry.getValue());
+        }
+        props.setProperty("mapred.max.split.size", "20");
+        PigServer pigServer = new PigServer(MAPREDUCE, props);
         String[] inputs = {
                 "abcdefgh1", "abcdefgh2", "abcdefgh3", 
                 "abcdefgh4", "abcdefgh5", "abcdefgh6",
@@ -115,5 +116,32 @@ public class TestPigStorage {
             }
         }
     } 
+    
+    /**
+     * Test to verify that PigStorage works fine in the following scenario:
+     * The column prune optimization determines only columns 2 and 3 are needed
+     * and there are records in the data which have only 1 column (malformed data).
+     * In this case, PigStorage should return an empty tuple to represent columns
+     * 2 and 3 and {@link POProject} would handle catching any 
+     * {@link IndexOutOfBoundsException} resulting from accessing a field in the
+     * tuple and substitute a null. 
+     */
+    @Test
+    public void testPruneColumnsWithMissingFields() throws IOException {
+        String inputFileName = "TestPigStorage-testPruneColumnsWithMissingFields-input.txt";
+        Util.createLocalInputFile(
+                inputFileName, 
+                new String[] {"1\t2\t3", "4", "5\t6\t7"});
+        PigServer ps = new PigServer(ExecType.LOCAL);
+        String script = "a = load '" + inputFileName + "' as (i:int, j:int, k:int);" +
+        		"b = foreach a generate j, k;";
+        Util.registerMultiLineQuery(ps, script);
+        Iterator<Tuple> it = ps.openIterator("b");
+        assertEquals(Util.createTuple(new Integer[] { 2, 3}), it.next());
+        assertEquals(Util.createTuple(new Integer[] { null, null}), it.next());
+        assertEquals(Util.createTuple(new Integer[] { 6, 7}), it.next());
+        assertFalse(it.hasNext());
+                
+    }
 
 }

@@ -39,6 +39,9 @@ PIG-1309: Map-side Cogroup (ashutoshc)
 
 BUG FIXES
 
+PIG-1366: PigStorage's pushProjection implementation results in NPE under
+certain data conditions (pradeepkth)
+
 PIG-1365: WrappedIOException is missing from Pig.jar (pradeepkth)
 
 PIG-1313: PigServer leaks memory over time (billgraham via daijy)
