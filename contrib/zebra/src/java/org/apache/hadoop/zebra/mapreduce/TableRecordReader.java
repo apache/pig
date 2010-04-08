@@ -52,20 +52,19 @@ public class TableRecordReader extends RecordReader<BytesWritable, Tuple> {
    * @throws IOException
    */
   public TableRecordReader(TableExpr expr, String projection,
-      InputSplit split, JobContext jobContext) throws IOException, ParseException {
+		  InputSplit split, JobContext jobContext) throws IOException, ParseException {
 	  Configuration conf = jobContext.getConfiguration();
-	  if (split instanceof RowTableSplit) {
-      RowTableSplit rowSplit = (RowTableSplit) split;
-      if ((!expr.sortedSplitRequired() || rowSplit.getTableIndex() == -1) &&
-          Projection.getVirtualColumnIndices(projection) != null)
-        throw new IllegalArgumentException("virtual column requires union of multiple sorted tables");
-      scanner = expr.getScanner(rowSplit, projection, conf);
+	  if( split instanceof RowTableSplit ) {
+		  RowTableSplit rowSplit = (RowTableSplit)split;
+		  if( Projection.getVirtualColumnIndices( projection ) != null && 
+		      ( !expr.sortedSplitRequired() || rowSplit.getTableIndex() == -1 )  ) {
+			  throw new IllegalArgumentException("virtual column requires union of multiple sorted tables");
+		  }
+		  scanner = expr.getScanner(rowSplit, projection, conf);
 	  } else {
-      SortedTableSplit tblSplit = (SortedTableSplit) split;
-      scanner =
-          expr.getScanner(tblSplit.getBegin(), tblSplit.getEnd(), projection,
-              conf);
-    }
+		  SortedTableSplit tblSplit = (SortedTableSplit)split;
+		  scanner = expr.getScanner( tblSplit.getBegin(), tblSplit.getEnd(), projection, conf );
+	  }
   }
   
   @Override

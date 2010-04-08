@@ -127,4 +127,26 @@ public class TestTfileSplit {
 
 		Assert.assertEquals(splits.size(), 0);
 	}
+	
+	@Test
+	public void testSortedSplitOrdering() throws IOException, ParseException {
+		BasicTable.drop(path, conf);
+		TestBasicTable.createBasicTable(1, 1000000, "a, b, c, d, e, f", "[a, e, d]", "a", path, true);    
+
+		TableInputFormat inputFormat = new TableInputFormat();
+		Job job = new Job(conf);
+		inputFormat.setInputPaths(job, path);
+		inputFormat.setMinSplitSize(job, 100);
+		inputFormat.setProjection(job, "d");
+		inputFormat.requireSortedTable( job, null );
+		List<InputSplit> splits = inputFormat.getSplits(job);
+		
+		int index = 0;
+		for( InputSplit is : splits ) {
+			Assert.assertTrue( is instanceof SortedTableSplit );
+			SortedTableSplit split = (SortedTableSplit)is;
+			Assert.assertEquals( index++, split.getIndex() );
+		}
+	}
+	
 }
