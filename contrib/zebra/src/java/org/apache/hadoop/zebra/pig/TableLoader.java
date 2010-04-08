@@ -32,14 +32,15 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.BytesWritable;
+import org.apache.hadoop.io.WritableComparable;
 import org.apache.hadoop.mapreduce.InputFormat;
+import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.zebra.io.BasicTable;
 import org.apache.hadoop.zebra.mapreduce.TableInputFormat;
 import org.apache.hadoop.zebra.mapreduce.TableRecordReader;
 import org.apache.hadoop.zebra.mapreduce.TableInputFormat.SplitMode;
-import org.apache.hadoop.zebra.mapreduce.ZebraSortInfo;
 import org.apache.hadoop.zebra.parser.ParseException;
 import org.apache.hadoop.zebra.schema.ColumnType;
 import org.apache.hadoop.zebra.schema.Schema;
@@ -50,6 +51,7 @@ import org.apache.pig.Expression;
 import org.apache.pig.LoadFunc;
 import org.apache.pig.LoadMetadata;
 import org.apache.pig.LoadPushDown;
+import org.apache.pig.OrderedLoadFunc;
 import org.apache.pig.ResourceSchema;
 import org.apache.pig.ResourceStatistics;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigSplit;
@@ -65,7 +67,7 @@ import org.apache.pig.CollectableLoadFunc;
  * Pig IndexableLoadFunc and Slicer for Zebra Table
  */
 public class TableLoader extends LoadFunc implements LoadMetadata, LoadPushDown,
-        IndexableLoadFunc, CollectableLoadFunc {
+        IndexableLoadFunc, CollectableLoadFunc, OrderedLoadFunc {
     static final Log LOG = LogFactory.getLog(TableLoader.class);
 
     private static final String UDFCONTEXT_PROJ_STRING = "zebra.UDFContext.projectionString";
@@ -423,11 +425,17 @@ public class TableLoader extends LoadFunc implements LoadMetadata, LoadPushDown,
         public void setUDFContextSignature(String signature) {
             udfContextSignature = signature;
         }
+
+		@Override
+		public WritableComparable<?> getSplitComparable(InputSplit split)
+				throws IOException {
+	        return TableInputFormat.getSortedTableSplitComparable( split );
+		}
         
-    @Override
-    public void ensureAllKeyInstancesInSameSplit() throws IOException {
-      Properties properties = UDFContext.getUDFContext().getUDFProperties(this.getClass(),
-          new String[] { udfContextSignature } );
-      properties.setProperty(UDFCONTEXT_GLOBAL_SORTING, "true");
-    }
+		@Override
+		public void ensureAllKeyInstancesInSameSplit() throws IOException {
+			Properties properties = UDFContext.getUDFContext().getUDFProperties(this.getClass(),
+					new String[] { udfContextSignature } );
+			properties.setProperty(UDFCONTEXT_GLOBAL_SORTING, "true");
+		}
 }

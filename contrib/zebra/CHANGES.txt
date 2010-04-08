@@ -16,6 +16,8 @@ Trunk (unreleased changes)
 
   IMPROVEMENTS
 
+    PIG-1315 Implementing OrderedLoadFunc interface for Zebra TableLoader (xuefux via yanz)
+
     PIG-1306 Support of locally sorted input splits (yanz)
 
     PIG-1268 Need an ant target that runs all pig-related tests in Zebra (xuefuz via yanz)
