@@ -18,13 +18,18 @@
 package org.apache.pig.backend.hadoop.executionengine.mapReduceLayer;
 
 import java.io.IOException;
+
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.mapreduce.RecordWriter;
+import org.apache.hadoop.mapreduce.Counter;
 import org.apache.hadoop.mapreduce.OutputFormat;
+import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
+import org.apache.hadoop.mapreduce.TaskInputOutputContext;
 import org.apache.pig.StoreFuncInterface;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStoreImpl;
+import org.apache.pig.tools.pigstats.PigStatsUtil;
+import org.apache.pig.tools.pigstats.PigStatusReporter;
 /**
  * This class is used to have a POStore write to DFS via a output
  * collector/record writer. It sets up a modified job configuration to
@@ -32,19 +37,23 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
  * directory. This is done so that multiple output directories can be
  * used in the same job. 
  */
+@SuppressWarnings("unchecked")
 public class MapReducePOStoreImpl extends POStoreImpl {
-    
+            
     private TaskAttemptContext context;
-
-    @SuppressWarnings("unchecked")
-    private RecordWriter writer;
     
-    public MapReducePOStoreImpl(TaskAttemptContext context) {
+    private PigStatusReporter reporter;
+
+    private RecordWriter writer;
+           
+    public MapReducePOStoreImpl(TaskInputOutputContext context) {
         // get a copy of the Configuration so that changes to the
         // configuration below (like setting the output location) do
         // not affect the caller's copy
         Configuration outputConf = new Configuration(context.getConfiguration());
-
+                
+        reporter = new PigStatusReporter(context);
+       
         // make a copy of the Context to use here - since in the same
         // task (map or reduce) we could have multiple stores, we should
         // make this copy so that the same context does not get over-written
@@ -53,11 +62,10 @@ public class MapReducePOStoreImpl extends POStoreImpl {
                 context.getTaskAttemptID());
     }
     
-    @SuppressWarnings("unchecked")
     @Override
     public StoreFuncInterface createStoreFunc(POStore store) 
-        throws IOException {
-
+            throws IOException {
+ 
         StoreFuncInterface storeFunc = store.getStoreFunc();
 
         // call the setStoreLocation on the storeFunc giving it the
@@ -67,19 +75,18 @@ public class MapReducePOStoreImpl extends POStoreImpl {
         // this modified Configuration into the configuration of the
         // Context we have
         PigOutputFormat.setLocation(context, store);
-        OutputFormat outputFormat = null;
-        try {
-            outputFormat = storeFunc.getOutputFormat();
+        OutputFormat outputFormat = storeFunc.getOutputFormat();
 
-            // create a new record writer
+        // create a new record writer
+        try {
             writer = outputFormat.getRecordWriter(context);
-            storeFunc.prepareToWrite(writer);
-            return storeFunc;
-            
-        }catch(Exception e) {
+        } catch (InterruptedException e) {
             throw new IOException(e);
         }
-
+ 
+        storeFunc.prepareToWrite(writer);
+        
+        return storeFunc;
     }
 
     @Override
@@ -104,5 +111,12 @@ public class MapReducePOStoreImpl extends POStoreImpl {
             }
             writer = null;
         }
+    }
+    
+    public Counter createRecordCounter(POStore store) {
+        Counter outputRecordCounter = reporter.getCounter(
+                PigStatsUtil.MULTI_STORE_COUNTER_GROUP, PigStatsUtil
+                        .getMultiStoreCounterName(store));
+        return outputRecordCounter; 
     }
 }
