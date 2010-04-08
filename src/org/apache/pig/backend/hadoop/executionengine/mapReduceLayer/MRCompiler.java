@@ -930,6 +930,7 @@ public class MRCompiler extends PhyPlanVisitor {
                 if(!(loadFunc instanceof CollectableLoadFunc)){
                     throw new MRCompilerException("While using 'collected' on group; data must be loaded via loader implementing CollectableLoadFunc.");
                 }
+                loadFunc.setUDFContextSignature(loader.getSignature());
                 ((CollectableLoadFunc)loadFunc).ensureAllKeyInstancesInSameSplit();
             } catch (MRCompilerException e){
                 throw (e);

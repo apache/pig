@@ -268,8 +268,16 @@ public class TestCollectedGroup extends TestCase {
 
     public static class DummyCollectableLoader extends PigStorage implements CollectableLoadFunc{
 
+        String udfContextSignature;
+        
+        @Override
+        public void setUDFContextSignature(String signature) {
+            udfContextSignature = signature;
+        }
+        
         @Override
         public void ensureAllKeyInstancesInSameSplit() throws IOException {
+            assertNotNull(udfContextSignature);
         }
         
     }
