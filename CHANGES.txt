@@ -39,6 +39,8 @@ PIG-1309: Map-side Cogroup (ashutoshc)
 
 BUG FIXES
 
+PIG-1365: WrappedIOException is missing from Pig.jar (pradeepkth)
+
 PIG-1313: PigServer leaks memory over time (billgraham via daijy)
 
 PIG-1346: In unit tests Util.executeShellCommand relies on java commands being
