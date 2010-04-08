@@ -265,10 +265,6 @@ public class TableInputFormat extends InputFormat<BytesWritable, Tuple> {
    */
   private static void setProjection(Configuration conf, String projection) throws ParseException {
       conf.set(INPUT_PROJ, Schema.normalize(projection));
-
-    // virtual source_table columns require sorted table
-    if (Projection.getVirtualColumnIndices(projection) != null && !getSorted( conf ))
-        throw new ParseException("The source_table virtual column is only availabe for sorted table unions.");
   }
 
   /**
