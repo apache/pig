@@ -68,6 +68,8 @@ manner (rding via pradeepkth)
 
 IMPROVEMENTS
 
+PIG-1320: more documentation updates for Pig 0.7.0 (chandec via olgan)
+
 PIG-1316: TextLoader should use Bzip2TextInputFormat for bzip files so that
 bzip files can be efficiently processed by splitting the files (pradeepkth)
 
