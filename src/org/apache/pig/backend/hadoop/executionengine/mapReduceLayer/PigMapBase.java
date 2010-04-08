@@ -48,6 +48,7 @@ import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.impl.util.SpillableMemoryManager;
+import org.apache.pig.tools.pigstats.PigStatusReporter;
 
 public abstract class PigMapBase extends Mapper<Text, Tuple, PigNullableWritable, Writable> {
     private static final Tuple DUMMYTUPLE = null;
@@ -199,7 +200,7 @@ public abstract class PigMapBase extends Mapper<Text, Tuple, PigNullableWritable
             this.outputCollector = context;
             pigReporter.setRep(context);
             PhysicalOperator.setReporter(pigReporter);
-
+           
             for (POStore store: stores) {
                 MapReducePOStoreImpl impl 
                     = new MapReducePOStoreImpl(context);
@@ -211,7 +212,7 @@ public abstract class PigMapBase extends Mapper<Text, Tuple, PigNullableWritable
 
             PigHadoopLogger pigHadoopLogger = PigHadoopLogger.getInstance();
             pigHadoopLogger.setAggregate(aggregateWarning);
-            pigHadoopLogger.setTaskIOContext(context);
+            pigHadoopLogger.setReporter(new PigStatusReporter(context));
             PhysicalOperator.setPigLogger(pigHadoopLogger);
         }
         

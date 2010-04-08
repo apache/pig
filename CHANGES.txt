@@ -39,6 +39,9 @@ PIG-1309: Map-side Cogroup (ashutoshc)
 
 BUG FIXES
 
+PIG-1299: Implement Pig counter to track number of output rows for each output
+files (rding)
+
 PIG-1366: PigStorage's pushProjection implementation results in NPE under
 certain data conditions (pradeepkth)
 

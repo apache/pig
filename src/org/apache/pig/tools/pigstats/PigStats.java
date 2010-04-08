@@ -101,6 +101,10 @@ public class PigStats {
             throw new RuntimeException("Unrecognized mode. Either MapReduce or Local mode expected.");
     }
     
+    public void addStatsGroup(String key, Map<String, String> value) {
+        stats.put(key, value);
+    }
+    
     private Map<String, Map<String, String>> accumulateLocalStats() {
         //The counter placed before a store in the local plan should be able to get the number of records
         for(PhysicalOperator op : php.getLeaves()) {

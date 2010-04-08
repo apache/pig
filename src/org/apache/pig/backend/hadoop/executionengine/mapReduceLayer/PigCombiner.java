@@ -42,6 +42,7 @@ import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.NullableTuple;
 import org.apache.pig.impl.io.PigNullableWritable;
 import org.apache.pig.impl.util.ObjectSerializer;
+import org.apache.pig.tools.pigstats.PigStatusReporter;
 
 public class PigCombiner {
 
@@ -134,7 +135,8 @@ public class PigCombiner {
 
                 PigHadoopLogger pigHadoopLogger = PigHadoopLogger.getInstance();
                 pigHadoopLogger.setAggregate(aggregateWarning);
-                pigHadoopLogger.setTaskIOContext(context);
+                pigHadoopLogger.setReporter(new PigStatusReporter(context));
+
                 PhysicalOperator.setPigLogger(pigHadoopLogger);
             }
             

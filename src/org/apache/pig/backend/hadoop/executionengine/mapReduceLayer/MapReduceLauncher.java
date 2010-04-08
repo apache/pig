@@ -29,6 +29,7 @@ import java.util.Map;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapred.Counters;
 import org.apache.hadoop.mapred.JobClient;
 import org.apache.hadoop.mapred.JobConf;
@@ -63,6 +64,7 @@ import org.apache.pig.impl.util.LogUtils;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.tools.pigstats.PigStats;
+import org.apache.pig.tools.pigstats.PigStatsUtil;
 
 /**
  * Main class that launches pig for Map Reduce
@@ -249,12 +251,12 @@ public class MapReduceLauncher extends Launcher{
             stats.setJobClient(jobClient);
             stats.setJobControl(jc);
             stats.accumulateStats();
-            
+
             jc.stop(); 
         }
 
         log.info( "100% complete");
-
+      
         boolean failed = false;
         int finalStores = 0;
         // Look to see if any jobs failed.  If so, we need to report that.
@@ -286,34 +288,53 @@ public class MapReduceLauncher extends Launcher{
 
         Map<Enum, Long> warningAggMap = new HashMap<Enum, Long>();
                 
-        if(succJobs!=null) {
-            for(Job job : succJobs){
-                List<POStore> sts = jcc.getStores(job);
-                for (POStore st: sts) {
-                    // Currently (as of Feb 3 2010), hadoop's local mode does not
-                    // call cleanupJob on OutputCommitter (see https://issues.apache.org/jira/browse/MAPREDUCE-1447)
-                    // So to workaround that bug, we are calling setStoreSchema on
-                    // StoreFunc's which implement StoreMetadata here
+        if (succJobs != null) {
+            Map<String, String> storeCounters = new HashMap<String, String>();
+            for (Job job : succJobs) {
+                List<POStore> sts = jcc.getStores(job);                
+                for (POStore st : sts) {
+                    // Currently (as of Feb 3 2010), hadoop's local mode does
+                    // not call cleanupJob on OutputCommitter (see
+                    // https://issues.apache.org/jira/browse/MAPREDUCE-1447)
+                    // So to workaround that bug, we are calling setStoreSchema
+                    // on StoreFunc's which implement StoreMetadata here
                     /**********************************************************/
-                    // NOTE: THE FOLLOWING IF SHOULD BE REMOVED ONCE MAPREDUCE-1447
+                    // NOTE: THE FOLLOWING IF SHOULD BE REMOVED ONCE
+                    // MAPREDUCE-1447
                     // IS FIXED - TestStore.testSetStoreSchema() should fail at
                     // that time and removing this code should fix it.
                     /**********************************************************/
-                    if(pc.getExecType() == ExecType.LOCAL) {
+                    if (pc.getExecType() == ExecType.LOCAL) {
                         storeSchema(job, st);
                     }
                     if (!st.isTmpStore()) {
                         succeededStores.add(st);
                         finalStores++;
-                        log.info("Successfully stored result in: \""+st.getSFile().getFileName()+"\"");
+                        if (st.isMultiStore()) {
+                            String counterName = PigStatsUtil.getMultiStoreCounterName(st);
+                            long count = PigStatsUtil.getMultiStoreCount(job,
+                                    jobClient, counterName);
+                            log.info("Successfully stored " + count + " records in: \""
+                                    + st.getSFile().getFileName() + "\"");
+                            storeCounters.put(counterName, Long.valueOf(count).toString());
+                        } else {
+                            log.info("Successfully stored result in: \""
+                                    + st.getSFile().getFileName() + "\"");
+                        }                       
+                    } else {
+                        log.debug("Successfully stored result in: \""
+                                + st.getSFile().getFileName() + "\"");
                     }
-                    else
-                        log.debug("Successfully stored result in: \""+st.getSFile().getFileName()+"\"");
                 }
-                getStats(job,jobClient, false, pc);
-                if(aggregateWarning) {
+                                
+                getStats(job, jobClient, false, pc);
+                if (aggregateWarning) {
                     computeWarningAggregate(job, jobClient, warningAggMap);
                 }
+            }
+            if (storeCounters.size() > 0) {
+                stats.addStatsGroup(PigStatsUtil.MULTI_STORE_COUNTER_GROUP, 
+                        storeCounters);
             }
         }
         

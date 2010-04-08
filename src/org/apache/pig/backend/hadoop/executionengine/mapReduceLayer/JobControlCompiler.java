@@ -468,6 +468,10 @@ public class JobControlCompiler{
                 tmpLocation = new Path(tmpLocationStr);
 
                 nwJob.setOutputFormatClass(PigOutputFormat.class);
+                
+                for (POStore sto: storeLocations) {
+                    sto.setMultiStore(true);
+                }
  
                 conf.set("pig.streaming.log.dir", 
                             new Path(tmpLocation, LOG_DIR).toString());

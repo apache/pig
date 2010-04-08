@@ -23,6 +23,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintWriter;
+import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
@@ -32,8 +33,10 @@ import org.apache.hadoop.fs.Path;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.backend.executionengine.ExecJob;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.tools.pigstats.PigStats;
+import org.apache.pig.tools.pigstats.PigStatsUtil;
 import org.junit.Test;
 
 public class TestCounters extends TestCase {
@@ -378,7 +381,7 @@ public class TestCounters extends TestCase {
         assertEquals(count, pigStats.getRecordsWritten());
         assertEquals(filesize, pigStats.getBytesWritten());
     }
-
+    
     @Test
     public void testMapCombineReduceBinStorage() throws IOException, ExecException {
         int count = 0;
@@ -512,6 +515,95 @@ public class TestCounters extends TestCase {
         assertEquals(filesize, pigStats.getBytesWritten());
 
     }
+    
+    @Test
+    public void testMapOnlyMultiQueryStores() throws Exception {
+        PrintWriter pw = new PrintWriter(Util.createInputFile(cluster, file));
+        for(int i = 0; i < MAX; i++) {
+            int t = r.nextInt(100);
+            pw.println(t);
+        }
+        pw.close();
+        
+        PigServer pigServer = new PigServer(ExecType.MAPREDUCE, 
+                cluster.getProperties());
+        pigServer.setBatchOn();
+        pigServer.registerQuery("a = load '" + file + "';");
+        pigServer.registerQuery("b = filter a by $0 > 50;");
+        pigServer.registerQuery("c = filter a by $0 <= 50;");
+        pigServer.registerQuery("store b into '/tmp/outout1';");
+        pigServer.registerQuery("store c into '/tmp/outout2';");
+        List<ExecJob> jobs = pigServer.executeBatch();
+        
+        assertTrue(jobs != null && jobs.size() == 2);
+        
+        Map<String, Map<String, String>> stats = 
+            jobs.get(0).getStatistics().getPigStats();
+        
+        cluster.getFileSystem().delete(new Path(file), true);
+        cluster.getFileSystem().delete(new Path("/tmp/outout1"), true);
+        cluster.getFileSystem().delete(new Path("/tmp/outout2"), true);
+
+        Map<String, String> entry = 
+            stats.get(PigStatsUtil.MULTI_STORE_COUNTER_GROUP);
+        
+        long counter = 0;
+        for (String val : entry.values()) {
+            counter += new Long(val);
+        }
+        
+        assertEquals(MAX, counter);       
+    }    
+    
+    @Test
+    public void testMultiQueryStores() throws Exception {
+        int[] nums = new int[100];
+        PrintWriter pw = new PrintWriter(Util.createInputFile(cluster, file));
+        for(int i = 0; i < MAX; i++) {
+            int t = r.nextInt(100);
+            pw.println(t);
+            nums[t]++;
+        }
+        pw.close();
+        
+        int groups = 0;
+        for (int i : nums) {
+            if (i > 0) groups++;
+        }
+        
+        PigServer pigServer = new PigServer(ExecType.MAPREDUCE, 
+                cluster.getProperties());
+        pigServer.setBatchOn();
+        pigServer.registerQuery("a = load '" + file + "';");
+        pigServer.registerQuery("b = filter a by $0 >= 50;");
+        pigServer.registerQuery("c = group b by $0;");
+        pigServer.registerQuery("d = foreach c generate group;");
+        pigServer.registerQuery("e = filter a by $0 < 50;");
+        pigServer.registerQuery("f = group e by $0;");
+        pigServer.registerQuery("g = foreach f generate group;");
+        pigServer.registerQuery("store d into '/tmp/outout1';");
+        pigServer.registerQuery("store g into '/tmp/outout2';");
+        List<ExecJob> jobs = pigServer.executeBatch();
+        
+        assertTrue(jobs != null && jobs.size() == 2);
+        
+        Map<String, Map<String, String>> stats = 
+            jobs.get(0).getStatistics().getPigStats();
+        
+        cluster.getFileSystem().delete(new Path(file), true);
+        cluster.getFileSystem().delete(new Path("/tmp/outout1"), true);
+        cluster.getFileSystem().delete(new Path("/tmp/outout2"), true);
+
+        Map<String, String> entry = 
+            stats.get(PigStatsUtil.MULTI_STORE_COUNTER_GROUP);
+        
+        long counter = 0;
+        for (String val : entry.values()) {
+            counter += new Long(val);      
+        }
+        
+        assertEquals(groups, counter);       
+    }    
     
     /*
      * IMPORTANT NOTE:

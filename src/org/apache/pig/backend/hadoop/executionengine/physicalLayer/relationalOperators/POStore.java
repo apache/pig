@@ -20,12 +20,12 @@ package org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOp
 import java.io.IOException;
 import java.util.List;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.mapreduce.Counter;
 import org.apache.pig.PigException;
 import org.apache.pig.SortInfo;
 import org.apache.pig.StoreFuncInterface;
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MapReducePOStoreImpl;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
@@ -50,13 +50,17 @@ public class POStore extends PhysicalOperator {
     private static final long serialVersionUID = 1L;
     private static Result empty = new Result(POStatus.STATUS_NULL, null);
     transient private StoreFuncInterface storer;    
-    transient private final Log log = LogFactory.getLog(getClass());
     transient private POStoreImpl impl;
     private FileSpec sFile;
     private Schema schema;
+    
+    transient private Counter outputRecordCounter = null;
 
     // flag to distinguish user stores from MRCompiler stores.
     private boolean isTmpStore;
+    
+    // flag to distinguish single store from multiquery store.
+    private boolean isMultiStore;
     
     // If we know how to reload the store, here's how. The lFile
     // FileSpec is set in PigServer.postProcess. It can be used to
@@ -90,6 +94,10 @@ public class POStore extends PhysicalOperator {
         if (impl != null) {
             try{
                 storer = impl.createStoreFunc(this);
+                if (!isTmpStore && impl instanceof MapReducePOStoreImpl) {
+                    outputRecordCounter = 
+                        ((MapReducePOStoreImpl) impl).createRecordCounter(this);
+                }
             }catch (IOException ioe) {
                 int errCode = 2081;
                 String msg = "Unable to setup the store function.";            
@@ -126,6 +134,9 @@ public class POStore extends PhysicalOperator {
             case POStatus.STATUS_OK:
                 storer.putNext((Tuple)res.result);
                 res = empty;
+                if (outputRecordCounter != null) {
+                    outputRecordCounter.increment(1);
+                }
                 break;
             case POStatus.STATUS_EOP:
                 break;
@@ -227,5 +238,13 @@ public class POStore extends PhysicalOperator {
     
     public void setSignature(String signature) {
         this.signature = signature;
+    }
+
+    public void setMultiStore(boolean isMultiStore) {
+        this.isMultiStore = isMultiStore;
+    }
+
+    public boolean isMultiStore() {
+        return isMultiStore;
     }
 }
