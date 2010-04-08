@@ -179,6 +179,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-1365: WrappedIOException is missing from Pig.jar (pradeepkth) 
+
 PIG-1362: Provide udf context signature in ensureAllKeysInSameSplit() method
 of loader (hashutosh)
 
