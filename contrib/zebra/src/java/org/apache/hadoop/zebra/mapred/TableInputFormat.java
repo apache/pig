@@ -33,7 +33,6 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.WritableUtils;
-import org.apache.hadoop.io.RawComparator;
 import org.apache.hadoop.zebra.tfile.RawComparable;
 import org.apache.hadoop.mapred.FileInputFormat;
 import org.apache.hadoop.mapred.FileSplit;
@@ -581,66 +580,6 @@ public class TableInputFormat implements InputFormat<BytesWritable, Tuple> {
     conf.setLong("table.input.split.minSize", minSize);
   }
   
-  private static InputSplit[] getUnsortedSplits(JobConf conf, int numSplits,
-      TableExpr expr, List<BasicTable.Reader> readers,
-      List<BasicTableStatus> status) throws IOException {
-    long totalBytes = 0;
-    for (Iterator<BasicTableStatus> it = status.iterator(); it.hasNext();) {
-      BasicTableStatus s = it.next();
-      totalBytes += s.getSize();
-    }
-
-    long maxSplits = totalBytes / getMinSplitSize(conf);
-
-    if (numSplits > maxSplits) {
-      numSplits = -1;
-    }
-
-    ArrayList<InputSplit> ret = new ArrayList<InputSplit>();
-    if (numSplits <= 0) {
-      if (totalBytes <= 0) {
-        BasicTable.Reader reader = readers.get(0);
-        UnsortedTableSplit split =
-          new UnsortedTableSplit(reader, null, conf);
-        ret.add(split);
-      } else {
-        for (int i = 0; i < readers.size(); ++i) {
-          BasicTable.Reader reader = readers.get(i);
-          List<RangeSplit> subSplits = reader.rangeSplit(-1);
-          for (Iterator<RangeSplit> it = subSplits.iterator(); it.hasNext();) {
-            UnsortedTableSplit split =
-              new UnsortedTableSplit(reader, it.next(), conf);
-            ret.add(split);
-          }
-        }
-      }
-    } else {
-      long goalSize = totalBytes / numSplits;
-
-      double SPLIT_SLOP = 1.1;
-      for (int i = 0; i < readers.size(); ++i) {
-        BasicTable.Reader reader = readers.get(i);
-        BasicTableStatus s = status.get(i);
-        int nSplits =
-            (int) ((s.getSize() + goalSize * (2 - SPLIT_SLOP)) / goalSize);
-        if (nSplits > 1) {
-          List<RangeSplit> subSplits = reader.rangeSplit(nSplits);
-          for (Iterator<RangeSplit> it = subSplits.iterator(); it.hasNext();) {
-            UnsortedTableSplit split =
-                new UnsortedTableSplit(reader, it.next(), conf);
-            ret.add(split);
-          }
-        } else {
-          UnsortedTableSplit split = new UnsortedTableSplit(reader, null, conf);
-          ret.add(split);
-        }
-      }
-    }
-
-    LOG.info("getSplits : returning " + ret.size() + " file splits.");
-    return ret.toArray(new InputSplit[ret.size()]);
-  }
-  
   private static class DummyFileInputFormat extends FileInputFormat<BytesWritable, Tuple> {
     /**
      * the next constant and class are copies from FileInputFormat
@@ -1103,85 +1042,6 @@ class SortedTableSplit implements InputSplit {
 
   public BytesWritable getEnd() {
     return end;
-  }
-}
-
-/**
- * Adaptor class for unsorted InputSplit for table.
- */
-class UnsortedTableSplit implements InputSplit {
-  String path = null;
-  RangeSplit split = null;
-  String[] hosts = null;
-  long length = 1;
-
-  public UnsortedTableSplit(Reader reader, RangeSplit split, JobConf conf)
-      throws IOException {
-    this.path = reader.getPath();
-    this.split = split;
-    BlockDistribution dataDist = reader.getBlockDistribution(split);
-    if (dataDist != null) {
-      length = dataDist.getLength();
-      hosts =
-          dataDist.getHosts(conf.getInt("mapred.lib.table.input.nlocation", 5));
-    }
-  }
-  
-  public UnsortedTableSplit() {
-    // no-op for Writable construction
-  }
-  
-  @Override
-  public long getLength() throws IOException {
-    return length;
-  }
-
-  @Override
-  public String[] getLocations() throws IOException {
-    if (hosts == null)
-    {
-      String[] tmp = new String[1];
-      tmp[0] = "";
-      return tmp;
-    }
-    return hosts;
-  }
-
-  @Override
-  public void readFields(DataInput in) throws IOException {
-    path = WritableUtils.readString(in);
-    int bool = WritableUtils.readVInt(in);
-    if (bool == 1) {
-      if (split == null) split = new RangeSplit();
-      split.readFields(in);
-    }
-    else {
-      split = null;
-    }
-    hosts = WritableUtils.readStringArray(in);
-    length = WritableUtils.readVLong(in);
-  }
-
-  @Override
-  public void write(DataOutput out) throws IOException {
-    WritableUtils.writeString(out, path);
-    if (split == null) {
-      WritableUtils.writeVInt(out, 0);
-    }
-    else {
-      WritableUtils.writeVInt(out, 1);
-      split.write(out);
-    }
-    WritableUtils.writeStringArray(out, hosts);
-    WritableUtils.writeVLong(out, length);
-  }
-
-  public String getPath() {
-    return path;
-  }
-  
-  public RangeSplit getSplit() {
-    return split;
   }
 }
 

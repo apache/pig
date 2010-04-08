@@ -122,26 +122,6 @@ abstract class TableExpr {
    * @return A table scanner.
    * @throws IOException
    */
-  public TableScanner getScanner(UnsortedTableSplit split, String projection,
-      Configuration conf) throws IOException, ParseException {
-    BasicTable.Reader reader =
-        new BasicTable.Reader(new Path(split.getPath()), getDeletedCGs(conf), conf);
-    reader.setProjection(projection);
-    return reader.getScanner(split.getSplit(), true);
-  }
-  
-  /**
-   * Get a scanner with an unsorted split.
-   * 
-   * @param split
-   *          The range split.
-   * @param projection
-   *          The projection schema. It should never be null.
-   * @param conf
-   *          The configuration
-   * @return A table scanner.
-   * @throws IOException
-   */
   public TableScanner getScanner(RowTableSplit split, String projection,
       Configuration conf) throws IOException, ParseException, ParseException {
     BasicTable.Reader reader =
