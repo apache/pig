@@ -19,17 +19,13 @@
 package org.apache.hadoop.zebra.pig;
 
 import java.io.ByteArrayOutputStream;
-import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.Iterator;
 import java.util.StringTokenizer;
 
 import junit.framework.Assert;
-import junit.framework.TestCase;
 
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.zebra.io.BasicTable;
@@ -37,15 +33,9 @@ import org.apache.hadoop.zebra.io.TableInserter;
 import org.apache.hadoop.zebra.pig.TableStorer;
 import org.apache.hadoop.zebra.schema.Schema;
 import org.apache.hadoop.zebra.types.TypesUtils;
-import org.apache.pig.ExecType;
-import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
-import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.data.Tuple;
-import org.apache.pig.test.MiniCluster;
-import org.junit.After;
 import org.junit.AfterClass;
-import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.apache.hadoop.zebra.BaseTestCase;
@@ -208,6 +198,32 @@ public class TestSortedTableUnion extends BaseTestCase{
       Assert.assertEquals(index+"_02", RowValue3.get(2));
     }
     Assert.assertEquals(20, row);
+    
+    /*
+     * Test source table index on a single sorted table
+     */
+    String query6 = "records4 = LOAD '"
+      + newPath.toString() + "1"
+      + "' USING org.apache.hadoop.zebra.pig.TableLoader('SF_a, SF_b, SF_c," +
+      		"source_table, SF_d, SF_e, SF_f, SF_g', 'sorted');";
+    pigServer.registerQuery(query6);
+    Iterator<Tuple> it4 = pigServer.openIterator("records4");
+    row = 0;
+    while (it4.hasNext()) {
+      RowValue3 = it4.next();
+      Assert.assertEquals(8, RowValue3.size());
+      row++;
+      index = row-1;
+      Assert.assertEquals(0, RowValue3.get(3));
+      Assert.assertEquals(index+"_01", RowValue3.get(1));
+      Assert.assertEquals(index+"_00", RowValue3.get(0));
+      Assert.assertEquals(index+"_06", RowValue3.get(7));
+      Assert.assertEquals(index+"_05", RowValue3.get(6));
+      Assert.assertEquals(index+"_04", RowValue3.get(5));
+      Assert.assertEquals(index+"_03", RowValue3.get(4));
+      Assert.assertEquals(index+"_02", RowValue3.get(2));
+    }
+    Assert.assertEquals(10, row);
   }
   
 }

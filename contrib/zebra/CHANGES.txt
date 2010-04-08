@@ -18,6 +18,8 @@ Trunk (unreleased changes)
 
   IMPROVEMENTS
 
+    PIG-1291 Support of virtual column "source_table" on unsorted table (yanz)
+
     PIG-1315 Implementing OrderedLoadFunc interface for Zebra TableLoader (xuefux via yanz)
 
     PIG-1306 Support of locally sorted input splits (yanz)
