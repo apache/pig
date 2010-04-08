@@ -97,6 +97,7 @@ LoadPushDown {
 
     @Override
     public Tuple getNext() throws IOException {
+        mProtoTuple = new ArrayList<Object>();
         if (!mRequiredColumnsInitialized) {
             if (signature!=null) {
                 Properties p = UDFContext.getUDFContext().getUDFProperties(this.getClass());
@@ -127,7 +128,6 @@ LoadPushDown {
                 readField(buf, start, len);
             }
             Tuple t =  mTupleFactory.newTupleNoCopy(mProtoTuple);
-            mProtoTuple = null;
             return t;
         } catch (InterruptedException e) {
             int errCode = 6018;
@@ -171,10 +171,6 @@ LoadPushDown {
     }
 
     private void readField(byte[] buf, int start, int end) {
-        if (mProtoTuple == null) {
-            mProtoTuple = new ArrayList<Object>();
-        }
-
         if (start == end) {
             // NULL value
             mProtoTuple.add(null);
