@@ -18,7 +18,6 @@ package org.apache.hadoop.zebra.mapred;
 
 import java.io.IOException;
 import org.apache.hadoop.io.BytesWritable;
-import org.apache.hadoop.mapred.InputFormat;
 import org.apache.hadoop.mapred.InputSplit;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.RecordReader;
@@ -51,22 +50,16 @@ public class TableRecordReader implements RecordReader<BytesWritable, Tuple> {
    * @throws IOException
    */
   public TableRecordReader(TableExpr expr, String projection,
-      InputSplit split,
-      JobConf conf) throws IOException, ParseException {
-    if (split != null && split instanceof RowTableSplit) {
-      RowTableSplit rowSplit = (RowTableSplit) split;
-      if (!expr.sortedSplitRequired() && Projection.getVirtualColumnIndices(projection) != null)
-        throw new IllegalArgumentException("virtual column requires union of multiple sorted tables");
-      scanner = expr.getScanner(rowSplit, projection, conf);
-    } else if (expr.sortedSplitRequired()) {
-      SortedTableSplit tblSplit = (SortedTableSplit) split;
-      scanner =
-          expr.getScanner(tblSplit.getBegin(), tblSplit.getEnd(), projection,
-              conf);
-    } else {
-      UnsortedTableSplit tblSplit = (UnsortedTableSplit) split;
-      scanner = expr.getScanner(tblSplit, projection, conf);
-    }
+		  InputSplit split, JobConf conf) throws IOException, ParseException {
+	  if( split instanceof RowTableSplit ) {
+		  RowTableSplit rowSplit = (RowTableSplit)split;
+		  if( Projection.getVirtualColumnIndices( projection ) != null )
+			  throw new IllegalArgumentException("virtual column requires union of multiple sorted tables");
+		  scanner = expr.getScanner(rowSplit, projection, conf);
+	  } else {
+		  SortedTableSplit tblSplit = (SortedTableSplit)split;
+		  scanner = expr.getScanner( tblSplit.getBegin(), tblSplit.getEnd(), projection, conf );
+	  }
   }
   
   @Override

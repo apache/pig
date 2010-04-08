@@ -34,6 +34,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.BytesWritable;
+import org.apache.hadoop.io.WritableComparable;
 import org.apache.hadoop.io.WritableUtils;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.zebra.tfile.RawComparable;
@@ -162,7 +163,7 @@ public class TableInputFormat extends InputFormat<BytesWritable, Tuple> {
   private static final String GLOBALLY_SORTED = "globally_sorted";
   private static final String LOCALLY_SORTED = "locally_sorted";
   static final String DELETED_CG_SEPARATOR_PER_UNION = ";";
-
+  
   /**
    * Set the paths to the input table.
    * 
@@ -396,7 +397,6 @@ public class TableInputFormat extends InputFormat<BytesWritable, Tuple> {
    *          JobContext object.
    * @param sortInfo
    *          ZebraSortInfo object containing sorting information.
-   *        
    */
   
    public static void requireSortedTable(JobContext jobContext, ZebraSortInfo sortInfo) throws IOException {
@@ -590,7 +590,7 @@ public class TableInputFormat extends InputFormat<BytesWritable, Tuple> {
         bd = BlockDistribution.sum(bd, reader.getBlockDistribution((RangeSplit) null));
       }
       
-      SortedTableSplit split = new SortedTableSplit(null, null, bd, conf);
+      SortedTableSplit split = new SortedTableSplit(0, null, null, bd, conf);
       splits.add(split);
       return splits;
     }
@@ -637,7 +637,7 @@ public class TableInputFormat extends InputFormat<BytesWritable, Tuple> {
         beginB = new BytesWritable(begin.buffer());
       if (end != null)
         endB = new BytesWritable(end.buffer());
-      SortedTableSplit split = new SortedTableSplit(beginB, endB, bd, conf);
+      SortedTableSplit split = new SortedTableSplit(i, beginB, endB, bd, conf);
       splits.add(split);
     }
     LOG.info("getSplits : returning " + splits.size() + " sorted splits.");
@@ -1033,13 +1033,33 @@ public class TableInputFormat extends InputFormat<BytesWritable, Tuple> {
     	throw new IOException("Projection parsing failed : "+e.getMessage());
     }
   }
+
+  	/**
+  	 * Get a comparable object from the given InputSplit object.
+  	 * 
+  	 * @param inputSplit An InputSplit instance. It should be type of SortedTableSplit.
+  	 * @return a comparable object of type WritableComparable
+  	 */
+	public static WritableComparable<?> getSortedTableSplitComparable(InputSplit inputSplit) {
+        SortedTableSplit split = null;
+        if( inputSplit instanceof SortedTableSplit ) {
+            split = (SortedTableSplit)inputSplit;
+        } else {
+            throw new RuntimeException( "LoadFunc expected split of type [" + 
+            		SortedTableSplit.class.getCanonicalName() + "]" );
+        }
+		return new SortedTableSplitComparable( split.getIndex() );
+	}
+
 }
 
 /**
  * Adaptor class for sorted InputSplit for table.
  */
 class SortedTableSplit extends InputSplit implements Writable {
-
+	// the order of the split in all splits generated.
+	private int index;
+	
 	BytesWritable begin = null, end = null;
   
   String[] hosts;
@@ -1050,8 +1070,10 @@ class SortedTableSplit extends InputSplit implements Writable {
     // no-op for Writable construction
   }
   
-  public SortedTableSplit(BytesWritable begin, BytesWritable end,
+  public SortedTableSplit(int index, BytesWritable begin, BytesWritable end,
       BlockDistribution bd, Configuration conf) {
+	  this.index = index;
+	  
     if (begin != null) {
       this.begin = new BytesWritable();
       this.begin.set(begin.getBytes(), 0, begin.getLength());
@@ -1068,6 +1090,10 @@ class SortedTableSplit extends InputSplit implements Writable {
     }
   }
   
+	public int getIndex() {
+		return index;
+	}
+
   @Override
   public long getLength() throws IOException {
     return length;
@@ -1135,85 +1161,6 @@ class SortedTableSplit extends InputSplit implements Writable {
 
   public BytesWritable getEnd() {
     return end;
-  }
-}
-
-/**
- * Adaptor class for unsorted InputSplit for table.
- */
-class UnsortedTableSplit extends InputSplit implements Writable {
-  String path = null;
-  RangeSplit split = null;
-  String[] hosts = null;
-  long length = 1;
-
-  public UnsortedTableSplit(Reader reader, RangeSplit split, Configuration conf)
-      throws IOException {
-    this.path = reader.getPath();
-    this.split = split;
-    BlockDistribution dataDist = reader.getBlockDistribution(split);
-    if (dataDist != null) {
-      length = dataDist.getLength();
-      hosts =
-          dataDist.getHosts(conf.getInt("mapred.lib.table.input.nlocation", 5));
-    }
-  }
-  
-  public UnsortedTableSplit() {
-    // no-op for Writable construction
-  }
-  
-  @Override
-  public long getLength() throws IOException {
-    return length;
-  }
-
-  @Override
-  public String[] getLocations() throws IOException {
-    if (hosts == null)
-    {
-      String[] tmp = new String[1];
-      tmp[0] = "";
-      return tmp;
-    }
-    return hosts;
-  }
-
-  @Override
-  public void readFields(DataInput in) throws IOException {
-    path = WritableUtils.readString(in);
-    int bool = WritableUtils.readVInt(in);
-    if (bool == 1) {
-      if (split == null) split = new RangeSplit();
-      split.readFields(in);
-    }
-    else {
-      split = null;
-    }
-    hosts = WritableUtils.readStringArray(in);
-    length = WritableUtils.readVLong(in);
-  }
-
-  @Override
-  public void write(DataOutput out) throws IOException {
-    WritableUtils.writeString(out, path);
-    if (split == null) {
-      WritableUtils.writeVInt(out, 0);
-    }
-    else {
-      WritableUtils.writeVInt(out, 1);
-      split.write(out);
-    }
-    WritableUtils.writeStringArray(out, hosts);
-    WritableUtils.writeVLong(out, length);
-  }
-
-  public String getPath() {
-    return path;
-  }
-  
-  public RangeSplit getSplit() {
-    return split;
   }
 }
 
