@@ -4,6 +4,8 @@ Trunk (unreleased changes)
 
   INCOMPATIBLE CHANGES
 
+    PIG-1357 Addition of Test cases of map-side GROUP-BY (yanz)
+
     PIG-1282 make Zebra's pig test cases run on real cluster (chaow via yanz)
 
     PIG-1164 Addition of smoke tests (gauravj via yanz)
