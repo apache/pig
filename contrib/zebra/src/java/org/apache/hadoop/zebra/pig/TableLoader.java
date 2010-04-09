@@ -212,8 +212,7 @@ public class TableLoader extends LoadFunc implements LoadMetadata, LoadPushDown,
     /*
      * Hack: use FileInputFormat to decode comma-separated multiple path format.
      */ 
-     private static Path[] getPathsFromLocation(String location, Configuration conf) throws IOException {
-         Job j = new Job( conf );
+     private static Path[] getPathsFromLocation(String location, Job j) throws IOException {
          FileInputFormat.setInputPaths( j, location );
          Path[] paths = FileInputFormat.getInputPaths( j );
 
@@ -221,6 +220,7 @@ public class TableLoader extends LoadFunc implements LoadMetadata, LoadPushDown,
           * Performing glob pattern matching
           */
          List<Path> result = new ArrayList<Path>(paths.length);
+         Configuration conf = j.getConfiguration();
          for (Path p : paths) {
              FileSystem fs = p.getFileSystem(conf);
              FileStatus[] matches = fs.globStatus(p);
@@ -278,7 +278,7 @@ public class TableLoader extends LoadFunc implements LoadMetadata, LoadPushDown,
 
      @Override
      public void setLocation(String location, Job job) throws IOException {
-         Path[] paths = getPathsFromLocation( location, job.getConfiguration() );
+         Path[] paths = getPathsFromLocation( location, job );
          TableInputFormat.setInputPaths( job, paths );
 
          // The following obviously goes beyond of set location, but this is the only place that we
@@ -300,7 +300,7 @@ public class TableLoader extends LoadFunc implements LoadMetadata, LoadPushDown,
 
      @Override
      public ResourceSchema getSchema(String location, Job job) throws IOException {
-         Path[] paths = getPathsFromLocation( location, job.getConfiguration());
+         Path[] paths = getPathsFromLocation( location, job);
          TableInputFormat.setInputPaths( job, paths );
 
          Schema tableSchema = null;
