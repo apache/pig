@@ -76,6 +76,8 @@ Trunk (unreleased changes)
 
   BUG FIXES
 
+    PIG-1356 TableLoader makes unnecessary calls to build a Job instance that create a new JobClient in the hadoop 0.20.9 (yanz)
+
     PIG-1349 Hubson test failure in test case TestBasicUnion (xuefuz via yanz)
 
     PIG-1318 Invalid type for source_table field when using order-preserving Sorted Table Union (gauravj via yanz)
