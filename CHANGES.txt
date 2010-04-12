@@ -73,6 +73,8 @@ PIG-792: skew join implementation (sriranjan via olgan)
 
 BUG FIXES
 
+    PIG-1364: Public javadoc on apache site still on 0.2, needs to be updated for each version release (gates)
+
     PIG-964: Handling null in skewed join (sriranjan via olgan)
 
     PIG-962: Skewed join creates 3 map reduce jobs (sriranjan via olgan)
