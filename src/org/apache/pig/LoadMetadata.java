@@ -39,7 +39,7 @@ public interface LoadMetadata {
      * @return schema for the data to be loaded. This schema should represent
      * all tuples of the returned data.  If the schema is unknown or it is
      * not possible to return a schema that represents all returned data,
-     * then null should be returned. The schema should not affected by pushProjection, ie.
+     * then null should be returned. The schema should not be affected by pushProjection, ie.
      * getSchema should always return the original schema even after pushProjection
      * @throws IOException if an exception occurs while determining the schema
      */
