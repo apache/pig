@@ -287,7 +287,7 @@ public class TestJoin extends TestCase {
                 }
                 script += "d = order c by $1;";
                 // ensure we parse correctly
-                LogicalPlanTester lpt = new LogicalPlanTester();
+                LogicalPlanTester lpt = new LogicalPlanTester(pigServer.getPigContext());
                 lpt.buildPlan(script);
                 
                 // run query and test results only once
@@ -357,7 +357,7 @@ public class TestJoin extends TestCase {
                 }
                 script += "d = order c by $3;";
                 // ensure we parse correctly
-                LogicalPlanTester lpt = new LogicalPlanTester();
+                LogicalPlanTester lpt = new LogicalPlanTester(pigServer.getPigContext());
                 lpt.buildPlan(script);
                 
                 // run query and test results only once
@@ -429,7 +429,7 @@ public class TestJoin extends TestCase {
                 }
                 script += "d = order c by $1, $3;";
                 // ensure we parse correctly
-                LogicalPlanTester lpt = new LogicalPlanTester();
+                LogicalPlanTester lpt = new LogicalPlanTester(pigServer.getPigContext());
                 lpt.buildPlan(script);
                 
                 // run query and test results only once

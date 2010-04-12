@@ -30,7 +30,7 @@ public class ConfigurationUtil {
 
     public static Configuration toConfiguration(Properties properties) {
         assert properties != null;
-        final Configuration config = new Configuration();
+        final Configuration config = new Configuration(false);
         final Enumeration<Object> iter = properties.keys();
         while (iter.hasMoreElements()) {
             final String key = (String) iter.nextElement();

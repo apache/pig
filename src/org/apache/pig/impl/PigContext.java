@@ -186,7 +186,7 @@ public class PigContext implements Serializable, FunctionInstantiator {
                 dfs = executionEngine.getDataStorage();
                 
                 lfs = new HDataStorage(URI.create("file:///"),
-                                        new Properties()); 
+                                        properties); 
             }
             break;
             

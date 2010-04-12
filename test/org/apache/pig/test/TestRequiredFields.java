@@ -18,13 +18,16 @@
 package org.apache.pig.test;
 
 import java.util.List;
+import java.util.Properties;
 
 import org.junit.After;
 import org.junit.Test;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.pig.ExecType;
 import org.apache.pig.builtin.PigStorage;
+import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.plan.RequiredFields;
 import org.apache.pig.impl.logicalLayer.*;
 import org.apache.pig.impl.util.Pair;
@@ -34,7 +37,8 @@ import org.apache.pig.test.utils.LogicalPlanTester;
 public class TestRequiredFields extends junit.framework.TestCase {
 
     private final Log log = LogFactory.getLog(getClass());
-    LogicalPlanTester planTester = new LogicalPlanTester();
+    PigContext pc = new PigContext(ExecType.LOCAL, new Properties());
+    LogicalPlanTester planTester = new LogicalPlanTester(pc);
     
     @After
     @Override

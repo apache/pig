@@ -69,8 +69,8 @@ public class HExecutionEngine implements ExecutionEngine {
     public static final String JOB_TRACKER_LOCATION = "mapred.job.tracker";
     private static final String FILE_SYSTEM_LOCATION = "fs.default.name";
     
-    private static final String MAPRED_SITE = "mapred-site.xml";
-    private static final String HDFS_SITE = "hdfs-site.xml";
+    private static final String HADOOP_SITE = "hadoop-site.xml";
+    private static final String CORE_SITE = "core-site.xml";
     private static final String MAPRED_SYS_DIR = "mapred.system.dir";
     
     private final Log log = LogFactory.getLog(getClass());
@@ -149,50 +149,36 @@ public class HExecutionEngine implements ExecutionEngine {
         // All of the above is accomplished in the method call below
            
         JobConf jc = null;
-        if( this.pigContext.getExecType() == ExecType.LOCAL ) {
-            // We dont load any configurations here
-            jc = new JobConf( false );
-        } else {
+        if ( this.pigContext.getExecType() == ExecType.MAPREDUCE ) {
+        	
+            // Check existence of hadoop-site.xml or core-site.xml
+        	Configuration testConf = new Configuration();
+            ClassLoader cl = testConf.getClassLoader();
+            URL hadoop_site = cl.getResource( HADOOP_SITE );
+            URL core_site = cl.getResource( CORE_SITE );
+            
+            if( hadoop_site == null && core_site == null ) {
+            	throw new ExecException("Cannot find hadoop configurations in classpath (neither hadoop-site.xml nor core-site.xml was found in the classpath)." +
+            			"If you plan to use local mode, please put -x local option in command line", 
+            			4010);
+            }
+
             jc = new JobConf();
             jc.addResource("pig-cluster-hadoop-site.xml");
-        }
             
-        //the method below alters the properties object by overriding the
-        //hadoop properties with the values from properties and recomputing
-        //the properties
-        recomputeProperties(jc, properties);
-
-        // If we are running in local mode we dont read the hadoop conf file
-        if ( this.pigContext.getExecType() != ExecType.LOCAL ) {
-            configuration = ConfigurationUtil.toConfiguration(properties);
-            properties = ConfigurationUtil.toProperties(configuration);
+            //the method below alters the properties object by overriding the
+            //hadoop properties with the values from properties and recomputing
+            //the properties
+            recomputeProperties(jc, properties);
         } else {
+            // If we are running in local mode we dont read the hadoop conf file
+            jc = new JobConf(false);
+            jc.addResource("core-default.xml");
+            jc.addResource("mapred-default.xml");
+            recomputeProperties(jc, properties);
+            
             properties.setProperty(JOB_TRACKER_LOCATION, LOCAL );
             properties.setProperty(FILE_SYSTEM_LOCATION, "file:///");
-            
-            Configuration testConf = new Configuration();
-            ClassLoader cl = testConf.getClassLoader();
-            URL mapred_site = cl.getResource( MAPRED_SITE );
-            URL hdfs_site = cl.getResource( HDFS_SITE );
-            
-            if( mapred_site != null || hdfs_site != null ) {
-                log.warn( "Passing Hadoop Site Configurations in classpath " +
-                		"is not recommended for Local Mode" );
-            }
-
-            // This is one case. Here we check if mapred.system.dir  
-            // directory is present. This check causes use to print a nice error
-            String newMapredSystemDir = testConf.get( MAPRED_SYS_DIR, "" );
-            Configuration defaultConf = new Configuration(false);
-            defaultConf.addResource("core-default.xml");
-            defaultConf.addResource("mapred-default.xml");
-            if( defaultConf.get(MAPRED_SYS_DIR, "").compareTo(newMapredSystemDir) != 0 ) {
-                File systemDir = new File(newMapredSystemDir);
-                if( ! systemDir.exists() ) {
-                    throw new ExecException( MAPRED_SYS_DIR + ": " + newMapredSystemDir 
-                            + " mentioned in the configuration does not exist");
-                }
-            }
         }
         
         cluster = properties.getProperty(JOB_TRACKER_LOCATION);

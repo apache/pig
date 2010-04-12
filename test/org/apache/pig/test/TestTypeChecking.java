@@ -18,8 +18,13 @@
 
 package org.apache.pig.test;
 
+import java.util.Properties;
+
 import junit.framework.Assert;
 import junit.framework.TestCase;
+
+import org.apache.pig.ExecType;
+import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.logicalLayer.*;
 import org.apache.pig.impl.logicalLayer.validators.TypeCheckerException;
 import org.apache.pig.impl.plan.PlanValidationException;
@@ -30,9 +35,10 @@ import org.junit.Before;
 
 public class TestTypeChecking extends TestCase {
 
+    PigContext pc = new PigContext(ExecType.LOCAL, new Properties());
     final String FILE_BASE_LOCATION = "test/org/apache/pig/test/data/DotFiles/" ;
 
-    LogicalPlanTester planTester = new LogicalPlanTester() ;
+    LogicalPlanTester planTester = new LogicalPlanTester(pc) ;
 
     @Before
     public void setUp() {

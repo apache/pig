@@ -20,6 +20,7 @@ package org.apache.pig.test;
 
 import java.util.*;
 
+import org.apache.pig.ExecType;
 import org.apache.pig.experimental.logical.LogicalPlanMigrationVistor;
 import org.apache.pig.experimental.logical.optimizer.LogicalPlanOptimizer;
 import org.apache.pig.experimental.logical.optimizer.UidStamper;
@@ -33,6 +34,7 @@ import org.apache.pig.experimental.plan.Operator;
 import org.apache.pig.experimental.plan.OperatorPlan;
 import org.apache.pig.experimental.plan.optimizer.PlanOptimizer;
 import org.apache.pig.experimental.plan.optimizer.Rule;
+import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.test.utils.LogicalPlanTester;
 
@@ -41,6 +43,7 @@ import junit.framework.TestCase;
 public class TestExperimentalColumnPrune extends TestCase {
 
     LogicalPlan plan = null;
+    PigContext pc = new PigContext(ExecType.LOCAL, new Properties());
   
     private LogicalPlan migratePlan(org.apache.pig.impl.logicalLayer.LogicalPlan lp) throws VisitorException{
         LogicalPlanMigrationVistor visitor = new LogicalPlanMigrationVistor(lp);        
@@ -60,7 +63,7 @@ public class TestExperimentalColumnPrune extends TestCase {
    
     public void testNoPrune() throws Exception  {
         // no foreach
-        LogicalPlanTester lpt = new LogicalPlanTester();
+        LogicalPlanTester lpt = new LogicalPlanTester(pc);
         lpt.buildPlan("a = load 'd.txt' as (id, v1, v2);");
         lpt.buildPlan("b = filter a by v1==NULL;");        
         org.apache.pig.impl.logicalLayer.LogicalPlan plan = lpt.buildPlan("store b into 'empty';");  
@@ -69,7 +72,7 @@ public class TestExperimentalColumnPrune extends TestCase {
         PlanOptimizer optimizer = new MyPlanOptimizer(newLogicalPlan, 3);
         optimizer.optimize();
         
-        lpt = new LogicalPlanTester();
+        lpt = new LogicalPlanTester(pc);
         lpt.buildPlan("a = load 'd.txt' as (id, v1, v2);");
         lpt.buildPlan("b = filter a by v1==NULL;");        
         plan = lpt.buildPlan("store b into 'empty';");  
@@ -78,7 +81,7 @@ public class TestExperimentalColumnPrune extends TestCase {
         assertTrue(expected.isEqual(newLogicalPlan));
         
         // no schema
-        lpt = new LogicalPlanTester();
+        lpt = new LogicalPlanTester(pc);
         lpt.buildPlan("a = load 'd.txt';");
         lpt.buildPlan("b = foreach a generate $0, $1;");
         plan = lpt.buildPlan("store b into 'empty';");  
@@ -87,7 +90,7 @@ public class TestExperimentalColumnPrune extends TestCase {
         optimizer = new MyPlanOptimizer(newLogicalPlan, 3);
         optimizer.optimize();
         
-        lpt = new LogicalPlanTester();
+        lpt = new LogicalPlanTester(pc);
         lpt.buildPlan("a = load 'd.txt';");
         lpt.buildPlan("b = foreach a generate $0, $1;");
         plan = lpt.buildPlan("store b into 'empty';");  
@@ -97,7 +100,7 @@ public class TestExperimentalColumnPrune extends TestCase {
        
     public void testPrune() throws Exception  {
         // only foreach
-        LogicalPlanTester lpt = new LogicalPlanTester();
+        LogicalPlanTester lpt = new LogicalPlanTester(pc);
         lpt.buildPlan("a = load 'd.txt' as (id, v1, v2);");
         lpt.buildPlan("b = foreach a generate id;");        
         org.apache.pig.impl.logicalLayer.LogicalPlan plan = lpt.buildPlan("store b into 'empty';");  
@@ -106,7 +109,7 @@ public class TestExperimentalColumnPrune extends TestCase {
         PlanOptimizer optimizer = new MyPlanOptimizer(newLogicalPlan, 3);
         optimizer.optimize();
         
-        lpt = new LogicalPlanTester();
+        lpt = new LogicalPlanTester(pc);
         lpt.buildPlan("a = load 'd.txt' as (id);");
         lpt.buildPlan("b = foreach a generate id;");        
         plan = lpt.buildPlan("store b into 'empty';");  
@@ -115,7 +118,7 @@ public class TestExperimentalColumnPrune extends TestCase {
         assertTrue(expected.isEqual(newLogicalPlan));
         
         // with filter
-        lpt = new LogicalPlanTester();
+        lpt = new LogicalPlanTester(pc);
         lpt.buildPlan("a = load 'd.txt' as (id, v1, v5, v3, v4, v2);");
         lpt.buildPlan("b = filter a by v1 != NULL AND (v2+v3)<100;");
         lpt.buildPlan("c = foreach b generate id;");
@@ -125,7 +128,7 @@ public class TestExperimentalColumnPrune extends TestCase {
         optimizer = new MyPlanOptimizer(newLogicalPlan, 3);
         optimizer.optimize();
         
-        lpt = new LogicalPlanTester();
+        lpt = new LogicalPlanTester(pc);
         lpt.buildPlan("a = load 'd.txt' as (id, v1, v3, v2);");
         lpt.buildPlan("b = filter a by v1 != NULL AND (v2+v3)<100;");
         lpt.buildPlan("c = foreach b generate id;");
@@ -134,7 +137,7 @@ public class TestExperimentalColumnPrune extends TestCase {
         assertTrue(expected.isEqual(newLogicalPlan));
         
         // with 2 foreach
-        lpt = new LogicalPlanTester();
+        lpt = new LogicalPlanTester(pc);
         lpt.buildPlan("a = load 'd.txt' as (id, v1, v5, v3, v4, v2);");
         lpt.buildPlan("b = foreach a generate v2, v5, v4;");
         lpt.buildPlan("c = foreach b generate v5, v4;");
@@ -144,7 +147,7 @@ public class TestExperimentalColumnPrune extends TestCase {
         optimizer = new MyPlanOptimizer(newLogicalPlan, 3);
         optimizer.optimize();
         
-        lpt = new LogicalPlanTester();
+        lpt = new LogicalPlanTester(pc);
         lpt.buildPlan("a = load 'd.txt' as (v5, v4);");
         lpt.buildPlan("b = foreach a generate v5, v4;");
         lpt.buildPlan("c = foreach b generate v5, v4;");
@@ -153,7 +156,7 @@ public class TestExperimentalColumnPrune extends TestCase {
         assertTrue(expected.isEqual(newLogicalPlan));
         
         // with 2 foreach
-        lpt = new LogicalPlanTester();
+        lpt = new LogicalPlanTester(pc);
         lpt.buildPlan("a = load 'd.txt' as (id, v1, v5, v3, v4, v2);");
         lpt.buildPlan("b = foreach a generate id, v1, v5, v3, v4;");
         lpt.buildPlan("c = foreach b generate v5, v4;");
@@ -163,7 +166,7 @@ public class TestExperimentalColumnPrune extends TestCase {
         optimizer = new MyPlanOptimizer(newLogicalPlan, 3);
         optimizer.optimize();
         
-        lpt = new LogicalPlanTester();
+        lpt = new LogicalPlanTester(pc);
         lpt.buildPlan("a = load 'd.txt' as (v5, v4);");
         lpt.buildPlan("b = foreach a generate v5, v4;");
         lpt.buildPlan("c = foreach b generate v5, v4;");
@@ -172,7 +175,7 @@ public class TestExperimentalColumnPrune extends TestCase {
         assertTrue(expected.isEqual(newLogicalPlan));
         
         // with 2 foreach and filter in between
-        lpt = new LogicalPlanTester();
+        lpt = new LogicalPlanTester(pc);
         lpt.buildPlan("a = load 'd.txt' as (id, v1, v5, v3, v4, v2);");
         lpt.buildPlan("b = foreach a generate v2, v5, v4;");
         lpt.buildPlan("c = filter b by v2 != NULL;");
@@ -183,7 +186,7 @@ public class TestExperimentalColumnPrune extends TestCase {
         optimizer = new MyPlanOptimizer(newLogicalPlan, 3);
         optimizer.optimize();
         
-        lpt = new LogicalPlanTester();
+        lpt = new LogicalPlanTester(pc);
         lpt.buildPlan("a = load 'd.txt' as (v5, v4, v2);");
         lpt.buildPlan("b = foreach a generate v2, v5, v4;");
         lpt.buildPlan("c = filter b by v2 != NULL;");
@@ -193,7 +196,7 @@ public class TestExperimentalColumnPrune extends TestCase {
         assertTrue(expected.isEqual(newLogicalPlan));
         
         // with 2 foreach after join
-        lpt = new LogicalPlanTester();
+        lpt = new LogicalPlanTester(pc);
         lpt.buildPlan("a = load 'd.txt' as (id, v1, v2, v3);");
         lpt.buildPlan("b = load 'c.txt' as (id, v4, v5, v6);");
         lpt.buildPlan("c = join a by id, b by id;");       
@@ -204,7 +207,7 @@ public class TestExperimentalColumnPrune extends TestCase {
         optimizer = new MyPlanOptimizer(newLogicalPlan, 3);
         optimizer.optimize();
         
-        lpt = new LogicalPlanTester();
+        lpt = new LogicalPlanTester(pc);
         lpt.buildPlan("a = load 'd.txt' as (id, v3);");
         lpt.buildPlan("b = load 'c.txt' as (id, v4, v5);");
         lpt.buildPlan("c = join a by id, b by id;");       
@@ -214,7 +217,7 @@ public class TestExperimentalColumnPrune extends TestCase {
         assertTrue(expected.isEqual(newLogicalPlan));
         
         // with BinStorage, insert foreach after load
-        lpt = new LogicalPlanTester();
+        lpt = new LogicalPlanTester(pc);
         lpt.buildPlan("a = load 'd.txt' using BinStorage() as (id, v1, v5, v3, v4, v2);");        
         lpt.buildPlan("c = filter a by v2 != NULL;");
         lpt.buildPlan("d = foreach c generate v5, v4;");
@@ -224,7 +227,7 @@ public class TestExperimentalColumnPrune extends TestCase {
         optimizer = new MyPlanOptimizer(newLogicalPlan, 3);
         optimizer.optimize();
         
-        lpt = new LogicalPlanTester();
+        lpt = new LogicalPlanTester(pc);
         lpt.buildPlan("a = load 'd.txt' using BinStorage() as (id, v1, v5, v3, v4, v2);");
         lpt.buildPlan("b = foreach a generate v5, v4, v2;");
         lpt.buildPlan("c = filter b by v2 != NULL;");
@@ -234,7 +237,7 @@ public class TestExperimentalColumnPrune extends TestCase {
         assertTrue(expected.isEqual(newLogicalPlan));
         
        // with BinStorage, not to insert foreach after load if there is already one
-        lpt = new LogicalPlanTester();
+        lpt = new LogicalPlanTester(pc);
         lpt.buildPlan("a = load 'd.txt' using BinStorage() as (id, v1, v5, v3, v4, v2);");    
         lpt.buildPlan("b = foreach a generate v5, v4, v2;");
         lpt.buildPlan("c = filter b by v2 != NULL;");
@@ -245,7 +248,7 @@ public class TestExperimentalColumnPrune extends TestCase {
         optimizer = new MyPlanOptimizer(newLogicalPlan, 3);
         optimizer.optimize();
         
-        lpt = new LogicalPlanTester();
+        lpt = new LogicalPlanTester(pc);
         lpt.buildPlan("a = load 'd.txt' using BinStorage() as (id, v1, v5, v3, v4, v2);");
         lpt.buildPlan("b = foreach a generate v5, v2;");
         lpt.buildPlan("c = filter b by v2 != NULL;");
@@ -255,7 +258,7 @@ public class TestExperimentalColumnPrune extends TestCase {
         assertTrue(expected.isEqual(newLogicalPlan));
         
        // with BinStorage, not to insert foreach after load if there is already one
-        lpt = new LogicalPlanTester();
+        lpt = new LogicalPlanTester(pc);
         lpt.buildPlan("a = load 'd.txt' using BinStorage() as (id, v1, v5, v3, v4, v2);");    
         lpt.buildPlan("b = foreach a generate v5, v4, v2, 10;");
         lpt.buildPlan("c = filter b by v2 != NULL;");
@@ -266,7 +269,7 @@ public class TestExperimentalColumnPrune extends TestCase {
         optimizer = new MyPlanOptimizer(newLogicalPlan, 3);
         optimizer.optimize();
         
-        lpt = new LogicalPlanTester();
+        lpt = new LogicalPlanTester(pc);
         lpt.buildPlan("a = load 'd.txt' using BinStorage() as (id, v1, v5, v3, v4, v2);");
         lpt.buildPlan("b = foreach a generate v5, v2, 10;");
         lpt.buildPlan("c = filter b by v2 != NULL;");
@@ -278,7 +281,7 @@ public class TestExperimentalColumnPrune extends TestCase {
     
     public void testPruneWithMapKey() throws Exception {
          // only foreach
-        LogicalPlanTester lpt = new LogicalPlanTester();
+        LogicalPlanTester lpt = new LogicalPlanTester(pc);
         lpt.buildPlan("a = load 'd.txt' as (id, v1, m:map[]);");
         lpt.buildPlan("b = foreach a generate id, m#'path';");        
         org.apache.pig.impl.logicalLayer.LogicalPlan plan = lpt.buildPlan("store b into 'empty';");  
@@ -287,7 +290,7 @@ public class TestExperimentalColumnPrune extends TestCase {
         PlanOptimizer optimizer = new MyPlanOptimizer(newLogicalPlan, 3);
         optimizer.optimize();
         
-        lpt = new LogicalPlanTester();
+        lpt = new LogicalPlanTester(pc);
         lpt.buildPlan("a = load 'd.txt' as (id, m:map[]);");
         lpt.buildPlan("b = foreach a generate id, m#'path';");        
         plan = lpt.buildPlan("store b into 'empty';");  
@@ -304,7 +307,7 @@ public class TestExperimentalColumnPrune extends TestCase {
         assertEquals(annotation.get(2), s);
         
         // foreach with join
-        lpt = new LogicalPlanTester();
+        lpt = new LogicalPlanTester(pc);
         lpt.buildPlan("a = load 'd.txt' as (id, v1, m:map[]);");
         lpt.buildPlan("b = load 'd.txt' as (id, v1, m:map[]);");
         lpt.buildPlan("c = join a by id, b by id;");
@@ -316,7 +319,7 @@ public class TestExperimentalColumnPrune extends TestCase {
         optimizer = new MyPlanOptimizer(newLogicalPlan, 3);
         optimizer.optimize();
         
-        lpt = new LogicalPlanTester();
+        lpt = new LogicalPlanTester(pc);
         lpt.buildPlan("a = load 'd.txt' as (id, m:map[]);");
         lpt.buildPlan("b = load 'd.txt' as (id, m:map[]);");
         lpt.buildPlan("c = join a by id, b by id;");
@@ -358,7 +361,7 @@ public class TestExperimentalColumnPrune extends TestCase {
     
     public void testPruneWithBag() throws Exception  {
         // filter above foreach
-        LogicalPlanTester lpt = new LogicalPlanTester();
+        LogicalPlanTester lpt = new LogicalPlanTester(pc);
         lpt.buildPlan("a = load 'd.txt' as (id, v:bag{t:(s1,s2,s3)});");
         lpt.buildPlan("b = filter a by id>10;");
         lpt.buildPlan("c = foreach b generate id, FLATTEN(v);");    
@@ -369,7 +372,7 @@ public class TestExperimentalColumnPrune extends TestCase {
         PlanOptimizer optimizer = new MyPlanOptimizer(newLogicalPlan, 3);
         optimizer.optimize();
         
-        lpt = new LogicalPlanTester();
+        lpt = new LogicalPlanTester(pc);
         lpt.buildPlan("a = load 'd.txt' as (id, v:bag{t:(s1,s2,s3)});");
         lpt.buildPlan("b = filter a by id>10;");
         lpt.buildPlan("c = foreach b generate id, FLATTEN(v);");    
@@ -382,7 +385,7 @@ public class TestExperimentalColumnPrune extends TestCase {
     
     public void testAddForeach() throws Exception  {
         // filter above foreach
-        LogicalPlanTester lpt = new LogicalPlanTester();
+        LogicalPlanTester lpt = new LogicalPlanTester(pc);
         lpt.buildPlan("a = load 'd.txt' as (id, v1, v2);");
         lpt.buildPlan("b = filter a by v1>10;");
         lpt.buildPlan("c = foreach b generate id;");        
@@ -392,7 +395,7 @@ public class TestExperimentalColumnPrune extends TestCase {
         PlanOptimizer optimizer = new MyPlanOptimizer(newLogicalPlan, 3);
         optimizer.optimize();
         
-        lpt = new LogicalPlanTester();
+        lpt = new LogicalPlanTester(pc);
         lpt.buildPlan("a = load 'd.txt' as (id, v1);");
         lpt.buildPlan("b = filter a by v1>10;");
         lpt.buildPlan("c = foreach b generate id;");      
@@ -402,7 +405,7 @@ public class TestExperimentalColumnPrune extends TestCase {
         assertTrue(expected.isEqual(newLogicalPlan));
         
         // join with foreach
-        lpt = new LogicalPlanTester();
+        lpt = new LogicalPlanTester(pc);
         lpt.buildPlan("a = load 'd.txt' as (id, v1, v2);");
         lpt.buildPlan("b = load 'd.txt' as (id, v1, v2);");
         lpt.buildPlan("c = join a by id, b by id;");
@@ -414,7 +417,7 @@ public class TestExperimentalColumnPrune extends TestCase {
         optimizer = new MyPlanOptimizer(newLogicalPlan, 3);
         optimizer.optimize();
         
-        lpt = new LogicalPlanTester();
+        lpt = new LogicalPlanTester(pc);
         lpt.buildPlan("a = load 'd.txt' as (id, v1);");
         lpt.buildPlan("b = load 'd.txt' as (id, v1);");
         lpt.buildPlan("c = join a by id, b by id;");

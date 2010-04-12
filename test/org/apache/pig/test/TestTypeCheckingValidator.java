@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ArrayList;
+import java.util.Properties;
 
 import junit.framework.AssertionFailedError;
 import junit.framework.TestCase;
@@ -31,6 +32,7 @@ import org.apache.pig.EvalFunc;
 import org.apache.pig.ExecType;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.PigServer;
+import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.logicalLayer.validators.*;
 import org.apache.pig.impl.logicalLayer.* ;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
@@ -50,6 +52,7 @@ import org.apache.pig.test.utils.TypeCheckingTestUtil;
 
 public class TestTypeCheckingValidator extends TestCase {
 
+    PigContext pc = new PigContext(ExecType.LOCAL, new Properties());
     LogicalPlanTester planTester;
     
     /* (non-Javadoc)
@@ -60,7 +63,7 @@ public class TestTypeCheckingValidator extends TestCase {
         // create a new instance of the plan tester
         // for each test so that different tests do not
         // interact with each other's plans
-        planTester = new LogicalPlanTester() ;
+        planTester = new LogicalPlanTester(pc) ;
     }
     
 	private static final String simpleEchoStreamingCommand;

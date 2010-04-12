@@ -86,7 +86,6 @@
     <!-- test configuration, use ${user.home}/build.properties to configure values  -->
     <property name="ssh.gateway" value="" />
     <property name="hod.server" value="" />
-    <property name="junit.hadoop.conf" value="" />
     <property name="test.log.dir" value="${basedir}/test/logs"/>
     <property name="junit.hadoop.conf" value="${user.home}/pigtest/conf/"/>
     <property name="test.output" value="no"/>
@@ -512,7 +511,7 @@
                 <pathelement location="${output.jarfile.withouthadoop}" />
                 <pathelement location="${test.build.classes}" />
                 <pathelement location="${junit.hadoop.conf}" />
-            	
+                <pathelement location="." />
 		<pathelement path="${clover.jar}"/>
                 <path refid="classpath"/>
             </classpath>

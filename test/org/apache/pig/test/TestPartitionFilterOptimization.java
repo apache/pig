@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Properties;
 import java.util.regex.Pattern;
 
 import junit.framework.TestCase;
@@ -38,6 +39,7 @@ import org.apache.pig.ResourceSchema;
 import org.apache.pig.ResourceStatistics;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigSplit;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.logicalLayer.ExpressionOperator;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.LOFilter;
@@ -59,11 +61,12 @@ import org.junit.Test;
  */
 public class TestPartitionFilterOptimization extends TestCase {
 
+    PigContext pc = new PigContext(ExecType.LOCAL, new Properties());
     LogicalPlanTester lpTester;
     
     @Override
     protected void setUp() throws Exception {
-        lpTester = new LogicalPlanTester();
+        lpTester = new LogicalPlanTester(pc);
         lpTester.buildPlan("a = load 'foo' as (srcid, mrkt, dstid, name, age);");
     }
 

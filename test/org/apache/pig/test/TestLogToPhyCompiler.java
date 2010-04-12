@@ -609,7 +609,7 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
      */
     @Test
     public void testSortInfoAsc() throws Exception {
-        LogicalPlanTester lpt = new LogicalPlanTester();
+        LogicalPlanTester lpt = new LogicalPlanTester(pc);
         lpt.buildPlan("a = load 'bla' as (i:int, n:chararray, d:double);");
         lpt.buildPlan("b = order a by i, d;");
         LogicalPlan lp = lpt.buildPlan("store b into 'foo';");
@@ -632,7 +632,7 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
      */
     @Test
     public void testSortInfoAscDesc() throws Exception {
-        LogicalPlanTester lpt = new LogicalPlanTester();
+        LogicalPlanTester lpt = new LogicalPlanTester(pc);
         lpt.buildPlan("a = load 'bla' as (i:int, n:chararray, d:double);");
         lpt.buildPlan("b = filter a by i > 10;");
         lpt.buildPlan("c = order b by i desc, d;");
@@ -657,7 +657,7 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
      */
     @Test
     public void testSortInfoNoOrderBy1() throws Exception {
-        LogicalPlanTester lpt = new LogicalPlanTester();
+        LogicalPlanTester lpt = new LogicalPlanTester(pc);
         lpt.buildPlan("a = load 'bla' as (i:int, n:chararray, d:double);");
         lpt.buildPlan("b = filter a by i > 10;");
         LogicalPlan lp = lpt.buildPlan("store b into 'foo';");
@@ -675,7 +675,7 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
      */
     @Test
     public void testSortInfoNoOrderBy2() throws Exception {
-        LogicalPlanTester lpt = new LogicalPlanTester();
+        LogicalPlanTester lpt = new LogicalPlanTester(pc);
         lpt.buildPlan("a = load 'bla' as (i:int, n:chararray, d:double);");
         lpt.buildPlan("b = order a by i, d;");
         lpt.buildPlan("c = filter b by i > 10;");
@@ -694,7 +694,7 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
      */
     @Test
     public void testSortInfoOrderByLimit() throws Exception {
-        LogicalPlanTester lpt = new LogicalPlanTester();
+        LogicalPlanTester lpt = new LogicalPlanTester(pc);
         lpt.buildPlan("a = load 'bla' as (i:int, n:chararray, d:double);");
         lpt.buildPlan("b = order a by i, d desc;");
         lpt.buildPlan("c = limit b 10;");
@@ -720,7 +720,7 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
      */
     @Test
     public void testSortInfoMultipleStore() throws Exception {
-        PigServer myPig = new PigServer(ExecType.MAPREDUCE);
+        PigServer myPig = new PigServer(ExecType.LOCAL);
         myPig.setBatchOn();
         myPig.registerQuery("a = load 'bla' as (i:int, n:chararray, d:double);");
         myPig.registerQuery("b = order a by i, d desc;");
@@ -756,7 +756,7 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
      */
     @Test
     public void testSortInfoNoOrderBySchema() throws Exception {
-        LogicalPlanTester lpt = new LogicalPlanTester();
+        LogicalPlanTester lpt = new LogicalPlanTester(pc);
         lpt.buildPlan("a = load 'bla' ;");
         lpt.buildPlan("b = order a by $0;");
         LogicalPlan lp = lpt.buildPlan("store b into 'foo';");

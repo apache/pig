@@ -18,7 +18,10 @@
 package org.apache.pig.test;
 
 import java.util.List;
+import java.util.Properties;
 
+import org.apache.pig.ExecType;
+import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.LOCogroup;
 import org.apache.pig.impl.logicalLayer.LOCross;
@@ -50,7 +53,8 @@ public class TestRelevantFields extends TestCase {
             simpleEchoStreamingCommand = "perl -ne 'print \"$_\"'";
     }
     
-    LogicalPlanTester planTester = new LogicalPlanTester();
+    PigContext pc = new PigContext(ExecType.LOCAL, new Properties());
+    LogicalPlanTester planTester = new LogicalPlanTester(pc);
     @Test
     public void testQueryForeach1() throws FrontendException {
         String query = "foreach (load 'a') generate $1,$2;";
