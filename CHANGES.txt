@@ -151,6 +151,8 @@ PIG-922: Logical optimizer: push up project (daijy)
 
 BUG FIXES
 
+PIG-1364: Public javadoc on apache site still on 0.2, needs to be updated for each version release (gates)
+
 PIG-1346:  In unit tests Util.executeShellCommand relies on java commands
 being in the path and does not consider JAVA_HOME (pradeepkth)
 
