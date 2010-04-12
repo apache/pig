@@ -158,6 +158,7 @@ public class TableLoader extends LoadFunc implements LoadMetadata, LoadPushDown,
         schema = TableInputFormat.getSchema( job );
         sorted = true;
         
+        setSortOrder( job );
         setProjection( job );
 
         try {
@@ -169,36 +170,48 @@ public class TableLoader extends LoadFunc implements LoadMetadata, LoadPushDown,
         }
     }
 
+    
     /**
-     * This method does more than set projection. For instance, it also try to grab sorting info if required.
+     * it processes sortedness of table .
+     * 
+     * @param job
+     * @throws IOException
+     */
+    private void setSortOrder(Job job) throws IOException {
+       Properties properties = UDFContext.getUDFContext().getUDFProperties( 
+              this.getClass(), new String[]{ udfContextSignature } );
+       boolean requireGlobalOrder = "true".equals(properties.getProperty( UDFCONTEXT_GLOBAL_SORTING));
+       if (requireGlobalOrder && !sorted)
+         throw new IOException("Global sorting can be only asked on table loaded as sorted");
+       if( sorted ) {
+           SplitMode splitMode = 
+             requireGlobalOrder ? SplitMode.GLOBALLY_SORTED : SplitMode.LOCALLY_SORTED;
+           TableInputFormat.setSplitMode(job, splitMode, null);
+           sortInfo = TableInputFormat.getSortInfo( job );
+       }    	
+    }
+    
+    
+    /**
+     * This method sets projection.
      * 
      * @param job
      * @throws IOException
      */
     private void setProjection(Job job) throws IOException {
       Properties properties = UDFContext.getUDFContext().getUDFProperties( 
-          this.getClass(), new String[]{ udfContextSignature } );
-      boolean requireGlobalOrder = "true".equals(properties.getProperty( UDFCONTEXT_GLOBAL_SORTING));
-      if (requireGlobalOrder && !sorted)
-        throw new IOException("Global sorting can be only asked on table loaded as sorted");
-        if( sorted ) {
-            SplitMode splitMode = 
-              requireGlobalOrder ? SplitMode.GLOBALLY_SORTED : SplitMode.LOCALLY_SORTED;
-            TableInputFormat.setSplitMode(job, splitMode, null);
-            sortInfo = TableInputFormat.getSortInfo( job );
-        }
-        
-        try {
-            String prunedProjStr = properties.getProperty( UDFCONTEXT_PROJ_STRING );
-            
-            if( prunedProjStr != null ) {
-                TableInputFormat.setProjection( job, prunedProjStr );
-            } else if( projectionString != null ) {              
-                TableInputFormat.setProjection( job, projectionString );
-            }
-        } catch (ParseException ex) {
-            throw new IOException( "Schema parsing failed : " + ex.getMessage() );
-        }
+          this.getClass(), new String[]{ udfContextSignature } );   
+      try {
+          String prunedProjStr = properties.getProperty( UDFCONTEXT_PROJ_STRING );
+          
+          if( prunedProjStr != null ) {
+              TableInputFormat.setProjection( job, prunedProjStr );
+          } else if( projectionString != null ) {              
+              TableInputFormat.setProjection( job, projectionString );
+          }
+      } catch (ParseException ex) {
+          throw new IOException( "Schema parsing failed : " + ex.getMessage() );
+      }
     }
 
     private KeyGenerator makeKeyBuilder(byte[] elems) {
@@ -283,6 +296,7 @@ public class TableLoader extends LoadFunc implements LoadMetadata, LoadPushDown,
 
          // The following obviously goes beyond of set location, but this is the only place that we
          // can do and it's suggested by Pig team.
+         setSortOrder( job );
          setProjection( job );
      }
 
@@ -318,10 +332,25 @@ public class TableLoader extends LoadFunc implements LoadMetadata, LoadPushDown,
              }
          }
          
-         setProjection( job );
+         // This is needed as it does a check if a unsorted table is loaded as sorted
+         // It fails if unosrted table is loaded as sorted
+         setSortOrder( job );
+         
+         /*
+         As per pig team any changes to this job object will be thrown away.
+         getSchema is needed to return the projectionSchema for the projection
+         string specified in TableLoader constructor. So, projectionString is used
+         here. However, setLocation() calls setPojection() because that is called after
+         projectionPruning and needs to read projection string from UDFCONTEXT
+         That also sets/calls TableInputFormat.setProjection(job, $prunedProj). But the 
+         job object here in getSchema() is a different copy from setLocation() and hence 
+         the changes will not be overridden as per PIG TEAM.  
+        */
 
          projectionSchema = tableSchema;
          try {
+        	 if(projectionString != null)
+        		 TableInputFormat.setProjection(job, projectionString);        	         	 
              Projection projection = new org.apache.hadoop.zebra.types.Projection( tableSchema, 
                      TableInputFormat.getProjection( job ) );
              projectionSchema = projection.getProjectionSchema();
