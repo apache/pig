@@ -18,7 +18,7 @@
 
 Pig Change Log
 
-Release 0.5.0 - Unreleased
+Release 0.5.0 - 29 October 2009
 
 INCOMPATIBLE CHANGES
 
@@ -29,6 +29,8 @@ PIG-1039: documentation update (chandec via olgan)
 OPTIMIZATIONS
 
 BUG FIXES
+
+PIG-1364: Public javadoc on apache site still on 0.2, needs to be updated for each version release (gates)
 
 PIG-963: Join in local mode matches null keys (pradeepkth)
 PIG-660: Integration with Hadoop 20 (sms via olgan)
