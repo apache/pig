@@ -25,8 +25,10 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
 
+import org.apache.pig.ExecType;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.ConstantExpression;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.EqualToExpr;
@@ -50,6 +52,7 @@ import org.apache.pig.experimental.plan.OperatorPlan;
 import org.apache.pig.experimental.plan.optimizer.PlanOptimizer;
 import org.apache.pig.experimental.plan.optimizer.PlanTransformListener;
 import org.apache.pig.experimental.plan.optimizer.Rule;
+import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.logicalLayer.LogicalPlan;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.test.TestExperimentalFilterAboveForeach.MyPlanOptimizer;
@@ -58,7 +61,7 @@ import org.apache.pig.test.utils.LogicalPlanTester;
 import junit.framework.TestCase;
 
 public class TestExperimentalPruneMapKeys extends TestCase {
-
+    PigContext pc = new PigContext(ExecType.LOCAL, new Properties());
     private PhysicalPlan translatePlan(OperatorPlan plan) throws IOException {
         LogToPhyTranslationVisitor visitor = new LogToPhyTranslationVisitor(plan);
         visitor.visit();
@@ -111,7 +114,7 @@ public class TestExperimentalPruneMapKeys extends TestCase {
         
     @SuppressWarnings("unchecked")
     public void testSimplePlan() throws Exception {
-        LogicalPlanTester lpt = new LogicalPlanTester();
+        LogicalPlanTester lpt = new LogicalPlanTester(pc);
         lpt.buildPlan("a = load 'd.txt' as (a:map[], b:int, c:float);");
         lpt.buildPlan("b = filter a by a#'name' == 'hello';");
         LogicalPlan plan = lpt.buildPlan("store b into 'empty';");        
@@ -129,7 +132,7 @@ public class TestExperimentalPruneMapKeys extends TestCase {
     
     @SuppressWarnings("unchecked")
     public void testSimplePlan2() throws Exception {
-        LogicalPlanTester lpt = new LogicalPlanTester();
+        LogicalPlanTester lpt = new LogicalPlanTester(pc);
         lpt.buildPlan("a = load 'd.txt' as (a:map[], b:int, c:float);");
         lpt.buildPlan("b = filter a by a#'name' == 'hello';");
         lpt.buildPlan("c = foreach b generate b,c;" );
@@ -152,7 +155,7 @@ public class TestExperimentalPruneMapKeys extends TestCase {
     
     @SuppressWarnings("unchecked")
     public void testSimplePlan3() throws Exception {
-        LogicalPlanTester lpt = new LogicalPlanTester();
+        LogicalPlanTester lpt = new LogicalPlanTester(pc);
         lpt.buildPlan("a = load 'd.txt' as (a:map[], b:int, c:float);");
         lpt.buildPlan("b = filter a by a#'name' == 'hello';");
         lpt.buildPlan("c = foreach b generate a#'age',b,c;" );
@@ -176,7 +179,7 @@ public class TestExperimentalPruneMapKeys extends TestCase {
     
     @SuppressWarnings("unchecked")
     public void testSimplePlan4() throws Exception {
-        LogicalPlanTester lpt = new LogicalPlanTester();
+        LogicalPlanTester lpt = new LogicalPlanTester(pc);
         lpt.buildPlan("a = load 'd.txt' as (a:map[], b:int, c:float);");
         lpt.buildPlan("b = filter a by a#'name' == 'hello';");
         lpt.buildPlan("c = foreach b generate a#'age',a,b,c;" );
@@ -195,7 +198,7 @@ public class TestExperimentalPruneMapKeys extends TestCase {
     
     @SuppressWarnings("unchecked")
     public void testSimplePlan5() throws Exception {
-        LogicalPlanTester lpt = new LogicalPlanTester();
+        LogicalPlanTester lpt = new LogicalPlanTester(pc);
         lpt.buildPlan("a = load 'd.txt' as (a:chararray, b:int, c:float);");
         lpt.buildPlan("b = filter a by a == 'hello';");
         lpt.buildPlan("c = foreach b generate a,b,c;" );
@@ -214,7 +217,7 @@ public class TestExperimentalPruneMapKeys extends TestCase {
     
     @SuppressWarnings("unchecked")
     public void testSimplePlan6() throws Exception {
-        LogicalPlanTester lpt = new LogicalPlanTester();
+        LogicalPlanTester lpt = new LogicalPlanTester(pc);
         lpt.buildPlan("a = load 'd.txt';");
         lpt.buildPlan("b = filter a by $0 == 'hello';");
         lpt.buildPlan("c = foreach b generate $0,$1,$2;" );
@@ -233,7 +236,7 @@ public class TestExperimentalPruneMapKeys extends TestCase {
     
     @SuppressWarnings("unchecked")
     public void testSimplePlan7() throws Exception {
-        LogicalPlanTester lpt = new LogicalPlanTester();
+        LogicalPlanTester lpt = new LogicalPlanTester(pc);
         lpt.buildPlan("a = load 'd.txt';");
         lpt.buildPlan("a1 = load 'b.txt' as (a:map[],b:int, c:float);" );
         lpt.buildPlan("b = join a by $0, a1 by a#'name';");
@@ -255,7 +258,7 @@ public class TestExperimentalPruneMapKeys extends TestCase {
 
     @SuppressWarnings("unchecked")
     public void testSimplePlan8() throws Exception {
-        LogicalPlanTester lpt = new LogicalPlanTester();
+        LogicalPlanTester lpt = new LogicalPlanTester(pc);
         lpt.buildPlan("a = load 'd.txt';");
         lpt.buildPlan("a1 = load 'b.txt' as (a:chararray,b:int, c:float);" );
         lpt.buildPlan("b = join a by $0, a1 by a;");

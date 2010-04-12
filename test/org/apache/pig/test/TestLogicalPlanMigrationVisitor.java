@@ -22,8 +22,10 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Properties;
 import java.util.Set;
 
+import org.apache.pig.ExecType;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.data.DataType;
 import org.apache.pig.experimental.logical.LogicalPlanMigrationVistor;
@@ -46,6 +48,7 @@ import org.apache.pig.experimental.logical.relational.LogicalRelationalOperator;
 import org.apache.pig.experimental.logical.relational.LogicalSchema;
 import org.apache.pig.experimental.logical.relational.LogicalSchema.LogicalFieldSchema;
 import org.apache.pig.experimental.plan.Operator;
+import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.logicalLayer.LogicalPlan;
 import org.apache.pig.impl.plan.VisitorException;
@@ -56,8 +59,9 @@ import junit.framework.TestCase;
 
 public class TestLogicalPlanMigrationVisitor extends TestCase {
 
+    PigContext pc = new PigContext(ExecType.LOCAL, new Properties());
     public void testSimplePlan() throws Exception {
-        LogicalPlanTester lpt = new LogicalPlanTester();
+        LogicalPlanTester lpt = new LogicalPlanTester(pc);
         lpt.buildPlan("a = load 'd.txt';");
         lpt.buildPlan("b = filter a by $0==NULL;");        
         LogicalPlan plan = lpt.buildPlan("store b into 'empty';");
@@ -90,7 +94,7 @@ public class TestLogicalPlanMigrationVisitor extends TestCase {
     }
     
     public void testPlanWithCast() throws Exception {
-        LogicalPlanTester lpt = new LogicalPlanTester();
+        LogicalPlanTester lpt = new LogicalPlanTester(pc);
         lpt.buildPlan("a = load 'd.txt' as (id, c);");
         lpt.buildPlan("b = filter a by (int)id==10;");        
         LogicalPlan plan = lpt.buildPlan("store b into 'empty';");
@@ -127,7 +131,7 @@ public class TestLogicalPlanMigrationVisitor extends TestCase {
     }
     
     public void testJoinPlan() throws Exception {
-        LogicalPlanTester lpt = new LogicalPlanTester();
+        LogicalPlanTester lpt = new LogicalPlanTester(pc);
         lpt.buildPlan("a = load 'd1.txt' as (id, c);");
         lpt.buildPlan("b = load 'd2.txt'as (id, c);");
         lpt.buildPlan("c = join a by id, b by c;");
@@ -196,7 +200,7 @@ public class TestLogicalPlanMigrationVisitor extends TestCase {
     }
     
     public void testForeachPlan() throws Exception {
-        LogicalPlanTester lpt = new LogicalPlanTester();
+        LogicalPlanTester lpt = new LogicalPlanTester(pc);
         lpt.buildPlan("a = load '/test/d.txt' as (id, d);");
         lpt.buildPlan("b = foreach a generate id, FLATTEN(d);");        
         LogicalPlan plan = lpt.buildPlan("store b into '/test/empty';");
@@ -260,7 +264,7 @@ public class TestLogicalPlanMigrationVisitor extends TestCase {
 
     public void testForeachSchema() throws Exception {
         // test flatten
-        LogicalPlanTester lpt = new LogicalPlanTester();
+        LogicalPlanTester lpt = new LogicalPlanTester(pc);
         lpt.buildPlan("a = load '/test/d.txt' as (id, d:tuple(v, s));");
         LogicalPlan plan = lpt.buildPlan("b = foreach a generate id, FLATTEN(d);");  
                 
@@ -274,7 +278,7 @@ public class TestLogicalPlanMigrationVisitor extends TestCase {
         assertTrue(s2.isEqual(op.getSchema()));
         
         // test no flatten
-        lpt = new LogicalPlanTester();
+        lpt = new LogicalPlanTester(pc);
         lpt.buildPlan("a = load '/test/d.txt' as (id, d:bag{t:(v, s)});");
         plan = lpt.buildPlan("b = foreach a generate id, d;");  
                 
@@ -293,7 +297,7 @@ public class TestLogicalPlanMigrationVisitor extends TestCase {
         assertTrue(aschema.isEqual(op.getSchema()));
         
         // check with defined data type
-        lpt = new LogicalPlanTester();
+        lpt = new LogicalPlanTester(pc);
         lpt.buildPlan("a = load '/test/d.txt' as (id, d:bag{t:(v:int, s)});");
         lpt.buildPlan("b = foreach a generate id, FLATTEN(d);");        
         plan = lpt.buildPlan("store b into '/test/empty';");
@@ -311,7 +315,7 @@ public class TestLogicalPlanMigrationVisitor extends TestCase {
       
     
         // test with add
-        lpt = new LogicalPlanTester();
+        lpt = new LogicalPlanTester(pc);
         lpt.buildPlan("a = load '/test/d.txt' as (id, v:int, s:int);");
         lpt.buildPlan("b = foreach a generate id, v+s;");        
         plan = lpt.buildPlan("store b into '/test/empty';");
@@ -328,7 +332,7 @@ public class TestLogicalPlanMigrationVisitor extends TestCase {
     }       
     
     public void testForeachPlan2() throws Exception {
-        LogicalPlanTester lpt = new LogicalPlanTester();
+        LogicalPlanTester lpt = new LogicalPlanTester(pc);
         lpt.buildPlan("a = load '/test/d.txt' as (id, d:bag{t:(id:int, s)});");
         lpt.buildPlan("b = foreach a generate id, FLATTEN(d);");        
         LogicalPlan plan = lpt.buildPlan("store b into '/test/empty';");
@@ -400,7 +404,7 @@ public class TestLogicalPlanMigrationVisitor extends TestCase {
     }
     
     public void testCoGroup() throws Exception {
-        LogicalPlanTester lpt = new LogicalPlanTester();
+        LogicalPlanTester lpt = new LogicalPlanTester(pc);
         lpt.buildPlan("a = load '/test/d.txt' as (name:chararray, age:int, gpa:float);");
         lpt.buildPlan("b = group a by name;");        
         LogicalPlan plan = lpt.buildPlan("store b into '/test/empty';");
@@ -457,7 +461,7 @@ public class TestLogicalPlanMigrationVisitor extends TestCase {
     }
     
     public void testCoGroup2() throws Exception {
-        LogicalPlanTester lpt = new LogicalPlanTester();
+        LogicalPlanTester lpt = new LogicalPlanTester(pc);
         lpt.buildPlan("a = load '/test/d.txt' as (name:chararray, age:int, gpa:float);");
         lpt.buildPlan("b = group a by ( name, age );");
         LogicalPlan plan = lpt.buildPlan("store b into '/test/empty';");
@@ -529,7 +533,7 @@ public class TestLogicalPlanMigrationVisitor extends TestCase {
     }
     
     public void testCoGroup3() throws Exception {
-        LogicalPlanTester lpt = new LogicalPlanTester();
+        LogicalPlanTester lpt = new LogicalPlanTester(pc);
         lpt.buildPlan("a = load '/test/d.txt' as (name:chararray, age:int, gpa:float);");
         lpt.buildPlan("b = load '/test/e.txt' as (name:chararray, blah:chararray );");
         lpt.buildPlan("c = group a by name, b by name;");
@@ -614,7 +618,7 @@ public class TestLogicalPlanMigrationVisitor extends TestCase {
     }
     
     public void testCoGroup4() throws Exception {
-        LogicalPlanTester lpt = new LogicalPlanTester();
+        LogicalPlanTester lpt = new LogicalPlanTester(pc);
         lpt.buildPlan("a = load '/test/d.txt' as (name:chararray, age:int, gpa:float);");
         lpt.buildPlan("b = load '/test/e.txt' as (name:chararray, age:int, blah:chararray );");
         lpt.buildPlan("c = group a by ( name, age ), b by ( name, age );");

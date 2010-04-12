@@ -25,9 +25,11 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Properties;
 import java.util.Random;
 
 import org.apache.pig.ComparisonFunc;
+import org.apache.pig.ExecType;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.builtin.AVG;
@@ -71,9 +73,10 @@ import org.junit.Test;
  * Random will be different.
  */
 public class TestMRCompiler extends junit.framework.TestCase {
-//    MiniCluster cluster = MiniCluster.buildCluster();
+    static MiniCluster cluster = MiniCluster.buildCluster();
     
     static PigContext pc;
+    static PigContext pcMR;
 
     static final int MAX_SIZE = 100000;
 
@@ -81,7 +84,8 @@ public class TestMRCompiler extends junit.framework.TestCase {
     
     static Random r;
     static{
-        pc = new PigContext();
+        pc = new PigContext(ExecType.LOCAL, new Properties());
+        pcMR = new PigContext(ExecType.MAPREDUCE, cluster.getProperties());
         try {
             pc.connect();
         } catch (ExecException e) {
@@ -91,7 +95,8 @@ public class TestMRCompiler extends junit.framework.TestCase {
         r = new Random(SEED);
     }
     
-    LogicalPlanTester planTester = new LogicalPlanTester() ;
+    LogicalPlanTester planTester = new LogicalPlanTester(pc) ;
+    LogicalPlanTester planTesterMR = new LogicalPlanTester(pcMR) ;
 
     // if for some reason, the golden files need
     // to be regenerated, set this to true - THIS
@@ -885,10 +890,10 @@ public class TestMRCompiler extends junit.framework.TestCase {
      */
     @Test
     public void testNumReducersInLimitWithParallel() throws Exception {
-    	planTester.buildPlan("a = load 'input';");
-    	planTester.buildPlan("b = order a by $0 parallel 2;");
-    	planTester.buildPlan("c = limit b 10;");
-    	LogicalPlan lp = planTester.buildPlan("store c into '/tmp';");
+    	planTesterMR.buildPlan("a = load 'input';");
+    	planTesterMR.buildPlan("b = order a by $0 parallel 2;");
+    	planTesterMR.buildPlan("c = limit b 10;");
+    	LogicalPlan lp = planTesterMR.buildPlan("store c into '/tmp';");
     	
     	PhysicalPlan pp = Util.buildPhysicalPlan(lp, pc);
     	MROperPlan mrPlan = Util.buildMRPlan(pp, pc);

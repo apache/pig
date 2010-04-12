@@ -39,6 +39,8 @@ PIG-1309: Map-side Cogroup (ashutoshc)
 
 BUG FIXES
 
+PIG-1338: Pig should exclude hadoop conf in local mode (daijy)
+
 PIG-1299: Implement Pig counter to track number of output rows for each output
 files (rding)
 

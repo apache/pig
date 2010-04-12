@@ -18,8 +18,12 @@
 package org.apache.pig.test;
 
 
+import java.util.Properties;
+
+import org.apache.pig.ExecType;
 import org.apache.pig.FilterFunc;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.logicalLayer.*;
 import org.apache.pig.impl.logicalLayer.optimizer.*;
 import org.apache.pig.test.utils.LogicalPlanTester;
@@ -37,7 +41,8 @@ public class TestPushUpFilter extends junit.framework.TestCase {
     final String FILE_BASE_LOCATION = "test/org/apache/pig/test/data/DotFiles/" ;
     static final int MAX_SIZE = 100000;
 
-    LogicalPlanTester planTester = new LogicalPlanTester() ;
+    PigContext pc = new PigContext(ExecType.LOCAL, new Properties());
+    LogicalPlanTester planTester = new LogicalPlanTester(pc) ;
 
     private static final String simpleEchoStreamingCommand;
     static {

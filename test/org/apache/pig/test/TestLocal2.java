@@ -228,45 +228,6 @@ public class TestLocal2 extends TestCase {
         Assert.assertEquals(count, actualCount);
     }
 
-    @Test
-    public void testLocalInit() throws Exception {
-        File pigFile = new File("script.pig");
-        File siteFile = new File("mapred-site.xml");
-        try {
-            pigFile.createNewFile();
-            int status,status2;
-            status = Util.executeJavaCommand("java -cp "+ 
-                    System.getProperty("java.class.path") + 
-                    "  org.apache.pig.Main -x local " + pigFile.getAbsolutePath() );
-
-            String contents = "<?xml version=\"1.0\"?>\n" +
-            "<?xml-stylesheet type=\"text/xsl\" href=\"configuration.xsl\"?>\n" +
-            "<configuration xmlns:xi=\"http://www.w3.org/2001/XInclude\">\n" +
-            "  <property>\n" +
-            "    <name>mapred.system.dir</name>\n" +
-            "    <value>/mapredsystem/hadoop/mapredsystem</value>\n" +
-            "    <description>No description</description>\n" +
-            "    <final>true</final>\n" +
-            "  </property>\n" +
-            "</configuration>\n";
-            assertTrue( siteFile.createNewFile() );
-            PrintStream ps = new PrintStream(siteFile);
-            ps.print(contents);
-            ps.close();
-            status2 = Util.executeJavaCommand("java -cp "+ 
-                    System.getProperty("java.class.path") + 
-                    "  org.apache.pig.Main -x local " + pigFile.getAbsolutePath() );
-            assertEquals( "Without a mapred-site.xml pig should just run", 0, status );
-            assertEquals( "With map.system.dir redefined in mapred-site.xml pig " +
-                    "should exit", 2, status2 );
-        } finally {
-            if( siteFile.exists() ) 
-                siteFile.delete();
-            if( pigFile.exists() )
-                pigFile.delete();
-        }
-    }
-
     /***
      * For generating a sample dataset
      */

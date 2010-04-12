@@ -19,13 +19,16 @@ package org.apache.pig.test;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Properties;
 
 import org.junit.After;
 import org.junit.Test;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.pig.ExecType;
 import org.apache.pig.PigException;
+import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.logicalLayer.*;
 import org.apache.pig.impl.util.LogUtils;
@@ -34,8 +37,9 @@ import org.apache.pig.test.utils.LogicalPlanTester;
 
 public class TestRewire extends junit.framework.TestCase {
 
+    PigContext pc = new PigContext(ExecType.LOCAL, new Properties());
     private final Log log = LogFactory.getLog(getClass());
-    LogicalPlanTester planTester = new LogicalPlanTester();
+    LogicalPlanTester planTester = new LogicalPlanTester(pc);
     
     @After
     @Override

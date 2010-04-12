@@ -20,6 +20,7 @@ package org.apache.pig.test;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.util.Properties;
 
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.pig.ExecType;
@@ -28,6 +29,7 @@ import org.apache.pig.LoadMetadata;
 import org.apache.pig.ResourceSchema;
 import org.apache.pig.ResourceStatistics;
 import org.apache.pig.builtin.BinStorage;
+import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.logicalLayer.LOPrinter;
 import org.apache.pig.impl.logicalLayer.LogicalPlan;
 import org.apache.pig.impl.logicalLayer.PlanSetter;
@@ -49,8 +51,9 @@ public class TestLogicalOptimizer extends junit.framework.TestCase {
 
     final String FILE_BASE_LOCATION = "test/org/apache/pig/test/data/DotFiles/" ;
     static final int MAX_SIZE = 100000;
+    PigContext pc = new PigContext(ExecType.LOCAL, new Properties());
 
-    LogicalPlanTester planTester = new LogicalPlanTester() ;
+    LogicalPlanTester planTester = new LogicalPlanTester(pc) ;
 
     /*
     @Before

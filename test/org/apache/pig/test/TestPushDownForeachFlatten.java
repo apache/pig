@@ -20,11 +20,14 @@ package org.apache.pig.test;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.pig.ExecType;
 import org.apache.pig.FilterFunc;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.logicalLayer.*;
 import org.apache.pig.impl.logicalLayer.optimizer.*;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
@@ -45,7 +48,8 @@ public class TestPushDownForeachFlatten extends junit.framework.TestCase {
     static final int MAX_SIZE = 100000;
 
     private final Log log = LogFactory.getLog(getClass());
-    LogicalPlanTester planTester = new LogicalPlanTester() ;
+    PigContext pc = new PigContext(ExecType.LOCAL, new Properties());
+    LogicalPlanTester planTester = new LogicalPlanTester(pc) ;
     
 
     private static final String simpleEchoStreamingCommand;
