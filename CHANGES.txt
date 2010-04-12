@@ -104,6 +104,8 @@ manner (rding via pradeepkth)
 
 IMPROVEMENTS
 
+PIG-1330: Move pruned schema tracking logic from LoadFunc to core code (daijy)
+
 PIG-1320: more documentation updates for Pig 0.7.0 (chandec via olgan)
 
 PIG-1320: documentation updates for Pig 0.7.0 (chandec via olgan)

@@ -266,7 +266,7 @@ public class LOLoad extends RelationalOperator {
             }
         } else {
             try {
-                inputSchema = determineSchema();
+                inputSchema = getSchema();
             } catch (IOException ioe) {
                 mProjectionMap = null;
                 return mProjectionMap;
