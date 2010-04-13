@@ -183,6 +183,9 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-1369: POProject does not handle null tuples and non existent fields in
+some cases (pradeepkth)
+
 PIG-1364: Public javadoc on apache site still on 0.2, needs to be updated for each version release (gates)
 
 PIG-1366: PigStorage's pushProjection implementation results in NPE under
