@@ -7105,6 +7105,7 @@ Local Rearrange[tuple]{chararray}(false) - xxx-Fri Dec 05 19:42:29 UTC 2008-34
    
    <section>
    <title>ILLUSTRATE</title>
+   <para>(Note! This feature is NOT maintained at the momemt. We are looking for someone to adopt it.)</para>
    <para>Displays a step-by-step execution of a sequence of statements.</para>
    
    <section>
