@@ -147,18 +147,19 @@ public class POProject extends ExpressionOperator {
         } else if(columns.size() == 1) {
             try {
                 ret = inpValue.get(columns.get(0));
-            } catch (ExecException ee) {
+            } catch (IndexOutOfBoundsException ie) {
                 if(pigLogger != null) {
                     pigLogger.warn(this,"Attempt to access field " + 
                             "which was not found in the input", PigWarning.ACCESSING_NON_EXISTENT_FIELD);
                 }
                 res.returnStatus = POStatus.STATUS_OK;
                 ret = null;
-            } catch (IndexOutOfBoundsException ie) {
-                if(pigLogger != null) {
-                    pigLogger.warn(this,"Attempt to access field " + 
-                            "which was not found in the input", PigWarning.ACCESSING_NON_EXISTENT_FIELD);
-                }
+            } catch (NullPointerException npe) {
+                // the tuple is null, so a dereference should also produce a null
+                // there is a slight danger here that the Tuple implementation 
+                // may have given the exception for a different reason but if we
+                // don't catch it, we will die and the most common case for the
+                // exception would be because the tuple is null
                 res.returnStatus = POStatus.STATUS_OK;
                 ret = null;
             }
@@ -168,11 +169,19 @@ public class POProject extends ExpressionOperator {
             for(int i: columns) {
                 try { 
                     objList.add(inpValue.get(i)); 
-                } catch (ExecException ee) {
+                } catch (IndexOutOfBoundsException ie) {
                     if(pigLogger != null) {
-                        pigLogger.warn(this,"Attempt to access field " + i +
+                        pigLogger.warn(this,"Attempt to access field " + i + 
                                 " which was not found in the input", PigWarning.ACCESSING_NON_EXISTENT_FIELD);
                     }
+                    objList.add(null);
+                }
+                catch (NullPointerException npe) {
+                    // the tuple is null, so a dereference should also produce a null
+                    // there is a slight danger here that the Tuple implementation 
+                    // may have given the exception for a different reason but if we
+                    // don't catch it, we will die and the most common case for the
+                    // exception would be because the tuple is null
                     objList.add(null);
                 }
             }
@@ -212,15 +221,48 @@ public class POProject extends ExpressionOperator {
             // appropriately from the input bag
             Tuple tuple = inpBag.iterator().next();
             Tuple tmpTuple = tupleFactory.newTuple(columns.size());
-            for (int i = 0; i < columns.size(); i++)
-                tmpTuple.set(i, tuple.get(columns.get(i)));
+            
+            for (int i = 0; i < columns.size(); i++) {
+                try {
+                    tmpTuple.set(i, tuple.get(columns.get(i)));
+                } catch (IndexOutOfBoundsException ie) {
+                    if(pigLogger != null) {
+                        pigLogger.warn(this,"Attempt to access field " + 
+                                "which was not found in the input", PigWarning.ACCESSING_NON_EXISTENT_FIELD);
+                    }
+                    tmpTuple.set(i, null);
+                } catch (NullPointerException npe) {
+                    // the tuple is null, so a dereference should also produce a null
+                    // there is a slight danger here that the Tuple implementation 
+                    // may have given the exception for a different reason but if we
+                    // don't catch it, we will die and the most common case for the
+                    // exception would be because the tuple is null
+                    tmpTuple.set(i, null);
+                }
+            } 
             outBag = new SingleTupleBag(tmpTuple);
         } else {
             outBag = bagFactory.newDefaultBag();
             for (Tuple tuple : inpBag) {
                 Tuple tmpTuple = tupleFactory.newTuple(columns.size());
-                for (int i = 0; i < columns.size(); i++)
-                    tmpTuple.set(i, tuple.get(columns.get(i)));
+                for (int i = 0; i < columns.size(); i++) {
+                    try {
+                        tmpTuple.set(i, tuple.get(columns.get(i)));
+                    } catch (IndexOutOfBoundsException ie) {
+                        if(pigLogger != null) {
+                            pigLogger.warn(this,"Attempt to access field " + 
+                                    "which was not found in the input", PigWarning.ACCESSING_NON_EXISTENT_FIELD);
+                        }
+                        tmpTuple.set(i, null);
+                    } catch (NullPointerException npe) {
+                        // the tuple is null, so a dereference should also produce a null
+                        // there is a slight danger here that the Tuple implementation 
+                        // may have given the exception for a different reason but if we
+                        // don't catch it, we will die and the most common case for the
+                        // exception would be because the tuple is null
+                        tmpTuple.set(i, null);
+                    }
+                }
                 outBag.add(tmpTuple);
             }
         }
@@ -293,12 +335,42 @@ public class POProject extends ExpressionOperator {
             Object ret;
 
             if(columns.size() == 1) {
-                ret = inpValue.get(columns.get(0));
+                try{
+                    ret = inpValue.get(columns.get(0));
+                } catch (IndexOutOfBoundsException ie) {
+                    if(pigLogger != null) {
+                        pigLogger.warn(this,"Attempt to access field " + 
+                                "which was not found in the input", PigWarning.ACCESSING_NON_EXISTENT_FIELD);
+                    }
+                    ret = null;
+                } catch (NullPointerException npe) {
+                    // the tuple is null, so a dereference should also produce a null
+                    // there is a slight danger here that the Tuple implementation 
+                    // may have given the exception for a different reason but if we
+                    // don't catch it, we will die and the most common case for the
+                    // exception would be because the tuple is null
+                    ret = null;
+                }
             } else {
                 ArrayList<Object> objList = new ArrayList<Object>(columns.size()); 
                 
                 for(int i: columns) {
-                   objList.add(inpValue.get(i)); 
+                    try {
+                        objList.add(inpValue.get(i));
+                    } catch (IndexOutOfBoundsException ie) {
+                        if(pigLogger != null) {
+                            pigLogger.warn(this,"Attempt to access field " + 
+                                    "which was not found in the input", PigWarning.ACCESSING_NON_EXISTENT_FIELD);
+                        }
+                        objList.add(null);
+                    } catch (NullPointerException npe) {
+                        // the tuple is null, so a dereference should also produce a null
+                        // there is a slight danger here that the Tuple implementation 
+                        // may have given the exception for a different reason but if we
+                        // don't catch it, we will die and the most common case for the
+                        // exception would be because the tuple is null
+                        objList.add(null);
+                    }
                 }
                 ret = tupleFactory.newTuple(objList);
                 res.result = (Tuple)ret;
