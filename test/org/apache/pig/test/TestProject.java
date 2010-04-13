@@ -50,6 +50,7 @@ public class TestProject extends  junit.framework.TestCase {
 
     POProject proj;
 
+    @Override
     @Before
     public void setUp() throws Exception {
         r = new Random();
@@ -59,6 +60,7 @@ public class TestProject extends  junit.framework.TestCase {
         proj = GenPhyOp.exprProject();
     }
 
+    @Override
     @After
     public void tearDown() throws Exception {
     }
@@ -281,19 +283,92 @@ public class TestProject extends  junit.framework.TestCase {
     }
     
     @Test
-    public void testMissingCols() throws Exception {
-        MiniCluster cluster = MiniCluster.buildCluster();
+    public void testMissingCols1() throws Exception {
+        String inputFileName = "TestProject-testMissingCols1-input.txt";
         String input[] = { "hello\tworld", "good\tbye" };
-        Util.createInputFile(cluster, "input.txt", input);
-        String query = "a = load 'input.txt' as (s1:chararray, s2:chararray, extra:chararray);" +
+        Util.createLocalInputFile(inputFileName, input);
+        String query = "a = load '" + inputFileName + "' as (s1:chararray, s2:chararray, extra:chararray);" +
         		"b = foreach a generate s1, s2, extra;";
         
-        PigServer ps = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        PigServer ps = new PigServer(ExecType.LOCAL);
         Util.registerMultiLineQuery(ps, query);
         Iterator<Tuple> it = ps.openIterator("b");
         Tuple[] expectedResults = new Tuple[] {
                 (Tuple) Util.getPigConstant("('hello', 'world', null)"),
                 (Tuple) Util.getPigConstant("('good', 'bye', null)")
+        };
+        int i = 0;
+        while(it.hasNext()) {
+            assertEquals(expectedResults[i++], it.next());
+        }
+    }
+    
+    
+    @Test
+    public void testMissingCols2() throws Exception {
+        String inputFileName = "TestProject-testMissingCols2-input.txt";
+        String input[] = { "1\t(hello,world)", "2\t(good,bye)" };
+        Util.createLocalInputFile(inputFileName, input);
+        // in the script, PigStorage will return a null for the tuple field
+        // since it does not comply with the schema
+        String query = "a = load '" + inputFileName + "' as (i:int, " +
+        		"t:tuple(s1:chararray, s2:chararray, s3:chararray));" +
+                "b = foreach a generate t.(s2,s3);";
+        
+        PigServer ps = new PigServer(ExecType.LOCAL);
+        Util.registerMultiLineQuery(ps, query);
+        Iterator<Tuple> it = ps.openIterator("b");
+        Tuple[] expectedResults = new Tuple[] {
+                (Tuple) Util.getPigConstant("((null, null))"),
+                (Tuple) Util.getPigConstant("((null, null))")
+        };
+        int i = 0;
+        while(it.hasNext()) {
+            assertEquals(expectedResults[i++], it.next());
+        }
+    }
+    
+    @Test
+    public void testMissingCols3() throws Exception {
+        String inputFileName = "TestProject-testMissingCols3-input.txt";
+        String input[] = { "hello\tworld", "good\tbye" };
+        Util.createLocalInputFile(inputFileName, input);
+        String query = "a = load '" + inputFileName + "';" +
+                "b = group a all;" +
+                "c = foreach b generate flatten(a.($1, $2)),a.$2;";
+        
+        PigServer ps = new PigServer(ExecType.LOCAL);
+        Util.registerMultiLineQuery(ps, query);
+        Iterator<Tuple> it = ps.openIterator("c");
+        Tuple[] expectedResults = new Tuple[] {
+                (Tuple) Util.getPigConstant("('world', null, {(null),(null)})"),
+                (Tuple) Util.getPigConstant("('bye', null, {(null),(null)})")
+        };
+        int i = 0;
+        while(it.hasNext()) {
+            assertEquals(expectedResults[i++].toString(), it.next().toString());
+        }
+    }
+
+    @Test
+    public void testNullTupleCols() throws Exception {
+        String inputFileName = "TestProject-testNullTupleCols-input.txt";
+        String input[] = { "1\t(hello,world)", "2\t(good)", "3" };
+        Util.createLocalInputFile(inputFileName, input);
+        // PigStorage will return null as the value for the tuple field in the
+        // second record since it does not comply with the schema and in the
+        // third record since the field is absent
+        String query = "a = load '" + inputFileName + "' as (i:int, " +
+        		"t:tuple(s1:chararray, s2:chararray));" +
+                "b = foreach a generate t.s1, t.s2;";
+        
+        PigServer ps = new PigServer(ExecType.LOCAL);
+        Util.registerMultiLineQuery(ps, query);
+        Iterator<Tuple> it = ps.openIterator("b");
+        Tuple[] expectedResults = new Tuple[] {
+                (Tuple) Util.getPigConstant("('hello', 'world')"),
+                (Tuple) Util.getPigConstant("(null, null)"),
+                (Tuple) Util.getPigConstant("(null, null)")
         };
         int i = 0;
         while(it.hasNext()) {
