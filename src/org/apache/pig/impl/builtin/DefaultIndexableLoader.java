@@ -110,9 +110,7 @@ public class DefaultIndexableLoader extends LoadFunc implements IndexableLoadFun
         Object firstLeftKey = (keys.size() == 1 ? keys.get(0): keys);
         POLoad ld = new POLoad(genKey(), new FileSpec(indexFile, new FuncSpec(indexFileLoadFuncSpec)));
                 
-        Properties props = new Properties();                                          
-        props.setProperty(MapRedUtil.FILE_SYSTEM_NAME, "file:///");
- 
+        Properties props = ConfigurationUtil.getLocalFSProperties();
         PigContext pc = new PigContext(ExecType.LOCAL, props);
         ld.setPc(pc);
         index = new LinkedList<Tuple>();
