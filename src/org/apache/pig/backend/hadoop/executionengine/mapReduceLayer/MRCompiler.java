@@ -925,13 +925,12 @@ public class MRCompiler extends PhyPlanVisitor {
                 throw new MRCompilerException(errMsg,errCode,PigException.BUG);
             }
             
-            POLoad loader = (POLoad)phyOp;
-            Object loadFunc = PigContext.instantiateFuncFromSpec(loader.getLFile().getFuncSpec());
+            
+            LoadFunc loadFunc = ((POLoad)phyOp).getLoadFunc();
             try {
                 if(!(CollectableLoadFunc.class.isAssignableFrom(loadFunc.getClass()))){
                     throw new MRCompilerException("While using 'collected' on group; data must be loaded via loader implementing CollectableLoadFunc.");
                 }
-                ((LoadFunc)loadFunc).setUDFContextSignature(loader.getSignature());
                 ((CollectableLoadFunc)loadFunc).ensureAllKeyInstancesInSameSplit();
             } catch (MRCompilerException e){
                 throw (e);
@@ -1126,13 +1125,12 @@ public class MRCompiler extends PhyPlanVisitor {
                 POLoad sideLoader = (POLoad)rootPOOp;
                 FileSpec loadFileSpec = sideLoader.getLFile();
                 FuncSpec funcSpec = loadFileSpec.getFuncSpec();
-                Object loadfunc = PigContext.instantiateFuncFromSpec(funcSpec);
+                LoadFunc loadfunc = sideLoader.getLoadFunc();
                 if(i == 0){
                     
                     if(!(CollectableLoadFunc.class.isAssignableFrom(loadfunc.getClass())))
                         throw new MRCompilerException("Base loader in Cogroup must implement CollectableLoadFunc.");
                     
-                    ((LoadFunc)loadfunc).setUDFContextSignature(sideLoader.getSignature());
                     ((CollectableLoadFunc)loadfunc).ensureAllKeyInstancesInSameSplit();
                     continue;
                 }
@@ -1200,7 +1198,7 @@ public class MRCompiler extends PhyPlanVisitor {
         POLoad baseLoader = (POLoad)baseMapPlan.getRoots().get(0);                            
         FileSpec origLoaderFileSpec = baseLoader.getLFile();
         FuncSpec funcSpec = origLoaderFileSpec.getFuncSpec();
-        Object loadFunc = PigContext.instantiateFuncFromSpec(funcSpec);
+        LoadFunc loadFunc = baseLoader.getLoadFunc();
         
         if (! (OrderedLoadFunc.class.isAssignableFrom(loadFunc.getClass()))){
             int errCode = 1104;
@@ -1377,9 +1375,8 @@ public class MRCompiler extends PhyPlanVisitor {
             
             // At this point, we must be operating on map plan of right input and it would contain nothing else other then a POLoad.
             POLoad rightLoader = (POLoad)rightMROpr.mapPlan.getRoots().get(0);            
-            LoadFunc rightLoadFunc = (LoadFunc) PigContext.instantiateFuncFromSpec(rightLoader.getLFile().getFuncSpec());
-            joinOp.setSignature(rightLoader.getSignature());
-            if(rightLoadFunc instanceof IndexableLoadFunc) {
+            LoadFunc rightLoadFunc = rightLoader.getLoadFunc();
+            if(IndexableLoadFunc.class.isAssignableFrom(rightLoadFunc.getClass())) {
                 joinOp.setRightLoaderFuncSpec(rightLoader.getLFile().getFuncSpec());
                 joinOp.setRightInputFileName(rightLoader.getLFile().getFileName());
                 
@@ -1417,17 +1414,21 @@ public class MRCompiler extends PhyPlanVisitor {
             } else {
                 
                 // Replace POLoad with  indexer.
-                String[] indexerArgs = new String[6];
-                FileSpec origRightLoaderFileSpec = rightLoader.getLFile();
-                indexerArgs[0] = origRightLoaderFileSpec.getFuncSpec().toString();
-                if (! (PigContext.instantiateFuncFromSpec(indexerArgs[0]) instanceof OrderedLoadFunc)){
+
+                LoadFunc loadFunc = rightLoader.getLoadFunc();
+                if (! (OrderedLoadFunc.class.isAssignableFrom(loadFunc.getClass()))){
                     int errCode = 1104;
                     String errMsg = "Right input of merge-join must implement " +
                     "OrderedLoadFunc interface. The specified loader " 
-                    + indexerArgs[0] + " doesn't implement it";
+                    + loadFunc + " doesn't implement it";
                     throw new MRCompilerException(errMsg,errCode);
                 }
+
+                String[] indexerArgs = new String[6];
                 List<PhysicalPlan> rightInpPlans = joinOp.getInnerPlansOf(1);
+                FileSpec origRightLoaderFileSpec = rightLoader.getLFile();
+
+                indexerArgs[0] = origRightLoaderFileSpec.getFuncSpec().toString();
                 indexerArgs[1] = ObjectSerializer.serialize((Serializable)rightInpPlans);
                 indexerArgs[2] = ObjectSerializer.serialize(rightPipelinePlan);
                 indexerArgs[3] = rightLoader.getSignature();

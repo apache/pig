@@ -18,7 +18,6 @@
 package org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators;
 
 import java.io.IOException;
-import java.io.InputStream;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -28,8 +27,6 @@ import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
-import org.apache.pig.impl.io.BufferedPositionedInputStream;
-import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.io.ReadToEndLoader;
 import org.apache.pig.impl.plan.OperatorKey;
@@ -55,15 +52,13 @@ public class POLoad extends PhysicalOperator {
      */
     private static final long serialVersionUID = 1L;
     // The user defined load function or a default load function
-    transient LoadFunc loader = null;
+    private transient LoadFunc loader = null;
     // The filespec on which the operator is based
     FileSpec lFile;
     // PigContext passed to us by the operator creator
     PigContext pc;
     //Indicates whether the loader setup is done or not
     boolean setUpDone = false;
-    // default offset.
-    private long offset = 0;
     // Alias for the POLoad
     private String signature;
     
@@ -73,19 +68,18 @@ public class POLoad extends PhysicalOperator {
         this(k,-1, null);
     }
 
-    
     public POLoad(OperatorKey k, FileSpec lFile){
         this(k,-1,lFile);
-    }
-    
-    public POLoad(OperatorKey k, FileSpec lFile, long offset){
-        this(k,-1,lFile);
-        this.offset = offset;
     }
     
     public POLoad(OperatorKey k, int rp, FileSpec lFile) {
         super(k, rp);
         this.lFile = lFile;
+    }
+    
+    public POLoad(OperatorKey k, LoadFunc lf){
+        this(k);
+        this.loader = lf;
     }
     
     /**
@@ -96,15 +90,10 @@ public class POLoad extends PhysicalOperator {
      * @throws IOException
      */
     public void setUp() throws IOException{
-        String filename = lFile.getFileName();
-        LoadFunc origloader = 
-            (LoadFunc)PigContext.instantiateFuncFromSpec(lFile.getFuncSpec());
-        loader = new ReadToEndLoader(origloader, 
+        loader = new ReadToEndLoader((LoadFunc)
+                PigContext.instantiateFuncFromSpec(lFile.getFuncSpec()), 
                 ConfigurationUtil.toConfiguration(pc.getProperties()), 
-                filename,
-                0);
-
-        
+                lFile.getFileName(),0);
     }
     
     /**
@@ -206,5 +195,9 @@ public class POLoad extends PhysicalOperator {
     
     public void setSignature(String signature) {
         this.signature = signature;
+    }
+    
+    public LoadFunc getLoadFunc(){
+        return this.loader;
     }
 }

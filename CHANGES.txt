@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-1363: Unnecessary loadFunc instantiations (hashutosh)
+
 PIG-1370: Marking Pig interface for org.apache.pig package (gates)
 
 PIG-1354: UDFs for dynamic invocation of simple Java methods (dvryaboy)
