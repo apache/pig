@@ -19,18 +19,23 @@ package org.apache.pig;
 
 import java.io.IOException;
 
+import org.apache.pig.classification.InterfaceAudience;
+import org.apache.pig.classification.InterfaceStability;
+
 /**
- * This interface implemented by {@link LoadFunc} implementations indicates to 
+ * This interface implemented by a {@link LoadFunc} implementations indicates to 
  * Pig that it has the capability to load data such that all instances of a key 
  * will occur in same split.
  * @since Pig 0.7
  */
+@InterfaceAudience.Public
+@InterfaceStability.Evolving
 public interface CollectableLoadFunc {
 
     /**
-     * When this method is called, Pig is communicating to Loader that it must
+     * When this method is called, Pig is communicating to the Loader that it must
      * load data such that all instances of a key are in same split. Pig will
-     * make no further checks at runtime to ensure whether contract is honored
+     * make no further checks at runtime to ensure whether the contract is honored
      * or not.
      * @throws IOException
      */

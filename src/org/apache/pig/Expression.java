@@ -17,10 +17,15 @@
  */
 package org.apache.pig;
 
+import org.apache.pig.classification.InterfaceAudience;
+import org.apache.pig.classification.InterfaceStability;
 
 /**
- * A class to communicate Filter expressions to LoadFuncs
+ * A class to communicate Filter expressions to LoadFuncs.
+ * @since Pig 0.7
  */
+@InterfaceAudience.Public
+@InterfaceStability.Evolving
 public abstract class Expression {
 
  // Operator type                                                                                                                                                                                                                                                                                       

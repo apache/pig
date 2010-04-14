@@ -19,12 +19,27 @@ package org.apache.pig;
 
 import java.io.IOException;
 
+import org.apache.pig.classification.InterfaceAudience;
+import org.apache.pig.classification.InterfaceStability;
 import org.apache.pig.data.Tuple;
 
+/**
+ * An interface that allows UDFs that take a bag to accumulate tuples in chunks rather than take
+ * the whole set at once.  This is intended for UDFs that do not need to see all of the tuples
+ * together but cannot be used with the combiner.  This lowers the memory needs, avoiding the need
+ * to spill large bags, and thus speeds up the query.  An example is something like session analysis.
+ * It cannot be used with the combiner because all it's inputs must first be ordered.  But it does
+ * not need to see all the tuples at once.  UDF implementors might also choose to implement this
+ * interface so that if other UDFs in the FOREACH implement it it can be used.
+ * @since Pig 0.6
+ */
+@InterfaceAudience.Public
+@InterfaceStability.Stable
 public interface Accumulator <T> {
     /**
-     * Pass tuples to the UDF.  You can retrive DataBag by calling b.get(index). 
-     * Each DataBag may contain 0 to many tuples for current key
+     * Pass tuples to the UDF.
+     * @param b A tuple containing a single field, which is a bag.  The bag will contain the set
+     * of tuples being passed to the UDF in this iteration.
      */
     public void accumulate(Tuple b) throws IOException;
 

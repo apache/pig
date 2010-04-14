@@ -21,12 +21,17 @@ package org.apache.pig;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
+
+import org.apache.pig.classification.InterfaceAudience;
+import org.apache.pig.classification.InterfaceStability;
 import org.apache.pig.impl.util.Utils;
 
 /**
  * Class to communicate sort column information based on 
  * order by statment's sort columns and schema
  */
+@InterfaceAudience.Private
+@InterfaceStability.Unstable
 public class SortInfo implements Serializable {
     
     /**
@@ -39,14 +44,14 @@ public class SortInfo implements Serializable {
     List<SortColInfo> sortColInfoList;
     
     /**
-     * @param sortColInfoList
+     * @param sortColInfoList list of sortColInfo, one for each field in the data
      */
     public SortInfo(List<SortColInfo> sortColInfoList){
         this.sortColInfoList = sortColInfoList;
     }
 
     /**
-     * @return the sortColInfoList
+     * @return the sortColInfoList the list of sortColInfo for this data
      */
     public List<SortColInfo> getSortColInfoList() {
         return new ArrayList<SortColInfo>(sortColInfoList);
@@ -66,7 +71,8 @@ public class SortInfo implements Serializable {
     }   
 
     /**
-     * @return the isGloballySorted
+     * @return the isGloballySorted true if the data is globally sorted, false if it is sorted
+     * only within each part file.
      */
     public boolean isGloballySorted() {
         return isGloballySorted;

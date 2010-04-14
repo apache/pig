@@ -24,17 +24,19 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.OutputFormat;
 import org.apache.hadoop.mapreduce.RecordWriter;
+
+import org.apache.pig.classification.InterfaceAudience;
+import org.apache.pig.classification.InterfaceStability;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.util.UDFContext;
 
 
 /**
-* This abstract class is used to implement functions to write records
-* from a dataset.
-* 
-*
+* StoreFuncs take records from Pig's processing and store them into a data store.  Most frequently
+* this is an HDFS file, but it could also be an HBase instance, RDBMS, etc.
 */
-
+@InterfaceAudience.Public
+@InterfaceStability.Stable
 public abstract class StoreFunc implements StoreFuncInterface {
 
     /**
@@ -51,7 +53,6 @@ public abstract class StoreFunc implements StoreFuncInterface {
      * in the script, this would be the home directory - 
      * <pre>/user/<username> </pre>
      * @return the absolute location based on the arguments passed
-     * @throws IOException 
      * @throws IOException if the conversion is not possible
      */
     @Override
@@ -96,7 +97,8 @@ public abstract class StoreFunc implements StoreFuncInterface {
      * check that a given schema is acceptable to it.  For example, it
      * can check that the correct partition keys are included;
      * a storage function to be written directly to an OutputFormat can
-     * make sure the schema will translate in a well defined way.  
+     * make sure the schema will translate in a well defined way.  Default implementation
+     * is a no-op.
      * @param s to be checked
      * @throws IOException if this schema is not acceptable.  It should include
      * a detailed error message indicating what is wrong with the schema.
@@ -108,15 +110,14 @@ public abstract class StoreFunc implements StoreFuncInterface {
 
     /**
      * Initialize StoreFunc to write data.  This will be called during
-     * execution before the call to putNext.
+     * execution on the backend before the call to putNext.
      * @param writer RecordWriter to use.
      * @throws IOException if an exception occurs during initialization
      */
     public abstract void prepareToWrite(RecordWriter writer) throws IOException;
 
     /**
-     * Write a tuple the output stream to which this instance was
-     * previously bound.
+     * Write a tuple to the data store.
      * 
      * @param t the tuple to store.
      * @throws IOException if an exception occurs during the write
@@ -128,7 +129,10 @@ public abstract class StoreFunc implements StoreFuncInterface {
      * pass a unique signature to the {@link StoreFunc} which it can use to store
      * information in the {@link UDFContext} which it needs to store between
      * various method invocations in the front end and back end. This method 
-     * will be called before other methods in {@link StoreFunc}.
+     * will be called before other methods in {@link StoreFunc}.  This is necessary
+     * because in a Pig Latin script with multiple stores, the different
+     * instances of store functions need to be able to find their (and only their)
+     * data in the UDFContext object.  The default implementation is a no-op.
      * @param signature a unique signature to identify this StoreFunc
      */
     @Override
@@ -140,7 +144,7 @@ public abstract class StoreFunc implements StoreFuncInterface {
      * This method will be called by Pig if the job which contains this store
      * fails. Implementations can clean up output locations in this method to
      * ensure that no incorrect/incomplete results are left in the output location.
-     * The implementation in {@link StoreFunc} deletes the output location if it
+     * The default implementation  deletes the output location if it
      * is a {@link FileSystem} location.
      * @param location Location returned by 
      * {@link StoreFunc#relToAbsPathForStoreLocation(String, Path)}
@@ -155,9 +159,10 @@ public abstract class StoreFunc implements StoreFuncInterface {
     }
     
     /**
-     * Implementation for {@link #cleanupOnFailure(String, Job)}
-     * @param location
-     * @param job
+     * Implementation for {@link #cleanupOnFailure(String, Job)}.  This removes a file
+     * from HDFS.
+     * @param location file name (or URI) of file to remove
+     * @param job Hadoop job, used to access the appropriate file system.
      * @throws IOException
      */
     public static void cleanupOnFailureImpl(String location, Job job) 

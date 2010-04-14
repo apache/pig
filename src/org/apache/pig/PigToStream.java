@@ -19,6 +19,8 @@ package org.apache.pig;
 
 import java.io.IOException;
 
+import org.apache.pig.classification.InterfaceAudience;
+import org.apache.pig.classification.InterfaceStability;
 import org.apache.pig.data.Tuple;
 
 /**
@@ -29,16 +31,21 @@ import org.apache.pig.data.Tuple;
  * a common protocol for data exchange between Pig runtime and streaming 
  * executables.
  * 
- * Typically, user implements this interface for a particular type of 
+ * Typically, a user implements this interface for a particular type of 
  * stream command and specifies the implementation class in the Pig DEFINE
  * statement. 
- * 
+ * @since Pig 0.7 
  */
+@InterfaceAudience.Public
+@InterfaceStability.Stable
 public interface PigToStream {
     
     /**
      * Given a tuple, produce an array of bytes to be passed to the streaming
      * executable.
+     * @param t Tuple to serialize
+     * @return Serialized form of the tuple
+     * @throws IOException
      */
     public byte[] serialize(Tuple t) throws IOException;
 

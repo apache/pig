@@ -20,6 +20,17 @@ package org.apache.pig;
 import java.io.Serializable;
 import java.util.Arrays;
 
+import org.apache.pig.classification.InterfaceAudience;
+import org.apache.pig.classification.InterfaceStability;
+
+/**
+ * An class that represents statistics about data to be loaded or stored.  It is marked unstable
+ * because Pig does very little statistics collection at this point.  If and when that
+ * functionality is added it is expected that this interface will change.
+ * @since Pig 0.7
+ */
+@InterfaceAudience.Public
+@InterfaceStability.Unstable
 public class ResourceStatistics implements Cloneable {
 
     /* Getters intentionally return mutable arrays instead of copies,
@@ -38,6 +49,9 @@ public class ResourceStatistics implements Cloneable {
     public Long avgRecordSize;
     public ResourceFieldStatistics[] fields = new ResourceFieldStatistics[0];
 
+    /**
+     * Statistics for a given field in the data.
+     */
     public static class ResourceFieldStatistics implements Serializable {
 
         public static final long serialVersionUID = 1L;
@@ -46,28 +60,34 @@ public class ResourceStatistics implements Cloneable {
 
         public Long numDistinctValues;  // number of distinct values represented in this field
 
-        // We need some way to represent a histogram of values in the field,
-        // as those will be useful.  However, we can't count on being
-        // able to hold such histograms in memory.  Have to figure out
-        // how they can be kept on disk and represented here.
-
-        // for now.. don't create so many buckets you can't hold them in memory
-        
-        // an ordered array of the most common values, 
-        // in descending order of frequency
+        /**
+         * We need some way to represent a histogram of values in the field,
+         * as those will be useful.  However, we can't count on being
+         * able to hold such histograms in memory.  Have to figure out
+         * how they can be kept on disk and represented here.
+         *
+         * for now.. don't create so many buckets you can't hold them in memory
+         *
+         * an ordered array of the most common values, 
+         * in descending order of frequency
+         */
         public Object[] mostCommonValues = new Object[0];
         
-        // an array that matches the mostCommonValues array, and lists
-        // the frequencies of those values as a fraction (0 through 1) of
-        // the total number of records
+        /**
+         * an array that matches the mostCommonValues array, and lists
+         * the frequencies of those values as a fraction (0 through 1) of
+         * the total number of records
+         */
         public float[] mostCommonValuesFreq = new float[0];
         
-        // an ordered array of values, from min val to max val
-        // such that the number of records with values 
-        // between valueHistogram[i] and and valueHistogram[i+1] is
-        // roughly equal for all values of i.
-        // NOTE: if mostCommonValues is non-empty, the values in that array
-        // should not be included in the histogram. Adjust accordingly.
+        /**
+         * an ordered array of values, from min val to max val
+         * such that the number of records with values 
+         * between valueHistogram[i] and and valueHistogram[i+1] is
+         * roughly equal for all values of i.
+         * NOTE: if mostCommonValues is non-empty, the values in that array
+         * should not be included in the histogram. Adjust accordingly.
+         */
         public Object[] valueHistogram = new Object[0];
 
         

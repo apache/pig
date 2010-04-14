@@ -22,11 +22,17 @@ import org.apache.hadoop.io.WritableComparable;
 import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.lib.input.FileSplit;
 
+import org.apache.pig.classification.InterfaceAudience;
+import org.apache.pig.classification.InterfaceStability;
+
 /**
  * This class provides an implementation of OrderedLoadFunc interface
  * which can be optionally re-used by LoadFuncs that use FileInputFormat, by
  * having this as a super class
+ * @since Pig 0.7
  */
+@InterfaceAudience.Public
+@InterfaceStability.Evolving // Since we haven't done outer join for merge join yet
 public abstract class FileInputLoadFunc extends LoadFunc implements OrderedLoadFunc  {
     
     @Override

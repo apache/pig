@@ -19,16 +19,17 @@ package org.apache.pig;
 
 import java.io.Serializable;
 
+import org.apache.pig.classification.InterfaceAudience;
+import org.apache.pig.classification.InterfaceStability;
 import org.apache.pig.impl.util.Utils;
 
 /**
  * A class representing information about a sort column in {@link SortInfo} 
  */
+@InterfaceAudience.Private
+@InterfaceStability.Unstable
 public class SortColInfo implements Serializable {
     
-    /**
-     * 
-     */
     private static final long serialVersionUID = 1L;
 
     // name of sort column
