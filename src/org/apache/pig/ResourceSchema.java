@@ -25,11 +25,21 @@ import java.util.List;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+
+import org.apache.pig.classification.InterfaceAudience;
+import org.apache.pig.classification.InterfaceStability;
 import org.apache.pig.data.DataType;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.logicalLayer.schema.Schema.FieldSchema;
 
+/**
+ * A represenation of a schema used to communicate with load and store functions.  This is
+ * separate from {@link Schema}, which is an internal Pig representation of a schema.
+ * @since Pig 0.7
+ */
+@InterfaceAudience.Public
+@InterfaceStability.Stable
 public class ResourceSchema implements Serializable {
 
     private static final long serialVersionUID = 1L;
@@ -65,10 +75,17 @@ public class ResourceSchema implements Serializable {
         // nested tuples and bags will have their own schema
         private ResourceSchema schema; 
 
+        /**
+         * Construct an empty field schema.
+         */
         public ResourceFieldSchema() {
             
         }
         
+        /**
+         * Construct using a {@link org.apache.pig.impl.logicalLayer.schema.Schema.FieldSchema} as the template.
+         * @param fieldSchema fieldSchema to copy from
+         */
         public ResourceFieldSchema(FieldSchema fieldSchema) {
             type = fieldSchema.type;
             name = fieldSchema.alias;
@@ -90,36 +107,73 @@ public class ResourceSchema implements Serializable {
             }
         }
         
+        /**
+         * Get the name of this field.
+         * @return name
+         */
         public String getName() {
             return name;
         }
+
+        /**
+         * Set the name of this filed.
+         * @param name new name
+         * @return this
+         */
         public ResourceFieldSchema setName(String name) {
             this.name = name;
             return this;
         }
         
+        /**
+         * Get the type of this field.
+         * @return type, as a {@link DataType} static final byte 
+         */
         public byte getType() {
             return type;
         }
     
+        /**
+         * Set the type of this field
+         * @param type new type
+         * @return this
+         */
         public ResourceFieldSchema setType(byte type) {
             this.type = type;
             return this;
         }
         
+        /**
+         * Get a free form text description of this field.
+         * @return description
+         */
         public String getDescription() {
             return description;
         }
      
+        /**
+         * Set the description
+         * @param description new description
+         * @return this
+         */
         public ResourceFieldSchema setDescription(String description) {
             this.description = description;
             return this;
         }
 
+        /**
+         * Get the schema for this field.  Only fields of type tuple should have a schema.
+         * @return schema
+         */
         public ResourceSchema getSchema() {
             return schema;
         }
 
+        /**
+         * Set the schema for this field.  Only fields of type tuple should have a schema.
+         * @param schema new schema
+         * @return this
+         */
         public ResourceFieldSchema setSchema(ResourceSchema schema) throws 
         IOException {
             validateSchema(schema);
@@ -127,9 +181,6 @@ public class ResourceSchema implements Serializable {
             return this;
         }
                 
-        /**
-         * @param schema
-         */
         private void validateSchema(ResourceSchema schema) throws IOException {
             if(type == DataType.BAG && schema != null) {
                 ResourceFieldSchema[] subFields = schema.getFields();
@@ -173,10 +224,17 @@ public class ResourceSchema implements Serializable {
     }
 
 
+    /**
+     * Construct an empty ResourceSchema.
+     */
     public ResourceSchema() {
         
     }
     
+    /**
+     * Construct a ResourceSchema from a {@link Schema}
+     * @param pigSchema Schema to use
+     */
     public ResourceSchema(Schema pigSchema) {
         List<FieldSchema> pigSchemaFields = pigSchema.getFields();
         fields = new ResourceFieldSchema[pigSchemaFields.size()];
@@ -185,6 +243,13 @@ public class ResourceSchema implements Serializable {
         }        
     }
     
+    /**
+     * Only for use by Pig internal code.
+     * Construct a ResourceSchema from a {@link Schema}
+     * @param pigSchema Schema to use
+     * @param sortInfo information on how data is sorted
+     */
+    @InterfaceAudience.Private
     public ResourceSchema(Schema pigSchema, SortInfo sortInfo) {
         this(pigSchema);
         if (sortInfo!=null && sortInfo.getSortColInfoList().size()!=0) {
@@ -206,6 +271,10 @@ public class ResourceSchema implements Serializable {
         }
     }
     
+    /**
+     * Get the version of this schema.
+     * @return version
+     */
     public int getVersion() {
         return version;
     }
@@ -215,10 +284,18 @@ public class ResourceSchema implements Serializable {
         return this;
     }
     
+    /**
+     * Get field schema for each field
+     * @return array of field schemas.
+     */
     public ResourceFieldSchema[] getFields() {
         return fields;
     }
     
+    /**
+     * Get all field names.
+     * @return array of field names
+     */
     public String[] fieldNames() {
         String[] names = new String[fields.length];
         for (int i=0; i<fields.length; i++) {
@@ -227,32 +304,73 @@ public class ResourceSchema implements Serializable {
         return names;
     }
     
+    /**
+     * Set all the fields.  If fields are not currently null the new fields will be silently
+     * ignored.
+     * @param fields to use as fields in this schema
+     * @return this
+     */
     public ResourceSchema setFields(ResourceFieldSchema[] fields) {
         if (fields != null)
             this.fields = Arrays.copyOf(fields, fields.length);
         return this;
     }
     
+    /**
+     * Get the sort keys for this data.
+     * @return array of ints.  Each integer in the array represents the field number.  So if the
+     * schema of the data is (a, b, c, d) and the data is sorted on c, b, the returned sort keys
+     * will be [2, 1].  Field numbers are zero based.  If the data is not sorted a zero length
+     * array will be returned.
+     */
     public int[] getSortKeys() {
         return sortKeys;
     }
     
+    /**
+     * Set the sort keys for htis data.  If sort keys are not currently null the new sort keys
+     * will be silently ignored.
+     * @param sortKeys  Each integer in the array represents the field number.  So if the
+     * schema of the data is (a, b, c, d) and the data is sorted on c, b, the sort keys
+     * should be [2, 1].  Field numbers are zero based.
+     * @return this
+     */
     public  ResourceSchema setSortKeys(int[] sortKeys) {
         if (sortKeys != null)
             this.sortKeys = Arrays.copyOf(sortKeys, sortKeys.length);
         return this;
     }
     
+    /**
+     * Get order for sort keys.
+     * @return array of Order.  This array will be the same length as the int[] array returned by
+     * {@link #getSortKeys}.
+     */
     public Order[] getSortKeyOrders() {
         return sortKeyOrders;
     }
     
+    /**
+     * Set the order for each sort key.  If order is not currently null, new order will be
+     * silently ignored.
+     * @param sortKeyOrders array of Order.  Should be the same length as int[] passed to 
+     * {@link #setSortKeys}.
+     * @return this
+     */
     public ResourceSchema setSortKeyOrders(Order[] sortKeyOrders) {
         if (sortKeyOrders != null) 
             this.sortKeyOrders = Arrays.copyOf(sortKeyOrders, sortKeyOrders.length);
         return this;
     } 
             
+    /**
+     * Test whether two ResourceSchemas are the same.  Two schemas are said to be the same if they
+     * are both null or 
+     * have the same number of fields and for each field the name, type are the same.  For fields
+     * that have may have schemas (i.e. tuples) both schemas be equal.  Field
+     * descriptions are not used in testing equality.
+     * @return true if equal according to the above definition, otherwise false.
+     */
     public static boolean equals(ResourceSchema rs1, ResourceSchema rs2) {
         if (rs1 == null) {
             return rs2 == null ? true : false;

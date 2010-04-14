@@ -23,14 +23,18 @@ import java.io.IOException;
 import java.io.Serializable;
 
 import org.apache.hadoop.io.WritableComparable;
+
+import org.apache.pig.classification.InterfaceAudience;
+import org.apache.pig.classification.InterfaceStability;
 import org.apache.pig.data.DataReaderWriter;
 
-
 /**
- * This class can be used to represent a relative position in a file. 
- * compareTo(other) function of WritaleComparable interface is used to compare
- * position of different objects of this class.
+ * This class represents a relative position in a file.  It records a filename
+ * and an offset.  This allows Pig to order FileSplits.
+ * @since Pig 0.7
  */
+@InterfaceAudience.Public
+@InterfaceStability.Evolving // Since we haven't done outer join for merge join yet
 public class FileSplitComparable implements WritableComparable<FileSplitComparable>, Serializable{
 
     private static final long serialVersionUID = 1L;

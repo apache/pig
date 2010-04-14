@@ -1,5 +1,4 @@
-/*
- * Licensed to the Apache Software Foundation (ASF) under one
+/* Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
  * regarding copyright ownership.  The ASF licenses this file
@@ -21,65 +20,74 @@ import java.io.IOException;
 import java.util.Map;
 
 import org.apache.pig.ResourceSchema.ResourceFieldSchema;
+import org.apache.pig.classification.InterfaceAudience;
+import org.apache.pig.classification.InterfaceStability;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.Tuple;
 
 /**
- *
+ * An interface that provides cast implementations for load functions.  For casts between
+ * bytearray objects and internal types, Pig relies on the load function that loaded the data to
+ * provide the cast.  This is because Pig does not understand the binary representation of the
+ * data and thus cannot cast it.  This interface provides functions to cast from bytearray to each
+ * of Pig's internal types.
+ * @since Pig 0.7
  */
+@InterfaceAudience.Public
+@InterfaceStability.Evolving // Because we still don't have the map casts quite right
 public interface LoadCaster {
 
     /**
-     * Cast data from bytes to long value.  
-     * @param b byte array to be cast.
+     * Cast data from bytearray to long value.  
+     * @param b bytearray to be cast.
      * @return Long value.
      * @throws IOException if the value cannot be cast.
      */
     public Long bytesToLong(byte[] b) throws IOException;
 
     /**
-     * Cast data from bytes to float value.  
-     * @param b byte array to be cast.
+     * Cast data from bytearray to float value.  
+     * @param b bytearray to be cast.
      * @return Float value.
      * @throws IOException if the value cannot be cast.
      */
     public Float bytesToFloat(byte[] b) throws IOException;
 
     /**
-     * Cast data from bytes to double value.  
-     * @param b byte array to be cast.
+     * Cast data from bytearray to double value.  
+     * @param b bytearray to be cast.
      * @return Double value.
      * @throws IOException if the value cannot be cast.
      */
     public Double bytesToDouble(byte[] b) throws IOException;
 
     /**
-     * Cast data from bytes to integer value.  
-     * @param b byte array to be cast.
+     * Cast data from bytearray to integer value.  
+     * @param b bytearray to be cast.
      * @return Double value.
      * @throws IOException if the value cannot be cast.
      */
     public Integer bytesToInteger(byte[] b) throws IOException;
     
     /**
-     * Cast data from bytes to chararray value.  
-     * @param b byte array to be cast.
+     * Cast data from bytearray to chararray value.  
+     * @param b bytearray to be cast.
      * @return String value.
      * @throws IOException if the value cannot be cast.
      */
     public String bytesToCharArray(byte[] b) throws IOException;
 
     /**
-     * Cast data from bytes to map value.  
-     * @param b byte array to be cast.
+     * Cast data from bytearray to map value.  
+     * @param b bytearray to be cast.
      * @return Map value.
      * @throws IOException if the value cannot be cast.
      */
     public Map<String, Object> bytesToMap(byte[] b) throws IOException;
 
     /**
-     * Cast data from bytes to tuple value.  
-     * @param b byte array to be cast.
+     * Cast data from bytearray to tuple value.  
+     * @param b bytearray to be cast.
      * @param fieldSchema field schema for the output tuple
      * @return Tuple value.
      * @throws IOException if the value cannot be cast.
@@ -87,8 +95,8 @@ public interface LoadCaster {
     public Tuple bytesToTuple(byte[] b, ResourceFieldSchema fieldSchema) throws IOException;
 
     /**
-     * Cast data from bytes to bag value.  
-     * @param b byte array to be cast.
+     * Cast data from bytearray to bag value.  
+     * @param b bytearray to be cast.
      * @param fieldSchema field schema for the output bag
      * @return Bag value.
      * @throws IOException if the value cannot be cast.

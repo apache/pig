@@ -19,10 +19,12 @@ package org.apache.pig;
 
 import java.io.IOException;
 
+import org.apache.pig.classification.InterfaceAudience;
+import org.apache.pig.classification.InterfaceStability;
 import org.apache.pig.data.Tuple;
 
 /**
- * The interface used for the custom mapping of a byte array, received from
+ * The interface is used for the custom mapping of a byte array, received from
  * the stdout of the streaming process, to a {@link Tuple}. 
  * 
  * This interface, together with {@link PigToStream}, is designed to provide
@@ -36,10 +38,15 @@ import org.apache.pig.data.Tuple;
  * Typically, user implements this interface for a particular type of 
  * stream command and specifies the implementation class in the Pig DEFINE
  * statement. 
+ * @since Pig 0.7
  */
+@InterfaceAudience.Public
+@InterfaceStability.Stable
 public interface StreamToPig {
     /**
      *  Given a byte array from a streaming executable, produce a tuple.
+     * @param bytes to deserialize.
+     * @return Data as a Pig Tuple.
      */
     public Tuple deserialize(byte[] bytes) throws IOException;
 
@@ -47,7 +54,8 @@ public interface StreamToPig {
      * This will be called on the front end during planning and not on the back 
      * end during execution.
      * 
-     * @return the {@link LoadCaster} associated with this object. 
+     * @return the {@link LoadCaster} associated with this object, or null if
+     * there is no such LoadCaster. 
      * @throws IOException if there is an exception during LoadCaster 
      */
     public LoadCaster getLoadCaster() throws IOException;

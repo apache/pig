@@ -23,12 +23,16 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
+import org.apache.pig.classification.InterfaceAudience;
+import org.apache.pig.classification.InterfaceStability;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 
 /**
- * Class to represent a UDF specification - essentially 
- * encapsulates the class name and the arguments to the constructor
+ * Class to represent a UDF specification.
+ * Encapsulates the class name and the arguments to the constructor.
  */
+@InterfaceAudience.Public
+@InterfaceStability.Stable
 public class FuncSpec implements Serializable, Cloneable {
 
     private static final long serialVersionUID = 2L;
@@ -38,7 +42,8 @@ public class FuncSpec implements Serializable, Cloneable {
    
     /**
      * @param className the name of the class for the udf
-     * @param ctorArg the argument for the constructor for the above class
+     * @param ctorArg the argument to pass the constructor for the above class.
+     * Constructors can only take strings.
      */
     public FuncSpec(String className, String ctorArg) {
         this.className = className;
@@ -48,7 +53,8 @@ public class FuncSpec implements Serializable, Cloneable {
 
     /**
      * @param className the name of the class for the udf
-     * @param ctorArgs the arguments for the constructor for the above class
+     * @param ctorArgs the arguments to pass to the constructor for the above class.
+     * Constructors can only take strings.
      */
     public FuncSpec(String className, String[] ctorArgs) {
         this.className = className;
@@ -57,7 +63,8 @@ public class FuncSpec implements Serializable, Cloneable {
     
     /**
      * @param className the name of the class for the udf
-     * @param ctorArgs the arguments for the constructor for the above class
+     * @param ctorArgs the arguments to pass to the constructor for the above class.
+     * Constructors can only take strings.
      * @param inputArgsSchema schema for input args taken by this Function
      */
     public FuncSpec(String className, String[] ctorArgs, Schema inputArgsSchema) {
@@ -94,6 +101,10 @@ public class FuncSpec implements Serializable, Cloneable {
         this.inputArgsSchema = inputArgsSchema;
     }
     
+    /**
+     * Parse the class name out of a function specification string.
+     * @return name of the class.
+     */
     public static String getClassNameFromSpec(String funcSpec){
         int paren = funcSpec.indexOf('(');
         if (paren!=-1)
@@ -102,6 +113,10 @@ public class FuncSpec implements Serializable, Cloneable {
             return funcSpec;
     }
  
+    /**
+     * Get the argument values passed to the func spec.
+     * @return argument values.  Format will be arg1, arg2, ... )
+     */
     public static String getArgStringFromSpec(String funcSpec){
         int paren = funcSpec.indexOf('(');
         if (paren!=-1)
@@ -111,7 +126,7 @@ public class FuncSpec implements Serializable, Cloneable {
     }
     
     /**
-     * Function to parse the arguments from a function specification argument list
+     * Parse the argument values out of a function specification string.
      * @param argString should be of the form "'arg1', 'arg2', ..."
      * @return List of the different argument strings
      */

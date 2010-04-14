@@ -17,9 +17,24 @@
  */
 package org.apache.pig;
 
-import java.io.*;
-import java.util.*;
-import java.util.jar.*;
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.InputStreamReader;
+import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.io.StringReader;
+import java.io.StringWriter;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Properties;
+import java.util.jar.Attributes;
+import java.util.jar.JarFile;
+import java.util.jar.Manifest;
 import java.text.ParseException;
 
 import jline.ConsoleReader;
@@ -32,6 +47,9 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
+
+import org.apache.pig.classification.InterfaceAudience;
+import org.apache.pig.classification.InterfaceStability;
 import org.apache.pig.ExecType;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
@@ -46,6 +64,11 @@ import org.apache.pig.impl.util.LogUtils;
 import org.apache.pig.tools.timer.PerformanceTimerFactory;
 import org.apache.pig.tools.parameters.ParameterSubstitutionPreprocessor;
 
+/**
+ * Main class for Pig engine.
+ */
+@InterfaceAudience.LimitedPrivate({"Oozie"})
+@InterfaceStability.Stable
 public class Main
 {
 
@@ -61,7 +84,7 @@ public class Main
                 
 /**
  * The Main-Class for the Pig Jar that will provide a shell and setup a classpath appropriate
- * for executing Jar files.
+ * for executing Jar files.  Warning, this method calls System.exit().
  * 
  * @param args
  *            -jar can be used to add additional jar files (colon separated). - will start a
@@ -542,6 +565,9 @@ private static String getVersionString() {
       } 
 }
 
+/**
+ * Print usage string.
+ */
 public static void usage()
 {
 	System.out.println("\n"+getVersionString()+"\n");

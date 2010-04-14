@@ -22,11 +22,17 @@ import java.io.IOException;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapreduce.Job;
 
+import org.apache.pig.classification.InterfaceAudience;
+import org.apache.pig.classification.InterfaceStability;
+
 /**
  * This interface defines how to retrieve metadata related to data to be loaded.
  * If a given loader does not implement this interface, it will be assumed that it
  * is unable to provide metadata about the associated data.
+ * @since Pig 0.7
  */
+@InterfaceAudience.Public
+@InterfaceStability.Evolving
 public interface LoadMetadata {
 
     /**
@@ -80,7 +86,7 @@ public interface LoadMetadata {
      * will only contain references to fields given as partition keys in
      * getPartitionKeys. So if the implementation returns null in 
      * {@link #getPartitionKeys(String, Job)}, then this method is not
-     * called by pig runtime. This method is also not called by the pig runtime
+     * called by Pig runtime. This method is also not called by the Pig runtime
      * if there are no partition filter conditions. 
      * @param partitionFilter that describes filter for partitioning
      * @throws IOException if the filter is not compatible with the storage

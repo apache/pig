@@ -37,19 +37,26 @@ import java.util.Set;
 import java.util.Stack;
 
 import org.apache.hadoop.mapreduce.Job;
+
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
-import org.apache.pig.impl.plan.PlanException;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+
 import org.apache.pig.backend.datastorage.ContainerDescriptor;
 import org.apache.pig.backend.datastorage.DataStorage;
 import org.apache.pig.backend.datastorage.ElementDescriptor;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.executionengine.ExecJob;
 import org.apache.pig.backend.executionengine.ExecJob.JOB_STATUS;
+import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.builtin.BinStorage;
 import org.apache.pig.builtin.PigStorage;
+import org.apache.pig.classification.InterfaceAudience;
+import org.apache.pig.classification.InterfaceStability;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.experimental.logical.LogicalPlanMigrationVistor;
@@ -75,9 +82,7 @@ import org.apache.pig.impl.logicalLayer.parser.ParseException;
 import org.apache.pig.impl.logicalLayer.parser.QueryParser;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.logicalLayer.validators.LogicalPlanValidationExecutor;
-import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
+import org.apache.pig.impl.plan.PlanException;
 import org.apache.pig.impl.plan.CompilationMessageCollector;
 import org.apache.pig.impl.plan.DependencyOrderWalker;
 import org.apache.pig.impl.plan.DepthFirstWalker;
@@ -97,17 +102,24 @@ import org.apache.pig.tools.grunt.GruntParser;
 
 /**
  * 
- * This class is the program's connection to Pig. Typically a program will create a PigServer
+ * A class for Java programs to connect to Pig. Typically a program will create a PigServer
  * instance. The programmer then registers queries using registerQuery() and
  * retrieves results using openIterator() or store(). After doing so, the
  * shutdown() method should be called to free any resources used by the current
  * PigServer instance. Not doing so could result in a memory leak.
  * 
  */
+@InterfaceAudience.Public
+@InterfaceStability.Stable
 public class PigServer {
     
     private final Log log = LogFactory.getLog(getClass());
     
+    /**
+     * Given a string, determine the exec type.
+     * @param str accepted values are 'local', 'mapreduce', and 'mapred'
+     * @return exectype as ExecType
+     */
     public static ExecType parseExecType(String str) throws IOException {
         String normStr = str.toLowerCase();
         
@@ -159,10 +171,23 @@ public class PigServer {
         return ""+(++scopeCounter);
     }
     
+    /**
+     * @param execTypeString can be 'mapreduce' or 'local'.  Local mode will 
+     * use Hadoop's local job runner to execute the job on the local machine.
+     * Mapreduce mode will connect to a cluster to execute the job.
+     * @throws ExecException
+     * @throws IOException
+     */
     public PigServer(String execTypeString) throws ExecException, IOException {
         this(parseExecType(execTypeString));
     }
     
+    /**
+     * @param execType execution type to start the engine.  Local mode will 
+     * use Hadoop's local job runner to execute the job on the local machine.
+     * Mapreduce mode will connect to a cluster to execute the job.
+     * @throws ExecException
+     */
     public PigServer(ExecType execType) throws ExecException {
         this(execType, PropertiesUtil.loadPropertiesFromFile());
     }
@@ -215,16 +240,26 @@ public class PigServer {
         return pigContext;
     }
     
+    /**
+     * Set the logging level to DEBUG.
+     */
     public void debugOn() {
         Logger.getLogger("org.apache.pig").setLevel(Level.DEBUG);
         pigContext.getLog4jProperties().setProperty("log4j.logger.org.apache.pig", Level.DEBUG.toString());
     }
     
+    /**
+     * Set the logging level to the default.
+     */
     public void debugOff() {
         Logger.getLogger("org.apache.pig").setLevel(pigContext.getDefaultLogLevel());
         pigContext.getLog4jProperties().setProperty("log4j.logger.org.apache.pig", pigContext.getDefaultLogLevel().toString());
     }
     
+    /**
+     * Set the default parallelism for this job
+     * @param p default number of reducers to use for this job.
+     */
     public void setDefaultParallel(int p) {
         pigContext.defaultParallel = p;
     }
@@ -272,6 +307,7 @@ public class PigServer {
     /**
      * Submits a batch of Pig commands for execution. 
      * 
+     * @return list of jobs being executed
      * @throws FrontendException
      * @throws ExecException
      */
@@ -294,7 +330,6 @@ public class PigServer {
      * Discards a batch of Pig commands.
      * 
      * @throws FrontendException
-     * @throws ExecException
      */
     public void discardBatch() throws FrontendException {
         if (currDAG == null || !isBatchOn()) {
@@ -324,8 +359,8 @@ public class PigServer {
      * @param function - the new function alias to define.
      * @param functionSpec - the name of the function and any arguments.
      * It should have the form: classname('arg1', 'arg2', ...)
+     * @deprecated Use {@link #registerFunction(String, FuncSpec)}
      */
-    @Deprecated
     public void registerFunction(String function, String functionSpec) {
         registerFunction(function, new FuncSpec(functionSpec));
     }
@@ -420,7 +455,7 @@ public class PigServer {
      * @param query
      *            a Pig Latin expression to be evaluated.
      * @param startLine
-     *            line number of the query within the whold script
+     *            line number of the query within the whole script
      * @throws IOException
      */    
     public void registerQuery(String query, int startLine) throws IOException {            
@@ -439,10 +474,24 @@ public class PigServer {
         return graph.getPlan(alias);
     }
     
+    /**
+     * Register a query with the Pig runtime. The query is parsed and registered, but it is not
+     * executed until it is needed.  Equivalent to calling {@link #registerQuery(String, int)}
+     * with startLine set to 1.
+     * 
+     * @param query
+     *            a Pig Latin expression to be evaluated.
+     * @throws IOException
+     */    
     public void registerQuery(String query) throws IOException {
         registerQuery(query, 1);
     }
     
+    /**
+     * Register a query with the Pig runtime.  The query will be read from the indicated file.
+     * @param fileName file to read query from.
+     * @throws IOException
+     */
     public void registerScript(String fileName) throws IOException {
         try {
             GruntParser grunt = new GruntParser(new FileReader(new File(fileName)));
@@ -460,10 +509,22 @@ public class PigServer {
         }
     }
 
+    /**
+     * Intended to be used by unit tests only.
+     * Print a list of all aliases in in the current Pig Latin script.  Output is written to
+     * System.out.
+     * @throws FrontendException
+     */
     public void printAliases () throws FrontendException {
         System.out.println("aliases: " + currDAG.getAliasOp().keySet());
     }
 
+    /**
+     * Write the schema for an alias to System.out.
+     * @param alias Alias whose schema will be written out
+     * @return Schema of alias dumped
+     * @throws IOException
+     */
     public Schema dumpSchema(String alias) throws IOException{
         try {
             LogicalPlan lp = getPlanFromAlias(alias, "describe");
@@ -479,17 +540,42 @@ public class PigServer {
         }
     }
 
+    /**
+     * Set the name of the job.  This name will get translated to mapred.job.name.
+     * @param name of job
+     */
     public void setJobName(String name){
         currDAG.setJobName(name);
     }
     
+    /**
+     * Set Hadoop job priority.  This value will get translated to mapred.job.priority.
+     * @param priority valid values are found in {@link org.apache.hadoop.mapred.JobPriority}
+     */
     public void setJobPriority(String priority){
         currDAG.setJobPriority(priority);
     }
 
     /**
-     * Forces execution of query (and all queries from which it reads), in order to materialize
-     * result
+     * Executes a Pig Latin script up to and including indicated alias.  That is, if a user does:
+     * <pre>
+     * PigServer server = new PigServer();
+     * server.registerQuery("A = load 'foo';");
+     * server.registerQuery("B = filter A by $0 &gt; 0;");
+     * server.registerQuery("C = order B by $1;");
+     * </pre>
+     * Then
+     * <pre>
+     * server.openIterator("B");
+     * </pre>
+     * filtered but unsorted data will be returned.  If instead a user does
+     * <pre>
+     * server.openIterator("C");
+     * </pre>
+     * filtered and sorted data will be returned.
+     * @param id Alias to open iterator for
+     * @return iterator of tuples returned from the script
+     * @throws IOException
      */
     public Iterator<Tuple> openIterator(String id) throws IOException {
         try {
@@ -525,19 +611,61 @@ public class PigServer {
     }
     
     /**
-     * Store an alias into a file
+     * Executes a Pig Latin script up to and including indicated alias and stores the resulting
+     * records into a file.  That is, if a user does:
+     * <pre>
+     * PigServer server = new PigServer();
+     * server.registerQuery("A = load 'foo';");
+     * server.registerQuery("B = filter A by $0 &gt; 0;");
+     * server.registerQuery("C = order B by $1;");
+     * </pre>
+     * Then
+     * <pre>
+     * server.store("B", "bar");
+     * </pre>
+     * filtered but unsorted data will be stored to the file <tt>bar</tt>.  If instead a user does
+     * <pre>
+     * server.store("C", "bar");
+     * </pre>
+     * filtered and sorted data will be stored to the file <tt>bar</tt>.
+     * Equivalent to calling {@link #store(String, String, String)} with
+     * <tt>org.apache.pig.PigStorage</tt> as the store function. 
      * @param id The alias to store
      * @param filename The file to which to store to
+     * @return {@link ExecJob} containing information about this job
      * @throws IOException
      */
-
     public ExecJob store(String id, String filename) throws IOException {
         return store(id, filename, PigStorage.class.getName() + "()");   // SFPig is the default store function
     }
         
     /**
-     *  forces execution of query (and all queries from which it reads), in order to store result in file
-     */        
+     * Executes a Pig Latin script up to and including indicated alias and stores the resulting
+     * records into a file.  That is, if a user does:
+     * <pre>
+     * PigServer server = new PigServer();
+     * server.registerQuery("A = load 'foo';");
+     * server.registerQuery("B = filter A by $0 &gt; 0;");
+     * server.registerQuery("C = order B by $1;");
+     * </pre>
+     * Then
+     * <pre>
+     * server.store("B", "bar", "mystorefunc");
+     * </pre>
+     * filtered but unsorted data will be stored to the file <tt>bar</tt> using
+     * <tt>mystorefunc</tt>.  If instead a user does
+     * <pre>
+     * server.store("C", "bar", "mystorefunc");
+     * </pre>
+     * filtered and sorted data will be stored to the file <tt>bar</tt> using
+     * <tt>mystorefunc</tt>.
+     * <p>
+     * @param id The alias to store
+     * @param filename The file to which to store to
+     * @param func store function to use
+     * @return {@link ExecJob} containing information about this job
+     * @throws IOException
+     */
     public ExecJob store(
             String id,
             String filename,
@@ -597,7 +725,9 @@ public class PigServer {
     /**
      * Provide information on how a pig query will be executed.
      * @param alias Name of alias to explain.
-     * @param format Format in which the explain should be printed
+     * @param format Format in which the explain should be printed.  If text, then the plan will
+     * be printed in plain text.  Otherwise, the execution plan will be printed in
+     * <a href="http://en.wikipedia.org/wiki/DOT_language">DOT</a> format. 
      * @param verbose Controls the amount of information printed
      * @param markAsExecute When set will treat the explain like a
      * call to execute in the respoect that all the pending stores are
@@ -702,28 +832,59 @@ public class PigServer {
         return length * replication;
     }
     
+    /**
+     * Test whether a file exists.
+     * @param filename to test
+     * @return true if file exists, false otherwise
+     * @throws IOException
+     */
     public boolean existsFile(String filename) throws IOException {
         ElementDescriptor elem = pigContext.getDfs().asElement(filename);
         return elem.exists();
     }
     
+    /**
+     * Delete a file.
+     * @param filename to delete
+     * @return true
+     * @throws IOException
+     */
     public boolean deleteFile(String filename) throws IOException {
         ElementDescriptor elem = pigContext.getDfs().asElement(filename);
         elem.delete();
         return true;
     }
     
+    /**
+     * Rename a file.
+     * @param source file to rename
+     * @param target new file name
+     * @return true
+     * @throws IOException
+     */
     public boolean renameFile(String source, String target) throws IOException {
         pigContext.rename(source, target);
         return true;
     }
     
+    /**
+     * Make a directory.
+     * @param dirs directory to make
+     * @return true
+     * @throws IOException
+     */
     public boolean mkdirs(String dirs) throws IOException {
         ContainerDescriptor container = pigContext.getDfs().asContainer(dirs);
         container.create();
         return true;
     }
     
+    /** 
+     * List the contents of a directory.
+     * @param dir name of directory to list
+     * @return array of strings, one for each file name
+     * @throws IOException
+     */
     public String[] listPaths(String dir) throws IOException {
         Collection<String> allPaths = new ArrayList<String>();
         ContainerDescriptor container = pigContext.getDfs().asContainer(dir);
@@ -738,12 +899,19 @@ public class PigServer {
         return allPaths.toArray(type);
     }
     
+    /**
+     * Does not work at the moment.
+     */
     public long totalHadoopTimeSpent() {
 //      TODO FIX Need to uncomment this with the right logic
 //        return MapReduceLauncher.totalHadoopTimeSpent;
         return 0L;
     }
   
+    /**
+     * Return a map containing the logical plan associated with each alias.
+     * @return map
+     */
     public Map<String, LogicalPlan> getAliases() {
         Map<String, LogicalPlan> aliasPlans = new HashMap<String, LogicalPlan>();
         for(LogicalOperator op:  currDAG.getAliases().keySet()) {
@@ -771,6 +939,10 @@ public class PigServer {
         FileLocalizer.deleteTempFiles();
     }
 
+    /**
+     * Get the set of all current aliases.
+     * @return set
+     */
     public Set<String> getAliasKeySet() {
         return currDAG.getAliasOp().keySet();
     }

@@ -23,17 +23,19 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.OutputFormat;
 import org.apache.hadoop.mapreduce.RecordWriter;
+
+import org.apache.pig.classification.InterfaceAudience;
+import org.apache.pig.classification.InterfaceStability;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.util.UDFContext;
 
 
 /**
-* This interface is used to implement functions to write records
-* from a dataset.
-* 
-*
+* StoreFuncs take records from Pig's processing and store them into a data store.  Most frequently
+* this is an HDFS file, but it could also be an HBase instance, RDBMS, etc.
 */
-
+@InterfaceAudience.Public
+@InterfaceStability.Stable
 public interface StoreFuncInterface {
 
     /**
@@ -74,6 +76,8 @@ public interface StoreFuncInterface {
      * This method will be called in the frontend and backend multiple times. Implementations
      * should bear in mind that this method is called multiple times and should
      * ensure there are no inconsistent side effects due to the multiple calls.
+     * {@link #checkSchema(ResourceSchema)} will be called before any call to
+     * {@link #setStoreLocation(String, Job)}.
      * 
 
      * @param location Location returned by 
@@ -106,9 +110,7 @@ public interface StoreFuncInterface {
     void prepareToWrite(RecordWriter writer) throws IOException;
 
     /**
-     * Write a tuple the output stream to which this instance was
-     * previously bound.
-     * 
+     * Write a tuple to the data store.
      * @param t the tuple to store.
      * @throws IOException if an exception occurs during the write
      */
@@ -118,7 +120,10 @@ public interface StoreFuncInterface {
      * This method will be called by Pig both in the front end and back end to
      * pass a unique signature to the {@link StoreFuncInterface} which it can use to store
      * information in the {@link UDFContext} which it needs to store between
-     * various method invocations in the front end and back end. 
+     * various method invocations in the front end and back end.  This is necessary
+     * because in a Pig Latin script with multiple stores, the different
+     * instances of store functions need to be able to find their (and only their)
+     * data in the UDFContext object.
      * @param signature a unique signature to identify this StoreFuncInterface
      */
     public void setStoreFuncUDFContextSignature(String signature);

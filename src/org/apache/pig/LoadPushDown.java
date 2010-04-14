@@ -21,13 +21,18 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.pig.classification.InterfaceAudience;
+import org.apache.pig.classification.InterfaceStability;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 
 /**
  * This interface defines how to communicate to Pig what functionality can
  * be pushed into the loader.  If a given loader does not implement this interface
  * it will be assumed that it is unable to accept any functionality for push down.
+ * @since Pig 0.7
  */
+@InterfaceAudience.Public
+@InterfaceStability.Evolving
 public interface LoadPushDown {
 
     /**
@@ -54,10 +59,17 @@ public interface LoadPushDown {
      * the input are required. If the loader function cannot make use of this 
      * information, it is free to ignore it by returning an appropriate Response
      * @param requiredFieldList RequiredFieldList indicating which columns will be needed.
+     * @return Indicates which fields will be returned
+     * @throws FrontendException
      */
     public RequiredFieldResponse pushProjection(RequiredFieldList 
             requiredFieldList) throws FrontendException;
     
+    /**
+     * Describes a field that is required to execute a scripts.
+     */
+    @InterfaceAudience.Public
+    @InterfaceStability.Evolving
     public static class RequiredField implements Serializable {
         
         private static final long serialVersionUID = 1L;
@@ -152,6 +164,11 @@ public interface LoadPushDown {
         }
     }
 
+    /**
+     * List of fields that Pig knows to be required to executed a script.
+     */
+    @InterfaceAudience.Public
+    @InterfaceStability.Evolving
     public static class RequiredFieldList implements Serializable {
         
         private static final long serialVersionUID = 1L;
@@ -160,6 +177,7 @@ public interface LoadPushDown {
         private List<RequiredField> fields = new ArrayList<RequiredField>(); 
         
         /**
+         * Set the list of required fields.
          * @param fields
          */
         public RequiredFieldList(List<RequiredField> fields) {
@@ -167,6 +185,7 @@ public interface LoadPushDown {
         }
 
         /**
+         * Geta ll required fields as a list.
          * @return the required fields - this will be null if all fields are
          *         required
          */
@@ -194,12 +213,21 @@ public interface LoadPushDown {
             return result.toString();
         }
         
+        /**
+         * Add a field to the list of required fields.
+         * @param rf required field to add to the list.
+         */
         public void add(RequiredField rf)
         {
             fields.add(rf);
         }
     }
 
+    /**
+     * Indicates whether the loader will return the requested fields or all fields.
+     */
+    @InterfaceAudience.Public
+    @InterfaceStability.Evolving
     public static class RequiredFieldResponse {
         // the loader should pass true if it will return data containing
         // only the List of RequiredFields in that order. false if it
@@ -210,16 +238,20 @@ public interface LoadPushDown {
             this.requiredFieldRequestHonored = requiredFieldRequestHonored;
         }
 
-        // true if the loader will return data containing only the List of
-        // RequiredFields in that order. false if the loader will return all
-        // fields in the data
+        /**
+         * Indicates whether the loader will return only the requested fields or all fields.
+         * @return true if only requested fields will be returned, false if all fields will be
+         * returned.
+         */
         public boolean getRequiredFieldResponse() {
             return requiredFieldRequestHonored;
         }
 
-        // the loader should pass true if the it will return data containing
-        // only the List of RequiredFields in that order. false if the it
-        // will return all fields in the data
+        /**
+         * Set whether the loader will return only the requesetd fields or all fields.
+         * @param honored if true only requested fields will be returned, else all fields will be
+         * returned.
+         */
         public void setRequiredFieldResponse(boolean honored) {
             requiredFieldRequestHonored = honored;
         }

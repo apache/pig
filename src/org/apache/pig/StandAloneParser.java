@@ -32,6 +32,7 @@ import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.LogicalPlan;
 import org.apache.pig.impl.logicalLayer.LogicalOperator;
 
+@Deprecated
 public class StandAloneParser {
     
     private static final Log log = LogFactory.getLog(StandAloneParser.class);

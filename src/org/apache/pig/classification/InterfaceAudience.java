@@ -15,23 +15,31 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.pig;
+package org.apache.pig.classification;
 
-import java.io.IOException;
+import java.lang.annotation.Documented;
 
-import org.apache.pig.classification.InterfaceAudience;
-import org.apache.pig.classification.InterfaceStability;
-import org.apache.pig.data.Tuple;
+/**
+ * Annotation to inform users of a package, class or method's intended audience.
+ */
+public class InterfaceAudience {
+  /**
+   * Intended for use by any project or application.
+   */
+  @Documented public @interface Public {};
+  
+  /**
+   * Intended only for the project(s) specified in the annotation
+   */
+  @Documented public @interface LimitedPrivate {
+    String[] value();
+  };
+  
+  /**
+   * Intended for use only within Pig itself.
+   */
+  @Documented public @interface Private {};
 
-
-@InterfaceAudience.Public
-@InterfaceStability.Stable
-public abstract class FilterFunc extends EvalFunc<Boolean> {
-    
-    /**
-     * Placeholder for cleanup to be performed at the end. User defined functions can override.
-     * Default implementation is a no-op.
-     */
-    public void finish(){}
+  private InterfaceAudience() {} // Audience can't exist on its own
 }
 

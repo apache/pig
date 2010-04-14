@@ -28,6 +28,9 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.RecordReader;
+
+import org.apache.pig.classification.InterfaceAudience;
+import org.apache.pig.classification.InterfaceStability;
 import org.apache.pig.LoadPushDown.RequiredFieldList;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigSplit;
 import org.apache.pig.builtin.Utf8StorageConverter;
@@ -37,9 +40,18 @@ import org.apache.pig.impl.util.UDFContext;
 
 
 /**
- * <code>LoadFunc</code> provides functions directly associated with reading 
- * records from data set.
+ * A LoadFunc loads data into Pig.  It can read from an HDFS file or other source.
+ * LoadFunc is tightly coupled to Hadoop's {@link org.apache.hadoop.mapreduce.InputFormat}.
+ * LoadFunc's sit atop an InputFormat and translate from the keys and values of Hadoop
+ * to Pig's tuples.  
+ * <p>
+ * LoadFunc contains the basic features needed by the majority of load functions.  For
+ * more advanced functionality there are separate interfaces that a load function
+ * can implement.  See {@link LoadCaster}, {@link LoadMetadata}, {@link LoadPushDown}, 
+ * {@link OrderedLoadFunc}, {@link CollectableLoadFunc}, and {@link IndexableLoadFunc}.
  */
+@InterfaceAudience.Public
+@InterfaceStability.Stable
 public abstract class LoadFunc {
     
     /**

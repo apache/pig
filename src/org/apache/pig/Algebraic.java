@@ -17,6 +17,9 @@
  */
 package org.apache.pig;
 
+import org.apache.pig.classification.InterfaceAudience;
+import org.apache.pig.classification.InterfaceStability;
+
 /**
  * An interface to declare that an EvalFunc's 
  * calculation can be decomposed into intitial, intermediate, and final steps.
@@ -29,28 +32,34 @@ package org.apache.pig;
  * 
  * See the code for builtin AVG to get a better idea of how algebraic works.
  * 
- * When eval functions implement this interface, it is a hint to the system to try and compute
- * partial results early which causes queries to run faster. 
+ * When eval functions implement this interface, Pig will attempt to use MapReduce's combiner.
+ * The initial funciton will be called in the map phase and be passed a single tuple.  The
+ * intermediate function will be called 0 or more times in the combiner phase.  And the final
+ * function will be called once in the reduce phase.  It is important that the results be the same
+ * whether the intermediate function is called 0, 1, or more times.  Hadoop makes no guarantees
+ * about how many times the combiner will be called in a job.
  *
  */
+@InterfaceAudience.Public
+@InterfaceStability.Stable
 public interface Algebraic{
     
     /**
-     * 
-     * @return A string to instatiate f_init. f_init should be an eval func 
+     * Get the initial function. 
+     * @return A function name of f_init. f_init should be an eval func.
      */
     public String getInitial();
 
     /**
-     * 
-     * @return A string to instantiate f_intermed. f_intermed should be an eval func
+     * Get the intermediate function. 
+     * @return A function name of f_intermed. f_intermed should be an eval func.
      */
     public String getIntermed();
 
     /**
-     * 
-     * @return A string to instantiate f_final. f_final should be an eval func parametrized by
-     * the same datum as the eval func implementing this interface
+     * Get the final function. 
+     * @return A function name of f_final. f_final should be an eval func parametrized by
+     * the same datum as the eval func implementing this interface.
      */
     public String getFinal();
 }

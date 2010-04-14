@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-1370: Marking Pig interface for org.apache.pig package (gates)
+
 PIG-1354: UDFs for dynamic invocation of simple Java methods (dvryaboy)
 
 PIG-1316: TextLoader should use Bzip2TextInputFormat for bzip files so that
