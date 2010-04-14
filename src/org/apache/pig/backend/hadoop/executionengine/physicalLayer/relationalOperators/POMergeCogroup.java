@@ -35,6 +35,7 @@ import org.apache.pig.IndexableLoadFunc;
 import org.apache.pig.LoadFunc;
 import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigSplit;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
@@ -378,8 +379,7 @@ public class POMergeCogroup extends PhysicalOperator {
                 new FileSpec(indexFileName, idxFuncSpec));
 
         // Index file is distributed through Distributed Cache to all mappers. So, read it locally.
-        Properties props = new Properties();                                          
-        props.setProperty(MapRedUtil.FILE_SYSTEM_NAME, "file:///");
+        Properties props = ConfigurationUtil.getLocalFSProperties();
         ld.setPc(new PigContext(ExecType.LOCAL, props));
 
         // Each index entry is read as a pair of split index and a tuple consisting of key.

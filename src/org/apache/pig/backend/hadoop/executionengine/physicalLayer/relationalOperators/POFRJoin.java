@@ -320,9 +320,7 @@ public class POFRJoin extends PhysicalOperator {
             POLoad ld = new POLoad(new OperatorKey("Repl File Loader", 1L),
                     replFile);
             
-            Properties props = new Properties();                                          
-            props.setProperty(MapRedUtil.FILE_SYSTEM_NAME, "file:///");
-                         
+            Properties props = ConfigurationUtil.getLocalFSProperties();
             PigContext pc = new PigContext(ExecType.LOCAL, props);   
             ld.setPc(pc);
             // We use LocalRearrange Operator to seperate Key and Values

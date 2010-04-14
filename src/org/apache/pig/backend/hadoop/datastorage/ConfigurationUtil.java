@@ -25,6 +25,7 @@ import java.util.Properties;
 import java.util.Map.Entry;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.pig.backend.hadoop.executionengine.util.MapRedUtil;
 
 public class ConfigurationUtil {
 
@@ -61,5 +62,13 @@ public class ConfigurationUtil {
             origConf.set(entry.getKey(), entry.getValue());
         }
         
+    }
+    
+    public static Properties getLocalFSProperties() {
+        Configuration localConf = new Configuration(false);
+        localConf.addResource("core-default.xml");
+        Properties props = ConfigurationUtil.toProperties(localConf);
+        props.setProperty(MapRedUtil.FILE_SYSTEM_NAME, "file:///");
+        return props;
     }
 }
