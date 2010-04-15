@@ -26,6 +26,9 @@ PIG-922: Logical optimizer: push up project (daijy)
 
 IMPROVEMENTS
 
+PIG-1325: Provide a way to exclude a testcase when running "ant test"
+(pradeepkth)
+
 PIG-1376: Pig 060 Docs - ILLUSTRATE and Passing Configurations to UDFs (chandec via olgan)
 
 PIG-1214: Pig 0.6 Docs fixes (chandec via olgan)
