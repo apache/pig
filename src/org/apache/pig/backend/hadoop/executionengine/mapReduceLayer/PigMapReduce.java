@@ -54,6 +54,7 @@ import org.apache.pig.impl.plan.DependencyOrderWalker;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.impl.util.SpillableMemoryManager;
+import org.apache.pig.impl.util.UDFContext;
 import org.apache.pig.tools.pigstats.PigStatusReporter;
 
 /**
@@ -82,6 +83,15 @@ import org.apache.pig.tools.pigstats.PigStatusReporter;
 public class PigMapReduce {
 
     public static JobContext sJobContext = null;
+    
+    /**
+     * @deprecated Use {@link UDFContext} instead in the following way to get 
+     * the job's {@link Configuration}:
+     * <pre>UdfContext.getUdfContext().getJobConf()</pre>
+     */
+    // This is used by internal pig code - it is deprecated for user code but is
+    // used by Pig internal code to set up UDFContext's conf among other things.
+    @Deprecated
     public static Configuration sJobConf = null;
     private final static Tuple DUMMYTUPLE = null;
     

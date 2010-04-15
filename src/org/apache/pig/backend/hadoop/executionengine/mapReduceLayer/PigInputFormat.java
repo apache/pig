@@ -47,6 +47,7 @@ import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.impl.util.Pair;
+import org.apache.pig.impl.util.UDFContext;
 
 public class PigInputFormat extends InputFormat<Text, Tuple> {
 
@@ -61,6 +62,14 @@ public class PigInputFormat extends InputFormat<Text, Tuple> {
     };
     
     public static final String PIG_INPUTS = "pig.inputs";
+
+    /**
+     * @deprecated Use {@link UDFContext} instead in the following way to get 
+     * the job's {@link Configuration}:
+     * <pre>UdfContext.getUdfContext().getJobConf()</pre>
+     */
+    @Deprecated
+    public static Configuration sJob;
 
     /* (non-Javadoc)
      * @see org.apache.hadoop.mapreduce.InputFormat#createRecordReader(org.apache.hadoop.mapreduce.InputSplit, org.apache.hadoop.mapreduce.TaskAttemptContext)
@@ -93,6 +102,10 @@ public class PigInputFormat extends InputFormat<Text, Tuple> {
         
         // merge entries from split specific conf into the conf we got
         PigInputFormat.mergeSplitSpecificConf(loadFunc, pigSplit, conf);
+        
+        // for backward compatibility
+        PigInputFormat.sJob = conf;
+        
         InputFormat inputFormat = loadFunc.getInputFormat();
         // now invoke the createRecordReader() with this "adjusted" conf
         RecordReader reader = inputFormat.createRecordReader(
