@@ -1374,7 +1374,8 @@ public class MRCompiler extends PhyPlanVisitor {
             rightMROpr.requestedParallelism = 1; // we need exactly one reducer for indexing job.        
             
             // At this point, we must be operating on map plan of right input and it would contain nothing else other then a POLoad.
-            POLoad rightLoader = (POLoad)rightMROpr.mapPlan.getRoots().get(0);            
+            POLoad rightLoader = (POLoad)rightMROpr.mapPlan.getRoots().get(0);
+            joinOp.setSignature(rightLoader.getSignature());
             LoadFunc rightLoadFunc = rightLoader.getLoadFunc();
             if(IndexableLoadFunc.class.isAssignableFrom(rightLoadFunc.getClass())) {
                 joinOp.setRightLoaderFuncSpec(rightLoader.getLFile().getFuncSpec());
