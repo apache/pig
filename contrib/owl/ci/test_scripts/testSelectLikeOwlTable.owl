@@ -1,0 +1,33 @@
+drop owltable liketb1 within owldatabase likedb1;
+drop owltable liketb2 within owldatabase likedb1;
+drop owltable liketb3 within owldatabase likedb1;
+drop owltable liketb4 within owldatabase likedb2;
+drop owltable liketb5 within owldatabase likedb2;
+
+drop owldatabase likedb1;
+drop owldatabase likedb2;
+
+create owldatabase likedb1 identified by storage directory "likedb1Dir";
+create owldatabase likedb2 identified by storage directory "likedb2Dir";
+create owltable type basic liketb1 within owldatabase likedb1 define Property key feed : INTEGER schema "test1:int";
+create owltable type basic liketb2 within owldatabase likedb1 define Property key feed : INTEGER schema "test1:int";
+create owltable type basic liketb3 within owldatabase likedb1 define Property key feed : INTEGER schema "test1:int";
+create owltable type basic liketb4 within owldatabase likedb2 define Property key feed : INTEGER schema "test1:int";
+create owltable type basic liketb5 within owldatabase likedb2 define Property key feed : INTEGER schema "test1:int";
+
+select OwlTable objects where OwlTable like "liketb1";
+select OwlTable objects where OwlTable like "%iketb1";
+select OwlTable objects where OwlTable like "liketb%";
+select OwlTable objects where OwlTable like "%iketb%";
+select OwlTable objects within OwlDatabase likedb1 where OwlTable like "liketb%";
+select OwlTable objects within OwlDatabase likedb2 where OwlTable like "%tb%";
+select OwlTable objects within OwlDatabase wrongDatabaseName where OwlTable like "liketb"; 
+
+drop owltable liketb1 within owldatabase likedb1;
+drop owltable liketb2 within owldatabase likedb1;
+drop owltable liketb3 within owldatabase likedb1;
+drop owltable liketb4 within owldatabase likedb2;
+drop owltable liketb5 within owldatabase likedb2;
+
+drop owldatabase likedb1;
+drop owldatabase likedb2;

@@ -1,0 +1,70 @@
+--cleanup environment
+drop owltable testinterval within owldatabase testintervalowldatabase;
+drop owldatabase testintervalowldatabase;
+
+--Initialize environment
+create owldatabase testintervalowldatabase identified by
+ storage directory "http://namenode:8080/data/testintervalowldatabase";  
+
+
+create owltable type basic testinterval
+within owldatabase testintervalowldatabase
+partitioned by INTERVAL ("2009-10-09 18:00:00 PDT", 15 Minutes)
+with partition key datest
+partitioned by LIST with partition key part2 : INTEGER
+schema "test1:int";
+
+select owltable objects where owldatabase in (testintervalowldatabase);
+
+
+--publish test data
+publish dataelement to owltable testinterval within owldatabase testintervalowldatabase
+ partition (datest = "2009-10-09 18:00:00 PDT", part2 = 3)
+ schema "c2:int" delocation "testloc2";
+publish dataelement to owltable testinterval within owldatabase testintervalowldatabase
+ partition (datest = "2009-10-09 19:00:00 PDT", part2 = 4)
+ schema "c2:int" delocation "testloc3";
+publish dataelement to owltable testinterval within owldatabase testintervalowldatabase
+ partition (datest = "2009-10-09 19:10:00 PDT", part2 = 5)
+ schema "c2:int" delocation "testloc4";
+publish dataelement to owltable testinterval within owldatabase testintervalowldatabase
+ partition (datest = "2009-10-09 19:30:00 PDT", part2 = 6)
+ schema "c2:int" delocation "testloc5";
+
+
+--select dataelements
+select dataelement objects from owltable testinterval within owldatabase testintervalowldatabase with partition ( datest = "2009-10-09 18:00:00 PDT" );
+select dataelement objects from owltable testinterval within owldatabase testintervalowldatabase with partition ( datest = "2009-10-09 19:00:00 PDT" );
+select dataelement objects from owltable testinterval within owldatabase testintervalowldatabase with partition ( datest = "2009-10-09 19:14:59 PDT" );
+select dataelement objects from owltable testinterval within owldatabase testintervalowldatabase with partition ( datest = "2009-10-09 19:14:60 PDT" );
+select dataelement objects from owltable testinterval within owldatabase testintervalowldatabase with partition ( datest = "2009-10-09 19:15:00 PDT" );
+select dataelement objects from owltable testinterval within owldatabase testintervalowldatabase with partition ( datest = "2009-10-09 19:30:00 PDT" );
+select dataelement objects from owltable testinterval within owldatabase testintervalowldatabase with partition ( datest = "2009-10-09 19:30:00 PDT", part2=5);
+select dataelement objects from owltable testinterval within owldatabase testintervalowldatabase with partition ( datest = "2009-10-09 19:30:00 PDT", part2=6);
+
+--negative tests
+--date earlier than interval start
+publish dataelement to owltable testinterval within owldatabase testintervalowldatabase
+ partition (datest = "2009-10-09 16:00:00 PDT", part2 = 2)
+ schema "c2:int" delocation "testloc1";
+
+select dataelement objects from owltable testinterval within owldatabase testintervalowldatabase with partition ( datest = "2009-10-09 16:10:00 PDT" );
+
+--invalid date format
+publish dataelement to owltable testinterval within owldatabase testintervalowldatabase
+ partition (datest = 1, part2 = 6)
+ schema "c2:int" delocation "testloc5";
+
+publish dataelement to owltable testinterval within owldatabase testintervalowldatabase
+ partition (datest = "2009-10-09 19:30:00 QQQ", part2 = 6)
+ schema "c2:int" delocation "testloc5";
+
+publish dataelement to owltable testinterval within owldatabase testintervalowldatabase
+ partition (datest = "2009-10-09 19:30:00", part2 = 6)
+ schema "c2:int" delocation "testloc5";
+
+select dataelement objects from owltable testinterval within owldatabase testintervalowldatabase with partition ( datest = 1 );
+
+--cleanup environment
+drop owltable testinterval within owldatabase testintervalowldatabase;
+drop owldatabase testintervalowldatabase;

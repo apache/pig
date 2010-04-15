@@ -1,0 +1,1240 @@
+
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/* owl.jj Parse DDL */
+options
+{
+    STATIC = false ;
+    IGNORE_CASE = true;
+}
+
+PARSER_BEGIN(OwlParser)
+package org.apache.hadoop.owl.parser;
+    
+import java.io.*;
+import java.util.*;
+import java.io.PrintStream;
+import org.apache.hadoop.owl.logical.*;
+import org.apache.hadoop.owl.logical.ExpressionTree.TreeOperator;
+import org.apache.hadoop.owl.logical.ExpressionTree.LeafNode;
+import org.apache.hadoop.owl.logical.CommandInfo.Operator;
+import org.apache.hadoop.owl.protocol.OwlPartitionKey;
+import org.apache.hadoop.owl.common.OwlException;
+import org.apache.hadoop.owl.common.ErrorType;
+
+public class OwlParser   
+{
+    public static void main( String[] args ) throws ParseException, TokenMgrError, OwlException {
+        OwlParser parser = new OwlParser( System.in ) ;
+        Command cmd;
+        cmd = parser.Start();
+    }
+    
+    public static String TrimQuotes( String input ) {
+        if( input.length() > 1 ) {
+            if( (input.charAt(0) == '"'  && input.charAt(input.length() - 1) == '"') || (input.charAt(0) == '\'' && input.charAt(input.length() - 1) =='\'')) {
+                return input.substring(1, input.length() -1 );
+            }
+        }
+           return input;        
+    }
+
+    public static String TrimBrackets( String input ) {
+        if( input.length() > 1 ) {
+            if( input.charAt(0) == '(' && input.charAt(input.length() - 1) == ')' ) {
+                return input.substring(1, input.length() -1 );
+            }
+        }
+        return input;        
+    }
+}
+PARSER_END(OwlParser)
+
+// Specifying a lexical analyser
+
+SKIP : { " " }
+SKIP : { "\t" }
+SKIP : { "\n" | "\r" | "\r\n" }
+//TOKEN: { < #DIGIT : ["0"-"9"] > }
+//TOKEN: { < #LETTER : ["a"-"z","A"-"Z"] > }
+
+TOKEN: { < ADD  : "ADD" >  }
+TOKEN: { < ALTER  : "ALTER" >  }
+TOKEN: { < AND  : "AND" >  }
+TOKEN: { < AT  : "AT" >  }
+TOKEN: { < BY: "BY" >}
+TOKEN: { < OWLDATABASE : "OWLDATABASE" > }
+TOKEN: { < CHANGE  : "CHANGE" >  } 
+TOKEN: { < CREATE : "CREATE" > } 
+TOKEN: { < CLOSEPAR: (")") >}
+TOKEN: { < COMMA: (",") >}
+TOKEN: { < COLON: (":") >}
+TOKEN: { < DATAELEMENT: "DATAELEMENT" >}
+TOKEN: { < DELETE  : "DELETE" >  } 
+TOKEN: { < DESCRIBE  : "DESCRIBE" >  } 
+TOKEN: { < DEFINE  : "DEFINE" >  } 
+TOKEN: { < DELOCATION  : "DELOCATION" >  } 
+TOKEN: { < DIRECTORY : "DIRECTORY" > }
+TOKEN: { < DROP   : "DROP" >   } 
+TOKEN: { < FROM: ("FROM")>}
+TOKEN: { < HOURS: ("HOURS")>}
+TOKEN: { < IDENTIFIED : "IDENTIFIED" > }
+TOKEN: { < IDENTIFIER : ((<QUOTE> (~["\n","\r","\""])*  <QUOTE>) | (<SINGLEQUOTE> (~["\n","\r","\'"])*  <SINGLEQUOTE>)) > }
+TOKEN: { < IN : "IN"> }
+TOKEN: { < INTERVAL: "INTERVAL" >}
+TOKEN: { < KEY: "KEY" >}
+TOKEN: { < LEVEL : "LEVEL" >}
+TOKEN: { < LIST : "LIST" >}
+TOKEN: { < LOADER : "LOADER" >}
+TOKEN: { < MODIFY  : "MODIFY" >  } 
+TOKEN: { < MINUTES  : "MINUTES" >  } 
+TOKEN: { < NUMBER  : (["0"-"9"])+ >  } 
+TOKEN: { < NOTEQUALS  : "!=" >  } 
+TOKEN: { < OBJECTS: ("OBJECTS") >}
+TOKEN: { < OPENPAR: ("(") >}
+TOKEN: { < OR: "OR" >}
+TOKEN: { < OWLTABLE : "OWLTABLE" > }
+TOKEN: { < PARTITION : "PARTITION" > }
+TOKEN: { < PARTITIONED : "PARTITIONED" > }
+TOKEN: { < PARTITIONPROPERTY : "PARTITIONPROPERTY" > }
+TOKEN: { < PARTITIONKEY : "PARTITIONKEY" > }
+TOKEN: { < PROPERTY: "PROPERTY" >}
+TOKEN: { < PROPERTYKEY: "PROPERTYKEY" >}
+TOKEN: { < GLOBALKEY: "GLOBALKEY" >}
+TOKEN: { < PUBLISH  : "PUBLISH" >  } 
+TOKEN: { < QUOTE: ("\"")>}
+TOKEN: { < SINGLEQUOTE: ("\'")>}
+TOKEN: { < SCALAR : "SCALAR" >}
+TOKEN: { < SECONDS : "SECONDS" >}
+TOKEN: { < SELECT : "SELECT" > }
+TOKEN: { < SET : "SET" > }
+TOKEN: { < STORAGE : "STORAGE" > }
+TOKEN: { < SUBSCRIBE: ("SUBSCRIBE") >}
+TOKEN: { < SCHEMA: ("SCHEMA") >}
+TOKEN: { < TYPEBASIC : "TYPE BASIC" > }
+TOKEN: { < TO: "TO" >}
+TOKEN: { < VALUES: "VALUES" >}
+TOKEN: { < WITHIN: "WITHIN" >}
+TOKEN: { < WITH: "WITH" >}
+TOKEN: { < WHERE: "WHERE" >}
+
+TOKEN: { < EQUALS: "=" > }
+TOKEN: { < LE: "<=" > }
+TOKEN: { < GE: ">=" > }
+TOKEN: { < LT: "<" > }
+TOKEN: { < GT: ">" > }
+TOKEN: { < LIKE: "LIKE" > }
+
+TOKEN: { < VARIABLE : (["a"-"z","A"-"Z"] | ["0"-"9"] | ["_"])+ > }
+
+
+// Specifying the parser
+
+Command Start() throws OwlException:
+{
+   Command cmd;
+}
+{
+  {
+    try {
+          cmd = Parse();
+    } catch(TokenMgrError tmg) { 
+        throw new OwlException (ErrorType.PARSE_EXCEPTION, tmg); 
+    } catch(ParseException e) { 
+        throw new OwlException (ErrorType.PARSE_EXCEPTION, e); 
+    } 
+    return cmd; 
+  }
+}
+Command Parse() throws OwlException, ParseException, TokenMgrError:
+{
+   Token verb, object, name;
+   String verbs, objects, names;
+   Command cmd;
+}
+{
+   (
+    LOOKAHEAD(2)
+    cmd = CreateDatabase()
+    |
+    LOOKAHEAD(2)
+    cmd = CreateGlobalKey()
+    |
+    LOOKAHEAD(2)
+    cmd = DropGlobalKey()
+    |
+    LOOKAHEAD(2)
+    cmd = CreateOwltable()
+    |
+    LOOKAHEAD(2)
+    cmd = DropDatabase()
+    | 
+    LOOKAHEAD(2)
+    cmd = DropOwltable()
+    | 
+    cmd = DescribeOwltable()
+    | 
+    cmd = AlterTable()
+    |
+    cmd = PublishDataelement()
+    |
+    LOOKAHEAD(2)
+    cmd = SelectDataelementObjects()
+    |
+    LOOKAHEAD(2)
+    cmd = SelectPartitionPropertyObjects()
+    |
+    LOOKAHEAD(2)
+    cmd = SelectDatabaseObjects()
+    |
+    LOOKAHEAD(2)
+    cmd = SelectGlobalKeyObjects()
+    |
+    LOOKAHEAD(2)
+    cmd = SelectOwltableObjects()
+    |
+    LOOKAHEAD(2)
+    cmd = SelectPartitionObjects()
+    )
+    <EOF>
+    { return cmd; }
+}
+void PropertyKey(Command cmd) throws ParseException, TokenMgrError, OwlException
+:
+{
+    Token propertyKeyName, propertyKeyType;
+    String propertyKeyNameString, propertyKeyTypeString;
+}
+{
+    <DEFINE><PROPERTY><KEY>
+        (
+         propertyKeyName = <VARIABLE> 
+         { propertyKeyNameString = String.valueOf(propertyKeyName.image);}
+         <COLON>
+         propertyKeyType = <VARIABLE>
+         { 
+             propertyKeyTypeString = String.valueOf(propertyKeyType.image);
+             cmd.addPropertyKey(propertyKeyNameString,propertyKeyTypeString); 
+         }
+        )
+        (
+         <COMMA>
+         propertyKeyName = <VARIABLE> 
+         { propertyKeyNameString = String.valueOf(propertyKeyName.image);}
+         <COLON>
+         propertyKeyType = <VARIABLE>
+         {
+             propertyKeyTypeString = String.valueOf(propertyKeyType.image);
+             cmd.addPropertyKey(propertyKeyNameString,propertyKeyTypeString); 
+         }
+        )*
+
+}
+void PartitionKey(Command cmd) throws  ParseException, TokenMgrError, OwlException :
+{
+    Token partitioningType, partitionKey, partitionKeyType = null;
+    Token intervalStart, intervalFrequency, intervalFreqUnit;
+    String partitioningTypeString, partitionKeyString, partitionKeyTypeString = "LONG";
+    String intervalStartString = null;
+    Integer intervalFrequencyInt = null;
+    OwlPartitionKey.IntervalFrequencyUnit intervalFreqUnitEnum = null;
+
+    List<? extends Object> listValues = null;
+
+}
+{
+    <PARTITIONED><BY>
+        (
+         (
+          partitioningType = <INTERVAL>
+          { partitioningTypeString = partitioningType.image; }
+          <OPENPAR>
+          intervalStart = <IDENTIFIER> 
+          <COMMA>
+          intervalFrequency = <NUMBER>
+          ( intervalFreqUnit = <SECONDS> | intervalFreqUnit = <MINUTES> | intervalFreqUnit = <HOURS> )
+          <CLOSEPAR>
+          {
+              intervalStartString = TrimQuotes(intervalStart.image);
+              intervalFrequencyInt = Integer.parseInt(intervalFrequency.image);
+              intervalFreqUnitEnum = OwlPartitionKey.IntervalFrequencyUnit.valueOf(intervalFreqUnit.image.toUpperCase());
+          }
+
+          <WITH> <PARTITION> <KEY>
+          partitionKey = <VARIABLE>
+          { partitionKeyString = String.valueOf(partitionKey.image); }
+         )
+         |
+         (
+          partitioningType = <LIST>
+          { partitioningTypeString = partitioningType.image; }
+          ( listValues = ListValues() )?
+          <WITH> <PARTITION> <KEY>
+                partitionKey = <VARIABLE>
+                { partitionKeyString = String.valueOf(partitionKey.image); }
+                <COLON>
+                partitionKeyType = <VARIABLE> 
+                { partitionKeyTypeString = partitionKeyType.image; }
+            )
+         )
+         { 
+            cmd.addPartitionKey(partitionKeyString, partitionKeyTypeString, partitioningTypeString, listValues,
+                    intervalStartString, intervalFrequencyInt, intervalFreqUnitEnum); 
+         }
+}
+
+List<? extends Object> ListValues() throws ParseException, TokenMgrError :
+{
+    List<? extends Object> values;
+}
+{
+    <OPENPAR>
+    (
+    values = ListIntValues()
+    |
+    values = ListStringValues()
+    )
+    <CLOSEPAR>
+
+    { return values; }
+}
+
+List<Integer> ListIntValues() throws ParseException, TokenMgrError :
+{
+    List<Integer> values = new ArrayList<Integer>();
+    Token t;
+}
+{    
+    (    
+        LOOKAHEAD(2)
+        t = <NUMBER>
+        { 
+            values.add(Integer.valueOf(t.image));
+        }
+        <COMMA>
+    )*
+    (    
+        t = <NUMBER>
+        { 
+            values.add(Integer.valueOf(t.image));
+        }
+    )
+
+    { return values; }
+}
+
+
+List<String> ListStringValues() throws ParseException, TokenMgrError :
+{
+    List<String> values = new ArrayList<String>();
+    Token t;
+}
+{    
+    (    
+        LOOKAHEAD(2)
+        t = <IDENTIFIER>
+        { 
+            values.add(TrimQuotes(t.image));
+        }
+        <COMMA>
+    )*
+    (    
+        t = <IDENTIFIER>
+        { 
+            values.add(TrimQuotes(t.image));
+        }
+    )
+
+    { return values; }
+}
+
+
+void ModifyOrDropProperty(Command cmd) throws ParseException, TokenMgrError, OwlException : 
+{
+    Token action; 
+    String actionString; 
+}
+{
+    (
+      action = <MODIFY>
+      { actionString = "MODIFY PARTITION PROPERTY"; }
+      | 
+      action = <DROP>
+      { actionString = "DROP PARTITION PROPERTY"; }
+    )
+    { cmd.addAdditionalActionInfo(actionString); }
+    Property(cmd)
+}
+void Partition(Command cmd) throws ParseException, TokenMgrError, OwlException :
+{
+    Token key, value;
+    String keyString, valueString;
+}
+{
+     (
+        <PARTITION>
+        <OPENPAR>
+        (
+            key = <VARIABLE> 
+            { keyString = String.valueOf(key.image); }
+            <EQUALS>
+            ( value = <IDENTIFIER> | value = <NUMBER> )
+            {
+              valueString = TrimQuotes(String.valueOf(value.image)); 
+              cmd.addPartitionKeyValue(keyString, valueString); 
+            }
+        )
+        (
+          <COMMA>
+            key = <VARIABLE> 
+            { keyString = String.valueOf(key.image); }
+            <EQUALS>
+            ( value = <IDENTIFIER> | value = <NUMBER> )
+            { 
+              valueString = TrimQuotes(String.valueOf(value.image)); 
+              cmd.addPartitionKeyValue(keyString, valueString); 
+            }
+    
+        )*
+        <CLOSEPAR>
+     )
+}
+void Property(Command cmd) throws ParseException, TokenMgrError, OwlException :
+{
+    Token key, value;
+    String keyString, valueString;
+}
+{
+     (
+        <PROPERTY>
+        <OPENPAR>
+        (
+            key = <VARIABLE>
+            { keyString = String.valueOf(key.image); }
+            <EQUALS>
+            ( value = <IDENTIFIER> | value = <NUMBER> )
+            { valueString = TrimQuotes(String.valueOf(value.image)); 
+              cmd.addPropertyKeyValue(keyString, valueString); }
+    
+        ) 
+        (
+           <COMMA>
+            key = <VARIABLE>
+            { keyString = String.valueOf(key.image); }
+            <EQUALS>
+            ( value = <IDENTIFIER> | value = <NUMBER> )
+            { valueString = TrimQuotes(String.valueOf(value.image)); 
+              cmd.addPropertyKeyValue(keyString, valueString); }
+    
+        )*
+        <CLOSEPAR>
+     )
+}
+void PartitionWithOperator(Command cmd) throws ParseException, TokenMgrError, OwlException :
+{
+    Token key, value, operator;
+    String keyString, valueString, operatorString;
+}
+{
+     (
+        <PARTITION>
+        <OPENPAR>
+        (
+            key = <VARIABLE> 
+            { keyString = String.valueOf(key.image); }
+            (
+               operator = <EQUALS> 
+            |
+               LOOKAHEAD(2)
+               operator = <LE>
+            |
+               LOOKAHEAD(2)
+               operator = <GE>
+            |
+               LOOKAHEAD(2)
+               operator = <LIKE>
+            |
+               operator = <IN>
+            |
+               operator = <LT>
+            |
+               operator = <GT>
+            )
+            { operatorString = String.valueOf(operator.image); }
+            ( value = <IDENTIFIER> | value = <NUMBER> )
+            { 
+              valueString = TrimQuotes(String.valueOf(value.image)); 
+              cmd.addPartitionFilter(keyString, operatorString, valueString);
+            }
+    
+        )
+        (
+          <COMMA>
+            key = <VARIABLE> 
+            { keyString = String.valueOf(key.image); }
+            (
+               operator = <EQUALS> 
+            |
+               LOOKAHEAD(2)
+               operator = <LE>
+            |
+               LOOKAHEAD(2)
+               operator = <GE>
+            |
+               LOOKAHEAD(2)
+               operator = <LIKE>
+            |
+               operator = <IN>
+            |
+               operator = <LT>
+            |
+               operator = <GT>
+            )
+            { operatorString = String.valueOf(operator.image); }
+            ( value = <IDENTIFIER> | value = <NUMBER> )
+            { 
+              valueString = TrimQuotes(String.valueOf(value.image)); 
+              cmd.addPartitionFilter(keyString, operatorString, valueString); 
+            }
+    
+        )*
+        <CLOSEPAR>
+     )
+}
+void PropertyWithOperator(Command cmd) throws ParseException, TokenMgrError, OwlException :
+{
+    Token key, value,operator;
+    String keyString, valueString,operatorString;
+}
+{
+     (
+        <PROPERTY>
+        <OPENPAR>
+        (
+            key = <VARIABLE>
+            { keyString = String.valueOf(key.image); }
+            (
+               operator = <EQUALS> 
+            |
+               LOOKAHEAD(2)
+               operator = <LE>
+            |
+               LOOKAHEAD(2)
+               operator = <GE>
+            |
+               LOOKAHEAD(2)
+               operator = <LIKE>
+            |
+               operator = <IN>
+            |
+               operator = <LT>
+            |
+               operator = <GT>
+            )
+            { operatorString = String.valueOf(operator.image); }
+            ( value = <IDENTIFIER> | value = <NUMBER> )
+            { valueString = TrimQuotes(String.valueOf(value.image)); 
+              cmd.addPropertyFilter(keyString, operatorString, valueString); }
+    
+        ) 
+        (
+           <COMMA>
+            key = <VARIABLE>
+            { keyString = String.valueOf(key.image); }
+            (
+               operator = <EQUALS> 
+            |
+               LOOKAHEAD(2)
+               operator = <LE>
+            |
+               LOOKAHEAD(2)
+               operator = <GE>
+            |
+               LOOKAHEAD(2)
+               operator = <LIKE>
+            |
+               operator = <IN>
+            |
+               operator = <LT>
+            |
+               operator = <GT>
+            )
+            { operatorString = String.valueOf(operator.image); }
+            ( value = <IDENTIFIER> | value = <NUMBER> )
+            { valueString = TrimQuotes(String.valueOf(value.image)); 
+              cmd.addPropertyFilter(keyString, operatorString, valueString); }
+    
+        )*
+        <CLOSEPAR>
+     )
+}
+
+ExpressionTree Filter() throws ParseException, TokenMgrError, OwlException : {
+    ExpressionTree tree = new ExpressionTree();
+}
+{
+    (
+        FilterExpression(tree)
+    )
+    { return tree; }
+}
+
+void FilterExpression(ExpressionTree tree) throws ParseException, TokenMgrError, OwlException : { }
+{
+    (
+        FilterOrExpression(tree) 
+    )
+}
+
+//The OR expression grammer
+void FilterOrExpression(ExpressionTree tree) throws ParseException, TokenMgrError, OwlException : { }
+{
+    (
+        FilterAndExpression(tree)
+        (
+            <OR> 
+            FilterAndExpression(tree)
+            {
+                tree.addIntermediateNode(TreeOperator.OR);
+            }
+        )*
+    )
+}
+
+//The AND expression grammer
+void FilterAndExpression(ExpressionTree tree) throws ParseException, TokenMgrError, OwlException : { }
+{
+    (
+        FilterCondition(tree)
+        (
+            <AND> 
+            FilterCondition(tree)
+            {
+                tree.addIntermediateNode(TreeOperator.AND);
+            }
+        )*
+    )
+}
+
+//The condition grammer, condition being a expression with brackets or a filter operation
+void FilterCondition(ExpressionTree tree) throws ParseException, TokenMgrError, OwlException : { }
+{
+    (
+        LOOKAHEAD(<OPENPAR> FilterExpression(tree) <CLOSEPAR> ) 
+        ( <OPENPAR> FilterExpression(tree) <CLOSEPAR> )
+        |  
+        ( FilterOperation(tree) )
+    )
+}
+
+
+void FilterOperation(ExpressionTree tree) throws ParseException, TokenMgrError, OwlException :
+{
+    Token key = null, intValue = null, stringValue = null;
+    Operator operator = null;
+    List<? extends Object> values = null;
+    boolean isReverseOrder = false;
+}
+{
+    (
+        ( key = <VARIABLE> operator =  FilterOperator() 
+          (( intValue = <NUMBER> ) | stringValue = <IDENTIFIER> | values = ListValues())
+        )
+        |
+        ( (( intValue = <NUMBER> ) | ( stringValue = <IDENTIFIER> ))
+         operator = FilterOperator() key = <VARIABLE> { isReverseOrder = true; } 
+        )
+    )
+    {
+        LeafNode node = new LeafNode();
+        node.keyName = key.image;
+        if( intValue != null ) {
+            node.value = Integer.parseInt(intValue.image);
+        } else if( stringValue != null ) {
+            node.value = TrimQuotes(stringValue.image);
+        } else {
+            node.value = values;
+        }
+        node.operator = operator;
+        node.isReverseOrder = isReverseOrder;
+
+        tree.addLeafNode(node);
+    }
+}
+
+Operator FilterOperator()  throws ParseException, TokenMgrError, OwlException :
+{
+    Token t = null;
+}
+{
+    (
+        ( (t = <LE>) | (t = <LT>) | (t = <GE>) | (t = <GT>) | (t = <LIKE>) | (t = <IN>) | (t = <EQUALS>) )
+        {
+
+            return Operator.fromString(t.image.toUpperCase());
+        }
+       |
+        ( t = <NOTEQUALS> )
+        {
+            return Operator.fromString("<>");
+        }
+    )
+}
+
+void WithinDatabase(Command cmd ) throws ParseException, TokenMgrError, OwlException :
+{
+    Token databaseName;
+    String databaseNameString;
+}
+{
+        <WITHIN><OWLDATABASE>
+        databaseName = <VARIABLE>
+        { 
+          databaseNameString = String.valueOf(databaseName.image);
+          cmd.setParentDatabase(databaseNameString); 
+        }
+}
+void FromOwltable(Command cmd) throws ParseException, TokenMgrError, OwlException:
+{
+    Token owlTableName;
+    String owlTableNameString;
+}
+{
+    (
+        <FROM><OWLTABLE>
+                owlTableName = <VARIABLE> 
+        { 
+          owlTableNameString = String.valueOf(owlTableName.image); 
+          cmd.addAdditionalActionInfo(owlTableNameString); 
+        }
+    )
+}
+void Schema(Command cmd) throws ParseException, TokenMgrError, OwlException : 
+{
+    Token schema;
+    String schemaString;
+}
+{    (
+        <SCHEMA>
+        schema = <IDENTIFIER>
+        { 
+          schemaString = TrimQuotes(schema.image); 
+          cmd.addSchemaElement(schemaString); 
+        }
+    )
+}
+void Loader(Command cmd) throws ParseException, TokenMgrError, OwlException : 
+{
+    Token loader;
+    String loaderString;
+}
+{    (
+        <LOADER>
+        loader = <IDENTIFIER>
+        { loaderString = TrimQuotes(loader.image); 
+          cmd.addLoaderInformation(loaderString); }
+    )
+}
+void Delocation(Command cmd) throws ParseException, TokenMgrError, OwlException: 
+{
+    Token delocation;
+    String delocationString;
+}
+{    (
+        <DELOCATION>
+        delocation = <IDENTIFIER>
+        {
+            delocationString = TrimQuotes(delocation.image);
+            cmd.setLocation(delocationString);
+        }
+    )
+}
+
+void WhereDatabaseIn(Command cmd) throws ParseException, TokenMgrError, OwlException :
+{
+    Token cat;
+    String catString;
+    int index = 0;
+}
+{    
+    <WHERE>
+    <OWLDATABASE>
+    <IN>
+    (
+    <OPENPAR>
+    (    
+        cat = <VARIABLE>    
+        { 
+            catString = String.valueOf(cat.image); 
+            cmd.inDatabase(catString);  
+            index++; 
+        }
+    )
+    (
+        <COMMA>    
+        cat = <VARIABLE>    
+        {
+            catString = String.valueOf(cat.image); 
+            cmd.inDatabase(catString);  
+            index++; 
+        }
+    )*
+    <CLOSEPAR>
+    )    
+}
+void WhereOwlTableLike(Command cmd) throws ParseException, TokenMgrError, OwlException :
+{
+    Token cat;
+}
+{
+    <WHERE>
+    <OWLTABLE>
+    <LIKE>
+    (
+        cat = <IDENTIFIER>
+        {
+            cmd.likeTables(TrimQuotes(cat.image));
+        }
+    )
+}
+
+
+void WhereGlobalKeyIn(Command cmd) throws ParseException, TokenMgrError, OwlException :
+{
+    Token gkey;
+    String gkeyString;
+}
+{    
+    <WHERE>
+    <GLOBALKEY>
+    <IN>
+    (
+    <OPENPAR>
+    (    
+        gkey = <VARIABLE>    
+        { 
+            gkeyString = String.valueOf(gkey.image); 
+            cmd.addPropertyKey(gkeyString,null);  
+        }
+    )
+    (
+        <COMMA>    
+        gkey = <VARIABLE>    
+        {
+            gkeyString = String.valueOf(gkey.image); 
+            cmd.addPropertyKey(gkeyString,null);  
+        }
+    )*
+    <CLOSEPAR>
+    )    
+}
+
+void PropertyKeySet(Command cmd) throws ParseException, TokenMgrError, OwlException :
+{
+    Token propertykey;
+    String propertykeyString;
+}
+{
+    <PROPERTYKEY><IN>
+    <OPENPAR>
+    (
+        propertykey = <VARIABLE>
+        { propertykeyString = String.valueOf(propertykey.image);
+          cmd.inPropertyKeySet(propertykeyString);}
+    )+
+    <CLOSEPAR>
+}
+/* *****************
+*  Basic Command Functions 
+*  *****************/
+Command CreateDatabase() throws ParseException, TokenMgrError, OwlException :
+{
+    Token cat, hdfsdir = null;
+    String hdfsdirString = null;
+    Command cmd;
+}
+{   (
+    <CREATE> <OWLDATABASE>
+    cat = <VARIABLE>
+    (
+        <IDENTIFIED> <BY> <STORAGE> <DIRECTORY>
+        hdfsdir = <IDENTIFIER>
+    ) 
+    {
+        cmd = CommandFactory.getCommand("CREATE OWLDATABASE");
+        cmd.setName(cat.image); 
+        hdfsdirString = TrimQuotes(hdfsdir.image);
+        cmd.setExternalStorageIdentifier(hdfsdirString);  
+    }
+    )
+    { return cmd; }
+}
+
+Command CreateGlobalKey() throws ParseException, TokenMgrError, OwlException :
+{
+    Token gkeyName, gkeyType = null;
+    String gkeyNameString = null;
+    String gkeyTypeString = null;
+    Command cmd;
+}
+{   (
+    <CREATE> <GLOBALKEY>
+    { cmd = CommandFactory.getCommand("CREATE GLOBALKEY"); }
+    gkeyName = <VARIABLE> 
+    { gkeyNameString = String.valueOf(gkeyName.image);}
+    <COLON>
+    gkeyType = <VARIABLE>
+    { 
+        gkeyTypeString = String.valueOf(gkeyType.image);
+        cmd.addPropertyKey(gkeyNameString,gkeyTypeString); 
+    }
+    )
+    { return cmd; }
+}
+
+Command DropGlobalKey() throws ParseException, TokenMgrError, OwlException :
+{
+    Token gkeyName, gkeyType = null;
+    String gkeyNameString = null;
+    String gkeyTypeString = null;
+    Command cmd;
+}
+{   (
+    <DROP> <GLOBALKEY>
+    { cmd = CommandFactory.getCommand("DROP GLOBALKEY"); }
+    gkeyName = <VARIABLE> 
+    {
+        gkeyNameString = String.valueOf(gkeyName.image);
+        cmd.addPropertyKey(gkeyNameString,null); 
+    }
+    )
+    { return cmd; }
+}
+
+Command CreateOwltable() throws ParseException, TokenMgrError, OwlException :
+{    
+    Token owltableName,databaseName;
+    String owltableNameString, databaseNameString;
+    Command cmd;
+}
+{
+    (
+        <CREATE><OWLTABLE><TYPEBASIC>
+        owltableName = <VARIABLE>
+
+        {
+            cmd = CommandFactory.getCommand("CREATE OWLTABLE");
+            owltableNameString = String.valueOf(owltableName.image); 
+            cmd.setName(owltableNameString);
+        }
+
+        WithinDatabase(cmd)
+        (    
+            PropertyKey(cmd)
+        |
+            PartitionKey(cmd)
+        )*
+        ( Schema(cmd) )?
+        ( Loader(cmd) )?
+    )
+    { return cmd; }
+}
+
+Command DropDatabase() throws ParseException, TokenMgrError, OwlException :
+{    
+    Token databaseName;
+    String databaseNameString;
+    Command cmd;
+}
+{
+    (    <DROP><OWLDATABASE>
+        databaseName = <VARIABLE>
+        { 
+            cmd = CommandFactory.getCommand("DROP OWLDATABASE");
+            databaseNameString = String.valueOf(databaseName.image);
+            cmd.setName(databaseNameString); 
+        }
+    )
+    { return cmd; }
+}
+
+Command DropOwltable() throws ParseException, TokenMgrError, OwlException :
+{
+    Token owltableName, databaseName;
+    String owltableNameString, databaseNameString;
+    Command cmd;
+}
+{    (
+        <DROP><OWLTABLE>
+        { cmd = CommandFactory.getCommand("DROP OWLTABLE");}
+        owltableName = <VARIABLE>
+        { owltableNameString = String.valueOf(owltableName.image);
+          cmd.setName(owltableNameString); }
+        WithinDatabase(cmd)
+    )
+    { return cmd; }
+}
+
+Command DescribeOwltable() throws ParseException, TokenMgrError, OwlException :
+{
+    Token owltableName, databaseName;
+    String owltableNameString, databaseNameString;
+    Command cmd;
+}
+{    (
+        <DESCRIBE><OWLTABLE>
+        { cmd = CommandFactory.getCommand("DESCRIBE OWLTABLE");}
+        owltableName = <VARIABLE>
+        { owltableNameString = String.valueOf(owltableName.image);
+          cmd.setName(owltableNameString); }
+        WithinDatabase(cmd)
+    )
+    { return cmd; }
+}
+
+Command AlterTable() throws ParseException, TokenMgrError, OwlException :
+{    
+    Token owltableName, databaseName;
+    String owltableNameString, databaseNameString;
+    Command cmd;
+}
+{
+    (   <ALTER><OWLTABLE>
+        { cmd = CommandFactory.getCommand("ALTER OWLTABLE"); }
+        owltableName = <VARIABLE>
+        { 
+            owltableNameString = String.valueOf(owltableName.image);
+            cmd.setName(owltableNameString); 
+        }
+        WithinDatabase(cmd)
+        (   LOOKAHEAD(2)
+            ModifyOrDropProperty(cmd)
+        |   <WITH>
+            PartitionWithOperator(cmd)
+            (
+                ModifyOrDropProperty(cmd)
+                |    
+                <DELETE><DATAELEMENT>
+                { cmd.addAdditionalActionInfo("DELETE DATA ELEMENT"); }
+            )
+        |
+            <DROP>
+            { cmd.addAdditionalActionInfo("DROP PARTITION"); }
+            ( PartitionWithOperator(cmd) ) ?
+        |
+            <AT><PARTITION><LEVEL>
+            { cmd.addAdditionalActionInfo("ADD PROPERTY KEY"); }
+            AddPropertyKey(cmd)
+        |   AlterTableSchema(cmd)
+        )
+    )
+    { return cmd; }
+}
+
+Command PublishDataelement() throws ParseException, TokenMgrError, OwlException :
+{
+    Token owltableName, databaseName, schema;
+    String owltableNameString, databaseNameString, schemaString;
+    Command cmd;
+}
+{    (  <PUBLISH><DATAELEMENT>
+        { cmd = CommandFactory.getCommand("PUBLISH DATAELEMENT");}
+
+        <TO><OWLTABLE>
+        owltableName = <VARIABLE>
+        { 
+          owltableNameString = String.valueOf(owltableName.image);
+          cmd.setName(owltableNameString); 
+        }
+        WithinDatabase(cmd)
+        ( Partition(cmd) )?
+        ( Property(cmd))?
+        Schema(cmd) 
+        Delocation(cmd)
+        ( Loader(cmd) )?
+    )
+    { return cmd; }
+}
+
+Command SelectDataelementObjects() throws ParseException, TokenMgrError, OwlException :
+{
+    Command cmd;
+}
+{    (
+        <SELECT><DATAELEMENT><OBJECTS>
+        { cmd = CommandFactory.getCommand("SELECT DATAELEMENT OBJECTS");}
+
+        FromOwltable(cmd)    
+        WithinDatabase(cmd)
+        <WITH>
+        ( PartitionWithOperator(cmd))?
+         
+        ( PropertyWithOperator(cmd) )?
+    )
+    {return cmd; }
+}
+
+Command SelectPartitionPropertyObjects() throws ParseException, TokenMgrError, OwlException :
+{
+    Command cmd;
+}
+{     (
+        <SELECT><PARTITIONPROPERTY><OBJECTS>
+        { cmd = CommandFactory.getCommand("SELECT PARTITIONPROPERTY OBJECTS");}
+
+        FromOwltable(cmd)
+        WithinDatabase(cmd)
+        // Partition Predicates is not mandatory for non-partitioned datasets. 
+        ( 
+        <WITH>
+            PartitionWithOperator(cmd) 
+        )?
+        // PropertyKeySet is not mandatory
+        (
+            PropertyWithOperator(cmd)
+        )?
+    )
+    { return cmd; }
+}
+
+Command SelectDatabaseObjects() throws ParseException, TokenMgrError, OwlException :
+{    
+    Command cmd;
+}
+{    (
+        <SELECT><OWLDATABASE><OBJECTS>
+        { cmd = CommandFactory.getCommand("SELECT OWLDATABASE OBJECTS");}
+        ( WhereDatabaseIn(cmd) )? // DatabaseIn is optional 
+    )
+    { return cmd; }
+}
+
+Command SelectGlobalKeyObjects() throws ParseException, TokenMgrError, OwlException :
+{    
+    Command cmd;
+}
+{    (
+        <SELECT><GLOBALKEY><OBJECTS>
+        { cmd = CommandFactory.getCommand("SELECT GLOBALKEY OBJECTS");}
+        ( WhereGlobalKeyIn(cmd) )? // GlobalKeyIn is optional
+    )
+    { return cmd; }
+}
+
+Command SelectOwltableObjects() throws ParseException, TokenMgrError, OwlException :
+{    
+    Command cmd;
+}
+{    (
+        <SELECT><OWLTABLE><OBJECTS>
+        { cmd = CommandFactory.getCommand("SELECT OWLTABLE OBJECTS");}
+        (
+            LOOKAHEAD(3)
+            (
+                (WithinDatabase(cmd))?
+                WhereOwlTableLike(cmd)
+            )
+        |
+            LOOKAHEAD(2)
+            (WhereDatabaseIn(cmd))?  // DatabaseIn is optional 
+         )
+    )
+    { return cmd; }
+}
+
+void AddPropertyKey(Command cmd) throws ParseException, TokenMgrError, OwlException :
+{
+    Token insertToLevel, keyName,  keyType;
+    String insertToLevelString, keyNameString, keyTypeString;
+    int insertToLevelInt;
+}
+{    
+    (  <OPENPAR>
+        insertToLevel = <NUMBER>
+        <CLOSEPAR>
+        { insertToLevelString = String.valueOf(insertToLevel.image);}
+        { insertToLevelInt = Integer.parseInt(insertToLevelString); } 
+        <ADD> <PROPERTYKEY>
+        <OPENPAR>    
+        keyName = <VARIABLE>
+        { keyNameString = String.valueOf(keyName.image);}
+        <COLON>
+        keyType = <VARIABLE>
+        { keyTypeString = String.valueOf(keyType.image);}
+        { cmd.addPropertyKey(keyNameString, keyTypeString);}
+        (    
+           <COMMA>
+           keyName = <VARIABLE>
+           { keyNameString = String.valueOf(keyName.image);}
+           <COLON>
+           keyType = <VARIABLE>
+           { 
+             keyTypeString = String.valueOf(keyType.image);
+             cmd.addPropertyKey(keyNameString, keyTypeString);
+           }
+        )*
+        <CLOSEPAR>
+   )
+} 
+
+void AlterTableSchema(Command cmd) throws ParseException, TokenMgrError, OwlException :
+{
+    Token schemaToken;
+    String schemaString;
+}
+{    
+   (  <SET> 
+      <SCHEMA>
+      schemaToken = <IDENTIFIER>
+      {
+          cmd.addAdditionalActionInfo("SET SCHEMA");
+          schemaString = TrimQuotes(schemaToken.image); 
+          cmd.addSchemaElement(schemaString); 
+      }
+   )
+} 
+
+
+Command SelectPartitionObjects() throws ParseException, TokenMgrError, OwlException :
+{
+    Command cmd;
+    ExpressionTree filter;
+    Token partitionLevel;
+}
+{   
+    (
+        <SELECT> <PARTITION> <OBJECTS>
+        { cmd = CommandFactory.getCommand("SELECT PARTITION OBJECTS"); }
+        FromOwltable(cmd)
+        WithinDatabase(cmd)
+        //Optional filter
+        ( 
+            <WITH> <PARTITION> <OPENPAR>
+            filter = Filter() { cmd.setFilter(filter);  }
+            <CLOSEPAR>
+        )?
+        //Optional partition level
+        (
+            <AT> <PARTITION> <LEVEL> <OPENPAR>
+            partitionLevel = <VARIABLE> { cmd.setPartitionLevel(partitionLevel.image); }
+            <CLOSEPAR>
+        )?
+    )
+    { return cmd; }
+}

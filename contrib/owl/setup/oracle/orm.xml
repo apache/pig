@@ -1,0 +1,464 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!--
+   Licensed to the Apache Software Foundation (ASF) under one or more
+   contributor license agreements.  See the NOTICE file distributed with
+   this work for additional information regarding copyright ownership.
+   The ASF licenses this file to You under the Apache License, Version 2.0
+   (the "License"); you may not use this file except in compliance with
+   the License.  You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+-->
+ <!--  This orm is for oracle -->
+
+<entity-mappings xmlns="http://java.sun.com/xml/ns/persistence/orm"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://java.sun.com/xml/ns/persistence/orm http://java.sun.com/xml/ns/persistence/orm_2_0.xsd"
+    version="2.0">
+    <description>JPA Mapping file for Owl with JPA</description>
+    <package>org.apache.hadoop.owl.orm</package>
+
+    <entity class="org.apache.hadoop.owl.entity.DatabaseEntity" name="DatabaseEntity">
+        <table name="owl_database"/>
+        <attributes>
+            <id name="id">
+                <column name="odb_id"/>
+                <generated-value strategy="AUTO"/>
+            </id>
+            <basic name="name">
+                <column name="odb_name" length="255"/>
+            </basic>
+            <basic name="description">
+                <column name="odb_description" length="255"/>
+            </basic>
+            <basic name="owner">
+                <column name="odb_owner" length="255"/>
+            </basic>
+            <basic name="location">
+                <column name="odb_location" length="750"/>
+            </basic>
+            <basic name="createdAt">
+                <column name="odb_createdat"/>
+            </basic>
+            <basic name="lastModifiedAt">
+                <column name="odb_lastmodified"/>
+            </basic>
+            <basic name="version">
+                <column name="odb_version"/>
+            </basic>
+        </attributes>
+    </entity>
+
+    <entity class="org.apache.hadoop.owl.entity.OwlTableEntity" name="OwlTableEntity">
+        <table name="owl_table"/>
+        <attributes>
+            <id name="id">
+                <column name="ot_id"/>
+                <generated-value strategy="AUTO"/>
+            </id>
+            <basic name="databaseId">
+                <column name="ot_database_id"/>
+            </basic>
+            <basic name="name">
+                <column name="ot_name" length="255"/>
+            </basic>
+            <basic name="description">
+                <column name="ot_description" length="255"/>
+            </basic>
+            <basic name="location">
+                <column name="ot_location" length="750"/>
+            </basic>
+            <basic name="owner">
+                <column name="ot_owner" length="255"/>
+            </basic>
+            <basic name="createdAt">
+                <column name="ot_createdat"/>
+            </basic>
+            <basic name="lastModifiedAt">
+                <column name="ot_lastmodified"/>
+            </basic>
+            <basic name="version">
+                <column name="ot_version"/>
+            </basic>
+            <basic name="schemaId">
+                <column name="ot_schemaid"/>
+            </basic>
+            <basic name="loader">
+                <column name="ot_loader"/>
+            </basic>
+            <one-to-many name="partitionKeys" target-entity="org.apache.hadoop.owl.entity.PartitionKeyEntity" mapped-by="owlTable">
+                <join-column name="pak_owltable_id"/>
+                <cascade>
+                    <cascade-all/>
+                </cascade>
+            </one-to-many>
+
+            <one-to-many name="propertyKeys" target-entity="org.apache.hadoop.owl.entity.PropertyKeyEntity" mapped-by="owlTable">
+                <join-column name="prk_owltable_id"/>
+                <cascade>
+                    <cascade-all/>
+                </cascade>
+            </one-to-many>
+
+            <one-to-many name="keyValues" target-entity="org.apache.hadoop.owl.entity.OwlTableKeyValueEntity" mapped-by="owlTable">
+                <join-column name="otkv_owltable_id"/>
+                <cascade>
+                    <cascade-all/>
+                </cascade>
+            </one-to-many>
+
+        </attributes>
+    </entity>
+
+    <entity class="org.apache.hadoop.owl.entity.PartitionEntity" name="PartitionEntity">
+        <table name="owl_partition"/>
+        <attributes>
+            <id name="id">
+                <column name="p_id"/>
+                <generated-value strategy="AUTO"/>
+            </id>
+            <basic name="owlTableId">
+                <column name="p_owltable_id"/>
+            </basic>
+            <basic name="description">
+                <column name="p_description" length="255"/>
+            </basic>
+            <basic name="owner">
+                <column name="p_owner" length="255"/>
+            </basic>
+            <basic name="parentPartitionId">
+                <column name="p_parent_partition_id"/>
+            </basic>
+            <basic name="partitionLevel">
+                <column name="p_partition_level"/>
+            </basic>
+            <basic name="state">
+                <column name="p_state"/>
+            </basic>
+            <basic name="isLeaf">
+                <column name="p_isleaf"/>
+            </basic>
+            <basic name="partitionLevel">
+                <column name="p_partition_level"/>
+            </basic>
+            <basic name="createdAt">
+                <column name="p_createdat"/>
+            </basic>
+            <basic name="lastModifiedAt">
+                <column name="p_lastmodified"/>
+            </basic>
+            <basic name="version">
+                <column name="p_version"/>
+            </basic>
+
+            <one-to-many name="keyValues" target-entity="org.apache.hadoop.owl.entity.KeyValueEntity" mapped-by="partition">
+                <join-column name="kv_partition_id"/>
+                <cascade>
+                    <cascade-all/>
+                </cascade>
+            </one-to-many>
+
+        </attributes>
+    </entity>
+
+
+    <entity class="org.apache.hadoop.owl.entity.DataElementEntity" name="DataElementEntity">
+        <table name="owl_dataelement"/>
+        <attributes>
+            <id name="id">
+                <column name="de_id"/>
+                <generated-value strategy="AUTO"/>
+            </id>
+            <basic name="owlTableId">
+                <column name="de_owltable_id"/>
+            </basic>
+            <basic name="partitionId">
+                <column name="de_partition_id"/>
+            </basic>
+            <basic name="description">
+                <column name="de_description" length="255"/>
+            </basic>
+            <basic name="owner">
+                <column name="de_owner" length="255"/>
+            </basic>
+            <basic name="location">
+                <column name="de_location" length="750"/>
+            </basic>
+            <basic name="createdAt">
+                <column name="de_createdat"/>
+            </basic>
+            <basic name="lastModifiedAt">
+                <column name="de_lastmodified"/>
+            </basic>
+            <basic name="version">
+                <column name="de_version"/>
+            </basic>
+            <basic name="loader">
+                <column name="de_loader"/>
+            </basic>
+            <basic name="schemaId">
+                <column name="de_schemaid"/>
+            </basic>
+        </attributes>
+    </entity>
+
+    <entity class="org.apache.hadoop.owl.entity.GlobalKeyEntity" name="GlobalKeyEntity">
+        <table name="owl_globalkey"/>
+        <attributes>
+            <id name="id">
+                <column name="gk_id"/>
+                <generated-value strategy="AUTO"/>
+            </id>
+            <basic name="name">
+                <column name="gk_name" length="255"/>
+            </basic>
+            <basic name="dataType">
+                <column name="gk_data_type"/>
+            </basic>
+            <basic name="description">
+                <column name="gk_description" length="255"/>
+            </basic>
+            <basic name="owner">
+                <column name="gk_owner" length="255"/>
+            </basic>
+            <basic name="createdAt">
+                <column name="gk_createdat"/>
+            </basic>
+            <basic name="lastModifiedAt">
+                <column name="gk_lastmodified"/>
+            </basic>
+            <basic name="version">
+                <column name="gk_version"/>
+            </basic>
+
+            <one-to-many name="listValues" target-entity="org.apache.hadoop.owl.entity.KeyListValueEntity">
+                <join-column name="klv_glob_key_id"/>
+                <cascade>
+                    <cascade-all/>
+                </cascade>
+            </one-to-many>
+            
+        </attributes>
+    </entity>
+
+
+    <entity class="org.apache.hadoop.owl.entity.PartitionKeyEntity" name="PartitionKeyEntity">
+        <table name="owl_partitionkey"/>
+        <attributes>
+            <id name="id">
+                <column name="pak_id"/>
+                <generated-value strategy="AUTO"/>
+            </id>
+            <basic name="partitionLevel">
+                <column name="pak_partition_level"/>
+            </basic>
+            <basic name="name">
+                <column name="pak_name" length="255"/>
+            </basic>
+            <basic name="dataType">
+                <column name="pak_data_type"/>
+            </basic>
+            <basic name="partitioningType">
+                <column name="pak_partitioning_type"/>
+            </basic>
+            <basic name="intervalStart">
+                <column name="pak_interval_start"/>
+            </basic>
+            <basic name="intervalFrequency">
+                <column name="pak_interval_freq"/>
+            </basic>
+            <basic name="intervalFrequencyUnit">
+                <column name="pak_interval_freq_unit"/>
+            </basic>
+
+            <many-to-one name="owlTable">
+                <join-column name="pak_owltable_id"/>
+            </many-to-one>
+
+            <one-to-many name="listValues" target-entity="org.apache.hadoop.owl.entity.KeyListValueEntity">
+                <join-column name="klv_part_key_id"/>
+                <cascade>
+                    <cascade-all/>
+                </cascade>
+            </one-to-many>
+            
+        </attributes>
+    </entity>
+
+
+    <entity class="org.apache.hadoop.owl.entity.PropertyKeyEntity" name="PropertyKeyEntity">
+        <table name="owl_propertykey"/>
+        <attributes>
+            <id name="id">
+                <column name="prk_id"/>
+                <generated-value strategy="AUTO"/>
+            </id>
+            <basic name="name">
+                <column name="prk_name" length="255"/>
+            </basic>
+            <basic name="dataType">
+                <column name="prk_data_type"/>
+            </basic>
+
+            <many-to-one name="owlTable">
+                <join-column name="prk_owltable_id"/>
+            </many-to-one>
+
+            <one-to-many name="listValues" target-entity="org.apache.hadoop.owl.entity.KeyListValueEntity">
+                <join-column name="klv_prop_key_id"/>
+                <cascade>
+                    <cascade-all/>
+                </cascade>
+            </one-to-many>
+            
+        </attributes>
+    </entity>
+
+
+    <entity class="org.apache.hadoop.owl.entity.OwlTableKeyValueEntity" name="OwlTableKeyValueEntity">
+        <table name="owl_tablekeyvalue"/>
+        <attributes>
+            <id name="id">
+                <column name="otkv_id"/>
+                <generated-value strategy="AUTO"/>
+            </id>
+            <basic name="propertyKeyId">
+                <column name="otkv_prop_key_id"/>
+            </basic>
+            <basic name="globalKeyId">
+                <column name="otkv_glob_key_id"/>
+            </basic>
+            <basic name="intValue">
+                <column name="otkv_int_value"/>
+            </basic>
+            <basic name="stringValue">
+                <column name="otkv_string_value" length="255"/>
+            </basic>
+
+            <many-to-one name="owlTable">
+                <join-column name="otkv_owltable_id"/>
+            </many-to-one>
+        </attributes>
+    </entity>
+
+
+    <entity class="org.apache.hadoop.owl.entity.KeyValueEntity" name="KeyValueEntity">
+        <table name="owl_keyvalue"/>
+        <attributes>
+            <id name="id">
+                <column name="kv_id"/>
+                <generated-value strategy="AUTO"/>
+            </id>
+            <basic name="owlTableId">
+                <column name="kv_owltable_id"/>
+            </basic>
+            <basic name="propertyKeyId">
+                <column name="kv_prop_key_id"/>
+            </basic>
+            <basic name="globalKeyId">
+                <column name="kv_glob_key_id"/>
+            </basic>
+            <basic name="partitionKeyId">
+                <column name="kv_part_key_id"/>
+            </basic>
+            <basic name="intValue">
+                <column name="kv_int_value"/>
+            </basic>
+            <basic name="stringValue">
+                <column name="kv_string_value" length="255"/>
+            </basic>
+
+            <many-to-one name="partition">
+                <join-column name="kv_partition_id"/>
+            </many-to-one>
+        </attributes>
+    </entity>
+
+
+
+    <entity class="org.apache.hadoop.owl.entity.KeyListValueEntity" name="KeyListValueEntity">
+        <table name="owl_keylistvalue"/>
+        <attributes>
+            <id name="id">
+                <column name="klv_id"/>
+                <generated-value strategy="AUTO"/>
+            </id>
+
+            <basic name="intValue">
+                <column name="klv_int_value"/>
+            </basic>
+            <basic name="stringValue">
+                <column name="klv_string_value" length="255"/>
+            </basic>
+
+        </attributes>
+    </entity>
+
+
+    <entity class="org.apache.hadoop.owl.entity.OwlSchemaEntity" name="OwlSchemaEntity">
+        <table name="owl_schema"/>
+        <attributes>
+            <id name="id">
+                <column name="s_id"/>
+                <generated-value strategy="AUTO"/>
+            </id>
+            <basic name="owner">
+                <column name="s_owner" length="255"/>
+            </basic>
+            <basic name="description">
+                <column name="s_description" length="255"/>
+            </basic>
+            <basic name="createdAt">
+                <column name="s_createdAt"/>
+            </basic>
+            <basic name="lastModifiedAt">
+                <column name="s_lastModified"/>
+            </basic>
+            <basic name="version">
+                <column name="s_version"/>
+            </basic>
+
+            <one-to-many name="owlColumnSchema" target-entity="org.apache.hadoop.owl.entity.OwlColumnSchemaEntity" mapped-by="parentSchema">
+                <join-column name="cs_sid"/>
+                <cascade>
+                    <cascade-all/>
+                </cascade>
+            </one-to-many>
+
+        </attributes>
+    </entity>
+
+    <entity class="org.apache.hadoop.owl.entity.OwlColumnSchemaEntity" name="OwlColumnSchemaEntity">
+        <table name="owl_columnschema"/>
+        <attributes>
+            <id name="id">
+                <column name="cs_id"/>
+                <generated-value strategy="AUTO"/>
+            </id>
+            <basic name="name">
+                <column name="cs_name" length="255"/>
+            </basic>
+            <basic name="columnType">
+                <column name="cs_columnType" length="255"/>
+            </basic>
+            <basic name="subSchemaId">
+                <column name="cs_subschemaId"/>
+            </basic>
+            <basic name="columnNumber">
+                <column name="cs_columnnumber"/>
+            </basic>
+
+            <many-to-one name="parentSchema">
+                <join-column name="cs_sid"/>
+            </many-to-one>
+        </attributes>
+    </entity>
+
+</entity-mappings>

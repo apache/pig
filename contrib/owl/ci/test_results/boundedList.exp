@@ -1,0 +1,109 @@
+<COMMAND> drop owltable testtable1 within owldatabase tcat1
+<IGNORE>
+<COMMAND> drop owltable testtable2 within owldatabase tcat1
+<IGNORE>
+<COMMAND> drop owltable testtable3 within owldatabase tcat1
+<IGNORE>
+<COMMAND> drop owltable testtable4 within owldatabase tcat1
+<IGNORE>
+<COMMAND> drop owltable testtable5 within owldatabase tcat1
+<IGNORE>
+<COMMAND> drop owltable testtable6 within owldatabase tcat1
+<IGNORE>
+<COMMAND> drop owltable testtable7 within owldatabase tcat1
+<IGNORE>
+<COMMAND> drop owltable testtable8 within owldatabase tcat1
+<IGNORE>
+<COMMAND> drop owldatabase tcat1
+<IGNORE>
+<COMMAND> create owldatabase tcat1 identified by storage directory "http://namenode:8080/data/tcat1dir"
+<SUCCESS>
+<COMMAND> select owldatabase objects where owldatabase in (tcat1)
+<RESULT> OwlDatabase 1
+{"creationTime":0,"modificationTime":0,"name":"tcat1","storageLocation":"http://namenode:8080/data/tcat1dir"}
+<COMMAND> create owltable type basic testtable1 within owldatabase tcat1 define Property key prk1 : INTEGER schema "test1:int"
+<SUCCESS>
+<COMMAND> create owltable type basic testtable2 within owldatabase tcat1 define property key prk1 : INTEGER partitioned by LIST ("us", "uk") with partition key country : STRING define property key continent : STRING partitioned by LIST ("CA" , "AZ") with partition key state : STRING partitioned by LIST (94000 , 94001) with partition key zip : INTEGER schema "country:string,state:string,zip:int"
+<SUCCESS>
+<COMMAND> create owltable type basic testtable3 within owldatabase tcat1 partitioned by LIST ("us") with partition key country : STRING schema "country:string"
+<SUCCESS>
+<COMMAND> create owltable type basic testtable4 within owldatabase tcat1 partitioned by LIST with partition key country : STRING schema "country:string"
+<SUCCESS>
+<COMMAND> create owltable type basic testtable5 within owldatabase tcat1 partitioned by LIST ("us", 1) with partition key country : STRING schema "country:string"
+<EXCEPTION> org.apache.hadoop.owl.common.OwlException : 6000 : 
+<COMMAND> create owltable type basic testtable6 within owldatabase tcat1 partitioned by LIST (1, 2) with partition key country : STRING schema "country:string"
+<EXCEPTION> org.apache.hadoop.owl.common.OwlException : 3030 : Invalid datatype for bounded key value : Key <country>
+<COMMAND> create owltable type basic testtable7 within owldatabase tcat1 partitioned by LIST () with partition key country : STRING schema "country:string"
+<EXCEPTION> org.apache.hadoop.owl.common.OwlException : 6000 : 
+<COMMAND> select owltable objects where owldatabase in (tcat1)
+<RESULT> OwlTable 4
+{"creationTime":0,"modificationTime":0,"name":{"databaseName":"tcat1","tableName":"testtable1"},"partitionKeys":[],"propertyKeys":[{"dataType":"INT","name":"prk1"}],"propertyValues":[],"schema":{"columnSchema":[{"columnNumber":0,"name":"test1","type":"INT"}]}}
+{"creationTime":0,"modificationTime":0,"name":{"databaseName":"tcat1","tableName":"testtable2"},"partitionKeys":[{"dataType":"STRING","level":1,"listValues":[{"stringValue":"us"},{"stringValue":"uk"}],"name":"country","partitioningType":"LIST"},{"dataType":"STRING","level":2,"listValues":[{"stringValue":"CA"},{"stringValue":"AZ"}],"name":"state","partitioningType":"LIST"},{"dataType":"INT","level":3,"listValues":[{"intValue":94000},{"intValue":94001}],"name":"zip","partitioningType":"LIST"}],"propertyKeys":[{"dataType":"INT","name":"prk1"},{"dataType":"STRING","name":"continent"}],"propertyValues":[],"schema":{"columnSchema":[{"columnNumber":0,"name":"country","type":"STRING"},{"columnNumber":1,"name":"state","type":"STRING"},{"columnNumber":2,"name":"zip","type":"INT"}]}}
+{"creationTime":0,"modificationTime":0,"name":{"databaseName":"tcat1","tableName":"testtable3"},"partitionKeys":[{"dataType":"STRING","level":1,"listValues":[{"stringValue":"us"}],"name":"country","partitioningType":"LIST"}],"propertyKeys":[],"propertyValues":[],"schema":{"columnSchema":[{"columnNumber":0,"name":"country","type":"STRING"}]}}
+{"creationTime":0,"modificationTime":0,"name":{"databaseName":"tcat1","tableName":"testtable4"},"partitionKeys":[{"dataType":"STRING","level":1,"listValues":[],"name":"country","partitioningType":"LIST"}],"propertyKeys":[],"propertyValues":[],"schema":{"columnSchema":[{"columnNumber":0,"name":"country","type":"STRING"}]}}
+<COMMAND> publish dataelement to owltable testtable1 within owldatabase tcat1 schema "c1:int" delocation "testloc1nopart"
+<SUCCESS>
+<COMMAND> select partition objects from owltable testtable1 within owldatabase tcat1
+<RESULT> OwlPartition 1
+{"creationTime":0,"keyValues":[],"leaf":true,"loader":{},"modificationTime":0,"partitionLevel":0,"schema":{"columnSchema":[{"columnNumber":0,"name":"c1","type":"INT"}]},"storageLocation":"testloc1nopart"}
+<COMMAND> publish dataelement to owltable testtable2 within owldatabase tcat1 partition (country = "us" , state = "CA" , zip = 94000) property (prk1 = 1) schema "c1:int" delocation "testloc1"
+<SUCCESS>
+<COMMAND> publish dataelement to owltable testtable2 within owldatabase tcat1 partition (country = "us" , state = "AZ" , zip = 94001) property (prk1 = 1) schema "c1:int" delocation "testloc4"
+<SUCCESS>
+<COMMAND> publish dataelement to owltable testtable3 within owldatabase tcat1 partition (country = "us") schema "c1:int" delocation "testloc5"
+<SUCCESS>
+<COMMAND> publish dataelement to owltable testtable1 within owldatabase tcat1 schema "c1:int" delocation "testloc1nopart"
+<EXCEPTION> org.apache.hadoop.owl.common.OwlException : 3036 : Data already published for given OwlTable
+<COMMAND> publish dataelement to owltable testtable2 within owldatabase tcat1 partition (country = "us" , state = "YY" , zip = 94000) property (prk1 = 1) schema "c1:int" delocation "testloc2"
+<EXCEPTION> org.apache.hadoop.owl.common.OwlException : 2017 : Invalid value specified for key : Value <YY> for key <state>
+<COMMAND> publish dataelement to owltable testtable2 within owldatabase tcat1 partition (country = "us" , state = "AZ" , zip = 1) property (prk1 = 1) schema "c1:int" delocation "testloc3"
+<EXCEPTION> org.apache.hadoop.owl.common.OwlException : 2017 : Invalid value specified for key : Value <1> for key <zip>
+<COMMAND> select dataelement objects from owltable testtable2 within owldatabase tcat1 with partition ( country = "us" )
+<RESULT> OwlDataElement 2
+{"creationTime":0,"keyValues":[{"dataType":"INT","intValue":94000,"keyName":"zip","keyType":"PARTITION"},{"dataType":"INT","intValue":1,"keyName":"prk1","keyType":"PROPERTY"},{"dataType":"STRING","keyName":"state","keyType":"PARTITION","stringValue":"CA"},{"dataType":"STRING","keyName":"country","keyType":"PARTITION","stringValue":"us"}],"loader":{},"modificationTime":0,"owlSchema":{"columnSchema":[{"columnNumber":0,"name":"c1","type":"INT"}]},"storageLocation":"testloc1"}
+{"creationTime":0,"keyValues":[{"dataType":"INT","intValue":94001,"keyName":"zip","keyType":"PARTITION"},{"dataType":"INT","intValue":1,"keyName":"prk1","keyType":"PROPERTY"},{"dataType":"STRING","keyName":"state","keyType":"PARTITION","stringValue":"AZ"},{"dataType":"STRING","keyName":"country","keyType":"PARTITION","stringValue":"us"}],"loader":{},"modificationTime":0,"owlSchema":{"columnSchema":[{"columnNumber":0,"name":"c1","type":"INT"}]},"storageLocation":"testloc4"}
+<COMMAND> select dataelement objects from owltable testtable3 within owldatabase tcat1 with partition ( country = "us" )
+<RESULT> OwlDataElement 1
+{"creationTime":0,"keyValues":[{"dataType":"STRING","keyName":"country","keyType":"PARTITION","stringValue":"us"}],"loader":{},"modificationTime":0,"owlSchema":{"columnSchema":[{"columnNumber":0,"name":"c1","type":"INT"}]},"storageLocation":"testloc5"}
+<COMMAND> create owltable type basic testtable5 within owldatabase tcat1 partitioned by LIST with partition key zip : INTEGER schema "zip:int"
+<SUCCESS>
+<COMMAND> publish dataelement to owltable testtable5 within owldatabase tcat1 partition (zip = 94008) schema "zip:int" delocation "testloc22"
+<SUCCESS>
+<COMMAND> publish dataelement to owltable testtable5 within owldatabase tcat1 partition (zip = 94009) schema "c1:int,zip:int,c2:string" delocation "testloc23"
+<SUCCESS>
+<COMMAND> create owltable type basic testtable7 within owldatabase tcat1 partitioned by LIST with partition key abc1 : INTEGER partitioned by LIST with partition key abc2 : STRING schema "c1:int"
+<SUCCESS>
+<COMMAND> describe owltable testtable7 within owldatabase tcat1
+<RESULT> OwlTable 1
+{"creationTime":0,"modificationTime":0,"name":{"databaseName":"tcat1","tableName":"testtable7"},"partitionKeys":[{"dataType":"INT","level":1,"listValues":[],"name":"abc1","partitioningType":"LIST"},{"dataType":"STRING","level":2,"listValues":[],"name":"abc2","partitioningType":"LIST"}],"propertyKeys":[],"propertyValues":[],"schema":{"columnSchema":[{"columnNumber":0,"name":"abc1","type":"INT"},{"columnNumber":1,"name":"abc2","type":"STRING"},{"columnNumber":2,"name":"c1","type":"INT"}]}}
+<COMMAND> create owltable type basic testtable8 within owldatabase tcat1 partitioned by INTERVAL ("2009-10-09 18:00:00 PDT", 15 Minutes) with partition key datest partitioned by LIST with partition key abc2 : STRING schema "c1:int"
+<SUCCESS>
+<COMMAND> describe owltable testtable8 within owldatabase tcat1
+<RESULT> OwlTable 1
+{"creationTime":0,"modificationTime":0,"name":{"databaseName":"tcat1","tableName":"testtable8"},"partitionKeys":[{"dataType":"LONG","intervalFrequency":15,"intervalFrequencyUnit":"MINUTES","intervalStart":1255136400000,"level":1,"listValues":[],"name":"datest","partitioningType":"INTERVAL"},{"dataType":"STRING","level":2,"listValues":[],"name":"abc2","partitioningType":"LIST"}],"propertyKeys":[],"propertyValues":[],"schema":{"columnSchema":[{"columnNumber":0,"name":"datest","type":"LONG"},{"columnNumber":1,"name":"abc2","type":"STRING"},{"columnNumber":2,"name":"c1","type":"INT"}]}}
+<COMMAND> publish dataelement to owltable testtable5 within owldatabase tcat1 partition (country = "us" , state = "YY" , zip = 94008) schema "zip:string" delocation "testloc2"
+<EXCEPTION> org.apache.hadoop.owl.common.OwlException : 6002 : Error occurred while processing schema string. Cause : Different types of column zip in schema union
+<COMMAND> publish dataelement to owltable testtable5 within owldatabase tcat1 partition (country = "us" , state = "YY" , zip = 94008) schema "zip:long" delocation "testloc2"
+<EXCEPTION> org.apache.hadoop.owl.common.OwlException : 6002 : Error occurred while processing schema string. Cause : Different types of column zip in schema union
+<COMMAND> create owltable type basic testtable6 within owldatabase tcat1 partitioned by LIST with partition key zip : INTEGER
+<EXCEPTION> org.apache.hadoop.owl.common.OwlException : 6005 : Schema is required for Create OwlTable and Publish operations
+<COMMAND> create owltable type basic testtable6 within owldatabase tcat1 partitioned by LIST with partition key zip : INTEGER schema "zip:string"
+<EXCEPTION> org.apache.hadoop.owl.common.OwlException : 5026 : The datatype for the partitioning column in the OwlSchema does not match the partition key datatype : Partition key zip
+<COMMAND> create owltable type basic testtable6 within owldatabase tcat1 partitioned by LIST with partition key zip : INTEGER schema "zip:long"
+<EXCEPTION> org.apache.hadoop.owl.common.OwlException : 5026 : The datatype for the partitioning column in the OwlSchema does not match the partition key datatype : Partition key zip
+<COMMAND> drop owltable testtable1 within owldatabase tcat1
+<SUCCESS>
+<COMMAND> drop owltable testtable2 within owldatabase tcat1
+<SUCCESS>
+<COMMAND> drop owltable testtable3 within owldatabase tcat1
+<SUCCESS>
+<COMMAND> drop owltable testtable4 within owldatabase tcat1
+<SUCCESS>
+<COMMAND> drop owltable testtable5 within owldatabase tcat1
+<SUCCESS>
+<COMMAND> drop owltable testtable7 within owldatabase tcat1
+<SUCCESS>
+<COMMAND> drop owltable testtable8 within owldatabase tcat1
+<SUCCESS>
+<COMMAND> drop owldatabase tcat1
+<SUCCESS>

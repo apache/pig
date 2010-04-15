@@ -1,0 +1,120 @@
+<COMMAND> drop owltable testinterval2 within owldatabase testintervalowldatabase2
+<IGNORE>
+<COMMAND> drop owltable testinterval3 within owldatabase testintervalowldatabase2
+<IGNORE>
+<COMMAND> drop owldatabase testintervalowldatabase2
+<IGNORE>
+<COMMAND> create owldatabase testintervalowldatabase2 identified by storage directory "http://namenode:8080/data/testintervalowldatabase2"
+<SUCCESS>
+<COMMAND> create owltable type basic testinterval2 within owldatabase testintervalowldatabase2 partitioned by INTERVAL ("2009-01-01 00:00:00 PST", 24 Hours) with partition key part1 schema "test1:int"
+<SUCCESS>
+<COMMAND> create owltable type basic testinterval3 within owldatabase testintervalowldatabase2 partitioned by INTERVAL ("2009-01-01 00:00:00 PST", 10 seconds) with partition key part1 schema "test1:int"
+<SUCCESS>
+<COMMAND> select owltable objects where owldatabase in (testintervalowldatabase2)
+<RESULT> OwlTable 2
+{"creationTime":0,"modificationTime":0,"name":{"databaseName":"testintervalowldatabase2","tableName":"testinterval2"},"partitionKeys":[{"dataType":"LONG","intervalFrequency":24,"intervalFrequencyUnit":"HOURS","intervalStart":1230796800000,"level":1,"listValues":[],"name":"part1","partitioningType":"INTERVAL"}],"propertyKeys":[],"propertyValues":[],"schema":{"columnSchema":[{"columnNumber":0,"name":"part1","type":"LONG"},{"columnNumber":1,"name":"test1","type":"INT"}]}}
+{"creationTime":0,"modificationTime":0,"name":{"databaseName":"testintervalowldatabase2","tableName":"testinterval3"},"partitionKeys":[{"dataType":"LONG","intervalFrequency":10,"intervalFrequencyUnit":"SECONDS","intervalStart":1230796800000,"level":1,"listValues":[],"name":"part1","partitioningType":"INTERVAL"}],"propertyKeys":[],"propertyValues":[],"schema":{"columnSchema":[{"columnNumber":0,"name":"part1","type":"LONG"},{"columnNumber":1,"name":"test1","type":"INT"}]}}
+<COMMAND> publish dataelement to owltable testinterval2 within owldatabase testintervalowldatabase2 partition (part1 = "2009-01-01 00:00:00 PST") schema "c1:int" delocation "testinterval2/testloc2"
+<SUCCESS>
+<COMMAND> publish dataelement to owltable testinterval2 within owldatabase testintervalowldatabase2 partition (part1 = "2009-01-02 00:00:00 PST") schema "c1:int" delocation "testinterval2/testloc3"
+<SUCCESS>
+<COMMAND> publish dataelement to owltable testinterval2 within owldatabase testintervalowldatabase2 partition (part1 = "2009-01-03 00:00:00 PST") schema "c1:int" delocation "testinterval2/testloc4"
+<SUCCESS>
+<COMMAND> publish dataelement to owltable testinterval2 within owldatabase testintervalowldatabase2 partition (part1 = "2009-01-04 00:00:00 PST") schema "c1:int" delocation "testinterval2/testloc5"
+<SUCCESS>
+<COMMAND> publish dataelement to owltable testinterval2 within owldatabase testintervalowldatabase2 partition (part1 = "2009-02-01 00:00:00 PST") schema "c1:int" delocation "testinterval2/testloc7"
+<SUCCESS>
+<COMMAND> publish dataelement to owltable testinterval2 within owldatabase testintervalowldatabase2 partition (part1 = "2009-02-02 00:00:00 PST") schema "c1:int" delocation "testinterval2/testloc8"
+<SUCCESS>
+<COMMAND> publish dataelement to owltable testinterval2 within owldatabase testintervalowldatabase2 partition (part1 = "2009-03-01 00:00:00 PST") schema "c1:int" delocation "testinterval2/testloc9"
+<SUCCESS>
+<COMMAND> publish dataelement to owltable testinterval3 within owldatabase testintervalowldatabase2 partition (part1 = "2009-03-01 00:00:00 PST") schema "c1:int" delocation "testinterval3/testloc1"
+<SUCCESS>
+<COMMAND> publish dataelement to owltable testinterval3 within owldatabase testintervalowldatabase2 partition (part1 = "2009-03-01 00:00:08 PST") schema "c1:int" delocation "testinterval3/testloc2"
+<EXCEPTION> org.apache.hadoop.owl.common.OwlException : 3035 : Leaf partition matching criteria already exists
+<COMMAND> publish dataelement to owltable testinterval3 within owldatabase testintervalowldatabase2 partition (part1 = "2009-03-01 00:00:10 PST") schema "c1:int" delocation "testinterval3/testloc3"
+<SUCCESS>
+<COMMAND> publish dataelement to owltable testinterval3 within owldatabase testintervalowldatabase2 partition (part1 = "2009-03-01 00:00:25 PST") schema "c1:int" delocation "testinterval3/testloc4"
+<SUCCESS>
+<COMMAND> select dataelement objects from owltable testinterval2 within owldatabase testintervalowldatabase2 with partition ( part1 = "2009-01-01 00:00:00 PST" )
+<RESULT> OwlDataElement 1
+{"creationTime":0,"keyValues":[{"dataType":"LONG","keyName":"part1","keyType":"PARTITION","longValue":1230796800000}],"loader":{},"modificationTime":0,"owlSchema":{"columnSchema":[{"columnNumber":0,"name":"c1","type":"INT"}]},"storageLocation":"testinterval2/testloc2"}
+<COMMAND> select dataelement objects from owltable testinterval2 within owldatabase testintervalowldatabase2 with partition ( part1 = "2009-01-02 00:00:00 PST" )
+<RESULT> OwlDataElement 1
+{"creationTime":0,"keyValues":[{"dataType":"LONG","keyName":"part1","keyType":"PARTITION","longValue":1230883200000}],"loader":{},"modificationTime":0,"owlSchema":{"columnSchema":[{"columnNumber":0,"name":"c1","type":"INT"}]},"storageLocation":"testinterval2/testloc3"}
+<COMMAND> select dataelement objects from owltable testinterval2 within owldatabase testintervalowldatabase2 with partition ( part1 = "2009-01-03 00:00:00 PST" )
+<RESULT> OwlDataElement 1
+{"creationTime":0,"keyValues":[{"dataType":"LONG","keyName":"part1","keyType":"PARTITION","longValue":1230969600000}],"loader":{},"modificationTime":0,"owlSchema":{"columnSchema":[{"columnNumber":0,"name":"c1","type":"INT"}]},"storageLocation":"testinterval2/testloc4"}
+<COMMAND> select dataelement objects from owltable testinterval2 within owldatabase testintervalowldatabase2 with partition ( part1 = "2009-01-04 00:00:00 PST" )
+<RESULT> OwlDataElement 1
+{"creationTime":0,"keyValues":[{"dataType":"LONG","keyName":"part1","keyType":"PARTITION","longValue":1231056000000}],"loader":{},"modificationTime":0,"owlSchema":{"columnSchema":[{"columnNumber":0,"name":"c1","type":"INT"}]},"storageLocation":"testinterval2/testloc5"}
+<COMMAND> select dataelement objects from owltable testinterval2 within owldatabase testintervalowldatabase2 with partition ( part1 = "2009-01-04 10:00:00 PST" )
+<RESULT> OwlDataElement 1
+{"creationTime":0,"keyValues":[{"dataType":"LONG","keyName":"part1","keyType":"PARTITION","longValue":1231056000000}],"loader":{},"modificationTime":0,"owlSchema":{"columnSchema":[{"columnNumber":0,"name":"c1","type":"INT"}]},"storageLocation":"testinterval2/testloc5"}
+<COMMAND> select dataelement objects from owltable testinterval2 within owldatabase testintervalowldatabase2 with partition ( part1 = "2009-01-05 00:00:00 PST" )
+<SUCCESS>
+<COMMAND> select dataelement objects from owltable testinterval2 within owldatabase testintervalowldatabase2 with partition ( part1 = "2009-02-01 20:00:00 PST" )
+<RESULT> OwlDataElement 1
+{"creationTime":0,"keyValues":[{"dataType":"LONG","keyName":"part1","keyType":"PARTITION","longValue":1233475200000}],"loader":{},"modificationTime":0,"owlSchema":{"columnSchema":[{"columnNumber":0,"name":"c1","type":"INT"}]},"storageLocation":"testinterval2/testloc7"}
+<COMMAND> select dataelement objects from owltable testinterval2 within owldatabase testintervalowldatabase2 with partition ( part1 = "2009-02-02 00:00:00 PST" )
+<RESULT> OwlDataElement 1
+{"creationTime":0,"keyValues":[{"dataType":"LONG","keyName":"part1","keyType":"PARTITION","longValue":1233561600000}],"loader":{},"modificationTime":0,"owlSchema":{"columnSchema":[{"columnNumber":0,"name":"c1","type":"INT"}]},"storageLocation":"testinterval2/testloc8"}
+<COMMAND> select dataelement objects from owltable testinterval2 within owldatabase testintervalowldatabase2 with partition ( part1 = "2009-03-01 00:00:00 PST" )
+<RESULT> OwlDataElement 1
+{"creationTime":0,"keyValues":[{"dataType":"LONG","keyName":"part1","keyType":"PARTITION","longValue":1235894400000}],"loader":{},"modificationTime":0,"owlSchema":{"columnSchema":[{"columnNumber":0,"name":"c1","type":"INT"}]},"storageLocation":"testinterval2/testloc9"}
+<COMMAND> select dataelement objects from owltable testinterval2 within owldatabase testintervalowldatabase2 with partition ( part1 > "2009-01-04 00:00:00 PST" )
+<RESULT> OwlDataElement 4
+{"creationTime":0,"keyValues":[{"dataType":"LONG","keyName":"part1","keyType":"PARTITION","longValue":1231056000000}],"loader":{},"modificationTime":0,"owlSchema":{"columnSchema":[{"columnNumber":0,"name":"c1","type":"INT"}]},"storageLocation":"testinterval2/testloc5"}
+{"creationTime":0,"keyValues":[{"dataType":"LONG","keyName":"part1","keyType":"PARTITION","longValue":1233475200000}],"loader":{},"modificationTime":0,"owlSchema":{"columnSchema":[{"columnNumber":0,"name":"c1","type":"INT"}]},"storageLocation":"testinterval2/testloc7"}
+{"creationTime":0,"keyValues":[{"dataType":"LONG","keyName":"part1","keyType":"PARTITION","longValue":1233561600000}],"loader":{},"modificationTime":0,"owlSchema":{"columnSchema":[{"columnNumber":0,"name":"c1","type":"INT"}]},"storageLocation":"testinterval2/testloc8"}
+{"creationTime":0,"keyValues":[{"dataType":"LONG","keyName":"part1","keyType":"PARTITION","longValue":1235894400000}],"loader":{},"modificationTime":0,"owlSchema":{"columnSchema":[{"columnNumber":0,"name":"c1","type":"INT"}]},"storageLocation":"testinterval2/testloc9"}
+<COMMAND> select dataelement objects from owltable testinterval2 within owldatabase testintervalowldatabase2 with partition ( part1 >= "2009-01-04 00:00:00 PST" )
+<RESULT> OwlDataElement 4
+{"creationTime":0,"keyValues":[{"dataType":"LONG","keyName":"part1","keyType":"PARTITION","longValue":1231056000000}],"loader":{},"modificationTime":0,"owlSchema":{"columnSchema":[{"columnNumber":0,"name":"c1","type":"INT"}]},"storageLocation":"testinterval2/testloc5"}
+{"creationTime":0,"keyValues":[{"dataType":"LONG","keyName":"part1","keyType":"PARTITION","longValue":1233475200000}],"loader":{},"modificationTime":0,"owlSchema":{"columnSchema":[{"columnNumber":0,"name":"c1","type":"INT"}]},"storageLocation":"testinterval2/testloc7"}
+{"creationTime":0,"keyValues":[{"dataType":"LONG","keyName":"part1","keyType":"PARTITION","longValue":1233561600000}],"loader":{},"modificationTime":0,"owlSchema":{"columnSchema":[{"columnNumber":0,"name":"c1","type":"INT"}]},"storageLocation":"testinterval2/testloc8"}
+{"creationTime":0,"keyValues":[{"dataType":"LONG","keyName":"part1","keyType":"PARTITION","longValue":1235894400000}],"loader":{},"modificationTime":0,"owlSchema":{"columnSchema":[{"columnNumber":0,"name":"c1","type":"INT"}]},"storageLocation":"testinterval2/testloc9"}
+<COMMAND> select dataelement objects from owltable testinterval2 within owldatabase testintervalowldatabase2 with partition ( part1 >= "2009-01-04 15:00:00 PST" )
+<RESULT> OwlDataElement 4
+{"creationTime":0,"keyValues":[{"dataType":"LONG","keyName":"part1","keyType":"PARTITION","longValue":1231056000000}],"loader":{},"modificationTime":0,"owlSchema":{"columnSchema":[{"columnNumber":0,"name":"c1","type":"INT"}]},"storageLocation":"testinterval2/testloc5"}
+{"creationTime":0,"keyValues":[{"dataType":"LONG","keyName":"part1","keyType":"PARTITION","longValue":1233475200000}],"loader":{},"modificationTime":0,"owlSchema":{"columnSchema":[{"columnNumber":0,"name":"c1","type":"INT"}]},"storageLocation":"testinterval2/testloc7"}
+{"creationTime":0,"keyValues":[{"dataType":"LONG","keyName":"part1","keyType":"PARTITION","longValue":1233561600000}],"loader":{},"modificationTime":0,"owlSchema":{"columnSchema":[{"columnNumber":0,"name":"c1","type":"INT"}]},"storageLocation":"testinterval2/testloc8"}
+{"creationTime":0,"keyValues":[{"dataType":"LONG","keyName":"part1","keyType":"PARTITION","longValue":1235894400000}],"loader":{},"modificationTime":0,"owlSchema":{"columnSchema":[{"columnNumber":0,"name":"c1","type":"INT"}]},"storageLocation":"testinterval2/testloc9"}
+<COMMAND> select dataelement objects from owltable testinterval2 within owldatabase testintervalowldatabase2 with partition ( part1 < "2009-01-03 00:00:00 PST" )
+<RESULT> OwlDataElement 2
+{"creationTime":0,"keyValues":[{"dataType":"LONG","keyName":"part1","keyType":"PARTITION","longValue":1230796800000}],"loader":{},"modificationTime":0,"owlSchema":{"columnSchema":[{"columnNumber":0,"name":"c1","type":"INT"}]},"storageLocation":"testinterval2/testloc2"}
+{"creationTime":0,"keyValues":[{"dataType":"LONG","keyName":"part1","keyType":"PARTITION","longValue":1230883200000}],"loader":{},"modificationTime":0,"owlSchema":{"columnSchema":[{"columnNumber":0,"name":"c1","type":"INT"}]},"storageLocation":"testinterval2/testloc3"}
+<COMMAND> select dataelement objects from owltable testinterval2 within owldatabase testintervalowldatabase2 with partition ( part1 < "2009-01-03 00:00:01 PST" )
+<RESULT> OwlDataElement 3
+{"creationTime":0,"keyValues":[{"dataType":"LONG","keyName":"part1","keyType":"PARTITION","longValue":1230796800000}],"loader":{},"modificationTime":0,"owlSchema":{"columnSchema":[{"columnNumber":0,"name":"c1","type":"INT"}]},"storageLocation":"testinterval2/testloc2"}
+{"creationTime":0,"keyValues":[{"dataType":"LONG","keyName":"part1","keyType":"PARTITION","longValue":1230883200000}],"loader":{},"modificationTime":0,"owlSchema":{"columnSchema":[{"columnNumber":0,"name":"c1","type":"INT"}]},"storageLocation":"testinterval2/testloc3"}
+{"creationTime":0,"keyValues":[{"dataType":"LONG","keyName":"part1","keyType":"PARTITION","longValue":1230969600000}],"loader":{},"modificationTime":0,"owlSchema":{"columnSchema":[{"columnNumber":0,"name":"c1","type":"INT"}]},"storageLocation":"testinterval2/testloc4"}
+<COMMAND> select dataelement objects from owltable testinterval2 within owldatabase testintervalowldatabase2 with partition ( part1 <= "2009-01-03 00:00:00 PST" )
+<RESULT> OwlDataElement 3
+{"creationTime":0,"keyValues":[{"dataType":"LONG","keyName":"part1","keyType":"PARTITION","longValue":1230796800000}],"loader":{},"modificationTime":0,"owlSchema":{"columnSchema":[{"columnNumber":0,"name":"c1","type":"INT"}]},"storageLocation":"testinterval2/testloc2"}
+{"creationTime":0,"keyValues":[{"dataType":"LONG","keyName":"part1","keyType":"PARTITION","longValue":1230883200000}],"loader":{},"modificationTime":0,"owlSchema":{"columnSchema":[{"columnNumber":0,"name":"c1","type":"INT"}]},"storageLocation":"testinterval2/testloc3"}
+{"creationTime":0,"keyValues":[{"dataType":"LONG","keyName":"part1","keyType":"PARTITION","longValue":1230969600000}],"loader":{},"modificationTime":0,"owlSchema":{"columnSchema":[{"columnNumber":0,"name":"c1","type":"INT"}]},"storageLocation":"testinterval2/testloc4"}
+<COMMAND> select dataelement objects from owltable testinterval2 within owldatabase testintervalowldatabase2 with partition ( part1 <= "2009-01-03 00:00:01 PST" )
+<RESULT> OwlDataElement 3
+{"creationTime":0,"keyValues":[{"dataType":"LONG","keyName":"part1","keyType":"PARTITION","longValue":1230796800000}],"loader":{},"modificationTime":0,"owlSchema":{"columnSchema":[{"columnNumber":0,"name":"c1","type":"INT"}]},"storageLocation":"testinterval2/testloc2"}
+{"creationTime":0,"keyValues":[{"dataType":"LONG","keyName":"part1","keyType":"PARTITION","longValue":1230883200000}],"loader":{},"modificationTime":0,"owlSchema":{"columnSchema":[{"columnNumber":0,"name":"c1","type":"INT"}]},"storageLocation":"testinterval2/testloc3"}
+{"creationTime":0,"keyValues":[{"dataType":"LONG","keyName":"part1","keyType":"PARTITION","longValue":1230969600000}],"loader":{},"modificationTime":0,"owlSchema":{"columnSchema":[{"columnNumber":0,"name":"c1","type":"INT"}]},"storageLocation":"testinterval2/testloc4"}
+<COMMAND> select dataelement objects from owltable testinterval2 within owldatabase testintervalowldatabase2 with partition ( part1 IN  "2009-01-03 00:00:01 PST" )
+<EXCEPTION> org.apache.hadoop.owl.common.OwlException : 5019 : Operation is not supported for specified data type : Key <part1> type <LONG> operation <IN>
+<COMMAND> select dataelement objects from owltable testinterval2 within owldatabase testintervalowldatabase2 with partition ( part1 LIKE "2009-01-03 00:00:01 PST")
+<EXCEPTION> org.apache.hadoop.owl.common.OwlException : 5019 : Operation is not supported for specified data type : Key <part1> type <LONG> operation <LIKE>
+<COMMAND> select dataelement objects from owltable testinterval3 within owldatabase testintervalowldatabase2 with partition ( part1 = "2009-03-01 00:00:00 PST" )
+<RESULT> OwlDataElement 1
+{"creationTime":0,"keyValues":[{"dataType":"LONG","keyName":"part1","keyType":"PARTITION","longValue":1235894400000}],"loader":{},"modificationTime":0,"owlSchema":{"columnSchema":[{"columnNumber":0,"name":"c1","type":"INT"}]},"storageLocation":"testinterval3/testloc1"}
+<COMMAND> select dataelement objects from owltable testinterval3 within owldatabase testintervalowldatabase2 with partition ( part1 = "2009-03-01 00:00:15 PST" )
+<RESULT> OwlDataElement 1
+{"creationTime":0,"keyValues":[{"dataType":"LONG","keyName":"part1","keyType":"PARTITION","longValue":1235894410000}],"loader":{},"modificationTime":0,"owlSchema":{"columnSchema":[{"columnNumber":0,"name":"c1","type":"INT"}]},"storageLocation":"testinterval3/testloc3"}
+<COMMAND> select dataelement objects from owltable testinterval3 within owldatabase testintervalowldatabase2 with partition ( part1 = "2009-03-01 00:00:23 PST" )
+<RESULT> OwlDataElement 1
+{"creationTime":0,"keyValues":[{"dataType":"LONG","keyName":"part1","keyType":"PARTITION","longValue":1235894420000}],"loader":{},"modificationTime":0,"owlSchema":{"columnSchema":[{"columnNumber":0,"name":"c1","type":"INT"}]},"storageLocation":"testinterval3/testloc4"}
+<COMMAND> drop owltable testinterval2 within owldatabase testintervalowldatabase2
+<SUCCESS>
+<COMMAND> drop owltable testinterval3 within owldatabase testintervalowldatabase2
+<SUCCESS>
+<COMMAND> drop owldatabase testintervalowldatabase2
+<SUCCESS>

@@ -1,0 +1,60 @@
+<COMMAND> drop owltable alterotkvtbl within owldatabase alterotkvdb
+<IGNORE>
+<COMMAND> drop owldatabase alterotkvdb
+<IGNORE>
+<COMMAND> create owldatabase alterotkvdb identified by storage directory "hdfs://blah:8080/tmp/alterotkvdb"
+<SUCCESS>
+<COMMAND> create owltable type basic alterotkvtbl within owldatabase alterotkvdb define property key retention:INTEGER partitioned by LIST with partition key A:STRING partitioned by LIST with partition key B:STRING define property key default_store:STRING, isExternal:STRING schema "A:string,B:string,C:collection(r1:record(i:int))"
+<SUCCESS>
+<COMMAND> describe owltable alterotkvtbl within owldatabase alterotkvdb
+<RESULT> OwlTable 1
+{"creationTime":0,"modificationTime":0,"name":{"databaseName":"alterotkvdb","tableName":"alterotkvtbl"},"partitionKeys":[{"dataType":"STRING","level":1,"listValues":[],"name":"a","partitioningType":"LIST"},{"dataType":"STRING","level":2,"listValues":[],"name":"b","partitioningType":"LIST"}],"propertyKeys":[{"dataType":"INT","name":"retention"},{"dataType":"STRING","name":"default_store"},{"dataType":"STRING","name":"isexternal"}],"propertyValues":[],"schema":{"columnSchema":[{"columnNumber":0,"name":"a","type":"STRING"},{"columnNumber":1,"name":"b","type":"STRING"},{"columnNumber":2,"name":"c","schema":{"columnSchema":[{"columnNumber":0,"name":"r1","schema":{"columnSchema":[{"columnNumber":0,"name":"i","type":"INT"}]},"type":"RECORD"}]},"type":"COLLECTION"}]}}
+<COMMAND> alter owltable alterotkvtbl within owldatabase alterotkvdb modify property ( default_store = "stfunc" , isExternal = "N" )
+<SUCCESS>
+<COMMAND> describe owltable alterotkvtbl within owldatabase alterotkvdb
+<RESULT> OwlTable 1
+{"creationTime":0,"modificationTime":0,"name":{"databaseName":"alterotkvdb","tableName":"alterotkvtbl"},"partitionKeys":[{"dataType":"STRING","level":1,"listValues":[],"name":"a","partitioningType":"LIST"},{"dataType":"STRING","level":2,"listValues":[],"name":"b","partitioningType":"LIST"}],"propertyKeys":[{"dataType":"INT","name":"retention"},{"dataType":"STRING","name":"default_store"},{"dataType":"STRING","name":"isexternal"}],"propertyValues":[{"dataType":"STRING","keyName":"default_store","keyType":"PROPERTY","stringValue":"stfunc"},{"dataType":"STRING","keyName":"isexternal","keyType":"PROPERTY","stringValue":"N"}],"schema":{"columnSchema":[{"columnNumber":0,"name":"a","type":"STRING"},{"columnNumber":1,"name":"b","type":"STRING"},{"columnNumber":2,"name":"c","schema":{"columnSchema":[{"columnNumber":0,"name":"r1","schema":{"columnSchema":[{"columnNumber":0,"name":"i","type":"INT"}]},"type":"RECORD"}]},"type":"COLLECTION"}]}}
+<COMMAND> alter owltable alterotkvtbl within owldatabase alterotkvdb modify property ( default_store = "stfunc2" )
+<SUCCESS>
+<COMMAND> describe owltable alterotkvtbl within owldatabase alterotkvdb
+<RESULT> OwlTable 1
+{"creationTime":0,"modificationTime":0,"name":{"databaseName":"alterotkvdb","tableName":"alterotkvtbl"},"partitionKeys":[{"dataType":"STRING","level":1,"listValues":[],"name":"a","partitioningType":"LIST"},{"dataType":"STRING","level":2,"listValues":[],"name":"b","partitioningType":"LIST"}],"propertyKeys":[{"dataType":"INT","name":"retention"},{"dataType":"STRING","name":"default_store"},{"dataType":"STRING","name":"isexternal"}],"propertyValues":[{"dataType":"STRING","keyName":"isexternal","keyType":"PROPERTY","stringValue":"N"},{"dataType":"STRING","keyName":"default_store","keyType":"PROPERTY","stringValue":"stfunc2"}],"schema":{"columnSchema":[{"columnNumber":0,"name":"a","type":"STRING"},{"columnNumber":1,"name":"b","type":"STRING"},{"columnNumber":2,"name":"c","schema":{"columnSchema":[{"columnNumber":0,"name":"r1","schema":{"columnSchema":[{"columnNumber":0,"name":"i","type":"INT"}]},"type":"RECORD"}]},"type":"COLLECTION"}]}}
+<COMMAND> alter owltable alterotkvtbl within owldatabase alterotkvdb modify property ( default_store = "stfunc3", isExternal = "Y" )
+<SUCCESS>
+<COMMAND> describe owltable alterotkvtbl within owldatabase alterotkvdb
+<RESULT> OwlTable 1
+{"creationTime":0,"modificationTime":0,"name":{"databaseName":"alterotkvdb","tableName":"alterotkvtbl"},"partitionKeys":[{"dataType":"STRING","level":1,"listValues":[],"name":"a","partitioningType":"LIST"},{"dataType":"STRING","level":2,"listValues":[],"name":"b","partitioningType":"LIST"}],"propertyKeys":[{"dataType":"INT","name":"retention"},{"dataType":"STRING","name":"default_store"},{"dataType":"STRING","name":"isexternal"}],"propertyValues":[{"dataType":"STRING","keyName":"isexternal","keyType":"PROPERTY","stringValue":"Y"},{"dataType":"STRING","keyName":"default_store","keyType":"PROPERTY","stringValue":"stfunc3"}],"schema":{"columnSchema":[{"columnNumber":0,"name":"a","type":"STRING"},{"columnNumber":1,"name":"b","type":"STRING"},{"columnNumber":2,"name":"c","schema":{"columnSchema":[{"columnNumber":0,"name":"r1","schema":{"columnSchema":[{"columnNumber":0,"name":"i","type":"INT"}]},"type":"RECORD"}]},"type":"COLLECTION"}]}}
+<COMMAND> alter owltable alterotkvtbl within owldatabase alterotkvdb modify property ( default_store = "stfunc3" , isExternal = "Y" )
+<SUCCESS>
+<COMMAND> describe owltable alterotkvtbl within owldatabase alterotkvdb
+<RESULT> OwlTable 1
+{"creationTime":0,"modificationTime":0,"name":{"databaseName":"alterotkvdb","tableName":"alterotkvtbl"},"partitionKeys":[{"dataType":"STRING","level":1,"listValues":[],"name":"a","partitioningType":"LIST"},{"dataType":"STRING","level":2,"listValues":[],"name":"b","partitioningType":"LIST"}],"propertyKeys":[{"dataType":"INT","name":"retention"},{"dataType":"STRING","name":"default_store"},{"dataType":"STRING","name":"isexternal"}],"propertyValues":[{"dataType":"STRING","keyName":"isexternal","keyType":"PROPERTY","stringValue":"Y"},{"dataType":"STRING","keyName":"default_store","keyType":"PROPERTY","stringValue":"stfunc3"}],"schema":{"columnSchema":[{"columnNumber":0,"name":"a","type":"STRING"},{"columnNumber":1,"name":"b","type":"STRING"},{"columnNumber":2,"name":"c","schema":{"columnSchema":[{"columnNumber":0,"name":"r1","schema":{"columnSchema":[{"columnNumber":0,"name":"i","type":"INT"}]},"type":"RECORD"}]},"type":"COLLECTION"}]}}
+<COMMAND> alter owltable alterotkvtbl within owldatabase alterotkvdb drop property ( isExternal = "DELETED" )
+<SUCCESS>
+<COMMAND> describe owltable alterotkvtbl within owldatabase alterotkvdb
+<RESULT> OwlTable 1
+{"creationTime":0,"modificationTime":0,"name":{"databaseName":"alterotkvdb","tableName":"alterotkvtbl"},"partitionKeys":[{"dataType":"STRING","level":1,"listValues":[],"name":"a","partitioningType":"LIST"},{"dataType":"STRING","level":2,"listValues":[],"name":"b","partitioningType":"LIST"}],"propertyKeys":[{"dataType":"INT","name":"retention"},{"dataType":"STRING","name":"default_store"},{"dataType":"STRING","name":"isexternal"}],"propertyValues":[{"dataType":"STRING","keyName":"default_store","keyType":"PROPERTY","stringValue":"stfunc3"}],"schema":{"columnSchema":[{"columnNumber":0,"name":"a","type":"STRING"},{"columnNumber":1,"name":"b","type":"STRING"},{"columnNumber":2,"name":"c","schema":{"columnSchema":[{"columnNumber":0,"name":"r1","schema":{"columnSchema":[{"columnNumber":0,"name":"i","type":"INT"}]},"type":"RECORD"}]},"type":"COLLECTION"}]}}
+<COMMAND> alter owltable alterotkvtbl within owldatabase alterotkvdb modify property ( default_store = "stfunc4" )
+<SUCCESS>
+<COMMAND> describe owltable alterotkvtbl within owldatabase alterotkvdb
+<RESULT> OwlTable 1
+{"creationTime":0,"modificationTime":0,"name":{"databaseName":"alterotkvdb","tableName":"alterotkvtbl"},"partitionKeys":[{"dataType":"STRING","level":1,"listValues":[],"name":"a","partitioningType":"LIST"},{"dataType":"STRING","level":2,"listValues":[],"name":"b","partitioningType":"LIST"}],"propertyKeys":[{"dataType":"INT","name":"retention"},{"dataType":"STRING","name":"default_store"},{"dataType":"STRING","name":"isexternal"}],"propertyValues":[{"dataType":"STRING","keyName":"default_store","keyType":"PROPERTY","stringValue":"stfunc4"}],"schema":{"columnSchema":[{"columnNumber":0,"name":"a","type":"STRING"},{"columnNumber":1,"name":"b","type":"STRING"},{"columnNumber":2,"name":"c","schema":{"columnSchema":[{"columnNumber":0,"name":"r1","schema":{"columnSchema":[{"columnNumber":0,"name":"i","type":"INT"}]},"type":"RECORD"}]},"type":"COLLECTION"}]}}
+<COMMAND> alter owltable alterotkvtbl within owldatabase alterotkvdb modify property ( isExternal = "N" )
+<SUCCESS>
+<COMMAND> describe owltable alterotkvtbl within owldatabase alterotkvdb
+<RESULT> OwlTable 1
+{"creationTime":0,"modificationTime":0,"name":{"databaseName":"alterotkvdb","tableName":"alterotkvtbl"},"partitionKeys":[{"dataType":"STRING","level":1,"listValues":[],"name":"a","partitioningType":"LIST"},{"dataType":"STRING","level":2,"listValues":[],"name":"b","partitioningType":"LIST"}],"propertyKeys":[{"dataType":"INT","name":"retention"},{"dataType":"STRING","name":"default_store"},{"dataType":"STRING","name":"isexternal"}],"propertyValues":[{"dataType":"STRING","keyName":"default_store","keyType":"PROPERTY","stringValue":"stfunc4"},{"dataType":"STRING","keyName":"isexternal","keyType":"PROPERTY","stringValue":"N"}],"schema":{"columnSchema":[{"columnNumber":0,"name":"a","type":"STRING"},{"columnNumber":1,"name":"b","type":"STRING"},{"columnNumber":2,"name":"c","schema":{"columnSchema":[{"columnNumber":0,"name":"r1","schema":{"columnSchema":[{"columnNumber":0,"name":"i","type":"INT"}]},"type":"RECORD"}]},"type":"COLLECTION"}]}}
+<COMMAND> alter owltable alterotkvtbl within owldatabase alterotkvdb drop property ( default_store ="DELETED" )
+<SUCCESS>
+<COMMAND> describe owltable alterotkvtbl within owldatabase alterotkvdb
+<RESULT> OwlTable 1
+{"creationTime":0,"modificationTime":0,"name":{"databaseName":"alterotkvdb","tableName":"alterotkvtbl"},"partitionKeys":[{"dataType":"STRING","level":1,"listValues":[],"name":"a","partitioningType":"LIST"},{"dataType":"STRING","level":2,"listValues":[],"name":"b","partitioningType":"LIST"}],"propertyKeys":[{"dataType":"INT","name":"retention"},{"dataType":"STRING","name":"default_store"},{"dataType":"STRING","name":"isexternal"}],"propertyValues":[{"dataType":"STRING","keyName":"isexternal","keyType":"PROPERTY","stringValue":"N"}],"schema":{"columnSchema":[{"columnNumber":0,"name":"a","type":"STRING"},{"columnNumber":1,"name":"b","type":"STRING"},{"columnNumber":2,"name":"c","schema":{"columnSchema":[{"columnNumber":0,"name":"r1","schema":{"columnSchema":[{"columnNumber":0,"name":"i","type":"INT"}]},"type":"RECORD"}]},"type":"COLLECTION"}]}}
+<COMMAND> alter owltable alterotkvtbl within owldatabase alterotkvdb modify property ( default_store = "stfunc5" , isExternal = "Y" )
+<SUCCESS>
+<COMMAND> describe owltable alterotkvtbl within owldatabase alterotkvdb
+<RESULT> OwlTable 1
+{"creationTime":0,"modificationTime":0,"name":{"databaseName":"alterotkvdb","tableName":"alterotkvtbl"},"partitionKeys":[{"dataType":"STRING","level":1,"listValues":[],"name":"a","partitioningType":"LIST"},{"dataType":"STRING","level":2,"listValues":[],"name":"b","partitioningType":"LIST"}],"propertyKeys":[{"dataType":"INT","name":"retention"},{"dataType":"STRING","name":"default_store"},{"dataType":"STRING","name":"isexternal"}],"propertyValues":[{"dataType":"STRING","keyName":"isexternal","keyType":"PROPERTY","stringValue":"Y"},{"dataType":"STRING","keyName":"default_store","keyType":"PROPERTY","stringValue":"stfunc5"}],"schema":{"columnSchema":[{"columnNumber":0,"name":"a","type":"STRING"},{"columnNumber":1,"name":"b","type":"STRING"},{"columnNumber":2,"name":"c","schema":{"columnSchema":[{"columnNumber":0,"name":"r1","schema":{"columnSchema":[{"columnNumber":0,"name":"i","type":"INT"}]},"type":"RECORD"}]},"type":"COLLECTION"}]}}
+<COMMAND> drop owltable alterotkvtbl within owldatabase alterotkvdb
+<SUCCESS>
+<COMMAND> drop owldatabase alterotkvdb
+<SUCCESS>

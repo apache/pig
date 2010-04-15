@@ -1,0 +1,92 @@
+--cleanup environment
+drop owltable testinterval2 within owldatabase testintervalowldatabase2;
+drop owltable testinterval3 within owldatabase testintervalowldatabase2;
+drop owldatabase testintervalowldatabase2;
+
+--Initialize environment
+create owldatabase testintervalowldatabase2 identified by
+ storage directory "http://namenode:8080/data/testintervalowldatabase2";  
+
+create owltable type basic testinterval2
+within owldatabase testintervalowldatabase2
+partitioned by INTERVAL ("2009-01-01 00:00:00 PST", 24 Hours)
+with partition key part1
+schema "test1:int";
+
+create owltable type basic testinterval3
+within owldatabase testintervalowldatabase2
+partitioned by INTERVAL ("2009-01-01 00:00:00 PST", 10 seconds)
+with partition key part1
+schema "test1:int";
+
+select owltable objects where owldatabase in (testintervalowldatabase2);
+
+
+--publish test data
+publish dataelement to owltable testinterval2 within owldatabase testintervalowldatabase2
+ partition (part1 = "2009-01-01 00:00:00 PST") schema "c1:int" delocation "testinterval2/testloc2";
+
+publish dataelement to owltable testinterval2 within owldatabase testintervalowldatabase2
+ partition (part1 = "2009-01-02 00:00:00 PST") schema "c1:int" delocation "testinterval2/testloc3";
+
+publish dataelement to owltable testinterval2 within owldatabase testintervalowldatabase2
+ partition (part1 = "2009-01-03 00:00:00 PST") schema "c1:int" delocation "testinterval2/testloc4";
+
+publish dataelement to owltable testinterval2 within owldatabase testintervalowldatabase2
+ partition (part1 = "2009-01-04 00:00:00 PST") schema "c1:int" delocation "testinterval2/testloc5";
+
+publish dataelement to owltable testinterval2 within owldatabase testintervalowldatabase2
+ partition (part1 = "2009-02-01 00:00:00 PST") schema "c1:int" delocation "testinterval2/testloc7";
+
+publish dataelement to owltable testinterval2 within owldatabase testintervalowldatabase2
+ partition (part1 = "2009-02-02 00:00:00 PST") schema "c1:int" delocation "testinterval2/testloc8";
+
+publish dataelement to owltable testinterval2 within owldatabase testintervalowldatabase2
+ partition (part1 = "2009-03-01 00:00:00 PST") schema "c1:int" delocation "testinterval2/testloc9";
+
+--publish into second owltable
+publish dataelement to owltable testinterval3 within owldatabase testintervalowldatabase2
+ partition (part1 = "2009-03-01 00:00:00 PST") schema "c1:int" delocation "testinterval3/testloc1";
+
+publish dataelement to owltable testinterval3 within owldatabase testintervalowldatabase2
+ partition (part1 = "2009-03-01 00:00:08 PST") schema "c1:int" delocation "testinterval3/testloc2";
+
+publish dataelement to owltable testinterval3 within owldatabase testintervalowldatabase2
+ partition (part1 = "2009-03-01 00:00:10 PST") schema "c1:int" delocation "testinterval3/testloc3";
+
+publish dataelement to owltable testinterval3 within owldatabase testintervalowldatabase2
+ partition (part1 = "2009-03-01 00:00:25 PST") schema "c1:int" delocation "testinterval3/testloc4";
+
+--select dataelements
+select dataelement objects from owltable testinterval2 within owldatabase testintervalowldatabase2 with partition ( part1 = "2009-01-01 00:00:00 PST" );
+select dataelement objects from owltable testinterval2 within owldatabase testintervalowldatabase2 with partition ( part1 = "2009-01-02 00:00:00 PST" );
+select dataelement objects from owltable testinterval2 within owldatabase testintervalowldatabase2 with partition ( part1 = "2009-01-03 00:00:00 PST" );
+select dataelement objects from owltable testinterval2 within owldatabase testintervalowldatabase2 with partition ( part1 = "2009-01-04 00:00:00 PST" );
+select dataelement objects from owltable testinterval2 within owldatabase testintervalowldatabase2 with partition ( part1 = "2009-01-04 10:00:00 PST" );
+select dataelement objects from owltable testinterval2 within owldatabase testintervalowldatabase2 with partition ( part1 = "2009-01-05 00:00:00 PST" );
+select dataelement objects from owltable testinterval2 within owldatabase testintervalowldatabase2 with partition ( part1 = "2009-02-01 20:00:00 PST" );
+select dataelement objects from owltable testinterval2 within owldatabase testintervalowldatabase2 with partition ( part1 = "2009-02-02 00:00:00 PST" );
+select dataelement objects from owltable testinterval2 within owldatabase testintervalowldatabase2 with partition ( part1 = "2009-03-01 00:00:00 PST" );
+
+--tests with operators
+select dataelement objects from owltable testinterval2 within owldatabase testintervalowldatabase2 with partition ( part1 > "2009-01-04 00:00:00 PST" );
+select dataelement objects from owltable testinterval2 within owldatabase testintervalowldatabase2 with partition ( part1 >= "2009-01-04 00:00:00 PST" );
+select dataelement objects from owltable testinterval2 within owldatabase testintervalowldatabase2 with partition ( part1 >= "2009-01-04 15:00:00 PST" );
+select dataelement objects from owltable testinterval2 within owldatabase testintervalowldatabase2 with partition ( part1 < "2009-01-03 00:00:00 PST" );
+select dataelement objects from owltable testinterval2 within owldatabase testintervalowldatabase2 with partition ( part1 < "2009-01-03 00:00:01 PST" );
+select dataelement objects from owltable testinterval2 within owldatabase testintervalowldatabase2 with partition ( part1 <= "2009-01-03 00:00:00 PST" );
+select dataelement objects from owltable testinterval2 within owldatabase testintervalowldatabase2 with partition ( part1 <= "2009-01-03 00:00:01 PST" );
+
+select dataelement objects from owltable testinterval2 within owldatabase testintervalowldatabase2 with partition ( part1 IN  "2009-01-03 00:00:01 PST" );
+select dataelement objects from owltable testinterval2 within owldatabase testintervalowldatabase2 with partition ( part1 LIKE "2009-01-03 00:00:01 PST");
+
+--selects from the seconds interval table
+select dataelement objects from owltable testinterval3 within owldatabase testintervalowldatabase2 with partition ( part1 = "2009-03-01 00:00:00 PST" );
+select dataelement objects from owltable testinterval3 within owldatabase testintervalowldatabase2 with partition ( part1 = "2009-03-01 00:00:15 PST" );
+select dataelement objects from owltable testinterval3 within owldatabase testintervalowldatabase2 with partition ( part1 = "2009-03-01 00:00:23 PST" );
+
+--cleanup environment
+drop owltable testinterval2 within owldatabase testintervalowldatabase2;
+drop owltable testinterval3 within owldatabase testintervalowldatabase2;
+drop owldatabase testintervalowldatabase2;
+
