@@ -183,6 +183,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-1372: Restore PigInputFormat.sJob for backward compatibility (pradeepkth)
+
 PIG-1369: POProject does not handle null tuples and non existent fields in
 some cases (pradeepkth)
 
