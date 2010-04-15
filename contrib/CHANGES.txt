@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-1331 Add Owl as a contrib project (ajaykidave via gates)
+
 OPTIMIZATIONS
 
 BUG FIXES

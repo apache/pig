@@ -1,0 +1,50 @@
+<COMMAND> drop owltable testkeys within owldatabase testkeyowldatabase
+<IGNORE>
+<COMMAND> drop owltable testkeys2 within owldatabase testkeyowldatabase
+<IGNORE>
+<COMMAND> drop owldatabase testkeyowldatabase
+<IGNORE>
+<COMMAND> create owldatabase testkeyowldatabase identified by storage directory "http://namenode:8080/data/testkeyowldatabase"
+<SUCCESS>
+<COMMAND> create owltable type basic testkeys within owldatabase testkeyowldatabase define property key prkot : INTEGER partitioned by LIST with partition key part1 : INTEGER define property key prk1 : INTEGER partitioned by LIST with partition key part2 : INTEGER define property key prk2 : INTEGER partitioned by LIST with partition key part3 : INTEGER define property key prk3 : INTEGER schema "test1:int"
+<SUCCESS>
+<COMMAND> create owltable type basic testkeys2 within owldatabase testkeyowldatabase partitioned by LIST with partition key part1 : STRING schema "test1:int"
+<SUCCESS>
+<COMMAND> publish dataelement to owltable testkeys within owldatabase testkeyowldatabase partition (part1 = 1, part2 = 2, part3 = 3) property (prk1 = 11, prk2 = 22, prk3 = 33) schema "c1:int" delocation "testloc1"
+<SUCCESS>
+<COMMAND> publish dataelement to owltable testkeys within owldatabase testkeyowldatabase partition (part1 = 101, part2 = 2, part3 = 3) property (prk1 = 11, prk2 = 22, prk3 = 33) schema "c1:int" delocation "testloc2"
+<SUCCESS>
+<COMMAND> publish dataelement to owltable testkeys2 within owldatabase testkeyowldatabase partition (part1 = "abc1") schema "c1:int" delocation "key2loc1"
+<SUCCESS>
+<COMMAND> publish dataelement to owltable testkeys2 within owldatabase testkeyowldatabase partition (part1 = "2abc2") schema "c1:int" delocation "key2loc2"
+<SUCCESS>
+<COMMAND> publish dataelement to owltable testkeys2 within owldatabase testkeyowldatabase partition (part1 = "3abc") schema "c1:int" delocation "key2loc3"
+<SUCCESS>
+<COMMAND> publish dataelement to owltable testkeys2 within owldatabase testkeyowldatabase partition (part1 = "def") schema "c1:int" delocation "key2loc4"
+<SUCCESS>
+<COMMAND> select partitionproperty objects from owltable testkeys within owldatabase testkeyowldatabase with partition ( part1 = 1 )
+<RESULT> OwlPartitionProperty 1
+{"keyValues":[]}
+<COMMAND> select partitionproperty objects from owltable testkeys within owldatabase testkeyowldatabase with partition ( part1 = 1, part2=2  )
+<RESULT> OwlPartitionProperty 1
+{"keyValues":[]}
+<COMMAND> select partitionproperty objects from owltable testkeys within owldatabase testkeyowldatabase with partition ( part1 = 1, part2=2, part3=3 )
+<RESULT> OwlPartitionProperty 1
+{"keyValues":[{"dataType":"INT","intValue":11,"keyName":"prk1","keyType":"PROPERTY"},{"dataType":"INT","intValue":22,"keyName":"prk2","keyType":"PROPERTY"},{"dataType":"INT","intValue":33,"keyName":"prk3","keyType":"PROPERTY"}]}
+<COMMAND> select dataelement objects from owltable testkeys within owldatabase testkeyowldatabase with partition ( part1 = 1 ) property ( prk2=22 )
+<RESULT> OwlDataElement 1
+{"creationTime":0,"keyValues":[{"dataType":"INT","intValue":3,"keyName":"part3","keyType":"PARTITION"},{"dataType":"INT","intValue":11,"keyName":"prk1","keyType":"PROPERTY"},{"dataType":"INT","intValue":22,"keyName":"prk2","keyType":"PROPERTY"},{"dataType":"INT","intValue":33,"keyName":"prk3","keyType":"PROPERTY"},{"dataType":"INT","intValue":2,"keyName":"part2","keyType":"PARTITION"},{"dataType":"INT","intValue":1,"keyName":"part1","keyType":"PARTITION"}],"loader":{},"modificationTime":0,"owlSchema":{"columnSchema":[{"columnNumber":0,"name":"c1","type":"INT"}]},"storageLocation":"testloc1"}
+<COMMAND> select dataelement objects from owltable testkeys2 within owldatabase testkeyowldatabase with partition ( part1 like "%abc%" )
+<RESULT> OwlDataElement 3
+{"creationTime":0,"keyValues":[{"dataType":"STRING","keyName":"part1","keyType":"PARTITION","stringValue":"abc1"}],"loader":{},"modificationTime":0,"owlSchema":{"columnSchema":[{"columnNumber":0,"name":"c1","type":"INT"}]},"storageLocation":"key2loc1"}
+{"creationTime":0,"keyValues":[{"dataType":"STRING","keyName":"part1","keyType":"PARTITION","stringValue":"2abc2"}],"loader":{},"modificationTime":0,"owlSchema":{"columnSchema":[{"columnNumber":0,"name":"c1","type":"INT"}]},"storageLocation":"key2loc2"}
+{"creationTime":0,"keyValues":[{"dataType":"STRING","keyName":"part1","keyType":"PARTITION","stringValue":"3abc"}],"loader":{},"modificationTime":0,"owlSchema":{"columnSchema":[{"columnNumber":0,"name":"c1","type":"INT"}]},"storageLocation":"key2loc3"}
+<COMMAND> select dataelement objects from owltable testkeys2 within owldatabase testkeyowldatabase with partition ( part1 like "%def%" )
+<RESULT> OwlDataElement 1
+{"creationTime":0,"keyValues":[{"dataType":"STRING","keyName":"part1","keyType":"PARTITION","stringValue":"def"}],"loader":{},"modificationTime":0,"owlSchema":{"columnSchema":[{"columnNumber":0,"name":"c1","type":"INT"}]},"storageLocation":"key2loc4"}
+<COMMAND> drop owltable testkeys within owldatabase testkeyowldatabase
+<SUCCESS>
+<COMMAND> drop owltable testkeys2 within owldatabase testkeyowldatabase
+<SUCCESS>
+<COMMAND> drop owldatabase testkeyowldatabase
+<SUCCESS>

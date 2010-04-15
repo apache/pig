@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!--
+   Licensed to the Apache Software Foundation (ASF) under one or more
+   contributor license agreements.  See the NOTICE file distributed with
+   this work for additional information regarding copyright ownership.
+   The ASF licenses this file to You under the Apache License, Version 2.0
+   (the "License"); you may not use this file except in compliance with
+   the License.  You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+-->
+
+<persistence xmlns="http://java.sun.com/xml/ns/persistence"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://java.sun.com/xml/ns/persistence http://java.sun.com/xml/ns/persistence/persistence_2_0.xsd" version="2.0">
+
+    <!-- Owl "unit" -->
+    <persistence-unit name="Owl">
+        <mapping-file>org/apache/hadoop/owl/orm/orm.xml</mapping-file>
+        <class>org.apache.hadoop.owl.entity.DatabaseEntity</class>
+        <class>org.apache.hadoop.owl.entity.DataElementEntity</class>
+        <class>org.apache.hadoop.owl.entity.OwlTableEntity</class>
+        <class>org.apache.hadoop.owl.entity.OwlTableKeyValueEntity</class>
+        <class>org.apache.hadoop.owl.entity.GlobalKeyEntity</class>
+        <class>org.apache.hadoop.owl.entity.KeyValueEntity</class>
+        <class>org.apache.hadoop.owl.entity.PartitionEntity</class>
+        <class>org.apache.hadoop.owl.entity.PartitionKeyEntity</class>
+        <class>org.apache.hadoop.owl.entity.PropertyKeyEntity</class>
+        <class>org.apache.hadoop.owl.entity.OwlSchemaEntity</class>
+        <class>org.apache.hadoop.owl.entity.OwlColumnSchemaEntity</class>
+
+        <properties>
+            <property name="datanucleus.jpa.level" value="DataNucleus"/>
+            <property name="datanucleus.autoCreateSchema" value="false"/>
+            <property name="datanucleus.autoCreateTables" value="false"/>
+            <property name="datanucleus.autoCreateColumns" value="false"/>
+            <property name="datanucleus.autoCreateConstraints" value="false"/>
+            <property name="datanucleus.validateTables" value="true"/>
+            <property name="datanucleus.validateConstraints" value="true"/>
+            <property name="datanucleus.validateColumns" value="true"/>
+            <property name="datanucleus.rdbms.CheckExistTablesOrViews" value="true"/>
+            <property name="datanucleus.rdbms.initializeColumnInfo" value="None"/>
+            <property name="datanucleus.identifier.case" value="UpperCase"/>
+        </properties>
+    </persistence-unit>
+
+</persistence>

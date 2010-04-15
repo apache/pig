@@ -1,0 +1,36 @@
+drop owltable testSchemaEvolutionTable within owldatabase testSchemaEvolutionDB;
+drop owltable testComplexSchema within owldatabase testSchemaEvolutionDB;
+drop owldatabase testSchemaEvolutionDB;
+
+create owldatabase testSchemaEvolutionDB identified by storage directory "hdfs://localhost:9000/data/testSchemaEvolutionDB";
+
+create owltable type basic testSchemaEvolutionTable within owldatabase testSchemaEvolutionDB partitioned by LIST with partition key c1 : INTEGER schema "c1:int,c2:string";
+
+publish dataelement to owltable testSchemaEvolutionTable within owldatabase testSchemaEvolutionDB partition (c1 = 2008 ) schema "c1:int,c2:string,c3:int" delocation "testSchemaEvolutionTable/partition1" loader "testloader";
+describe owltable testSchemaEvolutionTable within owldatabase testSchemaEvolutionDB;
+
+publish dataelement to owltable testSchemaEvolutionTable within owldatabase testSchemaEvolutionDB partition (c1 = 2009 ) schema "c1:int,c2:string,c4:int" delocation "testSchemaEvolutionTable/partition2" loader "testloader";
+describe owltable testSchemaEvolutionTable within owldatabase testSchemaEvolutionDB;
+
+
+select partition objects from owltable testSchemaEvolutionTable within owldatabase testSchemaEvolutionDB;
+
+
+create owltable type basic testComplexSchema within owldatabase testSchemaEvolutionDB partitioned by LIST with partition key c1 : INTEGER schema "c1:int,c2:string,s_bytes:bytes,s_int:int,s_long:long,s_float:float,s_double:double,m_1:map,m_2:map,m_3:map,ml_1:collection(r1:record(m:map)),ml_2:collection(r2:record(m:map)),ml_3:collection(r3:record(m:map))";
+
+describe owltable testComplexSchema within owldatabase testSchemaEvolutionDB;
+
+publish dataelement to owltable testComplexSchema within owldatabase testSchemaEvolutionDB partition (c1 = 2008 ) schema "c1:int,c2:string,s_bytes:bytes,s_int:int,s_long:long,s_float:float,s_double:double,yy:bytes, m_1:map,m_2:map,m_3:map,ml_1:collection(r1:record(m:map)),ml_2:collection(r2:record(m:map)),ml_3:collection(r3:record(m:map))" delocation "testComplexSchema/partition1" loader "testloader";
+
+publish dataelement to owltable testComplexSchema within owldatabase testSchemaEvolutionDB partition (c1 = 2009 ) schema "c1:int,c2:string,s_bytes:bytes,s_int:int,s_long:long,s_float:float,tt:int,s_double:double,m_1:map,m_2:map,m_3:map,ml_1:collection(r1:record(m:map)),ml_2:collection(r2:record(m:map)),ml_3:collection(r3:record((m:map))" delocation "testComplexSchema/partition2" loader "testloader";
+
+describe owltable testComplexSchema within owldatabase testSchemaEvolutionDB;
+
+--negative publish
+publish dataelement to owltable testSchemaEvolutionTable within owldatabase testSchemaEvolutionDB partition (c1 = 2010 ) schema "c3:string" delocation "testSchemaEvolutionTable/partition4" loader "testloader";
+describe owltable testSchemaEvolutionTable within owldatabase testSchemaEvolutionDB;
+
+--cleanup
+drop owltable testSchemaEvolutionTable within owldatabase testSchemaEvolutionDB;
+drop owltable testComplexSchema within owldatabase testSchemaEvolutionDB;
+drop owldatabase testSchemaEvolutionDB;

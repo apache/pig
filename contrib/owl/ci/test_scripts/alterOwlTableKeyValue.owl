@@ -1,0 +1,45 @@
+-- cleanup
+drop owltable alterotkvtbl within owldatabase alterotkvdb;
+drop owldatabase alterotkvdb;
+
+-- initialize db/table
+
+create owldatabase alterotkvdb identified by storage directory "hdfs://blah:8080/tmp/alterotkvdb";
+
+create owltable type basic alterotkvtbl within owldatabase alterotkvdb define property key retention:INTEGER partitioned by LIST with partition key A:STRING partitioned by LIST with partition key B:STRING define property key default_store:STRING, isExternal:STRING schema "A:string,B:string,C:collection(r1:record(i:int))";
+
+-- describe
+
+describe owltable alterotkvtbl within owldatabase alterotkvdb;
+
+alter owltable alterotkvtbl within owldatabase alterotkvdb modify property ( default_store = "stfunc" , isExternal = "N" );
+describe owltable alterotkvtbl within owldatabase alterotkvdb;
+
+alter owltable alterotkvtbl within owldatabase alterotkvdb modify property ( default_store = "stfunc2" );
+describe owltable alterotkvtbl within owldatabase alterotkvdb;
+
+alter owltable alterotkvtbl within owldatabase alterotkvdb modify property ( default_store = "stfunc3", isExternal = "Y" );
+describe owltable alterotkvtbl within owldatabase alterotkvdb;
+
+alter owltable alterotkvtbl within owldatabase alterotkvdb modify property ( default_store = "stfunc3" , isExternal = "Y" );
+describe owltable alterotkvtbl within owldatabase alterotkvdb;
+
+alter owltable alterotkvtbl within owldatabase alterotkvdb drop property ( isExternal = "DELETED" );
+describe owltable alterotkvtbl within owldatabase alterotkvdb;
+
+alter owltable alterotkvtbl within owldatabase alterotkvdb modify property ( default_store = "stfunc4" );
+describe owltable alterotkvtbl within owldatabase alterotkvdb;
+
+alter owltable alterotkvtbl within owldatabase alterotkvdb modify property ( isExternal = "N" );
+describe owltable alterotkvtbl within owldatabase alterotkvdb;
+
+alter owltable alterotkvtbl within owldatabase alterotkvdb drop property ( default_store ="DELETED" );
+describe owltable alterotkvtbl within owldatabase alterotkvdb;
+
+alter owltable alterotkvtbl within owldatabase alterotkvdb modify property ( default_store = "stfunc5" , isExternal = "Y" );
+describe owltable alterotkvtbl within owldatabase alterotkvdb;
+
+-- cleanup
+drop owltable alterotkvtbl within owldatabase alterotkvdb;
+drop owldatabase alterotkvdb;
+
