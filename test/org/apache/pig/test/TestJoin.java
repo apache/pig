@@ -491,34 +491,22 @@ public class TestJoin extends TestCase {
         lpt.buildPlan("a = load 'a.txt' as (n:chararray, a:int); ");
         lpt.buildPlan("b = load 'b.txt' as (n:chararray, m:chararray); ");
         String[] types = new String[] { "left", "right", "full" };
-        String[] joinTypes = new String[] { "replicated", "repl", "merge" };
+        String[] joinTypes = new String[] { "replicated", "repl"};
         for (int i = 0; i < types.length; i++) {
             for(int j = 0; j < joinTypes.length; j++) {
                 boolean errCaught = false;
                 try {
-                    lpt.buildPlanThrowExceptionOnError(
-                            "d = join a by $0 " + types[i] + " outer, b by $0 using \"" + joinTypes[j] +"\" ;") ;
+                    lpt.buildPlanThrowExceptionOnError("d = join a by $0 " + 
+                     types[i] + " outer, b by $0 using '" + joinTypes[j] +"';");
                     
                 } catch(Exception e) {
                     errCaught = true;
-                    if( j == 0 || j == 1 ) {
                      // This after adding support of LeftOuter Join to replicated Join
                         assertEquals(true, e.getMessage().contains("does not support (right|full) outer joins"));   
-                    } else {
-                        assertEquals(true, e.getMessage().contains("does not support (left|right|full) outer joins"));
-                    }                    
                 }
-                if( i == 0 && ( j == 0 || j== 1 ) ) {
-                    // This after adding support of LeftOuter Join to replicated Join
-                    assertEquals(false, errCaught);
-                }
-                else {
-                    assertEquals(true, errCaught);
-                }
+                assertEquals( i == 0 ? false : true, errCaught);
             }
-            
         }
-        
     }
     
     @Test

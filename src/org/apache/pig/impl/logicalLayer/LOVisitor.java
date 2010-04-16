@@ -17,16 +17,8 @@
  */
 package org.apache.pig.impl.logicalLayer;
 
-import java.util.List;
-import java.util.Iterator;
-import java.util.Set;
-import java.util.Map;
-import java.util.ArrayList;
-import java.util.Collection;
-
 import org.apache.pig.impl.plan.PlanVisitor;
 import org.apache.pig.impl.plan.PlanWalker;
-import org.apache.pig.impl.plan.DepthFirstWalker;
 import org.apache.pig.impl.plan.DependencyOrderWalker;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.util.MultiMap;
@@ -52,7 +44,7 @@ import org.apache.pig.impl.util.MultiMap;
 abstract public class LOVisitor extends
         PlanVisitor<LogicalOperator, LogicalPlan> {
 
-    public LOVisitor(LogicalPlan plan,
+    protected LOVisitor(LogicalPlan plan,
                      PlanWalker<LogicalOperator, LogicalPlan> walker) {
         super(plan, walker);
     }
@@ -330,88 +322,72 @@ abstract public class LOVisitor extends
         }
     }
     
-    public void visit(LOGreaterThan op) throws VisitorException {
-		// TODO Auto-generated method stub
+    protected void visit(LOGreaterThan op) throws VisitorException {
 		return;
 	}
 
-	public void visit(LOLesserThan op) throws VisitorException {
-		// TODO Auto-generated method stub
+	protected void visit(LOLesserThan op) throws VisitorException {
 		return;
 	}
 
-	public void visit(LOGreaterThanEqual op) throws VisitorException {
-		// TODO Auto-generated method stub
+	protected void visit(LOGreaterThanEqual op) throws VisitorException {
 		return;
 	}
 
-	public void visit(LOLesserThanEqual op) throws VisitorException {
-		// TODO Auto-generated method stub
+	protected void visit(LOLesserThanEqual op) throws VisitorException {
 		return;
 	}
 
-	public void visit(LOEqual op) throws VisitorException {
-		// TODO Auto-generated method stub
+	protected void visit(LOEqual op) throws VisitorException {
 		return;
 	}
 
-	public void visit(LONotEqual op) throws VisitorException {
-		// TODO Auto-generated method stub
+	protected void visit(LONotEqual op) throws VisitorException {
 		return;
 	}
 
-	public void visit(LOAdd op) throws VisitorException {
-		// TODO Auto-generated method stub
+	protected void visit(LOAdd op) throws VisitorException {
 		return;
 	}
 
-	public void visit(LOSubtract op) throws VisitorException {
-		// TODO Auto-generated method stub
+	protected void visit(LOSubtract op) throws VisitorException {
 		return;
 	}
 
-	public void visit(LOMultiply op) throws VisitorException {
-		// TODO Auto-generated method stub
+	protected void visit(LOMultiply op) throws VisitorException {
 		return;
 	}
 
-	public void visit(LODivide op) throws VisitorException {
-		// TODO Auto-generated method stub
+	protected void visit(LODivide op) throws VisitorException {
 		return;
 	}
 
-	public void visit(LOMod op) throws VisitorException {
-		// TODO Auto-generated method stub
+	protected void visit(LOMod op) throws VisitorException {
 		return;
 	}
 
 	
-	public void visit(LONegative op) throws VisitorException {
-		// TODO Auto-generated method stub
+	protected void visit(LONegative op) throws VisitorException {
 		return;
 	}
 
-	public void visit(LOMapLookup op) throws VisitorException {
-		// TODO Auto-generated method stub
+	protected void visit(LOMapLookup op) throws VisitorException {
 		return;
 	}
 
-	public void visit(LOAnd binOp) throws VisitorException {
-		// TODO Auto-generated method stub
+	protected void visit(LOAnd binOp) throws VisitorException {
 		return;
 	}
 
-	public void visit(LOOr binOp) throws VisitorException {
-		// TODO Auto-generated method stub
+	protected void visit(LOOr binOp) throws VisitorException {
 		return;
 	}
 
-	public void visit(LONot uniOp) throws VisitorException {
-		// TODO Auto-generated method stub
+	protected void visit(LONot uniOp) throws VisitorException {
 		return;
 	}
 
-	public void visit(LOIsNull uniOp) throws VisitorException {
+	protected void visit(LOIsNull uniOp) throws VisitorException {
 		return;
 	}
 }

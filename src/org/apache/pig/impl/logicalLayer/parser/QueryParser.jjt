@@ -417,9 +417,6 @@ public class QueryParser {
                     return joinOp;
             }
              else if (modifier.equalsIgnoreCase("merge")) {
-                 if(isOuter) {
-                        throw new ParseException("Merge join does not support (left|right|full) outer joins");
-                    }
                     LogicalOperator joinOp = parseJoin(gis, lp, LOJoin.JOINTYPE.MERGE);
                     joinOp.pinOption(LOJoin.OPTION_JOIN);
                     return joinOp; 
@@ -2111,7 +2108,7 @@ LogicalOperator JoinClause(LogicalPlan lp) :
               log.info("[WARN] Use of double-quotes for specifying join algorithm is deprecated. Please use single quotes."); 
               joinOp = parseUsingForJoin("skewed", gis, lp, isFullOuter, isRightOuter, isOuter);
 		    	}
-		| ("\"merge\"") { 
+        | ("\"merge\"") { 
             log.info("[WARN] Use of double-quotes for specifying join algorithm is deprecated. Please use single quotes."); 
             joinOp = parseUsingForJoin("merge", gis, lp, isFullOuter, isRightOuter, isOuter);
         	}
