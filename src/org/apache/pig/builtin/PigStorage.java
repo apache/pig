@@ -17,7 +17,6 @@
  */
 package org.apache.pig.builtin;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -28,10 +27,8 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.io.WritableComparable;
 import org.apache.hadoop.io.compress.BZip2Codec;
 import org.apache.hadoop.io.compress.GzipCodec;
-import org.apache.pig.bzip2r.Bzip2TextInputFormat;
 import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.OutputFormat;
@@ -39,7 +36,6 @@ import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
-import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 import org.apache.pig.FileInputLoadFunc;
 import org.apache.pig.LoadFunc;
 import org.apache.pig.LoadPushDown;
@@ -50,6 +46,8 @@ import org.apache.pig.StoreFuncInterface;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigSplit;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigTextInputFormat;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigTextOutputFormat;
+import org.apache.pig.bzip2r.Bzip2TextInputFormat;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
@@ -63,9 +61,10 @@ import org.apache.pig.impl.util.UDFContext;
  * delimiter is given as a regular expression. See String.split(delimiter) and
  * http://java.sun.com/j2se/1.5.0/docs/api/java/util/regex/Pattern.html for more information.
  */
+@SuppressWarnings("unchecked")
 public class PigStorage extends FileInputLoadFunc implements StoreFuncInterface, 
 LoadPushDown {
-    protected RecordReader in = null;
+    protected RecordReader in = null;    
     protected RecordWriter writer = null;
     protected final Log mLog = LogFactory.getLog(getClass());
     private String signature;
@@ -73,7 +72,6 @@ LoadPushDown {
     private byte fieldDel = '\t';
     private ArrayList<Object> mProtoTuple = null;
     private TupleFactory mTupleFactory = TupleFactory.getInstance();
-    private static final int BUFFER_SIZE = 1024;
     private String loadLocation;
     
     public PigStorage() {
@@ -138,33 +136,10 @@ LoadPushDown {
       
     }
 
-    protected ByteArrayOutputStream mOut = new ByteArrayOutputStream(BUFFER_SIZE);
-
-    @SuppressWarnings("unchecked")
     @Override
     public void putNext(Tuple f) throws IOException {
-        // I have to convert integer fields to string, and then to bytes.
-        // If I use a DataOutputStream to convert directly from integer to
-        // bytes, I don't get a string representation.
-        int sz = f.size();
-        for (int i = 0; i < sz; i++) {
-            Object field;
-            try {
-                field = f.get(i);
-            } catch (ExecException ee) {
-                throw ee;
-            }
-
-            StorageUtil.putField(mOut, field);
-
-            if (i != sz - 1) {
-                mOut.write(fieldDel);
-            }
-        }
-        Text text = new Text(mOut.toByteArray());
         try {
-            writer.write(null, text);
-            mOut.reset();
+            writer.write(null, f);            
         } catch (InterruptedException e) {
             throw new IOException(e);
         }
@@ -244,7 +219,7 @@ LoadPushDown {
 
     @Override
     public OutputFormat getOutputFormat() {
-        return new TextOutputFormat<WritableComparable, Text>();
+        return new PigTextOutputFormat(fieldDel);
     }
 
     @Override
