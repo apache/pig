@@ -183,6 +183,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-1374: PushDownForeachFlatten shall not push ForEach below Join if the flattened fields is used in the next statement (daijy)
+
 PIG-1372: Restore PigInputFormat.sJob for backward compatibility (pradeepkth)
 
 PIG-1369: POProject does not handle null tuples and non existent fields in
