@@ -43,6 +43,9 @@ PIG-1309: Map-side Cogroup (ashutoshc)
 
 BUG FIXES
 
+PIG-1348: PigStorage making unnecessary byte array copy when storing data
+(rding)
+
 PIG-1372: Restore PigInputFormat.sJob for backward compatibility (pradeepkth)
 
 PIG-1369: POProject does not handle null tuples and non existent fields in
