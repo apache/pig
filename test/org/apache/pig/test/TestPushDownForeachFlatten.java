@@ -1002,6 +1002,25 @@ public class TestPushDownForeachFlatten extends junit.framework.TestCase {
         assertTrue(pushDownForeach.getSwap() == false);
         assertTrue(pushDownForeach.getInsertBetween() == false);
     }
+    
+    // See PIG-1374
+    @Test
+    public void testForeachRequiredField() throws Exception {
+        planTester.buildPlan("A = load 'myfile' as (b{t(a0:chararray,a1:int)});");
+        planTester.buildPlan("B = foreach A generate flatten($0);");
+        LogicalPlan lp = planTester.buildPlan("C = order B by $1 desc;");
+        
+        planTester.setPlan(lp);
+        planTester.setProjectionMap(lp);
+        planTester.rebuildSchema(lp);
+        
+        PushDownForeachFlatten pushDownForeach = new PushDownForeachFlatten(lp);
 
+        LOLoad loada = (LOLoad) lp.getRoots().get(0);
+        
+        assertTrue(!pushDownForeach.check(lp.getSuccessors(loada)));
+        assertTrue(pushDownForeach.getSwap() == false);
+        assertTrue(pushDownForeach.getInsertBetween() == false);
+    }
 }
 
