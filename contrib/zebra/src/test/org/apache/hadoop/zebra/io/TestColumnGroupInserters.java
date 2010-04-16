@@ -35,6 +35,7 @@ import org.apache.hadoop.zebra.parser.ParseException;
 import org.apache.hadoop.zebra.schema.Schema;
 import org.apache.hadoop.zebra.types.TypesUtils;
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.Tuple;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -120,7 +121,7 @@ public class TestColumnGroupInserters {
     ParseException {
     fs.delete(path, true);
     System.out.println("testFailureInsertAfterClose");
-    writer = new ColumnGroup.Writer(path, "abc, def ", false, path.getName(), "pig", "gz",
+    writer = new ColumnGroup.Writer(path, "abc:string, def:map(string)", false, path.getName(), "pig", "gz",
         null, null, (short) -1, true, conf);
     TableInserter ins = writer.getInserter("part1", true);
 
@@ -177,7 +178,7 @@ public class TestColumnGroupInserters {
     ParseException {
     fs.delete(path, true);
     System.out.println("testInsertOneRow");
-    writer = new ColumnGroup.Writer(path, "abc, def", false, path.getName(), "pig", "gz",
+    writer = new ColumnGroup.Writer(path, "abc:string, def:map(string)", false, path.getName(), "pig", "gz",
         null, null, (short) -1, true, conf);
     TableInserter ins = writer.getInserter("part1", true);
 
@@ -199,7 +200,7 @@ public class TestColumnGroupInserters {
     ParseException {
     fs.delete(path, true);
     System.out.println("testInsert2Rows");
-    writer = new ColumnGroup.Writer(path, "abc, def", false, path.getName(), "pig", "gz",
+    writer = new ColumnGroup.Writer(path, "abc:string, def:map(string)", false, path.getName(), "pig", "gz",
         null, null, (short) -1, true, conf);
     TableInserter ins = writer.getInserter("part1", true);
 
@@ -233,7 +234,7 @@ public class TestColumnGroupInserters {
     ParseException {
     fs.delete(path, true);
     System.out.println("testInsert2Inserters");
-    writer = new ColumnGroup.Writer(path, "abc, def", false, path.getName(), "pig", "gz",
+    writer = new ColumnGroup.Writer(path, "abc:string, def:map(string)", false, path.getName(), "pig", "gz",
         null, null, (short) -1, true, conf);
     TableInserter ins1 = writer.getInserter("part1", true);
     TableInserter ins2 = writer.getInserter("part2", true);
@@ -270,7 +271,7 @@ public class TestColumnGroupInserters {
     ParseException {
     fs.delete(path, true);
     System.out.println("testFailureOverlappingKeys");
-    writer = new ColumnGroup.Writer(path, "abc, def ", true, path.getName(), "pig", "gz",
+    writer = new ColumnGroup.Writer(path, "abc:string, def:map(string)", true, path.getName(), "pig", "gz",
         null, null, (short) -1, true, conf);
     TableInserter ins1 = writer.getInserter("part1", false);
     TableInserter ins2 = writer.getInserter("part2", false);

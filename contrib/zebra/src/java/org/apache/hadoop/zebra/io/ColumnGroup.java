@@ -1835,10 +1835,31 @@ class ColumnGroup {
      */
     public TableInserter getInserter(String name, boolean finishWriter)
         throws IOException {
+      return getInserter(name, finishWriter, true);      
+    }
+    
+    /**
+     * Get a inserter with a given name.
+     * 
+     * @param name
+     *          the name of the inserter.
+     * @param finishWriter
+     *          finish the underlying Writer object upon the close of the
+     *          Inserter. Should be set to true if there is only one inserter
+     *          operate on the table, so we should call finish() after the
+     *          Inserter is closed.
+     * @param checktype
+     *          whether or not do type check.
+     * 
+     * @return A table inserter object.
+     * @throws IOException
+     */
+    public TableInserter getInserter(String name, boolean finishWriter, boolean checkType)
+        throws IOException {
       if (finished) {
         throw new IOException("ColumnGroup has been closed for insertion.");
       }
-      return new CGInserter(name, finishWriter);
+      return new CGInserter(name, finishWriter, checkType);
     }
 
     private void createIndex() throws IOException {
@@ -1888,7 +1909,7 @@ class ColumnGroup {
       TFile.Writer tfileWriter;
       TupleWriter tupleWriter;
       boolean closed = true;
-      
+      boolean checkType = true;
       
       private void createTempFile() throws IOException {
         int maxTrial = 10;
@@ -1937,15 +1958,17 @@ class ColumnGroup {
           }
         }
       }
-
-      CGInserter(String name, boolean finishWriter) throws IOException {
+      
+      CGInserter(String name, boolean finishWriter, boolean checkType) throws IOException {
         this.name = name;
         this.finishWriter = finishWriter;
         this.tupleWriter = new TupleWriter(getSchema());
+        this.checkType = checkType;
+        
         try {
           createTempFile();
           tfileWriter =
-        	  new TFile.Writer(out, getMinBlockSize(conf), cgschema.getCompressor(), cgschema.getComparator(), conf);
+            new TFile.Writer(out, getMinBlockSize(conf), cgschema.getCompressor(), cgschema.getComparator(), conf);
           closed = false;
         }
         finally {
@@ -1978,6 +2001,7 @@ class ColumnGroup {
         }
       }
 
+
       @Override
       public Schema getSchema() {
         return ColumnGroup.Writer.this.getSchema();
@@ -1985,7 +2009,16 @@ class ColumnGroup {
 
       @Override
       public void insert(BytesWritable key, Tuple row) throws IOException {
-        TypesUtils.checkCompatible(row, getSchema());
+        /*
+         * If checkType is set to be true, we check for the first row - this is only a sanity check preventing
+         * users from messing up output schema;
+         * If checkType is set to be false, we do not do any type check. 
+         */
+        if (checkType == true) {
+          TypesUtils.checkCompatible(row, getSchema());
+          checkType = false;
+        }
+        
         DataOutputStream outKey = tfileWriter.prepareAppendKey(key.getLength());
         try {
           outKey.write(key.getBytes(), 0, key.getLength());

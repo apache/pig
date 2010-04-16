@@ -67,7 +67,7 @@ public class TestTableStorer extends BaseTestCase {
 
 
     BasicTable.Writer writer = new BasicTable.Writer(pathTable,
-        "SF_a,SF_b,SF_c,SF_d,SF_e,SF_f,SF_g",
+        "SF_a:string,SF_b:string,SF_c:string,SF_d:string,SF_e:string,SF_f:string,SF_g:string",
         "[SF_a, SF_b, SF_c]; [SF_e, SF_f, SF_g]", conf);
     Schema schema = writer.getSchema();
     Tuple tuple = TypesUtils.createTuple(schema);

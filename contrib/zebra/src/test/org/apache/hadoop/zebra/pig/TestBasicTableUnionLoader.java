@@ -52,7 +52,7 @@ public class TestBasicTableUnionLoader extends BaseTestCase {
      */
 
     BasicTable.Writer writer = new BasicTable.Writer(pathTable1,
-        "a:string,b,c:string", "[a,b];[c]", conf);
+        "a:string,b:string,c:string", "[a,b];[c]", conf);
     Schema schema = writer.getSchema();
     Tuple tuple = TypesUtils.createTuple(schema);
 
@@ -85,7 +85,7 @@ public class TestBasicTableUnionLoader extends BaseTestCase {
      * create 2nd basic table;
      */
 
-    writer = new BasicTable.Writer(pathTable2, "a:string,b,d:string",
+    writer = new BasicTable.Writer(pathTable2, "a:string,b:string,d:string",
         "[a,b];[d]", conf);
     schema = writer.getSchema();
     tuple = TypesUtils.createTuple(schema);

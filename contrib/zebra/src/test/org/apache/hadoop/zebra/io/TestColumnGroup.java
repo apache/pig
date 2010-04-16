@@ -41,6 +41,7 @@ import org.apache.hadoop.zebra.parser.ParseException;
 import org.apache.hadoop.zebra.schema.Schema;
 import org.apache.hadoop.zebra.types.TypesUtils;
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.Tuple;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -135,7 +136,7 @@ public class TestColumnGroup {
           TypesUtils.resetTuple(tuple);
           for (int k = 0; k < tuple.size(); ++k) {
             try {
-              tuple.set(k, makeString("col-" + colNames[k], rows * 10));
+              tuple.set(k, new DataByteArray(makeString("col-" + colNames[k], rows * 10).getBytes()));
             } catch (ExecException e) {
               e.printStackTrace();
             }
@@ -233,7 +234,7 @@ public class TestColumnGroup {
           TypesUtils.resetTuple(tuple);
           for (int k = 0; k < tuple.size(); ++k) {
             try {
-              tuple.set(k, makeString("col-" + colNames[k], rows * 10));
+              tuple.set(k, new DataByteArray(makeString("col-" + colNames[k], rows * 10).getBytes()));
             } catch (ExecException e) {
               e.printStackTrace();
             }

@@ -46,8 +46,7 @@ import org.junit.runners.Suite;
   TestRecord.class,
   TestRecordMap.class,
   TestSchema.class,
-  TestSimple.class,
-  TestWrite.class  
+  TestWrite.class
 })
 
 public class TestCheckin {

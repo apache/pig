@@ -57,7 +57,7 @@ public class TestRecord {
   private static Path path;
   private static FileSystem fs;
   static int count;
-  final static String STR_SCHEMA = "r1:record(f1:int, f2:long), r2:record(f5, r3:record(f3:float, f4))";
+  final static String STR_SCHEMA = "r1:record(f1:int, f2:long), r2:record(f5:string, r3:record(f3:double, f4))";
   final static String STR_STORAGE = "[r1.f1]; [r2.r3.f4]; [r1.f2, r2.r3.f3]";
 
   @BeforeClass

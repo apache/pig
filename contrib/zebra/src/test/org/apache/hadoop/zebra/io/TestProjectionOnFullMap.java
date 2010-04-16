@@ -51,7 +51,7 @@ import org.junit.Test;
  * 
  */
 public class TestProjectionOnFullMap {
-  final static String STR_SCHEMA = "f1:string, f2:map";
+  final static String STR_SCHEMA = "f1:string, f2:map(string)";
   final static String STR_STORAGE = "[f1]; [f2]";
   private static Configuration conf;
   private static Path path;

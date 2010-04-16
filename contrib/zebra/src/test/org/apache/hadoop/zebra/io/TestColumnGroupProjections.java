@@ -64,7 +64,7 @@ public class TestColumnGroupProjections {
         ColumnGroup.drop(path, conf);
     }
 
-    schema = new Schema("a,b,c,d,e,f,g");
+    schema = new Schema("a:string,b:string,c:string,d:string,e:string,f:string,g:string");
 
     ColumnGroup.Writer writer = new ColumnGroup.Writer(path, schema, false, path.getName(),
         "pig", "gz", null, null, (short) -1, true, conf);

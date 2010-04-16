@@ -55,11 +55,13 @@ import org.apache.pig.impl.util.UDFContext;
 public class TableStorer extends StoreFunc implements StoreMetadata {
     private static final String UDFCONTEXT_OUTPUT_SCHEMA = "zebra.UDFContext.outputSchema";
     private static final String UDFCONTEXT_SORT_INFO = "zebra.UDFContext.sortInfo";
+    private static final String UDFCONTEXT_OUTPUT_CHECKTYPE = "zebra.UDFContext.checkType";
 
     static final String OUTPUT_STORAGEHINT = "mapreduce.lib.table.output.storagehint";
     static final String OUTPUT_SCHEMA = "mapreduce.lib.table.output.schema";
     static final String OUTPUT_PATH = "mapreduce.lib.table.output.dir";
     static final String SORT_INFO = "mapreduce.lib.table.sort.info";
+    static final String OUTPUT_CHECKTYPE = "mapreduce.lib.table.output.checktype";
 
     private String storageHintString = null;
     private String udfContextSignature = null;
@@ -123,6 +125,11 @@ public class TableStorer extends StoreFunc implements StoreMetadata {
                 this.getClass(), new String[]{ udfContextSignature } );
         properties.setProperty( UDFCONTEXT_OUTPUT_SCHEMA, zebraSchema.toString() );
         properties.setProperty( UDFCONTEXT_SORT_INFO, sortColumnNames.toString() );
+        
+        // This is to turn off type check for potential corner cases - for internal use only;
+        if (System.getenv("zebra_output_checktype") != null && System.getenv("zebra_output_checktype").equals("no")) {
+          properties.setProperty( UDFCONTEXT_OUTPUT_CHECKTYPE, "no");
+        }
     }
 
     @SuppressWarnings("unchecked")
@@ -160,6 +167,11 @@ public class TableStorer extends StoreFunc implements StoreMetadata {
                 this.getClass(), new String[]{ udfContextSignature } );
         conf.set( OUTPUT_SCHEMA, properties.getProperty( UDFCONTEXT_OUTPUT_SCHEMA ) );
         conf.set( SORT_INFO, properties.getProperty( UDFCONTEXT_SORT_INFO ) );
+        
+        // Get checktype information from UDFContext and re-store it to job config;
+        if (properties.getProperty(UDFCONTEXT_OUTPUT_CHECKTYPE) != null && properties.getProperty(UDFCONTEXT_OUTPUT_CHECKTYPE).equals("no")) {
+          conf.setBoolean(OUTPUT_CHECKTYPE, false);
+        }
     }
 
     @Override
@@ -291,7 +303,8 @@ class TableRecordWriter extends RecordWriter<BytesWritable, Tuple> {
             builder = makeKeyBuilder(types);
         }
 
-        inserter = writer.getInserter( "patition-" + taContext.getTaskAttemptID().getTaskID().getId(), false );
+        boolean checkType = conf.getBoolean(TableStorer.OUTPUT_CHECKTYPE, true);
+        inserter = writer.getInserter("patition-" + taContext.getTaskAttemptID().getTaskID().getId(), false, checkType);
     }
 
     @Override

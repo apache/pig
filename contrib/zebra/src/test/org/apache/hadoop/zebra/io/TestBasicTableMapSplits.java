@@ -51,7 +51,7 @@ import org.junit.Test;
  * 
  */
 public class TestBasicTableMapSplits {
-  final static String STR_SCHEMA = "f1:bool, r:record(f11:int, f12:long), m:map(string), c:collection(record(f13:double, f14:float, f15:bytes))";
+  final static String STR_SCHEMA = "f1:bool, r:record(f11:int, f12:long), m:map(string), c:collection(record(f13:double, f14:double, f15:bytes))";
   final static String STR_STORAGE = "[r.f12, f1, m#{b}]; [m#{a}, r.f11]";
   private static Configuration conf;
   private static Path path;

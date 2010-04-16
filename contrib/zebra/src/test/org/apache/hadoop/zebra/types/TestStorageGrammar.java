@@ -52,7 +52,7 @@ import org.junit.Test;
  */
 public class TestStorageGrammar {
 
-  final static String STR_SCHEMA = "s1:bool, s2:int, s3:long, s4:float, s5:string, s6:bytes, r1:record(f1:int, f2:long), r2:record(r3:record(f3:float, f4)), m1:map(string),m2:map(map(int)), c:collection(record(f13:double, f14:float, f15:bytes)),s7:string, s8:string, s9:string, s10:string, s11:string, s12:string, s13:string, s14:string, s15:string, s16:string, s17:string, s18:string, s19:string, s20:string, s21:string, s22:string, s23:string";
+  final static String STR_SCHEMA = "s1:bool, s2:int, s3:long, s4:double, s5:string, s6:bytes, r1:record(f1:int, f2:long), r2:record(r3:record(f3:double, f4)), m1:map(string),m2:map(map(int)), c:collection(record(f13:double, f14:double, f15:bytes)),s7:string, s8:string, s9:string, s10:string, s11:string, s12:string, s13:string, s14:string, s15:string, s16:string, s17:string, s18:string, s19:string, s20:string, s21:string, s22:string, s23:string";
   static String STR_STORAGE = null;
   final private static Configuration conf = new Configuration();
   private static Path path;
@@ -60,30 +60,29 @@ public class TestStorageGrammar {
   private static String user;
   private static String group;
   private static String defaultUser;
-  
-  static{
-    try{
-    String command = "whoami";
-    Process process = new ProcessBuilder(command).start();
-    InputStream is = process.getInputStream();
-    InputStreamReader isr = new InputStreamReader(is);
-    BufferedReader br = new BufferedReader(isr);
-    System.out.printf("Output of running %s is:", 
-       command);
-    String line;
-    while ((line = br.readLine()) != null) {
-      System.out.println("default user0:" +line);
-      defaultUser = line;
-      
-    }
-    }catch(Exception e){
+
+  static {
+    try {
+      String command = "whoami";
+      Process process = new ProcessBuilder(command).start();
+      InputStream is = process.getInputStream();
+      InputStreamReader isr = new InputStreamReader(is);
+      BufferedReader br = new BufferedReader(isr);
+      System.out.printf("Output of running %s is:", command);
+      String line;
+      while ((line = br.readLine()) != null) {
+        System.out.println("default user0:" + line);
+        defaultUser = line;
+
+      }
+    } catch (Exception e) {
       e.printStackTrace();
     }
   }
 
   @BeforeClass
   public static void setUpOnce() throws IOException, LoginException {
-  if (System.getProperty("user") == null) {
+    if (System.getProperty("user") == null) {
       System.setProperty("user", defaultUser);
     }
     user = System.getProperty("user");
@@ -319,12 +318,12 @@ public class TestStorageGrammar {
   public static void tearDownOnce() throws IOException {
   }
 
-  //@Test
+  // @Test
   /*
    * group1 is user specific
    */
   public void test1() throws IOException, ParseException {
-   
+
     String schema = "s1:string, s2:string";
     String storage = "[s1, s2]COMPRESS BY gz SECURE BY uid:user1 gid:users perm:744 SERIALIZE BY pig";
     RawLocalFileSystem rawLFS = new RawLocalFileSystem();
@@ -355,6 +354,7 @@ public class TestStorageGrammar {
     Path path1 = new Path(path.toString() + "2");
     BasicTable.Writer writer = null;
     try {
+      BasicTable.drop(path1, conf);
       writer = new BasicTable.Writer(path1, schema, storage, conf);
     } catch (Exception e) {
       e.printStackTrace();
@@ -379,6 +379,7 @@ public class TestStorageGrammar {
     Path path1 = new Path(path.toString() + "3");
     BasicTable.Writer writer = null;
     try {
+      BasicTable.drop(path1, conf);
       writer = new BasicTable.Writer(path1, schema, storage, conf);
     } catch (Exception e) {
       e.printStackTrace();
@@ -401,6 +402,7 @@ public class TestStorageGrammar {
     Path path1 = new Path(path.toString() + "4");
     BasicTable.Writer writer = null;
     try {
+      BasicTable.drop(path1, conf);
       writer = new BasicTable.Writer(path1, schema, storage, conf);
     } catch (Exception e) {
       e.printStackTrace();
@@ -423,6 +425,7 @@ public class TestStorageGrammar {
     Path path1 = new Path(path.toString() + "5");
     BasicTable.Writer writer = null;
     try {
+      BasicTable.drop(path1, conf);
       writer = new BasicTable.Writer(path1, schema, storage, conf);
     } catch (Exception e) {
       e.printStackTrace();
@@ -445,6 +448,7 @@ public class TestStorageGrammar {
     Path path1 = new Path(path.toString() + "6");
     BasicTable.Writer writer = null;
     try {
+      BasicTable.drop(path1, conf);
       writer = new BasicTable.Writer(path1, schema, storage, conf);
     } catch (Exception e) {
       e.printStackTrace();
@@ -467,6 +471,7 @@ public class TestStorageGrammar {
     Path path1 = new Path(path.toString() + "7");
     BasicTable.Writer writer = null;
     try {
+      BasicTable.drop(path1, conf);
       writer = new BasicTable.Writer(path1, schema, storage, conf);
     } catch (Exception e) {
       e.printStackTrace();
@@ -488,6 +493,7 @@ public class TestStorageGrammar {
     Path path1 = new Path(path.toString() + "8");
     BasicTable.Writer writer = null;
     try {
+      BasicTable.drop(path1, conf);
       writer = new BasicTable.Writer(path1, schema, storage, conf);
     } catch (Exception e) {
       e.printStackTrace();
@@ -510,6 +516,7 @@ public class TestStorageGrammar {
     Path path1 = new Path(path.toString() + "9");
     BasicTable.Writer writer = null;
 
+    BasicTable.drop(path1, conf);
     writer = new BasicTable.Writer(path1, schema, storage, conf);
     Assert.fail("should throw exception, none defined serializer");
     writer.finish();
@@ -522,6 +529,7 @@ public class TestStorageGrammar {
     Path path1 = new Path(path.toString() + "10");
     BasicTable.Writer writer = null;
 
+    BasicTable.drop(path1, conf);
     writer = new BasicTable.Writer(path1, schema, storage, conf);
     Assert.fail("should throw exception, none defined serializer");
     writer.finish();
@@ -534,6 +542,7 @@ public class TestStorageGrammar {
     Path path1 = new Path(path.toString() + "11");
     BasicTable.Writer writer = null;
 
+    BasicTable.drop(path1, conf);
     writer = new BasicTable.Writer(path1, schema, storage, conf);
     Assert.fail("should throw exception, none defined serializer");
     writer.finish();
@@ -546,6 +555,7 @@ public class TestStorageGrammar {
     Path path1 = new Path(path.toString() + "12");
     BasicTable.Writer writer = null;
 
+    BasicTable.drop(path1, conf);
     writer = new BasicTable.Writer(path1, schema, storage, conf);
     Assert.fail("should throw exception, none defined serializer");
     writer.finish();
@@ -558,6 +568,7 @@ public class TestStorageGrammar {
     Path path1 = new Path(path.toString() + "13");
     BasicTable.Writer writer = null;
 
+    BasicTable.drop(path1, conf);
     writer = new BasicTable.Writer(path1, schema, storage, conf);
     Assert.fail("should throw exception, none defined serializer");
     writer.finish();
@@ -568,6 +579,8 @@ public class TestStorageGrammar {
     String schema = "some1:string, some2:string";
     String storage = "[some1,some2] COMPRESS BY gz SECURE BY usssser:user1 gid:users perm:760 SERIALIZE BY pig";
     Path path1 = new Path(path.toString() + "14");
+    
+    BasicTable.drop(path1, conf);
     BasicTable.Writer writer = null;
     writer = new BasicTable.Writer(path1, schema, storage, conf);
     Assert.fail("should throw exception, none defined serializer");
@@ -580,6 +593,7 @@ public class TestStorageGrammar {
     String storage = "[some1,some2] COMPRESS BY gz SECURE BY uid:user1 grouuuup:group1 perm:760 SERIALIZE BY pig";
     Path path1 = new Path(path.toString() + "15");
     BasicTable.Writer writer = null;
+    BasicTable.drop(path1, conf);
     writer = new BasicTable.Writer(path1, schema, storage, conf);
     Assert.fail("should throw exception, none defined serializer");
     writer.finish();
@@ -591,6 +605,7 @@ public class TestStorageGrammar {
     String storage = "[some1,some2] COMPRESS BY gz SECURE BY uid:user1 gid:users perrrrrm:760 SERIALIZE BY pig";
     Path path1 = new Path(path.toString() + "16");
     BasicTable.Writer writer = null;
+    BasicTable.drop(path1, conf);
     writer = new BasicTable.Writer(path1, schema, storage, conf);
     Assert.fail("should throw exception, none defined serializer");
     writer.finish();
@@ -604,6 +619,7 @@ public class TestStorageGrammar {
     Path path1 = new Path(path.toString() + "17");
     Runtime.getRuntime().exec("rm -rf " + path1.toString());
     fs = path.getFileSystem(conf);
+    BasicTable.drop(path1, conf);
     BasicTable.Writer writer = new BasicTable.Writer(path1, schema, storage,
         conf);
     writer.close();
@@ -618,7 +634,7 @@ public class TestStorageGrammar {
         "Schema : s9:string,s10:string"));
   }
 
-  //@Test
+  // @Test
   public void test18() throws IOException, ParseException {
     String schema = "s9:string, s10:string";
     String storage = "[s9,s10] COMPRESS BY gZ";
@@ -626,6 +642,7 @@ public class TestStorageGrammar {
     Path path1 = new Path(path.toString() + "18");
     Runtime.getRuntime().exec("rm -rf " + path1.toString());
     fs = path.getFileSystem(conf);
+    BasicTable.drop(path1, conf);
     BasicTable.Writer writer = new BasicTable.Writer(path1, schema, storage,
         conf);
     writer.finish();
@@ -636,7 +653,7 @@ public class TestStorageGrammar {
     System.out.println("bos: " + bos.toString());
 
     Assert.assertEquals(true, bos.toString().contains("Serializer: pig"));
-    
+
     Assert.assertEquals(true, bos.toString().contains("Compressor: gz"));
     Assert.assertEquals(true, bos.toString().contains(
         "Schema : s9:string,s10:string"));
@@ -647,13 +664,14 @@ public class TestStorageGrammar {
     String schema = "some1:string, some2:string";
     String storage = "[some1,some2] COMPRESS BY something";
     Path path1 = new Path(path.toString() + "19");
+    BasicTable.drop(path1, conf);
     BasicTable.Writer writer = null;
     writer = new BasicTable.Writer(path1, schema, storage, conf);
     Assert.fail("should throw exception, none defined serializer");
     writer.finish();
   }
 
-  //@Test
+  // @Test
   /*
    * group1 is user specific
    */
@@ -664,6 +682,7 @@ public class TestStorageGrammar {
     Path path1 = new Path(path.toString() + "20");
     Runtime.getRuntime().exec("rm -rf " + path1.toString());
     fs = path.getFileSystem(conf);
+    BasicTable.drop(path1, conf);
     BasicTable.Writer writer = new BasicTable.Writer(path1, schema, storage,
         conf);
     writer.finish();
@@ -684,6 +703,7 @@ public class TestStorageGrammar {
     String schema = "s9:string, s10:string, s11:string";
     String storage = "[s9,s10] COMPRESS BY gZ; secure by uid:user1 gid:users perm:755;secure by user:user1 gid:users perm:755";
     Path path1 = new Path(path.toString() + "16");
+    BasicTable.drop(path1, conf);
     BasicTable.Writer writer = null;
     writer = new BasicTable.Writer(path1, schema, storage, conf);
     Assert.fail("should throw exception, none defined serializer");
@@ -696,6 +716,7 @@ public class TestStorageGrammar {
     String storage = "[s9,s10] secure by uid:user3";
 
     Path path1 = new Path(path.toString() + "22");
+    BasicTable.drop(path1, conf);
     Runtime.getRuntime().exec("rm -rf " + path1.toString());
     fs = path.getFileSystem(conf);
     BasicTable.Writer writer = new BasicTable.Writer(path1, schema, storage,
@@ -715,7 +736,7 @@ public class TestStorageGrammar {
     Assert.assertEquals(true, bos.toString().contains("Perm: -1"));
   }
 
-  //@Test
+  // @Test
   /*
    * group1 is user specific
    */
@@ -724,6 +745,7 @@ public class TestStorageGrammar {
     String storage = "[s9,s10] secure by gid:users";
 
     Path path1 = new Path(path.toString() + "23");
+    BasicTable.drop(path1, conf);
     Runtime.getRuntime().exec("rm -rf " + path1.toString());
     fs = path.getFileSystem(conf);
     BasicTable.Writer writer = new BasicTable.Writer(path1, schema, storage,
@@ -743,12 +765,13 @@ public class TestStorageGrammar {
     Assert.assertEquals(true, bos.toString().contains("Perm: -1"));
   }
 
-  //@Test
+  // @Test
   public void test24() throws IOException, ParseException {
     String schema = "s9:string, s10:string";
     String storage = "[s9,s10] secure by perm:755";
 
     Path path1 = new Path(path.toString() + "24");
+    BasicTable.drop(path1, conf);
     Runtime.getRuntime().exec("rm -rf " + path1.toString());
     fs = path.getFileSystem(conf);
     BasicTable.Writer writer = new BasicTable.Writer(path1, schema, storage,
@@ -768,7 +791,7 @@ public class TestStorageGrammar {
     Assert.assertEquals(true, bos.toString().contains("Perm: 0755"));
   }
 
-  //@Test
+  // @Test
   /*
    * group1 is user specific
    */
@@ -777,6 +800,7 @@ public class TestStorageGrammar {
     String storage = "[s9,s10] secure by uid:user1 gid:users";
 
     Path path1 = new Path(path.toString() + "25");
+    BasicTable.drop(path1, conf);
     Runtime.getRuntime().exec("rm -rf " + path1.toString());
     fs = path.getFileSystem(conf);
     BasicTable.Writer writer = new BasicTable.Writer(path1, schema, storage,
@@ -796,12 +820,13 @@ public class TestStorageGrammar {
     Assert.assertEquals(true, bos.toString().contains("Perm: -1"));
   }
 
-  //@Test
+  // @Test
   public void test26() throws IOException, ParseException {
     String schema = "s9:string, s10:string";
     String storage = "[s9,s10] secure by perm:755 gid:users";
 
     Path path1 = new Path(path.toString() + "26");
+    BasicTable.drop(path1, conf);
     Runtime.getRuntime().exec("rm -rf " + path1.toString());
     fs = path.getFileSystem(conf);
     BasicTable.Writer writer = new BasicTable.Writer(path1, schema, storage,
@@ -826,6 +851,7 @@ public class TestStorageGrammar {
     String schema = "s9:string, s10:string";
     String storage = "[s9,s10] COMPRESS BY gZ; secure by ";
     Path path1 = new Path(path.toString() + "27");
+    BasicTable.drop(path1, conf);
     BasicTable.Writer writer = null;
     writer = new BasicTable.Writer(path1, schema, storage, conf);
     Assert.fail("should throw exception, none defined serializer");

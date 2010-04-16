@@ -47,6 +47,12 @@ public class TestSchemaMap {
     ColumnSchema f2 = schema.getColumn(1);
     Assert.assertEquals("m1", f2.getName());
     Assert.assertEquals(ColumnType.MAP, f2.getType());
+    
+    Schema temp = f2.getSchema();
+    System.out.println(temp.getNumColumns());
+    ColumnSchema cs = temp.getColumn(0);
+    System.out.println(cs.getType());
+    
   }
 
   @Test

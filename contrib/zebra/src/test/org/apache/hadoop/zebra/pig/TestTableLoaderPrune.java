@@ -62,7 +62,7 @@ public class TestTableLoaderPrune extends BaseTestCase {
 
 
     BasicTable.Writer writer = new BasicTable.Writer(pathTable,
-        "a:string,b,c:string,d,e,f,g", "[a,b,c];[d,e,f,g]", conf);
+        "a:string,b:string,c:string,d:string,e:string,f:string,g:string", "[a,b,c];[d,e,f,g]", conf);
     Schema schema = writer.getSchema();
     Tuple tuple = TypesUtils.createTuple(schema);
 

@@ -287,7 +287,7 @@ public class TestBasicTableIOFormatLocalFS extends TestCase {
 		fileSys.delete(outPath, true);
 		job.setOutputFormatClass(BasicTableOutputFormat.class);
 		BasicTableOutputFormat.setOutputPath(job, outPath);
-		BasicTableOutputFormat.setSchema(job, "fileName, wordPos, lineNo");
+		BasicTableOutputFormat.setSchema(job, "fileName:string, wordPos:int, lineNo:int");
 
 		// set map-only job.
 		job.setNumReduceTasks(0);
@@ -567,7 +567,7 @@ public class TestBasicTableIOFormatLocalFS extends TestCase {
 		job.setReducerClass(InvertedIndexGen.ReduceClass.class);
 		job.setCombinerClass(InvertedIndexGen.CombinerClass.class);
 		BasicTableOutputFormat.setOutputPath(job, invIndexTablePath);
-		BasicTableOutputFormat.setSchema(job, "count, index");
+		BasicTableOutputFormat.setSchema(job, "count:int, index:map()");
 		job.setNumReduceTasks(options.numReducer);
 
 		job.submit();
@@ -906,7 +906,7 @@ public class TestBasicTableIOFormatLocalFS extends TestCase {
 		job.setReducerClass(FreqWords.ReduceClass.class);
 		job.setCombinerClass(FreqWords.CombinerClass.class);
 		BasicTableOutputFormat.setOutputPath(job, freqWordTablePath);
-		BasicTableOutputFormat.setSchema(job, "count");
+		BasicTableOutputFormat.setSchema(job, "count:int");
 		job.setNumReduceTasks(1);
 
 		job.submit();

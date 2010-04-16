@@ -64,9 +64,9 @@ import org.apache.hadoop.zebra.BaseTestCase;
  */
 public class TestUnionMixedTypes extends BaseTestCase {
   private static Path pathWorking, pathTable1, pathTable2;
-  final static String STR_SCHEMA1 = "a:collection(record(a:string, b:string)),b:map(string),c:record(f1:string, f2:string),d";
+  final static String STR_SCHEMA1 = "a:collection(record(a:string, b:string)),b:map(string),c:record(f1:string, f2:string),d:string";
   final static String STR_STORAGE1 = "[a,d];[b#{k1|k2}];[c]";
-  final static String STR_SCHEMA2 = "a:collection(record(a:string, b:string)),b:map(string),c:record(f1:string, f2:string),e";
+  final static String STR_SCHEMA2 = "a:collection(record(a:string, b:string)),b:map(string),c:record(f1:string, f2:string),e:string";
   final static String STR_STORAGE2 = "[a,e];[b#{k1}];[c.f1]";
 
   @BeforeClass

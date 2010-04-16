@@ -38,6 +38,7 @@ import org.apache.hadoop.zebra.types.TypesUtils;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.test.MiniCluster;
 import org.junit.AfterClass;
@@ -103,7 +104,11 @@ public class TestBasicUnion extends BaseTestCase {
         TypesUtils.resetTuple(tuple);
         for (int k = 0; k < tuple.size(); ++k) {
           try {
-            tuple.set(k, b + "_" + i + "" + k);
+            if (k == 1 || k == 3 || k == 4) { // bytes type
+              tuple.set(k, new DataByteArray(new String(b + "_" + i + "" + k).toString()));
+            } else {
+              tuple.set(k, b + "_" + i + "" + k);
+            }
           } catch (ExecException e) {
 
           }
@@ -115,10 +120,10 @@ public class TestBasicUnion extends BaseTestCase {
       inserters[i].close();
     }
     writer.close();
+    
     /*
      * create 2nd basic table;
      */
-
     writer = new BasicTable.Writer(path2, STR_SCHEMA2, STR_STORAGE2, conf);
     schema = writer.getSchema();
     tuple = TypesUtils.createTuple(schema);
@@ -133,7 +138,11 @@ public class TestBasicUnion extends BaseTestCase {
         TypesUtils.resetTuple(tuple);
         for (int k = 0; k < tuple.size(); ++k) {
           try {
-            tuple.set(k, b + "_" + i + "" + k);
+            if (k == 1 || k == 3 || k == 4) {
+              tuple.set(k, new DataByteArray(new String(b + "_" + i + "" + k).toString()));
+            } else {
+              tuple.set(k, b + "_" + i + "" + k);
+            }
           } catch (ExecException e) {
 
           }
@@ -145,10 +154,11 @@ public class TestBasicUnion extends BaseTestCase {
       inserters[i].close();
     }
     writer.close();
+    
     /*
      * create 3rd basic table;
      */
-
+    
     writer = new BasicTable.Writer(path3, STR_SCHEMA3, STR_STORAGE3, conf);
     schema = writer.getSchema();
     tuple = TypesUtils.createTuple(schema);
@@ -163,7 +173,7 @@ public class TestBasicUnion extends BaseTestCase {
         TypesUtils.resetTuple(tuple);
         for (int k = 0; k < tuple.size(); ++k) {
           try {
-            tuple.set(k, b + "_" + i + "" + k);
+            tuple.set(k, new DataByteArray(new String(b + "_" + i + "" + k).toString()));
           } catch (ExecException e) {
 
           }
@@ -174,7 +184,8 @@ public class TestBasicUnion extends BaseTestCase {
     for (int i = 0; i < numsInserters; i++) {
       inserters[i].close();
     }
-	writer.close();
+	  writer.close();
+	
     /*
      * create 4th basic table;
      */
@@ -193,7 +204,11 @@ public class TestBasicUnion extends BaseTestCase {
         TypesUtils.resetTuple(tuple);
         for (int k = 0; k < tuple.size(); ++k) {
           try {
-            tuple.set(k, b + "_" + i + "" + k);
+            if (k == 1) {
+              tuple.set(k, new DataByteArray(new String(b + "_" + i + "" + k).toString()));
+            } else {
+              tuple.set(k, b + "_" + i + "" + k);
+            }
           } catch (ExecException e) {
 
           }
@@ -204,7 +219,8 @@ public class TestBasicUnion extends BaseTestCase {
     for (int i = 0; i < numsInserters; i++) {
       inserters[i].close();
     }
-	writer.close();
+	  writer.close();
+	  
     /*
      * create 5th basic table;
      */
@@ -223,7 +239,11 @@ public class TestBasicUnion extends BaseTestCase {
         TypesUtils.resetTuple(tuple);
         for (int k = 0; k < tuple.size(); ++k) {
           try {
-            tuple.set(k, b + "_" + i + "" + k);
+            if (k == 0) {
+              tuple.set(k, new DataByteArray(new String(b + "_" + i + "" + k).toString()));
+            } else {
+              tuple.set(k, b + "_" + i + "" + k);
+            }
           } catch (ExecException e) {
 
           }
@@ -234,7 +254,7 @@ public class TestBasicUnion extends BaseTestCase {
     for (int i = 0; i < numsInserters; i++) {
       inserters[i].close();
     }
-	writer.close();
+	  writer.close();
   }
 
   @AfterClass
@@ -267,7 +287,7 @@ public class TestBasicUnion extends BaseTestCase {
       if (i <= 9) {
         System.out.println("first table first part: " + cur.toString());
         Assert.assertEquals(i + "_00", cur.get(0));
-        Assert.assertEquals(i + "_01", cur.get(1));
+        Assert.assertEquals(i + "_01", cur.get(1).toString());
         Assert.assertTrue(((cur.get(2) == null) || (cur.get(2)
             .equals(i + "_02"))));
         Assert.assertTrue(((cur.get(3) == null) || (cur.get(3)
@@ -279,7 +299,7 @@ public class TestBasicUnion extends BaseTestCase {
       if (k <= 9 && k >= 0) {
         System.out.println("first table second part:  : " + cur.toString());
         Assert.assertEquals(k + "_10", cur.get(0));
-        Assert.assertEquals(k + "_11", cur.get(1));
+        Assert.assertEquals(k + "_11", cur.get(1).toString());
         Assert.assertTrue(((cur.get(2) == null) || (cur.get(2)
             .equals(k + "_12"))));
         Assert.assertTrue(((cur.get(3) == null) || (cur.get(3)
@@ -294,7 +314,7 @@ public class TestBasicUnion extends BaseTestCase {
       if (t <= 9 && t >= 0) {
         System.out.println("second table first part: " + cur.toString());
         Assert.assertEquals(t + "_00", cur.get(0));
-        Assert.assertEquals(t + "_01", cur.get(1));
+        Assert.assertEquals(t + "_01", cur.get(1).toString());
         Assert.assertTrue(((cur.get(2) == null) || (cur.get(2)
             .equals(t + "_02"))));
         Assert.assertTrue(((cur.get(3) == null) || (cur.get(3)
@@ -306,7 +326,7 @@ public class TestBasicUnion extends BaseTestCase {
       if (j <= 9 && j >= 0) {
         System.out.println("second table first part: " + cur.toString());
         Assert.assertEquals(j + "_10", cur.get(0));
-        Assert.assertEquals(j + "_11", cur.get(1));
+        Assert.assertEquals(j + "_11", cur.get(1).toString());
         Assert.assertTrue(((cur.get(2) == null) || (cur.get(2)
             .equals(j + "_12"))));
         Assert.assertTrue(((cur.get(3) == null) || (cur.get(3)
@@ -338,7 +358,7 @@ public class TestBasicUnion extends BaseTestCase {
       scanner.getValue(RowValue);
       System.out.println("read record or record:" + RowValue.toString());
       Assert.assertEquals(i + "_00", RowValue.get(0));
-      Assert.assertEquals(i + "_01", RowValue.get(1));
+      Assert.assertEquals(i + "_01", RowValue.get(1).toString());
       Assert.assertEquals(i + "_02", RowValue.get(2));
       scanner.advance();
     }
@@ -346,7 +366,7 @@ public class TestBasicUnion extends BaseTestCase {
       scanner.getValue(RowValue);
       System.out.println("read record or record:" + RowValue.toString());
       Assert.assertEquals(i + "_10", RowValue.get(0));
-      Assert.assertEquals(i + "_11", RowValue.get(1));
+      Assert.assertEquals(i + "_11", RowValue.get(1).toString());
       Assert.assertEquals(i + "_12", RowValue.get(2));
       scanner.advance();
     }
@@ -537,7 +557,7 @@ public class TestBasicUnion extends BaseTestCase {
       if (i <= 9) {
         System.out.println("first table first part: " + cur.toString());
         Assert.assertEquals(i + "_00", cur.get(0));
-        Assert.assertEquals(i + "_01", cur.get(1));
+        Assert.assertEquals(i + "_01", cur.get(1).toString());
         try {
           cur.get(2);
           Assert.fail("should throw index out of bound exception");
@@ -552,7 +572,7 @@ public class TestBasicUnion extends BaseTestCase {
       if (k <= 9 && k >= 0) {
         System.out.println("first table second part:  : " + cur.toString());
         Assert.assertEquals(k + "_10", cur.get(0));
-        Assert.assertEquals(k + "_11", cur.get(1));
+        Assert.assertEquals(k + "_11", cur.get(1).toString());
         try {
           cur.get(2);
           Assert.fail("should throw index out of bound exception");
@@ -568,7 +588,7 @@ public class TestBasicUnion extends BaseTestCase {
       if (t <= 9 && t >= 0) {
         System.out.println("second table first part: " + cur.toString());
         Assert.assertEquals(t + "_00", cur.get(0));
-        Assert.assertEquals(t + "_01", cur.get(1));
+        Assert.assertEquals(t + "_01", cur.get(1).toString());
         try {
           cur.get(2);
           Assert.fail("should throw index out of bound exception");
@@ -582,7 +602,7 @@ public class TestBasicUnion extends BaseTestCase {
       if (j <= 9 && j >= 0) {
         System.out.println("second table first part: " + cur.toString());
         Assert.assertEquals(j + "_10", cur.get(0));
-        Assert.assertEquals(j + "_11", cur.get(1));
+        Assert.assertEquals(j + "_11", cur.get(1).toString());
         try {
           cur.get(2);
           Assert.fail("should throw index out of bound exception");
@@ -615,10 +635,10 @@ public class TestBasicUnion extends BaseTestCase {
       // first table
       if (i <= 9) {
         System.out.println("first table first part: " + cur.toString());
-        Assert.assertTrue(((cur.get(0)).equals(i + "_03") || (cur.get(0)
+        Assert.assertTrue(((cur.get(0)).toString().equals(i + "_03") || (cur.get(0).toString()
             .equals(i + "_04"))));
         System.out.println("get1: " + cur.get(1));
-        Assert.assertTrue(((cur.get(1)).equals(i + "_03") || (cur.get(1)
+        Assert.assertTrue(((cur.get(1)).toString().equals(i + "_03") || (cur.get(1).toString()
             .equals(i + "_04"))));
         try {
           cur.get(2);
@@ -632,9 +652,9 @@ public class TestBasicUnion extends BaseTestCase {
       }
       if (k <= 9 && k >= 0) {
         System.out.println("first table second part:  : " + cur.toString());
-        Assert.assertTrue(((cur.get(0).equals(k + "_13")) || (cur.get(0)
+        Assert.assertTrue(((cur.get(0).toString().equals(k + "_13")) || (cur.get(0).toString()
             .equals(k + "_14"))));
-        Assert.assertTrue(((cur.get(1).equals(k + "_13")) || (cur.get(1)
+        Assert.assertTrue(((cur.get(1).toString().equals(k + "_13")) || (cur.get(1).toString()
             .equals(k + "_14"))));
 
       }
@@ -645,9 +665,9 @@ public class TestBasicUnion extends BaseTestCase {
       }
       if (t <= 9 && t >= 0) {
         System.out.println("second table first part: " + cur.toString());
-        Assert.assertTrue(((cur.get(0).equals(t + "_03")) || (cur.get(0)
+        Assert.assertTrue(((cur.get(0).toString().equals(t + "_03")) || (cur.get(0).toString()
             .equals(t + "_04"))));
-        Assert.assertTrue(((cur.get(1).equals(t + "_03")) || (cur.get(1)
+        Assert.assertTrue(((cur.get(1).toString().equals(t + "_03")) || (cur.get(1).toString()
             .equals(t + "_04"))));
 
       }
@@ -656,9 +676,9 @@ public class TestBasicUnion extends BaseTestCase {
       }
       if (j <= 9 && j >= 0) {
         System.out.println("second table first part: " + cur.toString());
-        Assert.assertTrue(((cur.get(0).equals(j + "_13")) || (cur.get(0)
+        Assert.assertTrue(((cur.get(0).toString().equals(j + "_13")) || (cur.get(0).toString()
             .equals(j + "_14"))));
-        Assert.assertTrue(((cur.get(1).equals(j + "_13")) || (cur.get(1)
+        Assert.assertTrue(((cur.get(1).toString().equals(j + "_13")) || (cur.get(1).toString()
             .equals(j + "_14"))));
 
       }
@@ -691,7 +711,8 @@ public class TestBasicUnion extends BaseTestCase {
       } catch (Exception e) {
       }
 
-      String b = (String)cur.get(0);
+      //String b = (String)cur.get(0);
+      String b = cur.get(0).toString();
       String a = (String)cur.get(1);
       Assert.assertTrue( b.equals(exp1[i]) || b.equals(exp2[i]) );
       Assert.assertTrue( a.equals(exp2[i]) || a.equals(exp1[i]) );
@@ -726,7 +747,7 @@ public class TestBasicUnion extends BaseTestCase {
           }
           if (cnt == 22) {
               Assert.assertEquals("1_00", cur.get(0));
-              Assert.assertEquals("1_01", cur.get(1));
+              Assert.assertEquals("1_01", cur.get(1).toString());
               Assert
                       .assertTrue(((cur.get(2) == null) || (cur.get(2).equals("1_02"))));
               Assert
@@ -757,7 +778,7 @@ public class TestBasicUnion extends BaseTestCase {
         Assert.assertEquals("1_00", cur.get(0));
         System.out.println("neg2, cnt ==1: " +cur.get(1));
         Assert
-            .assertTrue(((cur.get(1) == null) || (cur.get(1).equals("1_03"))||(cur.get(1).equals("1_04"))));
+            .assertTrue(((cur.get(1) == null) || (cur.get(1).toString().equals("1_03"))||(cur.get(1).toString().equals("1_04"))));
         Assert.assertEquals(null, cur.get(2));
 
         try {
@@ -772,7 +793,7 @@ public class TestBasicUnion extends BaseTestCase {
         System.out.println("neg2, cnt ==22: " +cur.get(1));
         
         Assert
-            .assertTrue(((cur.get(1) == null) || (cur.get(1).equals("1_04"))||(cur.get(1).equals("1_03"))));
+            .assertTrue(((cur.get(1) == null) || (cur.get(1).toString().equals("1_04"))||(cur.get(1).toString().equals("1_03"))));
         Assert.assertEquals(null, cur.get(2));
         try {
           cur.get(3);

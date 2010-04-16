@@ -53,7 +53,7 @@ import org.junit.Test;
  */
 public class TestCollection extends BaseTestCase
 {
-  final static String STR_SCHEMA = "c:collection(record(a:double, b:float, c:bytes))";
+  final static String STR_SCHEMA = "c:collection(record(a:double, b:double, c:bytes))";
   final static String STR_STORAGE = "[c]";
 
   private static Path path;
