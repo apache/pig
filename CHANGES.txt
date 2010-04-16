@@ -225,6 +225,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-1374: PushDownForeachFlatten shall not push ForEach below Join if the flattened fields is used in the next statement (daijy)
+
 PIG-1336: Optimize POStore serialized into JobConf (daijy)
 
 PIG-1335: UDFFinder should find LoadFunc used by POCast (daijy)

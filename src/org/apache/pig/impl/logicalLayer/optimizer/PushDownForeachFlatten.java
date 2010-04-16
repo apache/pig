@@ -35,6 +35,7 @@ import org.apache.pig.impl.logicalLayer.LOProject;
 import org.apache.pig.impl.logicalLayer.LOSort;
 import org.apache.pig.impl.logicalLayer.LogicalOperator;
 import org.apache.pig.impl.logicalLayer.LogicalPlan;
+import org.apache.pig.impl.logicalLayer.RelationalOperator;
 import org.apache.pig.impl.logicalLayer.UDFFinder;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.plan.DepthFirstWalker;
@@ -181,6 +182,23 @@ public class PushDownForeachFlatten extends LogicalTransformer {
             IndexHelper<LogicalOperator> indexHelper = new IndexHelper<LogicalOperator>(peers);
             Integer foreachPosition = indexHelper.getIndex(foreach);
             
+            // Check if flattened fields is required by successor, if so, don't optimize
+            List<RequiredFields> requiredFieldsList = ((RelationalOperator)successor).getRequiredFields();
+            RequiredFields requiredFields = requiredFieldsList.get(foreachPosition.intValue());
+            
+            MultiMap<Integer, Column> foreachMappedFields = foreachProjectionMap.getMappedFields();
+            
+            if (requiredFields.getFields()!=null) {
+                for (Pair<Integer, Integer> pair : requiredFields.getFields()) {
+                    Collection<Column> columns = foreachMappedFields.get(pair.second);
+                    for (Column column : columns) {
+                        Pair<Integer, Integer> foreachInputColumn = column.getInputColumn();
+                        if (foreach.isInputFlattened(foreachInputColumn.second))
+                            return false;
+                    }
+                }
+            }
+            
             // the foreach with flatten can be swapped with an order by
             // as the order by will have lesser number of records to sort
             // also the sort does not alter the records that are processed
@@ -282,23 +300,6 @@ public class PushDownForeachFlatten extends LogicalTransformer {
                 for(Integer key: mFlattenedColumnReMap.keySet()) {
                     if(mFlattenedColumnReMap.get(key).equals(Integer.MAX_VALUE)) {
                         return false;
-                    }
-                }
-                
-                // Check if flattened fields is required by LOJoin, if so, don't optimize
-                if (successor instanceof LOJoin) {
-                    List<RequiredFields> requiredFieldsList = ((LOJoin)successor).getRequiredFields();
-                    RequiredFields requiredFields = requiredFieldsList.get(foreachPosition.intValue());
-                    
-                    MultiMap<Integer, Column> foreachMappedFields = foreachProjectionMap.getMappedFields();
-                    
-                    for (Pair<Integer, Integer> pair : requiredFields.getFields()) {
-                        Collection<Column> columns = foreachMappedFields.get(pair.second);
-                        for (Column column : columns) {
-                            Pair<Integer, Integer> foreachInputColumn = column.getInputColumn();
-                            if (foreach.isInputFlattened(foreachInputColumn.second))
-                                return false;
-                        }
                     }
                 }
                 
