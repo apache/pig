@@ -19,13 +19,20 @@ package org.apache.hadoop.zebra.types;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.util.Iterator;
+import java.util.Map;
+
+import junit.framework.Assert;
 
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataBag;
+import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.DefaultDataBag;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
+import org.apache.hadoop.zebra.schema.ColumnType;
 import org.apache.hadoop.zebra.schema.Schema;
+import org.apache.hadoop.zebra.schema.Schema.ColumnSchema;
 import org.apache.hadoop.zebra.parser.ParseException;
 
 /**
@@ -93,7 +100,117 @@ public class TypesUtils {
       throw new RuntimeException("Internal error: " + e.toString());
     }
   }
-
+  
+  private static void checkTypeError(ColumnSchema cs, ColumnType type) throws IOException {
+    throw new IOException("Incompatible Tuple object - datum is " + type + ", but schema says " + cs.getType());
+  }
+  
+  private static void checkColumnType(ColumnSchema cs, ColumnType type) throws IOException {
+    switch (type) {
+      case BOOL:
+      case DOUBLE:
+      case STRING:
+      case BYTES:
+      case MAP:
+      case COLLECTION:
+      case RECORD:
+        if (cs.getType() != type) {
+          checkTypeError(cs, type);
+        }
+        break;
+      case FLOAT:
+        if (cs.getType() != ColumnType.FLOAT && cs.getType() != ColumnType.DOUBLE) {
+          checkTypeError(cs, type);
+        }
+        break;
+      case LONG:
+        if (cs.getType() != ColumnType.LONG && cs.getType() != ColumnType.FLOAT && cs.getType() != ColumnType.DOUBLE) {
+          checkTypeError(cs, type);
+        }
+        break;
+      case INT:
+        if (cs.getType() != ColumnType.INT && cs.getType() != ColumnType.LONG && cs.getType() != ColumnType.FLOAT && cs.getType() != ColumnType.DOUBLE) {
+          checkTypeError(cs, type);
+        }
+        break;
+    }
+  }
+  
+  @SuppressWarnings("unchecked")
+  private static void checkColumn(Object d, ColumnSchema cs) throws IOException {
+    if (d instanceof Boolean) {
+      checkColumnType(cs, ColumnType.BOOL);   
+    } else if (d instanceof Integer) {
+      checkColumnType(cs, ColumnType.INT);
+    } else if (d instanceof Long) {
+      checkColumnType(cs, ColumnType.LONG);
+    } else if (d instanceof Float) {
+      checkColumnType(cs, ColumnType.FLOAT); 
+    } else if (d instanceof Double) {
+      checkColumnType(cs, ColumnType.DOUBLE);
+    } else if (d instanceof String) {
+      checkColumnType(cs, ColumnType.STRING);
+    } else if (d instanceof DataByteArray) {
+      checkColumnType(cs, ColumnType.BYTES);
+    } else if (d instanceof Map) {
+      checkMapColumn((Map<String, Object>)d, cs);
+    } else if (d instanceof DataBag) {
+      checkCollectionColumn((DataBag)d, cs);
+    } else if (d instanceof Tuple) {
+      checkRecordColumn((Tuple)d, cs);
+    } else {
+      throw new IOException("Unknown data type");
+    }
+  }
+    
+  private static void checkMapColumn(Map<String, Object> m, ColumnSchema cs) throws IOException {
+    checkColumnType(cs, ColumnType.MAP);
+    Schema schema = cs.getSchema();
+    Assert.assertTrue(schema.getNumColumns() == 1);
+    
+    ColumnSchema tempColumnSchema = schema.getColumn(0);
+    if (tempColumnSchema.getType() == ColumnType.BYTES) { // We do not check inside of map if its value type is BYTES;
+                                            // This is for Pig, since it only supports BYTES as map value type.
+      return;
+    }
+        
+    Map<String, Object> m1 = (Map<String, Object>)m;
+    for (Map.Entry<String, Object> e : m1.entrySet()) {
+      Object d = e.getValue();
+      if (d != null) {
+        checkColumn(d, tempColumnSchema);
+        return;   // We only check the first non-null map value in the map;
+      }
+    }
+  }
+  
+  private static void checkCollectionColumn(DataBag bag, ColumnSchema cs) throws IOException {
+    checkColumnType(cs, ColumnType.COLLECTION);
+    Schema schema = cs.getSchema();
+    Assert.assertTrue(schema.getNumColumns() == 1);
+    
+    Iterator<Tuple> iter = bag.iterator();
+    while (iter.hasNext()) {
+      Tuple tempTuple = iter.next();
+      // collection has to be on record;
+      if (tempTuple != null) {
+        checkRecordColumn(tempTuple, schema.getColumn(0));
+        return;     // We only check the first non-null record in the collection;
+      }
+    }     
+  }
+  
+  private static void checkRecordColumn(Tuple d, ColumnSchema cs) throws IOException {
+    checkColumnType(cs, ColumnType.RECORD);
+    checkNumberColumnCompatible(d, cs.getSchema());
+    
+    for (int i=0; i<d.size(); i++) {
+      if (d.get(i) != null) { // "null" can match any type;
+        checkColumn(d.get(i), cs.getSchema().getColumn(i));
+      }  
+    }
+  }
+  
   /**
    * Check whether the input row object is compatible with the expected schema
    * 
@@ -102,12 +219,27 @@ public class TypesUtils {
    * @param schema
    *          Table schema
    * @throws IOException
+   */  
+  public static void checkCompatible(Tuple tuple, Schema schema) throws IOException {
+    // Create a dummy record ColumnSchema since we do not have it;
+    ColumnSchema dummy = new ColumnSchema("dummy", schema);
+
+    checkRecordColumn(tuple, dummy);
+  } 
+  
+  /**
+   * Check whether the input row object is compatible with the expected schema
+   * on number of Columns;
+   * @param tuple
+   *          Input Tuple object
+   * @param schema
+   *          Table schema
+   * @throws IOException
    */
-  public static void checkCompatible(Tuple tuple, Schema schema)
+  public static void checkNumberColumnCompatible(Tuple tuple, Schema schema)
       throws IOException {
-    // TODO: Add more rigorous checking.
     if (tuple.size() != schema.getNumColumns()) {
-      throw new IOException("Incompatible Tuple object - number of fields");
+      throw new IOException("Incompatible Tuple object - tuple has " + tuple.size() + " columns, but schema says " + schema.getNumColumns() + " columns");
     }
   }
 
@@ -158,7 +290,7 @@ public class TypesUtils {
      * @throws IOException
      */
     public void get(DataInputStream in, Tuple row) throws IOException, ParseException {
-      checkCompatible(row, projection.getSchema());
+      checkNumberColumnCompatible(row, projection.getSchema());
       tuple.readFields(in);
       TypesUtils.resetTuple(row);
       try {
@@ -196,7 +328,6 @@ public class TypesUtils {
      * @throws IOException
      */
     public void put(DataOutputStream out, Tuple row) throws IOException {
-      checkCompatible(row, physical);
       row.write(out);
     }
   }

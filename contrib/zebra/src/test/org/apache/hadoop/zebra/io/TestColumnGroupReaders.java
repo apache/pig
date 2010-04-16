@@ -76,7 +76,7 @@ public class TestColumnGroupReaders {
       ParseException {
     System.out.println("testInsert2Inserters");
     boolean sorted = false; // true;
-    writer = new ColumnGroup.Writer(path, "col1, colTWO", sorted, path.getName(), "pig",
+    writer = new ColumnGroup.Writer(path, "col1:string, colTWO:map(string)", sorted, path.getName(), "pig",
         "gz", null, null, (short) -1, true, conf);
     TableInserter ins1 = writer.getInserter("part1", false);
     TableInserter ins2 = writer.getInserter("part2", false);
@@ -171,7 +171,7 @@ public class TestColumnGroupReaders {
   @Test
   public void testMultiWriters() throws ExecException, Exception {
     System.out.println("testMultiWriters");
-    ColumnGroup.Writer writer1 = writeOnePart("col1, col2, col3", 1);
+    ColumnGroup.Writer writer1 = writeOnePart("col1:string, col2:map(string), col3:string", 1);
     ColumnGroup.Writer writer2 = writeOnePart(null, 2);
     ColumnGroup.Writer writer3 = writeOnePart(null, 3);
 

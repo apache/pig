@@ -1564,11 +1564,35 @@ public class BasicTable {
      */
     public TableInserter getInserter(String name, boolean finishWriter)
         throws IOException {
+      return this.getInserter(name, finishWriter, true);
+    }
+    
+    /**
+     * Get a inserter with a given name.
+     * 
+     * @param name
+     *          the name of the inserter. If multiple calls to getInserter with
+     *          the same name has been called, we expect they are the result of
+     *          speculative execution and at most one of them will succeed.
+     * @param finishWriter
+     *          finish the underlying Writer object upon the close of the
+     *          Inserter. Should be set to true if there is only one inserter
+     *          operate on the table, so we should call finish() after the
+     *          Inserter is closed.
+     * @param checktype 
+     *          whether or not do type check.
+     * 
+     * @return A inserter object.
+     * @throws IOException
+     */
+    public TableInserter getInserter(String name, boolean finishWriter, boolean checkType)
+        throws IOException {
       if (closed) {
         throw new IOException("BasicTable closed");
       }
-      return new BTInserter(name, finishWriter, partition);
+      return new BTInserter(name, finishWriter, partition, checkType);
     }
+
 
     /**
      * Obtain an output stream for creating a Meta Block with the specific name.
@@ -1595,10 +1619,15 @@ public class BasicTable {
 
       BTInserter(String name, boolean finishWriter, Partition partition)
           throws IOException {
+        this(name, finishWriter, partition, true);
+      }
+      
+      BTInserter(String name, boolean finishWriter, Partition partition, boolean checkType)
+      throws IOException {
         try {
           cgInserters = new ColumnGroup.Writer.CGInserter[colGroups.length];
           for (int nx = 0; nx < colGroups.length; nx++) {
-            cgInserters[nx] = colGroups[nx].getInserter(name, false);
+            cgInserters[nx] = colGroups[nx].getInserter(name, false, checkType);
           }
           this.finishWriter = finishWriter;
           this.partition = partition;

@@ -394,7 +394,7 @@ public class TestColumnGroupWithWorkPath {
   @Test
   public void testNullSplits() throws IOException, ParseException {
     Path path = new Path(rootPath, "TestColumnGroupNullSplits");
-    int totalRows = createCG(2, 10, "a, b, c", path, true, true, null);
+    int totalRows = createCG(2, 10, "a:string, b:string, c:string", path, true, true, null);
     ColumnGroup.Reader reader = new ColumnGroup.Reader(path, conf);
     reader.setProjection("a,d,c,f");
     Assert.assertEquals(totalRows, doReadOnly(reader.getScanner(null, false)));
@@ -406,37 +406,37 @@ public class TestColumnGroupWithWorkPath {
   @Test
   public void testNegativeSplits() throws IOException, ParseException {
     Path path = new Path(rootPath, "TestNegativeSplits");
-    int totalRows = createCG(2, 100, "a, b, c", path, true, true, null);
+    int totalRows = createCG(2, 100, "a:string, b:string, c:string", path, true, true, null);
     rangeSplitCG(-1, totalRows, "a,d,c,f", path);
   }
 
   @Test
   public void testEmptyCG() throws IOException, ParseException {
     Path path = new Path(rootPath, "TestColumnGroupEmptyCG");
-    doReadWrite(path, 0, 0, "a, b, c", "a, d, c, f", true, false, null);
-    doReadWrite(path, 0, 0, "a, b, c", "a, d, c, f", true, true, null);
+    doReadWrite(path, 0, 0, "a:string, b:string, c:string", "a, d, c, f", true, false, null);
+    doReadWrite(path, 0, 0, "a:string, b:string, c:string", "a, d, c, f", true, true, null);
   }
 
   @Test
   public void testEmptyTFiles() throws IOException, ParseException {
     Path path = new Path(rootPath, "TestColumnGroupEmptyTFile");
-    doReadWrite(path, 2, 0, "a, b, c", "a, d, c, f", true, false, null);
-    doReadWrite(path, 2, 0, "a, b, c", "a, d, c, f", true, true, null);    
+    doReadWrite(path, 2, 0, "a:string, b:string, c:string", "a, d, c, f", true, false, null);
+    doReadWrite(path, 2, 0, "a:string, b:string, c:string", "a, d, c, f", true, true, null);    
   }
 
   public void testNormalCases() throws IOException, ParseException {
     Path path = new Path(rootPath, "TestColumnGroupNormal");
-    doReadWrite(path, 2, 500, "a, b, c", "a, d, c, f", true, false, null);
-    doReadWrite(path, 2, 500, "a, b, c", "a, d, c, f", true, true, null);
+    doReadWrite(path, 2, 500, "a:string, b:string, c:string", "a, d, c, f", true, false, null);
+    doReadWrite(path, 2, 500, "a:string, b:string, c:string", "a, d, c, f", true, true, null);
   }
 
   @Test
   public void testSomeEmptyTFiles() throws IOException, ParseException {
     Path path = new Path(rootPath, "TestColumnGroupSomeEmptyTFile");
 		for (int[] emptyTFiles : new int[][] { { 1, 2 }}) {
-      doReadWrite(path, 2, 250, "a, b, c", "a, d, c, f", true, false,
+      doReadWrite(path, 2, 250, "a:string, b:string, c:string", "a, d, c, f", true, false,
           emptyTFiles);
-      doReadWrite(path, 2, 250, "a, b, c", "a, d, c, f", true, true,
+      doReadWrite(path, 2, 250, "a:string, b:string, c:string", "a, d, c, f", true, true,
           emptyTFiles);    
     }
   }
@@ -459,7 +459,7 @@ public class TestColumnGroupWithWorkPath {
   @Test
   public void testProjection() throws IOException, ParseException {
     Path path = new Path(rootPath, "TestColumnGroupProjection");
-    int totalRows = createCG(2, 250, "a, b, c", path, true, true, null);
+    int totalRows = createCG(2, 250, "a:string, b:string, c:string", path, true, true, null);
     Assert.assertEquals(totalRows, countRows(path, null));
     Assert.assertEquals(totalRows, countRows(path, ""));
   }
@@ -467,7 +467,7 @@ public class TestColumnGroupWithWorkPath {
   @Test
   public void testDuplicateKeys() throws IOException, ParseException {
     Path path = new Path(rootPath, "TestColumnGroupDuplicateKeys");
-    int totalRows = createCGDupKeys(2, 250, "a, b, c", path);
+    int totalRows = createCGDupKeys(2, 250, "a:string, b:string, c:string", path);
     doKeySplit(new int[] { 1, 5 }, totalRows, "a, d, c, f",
         path);
   }
@@ -476,7 +476,7 @@ public class TestColumnGroupWithWorkPath {
   public void testSortedCGKeySplit() throws IOException, ParseException {
     conf.setInt("table.output.tfile.minBlock.size", 640 * 1024);
     Path path = new Path(rootPath, "TestSortedCGKeySplit");
-    int totalRows = createCG(2, 250, "a, b, c", path, true, true, null);
+    int totalRows = createCG(2, 250, "a:string, b:string, c:string", path, true, true, null);
     doKeySplit(new int[] { 1, 5 }, totalRows, "a, d, c, f",
         path);
   }

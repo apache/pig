@@ -37,6 +37,7 @@ import org.apache.hadoop.zebra.types.Projection;
 import org.apache.hadoop.zebra.schema.Schema;
 import org.apache.hadoop.zebra.types.TypesUtils;
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.Tuple;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -78,7 +79,7 @@ public class TestBasicTableProjections {
       for (int row = 0; row < 2; row++) {
         try {
           for (int nx = 0; nx < tuple.size(); nx++)
-            tuple.set(nx, String.format("%c%d%d", 'a' + nx, part + 1, row + 1));
+            tuple.set(nx, new DataByteArray(String.format("%c%d%d", 'a' + nx, part + 1, row + 1).getBytes()));
         } catch (ExecException e) {
           e.printStackTrace();
         }
@@ -114,8 +115,8 @@ public class TestBasicTableProjections {
     scanner.getKey(key);
     Assert.assertEquals(key, new BytesWritable("k11".getBytes()));
     scanner.getValue(value);
-    Assert.assertEquals("f11", value.get(0));
-    Assert.assertEquals("a11", value.get(1));
+    Assert.assertEquals("f11", value.get(0).toString());
+    Assert.assertEquals("a11", value.get(1).toString());
     try {
       value.get(2);
       Assert.fail("Failed to catch out of boundary exceptions.");
@@ -128,24 +129,24 @@ public class TestBasicTableProjections {
     Assert.assertEquals(key, new BytesWritable("k12".getBytes()));
     TypesUtils.resetTuple(value);
     scanner.getValue(value);
-    Assert.assertEquals("f12", value.get(0));
-    Assert.assertEquals("a12", value.get(1));
+    Assert.assertEquals("f12", value.get(0).toString());
+    Assert.assertEquals("a12", value.get(1).toString());
 
     scanner.advance();
     scanner.getKey(key);
     Assert.assertEquals(key, new BytesWritable("k21".getBytes()));
     TypesUtils.resetTuple(value);
     scanner.getValue(value);
-    Assert.assertEquals("f21", value.get(0));
-    Assert.assertEquals("a21", value.get(1));
+    Assert.assertEquals("f21", value.get(0).toString());
+    Assert.assertEquals("a21", value.get(1).toString());
 
     scanner.advance();
     scanner.getKey(key);
     Assert.assertEquals(key, new BytesWritable("k22".getBytes()));
     TypesUtils.resetTuple(value);
     scanner.getValue(value);
-    Assert.assertEquals("f22", value.get(0));
-    Assert.assertEquals("a22", value.get(1));
+    Assert.assertEquals("f22", value.get(0).toString());
+    Assert.assertEquals("a22", value.get(1).toString());
   }
 
 }

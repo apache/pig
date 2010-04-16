@@ -41,7 +41,7 @@ import org.junit.Test;
  */
 public class TestColumnGroupName5 {
 
-  final static String STR_SCHEMA = "s1:bool, s2:int, s3:long, s4:float, s5:string, s6:bytes, s7:int, s8: int, s9:int, s10:int, s11:int, s12:int";
+  final static String STR_SCHEMA = "s1:bool, s2:int, s3:long, s4:double, s5:string, s6:bytes, s7:int, s8: int, s9:int, s10:int, s11:int, s12:int";
   final static String STR_STORAGE = "[s1]; [s2]; [s3]; [s4]; [s5]; [s6]; [s7]; [s8]; [s9]; [s10]; [s11]; [s12]";
   private static Configuration conf;
   private static Path path;

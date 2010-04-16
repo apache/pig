@@ -96,7 +96,7 @@ public class TestSimple {
     tuple.set(0, true); // bool
     tuple.set(1, 1); // int
     tuple.set(2, 1001L); // long
-    tuple.set(3, 1.1); // float
+    tuple.set(3, 1.1f); // float
     tuple.set(4, "hello world 1"); // string
     tuple.set(5, new DataByteArray("hello byte 1")); // byte
 
@@ -108,7 +108,7 @@ public class TestSimple {
     tuple.set(0, false);
     tuple.set(1, 2); // int
     tuple.set(2, 1002L); // long
-    tuple.set(3, 3.1); // float
+    tuple.set(3, 3.1f); // float
     tuple.set(4, "hello world 2"); // string
     tuple.set(5, new DataByteArray("hello byte 2")); // byte
     inserter.insert(new BytesWritable(String.format("k%d%d", part + 1, row + 1)
@@ -142,7 +142,7 @@ public class TestSimple {
     Assert.assertEquals(true, RowValue.get(5));
     Assert.assertEquals(1, RowValue.get(4));
     Assert.assertEquals(1001L, RowValue.get(3));
-    Assert.assertEquals(1.1, RowValue.get(2));
+    Assert.assertEquals(1.1f, RowValue.get(2));
     Assert.assertEquals("hello world 1", RowValue.get(1));
     Assert.assertEquals("hello byte 1", RowValue.get(0).toString());
     scanner.advance();
@@ -152,7 +152,7 @@ public class TestSimple {
     Assert.assertEquals(false, RowValue.get(5));
     Assert.assertEquals(2, RowValue.get(4));
     Assert.assertEquals(1002L, RowValue.get(3));
-    Assert.assertEquals(3.1, RowValue.get(2));
+    Assert.assertEquals(3.1f, RowValue.get(2));
     Assert.assertEquals("hello world 2", RowValue.get(1));
     Assert.assertEquals("hello byte 2", RowValue.get(0).toString());
   }

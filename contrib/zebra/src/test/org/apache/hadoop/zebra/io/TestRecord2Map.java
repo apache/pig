@@ -60,7 +60,7 @@ public class TestRecord2Map {
   private static Path path;
   private static FileSystem fs;
   static int count;
-  static String STR_SCHEMA = "r1:record(f1:int, f2:map(long)), r2:record(r3:record(f3:float, f4:map(int)))";
+  static String STR_SCHEMA = "r1:record(f1:int, f2:map(long)), r2:record(r3:record(f3:double, f4:map(int)))";
   static String STR_STORAGE = "[r1.f1, r1.f2#{x|y}]; [r2.r3.f4]; [r1.f2, r2.r3.f3, r2.r3.f4#{a|c}]";
 
   @BeforeClass

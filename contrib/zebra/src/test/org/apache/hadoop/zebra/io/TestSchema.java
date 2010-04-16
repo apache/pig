@@ -109,7 +109,7 @@ public class TestSchema {
 
   @Test
   public void testSimple() throws IOException, ParseException {
-    String STR_SCHEMA = "s1:bool, s2:int, s3:long, s4:float, s5:string, s6:bytes";
+    String STR_SCHEMA = "s1:bool, s2:int, s3:long, s4:double, s5:string, s6:bytes";
     String STR_STORAGE = "[s1, s2]; [s3, s4]; [s5, s6]";
 
     // Build Table and column groups
@@ -201,7 +201,7 @@ public class TestSchema {
   @Test
   public void testRecord() throws IOException, ParseException {
     BasicTable.drop(path, conf);
-    String STR_SCHEMA = "r1:record(f1:int, f2:long), r2:record(r3:record(f3:float, f4))";
+    String STR_SCHEMA = "r1:record(f1:int, f2:long), r2:record(r3:record(f3:double, f4))";
     String STR_STORAGE = "[r1.f1]; [r2.r3.f4]; [r1.f2, r2.r3.f3]";
 
     path = new Path(getCurrentMethodName());

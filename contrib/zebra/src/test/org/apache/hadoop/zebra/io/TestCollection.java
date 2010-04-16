@@ -48,8 +48,8 @@ import org.junit.Test;
  * 
  */
 public class TestCollection {
+  final static String STR_SCHEMA = "c:collection(record(a:double, b:double, c:bytes)),c2:collection(record(r1:record(f1:int, f2:string), d:string)),c3:collection(record(e:int,f:bool))";
 
-  final static String STR_SCHEMA = "c:collection(record(a:double, b:float, c:bytes)),c2:collection(record(r1:record(f1:int, f2:string), d:string)),c3:collection(record(c3_1:collection(record(e:int,f:bool))))";
   final static String STR_STORAGE = "[c]";
   private static Configuration conf;
   private static Path path;
@@ -191,8 +191,7 @@ public class TestCollection {
     tuple.set(2, bag3);
 
     int row = 0;
-    inserter.insert(new BytesWritable(String.format("k%d%d", part + 1, row + 1)
-        .getBytes()), tuple);
+    inserter.insert(new BytesWritable(String.format("k%d%d", part + 1, row + 1).getBytes()), tuple);
 
     row++;
 
@@ -670,7 +669,7 @@ public class TestCollection {
   // Negative should not support 2nd level collection split
   @Test
   public void testSplit1() throws IOException, ParseException {
-    String STR_SCHEMA = "c:collection(a:double, b:float, c:bytes),c2:collection(r1:record(f1:int, f2:string), d:string),c3:collection(c3_1:collection(e:int,f:bool))";
+    String STR_SCHEMA = "c:collection(a:double, b:double, c:bytes),c2:collection(r1:record(f1:int, f2:string), d:string),c3:collection(c3_1:collection(e:int,f:bool))";
     String STR_STORAGE = "[c.a]";
     conf = new Configuration();
     conf.setInt("table.output.tfile.minBlock.size", 64 * 1024);
@@ -695,7 +694,7 @@ public class TestCollection {
   // Negative should not support none_existent column split
   @Test
   public void testSplit2() throws IOException, ParseException {
-    String STR_SCHEMA = "c:collection(a:double, b:float, c:bytes),c2:collection(r1:record(f1:int, f2:string), d:string),c3:collection(c3_1:collection(e:int,f:bool))";
+    String STR_SCHEMA = "c:collection(a:double, b:double, c:bytes),c2:collection(r1:record(f1:int, f2:string), d:string),c3:collection(c3_1:collection(e:int,f:bool))";
     String STR_STORAGE = "[d]";
     conf = new Configuration();
     conf.setInt("table.output.tfile.minBlock.size", 64 * 1024);

@@ -50,7 +50,7 @@ import org.junit.Test;
  * 
  */
 public class TestBasicTableSplits {
-  final static String STR_SCHEMA = "f1:bool, r:record(f11:int, f12:long), m:map(string), c:collection(record(f13:double, f14:float, f15:bytes))";
+  final static String STR_SCHEMA = "f1:bool, r:record(f11:int, f12:long), m:map(string), c:collection(record(f13:double, f14:double, f15:bytes))";
   // TODO: try map hash split later
   final static String STR_STORAGE = "[r.f12, f1]; [m]";
   private static Configuration conf;

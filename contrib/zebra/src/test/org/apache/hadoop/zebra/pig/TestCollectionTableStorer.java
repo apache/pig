@@ -49,7 +49,7 @@ public class TestCollectionTableStorer extends BaseTestCase
     removeDir(pathTable);
 
     BasicTable.Writer writer = new BasicTable.Writer(pathTable,
-        "c:collection(record(a:double, b:float, c:bytes))", "[c]", conf);
+        "c:collection(record(a:double, b:double, c:bytes))", "[c]", conf);
     Schema schema = writer.getSchema();
     Tuple tuple = TypesUtils.createTuple(schema);
 

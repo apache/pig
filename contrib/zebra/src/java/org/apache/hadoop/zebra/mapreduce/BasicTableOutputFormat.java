@@ -147,6 +147,7 @@ public class BasicTableOutputFormat extends OutputFormat<BytesWritable, Tuple> {
 	private static final String OUTPUT_PATH = "mapreduce.lib.table.output.dir";
 	public static final String MULTI_OUTPUT_PATH = "mapreduce.lib.table.multi.output.dirs";
 	private static final String OUTPUT_SCHEMA = "mapreduce.lib.table.output.schema";
+	static final String OUTPUT_CHECKTYPE = "mapreduce.lib.table.output.checktype";
 	private static final String OUTPUT_STORAGEHINT = "mapreduce.lib.table.output.storagehint";
 	private static final String OUTPUT_SORTCOLUMNS = "mapreduce.lib.table.output.sortcolumns";
 	private static final String OUTPUT_COMPARATOR =  "mapreduce.lib.table.output.comparator";
@@ -335,6 +336,11 @@ public class BasicTableOutputFormat extends OutputFormat<BytesWritable, Tuple> {
 	public static void setSchema(JobContext jobContext, String schema) {
 		Configuration conf = jobContext.getConfiguration();
 		conf.set(OUTPUT_SCHEMA, Schema.normalize(schema));
+		
+    // This is to turn off type check for potential corner cases - for internal use only;
+		if (System.getenv("zebra_output_checktype")!= null && System.getenv("zebra_output_checktype").equals("no")) {
+      conf.setBoolean(OUTPUT_CHECKTYPE, false);
+    }
 	}
 
 	/**
@@ -723,7 +729,6 @@ class TableOutputCommitter extends OutputCommitter {
 		// TODO Auto-generated method stub
 
 	}
-
 }
 
 /**
@@ -733,22 +738,22 @@ class TableRecordWriter extends RecordWriter<BytesWritable, Tuple> {
 	private final TableInserter inserter[];
 	private org.apache.hadoop.zebra.mapreduce.ZebraOutputPartition op = null;
 
-
 	public TableRecordWriter(String path, TaskAttemptContext context) throws IOException {	
 		Configuration conf = context.getConfiguration();
 		if(conf.getBoolean(BasicTableOutputFormat.IS_MULTI, false) == true) {	  
 			op = (org.apache.hadoop.zebra.mapreduce.ZebraOutputPartition) 
 			ReflectionUtils.newInstance(BasicTableOutputFormat.getZebraOutputPartitionClass(context), conf);
-
-		}  
+		}
+		
+		boolean checkType = conf.getBoolean(BasicTableOutputFormat.OUTPUT_CHECKTYPE, true);
 		Path [] paths = BasicTableOutputFormat.getOutputPaths(context);
 		inserter = new TableInserter[paths.length];
                 String inserterName = "part-" + context.getTaskAttemptID().getTaskID().getId();
 		for(int i = 0; i < paths.length; ++i) {
 			BasicTable.Writer writer =
 				new BasicTable.Writer(paths[i], conf);
-			this.inserter[i] = writer.getInserter( inserterName, true);
-		}	
+			this.inserter[i] = writer.getInserter( inserterName, true, checkType);
+		}
 	}
 
 	@Override
