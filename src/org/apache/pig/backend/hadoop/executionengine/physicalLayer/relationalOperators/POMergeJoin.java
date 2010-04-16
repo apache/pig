@@ -125,7 +125,7 @@ public class POMergeJoin extends PhysicalOperator {
      * Ex. join A by ($0,$1), B by ($1,$2);
      */
     public POMergeJoin(OperatorKey k, int rp, List<PhysicalOperator> inp, MultiMap<PhysicalOperator, PhysicalPlan> inpPlans,
-            List<List<Byte>> keyTypes) throws ExecException{
+            List<List<Byte>> keyTypes) throws PlanException{
 
         super(k, rp, inp);
         this.opKey = k;
@@ -142,22 +142,20 @@ public class POMergeJoin extends PhysicalOperator {
      * Configures the Local Rearrange operators to get keys out of tuple.
      * @throws ExecException 
      */
-    private void createJoinPlans(MultiMap<PhysicalOperator, PhysicalPlan> inpPlans, List<List<Byte>> keyTypes) throws ExecException{
+    private void createJoinPlans(MultiMap<PhysicalOperator, PhysicalPlan> inpPlans, List<List<Byte>> keyTypes) throws PlanException{
 
         int i=-1;
         for (PhysicalOperator inpPhyOp : inpPlans.keySet()) {
             ++i;
             POLocalRearrange lr = new POLocalRearrange(genKey());
-            lr.setIndex(i);
+            try {
+                lr.setIndex(i);
+            } catch (ExecException e) {
+                throw new PlanException(e.getMessage(),e.getErrorCode(),e.getErrorSource(),e);
+            }
             lr.setResultType(DataType.TUPLE);
             lr.setKeyType(keyTypes.get(i).size() > 1 ? DataType.TUPLE : keyTypes.get(i).get(0));
-            try {
-                lr.setPlans((List<PhysicalPlan>)inpPlans.get(inpPhyOp));
-            } catch (PlanException pe) {
-                int errCode = 2071;
-                String msg = "Problem with setting up local rearrange's plans.";
-                throw new ExecException(msg, errCode, PigException.BUG, pe);
-            }
+            lr.setPlans((List<PhysicalPlan>)inpPlans.get(inpPhyOp));
             LRs[i]= lr;
         }
     }

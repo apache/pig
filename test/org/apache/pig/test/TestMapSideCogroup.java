@@ -34,6 +34,7 @@ import org.apache.pig.IndexableLoadFunc;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MapReduceOper;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROperPlan;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.LogicalToPhysicalTranslatorException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POMergeCogroup;
@@ -167,6 +168,46 @@ public class TestMapSideCogroup extends TestCase{
 
     }
 
+    public void testFailure1() throws Exception{
+        LogicalPlanTester lpt = new LogicalPlanTester();
+        lpt.buildPlan("A = LOAD 'data1' using "+ DummyCollectableLoader.class.getName() +"() as (id, name, grade);");
+        lpt.buildPlan("E = group A by id;");
+        lpt.buildPlan("B = LOAD 'data2' using "+ DummyIndexableLoader.class.getName() +"() as (id, name, grade);");
+        lpt.buildPlan("D = LOAD 'data2' using "+ DummyIndexableLoader.class.getName() +"() as (id, name, grade);");
+        LogicalPlan lp = lpt.buildPlan("C = cogroup E by A.id, B by id, D by id using 'merge';");
+        assertEquals(LOCogroup.GROUPTYPE.MERGE, ((LOCogroup)lp.getLeaves().get(0)).getGroupType());
+
+        PigContext pc = new PigContext(ExecType.MAPREDUCE,cluster.getProperties());
+        pc.connect();
+        boolean exceptionCaught = false;
+        try{
+            Util.buildPhysicalPlan(lp, pc);   
+        }catch (LogicalToPhysicalTranslatorException e){
+            assertEquals(1103,e.getErrorCode());
+            exceptionCaught = true;
+        }
+        assertTrue(exceptionCaught);
+    }
+    
+    public void testFailure2() throws Exception{
+        LogicalPlanTester lpt = new LogicalPlanTester();
+        lpt.buildPlan("A = LOAD 'data1' using "+ DummyCollectableLoader.class.getName() +"() as (id, name, grade);");
+        lpt.buildPlan("B = LOAD 'data2' using "+ DummyIndexableLoader.class.getName() +"() as (id, name, grade);");
+        lpt.buildPlan("D = LOAD 'data2' using "+ DummyIndexableLoader.class.getName() +"() as (id, name, grade);");
+        LogicalPlan lp = lpt.buildPlan("C = cogroup A by id inner, B by id, D by id inner using 'merge';");
+        assertEquals(LOCogroup.GROUPTYPE.MERGE, ((LOCogroup)lp.getLeaves().get(0)).getGroupType());
+
+        PigContext pc = new PigContext(ExecType.MAPREDUCE,cluster.getProperties());
+        pc.connect();
+        boolean exceptionCaught = false;
+        try{
+            Util.buildPhysicalPlan(lp, pc);   
+        }catch (LogicalToPhysicalTranslatorException e){
+            exceptionCaught = true;
+        }
+        assertTrue(exceptionCaught);
+    }
+    
     public void testSimple() throws Exception{
 
         PigServer pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());

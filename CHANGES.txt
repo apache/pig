@@ -39,6 +39,8 @@ subsequent calls to LOLoad.getSchema() or LOLoad.determineSchema()
 
 OPTIMIZATIONS
 
+PIG-1353: Map-side joins (ashutoshc)
+
 PIG-1309: Map-side Cogroup (ashutoshc)
 
 BUG FIXES

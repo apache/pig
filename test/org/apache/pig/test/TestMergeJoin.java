@@ -19,12 +19,11 @@ package org.apache.pig.test;
 
 import java.io.IOException;
 import java.util.Iterator;
-import java.util.Map;
+import java.util.Properties;
 
 import junit.framework.Assert;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.RecordReader;
@@ -34,7 +33,6 @@ import org.apache.pig.LoadCaster;
 import org.apache.pig.LoadFunc;
 import org.apache.pig.PigException;
 import org.apache.pig.PigServer;
-import org.apache.pig.backend.datastorage.DataStorage;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigSplit;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROperPlan;
@@ -42,8 +40,6 @@ import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
-import org.apache.pig.impl.io.BufferedPositionedInputStream;
-import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.LogicalPlan;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.util.LogUtils;
@@ -60,10 +56,13 @@ public class TestMergeJoin {
     private PigServer pigServer;
     private MiniCluster cluster = MiniCluster.buildCluster();
 
-    public TestMergeJoin() throws ExecException, IOException{
+    public TestMergeJoin() throws ExecException{
 
-        pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
-//        pigServer = new PigServer(ExecType.LOCAL);
+        Properties props = cluster.getProperties();
+        props.setProperty("mapred.map.max.attempts", "1");
+        props.setProperty("mapred.reduce.max.attempts", "1");
+        pigServer = new PigServer(ExecType.MAPREDUCE, props);
+        //pigServer = new PigServer(ExecType.LOCAL, props);
     }
     /**
      * @throws java.lang.Exception
