@@ -183,6 +183,9 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-1348: PigStorage making unnecessary byte array copy when storing data
+(rding)
+
 PIG-1374: PushDownForeachFlatten shall not push ForEach below Join if the flattened fields is used in the next statement (daijy)
 
 PIG-1372: Restore PigInputFormat.sJob for backward compatibility (pradeepkth)
