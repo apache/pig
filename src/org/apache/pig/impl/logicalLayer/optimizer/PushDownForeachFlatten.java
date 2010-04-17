@@ -191,10 +191,12 @@ public class PushDownForeachFlatten extends LogicalTransformer {
             if (requiredFields.getFields()!=null) {
                 for (Pair<Integer, Integer> pair : requiredFields.getFields()) {
                     Collection<Column> columns = foreachMappedFields.get(pair.second);
-                    for (Column column : columns) {
-                        Pair<Integer, Integer> foreachInputColumn = column.getInputColumn();
-                        if (foreach.isInputFlattened(foreachInputColumn.second))
-                            return false;
+                    if (columns!=null) {
+                        for (Column column : columns) {
+                            Pair<Integer, Integer> foreachInputColumn = column.getInputColumn();
+                            if (foreach.isInputFlattened(foreachInputColumn.second))
+                                return false;
+                        }
                     }
                 }
             }
