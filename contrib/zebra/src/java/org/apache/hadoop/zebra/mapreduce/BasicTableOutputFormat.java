@@ -36,6 +36,7 @@ import org.apache.hadoop.zebra.io.TableInserter;
 import org.apache.hadoop.zebra.parser.ParseException;
 import org.apache.hadoop.zebra.types.Partition;
 import org.apache.hadoop.zebra.types.SortInfo;
+import org.apache.hadoop.zebra.types.TypesUtils;
 import org.apache.hadoop.zebra.schema.Schema;
 import org.apache.hadoop.zebra.tfile.TFile;
 import org.apache.pig.data.Tuple;
@@ -153,7 +154,7 @@ public class BasicTableOutputFormat extends OutputFormat<BytesWritable, Tuple> {
 	private static final String OUTPUT_COMPARATOR =  "mapreduce.lib.table.output.comparator";
 	static final String IS_MULTI = "multi";
 	public static final String ZEBRA_OUTPUT_PARTITIONER_CLASS = "zebra.output.partitioner.class";
-
+	public static final String ZEBRA_OUTPUT_PARTITIONER_CLASS_ARGUMENTS = "zebra.output.partitioner.class.arguments";
 
 	/**
 	 * Set the multiple output paths of the BasicTable in JobContext
@@ -164,9 +165,11 @@ public class BasicTableOutputFormat extends OutputFormat<BytesWritable, Tuple> {
 	 *          The comma separated output paths to the tables. 
 	 *          The path must either not existent, or must be an empty directory.
 	 * @param theClass
-	 * 	      Zebra output partitoner class
+	 * 	      Zebra output partitioner class
+	 * 
+	 * @deprecated Use {@link #setMultipleOutputs(JobContext, class<? extends ZebraOutputPartition>, Path ...)} instead.
+	 * 
 	 */
-
 	public static void setMultipleOutputs(JobContext jobContext, String commaSeparatedLocations, Class<? extends ZebraOutputPartition> theClass)
 	throws IOException {
 		Configuration conf = jobContext.getConfiguration();
@@ -179,18 +182,17 @@ public class BasicTableOutputFormat extends OutputFormat<BytesWritable, Tuple> {
 		setZebraOutputPartitionClass(jobContext, theClass);	  
 	}
 
-	/**
+  /**
 	 * Set the multiple output paths of the BasicTable in JobContext
 	 * 
 	 * @param jobContext
 	 *          The JobContext object.
+   * @param theClass
+   *        Zebra output partitioner class          
 	 * @param paths
 	 *          The list of paths 
 	 *          The path must either not existent, or must be an empty directory.
-	 * @param theClass
-	 * 	      Zebra output partitioner class
 	 */
-
 	public static void setMultipleOutputs(JobContext jobContext, Class<? extends ZebraOutputPartition> theClass, Path... paths)
 	throws IOException {
 		Configuration conf = jobContext.getConfiguration();
@@ -209,9 +211,28 @@ public class BasicTableOutputFormat extends OutputFormat<BytesWritable, Tuple> {
 		}
 		conf.setBoolean(IS_MULTI, true);
 		setZebraOutputPartitionClass(jobContext, theClass);
-
 	}
-
+	
+	/**
+   * Set the multiple output paths of the BasicTable in JobContext
+   * 
+   * @param jobContext
+   *          The JobContext object.
+   * @param theClass
+   *          Zebra output partitioner class
+   * @param arguments
+   *          Arguments string to partitioner class
+   * @param paths
+   *          The list of paths 
+   *          The path must either not existent, or must be an empty directory.
+   */
+  public static void setMultipleOutputs(JobContext jobContext, Class<? extends ZebraOutputPartition> theClass, String arguments, Path... paths)
+  throws IOException {
+    setMultipleOutputs(jobContext, theClass, paths);
+    if (arguments != null) {
+      jobContext.getConfiguration().set(ZEBRA_OUTPUT_PARTITIONER_CLASS_ARGUMENTS, arguments);
+    }
+  }
 
 	/**
 	 * Set the multiple output paths of the BasicTable in JobContext
@@ -256,14 +277,12 @@ public class BasicTableOutputFormat extends OutputFormat<BytesWritable, Tuple> {
 
 	}
 
-
 	private static void setZebraOutputPartitionClass(
 			JobContext jobContext, Class<? extends ZebraOutputPartition> theClass) throws IOException {
 		if (!ZebraOutputPartition.class.isAssignableFrom(theClass))
 			throw new IOException(theClass+" not "+ZebraOutputPartition.class.getName());
 		jobContext.getConfiguration().set(ZEBRA_OUTPUT_PARTITIONER_CLASS, theClass.getName());
 	}
-
 
 	public static Class<? extends ZebraOutputPartition> getZebraOutputPartitionClass(JobContext jobContext) throws IOException {
 		Configuration conf = jobContext.getConfiguration();
@@ -286,8 +305,6 @@ public class BasicTableOutputFormat extends OutputFormat<BytesWritable, Tuple> {
 			return null;
 
 	}
-
-
 
 	/**
 	 * Set the output path of the BasicTable in JobContext
@@ -392,7 +409,6 @@ public class BasicTableOutputFormat extends OutputFormat<BytesWritable, Tuple> {
 
 	}
 
-
 	/**
 	 * Generates a BytesWritable key for the input key
 	 * using keygenerate provided. Sort Key(s) are used to generate this object
@@ -408,9 +424,6 @@ public class BasicTableOutputFormat extends OutputFormat<BytesWritable, Tuple> {
 		KeyGenerator kg = (KeyGenerator) builder;
 		return kg.generateKey(t);
 	}
-
-
-
 
 	/**
 	 * Set the table storage hint in JobContext, should be called after setSchema is
@@ -737,7 +750,13 @@ class TableOutputCommitter extends OutputCommitter {
 class TableRecordWriter extends RecordWriter<BytesWritable, Tuple> {
 	private final TableInserter inserter[];
 	private org.apache.hadoop.zebra.mapreduce.ZebraOutputPartition op = null;
-
+ 	
+ 	// for Pig's call path;
+ 	final private BytesWritable KEY0 = new BytesWritable(new byte[0]);
+   private int[] sortColIndices = null;
+   private KeyGenerator builder = null;
+   private Tuple t = null;
+   
 	public TableRecordWriter(String path, TaskAttemptContext context) throws IOException {	
 		Configuration conf = context.getConfiguration();
 		if(conf.getBoolean(BasicTableOutputFormat.IS_MULTI, false) == true) {	  
@@ -753,8 +772,36 @@ class TableRecordWriter extends RecordWriter<BytesWritable, Tuple> {
 			BasicTable.Writer writer =
 				new BasicTable.Writer(paths[i], conf);
 			this.inserter[i] = writer.getInserter( inserterName, true, checkType);
+
+			// Set up SortInfo related stuff only once;
+			if (i == 0) {
+	      if (writer.getSortInfo() != null)
+	      {
+          sortColIndices = writer.getSortInfo().getSortIndices();
+          SortInfo sortInfo =  writer.getSortInfo();
+          String[] sortColNames = sortInfo.getSortColumnNames();
+          org.apache.hadoop.zebra.schema.Schema schema = writer.getSchema();
+
+          byte[] types = new byte[sortColNames.length];
+          
+          for(int j =0 ; j < sortColNames.length; ++j){
+              types[j] = schema.getColumn(sortColNames[j]).getType().pigDataType();
+          }
+          t = TypesUtils.createTuple(sortColNames.length);
+          builder = makeKeyBuilder(types);
+	      }
+			}
 		}
 	}
+	
+  private KeyGenerator makeKeyBuilder(byte[] elems) {
+    ComparatorExpr[] exprs = new ComparatorExpr[elems.length];
+    for (int i = 0; i < elems.length; ++i) {
+        exprs[i] = ExprUtils.primitiveComparator(i, elems[i]);
+    }
+    return new KeyGenerator(ExprUtils.tupleComparator(exprs));
+  }
+
 
 	@Override
 	public void close(TaskAttemptContext context) throws IOException {
@@ -765,6 +812,17 @@ class TableRecordWriter extends RecordWriter<BytesWritable, Tuple> {
 
 	@Override
 	public void write(BytesWritable key, Tuple value) throws IOException {
+    if (key == null) {
+      if (sortColIndices != null) { // If this is a sorted table and key is null (Pig's call path);
+        for (int i =0; i < sortColIndices.length;++i) {
+          t.set(i, value.get(sortColIndices[i]));
+        }
+        key = builder.generateKey(t);        
+      } else { // for unsorted table;
+        key = KEY0;
+      }
+    }
+	  	  
 		if(op != null ) {	  
 			int idx = op.getOutputPartition(key, value);
 			if(idx < 0 || (idx >= inserter.length)) {
@@ -775,6 +833,5 @@ class TableRecordWriter extends RecordWriter<BytesWritable, Tuple> {
 			inserter[0].insert(key, value);
 		}
 	}
-
 }
 

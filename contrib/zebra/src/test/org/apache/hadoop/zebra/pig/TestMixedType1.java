@@ -55,7 +55,7 @@ public class TestMixedType1 extends BaseTestCase {
     System.out.println("ONCE SETUP !! ---------");
     init();
     
-    path = getTableFullPath("");  
+    path = getTableFullPath("TestMixedType1");  
     removeDir(path);
     
     BasicTable.Writer writer = new BasicTable.Writer(path, STR_SCHEMA,
