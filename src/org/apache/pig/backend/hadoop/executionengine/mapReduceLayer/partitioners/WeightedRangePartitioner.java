@@ -103,17 +103,12 @@ public class WeightedRangePartitioner implements Partitioner<PigNullableWritable
                             new DiscreteProbabilitySampleGenerator(probVec));
                 }
             }
-            else
-            {
-                ArrayList<Pair<FileSpec, Boolean>> inp = (ArrayList<Pair<FileSpec, Boolean>>)ObjectSerializer.deserialize(job.get("pig.inputs", ""));
-                String inputFileName = inp.get(0).first.getFileName();
-                long inputSize = FileLocalizer.getSize(inputFileName);
-                if (inputSize!=0)
-                {
-                    throw new RuntimeException("Empty samples file and non-empty input file");
-                }
-                // Otherwise, we do not put anything to weightedParts
-            }
+            // else - the quantiles file is empty - unless we have a bug, the 
+            // input must also be empty in which case we don't need to put
+            // anything in weightedParts since getPartition() should never get
+            // called. If the quantiles file is empty due to either a bug or
+            // a transient failure situation on the dfs, then weightedParts will
+            // not be populated and the job will fail in getPartition()
         }catch (Exception e){
             throw new RuntimeException(e);
         }
