@@ -34,6 +34,7 @@ import org.apache.hadoop.zebra.mapreduce.ZebraSchema;
 import org.apache.hadoop.zebra.mapreduce.ZebraSortInfo;
 import org.apache.hadoop.zebra.mapreduce.ZebraStorageHint;
 import org.apache.hadoop.zebra.parser.ParseException;
+import org.apache.hadoop.zebra.types.ZebraConf;
 import org.apache.pig.LoadFunc;
 import org.apache.pig.ResourceSchema;
 import org.apache.pig.ResourceStatistics;
@@ -50,8 +51,6 @@ public class TableStorer extends StoreFunc implements StoreMetadata {
     private static final String UDFCONTEXT_OUTPUT_SCHEMA = "zebra.UDFContext.outputSchema";
     private static final String UDFCONTEXT_SORT_INFO = "zebra.UDFContext.sortInfo";
     private static final String UDFCONTEXT_OUTPUT_CHECKTYPE = "zebra.UDFContext.checkType";
-
-    static final String OUTPUT_CHECKTYPE = "mapreduce.lib.table.output.checktype";
 
     private String storageHintString = null;
     private String udfContextSignature = null;
@@ -206,7 +205,7 @@ public class TableStorer extends StoreFunc implements StoreMetadata {
         
       // Get checktype information from UDFContext and re-store it to job config;
       if (properties.getProperty(UDFCONTEXT_OUTPUT_CHECKTYPE) != null && properties.getProperty(UDFCONTEXT_OUTPUT_CHECKTYPE).equals("no")) {
-        conf.setBoolean(OUTPUT_CHECKTYPE, false);
+        ZebraConf.setCheckType(conf, false);
       }
     }
 

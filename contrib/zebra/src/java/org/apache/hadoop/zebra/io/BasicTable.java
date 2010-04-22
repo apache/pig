@@ -53,11 +53,14 @@ import org.apache.hadoop.zebra.io.ColumnGroup.Reader.CGRangeSplit;
 import org.apache.hadoop.zebra.io.ColumnGroup.Reader.CGRowSplit;
 import org.apache.hadoop.zebra.io.ColumnGroup.Reader.CGScanner;
 import org.apache.hadoop.zebra.types.CGSchema;
+import org.apache.hadoop.zebra.mapreduce.BasicTableOutputFormat;
 import org.apache.hadoop.zebra.parser.ParseException;
 import org.apache.hadoop.zebra.types.Partition;
 import org.apache.hadoop.zebra.types.Projection;
+import org.apache.hadoop.zebra.types.ZebraConf;
 import org.apache.hadoop.zebra.schema.Schema;
 import org.apache.hadoop.zebra.parser.TableSchemaParser;
+import org.apache.hadoop.zebra.pig.TableStorer;
 import org.apache.hadoop.zebra.types.TypesUtils;
 import org.apache.hadoop.zebra.types.SortInfo;
 import org.apache.pig.data.Tuple;
@@ -1284,7 +1287,7 @@ public class BasicTable {
         String comparator, Configuration conf) throws IOException {
       try {
       	actualOutputPath = path;
-    	writerConf = conf;    	  
+    	  writerConf = conf;    	  
         schemaFile =
             new SchemaFile(path, btSchemaString, btStorageString, sortColumns,
                 comparator, conf);
@@ -1353,7 +1356,6 @@ public class BasicTable {
     }
 
     /**
-    /**
      * Reopen an already created BasicTable for writing. Exception will be
      * thrown if the table is already closed, or is in the process of being
      * closed.
@@ -1361,9 +1363,13 @@ public class BasicTable {
     public Writer(Path path, Configuration conf) throws IOException {
       try {
       	actualOutputPath = path;
-    	writerConf = conf;    	  
-        // fake an empty deleted cg list as no cg should have been deleted now
-        schemaFile = new SchemaFile(path, new String[0], conf);
+    	  writerConf = conf;
+    	  
+    	  if (ZebraConf.getOutputSchema(conf) != null) { 
+    	    schemaFile = new SchemaFile(conf);  // Read out schemaFile from conf, instead of from hdfs;
+    	  } else { // This is only for io test cases and it cannot happen for m/r and pig cases; 
+    	    schemaFile = new SchemaFile(path, new String[0], conf); // fake an empty deleted cg list as no cg should have been deleted now
+    	  }
         int numCGs = schemaFile.getNumOfPhysicalSchemas();
         partition = schemaFile.getPartition();
         sorted = schemaFile.isSorted();
@@ -1371,11 +1377,16 @@ public class BasicTable {
         cgTuples = new Tuple[numCGs];
         Path tmpWorkPath = new Path(path, "_temporary");	
         for (int nx = 0; nx < numCGs; nx++) {
+          CGSchema cgschema = new CGSchema(schemaFile.getPhysicalSchema(nx), sorted, 
+              schemaFile.getComparator(), schemaFile.getName(nx), schemaFile.getSerializer(nx), schemaFile.getCompressor(nx),
+              schemaFile.getOwner(nx), schemaFile.getGroup(nx), schemaFile.getPerm(nx));
+          
           colGroups[nx] =
             new ColumnGroup.Writer(
             		new Path(path, partition.getCGSchema(nx).getName()),
             		new Path(tmpWorkPath, partition.getCGSchema(nx).getName()),
-                  conf);
+                  cgschema,conf);
+          
           cgTuples[nx] = TypesUtils.createTuple(colGroups[nx].getSchema());
         }
         partition.setSource(cgTuples);
@@ -1751,6 +1762,49 @@ public class BasicTable {
     public SchemaFile(Path path, String[] deletedCGs, Configuration conf) throws IOException {
       readSchemaFile(path, deletedCGs, conf);
     }
+    
+    // ctor for reading from a job configuration object; we do not need a table path; 
+    // all information is held in the job configuration object.
+    public SchemaFile(Configuration conf) throws IOException {
+      String logicalStr = ZebraConf.getOutputSchema(conf);
+      storage = ZebraConf.getOutputStorageHint(conf);
+      String sortColumns = ZebraConf.getOutputSortColumns(conf) != null ? ZebraConf.getOutputSortColumns(conf) : "";
+      comparator = ZebraConf.getOutputComparator(conf) != null ? ZebraConf.getOutputComparator(conf) : "";      
+      
+      version = SCHEMA_VERSION;
+            
+      try {
+        logical = new Schema(logicalStr);
+      } catch (Exception e) {
+        throw new IOException("Schema build failed :" + e.getMessage());
+      }
+      
+      try {
+        partition = new Partition(logicalStr, storage, comparator, sortColumns);
+       
+      } catch (Exception e) {
+        throw new IOException("Partition constructor failed :" + e.getMessage());
+      }
+ 
+      cgschemas = partition.getCGSchemas();
+      physical = new Schema[cgschemas.length];
+      //cgDeletedFlags = new boolean[physical.length];
+      
+      for (int nx = 0; nx < cgschemas.length; nx++) {
+        physical[nx] = cgschemas[nx].getSchema();
+      }
+      
+      this.sortInfo = partition.getSortInfo();
+      this.sorted = partition.isSorted();
+      this.comparator = (this.sortInfo == null ? null : this.sortInfo.getComparator());
+      if (this.comparator == null)
+        this.comparator = "";
+           
+      String[] sortColumnStr = sortColumns.split(",");
+      if (sortColumnStr.length > 0) {
+        sortInfo = SortInfo.parse(SortInfo.toSortString(sortColumnStr), logical, comparator);
+      }
+    }
 
     public Schema[] getPhysicalSchema() {
       return physical;
@@ -1932,6 +1986,7 @@ public class BasicTable {
       cgDeletedFlags = new boolean[physical.length];
       TableSchemaParser parser;
       String cgschemastr;
+      
       try {
         for (int nx = 0; nx < numCGs; nx++) {
           cgschemastr = WritableUtils.readString(in);
@@ -1942,6 +1997,7 @@ public class BasicTable {
       catch (Exception e) {
         throw new IOException("parser.RecordSchema failed :" + e.getMessage());
       }
+      
       sorted = WritableUtils.readVInt(in) == 1 ? true : false;
       if (deletedCGs == null)
         setCGDeletedFlags(path, conf);
@@ -1955,6 +2011,7 @@ public class BasicTable {
           }
         }
       }
+      
       if (version.compareTo(new Version((short)1, (short)0)) > 0)
       {
         int numSortColumns = WritableUtils.readVInt(in);

@@ -82,6 +82,8 @@ Trunk (unreleased changes)
 
   BUG FIXES
 
+    PIG-1342 Avoid making unnecessary name node calls for writes in Zebra (chaow via yanz) 
+
     PIG-1356 TableLoader makes unnecessary calls to build a Job instance that create a new JobClient in the hadoop 0.20.9 (yanz)
 
     PIG-1349 Hubson test failure in test case TestBasicUnion (xuefuz via yanz)

@@ -77,11 +77,12 @@ public class CGSchema {
 
    public static CGSchema load(FileSystem fs, Path parent) throws IOException, ParseException {
      if (!exists(fs, parent)) return null;
+     
      CGSchema ret = new CGSchema();
      ret.read(fs, parent);
      return ret;
    }
-
+      
    public CGSchema() {
      this.version = SCHEMA_VERSION;
    }
@@ -196,7 +197,7 @@ public class CGSchema {
 
  public  void read(FileSystem fs, Path parent) throws IOException, ParseException {
      FSDataInputStream in = fs.open(makeFilePath(parent));
-	  version = new Version(in);
+	   version = new Version(in);
      // verify compatibility against SCHEMA_VERSION
      if (!version.compatibleWith(SCHEMA_VERSION)) {
        new IOException("Incompatible versions, expecting: " + SCHEMA_VERSION

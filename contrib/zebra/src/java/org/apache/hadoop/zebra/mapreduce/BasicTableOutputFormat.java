@@ -36,6 +36,7 @@ import org.apache.hadoop.zebra.io.TableInserter;
 import org.apache.hadoop.zebra.parser.ParseException;
 import org.apache.hadoop.zebra.types.Partition;
 import org.apache.hadoop.zebra.types.SortInfo;
+import org.apache.hadoop.zebra.types.ZebraConf;
 import org.apache.hadoop.zebra.types.TypesUtils;
 import org.apache.hadoop.zebra.schema.Schema;
 import org.apache.hadoop.zebra.tfile.TFile;
@@ -145,17 +146,6 @@ import org.apache.hadoop.zebra.pig.comparator.*;
  * </pre>
  */
 public class BasicTableOutputFormat extends OutputFormat<BytesWritable, Tuple> {
-	private static final String OUTPUT_PATH = "mapreduce.lib.table.output.dir";
-	public static final String MULTI_OUTPUT_PATH = "mapreduce.lib.table.multi.output.dirs";
-	private static final String OUTPUT_SCHEMA = "mapreduce.lib.table.output.schema";
-	static final String OUTPUT_CHECKTYPE = "mapreduce.lib.table.output.checktype";
-	private static final String OUTPUT_STORAGEHINT = "mapreduce.lib.table.output.storagehint";
-	private static final String OUTPUT_SORTCOLUMNS = "mapreduce.lib.table.output.sortcolumns";
-	private static final String OUTPUT_COMPARATOR =  "mapreduce.lib.table.output.comparator";
-	static final String IS_MULTI = "multi";
-	public static final String ZEBRA_OUTPUT_PARTITIONER_CLASS = "zebra.output.partitioner.class";
-	public static final String ZEBRA_OUTPUT_PARTITIONER_CLASS_ARGUMENTS = "zebra.output.partitioner.class.arguments";
-
 	/**
 	 * Set the multiple output paths of the BasicTable in JobContext
 	 * 
@@ -173,12 +163,13 @@ public class BasicTableOutputFormat extends OutputFormat<BytesWritable, Tuple> {
 	public static void setMultipleOutputs(JobContext jobContext, String commaSeparatedLocations, Class<? extends ZebraOutputPartition> theClass)
 	throws IOException {
 		Configuration conf = jobContext.getConfiguration();
-		conf.set(MULTI_OUTPUT_PATH, commaSeparatedLocations);
+		ZebraConf.setMultiOutputPath(conf, commaSeparatedLocations);
 
-		if(conf.getBoolean(IS_MULTI, true) == false) {
+		if (ZebraConf.getIsMulti(conf, true) == false) {
 			throw new IllegalArgumentException("Job has been setup as single output path");
 		}
-		conf.setBoolean(IS_MULTI, true);
+
+		ZebraConf.setIsMulti(conf, true);
 		setZebraOutputPartitionClass(jobContext, theClass);	  
 	}
 
@@ -204,12 +195,13 @@ public class BasicTableOutputFormat extends OutputFormat<BytesWritable, Tuple> {
 			path = paths[i].makeQualified(fs);
 			str.append(StringUtils.escapeString(path.toString()));
 		}	  
-		conf.set(MULTI_OUTPUT_PATH, str.toString());
+		ZebraConf.setMultiOutputPath(conf, str.toString());
 
-		if(conf.getBoolean(IS_MULTI, true) == false) {
+		if (ZebraConf.getIsMulti(conf, true) == false) {
 			throw new IllegalArgumentException("Job has been setup as single output path");
 		}
-		conf.setBoolean(IS_MULTI, true);
+
+		ZebraConf.setIsMulti(conf, true);
 		setZebraOutputPartitionClass(jobContext, theClass);
 	}
 	
@@ -230,12 +222,23 @@ public class BasicTableOutputFormat extends OutputFormat<BytesWritable, Tuple> {
   throws IOException {
     setMultipleOutputs(jobContext, theClass, paths);
     if (arguments != null) {
-      jobContext.getConfiguration().set(ZEBRA_OUTPUT_PARTITIONER_CLASS_ARGUMENTS, arguments);
+      ZebraConf.setOutputPartitionClassArguments(jobContext.getConfiguration(), arguments);
     }
   }
+  
+  /**
+   * Get the output partition class arguments string from job configuration
+   * 
+   * @param conf
+   *          The job configuration object.
+   * @return the output partition class arguments string.
+   */
+  public static String getOutputPartitionClassArguments(Configuration conf) {
+    return ZebraConf.getOutputPartitionClassArguments(conf);
+  }  
 
 	/**
-	 * Set the multiple output paths of the BasicTable in JobContext
+	 * Get the multiple output paths of the BasicTable from JobContext
 	 * 
 	 * @param jobContext
 	 *          The JobContext object.
@@ -243,20 +246,19 @@ public class BasicTableOutputFormat extends OutputFormat<BytesWritable, Tuple> {
 	 *          The comma separated output paths to the tables. 
 	 *          The path must either not existent, or must be an empty directory.
 	 */
-
 	public static Path[] getOutputPaths(JobContext jobContext)
 	throws IOException {
 		Configuration conf = jobContext.getConfiguration();
 
 		Path[] result;
-		String paths = conf.get(MULTI_OUTPUT_PATH);
-		String path = conf.get(OUTPUT_PATH);
+		String paths = ZebraConf.getMultiOutputPath(conf);
+		String path = ZebraConf.getOutputPath(conf);
 
 		if(paths != null && path != null) {
 			throw new IllegalArgumentException("Illegal output paths specs. Both multi and single output locs are set");
 		}	
 
-		if(conf.getBoolean(IS_MULTI, false) == true) {	  
+		if (ZebraConf.getIsMulti(conf, false) == true) {
 			if (paths == null || paths.equals("")) {
 				throw new IllegalArgumentException("Illegal multi output paths");
 			}	    
@@ -281,14 +283,14 @@ public class BasicTableOutputFormat extends OutputFormat<BytesWritable, Tuple> {
 			JobContext jobContext, Class<? extends ZebraOutputPartition> theClass) throws IOException {
 		if (!ZebraOutputPartition.class.isAssignableFrom(theClass))
 			throw new IOException(theClass+" not "+ZebraOutputPartition.class.getName());
-		jobContext.getConfiguration().set(ZEBRA_OUTPUT_PARTITIONER_CLASS, theClass.getName());
+		ZebraConf.setZebraOutputPartitionerClass(jobContext.getConfiguration(), theClass.getName());
 	}
 
 	public static Class<? extends ZebraOutputPartition> getZebraOutputPartitionClass(JobContext jobContext) throws IOException {
 		Configuration conf = jobContext.getConfiguration();
 
 		Class<?> theClass;	  
-		String valueString = conf.get(ZEBRA_OUTPUT_PARTITIONER_CLASS);
+		String valueString = ZebraConf.getZebraOutputPartitionerClass(conf);
 		if (valueString == null)
 			throw new IOException("zebra output partitioner class not found");
 		try {
@@ -317,11 +319,11 @@ public class BasicTableOutputFormat extends OutputFormat<BytesWritable, Tuple> {
 	 */
 	public static void setOutputPath(JobContext jobContext, Path path) {
 		Configuration conf = jobContext.getConfiguration();
-		conf.set(OUTPUT_PATH, path.toString());
-		if(conf.getBoolean(IS_MULTI, false) == true) {
+		ZebraConf.setOutputPath(conf, path.toString());
+		if (ZebraConf.getIsMulti(conf, false) == true) {
 			throw new IllegalArgumentException("Job has been setup as multi output paths");
 		}
-		conf.setBoolean(IS_MULTI, false);
+		ZebraConf.setIsMulti(conf, false);
 
 	}
 
@@ -334,7 +336,7 @@ public class BasicTableOutputFormat extends OutputFormat<BytesWritable, Tuple> {
 	 */
 	public static Path getOutputPath(JobContext jobContext) {
 		Configuration conf = jobContext.getConfiguration();
-		String path = conf.get(OUTPUT_PATH);
+		String path = ZebraConf.getOutputPath(conf);
 		return (path == null) ? null : new Path(path);
 	}
 
@@ -352,11 +354,11 @@ public class BasicTableOutputFormat extends OutputFormat<BytesWritable, Tuple> {
 	 */
 	public static void setSchema(JobContext jobContext, String schema) {
 		Configuration conf = jobContext.getConfiguration();
-		conf.set(OUTPUT_SCHEMA, Schema.normalize(schema));
+ 		ZebraConf.setOutputSchema(conf, Schema.normalize(schema));
 		
     // This is to turn off type check for potential corner cases - for internal use only;
 		if (System.getenv("zebra_output_checktype")!= null && System.getenv("zebra_output_checktype").equals("no")) {
-      conf.setBoolean(OUTPUT_CHECKTYPE, false);
+		  ZebraConf.setCheckType(conf, false);
     }
 	}
 
@@ -370,7 +372,7 @@ public class BasicTableOutputFormat extends OutputFormat<BytesWritable, Tuple> {
 	 */
 	public static Schema getSchema(JobContext jobContext) throws ParseException {
 		Configuration conf = jobContext.getConfiguration();
-		String schema = conf.get(OUTPUT_SCHEMA);
+		String schema = ZebraConf.getOutputSchema(conf);
 		if (schema == null) {
 			return null;
 		}
@@ -443,7 +445,7 @@ public class BasicTableOutputFormat extends OutputFormat<BytesWritable, Tuple> {
 	 */
 	public static void setStorageHint(JobContext jobContext, String storehint) throws ParseException, IOException {
 		Configuration conf = jobContext.getConfiguration();
-		String schema = conf.get(OUTPUT_SCHEMA);
+		String schema = ZebraConf.getOutputSchema(conf);
 
 		if (schema == null)
 			throw new ParseException("Schema has not been set");
@@ -451,7 +453,7 @@ public class BasicTableOutputFormat extends OutputFormat<BytesWritable, Tuple> {
 		// for sanity check purpose only
 		new Partition(schema, storehint, null);
 
-		conf.set(OUTPUT_STORAGEHINT, storehint);
+		ZebraConf.setOutputStorageHint(conf, storehint);
 	}
 
 	/**
@@ -463,9 +465,9 @@ public class BasicTableOutputFormat extends OutputFormat<BytesWritable, Tuple> {
 	 *         defined in the jobContext object at the time of the call, an empty string
 	 *         will be returned.
 	 */
-	public static String getStorageHint(JobContext jobContext) throws ParseException {
+	public static String getStorageHint(JobContext jobContext) {
 		Configuration conf = jobContext.getConfiguration();
-		String storehint = conf.get(OUTPUT_STORAGEHINT);
+		String storehint = ZebraConf.getOutputStorageHint(conf);
 		return storehint == null ? "" : storehint;
 	}
 
@@ -485,9 +487,9 @@ public class BasicTableOutputFormat extends OutputFormat<BytesWritable, Tuple> {
 	 */
 	public static void setSortInfo(JobContext jobContext, String sortColumns, Class<? extends RawComparator<Object>> comparatorClass) {
 		Configuration conf = jobContext.getConfiguration();
-		conf.set(OUTPUT_SORTCOLUMNS, sortColumns);
+		ZebraConf.setOutputSortColumns(conf, sortColumns);
 		if (comparatorClass != null)
-			conf.set(OUTPUT_COMPARATOR, TFile.COMPARATOR_JCLASS+comparatorClass.getName());
+		  ZebraConf.setOutputComparator(conf, TFile.COMPARATOR_JCLASS+comparatorClass.getName());
 	}
 
 	/**
@@ -502,7 +504,7 @@ public class BasicTableOutputFormat extends OutputFormat<BytesWritable, Tuple> {
 	 * @deprecated Use {@link #setStorageInfo(JobContext, ZebraSchema, ZebraStorageHint, ZebraSortInfo)} instead.          
 	 */
 	public static void setSortInfo(JobContext jobContext, String sortColumns) {
-		jobContext.getConfiguration().set(OUTPUT_SORTCOLUMNS, sortColumns);
+	  ZebraConf.setOutputSortColumns(jobContext.getConfiguration(), sortColumns);
 	}  
 
 	/**
@@ -553,8 +555,8 @@ public class BasicTableOutputFormat extends OutputFormat<BytesWritable, Tuple> {
 		}
 
 		Configuration conf = jobContext.getConfiguration();
-		conf.set(OUTPUT_SCHEMA, schemaStr);
-		conf.set(OUTPUT_STORAGEHINT, storageHintStr);
+		ZebraConf.setOutputSchema(conf, schemaStr);
+		ZebraConf.setOutputStorageHint(conf, storageHintStr);		
 
 		/* validity check on sort info if user specifies it */
 		if (zSortInfo != null) {
@@ -578,9 +580,9 @@ public class BasicTableOutputFormat extends OutputFormat<BytesWritable, Tuple> {
 			}
 
 			if (sortColumnsStr != null)
-				conf.set(OUTPUT_SORTCOLUMNS, sortColumnsStr);
+			  ZebraConf.setOutputSortColumns(conf, sortColumnsStr);
 			if (comparatorStr != null)
-				conf.set(OUTPUT_COMPARATOR, comparatorStr);
+			  ZebraConf.setOutputComparator(conf, comparatorStr);
 		}
 	}
 
@@ -595,7 +597,7 @@ public class BasicTableOutputFormat extends OutputFormat<BytesWritable, Tuple> {
 	public static SortInfo getSortInfo(JobContext jobContext)throws IOException
 	{
 		Configuration conf = jobContext.getConfiguration();
-		String sortColumns = conf.get(OUTPUT_SORTCOLUMNS);
+		String sortColumns = ZebraConf.getOutputSortColumns(conf);
 		if (sortColumns == null)
 			return null;
 		Schema schema = null;
@@ -620,7 +622,7 @@ public class BasicTableOutputFormat extends OutputFormat<BytesWritable, Tuple> {
 	 */
 	private static String getComparator(JobContext jobContext)
 	{
-		return jobContext.getConfiguration().get(OUTPUT_COMPARATOR);
+	  return ZebraConf.getOutputComparator(jobContext.getConfiguration());
 	}
 
 	/**
@@ -653,27 +655,23 @@ public class BasicTableOutputFormat extends OutputFormat<BytesWritable, Tuple> {
 	public void checkOutputSpecs(JobContext jobContext)
 	throws IOException {
 		Configuration conf = jobContext.getConfiguration();
-		String schema = conf.get(OUTPUT_SCHEMA);
+		String schema = ZebraConf.getOutputSchema(conf);
 		if (schema == null) {
 			throw new IllegalArgumentException("Cannot find output schema");
 		}
+		
 		String storehint, sortColumns, comparator;
-		try {
-			storehint = getStorageHint(jobContext);
-			sortColumns = (getSortInfo(jobContext) == null ? null : SortInfo.toSortString(getSortInfo(jobContext).getSortColumnNames()));
-			comparator = getComparator( jobContext );
-		}
-		catch (ParseException e) {
-			throw new IOException(e);
-		}
+  	storehint = getStorageHint(jobContext);
+	  sortColumns = (getSortInfo(jobContext) == null ? null : SortInfo.toSortString(getSortInfo(jobContext).getSortColumnNames()));
+		comparator = getComparator( jobContext );
+		
+		Path[] paths = getOutputPaths(jobContext);
 
-		Path [] paths = getOutputPaths(jobContext);
-
-		for(int i = 0; i < paths.length; ++i) {
-			BasicTable.Writer writer =
-				new BasicTable.Writer(paths[i], schema, storehint, sortColumns, comparator, conf);
-			writer.finish();
-		}	
+	  for (Path path : paths) {
+      BasicTable.Writer writer =
+        new BasicTable.Writer(path, schema, storehint, sortColumns, comparator, conf);
+      writer.finish();
+	  }
 	}
 
 	/**
@@ -682,7 +680,7 @@ public class BasicTableOutputFormat extends OutputFormat<BytesWritable, Tuple> {
 	@Override
 	public RecordWriter<BytesWritable, Tuple> getRecordWriter(TaskAttemptContext taContext)
 	throws IOException {
-		String path = taContext.getConfiguration().get(OUTPUT_PATH);
+	  String path = ZebraConf.getOutputPath(taContext.getConfiguration());
 		return new TableRecordWriter(path, taContext);
 	}
 
@@ -759,12 +757,12 @@ class TableRecordWriter extends RecordWriter<BytesWritable, Tuple> {
    
 	public TableRecordWriter(String path, TaskAttemptContext context) throws IOException {	
 		Configuration conf = context.getConfiguration();
-		if(conf.getBoolean(BasicTableOutputFormat.IS_MULTI, false) == true) {	  
+    if(ZebraConf.getIsMulti(conf, false) == true) {
 			op = (org.apache.hadoop.zebra.mapreduce.ZebraOutputPartition) 
 			ReflectionUtils.newInstance(BasicTableOutputFormat.getZebraOutputPartitionClass(context), conf);
 		}
 		
-		boolean checkType = conf.getBoolean(BasicTableOutputFormat.OUTPUT_CHECKTYPE, true);
+    boolean checkType = ZebraConf.getCheckType(conf, true);
 		Path [] paths = BasicTableOutputFormat.getOutputPaths(context);
 		inserter = new TableInserter[paths.length];
                 String inserterName = "part-" + context.getTaskAttemptID().getTaskID().getId();
