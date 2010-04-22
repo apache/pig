@@ -332,10 +332,29 @@
         </javadoc>
     </target>
 
+    <target name="javadoc-all" depends="jar, ivy-javadoc" description="Create documentation including all contrib projects">
+        <mkdir dir="${build.javadoc}" />
+        <javadoc overview="${src.dir}/overview.html" packagenames="org.apache.pig*,org.apache.hadoop.zebra*" destdir="${build.javadoc}" author="true" version="true" use="true" windowtitle="${Name} ${version} API" doctitle="${Name} ${version} API" bottom="Copyright &amp;copy; ${year} The Apache Software Foundation">
+            <packageset dir="${src.dir}" />
+            <packageset dir="contrib/piggybank/java/src/main/java"/>
+            <packageset dir="contrib/zebra/src/java"/>
+            <link href="${javadoc.link.java}" />
+            <classpath>
+                <path refid="javadoc-classpath" />
+            	<pathelement path="${output.jarfile}" />
+                <fileset dir="build">
+                    <include name="**/zebra-*-dev.jar"/>
+                </fileset>
+            </classpath>
+            <group title="pig" packages="org.apache.pig*" />
+            <group title="contrib: Piggybank" packages="org.apache.pig.piggybank*" />
+            <group title="contrib: Zebra" packages="org.apache.hadoop.zebra*"/>
+        </javadoc>
+    </target>
     <!-- ================================================================== -->
     <!-- @depricated, Documentation                                         -->
     <!-- ================================================================== -->
-    <target name="docs" depends="forrest.check, javadoc" description="Generate forrest-based documentation. 
+    <target name="docs" depends="forrest.check, javadoc-all" description="Generate forrest-based documentation. 
 		To use, specify -Dforrest.home=&lt;base of Apache Forrest installation&gt; on the command line." if="forrest.home">
     	<exec dir="${docs.dir}" executable="${forrest.home}/bin/forrest"
           failonerror="true">
@@ -818,7 +837,7 @@
         </clover-report>
      </target>
 
-     <target name="api-xml" depends="ivy-jdiff, javadoc, write-null">
+     <target name="api-xml" depends="ivy-jdiff, javadoc-all, write-null">
         <javadoc>
                 <doclet name="jdiff.JDiff"
                         path="${jdiff.jar}:${xerces.jar}">
