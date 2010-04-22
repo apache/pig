@@ -28,22 +28,12 @@
       <title>Requirements</title>
       <p><strong>Unix</strong> and <strong>Windows</strong> users need the following:</p>
 		<ol>
-		  <li> <strong>Hadoop 20</strong> - <a href="http://hadoop.apache.org/core/">http://hadoop.apache.org/core/</a></li>
-		  <li> <strong>Java 1.6</strong> - <a href="http://java.sun.com/javase/downloads/index.jsp">http://java.sun.com/javase/downloads/index.jsp</a> Set JAVA_HOME to the root of your Java installation.</li>
-		  <li> <strong>Ant 1.7</strong> - (optional, for builds) <a href="http://ant.apache.org/">http://ant.apache.org/</a></li>
-		  <li> <strong>JUnit 4.5</strong> - (optional, for unit tests) <a href="http://junit.sourceforge.net/">http://junit.sourceforge.net/</a></li>
+		  <li> <strong>Hadoop 0.20.2</strong> - <a href="http://hadoop.apache.org/common/releases.html">http://hadoop.apache.org/common/releases.html</a></li>
+		  <li> <strong>Java 1.6</strong> - <a href="http://java.sun.com/javase/downloads/index.jsp">http://java.sun.com/javase/downloads/index.jsp</a> (set JAVA_HOME to the root of your Java installation)</li>
+		  <li> <strong>Ant 1.7</strong> - <a href="http://ant.apache.org/">http://ant.apache.org/</a> (optional, for builds) </li>
+		  <li> <strong>JUnit 4.5</strong> - <a href="http://junit.sourceforge.net/">http://junit.sourceforge.net/</a> (optional, for unit tests) </li>
 		</ol>
 	<p><strong>Windows</strong> users need to install Cygwin and the Perl package: <a href="http://www.cygwin.com/"> http://www.cygwin.com/</a></p>
-    </section>
-	<section>
-		<title>Run Modes</title>
-	        <p>Pig has two run modes or exectypes:  </p>
-    <ul>
-      <li><p> Local Mode - To run Pig in local mode, you need access to a single machine.  </p></li>
-      <li><p> Mapreduce Mode - To run Pig in mapreduce mode, you need access to a Hadoop cluster and HDFS installation. 
-      Pig will automatically allocate and deallocate a 15-node cluster.</p></li>
-    </ul>
-    <p>You can run the Grunt shell, Pig scripts, or embedded programs using either mode.</p>
     </section>         
 </section>      
         
@@ -67,6 +57,18 @@ $ pig -help
 $ pig 
 </source>
 </section>  
+
+	<section>
+		<title>Run Modes</title>
+	        <p>Pig has two run modes or exectypes:  </p>
+    <ul>
+      <li><p> Local Mode - To run Pig in local mode, you need access to a single machine.  </p></li>
+      <li><p> Mapreduce Mode - To run Pig in mapreduce mode, you need access to a Hadoop cluster and HDFS installation. 
+      Pig will automatically allocate and deallocate a 15-node cluster.</p></li>
+    </ul>
+    <p>You can run the Grunt shell, Pig scripts, or embedded programs using either mode.</p>
+    </section> 
+
 
 <section>
 <title>Grunt Shell</title>
@@ -126,10 +128,15 @@ $ pig -x mapreduce id.pig
 
 <section>
 	<title>Environment Variables and Properties</title>
-	<p>Refer to the <a href="setup.html#Download+Pig">Download Pig</a> section.</p>
+	<p>See <a href="setup.html#Download+Pig">Download Pig</a>.</p>
 	<p>The Pig environment variables are described in the Pig script file, located in the  /pig-n.n.n/bin directory.</p>
 	<p>The Pig properties file, pig.properties, is located in the /pig-n.n.n/conf directory. You can specify an alternate location using the PIG_CONF_DIR environment variable.</p>
 </section>
+
+	<section>
+		<title>Run Modes</title>
+		<p>See <a href="setup.html#Run+Modes">Run Modes</a>. </p>
+    </section>
 
 <section>
 <title>Embedded Programs</title>

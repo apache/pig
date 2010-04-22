@@ -25,7 +25,6 @@
 </header>
 <body>
  
- 
  <!-- ABOUT PIG LATIN -->
    <section>
    <title>Overview</title>
@@ -55,23 +54,44 @@
   
    <section>
    <title>Running Pig Latin </title>
-   <p>You can execute Pig Latin statements interactively or in batch mode using Pig scripts (see the <a href="piglatin_ref2.html#exec">exec</a> and <a href="piglatin_ref2.html#run">run</a> commands).</p>
    
-   <p>Grunt Shell, Interactive or Batch Mode</p>
+   <p>You can execute Pig Latin statements: </p>
+   <ul>
+   <li>Using grunt shell or command line</li>
+    <li>In mapreduce mode or local mode</li>
+    <li>Either interactively or in batch </li>
+   </ul>
+   
+   
+   <p></p>
+<p>Note that Pig now uses Hadoop's local mode (rather than Pig's native local mode).</p>   
+<p>A few run examples are shown here; see <a href="setup.html">Pig Setup</a> for more examples.</p>   
+   
+
+   <p>Grunt Shell - interactive, mapreduce mode (because mapreduce mode is the default you do not need to specify)</p>
    <source>
 $ pig 
 ... - Connecting to ...
 grunt> A = load 'data';
 grunt> B = ... ;
-or
+</source> 
+
+   <p>Grunt Shell - batch, local mode (see the <a href="piglatin_ref2.html#exec">exec</a> and <a href="piglatin_ref2.html#run">run</a> commands)</p>
+   <source>
+$ pig -x local
 grunt> exec myscript.pig;
 or
 grunt> run myscript.pig;
-</source> 
+</source>
 
-<p>Command Line, Batch Mode</p>
+<p>Command Line - batch, mapreduce mode</p>
    <source>
 $ pig myscript.pig
+</source> 
+
+<p>Command Line - batch, local mode mode</p>
+   <source>
+$ pig -x local myscript.pig
 </source> 
 
 <p></p>
@@ -105,7 +125,9 @@ DUMP B;
 </source>   
    
    <p> </p>
-   <p>Note: See Multi-Query Execution for more information on how Pig Latin statements are processed.</p> 
+   <p>See <a href="#Multi-Query+Execution">Multi-Query Execution</a> for more information on how Pig Latin statements are processed.</p> 
+   
+   
    </section>
    
    <section>
