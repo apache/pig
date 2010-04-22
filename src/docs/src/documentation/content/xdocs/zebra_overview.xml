@@ -42,16 +42,17 @@
    <title>Prerequisites</title> 
    <p>Zebra requires:</p>
    <ul>
-   <li>Pig 0.7.0 or later</li>
-   <li>Hadoop 0.20.1 or later</li>
+   <li>Pig 0.7.0 or later </li>
+   <li>Hadoop 0.20.2 or later</li>
    </ul>
    <p></p>
    <p>Also, make sure the following software is installed on your system:</p>
    <ul>
    <li>JDK 1.6</li>
    <li>Ant 1.7.1</li>
-   <li>Javacc 4.2</li>
    </ul>
+   <p></p>
+   <p><strong>Note:</strong> Zebra requires Pig.jar in its classpath to compile and run.</p>
    </section>
   
    <section>

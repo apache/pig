@@ -36,15 +36,15 @@
 </li>
 </ul>
 <p>The Pig tutorial file (tutorial/pigtutorial.tar.gz file in the pig distribution) includes the Pig JAR file (pig.jar) and the tutorial files (tutorial.jar, Pigs scripts, log files). 
-These files work with Hadoop 0.20 and provide everything you need to run the Pig scripts.</p>
+These files work with Hadoop 0.20.2 and include everything you need to run the Pig scripts.</p>
 
 <p>To get started, follow these basic steps:  </p>
 <ol>
-<li><p>Install Java. </p>
+<li><p>Install Java </p>
 </li>
-<li><p>Download the Pig tutorial file and install Pig. </p>
+<li><p>Install Pig </p>
 </li>
-<li><p>Run the Pig scripts - locally or on a Hadoop cluster.  </p>
+<li><p>Run the Pig scripts - in Local or Hadoop mode </p>
 </li>
 </ol>
 </section>
@@ -53,12 +53,12 @@ These files work with Hadoop 0.20 and provide everything you need to run the Pig
 <title> Java Installation</title>
 
 <p>Make sure your run-time environment includes the following: </p>
-<ol >
+<ul >
 <li><p>Java 1.6 or higher (preferably from Sun) </p>
 </li>
 <li><p>The JAVA_HOME environment variable is set the root of your Java installation.  </p>
 </li>
-</ol>
+</ul>
 
 </section>
 
@@ -70,21 +70,17 @@ These files work with Hadoop 0.20 and provide everything you need to run the Pig
 <li><p>Download the Pig tutorial file to your local directory. </p>
 </li>
 <li><p>Unzip the Pig tutorial file (the files are stored in a newly created directory, pigtmp). </p>
-</li>
-</ol>
-
 <source>
 $ tar -xzf pigtutorial.tar.gz
 </source>
-<p> </p>
-<ol>
+</li>
 <li><p>Move to the pigtmp directory.  </p>
 </li>
 <li><p>Review the contents of the Pig tutorial file. </p>
 </li>
 <li><p>Copy the <strong>pig.jar</strong> file to the appropriate directory on your system. For example: /home/me/pig.  </p>
 </li>
-<li><p>Create an environment variable, <strong>PIGDIR</strong>, and point it to your directory. For example: export PIGDIR=/home/me/pig (bash, sh) or setenv PIGDIR /home/me/pig (tcsh, csh).  </p>
+<li><p>Create an environment variable, <strong>PIGDIR</strong>, and point it to your directory; for example, export PIGDIR=/home/me/pig (bash, sh) or setenv PIGDIR /home/me/pig (tcsh, csh).  </p>
 </li>
 </ol>
 
@@ -95,26 +91,30 @@ $ tar -xzf pigtutorial.tar.gz
 
 <p>To run the Pig scripts in local mode, do the following: </p>
 <ol>
-<li><p>Move to the pigtmp directory. </p>
+<li>
+<p>Set the maximum memory for Java.</p>
+<source>
+java -Xmx256m -cp pig.jar org.apache.pig.Main -x local script1-local.pig
+java -Xmx256m -cp pig.jar org.apache.pig.Main -x local script2-local.pig
+</source>
 </li>
-<li><p>Review Pig Script 1 and Pig Script 2. </p>
-</li>
-<li><p>Execute the following command (using either script1-local.pig or script2-local.pig). </p>
-</li>
-</ol>
-
+<li><p>Move to the pigtmp directory. </p></li>
+<li><p>Review Pig Script 1 and Pig Script 2. </p></li>
+<li>
+<p>Execute the following command (using either script1-local.pig or script2-local.pig). </p>
 <source>
 $ java -cp $PIGDIR/pig.jar org.apache.pig.Main -x local script1-local.pig
 </source>
-<ol>
-<li><p>Review the result file (either script1-local-results.txt or script2-local-results.txt): </p>
+</li>
+<li><p>Review the result files, located in the part-r-00000 directory.</p>
+<p>The output may contain a few Hadoop warnings which can be ignored:</p>
+<source>
+2010-04-08 12:55:33,642 [main] INFO  org.apache.hadoop.metrics.jvm.JvmMetrics 
+- Cannot initialize JVM Metrics with processName=JobTracker, sessionId= - already initialized
+</source>
 </li>
 </ol>
 
-<source>
-$ ls -l script1-local-results.txt
-$ cat script1-local-results.txt
-</source>
 
 </section>
 
@@ -128,32 +128,26 @@ $ cat script1-local-results.txt
 <li><p>Review Pig Script 1 and Pig Script 2. </p>
 </li>
 <li><p>Copy the excite.log.bz2 file from the pigtmp directory to the HDFS directory. </p>
-</li>
-</ol>
-
 <source>
 $ hadoop fs –copyFromLocal excite.log.bz2 .
 </source>
-<ol>
+</li>
+
 <li><p>Set the HADOOP_CONF_DIR environment variable to the location of your core-site.xml, hdfs-site.xml and mapred-site.xml files. </p>
 </li>
 <li><p>Execute the following command (using either script1-hadoop.pig or script2-hadoop.pig): </p>
-</li>
-</ol>
-
 <source>
 $ java -cp $PIGDIR/pig.jar:$HADOOP_CONF_DIR  org.apache.pig.Main script1-hadoop.pig
 </source>
-<ol>
-<li><p>Review the result files (located in either the script1-hadoop-results or script2-hadoop-results HDFS directory): </p>
 </li>
-</ol>
 
+<li><p>Review the result files, located in the script1-hadoop-results or script2-hadoop-results HDFS directory: </p>
 <source>
 $ hadoop fs -ls script1-hadoop-results
 $ hadoop fs -cat 'script1-hadoop-results/*' | less
 </source>
-
+</li>
+</ol>
 
 </section>
 

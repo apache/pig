@@ -36,7 +36,7 @@
 <!-- HADOOP M/R API-->
     <section>
    <title>Hadoop MapReduce APIs</title> 
-  <p>Zebra requires Hadoop 20. This release of Zebra supports the "new" jobContext-style MapReduce APIs. </p>
+  <p>This release of Zebra supports the "new" jobContext-style MapReduce APIs. </p>
    <ul>
   <li>org.apache.hadoop.mapreduce.* - supported ("new" jobContext-style mapreduce API)</li>
   <li>org.apache.hadoop.mapred.* - supported, but deprecated ("old" jobConf-style mapreduce API)</li>
@@ -49,18 +49,7 @@
  <!-- ZEBRA API-->
    <section>
    <title>Zebra MapReduce APIs</title>
-    <p>Zebra includes several classes for use in MapReduce programs, located here (.....).</p>
-    <p>Please note these APIs. The main entry point into Zebra are the two classes for reading and writing tables, namely TableInputFormat and BasicTableOutputFormat.   </p> 
-    <ul>
-		<li>BasicTableOutputFormat</li>
-		<li>TableInputformat</li>
-		<li>TableRecordReader</li>
-		<li>ZebraOutputPartition</li>
-		<li>ZebraProjection</li>
-		<li>ZebraSchema</li>
-		<li>ZebraStorageHint</li>
-		<li>ZebraSortInfo</li>
-	</ul>
+    <p>Zebra includes several classes for use in MapReduce programs. The main entry point into Zebra are the two classes for reading and writing tables, namely TableInputFormat and BasicTableOutputFormat.   </p> 
          </section>
  <!-- END ZEBRA API--> 
 
