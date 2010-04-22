@@ -39,17 +39,23 @@ See http://forrest.apache.org/docs/linking.html for more info
 <site label="Pig" href="" xmlns="http://apache.org/forrest/linkmap/1.0"
   tab="">
 
-  <docs label="Getting Started"> 
+  <docs label="Pig"> 
     <index label="Overview" 				href="index.html" />
     <quickstart label="Setup"	            href="setup.html" />
     <tutorial label="Tutorial"				 	href="tutorial.html" />
-    </docs>  
-     <docs label="Guides"> 
     <plref1 label="Pig Latin 1"	href="piglatin_ref1.html" />
     <plref2 label="Pig Latin 2"	href="piglatin_ref2.html" />
     <cookbook label="Cookbook" 		href="cookbook.html" />
     <udf label="UDFs" href="udf.html" />
     </docs>  
+    
+     <docs label="Pig Miscellaneous"> 
+     <api	label="API Docs" href="ext:api"/>
+     <wiki  label="Wiki" href="ext:wiki" />
+     <faq  label="FAQ" href="ext:faq" />
+     <relnotes  label="Release Notes" 	href="ext:relnotes" />
+    </docs>
+
     <docs label="Zebra"> 
      <zover label="Zebra Overview "	href="zebra_overview.html" />
      <zusers label="Zebra Users "	href="zebra_users.html" />

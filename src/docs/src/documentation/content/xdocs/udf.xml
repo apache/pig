@@ -749,7 +749,7 @@ This enables Pig users/developers to create new LoadFunc and StoreFunc implement
 <section>
 <title> Load Functions</title>
 <p><a href="http://svn.apache.org/viewvc/hadoop/pig/trunk/src/org/apache/pig/LoadFunc.java?view=markup">LoadFunc</a> 
-abstract class has the main methods for loading data and for most use cases it would suffice to extend it. There are 3 other optional interfaces which can be implemented to achieve extended functionality: </p>
+abstract class has the main methods for loading data and for most use cases it would suffice to extend it. There are three other optional interfaces which can be implemented to achieve extended functionality: </p>
 
 <ul>
 <li><a href="http://svn.apache.org/viewvc/hadoop/pig/trunk/src/org/apache/pig/LoadMetadata.java?view=markup">LoadMetadata</a> 
@@ -780,7 +780,7 @@ has methods to convert byte arrays to specific types. A loader implementation sh
 
 <p><strong>Example Implementation</strong></p>
 <p>
-The loader implementation in the example is a loader for text data with line delimiter as '\n' and '\t' as default field delimiter (which can be overridden by passing a different field delimiter in the constructor) - this is similar to current PigStorage loader in Pig. The implementation uses an existing Hadoop supported !Inputformat - TextInputFormat as the underlying InputFormat.
+The loader implementation in the example is a loader for text data with line delimiter as '\n' and '\t' as default field delimiter (which can be overridden by passing a different field delimiter in the constructor) - this is similar to current PigStorage loader in Pig. The implementation uses an existing Hadoop supported Inputformat - TextInputFormat - as the underlying InputFormat.
 </p>
 <source>
 public class SimpleTextLoader extends LoadFunc {
@@ -1239,129 +1239,16 @@ public class IntMax extends EvalFunc&lt;Integer&gt; implements Algebraic, Accumu
 
  </section>
  
- <section>
-<title>Custom Slicer</title>
-
-<p>Sometimes a <code>LoadFunc</code> needs more control over how input is chopped up or even found. </p>
-<p>Here are some scenarios that call for a custom slicer: </p>
-<ul>
-<li><p> Input needs to be chopped up differently than on block boundaries. (Perhaps you want every 1M instead of every 128M. Or, you may want to process in big 1G chunks.) </p>
-</li>
-<li><p> Input comes from a source outside of HDFS. (Perhaps you are reading from a database.) </p>
-</li>
-<li><p> There are locality preferences for processing the data that is more than simple HDFS locality. </p>
-</li>
-<li><p> Extra information needs to be passed from the client machine to the <code>LoadFunc</code> instances running remotely. </p>
-</li>
-</ul>
-<p>All of these scenarios are addressed by slicers. There are two parts to the slicing framework: <code>Slicer</code>, the class that creates slices, and <code>Slice</code>, the class that represents a particular piece of the input. Slicing kicks in when Pig sees that the <code>LoadFunc</code> implements the <code>Slicer</code> interface. </p>
 
 
 <section>
-<title>Slicer</title>
+<title>Passing Configurations to UDFs</title>
+<p>The singleton UDFContext class provides two features to UDF writers. First, on the backend, it allows UDFs to get access to the JobConf object, by calling getJobConf. This is only available on the backend (at run time) as the JobConf has not yet been constructed on the front end (during planning time).</p>
 
-<p>The slicer has two basic functions: validate input and slice up the input. Both of these methods will be called on the client machine.  </p>
+<p>Second, it allows UDFs to pass configuration information between instantiations of the UDF on the front and backends. UDFs can store information in a configuration object when they are constructed on the front end, or during other front end calls such as describeSchema. They can then read that information on the backend when exec (for EvalFunc) or getNext (for LoadFunc) is called. Note that information will not be passed between instantiations of the function on the backend. The communication channel only works from front end to back end.</p>
 
-<source>
-public interface Slicer {
-    void validate(DataStorage store, String location) throws IOException;
-   Slice[] slice(DataStorage store, String location) throws IOException;
-}
-</source>
+<p>To store information, the UDF calls getUDFProperties. This returns a Properties object which the UDF can record the information in or read the information from. To avoid name space conflicts UDFs are required to provide a signature when obtaining a Properties object. This can be done in two ways. The UDF can provide its Class object (via this.getClass()). In this case, every instantiation of the UDF will be given the same Properties object. The UDF can also provide its Class plus an array of Strings. The UDF can pass its constructor arguments, or some other identifying strings. This allows each instantiation of the UDF to have a different properties object thus avoiding name space collisions between instantiations of the UDF.</p>
 </section>
-
-<section>
-<title>Slice</title>
-
-<p>Each slice describes a unit of work and will correspond to a map task in Hadoop. </p>
-
-<source>
-public interface Slice extends Serializable {
-    String[] getLocations();
-    void init(DataStorage store) throws IOException;
-    long getStart();
-    long getLength();
-    void close() throws IOException;
-    long getPos() throws IOException;
-    float getProgress() throws IOException;
-    boolean next(Tuple value) throws IOException;
-}
-</source>
-
-<p>Only one of the methods is used for scheduling: <code>getLocations()</code>. This method allows the implementor to give hints to Pig about where the task should be run. It is only a hint. If things are busy, the task may get scheduled elsewhere. </p>
-<p>The rest of the <code>Slice</code> methods are used to read records on the processing nodes. <code>init</code> is called right after the <code>Slice</code> object is deserialized and <code>close</code> is called after the last record has been read. The Pig runtime will read records from the <code>Slice</code> until <code>getPos()</code> exceeds <code>getLength()</code>. Because <code>Slice</code> implements serializable, <code>Slicer</code> can encode information in the <code>Slice</code> that will later be available when the task is run. </p>
-
-</section>
-
-<section>
-<title> Example</title>
-
-<p>This example shows a simple <code>Slicer</code> that gets a count from the input stream and generates that number of <code>Slice</code> s.  </p>
-
-<source>
-public class RangeSlicer implements Slicer, LoadFunc {
-    /**
-     * Expects location to be a Stringified integer, and makes
-     * Integer.parseInt(location) slices. Each slice generates a single value,
-     * its index in the sequence of slices.
-     */
-    public Slice[] slice (DataStorage store, String location) throws IOException {
-        // Note: validate has already made sure that location is an integer
-        int numslices = Integer.parseInt(location);
-        Slice[] slices = new Slice[numslices];
-        for (int i = 0; i  slices.length; i++) {
-            slices[i] = new SingleValueSlice(i);
-        }
-        return slices;
-    }
-    public void validate(DataStorage store, String location) throws IOException {
-        try {
-            Integer.parseInt(location);
-        } catch (NumberFormatException nfe) {
-            throw new IOException(nfe.getMessage());
-        }
-    }
-    /**
-     * A Slice that returns a single value from next.
-     */
-    public static class SingleValueSlice implements Slice {
-        // note this value is set by the Slicer and will get serialized and deserialized at the remote processing node
-        public int val;
-        // since we just have a single value, we can use a boolean rather than a counter
-        private transient boolean read;
-        public SingleValueSlice (int value) {
-            this.val = value;
-        }
-        public void close () throws IOException {}
-        public long getLength () { return 1; }
-        public String[] getLocations () { return new String[0]; }
-        public long getStart() { return 0; }
-        public long getPos () throws IOException { return read ? 1 : 0; }
-        public float getProgress () throws IOException { return read ? 1 : 0; }
-        public void init (DataStorage store) throws IOException {}
-        public boolean next (Tuple value) throws IOException {
-            if (!read) {
-                value.appendField(new DataAtom(val));
-                read = true;
-                return true;
-            }
-            return false;
-        }
-        private static final long serialVersionUID = 1L;
-    }
-}
-</source>
-
-<p>You can invoke the <code>RangeSlicer</code> class with the following Pig Latin statement: </p>
-
-<source>
-LOAD '27' USING RangeSlicer();
-</source>
-
-</section>
-
-</section>
-
 
 </section>
 
