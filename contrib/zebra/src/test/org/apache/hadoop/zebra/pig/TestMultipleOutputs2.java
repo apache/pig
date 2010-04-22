@@ -214,7 +214,7 @@ public class TestMultipleOutputs2 extends BaseTestCase implements Tool {
         //
       }
       
-      String argumentsString = conf.get(BasicTableOutputFormat.ZEBRA_OUTPUT_PARTITIONER_CLASS_ARGUMENTS);
+      String argumentsString = BasicTableOutputFormat.getOutputPartitionClassArguments(conf);
       
       String[] arguments = argumentsString.split(",");
 

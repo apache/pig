@@ -1741,17 +1741,22 @@ class ColumnGroup {
         fs.delete(path, true);
       }
 
+      // create final output path and temporary output path
       checkPath(path, true);
-
+      
+      Path parent = path.getParent();
+      Path tmpPath1 = new Path(parent, "_temporary");
+      Path tmpPath2 = new Path(tmpPath1, name);
+      checkPath(tmpPath2, true);
+      
       cgschema = new CGSchema(schema, sorted, comparator, name, serializer, compressor, owner, group, perm);
       CGSchema sfNew = CGSchema.load(fs, path);
       if (sfNew != null) {
-        // compare input with on-disk schema.
+        // sanity check - compare input with on-disk schema.
         if (!sfNew.equals(cgschema)) {
-          throw new IOException("Schemes are different.");
+          throw new IOException("Schema passed in is different from the one on disk");
         }
-      }
-      else {
+      } else {
         // create the schema file in FS
         cgschema.create(fs, path);
       }
@@ -1773,9 +1778,21 @@ class ColumnGroup {
       checkPath(path, true);
       checkMetaFile(finalOutputPath);
       cgschema = CGSchema.load(fs, finalOutputPath);
+    }
 
-    }    
-    
+    /*
+     * Reopen an already created ColumnGroup for writing.
+     * It takes in a CGSchema to set its own cgschema instead of going
+     * to disk to fetch this information. 
+     */
+    public Writer(Path finalPath, Path workPath, CGSchema cgschema, Configuration conf) throws IOException, ParseException {
+      this.path = workPath;
+      finalOutputPath = finalPath;      
+      this.conf = conf;
+      fs = path.getFileSystem(conf);
+      this.cgschema = cgschema;
+    }
+
     /**
      * Reopen an already created ColumnGroup for writing. RuntimeException will
      * be thrown if the table is already closed, or if createMetaBlock() is

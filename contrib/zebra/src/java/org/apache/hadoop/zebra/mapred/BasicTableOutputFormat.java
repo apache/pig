@@ -17,6 +17,9 @@
 package org.apache.hadoop.zebra.mapred;
 
 import java.io.IOException;
+
+import junit.framework.Assert;
+
 import org.apache.hadoop.util.StringUtils;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -147,7 +150,7 @@ import org.apache.hadoop.util.ReflectionUtils;
 public class BasicTableOutputFormat implements
     OutputFormat<BytesWritable, Tuple> {
   private static final String OUTPUT_PATH = "mapred.lib.table.output.dir";
-  public static final String MULTI_OUTPUT_PATH = "mapred.lib.table.multi.output.dirs";
+  private static final String MULTI_OUTPUT_PATH = "mapred.lib.table.multi.output.dirs";
   private static final String OUTPUT_SCHEMA = "mapred.lib.table.output.schema";
   private static final String OUTPUT_STORAGEHINT =
       "mapred.lib.table.output.storagehint";
@@ -156,7 +159,7 @@ public class BasicTableOutputFormat implements
   private static final String OUTPUT_COMPARATOR =
       "mapred.lib.table.output.comparator";
   static final String IS_MULTI = "multi";
-  public static final String ZEBRA_OUTPUT_PARTITIONER_CLASS = "zebra.output.partitioner.class";
+  private static final String ZEBRA_OUTPUT_PARTITIONER_CLASS = "zebra.output.partitioner.class";
   
   
   /**
@@ -443,7 +446,7 @@ public class BasicTableOutputFormat implements
    *         defined in the conf object at the time of the call, an empty string
    *         will be returned.
    */
-  public static String getStorageHint(JobConf conf) throws ParseException {
+  public static String getStorageHint(JobConf conf) {
     String storehint = conf.get(OUTPUT_STORAGEHINT);
     return storehint == null ? "" : storehint;
   }
@@ -609,13 +612,13 @@ public class BasicTableOutputFormat implements
    * @throws IOException
    */
   private static BasicTable.Writer[] getOutput(JobConf conf) throws IOException {
-	Path[] paths = getOutputPaths(conf);
-	BasicTable.Writer[] writers = new BasicTable.Writer[paths.length]; 
-	for(int i = 0; i < paths.length; i++) {
-		writers[i] = new BasicTable.Writer(paths[i], conf);
-	}
-	
-	return writers;
+    Path[] paths = getOutputPaths(conf);
+    BasicTable.Writer[] writers = new BasicTable.Writer[paths.length]; 
+    for(int i = 0; i < paths.length; i++) {
+      writers[i] = new BasicTable.Writer(paths[i], conf);
+    }
+    
+    return writers;
   }
 
   /**
@@ -628,28 +631,22 @@ public class BasicTableOutputFormat implements
   @Override
   public void checkOutputSpecs(FileSystem ignored, JobConf conf)
       throws IOException {
-
     String schema = conf.get(OUTPUT_SCHEMA);
     if (schema == null) {
       throw new IllegalArgumentException("Cannot find output schema");
     }
+
     String storehint, sortColumns, comparator;
-    try {
-      storehint = getStorageHint(conf);
-      sortColumns = (getSortInfo(conf) == null ? null : SortInfo.toSortString(getSortInfo(conf).getSortColumnNames()));
-      comparator = getComparator(conf);
-    }
-    catch (ParseException e) {
-      throw new IOException(e);
-    }
-    
+    storehint = getStorageHint(conf);
+    sortColumns = (getSortInfo(conf) == null ? null : SortInfo.toSortString(getSortInfo(conf).getSortColumnNames()));
+    comparator = getComparator(conf);
+
     Path [] paths = getOutputPaths(conf);
-    
-    for(int i = 0; i < paths.length; ++i) {
-    	BasicTable.Writer writer =
-    		new BasicTable.Writer(paths[i], schema, storehint, sortColumns, comparator, conf);
-    	writer.finish();
-    }	
+    for (Path path : paths) {
+      BasicTable.Writer writer =
+        new BasicTable.Writer(path, schema, storehint, sortColumns, comparator, conf);
+      writer.finish();
+    }
   }
 
   /**
@@ -673,11 +670,9 @@ public class BasicTableOutputFormat implements
    */
   public static void close(JobConf conf) throws IOException {
     BasicTable.Writer tables[] = getOutput(conf);
-    
     for(int i =0; i < tables.length; ++i) {
         tables[i].close();    	
     }
-    
   }
 }
 
