@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-1385 UDF to create tuples and bags (hcbusy via gates)
+
 PIG-1331 Add Owl as a contrib project (ajaykidave via gates)
 
 OPTIMIZATIONS
