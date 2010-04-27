@@ -49,6 +49,8 @@ PIG-1309: Map-side Cogroup (ashutoshc)
 
 BUG FIXES
 
+PIG-1395:  Mapside cogroup runs out of memory (ashutoshc)
+
 PIG-1383: Remove empty svn directorirs from source tree (rding)
 
 PIG-1348: PigStorage making unnecessary byte array copy when storing data

@@ -43,7 +43,6 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOpera
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
-import org.apache.pig.backend.hadoop.executionengine.util.MapRedUtil;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.InternalCachedBag;
@@ -218,9 +217,37 @@ public class POMergeCogroup extends PhysicalOperator {
                 outBags[relIdx].add((Tuple)topOfHeap.get(2));
 
                 // Pull tuple from the corresponding loader.
-                if(relIdx == 0)
-                    return new Result(POStatus.STATUS_EOP,null);
-
+                if(relIdx == 0){
+                    Tuple tuple = heap.peek();
+                    /* At this point, its possible to return the output tuple.
+                     * So, lets check if we can do so.
+                     * Remember, that for tuples having equal keys, tuple from
+                     * leftmost relation is considered largest. So, if the tuple
+                     * we just peeked from heap is of leftmost relation and has
+                     * a different key then the tuple we polled last,  then we can be 
+                     * assured that we have seen all the tuples belonging to this
+                     * key and thus we can generate output tuple. 
+                     * Else, just pull the next tuple from the left relation by
+                     * returning EOP.
+                     */
+                    // First check if there is a tuple at top of heap and is from 
+                    // left relation.
+                    if( (null != tuple) && (Byte)tuple.get(0) == 0){
+                        // Is key null for both tuples.
+                        if(prevTopOfHeap.get(1) == null && tuple.get(1) == null){
+                            return new Result(POStatus.STATUS_EOP,null); 
+                        }
+                        // Does key change from non-null to null or from one
+                        // non-null to another non-null.
+                        if((prevTopOfHeap.get(1) == null && tuple.get(1) != null) || !tuple.get(1).equals(prevTopOfHeap.get(1))){
+                            return getOutputTuple();
+                        }
+                    }
+                    // Either top of heap is from different relation or it is
+                    // from left relation but having the same key.
+                    return new Result(POStatus.STATUS_EOP,null); 
+                }
+                
                 Tuple nxtTuple = sideLoaders.get(relIdx-1).getNext();
                 if(nxtTuple == null) // EOF for this relation
                     continue;
