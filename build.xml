@@ -196,6 +196,7 @@
         <mkdir dir="${test.build.classes}" />
         <mkdir dir="${src.gen.dot.parser.dir}" />
         <mkdir dir="${src.gen.textdata.parser.dir}" />
+  	<move file="${ivy.lib.dir}/javacc-${javacc.version}.jar" tofile="${javacc.home}/javacc.jar"/>
         <tstamp>
             <format property="timestamp" pattern="MMM dd yyyy, HH:mm:ss" />
         </tstamp>
@@ -232,12 +233,27 @@
         <delete dir="${build.dir}" />
         <delete dir="${src.gen.dot.parser.dir}" />
     </target>
+    
+    <target name="eclipse-files" depends="init, ivy-buildJar"
+			description="Generate files for Eclipse">
+	  <pathconvert property="eclipse.project">
+	    <path path="${basedir}"/>
+	    <regexpmapper from="^.*/([^/]+)$$" to="\1" handledirsep="yes"/>
+	  </pathconvert>
+	  <copy todir="." overwrite="true">
+	    <fileset dir=".eclipse.templates">
+	      <exclude name="**/README.txt"/>
+	    </fileset>
+	    <filterset>
+	      <filter token="PROJECT" value="${eclipse.project}"/>
+	    </filterset>
+	  </copy>
+	</target>
 
     <!-- ================================================================== -->
     <!-- Java Compiler Compiler, generate Parsers                           -->
     <!-- ================================================================== -->
     <target name="cc-compile" depends="init, ivy-compile" description="Create and Compile Parser">
-	<move file="${ivy.lib.dir}/javacc-${javacc.version}.jar" tofile="${javacc.home}/javacc.jar"/>
         <jjtree target="${src.dir}/org/apache/pig/impl/logicalLayer/parser/QueryParser.jjt" outputdirectory="${src.gen.query.parser.dir}" javacchome="${javacc.home}" />
         <javacc target="${src.gen.query.parser.dir}/QueryParser.jj" outputdirectory="${src.gen.query.parser.dir}" javacchome="${javacc.home}" />
         <javacc target="${src.dir}/org/apache/pig/tools/pigscript/parser/PigScriptParser.jj" outputdirectory="${src.gen.script.parser.dir}" javacchome="${javacc.home}" />
