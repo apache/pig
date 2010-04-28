@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-1390: Provide a target to generate eclipse-related classpath and files (chaitk via thejas)
+
 PIG-1384: Adding contrib javadoc to main Pig javadoc (daijy)
 
 PIG-1320: final documentation updates for Pig 0.7.0 (chandec via olgan)

@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF=8"?>
+<classpath>
+    <classpathentry exported="true" kind="src" path="lib-src/bzip2"/>
+    <classpathentry exported="true" kind="src" path="lib-src/shock"/>
+    <classpathentry exported="true" kind="src" path="src-gen"/>
+    <classpathentry exported="true" kind="src" path="contrib/owl/java/main"/>
+    <classpathentry exported="true" kind="src" path="contrib/owl/java/test"/>
+    <classpathentry exported="true" kind="src" path="contrib/piggybank/java/src/main/java"/>
+    <classpathentry exported="true" kind="src" path="contrib/piggybank/java/src/test/java"/>
+    <classpathentry exported="true" kind="src" path="contrib/zebra/src/java"/>
+    <classpathentry exported="true" kind="src" path="contrib/zebra/src/test"/>
+    <classpathentry exported="true" kind="src" path="src"/>
+    <classpathentry exported="true" kind="src" path="test"/>
+    <classpathentry exported="true" kind="src" path="tutorial/src"/>
+    <classpathentry exported="true" kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
+    <classpathentry exported="true" kind="var" path="ANT_HOME/lib/ant.jar"/>
+    <classpathentry exported="true" kind="lib" path="build/ivy/lib/Pig/jackson-core-asl-1.0.1.jar"/>
+    <classpathentry exported="true" kind="lib" path="build/ivy/lib/Pig/jackson-mapper-asl-1.0.1.jar"/>
+    <classpathentry exported="true" kind="lib" path="build/ivy/lib/Pig/javacc-4.2.jar"/>
+    <classpathentry exported="true" kind="lib" path="build/ivy/lib/Pig/javacc.jar"/>
+    <classpathentry exported="true" kind="lib" path="build/ivy/lib/Pig/jline-0.9.94.jar"/>
+    <classpathentry exported="true" kind="lib" path="build/ivy/lib/Pig/joda-time-1.6.jar"/>
+    <classpathentry exported="true" kind="lib" path="build/ivy/lib/Pig/jsch-0.1.38.jar"/>
+    <classpathentry exported="true" kind="lib" path="build/ivy/lib/Pig/junit-4.5.jar"/>
+    <classpathentry exported="true" kind="lib" path="lib/hadoop20.jar"/>
+    <classpathentry exported="true" kind="lib" path="lib/hbase-0.20.0.jar"/>
+    <classpathentry exported="true" kind="lib" path="lib/hbase-0.20.0-test.jar"/>
+    <classpathentry exported="true" kind="lib" path="lib/zookeeper-hbase-1329.jar"/>
+    <classpathentry exported="true" kind="output" path="build/classes"/>
+</classpath>
