@@ -214,7 +214,7 @@ public class TestLogicalPlanMigrationVisitor extends TestCase {
         LogicalSchema aschema = new LogicalSchema();    	
         aschema.addField(new LogicalSchema.LogicalFieldSchema("id", null, DataType.BYTEARRAY));
         aschema.addField(new LogicalSchema.LogicalFieldSchema("d", null, DataType.BYTEARRAY));
-        LOLoad load = new LOLoad(new FileSpec("file:///test/d.txt", new FuncSpec("org.apache.pig.builtin.PigStorage")), aschema, expected);
+        LOLoad load = new LOLoad(new FileSpec("/test/d.txt", new FuncSpec("org.apache.pig.builtin.PigStorage")), aschema, expected);
         expected.add(load);
         
         LOForEach foreach = new LOForEach(expected);
@@ -239,7 +239,7 @@ public class TestLogicalPlanMigrationVisitor extends TestCase {
         foreach.setInnerPlan(innerPlan);    	
         expected.add(foreach);
         
-        LOStore s = new LOStore(expected, new FileSpec("file:///test/empty", new FuncSpec("org.apache.pig.builtin.PigStorage")));
+        LOStore s = new LOStore(expected, new FileSpec("/test/empty", new FuncSpec("org.apache.pig.builtin.PigStorage")));
       
         expected.add(s);
         
@@ -352,7 +352,7 @@ public class TestLogicalPlanMigrationVisitor extends TestCase {
         aschema2.addField(new LogicalSchema.LogicalFieldSchema("t", aschema3, DataType.TUPLE));
         aschema.addField(new LogicalSchema.LogicalFieldSchema("d", aschema2, DataType.BAG));        
         
-        LOLoad load = new LOLoad(new FileSpec("file:///test/d.txt", new FuncSpec("org.apache.pig.builtin.PigStorage")), aschema, expected);
+        LOLoad load = new LOLoad(new FileSpec("/test/d.txt", new FuncSpec("org.apache.pig.builtin.PigStorage")), aschema, expected);
         expected.add(load);         
         
         LOForEach foreach2 = new LOForEach(expected);
@@ -377,7 +377,7 @@ public class TestLogicalPlanMigrationVisitor extends TestCase {
         foreach2.setInnerPlan(innerPlan);    	
         expected.add(foreach2); 
                 
-        LOStore s = new LOStore(expected, new FileSpec("file:///test/empty", new FuncSpec("org.apache.pig.builtin.PigStorage")));
+        LOStore s = new LOStore(expected, new FileSpec("/test/empty", new FuncSpec("org.apache.pig.builtin.PigStorage")));
       
         expected.add(s);
         

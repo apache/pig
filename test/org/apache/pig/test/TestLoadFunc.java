@@ -59,7 +59,7 @@ public class TestLoadFunc {
     @Test
     public void testGetAbsolutePath() throws IOException {
         // test case: simple absolute path 
-        Assert.assertEquals(curHdfsRoot + "/hadoop/test/passwd",
+        Assert.assertEquals("/hadoop/test/passwd",
                 LoadFunc.getAbsolutePath("/hadoop/test/passwd", curHdfsDir));      
     }
 
@@ -89,9 +89,8 @@ public class TestLoadFunc {
     @Test
     public void testCommaSeparatedString() throws Exception {
         // test case: comma separated absolute paths
-        Assert.assertEquals(curHdfsRoot + "/usr/pig/a," + 
-                curHdfsRoot + "/usr/pig/b",
-                LoadFunc.getAbsolutePath("/usr/pig/a,/usr/pig/b", 
+        Assert.assertEquals("/usr/pig/a,/usr/pig/b,/usr/pig/c",
+                LoadFunc.getAbsolutePath("/usr/pig/a,/usr/pig/b,/usr/pig/c", 
                         curHdfsDir));
     }
 
@@ -104,17 +103,8 @@ public class TestLoadFunc {
     }
 
     @Test
-    public void testCommaSeparatedString3() throws Exception {
-        // test case: comma separated absolute paths
-        Assert.assertEquals(curHdfsRoot + "/tmp/test," + 
-                curHdfsRoot + "/tmp/test2," + curHdfsRoot + "/tmp/test3",
-                LoadFunc.getAbsolutePath("/tmp/test,/tmp/test2,/tmp/test3", 
-                        curHdfsDir));
-    }
-    
-    @Test
     public void testCommaSeparatedString4() throws Exception {
-        // test case: comma separated paths with hahoop glob
+        // test case: comma separated paths with hadoop glob
         Assert.assertEquals(curHdfsRoot + "/user/pig/test/{a,c}," + 
                 curHdfsRoot + "/user/pig/test/b",
                 LoadFunc.getAbsolutePath("test/{a,c},test/b", curHdfsDir));
@@ -122,8 +112,8 @@ public class TestLoadFunc {
 
     @Test
     public void testCommaSeparatedString5() throws Exception {
-        // test case: comma separated paths with hahoop glob
-        Assert.assertEquals(curHdfsRoot + "/test/data/{a,c}," +
+        // test case: comma separated paths with hadoop glob
+        Assert.assertEquals("/test/data/{a,c}," +
                 curHdfsRoot + "/user/pig/test/b",
                 LoadFunc.getAbsolutePath("/test/data/{a,c},test/b", 
                         curHdfsDir));
@@ -131,9 +121,8 @@ public class TestLoadFunc {
     
     @Test
     public void testCommaSeparatedString6() throws Exception {
-        // test case: comma separated paths with hahoop glob
-        Assert.assertEquals(curHdfsRoot + "/user/pig/test/{a,c}," + 
-                curHdfsRoot + "/test/data/b",
+        // test case: comma separated paths with hasoop glob
+        Assert.assertEquals(curHdfsRoot + "/user/pig/test/{a,c},/test/data/b",
                 LoadFunc.getAbsolutePath("test/{a,c},/test/data/b",
                         curHdfsDir));
     }    
@@ -141,8 +130,7 @@ public class TestLoadFunc {
     @Test
     public void testCommaSeparatedString7() throws Exception {
         // test case: comma separated paths with white spaces
-        Assert.assertEquals(curHdfsRoot + "/user/pig/test/{a,c}," + 
-                curHdfsRoot + "/test/data/b",
+        Assert.assertEquals(curHdfsRoot + "/user/pig/test/{a,c},/test/data/b",
                 LoadFunc.getAbsolutePath("test/{a,c}, /test/data/b",
                         curHdfsDir));
     }    
@@ -154,5 +142,14 @@ public class TestLoadFunc {
                 curHdfsRoot + "/test/data/b",
                 LoadFunc.getAbsolutePath(", /test/data/b",
                         curHdfsDir));
+    }
+    
+    @Test
+    public void testHarUrl() throws Exception {
+        // test case: input location is a har:// url
+        Assert.assertEquals("har:///user/pig/harfile",
+                LoadFunc.getAbsolutePath("har:///user/pig/harfile",
+                        curHdfsDir));
     }   
+    
 }

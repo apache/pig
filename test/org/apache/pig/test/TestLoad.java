@@ -22,7 +22,12 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.regex.Pattern;
@@ -49,6 +54,7 @@ import org.apache.pig.impl.logicalLayer.LOLoad;
 import org.apache.pig.impl.logicalLayer.LogicalOperator;
 import org.apache.pig.impl.logicalLayer.LogicalPlan;
 import org.apache.pig.impl.logicalLayer.LogicalPlanBuilder;
+import org.apache.pig.impl.logicalLayer.parser.ParseException;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.test.utils.GenPhyOp;
 import org.apache.pig.test.utils.LogicalPlanTester;
@@ -125,7 +131,8 @@ public class TestLoad extends junit.framework.TestCase {
     public void testLoadRemoteAbs() throws Exception {
         for (PigServer pig : servers) {
             pc = pig.getPigContext();
-            checkLoadPath("/tmp/test","/tmp/test");
+            boolean noConversionExpected = true;
+            checkLoadPath("/tmp/test","/tmp/test", noConversionExpected);
         }
     }
 
@@ -140,7 +147,13 @@ public class TestLoad extends junit.framework.TestCase {
     @Test
     public void testLoadRemoteAbsScheme() throws Exception {
         pc = servers[0].getPigContext();
-        checkLoadPath("hdfs:/tmp/test","/tmp/test");
+        boolean noConversionExpected = true;
+        checkLoadPath("hdfs:/tmp/test","hdfs:/tmp/test", noConversionExpected);
+        
+        // check if a location 'hdfs:<abs path>' can actually be read using PigStorage
+        String[] inputFileNames = new String[] {
+                "/tmp/TestLoad-testLoadRemoteAbsSchema-input.txt"};
+        testLoadingMultipleFiles(inputFileNames, "hdfs:" + inputFileNames[0]);
     }
 
     @Test
@@ -153,7 +166,8 @@ public class TestLoad extends junit.framework.TestCase {
     public void testLoadRemoteNormalize() throws Exception {
         for (PigServer pig : servers) {
             pc = pig.getPigContext();
-            checkLoadPath("/tmp/foo/../././","/tmp");
+            boolean noConversionExpected = true;
+            checkLoadPath("/tmp/foo/../././","/tmp/foo/../././", noConversionExpected);
         }
     }
 
@@ -181,11 +195,24 @@ public class TestLoad extends junit.framework.TestCase {
         }
     }
 
+    @SuppressWarnings("unchecked")
     @Test
     public void testCommaSeparatedString3() throws Exception {
         PigServer pig = servers[0];
         pc = pig.getPigContext();
-        checkLoadPath("hdfs:/tmp/test,hdfs:/tmp/test2,hdfs:/tmp/test3","/tmp/test,/tmp/test2,/tmp/test3");
+        boolean noConversionExpected = true;
+        checkLoadPath("hdfs:/tmp/test,hdfs:/tmp/test2,hdfs:/tmp/test3",
+                "hdfs:/tmp/test,hdfs:/tmp/test2,hdfs:/tmp/test3", noConversionExpected );
+        
+        // check if a location 'hdfs:<abs path>,hdfs:<abs path>' can actually be 
+        // read using PigStorage
+        String[] inputFileNames = new String[] {
+                "/tmp/TestLoad-testCommaSeparatedString3-input1.txt",
+                "/tmp/TestLoad-testCommaSeparatedString3-input2.txt"};
+        String inputString = "hdfs:" + inputFileNames[0] + ",hdfs:" + 
+        inputFileNames[1];
+        testLoadingMultipleFiles(inputFileNames, inputString);
+        
     }
     
     @Test
@@ -202,6 +229,18 @@ public class TestLoad extends junit.framework.TestCase {
             pc = pig.getPigContext();
             checkLoadPath("/usr/pig/{a,c},usr/pig/b","/usr/pig/{a,c},/tmp/usr/pig/b");
         }
+       
+        // check if a location '<abs path>,<relative path>' can actually be 
+        // read using PigStorage
+        String loadLocationString = "/tmp/TestLoad-testCommaSeparatedStringMixed-input{1,2}.txt," +
+        "TestLoad-testCommaSeparatedStringMixed-input3.txt"; // current working dir is set to /tmp in checkLoadPath()
+       
+        String[] inputFileNames = new String[] {
+                "/tmp/TestLoad-testCommaSeparatedStringMixed-input1.txt",
+                "/tmp/TestLoad-testCommaSeparatedStringMixed-input2.txt",
+                "/tmp/TestLoad-testCommaSeparatedStringMixed-input3.txt",};
+        pc = servers[0].getPigContext(); // test in map reduce mode
+        testLoadingMultipleFiles(inputFileNames, loadLocationString);
     }
     
     @Test
@@ -220,8 +259,51 @@ public class TestLoad extends junit.framework.TestCase {
         LOLoad load = (LOLoad) lp.getRoots().get(0);
         Assert.assertEquals(nonDfsUrl, load.getInputFile().getFileName());
     }
-
+    
+    @SuppressWarnings("unchecked")
+    private void testLoadingMultipleFiles(String[] inputFileNames, 
+            String loadLocationString) throws IOException, ParseException {
+        
+        String[][] inputStrings = new String[][] {
+                new String[] { "hello\tworld"},
+                new String[] { "bye\tnow"},
+                new String[] { "all\tgood"}
+        };
+        List<Tuple> expected = Arrays.asList(new Tuple[] {
+                (Tuple) Util.getPigConstant("('hello', 'world')"),
+                (Tuple) Util.getPigConstant("('bye', 'now')"),
+                (Tuple) Util.getPigConstant("('all', 'good')")});
+        
+        List<Tuple> expectedBasedOnNumberOfInputs = new ArrayList<Tuple>();
+        for(int i = 0; i < inputFileNames.length; i++) {
+            Util.createInputFile(pc, inputFileNames[i], inputStrings[i]);
+            expectedBasedOnNumberOfInputs.add(expected.get(i));
+        }
+        try {
+            servers[0].registerQuery(" a = load '" + loadLocationString + "' as " +
+                    "(s1:chararray, s2:chararray);");
+            Iterator<Tuple> it = servers[0].openIterator("a");
+            
+            List<Tuple> actual = new ArrayList<Tuple>();
+            while(it.hasNext()) {
+                actual.add(it.next());
+            }
+            Collections.sort(expectedBasedOnNumberOfInputs);
+            Collections.sort(actual);
+            Assert.assertEquals(expectedBasedOnNumberOfInputs, actual);
+        } finally {
+            for(int i = 0; i < inputFileNames.length; i++) {
+                Util.deleteFile(pc, inputFileNames[i]);
+            }
+        }
+    }
+    
     private void checkLoadPath(String orig, String expected) throws Exception {
+        checkLoadPath(orig, expected, false);
+    }
+
+    private void checkLoadPath(String orig, String expected, 
+            boolean noConversionExpected) throws Exception {
         
         boolean[] multiquery = {true, false};
         
@@ -251,15 +333,19 @@ public class TestLoad extends junit.framework.TestCase {
             LOLoad load = (LOLoad)op;
     
             String p = load.getInputFile().getFileName();
-            System.err.println("DEBUG: p:" + p + " expected:" + expected +", exectype:" + pc.getExecType());        
-            if (pc.getExecType() == ExecType.MAPREDUCE) {
-                Assert.assertTrue(p.matches("hdfs://[0-9a-zA-Z:\\.]*.*"));
-                Assert.assertEquals(p.replaceAll("hdfs://[0-9a-zA-Z:\\.]*/", "/"),
-                        expected);
-            } else {
-                Assert.assertTrue(p.matches("file://[0-9a-zA-Z:\\.]*.*"));
-                Assert.assertEquals(p.replaceAll("file://[0-9a-zA-Z:\\.]*/", "/"),
-                        expected);
+            System.err.println("DEBUG: p:" + p + " expected:" + expected +", exectype:" + pc.getExecType());
+            if(noConversionExpected) {
+                Assert.assertEquals(p, expected);
+            } else  {
+                if (pc.getExecType() == ExecType.MAPREDUCE) {
+                    Assert.assertTrue(p.matches(".*hdfs://[0-9a-zA-Z:\\.]*.*"));
+                    Assert.assertEquals(p.replaceAll("hdfs://[0-9a-zA-Z:\\.]*/", "/"),
+                            expected);
+                } else {
+                    Assert.assertTrue(p.matches(".*file://[0-9a-zA-Z:\\.]*.*"));
+                    Assert.assertEquals(p.replaceAll("file://[0-9a-zA-Z:\\.]*/", "/"),
+                            expected);
+                }
             }
         }
     }

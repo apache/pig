@@ -247,11 +247,13 @@ public abstract class LoadFunc {
         
         String[] fnames = getPathStrings(location);
         for (String fname: fnames) {
-            Path p = new Path(fname.trim());
+            // remove leading/trailing whitespace(s)
+            fname = fname.trim();
+            Path p = new Path(fname);
             URI uri = p.toUri();
-            // if the supplied location has an authority and is absolute, just
-            // use it
-            if(uri.getAuthority() == null || ! p.isAbsolute()) {
+            // if the supplied location has a scheme (i.e. uri is absolute) or 
+            // an absolute path, just use it.
+            if(! (uri.isAbsolute() || p.isAbsolute())) {
                 String scheme = uri.getScheme();
                 if (scheme != null) {
                     scheme = scheme.toLowerCase();

@@ -362,7 +362,7 @@ public class TestStore extends junit.framework.TestCase {
 
     @Test
     public void testStoreRemoteAbsScheme() throws Exception {
-        checkStorePath("hdfs:/tmp/test","/tmp/test");
+        checkStorePath("hdfs:/tmp/test","hdfs:/tmp/test");
     }
 
     @Test
@@ -372,7 +372,7 @@ public class TestStore extends junit.framework.TestCase {
 
     @Test
     public void testStoreRemoteNormalize() throws Exception {
-        checkStorePath("/tmp/foo/../././","/tmp");
+        checkStorePath("/tmp/foo/../././","/tmp/foo/../././");
     }
 
     @Test
@@ -657,7 +657,7 @@ public class TestStore extends junit.framework.TestCase {
         if (isTmp) {
             Assert.assertTrue(p.matches("/tmp.*"));
         } else {
-            Assert.assertEquals(p, expected);
+            Assert.assertEquals(expected, p);
         }
     }
 }
