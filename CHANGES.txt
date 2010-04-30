@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-1396: eclipse-files target in build.xml fails to generate necessary classes in src-gen
+
 PIG-1390: Provide a target to generate eclipse-related classpath and files (chaitk via thejas)
 
 PIG-1384: Adding contrib javadoc to main Pig javadoc (daijy)
