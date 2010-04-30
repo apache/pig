@@ -51,6 +51,8 @@ PIG-1309: Map-side Cogroup (ashutoshc)
 
 BUG FIXES
 
+1378: har url not usable in Pig scripts (pradeepkth)
+
 PIG-1395:  Mapside cogroup runs out of memory (ashutoshc)
 
 PIG-1383: Remove empty svn directorirs from source tree (rding)
