@@ -187,6 +187,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-1394: POCombinerPackage hold too much memory for InternalCachedBag (daijy)
+
 PIG-1303: Inconsistent instantiation of parametrized UDFs (jrussek and dvryaboy)
 
 PIG-1348: PigStorage making unnecessary byte array copy when storing data
