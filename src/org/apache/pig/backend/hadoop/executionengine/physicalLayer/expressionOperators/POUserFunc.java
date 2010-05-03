@@ -32,22 +32,19 @@ import org.apache.pig.EvalFunc;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.PigContext;
-import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
-import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigHadoopLogger;
-import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.ProgressableReporter;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
-import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.NodeIdGenerator;
+import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.VisitorException;
 
 public class POUserFunc extends ExpressionOperator {
@@ -324,8 +321,8 @@ public class POUserFunc extends ExpressionOperator {
         case FINAL:
             funcSpec = new FuncSpec(getFinal());
             break;
-
         }
+        funcSpec.setCtorArgs(origFSpec.getCtorArgs());
         instantiateFunc(funcSpec);
         setResultType(DataType.findType(((EvalFunc<?>) func).getReturnType()));
     }

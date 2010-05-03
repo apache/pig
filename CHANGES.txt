@@ -53,6 +53,8 @@ PIG-1309: Map-side Cogroup (ashutoshc)
 
 BUG FIXES
 
+PIG-1303: Inconsistent instantiation of parametrized UDFs (jrussek and dvryaboy)
+
 740 : Incorrect line number is generated when a string with double quotes is
 used instead of single quotes and is passed to UDF (pradeepkth)
 
