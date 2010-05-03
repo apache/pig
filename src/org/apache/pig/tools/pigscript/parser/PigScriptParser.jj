@@ -309,7 +309,7 @@ TOKEN_MGR_DECLS : {
 
 <IN_BLOCK> MORE :
 {
-	<"\""> {prevState = IN_BLOCK;} : IN_STRING
+	<"\""> {prevState = IN_BLOCK;} : IN_DOUBLE_QUOTED_STRING
 |	<(" " | "\t")+["A","a"]["S","s"](" " | "\t")+ > {prevState = IN_BLOCK;} : SCHEMA_DEFINITION
 |   <(" " | "\t")+["G","g"]["E","e"]["N","n"]["E","e"]["R","r"]["A","a"]["T","t"]["E","e"](" " | "\t")+> {prevState = IN_BLOCK;} : GENERATE
 |	<"{"> {pigBlockLevel++;}
@@ -320,6 +320,14 @@ TOKEN_MGR_DECLS : {
 |	<"/*"> {prevState = IN_BLOCK;} : MULTI_LINE_COMMENT
 |	<("\n" | "\r" | "\r\n")> {secondary_prompt();}
 |       <(~[])>
+}
+
+<IN_DOUBLE_QUOTED_STRING> MORE :
+{
+    <"\\\"">
+|   <"\""> { SwitchTo(prevState);}
+|   <("\n" | "\r" | "\r\n")> {secondary_prompt();}
+|   <(~[])>
 }
 
 <PIG_END> TOKEN :

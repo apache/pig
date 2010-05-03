@@ -53,6 +53,9 @@ PIG-1309: Map-side Cogroup (ashutoshc)
 
 BUG FIXES
 
+740 : Incorrect line number is generated when a string with double quotes is
+used instead of single quotes and is passed to UDF (pradeepkth)
+
 1378: har url not usable in Pig scripts (pradeepkth)
 
 PIG-1395:  Mapside cogroup runs out of memory (ashutoshc)
