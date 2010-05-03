@@ -858,4 +858,26 @@ public class TestGrunt extends TestCase {
             assertTrue(results[i] == 0);
         }
     }
+    
+    // Test case for PIG-740 to report an error near the double quotes rather
+    // than an unrelated EOF error message
+    public void testBlockErrMessage() throws Throwable {
+        PigServer server = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        PigContext context = server.getPigContext();
+
+        String script = "A = load 'inputdata' using PigStorage() as ( curr_searchQuery );\n" +
+        		"B = foreach A { domain = CONCAT(curr_searchQuery,\"^www\\.\");\n" +
+        		"        generate domain; };\n";
+        ByteArrayInputStream cmd = new ByteArrayInputStream(script.getBytes());
+        InputStreamReader reader = new InputStreamReader(cmd);
+
+        Grunt grunt = new Grunt(new BufferedReader(reader), context);
+
+        try {
+        grunt.exec();
+        } catch(Error e) {
+            e.printStackTrace();
+            assertTrue(e.getMessage().contains("Encountered: \"^\" (94), after : \"\\\"\""));
+        }
+    }
 }
