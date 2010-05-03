@@ -66,7 +66,8 @@ public class POCombinerPackage extends POPackage {
     private boolean[] keyPositions;
     
     private Map<Integer, Integer> keyLookup;
-                             
+    
+    private int numBags;
 
     /**
      * A new POPostCombinePackage will be constructed as a near clone of the
@@ -90,6 +91,10 @@ public class POCombinerPackage extends POPackage {
         }
         if (bags != null) {
             mBags = Arrays.copyOf(bags, bags.length);
+        }
+        numBags = 0;
+        for (int i = 0; i < mBags.length; i++) {
+            if (mBags[i]) numBags++;            
         }
         if (keyPos != null) {
             keyPositions = Arrays.copyOf(keyPos, keyPos.length);
@@ -122,7 +127,7 @@ public class POCombinerPackage extends POPackage {
         keyLookup = lrKeyInfo.second;
     }
 
-    private DataBag createDataBag() {
+    private DataBag createDataBag(int numBags) {
     	String bagType = null;
         if (PigMapReduce.sJobConf != null) {
    			bagType = PigMapReduce.sJobConf.get("pig.cachedbag.type");       			
@@ -131,7 +136,7 @@ public class POCombinerPackage extends POPackage {
     	if (bagType != null && bagType.equalsIgnoreCase("default")) {
     		return new NonSpillableDataBag();
     	}
-    	return new InternalCachedBag();  	
+    	return new InternalCachedBag(numBags);  	
     }
     
     @Override
@@ -140,7 +145,7 @@ public class POCombinerPackage extends POPackage {
         //Create numInputs bags
         Object[] fields = new Object[mBags.length];
         for (int i = 0; i < mBags.length; i++) {
-            if (mBags[i]) fields[i] = createDataBag();            
+            if (mBags[i]) fields[i] = createDataBag(numBags);            
         }
         
         // For each indexed tup in the inp, split them up and place their
