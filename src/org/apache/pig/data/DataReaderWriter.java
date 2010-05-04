@@ -27,13 +27,19 @@ import java.util.Map;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+
 import org.apache.hadoop.io.Writable;
+
+import org.apache.pig.classification.InterfaceAudience;
+import org.apache.pig.classification.InterfaceStability;
 import org.apache.pig.backend.executionengine.ExecException;
 
 /**
  * A class to handle reading and writing of intermediate results of data
  * types.  This class could also be used for storing permanent results.
  */
+@InterfaceAudience.Private
+@InterfaceStability.Stable
 public class DataReaderWriter {
     private static TupleFactory mTupleFactory = TupleFactory.getInstance();
     private static BagFactory mBagFactory = BagFactory.getInstance();

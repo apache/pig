@@ -31,6 +31,8 @@ import java.util.ArrayList;
 
 import org.apache.hadoop.io.WritableComparable;
 
+import org.apache.pig.classification.InterfaceAudience;
+import org.apache.pig.classification.InterfaceStability;
 import org.apache.pig.impl.util.Spillable;
 
 /**
@@ -41,18 +43,18 @@ import org.apache.pig.impl.util.Spillable;
  * spill()), it takes whatever it has in memory, opens a spill file, and
  * writes the contents out.  This may happen multiple times.  The bag
  * tracks all of the files it's spilled to.
- * 
+ * <p>
  * DataBag provides an Iterator interface, that allows callers to read
  * through the contents.  The iterators are aware of the data spilling.
  * They have to be able to handle reading from files, as well as the fact
  * that data they were reading from memory may have been spilled to disk
  * underneath them.
- *
+ * <p>
  * The DataBag interface assumes that all data is written before any is
  * read.  That is, a DataBag cannot be used as a queue.  If data is written
  * after data is read, the results are undefined.  This condition is not
  * checked on each add or read, for reasons of speed.  Caveat emptor.
- *
+ * <p>
  * Since spills are asynchronous (the memory manager requesting a spill
  * runs in a separate thread), all operations dealing with the mContents
  * Collection (which is the collection of tuples contained in the bag) have
@@ -63,23 +65,35 @@ import org.apache.pig.impl.util.Spillable;
  * If pig changes its execution model to be multithreaded, we may need to
  * return to this issue, as synchronizing reads will most likely defeat the
  * purpose of multi-threading execution.
- *
+ * <p>
  * DataBags come in several types, default, sorted, and distinct.  The type
  * must be chosen up front, there is no way to convert a bag on the fly.
+ * Default data bags do not guarantee any particular order of retrieval for 
+ * the tuples and may contain duplicate tuples.  Sorted data bags guarantee
+ * that tuples will be retrieved in order, where "in order" is defined either
+ * by the default comparator for Tuple or the comparator provided by the
+ * caller when the bag was created.  Sorted bags may contain duplicates.
+ * Distinct bags do not guarantee any particular order of retrieval, but do
+ * guarantee that they will not contain duplicate tuples.
  */
+@InterfaceAudience.Public
+@InterfaceStability.Stable
 public interface DataBag extends Spillable, WritableComparable, Iterable<Tuple>, Serializable {
     /**
      * Get the number of elements in the bag, both in memory and on disk.
+     * @return number of elements in the bag
      */
     long size();
 
     /**
      * Find out if the bag is sorted.
+     * @return true if this is a sorted data bag, false otherwise.
      */
     boolean isSorted();
     
     /**
      * Find out if the bag is distinct.
+     * @return true if the bag is a distinct bag, false otherwise.
      */
     boolean isDistinct();
     
@@ -88,6 +102,7 @@ public interface DataBag extends Spillable, WritableComparable, Iterable<Tuple>,
      * no particular order is guaranteed. For sorted bags the order
      * is guaranteed to be sorted according
      * to the provided comparator.
+     * @return tuple iterator
      */
     Iterator<Tuple> iterator();
 
@@ -114,5 +129,6 @@ public interface DataBag extends Spillable, WritableComparable, Iterable<Tuple>,
      * This is used by FuncEvalSpec.FakeDataBag.
      * @param stale Set stale state.
      */
+    @InterfaceAudience.Private
     void markStale(boolean stale);
 }

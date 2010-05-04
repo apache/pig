@@ -24,11 +24,16 @@ import java.lang.StringBuilder;
 import java.util.ArrayList;
 import java.util.Collection;
 
+import org.apache.pig.classification.InterfaceAudience;
+import org.apache.pig.classification.InterfaceStability;
+
 /**
  * An implementation of byte array.  This is done as an object because we
  * need to be able to implement compareTo, toString, hashCode, and some
  * other methods.
  */
+@InterfaceAudience.Public
+@InterfaceStability.Stable
 public class DataByteArray implements Comparable, Serializable {
 
     private static final long serialVersionUID = 1L;
@@ -143,6 +148,9 @@ public class DataByteArray implements Comparable, Serializable {
         mData = s.getBytes();
     }
 
+    /**
+     * Convert the byte array to a string.  UTF8 encoding will be assumed.
+     */
     @Override
     public String toString() {
         String r="";
@@ -158,7 +166,7 @@ public class DataByteArray implements Comparable, Serializable {
      * Compare two byte arrays.  Comparison is done first using byte values
      * then length.  So "g" will be greater than "abcdefg", but "hello worlds"
      * is greater than "hello world".  If the other object is not a
-     * DataByteArray, DataType.compare will be called.
+     * DataByteArray, {@link DataType#compare} will be called.
      * @param other Other object to compare to.
      * @return -1 if less than, 1 if greater than, 0 if equal.
      */

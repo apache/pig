@@ -27,6 +27,9 @@ import java.util.Map;
 import java.util.TreeMap;
 
 import org.apache.hadoop.io.WritableComparable;
+
+import org.apache.pig.classification.InterfaceAudience;
+import org.apache.pig.classification.InterfaceStability;
 import org.apache.pig.PigException;
 import org.apache.pig.ResourceSchema;
 import org.apache.pig.backend.executionengine.ExecException;
@@ -43,6 +46,8 @@ import org.apache.pig.impl.logicalLayer.schema.SchemaMergeException;
  * done as an enumeration, but it is done as byte codes instead to save
  * creating objects.
  */
+@InterfaceAudience.Public
+@InterfaceStability.Stable
 public class DataType {
     // IMPORTANT! This list can be used to record values of data on disk,
     // so do not change the values.  You may strand user data.
@@ -60,16 +65,24 @@ public class DataType {
     public static final byte DOUBLE    =  25;
     public static final byte BYTEARRAY =  50;
     public static final byte CHARARRAY =  55;
+    /**
+     * Internal use only.
+     */
     public static final byte BIGCHARARRAY =  60; //internal use only; for storing/loading chararray bigger than 64K characters in BinStorage
     public static final byte MAP       = 100;
     public static final byte TUPLE     = 110;
     public static final byte BAG       = 120;
     
-    // internal use only; used to store WriteableComparable objects 
-    // for creating ordered index in MergeJoin. Expecting a object that
-    // implements Writable interface and has default constructor
+    /**
+     * Internal use only; used to store WriteableComparable objects 
+     * for creating ordered index in MergeJoin. Expecting a object that
+     * implements Writable interface and has default constructor
+     */
     public static final byte GENERIC_WRITABLECOMPARABLE = 123; 
     
+    /**
+     * Internal use only.
+     */
     public static final byte INTERNALMAP = 127; // internal use only; for maps that are object->object.  Used by FindQuantiles.
     public static final byte ERROR     =  -1;
 
@@ -163,10 +176,19 @@ public class DataType {
 		return ERROR;
 	}
     
+    /**
+     * Return the number of types Pig knows about.
+     * @return number of types
+     */
     public static int numTypes(){
         byte[] types = genAllTypes();
         return types.length;
     }
+
+    /**
+     * Get an array of all type values.
+     * @return byte array with an entry for each type.
+     */
     public static byte[] genAllTypes(){
         byte[] types = { DataType.BAG, DataType.BIGCHARARRAY, DataType.BOOLEAN, DataType.BYTE, DataType.BYTEARRAY, 
                 DataType.CHARARRAY, DataType.DOUBLE, DataType.FLOAT, 
@@ -185,6 +207,10 @@ public class DataType {
         return names;
     }
     
+    /**
+     * Get a map of type values to type names.
+     * @return map
+     */
     public static Map<Byte, String> genTypeToNameMap(){
         byte[] types = genAllTypes();
         String[] names = genAllTypeNames();
@@ -195,6 +221,10 @@ public class DataType {
         return ret;
     }
 
+    /**
+     * Get a map of type names to type values.
+     * @return map
+     */
     public static Map<String, Byte> genNameToTypeMap(){
         byte[] types = genAllTypes();
         String[] names = genAllTypeNames();
@@ -326,12 +356,17 @@ public class DataType {
         return compare(o1, o2, dt1, dt2);
     }
 
-    /*
-     * Same as compare(Object o1, Object o2), but does not use reflection to determine the type 
+    /**
+     * Same as {@link #compare(Object, Object)}, but does not use reflection to determine the type 
      * of passed in objects, relying instead on the caller to provide the appropriate values, as
-     * determined by DataType.findType(Object o);
+     * determined by {@link DataType#findType(Object)}.
      * 
      * Use this version in cases where multiple objects of the same type have to be repeatedly compared.
+     * @param o1 first object
+     * @param o2 second object
+     * @param dt1 type, as byte value, of o1
+     * @param dt2 type, as byte value, of o2
+     * @return -1 if o1 is &lt; o2, 0 if they are equal, 1 if o1 &gt; o2
      */
     @SuppressWarnings("unchecked")
     public static int compare(Object o1, Object o2, byte dt1, byte dt2) {
@@ -430,7 +465,9 @@ public class DataType {
      * forced to an Integer.  This isn't particularly efficient, so if you
      * already <b>know</b> that the object you have is an Integer you
      * should just cast it.
-     * @return The object as a Integer.
+     * @param o object to cast
+     * @param type of the object you are casting
+     * @return The object as an Integer.
      * @throws ExecException if the type can't be forced to an Integer.
      */
     public static Integer toInteger(Object o,byte type) throws ExecException {
@@ -489,17 +526,24 @@ public class DataType {
 			throw new ExecException(msg, errCode, PigException.BUG);
 		}
     }
+
     /**
-     * If type of object is not known, use this method, which internally calls
-     * toInteger(object,type)
-     * 
-     * @param o
-     * @return Object as Integer.
-     * @throws ExecException
+     * Force a data object to an Integer, if possible.  Any numeric type
+     * can be forced to an Integer (though precision may be lost), as well
+     * as CharArray, ByteArray, or Boolean.  Complex types cannot be
+     * forced to an Integer.  This isn't particularly efficient, so if you
+     * already <b>know</b> that the object you have is an Integer you
+     * should just cast it.  Unlike {@link #toInteger(Object, byte)} this
+     * method will first determine the type of o and then do the cast.  
+     * Use {@link #toInteger(Object, byte)} if you already know the type.
+     * @param o object to cast
+     * @return The object as an Integer.
+     * @throws ExecException if the type can't be forced to an Integer.
      */
     public static Integer toInteger(Object o) throws ExecException {
         return toInteger(o, findType(o));
     }
+
     /**
      * Force a data object to a Long, if possible.  Any numeric type
      * can be forced to a Long (though precision may be lost), as well
@@ -507,6 +551,8 @@ public class DataType {
      * forced to a Long.  This isn't particularly efficient, so if you
      * already <b>know</b> that the object you have is a Long you
      * should just cast it.
+     * @param o object to cast
+     * @param type of the object you are casting
      * @return The object as a Long.
      * @throws ExecException if the type can't be forced to a Long.
      */
@@ -567,13 +613,19 @@ public class DataType {
 		}
 
     }
+
     /**
-     * If type of object is not known, use this method which in turns call
-     * toLong(object,type) after finding type.
-     * 
-     * @param o
-     * @return Object as Long.
-     * @throws ExecException
+     * Force a data object to a Long, if possible.  Any numeric type
+     * can be forced to a Long (though precision may be lost), as well
+     * as CharArray, ByteArray, or Boolean.  Complex types cannot be
+     * forced to an Long.  This isn't particularly efficient, so if you
+     * already <b>know</b> that the object you have is a Long you
+     * should just cast it.  Unlike {@link #toLong(Object, byte)} this
+     * method will first determine the type of o and then do the cast.  
+     * Use {@link #toLong(Object, byte)} if you already know the type.
+     * @param o object to cast
+     * @return The object as a Long.
+     * @throws ExecException if the type can't be forced to an Long.
      */
     public static Long toLong(Object o) throws ExecException {
         return toLong(o, findType(o));
@@ -586,6 +638,8 @@ public class DataType {
      * forced to a Float.  This isn't particularly efficient, so if you
      * already <b>know</b> that the object you have is a Float you
      * should just cast it.
+     * @param o object to cast
+     * @param type of the object you are casting
      * @return The object as a Float.
      * @throws ExecException if the type can't be forced to a Float.
      */
@@ -640,13 +694,19 @@ public class DataType {
 			throw new ExecException(msg, errCode, PigException.BUG);
 		}
     }
+
     /**
-     * If type of object is not known, use this method which in turns call
-     * toFloat(object,type) after finding type.
-     * 
-     * @param o
-     * @return Object as Float.
-     * @throws ExecException
+     * Force a data object to a Float, if possible.  Any numeric type
+     * can be forced to a Float (though precision may be lost), as well
+     * as CharArray, ByteArray, or Boolean.  Complex types cannot be
+     * forced to an Float.  This isn't particularly efficient, so if you
+     * already <b>know</b> that the object you have is a Float you
+     * should just cast it.  Unlike {@link #toFloat(Object, byte)} this
+     * method will first determine the type of o and then do the cast.  
+     * Use {@link #toFloat(Object, byte)} if you already know the type.
+     * @param o object to cast
+     * @return The object as a Float.
+     * @throws ExecException if the type can't be forced to an Float.
      */
     public static Float toFloat(Object o) throws ExecException {
         return toFloat(o, findType(o));
@@ -659,6 +719,8 @@ public class DataType {
      * forced to a Double.  This isn't particularly efficient, so if you
      * already <b>know</b> that the object you have is a Double you
      * should just cast it.
+     * @param o object to cast
+     * @param type of the object you are casting
      * @return The object as a Double.
      * @throws ExecException if the type can't be forced to a Double.
      */
@@ -713,13 +775,19 @@ public class DataType {
 			throw new ExecException(msg, errCode, PigException.BUG);
 		}
     }
+
     /**
-     * If type of object is not known, use this method which in turns call
-     * toLong(object,type) after finding type.
-     * 
-     * @param o
-     * @return Object as Double.
-     * @throws ExecException
+     * Force a data object to a Double, if possible.  Any numeric type
+     * can be forced to a Double, as well
+     * as CharArray, ByteArray, or Boolean.  Complex types cannot be
+     * forced to an Double.  This isn't particularly efficient, so if you
+     * already <b>know</b> that the object you have is a Double you
+     * should just cast it.  Unlike {@link #toDouble(Object, byte)} this
+     * method will first determine the type of o and then do the cast.  
+     * Use {@link #toDouble(Object, byte)} if you already know the type.
+     * @param o object to cast
+     * @return The object as a Double.
+     * @throws ExecException if the type can't be forced to an Double.
      */
     public static Double toDouble(Object o) throws ExecException {
         return toDouble(o, findType(o));
@@ -731,6 +799,8 @@ public class DataType {
      * forced to a String.  This isn't particularly efficient, so if you
      * already <b>know</b> that the object you have is a String you
      * should just cast it.
+     * @param o object to cast
+     * @param type of the object you are casting
      * @return The object as a String.
      * @throws ExecException if the type can't be forced to a String.
      */
@@ -785,22 +855,29 @@ public class DataType {
 			throw new ExecException(msg, errCode, PigException.BUG);
 		}
     }
+
     /**
-     * If type of object is not known, use this method which in turns call
-     * toString(object,type) after finding type.
-     * 
-     * @param o
-     * @return Object as String.
-     * @throws ExecException
+     * Force a data object to a String, if possible.  Any simple (atomic) type
+     * can be forced to a String including ByteArray.  Complex types cannot be
+     * forced to a String.  This isn't particularly efficient, so if you
+     * already <b>know</b> that the object you have is a String you
+     * should just cast it.  Unlike {@link #toString(Object, byte)} this
+     * method will first determine the type of o and then do the cast.  
+     * Use {@link #toString(Object, byte)} if you already know the type.
+     * @param o object to cast
+     * @return The object as a String.
+     * @throws ExecException if the type can't be forced to a String.
      */
     public static String toString(Object o) throws ExecException {
         return toString(o, findType(o));
     }
+
     /**
      * If this object is a map, return it as a map.
      * This isn't particularly efficient, so if you
      * already <b>know</b> that the object you have is a Map you
      * should just cast it.
+     * @param o object to cast
      * @return The object as a Map.
      * @throws ExecException if the type can't be forced to a Double.
      */
@@ -829,6 +906,7 @@ public class DataType {
      * This isn't particularly efficient, so if you
      * already <b>know</b> that the object you have is a Tuple you
      * should just cast it.
+     * @param o object to cast
      * @return The object as a Double.
      * @throws ExecException if the type can't be forced to a Double.
      */
@@ -856,6 +934,7 @@ public class DataType {
      * This isn't particularly efficient, so if you
      * already <b>know</b> that the object you have is a bag you
      * should just cast it.
+     * @param o object to cast
      * @return The object as a Double.
      * @throws ExecException if the type can't be forced to a Double.
      */
@@ -890,6 +969,11 @@ public class DataType {
         System.out.println(t.toString());
     }
     
+    /**
+     * Determine if this type is a numeric type.
+     * @param t type (as byte value) to test
+     * @return true if this is a numeric type, false otherwise
+     */
     public static boolean isNumberType(byte t) {
         switch (t) {
             case INTEGER:   return true ;
@@ -900,6 +984,11 @@ public class DataType {
         }        
     }
     
+    /**
+     * Determine if this is a type that can work can be done on.
+     * @param t type (as a byte value) to test
+     * @return false if the type is unknown, null, or error; true otherwise.
+     */
     public static boolean isUsableType(byte t) {
         switch (t) {
             case UNKNOWN:    return false ;
@@ -909,8 +998,9 @@ public class DataType {
         }
     }
 
-        /***
-     * Merge types if possible
+    /**
+     * Merge types if possible.  Merging types means finding a type that one 
+     * or both types can be upcast to.
      * @param type1
      * @param type2
      * @return the merged type, or DataType.ERROR if not successful
@@ -946,6 +1036,11 @@ public class DataType {
         return DataType.ERROR ;
     }
     
+    /**
+     * Given a map, turn it into a String.
+     * @param m map
+     * @return string representation of the map
+     */
     public static String mapToString(Map<String, Object> m) {
         boolean hasNext = false;
         StringBuilder sb = new StringBuilder();
@@ -967,6 +1062,14 @@ public class DataType {
         return sb.toString();
     }
 
+    /**
+     * Test whether two byte arrays (Java byte arrays not Pig byte arrays) are
+     * equal.  I have no idea why we have this function.
+     * @param lhs byte array 1
+     * @param rhs byte array 2
+     * @return true if both are null or the two are the same length and have
+     * the same bytes.
+     */
     public static boolean equalByteArrays(byte[] lhs, byte[] rhs) {
         if(lhs == null && rhs == null) return true;
         if(lhs == null || rhs == null) return false;
