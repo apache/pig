@@ -22,24 +22,28 @@ import java.util.List;
 
 import org.apache.hadoop.io.WritableComparable;
 
+import org.apache.pig.classification.InterfaceAudience;
+import org.apache.pig.classification.InterfaceStability;
 import org.apache.pig.backend.executionengine.ExecException;
 
 /**
  * An ordered list of Data.  A tuple has fields, numbered 0 through
  * (number of fields - 1).  The entry in the field can be any datatype,
  * or it can be null.
- *
- * Tuples are constructed only by a TupleFactory.  A DefaultTupleFactory
- * is provided by the system.  If a user wishes to use their own type of
- * Tuple, they should also provide an implementation of TupleFactory to
+ * <p>
+ * Tuples are constructed only by a {@link TupleFactory}.  A
+ * {@link DefaultTupleFactory}
+ * is provided by the system.  If users wish to use their own type of
+ * Tuple, they should also provide an implementation of {@link TupleFactory} to
  * construct their types of Tuples.
  *
- * Fields are numbered from 0.
  */
 
 // Put in to make the compiler not complain about WritableComparable
 // being a generic type.
 @SuppressWarnings("unchecked")
+@InterfaceAudience.Public
+@InterfaceStability.Stable
 public interface Tuple extends WritableComparable, Serializable {
        
     /**
@@ -80,8 +84,8 @@ public interface Tuple extends WritableComparable, Serializable {
     /**
      * Find the type of a given field.
      * @param fieldNum Number of field to get the type for.
-     * @return type, encoded as a byte value.  The values are taken from
-     * the class DataType.  If the field is null, then DataType.UNKNOWN
+     * @return type, encoded as a byte value.  The values are defined in
+     * {@link DataType}.  If the field is null, then DataType.UNKNOWN
      * will be returned.
      * @throws ExecException if the field number is greater than or equal to
      * the number of fields in the tuple.
@@ -99,13 +103,18 @@ public interface Tuple extends WritableComparable, Serializable {
 
     /**
      * Get all of the fields in the tuple as a list.
-     * @return List&lt;Object&gt; containing the fields of the tuple
+     * @return a list of objects containing the fields of the tuple
      * in order.
      */
     List<Object> getAll();
 
     /**
-     * Set the value in a given field.
+     * Set the value in a given field.  This should not be called unless
+     * the tuple was constructed by {@link TupleFactory#newTuple(int)} with an
+     * argument greater than the fieldNum being passed here.  This call will
+     * not automatically expand the tuple size.  That is if you called 
+     * {@link TupleFactory#newTuple(int)} with a 2, it is okay to call
+     * this function with a 1, but not with a 2 or greater.
      * @param fieldNum Number of the field to set the value for.
      * @param val Object to put in the indicated field.
      * @throws ExecException if the field number is greater than or equal to
@@ -116,9 +125,10 @@ public interface Tuple extends WritableComparable, Serializable {
     /**
      * Append a field to a tuple.  This method is not efficient as it may
      * force copying of existing data in order to grow the data structure.
-     * Whenever possible you should construct your Tuple with the
-     * newTuple(int) method and then fill in the values with set(), rather
-     * than construct it with newTuple() and append values.
+     * Whenever possible you should construct your Tuple with 
+     * {@link TupleFactory#newTuple(int)} and then fill in the values with 
+     * {@link #set(int, Object)}, rather
+     * than construct it with {@link TupleFactory#newTuple()} and append values.
      * @param val Object to append to the tuple.
      */
     void append(Object val);
@@ -127,7 +137,7 @@ public interface Tuple extends WritableComparable, Serializable {
      * Determine the size of tuple in memory.  This is used by data bags
      * to determine their memory size.  This need not be exact, but it
      * should be a decent estimation.
-     * @return estimated memory size.
+     * @return estimated memory size, in bytes.
      */
     long getMemorySize();
 
@@ -141,11 +151,13 @@ public interface Tuple extends WritableComparable, Serializable {
     String toDelimitedString(String delim) throws ExecException;
     
     /**
+     * Determine if this entire tuple (not any particular field) is null.
      * @return true if this Tuple is null
      */
     public boolean isNull();
     
     /**
+     * Mark this entire tuple as null or not null.
      * @param isNull boolean indicating whether this tuple is null
      */
     public void setNull(boolean isNull);

@@ -23,21 +23,27 @@ import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.List;
 
+import org.apache.pig.classification.InterfaceAudience;
+import org.apache.pig.classification.InterfaceStability;
+
 /**
  * A factory to construct tuples.  This class is abstract so that users can
  * override the tuple factory if they desire to provide their own that
  * returns their implementation of a tuple.  If the property
  * pig.data.tuple.factory.name is set to a class name and
  * pig.data.tuple.factory.jar is set to a URL pointing to a jar that
- * contains the above named class, then getInstance() will create a
- * a instance of the named class using the indicatd jar.  Otherwise, it
- * will create and instance of DefaultTupleFactory.
+ * contains the above named class, then {@link #getInstance()} will create a
+ * an instance of the named class using the indicated jar.  Otherwise, it
+ * will create an instance of {@link DefaultTupleFactory}.
  */
+@InterfaceAudience.Public
+@InterfaceStability.Stable
 public abstract class TupleFactory {
     private static TupleFactory gSelf = null;
 
     /**
      * Get a reference to the singleton factory.
+     * @return The TupleFactory to use to construct tuples.
      */
     public static TupleFactory getInstance() {
         if (gSelf == null) {
@@ -77,15 +83,17 @@ public abstract class TupleFactory {
     /**
      * Create an empty tuple.  This should be used as infrequently as
      * possible, use newTuple(int) instead.
+     * @return Empty new tuple.
      */
     public abstract Tuple newTuple();
 
     /**
-     * Create a tuple with size fields.  Whenever possible this is prefered
-     * over the nullary constructor, as the constructor can preallocate the
+     * Create a tuple with size fields.  Whenever possible this is preferred
+     * over the null constructor, as the constructor can preallocate the
      * size of the container holding the fields.  Once this is called, it
      * is legal to call Tuple.set(x, object), where x &lt; size.
      * @param size Number of fields in the tuple.
+     * @return Tuple with size fields
      */
     public abstract Tuple newTuple(int size);
     
@@ -93,6 +101,7 @@ public abstract class TupleFactory {
      * Create a tuple from the provided list of objects.  The underlying list
      * will be copied.
      * @param c List of objects to use as the fields of the tuple.
+     * @return A tuple with the list objects as its fields
      */
     public abstract Tuple newTuple(List c);
 
@@ -100,6 +109,7 @@ public abstract class TupleFactory {
      * Create a tuple from a provided list of objects, keeping the provided
      * list.  The new tuple will take over ownership of the provided list.
      * @param list List of objects that will become the fields of the tuple.
+     * @return A tuple with the list objects as its fields
      */
     public abstract Tuple newTupleNoCopy(List list);
 
@@ -108,14 +118,14 @@ public abstract class TupleFactory {
      * the fact that bags (currently) only take tuples, we often end up
      * sticking a single element in a tuple in order to put it in a bag.
      * @param datum Datum to put in the tuple.
+     * @return A tuple with one field
      */
     public abstract Tuple newTuple(Object datum);
 
     /**
      * Return the actual class representing a tuple that the implementing
-     * factory will be returning.  This is needed because hadoop (and
-     * possibly other systems) we use need to know the exact class we will
-     * be using for input and output.
+     * factory will be returning.  This is needed because hadoop needs
+     * to know the exact class we will be using for input and output.
      * @return Class that implements tuple.
      */
     public abstract Class tupleClass();
