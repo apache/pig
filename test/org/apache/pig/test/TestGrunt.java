@@ -21,6 +21,9 @@ import org.junit.Test;
 import junit.framework.TestCase;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.log4j.Appender;
+import org.apache.log4j.FileAppender;
+import org.apache.log4j.PatternLayout;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigException;
 import org.apache.pig.PigServer;
@@ -32,6 +35,8 @@ import org.apache.pig.tools.pigscript.parser.ParseException;
 import org.apache.pig.impl.util.LogUtils;
 
 import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.FileReader;
 import java.io.InputStreamReader;
 import java.io.BufferedReader;
 import java.io.StringReader;
@@ -65,6 +70,7 @@ public class TestGrunt extends TestCase {
         grunt.exec();
     }
 */
+    
     @Test 
     public void testDefine() throws Throwable {
         PigServer server = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
@@ -448,6 +454,54 @@ public class TestGrunt extends TestCase {
         Grunt grunt = new Grunt(new BufferedReader(reader), context);
     
         grunt.exec();
+    }
+
+    /**
+     * verify that grunt commands are ignored in explain -script mode
+     */
+    @Test
+    public void testExplainScript2() throws Throwable {
+        
+        PigServer server = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        PigContext context = server.getPigContext();
+        
+        String strCmd = "explain -script "
+                + basedir + "/explainScript.pig;";
+        
+        ByteArrayInputStream cmd = new ByteArrayInputStream(strCmd.getBytes());
+        InputStreamReader reader = new InputStreamReader(cmd);
+        
+        String logMessagesFile = "TestGrunt-testExplainScript2-stderr.txt";
+        // add a file based appender to the root logger so we can parse the 
+        // messages logged by grunt and verify that grunt commands are ignored
+        // in explain -script mode
+        Appender fileAppender = new FileAppender(new PatternLayout(), logMessagesFile);
+        
+        try {
+            org.apache.log4j.LogManager.getRootLogger().addAppender(fileAppender);
+            Grunt grunt = new Grunt(new BufferedReader(reader), context);
+            grunt.exec();
+            BufferedReader in = new BufferedReader(new FileReader(logMessagesFile));
+            String gruntLoggingContents = "";
+            //read file into a string
+            String line;
+            while ( (line = in.readLine()) != null) {
+                 gruntLoggingContents += line + "\n";
+            }
+            in.close();
+            String[] cmds = new String[] { "'rm/rmf'", "'cp'", "'cat'", "'cd'", "'pwd'", 
+                    "'copyFromLocal'", "'copyToLocal'", "'describe'", "'ls'", 
+                    "'mkdir'", "'illustrate'", "'run/exec'", "'fs'", "'aliases'",
+                    "'mv'", "'dump'" };
+            for (String c : cmds) {
+                String expected = c + " statement is ignored while processing explain";
+                assertTrue("Checking if " + gruntLoggingContents + " contains " + 
+                        expected, gruntLoggingContents.contains(expected));
+            }
+        } finally {
+            org.apache.log4j.LogManager.getRootLogger().removeAppender(fileAppender);
+            new File(logMessagesFile).delete();
+        }
     }
 
     @Test
