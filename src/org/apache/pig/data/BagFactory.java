@@ -24,6 +24,8 @@ import java.net.URLClassLoader;
 import java.util.Comparator;
 import java.util.List;
 
+import org.apache.pig.classification.InterfaceAudience;
+import org.apache.pig.classification.InterfaceStability;
 import org.apache.pig.impl.util.SpillableMemoryManager;
 
 /**
@@ -33,16 +35,19 @@ import org.apache.pig.impl.util.SpillableMemoryManager;
  * returns their implementation of a bag.  If the property
  * pig.data.bag.factory.name is set to a class name and
  * pig.data.bag.factory.jar is set to a URL pointing to a jar that
- * contains the above named class, then getInstance() will create a
- * a instance of the named class using the indicatd jar.  Otherwise, it
+ * contains the above named class, then getInstance() will create 
+ * an instance of the named class using the indicated jar.  Otherwise, it
  * will create an instance of DefaultBagFactory.
  */
+@InterfaceAudience.Public
+@InterfaceStability.Stable
 public abstract class BagFactory {
     private static BagFactory gSelf = null;
     private static SpillableMemoryManager gMemMgr;
 
     /**
      * Get a reference to the singleton factory.
+     * @return BagFactory
      */
     public static BagFactory getInstance() {
         if (gSelf == null) {
@@ -81,31 +86,51 @@ public abstract class BagFactory {
     
     /**
      * Get a default (unordered, not distinct) data bag.
+     * @return default data bag.
      */
     public abstract DataBag newDefaultBag();
 
     /**
-     * Get a default (unordered, not distinct) data bag from
-     * an existing list of tuples.
+     * Get a default (unordered, not distinct) data bag with
+     * an existing list of tuples inserted into the bag.
+     * @param listOfTuples list of tuples to be placed in the bag.  This list may not be
+     * copied, it may be used directly by the created bag.
+     * @return default data bag.
      */
     public abstract DataBag newDefaultBag(List<Tuple> listOfTuples);
     
     /**
-     * Get a sorted data bag.
+     * Get a sorted data bag.  Sorted bags guarantee that when an iterator
+     * is opened on the bag the tuples will be returned in sorted order.
      * @param comp Comparator that controls how the data is sorted.
      * If null, default comparator will be used.
+     * @return a sorted data bag
      */
     public abstract DataBag newSortedBag(Comparator<Tuple> comp);
     
     /**
-     * Get a distinct data bag.
+     * Get a distinct data bag.  Distinct bags guarantee that when an
+     * iterator is opened on the bag, no two tuples returned from the
+     * iterator will be equal.
+     * @return distinct data bag
      */
     public abstract DataBag newDistinctBag();
 
+    /**
+     * Construct a new BagFactory
+     */
     protected BagFactory() {
         gMemMgr = new SpillableMemoryManager();
     }
 
+    /**
+     * Register a bag with the
+     * {@link org.apache.pig.impl.util.SpillableMemoryManager}.
+     * If the bags created by an implementation of BagFactory are managed by
+     * the {@link org.apache.pig.impl.util.SpillableMemoryManager} then this
+     * method should be called each time a new bag is created.
+     * @param b bag to be registered.
+     */
     protected void registerBag(DataBag b) {
         gMemMgr.registerSpillable(b);
     }
