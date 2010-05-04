@@ -1,0 +1,1 @@
+rmf input-copy.txt; cat 'foo'; a = load '1.txt' ; aliases;illustrate a; copyFromLocal foo bar; copyToLocal foo bar; describe a; mkdir foo; run bar.pig; exec bar.pig; cp foo bar; explain a;cd 'bar'; pwd; ls ; fs -ls ; fs -rmr foo; mv foo bar; dump a;store a into 'input-copy.txt' ; a = load '2.txt' as (b);explain a; rm foo; store a into 'bar';
