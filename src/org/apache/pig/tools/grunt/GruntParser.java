@@ -224,10 +224,14 @@ public class GruntParser extends PigScriptParser {
     
     @Override
     protected void processDescribe(String alias) throws IOException {
-        if(alias==null) {
-            alias = mPigServer.getPigContext().getLastAlias();
+        if(mExplain == null) { // process only if not in "explain" mode
+            if(alias==null) {
+                alias = mPigServer.getPigContext().getLastAlias();
+            }
+            mPigServer.dumpSchema(alias);
+        } else {
+            log.warn("'describe' statement is ignored while processing explain");
         }
-        mPigServer.dumpSchema(alias);
     }
 
     @Override
@@ -317,7 +321,11 @@ public class GruntParser extends PigScriptParser {
 
     @Override
     protected void printAliases() throws IOException {
-        mPigServer.printAliases();
+        if(mExplain == null) { // process only if not in "explain" mode
+            mPigServer.printAliases();
+        } else {
+            log.warn("'aliases' statement is ignored while processing explain");
+        }
     }
     
     @Override
@@ -349,22 +357,26 @@ public class GruntParser extends PigScriptParser {
                                  List<String> params, List<String> files) 
         throws IOException, ParseException {
         
-        if (script == null) {
-            executeBatch();
-            return;
-        }
-        
-        if (batch) {
-            setBatchOn();
-            mPigServer.setJobName(script);
-            try {
-                loadScript(script, true, mLoadOnly, params, files);
+        if(mExplain == null) { // process only if not in "explain" mode
+            if (script == null) {
                 executeBatch();
-            } finally {
-                discardBatch();
+                return;
+            }
+            
+            if (batch) {
+                setBatchOn();
+                mPigServer.setJobName(script);
+                try {
+                    loadScript(script, true, mLoadOnly, params, files);
+                    executeBatch();
+                } finally {
+                    discardBatch();
+                }
+            } else {
+                loadScript(script, false, mLoadOnly, params, files);
             }
         } else {
-            loadScript(script, false, mLoadOnly, params, files);
+            log.warn("'run/exec' statement is ignored while processing explain");
         }
     }
 
@@ -465,44 +477,49 @@ public class GruntParser extends PigScriptParser {
     @Override
     protected void processCat(String path) throws IOException
     {
-        executeBatch();
-
-        try {
-            byte buffer[] = new byte[65536];
-            ElementDescriptor dfsPath = mDfs.asElement(path);
-            int rc;
+        if(mExplain == null) { // process only if not in "explain" mode
             
-            if (!dfsPath.exists())
-                throw new IOException("Directory " + path + " does not exist.");
-    
-            if (mDfs.isContainer(path)) {
-                ContainerDescriptor dfsDir = (ContainerDescriptor) dfsPath;
-                Iterator<ElementDescriptor> paths = dfsDir.iterator();
+            executeBatch();
+
+            try {
+                byte buffer[] = new byte[65536];
+                ElementDescriptor dfsPath = mDfs.asElement(path);
+                int rc;
                 
-                while (paths.hasNext()) {
-                    ElementDescriptor curElem = paths.next();
+                if (!dfsPath.exists())
+                    throw new IOException("Directory " + path + " does not exist.");
+        
+                if (mDfs.isContainer(path)) {
+                    ContainerDescriptor dfsDir = (ContainerDescriptor) dfsPath;
+                    Iterator<ElementDescriptor> paths = dfsDir.iterator();
                     
-                    if (mDfs.isContainer(curElem.toString())) {
-                        continue;
+                    while (paths.hasNext()) {
+                        ElementDescriptor curElem = paths.next();
+                        
+                        if (mDfs.isContainer(curElem.toString())) {
+                            continue;
+                        }
+                        
+                        InputStream is = curElem.open();
+                        while ((rc = is.read(buffer)) > 0) {
+                            System.out.write(buffer, 0, rc);
+                        }
+                        is.close();                
                     }
-                    
-                    InputStream is = curElem.open();
+                }
+                else {
+                    InputStream is = dfsPath.open();
                     while ((rc = is.read(buffer)) > 0) {
                         System.out.write(buffer, 0, rc);
                     }
-                    is.close();                
+                    is.close();            
                 }
             }
-            else {
-                InputStream is = dfsPath.open();
-                while ((rc = is.read(buffer)) > 0) {
-                    System.out.write(buffer, 0, rc);
-                }
-                is.close();            
+            catch (DataStorageException e) {
+                throw new IOException("Failed to Cat: " + path, e);
             }
-        }
-        catch (DataStorageException e) {
-            throw new IOException("Failed to Cat: " + path, e);
+        } else {
+            log.warn("'cat' statement is ignored while processing explain");
         }
     }
 
@@ -510,49 +527,60 @@ public class GruntParser extends PigScriptParser {
     protected void processCD(String path) throws IOException
     {    
         ContainerDescriptor container;
-
-        try {
-            if (path == null) {
-                container = mDfs.asContainer("/user/" + System.getProperty("user.name"));
-                mDfs.setActiveContainer(container);
-            }
-            else
-            {
-                container = mDfs.asContainer(path);
-    
-                if (!container.exists()) {
-                    throw new IOException("Directory " + path + " does not exist.");
+        if(mExplain == null) { // process only if not in "explain" mode
+            try {
+                if (path == null) {
+                    container = mDfs.asContainer("/user/" + System.getProperty("user.name"));
+                    mDfs.setActiveContainer(container);
                 }
-                
-                if (!mDfs.isContainer(path)) {
-                    throw new IOException(path + " is not a directory.");
+                else
+                {
+                    container = mDfs.asContainer(path);
+        
+                    if (!container.exists()) {
+                        throw new IOException("Directory " + path + " does not exist.");
+                    }
+                    
+                    if (!mDfs.isContainer(path)) {
+                        throw new IOException(path + " is not a directory.");
+                    }
+                    
+                    mDfs.setActiveContainer(container);
                 }
-                
-                mDfs.setActiveContainer(container);
             }
-        }
-        catch (DataStorageException e) {
-            throw new IOException("Failed to change working directory to " + 
-                                  ((path == null) ? ("/user/" + System.getProperty("user.name")) 
-                                                     : (path)), e);
+            catch (DataStorageException e) {
+                throw new IOException("Failed to change working directory to " + 
+                                      ((path == null) ? ("/user/" + System.getProperty("user.name")) 
+                                                         : (path)), e);
+            }
+        } else {
+            log.warn("'cd' statement is ignored while processing explain");
         }
     }
 
     @Override
     protected void processDump(String alias) throws IOException
     {
-        Iterator<Tuple> result = mPigServer.openIterator(alias);
-        while (result.hasNext())
-        {
-            Tuple t = result.next();
-            System.out.println(TupleFormat.format(t));
+        if(mExplain == null) { // process only if not in "explain" mode
+            Iterator<Tuple> result = mPigServer.openIterator(alias);
+            while (result.hasNext())
+            {
+                Tuple t = result.next();
+                System.out.println(TupleFormat.format(t));
+            }
+        } else {
+            log.warn("'dump' statement is ignored while processing explain");
         }
     }
     
     @Override
     protected void processIllustrate(String alias) throws IOException
     {
-	mPigServer.getExamples(alias);
+        if(mExplain == null) { // process only if not in "explain" mode
+            mPigServer.getExamples(alias);
+        } else {
+            log.warn("'illustrate' statement is ignored while processing explain");
+        }
     }
 
     @Override
@@ -575,39 +603,43 @@ public class GruntParser extends PigScriptParser {
     @Override
     protected void processLS(String path) throws IOException
     {
-        try {
-            ElementDescriptor pathDescriptor;
-            
-            if (path == null) {
-                pathDescriptor = mDfs.getActiveContainer();
-            }
-            else {
-                pathDescriptor = mDfs.asElement(path);
-            }
-
-            if (!pathDescriptor.exists()) {
-                throw new IOException("File or directory " + path + " does not exist.");                
-            }
-            
-            if (mDfs.isContainer(pathDescriptor.toString())) {
-                ContainerDescriptor container = (ContainerDescriptor) pathDescriptor;
-                Iterator<ElementDescriptor> elems = container.iterator();
+        if(mExplain == null) { // process only if not in "explain" mode
+            try {
+                ElementDescriptor pathDescriptor;
                 
-                while (elems.hasNext()) {
-                    ElementDescriptor curElem = elems.next();
-                    
-                    if (mDfs.isContainer(curElem.toString())) {
-                           System.out.println(curElem.toString() + "\t<dir>");
-                    } else {
-                        printLengthAndReplication(curElem);
-                    }
+                if (path == null) {
+                    pathDescriptor = mDfs.getActiveContainer();
                 }
-            } else {
-                printLengthAndReplication(pathDescriptor);
+                else {
+                    pathDescriptor = mDfs.asElement(path);
+                }
+    
+                if (!pathDescriptor.exists()) {
+                    throw new IOException("File or directory " + path + " does not exist.");                
+                }
+                
+                if (mDfs.isContainer(pathDescriptor.toString())) {
+                    ContainerDescriptor container = (ContainerDescriptor) pathDescriptor;
+                    Iterator<ElementDescriptor> elems = container.iterator();
+                    
+                    while (elems.hasNext()) {
+                        ElementDescriptor curElem = elems.next();
+                        
+                        if (mDfs.isContainer(curElem.toString())) {
+                               System.out.println(curElem.toString() + "\t<dir>");
+                        } else {
+                            printLengthAndReplication(curElem);
+                        }
+                    }
+                } else {
+                    printLengthAndReplication(pathDescriptor);
+                }
             }
-        }
-        catch (DataStorageException e) {
-            throw new IOException("Failed to LS on " + path, e);
+            catch (DataStorageException e) {
+                throw new IOException("Failed to LS on " + path, e);
+            }
+        } else {
+            log.warn("'ls' statement is ignored while processing explain");
         }
     }
 
@@ -625,7 +657,11 @@ public class GruntParser extends PigScriptParser {
     @Override
     protected void processPWD() throws IOException 
     {
-        System.out.println(mDfs.getActiveContainer().toString());
+        if(mExplain == null) { // process only if not in "explain" mode
+            System.out.println(mDfs.getActiveContainer().toString());
+        } else {
+            log.warn("'pwd' statement is ignored while processing explain");
+        }
     }
 
     @Override
@@ -650,76 +686,100 @@ public class GruntParser extends PigScriptParser {
     @Override
     protected void processMove(String src, String dst) throws IOException
     {
-        executeBatch();
+        if(mExplain == null) { // process only if not in "explain" mode
 
-        try {
-            ElementDescriptor srcPath = mDfs.asElement(src);
-            ElementDescriptor dstPath = mDfs.asElement(dst);
-            
-            if (!srcPath.exists()) {
-                throw new IOException("File or directory " + src + " does not exist.");                
+            executeBatch();
+        
+            try {
+                ElementDescriptor srcPath = mDfs.asElement(src);
+                ElementDescriptor dstPath = mDfs.asElement(dst);
+                
+                if (!srcPath.exists()) {
+                    throw new IOException("File or directory " + src + " does not exist.");                
+                }
+                
+                srcPath.rename(dstPath);
             }
-            
-            srcPath.rename(dstPath);
-        }
-        catch (DataStorageException e) {
-            throw new IOException("Failed to move " + src + " to " + dst, e);
+            catch (DataStorageException e) {
+                throw new IOException("Failed to move " + src + " to " + dst, e);
+            }
+        } else {
+            log.warn("'mv' statement is ignored while processing explain");
         }
     }
     
     @Override
     protected void processCopy(String src, String dst) throws IOException
     {
-        executeBatch();
+        if(mExplain == null) { // process only if not in "explain" mode
 
-        try {
-            ElementDescriptor srcPath = mDfs.asElement(src);
-            ElementDescriptor dstPath = mDfs.asElement(dst);
-            
-            srcPath.copy(dstPath, mConf, false);
-        }
-        catch (DataStorageException e) {
-            throw new IOException("Failed to copy " + src + " to " + dst, e);
+            executeBatch();
+        
+            try {
+                ElementDescriptor srcPath = mDfs.asElement(src);
+                ElementDescriptor dstPath = mDfs.asElement(dst);
+                
+                srcPath.copy(dstPath, mConf, false);
+            }
+            catch (DataStorageException e) {
+                throw new IOException("Failed to copy " + src + " to " + dst, e);
+            }
+        } else {
+            log.warn("'cp' statement is ignored while processing explain");
         }
     }
     
     @Override
     protected void processCopyToLocal(String src, String dst) throws IOException
     {
-        executeBatch();
-
-        try {
-            ElementDescriptor srcPath = mDfs.asElement(src);
-            ElementDescriptor dstPath = mLfs.asElement(dst);
+        if(mExplain == null) { // process only if not in "explain" mode
             
-            srcPath.copy(dstPath, false);
-        }
-        catch (DataStorageException e) {
-            throw new IOException("Failed to copy " + src + "to (locally) " + dst, e);
+            executeBatch();
+        
+            try {
+                ElementDescriptor srcPath = mDfs.asElement(src);
+                ElementDescriptor dstPath = mLfs.asElement(dst);
+                
+                srcPath.copy(dstPath, false);
+            }
+            catch (DataStorageException e) {
+                throw new IOException("Failed to copy " + src + "to (locally) " + dst, e);
+            }
+        } else {
+            log.warn("'copyToLocal' statement is ignored while processing explain");
         }
     }
 
     @Override
     protected void processCopyFromLocal(String src, String dst) throws IOException
     {
-        executeBatch();
-
-        try {
-            ElementDescriptor srcPath = mLfs.asElement(src);
-            ElementDescriptor dstPath = mDfs.asElement(dst);
+        if(mExplain == null) { // process only if not in "explain" mode
             
-            srcPath.copy(dstPath, false);
-        }
-        catch (DataStorageException e) {
-            throw new IOException("Failed to copy (loally) " + src + "to " + dst, e);
+            executeBatch();
+        
+            try {
+                ElementDescriptor srcPath = mLfs.asElement(src);
+                ElementDescriptor dstPath = mDfs.asElement(dst);
+                
+                srcPath.copy(dstPath, false);
+            }
+            catch (DataStorageException e) {
+                throw new IOException("Failed to copy (loally) " + src + "to " + dst, e);
+            }
+        } else {
+            log.warn("'copyFromLocal' statement is ignored while processing explain");
         }
     }
     
     @Override
     protected void processMkdir(String dir) throws IOException
     {
-        ContainerDescriptor dirDescriptor = mDfs.asContainer(dir);
-        dirDescriptor.create();
+        if(mExplain == null) { // process only if not in "explain" mode
+            ContainerDescriptor dirDescriptor = mDfs.asContainer(dir);
+            dirDescriptor.create();
+        } else {
+            log.warn("'mkdir' statement is ignored while processing explain");
+        }
     }
     
     @Override
@@ -741,27 +801,38 @@ public class GruntParser extends PigScriptParser {
     @Override
     protected void processRemove(String path, String options ) throws IOException
     {
-        ElementDescriptor dfsPath = mDfs.asElement(path);
+        if(mExplain == null) { // process only if not in "explain" mode
 
-        executeBatch();
+            ElementDescriptor dfsPath = mDfs.asElement(path);    
+            executeBatch();
         
-        if (!dfsPath.exists()) {
-            if (options == null || !options.equalsIgnoreCase("force")) {
-                throw new IOException("File or directory " + path + " does not exist."); 
+            if (!dfsPath.exists()) {
+                if (options == null || !options.equalsIgnoreCase("force")) {
+                    throw new IOException("File or directory " + path + " does not exist."); 
+                }
             }
-        }
-        else {
-            
-            dfsPath.delete();
+            else {
+                
+                dfsPath.delete();
+            }
+        } else {
+            log.warn("'rm/rmf' statement is ignored while processing explain");
         }
     }
 
     @Override
     protected void processFsCommand(String[] cmdTokens) throws IOException{
-        try {
-            shell.run(cmdTokens);
-        } catch (Exception e) {
-            throw new IOException(e);
+        if(mExplain == null) { // process only if not in "explain" mode
+            
+            executeBatch();
+            
+            try {
+                shell.run(cmdTokens);
+            } catch (Exception e) {
+                throw new IOException(e);
+            }
+        } else {
+            log.warn("'fs' statement is ignored while processing explain");
         }
     }
     
