@@ -29,6 +29,7 @@ import org.apache.pig.PigException;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.impl.PigContext;
+import org.apache.pig.test.Util.ProcessReturnInfo;
 import org.apache.pig.tools.grunt.Grunt;
 import org.apache.pig.tools.parameters.ParameterSubstitutionPreprocessor;
 import org.apache.pig.tools.pigscript.parser.ParseException;
@@ -41,6 +42,7 @@ import java.io.InputStreamReader;
 import java.io.BufferedReader;
 import java.io.StringReader;
 import java.io.StringWriter;
+import java.util.ArrayList;
 
 public class TestGrunt extends TestCase {
     MiniCluster cluster = MiniCluster.buildCluster();
@@ -494,7 +496,8 @@ public class TestGrunt extends TestCase {
                     "'mkdir'", "'illustrate'", "'run/exec'", "'fs'", "'aliases'",
                     "'mv'", "'dump'" };
             for (String c : cmds) {
-                String expected = c + " statement is ignored while processing explain";
+                String expected = c + " statement is ignored while processing " +
+                		"'explain -script' or '-check'";
                 assertTrue("Checking if " + gruntLoggingContents + " contains " + 
                         expected, gruntLoggingContents.contains(expected));
             }
@@ -934,4 +937,90 @@ public class TestGrunt extends TestCase {
             assertTrue(e.getMessage().contains("Encountered: \"^\" (94), after : \"\\\"\""));
         }
     }
+    
+    public void testCheckScript() throws Throwable {
+        // a query which has grunt commands intermixed with pig statements - this
+        // should pass through successfully with the check and all the grunt commands
+        // should be ignored during the check.
+        String query = "rmf input-copy.txt; cat 'foo'; a = load '1.txt' ; " +
+        		"aliases;illustrate a; copyFromLocal foo bar; copyToLocal foo bar; " +
+        		"describe a; mkdir foo; run bar.pig; exec bar.pig; cp foo bar; " +
+        		"explain a;cd 'bar'; pwd; ls ; fs -ls ; fs -rmr foo; mv foo bar; " +
+        		"dump a;store a into 'input-copy.txt' ; a = load '2.txt' as (b);" +
+        		"explain a; rm foo; store a into 'bar';";
+        
+        String[] cmds = new String[] { "'rm/rmf'", "'cp'", "'cat'", "'cd'", "'pwd'", 
+                "'copyFromLocal'", "'copyToLocal'", "'describe'", "'ls'", 
+                "'mkdir'", "'illustrate'", "'run/exec'", "'fs'", "'aliases'",
+                "'mv'", "'dump'" };
+        ArrayList<String> msgs = new ArrayList<String>();
+        for (String c : cmds) {
+            msgs.add(c + " statement is ignored while processing " +
+            		"'explain -script' or '-check'");
+        }
+        validate(query, true, msgs.toArray(new String[0]));
+    }
+    
+    public void testCheckScriptSyntaxErr() throws Throwable {
+        // a query which has grunt commands intermixed with pig statements - this
+        // should fail with the -check option with a syntax error
+        
+        // the query has a typo - chararay instead of chararray
+        String query = "a = load '1.txt' ;  fs -rmr foo; mv foo bar; dump a;" +
+        		"store a into 'input-copy.txt' ; dump a; a = load '2.txt' as " +
+        		"(b:chararay);explain a; rm foo; store a into 'bar';";
+        
+        String[] cmds = new String[] { "'fs'", "'mv'", "'dump'" };
+        ArrayList<String> msgs = new ArrayList<String>();
+        for (String c : cmds) {
+            msgs.add(c + " statement is ignored while processing " +
+                    "'explain -script' or '-check'");
+        }
+        msgs.add("Error during parsing");
+        validate(query, false, msgs.toArray(new String[0]));
+    }
+    
+    public void testCheckScriptTypeCheckErr() throws Throwable {
+        // a query which has grunt commands intermixed with pig statements - this
+        // should fail with the -check option with a type checking error
+        
+        // the query has incompatible types in bincond
+        String query = "a = load 'foo.pig' as (s:chararray); dump a; explain a; " +
+        		"store a into 'foobar'; b = foreach a generate " +
+        		"(s == 2 ? 1 : 2.0); store b into 'bar';";
+
+        String[] cmds = new String[] { "'dump'" };
+        ArrayList<String> msgs = new ArrayList<String>();
+        for (String c : cmds) {
+            msgs.add(c + " statement is ignored while processing " +
+                    "'explain -script' or '-check'");
+        }
+        msgs.add("In alias b, incompatible types in EqualTo Operator");
+        validate(query, false, msgs.toArray(new String[0]));
+    }
+    
+    private void validate(String query, boolean syntaxOk, 
+            String[] logMessagesToCheck) throws Throwable {
+        File scriptFile = Util.createFile(new String[] { query});
+        String scriptFileName = scriptFile.getAbsolutePath();
+        String cmd = "java -cp " + System.getProperty("java.class.path") + 
+        " org.apache.pig.Main -x local -c " + scriptFileName;
+            
+        ProcessReturnInfo  pri  = Util.executeJavaCommandAndReturnInfo(cmd);
+        for (String msg : logMessagesToCheck) {
+            assertTrue("Checking if " + pri.stderrContents + " contains " + 
+                    msg, pri.stderrContents.contains(msg));
+        }
+        if(syntaxOk) {
+            assertTrue("Checking that the syntax OK message was printed on " +
+            		"stderr <" + pri.stderrContents + ">",
+                    pri.stderrContents.contains("syntax OK"));
+        } else {
+            assertFalse("Checking that the syntax OK message was NOT printed on " +
+                    "stderr <" + pri.stderrContents + ">",
+                    pri.stderrContents.contains("syntax OK"));
+        }
+    }
+    
+    
 }

@@ -80,7 +80,9 @@ public class Main
     private static final String JAR = "jar";
     private static final String VERBOSE = "verbose";
     
-    private enum ExecMode {STRING, FILE, SHELL, UNKNOWN};
+    private enum ExecMode {STRING, FILE, SHELL, UNKNOWN}
+
+    private static boolean checkScriptOnly = false;
                 
 /**
  * The Main-Class for the Pig Jar that will provide a shell and setup a classpath appropriate
@@ -114,7 +116,7 @@ public static void main(String args[])
         CmdLineParser opts = new CmdLineParser(args);
         opts.registerOpt('4', "log4jconf", CmdLineParser.ValueExpected.REQUIRED);
         opts.registerOpt('b', "brief", CmdLineParser.ValueExpected.NOT_ACCEPTED);
-        opts.registerOpt('c', "cluster", CmdLineParser.ValueExpected.REQUIRED);
+        opts.registerOpt('c', "check", CmdLineParser.ValueExpected.NOT_ACCEPTED);
         opts.registerOpt('d', "debug", CmdLineParser.ValueExpected.REQUIRED);
         opts.registerOpt('e', "execute", CmdLineParser.ValueExpected.NOT_ACCEPTED);
         opts.registerOpt('f', "file", CmdLineParser.ValueExpected.REQUIRED);
@@ -138,11 +140,6 @@ public static void main(String args[])
         String execTypeString = properties.getProperty("exectype");
         if(execTypeString!=null && execTypeString.length()>0){
             execType = PigServer.parseExecType(execTypeString);
-        }
-        String cluster = "local";
-        String clusterConfigured = properties.getProperty("cluster");
-        if(clusterConfigured != null && clusterConfigured.length() > 0){
-            cluster = clusterConfigured;
         }
         
         //by default warning aggregation is on
@@ -172,12 +169,7 @@ public static void main(String args[])
                 break;
 
             case 'c': 
-                // Needed away to specify the cluster to run the MR job on
-                // Bug 831708 - fixed
-                String clusterParameter = opts.getValStr();
-                if (clusterParameter != null && clusterParameter.length() > 0) {
-                    cluster = clusterParameter;
-                }
+                checkScriptOnly = true;
                 break;
 
             case 'd':
@@ -314,7 +306,7 @@ public static void main(String args[])
 
             // run parameter substitution preprocessor first
             substFile = file + ".substituted";
-            pin = runParamPreprocessor(in, params, paramFiles, substFile, debug || dryrun);
+            pin = runParamPreprocessor(in, params, paramFiles, substFile, debug || dryrun || checkScriptOnly);
             if (dryrun) {
                 log.info("Dry run completed. Substituted pig script is at " + substFile);
                 return;
@@ -334,12 +326,27 @@ public static void main(String args[])
             
             grunt = new Grunt(pin, pigContext);
             gruntCalled = true;
-            int results[] = grunt.exec();
-            rc = getReturnCodeForStats(results);
+            
+            if(checkScriptOnly) {
+                grunt.checkScript(substFile);
+                System.err.println(file + " syntax OK");
+                rc = 0;
+            } else {
+                int results[] = grunt.exec();
+                rc = getReturnCodeForStats(results);
+            }
+            
             return;
         }
 
         case STRING: {
+            if(checkScriptOnly) {
+                System.err.println("ERROR:" +
+                        "-c (-check) option is only valid " +
+                        "when executing pig with a pig script file)");
+                rc = 2; // failure
+                return;
+            }
             // Gather up all the remaining arguments into a string and pass them into
             // grunt.
             StringBuffer sb = new StringBuffer();
@@ -366,6 +373,13 @@ public static void main(String args[])
         // run grunt interactive.
         String remainders[] = opts.getRemainingArgs();
         if (remainders == null) {
+            if(checkScriptOnly) {
+                System.err.println("ERROR:" +
+                        "-c (-check) option is only valid " +
+                        "when executing pig with a pig script file)");
+                rc = 2; // failure
+                return;
+            }
             // Interactive
             mode = ExecMode.SHELL;
             ConsoleReader reader = new ConsoleReader(System.in, new OutputStreamWriter(System.out));
@@ -383,15 +397,14 @@ public static void main(String args[])
         } else {
             // They have a pig script they want us to run.
             if (remainders.length > 1) {
-                   throw new RuntimeException("You can only run one pig script "
-                    + "at a time from the command line.");
+                   throw new RuntimeException("Encountered unexpected arguments on command line - please check the command line.");
             }
             mode = ExecMode.FILE;
             in = new BufferedReader(new FileReader(remainders[0]));
 
             // run parameter substitution preprocessor first
             substFile = remainders[0] + ".substituted";
-            pin = runParamPreprocessor(in, params, paramFiles, substFile, debug || dryrun);
+            pin = runParamPreprocessor(in, params, paramFiles, substFile, debug || dryrun || checkScriptOnly);
             if (dryrun){
                 log.info("Dry run completed. Substituted pig script is at " + substFile);
                 return;
@@ -411,8 +424,15 @@ public static void main(String args[])
 
             grunt = new Grunt(pin, pigContext);
             gruntCalled = true;
-            int[] results = grunt.exec();
-            rc = getReturnCodeForStats(results);
+            
+            if(checkScriptOnly) {
+                grunt.checkScript(substFile);
+                System.err.println(remainders[0] + " syntax OK");
+                rc = 0;
+            } else {
+                int results[] = grunt.exec();
+                rc = getReturnCodeForStats(results);
+            }
             return;
         }
 

@@ -31,6 +31,7 @@ import java.io.PrintStream;
 import java.io.Reader;
 import java.io.StringReader;
 import java.io.StringWriter;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
@@ -230,7 +231,7 @@ public class GruntParser extends PigScriptParser {
             }
             mPigServer.dumpSchema(alias);
         } else {
-            log.warn("'describe' statement is ignored while processing explain");
+            log.warn("'describe' statement is ignored while processing 'explain -script' or '-check'");
         }
     }
 
@@ -238,6 +239,15 @@ public class GruntParser extends PigScriptParser {
     protected void processExplain(String alias, String script, boolean isVerbose, 
                                   String format, String target, 
                                   List<String> params, List<String> files) 
+    throws IOException, ParseException {
+        processExplain(alias, script, isVerbose, format, target, params, files, 
+                false);
+    }
+
+    protected void processExplain(String alias, String script, boolean isVerbose, 
+                                  String format, String target, 
+                                  List<String> params, List<String> files,
+                                  boolean dontPrintOutput) 
         throws IOException, ParseException {
         
         if (null != mExplain) {
@@ -267,7 +277,7 @@ public class GruntParser extends PigScriptParser {
             }
 
             mExplain.mLast = true;
-            explainCurrentBatch();
+            explainCurrentBatch(dontPrintOutput);
 
         } finally {
             if (script != null) {
@@ -278,9 +288,30 @@ public class GruntParser extends PigScriptParser {
     }
 
     protected void explainCurrentBatch() throws IOException {
-        PrintStream lp = System.out;
-        PrintStream pp = System.out;
-        PrintStream ep = System.out;
+        explainCurrentBatch(false);
+    }
+
+    /**
+     * A {@link PrintStream} implementation which does not write anything 
+     * Used with '-check' command line option to pig Main 
+     * (through {@link GruntParser#explainCurrentBatch(boolean) } )
+     */
+    static class NullPrintStream extends PrintStream {
+        public NullPrintStream(String fileName) throws FileNotFoundException {
+            super(fileName);
+        }
+        @Override
+        public void write(byte[] buf, int off, int len) {}
+        @Override
+        public void write(int b) {}
+        @Override
+        public void write(byte [] b) {}
+    }
+    
+    protected void explainCurrentBatch(boolean dontPrintOutput) throws IOException {
+        PrintStream lp = (dontPrintOutput) ? new NullPrintStream("dummy") : System.out;
+        PrintStream pp = (dontPrintOutput) ? new NullPrintStream("dummy") : System.out;
+        PrintStream ep = (dontPrintOutput) ? new NullPrintStream("dummy") : System.out;
         
         if (!(mExplain.mLast && mExplain.mCount == 0)) {
             if (mPigServer.isBatchEmpty()) {
@@ -324,7 +355,7 @@ public class GruntParser extends PigScriptParser {
         if(mExplain == null) { // process only if not in "explain" mode
             mPigServer.printAliases();
         } else {
-            log.warn("'aliases' statement is ignored while processing explain");
+            log.warn("'aliases' statement is ignored while processing 'explain -script' or '-check'");
         }
     }
     
@@ -376,7 +407,7 @@ public class GruntParser extends PigScriptParser {
                 loadScript(script, false, mLoadOnly, params, files);
             }
         } else {
-            log.warn("'run/exec' statement is ignored while processing explain");
+            log.warn("'run/exec' statement is ignored while processing 'explain -script' or '-check'");
         }
     }
 
@@ -519,7 +550,7 @@ public class GruntParser extends PigScriptParser {
                 throw new IOException("Failed to Cat: " + path, e);
             }
         } else {
-            log.warn("'cat' statement is ignored while processing explain");
+            log.warn("'cat' statement is ignored while processing 'explain -script' or '-check'");
         }
     }
 
@@ -554,7 +585,7 @@ public class GruntParser extends PigScriptParser {
                                                          : (path)), e);
             }
         } else {
-            log.warn("'cd' statement is ignored while processing explain");
+            log.warn("'cd' statement is ignored while processing 'explain -script' or '-check'");
         }
     }
 
@@ -569,7 +600,7 @@ public class GruntParser extends PigScriptParser {
                 System.out.println(TupleFormat.format(t));
             }
         } else {
-            log.warn("'dump' statement is ignored while processing explain");
+            log.warn("'dump' statement is ignored while processing 'explain -script' or '-check'");
         }
     }
     
@@ -579,7 +610,7 @@ public class GruntParser extends PigScriptParser {
         if(mExplain == null) { // process only if not in "explain" mode
             mPigServer.getExamples(alias);
         } else {
-            log.warn("'illustrate' statement is ignored while processing explain");
+            log.warn("'illustrate' statement is ignored while processing 'explain -script' or '-check'");
         }
     }
 
@@ -639,7 +670,7 @@ public class GruntParser extends PigScriptParser {
                 throw new IOException("Failed to LS on " + path, e);
             }
         } else {
-            log.warn("'ls' statement is ignored while processing explain");
+            log.warn("'ls' statement is ignored while processing 'explain -script' or '-check'");
         }
     }
 
@@ -660,7 +691,7 @@ public class GruntParser extends PigScriptParser {
         if(mExplain == null) { // process only if not in "explain" mode
             System.out.println(mDfs.getActiveContainer().toString());
         } else {
-            log.warn("'pwd' statement is ignored while processing explain");
+            log.warn("'pwd' statement is ignored while processing 'explain -script' or '-check'");
         }
     }
 
@@ -704,7 +735,7 @@ public class GruntParser extends PigScriptParser {
                 throw new IOException("Failed to move " + src + " to " + dst, e);
             }
         } else {
-            log.warn("'mv' statement is ignored while processing explain");
+            log.warn("'mv' statement is ignored while processing 'explain -script' or '-check'");
         }
     }
     
@@ -725,7 +756,7 @@ public class GruntParser extends PigScriptParser {
                 throw new IOException("Failed to copy " + src + " to " + dst, e);
             }
         } else {
-            log.warn("'cp' statement is ignored while processing explain");
+            log.warn("'cp' statement is ignored while processing 'explain -script' or '-check'");
         }
     }
     
@@ -746,7 +777,7 @@ public class GruntParser extends PigScriptParser {
                 throw new IOException("Failed to copy " + src + "to (locally) " + dst, e);
             }
         } else {
-            log.warn("'copyToLocal' statement is ignored while processing explain");
+            log.warn("'copyToLocal' statement is ignored while processing 'explain -script' or '-check'");
         }
     }
 
@@ -767,7 +798,7 @@ public class GruntParser extends PigScriptParser {
                 throw new IOException("Failed to copy (loally) " + src + "to " + dst, e);
             }
         } else {
-            log.warn("'copyFromLocal' statement is ignored while processing explain");
+            log.warn("'copyFromLocal' statement is ignored while processing 'explain -script' or '-check'");
         }
     }
     
@@ -778,7 +809,7 @@ public class GruntParser extends PigScriptParser {
             ContainerDescriptor dirDescriptor = mDfs.asContainer(dir);
             dirDescriptor.create();
         } else {
-            log.warn("'mkdir' statement is ignored while processing explain");
+            log.warn("'mkdir' statement is ignored while processing 'explain -script' or '-check'");
         }
     }
     
@@ -816,7 +847,7 @@ public class GruntParser extends PigScriptParser {
                 dfsPath.delete();
             }
         } else {
-            log.warn("'rm/rmf' statement is ignored while processing explain");
+            log.warn("'rm/rmf' statement is ignored while processing 'explain -script' or '-check'");
         }
     }
 
@@ -832,7 +863,7 @@ public class GruntParser extends PigScriptParser {
                 throw new IOException(e);
             }
         } else {
-            log.warn("'fs' statement is ignored while processing explain");
+            log.warn("'fs' statement is ignored while processing 'explain -script' or '-check'");
         }
     }
     
