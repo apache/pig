@@ -27,6 +27,7 @@ import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
@@ -483,17 +484,49 @@ public class Util {
     }
     
     public static int executeJavaCommand(String cmd) throws Exception {
+        return executeJavaCommandAndReturnInfo(cmd).exitCode;
+    }
+    
+    
+    public static ProcessReturnInfo executeJavaCommandAndReturnInfo(String cmd) 
+    throws Exception {
         String javaHome = System.getenv("JAVA_HOME");
         if(javaHome != null) {
             String fileSeparator = System.getProperty("file.separator");
             cmd = javaHome + fileSeparator + "bin" + fileSeparator + cmd;
         }
         Process cmdProc = Runtime.getRuntime().exec(cmd);
-        
+        ProcessReturnInfo pri = new ProcessReturnInfo();
+        pri.stdoutContents = getContents(cmdProc.getInputStream());
+        pri.stderrContents = getContents(cmdProc.getErrorStream());
         cmdProc.waitFor();
-        
-        return cmdProc.exitValue();
+        pri.exitCode = cmdProc.exitValue();
+        return pri;
     }
+    
+    private static String getContents(InputStream istr) throws IOException {
+        BufferedReader br = new BufferedReader(
+                new InputStreamReader(istr));
+        String s = "";
+        String line;
+        while ( (line = br.readLine()) != null) {
+            s += line + "\n";
+        }
+        return s;
+        
+    }
+    public static class ProcessReturnInfo {
+        public int exitCode;
+        public String stderrContents;
+        public String stdoutContents;
+        
+        @Override
+        public String toString() {
+            return "[Exit code: " + exitCode + ", stdout: <" + stdoutContents + ">, " +
+            		"stderr: <" + stderrContents + ">"; 
+        }
+    }
+    
     static public boolean deleteDirectory(File path) {
         if(path.exists()) {
             File[] files = path.listFiles();

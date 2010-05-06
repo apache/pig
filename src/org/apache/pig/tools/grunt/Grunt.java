@@ -23,6 +23,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.io.IOException;
 import java.io.FileOutputStream;
+import java.util.ArrayList;
 
 import jline.ConsoleReader;
 import jline.Completor;
@@ -87,6 +88,21 @@ public class Grunt
         try {
             parser.setInteractive(false);
             return parser.parseStopOnError();
+        } catch (Throwable t) {
+            LogUtils.writeLog(t, pig.getPigContext().getProperties().getProperty("pig.logfile"), 
+                    log, verbose, "Pig Stack Trace");
+            throw (t);
+        }
+    }
+    
+    public void checkScript(String scriptFile) throws Throwable {
+        boolean verbose = "true".equalsIgnoreCase(pig.getPigContext().getProperties().getProperty("verbose"));
+        try {
+            parser.setInteractive(false);
+            boolean dontPrintOutput = true;
+            parser.processExplain(null, scriptFile, false, "text", null, 
+                    new ArrayList<String>(), new ArrayList<String>(),
+                    dontPrintOutput);
         } catch (Throwable t) {
             LogUtils.writeLog(t, pig.getPigContext().getProperties().getProperty("pig.logfile"), 
                     log, verbose, "Pig Stack Trace");
