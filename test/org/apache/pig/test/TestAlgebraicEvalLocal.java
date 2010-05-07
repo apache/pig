@@ -47,7 +47,6 @@ public class TestAlgebraicEvalLocal extends TestCase {
     
     Boolean[] nullFlags = new Boolean[]{ false, true};
 
-    //MiniCluster cluster = MiniCluster.buildCluster();
     @Test
     public void testGroupCountWithMultipleFields() throws Throwable {
         File tmpFile = File.createTempFile("test", "txt");

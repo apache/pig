@@ -18,6 +18,8 @@
 package org.apache.pig.test;
 
 
+import static org.junit.Assert.*;
+
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -36,12 +38,15 @@ import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.test.utils.FILTERFROMFILE;
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
-public class TestFilterUDF extends TestCase {
+public class TestFilterUDF {
     private PigServer pigServer;
-    private MiniCluster cluster = MiniCluster.buildCluster();
+    private static MiniCluster cluster = MiniCluster.buildCluster();
     private File tmpFile;
     
     TupleFactory tf = TupleFactory.getInstance();
@@ -71,6 +76,11 @@ public class TestFilterUDF extends TestCase {
     @After
     public void tearDown() throws Exception {
         tmpFile.delete();
+    }
+    
+    @AfterClass
+    public static void oneTimeTearDown() throws Exception {
+        cluster.shutDown();
     }
     
     private File createFile(String[] data) throws Exception{

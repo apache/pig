@@ -17,38 +17,33 @@
  */
 package org.apache.pig.test;
 
+import static org.junit.Assert.assertTrue;
+
 import java.io.File;
-import java.io.FileOutputStream;
-import java.io.PrintStream;
-import java.text.DecimalFormat;
 import java.util.Iterator;
-
-import junit.framework.TestCase;
-
-import org.junit.Test;
 
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
-import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
-
-public class TestSample
-extends TestCase
-{
+import org.junit.After;
+import org.junit.AfterClass;
+import org.junit.Before;
+import org.junit.Test;
+public class TestSample {
     private PigServer pig;
     private File tmpFile;
     private String tmpfilepath;
 
     private int DATALEN = 1024;
-    MiniCluster cluster = MiniCluster.buildCluster();
+    static MiniCluster cluster = MiniCluster.buildCluster();
     
-    @Override
-    protected void setUp()
+    @Before
+    public void setUp()
     throws Exception
     {
         pig = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
 
-        tmpFile = File.createTempFile( this.getName(), ".txt");
+        tmpFile = File.createTempFile( this.getClass().getName(), ".txt");
         String input[] = new String[DATALEN];
         for(int i = 0; i < DATALEN; i++) {
             input[i] = Integer.toString(i);
@@ -58,10 +53,16 @@ extends TestCase
         Util.createInputFile(cluster, tmpfilepath, input);
     }
 
-    protected void tearDown()
+    @After
+    public void tearDown()
     throws Exception
     {
         Util.deleteFile(cluster, tmpfilepath);
+    }
+    
+    @AfterClass
+    public static void oneTimeTearDown() throws Exception {
+        cluster.shutDown();
     }
 
     private void verify(String query, int expected_min, int expected_max)

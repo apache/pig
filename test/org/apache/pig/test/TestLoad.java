@@ -60,9 +60,13 @@ import org.apache.pig.test.utils.GenPhyOp;
 import org.apache.pig.test.utils.LogicalPlanTester;
 import org.apache.pig.test.utils.TestHelper;
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
+@RunWith(JUnit4.class)
 public class TestLoad extends junit.framework.TestCase {
 
     PigContext pc;
@@ -119,6 +123,11 @@ public class TestLoad extends junit.framework.TestCase {
         assertEquals(true, size==inpDB.size());
     }
 
+    @AfterClass
+    public static void oneTimeTearDown() throws Exception {
+        cluster.shutDown();
+    }
+    
     @Test
     public void testLoadRemoteRel() throws Exception {
         for (PigServer pig : servers) {

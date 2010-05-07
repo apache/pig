@@ -42,13 +42,18 @@ import org.apache.pig.impl.logicalLayer.LOCogroup;
 import org.apache.pig.impl.logicalLayer.LogicalPlan;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
+@RunWith(JUnit4.class)
 public class TestCollectedGroup extends TestCase {
     private static final String INPUT_FILE = "MapSideGroupInput.txt";
     
     private PigServer pigServer;
-    private MiniCluster cluster = MiniCluster.buildCluster();
+    private static MiniCluster cluster = MiniCluster.buildCluster();
 
     public TestCollectedGroup() throws ExecException, IOException{
         pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
@@ -81,6 +86,7 @@ public class TestCollectedGroup extends TestCase {
         Util.deleteFile(cluster, INPUT_FILE);
     }
     
+    @Test
     public void testNonCollectableLoader() throws Exception{
         LogicalPlanTester lpt = new LogicalPlanTester();
         lpt.buildPlan("A = LOAD '" + INPUT_FILE + "' as (id, name, grade);");
@@ -95,6 +101,7 @@ public class TestCollectedGroup extends TestCase {
         }
     }
 
+    @Test
     public void testCollectedGrpSpecifiedInSingleQuotes1(){
         
         LogicalPlanTester lpt = new LogicalPlanTester();
@@ -103,6 +110,7 @@ public class TestCollectedGroup extends TestCase {
         assertEquals(LOCogroup.GROUPTYPE.COLLECTED, ((LOCogroup)lp.getLeaves().get(0)).getGroupType());
     }
     
+    @Test
     public void testCollectedGrpSpecifiedInSingleQuotes2(){
         
         LogicalPlanTester lpt = new LogicalPlanTester();
@@ -111,14 +119,21 @@ public class TestCollectedGroup extends TestCase {
         assertEquals(LOCogroup.GROUPTYPE.REGULAR, ((LOCogroup)lp.getLeaves().get(0)).getGroupType());
     }
     
+    @AfterClass
+    public static void oneTimeTearDown() throws Exception {
+        cluster.shutDown();
+    }
+    
+    @Test
     public void testPOMapsideGroupNoNullPlans() throws IOException {
         POCollectedGroup pmg = new POCollectedGroup(new OperatorKey());
         List<PhysicalPlan> plans = pmg.getPlans();
 
         Assert.assertTrue(plans != null);
         Assert.assertTrue(plans.size() == 0);
-    }      
-     
+    }     
+    
+    @Test  
     public void testMapsideGroupParserNoSupportForMultipleInputs() throws IOException {
         pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
 
@@ -134,6 +149,7 @@ public class TestCollectedGroup extends TestCase {
         }
     }
     
+    @Test
     public void testMapsideGroupParserNoSupportForGroupAll() throws IOException {
         pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
 
@@ -148,6 +164,7 @@ public class TestCollectedGroup extends TestCase {
         }
     }
      
+    @Test
     public void testMapsideGroupParserNoSupportForByExpression() throws IOException {
         pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
 
@@ -162,6 +179,7 @@ public class TestCollectedGroup extends TestCase {
         }
     }
 
+    @Test
     public void testMapsideGroupByOneColumn() throws IOException{
         pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
 
@@ -196,6 +214,7 @@ public class TestCollectedGroup extends TestCase {
         }
     }
  
+    @Test
     public void testMapsideGroupByMultipleColumns() throws IOException{
         pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
 
@@ -231,6 +250,7 @@ public class TestCollectedGroup extends TestCase {
         }
     }
   
+    @Test
     public void testMapsideGroupByStar() throws IOException{
         pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
 

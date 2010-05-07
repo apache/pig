@@ -79,9 +79,13 @@ import org.apache.pig.test.utils.GenRandomData;
 import org.apache.pig.test.utils.LogicalPlanTester;
 import org.apache.pig.test.utils.TestHelper;
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
+@RunWith(JUnit4.class)
 public class TestJobSubmission extends junit.framework.TestCase{
     
     
@@ -96,9 +100,10 @@ public class TestJobSubmission extends junit.framework.TestCase{
     String curDir;
     String inpDir;
     String golDir;
+    static MiniCluster cluster = MiniCluster.buildCluster();
     
     static {
-        MiniCluster cluster = MiniCluster.buildCluster();
+
         pc = new PigContext(ExecType.MAPREDUCE, cluster.getProperties());
         try {
             pc.connect();
@@ -122,6 +127,11 @@ public class TestJobSubmission extends junit.framework.TestCase{
     
     @After
     public void tearDown() throws Exception {
+    }
+    
+    @AfterClass
+    public static void oneTimeTearDown() throws Exception {
+        cluster.shutDown();
     }
     
 /*    private void generateInput(int numTuples) throws ExecException{

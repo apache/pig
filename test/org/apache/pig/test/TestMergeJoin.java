@@ -46,6 +46,7 @@ import org.apache.pig.impl.util.LogUtils;
 import org.apache.pig.test.utils.LogicalPlanTester;
 import org.apache.pig.test.utils.TestHelper;
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -54,7 +55,7 @@ public class TestMergeJoin {
     private static final String INPUT_FILE = "testMergeJoinInput.txt";
     private static final String INPUT_FILE2 = "testMergeJoinInput2.txt";
     private PigServer pigServer;
-    private MiniCluster cluster = MiniCluster.buildCluster();
+    private static MiniCluster cluster = MiniCluster.buildCluster();
 
     public TestMergeJoin() throws ExecException{
 
@@ -82,6 +83,10 @@ public class TestMergeJoin {
         Util.createInputFile(cluster, INPUT_FILE2, new String[]{"2"});
     }
 
+    @AfterClass
+    public static void oneTimeTearDown() throws Exception {
+        cluster.shutDown();
+    }
     /**
      * @throws java.lang.Exception
      */

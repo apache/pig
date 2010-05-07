@@ -38,9 +38,12 @@ import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.io.FileLocalizer;
+import org.junit.AfterClass;
+import org.junit.Before;
 import org.junit.Test;
+import static org.junit.Assert.*;
 
-public class TestFinish extends TestCase {
+public class TestFinish {
 
     private PigServer pigServer;
 
@@ -48,7 +51,7 @@ public class TestFinish extends TestCase {
     BagFactory mBf = BagFactory.getInstance();
     File f1;
     
-    MiniCluster cluster = MiniCluster.buildCluster();
+    static MiniCluster cluster = MiniCluster.buildCluster();
     
     static public class MyEvalFunction extends EvalFunc<Tuple>{
         
@@ -78,12 +81,17 @@ public class TestFinish extends TestCase {
         }
     }
     
-    @Override
-    protected void setUp() throws Exception {
+    @Before
+    public void setUp() throws Exception {
         // re initialize FileLocalizer so that each test runs correctly without
         // any side effect of other tests - this is needed here since some
         // tests are in mapred and some in local mode
         FileLocalizer.setInitialized(false);
+    }
+    
+    @AfterClass
+    public static void oneTimeTearDown() throws Exception {
+        cluster.shutDown();
     }
     
     private String setUp(ExecType execType) throws Exception{

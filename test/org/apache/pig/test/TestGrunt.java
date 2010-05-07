@@ -17,7 +17,12 @@
  */
 package org.apache.pig.test;
 
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
+
 import junit.framework.TestCase;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -44,18 +49,23 @@ import java.io.StringReader;
 import java.io.StringWriter;
 import java.util.ArrayList;
 
+@RunWith(JUnit4.class)
 public class TestGrunt extends TestCase {
-    MiniCluster cluster = MiniCluster.buildCluster();
-    private String basedir;
+    static MiniCluster cluster = MiniCluster.buildCluster();
+    private String basedir = "test/org/apache/pig/test/data";
 
     private final Log log = LogFactory.getLog(getClass());
 
-    public TestGrunt(String name) {
-        super(name);
+    @BeforeClass
+    public static void oneTimeSetup() throws Exception {
         cluster.setProperty("opt.multiquery","true");
-        basedir = "test/org/apache/pig/test/data";
     }
-    
+
+    @AfterClass
+    public static void oneTimeTearDown() throws Exception {
+        cluster.shutDown();
+    }
+        
 /*    
     @Test 
     public void testCopyFromLocal() throws Throwable {
@@ -802,6 +812,7 @@ public class TestGrunt extends TestCase {
         assertTrue(caught);
     }
     
+    @Test
     public void testFsCommand(){
         
         try {
@@ -837,6 +848,7 @@ public class TestGrunt extends TestCase {
         }
     }
    
+    @Test
     public void testSetPriority() throws Throwable {
         PigServer server = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
         PigContext context = server.getPigContext();
@@ -852,6 +864,7 @@ public class TestGrunt extends TestCase {
         assertEquals("high", context.getProperties().getProperty(PigContext.JOB_PRIORITY));
     }
     
+    @Test
     public void testSetWithQuotes() throws Throwable {
         PigServer server = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
         PigContext context = server.getPigContext();
@@ -867,6 +880,7 @@ public class TestGrunt extends TestCase {
         assertEquals("high", context.getProperties().getProperty(PigContext.JOB_PRIORITY));
     }
     
+    @Test    
     public void testRegisterWithQuotes() throws Throwable {
         PigServer server = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
         PigContext context = server.getPigContext();
@@ -882,6 +896,7 @@ public class TestGrunt extends TestCase {
         assertTrue(context.extraJars.contains(ClassLoader.getSystemResource("pig-withouthadoop.jar")));
     }
     
+    @Test    
     public void testRegisterWithoutQuotes() throws Throwable {
         PigServer server = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
         PigContext context = server.getPigContext();
@@ -897,6 +912,7 @@ public class TestGrunt extends TestCase {
         assertTrue(context.extraJars.contains(ClassLoader.getSystemResource("pig-withouthadoop.jar")));
     }
     
+    @Test    
     public void testScriptMissingLastNewLine() throws Throwable {   
         PigServer server = new PigServer(ExecType.LOCAL);
         PigContext context = server.getPigContext();
