@@ -31,20 +31,25 @@ import org.apache.pig.PigServer;
 import org.apache.pig.ExecType;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
+@RunWith(JUnit4.class)
 public class TestParser extends TestCase {
 
 protected final Log log = LogFactory.getLog(getClass());
     
     protected ExecType execType = MAPREDUCE;
     
-    private MiniCluster cluster;
+    private static MiniCluster cluster;
     protected PigServer pigServer;
     
     @Before
     @Override
-    protected void setUp() throws Exception {
+    public void setUp() throws Exception {
         
         String execTypeString = System.getProperty("test.exectype");
         if(execTypeString!=null && execTypeString.length()>0){
@@ -59,11 +64,17 @@ protected final Log log = LogFactory.getLog(getClass());
     }
 
     @After
-    @Override
-    protected void tearDown() throws Exception {
+    public void tearDown() throws Exception {
         pigServer.shutdown();
     }
 
+    @AfterClass
+    public static void oneTimeTearDown() throws Exception {
+        if(cluster != null)
+            cluster.shutDown();
+    }
+    
+    @Test
     public void testLoadingNonexistentFile() throws ExecException, IOException {
         try {
             // FIXME : this should be tested in all modes

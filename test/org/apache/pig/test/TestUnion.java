@@ -47,8 +47,11 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
 import org.apache.pig.test.utils.GenPhyOp;
 import org.apache.pig.test.utils.TestHelper;
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
 /**
  *  Start Plan - --4430968173902769765
@@ -76,10 +79,12 @@ import org.junit.Test;
  *  conversion from DataByteArray to native types for computation
  *  and back to DataByteArray for comparison with input.
  */
+
+@RunWith(JUnit4.class)
 public class TestUnion extends junit.framework.TestCase {
     POUnion sp;
     DataBag expBag;
-    MiniCluster cluster = MiniCluster.buildCluster();
+    static MiniCluster cluster = MiniCluster.buildCluster();
     PigContext pc = new PigContext();
     @Before
     public void setUp() throws Exception {
@@ -150,6 +155,11 @@ public class TestUnion extends junit.framework.TestCase {
 
     @After
     public void tearDown() throws Exception {
+    }
+    
+    @AfterClass
+    public static void oneTimeTearDown() throws Exception {
+        cluster.shutDown();
     }
     
     private Tuple castToDBA(Tuple in) throws ExecException{

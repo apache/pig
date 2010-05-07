@@ -32,21 +32,30 @@ import org.apache.pig.impl.io.BufferedPositionedInputStream;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.util.UDFContext;
+import org.junit.AfterClass;
+import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
 import junit.framework.TestCase;
 
-
+@RunWith(JUnit4.class)
 public class TestUDFContext extends TestCase {
     
     static MiniCluster cluster = null;
     
     @Override 
-    protected void setUp() throws Exception {
+    @Before
+    public void setUp() throws Exception {
         cluster = MiniCluster.buildCluster();
     }
 
-
+    @AfterClass
+    public static void oneTimeTearDown() throws Exception {
+        cluster.shutDown();
+    }
+    
     @Test
     public void testUDFContext() throws Exception {
         Util.createInputFile(cluster, "a.txt", new String[] { "dumb" });

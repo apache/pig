@@ -42,6 +42,7 @@ public class MiniCluster {
     private JobConf m_conf = null;
     
     private final static MiniCluster INSTANCE = new MiniCluster();
+    private static boolean isSetup = true;
     
     private MiniCluster() {
         setupMiniDfsAndMrClusters();
@@ -85,7 +86,15 @@ public class MiniCluster {
      * mapreduce cluster. 
      */
     public static MiniCluster buildCluster() {
+        if(! isSetup){
+            INSTANCE.setupMiniDfsAndMrClusters();
+            isSetup = true;
+        }
         return INSTANCE;
+    }
+
+    public void shutDown(){
+        INSTANCE.shutdownMiniDfsAndMrClusters();
     }
     
     protected void finalize() {
@@ -93,24 +102,41 @@ public class MiniCluster {
     }
     
     private void shutdownMiniDfsAndMrClusters() {
+        isSetup = false;
         try {
             if (m_fileSys != null) { m_fileSys.close(); }
         } catch (IOException e) {
             e.printStackTrace();
         }
         if (m_dfs != null) { m_dfs.shutdown(); }
-        if (m_mr != null) { m_mr.shutdown(); }        
-	}
+        if (m_mr != null) { m_mr.shutdown(); }     
+        m_fileSys = null;
+        m_dfs = null;
+        m_mr = null;
+    }
 
     public Properties getProperties() {
+        errorIfNotSetup();
         return ConfigurationUtil.toProperties(m_conf);
     }
 
     public void setProperty(String name, String value) {
+        errorIfNotSetup();
         m_conf.set(name, value);
     }
     
     public FileSystem getFileSystem() {
+        errorIfNotSetup();
         return m_fileSys;
+    }
+    
+    /**
+     * Throw RunTimeException if isSetup is false
+     */
+    private void errorIfNotSetup(){
+        if(isSetup)
+            return;
+        String msg = "function called on MiniCluster that has been shutdown";
+        throw new RuntimeException(msg);
     }
 }

@@ -18,28 +18,30 @@
 
 package org.apache.pig.test;
 
-import org.apache.pig.ExecType;
-import org.apache.pig.PigServer;
-import org.apache.pig.ExecType;
-import org.apache.pig.test.utils.TestHelper;
-import org.apache.pig.data.Tuple;
-import org.apache.pig.impl.logicalLayer.parser.ParseException;
-import org.junit.Test;
-import junit.framework.TestCase;
-import junit.framework.Assert;
+import static org.junit.Assert.*;
 
-import java.util.Iterator;
-import java.util.List;
-import java.util.Random;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.text.DecimalFormat;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Random;
 
-public class TestForEachNestedPlan extends TestCase {
+import junit.framework.Assert;
 
-    MiniCluster cluster = MiniCluster.buildCluster();
+import org.apache.pig.ExecType;
+import org.apache.pig.PigServer;
+import org.apache.pig.data.Tuple;
+import org.apache.pig.impl.logicalLayer.parser.ParseException;
+import org.apache.pig.test.utils.TestHelper;
+import org.junit.AfterClass;
+import org.junit.Test;
+
+public class TestForEachNestedPlan {
+
+    static MiniCluster cluster = MiniCluster.buildCluster();
 
     private PigServer pig ;
 
@@ -48,6 +50,11 @@ public class TestForEachNestedPlan extends TestCase {
     }
 
     Boolean[] nullFlags = new Boolean[]{ false, true };
+    
+    @AfterClass
+    public static void oneTimeTearDown() throws Exception {
+        cluster.shutDown();
+    }
     
     @Test
     public void testInnerOrderBy() throws Exception {

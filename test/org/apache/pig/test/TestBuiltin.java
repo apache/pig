@@ -17,12 +17,12 @@
  */
 package org.apache.pig.test;
 
+import static org.junit.Assert.*;
+
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
-
-import junit.framework.TestCase;
 
 import org.apache.pig.Algebraic;
 import org.apache.pig.EvalFunc;
@@ -56,13 +56,15 @@ import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.ReadToEndLoader;
+import org.junit.AfterClass;
+import org.junit.Before;
 import org.junit.Test;
 
-public class TestBuiltin extends TestCase {
+public class TestBuiltin {
     
     private String initString = "mapreduce";
     //private String initString = "local";
-    MiniCluster cluster = MiniCluster.buildCluster();
+    static MiniCluster cluster = MiniCluster.buildCluster();
     
     PigServer pigServer;
 
@@ -119,8 +121,8 @@ public class TestBuiltin extends TestCase {
             };
     
     String[] inputTypeAsString = {"ByteArray", "Integer", "Long", "Float", "Double", "String" };
-    
-    @Override
+
+    @Before
     public void setUp() throws Exception {
        
         pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
@@ -267,6 +269,11 @@ public class TestBuiltin extends TestCase {
         }
     }
 
+    @AfterClass
+    public static void oneTimeTearDown() throws Exception {
+        cluster.shutDown();
+    }
+    
     /**
      * Test the case where the combiner is not called - so initial is called
      * and then final is called

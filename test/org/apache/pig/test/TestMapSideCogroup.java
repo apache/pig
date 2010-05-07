@@ -18,10 +18,13 @@
 package org.apache.pig.test;
 
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import java.io.IOException;
 import java.util.Iterator;
-
-import junit.framework.TestCase;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
@@ -48,9 +51,10 @@ import org.apache.pig.impl.logicalLayer.LOCogroup;
 import org.apache.pig.impl.logicalLayer.LogicalPlan;
 import org.apache.pig.test.utils.LogicalPlanTester;
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
-
-public class TestMapSideCogroup extends TestCase{
+import org.junit.Test;
+public class TestMapSideCogroup {
 
     private static final String INPUT_FILE1 = "testCogrpInput1.txt";
     private static final String INPUT_FILE2 = "testCogrpInput2.txt";
@@ -60,7 +64,7 @@ public class TestMapSideCogroup extends TestCase{
     private static final String EMPTY_FILE = "empty.txt";
     private static final String DATA_WITH_NULL_KEYS = "null.txt";
 
-    private MiniCluster cluster = MiniCluster.buildCluster();
+    private static MiniCluster cluster = MiniCluster.buildCluster();
 
     @Before
     public void setUp() throws Exception {
@@ -132,6 +136,12 @@ public class TestMapSideCogroup extends TestCase{
         Util.deleteFile(cluster, DATA_WITH_NULL_KEYS);
     }
 
+    @AfterClass
+    public static void oneTimeTearDown() throws Exception {
+        cluster.shutDown();
+    }
+    
+    @Test
     public void testCompilation(){
         try{
             LogicalPlanTester lpt = new LogicalPlanTester();
@@ -168,6 +178,7 @@ public class TestMapSideCogroup extends TestCase{
 
     }
 
+    @Test
     public void testFailure1() throws Exception{
         LogicalPlanTester lpt = new LogicalPlanTester();
         lpt.buildPlan("A = LOAD 'data1' using "+ DummyCollectableLoader.class.getName() +"() as (id, name, grade);");
@@ -189,6 +200,7 @@ public class TestMapSideCogroup extends TestCase{
         assertTrue(exceptionCaught);
     }
     
+    @Test
     public void testFailure2() throws Exception{
         LogicalPlanTester lpt = new LogicalPlanTester();
         lpt.buildPlan("A = LOAD 'data1' using "+ DummyCollectableLoader.class.getName() +"() as (id, name, grade);");
@@ -208,6 +220,7 @@ public class TestMapSideCogroup extends TestCase{
         assertTrue(exceptionCaught);
     }
     
+    @Test
     public void testSimple() throws Exception{
 
         PigServer pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
@@ -237,6 +250,7 @@ public class TestMapSideCogroup extends TestCase{
         assertFalse(itr.hasNext());
     }
 
+    @Test
     public void test3Way() throws Exception{
 
         PigServer pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
@@ -270,6 +284,7 @@ public class TestMapSideCogroup extends TestCase{
 
     }
 
+    @Test
     public void testMultiSplits() throws Exception{
 
         PigServer pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
@@ -308,6 +323,7 @@ public class TestMapSideCogroup extends TestCase{
         assertFalse(itr.hasNext());
     }
 
+    @Test
     public void testCogrpOnMultiKeys() throws Exception{
 
         PigServer pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
@@ -343,6 +359,7 @@ public class TestMapSideCogroup extends TestCase{
         assertFalse(itr.hasNext());
     }
     
+    @Test
     public void testEmptyDeltaFile() throws Exception{
 
         PigServer pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
@@ -373,7 +390,7 @@ public class TestMapSideCogroup extends TestCase{
         assertFalse(itr.hasNext());
     }
 
- 
+    @Test
     public void testDataWithNullKeys() throws Exception{
 
         PigServer pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());

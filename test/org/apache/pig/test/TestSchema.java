@@ -655,5 +655,6 @@ public class TestSchema extends TestCase {
             Tuple t = it.next();
             assertEquals("{a: {f1: chararray,f2: int}}", t.get(0));
         }
+        cluster.shutDown();
     }
 }

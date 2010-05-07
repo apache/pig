@@ -26,18 +26,30 @@ import org.apache.pig.PigServer;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.io.FileLocalizer;
+import org.junit.AfterClass;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
 import junit.framework.TestCase;
 
+@RunWith(JUnit4.class)
 public class TestStoreOld extends TestCase {
 
-    MiniCluster cluster = MiniCluster.buildCluster();
+    static MiniCluster cluster = MiniCluster.buildCluster();
     private int LOOP_COUNT = 1024;
     
     String fileName;
     String tmpFile1, tmpFile2;
     PigServer pig;
     
+    @AfterClass
+    public static void oneTimeTearDown() throws Exception {
+        cluster.shutDown();
+    }
+    
+    @Test
     public void testSingleStore() throws Exception{
         pig.registerQuery("A = load " + fileName + ";");
         
@@ -55,6 +67,7 @@ public class TestStoreOld extends TestCase {
         }
     }
     
+    @Test
     public void testMultipleStore() throws Exception{
         pig.registerQuery("A = load " + fileName + ";");
         
@@ -76,6 +89,7 @@ public class TestStoreOld extends TestCase {
         
     }
     
+    @Test
     public void testStoreWithMultipleMRJobs() throws Exception{
         pig.registerQuery("A = load " + fileName + ";");        
         pig.registerQuery("B = foreach (group A by $0) generate $0, SUM($1.$0);");
@@ -98,7 +112,8 @@ public class TestStoreOld extends TestCase {
 
     
     @Override
-    protected void setUp() throws Exception {
+    @Before
+    public void setUp() throws Exception {
         super.setUp();
         File f = File.createTempFile("tmp", "");
         PrintWriter pw = new PrintWriter(f);

@@ -17,6 +17,8 @@
  */
 package org.apache.pig.test;
 
+import static org.junit.Assert.*;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -38,12 +40,13 @@ import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.util.LogUtils;
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
 
-public class TestBestFitCast extends TestCase {
+public class TestBestFitCast {
     private PigServer pigServer;
-    private MiniCluster cluster = MiniCluster.buildCluster();
+    private static MiniCluster cluster = MiniCluster.buildCluster();
     String inputFile, inputFile2;
     int LOOP_SIZE = 20;
     
@@ -74,6 +77,11 @@ public class TestBestFitCast extends TestCase {
     public void tearDown() throws Exception {
         Util.deleteFile(cluster, inputFile);
         Util.deleteFile(cluster, inputFile2);
+    }
+    
+    @AfterClass
+    public static void oneTimeTearDown() throws Exception {
+        cluster.shutDown();
     }
     
     public static class UDF1 extends EvalFunc<Tuple>{
@@ -237,7 +245,7 @@ public class TestBestFitCast extends TestCase {
         while(iter.hasNext()){
             Tuple t = iter.next();
             assertTrue(((Tuple)t.get(1)).get(0) instanceof Float);
-            assertEquals((Float)((Tuple)t.get(1)).get(0), 0.0f);
+            assertEquals((Float)((Tuple)t.get(1)).get(0), (Float)0.0f);
             assertTrue(((Tuple)t.get(1)).get(1) instanceof Long);
             assertEquals((Long)((Tuple)t.get(1)).get(1), new Long(cnt + 1));
             ++cnt;
@@ -258,7 +266,7 @@ public class TestBestFitCast extends TestCase {
         while(iter.hasNext()){
             Tuple t = iter.next();
             assertTrue(((Tuple)t.get(1)).get(0) instanceof Float);
-            assertEquals((Float)((Tuple)t.get(1)).get(0), 0.0f);
+            assertEquals((Float)((Tuple)t.get(1)).get(0), (Float)0.0f);
             assertTrue(((Tuple)t.get(1)).get(1) instanceof Long);
             assertEquals((Long)((Tuple)t.get(1)).get(1), new Long(cnt + 1));
             ++cnt;
@@ -279,7 +287,7 @@ public class TestBestFitCast extends TestCase {
         while(iter.hasNext()){
             Tuple t = iter.next();
             assertTrue(((Tuple)t.get(1)).get(0) instanceof Float);
-            assertEquals((Float)((Tuple)t.get(1)).get(0), 0.0f);
+            assertEquals((Float)((Tuple)t.get(1)).get(0), (Float)0.0f);
             assertTrue(((Tuple)t.get(1)).get(1) instanceof Double);
             assertEquals((Double)((Tuple)t.get(1)).get(1), new Double(cnt + 1));
             ++cnt;
@@ -362,7 +370,7 @@ public class TestBestFitCast extends TestCase {
         while(iter.hasNext()){
             Tuple t = iter.next();
             assertTrue(((Tuple)t.get(1)).get(0) instanceof Float);
-            assertEquals((Float)((Tuple)t.get(1)).get(0), 0.0f);
+            assertEquals((Float)((Tuple)t.get(1)).get(0), (Float)0.0f);
             assertTrue(((Tuple)t.get(1)).get(1) instanceof Long);
             assertEquals((Long)((Tuple)t.get(1)).get(1), new Long(cnt + 1));
             assertTrue(((Tuple)t.get(1)).get(2) instanceof Double);
@@ -385,7 +393,7 @@ public class TestBestFitCast extends TestCase {
         while(iter.hasNext()){
             Tuple t = iter.next();
             assertTrue(((Tuple)t.get(1)).get(0) instanceof Float);
-            assertEquals((Float)((Tuple)t.get(1)).get(0), 0.0f);
+            assertEquals((Float)((Tuple)t.get(1)).get(0), (Float)0.0f);
             assertTrue(((Tuple)t.get(1)).get(1) instanceof Double);
             assertEquals((Double)((Tuple)t.get(1)).get(1), new Double(cnt + 1));
             assertTrue(((Tuple)t.get(1)).get(2) instanceof Long);
@@ -408,7 +416,7 @@ public class TestBestFitCast extends TestCase {
         while(iter.hasNext()){
             Tuple t = iter.next();
             assertTrue(((Tuple)t.get(1)).get(0) instanceof Float);
-            assertEquals((Float)((Tuple)t.get(1)).get(0), 0.0f);
+            assertEquals((Float)((Tuple)t.get(1)).get(0), (Float)0.0f);
             assertTrue(((Tuple)t.get(1)).get(1) instanceof Long);
             assertEquals((Long)((Tuple)t.get(1)).get(1), new Long(cnt + 1));
             assertTrue(((Tuple)t.get(1)).get(2) instanceof Double);
@@ -431,7 +439,7 @@ public class TestBestFitCast extends TestCase {
         while(iter.hasNext()){
             Tuple t = iter.next();
             assertTrue(((Tuple)t.get(1)).get(0) instanceof Float);
-            assertEquals((Float)((Tuple)t.get(1)).get(0), 0.0f);
+            assertEquals((Float)((Tuple)t.get(1)).get(0), (Float)0.0f);
             assertTrue(((Tuple)t.get(1)).get(1) instanceof Double);
             assertEquals((Double)((Tuple)t.get(1)).get(1), new Double(cnt + 1));
             assertTrue(((Tuple)t.get(1)).get(2) instanceof Long);
@@ -478,7 +486,7 @@ public class TestBestFitCast extends TestCase {
         while(iter.hasNext()){
             Tuple t = iter.next();
             assertTrue(((Tuple)t.get(1)).get(0) instanceof Float);
-            assertEquals((Float)((Tuple)t.get(1)).get(0), 0.0f);
+            assertEquals((Float)((Tuple)t.get(1)).get(0), (Float)0.0f);
             assertTrue(((Tuple)t.get(1)).get(1) instanceof Long);
             assertEquals((Long)((Tuple)t.get(1)).get(1), new Long(cnt + 1));
             assertTrue(((Tuple)t.get(1)).get(2) instanceof Double);

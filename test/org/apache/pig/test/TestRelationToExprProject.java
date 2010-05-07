@@ -33,8 +33,11 @@ import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.logicalLayer.parser.ParseException;
 import org.apache.pig.impl.util.LogUtils;
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
 import junit.framework.TestCase;
 
@@ -55,9 +58,10 @@ import junit.framework.TestCase;
  * a = load 'baginp.txt' as (b:bag{t:tuple()}); b = foreach a generate $0; dump b;
  * will go through a regular project (without the following flag)
  */
+@RunWith(JUnit4.class)
 public class TestRelationToExprProject extends TestCase {
 
-    private MiniCluster cluster = MiniCluster.buildCluster();
+    private static MiniCluster cluster = MiniCluster.buildCluster();
     private PigServer pigServer;
     private static final String TEST_FILTER_COUNT3_INPUT="test/org/apache/pig/test/data/TestRelationToExprProjectInput.txt"; 
     
@@ -65,7 +69,7 @@ public class TestRelationToExprProject extends TestCase {
      * @see junit.framework.TestCase#setUp()
      */
     @Before
-    protected void setUp() throws Exception {
+    public void setUp() throws Exception {
         pigServer = new PigServer(MAPREDUCE, cluster.getProperties());
     }
     
@@ -73,8 +77,13 @@ public class TestRelationToExprProject extends TestCase {
      * @see junit.framework.TestCase#tearDown()
      */
     @After
-    protected void tearDown() throws Exception {
+    public void tearDown() throws Exception {
         pigServer.shutdown();
+    }
+    
+    @AfterClass
+    public static void oneTimeTearDown() throws Exception {
+        cluster.shutDown();
     }
     
     // based on the script provided in the jira issue:PIG-514

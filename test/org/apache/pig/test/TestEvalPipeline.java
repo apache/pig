@@ -56,12 +56,16 @@ import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.util.Pair;
 import org.apache.pig.test.utils.GenRandomData;
 import org.apache.pig.test.utils.Identity;
+import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
+@RunWith(JUnit4.class)
 public class TestEvalPipeline extends TestCase {
     
-    MiniCluster cluster = MiniCluster.buildCluster();
+    static MiniCluster cluster = MiniCluster.buildCluster();
     private PigServer pigServer;
     private PigContext pigContext;
 
@@ -75,6 +79,11 @@ public class TestEvalPipeline extends TestCase {
         pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
 //        pigServer = new PigServer(ExecType.LOCAL);
         pigContext = pigServer.getPigContext();
+    }
+    
+    @AfterClass
+    public static void oneTimeTearDown() throws Exception {
+        cluster.shutDown();
     }
     
     static public class MyBagFunction extends EvalFunc<DataBag>{
@@ -129,7 +138,7 @@ public class TestEvalPipeline extends TestCase {
     
     @Test
     public void testDriverMethod() throws Exception{
-        File f = File.createTempFile("tmp", "");
+        File f = Util.createTempFileDelOnExit("tmp", "");
         PrintWriter pw = new PrintWriter(f);
         pw.println("a");
         pw.println("a");
@@ -165,7 +174,7 @@ public class TestEvalPipeline extends TestCase {
         t.append(weights);
         b.add(t);
         
-        File tmpFile = File.createTempFile("tmp", "");
+        File tmpFile = Util.createTempFileDelOnExit("tmp", "");
         tmpFile.deleteOnExit();
         String fileName = tmpFile.getAbsolutePath();
         PigFile f = new PigFile(fileName);
@@ -364,7 +373,7 @@ public class TestEvalPipeline extends TestCase {
 
     private void testSortDistinct(boolean eliminateDuplicates, boolean useUDF) throws Exception{
         int LOOP_SIZE = 1024*16;
-        File tmpFile = File.createTempFile("test", "txt");
+        File tmpFile = Util.createTempFileDelOnExit("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
         Random r = new Random();
         for(int i = 0; i < LOOP_SIZE; i++) {
@@ -401,9 +410,10 @@ public class TestEvalPipeline extends TestCase {
         }        
     }
     
+    @Test
     public void testNestedPlan() throws Exception{
         int LOOP_COUNT = 10;
-        File tmpFile = File.createTempFile("test", "txt");
+        File tmpFile = Util.createTempFileDelOnExit("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
         for(int i = 0; i < LOOP_COUNT; i++) {
             for(int j=0;j<LOOP_COUNT;j+=2){
@@ -440,9 +450,10 @@ public class TestEvalPipeline extends TestCase {
         assertEquals(LOOP_COUNT, numIdentity);
     }
 
+    @Test
     public void testNestedPlanWithExpressionAssignment() throws Exception{
         int LOOP_COUNT = 10;
-        File tmpFile = File.createTempFile("test", "txt");
+        File tmpFile = Util.createTempFileDelOnExit("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
         for(int i = 0; i < LOOP_COUNT; i++) {
             for(int j=0;j<LOOP_COUNT;j+=2){
@@ -484,9 +495,10 @@ public class TestEvalPipeline extends TestCase {
         assertEquals(LOOP_COUNT, numIdentity);
     }
 
+    @Test
     public void testLimit() throws Exception{
         int LOOP_COUNT = 20;
-        File tmpFile = File.createTempFile("test", "txt");
+        File tmpFile = Util.createTempFileDelOnExit("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
         for(int i = 0; i < LOOP_COUNT; i++) {
             ps.println(i);
@@ -731,9 +743,10 @@ public class TestEvalPipeline extends TestCase {
         
     }
 
+    @Test
     public void testMapUDF() throws Exception{
         int LOOP_COUNT = 2;
-        File tmpFile = File.createTempFile("test", "txt");
+        File tmpFile = Util.createTempFileDelOnExit("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
         for(int i = 0; i < LOOP_COUNT; i++) {
             for(int j=0;j<LOOP_COUNT;j+=2){
@@ -770,9 +783,10 @@ public class TestEvalPipeline extends TestCase {
         assertEquals(LOOP_COUNT * LOOP_COUNT, numIdentity);
     }
 
+    @Test
     public void testMapUDFFail() throws Exception{
         int LOOP_COUNT = 2;
-        File tmpFile = File.createTempFile("test", "txt");
+        File tmpFile = Util.createTempFileDelOnExit("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
         for(int i = 0; i < LOOP_COUNT; i++) {
             for(int j=0;j<LOOP_COUNT;j+=2){
@@ -818,7 +832,7 @@ public class TestEvalPipeline extends TestCase {
     @Test
     public void testNestedPlanForCloning() throws Exception{
         int LOOP_COUNT = 10;
-        File tmpFile = File.createTempFile("test", "txt");
+        File tmpFile = Util.createTempFileDelOnExit("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
         for(int i = 0; i < LOOP_COUNT; i++) {
             for(int j=0;j<LOOP_COUNT;j+=2){
@@ -860,7 +874,7 @@ public class TestEvalPipeline extends TestCase {
     @Test
     public void testArithmeticCloning() throws Exception{
         int LOOP_COUNT = 10;
-        File tmpFile = File.createTempFile("test", "txt");
+        File tmpFile = Util.createTempFileDelOnExit("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
         for(int i = 0; i < LOOP_COUNT; i++) {
             for(int j=0;j<LOOP_COUNT;j+=2){
@@ -907,7 +921,7 @@ public class TestEvalPipeline extends TestCase {
     @Test
     public void testExpressionReUse() throws Exception{
         int LOOP_COUNT = 10;
-        File tmpFile = File.createTempFile("test", "txt");
+        File tmpFile = Util.createTempFileDelOnExit("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
         for(int i = 0; i < LOOP_COUNT; i++) {
             for(int j=0;j<LOOP_COUNT;j+=2){
@@ -948,7 +962,7 @@ public class TestEvalPipeline extends TestCase {
     @Test
     public void testIdentity() throws Exception{
         int LOOP_COUNT = 2;
-        File tmpFile = File.createTempFile("test", "txt");
+        File tmpFile = Util.createTempFileDelOnExit("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
         for(int i = 0; i < LOOP_COUNT; i++) {
             for(int j=0;j<LOOP_COUNT;j+=2){

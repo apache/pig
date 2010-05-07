@@ -40,15 +40,19 @@ import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 
+import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.After;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
+
 import junit.framework.TestCase;
 
-
+@RunWith(JUnit4.class)
 public class TestPigServer extends TestCase {
     private PigServer pig = null;
-    MiniCluster cluster = MiniCluster.buildCluster();
+    static MiniCluster cluster = MiniCluster.buildCluster();
     private File stdOutRedirectedFile;
 
     @Before
@@ -72,6 +76,10 @@ public class TestPigServer extends TestCase {
         stdOutRedirectedFile.delete();
     }
     
+    @AfterClass
+    public static void oneTimeTearDown() throws Exception {
+        cluster.shutDown();
+    }
     
     private final static String FILE_SEPARATOR = System.getProperty("file.separator");
     
