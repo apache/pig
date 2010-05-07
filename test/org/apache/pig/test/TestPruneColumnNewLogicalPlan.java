@@ -41,13 +41,13 @@ import org.apache.pig.data.Tuple;
 import org.apache.pig.experimental.plan.optimizer.Rule;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.optimizer.PruneColumns;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
 import junit.framework.TestCase;
 
 public class TestPruneColumnNewLogicalPlan extends TestCase {
-    //MiniCluster cluster = MiniCluster.buildCluster();
     private PigServer pigServer;
     File tmpFile1;
     File tmpFile2;
@@ -173,6 +173,24 @@ public class TestPruneColumnNewLogicalPlan extends TestCase {
         ps.close();
 
     }
+    
+    
+    @After
+    @Override
+    public void tearDown() throws Exception{
+        tmpFile1.delete();
+        tmpFile2.delete();
+        tmpFile3.delete();
+        tmpFile4.delete();
+        tmpFile5.delete();
+        tmpFile6.delete();
+        tmpFile7.delete();
+        tmpFile8.delete();
+        tmpFile9.delete();
+        tmpFile10.delete();
+        logFile.delete();
+    }
+    
     
     public boolean checkLogFileMessage(String[] messages)
     {

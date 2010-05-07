@@ -20,6 +20,7 @@ package org.apache.pig.test;
 
 import static org.apache.pig.test.utils.TypeCheckingTestUtil.printMessageCollector;
 import static org.apache.pig.test.utils.TypeCheckingTestUtil.printTypeGraph;
+import static org.junit.Assert.*;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -39,12 +40,13 @@ import org.apache.pig.impl.logicalLayer.validators.TypeCheckingValidator;
 import org.apache.pig.impl.plan.CompilationMessageCollector;
 import org.apache.pig.test.utils.LogicalPlanTester;
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
 
-public class TestImplicitSplit extends TestCase{
+public class TestImplicitSplit {
     private PigServer pigServer;
-    MiniCluster cluster = MiniCluster.buildCluster();
+    static MiniCluster cluster = MiniCluster.buildCluster();
     
     @Before
     public void setUp() throws Exception {
@@ -53,6 +55,11 @@ public class TestImplicitSplit extends TestCase{
 
     @After
     public void tearDown() throws Exception {
+    }
+    
+    @AfterClass
+    public static void oneTimeTearDown() throws Exception {
+        cluster.shutDown();
     }
     
     @Test

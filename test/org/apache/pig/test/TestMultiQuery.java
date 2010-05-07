@@ -75,7 +75,9 @@ import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
+@RunWith(JUnit4.class)
 public class TestMultiQuery {
 
     private static final MiniCluster cluster = MiniCluster.buildCluster();
@@ -94,6 +96,7 @@ public class TestMultiQuery {
     public static void tearDownAfterClass() throws IOException {
         Util.deleteFile(cluster, "passwd");
         Util.deleteFile(cluster, "passwd2");
+        cluster.shutDown();
     }
     
     @Before
@@ -409,6 +412,11 @@ public class TestMultiQuery {
                 Assert.fail();
             }
         }
+    }
+    
+    @AfterClass
+    public static void oneTimeTearDown() throws Exception {
+        cluster.shutDown();
     }
     
     @Test

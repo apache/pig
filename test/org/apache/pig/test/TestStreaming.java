@@ -35,6 +35,7 @@ import org.apache.pig.builtin.PigStreaming;
 import org.apache.pig.PigToStream;
 import org.apache.pig.impl.util.TupleFormat;
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -53,6 +54,11 @@ public class TestStreaming {
     @After
     public void tearDown() {
         pigServer = null;
+    }
+    
+    @AfterClass
+    public static void oneTimeTearDown() throws Exception {
+        cluster.shutDown();
     }
     
     private TupleFactory tf = DefaultTupleFactory.getInstance();

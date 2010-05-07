@@ -31,8 +31,14 @@ import org.apache.pig.PigServer;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.test.utils.MyUDFReturnMap;
+import org.junit.After;
+import org.junit.AfterClass;
+import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
+@RunWith(JUnit4.class)
 public class TestUDFReturnMap extends TestCase {
 
 	static String[] ScriptStatement = {
@@ -44,7 +50,8 @@ public class TestUDFReturnMap extends TestCase {
 	static MiniCluster cluster = MiniCluster.buildCluster();
 
 	@Override
-	protected void setUp() throws Exception {
+	@Before
+	public void setUp() throws Exception {
 		TempScriptFile = File.createTempFile("temp_jira_851", ".pig");
 		FileWriter writer = new FileWriter(TempScriptFile);
 		for (String line : ScriptStatement) {
@@ -53,6 +60,11 @@ public class TestUDFReturnMap extends TestCase {
 		writer.close();
 	}
 
+	@AfterClass
+	public static void oneTimeTearDown() throws Exception {
+	    cluster.shutDown();
+	}
+	
 	@Test
 	public void testUDFReturnMap_LocalMode() {
 		try {
@@ -100,7 +112,8 @@ public class TestUDFReturnMap extends TestCase {
 	}
 
 	@Override
-	protected void tearDown() throws Exception {
+	@After
+	public void tearDown() throws Exception {
 		TempScriptFile.delete();
 	}
 }

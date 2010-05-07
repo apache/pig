@@ -42,8 +42,13 @@ import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.OperatorKey;
+import org.junit.AfterClass;
+import org.junit.Before;
+import org.junit.Test;
 
-public class TestCharArrayToNumeric extends TestCase {
+import static org.junit.Assert.*;
+
+public class TestCharArrayToNumeric {
 
 	private Double dummyDouble = null;
 
@@ -69,15 +74,18 @@ public class TestCharArrayToNumeric extends TestCase {
 
 	private Integer MinInteger = Integer.MIN_VALUE;
 	
-	MiniCluster cluster = MiniCluster.buildCluster();
+	static MiniCluster cluster = MiniCluster.buildCluster();
 	PigServer pig;
 	
-	/* (non-Javadoc)
-	 * @see junit.framework.TestCase#setUp()
-	 */
-	@Override
-	protected void setUp() throws Exception {
+
+	@Before
+	public void setUp() throws Exception {
 	    pig = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+	}
+	
+	@AfterClass
+	public static void oneTimeTearDown() throws Exception {
+	    cluster.shutDown();
 	}
 
 	public static OperatorKey newOperatorKey() {
@@ -85,6 +93,7 @@ public class TestCharArrayToNumeric extends TestCase {
 		return new OperatorKey("scope", newId);
 	}
 
+        @Test
 	public void testCast() throws ExecException {
 
 		POCast cast = new POCast(newOperatorKey(), -1);
@@ -161,7 +170,7 @@ public class TestCharArrayToNumeric extends TestCase {
 		}
 	}
 
-
+        @Test
 	public void testCharArray2FloatAndDoubleScript() throws IOException {
 
 		// create a input file with format (key,value)
@@ -200,7 +209,7 @@ public class TestCharArrayToNumeric extends TestCase {
 					if (type == DataType.DOUBLE) {
 						Double expected = map.get(key);
 						if (value != null) {
-							assertEquals(expected, Double.parseDouble(value));
+							assertEquals(expected, (Double)Double.parseDouble(value));
 						} else {
 							assertEquals(expected, null);
 						}
@@ -212,7 +221,7 @@ public class TestCharArrayToNumeric extends TestCase {
 							expected = map.get(key).floatValue();
 						}
 						if (value != null) {
-							assertEquals(expected, Float.parseFloat(value));
+							assertEquals(expected, (Float)Float.parseFloat(value));
 						} else {
 							assertEquals(expected, null);
 						}
@@ -227,6 +236,7 @@ public class TestCharArrayToNumeric extends TestCase {
 		}
 	}
 
+        @Test
 	public void testCharArrayToIntAndLongScript() throws IOException {
 
 		// create a input file with format (key,value)

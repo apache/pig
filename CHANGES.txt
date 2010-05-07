@@ -54,6 +54,9 @@ PIG-1309: Map-side Cogroup (ashutoshc)
 
 BUG FIXES
 
+PIG-1391: pig unit tests leave behind files in temp directory because 
+MiniCluster files don't get deleted (tejas)
+
 PIG-1211: Pig script runs half way after which it reports syntax error
 (pradeepkth)
 

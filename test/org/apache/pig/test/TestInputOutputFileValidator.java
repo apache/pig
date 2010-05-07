@@ -43,15 +43,23 @@ import org.apache.pig.impl.logicalLayer.validators.* ;
 import org.apache.pig.impl.plan.CompilationMessageCollector;
 import org.apache.pig.impl.plan.CompilationMessageCollector.MessageType; 
 import org.apache.pig.impl.util.LogUtils;
+import org.junit.AfterClass;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
 import junit.framework.Assert;
 import junit.framework.TestCase;
 
+@RunWith(JUnit4.class)
 public class TestInputOutputFileValidator extends TestCase {
     
     
-    private MiniCluster cluster = MiniCluster.buildCluster();
+    private static MiniCluster cluster = MiniCluster.buildCluster();
+    @AfterClass
+    public static void oneTimeTearDown() throws Exception {
+        cluster.shutDown();
+    }
     
     @Test
     public void testLocalModeInputPositive() throws Throwable {

@@ -17,6 +17,8 @@
  */
 package org.apache.pig.test;
 
+import static org.junit.Assert.*;
+
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -31,24 +33,23 @@ import junit.framework.Assert;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
-import org.apache.pig.backend.executionengine.ExecJob;
-import org.apache.pig.data.DataBag;
-import org.apache.pig.data.DataType;
-import org.apache.pig.data.DefaultTuple;
-import org.apache.pig.data.Tuple;
-import org.apache.pig.data.TupleFactory;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POProject;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLocalRearrange;
-import org.apache.pig.impl.io.NullableTuple;
+import org.apache.pig.data.DataBag;
+import org.apache.pig.data.DataType;
+import org.apache.pig.data.DefaultTuple;
+import org.apache.pig.data.Tuple;
+import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.plan.PlanException;
 import org.apache.pig.test.utils.GenPhyOp;
 import org.apache.pig.test.utils.GenRandomData;
 import org.apache.pig.test.utils.TestHelper;
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -57,17 +58,23 @@ import org.junit.Test;
  * group db by $0 
  *
  */
-public class TestLocalRearrange extends junit.framework.TestCase {
+public class TestLocalRearrange  {
     
     POLocalRearrange lr;
     Tuple t;
     DataBag db;
-    
+    private static final MiniCluster cluster = MiniCluster.buildCluster();
+
     
     @Before
     public void setUp() throws Exception {
         Random r = new Random();
         db = GenRandomData.genRandSmallTupDataBag(r, 10, 100);
+    }
+    
+    @AfterClass
+    public static void oneTimeTearDown() throws Exception {
+        cluster.shutDown();
     }
     
     private void setUp1() throws PlanException, ExecException{
@@ -190,7 +197,6 @@ public class TestLocalRearrange extends junit.framework.TestCase {
         
         String INPUT_FILE = "data.txt";
         
-        final MiniCluster cluster = MiniCluster.buildCluster();
         
         try {
             PrintWriter w = new PrintWriter(new FileWriter(INPUT_FILE));

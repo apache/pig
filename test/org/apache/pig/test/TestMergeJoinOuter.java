@@ -18,11 +18,14 @@
 
 package org.apache.pig.test;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.Properties;
-
-import junit.framework.TestCase;
 
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
@@ -42,15 +45,16 @@ import org.apache.pig.test.TestMapSideCogroup.DummyCollectableLoader;
 import org.apache.pig.test.TestMapSideCogroup.DummyIndexableLoader;
 import org.apache.pig.test.utils.LogicalPlanTester;
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
+import org.junit.Test;
 
-
-public class TestMergeJoinOuter extends TestCase{
+public class TestMergeJoinOuter {
 
     private static final String INPUT_FILE1 = "testMergeJoinInput.txt";
     private static final String INPUT_FILE2 = "testMergeJoinInput2.txt";
     private PigServer pigServer;
-    private MiniCluster cluster = MiniCluster.buildCluster();
+    private static MiniCluster cluster = MiniCluster.buildCluster();
     
     public TestMergeJoinOuter() throws ExecException{
         
@@ -60,10 +64,8 @@ public class TestMergeJoinOuter extends TestCase{
         pigServer = new PigServer(ExecType.MAPREDUCE, props);
     }
     
-    @Override
     @Before
-    protected void setUp() throws Exception {
-        super.setUp();
+    public void setUp() throws Exception {
         int LOOP_SIZE = 3;
         String[] input = new String[LOOP_SIZE*LOOP_SIZE];
         int k = 0;
@@ -77,14 +79,18 @@ public class TestMergeJoinOuter extends TestCase{
         Util.createInputFile(cluster, INPUT_FILE2, new String[]{"2\t2","2\t3","3\t1","4\t1","4\t3"});
     }
     
-    @Override
     @After
-    protected void tearDown() throws Exception {
-        super.tearDown();
+    public void tearDown() throws Exception {
         Util.deleteFile(cluster, INPUT_FILE1);
         Util.deleteFile(cluster, INPUT_FILE2);
     }
 
+    @AfterClass
+    public static void oneTimeTearDown() throws Exception {
+        cluster.shutDown();
+    }
+    
+    @Test
     public void testCompilation(){
         try{
             LogicalPlanTester lpt = new LogicalPlanTester();
@@ -122,6 +128,7 @@ public class TestMergeJoinOuter extends TestCase{
 
     }
 
+    @Test
     public void testFailure() throws Exception{
         LogicalPlanTester lpt = new LogicalPlanTester();
         lpt.buildPlan("A = LOAD 'data1' using "+ DummyCollectableLoader.class.getName() +"() as (id, name, grade);");
@@ -142,6 +149,7 @@ public class TestMergeJoinOuter extends TestCase{
         assertTrue(exceptionCaught);
     }
     
+    @Test
     public void testLeftOuter() throws IOException {
         
         pigServer.registerQuery("A = LOAD '"+INPUT_FILE1+"' using "+ DummyCollectableLoader.class.getName() +"() as (c1:chararray, c2:chararray);");
@@ -170,6 +178,7 @@ public class TestMergeJoinOuter extends TestCase{
 
     }
     
+    @Test
     public void testRightOuter() throws IOException{
         
         pigServer.registerQuery("A = LOAD '"+INPUT_FILE1+"' using "+ DummyCollectableLoader.class.getName() +"() as (c1:chararray, c2:chararray);");
@@ -196,6 +205,7 @@ public class TestMergeJoinOuter extends TestCase{
 
     }
     
+    @Test
     public void testFullOuter() throws IOException{
         
         pigServer.registerQuery("A = LOAD '"+INPUT_FILE1+"' using "+ DummyCollectableLoader.class.getName() +"() as (c1:chararray, c2:chararray);");

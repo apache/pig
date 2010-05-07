@@ -33,8 +33,11 @@ import java.util.Map;
 import java.util.Random;
 import java.util.StringTokenizer;
 
+import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
 import org.apache.pig.ComparisonFunc;
 import org.apache.pig.EvalFunc;
@@ -56,9 +59,10 @@ import org.apache.pig.test.utils.Identity;
 
 import junit.framework.TestCase;
 
+@RunWith(JUnit4.class)
 public class TestCommit extends TestCase {
     
-    MiniCluster cluster = MiniCluster.buildCluster();
+    static MiniCluster cluster = MiniCluster.buildCluster();
     private PigServer pigServer;
 
     TupleFactory mTf = TupleFactory.getInstance();
@@ -67,6 +71,11 @@ public class TestCommit extends TestCase {
     @Override
     public void setUp() throws Exception{
         pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+    }
+    
+    @AfterClass
+    public static void oneTimeTearDown() throws Exception {
+        cluster.shutDown();
     }
     
     @Test
