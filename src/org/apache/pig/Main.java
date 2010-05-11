@@ -276,15 +276,14 @@ public static void main(String args[])
 	    logFileName = validateLogFile(properties.getProperty("pig.logfile"), null);
 	}
         
-        if(logFileName != null) {
-            log.info("Logging error messages to: " + logFileName);
-        }
-        
         pigContext.getProperties().setProperty("pig.logfile", (logFileName == null? "": logFileName));
      
         // configure logging
         configureLog4J(properties, pigContext);
         
+        if(logFileName != null) {
+            log.info("Logging error messages to: " + logFileName);
+        }
         
         if(optimizerRules.size() > 0) {
         	pigContext.getProperties().setProperty("pig.optimizer.rules", ObjectSerializer.serialize(optimizerRules));
