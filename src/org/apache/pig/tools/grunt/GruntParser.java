@@ -44,6 +44,7 @@ import jline.ConsoleReaderInputStream;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.fs.FsShell;
+
 import org.apache.hadoop.mapred.JobClient;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.JobID;
@@ -865,6 +866,65 @@ public class GruntParser extends PigScriptParser {
         } else {
             log.warn("'fs' statement is ignored while processing 'explain -script' or '-check'");
         }
+    }
+    
+    @Override
+    protected void processShCommand(String[] cmdTokens) throws IOException{
+        StringBuilder builder = new StringBuilder();
+        for (String token:cmdTokens){
+            builder.append(token + " ");
+        }
+        try {
+            Process executor = Runtime.getRuntime().exec(builder.toString());
+            StreamPrinter outPrinter = new StreamPrinter(executor.getInputStream(), null, System.out);
+            StreamPrinter errPrinter = new StreamPrinter(executor.getErrorStream(), null, System.err);
+
+            outPrinter.start();
+            errPrinter.start();
+
+            int ret = executor.waitFor();
+            if (ret != 0) {
+                log.warn("Command failed with exit code = " + ret);
+            }
+        } catch (Exception e) {
+            log.warn("Exception raised from Shell command " + e.getLocalizedMessage());
+        }
+    }
+    
+    /**
+     * StreamPrinter.
+     *
+     */
+    public static class StreamPrinter extends Thread {
+    	InputStream is;
+	    String type;
+	    PrintStream os;
+
+	    public StreamPrinter(InputStream is, String type, PrintStream os) {
+	    	this.is = is;
+	    	this.type = type;
+	    	this.os = os;
+	    }
+
+	    @Override
+	    public void run() {
+	        try {
+	        	InputStreamReader isr = new InputStreamReader(is);
+	        	BufferedReader br = new BufferedReader(isr);
+	        	String line = null;
+	        	if (type != null) {
+		            while ((line = br.readLine()) != null) {
+		            	os.println(type + ">" + line);
+		            }
+	        	} else {
+	        		while ((line = br.readLine()) != null) {
+	        			os.println(line);
+	        		}
+	        	}
+	        } catch (IOException ioe) {
+	        	ioe.printStackTrace();
+	        }
+	    }
     }
     
     private static class ExplainState {
