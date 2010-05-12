@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-1410: Make PigServer can handle files with parameters (zjffdu)
+
 PIG-1406: Allow to run shell commands from grunt (zjffdu)
 
 PIG-1398: Marking Pig interfaces for org.apache.pig.data package (gates)
