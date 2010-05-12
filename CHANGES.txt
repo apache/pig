@@ -187,6 +187,9 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-1391: pig unit tests leave behind files in temp directory because 
+MiniCluster files don't get deleted (tejas)
+
 PIG-1394: POCombinerPackage hold too much memory for InternalCachedBag (daijy)
 
 PIG-1303: Inconsistent instantiation of parametrized UDFs (jrussek and dvryaboy)

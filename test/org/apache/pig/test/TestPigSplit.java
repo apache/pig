@@ -54,7 +54,7 @@ public class TestPigSplit extends PigExecTestCase {
      * @see org.apache.pig.test.PigExecTestCase#tearDown()
      */
     @Override
-    protected void tearDown() throws Exception {
+    public void tearDown() throws Exception {
         if(execType == ExecType.MAPREDUCE) {
             Util.deleteFile(cluster, inputFileName);
         } else if (execType == ExecType.LOCAL) {
@@ -64,7 +64,6 @@ public class TestPigSplit extends PigExecTestCase {
         }
     }
     
-	@Test
 	public void notestLongEvalSpec() throws Exception{
 		inputFileName = "notestLongEvalSpec-input.txt";
 		createInput(new String[] {"0\ta"});

@@ -27,8 +27,12 @@ import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.io.FileLocalizer;
 
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
+
 import junit.framework.TestCase;
 
 import java.io.File;
@@ -44,6 +48,7 @@ import org.apache.hadoop.conf.Configuration;
 //Order and Distinct functions are also tested.
 //This test would take a long time because of the large test files.
 
+@RunWith(JUnit4.class)
 public class TestLargeFile extends TestCase {
     
     File datFile;
@@ -53,7 +58,7 @@ public class TestLargeFile extends TestCase {
     private long total = defaultBlockSize >> 1;
     private int max_rand = 500;
 //    private double sum = 0.0, sumIn = 0.0;
-    MiniCluster cluster = MiniCluster.buildCluster();
+    static MiniCluster cluster = MiniCluster.buildCluster();
     
     Integer [] COUNT = new Integer[max_rand];
 
@@ -63,7 +68,7 @@ public class TestLargeFile extends TestCase {
     
     @Override
     @Before
-    protected void setUp() throws Exception{
+    public void setUp() throws Exception{
 
         System.out.println("Generating test data...");
         System.out.println("Default block size = " + defaultBlockSize);
@@ -105,12 +110,16 @@ public class TestLargeFile extends TestCase {
     
     @Override
     @After
-    protected void tearDown() throws Exception {
+    public void tearDown() throws Exception {
 
         
     }
 
-
+    @AfterClass
+    public static void oneTimeTearDown() throws Exception {
+        cluster.shutDown();
+    }
+    
     @Test
     public void testLargeFile () throws Exception {
         System.out.println("Running testLargeFile...");

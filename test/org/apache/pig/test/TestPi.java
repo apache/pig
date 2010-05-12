@@ -29,8 +29,12 @@ import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.backend.executionengine.ExecException;
 
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
+
 import junit.framework.TestCase;
 
 import java.io.File;
@@ -45,6 +49,7 @@ import org.apache.hadoop.conf.Configuration;
 /*
  * Testcase aimed at testing pig with large file sizes and filter and group functions
 */
+@RunWith(JUnit4.class)
 public class TestPi extends TestCase {
     
     private final Log log = LogFactory.getLog(getClass());
@@ -54,7 +59,7 @@ public class TestPi extends TestCase {
     
     private long total = ((defaultBlockSize >> 20) / 10) << 20;
     private int inCircle = 0;
-    MiniCluster cluster = MiniCluster.buildCluster();
+    static MiniCluster cluster = MiniCluster.buildCluster();
 
     private long totalLength = 0, totalLengthTest = 0;
 
@@ -65,7 +70,7 @@ public class TestPi extends TestCase {
     
     @Override
     @Before
-    protected void setUp() throws Exception{
+    public void setUp() throws Exception{
 
         log.info("Generating test data...");
         log.info("Default block size = " + defaultBlockSize);
@@ -116,8 +121,13 @@ public class TestPi extends TestCase {
     
     @Override
     @After
-    protected void tearDown() throws Exception {
+    public void tearDown() throws Exception {
         
+    }
+    
+    @AfterClass
+    public static void oneTimeTearDown() throws Exception {
+        cluster.shutDown();
     }
     
     @Test

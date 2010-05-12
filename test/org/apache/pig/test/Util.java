@@ -294,6 +294,22 @@ public class Util {
     }
     
     /**
+     * Helper to create an empty temp file on local file system
+     *  which will be deleted on exit
+     * @param prefix
+     * @param suffix
+     * @return File denoting a newly-created empty file 
+     * @throws IOException
+     */
+    static public File createTempFileDelOnExit(String prefix, String suffix)
+        throws IOException {
+        File tmpFile = File.createTempFile(prefix, suffix);
+        tmpFile.deleteOnExit();
+        return tmpFile;
+    }
+
+    
+    /**
      * Helper to remove a dfs file from the minicluster DFS
      * 
      * @param miniCluster reference to the Minicluster where the file should be deleted

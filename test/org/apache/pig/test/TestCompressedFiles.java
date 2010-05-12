@@ -24,8 +24,11 @@ import java.util.Iterator;
 import java.util.Random;
 import java.util.zip.GZIPOutputStream;
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.pig.ExecType;
@@ -39,16 +42,17 @@ import org.apache.pig.test.utils.TestHelper;
 import junit.framework.Assert;
 import junit.framework.TestCase;
 
+@RunWith(JUnit4.class)
 public class TestCompressedFiles extends TestCase {
     
     private final Log log = LogFactory.getLog(getClass());
-    MiniCluster cluster = MiniCluster.buildCluster();
+    static MiniCluster cluster = MiniCluster.buildCluster();
 
     File datFile;
     File gzFile;
     @Override
     @Before
-    protected void setUp() throws Exception {
+    public void setUp() throws Exception {
         datFile = File.createTempFile("compTest", ".dat");
         gzFile = File.createTempFile("compTest", ".gz");
         FileOutputStream dat = new FileOutputStream(datFile);
@@ -72,9 +76,14 @@ public class TestCompressedFiles extends TestCase {
 
     @Override
     @After
-    protected void tearDown() throws Exception {
+    public void tearDown() throws Exception {
         datFile.delete();
         gzFile.delete();
+    }
+    
+    @AfterClass
+    public static void oneTimeTearDown() throws Exception {
+        cluster.shutDown();
     }
     
     @Test

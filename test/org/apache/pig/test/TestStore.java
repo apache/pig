@@ -71,9 +71,13 @@ import org.apache.pig.test.utils.LogicalPlanTester;
 import org.apache.pig.test.utils.TestHelper;
 import org.apache.pig.tools.pigstats.PigStats;
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
+@RunWith(JUnit4.class)
 public class TestStore extends junit.framework.TestCase {
     POStore st;
     DataBag inpDB;
@@ -114,6 +118,11 @@ public class TestStore extends junit.framework.TestCase {
         Util.copyFromClusterToLocal(cluster, outputFileName + "/part-m-00000", outputFileName);
     }
 
+    @AfterClass
+    public static void oneTimeTearDown() throws Exception {
+        cluster.shutDown();
+    }
+    
     private PigStats store() throws Exception {
         PhysicalPlan pp = new PhysicalPlan();
         pp.add(proj);

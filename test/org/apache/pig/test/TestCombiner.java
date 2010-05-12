@@ -28,7 +28,10 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Properties;
 
+import org.junit.AfterClass;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
 import junit.framework.Assert;
 import junit.framework.TestCase;
@@ -44,10 +47,17 @@ import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.logicalLayer.LogicalPlan;
 import org.apache.pig.test.utils.LogicalPlanTester;
 
+@RunWith(JUnit4.class)
 public class TestCombiner extends TestCase {
 
-    MiniCluster cluster = MiniCluster.buildCluster();
+    static MiniCluster cluster = MiniCluster.buildCluster();
 
+    @AfterClass
+    public static void oneTimeTearDown() throws Exception {
+        cluster.shutDown();
+    }
+    
+    
     @Test
     public void testSuccessiveUserFuncs1() throws Exception{
         

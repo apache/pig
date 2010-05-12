@@ -26,8 +26,11 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.Iterator;
 
+import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
@@ -37,16 +40,21 @@ import org.apache.pig.tools.grunt.Grunt;
 import org.apache.pig.tools.parameters.ParameterSubstitutionPreprocessor;
 
 import junit.framework.TestCase;
-
+@RunWith(JUnit4.class)
 public class TestUTF8 extends TestCase {
     
-    MiniCluster cluster = MiniCluster.buildCluster();
+    static MiniCluster cluster = MiniCluster.buildCluster();
     private PigServer pigServer;
 
     @Before
     @Override
     public void setUp() throws Exception{
         pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+    }
+    
+    @AfterClass
+    public static void oneTimeTearDown() throws Exception {
+        cluster.shutDown();
     }
     
     @Test

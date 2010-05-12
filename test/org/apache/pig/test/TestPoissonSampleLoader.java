@@ -18,31 +18,31 @@
 package org.apache.pig.test;
 
 
-import java.io.*;
-import java.util.ArrayList;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.Iterator;
 
 import junit.framework.TestCase;
 
 import org.apache.pig.ExecType;
-import org.apache.pig.FuncSpec;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
-import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.data.Tuple;
-import org.apache.pig.impl.builtin.PoissonSampleLoader;
-import org.apache.pig.impl.util.Pair;
-import org.apache.pig.impl.io.FileSpec;
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
-
+@RunWith(JUnit4.class)
 public class TestPoissonSampleLoader extends TestCase{
     private static final String INPUT_FILE1 = "SkewedJoinInput1.txt";
 
     private PigServer pigServer;
-    private MiniCluster cluster = MiniCluster.buildCluster();
+    private static MiniCluster cluster = MiniCluster.buildCluster();
 
     public TestPoissonSampleLoader() throws ExecException, IOException{
         pigServer = new PigServer(ExecType.LOCAL, cluster.getProperties());
@@ -57,6 +57,11 @@ public class TestPoissonSampleLoader extends TestCase{
     @Before
     public void setUp() throws Exception {
         createFiles();
+    }
+    
+    @AfterClass
+    public static void oneTimeTearDown() throws Exception {
+        cluster.shutDown();
     }
 
     private void createFiles() throws IOException {
