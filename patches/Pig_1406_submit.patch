@@ -1,0 +1,183 @@
+### Eclipse Workspace Patch 1.0
+#P Pig_trunk
+Index: src/org/apache/pig/tools/grunt/GruntParser.java
+===================================================================
+--- src/org/apache/pig/tools/grunt/GruntParser.java	(revision 942290)
++++ src/org/apache/pig/tools/grunt/GruntParser.java	(working copy)
+@@ -44,6 +44,7 @@
+ import org.apache.commons.logging.Log;
+ import org.apache.commons.logging.LogFactory;
+ import org.apache.hadoop.fs.FsShell;
++
+ import org.apache.hadoop.mapred.JobClient;
+ import org.apache.hadoop.mapred.JobConf;
+ import org.apache.hadoop.mapred.JobID;
+@@ -867,6 +868,69 @@
+         }
+     }
+     
++    @Override
++    protected void processShCommand(String[] cmdTokens) throws IOException{
++    	if(mExplain == null) { // process only if not in "explain" mode
++            executeBatch();
++	        
++            StringBuilder builder = new StringBuilder();
++	        for (String token:cmdTokens){
++	            builder.append(token + " ");
++	        }
++	        try {
++	            Process executor = Runtime.getRuntime().exec(builder.toString());
++	            StreamPrinter outPrinter = new StreamPrinter(executor.getInputStream(), null, System.out);
++	            StreamPrinter errPrinter = new StreamPrinter(executor.getErrorStream(), null, System.err);
++	
++	            outPrinter.start();
++	            errPrinter.start();
++	
++	            int ret = executor.waitFor();
++	            if (ret != 0) {
++	                log.warn("Command failed with exit code = " + ret);
++	            }
++	        } catch (Exception e) {
++	            log.warn("Exception raised from Shell command " + e.getLocalizedMessage());
++	        }
++    	}
++    }
++    
++    /**
++     * StreamPrinter.
++     *
++     */
++    public static class StreamPrinter extends Thread {
++    	InputStream is;
++	    String type;
++	    PrintStream os;
++
++	    public StreamPrinter(InputStream is, String type, PrintStream os) {
++	    	this.is = is;
++	    	this.type = type;
++	    	this.os = os;
++	    }
++
++	    @Override
++	    public void run() {
++	        try {
++	        	InputStreamReader isr = new InputStreamReader(is);
++	        	BufferedReader br = new BufferedReader(isr);
++	        	String line = null;
++	        	if (type != null) {
++		            while ((line = br.readLine()) != null) {
++		            	os.println(type + ">" + line);
++		            }
++	        	} else {
++	        		while ((line = br.readLine()) != null) {
++	        			os.println(line);
++	        		}
++	        	}
++	        } catch (IOException ioe) {
++	        	ioe.printStackTrace();
++	        }
++	    }
++    }
++    
+     private static class ExplainState {
+         public long mTime;
+         public int mCount;
+Index: CHANGES.txt
+===================================================================
+--- CHANGES.txt	(revision 943509)
++++ CHANGES.txt	(working copy)
+@@ -23,6 +23,8 @@
+ INCOMPATIBLE CHANGES
+ 
+ IMPROVEMENTS
++PIG-1406: Allow to run shell commands from grunt (zjffdu)
++
+ PIG-1398: Marking Pig interfaces for org.apache.pig.data package (gates)
+ 
+ PIG-1396: eclipse-files target in build.xml fails to generate necessary classes in src-gen
+Index: test/org/apache/pig/test/TestGrunt.java
+===================================================================
+--- test/org/apache/pig/test/TestGrunt.java	(revision 942290)
++++ test/org/apache/pig/test/TestGrunt.java	(working copy)
+@@ -849,6 +849,36 @@
+     }
+    
+     @Test
++    public void testShellCommand(){
++        
++        try {
++            PigServer server = new PigServer(ExecType.MAPREDUCE,cluster.getProperties());
++            PigContext context = server.getPigContext();
++            
++            String strCmd = "sh mkdir test_shell_tmp;";
++            
++            ByteArrayInputStream cmd = new ByteArrayInputStream(strCmd.getBytes());
++            InputStreamReader reader = new InputStreamReader(cmd);
++            Grunt grunt = new Grunt(new BufferedReader(reader), context);
++            grunt.exec();
++            assertTrue(new File("test_shell_tmp").exists());
++            
++            strCmd = "sh rmdir test_shell_tmp;";
++            cmd = new ByteArrayInputStream(strCmd.getBytes());
++            reader = new InputStreamReader(cmd);
++            grunt = new Grunt(new BufferedReader(reader), context);
++            grunt.exec();
++            assertFalse(new File("test_shell_tmp").exists());
++        } catch (ExecException e) {
++            e.printStackTrace();
++            fail();
++        } catch (Throwable e) {
++            e.printStackTrace();
++            fail();
++        }
++    }
++    
++    @Test
+     public void testSetPriority() throws Throwable {
+         PigServer server = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+         PigContext context = server.getPigContext();
+Index: src/org/apache/pig/tools/pigscript/parser/PigScriptParser.jj
+===================================================================
+--- src/org/apache/pig/tools/pigscript/parser/PigScriptParser.jj	(revision 942290)
++++ src/org/apache/pig/tools/pigscript/parser/PigScriptParser.jj	(working copy)
+@@ -66,6 +66,8 @@
+ 	abstract protected void printAliases() throws IOException;
+ 
+ 	abstract protected void processFsCommand(String[] cmdTokens) throws IOException;
++
++	abstract protected void processShCommand(String[] cmdTokens) throws IOException;
+ 	
+ 	abstract protected void processDescribe(String alias) throws IOException;
+ 
+@@ -133,6 +135,7 @@
+ // commands
+ TOKEN: {<CAT: "cat">}
+ TOKEN: {<FS: "fs">}
++TOKEN: {<SH:"sh">}
+ TOKEN: {<CD: "cd">}
+ TOKEN: {<COPY: "cp">}
+ TOKEN: {<COPYFROMLOCAL: "copyFromLocal">}
+@@ -396,6 +399,23 @@
+ 	}		
+ 	)+
+ 	|
++	<SH>
++	(
++	t1 = GetPath()
++	{
++		cmdTokens.add(t1.image);
++		while(true){
++			try{
++				t1=GetPath();
++				cmdTokens.add(t1.image);
++			}catch(ParseException e){
++				break;
++			}
++		}
++		processShCommand(cmdTokens.toArray(new String[cmdTokens.size()]));
++	}		
++	)+
++	|
+ 	<CAT>
+ 	(
+ 	t1 = GetPath()
