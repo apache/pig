@@ -46,6 +46,9 @@ PIG-1317: LOLoad should cache results of LoadMetadata.getSchema() for use in
 subsequent calls to LOLoad.getSchema() or LOLoad.determineSchema()
 (pradeepkth)
 
+PIG-1413: Remove svn:externals reference for test-patch.sh and 
+create a local copy of test-patch.sh (gkesavan)
+
 OPTIMIZATIONS
 
 PIG-1353: Map-side joins (ashutoshc)
