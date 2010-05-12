@@ -66,6 +66,8 @@ public abstract class PigScriptParser
 	abstract protected void printAliases() throws IOException;
 
 	abstract protected void processFsCommand(String[] cmdTokens) throws IOException;
+
+	abstract protected void processShCommand(String[] cmdTokens) throws IOException;
 	
 	abstract protected void processDescribe(String alias) throws IOException;
 
@@ -133,6 +135,7 @@ SKIP : {
 // commands
 TOKEN: {<CAT: "cat">}
 TOKEN: {<FS: "fs">}
+TOKEN: {<SH:"sh">}
 TOKEN: {<CD: "cd">}
 TOKEN: {<COPY: "cp">}
 TOKEN: {<COPYFROMLOCAL: "copyFromLocal">}
@@ -393,6 +396,23 @@ void parse() throws IOException:
 			}
 		}
 		processFsCommand(cmdTokens.toArray(new String[cmdTokens.size()]));
+	}		
+	)+
+	|
+	<SH>
+	(
+	t1 = GetPath()
+	{
+		cmdTokens.add(t1.image);
+		while(true){
+			try{
+				t1=GetPath();
+				cmdTokens.add(t1.image);
+			}catch(ParseException e){
+				break;
+			}
+		}
+		processShCommand(cmdTokens.toArray(new String[cmdTokens.size()]));
 	}		
 	)+
 	|

@@ -23,6 +23,9 @@ Trunk (unreleased changes)
 INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
+
+PIG-1406: Allow to run shell commands from grunt (zjffdu)
+
 PIG-1398: Marking Pig interfaces for org.apache.pig.data package (gates)
 
 PIG-1396: eclipse-files target in build.xml fails to generate necessary classes in src-gen
