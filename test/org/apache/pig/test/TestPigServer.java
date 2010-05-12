@@ -18,36 +18,39 @@
 
 package org.apache.pig.test;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.FileOutputStream;
-import java.io.OutputStreamWriter;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.DataInputStream;
+import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
 import java.io.PrintStream;
-import java.util.List;
-import java.util.Iterator;
+import java.lang.reflect.Method;
 import java.net.URL;
 import java.net.URLClassLoader;
-import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+
+import junit.framework.TestCase;
 
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
+import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
-
+import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
-import org.junit.After;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
-
-import junit.framework.TestCase;
 
 @RunWith(JUnit4.class)
 public class TestPigServer extends TestCase {
@@ -569,5 +572,49 @@ public class TestPigServer extends TestCase {
             assertEquals(expected, actual);
         }
         fileWithStdOutContents.close();
+    }
+    
+    @Test
+    public void testParamSubstitution() throws Exception{
+        // using params map
+        PigServer pig=new PigServer(ExecType.LOCAL);
+        Map<String,String> params=new HashMap<String, String>();
+        params.put("input", "test/org/apache/pig/test/data/passwd");
+        File scriptFile=Util.createFile(new String[]{"a = load '$input' using PigStorage(':');"});
+        pig.registerScript(scriptFile.getAbsolutePath(),params);
+        Iterator<Tuple> iter=pig.openIterator("a");
+        int index=0;
+        List<Tuple> expectedTuples=Util.readFile2TupleList("test/org/apache/pig/test/data/passwd", ":");
+        while(iter.hasNext()){
+            Tuple tuple=iter.next();
+            assertEquals(tuple.get(0).toString(), expectedTuples.get(index).get(0).toString());
+            index++;
+        }
+        
+        // using param file
+        pig=new PigServer(ExecType.LOCAL);
+        List<String> paramFile=new ArrayList<String>();
+        paramFile.add(Util.createFile(new String[]{"input=test/org/apache/pig/test/data/passwd2"}).getAbsolutePath());
+        pig.registerScript(scriptFile.getAbsolutePath(),paramFile);
+        iter=pig.openIterator("a");
+        index=0;
+        expectedTuples=Util.readFile2TupleList("test/org/apache/pig/test/data/passwd2", ":");
+        while(iter.hasNext()){
+            Tuple tuple=iter.next();
+            assertEquals(tuple.get(0).toString(), expectedTuples.get(index).get(0).toString());
+            index++;
+        }
+        
+        // using both param value and param file, param value should override param file
+        pig=new PigServer(ExecType.LOCAL);
+        pig.registerScript(scriptFile.getAbsolutePath(),params,paramFile);
+        iter=pig.openIterator("a");
+        index=0;
+        expectedTuples=Util.readFile2TupleList("test/org/apache/pig/test/data/passwd", ":");
+        while(iter.hasNext()){
+            Tuple tuple=iter.next();
+            assertEquals(tuple.get(0).toString(), expectedTuples.get(index).get(0).toString());
+            index++;
+        }
     }
 }

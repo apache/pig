@@ -17,11 +17,16 @@
  */
 package org.apache.pig;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.PrintStream;
+import java.io.StringReader;
+import java.io.StringWriter;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.LinkedList;
@@ -98,6 +103,7 @@ import org.apache.pig.impl.logicalLayer.LOStore;
 import org.apache.pig.pen.ExampleGenerator;
 import org.apache.pig.impl.util.LogUtils;
 import org.apache.pig.tools.grunt.GruntParser;
+import org.apache.pig.tools.parameters.ParameterSubstitutionPreprocessor;
 
 
 /**
@@ -493,22 +499,70 @@ public class PigServer {
      * @throws IOException
      */
     public void registerScript(String fileName) throws IOException {
+        registerScript(fileName, null, null);
+    }
+    
+    /**
+     * Register a pig script file.  The parameters in the file will be substituted with the values in params
+     * @param fileName  pig script file
+     * @param params  the key is the parameter name, and the value is the parameter value
+     * @throws IOException
+     */
+    public void registerScript(String fileName, Map<String,String> params) throws IOException {
+        registerScript(fileName, params, null);
+    }
+
+    /**
+     * Register a pig script file.  The parameters in the file will be substituted with the values in the parameter files
+     * @param fileName pig script file
+     * @param paramsFiles  files which have the parameter setting
+     * @throws IOException
+     */
+    public void registerScript(String fileName, List<String> paramsFiles) throws IOException {
+        registerScript(fileName, null, paramsFiles);
+    }
+    
+    /**
+     * Register a pig script file.  The parameters in the file will be substituted with the values in the map and the parameter files
+     * The values in params Map will override the value in parameter file if they have the same parameter
+     * @param fileName  pig script
+     * @param params  the key is the parameter name, and the value is the parameter value
+     * @param paramsFiles   files which have the parameter setting
+     * @throws IOException
+     */
+    public void registerScript(String fileName, Map<String,String> params,List<String> paramsFiles) throws IOException {
         try {
-            GruntParser grunt = new GruntParser(new FileReader(new File(fileName)));
+            // transform the map type to list type which can been accepted by ParameterSubstitutionPreprocessor
+            List<String> paramList = new ArrayList<String>();
+            if (params!=null){
+                for (Map.Entry<String, String> entry:params.entrySet()){
+                    paramList.add(entry.getKey()+"="+entry.getValue());
+                }
+            }
+            
+            // do parameter substitution
+            ParameterSubstitutionPreprocessor psp = new ParameterSubstitutionPreprocessor(50);
+            StringWriter writer = new StringWriter();
+            psp.genSubstitutedFile(new BufferedReader(new InputStreamReader(new FileInputStream(fileName))), 
+                                   writer,  
+                                   paramList.size() > 0 ? paramList.toArray(new String[0]) : null, 
+                                   paramsFiles!=null ? paramsFiles.toArray(new String[0]) : null);
+            
+            GruntParser grunt = new GruntParser(new StringReader(writer.toString()));
             grunt.setInteractive(false);
             grunt.setParams(this);
             grunt.parseStopOnError(true);
         } catch (FileNotFoundException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
+            log.error(e.getLocalizedMessage());
             throw new IOException(e.getCause());
         } catch (org.apache.pig.tools.pigscript.parser.ParseException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
+            log.error(e.getLocalizedMessage());
+            throw new IOException(e.getCause());
+        } catch (org.apache.pig.tools.parameters.ParseException e) {
+            log.error(e.getLocalizedMessage());
             throw new IOException(e.getCause());
         }
     }
-
     /**
      * Intended to be used by unit tests only.
      * Print a list of all aliases in in the current Pig Latin script.  Output is written to
