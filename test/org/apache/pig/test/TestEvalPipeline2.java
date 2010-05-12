@@ -29,8 +29,11 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Random;
 
+import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
 import org.apache.pig.EvalFunc;
 import org.apache.pig.ExecType;
@@ -43,9 +46,10 @@ import org.apache.pig.builtin.BinStorage;
 
 import junit.framework.TestCase;
 
+@RunWith(JUnit4.class)
 public class TestEvalPipeline2 extends TestCase {
     
-    MiniCluster cluster = MiniCluster.buildCluster();
+    static MiniCluster cluster = MiniCluster.buildCluster();
     private PigServer pigServer;
 
     TupleFactory mTf = TupleFactory.getInstance();
@@ -57,6 +61,11 @@ public class TestEvalPipeline2 extends TestCase {
         FileLocalizer.setR(new Random());
         pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
 //        pigServer = new PigServer(ExecType.LOCAL);
+    }
+    
+    @AfterClass
+    public static void oneTimeTearDown() throws Exception {
+        cluster.shutDown();
     }
     
     @Test
@@ -92,7 +101,7 @@ public class TestEvalPipeline2 extends TestCase {
     @Test
     public void testUDFwithStarInput() throws Exception {
         int LOOP_COUNT = 10;
-        File tmpFile = File.createTempFile("test", "txt");
+        File tmpFile = Util.createTempFileDelOnExit("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
         Random r = new Random();
         for(int i = 0; i < LOOP_COUNT; i++) {
@@ -315,14 +324,14 @@ public class TestEvalPipeline2 extends TestCase {
             numRows++;
         }
         assertEquals(3, numRows);
-        
+        Util.deleteFile(cluster, "testPigStorageWithCtrlCharsInput.txt");
     }
 
     @Test
     // Test case added for PIG-850
     public void testLimitedSortWithDump() throws Exception{
         int LOOP_COUNT = 40;
-        File tmpFile = File.createTempFile("test", "txt");
+        File tmpFile = Util.createTempFileDelOnExit("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
         Random r = new Random(1);
         int rand;
@@ -349,7 +358,7 @@ public class TestEvalPipeline2 extends TestCase {
     @Test
     public void testLimitAfterSort() throws Exception{
         int LOOP_COUNT = 40;
-        File tmpFile = File.createTempFile("test", "txt");
+        File tmpFile = Util.createTempFileDelOnExit("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
         Random r = new Random(1);
         int rand;
@@ -380,7 +389,7 @@ public class TestEvalPipeline2 extends TestCase {
     @Test
     public void testLimitAfterSortDesc() throws Exception{
         int LOOP_COUNT = 40;
-        File tmpFile = File.createTempFile("test", "txt");
+        File tmpFile = Util.createTempFileDelOnExit("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
         Random r = new Random(1);
         int rand;
@@ -411,7 +420,7 @@ public class TestEvalPipeline2 extends TestCase {
     @Test
     // See PIG-894
     public void testEmptySort() throws Exception{
-        File tmpFile = File.createTempFile("test", "txt");
+        File tmpFile = Util.createTempFileDelOnExit("test", "txt");
         pigServer.registerQuery("A = LOAD '" + Util.generateURI(tmpFile.toString()) + "';");
         pigServer.registerQuery("B = order A by $0;");
         Iterator<Tuple> iter = pigServer.openIterator("B");
@@ -422,13 +431,13 @@ public class TestEvalPipeline2 extends TestCase {
     // See PIG-761
     @Test
     public void testLimitPOPackageAnnotator() throws Exception{
-        File tmpFile1 = File.createTempFile("test1", "txt");
+        File tmpFile1 = Util.createTempFileDelOnExit("test1", "txt");
         PrintStream ps1 = new PrintStream(new FileOutputStream(tmpFile1));
         ps1.println("1\t2\t3");
         ps1.println("2\t5\t2");
         ps1.close();
         
-        File tmpFile2 = File.createTempFile("test2", "txt");
+        File tmpFile2 = Util.createTempFileDelOnExit("test2", "txt");
         PrintStream ps2 = new PrintStream(new FileOutputStream(tmpFile2));
         ps2.println("1\t1");
         ps2.println("2\t2");

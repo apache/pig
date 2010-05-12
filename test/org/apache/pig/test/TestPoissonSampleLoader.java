@@ -42,18 +42,22 @@ import org.apache.pig.impl.util.Pair;
 import org.apache.pig.impl.util.UDFContext;
 import org.apache.pig.test.utils.TestHelper;
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.FileSpec;
 
 import java.util.Properties;
 
-
+@RunWith(JUnit4.class)
 public class TestPoissonSampleLoader extends TestCase{
     private static final String INPUT_FILE1 = "SkewedJoinInput1.txt";
 
     private PigServer pigServer;
-    private MiniCluster cluster = MiniCluster.buildCluster();
+    private static MiniCluster cluster = MiniCluster.buildCluster();
     
     public TestPoissonSampleLoader() throws ExecException, IOException{
         pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
@@ -68,6 +72,11 @@ public class TestPoissonSampleLoader extends TestCase{
     @Before
     public void setUp() throws Exception {
         createFiles();
+    }
+    
+    @AfterClass
+    public static void oneTimeTearDown() throws Exception {
+        cluster.shutDown();
     }
 
     private void createFiles() throws IOException {
@@ -96,7 +105,7 @@ public class TestPoissonSampleLoader extends TestCase{
         Util.deleteFile(cluster, INPUT_FILE1);
     }
     
-    
+    @Test
     public void testComputeSamples() throws IOException{
  		FileSpec fs = new FileSpec(INPUT_FILE1, new FuncSpec(PigStorage.class.getName()));
   		

@@ -28,7 +28,10 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Properties;
 
+import org.junit.AfterClass;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
 import junit.framework.Assert;
 import junit.framework.TestCase;
@@ -41,11 +44,17 @@ import org.apache.pig.data.Tuple;
 
 import org.apache.pig.impl.io.FileLocalizer;
 
-public class TestCombiner extends TestCase {
+@RunWith(JUnit4.class)
+public class TestCombiner extends PigExecTestCase {
 
     
 
-    MiniCluster cluster = MiniCluster.buildCluster();
+    static MiniCluster cluster = MiniCluster.buildCluster();
+    
+    @AfterClass
+    public static void oneTimeTearDown() throws Exception {
+        cluster.shutDown();
+    }
     
     @Test
     public void testOnCluster() throws Exception {

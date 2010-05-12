@@ -39,7 +39,6 @@ import java.util.Iterator;
 public class TestLocal2 extends TestCase {
 
     private String initString = "local";
-    //MiniCluster cluster = MiniCluster.buildCluster();
 
     private PigServer pig ;
 
@@ -114,6 +113,7 @@ public class TestLocal2 extends TestCase {
         Iterator<Tuple> iter = pig.openIterator("C");
         // Before PIG-800 was fixed this went into an infinite loop, so just
         // managing to open the iterator is sufficient.
+        fp1.delete();
         
     }
     
@@ -133,6 +133,7 @@ public class TestLocal2 extends TestCase {
         Iterator<Tuple> iter = pig.openIterator("C");
         // Before PIG-800 was fixed this went into an infinite loop, so just
         // managing to open the iterator is sufficient.
+        fp1.delete();
         
     }
     
@@ -174,6 +175,7 @@ public class TestLocal2 extends TestCase {
         assertTrue(t.get(3).equals(new Integer(2)));
         
         assertTrue(!iter.hasNext());
+        fp1.delete();
     }
     
     
@@ -247,7 +249,9 @@ public class TestLocal2 extends TestCase {
             }
 
         }
-        return TestHelper.createTempFile(data) ;
+        File tmpFile = TestHelper.createTempFile(data) ;
+        tmpFile.deleteOnExit();
+        return tmpFile;
     }
 
 

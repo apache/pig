@@ -27,8 +27,11 @@ import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.io.FileLocalizer;
+import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
 import junit.framework.TestCase;
 
@@ -37,9 +40,10 @@ import junit.framework.TestCase;
  * is correctly determines for use when the key is null. In 
  * particular it tests KeyTypeDiscoveryVisitor
  */
+@RunWith(JUnit4.class)
 public class TestKeyTypeDiscoveryVisitor extends TestCase {
 
-    MiniCluster cluster = MiniCluster.buildCluster();
+    static MiniCluster cluster = MiniCluster.buildCluster();
     private PigServer pigServer;
 
     TupleFactory mTf = TupleFactory.getInstance();
@@ -48,6 +52,11 @@ public class TestKeyTypeDiscoveryVisitor extends TestCase {
     @Before
     public void setUp() throws Exception{
         pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+    }
+   
+    @AfterClass
+    public static void oneTimeTearDown() throws Exception {
+        cluster.shutDown();
     }
     
     @Test

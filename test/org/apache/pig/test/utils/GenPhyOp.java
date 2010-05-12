@@ -60,7 +60,6 @@ public class GenPhyOp{
     };
     
     public static PigContext pc;
-//    public static MiniCluster cluster = MiniCluster.buildCluster();
     
     public static ConstantExpression exprConst() {
         ConstantExpression ret = new ConstantExpression(new OperatorKey("", r

@@ -17,7 +17,12 @@
  */
 package org.apache.pig.test;
 
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
+
 import junit.framework.TestCase;
 import junit.framework.AssertionFailedError;
 
@@ -36,17 +41,23 @@ import java.io.ByteArrayInputStream;
 import java.io.InputStreamReader;
 import java.io.BufferedReader;
 
+@RunWith(JUnit4.class)
 public class TestGrunt extends TestCase {
-    MiniCluster cluster = MiniCluster.buildCluster();
-    private String basedir;
-
+    static MiniCluster cluster = MiniCluster.buildCluster();
+    private String basedir = "test/org/apache/pig/test/data";
     private final Log log = LogFactory.getLog(getClass());
 
-    public TestGrunt(String name) {
-        super(name);
+    @BeforeClass
+    public static void oneTimeSetup() throws Exception {
         cluster.setProperty("opt.multiquery","true");
-        basedir = "test/org/apache/pig/test/data";
     }
+    
+    @AfterClass
+    public static void oneTimeTearDown() throws Exception {
+        cluster.shutDown();
+    }
+    
+
     
 /*    @Test 
     public void testCopyFromLocal() throws Throwable {

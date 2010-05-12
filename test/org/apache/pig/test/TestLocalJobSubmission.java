@@ -69,7 +69,6 @@ public class TestLocalJobSubmission extends junit.framework.TestCase{
     Random r = new Random();
     
     static {
-//        MiniCluster cluster = MiniCluster.buildCluster();
         pc = new PigContext();
         try {
             pc.connect();

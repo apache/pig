@@ -156,6 +156,9 @@ PIG-922: Logical optimizer: push up project (daijy)
 
 BUG FIXES
 
+PIG-1391: pig unit tests leave behind files in temp directory because MiniCluster 
+files don't get deleted (tejas)
+
 PIG-1290: WeightedRangePartitioner should not check if input is empty if
 quantile file is empty (pradeepkth)
 

@@ -22,8 +22,11 @@ import java.io.FileOutputStream;
 import java.io.PrintStream;
 import java.util.Iterator;
 
+import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -34,21 +37,26 @@ import org.apache.pig.data.Tuple;
 
 import junit.framework.TestCase;
 
+@RunWith(JUnit4.class)
 public class TestFilterOpNumeric extends TestCase {
 
     private final Log log = LogFactory.getLog(getClass());
 
     private static int LOOP_COUNT = 1024;
     private String initString = "mapreduce";
-    MiniCluster cluster = MiniCluster.buildCluster();
+    static MiniCluster cluster = MiniCluster.buildCluster();
     private PigServer pig;
     
     @Before
     @Override
-    protected void setUp() throws Exception {
+    public void setUp() throws Exception {
         pig = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
     }
 
+    @AfterClass
+    public static void oneTimeTearDown() throws Exception {
+        cluster.shutDown();
+    }
 
     @Test
     public void testNumericEq() throws Throwable {

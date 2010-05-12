@@ -38,8 +38,11 @@ import org.apache.pig.test.utils.GenPhyOp;
 import org.apache.pig.test.utils.GenRandomData;
 import org.apache.pig.test.utils.TestHelper;
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
 public class TestProject extends  junit.framework.TestCase {
     Random r;
@@ -62,7 +65,7 @@ public class TestProject extends  junit.framework.TestCase {
     @After
     public void tearDown() throws Exception {
     }
-
+   
     @Test
     public void testGetNext() throws ExecException, IOException {
     	t=tRandom;
@@ -299,6 +302,7 @@ public class TestProject extends  junit.framework.TestCase {
         while(it.hasNext()) {
             assertEquals(expectedResults[i++], it.next());
         }
+        cluster.shutDown();
     }
 
 }

@@ -36,12 +36,16 @@ import org.apache.pig.data.*;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.test.utils.*;
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
+@RunWith(JUnit4.class)
 public class TestFilterUDF extends TestCase {
     private PigServer pigServer;
-    private MiniCluster cluster = MiniCluster.buildCluster();
+    private static MiniCluster cluster = MiniCluster.buildCluster();
     private File tmpFile;
     
     TupleFactory tf = TupleFactory.getInstance();
@@ -71,6 +75,11 @@ public class TestFilterUDF extends TestCase {
     @After
     public void tearDown() throws Exception {
         tmpFile.delete();
+    }
+    
+    @AfterClass
+    public static void oneTimeTearDown() throws Exception {
+        cluster.shutDown();
     }
     
     private File createFile(String[] data) throws Exception{

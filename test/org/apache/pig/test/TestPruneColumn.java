@@ -40,13 +40,13 @@ import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.optimizer.PruneColumns;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
 import junit.framework.TestCase;
 
 public class TestPruneColumn extends TestCase {
-    //MiniCluster cluster = MiniCluster.buildCluster();
     private PigServer pigServer;
     File tmpFile1;
     File tmpFile2;
@@ -169,6 +169,22 @@ public class TestPruneColumn extends TestCase {
         ps.println("1\t[1#1,2#1]\t2");
         ps.close();
 
+    }
+    
+    @After
+    @Override
+    public void tearDown() throws Exception{
+        tmpFile1.delete();
+        tmpFile2.delete();
+        tmpFile3.delete();
+        tmpFile4.delete();
+        tmpFile5.delete();
+        tmpFile6.delete();
+        tmpFile7.delete();
+        tmpFile8.delete();
+        tmpFile9.delete();
+        tmpFile10.delete();
+        logFile.delete();
     }
     
     public boolean checkLogFileMessage(String[] messages)
@@ -1330,8 +1346,6 @@ public class TestPruneColumn extends TestCase {
         
         assertTrue(checkLogFileMessage(new String[]{"Columns pruned for A: $1, $2", 
             "No map keys pruned for A"}));
-        
-        intermediateFile.delete();
     }
     
     @Test
@@ -1365,7 +1379,6 @@ public class TestPruneColumn extends TestCase {
         assertTrue(checkLogFileMessage(new String[]{"Columns pruned for A: $1", 
             "No map keys pruned for A"}));
         
-        intermediateFile.delete();
     }
 
     

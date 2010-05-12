@@ -45,14 +45,18 @@ import org.apache.pig.impl.util.LogUtils;
 import org.apache.pig.test.utils.LogicalPlanTester;
 import org.apache.pig.test.utils.TestHelper;
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
+@RunWith(JUnit4.class)
 public class TestMergeJoin {
 
     private static final String INPUT_FILE = "testMergeJoinInput.txt";
     private PigServer pigServer;
-    private MiniCluster cluster = MiniCluster.buildCluster();
+    private static MiniCluster cluster = MiniCluster.buildCluster();
 
     public TestMergeJoin() throws ExecException, IOException{
 
@@ -83,6 +87,10 @@ public class TestMergeJoin {
         Util.deleteFile(cluster, INPUT_FILE);
     }
 
+    @AfterClass
+    public static void oneTimeTearDown() throws Exception {
+        cluster.shutDown();
+    }
     /**
      * Test method for {@link org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POMergeJoin#getNext(org.apache.pig.data.Tuple)}.
      */

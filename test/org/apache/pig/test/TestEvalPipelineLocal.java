@@ -58,7 +58,6 @@ import org.junit.Test;
 
 public class TestEvalPipelineLocal extends TestCase {
     
-    //MiniCluster cluster = MiniCluster.buildCluster();
     private PigServer pigServer;
 
     TupleFactory mTf = TupleFactory.getInstance();
@@ -92,6 +91,7 @@ public class TestEvalPipelineLocal extends TestCase {
             pw.println(data[i]);
         }
         pw.close();
+        f.deleteOnExit();
         return f;
     }
     
@@ -366,7 +366,7 @@ public class TestEvalPipelineLocal extends TestCase {
 
     private void testSortDistinct(boolean eliminateDuplicates, boolean useUDF) throws Exception{
         int LOOP_SIZE = 1024*16;
-        File tmpFile = File.createTempFile("test", "txt");
+        File tmpFile = Util.createTempFileDelOnExit("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
         Random r = new Random();
         for(int i = 0; i < LOOP_SIZE; i++) {
@@ -410,7 +410,7 @@ public class TestEvalPipelineLocal extends TestCase {
     
     public void testNestedPlan() throws Exception{
         int LOOP_COUNT = 10;
-        File tmpFile = File.createTempFile("test", "txt");
+        File tmpFile = Util.createTempFileDelOnExit("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
         Random r = new Random();
         for(int i = 0; i < LOOP_COUNT; i++) {
@@ -451,7 +451,7 @@ public class TestEvalPipelineLocal extends TestCase {
 
     public void testNestedPlanWithExpressionAssignment() throws Exception{
         int LOOP_COUNT = 10;
-        File tmpFile = File.createTempFile("test", "txt");
+        File tmpFile = Util.createTempFileDelOnExit("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
         Random r = new Random();
         for(int i = 0; i < LOOP_COUNT; i++) {
@@ -497,7 +497,7 @@ public class TestEvalPipelineLocal extends TestCase {
 
     public void testLimit() throws Exception{
         int LOOP_COUNT = 20;
-        File tmpFile = File.createTempFile("test", "txt");
+        File tmpFile = Util.createTempFileDelOnExit("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
         Random r = new Random();
         for(int i = 0; i < LOOP_COUNT; i++) {
@@ -742,7 +742,7 @@ public class TestEvalPipelineLocal extends TestCase {
 
     public void testMapUDF() throws Exception{
         int LOOP_COUNT = 2;
-        File tmpFile = File.createTempFile("test", "txt");
+        File tmpFile = Util.createTempFileDelOnExit("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
         Random r = new Random();
         for(int i = 0; i < LOOP_COUNT; i++) {

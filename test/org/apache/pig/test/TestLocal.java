@@ -66,7 +66,6 @@ public class TestLocal extends TestCase {
 
     private Log log = LogFactory.getLog(getClass());
     
-    //MiniCluster cluster = MiniCluster.buildCluster();
 
     private PigServer pig;
     
@@ -342,7 +341,7 @@ public class TestLocal extends TestCase {
         try {
             pig.deleteFile("frog");
         } catch(Exception e) {}
-
+        tmpFile.delete();
 
     }
 
@@ -393,7 +392,7 @@ public class TestLocal extends TestCase {
         try {
             pig.deleteFile("frog");
         } catch(Exception e) {}
-
+        tmpFile.delete();
 
     }
 
@@ -426,6 +425,7 @@ public class TestLocal extends TestCase {
         }
 
         assertEquals( MyStorage.COUNT, count );
+        tmpFile.delete();
     }
     
     @Test
@@ -460,6 +460,7 @@ public class TestLocal extends TestCase {
         }
 
         assertEquals( MyStorage.COUNT, count );
+        tmpFile.delete();
     }
     
 

@@ -29,22 +29,27 @@ import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
 import junit.framework.TestCase;
 
+@RunWith(JUnit4.class)
 public class TestSplitStore extends TestCase{
     private PigServer pig;
     private PigContext pigContext;
     private File tmpFile;
-    private MiniCluster cluster = MiniCluster.buildCluster();
+    private static MiniCluster cluster = MiniCluster.buildCluster();
     
     public TestSplitStore() throws ExecException, IOException{
         pig = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
         pigContext = pig.getPigContext();
         int LOOP_SIZE = 20;
         tmpFile = File.createTempFile("test", "txt");
+        tmpFile.deleteOnExit();
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
         for(int i = 1; i <= LOOP_SIZE; i++) {
             ps.println(i);
@@ -58,6 +63,11 @@ public class TestSplitStore extends TestCase{
 
     @After
     public void tearDown() throws Exception {
+    }
+    
+    @AfterClass
+    public static void oneTimeTearDown() throws Exception {
+        cluster.shutDown();
     }
     
     @Test

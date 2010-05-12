@@ -38,8 +38,13 @@ import org.apache.pig.data.DataBag;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.test.utils.TestHelper;
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
+@RunWith(JUnit4.class)
 public class TestSkewedJoin extends TestCase{
     private static final String INPUT_FILE1 = "SkewedJoinInput1.txt";
     private static final String INPUT_FILE2 = "SkewedJoinInput2.txt";
@@ -50,7 +55,7 @@ public class TestSkewedJoin extends TestCase{
     private static final String INPUT_FILE7 = "SkewedJoinInput7.txt";
     
     private PigServer pigServer;
-    private MiniCluster cluster = MiniCluster.buildCluster();
+    private static MiniCluster cluster = MiniCluster.buildCluster();
     
     public TestSkewedJoin() throws ExecException, IOException{
         pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
@@ -64,6 +69,11 @@ public class TestSkewedJoin extends TestCase{
         createFiles();
     }
 
+    @AfterClass
+    public static void oneTimeTearDown() throws Exception {
+        cluster.shutDown();
+    }
+    
     private void createFiles() throws IOException {
     	PrintWriter w = new PrintWriter(new FileWriter(INPUT_FILE1));
     	    	
@@ -167,6 +177,7 @@ public class TestSkewedJoin extends TestCase{
         Util.deleteFile(cluster, INPUT_FILE7);
     }
     
+    @Test
     public void testSkewedJoinWithGroup() throws IOException{
         pigServer.registerQuery("A = LOAD '" + INPUT_FILE1 + "' as (id, name, n);");
         pigServer.registerQuery("B = LOAD '" + INPUT_FILE2 + "' as (id, name);");
@@ -192,8 +203,9 @@ public class TestSkewedJoin extends TestCase{
         }
         Assert.assertTrue(dbfrj.size()>0 && dbshj.size()>0);
         Assert.assertEquals(true, TestHelper.compareBags(dbfrj, dbshj));
-    }      
+    }    
     
+    @Test
     public void testSkewedJoinWithNoProperties() throws IOException{
         pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
 
@@ -225,7 +237,8 @@ public class TestSkewedJoin extends TestCase{
              fail(e.getMessage());
         }
     }
-
+    
+    @Test
     public void testSkewedJoinReducers() throws IOException{
         pigServer.registerQuery("A = LOAD '" + INPUT_FILE1 + "' as (id, name, n);");
         pigServer.registerQuery("B = LOAD '" + INPUT_FILE2 + "' as (id, name);");
@@ -245,6 +258,7 @@ public class TestSkewedJoin extends TestCase{
         
     }
     
+    @Test
     public void testSkewedJoin3Way() throws IOException{
         pigServer.registerQuery("A = LOAD '" + INPUT_FILE1 + "' as (id, name, n);");
         pigServer.registerQuery("B = LOAD '" + INPUT_FILE2 + "' as (id, name);");
@@ -266,6 +280,7 @@ public class TestSkewedJoin extends TestCase{
         fail("Should throw exception, do not support 3 way join");
     }       
 
+    @Test
     public void testSkewedJoinMapKey() throws IOException{
         pigServer.registerQuery("A = LOAD '" + INPUT_FILE4 + "' as (m:[]);");
         pigServer.registerQuery("B = LOAD '" + INPUT_FILE4 + "' as (n:[]);");
@@ -289,6 +304,7 @@ public class TestSkewedJoin extends TestCase{
 	}
 
 
+    @Test 
     public void testSkewedJoinKeyPartition() throws IOException {
     	try{
     	     Util.deleteFile(cluster, "skewedjoin");
@@ -332,6 +348,7 @@ public class TestSkewedJoin extends TestCase{
          assertTrue(fc > 3);
     }
     
+    @Test 
     public void testSkewedJoinNullKeys() throws IOException {
         pigServer.registerQuery("A = LOAD '" + INPUT_FILE5 + "' as (id,name);");
         pigServer.registerQuery("B = LOAD '" + INPUT_FILE5 + "' as (id,name);");
@@ -353,6 +370,7 @@ public class TestSkewedJoin extends TestCase{
         return;
     }
     
+    @Test 
     public void testSkewedJoinOuter() throws IOException {
         pigServer.registerQuery("A = LOAD '" + INPUT_FILE5 + "' as (id,name);");
         pigServer.registerQuery("B = LOAD '" + INPUT_FILE5 + "' as (id,name);");
@@ -391,6 +409,7 @@ public class TestSkewedJoin extends TestCase{
     }
     
     // pig 1048
+    @Test 
     public void testSkewedJoinOneValue() throws IOException {
         pigServer.registerQuery("A = LOAD '" + INPUT_FILE3 + "' as (id,name);");
         pigServer.registerQuery("B = LOAD '" + INPUT_FILE3 + "' as (id,name);");
@@ -422,6 +441,7 @@ public class TestSkewedJoin extends TestCase{
        
     }
 
+    @Test 
     public void testSkewedJoinManyReducers() throws IOException {
         pigServer.getPigContext().getProperties().setProperty("pig.skewedjoin.reduce.maxtuple", "2");
         pigServer.registerQuery("A = LOAD '" + INPUT_FILE6 + "' as (id,name);");
@@ -452,6 +472,7 @@ public class TestSkewedJoin extends TestCase{
     /* Test to check if the samplers sample different input files in the case of
      * serial successive joins
      */
+    @Test 
     public void testSuccessiveJoins() throws IOException {
         pigServer.registerQuery("A = LOAD '" + INPUT_FILE1 + "' as (id,name);");
         pigServer.registerQuery("B = LOAD '" + INPUT_FILE2 + "' as (id,name);");
@@ -480,6 +501,7 @@ public class TestSkewedJoin extends TestCase{
         Assert.assertEquals(true, TestHelper.compareBags(dbfrj, dbrj));
     }
     
+    @Test 
     public void testMultiQuery() throws IOException {
         pigServer.registerQuery("A = LOAD '" + INPUT_FILE1 + "' as (id,name);");
         pigServer.registerQuery("B = FILTER A by id == 100;");

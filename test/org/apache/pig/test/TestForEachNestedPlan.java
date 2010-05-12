@@ -34,7 +34,6 @@ import java.text.DecimalFormat;
 public class TestForEachNestedPlan extends TestCase {
 
     private String initString = "mapreduce";
-    MiniCluster cluster = MiniCluster.buildCluster();
 
     private PigServer pig ;
 

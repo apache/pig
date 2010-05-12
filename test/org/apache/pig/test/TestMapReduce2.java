@@ -23,17 +23,21 @@ import junit.framework.TestCase;
 import org.apache.pig.PigServer;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.test.utils.TestHelper;
+import org.junit.AfterClass;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
 import java.io.File;
 import java.io.IOException;
 import java.text.DecimalFormat;
 import java.util.Iterator;
 
+@RunWith(JUnit4.class)
 public class TestMapReduce2 extends TestCase {
 
     private String initString = "mapreduce";
-    MiniCluster cluster = MiniCluster.buildCluster();
+    static MiniCluster cluster = MiniCluster.buildCluster();
 
     private PigServer pig ;
 
@@ -41,6 +45,10 @@ public class TestMapReduce2 extends TestCase {
         pig = new PigServer(initString) ;
     }
 
+    @AfterClass
+    public static void oneTimeTearDown() throws Exception {
+        cluster.shutDown();
+    }
 
     @Test
     public void testUnion1() throws Exception {
@@ -153,7 +161,9 @@ public class TestMapReduce2 extends TestCase {
             }
 
         }
-        return TestHelper.createTempFile(data) ;
+        File tmpFile = TestHelper.createTempFile(data) ;
+        tmpFile.deleteOnExit();
+        return tmpFile;
     }
 
 

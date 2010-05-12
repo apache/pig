@@ -207,7 +207,7 @@ public class Util {
 			                           String[] inputData) 
 	throws IOException {
 		File f = File.createTempFile(tmpFilenamePrefix, tmpFilenameSuffix);
-        f.deleteOnExit();
+		f.deleteOnExit();
 		PrintWriter pw = new PrintWriter(new OutputStreamWriter(new FileOutputStream(f), "UTF-8"));
 		for (int i=0; i<inputData.length; i++){
 			pw.println(inputData[i]);
@@ -239,6 +239,21 @@ public class Util {
             pw.println(inputData[i]);
         }
         pw.close();
+    }
+    
+    /**
+     * Helper to create an empty temp file on local file system
+     *  which will be deleted on exit
+     * @param prefix
+     * @param suffix
+     * @return File denoting a newly-created empty file 
+     * @throws IOException
+     */
+    static public File createTempFileDelOnExit(String prefix, String suffix)
+        throws IOException {
+        File tmpFile = File.createTempFile(prefix, suffix);
+        tmpFile.deleteOnExit();
+        return tmpFile;
     }
     
     /**

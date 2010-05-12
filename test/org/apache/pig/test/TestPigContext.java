@@ -40,9 +40,14 @@ import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
+@RunWith(JUnit4.class)
 public class TestPigContext extends TestCase {
 
     private static final String TMP_DIR_PROP = "/tmp/hadoop-hadoop";
@@ -51,11 +56,16 @@ public class TestPigContext extends TestCase {
 
     private File input;
     private PigContext pigContext;
-    MiniCluster cluster = MiniCluster.buildCluster();
+    static MiniCluster cluster = null;
+    
+    @BeforeClass 
+    public static void oneTimeSetup(){
+        cluster = MiniCluster.buildCluster();
+    }
     
     @Before
     @Override
-    protected void setUp() throws Exception {
+    public void setUp() throws Exception {
         pigContext = new PigContext(ExecType.LOCAL, getProperties());
         input = File.createTempFile("PigContextTest-", ".txt");
     }
@@ -198,9 +208,15 @@ public class TestPigContext extends TestCase {
 
     @After
     @Override
-    protected void tearDown() throws Exception {
+    public void tearDown() throws Exception {
         input.delete();
     }
+    
+    @AfterClass
+    public static void oneTimeTearDown() throws Exception {
+        cluster.shutDown();
+    }
+    
     
     private static Properties getProperties() {
         Properties props = new Properties();
@@ -225,7 +241,9 @@ public class TestPigContext extends TestCase {
         for (final String command : commands) {
             pigServer.registerQuery(command);
         }
-        pigServer.store("counts", input.getAbsolutePath() + ".out");
+        String outFile = input.getAbsolutePath() + ".out";
+        pigServer.store("counts", outFile);
+        Util.deleteFile(cluster, outFile);
     }
 
     private void check_asserts() {

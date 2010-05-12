@@ -36,7 +36,6 @@ import org.apache.tools.bzip2r.CBZip2OutputStream;
 import org.junit.Test;
 
 public class TestBZip extends TestCase {
-    MiniCluster cluster = MiniCluster.buildCluster();
 
     /**
      * Tests the end-to-end writing and reading of a BZip file.

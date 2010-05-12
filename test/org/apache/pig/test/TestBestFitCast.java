@@ -40,21 +40,25 @@ import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.util.LogUtils;
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
 import junit.framework.TestCase;
 
+@RunWith(JUnit4.class)
 public class TestBestFitCast extends TestCase {
     private PigServer pigServer;
-    private MiniCluster cluster = MiniCluster.buildCluster();
+    private static MiniCluster cluster = MiniCluster.buildCluster();
     private File tmpFile, tmpFile2;
     int LOOP_SIZE = 20;
     
     public TestBestFitCast() throws ExecException, IOException{
         pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
 //        pigServer = new PigServer(ExecType.LOCAL);
-        tmpFile = File.createTempFile("test", "txt");
+        tmpFile = Util.createTempFileDelOnExit("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
         long l = 0;
         for(int i = 1; i <= LOOP_SIZE; i++) {
@@ -62,7 +66,7 @@ public class TestBestFitCast extends TestCase {
         }
         ps.close();
         
-        tmpFile2 = File.createTempFile("test2", "txt");
+        tmpFile2 = Util.createTempFileDelOnExit("test2", "txt");
         ps = new PrintStream(new FileOutputStream(tmpFile2));
         l = 0;
         for(int i = 1; i <= LOOP_SIZE; i++) {
@@ -78,6 +82,11 @@ public class TestBestFitCast extends TestCase {
 
     @After
     public void tearDown() throws Exception {
+    }
+    
+    @AfterClass
+    public static void oneTimeTearDown() throws Exception {
+        cluster.shutDown();
     }
     
     public static class UDF1 extends EvalFunc<Tuple>{

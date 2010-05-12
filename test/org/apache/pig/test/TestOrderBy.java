@@ -25,17 +25,23 @@ import java.util.Iterator;
 
 import junit.framework.TestCase;
 
+import org.junit.After;
+import org.junit.AfterClass;
+import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 
+@RunWith(JUnit4.class)
 public class TestOrderBy extends TestCase {
     private static final int DATALEN = 1024;
     private String[][] DATA = new String[2][DATALEN];
-    MiniCluster cluster = MiniCluster.buildCluster();
+    static MiniCluster cluster = MiniCluster.buildCluster();
     
     private PigServer pig;
     private File tmpFile;
@@ -49,7 +55,8 @@ public class TestOrderBy extends TestCase {
         pig = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
     }
     
-    protected void setUp() throws Exception {
+    @Before
+    public void setUp() throws Exception {
         tmpFile = File.createTempFile("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
         for(int i = 0; i < DATALEN; i++) {
@@ -58,8 +65,14 @@ public class TestOrderBy extends TestCase {
         ps.close();
     }
     
-    protected void tearDown() throws Exception {
+    @After
+    public void tearDown() throws Exception {
         tmpFile.delete();
+    }
+    
+    @AfterClass
+    public static void oneTimeTearDown() throws Exception {
+        cluster.shutDown();
     }
     
     private void verify(String query, boolean descending) throws Exception {

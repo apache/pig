@@ -59,6 +59,7 @@ public class TestPigStorage {
     @AfterClass
     public static void shutdown() {
         pigServer.shutdown();
+        cluster.shutDown();
     }
     
     @Test

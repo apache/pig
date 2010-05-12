@@ -67,9 +67,13 @@ import org.apache.pig.impl.util.LogUtils;
 import org.apache.pig.tools.grunt.GruntParser;
 import org.apache.pig.tools.pigscript.parser.ParseException;
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
+@RunWith(JUnit4.class)
 public class TestMultiQuery extends TestCase {
 
     private static final MiniCluster cluster = MiniCluster.buildCluster();
@@ -86,6 +90,11 @@ public class TestMultiQuery extends TestCase {
     @After
     public void tearDown() throws Exception {
         myPig = null;
+    }
+    
+    @AfterClass
+    public static void oneTimeTearDown() throws Exception {
+        cluster.shutDown();
     }
     
     @Test

@@ -34,18 +34,29 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.Physica
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POProject;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.PONegative;
 import org.apache.pig.impl.plan.PlanException;
+import org.junit.AfterClass;
 import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
 import junit.framework.TestCase;
 
+@RunWith(JUnit4.class)
 public class TestPONegative extends TestCase {
     
     DataBag bag = BagFactory.getInstance().newDefaultBag();
     Random r = new Random();
     TupleFactory tf = TupleFactory.getInstance();
-    MiniCluster miniCluster = MiniCluster.buildCluster();
+    static MiniCluster miniCluster = MiniCluster.buildCluster();
     final int MAX = 10;
     
+    @AfterClass
+    public static void oneTimeTearDown() throws Exception {
+        miniCluster.shutDown();
+    }
+    
+    @Test
     public void testPONegInt () throws PlanException, ExecException {
         for(int i = 0; i < MAX; i++) {
             Tuple t = tf.newTuple();
@@ -72,6 +83,7 @@ public class TestPONegative extends TestCase {
         
     }
     
+    @Test    
     public void testPONegIntAndNull () throws PlanException, ExecException {
     	
         for(int i = 0; i < MAX; i++) {
@@ -114,6 +126,7 @@ public class TestPONegative extends TestCase {
         
     }
     
+    @Test    
     public void testPONegLong () throws PlanException, ExecException {
         for(int i = 0; i < MAX; i++) {
             Tuple t = tf.newTuple();
@@ -140,6 +153,7 @@ public class TestPONegative extends TestCase {
         
     }
     
+    @Test    
     public void testPONegLongAndNull () throws PlanException, ExecException {
         for(int i = 0; i < MAX; i++) {
             Tuple t = tf.newTuple();
@@ -182,6 +196,7 @@ public class TestPONegative extends TestCase {
         
     }
     
+    @Test
     public void testPONegDouble() throws PlanException, ExecException {
         for(int i = 0; i < MAX; i++) {
             Tuple t = tf.newTuple();
@@ -209,7 +224,7 @@ public class TestPONegative extends TestCase {
         
     }
   
-    
+    @Test
     public void testPONegDoubleAndNull() throws PlanException, ExecException {
         for(int i = 0; i < MAX; i++) {
             Tuple t = tf.newTuple();
@@ -251,6 +266,7 @@ public class TestPONegative extends TestCase {
         
     }
 
+    @Test
     public void testPONegFloat() throws PlanException, ExecException {
         for(int i = 0; i < MAX; i++) {
             Tuple t = tf.newTuple();
@@ -277,7 +293,7 @@ public class TestPONegative extends TestCase {
         
     }
     
- 
+    @Test
     public void testPONegFloatAndNull() throws PlanException, ExecException {
         for(int i = 0; i < MAX; i++) {
             Tuple t = tf.newTuple();
@@ -319,6 +335,7 @@ public class TestPONegative extends TestCase {
         
     }
     
+    @Test
     public void testPONegType() throws Exception {
         PigServer pig = new PigServer(ExecType.MAPREDUCE, miniCluster.getProperties());
         File f = Util.createInputFile("tmp", "", new String[] {"a", "b", "c"});

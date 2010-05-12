@@ -37,17 +37,22 @@ import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.util.LogUtils;
 import org.apache.pig.test.utils.Identity;
 import org.apache.pig.test.utils.LogicalPlanTester;
+import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
 import junit.framework.TestCase;
 
 /**
  * Test cases to test join statement
  */
+
+@RunWith(JUnit4.class)
 public class TestJoin extends TestCase {
     
-    MiniCluster cluster;
+    static MiniCluster cluster;
     private PigServer pigServer;
 
     TupleFactory mTf = TupleFactory.getInstance();
@@ -60,6 +65,10 @@ public class TestJoin extends TestCase {
         FileLocalizer.setR(new Random());
     }
     
+    @AfterClass
+    public static void oneTimeTearDown() throws Exception {
+        cluster.shutDown();
+    }
     
     private void setUp(ExecType execType) throws ExecException {
         // cause a reinitialization of FileLocalizer's

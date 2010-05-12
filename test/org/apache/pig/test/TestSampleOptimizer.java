@@ -39,8 +39,12 @@ import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.logicalLayer.LogicalPlan;
 import org.apache.pig.test.utils.LogicalPlanTester;
+import org.junit.AfterClass;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
+@RunWith(JUnit4.class)
 public class TestSampleOptimizer {
 
     static PigContext pc;
@@ -53,6 +57,11 @@ public class TestSampleOptimizer {
         }
     }
 
+    @AfterClass
+    public static void oneTimeTearDown() throws Exception {
+        MiniCluster.buildCluster().shutDown();
+    }
+    
     @Test
     public void testOptimizerFired() throws Exception{
 

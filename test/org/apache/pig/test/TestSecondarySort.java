@@ -38,10 +38,15 @@ import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.logicalLayer.LogicalPlan;
 import org.apache.pig.test.utils.LogicalPlanTester;
+import org.junit.AfterClass;
 import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
+@RunWith(JUnit4.class)
 public class TestSecondarySort extends TestCase {
-    MiniCluster cluster = MiniCluster.buildCluster();
+    static MiniCluster cluster = MiniCluster.buildCluster();
     private PigServer pigServer;
 
     static PigContext pc;
@@ -54,6 +59,11 @@ public class TestSecondarySort extends TestCase {
         }
     }
 
+    @AfterClass
+    public static void oneTimeTearDown() throws Exception {
+        cluster.shutDown();
+    }
+    
     @Before
     @Override
     public void setUp() throws Exception{
@@ -61,6 +71,7 @@ public class TestSecondarySort extends TestCase {
         pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
     }
 
+    @Test
     public void testDistinctOptimization1() throws Exception{
         // Limit in the foreach plan
         LogicalPlanTester planTester = new LogicalPlanTester() ;
@@ -81,6 +92,7 @@ public class TestSecondarySort extends TestCase {
         assertTrue(so.getDistinctChanged()==1);
     }
     
+    @Test
     public void testDistinctOptimization2() throws Exception{
         // Distinct on one entire input 
         LogicalPlanTester planTester = new LogicalPlanTester() ;
@@ -100,6 +112,7 @@ public class TestSecondarySort extends TestCase {
         assertTrue(so.getDistinctChanged()==1);
     }
     
+    @Test
     public void testDistinctOptimization3() throws Exception{
         // Distinct on the prefix of main sort key
         LogicalPlanTester planTester = new LogicalPlanTester() ;
@@ -119,6 +132,7 @@ public class TestSecondarySort extends TestCase {
         assertTrue(so.getDistinctChanged()==1);
     }
     
+    @Test
     public void testDistinctOptimization4() throws Exception{
         // Distinct on secondary key again, should remove
         LogicalPlanTester planTester = new LogicalPlanTester() ;
@@ -138,6 +152,7 @@ public class TestSecondarySort extends TestCase {
         assertTrue(so.getDistinctChanged()==2);
     }
     
+    @Test
     public void testDistinctOptimization5() throws Exception{
         // Filter in foreach plan
         LogicalPlanTester planTester = new LogicalPlanTester() ;
@@ -157,6 +172,7 @@ public class TestSecondarySort extends TestCase {
         assertTrue(so.getDistinctChanged()==1);
     }
     
+    @Test
     public void testDistinctOptimization6() throws Exception{
         // group by * with no schema, and distinct key is not part of main key
         LogicalPlanTester planTester = new LogicalPlanTester() ;
@@ -176,6 +192,7 @@ public class TestSecondarySort extends TestCase {
         assertTrue(so.getDistinctChanged()==1);
     }
 
+    @Test
     public void testDistinctOptimization7() throws Exception{
         // group by * with no schema, distinct key is more specific than the main key
         LogicalPlanTester planTester = new LogicalPlanTester() ;
@@ -195,6 +212,7 @@ public class TestSecondarySort extends TestCase {
         assertTrue(so.getDistinctChanged()==1);
     }
     
+    @Test
     public void testDistinctOptimization8() throws Exception{
         // local arrange plan is an expression
         LogicalPlanTester planTester = new LogicalPlanTester() ;
@@ -214,6 +232,7 @@ public class TestSecondarySort extends TestCase {
         assertTrue(so.getDistinctChanged()==1);
     }
     
+    @Test
     public void testDistinctOptimization9() throws Exception{
         // local arrange plan is nested project
         LogicalPlanTester planTester = new LogicalPlanTester() ;
@@ -233,6 +252,7 @@ public class TestSecondarySort extends TestCase {
         assertTrue(so.getDistinctChanged()==1);
     }
     
+    @Test
     public void testSortOptimization1() throws Exception{
         // Sort on something other than the main key
         LogicalPlanTester planTester = new LogicalPlanTester() ;
@@ -252,6 +272,7 @@ public class TestSecondarySort extends TestCase {
         assertTrue(so.getDistinctChanged()==0);
     }
     
+    @Test
     public void testSortOptimization2() throws Exception{
         // Sort on the prefix of the main key
         LogicalPlanTester planTester = new LogicalPlanTester() ;
@@ -271,6 +292,7 @@ public class TestSecondarySort extends TestCase {
         assertTrue(so.getDistinctChanged()==0);
     }
     
+    @Test
     public void testSortOptimization3() throws Exception{
         // Sort on the main key prefix / non main key prefix mixed
         LogicalPlanTester planTester = new LogicalPlanTester() ;
@@ -290,6 +312,7 @@ public class TestSecondarySort extends TestCase {
         assertTrue(so.getDistinctChanged()==0);
     }
     
+    @Test
     public void testSortOptimization4() throws Exception{
         // Sort on the main key again
         LogicalPlanTester planTester = new LogicalPlanTester() ;
@@ -309,6 +332,7 @@ public class TestSecondarySort extends TestCase {
         assertTrue(so.getDistinctChanged()==0);
     }
     
+    @Test
     public void testSortOptimization5() throws Exception{
         // Sort on the two keys, we can only take off 1
         LogicalPlanTester planTester = new LogicalPlanTester() ;
@@ -328,6 +352,7 @@ public class TestSecondarySort extends TestCase {
         assertTrue(so.getDistinctChanged()==0);
     }
     
+    @Test
     public void testSortOptimization6() throws Exception{
         // Sort desc
         LogicalPlanTester planTester = new LogicalPlanTester() ;
@@ -347,6 +372,7 @@ public class TestSecondarySort extends TestCase {
         assertTrue(so.getDistinctChanged()==0);
     }
     
+    @Test
     public void testSortOptimization7() throws Exception{
         // Sort asc on 1st key, desc on 2nd key
         LogicalPlanTester planTester = new LogicalPlanTester() ;
@@ -367,6 +393,7 @@ public class TestSecondarySort extends TestCase {
     }
     
     // See PIG-1193
+    @Test
     public void testSortOptimization8() throws Exception{
         // Sort desc, used in UDF twice
         LogicalPlanTester planTester = new LogicalPlanTester() ;
@@ -386,6 +413,7 @@ public class TestSecondarySort extends TestCase {
         assertTrue(so.getDistinctChanged()==0);
     }
     
+    @Test
     public void testNestedDistinctEndToEnd1() throws Exception{
         File tmpFile1 = File.createTempFile("test", "txt");
         PrintStream ps1 = new PrintStream(new FileOutputStream(tmpFile1));
@@ -413,8 +441,11 @@ public class TestSecondarySort extends TestCase {
         assertTrue(iter.hasNext());
         assertTrue(iter.next().toString().equals("(2,1L)"));
         assertFalse(iter.hasNext());
+        tmpFile1.delete();
+        tmpFile2.delete();
     }
     
+    @Test
     public void testNestedDistinctEndToEnd2() throws Exception{
         File tmpFile1 = File.createTempFile("test", "txt");
         PrintStream ps1 = new PrintStream(new FileOutputStream(tmpFile1));
@@ -437,6 +468,7 @@ public class TestSecondarySort extends TestCase {
         assertFalse(iter.hasNext());
     }
     
+    @Test
     public void testNestedSortEndToEnd1() throws Exception{
         File tmpFile1 = File.createTempFile("test", "txt");
         PrintStream ps1 = new PrintStream(new FileOutputStream(tmpFile1));
@@ -457,8 +489,10 @@ public class TestSecondarySort extends TestCase {
         assertTrue(iter.hasNext());
         assertTrue(iter.next().toString().equals("(2,{(2,3,4)})"));
         assertFalse(iter.hasNext());
+        tmpFile1.delete();
     }
     
+    @Test
     public void testNestedSortEndToEnd2() throws Exception{
         File tmpFile1 = File.createTempFile("test", "txt");
         PrintStream ps1 = new PrintStream(new FileOutputStream(tmpFile1));
@@ -479,8 +513,10 @@ public class TestSecondarySort extends TestCase {
         assertTrue(iter.hasNext());
         assertTrue(iter.next().toString().equals("(2,{(2,3,4)})"));
         assertFalse(iter.hasNext());
+        tmpFile1.delete();
     }
     
+    @Test
     public void testNestedSortMultiQueryEndToEnd1() throws Exception{
         pigServer.setBatchOn();
         pigServer.registerQuery("a = load 'file:test/org/apache/pig/test/data/passwd'" +

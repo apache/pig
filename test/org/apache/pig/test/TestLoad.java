@@ -53,9 +53,13 @@ import org.apache.pig.backend.datastorage.DataStorage;
 import org.apache.pig.backend.datastorage.DataStorageException;
 import org.apache.pig.backend.datastorage.ElementDescriptor;
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
+@RunWith(JUnit4.class)
 public class TestLoad extends junit.framework.TestCase {
     FileSpec inpFSpec;
     POLoad ld;
@@ -101,6 +105,11 @@ public class TestLoad extends junit.framework.TestCase {
     public void tearDown() throws Exception {
     }
 
+    @AfterClass
+    public static void oneTimeTearDown() throws Exception {
+        cluster.shutDown();
+    }
+    
     @Test
     public void testGetNextTuple() throws ExecException {
         Tuple t=null;

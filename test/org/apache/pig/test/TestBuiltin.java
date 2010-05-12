@@ -48,7 +48,6 @@ public class TestBuiltin extends TestCase {
     
     private String initString = "mapreduce";
     //private String initString = "local";
-    MiniCluster cluster = MiniCluster.buildCluster();
 
     TupleFactory tupleFactory = DefaultTupleFactory.getInstance();
     BagFactory bagFactory = DefaultBagFactory.getInstance();
