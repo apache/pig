@@ -23,6 +23,7 @@ import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
@@ -35,6 +36,7 @@ import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.io.StringReader;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -593,5 +595,16 @@ public class Util {
         System.err.println(out.toString());
     }
 
-
+    public static List<Tuple> readFile2TupleList(String file, String delimiter) throws IOException{
+        List<Tuple> tuples=new ArrayList<Tuple>();
+        String line=null;
+        BufferedReader reader=new BufferedReader(new InputStreamReader(new FileInputStream(file)));
+        while((line=reader.readLine())!=null){
+            String[] tokens=line.split(delimiter);
+            Tuple tuple=TupleFactory.getInstance().newTuple(Arrays.asList(tokens));
+            tuples.add(tuple);
+        }
+        reader.close();
+        return tuples;
+    }
 }
