@@ -849,6 +849,36 @@ public class TestGrunt extends TestCase {
     }
    
     @Test
+    public void testShellCommand(){
+        
+        try {
+            PigServer server = new PigServer(ExecType.MAPREDUCE,cluster.getProperties());
+            PigContext context = server.getPigContext();
+            
+            String strCmd = "sh mkdir test_shell_tmp;";
+            
+            ByteArrayInputStream cmd = new ByteArrayInputStream(strCmd.getBytes());
+            InputStreamReader reader = new InputStreamReader(cmd);
+            Grunt grunt = new Grunt(new BufferedReader(reader), context);
+            grunt.exec();
+            assertTrue(new File("test_shell_tmp").exists());
+            
+            strCmd = "sh rmdir test_shell_tmp;";
+            cmd = new ByteArrayInputStream(strCmd.getBytes());
+            reader = new InputStreamReader(cmd);
+            grunt = new Grunt(new BufferedReader(reader), context);
+            grunt.exec();
+            assertFalse(new File("test_shell_tmp").exists());
+        } catch (ExecException e) {
+            e.printStackTrace();
+            fail();
+        } catch (Throwable e) {
+            e.printStackTrace();
+            fail();
+        }
+    }
+    
+    @Test
     public void testSetPriority() throws Throwable {
         PigServer server = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
         PigContext context = server.getPigContext();
