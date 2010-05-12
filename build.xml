@@ -521,9 +521,13 @@
       <sequential>
         <delete dir="${test.log.dir}"/>
         <mkdir dir="${test.log.dir}"/>
+        <tempfile property="junit.tmp.dir" prefix="pig_junit_tmp" destDir="${java.io.tmpdir}" />
+        <mkdir dir="${junit.tmp.dir}/"/>
         <junit showoutput="${test.output}" printsummary="yes" haltonfailure="no" fork="yes" maxmemory="256m" dir="${basedir}" timeout="${test.timeout}" errorProperty="tests.failed" failureProperty="tests.failed">
             <sysproperty key="ssh.gateway" value="${ssh.gateway}" />
             <sysproperty key="hod.server" value="${hod.server}" />
+            <sysproperty key="java.io.tmpdir" value="${junit.tmp.dir}" />
+
             <!-- <sysproperty key="hod.command" value="${hod.command}"/>
             			<sysproperty key="hod.param" value="${hod.param}"/> -->
             <sysproperty key="hadoop.log.dir" value="${test.log.dir}"/>
@@ -571,6 +575,7 @@
                 <fileset dir="test" includes="**/${testcase}.java"/>
             </batchtest>
         </junit>
+        <delete dir="${junit.tmp.dir}/"/>
         <fail if="tests.failed">Tests failed!</fail>
       </sequential>
     </macrodef>

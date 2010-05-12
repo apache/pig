@@ -71,7 +71,6 @@ import org.junit.Test;
  * Random will be different.
  */
 public class TestMRCompiler extends junit.framework.TestCase {
-//    MiniCluster cluster = MiniCluster.buildCluster();
     
     static PigContext pc;
 

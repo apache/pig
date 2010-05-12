@@ -38,12 +38,13 @@ import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.util.LogUtils;
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
 
 public class TestBestFitCast extends TestCase {
     private PigServer pigServer;
-    private MiniCluster cluster = MiniCluster.buildCluster();
+    private static MiniCluster cluster = MiniCluster.buildCluster();
     String inputFile, inputFile2;
     int LOOP_SIZE = 20;
     
@@ -74,6 +75,11 @@ public class TestBestFitCast extends TestCase {
     public void tearDown() throws Exception {
         Util.deleteFile(cluster, inputFile);
         Util.deleteFile(cluster, inputFile2);
+    }
+    
+    @AfterClass
+    public static void oneTimeTearDown() throws Exception {
+        cluster.shutDown();
     }
     
     public static class UDF1 extends EvalFunc<Tuple>{

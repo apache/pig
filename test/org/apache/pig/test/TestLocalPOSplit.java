@@ -134,6 +134,7 @@ public class TestLocalPOSplit extends TestCase {
                 assertEquals(t.get(0), firstValue);
             }
         }
+        datFile.delete();
     }
 
     @Test
@@ -141,20 +142,20 @@ public class TestLocalPOSplit extends TestCase {
         init();
 
         pigContext.connect();
-        File datFile = File.createTempFile("tempN1", ".dat");
-        String path1 = Util.encodeEscape(datFile.getAbsolutePath());
+        File datFile1 = File.createTempFile("tempN1", ".dat");
+        String path1 = Util.encodeEscape(datFile1.getAbsolutePath());
 
-        FileOutputStream dat = new FileOutputStream(datFile);
+        FileOutputStream dat = new FileOutputStream(datFile1);
         String s1 = "1\n2\n3\n42\n4\n5\n";
         dat.write(s1.getBytes());
         dat.close();
 
         String s2 = "1\n2\n43\n3\n4\n5\n";
 
-        datFile = File.createTempFile("tempN2", ".dat");
-        String path2 = Util.encodeEscape(datFile.getAbsolutePath());
+        File datFile2 = File.createTempFile("tempN2", ".dat");
+        String path2 = Util.encodeEscape(datFile2.getAbsolutePath());
                 
-        dat = new FileOutputStream(datFile);
+        dat = new FileOutputStream(datFile2);
         dat.write(s2.getBytes());
         dat.close();
 
@@ -204,6 +205,8 @@ public class TestLocalPOSplit extends TestCase {
         for (Integer j: seen.values()) {
             assertEquals(j, new Integer(2));
         }
+        datFile1.delete();
+        datFile2.delete();
     }
 
     public PhysicalPlan buildPhysicalPlan(LogicalPlan lp)

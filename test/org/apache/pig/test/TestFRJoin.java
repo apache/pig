@@ -54,14 +54,18 @@ import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.test.utils.TestHelper;
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
+@RunWith(JUnit4.class)
 public class TestFRJoin extends TestCase{
     private static final String INPUT_FILE = "testFrJoinInput.txt";
     private static final String INPUT_FILE2 = "testFrJoinInput2.txt";
     private PigServer pigServer;
-    private MiniCluster cluster = MiniCluster.buildCluster();
+    private static MiniCluster cluster = MiniCluster.buildCluster();
     private File tmpFile;
     
     public TestFRJoin() throws ExecException, IOException{
@@ -92,6 +96,11 @@ public class TestFRJoin extends TestCase{
         Util.createInputFile(cluster, INPUT_FILE2, input2);
     }
 
+    @AfterClass
+    public static void oneTimeTearDown() throws Exception {
+        cluster.shutDown();
+    }
+    
     @After
     public void tearDown() throws Exception {
         Util.deleteFile(cluster, INPUT_FILE);
@@ -160,6 +169,7 @@ public class TestFRJoin extends TestCase{
         
     }
     
+    @Test
     public void testSortFRJoin() throws IOException{
       pigServer.registerQuery("A = LOAD '" + INPUT_FILE + "' as (x:int,y:int);");
       pigServer.registerQuery("B = LOAD '" + INPUT_FILE + "' as (x:int,y:int);");
@@ -186,6 +196,7 @@ public class TestFRJoin extends TestCase{
       Assert.assertEquals(true, TestHelper.compareBags(dbfrj, dbshj));        
     }
     
+    @Test
     public void testDistinctFRJoin() throws IOException{
         pigServer.registerQuery("A = LOAD '" + INPUT_FILE + "' as (x:int,y:int);");
         pigServer.registerQuery("B = LOAD '" + INPUT_FILE + "' as (x:int,y:int);");

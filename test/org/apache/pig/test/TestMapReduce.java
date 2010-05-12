@@ -49,28 +49,37 @@ import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.test.utils.TestHelper;
+import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
-
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
+@RunWith(JUnit4.class)
 public class TestMapReduce extends TestCase {
 
     private Log log = LogFactory.getLog(getClass());
     
-    MiniCluster cluster = MiniCluster.buildCluster();
+    static MiniCluster cluster = MiniCluster.buildCluster();
 
     private PigServer pig;
     
     @Before
     @Override
-    protected void setUp() throws Exception {
+    public void setUp() throws Exception {
         pig = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
     }
+    
+    @AfterClass
+    public static void oneTimeTearDown() throws Exception {
+        cluster.shutDown();
+    }
+    
 
     @Test
     public void testBigGroupAll() throws Throwable {
 
         int LOOP_COUNT = 4*1024;
-        File tmpFile = File.createTempFile( this.getName(), ".txt");
+        File tmpFile = File.createTempFile( this.getClass().getName(), ".txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
         for(int i = 0; i < LOOP_COUNT; i++) {
             ps.println(i);
@@ -85,7 +94,7 @@ public class TestMapReduce extends TestCase {
     public void testBigGroupAllWithNull() throws Throwable {
 
         int LOOP_COUNT = 4*1024;
-        File tmpFile = File.createTempFile( this.getName(), ".txt");
+        File tmpFile = File.createTempFile(this.getClass().getName(), ".txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
         long nonNullCnt = 0;
         for(int i = 0; i < LOOP_COUNT; i++) {
@@ -138,7 +147,6 @@ public class TestMapReduce extends TestCase {
         }
     }
     
-    @Test
     public Double bigGroupAll( File tmpFile ) throws Throwable {
 
         String query = "foreach (group (load '"
@@ -265,7 +273,7 @@ public class TestMapReduce extends TestCase {
         try {
             pig.deleteFile("frog");
         } catch(Exception e) {}
-
+        tmpFile.delete();
 
     }
 
@@ -318,7 +326,7 @@ public class TestMapReduce extends TestCase {
         try {
             pig.deleteFile("frog");
         } catch(Exception e) {}
-
+        tmpFile.delete();
 
     }
 
@@ -355,6 +363,7 @@ public class TestMapReduce extends TestCase {
         }
 
         assertEquals( MyStorage.COUNT, count );
+        tmpFile.delete();
     }
     
     @Test
@@ -393,6 +402,7 @@ public class TestMapReduce extends TestCase {
         }
 
         assertEquals( MyStorage.COUNT, count );
+        tmpFile.delete();
     }
     
 
@@ -445,7 +455,6 @@ public class TestMapReduce extends TestCase {
     }
 
 
-    @Test
     public void definedFunctions(String[][] data) throws Throwable {
 
         File tmpFile=TestHelper.createTempFile(data) ;

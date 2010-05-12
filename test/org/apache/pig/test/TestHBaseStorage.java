@@ -46,16 +46,21 @@ import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.io.FileLocalizer;
+import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
 /** {@link org.apache.pig.backend.hadoop.hbase.HBaseStorage} Test Case **/
+@RunWith(JUnit4.class)
 public class TestHBaseStorage extends TestCase {
 
     private static final Log LOG =
         LogFactory.getLog(TestHBaseStorage.class);
     
-    private MiniCluster cluster = MiniCluster.buildCluster();
+    private static MiniCluster cluster = MiniCluster.buildCluster();
     private HBaseConfiguration conf;
     private MiniHBaseCluster hbaseCluster;
     private MiniZooKeeperCluster zooKeeperCluster;
@@ -76,7 +81,7 @@ public class TestHBaseStorage extends TestCase {
     
     @Before
     @Override
-    protected void setUp() throws Exception {
+    public void setUp() throws Exception {
         super.setUp();
         
         conf = new HBaseConfiguration(ConfigurationUtil.
@@ -107,6 +112,11 @@ public class TestHBaseStorage extends TestCase {
         pig = new PigServer(ExecType.MAPREDUCE, ConfigurationUtil.toProperties(conf));
     }
     
+    @AfterClass
+    public static void oneTimeTearDown() throws Exception {
+        cluster.shutDown();
+    }
+    
     /**
      * Actually start the MiniHBase instance.
      */
@@ -129,7 +139,8 @@ public class TestHBaseStorage extends TestCase {
     }
 
     @Override
-    protected void tearDown() throws Exception {
+    @After
+    public void tearDown() throws Exception {
         // clear the table
         deleteTable();
         super.tearDown();

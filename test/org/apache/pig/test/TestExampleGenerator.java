@@ -33,12 +33,16 @@ import org.apache.pig.data.DataBag;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.logicalLayer.LogicalOperator;
+import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
+@RunWith(JUnit4.class)
 public class TestExampleGenerator extends TestCase {
 
-    MiniCluster cluster = MiniCluster.buildCluster();
+    static MiniCluster cluster = MiniCluster.buildCluster();
     PigContext pigContext = new PigContext(ExecType.MAPREDUCE, cluster
             .getProperties());
 
@@ -69,7 +73,15 @@ public class TestExampleGenerator extends TestCase {
         B = "'" + FileLocalizer.hadoopify(fileB.toString(), pigContext) + "'";
         System.out.println("A : " + A + "\n" + "B : " + B);
         System.out.println("Test data created.");
+        fileA.deleteOnExit();
+        fileB.deleteOnExit();
+          
+    }
 
+    
+    @AfterClass
+    public static void oneTimeTearDown() throws Exception {
+        cluster.shutDown();
     }
 
     private void writeData(File dataFile) throws Exception {

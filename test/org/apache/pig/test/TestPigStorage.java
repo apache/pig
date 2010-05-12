@@ -39,9 +39,12 @@ import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POProject;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.io.FileLocalizer;
+import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
-
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
+@RunWith(JUnit4.class)
 public class TestPigStorage  {
         
     protected final Log log = LogFactory.getLog(getClass());
@@ -56,6 +59,10 @@ public class TestPigStorage  {
         FileLocalizer.setInitialized(false);
     }
     
+    @AfterClass
+    public static void shutdown() {
+        cluster.shutDown();
+    }
     @Test
     public void testBlockBoundary() throws ExecException {
         

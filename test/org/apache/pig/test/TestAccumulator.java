@@ -27,8 +27,13 @@ import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.Tuple;
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
+@RunWith(JUnit4.class)
 public class TestAccumulator extends TestCase{
     private static final String INPUT_FILE = "AccumulatorInput.txt";
     private static final String INPUT_FILE2 = "AccumulatorInput2.txt";
@@ -36,8 +41,8 @@ public class TestAccumulator extends TestCase{
     private static final String INPUT_FILE4 = "AccumulatorInput4.txt";
  
     private PigServer pigServer;
-    private MiniCluster cluster = MiniCluster.buildCluster();
-    
+    private static MiniCluster cluster = MiniCluster.buildCluster();
+
     public TestAccumulator() throws ExecException, IOException{
         pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
         // pigServer = new PigServer(ExecType.LOCAL);
@@ -53,6 +58,11 @@ public class TestAccumulator extends TestCase{
     public void setUp() throws Exception {
         pigServer.getPigContext().getProperties().remove("opt.accumulator");
         createFiles();
+    }
+    
+    @AfterClass
+    public static void oneTimeTearDown() throws Exception {
+        cluster.shutDown();
     }
 
     private void createFiles() throws IOException {
@@ -120,6 +130,7 @@ public class TestAccumulator extends TestCase{
         Util.deleteFile(cluster, INPUT_FILE4);
     }
     
+    @Test
     public void testAccumBasic() throws IOException{
         // test group by
         pigServer.registerQuery("A = load '" + INPUT_FILE + "' as (id:int, fruit);");
@@ -178,6 +189,7 @@ public class TestAccumulator extends TestCase{
         }            
     }      
     
+    @Test
     public void testAccumWithNegative() throws IOException{
         pigServer.registerQuery("A = load '" + INPUT_FILE + "' as (id:int, fruit);");
         pigServer.registerQuery("B = group A by id;");
@@ -198,6 +210,7 @@ public class TestAccumulator extends TestCase{
         }            
     }
     
+    @Test
     public void testAccumWithAdd() throws IOException{
         pigServer.registerQuery("A = load '" + INPUT_FILE + "' as (id:int, fruit);");
         pigServer.registerQuery("B = group A by id;");
@@ -239,6 +252,7 @@ public class TestAccumulator extends TestCase{
         }
     }      
     
+    @Test
     public void testAccumWithMinus() throws IOException{
         pigServer.registerQuery("A = load '" + INPUT_FILE + "' as (id:int, fruit);");
         pigServer.registerQuery("B = group A by id;");
@@ -260,6 +274,7 @@ public class TestAccumulator extends TestCase{
         }                                   
     }              
     
+    @Test
     public void testAccumWithMod() throws IOException{
         pigServer.registerQuery("A = load '" + INPUT_FILE + "' as (id:int, fruit);");
         pigServer.registerQuery("B = group A by id;");
@@ -281,6 +296,7 @@ public class TestAccumulator extends TestCase{
         }                                   
     }             
     
+    @Test
     public void testAccumWithDivide() throws IOException{
         pigServer.registerQuery("A = load '" + INPUT_FILE + "' as (id:int, fruit);");
         pigServer.registerQuery("B = group A by id;");
@@ -302,6 +318,7 @@ public class TestAccumulator extends TestCase{
         }                                   
     }        
     
+    @Test
     public void testAccumWithAnd() throws IOException{
         pigServer.registerQuery("A = load '" + INPUT_FILE + "' as (id:int, fruit);");
         pigServer.registerQuery("B = group A by id;");
@@ -324,6 +341,7 @@ public class TestAccumulator extends TestCase{
         }                                   
     }          
     
+    @Test
     public void testAccumWithOr() throws IOException{
         pigServer.registerQuery("A = load '" + INPUT_FILE + "' as (id:int, fruit);");
         pigServer.registerQuery("B = group A by id;");
@@ -346,6 +364,7 @@ public class TestAccumulator extends TestCase{
         }                                   
     }  
     
+    @Test
     public void testAccumWithRegexp() throws IOException{
         pigServer.registerQuery("A = load '" + INPUT_FILE + "' as (id:int, fruit);");
         pigServer.registerQuery("B = group A by id;");
@@ -367,7 +386,7 @@ public class TestAccumulator extends TestCase{
         }                                   
     }              
     
-
+    @Test
     public void testAccumWithIsNull() throws IOException{
         pigServer.registerQuery("A = load '" + INPUT_FILE2 + "' as (id:int, fruit);");
         pigServer.registerQuery("B = group A by id;");
@@ -387,6 +406,7 @@ public class TestAccumulator extends TestCase{
         }                                   
     }              
     
+    @Test
     public void testAccumWithDistinct() throws IOException{
         pigServer.registerQuery("A = load '" + INPUT_FILE + "' as (id:int, f);");
         pigServer.registerQuery("B = group A by id;");
@@ -406,6 +426,7 @@ public class TestAccumulator extends TestCase{
         }                                   
     }             
     
+    @Test
     public void testAccumWithSort() throws IOException{
         pigServer.registerQuery("A = load '" + INPUT_FILE + "' as (id:int, f);");
         pigServer.registerQuery("B = foreach A generate id, f, id as t;");
@@ -458,6 +479,7 @@ public class TestAccumulator extends TestCase{
       }
     }
     
+    @Test
     public void testAccumWithBuildin() throws IOException{
         pigServer.registerQuery("A = load '" + INPUT_FILE3 + "' as (id:int, v:double);");
         pigServer.registerQuery("C = group A by id;");
@@ -486,6 +508,7 @@ public class TestAccumulator extends TestCase{
         }    
     }
     
+    @Test
     public void testAccumWithMultiBuildin() throws IOException{
         pigServer.registerQuery("A = load '" + INPUT_FILE + "' as (id:int, c:chararray);");
         pigServer.registerQuery("C = group A by 1;");
@@ -501,6 +524,7 @@ public class TestAccumulator extends TestCase{
     }
 
     // Pig 1105
+    @Test
     public void testAccumCountStar() throws IOException{
         pigServer.registerQuery("A = load '" + INPUT_FILE3 + "' as (id:int, v:double);");
         pigServer.registerQuery("C = group A by id;");
@@ -513,7 +537,7 @@ public class TestAccumulator extends TestCase{
         }      
     }
     
-    
+    @Test    
     public void testAccumulatorOff() throws IOException{
         pigServer.getPigContext().getProperties().setProperty("opt.accumulator", "false");
         
@@ -533,8 +557,9 @@ public class TestAccumulator extends TestCase{
             // we should get exception
         }
         
-    }              
+    }    
     
+    @Test    
     public void testAccumWithMap() throws IOException{
         pigServer.registerQuery("A = load '" + INPUT_FILE4 + "' as (id, url);");
         pigServer.registerQuery("B = group A by (id, url);");

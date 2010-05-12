@@ -33,7 +33,6 @@ import java.text.DecimalFormat;
 public class TestForEachNestedPlanLocal extends TestCase {
 
     private String initString = "local";
-    //MiniCluster cluster = MiniCluster.buildCluster();
 
     private PigServer pig ;
 
