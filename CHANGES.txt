@@ -64,6 +64,8 @@ PIG-1309: Map-side Cogroup (ashutoshc)
 
 BUG FIXES
 
+PIG-1414: Problem with parameter substitution (rding)
+
 PIG-1407: Logging starts before being configured (azaroth via daijy)
 
 PIG-1391: pig unit tests leave behind files in temp directory because 
