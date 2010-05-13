@@ -394,7 +394,7 @@ public class TestStore extends junit.framework.TestCase {
             
             String script = "a = load '"+ inputFileName + "';" +
             		"store a into '" + outputFileName + "' using " + 
-            		DummyStore.class.getName() + "();";
+            		DUMMY_STORE_CLASS_NAME + "();";
             
             for (ExecType execType : modes) {
                 if(execType == ExecType.MAPREDUCE) {
@@ -442,7 +442,7 @@ public class TestStore extends junit.framework.TestCase {
             
             String script = "a = load '"+ inputFileName + "';" +
                     "store a into '" + outputFileName + "' using " + 
-                    DummyStore.class.getName() + "('true');";
+                    DUMMY_STORE_CLASS_NAME + "('true');";
             
             for (ExecType execType : modes) {
                 if(execType == ExecType.MAPREDUCE) {
@@ -502,9 +502,9 @@ public class TestStore extends junit.framework.TestCase {
             // that both stores are considered to have failed
             String script = "a = load '"+ inputFileName + "';" +
                     "store a into '" + outputFileName1 + "' using " + 
-                    DummyStore.class.getName() + "('true', '1');" +
+                    DUMMY_STORE_CLASS_NAME + "('true', '1');" +
                     "store a into '" + outputFileName2 + "' using " + 
-                    DummyStore.class.getName() + "('false', '2');"; 
+                    DUMMY_STORE_CLASS_NAME + "('false', '2');"; 
             
             for (ExecType execType : modes) {
                 if(execType == ExecType.MAPREDUCE) {
@@ -557,6 +557,10 @@ public class TestStore extends junit.framework.TestCase {
             Util.deleteFile(ps.getPigContext(), cleanupSuccessFile2);
         }
     }
+    
+    private static final String DUMMY_STORE_CLASS_NAME
+            = "org.apache.pig.test.TestStore\\$DummyStore";
+    
     public static class DummyStore extends PigStorage implements StoreMetadata{
 
         private boolean failInPutNext = false;
