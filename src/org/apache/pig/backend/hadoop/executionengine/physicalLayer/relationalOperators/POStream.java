@@ -303,37 +303,26 @@ public class POStream extends PhysicalOperator {
     }
     
     public String toString() {
-        return "POStream" + "[" + command.toString() + "]" + " - " + mKey.toString();
+        return getAliasString() + "POStream" + "[" + command.toString() + "]"
+                + " - " + mKey.toString();
     }
-    
-    /* (non-Javadoc)
-     * @see org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator#visit(org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor)
-     */
+ 
     @Override
     public void visit(PhyPlanVisitor v) throws VisitorException {
         v.visitStream(this);
         
     }
 
-    /* (non-Javadoc)
-     * @see org.apache.pig.impl.plan.Operator#name()
-     */
     @Override
     public String name() {
        return toString(); 
     }
 
-    /* (non-Javadoc)
-     * @see org.apache.pig.impl.plan.Operator#supportsMultipleInputs()
-     */
     @Override
     public boolean supportsMultipleInputs() {
         return false;
     }
 
-    /* (non-Javadoc)
-     * @see org.apache.pig.impl.plan.Operator#supportsMultipleOutputs()
-     */
     @Override
     public boolean supportsMultipleOutputs() {
         return false;

@@ -71,9 +71,10 @@ public class POLocalRearrangeForIllustrate extends POLocalRearrange {
 
     @Override
     public String name() {
-        return "Local Rearrange For Illustrate" + "[" + DataType.findTypeName(resultType) +
-            "]" + "{" + DataType.findTypeName(keyType) + "}" + "(" +
-            mIsDistinct + ") - " + mKey.toString();
+        return getAliasString() + "Local Rearrange For Illustrate" + "["
+                + DataType.findTypeName(resultType) + "]" + "{"
+                + DataType.findTypeName(keyType) + "}" + "(" + mIsDistinct
+                + ") - " + mKey.toString();
     }
 
     protected Tuple constructLROutput(List<Result> resLst, List<Result> secondaryResLst, Tuple value) throws ExecException{

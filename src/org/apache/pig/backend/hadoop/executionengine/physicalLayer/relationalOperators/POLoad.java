@@ -148,10 +148,9 @@ public class POLoad extends PhysicalOperator {
 
     @Override
     public String name() {
-        if(lFile!=null)
-            return "Load" + "(" + lFile.toString() + ")" + " - " + mKey.toString();
-        else
-            return "Load" + "(" + "DummyFil:DummyLdr" + ")" + " - " + mKey.toString();
+        return (lFile != null) ? getAliasString() + "Load" + "(" + lFile.toString()
+                + ")" + " - " + mKey.toString() : getAliasString() + "Load" + "("
+                + "DummyFil:DummyLdr" + ")" + " - " + mKey.toString();
     }
 
     @Override

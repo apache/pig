@@ -176,8 +176,7 @@ public class POCross extends PhysicalOperator {
 
     @Override
     public String name() {
-        // TODO Auto-generated method stub
-        return "POCrossLocal" + " - " + mKey.toString();
+        return getAliasString() + "POCrossLocal" + " - " + mKey.toString();
     }
 
     @Override

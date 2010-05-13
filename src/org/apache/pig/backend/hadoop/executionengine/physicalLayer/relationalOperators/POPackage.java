@@ -140,7 +140,10 @@ public class POPackage extends PhysicalOperator {
 
     @Override
     public String name() {
-        return "Package" + "[" + DataType.findTypeName(resultType) + "]" + "{" + DataType.findTypeName(keyType) + "}" +" - " + mKey.toString();
+        return getAliasString() + "Package" + "["
+                + DataType.findTypeName(resultType) + "]" + "{"
+                + DataType.findTypeName(keyType) + "}" + " - "
+                + mKey.toString();
     }
 
     @Override

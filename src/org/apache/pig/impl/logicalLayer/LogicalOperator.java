@@ -213,6 +213,10 @@ abstract public class LogicalOperator extends Operator<LOVisitor> {
     public String getAlias() {
         return mAlias;
     }
+    
+    public String getAliasString() {
+        return (mAlias == null) ? "" : (mAlias + ": ");
+    }
 
     public void setAlias(String newAlias) {
         mAlias = newAlias;

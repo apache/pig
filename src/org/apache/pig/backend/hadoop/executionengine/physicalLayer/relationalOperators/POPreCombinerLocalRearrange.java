@@ -89,8 +89,9 @@ public class POPreCombinerLocalRearrange extends PhysicalOperator {
 
     @Override
     public String name() {
-        return "Pre Combiner Local Rearrange" + "[" + DataType.findTypeName(resultType) +
-            "]" + "{" + DataType.findTypeName(keyType) + "} - " + mKey.toString();
+        return getAliasString() + "Pre Combiner Local Rearrange" + "["
+                + DataType.findTypeName(resultType) + "]" + "{"
+                + DataType.findTypeName(keyType) + "} - " + mKey.toString();
     }
 
     @Override

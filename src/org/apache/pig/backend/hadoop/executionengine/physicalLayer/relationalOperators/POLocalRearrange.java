@@ -154,9 +154,10 @@ public class POLocalRearrange extends PhysicalOperator {
 
     @Override
     public String name() {
-        return "Local Rearrange" + "[" + DataType.findTypeName(resultType) +
-            "]" + "{" + DataType.findTypeName(keyType) + "}" + "(" +
-            mIsDistinct + ") - " + mKey.toString();
+        return getAliasString() + "Local Rearrange" + "["
+                + DataType.findTypeName(resultType) + "]" + "{"
+                + DataType.findTypeName(keyType) + "}" + "(" + mIsDistinct
+                + ") - " + mKey.toString();
     }
 
     @Override
@@ -682,6 +683,7 @@ public class POLocalRearrange extends PhysicalOperator {
         // Needs to be called as setDistinct so that the fake index tuple gets
         // created.
         clone.setDistinct(mIsDistinct);
+        clone.setAlias(alias);
         return clone;
     }
 
