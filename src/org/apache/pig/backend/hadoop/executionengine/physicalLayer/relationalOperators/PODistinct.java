@@ -124,7 +124,9 @@ public class PODistinct extends PhysicalOperator implements Cloneable {
 
     @Override
     public String name() {
-        return "PODistinct" + "[" + DataType.findTypeName(resultType) + "]" +" - " + mKey.toString();
+        return getAliasString() + "PODistinct" + "["
+                + DataType.findTypeName(resultType) + "]" + " - "
+                + mKey.toString();
     }
 
     @Override

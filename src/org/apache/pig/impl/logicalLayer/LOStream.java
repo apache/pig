@@ -159,7 +159,7 @@ public class LOStream extends RelationalOperator {
      */
     @Override
     public String name() {
-        return "Stream (" + command.toString() + ") " + mKey.scope + "-" + mKey.id;
+        return getAliasString() + "Stream (" + command.toString() + ") " + mKey.scope + "-" + mKey.id;
     }
 
     /* (non-Javadoc)

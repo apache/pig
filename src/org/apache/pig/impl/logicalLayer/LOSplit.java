@@ -71,7 +71,7 @@ public class LOSplit extends RelationalOperator {
 
     @Override
     public String name() {
-        return "Split " + mKey.scope + "-" + mKey.id;
+        return getAliasString() + "Split " + mKey.scope + "-" + mKey.id;
     }
 
     @Override

@@ -82,7 +82,7 @@ public class LOLimit extends RelationalOperator {
 
     @Override
     public String name() {
-        return "Limit (" + mLimit + ") " + mKey.scope + "-" + mKey.id;
+        return getAliasString() + "Limit (" + mLimit + ") " + mKey.scope + "-" + mKey.id;
     }
 
     @Override

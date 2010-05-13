@@ -115,7 +115,7 @@ public class LOStore extends RelationalOperator {
 
     @Override
     public String name() {
-        return "Store " + mKey.scope + "-" + mKey.id;
+        return getAliasString() + "Store " + mKey.scope + "-" + mKey.id;
     }
 
     @Override

@@ -101,9 +101,10 @@ public class POPartitionRearrange extends POLocalRearrange {
 
     @Override
     public String name() {
-        return "Partition rearrange " + "[" + DataType.findTypeName(resultType) +
-            "]" + "{" + DataType.findTypeName(keyType) + "}" + "(" +
-            mIsDistinct + ") - " + mKey.toString();
+        return getAliasString() + "Partition rearrange " + "["
+                + DataType.findTypeName(resultType) + "]" + "{"
+                + DataType.findTypeName(keyType) + "}" + "(" + mIsDistinct
+                + ") - " + mKey.toString();
     }
 
     /**

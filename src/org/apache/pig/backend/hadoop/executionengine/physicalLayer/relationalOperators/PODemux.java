@@ -144,7 +144,7 @@ public class PODemux extends PhysicalOperator {
 
     @Override
     public String name() {
-        return "Demux [" + myPlans.size() + "] "+ mKey.toString();
+        return getAliasString() + "Demux [" + myPlans.size() + "] "+ mKey.toString();
     }
 
     @Override

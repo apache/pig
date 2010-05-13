@@ -164,7 +164,9 @@ public class POFilter extends PhysicalOperator {
 
     @Override
     public String name() {
-        return "Filter" + "[" + DataType.findTypeName(resultType) + "]" + " - " + mKey.toString();
+        return getAliasString() + "Filter" + "["
+                + DataType.findTypeName(resultType) + "]" + " - "
+                + mKey.toString();
     }
 
     @Override

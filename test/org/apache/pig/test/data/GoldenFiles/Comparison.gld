@@ -22,4 +22,4 @@ Filter[bag] - Test-Plan-Builder-118
 |           |
 |           |---Constant(2) - Test-Plan-Builder-126
 |
-|---Load(a:org.apache.pig.builtin.PigStorage(':')) - Test-Plan-Builder-117
+|---104: Load(file:///homes/rding/apache-pig/trunk/a:org.apache.pig.builtin.PigStorage(':')) - Test-Plan-Builder-117

@@ -56,21 +56,19 @@ public class POCogroup extends PhysicalOperator {
     boolean[] inner;
 
     public POCogroup(OperatorKey k) {
-	super(k);
-	// TODO Auto-generated constructor stub
+        super(k);
     }
 
     public POCogroup(OperatorKey k, int rp) {
-	super(k, rp);
-	// TODO Auto-generated constructor stub
+        super(k, rp);
     }
 
     public POCogroup(OperatorKey k, List<PhysicalOperator> inp) {
-	super(k, inp);
+        super(k, inp);
     }
 
     public POCogroup(OperatorKey k, int rp, List<PhysicalOperator> inp) {
-	super(k, rp, inp);
+        super(k, rp, inp);
     }
     
     public void setInner(boolean[] inner) {
@@ -79,15 +77,14 @@ public class POCogroup extends PhysicalOperator {
 
     @Override
     public void visit(PhyPlanVisitor v) throws VisitorException {
-	// TODO Auto-generated method stub
-	v.visitPenCogroup(this);
-
+        v.visitPenCogroup(this);
     }
 
     @Override
     public String name() {
-	// TODO Auto-generated method stub
-	return "POCogroup" + "[" + DataType.findTypeName(resultType) + "]" +" - " + mKey.toString();
+        return getAliasString() + "POCogroup"+ ": POCogroup" + "["
+                + DataType.findTypeName(resultType) + "]" + " - "
+                + mKey.toString();
     }
     
     @Override

@@ -142,7 +142,7 @@ public class POSplit extends PhysicalOperator {
 
     @Override
     public String name() {
-        return "Split - " + mKey.toString();
+        return getAliasString() + "Split - " + mKey.toString();
     }
 
     @Override

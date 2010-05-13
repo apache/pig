@@ -99,7 +99,7 @@ public class POLimit extends PhysicalOperator {
 
     @Override
     public String name() {
-        return "Limit - " + mKey.toString();
+        return getAliasString() + "Limit - " + mKey.toString();
     }
 
     @Override
@@ -128,6 +128,7 @@ public class POLimit extends PhysicalOperator {
             NodeIdGenerator.getGenerator().getNextNodeId(this.mKey.scope)),
             this.requestedParallelism, this.inputs);
         newLimit.mLimit = this.mLimit;
+        newLimit.setAlias(alias);
         return newLimit;
     }
 }

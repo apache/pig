@@ -472,7 +472,9 @@ public class POMergeCogroup extends PhysicalOperator {
 
     @Override
     public String name() {
-        return "MergeCogroup[" + DataType.findTypeName(resultType) + "]" +" - " + mKey.toString();
+        return getAliasString() + "MergeCogroup["
+                + DataType.findTypeName(resultType) + "]" + " - "
+                + mKey.toString();
     }
 
     @Override

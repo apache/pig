@@ -67,7 +67,9 @@ public class POGlobalRearrange extends PhysicalOperator {
 
     @Override
     public String name() {
-        return "Global Rearrange" + "[" + DataType.findTypeName(resultType) + "]" +" - " + mKey.toString();
+        return getAliasString() + "Global Rearrange" + "["
+                + DataType.findTypeName(resultType) + "]" + " - "
+                + mKey.toString();
     }
 
     @Override

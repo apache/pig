@@ -175,7 +175,7 @@ public class LOCross extends RelationalOperator {
 
     @Override
     public String name() {
-        return "Cross " + mKey.scope + "-" + mKey.id;
+        return getAliasString() + "Cross " + mKey.scope + "-" + mKey.id;
     }
 
     @Override

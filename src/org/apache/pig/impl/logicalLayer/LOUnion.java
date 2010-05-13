@@ -110,7 +110,7 @@ public class LOUnion extends RelationalOperator {
 
     @Override
     public String name() {
-        return "Union " + mKey.scope + "-" + mKey.id;
+        return getAliasString() + "Union " + mKey.scope + "-" + mKey.id;
     }
 
     @Override

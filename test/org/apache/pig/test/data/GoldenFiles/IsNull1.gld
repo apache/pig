@@ -1,4 +1,4 @@
-Filter[tuple] - Test-Plan-Builder-258
+x: Filter[tuple] - Test-Plan-Builder-258
 |   |
 |   POIsNull[tuple] - Test-Plan-Builder-260
 |   |
@@ -6,9 +6,9 @@ Filter[tuple] - Test-Plan-Builder-258
 |
 |---Split - Test-Plan-Builder-257
     |
-    |---Load(a:org.apache.pig.builtin.PigStorage) - Test-Plan-Builder-256
+    |---248: Load(file:///homes/rding/apache-pig/trunk/a:org.apache.pig.builtin.PigStorage) - Test-Plan-Builder-256
 
-Filter[tuple] - Test-Plan-Builder-261
+y: Filter[tuple] - Test-Plan-Builder-261
 |   |
 |   Not[boolean] - Test-Plan-Builder-264
 |   |
@@ -18,4 +18,4 @@ Filter[tuple] - Test-Plan-Builder-261
 |
 |---Split - Test-Plan-Builder-257
     |
-    |---Load(a:org.apache.pig.builtin.PigStorage) - Test-Plan-Builder-256
+    |---248: Load(file:///homes/rding/apache-pig/trunk/a:org.apache.pig.builtin.PigStorage) - Test-Plan-Builder-256

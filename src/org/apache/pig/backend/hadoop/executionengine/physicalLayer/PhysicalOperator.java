@@ -169,6 +169,10 @@ public abstract class PhysicalOperator extends Operator<PhyPlanVisitor> implemen
         return alias;
     }
     
+    protected String getAliasString() {
+        return (alias == null) ? "" : (alias + ": ");
+    }
+    
     public void setAlias(String alias) {
         this.alias = alias;
     }
