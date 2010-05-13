@@ -108,8 +108,7 @@ public class POSplitOutput extends PhysicalOperator {
 
     @Override
     public String name() {
-	// TODO Auto-generated method stub
-	return "POSplitOutput " + mKey.toString();
+        return getAliasString() + "POSplitOutput " + mKey.toString();
     }
 
     @Override

@@ -103,7 +103,7 @@ public class LOFilter extends RelationalOperator {
 
     @Override
     public String name() {
-        return "Filter " + mKey.scope + "-" + mKey.id;
+        return getAliasString() + "Filter " + mKey.scope + "-" + mKey.id;
     }
 
     @Override

@@ -125,7 +125,7 @@ public class LOJoin extends RelationalOperator {
 
     @Override
     public String name() {
-        return "LOJoin " + mKey.scope + "-" + mKey.id;
+        return getAliasString() + "LOJoin " + mKey.scope + "-" + mKey.id;
     }
 
     @Override

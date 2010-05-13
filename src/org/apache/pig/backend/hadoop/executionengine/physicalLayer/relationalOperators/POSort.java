@@ -246,11 +246,13 @@ public class POSort extends PhysicalOperator {
 
 	}
 
-	@Override
-	public String name() {
-
-		return "POSort" + "[" + DataType.findTypeName(resultType) + "]" + "(" + (mSortFunc!=null?mSortFunc.getFuncSpec():"") + ")" +" - " + mKey.toString();
-	}
+    @Override
+    public String name() {
+        return getAliasString() + "POSort" + "["
+                + DataType.findTypeName(resultType) + "]" + "("
+                + (mSortFunc != null ? mSortFunc.getFuncSpec() : "") + ")"
+                + " - " + mKey.toString();
+    }
 
 	@Override
 	public boolean isBlocking() {

@@ -84,24 +84,6 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
     protected void setUp() throws Exception {
         pc.connect();
     }
-
-    private void writeData(File input, int noTuples, int arityOfTuples, char separator) throws IOException {
-    	FileOutputStream dat = new FileOutputStream(input);
-        
-        for(int i = 0; i < noTuples; i++) {
-            
-            for(int j = 0; j < arityOfTuples; j++) {
-            	int temp = r.nextInt(MAX_RANGE);
-            	if(j == arityOfTuples - 1) {
-            		dat.write((temp + "\n").getBytes());
-            	} else {
-            		dat.write((temp + "" + separator).getBytes());
-            	}
-            }
-        }
-                    
-        dat.close();
-    }
     
     @Test
     public void testComplexForeach() throws VisitorException, IOException {

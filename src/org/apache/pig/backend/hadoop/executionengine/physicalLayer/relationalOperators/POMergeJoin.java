@@ -507,25 +507,17 @@ public class POMergeJoin extends PhysicalOperator {
         return (List<PhysicalPlan>)inpPlans.get(inputs.get(index));
     }
 
-    /* (non-Javadoc)
-     * @see org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator#visit(org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor)
-     */
     @Override
     public void visit(PhyPlanVisitor v) throws VisitorException {
         v.visitMergeJoin(this);
     }
 
-    /* (non-Javadoc)
-     * @see org.apache.pig.impl.plan.Operator#name()
-     */
     @Override
     public String name() {
-        return "MergeJoin[" + DataType.findTypeName(resultType) + "]" +" - " + mKey.toString();
+        return getAliasString() + "MergeJoin[" + DataType.findTypeName(resultType)
+                + "]" + " - " + mKey.toString();
     }
 
-    /* (non-Javadoc)
-     * @see org.apache.pig.impl.plan.Operator#supportsMultipleInputs()
-     */
     @Override
     public boolean supportsMultipleInputs() {
         return true;

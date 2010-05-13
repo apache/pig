@@ -117,7 +117,7 @@ public class LOForEach extends RelationalOperator {
 
     @Override
     public String name() {
-        return "ForEach " + mKey.scope + "-" + mKey.id;
+        return getAliasString() + "ForEach " + mKey.scope + "-" + mKey.id;
     }
 
     @Override

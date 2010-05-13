@@ -96,8 +96,10 @@ public class POCollectedGroup extends PhysicalOperator {
 
     @Override
     public String name() {
-        return "Map side group " + "[" + DataType.findTypeName(resultType) +
-            "]" + "{" + DataType.findTypeName(keyType) + "}" + " - " + mKey.toString();
+        return getAliasString() + "Map side group " + "["
+                + DataType.findTypeName(resultType) + "]" + "{"
+                + DataType.findTypeName(keyType) + "}" + " - "
+                + mKey.toString();
     }
 
     @Override

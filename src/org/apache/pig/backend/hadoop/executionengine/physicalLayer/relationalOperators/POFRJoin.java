@@ -190,8 +190,8 @@ public class POFRJoin extends PhysicalOperator {
 
     @Override
     public String name() {
-        return "FRJoin[" + DataType.findTypeName(resultType) + "]" + " - "
-                + mKey.toString();
+        return getAliasString() + "FRJoin[" + DataType.findTypeName(resultType)
+                + "]" + " - " + mKey.toString();
     }
 
     @Override

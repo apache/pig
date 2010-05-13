@@ -123,9 +123,10 @@ public class POForEach extends PhysicalOperator {
     }
 
     @Override
-    public String name() {
-        String fString = getFlatStr();
-        return "New For Each" + "(" + fString + ")" + "[" + DataType.findTypeName(resultType) + "]" +" - " + mKey.toString();
+    public String name() {      
+        return getAliasString() + "New For Each" + "(" + getFlatStr() + ")" + "["
+                + DataType.findTypeName(resultType) + "]" + " - "
+                + mKey.toString();
     }
     
     String getFlatStr() {
@@ -622,6 +623,7 @@ public class POForEach extends PhysicalOperator {
                 requestedParallelism, plans, flattens);
         clone.setOpsToBeReset(ops);
         clone.setResultType(getResultType());
+        clone.setAlias(alias);
         return clone;
     }
 

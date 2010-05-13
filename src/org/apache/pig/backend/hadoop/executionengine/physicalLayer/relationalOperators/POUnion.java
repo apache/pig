@@ -92,7 +92,8 @@ public class POUnion extends PhysicalOperator {
 
     @Override
     public String name() {
-        return "Union" + "[" + DataType.findTypeName(resultType) + "]" +" - " + mKey.toString();
+        return getAliasString() + "Union" + "[" + DataType.findTypeName(resultType)
+                + "]" + " - " + mKey.toString();
     }
 
     @Override

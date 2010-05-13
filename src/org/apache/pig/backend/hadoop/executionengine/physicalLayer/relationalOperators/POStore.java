@@ -155,10 +155,10 @@ public class POStore extends PhysicalOperator {
 
     @Override
     public String name() {
-        if(sFile!=null)
-            return "Store" + "(" + sFile.toString() + ")" + " - " + mKey.toString();
-        else
-            return "Store" + "(" + "DummyFil:DummyLdr" + ")" + " - " + mKey.toString();
+        return (sFile != null) ? getAliasString() + "Store" + "("
+                + sFile.toString() + ")" + " - " + mKey.toString()
+                : getAliasString() + "Store" + "(" + "DummyFil:DummyLdr" + ")"
+                        + " - " + mKey.toString();
     }
 
     @Override

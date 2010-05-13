@@ -2,4 +2,4 @@ POSort[bag]() - Test-Plan-Builder-28
 |   |
 |   Project[bytearray][0] - Test-Plan-Builder-27
 |
-|---Load(a:org.apache.pig.builtin.PigStorage) - Test-Plan-Builder-26
+|---23: Load(file:///homes/rding/apache-pig/trunk/a:org.apache.pig.builtin.PigStorage) - Test-Plan-Builder-26

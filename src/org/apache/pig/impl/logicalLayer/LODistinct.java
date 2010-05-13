@@ -99,7 +99,7 @@ public class LODistinct extends RelationalOperator {
 
     @Override
     public String name() {
-        return "Distinct " + mKey.scope + "-" + mKey.id;
+        return getAliasString() + "Distinct " + mKey.scope + "-" + mKey.id;
     }
 
     @Override

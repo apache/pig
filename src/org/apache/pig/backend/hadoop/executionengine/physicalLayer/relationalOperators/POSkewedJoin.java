@@ -96,10 +96,12 @@ public class POSkewedJoin extends PhysicalOperator  {
 		v.visitSkewedJoin(this);
 	}
 
-	@Override
-	public String name() {
-		return "SkewedJoin[" + DataType.findTypeName(resultType) + "]" +" - " + mKey.toString();
-	}
+    @Override
+    public String name() {
+        return getAliasString() + "SkewedJoin["
+                + DataType.findTypeName(resultType) + "]" + " - "
+                + mKey.toString();
+    }
 
 	@Override
 	public boolean supportsMultipleInputs() {		

@@ -75,7 +75,7 @@ public class LOSplitOutput extends RelationalOperator {
     
     @Override
     public String name() {
-        return "SplitOutput[" + getAlias() + "] " + mKey.scope + "-" + mKey.id;
+        return getAliasString() + "SplitOutput[" + getAlias() + "] " + mKey.scope + "-" + mKey.id;
     }
 
     @Override

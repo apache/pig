@@ -133,7 +133,7 @@ public class LOLoad extends RelationalOperator {
 
     @Override
     public String name() {
-        return "Load " + mKey.scope + "-" + mKey.id;
+        return getAliasString() + "Load " + mKey.scope + "-" + mKey.id;
     }
 
     @Override

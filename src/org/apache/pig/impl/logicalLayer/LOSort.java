@@ -130,7 +130,7 @@ public class LOSort extends RelationalOperator {
 
     @Override
     public String name() {
-        return "SORT " + mKey.scope + "-" + mKey.id;
+        return getAliasString() + "SORT " + mKey.scope + "-" + mKey.id;
     }
 
     @Override

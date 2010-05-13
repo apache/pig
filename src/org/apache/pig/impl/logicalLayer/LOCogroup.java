@@ -142,7 +142,7 @@ public class LOCogroup extends RelationalOperator {
 
     @Override
     public String name() {
-        return "CoGroup " + mKey.scope + "-" + mKey.id;
+        return getAliasString() + "CoGroup " + mKey.scope + "-" + mKey.id;
     }
 
     @Override
