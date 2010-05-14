@@ -22,6 +22,7 @@ import static org.apache.pig.ExecType.LOCAL;
 import static org.apache.pig.ExecType.MAPREDUCE;
 
 import java.io.IOException;
+import java.util.Properties;
 
 import junit.framework.TestCase;
 
@@ -83,6 +84,38 @@ protected final Log log = LogFactory.getLog(getClass());
             pigServer.registerQuery("vals = load 'nonexistentfile';");
             pigServer.openIterator("vals");
             fail("Loading a  nonexistent file should throw an IOException at parse time");
+        } catch (IOException io) {
+        }
+    }
+    
+    @Test
+    public void testRemoteServerList() throws ExecException, IOException {
+        try {
+            Properties pigProperties = pigServer.getPigContext().getProperties();
+            pigProperties.setProperty("fs.default.name", "hdfs://a.com:8020");
+            
+            pigServer.registerQuery("a = load '/user/pig/1.txt';");
+            assertTrue(pigProperties.getProperty("mapreduce.job.hdfs-servers")==null);
+            
+            pigServer.registerQuery("a = load 'hdfs://a.com/user/pig/1.txt';");
+            assertTrue(pigProperties.getProperty("mapreduce.job.hdfs-servers")==null);
+            
+            pigServer.registerQuery("a = load 'har:///1.txt';");
+            assertTrue(pigProperties.getProperty("mapreduce.job.hdfs-servers")==null);
+            
+            pigServer.registerQuery("a = load 'hdfs://b.com/user/pig/1.txt';");
+            assertTrue(pigProperties.getProperty("mapreduce.job.hdfs-servers")!=null &&
+                    pigProperties.getProperty("mapreduce.job.hdfs-servers").contains("hdfs://b.com"));
+            
+            pigServer.registerQuery("a = load 'har://hdfs-c.com/user/pig/1.txt';");
+            assertTrue(pigProperties.getProperty("mapreduce.job.hdfs-servers")!=null &&
+                    pigProperties.getProperty("mapreduce.job.hdfs-servers").contains("hdfs://c.com"));
+            
+            pigServer.registerQuery("a = load 'hdfs://d.com:8020/user/pig/1.txt';");
+            assertTrue(pigProperties.getProperty("mapreduce.job.hdfs-servers")!=null &&
+                    pigProperties.getProperty("mapreduce.job.hdfs-servers").contains("hdfs://d.com:8020"));
+
+
         } catch (IOException io) {
         }
     }
