@@ -116,7 +116,7 @@ in the path and does not consider JAVA_HOME (pradeepkth)
 
 PIG-1352: piggybank UPPER udf throws exception if argument is null
 
-Release 0.7.0 - Unreleased
+Release 0.7.0
 
 INCOMPATIBLE CHANGES
 
@@ -165,6 +165,8 @@ different load and store implementation classes to be used in a reversible
 manner (rding via pradeepkth)
 
 IMPROVEMENTS
+
+PIG-1381: Need a way for Pig to take an alternative property file (daijy)
 
 PIG-1330: Move pruned schema tracking logic from LoadFunc to core code (daijy)
 

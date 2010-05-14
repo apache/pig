@@ -31,16 +31,33 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 public class PropertiesUtil {
+    private static final String DEFAULT_PROPERTIES_FILE = "/pig-default.properties";
     private static final String PROPERTIES_FILE = "/pig.properties";
     private final static Log log = LogFactory.getLog(PropertiesUtil.class);
 
     public static void loadPropertiesFromFile(Properties properties) {
         InputStream inputStream = null;
         BufferedInputStream bis = null;
+        Class<PropertiesUtil> clazz = PropertiesUtil.class;
         try {
-            Class<PropertiesUtil> clazz = PropertiesUtil.class;
             inputStream = clazz
-                    .getResourceAsStream(PROPERTIES_FILE);
+                    .getResourceAsStream(DEFAULT_PROPERTIES_FILE);
+            if (inputStream == null) {
+                String msg = "no pig-default.properties configuration file available in the classpath";
+                log.debug(msg);
+            } else {
+                properties.load(inputStream);
+            }
+        } catch (Exception e) {
+            log.error("unable to parse pig-default.properties :", e);
+        } finally {
+            if (inputStream != null) try {inputStream.close();} catch (Exception e) {}
+        }
+        
+        try {
+            inputStream = null;
+            inputStream = clazz
+                .getResourceAsStream(PROPERTIES_FILE);
             if (inputStream == null) {
                 String msg = "no pig.properties configuration file available in the classpath";
                 log.debug(msg);
