@@ -643,6 +643,7 @@
             <fileset dir="${build.docs}" />
         </copy>
 
+		<copy todir="${dist.dir}/conf" file="conf/pig-default.properties"/>
 		<copy todir="${dist.dir}/conf" file="conf/pig.properties"/>
 
         <copy todir="${dist.dir}/src" includeEmptyDirs="true">
