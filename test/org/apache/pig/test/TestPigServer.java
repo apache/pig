@@ -19,6 +19,7 @@
 package org.apache.pig.test;
 
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.FileOutputStream;
 import java.io.OutputStreamWriter;
@@ -30,8 +31,10 @@ import java.io.FileInputStream;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
+import java.io.PrintWriter;
 import java.util.List;
 import java.util.Iterator;
+import java.util.Properties;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.lang.reflect.Method;
@@ -39,6 +42,7 @@ import java.lang.reflect.Method;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.impl.util.PropertiesUtil;
 
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -569,5 +573,31 @@ public class TestPigServer extends TestCase {
             assertEquals(expected, actual);
         }
         fileWithStdOutContents.close();
+    }
+    
+    @Test
+    public void testPigProperties() throws Throwable {
+        File defaultPropertyFile = new File("pig-default.properties");
+        File propertyFile = new File("pig.properties");
+        
+        Properties properties = PropertiesUtil.loadPropertiesFromFile();
+        assertTrue(properties.getProperty("test123")==null);
+
+        PrintWriter out = new PrintWriter(new FileWriter(defaultPropertyFile));
+        out.println("test123=defaultproperties");
+        out.close();
+        
+        properties = PropertiesUtil.loadPropertiesFromFile();
+        assertTrue(properties.getProperty("test123").equals("defaultproperties"));
+
+        out = new PrintWriter(new FileWriter(propertyFile));
+        out.println("test123=properties");
+        out.close();
+
+        properties = PropertiesUtil.loadPropertiesFromFile();
+        assertTrue(properties.getProperty("test123").equals("properties"));
+        
+        defaultPropertyFile.delete();
+        propertyFile.delete();
     }
 }
