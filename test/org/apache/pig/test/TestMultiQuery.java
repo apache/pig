@@ -2740,10 +2740,10 @@ public class TestMultiQuery {
         Util.createInputFile(cluster, "input.txt", new String[] {"hello", "bye"});
         String query = "a = load 'input.txt';" +
         		"b = filter a by $0 < 10;" +
-        		"store b into 'output1' using "+DummyStoreWithOutputFormat.class.getName()+"();" +
+        		"store b into 'output1' using "+DUMMY_STORE_WITH_OUTPUTFORMAT_CLASS+"();" +
         		"c = group a by $0;" +
         		"d = foreach c generate group, COUNT(a.$0);" +
-        		"store d into 'output2' using "+DummyStoreWithOutputFormat.class.getName()+"();" ;
+        		"store d into 'output2' using "+DUMMY_STORE_WITH_OUTPUTFORMAT_CLASS+"();" ;
         myPig.setBatchOn();
         Util.registerMultiLineQuery(myPig, query);
         myPig.executeBatch();
@@ -2773,50 +2773,31 @@ public class TestMultiQuery {
             Assert.fail();
         }
     }
+    
+    private static final String DUMMY_STORE_WITH_OUTPUTFORMAT_CLASS
+            = "org.apache.pig.test.TestMultiQuery\\$DummyStoreWithOutputFormat";
 
     public static class DummyStoreWithOutputFormat extends StoreFunc {
-        
-        /**
-         * 
-         */
+ 
         public DummyStoreWithOutputFormat() {
-            // TODO Auto-generated constructor stub
         }
 
-        
-        /* (non-Javadoc)
-         * @see org.apache.pig.StoreFunc#putNext(org.apache.pig.data.Tuple)
-         */
         @Override
         public void putNext(Tuple f) throws IOException {
-            // TODO Auto-generated method stub
-            
+ 
         }
 
-
-        /* (non-Javadoc)
-         * @see org.apache.pig.StoreFunc#checkSchema(org.apache.pig.ResourceSchema)
-         */
         @Override
         public void checkSchema(ResourceSchema s) throws IOException {
-            // TODO Auto-generated method stub
-            
+ 
         }
 
-
-        /* (non-Javadoc)
-         * @see org.apache.pig.StoreFunc#getOutputFormat()
-         */
         @Override
         public org.apache.hadoop.mapreduce.OutputFormat getOutputFormat()
                 throws IOException {
             return new DummyOutputFormat();
         }
 
-
-        /* (non-Javadoc)
-         * @see org.apache.pig.StoreFunc#prepareToWrite(org.apache.hadoop.mapreduce.RecordWriter)
-         */
         @Override
         public void prepareToWrite(
                 org.apache.hadoop.mapreduce.RecordWriter writer)
@@ -2824,20 +2805,12 @@ public class TestMultiQuery {
             
         }
 
-
-        /* (non-Javadoc)
-         * @see org.apache.pig.StoreFunc#relToAbsPathForStoreLocation(java.lang.String, org.apache.hadoop.fs.Path)
-         */
         @Override
         public String relToAbsPathForStoreLocation(String location, Path curDir)
                 throws IOException {
             return LoadFunc.getAbsolutePath(location, curDir);
         }
 
-
-        /* (non-Javadoc)
-         * @see org.apache.pig.StoreFunc#setStoreLocation(java.lang.String, org.apache.hadoop.mapreduce.Job)
-         */
         @Override
         public void setStoreLocation(String location, Job job)
                 throws IOException {
@@ -2852,7 +2825,7 @@ public class TestMultiQuery {
                 
     }
     
-    @SuppressWarnings({ "deprecation", "unchecked" })
+    @SuppressWarnings({ "unchecked" })
     public static class DummyOutputFormat
     extends OutputFormat<WritableComparable, Tuple> {
 

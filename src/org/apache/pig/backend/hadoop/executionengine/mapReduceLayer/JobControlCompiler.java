@@ -46,7 +46,6 @@ import org.apache.pig.ComparisonFunc;
 import org.apache.pig.ExecType;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.PigException;
-import org.apache.pig.ResourceSchema;
 import org.apache.pig.StoreFuncInterface;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.HDataType;
@@ -80,13 +79,14 @@ import org.apache.pig.impl.io.NullablePartitionWritable;
 import org.apache.pig.impl.io.NullableText;
 import org.apache.pig.impl.io.NullableTuple;
 import org.apache.pig.impl.io.PigNullableWritable;
+import org.apache.pig.impl.plan.DepthFirstWalker;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.VisitorException;
-import org.apache.pig.impl.plan.DepthFirstWalker;
 import org.apache.pig.impl.util.JarManager;
 import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.impl.util.Pair;
 import org.apache.pig.impl.util.UDFContext;
+import org.apache.pig.tools.pigstats.ScriptState;
 
 
 /**
@@ -326,6 +326,13 @@ public class JobControlCompiler{
         ArrayList<String> inpSignatureLists = new ArrayList<String>();
         ArrayList<POStore> storeLocations = new ArrayList<POStore>();
         Path tmpLocation = null;
+        
+        // add settings for pig statistics
+        String setScriptProp = conf.get(ScriptState.INSERT_ENABLED, "true");
+        if (setScriptProp.equalsIgnoreCase("true")) {
+            ScriptState ss = ScriptState.get();
+            ss.addSettingsToConf(mro, conf);
+        }
         
         //Set the User Name for this job. This will be
         //used as the working directory
@@ -613,7 +620,7 @@ public class JobControlCompiler{
 
             conf.set(PIG_MAP_STORES, ObjectSerializer.serialize(mapStores));
             conf.set(PIG_REDUCE_STORES, ObjectSerializer.serialize(reduceStores));
-      
+                        
             // Serialize the UDF specific context info.
             UDFContext.getUDFContext().serialize(conf);
             Job cjob = new Job(new JobConf(nwJob.getConfiguration()), new ArrayList());
