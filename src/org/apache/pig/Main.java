@@ -27,7 +27,9 @@ import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.StringReader;
 import java.io.StringWriter;
+import java.util.AbstractList;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.Map;
@@ -58,6 +60,7 @@ import org.apache.pig.impl.util.JarManager;
 import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.impl.util.PropertiesUtil;
 import org.apache.pig.impl.util.UDFContext;
+import org.apache.pig.tools.pigstats.ScriptState;
 import org.apache.pig.tools.cmdline.CmdLineParser;
 import org.apache.pig.tools.grunt.Grunt;
 import org.apache.pig.impl.util.LogUtils;
@@ -271,10 +274,14 @@ public static void main(String args[])
         }
         // create the context with the parameter
         PigContext pigContext = new PigContext(execType, properties);
+        
+        // create the static script state object
+        String commandLine = LoadFunc.join((AbstractList<String>)Arrays.asList(args), " ");
+        ScriptState scriptState = ScriptState.start(commandLine);
 
         if(logFileName == null && !userSpecifiedLog) {
-	    logFileName = validateLogFile(properties.getProperty("pig.logfile"), null);
-	}
+            logFileName = validateLogFile(properties.getProperty("pig.logfile"), null);
+        }
         
         pigContext.getProperties().setProperty("pig.logfile", (logFileName == null? "": logFileName));
      
@@ -323,6 +330,8 @@ public static void main(String args[])
                 new File(substFile).deleteOnExit();
             }
             
+            scriptState.setScript(new File(file));
+            
             grunt = new Grunt(pin, pigContext);
             gruntCalled = true;
             
@@ -354,6 +363,9 @@ public static void main(String args[])
                 if (i != 0) sb.append(' ');
                 sb.append(remainders[i]);
             }
+            
+            scriptState.setScript(sb.toString());
+            
             in = new BufferedReader(new StringReader(sb.toString()));
             grunt = new Grunt(in, pigContext);
             gruntCalled = true;
@@ -421,6 +433,8 @@ public static void main(String args[])
                                                    "PigLatin:" +new File(remainders[0]).getName()
             );
 
+            scriptState.setScript(new File(remainders[0]));
+            
             grunt = new Grunt(pin, pigContext);
             gruntCalled = true;
             
