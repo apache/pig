@@ -276,6 +276,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-1403: Make Pig work with remote HDFS in secure mode (daijy)
+
 PIG-1394: POCombinerPackage hold too much memory for InternalCachedBag (daijy)
 
 PIG-1374: PushDownForeachFlatten shall not push ForEach below Join if the flattened fields is used in the next statement (daijy)
