@@ -38,6 +38,8 @@ import java.util.Properties;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.hdfs.DistributedFileSystem;
 import org.apache.hadoop.mapred.JobClient;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.pig.ExecType;
@@ -165,6 +167,10 @@ public class HExecutionEngine implements ExecutionEngine {
 
             jc = new JobConf();
             jc.addResource("pig-cluster-hadoop-site.xml");
+            
+            // Trick to invoke static initializer of DistributedFileSystem to add hdfs-default.xml 
+            // into configuration
+            new DistributedFileSystem();
             
             //the method below alters the properties object by overriding the
             //hadoop properties with the values from properties and recomputing
