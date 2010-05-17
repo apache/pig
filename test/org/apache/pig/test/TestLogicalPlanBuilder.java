@@ -2145,6 +2145,14 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
                 "not occur", true, exceptionThrown);
     }
     
+    @Test
+    public void testLoaderSignature() {
+        LogicalPlan plan = buildPlan(" a = load '1.txt' using org.apache.pig.test.PigStorageWithSchema() as (a0:int, a1:int);");
+        assertTrue(((PigStorageWithSchema)((LOLoad)plan.getLeaves().get(0)).getLoadFunc()).getUDFContextSignature().equals("a"));
+        plan = buildPlan(" b = load '1.txt' using org.apache.pig.test.PigStorageWithSchema();");
+        assertTrue(((PigStorageWithSchema)((LOLoad)plan.getLeaves().get(0)).getLoadFunc()).getUDFContextSignature().equals("b"));
+    }
+    
     private void printPlan(LogicalPlan lp) {
         LOPrinter graphPrinter = new LOPrinter(System.err, lp);
         System.err.println("Printing the logical plan");
