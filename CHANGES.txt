@@ -64,6 +64,8 @@ PIG-1309: Map-side Cogroup (ashutoshc)
 
 BUG FIXES
 
+PIG-566: Dump and store outputs do not match for PigStorage (azaroth via daijy)
+
 PIG-1414: Problem with parameter substitution (rding)
 
 PIG-1407: Logging starts before being configured (azaroth via daijy)

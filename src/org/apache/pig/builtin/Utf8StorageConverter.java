@@ -52,8 +52,10 @@ public class Utf8StorageConverter implements LoadCaster {
     protected TupleFactory mTupleFactory = TupleFactory.getInstance();
     protected final Log mLog = LogFactory.getLog(getClass());
 
-    private Integer mMaxInt = Integer.valueOf(Integer.MAX_VALUE);
-    private Long mMaxLong = Long.valueOf(Long.MAX_VALUE);
+    private static final Integer mMaxInt = Integer.valueOf(Integer.MAX_VALUE);
+    private static final Integer mMinInt = Integer.valueOf(Integer.MIN_VALUE);
+    private static final Long mMaxLong = Long.valueOf(Long.MAX_VALUE);
+    private static final Long mMinLong = Long.valueOf(Long.MIN_VALUE);
     private static final int BUFFER_SIZE = 1024;
         
     public Utf8StorageConverter() {
@@ -328,14 +330,12 @@ public class Utf8StorageConverter implements LoadCaster {
         if(b == null)
             return null;
         String s;
-        if(b.length > 0 && 
-           (b[b.length - 1] == 'F' || b[b.length - 1] == 'f') ){
+        if (b.length > 0 && (b[b.length - 1] == 'F' || b[b.length - 1] == 'f')) {
             s = new String(b, 0, b.length - 1);
-        } 
-        else {
+        } else {
             s = new String(b);
         }
-        
+
         try {
             return Float.valueOf(s);
         } catch (NumberFormatException nfe) {
@@ -368,9 +368,10 @@ public class Utf8StorageConverter implements LoadCaster {
             try {
                 Double d = Double.valueOf(s);
                 // Need to check for an overflow error
-                if (d.doubleValue() > mMaxInt.doubleValue() + 1.0) {
+                if (Double.compare(d.doubleValue(), mMaxInt.doubleValue() + 1) >= 0 ||
+                        Double.compare(d.doubleValue(), mMinInt.doubleValue() - 1) <= 0) {
                     LogUtils.warn(this, "Value " + d + " too large for integer", 
-                                PigWarning.TOO_LARGE_FOR_INT, mLog);
+                            PigWarning.TOO_LARGE_FOR_INT, mLog);
                     return null;
                 }
                 return Integer.valueOf(d.intValue());
@@ -385,18 +386,15 @@ public class Utf8StorageConverter implements LoadCaster {
     }
 
     public Long bytesToLong(byte[] b) throws IOException {
-        if(b == null)
+        if (b == null)
             return null;
-
         String s;
-        if(b.length > 0  &&  
-           (b[b.length - 1] == 'L' || b[b.length - 1] == 'l') ){
+        if (b.length > 0 && (b[b.length - 1] == 'L' || b[b.length - 1] == 'l')) {
             s = new String(b, 0, b.length - 1);
-        } 
-        else {
+        } else {
             s = new String(b);
         }
-
+        
         try {
             return Long.valueOf(s);
         } catch (NumberFormatException nfe) {
@@ -407,8 +405,9 @@ public class Utf8StorageConverter implements LoadCaster {
             try {
                 Double d = Double.valueOf(s);
                 // Need to check for an overflow error
-                if (d.doubleValue() > mMaxLong.doubleValue() + 1.0) {
-                	LogUtils.warn(this, "Value " + d + " too large for integer", 
+                if (Double.compare(d.doubleValue(), mMaxLong.doubleValue() + 1) > 0 ||
+                        Double.compare(d.doubleValue(), mMinLong.doubleValue() - 1) < 0) {
+                	LogUtils.warn(this, "Value " + d + " too large for long", 
                 	            PigWarning.TOO_LARGE_FOR_INT, mLog);
                     return null;
                 }

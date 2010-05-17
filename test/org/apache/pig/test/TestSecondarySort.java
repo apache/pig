@@ -441,9 +441,9 @@ public class TestSecondarySort extends TestCase {
         pigServer.registerQuery("D = foreach C { E = limit A 10; F = E.a1; G = DISTINCT F; generate group, COUNT(G);};");
         Iterator<Tuple> iter = pigServer.openIterator("D");
         assertTrue(iter.hasNext());
-        assertTrue(iter.next().toString().equals("(1,2L)"));
+        assertTrue(iter.next().toString().equals("(1,2)"));
         assertTrue(iter.hasNext());
-        assertTrue(iter.next().toString().equals("(2,1L)"));
+        assertTrue(iter.next().toString().equals("(2,1)"));
         assertFalse(iter.hasNext());
         Util.deleteFile(cluster, tmpFile1.getCanonicalPath());
         Util.deleteFile(cluster, tmpFile2.getCanonicalPath());
