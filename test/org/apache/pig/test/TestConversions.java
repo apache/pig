@@ -40,7 +40,6 @@ import org.apache.pig.impl.util.Utils;
 import org.junit.Test;
 
 import junit.framework.TestCase;
-import junit.framework.AssertionFailedError;
 
 /**
  * Test class to test conversions from bytes to types
@@ -80,7 +79,7 @@ public class TestConversions extends TestCase {
     {
         // valid floats
         String[] a = {"1", "-2.345",  "12.12334567", "1.02e-2",".23344",
-		      "23.1234567897", "12312.33f", "002312.33F", "1.02e-2f", ""};
+		      "23.1234567897", "12312.33", "002312.33", "1.02e-2", ""};
 
         Float[] f = {1f, -2.345f,  12.12334567f, 1.02e-2f,.23344f, 23.1234567f, // 23.1234567f is a truncation case
 		     12312.33f, 2312.33f, 1.02e-2f }; 
@@ -126,7 +125,7 @@ public class TestConversions extends TestCase {
     {
         // valid Longs
         String[] a = {"1", "-2345",  "123456789012345678", "1.1", "-23.45",
-		      "21345345l", "3422342L", ""};
+		      "21345345", "3422342", ""};
         Long[] la = {1L, -2345L, 123456789012345678L, 1L, -23L, 
 		     21345345L, 3422342L};
         
@@ -304,6 +303,7 @@ public class TestConversions extends TestCase {
         }
     }
     
+    @Test
     public void testBytesToComplexTypeMisc() throws IOException, ParseException {
         String s = "(a,b";
         Schema schema = Utils.getSchemaFromString("t:tuple(a:chararray, b:chararray)");
@@ -369,5 +369,49 @@ public class TestConversions extends TestCase {
         rfs = new ResourceSchema(schema).getFields()[0];
         t = ps.getLoadCaster().bytesToTuple(s.getBytes(), rfs);
         assertTrue(t==null);
+    }
+    
+    @Test
+    public void testOverflow() throws IOException, ParseException {
+    	Schema schema;
+    	ResourceFieldSchema rfs;
+    	Tuple tuple, convertedTuple;
+        tuple = TupleFactory.getInstance().newTuple(1);
+    	
+        schema = Utils.getSchemaFromString("t:tuple(a:int)");
+        rfs = new ResourceSchema(schema).getFields()[0];
+
+        // long bigger than Integer.MAX_VALUE
+    	tuple.set(0, Integer.valueOf(Integer.MAX_VALUE).longValue() + 1);
+    	convertedTuple = ps.getLoadCaster().bytesToTuple(tuple.toString().getBytes(), rfs);
+        assertNull("Invalid cast to int: " + tuple.get(0) + " -> " + convertedTuple.get(0), convertedTuple.get(0));
+        
+        // long smaller than Integer.MIN_VALUE
+    	tuple.set(0, Integer.valueOf(Integer.MIN_VALUE).longValue() - 1);
+    	convertedTuple = ps.getLoadCaster().bytesToTuple(tuple.toString().getBytes(), rfs);
+        assertNull("Invalid cast to int: " + tuple.get(0) + " -> " + convertedTuple.get(0), convertedTuple.get(0));
+        
+        // double bigger than Integer.MAX_VALUE
+        tuple.set(0, Integer.valueOf(Integer.MAX_VALUE).doubleValue() + 1);
+        convertedTuple = ps.getLoadCaster().bytesToTuple(tuple.toString().getBytes(), rfs);
+        assertNull("Invalid cast to int: " + tuple.get(0) + " -> " + convertedTuple.get(0), convertedTuple.get(0));
+        
+        // double smaller than Integer.MIN_VALUE
+        tuple.set(0, Integer.valueOf(Integer.MIN_VALUE).doubleValue() - 1);
+        convertedTuple = ps.getLoadCaster().bytesToTuple(tuple.toString().getBytes(), rfs);
+        assertNull("Invalid cast to int: " + tuple.get(0) + " -> " + convertedTuple.get(0), convertedTuple.get(0));
+ 
+        schema = Utils.getSchemaFromString("t:tuple(a:long)");
+        rfs = new ResourceSchema(schema).getFields()[0];
+        
+        // double bigger than Long.MAX_VALUE
+        tuple.set(0, Long.valueOf(Long.MAX_VALUE).doubleValue() + 10000);
+        convertedTuple = ps.getLoadCaster().bytesToTuple(tuple.toString().getBytes(), rfs);
+        assertNull("Invalid cast to long: " + tuple.get(0) + " -> " + convertedTuple.get(0), convertedTuple.get(0));
+        
+        // double smaller than Long.MIN_VALUE
+        tuple.set(0, Long.valueOf(Long.MIN_VALUE).doubleValue() - 10000);
+        convertedTuple = ps.getLoadCaster().bytesToTuple(tuple.toString().getBytes(), rfs);
+        assertNull("Invalid cast to long: " + tuple.get(0) + " -> " + convertedTuple.get(0), convertedTuple.get(0));
     }
 }

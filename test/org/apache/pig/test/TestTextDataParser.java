@@ -86,14 +86,14 @@ public class TestTextDataParser extends junit.framework.TestCase {
 
     @Test
     public void testLong() throws Exception{
-        String myLong = "1l";
+        String myLong = "1";
         Long l = ps.getLoadCaster().bytesToLong(myLong.getBytes());
         assertTrue(l.equals(1l));
     }
     
     @Test
     public void testFloat() throws Exception{
-        String myFloat = "0.1f";
+        String myFloat = "0.1";
         Float f = ps.getLoadCaster().bytesToFloat(myFloat.getBytes());
         assertTrue(f.equals(0.1f));
     }

@@ -62,11 +62,6 @@ public class TupleFormat {
                     }
                     else {
                         sb.append(d.toString());
-                        if (d instanceof Long) {
-                            sb.append("L");
-                        } else if (d instanceof Float) {
-                            sb.append("F");
-                        }
                     }
                 } else {
                     sb.append("");
