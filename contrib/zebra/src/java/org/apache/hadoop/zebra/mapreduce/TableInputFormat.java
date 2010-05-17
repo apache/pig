@@ -190,7 +190,41 @@ public class TableInputFormat extends InputFormat<BytesWritable, Tuple> {
       }
       setInputExpr(conf, expr);
     }
+    
+    setDeletedCGsInConf( conf, paths );
   }
+  
+  /**
+   * Temporary fix for name node call in each mapper. It sets two flags in the conf so that mapper can skip
+   * the work that's done here at frontend.
+   * 
+   * It needs to check if the flag is already set (because setInputPaths() is also called on the backend
+   * thru pig code path (thru TableLoader.setLocation()).
+   * 
+   * @param conf
+   * @param paths
+   */
+  private static void setDeletedCGsInConf(Configuration conf, Path[] paths) {
+      if( !conf.get( INPUT_FE, "false" ).equals( "true" )  ) {
+          try {
+              StringBuilder sb = new StringBuilder();
+              boolean first = true;
+              for( Path p : paths ) {
+                  if (first)
+                      first = false;
+                  else
+                      sb.append( DELETED_CG_SEPARATOR_PER_UNION );
+                  sb.append( BasicTable.Reader.getDeletedCGs( p, conf ) );
+              }
+
+              conf.set(INPUT_FE, "true");
+              conf.set(INPUT_DELETED_CGS, sb.toString());
+          } catch(Exception ex) {
+              throw new RuntimeException( "Failed to find deleted column groups" + ex.toString() );
+          }
+      }
+  }
+
   
   /**
    * Set the input expression in the Configuration object.
@@ -954,27 +988,16 @@ public class TableInputFormat extends InputFormat<BytesWritable, Tuple> {
     		new ArrayList<BasicTableStatus>(nLeaves);
 
     	try {
-        StringBuilder sb = new StringBuilder();
         boolean sorted = expr.sortedSplitRequired();
-        boolean first = true;
     		for (Iterator<LeafTableInfo> it = leaves.iterator(); it.hasNext();) {
     			LeafTableInfo leaf = it.next();
     			BasicTable.Reader reader =
     				new BasicTable.Reader(leaf.getPath(), conf );
     			reader.setProjection(leaf.getProjection());
     			BasicTableStatus s = reader.getStatus();
-    		  status.add(s);
+    		    status.add(s);
     			readers.add(reader);
-          if (first)
-            first = false;
-          else {
-            sb.append(TableInputFormat.DELETED_CG_SEPARATOR_PER_UNION);
-          }
-          sb.append(reader.getDeletedCGs());
     		}
-
-        conf.set(INPUT_FE, "true");
-        conf.set(INPUT_DELETED_CGS, sb.toString());
 
     		if( readers.isEmpty() ) {
     			// I think we should throw exception here.

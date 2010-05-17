@@ -258,7 +258,6 @@ public class BasicTable {
         }
         partition.setSource(cgTuples);
         inferredMapping = true;
-        buildStatus();
       }
       else {
         // the projection is not changed, so we do not need to recalculate the
@@ -317,8 +316,6 @@ public class BasicTable {
           else
             cgTuples[nx] = null;
         }
-        if (schemaFile.isSorted())
-          buildStatus();
         closed = false;
       }
       catch (Exception e) {
@@ -751,6 +748,12 @@ public class BasicTable {
     
     public String getDeletedCGs() {
       return schemaFile.getDeletedCGs();
+    }
+
+    public static String getDeletedCGs(Path path, Configuration conf)
+    throws IOException {
+    	SchemaFile schF = new SchemaFile(path, new String[0], conf);
+    	return schF.getDeletedCGs();
     }
 
     private void buildStatus() throws IOException {
