@@ -52,7 +52,7 @@ public class TestTupleFormat extends TestCase {
             tuple.set(6, bag);
 
             assertEquals(
-                    "(12,[pig#scalability],,12L,1.2F,(innerTuple),{(innerTuple)})",
+                    "(12,[pig#scalability],,12,1.2,(innerTuple),{(innerTuple)})",
                     TupleFormat.format(tuple));
         } catch (ExecException e) {
             e.printStackTrace();

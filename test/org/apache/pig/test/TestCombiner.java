@@ -127,9 +127,9 @@ public class TestCombiner extends TestCase {
         pig.registerQuery("C = foreach B generate flatten(group), COUNT($1);");
         Iterator<Tuple> resultIterator = pig.openIterator("C");
         Tuple tuple = resultIterator.next();
-        assertEquals("(a,b,2L)", tuple.toString());
+        assertEquals("(a,b,2)", tuple.toString());
         tuple = resultIterator.next();
-        assertEquals("(a,c,1L)", tuple.toString());
+        assertEquals("(a,c,1)", tuple.toString());
         
         return inputFileName;
     }
@@ -364,9 +364,9 @@ public class TestCombiner extends TestCase {
                 "pig1\t20\t3.1" };
         
         String expected[] = {
-                "(pig1,75L,{(pig1,18,2.1),(pig1,18,2.1),(pig1,19,2.1),(pig1,20,3.1)})",
-                "(pig2,48L,{(pig2,24,3.3),(pig2,24,4.5)})",
-                "(pig5,45L,{(pig5,45,2.4)})"
+                "(pig1,75,{(pig1,18,2.1),(pig1,18,2.1),(pig1,19,2.1),(pig1,20,3.1)})",
+                "(pig2,48,{(pig2,24,3.3),(pig2,24,4.5)})",
+                "(pig5,45,{(pig5,45,2.4)})"
         };
 
         try {
