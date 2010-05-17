@@ -276,6 +276,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-1415: LoadFunc signature is not correct in LoadFunc.getSchema sometimes (daijy)
+
 PIG-1403: Make Pig work with remote HDFS in secure mode (daijy)
 
 PIG-1394: POCombinerPackage hold too much memory for InternalCachedBag (daijy)
