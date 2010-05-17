@@ -59,6 +59,7 @@ public class LOLoad extends RelationalOperator {
     transient private Configuration conf;
     private static Log log = LogFactory.getLog(LOLoad.class);
     private Schema mDeterminedSchema = null;
+    private Schema scriptSchema = null;
     private RequiredFieldList requiredFieldList;
 
     private boolean mDeterminedSchemaCached = false;
@@ -149,6 +150,20 @@ public class LOLoad extends RelationalOperator {
                 if(null == mDeterminedSchema) {
                     mSchema = determineSchema();
                 }
+                if (mSchema == null) {
+                    log.debug("Operator schema is null; Setting it to new schema");
+                    mSchema = scriptSchema;
+                } else {
+                    log.debug("Reconciling schema");
+                    log.debug("mSchema: " + mSchema + " schema: " + scriptSchema);
+                    try {
+                        mSchema = mSchema.mergePrefixSchema(scriptSchema, true, true);
+                    } catch (SchemaMergeException e) {
+                        int errCode = 1019;
+                        String msg = "Unable to merge schemas";
+                        throw new FrontendException(msg, errCode, PigException.INPUT, false, null, e);
+                    }
+                }
                 mIsSchemaComputed = true;
             } catch (IOException ioe) {
                 int errCode = 1018;
@@ -182,27 +197,7 @@ public class LOLoad extends RelationalOperator {
      */
     @Override
     public void setSchema(Schema schema) throws FrontendException {
-        // In general, operators don't generate their schema until they're
-        // asked, so ask them to do it.
-        try {
-            getSchema();
-        } catch (FrontendException ioe) {
-            // It's fine, it just means we don't have a schema yet.
-        }
-        if (mSchema == null) {
-            log.debug("Operator schema is null; Setting it to new schema");
-            mSchema = schema;
-        } else {
-            log.debug("Reconciling schema");
-            log.debug("mSchema: " + mSchema + " schema: " + schema);
-            try {
-                mSchema = mSchema.mergePrefixSchema(schema, true, true);
-            } catch (SchemaMergeException e) {
-                int errCode = 1019;
-                String msg = "Unable to merge schemas";
-                throw new FrontendException(msg, errCode, PigException.INPUT, false, null, e);
-            }
-        }
+        scriptSchema = schema;
     }
     
 
