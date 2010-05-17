@@ -92,29 +92,21 @@ protected final Log log = LogFactory.getLog(getClass());
     public void testRemoteServerList() throws ExecException, IOException {
         try {
             Properties pigProperties = pigServer.getPigContext().getProperties();
-            pigProperties.setProperty("fs.default.name", "hdfs://a.com:8020");
-            
+
             pigServer.registerQuery("a = load '/user/pig/1.txt';");
-            assertTrue(pigProperties.getProperty("mapreduce.job.hdfs-servers")==null);
-            
-            pigServer.registerQuery("a = load 'hdfs://a.com/user/pig/1.txt';");
-            assertTrue(pigProperties.getProperty("mapreduce.job.hdfs-servers")==null);
-            
-            pigServer.registerQuery("a = load 'har:///1.txt';");
             assertTrue(pigProperties.getProperty("mapreduce.job.hdfs-servers")==null);
             
             pigServer.registerQuery("a = load 'hdfs://b.com/user/pig/1.txt';");
             assertTrue(pigProperties.getProperty("mapreduce.job.hdfs-servers")!=null &&
                     pigProperties.getProperty("mapreduce.job.hdfs-servers").contains("hdfs://b.com"));
             
-            pigServer.registerQuery("a = load 'har://hdfs-c.com/user/pig/1.txt';");
+            pigServer.registerQuery("a = load 'har://hdfs-c.com:8020/user/pig/1.txt';");
             assertTrue(pigProperties.getProperty("mapreduce.job.hdfs-servers")!=null &&
-                    pigProperties.getProperty("mapreduce.job.hdfs-servers").contains("hdfs://c.com"));
+                    pigProperties.getProperty("mapreduce.job.hdfs-servers").contains("hdfs://c.com:8020"));
             
             pigServer.registerQuery("a = load 'hdfs://d.com:8020/user/pig/1.txt';");
             assertTrue(pigProperties.getProperty("mapreduce.job.hdfs-servers")!=null &&
                     pigProperties.getProperty("mapreduce.job.hdfs-servers").contains("hdfs://d.com:8020"));
-
 
         } catch (IOException io) {
         }
