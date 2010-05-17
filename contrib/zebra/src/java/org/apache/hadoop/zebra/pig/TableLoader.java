@@ -72,6 +72,15 @@ public class TableLoader extends LoadFunc implements LoadMetadata, LoadPushDown,
 
     private static final String UDFCONTEXT_PROJ_STRING = "zebra.UDFContext.projectionString";
     private static final String UDFCONTEXT_GLOBAL_SORTING = "zebra.UDFContext.globalSorting";
+    private static final String UDFCONTEXT_PATHS_STRING = "zebra.UDFContext.pathsString";
+    private static final String UDFCONTEXT_INPUT_DELETED_CGS = "zebra.UDFContext.deletedcgs";
+    private static final String INPUT_SORT = "mapreduce.lib.table.input.sort";
+    private static final String INPUT_SPLIT_MODE = "mapreduce.lib.table.input.split_mode";
+
+    private static final String INPUT_FE = "mapreduce.lib.table.input.fe";
+    private static final String INPUT_DELETED_CGS = "mapreduce.lib.table.input.deleted_cgs";
+    private static final String GLOBALLY_SORTED = "globally_sorted";
+    private static final String LOCALLY_SORTED = "locally_sorted";
 
     private String projectionString;
 
@@ -190,8 +199,36 @@ public class TableLoader extends LoadFunc implements LoadMetadata, LoadPushDown,
            sortInfo = TableInputFormat.getSortInfo( job );
        }    	
     }
-    
-    
+
+    /**
+     * This is a light version of setSortOrder, which is called in getLocation(), which is also called at backend.
+     * We need to do this to avoid name node call in mappers. Original setSortOrder() is stilled called (in
+     * getSchema()), so it's okay to skip the checks that are performed when setSortOrder() is called.
+     * 
+     * This will go away once we have a better solution.
+     * 
+     * @param job
+     * @throws IOException
+     */
+    private void setSortOrderLight(Job job) throws IOException {
+        Properties properties = UDFContext.getUDFContext().getUDFProperties( 
+               this.getClass(), new String[]{ udfContextSignature } );
+        boolean requireGlobalOrder = "true".equals(properties.getProperty( UDFCONTEXT_GLOBAL_SORTING));
+        if (requireGlobalOrder && !sorted)
+          throw new IOException("Global sorting can be only asked on table loaded as sorted");
+        if( sorted ) {
+            SplitMode splitMode = 
+                requireGlobalOrder ? SplitMode.GLOBALLY_SORTED : SplitMode.LOCALLY_SORTED;
+
+            Configuration conf = job.getConfiguration();
+            conf.setBoolean(INPUT_SORT, true);
+            if (splitMode == SplitMode.GLOBALLY_SORTED)
+                conf.set(INPUT_SPLIT_MODE, GLOBALLY_SORTED);
+            else if (splitMode == SplitMode.LOCALLY_SORTED)
+                conf.set(INPUT_SPLIT_MODE, LOCALLY_SORTED);
+        }        
+     }
+
     /**
      * This method sets projection.
      * 
@@ -289,15 +326,49 @@ public class TableLoader extends LoadFunc implements LoadMetadata, LoadPushDown,
              throw new IOException( "Invalid object type passed to TableLoader" );
      }
 
+     /**
+      * This method is called by pig on both frontend and backend.
+      */
      @Override
      public void setLocation(String location, Job job) throws IOException {
-         Path[] paths = getPathsFromLocation( location, job );
-         TableInputFormat.setInputPaths( job, paths );
+         Properties properties = UDFContext.getUDFContext().getUDFProperties( 
+                 this.getClass(), new String[]{ udfContextSignature } );
 
+         // Retrieve paths from UDFContext to avoid name node call in mapper.
+         String pathString = properties.getProperty( UDFCONTEXT_PATHS_STRING );
+         Path[]paths = deserializePaths( pathString );
+         
+         // Retrieve deleted column group information to avoid name node call in mapper.
+         String deletedCGs = properties.getProperty( UDFCONTEXT_INPUT_DELETED_CGS );
+         job.getConfiguration().set(INPUT_FE, "true");
+         job.getConfiguration().set(INPUT_DELETED_CGS, deletedCGs );
+         
+         TableInputFormat.setInputPaths( job, paths );
+         
          // The following obviously goes beyond of set location, but this is the only place that we
          // can do and it's suggested by Pig team.
-         setSortOrder( job );
+         setSortOrderLight( job );
          setProjection( job );
+     }
+     
+     private static String serializePaths(Path[] paths) {
+         StringBuilder sb = new StringBuilder();
+         for( int i = 0; i < paths.length; i++ ) {
+             sb.append( paths[i].toString() );
+             if( i < paths.length -1 ) {
+                 sb.append( ";" );
+             }
+         }
+         return sb.toString();
+     }
+     
+     private static Path[] deserializePaths(String val) {
+         String[] paths = val.split( ";" );
+         Path[] result = new Path[paths.length];
+         for( int i = 0; i < paths.length; i++ ) {
+             result[i] = new Path( paths[i] );
+         }
+         return result;
      }
 
      @SuppressWarnings("unchecked")
@@ -314,8 +385,18 @@ public class TableLoader extends LoadFunc implements LoadMetadata, LoadPushDown,
 
      @Override
      public ResourceSchema getSchema(String location, Job job) throws IOException {
-         Path[] paths = getPathsFromLocation( location, job);
+         Properties properties = UDFContext.getUDFContext().getUDFProperties( 
+                 this.getClass(), new String[]{ udfContextSignature } );
+         
+         // Save the paths in UDFContext so that it can be retrieved in setLocation().
+         Path[] paths = getPathsFromLocation( location, job );
+         properties.setProperty( UDFCONTEXT_PATHS_STRING, serializePaths( paths ) );
+         
          TableInputFormat.setInputPaths( job, paths );
+
+         // Save the deleted column group information in UDFContext so that it can be used in setLocation().
+         // Property INPUT_DELETED_CGS is set in TableInputFormat.setInputPaths(). We just retrieve it here.
+         properties.setProperty( UDFCONTEXT_INPUT_DELETED_CGS,  job.getConfiguration().get(INPUT_DELETED_CGS) );
 
          Schema tableSchema = null;
          if( paths.length == 1 ) {
