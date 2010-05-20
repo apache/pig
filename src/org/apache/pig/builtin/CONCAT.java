@@ -40,30 +40,32 @@ public class CONCAT extends EvalFunc<DataByteArray> {
     @Override
     public DataByteArray exec(Tuple input) throws IOException {
         try {
-            DataByteArray dba1 = (DataByteArray)input.get(0);
-            DataByteArray dba2 = (DataByteArray)input.get(1);
-            if(dba1 != null && dba2 != null) {
-                return new DataByteArray(dba1, dba2);
-            } else {
+            if (input == null || input.size() == 0)
                 return null;
+
+            DataByteArray db = new DataByteArray();
+            for (int i = 0; i < input.size(); i++) {
+                db.append((DataByteArray)(input.get(i)));
             }
+            return db;
         } catch (ExecException exp) {
             throw exp;
         } catch (Exception e) {
             int errCode = 2106;
             String msg = "Error while computing concat in " + this.getClass().getSimpleName();
-            throw new ExecException(msg, errCode, PigException.BUG, e);          
+            throw new ExecException(msg, errCode, PigException.BUG, e);
         }
     }
 
     @Override
     public Schema outputSchema(Schema input) {
-        return new Schema(new Schema.FieldSchema(null, DataType.BYTEARRAY)); 
+        return new Schema(new Schema.FieldSchema(null, DataType.BYTEARRAY));
     }
 
     /* (non-Javadoc)
      * @see org.apache.pig.EvalFunc#getArgToFuncMapping()
      */
+
     @Override
     public List<FuncSpec> getArgToFuncMapping() throws FrontendException {
         List<FuncSpec> funcList = new ArrayList<FuncSpec>();
@@ -76,5 +78,5 @@ public class CONCAT extends EvalFunc<DataByteArray> {
         s.add(new Schema.FieldSchema(null, DataType.CHARARRAY));
         funcList.add(new FuncSpec(StringConcat.class.getName(), s));
         return funcList;
-    }    
+    }
 }
