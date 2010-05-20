@@ -23,6 +23,7 @@ import java.io.UnsupportedEncodingException;
 import java.lang.StringBuilder;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.nio.MappedByteBuffer;
 
 import org.apache.pig.classification.InterfaceAudience;
 import org.apache.pig.classification.InterfaceStability;
@@ -146,6 +147,33 @@ public class DataByteArray implements Comparable, Serializable {
      */
     public void set(String s) {
         mData = s.getBytes();
+    }
+
+    /**
+     * Append given byte array to the internal byte array.
+     * @param b byte array who's contents to append.  The contents of the byte array are
+     * copied.
+     */
+    public void append(DataByteArray b) {
+
+        byte[] ba = (b == null) ?  null : b.get();
+        int mDataLength = (mData == null) ? 0 : mData.length;
+        int baLength = (ba == null) ? 0 : ba.length;
+        
+        int totalSize = mDataLength + baLength;
+        if(totalSize == 0) {
+            return;
+        }
+        byte[] oldData = mData == null ? new byte[0] : mData.clone();
+        mData = new byte[totalSize];
+        int i = 0;
+        for ( ;i < mDataLength; i++) {
+            mData[i] = oldData[i];
+        }
+
+        for (int j = 0; j < baLength; j++, i++) {
+            mData[i] = ba[j];
+        }
     }
 
     /**

@@ -514,6 +514,15 @@ public class TestDataModel extends junit.framework.TestCase {
     }
 
     @Test
+    public void testByteArrayAppend() throws Exception {
+    	DataByteArray expected = new DataByteArray("hello world");
+        DataByteArray db1 = new DataByteArray("hello ");
+        DataByteArray db2 = new DataByteArray("world");
+        db1.append(db2);
+        assertTrue("appends as expected", db1.equals(expected));
+    }
+
+    @Test
     public void testMapConversionErr() throws Exception {
     	List list = new ArrayList();
     	try {
