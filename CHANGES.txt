@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-1420: Make CONCAT act on all fields of a tuple, instead of just the first two fields of a tuple (rjurney via dvryaboy)
+
 PIG-1408: Annotate explain plans with aliases (rding)
 
 PIG-1410: Make PigServer can handle files with parameters (zjffdu)

@@ -1202,6 +1202,57 @@ public class TestBuiltin {
     }
 
     @Test
+    public void testMultiCONCAT() throws Exception {
+
+        // DataByteArray concat
+        byte[] a = {1,2,3};
+        byte[] b = {4,5,6};
+        byte[] c = {7,8,9};
+        byte[] d = {10,11,12};
+        byte[] e = {13,14,15};
+        byte[] expected = {1,2,3,4,5,6,7,8,9,10,11,12,13,14,15};
+        DataByteArray dbaExpected = new DataByteArray(expected);
+
+        DataByteArray dbaA = new DataByteArray(a);
+        DataByteArray dbaB = new DataByteArray(b);
+        DataByteArray dbaC = new DataByteArray(c);
+        DataByteArray dbaD = new DataByteArray(d);
+        DataByteArray dbaE = new DataByteArray(e);
+
+        EvalFunc<DataByteArray> concat = new CONCAT();
+
+        Tuple t = TupleFactory.getInstance().newTuple(5);
+        t.set(0, dbaA);
+        t.set(1, dbaB);
+        t.set(2, dbaC);
+        t.set(3, dbaD);
+        t.set(4, dbaE);
+
+        DataByteArray result = concat.exec(t);
+        String msg = "[Testing CONCAT on >2 tuples for input type: bytearray]";
+        assertTrue(msg, result.equals(dbaExpected));
+
+        // String concat
+        String s1 = "high ";
+        String s2 = "fives ";
+        String s3 = "kick ";
+        String s4 = "ass ";
+        String s5 = "yo";
+        String exp = "high fives kick ass yo";
+        EvalFunc<String> sConcat = new StringConcat();
+        Tuple ts = TupleFactory.getInstance().newTuple(5);
+        ts.set(0, s1);
+        ts.set(1, s2);
+        ts.set(2, s3);
+        ts.set(3, s4);
+        ts.set(4, s5);
+        String res = sConcat.exec(ts);
+        msg = "[Testing StringConcat on >2 tuples input type: String]";
+        assertTrue(msg, res.equals(exp));
+
+    }
+
+    @Test
     public void testSIZE() throws Exception {
         
         // DataByteArray size
