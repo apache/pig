@@ -235,10 +235,6 @@ public class TableInputFormat implements InputFormat<BytesWritable, Tuple> {
    */
   public static void setProjection(JobConf conf, String projection) throws ParseException {
     conf.set(INPUT_PROJ, Schema.normalize(projection));
-
-    // virtual source_table columns require sorted table
-    if (Projection.getVirtualColumnIndices(projection) != null && !getSorted(conf))
-        throw new ParseException("The source_table virtual column is only availabe for sorted table unions.");
   }
   
   /**
@@ -266,10 +262,6 @@ public class TableInputFormat implements InputFormat<BytesWritable, Tuple> {
     }
     
     conf.set(INPUT_PROJ, normalizedProjectionString);
-
-    // virtual source_table columns require sorted table
-    if (Projection.getVirtualColumnIndices(projection.toString()) != null && !getSorted(conf))
-      throw new ParseException("The source_table virtual column is only availabe for sorted table unions.");
   }  
 
   /**
@@ -718,6 +710,7 @@ public class TableInputFormat implements InputFormat<BytesWritable, Tuple> {
     boolean first = true;
     PathFilter filter = null;
     List<BasicTable.Reader> realReaders = new ArrayList<BasicTable.Reader>();
+    int[] realReaderIndices = new int[readers.size()];
 
     for (int i = 0; i < readers.size(); ++i) {
       BasicTable.Reader reader = readers.get(i);
@@ -727,6 +720,7 @@ public class TableInputFormat implements InputFormat<BytesWritable, Tuple> {
       /* We can create input splits only if there does exist a valid column group for split.
        * Otherwise, we do not create input splits. */
       if (splitCGIndex >= 0) {        
+        realReaderIndices[realReaders.size()] = i;
         realReaders.add(reader);
         if (first)
         {
@@ -836,10 +830,10 @@ public class TableInputFormat implements InputFormat<BytesWritable, Tuple> {
           batches[++numBatches] = splitLen;
         
         List<RowSplit> subSplits = reader.rowSplit(starts, lengths, paths, splitCGIndex, batches, numBatches);
-    
+        int realTableIndex = realReaderIndices[tableIndex];
         for (Iterator<RowSplit> it = subSplits.iterator(); it.hasNext();) {
           RowSplit subSplit = it.next();
-          RowTableSplit split = new RowTableSplit(reader, subSplit, conf);
+          RowTableSplit split = new RowTableSplit(reader, subSplit, realTableIndex, conf);
           ret.add(split);
         }
       }
@@ -1050,14 +1044,16 @@ class SortedTableSplit implements InputSplit {
  */
 class RowTableSplit implements InputSplit {
   String path = null;
+  int tableIndex;
   RowSplit split = null;
   String[] hosts = null;
   long length = 1;
 
-  public RowTableSplit(Reader reader, RowSplit split, JobConf conf)
+  public RowTableSplit(Reader reader, RowSplit split, int tableIndex, JobConf conf)
       throws IOException {
     this.path = reader.getPath();
     this.split = split;
+    this.tableIndex = tableIndex;
     BlockDistribution dataDist = reader.getBlockDistribution(split);
     if (dataDist != null) {
       length = dataDist.getLength();
@@ -1082,6 +1078,7 @@ class RowTableSplit implements InputSplit {
 
   @Override
   public void readFields(DataInput in) throws IOException {
+    tableIndex = WritableUtils.readVInt(in);
     path = WritableUtils.readString(in);
     int bool = WritableUtils.readVInt(in);
     if (bool == 1) {
@@ -1097,6 +1094,7 @@ class RowTableSplit implements InputSplit {
 
   @Override
   public void write(DataOutput out) throws IOException {
+    WritableUtils.writeVInt(out, tableIndex);
     WritableUtils.writeString(out, path);
     if (split == null) {
       WritableUtils.writeVInt(out, 0);
@@ -1115,5 +1113,9 @@ class RowTableSplit implements InputSplit {
   
   public RowSplit getSplit() {
     return split;
+  }
+  
+  public int getTableIndex() {
+    return tableIndex;
   }
 }
