@@ -53,8 +53,6 @@ public class TableRecordReader implements RecordReader<BytesWritable, Tuple> {
 		  InputSplit split, JobConf conf) throws IOException, ParseException {
 	  if( split instanceof RowTableSplit ) {
 		  RowTableSplit rowSplit = (RowTableSplit)split;
-		  if( Projection.getVirtualColumnIndices( projection ) != null )
-			  throw new IllegalArgumentException("virtual column requires union of multiple sorted tables");
 		  scanner = expr.getScanner(rowSplit, projection, conf);
 	  } else {
 		  SortedTableSplit tblSplit = (SortedTableSplit)split;

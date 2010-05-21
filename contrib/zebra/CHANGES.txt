@@ -18,6 +18,8 @@ Trunk (unreleased changes)
 
   IMPROVEMENTS
 
+    PIG-1425 support of source table index on unsorted table in the mapred APIs (yanz)
+
     PIG-1375 Support of multiple Zebra table writing through Pig (chaow via yanz)
 
     PIG-1351 Addition of type check when writing to basic table (chaow via yanz)
