@@ -159,15 +159,6 @@ public class LOPrinter extends LOVisitor {
                     }
                 }
             }
-            else if(node instanceof LOJoin){
-                MultiMap<LogicalOperator, LogicalPlan> plans = ((LOJoin)node).getJoinPlans();
-                for (LogicalOperator lo : plans.keySet()) {
-                    // Visit the associated plans
-                    for (LogicalPlan plan : plans.get(lo)) {
-                        sb.append(planString(plan));
-                    }
-                }
-            }
             else if(node instanceof LOSort){
                 sb.append(planString(((LOSort)node).getSortColPlans())); 
             }
