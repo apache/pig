@@ -123,11 +123,8 @@ abstract class TableExpr {
    * @throws IOException
    */
   public TableScanner getScanner(RowTableSplit split, String projection,
-      Configuration conf) throws IOException, ParseException, ParseException {
-    BasicTable.Reader reader =
-        new BasicTable.Reader(new Path(split.getPath()), getDeletedCGs(conf), conf);
-    reader.setProjection(projection);
-    return reader.getScanner(true, split.getSplit());
+      Configuration conf) throws IOException, ParseException {
+    return null;
   }
   
   /**
