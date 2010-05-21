@@ -39,7 +39,9 @@ public class StringConcat extends EvalFunc<String> {
 
           StringBuilder sb = new StringBuilder();
           for (int i = 0; i < input.size(); i++){
-            sb.append(String.valueOf(input.get(i)));
+              if (input.get(i)==null)
+                  return null;
+              sb.append(String.valueOf(input.get(i)));
           }
           return sb.toString();
         } catch (ExecException exp) {
