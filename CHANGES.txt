@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-1373: We need to add jdiff output to docs on the website (daijy)
+
 PIG-1422: Duplicate code in LOPrinter.java (zjffdu)
 
 PIG-1420: Make CONCAT act on all fields of a tuple, instead of just the first two fields of a tuple (rjurney via dvryaboy)
