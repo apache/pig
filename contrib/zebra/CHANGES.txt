@@ -18,6 +18,8 @@ Trunk (unreleased changes)
 
   IMPROVEMENTS
 
+    PIG-1425 support of source table index on unsorted table in the mapred APIs (yanz)
+
     PIG-1361 Zebra TableLoader.getSchema() should return the projectionSchema specified in the constructor of TableLoader instead of pruned proejction by pig (gauravj via daijy)
 
     PIG-1291 Support of virtual column "source_table" on unsorted table (yanz)

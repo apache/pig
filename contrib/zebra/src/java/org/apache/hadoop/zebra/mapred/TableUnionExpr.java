@@ -157,6 +157,13 @@ class TableUnionExpr extends CompositeTableExpr {
       throw new IllegalArgumentException("virtual column requires union of multiple tables");
     return new SortedTableUnionScanner(scanners, Projection.getVirtualColumnIndices(projection));
   }
+
+  @Override
+  public TableScanner getScanner(RowTableSplit split, String projection,
+      Configuration conf) throws IOException, ParseException {
+    BasicTableExpr expr = (BasicTableExpr) composite.get(split.getTableIndex());
+    return expr.getScanner(split, projection, conf);
+  }
 }
 
 /**
