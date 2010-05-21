@@ -45,6 +45,8 @@ public class CONCAT extends EvalFunc<DataByteArray> {
 
             DataByteArray db = new DataByteArray();
             for (int i = 0; i < input.size(); i++) {
+                if (input.get(i)==null)
+                    return null;
                 db.append((DataByteArray)(input.get(i)));
             }
             return db;
