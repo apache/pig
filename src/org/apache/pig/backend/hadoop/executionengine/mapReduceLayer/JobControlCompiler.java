@@ -336,8 +336,6 @@ public class JobControlCompiler{
         
         //Set the User Name for this job. This will be
         //used as the working directory
-        String user = System.getProperty("user.name");        
-        conf.set("user.name", (user != null ? user : "Pigster"));
         if (pigContext.defaultParallel > 0)
             conf.set("mapred.reduce.tasks", ""+pigContext.defaultParallel);
  
