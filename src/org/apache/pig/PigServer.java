@@ -1066,7 +1066,6 @@ public class PigServer {
     private List<ExecJob> executeCompiledLogicalPlan(LogicalPlan compiledLp) throws ExecException {
         PhysicalPlan pp = compilePp(compiledLp);
         // execute using appropriate engine
-        FileLocalizer.clearDeleteOnFail();
         List<ExecJob> execJobs = pigContext.getExecutionEngine().execute(pp, "job_pigexec_");
         for (ExecJob execJob: execJobs) {
             if (execJob.getStatus()==ExecJob.JOB_STATUS.FAILED) {
