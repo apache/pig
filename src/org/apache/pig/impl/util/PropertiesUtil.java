@@ -19,13 +19,10 @@
 package org.apache.pig.impl.util;
 
 import java.io.BufferedInputStream;
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
-import java.io.File ;
-import java.util.Enumeration;
-import java.util.Map;
 import java.util.Properties;
-import java.util.Set;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -35,66 +32,17 @@ public class PropertiesUtil {
     private static final String PROPERTIES_FILE = "/pig.properties";
     private final static Log log = LogFactory.getLog(PropertiesUtil.class);
 
-    public static void loadPropertiesFromFile(Properties properties) {
-        InputStream inputStream = null;
-        BufferedInputStream bis = null;
-        Class<PropertiesUtil> clazz = PropertiesUtil.class;
-        try {
-            inputStream = clazz
-                    .getResourceAsStream(DEFAULT_PROPERTIES_FILE);
-            if (inputStream == null) {
-                String msg = "no pig-default.properties configuration file available in the classpath";
-                log.debug(msg);
-            } else {
-                properties.load(inputStream);
-            }
-        } catch (Exception e) {
-            log.error("unable to parse pig-default.properties :", e);
-        } finally {
-            if (inputStream != null) try {inputStream.close();} catch (Exception e) {}
-        }
-        
-        try {
-            inputStream = null;
-            inputStream = clazz
-                .getResourceAsStream(PROPERTIES_FILE);
-            if (inputStream == null) {
-                String msg = "no pig.properties configuration file available in the classpath";
-                log.debug(msg);
-            } else {
-                properties.load(inputStream);
-            }
-        } catch (Exception e) {
-            log.error("unable to parse pig.properties :", e);
-        } finally {
-            if (inputStream != null) try {inputStream.close();} catch (Exception e) {}
-        }
-
-        Properties pigrcProps = new Properties() ;
-        try {
-            File pigrcFile = new File(System.getProperty("user.home") + "/.pigrc");
-            if (pigrcFile.exists()) {
-                log.warn(pigrcFile.getAbsolutePath()
-                        + " exists but will be deprecated soon. Use conf/pig.properties instead!");
-
-                bis = new BufferedInputStream(new FileInputStream(pigrcFile));
-                pigrcProps.load(bis) ;
-            }
-        } catch (Exception e) {
-            log.error("unable to parse .pigrc :", e);
-        } finally {
-            if (bis != null) try {bis.close();} catch (Exception e) {}
-        }
-
-		// Now put all the entries from pigrcProps into properties, but
-		// only if they are not already set.  pig.properties takes
-		// precedence over .pigrc
-		Set<Map.Entry<Object, Object>> entries = pigrcProps.entrySet();
-		for (Map.Entry<Object, Object> entry : entries) {
-			if (!properties.containsKey(entry.getKey())) {
-				properties.put(entry.getKey(), entry.getValue());
-			}
-		}
+    /**
+     * Loads the default properties from pig-default.properties and
+     * pig.properties.
+     * @param properties Properties object that needs to be loaded with the
+     * properties' values.
+     */
+    public static void loadDefaultProperties(Properties properties) {
+        loadPropertiesFromFile(properties,
+                System.getProperty("user.home") + "/.pigrc");
+        loadPropertiesFromClasspath(properties, DEFAULT_PROPERTIES_FILE);
+        loadPropertiesFromClasspath(properties, PROPERTIES_FILE);
 
         //Now set these as system properties only if they are not already defined.
         if (log.isDebugEnabled()) {
@@ -117,9 +65,71 @@ public class PropertiesUtil {
 		ConfigurationValidator.validatePigProperties(properties) ;
     }
 
-    public static Properties loadPropertiesFromFile() {
+    /**
+     * Loads the properties from a given file.
+     * @param properties Properties object that is to be loaded.
+     * @param fileName file name of the file that contains the properties.
+     */
+    public static void loadPropertiesFromFile(Properties properties,
+            String fileName) {
+        BufferedInputStream bis = null;
+        Properties pigrcProps = new Properties() ;
+        try {
+            File pigrcFile = new File(fileName);
+            if (pigrcFile.exists()) {
+                if (fileName.endsWith("/.pigrc")) {
+                    log.warn(pigrcFile.getAbsolutePath()
+                            + " exists but will be deprecated soon." +
+                            		" Use conf/pig.properties instead!");
+                }
+
+                bis = new BufferedInputStream(new FileInputStream(pigrcFile));
+                pigrcProps.load(bis) ;
+            }
+        } catch (Exception e) {
+            log.error("unable to parse .pigrc :", e);
+        } finally {
+            if (bis != null) try {bis.close();} catch (Exception e) {}
+        }
+
+		properties.putAll(pigrcProps);
+    }
+
+    /**
+     * Finds the file with the given file name in the classpath and loads the
+     * properties provided in it.
+     * @param properties the properties object that needs to be loaded with the
+     * property values provided in the file.
+     * @param fileName file name of the properties' file.
+     */
+    private static void loadPropertiesFromClasspath(Properties properties,
+            String fileName) {
+        InputStream inputStream = null;
+        Class<PropertiesUtil> clazz = PropertiesUtil.class;
+        try {
+            inputStream = clazz
+                    .getResourceAsStream(fileName);
+            if (inputStream == null) {
+                String msg = "no " + fileName +
+                " configuration file available in the classpath";
+                log.debug(msg);
+            } else {
+                properties.load(inputStream);
+            }
+        } catch (Exception e) {
+            log.error("unable to parse " + fileName + " :", e);
+        } finally {
+            if (inputStream != null) try {inputStream.close();} catch (Exception e) {}
+        }
+    }
+
+    /**
+     * Loads default properties.
+     * @return
+     */
+    public static Properties loadDefaultProperties() {
         Properties properties = new Properties();
-        loadPropertiesFromFile(properties);
+        loadDefaultProperties(properties);
         return properties;
     }
 

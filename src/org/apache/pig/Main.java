@@ -101,7 +101,7 @@ public static void main(String args[])
 {
     int rc = 1;
     Properties properties = new Properties();
-    PropertiesUtil.loadPropertiesFromFile(properties);
+    PropertiesUtil.loadDefaultProperties(properties);
     
     boolean verbose = false;
     boolean gruntCalled = false;
@@ -136,6 +136,7 @@ public static void main(String args[])
         opts.registerOpt('x', "exectype", CmdLineParser.ValueExpected.REQUIRED);
         opts.registerOpt('F', "stop_on_failure", CmdLineParser.ValueExpected.NOT_ACCEPTED);
         opts.registerOpt('M', "no_multiquery", CmdLineParser.ValueExpected.NOT_ACCEPTED);
+        opts.registerOpt('P', "propertyFile", CmdLineParser.ValueExpected.REQUIRED);
 
         ExecMode mode = ExecMode.UNKNOWN;
         String file = null;
@@ -265,6 +266,10 @@ public static void main(String args[])
                     } catch (IOException e) {
                         throw new RuntimeException("ERROR: Unrecognized exectype.", e);
                     }
+                break;
+            case 'P':
+                PropertiesUtil.loadPropertiesFromFile(properties,
+                        opts.getValStr());
                 break;
             default: {
                 Character cc = Character.valueOf(opt);
@@ -610,7 +615,7 @@ public static void usage()
         System.out.println("  options include:");
         System.out.println("    -4, -log4jconf log4j configuration file, overrides log conf");
         System.out.println("    -b, -brief brief logging (no timestamps)");
-        System.out.println("    -c, -cluster clustername, kryptonite is default");
+        System.out.println("    -c, -check syntax check");
         System.out.println("    -d, -debug debug level, INFO is default");
         System.out.println("    -e, -execute commands to execute (within quotes)");
         System.out.println("    -f, -file path to the script to execute");
@@ -628,6 +633,7 @@ public static void usage()
 
         System.out.println("    -F, -stop_on_failure aborts execution on the first failed job; off by default");
         System.out.println("    -M, -no_multiquery turn multiquery optimization off; Multiquery is on by default");
+        System.out.println("    -P, -propertyFile path to property file");
 }
 
 private static String validateLogFile(String logFileName, String scriptName) {
