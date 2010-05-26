@@ -396,7 +396,10 @@ public class HExecutionEngine implements ExecutionEngine {
             while (propertiesIter.hasMoreElements()) {
                 String key = (String) propertiesIter.nextElement();
                 String val = properties.getProperty(key);
-                hadoopProperties.put(key, val);
+
+                // We do not put user.name, See PIG-1419
+                if (!key.equals("user.name"))
+                    hadoopProperties.put(key, val);
             }
             
             //clear user defined properties and re-populate
