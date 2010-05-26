@@ -430,19 +430,6 @@ public class FileLocalizer {
     };
 
     /**
-     * Thread local deleteOnFail Stack to hold descriptors to be deleted upon
-     * calling triggerDeleteOnFail. Use the deleteOnFail() method to access this
-     * stack.
-     */
-    private static ThreadLocal<Stack<ElementDescriptor>> deleteOnFail =
-        new ThreadLocal<Stack<ElementDescriptor>>() {
-
-        protected Stack<ElementDescriptor> initialValue() {
-            return new Stack<ElementDescriptor>();
-        }
-    };
-
-    /**
      * Thread local relativeRoot ContainerDescriptor. Do not access this object
      * directly, since it's lazy initialized in the relativeRoot(PigContext)
      * method, which should be used instead.
@@ -457,14 +444,6 @@ public class FileLocalizer {
      */
     private static Stack<ElementDescriptor> toDelete() {
         return toDelete.get();
-    }
-
-    /**
-     * Convenience accessor method to the deleteOnFail Stack bound to this thread.
-     * @return A Stack of ElementDescriptors that should be deleted upon failure.
-     */
-    private static Stack<ElementDescriptor> deleteOnFail() {
-        return deleteOnFail.get();
     }
 
     /**
@@ -636,35 +615,6 @@ public class FileLocalizer {
         FileLocalizer.r = r;
     }
     
-    public static void clearDeleteOnFail()
-    {
-    	deleteOnFail().clear();
-    }
-    public static void registerDeleteOnFail(String filename, PigContext pigContext) throws IOException
-    {
-    	try {
-    		ElementDescriptor elem = pigContext.getDfs().asElement(filename);
-    		if (!toDelete().contains(elem))
-    		    deleteOnFail().push(elem);
-    	}
-        catch (DataStorageException e) {
-            log.warn("Unable to register output file to delete on failure: " + filename);
-        }
-    }
-    public static void triggerDeleteOnFail()
-    {
-    	ElementDescriptor elem = null;
-    	while (!deleteOnFail().empty()) {
-            try {
-                elem = deleteOnFail().pop();
-                if (elem.exists())
-                	elem.delete();
-            } 
-            catch (IOException e) {
-                log.warn("Unable to delete output file on failure: " + elem.toString());
-            }
-    	}
-    }
     /**
      * Convert path from Windows convention to Unix convention. Invoked under
      * cygwin.
