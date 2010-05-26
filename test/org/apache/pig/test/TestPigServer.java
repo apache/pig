@@ -626,25 +626,36 @@ public class TestPigServer extends TestCase {
     public void testPigProperties() throws Throwable {
         File defaultPropertyFile = new File("pig-default.properties");
         File propertyFile = new File("pig.properties");
+        File cliPropertyFile = new File("commandLine_pig.properties");
         
-        Properties properties = PropertiesUtil.loadPropertiesFromFile();
+        Properties properties = PropertiesUtil.loadDefaultProperties();
         assertTrue(properties.getProperty("test123")==null);
 
         PrintWriter out = new PrintWriter(new FileWriter(defaultPropertyFile));
         out.println("test123=defaultproperties");
         out.close();
         
-        properties = PropertiesUtil.loadPropertiesFromFile();
+        properties = PropertiesUtil.loadDefaultProperties();
         assertTrue(properties.getProperty("test123").equals("defaultproperties"));
 
         out = new PrintWriter(new FileWriter(propertyFile));
         out.println("test123=properties");
         out.close();
 
-        properties = PropertiesUtil.loadPropertiesFromFile();
+        properties = PropertiesUtil.loadDefaultProperties();
         assertTrue(properties.getProperty("test123").equals("properties"));
+        
+        out = new PrintWriter(new FileWriter(cliPropertyFile));
+        out.println("test123=cli_properties");
+        out.close();
+
+        properties = PropertiesUtil.loadDefaultProperties();
+        PropertiesUtil.loadPropertiesFromFile(properties,
+                "commandLine_pig.properties");
+        assertTrue(properties.getProperty("test123").equals("cli_properties"));
         
         defaultPropertyFile.delete();
         propertyFile.delete();
+        cliPropertyFile.delete();
     }
 }

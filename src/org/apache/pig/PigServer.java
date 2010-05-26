@@ -195,7 +195,7 @@ public class PigServer {
      * @throws ExecException
      */
     public PigServer(ExecType execType) throws ExecException {
-        this(execType, PropertiesUtil.loadPropertiesFromFile());
+        this(execType, PropertiesUtil.loadDefaultProperties());
     }
 
     public PigServer(ExecType execType, Properties properties) throws ExecException {
