@@ -70,7 +70,9 @@ PIG-1309: Map-side Cogroup (ashutoshc)
 
 BUG FIXES
 
-PIG-1359: bin/pig script does not pick up correct jar libraries
+PIG-1419: Remove "user.name" from JobConf (daijy)
+
+PIG-1359: bin/pig script does not pick up correct jar libraries (zjffdu)
 
 PIG-566: Dump and store outputs do not match for PigStorage (azaroth via daijy)
 

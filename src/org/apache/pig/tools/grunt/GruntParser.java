@@ -57,6 +57,7 @@ import org.apache.pig.backend.datastorage.ElementDescriptor;
 import org.apache.pig.backend.executionengine.ExecJob;
 import org.apache.pig.backend.executionengine.ExecutionEngine;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
+import org.apache.pig.backend.hadoop.datastorage.HDataStorage;
 import org.apache.pig.backend.hadoop.executionengine.HExecutionEngine;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.util.LogUtils;
@@ -562,7 +563,7 @@ public class GruntParser extends PigScriptParser {
         if(mExplain == null) { // process only if not in "explain" mode
             try {
                 if (path == null) {
-                    container = mDfs.asContainer("/user/" + System.getProperty("user.name"));
+                    container = mDfs.asContainer(((HDataStorage)mDfs).getHFS().getHomeDirectory().toString());
                     mDfs.setActiveContainer(container);
                 }
                 else
@@ -582,7 +583,7 @@ public class GruntParser extends PigScriptParser {
             }
             catch (DataStorageException e) {
                 throw new IOException("Failed to change working directory to " + 
-                                      ((path == null) ? ("/user/" + System.getProperty("user.name")) 
+                                      ((path == null) ? (((HDataStorage)mDfs).getHFS().getHomeDirectory().toString()) 
                                                          : (path)), e);
             }
         } else {
