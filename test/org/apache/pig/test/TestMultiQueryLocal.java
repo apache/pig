@@ -550,12 +550,10 @@ public class TestMultiQueryLocal extends TestCase {
 
     private boolean executePlan(PhysicalPlan pp) throws IOException {
         boolean failed = true;
-        FileLocalizer.clearDeleteOnFail();
         List<ExecJob> jobs = myPig.getPigContext().getExecutionEngine().execute(pp, "execute");
         for (ExecJob job: jobs) {
             failed = (job.getStatus() == ExecJob.JOB_STATUS.FAILED);
             if (failed) {
-                FileLocalizer.triggerDeleteOnFail();
                 break;
             }
         }

@@ -70,6 +70,8 @@ PIG-1309: Map-side Cogroup (ashutoshc)
 
 BUG FIXES
 
+PIG-1347: Clear up output directory for a failed job (daijy)
+
 PIG-1419: Remove "user.name" from JobConf (daijy)
 
 PIG-1359: bin/pig script does not pick up correct jar libraries (zjffdu)
