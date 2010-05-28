@@ -125,7 +125,7 @@ public class PropertiesUtil {
 
     /**
      * Loads default properties.
-     * @return
+     * @return default properties
      */
     public static Properties loadDefaultProperties() {
         Properties properties = new Properties();
