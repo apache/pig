@@ -80,6 +80,8 @@ Trunk (unreleased changes)
 
   BUG FIXES
 
+    PIG-1432 There are some debuging info output to STDOUT in PIG's TableStorer call path (yanz)
+
     PIG-1421 Name node calls made by each mapper (xuefuz via yanz)
 
     PIG-1356 TableLoader makes unnecessary calls to build a Job instance that create a new JobClient in the hadoop 0.20.9 (yanz)
