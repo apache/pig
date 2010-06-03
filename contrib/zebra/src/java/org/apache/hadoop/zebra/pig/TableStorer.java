@@ -310,7 +310,6 @@ class TableRecordWriter extends RecordWriter<BytesWritable, Tuple> {
 
     @Override
     public void write(BytesWritable key, Tuple value) throws IOException {
-        System.out.println( "Tuple: " + value.toDelimitedString(",") );
         if (sortColIndices != null)    {
             for(int i =0; i < sortColIndices.length;++i) {
                 t.set(i, value.get(sortColIndices[i]));
