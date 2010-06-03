@@ -321,7 +321,6 @@ public class KeyGenerator {
     list = new ArrayList<LeafGenerator>();
     expr.appendLeafGenerator(list, 0, 0, false, false);
     // illustrate(System.out);
-    System.out.println(ExprUtils.exprToString(expr));
   }
 
   /**

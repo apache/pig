@@ -84,6 +84,8 @@ Trunk (unreleased changes)
 
   BUG FIXES
 
+    PIG-1432 There are some debuging info output to STDOUT in PIG's TableStorer call path (yanz)
+
     PIG-1421 Name node calls made by each mapper (xuefuz via yanz)
 
     PIG-1342 Avoid making unnecessary name node calls for writes in Zebra (chaow via yanz) 
