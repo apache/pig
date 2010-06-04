@@ -70,6 +70,9 @@ PIG-1309: Map-side Cogroup (ashutoshc)
 
 BUG FIXES
 
+PIG-1433: pig should create success file if
+mapreduce.fileoutputcommitter.marksuccessfuljobs is true (pradeepkth)
+
 PIG-1347: Clear up output directory for a failed job (daijy)
 
 PIG-1419: Remove "user.name" from JobConf (daijy)
