@@ -500,10 +500,7 @@ public class GruntParser extends PigScriptParser {
         }
         else
         {
-            // other key-value pairs can go there
-            // for now just throw exception since we don't support
-            // anything else
-            throw new ParseException("Unrecognized set key: " + key);
+        	mPigServer.getPigContext().getProperties().setProperty(key, value);
         }
     }
     

@@ -1068,5 +1068,14 @@ public class TestGrunt extends TestCase {
         }
     }
     
-    
+    @Test
+    public void testSet() throws Throwable {
+
+    	String strCmd = "set my.arbitrary.key my.arbitrary.value\n";
+    	PigContext pc = new PigServer(ExecType.MAPREDUCE, cluster.getProperties()).getPigContext();
+    	InputStreamReader reader = new InputStreamReader(new ByteArrayInputStream(strCmd.getBytes()));
+        new Grunt(new BufferedReader(reader), pc).exec();
+        
+        assertEquals("my.arbitrary.value",  pc.getExecutionEngine().getConfiguration().getProperty("my.arbitrary.key"));
+    }
 }
