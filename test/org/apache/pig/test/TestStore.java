@@ -32,6 +32,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.Job;
+import org.apache.pig.EvalFunc;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigException;
 import org.apache.pig.PigServer;
@@ -55,6 +56,7 @@ import org.apache.pig.data.DefaultBagFactory;
 import org.apache.pig.data.DefaultTuple;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
+import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.logicalLayer.LOStore;
 import org.apache.pig.impl.logicalLayer.LogicalOperator;
 import org.apache.pig.impl.logicalLayer.LogicalPlan;
@@ -89,7 +91,14 @@ public class TestStore extends junit.framework.TestCase {
         
     String inputFileName;
     String outputFileName;
-        
+    
+    private static final String DUMMY_STORE_CLASS_NAME
+    = "org.apache.pig.test.TestStore\\$DummyStore";
+
+    private static final String FAIL_UDF_NAME
+    = "org.apache.pig.test.TestStore\\$FailUDF";
+    private static final String MAP_MAX_ATTEMPTS = "mapred.map.max.attempts"; 
+    
     @Override
     @Before
     public void setUp() throws Exception {
@@ -558,8 +567,168 @@ public class TestStore extends junit.framework.TestCase {
         }
     }
     
-    private static final String DUMMY_STORE_CLASS_NAME
-            = "org.apache.pig.test.TestStore\\$DummyStore";
+    // Test that "_SUCCESS" file is created when "mapreduce.fileoutputcommitter.marksuccessfuljobs"
+    // property is set to true
+    // The test covers multi store and single store case in local and mapreduce mode
+    // The test also checks that "_SUCCESS" file is NOT created when the property
+    // is not set to true in all the modes.
+    @Test
+    public void testSuccessFileCreation1() throws Exception {
+        PigServer ps = null;
+        String[] files = new String[] { inputFileName, 
+                outputFileName + "_1", outputFileName + "_2", outputFileName + "_3"};
+        try {
+            ExecType[] modes = new ExecType[] { ExecType.LOCAL, ExecType.MAPREDUCE};
+            String[] inputData = new String[]{"hello\tworld", "hi\tworld", "bye\tworld"};
+            
+            String multiStoreScript = "a = load '"+ inputFileName + "';" +
+                    "b = filter a by $0 == 'hello';" +
+                    "c = filter a by $0 == 'hi';" +
+                    "d = filter a by $0 == 'bye';" +
+                    "store b into '" + outputFileName + "_1';" +
+                    "store c into '" + outputFileName + "_2';" + 
+                    "store d into '" + outputFileName + "_3';";
+            
+            String singleStoreScript =  "a = load '"+ inputFileName + "';" +
+                "store a into '" + outputFileName + "_1';" ;
+            
+            for (ExecType execType : modes) {
+                for(boolean isPropertySet: new boolean[] { true, false}) {
+                    for(boolean isMultiStore: new boolean[] { true, false}) {
+                        String script = (isMultiStore ? multiStoreScript : 
+                            singleStoreScript);
+                        // since we will be switching between map red and local modes
+                        // we will need to make sure filelocalizer is reset before each
+                        // run.
+                        FileLocalizer.setInitialized(false);
+                        if(execType == ExecType.MAPREDUCE) {
+                            ps = new PigServer(ExecType.MAPREDUCE, 
+                                    cluster.getProperties());
+                        } else {
+                            Properties props = new Properties();                                          
+                            props.setProperty(MapRedUtil.FILE_SYSTEM_NAME, "file:///");
+                            ps = new PigServer(ExecType.LOCAL, props);
+                        }
+                        ps.getPigContext().getProperties().setProperty(
+                                MapReduceLauncher.SUCCESSFUL_JOB_OUTPUT_DIR_MARKER, 
+                                Boolean.toString(isPropertySet));
+                        cleanupFiles(ps, files);
+                        ps.setBatchOn();
+                        Util.createInputFile(ps.getPigContext(), 
+                                inputFileName, inputData);
+                        Util.registerMultiLineQuery(ps, script);
+                        ps.executeBatch();
+                        for(int i = 1; i <= (isMultiStore ? 3 : 1); i++) {
+                            String sucFile = outputFileName + "_" + i + "/" + 
+                                               MapReduceLauncher.SUCCEEDED_FILE_NAME;
+                            assertEquals("Checking if _SUCCESS file exists in " + 
+                                    execType + " mode", isPropertySet, 
+                                    Util.exists(ps.getPigContext(), sucFile));
+                        }
+                    }
+                }
+            }
+        } finally {
+            cleanupFiles(ps, files);
+        }
+    }
+
+    // Test _SUCCESS file is NOT created when job fails and when 
+    // "mapreduce.fileoutputcommitter.marksuccessfuljobs" property is set to true
+    // The test covers multi store and single store case in local and mapreduce mode
+    // The test also checks that "_SUCCESS" file is NOT created when the property
+    // is not set to true in all the modes.
+    @Test
+    public void testSuccessFileCreation2() throws Exception {
+        PigServer ps = null;
+        String[] files = new String[] { inputFileName, 
+                outputFileName + "_1", outputFileName + "_2", outputFileName + "_3"};
+        try {
+            ExecType[] modes = new ExecType[] { ExecType.LOCAL, ExecType.MAPREDUCE};
+            String[] inputData = new String[]{"hello\tworld", "hi\tworld", "bye\tworld"};
+            System.err.println("XXX: " + TestStore.FailUDF.class.getName());
+            String multiStoreScript = "a = load '"+ inputFileName + "';" +
+                    "b = filter a by $0 == 'hello';" +
+                    "b = foreach b generate " + FAIL_UDF_NAME + "($0);" + 
+                    "c = filter a by $0 == 'hi';" +
+                    "d = filter a by $0 == 'bye';" +
+                    "store b into '" + outputFileName + "_1';" +
+                    "store c into '" + outputFileName + "_2';" + 
+                    "store d into '" + outputFileName + "_3';";
+            
+            String singleStoreScript =  "a = load '"+ inputFileName + "';" +
+                "b = foreach a generate " + FAIL_UDF_NAME + "($0);" + 
+                "store b into '" + outputFileName + "_1';" ;
+            
+            for (ExecType execType : modes) {
+                for(boolean isPropertySet: new boolean[] { true, false}) {
+                    for(boolean isMultiStore: new boolean[] { true, false}) {
+                        String script = (isMultiStore ? multiStoreScript : 
+                            singleStoreScript);
+                        // since we will be switching between map red and local modes
+                        // we will need to make sure filelocalizer is reset before each
+                        // run.
+                        FileLocalizer.setInitialized(false);
+                        if(execType == ExecType.MAPREDUCE) {
+                            // since the job is guaranteed to fail, let's set 
+                            // number of retries to 1.
+                            Properties props = cluster.getProperties();
+                            props.setProperty(MAP_MAX_ATTEMPTS, "1");
+                            ps = new PigServer(ExecType.MAPREDUCE, props);
+                        } else {
+                            Properties props = new Properties();                                          
+                            props.setProperty(MapRedUtil.FILE_SYSTEM_NAME, "file:///");
+                            // since the job is guaranteed to fail, let's set 
+                            // number of retries to 1.
+                            props.setProperty(MAP_MAX_ATTEMPTS, "1");
+                            ps = new PigServer(ExecType.LOCAL, props);
+                        }
+                        ps.getPigContext().getProperties().setProperty(
+                                MapReduceLauncher.SUCCESSFUL_JOB_OUTPUT_DIR_MARKER, 
+                                Boolean.toString(isPropertySet));
+                        cleanupFiles(ps, files);
+                        ps.setBatchOn();
+                        Util.createInputFile(ps.getPigContext(), 
+                                inputFileName, inputData);
+                        Util.registerMultiLineQuery(ps, script);
+                        try {
+                            ps.executeBatch();
+                        } catch(IOException ioe) {
+                            if(!ioe.getMessage().equals("FailUDFException")) {
+                                // an unexpected exception
+                                throw ioe;
+                            }
+                        }
+                        for(int i = 1; i <= (isMultiStore ? 3 : 1); i++) {
+                            String sucFile = outputFileName + "_" + i + "/" + 
+                                               MapReduceLauncher.SUCCEEDED_FILE_NAME;
+                            assertEquals("Checking if _SUCCESS file exists in " + 
+                                    execType + " mode", false, 
+                                    Util.exists(ps.getPigContext(), sucFile));
+                        }
+                    }
+                }
+            }
+        } finally {
+            cleanupFiles(ps, files);
+        }
+    }
+
+    // A UDF which always throws an Exception so that the job can fail
+    public static class FailUDF extends EvalFunc<String> {
+
+        @Override
+        public String exec(Tuple input) throws IOException {
+            throw new IOException("FailUDFException");
+        }
+        
+    }
+    private void cleanupFiles(PigServer ps, String... files) throws IOException {
+        for(String file:files) {
+            Util.deleteFile(ps.getPigContext(), file);
+        }    
+    }
+    
     
     public static class DummyStore extends PigStorage implements StoreMetadata{
 
@@ -622,7 +791,6 @@ public class TestStore extends junit.framework.TestCase {
         @Override
         public void storeStatistics(ResourceStatistics stats, String location,
                 Job job) throws IOException {
-            // TODO Auto-generated method stub
             
         }
     }
