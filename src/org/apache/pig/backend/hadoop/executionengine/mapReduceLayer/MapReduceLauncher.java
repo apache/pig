@@ -29,6 +29,8 @@ import java.util.Map;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapred.Counters;
 import org.apache.hadoop.mapred.JobClient;
 import org.apache.hadoop.mapred.JobConf;
@@ -77,6 +79,11 @@ public class MapReduceLauncher extends Launcher{
     private boolean aggregateWarning = false;
     private Map<FileSpec, Exception> failureMap;
 
+    public static final String SUCCEEDED_FILE_NAME = "_SUCCESS";
+    
+    public static final String SUCCESSFUL_JOB_OUTPUT_DIR_MARKER =
+        "mapreduce.fileoutputcommitter.marksuccessfuljobs";
+    
     /**
      * Get the exception that caused a failure on the backend for a
      * store location (if any).
@@ -304,6 +311,9 @@ public class MapReduceLauncher extends Launcher{
                     }
                     if (!st.isTmpStore()) {
                         succeededStores.add(st);
+                        // create an "_SUCCESS" file in output location if 
+                        // output location is a filesystem dir
+                        createSuccessFile(job, st);
                         finalStores++;
                         log.info("Successfully stored result in: \""+st.getSFile().getFileName()+"\"");
                     }
@@ -488,6 +498,24 @@ public class MapReduceLauncher extends Launcher{
         PigOutputCommitter.storeCleanup(st, updatedJc.getConfiguration());
     }
 
+    private boolean shouldMarkOutputDir(Job job) {
+        return job.getJobConf().getBoolean(SUCCESSFUL_JOB_OUTPUT_DIR_MARKER, 
+                               false);
+    }
+    
+    private void createSuccessFile(Job job, POStore store) throws IOException {
+        if(shouldMarkOutputDir(job)) {
+            FileSystem fs = FileSystem.get(job.getJobConf());
+            Path outputPath = new Path(store.getSFile().getFileName());
+            if(fs.exists(outputPath)){
+                // create a file in the folder to mark it
+                Path filePath = new Path(outputPath, SUCCEEDED_FILE_NAME);
+                if(!fs.exists(filePath)) {
+                    fs.create(filePath).close();
+                }
+            }    
+        } 
+    }
     
     /**
      * An exception handler class to handle exceptions thrown by the job controller thread

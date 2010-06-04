@@ -189,6 +189,9 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-1433: pig should create success file if
+mapreduce.fileoutputcommitter.marksuccessfuljobs is true (pradeepkth)
+
 PIG-1415: LoadFunc signature is not correct in LoadFunc.getSchema sometimes (daijy)
 
 PIG-1403: Make Pig work with remote HDFS in secure mode (daijy)
