@@ -33,6 +33,7 @@ package org.apache.pig.impl.logicalLayer.parser;
 import java.io.*;
 import java.util.*;
 import java.net.URI;
+import java.lang.Class;
 import java.net.URISyntaxException;
 import java.lang.reflect.Type;
 import org.apache.pig.impl.logicalLayer.*;
@@ -71,7 +72,9 @@ import org.apache.pig.backend.datastorage.DataStorage;
 import org.apache.pig.backend.datastorage.ContainerDescriptor;
 import org.apache.pig.backend.datastorage.ElementDescriptor;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
+import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.mapreduce.Partitioner;
 import org.apache.pig.impl.util.LinkedMultiMap;
 
 public class QueryParser {
@@ -900,6 +903,23 @@ class FunctionType {
             throw new Exception("Received an unknown function type: " + funcType);
         }
     }
+};
+
+class ClassType {
+	public static final byte UNKNOWNCLASS = 0;
+	public static final byte PARTITIONER = 2;
+	
+	public static void checkClassType(Class cs, byte classType) throws Exception {
+		switch(classType) {
+		case ClassType.PARTITIONER:
+			if(!(cs.newInstance() instanceof Partitioner)) {
+				throw new Exception("Not a class of org.apache.hadoop.mapreduce.Partitioner");
+			}
+			break;
+		default:
+			throw new Exception("Received an unknown class type: " + classType);
+		}
+	}
 }
 
 PARSER_END(QueryParser)
@@ -942,6 +962,7 @@ TOKEN : { <INNER : "inner"> }
 TOKEN : { <OUTER : "outer"> }
 TOKEN : { <STAR : "*"> 		}
 TOKEN : { <PARALLEL : "parallel"> }
+TOKEN : { <PARTITION : "partition by"> }
 TOKEN : { <GROUP : "group"> }
 TOKEN : { <AND : "and"> }
 TOKEN : { <OR : "or"> }
@@ -1124,7 +1145,6 @@ LogicalOperator SplitClause(LogicalPlan lp):
 	{log.trace("Exiting SplitClause"); return splitOp;}
 } 
 
-
 LogicalOperator Expr(LogicalPlan lp) : 
 {
 	LogicalOperator op; 
@@ -1164,7 +1184,7 @@ Token IdentifierOrReserved() :
 }
 {
   (
-  ( t1 = <DEFINE> )
+ ( t1 = <DEFINE> )
 | (t1 = <LOAD> )
 | (t1 =<FILTER> )
 | (t1 =<FOREACH> )
@@ -1187,6 +1207,7 @@ Token IdentifierOrReserved() :
 | (t1 =<INNER> )
 | (t1 =<OUTER> )
 | (t1 =<PARALLEL> )
+| (t1 =<PARTITION>)
 | (t1 =<GROUP> )
 | (t1 =<AND> )
 | (t1 =<OR> )
@@ -1260,6 +1281,7 @@ LogicalOperator BaseExpr(LogicalPlan lp) :
 	Token t1, t2; 
 	Schema.FieldSchema fs; 
 	log.trace("Entering BaseExpr");
+	String partitioner = null;
 }
 {
 	(
@@ -1289,9 +1311,11 @@ LogicalOperator BaseExpr(LogicalPlan lp) :
 |   (<SAMPLE> op = SampleClause(lp))
 |   (<ORDER> op = OrderClause(lp))
 |	(<DISTINCT> op = NestedExpr(lp) 
+	([<PARTITION> (partitioner = EvalClass(ClassType.PARTITIONER))])
 	{
 		LogicalOperator distinct = new LODistinct(lp, new OperatorKey(scope, getNextId())); 
 		lp.add(distinct);
+		distinct.setCustomPartitioner(partitioner);
 		log.debug("Added operator: " + distinct.getClass().getName() + " to the logical plan"); 
 		lp.connect(op, distinct);
 		log.debug("Connected alias: " + op.getAlias() + " operator " + op.getClass().getName() + " to operator " + distinct.getClass().getName());
@@ -1798,6 +1822,7 @@ LogicalOperator CogroupClause(LogicalPlan lp) :
     LogicalOperator cogroup = null; 
     log.trace("Entering CoGroupClause");
     Token t;
+    String partitioner = null;
 }
 {
     (gi = GroupItem(lp) { gis.add(gi); }
@@ -1817,15 +1842,18 @@ LogicalOperator CogroupClause(LogicalPlan lp) :
             cogroup = parseUsingForGroupBy("merge", gis, lp);
             }
         )])
+        ([<PARTITION> (partitioner = EvalClass(ClassType.PARTITIONER))])
     )
-
     {
         if (cogroup != null) {
+        	cogroup.setCustomPartitioner(partitioner);
             log.trace("Exiting CoGroupClause");
             return cogroup;
         }
-
         cogroup = parseCogroup(gis, lp, LOCogroup.GROUPTYPE.REGULAR);
+        if(cogroup != null) {
+        	cogroup.setCustomPartitioner(partitioner);
+        }
         log.trace("Exiting CoGroupClause");
         return cogroup;		
     }
@@ -2079,7 +2107,8 @@ int ColNameOrNum(Schema over) :
 LogicalOperator CrossClause(LogicalPlan lp) : 
 {
 	LogicalOperator op; 
-	ArrayList<LogicalOperator> inputs = new ArrayList<LogicalOperator>(); 
+	ArrayList<LogicalOperator> inputs = new ArrayList<LogicalOperator>();
+	String partitioner = null; 
 	log.trace("Entering CrossClause");
 }
 {
@@ -2087,9 +2116,11 @@ LogicalOperator CrossClause(LogicalPlan lp) :
 	op = NestedExpr(lp) { inputs.add(op); }
 	("," op = NestedExpr(lp) { inputs.add(op); })+
 	)
+	([<PARTITION> (partitioner = EvalClass(ClassType.PARTITIONER))])
 	{
 		LogicalOperator cross = new LOCross(lp, new OperatorKey(scope, getNextId()));
 		lp.add(cross);
+		cross.setCustomPartitioner(partitioner);
 		log.debug("Added operator " + cross.getClass().getName() + " to the logical plan");
 		
 		for (LogicalOperator lop: inputs) {
@@ -2115,6 +2146,7 @@ LogicalOperator JoinClause(LogicalPlan lp) :
 	boolean isFullOuter = false;
 	boolean isOuter = false;
 	Token t;
+	String partitioner = null;
 }
 {
 	(gi = JoinItem(lp) { gis.add(gi); }
@@ -2126,7 +2158,6 @@ LogicalOperator JoinClause(LogicalPlan lp) :
         (<FULL> [<OUTER>] {isFullOuter = true;})
 	]
 	("," gi = JoinItem(lp) { gis.add(gi); })+
-	
 	{
 		// in the case of outer joins, only two
 		// inputs are allowed
@@ -2182,15 +2213,23 @@ LogicalOperator JoinClause(LogicalPlan lp) :
             joinOp = parseUsingForJoin("hash", gis, lp, isFullOuter, isRightOuter, isOuter);
 		    	}
      )]))
-
-	{log.trace("Exiting JoinClause");
-	if (joinOp!=null) {
+     ([<PARTITION> (partitioner = EvalClass(ClassType.PARTITIONER))])
+	
+	{
+		log.trace("Exiting JoinClause");
+		if (joinOp == null) {
+			joinOp = parseJoin(gis, lp, LOJoin.JOINTYPE.HASH);
+		}
+		if(partitioner != null) {
+			if(((LOJoin)joinOp).getJoinType() == LOJoin.JOINTYPE.SKEWED) {
+				throw new ParseException("Custom Partitioner is not supported for skewed join");
+			}
+			else {
+				joinOp.setCustomPartitioner(partitioner);
+			}
+		}
 		return joinOp;
 	}
-	else {
-		return parseJoin(gis, lp, LOJoin.JOINTYPE.HASH);
-	}}
-	
 }
 
 LogicalOperator UnionClause(LogicalPlan lp) : 
@@ -3700,6 +3739,35 @@ Object  EvalFunction(byte funcType) :
 		log.trace("Exiting EvalFunction");
 		
 		return func;
+	}
+}
+
+String EvalClass(byte classType) :
+{
+	String className;
+	Class cs;
+	log.trace("Entering EvalClass");
+}
+{
+	className = QualifiedFunction()
+	{
+		cs = PigContext.resolveClassName(className);
+		try {
+			ClassType.checkClassType(cs, classType);
+		}
+		catch (ExecException e) {
+			ParseException pe = new ParseException("Class " + className + " not found");
+			pe.initCause(e);
+			throw pe;
+		}
+		catch (Exception e){
+			ParseException pe = new ParseException(e.getMessage());
+			pe.initCause(e);
+			throw pe;
+		}
+		log.trace("Exiting EvalClass");
+		
+		return className;
 	}
 }
 
