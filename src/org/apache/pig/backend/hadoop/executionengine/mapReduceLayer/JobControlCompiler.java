@@ -376,7 +376,7 @@ public class JobControlCompiler{
                 }
             }
 
-            //Create the jar of all functions reuired
+            //Create the jar of all functions and classes required
             File submitJarFile = File.createTempFile("Job", ".jar");
             // ensure the job jar is deleted on exit
             submitJarFile.deleteOnExit();
@@ -530,6 +530,8 @@ public class JobControlCompiler{
                 nwJob.setReducerClass(PigMapReduce.Reduce.class);
                 if (mro.requestedParallelism>0)
                     nwJob.setNumReduceTasks(mro.requestedParallelism);
+                if (mro.customPartitioner != null)
+                	nwJob.setPartitionerClass(PigContext.resolveClassName(mro.customPartitioner));
 
                 conf.set("pig.mapPlan", ObjectSerializer.serialize(mro.mapPlan));
                 if(mro.isEndOfAllInputSetInMap()) {

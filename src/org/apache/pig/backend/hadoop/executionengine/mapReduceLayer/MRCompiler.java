@@ -30,7 +30,6 @@ import java.util.Random;
 import java.util.Set;
 
 import org.apache.commons.logging.LogFactory;
-import org.apache.hadoop.mapred.JobConf;
 import org.apache.pig.CollectableLoadFunc;
 import org.apache.pig.ExecType;
 import org.apache.pig.FuncSpec;
@@ -986,6 +985,7 @@ public class MRCompiler extends PhyPlanVisitor {
     public void visitGlobalRearrange(POGlobalRearrange op) throws VisitorException{
         try{
             blocking(op);
+            curMROp.customPartitioner = op.getCustomPartitioner();
             phyToMROpMap.put(op, curMROp);
         }catch(Exception e){
             int errCode = 2034;
@@ -1673,7 +1673,8 @@ public class MRCompiler extends PhyPlanVisitor {
 					   
 			
 			// create POGlobalRearrange
-			POGlobalRearrange gr = new POGlobalRearrange(new OperatorKey(scope,nig.getNextNodeId(scope)), rp);                          
+			POGlobalRearrange gr = new POGlobalRearrange(new OperatorKey(scope,nig.getNextNodeId(scope)), rp);
+			// Skewed join has its own special partitioner 
 			gr.setResultType(DataType.TUPLE);
 			gr.visit(this);
 			if(gr.getRequestedParallelism() > curMROp.requestedParallelism)

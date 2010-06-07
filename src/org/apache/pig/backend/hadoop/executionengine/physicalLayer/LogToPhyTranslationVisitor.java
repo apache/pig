@@ -530,6 +530,7 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
         POGlobalRearrange poGlobal = new POGlobalRearrange(new OperatorKey(
                 scope, nodeGen.getNextNodeId(scope)), cs
                 .getRequestedParallelism());
+        poGlobal.setCustomPartitioner(cs.getCustomPartitioner());
         poGlobal.setAlias(cs.getAlias());
         POPackage poPackage = new POPackage(new OperatorKey(scope, nodeGen
                 .getNextNodeId(scope)), cs.getRequestedParallelism());
@@ -667,9 +668,9 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
 
         case REGULAR:
             POPackage poPackage = compileToLR_GR_PackTrio(cg.getOperatorKey().scope,
-                    cg.getInputs(),cg.getRequestedParallelism(),cg.getAlias(),
-                    cg.getInner(),cg.getGroupByPlans());
-
+                    cg.getInputs(), cg.getRequestedParallelism(), cg.getCustomPartitioner(),
+                    cg.getAlias(), cg.getInner(),cg.getGroupByPlans());
+            
             logToPhyMap.put(cg, poPackage);
             break;
             
@@ -769,12 +770,13 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
     }
     
     private POPackage compileToLR_GR_PackTrio(String scope,List<LogicalOperator> inputs,
-            int parallel, String alias, boolean[] innerFlags, MultiMap<LogicalOperator, 
+            int parallel, String customPartitioner, String alias, boolean[] innerFlags, MultiMap<LogicalOperator, 
             LogicalPlan> innerPlans) throws VisitorException {
 
         POGlobalRearrange poGlobal = new POGlobalRearrange(new OperatorKey(
                 scope, nodeGen.getNextNodeId(scope)), parallel);
         poGlobal.setAlias(alias);
+        poGlobal.setCustomPartitioner(customPartitioner);
         POPackage poPackage = new POPackage(new OperatorKey(scope, nodeGen
                 .getNextNodeId(scope)), parallel);
         poPackage.setAlias(alias);
@@ -1118,8 +1120,7 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
             return;
         }
 		else if (loj.getJoinType() == LOJoin.JOINTYPE.HASH){
-		    
-		    POPackage poPackage = compileToLR_GR_PackTrio(scope, inputs, parallel, alias, innerFlags, loj.getJoinPlans());
+		    POPackage poPackage = compileToLR_GR_PackTrio(scope, inputs, parallel, loj.getCustomPartitioner(), alias, innerFlags, loj.getJoinPlans());
 	        POForEach fe = compileFE4Flattening(innerFlags,  scope, parallel, alias, inputs);
             currentPlan.add(fe);
             try {

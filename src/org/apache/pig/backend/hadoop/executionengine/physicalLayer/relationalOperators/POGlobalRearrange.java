@@ -43,6 +43,19 @@ public class POGlobalRearrange extends PhysicalOperator {
      * 
      */
     private static final long serialVersionUID = 1L;
+    
+    /* As, GlobalRearrange decides the map reduce boundary, we add custom
+     * partitioner here
+     */
+    protected String customPartitioner;
+
+    public String getCustomPartitioner() {
+		return customPartitioner;
+	}
+
+	public void setCustomPartitioner(String customPartitioner) {
+		this.customPartitioner = customPartitioner;
+	}
 
     public POGlobalRearrange(OperatorKey k) {
         this(k, -1, null);
@@ -51,7 +64,7 @@ public class POGlobalRearrange extends PhysicalOperator {
     public POGlobalRearrange(OperatorKey k, int rp) {
         this(k, rp, null);
     }
-
+    
     public POGlobalRearrange(OperatorKey k, List inp) {
         this(k, -1, null);
     }
@@ -59,7 +72,7 @@ public class POGlobalRearrange extends PhysicalOperator {
     public POGlobalRearrange(OperatorKey k, int rp, List inp) {
         super(k, rp, inp);
     }
-
+    
     @Override
     public void visit(PhyPlanVisitor v) throws VisitorException {
         v.visitGlobalRearrange(this);
