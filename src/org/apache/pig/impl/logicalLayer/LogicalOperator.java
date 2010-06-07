@@ -89,9 +89,22 @@ abstract public class LogicalOperator extends Operator<LOVisitor> {
      * by the user or can be chosen at runtime by the optimizer.
      */
     protected HashSet<Integer> mPinnedOptions = new HashSet<Integer>();
+    
+    /**
+     * Name of the customPartitioner if one is used, this is set to null otherwise.
+     */
+    protected String mCustomPartitioner = null;
 
     
-    private static Log log = LogFactory.getLog(LogicalOperator.class);
+    public String getCustomPartitioner() {
+		return mCustomPartitioner;
+	}
+
+	public void setCustomPartitioner(String customPartitioner) {
+		this.mCustomPartitioner = customPartitioner;
+	}
+
+	private static Log log = LogFactory.getLog(LogicalOperator.class);
 
     /**
      * Equivalent to LogicalOperator(k, 0).

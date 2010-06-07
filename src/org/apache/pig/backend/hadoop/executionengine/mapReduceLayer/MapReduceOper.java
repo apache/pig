@@ -112,6 +112,9 @@ public class MapReduceOper extends Operator<MROpPlanVisitor> {
     
     int requestedParallelism = -1;
     
+    /* Name of the Custom Partitioner used */ 
+    String customPartitioner = null;
+    
     // Last POLimit value in this map reduce operator, needed by LimitAdjuster
     // to add additional map reduce operator with 1 reducer after this
     long limit = -1;
@@ -366,6 +369,10 @@ public class MapReduceOper extends Operator<MROpPlanVisitor> {
 
     public int getRequestedParallelism() {
         return requestedParallelism;
+    }
+    
+    public String getCustomPartitioner() {
+    	return customPartitioner;
     }
 
     public void setSplitter(boolean spl) {

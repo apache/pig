@@ -17,11 +17,15 @@
  */
 package org.apache.pig.test;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Random;
 
@@ -36,6 +40,7 @@ import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.io.FileLocalizer;
+import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.test.utils.Identity;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -489,5 +494,154 @@ public class TestEvalPipeline2 extends TestCase {
         
         Util.deleteFile(cluster, "table_testNestedDescSort");
     }
-
+    
+    // See PIG-282
+    @Test
+    public void testCustomPartitionerParseJoins() throws Exception{
+    	String[] input = {
+                "1\t3",
+                "1\t2"
+        };
+        Util.createInputFile(cluster, "table_testCustomPartitionerParseJoins", input);
+        
+        pigServer.registerQuery("A = LOAD 'table_testCustomPartitionerParseJoins' as (a0:int, a1:int);");
+        
+        pigServer.registerQuery("B = ORDER A by $0;");
+        
+        // Custom Partitioner is not allowed for skewed joins, will throw a ExecException 
+        try {
+        	pigServer.registerQuery("skewed = JOIN A by $0, B by $0 USING 'skewed' PARTITION BY org.apache.pig.test.utils.SimpleCustomPartitioner;");
+        	//control should not reach here
+        	fail("Skewed join cannot accept a custom partitioner");
+        }
+        catch (FrontendException e) {
+        	assertTrue(e.getErrorCode() == 1000);
+		}
+        
+        pigServer.registerQuery("hash = JOIN A by $0, B by $0 USING 'hash' PARTITION BY org.apache.pig.test.utils.SimpleCustomPartitioner;");
+        Iterator<Tuple> iter = pigServer.openIterator("hash");
+        Tuple t;
+        
+        Collection<String> results = new HashSet<String>();
+        results.add("(1,3,1,2)");
+        results.add("(1,3,1,3)");
+        results.add("(1,2,1,2)");
+        results.add("(1,2,1,3)");
+        
+        assertTrue(iter.hasNext());
+        t = iter.next();
+        assertTrue(t.size()==4);
+        assertTrue(results.contains(t.toString()));
+        
+        assertTrue(iter.hasNext());
+        t = iter.next();
+        assertTrue(t.size()==4);
+        assertTrue(results.contains(t.toString()));
+        
+        assertTrue(iter.hasNext());
+        t = iter.next();
+        assertTrue(t.size()==4);
+        assertTrue(results.contains(t.toString()));
+        
+        assertTrue(iter.hasNext());
+        t = iter.next();
+        assertTrue(t.size()==4);
+        assertTrue(results.contains(t.toString()));
+        
+        // No checks are made for merged and replicated joins as they are compiled to a map only job 
+        // No frontend error checking has been added for these jobs, hence not adding any test cases 
+        // Manually tested the sanity once. Above test should cover the basic sanity of the scenario 
+        
+        Util.deleteFile(cluster, "table_testCustomPartitionerParseJoins");
+    }
+    
+    // See PIG-282
+    @Test
+    public void testCustomPartitionerGroups() throws Exception{
+    	String[] input = {
+                "1\t1",
+                "2\t1",
+                "3\t1",
+                "4\t1"
+        };
+        Util.createInputFile(cluster, "table_testCustomPartitionerGroups", input);
+        
+        pigServer.registerQuery("A = LOAD 'table_testCustomPartitionerGroups' as (a0:int, a1:int);");
+        
+        // It should be noted that for a map reduce job, the total number of partitions 
+        // is the same as the number of reduce tasks for the job. Hence we need to find a case wherein 
+        // we will get more than one reduce job so that we can use the partitioner. 	
+        // The following logic assumes that we get 2 reduce jobs, so that we can hard-code the logic.
+        //
+        pigServer.registerQuery("B = group A by $0 PARTITION BY org.apache.pig.test.utils.SimpleCustomPartitioner parallel 2;");
+        
+        pigServer.store("B", "tmp_testCustomPartitionerGroups");
+        
+        new File("tmp_testCustomPartitionerGroups").mkdir();
+        
+        // SimpleCustomPartitioner partitions as per the parity of the key
+        // Need to change this in SimpleCustomPartitioner is changed
+        Util.copyFromClusterToLocal(cluster, "tmp_testCustomPartitionerGroups/part-r-00000", "tmp_testCustomPartitionerGroups/part-r-00000");
+        BufferedReader reader = new BufferedReader(new FileReader("tmp_testCustomPartitionerGroups/part-r-00000"));
+ 	    String line = null;      	     
+ 	    while((line = reader.readLine()) != null) {
+ 	        String[] cols = line.split("\t");
+ 	        int value = Integer.parseInt(cols[0]) % 2;
+ 	        assertEquals(0, value);
+ 	    }
+ 	    Util.copyFromClusterToLocal(cluster, "tmp_testCustomPartitionerGroups/part-r-00001", "tmp_testCustomPartitionerGroups/part-r-00001");
+        reader = new BufferedReader(new FileReader("tmp_testCustomPartitionerGroups/part-r-00001"));
+ 	    line = null;      	     
+ 	    while((line = reader.readLine()) != null) {
+ 	        String[] cols = line.split("\t");
+ 	        int value = Integer.parseInt(cols[0]) % 2;
+ 	        assertEquals(1, value);
+ 	    } 
+        Util.deleteDirectory(new File("tmp_testCustomPartitionerGroups"));
+        Util.deleteFile(cluster, "table_testCustomPartitionerGroups");
+    }
+    
+    // See PIG-282
+    @Test
+    public void testCustomPartitionerCross() throws Exception{
+    	String[] input = {
+                "1\t3",
+                "1\t2",
+        };
+    	
+        Util.createInputFile(cluster, "table_testCustomPartitionerCross", input);
+        pigServer.registerQuery("A = LOAD 'table_testCustomPartitionerCross' as (a0:int, a1:int);");
+        pigServer.registerQuery("B = ORDER A by $0;");
+        pigServer.registerQuery("C = cross A , B PARTITION BY org.apache.pig.test.utils.SimpleCustomPartitioner;");
+        Iterator<Tuple> iter = pigServer.openIterator("C");
+        Tuple t;
+        
+        Collection<String> results = new HashSet<String>();
+        results.add("(1,3,1,2)");
+        results.add("(1,3,1,3)");
+        results.add("(1,2,1,2)");
+        results.add("(1,2,1,3)");
+        
+        assertTrue(iter.hasNext());
+        t = iter.next();
+        assertTrue(t.size()==4);
+        assertTrue(results.contains(t.toString()));
+        
+        assertTrue(iter.hasNext());
+        t = iter.next();
+        assertTrue(t.size()==4);
+        assertTrue(results.contains(t.toString()));
+        
+        assertTrue(iter.hasNext());
+        t = iter.next();
+        assertTrue(t.size()==4);
+        assertTrue(results.contains(t.toString()));
+        
+        assertTrue(iter.hasNext());
+        t = iter.next();
+        assertTrue(t.size()==4);
+        assertTrue(results.contains(t.toString()));
+        
+        Util.deleteFile(cluster, "table_testCustomPartitionerCross");
+    }
 }

@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-282: Custom Partitioner (aniket486 via daijy)
+
 PIG-283: Allow to set arbitrary jobconf key-value pairs inside pig program (hashutosh)
 
 PIG-1373: We need to add jdiff output to docs on the website (daijy)
