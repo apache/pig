@@ -68,6 +68,8 @@ manner (rding via pradeepkth)
 
 IMPROVEMENTS
 
+PIG-1441: new test targets (olgan)
+
 PIG-1381: Need a way for Pig to take an alternative property file (daijy)
 
 PIG-1384: Adding contrib javadoc to main Pig javadoc (daijy)
