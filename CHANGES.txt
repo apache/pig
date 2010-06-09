@@ -26,6 +26,8 @@ PIG-922: Logical optimizer: push up project (daijy)
 
 IMPROVEMENTS
 
+PIG-1441: new test targets (olgan)
+
 PIG-1325: Provide a way to exclude a testcase when running "ant test"
 (pradeepkth)
 

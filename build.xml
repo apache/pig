@@ -80,6 +80,8 @@
     <property name="test.timeout" value="2700000" />
     <property name="test.junit.output.format" value="plain" />
     <property name="test.commit.file" value="${test.src.dir}/commit-tests"/>
+    <property name="test.unit.file" value="${test.src.dir}/unit-tests"/>
+    <property name="test.smoke.file" value="${test.src.dir}/smoke-tests"/>
     <property name="test.all.file" value="${test.src.dir}/all-tests"/>
 
 
@@ -488,6 +490,14 @@
 
     <target name="test-commit" depends="compile-test,jar-withouthadoop" description="Run approximate 10-minute set of unit tests prior to commiting">
         <macro-test-runner test.file="${test.commit.file}" />
+    </target>
+
+    <target name="test-unit" depends="compile-test,jar-withouthadoop" description="Run all true unit tests">
+        <macro-test-runner test.file="${test.unit.file}" />
+    </target>
+
+    <target name="test-smoke" depends="compile-test,jar-withouthadoop" description="Run 30 min smoke tests">
+        <macro-test-runner test.file="${test.smoke.file}" />
     </target>
 
     <macrodef name="macro-test-runner">
