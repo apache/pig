@@ -24,6 +24,9 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-1438: [Performance] MultiQueryOptimizer should also merge DISTINCT jobs
+(rding)
+
 PIG-1441: new test targets (olgan)
 
 PIG-282: Custom Partitioner (aniket486 via daijy)
