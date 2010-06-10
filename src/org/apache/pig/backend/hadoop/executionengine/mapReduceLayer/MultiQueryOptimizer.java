@@ -455,10 +455,12 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
         return true;
     }
        
-    private List<MapReduceOper> getMergeList(List<MapReduceOper> mapReducers) {
+    private List<MapReduceOper> getMergeList(MapReduceOper splitter,
+            List<MapReduceOper> mapReducers) {
         List<MapReduceOper> mergeNoCmbList = new ArrayList<MapReduceOper>();
         List<MapReduceOper> mergeCmbList = new ArrayList<MapReduceOper>();
-
+        List<MapReduceOper> mergeDistList = new ArrayList<MapReduceOper>();
+       
         for (MapReduceOper mrOp : mapReducers) {
             if (isSplitteeMergeable(mrOp)) {
                 if (mrOp.combinePlan.isEmpty()) {
@@ -466,16 +468,26 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
                 } else {
                     mergeCmbList.add(mrOp);
                 } 
-            }           
-        }     
-        return (mergeNoCmbList.size() > mergeCmbList.size()) ?
-                mergeNoCmbList : mergeCmbList;
+            } else if (splitter.reducePlan.isEmpty()
+                    || splitter.needsDistinctCombiner()) {                
+                if (mrOp.needsDistinctCombiner()) {                    
+                    mergeDistList.add(mrOp);
+                }
+            }
+        }    
+        
+        int max = Math.max(mergeNoCmbList.size(), mergeCmbList.size());
+        max = Math.max(max, mergeDistList.size());
+        
+        if (max == mergeDistList.size()) return mergeDistList;
+        else if (max == mergeNoCmbList.size()) return mergeNoCmbList;
+        else return mergeCmbList;                        
     }
     
     private int mergeMapReduceSplittees(List<MapReduceOper> mapReducers, 
             MapReduceOper splitter, POSplit splitOp) throws VisitorException {
                 
-        List<MapReduceOper> mergeList = getMergeList(mapReducers);
+        List<MapReduceOper> mergeList = getMergeList(splitter, mapReducers);
     
         if (mergeList.size() <= 1) {
 
@@ -507,7 +519,7 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
         // MR splittees into the splitter. What we'll do is to merge multiple 
         // splittees (if exists) into a new MR operator and connect it to the splitter.
         
-        List<MapReduceOper> mergeList = getMergeList(mapReducers);
+        List<MapReduceOper> mergeList = getMergeList(splitter, mapReducers);
     
         if (mergeList.size() <= 1) {
             // nothing to merge, just return
