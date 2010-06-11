@@ -79,6 +79,8 @@ PIG-1309: Map-side Cogroup (ashutoshc)
 
 BUG FIXES
 
+PIG-1443: DefaultTuple underestimate the memory footprint for string (daijy)
+
 PIG-1446: OOME in a query having a bincond in the inner plan of a Foreach.(hashutosh)
 
 PIG-1433: pig should create success file if
