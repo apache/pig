@@ -219,7 +219,9 @@ public class POForEach extends PhysicalOperator {
                     return res;
                 }
                 if(res.returnStatus==POStatus.STATUS_EOP) {
-                    processingPlan = false;
+                    processingPlan = false; 
+                    for(PhysicalPlan plan : inputPlans)
+                        plan.detachInput();
                     break;
                 }
                 if(res.returnStatus==POStatus.STATUS_ERR) {
