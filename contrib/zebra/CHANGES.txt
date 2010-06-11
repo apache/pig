@@ -4,6 +4,8 @@ Trunk (unreleased changes)
 
   INCOMPATIBLE CHANGES
 
+    PIG-1444 Addition of test-smoke ant target (gauravj via yanz)
+
     PIG-1253 exclusion of the column group security test from the test suite (chaow via yanz)
 
     PIG-1164 Addition of smoke tests (gauravj via yanz)

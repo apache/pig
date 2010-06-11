@@ -145,6 +145,54 @@ to call at top-level: ant deploy-contrib compile-core-test
   </target>
 
   <!-- ================================================================== -->
+  <!-- Run smoke tests                                                  -->
+  <!-- ================================================================== -->
+  <target name="test-smoke" depends="compile-test, compile" if="test.available" description="Run smoke test">
+    <echo message="contrib: ${name}"/>
+    <delete dir="${pig.log.dir}"/>
+    <mkdir dir="${pig.log.dir}"/>
+    <delete dir="${build.test}/data"/>
+    <mkdir dir="${build.test}/data"/>
+    <junit
+      printsummary="yes" showoutput="${test.output}"
+      haltonfailure="no" fork="yes" maxmemory="1024m"
+      errorProperty="tests.failed" failureProperty="tests.failed"
+      timeout="${test.timeout}">
+
+      <sysproperty key="test.build.data" value="${build.test}/data"/>
+      <sysproperty key="build.test" value="${build.test}"/>
+      <sysproperty key="contrib.name" value="${name}"/>
+      <sysproperty key="hadoop.log.dir" value="${pig.log.dir}"/>
+       <sysproperty key="whichCluster" value="miniCluster"/>
+
+      <!-- requires fork=yes for:
+        relative File paths to use the specified user.dir
+        classpath to use build/contrib/*.jar
+      -->
+      <sysproperty key="user.dir" value="${build.test}/data"/>
+
+      <sysproperty key="fs.default.name" value="${fs.default.name}"/>
+      <sysproperty key="pig.test.localoutputfile" value="${pig.test.localoutputfile}"/>
+      <sysproperty key="pig.log.dir" value="${pig.log.dir}"/>
+      <classpath refid="test.classpath"/>
+      <formatter type="${test.junit.output.format}" />
+
+      <batchtest todir="${build.test}" unless="testcase">
+        <fileset dir="${src.test}"
+                 includes="**/TestMultipleOutputs.java, **/TestTableLoaderP*.java" excludes="**/${test.exclude}.java" />
+      </batchtest>
+      <batchtest todir="${build.test}"  if="testcase">
+        <fileset dir="${src.test}"
+                 includes="**/${testcase}.java"/>
+      </batchtest>
+
+
+    </junit>
+    <fail if="tests.failed">Tests failed!</fail>
+  </target>
+
+
+  <!-- ================================================================== -->
   <!-- Run nightly tests                                                  -->
   <!-- ================================================================== -->
   <target name="nightly" depends="compile-test, compile" if="test.available">
