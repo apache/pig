@@ -194,6 +194,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-1443: DefaultTuple underestimate the memory footprint for string (daijy)
+
 PIG-1446: https://issues.apache.org/jira/browse/PIG-1446 (hashutosh)
 
 PIG-1433: pig should create success file if
