@@ -29,7 +29,7 @@ import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.util.TupleFormat;
 
-public class TestTupleFormat extends TestCase {
+public class TestTuple extends TestCase {
 
     public void testTupleFormat() {
 
@@ -59,5 +59,12 @@ public class TestTupleFormat extends TestCase {
             fail();
         }
 
+    }
+    
+    // See PIG-1443
+    public void testTupleSizeWithString() {
+        Tuple t = Util.createTuple(new String[] {"1234567", "bar"});
+        long size = t.getMemorySize();
+        assertTrue(size==156);
     }
 }

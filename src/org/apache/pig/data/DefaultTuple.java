@@ -300,7 +300,8 @@ public class DefaultTuple implements Tuple {
 
             case DataType.CHARARRAY: {
                 String s = (String)o;
-                return s.length() * 2 + 12;
+                // See PIG-1443 for a reference for this formula
+                return 8 * (((s.length() * 2) + 45) / 8);
             }
 
             case DataType.TUPLE: {
