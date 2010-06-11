@@ -68,6 +68,10 @@ public class PhysicalPlan extends OperatorPlan<PhysicalOperator> implements Clon
 		}
     }
     
+    public void detachInput(){
+        for(PhysicalOperator op : getRoots())
+            op.detachInput();
+    }
     /**
      * Write a visual representation of the Physical Plan
      * into the given output stream
