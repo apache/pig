@@ -73,6 +73,9 @@ subsequent calls to LOLoad.getSchema() or LOLoad.determineSchema()
 PIG-1413: Remove svn:externals reference for test-patch.sh and 
 create a local copy of test-patch.sh (gkesavan)
 
+PIG-1302: Include zebra's "pigtest" ant target as a part of pig's 
+ant test target. (gkesavan)
+
 OPTIMIZATIONS
 
 PIG-1353: Map-side joins (ashutoshc)
