@@ -615,8 +615,8 @@
 	<antcall target="test-contrib" inheritRefs="true" inheritall="true"/>
     </target>    
 
-    <target name="test-contrib" description="to call contrib tests">
-        <!--#### test-contrib is yet to be implemented #### -->	
+    <target name="test-contrib" depends="compile-test" description="to call contrib tests">
+        <subant target="pigtest" buildpath="contrib/zebra" antfile="build.xml"/>
     </target>	
 
     <!-- ================================================================== -->
