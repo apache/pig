@@ -227,11 +227,19 @@ public class GruntParser extends PigScriptParser {
     
     @Override
     protected void processDescribe(String alias) throws IOException {
+        String nestedAlias = null;
         if(mExplain == null) { // process only if not in "explain" mode
             if(alias==null) {
                 alias = mPigServer.getPigContext().getLastAlias();
             }
-            mPigServer.dumpSchema(alias);
+            if(alias.contains("::")) {
+                nestedAlias = alias.substring(alias.indexOf("::") + 2);
+                alias = alias.substring(0, alias.indexOf("::"));
+                mPigServer.dumpSchemaNested(alias, nestedAlias);
+            }
+            else {
+                mPigServer.dumpSchema(alias);
+            }
         } else {
             log.warn("'describe' statement is ignored while processing 'explain -script' or '-check'");
         }

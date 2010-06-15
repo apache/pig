@@ -17,18 +17,23 @@
  */
 package org.apache.pig.impl.logicalLayer;
 
+import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.HashMap;
 import java.util.Set;
-import java.util.Iterator;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.pig.PigException;
+import org.apache.pig.data.DataType;
+import org.apache.pig.impl.logicalLayer.optimizer.SchemaRemover;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.logicalLayer.schema.SchemaMergeException;
-import org.apache.pig.impl.logicalLayer.optimizer.SchemaRemover;
 import org.apache.pig.impl.plan.Operator;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.PlanException;
@@ -37,9 +42,6 @@ import org.apache.pig.impl.plan.RequiredFields;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.util.MultiMap;
 import org.apache.pig.impl.util.Pair;
-import org.apache.pig.data.DataType;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 
 
 public class LOForEach extends RelationalOperator {
@@ -434,7 +436,71 @@ public class LOForEach extends RelationalOperator {
         super.unsetSchema();
         mSchemaPlanMapping = new ArrayList<LogicalPlan>();
     }
-
+    
+    private void doAllSuccessors(LogicalPlan lp,
+                                LogicalOperator node,
+                                Set<LogicalOperator> seen,
+                                Collection<LogicalOperator> fifo) throws VisitorException {
+        if (!seen.contains(node)) {
+            // We haven't seen this one before.
+            Collection<LogicalOperator> succs = lp.getSuccessors(node);
+            if (succs != null && succs.size() > 0) {
+                // Do all our predecessors before ourself
+                for (LogicalOperator op : succs) {
+                    doAllSuccessors(lp, op, seen, fifo);
+                }
+            }
+            // Now do ourself
+            seen.add(node);
+            fifo.add(node);
+        }
+    }
+    
+    public Schema dumpNestedSchema(String nestedAlias) throws IOException {
+        boolean found = false;
+        // To avoid non-deterministic traversal, 
+        // we do a traversal from leaf to root with ReverseDependencyOrderWalker 
+        // this way schema we print is always the latest schema in the order in the script
+        // Also, since we do not allow union, join, cogroup, cross etc as part of inner plan
+        // we have a tree (not a DAG) as part of inner plan and hence traversal is simpler
+       
+        for(LogicalPlan lp : mForEachPlans) {
+            // Following walk is highly inefficient as we create a fifo list of all elements
+            // we need to traverse and then check for the suitable element
+            // but should be fine as our innerplans are expected to be small
+            // Also, although we are sure that innerplan is a tree instead of DAG
+            // We keep the algorithm assuming it is DAG, to avoid bugs later
+            // This is borrowed logic from ReverseDependencyOrderWalker ;)
+            List<LogicalOperator> fifo = new ArrayList<LogicalOperator>();
+            Set<LogicalOperator> seen = new HashSet<LogicalOperator>();
+            for(LogicalOperator op : lp.getRoots()) {
+                doAllSuccessors(lp, op, seen, fifo);
+            }
+            for(LogicalOperator op: fifo) {
+                if(!(op instanceof LOProject) && nestedAlias.equalsIgnoreCase(op.mAlias)) {
+                    found = true;
+                    // Expression operators do not have any schema
+                    if(!(op instanceof ExpressionOperator)) {
+                        Schema nestedSc = op.getSchema();
+                        System.out.println(nestedAlias + ": " + nestedSc.toString());
+                        return nestedSc;
+                    }
+                    else {
+                        int errCode = 1113;
+                        String msg = "Unable to describe schema for nested expression "+ nestedAlias; 
+                        throw new FrontendException (msg, errCode, PigException.INPUT, false, null);
+                    }
+                }
+            }
+            if(!found) {
+                int errCode = 1114;
+                String msg = "Unable to find schema for nested alias "+ nestedAlias; 
+                throw new FrontendException (msg, errCode, PigException.INPUT, false, null);
+            }
+        }
+        return null;
+    }
+    
     /**
      * @see org.apache.pig.impl.plan.Operator#clone()
      * Do not use the clone method directly. Operators are cloned when logical plans
