@@ -355,7 +355,7 @@ TOKEN:
 |	<#NUMBER: <INTEGER> | <FLOAT> | <FLOAT> ( ["e","E"] ([ "-","+"])? <FLOAT> )?>
 }
 
-TOKEN: {<IDENTIFIER: (<LETTER>)+(<DIGIT> | <LETTER> | <SPECIALCHAR>)*>}
+TOKEN: {<IDENTIFIER: (<LETTER>)+(<DIGIT> | <LETTER> | <SPECIALCHAR> | "::")*>}
 TOKEN: {<PATH: (~["(", ")", ";", "\r", " ", "\t", "\n"])+>}
 TOKEN : { <QUOTEDSTRING :  "'"
       (   (~["'","\\","\n","\r"])
@@ -454,8 +454,8 @@ void parse() throws IOException:
 	{processIllustrate(t1.image);}
 	|
 	<DESCRIBE>
-	(
 	t1 = <IDENTIFIER>
+	(
 	{processDescribe(t1.image);}
 	|
 		{processDescribe(null);}

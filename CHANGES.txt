@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-972: Make describe work with nested foreach (aniket486 via daijy)
+
 PIG-1438: [Performance] MultiQueryOptimizer should also merge DISTINCT jobs
 (rding)
 

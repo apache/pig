@@ -41,6 +41,7 @@ import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.logicalLayer.FrontendException;
+import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.test.utils.Identity;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -644,4 +645,31 @@ public class TestEvalPipeline2 extends TestCase {
         
         Util.deleteFile(cluster, "table_testCustomPartitionerCross");
     }
+    
+    // See PIG-972
+    @Test
+    public void testDescribeNestedAlias() throws Exception{
+        String[] input = {
+                "1\t3",
+                "2\t4",
+                "3\t5"
+        };
+        
+        Util.createInputFile(cluster, "table_testDescribeNestedAlias", input);
+        pigServer.registerQuery("A = LOAD 'table_testDescribeNestedAlias' as (a0, a1);");
+        pigServer.registerQuery("P = GROUP A by a1;");
+        // Test RelationalOperator
+        pigServer.registerQuery("B = FOREACH P { D = ORDER A by $0; generate D.$0; };");
+        
+        // Test ExpressionOperator - negative test case
+        pigServer.registerQuery("C = FOREACH A { D = a0/a1; E=a1/a0; generate E as newcol; };");
+        Schema schema = pigServer.dumpSchemaNested("B", "D");
+        assertTrue(schema.toString().equalsIgnoreCase("{a0: bytearray,a1: bytearray}"));
+        try {
+            schema = pigServer.dumpSchemaNested("C", "E");
+        } catch (FrontendException e) {
+            assertTrue(e.getErrorCode() == 1113);
+        }
+    }
+    
 }

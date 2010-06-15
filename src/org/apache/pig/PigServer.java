@@ -72,6 +72,7 @@ import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.LOConst;
+import org.apache.pig.impl.logicalLayer.LOForEach;
 import org.apache.pig.impl.logicalLayer.LOLimit;
 import org.apache.pig.impl.logicalLayer.LOLoad;
 import org.apache.pig.impl.logicalLayer.LOSort;
@@ -591,6 +592,27 @@ public class PigServer {
             int errCode = 1001;
             String msg = "Unable to describe schema for alias " + alias; 
             throw new FrontendException (msg, errCode, PigException.INPUT, false, null, fee);
+        }
+    }
+    
+    /**
+     * Write the schema for a nestedAlias to System.out. Denoted by alias::nestedAlias.
+     * @param alias Alias whose schema has nestedAlias
+     * @param nestedAlias Alias whose schema will be written out
+     * @return Schema of alias dumped
+     * @throws IOException
+     */
+    public Schema dumpSchemaNested(String alias, String nestedAlias) throws IOException{
+        LogicalPlan lp = getPlanFromAlias(alias, "describe");
+        lp = compileLp(alias, false);
+        LogicalOperator op = lp.getLeaves().get(0);
+        if(op instanceof LOForEach) {
+            return ((LOForEach)op).dumpNestedSchema(nestedAlias);
+        }
+        else {
+            int errCode = 1001;
+            String msg = "Unable to describe schema for " + alias + "::" + nestedAlias; 
+            throw new FrontendException (msg, errCode, PigException.INPUT, false, null);
         }
     }
 
