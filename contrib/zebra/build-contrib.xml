@@ -49,9 +49,9 @@
   <property name="build.javadoc"
 	  location="${pig.root}/build/contrib/${name}/docs"/>
   <property name="build.classes" location="${build.dir}/classes"/>
-  <property name="build.test" location="${build.dir}/test"/>
+  <property name="test.build.dir" location="${build.dir}/test"/>
   <property name="build.examples" location="${build.dir}/examples"/>
-  <property name="pig.log.dir" location="${build.dir}/test/logs"/>
+  <property name="pig.log.dir" location="${test.build.dir}/logs"/>
   <property name="hadoop.jarfile" value="hadoop20.jar" />
   <property name="pig.jarfile" value="pig-0.6.0-dev-core.jar" />
   <property name="hbase.jarfile" value="hbase-0.18.1.jar" />
@@ -62,8 +62,8 @@
   <property name="build.ivy.lib.dir" location="${build.ivy.dir}/lib" />
   <property name="ivy.lib.dir" location="${build.ivy.lib.dir}/Pig"/>
 
-  <property name="clover.db.dir" location="${build.dir}/test/clover/db"/>
-    <property name="clover.report.dir" location="${build.dir}/test/clover/reports"/>
+  <property name="clover.db.dir" location="${test.build.dir}/clover/db"/>
+    <property name="clover.report.dir" location="${test.build.dir}/clover/reports"/>
     <property name="clover.jar" location="${clover.home}/lib/clover.jar"/>
     <available property="clover.present" file="${clover.jar}" />
     <!-- check if clover reports should be generated -->
@@ -117,7 +117,7 @@
 
   <!-- the unit test classpath -->
   <path id="test.classpath">
-    <pathelement location="${build.test}" />
+    <pathelement location="${test.build.dir}" />
     <pathelement location="${pig.root}/build/test/classes"/>
     <pathelement location="${pig.root}/src/contrib/test"/>
     <pathelement location="${conf.dir}"/>
@@ -140,7 +140,7 @@
     <mkdir dir="${src.gen.zebra.parser.dir}"/>
     <mkdir dir="${build.dir}"/>
     <mkdir dir="${build.classes}"/>
-    <mkdir dir="${build.test}"/>
+    <mkdir dir="${test.build.dir}"/>
     <mkdir dir="${build.examples}"/>
     <mkdir dir="${pig.log.dir}"/>
     <antcall target="init-contrib"/>
@@ -209,7 +209,7 @@
      srcdir="${src.test}"
      includes="**/*.java"
      excludes="**/TestColumnSecurity.java"
-     destdir="${build.test}"
+     destdir="${test.build.dir}"
      debug="${javac.debug}">
       <classpath refid="test.classpath"/>
     </javac>
