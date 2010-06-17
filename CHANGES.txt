@@ -86,6 +86,8 @@ PIG-1309: Map-side Cogroup (ashutoshc)
 
 BUG FIXES
 
+PIG-1450: TestAlgebraicEvalLocal failures due to OOM (daijy)
+
 PIG-1433: pig should create success file if
 mapreduce.fileoutputcommitter.marksuccessfuljobs is true (pradeepkth)
 
