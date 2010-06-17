@@ -22,13 +22,32 @@ import org.apache.hadoop.mapreduce.Counter;
 import org.apache.hadoop.mapreduce.StatusReporter;
 import org.apache.hadoop.mapreduce.TaskInputOutputContext;
 import org.apache.hadoop.util.Progressable;
+import org.apache.pig.classification.InterfaceAudience;
+import org.apache.pig.classification.InterfaceStability;
 
 @SuppressWarnings("unchecked")
+@InterfaceAudience.Public
+@InterfaceStability.Evolving
 public class PigStatusReporter extends StatusReporter implements Progressable {
 
     private TaskInputOutputContext context;
+    private static PigStatusReporter reporter = null;
+    /**
+     * Get singleton instance of the context
+     * @param context
+     */
+    public static PigStatusReporter getInstance() {
+        if (reporter == null) {
+            reporter = new PigStatusReporter(null);
+        }
+        return reporter;
+    }
     
-    public PigStatusReporter(TaskInputOutputContext context) {
+    public static void setContext(TaskInputOutputContext context) {
+        reporter = new PigStatusReporter(context);
+    }
+    
+    private PigStatusReporter(TaskInputOutputContext context) {
         this.context = context;
     }
     

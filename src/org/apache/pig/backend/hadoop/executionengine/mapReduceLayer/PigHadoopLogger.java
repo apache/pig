@@ -19,8 +19,6 @@ package org.apache.pig.backend.hadoop.executionengine.mapReduceLayer;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.hadoop.mapreduce.Counter;
-import org.apache.hadoop.mapreduce.TaskInputOutputContext;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PigLogger;
 import org.apache.pig.tools.pigstats.PigStatusReporter;
 

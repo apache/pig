@@ -37,6 +37,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOpera
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PigLogger;
 import org.apache.pig.impl.util.BagFormat;
 import org.apache.pig.impl.util.Spillable;
+import org.apache.pig.tools.pigstats.PigStatusReporter;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -373,10 +374,12 @@ public abstract class DefaultAbstractBag implements DataBag {
     }
     
     protected void incSpillCount(Enum counter) {
-        // Increment the spill count
-        // warn is a misnomer. The function updates the counter. If the update
-        // fails, it dumps a warning
-        PigHadoopLogger.getInstance().warn(this, "Spill counter incremented", counter);
+        PigStatusReporter reporter = PigStatusReporter.getInstance();
+        if (reporter != null) {
+            reporter.getCounter(counter).increment(1);
+        } else {
+            PigHadoopLogger.getInstance().warn(this, "Spill counter incremented", counter);
+        }
     }
     
     public static abstract class BagDelimiterTuple extends DefaultTuple{}
