@@ -17,10 +17,15 @@
  */
 package org.apache.pig.backend.hadoop.executionengine.physicalLayer;
 
+import org.apache.pig.classification.InterfaceAudience;
+import org.apache.pig.classification.InterfaceStability;
+
 /**
  * 
  * An interface to allow aggregation of messages
  */
+@InterfaceAudience.Private
+@InterfaceStability.Evolving
 public interface PigLogger {
     
 	/**

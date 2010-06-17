@@ -212,7 +212,8 @@ public abstract class PigMapBase extends Mapper<Text, Tuple, PigNullableWritable
 
             PigHadoopLogger pigHadoopLogger = PigHadoopLogger.getInstance();
             pigHadoopLogger.setAggregate(aggregateWarning);
-            pigHadoopLogger.setReporter(new PigStatusReporter(context));
+            PigStatusReporter.setContext(context);
+            pigHadoopLogger.setReporter(PigStatusReporter.getInstance());
             PhysicalOperator.setPigLogger(pigHadoopLogger);
         }
         
