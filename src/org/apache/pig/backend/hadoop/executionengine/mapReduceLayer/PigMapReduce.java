@@ -349,7 +349,8 @@ public class PigMapReduce {
 
                 PigHadoopLogger pigHadoopLogger = PigHadoopLogger.getInstance();
                 pigHadoopLogger.setAggregate(aggregateWarning);
-                pigHadoopLogger.setReporter(new PigStatusReporter(context));
+                PigStatusReporter.setContext(context);
+                pigHadoopLogger.setReporter(PigStatusReporter.getInstance());
                 
                 PhysicalOperator.setPigLogger(pigHadoopLogger);
 
@@ -561,7 +562,8 @@ public class PigMapReduce {
                 
                 PigHadoopLogger pigHadoopLogger = PigHadoopLogger.getInstance();
                 pigHadoopLogger.setAggregate(aggregateWarning);
-                pigHadoopLogger.setReporter(new PigStatusReporter(context));
+                PigStatusReporter.setContext(context);
+                pigHadoopLogger.setReporter(PigStatusReporter.getInstance());
 
                 PhysicalOperator.setPigLogger(pigHadoopLogger);
                 

@@ -51,8 +51,8 @@ public class MapReducePOStoreImpl extends POStoreImpl {
         // configuration below (like setting the output location) do
         // not affect the caller's copy
         Configuration outputConf = new Configuration(context.getConfiguration());
-                
-        reporter = new PigStatusReporter(context);
+        PigStatusReporter.setContext(context);
+        reporter = PigStatusReporter.getInstance();
        
         // make a copy of the Context to use here - since in the same
         // task (map or reduce) we could have multiple stores, we should
