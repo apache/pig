@@ -666,7 +666,7 @@ public class TestMultiQueryBasic {
     }
         
     private static final String DUMMY_STORE_WITH_OUTPUTFORMAT_CLASS
-            = "org.apache.pig.test.TestMultiQuery\\$DummyStoreWithOutputFormat";
+            = "org.apache.pig.test.TestMultiQueryBasic\\$DummyStoreWithOutputFormat";
 
     public static class DummyStoreWithOutputFormat extends StoreFunc {
  
