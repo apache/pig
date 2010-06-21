@@ -17,6 +17,8 @@
  */
 package org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators;
 
+import java.util.HashMap;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -123,7 +125,25 @@ public class NotEqualToExpr extends BinaryComparisonOperator {
             right = rhs.getNext(dummyString);
             return doComparison(left, right);
                             }
-
+        case DataType.TUPLE: {
+            Result r = accumChild(null, dummyTuple);
+            if (r != null) {
+                return r;
+            }
+            left = lhs.getNext(dummyTuple);
+            right = rhs.getNext(dummyTuple);
+            return doComparison(left, right);
+                            }
+        
+        case DataType.MAP: {
+            Result r = accumChild(null, dummyMap);
+            if (r != null) {
+                return r;
+            }
+            left = lhs.getNext(dummyMap);
+            right = rhs.getNext(dummyMap);
+            return doComparison(left, right);
+                            }
 
         default: {
             int errCode = 2067;
@@ -136,7 +156,7 @@ public class NotEqualToExpr extends BinaryComparisonOperator {
     }
 
     @SuppressWarnings("unchecked")
-    private Result doComparison(Result left, Result right) {
+    private Result doComparison(Result left, Result right) throws ExecException {
         if (trueRef == null) initializeRefs();
         if (left.returnStatus != POStatus.STATUS_OK) return left;
         if (right.returnStatus != POStatus.STATUS_OK) return right;
@@ -147,12 +167,22 @@ public class NotEqualToExpr extends BinaryComparisonOperator {
             left.returnStatus = POStatus.STATUS_NULL;
             return left;
         }
-        assert(left instanceof Comparable);
-        assert(right instanceof Comparable);
-        if (((Comparable)left.result).compareTo((Comparable)right.result) != 0) {
-            left.result = trueRef;
-        } else {
-            left.result = falseRef;
+        
+        if (left.result instanceof Comparable && right.result instanceof Comparable){
+            if (((Comparable)left.result).compareTo((Comparable)right.result) != 0) {
+                left.result = trueRef;
+            } else {
+                left.result = falseRef;
+            }
+        }else if (left.result instanceof HashMap && right.result instanceof HashMap){
+            HashMap leftMap=(HashMap)left.result;
+            HashMap rightMap=(HashMap)right.result;
+            if (leftMap.equals(rightMap))
+                left.result = falseRef;
+            else
+                left.result = trueRef;
+        }else{
+            throw new ExecException("The left side and right side has the different types");
         }
         return left;
     }
