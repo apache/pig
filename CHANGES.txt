@@ -86,6 +86,8 @@ PIG-1309: Map-side Cogroup (ashutoshc)
 
 BUG FIXES
 
+PIG-1221: Filter equality does not work for tuples (zjffdu)
+
 PIG-1456: TestMultiQuery takes a long time to run (rding)
 
 PIG-1457: Pig will run complete zebra test even we give -Dtestcase=xxx (daijy)

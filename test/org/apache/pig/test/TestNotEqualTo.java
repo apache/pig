@@ -17,6 +17,7 @@
  */
 package org.apache.pig.test;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
 
@@ -25,9 +26,11 @@ import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.data.TupleFactory;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.ConstantExpression;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.EqualToExpr;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.NotEqualToExpr;
 import org.apache.pig.test.utils.GenPhyOp;
 import org.apache.pig.test.utils.GenRandomData;
@@ -260,7 +263,81 @@ public class TestNotEqualTo extends junit.framework.TestCase {
         assertFalse((Boolean)r.result);
     }
     
-
+    @Test
+    public void testTupleEq() throws ExecException{
+        Tuple tuple_1=TupleFactory.getInstance().newTuple("item_1");
+        Tuple tuple_2=TupleFactory.getInstance().newTuple("item_1");
+        ConstantExpression lt = GenPhyOp.exprConst();
+        lt.setValue(tuple_1);
+        ConstantExpression rt = GenPhyOp.exprConst();
+        rt.setValue(tuple_2);
+        NotEqualToExpr g = GenPhyOp.compNotEqualToExpr();
+        g.setLhs(lt);
+        g.setRhs(rt);
+        g.setOperandType(DataType.TUPLE);
+        Result r = g.getNext(new Boolean(true));
+        assertEquals(POStatus.STATUS_OK, r.returnStatus);
+        assertFalse((Boolean)r.result);
+    }
+    
+    @Test
+    public void testTupleNe() throws ExecException{
+        Tuple tuple_1=TupleFactory.getInstance().newTuple("item_1");
+        Tuple tuple_2=TupleFactory.getInstance().newTuple("item_2");
+        ConstantExpression lt = GenPhyOp.exprConst();
+        lt.setValue(tuple_1);
+        ConstantExpression rt = GenPhyOp.exprConst();
+        rt.setValue(tuple_2);
+        NotEqualToExpr g = GenPhyOp.compNotEqualToExpr();
+        g.setLhs(lt);
+        g.setRhs(rt);
+        g.setOperandType(DataType.TUPLE);
+        Result r = g.getNext(new Boolean(true));
+        assertEquals(POStatus.STATUS_OK, r.returnStatus);
+        assertTrue((Boolean)r.result);
+    }
+    
+    @Test
+    public void testMapEq() throws ExecException{
+        Map map_1=new HashMap();
+        map_1.put("key_1", "value_1");
+        Map map_2=new HashMap();
+        map_2.put("key_1", "value_1");
+        
+        ConstantExpression lt = GenPhyOp.exprConst();
+        lt.setValue(map_1);
+        ConstantExpression rt = GenPhyOp.exprConst();
+        rt.setValue(map_2);
+        NotEqualToExpr g = GenPhyOp.compNotEqualToExpr();
+        g.setLhs(lt);
+        g.setRhs(rt);
+        g.setOperandType(DataType.MAP);
+        Result r = g.getNext(new Boolean(true));
+        assertEquals(POStatus.STATUS_OK, r.returnStatus);
+        assertFalse((Boolean)r.result);
+    }
+    
+    @Test
+    public void testMapNe() throws ExecException{
+        Map map_1=new HashMap();
+        map_1.put("key_1", "value_1");
+        Map map_2=new HashMap();
+        map_2.put("key_1", "value_2");
+        
+        Tuple tuple_2=TupleFactory.getInstance().newTuple("item_2");
+        ConstantExpression lt = GenPhyOp.exprConst();
+        lt.setValue(map_1);
+        ConstantExpression rt = GenPhyOp.exprConst();
+        rt.setValue(map_2);
+        NotEqualToExpr g = GenPhyOp.compNotEqualToExpr();
+        g.setLhs(lt);
+        g.setRhs(rt);
+        g.setOperandType(DataType.MAP);
+        Result r = g.getNext(new Boolean(true));
+        assertEquals(POStatus.STATUS_OK, r.returnStatus);
+        assertTrue((Boolean)r.result);
+    }
+    
     @Test
     public void testDataByteArrayAndNullValues() throws Exception {
     	
