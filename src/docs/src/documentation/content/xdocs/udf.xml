@@ -1229,7 +1229,6 @@ public class IntMax extends EvalFunc&lt;Integer&gt; implements Algebraic, Accumu
 <p>One problem that users run into is when they make assumption about how many times a constructor for their UDF is called. For instance, they might be creating side files in the store function and doing it in the constructor seems like a good idea. The problem with this approach is that in most cases Pig instantiates functions on the client side to, for instance, examine the schema of the data.  </p>
 <p>Users should not make assumptions about how many times a function is instantiated; instead, they should make their code resilient to multiple instantiations. For instance, they could check if the files exist before creating them. </p>
 
-
 </section>
 
 <section>
@@ -1249,6 +1248,45 @@ public class IntMax extends EvalFunc&lt;Integer&gt; implements Algebraic, Accumu
 
 <p>To store information, the UDF calls getUDFProperties. This returns a Properties object which the UDF can record the information in or read the information from. To avoid name space conflicts UDFs are required to provide a signature when obtaining a Properties object. This can be done in two ways. The UDF can provide its Class object (via this.getClass()). In this case, every instantiation of the UDF will be given the same Properties object. The UDF can also provide its Class plus an array of Strings. The UDF can pass its constructor arguments, or some other identifying strings. This allows each instantiation of the UDF to have a different properties object thus avoiding name space collisions between instantiations of the UDF.</p>
 </section>
+
+<section>
+<title>Monitoring long-running UDFs</title>
+<p>Sometimes one may discover that a UDF that executes very quickly in the vast majority of cases turns out to run exceedingly slowly on occasion. This can happen, for example, if a UDF uses complex regular expressions to parse free-form strings, or if a UDF uses some external service to communicate with. As of version 0.8, Pig provides a facility for monitoring the length of time a UDF is executing for every invocation, and terminating its execution if it runs too long. This facility can be turned on using a simple Java annotation:</p
+	
+<source>
+	import org.apache.pig.builtin.MonitoredUDF;
+	
+	@MonitoredUDF
+	public class MyUDF extends EvalFunc&lt;Integer&gt; {
+	  /* implementation goes here */
+	}
+</source>
+
+<p>Simply annotating your UDF in this way will cause Pig to terminate the UDF's exec() method if it runs for more than 10 seconds, and return the default value of null. The duration of the timeout and the default value can be specified in the annotation, if desired:</p>
+
+<source>
+	import org.apache.pig.builtin.MonitoredUDF;
+	
+	@MonitoredUDF(timeUnit = TimeUnit.MILLISECONDS, duration = 100, intDefault = 10)
+	public class MyUDF extends EvalFunc&lt;Integer&gt; {
+	  /* implementation goes here */
+	}
+</source>
+
+<p>intDefault, longDefault, doubleDefault, floatDefault, and stringDefault can be specified in the annotation; the correct default will be chosen based on the return type of the UDF. Custom defaults for tuples and bags are not supported at this time.</p>
+
+<p>If desired, custom logic can also be implemented for error handling by creating a subclass of MonitoredUDFExecutor.ErrorCallback, and overriding its handleError and/or handleTimeout methods. Both of those methods are static, and are passed in the instance of the EvalFunc that produced an exception, as well as an exception, so you may use any state you have in the UDF to process the errors as desired. The default behavior is to increment Hadoop counters every time an error is encountered. Once you have an implementation of the ErrorCallback that performs your custom logic, you can provide it in the annotation:</p>
+
+<source>
+	import org.apache.pig.builtin.MonitoredUDF;
+
+	@MonitoredUDF(errorCallback=MySpecialErrorCallback.class)
+	public class MyUDF extends EvalFunc&lt;Integer&gt; {
+	  /* implementation goes here */
+	}
+</source>
+
+<p>Currently the MonitoredUDF annotation works with regular and Algebraic UDFs, but has no effect on UDFs that run in the Accumulator mode.</p>
 
 </section>
 
