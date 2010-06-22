@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-1427: Monitor and kill runaway UDFs (dvryaboy)
+
 PIG-1428: Make a StatusReporter singleton available for incrementing counters (dvryaboy)
 
 PIG-972: Make describe work with nested foreach (aniket486 via daijy)

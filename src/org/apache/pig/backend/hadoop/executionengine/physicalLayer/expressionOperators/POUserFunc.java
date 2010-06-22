@@ -36,6 +36,8 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.util.MonitoredUDFExecutor;
+import org.apache.pig.builtin.MonitoredUDF;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.DataType;
@@ -62,6 +64,9 @@ public class POUserFunc extends ExpressionOperator {
     public static final byte INTERMEDIATE = 1;
     public static final byte FINAL = 2;
     private boolean initialized = false;
+    private MonitoredUDFExecutor executor = null;
+    
+    
 
     public POUserFunc(OperatorKey k, int rp, List<PhysicalOperator> inp) {
         super(k, rp);
@@ -93,6 +98,9 @@ public class POUserFunc extends ExpressionOperator {
 
     private void instantiateFunc(FuncSpec fSpec) {
         this.func = (EvalFunc) PigContext.instantiateFuncFromSpec(fSpec);
+        if (func.getClass().isAnnotationPresent(MonitoredUDF.class)) {
+            executor = new MonitoredUDFExecutor(func);
+        }
         //the next couple of initializations do not work as intended for the following reasons
         //the reporter and pigLogger are member variables of PhysicalOperator
         //when instanitateFunc is invoked at deserialization time, both
@@ -205,8 +213,12 @@ public class POUserFunc extends ExpressionOperator {
                         result.result = ((Accumulator)func).getValue();	
                         ((Accumulator)func).cleanup();
                     }
-                } else {					
+                } else {
+                    if (executor != null) {
+                        result.result = executor.monitorExec((Tuple) result.result);
+                    } else {
                     result.result = func.exec((Tuple) result.result);
+                    }
                 }
                 if(resultType == DataType.BYTEARRAY) {
                     if(res.result != null && DataType.findType(result.result) != DataType.BYTEARRAY) {
@@ -369,6 +381,9 @@ public class POUserFunc extends ExpressionOperator {
 
     public void finish() {
         func.finish();
+        if (executor != null) {
+            executor.terminate();
+        }
     }
 
     public Schema outputSchema(Schema input) {
