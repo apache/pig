@@ -51,6 +51,7 @@
     <property name="hbase.jarfile" value="hbase-0.20.0.jar" />
     <property name="hbase.test.jarfile" value="hbase-0.20.0-test.jar" />
 	<property name="zookeeper.jarfile" value="zookeeper-hbase-1329.jar" />
+	<property name="guava.jarfile" value="guava-r03.jar" />
 	
     <!-- javac properties -->
     <property name="javac.debug" value="on" />
@@ -167,6 +168,7 @@
 	<path refid="compile.classpath"/>	
         <fileset file="${lib.dir}/${hadoop.jarfile}" />
         <fileset file="${lib.dir}/${hbase.jarfile}" />
+		<fileset file="${lib.dir}/${guava.jarfile}" />
         <fileset file="${lib.dir}/${hbase.test.jarfile}" />
     	<fileset file="${lib.dir}/${zookeeper.jarfile}"/>
     	<fileset file="${ivy.lib.dir}/jackson-mapper-asl-${jackson.version}.jar"/>
@@ -178,6 +180,7 @@
     <!-- javadoc-classpath -->
     <path id="javadoc-classpath">
         <fileset file="${lib.dir}/${hbase.jarfile}" />
+		<fileset file="${lib.dir}/${guava.jarfile}" />
         <fileset file="${lib.dir}/${hbase.test.jarfile}" />
 	<path refid="javadoc.classpath"/>	
     </path> 
