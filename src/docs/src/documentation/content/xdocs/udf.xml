@@ -1289,6 +1289,7 @@ public class IntMax extends EvalFunc&lt;Integer&gt; implements Algebraic, Accumu
 <p>Currently the MonitoredUDF annotation works with regular and Algebraic UDFs, but has no effect on UDFs that run in the Accumulator mode.</p>
 
 </section>
+</section>
 
 </body>
 </document>
