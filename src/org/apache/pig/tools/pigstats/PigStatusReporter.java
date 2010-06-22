@@ -34,7 +34,6 @@ public class PigStatusReporter extends StatusReporter implements Progressable {
     private static PigStatusReporter reporter = null;
     /**
      * Get singleton instance of the context
-     * @param context
      */
     public static PigStatusReporter getInstance() {
         if (reporter == null) {
