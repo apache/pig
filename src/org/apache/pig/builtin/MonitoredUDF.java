@@ -72,7 +72,6 @@ public @interface MonitoredUDF {
     /**
      * UDF author can implement a static extension of MonitoredUDFExecutor.ErrorCallback and provide its class
      * to the annotation in order to perform custom error handling.
-     * @return
      */
     Class<? extends ErrorCallback> errorCallback() default MonitoredUDFExecutor.ErrorCallback.class;
 }
