@@ -46,10 +46,12 @@ import jline.History;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
+import org.apache.hadoop.util.GenericOptionsParser;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
 
+import org.apache.pig.PigRunner.ReturnCode;
 import org.apache.pig.classification.InterfaceAudience;
 import org.apache.pig.classification.InterfaceStability;
 import org.apache.pig.ExecType;
@@ -60,6 +62,7 @@ import org.apache.pig.impl.util.JarManager;
 import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.impl.util.PropertiesUtil;
 import org.apache.pig.impl.util.UDFContext;
+import org.apache.pig.tools.pigstats.PigStatsUtil;
 import org.apache.pig.tools.pigstats.ScriptState;
 import org.apache.pig.tools.cmdline.CmdLineParser;
 import org.apache.pig.tools.grunt.Grunt;
@@ -72,9 +75,8 @@ import org.apache.pig.tools.parameters.ParameterSubstitutionPreprocessor;
  */
 @InterfaceAudience.LimitedPrivate({"Oozie"})
 @InterfaceStability.Stable
-public class Main
-{
-
+public class Main {
+   
     private final static Log log = LogFactory.getLog(Main.class);
     
     private static final String LOG4J_CONF = "log4jconf";
@@ -83,9 +85,7 @@ public class Main
     private static final String JAR = "jar";
     private static final String VERBOSE = "verbose";
     
-    private enum ExecMode {STRING, FILE, SHELL, UNKNOWN}
-
-    private static boolean checkScriptOnly = false;
+    private enum ExecMode {STRING, FILE, SHELL, UNKNOWN}    
                 
 /**
  * The Main-Class for the Pig Jar that will provide a shell and setup a classpath appropriate
@@ -97,8 +97,13 @@ public class Main
  *            shell.
  * @throws IOException
  */
-public static void main(String args[])
-{
+public static void main(String args[]) {
+    GenericOptionsParser parser = new GenericOptionsParser(args);
+    String[] pigArgs = parser.getRemainingArgs();
+    System.exit(run(pigArgs));
+}
+
+static int run(String args[]) {
     int rc = 1;
     Properties properties = new Properties();
     PropertiesUtil.loadDefaultProperties(properties);
@@ -107,6 +112,8 @@ public static void main(String args[])
     boolean gruntCalled = false;
     String logFileName = null;
     boolean userSpecifiedLog = false;
+    
+    boolean checkScriptOnly = false;
 
     try {
         BufferedReader pin = null;
@@ -173,7 +180,7 @@ public static void main(String args[])
                 break;
 
             case 'c': 
-                checkScriptOnly = true;
+                checkScriptOnly = true;                
                 break;
 
             case 'd':
@@ -199,13 +206,11 @@ public static void main(String args[])
 
             case 'h':
                 usage();
-                rc = 0;
-                return;
+                return ReturnCode.SUCCESS;
 
             case 'i':
             	System.out.println(getVersionString());
-                rc = 0;
-            	return;
+            	return ReturnCode.SUCCESS;
 
             case 'j': 
                 String jarsString = opts.getValStr();
@@ -237,7 +242,6 @@ public static void main(String args[])
                 break;
                             
             case 'p': 
-                String val = opts.getValStr();
                 params.add(opts.getValStr());
                 break;
                             
@@ -320,7 +324,7 @@ public static void main(String args[])
             pin = runParamPreprocessor(in, params, paramFiles, substFile, debug || dryrun || checkScriptOnly);
             if (dryrun) {
                 log.info("Dry run completed. Substituted pig script is at " + substFile);
-                return;
+                return ReturnCode.SUCCESS;
             }
 
             logFileName = validateLogFile(logFileName, file);
@@ -343,13 +347,13 @@ public static void main(String args[])
             if(checkScriptOnly) {
                 grunt.checkScript(substFile);
                 System.err.println(file + " syntax OK");
-                rc = 0;
+                rc = ReturnCode.SUCCESS;
             } else {
                 int results[] = grunt.exec();
                 rc = getReturnCodeForStats(results);
             }
             
-            return;
+            return rc;
         }
 
         case STRING: {
@@ -357,8 +361,7 @@ public static void main(String args[])
                 System.err.println("ERROR:" +
                         "-c (-check) option is only valid " +
                         "when executing pig with a pig script file)");
-                rc = 2; // failure
-                return;
+                return ReturnCode.ILLEGAL_ARGS;
             }
             // Gather up all the remaining arguments into a string and pass them into
             // grunt.
@@ -375,9 +378,8 @@ public static void main(String args[])
             grunt = new Grunt(in, pigContext);
             gruntCalled = true;
             int results[] = grunt.exec();
-            rc = getReturnCodeForStats(results);
-            return;
-            }
+            return getReturnCodeForStats(results);
+        }
 
         default:
             break;
@@ -393,8 +395,7 @@ public static void main(String args[])
                 System.err.println("ERROR:" +
                         "-c (-check) option is only valid " +
                         "when executing pig with a pig script file)");
-                rc = 2; // failure
-                return;
+                return ReturnCode.ILLEGAL_ARGS;
             }
             // Interactive
             mode = ExecMode.SHELL;
@@ -408,8 +409,7 @@ public static void main(String args[])
             grunt.setConsoleReader(reader);
             gruntCalled = true;
             grunt.run();
-            rc = 0;
-            return;
+            return ReturnCode.SUCCESS;
         } else {
             // They have a pig script they want us to run.
             if (remainders.length > 1) {
@@ -423,7 +423,7 @@ public static void main(String args[])
             pin = runParamPreprocessor(in, params, paramFiles, substFile, debug || dryrun || checkScriptOnly);
             if (dryrun){
                 log.info("Dry run completed. Substituted pig script is at " + substFile);
-                return;
+                return ReturnCode.SUCCESS;
             }
             
             logFileName = validateLogFile(logFileName, remainders[0]);
@@ -446,59 +446,57 @@ public static void main(String args[])
             if(checkScriptOnly) {
                 grunt.checkScript(substFile);
                 System.err.println(remainders[0] + " syntax OK");
-                rc = 0;
+                rc = ReturnCode.SUCCESS;
             } else {
                 int results[] = grunt.exec();
                 rc = getReturnCodeForStats(results);
             }
-            return;
+            return rc;
         }
 
         // Per Utkarsh and Chris invocation of jar file via pig depricated.
     } catch (ParseException e) {
         usage();
-        rc = 2;
-    } catch (NumberFormatException e) {
+        rc = ReturnCode.PARSE_EXCEPTION;
+        PigStatsUtil.setErrorMessage(e.getMessage());
+    } catch (org.apache.pig.tools.parameters.ParseException e) {
         usage();
-        rc = 2;
-    } catch (PigException pe) {
-        if(pe.retriable()) {
-            rc = 1; 
+        rc = ReturnCode.PARSE_EXCEPTION;
+        PigStatsUtil.setErrorMessage(e.getMessage());
+    } catch (IOException e) {
+        if (e instanceof PigException) {
+            PigException pe = (PigException)e;
+            rc = (pe.retriable()) ? ReturnCode.RETRIABLE_EXCEPTION 
+                    : ReturnCode.PIG_EXCEPTION;
+            PigStatsUtil.setErrorMessage(pe.getMessage());
+            PigStatsUtil.setErrorCode(pe.getErrorCode());
         } else {
-            rc = 2;
+            rc = ReturnCode.IO_EXCEPTION;
+            PigStatsUtil.setErrorMessage(e.getMessage());
         }
-
-        if(!gruntCalled) {
-        	LogUtils.writeLog(pe, logFileName, log, verbose, "Error before Pig is launched");
-        }
-    } catch (Throwable e) {
-        rc = 2;
+        
         if(!gruntCalled) {
         	LogUtils.writeLog(e, logFileName, log, verbose, "Error before Pig is launched");
         }
+    } catch (Throwable e) {
+        rc = ReturnCode.THROWABLE_EXCEPTION;
+        PigStatsUtil.setErrorMessage(e.getMessage());
+        if(!gruntCalled) {
+        	LogUtils.writeLog(e, logFileName, log, verbose, "Error before Pig is launched");
+        }      
     } finally {
         // clear temp files
         FileLocalizer.deleteTempFiles();
-        PerformanceTimerFactory.getPerfTimerFactory().dumpTimers();
-        System.exit(rc);
+        PerformanceTimerFactory.getPerfTimerFactory().dumpTimers();        
     }
+    
+    return rc;
 }
 
 private static int getReturnCodeForStats(int[] stats) {
-    if (stats[1] == 0) {
-        // no failed jobs
-        return 0;
-    }
-    else {
-        if (stats[0] == 0) {
-            // no succeeded jobs
-            return 2;
-        }
-        else {
-            // some jobs have failed
-            return 3;
-        }
-    }
+    return (stats[1] == 0) ? ReturnCode.SUCCESS         // no failed jobs
+                : (stats[0] == 0) ? ReturnCode.FAILURE  // no succeeded jobs
+                        : ReturnCode.PARTIAL_FAILURE;   // some jobs have failed
 }
 
 //TODO jz: log4j.properties should be used instead

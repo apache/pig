@@ -21,7 +21,6 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
@@ -29,33 +28,30 @@ import java.io.StringReader;
 import java.io.StringWriter;
 import java.net.URL;
 import java.util.ArrayList;
-import java.util.LinkedList;
 import java.util.Collection;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.Stack;
 
-import org.apache.hadoop.mapreduce.Job;
-
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-
+import org.apache.hadoop.mapreduce.Job;
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
 import org.apache.pig.backend.datastorage.ContainerDescriptor;
 import org.apache.pig.backend.datastorage.DataStorage;
 import org.apache.pig.backend.datastorage.ElementDescriptor;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.executionengine.ExecJob;
 import org.apache.pig.backend.executionengine.ExecJob.JOB_STATUS;
-import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
+import org.apache.pig.backend.hadoop.executionengine.HJob;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.builtin.BinStorage;
@@ -66,18 +62,19 @@ import org.apache.pig.data.DataBag;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.experimental.logical.LogicalPlanMigrationVistor;
 import org.apache.pig.experimental.logical.optimizer.LogicalPlanOptimizer;
-import org.apache.pig.experimental.logical.optimizer.PlanPrinter;
 import org.apache.pig.experimental.logical.optimizer.UidStamper;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.LOConst;
+import org.apache.pig.impl.logicalLayer.LODefine;
 import org.apache.pig.impl.logicalLayer.LOForEach;
 import org.apache.pig.impl.logicalLayer.LOLimit;
 import org.apache.pig.impl.logicalLayer.LOLoad;
 import org.apache.pig.impl.logicalLayer.LOSort;
 import org.apache.pig.impl.logicalLayer.LOSplit;
 import org.apache.pig.impl.logicalLayer.LOSplitOutput;
+import org.apache.pig.impl.logicalLayer.LOStore;
 import org.apache.pig.impl.logicalLayer.LOVisitor;
 import org.apache.pig.impl.logicalLayer.LogicalOperator;
 import org.apache.pig.impl.logicalLayer.LogicalPlan;
@@ -88,23 +85,23 @@ import org.apache.pig.impl.logicalLayer.parser.ParseException;
 import org.apache.pig.impl.logicalLayer.parser.QueryParser;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.logicalLayer.validators.LogicalPlanValidationExecutor;
-import org.apache.pig.impl.plan.PlanException;
 import org.apache.pig.impl.plan.CompilationMessageCollector;
 import org.apache.pig.impl.plan.DependencyOrderWalker;
-import org.apache.pig.impl.plan.DepthFirstWalker;
 import org.apache.pig.impl.plan.OperatorKey;
-import org.apache.pig.impl.plan.PlanWalker;
+import org.apache.pig.impl.plan.PlanException;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.plan.CompilationMessageCollector.MessageType;
 import org.apache.pig.impl.streaming.StreamingCommand;
+import org.apache.pig.impl.util.LogUtils;
 import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.impl.util.PropertiesUtil;
-import org.apache.pig.impl.logicalLayer.LODefine;
-import org.apache.pig.impl.logicalLayer.LOStore;
 import org.apache.pig.pen.ExampleGenerator;
-import org.apache.pig.impl.util.LogUtils;
 import org.apache.pig.tools.grunt.GruntParser;
 import org.apache.pig.tools.parameters.ParameterSubstitutionPreprocessor;
+import org.apache.pig.tools.pigstats.OutputStats;
+import org.apache.pig.tools.pigstats.PigStats;
+import org.apache.pig.tools.pigstats.PigStatsUtil;
+import org.apache.pig.tools.pigstats.ScriptState;
 
 
 /**
@@ -319,9 +316,24 @@ public class PigServer {
      * @throws ExecException
      */
     public List<ExecJob> executeBatch() throws FrontendException, ExecException {
+        PigStats stats = executeBatchEx();
+        LinkedList<ExecJob> jobs = new LinkedList<ExecJob>();
+        for (OutputStats output : stats.getOutputStats()) {
+            if (output.isSuccessful()) {
+                jobs.add(new HJob(HJob.JOB_STATUS.COMPLETED, pigContext, output
+                        .getPOStore(), output.getAlias(), stats));
+            } else {
+                jobs.add(new HJob(HJob.JOB_STATUS.FAILED, pigContext, output
+                        .getPOStore(), output.getAlias(), stats));
+            }
+        }
+        return jobs;
+    }
+
+    private PigStats executeBatchEx() throws FrontendException, ExecException {
         if (!isMultiQuery) {
             // ignore if multiquery is off
-            return new LinkedList<ExecJob>();
+            return PigStatsUtil.getEmptyPigStats();
         }
 
         if (currDAG == null || !isBatchOn()) {
@@ -332,7 +344,7 @@ public class PigServer {
         
         return currDAG.execute();
     }
-
+    
     /**
      * Discards a batch of Pig commands.
      * 
@@ -665,7 +677,8 @@ public class PigServer {
             if (currDAG.isBatchOn()) {
                 currDAG.execute();
             }
-            ExecJob job = store(id, FileLocalizer.getTemporaryPath(null, pigContext).toString(), BinStorage.class.getName() + "()");
+            ExecJob job = store(id, FileLocalizer.getTemporaryPath(null, pigContext)
+                    .toString(), BinStorage.class.getName() + "()");
             
             // invocation of "execute" is synchronous!
 
@@ -742,11 +755,21 @@ public class PigServer {
      * @return {@link ExecJob} containing information about this job
      * @throws IOException
      */
-    public ExecJob store(
+    public ExecJob store(String id, String filename, String func) 
+            throws IOException {
+        PigStats stats = storeEx(id, filename, func);
+        if (stats.getOutputStats().size() < 1) {
+            throw new IOException("Couldn't retrieve job.");
+        }
+        OutputStats output = stats.getOutputStats().get(0);
+        return new HJob(JOB_STATUS.COMPLETED, pigContext, output
+                .getPOStore(), output.getAlias(), stats);
+    }
+       
+    private PigStats storeEx(
             String id,
             String filename,
             String func) throws IOException {
-
         if (!currDAG.getAliasOp().containsKey(id)) {
             throw new IOException("Invalid alias: " + id);
         }
@@ -770,21 +793,18 @@ public class PigServer {
                 }
             }
             
-            LogicalPlan unCompiledstorePlan = QueryParser.generateStorePlan(scope, lp, filename, func, leaf, leaf.getAlias(), pigContext);
+            LogicalPlan unCompiledstorePlan = QueryParser.generateStorePlan(
+                    scope, lp, filename, func, leaf, leaf.getAlias(),
+                    pigContext);
             LogicalPlan storePlan = compileLp(unCompiledstorePlan, true);
-            List<ExecJob> jobs = executeCompiledLogicalPlan(storePlan);
-            if (jobs.size() < 1) {
-                throw new IOException("Couldn't retrieve job.");
-            }
-            return jobs.get(0);
+            return executeCompiledLogicalPlan(storePlan);
         } catch (Exception e) {
             int errCode = 1002;
             String msg = "Unable to store alias " + id;
             throw new FrontendException(msg, errCode, PigException.INPUT, e);
-        }
-
+        }   
     }
-
+    
     /**
      * Provide information on how a pig query will be executed.  For now
      * this information is very developer focussed, and probably not very
@@ -1069,38 +1089,46 @@ public class PigServer {
         return lp;
     }
     
-    private List<ExecJob> execute(String alias) throws FrontendException, ExecException {
+    private PigStats execute(String alias) throws FrontendException, ExecException {
         LogicalPlan typeCheckedLp = compileLp(alias);
 
         if (typeCheckedLp.size() == 0) {
-            return new LinkedList<ExecJob>();
+            return PigStatsUtil.getEmptyPigStats();
         }
 
         LogicalOperator op = typeCheckedLp.getLeaves().get(0);
         if (op instanceof LODefine) {
             log.info("Skip execution of DEFINE only logical plan.");
-            return new LinkedList<ExecJob>();
+            return PigStatsUtil.getEmptyPigStats();
         }
 
         return executeCompiledLogicalPlan(typeCheckedLp);
     }
     
-    private List<ExecJob> executeCompiledLogicalPlan(LogicalPlan compiledLp) throws ExecException {
+    private PigStats executeCompiledLogicalPlan(LogicalPlan compiledLp) throws ExecException {
+        // discover pig features used in this script
+        ScriptState.get().setScriptFeatures(compiledLp);
         PhysicalPlan pp = compilePp(compiledLp);
         // execute using appropriate engine
-        List<ExecJob> execJobs = pigContext.getExecutionEngine().execute(pp, "job_pigexec_");
-        for (ExecJob execJob: execJobs) {
-            if (execJob.getStatus()==ExecJob.JOB_STATUS.FAILED) {
-                POStore store = execJob.getPOStore();
+        List<ExecJob> jobs = pigContext.getExecutionEngine().execute(pp, "job_pigexec_");
+        PigStats stats = null;
+        if (jobs.size() > 0) {
+            stats = jobs.get(0).getStatistics();
+        } else {
+            stats = PigStatsUtil.getEmptyPigStats();
+        }
+        for (OutputStats output : stats.getOutputStats()) {
+            if (!output.isSuccessful()) {
+                POStore store = output.getPOStore();
                 try {
                     store.getStoreFunc().cleanupOnFailure(store.getSFile().getFileName(),
-                            new Job(ConfigurationUtil.toConfiguration(execJob.getConfiguration())));
+                            new Job(output.getConf()));
                 } catch (IOException e) {
                     throw new ExecException(e);
                 }
             }
         }
-        return execJobs;
+        return stats;
     }
 
     private LogicalPlan compileLp(
@@ -1108,7 +1136,6 @@ public class PigServer {
         return compileLp(alias, true);
     }
 
-    @SuppressWarnings("unchecked")
     private LogicalPlan compileLp(
             String alias,
             boolean optimize) throws FrontendException {
@@ -1327,15 +1354,15 @@ public class PigServer {
 
         boolean isBatchEmpty() { return processedStores == storeOpTable.keySet().size(); }
         
-        List<ExecJob> execute() throws ExecException, FrontendException {
+        PigStats execute() throws ExecException, FrontendException {
             pigContext.getProperties().setProperty(PigContext.JOB_NAME, jobName);
             if (jobPriority != null) {
               pigContext.getProperties().setProperty(PigContext.JOB_PRIORITY, jobPriority);
             }
             
-            List<ExecJob> jobs = PigServer.this.execute(null);
+            PigStats stats = PigServer.this.execute(null);
             processedStores = storeOpTable.keySet().size();
-            return jobs;
+            return stats;
         }
 
         void markAsExecuted() {
@@ -1471,7 +1498,7 @@ public class PigServer {
             }          
             return graph;
         }
-        
+       
         private void postProcess() throws IOException {
             
             // Set the logical plan values correctly in all the operators

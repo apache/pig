@@ -22,7 +22,6 @@ import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.regex.Matcher;
@@ -40,9 +39,7 @@ import org.apache.pig.FuncSpec;
 import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.impl.PigContext;
-import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.plan.PlanException;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.util.LogUtils;
@@ -56,9 +53,6 @@ public abstract class Launcher {
     boolean pigException = false;
     boolean outOfMemory = false;
     static final String OOM_ERR = "OutOfMemoryError";
-
-    protected List<POStore> succeededStores = null;
-    protected List<POStore> failedStores = null;
     
     protected Launcher(){
         totalHadoopTimeSpent = 0;
@@ -70,28 +64,10 @@ public abstract class Launcher {
     }
 
     /**
-     *
-     * @return A list of {@link POStore} objects corresponding to the store
-     * statements that were successful
-     */
-    public List<POStore> getSucceededFiles() {
-        return succeededStores;
-    }
-
-    /**
-     * @return A list of {@link POStore} objects corresponding to the store
-     * statements that failed
-     */
-    public List<POStore> getFailedFiles() {
-        return failedStores;
-    }
-
-    /**
      * Resets the state after a launch
      */
     public void reset() {
-        succeededStores = new LinkedList<POStore>();
-        failedStores = new LinkedList<POStore>();
+
     }
 
     /**
