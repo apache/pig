@@ -38,6 +38,7 @@ import org.apache.pig.ResourceSchema.ResourceFieldSchema;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.*;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPackage.PackageType;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.*;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.ExpressionOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.BinaryExpressionOperator;
@@ -670,7 +671,7 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
             POPackage poPackage = compileToLR_GR_PackTrio(cg.getOperatorKey().scope,
                     cg.getInputs(), cg.getRequestedParallelism(), cg.getCustomPartitioner(),
                     cg.getAlias(), cg.getInner(),cg.getGroupByPlans());
-            
+            poPackage.setPackageType(PackageType.GROUP);            
             logToPhyMap.put(cg, poPackage);
             break;
             
@@ -1130,6 +1131,7 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
                         e.getErrorCode(),e.getErrorSource(),e);
             }
             logToPhyMap.put(loj, fe);
+            poPackage.setPackageType(PackageType.JOIN);
 		}
 	}
 	
