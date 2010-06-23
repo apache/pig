@@ -24,6 +24,9 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-1405: Need to move many standard functions from piggybank into Pig
+(aniket486 via daijy)
+
 PIG-1427: Monitor and kill runaway UDFs (dvryaboy)
 
 PIG-1428: Make a StatusReporter singleton available for incrementing counters (dvryaboy)
