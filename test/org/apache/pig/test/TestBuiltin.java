@@ -17,12 +17,19 @@
  */
 package org.apache.pig.test;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
+import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
+import java.util.Random;
+import java.util.Set;
 
 import org.apache.pig.Algebraic;
 import org.apache.pig.EvalFunc;
@@ -34,18 +41,35 @@ import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.builtin.ARITY;
 import org.apache.pig.builtin.BagSize;
 import org.apache.pig.builtin.CONCAT;
+import org.apache.pig.builtin.COR;
 import org.apache.pig.builtin.COUNT;
 import org.apache.pig.builtin.COUNT_STAR;
+import org.apache.pig.builtin.COV;
 import org.apache.pig.builtin.DIFF;
 import org.apache.pig.builtin.Distinct;
+import org.apache.pig.builtin.INDEXOF;
+import org.apache.pig.builtin.LAST_INDEX_OF;
+import org.apache.pig.builtin.LCFIRST;
+import org.apache.pig.builtin.LOWER;
 import org.apache.pig.builtin.MapSize;
 import org.apache.pig.builtin.PigStorage;
+import org.apache.pig.builtin.REGEX_EXTRACT;
+import org.apache.pig.builtin.REGEX_EXTRACT_ALL;
+import org.apache.pig.builtin.REPLACE;
 import org.apache.pig.builtin.SIZE;
+import org.apache.pig.builtin.SPLIT;
+import org.apache.pig.builtin.SUBSTRING;
 import org.apache.pig.builtin.StringConcat;
 import org.apache.pig.builtin.StringSize;
+import org.apache.pig.builtin.TOBAG;
 import org.apache.pig.builtin.TOKENIZE;
+import org.apache.pig.builtin.TOP;
+import org.apache.pig.builtin.TOTUPLE;
+import org.apache.pig.builtin.TRIM;
 import org.apache.pig.builtin.TextLoader;
 import org.apache.pig.builtin.TupleSize;
+import org.apache.pig.builtin.UCFIRST;
+import org.apache.pig.builtin.UPPER;
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataByteArray;
@@ -1106,6 +1130,413 @@ public class TestBuiltin {
 
     }
     
+    @Test
+    public void testMathFuncs() throws Exception {
+        Random generator = new Random();
+        generator.setSeed(System.currentTimeMillis());
+        Double delta = 0.1;
+        // We assume that UDFs are stored in org.apache.pig.builtin
+        // Change this test case if we add more hierarchy later\
+        // Also, we assume that we have a function with math function 
+        // associated with these UDF with a lowercase name
+        String[] mathFuncs = {
+                "SIN",
+                "SINH",
+                "ASIN",
+                "COS",
+                "COSH",
+                "ACOS",
+                "TAN",
+                "TANH",
+                "ATAN",
+                "LOG",
+                "LOG10",
+                "SQRT",
+                "CEIL",
+                "EXP",
+                "FLOOR",
+                "CBRT"
+        };
+        String udfPackage = "org.apache.pig.builtin.";
+        //String[] mathNonStdFuncs = {};
+        EvalFunc<Double> evalFunc;
+        Tuple tup;
+        Double input, actual, expected;
+        Method mathMethod;
+        String msg;
+        for(String func: mathFuncs) {
+            evalFunc = (EvalFunc<Double>) Class.forName(udfPackage + func).newInstance();
+            tup = DefaultTupleFactory.getInstance().newTuple(1);
+            // double value between 0.0 and 1.0 
+            input = generator.nextDouble();
+            tup.set(0, input);
+            mathMethod = Math.class.getDeclaredMethod(func.toLowerCase(), double.class);
+            actual = evalFunc.exec(tup);
+            expected = (Double)mathMethod.invoke(null, input);
+            msg = "[Testing " + func + " on input: " + input + " ( (actual) " + actual + " == " + expected + " (expected) )]";
+            assertEquals(msg, actual, expected, delta);
+        }
+    }
+    
+    @Test
+    public void testStringFuncs() throws Exception {
+        // Since String functions are trivial we add test on per case basis
+        String inputStr = "Hello World!";
+        String inputStrLower = "hello world!";
+        String inputStrUpper = "HELLO WORLD!";
+        String inputStrCamel = "hello World!";
+        String inputStroWitha = "Hella Warld!";
+        String inpuStrExtra = "Hello World!   ";
+        
+        List<Object> l = new LinkedList<Object>();
+        l.add(inputStr);
+        l.add("o");
+        
+        String expected = null;
+        Tuple input;
+        String output;
+        Integer intOutput;
+        EvalFunc<String> strFunc;
+        EvalFunc<Integer> intFunc;
+        
+        strFunc = new LCFIRST();
+        input = DefaultTupleFactory.getInstance().newTuple(inputStr);
+        expected = inputStrCamel;
+        output = strFunc.exec(input);
+        assertTrue(output.equals(expected));
+        
+        strFunc = new UCFIRST();
+        input = DefaultTupleFactory.getInstance().newTuple(inputStrCamel);
+        expected = inputStr;
+        output = strFunc.exec(input);
+        assertTrue(output.equals(expected));
+         
+        intFunc = new LAST_INDEX_OF();
+        input = DefaultTupleFactory.getInstance().newTuple(l);
+        intOutput = intFunc.exec(input);
+        assertTrue(intOutput.intValue()==7);
+        
+        intFunc = new INDEXOF();
+        input = DefaultTupleFactory.getInstance().newTuple(l);
+        intOutput = intFunc.exec(input);
+        assertTrue(intOutput.intValue()==4);
+        
+        strFunc = new UPPER();
+        input = DefaultTupleFactory.getInstance().newTuple(inputStr);
+        expected = inputStrUpper;
+        output = strFunc.exec(input);
+        assertTrue(output.equals(expected));
+        
+        strFunc = new LOWER();
+        input = DefaultTupleFactory.getInstance().newTuple(inputStr);
+        expected = inputStrLower;
+        output = strFunc.exec(input);
+        assertTrue(output.equals(expected));
+        
+        strFunc = new REPLACE();
+        l.clear();
+        l.add(inputStr);
+        l.add("o");
+        l.add("a");
+        input = DefaultTupleFactory.getInstance().newTuple(l);
+        expected = inputStroWitha;
+        output = strFunc.exec(input);
+        assertTrue(output.equals(expected));
+        
+        strFunc = new SUBSTRING();
+        l.clear();
+        l.add(inputStr);
+        l.add(1);
+        l.add(5);
+        input = DefaultTupleFactory.getInstance().newTuple(l);
+        expected = "ello";
+        output = strFunc.exec(input);
+        assertTrue(output.equals(expected));
+        
+        strFunc = new TRIM();
+        input = DefaultTupleFactory.getInstance().newTuple(inpuStrExtra);
+        expected = inputStr;
+        output = strFunc.exec(input);
+        assertTrue(output.equals(expected));
+        
+        SPLIT splitter = new SPLIT();
+        Tuple test1 = TupleFactory.getInstance().newTuple(1);
+        Tuple test2 = TupleFactory.getInstance().newTuple(2);
+        Tuple test3 = TupleFactory.getInstance().newTuple(3);
+        
+        test2.set(0, "foo");
+        test2.set(1, ":");
+        Tuple splits = splitter.exec(test2);
+        assertEquals("no matches should return tuple with original string", 1, splits.size());
+        assertEquals("no matches should return tuple with original string", "foo", 
+                splits.get(0));
+            
+        // test default delimiter
+        test1.set(0, "f ooo bar");
+        splits = splitter.exec(test1);
+        assertEquals("split on default value ", 3, splits.size());
+        assertEquals("f", splits.get(0));
+        assertEquals("ooo", splits.get(1));
+        assertEquals("bar", splits.get(2));
+        
+        // test trimming of whitespace
+        test1.set(0, "foo bar  ");
+        splits = splitter.exec(test1);
+        assertEquals("whitespace trimmed if no length arg", 2, splits.size());
+        
+        // test forcing null matches with length param
+        test3.set(0, "foo bar   ");
+        test3.set(1, "\\s");
+        test3.set(2, 10);
+        splits = splitter.exec(test3);
+        assertEquals("length forces empty string matches on end", 5, splits.size());
+        
+        // test limiting results with limit
+        test3.set(0, "foo:bar:baz");
+        test3.set(1, ":");
+        test3.set(2, 2);
+        splits = splitter.exec(test3);
+        assertEquals(2, splits.size());
+        assertEquals("foo", splits.get(0));
+        assertEquals("bar:baz", splits.get(1));
+        
+        Tuple t1 = TupleFactory.getInstance().newTuple(3);
+        t1.set(0, "/search/iy/term1/test");
+        t1.set(1, "^\\/search\\/iy\\/(.*?)\\/.*");
+        t1.set(2, 1);
+        
+        Tuple t2 = TupleFactory.getInstance().newTuple(3);
+        t2.set(0, "/search/iy/term1/test");
+        t2.set(1, "^\\/search\\/iy\\/(.*?)\\/.*");
+        t2.set(2, 2);
+        
+        Tuple t3 = TupleFactory.getInstance().newTuple(3);
+        t3.set(0, null);
+        t3.set(1, "^\\/search\\/iy\\/(.*?)\\/.*");
+        t3.set(2, 2);
+        
+        REGEX_EXTRACT func = new REGEX_EXTRACT();
+        String r = func.exec(t1);
+        assertTrue(r.equals("term1"));
+        r = func.exec(t2);
+        assertTrue(r==null);
+        r = func.exec(t3);
+        assertTrue(r==null);
+        
+        String matchRegex = "^(.+)\\b\\s+is a\\s+\\b(.+)$";
+        TupleFactory tupleFactory = TupleFactory.getInstance();
+        Tuple te1 = tupleFactory.newTuple(2);
+        te1.set(0,"this is a match");
+        te1.set(1, matchRegex);
+        
+        Tuple te2 = tupleFactory.newTuple(2);
+        te2.set(0, "no match");
+        te2.set(1, matchRegex);
+        
+        Tuple te3 = tupleFactory.newTuple(2);
+        te3.set(0, null);
+        te3.set(1, matchRegex);
+     
+        REGEX_EXTRACT_ALL funce = new REGEX_EXTRACT_ALL();
+        Tuple re = funce.exec(te1);
+        assertEquals(re.size(), 2);
+        assertEquals("this", re.get(0));
+        assertEquals("match", re.get(1));
+        
+        re = funce.exec(te2);
+        assertTrue(re==null);
+        
+        re = funce.exec(te3);
+        assertTrue(re==null);
+    }
+    
+    @Test
+    public void testStatsFunc() throws Exception {
+        COV cov = new COV("a","b");
+        DataBag dBag = DefaultBagFactory.getInstance().newDefaultBag();
+        Tuple tup1 = DefaultTupleFactory.getInstance().newTuple(1);
+        tup1.set(0, 1.0);
+        dBag.add(tup1);
+        tup1 = DefaultTupleFactory.getInstance().newTuple(1);
+        tup1.set(0, 4.0);
+        dBag.add(tup1);
+        tup1 = DefaultTupleFactory.getInstance().newTuple(1);
+        tup1.set(0, 8.0);
+        dBag.add(tup1);
+        tup1 = DefaultTupleFactory.getInstance().newTuple(1);
+        tup1.set(0, 4.0);
+        dBag.add(tup1);
+        tup1 = DefaultTupleFactory.getInstance().newTuple(1);
+        tup1.set(0, 7.0);
+        dBag.add(tup1);
+        tup1 = DefaultTupleFactory.getInstance().newTuple(1);
+        tup1.set(0, 8.0);
+        dBag.add(tup1);
+        DataBag dBag1 = DefaultBagFactory.getInstance().newDefaultBag();
+        tup1 = DefaultTupleFactory.getInstance().newTuple(1);
+        tup1.set(0, 2.0);
+        dBag1.add(tup1);
+        tup1 = DefaultTupleFactory.getInstance().newTuple(1);
+        tup1.set(0, 2.0);
+        dBag1.add(tup1);
+        tup1 = DefaultTupleFactory.getInstance().newTuple(1);
+        tup1.set(0, 3.0);
+        dBag1.add(tup1);
+        tup1 = DefaultTupleFactory.getInstance().newTuple(1);
+        tup1.set(0, 3.0);
+        dBag1.add(tup1);
+        tup1 = DefaultTupleFactory.getInstance().newTuple(1);
+        tup1.set(0, 2.0);
+        dBag1.add(tup1);
+        tup1 = DefaultTupleFactory.getInstance().newTuple(1);
+        tup1.set(0, 4.0);
+        dBag1.add(tup1);
+        Tuple input = DefaultTupleFactory.getInstance().newTuple(2);
+        input.set(0, dBag);
+        input.set(1, dBag1);
+        DataBag output = cov.exec(input);
+        Iterator<Tuple> it = output.iterator();
+        Tuple ans = (Tuple)it.next();
+        assertEquals((String)ans.get(0),"a");
+        assertEquals((String)ans.get(1),"b");
+        assertEquals(1.11111, (Double)ans.get(2),0.0005);
+        
+        COR cor = new COR("a","b");
+        dBag = DefaultBagFactory.getInstance().newDefaultBag();
+        tup1 = DefaultTupleFactory.getInstance().newTuple(1);
+        tup1.set(0, 1.0);
+        dBag.add(tup1);
+        tup1 = DefaultTupleFactory.getInstance().newTuple(1);
+        tup1.set(0, 4.0);
+        dBag.add(tup1);
+        tup1 = DefaultTupleFactory.getInstance().newTuple(1);
+        tup1.set(0, 8.0);
+        dBag.add(tup1);
+        tup1 = DefaultTupleFactory.getInstance().newTuple(1);
+        tup1.set(0, 4.0);
+        dBag.add(tup1);
+        tup1 = DefaultTupleFactory.getInstance().newTuple(1);
+        tup1.set(0, 7.0);
+        dBag.add(tup1);
+        tup1 = DefaultTupleFactory.getInstance().newTuple(1);
+        tup1.set(0, 8.0);
+        dBag.add(tup1);
+        dBag1 = DefaultBagFactory.getInstance().newDefaultBag();
+        tup1 = DefaultTupleFactory.getInstance().newTuple(1);
+        tup1.set(0, 2.0);
+        dBag1.add(tup1);
+        tup1 = DefaultTupleFactory.getInstance().newTuple(1);
+        tup1.set(0, 2.0);
+        dBag1.add(tup1);
+        tup1 = DefaultTupleFactory.getInstance().newTuple(1);
+        tup1.set(0, 3.0);
+        dBag1.add(tup1);
+        tup1 = DefaultTupleFactory.getInstance().newTuple(1);
+        tup1.set(0, 3.0);
+        dBag1.add(tup1);
+        tup1 = DefaultTupleFactory.getInstance().newTuple(1);
+        tup1.set(0, 2.0);
+        dBag1.add(tup1);
+        tup1 = DefaultTupleFactory.getInstance().newTuple(1);
+        tup1.set(0, 4.0);
+        dBag1.add(tup1);
+        input = DefaultTupleFactory.getInstance().newTuple(2);
+        input.set(0, dBag);
+        input.set(1, dBag1);
+        output = cor.exec(input);
+        it = output.iterator();
+        ans = (Tuple) it.next();
+        assertEquals((String)ans.get(0),"a");
+        assertEquals((String)ans.get(1),"b");
+        assertEquals(0.582222509739582, (Double)ans.get(2) ,0.0005);
+    }
+    
+    private void checkItemsGT(Iterable<Tuple> tuples, int field, int limit) throws ExecException {
+        for (Tuple t : tuples) {
+            Long val = (Long) t.get(field);
+            assertTrue("Value "+ val + " exceeded the expected limit", val > limit);
+        }
+    }
+
+    @Test
+    public void testMiscFunc() throws Exception {
+        TOBAG tb = new TOBAG();
+
+        Tuple input = TupleFactory.getInstance().newTuple();
+        for (int i = 0; i < 100; ++i) {
+            input.append(i);
+        }
+
+        Set<Integer> s = new HashSet<Integer>();
+        DataBag db = tb.exec(input);
+        for (Tuple t : db) {
+            s.add((Integer) t.get(0));
+        }
+
+        // finally check the bag had everything we put in the tuple.
+        assertEquals(100, s.size());
+        for (int i = 0; i < 100; ++i) {
+            assertTrue(s.contains(i));
+        }
+        
+        TOTUPLE tt = new TOTUPLE();
+
+        input = TupleFactory.getInstance().newTuple();
+        for (int i = 0; i < 100; ++i) {
+            input.append(i);
+        }
+
+        Tuple output = tt.exec(input);
+        assertTrue(!(input == output));
+        assertEquals(input, output);
+        
+        TOP top = new TOP();
+        TupleFactory tupleFactory = DefaultTupleFactory.getInstance();
+        BagFactory bagFactory = DefaultBagFactory.getInstance();
+        Tuple inputTuple = tupleFactory.newTuple(3);
+        DataBag dBag = bagFactory.newDefaultBag();
+        
+        // set N = 10 i.e retain top 10 tuples
+        inputTuple.set(0, 10);
+        // compare tuples by field number 1
+        inputTuple.set(1, 1);
+        // set the data bag containing the tuples
+        inputTuple.set(2, dBag);
+
+        // generate tuples of the form (group-1, 1), (group-2, 2) ...
+        for (long i = 0; i < 100; i++) {
+            Tuple nestedTuple = tupleFactory.newTuple(2);
+            nestedTuple.set(0, "group-" + i);
+            nestedTuple.set(1, i);
+            dBag.add(nestedTuple);
+        }
+        
+        DataBag outBag = top.exec(inputTuple);
+        assertEquals(outBag.size(), 10L);
+        checkItemsGT(outBag, 1, 89);
+        
+        // two initial results
+        Tuple init1 = (new TOP.Initial()).exec(inputTuple);
+        Tuple init2 = (new TOP.Initial()).exec(inputTuple);
+        // two intermediate results
+
+        DataBag intermedBag = bagFactory.newDefaultBag();
+        intermedBag.add(init1);
+        intermedBag.add(init2);
+        Tuple intermedInput = tupleFactory.newTuple(intermedBag);
+        Tuple intermedOutput1 = (new TOP.Intermed()).exec(intermedInput);
+        Tuple intermedOutput2 = (new TOP.Intermed()).exec(intermedInput);
+        checkItemsGT((DataBag)intermedOutput1.get(2), 1, 94);
+
+        // final result
+        DataBag finalInputBag = bagFactory.newDefaultBag();
+        finalInputBag.add(intermedOutput1);
+        finalInputBag.add(intermedOutput2);
+        Tuple finalInput = tupleFactory.newTuple(finalInputBag);
+        outBag = (new TOP.Final()).exec(finalInput);
+        assertEquals(outBag.size(), 10L);
+        checkItemsGT(outBag, 1, 96);
+    }
     
     @Test
     public void testDistinct() throws Exception {
@@ -1368,7 +1799,7 @@ public class TestBuiltin {
         assertTrue(f3.size() == arity3);
         Util.deleteFile(cluster, "input.txt");
     }
-
+    
     /*
     @Test
     public void testLFBin() throws Exception {
