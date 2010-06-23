@@ -25,7 +25,7 @@ import junit.framework.TestCase;
 
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
-import org.apache.pig.impl.io.FileLocalizer;
+import org.apache.pig.backend.executionengine.ExecJob;
 import org.apache.pig.tools.pigstats.PigStats;
 
 public class TestPigStats extends TestCase {
@@ -38,10 +38,9 @@ public class TestPigStats extends TestCase {
             String filePath = outputFile.getAbsolutePath();
             outputFile.delete();
             PigServer pig = new PigServer(ExecType.LOCAL);
-            pig
-                    .registerQuery("A = load 'test/org/apache/pig/test/data/passwd';");
-            PigStats stats = pig.store("A", filePath)
-                    .getStatistics();
+            pig.registerQuery("A = load 'test/org/apache/pig/test/data/passwd';");
+            ExecJob job = pig.store("A", filePath);
+            PigStats stats = job.getStatistics();
             File dataFile = new File( outputFile.getAbsoluteFile() + File.separator + "part-00000" );
             assertEquals(dataFile.length(), stats.getBytesWritten());
         } catch (IOException e) {
@@ -55,7 +54,6 @@ public class TestPigStats extends TestCase {
                 deleteDirectory(outputFile);
             }
         }
-
     }
     
     private void deleteDirectory( File dir ) {

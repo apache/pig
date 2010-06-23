@@ -83,6 +83,8 @@ public class MapReduceOper extends Operator<MROpPlanVisitor> {
     // Indicate if the entire purpose for this map reduce job is doing limit, does not change
     // anything else. This is to help POPackageAnnotator to find the right POPackage to annotate
     boolean limitOnly = false;
+    
+    OPER_FEATURE feature = OPER_FEATURE.NONE;
 
     // If true, putting an identity combine in this
     // mapreduce job will speed things up.
@@ -135,6 +137,18 @@ public class MapReduceOper extends Operator<MROpPlanVisitor> {
 	// By default, set to false which will make Pig provide raw comparators. 
 	// Set to true in indexing job generated in map-side cogroup, merge join.
 	private boolean usingTypedComparator = false;
+	
+	private static enum OPER_FEATURE {
+	    NONE,
+	    // Indicate if this job is a sampling job
+	    SAMPLER,	    
+	    // Indicate if this job is a group by job
+	    GROUPBY,	    
+	    // Indicate if this job is a cogroup job
+	    COGROUP,	    
+	    // Indicate if this job is a regular join job
+	    HASHJOIN;
+	};
 	
     public MapReduceOper(OperatorKey k) {
         super(k);
@@ -299,6 +313,38 @@ public class MapReduceOper extends Operator<MROpPlanVisitor> {
         this.limitOnly = limitOnly;
     }
 
+    public boolean isSampling() {
+        return (feature == OPER_FEATURE.SAMPLER);
+    }
+    
+    public void setSampling(boolean sampling) {
+        feature = OPER_FEATURE.SAMPLER;
+    }
+    
+    public boolean isGroupBy() {
+        return (feature == OPER_FEATURE.GROUPBY);
+    }
+    
+    public void setGroupBy(boolean groupBy) {
+        feature = OPER_FEATURE.GROUPBY;
+    }
+    
+    public boolean isCogroup() {
+        return (feature == OPER_FEATURE.COGROUP);
+    }
+    
+    public void setCogroup(boolean cogroup) {
+        feature = OPER_FEATURE.COGROUP;
+    }
+    
+    public boolean isRegularJoin() {
+        return (feature == OPER_FEATURE.HASHJOIN);
+    }
+    
+    public void setRegularJoin(boolean hashJoin) {
+        feature = OPER_FEATURE.HASHJOIN;
+    }
+    
     public boolean needsDistinctCombiner() { 
         return needsDistinctCombiner;
     }

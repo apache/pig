@@ -71,6 +71,8 @@ public class POPackage extends PhysicalOperator {
         SIMPLE_KEY_POSITION[0] = true;
     }
     
+    public static enum PackageType { GROUP, JOIN };
+    
     //The iterator of indexed Tuples
     //that is typically provided by
     //Hadoop
@@ -119,6 +121,8 @@ public class POPackage extends PhysicalOperator {
     private boolean firstTime = true;
     
     private boolean useDefaultBag = false;
+    
+    private PackageType pkgType;
 
     public POPackage(OperatorKey k) {
         this(k, -1, null);
@@ -450,6 +454,14 @@ public class POPackage extends PhysicalOperator {
         this.useSecondaryKey = useSecondaryKey;
     }
 
+    public void setPackageType(PackageType type) {
+        this.pkgType = type;
+    }
+    
+    public PackageType getPackageType() {
+        return pkgType;
+    }
+    
     private class POPackageTupleBuffer implements AccumulativeTupleBuffer {
         private List<Tuple>[] bags;
         private Iterator<NullableTuple> iter;

@@ -18,9 +18,6 @@
 
 package org.apache.pig.backend.hadoop.executionengine;
 
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.IOException;
 import java.io.PrintStream;
 import java.net.Socket;
 import java.net.SocketException;
@@ -38,11 +35,10 @@ import java.util.Properties;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.hdfs.DistributedFileSystem;
-import org.apache.hadoop.mapred.JobClient;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.pig.ExecType;
+import org.apache.pig.FuncSpec;
 import org.apache.pig.PigException;
 import org.apache.pig.backend.datastorage.DataStorage;
 import org.apache.pig.backend.executionengine.ExecException;
@@ -57,13 +53,16 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.LogToPhyTrans
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
+import org.apache.pig.builtin.BinStorage;
 import org.apache.pig.experimental.logical.LogicalPlanMigrationVistor;
-import org.apache.pig.experimental.logical.optimizer.PlanPrinter;
 import org.apache.pig.experimental.logical.optimizer.UidStamper;
 import org.apache.pig.impl.PigContext;
+import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.logicalLayer.LogicalPlan;
+import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.OperatorKey;
+import org.apache.pig.tools.pigstats.OutputStats;
 import org.apache.pig.tools.pigstats.PigStats;
 
 public class HExecutionEngine implements ExecutionEngine {
@@ -73,8 +72,6 @@ public class HExecutionEngine implements ExecutionEngine {
     
     private static final String HADOOP_SITE = "hadoop-site.xml";
     private static final String CORE_SITE = "core-site.xml";
-    private static final String MAPRED_SYS_DIR = "mapred.system.dir";
-    
     private final Log log = LogFactory.getLog(getClass());
     public static final String LOCAL = "local";
     
@@ -299,18 +296,16 @@ public class HExecutionEngine implements ExecutionEngine {
         try {
             PigStats stats = launcher.launchPig(plan, jobName, pigContext);
 
-            for (POStore store: launcher.getSucceededFiles()) {
-                FileSpec spec = store.getSFile();
-                String alias = leafMap.containsKey(spec.toString()) ? leafMap.get(spec.toString()).getAlias() : null;
-                jobs.add(new HJob(ExecJob.JOB_STATUS.COMPLETED, pigContext, store, alias, stats));
-            }
-
-            for (POStore store: launcher.getFailedFiles()) {
-                FileSpec spec = store.getSFile();
-                String alias = leafMap.containsKey(spec.toString()) ? leafMap.get(spec.toString()).getAlias() : null;
-                HJob j = new HJob(ExecJob.JOB_STATUS.FAILED, pigContext, store, alias, stats);
-                j.setException(launcher.getError(spec));
-                jobs.add(j);
+            for (OutputStats output : stats.getOutputStats()) {
+                POStore store = output.getPOStore();               
+                String alias = store.getAlias();
+                if (output.isSuccessful()) {
+                    jobs.add(new HJob(ExecJob.JOB_STATUS.COMPLETED, pigContext, store, alias, stats));
+                } else {
+                    HJob j = new HJob(ExecJob.JOB_STATUS.FAILED, pigContext, store, alias, stats);  
+                    j.setException(launcher.getError(store.getSFile()));
+                    jobs.add(j);
+                }
             }
 
             return jobs;
@@ -411,5 +406,31 @@ public class HExecutionEngine implements ExecutionEngine {
                 properties.put(key, val);
             }
         }
-    }    
+    } 
+    
+    public static FileSpec checkLeafIsStore(
+            PhysicalPlan plan,
+            PigContext pigContext) throws ExecException {
+        try {
+            PhysicalOperator leaf = plan.getLeaves().get(0);
+            FileSpec spec = null;
+            if(!(leaf instanceof POStore)){
+                String scope = leaf.getOperatorKey().getScope();
+                POStore str = new POStore(new OperatorKey(scope,
+                    NodeIdGenerator.getGenerator().getNextNodeId(scope)));
+                spec = new FileSpec(FileLocalizer.getTemporaryPath(null,
+                    pigContext).toString(),
+                    new FuncSpec(BinStorage.class.getName()));
+                str.setSFile(spec);
+                plan.addAsLeaf(str);
+            } else{
+                spec = ((POStore)leaf).getSFile();
+            }
+            return spec;
+        } catch (Exception e) {
+            int errCode = 2045;
+            String msg = "Internal error. Not able to check if the leaf node is a store operator.";
+            throw new ExecException(msg, errCode, PigException.BUG, e);
+        }
+    }
 }

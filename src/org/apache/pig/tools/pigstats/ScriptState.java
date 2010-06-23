@@ -22,9 +22,12 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
-import java.net.InetAddress;
-import java.net.UnknownHostException;
 import java.util.ArrayList;
+import java.util.BitSet;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -33,6 +36,7 @@ import java.util.jar.Attributes;
 import java.util.jar.JarFile;
 import java.util.jar.Manifest;
 
+import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -43,17 +47,44 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOpera
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POCollectedGroup;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.PODemux;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.PODistinct;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POFRJoin;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POFilter;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POForEach;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLimit;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLoad;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLocalRearrange;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POMergeCogroup;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POMergeJoin;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSkewedJoin;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSort;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSplit;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStream;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POUnion;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.util.PlanHelper;
+import org.apache.pig.experimental.plan.Operator;
+import org.apache.pig.impl.logicalLayer.LOCogroup;
+import org.apache.pig.impl.logicalLayer.LOCross;
+import org.apache.pig.impl.logicalLayer.LODistinct;
+import org.apache.pig.impl.logicalLayer.LOFilter;
+import org.apache.pig.impl.logicalLayer.LOForEach;
+import org.apache.pig.impl.logicalLayer.LOJoin;
+import org.apache.pig.impl.logicalLayer.LOLimit;
+import org.apache.pig.impl.logicalLayer.LOSort;
+import org.apache.pig.impl.logicalLayer.LOSplit;
+import org.apache.pig.impl.logicalLayer.LOStream;
+import org.apache.pig.impl.logicalLayer.LOUnion;
+import org.apache.pig.impl.logicalLayer.LOVisitor;
+import org.apache.pig.impl.logicalLayer.LogicalOperator;
+import org.apache.pig.impl.logicalLayer.LogicalPlan;
+import org.apache.pig.impl.logicalLayer.LOCogroup.GROUPTYPE;
+import org.apache.pig.impl.logicalLayer.LOJoin.JOINTYPE;
 import org.apache.pig.impl.plan.DepthFirstWalker;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.util.JarManager;
+import org.apache.pig.tools.pigstats.PigStats.JobGraph;
 
 /**
  * ScriptStates encapsulates settings for a Pig script that runs on a hadoop 
@@ -69,15 +100,17 @@ public class ScriptState {
      */
     private enum PIG_PROPERTY {
         SCRIPT_ID           ("pig.script.id"),
-        SCRIPT              ("pig.script"),
-        LAUNCHER_HOST       ("pig.launcher.host"),
+        SCRIPT              ("pig.script"),       
         COMMAND_LINE        ("pig.command.line"),
         HADOOP_VERSION      ("pig.hadoop.version"),
         VERSION             ("pig.version"),
         INPUT_DIRS          ("pig.input.dirs"),
         MAP_OUTPUT_DIRS     ("pig.map.output.dirs"),
         REDUCE_OUTPUT_DIRS  ("pig.reduce.output.dirs"),
-        FEATURE             ("pig.feature");
+        JOB_PARENTS         ("pig.parent.jobid"),
+        JOB_FEATURE         ("pig.job.feature"),
+        SCRIPT_FEATURES     ("pig.script.features"),
+        JOB_ALIAS           ("pig.alias");        
        
         private String displayStr;
         
@@ -92,16 +125,27 @@ public class ScriptState {
     /**
      * Features used in a Pig script
      */
-    private enum PIG_FEATURE {
+    static enum PIG_FEATURE {
+        UNKNOWN,
         MERGE_JION,
         REPLICATED_JOIN,
-        SKEWED_JION,
+        SKEWED_JOIN,
+        HASH_JOIN,
         COLLECTED_GROUP,
         MERGE_COGROUP,
+        COGROUP,
+        GROUP_BY,
         ORDER_BY,
         DISTINCT,
         STREAMING,
-        MAP_ONLY;
+        SAMPLING,
+        MULTI_QUERY,
+        FILTER,
+        MAP_ONLY,
+        CROSS,
+        LIMIT,
+        UNION,
+        COMBINER;
     };
     
     /**
@@ -109,6 +153,11 @@ public class ScriptState {
      * in the jobs 
      */
     public static final String INSERT_ENABLED = "pig.script.info.enabled";
+    
+    /**
+     * Restricts the size of Pig script stored in job xml 
+     */
+    public static final int MAX_SCRIPT_SIZE = 1024; 
     
     private static final Log LOG = LogFactory.getLog(ScriptState.class);
 
@@ -118,12 +167,15 @@ public class ScriptState {
     
     private String script;
     private String commandLine;
-    private String feature;
     
-    private String host;
     private String pigVersion;
     private String hodoopVersion;
-           
+    
+    private long scriptFeatures;
+    
+    private Map<MapReduceOper, String> featureMap = null;
+    private Map<MapReduceOper, String> aliasMap = null;
+    
     public static ScriptState start(String commandLine) {
         ScriptState ss = new ScriptState(UUID.randomUUID().toString());
         ss.setCommandLine(commandLine);
@@ -141,15 +193,14 @@ public class ScriptState {
             ScriptState.start("");
         }
         return tss.get();
-    }
-           
+    }           
+       
     public void addSettingsToConf(MapReduceOper mro, Configuration conf) {
-        LOG.info("Pig script settings is added to the job");
+        LOG.info("Pig script settings are added to the job");
         conf.set(PIG_PROPERTY.HADOOP_VERSION.toString(), getHadoopVersion());
         conf.set(PIG_PROPERTY.VERSION.toString(), getPigVersion());
         conf.set(PIG_PROPERTY.SCRIPT_ID.toString(), id);
-        conf.set(PIG_PROPERTY.SCRIPT.toString(), getScript());
-        conf.set(PIG_PROPERTY.LAUNCHER_HOST.toString(), getHostName());
+        conf.set(PIG_PROPERTY.SCRIPT.toString(), getScript());        
         conf.set(PIG_PROPERTY.COMMAND_LINE.toString(), getCommandLine());
         
         try {
@@ -188,6 +239,8 @@ public class ScriptState {
         }
 
         setPigFeature(mro, conf);
+        
+        setJobParents(mro, conf);
     }
  
     public void setScript(File file) {            
@@ -198,22 +251,40 @@ public class ScriptState {
         }
     }
 
-    public void setScript(String script) {            
-        this.script = script;
+    public void setScript(String script) {        
+        if (script == null) return;
+        
+        // restrict the size of the script to be stored in job conf
+        script = (script.length() > MAX_SCRIPT_SIZE) ? script.substring(0,
+                MAX_SCRIPT_SIZE) : script;
+        
+        // XML parser cann't handle certain characters, including
+        // the control character (&#1). Use Base64 encoding to
+        // get around this problem        
+        this.script = new String(Base64.encodeBase64(script.getBytes()));
     }
-
-    private String getScript() {
-        return (script == null) ? "" : script;
+   
+    public void setScriptFeatures(LogicalPlan plan) {
+        BitSet bs = new BitSet();
+        try {
+            new LogicalPlanFeatureVisitor(plan, bs).visit();
+        } catch (VisitorException e) {
+            LOG.warn("unable to get script feature", e);
+        }
+        scriptFeatures = bitSetToLong(bs);        
+        
+        LOG.info("Pig features used in the script: "
+                + featureLongToString(scriptFeatures));
     }
     
-    private String getHadoopVersion() {
+    public String getHadoopVersion() {
         if (hodoopVersion == null) {
             hodoopVersion = VersionInfo.getVersion();
         }
         return (hodoopVersion == null) ? "" : hodoopVersion;
     }
     
-    private String getPigVersion() {
+    public String getPigVersion() {
         if (pigVersion == null) {
             String findContainingJar = JarManager.findContainingJar(ScriptState.class);
             try { 
@@ -228,25 +299,19 @@ public class ScriptState {
         }
         return (pigVersion == null) ? "" : pigVersion;
     }
-    
-    private String getHostName() { 
-        if (host == null) {
-            try {
-                InetAddress addr = InetAddress.getLocalHost();
-                host = addr.getHostName(); 
-            } catch (UnknownHostException e) {
-                LOG.warn("unable to get host name", e); 
-            }         
-        }
-        return (host == null) ? "" : host;
-    }
-    
+        
+    String getId() { return id; }
+        
     private String getCommandLine() {
         return (commandLine == null) ? "" : commandLine;
     }
     
     private void setCommandLine(String commandLine) {
         this.commandLine = commandLine;
+    }
+    
+    private String getScript() {
+        return (script == null) ? "" : script;
     }
     
     private void setScript(BufferedReader reader) {
@@ -263,68 +328,381 @@ public class ScriptState {
         } catch (IOException e) {
             LOG.warn("unable to parse the script", e);
         }
-        this.script = sb.toString();
+        setScript(sb.toString());
     }
     
     private void setPigFeature(MapReduceOper mro, Configuration conf) {
-        feature = "";
-        if (mro.isSkewedJoin()) {
-            feature = PIG_FEATURE.SKEWED_JION.toString();
-        } else if (mro.isGlobalSort()) {
-            feature = PIG_FEATURE.ORDER_BY.toString();
-        } else {
+        conf.set(PIG_PROPERTY.JOB_FEATURE.toString(), getPigFeature(mro));
+        if (scriptFeatures != 0) {
+            conf.set(PIG_PROPERTY.SCRIPT_FEATURES.toString(), 
+                    String.valueOf(scriptFeatures));
+        }
+        conf.set(PIG_PROPERTY.JOB_ALIAS.toString(), getAlias(mro));    
+    }
+    
+    private void setJobParents(MapReduceOper mro, Configuration conf) {
+        // PigStats maintains a job DAG with the job id being updated
+        // upon available. Therefore, before a job is submitted, the ids 
+        // of its parent jobs are already available. 
+        JobGraph jg = PigStats.get().getJobGraph();
+        JobStats js = null;
+        Iterator<JobStats> iter = jg.iterator();
+        while (iter.hasNext()) {
+            JobStats job = iter.next();
+            if (job.getName().equals(mro.getOperatorKey().toString())) {
+                js = job;
+                break;
+            }
+        }
+        if (js != null) {
             try {
-                new FeatureVisitor(mro.mapPlan).visit();
+                List<Operator> preds = jg.getPredecessors(js);
+                if (preds != null) {
+                    StringBuilder sb = new StringBuilder();
+                    for (Operator op : preds) {
+                        JobStats job = (JobStats)op;
+                        if (sb.length() > 0) sb.append(",");
+                        sb.append(job.getJobId());
+                    }
+                    conf.set(PIG_PROPERTY.JOB_PARENTS.toString(), sb.toString());
+                }
+            } catch (IOException e) {
+                LOG.warn("unable to get job predecessors for job " 
+                        + js.getJobId(), e);
+            }
+        }
+    }
+    
+    String getScriptFeatures() {
+        return featureLongToString(scriptFeatures);
+    }
+    
+    String getAlias(MapReduceOper mro) {
+        if (aliasMap == null) {
+            aliasMap = new HashMap<MapReduceOper, String>();
+        }
+        String retStr = aliasMap.get(mro);
+        if (retStr == null) {
+            ArrayList<String> alias = new ArrayList<String>();
+            try {
+                new AliasVisitor(mro.mapPlan, alias).visit();
+                new AliasVisitor(mro.reducePlan, alias).visit();
+                if (!alias.isEmpty()) {
+                    Collections.sort(alias);
+                }              
+            } catch (VisitorException e) {
+                LOG.warn("unable to get alias", e);
+            }
+            retStr = LoadFunc.join(alias, ",");
+            aliasMap.put(mro, retStr);
+        }
+        return retStr;
+    }
+
+    String getPigFeature(MapReduceOper mro) {
+        if (featureMap == null) {
+            featureMap = new HashMap<MapReduceOper, String>();
+        }
+        
+        String retStr = featureMap.get(mro);
+        if (retStr == null) {       
+            BitSet feature = new BitSet();
+            feature.clear();
+            if (mro.isSkewedJoin()) {
+                feature.set(PIG_FEATURE.SKEWED_JOIN.ordinal());
+            } 
+            if (mro.isGlobalSort()) {
+                feature.set(PIG_FEATURE.ORDER_BY.ordinal());
+            } 
+            if (mro.isSampling()) { 
+                feature.set(PIG_FEATURE.SAMPLING.ordinal());
+            } 
+            if (mro.isCogroup()) {
+                feature.set(PIG_FEATURE.COGROUP.ordinal());
+            } 
+            if (mro.isGroupBy()) {
+                feature.set(PIG_FEATURE.GROUP_BY.ordinal());
+            } 
+            if (mro.isRegularJoin()) {
+                feature.set(PIG_FEATURE.HASH_JOIN.ordinal());
+            }  
+            if (mro.needsDistinctCombiner()) {
+                feature.set(PIG_FEATURE.DISTINCT.ordinal());
+            }
+            if (!mro.combinePlan.isEmpty()) {
+                feature.set(PIG_FEATURE.COMBINER.ordinal());
+            }
+            try {
+                new FeatureVisitor(mro.mapPlan, feature).visit();
                 if (mro.reducePlan.isEmpty()) { 
-                    feature = feature.isEmpty() ? 
-                            PIG_FEATURE.MAP_ONLY.toString() : feature;                    
+                    feature.set(PIG_FEATURE.MAP_ONLY.ordinal());                    
                 } else {
-                    new FeatureVisitor(mro.reducePlan).visit();
+                    new FeatureVisitor(mro.reducePlan, feature).visit();
                 }
             } catch (VisitorException e) {
                 LOG.warn("Feature visitor failed", e);
             }
+            
+            StringBuilder sb = new StringBuilder();
+            for (int i=feature.nextSetBit(0); i>=0; i=feature.nextSetBit(i+1)) {
+                if (sb.length() > 0) sb.append(",");             
+                sb.append(PIG_FEATURE.values()[i].name());
+            }
+            retStr = sb.toString();
+            featureMap.put(mro, retStr);
         }
-        conf.set(PIG_PROPERTY.FEATURE.toString(), feature);
+        return retStr;
+    }    
+    
+    private long bitSetToLong(BitSet bs) {
+        long ret = 0;
+        for (int i = bs.nextSetBit(0); i >= 0; i = bs.nextSetBit(i+1)) {
+            ret |= (1L << i);
+        }
+        return ret;
     }
     
-    private class FeatureVisitor extends PhyPlanVisitor {
+    private String featureLongToString(long l) {
+        if (l == 0) return PIG_FEATURE.UNKNOWN.name();
         
-        public FeatureVisitor(PhysicalPlan plan) {
+        StringBuilder sb = new StringBuilder();
+        for (int i=0; i<PIG_FEATURE.values().length; i++) {
+            if (((l >> i) & 0x00000001) != 0) {
+                if (sb.length() > 0) sb.append(",");
+                sb.append(PIG_FEATURE.values()[i].name());
+            }
+        }
+        return sb.toString();
+    }
+    
+    private static class FeatureVisitor extends PhyPlanVisitor {
+        private BitSet feature;
+        
+        public FeatureVisitor(PhysicalPlan plan, BitSet feature) {
             super(plan, new DepthFirstWalker<PhysicalOperator, PhysicalPlan>(
                     plan));
+            this.feature = feature;
         }
         
         @Override
         public void visitFRJoin(POFRJoin join) throws VisitorException {
-            feature = PIG_FEATURE.REPLICATED_JOIN.toString();
+            feature.set(PIG_FEATURE.REPLICATED_JOIN.ordinal());
         }
         
         @Override
         public void visitMergeJoin(POMergeJoin join) throws VisitorException {
-            feature = PIG_FEATURE.MERGE_JION.toString();
+            feature.set(PIG_FEATURE.MERGE_JION.ordinal());
         }
         
         @Override
         public void visitMergeCoGroup(POMergeCogroup mergeCoGrp)
                 throws VisitorException {
-            feature = PIG_FEATURE.MERGE_COGROUP.toString();
+            feature.set(PIG_FEATURE.MERGE_COGROUP.ordinal());;
         }
         
         @Override
         public void visitCollectedGroup(POCollectedGroup mg)
                 throws VisitorException {           
-            feature = PIG_FEATURE.COLLECTED_GROUP.toString();
+            feature.set(PIG_FEATURE.COLLECTED_GROUP.ordinal());
         }
         
         @Override
         public void visitDistinct(PODistinct distinct) throws VisitorException {
-            feature = PIG_FEATURE.DISTINCT.toString();
+            feature.set(PIG_FEATURE.DISTINCT.ordinal());
         }
         
         @Override
         public void visitStream(POStream stream) throws VisitorException {
-            feature = PIG_FEATURE.STREAMING.toString();
+            feature.set(PIG_FEATURE.STREAMING.ordinal());
         }
+        
+        @Override
+        public void visitSplit(POSplit split) throws VisitorException {
+            feature.set(PIG_FEATURE.MULTI_QUERY.ordinal());
+        }
+        
+        @Override
+        public void visitDemux(PODemux demux) throws VisitorException {
+            feature.set(PIG_FEATURE.MULTI_QUERY.ordinal());         
+        }        
     }    
+    
+    public static class LogicalPlanFeatureVisitor extends LOVisitor {
+        
+        private BitSet feature;
+        
+        protected LogicalPlanFeatureVisitor(LogicalPlan plan, BitSet feature) {
+            super(plan, new DepthFirstWalker<LogicalOperator, 
+                    LogicalPlan>(plan));            
+            this.feature = feature;
+        }
+        
+        @Override
+        protected void visit(LOCogroup op) throws VisitorException {
+            if (op.getGroupType() == GROUPTYPE.COLLECTED) {
+                feature.set(PIG_FEATURE.COLLECTED_GROUP.ordinal());
+            } else if (op.getGroupType() == GROUPTYPE.MERGE) {
+                feature.set(PIG_FEATURE.MERGE_COGROUP.ordinal());                
+            } else if (op.getGroupType() == GROUPTYPE.REGULAR) {
+                if (op.getInputs().size() > 1) {
+                    feature.set(PIG_FEATURE.COGROUP.ordinal());
+                } else {
+                    feature.set(PIG_FEATURE.GROUP_BY.ordinal());
+                }
+            }
+        }
+        
+        @Override
+        protected void visit(LOCross op) throws VisitorException {
+            feature.set(PIG_FEATURE.CROSS.ordinal());
+        }
+        
+        @Override
+        protected void visit(LODistinct op) throws VisitorException {
+            feature.set(PIG_FEATURE.DISTINCT.ordinal());
+        }
+        
+        @Override
+        protected void visit(LOFilter op) throws VisitorException {
+            feature.set(PIG_FEATURE.FILTER.ordinal());
+        }
+        
+        @Override
+        protected void visit(LOForEach op) throws VisitorException {
+            
+        }
+                
+        @Override
+        protected void visit(LOJoin op) throws VisitorException {
+            if (op.getJoinType() == JOINTYPE.HASH) {
+                feature.set(PIG_FEATURE.HASH_JOIN.ordinal());
+            } else if (op.getJoinType() == JOINTYPE.MERGE) {
+                feature.set(PIG_FEATURE.MERGE_JION.ordinal());
+            } else if (op.getJoinType() == JOINTYPE.REPLICATED) {
+                feature.set(PIG_FEATURE.REPLICATED_JOIN.ordinal());
+            } else if (op.getJoinType() == JOINTYPE.SKEWED) {
+                feature.set(PIG_FEATURE.SKEWED_JOIN.ordinal());
+            }
+        }
+        
+        @Override
+        protected void visit(LOLimit op) throws VisitorException {
+            feature.set(PIG_FEATURE.LIMIT.ordinal());
+        }
+        
+        @Override
+        protected void visit(LOSort op) throws VisitorException {
+            feature.set(PIG_FEATURE.ORDER_BY.ordinal());
+        }
+        
+        @Override
+        protected void visit(LOStream op) throws VisitorException {
+            feature.set(PIG_FEATURE.STREAMING.ordinal());
+        }
+        
+        @Override
+        protected void visit(LOSplit op) throws VisitorException {
+            
+        }
+        
+        @Override
+        protected void visit(LOUnion op) throws VisitorException {
+            feature.set(PIG_FEATURE.UNION.ordinal());
+        }
+    }
+    
+    private static class AliasVisitor extends PhyPlanVisitor {
+        
+        private HashSet<String> aliasSet;
+        
+        private List<String> alias;
+        
+        public AliasVisitor(PhysicalPlan plan, List<String> alias) {
+            super(plan, new DepthFirstWalker<PhysicalOperator, PhysicalPlan>(
+                    plan));
+            this.alias = alias;
+            aliasSet = new HashSet<String>();
+            if (!alias.isEmpty()) {
+                for (String s : alias) aliasSet.add(s);
+            }
+        }
+        
+        @Override
+        public void visitFRJoin(POFRJoin join) throws VisitorException {
+            setAlias(join);
+        }
+        
+        @Override
+        public void visitMergeJoin(POMergeJoin join) throws VisitorException {
+            setAlias(join);
+        }
+        
+        @Override
+        public void visitMergeCoGroup(POMergeCogroup mergeCoGrp)
+                throws VisitorException {
+            setAlias(mergeCoGrp);
+        }
+        
+        @Override
+        public void visitCollectedGroup(POCollectedGroup mg)
+                throws VisitorException {           
+            setAlias(mg);
+        }
+        
+        @Override
+        public void visitDistinct(PODistinct distinct) throws VisitorException {
+            setAlias(distinct);
+        }
+        
+        @Override
+        public void visitStream(POStream stream) throws VisitorException {
+            setAlias(stream);
+        }
+        
+        @Override
+        public void visitFilter(POFilter fl) throws VisitorException {
+            setAlias(fl);
+        }
+         
+        @Override
+        public void visitLocalRearrange(POLocalRearrange lr) throws VisitorException {
+            setAlias(lr);
+        }
+        
+        @Override
+        public void visitPOForEach(POForEach nfe) throws VisitorException {
+            setAlias(nfe);
+        }
+        
+        @Override
+        public void visitUnion(POUnion un) throws VisitorException {
+            setAlias(un);
+        }
+
+        @Override
+        public void visitSort(POSort sort) throws VisitorException {
+            setAlias(sort);
+        }
+ 
+        @Override
+        public void visitLimit(POLimit lim) throws VisitorException {
+            setAlias(lim);
+        }
+        
+        @Override
+        public void visitSkewedJoin(POSkewedJoin sk) throws VisitorException {
+            setAlias(sk);
+        }
+        
+        private void setAlias(PhysicalOperator op) {
+            String s = op.getAlias();
+            if (s != null) {
+                if (!aliasSet.contains(s)) {
+                    alias.add(s);
+                    aliasSet.add(s);
+                }
+            }
+        }
+    }
+    
 }

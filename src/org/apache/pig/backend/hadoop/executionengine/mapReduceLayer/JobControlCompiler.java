@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -168,6 +169,10 @@ public class JobControlCompiler{
         UDFContext.getUDFContext().reset();
     }
 
+    Map<Job, MapReduceOper> getJobMroMap() {
+        return Collections.unmodifiableMap(jobMroMap);
+    }
+    
     /**
      * Moves all the results of a collection of MR jobs to the final
      * output directory. Some of the results may have been put into a
@@ -809,7 +814,7 @@ public class JobControlCompiler{
             super(BagFactory.getInstance().newDefaultBag().getClass(), true);
         }
     }
-
+    
     private void selectComparator(
             MapReduceOper mro,
             byte keyType,

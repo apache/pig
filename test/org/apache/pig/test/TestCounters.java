@@ -18,31 +18,34 @@
 
 package org.apache.pig.test;
 
-import java.io.File;
-import java.io.FileOutputStream;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintWriter;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
-
-import junit.framework.TestCase;
 
 import org.apache.hadoop.fs.Path;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.executionengine.ExecJob;
+import org.apache.pig.experimental.plan.Operator;
 import org.apache.pig.impl.io.FileLocalizer;
+import org.apache.pig.tools.pigstats.JobStats;
 import org.apache.pig.tools.pigstats.PigStats;
-import org.apache.pig.tools.pigstats.PigStatsUtil;
+import org.apache.pig.tools.pigstats.PigStats.JobGraph;
 import org.junit.AfterClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
+
 @RunWith(JUnit4.class)
-public class TestCounters extends TestCase {
+public class TestCounters {
     String file = "input.txt";
 
     static MiniCluster cluster = MiniCluster.buildCluster();
@@ -63,22 +66,21 @@ public class TestCounters extends TestCase {
         for(int i = 0; i < MAX; i++) {
             int t = r.nextInt(100);
             pw.println(t);
-            if(t > 50)
-                count ++;
+            if(t > 50) count ++;
         }
         pw.close();
         PigServer pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
         pigServer.registerQuery("a = load '" + file + "';");
         pigServer.registerQuery("b = filter a by $0 > 50;");
         pigServer.registerQuery("c = foreach b generate $0 - 50;");
-        PigStats pigStats = pigServer.store("c", "output_map_only").getStatistics();
-
-        //PigStats pigStats = pigServer.getPigStats();
-        Map<String, Map<String, String>> stats = pigStats.getPigStats();
+        ExecJob job = pigServer.store("c", "output_map_only");
+        PigStats pigStats = job.getStatistics();
         
         //counting the no. of bytes in the output file
         //long filesize = cluster.getFileSystem().getFileStatus(new Path("output_map_only")).getLen();
-        InputStream is = FileLocalizer.open(FileLocalizer.fullPath("output_map_only", pigServer.getPigContext()), ExecType.MAPREDUCE, pigServer.getPigContext().getDfs());
+        InputStream is = FileLocalizer.open(FileLocalizer.fullPath(
+                "output_map_only", pigServer.getPigContext()),
+                pigServer.getPigContext());
         long filesize = 0;
         while(is.read() != -1) filesize++;
         
@@ -90,34 +92,21 @@ public class TestCounters extends TestCase {
         System.out.println("============================================");
         System.out.println("Test case Map Only");
         System.out.println("============================================");
-        System.out.println("MRPlan : \n" + pigStats.getMRPlan());
-        for(Map.Entry<String, Map<String, String>> entry : stats.entrySet()) {
-            System.out.println("============================================");
-            System.out.println("Job : " + entry.getKey());
-            for(Map.Entry<String, String> e1 : entry.getValue().entrySet()) {
-                System.out.println(" - " + e1.getKey() + " : \n" + e1.getValue());
-            }
-            System.out.println("============================================");
+
+        JobGraph jg = pigStats.getJobGraph();
+        Iterator<JobStats> iter = jg.iterator();
+        while (iter.hasNext()) {
+            JobStats js = iter.next();                    
+
+            System.out.println("Map input records : " + js.getMapInputRecords());
+            assertEquals(MAX, js.getMapInputRecords());
+            System.out.println("Map output records : " + js.getMapOutputRecords());
+            assertEquals(count, js.getMapOutputRecords());
+            assertEquals(0, js.getReduceInputRecords());
+            assertEquals(0, js.getReduceOutputRecords());
+            System.out.println("Hdfs bytes written : " + js.getHdfsBytesWritten());
+            assertEquals(filesize, js.getHdfsBytesWritten());
         }
-
-        Map.Entry<String, Map<String, String>> e = stats.entrySet().iterator().next();
-
-        //System.out.println("Job Name : " + e.getKey());
-
-        Map<String, String> jobStats = e.getValue();
-
-        System.out.println("Map input records : " + jobStats.get("PIG_STATS_MAP_INPUT_RECORDS"));
-        assertEquals(MAX, Integer.parseInt(jobStats.get("PIG_STATS_MAP_INPUT_RECORDS")));
-        System.out.println("Map output records : " + jobStats.get("PIG_STATS_MAP_OUTPUT_RECORDS"));
-        assertEquals(count, Integer.parseInt(jobStats.get("PIG_STATS_MAP_OUTPUT_RECORDS")));
-        assertNull(jobStats.get("PIG_STATS_REDUCE_PLAN"));
-        assertNull(jobStats.get("PIG_STATS_COMBINE_PLAN"));
-        assertNotNull(jobStats.get("PIG_STATS_MAP_PLAN"));
-        assertEquals(0, Integer.parseInt(jobStats.get("PIG_STATS_REDUCE_INPUT_RECORDS")));
-        assertEquals(0, Integer.parseInt(jobStats.get("PIG_STATS_REDUCE_OUTPUT_RECORDS")));
-
-        assertEquals(count, pigStats.getRecordsWritten());
-        assertEquals(filesize, pigStats.getBytesWritten());
 
     }
 
@@ -136,49 +125,38 @@ public class TestCounters extends TestCase {
         pigServer.registerQuery("a = load '" + file + "';");
         pigServer.registerQuery("b = filter a by $0 > 50;");
         pigServer.registerQuery("c = foreach b generate $0 - 50;");
-        //pigServer.store("c", "output_map_only");
-        PigStats pigStats = pigServer.store("c", "output_map_only", "BinStorage").getStatistics();
+        ExecJob job = pigServer.store("c", "output_map_only", "BinStorage");
+        PigStats pigStats = job.getStatistics();
         
-        InputStream is = FileLocalizer.open(FileLocalizer.fullPath("output_map_only", pigServer.getPigContext()), ExecType.MAPREDUCE, pigServer.getPigContext().getDfs());
+        InputStream is = FileLocalizer.open(FileLocalizer.fullPath(
+                "output_map_only", pigServer.getPigContext()),
+                pigServer.getPigContext());
         long filesize = 0;
         while(is.read() != -1) filesize++;
         
         is.close();
 
-        Map<String, Map<String, String>> stats = pigStats.getPigStats();
         cluster.getFileSystem().delete(new Path(file), true);
         cluster.getFileSystem().delete(new Path("output_map_only"), true);
 
         System.out.println("============================================");
         System.out.println("Test case Map Only");
         System.out.println("============================================");
-        System.out.println("MRPlan : \n" + pigStats.getMRPlan());
-        for(Map.Entry<String, Map<String, String>> entry : stats.entrySet()) {
-            System.out.println("============================================");
-            System.out.println("Job : " + entry.getKey());
-            for(Map.Entry<String, String> e1 : entry.getValue().entrySet()) {
-                System.out.println(" - " + e1.getKey() + " : \n" + e1.getValue());
-            }
-            System.out.println("============================================");
+
+        JobGraph jp = pigStats.getJobGraph();
+        Iterator<JobStats> iter = jp.iterator();
+        while (iter.hasNext()) {
+            JobStats js = iter.next();
+        
+            System.out.println("Map input records : " + js.getMapInputRecords());
+            assertEquals(MAX, js.getMapInputRecords());
+            System.out.println("Map output records : " + js.getMapOutputRecords());
+            assertEquals(count, js.getMapOutputRecords());
+            assertEquals(0, js.getReduceInputRecords());
+            assertEquals(0, js.getReduceOutputRecords());
         }
-
-        Map.Entry<String, Map<String, String>> e = stats.entrySet().iterator().next();
-
-        //System.out.println("Job Name : " + e.getKey());
-
-        Map<String, String> jobStats = e.getValue();
-
-        System.out.println("Map input records : " + jobStats.get("PIG_STATS_MAP_INPUT_RECORDS"));
-        assertEquals(MAX, Integer.parseInt(jobStats.get("PIG_STATS_MAP_INPUT_RECORDS")));
-        System.out.println("Map output records : " + jobStats.get("PIG_STATS_MAP_OUTPUT_RECORDS"));
-        assertEquals(count, Integer.parseInt(jobStats.get("PIG_STATS_MAP_OUTPUT_RECORDS")));
-        assertNull(jobStats.get("PIG_STATS_REDUCE_PLAN"));
-        assertNull(jobStats.get("PIG_STATS_COMBINE_PLAN"));
-        assertNotNull(jobStats.get("PIG_STATS_MAP_PLAN"));
-        assertEquals(0, Integer.parseInt(jobStats.get("PIG_STATS_REDUCE_INPUT_RECORDS")));
-        assertEquals(0, Integer.parseInt(jobStats.get("PIG_STATS_REDUCE_OUTPUT_RECORDS")));
-
-        assertEquals(count, pigStats.getRecordsWritten());
+            
+        System.out.println("Hdfs bytes written : " + pigStats.getBytesWritten());
         assertEquals(filesize, pigStats.getBytesWritten());
     }
 
@@ -198,56 +176,44 @@ public class TestCounters extends TestCase {
         }
         pw.close();
 
-        for(int i = 0; i < 10; i++) 
-            if(nos[i] > 0)
-                count ++;
+        for(int i = 0; i < 10; i++) {
+            if(nos[i] > 0) count ++;
+        }
 
         PigServer pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
         pigServer.registerQuery("a = load '" + file + "';");
         pigServer.registerQuery("b = group a by $0;");
         pigServer.registerQuery("c = foreach b generate group;");
-        PigStats pigStats = pigServer.store("c", "output").getStatistics();
-        InputStream is = FileLocalizer.open(FileLocalizer.fullPath("output", pigServer.getPigContext()), ExecType.MAPREDUCE, pigServer.getPigContext().getDfs());
+        ExecJob job = pigServer.store("c", "output");
+        PigStats pigStats = job.getStatistics();
+        InputStream is = FileLocalizer.open(FileLocalizer.fullPath("output",
+                pigServer.getPigContext()), pigServer.getPigContext());
         long filesize = 0;
         while(is.read() != -1) filesize++;
         
         is.close();
 
-        Map<String, Map<String, String>> stats = pigStats.getPigStats();
         cluster.getFileSystem().delete(new Path(file), true);
         cluster.getFileSystem().delete(new Path("output"), true);
 
         System.out.println("============================================");
         System.out.println("Test case MapReduce");
         System.out.println("============================================");
-        System.out.println("MRPlan : \n" + pigStats.getMRPlan());
-        for(Map.Entry<String, Map<String, String>> entry : stats.entrySet()) {
-            System.out.println("============================================");
-            System.out.println("Job : " + entry.getKey());
-            for(Map.Entry<String, String> e1 : entry.getValue().entrySet()) {
-                System.out.println(" - " + e1.getKey() + " : \n" + e1.getValue());
-            }
-            System.out.println("============================================");
+
+        JobGraph jp = pigStats.getJobGraph();
+        Iterator<JobStats> iter = jp.iterator();
+        while (iter.hasNext()) {
+            JobStats js = iter.next();
+            System.out.println("Map input records : " + js.getMapInputRecords());
+            assertEquals(MAX, js.getMapInputRecords());
+            System.out.println("Map output records : " + js.getMapOutputRecords());
+            assertEquals(MAX, js.getMapOutputRecords());
+            System.out.println("Reduce input records : " + js.getReduceInputRecords());
+            assertEquals(MAX, js.getReduceInputRecords());
+            System.out.println("Reduce output records : " + js.getReduceOutputRecords());
+            assertEquals(count, js.getReduceOutputRecords());
         }
-
-        Map.Entry<String, Map<String, String>> e = stats.entrySet().iterator().next();
-
-        Map<String, String> jobStats = e.getValue();
-
-        System.out.println("Map input records : " + jobStats.get("PIG_STATS_MAP_INPUT_RECORDS"));
-        assertEquals(MAX, Integer.parseInt(jobStats.get("PIG_STATS_MAP_INPUT_RECORDS")));
-        System.out.println("Map output records : " + jobStats.get("PIG_STATS_MAP_OUTPUT_RECORDS"));
-        assertEquals(MAX, Integer.parseInt(jobStats.get("PIG_STATS_MAP_OUTPUT_RECORDS")));
-        System.out.println("Reduce input records : " + jobStats.get("PIG_STATS_REDUCE_INPUT_RECORDS"));
-        assertEquals(MAX, Integer.parseInt(jobStats.get("PIG_STATS_REDUCE_INPUT_RECORDS")));
-        System.out.println("Reduce output records : " + jobStats.get("PIG_STATS_REDUCE_OUTPUT_RECORDS"));
-        assertEquals(count, Integer.parseInt(jobStats.get("PIG_STATS_REDUCE_OUTPUT_RECORDS")));
-
-        assertNull(jobStats.get("PIG_STATS_COMBINE_PLAN"));
-        assertNotNull(jobStats.get("PIG_STATS_MAP_PLAN"));
-        assertNotNull(jobStats.get("PIG_STATS_REDUCE_PLAN"));
-
-        assertEquals(count, pigStats.getRecordsWritten());
+        System.out.println("Hdfs bytes written : " + pigStats.getBytesWritten());
         assertEquals(filesize, pigStats.getBytesWritten());
     }
 
@@ -267,59 +233,46 @@ public class TestCounters extends TestCase {
         }
         pw.close();
 
-        for(int i = 0; i < 10; i++) 
-            if(nos[i] > 0)
-                count ++;
+        for(int i = 0; i < 10; i++) {
+            if(nos[i] > 0) count ++;
+        }
 
         PigServer pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
         pigServer.registerQuery("a = load '" + file + "';");
         pigServer.registerQuery("b = group a by $0;");
         pigServer.registerQuery("c = foreach b generate group;");
-        PigStats pigStats = pigServer.store("c", "output", "BinStorage").getStatistics();
+        ExecJob job = pigServer.store("c", "output", "BinStorage");
+        PigStats pigStats = job.getStatistics();
 
-        InputStream is = FileLocalizer.open(FileLocalizer.fullPath("output", pigServer.getPigContext()), ExecType.MAPREDUCE, pigServer.getPigContext().getDfs());
+        InputStream is = FileLocalizer.open(FileLocalizer.fullPath("output",
+                pigServer.getPigContext()), pigServer.getPigContext());
         long filesize = 0;
         while(is.read() != -1) filesize++;
         
         is.close();
         
-        Map<String, Map<String, String>> stats = pigStats.getPigStats();
         cluster.getFileSystem().delete(new Path(file), true);
         cluster.getFileSystem().delete(new Path("output"), true);
 
         System.out.println("============================================");
         System.out.println("Test case MapReduce");
         System.out.println("============================================");
-        System.out.println("MRPlan : \n" + pigStats.getMRPlan());
-        for(Map.Entry<String, Map<String, String>> entry : stats.entrySet()) {
-            System.out.println("============================================");
-            System.out.println("Job : " + entry.getKey());
-            for(Map.Entry<String, String> e1 : entry.getValue().entrySet()) {
-                System.out.println(" - " + e1.getKey() + " : \n" + e1.getValue());
-            }
-            System.out.println("============================================");
+
+        JobGraph jp = pigStats.getJobGraph();
+        Iterator<JobStats> iter = jp.iterator();
+        while (iter.hasNext()) {
+            JobStats js = iter.next();
+            System.out.println("Map input records : " + js.getMapInputRecords());
+            assertEquals(MAX, js.getMapInputRecords());
+            System.out.println("Map output records : " + js.getMapOutputRecords());
+            assertEquals(MAX, js.getMapOutputRecords());
+            System.out.println("Reduce input records : " + js.getReduceInputRecords());
+            assertEquals(MAX, js.getReduceInputRecords());
+            System.out.println("Reduce output records : " + js.getReduceOutputRecords());
+            assertEquals(count, js.getReduceOutputRecords());
         }
-
-        Map.Entry<String, Map<String, String>> e = stats.entrySet().iterator().next();
-
-        Map<String, String> jobStats = e.getValue();
-
-        System.out.println("Map input records : " + jobStats.get("PIG_STATS_MAP_INPUT_RECORDS"));
-        assertEquals(MAX, Integer.parseInt(jobStats.get("PIG_STATS_MAP_INPUT_RECORDS")));
-        System.out.println("Map output records : " + jobStats.get("PIG_STATS_MAP_OUTPUT_RECORDS"));
-        assertEquals(MAX, Integer.parseInt(jobStats.get("PIG_STATS_MAP_OUTPUT_RECORDS")));
-        System.out.println("Reduce input records : " + jobStats.get("PIG_STATS_REDUCE_INPUT_RECORDS"));
-        assertEquals(MAX, Integer.parseInt(jobStats.get("PIG_STATS_REDUCE_INPUT_RECORDS")));
-        System.out.println("Reduce output records : " + jobStats.get("PIG_STATS_REDUCE_OUTPUT_RECORDS"));
-        assertEquals(count, Integer.parseInt(jobStats.get("PIG_STATS_REDUCE_OUTPUT_RECORDS")));
-
-        assertNull(jobStats.get("PIG_STATS_COMBINE_PLAN"));
-        assertNotNull(jobStats.get("PIG_STATS_MAP_PLAN"));
-        assertNotNull(jobStats.get("PIG_STATS_REDUCE_PLAN"));
-        
-        assertEquals(count, pigStats.getRecordsWritten());
+        System.out.println("Hdfs bytes written : " + pigStats.getBytesWritten());
         assertEquals(filesize, pigStats.getBytesWritten());
-
     }
 
     @Test
@@ -338,59 +291,48 @@ public class TestCounters extends TestCase {
         }
         pw.close();
 
-        for(int i = 0; i < 10; i++) 
-            if(nos[i] > 0)
-                count ++;
+        for(int i = 0; i < 10; i++) {
+            if(nos[i] > 0) count ++;
+        }
 
         PigServer pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
         pigServer.registerQuery("a = load '" + file + "';");
         pigServer.registerQuery("b = group a by $0;");
         pigServer.registerQuery("c = foreach b generate group, SUM(a.$1);");
-        PigStats pigStats = pigServer.store("c", "output").getStatistics();
+        ExecJob job = pigServer.store("c", "output");
+        PigStats pigStats = job.getStatistics();
 
-        InputStream is = FileLocalizer.open(FileLocalizer.fullPath("output", pigServer.getPigContext()), ExecType.MAPREDUCE, pigServer.getPigContext().getDfs());
+        InputStream is = FileLocalizer.open(FileLocalizer.fullPath("output",
+                pigServer.getPigContext()), pigServer.getPigContext());
         long filesize = 0;
         while(is.read() != -1) filesize++;
         
         is.close();
-        Map<String, Map<String, String>> stats = pigStats.getPigStats();
+ 
         cluster.getFileSystem().delete(new Path(file), true);
         cluster.getFileSystem().delete(new Path("output"), true);
 
         System.out.println("============================================");
         System.out.println("Test case MapCombineReduce");
         System.out.println("============================================");
-        System.out.println("MRPlan : \n" + pigStats.getMRPlan());
-        for(Map.Entry<String, Map<String, String>> entry : stats.entrySet()) {
-            System.out.println("============================================");
-            System.out.println("Job : " + entry.getKey());
-            for(Map.Entry<String, String> e1 : entry.getValue().entrySet()) {
-                System.out.println(" - " + e1.getKey() + " : \n" + e1.getValue());
-            }
-            System.out.println("============================================");
+        
+        JobGraph jp = pigStats.getJobGraph();
+        Iterator<JobStats> iter = jp.iterator();
+        while (iter.hasNext()) {
+            JobStats js = iter.next();
+            System.out.println("Map input records : " + js.getMapInputRecords());
+            assertEquals(MAX, js.getMapInputRecords());
+            System.out.println("Map output records : " + js.getMapOutputRecords());
+            assertEquals(MAX, js.getMapOutputRecords());
+            System.out.println("Reduce input records : " + js.getReduceInputRecords());
+            assertEquals(count, js.getReduceInputRecords());
+            System.out.println("Reduce output records : " + js.getReduceOutputRecords());
+            assertEquals(count, js.getReduceOutputRecords());
         }
-
-        Map.Entry<String, Map<String, String>> e = stats.entrySet().iterator().next();
-
-        Map<String, String> jobStats = e.getValue();
-
-        System.out.println("Map input records : " + jobStats.get("PIG_STATS_MAP_INPUT_RECORDS"));
-        assertEquals(MAX, Integer.parseInt(jobStats.get("PIG_STATS_MAP_INPUT_RECORDS")));
-        System.out.println("Map output records : " + jobStats.get("PIG_STATS_MAP_OUTPUT_RECORDS"));
-        assertEquals(MAX, Integer.parseInt(jobStats.get("PIG_STATS_MAP_OUTPUT_RECORDS")));
-        System.out.println("Reduce input records : " + jobStats.get("PIG_STATS_REDUCE_INPUT_RECORDS"));
-        assertEquals(count, Integer.parseInt(jobStats.get("PIG_STATS_REDUCE_INPUT_RECORDS")));
-        System.out.println("Reduce output records : " + jobStats.get("PIG_STATS_REDUCE_OUTPUT_RECORDS"));
-        assertEquals(count, Integer.parseInt(jobStats.get("PIG_STATS_REDUCE_OUTPUT_RECORDS")));
-
-        assertNotNull(jobStats.get("PIG_STATS_COMBINE_PLAN"));
-        assertNotNull(jobStats.get("PIG_STATS_MAP_PLAN"));
-        assertNotNull(jobStats.get("PIG_STATS_REDUCE_PLAN"));
-
-        assertEquals(count, pigStats.getRecordsWritten());
+        System.out.println("Hdfs bytes written : " + pigStats.getBytesWritten());
         assertEquals(filesize, pigStats.getBytesWritten());
     }
-    
+     
     @Test
     public void testMapCombineReduceBinStorage() throws IOException, ExecException {
         int count = 0;
@@ -407,56 +349,44 @@ public class TestCounters extends TestCase {
         }
         pw.close();
 
-        for(int i = 0; i < 10; i++) 
-            if(nos[i] > 0)
-                count ++;
+        for(int i = 0; i < 10; i++) {
+            if(nos[i] > 0) count ++;
+        }
 
         PigServer pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
         pigServer.registerQuery("a = load '" + file + "';");
         pigServer.registerQuery("b = group a by $0;");
         pigServer.registerQuery("c = foreach b generate group, SUM(a.$1);");
-        PigStats pigStats = pigServer.store("c", "output", "BinStorage").getStatistics();
-
-        InputStream is = FileLocalizer.open(FileLocalizer.fullPath("output", pigServer.getPigContext()), ExecType.MAPREDUCE, pigServer.getPigContext().getDfs());
+        ExecJob job = pigServer.store("c", "output", "BinStorage");
+        PigStats pigStats = job.getStatistics();
+        
+        InputStream is = FileLocalizer.open(FileLocalizer.fullPath("output",
+                pigServer.getPigContext()), pigServer.getPigContext());
         long filesize = 0;
         while(is.read() != -1) filesize++;
         
         is.close();
-        Map<String, Map<String, String>> stats = pigStats.getPigStats();
         cluster.getFileSystem().delete(new Path(file), true);
         cluster.getFileSystem().delete(new Path("output"), true);
 
         System.out.println("============================================");
         System.out.println("Test case MapCombineReduce");
         System.out.println("============================================");
-        System.out.println("MRPlan : \n" + pigStats.getMRPlan());
-        for(Map.Entry<String, Map<String, String>> entry : stats.entrySet()) {
-            System.out.println("============================================");
-            System.out.println("Job : " + entry.getKey());
-            for(Map.Entry<String, String> e1 : entry.getValue().entrySet()) {
-                System.out.println(" - " + e1.getKey() + " : \n" + e1.getValue());
-            }
-            System.out.println("============================================");
+ 
+        JobGraph jp = pigStats.getJobGraph();
+        Iterator<JobStats> iter = jp.iterator();
+        while (iter.hasNext()) {
+            JobStats js = iter.next();
+            System.out.println("Map input records : " + js.getMapInputRecords());
+            assertEquals(MAX, js.getMapInputRecords());
+            System.out.println("Map output records : " + js.getMapOutputRecords());
+            assertEquals(MAX, js.getMapOutputRecords());
+            System.out.println("Reduce input records : " + js.getReduceInputRecords());
+            assertEquals(count, js.getReduceInputRecords());
+            System.out.println("Reduce output records : " + js.getReduceOutputRecords());
+            assertEquals(count, js.getReduceOutputRecords());
         }
-
-        Map.Entry<String, Map<String, String>> e = stats.entrySet().iterator().next();
-
-        Map<String, String> jobStats = e.getValue();
-
-        System.out.println("Map input records : " + jobStats.get("PIG_STATS_MAP_INPUT_RECORDS"));
-        assertEquals(MAX, Integer.parseInt(jobStats.get("PIG_STATS_MAP_INPUT_RECORDS")));
-        System.out.println("Map output records : " + jobStats.get("PIG_STATS_MAP_OUTPUT_RECORDS"));
-        assertEquals(MAX, Integer.parseInt(jobStats.get("PIG_STATS_MAP_OUTPUT_RECORDS")));
-        System.out.println("Reduce input records : " + jobStats.get("PIG_STATS_REDUCE_INPUT_RECORDS"));
-        assertEquals(count, Integer.parseInt(jobStats.get("PIG_STATS_REDUCE_INPUT_RECORDS")));
-        System.out.println("Reduce output records : " + jobStats.get("PIG_STATS_REDUCE_OUTPUT_RECORDS"));
-        assertEquals(count, Integer.parseInt(jobStats.get("PIG_STATS_REDUCE_OUTPUT_RECORDS")));
-
-        assertNotNull(jobStats.get("PIG_STATS_COMBINE_PLAN"));
-        assertNotNull(jobStats.get("PIG_STATS_MAP_PLAN"));
-        assertNotNull(jobStats.get("PIG_STATS_REDUCE_PLAN"));
-
-        assertEquals(count, pigStats.getRecordsWritten());
+        System.out.println("Hdfs bytes written : " + pigStats.getBytesWritten());
         assertEquals(filesize, pigStats.getBytesWritten());
     }
 
@@ -476,52 +406,49 @@ public class TestCounters extends TestCase {
         }
         pw.close();
 
-        for(int i = 0; i < 10; i++) 
-            if(nos[i] > 0)
-                count ++;
+        for(int i = 0; i < 10; i++) { 
+            if(nos[i] > 0) count ++;
+        }
 
         PigServer pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
         pigServer.registerQuery("a = load '" + file + "';");
         pigServer.registerQuery("b = order a by $0;");
         pigServer.registerQuery("c = group b by $0;");
         pigServer.registerQuery("d = foreach c generate group, SUM(b.$1);");
-        PigStats pigStats = pigServer.store("d", "output").getStatistics();
+        ExecJob job = pigServer.store("d", "output");
+        PigStats pigStats = job.getStatistics();
         
-        InputStream is = FileLocalizer.open(FileLocalizer.fullPath("output", pigServer.getPigContext()), ExecType.MAPREDUCE, pigServer.getPigContext().getDfs());
+        InputStream is = FileLocalizer.open(FileLocalizer.fullPath("output",
+                pigServer.getPigContext()), pigServer.getPigContext());
         long filesize = 0;
         while(is.read() != -1) filesize++;
         
         is.close();
-        Map<String, Map<String, String>> stats = pigStats.getPigStats();
+        
         cluster.getFileSystem().delete(new Path(file), true);
         cluster.getFileSystem().delete(new Path("output"), true);
         
         System.out.println("============================================");
         System.out.println("Test case MultipleMRJobs");
         System.out.println("============================================");
-        System.out.println("MRPlan : \n" + pigStats.getMRPlan());
-        for(Map.Entry<String, Map<String, String>> entry : stats.entrySet()) {
-            System.out.println("============================================");
-            System.out.println("Job : " + entry.getKey());
-            for(Map.Entry<String, String> e1 : entry.getValue().entrySet()) {
-                System.out.println(" - " + e1.getKey() + " : \n" + e1.getValue());
-            }
-            System.out.println("============================================");
-        }
-
-        Map<String, String> jobStats = stats.get(pigStats.getRootJobIDs().get(0));
-
-        System.out.println("Map input records : " + jobStats.get("PIG_STATS_MAP_INPUT_RECORDS"));
-        assertEquals(MAX, Integer.parseInt(jobStats.get("PIG_STATS_MAP_INPUT_RECORDS")));
-        System.out.println("Map output records : " + jobStats.get("PIG_STATS_MAP_OUTPUT_RECORDS"));
-        assertEquals(MAX, Integer.parseInt(jobStats.get("PIG_STATS_MAP_OUTPUT_RECORDS")));
-        System.out.println("Reduce input records : " + jobStats.get("PIG_STATS_REDUCE_INPUT_RECORDS"));
-        assertEquals(count, Integer.parseInt(jobStats.get("PIG_STATS_REDUCE_INPUT_RECORDS")));
-        System.out.println("Reduce output records : " + jobStats.get("PIG_STATS_REDUCE_OUTPUT_RECORDS"));
-        assertEquals(count, Integer.parseInt(jobStats.get("PIG_STATS_REDUCE_OUTPUT_RECORDS")));
         
-        assertEquals(count, pigStats.getRecordsWritten());
-        assertEquals(filesize, pigStats.getBytesWritten());
+        JobGraph jp = pigStats.getJobGraph();
+        JobStats js = (JobStats)jp.getSinks().get(0);
+        
+        System.out.println("Job id: " + js.getName());
+        System.out.println(jp.toString());
+        
+        System.out.println("Map input records : " + js.getMapInputRecords());
+        assertEquals(MAX, js.getMapInputRecords());
+        System.out.println("Map output records : " + js.getMapOutputRecords());
+        assertEquals(MAX, js.getMapOutputRecords());
+        System.out.println("Reduce input records : " + js.getReduceInputRecords());
+        assertEquals(count, js.getReduceInputRecords());
+        System.out.println("Reduce output records : " + js.getReduceOutputRecords());
+        assertEquals(count, js.getReduceOutputRecords());
+        
+        System.out.println("Hdfs bytes written : " + js.getHdfsBytesWritten());
+        assertEquals(filesize, js.getHdfsBytesWritten());
 
     }
     
@@ -543,22 +470,19 @@ public class TestCounters extends TestCase {
         pigServer.registerQuery("store b into '/tmp/outout1';");
         pigServer.registerQuery("store c into '/tmp/outout2';");
         List<ExecJob> jobs = pigServer.executeBatch();
-        
-        assertTrue(jobs != null && jobs.size() == 2);
-        
-        Map<String, Map<String, String>> stats = 
-            jobs.get(0).getStatistics().getPigStats();
+        PigStats stats = jobs.get(0).getStatistics();
+        assertTrue(stats.getOutputLocations().size() == 2);
         
         cluster.getFileSystem().delete(new Path(file), true);
         cluster.getFileSystem().delete(new Path("/tmp/outout1"), true);
         cluster.getFileSystem().delete(new Path("/tmp/outout2"), true);
 
-        Map<String, String> entry = 
-            stats.get(PigStatsUtil.MULTI_STORE_COUNTER_GROUP);
+        JobStats js = (JobStats)stats.getJobGraph().getSinks().get(0);
         
+        Map<String, Long> entry = js.getMultiStoreCounters();
         long counter = 0;
-        for (String val : entry.values()) {
-            counter += new Long(val);
+        for (Long val : entry.values()) {
+            counter += val;
         }
         
         assertEquals(MAX, counter);       
@@ -593,32 +517,30 @@ public class TestCounters extends TestCase {
         pigServer.registerQuery("store d into '/tmp/outout1';");
         pigServer.registerQuery("store g into '/tmp/outout2';");
         List<ExecJob> jobs = pigServer.executeBatch();
+        PigStats stats = jobs.get(0).getStatistics();
         
-        assertTrue(jobs != null && jobs.size() == 2);
-        
-        Map<String, Map<String, String>> stats = 
-            jobs.get(0).getStatistics().getPigStats();
-        
+        assertTrue(stats.getOutputLocations().size() == 2);
+               
         cluster.getFileSystem().delete(new Path(file), true);
         cluster.getFileSystem().delete(new Path("/tmp/outout1"), true);
         cluster.getFileSystem().delete(new Path("/tmp/outout2"), true);
 
-        Map<String, String> entry = 
-            stats.get(PigStatsUtil.MULTI_STORE_COUNTER_GROUP);
+        JobStats js = (JobStats)stats.getJobGraph().getSinks().get(0);
         
+        Map<String, Long> entry = js.getMultiStoreCounters();
         long counter = 0;
-        for (String val : entry.values()) {
-            counter += new Long(val);      
+        for (Long val : entry.values()) {
+            counter += val;
         }
         
         assertEquals(groups, counter);       
     }    
     
-    /*
+    /*    
      * IMPORTANT NOTE:
      * COMMENTED OUT BECAUSE COUNTERS DO NOT CURRENTLY WORK IN LOCAL MODE -
      * SEE PIG-1286 - UNCOMMENT WHEN IT IS FIXED
-     */
+     */ 
 //    @Test
 //    public void testLocal() throws IOException, ExecException {
 //        int count = 0;
