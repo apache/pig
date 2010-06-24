@@ -21,6 +21,8 @@ package org.apache.hadoop.zebra.pig;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.StringTokenizer;
 
@@ -90,6 +92,7 @@ public class TestOrderPreserveUnion extends BaseTestCase {
   @AfterClass
   public static void tearDown() throws Exception {
     pigServer.shutdown();
+    removeDir(pathTable);
   }
 
   /**
@@ -153,12 +156,14 @@ public class TestOrderPreserveUnion extends BaseTestCase {
     /*
      * Table1 creation
      */
+    removeDir(getTableFullPath(newPath.toString()+"1"));
     pigServer
         .store(
             "srecs",
             newPath.toString()+"1",
             TableStorer.class.getCanonicalName()
                 + "('[SF_a, SF_b, SF_c]; [SF_e]')");
+    removeDir(getTableFullPath(newPath.toString()+"2"));
     pigServer
         .store(
             "srecs",
@@ -173,26 +178,37 @@ public class TestOrderPreserveUnion extends BaseTestCase {
         + "' USING org.apache.hadoop.zebra.pig.TableLoader('SF_a, source_table, SF_b', 'sorted');";
     pigServer.registerQuery(query4);
 
-    // check JOIN content
-    Iterator<Tuple> it3 = pigServer.openIterator("records2");
-    int row = 0, index, tindex = -1;
-    Tuple RowValue3 = null;
-    while (it3.hasNext()) {
-      // Last row value
-      RowValue3 = it3.next();
-      Assert.assertEquals(3, RowValue3.size());
-      index = row;
-      if (index > 9)
-        index -= 10;
-      row++;
-      if (row == 1)
-        tindex = (Integer) RowValue3.get(1);
-      else if (row == 11)
-        tindex = 1 - tindex;
-      Assert.assertEquals(index+"_00", RowValue3.get(0));
-      Assert.assertEquals(index+"_01", RowValue3.get(2));
-      Assert.assertEquals(tindex, RowValue3.get(1));
-    }
+    HashMap<Integer, ArrayList<ArrayList<Object>>> resultTable
+    = new HashMap<Integer, ArrayList<ArrayList<Object>>>();
+
+    ArrayList<ArrayList<Object>> rows = new ArrayList<ArrayList<Object>>();
+    
+    for (int i = 0; i < 10; i++)
+      addResultRow(rows, i+"_00", 0, i+"_01");
+    resultTable.put(0, rows);
+    
+    rows = new ArrayList<ArrayList<Object>>();
+    for (int i = 0; i < 10; i++)
+      addResultRow(rows, i+"_00", 1,  i+"_01");
+    resultTable.put(1, rows);
+
+ // Verify union table
+    Iterator<Tuple> it = pigServer.openIterator("records2");
+    int row = verifyTable(resultTable, 0, 1, it);
+    
     Assert.assertEquals(20, row);
+  }
+  
+  /**
+   *Add a row to expected results table
+   * 
+   */
+  private void addResultRow(ArrayList<ArrayList<Object>> resultTable, Object ... values) {
+    ArrayList<Object> resultRow = new ArrayList<Object>();
+    
+    for (int i = 0; i < values.length; i++) {
+      resultRow.add(values[i]);
+    }
+    resultTable.add(resultRow);
   }
 } 
