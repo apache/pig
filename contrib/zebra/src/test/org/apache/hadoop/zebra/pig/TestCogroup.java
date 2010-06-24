@@ -105,6 +105,7 @@ public class TestCogroup extends BaseTestCase
   @AfterClass
   public static void tearDown() throws Exception {
     pigServer.shutdown();
+    removeDir(pathTable);
   }
 
   /**
@@ -167,9 +168,9 @@ public class TestCogroup extends BaseTestCase
     String foreach = "records6 = foreach records5 generate flatten(records3), flatten(records4);";
     pigServer.registerQuery(foreach);
 
-    Path newPath = new Path("testStorer");
+    Path newPath = new Path("TestCogroup.testStorer");
     System.out.println("newPath = " + newPath);
-    removeDir(newPath);
+    removeDir(getTableFullPath(newPath.toString()+"1"));
 
     /*
      * Table1 creation
@@ -182,6 +183,6 @@ public class TestCogroup extends BaseTestCase
                 + "('[records3::SF_a]; [records4::SF_a]')");
     Assert.assertNull(pigJob.getException());
     
-    removeDir(newPath);
+    removeDir(getTableFullPath(newPath.toString()+"1"));
   }
 }

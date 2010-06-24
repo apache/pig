@@ -166,12 +166,14 @@ public class TestSortedTableUnionSourceTableProj extends BaseTestCase{
     /*
      * Table1 creation
      */
+    removeDir(getTableFullPath(newPath.toString()+"1"));
     pigServer
         .store(
             "srecs",
             newPath.toString()+"1",
             TableStorer.class.getCanonicalName()
                 + "('[SF_a, SF_b, SF_c]; [SF_e]')");
+    removeDir(getTableFullPath(newPath.toString()+"2"));
     pigServer
         .store(
             "srecs",

@@ -159,8 +159,8 @@ public class TestTableSortStorer extends BaseTestCase {
      * BasicTable.Writer(pathTable, "SF_a,SF_b,SF_c,SF_d,SF_e,SF_f,SF_g",
      * "[SF_a, SF_b, SF_c]; [SF_e, SF_f, SF_g]", false, conf);
      */
-    Path newPath = new Path(getCurrentMethodName());
-
+    Path newPath = getTableFullPath(getCurrentMethodName());
+    removeDir(newPath);
     pigServer
         .store(
             "srecs",

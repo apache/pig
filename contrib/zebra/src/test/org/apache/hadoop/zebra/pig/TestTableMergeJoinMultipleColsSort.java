@@ -156,7 +156,7 @@ public class TestTableMergeJoinMultipleColsSort extends BaseTestCase {
      * Table1 creation
      */
 
-    
+    removeDir(getTableFullPath(newPath.toString()+"1"));    
     pigServer
         .store(
             "srecs",
@@ -171,7 +171,7 @@ public class TestTableMergeJoinMultipleColsSort extends BaseTestCase {
     /*
      * Table2 creation
      */
-
+    removeDir(getTableFullPath(newPath.toString()+"2"));
     pigServer
         .store(
             "srecs",

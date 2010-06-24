@@ -19,6 +19,7 @@
 package org.apache.hadoop.zebra.pig;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.ArrayList;
 
@@ -137,12 +138,14 @@ public class TestOrderPreserveUnionHDFS extends BaseTestCase {
 		
 		// Store sorted tables
 		++fileId;  // increment filename suffix
-		String pathSort1 = pathTable1.toString() + Integer.toString(fileId);
+		String pathSort1 = "TestOrderPerserveSimple1" + Integer.toString(fileId);
+	  removeDir(getTableFullPath(pathSort1));
 		pigJob = pigServer.store("sort1", pathSort1, TableStorer.class.getCanonicalName() +
 			"('[a, b]; [c]')");
 		Assert.assertNull(pigJob.getException());
 		
-		String pathSort2 = pathTable2.toString() + Integer.toString(fileId);
+		String pathSort2 = "TestOrderPerserveSimple2" + Integer.toString(fileId);
+	  removeDir(getTableFullPath(pathSort2));
 		pigJob = pigServer.store("sort2", pathSort2, TableStorer.class.getCanonicalName() +
 			"('[a, b]; [c]')");
 		Assert.assertNull(pigJob.getException());
@@ -150,106 +153,34 @@ public class TestOrderPreserveUnionHDFS extends BaseTestCase {
 		String queryLoad = "records1 = LOAD '"
 	        + pathSort1 + ","
 	        + pathSort2
-	        +	"' USING org.apache.hadoop.zebra.pig.TableLoader('a,b,c', 'sorted');";
+	        +	"' USING org.apache.hadoop.zebra.pig.TableLoader('a,b,c, source_table', 'sorted');";
 		
 		System.out.println("queryLoad: " + queryLoad);
 		
 		pigServer.registerQuery(queryLoad);
 		
 		// Verify union table
-		ArrayList<ArrayList<Object>> resultTable = new ArrayList<ArrayList<Object>>();
+		HashMap<Integer, ArrayList<ArrayList<Object>>> resultTable
+    = new HashMap<Integer, ArrayList<ArrayList<Object>>>();
+		ArrayList<ArrayList<Object>> rows = new ArrayList<ArrayList<Object>>();
+		addResultRow(rows, "a1",	"z",	"5", 0);
+		addResultRow(rows, "a2",	"r",	"4", 0);
+		addResultRow(rows, "a3",	"e",	"3", 0);
+		addResultRow(rows, "a4",	"a",	"1", 0);
+		resultTable.put(0, rows);
 		
-		addResultRow(resultTable, "a1",	"z",	"5");
-		addResultRow(resultTable, "a2",	"r",	"4");
-		addResultRow(resultTable, "a3",	"e",	"3");
-		addResultRow(resultTable, "a4",	"a",	"1");
-		
-		addResultRow(resultTable, "b1",	"a",	"a");
-		addResultRow(resultTable, "b2",	"a",	"a");
-		addResultRow(resultTable, "b3",	"a",	"a");
-		addResultRow(resultTable, "b4",	"a",	"a");
+		rows = new ArrayList<ArrayList<Object>>();
+		addResultRow(rows, "b1",	"a",	"a", 1);
+		addResultRow(rows, "b2",	"a",	"a", 1);
+		addResultRow(rows, "b3",	"a",	"a", 1);
+		addResultRow(rows, "b4",	"a",	"a", 1);
+		resultTable.put(1, rows);
 		
 		// Verify union table
 		Iterator<Tuple> it = pigServer.openIterator("records1");
-		int numbRows = verifyTable(resultTable, 0, it);
+		int numbRows = verifyTable(resultTable, 0, 3, it);
 		
 		Assert.assertEquals(numbRows, table1.length + table2.length);
-	}
-	
-	/**
-	 * Verify union output table with expected results
-	 * 
-	 */
-	private int verifyTable(ArrayList<ArrayList<Object>> resultTable, int keyColumn, Iterator<Tuple> it) throws IOException {
-		int numbRows = 0;
-		int index = 0;
-		Object value = resultTable.get(index).get(keyColumn);  // get value of primary key
-		
-		while (it.hasNext()) {
-			Tuple rowValues = it.next();
-			
-			// If last primary sort key does match then search for next matching key
-			if (! compareObj(value, rowValues.get(keyColumn))) {
-				int subIndex = index + 1;
-				while (subIndex < resultTable.size()) {
-					if ( ! compareObj(value, resultTable.get(subIndex).get(keyColumn)) ) {  // found new key
-						index = subIndex;
-						value = resultTable.get(index).get(keyColumn);
-						break;
-					}
-					++subIndex;
-				}
-				Assert.assertEquals("Table comparison error for row : " + numbRows + " - no key found for : "
-					+ rowValues.get(keyColumn), value, rowValues.get(keyColumn));
-			}
-			// Search for matching row with this primary key
-			int subIndex = index;
-			
-			while (subIndex < resultTable.size()) {
-				// Compare row
-				ArrayList<Object> resultRow = resultTable.get(subIndex);
-				if ( compareRow(rowValues, resultRow) )
-					break; // found matching row
-				++subIndex;
-				Assert.assertEquals("Table comparison error for row : " + numbRows + " - no matching row found for : "
-					+ rowValues.get(keyColumn), value, resultTable.get(subIndex).get(keyColumn));
-			}
-			++numbRows;
-		}
-		Assert.assertEquals(resultTable.size(), numbRows);  // verify expected row count
-		return numbRows;
-	}
-	
-	/**
-	 * Compare table rows
-	 * 
-	 */
-	private boolean compareRow(Tuple rowValues, ArrayList<Object> resultRow) throws IOException {
-		boolean result = true;
-		Assert.assertEquals(resultRow.size(), rowValues.size());
-		for (int i = 0; i < rowValues.size(); ++i) {
-			if (! compareObj(rowValues.get(i), resultRow.get(i)) ) {
-				result = false;
-				break;
-			}
-		}
-		return result;
-	}
-	
-	/**
-	 * Compare table values
-	 * 
-	 */
-	private boolean compareObj(Object object1, Object object2) {
-		if (object1 == null) {
-			if (object2 == null)
-				return true;
-			else
-				return false;
-		} else if (object1.equals(object2))
-			return true;
-		else
-			return false;
 	}
 	
 	/**

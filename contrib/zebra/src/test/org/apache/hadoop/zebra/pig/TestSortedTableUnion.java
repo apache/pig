@@ -153,6 +153,8 @@ public class TestSortedTableUnion extends BaseTestCase{
      */
     Path newPath = new Path(getCurrentMethodName());
 
+    removeDir(getTableFullPath(newPath.toString()+"1"));
+    removeDir(getTableFullPath(newPath.toString()+"2"));
     /*
      * Table1 creation
      */

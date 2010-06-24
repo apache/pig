@@ -163,7 +163,7 @@ public class TestTableMergeJoin extends BaseTestCase {
      * "[SF_a, SF_b, SF_c]; [SF_e, SF_f, SF_g]", false, conf);
      */
     Path newPath = new Path(getCurrentMethodName());
-
+    removeDir(getTableFullPath(newPath.toString()+"1"));
     /*
      * Table1 creation
      */
@@ -195,7 +195,7 @@ public class TestTableMergeJoin extends BaseTestCase {
     }
     Assert.assertEquals(10, row);
     */
-    
+    removeDir(getTableFullPath(newPath.toString()+"2"));
     /*
      * Table2 creation
      */
