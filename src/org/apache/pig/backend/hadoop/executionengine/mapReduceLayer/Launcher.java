@@ -551,7 +551,7 @@ public abstract class Launcher {
         	sb.append(items[i]);
         }
 
-        declaringClass = sb.toString();
+        declaringClass += sb.toString();
         
         //from the file details extract the file name and the line number
         //PigMapOnly.java:65
