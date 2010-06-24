@@ -90,6 +90,8 @@ Trunk (unreleased changes)
 
   BUG FIXES
 
+    PIG-1453 Intermittent failure in pigtest (yanz)
+
     PIG-1432 There are some debuging info output to STDOUT in PIG's TableStorer call path (yanz)
 
     PIG-1421 Name node calls made by each mapper (xuefuz via yanz)

@@ -392,7 +392,7 @@ public class TestMergeJoinPrune extends BaseTestCase {
     t1++;
     
     String table1path = pathTable1.toString() + Integer.toString(t1);
-     
+    removeDir(new Path(table1path));
 
 ExecJob pigJob =pigServer.store("sort1", table1path, TableStorer.class.getCanonicalName()
         + "('[a, b, c]; [d, e, f, r1, m1]')");
@@ -415,6 +415,7 @@ Assert.assertNull(pigJob.getException());
      */
     this.t1++;
     String table2path = this.pathTable2.toString() + Integer.toString(this.t1);
+    removeDir(new Path(table2path));
     pigJob = pigServer.store("sort2", table2path, TableStorer.class.getCanonicalName()
         + "('[a, b, c]; [d,e,f,r1,m1]')");
     if (pigJob.getException() != null){
