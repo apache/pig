@@ -93,6 +93,8 @@ PIG-1309: Map-side Cogroup (ashutoshc)
 
 BUG FIXES
 
+PIG-1463: Replace "bz" with ".bz" in setStoreLocation in PigStorage (zjffdu)
+
 PIG-1221: Filter equality does not work for tuples (zjffdu)
 
 PIG-1456: TestMultiQuery takes a long time to run (rding)
