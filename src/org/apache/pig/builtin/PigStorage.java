@@ -231,7 +231,7 @@ LoadPushDown {
     public void setStoreLocation(String location, Job job) throws IOException {
         job.getConfiguration().set("mapred.textoutputformat.separator", "");
         FileOutputFormat.setOutputPath(job, new Path(location));
-        if (location.endsWith(".bz2") || location.endsWith("bz")) {
+        if (location.endsWith(".bz2") || location.endsWith(".bz")) {
             FileOutputFormat.setCompressOutput(job, true);
             FileOutputFormat.setOutputCompressorClass(job,  BZip2Codec.class);
         }  else if (location.endsWith(".gz")) {
