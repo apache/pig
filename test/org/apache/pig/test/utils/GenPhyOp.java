@@ -774,7 +774,7 @@ public class GenPhyOp{
     }
     
     private static FileSpec getTempFileSpec() throws IOException {
-        return new FileSpec(FileLocalizer.getTemporaryPath(null, pc).toString(),new FuncSpec(BinStorage.class.getName()));
+        return new FileSpec(FileLocalizer.getTemporaryPath(pc).toString(),new FuncSpec(BinStorage.class.getName()));
     }
     
     public static POSplit topSplitOp() throws IOException{

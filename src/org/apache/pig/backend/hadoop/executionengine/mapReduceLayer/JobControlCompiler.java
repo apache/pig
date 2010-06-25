@@ -474,7 +474,7 @@ public class JobControlCompiler{
            else { // multi store case
                 log.info("Setting up multi store job");
                 String tmpLocationStr =  FileLocalizer
-                .getTemporaryPath(null, pigContext).toString();
+                .getTemporaryPath(pigContext).toString();
                 tmpLocation = new Path(tmpLocationStr);
 
                 nwJob.setOutputFormatClass(PigOutputFormat.class);
@@ -986,7 +986,7 @@ public class JobControlCompiler{
                 // DistributedCache
                 if (shipToCluster) {
                     Path dst = 
-                        new Path(FileLocalizer.getTemporaryPath(null, pigContext).toString());
+                        new Path(FileLocalizer.getTemporaryPath(pigContext).toString());
                     FileSystem fs = dst.getFileSystem(conf);
                     fs.copyFromLocalFile(src, dst);
                     

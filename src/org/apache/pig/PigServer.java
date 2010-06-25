@@ -677,7 +677,8 @@ public class PigServer {
             if (currDAG.isBatchOn()) {
                 currDAG.execute();
             }
-            ExecJob job = store(id, FileLocalizer.getTemporaryPath(null, pigContext)
+            
+            ExecJob job = store(id, FileLocalizer.getTemporaryPath(pigContext)
                     .toString(), BinStorage.class.getName() + "()");
             
             // invocation of "execute" is synchronous!

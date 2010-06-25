@@ -75,8 +75,8 @@ public class TestSplitStore extends TestCase{
         pig.registerQuery("A = LOAD '" 
                 + Util.generateURI(tmpFile.toString(), pig.getPigContext()) + "';");
         pig.registerQuery("Split A into A1 if $0<=10, A2 if $0>10;");
-        pig.store("A1", "'" + FileLocalizer.getTemporaryPath(null, pigContext) + "'");
-        pig.store("A2", "'" + FileLocalizer.getTemporaryPath(null, pigContext) + "'");
+        pig.store("A1", "'" + FileLocalizer.getTemporaryPath(pigContext) + "'");
+        pig.store("A2", "'" + FileLocalizer.getTemporaryPath(pigContext) + "'");
     }
     
     @Test
@@ -85,7 +85,7 @@ public class TestSplitStore extends TestCase{
                 + Util.generateURI(tmpFile.toString(), pig.getPigContext()) + "';");
         pig.registerQuery("Split A into A1 if $0<=10, A2 if $0>10;");
         pig.openIterator("A1");
-        pig.store("A2", "'" + FileLocalizer.getTemporaryPath(null, pigContext) + "'");
+        pig.store("A2", "'" + FileLocalizer.getTemporaryPath(pigContext) + "'");
     }
     
     @Test
@@ -94,7 +94,7 @@ public class TestSplitStore extends TestCase{
                 + Util.generateURI(tmpFile.toString(), pig.getPigContext()) + "';");
         pig.registerQuery("Split A into A1 if $0<=10, A2 if $0>10;");
         pig.openIterator("A2");
-        pig.store("A1", "'" + FileLocalizer.getTemporaryPath(null, pigContext) + "'");
+        pig.store("A1", "'" + FileLocalizer.getTemporaryPath(pigContext) + "'");
     }
     
     @Test
@@ -102,7 +102,7 @@ public class TestSplitStore extends TestCase{
         pig.registerQuery("A = LOAD '" 
                 + Util.generateURI(tmpFile.toString(), pig.getPigContext()) + "';");
         pig.registerQuery("Split A into A1 if $0<=10, A2 if $0>10;");
-        pig.store("A1", "'" + FileLocalizer.getTemporaryPath(null, pigContext) + "'");
+        pig.store("A1", "'" + FileLocalizer.getTemporaryPath(pigContext) + "'");
         pig.openIterator("A2");
     }
     
@@ -111,7 +111,7 @@ public class TestSplitStore extends TestCase{
         pig.registerQuery("A = LOAD '" 
                 + Util.generateURI(tmpFile.toString(), pig.getPigContext()) + "';");
         pig.registerQuery("Split A into A1 if $0<=10, A2 if $0>10;");
-        pig.store("A2", "'" + FileLocalizer.getTemporaryPath(null, pigContext) + "'");
+        pig.store("A2", "'" + FileLocalizer.getTemporaryPath(pigContext) + "'");
         pig.openIterator("A1");
     }
     
@@ -121,7 +121,7 @@ public class TestSplitStore extends TestCase{
                 + Util.generateURI(tmpFile.toString(), pig.getPigContext()) + "';");
         pig.registerQuery("Split A into A1 if $0<=10, A2 if $0>10;");
         pig.openIterator("A1");
-        pig.registerQuery("Store A2 into '" + FileLocalizer.getTemporaryPath(null, pigContext) + "';");
+        pig.registerQuery("Store A2 into '" + FileLocalizer.getTemporaryPath(pigContext) + "';");
     }
     
     @Test
@@ -130,7 +130,7 @@ public class TestSplitStore extends TestCase{
                 + Util.generateURI(tmpFile.toString(), pig.getPigContext()) + "';");
         pig.registerQuery("Split A into A1 if $0<=10, A2 if $0>10;");
         pig.openIterator("A2");
-        pig.registerQuery("Store A1 into '" + FileLocalizer.getTemporaryPath(null, pigContext) + "';");
+        pig.registerQuery("Store A1 into '" + FileLocalizer.getTemporaryPath(pigContext) + "';");
     }
     
     @Test
@@ -138,7 +138,7 @@ public class TestSplitStore extends TestCase{
         pig.registerQuery("A = LOAD '" 
                 + Util.generateURI(tmpFile.toString(), pig.getPigContext()) + "';");
         pig.registerQuery("Split A into A1 if $0<=10, A2 if $0>10;");
-        pig.registerQuery("Store A1 into '" + FileLocalizer.getTemporaryPath(null, pigContext) + "';");
+        pig.registerQuery("Store A1 into '" + FileLocalizer.getTemporaryPath(pigContext) + "';");
         pig.openIterator("A2");
     }
     
@@ -147,7 +147,7 @@ public class TestSplitStore extends TestCase{
         pig.registerQuery("A = LOAD '" 
                 + Util.generateURI(tmpFile.toString(), pig.getPigContext()) + "';");
         pig.registerQuery("Split A into A1 if $0<=10, A2 if $0>10;");
-        pig.registerQuery("Store A2 into '" + FileLocalizer.getTemporaryPath(null, pigContext) + "';");
+        pig.registerQuery("Store A2 into '" + FileLocalizer.getTemporaryPath(pigContext) + "';");
         pig.openIterator("A1");
     }
 }

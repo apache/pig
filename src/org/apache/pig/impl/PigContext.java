@@ -47,10 +47,8 @@ import org.apache.pig.backend.datastorage.DataStorage;
 import org.apache.pig.backend.datastorage.DataStorageException;
 import org.apache.pig.backend.datastorage.ElementDescriptor;
 import org.apache.pig.backend.executionengine.ExecException;
-import org.apache.pig.backend.executionengine.ExecutionEngine;
 import org.apache.pig.backend.hadoop.datastorage.HDataStorage;
 import org.apache.pig.backend.hadoop.executionengine.HExecutionEngine;
-import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MapReduceLauncher;
 import org.apache.pig.backend.hadoop.streaming.HadoopExecutableManager;
 import org.apache.pig.impl.logicalLayer.LogicalPlanBuilder;
 import org.apache.pig.impl.streaming.ExecutableManager;
@@ -75,9 +73,6 @@ public class PigContext implements Serializable, FunctionInstantiator {
     //one of: local, mapreduce, pigbody
     private ExecType execType;;    
 
-    //  configuration for connecting to hadoop
-    private Properties conf = new Properties();
-    
     //  extra jar files that are needed to run a job
     transient public List<URL> extraJars = new LinkedList<URL>();              
     
@@ -91,10 +86,8 @@ public class PigContext implements Serializable, FunctionInstantiator {
     transient private DataStorage lfs;                         
     
     // handle to the back-end
-    transient private ExecutionEngine executionEngine;
+    transient private HExecutionEngine executionEngine;
    
-    private String jobName = JOB_NAME_PREFIX;    // can be overwritten by users
-  
     private Properties properties;
     
     /**
@@ -301,7 +294,7 @@ public class PigContext implements Serializable, FunctionInstantiator {
         srcElement.copy(dstElement, this.properties, false);
     }
     
-    public ExecutionEngine getExecutionEngine() {
+    public HExecutionEngine getExecutionEngine() {
         return executionEngine;
     }
 
@@ -412,8 +405,8 @@ public class PigContext implements Serializable, FunctionInstantiator {
         //return new URLClassLoader(urls, PigMapReduce.class.getClassLoader());
         return new URLClassLoader(urls, PigContext.class.getClassLoader());
     }
-    
-    
+        
+    @SuppressWarnings("unchecked")
     public static Class resolveClassName(String name) throws IOException{
 
         for(String prefix: packageImportList) {
@@ -502,9 +495,9 @@ public class PigContext implements Serializable, FunctionInstantiator {
     
     public static Object instantiateFuncFromSpec(String funcSpec)  {
         return instantiateFuncFromSpec(new FuncSpec(funcSpec));
-    }
+    }    
     
-    
+    @SuppressWarnings("unchecked")
     public Class getClassForAlias(String alias) throws IOException{
         String className = null;
         FuncSpec funcSpec = null;

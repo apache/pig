@@ -123,8 +123,8 @@ public class TestStoreOld extends TestCase {
         pw.close();
         pig = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
         fileName = "'" + FileLocalizer.hadoopify(f.toString(), pig.getPigContext()) + "'";
-        tmpFile1 = "'" + FileLocalizer.getTemporaryPath(null, pig.getPigContext()).toString() + "'";
-        tmpFile2 = "'" + FileLocalizer.getTemporaryPath(null, pig.getPigContext()).toString() + "'";
+        tmpFile1 = "'" + FileLocalizer.getTemporaryPath(pig.getPigContext()).toString() + "'";
+        tmpFile2 = "'" + FileLocalizer.getTemporaryPath(pig.getPigContext()).toString() + "'";
         f.delete();
     }
     
