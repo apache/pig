@@ -38,6 +38,7 @@ import org.apache.pig.EvalFunc;
 import org.apache.pig.ExecType;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.PigServer;
+import org.apache.pig.backend.datastorage.ElementDescriptor;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.builtin.BinStorage;
 import org.apache.pig.builtin.PigStorage;
@@ -393,7 +394,7 @@ public class TestEvalPipelineLocal extends TestCase {
         }
         ps.close(); 
         
-        String tmpOutputFile = FileLocalizer.getTemporaryPath(null, pigServer.getPigContext()).toString();
+        String tmpOutputFile = FileLocalizer.getTemporaryPath(pigServer.getPigContext()).toString();
         pigServer.registerQuery("A = LOAD '"
                 + Util.generateURI(tmpFile.toString(), pigServer
                         .getPigContext()) + "';");
@@ -433,7 +434,6 @@ public class TestEvalPipelineLocal extends TestCase {
         int LOOP_COUNT = 10;
         File tmpFile = Util.createTempFileDelOnExit("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
-        Random r = new Random();
         for(int i = 0; i < LOOP_COUNT; i++) {
             for(int j=0;j<LOOP_COUNT;j+=2){
                 ps.println(i+"\t"+j);
@@ -442,8 +442,6 @@ public class TestEvalPipelineLocal extends TestCase {
         }
         ps.close();
 
-        String tmpOutputFile = FileLocalizer.getTemporaryPath(null, 
-        pigServer.getPigContext()).toString();
         pigServer.registerQuery("A = LOAD '"
                 + Util.generateURI(tmpFile.toString(), pigServer
                         .getPigContext()) + "';");
@@ -476,7 +474,6 @@ public class TestEvalPipelineLocal extends TestCase {
         int LOOP_COUNT = 10;
         File tmpFile = Util.createTempFileDelOnExit("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
-        Random r = new Random();
         for(int i = 0; i < LOOP_COUNT; i++) {
             for(int j=0;j<LOOP_COUNT;j+=2){
                 ps.println(i+"\t"+j);
@@ -485,8 +482,6 @@ public class TestEvalPipelineLocal extends TestCase {
         }
         ps.close();
 
-        String tmpOutputFile = FileLocalizer.getTemporaryPath(null, 
-        pigServer.getPigContext()).toString();
         pigServer.registerQuery("A = LOAD '"
                 + Util.generateURI(tmpFile.toString(), pigServer
                         .getPigContext()) + "';");
@@ -524,14 +519,11 @@ public class TestEvalPipelineLocal extends TestCase {
         int LOOP_COUNT = 20;
         File tmpFile = Util.createTempFileDelOnExit("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
-        Random r = new Random();
         for(int i = 0; i < LOOP_COUNT; i++) {
             ps.println(i);
         }
         ps.close();
 
-        String tmpOutputFile = FileLocalizer.getTemporaryPath(null, 
-        pigServer.getPigContext()).toString();
         pigServer.registerQuery("A = LOAD '"
                 + Util.generateURI(tmpFile.toString(), pigServer
                         .getPigContext()) + "';");
@@ -540,7 +532,7 @@ public class TestEvalPipelineLocal extends TestCase {
         if(!iter.hasNext()) fail("No output found");
         int numIdentity = 0;
         while(iter.hasNext()){
-            Tuple t = iter.next();
+            iter.next();
             ++numIdentity;
         }
         assertEquals(5, numIdentity);
@@ -775,7 +767,6 @@ public class TestEvalPipelineLocal extends TestCase {
         int LOOP_COUNT = 2;
         File tmpFile = Util.createTempFileDelOnExit("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
-        Random r = new Random();
         for(int i = 0; i < LOOP_COUNT; i++) {
             for(int j=0;j<LOOP_COUNT;j+=2){
                 ps.println(i+"\t"+j);
@@ -784,8 +775,6 @@ public class TestEvalPipelineLocal extends TestCase {
         }
         ps.close();
 
-        String tmpOutputFile = FileLocalizer.getTemporaryPath(null, 
-        pigServer.getPigContext()).toString();
         pigServer.registerQuery("A = LOAD '"
                 + Util.generateURI(tmpFile.toString(), pigServer
                         .getPigContext()) + "';");
@@ -870,7 +859,6 @@ public class TestEvalPipelineLocal extends TestCase {
         int LOOP_COUNT = 10;
         File tmpFile = File.createTempFile("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
-        Random r = new Random();
         for(int i = 0; i < LOOP_COUNT; i++) {
             for(int j=0;j<LOOP_COUNT;j+=2){
                 ps.println(i+"\t"+j);
@@ -879,8 +867,6 @@ public class TestEvalPipelineLocal extends TestCase {
         }
         ps.close();
 
-        String tmpOutputFile = FileLocalizer.getTemporaryPath(null, 
-        pigServer.getPigContext()).toString();
         pigServer.registerQuery("A = LOAD '"
                 + Util.generateURI(tmpFile.toString(), pigServer
                         .getPigContext()) + "';");
@@ -916,7 +902,6 @@ public class TestEvalPipelineLocal extends TestCase {
         int LOOP_COUNT = 10;
         File tmpFile = File.createTempFile("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
-        Random r = new Random();
         for(int i = 0; i < LOOP_COUNT; i++) {
             for(int j=0;j<LOOP_COUNT;j+=2){
                 ps.println(i+"\t"+j);
@@ -925,8 +910,6 @@ public class TestEvalPipelineLocal extends TestCase {
         }
         ps.close();
 
-        String tmpOutputFile = FileLocalizer.getTemporaryPath(null, 
-        pigServer.getPigContext()).toString();
         pigServer.registerQuery("A = LOAD '"
                 + Util.generateURI(tmpFile.toString(), pigServer
                         .getPigContext()) + "';");
@@ -967,7 +950,6 @@ public class TestEvalPipelineLocal extends TestCase {
         int LOOP_COUNT = 10;
         File tmpFile = File.createTempFile("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
-        Random r = new Random();
         for(int i = 0; i < LOOP_COUNT; i++) {
             for(int j=0;j<LOOP_COUNT;j+=2){
                 ps.println(i+"\t"+j);
@@ -976,8 +958,6 @@ public class TestEvalPipelineLocal extends TestCase {
         }
         ps.close();
 
-        String tmpOutputFile = FileLocalizer.getTemporaryPath(null, 
-        pigServer.getPigContext()).toString();
         pigServer.registerQuery("A = LOAD '"
                 + Util.generateURI(tmpFile.toString(), pigServer
                         .getPigContext()) + "';");
@@ -1012,7 +992,6 @@ public class TestEvalPipelineLocal extends TestCase {
         int LOOP_COUNT = 2;
         File tmpFile = File.createTempFile("test", "txt");
         PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
-        Random r = new Random();
         for(int i = 0; i < LOOP_COUNT; i++) {
             for(int j=0;j<LOOP_COUNT;j+=2){
                 ps.println(i+"\t"+j);
@@ -1021,8 +1000,6 @@ public class TestEvalPipelineLocal extends TestCase {
         }
         ps.close();
 
-        String tmpOutputFile = FileLocalizer.getTemporaryPath(null, 
-        pigServer.getPigContext()).toString();
         pigServer.registerQuery("A = LOAD '"
                 + Util.generateURI(tmpFile.toString(), pigServer
                         .getPigContext()) + "';");

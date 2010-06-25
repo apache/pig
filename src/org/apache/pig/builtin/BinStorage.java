@@ -386,6 +386,7 @@ implements LoadCaster, StoreFuncInterface, LoadMetadata {
         return null;
     }
 
+    @SuppressWarnings("deprecation")
     @Override
     public ResourceSchema getSchema(String location, Job job)
             throws IOException {

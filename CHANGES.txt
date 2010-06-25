@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-1454: Consider clean up backend code (rding)
+
 PIG-1333: API interface to Pig (rding)
 
 PIG-1405: Need to move many standard functions from piggybank into Pig

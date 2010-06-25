@@ -35,6 +35,8 @@ import java.util.Stack;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.pig.ExecType;
 import org.apache.pig.backend.datastorage.ContainerDescriptor;
 import org.apache.pig.backend.datastorage.DataStorage;
@@ -44,6 +46,7 @@ import org.apache.pig.backend.datastorage.SeekableInputStream;
 import org.apache.pig.backend.datastorage.SeekableInputStream.FLAGS;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.datastorage.HDataStorage;
+import org.apache.pig.backend.hadoop.datastorage.HPath;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce;
 import org.apache.pig.impl.PigContext;
 
@@ -281,7 +284,9 @@ public class FileLocalizer {
      * @param storage The DataStorage object used to open the fileSpec
      * @return InputStream to the fileSpec
      * @throws IOException
+     * @deprecated Use {@link #open(String, PigContext)} instead
      */
+    @Deprecated
     static public InputStream open(String fileName, ExecType execType, DataStorage storage) throws IOException {
         fileName = checkDefaultPrefix(execType, fileName);
         if (!fileName.startsWith(LOCAL_PREFIX)) {
@@ -295,6 +300,10 @@ public class FileLocalizer {
         }
     }
     
+    /**
+     * @deprecated Use {@link #fullPath(String, PigContext)} instead
+     */
+    @Deprecated
     public static String fullPath(String fileName, DataStorage storage) {
         String fullPath;
         try {
@@ -489,6 +498,10 @@ public class FileLocalizer {
         setInitialized(false);
     }
 
+    /**
+     * @deprecated Use {@link #getTemporaryPath(PigContext)} instead
+     */
+    @Deprecated
     public static synchronized ElementDescriptor 
         getTemporaryPath(ElementDescriptor relative, 
                          PigContext pigContext) throws IOException {
@@ -504,6 +517,18 @@ public class FileLocalizer {
         return elem;
     }
 
+    public static Path getTemporaryPath(PigContext pigContext) throws IOException {
+        ElementDescriptor relative = relativeRoot(pigContext);
+    
+        if (!relativeRoot(pigContext).exists()) {
+            relativeRoot(pigContext).create();
+        }
+        ElementDescriptor elem= 
+            pigContext.getDfs().asElement(relative.toString(), "tmp" + r.nextInt());
+        toDelete().push(elem);
+        return ((HPath)elem).getPath();
+    }
+    
     public static String hadoopify(String filename, PigContext pigContext) throws IOException {
         if (filename.startsWith(LOCAL_PREFIX)) {
             filename = filename.substring(LOCAL_PREFIX.length());
@@ -556,6 +581,10 @@ public class FileLocalizer {
         return fileExists(filename, context.getFs());
     }
 
+    /**
+     * @deprecated Use {@link #fileExists(String, PigContext)} instead
+     */
+    @Deprecated 
     public static boolean fileExists(String filename, DataStorage store)
             throws IOException {
         ElementDescriptor elem = store.asElement(filename);
@@ -567,6 +596,10 @@ public class FileLocalizer {
         return !isDirectory(filename, context.getDfs());
     }
 
+    /**
+     * @deprecated Use {@link #isFile(String, PigContext)} instead 
+     */
+    @Deprecated
     public static boolean isFile(String filename, DataStorage store)
     throws IOException {
         return !isDirectory(filename, store);
@@ -577,6 +610,10 @@ public class FileLocalizer {
         return isDirectory(filename, context.getDfs());
     }
 
+    /**
+    * @deprecated Use {@link #isDirectory(String, PigContext)} instead.
+    */
+    @Deprecated
     public static boolean isDirectory(String filename, DataStorage store)
     throws IOException {
         ElementDescriptor elem = store.asElement(filename);

@@ -889,7 +889,7 @@ public class LogToPhyTranslationVisitor extends LogicalPlanVisitor {
         physOp.setAlias(loSplit.getAlias());
         FileSpec splStrFile;
         try {
-            splStrFile = new FileSpec(FileLocalizer.getTemporaryPath(null, pc).toString(),new FuncSpec(BinStorage.class.getName()));
+            splStrFile = new FileSpec(FileLocalizer.getTemporaryPath(pc).toString(),new FuncSpec(BinStorage.class.getName()));
         } catch (IOException e1) {
             byte errSrc = pc.getErrorSource();
             int errCode = 0;
