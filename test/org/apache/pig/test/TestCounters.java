@@ -34,7 +34,6 @@ import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.executionengine.ExecJob;
-import org.apache.pig.experimental.plan.Operator;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.tools.pigstats.JobStats;
 import org.apache.pig.tools.pigstats.PigStats;
@@ -79,8 +78,9 @@ public class TestCounters {
         //counting the no. of bytes in the output file
         //long filesize = cluster.getFileSystem().getFileStatus(new Path("output_map_only")).getLen();
         InputStream is = FileLocalizer.open(FileLocalizer.fullPath(
-                "output_map_only", pigServer.getPigContext()),
-                pigServer.getPigContext());
+                "output_map_only", pigServer.getPigContext()), pigServer
+                .getPigContext());
+
         long filesize = 0;
         while(is.read() != -1) filesize++;
         
@@ -131,6 +131,7 @@ public class TestCounters {
         InputStream is = FileLocalizer.open(FileLocalizer.fullPath(
                 "output_map_only", pigServer.getPigContext()),
                 pigServer.getPigContext());
+
         long filesize = 0;
         while(is.read() != -1) filesize++;
         
@@ -184,10 +185,12 @@ public class TestCounters {
         pigServer.registerQuery("a = load '" + file + "';");
         pigServer.registerQuery("b = group a by $0;");
         pigServer.registerQuery("c = foreach b generate group;");
+
         ExecJob job = pigServer.store("c", "output");
         PigStats pigStats = job.getStatistics();
         InputStream is = FileLocalizer.open(FileLocalizer.fullPath("output",
                 pigServer.getPigContext()), pigServer.getPigContext());
+
         long filesize = 0;
         while(is.read() != -1) filesize++;
         
@@ -357,11 +360,13 @@ public class TestCounters {
         pigServer.registerQuery("a = load '" + file + "';");
         pigServer.registerQuery("b = group a by $0;");
         pigServer.registerQuery("c = foreach b generate group, SUM(a.$1);");
+
         ExecJob job = pigServer.store("c", "output", "BinStorage");
         PigStats pigStats = job.getStatistics();
         
         InputStream is = FileLocalizer.open(FileLocalizer.fullPath("output",
                 pigServer.getPigContext()), pigServer.getPigContext());
+
         long filesize = 0;
         while(is.read() != -1) filesize++;
         

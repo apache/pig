@@ -31,7 +31,6 @@ import java.io.PrintStream;
 import java.io.Reader;
 import java.io.StringReader;
 import java.io.StringWriter;
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
@@ -44,7 +43,6 @@ import jline.ConsoleReaderInputStream;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.fs.FsShell;
-
 import org.apache.hadoop.mapred.JobClient;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.JobID;
@@ -55,7 +53,6 @@ import org.apache.pig.backend.datastorage.DataStorage;
 import org.apache.pig.backend.datastorage.DataStorageException;
 import org.apache.pig.backend.datastorage.ElementDescriptor;
 import org.apache.pig.backend.executionengine.ExecJob;
-import org.apache.pig.backend.executionengine.ExecutionEngine;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.datastorage.HDataStorage;
 import org.apache.pig.backend.hadoop.executionengine.HExecutionEngine;
@@ -198,13 +195,8 @@ public class GruntParser extends PigScriptParser {
         // the back end to kill a given job (mJobClient is used only in 
         // processKill)
         //
-        ExecutionEngine execEngine = mPigServer.getPigContext().getExecutionEngine();
-        if (execEngine instanceof HExecutionEngine) {
-            mJobConf = ((HExecutionEngine)execEngine).getJobConf();
-        }
-        else {
-            mJobConf = null;
-        }
+        HExecutionEngine execEngine = mPigServer.getPigContext().getExecutionEngine();
+        mJobConf = execEngine.getJobConf();
     }
 
     @Override

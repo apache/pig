@@ -39,7 +39,6 @@ import org.apache.pig.OrderedLoadFunc;
 import org.apache.pig.PigException;
 import org.apache.pig.PigWarning;
 import org.apache.pig.backend.executionengine.ExecException;
-import org.apache.pig.backend.executionengine.ExecutionEngine;
 import org.apache.pig.backend.hadoop.executionengine.HExecutionEngine;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROpPlanVisitor;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROperPlan;
@@ -594,7 +593,7 @@ public class MRCompiler extends PhyPlanVisitor {
      * @throws IOException
      */
     private FileSpec getTempFileSpec() throws IOException {
-        return new FileSpec(FileLocalizer.getTemporaryPath(null, pigContext).toString(),
+        return new FileSpec(FileLocalizer.getTemporaryPath(pigContext).toString(),
                 new FuncSpec(BinStorage.class.getName()));
     }
     
@@ -2240,13 +2239,13 @@ public class MRCompiler extends PhyPlanVisitor {
         rpce.setRequestedParallelism(rp);
         int val = rp;
         if(val<=0){
-            ExecutionEngine eng = pigContext.getExecutionEngine();
+            HExecutionEngine eng = pigContext.getExecutionEngine();
             if(pigContext.getExecType() != ExecType.LOCAL){
                 try {
                     if(val<=0)
                         val = pigContext.defaultParallel;
                     if (val<=0)
-                        val = ((HExecutionEngine)eng).getJobConf().getNumReduceTasks();
+                        val = eng.getJobConf().getNumReduceTasks();
                     if (val<=0)
                         val = 1;
                 } catch (Exception e) {

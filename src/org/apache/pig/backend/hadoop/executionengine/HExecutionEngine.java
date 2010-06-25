@@ -24,7 +24,6 @@ import java.net.SocketException;
 import java.net.SocketImplFactory;
 import java.net.URL;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -43,9 +42,6 @@ import org.apache.pig.PigException;
 import org.apache.pig.backend.datastorage.DataStorage;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.executionengine.ExecJob;
-import org.apache.pig.backend.executionengine.ExecPhysicalOperator;
-import org.apache.pig.backend.executionengine.ExecutionEngine;
-import org.apache.pig.backend.executionengine.util.ExecTools;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.datastorage.HDataStorage;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MapReduceLauncher;
@@ -53,6 +49,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.LogToPhyTrans
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
+import org.apache.pig.backend.hadoop.executionengine.util.MapRedUtil;
 import org.apache.pig.builtin.BinStorage;
 import org.apache.pig.experimental.logical.LogicalPlanMigrationVistor;
 import org.apache.pig.experimental.logical.optimizer.UidStamper;
@@ -65,7 +62,7 @@ import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.tools.pigstats.OutputStats;
 import org.apache.pig.tools.pigstats.PigStats;
 
-public class HExecutionEngine implements ExecutionEngine {
+public class HExecutionEngine {
     
     public static final String JOB_TRACKER_LOCATION = "mapred.job.tracker";
     private static final String FILE_SYSTEM_LOCATION = "fs.default.name";
@@ -86,15 +83,12 @@ public class HExecutionEngine implements ExecutionEngine {
     // val: the operator key for the root of the phyisical plan
     protected Map<OperatorKey, OperatorKey> logicalToPhysicalKeys;
     
-    protected Map<OperatorKey, ExecPhysicalOperator> physicalOpTable;
-    
     // map from LOGICAL key to into about the execution
     protected Map<OperatorKey, MapRedResult> materializedResults;
     
     public HExecutionEngine(PigContext pigContext) {
         this.pigContext = pigContext;
-        this.logicalToPhysicalKeys = new HashMap<OperatorKey, OperatorKey>();
-        this.physicalOpTable = new HashMap<OperatorKey, ExecPhysicalOperator>();
+        this.logicalToPhysicalKeys = new HashMap<OperatorKey, OperatorKey>();      
         this.materializedResults = new HashMap<OperatorKey, MapRedResult>();
         
         this.ds = null;
@@ -111,12 +105,7 @@ public class HExecutionEngine implements ExecutionEngine {
     public Map<OperatorKey, MapRedResult> getMaterializedResults() {
         return this.materializedResults;
     }
-    
-    public Map<OperatorKey, ExecPhysicalOperator> getPhysicalOpTable() {
-        return this.physicalOpTable;
-    }
-    
-    
+        
     public DataStorage getDataStorage() {
         return this.ds;
     }
@@ -324,14 +313,9 @@ public class HExecutionEngine implements ExecutionEngine {
 
     }
 
-    public List<ExecJob> submit(PhysicalPlan plan,
-                          String jobName) throws ExecException {
-        throw new UnsupportedOperationException();
-    }
-
     public void explain(PhysicalPlan plan, PrintStream stream, String format, boolean verbose) {
         try {
-            ExecTools.checkLeafIsStore(plan, pigContext);
+            MapRedUtil.checkLeafIsStore(plan, pigContext);
 
             MapReduceLauncher launcher = new MapReduceLauncher();
             launcher.explain(plan, pigContext, stream, format, verbose);
@@ -340,19 +324,7 @@ public class HExecutionEngine implements ExecutionEngine {
             throw new RuntimeException(ve);
         }
     }
-
-    public Collection<ExecJob> runningJobs(Properties properties) throws ExecException {
-        throw new UnsupportedOperationException();
-    }
-    
-    public Collection<String> activeScopes() throws ExecException {
-        throw new UnsupportedOperationException();
-    }
-    
-    public void reclaimScope(String scope) throws ExecException {
-        throw new UnsupportedOperationException();
-    }
-    
+  
     @SuppressWarnings("unchecked")
     private void setSSHFactory(){
         Properties properties = this.pigContext.getProperties();
@@ -375,6 +347,7 @@ public class HExecutionEngine implements ExecutionEngine {
      * @param conf JobConf with appropriate hadoop resource files
      * @param properties Pig properties that will override hadoop properties; properties might be modified
      */
+    @SuppressWarnings("deprecation")
     private void recomputeProperties(JobConf jobConf, Properties properties) {
         // We need to load the properties from the hadoop configuration
         // We want to override these with any existing properties we have.
@@ -418,7 +391,7 @@ public class HExecutionEngine implements ExecutionEngine {
                 String scope = leaf.getOperatorKey().getScope();
                 POStore str = new POStore(new OperatorKey(scope,
                     NodeIdGenerator.getGenerator().getNextNodeId(scope)));
-                spec = new FileSpec(FileLocalizer.getTemporaryPath(null,
+                spec = new FileSpec(FileLocalizer.getTemporaryPath(
                     pigContext).toString(),
                     new FuncSpec(BinStorage.class.getName()));
                 str.setSFile(spec);
