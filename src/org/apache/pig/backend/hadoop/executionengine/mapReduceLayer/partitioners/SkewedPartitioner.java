@@ -35,6 +35,7 @@ import org.apache.pig.impl.io.NullablePartitionWritable;
 import org.apache.pig.impl.util.Pair;
 import org.apache.pig.data.DefaultTupleFactory;
 import org.apache.pig.data.DataType;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce;
 import org.apache.pig.backend.hadoop.executionengine.util.MapRedUtil;
 
 
@@ -101,6 +102,7 @@ public class SkewedPartitioner extends Partitioner<PigNullableWritable, Writable
     @Override
     public void setConf(Configuration job) {
         conf = job;
+        PigMapReduce.sJobConf = conf;
         String keyDistFile = job.get("pig.keyDistFile", "");
         if (keyDistFile.length() == 0)
             throw new RuntimeException(this.getClass().getSimpleName() + " used but no key distribution found");

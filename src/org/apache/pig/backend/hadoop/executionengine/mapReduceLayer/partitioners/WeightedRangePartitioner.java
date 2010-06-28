@@ -102,7 +102,11 @@ public class WeightedRangePartitioner extends Partitioner<PigNullableWritable, W
             
             
             // use local file system to get the quantilesFile
-            Configuration conf = new Configuration(false);            
+            Configuration conf = new Configuration(false);
+            if (configuration.get("fs.file.impl")!=null)
+                conf.set("fs.file.impl", configuration.get("fs.file.impl"));
+            if (configuration.get("fs.hdfs.impl")!=null)
+                conf.set("fs.hdfs.impl", configuration.get("fs.hdfs.impl"));
             conf.set(MapRedUtil.FILE_SYSTEM_NAME, "file:///");
             
             ReadToEndLoader loader = new ReadToEndLoader(new BinStorage(),

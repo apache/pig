@@ -38,6 +38,7 @@ import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce;
 import org.apache.pig.builtin.BinStorage;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
@@ -78,6 +79,11 @@ public class MapRedUtil {
 
         // use local file system to get the keyDistFile
         Configuration conf = new Configuration(false);            
+        
+        if (PigMapReduce.sJobConf.get("fs.file.impl")!=null)
+            conf.set("fs.file.impl", PigMapReduce.sJobConf.get("fs.file.impl"));
+        if (PigMapReduce.sJobConf.get("fs.hdfs.impl")!=null)
+            conf.set("fs.hdfs.impl", PigMapReduce.sJobConf.get("fs.hdfs.impl"));
         conf.set(MapRedUtil.FILE_SYSTEM_NAME, "file:///");
 
         ReadToEndLoader loader = new ReadToEndLoader(new BinStorage(), conf, 
