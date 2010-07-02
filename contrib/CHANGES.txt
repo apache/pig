@@ -32,6 +32,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-1449 RegExLoader hangs on lines that don't match the regular expression
+(Christian Hargraves via hashutosh)
 
 PIG 0.7.0
 

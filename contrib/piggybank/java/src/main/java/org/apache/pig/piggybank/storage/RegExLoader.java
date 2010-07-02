@@ -48,21 +48,13 @@ public abstract class RegExLoader extends LoadFunc {
 
   @Override
   public Tuple getNext() throws IOException {
-    if (!in.nextKeyValue()) {
-      return null;
-    }
-    
     Pattern pattern = getPattern();
     Matcher matcher = pattern.matcher("");
     TupleFactory mTupleFactory = DefaultTupleFactory.getInstance();
     String line;
     
-    boolean tryNext = true;
-    while (tryNext) {
-      Text val = in.getCurrentValue();
-      if (val == null) {
-        break;
-      }
+    while (in.nextKeyValue()) {
+	  Text val = in.getCurrentValue();
       line = val.toString();
       if (line.length() > 0 && line.charAt(line.length() - 1) == '\r') {
         line = line.substring(0, line.length() - 1);
@@ -70,14 +62,12 @@ public abstract class RegExLoader extends LoadFunc {
       matcher = matcher.reset(line);
       ArrayList<DataByteArray> list = new ArrayList<DataByteArray>();
       if (matcher.find()) {
-        tryNext=false;
         for (int i = 1; i <= matcher.groupCount(); i++) {
           list.add(new DataByteArray(matcher.group(i)));
         }
         return mTupleFactory.newTuple(list);  
       }
     }
-
     return null;
   }
   
