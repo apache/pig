@@ -31,6 +31,8 @@ import org.junit.Test;
 public class TestRegExLoader extends TestCase {
     private static String patternString = "(\\w+),(\\w+);(\\w+)";
     private final static Pattern pattern = Pattern.compile(patternString);
+    private static String patternString2 = "(3),(three);(iii)";
+    private final static Pattern pattern2 = Pattern.compile(patternString);
 
     public static class DummyRegExLoader extends RegExLoader {
         public DummyRegExLoader() {}
@@ -38,6 +40,15 @@ public class TestRegExLoader extends TestCase {
         @Override
         public Pattern getPattern() {
             return Pattern.compile(patternString);
+        }
+    }
+
+    public static class DummyRegExLoader2 extends RegExLoader {
+        public DummyRegExLoader2() {}
+        
+        @Override
+        public Pattern getPattern() {
+            return Pattern.compile(patternString2);
         }
     }
 
@@ -69,6 +80,32 @@ public class TestRegExLoader extends TestCase {
             }
           }
         assertEquals(data.size(), tupleCount);
+    }
+        
+    @Test
+    public void testOnlyLastMatch() throws Exception {       
+        PigServer pigServer = new PigServer(LOCAL);
+        
+        String filename = TestHelper.createTempFile(data, "");
+
+    	ArrayList<String[]> dataE = new ArrayList<String[]>();
+        dataE.add(new String[] { "3,three;iii" });
+       	ArrayList<DataByteArray[]> expected = TestHelper.getExpected(dataE, pattern2);
+        
+        pigServer.registerQuery("A = LOAD 'file:" + Util.encodeEscape(filename) + 
+                "' USING " + DummyRegExLoader2.class.getName() + "() AS (key, val);");
+        Iterator<?> it = pigServer.openIterator("A");
+        int tupleCount = 0;
+        while (it.hasNext()) {
+            Tuple tuple = (Tuple) it.next();
+            if (tuple == null)
+              break;
+            else {
+              TestHelper.examineTuple(expected, tuple, tupleCount);
+              tupleCount++;
+            }
+          }
+        assertEquals(1, tupleCount);
     }
         
 }
