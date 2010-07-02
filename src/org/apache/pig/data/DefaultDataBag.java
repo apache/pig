@@ -36,7 +36,7 @@ import org.apache.pig.PigWarning;
 
 /**
  * An unordered collection of Tuples (possibly) with multiples.  The tuples
- * are stored in an ArrayList, since there is no concern for order or
+ * are stored in a List, since there is no concern for order or
  * distinctness.
  */
 public class DefaultDataBag extends DefaultAbstractBag {
@@ -295,7 +295,7 @@ public class DefaultDataBag extends DefaultAbstractBag {
             if (mContents.size() == 0) return null;
 
             if (mMemoryPtr < mContents.size()) {
-                return ((ArrayList<Tuple>)mContents).get(mMemoryPtr++);
+                return ((List<Tuple>)mContents).get(mMemoryPtr++);
             } else {
                 return null;
             }
