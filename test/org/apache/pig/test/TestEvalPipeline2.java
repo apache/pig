@@ -490,4 +490,46 @@ public class TestEvalPipeline2 extends TestCase {
         Util.deleteFile(cluster, "table_testNestedDescSort");
     }
 
+    // See PIG-1484
+    @Test
+    public void testBinStorageCommaSeperatedPath() throws Exception{
+        String[] input = {
+                "1\t3",
+                "2\t4",
+                "3\t5"
+        };
+
+        Util.createInputFile(cluster, "table_simple1", input);
+        pigServer.setBatchOn();
+        pigServer.registerQuery("A = LOAD 'table_simple1' as (a0, a1);");
+        pigServer.registerQuery("store A into 'table_simple1.bin' using BinStorage();");
+        pigServer.registerQuery("store A into 'table_simple2.bin' using BinStorage();");
+
+        pigServer.executeBatch();
+
+        pigServer.registerQuery("A = LOAD 'table_simple1.bin,table_simple2.bin' using BinStorage();");
+        Iterator<Tuple> iter = pigServer.openIterator("A");
+
+        Tuple t = iter.next();
+        assertTrue(t.toString().equals("(1,3)"));
+
+        t = iter.next();
+        assertTrue(t.toString().equals("(2,4)"));
+
+        t = iter.next();
+        assertTrue(t.toString().equals("(3,5)"));
+
+        t = iter.next();
+        assertTrue(t.toString().equals("(1,3)"));
+
+        t = iter.next();
+        assertTrue(t.toString().equals("(2,4)"));
+
+        t = iter.next();
+        assertTrue(t.toString().equals("(3,5)"));
+
+        assertFalse(iter.hasNext());
+    }
+
+
 }
