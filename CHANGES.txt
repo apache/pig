@@ -95,8 +95,6 @@ PIG-1309: Map-side Cogroup (ashutoshc)
 
 BUG FIXES
 
-PIG-1484: BinStorage should support comma seperated path (daijy)
-
 PIG-1469: DefaultDataBag assumes ArrayList as default List type (azaroth via dvryaboy)
 
 PIG-1467: order by fail when set "fs.file.impl.disable.cache" to true (daijy)
@@ -333,6 +331,8 @@ PIG-1173: pig cannot be built without an internet connection (jmhodges via daijy
 OPTIMIZATIONS
 
 BUG FIXES
+
+PIG-1484: BinStorage should support comma seperated path (daijy)
 
 PIG-1443: DefaultTuple underestimate the memory footprint for string (daijy)
 
