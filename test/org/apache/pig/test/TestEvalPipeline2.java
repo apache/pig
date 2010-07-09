@@ -672,7 +672,7 @@ public class TestEvalPipeline2 extends TestCase {
         }
     }
     
-    // See PIG-972
+    // See PIG-1484
     @Test
     public void testBinStorageCommaSeperatedPath() throws Exception{
         String[] input = {
