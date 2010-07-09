@@ -35,6 +35,7 @@ import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.executionengine.ExecJob;
 import org.apache.pig.impl.io.FileLocalizer;
+import org.apache.pig.tools.pigstats.InputStats;
 import org.apache.pig.tools.pigstats.JobStats;
 import org.apache.pig.tools.pigstats.PigStats;
 import org.apache.pig.tools.pigstats.PigStats.JobGraph;
@@ -592,4 +593,90 @@ public class TestCounters {
 //
 //    }
 
+    @Test
+    public void testJoinInputCounters() throws Exception {        
+        testInputCounters("join");
+    }
+    
+    @Test
+    public void testCogroupInputCounters() throws Exception {        
+        testInputCounters("cogroup");
+    }
+    
+    @Test
+    public void testSkewedInputCounters() throws Exception {        
+        testInputCounters("skewed");
+    }
+    
+    @Test
+    public void testSelfJoinInputCounters() throws Exception {        
+        testInputCounters("self-join");
+    }
+    
+    private static boolean multiInputCreated = false;
+    
+    private static int count = 0;
+            
+    private void testInputCounters(String keyword) throws Exception {  
+        String file1 = "multi-input1.txt";
+        String file2 = "multi-input2.txt";
+        
+        String output = keyword;
+        
+        if (keyword.equals("self-join")) {
+            file2 = file1;
+            keyword = "join";
+        }
+         
+        final int MAX_NUM_RECORDS = 100; 
+        if (!multiInputCreated) {
+            PrintWriter pw = new PrintWriter(Util.createInputFile(cluster, file1));
+            for (int i = 0; i < MAX_NUM_RECORDS; i++) {
+                int t = r.nextInt(100);
+                pw.println(t);
+            }
+            pw.close();
+                        
+            PrintWriter pw2 = new PrintWriter(Util.createInputFile(cluster, file2));
+            for (int i = 0; i < MAX_NUM_RECORDS; i++) {
+                int t = r.nextInt(100);
+                if (t > 50) {
+                    count ++;
+                    pw2.println(t);
+                }
+            }
+            pw2.close();
+            multiInputCreated = true;
+        }
+        
+        PigServer pigServer = new PigServer(ExecType.MAPREDUCE, 
+                cluster.getProperties());
+        pigServer.setBatchOn();
+        pigServer.registerQuery("a = load '" + file1 + "';");
+        pigServer.registerQuery("b = load '" + file2 + "';");
+        if (keyword.equals("join") || keyword.endsWith("cogroup")) {
+            pigServer.registerQuery("c = " + keyword + " a by $0, b by $0;");
+        } else if (keyword.equals("skewed")) {
+            pigServer.registerQuery("c = join a by $0, b by $0 using 'skewed';");
+        }
+        ExecJob job = pigServer.store("c", output + "_output");
+        
+        PigStats stats = job.getStatistics();
+        assertTrue(stats.isSuccessful());
+        List<InputStats> inputs = stats.getInputStats();
+        if (keyword.equals("join") || keyword.endsWith("cogroup")) {
+            assertEquals(2, inputs.size());
+        } else if (keyword.equals("skewed")) {
+            assertEquals(3, inputs.size());
+        }
+        for (InputStats input : inputs) {
+            if (file1.equals(input.getName()) && input.getInputType() == InputStats.INPUT_TYPE.regular) {
+                assertEquals(MAX_NUM_RECORDS, input.getNumberRecords());
+            } else if (file2.equals(input.getName())){
+                assertEquals(count, input.getNumberRecords());
+            } else {
+                assertTrue(input.getInputType() == InputStats.INPUT_TYPE.sampler);
+            }
+        }
+    }
 }

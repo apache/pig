@@ -19,15 +19,17 @@
 package org.apache.pig.tools.pigstats;
 
 import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapred.Counters;
 import org.apache.hadoop.mapred.JobClient;
-import org.apache.hadoop.mapred.JobID;
 import org.apache.hadoop.mapred.RunningJob;
 import org.apache.hadoop.mapred.jobcontrol.Job;
 import org.apache.hadoop.mapred.jobcontrol.JobControl;
@@ -61,6 +63,12 @@ public abstract class PigStatsUtil {
             = "REDUCE_OUTPUT_RECORDS";
     public static final String HDFS_BYTES_WRITTEN 
             = "HDFS_BYTES_WRITTEN";
+    public static final String HDFS_BYTES_READ 
+            = "HDFS_BYTES_READ";
+    public static final String MULTI_INPUTS_RECORD_COUNTER 
+            = "Input records from ";
+    public static final String MULTI_INPUTS_COUNTER_GROUP 
+            = "MultiInputCounters";
     
     private static final Log LOG = LogFactory.getLog(PigStatsUtil.class);
    
@@ -97,8 +105,53 @@ public abstract class PigStatsUtil {
      * @return the counter name 
      */
     public static String getMultiStoreCounterName(POStore store) {
-        return MULTI_STORE_RECORD_COUNTER +
-                new Path(store.getSFile().getFileName()).getName();
+        String shortName = null;
+        try {
+            shortName = getShortName(new URI(store.getSFile().getFileName()));
+        } catch (URISyntaxException e) {
+            LOG.warn("Invalid syntax for output location", e);
+        }
+        return (shortName == null) ? null 
+                : MULTI_STORE_RECORD_COUNTER + shortName;
+    }
+    
+    /**
+     * Returns the counter name for the given input file name
+     * 
+     * @param fname the input file name
+     * @return the counter name
+     */
+    public static String getMultiInputsCounterName(String fname) {
+        String shortName = null;
+        try {
+            shortName = getShortName(new URI(fname));            
+        } catch (URISyntaxException e) {
+            LOG.warn("Invalid syntax for input location", e);
+        }
+        return (shortName == null) ? null 
+                : MULTI_INPUTS_RECORD_COUNTER + shortName;
+    }
+    
+    private static final String SEPARATOR = "/";
+    private static final String SEMICOLON = ";";
+    
+    private static String getShortName(URI uri) {  
+        String path = uri.getPath();
+        if (path != null) {
+            int slash = path.lastIndexOf(SEPARATOR);
+            return path.substring(slash+1);
+        } 
+        // for cases such as
+        // "jdbc:hsqldb:file:/tmp/batchtest;hsqldb.default_table_type=cached;hsqldb.cache_rows=100"
+        path = uri.getSchemeSpecificPart();
+        if (path != null) {
+            int slash = path.lastIndexOf(SEPARATOR);
+            int scolon = path.indexOf(SEMICOLON);
+            if (slash < scolon) {
+                return path.substring(slash+1, scolon);
+            }
+        }
+        return null;       
     }
            
     /**
@@ -213,6 +266,13 @@ public abstract class PigStatsUtil {
         PigStats.get().setBackendException(job, e);
     }
     
+    private static Pattern pattern = Pattern.compile("tmp(-)?[\\d]{1,10}$");
+    
+    public static boolean isTempFile(String fileName) {
+        Matcher result = pattern.matcher(fileName);
+        return result.find();
+    }
+    
     private static JobStats addFailedJobStats(PigStats ps, Job job) {
         JobStats js = ps.addJobStats(job);
         if (js == null) {
@@ -220,6 +280,7 @@ public abstract class PigStatsUtil {
         } else {       
             js.setSuccessful(false);
             js.addOutputStatistics();
+            js.addInputStatistics();
         }
         return js;
     }
@@ -248,6 +309,8 @@ public abstract class PigStatsUtil {
             }
             
             js.addOutputStatistics();
+            
+            js.addInputStatistics();
         }
     }
 
