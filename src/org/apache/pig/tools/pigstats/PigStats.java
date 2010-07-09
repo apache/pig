@@ -438,6 +438,17 @@ public final class PigStats {
         return Collections.unmodifiableList(outputs);       
     }
     
+    public List<InputStats> getInputStats() {
+        List<InputStats> inputs = new ArrayList<InputStats>();
+        Iterator<JobStats> iter = jobPlan.iterator();
+        while (iter.hasNext()) {
+            for (InputStats is : iter.next().getInputs()) {
+                inputs.add(is);
+            }
+        }        
+        return Collections.unmodifiableList(inputs);       
+    }
+    
     private PigStats() {        
         jobMroMap = new HashMap<String, MapReduceOper>(); 
         jobPlan = new JobGraph();
@@ -565,7 +576,12 @@ public final class PigStats {
             }
             sb.append("\n");
         }
-        sb.append("Outputs:\n");
+        sb.append("Input(s):\n");
+        for (InputStats is : getInputStats()) {
+            sb.append(is.getDisplayString());
+        }
+        sb.append("\n");
+        sb.append("Output(s):\n");
         for (OutputStats ds : getOutputStats()) {
             sb.append(ds.getDisplayString());
         }

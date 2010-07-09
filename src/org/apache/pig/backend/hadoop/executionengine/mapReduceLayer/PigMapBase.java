@@ -179,6 +179,8 @@ public abstract class PigMapBase extends Mapper<Text, Tuple, PigNullableWritable
             roots = targetOpsAsList.toArray(new PhysicalOperator[1]);
             leaf = mp.getLeaves().get(0);               
         }
+        
+        PigStatusReporter.setContext(context);
  
     }
     
@@ -211,9 +213,9 @@ public abstract class PigMapBase extends Mapper<Text, Tuple, PigNullableWritable
             boolean aggregateWarning = "true".equalsIgnoreCase(pigContext.getProperties().getProperty("aggregate.warning"));
 
             PigHadoopLogger pigHadoopLogger = PigHadoopLogger.getInstance();
-            pigHadoopLogger.setAggregate(aggregateWarning);
-            PigStatusReporter.setContext(context);
+            pigHadoopLogger.setAggregate(aggregateWarning);           
             pigHadoopLogger.setReporter(PigStatusReporter.getInstance());
+
             PhysicalOperator.setPigLogger(pigHadoopLogger);
         }
         

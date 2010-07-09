@@ -138,7 +138,8 @@ public class ScriptState {
         ORDER_BY,
         DISTINCT,
         STREAMING,
-        SAMPLING,
+        SAMPLER,
+        INDEXER,
         MULTI_QUERY,
         FILTER,
         MAP_ONLY,
@@ -367,7 +368,7 @@ public class ScriptState {
                     conf.set(PIG_PROPERTY.JOB_PARENTS.toString(), sb.toString());
                 }
             } catch (IOException e) {
-                LOG.warn("unable to get job predecessors for job " 
+                LOG.warn("unable to get job predecessors for job "
                         + js.getJobId(), e);
             }
         }
@@ -414,9 +415,12 @@ public class ScriptState {
             if (mro.isGlobalSort()) {
                 feature.set(PIG_FEATURE.ORDER_BY.ordinal());
             } 
-            if (mro.isSampling()) { 
-                feature.set(PIG_FEATURE.SAMPLING.ordinal());
+            if (mro.isSampler()) { 
+                feature.set(PIG_FEATURE.SAMPLER.ordinal());
             } 
+            if (mro.isIndexer()) { 
+                feature.set(PIG_FEATURE.INDEXER.ordinal());
+            }
             if (mro.isCogroup()) {
                 feature.set(PIG_FEATURE.COGROUP.ordinal());
             } 

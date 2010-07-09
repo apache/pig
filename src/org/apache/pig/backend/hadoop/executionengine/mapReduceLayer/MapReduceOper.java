@@ -141,7 +141,9 @@ public class MapReduceOper extends Operator<MROpPlanVisitor> {
 	private static enum OPER_FEATURE {
 	    NONE,
 	    // Indicate if this job is a sampling job
-	    SAMPLER,	    
+	    SAMPLER,
+	    // Indicate if this job is a merge indexer
+	    INDEXER,
 	    // Indicate if this job is a group by job
 	    GROUPBY,	    
 	    // Indicate if this job is a cogroup job
@@ -313,11 +315,19 @@ public class MapReduceOper extends Operator<MROpPlanVisitor> {
         this.limitOnly = limitOnly;
     }
 
-    public boolean isSampling() {
+    public boolean isIndexer() {
+        return (feature == OPER_FEATURE.INDEXER);
+    }
+    
+    public void markIndexer() {
+        feature = OPER_FEATURE.INDEXER;
+    }
+    
+    public boolean isSampler() {
         return (feature == OPER_FEATURE.SAMPLER);
     }
     
-    public void setSampling(boolean sampling) {
+    public void markSampler() {
         feature = OPER_FEATURE.SAMPLER;
     }
     
@@ -325,7 +335,7 @@ public class MapReduceOper extends Operator<MROpPlanVisitor> {
         return (feature == OPER_FEATURE.GROUPBY);
     }
     
-    public void setGroupBy(boolean groupBy) {
+    public void markGroupBy() {
         feature = OPER_FEATURE.GROUPBY;
     }
     
@@ -333,7 +343,7 @@ public class MapReduceOper extends Operator<MROpPlanVisitor> {
         return (feature == OPER_FEATURE.COGROUP);
     }
     
-    public void setCogroup(boolean cogroup) {
+    public void markCogroup() {
         feature = OPER_FEATURE.COGROUP;
     }
     
@@ -341,7 +351,7 @@ public class MapReduceOper extends Operator<MROpPlanVisitor> {
         return (feature == OPER_FEATURE.HASHJOIN);
     }
     
-    public void setRegularJoin(boolean hashJoin) {
+    public void markRegularJoin() {
         feature = OPER_FEATURE.HASHJOIN;
     }
     

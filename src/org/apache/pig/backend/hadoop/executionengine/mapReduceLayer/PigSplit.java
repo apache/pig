@@ -73,6 +73,11 @@ public class PigSplit extends InputSplit implements Writable, Configurable {
     // index
     private int splitIndex;
     
+    // the flag indicates this is a multi-input join (i.e. join)
+    // so that custom Hadoop counters will be created in the 
+    // back-end to track the number of records for each input.
+    private boolean isMultiInputs = false;
+    
     /**
      * the job Configuration
      */
@@ -115,9 +120,6 @@ public class PigSplit extends InputSplit implements Writable, Configurable {
             return wrappedSplit.getLocations();
     }
 
-    /* (non-Javadoc)
-     * @see org.apache.hadoop.mapreduce.InputSplit#getLength()
-     */
     @Override
     public long getLength() throws IOException, InterruptedException {
         return wrappedSplit.getLength();
@@ -125,6 +127,7 @@ public class PigSplit extends InputSplit implements Writable, Configurable {
     
     @SuppressWarnings("unchecked")
     public void readFields(DataInput is) throws IOException {
+        isMultiInputs = is.readBoolean();
         totalSplits = is.readInt();
         splitIndex = is.readInt();
         inputIndex = is.readInt();
@@ -146,6 +149,7 @@ public class PigSplit extends InputSplit implements Writable, Configurable {
 
     @SuppressWarnings("unchecked")
     public void write(DataOutput os) throws IOException {
+        os.writeBoolean(isMultiInputs);
         os.writeInt(totalSplits);
         os.writeInt(splitIndex);
         os.writeInt(inputIndex);
@@ -191,10 +195,23 @@ public class PigSplit extends InputSplit implements Writable, Configurable {
         return splitIndex;
     }
 
-
-    /* (non-Javadoc)
-     * @see org.apache.hadoop.conf.Configurable#getConf()
+    /**
+     * Indicates this map has multiple input (such as the result of
+     * a join operation).
+     * @param b true if the map has multiple inputs
      */
+    public void setMultiInputs(boolean b) {
+        isMultiInputs = b;
+    }
+    
+    /**
+     * Returns true if the map has multiple inputs, else false
+     * @return true if the map has multiple inputs, else false
+     */
+    public boolean isMultiInputs() {
+        return isMultiInputs;
+    }
+    
     @Override
     public Configuration getConf() {
         return conf;

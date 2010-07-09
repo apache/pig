@@ -20,6 +20,7 @@ package org.apache.pig.tools.pigstats;
 
 import java.io.IOException;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -47,6 +48,7 @@ import org.apache.pig.classification.InterfaceAudience;
 import org.apache.pig.classification.InterfaceStability;
 import org.apache.pig.experimental.plan.Operator;
 import org.apache.pig.experimental.plan.PlanVisitor;
+import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.tools.pigstats.PigStats.JobGraph;
 import org.apache.pig.tools.pigstats.PigStats.JobGraphPrinter;
@@ -55,7 +57,6 @@ import org.apache.pig.tools.pigstats.PigStats.JobGraphPrinter;
  * This class encapsulates the runtime statistics of a MapReduce job. 
  * Job statistics is collected when job is completed.
  */
-
 @InterfaceAudience.Public
 @InterfaceStability.Evolving
 public final class JobStats extends Operator {
@@ -75,7 +76,11 @@ public final class JobStats extends Operator {
     
     private List<POStore> reduceStores = null;
     
+    private List<FileSpec> loads = null;
+    
     private ArrayList<OutputStats> outputs;
+    
+    private ArrayList<InputStats> inputs;
        
     private String errorMsg;
     
@@ -99,18 +104,23 @@ public final class JobStats extends Operator {
     private long reduceInputRecords = 0;
     private long reduceOutputRecords = 0;
     private long hdfsBytesWritten = 0;
+    private long hdfsBytesRead = 0;
     private long spillCount = 0;
     private long activeSpillCount = 0;
     
     private HashMap<String, Long> multiStoreCounters 
             = new HashMap<String, Long>();
     
+    private HashMap<String, Long> multiInputCounters 
+            = new HashMap<String, Long>();
+        
     @SuppressWarnings("deprecation")
     private Counters counters = null;
-        
+    
     JobStats(String name, JobGraph plan) {
         super(name, plan);
         outputs = new ArrayList<OutputStats>();
+        inputs = new ArrayList<InputStats>();
     }
 
     public String getJobId() { 
@@ -160,6 +170,10 @@ public final class JobStats extends Operator {
     
     public List<OutputStats> getOutputs() {
         return Collections.unmodifiableList(outputs);
+    }
+    
+    public List<InputStats> getInputs() {
+        return Collections.unmodifiableList(inputs);
     }
 
     public Map<String, Long> getMultiStoreCounters() {
@@ -214,6 +228,7 @@ public final class JobStats extends Operator {
         return name.equalsIgnoreCase(operator.getName());
     }    
  
+
     @SuppressWarnings("deprecation")
     void setId(JobID jobId) {
         this.jobId = jobId;
@@ -239,7 +254,9 @@ public final class JobStats extends Operator {
             mapStores = (List<POStore>) ObjectSerializer.deserialize(conf
                     .get(JobControlCompiler.PIG_MAP_STORES));
             reduceStores = (List<POStore>) ObjectSerializer.deserialize(conf
-                    .get(JobControlCompiler.PIG_REDUCE_STORES));
+                    .get(JobControlCompiler.PIG_REDUCE_STORES));           
+            loads = (ArrayList<FileSpec>) ObjectSerializer.deserialize(conf
+                    .get("pig.inputs"));
         } catch (IOException e) {
             LOG.warn("Failed to deserialize the store list", e);
         }                    
@@ -288,7 +305,8 @@ public final class JobStats extends Operator {
     }
 
     @SuppressWarnings("deprecation")
-    void addCounters(RunningJob rjob) {        
+    void addCounters(RunningJob rjob) {
+        Counters counters = null;
         if (rjob != null) {
             try {
                 counters = rjob.getCounters();
@@ -303,7 +321,9 @@ public final class JobStats extends Operator {
                     .getGroup(PigStatsUtil.FS_COUNTER_GROUP);
             Counters.Group multistoregroup = counters
                     .getGroup(PigStatsUtil.MULTI_STORE_COUNTER_GROUP);
-            
+            Counters.Group multiloadgroup = counters
+                    .getGroup(PigStatsUtil.MULTI_INPUTS_COUNTER_GROUP);
+
             mapInputRecords = taskgroup.getCounterForName(
                     PigStatsUtil.MAP_INPUT_RECORDS).getCounter();
             mapOutputRecords = taskgroup.getCounterForName(
@@ -312,6 +332,8 @@ public final class JobStats extends Operator {
                     PigStatsUtil.REDUCE_INPUT_RECORDS).getCounter();
             reduceOutputRecords = taskgroup.getCounterForName(
                     PigStatsUtil.REDUCE_OUTPUT_RECORDS).getCounter();
+            hdfsBytesRead = hdfsgroup.getCounterForName(
+                    PigStatsUtil.HDFS_BYTES_READ).getCounter();      
             hdfsBytesWritten = hdfsgroup.getCounterForName(
                     PigStatsUtil.HDFS_BYTES_WRITTEN).getCounter();            
             spillCount = counters.findCounter(
@@ -324,7 +346,14 @@ public final class JobStats extends Operator {
             while (iter.hasNext()) {
                 Counter cter = iter.next();
                 multiStoreCounters.put(cter.getName(), cter.getValue());
-            }            
+            }     
+            
+            Iterator<Counter> iter2 = multiloadgroup.iterator();
+            while (iter2.hasNext()) {
+                Counter cter = iter2.next();
+                multiInputCounters.put(cter.getName(), cter.getValue());
+            } 
+            
         }              
     }
     
@@ -414,12 +443,19 @@ public final class JobStats extends Operator {
         } else {
             records = mapOutputRecords;
         }
-        String location = sto.getSFile().getFileName();
-        Path p = new Path(location);
-        URI uri = p.toUri();
+        String location = sto.getSFile().getFileName();        
+        URI uri = null;
+        try {
+            uri = new URI(location);
+        } catch (URISyntaxException e1) {
+            LOG.warn("invalid syntax for output location: " + location, e1);
+        }
         long bytes = -1;
-        if (uri.getScheme() == null || uri.getScheme().equalsIgnoreCase("hdfs")) {
+        if (uri != null
+                && (uri.getScheme() == null || uri.getScheme()
+                        .equalsIgnoreCase("hdfs"))) {
             try {
+                Path p = new Path(location);
                 FileSystem fs = p.getFileSystem(conf);
                 FileStatus[] lst = fs.listStatus(p);
                 if (lst != null) {
@@ -438,4 +474,64 @@ public final class JobStats extends Operator {
         outputs.add(ds);
     }
        
+    void addInputStatistics() {
+        if (loads == null)  {
+            LOG.warn("unable to get inputs of the job");
+            return;
+        }
+        
+        if (loads.size() == 1) {
+            FileSpec fsp = loads.get(0); 
+            if (!PigStatsUtil.isTempFile(fsp.getFileName())) {
+                long records = mapInputRecords;       
+                InputStats is = new InputStats(fsp.getFileName(),
+                        hdfsBytesRead, records, (state == JobState.SUCCESS));              
+                is.setConf(conf);
+                if (isSampler()) is.markSampleInput();
+                if (isIndexer()) is.markIndexerInput();
+                inputs.add(is);                
+            }
+        } else {
+            // check for self-join (duplicated input file names)
+            HashMap<String, Integer> dupmap = new HashMap<String, Integer>();
+            for (FileSpec fsp : loads) {
+                String name = PigStatsUtil.getMultiInputsCounterName(fsp.getFileName());
+                if (name == null) continue;
+                if (dupmap.containsKey(name)) {
+                    int n = dupmap.get(name);
+                    dupmap.put(name, (n+1));
+                } else {
+                    dupmap.put(name, 1);
+                }                
+            }
+            for (FileSpec fsp : loads) {
+                if (PigStatsUtil.isTempFile(fsp.getFileName())) continue;
+                addOneInputStats(fsp.getFileName(), dupmap);
+            }
+        }            
+    }
+    
+    private void addOneInputStats(String fileName, Map<String, Integer> dupmap) {
+        long records = -1;
+        Long n = multiInputCounters.get(
+                PigStatsUtil.getMultiInputsCounterName(fileName));
+        if (n != null) {
+            Integer m = dupmap.get(PigStatsUtil.getMultiInputsCounterName(fileName));            
+            records = (m != null && m > 0) ? (n / m) : n;
+        } else {
+            LOG.warn("unable to get input counter for " + fileName);
+        }
+        InputStats is = new InputStats(fileName, -1, records, (state == JobState.SUCCESS));              
+        is.setConf(conf);
+        inputs.add(is);
+    }
+    
+    private boolean isSampler() {
+        return getFeature().contains(ScriptState.PIG_FEATURE.SAMPLER.name());
+    }
+    
+    private boolean isIndexer() {
+        return getFeature().contains(ScriptState.PIG_FEATURE.INDEXER.name());
+    }
+    
 }
