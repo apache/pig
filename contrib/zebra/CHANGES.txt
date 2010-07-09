@@ -4,6 +4,8 @@ Trunk (unreleased changes)
 
   INCOMPATIBLE CHANGES
 
+    PIG-1367 Addition of Map-side cogroup test (yanz)
+
     PIG-1455 Addition of test-unit as an ant target (yanz)
 
     PIG-1451 Change the build.test property in build to test.build.dir to be consistent with PIG (yanz)
