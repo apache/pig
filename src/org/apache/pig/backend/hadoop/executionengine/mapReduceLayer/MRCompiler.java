@@ -1000,12 +1000,12 @@ public class MRCompiler extends PhyPlanVisitor {
             nonBlocking(op);
             phyToMROpMap.put(op, curMROp);
             if (op.getPackageType() == PackageType.JOIN) {
-                curMROp.setRegularJoin(true);
+                curMROp.markRegularJoin();
             } else if (op.getPackageType() == PackageType.GROUP) {
                 if (op.getNumInps() == 1) {
-                    curMROp.setGroupBy(true);
+                    curMROp.markGroupBy();
                 } else if (op.getNumInps() > 1) {
-                    curMROp.setCogroup(true);
+                    curMROp.markCogroup();
                 }
             }
         }catch(Exception e){
@@ -1493,6 +1493,7 @@ public class MRCompiler extends PhyPlanVisitor {
                 throw new PlanException(msg, errCode, PigException.BUG);
             }
             if(rightMROpr != null) {
+                rightMROpr.markIndexer();
                 // We want to ensure indexing job runs prior to actual join job. So, connect them in order.
                 MRPlan.connect(rightMROpr, curMROp);
             }
@@ -2311,7 +2312,7 @@ public class MRCompiler extends PhyPlanVisitor {
         
         mro.setReduceDone(true);
         mro.requestedParallelism = 1;
-        mro.setSampling(true);
+        mro.markSampler();
         return new Pair<MapReduceOper, Integer>(mro, parallelismForSort);
     }
 

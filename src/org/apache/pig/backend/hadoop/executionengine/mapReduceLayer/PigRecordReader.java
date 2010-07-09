@@ -18,18 +18,24 @@
 package org.apache.pig.backend.hadoop.executionengine.mapReduceLayer;
 
 import java.io.IOException;
+import java.util.ArrayList;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
+import org.apache.hadoop.mapreduce.Counter;
 import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
-import org.apache.pig.FuncSpec;
 import org.apache.pig.LoadFunc;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.data.Tuple;
-import org.apache.pig.impl.PigContext;
+import org.apache.pig.impl.io.FileSpec;
+import org.apache.pig.impl.util.ObjectSerializer;
+import org.apache.pig.tools.pigstats.PigStatsUtil;
+import org.apache.pig.tools.pigstats.PigStatusReporter;
 
 /**
  * A wrapper around the actual RecordReader and loadfunc - this is needed for
@@ -45,6 +51,7 @@ import org.apache.pig.impl.PigContext;
  */
 public class PigRecordReader extends RecordReader<Text, Tuple> {
 
+    private static final Log LOG = LogFactory.getLog(PigRecordReader.class);
     /**
      * the current Tuple value as returned by underlying
      * {@link LoadFunc#getNext()}
@@ -57,6 +64,12 @@ public class PigRecordReader extends RecordReader<Text, Tuple> {
     
     // the loader object
     private LoadFunc loadfunc;
+    
+    // the Hadoop counter for multi-input jobs 
+    transient private Counter inputRecordCounter = null;
+    
+    // the Hadoop counter name
+    transient private String counterName = null;
     
     /**
      * the Configuration object with data specific to the input the underlying
@@ -77,17 +90,11 @@ public class PigRecordReader extends RecordReader<Text, Tuple> {
         this.inputSpecificConf = conf;
     }
     
-    /* (non-Javadoc)
-     * @see org.apache.hadoop.mapreduce.RecordReader#close()
-     */
     @Override
     public void close() throws IOException {
         wrappedReader.close();        
     }
 
-    /* (non-Javadoc)
-     * @see org.apache.hadoop.mapreduce.RecordReader#getCurrentKey()
-     */
     @Override
     public Text getCurrentKey() throws IOException, InterruptedException {
         // In pig we don't really use the key in the input to the map - so send
@@ -95,25 +102,32 @@ public class PigRecordReader extends RecordReader<Text, Tuple> {
         return null;
     }
 
-    /* (non-Javadoc)
-     * @see org.apache.hadoop.mapreduce.RecordReader#getCurrentValue()
-     */
     @Override
-    public Tuple getCurrentValue() throws IOException, InterruptedException {
+    public Tuple getCurrentValue() throws IOException, InterruptedException {    
+        if (inputRecordCounter == null && counterName != null) {
+            PigStatusReporter reporter = PigStatusReporter.getInstance();
+            if (reporter != null) {
+                inputRecordCounter = reporter.getCounter(
+                        PigStatsUtil.MULTI_INPUTS_COUNTER_GROUP,
+                        counterName);
+                LOG.info("Created input record counter: " + counterName);
+            } else {
+                LOG.warn("Get null reporter for " + counterName);
+            }
+        }
+        // Increment the multi-input record counter
+        if (inputRecordCounter != null && curValue != null) {
+            inputRecordCounter.increment(1);            
+        }
+       
         return curValue;
     }
 
-    /* (non-Javadoc)
-     * @see org.apache.hadoop.mapreduce.RecordReader#getProgress()
-     */
     @Override
     public float getProgress() throws IOException, InterruptedException {
         return wrappedReader.getProgress();
     }
 
-    /* (non-Javadoc)
-     * @see org.apache.hadoop.mapreduce.RecordReader#initialize(org.apache.hadoop.mapreduce.InputSplit, org.apache.hadoop.mapreduce.TaskAttemptContext)
-     */
     @Override
     public void initialize(InputSplit split, TaskAttemptContext context)
             throws IOException, InterruptedException {
@@ -132,15 +146,25 @@ public class PigRecordReader extends RecordReader<Text, Tuple> {
         // the "adjusted" conf
         wrappedReader.initialize(pigSplit.getWrappedSplit(), context);
         loadfunc.prepareToRead(wrappedReader, pigSplit);
+                
+        if (pigSplit.isMultiInputs()) { 
+            counterName = getMultiInputsCounerName(pigSplit, inputSpecificConf);
+        }
     }
 
-    /* (non-Javadoc)
-     * @see org.apache.hadoop.mapreduce.RecordReader#nextKeyValue()
-     */
     @Override
     public boolean nextKeyValue() throws IOException, InterruptedException {
         curValue = loadfunc.getNext();
         return curValue != null;
     }
 
+    @SuppressWarnings("unchecked")
+    private static String getMultiInputsCounerName(PigSplit pigSplit,
+            Configuration conf) throws IOException {
+        ArrayList<FileSpec> inputs = 
+            (ArrayList<FileSpec>) ObjectSerializer.deserialize(
+                    conf.get(PigInputFormat.PIG_INPUTS));
+        String fname = inputs.get(pigSplit.getInputIndex()).getFileName();
+        return PigStatsUtil.getMultiInputsCounterName(fname);
+    }
 }

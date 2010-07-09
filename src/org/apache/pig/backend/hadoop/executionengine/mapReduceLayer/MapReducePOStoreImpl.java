@@ -114,9 +114,8 @@ public class MapReducePOStoreImpl extends POStoreImpl {
     }
     
     public Counter createRecordCounter(POStore store) {
-        Counter outputRecordCounter = reporter.getCounter(
-                PigStatsUtil.MULTI_STORE_COUNTER_GROUP, PigStatsUtil
-                        .getMultiStoreCounterName(store));
-        return outputRecordCounter; 
+        String name = PigStatsUtil.getMultiStoreCounterName(store);
+        return (name == null) ? null : reporter.getCounter(
+                PigStatsUtil.MULTI_STORE_COUNTER_GROUP, name); 
     }
 }

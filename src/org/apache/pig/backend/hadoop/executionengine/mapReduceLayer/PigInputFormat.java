@@ -274,8 +274,12 @@ public class PigInputFormat extends InputFormat<Text, Tuple> {
         // passing total # of splits to each split so that it can be retrieved 
         // in the RecordReader method when called by mapreduce framework later. 
         int n = splits.size();
+        // also passing the multi-input flag to the back-end so that 
+        // the multi-input record counters can be created 
+        int m = inputs.size();        
         for (InputSplit split : splits) {
             ((PigSplit) split).setTotalSplits(n);
+            if (m > 1) ((PigSplit) split).setMultiInputs(true);
         }
         
         return splits;

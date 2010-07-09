@@ -24,6 +24,9 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-1389: Implement Pig counter to track number of rows for each input files
+(rding)
+
 PIG-1454: Consider clean up backend code (rding)
 
 PIG-1333: API interface to Pig (rding)

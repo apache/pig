@@ -24,13 +24,19 @@ import static org.junit.Assert.assertTrue;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.PrintWriter;
+import java.util.Properties;
 
 import org.apache.hadoop.fs.Path;
+import org.apache.pig.ExecType;
 import org.apache.pig.PigRunner;
 import org.apache.pig.PigRunner.ReturnCode;
+import org.apache.pig.backend.hadoop.datastorage.HPath;
+import org.apache.pig.impl.PigContext;
+import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.tools.pigstats.JobStats;
 import org.apache.pig.tools.pigstats.OutputStats;
 import org.apache.pig.tools.pigstats.PigStats;
+import org.apache.pig.tools.pigstats.PigStatsUtil;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -251,8 +257,7 @@ public class TestPigRunner {
         
         try {
             String[] args = { PIG_FILE };
-            PigStats stats = PigRunner.run(args); 
-            System.out.println("++++ code: " + stats.getReturnCode());
+            PigStats stats = PigRunner.run(args);             
             assertTrue(!stats.isSuccessful());            
             assertTrue(stats.getReturnCode() == ReturnCode.PARTIAL_FAILURE);
             assertTrue(stats.getJobGraph().size() == 2);
@@ -273,5 +278,22 @@ public class TestPigRunner {
             Util.deleteFile(cluster, OUTPUT_FILE);
             Util.deleteFile(cluster, OUTPUT_FILE_2);
         }
+    }
+    
+    @Test
+    public void testIsTempFile() throws Exception {
+        PigContext context = new PigContext(ExecType.LOCAL, new Properties());
+        context.connect();
+        for (int i=0; i<100; i++) {
+            String file = FileLocalizer.getTemporaryPath(context).toString();
+            assertTrue("not a temp file: " + file, PigStatsUtil.isTempFile(file));
+        }
+    }
+    
+    @Test
+    public void testCounterName() throws Exception {
+        String s = "jdbc:hsqldb:file:/tmp/batchtest;hsqldb.default_table_type=cached;hsqldb.cache_rows=100";
+        String name = PigStatsUtil.getMultiInputsCounterName(s);
+        assertEquals(PigStatsUtil.MULTI_INPUTS_RECORD_COUNTER + "batchtest", name);
     }
 }
