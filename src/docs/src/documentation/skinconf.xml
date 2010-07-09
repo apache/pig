@@ -112,8 +112,6 @@ which will be used to configure the chosen Forrest skin.
     NOTE: If a breadcrumb entry points at a local file the href must
     be complete, that is it must point to the file itself, not to a 
     directory.
-
-	CC: added breadcrumb links
   -->
   <trail>
     <link1 name="Apache" href="http://www.apache.org/"/>
@@ -133,7 +131,6 @@ which will be used to configure the chosen Forrest skin.
   <toc max-depth="1" min-sections="1" location="page"/>
 
 <!-- Heading types can be clean|underlined|boxed  
-	  CC: change to clean
 -->
   <headings type="clean"/>
 
@@ -208,7 +205,7 @@ which will be used to configure the chosen Forrest skin.
     #footer a { color: #0F3660; }
     #footer a:visited { color: #009999; }
     
-<!--CC: Headers and Code -->
+<!--Headers and Code -->
         
 	#content h1 {
 	  margin-bottom: .5em;
