@@ -396,12 +396,17 @@ implements LoadCaster, StoreFuncInterface, LoadMetadata {
         // we can treat either local or hadoop mode as hadoop mode - hence
         // we can use HDataStorage and FileLocalizer.openDFSFile below
         HDataStorage storage = new HDataStorage(props);
-        if (!FileLocalizer.fileExists(location, storage)) {
-            // At compile time in batch mode, the file may not exist
-            // (such as intermediate file). Just return null - the
-            // same way as we would if we did not get a valid record
-            return null;
+        
+        // At compile time in batch mode, the file may not exist
+        // (such as intermediate file). Just return null - the
+        // same way as we would if we did not get a valid record
+        String[] locations = getPathStrings(location);
+        for (String loc : locations) {
+            if (!FileLocalizer.fileExists(loc, storage)) {
+                return null;
+            }
         }
+
         ReadToEndLoader loader = new ReadToEndLoader(this, conf, location, 0);
         // get the first record from the input file
         // and figure out the schema from the data in
