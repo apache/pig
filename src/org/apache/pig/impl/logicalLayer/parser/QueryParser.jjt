@@ -268,8 +268,14 @@ public class QueryParser {
             return cogroup;
         }
 
+        else if (modifier.equalsIgnoreCase("merge")){
+            LogicalOperator cogroup = parseCogroup(gis, lp, LOCogroup.GROUPTYPE.MERGE);
+            cogroup.pinOption(LOCogroup.OPTION_GROUPTYPE);
+            return cogroup;
+        }
+        
         else{
-            throw new ParseException("Only COLLECTED or REGULAR are valid GROUP modifiers.");
+            throw new ParseException("Only COLLECTED, REGULAR or MERGE are valid GROUP modifiers.");
         }
     }
     
@@ -1808,6 +1814,10 @@ LogicalOperator CogroupClause(LogicalPlan lp) :
          |("\"regular\"") {
             log.info("[WARN] Use of double-quoted string to specify hint is deprecated. Please specify hint in single quotes."); 
             cogroup = parseUsingForGroupBy("regular", gis, lp);
+            }
+         |("\"merge\"") {
+            log.info("[WARN] Use of double-quoted string to specify hint is deprecated. Please specify hint in single quotes."); 
+            cogroup = parseUsingForGroupBy("merge", gis, lp);
             }
         )])
     )

@@ -266,6 +266,10 @@ public class PhyPlanVisitor extends PlanVisitor<PhysicalOperator,PhysicalPlan> {
     public void visitMergeJoin(POMergeJoin join) throws VisitorException {
         //do nothing
     }
+    
+    public void visitMergeCoGroup(POMergeCogroup mergeCoGrp) throws VisitorException{
+        
+    }
     /**
      * @param stream
      * @throws VisitorException 

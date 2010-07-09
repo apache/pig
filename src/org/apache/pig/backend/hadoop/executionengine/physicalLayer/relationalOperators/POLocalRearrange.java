@@ -122,6 +122,9 @@ public class POLocalRearrange extends PhysicalOperator {
     
     private boolean useSecondaryKey = false;
     
+    // By default, we strip keys from the value.
+    private boolean stripKeyFromValue = true;
+    
     public POLocalRearrange(OperatorKey k) {
         this(k, -1, null);
     }
@@ -412,13 +415,19 @@ public class POLocalRearrange extends PhysicalOperator {
         Object key;
         Object secondaryKey=null;
         
-        
         if (secondaryResLst!=null && secondaryResLst.size()>0)
         {
             key = getKeyFromResult(resLst, mainKeyType);
             secondaryKey = getKeyFromResult(secondaryResLst, secondaryKeyType);
         } else
             key = getKeyFromResult(resLst, keyType);
+        
+
+        if(!stripKeyFromValue){
+            lrOutput.set(1, key);
+            lrOutput.set(2, value);
+            return lrOutput;
+        }
         
         if (mIsDistinct) {
 
@@ -779,6 +788,10 @@ public class POLocalRearrange extends PhysicalOperator {
         }
         mProjectedColsMapSize  = mProjectedColsMap.size();
         
+    }
+
+    protected void setStripKeyFromValue(boolean stripKeyFromValue) {
+        this.stripKeyFromValue = stripKeyFromValue;
     }
 
 }
