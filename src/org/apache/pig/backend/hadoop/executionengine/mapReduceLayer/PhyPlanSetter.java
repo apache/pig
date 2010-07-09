@@ -296,4 +296,10 @@ public class PhyPlanSetter extends PhyPlanVisitor {
         preCombinerLocalRearrange.setParentPlan(parent);
     }
 
+
+    @Override
+    public void visitMergeCoGroup(POMergeCogroup mergeCoGrp)
+            throws VisitorException {
+        mergeCoGrp.setParentPlan(parent);
+    }
 }
