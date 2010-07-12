@@ -26,14 +26,14 @@ import org.apache.pig.FilterFunc;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DefaultBagFactory;
 import org.apache.pig.data.Tuple;
-import org.apache.pig.data.DefaultTupleFactory;
+import org.apache.pig.data.TupleFactory;
 
 public class TutorialTest {
 
     private static Tuple[] getTuples(String[] queries) {
         Tuple[] tuples = new Tuple[queries.length];
         for (int i = 0; i < tuples.length; i++) {
-            tuples[i] = DefaultTupleFactory.getInstance().newTuple(1);
+            tuples[i] = TupleFactory.getInstance().newTuple(1);
             try{tuples[i].set(0, queries[i]);}catch(Exception e){}
         }
         return tuples;
@@ -126,7 +126,7 @@ public class TutorialTest {
 
         DataBag bag = DefaultBagFactory.getInstance().newDefaultBag();
     
-        Tuple t1 = DefaultTupleFactory.getInstance().newTuple(3);
+        Tuple t1 = TupleFactory.getInstance().newTuple(3);
         try{
             t1.set(0, "word");
             t1.set(1, "02");
@@ -134,7 +134,7 @@ public class TutorialTest {
         }catch(Exception e){}
         bag.add(t1);
     
-        Tuple t2 = DefaultTupleFactory.getInstance().newTuple(3);
+        Tuple t2 = TupleFactory.getInstance().newTuple(3);
         try{
             t2.set(0, "word");
             t2.set(1, "05");
@@ -142,7 +142,7 @@ public class TutorialTest {
         }catch(Exception e){}
         bag.add(t2);
 
-        Tuple t3 = DefaultTupleFactory.getInstance().newTuple(3);
+        Tuple t3 = TupleFactory.getInstance().newTuple(3);
         try{
             t3.set(0, "word");
             t3.set(1, "04");
@@ -150,7 +150,7 @@ public class TutorialTest {
         }catch(Exception e){}
         bag.add(t3);
 
-        Tuple t4 = DefaultTupleFactory.getInstance().newTuple(3);
+        Tuple t4 = TupleFactory.getInstance().newTuple(3);
         try{
             t4.set(0, "word");
             t4.set(1, "06");
@@ -159,7 +159,7 @@ public class TutorialTest {
         bag.add(t4);
 
         Tuple[] t = new Tuple[1];
-        t[0] = DefaultTupleFactory.getInstance().newTuple(1);
+        t[0] = TupleFactory.getInstance().newTuple(1);
         try{
             t[0].set(0, bag);
         }catch(Exception e){}

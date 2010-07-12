@@ -36,7 +36,6 @@ import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.DefaultBagFactory;
-import org.apache.pig.data.DefaultTupleFactory;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.util.LogUtils;
@@ -117,7 +116,7 @@ public class Utf8StorageConverter implements LoadCaster {
                 return null;
             }
         }
-        Tuple t = DefaultTupleFactory.getInstance().newTuple();
+        Tuple t = TupleFactory.getInstance().newTuple();
         if (fieldSchema.getSchema()!=null && fieldSchema.getSchema().getFields().length!=0) {
             ResourceFieldSchema[] fss = fieldSchema.getSchema().getFields();
             // Interpret item inside tuple one by one based on the inner schema

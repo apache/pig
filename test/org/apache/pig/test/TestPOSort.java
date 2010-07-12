@@ -251,18 +251,18 @@ public class TestPOSort extends TestCase {
     public void testPOSortMixAscDesc1() throws ExecException {
         DataBag input = DefaultBagFactory.getInstance().newDefaultBag() ;
 
-        Tuple t1 = DefaultTupleFactory.getInstance().newTuple() ;
+        Tuple t1 = TupleFactory.getInstance().newTuple() ;
         t1.append(1);
         t1.append(10);
         input.add(t1);
 
-        Tuple t2 = DefaultTupleFactory.getInstance().newTuple() ;
+        Tuple t2 = TupleFactory.getInstance().newTuple() ;
         t2.append(3);
         t2.append(8);
         input.add(t2);
 
 
-        Tuple t3 = DefaultTupleFactory.getInstance().newTuple() ;
+        Tuple t3 = TupleFactory.getInstance().newTuple() ;
         t3.append(2);
         t3.append(8);
         input.add(t3);
@@ -333,28 +333,28 @@ public class TestPOSort extends TestCase {
     public void testPOSortMixAscDesc1WithNull() throws ExecException {
         DataBag input = DefaultBagFactory.getInstance().newDefaultBag() ;
 
-        Tuple t1 = DefaultTupleFactory.getInstance().newTuple() ;
+        Tuple t1 = TupleFactory.getInstance().newTuple() ;
         t1.append(null);
         t1.append(10);
         input.add(t1);
 
-        Tuple t2 = DefaultTupleFactory.getInstance().newTuple() ;
+        Tuple t2 = TupleFactory.getInstance().newTuple() ;
         t2.append(1);
         t2.append(8);
         input.add(t2);
 
 
-        Tuple t3 = DefaultTupleFactory.getInstance().newTuple() ;
+        Tuple t3 = TupleFactory.getInstance().newTuple() ;
         t3.append(1);
         t3.append(null);
         input.add(t3);
 
-        Tuple t4 = DefaultTupleFactory.getInstance().newTuple() ;
+        Tuple t4 = TupleFactory.getInstance().newTuple() ;
         t4.append(null);
         t4.append(null);
         input.add(t4);
 
-        Tuple t5 = DefaultTupleFactory.getInstance().newTuple() ;
+        Tuple t5 = TupleFactory.getInstance().newTuple() ;
         t5.append(3);
         t5.append(8);
         input.add(t5);
@@ -432,18 +432,18 @@ public class TestPOSort extends TestCase {
     public void testPOSortMixAscDesc2() throws ExecException {
         DataBag input = DefaultBagFactory.getInstance().newDefaultBag() ;
 
-        Tuple t1 = DefaultTupleFactory.getInstance().newTuple() ;
+        Tuple t1 = TupleFactory.getInstance().newTuple() ;
         t1.append(1);
         t1.append(2);
         input.add(t1);
 
-        Tuple t2 = DefaultTupleFactory.getInstance().newTuple() ;
+        Tuple t2 = TupleFactory.getInstance().newTuple() ;
         t2.append(3);
         t2.append(5);
         input.add(t2);
 
 
-        Tuple t3 = DefaultTupleFactory.getInstance().newTuple() ;
+        Tuple t3 = TupleFactory.getInstance().newTuple() ;
         t3.append(3);
         t3.append(8);
         input.add(t3);
@@ -513,28 +513,28 @@ public class TestPOSort extends TestCase {
     public void testPOSortMixAscDesc2Null() throws ExecException {
         DataBag input = DefaultBagFactory.getInstance().newDefaultBag() ;
 
-        Tuple t1 = DefaultTupleFactory.getInstance().newTuple() ;
+        Tuple t1 = TupleFactory.getInstance().newTuple() ;
         t1.append(null);
         t1.append(10);
         input.add(t1);
 
-        Tuple t2 = DefaultTupleFactory.getInstance().newTuple() ;
+        Tuple t2 = TupleFactory.getInstance().newTuple() ;
         t2.append(1);
         t2.append(8);
         input.add(t2);
 
 
-        Tuple t3 = DefaultTupleFactory.getInstance().newTuple() ;
+        Tuple t3 = TupleFactory.getInstance().newTuple() ;
         t3.append(1);
         t3.append(null);
         input.add(t3);
 
-        Tuple t4 = DefaultTupleFactory.getInstance().newTuple() ;
+        Tuple t4 = TupleFactory.getInstance().newTuple() ;
         t4.append(null);
         t4.append(null);
         input.add(t4);
 
-        Tuple t5 = DefaultTupleFactory.getInstance().newTuple() ;
+        Tuple t5 = TupleFactory.getInstance().newTuple() ;
         t5.append(3);
         t5.append(8);
         input.add(t5);

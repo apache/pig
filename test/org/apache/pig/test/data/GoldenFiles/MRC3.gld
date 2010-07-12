@@ -10,12 +10,12 @@ Reduce Plan Empty
 |       |   |
 |       |   |---Load(DummyFil:DummyLdr) - --4776862487779398064
 |       |
-|       |---Load(file:/tmp/temp-1456742965/tmp-1456742965:org.apache.pig.builtin.BinStorage) - -90
+|       |---Load(file:/tmp/temp-1456742965/tmp-1456742965:org.apache.pig.impl.io.InterStorage) - -90
 |       |
-|       |---Load(file:/tmp/temp-1456742965/tmp2077335416:org.apache.pig.builtin.BinStorage) - -92
+|       |---Load(file:/tmp/temp-1456742965/tmp2077335416:org.apache.pig.impl.io.InterStorage) - -92
 |
 |---MapReduce(-1) - -86:
-|   |   Store(file:/tmp/temp-1456742965/tmp-1456742965:org.apache.pig.builtin.BinStorage) - -91
+|   |   Store(file:/tmp/temp-1456742965/tmp-1456742965:org.apache.pig.impl.io.InterStorage) - -91
 |   |   |
 |   |   |---Package[tuple]{Unknown} - --3671186819751472084
 |   |   Local Rearrange[tuple]{Unknown}(false) - -3737603423295312892
@@ -23,7 +23,7 @@ Reduce Plan Empty
 |   |   |---Load(DummyFil:DummyLdr) - --5123390619301085966
 |
 |---MapReduce(-1) - -88:
-    |   Store(file:/tmp/temp-1456742965/tmp2077335416:org.apache.pig.builtin.BinStorage) - -93
+    |   Store(file:/tmp/temp-1456742965/tmp2077335416:org.apache.pig.impl.io.InterStorage) - -93
     |   |
     |   |---Package[tuple]{Unknown} - --2325244147060806375
     |   Local Rearrange[tuple]{Unknown}(false) - --1194577301115518934

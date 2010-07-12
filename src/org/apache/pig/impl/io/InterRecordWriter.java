@@ -23,20 +23,22 @@ import java.io.IOException;
 import org.apache.hadoop.io.WritableComparable;
 import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
-import org.apache.pig.data.DataReaderWriter;
-import org.apache.pig.data.DefaultTuple;
+import org.apache.pig.data.InterSedes;
+import org.apache.pig.data.InterSedesFactory;
 import org.apache.pig.data.Tuple;
 
+
 /**
- *
+ * A record reader used to write data compatible with {@link InterRecordWriter}
+ * It uses the default InterSedes object for serialization.
  */
-public class BinStorageRecordWriter extends
+public class InterRecordWriter extends
         RecordWriter<org.apache.hadoop.io.WritableComparable, Tuple> {
 
     public static final int RECORD_1 = 0x01;
     public static final int RECORD_2 = 0x02;
     public static final int RECORD_3 = 0x03;
-
+    private static InterSedes sedes = InterSedesFactory.getInterSedesInstance();
     /**
      * the outputstream to write out on
      */
@@ -45,7 +47,7 @@ public class BinStorageRecordWriter extends
     /**
      * 
      */
-    public BinStorageRecordWriter(DataOutputStream out) {
+    public InterRecordWriter(DataOutputStream out) {
         this.out = out;
     }
 
@@ -68,7 +70,7 @@ public class BinStorageRecordWriter extends
         out.write(RECORD_1);
         out.write(RECORD_2);
         out.write(RECORD_3);
-        DataReaderWriter.writeDatum(out, t);
+        sedes.writeDatum(out, t);
         
     }
 

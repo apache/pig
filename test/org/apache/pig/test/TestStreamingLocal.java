@@ -27,7 +27,6 @@ import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.builtin.PigStorage;
-import org.apache.pig.data.DefaultTupleFactory;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.junit.After;
@@ -37,7 +36,7 @@ import org.junit.Test;
 
 public class TestStreamingLocal extends TestCase {
 
-    private TupleFactory tf = DefaultTupleFactory.getInstance();
+    private TupleFactory tf = TupleFactory.getInstance();
     PigServer pigServer;
 
     private static final String simpleEchoStreamingCommand;
@@ -299,12 +298,12 @@ public class TestStreamingLocal extends TestCase {
         File input = Util.createInputFile("tmp", "", list.toArray(new String[0]));
         
         // Expected results
-        Tuple expected = DefaultTupleFactory.getInstance().newTuple(4);
+        Tuple expected = TupleFactory.getInstance().newTuple(4);
         expected.set(0, "A");
         expected.set(1, 0);
         expected.set(2, "A");
         expected.set(3, 0);        
- 
+        
         pigServer.registerQuery("A = load 'file:" + Util.encodeEscape(input.toString()) + "' using " + 
                     PigStorage.class.getName() + "(',') as (a0, a1);");
         pigServer.registerQuery("B = stream A through `head -1` as (a0, a1);");

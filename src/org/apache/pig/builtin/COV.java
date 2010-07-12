@@ -28,7 +28,7 @@ import org.apache.pig.EvalFunc;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.DefaultBagFactory;
-import org.apache.pig.data.DefaultTupleFactory;
+import org.apache.pig.data.TupleFactory;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 
@@ -73,7 +73,7 @@ public class COV extends EvalFunc<DataBag> implements Algebraic {
         try{
             for(int i=0;i<input.size();i++){
                 for(int j=i+1;j<input.size();j++){
-                    Tuple temp = DefaultTupleFactory.getInstance().newTuple(3);
+                    Tuple temp = TupleFactory.getInstance().newTuple(3);
                     if(flag){
                         temp.set(0, schemaName.elementAt(i));
                         temp.set(1, schemaName.elementAt(j));
@@ -143,7 +143,7 @@ public class COV extends EvalFunc<DataBag> implements Algebraic {
             if (input == null || input.size() == 0)
                 return null;
 
-            Tuple output = DefaultTupleFactory.getInstance().newTuple();
+            Tuple output = TupleFactory.getInstance().newTuple();
             try {
                 for(int i=0;i<input.size();i++){
                     for(int j=i+1;j<input.size();j++){
@@ -208,7 +208,7 @@ public class COV extends EvalFunc<DataBag> implements Algebraic {
                 }
                 for(int i=0;i<totalSchemas;i++){
                     for(int j=i+1;j<totalSchemas;j++){
-                        Tuple result = DefaultTupleFactory.getInstance().newTuple(3);
+                        Tuple result = TupleFactory.getInstance().newTuple(3);
                         if(flag){
                             result.set(0, schemaName.elementAt(i));
                             result.set(1, schemaName.elementAt(j));
@@ -243,8 +243,8 @@ public class COV extends EvalFunc<DataBag> implements Algebraic {
      * @throws IOException
      */
     static protected Tuple combine(DataBag values) throws IOException {
-        Tuple tuple = DefaultTupleFactory.getInstance().newTuple(Double.valueOf(values.size()).intValue());
-        Tuple output = DefaultTupleFactory.getInstance().newTuple();
+        Tuple tuple = TupleFactory.getInstance().newTuple(Double.valueOf(values.size()).intValue());
+        Tuple output = TupleFactory.getInstance().newTuple();
 
         int ct=0;
         for (Iterator<Tuple> it = values.iterator(); it.hasNext();ct++) {
@@ -268,7 +268,7 @@ public class COV extends EvalFunc<DataBag> implements Algebraic {
                     sum_x+=(Double)tem.get(1);
                     sum_y+=(Double)tem.get(2);
                 }
-                Tuple result = DefaultTupleFactory.getInstance().newTuple(3);
+                Tuple result = TupleFactory.getInstance().newTuple(3);
                 result.set(0, sum_x_y);
                 result.set(1, sum_x);
                 result.set(2, sum_y);
@@ -306,7 +306,7 @@ public class COV extends EvalFunc<DataBag> implements Algebraic {
             throw new IOException("Caught exception processing input", e);
         }
         
-        Tuple result = DefaultTupleFactory.getInstance().newTuple(3);
+        Tuple result = TupleFactory.getInstance().newTuple(3);
         try{
             result.set(0, sum_x_y);
             result.set(1, sum_x);

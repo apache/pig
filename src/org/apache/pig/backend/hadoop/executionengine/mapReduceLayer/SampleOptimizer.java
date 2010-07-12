@@ -24,7 +24,6 @@ import java.util.List;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.pig.FuncSpec;
-import org.apache.pig.LoadFunc;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROpPlanVisitor;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROperPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
@@ -32,9 +31,8 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POForEach;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLoad;
-import org.apache.pig.impl.PigContext;
-import org.apache.pig.impl.builtin.RandomSampleLoader;
 import org.apache.pig.impl.io.FileSpec;
+import org.apache.pig.impl.io.InterStorage;
 import org.apache.pig.impl.plan.DepthFirstWalker;
 import org.apache.pig.impl.plan.PlanException;
 import org.apache.pig.impl.plan.VisitorException;
@@ -151,7 +149,7 @@ public class SampleOptimizer extends MROpPlanVisitor {
             }
             POLoad sl = (POLoad)root;
             if (loadFile.equals(sl.getLFile().getFileName()) && 
-                    "org.apache.pig.builtin.BinStorage".equals(sl.getLFile().getFuncName())) {
+                    InterStorage.class.getName().equals(sl.getLFile().getFuncName())) {
                 succLoad = sl;
                 break;
             }

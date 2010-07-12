@@ -54,7 +54,6 @@ import org.apache.pig.backend.executionengine.ExecJob.JOB_STATUS;
 import org.apache.pig.backend.hadoop.executionengine.HJob;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
-import org.apache.pig.builtin.BinStorage;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.classification.InterfaceAudience;
 import org.apache.pig.classification.InterfaceStability;
@@ -65,6 +64,7 @@ import org.apache.pig.experimental.logical.optimizer.LogicalPlanOptimizer;
 import org.apache.pig.experimental.logical.optimizer.UidStamper;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
+import org.apache.pig.impl.io.InterStorage;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.LOConst;
 import org.apache.pig.impl.logicalLayer.LODefine;
@@ -679,7 +679,7 @@ public class PigServer {
             }
             
             ExecJob job = store(id, FileLocalizer.getTemporaryPath(pigContext)
-                    .toString(), BinStorage.class.getName() + "()");
+                    .toString(), InterStorage.class.getName() + "()");
             
             // invocation of "execute" is synchronous!
 
