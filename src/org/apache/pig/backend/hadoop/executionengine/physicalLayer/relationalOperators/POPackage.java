@@ -513,6 +513,8 @@ public class POPackage extends PhysicalOperator {
                      } else {
                             bags[index].add(copy);
                      }
+                }else{
+                    break;
                 }
             }
         } 

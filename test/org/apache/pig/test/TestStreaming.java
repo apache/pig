@@ -25,14 +25,13 @@ import java.util.List;
 
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
+import org.apache.pig.PigToStream;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.builtin.PigStorage;
-import org.apache.pig.data.DefaultTupleFactory;
+import org.apache.pig.builtin.PigStreaming;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.io.FileLocalizer;
-import org.apache.pig.builtin.PigStreaming;
-import org.apache.pig.PigToStream;
 import org.apache.pig.impl.util.TupleFormat;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -61,7 +60,7 @@ public class TestStreaming {
         cluster.shutDown();
     }
     
-    private TupleFactory tf = DefaultTupleFactory.getInstance();
+    private TupleFactory tf = TupleFactory.getInstance();
 
 	private static final String simpleEchoStreamingCommand;
     

@@ -75,7 +75,6 @@ import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.DefaultBagFactory;
-import org.apache.pig.data.DefaultTupleFactory;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.PigContext;
@@ -92,7 +91,7 @@ public class TestBuiltin {
     
     PigServer pigServer;
 
-    TupleFactory tupleFactory = DefaultTupleFactory.getInstance();
+    TupleFactory tupleFactory = TupleFactory.getInstance();
     BagFactory bagFactory = DefaultBagFactory.getInstance();
     
     // some inputs
@@ -1166,7 +1165,7 @@ public class TestBuiltin {
         String msg;
         for(String func: mathFuncs) {
             evalFunc = (EvalFunc<Double>) Class.forName(udfPackage + func).newInstance();
-            tup = DefaultTupleFactory.getInstance().newTuple(1);
+            tup = TupleFactory.getInstance().newTuple(1);
             // double value between 0.0 and 1.0 
             input = generator.nextDouble();
             tup.set(0, input);
@@ -1200,35 +1199,35 @@ public class TestBuiltin {
         EvalFunc<Integer> intFunc;
         
         strFunc = new LCFIRST();
-        input = DefaultTupleFactory.getInstance().newTuple(inputStr);
+        input = TupleFactory.getInstance().newTuple(inputStr);
         expected = inputStrCamel;
         output = strFunc.exec(input);
         assertTrue(output.equals(expected));
         
         strFunc = new UCFIRST();
-        input = DefaultTupleFactory.getInstance().newTuple(inputStrCamel);
+        input = TupleFactory.getInstance().newTuple(inputStrCamel);
         expected = inputStr;
         output = strFunc.exec(input);
         assertTrue(output.equals(expected));
          
         intFunc = new LAST_INDEX_OF();
-        input = DefaultTupleFactory.getInstance().newTuple(l);
+        input = TupleFactory.getInstance().newTuple(l);
         intOutput = intFunc.exec(input);
         assertTrue(intOutput.intValue()==7);
         
         intFunc = new INDEXOF();
-        input = DefaultTupleFactory.getInstance().newTuple(l);
+        input = TupleFactory.getInstance().newTuple(l);
         intOutput = intFunc.exec(input);
         assertTrue(intOutput.intValue()==4);
         
         strFunc = new UPPER();
-        input = DefaultTupleFactory.getInstance().newTuple(inputStr);
+        input = TupleFactory.getInstance().newTuple(inputStr);
         expected = inputStrUpper;
         output = strFunc.exec(input);
         assertTrue(output.equals(expected));
         
         strFunc = new LOWER();
-        input = DefaultTupleFactory.getInstance().newTuple(inputStr);
+        input = TupleFactory.getInstance().newTuple(inputStr);
         expected = inputStrLower;
         output = strFunc.exec(input);
         assertTrue(output.equals(expected));
@@ -1238,7 +1237,7 @@ public class TestBuiltin {
         l.add(inputStr);
         l.add("o");
         l.add("a");
-        input = DefaultTupleFactory.getInstance().newTuple(l);
+        input = TupleFactory.getInstance().newTuple(l);
         expected = inputStroWitha;
         output = strFunc.exec(input);
         assertTrue(output.equals(expected));
@@ -1248,13 +1247,13 @@ public class TestBuiltin {
         l.add(inputStr);
         l.add(1);
         l.add(5);
-        input = DefaultTupleFactory.getInstance().newTuple(l);
+        input = TupleFactory.getInstance().newTuple(l);
         expected = "ello";
         output = strFunc.exec(input);
         assertTrue(output.equals(expected));
         
         strFunc = new TRIM();
-        input = DefaultTupleFactory.getInstance().newTuple(inpuStrExtra);
+        input = TupleFactory.getInstance().newTuple(inpuStrExtra);
         expected = inputStr;
         output = strFunc.exec(input);
         assertTrue(output.equals(expected));
@@ -1354,44 +1353,44 @@ public class TestBuiltin {
     public void testStatsFunc() throws Exception {
         COV cov = new COV("a","b");
         DataBag dBag = DefaultBagFactory.getInstance().newDefaultBag();
-        Tuple tup1 = DefaultTupleFactory.getInstance().newTuple(1);
+        Tuple tup1 = TupleFactory.getInstance().newTuple(1);
         tup1.set(0, 1.0);
         dBag.add(tup1);
-        tup1 = DefaultTupleFactory.getInstance().newTuple(1);
+        tup1 = TupleFactory.getInstance().newTuple(1);
         tup1.set(0, 4.0);
         dBag.add(tup1);
-        tup1 = DefaultTupleFactory.getInstance().newTuple(1);
+        tup1 = TupleFactory.getInstance().newTuple(1);
         tup1.set(0, 8.0);
         dBag.add(tup1);
-        tup1 = DefaultTupleFactory.getInstance().newTuple(1);
+        tup1 = TupleFactory.getInstance().newTuple(1);
         tup1.set(0, 4.0);
         dBag.add(tup1);
-        tup1 = DefaultTupleFactory.getInstance().newTuple(1);
+        tup1 = TupleFactory.getInstance().newTuple(1);
         tup1.set(0, 7.0);
         dBag.add(tup1);
-        tup1 = DefaultTupleFactory.getInstance().newTuple(1);
+        tup1 = TupleFactory.getInstance().newTuple(1);
         tup1.set(0, 8.0);
         dBag.add(tup1);
         DataBag dBag1 = DefaultBagFactory.getInstance().newDefaultBag();
-        tup1 = DefaultTupleFactory.getInstance().newTuple(1);
+        tup1 = TupleFactory.getInstance().newTuple(1);
         tup1.set(0, 2.0);
         dBag1.add(tup1);
-        tup1 = DefaultTupleFactory.getInstance().newTuple(1);
+        tup1 = TupleFactory.getInstance().newTuple(1);
         tup1.set(0, 2.0);
         dBag1.add(tup1);
-        tup1 = DefaultTupleFactory.getInstance().newTuple(1);
+        tup1 = TupleFactory.getInstance().newTuple(1);
         tup1.set(0, 3.0);
         dBag1.add(tup1);
-        tup1 = DefaultTupleFactory.getInstance().newTuple(1);
+        tup1 = TupleFactory.getInstance().newTuple(1);
         tup1.set(0, 3.0);
         dBag1.add(tup1);
-        tup1 = DefaultTupleFactory.getInstance().newTuple(1);
+        tup1 = TupleFactory.getInstance().newTuple(1);
         tup1.set(0, 2.0);
         dBag1.add(tup1);
-        tup1 = DefaultTupleFactory.getInstance().newTuple(1);
+        tup1 = TupleFactory.getInstance().newTuple(1);
         tup1.set(0, 4.0);
         dBag1.add(tup1);
-        Tuple input = DefaultTupleFactory.getInstance().newTuple(2);
+        Tuple input = TupleFactory.getInstance().newTuple(2);
         input.set(0, dBag);
         input.set(1, dBag1);
         DataBag output = cov.exec(input);
@@ -1403,44 +1402,44 @@ public class TestBuiltin {
         
         COR cor = new COR("a","b");
         dBag = DefaultBagFactory.getInstance().newDefaultBag();
-        tup1 = DefaultTupleFactory.getInstance().newTuple(1);
+        tup1 = TupleFactory.getInstance().newTuple(1);
         tup1.set(0, 1.0);
         dBag.add(tup1);
-        tup1 = DefaultTupleFactory.getInstance().newTuple(1);
+        tup1 = TupleFactory.getInstance().newTuple(1);
         tup1.set(0, 4.0);
         dBag.add(tup1);
-        tup1 = DefaultTupleFactory.getInstance().newTuple(1);
+        tup1 = TupleFactory.getInstance().newTuple(1);
         tup1.set(0, 8.0);
         dBag.add(tup1);
-        tup1 = DefaultTupleFactory.getInstance().newTuple(1);
+        tup1 = TupleFactory.getInstance().newTuple(1);
         tup1.set(0, 4.0);
         dBag.add(tup1);
-        tup1 = DefaultTupleFactory.getInstance().newTuple(1);
+        tup1 = TupleFactory.getInstance().newTuple(1);
         tup1.set(0, 7.0);
         dBag.add(tup1);
-        tup1 = DefaultTupleFactory.getInstance().newTuple(1);
+        tup1 = TupleFactory.getInstance().newTuple(1);
         tup1.set(0, 8.0);
         dBag.add(tup1);
         dBag1 = DefaultBagFactory.getInstance().newDefaultBag();
-        tup1 = DefaultTupleFactory.getInstance().newTuple(1);
+        tup1 = TupleFactory.getInstance().newTuple(1);
         tup1.set(0, 2.0);
         dBag1.add(tup1);
-        tup1 = DefaultTupleFactory.getInstance().newTuple(1);
+        tup1 = TupleFactory.getInstance().newTuple(1);
         tup1.set(0, 2.0);
         dBag1.add(tup1);
-        tup1 = DefaultTupleFactory.getInstance().newTuple(1);
+        tup1 = TupleFactory.getInstance().newTuple(1);
         tup1.set(0, 3.0);
         dBag1.add(tup1);
-        tup1 = DefaultTupleFactory.getInstance().newTuple(1);
+        tup1 = TupleFactory.getInstance().newTuple(1);
         tup1.set(0, 3.0);
         dBag1.add(tup1);
-        tup1 = DefaultTupleFactory.getInstance().newTuple(1);
+        tup1 = TupleFactory.getInstance().newTuple(1);
         tup1.set(0, 2.0);
         dBag1.add(tup1);
-        tup1 = DefaultTupleFactory.getInstance().newTuple(1);
+        tup1 = TupleFactory.getInstance().newTuple(1);
         tup1.set(0, 4.0);
         dBag1.add(tup1);
-        input = DefaultTupleFactory.getInstance().newTuple(2);
+        input = TupleFactory.getInstance().newTuple(2);
         input.set(0, dBag);
         input.set(1, dBag1);
         output = cor.exec(input);
@@ -1491,7 +1490,7 @@ public class TestBuiltin {
         assertEquals(input, output);
         
         TOP top = new TOP();
-        TupleFactory tupleFactory = DefaultTupleFactory.getInstance();
+        TupleFactory tupleFactory = TupleFactory.getInstance();
         BagFactory bagFactory = DefaultBagFactory.getInstance();
         Tuple inputTuple = tupleFactory.newTuple(3);
         DataBag dBag = bagFactory.newDefaultBag();

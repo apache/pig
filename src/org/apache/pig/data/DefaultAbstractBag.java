@@ -47,10 +47,11 @@ import org.apache.commons.logging.LogFactory;
  */
 public abstract class DefaultAbstractBag implements DataBag {
 
-     private static final Log log = LogFactory.getLog(DataBag.class);
-     
-     private static PigLogger pigLogger = PhysicalOperator.getPigLogger();
+    private static final Log log = LogFactory.getLog(DataBag.class);
 
+    private static PigLogger pigLogger = PhysicalOperator.getPigLogger();
+
+    private static InterSedes sedes = InterSedesFactory.getInterSedesInstance();
     // Container that holds the tuples. Actual object instantiated by
     // subclasses.
     protected Collection<Tuple> mContents;
@@ -239,16 +240,7 @@ public abstract class DefaultAbstractBag implements DataBag {
      * @throws IOException (passes it on from underlying calls).
      */
     public void write(DataOutput out) throws IOException {
-        // We don't care whether this bag was sorted or distinct because
-        // using the iterator to write it will guarantee those things come
-        // correctly.  And on the other end there'll be no reason to waste
-        // time re-sorting or re-applying distinct.
-        out.writeLong(size());
-        Iterator<Tuple> it = iterator();
-        while (it.hasNext()) {
-            Tuple item = it.next();
-            item.write(out);
-        }    
+        sedes.writeDatum(out, this);
     }
  
     /**
@@ -261,7 +253,7 @@ public abstract class DefaultAbstractBag implements DataBag {
         
         for (long i = 0; i < size; i++) {
             try {
-                Object o = DataReaderWriter.readDatum(in);
+                Object o = sedes.readDatum(in);
                 add((Tuple)o);
             } catch (ExecException ee) {
                 throw ee;

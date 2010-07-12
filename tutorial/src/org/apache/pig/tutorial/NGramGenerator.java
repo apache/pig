@@ -18,20 +18,20 @@
 package org.apache.pig.tutorial;
 
 import java.io.IOException;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.List;
 import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 import org.apache.pig.EvalFunc;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.data.DataBag;
-import org.apache.pig.data.DefaultBagFactory;
-import org.apache.pig.data.DefaultTupleFactory;
-import org.apache.pig.data.Tuple;
-import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.data.DataType;
+import org.apache.pig.data.DefaultBagFactory;
+import org.apache.pig.data.Tuple;
+import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.logicalLayer.FrontendException;
+import org.apache.pig.impl.logicalLayer.schema.Schema;
 
 /**
  * This function divides a search query string into wrods and extracts
@@ -55,7 +55,7 @@ public class NGramGenerator extends EvalFunc<DataBag> {
             Set<String> ngrams = new HashSet<String>();
             TutorialUtil.makeNGram(words, ngrams, _ngramSizeLimit);
             for (String ngram : ngrams) {
-                Tuple t = DefaultTupleFactory.getInstance().newTuple(1);
+                Tuple t = TupleFactory.getInstance().newTuple(1);
                 t.set(0, ngram);
                 output.add(t);
             }

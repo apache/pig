@@ -20,8 +20,6 @@ package org.apache.pig.test;
 import java.io.IOException;
 import java.util.Map;
 
-import org.junit.Test;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.pig.ResourceSchema;
@@ -32,14 +30,14 @@ import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.DefaultBagFactory;
-import org.apache.pig.data.DefaultTupleFactory;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
+import org.junit.Test;
 
 public class TestTextDataParser extends junit.framework.TestCase {
 
     private final Log log = LogFactory.getLog(getClass());
-    private TupleFactory tupleFactory = DefaultTupleFactory.getInstance();
+    private TupleFactory tupleFactory = TupleFactory.getInstance();
     private BagFactory bagFactory = DefaultBagFactory.getInstance();
     PigStorage ps = new PigStorage();
     

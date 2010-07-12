@@ -17,21 +17,26 @@
  */
 package org.apache.pig.data;
 
-/**
- * This class was being used to create new tuple instances in some
- * udfs and other places in pig code, even though the tuplefactory creation
- * function (getInstance()) is static in TupleFactory
- *  (ie DefaultTuple could not override it)
- *  A typical call is - DefaultTupleFactory.getInstance().newTuple(..);
- *  
- *  So that such external udfs don't break, a DefaultTupleFactory is present.
- *  Don't use this in your code, use TupleFactory directly instead.
- */
+import org.apache.pig.classification.InterfaceAudience;
+import org.apache.pig.classification.InterfaceStability;
+
 
 /**
- * @deprecated Use {@link TupleFactory}
+ * Used to get hold of the single instance of InterSedes .
+ * In future, the subclass of InterSedes that gets instantiated would 
+ * be configurable.
  */
-@Deprecated 
-public class DefaultTupleFactory extends BinSedesTupleFactory {
+@InterfaceAudience.Private
+@InterfaceStability.Evolving
+public class InterSedesFactory {
+    
+    private static InterSedes instance = null;
+    public static InterSedes getInterSedesInstance(){
+        if(instance == null){
+            instance = new BinInterSedes();
+        }
+        return instance;
+    }
+    
 
 }
