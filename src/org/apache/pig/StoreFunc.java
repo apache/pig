@@ -166,9 +166,9 @@ public abstract class StoreFunc implements StoreFuncInterface {
      * @throws IOException
      */
     public static void cleanupOnFailureImpl(String location, Job job) 
-    throws IOException {
-        FileSystem fs = FileSystem.get(job.getConfiguration());
+    throws IOException {        
         Path path = new Path(location);
+        FileSystem fs = path.getFileSystem(job.getConfiguration());
         if(fs.exists(path)){
             fs.delete(path, true);
         }    

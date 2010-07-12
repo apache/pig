@@ -98,6 +98,8 @@ PIG-1309: Map-side Cogroup (ashutoshc)
 
 BUG FIXES
 
+PIG-1490: Make Pig storers work with remote HDFS in secure mode (rding)
+
 PIG-1469: DefaultDataBag assumes ArrayList as default List type (azaroth via dvryaboy)
 
 PIG-1467: order by fail when set "fs.file.impl.disable.cache" to true (daijy)
