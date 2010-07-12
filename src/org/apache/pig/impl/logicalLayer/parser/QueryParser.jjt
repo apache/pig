@@ -504,6 +504,41 @@ public class QueryParser {
 	     return result;
 	 }
 
+    void setHdfsServers(String absolutePath, PigContext pigContext) throws URISyntaxException {
+        // Get native host
+        String defaultFS = (String)pigContext.getProperties().get("fs.default.name");
+        URI defaultFSURI = new URI(defaultFS);
+        String defaultHost = defaultFSURI.getHost();
+        if (defaultHost == null) defaultHost = "";
+                
+        defaultHost = defaultHost.toLowerCase();
+    
+        Set<String> remoteHosts = getRemoteHosts(absolutePath, defaultHost);
+                    
+        String hdfsServersString = (String)pigContext.getProperties().get("mapreduce.job.hdfs-servers");
+        if (hdfsServersString == null) hdfsServersString = "";
+        String hdfsServers[] = hdfsServersString.split(",");
+                    
+        for (String remoteHost : remoteHosts) {
+            boolean existing = false;
+            for (String hdfsServer : hdfsServers) {
+                if (hdfsServer.equals(remoteHost)) {
+                    existing = true;
+                }
+            }
+            if (!existing) {
+                if (!hdfsServersString.isEmpty()) {
+                    hdfsServersString = hdfsServersString + ",";
+                }
+                hdfsServersString = hdfsServersString + remoteHost;
+            }
+        }
+    
+        if (!hdfsServersString.isEmpty()) {
+            pigContext.getProperties().setProperty("mapreduce.job.hdfs-servers", hdfsServersString);
+        }
+    }
+    
      // Check and set files to be automatically shipped for the given StreamingCommand
      // Auto-shipping rules:
      // 1. If the command begins with either perl or python assume that the 
@@ -1409,36 +1444,8 @@ LogicalOperator LoadClause(LogicalPlan lp) :
                 absolutePath = loFunc.relativeToAbsolutePath(filename, getCurrentDir(pigContext));
                 
                 if (absolutePath!=null) {
-	                // Get native host
-	                String defaultFS = (String)pigContext.getProperties().get("fs.default.name");
-	                URI defaultFSURI = new URI(defaultFS);
-	                String defaultHost = defaultFSURI.getHost();
-	                if (defaultHost==null)
-	                    defaultHost="";
-	                defaultHost = defaultHost.toLowerCase();
-	
-	                Set<String> remoteHosts = getRemoteHosts(absolutePath, defaultHost);
-	                
-	                String hdfsServersString = (String)pigContext.getProperties().get("mapreduce.job.hdfs-servers");
-	                if (hdfsServersString==null) hdfsServersString="";
-	                String hdfsServers[] = hdfsServersString.split(",");
-	                
-	                for (String remoteHost : remoteHosts) {
-	                    boolean existing = false;
-	                    for (String hdfsServer:hdfsServers) {
-	                        if (hdfsServer.equals(remoteHost))
-	                            existing = true;
-	                    }
-	                    if (!existing) {
-	                        if (!hdfsServersString.isEmpty())
-	                            hdfsServersString = hdfsServersString + ",";
-	                        hdfsServersString = hdfsServersString + remoteHost;
-	                    }
-	                }
-	
-	                if (!hdfsServersString.isEmpty())
-	                    pigContext.getProperties().setProperty("mapreduce.job.hdfs-servers", hdfsServersString);
-	            }
+                    setHdfsServers(absolutePath, pigContext);
+                }
                 fileNameMap.put(constructFileNameSignature(filename, funcSpec), absolutePath);
             }
             lo = new LOLoad(lp, new OperatorKey(scope, getNextId()), new FileSpec(absolutePath, funcSpec),
@@ -2578,6 +2585,9 @@ LogicalOperator StoreClause(LogicalPlan lp) : {LogicalOperator lo; Token t; Stri
         String absolutePath = fileNameMap.get(constructFileNameSignature(fileName, funcSpec));
         if (absolutePath == null) {
             absolutePath = stoFunc.relToAbsPathForStoreLocation(fileName, getCurrentDir(pigContext));
+            if (absolutePath != null) {
+                setHdfsServers(absolutePath, pigContext);
+            }
             fileNameMap.put(constructFileNameSignature(fileName, funcSpec), absolutePath);   
         }
         LogicalOperator store = new LOStore(lp, new OperatorKey(scope, getNextId()),
