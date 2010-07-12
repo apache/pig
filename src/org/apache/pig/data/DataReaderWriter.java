@@ -35,8 +35,10 @@ import org.apache.pig.classification.InterfaceStability;
 import org.apache.pig.backend.executionengine.ExecException;
 
 /**
- * A class to handle reading and writing of intermediate results of data
- * types.  This class could also be used for storing permanent results.
+ * This class was used to handle reading and writing of intermediate
+ *  results of data types. Now that functionality is in {@link BinInterSedes}
+ *  This class could also be used for storing permanent results, it used 
+ *  by BinStorage and Zebra through DefaultTuple class.
  */
 @InterfaceAudience.Private
 @InterfaceStability.Stable
@@ -68,7 +70,16 @@ public class DataReaderWriter {
     
     public static DataBag bytesToBag(DataInput in) throws IOException {
         DataBag bag = mBagFactory.newDefaultBag();
-        bag.readFields(in);
+        long size = in.readLong();
+        
+        for (long i = 0; i < size; i++) {
+            try {
+                Object o = readDatum(in);
+                bag.add((Tuple)o);
+            } catch (ExecException ee) {
+                throw ee;
+            }
+        }
         return bag;
     }
     
@@ -202,16 +213,23 @@ public class DataReaderWriter {
         byte type = DataType.findType(val);
         switch (type) {
             case DataType.TUPLE:
-                // Because tuples are written directly by hadoop, the
-                // tuple's write method needs to write the indicator byte.
-                // So don't write the indicator byte here as it is for
-                // everyone else.
-                ((Tuple)val).write(out);
+                Tuple t = (Tuple)val;
+                out.writeByte(DataType.TUPLE);
+                int sz = t.size();
+                out.writeInt(sz);
+                for (int i = 0; i < sz; i++) {
+                    DataReaderWriter.writeDatum(out, t.get(i));
+                }
                 break;
                 
             case DataType.BAG:
+                DataBag bag = (DataBag)val;
                 out.writeByte(DataType.BAG);
-                ((DataBag)val).write(out);
+                out.writeLong(bag.size());
+                Iterator<Tuple> it = bag.iterator();
+                while (it.hasNext()) {
+                    DataReaderWriter.writeDatum(out, it.next());
+                }  
                 break;
 
             case DataType.MAP: {

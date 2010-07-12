@@ -31,15 +31,17 @@ import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.impl.util.TupleFormat;
 
 /**
- * A default implementation of Tuple.  This class will be created by the
- * DefaultTupleFactory.
+ * This was the old default implementation of Tuple. The new default is
+ * {@link BinSedesTuple} .   
+ * Zebra and BinStorage load/store functions use the .write(..) and .readFields(..)
+ * functions here for (de)serialization.
  */
 public class DefaultTuple implements Tuple {
     
     protected boolean isNull = false;
     private static final long serialVersionUID = 2L;
     protected List<Object> mFields;
-    
+        
     /**
      * Default constructor.  This constructor is public so that hadoop can call
      * it directly.  However, inside pig you should never be calling this
@@ -257,12 +259,7 @@ public class DefaultTuple implements Tuple {
     }
 
     public void write(DataOutput out) throws IOException {
-        out.writeByte(DataType.TUPLE);
-        int sz = size();
-        out.writeInt(sz);
-        for (int i = 0; i < sz; i++) {
-            DataReaderWriter.writeDatum(out, mFields.get(i));
-        }
+        DataReaderWriter.writeDatum(out, this);
     }
 
     public void readFields(DataInput in) throws IOException {

@@ -74,7 +74,7 @@ public abstract class TupleFactory {
                         + "tuple factory " + factoryName, e);
                 }
             } else {
-                gSelf = new DefaultTupleFactory();
+                gSelf = new BinSedesTupleFactory();
             }
         }
         return gSelf;

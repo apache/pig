@@ -41,7 +41,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlan
  *
  *    ------------- Split ---------
  *    |                           |
- *  Store(BinStorage)         Store(StoreFunc)
+ *  Store(InterStorage)         Store(StoreFunc)
  * 
  * Followed by a load of the tmp store in a dependent MapReduceOper.
  *

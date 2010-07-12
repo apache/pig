@@ -29,7 +29,7 @@ import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.DefaultBagFactory;
 import org.apache.pig.data.DefaultTuple;
-import org.apache.pig.data.DefaultTupleFactory;
+import org.apache.pig.data.TupleFactory;
 import org.apache.pig.data.Tuple;
 
 public class GenRandomData {
@@ -339,7 +339,7 @@ public class GenRandomData {
     public static DataBag genFloatDataBag(Random r, int column, int row) {
         DataBag db = DefaultBagFactory.getInstance().newDefaultBag();
         for (int i=0;i<row;i++) {
-            Tuple t = DefaultTupleFactory.getInstance().newTuple();
+            Tuple t = TupleFactory.getInstance().newTuple();
             for (int j=0;j<column;j++) {
                 t.append(r.nextFloat()*1000);
             }
@@ -372,7 +372,7 @@ public class GenRandomData {
     }
     
     public static Tuple genMixedTupleToConvert(Random r) {
-        Tuple t = DefaultTupleFactory.getInstance().newTuple();
+        Tuple t = TupleFactory.getInstance().newTuple();
         t.append(r.nextInt());
         t.append(r.nextInt());
         long l = 0;

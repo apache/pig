@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-1472: Optimize serialization/deserialization between Map and Reduce and between MR jobs (thejas)
+
 PIG-1389: Implement Pig counter to track number of rows for each input files
 (rding)
 

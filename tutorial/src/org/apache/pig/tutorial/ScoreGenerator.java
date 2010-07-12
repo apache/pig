@@ -26,12 +26,12 @@ import java.util.Map;
 
 import org.apache.pig.EvalFunc;
 import org.apache.pig.data.DataBag;
-import org.apache.pig.data.DefaultBagFactory;
-import org.apache.pig.data.DefaultTupleFactory;
-import org.apache.pig.data.Tuple;
 import org.apache.pig.data.DataType;
-import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.data.DefaultBagFactory;
+import org.apache.pig.data.Tuple;
+import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.logicalLayer.FrontendException;
+import org.apache.pig.impl.logicalLayer.schema.Schema;
 
 /**
  * For each n-gram, we have a set of (hour, count) pairs.
@@ -99,7 +99,7 @@ public class ScoreGenerator extends EvalFunc<DataBag> {
                 String hour = it2.next();
                 Long count = pairs.get(hour);
                 if ( count > mean ) {
-                    Tuple t = DefaultTupleFactory.getInstance().newTuple(4);
+                    Tuple t = TupleFactory.getInstance().newTuple(4);
                     t.set(0, hour);
                     t.set(1, ((double) count - mean) / standardDeviation ); // the score
                     t.set(2, count);

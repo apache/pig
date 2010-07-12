@@ -8,16 +8,16 @@ Reduce Plan Empty
 |       |   |   |
 |       |   |   Constant(true) - --7987250529196129674
 |       |   |
-|       |   |---Load(file:/tmp/temp-1456742965/tmp2077335416:org.apache.pig.builtin.BinStorage) - -48
+|       |   |---Load(file:/tmp/temp-1456742965/tmp2077335416:org.apache.pig.impl.io.InterStorage) - -48
 |       |
 |       |---Filter[tuple] - -2056844330428347996
 |           |   |
 |           |   Constant(true) - --8754957318949788629
 |           |
-|           |---Load(file:/tmp/temp-1456742965/tmp2077335416:org.apache.pig.builtin.BinStorage) - -50
+|           |---Load(file:/tmp/temp-1456742965/tmp2077335416:org.apache.pig.impl.io.InterStorage) - -50
 |
 |---MapReduce(-1) - -45:
-    |   Store(file:/tmp/temp-1456742965/tmp2077335416:org.apache.pig.builtin.BinStorage) - -47
+    |   Store(file:/tmp/temp-1456742965/tmp2077335416:org.apache.pig.impl.io.InterStorage) - -47
     |   |
     |   |---Package[tuple]{Unknown} - --1607475648664293401
     |   Union[tuple] - -46
@@ -28,7 +28,7 @@ Reduce Plan Empty
     |   |       |   |
     |   |       |   Constant(true) - -3515731110955624708
     |   |       |
-    |   |       |---Load(file:/tmp/temp-1456742965/tmp-1456742965:org.apache.pig.builtin.BinStorage) - -41
+    |   |       |---Load(file:/tmp/temp-1456742965/tmp-1456742965:org.apache.pig.impl.io.InterStorage) - -41
     |   |
     |   |---Local Rearrange[tuple]{Unknown}(false) - -2351257193210757136
     |       |
@@ -36,10 +36,10 @@ Reduce Plan Empty
     |           |   |
     |           |   Constant(true) - -728209667098611077
     |           |
-    |           |---Load(file:/tmp/temp-1456742965/tmp-1456742965:org.apache.pig.builtin.BinStorage) - -43
+    |           |---Load(file:/tmp/temp-1456742965/tmp-1456742965:org.apache.pig.impl.io.InterStorage) - -43
     |
     |---MapReduce(-1) - -39:
         Reduce Plan Empty
-        |   Store(file:/tmp/temp-1456742965/tmp-1456742965:org.apache.pig.builtin.BinStorage) - -40
+        |   Store(file:/tmp/temp-1456742965/tmp-1456742965:org.apache.pig.impl.io.InterStorage) - -40
         |   |
         |   |---Load(DummyFil:DummyLdr) - --7797378030368227515

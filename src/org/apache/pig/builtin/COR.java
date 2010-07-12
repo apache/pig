@@ -28,7 +28,7 @@ import org.apache.pig.EvalFunc;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.DefaultBagFactory;
-import org.apache.pig.data.DefaultTupleFactory;
+import org.apache.pig.data.TupleFactory;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 
@@ -71,7 +71,7 @@ public class COR extends EvalFunc<DataBag> implements Algebraic {
         DataBag output = DefaultBagFactory.getInstance().newDefaultBag();
         for(int i=0;i<input.size();i++){
             for(int j=i+1;j<input.size();j++){
-                Tuple temp = DefaultTupleFactory.getInstance().newTuple(3);
+                Tuple temp = TupleFactory.getInstance().newTuple(3);
                 try{
                     if(flag){
                         temp.set(0, schemaName.elementAt(i));
@@ -142,7 +142,7 @@ public class COR extends EvalFunc<DataBag> implements Algebraic {
         public Tuple exec(Tuple input) throws IOException {
             if (input == null || input.size() == 0)
                 return null;
-            Tuple output = DefaultTupleFactory.getInstance().newTuple(input.size() * 2); 
+            Tuple output = TupleFactory.getInstance().newTuple(input.size() * 2); 
             try {
                 int k = -1;
                 for(int i=0;i<input.size();i++){
@@ -211,7 +211,7 @@ public class COR extends EvalFunc<DataBag> implements Algebraic {
             DataBag output = DefaultBagFactory.getInstance().newDefaultBag();
             for(int i=0;i<totalSchemas;i++){
                 for(int j=i+1;j<totalSchemas;j++){
-                    Tuple result = DefaultTupleFactory.getInstance().newTuple(3);
+                    Tuple result = TupleFactory.getInstance().newTuple(3);
                     try{
                         if(flag){
                             result.set(0, schemaName.elementAt(i));
@@ -250,9 +250,9 @@ public class COR extends EvalFunc<DataBag> implements Algebraic {
      * @throws IOException
      */
     static protected Tuple combine(DataBag values) throws IOException {
-        Tuple output = DefaultTupleFactory.getInstance().newTuple();
+        Tuple output = TupleFactory.getInstance().newTuple();
         Tuple tuple; // copy of DataBag values 
-        tuple =  DefaultTupleFactory.getInstance().newTuple(values.size());
+        tuple =  TupleFactory.getInstance().newTuple(values.size());
         int ct=0;
 
         try{
@@ -281,7 +281,7 @@ public class COR extends EvalFunc<DataBag> implements Algebraic {
                     sum_x_square += (Double)tem.get(3);
                     sum_y_square += (Double)tem.get(4);
                 }
-                Tuple result = DefaultTupleFactory.getInstance().newTuple(5);
+                Tuple result = TupleFactory.getInstance().newTuple(5);
                 result.set(0, sum_x_y);
                 result.set(1, sum_x);
                 result.set(2, sum_y);
@@ -325,7 +325,7 @@ public class COR extends EvalFunc<DataBag> implements Algebraic {
             throw new IOException("Caught exception processing input", e);
         }
         
-        Tuple result = DefaultTupleFactory.getInstance().newTuple(5);
+        Tuple result = TupleFactory.getInstance().newTuple(5);
         try{
             result.set(0, sum_x_y);
             result.set(1, sum_x);

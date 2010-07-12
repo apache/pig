@@ -21,22 +21,20 @@ package org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.partitioner
 import java.util.HashMap;
 import java.util.Map;
 
-
 import org.apache.hadoop.conf.Configurable;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.mapreduce.Partitioner;
 import org.apache.pig.backend.executionengine.ExecException;
-import org.apache.pig.data.Tuple;
-import org.apache.pig.impl.io.NullableTuple;
-import org.apache.pig.impl.io.PigNullableWritable;
-import org.apache.pig.impl.io.NullablePartitionWritable;
-
-import org.apache.pig.impl.util.Pair;
-import org.apache.pig.data.DefaultTupleFactory;
-import org.apache.pig.data.DataType;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce;
 import org.apache.pig.backend.hadoop.executionengine.util.MapRedUtil;
+import org.apache.pig.data.DataType;
+import org.apache.pig.data.Tuple;
+import org.apache.pig.data.TupleFactory;
+import org.apache.pig.impl.io.NullablePartitionWritable;
+import org.apache.pig.impl.io.NullableTuple;
+import org.apache.pig.impl.io.PigNullableWritable;
+import org.apache.pig.impl.util.Pair;
 
 
 /**
@@ -62,7 +60,7 @@ public class SkewedPartitioner extends Partitioner<PigNullableWritable, Writable
         // for partition table, compute the index based on the sampler output
         Pair <Integer, Integer> indexes;
         Integer curIndex = -1;
-        Tuple keyTuple = DefaultTupleFactory.getInstance().newTuple(1);
+        Tuple keyTuple = TupleFactory.getInstance().newTuple(1);
 
         // extract the key from nullablepartitionwritable
         PigNullableWritable key = ((NullablePartitionWritable) wrappedKey).getKey();

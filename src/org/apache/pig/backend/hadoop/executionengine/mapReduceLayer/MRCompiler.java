@@ -72,7 +72,6 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POUnion;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPackage.PackageType;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.util.PlanHelper;
-import org.apache.pig.builtin.BinStorage;
 import org.apache.pig.data.DataType;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.builtin.DefaultIndexableLoader;
@@ -83,6 +82,7 @@ import org.apache.pig.impl.builtin.PoissonSampleLoader;
 import org.apache.pig.impl.builtin.RandomSampleLoader;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.FileSpec;
+import org.apache.pig.impl.io.InterStorage;
 import org.apache.pig.impl.plan.CompilationMessageCollector;
 import org.apache.pig.impl.plan.DepthFirstWalker;
 import org.apache.pig.impl.plan.NodeIdGenerator;
@@ -594,7 +594,7 @@ public class MRCompiler extends PhyPlanVisitor {
      */
     private FileSpec getTempFileSpec() throws IOException {
         return new FileSpec(FileLocalizer.getTemporaryPath(pigContext).toString(),
-                new FuncSpec(BinStorage.class.getName()));
+                new FuncSpec(InterStorage.class.getName()));
     }
     
     /**
@@ -2077,7 +2077,7 @@ public class MRCompiler extends PhyPlanVisitor {
         // SampleLoader expects string version of FuncSpec 
         // as its first constructor argument.
         
-        rslargs[0] = (new FuncSpec(BinStorage.class.getName())).toString();
+        rslargs[0] = (new FuncSpec(InterStorage.class.getName())).toString();
         
         rslargs[1] = "100"; // The value is calculated based on the file size for skewed join
         FileSpec quantLdFilName = new FileSpec(lFile.getFileName(),

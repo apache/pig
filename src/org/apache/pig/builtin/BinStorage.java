@@ -69,10 +69,6 @@ import org.apache.pig.impl.util.LogUtils;
 public class BinStorage extends FileInputLoadFunc 
 implements LoadCaster, StoreFuncInterface, LoadMetadata {
 
-    
-    public static final int RECORD_1 = 0x01;
-    public static final int RECORD_2 = 0x02;
-    public static final int RECORD_3 = 0x03;
 
     Iterator<Tuple>     i              = null;
     private static final Log mLog = LogFactory.getLog(BinStorage.class);

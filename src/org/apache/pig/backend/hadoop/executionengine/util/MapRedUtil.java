@@ -35,19 +35,19 @@ import org.apache.hadoop.fs.PathFilter;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
-import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce;
-import org.apache.pig.builtin.BinStorage;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
-import org.apache.pig.data.DefaultTupleFactory;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.builtin.PartitionSkewedKeys;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.FileSpec;
+import org.apache.pig.impl.io.InterStorage;
 import org.apache.pig.impl.io.ReadToEndLoader;
 import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.OperatorKey;
@@ -86,7 +86,7 @@ public class MapRedUtil {
             conf.set("fs.hdfs.impl", PigMapReduce.sJobConf.get("fs.hdfs.impl"));
         conf.set(MapRedUtil.FILE_SYSTEM_NAME, "file:///");
 
-        ReadToEndLoader loader = new ReadToEndLoader(new BinStorage(), conf, 
+        ReadToEndLoader loader = new ReadToEndLoader(new InterStorage(), conf, 
                 keyDistFile, 0);
         DataBag partitionList;
         Tuple t = loader.getNext();
@@ -113,14 +113,14 @@ public class MapRedUtil {
             if (idxTuple.size() > 3) {
                 // remove the last 2 fields of the tuple, i.e: minIndex and maxIndex and store
                 // it in the reducer map
-                Tuple keyTuple = DefaultTupleFactory.getInstance().newTuple();
+                Tuple keyTuple = TupleFactory.getInstance().newTuple();
                 for (int i=0; i < idxTuple.size() - 2; i++) {
                     keyTuple.append(idxTuple.get(i));	
                 }
                 keyT = (E) keyTuple;
             } else {
                 if (keyType == DataType.TUPLE) {
-                    keyT = (E)DefaultTupleFactory.getInstance().newTuple(1);
+                    keyT = (E)TupleFactory.getInstance().newTuple(1);
                     ((Tuple)keyT).set(0,idxTuple.get(0));
                 } else {
                     keyT = (E) idxTuple.get(0);
@@ -151,7 +151,7 @@ public class MapRedUtil {
                     NodeIdGenerator.getGenerator().getNextNodeId(scope)));
                 spec = new FileSpec(FileLocalizer.getTemporaryPath(
                     pigContext).toString(),
-                    new FuncSpec(BinStorage.class.getName()));
+                    new FuncSpec(InterStorage.class.getName()));
                 str.setSFile(spec);
                 plan.addAsLeaf(str);
             } else{
