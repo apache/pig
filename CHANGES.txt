@@ -92,6 +92,8 @@ create a local copy of test-patch.sh (gkesavan)
 PIG-1302: Include zebra's "pigtest" ant target as a part of pig's 
 ant test target. (gkesavan)
 
+PIG-1452: To remove hadoop20.jar from lib and resolve from maven repository.(gkesavan)
+
 OPTIMIZATIONS
 
 PIG-1353: Map-side joins (ashutoshc)

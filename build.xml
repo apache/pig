@@ -47,7 +47,6 @@
     <!-- property name="build.encoding" value="ISO-8859-1" / -->
     <property name="build.encoding" value="UTF8" />
     <!-- TODO with only one version of hadoop in the lib folder we do not need that anymore -->
-    <property name="hadoop.jarfile" value="hadoop20.jar" />
     <property name="hbase.jarfile" value="hbase-0.20.0.jar" />
     <property name="hbase.test.jarfile" value="hbase-0.20.0-test.jar" />
 	<property name="zookeeper.jarfile" value="zookeeper-hbase-1329.jar" />
@@ -129,6 +128,7 @@
     <!-- IVY properteis set here -->
     <property name="ivy.dir" location="ivy" />
     <loadproperties srcfile="${ivy.dir}/libraries.properties"/>
+    <property name="hadoop.jar" value="hadoop-core-${hadoop-core.version}.jar" />
     <property name="ivy.jar" location="${ivy.dir}/ivy-${ivy.version}.jar"/>
     <property name="ivy_repo_url" value="http://repo2.maven.org/maven2/org/apache/ivy/ivy/${ivy.version}/ivy-${ivy.version}.jar"/>
     <property name="ivysettings.xml" location="${ivy.dir}/ivysettings.xml" />
@@ -166,15 +166,10 @@
     <!-- setup the classpath -->
     <path id="classpath">
 	<path refid="compile.classpath"/>	
-        <fileset file="${lib.dir}/${hadoop.jarfile}" />
         <fileset file="${lib.dir}/${hbase.jarfile}" />
-		<fileset file="${lib.dir}/${guava.jarfile}" />
+	<fileset file="${lib.dir}/${guava.jarfile}" />
         <fileset file="${lib.dir}/${hbase.test.jarfile}" />
     	<fileset file="${lib.dir}/${zookeeper.jarfile}"/>
-    	<fileset file="${ivy.lib.dir}/jackson-mapper-asl-${jackson.version}.jar"/>
-    	<fileset file="${ivy.lib.dir}/jackson-core-asl-${jackson.version}.jar"/>
-        <fileset file="${ivy.lib.dir}/joda-time-${joda-time.version}.jar" />
-    	<!-- <fileset file="${lib.dir}/commons-collections-3.2.jar" />  -->
     </path>
 
     <!-- javadoc-classpath -->
@@ -463,7 +458,7 @@
                     <attribute name="Svn-Revision" value="${svnString}" />
                 </section>
             </manifest>
-            <zipfileset src="${lib.dir}/${hadoop.jarfile}" />
+            <zipfileset src="${ivy.lib.dir}/${hadoop.jar}" />
             <zipfileset src="${ivy.lib.dir}/junit-${junit.version}.jar" />
             <zipfileset src="${ivy.lib.dir}/jsch-${jsch.version}.jar" />
             <zipfileset src="${ivy.lib.dir}/jline-${jline.version}.jar" />
