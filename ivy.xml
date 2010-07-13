@@ -48,20 +48,8 @@
       conf="checkstyle->master"/>
     <dependency org="commons-beanutils" name="commons-beanutils-core" rev="${commons-beanutils.version}"
       conf="checkstyle->master"/>
-    <dependency org="commons-el" name="commons-el" rev="${commons-el.version}"
-      conf="compile->master"/>
-    <dependency org="log4j" name="log4j" rev="${log4j.version}"
-      conf="compile->master"/>
-    <dependency org="org.apache.hadoop" name="hadoop-core" rev="${hadoop-core.version}"
-      conf="compile->default;test->default"/>
-    <dependency org="org.apache.hadoop" name="hadoop-test" rev="${hadoop-test.version}"
-      conf="compile->default;test->default"/>
-    <dependency org="org.mortbay.jetty" name="jetty-util" rev="${jetty-util.version}"
-      conf="compile->master"/>
     <dependency org="commons-logging" name="commons-logging" rev="${commons-logging.version}"
-      conf="compile->master"/>
-     <dependency org="org.slf4j" name="slf4j-log4j12" rev="${slf4j-log4j12.version}"
-      conf="compile->master;test->master"/>
+      conf="checkstyle->master"/>
     <dependency org="commons-cli" name="commons-cli" rev="${commons-cli.version}"
       conf="checkstyle->master"/>
     
