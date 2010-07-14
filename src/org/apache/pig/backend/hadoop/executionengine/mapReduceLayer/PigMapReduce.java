@@ -55,6 +55,8 @@ import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.impl.util.SpillableMemoryManager;
 import org.apache.pig.impl.util.UDFContext;
+import org.apache.pig.tools.pigstats.PigStatusReporter;
+
 
 /**
  * This class is the static Mapper &amp; Reducer classes that
@@ -348,8 +350,9 @@ public class PigMapReduce {
 
                 PigHadoopLogger pigHadoopLogger = PigHadoopLogger.getInstance();
                 pigHadoopLogger.setAggregate(aggregateWarning);
-                pigHadoopLogger.setTaskIOContext(context);
-                
+                PigStatusReporter.setContext(context);	
+                pigHadoopLogger.setReporter(PigStatusReporter.getInstance());
+
                 PhysicalOperator.setPigLogger(pigHadoopLogger);
 
                 for (POStore store: stores) {
@@ -560,7 +563,8 @@ public class PigMapReduce {
                 
                 PigHadoopLogger pigHadoopLogger = PigHadoopLogger.getInstance();
                 pigHadoopLogger.setAggregate(aggregateWarning);
-                pigHadoopLogger.setTaskIOContext(context);
+                PigStatusReporter.setContext(context);
+                pigHadoopLogger.setReporter(PigStatusReporter.getInstance());
                 PhysicalOperator.setPigLogger(pigHadoopLogger);
                 
                 for (POStore store: stores) {

@@ -22,9 +22,6 @@ Release 0.7.0 - 2010-05-03
 
 INCOMPATIBLE CHANGES
 
-PIG-1438: [Performance] MultiQueryOptimizer should also merge DISTINCT jobs
-(rding)
-
 PIG-1292: Interface Refinements (hashutosh)
 
 PIG-1259: ResourceFieldSchema.setSchema should not allow a bag field without a
@@ -70,6 +67,11 @@ different load and store implementation classes to be used in a reversible
 manner (rding via pradeepkth)
 
 IMPROVEMENTS
+
+PIG-1428: Make a StatusReporter singleton available for incrementing counters (dvryaboy)
+
+PIG-1438: [Performance] MultiQueryOptimizer should also merge DISTINCT jobs
+(rding)
 
 PIG-1309: Map-side Cogroup (hashutosh)
 
