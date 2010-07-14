@@ -66,6 +66,11 @@ import org.apache.pig.impl.io.ReadToEndLoader;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.util.LogUtils;
 
+/**
+ * Load and store data in a binary format.  This class is used by Pig to move
+ * data between MapReduce jobs.  Use of this function for storing user data is
+ * supported.
+ */
 public class BinStorage extends FileInputLoadFunc 
 implements LoadCaster, StoreFuncInterface, LoadMetadata {
 

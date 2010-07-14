@@ -28,6 +28,9 @@ import org.apache.pig.data.Tuple;
 import org.apache.pig.data.DataType;
 
 
+/**
+ * Determine whether a bag or map is empty.
+ */
 public class IsEmpty extends FilterFunc {
 
     @Override

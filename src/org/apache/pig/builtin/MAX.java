@@ -38,7 +38,21 @@ import org.apache.pig.impl.logicalLayer.schema.Schema;
 
 
 /**
- * Generates the max of the values of the first field of a tuple.
+ * Generates the maximum of a set of values. This class implements
+ * {@link org.apache.pig.Algebraic}, so if possible the execution will
+ * performed in a distributed fashion.
+ * <p>
+ * MAX can operate on any numeric type and on chararrays.  It can also operate on bytearrays,
+ * which it will cast to doubles.    It expects a bag of
+ * tuples of one record each.  If Pig knows from the schema that this function
+ * will be passed a bag of integers or longs, it will use a specially adapted version of
+ * MAX that uses integer arithmetic for comparing the data.  The return type
+ * of MAX will match the input type.
+ * <p>
+ * MAX implements the {@link org.apache.pig.Accumulator} interface as well.
+ * While this will never be
+ * the preferred method of usage it is available in case the combiner can not be
+ * used for a given calculation.
  */
 public class MAX extends EvalFunc<Double> implements Algebraic, Accumulator<Double> {
 

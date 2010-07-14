@@ -28,7 +28,7 @@ import org.apache.pig.impl.logicalLayer.schema.Schema;
 
 
 /**
- * Generates the size of the first field of a tuple.
+ * This method should never be used directly, use {@link SIZE}.
  */
 public class BagSize extends EvalFunc<Long> {
 

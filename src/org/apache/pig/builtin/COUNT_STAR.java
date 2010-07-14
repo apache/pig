@@ -35,9 +35,24 @@ import org.apache.pig.impl.logicalLayer.schema.Schema;
 /**
  * Generates the count of the values of the first field of a tuple. 
  * This class is different from COUNT in that it counts all NULL values and as such
- * implements SQL COUNT(*) semantics. This class is Algebraic in
- * implemenation, so if possible the execution will be split into a local and global functions
+ * implements SQL COUNT(*) semantics.
+ *
+ * Generates the count of the number of values in a bag.  This count does 
+ * include null values, and thus matches SQL semantics for COUNT(*) (where
+ * in SQL indicates all) but not for COUNT(a) (where a is * field).
+ * <p>
+ * This class
+ * implements {@link org.apache.pig.Algebraic}, so if possible the execution will
+ * performed in a distributed fashion.
+ * <p>
+ * There are no restrictions as to the data types inside the bag to be counted.
+ * <p>
+ * COUNT_STAR implements the {@link org.apache.pig.Accumulator} interface as well.
+ * While this will never be
+ * the preferred method of usage it is available in case the combiner can not be
+ * used for a given calculation.
  */
+
 public class COUNT_STAR extends EvalFunc<Long> implements Algebraic, Accumulator<Long>{
     private static TupleFactory mTupleFactory = TupleFactory.getInstance();
 

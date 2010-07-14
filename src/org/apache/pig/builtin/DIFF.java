@@ -32,9 +32,14 @@ import org.apache.pig.data.TupleFactory;
 
 
 /**
- * DIFF compares the fields of a tuple with arity 2. If the fields are DataBags, it
- * will emit any Tuples that are in on of the DataBags but not the other. If the
- * fields are values, it will emit tuples with values that do not match.
+ * DIFF takes two bags as arguments and compares them.   Any tuples
+ * that are in one bag but not the other are returned.  If the
+ * fields are not bags then they will be returned if they do not match, or 
+ * an empty bag will be returned if the two records match.
+ * <p>
+ * The implementation assumes that both bags being passed to this function will
+ * fit entirely into memory simultaneously.  If that is not the case the UDF
+ * will still function, but it will be <strong>very</strong> slow.
  * 
  */
 public class DIFF extends EvalFunc<DataBag> {

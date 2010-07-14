@@ -27,7 +27,7 @@ import org.apache.pig.impl.logicalLayer.schema.Schema;
 
 
 /**
- * Generates the concatenation of all fields of a tuple.
+ * This method should never be used directly, use {@link CONCAT}.
  */
 public class StringConcat extends EvalFunc<String> {
 

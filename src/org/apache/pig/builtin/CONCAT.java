@@ -33,7 +33,8 @@ import org.apache.pig.impl.logicalLayer.schema.Schema;
 
 
 /**
- * Generates the concatenation of the first two fields of a tuple.
+ * Generates the concatenation of the first two arguments.  It can be
+ * used with two bytearrays or two chararrays (but not a mixture of the two).
  */
 public class CONCAT extends EvalFunc<DataByteArray> {
 
