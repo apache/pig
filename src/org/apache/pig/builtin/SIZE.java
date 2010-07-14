@@ -33,7 +33,11 @@ import org.apache.pig.impl.logicalLayer.schema.Schema;
 
 
 /**
- * Generates the Size of the first field of a tuple.
+ * Generates the size of the argument passed to it.  For bytearrays this
+ * means the number of bytes.  For charrays the number of characters.  For
+ * bags the number of tuples, for tuples the number of fields, and for maps
+ * the number of keyvalue pairs.  For all other types the value of 1 is
+ * always returned.
  */
 public class SIZE extends EvalFunc<Long> {
 

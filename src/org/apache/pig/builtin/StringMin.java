@@ -33,7 +33,7 @@ import org.apache.pig.impl.logicalLayer.schema.Schema;
 
 
 /**
- * Generates the min of the String values in the first field of a tuple.
+ * This method should never be used directly, use {@link MIN}.
  */
 public class StringMin extends EvalFunc<String> implements Algebraic, Accumulator<String> {
 

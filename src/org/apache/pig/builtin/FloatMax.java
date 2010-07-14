@@ -32,7 +32,7 @@ import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 
 /**
- * Generates the max of the values of the first field of a tuple.
+ * This method should never be used directly, use {@link MAX}.
  */
 public class FloatMax extends EvalFunc<Float> implements Algebraic, Accumulator<Float> {
 

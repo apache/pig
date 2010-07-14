@@ -40,7 +40,8 @@ import org.apache.pig.data.TupleFactory;
 
 
 /**
- * This load function simply creates a tuple for each line of text that has a single field that
+ * This load function simply creates a tuple for each line of text that has a
+ * single chararray field that
  * contains the line of text.
  */
 public class TextLoader extends LoadFunc implements LoadCaster {

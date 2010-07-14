@@ -25,6 +25,10 @@ import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.data.DataType;
 
+/**
+ * Return a random double value.  Whatever arguments are passed to this UDF
+ * are ignored.
+ */
 public class RANDOM extends EvalFunc<Double>{
 
 	public Double exec(Tuple input) throws IOException {

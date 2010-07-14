@@ -26,6 +26,11 @@ import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 
+/**
+ * Find the number of fields in a tuple.  Expected input is a tuple,
+ * output is an integer.
+ * @deprecated Use {@link SIZE} instead.
+ */
 public class ARITY extends EvalFunc<Integer> {
 
     @Override

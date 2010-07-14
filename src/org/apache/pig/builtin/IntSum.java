@@ -32,7 +32,7 @@ import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 
 /**
- * Generates the sum of the Integer in the first field of a tuple.
+ * This method should never be used directly, use {@link SUM}.
  */
 public class IntSum extends EvalFunc<Long> implements Algebraic, Accumulator<Long> {
 

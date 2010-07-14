@@ -43,7 +43,7 @@ import org.apache.pig.impl.util.LogUtils;
 /**
  * This abstract class provides standard conversions between utf8 encoded data
  * and pig data types.  It is intended to be extended by load and store
- * functions (such as PigStorage). 
+ * functions (such as {@link PigStorage}). 
  */
 public class Utf8StorageConverter implements LoadCaster {
 

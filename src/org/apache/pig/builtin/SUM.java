@@ -38,7 +38,22 @@ import org.apache.pig.impl.logicalLayer.schema.Schema;
 
 
 /**
- * Generates the sum of the values of the first field of a tuple.
+ * Generates the sum of a set of values. This class implements
+ * {@link org.apache.pig.Algebraic}, so if possible the execution will
+ * performed in a distributed fashion.
+ * <p>
+ * SUM can operate on any numeric type.  It can also operate on bytearrays,
+ * which it will cast to doubles.  It expects a bag of
+ * tuples of one record each.  If Pig knows from the schema that this function
+ * will be passed a bag of integers or longs, it will use a specially adapted version of
+ * SUM that uses integer arithmetic for summing the data.  The return type
+ * of SUM is double for float, double, or bytearray arguments and long for int
+ * or long arguments.
+ * <p>
+ * SUM implements the {@link org.apache.pig.Accumulator} interface as well.
+ * While this will never be
+ * the preferred method of usage it is available in case the combiner can not be
+ * used for a given calculation.
  */
 public class SUM extends EvalFunc<Double> implements Algebraic, Accumulator<Double> {
 

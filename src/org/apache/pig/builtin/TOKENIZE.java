@@ -34,6 +34,12 @@ import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.FuncSpec;
 
+/**
+ * Given a chararray as an argument, this method will split the chararray and
+ * return a bag with a tuple for each chararray that results from the split.
+ * The string is split on space, double quote, comma, open parend, close parend,
+ * and asterisk (star).
+ */
 public class TOKENIZE extends EvalFunc<DataBag> {
     TupleFactory mTupleFactory = TupleFactory.getInstance();
     BagFactory mBagFactory = BagFactory.getInstance();

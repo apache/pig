@@ -36,7 +36,7 @@ import org.apache.pig.impl.logicalLayer.schema.Schema;
 
 
 /**
- * Generates the sum of the values of the first field of a tuple.
+ * This method should never be used directly, use {@link SUM}.
  */
 public class DoubleSum extends EvalFunc<Double> implements Algebraic, Accumulator<Double> {
 

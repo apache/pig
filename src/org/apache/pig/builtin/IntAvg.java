@@ -33,8 +33,7 @@ import org.apache.pig.backend.executionengine.ExecException;
 
 
 /**
- * Generates the average of the values of the first field of a tuple. This class is Algebraic in
- * implementation, so if possible the execution will be split into a local and global application
+ * This method should never be used directly, use {@link AVG}.
  */
 public class IntAvg extends EvalFunc<Double> implements Algebraic, Accumulator<Double> {
     
