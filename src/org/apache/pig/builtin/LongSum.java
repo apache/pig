@@ -33,7 +33,7 @@ import org.apache.pig.impl.logicalLayer.schema.Schema;
 
 
 /**
- * Generates the sum of the Long values in the first field of a tuple.
+ * This method should never be used directly, use {@link SUM}.
  */
 public class LongSum extends EvalFunc<Long> implements Algebraic, Accumulator<Long> {
 

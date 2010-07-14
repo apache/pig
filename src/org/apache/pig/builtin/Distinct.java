@@ -34,8 +34,6 @@ import org.apache.pig.data.TupleFactory;
  * Find the distinct set of tuples in a bag.
  * This is a blocking operator. All the input is put in the hashset implemented
  * in DistinctDataBag which also provides the other DataBag interfaces.
- * 
- * 
  */
 public class Distinct  extends EvalFunc<DataBag> implements Algebraic {
 

@@ -57,9 +57,10 @@ import org.apache.pig.impl.util.StorageUtil;
 import org.apache.pig.impl.util.UDFContext;
 
 /**
- * A load function that parses a line of input into fields using a delimiter to set the fields. The
- * delimiter is given as a regular expression. See String.split(delimiter) and
- * http://java.sun.com/j2se/1.5.0/docs/api/java/util/regex/Pattern.html for more information.
+ * A load function that parses a line of input into fields using a delimiter to
+ * set the fields. The delimiter is given as a regular expression. See
+ * {@link java.lang.String#split(String)} and {@link java.util.regex.Pattern}
+ * for more information.
  */
 @SuppressWarnings("unchecked")
 public class PigStorage extends FileInputLoadFunc implements StoreFuncInterface, 

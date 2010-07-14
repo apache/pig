@@ -32,7 +32,7 @@ import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 
 /**
- * Generates the min of the Double values in the first field of a tuple.
+ * This method should never be used directly, use {@link MIN}.
  */
 public class DoubleMin extends EvalFunc<Double> implements Algebraic, Accumulator<Double> {
 

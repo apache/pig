@@ -38,8 +38,21 @@ import org.apache.pig.backend.executionengine.ExecException;
 
 
 /**
- * Generates the average of the values of the first field of a tuple. This class is Algebraic in
- * implemenation, so if possible the execution will be split into a local and global application
+ * Generates the average of a set of values. This class implements
+ * {@link org.apache.pig.Algebraic}, so if possible the execution will
+ * performed in a distributed fashion.
+ * <p>
+ * AVG can operate on any numeric type.  It can also operate on bytearrays,
+ * which it will cast to doubles.    It expects a bag of
+ * tuples of one record each.  If Pig knows from the schema that this function
+ * will be passed a bag of integers or longs, it will use a specially adapted version of
+ * AVG that uses integer arithmetic for summing the data.  The return type
+ * of AVG will always be double, regardless of the input type. 
+ * <p>
+ * AVG implements the {@link org.apache.pig.Accumulator} interface as well.
+ * While this will never be
+ * the preferred method of usage it is available in case the combiner can not be
+ * used for a given calculation
  */
 public class AVG extends EvalFunc<Double> implements Algebraic, Accumulator<Double> {
     

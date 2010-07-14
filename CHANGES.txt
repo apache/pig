@@ -100,6 +100,8 @@ PIG-1309: Map-side Cogroup (ashutoshc)
 
 BUG FIXES
 
+PIG-1409: Fix up javadocs for org.apache.pig.builtin (gates)
+
 PIG-1490: Make Pig storers work with remote HDFS in secure mode (rding)
 
 PIG-1469: DefaultDataBag assumes ArrayList as default List type (azaroth via dvryaboy)
