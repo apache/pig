@@ -22,9 +22,12 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.OutputFormat;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
+import org.apache.hadoop.mapreduce.TaskInputOutputContext;
 import org.apache.pig.StoreFuncInterface;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStoreImpl;
+import org.apache.pig.tools.pigstats.PigStatusReporter;
+
 /**
  * This class is used to have a POStore write to DFS via a output
  * collector/record writer. It sets up a modified job configuration to
@@ -36,14 +39,19 @@ public class MapReducePOStoreImpl extends POStoreImpl {
     
     private TaskAttemptContext context;
 
+    private PigStatusReporter reporter;
+
     @SuppressWarnings("unchecked")
     private RecordWriter writer;
     
-    public MapReducePOStoreImpl(TaskAttemptContext context) {
+    public MapReducePOStoreImpl(TaskInputOutputContext context) {
         // get a copy of the Configuration so that changes to the
         // configuration below (like setting the output location) do
         // not affect the caller's copy
         Configuration outputConf = new Configuration(context.getConfiguration());
+
+        PigStatusReporter.setContext(context);
+				reporter = PigStatusReporter.getInstance();
 
         // make a copy of the Context to use here - since in the same
         // task (map or reduce) we could have multiple stores, we should
@@ -51,6 +59,7 @@ public class MapReducePOStoreImpl extends POStoreImpl {
         // by the different stores.
         this.context = new TaskAttemptContext(outputConf, 
                 context.getTaskAttemptID());
+
     }
     
     @SuppressWarnings("unchecked")
