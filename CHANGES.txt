@@ -198,6 +198,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-1493: Column Pruner throw exception "inconsistent pruning" (daijy)
+
 PIG-1490: Make Pig storers work with remote HDFS in secure mode (rding)
 
 PIG-1484: BinStorage should support comma seperated path (daijy)
