@@ -134,19 +134,11 @@ public class ColumnPruner extends LOVisitor {
                             break;
                         for (Pair<Integer, Integer> relevantField: relevantFields.getFields())
                         {
+                            // If any of the input column is pruned, prune this output column
                             if (columnsPruned.contains(relevantField))
                             {
                                 columnPruned = true;
-                            }
-                            else {
-                                // For union, inconsistent pruning is possible (See PIG-1146)
-                                // We shall allow inconsistent pruning for union, and the pruneColumns method
-                                // in LOUnion will handle this inconsistency
-                                if (!(lOp instanceof LOUnion) && columnPruned==true) {
-                                    int errCode = 2185;
-                                    String msg = "Column $"+i+" of "+lOp+" inconsistent pruning";
-                                    throw new OptimizerException(msg, errCode, PigException.BUG);
-                                }
+                                break;
                             }
                         }
                     }
