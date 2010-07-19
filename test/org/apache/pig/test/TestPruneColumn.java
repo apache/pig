@@ -1878,4 +1878,24 @@ public class TestPruneColumn extends TestCase {
                 "No map keys pruned for A"}));
     }
 
+    // See PIG-1493
+    @Test
+    public void testInconsistentPruning() throws Exception {
+        pigServer.registerQuery("A = load '"+ Util.generateURI(tmpFile1.toString(), pigServer.getPigContext()) + "' AS (a0:chararray, a1:chararray, a2);");
+        pigServer.registerQuery("B = foreach A generate CONCAT(a0,a1) as b0, a0, a2;");
+        pigServer.registerQuery("C = foreach B generate a0, a2;");
+        Iterator<Tuple> iter = pigServer.openIterator("C");
+
+        assertTrue(iter.hasNext());
+        Tuple t = iter.next();
+        assertTrue(t.toString().equals("(1,3)"));
+        
+        assertTrue(iter.hasNext());
+        t = iter.next();
+        assertTrue(t.toString().equals("(2,2)"));
+
+        assertTrue(checkLogFileMessage(new String[]{"Columns pruned for A: $1",
+                "No map keys pruned for A"}));
+    }
+
 }
