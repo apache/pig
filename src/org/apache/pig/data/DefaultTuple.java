@@ -31,17 +31,15 @@ import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.impl.util.TupleFormat;
 
 /**
- * This was the old default implementation of Tuple. The new default is
- * {@link BinSedesTuple} .   
- * Zebra and BinStorage load/store functions use the .write(..) and .readFields(..)
- * functions here for (de)serialization.
+ * A default implementation of Tuple.  This class will be created by the
+ * DefaultTupleFactory.
  */
 public class DefaultTuple implements Tuple {
     
     protected boolean isNull = false;
     private static final long serialVersionUID = 2L;
     protected List<Object> mFields;
-        
+    
     /**
      * Default constructor.  This constructor is public so that hadoop can call
      * it directly.  However, inside pig you should never be calling this
@@ -180,14 +178,36 @@ public class DefaultTuple implements Tuple {
      */
     public long getMemorySize() {
         Iterator<Object> i = mFields.iterator();
-        // initial memory overhead for Tuple object, ArrayList object
-        // and Object[] inside ArrayList, plus references to each tuple field,
-        // plus other object variables
-        long sum = 12*3 + mFields.size()*4 + 8;
+        //fixed overhead
+        long empty_tuple_size = 8 /* tuple object header*/ 
+        + 8 /* isNull - but rounded to 8 bytes as total obj size needs to be multiple of 8 */
+        + 8 /* mFields reference*/
+        + 32 /* mFields array list fixed size*/;
+
+        
+        //rest of the fixed portion of mfields size is accounted within empty_tuple_size
+        long mfields_var_size =  roundToEight(4 + 4*mFields.size());
+        // in java hotspot 32bit vm, there seems to be a minimum tuple size of 96
+        // which is probably from the minimum size of this array list
+        mfields_var_size = Math.max(40, mfields_var_size); 
+        
+        
+        long sum = empty_tuple_size + mfields_var_size;
         while (i.hasNext()) {
             sum += getFieldMemorySize(i.next());
         }
         return sum;
+    }
+
+    
+    
+    /**
+     * Memory size of objects are rounded to multiple of 8 bytes
+     * @param i
+     * @return i rounded to a equal of higher multiple of 8 
+     */
+    private long roundToEight(long i) {
+        return 8 * ((i+7)/8); // integer division rounds the result down
     }
 
     /** 
@@ -259,7 +279,12 @@ public class DefaultTuple implements Tuple {
     }
 
     public void write(DataOutput out) throws IOException {
-        DataReaderWriter.writeDatum(out, this);
+        out.writeByte(DataType.TUPLE);
+        int sz = size();
+        out.writeInt(sz);
+        for (int i = 0; i < sz; i++) {
+            DataReaderWriter.writeDatum(out, mFields.get(i));
+        }
     }
 
     public void readFields(DataInput in) throws IOException {
@@ -292,13 +317,16 @@ public class DefaultTuple implements Tuple {
         switch (DataType.findType(o)) {
             case DataType.BYTEARRAY: {
                 byte[] bytes = ((DataByteArray)o).get();
-                return bytes.length + 12;
+                // bytearray size including rounding to 8 bytes
+                long byte_array_sz = roundToEight(bytes.length + 12);
+                
+                return byte_array_sz + 16 /*16 is additional size of DataByteArray */;
             }
 
             case DataType.CHARARRAY: {
                 String s = (String)o;
                 // See PIG-1443 for a reference for this formula
-                return 8 * (((s.length() * 2) + 45) / 8);
+                return roundToEight((s.length() * 2) + 38);
             }
 
             case DataType.TUPLE: {
@@ -312,10 +340,10 @@ public class DefaultTuple implements Tuple {
             }
 
             case DataType.INTEGER:
-                return 4 + 12;
+                return 4 + 8 + 4/*+4 to round to 8 bytes*/;
 
             case DataType.LONG:
-                return 8 + 12;
+                return 8 + 8;
 
             case DataType.MAP: {
                 Map<String, Object> m = (Map<String, Object>)o;
@@ -327,17 +355,27 @@ public class DefaultTuple implements Tuple {
                     sum += getFieldMemorySize(entry.getKey());
                     sum += getFieldMemorySize(entry.getValue());
                 }
-                return sum + 12;
+                //based on experiments on 32 bit Java HotSpot VM
+                // size of map with 0 entries is 120 bytes
+                // each additional entry have around 24 bytes overhead at 
+                // small number of entries. At larger number of entries, the  
+                // overhead is around 32 bytes, probably because of the expanded
+                // data structures in anticapation of more entries being added
+                return sum + m.size()*32  + 120;
             }
 
             case DataType.FLOAT:
-                return 8 + 12;
+                return 4 + 8 + 4/*+4 to round to 8 bytes*/;
 
             case DataType.DOUBLE:
-                return 16 + 12;
+                return 8 + 8;
 
             case DataType.BOOLEAN:
-                return 4 + 12;
+                //boolean takes 1 byte , +7 to round it to 8
+                return 1 + 8 + 7;
+                
+            case DataType.NULL:
+                return 0;
 
             default:
                 // ??

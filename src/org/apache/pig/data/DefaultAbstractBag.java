@@ -140,20 +140,49 @@ public abstract class DefaultAbstractBag implements DataBag {
             used *= numInMem;
         }
 
-        // add up the overhead for this object, mContents object, references to tuples,
-        // and other object variables
-        used += 12 + 12 + numInMem*4 + 8 + 4 + 8;
+        // add up the overhead for this object and other object variables
+        int bag_fix_size = 8 /* object header */ 
+        + 4 + 8 + 8 /* mLastContentsSize + mMemSize + mSize */
+        + 8 + 8 /* mContents ref  + mSpillFiles ref*/
+        + 4 /* +4 to round it to eight*/
+        + 36 /* mContents fixed */
+        ;
+        long mFields_size =   roundToEight(4 + numInMem*4); /* mContents fixed + per entry */
+        // in java hotspot 32bit vm, there seems to be a minimum bag size of 188 bytes
+        // some of the extra bytes is probably from a minimum size of this array list
+        mFields_size = Math.max(40, mFields_size); 
         
+        used += bag_fix_size + mFields_size;
+
         // add up overhead for mSpillFiles ArrayList, Object[] inside ArrayList,
         // object variable inside ArrayList and references to spill files
         if (mSpillFiles != null) {
-        	used += 12 + 12 + 4 + mSpillFiles.size()*4;
+            used += roundToEight(36 /* mSpillFiles fixed overhead*/ + mSpillFiles.size()*4);
+            
+            if(mSpillFiles.size() > 0){
+                //a rough estimate of memory used by each file entry
+                // the auto generated files are likely to have same length
+                long approx_per_entry_size =
+                    roundToEight(mSpillFiles.get(0).toString().length() * 2 + 38);
+                
+                used += mSpillFiles.size() * approx_per_entry_size;
+            }
         }
         
         mMemSize = used;
         return used;
     }
 
+    
+    /**
+     * Memory size of objects are rounded to multiple of 8 bytes
+     * @param i
+     * @return i rounded to a equal of higher multiple of 8 
+     */
+    private long roundToEight(long i) {
+        return 8 * ((i+7)/8); // integer division rounds the result down
+    }
+    
     /**
      * Clear out the contents of the bag, both on disk and in memory.
      * Any attempts to read after this is called will produce undefined
