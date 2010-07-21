@@ -25,6 +25,9 @@ import junit.framework.TestCase;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
+import org.apache.pig.data.DataByteArray;
+import org.apache.pig.data.DefaultBagFactory;
+import org.apache.pig.data.DefaultDataBag;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.util.TupleFormat;
@@ -60,11 +63,64 @@ public class TestTuple extends TestCase {
         }
 
     }
+
+    public void testEmptyTupleSize() {
+        Tuple t = TupleFactory.getInstance().newTuple();
+        long size = t.getMemorySize();
+        assertEquals("tuple size",size, 96);
+    }
+    
+    public void testEmptyBagSize() {
+        DataBag bag = DefaultBagFactory.getInstance().newDefaultBag();
+        long size = bag.getMemorySize();
+        assertEquals("bag size",size, 124);
+    }
     
     // See PIG-1443
     public void testTupleSizeWithString() {
         Tuple t = Util.createTuple(new String[] {"1234567", "bar"});
         long size = t.getMemorySize();
-        assertTrue(size==156);
+        assertEquals("tuple size",size, 200);
     }
+    
+    public void testTupleSizeWithByteArrays() {
+        Tuple t = TupleFactory.getInstance().newTuple();
+        t.append(new DataByteArray("1234567"));
+        t.append(new DataByteArray("bar"));
+        long size = t.getMemorySize();
+        assertEquals("tuple size",size, 168);
+    }
+
+    public void testTupleSizeWithDoubles() {
+        Tuple t = TupleFactory.getInstance().newTuple();
+        t.append(new Double(0.1));
+        t.append(new Double(2000.10001));
+        long size = t.getMemorySize();
+        assertEquals("tuple size",size, 128);
+    }
+
+    public void testTupleSizeWithFloats() {
+        Tuple t = TupleFactory.getInstance().newTuple();
+        t.append(new Float(0.1F));
+        t.append(new Float(2000.10001F));
+        long size = t.getMemorySize();
+        assertEquals("tuple size",size, 128);
+    }
+    
+    public void testTupleSizeWithLongs() {
+        Tuple t = TupleFactory.getInstance().newTuple();
+        t.append(new Long(100));
+        t.append(new Long(2000));
+        long size = t.getMemorySize();
+        assertEquals("tuple size",size, 128);
+    }
+    
+    public void testTupleSizeWithBooleans() {
+        Tuple t = TupleFactory.getInstance().newTuple();
+        t.append(new Boolean(true));
+        t.append(new Boolean(false));
+        long size = t.getMemorySize();
+        assertEquals("tuple size",size, 128);
+    }    
+    
 }
