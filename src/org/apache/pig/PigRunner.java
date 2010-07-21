@@ -20,6 +20,7 @@ package org.apache.pig;
 import org.apache.hadoop.util.GenericOptionsParser;
 import org.apache.pig.classification.InterfaceAudience;
 import org.apache.pig.classification.InterfaceStability;
+import org.apache.pig.tools.pigstats.PigProgressNotificationListener;
 import org.apache.pig.tools.pigstats.PigStats;
 import org.apache.pig.tools.pigstats.PigStatsUtil;
 
@@ -45,10 +46,10 @@ public abstract class PigRunner {
         public final static int THROWABLE_EXCEPTION = 8;
     }
     
-    public static PigStats run(String[] args) {
+    public static PigStats run(String[] args, PigProgressNotificationListener listener) {
         GenericOptionsParser parser = new GenericOptionsParser(args);
         String[] pigArgs = parser.getRemainingArgs();
-        return PigStatsUtil.getPigStats(Main.run(pigArgs));
+        return PigStatsUtil.getPigStats(Main.run(pigArgs, listener));
     }
     
 }

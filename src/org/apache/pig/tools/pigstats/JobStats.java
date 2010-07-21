@@ -422,6 +422,10 @@ public final class JobStats extends Operator {
                 ds.setPOStore(sto);
                 ds.setConf(conf);
                 outputs.add(ds);
+                
+                if (state == JobState.SUCCESS) {
+                    ScriptState.get().emitOutputCompletedNotification(ds);
+                }
             }
         } else {
             for (POStore sto : mapStores) {
@@ -472,6 +476,10 @@ public final class JobStats extends Operator {
         ds.setPOStore(sto);
         ds.setConf(conf);
         outputs.add(ds);
+        
+        if (state == JobState.SUCCESS) {
+            ScriptState.get().emitOutputCompletedNotification(ds);
+        }
     }
        
     void addInputStatistics() {

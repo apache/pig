@@ -166,6 +166,8 @@ public abstract class PigStatsUtil {
             JobControlCompiler jcc, MROperPlan plan) {
         PigStats ps = PigStats.start();
         ps.start(pc, client, jcc, plan);
+        
+        ScriptState.get().emitLaunchStartedNotification(plan.size());
     }
      
     /**
@@ -184,6 +186,8 @@ public abstract class PigStatsUtil {
                 LOG.error("Error message: " + errMsg);
             }            
         }
+        ScriptState.get().emitLaunchCompletedNotification(
+                ps.getNumberSuccessfulJobs());
         if (display) ps.display();
     }
     
@@ -238,16 +242,20 @@ public abstract class PigStatsUtil {
      */
     public static void accumulateStats(JobControl jc) {
         PigStats ps = PigStats.get();
-  
+        ScriptState ss = ScriptState.get();
+        
         for (Job job : jc.getSuccessfulJobs()) {            
-            accumulateSuccessStatistics(ps, job);
+            JobStats js = accumulateSuccessStatistics(ps, job);
+            if (js != null) {
+                ss.emitjobFinishedNotification(js);
+            }
         }
         
         for (Job job : jc.getFailedJobs()) {                      
-            JobStats js = 
-                addFailedJobStats(ps, job);
+            JobStats js = addFailedJobStats(ps, job);
             if (js != null) {
-                js.setErrorMsg(job.getMessage());                    
+                js.setErrorMsg(job.getMessage());    
+                ss.emitJobFailedNotification(js);
             } else {
                 LOG.warn("unable to add failed job stats: " + job);
             }
@@ -285,7 +293,7 @@ public abstract class PigStatsUtil {
         return js;
     }
     
-    private static void accumulateSuccessStatistics(PigStats ps, Job job) {
+    private static JobStats accumulateSuccessStatistics(PigStats ps, Job job) {
         JobStats js = ps.addJobStats(job);
         if (js == null) {
             LOG.warn("unable to add job stats");
@@ -312,6 +320,7 @@ public abstract class PigStatsUtil {
             
             js.addInputStatistics();
         }
+        return js;
     }
 
 }
