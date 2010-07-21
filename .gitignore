@@ -1,0 +1,7 @@
+*~
+build/
+src-gen/
+test/org/apache/pig/test/utils/dotGraph/parser/
+ivy/*.jar
+pig.jar
+
