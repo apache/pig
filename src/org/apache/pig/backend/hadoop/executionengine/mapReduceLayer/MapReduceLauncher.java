@@ -63,8 +63,10 @@ import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.plan.CompilationMessageCollector.MessageType;
 import org.apache.pig.impl.util.ConfigurationValidator;
 import org.apache.pig.impl.util.LogUtils;
+import org.apache.pig.tools.pigstats.PigProgressNotificationListener;
 import org.apache.pig.tools.pigstats.PigStats;
 import org.apache.pig.tools.pigstats.PigStatsUtil;
+import org.apache.pig.tools.pigstats.ScriptState;
 
 
 /**
@@ -142,6 +144,8 @@ public class MapReduceLauncher extends Launcher{
             List<Job> jobsWithoutIds = jc.getWaitingJobs();
             log.info(jobsWithoutIds.size() +" map-reduce job(s) waiting for submission.");
             
+            ScriptState.get().emitJobsSubmittedNotification(jobsWithoutIds.size());
+            
             String jobTrackerAdd;
             String port;
             String jobTrackerLoc;
@@ -184,6 +188,9 @@ public class MapReduceLauncher extends Launcher{
             				log.info("More information at: http://"+ jobTrackerLoc+
             						"/jobdetails.jsp?jobid="+job.getAssignedJobID());
             			}  
+            			
+            			ScriptState.get().emitJobStartedNotification(
+                                job.getAssignedJobID().toString());                        
             		}
             		else{
             			// This job is not assigned an id yet.
@@ -194,8 +201,11 @@ public class MapReduceLauncher extends Launcher{
             	double prog = (numMRJobsCompl+calculateProgress(jc, jobClient))/totalMRJobs;
             	if(prog>=(lastProg+0.01)){
             		int perCom = (int)(prog * 100);
-            		if(perCom!=100)
+            		if(perCom!=100) {
             			log.info( perCom + "% complete");
+            			
+            			ScriptState.get().emitProgressUpdatedNotification(perCom);
+            		}
             	}
             	lastProg = prog;
             }
@@ -266,6 +276,8 @@ public class MapReduceLauncher extends Launcher{
             jc.stop(); 
         }
 
+        ScriptState.get().emitProgressUpdatedNotification(100);
+        
         log.info( "100% complete");
              
         boolean failed = false;

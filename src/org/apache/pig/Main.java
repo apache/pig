@@ -62,6 +62,7 @@ import org.apache.pig.impl.util.JarManager;
 import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.impl.util.PropertiesUtil;
 import org.apache.pig.impl.util.UDFContext;
+import org.apache.pig.tools.pigstats.PigProgressNotificationListener;
 import org.apache.pig.tools.pigstats.PigStatsUtil;
 import org.apache.pig.tools.pigstats.ScriptState;
 import org.apache.pig.tools.cmdline.CmdLineParser;
@@ -100,10 +101,10 @@ public class Main {
 public static void main(String args[]) {
     GenericOptionsParser parser = new GenericOptionsParser(args);
     String[] pigArgs = parser.getRemainingArgs();
-    System.exit(run(pigArgs));
+    System.exit(run(pigArgs, null));
 }
 
-static int run(String args[]) {
+static int run(String args[], PigProgressNotificationListener listener) {
     int rc = 1;
     Properties properties = new Properties();
     PropertiesUtil.loadDefaultProperties(properties);
@@ -287,6 +288,10 @@ static int run(String args[]) {
         // create the static script state object
         String commandLine = LoadFunc.join((AbstractList<String>)Arrays.asList(args), " ");
         ScriptState scriptState = ScriptState.start(commandLine);
+        if (listener != null) {
+            scriptState.registerListener(listener);
+        }
+        
 
         if(logFileName == null && !userSpecifiedLog) {
             logFileName = validateLogFile(properties.getProperty("pig.logfile"), null);

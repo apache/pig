@@ -177,6 +177,9 @@ public class ScriptState {
     private Map<MapReduceOper, String> featureMap = null;
     private Map<MapReduceOper, String> aliasMap = null;
     
+    private List<PigProgressNotificationListener> listeners
+            = new ArrayList<PigProgressNotificationListener>();
+    
     public static ScriptState start(String commandLine) {
         ScriptState ss = new ScriptState(UUID.randomUUID().toString());
         ss.setCommandLine(commandLine);
@@ -196,6 +199,58 @@ public class ScriptState {
         return tss.get();
     }           
        
+    public void registerListener(PigProgressNotificationListener listener) {
+        listeners.add(listener);
+    }
+        
+    public void emitLaunchStartedNotification(int numJobsToLaunch) {
+        for (PigProgressNotificationListener listener: listeners) {
+            listener.launchStartedNotification(numJobsToLaunch);
+        }
+    }
+    
+    public void emitJobsSubmittedNotification(int numJobsSubmitted) {
+        for (PigProgressNotificationListener listener: listeners) {
+            listener.jobsSubmittedNotification(numJobsSubmitted);
+        }        
+    }
+    
+    public void emitJobStartedNotification(String assignedJobId) {
+        for (PigProgressNotificationListener listener: listeners) {
+            listener.jobStartedNotification(assignedJobId);
+        }
+    }
+    
+    public void emitjobFinishedNotification(JobStats jobStats) {
+        for (PigProgressNotificationListener listener: listeners) {
+            listener.jobFinishedNotification(jobStats);
+        }
+    }
+    
+    public void emitJobFailedNotification(JobStats jobStats) {
+        for (PigProgressNotificationListener listener: listeners) {
+            listener.jobFailedNotification(jobStats);
+        }
+    }
+    
+    public void emitOutputCompletedNotification(OutputStats outputStats) {
+        for (PigProgressNotificationListener listener: listeners) {
+            listener.outputCompletedNotification(outputStats);
+        }
+    }
+    
+    public void emitProgressUpdatedNotification(int progress) {
+        for (PigProgressNotificationListener listener: listeners) {
+            listener.progressUpdatedNotification(progress);
+        }
+    }
+    
+    public void emitLaunchCompletedNotification(int numJobsSucceeded) {
+        for (PigProgressNotificationListener listener: listeners) {
+            listener.launchCompletedNotification(numJobsSucceeded);
+        }
+    }
+    
     public void addSettingsToConf(MapReduceOper mro, Configuration conf) {
         LOG.info("Pig script settings are added to the job");
         conf.set(PIG_PROPERTY.HADOOP_VERSION.toString(), getHadoopVersion());
