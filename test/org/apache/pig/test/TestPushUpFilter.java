@@ -1069,12 +1069,32 @@ public class TestPushUpFilter extends junit.framework.TestCase {
         assertTrue(pushUpFilter.getPushBeforeInput() == -1);
     }
     
+    // See PIG-1289
     @Test
     public void testOutJoin() throws Exception {
         planTester.buildPlan("A = load 'myfile' as (name, age, gpa);");
         planTester.buildPlan("B = load 'anotherfile' as (name);");
         planTester.buildPlan("C = join A by name LEFT OUTER, B by name;");        
         LogicalPlan lp = planTester.buildPlan("D = filter C by B::name is null;");
+        
+        planTester.setPlan(lp);
+        planTester.setProjectionMap(lp);
+        
+        PushUpFilter pushUpFilter = new PushUpFilter(lp);
+        
+        assertTrue(!pushUpFilter.check(lp.getLeaves()));
+        assertTrue(pushUpFilter.getSwap() == false);
+        assertTrue(pushUpFilter.getPushBefore() == false);
+        assertTrue(pushUpFilter.getPushBeforeInput() == -1);
+    }
+    
+    // See PIG-1507
+    @Test
+    public void testFullOutJoin() throws Exception {
+        planTester.buildPlan("A = load 'myfile' as (d1:int);");
+        planTester.buildPlan("B = load 'anotherfile' as (d2:int);");
+        planTester.buildPlan("c = join A by d1 full outer, B by d2;");        
+        LogicalPlan lp = planTester.buildPlan("d = filter c by d2 is null;");
         
         planTester.setPlan(lp);
         planTester.setProjectionMap(lp);
