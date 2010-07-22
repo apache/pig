@@ -347,6 +347,8 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-1507: Full outer join fails while doing a filter on joined data (daijy)
+
 PIG-1493: Column Pruner throw exception "inconsistent pruning" (daijy)
 
 PIG-1484: BinStorage should support comma seperated path (daijy)

@@ -244,6 +244,7 @@ public class PushUpFilter extends LogicalTransformer {
                         // Also in LOJoin, innerFlag==true indicate that branch is the outer join side
                         // which has the exact opposite semantics
                         // If all innerFlag is true, that implies a regular join
+                        // If all innerFlag is false, means a outer join, in this case, we can not push up filter for any path (See PIG-1507)
                         if (i!=mPushBeforeInput && ((LOJoin)predecessor).getInnerFlags()[i]) {
                             otherBranchContainOuter = true;
                         }
@@ -251,7 +252,13 @@ public class PushUpFilter extends LogicalTransformer {
                             sawInner = true;
                         }
                     }
-                    if (otherBranchContainOuter && sawInner) {
+                    if (!otherBranchContainOuter && ((LOJoin)predecessor).getInnerFlags()[mPushBeforeInput]==false) // all innerFlag is false, implies an outer join
+                    {
+                        mPushBeforeInput = -1;
+                        return false;
+                    }
+                    if (otherBranchContainOuter && sawInner) // If it is not a regular join and the path we push is on inner side
+                    {
                         mPushBeforeInput = -1;
                         return false;
                     }
