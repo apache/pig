@@ -104,6 +104,9 @@ PIG-1309: Map-side Cogroup (ashutoshc)
 
 BUG FIXES
 
+PIG-1435: make sure dependent jobs fail when a jon in multiquery fails (niraj
+via rding)
+
 PIG-1492: DefaultTuple and DefaultMemory understimate their memory footprint (thejas)
 
 PIG-1409: Fix up javadocs for org.apache.pig.builtin (gates)
