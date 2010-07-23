@@ -251,10 +251,8 @@ public class MapReduceLauncher extends Launcher{
                 // If we only have one store and that job fail, then we sure 
                 // that the job completely fail, and we shall stop dependent jobs
                 for (Job job : jc.getFailedJobs()) {
-                    List<POStore> sts = jcc.getStores(job);
-                    if (sts.size()==1) {
-                        completeFailedJobsInThisRun.add(job);
-                    }
+                    completeFailedJobsInThisRun.add(job);
+                    log.info("job " + job.getAssignedJobID() + " has failed! Stop running all dependent jobs"); 
                 }
                 failedJobs.addAll(jc.getFailedJobs());
             }
