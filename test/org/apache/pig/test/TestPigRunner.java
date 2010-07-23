@@ -25,12 +25,13 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.PrintWriter;
 import java.util.Properties;
+import java.util.List;
+import java.util.Iterator;
 
-import org.apache.hadoop.fs.Path;
+
 import org.apache.pig.ExecType;
 import org.apache.pig.PigRunner;
 import org.apache.pig.PigRunner.ReturnCode;
-import org.apache.pig.backend.hadoop.datastorage.HPath;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.tools.pigstats.JobStats;
@@ -38,9 +39,8 @@ import org.apache.pig.tools.pigstats.OutputStats;
 import org.apache.pig.tools.pigstats.PigProgressNotificationListener;
 import org.apache.pig.tools.pigstats.PigStats;
 import org.apache.pig.tools.pigstats.PigStatsUtil;
-import org.junit.After;
+import org.apache.pig.experimental.plan.Operator;
 import org.junit.AfterClass;
-import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -209,7 +209,37 @@ public class TestPigRunner {
             Util.deleteFile(cluster, OUTPUT_FILE_2);
         }
     }
-    
+
+    @Test
+    public void MQDepJobFailedTest() throws Exception {
+        final String OUTPUT_FILE_2 = "output2";
+        PrintWriter w = new PrintWriter(new FileWriter(PIG_FILE));
+        w.println("A = load '" + INPUT_FILE + "' as (name:chararray, a1:int, a2:int);");
+        w.println("store A into '" + OUTPUT_FILE_2 + "';");
+        w.println("B = FOREACH A GENERATE org.apache.pig.test.utils.UPPER(name);");
+        w.println("C= order B by $0;");
+        w.println("store C into '" + OUTPUT_FILE + "';");
+        w.close();
+        try {
+            String[] args = { PIG_FILE };
+            PigStats stats = PigRunner.run(args, null);
+            Iterator<JobStats> iter = stats.getJobGraph().iterator();
+            while (iter.hasNext()) {
+                 JobStats js=iter.next();
+                 if(js.getState().name().equals("FAILED")) {
+                     List<Operator> ops=stats.getJobGraph().getSuccessors(js);
+                     for(Operator op : ops ) {
+                         assertEquals(((JobStats)op).getState().toString(), "UNKNOWN");
+                     }
+                 }
+            }
+        } finally {
+            new File(PIG_FILE).delete();
+            Util.deleteFile(cluster, OUTPUT_FILE);
+            Util.deleteFile(cluster, OUTPUT_FILE_2);
+        }
+    }
+
     @Test
     public void simpleNegativeTest() throws Exception {
         PrintWriter w = new PrintWriter(new FileWriter(PIG_FILE));
