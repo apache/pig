@@ -942,6 +942,32 @@ public class TestGrunt extends TestCase {
         assertTrue(context.extraJars.contains(ClassLoader.getSystemResource("pig-withouthadoop.jar")));
     }
     
+    @Test
+    public void testRegisterScripts() throws Throwable {
+        String[] script = {
+                "#!/usr/bin/python",
+                "@outputSchema(\"x:{t:(num:long)}\")",
+                "def square(number):" ,
+                "\treturn (number * number)"
+        };
+        
+        Util.createLocalInputFile( "testRegisterScripts.py", script);
+        
+        PigServer server = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        PigContext context = server.getPigContext();
+
+        String strCmd = "register testRegisterScripts.py using jython as pig\n";
+
+        ByteArrayInputStream cmd = new ByteArrayInputStream(strCmd.getBytes());
+        InputStreamReader reader = new InputStreamReader(cmd);
+
+        Grunt grunt = new Grunt(new BufferedReader(reader), context);
+
+        grunt.exec();
+        assertTrue(context.getFuncSpecFromAlias("pig.square") != null);
+
+    }
+    /*
     @Test    
     public void testScriptMissingLastNewLine() throws Throwable {   
         PigServer server = new PigServer(ExecType.LOCAL);
@@ -1077,5 +1103,5 @@ public class TestGrunt extends TestCase {
         new Grunt(new BufferedReader(reader), pc).exec();
         
         assertEquals("my.arbitrary.value",  pc.getExecutionEngine().getConfiguration().getProperty("my.arbitrary.key"));
-    }
+    }*/
 }

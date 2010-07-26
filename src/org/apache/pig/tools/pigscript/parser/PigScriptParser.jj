@@ -74,6 +74,8 @@ public abstract class PigScriptParser
 	abstract protected void processExplain(String alias, String script, boolean isVerbose, String format, String target, List<String> params, List<String> files) throws IOException, ParseException;
 	
 	abstract protected void processRegister(String jar) throws IOException;
+	
+	abstract protected void processRegister(String path, String scriptingEngine, String namespace) throws IOException, ParseException;
 
 	abstract protected void processSet(String key, String value) throws IOException, ParseException;
 		
@@ -152,6 +154,8 @@ TOKEN: {<MKDIR: "mkdir">}
 TOKEN: {<PWD: "pwd">}
 TOKEN: {<QUIT: "quit">}
 TOKEN: {<REGISTER: "register">}
+TOKEN: {<USING: "using">}
+TOKEN: {<AS: "as"> }
 TOKEN: {<REMOVE: "rm">}
 TOKEN: {<REMOVEFORCE: "rmf">}
 TOKEN: {<SET: "set">}
@@ -372,8 +376,8 @@ TOKEN : { <QUOTEDSTRING :  "'"
       "'"> }
 void parse() throws IOException:
 {
-	Token t1, t2;
-	String val = null;
+	Token t1, t2, t3;
+	String engine = null, namespace = null;
 	List<String> cmdTokens = new ArrayList<String>();
 }
 
@@ -501,7 +505,15 @@ void parse() throws IOException:
 	|
 	<REGISTER>
 	t1 = GetPath()
-	{processRegister(unquote(t1.image));}
+	[
+	<USING> t2 = GetPath()
+	{ engine = t2.image; }
+		[
+			<AS> t3 = <IDENTIFIER>
+			{namespace = t3.image; }
+		]
+	]	
+	{processRegister(unquote(t1.image), engine, namespace); }
 	|
 	Script()
 	|
@@ -700,6 +712,10 @@ Token GetReserved () :
 	t = <QUIT>
 	|
 	t = <REGISTER>
+	|
+	t = <USING>
+	|
+	t = <AS>
 	|
 	t = <REMOVE>
 	|

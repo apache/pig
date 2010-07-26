@@ -174,6 +174,7 @@
     	<fileset file="${ivy.lib.dir}/jackson-mapper-asl-${jackson.version}.jar"/>
     	<fileset file="${ivy.lib.dir}/jackson-core-asl-${jackson.version}.jar"/>
         <fileset file="${ivy.lib.dir}/joda-time-${joda-time.version}.jar" />
+		<fileset file="${ivy.lib.dir}/jython-${jython.version}.jar" />
     	<!-- <fileset file="${lib.dir}/commons-collections-3.2.jar" />  -->
     </path>
 

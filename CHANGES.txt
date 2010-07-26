@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-928: UDFs in scripting languages (daijy)
+
 PIG-1509: Add .gitignore file (cwsteinbach via gates)
 
 PIG-1478: Add progress notification listener to PigRunner API (rding)

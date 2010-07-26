@@ -221,7 +221,9 @@ public class POUserFunc extends ExpressionOperator {
                     }
                 }
                 if(resultType == DataType.BYTEARRAY) {
-                    if(res.result != null && DataType.findType(result.result) != DataType.BYTEARRAY) {
+                    // This is needed if some EvalFunc has default datatype as bytearray and returns arbitrary objects
+                    // We see such behavior in case of script EvalFunc, which is used to run udfs in scripting langs
+                    if(result.result != null && DataType.findType(result.result) != DataType.BYTEARRAY) {
                         result.result = new DataByteArray(result.result.toString().getBytes());
                     }
                 }

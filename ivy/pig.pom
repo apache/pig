@@ -95,5 +95,11 @@
         <version>${joda-time.version}</version>
     </dependency>
 
+	<dependency>
+	    <groupId>org.python</groupId>
+	    <artifactId>jython</artifactId>
+	    <version>${jython.version}/version>
+	</dependency>
+
   </dependencies> 
 </project>

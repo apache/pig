@@ -365,6 +365,19 @@ public class GruntParser extends PigScriptParser {
     protected void processRegister(String jar) throws IOException {
         mPigServer.registerJar(jar);
     }
+    
+    @Override
+    protected void processRegister(String path, String scriptingLang, String namespace) throws IOException, ParseException {
+        if(path.endsWith(".jar")) {
+            if(scriptingLang != null || namespace != null) {
+                throw new ParseException("Cannot register a jar with a scripting language or namespace");
+            }
+            mPigServer.registerJar(path);
+        }
+        else {
+            mPigServer.registerCode(path, scriptingLang, namespace);
+        }
+    }    
 
     private String runPreprocessor(String script, List<String> params, 
                                    List<String> files) 

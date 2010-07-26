@@ -3256,7 +3256,6 @@ ExpressionOperator EvalFuncSpec(Schema over, Map<String, LogicalOperator> specs,
 {
 	String funcName = null; 
 	FuncSpec funcSpec = null; 
-	String funcNameAlias = null; 
     boolean registeredFunction = false;
 	List<ExpressionOperator> args;
 	ExpressionOperator userFunc;
@@ -3265,30 +3264,28 @@ ExpressionOperator EvalFuncSpec(Schema over, Map<String, LogicalOperator> specs,
 	log.trace("Entering EvalFuncSpec");
 }
 {
-	(
-    (
-    LOOKAHEAD({ null != pigContext.getFuncSpecFromAlias(getToken(1).image) }) funcNameAlias=QualifiedFunction()
-    {
-		func = pigContext.instantiateFuncFromAlias(funcNameAlias);
-		try{
-            FunctionType.tryCasting(func, funcType);
-		} catch (Exception e){
+	// get the func object
+	funcName = QualifiedFunction()
+	{
+		// look into defined functions map and try casting
+		// This supports namespace.func, jarname.package.func scenarios
+	    try{
+	    	func = pigContext.instantiateFuncFromAlias(funcName);
+	    	FunctionType.tryCasting(func, funcType);
+		}catch (Exception e){
 			ParseException pe = new ParseException(e.getMessage());
-			pe.initCause(e); 
+			pe.initCause(e);
 			throw pe;
 		}
-    }
-    )
-|   func=EvalFunction(funcType)
-    )
-    "(" args=EvalArgs(over,specs,lp,input) ")" 
+	}
+	"(" args=EvalArgs(over,specs,lp,input) ")" 
 	{
 		if(null != func) {
-            funcName = func.getClass().getName();
-            if(null != funcNameAlias) {
-                funcSpec = pigContext.getFuncSpecFromAlias(funcNameAlias);
+            if(null != pigContext.getFuncSpecFromAlias(funcName)) {
+                funcSpec = pigContext.getFuncSpecFromAlias(funcName);
             } else {
-                funcSpec = new FuncSpec(funcName);
+            	funcName = func.getClass().getName();
+            	funcSpec = new FuncSpec(funcName);
             }
             byte type = DataType.BYTEARRAY;
             switch(funcType) {
@@ -3303,7 +3300,7 @@ ExpressionOperator EvalFuncSpec(Schema over, Map<String, LogicalOperator> specs,
             }
 			userFunc = new LOUserFunc(lp, new OperatorKey(scope, getNextId()), funcSpec, type);
         } else {
-            throw new ParseException("Could not instantiate function: " + funcNameAlias);
+            throw new ParseException("Could not instantiate function: " + funcName);
         }
 		lp.add(userFunc);
 		log.debug("EvalFuncSpec: Added operator " + userFunc.getClass().getName() + " " + userFunc + " to logical plan " + lp);
@@ -3728,29 +3725,6 @@ Schema TypeTupleSchema() :
 }
 
 // These the simple non-terminals that are shared across many
-
-Object  EvalFunction(byte funcType) : 
-{
-	String funcName;
-    Object func = null;
-	log.trace("Entering EvalFunction");
-}
-{
-	funcName = QualifiedFunction()
-	{
-        func = pigContext.instantiateFuncFromAlias(funcName);
-		try{
-            FunctionType.tryCasting(func, funcType);
-		}catch (Exception e){
-			ParseException pe = new ParseException(e.getMessage());
-			pe.initCause(e);
-			throw pe;
-		}
-		log.trace("Exiting EvalFunction");
-		
-		return func;
-	}
-}
 
 String EvalClass(byte classType) :
 {
