@@ -24,14 +24,14 @@ import static org.junit.Assert.assertTrue;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.PrintWriter;
-import java.util.Properties;
-import java.util.List;
 import java.util.Iterator;
-
+import java.util.List;
+import java.util.Properties;
 
 import org.apache.pig.ExecType;
 import org.apache.pig.PigRunner;
 import org.apache.pig.PigRunner.ReturnCode;
+import org.apache.pig.experimental.plan.Operator;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.tools.pigstats.JobStats;
@@ -39,7 +39,6 @@ import org.apache.pig.tools.pigstats.OutputStats;
 import org.apache.pig.tools.pigstats.PigProgressNotificationListener;
 import org.apache.pig.tools.pigstats.PigStats;
 import org.apache.pig.tools.pigstats.PigStatsUtil;
-import org.apache.pig.experimental.plan.Operator;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -328,6 +327,24 @@ public class TestPigRunner {
         assertEquals(PigStatsUtil.MULTI_INPUTS_RECORD_COUNTER + "batchtest", name);
     }
     
+    @Test
+    public void classLoaderTest() throws Exception {
+        PrintWriter w = new PrintWriter(new FileWriter(PIG_FILE));
+        w.println("register test/org/apache/pig/test/data/pigtestloader.jar");
+        w.println("A = load '" + INPUT_FILE + "' using org.apache.pig.test.PigTestLoader();");
+        w.println("store A into '" + OUTPUT_FILE + "';");
+        w.close();
+        
+        try {
+            String[] args = { PIG_FILE };
+            PigStats stats = PigRunner.run(args, new TestNotificationListener());     
+            assertTrue(stats.isSuccessful());          
+        } finally {
+            new File(PIG_FILE).delete();
+            Util.deleteFile(cluster, OUTPUT_FILE);
+        }
+    }
+
     private static class TestNotificationListener implements PigProgressNotificationListener {
         
         private int numJobsToLaunch = 0;
@@ -385,4 +402,5 @@ public class TestPigRunner {
         }
         
     }
+
 }

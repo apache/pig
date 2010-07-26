@@ -168,6 +168,8 @@ public class MapReduceLauncher extends Launcher{
             Thread jcThread = new Thread(jc);
             jcThread.setUncaughtExceptionHandler(jctExceptionHandler);
             
+            jcThread.setContextClassLoader(pc.createCl(null));
+            
             //All the setup done, now lets launch the jobs.
             jcThread.start();
             
