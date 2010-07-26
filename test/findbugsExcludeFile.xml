@@ -407,4 +407,9 @@
         <Field name = "rNums" />
         <Bug pattern="MS_OOI_PKGPROTECT" />
     </Match>
+    <Match>
+        <Class name="org.apache.pig.scripting.jython.JythonScriptEngine$Interpreter" />
+        <Method name = "init" />
+        <Bug pattern="OBL_UNSATISFIED_OBLIGATION" />
+    </Match>
 </FindBugsFilter>

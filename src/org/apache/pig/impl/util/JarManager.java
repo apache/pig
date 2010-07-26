@@ -17,6 +17,7 @@
  */
 package org.apache.pig.impl.util;
 
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -30,7 +31,6 @@ import java.net.URLDecoder;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
@@ -39,11 +39,10 @@ import java.util.jar.JarInputStream;
 import java.util.jar.JarOutputStream;
 import java.util.zip.ZipEntry;
 
-//import org.apache.pig.backend.hadoop.executionengine.mapreduceExec.PigMapReduce;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.pig.impl.PigContext;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce;
+import org.apache.pig.impl.PigContext;
 
 
 public class JarManager {
@@ -117,11 +116,18 @@ public class JarManager {
             // log.error("Adding " + jarEntry.jar + ":" + jarEntry.prefix);
             mergeJar(jarFile, jarEntry.jar, jarEntry.prefix, contents);
         }
-        for (int i = 0; i < pigContext.extraJars.size(); i++) {
-            // log.error("Adding extra " + pigContext.extraJars.get(i));
-            mergeJar(jarFile, pigContext.extraJars.get(i), null, contents);
+        for (String scriptJar: pigContext.scriptJars) {
+            mergeJar(jarFile, scriptJar, null, contents);
         }
-
+        for (URL extraJar: pigContext.extraJars) {
+            // log.error("Adding extra " + pigContext.extraJars.get(i));
+            mergeJar(jarFile, extraJar, null, contents);
+        }
+        for (int i = 0; i < pigContext.scriptFiles.size(); i++) {
+        	String path = pigContext.scriptFiles.get(i);
+        	addStream(jarFile, path, new FileInputStream(new File(path)),contents);
+        }
+        
         jarFile.putNextEntry(new ZipEntry("pigContext"));
         new ObjectOutputStream(jarFile).writeObject(pigContext);
         jarFile.close();
