@@ -90,6 +90,12 @@ public class PigContext implements Serializable, FunctionInstantiator {
    
     private Properties properties;
     
+    //  script files that are needed to run a job
+    public List<String> scriptFiles = new ArrayList<String>();
+    
+    //  script jars that are needed to run a script - jython.jar etc
+    public List<String> scriptJars = new ArrayList<String>(2);
+    
     /**
      * a table mapping function names to function specs.
      */
@@ -202,6 +208,12 @@ public class PigContext implements Serializable, FunctionInstantiator {
         }
         catch (ExecException e) {
             log.error("Failed to set tracker at: " + newLocation);
+        }
+    }
+    
+    public void addScriptFile(String path) throws MalformedURLException {
+        if (path != null) {
+            scriptFiles.add(path);
         }
     }
     
@@ -378,7 +390,6 @@ public class PigContext implements Serializable, FunctionInstantiator {
     public ExecType getExecType() {
         return execType;
     }
-    
     
     
     

@@ -96,6 +96,7 @@ import org.apache.pig.impl.util.LogUtils;
 import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.impl.util.PropertiesUtil;
 import org.apache.pig.pen.ExampleGenerator;
+import org.apache.pig.scripting.ScriptEngine;
 import org.apache.pig.tools.grunt.GruntParser;
 import org.apache.pig.tools.parameters.ParameterSubstitutionPreprocessor;
 import org.apache.pig.tools.pigstats.OutputStats;
@@ -465,6 +466,31 @@ public class PigServer {
 
             pigContext.addJar(resource);        
         }
+    }
+    
+    /**
+     * Universal Scripting Language Support, see PIG-928
+     * 
+     * @param path path of the script file
+     * @param scriptingLang language keyword or scriptingEngine used to interpret the script
+     * @param namespace namespace defined for functions of this script
+     * @throws IOException
+     */
+    public void registerCode(String path, String scriptingLang, String namespace)
+    throws IOException {
+        File f = new File(path);
+
+        if (!f.canRead()) {
+            int errCode = 4002;
+            String msg = "Can't read file: " + path;
+            throw new FrontendException(msg, errCode,
+                    PigException.USER_ENVIRONMENT);
+        }
+        if(scriptingLang != null) {
+            ScriptEngine se = ScriptEngine.getInstance(scriptingLang);
+            se.registerFunctions(path, namespace, pigContext);
+        }
+        pigContext.addScriptFile(path);
     }
     
     /**
