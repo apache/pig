@@ -302,12 +302,16 @@
             <param name="sources" value="${test.src.dir}" />
             <param name="dist" value="${test.build.classes}" />
             <param name="cp" value="test.classpath" />
+            <!-- don't compile PigTestLoader -->
+            <param name="excludes" value="**/PigTestLoader.java" />
         </antcall>
 
         <antcall target="compile-sources-all-warnings" inheritRefs="true" inheritall="true">
             <param name="sources" value="${test.src.dir}" />
             <param name="dist" value="${test.build.classes}" />
             <param name="cp" value="test.classpath" />
+            <!-- don't compile PigTestLoader -->
+            <param name="excludes" value="**/PigTestLoader.java" />            
         </antcall>
     	
     	<copy file="${basedir}/test/hbase-site.xml" tofile="${test.build.classes}/hbase-site.xml"/>
@@ -315,7 +319,7 @@
 
     <!-- This target is for default compilation -->
     <target name="compile-sources" unless="all.warnings">
-        <javac encoding="${build.encoding}" srcdir="${sources}"
+        <javac encoding="${build.encoding}" srcdir="${sources}" excludes="${excludes}"
                 includes="**/*.java" destdir="${dist}" debug="${javac.debug}"
                 optimize="${javac.optimize}" target="${javac.version}"
                 source="${javac.version}" deprecation="${javac.deprecation}">
@@ -328,7 +332,7 @@
         
     <!-- this target is for compilation with all warnings enabled -->
     <target name="compile-sources-all-warnings" if="all.warnings">
-         <javac encoding="${build.encoding}" srcdir="${sources}"
+         <javac encoding="${build.encoding}" srcdir="${sources}" excludes="${excludes}"
                 includes="**/*.java" destdir="${dist}" debug="${javac.debug}"
                 optimize="${javac.optimize}" target="${javac.version}"
                 source="${javac.version}" deprecation="${javac.deprecation}">
