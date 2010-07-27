@@ -28,6 +28,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Properties;
 
+import junit.framework.Assert;
+
 import org.apache.pig.ExecType;
 import org.apache.pig.PigRunner;
 import org.apache.pig.PigRunner.ReturnCode;
@@ -327,6 +329,29 @@ public class TestPigRunner {
         assertEquals(PigStatsUtil.MULTI_INPUTS_RECORD_COUNTER + "batchtest", name);
     }
     
+    @Test
+    public void testRegisterExternalJar() throws Exception {
+        String[] args = { "-Dpig.additional.jars=pig-withouthadoop.jar",
+                "-Dmapred.job.queue.name=default",
+                "-e", "A = load '" + INPUT_FILE + "';store A into '" + OUTPUT_FILE + "';\n" };
+        PigStats stats = PigRunner.run(args, new TestNotificationListener());        
+
+        Util.deleteFile(cluster, OUTPUT_FILE);
+        
+        java.lang.reflect.Method getPigContext = stats.getClass()
+                .getDeclaredMethod("getPigContext");
+
+        getPigContext.setAccessible(true);
+
+        PigContext ctx = (PigContext) getPigContext.invoke(stats);
+
+        Assert.assertNotNull(ctx);
+
+        assertTrue(ctx.extraJars.contains(ClassLoader.getSystemResource("pig-withouthadoop.jar")));
+        assertEquals("default", ctx.getProperties().getProperty("mapred.job.queue.name"));
+       
+    }
+
     @Test
     public void classLoaderTest() throws Exception {
         PrintWriter w = new PrintWriter(new FileWriter(PIG_FILE));
