@@ -106,6 +106,8 @@ PIG-1309: Map-side Cogroup (ashutoshc)
 
 BUG FIXES
 
+PIG-1034: Pig does not support ORDER ... BY group alias (zjffdu)
+
 PIG-1445: Pig error: ERROR 2013: Moving LOLimit in front of LOStream is not implemented (daijy)
 
 PIG-348:  -j command line option doesn't work (rding)
