@@ -199,7 +199,7 @@ LoadPushDown {
 
     @Override
     public InputFormat getInputFormat() {
-        if(loadLocation.endsWith("bz2") || loadLocation.endsWith("bz")) {
+        if(loadLocation.endsWith(".bz2") || loadLocation.endsWith(".bz")) {
             return new Bzip2TextInputFormat();
         } else {
             return new PigTextInputFormat();
