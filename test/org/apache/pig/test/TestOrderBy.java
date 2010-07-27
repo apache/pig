@@ -227,5 +227,29 @@ public class TestOrderBy extends TestCase {
                 "org.apache.pig.test.OrdDescNumeric; generate flatten(D); };",
                 false);
     }
+    
+    
+    // this test case is for JIRA_1034
+    @Test
+    public void testOrderByGroup() throws Exception{
+    	tmpFile = File.createTempFile("test", "txt");
+    	PrintStream ps = new PrintStream(new FileOutputStream(tmpFile));
+    	for(int i = 0; i < 100; i++) {
+    		ps.println(i);
+    	}
+    	ps.close();
+         
+    	pig.registerQuery("a = load 'file:" + tmpFile +"' as (f1:int);");
+    	pig.registerQuery("b = group a by $0;");
+    	pig.registerQuery("c = order b by group;");
+    	Iterator<Tuple> iter = pig.openIterator("c");
+    	int count = 0;
+    	while(iter.hasNext()){
+    		Tuple tuple=iter.next();
+    		assertEquals(count, tuple.get(0));
+    		count++;
+    	}
+    	assertEquals(count, 100);
+    }
 
 }
