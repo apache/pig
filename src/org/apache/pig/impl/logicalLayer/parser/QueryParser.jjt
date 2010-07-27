@@ -2108,6 +2108,22 @@ int ColNameOrNum(Schema over) :
 		log.trace("Exiting ColNameOrNum");
 		return i;
 	}
+	| 
+	t = <GROUP> 
+	{	
+        try {
+		    if ( over == null ||  (i = over.getPosition(t.image)) == -1) {
+			    throw new ParseException("Invalid alias: " + t.image + " in " + over);
+		    } 
+        } catch (FrontendException fee) {
+        	ParseException pe = new ParseException(fee.getMessage());
+        	pe.initCause(fee);
+            throw pe;
+        }
+		
+		log.trace("Exiting ColNameOrNum");
+		return i;
+	}
 	)
 }		
 
