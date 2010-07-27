@@ -17,7 +17,6 @@
  */
 package org.apache.pig;
 
-import org.apache.hadoop.util.GenericOptionsParser;
 import org.apache.pig.classification.InterfaceAudience;
 import org.apache.pig.classification.InterfaceStability;
 import org.apache.pig.tools.pigstats.PigProgressNotificationListener;
@@ -47,9 +46,7 @@ public abstract class PigRunner {
     }
     
     public static PigStats run(String[] args, PigProgressNotificationListener listener) {
-        GenericOptionsParser parser = new GenericOptionsParser(args);
-        String[] pigArgs = parser.getRemainingArgs();
-        return PigStatsUtil.getPigStats(Main.run(pigArgs, listener));
+        return PigStatsUtil.getPigStats(Main.run(args, listener));
     }
     
 }

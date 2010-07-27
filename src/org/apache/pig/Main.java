@@ -46,12 +46,14 @@ import jline.History;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.util.GenericOptionsParser;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
 
 import org.apache.pig.PigRunner.ReturnCode;
+import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.classification.InterfaceAudience;
 import org.apache.pig.classification.InterfaceStability;
 import org.apache.pig.ExecType;
@@ -83,7 +85,6 @@ public class Main {
     private static final String LOG4J_CONF = "log4jconf";
     private static final String BRIEF = "brief";
     private static final String DEBUG = "debug";
-    private static final String JAR = "jar";
     private static final String VERBOSE = "verbose";
     
     private enum ExecMode {STRING, FILE, SHELL, UNKNOWN}    
@@ -99,15 +100,19 @@ public class Main {
  * @throws IOException
  */
 public static void main(String args[]) {
-    GenericOptionsParser parser = new GenericOptionsParser(args);
-    String[] pigArgs = parser.getRemainingArgs();
-    System.exit(run(pigArgs, null));
+    System.exit(run(args, null));
 }
 
 static int run(String args[], PigProgressNotificationListener listener) {
     int rc = 1;
-    Properties properties = new Properties();
+    
+    GenericOptionsParser parser = new GenericOptionsParser(args);
+    Configuration conf = parser.getConfiguration();
+    Properties properties = ConfigurationUtil.toProperties(conf);
+    
     PropertiesUtil.loadDefaultProperties(properties);
+    
+    String[] pigArgs = parser.getRemainingArgs();
     
     boolean verbose = false;
     boolean gruntCalled = false;
@@ -124,7 +129,7 @@ static int run(String args[], PigProgressNotificationListener listener) {
         ArrayList<String> paramFiles = new ArrayList<String>();
         HashSet<String> optimizerRules = new HashSet<String>();
 
-        CmdLineParser opts = new CmdLineParser(args);
+        CmdLineParser opts = new CmdLineParser(pigArgs);
         opts.registerOpt('4', "log4jconf", CmdLineParser.ValueExpected.REQUIRED);
         opts.registerOpt('b', "brief", CmdLineParser.ValueExpected.NOT_ACCEPTED);
         opts.registerOpt('c', "check", CmdLineParser.ValueExpected.NOT_ACCEPTED);
@@ -132,8 +137,7 @@ static int run(String args[], PigProgressNotificationListener listener) {
         opts.registerOpt('e', "execute", CmdLineParser.ValueExpected.NOT_ACCEPTED);
         opts.registerOpt('f', "file", CmdLineParser.ValueExpected.REQUIRED);
         opts.registerOpt('h', "help", CmdLineParser.ValueExpected.NOT_ACCEPTED);
-        opts.registerOpt('i', "version", CmdLineParser.ValueExpected.OPTIONAL);
-        opts.registerOpt('j', "jar", CmdLineParser.ValueExpected.REQUIRED);
+        opts.registerOpt('i', "version", CmdLineParser.ValueExpected.OPTIONAL);        
         opts.registerOpt('l', "logfile", CmdLineParser.ValueExpected.REQUIRED);
         opts.registerOpt('m', "param_file", CmdLineParser.ValueExpected.OPTIONAL);
         opts.registerOpt('p', "param", CmdLineParser.ValueExpected.OPTIONAL);
@@ -212,13 +216,6 @@ static int run(String args[], PigProgressNotificationListener listener) {
             case 'i':
             	System.out.println(getVersionString());
             	return ReturnCode.SUCCESS;
-
-            case 'j': 
-                String jarsString = opts.getValStr();
-                if(jarsString != null){
-                    properties.setProperty(JAR, jarsString);
-                }
-                break;
 
             case 'l':
                 //call to method that validates the path to the log file 
@@ -624,7 +621,6 @@ public static void usage()
         System.out.println("    -f, -file path to the script to execute");
         System.out.println("    -h, -help display this message");
         System.out.println("    -i, -version display version information");
-        System.out.println("    -j, -jar jarfile load jarfile"); 
         System.out.println("    -l, -logfile path to client side log file; current working directory is default");
         System.out.println("    -m, -param_file path to the parameter file");
         System.out.println("    -p, -param key value pair of the form param=val");
