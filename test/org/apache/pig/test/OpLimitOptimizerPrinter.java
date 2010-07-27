@@ -142,6 +142,9 @@ public class OpLimitOptimizerPrinter extends LOVisitor {
         appendEdges(op);
     }
 
+    protected void visit(LOStream op) {
+        appendEdges(op);
+    }
 
     private void appendOp(LogicalOperator op)  {
         sb.append("    "+op.getClass().getSimpleName()+op.getOperatorKey().getId()) ;
