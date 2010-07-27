@@ -106,6 +106,8 @@ PIG-1309: Map-side Cogroup (ashutoshc)
 
 BUG FIXES
 
+PIG-348:  -j command line option doesn't work (rding)
+
 PIG-1487: Replace "bz" with ".bz" in all the LoadFunc
 
 PIG-1489: Pig MapReduceLauncher does not use jars in register statement
