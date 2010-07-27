@@ -269,6 +269,16 @@ public class TestLogicalOptimizer extends junit.framework.TestCase {
         LogicalPlan plan = planTester.buildPlan("B = foreach (limit (order (load 'myfile' AS (a0, a1, a2)) by $1) 10) generate $0;");
         optimizePlan(plan);
     }
+    
+    @Test
+    //See bug PIG-1445
+    public void testOPLimit12Optimizer() throws Exception {
+        planTester.buildPlan("A = load 'myfile';");
+        planTester.buildPlan("B = STREAM A THROUGH `stream.pl`;");
+        LogicalPlan plan = planTester.buildPlan("C = LIMIT B 10;");
+        optimizePlan(plan);
+        compareWithGoldenFile(plan, FILE_BASE_LOCATION + "optlimitplan12.dot");
+    }
 
     /**
      * test to check that {@link LoadMetadata#getSchema(String, Job)} is called
