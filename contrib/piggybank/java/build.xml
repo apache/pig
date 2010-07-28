@@ -37,6 +37,7 @@
     <property name="pigtest" value="../../../build/test/classes" />
     <property name="udfjar" value="piggybank.jar" />
     <property name="src.dir" value="src/main/java/org/apache/pig/piggybank" />
+   <property name="hsqldb.jar" value="../../../build/ivy/lib/Pig/hsqldb-1.8.0.10.jar"/>
 
     <!-- jar properties -->
     <property name=".javadoc" value="${build.docs}/api" />
@@ -70,6 +71,7 @@
         <pathelement location="${hadoopjar}"/>
         <pathelement location="${pigtest}"/>
         <pathelement location="${hive_execjar}"/>
+    	  <pathelement location="${hsqldb.jar}"/>
     </path>
 
     <path id="test.classpath">
