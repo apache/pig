@@ -74,5 +74,7 @@
     <dependency org="joda-time" name="joda-time" rev="${joda-time.version}" conf="compile->master"/>
 	<dependency org="org.python" name="jython" rev="${jython.version}" conf="compile->master"/>
     <!--ATM hbase, hbase-test.jar, hadoop.jar are resolved from the lib dir--> 	
+    <dependency org="hsqldb" name="hsqldb" rev="${hsqldb.version}"
+      conf="test->default" />
     </dependencies>
 </ivy-module>
