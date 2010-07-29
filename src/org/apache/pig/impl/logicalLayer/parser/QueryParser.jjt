@@ -967,6 +967,10 @@ SKIP : {
    <"--"(~["\r","\n"])*>
 |  <"/*" (~["*"])* "*" ("*" | (~["*","/"] (~["*"])* "*"))* "/">
 }
+// Every readable token added to following list before identifier needs to be added in
+// IdentifierOrReserved function so that package names will allow these keywords
+// Also, add it to TestLogicalPlanBuilder.testReservedWordsInFunctionNames
+
 // Comparison operators that can be used in a filter:
 TOKEN : { <#STRFILTEROP : "eq" | "gt" | "lt" | "gte" | "lte" | "neq" > }
 TOKEN : { <#NUMFILTEROP : "==" | "<" | "<=" | ">" | ">=" | "!=" > }
@@ -997,7 +1001,7 @@ TOKEN : { <INNER : "inner"> }
 TOKEN : { <OUTER : "outer"> }
 TOKEN : { <STAR : "*"> 		}
 TOKEN : { <PARALLEL : "parallel"> }
-TOKEN : { <PARTITION : "partition by"> }
+TOKEN : { <PARTITION : "partition"> }
 TOKEN : { <GROUP : "group"> }
 TOKEN : { <AND : "and"> }
 TOKEN : { <OR : "or"> }
@@ -1219,7 +1223,8 @@ Token IdentifierOrReserved() :
 }
 {
   (
- ( t1 = <DEFINE> )
+  (t1 = <FILTEROP> )
+| (t1 = <DEFINE> )
 | (t1 = <LOAD> )
 | (t1 =<FILTER> )
 | (t1 =<FOREACH> )
@@ -1275,6 +1280,9 @@ Token IdentifierOrReserved() :
 | (t1 =<STDOUT> )
 | (t1 =<LIMIT> )
 | (t1 =<SAMPLE> )
+| (t1 =<LEFT>)
+| (t1 =<RIGHT>)
+| (t1 =<FULL>)
 | (t1 =<IDENTIFIER>)
 )
     {
@@ -1346,7 +1354,7 @@ LogicalOperator BaseExpr(LogicalPlan lp) :
 |   (<SAMPLE> op = SampleClause(lp))
 |   (<ORDER> op = OrderClause(lp))
 |	(<DISTINCT> op = NestedExpr(lp) 
-	([<PARTITION> (partitioner = EvalClass(ClassType.PARTITIONER))])
+	([<PARTITION> <BY> (partitioner = EvalClass(ClassType.PARTITIONER))])
 	{
 		LogicalOperator distinct = new LODistinct(lp, new OperatorKey(scope, getNextId())); 
 		lp.add(distinct);
@@ -1849,7 +1857,7 @@ LogicalOperator CogroupClause(LogicalPlan lp) :
             cogroup = parseUsingForGroupBy("merge", gis, lp);
             }
         )])
-        ([<PARTITION> (partitioner = EvalClass(ClassType.PARTITIONER))])
+        ([<PARTITION> <BY> (partitioner = EvalClass(ClassType.PARTITIONER))])
     )
     {
         if (cogroup != null) {
@@ -2139,7 +2147,7 @@ LogicalOperator CrossClause(LogicalPlan lp) :
 	op = NestedExpr(lp) { inputs.add(op); }
 	("," op = NestedExpr(lp) { inputs.add(op); })+
 	)
-	([<PARTITION> (partitioner = EvalClass(ClassType.PARTITIONER))])
+	([<PARTITION> <BY> (partitioner = EvalClass(ClassType.PARTITIONER))])
 	{
 		LogicalOperator cross = new LOCross(lp, new OperatorKey(scope, getNextId()));
 		lp.add(cross);
@@ -2236,7 +2244,7 @@ LogicalOperator JoinClause(LogicalPlan lp) :
             joinOp = parseUsingForJoin("hash", gis, lp, isFullOuter, isRightOuter, isOuter);
 		    	}
      )]))
-     ([<PARTITION> (partitioner = EvalClass(ClassType.PARTITIONER))])
+     ([<PARTITION> <BY> (partitioner = EvalClass(ClassType.PARTITIONER))])
 	
 	{
 		log.trace("Exiting JoinClause");
