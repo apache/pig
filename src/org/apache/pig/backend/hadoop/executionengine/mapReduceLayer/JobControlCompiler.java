@@ -339,10 +339,6 @@ public class JobControlCompiler{
             ss.addSettingsToConf(mro, conf);
         }
         
-        //Set the User Name for this job. This will be
-        //used as the working directory
-        if (pigContext.defaultParallel > 0)
-            conf.set("mapred.reduce.tasks", ""+pigContext.defaultParallel);
  
         conf.set("mapred.mapper.new-api", "true");
         conf.set("mapred.reducer.new-api", "true");
@@ -533,8 +529,15 @@ public class JobControlCompiler{
                 mro.reducePlan.remove(pack);
                 nwJob.setMapperClass(PigMapReduce.Map.class);
                 nwJob.setReducerClass(PigMapReduce.Reduce.class);
-                if (mro.requestedParallelism>0)
+                
+                // first check the PARALLE in query, then check the defaultParallel in PigContext, and last do estimation
+                if (mro.requestedParallelism > 0)
                     nwJob.setNumReduceTasks(mro.requestedParallelism);
+		else if (pigContext.defaultParallel > 0)
+                    conf.set("mapred.reduce.tasks", ""+pigContext.defaultParallel);
+                else
+                    estimateNumberOfReducers(conf,lds);
+                
                 if (mro.customPartitioner != null)
                 	nwJob.setPartitionerClass(PigContext.resolveClassName(mro.customPartitioner));
 
@@ -642,6 +645,75 @@ public class JobControlCompiler{
         }
     }
     
+    /**
+     * Currently the estimation of reducer number is only applied to HDFS, The estimation is based on the input size of data storage on HDFS.
+     * Two parameters can been configured for the estimation, one is pig.exec.reducers.max which constrain the maximum number of reducer task (default is 999). The other
+     * is pig.exec.reducers.bytes.per.reducer(default value is 1000*1000*1000) which means the how much data can been handled for each reducer.
+     * e.g. the following is your pig script
+     * a = load '/data/a';
+     * b = load '/data/b';
+     * c = join a by $0, b by $0;
+     * store c into '/tmp';
+     * 
+     * The size of /data/a is 1000*1000*1000, and size of /data/b is 2*1000*1000*1000.
+     * Then the estimated reducer number is (1000*1000*1000+2*1000*1000*1000)/(1000*1000*1000)=3
+     * @param conf
+     * @param lds
+     * @throws IOException
+     */
+    private void estimateNumberOfReducers(Configuration conf, List<POLoad> lds) throws IOException {
+           long bytesPerReducer = conf.getLong("pig.exec.reducers.bytes.per.reducer", (long) (1000 * 1000 * 1000));
+        int maxReducers = conf.getInt("pig.exec.reducers.max", 999);
+        long totalInputFileSize = getTotalInputFileSize(lds);
+       
+        log.info("BytesPerReducer=" + bytesPerReducer + " maxReducers="
+            + maxReducers + " totalInputFileSize=" + totalInputFileSize);
+        
+        int reducers = (int)Math.ceil((totalInputFileSize+0.0) / bytesPerReducer);
+        reducers = Math.max(1, reducers);
+        reducers = Math.min(maxReducers, reducers);
+        conf.setInt("mapred.reduce.tasks", reducers);
+
+	log.info("Neither PARALLEL nor default parallelism is set for this job. Setting number of reducers to " + reducers);
+    }
+
+    private long getTotalInputFileSize(List<POLoad> lds) throws IOException {
+        List<String> inputs = new ArrayList<String>();
+        if(lds!=null && lds.size()>0){
+            for (POLoad ld : lds) {
+                inputs.add(ld.getLFile().getFileName());
+            }
+        }
+        long size = 0;
+        FileSystem fs = FileSystem.get(conf);
+        for (String input : inputs){
+            Path path = new Path(input);
+           String schema = path.toUri().getScheme();
+            if (schema==null || schema.equalsIgnoreCase("hdfs") || schema.equalsIgnoreCase("file")){
+                FileStatus[] status=fs.globStatus(new Path(input));
+                if (status != null){
+                    for (FileStatus s : status){
+                       size += getPathLength(fs, s);
+                    }
+                }
+            }
+        }
+        return size;
+   }
+   
+    private long getPathLength(FileSystem fs,FileStatus status) throws IOException{
+        if (!status.isDir()){
+            return status.getLen();
+        }else{
+            FileStatus[] children = fs.listStatus(status.getPath());
+            long size=0;
+            for (FileStatus child : children){
+                size +=getPathLength(fs, child);
+            }
+            return size;
+        }
+    }
+        
     public static class PigSecondaryKeyGroupComparator extends WritableComparator {
         public PigSecondaryKeyGroupComparator() {
 //            super(TupleFactory.getInstance().tupleClass(), true);

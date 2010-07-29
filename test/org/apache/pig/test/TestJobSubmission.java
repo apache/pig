@@ -545,6 +545,68 @@ public class TestJobSubmission extends junit.framework.TestCase{
         pc.defaultParallel = -1;        
     }
 
+    @Test
+    public void testReducerNumEstimation() throws Exception{
+       // use the estimation
+        LogicalPlanTester planTester = new LogicalPlanTester(pc) ;
+        Util.copyFromLocalToCluster(cluster, "test/org/apache/pig/test/data/passwd", "/passwd");
+        planTester.buildPlan("a = load '/passwd';");
+        LogicalPlan lp = planTester.buildPlan("b = group a by $0;");
+        PhysicalPlan pp = Util.buildPhysicalPlan(lp, pc);
+        POStore store = GenPhyOp.dummyPigStorageOp();
+        pp.addAsLeaf(store);
+        MROperPlan mrPlan = Util.buildMRPlan(pp, pc);
+               
+        pc.getConf().setProperty("pig.exec.reducers.bytes.per.reducer", "100");
+        pc.getConf().setProperty("pig.exec.reducers.max", "10");
+        HExecutionEngine exe = pc.getExecutionEngine();
+        ConfigurationValidator.validatePigProperties(exe.getConfiguration());
+        Configuration conf = ConfigurationUtil.toConfiguration(exe.getConfiguration());
+        JobControlCompiler jcc = new JobControlCompiler(pc, conf);
+        JobControl jc=jcc.compile(mrPlan, "Test");
+        Job job = jc.getWaitingJobs().get(0);
+        long reducer=Math.min((long)Math.ceil(new File("test/org/apache/pig/test/data/passwd").length()/100.0), 10);
+        assertEquals(job.getJobConf().getLong("mapred.reduce.tasks",10), reducer);
+        
+        // use the PARALLEL key word, it will override the estimated reducer number
+        planTester = new LogicalPlanTester(pc) ;
+        planTester.buildPlan("a = load '/passwd';");
+        lp = planTester.buildPlan("b = group a by $0 PARALLEL 2;");
+        pp = Util.buildPhysicalPlan(lp, pc);
+        store = GenPhyOp.dummyPigStorageOp();
+        pp.addAsLeaf(store);
+        mrPlan = Util.buildMRPlan(pp, pc);
+               
+        pc.getConf().setProperty("pig.exec.reducers.bytes.per.reducer", "100");
+        pc.getConf().setProperty("pig.exec.reducers.max", "10");
+        exe = pc.getExecutionEngine();
+        ConfigurationValidator.validatePigProperties(exe.getConfiguration());
+        conf = ConfigurationUtil.toConfiguration(exe.getConfiguration());
+        jcc = new JobControlCompiler(pc, conf);
+        jc=jcc.compile(mrPlan, "Test");
+        job = jc.getWaitingJobs().get(0);
+        assertEquals(job.getJobConf().getLong("mapred.reduce.tasks",10), 2);
+        
+        // the estimation won't take effect when it apply to non-dfs or the files doesn't exist, such as hbase
+        planTester = new LogicalPlanTester(pc) ;
+        planTester.buildPlan("a = load 'hbase://passwd' using org.apache.pig.backend.hadoop.hbase.HBaseStorage('c:f1 c:f2');");
+        lp = planTester.buildPlan("b = group a by $0 ;");
+        pp = Util.buildPhysicalPlan(lp, pc);
+        store = GenPhyOp.dummyPigStorageOp();
+        pp.addAsLeaf(store);
+        mrPlan = Util.buildMRPlan(pp, pc);
+                
+        pc.getConf().setProperty("pig.exec.reducers.bytes.per.reducer", "100");
+        pc.getConf().setProperty("pig.exec.reducers.max", "10");
+        exe = pc.getExecutionEngine();
+        ConfigurationValidator.validatePigProperties(exe.getConfiguration());
+        conf = ConfigurationUtil.toConfiguration(exe.getConfiguration());
+        jcc = new JobControlCompiler(pc, conf);
+        jc=jcc.compile(mrPlan, "Test");
+        job = jc.getWaitingJobs().get(0);
+        assertEquals(job.getJobConf().getLong("mapred.reduce.tasks",10), 1);
+    }
+    
     private void submit() throws Exception{
         assertEquals(true, FileLocalizer.fileExists(hadoopLdFile, pc));
         MapReduceLauncher mrl = new MapReduceLauncher();
