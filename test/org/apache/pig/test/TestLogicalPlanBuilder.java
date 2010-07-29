@@ -1897,9 +1897,79 @@ public class TestLogicalPlanBuilder extends junit.framework.TestCase {
     public void testReservedWordsInFunctionNames() {
         // test that define can contain reserved words are later parts of
         // fully qualified function name
-        String query = "define FUNC org.apache.iterators.foreach();";
-        LogicalOperator lo = buildPlan(query).getRoots().get(0);
-        assertTrue(lo instanceof LODefine);
+       	String[] keywords = {
+			"define",
+			"load",
+			"filter",
+			"foreach",
+			"matches",
+			"order",
+			"arrange",
+			"distinct",
+			"cogroup",
+			"join",
+			"cross",
+			"union",
+			"split",
+			"into",
+			"if",
+			"all",
+			"any",
+			"as",
+			"by",
+			"using",
+			"inner",
+			"outer",
+			"parallel",
+			"partition",
+			"group",
+			"and",
+			"or",
+			"not",
+			"generate",
+			"flatten",
+			"eval",
+			"asc",
+			"desc",
+			"int",
+			"long",
+			"float",
+			"double",
+			"chararray",
+			"bytearray",
+			"bag",
+			"tuple",
+			"map",
+			"is",
+			"null",
+			"stream",
+			"through",
+			"store",
+			"ship",
+			"cache",
+			"input",
+			"output",
+			"stderr",
+			"stdin",
+			"stdout",
+			"limit",
+			"sample",
+			"left",
+			"right",
+			"full",
+			"eq",
+			"gt",
+			"lt",
+			"gte",
+			"lte",
+			"neq"
+		};
+
+		for(String keyword: keywords) {
+			String query = "define FUNC org.apache."+keyword+"();";
+        	LogicalOperator lo = buildPlan(query).getRoots().get(0);
+        	assertTrue(lo instanceof LODefine);
+		}
     }
 
 
