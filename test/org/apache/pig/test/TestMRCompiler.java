@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Properties;
 import java.util.Random;
@@ -810,6 +811,7 @@ public class TestMRCompiler extends junit.framework.TestCase {
         run(php, "test/org/apache/pig/test/data/GoldenFiles/MRC16.gld");
     }
     
+    
     public void testLimit() throws Exception {
         PhysicalPlan php = new PhysicalPlan();
 
@@ -989,6 +991,33 @@ public class TestMRCompiler extends junit.framework.TestCase {
         MROperPlan mp = Util.buildMRPlan(pp, pc);
         MapReduceOper op = mp.getLeaves().get(0);
         assertTrue(op.UDFs.contains(new FuncSpec(PigStorageNoDefCtor.class.getName())+"('\t')"));
+    }
+    
+    /**
+     * Test that POSortedDistinct gets printed as POSortedDistinct
+     * @throws Exception
+     */
+    @Test
+    public void testSortedDistinctInForeach() throws Exception {
+        PhysicalPlan php = new PhysicalPlan();
+        PhysicalPlan grpChain1 = GenPhyOp.loadedGrpChain();
+        php.merge(grpChain1);
+        
+        List<PhysicalPlan> inputs = new LinkedList<PhysicalPlan>();
+        PhysicalPlan inplan = new PhysicalPlan();
+        PODistinct op1 = new POSortedDistinct(new OperatorKey("", r.nextLong()),
+                -1, null);
+        inplan.addAsLeaf(op1);
+        inputs.add(inplan);
+        List<Boolean> toFlattens = new ArrayList<Boolean>();
+        toFlattens.add(false);
+        POForEach pofe = new POForEach(new OperatorKey("", r.nextLong()), 1, 
+                inputs, toFlattens);
+
+        php.addAsLeaf(pofe);
+        POStore st = GenPhyOp.topStoreOp();
+        php.addAsLeaf(st);
+        run(php, "test/org/apache/pig/test/data/GoldenFiles/MRC19.gld");
     }
     
     private void run(PhysicalPlan pp, String expectedFile) throws Exception {

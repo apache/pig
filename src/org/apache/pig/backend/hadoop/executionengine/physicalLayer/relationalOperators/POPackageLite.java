@@ -195,5 +195,12 @@ public class POPackageLite extends POPackage {
         return retTuple;
     }
 
+    @Override
+    public String name() {
+        return getAliasString() + "PackageLite" + "["
+                + DataType.findTypeName(resultType) + "]" + "{"
+                + DataType.findTypeName(keyType) + "}" + " - "
+                + mKey.toString();
+    }
 }
 
