@@ -23,6 +23,7 @@ import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
+import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.plan.OperatorKey;
 
@@ -82,5 +83,12 @@ public class POSortedDistinct extends PODistinct {
     		// if there is an error, just return
     		return in;
     	}
+    }
+    
+    @Override
+    public String name() {
+        return getAliasString() + "POSortedDistinct" + "["
+                + DataType.findTypeName(resultType) + "]" + " - "
+                + mKey.toString();
     }
 }
