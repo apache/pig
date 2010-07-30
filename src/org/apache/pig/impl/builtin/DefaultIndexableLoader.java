@@ -23,6 +23,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Properties;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.hadoop.mapreduce.Job;
@@ -40,7 +42,6 @@ import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigSplit;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLoad;
-import org.apache.pig.backend.hadoop.executionengine.util.MapRedUtil;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.PigContext;
@@ -49,6 +50,8 @@ import org.apache.pig.impl.io.ReadToEndLoader;
 import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.util.ObjectSerializer;
+
+
 
 /**
  * Used by MergeJoin . Takes an index on sorted data
@@ -59,6 +62,7 @@ import org.apache.pig.impl.util.ObjectSerializer;
  */
 public class DefaultIndexableLoader extends LoadFunc implements IndexableLoadFunc{
 
+    private static final Log LOG = LogFactory.getLog(DefaultIndexableLoader.class);
     
     // FileSpec of index file which will be read from HDFS.
     private String indexFile;
@@ -160,25 +164,24 @@ public class DefaultIndexableLoader extends LoadFunc implements IndexableLoadFun
                 prevIdxEntry = curIdxEntry;
         }
 
-        if(matchedEntry == null){
+        if (matchedEntry == null) {
+            LOG.warn("Empty index file: input directory is empty");
+        } else {
+        
+            Object extractedKey = extractKeysFromIdxTuple(matchedEntry);
             
-            int errCode = 2165;
-            String errMsg = "Problem in index construction.";
-            throw new ExecException(errMsg,errCode,PigException.BUG);
+            if (extractedKey != null) {
+                Class idxKeyClass = extractedKey.getClass();
+                if( ! firstLeftKey.getClass().equals(idxKeyClass)){
+    
+                    // This check should indeed be done on compile time. But to be on safe side, we do it on runtime also.
+                    int errCode = 2166;
+                    String errMsg = "Key type mismatch. Found key of type "+firstLeftKey.getClass().getCanonicalName()+" on left side. But, found key of type "+ idxKeyClass.getCanonicalName()+" in index built for right side.";
+                    throw new ExecException(errMsg,errCode,PigException.BUG);
+                }
+            } 
         }
         
-        Object extractedKey = extractKeysFromIdxTuple(matchedEntry);
-        
-        if(extractedKey != null){
-            Class idxKeyClass = extractedKey.getClass();
-            if( ! firstLeftKey.getClass().equals(idxKeyClass)){
-
-                // This check should indeed be done on compile time. But to be on safe side, we do it on runtime also.
-                int errCode = 2166;
-                String errMsg = "Key type mismatch. Found key of type "+firstLeftKey.getClass().getCanonicalName()+" on left side. But, found key of type "+ idxKeyClass.getCanonicalName()+" in index built for right side.";
-                throw new ExecException(errMsg,errCode,PigException.BUG);
-            }
-        }
         //add remaining split indexes to splitsAhead array
         int [] splitsAhead = new int[index.size()];
         int splitsAheadIdx = 0;

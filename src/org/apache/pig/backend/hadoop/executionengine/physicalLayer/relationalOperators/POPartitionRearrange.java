@@ -92,7 +92,8 @@ public class POPartitionRearrange extends POLocalRearrange {
             reducerMap = MapRedUtil.loadPartitionFileFromLocalCache(
                     keyDistFile, redCnt, DataType.NULL);
 
-            totalReducers = redCnt[0];
+            // check if the partition file is empty
+            totalReducers = (redCnt[0] == null) ? -1 : redCnt[0];
             loaded = true;
         } catch (Exception e) {
             throw new RuntimeException(e);

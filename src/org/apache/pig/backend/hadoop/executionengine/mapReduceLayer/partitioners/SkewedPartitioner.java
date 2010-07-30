@@ -76,6 +76,9 @@ public class SkewedPartitioner extends Partitioner<PigNullableWritable, Writable
             keyTuple = (Tuple)key.getValueAsPigType();
         }
 
+        // if the partition file is empty, use numPartitions
+        totalReducers = (totalReducers > 0) ? totalReducers : numPartitions;
+        
         indexes = reducerMap.get(keyTuple);
         // if the reducerMap does not contain the key, do the default hash based partitioning
         if (indexes == null) {
@@ -109,7 +112,8 @@ public class SkewedPartitioner extends Partitioner<PigNullableWritable, Writable
             Integer [] redCnt = new Integer[1]; 
             reducerMap = MapRedUtil.loadPartitionFileFromLocalCache(
                     keyDistFile, redCnt, DataType.TUPLE);
-            totalReducers = redCnt[0];
+            // check if the partition file is empty
+            totalReducers = (redCnt[0] == null) ? -1 : redCnt[0];
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
