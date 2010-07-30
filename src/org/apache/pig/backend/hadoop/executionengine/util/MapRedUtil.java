@@ -90,8 +90,10 @@ public class MapRedUtil {
                 keyDistFile, 0);
         DataBag partitionList;
         Tuple t = loader.getNext();
-        if(t==null) {
-            throw new RuntimeException("Empty samples file");
+        if (t == null) {
+            // this could happen if the input directory for sampling is empty
+            log.warn("Empty dist file: " + keyDistFile);
+            return reducerMap;
         }
         // The keydist file is structured as (key, min, max)
         // min, max being the index of the reducers
