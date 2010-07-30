@@ -43,7 +43,7 @@ MapReduce(1,GFCross) - -156:
         |           |   |
         |           |   Project[bag][1] - -149
         |           |
-        |           |---Package[tuple]{tuple} - -148
+        |           |---PackageLite[tuple]{tuple} - -148
         |   Local Rearrange[tuple]{tuple}(false) - -147
         |   |   |
         |   |   Project[tuple][*] - -146
