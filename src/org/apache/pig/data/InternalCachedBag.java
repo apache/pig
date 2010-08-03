@@ -23,20 +23,20 @@ import java.util.*;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.pig.PigCounters;
+import org.apache.pig.PigWarning;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce;
 
 
 public class InternalCachedBag extends DefaultAbstractBag {
-	private static final long serialVersionUID = 1L;
-	
-	private static final Log log = LogFactory.getLog(InternalCachedBag.class);
+    private static final long serialVersionUID = 1L;
+
+    private static final Log log = LogFactory.getLog(InternalCachedBag.class);
     private transient int cacheLimit;
     private transient long maxMemUsage;
     private transient long memUsage;
     private transient DataOutputStream out;
     private transient boolean addDone;
     private transient TupleFactory factory;
-
  
     public InternalCachedBag() {
         this(1);
@@ -145,19 +145,11 @@ public class InternalCachedBag extends DefaultAbstractBag {
 
     public void clear() {
     	if (!addDone) {
-    		addDone();
+    	    addDone();
     	}
         super.clear();
         addDone = false;
         out = null;
-    }
-
-    protected void finalize() {
-    	if (!addDone) {
-    		// close the spill file so it can be deleted
-    		addDone();
-    	}
-    	super.finalize();
     }
     
     public boolean isDistinct() {
@@ -173,8 +165,8 @@ public class InternalCachedBag extends DefaultAbstractBag {
     		// close the spill file and mark adding is done
     		// so further adding is disallowed.
     		addDone();
-        }        
-        return new CachedBagIterator();
+        }
+    	return new CachedBagIterator();
     }
 
     public long spill()
@@ -202,11 +194,12 @@ public class InternalCachedBag extends DefaultAbstractBag {
         }
 
 
+
         public boolean hasNext() {
-        	if (next != null) {
-        		return true;        		
-        	}
-        	
+            if (next != null) {
+                return true;        		
+            }
+
             if(iter.hasNext()){
                 next = iter.next();
                 return true;
@@ -236,32 +229,21 @@ public class InternalCachedBag extends DefaultAbstractBag {
         }
 
         public Tuple next() {  
-        	if (next == null) {
-        		if (!hasNext()) {
-        			throw new IllegalStateException("No more elements from iterator");
-        		}
-        	}
-        	Tuple t = next;
-        	next = null;
-        	
-        	return t;
+            if (next == null) {
+                if (!hasNext()) {
+                    throw new NoSuchElementException("No more elements from iterator");
+                }
+            }
+            Tuple t = next;
+            next = null;
+
+            return t;
         }
 
         public void remove() {
         	throw new UnsupportedOperationException("remove is not supported for CachedBagIterator");
         }
 
-        protected void finalize() {
-            if(in != null) {
-                try
-                {
-                    in.close();
-                }
-                catch(Exception e) { 
-                	
-                }
-            }
-        }
     }
 
 }

@@ -38,7 +38,6 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.pig.PigCounters;
 import org.apache.pig.PigWarning;
-import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigHadoopLogger;
 
 
 
@@ -492,6 +491,7 @@ public class DistinctDataBag extends DefaultAbstractBag {
             // it efficiently.
             try {
                 LinkedList<File> ll = new LinkedList<File>(mSpillFiles);
+                LinkedList<File> filesToDelete = new LinkedList<File>();
                 while (ll.size() > MAX_SPILL_FILES) {
                     ListIterator<File> i = ll.listIterator();
                     mStreams =
@@ -500,12 +500,15 @@ public class DistinctDataBag extends DefaultAbstractBag {
 
                     for (int j = 0; j < MAX_SPILL_FILES; j++) {
                         try {
+                            File f = i.next();
                             DataInputStream in =
                                 new DataInputStream(new BufferedInputStream(
-                                    new FileInputStream(i.next())));
+                                    new FileInputStream(f)));
                             mStreams.add(in);
                             addToQueue(null, mStreams.size() - 1);
                             i.remove();
+                            filesToDelete.add(f);
+                            
                         } catch (FileNotFoundException fnfe) {
                             // We can't find our own spill file?  That should
                             // neer happen.
@@ -534,9 +537,19 @@ public class DistinctDataBag extends DefaultAbstractBag {
                         throw new RuntimeException(msg, ioe);
                     }
                 }
+                // delete files that have been merged into new files
+                for(File f : filesToDelete){
+                    if( f.delete() == false){
+                        log.warn("Failed to delete spill file: " + f.getPath());
+                    }
+                }
+                
+                // clear the list, so that finalize does not delete any files,
+                // when mSpillFiles is assigned a new value
+                mSpillFiles.clear();
 
                 // Now, move our new list back to the spill files array.
-                mSpillFiles = new ArrayList<File>(ll);
+                mSpillFiles = new FileList(ll);
             } finally {
                 // Reset mStreams and mMerge so that they'll be allocated
                 // properly for regular merging.
