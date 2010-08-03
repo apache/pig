@@ -110,6 +110,8 @@ PIG-1309: Map-side Cogroup (ashutoshc)
 
 BUG FIXES
 
+PIG-1516: finalize in bag implementations causes pig to run out of memory in reduce (thejas)
+
 PIG-1521: explain plan does not show correct Physical operator in MR plan when POSortedDistinct, POPackageLite are used (thejas)
 
 PIG-1513: Pig doesn't handle empty input directory (rding)

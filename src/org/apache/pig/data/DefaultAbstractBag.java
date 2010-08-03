@@ -57,7 +57,7 @@ public abstract class DefaultAbstractBag implements DataBag {
     protected Collection<Tuple> mContents;
 
     // Spill files we've created.  These need to be removed in finalize.
-    protected ArrayList<File> mSpillFiles;
+    protected FileList mSpillFiles;
 
     // Total size, including tuples on disk.  Stored here so we don't have
     // to run through the disk when people ask.
@@ -317,21 +317,6 @@ public abstract class DefaultAbstractBag implements DataBag {
     }
 
     /**
-     * Need to override finalize to clean out the mSpillFiles array.
-     */
-    @Override
-    protected void finalize() {
-        if (mSpillFiles != null) {
-            for (int i = 0; i < mSpillFiles.size(); i++) {
-                boolean res = mSpillFiles.get(i).delete();
-                if (!res)
-                    warn ("DefaultAbstractBag.finalize: failed to delete " + mSpillFiles.get(i), PigWarning.DELETE_FAILED, null);
-                    
-            }
-        }
-    }
-
-    /**
      * Get a file to spill contents to.  The file will be registered in the
      * mSpillFiles array.
      * @return stream to write tuples to.
@@ -339,7 +324,7 @@ public abstract class DefaultAbstractBag implements DataBag {
     protected DataOutputStream getSpillFile() throws IOException {
         if (mSpillFiles == null) {
             // We want to keep the list as small as possible.
-            mSpillFiles = new ArrayList<File>(1);
+            mSpillFiles = new FileList(1);
         }
 
         String tmpDirName= System.getProperties().getProperty("java.io.tmpdir") ;                
