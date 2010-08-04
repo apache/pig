@@ -53,6 +53,7 @@ public class TestDBStorage extends TestCase {
 	private String dblocation = "/tmp/batchtest";
 	private String url = "jdbc:hsqldb:file:" + dblocation
 			+ ";hsqldb.default_table_type=cached;hsqldb.cache_rows=100";
+	  private String dbUrl = "jdbc:hsqldb:hsql://localhost/" + "batchtest";
 	private String user = "sa";
 	private String password = "";
 
@@ -75,13 +76,15 @@ public class TestDBStorage extends TestCase {
 				"file:/tmp/batchtest;sql.enforce_strict_size=true");
 		dbServer.setLogWriter(null);
 		dbServer.setErrWriter(null);
+		dbServer.start();                                                                     
+		System.out.println("Database URL: " + dbUrl);     
 		try {
 			Class.forName(driver);
 		} catch (Exception e) {
 			e.printStackTrace();
 			System.out.println(this + ".setUp() error: " + e.getMessage());
 		}
-		System.out.println("Database server initialized successfully");
+		System.out.println("Database server started on port: " + dbServer.getPort()); 
 	}
 
 	private void createFile() throws IOException {
@@ -107,6 +110,7 @@ public class TestDBStorage extends TestCase {
 			Statement st = con.createStatement();
 			st.executeUpdate(sql);
 			st.close();
+			 con.commit();
 			con.close();
 		} catch (SQLException sqe) {
 			throw new IOException("Cannot create table", sqe);
@@ -145,9 +149,9 @@ public class TestDBStorage extends TestCase {
 
 	public void testWriteToDB() throws IOException {
 		String insertQuery = "insert into ttt (id, name, ratio) values (?,?,?)";
-		String dbStore = "org.apache.pig.piggybank.storage.DBStorage('" + driver
-				+ "', '" + url + "','" + insertQuery + "');";
 		pigServer.setBatchOn();
+		  String dbStore = "org.apache.pig.piggybank.storage.DBStorage('" + driver                                                                                                                       
+		    + "', '" + dbUrl + "','" + user+ "', '"+ password + "', '" + insertQuery + "');";
 		pigServer.registerQuery("A = LOAD '" + INPUT_FILE
 				+ "' as (id:int, fruit:chararray, ratio:double);");
 		pigServer.registerQuery("STORE A INTO 'dummy' USING " + dbStore);
