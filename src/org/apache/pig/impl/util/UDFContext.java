@@ -195,4 +195,8 @@ public class UDFContext {
     public void reset() {
         udfConfs.clear();
     }
+    
+    public boolean isUDFConfEmpty() {
+        return udfConfs.isEmpty();
+    }
 }

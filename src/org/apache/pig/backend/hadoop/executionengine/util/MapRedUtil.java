@@ -138,7 +138,10 @@ public class MapRedUtil {
     public static void setupUDFContext(Configuration job) throws IOException {
         UDFContext udfc = UDFContext.getUDFContext();
         udfc.addJobConf(job);
-        udfc.deserialize();
+        // don't deserialize in front-end 
+        if (udfc.isUDFConfEmpty()) {
+            udfc.deserialize();
+        }
     }
     
     public static FileSpec checkLeafIsStore(
