@@ -258,6 +258,7 @@ public class HExecutionEngine {
                     new LogToPhyTranslationVisitor(plan);
                 translator.setPigContext(pigContext);
                 translator.visit();
+                translator.finish();
                 return translator.getPhysicalPlan();
             }
         } catch (Exception ve) {

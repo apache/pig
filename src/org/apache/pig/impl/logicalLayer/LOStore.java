@@ -48,7 +48,16 @@ public class LOStore extends RelationalOperator {
 
     transient private StoreFuncInterface mStoreFunc;
     private static Log log = LogFactory.getLog(LOStore.class);
+    private boolean isTmpStore;
     
+    public boolean isTmpStore() {
+        return isTmpStore;
+    }
+
+    public void setTmpStore(boolean isTmpStore) {
+        this.isTmpStore = isTmpStore;
+    }
+
     private SortInfo sortInfo;
 
     public SortInfo getSortInfo() {
@@ -72,6 +81,7 @@ public class LOStore extends RelationalOperator {
         super(plan, key);
 
         mOutputFile = outputFileSpec;
+        isTmpStore = false;
 
         // TODO
         // The code below is commented out as PigContext pulls in

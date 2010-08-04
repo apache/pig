@@ -25,16 +25,15 @@ import org.apache.pig.FuncSpec;
 import org.apache.pig.PigException;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.plan.VisitorException;
-import org.apache.pig.impl.logicalLayer.parser.ParseException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.data.DataType;
 import org.apache.pig.impl.plan.OperatorKey;
-import org.apache.pig.impl.plan.PlanVisitor;
 
 public class LOUserFunc extends ExpressionOperator {
     private static final long serialVersionUID = 2L;
 
     private FuncSpec mFuncSpec;
+    private LogicalOperator implicitReferencedOperator = null; 
     
     /**
      * @param plan
@@ -55,6 +54,15 @@ public class LOUserFunc extends ExpressionOperator {
 
     public FuncSpec getFuncSpec() {
         return mFuncSpec;
+    }
+    
+    public LogicalOperator getImplicitReferencedOperator() {
+        return implicitReferencedOperator;
+    }
+
+    public void setImplicitReferencedOperator(
+            LogicalOperator implicitReferencedOperator) {
+        this.implicitReferencedOperator = implicitReferencedOperator;
     }
 
     public List<ExpressionOperator> getArguments() {
