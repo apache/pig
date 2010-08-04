@@ -1467,6 +1467,177 @@ public class Schema implements Serializable, Cloneable {
     }
     
     /**
+     * Merges collection of schemas using their column aliases 
+     * (unlike mergeSchema(..) functions which merge using positions)
+     * Schema will not be merged if types are incompatible, 
+     * as per DataType.mergeType(..)
+     * For Tuples and Bags, SubSchemas have to be equal be considered compatible
+     * @param schemas - list of schemas to be merged using their column alias
+     * @return merged schema
+     * @throws SchemaMergeException
+     */
+    public static Schema mergeSchemasByAlias(Collection<Schema> schemas)
+    throws SchemaMergeException{
+        Schema mergedSchema = null;
+
+        // list of schemas that have currently been merged, used in error message
+        ArrayList<Schema> mergedSchemas = new ArrayList<Schema>(schemas.size());
+        for(Schema sch : schemas){
+            if(mergedSchema == null){
+                mergedSchema = new Schema(sch);
+                mergedSchemas.add(sch);
+                continue;
+            }
+            try{
+                mergedSchema = mergeSchemaByAlias(mergedSchema, sch);
+                mergedSchemas.add(sch);
+            }catch(SchemaMergeException e){
+                String msg = "Error merging schema: ("  + sch + ") with " 
+                + "merged schema: (" + mergedSchema + ")" + " of schemas : "
+                + mergedSchemas;
+                throw new SchemaMergeException(msg, e);
+            }
+        }
+        return mergedSchema;
+    }
+    
+    /**
+     * Merges two schemas using their column aliases 
+     * (unlike mergeSchema(..) functions which merge using positions)
+     * Schema will not be merged if types are incompatible, 
+     * as per DataType.mergeType(..)
+     * For Tuples and Bags, SubSchemas have to be equal be considered compatible
+     * @param schema1
+     * @param schema2
+     * @return Merged Schema
+     * @throws SchemaMergeException if schemas cannot be merged
+     */
+    public static Schema mergeSchemaByAlias(Schema schema1,
+            Schema schema2)
+    throws SchemaMergeException{
+        Schema mergedSchema = new Schema();
+        // add/merge fields present in first schema 
+        for(FieldSchema fs1 : schema1.getFields()){
+            checkNullAlias(fs1, schema1);
+            
+            FieldSchema fs2 = getFieldThrowSchemaMergeException(schema2,fs1.alias);
+            FieldSchema mergedFs = mergeFieldSchemaFirstLevelSameAlias(fs1,fs2);
+            mergedSchema.add(mergedFs);
+        }
+        
+        //add schemas from 2nd schema, that are not already present in
+        // merged schema
+        for(FieldSchema fs2 : schema2.getFields()){
+            checkNullAlias(fs2, schema2);
+            if(getFieldThrowSchemaMergeException(mergedSchema, fs2.alias) == null){
+                    try {
+                        mergedSchema.add(fs2.clone());
+                    } catch (CloneNotSupportedException e) {
+                        throw new SchemaMergeException(
+                                "Error encountered while merging schemas", e);
+                    }
+            }
+        }
+        return mergedSchema;
+        
+    }
+    
+    private static void checkNullAlias(FieldSchema fs, Schema schema)
+    throws SchemaMergeException {
+        if(fs.alias == null){
+            throw new SchemaMergeException(
+                    "Schema having field with null alias cannot be merged " +
+                    "using alias. Schema :" + schema
+            );
+        }
+    }
+
+    /**
+     * Schema will not be merged if types are incompatible, 
+     * as per DataType.mergeType(..)
+     * For Tuples and Bags, SubSchemas have to be equal be considered compatible
+     * Aliases are assumed to be same for both
+     * @param fs1
+     * @param fs2
+     * @return
+     * @throws SchemaMergeException
+     */
+    private static FieldSchema mergeFieldSchemaFirstLevelSameAlias(FieldSchema fs1,
+            FieldSchema fs2) 
+    throws SchemaMergeException {
+        if(fs1 == null)
+            return fs2;
+        if(fs2 == null)
+            return fs1;
+
+        Schema innerSchema = null;
+        
+        byte mergedType = DataType.mergeType(fs1.type, fs2.type) ;
+
+        // If the types cannot be merged
+        if (mergedType == DataType.ERROR) {
+                int errCode = 1031;
+                String msg = "Incompatible types for merging schemas. Field schema: "
+                    + fs1 + " Other field schema: " + fs2;
+                throw new SchemaMergeException(msg, errCode, PigException.INPUT) ;
+        }
+        if(DataType.isSchemaType(mergedType)) {
+            // if one of them is a bytearray, pick inner schema of other one
+            if( fs1.type == DataType.BYTEARRAY ){
+                innerSchema = fs2.schema;
+            }else if(fs2.type == DataType.BYTEARRAY){
+                innerSchema = fs1.schema;
+            }
+            else {
+                //in case of types with inner schema such as bags and tuples
+                // the inner schema has to be same
+                if(!equals(fs1.schema, fs2.schema, false, false)){
+                    int errCode = 1032;
+                    String msg = "Incompatible types for merging inner schemas of " +
+                    " Field schema type: " + fs1 + " Other field schema type: " + fs2;
+                    throw new SchemaMergeException(msg, errCode, PigException.INPUT) ;                
+                }
+                innerSchema = fs1.schema;
+            }
+        }
+        try {
+            return new FieldSchema(fs1.alias, innerSchema, mergedType) ;
+        } catch (FrontendException e) {
+            // this exception is not expected
+            int errCode = 2124;
+            throw new SchemaMergeException(
+                    "Error in creating fieldSchema",
+                    errCode,
+                    PigException.BUG
+            );
+        }
+    }
+    
+    
+    /**
+     * Utility function that calls schema.getFiled(alias), and converts 
+     * {@link FrontendException} to {@link SchemaMergeException}
+     * @param schema
+     * @param alias
+     * @return FieldSchema
+     * @throws SchemaMergeException
+     */
+    private static FieldSchema getFieldThrowSchemaMergeException(
+            Schema schema, String alias) throws SchemaMergeException {
+        FieldSchema fs = null;
+        try {
+            fs = schema.getField(alias);
+        } catch (FrontendException e) {
+            String msg = "Caught exception finding FieldSchema for alias" +
+            alias;
+            throw new SchemaMergeException(msg, e);
+        }
+        return fs;
+    }
+    
+    
+    
+    /**
      * 
      * @param topLevelType DataType type of the top level element
      * @param innerTypes DataType types of the inner level element
