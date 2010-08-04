@@ -28,31 +28,30 @@ import java.util.Set;
 import org.apache.pig.ExecType;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.data.DataType;
-import org.apache.pig.experimental.logical.LogicalPlanMigrationVistor;
-import org.apache.pig.experimental.logical.expression.AndExpression;
-import org.apache.pig.experimental.logical.expression.CastExpression;
-import org.apache.pig.experimental.logical.expression.ConstantExpression;
-import org.apache.pig.experimental.logical.expression.EqualExpression;
-import org.apache.pig.experimental.logical.expression.LogicalExpression;
-import org.apache.pig.experimental.logical.expression.LogicalExpressionPlan;
-import org.apache.pig.experimental.logical.expression.ProjectExpression;
-import org.apache.pig.experimental.logical.optimizer.UidStamper;
-import org.apache.pig.experimental.logical.relational.LOCogroup;
-import org.apache.pig.experimental.logical.relational.LOForEach;
-import org.apache.pig.experimental.logical.relational.LOGenerate;
-import org.apache.pig.experimental.logical.relational.LOInnerLoad;
-import org.apache.pig.experimental.logical.relational.LOJoin;
-import org.apache.pig.experimental.logical.relational.LOLoad;
-import org.apache.pig.experimental.logical.relational.LOStore;
-import org.apache.pig.experimental.logical.relational.LogicalRelationalOperator;
-import org.apache.pig.experimental.logical.relational.LogicalSchema;
-import org.apache.pig.experimental.logical.relational.LogicalSchema.LogicalFieldSchema;
-import org.apache.pig.experimental.plan.Operator;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.logicalLayer.LogicalPlan;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.util.MultiMap;
+import org.apache.pig.newplan.Operator;
+import org.apache.pig.newplan.logical.LogicalPlanMigrationVistor;
+import org.apache.pig.newplan.logical.expression.AndExpression;
+import org.apache.pig.newplan.logical.expression.CastExpression;
+import org.apache.pig.newplan.logical.expression.ConstantExpression;
+import org.apache.pig.newplan.logical.expression.EqualExpression;
+import org.apache.pig.newplan.logical.expression.LogicalExpression;
+import org.apache.pig.newplan.logical.expression.LogicalExpressionPlan;
+import org.apache.pig.newplan.logical.expression.ProjectExpression;
+import org.apache.pig.newplan.logical.relational.LOCogroup;
+import org.apache.pig.newplan.logical.relational.LOForEach;
+import org.apache.pig.newplan.logical.relational.LOGenerate;
+import org.apache.pig.newplan.logical.relational.LOInnerLoad;
+import org.apache.pig.newplan.logical.relational.LOJoin;
+import org.apache.pig.newplan.logical.relational.LOLoad;
+import org.apache.pig.newplan.logical.relational.LOStore;
+import org.apache.pig.newplan.logical.relational.LogicalRelationalOperator;
+import org.apache.pig.newplan.logical.relational.LogicalSchema;
+import org.apache.pig.newplan.logical.relational.LogicalSchema.LogicalFieldSchema;
 import org.apache.pig.test.utils.LogicalPlanTester;
 
 import junit.framework.TestCase;
@@ -67,19 +66,19 @@ public class TestLogicalPlanMigrationVisitor extends TestCase {
         LogicalPlan plan = lpt.buildPlan("store b into 'empty';");
         
         // check basics
-        org.apache.pig.experimental.logical.relational.LogicalPlan newPlan = migratePlan(plan);
+        org.apache.pig.newplan.logical.relational.LogicalPlan newPlan = migratePlan(plan);
         assertEquals(3, newPlan.size());
         assertEquals(newPlan.getSources().size(), 1);
         
         // check load
         LogicalRelationalOperator op = (LogicalRelationalOperator)newPlan.getSources().get(0);
-        assertEquals(op.getClass(), org.apache.pig.experimental.logical.relational.LOLoad.class);
+        assertEquals(op.getClass(), org.apache.pig.newplan.logical.relational.LOLoad.class);
         
         // check filter
         op = (LogicalRelationalOperator)newPlan.getSuccessors(op).get(0);
-        assertEquals(op.getClass(), org.apache.pig.experimental.logical.relational.LOFilter.class);
+        assertEquals(op.getClass(), org.apache.pig.newplan.logical.relational.LOFilter.class);
         
-        LogicalExpressionPlan exp = ((org.apache.pig.experimental.logical.relational.LOFilter)op).getFilterPlan();
+        LogicalExpressionPlan exp = ((org.apache.pig.newplan.logical.relational.LOFilter)op).getFilterPlan();
         
         EqualExpression eq = (EqualExpression)exp.getSources().get(0);
         assertEquals(eq.getLhs().getClass(), ProjectExpression.class);
@@ -90,7 +89,7 @@ public class TestLogicalPlanMigrationVisitor extends TestCase {
         
         // check store
         op = (LogicalRelationalOperator)newPlan.getSuccessors(op).get(0);
-        assertEquals(op.getClass(), org.apache.pig.experimental.logical.relational.LOStore.class);
+        assertEquals(op.getClass(), org.apache.pig.newplan.logical.relational.LOStore.class);
     }
     
     public void testPlanWithCast() throws Exception {
@@ -100,19 +99,19 @@ public class TestLogicalPlanMigrationVisitor extends TestCase {
         LogicalPlan plan = lpt.buildPlan("store b into 'empty';");
         
         // check basics
-        org.apache.pig.experimental.logical.relational.LogicalPlan newPlan = migratePlan(plan);
+        org.apache.pig.newplan.logical.relational.LogicalPlan newPlan = migratePlan(plan);
         assertEquals(3, newPlan.size());
         assertEquals(newPlan.getSources().size(), 1);
         
         // check load
         LogicalRelationalOperator op = (LogicalRelationalOperator)newPlan.getSources().get(0);
-        assertEquals(op.getClass(), org.apache.pig.experimental.logical.relational.LOLoad.class);
+        assertEquals(op.getClass(), org.apache.pig.newplan.logical.relational.LOLoad.class);
         
         // check filter
         op = (LogicalRelationalOperator)newPlan.getSuccessors(op).get(0);
-        assertEquals(op.getClass(), org.apache.pig.experimental.logical.relational.LOFilter.class);
+        assertEquals(op.getClass(), org.apache.pig.newplan.logical.relational.LOFilter.class);
         
-        LogicalExpressionPlan exp = ((org.apache.pig.experimental.logical.relational.LOFilter)op).getFilterPlan();
+        LogicalExpressionPlan exp = ((org.apache.pig.newplan.logical.relational.LOFilter)op).getFilterPlan();
         
         EqualExpression eq = (EqualExpression)exp.getSources().get(0);
         assertEquals(eq.getLhs().getClass(), CastExpression.class);
@@ -127,7 +126,7 @@ public class TestLogicalPlanMigrationVisitor extends TestCase {
         
         // check store
         op = (LogicalRelationalOperator)newPlan.getSuccessors(op).get(0);
-        assertEquals(op.getClass(), org.apache.pig.experimental.logical.relational.LOStore.class);
+        assertEquals(op.getClass(), org.apache.pig.newplan.logical.relational.LOStore.class);
     }
     
     public void testJoinPlan() throws Exception {
@@ -139,21 +138,21 @@ public class TestLogicalPlanMigrationVisitor extends TestCase {
         LogicalPlan plan = lpt.buildPlan("store d into 'empty';");
       
         // check basics
-        org.apache.pig.experimental.logical.relational.LogicalPlan newPlan = migratePlan(plan);
+        org.apache.pig.newplan.logical.relational.LogicalPlan newPlan = migratePlan(plan);
         assertEquals(5, newPlan.size());
         assertEquals(newPlan.getSources().size(), 2);
        
         // check load and join
         LogicalRelationalOperator op = (LogicalRelationalOperator)newPlan.getSuccessors(newPlan.getSources().get(0)).get(0);
-        assertEquals(op.getClass(), org.apache.pig.experimental.logical.relational.LOJoin.class);
+        assertEquals(op.getClass(), org.apache.pig.newplan.logical.relational.LOJoin.class);
         assertEquals(((LOJoin)op).getJoinType(), LOJoin.JOINTYPE.HASH);
         
         LogicalRelationalOperator l1 = (LogicalRelationalOperator)newPlan.getPredecessors(op).get(0);
-        assertEquals(l1.getClass(), org.apache.pig.experimental.logical.relational.LOLoad.class);
+        assertEquals(l1.getClass(), org.apache.pig.newplan.logical.relational.LOLoad.class);
         assertEquals(l1.getAlias(), "a");
         
         LogicalRelationalOperator l2 = (LogicalRelationalOperator)newPlan.getPredecessors(op).get(1);
-        assertEquals(l2.getClass(), org.apache.pig.experimental.logical.relational.LOLoad.class);
+        assertEquals(l2.getClass(), org.apache.pig.newplan.logical.relational.LOLoad.class);
         assertEquals(l2.getAlias(), "b");
 
         // check join input plans
@@ -175,8 +174,8 @@ public class TestLogicalPlanMigrationVisitor extends TestCase {
         
         // check filter
         op = (LogicalRelationalOperator)newPlan.getSuccessors(op).get(0);
-        assertEquals(op.getClass(), org.apache.pig.experimental.logical.relational.LOFilter.class);        
-        LogicalExpressionPlan exp = ((org.apache.pig.experimental.logical.relational.LOFilter)op).getFilterPlan();
+        assertEquals(op.getClass(), org.apache.pig.newplan.logical.relational.LOFilter.class);        
+        LogicalExpressionPlan exp = ((org.apache.pig.newplan.logical.relational.LOFilter)op).getFilterPlan();
         
         AndExpression ae = (AndExpression)exp.getSources().get(0);
         
@@ -196,7 +195,7 @@ public class TestLogicalPlanMigrationVisitor extends TestCase {
         
         // check store
         op = (LogicalRelationalOperator)newPlan.getSuccessors(op).get(0);
-        assertEquals(op.getClass(), org.apache.pig.experimental.logical.relational.LOStore.class); 
+        assertEquals(op.getClass(), org.apache.pig.newplan.logical.relational.LOStore.class); 
     }
     
     public void testForeachPlan() throws Exception {
@@ -206,32 +205,34 @@ public class TestLogicalPlanMigrationVisitor extends TestCase {
         LogicalPlan plan = lpt.buildPlan("store b into '/test/empty';");
         
         // check basics
-        org.apache.pig.experimental.logical.relational.LogicalPlan newPlan = migratePlan(plan);
+        org.apache.pig.newplan.logical.relational.LogicalPlan newPlan = migratePlan(plan);
         
-        org.apache.pig.experimental.logical.relational.LogicalPlan expected = 
-            new org.apache.pig.experimental.logical.relational.LogicalPlan();
+        org.apache.pig.newplan.logical.relational.LogicalPlan expected = 
+            new org.apache.pig.newplan.logical.relational.LogicalPlan();
         
         LogicalSchema aschema = new LogicalSchema();    	
         aschema.addField(new LogicalSchema.LogicalFieldSchema("id", null, DataType.BYTEARRAY));
         aschema.addField(new LogicalSchema.LogicalFieldSchema("d", null, DataType.BYTEARRAY));
-        LOLoad load = new LOLoad(new FileSpec("/test/d.txt", new FuncSpec("org.apache.pig.builtin.PigStorage")), aschema, expected);
+        LOLoad load = new LOLoad(new FileSpec("/test/d.txt", new FuncSpec("org.apache.pig.builtin.PigStorage")), aschema, expected, null);
         expected.add(load);
         
         LOForEach foreach = new LOForEach(expected);
-        org.apache.pig.experimental.logical.relational.LogicalPlan innerPlan = new org.apache.pig.experimental.logical.relational.LogicalPlan();
+        org.apache.pig.newplan.logical.relational.LogicalPlan innerPlan = new org.apache.pig.newplan.logical.relational.LogicalPlan();
         LOInnerLoad l1 = new LOInnerLoad(innerPlan, foreach, 0);
         innerPlan.add(l1);
         LOInnerLoad l2 = new LOInnerLoad(innerPlan, foreach, 1);
+        innerPlan.add(l2);
         
         List<LogicalExpressionPlan> eps = new ArrayList<LogicalExpressionPlan>();
+        LOGenerate gen = new LOGenerate(innerPlan, eps, new boolean[] {false, true});
         LogicalExpressionPlan p1 = new LogicalExpressionPlan();
-        p1.add(new ProjectExpression(p1, DataType.BYTEARRAY, 0, 0));
+        p1.add(new ProjectExpression(p1, 0, -1, gen));
         LogicalExpressionPlan p2 = new LogicalExpressionPlan();
-        p2.add(new ProjectExpression(p2, DataType.BYTEARRAY, 1, 0));
+        p2.add(new ProjectExpression(p2, 1, -1, gen));
         eps.add(p1);
         eps.add(p2);
         
-        LOGenerate gen = new LOGenerate(innerPlan, eps, new boolean[] {false, true});
+        
         innerPlan.add(gen);
         innerPlan.connect(l1, gen);
         innerPlan.connect(l2, gen);
@@ -246,13 +247,6 @@ public class TestLogicalPlanMigrationVisitor extends TestCase {
         expected.connect(load, foreach);
         expected.connect(foreach, s);
         
-        try {
-            UidStamper stamper = new UidStamper(expected);
-            stamper.visit();         
-        }catch(Exception e) {
-            throw new VisitorException(e);
-        }
-
         assertTrue(expected.isEqual(newPlan));
         
         LogicalSchema schema = foreach.getSchema();
@@ -268,7 +262,7 @@ public class TestLogicalPlanMigrationVisitor extends TestCase {
         lpt.buildPlan("a = load '/test/d.txt' as (id, d:tuple(v, s));");
         LogicalPlan plan = lpt.buildPlan("b = foreach a generate id, FLATTEN(d);");  
                 
-        org.apache.pig.experimental.logical.relational.LogicalPlan newPlan = migratePlan(plan);
+        org.apache.pig.newplan.logical.relational.LogicalPlan newPlan = migratePlan(plan);
         LogicalRelationalOperator op = (LogicalRelationalOperator)newPlan.getSinks().get(0);
         
         LogicalSchema s2 = new LogicalSchema();
@@ -338,10 +332,10 @@ public class TestLogicalPlanMigrationVisitor extends TestCase {
         LogicalPlan plan = lpt.buildPlan("store b into '/test/empty';");
         
         // check basics
-        org.apache.pig.experimental.logical.relational.LogicalPlan newPlan = migratePlan(plan);
+        org.apache.pig.newplan.logical.relational.LogicalPlan newPlan = migratePlan(plan);
         
-        org.apache.pig.experimental.logical.relational.LogicalPlan expected = 
-            new org.apache.pig.experimental.logical.relational.LogicalPlan();
+        org.apache.pig.newplan.logical.relational.LogicalPlan expected = 
+            new org.apache.pig.newplan.logical.relational.LogicalPlan();
         
         LogicalSchema aschema = new LogicalSchema();    	
         aschema.addField(new LogicalSchema.LogicalFieldSchema("id", null, DataType.BYTEARRAY));
@@ -350,26 +344,28 @@ public class TestLogicalPlanMigrationVisitor extends TestCase {
         aschema3.addField(new LogicalSchema.LogicalFieldSchema("id", null, DataType.INTEGER));
         aschema3.addField(new LogicalSchema.LogicalFieldSchema("s", null, DataType.BYTEARRAY));
         aschema2.addField(new LogicalSchema.LogicalFieldSchema("t", aschema3, DataType.TUPLE));
+        aschema2.setTwoLevelAccessRequired(true);
         aschema.addField(new LogicalSchema.LogicalFieldSchema("d", aschema2, DataType.BAG));        
         
-        LOLoad load = new LOLoad(new FileSpec("/test/d.txt", new FuncSpec("org.apache.pig.builtin.PigStorage")), aschema, expected);
+        LOLoad load = new LOLoad(new FileSpec("/test/d.txt", new FuncSpec("org.apache.pig.builtin.PigStorage")), aschema, expected, null);
         expected.add(load);         
         
         LOForEach foreach2 = new LOForEach(expected);
-        org.apache.pig.experimental.logical.relational.LogicalPlan innerPlan = new org.apache.pig.experimental.logical.relational.LogicalPlan();
+        org.apache.pig.newplan.logical.relational.LogicalPlan innerPlan = new org.apache.pig.newplan.logical.relational.LogicalPlan();
         LOInnerLoad l1 = new LOInnerLoad(innerPlan, foreach2, 0);
         innerPlan.add(l1);
         LOInnerLoad l2 = new LOInnerLoad(innerPlan, foreach2, 1);
+        innerPlan.add(l2);
         
         List<LogicalExpressionPlan>  eps = new ArrayList<LogicalExpressionPlan>();
+        LOGenerate gen = new LOGenerate(innerPlan, eps, new boolean[] {false, true});
         LogicalExpressionPlan p1 = new LogicalExpressionPlan();
-        new ProjectExpression(p1, DataType.BYTEARRAY, 0, 0);
+        new ProjectExpression(p1, 0, -1, gen);
         LogicalExpressionPlan p2 = new LogicalExpressionPlan();        
-        new ProjectExpression(p2, DataType.BAG, 1, 0);
+        new ProjectExpression(p2, 1, -1, gen);
         eps.add(p1);
         eps.add(p2);
         
-        LOGenerate gen = new LOGenerate(innerPlan, eps, new boolean[] {false, true});
         innerPlan.add(gen);
         innerPlan.connect(l1, gen);
         innerPlan.connect(l2, gen);
@@ -384,12 +380,10 @@ public class TestLogicalPlanMigrationVisitor extends TestCase {
         expected.connect(load, foreach2);
     
         expected.connect(foreach2, s);
-        try {
-            UidStamper stamper = new UidStamper(expected);
-            stamper.visit();         
-        }catch(Exception e) {
-            throw new VisitorException(e);
-        }
+        
+        System.out.println(newPlan);
+        
+        System.out.println(expected);
         
         assertTrue(expected.isEqual(newPlan));
         
@@ -410,7 +404,7 @@ public class TestLogicalPlanMigrationVisitor extends TestCase {
         LogicalPlan plan = lpt.buildPlan("store b into '/test/empty';");
         
         // check basics
-        org.apache.pig.experimental.logical.relational.LogicalPlan newPlan = migratePlan(plan);
+        org.apache.pig.newplan.logical.relational.LogicalPlan newPlan = migratePlan(plan);
         
         LogicalSchema loadSchema = 
             ((LogicalRelationalOperator)newPlan.getSources().get(0)).getSchema();
@@ -455,7 +449,7 @@ public class TestLogicalPlanMigrationVisitor extends TestCase {
         assertEquals( 1, exprPlan.getSinks().size() );
         assertEquals( ProjectExpression.class, exprPlan.getSinks().get(0).getClass() );
         ProjectExpression prj = (ProjectExpression) exprPlan.getSinks().get(0);
-        assertEquals( loadSchema.getField(0).uid, prj.getUid() );
+        assertEquals( loadSchema.getField(0).uid, prj.getFieldSchema().uid );
         assertEquals( 0, prj.getColNum() );
         assertEquals( 0, prj.getInputNum() );
     }
@@ -467,7 +461,7 @@ public class TestLogicalPlanMigrationVisitor extends TestCase {
         LogicalPlan plan = lpt.buildPlan("store b into '/test/empty';");
         
         // check basics
-        org.apache.pig.experimental.logical.relational.LogicalPlan newPlan = migratePlan(plan);
+        org.apache.pig.newplan.logical.relational.LogicalPlan newPlan = migratePlan(plan);
 
         LogicalSchema loadSchema = 
             ((LogicalRelationalOperator)newPlan.getSources().get(0)).getSchema();
@@ -519,7 +513,7 @@ public class TestLogicalPlanMigrationVisitor extends TestCase {
         assertEquals( 1, exprPlan.getSinks().size() );
         assertEquals( ProjectExpression.class, exprPlan.getSinks().get(0).getClass() );
         ProjectExpression prj = (ProjectExpression) exprPlan.getSinks().get(0);
-        assertEquals( loadSchema.getField(0).uid, prj.getUid() );
+        assertEquals( loadSchema.getField(0).uid, prj.getFieldSchema().uid );
         assertEquals( 0, prj.getColNum() );
         assertEquals( 0, prj.getInputNum() );
         
@@ -527,7 +521,7 @@ public class TestLogicalPlanMigrationVisitor extends TestCase {
         assertEquals( 1, exprPlan2.getSinks().size() );
         assertEquals( ProjectExpression.class, exprPlan2.getSinks().get(0).getClass() );
         ProjectExpression prj2 = (ProjectExpression) exprPlan2.getSinks().get(0);
-        assertEquals( loadSchema.getField(1).uid, prj2.getUid() );
+        assertEquals( loadSchema.getField(1).uid, prj2.getFieldSchema().uid );
         assertEquals( 1, prj2.getColNum() );
         assertEquals( 0, prj2.getInputNum() );
     }
@@ -540,7 +534,7 @@ public class TestLogicalPlanMigrationVisitor extends TestCase {
         LogicalPlan plan = lpt.buildPlan("store c into '/test/empty';");
         
         // check basics
-        org.apache.pig.experimental.logical.relational.LogicalPlan newPlan = migratePlan(plan);
+        org.apache.pig.newplan.logical.relational.LogicalPlan newPlan = migratePlan(plan);
         
         assertEquals( LOCogroup.class, newPlan.getSuccessors( newPlan.getSources().get(0) ).get(0).getClass() );
         LOCogroup cogroup = (LOCogroup) newPlan.getSuccessors( newPlan.getSources().get(0) ).get(0);
@@ -604,7 +598,7 @@ public class TestLogicalPlanMigrationVisitor extends TestCase {
         assertEquals( 1, exprPlan.getSinks().size() );
         assertEquals( ProjectExpression.class, exprPlan.getSinks().get(0).getClass() );
         ProjectExpression prj = (ProjectExpression) exprPlan.getSinks().get(0);
-        assertEquals( loadSchema.getField(0).uid, prj.getUid() );
+        assertEquals( loadSchema.getField(0).uid, prj.getFieldSchema().uid );
         assertEquals( 0, prj.getColNum() );
         assertEquals( 0, prj.getInputNum() );
         
@@ -612,7 +606,7 @@ public class TestLogicalPlanMigrationVisitor extends TestCase {
         assertEquals( 1, exprPlan2.getSinks().size() );
         assertEquals( ProjectExpression.class, exprPlan2.getSinks().get(0).getClass() );
         ProjectExpression prj2 = (ProjectExpression) exprPlan2.getSinks().get(0);
-        assertEquals( load2Schema.getField(0).uid, prj2.getUid() );
+        assertEquals( load2Schema.getField(0).uid, prj2.getFieldSchema().uid );
         assertEquals( 0, prj2.getColNum() );
         assertEquals( 1, prj2.getInputNum() );
     }
@@ -625,7 +619,7 @@ public class TestLogicalPlanMigrationVisitor extends TestCase {
         LogicalPlan plan = lpt.buildPlan("store c into '/test/empty';");
         
         // check basics
-        org.apache.pig.experimental.logical.relational.LogicalPlan newPlan = migratePlan(plan);
+        org.apache.pig.newplan.logical.relational.LogicalPlan newPlan = migratePlan(plan);
         
         assertEquals( LOCogroup.class, newPlan.getSuccessors( newPlan.getSources().get(0) ).get(0).getClass() );
         LOCogroup cogroup = (LOCogroup) newPlan.getSuccessors( newPlan.getSources().get(0) ).get(0);
@@ -700,7 +694,7 @@ public class TestLogicalPlanMigrationVisitor extends TestCase {
         assertEquals( 1, exprPlan.getSinks().size() );
         assertEquals( ProjectExpression.class, exprPlan.getSinks().get(0).getClass() );
         ProjectExpression prj = (ProjectExpression) exprPlan.getSinks().get(0);
-        assertEquals( loadSchema.getField(0).uid, prj.getUid() );
+        assertEquals( loadSchema.getField(0).uid, prj.getFieldSchema().uid );
         assertEquals( 0, prj.getColNum() );
         assertEquals( 0, prj.getInputNum() );
         
@@ -708,7 +702,7 @@ public class TestLogicalPlanMigrationVisitor extends TestCase {
         assertEquals( 1, exprPlan2.getSinks().size() );
         assertEquals( ProjectExpression.class, exprPlan2.getSinks().get(0).getClass() );
         ProjectExpression prj2 = (ProjectExpression) exprPlan2.getSinks().get(0);
-        assertEquals( loadSchema.getField(1).uid, prj2.getUid() );
+        assertEquals( loadSchema.getField(1).uid, prj2.getFieldSchema().uid );
         assertEquals( 1, prj2.getColNum() );
         assertEquals( 0, prj2.getInputNum() );        
         
@@ -716,7 +710,7 @@ public class TestLogicalPlanMigrationVisitor extends TestCase {
         assertEquals( 1, exprPlan3.getSinks().size() );
         assertEquals( ProjectExpression.class, exprPlan3.getSinks().get(0).getClass() );
         ProjectExpression prj3 = (ProjectExpression) exprPlan3.getSinks().get(0);
-        assertEquals( load2Schema.getField(0).uid, prj3.getUid() );
+        assertEquals( load2Schema.getField(0).uid, prj3.getFieldSchema().uid );
         assertEquals( 0, prj3.getColNum() );
         assertEquals( 1, prj3.getInputNum() );
         
@@ -724,7 +718,7 @@ public class TestLogicalPlanMigrationVisitor extends TestCase {
         assertEquals( 1, exprPlan4.getSinks().size() );
         assertEquals( ProjectExpression.class, exprPlan4.getSinks().get(0).getClass() );
         ProjectExpression prj4 = (ProjectExpression) exprPlan4.getSinks().get(0);
-        assertEquals( load2Schema.getField(1).uid, prj4.getUid() );
+        assertEquals( load2Schema.getField(1).uid, prj4.getFieldSchema().uid );
         assertEquals( 1, prj4.getColNum() );
         assertEquals( 1, prj4.getInputNum() );
     }
@@ -751,18 +745,12 @@ public class TestLogicalPlanMigrationVisitor extends TestCase {
         return uids;
     }
     
-    private org.apache.pig.experimental.logical.relational.LogicalPlan migratePlan(LogicalPlan lp) throws VisitorException{
+    private org.apache.pig.newplan.logical.relational.LogicalPlan migratePlan(LogicalPlan lp) throws VisitorException{
         LogicalPlanMigrationVistor visitor = new LogicalPlanMigrationVistor(lp);    	
         visitor.visit();
         
-        org.apache.pig.experimental.logical.relational.LogicalPlan newPlan = visitor.getNewLogicalPlan();
-        try {
-            UidStamper stamper = new UidStamper(newPlan);
-            stamper.visit();
+        org.apache.pig.newplan.logical.relational.LogicalPlan newPlan = visitor.getNewLogicalPlan();
             
-            return newPlan;
-        }catch(Exception e) {
-            throw new VisitorException(e);
-        }
+        return newPlan;
     }    
 }
