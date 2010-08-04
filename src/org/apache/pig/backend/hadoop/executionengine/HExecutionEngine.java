@@ -50,8 +50,6 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOpera
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.backend.hadoop.executionengine.util.MapRedUtil;
-import org.apache.pig.experimental.logical.LogicalPlanMigrationVistor;
-import org.apache.pig.experimental.logical.optimizer.UidStamper;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.FileSpec;
@@ -59,6 +57,8 @@ import org.apache.pig.impl.io.InterStorage;
 import org.apache.pig.impl.logicalLayer.LogicalPlan;
 import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.OperatorKey;
+import org.apache.pig.newplan.logical.LogicalPlanMigrationVistor;
+import org.apache.pig.newplan.logical.optimizer.SchemaResetter;
 import org.apache.pig.tools.pigstats.OutputStats;
 import org.apache.pig.tools.pigstats.PigStats;
 
@@ -235,20 +235,19 @@ public class HExecutionEngine {
                 // translate old logical plan to new plan
                 LogicalPlanMigrationVistor visitor = new LogicalPlanMigrationVistor(plan);
                 visitor.visit();
-                org.apache.pig.experimental.logical.relational.LogicalPlan newPlan = visitor.getNewLogicalPlan();
+                org.apache.pig.newplan.logical.relational.LogicalPlan newPlan = visitor.getNewLogicalPlan();
                 
-                // set uids
-                UidStamper stamper = new UidStamper(newPlan);
-                stamper.visit();
+                SchemaResetter schemaResetter = new SchemaResetter(newPlan);
+                schemaResetter.visit();
                 
                 // run optimizer
-                org.apache.pig.experimental.logical.optimizer.LogicalPlanOptimizer optimizer = 
-                    new org.apache.pig.experimental.logical.optimizer.LogicalPlanOptimizer(newPlan, 100);
+                org.apache.pig.newplan.logical.optimizer.LogicalPlanOptimizer optimizer = 
+                    new org.apache.pig.newplan.logical.optimizer.LogicalPlanOptimizer(newPlan, 100);
                 optimizer.optimize();
                 
                 // translate new logical plan to physical plan
-                org.apache.pig.experimental.logical.relational.LogToPhyTranslationVisitor translator = 
-                    new org.apache.pig.experimental.logical.relational.LogToPhyTranslationVisitor(newPlan);
+                org.apache.pig.newplan.logical.relational.LogToPhyTranslationVisitor translator = 
+                    new org.apache.pig.newplan.logical.relational.LogToPhyTranslationVisitor(newPlan);
                 
                 translator.setPigContext(pigContext);
                 translator.visit();

@@ -46,8 +46,8 @@ import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MapReduceOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.classification.InterfaceAudience;
 import org.apache.pig.classification.InterfaceStability;
-import org.apache.pig.experimental.plan.Operator;
-import org.apache.pig.experimental.plan.PlanVisitor;
+import org.apache.pig.newplan.Operator;
+import org.apache.pig.newplan.PlanVisitor;
 import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.tools.pigstats.PigStats.JobGraph;
