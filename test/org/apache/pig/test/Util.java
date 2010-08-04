@@ -64,13 +64,13 @@ import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
-import org.apache.pig.experimental.logical.optimizer.PlanPrinter;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.logicalLayer.LogicalPlan;
 import org.apache.pig.impl.logicalLayer.parser.ParseException;
 import org.apache.pig.impl.logicalLayer.parser.QueryParser;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.newplan.logical.optimizer.LogicalPlanPrinter;
 import org.apache.pig.tools.grunt.Grunt;
 import org.apache.pig.tools.grunt.GruntParser;
 
@@ -573,10 +573,10 @@ public class Util {
         createInputFile(FileSystem.get(conf), fileName, input); 
     }
     
-    public static void printPlan(org.apache.pig.experimental.logical.relational.LogicalPlan logicalPlan ) throws Exception {
+    public static void printPlan(org.apache.pig.newplan.logical.relational.LogicalPlan logicalPlan ) throws Exception {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         PrintStream ps = new PrintStream(out);
-        PlanPrinter pp = new PlanPrinter(logicalPlan,ps);
+        LogicalPlanPrinter pp = new LogicalPlanPrinter(logicalPlan,ps);
         pp.visit();
         System.err.println(out.toString());
     }

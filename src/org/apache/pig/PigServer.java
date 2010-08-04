@@ -59,9 +59,6 @@ import org.apache.pig.classification.InterfaceAudience;
 import org.apache.pig.classification.InterfaceStability;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.Tuple;
-import org.apache.pig.experimental.logical.LogicalPlanMigrationVistor;
-import org.apache.pig.experimental.logical.optimizer.LogicalPlanOptimizer;
-import org.apache.pig.experimental.logical.optimizer.UidStamper;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.InterStorage;
@@ -95,6 +92,8 @@ import org.apache.pig.impl.streaming.StreamingCommand;
 import org.apache.pig.impl.util.LogUtils;
 import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.impl.util.PropertiesUtil;
+import org.apache.pig.newplan.logical.LogicalPlanMigrationVistor;
+import org.apache.pig.newplan.logical.optimizer.LogicalPlanOptimizer;
 import org.apache.pig.pen.ExampleGenerator;
 import org.apache.pig.scripting.ScriptEngine;
 import org.apache.pig.tools.grunt.GruntParser;
@@ -881,12 +880,8 @@ public class PigServer {
             if( pigContext.getProperties().getProperty("pig.usenewlogicalplan", "false").equals("true") ) {
                 LogicalPlanMigrationVistor migrator = new LogicalPlanMigrationVistor(lp);
                 migrator.visit();
-                org.apache.pig.experimental.logical.relational.LogicalPlan newPlan = migrator.getNewLogicalPlan();
+                org.apache.pig.newplan.logical.relational.LogicalPlan newPlan = migrator.getNewLogicalPlan();
                 
-                // set uids
-                UidStamper stamper = new UidStamper(newPlan);
-                stamper.visit();
-
                 LogicalPlanOptimizer optimizer = new LogicalPlanOptimizer(newPlan, 3);
                 optimizer.optimize();                
                 

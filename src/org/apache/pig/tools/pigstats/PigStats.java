@@ -43,14 +43,14 @@ import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROper
 import org.apache.pig.classification.InterfaceAudience;
 import org.apache.pig.classification.InterfaceStability;
 import org.apache.pig.data.InternalCachedBag;
-import org.apache.pig.experimental.plan.BaseOperatorPlan;
-import org.apache.pig.experimental.plan.Operator;
-import org.apache.pig.experimental.plan.OperatorPlan;
-import org.apache.pig.experimental.plan.PlanVisitor;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.plan.DependencyOrderWalker;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.util.SpillableMemoryManager;
+import org.apache.pig.newplan.BaseOperatorPlan;
+import org.apache.pig.newplan.Operator;
+import org.apache.pig.newplan.OperatorPlan;
+import org.apache.pig.newplan.PlanVisitor;
 import org.apache.pig.tools.pigstats.JobStats.JobState;
 
 /**
@@ -216,7 +216,7 @@ public final class PigStats {
 
         protected JobGraphPrinter(OperatorPlan plan) {
             super(plan,
-                    new org.apache.pig.experimental.plan.DependencyOrderWalker(
+                    new org.apache.pig.newplan.DependencyOrderWalker(
                             plan));
             buf = new StringBuffer();
         }

@@ -1,0 +1,11 @@
+**/TestNewPlanColumnPrune.java
+**/TestNewPlanFilterAboveForeach.java
+**/TestNewPlanFilterRule.java
+**/TestNewPlanListener.java
+**/TestNewPlanLogicalOptimizer.java
+**/TestNewPlanLogToPhyTranslationVisitor.java
+**/TestNewPlanOperatorPlan.java
+**/TestNewPlanPruneMapKeys.java
+**/TestNewPlanRule.java
+**/TestLogicalPlanMigrationVisitor.java
+**/TestNewPlanColumnPrune2.java
