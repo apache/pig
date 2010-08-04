@@ -58,9 +58,11 @@ import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.classification.InterfaceAudience;
 import org.apache.pig.classification.InterfaceStability;
 import org.apache.pig.data.DataBag;
+import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
+import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.io.InterStorage;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.LOConst;
@@ -72,11 +74,13 @@ import org.apache.pig.impl.logicalLayer.LOSort;
 import org.apache.pig.impl.logicalLayer.LOSplit;
 import org.apache.pig.impl.logicalLayer.LOSplitOutput;
 import org.apache.pig.impl.logicalLayer.LOStore;
+import org.apache.pig.impl.logicalLayer.LOUserFunc;
 import org.apache.pig.impl.logicalLayer.LOVisitor;
 import org.apache.pig.impl.logicalLayer.LogicalOperator;
 import org.apache.pig.impl.logicalLayer.LogicalPlan;
 import org.apache.pig.impl.logicalLayer.LogicalPlanBuilder;
 import org.apache.pig.impl.logicalLayer.PlanSetter;
+import org.apache.pig.impl.logicalLayer.ScalarFinder;
 import org.apache.pig.impl.logicalLayer.optimizer.LogicalOptimizer;
 import org.apache.pig.impl.logicalLayer.parser.ParseException;
 import org.apache.pig.impl.logicalLayer.parser.QueryParser;
@@ -84,6 +88,7 @@ import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.logicalLayer.validators.LogicalPlanValidationExecutor;
 import org.apache.pig.impl.plan.CompilationMessageCollector;
 import org.apache.pig.impl.plan.DependencyOrderWalker;
+import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.PlanException;
 import org.apache.pig.impl.plan.VisitorException;
@@ -506,7 +511,7 @@ public class PigServer {
         currDAG.registerQuery(query, startLine);
     }
  
-    public LogicalPlan clonePlan(String alias) throws IOException {
+    public Graph getClonedGraph() throws IOException {
         Graph graph = currDAG.clone();
 
         if (graph == null) {
@@ -514,8 +519,7 @@ public class PigServer {
             String msg = "Cloning of plan failed.";
             throw new FrontendException(msg, errCode, PigException.BUG);
         }
-
-        return graph.getPlan(alias);
+        return graph;
     }
     
     /**
@@ -801,7 +805,8 @@ public class PigServer {
         }
 
         try {
-            LogicalPlan lp = clonePlan(id);
+            Graph g = getClonedGraph();
+            LogicalPlan lp = g.getPlan(id);
 
             // MRCompiler needs a store to be the leaf - hence
             // add a store to the plan to explain
@@ -822,7 +827,8 @@ public class PigServer {
             LogicalPlan unCompiledstorePlan = QueryParser.generateStorePlan(
                     scope, lp, filename, func, leaf, leaf.getAlias(),
                     pigContext);
-            LogicalPlan storePlan = compileLp(unCompiledstorePlan, true);
+            LogicalPlan storePlan = compileLp(unCompiledstorePlan, g, true);
+            
             return executeCompiledLogicalPlan(storePlan);
         } catch (Exception e) {
             int errCode = 1002;
@@ -1073,7 +1079,7 @@ public class PigServer {
                 currDAG.execute();
             }
             
-            plan = clonePlan(alias);
+            plan = getClonedGraph().getPlan(alias);
         } catch (IOException e) {
             //Since the original script is parsed anyway, there should not be an
             //error in this parsing. The only reason there can be an error is when
@@ -1085,7 +1091,8 @@ public class PigServer {
     }
 
     private LogicalPlan getStorePlan(String alias) throws IOException {
-        LogicalPlan lp = compileLp(alias);
+        Graph g = getClonedGraph();
+        LogicalPlan lp = g.getPlan(alias);
         
         if (!isBatchOn() || alias != null) {
             // MRCompiler needs a store to be the leaf - hence
@@ -1107,7 +1114,9 @@ public class PigServer {
             lp = QueryParser.generateStorePlan(scope, lp, "fakefile", 
                                                PigStorage.class.getName(), leaf, "fake", pigContext);
         }
-
+        
+        compileLp(lp, g, true);
+        
         return lp;
     }
     
@@ -1165,19 +1174,78 @@ public class PigServer {
         // create a clone of the logical plan and give it
         // to the operations below
         LogicalPlan lpClone;
+        Graph g;
  
         try {
-            lpClone = clonePlan(alias);
+            g = getClonedGraph();
+            lpClone = g.getPlan(alias);
         } catch (IOException e) {
             int errCode = 2001;
             String msg = "Unable to clone plan before compiling";
             throw new FrontendException(msg, errCode, PigException.BUG, e);
         }
-        return compileLp(lpClone, optimize);
+        return compileLp(lpClone, g, optimize);
+    }
+    
+    private void mergeScalars(LogicalPlan lp, Graph g) throws FrontendException {
+        // When we start processing a store we look for scalars to add stores
+        // to respective logical plans and temporary files to the attributes
+        // Here we need to find if there are duplicates so that we do not add
+        // two stores for one plan
+        ScalarFinder scalarFinder = new ScalarFinder(lp);
+        scalarFinder.visit();
+
+        Map<LOUserFunc, LogicalPlan> scalarMap = scalarFinder.getScalarMap();
+
+        try {
+            for(Map.Entry<LOUserFunc, LogicalPlan> scalarEntry: scalarMap.entrySet()) {
+                FileSpec fileSpec;
+                String alias = scalarEntry.getKey().getImplicitReferencedOperator().getAlias();
+                LogicalOperator store;
+
+                LogicalPlan referredPlan = g.getAliases().get(g.getAliasOp().get(alias));
+
+                // If referredPlan already has a store, 
+                // we just use it instead of adding one from our pocket
+                store = referredPlan.getLeaves().get(0);
+                if(store instanceof LOStore) {
+                    // use this store
+                    fileSpec = ((LOStore)store).getOutputFile();
+                }
+                else {
+                    // add new store
+                    FuncSpec funcSpec = new FuncSpec(PigStorage.class.getName() + "()");
+                    fileSpec = new FileSpec(FileLocalizer.getTemporaryPath(pigContext).toString(), funcSpec);
+                    store = new LOStore(referredPlan, new OperatorKey(scope, NodeIdGenerator.getGenerator().getNextNodeId(scope)),
+                            fileSpec, alias);
+                    referredPlan.addAsLeaf(store);
+                    ((LOStore)store).setTmpStore(true);
+                }
+                lp.mergeSharedPlan(referredPlan);
+
+                // Attach a constant operator to the ReadScalar func
+                LogicalPlan innerPlan = scalarEntry.getValue();
+                LOConst rconst = new LOConst(innerPlan, new OperatorKey(scope, NodeIdGenerator.getGenerator().getNextNodeId(scope)), fileSpec.getFileName());
+                rconst.setType(DataType.CHARARRAY);
+
+                innerPlan.add(rconst);
+                innerPlan.connect(rconst, scalarEntry.getKey());
+            }
+        } catch (IOException ioe) {
+            int errCode = 2219;
+            String msg = "Unable to process scalar in the plan";
+            throw new FrontendException(msg, errCode, PigException.BUG, ioe);
+        }
+    }
+    
+    private LogicalPlan compileLp(LogicalPlan lp, Graph g, boolean optimize) throws FrontendException {
+        mergeScalars(lp, g);
+        
+        return compileLp(lp, optimize);
     }
     
     @SuppressWarnings("unchecked")
-    private  LogicalPlan compileLp(LogicalPlan lp, boolean optimize) throws
+    private LogicalPlan compileLp(LogicalPlan lp, boolean optimize) throws
     FrontendException {
         // Set the logical plan values correctly in all the operators
         PlanSetter ps = new PlanSetter(lp);
@@ -1188,7 +1256,6 @@ public class PigServer {
         boolean isBeforeOptimizer = true;
         validate(lp, collector, isBeforeOptimizer);
         
-
         // optimize
         if (optimize && pigContext.getProperties().getProperty("pig.usenewlogicalplan", "false").equals("false")) {
             HashSet<String> optimizerRules = null;
@@ -1526,7 +1593,7 @@ public class PigServer {
             // Set the logical plan values correctly in all the operators
             PlanSetter ps = new PlanSetter(lp);
             ps.visit();
-
+            
             // The following code deals with store/load combination of 
             // intermediate files. In this case we will replace the load operator
             // with a (implicit) split operator, iff the load/store

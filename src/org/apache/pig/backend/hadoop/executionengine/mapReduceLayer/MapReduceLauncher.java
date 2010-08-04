@@ -63,7 +63,6 @@ import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.plan.CompilationMessageCollector.MessageType;
 import org.apache.pig.impl.util.ConfigurationValidator;
 import org.apache.pig.impl.util.LogUtils;
-import org.apache.pig.tools.pigstats.PigProgressNotificationListener;
 import org.apache.pig.tools.pigstats.PigStats;
 import org.apache.pig.tools.pigstats.PigStatsUtil;
 import org.apache.pig.tools.pigstats.ScriptState;
@@ -398,6 +397,7 @@ public class MapReduceLauncher extends Launcher{
         MRCompiler comp = new MRCompiler(php, pc);
         comp.randomizeFileLocalizer();
         comp.compile();
+        comp.connectScalars();
         MROperPlan plan = comp.getMRPlan();
         
         //display the warning message(s) from the MRCompiler

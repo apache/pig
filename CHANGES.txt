@@ -26,6 +26,8 @@ PIG-1249: Safe-guards against misconfigured Pig scripts without PARALLEL keyword
 
 IMPROVEMENTS
 
+PIG-1434: Allow casting relations to scalars (aniket486 via rding)
+
 PIG-1461: support union operation that merges based on column names (thejas)
 
 PIG-1517: Pig needs to support keywords in the package name (aniket486 via olgan)
@@ -111,6 +113,8 @@ PIG-1353: Map-side joins (ashutoshc)
 PIG-1309: Map-side Cogroup (ashutoshc)
 
 BUG FIXES
+
+PIG-1527: No need to deserialize UDFContext on the client side (rding)
 
 PIG-1516: finalize in bag implementations causes pig to run out of memory in reduce (thejas)
 
@@ -376,8 +380,6 @@ PIG-1173: pig cannot be built without an internet connection (jmhodges via daijy
 OPTIMIZATIONS
 
 BUG FIXES
-
-PIG-1527: No need to deserialize UDFContext on the client side (rding)
 
 PIG-1507: Full outer join fails while doing a filter on joined data (daijy)
 

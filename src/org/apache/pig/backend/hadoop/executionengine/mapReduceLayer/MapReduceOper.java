@@ -24,6 +24,7 @@ import java.util.Set;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROpPlanVisitor;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POUnion;
 import org.apache.pig.impl.plan.Operator;
@@ -105,6 +106,8 @@ public class MapReduceOper extends Operator<MROpPlanVisitor> {
 
     public Set<String> UDFs;
     
+    public Set<PhysicalOperator> scalars;
+    
     // Indicates if a UDF comparator is used
     boolean isUDFComparatorUsed = false;
     
@@ -158,6 +161,7 @@ public class MapReduceOper extends Operator<MROpPlanVisitor> {
         combinePlan = new PhysicalPlan();
         reducePlan = new PhysicalPlan();
         UDFs = new HashSet<String>();
+        scalars = new HashSet<PhysicalOperator>();
         nig = NodeIdGenerator.getGenerator();
         scope = k.getScope();
     }
