@@ -72,6 +72,8 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
     protected NodeIdGenerator nodeGen = NodeIdGenerator.getGenerator();
 
     protected PigContext pc;
+    
+    protected Map<PhysicalOperator, LogicalOperator> scalarAliasMap = new HashMap<PhysicalOperator, LogicalOperator>();
 
     public LogToPhyTranslationVisitor(LogicalPlan plan) {
         super(plan, new DependencyOrderWalker<LogicalOperator, LogicalPlan>(
@@ -81,7 +83,12 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
         currentPlan = new PhysicalPlan();
         logToPhyMap = new HashMap<LogicalOperator, PhysicalOperator>();
     }
-
+    
+    public void finish() {
+        for(PhysicalOperator physOp: scalarAliasMap.keySet()) {
+            ((POUserFunc)physOp).setReferencedOperator(logToPhyMap.get(scalarAliasMap.get(physOp)));
+        }
+    }
     public void setPigContext(PigContext pc) {
         this.pc = pc;
     }
@@ -1606,6 +1613,11 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
             }
         }
         logToPhyMap.put(func, p);
+        
+        // We need to track all the scalars
+        if(func.getImplicitReferencedOperator() != null) {
+            scalarAliasMap.put(p, func.getImplicitReferencedOperator());
+        }
 
     }
 
@@ -1651,6 +1663,7 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
         store.setInputSpec(loStore.getInputSpec());
         store.setSignature(loStore.getSignature());
         store.setSortInfo(loStore.getSortInfo());
+        store.setIsTmpStore(loStore.isTmpStore());
         try {
             // create a new schema for ourselves so that when
             // we serialize we are not serializing objects that

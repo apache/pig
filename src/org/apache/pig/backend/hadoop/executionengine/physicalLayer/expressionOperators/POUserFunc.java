@@ -44,6 +44,7 @@ import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.PigContext;
+import org.apache.pig.impl.logicalLayer.LogicalOperator;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.OperatorKey;
@@ -66,7 +67,15 @@ public class POUserFunc extends ExpressionOperator {
     private boolean initialized = false;
     private MonitoredUDFExecutor executor = null;
     
+    private PhysicalOperator referencedOperator = null;
     
+    public PhysicalOperator getReferencedOperator() {
+        return referencedOperator;
+    }
+
+    public void setReferencedOperator(PhysicalOperator referencedOperator) {
+        this.referencedOperator = referencedOperator;
+    }
 
     public POUserFunc(OperatorKey k, int rp, List<PhysicalOperator> inp) {
         super(k, rp);

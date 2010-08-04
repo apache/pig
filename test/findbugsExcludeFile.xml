@@ -412,4 +412,9 @@
         <Method name = "init" />
         <Bug pattern="OBL_UNSATISFIED_OBLIGATION" />
     </Match>
+	<Match>
+		<Class name = "org.apache.pig.impl.builtin.ReadScalars" />
+		<Method name = "exec" />
+		<Bug pattern= "RV_DONT_JUST_NULL_CHECK_READLINE" />
+	</Match>
 </FindBugsFilter>

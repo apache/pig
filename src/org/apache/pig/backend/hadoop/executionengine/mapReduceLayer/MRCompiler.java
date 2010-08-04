@@ -42,6 +42,7 @@ import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.HExecutionEngine;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROpPlanVisitor;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROperPlan;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.ScalarPhyFinder;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.UDFFinder;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.ConstantExpression;
@@ -172,7 +173,7 @@ public class MRCompiler extends PhyPlanVisitor {
     private Map<PhysicalOperator,MapReduceOper> phyToMROpMap;
     
     public static final String USER_COMPARATOR_MARKER = "user.comparator.func:";
-    
+   
     public MRCompiler(PhysicalPlan plan) throws MRCompilerException {
         this(plan,null);
     }
@@ -198,6 +199,18 @@ public class MRCompiler extends PhyPlanVisitor {
         messageCollector = new CompilationMessageCollector() ;
         storeToMapReduceMap = new HashMap<POStore, MapReduceOper>();
         phyToMROpMap = new HashMap<PhysicalOperator, MapReduceOper>();
+    }
+    
+    public void connectScalars() throws PlanException {
+        List<MapReduceOper> mrOpList = new ArrayList<MapReduceOper>();
+        for(MapReduceOper mrOp: MRPlan) {
+            mrOpList.add(mrOp);
+        }
+        for(MapReduceOper mrOp: mrOpList) {
+            for(PhysicalOperator scalar: mrOp.scalars) {
+                MRPlan.connect(phyToMROpMap.get(scalar), mrOp);
+            }
+        }
     }
     
     public void randomizeFileLocalizer(){
@@ -250,7 +263,7 @@ public class MRCompiler extends PhyPlanVisitor {
         for (POStore store: stores) {
             compile(store);
         }
-
+        
         // I'm quite certain this is not the best way to do this.  The issue
         // is that for jobs that take multiple map reduce passes, for
         // non-sort jobs, the POLocalRearrange is being put into the reduce
@@ -656,6 +669,12 @@ public class MRCompiler extends PhyPlanVisitor {
                 if (!mergedMap.UDFs.contains(udf))
                     mergedMap.UDFs.add(udf);
             }
+            // We also need to change scalar marking
+            for(PhysicalOperator physOp: rmro.scalars) {
+                if(!mergedMap.scalars.contains(physOp)) {
+                    mergedMap.scalars.add(physOp);
+                }
+            }
             MRPlan.remove(rmro);
         }
         return ret;
@@ -676,8 +695,14 @@ public class MRCompiler extends PhyPlanVisitor {
         }
     }
 
-    private void addUDFs(PhysicalPlan plan) throws VisitorException{
+    private void processUDFs(PhysicalPlan plan) throws VisitorException{
         if(plan!=null){
+            //Process Scalars (UDF with referencedOperators)
+            ScalarPhyFinder scalarPhyFinder = new ScalarPhyFinder(plan);
+            scalarPhyFinder.visit();
+            curMROp.scalars.addAll(scalarPhyFinder.getScalars());
+            
+            //Process UDFs
             udfFinder.setPlan(plan);
             udfFinder.visit();
             curMROp.UDFs.addAll(udfFinder.getUDFs());
@@ -745,7 +770,7 @@ public class MRCompiler extends PhyPlanVisitor {
     public void visitFilter(POFilter op) throws VisitorException{
         try{
             nonBlocking(op);
-            addUDFs(op.getPlan());
+            processUDFs(op.getPlan());
             phyToMROpMap.put(op, curMROp);
         }catch(Exception e){
             int errCode = 2034;
@@ -896,7 +921,7 @@ public class MRCompiler extends PhyPlanVisitor {
             List<PhysicalPlan> plans = op.getPlans();
             if(plans!=null)
                 for(PhysicalPlan ep : plans)
-                    addUDFs(ep);
+                    processUDFs(ep);
             phyToMROpMap.put(op, curMROp);
         }catch(Exception e){
             int errCode = 2034;
@@ -944,7 +969,7 @@ public class MRCompiler extends PhyPlanVisitor {
                 List<PhysicalPlan> plans = op.getPlans();
                 if(plans!=null)
                     for(PhysicalPlan ep : plans)
-                        addUDFs(ep);
+                        processUDFs(ep);
                 phyToMROpMap.put(op, curMROp);
             }catch(Exception e){
                 int errCode = 2034;
@@ -971,7 +996,7 @@ public class MRCompiler extends PhyPlanVisitor {
             List<PhysicalPlan> plans = op.getInputPlans();
             if(plans!=null)
                 for (PhysicalPlan plan : plans) {
-                    addUDFs(plan);
+                    processUDFs(plan);
                 }
             phyToMROpMap.put(op, curMROp);
         }catch(Exception e){
@@ -1080,7 +1105,7 @@ public class MRCompiler extends PhyPlanVisitor {
                 for (List<PhysicalPlan> joinPlan : joinPlans) {
                     if(joinPlan!=null)
                         for (PhysicalPlan plan : joinPlan) {
-                            addUDFs(plan);
+                            processUDFs(plan);
                         }
                 }
             phyToMROpMap.put(op, curMROp);
