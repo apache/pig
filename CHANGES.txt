@@ -26,6 +26,8 @@ PIG-1249: Safe-guards against misconfigured Pig scripts without PARALLEL keyword
 
 IMPROVEMENTS
 
+PIG-1461: support union operation that merges based on column names (thejas)
+
 PIG-1517: Pig needs to support keywords in the package name (aniket486 via olgan)
 
 PIG-928: UDFs in scripting languages (aniket486 via daijy)
