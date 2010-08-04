@@ -37,6 +37,8 @@ import java.io.PrintWriter;
 import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -356,6 +358,27 @@ public class Util {
         }
     }
 
+    /**
+     * Helper function to check if the result of a Pig Query is in line with 
+     * expected results. It sorts actual and expected results before comparison
+     * 
+     * @param actualResultsIt Result of the executed Pig query
+     * @param expectedResList Expected results to validate against
+     */
+     static public void checkQueryOutputsAfterSort(Iterator<Tuple> actualResultsIt, 
+                                     List<Tuple> expectedResList) {
+         List<Tuple> actualResList = new ArrayList<Tuple>();
+         while(actualResultsIt.hasNext()){
+             actualResList.add(actualResultsIt.next());
+         }
+         
+         Collections.sort(actualResList);
+         Collections.sort(expectedResList);
+
+         Assert.assertEquals("Comparing actual and expected results. ",
+                 expectedResList, actualResList);
+     }
+     
 	/**
 	 * Utility method to copy a file form local filesystem to the dfs on
 	 * the minicluster for testing in mapreduce mode
