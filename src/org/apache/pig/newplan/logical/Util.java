@@ -17,7 +17,6 @@
  */
 package org.apache.pig.newplan.logical;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -101,7 +100,7 @@ public class Util {
     }
     
     public static LOForEach addForEachAfter(LogicalPlan plan, LogicalRelationalOperator op,
-            Set<Integer> columnsToDrop) throws IOException {
+            Set<Integer> columnsToDrop) throws FrontendException {
         LOForEach foreach = new LOForEach(plan);
         
         plan.add(foreach);
@@ -134,7 +133,7 @@ public class Util {
             innerPlan.connect(innerLoad, gen);
             
             LogicalExpressionPlan exp = new LogicalExpressionPlan();
-            ProjectExpression prj = new ProjectExpression(exp, j++, 0, gen);
+            ProjectExpression prj = new ProjectExpression(exp, j++, -1, gen);
             exp.add(prj);
             exps.add(exp);
         }

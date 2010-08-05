@@ -20,6 +20,7 @@ package org.apache.pig.test;
 
 import java.util.List;
 
+import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.newplan.BaseOperatorPlan;
 import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.OperatorPlan;
@@ -188,7 +189,7 @@ public class TestNewPlanRule extends TestCase {
          assertNotSame(match.getSources().get(0), match.getSources().get(1));
     }
     
-    public void testSingleNodeMatch() {
+    public void testSingleNodeMatch() throws FrontendException {
         // search for Load 
         OperatorPlan pattern = new SillyPlan();
         pattern.add(new OP_Load("mmm", pattern));
@@ -264,7 +265,7 @@ public class TestNewPlanRule extends TestCase {
       
     }
     
-    public void testTwoNodeMatch() {
+    public void testTwoNodeMatch() throws FrontendException {
         // search for 2 Loads at the same time 
         OperatorPlan pattern = new SillyPlan();
         pattern.add(new OP_Load("mmm1", pattern));

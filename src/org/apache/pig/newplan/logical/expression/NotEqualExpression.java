@@ -18,9 +18,8 @@
 
 package org.apache.pig.newplan.logical.expression;
 
-import java.io.IOException;
-
 import org.apache.pig.data.DataType;
+import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.OperatorPlan;
 import org.apache.pig.newplan.PlanVisitor;
@@ -48,31 +47,25 @@ public class NotEqualExpression extends BinaryExpression {
      * @link org.apache.pig.experimental.plan.Operator#accept(org.apache.pig.experimental.plan.PlanVisitor)
      */
     @Override
-    public void accept(PlanVisitor v) throws IOException {
+    public void accept(PlanVisitor v) throws FrontendException {
         if (!(v instanceof LogicalExpressionVisitor)) {
-            throw new IOException("Expected LogicalExpressionVisitor");
+            throw new FrontendException("Expected LogicalExpressionVisitor", 2222);
         }
         ((LogicalExpressionVisitor)v).visit(this);
     }
     
     @Override
-    public boolean isEqual(Operator other) {
+    public boolean isEqual(Operator other) throws FrontendException {
         if (other != null && other instanceof NotEqualExpression) {
             NotEqualExpression eo = (NotEqualExpression)other;
-            try {
-                return eo.getLhs().isEqual(
-                        getLhs()) && 
-                eo.getRhs().isEqual(getRhs());
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
+            return eo.getLhs().isEqual(getLhs()) && eo.getRhs().isEqual(getRhs());
         } else {
             return false;
         }
     }
     
     @Override
-    public LogicalSchema.LogicalFieldSchema getFieldSchema() throws IOException {
+    public LogicalSchema.LogicalFieldSchema getFieldSchema() throws FrontendException {
         if (fieldSchema!=null)
             return fieldSchema;
         fieldSchema = new LogicalSchema.LogicalFieldSchema(null, null, DataType.BOOLEAN);

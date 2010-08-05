@@ -18,13 +18,13 @@
 
 package org.apache.pig.test;
 
-import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
 
 import org.apache.pig.FuncSpec;
 import org.apache.pig.data.DataType;
 import org.apache.pig.impl.io.FileSpec;
+import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.util.MultiMap;
 import org.apache.pig.impl.util.Pair;
 import org.apache.pig.newplan.BaseOperatorPlan;
@@ -170,7 +170,7 @@ public class TestNewPlanOperatorPlan extends TestCase {
     
     // Test OperatorPlan
     @Test
-    public void testOperatorPlan() throws IOException {
+    public void testOperatorPlan() throws FrontendException {
         SillyPlan plan = new SillyPlan();
         SillyOperator fred = new SillyOperator("fred", plan);
         SillyOperator joe = new SillyOperator("joe", plan);
@@ -291,7 +291,7 @@ public class TestNewPlanOperatorPlan extends TestCase {
     }
     
     @Test
-    public void testDisconnectAndRemove() throws IOException {
+    public void testDisconnectAndRemove() throws FrontendException {
         SillyPlan plan = new SillyPlan();
         SillyOperator fred = new SillyOperator("fred", plan);
         SillyOperator joe = new SillyOperator("joe", plan);
@@ -337,7 +337,7 @@ public class TestNewPlanOperatorPlan extends TestCase {
         boolean caught = false;
         try {
             plan.remove(fred);
-        } catch (IOException e) {
+        } catch (FrontendException e) {
             caught = true;
         }
         assertTrue(caught);
@@ -345,7 +345,7 @@ public class TestNewPlanOperatorPlan extends TestCase {
         caught = false;
         try {
             plan.remove(joe);
-        } catch (IOException e) {
+        } catch (FrontendException e) {
             caught = true;
         }
         assertTrue(caught);
@@ -364,7 +364,7 @@ public class TestNewPlanOperatorPlan extends TestCase {
         boolean caught = false;
         try {
             plan.disconnect(fred, joe);
-        } catch (IOException e) {
+        } catch (FrontendException e) {
             caught = true;
         }
         assertTrue(caught);
@@ -374,7 +374,7 @@ public class TestNewPlanOperatorPlan extends TestCase {
     // Tests for DependencyOrderWalker
     
     @Test
-    public void testDependencyOrderWalkerLinear() throws IOException {
+    public void testDependencyOrderWalkerLinear() throws FrontendException {
         SillyPlan plan = new SillyPlan();
         SillyOperator fred = new SillyOperator("fred", plan);
         SillyOperator joe = new SillyOperator("joe", plan);
@@ -398,7 +398,7 @@ public class TestNewPlanOperatorPlan extends TestCase {
     }
 
     @Test
-    public void testDependencyOrderWalkerTree() throws IOException {
+    public void testDependencyOrderWalkerTree() throws FrontendException {
         SillyPlan plan = new SillyPlan();
         SillyOperator fred = new SillyOperator("fred", plan);
         SillyOperator joe = new SillyOperator("joe", plan);
@@ -434,7 +434,7 @@ public class TestNewPlanOperatorPlan extends TestCase {
     }
 
     @Test
-    public void testDependencyOrderWalkerGraph() throws IOException {
+    public void testDependencyOrderWalkerGraph() throws FrontendException {
         SillyPlan plan = new SillyPlan();
         SillyOperator fred = new SillyOperator("fred", plan);
         SillyOperator joe = new SillyOperator("joe", plan);
@@ -472,7 +472,7 @@ public class TestNewPlanOperatorPlan extends TestCase {
     // Tests for DepthFirstWalker
     
     @Test
-    public void testDepthFirstWalkerLinear() throws IOException {
+    public void testDepthFirstWalkerLinear() throws FrontendException {
         SillyPlan plan = new SillyPlan();
         SillyOperator fred = new SillyOperator("fred", plan);
         SillyOperator joe = new SillyOperator("joe", plan);
@@ -496,7 +496,7 @@ public class TestNewPlanOperatorPlan extends TestCase {
     }
 
     @Test
-    public void testDepthFirstWalkerTree() throws IOException {
+    public void testDepthFirstWalkerTree() throws FrontendException {
         SillyPlan plan = new SillyPlan();
         SillyOperator fred = new SillyOperator("fred", plan);
         SillyOperator joe = new SillyOperator("joe", plan);
@@ -526,7 +526,7 @@ public class TestNewPlanOperatorPlan extends TestCase {
     }
 
     @Test
-    public void testDepthFirstWalkerGraph() throws IOException {
+    public void testDepthFirstWalkerGraph() throws FrontendException {
         SillyPlan plan = new SillyPlan();
         SillyOperator fred = new SillyOperator("fred", plan);
         SillyOperator joe = new SillyOperator("joe", plan);
@@ -562,7 +562,7 @@ public class TestNewPlanOperatorPlan extends TestCase {
     // Tests for ReverseDependencyOrderWalker
     
     @Test
-    public void testReverseDependencyOrderWalkerLinear() throws IOException {
+    public void testReverseDependencyOrderWalkerLinear() throws FrontendException {
         SillyPlan plan = new SillyPlan();
         SillyOperator fred = new SillyOperator("fred", plan);
         SillyOperator joe = new SillyOperator("joe", plan);
@@ -586,7 +586,7 @@ public class TestNewPlanOperatorPlan extends TestCase {
     }
 
     @Test
-    public void testReverseDependencyOrderWalkerTree() throws IOException {
+    public void testReverseDependencyOrderWalkerTree() throws FrontendException {
         SillyPlan plan = new SillyPlan();
         SillyOperator fred = new SillyOperator("fred", plan);
         SillyOperator joe = new SillyOperator("joe", plan);
@@ -626,7 +626,7 @@ public class TestNewPlanOperatorPlan extends TestCase {
     }
 
     @Test
-    public void testReverseDependencyOrderWalkerGraph() throws IOException {
+    public void testReverseDependencyOrderWalkerGraph() throws FrontendException {
         SillyPlan plan = new SillyPlan();
         SillyOperator fred = new SillyOperator("fred", plan);
         SillyOperator joe = new SillyOperator("joe", plan);
@@ -665,7 +665,7 @@ public class TestNewPlanOperatorPlan extends TestCase {
         
         StringBuffer bf = new StringBuffer();
 
-        protected TestLogicalVisitor(OperatorPlan plan) {
+        protected TestLogicalVisitor(OperatorPlan plan) throws FrontendException {
             super(plan, new DepthFirstWalker(plan));
         }
         
@@ -681,7 +681,7 @@ public class TestNewPlanOperatorPlan extends TestCase {
     }
     
     @Test
-    public void testLogicalPlanVisitor() throws IOException {
+    public void testLogicalPlanVisitor() throws FrontendException {
         LogicalPlan lp = new LogicalPlan();
         LOLoad load = new LOLoad(null, null, lp, null);
         /*lp.add((LogicalRelationalOperator)null, load,
@@ -695,7 +695,7 @@ public class TestNewPlanOperatorPlan extends TestCase {
     }
     
     @Test
-    public void testBinaryOperatorOrder() throws IOException {
+    public void testBinaryOperatorOrder() throws FrontendException {
         LogicalExpressionPlan ep = new LogicalExpressionPlan();
         ConstantExpression c = new ConstantExpression(ep, new Integer(5), new LogicalFieldSchema(null, null, DataType.INTEGER));
         ProjectExpression p = new ProjectExpression(ep, 0, 0, null);
@@ -709,7 +709,7 @@ public class TestNewPlanOperatorPlan extends TestCase {
         
         StringBuffer bf = new StringBuffer();
 
-        protected TestExpressionVisitor(OperatorPlan plan) {
+        protected TestExpressionVisitor(OperatorPlan plan) throws FrontendException {
             super(plan, new DepthFirstWalker(plan));
         }
         
@@ -740,7 +740,7 @@ public class TestNewPlanOperatorPlan extends TestCase {
     }
     
     @Test
-    public void testExpressionPlanVisitor() throws IOException {
+    public void testExpressionPlanVisitor() throws FrontendException {
         LogicalExpressionPlan ep = new LogicalExpressionPlan();
         ConstantExpression c = new ConstantExpression(ep, new Integer(5), new LogicalFieldSchema(null, null, DataType.INTEGER));
         ProjectExpression p = new ProjectExpression(ep, 0, 0, null);
@@ -754,7 +754,7 @@ public class TestNewPlanOperatorPlan extends TestCase {
     }
     
     @Test
-    public void testExpressionEquality() {
+    public void testExpressionEquality() throws FrontendException {
         LogicalExpressionPlan ep1 = new LogicalExpressionPlan();
         ConstantExpression c1 = new ConstantExpression(ep1, new Integer(5), new LogicalFieldSchema(null, null, DataType.INTEGER));
         ProjectExpression p1 = new ProjectExpression(ep1, 0, 0, null);
@@ -798,7 +798,7 @@ public class TestNewPlanOperatorPlan extends TestCase {
     }
     
     @Test
-    public void testRelationalEquality() throws IOException {
+    public void testRelationalEquality() throws FrontendException {
         // Build a plan that is the logical plan for
         // A = load 'bla' as (x);
         // B = load 'morebla' as (y);
@@ -910,7 +910,7 @@ public class TestNewPlanOperatorPlan extends TestCase {
     }
     
     @Test
-    public void testLoadEqualityDifferentFuncSpecCtorArgs() {
+    public void testLoadEqualityDifferentFuncSpecCtorArgs() throws FrontendException {
         LogicalPlan lp = new LogicalPlan();
         
         LogicalSchema aschema1 = new LogicalSchema();
@@ -928,7 +928,7 @@ public class TestNewPlanOperatorPlan extends TestCase {
     }
     
     @Test
-    public void testLoadEqualityDifferentNumFuncSpecCstorArgs() {
+    public void testLoadEqualityDifferentNumFuncSpecCstorArgs() throws FrontendException {
         LogicalPlan lp = new LogicalPlan();
         
         LogicalSchema aschema1 = new LogicalSchema();
@@ -946,7 +946,7 @@ public class TestNewPlanOperatorPlan extends TestCase {
     }
     
     @Test
-    public void testLoadEqualityDifferentFunctionNames() {
+    public void testLoadEqualityDifferentFunctionNames() throws FrontendException {
         LogicalPlan lp = new LogicalPlan();
         
         LogicalSchema aschema1 = new LogicalSchema();
@@ -965,7 +965,7 @@ public class TestNewPlanOperatorPlan extends TestCase {
     }
     
     @Test
-    public void testLoadEqualityDifferentFileName() {
+    public void testLoadEqualityDifferentFileName() throws FrontendException {
         LogicalPlan lp = new LogicalPlan();
         LogicalSchema aschema1 = new LogicalSchema();
         aschema1.addField(new LogicalSchema.LogicalFieldSchema(
@@ -983,7 +983,7 @@ public class TestNewPlanOperatorPlan extends TestCase {
     }
     
     @Test
-    public void testRelationalEqualityDifferentSchema() {
+    public void testRelationalEqualityDifferentSchema() throws FrontendException {
         LogicalPlan lp = new LogicalPlan();
         LogicalSchema aschema1 = new LogicalSchema();
         aschema1.addField(new LogicalSchema.LogicalFieldSchema(
@@ -1005,7 +1005,7 @@ public class TestNewPlanOperatorPlan extends TestCase {
     }
     
     @Test
-    public void testRelationalEqualityNullSchemas() {
+    public void testRelationalEqualityNullSchemas() throws FrontendException {
         LogicalPlan lp = new LogicalPlan();
         // Test that two loads with no schema are still equal
         LOLoad load7 = new LOLoad(new FileSpec("/abc",
@@ -1020,7 +1020,7 @@ public class TestNewPlanOperatorPlan extends TestCase {
     }
     
     @Test
-    public void testRelationalEqualityOneNullOneNotNullSchema() {
+    public void testRelationalEqualityOneNullOneNotNullSchema() throws FrontendException {
         LogicalPlan lp = new LogicalPlan();
         LogicalSchema aschema1 = new LogicalSchema();
         aschema1.addField(new LogicalSchema.LogicalFieldSchema(
@@ -1038,7 +1038,7 @@ public class TestNewPlanOperatorPlan extends TestCase {
     }
         
     @Test
-    public void testFilterDifferentPredicates() {
+    public void testFilterDifferentPredicates() throws FrontendException {
         LogicalPlan lp = new LogicalPlan();
             
         LogicalExpressionPlan fp1 = new LogicalExpressionPlan();
@@ -1071,7 +1071,7 @@ public class TestNewPlanOperatorPlan extends TestCase {
     // func, and I don't want to mess with that here.
     
     @Test
-    public void testJoinDifferentJoinTypes() throws IOException {
+    public void testJoinDifferentJoinTypes() throws FrontendException {
        LogicalPlan lp = new LogicalPlan();
        LogicalSchema jaschema1 = new LogicalSchema();
        jaschema1.addField(new LogicalSchema.LogicalFieldSchema(
@@ -1148,7 +1148,7 @@ public class TestNewPlanOperatorPlan extends TestCase {
     }
     
     @Test
-    public void testJoinDifferentInner() throws IOException {
+    public void testJoinDifferentInner() throws FrontendException {
         LogicalPlan lp = new LogicalPlan();
                LogicalSchema jaschema1 = new LogicalSchema();
        jaschema1.addField(new LogicalSchema.LogicalFieldSchema(
@@ -1228,7 +1228,7 @@ public class TestNewPlanOperatorPlan extends TestCase {
     }
  
     @Test
-    public void testJoinDifferentNumInputs() throws IOException {
+    public void testJoinDifferentNumInputs() throws FrontendException {
         LogicalPlan lp = new LogicalPlan();
                LogicalSchema jaschema1 = new LogicalSchema();
        jaschema1.addField(new LogicalSchema.LogicalFieldSchema(
@@ -1317,7 +1317,7 @@ public class TestNewPlanOperatorPlan extends TestCase {
     }
         
     @Test
-    public void testJoinDifferentJoinKeys() throws IOException {
+    public void testJoinDifferentJoinKeys() throws FrontendException {
         LogicalPlan lp = new LogicalPlan();
         
         // Test different join keys
@@ -1406,7 +1406,7 @@ public class TestNewPlanOperatorPlan extends TestCase {
     }
     
     @Test
-    public void testJoinDifferentNumJoinKeys() throws IOException {
+    public void testJoinDifferentNumJoinKeys() throws FrontendException {
         LogicalPlan lp = new LogicalPlan();
         
         // Test different join keys
@@ -1492,7 +1492,7 @@ public class TestNewPlanOperatorPlan extends TestCase {
     }
     
     @Test
-    public void testRelationalSameOpDifferentPreds() throws IOException {
+    public void testRelationalSameOpDifferentPreds() throws FrontendException {
         LogicalPlan lp1 = new LogicalPlan();
         LogicalSchema aschema1 = new LogicalSchema();
         aschema1.addField(new LogicalSchema.LogicalFieldSchema(

@@ -18,13 +18,13 @@
 
 package org.apache.pig.newplan.logical.relational;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import org.apache.pig.data.DataType;
+import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.util.Pair;
 import org.apache.pig.newplan.logical.expression.LogicalExpression;
 
@@ -111,7 +111,7 @@ public class LogicalSchema {
             }
             return true;
         }
-        public LogicalSchema.LogicalFieldSchema mergeUid(LogicalFieldSchema uidOnlyFieldSchema) throws IOException {
+        public LogicalSchema.LogicalFieldSchema mergeUid(LogicalFieldSchema uidOnlyFieldSchema) throws FrontendException {
             if (uidOnlyFieldSchema!=null && compatible(uidOnlyFieldSchema)) {
                 this.uid = uidOnlyFieldSchema.uid;
                 if (this.schema!=null) {
@@ -320,10 +320,10 @@ public class LogicalSchema {
         return twoLevelAccessRequired;
     }
 
-    public LogicalSchema mergeUid(LogicalSchema uidOnlySchema) throws IOException {
+    public LogicalSchema mergeUid(LogicalSchema uidOnlySchema) throws FrontendException {
         if (uidOnlySchema!=null) {
             if (size()!=uidOnlySchema.size()) {
-                throw new IOException("structure of schema change");
+                throw new FrontendException("Structure of schema change. Original: " + uidOnlySchema + " Now: " + this, 2239);
                 }
             for (int i=0;i<size();i++) {
                 getField(i).mergeUid(uidOnlySchema.getField(i));

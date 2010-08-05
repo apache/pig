@@ -17,13 +17,12 @@
  */
 package org.apache.pig.newplan.logical.relational;
 
-import java.io.IOException;
-
 //import org.apache.commons.logging.Log;
 //import org.apache.commons.logging.LogFactory;
 import org.apache.pig.StoreFuncInterface;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileSpec;
+import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.PlanVisitor;
 
@@ -43,12 +42,7 @@ public class LOStore extends LogicalRelationalOperator {
         super("LOStore", plan);
 
         output = outputFileSpec;
-      
-        try { 
-             storeFunc = (StoreFuncInterface) PigContext.instantiateFuncFromSpec(outputFileSpec.getFuncSpec()); 
-        } catch (Exception e) { 
-            throw new RuntimeException("Failed to instantiate StoreFunc.", e);
-        }
+        storeFunc = (StoreFuncInterface) PigContext.instantiateFuncFromSpec(outputFileSpec.getFuncSpec()); 
     }
     
     public FileSpec getOutputSpec() {
@@ -60,25 +54,21 @@ public class LOStore extends LogicalRelationalOperator {
     }
     
     @Override
-    public LogicalSchema getSchema() {
-        try {
-            schema = ((LogicalRelationalOperator)plan.getPredecessors(this).get(0)).getSchema();
-        }catch(Exception e) {
-            throw new RuntimeException("Unable to get predecessor of LOStore.", e);
-        }
+    public LogicalSchema getSchema() throws FrontendException {
+        schema = ((LogicalRelationalOperator)plan.getPredecessors(this).get(0)).getSchema();
         return schema;
     }
 
     @Override
-    public void accept(PlanVisitor v) throws IOException {
+    public void accept(PlanVisitor v) throws FrontendException {
         if (!(v instanceof LogicalRelationalNodesVisitor)) {
-            throw new IOException("Expected LogicalPlanVisitor");
+            throw new FrontendException("Expected LogicalPlanVisitor", 2223);
         }
         ((LogicalRelationalNodesVisitor)v).visit(this);
     }
 
     @Override
-    public boolean isEqual(Operator other) {
+    public boolean isEqual(Operator other) throws FrontendException {
         if (other != null && other instanceof LOStore) {
             LOStore os = (LOStore)other;
             if (!checkEquality(os)) return false;

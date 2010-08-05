@@ -18,8 +18,7 @@
 
 package org.apache.pig.newplan.logical.expression;
 
-import java.io.IOException;
-
+import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.newplan.OperatorPlan;
 import org.apache.pig.newplan.PlanVisitor;
 import org.apache.pig.newplan.PlanWalker;
@@ -30,85 +29,85 @@ import org.apache.pig.newplan.PlanWalker;
 public abstract class LogicalExpressionVisitor extends PlanVisitor {
 
     protected LogicalExpressionVisitor(OperatorPlan p,
-                                       PlanWalker walker) {
+                                       PlanWalker walker) throws FrontendException {
         super(p, walker);
         
         if (!(plan instanceof LogicalExpressionPlan)) {
-            throw new RuntimeException(
+            throw new FrontendException(
                 "LogicalExpressionVisitor expects to visit " +
-                "expression plans.");
+                "expression plans.", 2227);
         }
     }
     
-    public void visit(AndExpression op) throws IOException {
+    public void visit(AndExpression op) throws FrontendException {
     }
     
-    public void visit(OrExpression op) throws IOException { 
+    public void visit(OrExpression op) throws FrontendException { 
     }
 
-    public void visit(EqualExpression op) throws IOException {
+    public void visit(EqualExpression op) throws FrontendException {
     }
     
-    public void visit(ProjectExpression op) throws IOException {
+    public void visit(ProjectExpression op) throws FrontendException {
     }
     
-    public void visit(ConstantExpression op) throws IOException {
+    public void visit(ConstantExpression op) throws FrontendException {
     }
     
-    public void visit(CastExpression op) throws IOException {
+    public void visit(CastExpression op) throws FrontendException {
     }
 
-    public void visit(GreaterThanExpression op) throws IOException {
+    public void visit(GreaterThanExpression op) throws FrontendException {
     }
     
-    public void visit(GreaterThanEqualExpression op) throws IOException {
+    public void visit(GreaterThanEqualExpression op) throws FrontendException {
     }
 
-    public void visit(LessThanExpression op) throws IOException { 
+    public void visit(LessThanExpression op) throws FrontendException { 
     }
     
-    public void visit(LessThanEqualExpression op) throws IOException {
+    public void visit(LessThanEqualExpression op) throws FrontendException {
     }
 
-    public void visit(NotEqualExpression op) throws IOException { 
+    public void visit(NotEqualExpression op) throws FrontendException { 
     }
 
-    public void visit(NotExpression op ) throws IOException {
+    public void visit(NotExpression op ) throws FrontendException {
     }
 
-    public void visit(IsNullExpression op) throws IOException {
+    public void visit(IsNullExpression op) throws FrontendException {
     }
     
-    public void visit(NegativeExpression op) throws IOException {
+    public void visit(NegativeExpression op) throws FrontendException {
     }
     
-    public void visit(AddExpression op) throws IOException {
+    public void visit(AddExpression op) throws FrontendException {
     }
     
-    public void visit(SubtractExpression op) throws IOException {
+    public void visit(SubtractExpression op) throws FrontendException {
     }
     
-    public void visit(MultiplyExpression op) throws IOException {
+    public void visit(MultiplyExpression op) throws FrontendException {
     }
     
-    public void visit(ModExpression op) throws IOException {
+    public void visit(ModExpression op) throws FrontendException {
     }
     
-    public void visit(DivideExpression op) throws IOException {
+    public void visit(DivideExpression op) throws FrontendException {
     }
 
-    public void visit(MapLookupExpression op) throws IOException {
+    public void visit(MapLookupExpression op) throws FrontendException {
     }
 
-    public void visit(BinCondExpression op) throws IOException {        
+    public void visit(BinCondExpression op) throws FrontendException {        
     }
 
-    public void visit(UserFuncExpression op) throws IOException {
+    public void visit(UserFuncExpression op) throws FrontendException {
     }
 
-    public void visit(DereferenceExpression op) throws IOException {
+    public void visit(DereferenceExpression op) throws FrontendException {
     }
 
-    public void visit(RegexExpression op) throws IOException {
+    public void visit(RegexExpression op) throws FrontendException {
     }
 }

@@ -411,20 +411,15 @@ public class ScriptState {
             }
         }
         if (js != null) {
-            try {
-                List<Operator> preds = jg.getPredecessors(js);
-                if (preds != null) {
-                    StringBuilder sb = new StringBuilder();
-                    for (Operator op : preds) {
-                        JobStats job = (JobStats)op;
-                        if (sb.length() > 0) sb.append(",");
-                        sb.append(job.getJobId());
-                    }
-                    conf.set(PIG_PROPERTY.JOB_PARENTS.toString(), sb.toString());
+            List<Operator> preds = jg.getPredecessors(js);
+            if (preds != null) {
+                StringBuilder sb = new StringBuilder();
+                for (Operator op : preds) {
+                    JobStats job = (JobStats)op;
+                    if (sb.length() > 0) sb.append(",");
+                    sb.append(job.getJobId());
                 }
-            } catch (IOException e) {
-                LOG.warn("unable to get job predecessors for job "
-                        + js.getJobId(), e);
+                conf.set(PIG_PROPERTY.JOB_PARENTS.toString(), sb.toString());
             }
         }
     }

@@ -17,14 +17,12 @@
  */
 package org.apache.pig.newplan.logical.relational;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 
-//import org.apache.commons.logging.Log;
-//import org.apache.commons.logging.LogFactory;
+import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.util.MultiMap;
 import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.PlanVisitor;
@@ -97,20 +95,16 @@ public class LOJoin extends LogicalRelationalOperator {
     }
     
     @Override
-    public LogicalSchema getSchema() {
+    public LogicalSchema getSchema() throws FrontendException {
         // if schema is calculated before, just return
         if (schema != null) {
             return schema;
         }
         
         List<Operator> inputs = null;
-        try {
-            inputs = plan.getPredecessors(this);
-            if (inputs == null) {
-                return null;
-            }
-        }catch(Exception e) {
-            throw new RuntimeException("Unable to get predecessors of LOJoin operator. ", e);
+        inputs = plan.getPredecessors(this);
+        if (inputs == null) {
+            return null;
         }
         
         List<LogicalSchema.LogicalFieldSchema> fss = new ArrayList<LogicalSchema.LogicalFieldSchema>();
@@ -144,16 +138,16 @@ public class LOJoin extends LogicalRelationalOperator {
     }
     
     @Override
-    public void accept(PlanVisitor v) throws IOException {
+    public void accept(PlanVisitor v) throws FrontendException {
         if (!(v instanceof LogicalRelationalNodesVisitor)) {
-            throw new IOException("Expected LogicalPlanVisitor");
+            throw new FrontendException("Expected LogicalPlanVisitor", 2223);
         }
         ((LogicalRelationalNodesVisitor)v).visit(this);
 
     }
     
     @Override
-    public boolean isEqual(Operator other) {
+    public boolean isEqual(Operator other) throws FrontendException {
         if (other != null && other instanceof LOJoin) {
             LOJoin oj = (LOJoin)other;
             if (mJoinType != oj.mJoinType) return false;
@@ -182,8 +176,8 @@ public class LOJoin extends LogicalRelationalOperator {
                     if (c.size() != oc.size()) return false;
                     
                     if (!(c instanceof List) || !(oc instanceof List)) {
-                        throw new RuntimeException(
-                            "Expected list of expression plans");
+                        throw new FrontendException(
+                            "Expected list of expression plans", 2238);
                     }
                     List<LogicalExpressionPlan> elist = (List<LogicalExpressionPlan>)c;
                     List<LogicalExpressionPlan> oelist = (List<LogicalExpressionPlan>)oc;

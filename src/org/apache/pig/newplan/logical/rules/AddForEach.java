@@ -18,18 +18,18 @@
 
 package org.apache.pig.newplan.logical.rules;
 
-import java.io.IOException;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.OperatorPlan;
-import org.apache.pig.newplan.OperatorSubPlan;
 import org.apache.pig.newplan.logical.Util;
 import org.apache.pig.newplan.logical.relational.LOFilter;
 import org.apache.pig.newplan.logical.relational.LOForEach;
+import org.apache.pig.newplan.logical.relational.LOJoin;
 import org.apache.pig.newplan.logical.relational.LOSort;
 import org.apache.pig.newplan.logical.relational.LOSplitOutput;
 import org.apache.pig.newplan.logical.relational.LogicalPlan;
@@ -43,7 +43,7 @@ public class AddForEach extends WholePlanRule {
     protected static final int STATUSNEWFOREACH = 2;
     
     public AddForEach(String n) {
-        super(n);		
+        super(n, false);		
     }
 
     @Override
@@ -53,14 +53,14 @@ public class AddForEach extends WholePlanRule {
     
     public class AddForEachTransformer extends Transformer {
         LogicalRelationalOperator opForAdd;
-        OperatorSubPlan subPlan;
 
         @Override
-        public boolean check(OperatorPlan matched) throws IOException {
+        public boolean check(OperatorPlan matched) throws FrontendException {
             Iterator<Operator> iter = matched.getOperators();
             while(iter.hasNext()) {
                 LogicalRelationalOperator op = (LogicalRelationalOperator)iter.next();
-                if ((op instanceof LOFilter||op instanceof LOSort||op instanceof LOSplitOutput) && shouldAdd(op)) {
+                if ((op instanceof LOFilter||op instanceof LOSort||op instanceof LOSplitOutput
+                        ||op instanceof LOJoin) && shouldAdd(op)) {
                     opForAdd = op;
                     return true;
                 }
@@ -71,11 +71,10 @@ public class AddForEach extends WholePlanRule {
 
         @Override
         public OperatorPlan reportChanges() {        	
-            return subPlan;
+            return currentPlan;
         }
 
-        private void addSuccessors(Operator op) throws IOException {
-            subPlan.add(op);
+        private void addSuccessors(Operator op) throws FrontendException {
             List<Operator> ll = op.getPlan().getSuccessors(op);
             if (ll != null) {
                 for(Operator suc: ll) {
@@ -85,16 +84,15 @@ public class AddForEach extends WholePlanRule {
         }
         
         @Override
-        public void transform(OperatorPlan matched) throws IOException {            
+        public void transform(OperatorPlan matched) throws FrontendException {            
             addForeach(opForAdd);
             
-            subPlan = new OperatorSubPlan(currentPlan);
             addSuccessors(opForAdd);
         }
         
         @SuppressWarnings("unchecked")
         // check if an LOForEach should be added after the logical operator
-        private boolean shouldAdd(LogicalRelationalOperator op) throws IOException {
+        private boolean shouldAdd(LogicalRelationalOperator op) throws FrontendException {
             Integer status = (Integer)op.getAnnotation(STATUS);
             if (status!=null && (status==STATUSADDED ||status==STATUSNEWFOREACH))
                 return false;
@@ -120,7 +118,7 @@ public class AddForEach extends WholePlanRule {
         }
         
         @SuppressWarnings("unchecked")
-        private void addForeach(LogicalRelationalOperator op) throws IOException {
+        private void addForeach(LogicalRelationalOperator op) throws FrontendException {
             Set<Long> outputUids = (Set<Long>)op.getAnnotation(ColumnPruneHelper.OUTPUTUIDS);
             LogicalSchema schema = op.getSchema();
             Set<Integer> columnsToDrop = new HashSet<Integer>();

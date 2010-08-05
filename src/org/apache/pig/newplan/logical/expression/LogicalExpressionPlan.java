@@ -18,10 +18,10 @@
 
 package org.apache.pig.newplan.logical.expression;
 
-import java.io.IOException;
 import java.io.PrintStream;
 import java.util.List;
 
+import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.newplan.BaseOperatorPlan;
 import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.OperatorPlan;
@@ -33,14 +33,14 @@ import org.apache.pig.newplan.logical.optimizer.ExprPrinter;
 public class LogicalExpressionPlan extends BaseOperatorPlan {
     
     @Override
-    public boolean isEqual(OperatorPlan other) {
+    public boolean isEqual(OperatorPlan other) throws FrontendException {
         if (other != null && other instanceof LogicalExpressionPlan) {
             LogicalExpressionPlan otherPlan = (LogicalExpressionPlan)other;
             List<Operator> roots = getSources();
             List<Operator> otherRoots = otherPlan.getSources();
             if (roots.size() == 0 && otherRoots.size() == 0) return true;
             if (roots.size() > 1 || otherRoots.size() > 1) {
-                throw new RuntimeException("Found LogicalExpressionPlan with more than one root.  Unexpected.");
+                throw new FrontendException("Found LogicalExpressionPlan with more than one root.  Unexpected.", 2224);
             }
             return roots.get(0).isEqual(otherRoots.get(0));            
         } else {
@@ -50,7 +50,7 @@ public class LogicalExpressionPlan extends BaseOperatorPlan {
     
     @Override
     public void explain(PrintStream ps, String format, boolean verbose) 
-    throws IOException {
+    throws FrontendException {
         ps.println("#-----------------------------------------------");
         ps.println("# New Logical Expression Plan:");
         ps.println("#-----------------------------------------------");

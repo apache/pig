@@ -18,9 +18,9 @@
 
 package org.apache.pig.newplan.logical.relational;
 
-import java.io.IOException;
 import java.io.PrintStream;
 
+import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.newplan.BaseOperatorPlan;
 import org.apache.pig.newplan.OperatorPlan;
 import org.apache.pig.newplan.logical.optimizer.LogicalPlanPrinter;
@@ -47,7 +47,7 @@ public class LogicalPlan extends BaseOperatorPlan {
      * in different orders but not successors in different orders.
      */
     @Override
-    public boolean isEqual(OperatorPlan other) {
+    public boolean isEqual(OperatorPlan other) throws FrontendException {
         if (other == null || !(other instanceof LogicalPlan)) {
             return false;
         }
@@ -57,7 +57,7 @@ public class LogicalPlan extends BaseOperatorPlan {
     
     @Override
     public void explain(PrintStream ps, String format, boolean verbose) 
-    throws IOException {
+    throws FrontendException {
         ps.println("#-----------------------------------------------");
         ps.println("# New Logical Plan:");
         ps.println("#-----------------------------------------------");

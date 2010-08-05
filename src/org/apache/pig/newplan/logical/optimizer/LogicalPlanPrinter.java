@@ -17,11 +17,11 @@
  */
 package org.apache.pig.newplan.logical.optimizer;
 
-import java.io.IOException;
 import java.io.PrintStream;
 import java.util.Collection;
 import java.util.List;
 
+import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.util.MultiMap;
 import org.apache.pig.newplan.OperatorPlan;
 import org.apache.pig.newplan.PlanWalker;
@@ -56,29 +56,29 @@ public class LogicalPlanPrinter extends LogicalRelationalNodesVisitor {
 //    private String USep = "|   |\n|   ";
 //    private int levelCntr = -1;
     
-    public LogicalPlanPrinter(OperatorPlan plan, PrintStream ps) {
+    public LogicalPlanPrinter(OperatorPlan plan, PrintStream ps) throws FrontendException {
         super(plan, new ReverseDependencyOrderWalker(plan));
         stream = ps;
     }
 
-    protected LogicalExpressionVisitor getVisitor(LogicalExpressionPlan expr) {
+    protected LogicalExpressionVisitor getVisitor(LogicalExpressionPlan expr) throws FrontendException {
         return new ExprPrinter(expr, level+1, stream);
     }
 
     @Override
-    public void visit(LOLoad op) throws IOException {
+    public void visit(LOLoad op) throws FrontendException {
         printLevel();
         stream.println( op.toString() );
     }
 
     @Override
-    public void visit(LOStore op) throws IOException {
+    public void visit(LOStore op) throws FrontendException {
         printLevel();
         stream.println( op.toString() );
     }
 
     @Override
-    public void visit(LOForEach op) throws IOException {
+    public void visit(LOForEach op) throws FrontendException {
         printLevel();
         stream.println( op.toString() );
         level++;
@@ -91,7 +91,7 @@ public class LogicalPlanPrinter extends LogicalRelationalNodesVisitor {
     }
 
     @Override
-    public void visit(LOFilter op) throws IOException {
+    public void visit(LOFilter op) throws FrontendException {
         printLevel();
         stream.println( op.toString() );
         LogicalExpressionVisitor v = getVisitor(op.getFilterPlan());
@@ -101,7 +101,7 @@ public class LogicalPlanPrinter extends LogicalRelationalNodesVisitor {
     }
     
     @Override
-    public void visit(LOJoin op) throws IOException {
+    public void visit(LOJoin op) throws FrontendException {
         printLevel();
         stream.println( op.toString() );
         
@@ -115,7 +115,7 @@ public class LogicalPlanPrinter extends LogicalRelationalNodesVisitor {
     }
 
     @Override
-    public void visit(LOGenerate op) throws IOException {
+    public void visit(LOGenerate op) throws FrontendException {
         printLevel();        
         stream.println( op.toString() );
         List<LogicalExpressionPlan> plans = op.getOutputPlans();
@@ -129,13 +129,13 @@ public class LogicalPlanPrinter extends LogicalRelationalNodesVisitor {
     }
 
     @Override
-    public void visit(LOInnerLoad op) throws IOException {
+    public void visit(LOInnerLoad op) throws FrontendException {
         printLevel();
         stream.println( op.toString() );
     }
     
     @Override
-    public void visit(LOCogroup op) throws IOException {
+    public void visit(LOCogroup op) throws FrontendException {
         printLevel();
         stream.println( op.toString() );
         MultiMap<Integer,LogicalExpressionPlan> exprPlans = op.getExpressionPlans();
@@ -152,7 +152,7 @@ public class LogicalPlanPrinter extends LogicalRelationalNodesVisitor {
     }
     
     @Override
-    public void visit(LOSplitOutput op) throws IOException {
+    public void visit(LOSplitOutput op) throws FrontendException {
         printLevel();
         stream.println( op.toString() );
         LogicalExpressionVisitor v = getVisitor(op.getFilterPlan());
@@ -162,28 +162,28 @@ public class LogicalPlanPrinter extends LogicalRelationalNodesVisitor {
     }
     
     @Override
-    public void visit(LOSplit op) throws IOException {
+    public void visit(LOSplit op) throws FrontendException {
         printLevel();
         stream.println( op.toString() );
         level++;
     }
     
     @Override
-    public void visit(LOUnion op) throws IOException {
+    public void visit(LOUnion op) throws FrontendException {
         printLevel();
         stream.println( op.toString() );
         level++;
     }
     
     @Override
-    public void visit(LOCross op) throws IOException {
+    public void visit(LOCross op) throws FrontendException {
         printLevel();
         stream.println( op.toString() );
         level++;
     }
     
     @Override
-    public void visit(LOSort op) throws IOException {
+    public void visit(LOSort op) throws FrontendException {
         printLevel();        
         stream.println( op.toString() );
         List<LogicalExpressionPlan> plans = op.getSortColPlans();
@@ -197,13 +197,13 @@ public class LogicalPlanPrinter extends LogicalRelationalNodesVisitor {
     }
     
     @Override
-    public void visit(LODistinct op) throws IOException {
+    public void visit(LODistinct op) throws FrontendException {
         printLevel();
         stream.println( op.toString() );
     }
     
     @Override
-    public void visit(LOLimit op) throws IOException {
+    public void visit(LOLimit op) throws FrontendException {
         printLevel();
         stream.println( op.toString() );
     }

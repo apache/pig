@@ -18,9 +18,9 @@
 
 package org.apache.pig.newplan.logical.optimizer;
 
-import java.io.IOException;
 import java.util.List;
 
+import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.newplan.DependencyOrderWalker;
 import org.apache.pig.newplan.DepthFirstWalker;
 import org.apache.pig.newplan.OperatorPlan;
@@ -43,19 +43,19 @@ public class ProjectionPatcher implements PlanTransformListener {
      */
     @Override
     public void transformed(OperatorPlan fp, OperatorPlan tp)
-            throws IOException {
+            throws FrontendException {
         ProjectionFinder pf = new ProjectionFinder(tp);
         pf.visit();
     }
     
     private static class ProjectionRewriter extends LogicalExpressionVisitor {
 
-        ProjectionRewriter(OperatorPlan p, LogicalRelationalOperator cop) {
+        ProjectionRewriter(OperatorPlan p, LogicalRelationalOperator cop) throws FrontendException {
             super(p, new DepthFirstWalker(p));
         }
         
         @Override
-        public void visit(ProjectExpression p) throws IOException {
+        public void visit(ProjectExpression p) throws FrontendException {
             // if projection is for everything, just return
             if (p.isProjectStar()) {
                 return;
@@ -86,7 +86,7 @@ public class ProjectionPatcher implements PlanTransformListener {
                     }
                 }
                 if (match == -1) {
-                    throw new IOException("Couldn't find matching uid for project");
+                    throw new FrontendException("Couldn't find matching uid " + match + " for project "+p, 2229);
                 }
                 p.setColNum(match);
             }
@@ -95,12 +95,12 @@ public class ProjectionPatcher implements PlanTransformListener {
     
     private static class ProjectionFinder extends AllExpressionVisitor {
 
-        public ProjectionFinder(OperatorPlan plan) {
+        public ProjectionFinder(OperatorPlan plan) throws FrontendException {
             super(plan, new DependencyOrderWalker(plan));
         }
 
         @Override
-        protected LogicalExpressionVisitor getVisitor(LogicalExpressionPlan expr) {
+        protected LogicalExpressionVisitor getVisitor(LogicalExpressionPlan expr) throws FrontendException {
             return new ProjectionRewriter(expr, currentOp);
         }
         

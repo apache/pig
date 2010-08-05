@@ -17,12 +17,12 @@
  */
 package org.apache.pig.newplan.logical.rules;
 
-import java.io.IOException;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.util.Pair;
 import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.OperatorPlan;
@@ -40,7 +40,7 @@ import org.apache.pig.newplan.optimizer.Transformer;
 public class PushUpFilter extends Rule {
     
     public PushUpFilter(String n) {
-        super(n);       
+        super(n, false);       
     }
 
     @Override
@@ -53,7 +53,7 @@ public class PushUpFilter extends Rule {
         private OperatorSubPlan subPlan;
 
         @Override
-        public boolean check(OperatorPlan matched) throws IOException {   
+        public boolean check(OperatorPlan matched) throws FrontendException {   
             // check if it is inner join
             LOJoin join = (LOJoin)matched.getSources().get(0);
             boolean[] innerFlags = join.getInnerFlags();
@@ -100,7 +100,7 @@ public class PushUpFilter extends Rule {
         }
 
         @Override
-        public void transform(OperatorPlan matched) throws IOException {
+        public void transform(OperatorPlan matched) throws FrontendException {
             subPlan = new OperatorSubPlan(currentPlan);
 
             LOJoin join = (LOJoin)matched.getSources().get(0);
@@ -170,7 +170,7 @@ public class PushUpFilter extends Rule {
         }
         
         // check if a relational operator contains all of the specified uids
-        private boolean hasAll(LogicalRelationalOperator op, Set<Long> uids) {
+        private boolean hasAll(LogicalRelationalOperator op, Set<Long> uids) throws FrontendException {
             LogicalSchema schema = op.getSchema();
             for(long uid: uids) {
                 if (schema.findField(uid) == -1) {

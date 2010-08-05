@@ -18,9 +18,8 @@
 
 package org.apache.pig.newplan.logical.expression;
 
-import java.io.IOException;
-
 import org.apache.pig.data.DataType;
+import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.OperatorPlan;
 import org.apache.pig.newplan.logical.relational.LogicalSchema;
@@ -54,7 +53,15 @@ public abstract class LogicalExpression extends Operator {
         super(name, plan);
     }
     
-    abstract public LogicalSchema.LogicalFieldSchema getFieldSchema() throws IOException;
+    /**
+     * Get the field schema for the output of this expression operator.  This does
+     * not merely return the field schema variable.  If schema is not yet set, this
+     * will attempt to construct it.  Therefore it is abstract since each
+     * operator will need to construct its field schema differently.
+     * @return the FieldSchema
+     * @throws FrontendException
+     */
+    abstract public LogicalSchema.LogicalFieldSchema getFieldSchema() throws FrontendException;
     
     public void resetFieldSchema() {
         fieldSchema = null;
@@ -64,37 +71,30 @@ public abstract class LogicalExpression extends Operator {
      * Get the data type for this expression.
      * @return data type, one of the static bytes of DataType
      */
-    public byte getType() {
-        try {
-            if (getFieldSchema()!=null)
-                return getFieldSchema().type;
-        } catch (IOException e) {
-        }
+    public byte getType() throws FrontendException {
+        if (getFieldSchema()!=null)
+            return getFieldSchema().type;
         return DataType.UNKNOWN;
     }
     
     public String toString() {
         StringBuilder msg = new StringBuilder();
-        try {
-            msg.append("(Name: " + name + " Type: ");
-            if (fieldSchema!=null)
-                msg.append(DataType.findTypeName(getFieldSchema().type));
-            else
-                msg.append("null");
-            msg.append(" Uid: ");
-            if (fieldSchema!=null)
-                msg.append(getFieldSchema().uid);
-            else
-                msg.append("null");
-            msg.append(")");
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        msg.append("(Name: " + name + " Type: ");
+        if (fieldSchema!=null)
+            msg.append(DataType.findTypeName(fieldSchema.type));
+        else
+            msg.append("null");
+        msg.append(" Uid: ");
+        if (fieldSchema!=null)
+            msg.append(fieldSchema.uid);
+        else
+            msg.append("null");
+        msg.append(")");
 
         return msg.toString();
     }
     
-    public void neverUseForRealSetFieldSchema(LogicalFieldSchema fs) throws IOException {
+    public void neverUseForRealSetFieldSchema(LogicalFieldSchema fs) throws FrontendException {
         fieldSchema = fs;
         uidOnlyFieldSchema = fieldSchema.mergeUid(uidOnlyFieldSchema);
     }

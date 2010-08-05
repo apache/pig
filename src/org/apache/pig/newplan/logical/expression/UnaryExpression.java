@@ -18,9 +18,9 @@
 
 package org.apache.pig.newplan.logical.expression;
 
-import java.io.IOException;
 import java.util.List;
 
+import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.OperatorPlan;
 
@@ -48,9 +48,9 @@ public abstract class UnaryExpression extends LogicalExpression {
     /**
      * Get the expression that this unary expression operators on.
      * @return expression on the left hand side
-     * @throws IOException 
+     * @throws FrontendException 
      */
-    public LogicalExpression getExpression() throws IOException {
+    public LogicalExpression getExpression() throws FrontendException {
         List<Operator> preds = plan.getSuccessors(this);
         if(preds == null) {
             return null;

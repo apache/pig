@@ -127,7 +127,7 @@ public class TestNewPlanLogicalOptimizer extends TestCase {
         }
         
         System.out.println(lp);
-        LogicalPlanOptimizer optimizer = new LogicalPlanOptimizer(lp, 500);
+        LogicalPlanOptimizer optimizer = new LogicalPlanOptimizer(lp, 500, null);
         optimizer.optimize();
         
         LogicalPlan expected = new LogicalPlan();

@@ -17,10 +17,10 @@
  */
 package org.apache.pig.newplan.logical.relational;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.PlanVisitor;
 
@@ -35,20 +35,16 @@ public class LOCross extends LogicalRelationalOperator {
     }
 
     @Override
-    public LogicalSchema getSchema() {        
+    public LogicalSchema getSchema() throws FrontendException {        
         // if schema is calculated before, just return
         if (schema != null) {
             return schema;
         }
         
         List<Operator> inputs = null;
-        try {
-            inputs = plan.getPredecessors(this);
-            if (inputs == null) {
-                return null;
-            }
-        }catch(Exception e) {
-            throw new RuntimeException("Unable to get predecessors of LOCross operator. ", e);
+        inputs = plan.getPredecessors(this);
+        if (inputs == null) {
+            return null;
         }
         
         List<LogicalSchema.LogicalFieldSchema> fss = new ArrayList<LogicalSchema.LogicalFieldSchema>();
@@ -82,15 +78,15 @@ public class LOCross extends LogicalRelationalOperator {
     }   
     
     @Override
-    public void accept(PlanVisitor v) throws IOException {
+    public void accept(PlanVisitor v) throws FrontendException {
         if (!(v instanceof LogicalRelationalNodesVisitor)) {
-            throw new IOException("Expected LogicalPlanVisitor");
+            throw new FrontendException("Expected LogicalPlanVisitor", 2223);
         }
         ((LogicalRelationalNodesVisitor)v).visit(this);
     }
     
     @Override
-    public boolean isEqual(Operator other) {
+    public boolean isEqual(Operator other) throws FrontendException {
         if (other != null && other instanceof LOCross) {
             return checkEquality((LogicalRelationalOperator)other);
         } else {

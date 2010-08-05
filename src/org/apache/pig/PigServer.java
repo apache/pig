@@ -865,6 +865,7 @@ public class PigServer {
      * @param eps Stream to print the execution tree
      * @throws IOException if the requested alias cannot be found.
      */
+    @SuppressWarnings("unchecked")
     public void explain(String alias,
                         String format,
                         boolean verbose,
@@ -888,7 +889,18 @@ public class PigServer {
                 migrator.visit();
                 org.apache.pig.newplan.logical.relational.LogicalPlan newPlan = migrator.getNewLogicalPlan();
                 
-                LogicalPlanOptimizer optimizer = new LogicalPlanOptimizer(newPlan, 3);
+                HashSet<String> optimizerRules = null;
+                try {
+                    optimizerRules = (HashSet<String>) ObjectSerializer
+                            .deserialize(pigContext.getProperties().getProperty(
+                                    "pig.optimizer.rules"));
+                } catch (IOException ioe) {
+                    int errCode = 2110;
+                    String msg = "Unable to deserialize optimizer rules.";
+                    throw new FrontendException(msg, errCode, PigException.BUG, ioe);
+                }
+                
+                LogicalPlanOptimizer optimizer = new LogicalPlanOptimizer(newPlan, 3, optimizerRules);
                 optimizer.optimize();                
                 
                 newPlan.explain(lps, format, verbose);

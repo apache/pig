@@ -18,7 +18,6 @@
 
 package org.apache.pig.newplan.logical.relational;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -28,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.pig.data.DataType;
+import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.util.MultiMap;
 import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.OperatorPlan;
@@ -86,35 +86,27 @@ public class LOCogroup extends LogicalRelationalOperator {
      * @param exprPlan ExpressionPlan which generates this field
      * @return
      */
-    private LogicalFieldSchema getPlanSchema( LogicalExpressionPlan exprPlan ) {
+    private LogicalFieldSchema getPlanSchema( LogicalExpressionPlan exprPlan ) throws FrontendException {
         LogicalExpression sourceExp = (LogicalExpression) exprPlan.getSources().get(0);
         LogicalFieldSchema planSchema = null;
-        try {
-            planSchema = sourceExp.getFieldSchema().deepCopy();
-            planSchema.uid = -1;
-        } catch (IOException e) {
-        }
+        planSchema = sourceExp.getFieldSchema().deepCopy();
+        planSchema.uid = -1;
         return planSchema;
     }
 
     @Override
-    public LogicalSchema getSchema() {
+    public LogicalSchema getSchema() throws FrontendException {
         // if schema is calculated before, just return
         if (schema != null) {
             return schema;
         }
 
         List<Operator> inputs = null;
-        try {
-            inputs = plan.getPredecessors(this);
-            if (inputs == null) {
-                return null;
-            }
-        }catch(Exception e) {
-            throw new RuntimeException("Unable to get predecessors of " + name 
-                    + " operator. ", e);
+        inputs = plan.getPredecessors(this);
+        if (inputs == null) {
+            throw new FrontendException("Cannot get predecessor for " + this, 2233);
         }
-
+        
         List<LogicalFieldSchema> fieldSchemaList = new ArrayList<LogicalFieldSchema>();
 
         // See if we have more than one expression plans, if so the
@@ -172,16 +164,11 @@ public class LOCogroup extends LogicalRelationalOperator {
             }
         }
         
-        try {
-            if (groupKeySchema==null) {
-                // Something wrong
-                return null;
-            }
-            groupKeyUidOnlySchema = groupKeySchema.mergeUid(groupKeyUidOnlySchema);
-        } catch (IOException e) {
-            // TODO
-            // ADD Exception
+        if (groupKeySchema==null) {
+            throw new FrontendException("Cannot get group key schema for " + this, 2234);
         }
+        groupKeyUidOnlySchema = groupKeySchema.mergeUid(groupKeyUidOnlySchema);
+
         fieldSchemaList.add( groupKeySchema );
 
         // Generate the Bag Schema
@@ -221,15 +208,15 @@ public class LOCogroup extends LogicalRelationalOperator {
     }
 
     @Override
-    public void accept(PlanVisitor v) throws IOException {
+    public void accept(PlanVisitor v) throws FrontendException {
         if (!(v instanceof LogicalRelationalNodesVisitor)) {
-            throw new IOException("Expected LogicalPlanVisitor");
+            throw new FrontendException("Expected LogicalPlanVisitor", 2223);
         }
         ((LogicalRelationalNodesVisitor)v).visit(this);
     }
 
     @Override
-    public boolean isEqual(Operator other) {
+    public boolean isEqual(Operator other) throws FrontendException {
         if (other != null && other instanceof LOCogroup) {
             LOCogroup oc = (LOCogroup)other;
             if( mGroupType == oc.mGroupType && 
@@ -251,8 +238,8 @@ public class LOCogroup extends LogicalRelationalOperator {
 
                     if(! ( exp1 instanceof ArrayList<?> 
                     || exp2 instanceof ArrayList<?> ) ) {
-                        throw new RuntimeException( "Expected an ArrayList " +
-                        "of Expression Plans" );
+                        throw new FrontendException( "Expected an ArrayList " +
+                        "of Expression Plans", 2235 );
                     }
 
                     ArrayList<LogicalExpressionPlan> expList1 = 

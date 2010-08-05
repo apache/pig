@@ -18,9 +18,10 @@
 
 package org.apache.pig.newplan;
 
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+
+import org.apache.pig.impl.logicalLayer.FrontendException;
 
 public abstract class Operator {
     
@@ -38,9 +39,9 @@ public abstract class Operator {
     /**
      * Accept a visitor at this node in the graph.
      * @param v Visitor to accept.
-     * @throws IOException 
+     * @throws FrontendException 
      */
-    public abstract void accept(PlanVisitor v) throws IOException;
+    public abstract void accept(PlanVisitor v) throws FrontendException;
 
     public String getName() {
         return name;
@@ -89,5 +90,5 @@ public abstract class Operator {
      * @param operator
      * @return true if two object have equivalent properties, else false
      */
-    public abstract boolean isEqual(Operator operator);
+    public abstract boolean isEqual(Operator operator) throws FrontendException;
 }

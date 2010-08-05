@@ -17,10 +17,10 @@
  */
 package org.apache.pig.newplan.logical.rules;
 
-import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
 
+import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.util.Pair;
 import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.OperatorPlan;
@@ -38,7 +38,7 @@ import org.apache.pig.newplan.optimizer.Transformer;
 public class SplitFilter extends Rule {    
 
     public SplitFilter(String n) {
-        super(n);       
+        super(n, false);       
     }
 
     @Override
@@ -50,7 +50,7 @@ public class SplitFilter extends Rule {
         private OperatorSubPlan subPlan;
 
         @Override
-        public boolean check(OperatorPlan matched) throws IOException {
+        public boolean check(OperatorPlan matched) throws FrontendException {
             LOFilter filter = (LOFilter)matched.getSources().get(0);
             LogicalExpressionPlan cond = filter.getFilterPlan();
             LogicalExpression root = (LogicalExpression) cond.getSources().get(0);
@@ -62,7 +62,7 @@ public class SplitFilter extends Rule {
         }
 
         @Override
-        public void transform(OperatorPlan matched) throws IOException {
+        public void transform(OperatorPlan matched) throws FrontendException {
             subPlan = new OperatorSubPlan(currentPlan);
             
             // split one LOFilter into 2 by "AND"
@@ -85,20 +85,16 @@ public class SplitFilter extends Rule {
             currentPlan.add(filter2);
             
             Operator succed = null;
-            try {
-                List<Operator> succeds = currentPlan.getSuccessors(filter);
-                if (succeds != null) {
-                    succed = succeds.get(0);
-                    subPlan.add(succed);
-                    Pair<Integer, Integer> p = currentPlan.disconnect(filter, succed);
-                    currentPlan.connect(filter2, 0, succed, p.second);
-                    currentPlan.connect(filter, p.first, filter2, 0); 
-                } else {
-                    currentPlan.connect(filter, 0, filter2, 0); 
-                }
-            }catch(Exception e) {
-                throw new IOException(e);
-            }                       
+            List<Operator> succeds = currentPlan.getSuccessors(filter);
+            if (succeds != null) {
+                succed = succeds.get(0);
+                subPlan.add(succed);
+                Pair<Integer, Integer> p = currentPlan.disconnect(filter, succed);
+                currentPlan.connect(filter2, 0, succed, p.second);
+                currentPlan.connect(filter, p.first, filter2, 0); 
+            } else {
+                currentPlan.connect(filter, 0, filter2, 0); 
+            }
             
             subPlan.add(filter);
             subPlan.add(filter2);
@@ -117,7 +113,7 @@ public class SplitFilter extends Rule {
         }
         
         private void fillSubPlan(OperatorPlan origPlan, 
-                OperatorPlan subPlan, Operator startOp) throws IOException {
+                OperatorPlan subPlan, Operator startOp) throws FrontendException {
                        
             List<Operator> l = origPlan.getSuccessors(startOp);
             if (l != null) {

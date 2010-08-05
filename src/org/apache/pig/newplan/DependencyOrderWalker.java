@@ -18,13 +18,13 @@
 
 package org.apache.pig.newplan;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.plan.VisitorException;
 
 /**
@@ -53,7 +53,7 @@ public class DependencyOrderWalker extends PlanWalker {
      * @throws VisitorException if an error is encountered while walking.
      */
     @Override
-    public void walk(PlanVisitor visitor) throws IOException {
+    public void walk(PlanVisitor visitor) throws FrontendException {
         // This is highly inefficient, but our graphs are small so it should be okay.
         // The algorithm works by starting at any node in the graph, finding it's
         // predecessors and calling itself for each of those predecessors.  When it
@@ -77,7 +77,7 @@ public class DependencyOrderWalker extends PlanWalker {
 
     protected void doAllPredecessors(Operator node,
                                    Set<Operator> seen,
-                                   Collection<Operator> fifo) throws IOException {
+                                   Collection<Operator> fifo) throws FrontendException {
         if (!seen.contains(node)) {
             // We haven't seen this one before.
             Collection<Operator> preds = plan.getPredecessors(node);

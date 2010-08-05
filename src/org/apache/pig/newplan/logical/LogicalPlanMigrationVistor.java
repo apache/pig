@@ -22,6 +22,7 @@ import java.util.HashMap;
 import java.util.List;
 
 import org.apache.pig.impl.io.FileSpec;
+import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.LOCogroup;
 import org.apache.pig.impl.logicalLayer.LOCross;
 import org.apache.pig.impl.logicalLayer.LODistinct;
@@ -201,12 +202,16 @@ public class LogicalPlanMigrationVistor extends LOVisitor {
         innerPlan.add(gen);                
         
         List<LogicalPlan> ll = forEach.getForEachPlans();
-        for(int i=0; i<ll.size(); i++) {
-            LogicalPlan lp = ll.get(i);
-            ForeachInnerPlanVisitor v = new ForeachInnerPlanVisitor(newForeach, forEach, lp, mPlan);
-            v.visit();
-            
-            expPlans.add(v.exprPlan);
+        try {
+            for(int i=0; i<ll.size(); i++) {
+                LogicalPlan lp = ll.get(i);
+                ForeachInnerPlanVisitor v = new ForeachInnerPlanVisitor(newForeach, forEach, lp, mPlan);
+                v.visit();
+                
+                expPlans.add(v.exprPlan);
+            }
+        } catch (FrontendException e) {
+            throw new VisitorException("Cannot create ForeachInnerPlanVisitor", e);
         }
         
         newForeach.setAlias(forEach.getAlias());

@@ -18,7 +18,6 @@
 
 package org.apache.pig.newplan.logical.rules;
 
-import java.io.IOException;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -27,6 +26,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.pig.data.DataType;
+import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.newplan.DependencyOrderWalker;
 import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.OperatorPlan;
@@ -88,7 +88,7 @@ public class MapKeysPruneHelper {
   
 
     @SuppressWarnings("unchecked")
-    public boolean check() throws IOException {       
+    public boolean check() throws FrontendException {       
         
         // First check if we have a load with a map in it or not
         List<Operator> sources = currentPlan.getSources();
@@ -157,7 +157,7 @@ public class MapKeysPruneHelper {
      * @return true if it has a map, else false
      * @throws NullPointerException incase Schema is null
      */
-    private boolean hasMap(LogicalSchema schema ) throws NullPointerException {
+    private boolean hasMap(LogicalSchema schema ) {
         for( LogicalFieldSchema field : schema.getFields() ) {
             if( field.type == DataType.MAP ) {
                 return true;
@@ -197,13 +197,13 @@ public class MapKeysPruneHelper {
         
         Map<Long,Set<String>> inputUids = null;
 
-        protected MapMarker(OperatorPlan plan) {
+        protected MapMarker(OperatorPlan plan) throws FrontendException {
             super(plan, new ReverseDependencyOrderWalker(plan));
             inputUids = new HashMap<Long,Set<String>>();
         }
         
         @Override
-        public void visit(LOLoad load) throws IOException {
+        public void visit(LOLoad load) throws FrontendException {
             if( load.getSchema() != null ) {
                 Map<Integer,Set<String>> annotation = new HashMap<Integer,Set<String>>();
                 for( int i=0; i<load.getSchema().size(); i++) {
@@ -217,7 +217,7 @@ public class MapKeysPruneHelper {
         }
 
         @Override
-        public void visit(LOFilter filter) throws IOException {
+        public void visit(LOFilter filter) throws FrontendException {
             currentOp = filter;
             MapExprMarker v = (MapExprMarker) getVisitor(filter.getFilterPlan());
             v.visit();
@@ -225,7 +225,7 @@ public class MapKeysPruneHelper {
         }
         
         @Override
-        public void visit(LOJoin join) throws IOException {
+        public void visit(LOJoin join) throws FrontendException {
             currentOp = join;
             Collection<LogicalExpressionPlan> c = join.getExpressionPlans();
             for (LogicalExpressionPlan plan : c) {
@@ -236,7 +236,7 @@ public class MapKeysPruneHelper {
         }
         
         @Override
-        public void visit(LOGenerate gen) throws IOException {
+        public void visit(LOGenerate gen) throws FrontendException {
             currentOp = gen;
             Collection<LogicalExpressionPlan> plans = gen.getOutputPlans();
             for( LogicalExpressionPlan plan : plans ) {
@@ -247,7 +247,7 @@ public class MapKeysPruneHelper {
         }
         
         @Override
-        public void visit(LOSort sort) throws IOException {
+        public void visit(LOSort sort) throws FrontendException {
             currentOp = sort;
             Collection<LogicalExpressionPlan> c = sort.getSortColPlans();
             for (LogicalExpressionPlan plan : c) {
@@ -269,7 +269,7 @@ public class MapKeysPruneHelper {
         }
 
         @Override
-        protected LogicalExpressionVisitor getVisitor(LogicalExpressionPlan expr) {
+        protected LogicalExpressionVisitor getVisitor(LogicalExpressionPlan expr) throws FrontendException {
             return new MapExprMarker(expr );
         }
         
@@ -277,13 +277,13 @@ public class MapKeysPruneHelper {
 
             Map<Long,Set<String>> inputUids = null;
             
-            protected MapExprMarker(OperatorPlan p) {
+            protected MapExprMarker(OperatorPlan p) throws FrontendException {
                 super(p, new DependencyOrderWalker(p));
                 inputUids = new HashMap<Long,Set<String>>();
             }
 
             @Override
-            public void visit(MapLookupExpression op) throws IOException {
+            public void visit(MapLookupExpression op) throws FrontendException {
                 Long uid = op.getMap().getFieldSchema().uid;
                 String key = op.getLookupKey();
                 

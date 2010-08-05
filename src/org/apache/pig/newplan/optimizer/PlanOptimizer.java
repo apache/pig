@@ -18,12 +18,11 @@
 
 package org.apache.pig.newplan.optimizer;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.pig.impl.plan.optimizer.OptimizerException;
+import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.newplan.OperatorPlan;
 
 /**
@@ -91,9 +90,9 @@ public abstract class PlanOptimizer {
      * method of the associated Transformer to give the it a chance to
      * check whether it really wants to do the optimization.  If that
      * returns true as well, then Transformer.transform is called. 
-     * @throws OptimizerException
+     * @throws FrontendException
      */
-    public void optimize() throws IOException {
+    public void optimize() throws FrontendException {
 
         for (Set<Rule> rs : ruleSets) {
             boolean sawMatch = false;

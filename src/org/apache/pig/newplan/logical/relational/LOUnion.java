@@ -18,12 +18,12 @@
 
 package org.apache.pig.newplan.logical.relational;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.util.Pair;
 import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.OperatorPlan;
@@ -39,16 +39,12 @@ public class LOUnion extends LogicalRelationalOperator {
         super("LOUnion", plan);
     }    
     @Override
-    public LogicalSchema getSchema() {
+    public LogicalSchema getSchema() throws FrontendException {
         if (schema != null) {
             return schema;
         }
         List<Operator> inputs = null;
-        try {
-            inputs = plan.getPredecessors(this);
-        }catch(Exception e) {
-            throw new RuntimeException("Unable to get predecessor of LOUnion.", e);
-        }
+        inputs = plan.getPredecessors(this);
         
         // If any predecessor's schema is null, or length of predecessor's schema does not match,
         // then the schema for union is null
@@ -101,15 +97,15 @@ public class LOUnion extends LogicalRelationalOperator {
     }
 
     @Override
-    public void accept(PlanVisitor v) throws IOException {
+    public void accept(PlanVisitor v) throws FrontendException {
         if (!(v instanceof LogicalRelationalNodesVisitor)) {
-            throw new IOException("Expected LogicalPlanVisitor");
+            throw new FrontendException("Expected LogicalPlanVisitor", 2223);
         }
         ((LogicalRelationalNodesVisitor)v).visit(this);
     }
 
     @Override
-    public boolean isEqual(Operator other) {
+    public boolean isEqual(Operator other) throws FrontendException {
         if (other != null && other instanceof LOUnion) { 
             return checkEquality((LOUnion)other);
         } else {
