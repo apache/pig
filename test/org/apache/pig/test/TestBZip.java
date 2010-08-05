@@ -17,6 +17,7 @@
  */
 package org.apache.pig.test;
 
+import static org.junit.Assert.*;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotSame;
 
@@ -352,5 +353,32 @@ public class TestBZip {
         Long result = (Long) it.next().get(0);
         assertEquals(expectedCount, result);
         
+    }
+    
+    @Test
+    public void testBzipStoreInMultiQuery() throws Exception {
+        String[] inputData = new String[] {
+                "1\t2\r3\t4"
+        };
+        
+        String inputFileName = "input.txt";
+        Util.createInputFile(cluster, inputFileName, inputData);
+        
+        PigServer pig = new PigServer(ExecType.MAPREDUCE, cluster
+                .getProperties());
+        
+        pig.setBatchOn();
+        pig.registerQuery("a = load '" +  inputFileName + "';");
+        pig.registerQuery("store a into 'output.bz2';");
+        pig.registerQuery("store a into 'output';");
+        pig.executeBatch();
+        
+        FileSystem fs = FileSystem.get(ConfigurationUtil.toConfiguration(
+                pig.getPigContext().getProperties()));
+        FileStatus stat = fs.getFileStatus(new Path("output/part-m-00000"));        
+        assertTrue(stat.getLen() > 0);     
+        
+        stat = fs.getFileStatus(new Path("output.bz2/part-m-00000.bz2"));
+        assertTrue(stat.getLen() > 0);     
     }
 }
