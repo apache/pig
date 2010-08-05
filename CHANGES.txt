@@ -114,6 +114,9 @@ PIG-1309: Map-side Cogroup (ashutoshc)
 
 BUG FIXES
 
+PIG-1534: Code discovering UDFs in the script has a bug in a order by case
+(pradeepkth)
+
 PIG-1533: Compression codec should be a per-store property (rding)
 
 PIG-1527: No need to deserialize UDFContext on the client side (rding)
