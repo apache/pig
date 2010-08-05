@@ -118,6 +118,8 @@ PIG-1309: Map-side Cogroup (ashutoshc)
 
 BUG FIXES
 
+PIG-1288: EvalFunc returnType is wrong for generic subclasses (daijy)
+
 PIG-1534: Code discovering UDFs in the script has a bug in a order by case
 (pradeepkth)
 
