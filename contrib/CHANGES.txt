@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-1386 UDF to extend functionalities of MaxTupleBy1stField (hcbusy via olgan)
+
 PIG-1526 improvements to HiveColumnarLoader - Partitioning Support (gerritjvv via olgan)
 
 PIG-1229 allow pig to write output into a JDBC db (ankur via hashutosh)
