@@ -18,8 +18,7 @@
 
 package org.apache.pig.newplan.logical.optimizer;
 
-import java.io.IOException;
-
+import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.newplan.OperatorPlan;
 import org.apache.pig.newplan.optimizer.PlanTransformListener;
 
@@ -31,11 +30,11 @@ import org.apache.pig.newplan.optimizer.PlanTransformListener;
 public class SchemaPatcher implements PlanTransformListener {
 
     /**
-     * @throws IOException 
+     * @throws FrontendException 
      * @link org.apache.pig.experimental.plan.optimizer.PlanTransformListener#transformed(org.apache.pig.experimental.plan.OperatorPlan, org.apache.pig.experimental.plan.OperatorPlan)
      */
     @Override
-    public void transformed(OperatorPlan fp, OperatorPlan tp) throws IOException {
+    public void transformed(OperatorPlan fp, OperatorPlan tp) throws FrontendException {
         // Walk the transformed plan and clean out the schemas and call
         // getSchema again on each node.  This will cause each node
         // to regenerate its schema from its parent.

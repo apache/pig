@@ -17,10 +17,10 @@
  */
 package org.apache.pig.newplan.logical.relational;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.OperatorPlan;
 import org.apache.pig.newplan.PlanVisitor;
@@ -45,7 +45,7 @@ public class LOForEach extends LogicalRelationalOperator {
     }
     
     @Override
-    public boolean isEqual(Operator other) {
+    public boolean isEqual(Operator other) throws FrontendException {
         if (!(other instanceof LOForEach)) {
             return false;
         }
@@ -54,7 +54,7 @@ public class LOForEach extends LogicalRelationalOperator {
     }
        
     @Override
-    public LogicalSchema getSchema() {
+    public LogicalSchema getSchema() throws FrontendException {
         List<Operator> ll = innerPlan.getSinks();
         if (ll != null) {
             schema = ((LogicalRelationalOperator)ll.get(0)).getSchema();
@@ -64,14 +64,14 @@ public class LOForEach extends LogicalRelationalOperator {
     }
 
     @Override
-    public void accept(PlanVisitor v) throws IOException {
+    public void accept(PlanVisitor v) throws FrontendException {
         if (!(v instanceof LogicalRelationalNodesVisitor)) {
-            throw new IOException("Expected LogicalPlanVisitor");
+            throw new FrontendException("Expected LogicalPlanVisitor", 2222);
         }
         ((LogicalRelationalNodesVisitor)v).visit(this);
     }
     
-    public static List<LOInnerLoad> findReacheableInnerLoadFromBoundaryProject(ProjectExpression project) throws IOException {
+    public static List<LOInnerLoad> findReacheableInnerLoadFromBoundaryProject(ProjectExpression project) throws FrontendException {
         LogicalRelationalOperator referred = project.findReferent();
         List<Operator> srcs = referred.getPlan().getSources();
         List<LOInnerLoad> innerLoads = new ArrayList<LOInnerLoad>();

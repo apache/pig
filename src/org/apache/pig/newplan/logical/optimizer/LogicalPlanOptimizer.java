@@ -35,9 +35,11 @@ import org.apache.pig.newplan.optimizer.PlanOptimizer;
 import org.apache.pig.newplan.optimizer.Rule;
 
 public class LogicalPlanOptimizer extends PlanOptimizer {
-
-    public LogicalPlanOptimizer(OperatorPlan p, int iterations) {    	
+    private Set<String> mRulesOff = null;
+    
+    public LogicalPlanOptimizer(OperatorPlan p, int iterations, Set<String> turnOffRules) {    	
         super(p, null, iterations);
+        this.mRulesOff = turnOffRules;
         ruleSets = buildRuleSets();
         addListeners();
     }
@@ -45,66 +47,93 @@ public class LogicalPlanOptimizer extends PlanOptimizer {
     protected List<Set<Rule>> buildRuleSets() {
         List<Set<Rule>> ls = new ArrayList<Set<Rule>>();	    
 
-        // TypeCastInserter
+        // TypeCastInserter set
         // This set of rules Insert Foreach dedicated for casting after load
         Set<Rule> s = new HashSet<Rule>();
-        ls.add(s);
         // add split filter rule
         Rule r = new TypeCastInserter("TypeCastInserter", LOLoad.class.getName());
-        s.add(r);
+        checkAndAddRule(s, r);
+        if (!s.isEmpty())
+            ls.add(s);
         
         // Split Set
         // This set of rules does splitting of operators only.
         // It does not move operators
         s = new HashSet<Rule>();
-        ls.add(s);
         // add split filter rule
         r = new SplitFilter("SplitFilter");
-        s.add(r);
-                
-         
+        checkAndAddRule(s, r);
+        if (!s.isEmpty())
+            ls.add(s);
         
         
         // Push Set,
         // This set does moving of operators only.
         s = new HashSet<Rule>();
-        ls.add(s);
-        // add push up filter rule
         r = new PushUpFilter("PushUpFilter");
-        s.add(r);
+        checkAndAddRule(s, r);
         r = new FilterAboveForeach("FilterAboveForEachWithFlatten");
-        s.add(r);
-        
-        
-        
+        checkAndAddRule(s, r);
+        if (!s.isEmpty())
+            ls.add(s);
         
         // Merge Set
         // This Set merges operators but does not move them.
         s = new HashSet<Rule>();
-        ls.add(s);
+        checkAndAddRule(s, r);
         // add merge filter rule
         r = new MergeFilter("MergeFilter");        
-        s.add(r);	    
+        checkAndAddRule(s, r);
+        if (!s.isEmpty())
+            ls.add(s);
         
-        
-        // Prune Set Marker
+        // Prune Set
         // This set is used for pruning columns and maps
-      
         s = new HashSet<Rule>();
-        ls.add(s);
         // Add the PruneMap Filter
         r = new ColumnMapKeyPrune("ColumnMapKeyPrune");
-        s.add(r);
+        checkAndAddRule(s, r);
+        if (!s.isEmpty())
+            ls.add(s);
         
-        // Add LOForEach operator to trim off columns
+        // Add LOForEach set
         s = new HashSet<Rule>();
-        ls.add(s);
         // Add the AddForEach
         r = new AddForEach("AddForEach");
-        s.add(r);
-
+        checkAndAddRule(s, r);
+        if (!s.isEmpty())
+            ls.add(s);
         
         return ls;
+    }
+        
+    private void checkAndAddRule(Set<Rule> ruleSet, Rule rule) {
+        if (rule.isMandatory()) {
+            ruleSet.add(rule);
+            return;
+        }
+        
+        boolean turnAllRulesOff = false;
+        if (mRulesOff != null) {
+            for (String ruleName : mRulesOff) {
+                if ("all".equalsIgnoreCase(ruleName)) {
+                    turnAllRulesOff = true;
+                    break;
+                }
+            }
+        }
+        
+        if (turnAllRulesOff) return;
+        
+        if(mRulesOff != null) {
+            for(String ruleOff: mRulesOff) {
+                String ruleName = rule.getName();
+                if(ruleName == null) continue;
+                if(ruleName.equalsIgnoreCase(ruleOff)) return;
+            }
+        }
+        
+        ruleSet.add(rule);
     }
     
     private void addListeners() {

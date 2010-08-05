@@ -17,11 +17,11 @@
  */
 package org.apache.pig.newplan.logical.relational;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.pig.data.DataType;
+import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.OperatorPlan;
 import org.apache.pig.newplan.PlanVisitor;
@@ -40,7 +40,7 @@ public class LOGenerate extends LogicalRelationalOperator {
     }
 
     @Override
-    public LogicalSchema getSchema() {
+    public LogicalSchema getSchema() throws FrontendException {
         if (schema != null) {
             return schema;
         }
@@ -51,11 +51,7 @@ public class LOGenerate extends LogicalRelationalOperator {
             LogicalExpression exp = (LogicalExpression)outputPlans.get(i).getSources().get(0);
             
             LogicalFieldSchema fieldSchema = null;
-            try {
-                fieldSchema = exp.getFieldSchema().deepCopy();
-            } catch (IOException e) {
-                return null;
-            }
+            fieldSchema = exp.getFieldSchema().deepCopy();
             
             if (fieldSchema.type != DataType.TUPLE && fieldSchema.type != DataType.BAG) {
                 // if type is primitive, just add to schema
@@ -107,7 +103,7 @@ public class LOGenerate extends LogicalRelationalOperator {
     }
     
     @Override
-    public boolean isEqual(Operator other) {
+    public boolean isEqual(Operator other) throws FrontendException {
         if (!(other instanceof LOGenerate)) {
             return false;
         }
@@ -133,10 +129,10 @@ public class LOGenerate extends LogicalRelationalOperator {
     }
   
     @Override
-    public void accept(PlanVisitor v) throws IOException {
+    public void accept(PlanVisitor v) throws FrontendException {
          if (!(v instanceof LogicalRelationalNodesVisitor)) {
-                throw new IOException("Expected LogicalPlanVisitor");
-            }
-            ((LogicalRelationalNodesVisitor)v).visit(this);
+             throw new FrontendException("Expected LogicalPlanVisitor", 2223);
+         }
+         ((LogicalRelationalNodesVisitor)v).visit(this);
     }
 }

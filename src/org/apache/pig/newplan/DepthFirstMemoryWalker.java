@@ -17,12 +17,13 @@
  */
 package org.apache.pig.newplan;
 
-import java.io.IOException;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.Stack;
+
+import org.apache.pig.impl.logicalLayer.FrontendException;
 
 public class DepthFirstMemoryWalker extends DepthFirstWalker {
     
@@ -46,10 +47,10 @@ public class DepthFirstMemoryWalker extends DepthFirstWalker {
     /**
      * Begin traversing the graph.
      * @param visitor Visitor this walker is being used by.
-     * @throws IOException if an error is encountered while walking.
+     * @throws FrontendException if an error is encountered while walking.
      */
     @Override
-    public void walk(PlanVisitor visitor) throws IOException {
+    public void walk(PlanVisitor visitor) throws FrontendException {
         List<Operator> roots = plan.getSources();
         Set<Operator> seen = new HashSet<Operator>();
 
@@ -63,7 +64,7 @@ public class DepthFirstMemoryWalker extends DepthFirstWalker {
     private void depthFirst(Operator node,
                             Collection<Operator> successors,
                             Set<Operator> seen,
-                            PlanVisitor visitor) throws IOException {
+                            PlanVisitor visitor) throws FrontendException {
         if (successors == null) return;
         
         StringBuilder strb = new StringBuilder(); 

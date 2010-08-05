@@ -18,11 +18,12 @@
 
 package org.apache.pig.newplan;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+
+import org.apache.pig.impl.logicalLayer.FrontendException;
 
 public class SubtreeDependencyOrderWalker extends DependencyOrderWalker {
     private Operator startNode;
@@ -36,7 +37,7 @@ public class SubtreeDependencyOrderWalker extends DependencyOrderWalker {
         this.startNode = startNode;
     }
     
-    public void walk(PlanVisitor visitor) throws IOException {          
+    public void walk(PlanVisitor visitor) throws FrontendException {          
         List<Operator> fifo = new ArrayList<Operator>();
         Set<Operator> seen = new HashSet<Operator>();
 

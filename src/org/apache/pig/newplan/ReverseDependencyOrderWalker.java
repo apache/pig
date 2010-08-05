@@ -18,12 +18,13 @@
 
 package org.apache.pig.newplan;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+
+import org.apache.pig.impl.logicalLayer.FrontendException;
 
 /**
  * Visit a plan in the reverse of the dependency order.  That is, every node
@@ -47,7 +48,7 @@ public class ReverseDependencyOrderWalker extends PlanWalker {
      * @throws VisitorException if an error is encountered while walking.
      */
     @Override
-    public void walk(PlanVisitor visitor) throws IOException {
+    public void walk(PlanVisitor visitor) throws FrontendException {
         // This is highly inefficient, but our graphs are small so it should be okay.
         // The algorithm works by starting at any node in the graph, finding it's
         // successors and calling itself for each of those successors.  When it
@@ -71,7 +72,7 @@ public class ReverseDependencyOrderWalker extends PlanWalker {
 
     protected void doAllSuccessors(Operator node,
                                    Set<Operator> seen,
-                                   Collection<Operator> fifo) throws IOException {
+                                   Collection<Operator> fifo) throws FrontendException {
         if (!seen.contains(node)) {
             // We haven't seen this one before.
             Collection<Operator> succs = plan.getSuccessors(node);

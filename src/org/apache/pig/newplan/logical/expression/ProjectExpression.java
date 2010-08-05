@@ -18,10 +18,10 @@
 
 package org.apache.pig.newplan.logical.expression;
 
-import java.io.IOException;
 import java.util.List;
 
 import org.apache.pig.data.DataType;
+import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.OperatorPlan;
 import org.apache.pig.newplan.PlanVisitor;
@@ -69,9 +69,9 @@ public class ProjectExpression extends ColumnExpression {
      * @link org.apache.pig.experimental.plan.Operator#accept(org.apache.pig.experimental.plan.PlanVisitor)
      */
     @Override
-    public void accept(PlanVisitor v) throws IOException {
+    public void accept(PlanVisitor v) throws FrontendException {
         if (!(v instanceof LogicalExpressionVisitor)) {
-            throw new IOException("Expected LogicalExpressionVisitor");
+            throw new FrontendException("Expected LogicalExpressionVisitor", 2222);
         }
         ((LogicalExpressionVisitor)v).visit(this);
 
@@ -116,7 +116,7 @@ public class ProjectExpression extends ColumnExpression {
     }
     
     @Override
-    public LogicalSchema.LogicalFieldSchema getFieldSchema() throws IOException {
+    public LogicalSchema.LogicalFieldSchema getFieldSchema() throws FrontendException {
         if (fieldSchema!=null)
             return fieldSchema;
         LogicalRelationalOperator referent = findReferent();
@@ -185,27 +185,26 @@ public class ProjectExpression extends ColumnExpression {
     
     /**
      * Find the LogicalRelationalOperator that this projection refers to.
-     * @param currentOp Current operator this projection is attached to
      * @return LRO this projection refers to
-     * @throws IOException
+     * @throws FrontendException
      */
-    public LogicalRelationalOperator findReferent() throws IOException {
+    public LogicalRelationalOperator findReferent() throws FrontendException {
         List<Operator> preds;
         preds = attachedRelationalOp.getPlan().getPredecessors(attachedRelationalOp);
         if (preds == null || input >= preds.size()) {
-            throw new IOException("Projection with nothing to reference!");
+            throw new FrontendException("Projection with nothing to reference!", 2225);
         }
             
         LogicalRelationalOperator pred =
             (LogicalRelationalOperator)preds.get(input);
         if (pred == null) {
-            throw new IOException("Found bad operator in logical plan");
+            throw new FrontendException("Cannot fine reference for " + this, 2226);
         }
         return pred;
     }
     
     @Override
-    public boolean isEqual(Operator other) {
+    public boolean isEqual(Operator other) throws FrontendException {
         if (other != null && other instanceof ProjectExpression) {
             ProjectExpression po = (ProjectExpression)other;
             return po.input == input && po.col == col;
@@ -216,26 +215,22 @@ public class ProjectExpression extends ColumnExpression {
     
     public String toString() {
         StringBuilder msg = new StringBuilder();
-        try {
-            msg.append("(Name: " + name + " Type: ");
-            if (fieldSchema!=null)
-                msg.append(DataType.findTypeName(getFieldSchema().type));
-            else
-                msg.append("null");
-            msg.append(" Uid: ");
-            if (fieldSchema!=null)
-                msg.append(getFieldSchema().uid);
-            else
-                msg.append("null");
-            msg.append(" Input: " + input + " Column: ");
-            if (isProjectStar())
-                msg.append("(*)");
-            else
-                msg.append(col);
-            msg.append(")");
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        msg.append("(Name: " + name + " Type: ");
+        if (fieldSchema!=null)
+            msg.append(DataType.findTypeName(fieldSchema.type));
+        else
+            msg.append("null");
+        msg.append(" Uid: ");
+        if (fieldSchema!=null)
+            msg.append(fieldSchema.uid);
+        else
+            msg.append("null");
+        msg.append(" Input: " + input + " Column: ");
+        if (isProjectStar())
+            msg.append("(*)");
+        else
+            msg.append(col);
+        msg.append(")");
 
         return msg.toString();
     }

@@ -18,10 +18,10 @@
 
 package org.apache.pig.test;
 
-import java.io.IOException;
 import java.util.List;
 
 import org.apache.pig.data.DataType;
+import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.util.MultiMap;
 import org.apache.pig.newplan.DepthFirstWalker;
 import org.apache.pig.newplan.Operator;
@@ -147,12 +147,12 @@ public class TestNewPlanListener extends TestCase {
     private static class SillySameVisitor extends AllSameRalationalNodesVisitor {
         StringBuffer buf = new StringBuffer();
 
-        SillySameVisitor(OperatorPlan plan) {
+        SillySameVisitor(OperatorPlan plan) throws FrontendException {
             super(plan, new DepthFirstWalker(plan));
         }
         
         @Override
-        protected void execute(LogicalRelationalOperator op) throws IOException {
+        protected void execute(LogicalRelationalOperator op) throws FrontendException {
             buf.append(op.getName());
             buf.append(" ");
         }
@@ -167,7 +167,7 @@ public class TestNewPlanListener extends TestCase {
     // Test that the AllSameVisitor calls execute on every node
     // in the plan.
     @Test
-    public void testAllSameVisitor() throws IOException {
+    public void testAllSameVisitor() throws FrontendException {
         SillySameVisitor v = new SillySameVisitor(lp);
         v.visit();
         assertTrue("LOLoad LOJoin LOLoad LOFilter ".equals(v.toString()) ||
@@ -178,28 +178,28 @@ public class TestNewPlanListener extends TestCase {
     private static class SillyExpressionVisitor extends LogicalExpressionVisitor {
         StringBuffer buf;
 
-        protected SillyExpressionVisitor(OperatorPlan p, StringBuffer b) {
+        protected SillyExpressionVisitor(OperatorPlan p, StringBuffer b) throws FrontendException {
             super(p, new DepthFirstWalker(p));
             buf = b;
         }
         
         @Override
-        public void visit(AndExpression andExpr) throws IOException {
+        public void visit(AndExpression andExpr) throws FrontendException {
             buf.append("and ");
         }
         
         @Override
-        public void visit(EqualExpression equal) throws IOException {
+        public void visit(EqualExpression equal) throws FrontendException {
             buf.append("equal ");
         }
         
         @Override
-        public void visit(ProjectExpression p) throws IOException {
+        public void visit(ProjectExpression p) throws FrontendException {
             buf.append("proj ");
         }
         
         @Override
-        public void visit(ConstantExpression c) throws IOException {
+        public void visit(ConstantExpression c) throws FrontendException {
             buf.append("const ");
         }
     }
@@ -207,13 +207,13 @@ public class TestNewPlanListener extends TestCase {
     private static class SillyAllExpressionVisitor extends AllExpressionVisitor {
         StringBuffer buf = new StringBuffer();
 
-        public SillyAllExpressionVisitor(OperatorPlan plan) {
+        public SillyAllExpressionVisitor(OperatorPlan plan) throws FrontendException {
             super(plan, new DepthFirstWalker(plan));
         }
      
 
         @Override
-        protected LogicalExpressionVisitor getVisitor(LogicalExpressionPlan expr) {
+        protected LogicalExpressionVisitor getVisitor(LogicalExpressionPlan expr) throws FrontendException {
             return new SillyExpressionVisitor(expr, buf);
         }   
         
@@ -226,7 +226,7 @@ public class TestNewPlanListener extends TestCase {
     // Test that the AllExpressionVisitor executes on every
     // expression in the plan
     @Test
-    public void testAllExpressionVisitor() throws IOException {
+    public void testAllExpressionVisitor() throws FrontendException {
         SillyAllExpressionVisitor v = new SillyAllExpressionVisitor(lp);
         v.visit();
         assertTrue("proj proj equal proj const ".equals(v.toString()) ||
@@ -235,7 +235,7 @@ public class TestNewPlanListener extends TestCase {
     
     // Test that schemas are patched up after a transform
     @Test
-    public void testSchemaPatcher() throws IOException {
+    public void testSchemaPatcher() throws FrontendException {
         SchemaPatcher patcher = new SchemaPatcher();
         patcher.transformed(lp, changedPlan);
         
@@ -253,7 +253,7 @@ public class TestNewPlanListener extends TestCase {
     
     // Test that projections are patched up after a transform
     @Test
-    public void testProjectionPatcher() throws IOException {
+    public void testProjectionPatcher() throws FrontendException {
         ProjectionPatcher patcher = new ProjectionPatcher();
         patcher.transformed(lp, changedPlan);
         

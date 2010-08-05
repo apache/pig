@@ -18,6 +18,7 @@
 
 package org.apache.pig.backend.hadoop.executionengine;
 
+import java.io.IOException;
 import java.io.PrintStream;
 import java.net.Socket;
 import java.net.SocketException;
@@ -26,6 +27,7 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -54,9 +56,11 @@ import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.io.InterStorage;
+import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.LogicalPlan;
 import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.OperatorKey;
+import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.newplan.logical.LogicalPlanMigrationVistor;
 import org.apache.pig.newplan.logical.optimizer.SchemaResetter;
 import org.apache.pig.tools.pigstats.OutputStats;
@@ -220,6 +224,7 @@ public class HExecutionEngine {
         throw new UnsupportedOperationException();
     }
 
+    @SuppressWarnings("unchecked")
     public PhysicalPlan compile(LogicalPlan plan,
                                 Properties properties) throws ExecException {
         if (plan == null) {
@@ -240,9 +245,20 @@ public class HExecutionEngine {
                 SchemaResetter schemaResetter = new SchemaResetter(newPlan);
                 schemaResetter.visit();
                 
+                HashSet<String> optimizerRules = null;
+                try {
+                    optimizerRules = (HashSet<String>) ObjectSerializer
+                            .deserialize(pigContext.getProperties().getProperty(
+                                    "pig.optimizer.rules"));
+                } catch (IOException ioe) {
+                    int errCode = 2110;
+                    String msg = "Unable to deserialize optimizer rules.";
+                    throw new FrontendException(msg, errCode, PigException.BUG, ioe);
+                }
+                
                 // run optimizer
                 org.apache.pig.newplan.logical.optimizer.LogicalPlanOptimizer optimizer = 
-                    new org.apache.pig.newplan.logical.optimizer.LogicalPlanOptimizer(newPlan, 100);
+                    new org.apache.pig.newplan.logical.optimizer.LogicalPlanOptimizer(newPlan, 100, optimizerRules);
                 optimizer.optimize();
                 
                 // translate new logical plan to physical plan

@@ -17,7 +17,6 @@
  */
 package org.apache.pig.tools.pigstats;
 
-import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -44,6 +43,7 @@ import org.apache.pig.classification.InterfaceAudience;
 import org.apache.pig.classification.InterfaceStability;
 import org.apache.pig.data.InternalCachedBag;
 import org.apache.pig.impl.PigContext;
+import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.plan.DependencyOrderWalker;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.util.SpillableMemoryManager;
@@ -111,7 +111,7 @@ public final class PigStats {
             JobGraphPrinter jp = new JobGraphPrinter(this);
             try {
                 jp.visit();
-            } catch (IOException e) {
+            } catch (FrontendException e) {
                 LOG.warn("unable to print job plan", e);
             }
             return jp.toString();
@@ -135,11 +135,7 @@ public final class PigStats {
  
         boolean isConnected(Operator from, Operator to) {
             List<Operator> succs = null;
-            try {
-                succs = getSuccessors(from);
-            } catch (IOException e) {
-                LOG.warn("unable to get successors for operator");
-            }
+            succs = getSuccessors(from);
             if (succs != null) {
                 for (Operator succ: succs) {
                     if (succ.getName().equals(to.getName()) 
@@ -221,7 +217,7 @@ public final class PigStats {
             buf = new StringBuffer();
         }
         
-        public void visit(JobStats op) throws IOException {
+        public void visit(JobStats op) throws FrontendException {
             buf.append(op.getJobId());
             List<Operator> succs = plan.getSuccessors(op);
             if (succs != null) {

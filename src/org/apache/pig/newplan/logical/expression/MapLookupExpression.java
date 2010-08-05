@@ -18,10 +18,10 @@
 
 package org.apache.pig.newplan.logical.expression;
 
-import java.io.IOException;
 import java.util.List;
 
 import org.apache.pig.data.DataType;
+import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.OperatorPlan;
 import org.apache.pig.newplan.PlanVisitor;
@@ -48,15 +48,15 @@ public class MapLookupExpression extends ColumnExpression {
      * @link org.apache.pig.experimental.plan.Operator#accept(org.apache.pig.experimental.plan.PlanVisitor)
      */
     @Override
-    public void accept(PlanVisitor v) throws IOException {
+    public void accept(PlanVisitor v) throws FrontendException {
         if (!(v instanceof LogicalExpressionVisitor)) {
-            throw new IOException("Expected LogicalExpressionVisitor");
+            throw new FrontendException("Expected LogicalExpressionVisitor", 2222);
         }
         ((LogicalExpressionVisitor)v).visit(this);
     }
     
     @Override
-    public boolean isEqual(Operator other) {
+    public boolean isEqual(Operator other) throws FrontendException {
         if (other != null && other instanceof MapLookupExpression) {
             MapLookupExpression po = (MapLookupExpression)other;
             return ( po.mMapKey.compareTo(mMapKey) == 0 ) && 
@@ -66,7 +66,7 @@ public class MapLookupExpression extends ColumnExpression {
         }
     }
     
-    public LogicalExpression getMap() throws IOException {
+    public LogicalExpression getMap() throws FrontendException {
         List<Operator> preds = plan.getSuccessors(this);
         if(preds == null) {
             return null;
@@ -78,7 +78,7 @@ public class MapLookupExpression extends ColumnExpression {
         return mMapKey;
     }
     
-    public LogicalFieldSchema getFieldSchema() throws IOException {
+    public LogicalFieldSchema getFieldSchema() throws FrontendException {
         if (fieldSchema!=null)
             return fieldSchema;
         if (mValueSchema!=null)
@@ -91,22 +91,18 @@ public class MapLookupExpression extends ColumnExpression {
 
     public String toString() {
         StringBuilder msg = new StringBuilder();
-        try {
-            msg.append("(Name: " + name + " Type: ");
-            if (fieldSchema!=null)
-                msg.append(DataType.findTypeName(getFieldSchema().type));
-            else
-                msg.append("null");
-            msg.append(" Uid: ");
-            if (fieldSchema!=null)
-                msg.append(getFieldSchema().uid);
-            else
-                msg.append("null");
-            msg.append(" Key: " + mMapKey);
-            msg.append(")");
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        msg.append("(Name: " + name + " Type: ");
+        if (fieldSchema!=null)
+            msg.append(DataType.findTypeName(fieldSchema.type));
+        else
+            msg.append("null");
+        msg.append(" Uid: ");
+        if (fieldSchema!=null)
+            msg.append(fieldSchema.uid);
+        else
+            msg.append("null");
+        msg.append(" Key: " + mMapKey);
+        msg.append(")");
 
         return msg.toString();
     }

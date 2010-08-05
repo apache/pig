@@ -18,7 +18,6 @@
 
 package org.apache.pig.newplan.optimizer;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -28,6 +27,7 @@ import java.util.Stack;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.OperatorPlan;
 import org.apache.pig.newplan.OperatorSubPlan;
@@ -45,14 +45,16 @@ public abstract class Rule {
     transient protected OperatorPlan currentPlan;
     protected static final Log log = LogFactory.getLog(Rule.class);
     private transient Set<Operator> matchedNodes = new HashSet<Operator>();
+    private boolean mandatory;
     
     /**
      * Create this rule by using the default pattern that this rule provided
      * @param n Name of this rule
      */
-    public Rule(String n) {
+    public Rule(String n, boolean mandatory) {
         name = n;    
         pattern = buildPattern();
+        this.mandatory = mandatory;
     }
     
     /**
@@ -100,7 +102,7 @@ public abstract class Rule {
      *        
      * @param plan the OperatorPlan to look for matches to the pattern
      */
-    public List<OperatorPlan> match(OperatorPlan plan) {
+    public List<OperatorPlan> match(OperatorPlan plan) throws FrontendException {
         currentPlan = plan;
         
         List<Operator> leaves = pattern.getSinks();
@@ -124,11 +126,7 @@ public abstract class Rule {
                     
                     
                     List<Operator> preds = null;
-                    try {
-                        preds = plan.getPredecessors(op);
-                    }catch(IOException e) {
-                        // not going to happen
-                    }
+                    preds = plan.getPredecessors(op);
                     
                     // if this node has no predecessor, it must be a root
                     if (preds == null) {
@@ -139,17 +137,13 @@ public abstract class Rule {
                     for(Operator s: preds) {
                         matched = true;
                         List<Operator> siblings = null;
-                        try {
-                            if (s != null) {
-                                siblings = plan.getSuccessors(s);
-                            }else{
-                                // for a root, we get its siblings by getting all roots
-                                siblings = plan.getSources();
-                            }
-                        }catch(IOException e) {
-                            // not going to happen
-                            throw new RuntimeException(e);
+                        if (s != null) {
+                            siblings = plan.getSuccessors(s);
+                        }else{
+                            // for a root, we get its siblings by getting all roots
+                            siblings = plan.getSources();
                         }
+
                         int index = siblings.indexOf(op);
                         if (siblings.size()-index < leaves.size()) {
                             continue;
@@ -181,21 +175,17 @@ public abstract class Rule {
                 
               
                 PatternMatchOperatorPlan match = new PatternMatchOperatorPlan(plan);
-                try {
-                    if (match.check(planOps)) {
-                        // we find a matched pattern,
-                        // add the operators into matchedNodes
-                        Iterator<Operator> iter2 = match.getOperators();                      
-                        while(iter2.hasNext()) {
-                            Operator opt = iter2.next();
-                            matchedNodes.add(opt);                        
-                        }
-                        
-                        // add pattern
-                        matchedList.add(match);                                                
+                if (match.check(planOps)) {
+                    // we find a matched pattern,
+                    // add the operators into matchedNodes
+                    Iterator<Operator> iter2 = match.getOperators();                      
+                    while(iter2.hasNext()) {
+                        Operator opt = iter2.next();
+                        matchedNodes.add(opt);                        
                     }
-                }catch(IOException e) {
-                    log.error("Failed to search for optmization pattern. ", e);
+                    
+                    // add pattern
+                    matchedList.add(match);                                                
                 }
             }
         }
@@ -205,6 +195,10 @@ public abstract class Rule {
 
     public String getName() {
         return name;
+    }
+    
+    public boolean isMandatory() {
+        return mandatory;
     }
     
     /** 
@@ -222,7 +216,7 @@ public abstract class Rule {
             super(basePlan);
         }    	    	
         
-        protected boolean check(List<Operator> planOps) throws IOException {
+        protected boolean check(List<Operator> planOps) throws FrontendException {
             List<Operator> patternOps = pattern.getSinks();
             if (planOps.size() != patternOps.size()) {
                 return false;
@@ -257,7 +251,7 @@ public abstract class Rule {
          * if we are looking for join->load pattern, only one match will be returned instead
          * of two, so that the matched subsets don't share nodes.
          */ 
-        private boolean check(Operator planOp, Operator patternOp, Stack<Operator> opers) throws IOException {
+        private boolean check(Operator planOp, Operator patternOp, Stack<Operator> opers) throws FrontendException {
             if (!match(planOp, patternOp)) {
                 return false;
             }

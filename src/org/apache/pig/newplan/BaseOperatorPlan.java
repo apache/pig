@@ -19,7 +19,6 @@
 package org.apache.pig.newplan;
 
 import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -29,6 +28,7 @@ import java.util.Set;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.util.Pair;
 
 public abstract class BaseOperatorPlan implements OperatorPlan {
@@ -95,9 +95,8 @@ public abstract class BaseOperatorPlan implements OperatorPlan {
      * @param op operator to fetch predecessors of
      * @return list of all operators imeediately before op, or an empty list
      * if op is a root.
-     * @throws IOException if op is not in the plan.
      */
-    public List<Operator> getPredecessors(Operator op) throws IOException {
+    public List<Operator> getPredecessors(Operator op) {
         return (List<Operator>)toEdges.get(op);
     }
     
@@ -106,9 +105,8 @@ public abstract class BaseOperatorPlan implements OperatorPlan {
      * @param op operator to fetch successors of
      * @return list of all operators imeediately after op, or an empty list
      * if op is a leaf.
-     * @throws IOException if op is not in the plan.
      */
-    public List<Operator> getSuccessors(Operator op) throws IOException {
+    public List<Operator> getSuccessors(Operator op) {
         return (List<Operator>)fromEdges.get(op);
     }
 
@@ -125,14 +123,14 @@ public abstract class BaseOperatorPlan implements OperatorPlan {
     /**
      * Remove an operator from the plan.
      * @param op Operator to be removed
-     * @throws IOException if the remove operation attempts to 
+     * @throws FrontendException if the remove operation attempts to 
      * remove an operator that is still connected to other operators.
      */
-    public void remove(Operator op) throws IOException {
+    public void remove(Operator op) throws FrontendException {
         
         if (fromEdges.containsKey(op) || toEdges.containsKey(op)) {
-            throw new IOException("Attempt to remove operator " + op.getName()
-                    + " that is still connected in the plan");
+            throw new FrontendException("Attempt to remove operator " + op.getName()
+                    + " that is still connected in the plan", 2243);
         }
         markDirty();
         ops.remove(op);
@@ -172,22 +170,22 @@ public abstract class BaseOperatorPlan implements OperatorPlan {
      * @param to Operator edge is going to
      * @return pair of positions, indicating the position in the from and
      * to arrays.
-     * @throws IOException if the two operators aren't connected.
+     * @throws FrontendException if the two operators aren't connected.
      */
     public Pair<Integer, Integer> disconnect(Operator from,
-                                             Operator to) throws IOException {
+                                             Operator to) throws FrontendException {
         Pair<Operator, Integer> f = fromEdges.removeWithPosition(from, to);
         if (f == null) { 
-            throw new IOException("Attempt to disconnect operators " + 
+            throw new FrontendException("Attempt to disconnect operators " + 
                 from.getName() + " and " + to.getName() +
-                " which are not connected.");
+                " which are not connected.", 2219);
         }
         
         Pair<Operator, Integer> t = toEdges.removeWithPosition(to, from);
         if (t == null) { 
-            throw new IOException("Plan in inconssistent state " + 
+            throw new FrontendException("Plan in inconssistent state " + 
                 from.getName() + " and " + to.getName() +
-                " connected in fromEdges but not toEdges.");
+                " connected in fromEdges but not toEdges.", 2220);
         }
         
         markDirty();
@@ -203,35 +201,31 @@ public abstract class BaseOperatorPlan implements OperatorPlan {
         return ops.iterator();
     }
    
-    public boolean isEqual(OperatorPlan other) {
+    public boolean isEqual(OperatorPlan other) throws FrontendException {
         return isEqual(this, other);
     }
     
     private static boolean checkPredecessors(Operator op1,
-                                      Operator op2) {
-        try {
-            List<Operator> preds = op1.getPlan().getPredecessors(op1);
-            List<Operator> otherPreds = op2.getPlan().getPredecessors(op2);
-            if (preds == null && otherPreds == null) {
-                // intentionally blank
-            } else if (preds == null || otherPreds == null) {
-                return false;
-            } else {
-                if (preds.size() != otherPreds.size()) return false;
-                for (int i = 0; i < preds.size(); i++) {
-                    Operator p1 = preds.get(i);
-                    Operator p2 = otherPreds.get(i);
-                    if (!p1.isEqual(p2)) return false;
-                    if (!checkPredecessors(p1, p2)) return false;
-                }
+                                      Operator op2) throws FrontendException {
+        List<Operator> preds = op1.getPlan().getPredecessors(op1);
+        List<Operator> otherPreds = op2.getPlan().getPredecessors(op2);
+        if (preds == null && otherPreds == null) {
+            // intentionally blank
+        } else if (preds == null || otherPreds == null) {
+            return false;
+        } else {
+            if (preds.size() != otherPreds.size()) return false;
+            for (int i = 0; i < preds.size(); i++) {
+                Operator p1 = preds.get(i);
+                Operator p2 = otherPreds.get(i);
+                if (!p1.isEqual(p2)) return false;
+                if (!checkPredecessors(p1, p2)) return false;
             }
-            return true;
-        } catch (IOException e) {
-            throw new RuntimeException(e);
         }
+        return true;
     }   
     
-    protected static boolean isEqual(OperatorPlan p1, OperatorPlan p2) {
+    protected static boolean isEqual(OperatorPlan p1, OperatorPlan p2) throws FrontendException {
         if (p1 == p2) {
             return true;
         }
@@ -260,7 +254,7 @@ public abstract class BaseOperatorPlan implements OperatorPlan {
         return false;
     }
     
-    public void explain(PrintStream ps, String format, boolean verbose) throws IOException {
+    public void explain(PrintStream ps, String format, boolean verbose) throws FrontendException {
     }
     
     @Override
@@ -269,7 +263,7 @@ public abstract class BaseOperatorPlan implements OperatorPlan {
         PrintStream ps = new PrintStream(os);
         try {
             explain(ps,"",false);
-        } catch (IOException e) {
+        } catch (FrontendException e) {
             return "";
         }
         return os.toString();

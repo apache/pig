@@ -18,12 +18,12 @@
 
 package org.apache.pig.newplan.logical.rules;
 
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.util.Pair;
 import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.OperatorPlan;
@@ -41,7 +41,7 @@ public class ColumnMapKeyPrune extends WholePlanRule {
     private boolean hasRun;
     
     public ColumnMapKeyPrune(String n) {
-        super(n);
+        super(n, false);
         hasRun = false;
     }
 
@@ -67,7 +67,7 @@ public class ColumnMapKeyPrune extends WholePlanRule {
             new HashMap<LOLoad,Pair<Map<Integer,Set<String>>,Set<Integer>>>();
         
         @Override
-        public boolean check(OperatorPlan matched) throws IOException {
+        public boolean check(OperatorPlan matched) throws FrontendException {
             // only run this rule once
             if (hasRun) {
                 return false;
@@ -91,7 +91,7 @@ public class ColumnMapKeyPrune extends WholePlanRule {
         }
         
         @SuppressWarnings("unchecked")
-        private void merge() {            
+        private void merge() throws FrontendException {            
             // combine annotations
             for( Operator source : currentPlan.getSources() ) {
                 Map<Integer,Set<String>> mapKeys = 
@@ -134,7 +134,7 @@ public class ColumnMapKeyPrune extends WholePlanRule {
         }
 
         @Override
-        public void transform(OperatorPlan matched) throws IOException {        	            
+        public void transform(OperatorPlan matched) throws FrontendException {        	            
             merge();
             
             ColumnPruneVisitor columnPruneVisitor = new ColumnPruneVisitor(currentPlan, requiredItems, columnPrune);

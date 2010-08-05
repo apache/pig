@@ -17,12 +17,12 @@
  */
 package org.apache.pig.newplan.logical.rules;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.pig.FuncSpec;
 import org.apache.pig.data.DataType;
+import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.streaming.StreamingCommand;
 import org.apache.pig.impl.streaming.StreamingCommand.HandleSpec;
 import org.apache.pig.impl.util.Pair;
@@ -47,7 +47,7 @@ public class TypeCastInserter extends Rule {
     private String operatorClassName;
     
     public TypeCastInserter(String n, String operatorClassName) {
-        super(n);
+        super(n, true);
         this.operatorClassName = operatorClassName;
     }
 
@@ -67,7 +67,7 @@ public class TypeCastInserter extends Rule {
     
     public class TypeCastInserterTransformer extends Transformer {
         @Override
-        public boolean check(OperatorPlan matched) throws IOException {
+        public boolean check(OperatorPlan matched) throws FrontendException {
             LogicalRelationalOperator op = (LogicalRelationalOperator)matched.getSources().get(0);
             LogicalSchema s = op.getSchema();
             if (s == null) return false;
@@ -97,7 +97,7 @@ public class TypeCastInserter extends Rule {
         }
 
         @Override
-        public void transform(OperatorPlan matched) throws IOException {
+        public void transform(OperatorPlan matched) throws FrontendException {
             LogicalRelationalOperator op = (LogicalRelationalOperator)matched.getSources().get(0);
             LogicalSchema s = op.getSchema();
             // For every field, build a logical plan.  If the field has a type
@@ -155,7 +155,7 @@ public class TypeCastInserter extends Rule {
                         loadFuncSpec = new FuncSpec(streamOutputSpec.getSpec());
                     } else {
                         String msg = "TypeCastInserter invoked with an invalid operator class name: " + innerPlan.getClass().getSimpleName();
-                        throw new IOException(msg);
+                        throw new FrontendException(msg, 2242);
                     }
                     cast.setFuncSpec(loadFuncSpec);
                 }

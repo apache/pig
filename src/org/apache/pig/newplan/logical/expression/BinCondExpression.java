@@ -18,8 +18,7 @@
 
 package org.apache.pig.newplan.logical.expression;
 
-import java.io.IOException;
-
+import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.OperatorPlan;
 import org.apache.pig.newplan.PlanVisitor;
@@ -48,27 +47,27 @@ public class BinCondExpression extends LogicalExpression {
     /**
      * Returns the operator which handles this condition
      * @return expression which handles the condition
-     * @throws IOException
+     * @throws FrontendException
      */
-    public LogicalExpression getCondition() throws IOException {
+    public LogicalExpression getCondition() throws FrontendException {
         return (LogicalExpression)plan.getSuccessors(this).get(0);
     }
 
     /**
      * Get the left hand side of this expression.
      * @return expression on the left hand side
-     * @throws IOException 
+     * @throws FrontendException 
      */
-    public LogicalExpression getLhs() throws IOException {
+    public LogicalExpression getLhs() throws FrontendException {
         return (LogicalExpression)plan.getSuccessors(this).get(1);        
     }
 
     /**
      * Get the right hand side of this expression.
      * @return expression on the right hand side
-     * @throws IOException 
+     * @throws FrontendException 
      */
-    public LogicalExpression getRhs() throws IOException {
+    public LogicalExpression getRhs() throws FrontendException {
         return (LogicalExpression)plan.getSuccessors(this).get(2);
     }
 
@@ -76,30 +75,26 @@ public class BinCondExpression extends LogicalExpression {
      * @link org.apache.pig.experimental.plan.Operator#accept(org.apache.pig.experimental.plan.PlanVisitor)
      */
     @Override
-    public void accept(PlanVisitor v) throws IOException {
+    public void accept(PlanVisitor v) throws FrontendException {
         if (!(v instanceof LogicalExpressionVisitor)) {
-            throw new IOException("Expected LogicalExpressionVisitor");
+            throw new FrontendException("Expected LogicalExpressionVisitor", 2222);
         }
         ((LogicalExpressionVisitor)v).visit(this);
     }
     
     @Override
-    public boolean isEqual(Operator other) {
+    public boolean isEqual(Operator other) throws FrontendException {
         if (other != null && other instanceof BinCondExpression) {
             BinCondExpression ao = (BinCondExpression)other;
-            try {
-                return ao.getCondition().isEqual(getCondition()) && 
-                ao.getLhs().isEqual(getLhs()) && ao.getRhs().isEqual(getRhs());
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
+            return ao.getCondition().isEqual(getCondition()) && 
+            ao.getLhs().isEqual(getLhs()) && ao.getRhs().isEqual(getRhs());
         } else {
             return false;
         }
     }
     
     @Override
-    public LogicalSchema.LogicalFieldSchema getFieldSchema() throws IOException {
+    public LogicalSchema.LogicalFieldSchema getFieldSchema() throws FrontendException {
         if (fieldSchema!=null)
             return fieldSchema;
         fieldSchema = new LogicalSchema.LogicalFieldSchema(null, null, getLhs().getType());

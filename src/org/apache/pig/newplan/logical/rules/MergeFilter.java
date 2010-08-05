@@ -17,10 +17,10 @@
  */
 package org.apache.pig.newplan.logical.rules;
 
-import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
 
+import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.util.Pair;
 import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.OperatorPlan;
@@ -38,7 +38,7 @@ import org.apache.pig.newplan.optimizer.Transformer;
 public class MergeFilter extends Rule {
 
     public MergeFilter(String n) {
-        super(n);       
+        super(n, false);       
     }
 
     @Override
@@ -51,7 +51,7 @@ public class MergeFilter extends Rule {
         private OperatorSubPlan subPlan;
 
         @Override
-        public boolean check(OperatorPlan matched) throws IOException {           
+        public boolean check(OperatorPlan matched) throws FrontendException {           
             LOFilter filter = (LOFilter)matched.getSources().get(0);
             List<Operator> succeds = currentPlan.getSuccessors(filter);
             // if this filter is followed by another filter, we should combine them
@@ -64,7 +64,7 @@ public class MergeFilter extends Rule {
         }
 
         @Override
-        public void transform(OperatorPlan matched) throws IOException {     
+        public void transform(OperatorPlan matched) throws FrontendException {     
             subPlan = new OperatorSubPlan(currentPlan);
             
             LOFilter filter = (LOFilter)matched.getSources().get(0);
@@ -103,7 +103,7 @@ public class MergeFilter extends Rule {
         
         // combine the condition of two filters. The condition of second filter
         // is added into the condition of first filter with an AND operator.
-        private void combineFilterCond(LOFilter f1, LOFilter f2) throws IOException {
+        private void combineFilterCond(LOFilter f1, LOFilter f2) throws FrontendException {
             LogicalExpressionPlan p1 = f1.getFilterPlan();
             LogicalExpressionPlan p2 = f2.getFilterPlan();
             LogicalExpressionPlan andPlan = new LogicalExpressionPlan();

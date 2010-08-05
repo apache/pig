@@ -31,8 +31,8 @@ import org.apache.pig.newplan.optimizer.Rule;
  */
 public abstract class WholePlanRule extends Rule {
 
-    public WholePlanRule(String n) {
-        super(n);
+    public WholePlanRule(String n, boolean mandatory) {
+        super(n, mandatory);
     }
 
     public List<OperatorPlan> match(OperatorPlan plan) {

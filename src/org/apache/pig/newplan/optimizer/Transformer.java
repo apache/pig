@@ -18,8 +18,7 @@
 
 package org.apache.pig.newplan.optimizer;
 
-import java.io.IOException;
-
+import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.newplan.OperatorPlan;
 
 public abstract class Transformer {
@@ -32,18 +31,18 @@ public abstract class Transformer {
      *        subset has the same graph as the pattern, but the operators
      *        point to the same objects as the plan to be matched.
      * @return true if the transform should be done.
-     * @throws IOException
+     * @throws Transformer
      */
-    public abstract boolean check(OperatorPlan matched) throws IOException;
+    public abstract boolean check(OperatorPlan matched) throws FrontendException;
 
     /**
      * Transform the tree
      * @param matched the sub-set of the plan that matches the pattern. This 
      *        subset has the same graph as the pattern, but the operators
      *        point to the same objects as the plan to be matched.
-     * @throws IOException
+     * @throws Transformer
      */
-    public abstract void transform(OperatorPlan matched) throws IOException;
+    public abstract void transform(OperatorPlan matched) throws FrontendException;
     
     /**
      * Report what parts of the tree were transformed.  This is so that 
