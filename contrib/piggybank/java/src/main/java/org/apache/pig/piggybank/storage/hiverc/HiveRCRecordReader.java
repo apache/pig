@@ -31,7 +31,8 @@ import org.apache.hadoop.mapreduce.lib.input.FileSplit;
 /**
  * This class delegates the work to the RCFileRecordReader<br/>
  */
-public class HiveRCRecordReader extends RecordReader<LongWritable, BytesRefArrayWritable> {
+public class HiveRCRecordReader extends
+	RecordReader<LongWritable, BytesRefArrayWritable> {
 
     LongWritable key;
     BytesRefArrayWritable value;
@@ -42,51 +43,52 @@ public class HiveRCRecordReader extends RecordReader<LongWritable, BytesRefArray
 
     @Override
     public void close() throws IOException {
-        rcFileRecordReader.close();
+	rcFileRecordReader.close();
     }
 
     @Override
-    public LongWritable getCurrentKey() throws IOException, InterruptedException {
-        return key;
+    public LongWritable getCurrentKey() throws IOException,
+	    InterruptedException {
+	return key;
     }
 
     @Override
-    public BytesRefArrayWritable getCurrentValue() throws IOException, InterruptedException {
-        return value;
+    public BytesRefArrayWritable getCurrentValue() throws IOException,
+	    InterruptedException {
+	return value;
     }
 
     @Override
     public float getProgress() throws IOException, InterruptedException {
-        return rcFileRecordReader.getProgress();
+	return rcFileRecordReader.getProgress();
     }
 
-    public Path getSplitPath(){
-        return splitPath;
+    public Path getSplitPath() {
+	return splitPath;
     }
 
     @SuppressWarnings("deprecation")
     @Override
     public void initialize(InputSplit split, TaskAttemptContext ctx)
-    throws IOException, InterruptedException {
+	    throws IOException, InterruptedException {
 
-        FileSplit fileSplit = (FileSplit)split;
-        Configuration conf = ctx.getConfiguration();
-        splitPath = fileSplit.getPath();
+	FileSplit fileSplit = (FileSplit) split;
+	Configuration conf = ctx.getConfiguration();
+	splitPath = fileSplit.getPath();
 
-        rcFileRecordReader = new RCFileRecordReader<LongWritable, BytesRefArrayWritable>(conf,
-                new org.apache.hadoop.mapred.FileSplit(splitPath, fileSplit.getStart(), fileSplit.getLength(), 
-                        new org.apache.hadoop.mapred.JobConf(conf)) );
+	rcFileRecordReader = new RCFileRecordReader<LongWritable, BytesRefArrayWritable>(
+		conf, new org.apache.hadoop.mapred.FileSplit(splitPath,
+			fileSplit.getStart(), fileSplit.getLength(),
+			new org.apache.hadoop.mapred.JobConf(conf)));
 
-
-        key = rcFileRecordReader.createKey();
-        value = rcFileRecordReader.createValue();
+	key = rcFileRecordReader.createKey();
+	value = rcFileRecordReader.createValue();
 
     }
 
     @Override
     public boolean nextKeyValue() throws IOException, InterruptedException {
-        return rcFileRecordReader.next(key, value);
+	return rcFileRecordReader.next(key, value);
     }
-
 
 }
