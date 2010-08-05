@@ -26,6 +26,8 @@ PIG-1249: Safe-guards against misconfigured Pig scripts without PARALLEL keyword
 
 IMPROVEMENTS
 
+PIG-1199: help includes obsolete options(olgan)
+
 PIG-1434: Allow casting relations to scalars (aniket486 via rding)
 
 PIG-1461: support union operation that merges based on column names (thejas)
