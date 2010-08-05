@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.List;
+import java.util.Stack;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -92,23 +93,45 @@ public abstract class EvalFunc<T>  {
         Class<?> superClass = getClass();
         Type superType = getClass();
         
-        while (!superClass.isAssignableFrom(EvalFunc.class)){
+        Stack<Type> geneticsStack = new Stack<Type>();
+        
+        // Go up the hierachy of the class up to the EvalFunc
+        while (!superClass.isAssignableFrom(EvalFunc.class))
+        {
             superType = superClass.getGenericSuperclass();
             superClass = superClass.getSuperclass();
+            geneticsStack.push(superType);
         }
+        
+        // From EvalFunc (superclass), go downward (subclass), 
+        // find the first class materialize the genetics
+        Type materializedType = null;
+        while (!geneticsStack.isEmpty()) {
+            Type aType = geneticsStack.pop();
+            if (aType instanceof ParameterizedType) {
+                // We materialized something, eg, materialized the type to Double,
+                // or materialized the type to Map<String, Object>, or materialized the type
+                // to T(another genetics). In the 1st case, getActualTypeArguments()
+                // returns a class, we can tell easily; In the 2nd and 3th case, 
+                // getActualTypeArguments() returns a ParameterizedType, 
+                // we cannot tell 2nd case from 3th case.
+                // So we need further check if the type inside materializedType 
+                // are materialized (case 2)
+                materializedType = ((ParameterizedType)aType).getActualTypeArguments()[0];
+            }
+            Type currentType = materializedType;
+            while (currentType instanceof ParameterizedType)
+                currentType = ((ParameterizedType)currentType).getActualTypeArguments()[0];
+            if (currentType instanceof Class) {
+                returnType = materializedType;
+                break;
+            }
+        }
+
         String errMsg = getClass() + "extends the raw type EvalFunc. It should extend the parameterized type EvalFunc<T> instead.";
         
-        if (!(superType instanceof ParameterizedType))
+        if (returnType==null)
             throw new RuntimeException(errMsg);
-        
-        Type[] parameters  = ((ParameterizedType)superType).getActualTypeArguments();
-        
-        if (parameters.length != 1)
-                throw new RuntimeException(errMsg);
-        
-        returnType = parameters[0];
-        
-        
         
         //Type check the initial, intermediate, and final functions
         if (this instanceof Algebraic){
