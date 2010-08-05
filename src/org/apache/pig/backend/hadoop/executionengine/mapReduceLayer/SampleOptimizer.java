@@ -63,6 +63,7 @@ public class SampleOptimizer extends MROpPlanVisitor {
             this.mPlan.remove(op);
     }
 
+    @Override
     public void visitMROp(MapReduceOper mr) throws VisitorException {
         // See if this is a sampling job.
         List<PhysicalOperator> pos = mr.mapPlan.getRoots();
@@ -168,6 +169,8 @@ public class SampleOptimizer extends MROpPlanVisitor {
         // First argument is FuncSpec of loader function to subsume, this we want to set for
         // ourselves.
         rslargs[0] = predFs.getFuncSpec().toString();
+        // Add the loader's funcspec to the list of udf's associated with this mr operator
+        mr.UDFs.add(rslargs[0]);
         // Second argument is the number of samples per block, read this from the original.
         rslargs[1] = load.getLFile().getFuncSpec().getCtorArgs()[1];
         FileSpec fs = new FileSpec(predFs.getFileName(),new FuncSpec(loadFunc, rslargs));
@@ -191,6 +194,8 @@ public class SampleOptimizer extends MROpPlanVisitor {
         newLoad.setSignature(predLoad.getSignature());
         try {
             succ.mapPlan.replace(succLoad, newLoad);
+            // Add the loader's funcspec to the list of udf's associated with this mr operator
+            succ.UDFs.add(newLoad.getLFile().getFuncSpec().toString());
         } catch (PlanException e) {
             throw new VisitorException(e);
         }
