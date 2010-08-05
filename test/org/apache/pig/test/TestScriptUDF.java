@@ -331,16 +331,15 @@ public class TestScriptUDF extends TestCase {
         
         assertTrue(iter.hasNext());
         t = iter.next();
-        bag = BagFactory.getInstance().newDefaultBag();
         tup = TupleFactory.getInstance().newTuple();
         tup.append(3);
         tup.append("pig");
-        bag.add(tup);
+        assertTrue(t.toString().contains(tup.toString()));
+        
         tup = TupleFactory.getInstance().newTuple();
         tup.append(4);
         tup.append("rocks");
-        bag.add(tup);
-        assertTrue(t.get(0).toString().equals(bag.toString()));
+        assertTrue(t.toString().contains(tup.toString()));
         
         assertFalse(iter.hasNext());
         
