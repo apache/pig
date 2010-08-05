@@ -136,7 +136,7 @@ static int run(String args[], PigProgressNotificationListener listener) {
         opts.registerOpt('d', "debug", CmdLineParser.ValueExpected.REQUIRED);
         opts.registerOpt('e', "execute", CmdLineParser.ValueExpected.NOT_ACCEPTED);
         opts.registerOpt('f', "file", CmdLineParser.ValueExpected.REQUIRED);
-        opts.registerOpt('h', "help", CmdLineParser.ValueExpected.NOT_ACCEPTED);
+        opts.registerOpt('h', "help", CmdLineParser.ValueExpected.OPTIONAL);
         opts.registerOpt('i', "version", CmdLineParser.ValueExpected.OPTIONAL);        
         opts.registerOpt('l', "logfile", CmdLineParser.ValueExpected.REQUIRED);
         opts.registerOpt('m', "param_file", CmdLineParser.ValueExpected.OPTIONAL);
@@ -210,7 +210,16 @@ static int run(String args[], PigProgressNotificationListener listener) {
                 break;
 
             case 'h':
-                usage();
+		String topic = opts.getValStr();
+		if (topic != null)
+		    if (topic.equalsIgnoreCase("properties"))
+		        printProperties();
+                    else{
+                        System.out.println("Invalide help topic - " + topic);
+			usage();
+                    }
+		else
+                    usage();
                 return ReturnCode.SUCCESS;
 
             case 'i':
@@ -613,26 +622,57 @@ public static void usage()
         System.out.println("       Pig [options] -e[xecute] cmd [cmd ...] : Run cmd(s).");
         System.out.println("       Pig [options] [-f[ile]] file : Run cmds found in file.");
         System.out.println("  options include:");
-        System.out.println("    -4, -log4jconf log4j configuration file, overrides log conf");
-        System.out.println("    -b, -brief brief logging (no timestamps)");
-        System.out.println("    -c, -check syntax check");
-        System.out.println("    -d, -debug debug level, INFO is default");
-        System.out.println("    -e, -execute commands to execute (within quotes)");
-        System.out.println("    -f, -file path to the script to execute");
-        System.out.println("    -h, -help display this message");
-        System.out.println("    -i, -version display version information");
-        System.out.println("    -l, -logfile path to client side log file; current working directory is default");
-        System.out.println("    -m, -param_file path to the parameter file");
-        System.out.println("    -p, -param key value pair of the form param=val");
-        System.out.println("    -r, -dryrun");
-        System.out.println("    -t, -optimizer_off optimizer rule name, turn optimizer off for this rule; use all to turn all rules off, optimizer is turned on by default");
-        System.out.println("    -v, -verbose print all error messages to screen");
-        System.out.println("    -w, -warning turn warning on; also turns warning aggregation off");
-        System.out.println("    -x, -exectype local|mapreduce, mapreduce is default");
+        System.out.println("    -4, -log4jconf - Log4j configuration file, overrides log conf");
+        System.out.println("    -b, -brief - Brief logging (no timestamps)");
+        System.out.println("    -c, -check - Syntax check");
+        System.out.println("    -d, -debug - Debug level, INFO is default");
+        System.out.println("    -e, -execute - Commands to execute (within quotes)");
+        System.out.println("    -f, -file - Path to the script to execute");
+        System.out.println("    -h, -help - Display this message. You can specify topic to get help for that topic.");
+	System.out.println("        properties is the only topic currently supported: -h properties.");
+        System.out.println("    -i, -version - Display version information");
+        System.out.println("    -l, -logfile - Path to client side log file; default is current working directory.");
+        System.out.println("    -m, -param_file - Path to the parameter file");
+        System.out.println("    -p, -param - Key value pair of the form param=val");
+        System.out.println("    -r, -dryrun - Produces script with substituted parameters. Script is not executed.");
+        System.out.println("    -t, -optimizer_off - Turn optimizations off. The following values are supported:");
+        System.out.println("            PushUpFilter - Filter as early as possible");
+        System.out.println("            PushDownForeachFlatten - Join or explode as late as possible");
+        System.out.println("            PruneColumns - Remove unused data");
+        System.out.println("            LimitOptimizer - Limit as early as possible");
+        System.out.println("            All - Disable all optimizations");
+        System.out.println("        All optimizations are enabled by default. Optimization values are case insensitive.");
+        System.out.println("    -v, -verbose - Print all error messages to screen");
+        System.out.println("    -w, -warning - Turn warning logging on; also turns warning aggregation off");
+        System.out.println("    -x, -exectype - Set execution mode: local|mapreduce, default is mapreduce.");
+        System.out.println("    -F, -stop_on_failure - Aborts execution on the first failed job; default is off");
+        System.out.println("    -M, -no_multiquery - Turn multiquery optimization off; default is on");
+        System.out.println("    -P, -propertyFile - Path to property file");
+}
 
-        System.out.println("    -F, -stop_on_failure aborts execution on the first failed job; off by default");
-        System.out.println("    -M, -no_multiquery turn multiquery optimization off; Multiquery is on by default");
-        System.out.println("    -P, -propertyFile path to property file");
+public static void printProperties(){
+	System.out.println("The following properties are supported:");
+	System.out.println("    Logging:");
+        System.out.println("        verbose=true|false; default is false. This property is the same as -v switch");    
+        System.out.println("        brief=true|false; default is false. This property is the same as -b switch");
+        System.out.println("        debug=OFF|ERROR|WARN|INFO|DEBUG; default is INFO. This property is the same as -d switch");
+        System.out.println("        aggregate.warning=true|false; default is true. If true, prints count of warnings");
+        System.out.println("            of each type rather than logging each warning.");
+        System.out.println("    Performance tuning:");
+        System.out.println("        pig.cachedbag.memusage=<mem fraction>; default is 0.1 (10% of all memory).");
+	System.out.println("            Note that this memory is shared across all large bags used by the application.");     	
+        System.out.println("        pig.skewedjoin.reduce.memusagea=<mem fraction>; default is 0.3 (30% of all memory).");
+        System.out.println("            Specifies the fraction of heap available for the reducer to perform the join.");
+        System.out.println("        pig.exec.nocombiner=true|false; default is false. ");
+        System.out.println("            Only disable combiner as a temporary workaround for problems.");
+        System.out.println("        opt.multiquery=true|false; multiquery is on by default.");
+        System.out.println("            Only disable multiquery as a temporary workaround for problems.");
+        System.out.println("    Miscellaneous:");
+        System.out.println("        exectype=mapreduce|local; default is mapreduce. This property is the same as -x switch");
+        System.out.println("        pig.additional.jars=<comma seperated list of jars>. Used in place of register command.");
+        System.out.println("        udf.import.list=<comma seperated list of imports>. Used to avoid package names in UDF.");
+        System.out.println("        stop.on.failure=true|false; default is false. Set to true to terminate on the first error.");
+	System.out.println("Additionally, any Hadoop property can be specified.");
 }
 
 private static String validateLogFile(String logFileName, String scriptName) {
