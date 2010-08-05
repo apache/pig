@@ -17,7 +17,6 @@
  */
 package org.apache.pig.newplan.logical.relational;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -25,6 +24,7 @@ import java.util.List;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.SortColInfo;
 import org.apache.pig.SortInfo;
+import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.OperatorPlan;
 import org.apache.pig.newplan.PlanVisitor;
@@ -96,26 +96,22 @@ public class LOSort extends LogicalRelationalOperator{
     }
 
     @Override
-    public LogicalSchema getSchema() {
+    public LogicalSchema getSchema() throws FrontendException {
         LogicalRelationalOperator input = null;
-        try {
-            input = (LogicalRelationalOperator)plan.getPredecessors(this).get(0);
-        } catch (IOException e) {
-            throw new RuntimeException("Unable to get predecessor of LOSort.", e);
-        }
+        input = (LogicalRelationalOperator)plan.getPredecessors(this).get(0);
         return input.getSchema();
     }
 
     @Override
-    public void accept(PlanVisitor v) throws IOException {
+    public void accept(PlanVisitor v) throws FrontendException {
         if (!(v instanceof LogicalRelationalNodesVisitor)) {
-            throw new IOException("Expected LogicalPlanVisitor");
+            throw new FrontendException("Expected LogicalPlanVisitor", 2223);
         }
         ((LogicalRelationalNodesVisitor)v).visit(this);
         
     }
     
-    public SortInfo getSortInfo() throws IOException {
+    public SortInfo getSortInfo() throws FrontendException {
         LogicalSchema schema = this.getSchema();
         List<SortColInfo> sortColInfoList = new ArrayList<SortColInfo>();
         for (int i = 0; i < mSortColPlans.size(); i++) {
@@ -126,7 +122,7 @@ public class LOSort extends LogicalRelationalOperator{
                 opsList.add(opsIterator.next());
             }
             if(opsList.size() != 1 || !(opsList.get(0) instanceof ProjectExpression)) {
-                throw new IOException("Unsupported operator in inner plan: " + opsList.get(0));
+                throw new FrontendException("Unsupported operator in inner plan: " + opsList.get(0), 2237);
             }
             ProjectExpression project = (ProjectExpression) opsList.get(0);
             int sortColIndex = project.getColNum();
@@ -140,7 +136,7 @@ public class LOSort extends LogicalRelationalOperator{
     }
 
     @Override
-    public boolean isEqual(Operator other) {
+    public boolean isEqual(Operator other) throws FrontendException {
         if (other != null && other instanceof LOSort) {
             LOSort otherSort = (LOSort)other;
             if (!mAscCols.equals(otherSort.getAscendingCols()))

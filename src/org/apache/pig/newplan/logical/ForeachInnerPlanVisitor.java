@@ -17,12 +17,12 @@
  */
 package org.apache.pig.newplan.logical;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
 import org.apache.pig.impl.logicalLayer.ExpressionOperator;
+import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.LODistinct;
 import org.apache.pig.impl.logicalLayer.LOFilter;
 import org.apache.pig.impl.logicalLayer.RelationalOperator;
@@ -55,28 +55,25 @@ public class ForeachInnerPlanVisitor extends LogicalExpPlanMigrationVistor {
     private HashMap<LogicalOperator, LogicalRelationalOperator> innerOpsMap;
 
     public ForeachInnerPlanVisitor(org.apache.pig.newplan.logical.relational.LOForEach foreach, LOForEach oldForeach, LogicalPlan innerPlan, 
-            LogicalPlan oldLogicalPlan) {
+            LogicalPlan oldLogicalPlan) throws FrontendException {
         super(innerPlan, foreach, oldLogicalPlan);
         newInnerPlan = foreach.getInnerPlan();
         
         // get next inputNo 
         gen = (org.apache.pig.newplan.logical.relational.LogicalRelationalOperator)
             newInnerPlan.getSinks().get(0);
-        try {
-            inputNo = 0;
-            List<org.apache.pig.newplan.Operator> suc = newInnerPlan.getPredecessors(gen);
-            if (suc != null) {
-                inputNo = suc.size();
-            }
-        }catch(Exception e) {
-            throw new RuntimeException(e);
+        inputNo = 0;
+        List<org.apache.pig.newplan.Operator> suc = newInnerPlan.getPredecessors(gen);
+        if (suc != null) {
+            inputNo = suc.size();
         }
+        
         this.oldForeach = oldForeach;
                     
         innerOpsMap = new HashMap<LogicalOperator, LogicalRelationalOperator>();
     }
     
-    private void translateInnerPlanConnection(LogicalOperator oldOp, org.apache.pig.newplan.Operator newOp) throws IOException {
+    private void translateInnerPlanConnection(LogicalOperator oldOp, org.apache.pig.newplan.Operator newOp) throws FrontendException {
         List<LogicalOperator> preds = mPlan.getPredecessors(oldOp);
         
         if(preds != null) {
@@ -131,7 +128,7 @@ public class ForeachInnerPlanVisitor extends LogicalExpPlanMigrationVistor {
             exprOpsMap.put(project, pe);
             try {
                 translateInnerPlanConnection(project, pe);
-            } catch (IOException e) {
+            } catch (FrontendException e) {
                 throw new VisitorException(e);
             } 
         }
@@ -184,7 +181,7 @@ public class ForeachInnerPlanVisitor extends LogicalExpPlanMigrationVistor {
         innerOpsMap.put(sort, newSort);
         try {
             translateInnerPlanConnection(sort, newSort);
-        } catch (IOException e) {
+        } catch (FrontendException e) {
             throw new VisitorException(e);
         }
         
@@ -205,7 +202,7 @@ public class ForeachInnerPlanVisitor extends LogicalExpPlanMigrationVistor {
         innerOpsMap.put(limit, newLimit);
         try {
             translateInnerPlanConnection(limit, newLimit);
-        } catch (IOException e) {
+        } catch (FrontendException e) {
             throw new VisitorException(e);
         }        
     }
@@ -220,7 +217,7 @@ public class ForeachInnerPlanVisitor extends LogicalExpPlanMigrationVistor {
         innerOpsMap.put(distinct, newDistinct);
         try {
             translateInnerPlanConnection(distinct, newDistinct);
-        } catch (IOException e) {
+        } catch (FrontendException e) {
             throw new VisitorException(e);
         }
     }
@@ -237,7 +234,7 @@ public class ForeachInnerPlanVisitor extends LogicalExpPlanMigrationVistor {
         innerOpsMap.put(filter, newFilter);
         try {
             translateInnerPlanConnection(filter, newFilter);
-        } catch (IOException e) {
+        } catch (FrontendException e) {
             throw new VisitorException(e);
         }
     }

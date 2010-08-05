@@ -59,7 +59,9 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POUserFunc;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.Subtract;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
+import org.apache.pig.data.DataType;
 import org.apache.pig.impl.PigContext;
+import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.PlanException;
@@ -77,7 +79,7 @@ public class ExpToPhyTranslationVisitor extends LogicalExpressionVisitor {
     // This value points to the current LogicalRelationalOperator we are working on
     protected LogicalRelationalOperator currentOp;
     
-    public ExpToPhyTranslationVisitor(OperatorPlan plan, LogicalRelationalOperator op, PhysicalPlan phyPlan, Map<Operator, PhysicalOperator> map) {
+    public ExpToPhyTranslationVisitor(OperatorPlan plan, LogicalRelationalOperator op, PhysicalPlan phyPlan, Map<Operator, PhysicalOperator> map) throws FrontendException {
         super(plan, new DependencyOrderWalker(plan));
         currentOp = op;
         logToPhyMap = map;
@@ -85,7 +87,7 @@ public class ExpToPhyTranslationVisitor extends LogicalExpressionVisitor {
         currentPlans = new Stack<PhysicalPlan>();
     }
     
-    public ExpToPhyTranslationVisitor(OperatorPlan plan, PlanWalker walker, LogicalRelationalOperator op, PhysicalPlan phyPlan, Map<Operator, PhysicalOperator> map) {
+    public ExpToPhyTranslationVisitor(OperatorPlan plan, PlanWalker walker, LogicalRelationalOperator op, PhysicalPlan phyPlan, Map<Operator, PhysicalOperator> map) throws FrontendException {
         super(plan, walker);
         currentOp = op;
         logToPhyMap = map;
@@ -112,7 +114,7 @@ public class ExpToPhyTranslationVisitor extends LogicalExpressionVisitor {
     }
     
     private void attachBinaryComparisonOperator( BinaryExpression op, 
-            BinaryComparisonOperator exprOp ) throws IOException {
+            BinaryComparisonOperator exprOp ) throws FrontendException {
         // We dont have aliases in ExpressionOperators
         // exprOp.setAlias(op.getAlias());
         
@@ -142,7 +144,7 @@ public class ExpToPhyTranslationVisitor extends LogicalExpressionVisitor {
     }
     
     private void attachBinaryExpressionOperator( BinaryExpression op, 
-            BinaryExpressionOperator exprOp ) throws IOException {
+            BinaryExpressionOperator exprOp ) throws FrontendException {
         // We dont have aliases in ExpressionOperators
         // exprOp.setAlias(op.getAlias());
         
@@ -172,7 +174,7 @@ public class ExpToPhyTranslationVisitor extends LogicalExpressionVisitor {
     }
 
     @Override
-    public void visit( AndExpression op ) throws IOException {
+    public void visit( AndExpression op ) throws FrontendException {
         
 //        System.err.println("Entering And");
         BinaryComparisonOperator exprOp = new POAnd(new OperatorKey(DEFAULT_SCOPE, nodeGen.getNextNodeId(DEFAULT_SCOPE)));
@@ -181,7 +183,7 @@ public class ExpToPhyTranslationVisitor extends LogicalExpressionVisitor {
     }
     
     @Override
-    public void visit( OrExpression op ) throws IOException {
+    public void visit( OrExpression op ) throws FrontendException {
         
 //        System.err.println("Entering Or");
         BinaryComparisonOperator exprOp = new POOr(new OperatorKey(DEFAULT_SCOPE, nodeGen.getNextNodeId(DEFAULT_SCOPE)));
@@ -190,7 +192,7 @@ public class ExpToPhyTranslationVisitor extends LogicalExpressionVisitor {
     }
     
     @Override
-    public void visit( EqualExpression op ) throws IOException {
+    public void visit( EqualExpression op ) throws FrontendException {
         
         BinaryComparisonOperator exprOp = new EqualToExpr(new OperatorKey(
                 DEFAULT_SCOPE, nodeGen.getNextNodeId(DEFAULT_SCOPE)));
@@ -199,7 +201,7 @@ public class ExpToPhyTranslationVisitor extends LogicalExpressionVisitor {
     }
     
     @Override
-    public void visit( NotEqualExpression op ) throws IOException {
+    public void visit( NotEqualExpression op ) throws FrontendException {
         
         BinaryComparisonOperator exprOp = new NotEqualToExpr(new OperatorKey(
                 DEFAULT_SCOPE, nodeGen.getNextNodeId(DEFAULT_SCOPE)));
@@ -208,7 +210,7 @@ public class ExpToPhyTranslationVisitor extends LogicalExpressionVisitor {
     }
     
     @Override
-    public void visit( GreaterThanExpression op ) throws IOException {
+    public void visit( GreaterThanExpression op ) throws FrontendException {
         
         BinaryComparisonOperator exprOp = new GreaterThanExpr(new OperatorKey(
                 DEFAULT_SCOPE, nodeGen.getNextNodeId(DEFAULT_SCOPE)));
@@ -217,7 +219,7 @@ public class ExpToPhyTranslationVisitor extends LogicalExpressionVisitor {
     }
     
     @Override
-    public void visit( GreaterThanEqualExpression op ) throws IOException {
+    public void visit( GreaterThanEqualExpression op ) throws FrontendException {
         
         BinaryComparisonOperator exprOp = new GTOrEqualToExpr(new OperatorKey(
                 DEFAULT_SCOPE, nodeGen.getNextNodeId(DEFAULT_SCOPE)));
@@ -226,7 +228,7 @@ public class ExpToPhyTranslationVisitor extends LogicalExpressionVisitor {
     }
     
     @Override
-    public void visit( LessThanExpression op ) throws IOException {
+    public void visit( LessThanExpression op ) throws FrontendException {
         
         BinaryComparisonOperator exprOp = new LessThanExpr(new OperatorKey(
                 DEFAULT_SCOPE, nodeGen.getNextNodeId(DEFAULT_SCOPE)));
@@ -236,7 +238,7 @@ public class ExpToPhyTranslationVisitor extends LogicalExpressionVisitor {
     
     
     @Override
-    public void visit( LessThanEqualExpression op ) throws IOException {
+    public void visit( LessThanEqualExpression op ) throws FrontendException {
         
         BinaryComparisonOperator exprOp = new LTOrEqualToExpr(new OperatorKey(
                 DEFAULT_SCOPE, nodeGen.getNextNodeId(DEFAULT_SCOPE)));
@@ -245,7 +247,7 @@ public class ExpToPhyTranslationVisitor extends LogicalExpressionVisitor {
     }
     
     @Override
-    public void visit(ProjectExpression op) throws IOException {
+    public void visit(ProjectExpression op) throws FrontendException {
         POProject exprOp;
        
         if(op.getAttachedRelationalOp() instanceof LOGenerate && op.getPlan().getSuccessors(op)==null &&
@@ -267,7 +269,7 @@ public class ExpToPhyTranslationVisitor extends LogicalExpressionVisitor {
     }
     
     @Override
-    public void visit( MapLookupExpression op ) throws IOException {
+    public void visit( MapLookupExpression op ) throws FrontendException {
         ExpressionOperator physOp = new POMapLookUp(new OperatorKey(DEFAULT_SCOPE,
                 nodeGen.getNextNodeId(DEFAULT_SCOPE)));
         ((POMapLookUp)physOp).setLookUpKey(op.getLookupKey() );
@@ -289,7 +291,7 @@ public class ExpToPhyTranslationVisitor extends LogicalExpressionVisitor {
     }
     
     @Override
-    public void visit(org.apache.pig.newplan.logical.expression.ConstantExpression op) throws IOException {
+    public void visit(org.apache.pig.newplan.logical.expression.ConstantExpression op) throws FrontendException {
         
 //        System.err.println("Entering Constant");
         ConstantExpression ce = new ConstantExpression(new OperatorKey(DEFAULT_SCOPE,
@@ -305,7 +307,7 @@ public class ExpToPhyTranslationVisitor extends LogicalExpressionVisitor {
     }
     
     @Override
-    public void visit( CastExpression op ) throws IOException {
+    public void visit( CastExpression op ) throws FrontendException {
         POCast pCast = new POCast(new OperatorKey(DEFAULT_SCOPE, nodeGen
                 .getNextNodeId(DEFAULT_SCOPE)));
 //        physOp.setAlias(op.getAlias());
@@ -318,7 +320,15 @@ public class ExpToPhyTranslationVisitor extends LogicalExpressionVisitor {
         pCast.setFieldSchema(new ResourceSchema.ResourceFieldSchema(Util.translateFieldSchema(op.getFieldSchema())));
         FuncSpec lfSpec = op.getFuncSpec();
         if(null != lfSpec) {
-            pCast.setFuncSpec(lfSpec);
+            try {
+                pCast.setFuncSpec(lfSpec);
+            } catch (IOException e) {
+                int errCode = 1053;
+                String msg = "Cannot resolve load function to use for casting" +
+                        " from " + DataType.findTypeName(op.getExpression().
+                                getType()) + " to " + DataType.findTypeName(op.getType());
+                throw new LogicalToPhysicalTranslatorException(msg, errCode, PigException.BUG, e);
+            }
         }
         try {
             currentPlan.connect(from, pCast);
@@ -330,7 +340,7 @@ public class ExpToPhyTranslationVisitor extends LogicalExpressionVisitor {
     }
     
     @Override
-    public void visit( NotExpression op ) throws IOException {
+    public void visit( NotExpression op ) throws FrontendException {
         
         PONot pNot = new PONot(new OperatorKey(DEFAULT_SCOPE, nodeGen
                 .getNextNodeId(DEFAULT_SCOPE)));
@@ -353,7 +363,7 @@ public class ExpToPhyTranslationVisitor extends LogicalExpressionVisitor {
     }
     
     @Override
-    public void visit( IsNullExpression op ) throws IOException {
+    public void visit( IsNullExpression op ) throws FrontendException {
         POIsNull pIsNull = new POIsNull(new OperatorKey(DEFAULT_SCOPE, nodeGen
                 .getNextNodeId(DEFAULT_SCOPE)));
 //        physOp.setAlias(op.getAlias());
@@ -375,7 +385,7 @@ public class ExpToPhyTranslationVisitor extends LogicalExpressionVisitor {
     }
 
     @Override
-    public void visit( NegativeExpression op ) throws IOException {
+    public void visit( NegativeExpression op ) throws FrontendException {
         PONegative pNegative = new PONegative(new OperatorKey(DEFAULT_SCOPE, nodeGen
                 .getNextNodeId(DEFAULT_SCOPE)));
 //        physOp.setAlias(op.getAlias());
@@ -395,49 +405,49 @@ public class ExpToPhyTranslationVisitor extends LogicalExpressionVisitor {
     }
     
     @Override
-    public void visit( AddExpression op ) throws IOException {        
+    public void visit( AddExpression op ) throws FrontendException {        
         BinaryExpressionOperator exprOp = new Add(new OperatorKey(DEFAULT_SCOPE, nodeGen.getNextNodeId(DEFAULT_SCOPE)));        
         
         attachBinaryExpressionOperator(op, exprOp);
     }
     
     @Override
-    public void visit( RegexExpression op ) throws IOException {        
+    public void visit( RegexExpression op ) throws FrontendException {        
         BinaryExpressionOperator exprOp = new PORegexp(new OperatorKey(DEFAULT_SCOPE, nodeGen.getNextNodeId(DEFAULT_SCOPE)));        
         
         attachBinaryExpressionOperator(op, exprOp);
     }
     
     @Override
-    public void visit( SubtractExpression op ) throws IOException {        
+    public void visit( SubtractExpression op ) throws FrontendException {        
         BinaryExpressionOperator exprOp = new Subtract(new OperatorKey(DEFAULT_SCOPE, nodeGen.getNextNodeId(DEFAULT_SCOPE)));        
         
         attachBinaryExpressionOperator(op, exprOp);
     }
     
     @Override
-    public void visit( MultiplyExpression op ) throws IOException {        
+    public void visit( MultiplyExpression op ) throws FrontendException {        
         BinaryExpressionOperator exprOp = new Multiply(new OperatorKey(DEFAULT_SCOPE, nodeGen.getNextNodeId(DEFAULT_SCOPE)));        
         
         attachBinaryExpressionOperator(op, exprOp);
     }
     
     @Override
-    public void visit( DivideExpression op ) throws IOException {        
+    public void visit( DivideExpression op ) throws FrontendException {        
         BinaryExpressionOperator exprOp = new Divide(new OperatorKey(DEFAULT_SCOPE, nodeGen.getNextNodeId(DEFAULT_SCOPE)));        
         
         attachBinaryExpressionOperator(op, exprOp);
     }
     
     @Override
-    public void visit( ModExpression op ) throws IOException {        
+    public void visit( ModExpression op ) throws FrontendException {        
         BinaryExpressionOperator exprOp = new Mod(new OperatorKey(DEFAULT_SCOPE, nodeGen.getNextNodeId(DEFAULT_SCOPE)));        
         
         attachBinaryExpressionOperator(op, exprOp);
     }
     
     @Override
-    public void visit( BinCondExpression op ) throws IOException {
+    public void visit( BinCondExpression op ) throws FrontendException {
         
         POBinCond exprOp = new POBinCond( new OperatorKey(DEFAULT_SCOPE,
                 nodeGen.getNextNodeId(DEFAULT_SCOPE)) );
@@ -469,7 +479,7 @@ public class ExpToPhyTranslationVisitor extends LogicalExpressionVisitor {
     
     @SuppressWarnings("unchecked")
     @Override
-    public void visit( UserFuncExpression op ) throws IOException {       
+    public void visit( UserFuncExpression op ) throws FrontendException {       
         Object f = PigContext.instantiateFuncFromSpec(op.getFuncSpec());
         PhysicalOperator p;
         if (f instanceof EvalFunc) {
@@ -500,7 +510,7 @@ public class ExpToPhyTranslationVisitor extends LogicalExpressionVisitor {
     }
     
     @Override
-    public void visit( DereferenceExpression op ) throws IOException {
+    public void visit( DereferenceExpression op ) throws FrontendException {
         POProject exprOp = new POProject(new OperatorKey(DEFAULT_SCOPE, nodeGen
                 .getNextNodeId(DEFAULT_SCOPE)));
 

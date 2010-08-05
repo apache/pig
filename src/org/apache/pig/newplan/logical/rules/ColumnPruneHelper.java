@@ -17,7 +17,6 @@
  */
 package org.apache.pig.newplan.logical.rules;
 
-import java.io.IOException;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -26,6 +25,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.pig.data.DataType;
+import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.OperatorPlan;
 import org.apache.pig.newplan.OperatorSubPlan;
@@ -73,7 +73,7 @@ public class ColumnPruneHelper {
         this.currentPlan = currentPlan;
     }    
     
-    private OperatorSubPlan getSubPlan() throws IOException {
+    private OperatorSubPlan getSubPlan() throws FrontendException {
         OperatorSubPlan p = null;
         if (currentPlan instanceof OperatorSubPlan) {
             p = new OperatorSubPlan(((OperatorSubPlan)currentPlan).getBasePlan());
@@ -92,7 +92,7 @@ public class ColumnPruneHelper {
         return p;
     }
     
-    private void addOperator(Operator op, OperatorSubPlan subplan) throws IOException {
+    private void addOperator(Operator op, OperatorSubPlan subplan) throws FrontendException {
         if (op == null) {
             return;
         }
@@ -111,7 +111,7 @@ public class ColumnPruneHelper {
     
         
     @SuppressWarnings("unchecked")
-    public boolean check() throws IOException {
+    public boolean check() throws FrontendException {
         List<Operator> sources = currentPlan.getSources();
         // if this rule has run before, just return false
         if (sources.get(0).getAnnotation(INPUTUIDS) != null) {
@@ -151,7 +151,7 @@ public class ColumnPruneHelper {
     }
 
     // get a set of column indexes from a set of uids
-    protected Set<Integer> getColumns(LogicalSchema schema, Set<Long> uids) throws IOException {
+    protected Set<Integer> getColumns(LogicalSchema schema, Set<Long> uids) throws FrontendException {
         if (schema == null) {
             throw new SchemaNotDefinedException("Schema is not defined.");
         }
@@ -162,7 +162,7 @@ public class ColumnPruneHelper {
             long uid = iter.next();
             int index = schema.findField(uid);
             if (index == -1) {
-                throw new IOException("UID " + uid + " is not found in the schema");
+                throw new FrontendException("UID " + uid + " is not found in the schema " + schema, 2241);
             }
               
             cols.add(index);
@@ -182,12 +182,12 @@ public class ColumnPruneHelper {
     // that have their own schema.
     static private class ColumnDependencyVisitor extends LogicalRelationalNodesVisitor {    	
         
-        public ColumnDependencyVisitor(OperatorPlan plan) {
+        public ColumnDependencyVisitor(OperatorPlan plan) throws FrontendException {
             super(plan, new ReverseDependencyOrderWalker(plan));            
         }
         
         @Override
-        public void visit(LOLoad load) throws IOException {
+        public void visit(LOLoad load) throws FrontendException {
             Set<Long> output = setOutputUids(load);
             
             // for load, input uids are same as output uids
@@ -195,7 +195,7 @@ public class ColumnPruneHelper {
         }
 
         @Override
-        public void visit(LOFilter filter) throws IOException {
+        public void visit(LOFilter filter) throws FrontendException {
             Set<Long> output = setOutputUids(filter);
             
             // the input uids contains all the output uids and
@@ -209,7 +209,7 @@ public class ColumnPruneHelper {
         }
         
         @Override
-        public void visit(LOStore store) throws IOException {
+        public void visit(LOStore store) throws FrontendException {
             Set<Long> output = setOutputUids(store);            
             
             if (output.isEmpty()) {
@@ -229,7 +229,7 @@ public class ColumnPruneHelper {
         }
         
         @Override
-        public void visit(LOJoin join) throws IOException {
+        public void visit(LOJoin join) throws FrontendException {
             Set<Long> output = setOutputUids(join);
             
             // the input uids contains all the output uids and
@@ -247,7 +247,7 @@ public class ColumnPruneHelper {
         }
         
         @Override
-        public void visit(LOCogroup cg) throws IOException {
+        public void visit(LOCogroup cg) throws FrontendException {
             Set<Long> output = setOutputUids(cg);
             
             // the input uids contains all the output uids and
@@ -278,13 +278,13 @@ public class ColumnPruneHelper {
         }
         
         @Override
-        public void visit(LOLimit limit) throws IOException {
+        public void visit(LOLimit limit) throws FrontendException {
             Set<Long> output = setOutputUids(limit);
             limit.annotate(INPUTUIDS, output);
         }
         
         @Override
-        public void visit(LOStream stream) throws IOException {
+        public void visit(LOStream stream) throws FrontendException {
             Set<Long> input = new HashSet<Long>();
             
             // Every field is required
@@ -300,7 +300,7 @@ public class ColumnPruneHelper {
         }
         
         @Override
-        public void visit(LODistinct distinct) throws IOException {
+        public void visit(LODistinct distinct) throws FrontendException {
             Set<Long> input = new HashSet<Long>();
             
             // Every field is required
@@ -316,7 +316,7 @@ public class ColumnPruneHelper {
         }
         
         @Override
-        public void visit(LOCross cross) throws IOException {
+        public void visit(LOCross cross) throws FrontendException {
             Set<Long> output = setOutputUids(cross);
             // Since we do not change the topology of the plan, we keep
             // at least one input for each predecessor.
@@ -336,7 +336,7 @@ public class ColumnPruneHelper {
         }
         
         @Override
-        public void visit(LOUnion union) throws IOException {
+        public void visit(LOUnion union) throws FrontendException {
             Set<Long> output = setOutputUids(union);
             Set<Long> input = new HashSet<Long>();
             for (long uid : output) {
@@ -346,13 +346,13 @@ public class ColumnPruneHelper {
         }
         
         @Override
-        public void visit(LOSplit split) throws IOException {
+        public void visit(LOSplit split) throws FrontendException {
             Set<Long> output = setOutputUids(split);
             split.annotate(INPUTUIDS, output);
         }
         
         @Override
-        public void visit(LOSplitOutput splitOutput) throws IOException {
+        public void visit(LOSplitOutput splitOutput) throws FrontendException {
             Set<Long> output = setOutputUids(splitOutput);
             
             // the input uids contains all the output uids and
@@ -366,7 +366,7 @@ public class ColumnPruneHelper {
         }
         
         @Override
-        public void visit(LOSort sort) throws IOException {
+        public void visit(LOSort sort) throws FrontendException {
             Set<Long> output = setOutputUids(sort);
             
             Set<Long> input = new HashSet<Long>(output);
@@ -399,7 +399,7 @@ public class ColumnPruneHelper {
         }
         
         @Override
-        public void visit(LOForEach foreach) throws IOException {
+        public void visit(LOForEach foreach) throws FrontendException {
             Set<Long> output = setOutputUids(foreach);
             
             LogicalPlan innerPlan = foreach.getInnerPlan();
@@ -413,7 +413,7 @@ public class ColumnPruneHelper {
 
         @Override
         @SuppressWarnings("unchecked")
-        public void visit(LOGenerate gen) throws IOException {
+        public void visit(LOGenerate gen) throws FrontendException {
              Set<Long> output = (Set<Long>)gen.getAnnotation(OUTPUTUIDS);
              
              Set<Long> input = new HashSet<Long>();
@@ -507,12 +507,12 @@ public class ColumnPruneHelper {
         }
         
         @Override
-        public void visit(LOInnerLoad load) throws IOException {
+        public void visit(LOInnerLoad load) throws FrontendException {
             Set<Long> output = setOutputUids(load);
             load.annotate(INPUTUIDS, output);
         }
         
-        private void collectUids(LogicalRelationalOperator currentOp, LogicalExpressionPlan exp, Set<Long> uids) throws IOException {
+        private void collectUids(LogicalRelationalOperator currentOp, LogicalExpressionPlan exp, Set<Long> uids) throws FrontendException {
             List<Operator> ll = exp.getSinks();
             for(Operator op: ll) {
                 if (op instanceof ProjectExpression) {
@@ -534,7 +534,7 @@ public class ColumnPruneHelper {
         }
         
         @SuppressWarnings("unchecked")
-        private Set<Long> setOutputUids(LogicalRelationalOperator op) throws IOException {
+        private Set<Long> setOutputUids(LogicalRelationalOperator op) throws FrontendException {
             
             List<Operator> ll = plan.getSuccessors(op);
             Set<Long> uids = new HashSet<Long>();

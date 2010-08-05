@@ -17,7 +17,6 @@
  */
 package org.apache.pig.newplan.logical.rules;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -64,7 +63,7 @@ public class ColumnPruneVisitor extends LogicalRelationalNodesVisitor {
     private boolean columnPrune;
 
     public ColumnPruneVisitor(OperatorPlan plan, Map<LOLoad,Pair<Map<Integer,Set<String>>,Set<Integer>>> requiredItems,
-            boolean columnPrune) {
+            boolean columnPrune) throws FrontendException {
         super(plan, new ReverseDependencyOrderWalker(plan));
         this.columnPrune = columnPrune;
         this.requiredItems = requiredItems;
@@ -75,7 +74,7 @@ public class ColumnPruneVisitor extends LogicalRelationalNodesVisitor {
     }
     
     @Override
-    public void visit(LOLoad load) throws IOException {
+    public void visit(LOLoad load) throws FrontendException {
         if(! requiredItems.containsKey( load ) ) {
             return;
         }
@@ -192,37 +191,37 @@ public class ColumnPruneVisitor extends LogicalRelationalNodesVisitor {
     }
 
     @Override
-    public void visit(LOFilter filter) throws IOException {
+    public void visit(LOFilter filter) throws FrontendException {
     }
     
     @Override
-    public void visit(LOSplitOutput splitOutput) throws IOException {
+    public void visit(LOSplitOutput splitOutput) throws FrontendException {
     }
     
     @Override
-    public void visit(LOSort sort) throws IOException {
+    public void visit(LOSort sort) throws FrontendException {
     }
     
     @Override
-    public void visit(LOStore store) throws IOException {
+    public void visit(LOStore store) throws FrontendException {
     }
     
     @Override
-    public void visit( LOCogroup cg ) throws IOException {
+    public void visit( LOCogroup cg ) throws FrontendException {
         addForEachIfNecessary(cg);
     }
     
     @Override
-    public void visit(LOJoin join) throws IOException {
+    public void visit(LOJoin join) throws FrontendException {
     }
     
     @Override
-    public void visit(LOCross cross) throws IOException {
+    public void visit(LOCross cross) throws FrontendException {
     }
     
     @Override
     @SuppressWarnings("unchecked")
-    public void visit(LOForEach foreach) throws IOException {
+    public void visit(LOForEach foreach) throws FrontendException {
         if (!columnPrune) {
             return;
         }
@@ -355,7 +354,7 @@ public class ColumnPruneVisitor extends LogicalRelationalNodesVisitor {
     }
     
     @Override
-    public void visit(LOUnion union) throws IOException {
+    public void visit(LOUnion union) throws FrontendException {
         // AddForEach before union if necessary.
         List<Operator> preds = new ArrayList<Operator>();
         preds.addAll(plan.getPredecessors(union));
@@ -366,7 +365,7 @@ public class ColumnPruneVisitor extends LogicalRelationalNodesVisitor {
     }
     
     // remove all the operators starting from an operator
-    private void removeSubTree(LogicalRelationalOperator op) throws IOException {
+    private void removeSubTree(LogicalRelationalOperator op) throws FrontendException {
         LogicalPlan p = (LogicalPlan)op.getPlan();
         List<Operator> ll = p.getPredecessors(op);
         if (ll != null) {
@@ -387,7 +386,7 @@ public class ColumnPruneVisitor extends LogicalRelationalNodesVisitor {
 
     // Add ForEach after op to prune unnecessary columns
     @SuppressWarnings("unchecked")
-    private void addForEachIfNecessary(LogicalRelationalOperator op) throws IOException {
+    private void addForEachIfNecessary(LogicalRelationalOperator op) throws FrontendException {
         Set<Long> outputUids = (Set<Long>)op.getAnnotation(ColumnPruneHelper.OUTPUTUIDS);
         LogicalSchema schema = op.getSchema();
         Set<Integer> columnsToDrop = new HashSet<Integer>();

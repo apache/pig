@@ -18,7 +18,7 @@
 
 package org.apache.pig.newplan;
 
-import java.io.IOException;
+import org.apache.pig.impl.logicalLayer.FrontendException;
 
 public abstract class PlanWalker {
 
@@ -38,7 +38,7 @@ public abstract class PlanWalker {
      * not yet have a 'this' pointer to send as an argument.
      * @throws VisitorException if an error is encountered while walking.
      */
-    public abstract void walk(PlanVisitor visitor) throws IOException;
+    public abstract void walk(PlanVisitor visitor) throws FrontendException;
 
     /**
      * Return a new instance of this same type of walker for a subplan.

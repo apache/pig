@@ -49,6 +49,7 @@ import org.apache.pig.classification.InterfaceStability;
 import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.PlanVisitor;
 import org.apache.pig.impl.io.FileSpec;
+import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.tools.pigstats.PigStats.JobGraph;
 import org.apache.pig.tools.pigstats.PigStats.JobGraphPrinter;
@@ -215,7 +216,7 @@ public final class JobStats extends Operator {
     }
     
     @Override
-    public void accept(PlanVisitor v) throws IOException {
+    public void accept(PlanVisitor v) throws FrontendException {
         if (v instanceof JobGraphPrinter) {
             JobGraphPrinter jpp = (JobGraphPrinter)v;
             jpp.visit(this);

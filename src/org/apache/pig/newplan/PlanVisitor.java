@@ -18,10 +18,9 @@
 
 package org.apache.pig.newplan;
 
-import java.io.IOException;
 import java.util.Stack;
 
-import org.apache.pig.impl.plan.VisitorException;
+import org.apache.pig.impl.logicalLayer.FrontendException;
 
 /**
  * A visitor mechanism for navigating and operating on a plan of 
@@ -47,7 +46,7 @@ public abstract class PlanVisitor {
      * Entry point for visiting the plan.
      * @throws VisitorException if an error is encountered while visiting.
      */
-    public void visit() throws IOException {
+    public void visit() throws FrontendException {
         currentWalker.walk(this);
     }
 
@@ -81,9 +80,9 @@ public abstract class PlanVisitor {
      * @throws VisitorException if there are no more walkers on the stack.  In
      * this case the current walker is not reset.
      */
-    protected void popWalker() throws VisitorException {
+    protected void popWalker() throws FrontendException {
         if (walkers.empty()) {
-            throw new VisitorException("No more walkers to pop.");
+            throw new FrontendException("No more walkers to pop.", 2221);
         }
         currentWalker = walkers.pop();
     }

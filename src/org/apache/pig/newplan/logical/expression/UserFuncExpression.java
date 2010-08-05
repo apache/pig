@@ -18,7 +18,6 @@
 
 package org.apache.pig.newplan.logical.expression;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -26,6 +25,7 @@ import org.apache.pig.EvalFunc;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.data.DataType;
 import org.apache.pig.impl.PigContext;
+import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.OperatorPlan;
@@ -48,15 +48,15 @@ public class UserFuncExpression extends LogicalExpression {
     }
     
     @Override
-    public void accept(PlanVisitor v) throws IOException {
+    public void accept(PlanVisitor v) throws FrontendException {
         if (!(v instanceof LogicalExpressionVisitor)) {
-            throw new IOException("Expected LogicalExpressionVisitor");
+            throw new FrontendException("Expected LogicalExpressionVisitor", 2222);
         }
         ((LogicalExpressionVisitor)v).visit(this);
     }
 
     @Override
-    public boolean isEqual(Operator other) {
+    public boolean isEqual(Operator other) throws FrontendException {
         if( other instanceof UserFuncExpression ) {
             UserFuncExpression exp = (UserFuncExpression)other;
             return plan.isEqual(exp.plan) && mFuncSpec.equals(exp.mFuncSpec );
@@ -65,10 +65,10 @@ public class UserFuncExpression extends LogicalExpression {
         }
     }
 
-    public List<LogicalExpression> getArguments() {
+    public List<LogicalExpression> getArguments() throws FrontendException {
         List<Operator> successors = null;
         List<LogicalExpression> args = new ArrayList<LogicalExpression>();
-        try {
+//        try {
             successors = plan.getSuccessors(this);
 
             if(successors == null)
@@ -77,9 +77,9 @@ public class UserFuncExpression extends LogicalExpression {
             for(Operator lo : successors){
                 args.add((LogicalExpression)lo);
             }
-        } catch (IOException e) {
-           return args;
-        }
+//        } catch (FrontendException e) {
+//           return args;
+//        }
         return args;
     }
 
@@ -91,7 +91,7 @@ public class UserFuncExpression extends LogicalExpression {
     }
     
     @Override
-    public LogicalSchema.LogicalFieldSchema getFieldSchema() throws IOException {
+    public LogicalSchema.LogicalFieldSchema getFieldSchema() throws FrontendException {
         if (fieldSchema!=null)
             return fieldSchema;
         LogicalSchema inputSchema = new LogicalSchema();

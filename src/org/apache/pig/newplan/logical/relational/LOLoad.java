@@ -18,7 +18,6 @@
 
 package org.apache.pig.newplan.logical.relational;
 
-import java.io.IOException;
 import java.util.List;
 
 import org.apache.hadoop.conf.Configuration;
@@ -26,6 +25,7 @@ import org.apache.pig.LoadFunc;
 import org.apache.pig.data.DataType;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileSpec;
+import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.PlanVisitor;
 
@@ -54,7 +54,7 @@ public class LOLoad extends LogicalRelationalOperator {
        this.conf = conf;
     }
     
-    public LoadFunc getLoadFunc() {
+    public LoadFunc getLoadFunc() throws FrontendException {
         try { 
             if (loadFunc == null) {
                 loadFunc = (LoadFunc)PigContext.instantiateFuncFromSpec(fs.getFuncSpec());
@@ -63,7 +63,7 @@ public class LOLoad extends LogicalRelationalOperator {
             
             return loadFunc;
         }catch (ClassCastException cce) {
-            throw new RuntimeException(fs.getFuncSpec() + " should implement the LoadFunc interface.");    		
+            throw new FrontendException(fs.getFuncSpec() + " should implement the LoadFunc interface.", 2236);    		
         }
     }
     
@@ -83,7 +83,7 @@ public class LOLoad extends LogicalRelationalOperator {
      * @return schema, or null if unknown
      */
     @Override
-    public LogicalSchema getSchema() {
+    public LogicalSchema getSchema() throws FrontendException {
         if (schema != null)
             return schema;
         
@@ -113,11 +113,7 @@ public class LOLoad extends LogicalRelationalOperator {
         }
         
         if (originalSchema!=null) {
-            try {
-                uidOnlySchema = originalSchema.mergeUid(uidOnlySchema);
-            } catch (IOException e) {
-                //TODO Exception
-            }
+            uidOnlySchema = originalSchema.mergeUid(uidOnlySchema);
         }
         
         if (requiredFields!=null) {
@@ -141,9 +137,9 @@ public class LOLoad extends LogicalRelationalOperator {
     }
     
     @Override
-    public void accept(PlanVisitor v) throws IOException {
+    public void accept(PlanVisitor v) throws FrontendException {
         if (!(v instanceof LogicalRelationalNodesVisitor)) {
-            throw new IOException("Expected LogicalPlanVisitor");
+            throw new FrontendException("Expected LogicalPlanVisitor", 2223);
         }
         ((LogicalRelationalNodesVisitor)v).visit(this);
 
@@ -154,7 +150,7 @@ public class LOLoad extends LogicalRelationalOperator {
     }
     
     @Override
-    public boolean isEqual(Operator other) {
+    public boolean isEqual(Operator other) throws FrontendException {
         if (other != null && other instanceof LOLoad) {
             LOLoad ol = (LOLoad)other;
             if (!checkEquality(ol)) return false;

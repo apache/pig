@@ -18,10 +18,10 @@
 
 package org.apache.pig.newplan;
 
-import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
 
+import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.util.Pair;
 
 public interface OperatorPlan {
@@ -51,18 +51,16 @@ public interface OperatorPlan {
      * @param op operator to fetch predecessors of
      * @return list of all operators immediately before op, or an empty list
      * if op is a root.
-     * @throws IOException if op is not in the plan.
      */
-    public List<Operator> getPredecessors(Operator op) throws IOException;
+    public List<Operator> getPredecessors(Operator op);
     
     /**
      * For a given operator, get all operators immediately after it.
      * @param op operator to fetch successors of
      * @return list of all operators immediately after op, or an empty list
      * if op is a leaf.
-     * @throws IOException if op is not in the plan.
      */
-    public List<Operator> getSuccessors(Operator op) throws IOException;
+    public List<Operator> getSuccessors(Operator op);
 
     /**
      * Add a new operator to the plan.  It will not be connected to any
@@ -74,10 +72,10 @@ public interface OperatorPlan {
     /**
      * Remove an operator from the plan.
      * @param op Operator to be removed
-     * @throws IOException if the remove operation attempts to 
+     * @throws FrontendException if the remove operation attempts to 
      * remove an operator that is still connected to other operators.
      */
-    public void remove(Operator op) throws IOException;
+    public void remove(Operator op) throws FrontendException;
     
     /**
      * Connect two operators in the plan, controlling which position in the
@@ -102,9 +100,9 @@ public interface OperatorPlan {
      * @param to Operator edge is going to
      * @return pair of positions, indicating the position in the from and
      * to arrays.
-     * @throws IOException if the two operators aren't connected.
+     * @throws FrontendException if the two operators aren't connected.
      */
-    public Pair<Integer, Integer> disconnect(Operator from, Operator to) throws IOException;
+    public Pair<Integer, Integer> disconnect(Operator from, Operator to) throws FrontendException;
 
 
     /**
@@ -119,6 +117,7 @@ public interface OperatorPlan {
      * structure.
      * @param other  object to compare
      * @return boolean if both the plans are equivalent
+     * @throws FrontendException
      */
-    public boolean isEqual( OperatorPlan other );
+    public boolean isEqual( OperatorPlan other ) throws FrontendException;
 }

@@ -17,11 +17,11 @@
  */
 package org.apache.pig.newplan.logical.rules;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
+import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.util.Pair;
 import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.OperatorPlan;
@@ -45,7 +45,7 @@ import org.apache.pig.newplan.optimizer.Transformer;
 public class FilterAboveForeach extends Rule {
 
     public FilterAboveForeach(String n) {
-        super(n);
+        super(n, false);
     }
 
     @Override
@@ -76,7 +76,7 @@ public class FilterAboveForeach extends Rule {
         OperatorSubPlan subPlan = null;
         
         @Override
-        public boolean check(OperatorPlan matched) throws IOException {
+        public boolean check(OperatorPlan matched) throws FrontendException {
             Iterator<Operator> iter = matched.getOperators();
             while( iter.hasNext() ) {
                 Operator op = iter.next();
@@ -131,7 +131,7 @@ public class FilterAboveForeach extends Rule {
          * @param filter
          * @return Set of uid
          */
-        private Pair<List<Long>, List<Byte>> getFilterProjectionUids(LOFilter filter) throws IOException {
+        private Pair<List<Long>, List<Byte>> getFilterProjectionUids(LOFilter filter) throws FrontendException {
             List<Long> uids = new ArrayList<Long>();
             List<Byte> types = new ArrayList<Byte>();
             if( filter != null ) {
@@ -157,7 +157,7 @@ public class FilterAboveForeach extends Rule {
          * @return true if given LogicalRelationalOperator has all the given uids
          */
         private boolean hasAll(LogicalRelationalOperator op, Pair<List<Long>, 
-                List<Byte>> uidWithTypes) {
+                List<Byte>> uidWithTypes) throws FrontendException {
             LogicalSchema schema = op.getSchema();
             
             if (schema==null)
@@ -184,7 +184,7 @@ public class FilterAboveForeach extends Rule {
         }
 
         @Override
-        public void transform(OperatorPlan matched) throws IOException {
+        public void transform(OperatorPlan matched) throws FrontendException {
             
             List<Operator> opSet = currentPlan.getPredecessors(filter);
             if( ! ( opSet != null && opSet.size() > 0 ) ) {

@@ -18,9 +18,9 @@
 
 package org.apache.pig.test;
 
-import java.io.IOException;
 import java.util.*;
 import org.apache.pig.data.DataType;
+import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.util.MultiMap;
 import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.OperatorPlan;
@@ -482,7 +482,7 @@ public class TestNewPlanFilterRule extends TestCase {
 
         @Override
         public void transformed(OperatorPlan fp, OperatorPlan tp)
-                throws IOException {
+                throws FrontendException {
             this.tp = tp;
         }
         

@@ -18,8 +18,7 @@
 
 package org.apache.pig.newplan.logical.optimizer;
 
-import java.io.IOException;
-
+import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.newplan.OperatorPlan;
 import org.apache.pig.newplan.PlanWalker;
 import org.apache.pig.newplan.logical.relational.LOCogroup;
@@ -50,7 +49,7 @@ public abstract class AllSameRalationalNodesVisitor extends LogicalRelationalNod
      * @param plan OperatorPlan to visit
      * @param walker Walker to use to visit the plan
      */
-    public AllSameRalationalNodesVisitor(OperatorPlan plan, PlanWalker walker) {
+    public AllSameRalationalNodesVisitor(OperatorPlan plan, PlanWalker walker) throws FrontendException {
         super(plan, walker);
     }
     
@@ -58,70 +57,70 @@ public abstract class AllSameRalationalNodesVisitor extends LogicalRelationalNod
      * Method to call on every node in the logical plan.
      * @param op Node that is currently being visited.
      */
-    abstract protected void execute(LogicalRelationalOperator op) throws IOException;
+    abstract protected void execute(LogicalRelationalOperator op) throws FrontendException;
     
     @Override
-    public void visit(LOFilter filter) throws IOException {
+    public void visit(LOFilter filter) throws FrontendException {
         execute(filter);
     }
 
     @Override
-    public void visit(LOJoin join) throws IOException {
+    public void visit(LOJoin join) throws FrontendException {
         execute(join);
     }
 
     @Override
-    public void visit(LOCogroup cg) throws IOException {
+    public void visit(LOCogroup cg) throws FrontendException {
         execute(cg);
     }
 
     @Override
-    public void visit(LOLoad load) throws IOException {
+    public void visit(LOLoad load) throws FrontendException {
         execute(load);
     }
     
     @Override
-    public void visit(LOStore store) throws IOException {
+    public void visit(LOStore store) throws FrontendException {
         execute(store);
     }
     
     @Override
-    public void visit(LOForEach foreach) throws IOException {
+    public void visit(LOForEach foreach) throws FrontendException {
         execute(foreach);
     }
     
     @Override
-    public void visit(LOSplit split) throws IOException {
+    public void visit(LOSplit split) throws FrontendException {
         execute(split);
     }
     
     @Override
-    public void visit(LOSplitOutput splitOutput) throws IOException {
+    public void visit(LOSplitOutput splitOutput) throws FrontendException {
         execute(splitOutput);
     }
     
     @Override
-    public void visit(LOUnion union) throws IOException {
+    public void visit(LOUnion union) throws FrontendException {
         execute(union);
     }
     
     @Override
-    public void visit(LOSort sort) throws IOException {
+    public void visit(LOSort sort) throws FrontendException {
         execute(sort);
     }
     
     @Override
-    public void visit(LODistinct distinct) throws IOException {
+    public void visit(LODistinct distinct) throws FrontendException {
         execute(distinct);
     }
     
     @Override
-    public void visit(LOCross cross) throws IOException {
+    public void visit(LOCross cross) throws FrontendException {
         execute(cross);
     }
     
     @Override
-    public void visit(LOStream stream) throws IOException {
+    public void visit(LOStream stream) throws FrontendException {
         execute(stream);
     }
 }

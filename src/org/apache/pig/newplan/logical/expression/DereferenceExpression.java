@@ -18,11 +18,11 @@
 
 package org.apache.pig.newplan.logical.expression;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.pig.data.DataType;
+import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.OperatorPlan;
 import org.apache.pig.newplan.PlanVisitor;
@@ -67,9 +67,9 @@ public class DereferenceExpression extends ColumnExpression {
      * @link org.apache.pig.experimental.plan.Operator#accept(org.apache.pig.experimental.plan.PlanVisitor)
      */
     @Override
-    public void accept(PlanVisitor v) throws IOException {
+    public void accept(PlanVisitor v) throws FrontendException {
         if (!(v instanceof LogicalExpressionVisitor)) {
-            throw new IOException("Expected LogicalExpressionVisitor");
+            throw new FrontendException("Expected LogicalExpressionVisitor", 2222);
         }
         ((LogicalExpressionVisitor)v).visit(this);
     }
@@ -83,53 +83,45 @@ public class DereferenceExpression extends ColumnExpression {
     }
     
     @Override
-    public boolean isEqual(Operator other) {
+    public boolean isEqual(Operator other) throws FrontendException {
         if (other != null && other instanceof DereferenceExpression) {
             DereferenceExpression po = (DereferenceExpression)other;
-            try {
-                if( po.columns.size() != columns.size() ) {
-                    return false;
-                }
-                return po.columns.containsAll(columns) && getReferredExpression().isEqual(po.getReferredExpression());
-            } catch (IOException e) {
+            if( po.columns.size() != columns.size() ) {
                 return false;
             }
+            return po.columns.containsAll(columns) && getReferredExpression().isEqual(po.getReferredExpression());
         } else {
             return false;
         }
     }
     
-    public LogicalExpression getReferredExpression() throws IOException {
+    public LogicalExpression getReferredExpression() throws FrontendException {
         if( plan.getSuccessors(this).size() < 1 ) {
-            throw new IOException("Could not find a related project Expression for Dereference");
+            throw new FrontendException("Could not find a related project Expression for Dereference", 2228);
         }
         return (LogicalExpression) plan.getSuccessors(this).get(0);
     }
     
     public String toString() {
         StringBuilder msg = new StringBuilder();
-        try {
-            msg.append("(Name: " + name + " Type: ");
-            if (fieldSchema!=null)
-                msg.append(DataType.findTypeName(getFieldSchema().type));
-            else
-                msg.append("null");
-            msg.append(" Uid: ");
-            if (fieldSchema!=null)
-                msg.append(getFieldSchema().uid);
-            else
-                msg.append("null");
-            msg.append(" Column:" + columns);
-            msg.append(")");
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        msg.append("(Name: " + name + " Type: ");
+        if (fieldSchema!=null)
+            msg.append(DataType.findTypeName(fieldSchema.type));
+        else
+            msg.append("null");
+        msg.append(" Uid: ");
+        if (fieldSchema!=null)
+            msg.append(fieldSchema.uid);
+        else
+            msg.append("null");
+        msg.append(" Column:" + columns);
+        msg.append(")");
 
         return msg.toString();
     }
     
     @Override
-    public LogicalSchema.LogicalFieldSchema getFieldSchema() throws IOException {
+    public LogicalSchema.LogicalFieldSchema getFieldSchema() throws FrontendException {
         if (fieldSchema!=null)
             return fieldSchema;
         LogicalExpression successor = (LogicalExpression)plan.getSuccessors(this).get(0);

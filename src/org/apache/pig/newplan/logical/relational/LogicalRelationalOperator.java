@@ -20,6 +20,7 @@ package org.apache.pig.newplan.logical.relational;
 
 import java.util.Map;
 
+import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.OperatorPlan;
 
@@ -62,8 +63,9 @@ abstract public class LogicalRelationalOperator extends Operator {
      * will attempt to construct it.  Therefore it is abstract since each
      * operator will need to construct its schema differently.
      * @return the schema
+     * @throws FrontendException
      */
-    abstract public LogicalSchema getSchema();
+    abstract public LogicalSchema getSchema() throws FrontendException;
     
     public void setSchema(LogicalSchema schema) {
         this.schema = schema;
@@ -132,8 +134,9 @@ abstract public class LogicalRelationalOperator extends Operator {
      * @param other LogicalRelationalOperator to compare predecessors against
      * @return true if the isEquals() methods of this node's predecessor(s) returns
      * true when invoked with other's predecessor(s).
+     * @throws FrontendException
      */
-    protected boolean checkEquality(LogicalRelationalOperator other) {
+    protected boolean checkEquality(LogicalRelationalOperator other) throws FrontendException {
         if (other == null) return false;
         LogicalSchema s = getSchema();
         LogicalSchema os = other.getSchema();

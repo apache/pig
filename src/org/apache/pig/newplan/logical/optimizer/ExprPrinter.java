@@ -17,9 +17,9 @@
  */
 package org.apache.pig.newplan.logical.optimizer;
 
-import java.io.IOException;
 import java.io.PrintStream;
 
+import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.newplan.DepthFirstMemoryWalker;
 import org.apache.pig.newplan.OperatorPlan;
 import org.apache.pig.newplan.logical.expression.AddExpression;
@@ -53,12 +53,12 @@ public class ExprPrinter extends LogicalExpressionVisitor {
 
     protected PrintStream stream = null;
     
-    public ExprPrinter(OperatorPlan plan, int startingLevel, PrintStream ps) {
+    public ExprPrinter(OperatorPlan plan, int startingLevel, PrintStream ps) throws FrontendException {
         super(plan, new DepthFirstMemoryWalker(plan, startingLevel));
         stream = ps;
     }
     
-    public ExprPrinter(OperatorPlan plan, PrintStream ps) {
+    public ExprPrinter(OperatorPlan plan, PrintStream ps) throws FrontendException {
         super(plan, new DepthFirstMemoryWalker(plan, 0));
         stream = ps;
     }
@@ -69,122 +69,122 @@ public class ExprPrinter extends LogicalExpressionVisitor {
     }
 
     @Override
-    public void visit(AndExpression exp) throws IOException {
+    public void visit(AndExpression exp) throws FrontendException {
         simplevisit(exp);
     }
 
     @Override
-    public void visit(OrExpression exp) throws IOException {
+    public void visit(OrExpression exp) throws FrontendException {
         simplevisit(exp);
     }
 
     @Override
-    public void visit(EqualExpression exp) throws IOException {
+    public void visit(EqualExpression exp) throws FrontendException {
         simplevisit(exp);
     }
 
     @Override
-    public void visit(ProjectExpression exp) throws IOException {
+    public void visit(ProjectExpression exp) throws FrontendException {
         simplevisit(exp);
     }
     
     @Override
-    public void visit(MapLookupExpression exp) throws IOException {
+    public void visit(MapLookupExpression exp) throws FrontendException {
         simplevisit(exp);
     }
 
     @Override
-    public void visit(ConstantExpression exp) throws IOException {
+    public void visit(ConstantExpression exp) throws FrontendException {
         simplevisit(exp);
     }
 
     @Override
-    public void visit(CastExpression exp) throws IOException {
+    public void visit(CastExpression exp) throws FrontendException {
         simplevisit(exp);
     }
 
     @Override
-    public void visit(GreaterThanExpression exp) throws IOException {
+    public void visit(GreaterThanExpression exp) throws FrontendException {
         simplevisit(exp);
     }
 
     @Override
-    public void visit(GreaterThanEqualExpression exp) throws IOException {
+    public void visit(GreaterThanEqualExpression exp) throws FrontendException {
         simplevisit(exp);
     }
 
     @Override
-    public void visit(LessThanExpression exp) throws IOException {
+    public void visit(LessThanExpression exp) throws FrontendException {
         simplevisit(exp);
     }
 
     @Override
-    public void visit(LessThanEqualExpression exp) throws IOException {
+    public void visit(LessThanEqualExpression exp) throws FrontendException {
         simplevisit(exp);
     }
     
     @Override
-    public void visit(NotEqualExpression exp) throws IOException { 
+    public void visit(NotEqualExpression exp) throws FrontendException { 
         simplevisit(exp);
     }
 
     @Override
-    public void visit(NotExpression exp ) throws IOException {
+    public void visit(NotExpression exp ) throws FrontendException {
         simplevisit(exp);
     }
 
     @Override
-    public void visit(IsNullExpression exp) throws IOException {
+    public void visit(IsNullExpression exp) throws FrontendException {
         simplevisit(exp);
     }
     
     @Override
-    public void visit(NegativeExpression exp) throws IOException {
+    public void visit(NegativeExpression exp) throws FrontendException {
         simplevisit(exp);
     }
     
     @Override
-    public void visit(AddExpression exp) throws IOException {
+    public void visit(AddExpression exp) throws FrontendException {
         simplevisit(exp);
     }
     
     @Override
-    public void visit(SubtractExpression exp) throws IOException {
+    public void visit(SubtractExpression exp) throws FrontendException {
         simplevisit(exp);
     }
     
     @Override
-    public void visit(MultiplyExpression exp) throws IOException {
+    public void visit(MultiplyExpression exp) throws FrontendException {
         simplevisit(exp);
     }
     
     @Override
-    public void visit(ModExpression exp) throws IOException {
+    public void visit(ModExpression exp) throws FrontendException {
         simplevisit(exp);
     }
     
     @Override
-    public void visit(DivideExpression exp) throws IOException {
+    public void visit(DivideExpression exp) throws FrontendException {
         simplevisit(exp);
     }
     
     @Override
-    public void visit(BinCondExpression exp ) throws IOException {
+    public void visit(BinCondExpression exp ) throws FrontendException {
         simplevisit(exp);
     }
     
     @Override
-    public void visit(UserFuncExpression exp) throws IOException {
+    public void visit(UserFuncExpression exp) throws FrontendException {
         simplevisit(exp);
     }
     
     @Override
-    public void visit(DereferenceExpression exp) throws IOException {
+    public void visit(DereferenceExpression exp) throws FrontendException {
         simplevisit(exp);
     }
     
     @Override
-    public void visit(RegexExpression op) throws IOException {
+    public void visit(RegexExpression op) throws FrontendException {
         simplevisit(op);
     }
 }

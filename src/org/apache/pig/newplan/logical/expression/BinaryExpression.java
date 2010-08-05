@@ -18,8 +18,7 @@
 
 package org.apache.pig.newplan.logical.expression;
 
-import java.io.IOException;
-
+import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.newplan.OperatorPlan;
 
 /**
@@ -49,18 +48,18 @@ public abstract class BinaryExpression extends LogicalExpression {
     /**
      * Get the left hand side of this binary expression.
      * @return expression on the left hand side
-     * @throws IOException 
+     * @throws FrontendException 
      */
-    public LogicalExpression getLhs() throws IOException {
+    public LogicalExpression getLhs() throws FrontendException {
         return (LogicalExpression)plan.getSuccessors(this).get(0);        
     }
 
     /**
      * Get the right hand side of this binary expression.
      * @return expression on the right hand side
-     * @throws IOException 
+     * @throws FrontendException 
      */
-    public LogicalExpression getRhs() throws IOException {
+    public LogicalExpression getRhs() throws FrontendException {
         return (LogicalExpression)plan.getSuccessors(this).get(1);
     }    
 }

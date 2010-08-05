@@ -18,9 +18,9 @@
 
 package org.apache.pig.newplan.logical.optimizer;
 
-import java.io.IOException;
 import java.util.Collection;
 
+import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.util.MultiMap;
 import org.apache.pig.newplan.OperatorPlan;
 import org.apache.pig.newplan.PlanWalker;
@@ -52,7 +52,7 @@ public abstract class AllExpressionVisitor extends LogicalRelationalNodesVisitor
      * @param walker Walker to use to visit the plan.
      */
     public AllExpressionVisitor(OperatorPlan plan,
-                                PlanWalker walker) {
+                                PlanWalker walker) throws FrontendException {
         super(plan, walker);
     }
     
@@ -62,17 +62,17 @@ public abstract class AllExpressionVisitor extends LogicalRelationalNodesVisitor
      * @param expr LogicalExpressionPlan that will be visited
      * @return a new LogicalExpressionVisitor for that expression
      */
-    abstract protected LogicalExpressionVisitor getVisitor(LogicalExpressionPlan expr);
+    abstract protected LogicalExpressionVisitor getVisitor(LogicalExpressionPlan expr) throws FrontendException;
     
     @Override
-    public void visit(LOFilter filter) throws IOException {
+    public void visit(LOFilter filter) throws FrontendException {
         currentOp = filter;
         LogicalExpressionVisitor v = getVisitor(filter.getFilterPlan());
         v.visit();
     }
     
     @Override
-    public void visit(LOJoin join) throws IOException {
+    public void visit(LOJoin join) throws FrontendException {
         currentOp = join;
         Collection<LogicalExpressionPlan> c = join.getExpressionPlans();
         for (LogicalExpressionPlan plan : c) {
@@ -82,7 +82,7 @@ public abstract class AllExpressionVisitor extends LogicalRelationalNodesVisitor
     }
     
     @Override
-    public void visit(LOCogroup cg) throws IOException {
+    public void visit(LOCogroup cg) throws FrontendException {
         currentOp = cg;
         MultiMap<Integer, LogicalExpressionPlan> expressionPlans = cg.getExpressionPlans();
         for( Integer key : expressionPlans.keySet() ) {
@@ -95,7 +95,7 @@ public abstract class AllExpressionVisitor extends LogicalRelationalNodesVisitor
     }
     
     @Override
-    public void visit(LOForEach foreach) throws IOException {
+    public void visit(LOForEach foreach) throws FrontendException {
         currentOp = foreach;
         // We have an Inner OperatorPlan in ForEach, so we go ahead
         // and work on that plan
@@ -107,7 +107,7 @@ public abstract class AllExpressionVisitor extends LogicalRelationalNodesVisitor
     }
     
     @Override
-    public void visit(LOGenerate gen ) throws IOException {
+    public void visit(LOGenerate gen ) throws FrontendException {
         currentOp = gen;
         Collection<LogicalExpressionPlan> plans = gen.getOutputPlans();
         for( LogicalExpressionPlan plan : plans ) {
@@ -117,7 +117,7 @@ public abstract class AllExpressionVisitor extends LogicalRelationalNodesVisitor
     }
     
     @Override
-    public void visit(LOInnerLoad load) throws IOException {
+    public void visit(LOInnerLoad load) throws FrontendException {
         // the expression in LOInnerLoad contains info relative from LOForEach
         // so use LOForeach as currentOp
         currentOp = load.getLOForEach();
@@ -128,14 +128,14 @@ public abstract class AllExpressionVisitor extends LogicalRelationalNodesVisitor
     }
     
     @Override
-    public void visit(LOSplitOutput splitOutput) throws IOException {
+    public void visit(LOSplitOutput splitOutput) throws FrontendException {
         currentOp = splitOutput;
         LogicalExpressionVisitor v = getVisitor(splitOutput.getFilterPlan());
         v.visit();
     }
     
     @Override
-    public void visit(LOSort sort) throws IOException {
+    public void visit(LOSort sort) throws FrontendException {
         currentOp = sort;
         Collection<LogicalExpressionPlan> c = sort.getSortColPlans();
         for (LogicalExpressionPlan plan : c) {

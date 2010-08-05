@@ -18,8 +18,7 @@
 
 package org.apache.pig.newplan.logical.expression;
 
-import java.io.IOException;
-
+import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.OperatorPlan;
 import org.apache.pig.newplan.PlanVisitor;
@@ -32,29 +31,25 @@ public class NegativeExpression extends UnaryExpression {
     }
 
     @Override
-    public void accept(PlanVisitor v) throws IOException {
+    public void accept(PlanVisitor v) throws FrontendException {
         if (!(v instanceof LogicalExpressionVisitor)) {
-            throw new IOException("Expected LogicalExpressionVisitor");
+            throw new FrontendException("Expected LogicalExpressionVisitor", 2222);
         }
         ((LogicalExpressionVisitor)v).visit(this);
     }
 
     @Override
-    public boolean isEqual(Operator other) {
+    public boolean isEqual(Operator other) throws FrontendException {
         if (other != null && other instanceof NegativeExpression) { 
             NegativeExpression of = (NegativeExpression)other;
-            try {
-                return plan.isEqual(of.plan) && getExpression().isEqual( of.getExpression() );
-            } catch (IOException e) {
-                return false;
-            }
+            return plan.isEqual(of.plan) && getExpression().isEqual( of.getExpression() );
         } else {
             return false;
         }
     }
     
     @Override
-    public LogicalSchema.LogicalFieldSchema getFieldSchema() throws IOException {
+    public LogicalSchema.LogicalFieldSchema getFieldSchema() throws FrontendException {
         if (fieldSchema!=null)
             return fieldSchema;
         LogicalExpression exp = (LogicalExpression)plan.getSuccessors(this).get(0);

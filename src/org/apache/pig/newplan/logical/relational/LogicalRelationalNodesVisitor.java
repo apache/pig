@@ -18,8 +18,10 @@
 
 package org.apache.pig.newplan.logical.relational;
 
-import java.io.IOException;
+import java.util.Iterator;
 
+import org.apache.pig.impl.logicalLayer.FrontendException;
+import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.OperatorPlan;
 import org.apache.pig.newplan.PlanVisitor;
 import org.apache.pig.newplan.PlanWalker;
@@ -29,62 +31,62 @@ import org.apache.pig.newplan.PlanWalker;
  */
 public abstract class LogicalRelationalNodesVisitor extends PlanVisitor {
 
-    protected LogicalRelationalNodesVisitor(OperatorPlan plan, PlanWalker walker) {
+    protected LogicalRelationalNodesVisitor(OperatorPlan plan, PlanWalker walker) throws FrontendException {
         super(plan, walker);
-        /*
+        
         Iterator<Operator> iter = plan.getOperators();
         while(iter.hasNext()) {
             if (!(iter.next() instanceof LogicalRelationalOperator)) {
-                throw new RuntimeException("LogicalPlanVisitor can only visit logical plan");
+                throw new FrontendException("LogicalPlanVisitor can only visit logical plan", 2240);
             }
-        }*/
+        }
     }
     
-    public void visit(LOLoad load) throws IOException {
+    public void visit(LOLoad load) throws FrontendException {
     }
 
-    public void visit(LOFilter filter) throws IOException {
+    public void visit(LOFilter filter) throws FrontendException {
     }
     
-    public void visit(LOStore store) throws IOException {
+    public void visit(LOStore store) throws FrontendException {
     }
     
-    public void visit(LOJoin join) throws IOException {
+    public void visit(LOJoin join) throws FrontendException {
     }
     
-    public void visit(LOForEach foreach) throws IOException {
+    public void visit(LOForEach foreach) throws FrontendException {
     }
     
-    public void visit(LOGenerate gen) throws IOException {
+    public void visit(LOGenerate gen) throws FrontendException {
     }
     
-    public void visit(LOInnerLoad load) throws IOException {
+    public void visit(LOInnerLoad load) throws FrontendException {
     }
 
-    public void visit(LOCogroup loCogroup) throws IOException {
+    public void visit(LOCogroup loCogroup) throws FrontendException {
     }
     
-    public void visit(LOSplit loSplit) throws IOException {
+    public void visit(LOSplit loSplit) throws FrontendException {
     }
     
-    public void visit(LOSplitOutput loSplitOutput) throws IOException {
+    public void visit(LOSplitOutput loSplitOutput) throws FrontendException {
     }
     
-    public void visit(LOUnion loUnion) throws IOException {
+    public void visit(LOUnion loUnion) throws FrontendException {
     }
     
-    public void visit(LOSort loSort) throws IOException {
+    public void visit(LOSort loSort) throws FrontendException {
     }
     
-    public void visit(LODistinct loDistinct) throws IOException {
+    public void visit(LODistinct loDistinct) throws FrontendException {
     }
     
-    public void visit(LOLimit loLimit) throws IOException {
+    public void visit(LOLimit loLimit) throws FrontendException {
     }
     
-    public void visit(LOCross loCross) throws IOException {
+    public void visit(LOCross loCross) throws FrontendException {
     }
     
-    public void visit(LOStream loStream) throws IOException {
+    public void visit(LOStream loStream) throws FrontendException {
     }
 }

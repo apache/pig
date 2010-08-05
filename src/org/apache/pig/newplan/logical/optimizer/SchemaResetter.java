@@ -1,9 +1,9 @@
 package org.apache.pig.newplan.logical.optimizer;
 
-import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
 
+import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.util.MultiMap;
 import org.apache.pig.newplan.DependencyOrderWalker;
 import org.apache.pig.newplan.OperatorPlan;
@@ -31,18 +31,18 @@ import org.apache.pig.newplan.logical.relational.LogicalRelationalNodesVisitor;
 
 public class SchemaResetter extends LogicalRelationalNodesVisitor {
 
-    public SchemaResetter(OperatorPlan plan) {
+    public SchemaResetter(OperatorPlan plan) throws FrontendException {
         super(plan, new DependencyOrderWalker(plan));
     }
 
     @Override
-    public void visit(LOLoad load) throws IOException {
+    public void visit(LOLoad load) throws FrontendException {
         load.resetSchema();
         load.getSchema();
     }
 
     @Override
-    public void visit(LOFilter filter) throws IOException {
+    public void visit(LOFilter filter) throws FrontendException {
         filter.resetSchema();
         FieldSchemaResetter fsResetter = new FieldSchemaResetter(filter.getFilterPlan());
         fsResetter.visit();
@@ -50,13 +50,13 @@ public class SchemaResetter extends LogicalRelationalNodesVisitor {
     }
     
     @Override
-    public void visit(LOStore store) throws IOException {
+    public void visit(LOStore store) throws FrontendException {
         store.resetSchema();
         store.getSchema();
     }
     
     @Override
-    public void visit(LOJoin join) throws IOException {
+    public void visit(LOJoin join) throws FrontendException {
         join.resetSchema();
         Collection<LogicalExpressionPlan> joinPlans = join.getExpressionPlans();
         for (LogicalExpressionPlan joinPlan : joinPlans) {
@@ -67,7 +67,7 @@ public class SchemaResetter extends LogicalRelationalNodesVisitor {
     }
     
     @Override
-    public void visit(LOForEach foreach) throws IOException {
+    public void visit(LOForEach foreach) throws FrontendException {
         foreach.resetSchema();
         OperatorPlan innerPlan = foreach.getInnerPlan();
         PlanWalker newWalker = currentWalker.spawnChildWalker(innerPlan);
@@ -78,7 +78,7 @@ public class SchemaResetter extends LogicalRelationalNodesVisitor {
     }
     
     @Override
-    public void visit(LOGenerate gen) throws IOException {
+    public void visit(LOGenerate gen) throws FrontendException {
         gen.resetSchema();
         List<LogicalExpressionPlan> genPlans = gen.getOutputPlans();
         for (LogicalExpressionPlan genPlan : genPlans) {
@@ -89,14 +89,14 @@ public class SchemaResetter extends LogicalRelationalNodesVisitor {
     }
     
     @Override
-    public void visit(LOInnerLoad load) throws IOException {
+    public void visit(LOInnerLoad load) throws FrontendException {
         load.resetSchema();
         load.getProjection().resetFieldSchema();
         load.getSchema();
     }
 
     @Override
-    public void visit(LOCogroup loCogroup) throws IOException {
+    public void visit(LOCogroup loCogroup) throws FrontendException {
         loCogroup.resetSchema();
         MultiMap<Integer, LogicalExpressionPlan> expPlans = loCogroup.getExpressionPlans();
         for (LogicalExpressionPlan expPlan : expPlans.values()) {
@@ -107,13 +107,13 @@ public class SchemaResetter extends LogicalRelationalNodesVisitor {
     }
     
     @Override
-    public void visit(LOSplit loSplit) throws IOException {
+    public void visit(LOSplit loSplit) throws FrontendException {
         loSplit.resetSchema();
         loSplit.getSchema();
     }
     
     @Override
-    public void visit(LOSplitOutput loSplitOutput) throws IOException {
+    public void visit(LOSplitOutput loSplitOutput) throws FrontendException {
         loSplitOutput.resetSchema();
         FieldSchemaResetter fsResetter = new FieldSchemaResetter(loSplitOutput.getFilterPlan());
         fsResetter.visit();
@@ -121,13 +121,13 @@ public class SchemaResetter extends LogicalRelationalNodesVisitor {
     }
     
     @Override
-    public void visit(LOUnion loUnion) throws IOException {
+    public void visit(LOUnion loUnion) throws FrontendException {
         loUnion.resetSchema();
         loUnion.getSchema();
     }
     
     @Override
-    public void visit(LOSort loSort) throws IOException {
+    public void visit(LOSort loSort) throws FrontendException {
         loSort.resetSchema();
         List<LogicalExpressionPlan> sortPlans = loSort.getSortColPlans();
         for (LogicalExpressionPlan sortPlan : sortPlans) {
@@ -138,25 +138,25 @@ public class SchemaResetter extends LogicalRelationalNodesVisitor {
     }
     
     @Override
-    public void visit(LODistinct loDistinct) throws IOException {
+    public void visit(LODistinct loDistinct) throws FrontendException {
         loDistinct.resetSchema();
         loDistinct.getSchema();
     }
     
     @Override
-    public void visit(LOLimit loLimit) throws IOException {
+    public void visit(LOLimit loLimit) throws FrontendException {
         loLimit.resetSchema();
         loLimit.getSchema();
     }
     
     @Override
-    public void visit(LOCross loCross) throws IOException {
+    public void visit(LOCross loCross) throws FrontendException {
         loCross.resetSchema();
         loCross.getSchema();
     }
     
     @Override
-    public void visit(LOStream loStream) throws IOException {
+    public void visit(LOStream loStream) throws FrontendException {
         loStream.resetSchema();
         loStream.getSchema();
     }
@@ -164,12 +164,12 @@ public class SchemaResetter extends LogicalRelationalNodesVisitor {
 
 class FieldSchemaResetter extends AllSameExpressionVisitor {
 
-    protected FieldSchemaResetter(OperatorPlan p) {
+    protected FieldSchemaResetter(OperatorPlan p) throws FrontendException {
         super(p, new DependencyOrderWalker(p));
     }
 
     @Override
-    protected void execute(LogicalExpression op) throws IOException {
+    protected void execute(LogicalExpression op) throws FrontendException {
         op.resetFieldSchema();
         op.getFieldSchema();
     }

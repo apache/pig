@@ -18,13 +18,13 @@
 
 package org.apache.pig.newplan;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.util.Pair;
 
 /**
@@ -51,44 +51,47 @@ public class OperatorSubPlan implements OperatorPlan {
         return basePlan;
     }
     
+    @Override
     public void add(Operator op) {
         operators.add(op);
         leaves.clear();
         roots.clear();
     }
 
+    @Override
     public void connect(Operator from, int fromPos, Operator to, int toPos) {
         throw new UnsupportedOperationException("connect() can not be called on OperatorSubPlan");
     }
 
+    @Override
     public void connect(Operator from, Operator to) {
         throw new UnsupportedOperationException("connect() can not be called on OperatorSubPlan");
     }
 
-    public Pair<Integer, Integer> disconnect(Operator from, Operator to) throws IOException {
+    @Override
+    public Pair<Integer, Integer> disconnect(Operator from, Operator to) throws FrontendException {
         throw new UnsupportedOperationException("disconnect() can not be called on OperatorSubPlan");
     }
 
+    @Override
     public List<Operator> getSinks() {
         if (leaves.size() == 0 && operators.size() > 0) {
             for (Operator op : operators) {       
-                try {
-                    if (getSuccessors(op) == null) {
-                        leaves.add(op);
-                    }
-                }catch(Exception e) {
-                    throw new RuntimeException(e);
+                if (getSuccessors(op) == null) {
+                    leaves.add(op);
                 }
             }
         }
         return leaves;
     }
 
+    @Override
     public Iterator<Operator> getOperators() {
         return operators.iterator();
     }
 
-    public List<Operator> getPredecessors(Operator op) throws IOException {
+    @Override
+    public List<Operator> getPredecessors(Operator op) {
         List<Operator> l = basePlan.getPredecessors(op);
         List<Operator> list = null;
         if (l != null) {
@@ -105,22 +108,20 @@ public class OperatorSubPlan implements OperatorPlan {
         return list;
     }
 
+    @Override
     public List<Operator> getSources() {
         if (roots.size() == 0 && operators.size() > 0) {
             for (Operator op : operators) {       
-                try {
-                    if (getPredecessors(op) == null) {
-                        roots.add(op);
-                    }
-                }catch(Exception e) {
-                    throw new RuntimeException(e);
+                if (getPredecessors(op) == null) {
+                    roots.add(op);
                 }
             }
         }
         return roots;
     }
 
-    public List<Operator> getSuccessors(Operator op) throws IOException {
+    @Override
+    public List<Operator> getSuccessors(Operator op) {
         List<Operator> l = basePlan.getSuccessors(op);
         List<Operator> list = null;
         if (l != null) {
@@ -137,18 +138,20 @@ public class OperatorSubPlan implements OperatorPlan {
         return list;
     }
 
-    public void remove(Operator op) throws IOException {
+    @Override
+    public void remove(Operator op) throws FrontendException {
         operators.remove(op);
         leaves.clear();
         roots.clear();
     }
 
+    @Override
     public int size() {
         return operators.size();
     }
 
     @Override
-    public boolean isEqual(OperatorPlan other) {		
+    public boolean isEqual(OperatorPlan other) throws FrontendException {		
         return BaseOperatorPlan.isEqual(this, other);
     }    
 }
