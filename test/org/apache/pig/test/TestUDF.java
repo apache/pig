@@ -28,8 +28,10 @@ import junit.framework.TestCase;
 
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
+import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.io.FileLocalizer;
+import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.test.utils.MyUDFReturnMap;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -39,7 +41,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
 @RunWith(JUnit4.class)
-public class TestUDFReturnMap extends TestCase {
+public class TestUDF extends TestCase {
 
 	static String[] ScriptStatement = {
 			"A = LOAD 'test/org/apache/pig/test/data/passwd' USING PigStorage();",
@@ -110,6 +112,26 @@ public class TestUDFReturnMap extends TestCase {
 			fail();
 		}
 	}
+	
+	@Test
+	public void testUDFMultiLevelOutputSchema() {
+        try {
+            PigServer pig = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+            pig.registerQuery("A = LOAD 'a.txt';");
+            pig.registerQuery("B = FOREACH A GENERATE org.apache.pig.test.utils.MultiLevelDerivedUDF1();");
+            pig.registerQuery("C = FOREACH A GENERATE org.apache.pig.test.utils.MultiLevelDerivedUDF2();");
+            pig.registerQuery("D = FOREACH A GENERATE org.apache.pig.test.utils.MultiLevelDerivedUDF3();");
+            Schema s = pig.dumpSchema("B");
+            assertTrue(s.getField(0).type == DataType.DOUBLE);
+            s = pig.dumpSchema("C");
+            assertTrue(s.getField(0).type == DataType.DOUBLE);
+            s = pig.dumpSchema("D");
+            assertTrue(s.getField(0).type == DataType.DOUBLE);
+        } catch (IOException e) {
+            e.printStackTrace();
+            fail();
+        }
+    }
 
 	@Override
 	@After
