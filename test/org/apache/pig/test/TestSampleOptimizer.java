@@ -223,4 +223,46 @@ public class TestSampleOptimizer {
         // After optimizer visits, number of MR jobs = 2
         assertEquals(2,count);
     }
+    
+    @Test
+    public void testOrderByUDFSet() throws Exception {
+        LogicalPlanTester planTester = new LogicalPlanTester() ;
+        planTester.buildPlan("a = load 'input1' using BinStorage();");
+        planTester.buildPlan("b = order a by $0;");
+        LogicalPlan lp = planTester.buildPlan("store b into '/tmp';");
+        
+        PhysicalPlan pp = Util.buildPhysicalPlan(lp, pc);
+        MROperPlan mrPlan = Util.buildMRPlan(pp, pc);
+        
+        int count = 1;
+        MapReduceOper mrOper = mrPlan.getRoots().get(0);
+        while(mrPlan.getSuccessors(mrOper) != null) {
+            mrOper = mrPlan.getSuccessors(mrOper).get(0);
+            ++count;
+        }        
+        // Before optimizer visits, number of MR jobs = 3.
+        assertEquals(3,count);
+
+        SampleOptimizer so = new SampleOptimizer(mrPlan);
+        so.visit();
+
+        count = 1;
+        mrOper = mrPlan.getRoots().get(0);
+        // the first mrOper should be the sampling job - it's udf list should only
+        // contain BinStorage
+        assertTrue(mrOper.UDFs.size()==1);
+        assertTrue(mrOper.UDFs.contains("BinStorage"));
+        while(mrPlan.getSuccessors(mrOper) != null) {
+            mrOper = mrPlan.getSuccessors(mrOper).get(0);
+            // the second mr oper is the real order by job - it's udf list should
+            // contain BinStorage corresponding to the load and PigStorage
+            // corresponding to the store
+            assertTrue(mrOper.UDFs.size()==2);
+            assertTrue(mrOper.UDFs.contains("BinStorage"));
+            assertTrue(mrOper.UDFs.contains("org.apache.pig.builtin.PigStorage"));
+            ++count;
+        }        
+        // After optimizer visits, number of MR jobs = 2
+        assertEquals(2,count);
+    }
 }
