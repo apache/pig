@@ -238,6 +238,8 @@ LoadPushDown {
         }  else if (location.endsWith(".gz")) {
             FileOutputFormat.setCompressOutput(job, true);
             FileOutputFormat.setOutputCompressorClass(job, GzipCodec.class);
+        } else {
+            FileOutputFormat.setCompressOutput(job, false);
         }
     }
 
