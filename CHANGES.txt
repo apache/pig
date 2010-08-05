@@ -114,6 +114,8 @@ PIG-1309: Map-side Cogroup (ashutoshc)
 
 BUG FIXES
 
+PIG-1533: Compression codec should be a per-store property (rding)
+
 PIG-1527: No need to deserialize UDFContext on the client side (rding)
 
 PIG-1516: finalize in bag implementations causes pig to run out of memory in reduce (thejas)
