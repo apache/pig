@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-1526 improvements to HiveColumnarLoader - Partitioning Support (gerritjvv via olgan)
+
 PIG-1229 allow pig to write output into a JDBC db (ankur via hashutosh)
 
 PIG-1385 UDF to create tuples and bags (hcbusy via gates)

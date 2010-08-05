@@ -19,9 +19,9 @@ package org.apache.pig.piggybank.storage.hiverc;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeSet;
-import java.util.Map.Entry;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -57,7 +57,7 @@ public class HiveRCSchemaUtil {
      * Regex to filter out column types
      */
     protected static final Pattern ptypes = Pattern
-    .compile("([ ][a-zA-Z0-9]*)|([a-zA-Z_0-9]*[<][a-zA-Z,_0-9]*[>])");
+	    .compile("([ ][a-zA-Z0-9]*)|([a-zA-Z_0-9]*[<][a-zA-Z,_0-9]*[>])");
 
     /**
      * General schema parsing method, is used to parse the column names.
@@ -69,15 +69,15 @@ public class HiveRCSchemaUtil {
      * @return List of String
      */
     public static List<String> parseSchema(Pattern pattern, String schema) {
-        List<String> types = new ArrayList<String>();
-        Matcher m = pattern.matcher(schema);
-        String item = null;
-        while (m.find()) {
-            item = m.group().trim();
-            if (item.length() > 0)
-                types.add(item);
-        }
-        return types;
+	List<String> types = new ArrayList<String>();
+	Matcher m = pattern.matcher(schema);
+	String item = null;
+	while (m.find()) {
+	    item = m.group().trim();
+	    if (item.length() > 0)
+		types.add(item);
+	}
+	return types;
     }
 
     /**
@@ -87,35 +87,35 @@ public class HiveRCSchemaUtil {
      * @return List of String
      */
     public static List<String> parseSchemaTypes(String schema) {
-        List<String> types = new ArrayList<String>();
-        Matcher m = ptypes.matcher(schema);
-        String item = null;
+	List<String> types = new ArrayList<String>();
+	Matcher m = ptypes.matcher(schema);
+	String item = null;
 
-        while (m.find()) {
-            item = m.group().trim();
-            if (item.length() > 0) {
-                if (item.equalsIgnoreCase("map")) {
-                    // if generic type
-                    if (m.find()) {
-                        types.add(item + m.group().trim());
-                    } else {
-                        throw new RuntimeException(
-                        "Map must have generic types specified");
-                    }
-                } else if (item.equalsIgnoreCase("array")) {
-                    // if generic type
-                    if (m.find()) {
-                        types.add(item + m.group().trim());
-                    } else {
-                        throw new RuntimeException(
-                        "Array must have generic types specified");
-                    }
-                } else {
-                    types.add(item);
-                }
-            }
-        }
-        return types;
+	while (m.find()) {
+	    item = m.group().trim();
+	    if (item.length() > 0) {
+		if (item.equalsIgnoreCase("map")) {
+		    // if generic type
+		    if (m.find()) {
+			types.add(item + m.group().trim());
+		    } else {
+			throw new RuntimeException(
+				"Map must have generic types specified");
+		    }
+		} else if (item.equalsIgnoreCase("array")) {
+		    // if generic type
+		    if (m.find()) {
+			types.add(item + m.group().trim());
+		    } else {
+			throw new RuntimeException(
+				"Array must have generic types specified");
+		    }
+		} else {
+		    types.add(item);
+		}
+	    }
+	}
+	return types;
     }
 
     /**
@@ -125,14 +125,14 @@ public class HiveRCSchemaUtil {
      * @return String
      */
     public static final String listToString(List<String> list) {
-        StringBuilder buff = new StringBuilder();
+	StringBuilder buff = new StringBuilder();
 
-        for (String item : list) {
-            buff.append(item.trim()).append(",");
-        }
-        int len = buff.length() - 1;
-        buff.delete(len, len);
-        return buff.toString();
+	for (String item : list) {
+	    buff.append(item.trim()).append(",");
+	}
+	int len = buff.length() - 1;
+	buff.delete(len, len);
+	return buff.toString();
     }
 
     /**
@@ -144,15 +144,15 @@ public class HiveRCSchemaUtil {
      * @return String
      */
     public static final String extractDayDate(String fileName) {
-        int index = fileName.indexOf("daydate=");
-        String dateStr = null;
-        if (index == 0)
-            dateStr = fileName.substring(8, fileName.length());
-        else if (index > 0)
-            dateStr = fileName.substring(index + 8, fileName
-                    .indexOf('/', index));
+	int index = fileName.indexOf("daydate=");
+	String dateStr = null;
+	if (index == 0)
+	    dateStr = fileName.substring(8, fileName.length());
+	else if (index > 0)
+	    dateStr = fileName.substring(index + 8,
+		    fileName.indexOf('/', index));
 
-        return dateStr;
+	return dateStr;
     }
 
     /**
@@ -163,83 +163,87 @@ public class HiveRCSchemaUtil {
      */
     public static final Set<String> compileSet(String columnsToRead) {
 
-        String[] columnsArr = columnsToRead.split(",");
-        int len = columnsArr.length;
+	String[] columnsArr = columnsToRead.split(",");
+	int len = columnsArr.length;
 
-        Set<String> columnsSet = new TreeSet<String>();
+	Set<String> columnsSet = new TreeSet<String>();
 
-        for (int i = 0; i < len; i++) {
-            columnsSet.add(columnsArr[i].trim());
-        }
+	for (int i = 0; i < len; i++) {
+	    columnsSet.add(columnsArr[i].trim());
+	}
 
-        return columnsSet;
+	return columnsSet;
     }
+
     /**
      * Returns the pig DataType for the hive type
+     * 
      * @param hiveType
      * @return byte from DataType
      */
     public static byte findPigDataType(String hiveType) {
-        hiveType = hiveType.toLowerCase();
+	hiveType = hiveType.toLowerCase();
 
-        if (hiveType.equals("string"))
-            return DataType.CHARARRAY;
-        else if (hiveType.equals("int"))
-            return DataType.INTEGER;
-        else if (hiveType.equals("bigint") || hiveType.equals("long"))
-            return DataType.LONG;
-        else if (hiveType.equals("float"))
-            return DataType.FLOAT;
-        else if (hiveType.equals("double"))
-            return DataType.DOUBLE;
-        else if (hiveType.equals("boolean"))
-            return DataType.INTEGER;
-        else if (hiveType.equals("byte"))
-            return DataType.INTEGER;
-        else if (hiveType.contains("array"))
-            return DataType.TUPLE;
-        else if (hiveType.contains("map"))
-            return DataType.MAP;
-        else
-            return DataType.ERROR;
+	if (hiveType.equals("string"))
+	    return DataType.CHARARRAY;
+	else if (hiveType.equals("int"))
+	    return DataType.INTEGER;
+	else if (hiveType.equals("bigint") || hiveType.equals("long"))
+	    return DataType.LONG;
+	else if (hiveType.equals("float"))
+	    return DataType.FLOAT;
+	else if (hiveType.equals("double"))
+	    return DataType.DOUBLE;
+	else if (hiveType.equals("boolean"))
+	    return DataType.INTEGER;
+	else if (hiveType.equals("byte"))
+	    return DataType.INTEGER;
+	else if (hiveType.contains("array"))
+	    return DataType.TUPLE;
+	else if (hiveType.contains("map"))
+	    return DataType.MAP;
+	else
+	    return DataType.ERROR;
     }
 
     /**
      * Converts from a hive type to a pig type
-     * @param value Object hive type
+     * 
+     * @param value
+     *            Object hive type
      * @return Object pig type
      */
     public static Object extractPigTypeFromHiveType(Object value) {
 
-        if (value instanceof org.apache.hadoop.hive.serde2.lazy.LazyArray) {
-            value = parseLazyArrayToPigArray((org.apache.hadoop.hive.serde2.lazy.LazyArray) value);
-        } else if (value instanceof org.apache.hadoop.hive.serde2.lazy.LazyMap) {
-            value = parseLazyMapToPigMap((org.apache.hadoop.hive.serde2.lazy.LazyMap) value);
-        } else {
+	if (value instanceof org.apache.hadoop.hive.serde2.lazy.LazyArray) {
+	    value = parseLazyArrayToPigArray((org.apache.hadoop.hive.serde2.lazy.LazyArray) value);
+	} else if (value instanceof org.apache.hadoop.hive.serde2.lazy.LazyMap) {
+	    value = parseLazyMapToPigMap((org.apache.hadoop.hive.serde2.lazy.LazyMap) value);
+	} else {
 
-            if (value instanceof LazyString) {
-                value = ((LazyString) value).getWritableObject().toString();
-            } else if (value instanceof LazyInteger) {
-                value = ((LazyInteger) value).getWritableObject().get();
-            } else if (value instanceof LazyLong) {
-                value = ((LazyLong) value).getWritableObject().get();
-            } else if (value instanceof LazyFloat) {
-                value = ((LazyFloat) value).getWritableObject().get();
-            } else if (value instanceof LazyDouble) {
-                value = ((LazyDouble) value).getWritableObject().get();
-            } else if (value instanceof LazyBoolean) {
-                boolean boolvalue = ((LazyBoolean) value).getWritableObject()
-                .get();
-                value = (boolvalue) ? 1 : 0;
-            } else if (value instanceof LazyByte) {
-                value = (int) ((LazyByte) value).getWritableObject().get();
-            } else if (value instanceof LazyShort) {
-                value = ((LazyShort) value).getWritableObject().get();
-            }
+	    if (value instanceof LazyString) {
+		value = ((LazyString) value).getWritableObject().toString();
+	    } else if (value instanceof LazyInteger) {
+		value = ((LazyInteger) value).getWritableObject().get();
+	    } else if (value instanceof LazyLong) {
+		value = ((LazyLong) value).getWritableObject().get();
+	    } else if (value instanceof LazyFloat) {
+		value = ((LazyFloat) value).getWritableObject().get();
+	    } else if (value instanceof LazyDouble) {
+		value = ((LazyDouble) value).getWritableObject().get();
+	    } else if (value instanceof LazyBoolean) {
+		boolean boolvalue = ((LazyBoolean) value).getWritableObject()
+			.get();
+		value = (boolvalue) ? 1 : 0;
+	    } else if (value instanceof LazyByte) {
+		value = (int) ((LazyByte) value).getWritableObject().get();
+	    } else if (value instanceof LazyShort) {
+		value = ((LazyShort) value).getWritableObject().get();
+	    }
 
-        }
+	}
 
-        return value;
+	return value;
     }
 
     /**
@@ -250,21 +254,21 @@ public class HiveRCSchemaUtil {
      * @return InternalMap
      */
     public static InternalMap parseLazyMapToPigMap(LazyMap map) {
-        InternalMap pigmap = new InternalMap();
+	InternalMap pigmap = new InternalMap();
 
-        Map<Object, Object> javamap = map.getMap();
+	Map<Object, Object> javamap = map.getMap();
 
-        if (javamap != null) {
+	if (javamap != null) {
 
-            // for each item in the map extract the java primitive type
-            for (Entry<Object, Object> entry : javamap.entrySet()) {
-                pigmap.put(extractPigTypeFromHiveType(entry.getKey()),
-                        extractPigTypeFromHiveType(entry.getValue()));
-            }
+	    // for each item in the map extract the java primitive type
+	    for (Entry<Object, Object> entry : javamap.entrySet()) {
+		pigmap.put(extractPigTypeFromHiveType(entry.getKey()),
+			extractPigTypeFromHiveType(entry.getValue()));
+	    }
 
-        }
+	}
 
-        return pigmap;
+	return pigmap;
     }
 
     /**
@@ -275,17 +279,17 @@ public class HiveRCSchemaUtil {
      * @return Tuple
      */
     public static Tuple parseLazyArrayToPigArray(LazyArray arr) {
-        List<Object> list = new ArrayList<Object>();
+	List<Object> list = new ArrayList<Object>();
 
-        // each item inside the LazyArray must be converted to its java
-        // primitive type
-        List<Object> hivedataList = arr.getList();
+	// each item inside the LazyArray must be converted to its java
+	// primitive type
+	List<Object> hivedataList = arr.getList();
 
-        for (Object item : hivedataList) {
-            list.add(extractPigTypeFromHiveType(item));
-        }
+	for (Object item : hivedataList) {
+	    list.add(extractPigTypeFromHiveType(item));
+	}
 
-        return tupleFactory.newTuple(list);
+	return tupleFactory.newTuple(list);
     }
 
 }
