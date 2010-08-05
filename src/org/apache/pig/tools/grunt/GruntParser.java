@@ -711,19 +711,43 @@ public class GruntParser extends PigScriptParser {
     protected void printHelp() 
     {
         System.out.println("Commands:");
-        System.out.println("<pig latin statement>;");
-        System.out.println("store <alias> into <filename> [using <functionSpec>]");
-        System.out.println("dump <alias>");
-        System.out.println("describe <alias>");
-        System.out.println("kill <job_id>");
-        System.out.println("ls <path>\r\ndu <path>\r\nmv <src> <dst>\r\ncp <src> <dst>\r\nrm <src>");
-        System.out.println("copyFromLocal <localsrc> <dst>\r\ncd <dir>\r\npwd");
-        System.out.println("cat <src>\r\ncopyToLocal <src> <localdst>\r\nmkdir <path>");
-        System.out.println("cd <path>");
-        System.out.println("define <functionAlias> <functionSpec>");
-        System.out.println("register <udfJar>");
-        System.out.println("set key value");
-        System.out.println("quit");
+        System.out.println("<pig latin statement>; - See the PigLatin manual for details: http://hadoop.apache.org/pig");
+        System.out.println("File system commands:");
+	System.out.println("    fs <fs arguments> - Equivalent to Hadoop dfs command: http://hadoop.apache.org/common/docs/current/hdfs_shell.html");	
+        System.out.println("Diagnostic commands:");
+        System.out.println("    describe <alias>[::<alias] - Show the schema for the alias. Inner aliases can be described as A::B.");
+        System.out.println("    explain [-script <pigscript>] [-out <path>] [-brief] [-dot] [-param <param_name>=<param_value>]");
+        System.out.println("        [-param_file <file_name>] [<alias>] - Show the execution plan to compute the alias or for entire script.");
+        System.out.println("        -script - Explain the entire script.");
+        System.out.println("        -out - Store the output into directory rather than print to stdout.");
+        System.out.println("        -brief - Don't expand nested plans (presenting a smaller graph for overview).");
+        System.out.println("        -dot - Generate the output in .dot format. Default is text format.");
+        System.out.println("        -param <param_name - See parameter substitution for details.");
+        System.out.println("        -param_file <file_name> - See parameter substitution for details.");
+        System.out.println("        alias - Alias to explain.");
+        System.out.println("    dump <alias> - Compute the alias and writes the results to stdout.");
+        System.out.println("Utility Commands:");
+        System.out.println("    exec [-param <param_name>=param_value] [-param_file <file_name>] <script> - ");    
+        System.out.println("        Execute the script with access to grunt environment including aliases.");
+        System.out.println("        -param <param_name - See parameter substitution for details.");
+        System.out.println("        -param_file <file_name> - See parameter substitution for details.");
+        System.out.println("        script - Script to be executed.");
+        System.out.println("    run [-param <param_name>=param_value] [-param_file <file_name>] <script> - ");    
+        System.out.println("        Execute the script with access to grunt environment. ");
+        System.out.println("        -param <param_name - See parameter substitution for details.");
+        System.out.println("        -param_file <file_name> - See parameter substitution for details.");
+        System.out.println("        script - Script to be executed.");
+        System.out.println("    kill <job_id> - Kill the hadoop job specified by the hadoop job id.");
+        System.out.println("    set <key> <value> - Provide execution parameters to Pig. Keys and values are case sensitive.");
+        System.out.println("        The following keys are supported: ");
+        System.out.println("        default_parallel - Script-level reduce parallelism. Basic input size heuristics used by default.");
+        System.out.println("        debug - Set debug on or off. Default is off.");
+        System.out.println("        job.name - Single-quoted name for jobs. Default is PigLatin:<script name>");
+        System.out.println("        job.priority - Priority for jobs. Values: very_low, low, normal, high, very_high. Default is normal");
+        System.out.println("        stream.skippath - String that contains the path. This is used by streaming.");
+        System.out.println("        any hadoop property.");
+        System.out.println("    help - Display this message.");
+        System.out.println("    quit - Quit the grunt shell.");
     }
 
     @Override

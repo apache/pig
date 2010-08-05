@@ -26,7 +26,9 @@ PIG-1249: Safe-guards against misconfigured Pig scripts without PARALLEL keyword
 
 IMPROVEMENTS
 
-PIG-1199: help includes obsolete options(olgan)
+PIG-346: grant help command cleanup (olgan)
+
+PIG-1199: help includes obsolete options (olgan)
 
 PIG-1434: Allow casting relations to scalars (aniket486 via rding)
 
