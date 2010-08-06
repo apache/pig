@@ -9,3 +9,4 @@
 **/TestNewPlanRule.java
 **/TestLogicalPlanMigrationVisitor.java
 **/TestNewPlanColumnPrune2.java
+**/TestNewPlanImplicitSplit.java
