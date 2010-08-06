@@ -26,6 +26,8 @@ PIG-1249: Safe-guards against misconfigured Pig scripts without PARALLEL keyword
 
 IMPROVEMENTS
 
+PIG-1496: Mandatory rule ImplicitSplitInserter (yanz via daijy)
+
 PIG-346: grant help command cleanup (olgan)
 
 PIG-1199: help includes obsolete options (olgan)
