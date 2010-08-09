@@ -116,7 +116,7 @@
         <echo> *** Running UDF tests ***</echo>
         <delete dir="${test.logs}"/>
         <mkdir dir="${test.logs}"/>
-        <junit printsummary="yes" haltonfailure="no" fork="yes" maxmemory="256m" dir="${basedir}" timeout="${test.timeout}" errorProperty="tests.failed" failureProperty="tests.failed">        
+        <junit printsummary="yes" haltonfailure="no" fork="yes" maxmemory="512m" dir="${basedir}" timeout="${test.timeout}" errorProperty="tests.failed" failureProperty="tests.failed">        
             <sysproperty key="hadoop.log.dir" value="${test.logs}"/>
             <classpath refid="test.classpath"/>
             <formatter type="${test.junit.output.format}" />
