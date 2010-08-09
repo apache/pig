@@ -458,4 +458,13 @@ public class POUserFunc extends ExpressionOperator {
     public List<ExpressionOperator> getChildExpressions() {		
         return null;
     }
+    
+    @SuppressWarnings("unchecked")
+    @Override
+    public void setAccumStart() {        
+        if (isAccumulative() && !isAccumStarted()) {
+            super.setAccumStart();
+            ((Accumulator)func).cleanup();
+        }        
+    }
 }
