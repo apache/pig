@@ -478,7 +478,8 @@ public class FileLocalizer {
             throws DataStorageException {
 
         if (relativeRoot.get() == null) {
-            relativeRoot.set(pigContext.getDfs().asContainer("/tmp/temp" + r.nextInt()));
+            String tdir= pigContext.getProperties().getProperty("pig.temp.dir", "/tmp");
+            relativeRoot.set(pigContext.getDfs().asContainer(tdir + "/temp" + r.nextInt()));
             toDelete().push(relativeRoot.get());
         }
 

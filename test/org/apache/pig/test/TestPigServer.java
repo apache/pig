@@ -41,12 +41,14 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import org.apache.pig.impl.PigContext;
 
 import junit.framework.TestCase;
 
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.util.PropertiesUtil;
 import org.junit.After;
@@ -658,4 +660,21 @@ public class TestPigServer extends TestCase {
         propertyFile.delete();
         cliPropertyFile.delete();
     }
+
+    @Test
+    public void testPigTempDir() throws Throwable {
+        File defaultPropertyFile = new File("pig-default.properties");
+        PrintWriter out = new PrintWriter(new FileWriter(defaultPropertyFile));
+        out.println("pig.temp.dir=/opt/temp");
+        out.close();
+        Properties properties = PropertiesUtil.loadDefaultProperties();
+        PigContext pigContext=new PigContext(ExecType.LOCAL, properties);
+        pigContext.connect();
+        FileLocalizer.setInitialized(false);
+        String tempPath= FileLocalizer.getTemporaryPath(pigContext).toString();
+        assertTrue(tempPath.startsWith("file:/opt/temp"));
+        defaultPropertyFile.delete();
+        FileLocalizer.setInitialized(false);
+    }
+
 }
