@@ -26,6 +26,8 @@ PIG-1249: Safe-guards against misconfigured Pig scripts without PARALLEL keyword
 
 IMPROVEMENTS
 
+PIG-103: Shared Job /tmp location should be configurable (niraj via rding)
+
 PIG-1496: Mandatory rule ImplicitSplitInserter (yanz via daijy)
 
 PIG-346: grant help command cleanup (olgan)
