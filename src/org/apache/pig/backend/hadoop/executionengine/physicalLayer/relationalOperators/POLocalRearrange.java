@@ -118,8 +118,7 @@ public class POLocalRearrange extends PhysicalOperator {
     private int mProjectedColsMapSize = 0;
     private int mSecondaryProjectedColsMapSize = 0;
 
-    private Tuple lrOutput;
-    
+       
     private boolean useSecondaryKey = false;
     
     // By default, we strip keys from the value.
@@ -144,7 +143,6 @@ public class POLocalRearrange extends PhysicalOperator {
         secondaryLeafOps = new ArrayList<ExpressionOperator>();
         mProjectedColsMap = new HashMap<Integer, Integer>();
         mSecondaryProjectedColsMap = new HashMap<Integer, Integer>();
-        lrOutput = mTupleFactory.newTuple(3);
     }
 
     @Override
@@ -222,7 +220,6 @@ public class POLocalRearrange extends PhysicalOperator {
             // indices and hence would go to different invocation of reduce()
             this.index = multiQuery ? (byte)(index | PigNullableWritable.mqFlag) : (byte)index;
         }            
-        lrOutput.set(0, Byte.valueOf(this.index));
     }
     
     public boolean isDistinct() { 
@@ -378,11 +375,22 @@ public class POLocalRearrange extends PhysicalOperator {
             res.result = constructLROutput(resLst,secondaryResLst,(Tuple)inp.result);            
             res.returnStatus = POStatus.STATUS_OK;
             
+            detachPlans(plans);
+
+            if(secondaryPlans != null)
+                detachPlans(secondaryPlans);
+            
             return res;
         }
         return inp;
     }
     
+    private void detachPlans(List<PhysicalPlan> plans) {
+        for (PhysicalPlan ep : plans) {
+            ep.detachInput();
+        }
+    }
+
     protected Object getKeyFromResult(List<Result> resLst, byte type) throws ExecException {
         Object key;
         if(resLst.size()>1){
@@ -412,6 +420,8 @@ public class POLocalRearrange extends PhysicalOperator {
     }
     
     protected Tuple constructLROutput(List<Result> resLst, List<Result> secondaryResLst, Tuple value) throws ExecException{
+        Tuple lrOutput = mTupleFactory.newTuple(3);
+        lrOutput.set(0, Byte.valueOf(this.index));
         //Construct key
         Object key;
         Object secondaryKey=null;
@@ -673,13 +683,6 @@ public class POLocalRearrange extends PhysicalOperator {
         clone.secondaryKeyType = secondaryKeyType;
         clone.useSecondaryKey = useSecondaryKey;
         clone.index = index;
-        try {
-            clone.lrOutput.set(0, index);
-        } catch (ExecException e) {
-            CloneNotSupportedException cnse = new CloneNotSupportedException("Problem with setting index of output.");
-            cnse.initCause(e);
-            throw cnse;
-        }
         // Needs to be called as setDistinct so that the fake index tuple gets
         // created.
         clone.setDistinct(mIsDistinct);

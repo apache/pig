@@ -461,7 +461,7 @@ public class POMergeCogroup extends PhysicalOperator {
             String errMsg = "LocalRearrange used to extract keys from tuple isn't configured correctly";
             throw new ExecException(errMsg,errCode,PigException.BUG);
         } 
-
+        lr.detachInput();
         return mTupleFactory.newTuple(((Tuple)lrOut.result).getAll());
     }
 

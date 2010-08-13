@@ -146,6 +146,7 @@ public class POFilter extends PhysicalOperator {
             }
             */
             res = comOp.getNext(dummyBool);
+            plan.detachInput();
             if (res.returnStatus != POStatus.STATUS_OK 
                     && res.returnStatus != POStatus.STATUS_NULL) 
                 return res;
