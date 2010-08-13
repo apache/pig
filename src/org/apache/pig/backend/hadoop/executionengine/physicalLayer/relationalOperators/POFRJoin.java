@@ -259,7 +259,7 @@ public class POFRJoin extends PhysicalOperator {
             Tuple key = TupleFactory.getInstance().newTuple(1);
             key.set(0, lrOutTuple.get(1));
             Tuple value = getValueTuple(lr, lrOutTuple);
-
+            lr.detachInput();
             // Configure the for each operator with the relevant bags
             int i = -1;
             boolean noMatch = false;

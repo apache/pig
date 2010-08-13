@@ -108,6 +108,8 @@ public class POOptimizedForEach extends POForEach {
                 }
                 if(res.returnStatus==POStatus.STATUS_EOP) {
                     processingPlan = false;
+                    for(PhysicalPlan plan : inputPlans)
+                        plan.detachInput();
                     return res;
                 }
                 if(res.returnStatus==POStatus.STATUS_ERR) {

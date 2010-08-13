@@ -240,6 +240,7 @@ public class POMultiQueryPackage extends POPackage {
         pack.attachInput(curKey, tupIter);
 
         Result res = pack.getNext(t);
+        pack.detachInput();
         
         Tuple tuple = (Tuple)res.result;
 
