@@ -298,8 +298,16 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
         List<LogicalOperator> predecessors = lp.getPredecessors(op);
         if (predecessors == null)
             return;
-        for (LogicalOperator lo : predecessors) {
+        int counter = 0;
+        for (LogicalOperator lo : predecessors) {         
             PhysicalOperator from = logToPhyMap.get(lo);
+            // If the source is a ConstantExpression we notify PORegexp about it.
+            // It helps to optimize regex operation
+            if( from.getClass().getCanonicalName().compareTo(ConstantExpression.class.getCanonicalName()) == 0
+                    && counter == 1 ) {
+                ((PORegexp)exprOp).setConstExpr(true);
+            }
+            counter++;
             try {
                 currentPlan.connect(from, exprOp);
             } catch (PlanException e) {

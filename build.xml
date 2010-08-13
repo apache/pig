@@ -48,6 +48,7 @@
     <property name="build.encoding" value="UTF8" />
     <!-- TODO with only one version of hadoop in the lib folder we do not need that anymore -->
     <property name="hadoop.jarfile" value="hadoop20.jar" />
+    <property name="automaton.jarfile" value="automaton.jar" />
     <property name="hbase.jarfile" value="hbase-0.20.0.jar" />
     <property name="hbase.test.jarfile" value="hbase-0.20.0-test.jar" />
 	<property name="zookeeper.jarfile" value="zookeeper-hbase-1329.jar" />
@@ -168,6 +169,7 @@
     <path id="classpath">
 	<path refid="compile.classpath"/>	
         <fileset file="${lib.dir}/${hadoop.jarfile}" />
+        <fileset file="${lib.dir}/${automaton.jarfile}" />
         <fileset file="${lib.dir}/${hbase.jarfile}" />
         <fileset file="${lib.dir}/${hbase.test.jarfile}" />
     	<fileset file="${lib.dir}/${zookeeper.jarfile}"/>
@@ -464,6 +466,7 @@
                 </section>
             </manifest>
             <zipfileset src="${lib.dir}/${hadoop.jarfile}" />
+            <zipfileset src="${lib.dir}/${automaton.jarfile}" />
             <zipfileset src="${ivy.lib.dir}/junit-${junit.version}.jar" />
             <zipfileset src="${ivy.lib.dir}/jsch-${jsch.version}.jar" />
             <zipfileset src="${ivy.lib.dir}/jline-${jline.version}.jar" />

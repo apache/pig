@@ -26,6 +26,9 @@ PIG-1249: Safe-guards against misconfigured Pig scripts without PARALLEL keyword
 
 IMPROVEMENTS
 
+PIG-965: PERFORMANCE: optimize common case in matches (PORegex) (ankit.modi
+via olgan)
+
 PIG-103: Shared Job /tmp location should be configurable (niraj via rding)
 
 PIG-1496: Mandatory rule ImplicitSplitInserter (yanz via daijy)
@@ -363,9 +366,6 @@ PIG-1156: Add aliases to ExecJobs and PhysicalOperators (dvryaboy via gates)
 
 PIG-1161: add missing license headers (dvryaboy via olgan)
 
-PIG-965: PERFORMANCE: optimize common case in matches (PORegex) (ankit.modi
-via olgan)
-
 PIG-760:  Add a new PigStorageSchema load/store function that 
           store schemas for text files (dvryaboy via gates)
 
@@ -547,6 +547,9 @@ comments (thejas via olgan)
 
 PIG-1064: Behaviour of COGROUP with and without schema when using "*" operator
 (pradeepkth)
+
+PIG-965: PERFORMANCE: optimize common case in matches (PORegex) (ankit.modi
+via )
 
 PIG-1086: Nested sort by * throw exception (rding via daijy)
 
