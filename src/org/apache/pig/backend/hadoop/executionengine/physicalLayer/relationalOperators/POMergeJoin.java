@@ -419,6 +419,7 @@ public class POMergeJoin extends PhysicalOperator {
                 }
             } else {
                 Result res = rightPipelineLeaf.getNext(dummyTuple);
+                rightPipelineLeaf.detachInput();
                 switch(res.returnStatus){
                 case POStatus.STATUS_OK:
                     return res;
@@ -461,6 +462,7 @@ public class POMergeJoin extends PhysicalOperator {
         POLocalRearrange lr = LRs[lrIdx];
         lr.attachInput((Tuple)inp.result);
         Result lrOut = lr.getNext(dummyTuple);
+        lr.detachInput();
         if(lrOut.returnStatus!=POStatus.STATUS_OK){
             int errCode = 2167;
             String errMsg = "LocalRearrange used to extract keys from tuple isn't configured correctly";

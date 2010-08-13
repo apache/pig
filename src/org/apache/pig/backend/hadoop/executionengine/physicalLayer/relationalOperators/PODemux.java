@@ -84,6 +84,12 @@ public class PODemux extends PhysicalOperator {
      * The leaf of the current pipeline
      */
     private PhysicalOperator curLeaf = null;
+
+    
+    /**
+     * The current pipeline plan
+     */
+    private PhysicalPlan curPlan = null;
     
     /*
      * Indicating if this operator is in a combiner. 
@@ -192,7 +198,8 @@ public class PODemux extends PhysicalOperator {
         } else { 
         
             if (getNext) {
-                
+                if(curPlan != null)
+                    curPlan.detachInput();
                 Result inp = processInput();
                 
                 if (inp.returnStatus == POStatus.STATUS_EOP) {
@@ -238,6 +245,8 @@ public class PODemux extends PhysicalOperator {
                        
             if (processedSet.cardinality() == myPlans.size()) {
                 curLeaf = null;
+                if(curPlan != null)
+                    curPlan.detachInput();
                 Result inp = processInput();
                 if (inp.returnStatus == POStatus.STATUS_OK) {                
                     attachInputWithIndex((Tuple)inp.result);
@@ -296,22 +305,21 @@ public class PODemux extends PhysicalOperator {
         // is expected by the inner plans, as well as the index of the associated
         // inner plan.
         PigNullableWritable fld = (PigNullableWritable)res.get(0);        
-    
         // choose an inner plan to run based on the index set by
         // the POLocalRearrange operator and passed to this operator
         // by POMultiQueryPackage
         int index = fld.getIndex();
         index &= idxPart;                      
-        
-        PhysicalPlan pl = myPlans.get(index);
-        if (!(pl.getRoots().get(0) instanceof PODemux)) {                             
+
+        curPlan = myPlans.get(index);
+        if (!(curPlan.getRoots().get(0) instanceof PODemux)) {                             
             res.set(0, fld.getValueAsPigType());
         }
-    
-        myPlans.get(index).attachInput(res);
-        return myPlans.get(index).getLeaves().get(0);
+        
+        curPlan.attachInput(res);
+        return curPlan.getLeaves().get(0);
     }
-
+    
     /**
      * Sets a flag indicating if this operator is 
      * in a combiner. 
