@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-1502 Remove Owl as a contrib project (gates)
+
 PIG-1386 UDF to extend functionalities of MaxTupleBy1stField (hcbusy via olgan)
 
 PIG-1526 improvements to HiveColumnarLoader - Partitioning Support (gerritjvv via olgan)
