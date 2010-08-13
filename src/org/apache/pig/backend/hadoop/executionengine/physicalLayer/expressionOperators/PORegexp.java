@@ -17,11 +17,11 @@
  */
 package org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators;
 
-import java.util.regex.PatternSyntaxException;
-
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.regex.RegexInit;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.regex.RegexImpl;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.data.DataType;
 import org.apache.pig.impl.plan.OperatorKey;
@@ -30,10 +30,9 @@ import org.apache.pig.impl.plan.VisitorException;
 
 public class PORegexp extends BinaryComparisonOperator {
 
-    /**
-     * 
-     */
     private static final long serialVersionUID = 1L;
+    
+    private RegexImpl impl = null;
 
     public PORegexp(OperatorKey k) {
         this(k, -1);
@@ -42,6 +41,14 @@ public class PORegexp extends BinaryComparisonOperator {
     public PORegexp(OperatorKey k, int rp) {
         super(k, rp);
         resultType = DataType.BOOLEAN;
+        // We set impl RegexInit.
+        // RegexInit decides what plan to choose after looking
+        // at first tuple. And resets this.impl to new implementation
+        this.impl = new RegexInit(this);
+    }
+    
+    public void setImplementation( RegexImpl impl ) {
+        this.impl = impl;
     }
 
     @Override
@@ -53,6 +60,10 @@ public class PORegexp extends BinaryComparisonOperator {
     public String name() {
         return "Matches - " + mKey.toString();
     }
+    
+    public void setConstExpr( boolean rhsConstant ) {
+        ((RegexInit)this.impl).setConstExpr(rhsConstant);
+    }
 
     @Override
     public Result getNext(Boolean bool) throws ExecException {
@@ -61,7 +72,6 @@ public class PORegexp extends BinaryComparisonOperator {
             return r;
         }
         
-        byte status;
         Result left, right;
 
         left = lhs.getNext(dummyString);
@@ -70,13 +80,14 @@ public class PORegexp extends BinaryComparisonOperator {
         if (trueRef == null) initializeRefs();
         if (left.returnStatus != POStatus.STATUS_OK || left.result == null) return left;
         if (right.returnStatus != POStatus.STATUS_OK || right.result == null) return right;
-        if (((String)left.result).matches((String)right.result)) {
+        
+        if( impl.match((String)(left.result),(String)(right.result)) ) {
             left.result = trueRef;
         } else {
             left.result = falseRef;
         }
         return left;
-    }
+    }    
 
     @Override
     public PORegexp clone() throws CloneNotSupportedException {
