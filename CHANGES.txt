@@ -26,6 +26,8 @@ PIG-1249: Safe-guards against misconfigured Pig scripts without PARALLEL keyword
 
 IMPROVEMENTS
 
+PIG-1295: Binary comparator for secondary sort (azaroth via daijy)
+
 PIG-1448: Detach tuple from inner plans of physical operator (thejas)
 
 PIG-965: PERFORMANCE: optimize common case in matches (PORegex) (ankit.modi

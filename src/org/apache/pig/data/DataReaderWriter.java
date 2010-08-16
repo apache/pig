@@ -46,7 +46,7 @@ public class DataReaderWriter {
     private static TupleFactory mTupleFactory = TupleFactory.getInstance();
     private static BagFactory mBagFactory = BagFactory.getInstance();
     static final int UNSIGNED_SHORT_MAX = 65535;
-    static final String UTF8 = "UTF-8";
+    public static final String UTF8 = "UTF-8";
 
     public static Tuple bytesToTuple(DataInput in) throws IOException {
         // Don't use Tuple.readFields, because it requires you to
