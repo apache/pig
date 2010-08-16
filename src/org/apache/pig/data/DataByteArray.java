@@ -17,13 +17,8 @@
  */
 package org.apache.pig.data;
 
-import java.io.IOException;
 import java.io.Serializable;
 import java.io.UnsupportedEncodingException;
-import java.lang.StringBuilder;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.nio.MappedByteBuffer;
 
 import org.apache.pig.classification.InterfaceAudience;
 import org.apache.pig.classification.InterfaceStability;
@@ -191,31 +186,38 @@ public class DataByteArray implements Comparable, Serializable {
     }
 
     /**
-     * Compare two byte arrays.  Comparison is done first using byte values
-     * then length.  So "g" will be greater than "abcdefg", but "hello worlds"
-     * is greater than "hello world".  If the other object is not a
-     * DataByteArray, {@link DataType#compare} will be called.
+     * Compare two byte arrays. Comparison is done first using byte values then
+     * length. So "g" will be greater than "abcdefg", but "hello worlds" is
+     * greater than "hello world". If the other object is not a DataByteArray,
+     * {@link DataType#compare} will be called.
+     * 
      * @param other Other object to compare to.
      * @return -1 if less than, 1 if greater than, 0 if equal.
      */
     public int compareTo(Object other) {
         if (other instanceof DataByteArray) {
-            DataByteArray dba = (DataByteArray)other;
-            int mySz = mData.length;
-            int tSz = dba.mData.length;
-            int i;
-            for (i = 0; i < mySz; i++) {
-                // If the other has run out of characters, we're bigger.
-                if (i >= tSz) return 1;
-                if (mData[i] < dba.mData[i]) return -1;
-                else if (mData[i] > dba.mData[i]) return 1;
-            }
-            // If the other still has characters left, it's greater
-            if (i < tSz) return -1;
-            return 0;
+            DataByteArray dba = (DataByteArray) other;
+            return compare(mData, dba.mData);
         } else {
             return DataType.compare(this, other);
         }
+    }
+
+    public static int compare(byte[] b1, byte[] b2) {
+        int i;
+        for (i = 0; i < b1.length; i++) {
+            // If the other has run out of characters, we're bigger.
+            if (i >= b2.length)
+                return 1;
+            if (b1[i] < b2[i])
+                return -1;
+            else if (b1[i] > b2[i])
+                return 1;
+        }
+        // If the other still has characters left, it's greater
+        if (i < b2.length)
+            return -1;
+        return 0;
     }
 
     @Override

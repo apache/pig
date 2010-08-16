@@ -17,45 +17,56 @@
  */
 package org.apache.pig.data;
 
+import java.io.ByteArrayInputStream;
 import java.io.DataInput;
+import java.io.DataInputStream;
 import java.io.DataOutput;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.conf.Configurable;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.io.DataInputBuffer;
+import org.apache.hadoop.io.RawComparator;
 import org.apache.hadoop.io.Writable;
+import org.apache.hadoop.io.WritableComparable;
+import org.apache.hadoop.io.WritableComparator;
+import org.apache.hadoop.mapred.JobConf;
 import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.classification.InterfaceAudience;
 import org.apache.pig.classification.InterfaceStability;
+import org.apache.pig.impl.io.NullableTuple;
+import org.apache.pig.impl.io.PigNullableWritable;
+import org.apache.pig.impl.util.ObjectSerializer;
 
 /**
- * A class to handle reading and writing of intermediate results of data
- * types. The serialization format used by this class more efficient than 
- * what was used in DataReaderWriter . 
- * The format used by the functions in this class is subject to change, so it
- * should be used ONLY to store intermediate results within a pig query.
+ * A class to handle reading and writing of intermediate results of data types. The serialization format used by this
+ * class more efficient than what was used in DataReaderWriter . The format used by the functions in this class is
+ * subject to change, so it should be used ONLY to store intermediate results within a pig query.
  */
 @InterfaceAudience.Private
 @InterfaceStability.Stable
 public class BinInterSedes implements InterSedes {
 
     public static final byte BOOLEAN_TRUE = 0;
-    static final byte BOOLEAN_FALSE = 1;
+    public static final byte BOOLEAN_FALSE = 1;
 
     public static final byte BYTE = 2;
 
     public static final byte INTEGER = 3;
-    // since boolean is not supported yet(v0.7) as external type,
-    // lot of people use int instead
-    // and some data with old schema is likely stay for some time.
-    // so optimizing for that case as well
-    public static final byte INTEGER_0 = 4; 
+    // since boolean is not supported yet(v0.7) as external type, lot of people use int instead and some data with old
+    // schema is likely stay for some time. so optimizing for that case as well
+    public static final byte INTEGER_0 = 4;
     public static final byte INTEGER_1 = 5;
     public static final byte INTEGER_INSHORT = 6;
     public static final byte INTEGER_INBYTE = 7;
-
 
     public static final byte LONG = 8;
     public static final byte FLOAT = 9;
@@ -89,10 +100,8 @@ public class BinInterSedes implements InterSedes {
     private static BagFactory mBagFactory = BagFactory.getInstance();
     static final int UNSIGNED_SHORT_MAX = 65535;
     static final int UNSIGNED_BYTE_MAX = 255;
-    static final String UTF8 = "UTF-8";
+    public static final String UTF8 = "UTF-8";
 
-    
-    
     private Tuple readTuple(DataInput in, byte type) throws IOException {
         // Read the size.
         int sz = getTupleSize(in, type);
@@ -104,12 +113,10 @@ public class BinInterSedes implements InterSedes {
         return t;
 
     }
-    
 
-    
     private int getTupleSize(DataInput in, byte type) throws IOException {
-        int sz ;
-        switch(type){
+        int sz;
+        switch (type) {
         case TINYTUPLE:
             sz = in.readUnsignedByte();
             break;
@@ -121,26 +128,22 @@ public class BinInterSedes implements InterSedes {
             break;
         default: {
             int errCode = 2112;
-            String msg = "Unexpected datatype " + type + " while reading tuple" +
-            "from binary file.";
+            String msg = "Unexpected datatype " + type + " while reading tuple" + "from binary file.";
             throw new ExecException(msg, errCode, PigException.BUG);
         }
         }
-        // if sz == 0, we construct an "empty" tuple -
-        // presumably the writer wrote an empty tuple!
+        // if sz == 0, we construct an "empty" tuple - presumably the writer wrote an empty tuple!
         if (sz < 0) {
             throw new IOException("Invalid size " + sz + " for a tuple");
-        }      
+        }
         return sz;
     }
-
-
 
     private DataBag readBag(DataInput in, byte type) throws IOException {
         DataBag bag = mBagFactory.newDefaultBag();
         long size;
-        //determine size of bag
-        switch(type){
+        // determine size of bag
+        switch (type) {
         case TINYBAG:
             size = in.readUnsignedByte();
             break;
@@ -152,26 +155,24 @@ public class BinInterSedes implements InterSedes {
             break;
         default:
             int errCode = 2219;
-            String msg = "Unexpected data while reading bag " +
-            "from binary file.";
-            throw new ExecException(msg, errCode, PigException.BUG);            
+            String msg = "Unexpected data while reading bag " + "from binary file.";
+            throw new ExecException(msg, errCode, PigException.BUG);
         }
 
         for (long i = 0; i < size; i++) {
             try {
                 Object o = readDatum(in);
-                bag.add((Tuple)o);
+                bag.add((Tuple) o);
             } catch (ExecException ee) {
                 throw ee;
             }
-        }   
+        }
         return bag;
     }
-    
-    
+
     private Map<String, Object> readMap(DataInput in, byte type) throws IOException {
-        int size ;
-        switch(type){
+        int size;
+        switch (type) {
         case TINYMAP:
             size = in.readUnsignedByte();
             break;
@@ -183,65 +184,65 @@ public class BinInterSedes implements InterSedes {
             break;
         default: {
             int errCode = 2220;
-            String msg = "Unexpected data while reading map" +
-            "from binary file.";
-            throw new ExecException(msg, errCode, PigException.BUG);  
+            String msg = "Unexpected data while reading map" + "from binary file.";
+            throw new ExecException(msg, errCode, PigException.BUG);
         }
         }
         Map<String, Object> m = new HashMap<String, Object>(size);
         for (int i = 0; i < size; i++) {
-            String key = (String)readDatum(in);
+            String key = (String) readDatum(in);
             m.put(key, readDatum(in));
         }
-        return m;    
+        return m;
     }
 
     private InternalMap readInternalMap(DataInput in) throws IOException {
-        int size = in.readInt();    
+        int size = in.readInt();
         InternalMap m = new InternalMap(size);
         for (int i = 0; i < size; i++) {
             Object key = readDatum(in);
             m.put(key, readDatum(in));
         }
-        return m;    
+        return m;
     }
-    
-    private static String readCharArray(DataInput in) throws IOException{
+
+    private static String readCharArray(DataInput in) throws IOException {
         return in.readUTF();
     }
 
-    private static String readBigCharArray(DataInput in) throws IOException{
+    private static String readBigCharArray(DataInput in) throws IOException {
         int size = in.readInt();
         byte[] ba = new byte[size];
         in.readFully(ba);
         return new String(ba, UTF8);
     }
-    
-    private Writable readWritable(DataInput in) throws IOException {
+
+    private WritableComparable readWritable(DataInput in) throws IOException {
         String className = (String) readDatum(in);
         // create the writeable class . It needs to have a default constructor
-        Class<?> objClass = null ;
+        Class<?> objClass = null;
         try {
             objClass = Class.forName(className);
         } catch (ClassNotFoundException e) {
-            throw new IOException("Could not find class " + className + 
-                    ", while attempting to de-serialize it ", e);
+            throw new IOException("Could not find class " + className + ", while attempting to de-serialize it ", e);
         }
-        Writable writable = null;
+        WritableComparable writable = null;
         try {
-            writable = (Writable) objClass.newInstance();
+            writable = (WritableComparable) objClass.newInstance();
         } catch (Exception e) {
-            String msg = "Could create instance of class " + className + 
-            ", while attempting to de-serialize it. (no default constructor ?)";
+            String msg = "Could create instance of class " + className
+                    + ", while attempting to de-serialize it. (no default constructor ?)";
             throw new IOException(msg, e);
-        } 
-        
-        //read the fields of the object from DataInput
+        }
+
+        // read the fields of the object from DataInput
         writable.readFields(in);
         return writable;
     }
-    
-    /* (non-Javadoc)
+
+    /*
+     * (non-Javadoc)
+     * 
      * @see org.apache.pig.data.InterSedes#readDatum(java.io.DataInput)
      */
     public Object readDatum(DataInput in) throws IOException, ExecException {
@@ -249,259 +250,249 @@ public class BinInterSedes implements InterSedes {
         byte b = in.readByte();
         return readDatum(in, b);
     }
-    
+
     private static Object readBytes(DataInput in, int size) throws IOException {
         byte[] ba = new byte[size];
         in.readFully(ba);
         return new DataByteArray(ba);
     }
-        
-    /* (non-Javadoc)
+
+    /*
+     * (non-Javadoc)
+     * 
      * @see org.apache.pig.data.InterSedes#readDatum(java.io.DataInput, byte)
      */
     public Object readDatum(DataInput in, byte type) throws IOException, ExecException {
         switch (type) {
-            case TUPLE: 
-            case TINYTUPLE:
-            case SMALLTUPLE:
-                return readTuple(in, type);
-            
-            case BAG: 
-            case TINYBAG:
-            case SMALLBAG:
-                return readBag(in, type);
+        case TUPLE:
+        case TINYTUPLE:
+        case SMALLTUPLE:
+            return readTuple(in, type);
 
-            case MAP: 
-            case TINYMAP:
-            case SMALLMAP:
-                return readMap(in, type);    
+        case BAG:
+        case TINYBAG:
+        case SMALLBAG:
+            return readBag(in, type);
 
-            case INTERNALMAP: 
-                return readInternalMap(in);    
+        case MAP:
+        case TINYMAP:
+        case SMALLMAP:
+            return readMap(in, type);
 
-            case INTEGER_0:
-                return Integer.valueOf(0);
-            case INTEGER_1:
-                return Integer.valueOf(1);
-            case INTEGER_INBYTE:
-                return Integer.valueOf(in.readByte());                
-            case INTEGER_INSHORT:
-                return Integer.valueOf(in.readShort());
-            case INTEGER:
-                return Integer.valueOf(in.readInt());
+        case INTERNALMAP:
+            return readInternalMap(in);
 
-            case LONG:
-                return Long.valueOf(in.readLong());
+        case INTEGER_0:
+            return Integer.valueOf(0);
+        case INTEGER_1:
+            return Integer.valueOf(1);
+        case INTEGER_INBYTE:
+            return Integer.valueOf(in.readByte());
+        case INTEGER_INSHORT:
+            return Integer.valueOf(in.readShort());
+        case INTEGER:
+            return Integer.valueOf(in.readInt());
 
-            case FLOAT:
-                return Float.valueOf(in.readFloat());
+        case LONG:
+            return Long.valueOf(in.readLong());
 
-            case DOUBLE:
-                return Double.valueOf(in.readDouble());
+        case FLOAT:
+            return Float.valueOf(in.readFloat());
 
-            case BOOLEAN_TRUE:
-                return Boolean.valueOf(true);
-                
-            case BOOLEAN_FALSE:
-                return Boolean.valueOf(false);
+        case DOUBLE:
+            return Double.valueOf(in.readDouble());
 
-            case BYTE:
-                return Byte.valueOf(in.readByte());
+        case BOOLEAN_TRUE:
+            return Boolean.valueOf(true);
 
-            case TINYBYTEARRAY :{
-                int size = in.readUnsignedByte();
-                return readBytes(in, size);
-            }
-            
-            case SMALLBYTEARRAY :{
-                int size = in.readUnsignedShort();
-                return readBytes(in, size);
-            }
-                
-            case BYTEARRAY: {
-                int size = in.readInt();
-                return readBytes(in, size);
-            }
-            
-            case CHARARRAY: 
-                return readBigCharArray(in);
+        case BOOLEAN_FALSE:
+            return Boolean.valueOf(false);
 
-            case SMALLCHARARRAY: 
-                return readCharArray(in);
-                
-            case GENERIC_WRITABLECOMPARABLE :
-                return readWritable(in);
-                
-            case NULL:
-                return null;
+        case BYTE:
+            return Byte.valueOf(in.readByte());
 
-            default:
-                throw new RuntimeException("Unexpected data type " + type +
-                    " found in stream.");
+        case TINYBYTEARRAY: {
+            int size = in.readUnsignedByte();
+            return readBytes(in, size);
+        }
+
+        case SMALLBYTEARRAY: {
+            int size = in.readUnsignedShort();
+            return readBytes(in, size);
+        }
+
+        case BYTEARRAY: {
+            int size = in.readInt();
+            return readBytes(in, size);
+        }
+
+        case CHARARRAY:
+            return readBigCharArray(in);
+
+        case SMALLCHARARRAY:
+            return readCharArray(in);
+
+        case GENERIC_WRITABLECOMPARABLE:
+            return readWritable(in);
+
+        case NULL:
+            return null;
+
+        default:
+            throw new RuntimeException("Unexpected data type " + type + " found in stream.");
         }
     }
 
-
-    /* (non-Javadoc)
+    /*
+     * (non-Javadoc)
+     * 
      * @see org.apache.pig.data.InterSedes#writeDatum(java.io.DataOutput, java.lang.Object)
      */
     @SuppressWarnings("unchecked")
-    public void writeDatum(
-            DataOutput out,
-            Object val) throws IOException {
+    public void writeDatum(DataOutput out, Object val) throws IOException {
         // Read the data type
         byte type = DataType.findType(val);
         switch (type) {
-            case DataType.TUPLE:
-                writeTuple(out, (Tuple)val);
-                break;
-                
-            case DataType.BAG:
-                writeBag(out, (DataBag)val);
-                break;
+        case DataType.TUPLE:
+            writeTuple(out, (Tuple) val);
+            break;
 
-            case DataType.MAP: {
-                writeMap(out, (Map<String, Object>)val);
+        case DataType.BAG:
+            writeBag(out, (DataBag) val);
+            break;
 
-                break;
-                               }
-            
-            case DataType.INTERNALMAP: {
-                out.writeByte(INTERNALMAP);
-                Map<Object, Object> m = (Map<Object, Object>)val;
-                out.writeInt(m.size());
-                Iterator<Map.Entry<Object, Object> > i =
-                    m.entrySet().iterator();
-                while (i.hasNext()) {
-                    Map.Entry<Object, Object> entry = i.next();
-                    writeDatum(out, entry.getKey());
-                    writeDatum(out, entry.getValue());
-                }
-                break;
-                               }
-            
-            case DataType.INTEGER:
-                int i = (Integer)val;
-                if(i == 0){
-                    out.writeByte(INTEGER_0);
-                }else if(i == 1){
-                    out.writeByte(INTEGER_1);
-                }
-                else if(Byte.MIN_VALUE <= i && i <= Byte.MAX_VALUE  ){
-                    out.writeByte(INTEGER_INBYTE);
-                    out.writeByte(i);
-                }
-                else if(Short.MIN_VALUE <= i && i <= Short.MAX_VALUE ){
-                    out.writeByte(INTEGER_INSHORT);
-                    out.writeShort(i);
-                }
-                else{
-                    out.writeByte(INTEGER);
-                    out.writeInt(i);
-                }
+        case DataType.MAP: {
+            writeMap(out, (Map<String, Object>) val);
 
+            break;
+        }
 
-                break;
+        case DataType.INTERNALMAP: {
+            out.writeByte(INTERNALMAP);
+            Map<Object, Object> m = (Map<Object, Object>) val;
+            out.writeInt(m.size());
+            Iterator<Map.Entry<Object, Object>> i = m.entrySet().iterator();
+            while (i.hasNext()) {
+                Map.Entry<Object, Object> entry = i.next();
+                writeDatum(out, entry.getKey());
+                writeDatum(out, entry.getValue());
+            }
+            break;
+        }
 
-            case DataType.LONG:
-                out.writeByte(LONG);
-                out.writeLong((Long)val);
-                break;
-
-            case DataType.FLOAT:
-                out.writeByte(FLOAT);
-                out.writeFloat((Float)val);
-                break;
-
-            case DataType.DOUBLE:
-                out.writeByte(DOUBLE);
-                out.writeDouble((Double)val);
-                break;
-
-            case DataType.BOOLEAN:
-                if(((Boolean)val) == true)
-                    out.writeByte(BOOLEAN_TRUE);
-                else
-                    out.writeByte(BOOLEAN_FALSE);
-                break;
-
-            case DataType.BYTE:
-                out.writeByte(BYTE);
-                out.writeByte((Byte)val);
-                break;
-
-            case DataType.BYTEARRAY: {
-                DataByteArray bytes = (DataByteArray)val;
-                final int sz = bytes.size();
-                if(sz < UNSIGNED_BYTE_MAX){
-                    out.writeByte(TINYBYTEARRAY);
-                    out.writeByte(sz);
-                }
-                else if(sz < UNSIGNED_SHORT_MAX){
-                    out.writeByte(SMALLBYTEARRAY);
-                    out.writeShort(sz);
-                }
-                else {
-                    out.writeByte(BYTEARRAY);
-                    out.writeInt(sz);
-                }
-                out.write(bytes.mData);
-                
-                break;
-
+        case DataType.INTEGER:
+            int i = (Integer) val;
+            if (i == 0) {
+                out.writeByte(INTEGER_0);
+            } else if (i == 1) {
+                out.writeByte(INTEGER_1);
+            } else if (Byte.MIN_VALUE <= i && i <= Byte.MAX_VALUE) {
+                out.writeByte(INTEGER_INBYTE);
+                out.writeByte(i);
+            } else if (Short.MIN_VALUE <= i && i <= Short.MAX_VALUE) {
+                out.writeByte(INTEGER_INSHORT);
+                out.writeShort(i);
+            } else {
+                out.writeByte(INTEGER);
+                out.writeInt(i);
             }
 
-            case DataType.CHARARRAY: {
-                String s = (String)val;
-                // a char can take up to 3 bytes in the modified utf8 encoding
-                // used by DataOutput.writeUTF, so use UNSIGNED_SHORT_MAX/3
-                if(s.length() < UNSIGNED_SHORT_MAX/3) {
-                    out.writeByte(SMALLCHARARRAY);
-                    out.writeUTF(s);
-                } else {
-                    byte[] utfBytes = s.getBytes(UTF8);
-                    int length = utfBytes.length;
+            break;
 
-                    out.writeByte(CHARARRAY);
-                    out.writeInt(length);
-                    out.write(utfBytes);
-                }
-                break;
+        case DataType.LONG:
+            out.writeByte(LONG);
+            out.writeLong((Long) val);
+            break;
+
+        case DataType.FLOAT:
+            out.writeByte(FLOAT);
+            out.writeFloat((Float) val);
+            break;
+
+        case DataType.DOUBLE:
+            out.writeByte(DOUBLE);
+            out.writeDouble((Double) val);
+            break;
+
+        case DataType.BOOLEAN:
+            if (((Boolean) val) == true)
+                out.writeByte(BOOLEAN_TRUE);
+            else
+                out.writeByte(BOOLEAN_FALSE);
+            break;
+
+        case DataType.BYTE:
+            out.writeByte(BYTE);
+            out.writeByte((Byte) val);
+            break;
+
+        case DataType.BYTEARRAY: {
+            DataByteArray bytes = (DataByteArray) val;
+            final int sz = bytes.size();
+            if (sz < UNSIGNED_BYTE_MAX) {
+                out.writeByte(TINYBYTEARRAY);
+                out.writeByte(sz);
+            } else if (sz < UNSIGNED_SHORT_MAX) {
+                out.writeByte(SMALLBYTEARRAY);
+                out.writeShort(sz);
+            } else {
+                out.writeByte(BYTEARRAY);
+                out.writeInt(sz);
             }
-            case DataType.GENERIC_WRITABLECOMPARABLE :
-                out.writeByte(GENERIC_WRITABLECOMPARABLE);
-                //store the class name, so we know the class to create on read
-                writeDatum(out, val.getClass().getName());
-                Writable writable = (Writable)val;
-                writable.write(out);
-                break;
+            out.write(bytes.mData);
 
-            case DataType.NULL:
-                out.writeByte(NULL);
-                break;
+            break;
 
-            default:
-                throw new RuntimeException("Unexpected data type " + type +
-                    " found in stream.");
+        }
+
+        case DataType.CHARARRAY: {
+            String s = (String) val;
+            // a char can take up to 3 bytes in the modified utf8 encoding
+            // used by DataOutput.writeUTF, so use UNSIGNED_SHORT_MAX/3
+            if (s.length() < UNSIGNED_SHORT_MAX / 3) {
+                out.writeByte(SMALLCHARARRAY);
+                out.writeUTF(s);
+            } else {
+                byte[] utfBytes = s.getBytes(UTF8);
+                int length = utfBytes.length;
+
+                out.writeByte(CHARARRAY);
+                out.writeInt(length);
+                out.write(utfBytes);
+            }
+            break;
+        }
+        case DataType.GENERIC_WRITABLECOMPARABLE:
+            out.writeByte(GENERIC_WRITABLECOMPARABLE);
+            // store the class name, so we know the class to create on read
+            writeDatum(out, val.getClass().getName());
+            Writable writable = (Writable) val;
+            writable.write(out);
+            break;
+
+        case DataType.NULL:
+            out.writeByte(NULL);
+            break;
+
+        default:
+            throw new RuntimeException("Unexpected data type " + type + " found in stream.");
         }
     }
 
-    private void writeMap(DataOutput out, Map<String, Object> m)
-    throws IOException {
+    private void writeMap(DataOutput out, Map<String, Object> m) throws IOException {
 
         final int sz = m.size();
-        if(sz < UNSIGNED_BYTE_MAX){
+        if (sz < UNSIGNED_BYTE_MAX) {
             out.writeByte(TINYMAP);
             out.writeByte(sz);
-        }else if(sz < UNSIGNED_SHORT_MAX){
+        } else if (sz < UNSIGNED_SHORT_MAX) {
             out.writeByte(SMALLMAP);
             out.writeShort(sz);
-        }else {
-            out.writeByte(MAP);       
+        } else {
+            out.writeByte(MAP);
             out.writeInt(sz);
         }
-        Iterator<Map.Entry<String, Object> > i =
-            m.entrySet().iterator();
+        Iterator<Map.Entry<String, Object>> i = m.entrySet().iterator();
         while (i.hasNext()) {
             Map.Entry<String, Object> entry = i.next();
             writeDatum(out, entry.getKey());
@@ -509,22 +500,19 @@ public class BinInterSedes implements InterSedes {
         }
     }
 
-
-
-    private void writeBag(DataOutput out, DataBag bag)
-    throws IOException {
+    private void writeBag(DataOutput out, DataBag bag) throws IOException {
         // We don't care whether this bag was sorted or distinct because
         // using the iterator to write it will guarantee those things come
-        // correctly.  And on the other end there'll be no reason to waste
+        // correctly. And on the other end there'll be no reason to waste
         // time re-sorting or re-applying distinct.
         final long sz = bag.size();
-        if(sz < UNSIGNED_BYTE_MAX){
+        if (sz < UNSIGNED_BYTE_MAX) {
             out.writeByte(TINYBAG);
-            out.writeByte((int)sz);
-        }else if(sz < UNSIGNED_SHORT_MAX){
+            out.writeByte((int) sz);
+        } else if (sz < UNSIGNED_SHORT_MAX) {
             out.writeByte(SMALLBAG);
-            out.writeShort((int)sz);           
-        }else {
+            out.writeShort((int) sz);
+        } else {
             out.writeByte(BAG);
             out.writeLong(sz);
         }
@@ -532,19 +520,19 @@ public class BinInterSedes implements InterSedes {
         Iterator<Tuple> it = bag.iterator();
         while (it.hasNext()) {
             writeTuple(out, it.next());
-        } 
-        
+        }
+
     }
 
     private void writeTuple(DataOutput out, Tuple t) throws IOException {
         final int sz = t.size();
-        if(sz < UNSIGNED_BYTE_MAX){
+        if (sz < UNSIGNED_BYTE_MAX) {
             out.writeByte(TINYTUPLE);
             out.writeByte(sz);
-        }else if(sz < UNSIGNED_SHORT_MAX){
+        } else if (sz < UNSIGNED_SHORT_MAX) {
             out.writeByte(SMALLTUPLE);
             out.writeShort(sz);
-        }else{
+        } else {
             out.writeByte(TUPLE);
             out.writeInt(sz);
         }
@@ -554,21 +542,583 @@ public class BinInterSedes implements InterSedes {
         }
     }
 
-
-
-    /* (non-Javadoc)
+    /*
+     * (non-Javadoc)
+     * 
      * @see org.apache.pig.data.InterSedes#addColsToTuple(java.io.DataInput, org.apache.pig.data.Tuple)
      */
     @Override
-    public void addColsToTuple(DataInput in, Tuple t)
-    throws IOException {
+    public void addColsToTuple(DataInput in, Tuple t) throws IOException {
         byte type = in.readByte();
         int sz = getTupleSize(in, type);
         for (int i = 0; i < sz; i++) {
             t.append(readDatum(in));
         }
     }
+    
+    public static class BinInterSedesTupleRawComparator extends WritableComparator implements TupleRawComparator {
 
+        private final Log mLog = LogFactory.getLog(getClass());
+        private boolean[] mAsc;
+        private boolean[] mSecondaryAsc;
+        private static final boolean[] EMPTY_ASC = new boolean[] {};
+        private boolean mWholeTuple;
+        private boolean mIsSecondarySort;
+        private boolean mHasNullField;
+        private TupleFactory mFact;
+        private InterSedes mSedes;
 
+        public BinInterSedesTupleRawComparator() {
+            super(BinSedesTuple.class);
+        }
+
+        @Override
+        public Configuration getConf() {
+            return null;
+        }
+
+        @Override
+        public void setConf(Configuration conf) {
+            if (!(conf instanceof JobConf)) {
+                mLog.warn("Expected jobconf in setConf, got " + conf.getClass().getName());
+                return;
+            }
+            try {
+                mAsc = (boolean[]) ObjectSerializer.deserialize(conf.get("pig.sortOrder"));
+                mSecondaryAsc = (boolean[]) ObjectSerializer.deserialize(conf.get("pig.secondarySortOrder"));
+                mIsSecondarySort = true;
+            } catch (IOException ioe) {
+                mLog.error("Unable to deserialize sort order object" + ioe.getMessage());
+                throw new RuntimeException(ioe);
+            }
+            if (mAsc == null) {
+                mAsc = new boolean[1];
+                mAsc[0] = true;
+            }
+            if (mSecondaryAsc == null) {
+                mIsSecondarySort = false;
+            }
+            // If there's only one entry in mAsc, it means it's for the whole
+            // tuple. So we can't be looking for each column.
+            mWholeTuple = (mAsc.length == 1);
+            mFact = TupleFactory.getInstance();
+            mSedes = InterSedesFactory.getInterSedesInstance();
+        }
+
+        @Override
+        public boolean hasComparedTupleNull() {
+            return mHasNullField;
+        }
+
+        /**
+         * Compare two BinSedesTuples as raw bytes. We assume the Tuples are NOT PigNullableWritable, so client classes
+         * need to deal with Null and Index.
+         */
+        @Override
+        public int compare(byte[] b1, int s1, int l1, byte[] b2, int s2, int l2) {
+            int rc = 0;
+            ByteBuffer bb1 = ByteBuffer.wrap(b1, s1, l1);
+            ByteBuffer bb2 = ByteBuffer.wrap(b2, s2, l2);
+            try {
+                rc = compareBinSedesTuple(bb1, bb2);
+            } catch (IOException ioe) {
+                mLog.error("I/O error during tuple comparison: " + ioe.getMessage());
+                throw new RuntimeException(ioe.getMessage(), ioe);
+            }
+            return rc;
+        }
+
+        /**
+         * Compare two BinSedesTuples as raw bytes. We deal with sort ordering in this method.
+         * 
+         * @throws IOException
+         */
+        private int compareBinSedesTuple(ByteBuffer bb1, ByteBuffer bb2) throws IOException {
+            mHasNullField = false;
+            // store the position in case of deserialization
+            int s1 = bb1.position();
+            int s2 = bb2.position();
+            // treat the outermost tuple differently because we have to deal with sort order
+            int result = 0;
+            try {
+                // first compare sizes
+                byte dt1 = bb1.get();
+                byte dt2 = bb2.get();
+                byte sizeType1 = getSizeType(dt1);
+                byte sizeType2 = getSizeType(dt2);
+                int tsz1 = readInt(bb1, sizeType1);
+                int tsz2 = readInt(bb2, sizeType2);
+                if (tsz1 > tsz2)
+                    return 1;
+                else if (tsz1 < tsz2)
+                    return -1;
+                else {
+                    // if sizes are the same, compare field by field
+                    if (mIsSecondarySort) {
+                        // we have a compound tuple key (main_key, secondary_key). Each key has its own sort order, so
+                        // we have to deal with them separately. We delegate it to the first invocation of
+                        // compareBinInterSedesDatum()
+                        assert (tsz1 == 3); // main_key, secondary_key, value
+                        result = compareBinInterSedesDatum(bb1, bb2, mAsc);
+                        if (result == 0)
+                            result = compareBinInterSedesDatum(bb1, bb2, mSecondaryAsc);
+                    } else {
+                        // we have just one tuple key, we deal with sort order here
+                        for (int i = 0; i < tsz1 && result == 0; i++) {
+                            // EMPTY_ASC is used to distinguish original calls from recursive ones (hack-ish)
+                            result = compareBinInterSedesDatum(bb1, bb2, EMPTY_ASC);
+                            // flip if the order is descending
+                            if (result != 0) {
+                                if (!mWholeTuple && !mAsc[i])
+                                    result *= -1;
+                                else if (mWholeTuple && !mAsc[0])
+                                    result *= -1;
+                            }
+                        }
+                    }
+                }
+            } catch (UnsupportedEncodingException uee) {
+                Tuple t1 = mFact.newTuple();
+                Tuple t2 = mFact.newTuple();
+                t1.readFields(new DataInputStream(new ByteArrayInputStream(bb1.array(), s1, bb1.limit())));
+                t2.readFields(new DataInputStream(new ByteArrayInputStream(bb2.array(), s2, bb2.limit())));
+                // delegate to compare()
+                result = compare(t1, t2);
+            }
+            return result;
+        }
+
+        private int compareBinInterSedesDatum(ByteBuffer bb1, ByteBuffer bb2, boolean[] asc) throws IOException {
+            int rc = 0;
+            byte type1, type2;
+            byte dt1 = bb1.get();
+            byte dt2 = bb2.get();
+            switch (dt1) {
+            case BinInterSedes.NULL: {
+                type1 = DataType.NULL;
+                type2 = getGeneralizedDataType(dt2);
+                if (asc != null) // we are scanning the top-level Tuple (original call)
+                    mHasNullField = true;
+                if (type1 == type2)
+                    rc = 0;
+                break;
+            }
+            case BinInterSedes.BOOLEAN_TRUE:
+            case BinInterSedes.BOOLEAN_FALSE: {
+                type1 = DataType.BOOLEAN;
+                type2 = getGeneralizedDataType(dt2);
+                if (type1 == type2) {
+                    // false < true
+                    int bv1 = (dt1 == BinInterSedes.BOOLEAN_TRUE) ? 1 : 0;
+                    int bv2 = (dt2 == BinInterSedes.BOOLEAN_TRUE) ? 1 : 0;
+                    rc = bv1 - bv2;
+                }
+                break;
+            }
+            case BinInterSedes.BYTE: {
+                type1 = DataType.BYTE;
+                type2 = getGeneralizedDataType(dt2);
+                if (type1 == type2) {
+                    byte bv1 = bb1.get();
+                    byte bv2 = bb2.get();
+                    rc = (bv1 < bv2 ? -1 : (bv1 == bv2 ? 0 : 1));
+                }
+                break;
+            }
+            case BinInterSedes.INTEGER_0:
+            case BinInterSedes.INTEGER_1:
+            case BinInterSedes.INTEGER_INBYTE:
+            case BinInterSedes.INTEGER_INSHORT:
+            case BinInterSedes.INTEGER: {
+                type1 = DataType.INTEGER;
+                type2 = getGeneralizedDataType(dt2);
+                if (type1 == type2) {
+                    int iv1 = readInt(bb1, dt1);
+                    int iv2 = readInt(bb2, dt2);
+                    rc = (iv1 < iv2 ? -1 : (iv1 == iv2 ? 0 : 1));
+                }
+                break;
+            }
+            case BinInterSedes.LONG: {
+                type1 = DataType.LONG;
+                type2 = getGeneralizedDataType(dt2);
+                if (type1 == type2) {
+                    long lv1 = bb1.getLong();
+                    long lv2 = bb2.getLong();
+                    rc = (lv1 < lv2 ? -1 : (lv1 == lv2 ? 0 : 1));
+                }
+                break;
+            }
+            case BinInterSedes.FLOAT: {
+                type1 = DataType.FLOAT;
+                type2 = getGeneralizedDataType(dt2);
+                if (type1 == type2) {
+                    float fv1 = bb1.getFloat();
+                    float fv2 = bb2.getFloat();
+                    rc = Float.compare(fv1, fv2);
+                }
+                break;
+            }
+            case BinInterSedes.DOUBLE: {
+                type1 = DataType.DOUBLE;
+                type2 = getGeneralizedDataType(dt2);
+                if (type1 == type2) {
+                    double dv1 = bb1.getDouble();
+                    double dv2 = bb2.getDouble();
+                    rc = Double.compare(dv1, dv2);
+                }
+                break;
+            }
+            case BinInterSedes.TINYBYTEARRAY:
+            case BinInterSedes.SMALLBYTEARRAY:
+            case BinInterSedes.BYTEARRAY: {
+                type1 = DataType.BYTEARRAY;
+                type2 = getGeneralizedDataType(dt2);
+                if (type1 == type2) {
+                    byte sizeType1 = getSizeType(dt1);
+                    byte sizeType2 = getSizeType(dt2);
+                    int basz1 = readInt(bb1, sizeType1);
+                    int basz2 = readInt(bb2, sizeType2);
+                    byte[] ba1 = new byte[basz1];
+                    byte[] ba2 = new byte[basz2];
+                    bb1.get(ba1);
+                    bb2.get(ba2);
+                    rc = DataByteArray.compare(ba1, ba2);
+                }
+                break;
+            }
+            case BinInterSedes.SMALLCHARARRAY:
+            case BinInterSedes.CHARARRAY: {
+                type1 = DataType.CHARARRAY;
+                type2 = getGeneralizedDataType(dt2);
+                if (type1 == type2) {
+                    byte sizeType1 = getSizeType(dt1);
+                    byte sizeType2 = getSizeType(dt2);
+                    int casz1 = readInt(bb1, sizeType1);
+                    int casz2 = readInt(bb2, sizeType2);
+                    byte[] ca1 = new byte[casz1];
+                    byte[] ca2 = new byte[casz2];
+                    bb1.get(ca1);
+                    bb2.get(ca2);
+                    String str1 = null, str2 = null;
+                    try {
+                        str1 = new String(ca1, BinInterSedes.UTF8);
+                        str2 = new String(ca2, BinInterSedes.UTF8);
+                    } catch (UnsupportedEncodingException uee) {
+                        mLog.warn("Unsupported string encoding", uee);
+                        uee.printStackTrace();
+                    }
+                    if (str1 != null && str2 != null)
+                        rc = str1.compareTo(str2);
+                }
+                break;
+            }
+            case BinInterSedes.TINYTUPLE:
+            case BinInterSedes.SMALLTUPLE:
+            case BinInterSedes.TUPLE: {
+                type1 = DataType.TUPLE;
+                type2 = getGeneralizedDataType(dt2);
+                if (type1 == type2) {
+                    // first compare sizes
+                    byte sizeType1 = getSizeType(dt1);
+                    byte sizeType2 = getSizeType(dt2);
+                    int tsz1 = readInt(bb1, sizeType1);
+                    int tsz2 = readInt(bb2, sizeType2);
+                    if (tsz1 > tsz2)
+                        return 1;
+                    else if (tsz1 < tsz2)
+                        return -1;
+                    else {
+                        // if sizes are the same, compare field by field. If we are doing secondary sort, use the sort
+                        // order passed by the caller. Inner tuples never have sort order (so we pass null).
+                        for (int i = 0; i < tsz1 && rc == 0; i++) {
+                            rc = compareBinInterSedesDatum(bb1, bb2, null);
+                            if (rc != 0 && asc != null && asc.length > 1 && !asc[i])
+                                rc *= -1;
+                        }
+                    }
+                }
+                break;
+            }
+            case BinInterSedes.TINYBAG:
+            case BinInterSedes.SMALLBAG:
+            case BinInterSedes.BAG: {
+                type1 = DataType.BAG;
+                type2 = getGeneralizedDataType(dt2);
+                if (type1 == type2)
+                    rc = compareBinInterSedesBag(bb1, bb2, dt1, dt2);
+                break;
+            }
+            case BinInterSedes.TINYMAP:
+            case BinInterSedes.SMALLMAP:
+            case BinInterSedes.MAP: {
+                type1 = DataType.MAP;
+                type2 = getGeneralizedDataType(dt2);
+                if (type1 == type2)
+                    rc = compareBinInterSedesMap(bb1, bb2, dt1, dt2);
+                break;
+            }
+            case BinInterSedes.GENERIC_WRITABLECOMPARABLE: {
+                type1 = DataType.GENERIC_WRITABLECOMPARABLE;
+                type2 = getGeneralizedDataType(dt2);
+                if (type1 == type2)
+                    rc = compareBinInterSedesGenericWritableComparable(bb1, bb2);
+                break;
+            }
+            default: {
+                mLog.info("Unsupported DataType for binary comparison, switching to object deserialization: "
+                        + DataType.genTypeToNameMap().get(dt1) + "(" + dt1 + ")");
+                throw new UnsupportedEncodingException();
+            }
+            }
+            // compare generalized data types
+            if (type1 != type2)
+                rc = (type1 < type2) ? -1 : 1;
+            // apply sort order for keys that are not tuples or for whole tuples
+            if (asc != null && asc.length == 1 && !asc[0])
+                rc *= -1;
+            return rc;
+        }
+
+        @SuppressWarnings("rawtypes")
+        @Override
+        public int compare(WritableComparable o1, WritableComparable o2) {
+            Tuple t1 = (Tuple) o1;
+            Tuple t2 = (Tuple) o2;
+            mHasNullField = false;
+            // treat the outermost tuple differently because we have to deal with sort order
+            int result = 0;
+
+            // first compare sizes
+            int tsz1 = t1.size();
+            int tsz2 = t2.size();
+            if (tsz1 > tsz2)
+                return 1;
+            else if (tsz1 < tsz2)
+                return -1;
+            else {
+                try {
+                    // if sizes are the same, compare field by field
+                    if (mIsSecondarySort) {
+                        // we have a compound tuple key (main_key, secondary_key). Each key has its own sort order, so
+                        // we have to deal with them separately. We delegate it to the first invocation of
+                        // compareDatum()
+                        assert (tsz1 == 3); // main_key, secondary_key, value
+                        result = compareDatum(t1.get(0), t2.get(0), mAsc);
+                        if (result == 0)
+                            result = compareDatum(t1.get(1), t2.get(1), mSecondaryAsc);
+                    } else {
+                        // we have just one tuple key and no chance of recursion, we delegate dealing with sort order to
+                        // compareDatum()
+                        result = compareDatum(t1, t2, mAsc);
+                    }
+                } catch (ExecException e) {
+                    throw new RuntimeException("Unable to compare tuples", e);
+                }
+            }
+            return result;
+        }
+
+        private int compareDatum(Object o1, Object o2, boolean[] asc) {
+            int rc = 0;
+            if (o1 != null && o2 != null && o1 instanceof Tuple && o2 instanceof Tuple) {
+                // objects are Tuples, we may need to apply sort order inside them
+                Tuple t1 = (Tuple) o1;
+                Tuple t2 = (Tuple) o2;
+                int sz1 = t1.size();
+                int sz2 = t2.size();
+                if (sz2 < sz1) {
+                    return 1;
+                } else if (sz2 > sz1) {
+                    return -1;
+                } else {
+                    for (int i = 0; i < sz1; i++) {
+                        try {
+                            rc = DataType.compare(t1.get(i), t2.get(i));
+                            if (rc != 0 && asc != null && asc.length > 1 && !asc[i])
+                                rc *= -1;
+                            if (t1.get(i) == null) // (PIG-927) record if the tuple has a null field
+                                mHasNullField = true;
+                            if (rc!=0) break;
+                        } catch (ExecException e) {
+                            throw new RuntimeException("Unable to compare tuples", e);
+                        }
+                    }
+                }
+            } else {
+                // objects are NOT Tuples, delegate to DataType.compare()
+                rc = DataType.compare(o1, o2);
+            }
+            // apply sort order for keys that are not tuples or for whole tuples
+            if (asc != null && asc.length == 1 && !asc[0])
+                rc *= -1;
+            return rc;
+        }
+
+        @SuppressWarnings({ "unchecked", "rawtypes" })
+        private int compareBinInterSedesGenericWritableComparable(ByteBuffer bb1, ByteBuffer bb2) throws ExecException,
+                IOException {
+            DataInputBuffer buffer1 = new DataInputBuffer();
+            DataInputBuffer buffer2 = new DataInputBuffer();
+            buffer1.reset(bb1.array(), bb1.position(), bb1.remaining());
+            buffer2.reset(bb2.array(), bb2.position(), bb2.remaining());
+            Comparable writable1 = (Comparable) mSedes.readDatum(buffer1);
+            Comparable writable2 = (Comparable) mSedes.readDatum(buffer2);
+            bb1.position(buffer1.getPosition());
+            bb2.position(buffer2.getPosition());
+            return writable1.compareTo(writable2);
+        }
+
+        @SuppressWarnings("unchecked")
+        private int compareBinInterSedesBag(ByteBuffer bb1, ByteBuffer bb2, byte dt1, byte dt2) throws IOException {
+            int s1 = bb1.position();
+            int s2 = bb2.position();
+            int l1 = bb1.remaining();
+            int l2 = bb2.remaining();
+            // first compare sizes
+            byte sizeType1 = getSizeType(dt1);
+            byte sizeType2 = getSizeType(dt2);
+            int bsz1 = readInt(bb1, sizeType1);
+            int bsz2 = readInt(bb2, sizeType2);
+            if (bsz1 > bsz2)
+                return 1;
+            else if (bsz1 < bsz2)
+                return -1;
+            else {
+                DataInputBuffer buffer1 = new DataInputBuffer();
+                DataInputBuffer buffer2 = new DataInputBuffer();
+                buffer1.reset(bb1.array(), s1, l1);
+                buffer2.reset(bb2.array(), s2, l2);
+                DataBag bag1 = (DataBag) mSedes.readDatum(buffer1, dt1);
+                DataBag bag2 = (DataBag) mSedes.readDatum(buffer2, dt2);
+                bb1.position(buffer1.getPosition());
+                bb2.position(buffer2.getPosition());
+                return bag1.compareTo(bag2);
+            }
+        }
+
+        @SuppressWarnings("unchecked")
+        private int compareBinInterSedesMap(ByteBuffer bb1, ByteBuffer bb2, byte dt1, byte dt2) throws ExecException,
+                IOException {
+            int s1 = bb1.position();
+            int s2 = bb2.position();
+            int l1 = bb1.remaining();
+            int l2 = bb2.remaining();
+            // first compare sizes
+            byte sizeType1 = getSizeType(dt1);
+            byte sizeType2 = getSizeType(dt2);
+            int bsz1 = readInt(bb1, sizeType1);
+            int bsz2 = readInt(bb2, sizeType2);
+            if (bsz1 > bsz2)
+                return 1;
+            else if (bsz1 < bsz2)
+                return -1;
+            else {
+                DataInputBuffer buffer1 = new DataInputBuffer();
+                DataInputBuffer buffer2 = new DataInputBuffer();
+                buffer1.reset(bb1.array(), s1, l1);
+                buffer2.reset(bb2.array(), s2, l2);
+                Map<String, Object> map1 = (Map<String, Object>) mSedes.readDatum(buffer1, dt1);
+                Map<String, Object> map2 = (Map<String, Object>) mSedes.readDatum(buffer2, dt2);
+                bb1.position(buffer1.getPosition());
+                bb2.position(buffer2.getPosition());
+                return DataType.compare(map1, map2, DataType.MAP, DataType.MAP);
+            }
+        }
+
+        private static byte getGeneralizedDataType(byte type) {
+            switch (type) {
+            case BinInterSedes.NULL:
+                return DataType.NULL;
+            case BinInterSedes.BOOLEAN_TRUE:
+            case BinInterSedes.BOOLEAN_FALSE:
+                return DataType.BOOLEAN;
+            case BinInterSedes.BYTE:
+                return DataType.BYTE;
+            case BinInterSedes.INTEGER_0:
+            case BinInterSedes.INTEGER_1:
+            case BinInterSedes.INTEGER_INBYTE:
+            case BinInterSedes.INTEGER_INSHORT:
+            case BinInterSedes.INTEGER:
+                return DataType.INTEGER;
+            case BinInterSedes.LONG:
+                return DataType.LONG;
+            case BinInterSedes.FLOAT:
+                return DataType.FLOAT;
+            case BinInterSedes.DOUBLE:
+                return DataType.DOUBLE;
+            case BinInterSedes.TINYBYTEARRAY:
+            case BinInterSedes.SMALLBYTEARRAY:
+            case BinInterSedes.BYTEARRAY:
+                return DataType.BYTEARRAY;
+            case BinInterSedes.SMALLCHARARRAY:
+            case BinInterSedes.CHARARRAY:
+                return DataType.CHARARRAY;
+            case BinInterSedes.TUPLE:
+            case BinInterSedes.TINYTUPLE:
+            case BinInterSedes.SMALLTUPLE:
+                return DataType.TUPLE;
+            case BinInterSedes.BAG:
+            case BinInterSedes.TINYBAG:
+            case BinInterSedes.SMALLBAG:
+                return DataType.BAG;
+            case BinInterSedes.MAP:
+            case BinInterSedes.TINYMAP:
+            case BinInterSedes.SMALLMAP:
+                return DataType.MAP;
+            case BinInterSedes.INTERNALMAP:
+                return DataType.INTERNALMAP;
+            case BinInterSedes.GENERIC_WRITABLECOMPARABLE:
+                return DataType.GENERIC_WRITABLECOMPARABLE;
+            default:
+                throw new RuntimeException("Unexpected data type " + type + " found in stream.");
+            }
+        }
+
+        private static int readInt(ByteBuffer bb, byte type) {
+            switch (type) {
+            case BinInterSedes.INTEGER_0:
+                return 0;
+            case BinInterSedes.INTEGER_1:
+                return 1;
+            case BinInterSedes.INTEGER_INBYTE:
+                return bb.get() & 0xff;
+            case BinInterSedes.INTEGER_INSHORT:
+                return bb.getShort() & 0xffff;
+            case BinInterSedes.INTEGER:
+                return bb.getInt();
+            default:
+                throw new RuntimeException("Unexpected data type " + type + " found in stream.");
+            }
+        }
+
+        private static byte getSizeType(byte type) {
+            switch (type) {
+            case BinInterSedes.TINYBYTEARRAY:
+            case BinInterSedes.TINYTUPLE:
+            case BinInterSedes.TINYBAG:
+            case BinInterSedes.TINYMAP:
+                return BinInterSedes.INTEGER_INBYTE;
+            case BinInterSedes.SMALLBYTEARRAY:
+            case BinInterSedes.SMALLCHARARRAY:
+            case BinInterSedes.SMALLTUPLE:
+            case BinInterSedes.SMALLBAG:
+            case BinInterSedes.SMALLMAP:
+                return BinInterSedes.INTEGER_INSHORT;
+            case BinInterSedes.BYTEARRAY:
+            case BinInterSedes.CHARARRAY:
+            case BinInterSedes.TUPLE:
+            case BinInterSedes.BAG:
+            case BinInterSedes.MAP:
+                return BinInterSedes.INTEGER;
+            default:
+                throw new RuntimeException("Unexpected data type " + type + " found in stream.");
+            }
+        }
+    }
+
+    @Override
+    public Class<? extends TupleRawComparator> getTupleRawComparatorClass() {
+        return BinInterSedesTupleRawComparator.class;
+    }
 }
-

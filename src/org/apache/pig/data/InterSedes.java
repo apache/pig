@@ -24,6 +24,7 @@ import java.io.IOException;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.classification.InterfaceAudience;
 import org.apache.pig.classification.InterfaceStability;
+import org.apache.pig.data.DefaultTuple.DefaultTupleRawComparator;
 
 /**
  * A class to handle reading and writing of intermediate results of data
@@ -76,5 +77,7 @@ public interface InterSedes {
      */
     public void writeDatum(DataOutput out, Object val) 
     throws IOException;
+    
+    public Class<? extends TupleRawComparator> getTupleRawComparatorClass();
 }
 

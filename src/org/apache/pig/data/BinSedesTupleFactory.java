@@ -20,6 +20,7 @@ package org.apache.pig.data;
 import java.lang.Class;
 import java.util.List;
 
+import org.apache.hadoop.io.RawComparator;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.classification.InterfaceAudience;
 
@@ -60,11 +61,12 @@ public class BinSedesTupleFactory extends TupleFactory {
         return t;
     }
 
-    public Class tupleClass() {
+    public Class<? extends Tuple> tupleClass() {
         return BinSedesTuple.class;
     }
 
-    BinSedesTupleFactory() {
+    public Class<? extends TupleRawComparator> tupleRawComparatorClass() {
+        return BinSedesTuple.getComparatorClass();
     }
 
 }
