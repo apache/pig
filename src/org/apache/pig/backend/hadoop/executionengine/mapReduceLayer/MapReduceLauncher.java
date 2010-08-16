@@ -422,7 +422,7 @@ public class MapReduceLauncher extends Launcher{
         so.visit();
         
         // Optimize to use secondary sort key if possible
-        prop = System.getProperty("pig.exec.nosecondarykey");
+        prop = pc.getProperties().getProperty("pig.exec.nosecondarykey");
         if (!("true".equals(prop)))  {
             SecondaryKeyOptimizer skOptimizer = new SecondaryKeyOptimizer(plan);
             skOptimizer.visit();
