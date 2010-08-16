@@ -33,6 +33,8 @@ import junit.framework.Assert;
 
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
+import org.apache.pig.data.BagFactory;
+import org.apache.pig.data.DataBag;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.logicalLayer.parser.ParseException;
 import org.apache.pig.test.utils.TestHelper;
@@ -97,7 +99,52 @@ public class TestForEachNestedPlan {
         }
         Assert.assertEquals(count, 10);
     }
-    
+   
+    @Test
+    public void testMultiColInAlias() throws Exception {    
+    	pig.getPigContext().getProperties().setProperty("pig.exec.nosecondarykey", "true");
+    	String INPUT_FILE = "test-multi-alias.txt";
+        PrintWriter w = new PrintWriter(new FileWriter(INPUT_FILE));
+        w.println("10\tnrai01\t01");
+        w.println("20\tnrai02\t02");
+        w.close();
+        
+        try {
+          
+            Util.copyFromLocalToCluster(cluster, INPUT_FILE, INPUT_FILE);
+            pig.registerQuery("A = load '" + INPUT_FILE + "' "
+                    + "as (a:int, b:chararray, c:int);");
+            pig.registerQuery("B = GROUP A BY (a, b);") ;
+           
+            DataBag dbfrj = BagFactory.getInstance().newDefaultBag(), dbshj = BagFactory.getInstance().newDefaultBag();
+            {
+                pig.registerQuery("C = FOREACH B { bg = A.($1,$2); GENERATE group, bg; } ;") ;
+                Iterator<Tuple> iter1 = pig.openIterator("C");
+                while(iter1.hasNext()) {
+                    dbfrj.add(iter1.next());
+                }
+            }
+            {
+                pig.registerQuery("D = FOREACH B { GENERATE group, A.($1,$2);};") ;
+                Iterator<Tuple> iter2 = pig.openIterator("D");
+                while(iter2.hasNext()) {
+                    dbshj.add(iter2.next());
+                }
+            }
+            Assert.assertEquals(dbfrj.size(), dbshj.size());
+            Assert.assertEquals(true, TestHelper.compareBags(dbfrj, dbshj)); 
+
+        } finally{
+            new File(INPUT_FILE).delete();
+            try {
+                Util.deleteFile(cluster, INPUT_FILE);
+            } catch (IOException e) {
+                e.printStackTrace();
+                Assert.fail();
+            }
+        }
+    }
+   
     @Test
     public void testAlgebricFuncWithoutGroupBy() 
     throws IOException, ParseException {

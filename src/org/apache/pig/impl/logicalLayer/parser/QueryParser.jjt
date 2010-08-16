@@ -2875,7 +2875,7 @@ LogicalOperator NestedProject(Schema over, Map<String, LogicalOperator> specs, L
     "." 
     (
     i = ColNameOrNum(subSchema) {colList.add(i);}
-|   "(" i = ColNameOrNum(subSchema) {colList.add(i);} ("," i = ColNameOrNum(over) {colList.add(i);})* ")"
+|   "(" i = ColNameOrNum(subSchema) {colList.add(i);} ("," i = ColNameOrNum(subSchema) {colList.add(i);})* ")"
     )
     {
         ArrayList<LogicalPlan> foreachPlans = new ArrayList<LogicalPlan>();
