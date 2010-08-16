@@ -340,6 +340,7 @@ public class POFRJoin extends PhysicalOperator {
                 if (reporter != null)
                     reporter.progress();               
                 Tuple tuple = (Tuple) res.result;
+                if (isKeyNull(tuple.get(1))) continue;
                 Tuple key = mTupleFactory.newTuple(1);
                 key.set(0, tuple.get(1));
                 Tuple value = getValueTuple(lr, tuple);
@@ -354,6 +355,17 @@ public class POFRJoin extends PhysicalOperator {
         log.debug("Hash Table built. Time taken: " + (time2 - time1));
     }
 
+    private boolean isKeyNull(Object key) throws ExecException {
+        if (key == null) return true;
+        if (key instanceof Tuple) {
+            Tuple t = (Tuple)key;
+            for (int i=0; i<t.size(); i++) {
+                if (t.isNull(i)) return true;
+            }
+        }
+        return false;
+    }
+    
     private void readObject(ObjectInputStream is) throws IOException,
             ClassNotFoundException, ExecException {
         is.defaultReadObject();
