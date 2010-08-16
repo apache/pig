@@ -17,12 +17,28 @@
  */
 package org.apache.pig.data;
 
+import java.io.ByteArrayInputStream;
 import java.io.DataInput;
+import java.io.DataInputStream;
 import java.io.DataOutput;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.nio.ByteBuffer;
 import java.util.List;
+import java.util.Map;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.io.DataInputBuffer;
+import org.apache.hadoop.io.WritableComparable;
+import org.apache.hadoop.io.WritableComparator;
+import org.apache.hadoop.mapred.JobConf;
+import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.classification.InterfaceAudience;
+import org.apache.pig.data.BinInterSedes.BinInterSedesTupleRawComparator;
+import org.apache.pig.data.DefaultTuple.DefaultTupleRawComparator;
+import org.apache.pig.impl.util.ObjectSerializer;
 
 /**
  * This tuple has a faster (de)serialization mechanism. It to be used for
@@ -87,4 +103,7 @@ public class BinSedesTuple extends DefaultTuple {
         super(c, junk);
     }
     
+    public static Class<? extends TupleRawComparator> getComparatorClass() {
+        return InterSedesFactory.getInterSedesInstance().getTupleRawComparatorClass();
+    }
 }

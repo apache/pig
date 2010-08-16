@@ -23,6 +23,8 @@ import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.List;
 
+import org.apache.hadoop.io.RawComparator;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigTupleDefaultRawComparator;
 import org.apache.pig.classification.InterfaceAudience;
 import org.apache.pig.classification.InterfaceStability;
 
@@ -124,13 +126,12 @@ public abstract class TupleFactory {
 
     /**
      * Return the actual class representing a tuple that the implementing
-     * factory will be returning.  This is needed because hadoop needs
+     * factory will be returning.  This is needed because Hadoop needs
      * to know the exact class we will be using for input and output.
      * @return Class that implements tuple.
      */
-    public abstract Class tupleClass();
- 
-
+    public abstract Class<? extends Tuple> tupleClass();
+    
     protected TupleFactory() {
     }
 
@@ -140,6 +141,18 @@ public abstract class TupleFactory {
      */
     public static void resetSelf() {
         gSelf = null;
+    }
+    
+    /**
+     * Return the actual class implementing the raw comparator for tuples
+     * that the factory will be returning. Ovverride this to allow Hadoop to
+     * speed up tuple sorting. The actual returned class should know the
+     * serialization details for the tuple. The default implementation 
+     * (PigTupleDefaultRawComparator) will serialize the data before comparison
+     * @return Class that implements tuple raw comparator.
+     */
+    public Class<? extends TupleRawComparator> tupleRawComparatorClass() {
+        return PigTupleDefaultRawComparator.class;
     }
 
 }

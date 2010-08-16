@@ -33,5 +33,8 @@ package org.apache.pig.data;
  */
 @Deprecated 
 public class DefaultTupleFactory extends BinSedesTupleFactory {
-
+    @Override
+    public Class<? extends TupleRawComparator> tupleRawComparatorClass() {
+        return DefaultTuple.getComparatorClass();
+    }
 }

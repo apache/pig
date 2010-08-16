@@ -942,7 +942,7 @@ public class JobControlCompiler{
                 throw new JobCreationException(msg, errCode, PigException.INPUT);
 
             case DataType.TUPLE:
-                job.setSortComparatorClass(PigTupleRawComparator.class);
+                job.setSortComparatorClass(PigTupleSortComparator.class);
                 break;
 
             case DataType.BAG:
