@@ -147,8 +147,8 @@ public class GreaterThanExpr extends BinaryComparisonOperator {
             left.returnStatus = POStatus.STATUS_NULL;
             return left;
         }
-        assert(left instanceof Comparable);
-        assert(right instanceof Comparable);
+        assert(left.result instanceof Comparable);
+        assert(right.result instanceof Comparable);
         if (((Comparable)left.result).compareTo((Comparable)right.result) > 0) {
             left.result = trueRef;
         } else {
