@@ -615,6 +615,11 @@
             <batchtest fork="yes" todir="${test.log.dir}" if="testcase">
                 <fileset dir="test" includes="**/${testcase}.java"/>
             </batchtest>
+
+            <assertions>
+                <enable />
+            </assertions>
+
         </junit>
         <delete dir="${junit.tmp.dir}/"/>
         <fail if="tests.failed">Tests failed!</fail>
