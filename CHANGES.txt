@@ -129,6 +129,9 @@ PIG-1309: Map-side Cogroup (ashutoshc)
 
 BUG FIXES
 
+PIG-1546: Incorrect assert statements in operator evaluation (ajaykidave via
+pradeepkth)
+
 PIG-1392: Parser fails to recognize valid field (niraj via rding)
 
 PIG-1541: FR Join shouldn't match null values (rding)

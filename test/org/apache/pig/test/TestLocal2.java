@@ -158,6 +158,33 @@ public class TestLocal2 extends TestCase {
         fp1.delete();
         
     }
+
+    @Test
+    public void testOperatorLocal() throws Exception {
+        // Regression test for PIG-1546
+        File fp1 = File.createTempFile("opTest", "txt");
+        PrintStream ps = new PrintStream(new FileOutputStream(fp1));
+        
+        ps.println("1\t2");
+        ps.close();
+        
+        pig.registerQuery("A = load '"
+                + Util.generateURI(fp1.toString(), pig.getPigContext())
+                + "' AS (c1:int, c2:int); ");
+        pig.registerQuery("B = filter A by c1 > 0;");
+        pig.registerQuery("C = filter B by c1 < 2;");
+        pig.registerQuery("D = filter C by c1 >= 0;");
+        pig.registerQuery("E = filter D by c1 <= 2;");
+        
+        Iterator<Tuple> iter = pig.openIterator("E");
+        assertTrue(iter.hasNext());
+        Tuple t = iter.next();
+        assertTrue(t.get(0).equals(new Integer(1)));
+        assertTrue(t.get(1).equals(new Integer(2)));
+        assertFalse(iter.hasNext());
+
+        fp1.delete();
+    }
     
     @Test
     public void testJoin1() throws Exception {
