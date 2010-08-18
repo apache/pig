@@ -100,7 +100,6 @@
   <!-- the normal classpath -->
   <path id="classpath">
     <fileset dir="${pig.root}/lib">
-      <include name="${hadoop.jarfile}" />
       <include name="${hbase.jarfile}" />
       <include name="${hbase.test.jarfile}" />
     </fileset>
@@ -150,7 +149,7 @@
   <!-- ====================================================== -->
   <!-- Compile a Pig contrib's files                          -->
   <!-- ====================================================== -->
-  <target name="compile" depends="init, cc-compile, hadoop-jar-exists" unless="skip.contrib">
+  <target name="compile" depends="init, cc-compile" unless="skip.contrib">
     <echo message="contrib: ${name}"/>
     <javac
      encoding="${build.encoding}"
