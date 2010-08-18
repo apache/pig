@@ -177,7 +177,8 @@
     <!-- javadoc-classpath -->
     <path id="javadoc-classpath">
         <fileset file="${lib.dir}/${hbase.jarfile}" />
-		<fileset file="${lib.dir}/${guava.jarfile}" />
+	<fileset file="${lib.dir}/${guava.jarfile}" />
+	<fileset file="${lib.dir}/${automaton.jarfile}" />
         <fileset file="${lib.dir}/${hbase.test.jarfile}" />
 	<path refid="javadoc.classpath"/>	
     </path> 
@@ -347,7 +348,7 @@
             <link href="${javadoc.link.java}" />
             <classpath>
                 <path refid="javadoc-classpath" />
-            	<pathelement path="${output.jarfile}" />
+            	<pathelement path="${output.jarfile.core}" />
             </classpath>
             <group title="pig" packages="org.apache.*" />
         </javadoc>
