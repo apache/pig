@@ -45,10 +45,6 @@ to call at top-level: ant deploy-contrib compile-core-test
              <attribute name="Svn-Revision" value="${svn.revision}" />
           </section>
 	</manifest>
-
-        <zipfileset src="${pig.root}/lib/${hadoop.jarfile}">
-            <include name="${hadoop.includes}" />
-        </zipfileset>
     </jar>
   </target>
 
