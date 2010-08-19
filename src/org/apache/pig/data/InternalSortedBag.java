@@ -18,9 +18,7 @@
 package org.apache.pig.data;
 
 import java.io.BufferedInputStream;
-import java.io.DataInput;
 import java.io.DataInputStream;
-import java.io.DataOutput;
 import java.io.DataOutputStream;
 import java.io.EOFException;
 import java.io.File;
@@ -35,12 +33,9 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.ListIterator;
 import java.util.PriorityQueue;
-  
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.pig.PigCounters;
-import org.apache.pig.PigWarning;
-import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce;
 
 
@@ -56,7 +51,7 @@ import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce
  * This bag is not registered with SpillableMemoryManager. It calculates
  * the number of tuples to hold in memory and spill pro-actively into files.
  */
-public class InternalSortedBag extends DefaultAbstractBag{
+public class InternalSortedBag extends SortedSpillBag{
 
     /**
      * 
@@ -142,7 +137,7 @@ public class InternalSortedBag extends DefaultAbstractBag{
         }
                 
     	if (mContents.size() > cacheLimit) {    		
-    		spill();
+    		proactive_spill(mComp);
     	}
     	        
         mContents.add(t);
@@ -185,61 +180,6 @@ public class InternalSortedBag extends DefaultAbstractBag{
     
     public Iterator<Tuple> iterator() {
         return new SortedDataBagIterator();
-    }
-
-    public long spill() {
-        // Make sure we have something to spill.  Don't create empty
-        // files, as that will make a mess.
-        if (mContents.size() == 0) return 0;
-
-        // Lock the container before I spill, so that iterators aren't
-        // trying to read while I'm mucking with the container.
-        long spilled = 0;
-        
-        DataOutputStream out = null;
-        try {
-            out = getSpillFile();
-        } catch (IOException ioe) {
-            // Do not remove last file from spilled array. It was not
-            // added as File.createTmpFile threw an IOException
-            warn(
-                "Unable to create tmp file to spill to disk", PigWarning.UNABLE_TO_CREATE_FILE_TO_SPILL, ioe);
-            return 0;
-        }
-        try {
-            
-            Collections.sort((ArrayList<Tuple>)mContents, mComp);
-            
-            Iterator<Tuple> i = mContents.iterator();
-            while (i.hasNext()) {
-                i.next().write(out);
-                spilled++;
-                // This will spill every 16383 records.
-                if ((spilled & 0x3fff) == 0) reportProgress();
-            }
-            out.flush();
-        } catch (IOException ioe) {
-            // Remove the last file from the spilled array, since we failed to
-            // write to it.
-            mSpillFiles.remove(mSpillFiles.size() - 1);
-            warn(
-                "Unable to spill contents to disk", PigWarning.UNABLE_TO_SPILL, ioe);
-            return 0;
-        } finally {
-            if (out != null) {
-                try {
-                    out.close();
-                } catch (IOException e) {
-                    warn("Error closing spill", PigWarning.UNABLE_TO_CLOSE_SPILL_FILE, e);
-                }
-            }
-        }
-        mContents.clear();
-        memUsage = 0;
-        
-        // Increment the spill count
-        incSpillCount(PigCounters.PROACTIVE_SPILL_COUNT);
-        return spilled;
     }
 
     /**
@@ -523,4 +463,9 @@ public class InternalSortedBag extends DefaultAbstractBag{
             }
         }
     }
+
+    public long spill(){
+        return proactive_spill(mComp);
+    }
+
 }

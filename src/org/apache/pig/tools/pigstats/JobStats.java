@@ -107,7 +107,8 @@ public final class JobStats extends Operator {
     private long hdfsBytesWritten = 0;
     private long hdfsBytesRead = 0;
     private long spillCount = 0;
-    private long activeSpillCount = 0;
+    private long activeSpillCountObj = 0;
+    private long activeSpillCountRecs = 0;
     
     private HashMap<String, Long> multiStoreCounters 
             = new HashMap<String, Long>();
@@ -162,7 +163,9 @@ public final class JobStats extends Operator {
 
     public long getSMMSpillCount() { return spillCount; }
     
-    public long getProactiveSpillCount() { return activeSpillCount; }
+    public long getProactiveSpillCountObjects() { return activeSpillCountObj; }
+    
+    public long getProactiveSpillCountRecs() { return activeSpillCountRecs; }
     
     public long getHdfsBytesWritten() { return hdfsBytesWritten; }
     
@@ -340,9 +343,11 @@ public final class JobStats extends Operator {
             spillCount = counters.findCounter(
                     PigCounters.SPILLABLE_MEMORY_MANAGER_SPILL_COUNT)
                     .getCounter();
-            activeSpillCount = counters.findCounter(
-                    PigCounters.PROACTIVE_SPILL_COUNT).getCounter();
-            
+            activeSpillCountObj = counters.findCounter(
+                    PigCounters.PROACTIVE_SPILL_COUNT_BAGS).getCounter();
+            activeSpillCountRecs = counters.findCounter(
+                    PigCounters.PROACTIVE_SPILL_COUNT_RECS).getCounter();
+
             Iterator<Counter> iter = multistoregroup.iterator();
             while (iter.hasNext()) {
                 Counter cter = iter.next();
