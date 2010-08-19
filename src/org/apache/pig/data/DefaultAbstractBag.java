@@ -380,9 +380,13 @@ public abstract class DefaultAbstractBag implements DataBag {
     }
     
     protected void incSpillCount(Enum counter) {
+        incSpillCount(counter, 1);
+    }
+
+    protected void incSpillCount(Enum counter, long numRecsSpilled) {
         PigStatusReporter reporter = PigStatusReporter.getInstance();
         if (reporter != null && reporter.getCounter(counter)!=null) {
-            reporter.getCounter(counter).increment(1);
+            reporter.getCounter(counter).increment(numRecsSpilled);
         } else {
             PigHadoopLogger.getInstance().warn(this, "Spill counter incremented", counter);
         }
