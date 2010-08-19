@@ -23,5 +23,10 @@ package org.apache.pig;
  */
 public enum PigCounters {
     SPILLABLE_MEMORY_MANAGER_SPILL_COUNT,
-    PROACTIVE_SPILL_COUNT;
+    
+    // total number of bags that have spilled proactively
+    PROACTIVE_SPILL_COUNT_BAGS, 
+    
+    //total number of records that have been spilled to disk
+    PROACTIVE_SPILL_COUNT_RECS;
 }

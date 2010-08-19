@@ -357,13 +357,25 @@ public final class PigStats {
     }
     
     /**
-     * Returns the total spill counts from {@link InternalCachedBag}.
+     * Returns the total number of bags that spilled proactively
      */
-    public long getProactiveSpillCount() {
+    public long getProactiveSpillCountObjects() {
         Iterator<JobStats> it = jobPlan.iterator();
         long ret = 0;
         while (it.hasNext()) {            
-            ret += it.next().getProactiveSpillCount();
+            ret += it.next().getProactiveSpillCountObjects();
+        }
+        return ret;
+    }
+    
+    /**
+     * Returns the total number of records that spilled proactively
+     */
+    public long getProactiveSpillCountRecords() {
+        Iterator<JobStats> it = jobPlan.iterator();
+        long ret = 0;
+        while (it.hasNext()) {            
+            ret += it.next().getProactiveSpillCountRecs();
         }
         return ret;
     }
@@ -587,8 +599,10 @@ public final class PigStats {
         sb.append("Total bytes written : " + getBytesWritten()).append("\n");
         sb.append("Spillable Memory Manager spill count : "
                 + getSMMSpillCount()).append("\n");
-        sb.append("Proactive spill count : " 
-                + getProactiveSpillCount()).append("\n");
+        sb.append("Total bags proactively spilled: " 
+                + getProactiveSpillCountObjects()).append("\n");
+        sb.append("Total records proactively spilled: " 
+                + getProactiveSpillCountRecords()).append("\n");
         
         sb.append("\nJob DAG:\n").append(jobPlan.toString());
         

@@ -54,7 +54,7 @@ import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce
  * This bag spills pro-actively when the number of tuples in memory 
  * reaches a limit
  */
-public class InternalDistinctBag extends DefaultAbstractBag {
+public class InternalDistinctBag extends SortedSpillBag {
 
     /**
      * 
@@ -70,7 +70,7 @@ public class InternalDistinctBag extends DefaultAbstractBag {
     private transient int cacheLimit;
     private transient long maxMemUsage;
     private transient long memUsage;    
-
+    
     public InternalDistinctBag() {
         this(1, -1.0);
     }
@@ -145,7 +145,7 @@ public class InternalDistinctBag extends DefaultAbstractBag {
         }
                 
     	if (mContents.size() > cacheLimit) {    		
-    		spill();
+    		proactive_spill(null);
     	}
     	            	
         if (mContents.add(t)) {
@@ -178,61 +178,8 @@ public class InternalDistinctBag extends DefaultAbstractBag {
     	}
     }
     
-    public long spill() {       	
-        // Make sure we have something to spill.  Don't create empty
-        // files, as that will make a mess.
-        if (mContents.size() == 0) return 0;
-
-        // Lock the container before I spill, so that iterators aren't
-        // trying to read while I'm mucking with the container.
-        long spilled = 0;
-       
-        DataOutputStream out = null;
-        try {
-            out = getSpillFile();
-        }  catch (IOException ioe) {
-            // Do not remove last file from spilled array. It was not
-            // added as File.createTmpFile threw an IOException
-            warn(
-                "Unable to create tmp file to spill to disk", PigWarning.UNABLE_TO_CREATE_FILE_TO_SPILL, ioe);
-            return 0;
-        }
-        try {            
-        	Tuple[] array = new Tuple[mContents.size()];
-            mContents.toArray(array);
-            Arrays.sort(array);
-            for (int i = 0; i < array.length; i++) {
-                array[i].write(out);
-                spilled++;
-                // This will spill every 16383 records.
-                if ((spilled & 0x3fff) == 0) reportProgress();
-            }
-            
-            out.flush();
-        } catch (IOException ioe) {
-            // Remove the last file from the spilled array, since we failed to
-            // write to it.
-            mSpillFiles.remove(mSpillFiles.size() - 1);
-            warn(
-                "Unable to spill contents to disk", PigWarning.UNABLE_TO_SPILL, ioe);
-            return 0;
-        } finally {
-            if (out != null) {
-                try {
-                    out.close();
-                } catch (IOException e) {
-                    warn("Error closing spill", PigWarning.UNABLE_TO_CLOSE_SPILL_FILE, e);
-                }
-            }
-        }
-        mContents.clear();
-        memUsage = 0;
-
-        // Increment the spill count
-        incSpillCount(PigCounters.PROACTIVE_SPILL_COUNT);
-        return spilled;
-    }
-
+    
+   
     /**
      * An iterator that handles getting the next tuple from the bag.
      * Data can be stored in a combination of in memory and on disk.  
@@ -533,4 +480,9 @@ public class InternalDistinctBag extends DefaultAbstractBag {
             }
         }
     }
+
+    public long spill(){
+        return proactive_spill(null);
+    }
+
 }
