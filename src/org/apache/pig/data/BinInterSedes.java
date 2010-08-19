@@ -658,7 +658,7 @@ public class BinInterSedes implements InterSedes {
                         // we have a compound tuple key (main_key, secondary_key). Each key has its own sort order, so
                         // we have to deal with them separately. We delegate it to the first invocation of
                         // compareBinInterSedesDatum()
-                        assert (tsz1 == 3); // main_key, secondary_key, value
+                        assert (tsz1 == 2); // main_key, secondary_key
                         result = compareBinInterSedesDatum(bb1, bb2, mAsc);
                         if (result == 0)
                             result = compareBinInterSedesDatum(bb1, bb2, mSecondaryAsc);
