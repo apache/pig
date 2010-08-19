@@ -72,6 +72,12 @@ public class SpillableMemoryManager implements NotificationListener {
     // "collection threshold exceeded" notifications
     private static double collectionMemoryThresholdFraction = 0.5;
         
+    // log notification on usage threshold exceeded only the first time
+    private boolean firstUsageThreshExceededLogged = false;
+    
+    // log notification on collection threshold exceeded only the first time
+    private boolean firstCollectionThreshExceededLogged = false;
+    
     public SpillableMemoryManager() {
         ((NotificationEmitter)ManagementFactory.getMemoryMXBean()).addNotificationListener(this, null, null);
         List<MemoryPoolMXBean> mpbeans = ManagementFactory.getMemoryPoolMXBeans();
@@ -140,11 +146,30 @@ public class SpillableMemoryManager implements NotificationListener {
         if(n.getType().equals(MemoryNotificationInfo.MEMORY_THRESHOLD_EXCEEDED)) {
             long threshold = (long)(info.getUsage().getMax() * memoryThresholdFraction);
             toFree = info.getUsage().getUsed() - threshold + (long)(threshold * 0.5);
-            log.info("low memory handler called (Usage threshold exceeded) " + info.getUsage());
+
+            //log
+            String msg = "memory handler call- Usage threshold " 
+                + info.getUsage();
+            if(!firstUsageThreshExceededLogged){
+                log.info("first " + msg);
+                firstUsageThreshExceededLogged = true;
+            }else{
+                log.debug(msg);
+            }
         } else { // MEMORY_COLLECTION_THRESHOLD_EXCEEDED CASE
             long threshold = (long)(info.getUsage().getMax() * collectionMemoryThresholdFraction);
             toFree = info.getUsage().getUsed() - threshold + (long)(threshold * 0.5);
-            log.info("low memory handler called (Collection threshold exceeded) " + info.getUsage());
+            
+            //log
+            String msg = "memory handler call - Collection threshold "
+                + info.getUsage();
+            if(!firstCollectionThreshExceededLogged){
+                log.info("first " + msg);
+                firstCollectionThreshExceededLogged = true;
+            }else{
+                log.debug(msg);
+            }
+
         }
          
         if (toFree < 0) {
@@ -195,6 +220,7 @@ public class SpillableMemoryManager implements NotificationListener {
                 }
             });
             long estimatedFreed = 0;
+            int numObjSpilled = 0;
             boolean invokeGC = false;
             for (i = spillables.iterator(); i.hasNext();) {
                 Spillable s = i.next().get();
@@ -213,6 +239,7 @@ public class SpillableMemoryManager implements NotificationListener {
                     break ;
                 }
                 s.spill();               
+                numObjSpilled++;
                 estimatedFreed += toBeFreed;
                 accumulatedFreeSize += toBeFreed;
                 // This should significantly reduce the number of small files
@@ -226,14 +253,19 @@ public class SpillableMemoryManager implements NotificationListener {
                     invokeGC = true;
                     break;
                 }
-            }
-
+            }           
             /* Poke the GC again to see if we successfully freed enough memory */
             if(invokeGC) {
                 System.gc();
                 // now that we have invoked the GC, reset accumulatedFreeSize
                 accumulatedFreeSize = 0;
             }
+            if(estimatedFreed > 0){
+                String msg = "Spilled an estimate of " + estimatedFreed +
+                " bytes from " + numObjSpilled + " objects. " + info.getUsage();;
+                log.info(msg);
+            }
+
         }
     }
     
