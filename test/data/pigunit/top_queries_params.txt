@@ -1,0 +1,4 @@
+n=3
+reducers=1
+input=top_queries_input_data.txt
+output=top_3_queries
