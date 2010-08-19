@@ -1,0 +1,10 @@
+yahoo	10
+twitter	7
+facebook	10
+yahoo	15
+facebook	5
+a	1
+b	2
+c	3
+d	4
+e	5

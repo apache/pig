@@ -47,6 +47,7 @@ See http://forrest.apache.org/docs/linking.html for more info
     <plref2 label="Pig Latin 2"	href="piglatin_ref2.html" />
     <cookbook label="Cookbook" 		href="cookbook.html" />
     <udf label="UDFs" href="udf.html" />
+    <udf label="PigUnit" href="pigunit.html" />
     </docs>  
     
     <docs label="Zebra"> 

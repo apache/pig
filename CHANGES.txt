@@ -26,6 +26,8 @@ PIG-1249: Safe-guards against misconfigured Pig scripts without PARALLEL keyword
 
 IMPROVEMENTS
 
+PIG-1404: added PigUnit, a framework fo building unit tests of Pig Latin scripts (romainr via gates)
+
 PIG-1452: to remove hadoop20.jar from lib and use hadoop from the apache maven
 repo. (rding)
 

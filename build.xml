@@ -84,6 +84,10 @@
     <property name="test.unit.file" value="${test.src.dir}/unit-tests"/>
     <property name="test.smoke.file" value="${test.src.dir}/smoke-tests"/>
     <property name="test.all.file" value="${test.src.dir}/all-tests"/>
+    <property name="pigunit.jarfile" value="pigunit.jar" />
+    <property name="test.pigunit.src.dir" value="${test.src.dir}/org/apache/pig/test/pigunit" />
+    <property name="commons-lang.jarfile" value="commons-lang-2.4.jar" />    
+    <property name="test.pigunit.file" value="${test.src.dir}/pigunit-tests"/>
 
 
     <!-- test configuration, use ${user.home}/build.properties to configure values  -->
@@ -607,6 +611,7 @@
                     <exclude name="**/TestOrderBy2.java" />
                     <exclude name="**/TestPi.java" />
                     <exclude name="**/nightly/**" />
+                    <!-- <exclude name="**/pigunit/**" /> -->
                     <exclude name="**/${exclude.testcase}.java" if="exclude.testcase" />
                 </fileset>
             </batchtest>
@@ -636,6 +641,22 @@
     <target name="test-contrib" depends="compile-test" description="to call contrib tests">
         <subant target="pigtest" buildpath="contrib/zebra" antfile="build.xml"/>
     </target>	
+
+    <!-- ================================================================== -->
+    <!-- Pigunit                                                            -->
+    <!-- ================================================================== -->
+
+    <target depends="compile-test" name="pigunit-jar" description="create the pigunit jar file">
+        <echo> *** Creating pigunit.jar ***</echo>
+      <jar destfile="${pigunit.jarfile}">
+        <fileset dir="${test.build.classes}/org/apache/pig/pigunit/"/>
+      	<zipfileset src="${ivy.lib.dir}/${commons-lang.jarfile}" />
+      </jar>
+    </target>
+
+    <target name="test-pigunit" depends="compile-test,jar-withouthadoop, pigunit-jar" description="Run tests that test PigUnit">
+        <macro-test-runner test.file="${test.pigunit.file}" />
+    </target>
 
     <!-- ================================================================== -->
     <!-- D I S T R I B U T I O N                                            -->
