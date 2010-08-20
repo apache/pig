@@ -136,6 +136,8 @@ PIG-1309: Map-side Cogroup (ashutoshc)
 
 BUG FIXES
 
+PIG-1486: update ant eclipse-files target to include new jar and remove contrib dirs from build path (thejas)
+
 PIG-1524: 'Proactive spill count' is misleading (thejas)
 
 PIG-1546: Incorrect assert statements in operator evaluation (ajaykidave via
