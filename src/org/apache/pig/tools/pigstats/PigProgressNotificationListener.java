@@ -21,23 +21,69 @@ package org.apache.pig.tools.pigstats;
 import org.apache.pig.classification.InterfaceAudience;
 import org.apache.pig.classification.InterfaceStability;
 
+import org.apache.pig.PigRunner;
+
+/**
+ * Should be implemented by an object that wants to receive notifications
+ * from {@link PigRunner}.
+ */
 @InterfaceAudience.Public
 @InterfaceStability.Evolving
 public interface PigProgressNotificationListener extends java.util.EventListener {
     
+    /** 
+     * Invoked just before launching MR jobs spawned by the script.
+     * 
+     * @param numJobsToLaunch the total number of MR jobs spawned by the script
+     */
     public void launchStartedNotification(int numJobsToLaunch);
     
+    /**
+     * Invoked just before submitting a batch of MR jobs.
+     * 
+     * @param numJobsSubmitted the number of MR jobs in the batch
+     */
     public void jobsSubmittedNotification(int numJobsSubmitted);
     
+    /**
+     * Invoked after a MR job is started.
+     * 
+     * @param assignedJobId the MR job id
+     */
     public void jobStartedNotification(String assignedJobId);
     
+    /**
+     * Invoked just after a MR job is completed successfully. 
+     * 
+     * @param jobStats the {@link JobStats} object associated with the MR job
+     */
     public void jobFinishedNotification(JobStats jobStats);
     
+    /**
+     * Invoked when a MR job fails.
+     * 
+     * @param jobStats the {@link JobStats} object associated with the MR job
+     */
     public void jobFailedNotification(JobStats jobStats);
     
+    /**
+     * Invoked just after an output is successfully written.
+     * 
+     * @param outputStats the {@link OutputStats} object associated with the output
+     */
     public void outputCompletedNotification(OutputStats outputStats);
     
+    /**
+     * Invoked to update the execution progress. 
+     * 
+     * @param progress the percentage of the execution progress
+     */
     public void progressUpdatedNotification(int progress);
     
+    /**
+     * Invoked just after all MR jobs spawned by the script are completed.
+     * 
+     * @param numJobsSucceeded the total number of MR jobs succeeded
+     */
     public void launchCompletedNotification(int numJobsSucceeded);
 }
