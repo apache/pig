@@ -20,10 +20,10 @@
   -->
 
   <modelVersion>4.0.0</modelVersion>
-  <groupId>org.apache.pig</groupId>
+  <groupId>org.apache.hadoop</groupId>
   <artifactId>pig</artifactId>
   <packaging>jar</packaging>
-  <version>${pig.version}</version>
+  <version>0.8.0-SNAPSHOT</version>
   <description>
     Pig is a platform for analyzing large data sets that consists of a high-level 
     language for expressing data analysis programs, coupled with infrastructure 
@@ -45,6 +45,7 @@
           <groupId>com.jcraft</groupId>
           <artifactId>zlib</artifactId>
         </exclusion>
+       </exclusions>
     </dependency>
 
     <dependency>
@@ -98,7 +99,7 @@
 	<dependency>
 	    <groupId>org.python</groupId>
 	    <artifactId>jython</artifactId>
-	    <version>${jython.version}/version>
+	    <version>${jython.version}</version>
 	</dependency>
     <dependency>
         <groupId>com.google.guava</groupId>

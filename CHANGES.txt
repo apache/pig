@@ -26,6 +26,8 @@ PIG-1249: Safe-guards against misconfigured Pig scripts without PARALLEL keyword
 
 IMPROVEMENTS
 
+PIG-1334: Make pig artifacts available through maven (niraj via rding)
+
 PIG-1466: Improve log messages for memory usage (thejas)
 
 PIG-1404: added PigUnit, a framework fo building unit tests of Pig Latin scripts (romainr via gates)
