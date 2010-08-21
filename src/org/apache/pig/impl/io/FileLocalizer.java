@@ -25,6 +25,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -38,12 +40,14 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.pig.ExecType;
+import org.apache.pig.PigException;
 import org.apache.pig.backend.datastorage.ContainerDescriptor;
 import org.apache.pig.backend.datastorage.DataStorage;
 import org.apache.pig.backend.datastorage.DataStorageException;
 import org.apache.pig.backend.datastorage.ElementDescriptor;
 import org.apache.pig.backend.datastorage.SeekableInputStream;
 import org.apache.pig.backend.datastorage.SeekableInputStream.FLAGS;
+import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.datastorage.HDataStorage;
 import org.apache.pig.backend.hadoop.datastorage.HPath;
@@ -694,5 +698,73 @@ public class FileLocalizer {
             if (br != null) try {br.close();} catch (Exception e) {}
         }
         return line;
+    }
+    
+    static File localTempDir = null;
+    static {
+        File f;
+        boolean success = true;
+        try {
+            f = File.createTempFile("pig", "tmp");
+            success &= f.delete();
+            success &= f.mkdir();
+            localTempDir = f;
+            localTempDir.deleteOnExit();
+        } catch (IOException e) {
+        }
+        if (!success) {
+          throw new RuntimeException("Error creating FileLocalizer temp directory.");
+        }
+    }    
+    
+    public static class FetchFileRet {
+        public FetchFileRet(File file, boolean didFetch) {
+            this.file = file;
+            this.didFetch = didFetch;
+        }
+        public File file;
+        public boolean didFetch;
+    }
+
+    /**
+     * Ensures that the passed path is on the local file system, fetching it 
+     * to the java.io.tmpdir if necessary. If pig.jars.relative.to.dfs is true
+     * and dfs is not null, then a relative path is assumed to be relative to the passed 
+     * dfs active directory. Else they are assumed to be relative to the local working
+     * directory.
+     */
+    public static FetchFileRet fetchFile(Properties properties, String filePath) throws IOException {
+        // Create URI from String.
+        URI fileUri = null;
+        try {
+            fileUri = new URI(filePath);
+        } catch (URISyntaxException e) {
+            throw new RuntimeException(e);
+        }
+        // If URI is a local file, verify it exists and return.
+        if (((!"true".equals(properties.getProperty("pig.jars.relative.to.dfs"))) && (fileUri.getScheme() == null))
+                || "file".equalsIgnoreCase(fileUri.getScheme())
+                || "local".equalsIgnoreCase(fileUri.getScheme())) {
+            File res = new File(fileUri.getPath());
+            if (!res.exists()) {
+                throw new ExecException("Local file '" + filePath + "' does not exist.", 101, PigException.INPUT);
+            }
+            return new FetchFileRet(res, false);
+        } else {
+            
+            Path src = new Path(fileUri.getPath());
+            File parent = (localTempDir != null) ? localTempDir : new File(System.getProperty("java.io.tmpdir")); 
+            File dest = new File(parent, src.getName());
+            dest.deleteOnExit();
+            try {
+                Configuration configuration = new Configuration();
+                ConfigurationUtil.mergeConf(configuration, ConfigurationUtil.toConfiguration(properties));
+                FileSystem srcFs = FileSystem.get(fileUri, configuration);
+                srcFs.copyToLocalFile(src, new Path(dest.getAbsolutePath()));
+            } catch (IOException e) {
+                throw new ExecException("Could not copy " + filePath + " to local destination " + dest, 101, PigException.INPUT, e);
+            }
+            return new FetchFileRet(dest, true);
+        }
     }
 }
