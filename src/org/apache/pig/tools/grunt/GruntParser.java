@@ -57,6 +57,8 @@ import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.datastorage.HDataStorage;
 import org.apache.pig.backend.hadoop.executionengine.HExecutionEngine;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.impl.io.FileLocalizer;
+import org.apache.pig.impl.io.FileLocalizer.FetchFileRet;
 import org.apache.pig.impl.util.LogUtils;
 import org.apache.pig.impl.util.TupleFormat;
 import org.apache.pig.tools.parameters.ParameterSubstitutionPreprocessor;
@@ -435,7 +437,8 @@ public class GruntParser extends PigScriptParser {
         boolean interactive;
          
         try {
-            String cmds = runPreprocessor(script, params, files);
+            FetchFileRet fetchFile = FileLocalizer.fetchFile(mConf, script);
+            String cmds = runPreprocessor(fetchFile.file.getAbsolutePath(), params, files);
 
             if (mInteractive && !batch) { // Write prompt and echo commands
                 // Console reader treats tabs in a special way
