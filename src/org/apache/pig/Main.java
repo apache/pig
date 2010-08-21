@@ -17,11 +17,14 @@
  */
 package org.apache.pig;
 
+import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
@@ -48,6 +51,7 @@ import org.apache.commons.logging.LogFactory;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.util.GenericOptionsParser;
+import org.apache.hadoop.fs.Path;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
@@ -149,6 +153,7 @@ static int run(String args[], PigProgressNotificationListener listener) {
         opts.registerOpt('F', "stop_on_failure", CmdLineParser.ValueExpected.NOT_ACCEPTED);
         opts.registerOpt('M', "no_multiquery", CmdLineParser.ValueExpected.NOT_ACCEPTED);
         opts.registerOpt('P', "propertyFile", CmdLineParser.ValueExpected.REQUIRED);
+        opts.registerOpt('R', "prop", CmdLineParser.ValueExpected.REQUIRED);
 
         ExecMode mode = ExecMode.UNKNOWN;
         String file = null;
@@ -278,10 +283,35 @@ static int run(String args[], PigProgressNotificationListener listener) {
                         throw new RuntimeException("ERROR: Unrecognized exectype.", e);
                     }
                 break;
+                
             case 'P':
-                PropertiesUtil.loadPropertiesFromFile(properties,
-                        opts.getValStr());
+            {
+                InputStream inputStream = null;
+                try {
+                    FileLocalizer.FetchFileRet localFileRet = FileLocalizer.fetchFile(properties, opts.getValStr());
+                    inputStream = new BufferedInputStream(new FileInputStream(localFileRet.file));
+                    properties.load(inputStream) ;
+                } catch (IOException e) {
+                    throw new RuntimeException("Unable to parse properties file '" + opts.getValStr() + "'");
+                } finally {
+                    if (inputStream != null) {
+                        try {
+                            inputStream.close();
+                        } catch (IOException e) {
+                        } 
+                    }
+                }
+            }
+            break;
+            
+            case 'R':
+                int idx = opts.getValStr().indexOf('=');
+                if (idx == -1 || idx == 0) {
+                    throw new RuntimeException("Property '" + opts.getValStr() + "' not in valid form A=B");
+                }
+                properties.put(opts.getValStr().substring(0, idx), opts.getValStr().substring(idx + 1));
                 break;
+              
             default: {
                 Character cc = Character.valueOf(opt);
                 throw new AssertionError("Unhandled option " + cc.toString());
@@ -327,12 +357,15 @@ static int run(String args[], PigProgressNotificationListener listener) {
         String substFile = null;
         switch (mode) {
         case FILE: {
-            // Run, using the provided file as a pig file
-            in = new BufferedReader(new FileReader(file));
+            FileLocalizer.FetchFileRet localFileRet = FileLocalizer.fetchFile(properties, file);
+            if (localFileRet.didFetch) {
+                properties.setProperty("pig.jars.relative.to.dfs", "true");
+            }
+            in = new BufferedReader(new FileReader(localFileRet.file));
 
             // run parameter substitution preprocessor first
             substFile = file + ".substituted";
-            pin = runParamPreprocessor(in, params, paramFiles, substFile, debug || dryrun || checkScriptOnly);
+            pin = runParamPreprocessor(properties, in, params, paramFiles, substFile, debug || dryrun || checkScriptOnly);
             if (dryrun) {
                 log.info("Dry run completed. Substituted pig script is at " + substFile);
                 return ReturnCode.SUCCESS;
@@ -427,11 +460,16 @@ static int run(String args[], PigProgressNotificationListener listener) {
                    throw new RuntimeException("Encountered unexpected arguments on command line - please check the command line.");
             }
             mode = ExecMode.FILE;
-            in = new BufferedReader(new FileReader(remainders[0]));
+            
+            FileLocalizer.FetchFileRet localFileRet = FileLocalizer.fetchFile(properties, remainders[0]);
+            if (localFileRet.didFetch) {
+                properties.setProperty("pig.jars.relative.to.dfs", "true");
+            }
+            in = new BufferedReader(new FileReader(localFileRet.file));
 
             // run parameter substitution preprocessor first
             substFile = remainders[0] + ".substituted";
-            pin = runParamPreprocessor(in, params, paramFiles, substFile, debug || dryrun || checkScriptOnly);
+            pin = runParamPreprocessor(properties, in, params, paramFiles, substFile, debug || dryrun || checkScriptOnly);
             if (dryrun){
                 log.info("Dry run completed. Substituted pig script is at " + substFile);
                 return ReturnCode.SUCCESS;
@@ -449,7 +487,7 @@ static int run(String args[], PigProgressNotificationListener listener) {
                                                    "PigLatin:" +new File(remainders[0]).getName()
             );
 
-            scriptState.setScript(new File(remainders[0]));
+            scriptState.setScript(localFileRet.file);
             
             grunt = new Grunt(pin, pigContext);
             gruntCalled = true;
@@ -572,9 +610,16 @@ private static void configureLog4J(Properties properties, PigContext pigContext)
 }
  
 // returns the stream of final pig script to be passed to Grunt
-private static BufferedReader runParamPreprocessor(BufferedReader origPigScript, ArrayList<String> params,
+private static BufferedReader runParamPreprocessor(Properties properties, BufferedReader origPigScript, ArrayList<String> params,
                                             ArrayList<String> paramFiles, String scriptFile, boolean createFile) 
                                 throws org.apache.pig.tools.parameters.ParseException, IOException{
+    
+    ArrayList<String> paramFiles2 = new ArrayList<String>();
+    for (String param: paramFiles) {
+        FileLocalizer.FetchFileRet localFileRet = FileLocalizer.fetchFile(properties, param);
+        paramFiles2.add(localFileRet.file.getAbsolutePath());
+    }    
+    
     ParameterSubstitutionPreprocessor psp = new ParameterSubstitutionPreprocessor(50);
     String[] type1 = new String[1];
     String[] type2 = new String[1];
@@ -582,13 +627,13 @@ private static BufferedReader runParamPreprocessor(BufferedReader origPigScript,
     if (createFile){
         BufferedWriter fw = new BufferedWriter(new FileWriter(scriptFile));
         psp.genSubstitutedFile (origPigScript, fw, params.size() > 0 ? params.toArray(type1) : null, 
-                                paramFiles.size() > 0 ? paramFiles.toArray(type2) : null);
+                                paramFiles.size() > 0 ? paramFiles2.toArray(type2) : null);
         return new BufferedReader(new FileReader (scriptFile));
 
     } else {
         StringWriter writer = new StringWriter();
         psp.genSubstitutedFile (origPigScript, writer,  params.size() > 0 ? params.toArray(type1) : null, 
-                                paramFiles.size() > 0 ? paramFiles.toArray(type2) : null);
+                                paramFiles.size() > 0 ? paramFiles2.toArray(type2) : null);
         return new BufferedReader(new StringReader(writer.toString()));
     }
 }
@@ -648,6 +693,7 @@ public static void usage()
         System.out.println("    -F, -stop_on_failure - Aborts execution on the first failed job; default is off");
         System.out.println("    -M, -no_multiquery - Turn multiquery optimization off; default is on");
         System.out.println("    -P, -propertyFile - Path to property file");
+        System.out.println("    -R, -prop - Property key value pair of the form key=value");
 }
 
 public static void printProperties(){

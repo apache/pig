@@ -30,6 +30,7 @@ import java.util.Properties;
 
 import junit.framework.Assert;
 
+import org.apache.hadoop.fs.Path;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigRunner;
 import org.apache.pig.PigRunner.ReturnCode;
@@ -97,6 +98,38 @@ public class TestPigRunner {
                     ((JobStats)stats.getJobGraph().getSinks().get(0)).getAlias());
         } finally {
             new File(PIG_FILE).delete();
+            Util.deleteFile(cluster, OUTPUT_FILE);
+        }
+    }
+    
+    @Test
+    public void scriptsInDfsTest() throws Exception {
+        PrintWriter w = new PrintWriter(new FileWriter(PIG_FILE));
+        w.println("A = load '" + INPUT_FILE + "' as (a0:int, a1:int, a2:int);");
+        w.println("B = group A by a0;");
+        w.println("C = foreach B generate group, COUNT(A);");
+        w.println("store C into '" + OUTPUT_FILE + "';");
+        w.close();
+        Util.copyFromLocalToCluster(cluster, PIG_FILE, PIG_FILE);
+        Path inputInDfs = new Path(cluster.getFileSystem().getHomeDirectory(), PIG_FILE);
+        
+        try {
+            String[] args = { inputInDfs.toString() };
+            PigStats stats = PigRunner.run(args, new TestNotificationListener());
+     
+            assertTrue(stats.isSuccessful());
+            
+            assertTrue(stats.getJobGraph().size() == 1);
+            String name = stats.getOutputNames().get(0);
+            assertEquals(OUTPUT_FILE, name);
+            assertEquals(12, stats.getBytesWritten());
+            assertEquals(3, stats.getRecordWritten());       
+            
+            assertEquals("A,B,C",
+                    ((JobStats)stats.getJobGraph().getSinks().get(0)).getAlias());
+        } finally {
+            new File(PIG_FILE).delete();
+            Util.deleteFile(cluster, PIG_FILE);
             Util.deleteFile(cluster, OUTPUT_FILE);
         }
     }

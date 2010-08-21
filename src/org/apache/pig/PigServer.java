@@ -457,7 +457,7 @@ public class PigServer {
             URL resource = locateJarFromResources(name);
 
             if (resource == null) {
-                File f = new File(name);
+                File f = FileLocalizer.fetchFile(pigContext.getProperties(), name).file;
                 
                 if (!f.canRead()) {
                     int errCode = 4002;
