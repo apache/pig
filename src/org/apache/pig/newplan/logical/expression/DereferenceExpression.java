@@ -127,16 +127,29 @@ public class DereferenceExpression extends ColumnExpression {
         LogicalExpression successor = (LogicalExpression)plan.getSuccessors(this).get(0);
         LogicalFieldSchema predFS = successor.getFieldSchema();
         if (predFS!=null) {
-            LogicalSchema innerSchema = new LogicalSchema();
             if (columns.size()>1 || predFS.type==DataType.BAG) {
-                for (int column:columns) {
-                    innerSchema.addField(predFS.schema.getField(column));
+                LogicalSchema innerSchema = null;
+                if (predFS.schema!=null) {
+                    innerSchema = new LogicalSchema();
+                    LogicalSchema realSchema;
+                    if (predFS.schema.isTwoLevelAccessRequired()) {
+                        realSchema = predFS.schema.getField(0).schema;
+                    }
+                    else {
+                        realSchema = predFS.schema;
+                    }
+                    if (realSchema!=null) {
+                        for (int column:columns) {
+                            innerSchema.addField(realSchema.getField(column));
+                        }
+                    }
                 }
                 fieldSchema = new LogicalSchema.LogicalFieldSchema(null, innerSchema, predFS.type, 
                         LogicalExpression.getNextUid());
             }
             else { // Dereference a field out of a tuple
-                fieldSchema = predFS.schema.getField(columns.get(0));
+                if (predFS.schema!=null)
+                    fieldSchema = predFS.schema.getField(columns.get(0));
             }
         }
         return fieldSchema;

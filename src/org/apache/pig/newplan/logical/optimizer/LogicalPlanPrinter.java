@@ -42,6 +42,7 @@ import org.apache.pig.newplan.logical.relational.LOSort;
 import org.apache.pig.newplan.logical.relational.LOSplit;
 import org.apache.pig.newplan.logical.relational.LOSplitOutput;
 import org.apache.pig.newplan.logical.relational.LOStore;
+import org.apache.pig.newplan.logical.relational.LOStream;
 import org.apache.pig.newplan.logical.relational.LOUnion;
 import org.apache.pig.newplan.logical.relational.LogicalRelationalNodesVisitor;
 
@@ -107,7 +108,7 @@ public class LogicalPlanPrinter extends LogicalRelationalNodesVisitor {
         
         LogicalExpressionVisitor v = null;
         level++;
-        for (LogicalExpressionPlan plan : op.getExpressionPlans()) {
+        for (LogicalExpressionPlan plan : op.getExpressionPlanValues()) {
             v = getVisitor(plan);
             v.visit();
         }
@@ -208,6 +209,12 @@ public class LogicalPlanPrinter extends LogicalRelationalNodesVisitor {
         stream.println( op.toString() );
     }
 
+    @Override
+    public void visit(LOStream op) throws FrontendException {
+        printLevel();
+        stream.println( op.toString() );
+    }
+    
     public String toString() {
         return stream.toString();
     }   

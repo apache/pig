@@ -64,6 +64,13 @@ public class Util {
         return newFs;
     }
     
+    /**
+     * This function translates the new LogicalSchema into old Schema format required
+     * by PhysicalOperators
+     * @param schema LogicalSchema to be converted to Schema
+     * @return Schema that is converted from LogicalSchema
+     * @throws FrontendException 
+     */
     public static Schema translateSchema(LogicalSchema schema) {       
         if (schema == null) {
             return null;
@@ -75,6 +82,7 @@ public class Util {
             Schema.FieldSchema f2 = null;
             try {
                 f2 = new Schema.FieldSchema(f.alias, translateSchema(f.schema), f.type);
+                f2.canonicalName = ((Long)f.uid).toString();
                 s2.add(f2);
             } catch (FrontendException e) {
             }
@@ -99,14 +107,14 @@ public class Util {
         return newFs;
     }
     
-    public static LOForEach addForEachAfter(LogicalPlan plan, LogicalRelationalOperator op,
+    public static LOForEach addForEachAfter(LogicalPlan plan, LogicalRelationalOperator op, int branch,
             Set<Integer> columnsToDrop) throws FrontendException {
         LOForEach foreach = new LOForEach(plan);
         
         plan.add(foreach);
         List<Operator> next = plan.getSuccessors(op);
         if (next != null) {
-            LogicalRelationalOperator nextOp = (LogicalRelationalOperator)next.get(0);
+            LogicalRelationalOperator nextOp = (LogicalRelationalOperator)next.get(branch);
             Pair<Integer, Integer> pos = plan.disconnect(op, nextOp);
             plan.connect(foreach, pos.first, nextOp, pos.second);
         }

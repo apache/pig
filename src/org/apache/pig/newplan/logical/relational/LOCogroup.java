@@ -49,7 +49,8 @@ public class LOCogroup extends LogicalRelationalOperator {
      */
     public static enum GROUPTYPE {
         REGULAR,    // Regular (co)group
-        COLLECTED   // Collected group
+        COLLECTED,  // Collected group
+        MERGE       // Map-side CoGroup on sorted data
     };
     
     private GROUPTYPE mGroupType;
@@ -175,11 +176,6 @@ public class LOCogroup extends LogicalRelationalOperator {
         int counter = 0;
         for (Operator op : inputs) {
             LogicalSchema inputSchema = ((LogicalRelationalOperator)op).getSchema();
-            // the schema of one input is unknown, so the join schema is unknown, just return 
-            if (inputSchema == null) {
-                schema = null;
-                return schema;
-            }
            
             // Check if we already have calculated Uid for this bag for given 
             // input operator

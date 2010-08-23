@@ -36,6 +36,7 @@ import org.apache.pig.newplan.logical.relational.LogicalSchema;
 public class UserFuncExpression extends LogicalExpression {
 
     private FuncSpec mFuncSpec;
+    private Operator implicitReferencedOperator = null; 
     
     public UserFuncExpression(OperatorPlan plan, FuncSpec funcSpec) {
         super("UserFunc", plan);
@@ -97,8 +98,14 @@ public class UserFuncExpression extends LogicalExpression {
         LogicalSchema inputSchema = new LogicalSchema();
         List<Operator> succs = plan.getSuccessors(this);
 
-        for(Operator lo : succs){
-            inputSchema.addField(((LogicalExpression)lo).getFieldSchema());
+        if (succs!=null) {
+            for(Operator lo : succs){
+                if (((LogicalExpression)lo).getFieldSchema()==null) {
+                    inputSchema = null;
+                    break;
+                }
+                inputSchema.addField(((LogicalExpression)lo).getFieldSchema());
+            }
         }
 
         EvalFunc<?> ef = (EvalFunc<?>) PigContext.instantiateFuncFromSpec(mFuncSpec);
@@ -119,5 +126,13 @@ public class UserFuncExpression extends LogicalExpression {
         }
         uidOnlyFieldSchema = fieldSchema.mergeUid(uidOnlyFieldSchema);
         return fieldSchema;
+    }
+    
+    public Operator getImplicitReferencedOperator() {
+        return implicitReferencedOperator;
+    }
+    
+    public void setImplicitReferencedOperator(Operator implicitReferencedOperator) {
+        this.implicitReferencedOperator = implicitReferencedOperator;
     }
 }

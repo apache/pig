@@ -138,11 +138,27 @@ public class FilterAboveForeach extends Rule {
                 LogicalExpressionPlan filterPlan = filter.getFilterPlan();
                 Iterator<Operator> iter = filterPlan.getOperators();            
                 Operator op = null;
+                boolean findProject = false;
                 while( iter.hasNext() ) {
                     op = iter.next();
                     if( op instanceof ProjectExpression ) {
                         uids.add(((ProjectExpression)op).getFieldSchema().uid);
                         types.add(((ProjectExpression)op).getFieldSchema().type);
+                        findProject = true;
+                    }
+                }
+                
+                // If we cannot find project, all fields will be projected, eg.
+                //   B = filter A by MyFilterFunction();
+                // The input for MyFilterFunction is whole A
+                if (!findProject) {
+                    LogicalRelationalOperator pred = (LogicalRelationalOperator)filter.getPlan().getPredecessors(filter).get(0);
+                    LogicalSchema predSchema = pred.getSchema();
+                    if (predSchema!=null) {
+                        for (int i=0;i<predSchema.size();i++) {
+                            uids.add(predSchema.getField(i).uid);
+                            types.add(predSchema.getField(i).type);
+                        }
                     }
                 }
             }

@@ -401,7 +401,7 @@ public class TestStore extends junit.framework.TestCase {
             ExecType[] modes = new ExecType[] { ExecType.MAPREDUCE, ExecType.LOCAL};
             String[] inputData = new String[]{"hello\tworld", "bye\tworld"};
             
-            String script = "a = load '"+ inputFileName + "';" +
+            String script = "a = load '"+ inputFileName + "' as (a0:chararray, a1:chararray);" +
             		"store a into '" + outputFileName + "' using " + 
             		DUMMY_STORE_CLASS_NAME + "();";
             

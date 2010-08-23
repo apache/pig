@@ -884,7 +884,7 @@ public class PigServer {
             }
             PhysicalPlan pp = compilePp(lp);
             lp.explain(lps, format, verbose);
-            if( pigContext.getProperties().getProperty("pig.usenewlogicalplan", "false").equals("true") ) {
+            if( pigContext.getProperties().getProperty("pig.usenewlogicalplan", "true").equals("true") ) {
                 LogicalPlanMigrationVistor migrator = new LogicalPlanMigrationVistor(lp);
                 migrator.visit();
                 org.apache.pig.newplan.logical.relational.LogicalPlan newPlan = migrator.getNewLogicalPlan();
@@ -1269,7 +1269,7 @@ public class PigServer {
         validate(lp, collector, isBeforeOptimizer);
         
         // optimize
-        if (optimize && pigContext.getProperties().getProperty("pig.usenewlogicalplan", "false").equals("false")) {
+        if (optimize && pigContext.getProperties().getProperty("pig.usenewlogicalplan", "true").equals("false")) {
             HashSet<String> optimizerRules = null;
             try {
                 optimizerRules = (HashSet<String>) ObjectSerializer

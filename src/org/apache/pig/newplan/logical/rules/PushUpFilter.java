@@ -30,6 +30,7 @@ import org.apache.pig.newplan.OperatorSubPlan;
 import org.apache.pig.newplan.logical.expression.LogicalExpressionPlan;
 import org.apache.pig.newplan.logical.expression.ProjectExpression;
 import org.apache.pig.newplan.logical.relational.LOFilter;
+import org.apache.pig.newplan.logical.relational.LOForEach;
 import org.apache.pig.newplan.logical.relational.LOJoin;
 import org.apache.pig.newplan.logical.relational.LogicalPlan;
 import org.apache.pig.newplan.logical.relational.LogicalRelationalOperator;
@@ -127,7 +128,7 @@ public class PushUpFilter extends Rule {
                 // find the farthest predecessor that has all the fields
                 LogicalRelationalOperator input = join;
                 List<Operator> preds = currentPlan.getPredecessors(input);
-                while(preds != null) {                
+                while(!(input instanceof LOForEach) && preds != null) {                
                     boolean found = false;
                     for(int j=0; j<preds.size(); j++) {
                         if (hasAll((LogicalRelationalOperator)preds.get(j), uids)) {

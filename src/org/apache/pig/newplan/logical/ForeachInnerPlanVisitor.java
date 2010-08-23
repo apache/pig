@@ -20,6 +20,7 @@ package org.apache.pig.newplan.logical;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.pig.impl.logicalLayer.ExpressionOperator;
 import org.apache.pig.impl.logicalLayer.FrontendException;
@@ -36,10 +37,12 @@ import org.apache.pig.impl.plan.DependencyOrderWalker;
 import org.apache.pig.impl.plan.PlanWalker;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.util.Pair;
+import org.apache.pig.newplan.OperatorPlan;
 import org.apache.pig.newplan.logical.expression.DereferenceExpression;
 import org.apache.pig.newplan.logical.expression.LogicalExpression;
 import org.apache.pig.newplan.logical.expression.LogicalExpressionPlan;
 import org.apache.pig.newplan.logical.expression.ProjectExpression;
+import org.apache.pig.newplan.logical.relational.LOGenerate;
 import org.apache.pig.newplan.logical.relational.LOInnerLoad;
 import org.apache.pig.newplan.logical.relational.LogicalRelationalOperator;
 
@@ -53,10 +56,11 @@ public class ForeachInnerPlanVisitor extends LogicalExpPlanMigrationVistor {
     private org.apache.pig.newplan.logical.relational.LogicalRelationalOperator gen;
     private int inputNo;
     private HashMap<LogicalOperator, LogicalRelationalOperator> innerOpsMap;
+    private Map<LogicalExpression, LogicalOperator> scalarAliasMap = new HashMap<LogicalExpression, LogicalOperator>();
 
     public ForeachInnerPlanVisitor(org.apache.pig.newplan.logical.relational.LOForEach foreach, LOForEach oldForeach, LogicalPlan innerPlan, 
-            LogicalPlan oldLogicalPlan) throws FrontendException {
-        super(innerPlan, foreach, oldLogicalPlan);
+            LogicalPlan oldLogicalPlan, Map<LogicalExpression, LogicalOperator> scalarMap) throws FrontendException {
+        super(innerPlan, oldForeach, foreach, oldLogicalPlan, scalarMap);
         newInnerPlan = foreach.getInnerPlan();
         
         // get next inputNo 
@@ -71,6 +75,7 @@ public class ForeachInnerPlanVisitor extends LogicalExpPlanMigrationVistor {
         this.oldForeach = oldForeach;
                     
         innerOpsMap = new HashMap<LogicalOperator, LogicalRelationalOperator>();
+        scalarAliasMap = scalarMap;
     }
     
     private void translateInnerPlanConnection(LogicalOperator oldOp, org.apache.pig.newplan.Operator newOp) throws FrontendException {
@@ -92,11 +97,11 @@ public class ForeachInnerPlanVisitor extends LogicalExpPlanMigrationVistor {
         }
     }
     
-    private LogicalExpressionPlan translateInnerExpressionPlan(LogicalPlan lp, LogicalRelationalOperator op, LogicalPlan outerPlan) throws VisitorException {
+    private LogicalExpressionPlan translateInnerExpressionPlan(LogicalPlan lp, LogicalOperator oldOp, LogicalRelationalOperator op, LogicalPlan outerPlan) throws VisitorException {
         PlanWalker<LogicalOperator, LogicalPlan> childWalker = 
             new DependencyOrderWalker<LogicalOperator, LogicalPlan>(lp);
         
-        LogicalExpPlanMigrationVistor childPlanVisitor = new LogicalExpPlanMigrationVistor(lp, op, outerPlan);
+        LogicalExpPlanMigrationVistor childPlanVisitor = new LogicalExpPlanMigrationVistor(lp, oldOp, op, outerPlan, scalarAliasMap);
         
         childWalker.walk(childPlanVisitor);
         return childPlanVisitor.exprPlan;
@@ -186,7 +191,7 @@ public class ForeachInnerPlanVisitor extends LogicalExpPlanMigrationVistor {
         }
         
         for (LogicalPlan sortPlan : sortPlans) {
-            LogicalExpressionPlan newSortPlan = translateInnerExpressionPlan(sortPlan, newSort, mPlan);
+            LogicalExpressionPlan newSortPlan = translateInnerExpressionPlan(sortPlan, sort, newSort, mPlan);
             newSortPlans.add(newSortPlan);
         }
     }
@@ -228,12 +233,51 @@ public class ForeachInnerPlanVisitor extends LogicalExpPlanMigrationVistor {
         
         newFilter.setAlias(filter.getAlias());
         newFilter.setRequestedParallelism(filter.getRequestedParallelism());
-        LogicalExpressionPlan newFilterPlan = translateInnerExpressionPlan(filter.getComparisonPlan(), newFilter, mPlan);
+        LogicalExpressionPlan newFilterPlan = translateInnerExpressionPlan(filter.getComparisonPlan(), filter, newFilter, mPlan);
         newFilter.setFilterPlan(newFilterPlan);
         newInnerPlan.add(newFilter);
         innerOpsMap.put(filter, newFilter);
         try {
             translateInnerPlanConnection(filter, newFilter);
+        } catch (FrontendException e) {
+            throw new VisitorException(e);
+        }
+    }
+    
+    public void visit(LOForEach foreach) throws VisitorException {
+        org.apache.pig.newplan.logical.relational.LOForEach newForEach = 
+            new org.apache.pig.newplan.logical.relational.LOForEach(newInnerPlan);
+        
+        newForEach.setAlias(foreach.getAlias());
+        newForEach.setRequestedParallelism(foreach.getRequestedParallelism());
+        
+        org.apache.pig.newplan.logical.relational.LogicalPlan newForEachInnerPlan 
+            = new org.apache.pig.newplan.logical.relational.LogicalPlan();        
+        newForEach.setInnerPlan(newForEachInnerPlan);
+        List<LogicalExpressionPlan> expPlans = new ArrayList<LogicalExpressionPlan>();
+        boolean[] flattens = new boolean[foreach.getForEachPlans().size()];
+        LOGenerate generate = new LOGenerate(newForEachInnerPlan, expPlans, flattens);
+        newForEachInnerPlan.add(generate);
+        
+        for (int i=0;i<foreach.getForEachPlans().size();i++) {
+            LogicalPlan innerPlan = foreach.getForEachPlans().get(i);
+            // Assume only one project is allowed in this level of foreach
+            LOProject project = (LOProject)innerPlan.iterator().next();
+
+            LOInnerLoad innerLoad = new LOInnerLoad(newForEachInnerPlan, 
+                    newForEach, project.isStar()?-1:project.getCol());
+            newForEachInnerPlan.add(innerLoad);
+            newForEachInnerPlan.connect(innerLoad, generate);
+            LogicalExpressionPlan expPlan = new LogicalExpressionPlan();
+            expPlans.add(expPlan);
+            ProjectExpression pe = new ProjectExpression(expPlan, i, -1, generate);
+            expPlan.add(pe);
+        }
+        
+        newInnerPlan.add(newForEach);
+        innerOpsMap.put(foreach, newForEach);
+        try {
+            translateInnerPlanConnection(foreach, newForEach);
         } catch (FrontendException e) {
             throw new VisitorException(e);
         }

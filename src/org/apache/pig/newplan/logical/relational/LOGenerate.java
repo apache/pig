@@ -51,6 +51,10 @@ public class LOGenerate extends LogicalRelationalOperator {
             LogicalExpression exp = (LogicalExpression)outputPlans.get(i).getSources().get(0);
             
             LogicalFieldSchema fieldSchema = null;
+            if (exp.getFieldSchema()==null) {
+                schema = null;
+                break;
+            }
             fieldSchema = exp.getFieldSchema().deepCopy();
             
             if (fieldSchema.type != DataType.TUPLE && fieldSchema.type != DataType.BAG) {
@@ -58,19 +62,26 @@ public class LOGenerate extends LogicalRelationalOperator {
                 schema.addField(fieldSchema);
                 continue;
             } else {
+                // if bag/tuple don't have inner schema, after flatten, we don't have schema for the entire operator
+                if (fieldSchema.schema==null) {
+                    schema=null;
+                    break;
+                }
                 // if flatten is set, set schema of tuple field to this schema
                 List<LogicalSchema.LogicalFieldSchema> innerFieldSchemas = new ArrayList<LogicalSchema.LogicalFieldSchema>();
                 if (flattenFlags[i]) {
                     if (fieldSchema.type == DataType.BAG) {
                         // if it is bag of tuples, get the schema of tuples
-                        if (fieldSchema.schema.isTwoLevelAccessRequired()) {
-                            //  assert(fieldSchema.schema.size() == 1 && fieldSchema.schema.getField(0).type == DataType.TUPLE)
-                            innerFieldSchemas = fieldSchema.schema.getField(0).schema.getFields();
-                        } else {
-                            innerFieldSchemas = fieldSchema.schema.getFields();
-                        }
-                        for (LogicalSchema.LogicalFieldSchema fs : innerFieldSchemas) {
-                            fs.alias = fieldSchema.alias + "::" + fs.alias;
+                        if (fieldSchema.schema!=null) {
+                            if (fieldSchema.schema.isTwoLevelAccessRequired()) {
+                                //  assert(fieldSchema.schema.size() == 1 && fieldSchema.schema.getField(0).type == DataType.TUPLE)
+                                innerFieldSchemas = fieldSchema.schema.getField(0).schema.getFields();
+                            } else {
+                                innerFieldSchemas = fieldSchema.schema.getFields();
+                            }
+                            for (LogicalSchema.LogicalFieldSchema fs : innerFieldSchemas) {
+                                fs.alias = fieldSchema.alias + "::" + fs.alias;
+                            }
                         }
                     } else { // DataType.TUPLE
                         innerFieldSchemas = fieldSchema.schema.getFields();
@@ -79,7 +90,6 @@ public class LOGenerate extends LogicalRelationalOperator {
                         }
                     }
                     
-                    
                     for (LogicalSchema.LogicalFieldSchema fs : innerFieldSchemas)
                         schema.addField(fs);
                 }
@@ -87,6 +97,8 @@ public class LOGenerate extends LogicalRelationalOperator {
                     schema.addField(fieldSchema);
             }
         }
+        if (schema!=null && schema.size()==0)
+            schema = null;
         return schema;
     }
 

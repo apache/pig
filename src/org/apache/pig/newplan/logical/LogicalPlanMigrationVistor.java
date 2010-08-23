@@ -20,6 +20,7 @@ package org.apache.pig.newplan.logical;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.logicalLayer.FrontendException;
@@ -56,7 +57,9 @@ import org.apache.pig.newplan.logical.relational.LogicalSchema;
  */
 public class LogicalPlanMigrationVistor extends LOVisitor { 
     private org.apache.pig.newplan.logical.relational.LogicalPlan logicalPlan;
-    private HashMap<LogicalOperator, LogicalRelationalOperator> opsMap;
+    private Map<LogicalOperator, LogicalRelationalOperator> opsMap;
+    private Map<org.apache.pig.newplan.logical.expression.LogicalExpression, LogicalOperator> scalarAliasMap = 
+        new HashMap<org.apache.pig.newplan.logical.expression.LogicalExpression, LogicalOperator>();
    
     public LogicalPlanMigrationVistor(LogicalPlan plan) {
         super(plan, new DependencyOrderWalker<LogicalOperator, LogicalPlan>(plan));
@@ -75,11 +78,11 @@ public class LogicalPlanMigrationVistor extends LOVisitor {
         }        
     }      
     
-    private LogicalExpressionPlan translateExpressionPlan(LogicalPlan lp, LogicalRelationalOperator op) throws VisitorException {
+    private LogicalExpressionPlan translateExpressionPlan(LogicalPlan lp, LogicalOperator oldOp, LogicalRelationalOperator op) throws VisitorException {
         PlanWalker<LogicalOperator, LogicalPlan> childWalker = 
             new DependencyOrderWalker<LogicalOperator, LogicalPlan>(lp);
         
-        LogicalExpPlanMigrationVistor childPlanVisitor = new LogicalExpPlanMigrationVistor(lp, op, mPlan);
+        LogicalExpPlanMigrationVistor childPlanVisitor = new LogicalExpPlanMigrationVistor(lp, oldOp, op, mPlan, scalarAliasMap);
         
         childWalker.walk(childPlanVisitor);
         return childPlanVisitor.exprPlan;
@@ -95,6 +98,8 @@ public class LogicalPlanMigrationVistor extends LOVisitor {
         org.apache.pig.newplan.logical.relational.LOCogroup.GROUPTYPE grouptype;
         if( cg.getGroupType() == GROUPTYPE.COLLECTED ) {
             grouptype = org.apache.pig.newplan.logical.relational.LOCogroup.GROUPTYPE.COLLECTED;
+        } else if (cg.getGroupType() == GROUPTYPE.MERGE ){
+            grouptype = org.apache.pig.newplan.logical.relational.LOCogroup.GROUPTYPE.MERGE;
         } else {
             grouptype = org.apache.pig.newplan.logical.relational.LOCogroup.GROUPTYPE.REGULAR;
         }
@@ -113,12 +118,14 @@ public class LogicalPlanMigrationVistor extends LOVisitor {
             ArrayList<LogicalPlan> plans = 
                 (ArrayList<LogicalPlan>) cg.getGroupByPlans().get(inputs.get(i));
             for( LogicalPlan plan : plans ) {
-                LogicalExpressionPlan expPlan = translateExpressionPlan(plan, newCogroup);
+                LogicalExpressionPlan expPlan = translateExpressionPlan(plan, cg, newCogroup);
                 newExpressionPlans.put(Integer.valueOf(i), expPlan);
             }
         }
         
         newCogroup.setAlias(cg.getAlias());
+        newCogroup.setRequestedParallelism(cg.getRequestedParallelism());
+        newCogroup.setCustomPartitioner(cg.getCustomPartitioner());
         
         logicalPlan.add(newCogroup);
         opsMap.put(cg, newCogroup);
@@ -154,12 +161,13 @@ public class LogicalPlanMigrationVistor extends LOVisitor {
         for (int i=0; i<inputs.size(); i++) {
             List<LogicalPlan> plans = (List<LogicalPlan>) loj.getJoinPlans().get(inputs.get(i));
             for (LogicalPlan lp : plans) {                               
-                joinPlans.put(i, translateExpressionPlan(lp, join));
+                joinPlans.put(i, translateExpressionPlan(lp, loj, join));
             }        
         }
         
         join.setAlias(loj.getAlias());
         join.setRequestedParallelism(loj.getRequestedParallelism());
+        join.setCustomPartitioner(join.getCustomPartitioner());
         
         logicalPlan.add(join);
         opsMap.put(loj, join);       
@@ -173,6 +181,7 @@ public class LogicalPlanMigrationVistor extends LOVisitor {
      
         newCross.setAlias(cross.getAlias());
         newCross.setRequestedParallelism(cross.getRequestedParallelism());
+        newCross.setCustomPartitioner(cross.getCustomPartitioner());
         
         logicalPlan.add(newCross);
         opsMap.put(cross, newCross);       
@@ -205,7 +214,7 @@ public class LogicalPlanMigrationVistor extends LOVisitor {
         try {
             for(int i=0; i<ll.size(); i++) {
                 LogicalPlan lp = ll.get(i);
-                ForeachInnerPlanVisitor v = new ForeachInnerPlanVisitor(newForeach, forEach, lp, mPlan);
+                ForeachInnerPlanVisitor v = new ForeachInnerPlanVisitor(newForeach, forEach, lp, mPlan, scalarAliasMap);
                 v.visit();
                 
                 expPlans.add(v.exprPlan);
@@ -231,7 +240,7 @@ public class LogicalPlanMigrationVistor extends LOVisitor {
                     newSortPlans, sort.getAscendingCols(), sort.getUserFunc());
         
         for (LogicalPlan sortPlan : sortPlans) {
-            LogicalExpressionPlan newSortPlan = translateExpressionPlan(sortPlan, newSort);
+            LogicalExpressionPlan newSortPlan = translateExpressionPlan(sortPlan, sort, newSort);
             newSortPlans.add(newSortPlan);
         }
         
@@ -256,9 +265,17 @@ public class LogicalPlanMigrationVistor extends LOVisitor {
     }
     
     public void visit(LOStream stream) throws VisitorException {
+        
+        LogicalSchema s;
+        try {
+            s = Util.translateSchema(stream.getSchema());
+        }catch(Exception e) {
+            throw new VisitorException("Failed to translate schema.", e);
+        }
+        
         org.apache.pig.newplan.logical.relational.LOStream newStream = 
             new org.apache.pig.newplan.logical.relational.LOStream(logicalPlan,
-                    stream.getExecutableManager(), stream.getStreamingCommand());
+                    stream.getExecutableManager(), stream.getStreamingCommand(), s);
         
         newStream.setAlias(stream.getAlias());
         newStream.setRequestedParallelism(stream.getRequestedParallelism());
@@ -272,7 +289,7 @@ public class LogicalPlanMigrationVistor extends LOVisitor {
         org.apache.pig.newplan.logical.relational.LOFilter newFilter = new org.apache.pig.newplan.logical.relational.LOFilter(logicalPlan);
         
         LogicalPlan filterPlan = filter.getComparisonPlan();
-        LogicalExpressionPlan newFilterPlan = translateExpressionPlan(filterPlan, newFilter);
+        LogicalExpressionPlan newFilterPlan = translateExpressionPlan(filterPlan, filter, newFilter);
       
         newFilter.setFilterPlan(newFilterPlan);
         newFilter.setAlias(filter.getAlias());
@@ -327,6 +344,10 @@ public class LogicalPlanMigrationVistor extends LOVisitor {
        
         newStore.setAlias(store.getAlias());
         newStore.setRequestedParallelism(store.getRequestedParallelism());
+        newStore.setSignature(store.getSignature());
+        newStore.setInputSpec(store.getInputSpec());
+        newStore.setSortInfo(store.getSortInfo());
+        newStore.setTmpStore(store.isTmpStore());
         
         logicalPlan.add(newStore);
         opsMap.put(store, newStore);       
@@ -349,7 +370,7 @@ public class LogicalPlanMigrationVistor extends LOVisitor {
             new org.apache.pig.newplan.logical.relational.LOSplitOutput(logicalPlan);
         
         LogicalPlan filterPlan = splitOutput.getConditionPlan();
-        LogicalExpressionPlan newFilterPlan = translateExpressionPlan(filterPlan, newSplitOutput);
+        LogicalExpressionPlan newFilterPlan = translateExpressionPlan(filterPlan, splitOutput, newSplitOutput);
       
         newSplitOutput.setFilterPlan(newFilterPlan);
         newSplitOutput.setAlias(splitOutput.getAlias());
@@ -366,11 +387,18 @@ public class LogicalPlanMigrationVistor extends LOVisitor {
         
         newDistinct.setAlias(distinct.getAlias());
         newDistinct.setRequestedParallelism(distinct.getRequestedParallelism());
+        newDistinct.setCustomPartitioner(distinct.getCustomPartitioner());
         
         logicalPlan.add(newDistinct);
         opsMap.put(distinct, newDistinct);
         translateConnection(distinct, newDistinct);
     }
     
+    public void finish() {
+        for(org.apache.pig.newplan.logical.expression.LogicalExpression exp: scalarAliasMap.keySet()) {
+            ((org.apache.pig.newplan.logical.expression.UserFuncExpression)exp).setImplicitReferencedOperator(
+                    opsMap.get(scalarAliasMap.get(exp)));
+        }
+    }
     
 }

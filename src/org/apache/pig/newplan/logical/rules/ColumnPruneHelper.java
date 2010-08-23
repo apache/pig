@@ -115,20 +115,23 @@ public class ColumnPruneHelper {
         List<Operator> sources = currentPlan.getSources();
         // if this rule has run before, just return false
         if (sources.get(0).getAnnotation(INPUTUIDS) != null) {
+            clearAnnotation();
             return false;
         }
         
         // create sub-plan that ends with foreach
         subPlan = getSubPlan();
         if (subPlan.size() == 0) {
+            clearAnnotation();
             return false;
         }
         
-        ColumnDependencyVisitor v = new ColumnDependencyVisitor(subPlan);
+        ColumnDependencyVisitor v = new ColumnDependencyVisitor(currentPlan);
         try {
             v.visit();
         }catch(SchemaNotDefinedException e) {
             // if any operator has an unknown schema, just return false
+            clearAnnotation();
             return false;
         }
         
@@ -147,7 +150,20 @@ public class ColumnPruneHelper {
             }
         }
         
+        if (!found)
+            clearAnnotation();
+        
         return found;
+    }
+    
+    private void clearAnnotation() {
+        Iterator<Operator> iter = currentPlan.getOperators();
+        while (iter.hasNext()) {
+            Operator op = iter.next();
+            op.removeAnnotation(INPUTUIDS);
+            op.removeAnnotation(OUTPUTUIDS);
+            op.removeAnnotation(REQUIREDCOLS);
+        }
     }
 
     // get a set of column indexes from a set of uids
@@ -236,7 +252,7 @@ public class ColumnPruneHelper {
             // projections in join expressions
             Set<Long> input = new HashSet<Long>(output);
             
-            Collection<LogicalExpressionPlan> exps = join.getExpressionPlans();
+            Collection<LogicalExpressionPlan> exps = join.getExpressionPlanValues();
             Iterator<LogicalExpressionPlan> iter = exps.iterator();
             while(iter.hasNext()) {
                 LogicalExpressionPlan exp = iter.next();
@@ -285,17 +301,11 @@ public class ColumnPruneHelper {
         
         @Override
         public void visit(LOStream stream) throws FrontendException {
-            Set<Long> input = new HashSet<Long>();
-            
             // Every field is required
-            LogicalSchema s = stream.getSchema();
-            if (s == null) {
-                throw new SchemaNotDefinedException("Schema for " + stream.getName() + " is not defined.");
-            }
-            
-            for(int i=0; i<s.size(); i++) {
-                input.add(s.getField(i).uid);
-            }                                                
+            LogicalRelationalOperator pred = (LogicalRelationalOperator)plan.getPredecessors(stream).get(0);
+
+            Set<Long> input = getAllUids(pred.getSchema());
+
             stream.annotate(INPUTUIDS, input);
         }
         
@@ -398,6 +408,7 @@ public class ColumnPruneHelper {
             return uids;
         }
         
+        @SuppressWarnings("unchecked")
         @Override
         public void visit(LOForEach foreach) throws FrontendException {
             Set<Long> output = setOutputUids(foreach);
@@ -408,7 +419,15 @@ public class ColumnPruneHelper {
             
             visit(gen);
             
-            foreach.annotate(INPUTUIDS, gen.getAnnotation(INPUTUIDS));
+            Set<Long> input = (Set<Long>)gen.getAnnotation(INPUTUIDS);
+            
+            // Make sure at least one column will retain
+            if (input.isEmpty()) {
+                LogicalRelationalOperator pred = (LogicalRelationalOperator)plan.getPredecessors(foreach).get(0);
+                if (pred.getSchema()!=null)
+                    input.add(pred.getSchema().getField(0).uid);
+            }
+            foreach.annotate(INPUTUIDS, input);
         }
 
         @Override
@@ -482,6 +501,9 @@ public class ColumnPruneHelper {
                      continue;
                  }
                  LogicalExpressionPlan exp = ll.get(i);
+                 LogicalExpression sink = (LogicalExpression)exp.getSources().get(0);
+                 if (sink.getFieldSchema().type!=DataType.TUPLE && sink.getFieldSchema().type!=DataType.BAG)
+                     continue;
                  List<Operator> srcs = exp.getSinks();
                  for (Operator src : srcs) {
                      List<LOInnerLoad> innerLoads = LOForEach.findReacheableInnerLoadFromBoundaryProject((ProjectExpression)src);
