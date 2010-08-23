@@ -456,7 +456,7 @@ public class LOForEach extends RelationalOperator {
         }
     }
     
-    public Schema dumpNestedSchema(String nestedAlias) throws IOException {
+    public Schema dumpNestedSchema(String alias, String nestedAlias) throws IOException {
         boolean found = false;
         // To avoid non-deterministic traversal, 
         // we do a traversal from leaf to root with ReverseDependencyOrderWalker 
@@ -480,23 +480,27 @@ public class LOForEach extends RelationalOperator {
                 if(!(op instanceof LOProject) && nestedAlias.equalsIgnoreCase(op.mAlias)) {
                     found = true;
                     // Expression operators do not have any schema
-                    if(!(op instanceof ExpressionOperator)) {
+                    if(op instanceof RelationalOperator) {
                         Schema nestedSc = op.getSchema();
-                        System.out.println(nestedAlias + ": " + nestedSc.toString());
+                        if(nestedSc == null) {
+                            System.out.println("Schema for "+ alias+ "::" + nestedAlias + " unknown.");
+                        } else {
+                            System.out.println(alias+ "::" + nestedAlias + ": " + nestedSc.toString());
+                        }
                         return nestedSc;
                     }
                     else {
                         int errCode = 1113;
-                        String msg = "Unable to describe schema for nested expression "+ nestedAlias; 
+                        String msg = "Describe nested expression is not supported"; 
                         throw new FrontendException (msg, errCode, PigException.INPUT, false, null);
                     }
                 }
             }
-            if(!found) {
-                int errCode = 1114;
-                String msg = "Unable to find schema for nested alias "+ nestedAlias; 
-                throw new FrontendException (msg, errCode, PigException.INPUT, false, null);
-            }
+        }
+        if(!found) {
+            int errCode = 1114;
+            String msg = "Unable to find schema for nested alias "+ nestedAlias; 
+            throw new FrontendException (msg, errCode, PigException.INPUT, false, null);
         }
         return null;
     }
