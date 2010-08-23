@@ -18,6 +18,8 @@
 
 package org.apache.pig.newplan.logical.expression;
 
+import java.io.IOException;
+
 import org.apache.pig.data.DataType;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.newplan.Operator;
@@ -43,7 +45,7 @@ public class NotExpression extends UnaryExpression {
     public boolean isEqual(Operator other) throws FrontendException {
         if (other != null && other instanceof NotExpression) { 
             NotExpression of = (NotExpression)other;
-            return plan.isEqual(of.plan) && getExpression().isEqual( of.getExpression() );
+            return getExpression().isEqual( of.getExpression() );
         } else {
             return false;
         }
@@ -57,4 +59,13 @@ public class NotExpression extends UnaryExpression {
         uidOnlyFieldSchema = fieldSchema.mergeUid(uidOnlyFieldSchema);
         return fieldSchema;
     }
+
+    @Override
+    public LogicalExpression deepCopy(LogicalExpressionPlan lgExpPlan) throws IOException {
+        LogicalExpression copy = new NotExpression(
+                lgExpPlan,
+                this.getExpression().deepCopy(lgExpPlan) );
+        return copy;
+    }
+
 }

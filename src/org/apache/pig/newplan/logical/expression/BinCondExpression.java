@@ -18,6 +18,8 @@
 
 package org.apache.pig.newplan.logical.expression;
 
+import java.io.IOException;
+
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.OperatorPlan;
@@ -100,5 +102,15 @@ public class BinCondExpression extends LogicalExpression {
         fieldSchema = new LogicalSchema.LogicalFieldSchema(null, null, getLhs().getType());
         uidOnlyFieldSchema = fieldSchema.mergeUid(uidOnlyFieldSchema);
         return fieldSchema;
+    }
+  
+    @Override
+    public LogicalExpression deepCopy(LogicalExpressionPlan lgExpPlan) throws IOException {
+        LogicalExpression copy = new BinCondExpression(
+                lgExpPlan,
+                this.getCondition().deepCopy(lgExpPlan),
+                this.getLhs().deepCopy(lgExpPlan),
+                this.getRhs().deepCopy(lgExpPlan) );
+        return copy;
     }
 }
