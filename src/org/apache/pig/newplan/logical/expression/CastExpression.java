@@ -76,7 +76,10 @@ public class CastExpression extends UnaryExpression {
         uidOnlyFieldSchema = fieldSchema.mergeUid(uidOnlyFieldSchema);
         // Bring back the top level uid, this is not changed
         LogicalExpression exp = (LogicalExpression)plan.getSuccessors(this).get(0);
-        fieldSchema.uid = exp.getFieldSchema().uid;
+        if (exp.getFieldSchema()!=null) {
+            fieldSchema.uid = exp.getFieldSchema().uid;
+            fieldSchema.alias = exp.getFieldSchema().alias;
+        }
         return fieldSchema;
     }
 }

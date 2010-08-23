@@ -90,7 +90,11 @@ public class LOJoin extends LogicalRelationalOperator {
      * Get all of the expressions plans that are in this join.
      * @return collection of all expression plans.
      */
-    public Collection<LogicalExpressionPlan> getExpressionPlans() {
+    public MultiMap<Integer,LogicalExpressionPlan> getExpressionPlans() {
+        return mJoinPlans;
+    }
+    
+    public Collection<LogicalExpressionPlan> getExpressionPlanValues() {
         return mJoinPlans.values();
     }
     

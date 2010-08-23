@@ -1390,6 +1390,7 @@ public class TestMultiQueryCompiler {
         LogicalPlan lp = null;
 
         try {
+            myPig.getPigContext().getProperties().setProperty("pig.usenewlogicalplan", "false");
             java.lang.reflect.Method compileLp = myPig.getClass()
                     .getDeclaredMethod("compileLp",
                             new Class[] { String.class });

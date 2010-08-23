@@ -22,15 +22,18 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.pig.impl.logicalLayer.LOLoad;
 import org.apache.pig.newplan.OperatorPlan;
+import org.apache.pig.newplan.logical.relational.LOLoad;
+import org.apache.pig.newplan.logical.relational.LOStream;
 import org.apache.pig.newplan.logical.rules.AddForEach;
 import org.apache.pig.newplan.logical.rules.ColumnMapKeyPrune;
 import org.apache.pig.newplan.logical.rules.FilterAboveForeach;
 import org.apache.pig.newplan.logical.rules.ImplicitSplitInserter;
+import org.apache.pig.newplan.logical.rules.LoadTypeCastInserter;
 import org.apache.pig.newplan.logical.rules.MergeFilter;
 import org.apache.pig.newplan.logical.rules.PushUpFilter;
 import org.apache.pig.newplan.logical.rules.SplitFilter;
+import org.apache.pig.newplan.logical.rules.StreamTypeCastInserter;
 import org.apache.pig.newplan.logical.rules.TypeCastInserter;
 import org.apache.pig.newplan.optimizer.PlanOptimizer;
 import org.apache.pig.newplan.optimizer.Rule;
@@ -61,7 +64,9 @@ public class LogicalPlanOptimizer extends PlanOptimizer {
         // This set of rules Insert Foreach dedicated for casting after load
         s = new HashSet<Rule>();
         // add split filter rule
-        r = new TypeCastInserter("TypeCastInserter", LOLoad.class.getName());
+        r = new LoadTypeCastInserter("LoadTypeCastInserter");
+        checkAndAddRule(s, r);
+        r = new StreamTypeCastInserter("StreamTypeCastInserter");
         checkAndAddRule(s, r);
         if (!s.isEmpty())
             ls.add(s);

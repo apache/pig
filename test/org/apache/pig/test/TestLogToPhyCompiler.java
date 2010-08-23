@@ -703,6 +703,7 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
     @Test
     public void testSortInfoMultipleStore() throws Exception {
         PigServer myPig = new PigServer(ExecType.LOCAL);
+        myPig.getPigContext().getProperties().setProperty("pig.usenewlogicalplan", "false");
         myPig.setBatchOn();
         myPig.registerQuery("a = load 'bla' as (i:int, n:chararray, d:double);");
         myPig.registerQuery("b = order a by i, d desc;");

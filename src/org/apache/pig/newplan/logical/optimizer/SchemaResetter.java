@@ -8,6 +8,7 @@ import org.apache.pig.impl.util.MultiMap;
 import org.apache.pig.newplan.DependencyOrderWalker;
 import org.apache.pig.newplan.OperatorPlan;
 import org.apache.pig.newplan.PlanWalker;
+import org.apache.pig.newplan.ReverseDependencyOrderWalker;
 import org.apache.pig.newplan.logical.expression.AllSameExpressionVisitor;
 import org.apache.pig.newplan.logical.expression.LogicalExpression;
 import org.apache.pig.newplan.logical.expression.LogicalExpressionPlan;
@@ -58,7 +59,7 @@ public class SchemaResetter extends LogicalRelationalNodesVisitor {
     @Override
     public void visit(LOJoin join) throws FrontendException {
         join.resetSchema();
-        Collection<LogicalExpressionPlan> joinPlans = join.getExpressionPlans();
+        Collection<LogicalExpressionPlan> joinPlans = join.getExpressionPlanValues();
         for (LogicalExpressionPlan joinPlan : joinPlans) {
             FieldSchemaResetter fsResetter = new FieldSchemaResetter(joinPlan);
             fsResetter.visit();
@@ -165,7 +166,7 @@ public class SchemaResetter extends LogicalRelationalNodesVisitor {
 class FieldSchemaResetter extends AllSameExpressionVisitor {
 
     protected FieldSchemaResetter(OperatorPlan p) throws FrontendException {
-        super(p, new DependencyOrderWalker(p));
+        super(p, new ReverseDependencyOrderWalker(p));
     }
 
     @Override

@@ -33,10 +33,14 @@ public class LODistinct extends LogicalRelationalOperator {
 
     @Override
     public LogicalSchema getSchema() throws FrontendException {      
+        if (schema!=null)
+            return schema;
+        
         LogicalRelationalOperator input = null;
         input = (LogicalRelationalOperator)plan.getPredecessors(this).get(0);
         
-        return input.getSchema();
+        schema = input.getSchema();
+        return schema;
     }   
     
     @Override

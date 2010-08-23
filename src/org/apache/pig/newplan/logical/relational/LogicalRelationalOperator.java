@@ -34,6 +34,11 @@ abstract public class LogicalRelationalOperator extends Operator {
     protected int requestedParallelism;
     protected String alias;
     protected int lineNum;
+    
+    /**
+     * Name of the customPartitioner if one is used, this is set to null otherwise.
+     */
+    protected String mCustomPartitioner = null;
 
     /**
      * 
@@ -154,6 +159,9 @@ abstract public class LogicalRelationalOperator extends Operator {
     public String toString() {
         StringBuilder msg = new StringBuilder();
 
+        if (alias!=null) {
+            msg.append(alias + ": ");
+        }
         msg.append("(Name: " + name + " Schema: ");
         if (schema!=null)
             msg.append(schema);
@@ -166,5 +174,13 @@ abstract public class LogicalRelationalOperator extends Operator {
             }
         }
         return msg.toString();
+    }
+    
+    public String getCustomPartitioner() {
+        return mCustomPartitioner;
+    }
+    
+    public void setCustomPartitioner(String customPartitioner) {
+        mCustomPartitioner = customPartitioner;
     }
 }

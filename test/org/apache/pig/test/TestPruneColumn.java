@@ -23,9 +23,11 @@ import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 
 import org.apache.log4j.FileAppender;
 import org.apache.log4j.Level;
@@ -33,12 +35,11 @@ import org.apache.log4j.Logger;
 import org.apache.log4j.SimpleLayout;
 import org.apache.pig.ExecType;
 import org.apache.pig.FilterFunc;
-import org.apache.pig.LoadPushDown;
 import org.apache.pig.PigServer;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.logicalLayer.FrontendException;
-import org.apache.pig.impl.logicalLayer.optimizer.PruneColumns;
+import org.apache.pig.newplan.logical.rules.ColumnPruneVisitor;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -95,7 +96,7 @@ public class TestPruneColumn extends TestCase {
     @Before
     @Override
     public void setUp() throws Exception{
-        Logger logger = Logger.getLogger(PruneColumns.class);
+        Logger logger = Logger.getLogger(ColumnPruneVisitor.class);
         logger.removeAllAppenders();
         logger.setLevel(Level.INFO);
         SimpleLayout layout = new SimpleLayout();
@@ -192,16 +193,41 @@ public class TestPruneColumn extends TestCase {
         
         try {
             reader = new BufferedReader(new FileReader(logFile));
-            String logMessage="";
+            List<String> logMessages=new ArrayList<String>();
             String line;
             while ((line=reader.readLine())!=null)
             {
-                logMessage = logMessage + line + "\n";
+                logMessages.add(line);
             }
+            
+            // Check if all messages appear in the log
             for (int i=0;i<messages.length;i++)
             {
-                if (!logMessage.contains(messages[i]))
+                boolean found = false;
+                for (int j=0;j<logMessages.size();j++)
+                if (logMessages.get(j).contains(messages[i])) {
+                    found = true;
+                    break;
+                }
+                if (!found)
                     return false;
+            }
+            
+            // Check no other log besides messages
+            for (int i=0;i<logMessages.size();i++) {
+                boolean found = false;
+                for (int j=0;j<messages.length;j++) {
+                    if (logMessages.get(i).contains(messages[j])) {
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found) {
+                    if (logMessages.get(i).contains("Columns pruned for")||
+                            logMessages.get(i).contains("Map key required for")) {
+                        return false;
+                    }
+                }
             }
             return true;
         }
@@ -250,8 +276,7 @@ public class TestPruneColumn extends TestCase {
         assertTrue((Integer)t.get(0) == 5);
         assertTrue((Integer)t.get(1) == 2);
         
-        assertTrue(checkLogFileMessage(new String[]{"Columns pruned for A: $0", 
-                "No map keys pruned for A"}));
+        assertTrue(checkLogFileMessage(new String[]{"Columns pruned for A: $0"}));
     }
     
     @Test
@@ -274,8 +299,7 @@ public class TestPruneColumn extends TestCase {
         assertTrue((Integer)t.get(0) == 2);
         assertTrue((Integer)t.get(1) == 2);
         
-        assertTrue(checkLogFileMessage(new String[]{"Columns pruned for A: $1",
-                "No map keys pruned for A"}));
+        assertTrue(checkLogFileMessage(new String[]{"Columns pruned for A: $1"}));
     }
     
     @Test
@@ -298,8 +322,7 @@ public class TestPruneColumn extends TestCase {
         assertTrue((Integer)t.get(0) == 2);
         assertTrue((Integer)t.get(1) == 5);
         
-        assertTrue(checkLogFileMessage(new String[]{"Columns pruned for A: $2", 
-                "No map keys pruned for A"}));
+        assertTrue(checkLogFileMessage(new String[]{"Columns pruned for A: $2"}));
     }
     
     @Test
@@ -321,9 +344,7 @@ public class TestPruneColumn extends TestCase {
         
         assertFalse(iter.hasNext());
         
-        assertTrue(checkLogFileMessage(new String[]{"Columns pruned for A: $0", 
-                "No map keys pruned for A", "No column pruned for B", 
-                "No map keys pruned for B"}));
+        assertTrue(checkLogFileMessage(new String[]{"Columns pruned for A: $0"}));
     }
     
     @Test
@@ -345,8 +366,7 @@ public class TestPruneColumn extends TestCase {
         assertFalse(iter.hasNext());
         
         assertTrue(checkLogFileMessage(new String[]{"Columns pruned for A: $0",
-                "No map keys pruned for A", "Columns pruned for B: $0", 
-                "No map keys pruned for B"}));
+                "Columns pruned for B: $0"}));
     }
     
     @Test
@@ -365,8 +385,7 @@ public class TestPruneColumn extends TestCase {
         
         assertFalse(iter.hasNext());
         
-        assertTrue(checkLogFileMessage(new String[]{"No column pruned for A", 
-                "No map keys pruned for A"}));
+        assertTrue(emptyLogFileMessage());
     }
     
     @Test
@@ -390,8 +409,7 @@ public class TestPruneColumn extends TestCase {
         
         assertFalse(iter.hasNext());
         
-        assertTrue(checkLogFileMessage(new String[]{"No column pruned for A", 
-                "No map keys pruned for A"}));
+        assertTrue(emptyLogFileMessage());
     }
     
     @Test
@@ -419,8 +437,7 @@ public class TestPruneColumn extends TestCase {
         
         assertFalse(iter.hasNext());
         
-        assertTrue(checkLogFileMessage(new String[]{"No column pruned for A", 
-                "No map keys pruned for A"}));
+        assertTrue(emptyLogFileMessage());
     }
     
     @Test
@@ -438,8 +455,7 @@ public class TestPruneColumn extends TestCase {
         
         assertFalse(iter.hasNext());
         
-        assertTrue(checkLogFileMessage(new String[]{"Columns pruned for A: $2", 
-                "No map keys pruned for A"}));
+        assertTrue(checkLogFileMessage(new String[]{"Columns pruned for A: $2"}));
     }
     
     @Test
@@ -457,8 +473,7 @@ public class TestPruneColumn extends TestCase {
         
         assertFalse(iter.hasNext());
         
-        assertTrue(checkLogFileMessage(new String[]{"Columns pruned for A: $2", 
-                "No map keys pruned for A"}));
+        assertTrue(checkLogFileMessage(new String[]{"Columns pruned for A: $2"}));
     }
     
     @Test
@@ -535,8 +550,7 @@ public class TestPruneColumn extends TestCase {
         
         assertFalse(iter.hasNext());
         
-        assertTrue(checkLogFileMessage(new String[]{"No column pruned for A", 
-                "No map keys pruned for A", "Columns pruned for B: $0", "No map keys pruned for B"}));
+        assertTrue(checkLogFileMessage(new String[]{"Columns pruned for B: $0"}));
     }
     
     @Test
@@ -554,8 +568,7 @@ public class TestPruneColumn extends TestCase {
         
         assertFalse(iter.hasNext());
         
-        assertTrue(checkLogFileMessage(new String[]{"No column pruned for A", 
-                "No map keys pruned for A"}));
+        assertTrue(emptyLogFileMessage());
     }
     
     @Test
@@ -581,8 +594,7 @@ public class TestPruneColumn extends TestCase {
         
         assertFalse(iter.hasNext());
         
-        assertTrue(checkLogFileMessage(new String[]{"No column pruned for A", 
-                "No map keys pruned for A"}));
+        assertTrue(emptyLogFileMessage());
     }
     
     @Test
@@ -616,9 +628,7 @@ public class TestPruneColumn extends TestCase {
         
         assertFalse(iter.hasNext());
         
-        assertTrue(checkLogFileMessage(new String[]{"No column pruned for A", 
-                "No map keys pruned for A", "No column pruned for B", 
-                "No map keys pruned for B"}));
+        assertTrue(emptyLogFileMessage());
     }
     
     @Test
@@ -644,8 +654,7 @@ public class TestPruneColumn extends TestCase {
         
         assertFalse(iter.hasNext());
         
-        assertTrue(checkLogFileMessage(new String[]{"Columns pruned for A: $2", 
-                "No map keys pruned for A"}));
+        assertTrue(checkLogFileMessage(new String[]{"Columns pruned for A: $2"}));
     }
     
     @Test
@@ -711,8 +720,7 @@ public class TestPruneColumn extends TestCase {
         
         assertFalse(iter.hasNext());
         
-        assertTrue(checkLogFileMessage(new String[]{"Columns pruned for A: $0", 
-        "No map keys pruned for A"}));
+        assertTrue(checkLogFileMessage(new String[]{"Columns pruned for A: $0"}));
     }
     
     @Test
@@ -816,7 +824,7 @@ public class TestPruneColumn extends TestCase {
         assertFalse(iter.hasNext());
         
         assertTrue(checkLogFileMessage(new String[]{"Columns pruned for A: $1, $2", 
-            "No map keys pruned for A", "Columns pruned for B: $1", "No map keys pruned for B"}));
+            "Columns pruned for B: $1"}));
     }
     
     @Test
@@ -857,7 +865,7 @@ public class TestPruneColumn extends TestCase {
         assertFalse(iter.hasNext());
         
         assertTrue(checkLogFileMessage(new String[]{"Columns pruned for A: $1", 
-            "No map keys pruned for A", "Columns pruned for B: $1", "No map keys pruned for B"}));
+            "Columns pruned for B: $1"}));
     }
 
     @Test
@@ -885,7 +893,7 @@ public class TestPruneColumn extends TestCase {
         assertFalse(iter.hasNext());
         
         assertTrue(checkLogFileMessage(new String[]{"Columns pruned for A: $1, $2", 
-            "No map keys pruned for A", "Columns pruned for B: $1", "No map keys pruned for B"}));
+            "Columns pruned for B: $1"}));
     }
     
     @Test
@@ -910,8 +918,7 @@ public class TestPruneColumn extends TestCase {
         
         assertFalse(iter.hasNext());
         
-        assertTrue(checkLogFileMessage(new String[]{"Columns pruned for A: $2", 
-                "No map keys pruned for A"}));
+        assertTrue(checkLogFileMessage(new String[]{"Columns pruned for A: $2"}));
     }
     
     @Test
@@ -935,8 +942,7 @@ public class TestPruneColumn extends TestCase {
 
         assertFalse(iter.hasNext());
         
-        assertTrue(checkLogFileMessage(new String[]{"Columns pruned for A: $1", 
-            "No map keys pruned for A"}));
+        assertTrue(checkLogFileMessage(new String[]{"Columns pruned for A: $1"}));
     }
     
     @Test
@@ -960,8 +966,7 @@ public class TestPruneColumn extends TestCase {
 
         assertFalse(iter.hasNext());
         
-        assertTrue(checkLogFileMessage(new String[]{"Columns pruned for A: $1, $2", 
-            "No map keys pruned for A"}));
+        assertTrue(checkLogFileMessage(new String[]{"Columns pruned for A: $1, $2"}));
     }
     
     @Test
@@ -985,8 +990,7 @@ public class TestPruneColumn extends TestCase {
 
         assertFalse(iter.hasNext());
         
-        assertTrue(checkLogFileMessage(new String[]{"No column pruned for A", 
-            "No map keys pruned for A"}));
+        assertTrue(emptyLogFileMessage());
     }
     
     @Test
@@ -1010,8 +1014,7 @@ public class TestPruneColumn extends TestCase {
 
         assertFalse(iter.hasNext());
         
-        assertTrue(checkLogFileMessage(new String[]{"No column pruned for A", 
-            "No map keys pruned for A"}));
+        assertTrue(emptyLogFileMessage());
     }
     
     @Test
@@ -1036,8 +1039,7 @@ public class TestPruneColumn extends TestCase {
         
         assertFalse(iter.hasNext());
         
-        assertTrue(checkLogFileMessage(new String[]{"No column pruned for A", 
-            "No map keys pruned for A"}));
+        assertTrue(emptyLogFileMessage());
     }
     
     @Test
@@ -1061,8 +1063,7 @@ public class TestPruneColumn extends TestCase {
         
         assertFalse(iter.hasNext());
         
-        assertTrue(checkLogFileMessage(new String[]{"Columns pruned for A: $1, $2", 
-            "No map keys pruned for A"}));
+        assertTrue(checkLogFileMessage(new String[]{"Columns pruned for A: $1, $2"}));
     }
     
     @Test
@@ -1086,8 +1087,7 @@ public class TestPruneColumn extends TestCase {
         
         assertFalse(iter.hasNext());
         
-        assertTrue(checkLogFileMessage(new String[]{"No column pruned for A", 
-            "No map keys pruned for A"}));
+        assertTrue(emptyLogFileMessage());
     }
     
     @Test
@@ -1117,7 +1117,7 @@ public class TestPruneColumn extends TestCase {
         assertFalse(iter.hasNext());
         
         assertTrue(checkLogFileMessage(new String[]{"Columns pruned for A: $1, $2", 
-            "No map keys pruned for A", "Columns pruned for B: $1, $2", "No map keys pruned for B"}));
+            "Columns pruned for B: $1, $2"}));
     }
     
     @Test
@@ -1165,8 +1165,7 @@ public class TestPruneColumn extends TestCase {
         
         assertFalse(iter.hasNext());
         
-        assertTrue(checkLogFileMessage(new String[]{"No column pruned for A", 
-                "Map key required for A: $1->[key1]"}));
+        assertTrue(checkLogFileMessage(new String[]{"Map key required for A: $1->[key1]"}));
     }
     
     @Test
@@ -1192,9 +1191,9 @@ public class TestPruneColumn extends TestCase {
         assertFalse(iter.hasNext());
         
         assertTrue(checkLogFileMessage(new String[]{"Columns pruned for A: $0", 
-                "Map key required for A: $1->[key2,key1]"}));
+                "Map key required for A: $1->[key2, key1]"}));
     }
-    
+    /*
     @Test
     public void testMapKey3() throws Exception {
         pigServer.registerQuery("A = load '"+ Util.generateURI(tmpFile3.toString(), pigServer.getPigContext()) + "' as (a0:int, a1:map[]);");
@@ -1211,9 +1210,8 @@ public class TestPruneColumn extends TestCase {
         
         assertFalse(iter.hasNext());
         
-        assertTrue(checkLogFileMessage(new String[]{"Columns pruned for A: $0", 
-                "No map keys pruned for A"}));
-    }
+        assertTrue(checkLogFileMessage(new String[]{"Columns pruned for A: $0"}));
+    }*/
     
     @Test
     public void testMapKey4() throws Exception {
@@ -1237,8 +1235,7 @@ public class TestPruneColumn extends TestCase {
         
         assertFalse(iter.hasNext());
         
-        assertTrue(checkLogFileMessage(new String[]{"No column pruned for A", 
-                "Map key required for A: $1->[key1]"}));
+        assertTrue(checkLogFileMessage(new String[]{"Map key required for A: $1->[key1]"}));
     }
     
     @Test
@@ -1263,8 +1260,7 @@ public class TestPruneColumn extends TestCase {
         
         assertFalse(iter.hasNext());
         
-        assertTrue(checkLogFileMessage(new String[]{"No column pruned for A", 
-                "Map key required for A: $1->[key1]"}));
+        assertTrue(checkLogFileMessage(new String[]{"Map key required for A: $1->[key1]"}));
     }
     
     @Test
@@ -1288,8 +1284,7 @@ public class TestPruneColumn extends TestCase {
         
         assertFalse(iter.hasNext());
         
-        assertTrue(checkLogFileMessage(new String[]{"Columns pruned for A: $0, $1", 
-                "No map keys pruned for A"}));
+        assertTrue(checkLogFileMessage(new String[]{"Columns pruned for A: $0, $1"}));
     }
     
     @Test
@@ -1345,8 +1340,7 @@ public class TestPruneColumn extends TestCase {
         
         assertFalse(iter.hasNext());
         
-        assertTrue(checkLogFileMessage(new String[]{"Columns pruned for A: $1, $2", 
-            "No map keys pruned for A"}));
+        assertTrue(checkLogFileMessage(new String[]{"Columns pruned for A: $1, $2"}));
     }
     
     @Test
@@ -1379,8 +1373,7 @@ public class TestPruneColumn extends TestCase {
         
         assertFalse(iter.hasNext());
         
-        assertTrue(checkLogFileMessage(new String[]{"Columns pruned for A: $1", 
-            "No map keys pruned for A"}));
+        assertTrue(checkLogFileMessage(new String[]{"Columns pruned for A: $1"}));
         
     }
 
@@ -1471,8 +1464,7 @@ public class TestPruneColumn extends TestCase {
         assertFalse(iter.hasNext());
         
         assertTrue(checkLogFileMessage(new String[]{"Columns pruned for A: $1, $2", 
-                "No map keys pruned for A", "Columns pruned for B: $1", 
-                "No map keys pruned for B"}));
+                "Columns pruned for B: $1"}));
     }
     
     @Test
@@ -1497,8 +1489,7 @@ public class TestPruneColumn extends TestCase {
         assertFalse(iter.hasNext());
         
         assertTrue(checkLogFileMessage(new String[]{"Columns pruned for A: $1", 
-                "No map keys pruned for A", "Columns pruned for B: $1", 
-                "No map keys pruned for B"}));
+                "Columns pruned for B: $1"}));
     }
     
     @Test
@@ -1530,9 +1521,7 @@ public class TestPruneColumn extends TestCase {
         
         assertFalse(iter.hasNext());
         
-        assertTrue(checkLogFileMessage(new String[]{"No column pruned for A", 
-                "No map keys pruned for A", "Columns pruned for B: $0", 
-                "No map keys pruned for B"}));
+        assertTrue(checkLogFileMessage(new String[]{"Columns pruned for B: $0"}));
     }
     
     // See PIG-1128
@@ -1554,8 +1543,7 @@ public class TestPruneColumn extends TestCase {
 
         assertFalse(iter.hasNext());
         
-        assertTrue(checkLogFileMessage(new String[]{"Columns pruned for A: $1", 
-                "No map keys pruned for A"}));
+        assertTrue(checkLogFileMessage(new String[]{"Columns pruned for A: $1"}));
     }
 
     // See PIG-1127
@@ -1573,8 +1561,7 @@ public class TestPruneColumn extends TestCase {
         
         assertFalse(iter.hasNext());
         
-        assertTrue(checkLogFileMessage(new String[]{"Columns pruned for A: $0, $2", 
-                "No map keys pruned for A"}));
+        assertTrue(checkLogFileMessage(new String[]{"Columns pruned for A: $0, $2"}));
     }
     
     // See PIG-1142
@@ -1600,8 +1587,7 @@ public class TestPruneColumn extends TestCase {
         
         assertFalse(iter.hasNext());
         
-        assertTrue(checkLogFileMessage(new String[]{"No column pruned for A", 
-                "No map keys pruned for A", "Columns pruned for B: $0, $1", "No map keys pruned for B"}));
+        assertTrue(checkLogFileMessage(new String[]{"Columns pruned for B: $0, $1"}));
     }
     
     @Test
@@ -1618,8 +1604,7 @@ public class TestPruneColumn extends TestCase {
         
         assertFalse(iter.hasNext());
         
-        assertTrue(checkLogFileMessage(new String[]{"Columns pruned for A: $0, $1", 
-                "No map keys pruned for A"}));
+        assertTrue(checkLogFileMessage(new String[]{"Columns pruned for A: $0, $1"}));
     }
     
     @Test
@@ -1636,8 +1621,7 @@ public class TestPruneColumn extends TestCase {
         
         assertFalse(iter.hasNext());
         
-        assertTrue(checkLogFileMessage(new String[]{"Columns pruned for A: $0, $1", 
-                "No map keys pruned for A"}));
+        assertTrue(checkLogFileMessage(new String[]{"Columns pruned for A: $0, $1"}));
     }
     
     @Test
@@ -1661,8 +1645,7 @@ public class TestPruneColumn extends TestCase {
 
         assertFalse(iter.hasNext());
         
-        assertTrue(checkLogFileMessage(new String[]{"Columns pruned for A: $0, $1", 
-            "No map keys pruned for A"}));
+        assertTrue(checkLogFileMessage(new String[]{"Columns pruned for A: $0, $1"}));
     }
     
     @Test
@@ -1688,8 +1671,7 @@ public class TestPruneColumn extends TestCase {
 
         assertFalse(iter.hasNext());
         
-        assertTrue(checkLogFileMessage(new String[]{"Columns pruned for C: $0, $1", 
-            "No map keys pruned for C"}));
+        assertTrue(checkLogFileMessage(new String[]{"Columns pruned for C: $0, $1"}));
     }
 
     // See PIG-1165
@@ -1710,8 +1692,7 @@ public class TestPruneColumn extends TestCase {
         
         assertFalse(iter.hasNext());
         
-        assertTrue(checkLogFileMessage(new String[]{"Columns pruned for A: $0, $2", 
-            "No map keys pruned for A", "No column pruned for B", "No map keys pruned for B"}));
+        assertTrue(checkLogFileMessage(new String[]{"Columns pruned for A: $0, $2"}));
     }
     
     // See PIG-1146
@@ -1755,9 +1736,7 @@ public class TestPruneColumn extends TestCase {
 
         assertFalse(iter.hasNext());
 
-        assertTrue(checkLogFileMessage(new String[]{"Columns pruned for A: $1",
-            "No map keys pruned for A", "No column pruned for B",
-            "No map keys pruned for B"}));
+        assertTrue(checkLogFileMessage(new String[]{"Columns pruned for A: $1"}));
     }
     
     // See PIG-1176
@@ -1832,8 +1811,7 @@ public class TestPruneColumn extends TestCase {
 
         assertFalse(iter.hasNext());
 
-        assertTrue(checkLogFileMessage(new String[]{"Columns pruned for A: $1",
-                "No map keys pruned for A"}));
+        assertTrue(checkLogFileMessage(new String[]{"Columns pruned for A: $1"}));
     }
     
     // See PIG-1210
@@ -1854,8 +1832,7 @@ public class TestPruneColumn extends TestCase {
 
         assertFalse(iter.hasNext());
 
-        assertTrue(checkLogFileMessage(new String[]{"No column pruned for A",
-            "No map keys pruned for A", "[0,1,2]"}));
+        assertTrue(emptyLogFileMessage());
     }
     
     // See PIG-1272
@@ -1874,8 +1851,7 @@ public class TestPruneColumn extends TestCase {
         t = iter.next();
         assertTrue(t.toString().equals("(2,5,2,2)"));
 
-        assertTrue(checkLogFileMessage(new String[]{"No column pruned for A",
-                "No map keys pruned for A"}));
+        assertTrue(emptyLogFileMessage());
     }
 
     // See PIG-1493
@@ -1894,8 +1870,7 @@ public class TestPruneColumn extends TestCase {
         t = iter.next();
         assertTrue(t.toString().equals("(2,2)"));
 
-        assertTrue(checkLogFileMessage(new String[]{"Columns pruned for A: $1",
-                "No map keys pruned for A"}));
+        assertTrue(checkLogFileMessage(new String[]{"Columns pruned for A: $1"}));
     }
 
 }

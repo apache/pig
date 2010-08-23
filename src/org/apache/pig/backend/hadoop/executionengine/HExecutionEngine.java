@@ -234,12 +234,13 @@ public class HExecutionEngine {
         }
 
         try {
-            if (getConfiguration().getProperty("pig.usenewlogicalplan", "false").equals("true")) {
+            if (getConfiguration().getProperty("pig.usenewlogicalplan", "true").equals("true")) {
                 log.info("pig.usenewlogicalplan is set to true. New logical plan will be used.");
                 
                 // translate old logical plan to new plan
                 LogicalPlanMigrationVistor visitor = new LogicalPlanMigrationVistor(plan);
                 visitor.visit();
+                visitor.finish();
                 org.apache.pig.newplan.logical.relational.LogicalPlan newPlan = visitor.getNewLogicalPlan();
                 
                 SchemaResetter schemaResetter = new SchemaResetter(newPlan);
@@ -267,6 +268,7 @@ public class HExecutionEngine {
                 
                 translator.setPigContext(pigContext);
                 translator.visit();
+                translator.finish();
                 return translator.getPhysicalPlan();
                 
             }else{       
@@ -279,7 +281,7 @@ public class HExecutionEngine {
             }
         } catch (Exception ve) {
             int errCode = 2042;
-            String msg = "Internal error. Unable to translate logical plan to physical plan.";
+            String msg = "Error in new logical plan. Try -Dpig.usenewlogicalplan=false.";
             throw new ExecException(msg, errCode, PigException.BUG, ve);
         }
     }

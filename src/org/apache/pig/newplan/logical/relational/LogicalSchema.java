@@ -25,6 +25,7 @@ import java.util.Map;
 
 import org.apache.pig.data.DataType;
 import org.apache.pig.impl.logicalLayer.FrontendException;
+import org.apache.pig.impl.logicalLayer.schema.Schema.FieldSchema;
 import org.apache.pig.impl.util.Pair;
 import org.apache.pig.newplan.logical.expression.LogicalExpression;
 
@@ -295,9 +296,35 @@ public class LogicalSchema {
      * @param s2
      * @return a merged schema, or null if the merge fails
      */
-    public static LogicalSchema merge(LogicalSchema s1, LogicalSchema s2) {
-        // TODO
-        return null;
+    public static LogicalSchema merge(LogicalSchema s1, LogicalSchema s2) throws FrontendException {
+        if (s1.size()!=s2.size()) return null;
+        LogicalSchema mergedSchema = new LogicalSchema();
+        for (int i=0;i<s1.size();i++) {
+            String mergedAlias;
+            byte mergedType;
+            LogicalSchema mergedSubSchema = null;
+            LogicalFieldSchema fs1 = s1.getField(i);
+            LogicalFieldSchema fs2 = s2.getField(i);
+            
+            if (fs1.alias==null)
+                mergedAlias = fs2.alias;
+            else {
+                mergedAlias = fs1.alias; // If both schema have alias, the first one win
+            }
+            mergedType = fs1.type;
+            if (DataType.isSchemaType(mergedType)) {
+                mergedSubSchema = merge(fs1.schema, fs2.schema);
+                if (mergedSubSchema==null) {
+                    throw new FrontendException("Error merging schema " + fs1 + " and " + fs2, 9999);
+                }
+            }
+            LogicalFieldSchema mergedFS = new LogicalFieldSchema(mergedAlias, mergedSubSchema, mergedType);
+            mergedSchema.addField(mergedFS);
+            if (s1.isTwoLevelAccessRequired() && s2.isTwoLevelAccessRequired()) {
+                mergedSchema.setTwoLevelAccessRequired(true);
+            }
+        }
+        return mergedSchema;
     }
     
     public String toString() {

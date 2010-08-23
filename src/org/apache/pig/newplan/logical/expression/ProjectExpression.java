@@ -123,38 +123,41 @@ public class ProjectExpression extends ColumnExpression {
         
         LogicalSchema schema = referent.getSchema();
         
-        if (schema == null) {
-            fieldSchema = new LogicalSchema.LogicalFieldSchema(null, null, DataType.BYTEARRAY);
-            uidOnlyFieldSchema = fieldSchema.mergeUid(uidOnlyFieldSchema);
-        } 
-        else {
-            if (attachedRelationalOp instanceof LOGenerate && plan.getSuccessors(this)==null) {
-                if (!(findReferent() instanceof LOInnerLoad)||
-                        ((LOInnerLoad)findReferent()).sourceIsBag()) {
-                    String alias = findReferent().getAlias();
-                    List<LOInnerLoad> innerLoads = LOForEach.findReacheableInnerLoadFromBoundaryProject(this);
-                    
-                    // pull tuple information from innerload
-                    if (innerLoads.get(0).getProjection().getFieldSchema().schema.isTwoLevelAccessRequired()) {
-                        LogicalFieldSchema originalTupleFieldSchema = innerLoads.get(0).getProjection().getFieldSchema().schema.getField(0);
-                        LogicalFieldSchema newTupleFieldSchema = new LogicalFieldSchema(originalTupleFieldSchema.alias,
-                                schema, DataType.TUPLE);
-                        newTupleFieldSchema.uid = originalTupleFieldSchema.uid;
-                        LogicalSchema newTupleSchema = new LogicalSchema();
-                        newTupleSchema.setTwoLevelAccessRequired(true);
-                        newTupleSchema.addField(newTupleFieldSchema);
-                        fieldSchema = new LogicalSchema.LogicalFieldSchema(alias, newTupleSchema, DataType.BAG);
-                    }
-                    else {
-                        fieldSchema = new LogicalSchema.LogicalFieldSchema(alias, schema, DataType.BAG);
-                    }
-                    fieldSchema.uid = innerLoads.get(0).getProjection().getFieldSchema().uid;
+        if (attachedRelationalOp instanceof LOGenerate && plan.getSuccessors(this)==null) {
+            if (!(findReferent() instanceof LOInnerLoad)||
+                    ((LOInnerLoad)findReferent()).sourceIsBag()) {
+                String alias = findReferent().getAlias();
+                List<LOInnerLoad> innerLoads = LOForEach.findReacheableInnerLoadFromBoundaryProject(this);
+                
+                // pull tuple information from innerload
+                if (innerLoads.get(0).getProjection().getFieldSchema().schema!=null &&
+                        innerLoads.get(0).getProjection().getFieldSchema().schema.isTwoLevelAccessRequired()) {
+                    LogicalFieldSchema originalTupleFieldSchema = innerLoads.get(0).getProjection().getFieldSchema().schema.getField(0);
+                    LogicalFieldSchema newTupleFieldSchema = new LogicalFieldSchema(originalTupleFieldSchema.alias,
+                            schema, DataType.TUPLE);
+                    newTupleFieldSchema.uid = originalTupleFieldSchema.uid;
+                    LogicalSchema newTupleSchema = new LogicalSchema();
+                    newTupleSchema.setTwoLevelAccessRequired(true);
+                    newTupleSchema.addField(newTupleFieldSchema);
+                    fieldSchema = new LogicalSchema.LogicalFieldSchema(alias, newTupleSchema, DataType.BAG);
                 }
                 else {
-                    fieldSchema = findReferent().getSchema().getField(0);
+                    fieldSchema = new LogicalSchema.LogicalFieldSchema(alias, schema, DataType.BAG);
                 }
-                uidOnlyFieldSchema = fieldSchema.mergeUid(uidOnlyFieldSchema);
+                fieldSchema.uid = innerLoads.get(0).getProjection().getFieldSchema().uid;
             }
+            else {
+                if (findReferent().getSchema()!=null)
+                    fieldSchema = findReferent().getSchema().getField(0);
+            }
+            if (fieldSchema!=null)
+                uidOnlyFieldSchema = fieldSchema.mergeUid(uidOnlyFieldSchema);
+        }
+        else {
+            if (schema == null) {
+                fieldSchema = new LogicalSchema.LogicalFieldSchema(null, null, DataType.BYTEARRAY);
+                uidOnlyFieldSchema = fieldSchema.mergeUid(uidOnlyFieldSchema);
+            } 
             else {
                 int index = -1;
                 if (!isProjectStar() && uidOnlyFieldSchema!=null) {
@@ -170,11 +173,17 @@ public class ProjectExpression extends ColumnExpression {
                     index = col;
                 
                 if (!isProjectStar()) {
-                    fieldSchema = schema.getField(index);
+                    if (schema!=null && schema.size()>index)
+                        fieldSchema = schema.getField(index);
+                    else
+                        fieldSchema = new LogicalSchema.LogicalFieldSchema(null, null, DataType.BYTEARRAY);
                     uidOnlyFieldSchema = fieldSchema.cloneUid();
                 }
                 else {
-                    fieldSchema = new LogicalSchema.LogicalFieldSchema(null, schema.deepCopy(), DataType.TUPLE);
+                    LogicalSchema newTupleSchema = null;
+                    if (schema!=null)
+                        newTupleSchema = schema.deepCopy();
+                    fieldSchema = new LogicalSchema.LogicalFieldSchema(null, newTupleSchema, DataType.TUPLE);
                     uidOnlyFieldSchema = fieldSchema.mergeUid(uidOnlyFieldSchema);
                 }
             }
@@ -194,7 +203,7 @@ public class ProjectExpression extends ColumnExpression {
         if (preds == null || input >= preds.size()) {
             throw new FrontendException("Projection with nothing to reference!", 2225);
         }
-            
+        
         LogicalRelationalOperator pred =
             (LogicalRelationalOperator)preds.get(input);
         if (pred == null) {
@@ -215,6 +224,8 @@ public class ProjectExpression extends ColumnExpression {
     
     public String toString() {
         StringBuilder msg = new StringBuilder();
+        if (fieldSchema!=null && fieldSchema.alias!=null)
+            msg.append(fieldSchema.alias+":");
         msg.append("(Name: " + name + " Type: ");
         if (fieldSchema!=null)
             msg.append(DataType.findTypeName(fieldSchema.type));
@@ -241,5 +252,19 @@ public class ProjectExpression extends ColumnExpression {
     
     public void setAttachedRelationalOp(LogicalRelationalOperator attachedRelationalOp) {
         this.attachedRelationalOp = attachedRelationalOp;
+    }
+    
+    @Override
+    public byte getType() throws FrontendException {
+        // for boundary project, if 
+        if (getFieldSchema()==null) {
+            if (attachedRelationalOp instanceof LOGenerate && findReferent() instanceof
+                    LOInnerLoad) {
+                if (((LOInnerLoad)findReferent()).getProjection().getColNum()==-1)
+                    return DataType.TUPLE;
+            }
+            return DataType.BYTEARRAY;
+        }
+        return super.getType();
     }
 }
