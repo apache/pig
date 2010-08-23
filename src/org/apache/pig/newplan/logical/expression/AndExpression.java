@@ -18,8 +18,6 @@
 
 package org.apache.pig.newplan.logical.expression;
 
-import java.io.IOException;
-
 import org.apache.pig.data.DataType;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.newplan.Operator;
@@ -76,7 +74,7 @@ public class AndExpression extends BinaryExpression {
     }
 
     @Override
-    public LogicalExpression deepCopy(LogicalExpressionPlan lgExpPlan) throws IOException {
+    public LogicalExpression deepCopy(LogicalExpressionPlan lgExpPlan) throws FrontendException {
         LogicalExpression copy = new AndExpression(
                 lgExpPlan,
                 this.getLhs().deepCopy(lgExpPlan),
