@@ -153,7 +153,6 @@ static int run(String args[], PigProgressNotificationListener listener) {
         opts.registerOpt('F', "stop_on_failure", CmdLineParser.ValueExpected.NOT_ACCEPTED);
         opts.registerOpt('M', "no_multiquery", CmdLineParser.ValueExpected.NOT_ACCEPTED);
         opts.registerOpt('P', "propertyFile", CmdLineParser.ValueExpected.REQUIRED);
-        opts.registerOpt('R', "prop", CmdLineParser.ValueExpected.REQUIRED);
 
         ExecMode mode = ExecMode.UNKNOWN;
         String file = null;
@@ -304,14 +303,6 @@ static int run(String args[], PigProgressNotificationListener listener) {
             }
             break;
             
-            case 'R':
-                int idx = opts.getValStr().indexOf('=');
-                if (idx == -1 || idx == 0) {
-                    throw new RuntimeException("Property '" + opts.getValStr() + "' not in valid form A=B");
-                }
-                properties.put(opts.getValStr().substring(0, idx), opts.getValStr().substring(idx + 1));
-                break;
-              
             default: {
                 Character cc = Character.valueOf(opt);
                 throw new AssertionError("Unhandled option " + cc.toString());
@@ -693,7 +684,6 @@ public static void usage()
         System.out.println("    -F, -stop_on_failure - Aborts execution on the first failed job; default is off");
         System.out.println("    -M, -no_multiquery - Turn multiquery optimization off; default is on");
         System.out.println("    -P, -propertyFile - Path to property file");
-        System.out.println("    -R, -prop - Property key value pair of the form key=value");
 }
 
 public static void printProperties(){
