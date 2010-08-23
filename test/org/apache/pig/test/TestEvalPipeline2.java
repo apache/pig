@@ -659,7 +659,7 @@ public class TestEvalPipeline2 extends TestCase {
         pigServer.registerQuery("A = LOAD 'table_testDescribeNestedAlias' as (a0, a1);");
         pigServer.registerQuery("P = GROUP A by a1;");
         // Test RelationalOperator
-        pigServer.registerQuery("B = FOREACH P { D = ORDER A by $0; generate D.$0; };");
+        pigServer.registerQuery("B = FOREACH P { D = ORDER A by $0; generate group, D.$0; };");
         
         // Test ExpressionOperator - negative test case
         pigServer.registerQuery("C = FOREACH A { D = a0/a1; E=a1/a0; generate E as newcol; };");

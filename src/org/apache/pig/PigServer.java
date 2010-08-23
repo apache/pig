@@ -648,7 +648,7 @@ public class PigServer {
         lp = compileLp(alias, false);
         LogicalOperator op = lp.getLeaves().get(0);
         if(op instanceof LOForEach) {
-            return ((LOForEach)op).dumpNestedSchema(nestedAlias);
+            return ((LOForEach)op).dumpNestedSchema(alias, nestedAlias);
         }
         else {
             int errCode = 1001;
