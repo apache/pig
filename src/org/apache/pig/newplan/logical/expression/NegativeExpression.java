@@ -18,6 +18,8 @@
 
 package org.apache.pig.newplan.logical.expression;
 
+import java.io.IOException;
+
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.OperatorPlan;
@@ -42,7 +44,7 @@ public class NegativeExpression extends UnaryExpression {
     public boolean isEqual(Operator other) throws FrontendException {
         if (other != null && other instanceof NegativeExpression) { 
             NegativeExpression of = (NegativeExpression)other;
-            return plan.isEqual(of.plan) && getExpression().isEqual( of.getExpression() );
+            return getExpression().isEqual( of.getExpression() );
         } else {
             return false;
         }
@@ -57,4 +59,13 @@ public class NegativeExpression extends UnaryExpression {
         uidOnlyFieldSchema = fieldSchema.mergeUid(uidOnlyFieldSchema);
         return fieldSchema;
     }
+
+    @Override
+    public LogicalExpression deepCopy(LogicalExpressionPlan lgExpPlan) throws IOException {
+        LogicalExpression copy = new NegativeExpression(
+                lgExpPlan,
+                this.getExpression().deepCopy(lgExpPlan) );
+        return copy;
+    }
+
 }

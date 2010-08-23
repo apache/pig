@@ -26,6 +26,8 @@ PIG-1249: Safe-guards against misconfigured Pig scripts without PARALLEL keyword
 
 IMPROVEMENTS
 
+PIG-1510: Add `deepCopy` for LogicalExpressions (swati.j via daijy)
+
 PIG-1447: Tune memory usage of InternalCachedBag (thejas)
 
 PIG-1505: support jars and scripts in dfs (anhi via rding)

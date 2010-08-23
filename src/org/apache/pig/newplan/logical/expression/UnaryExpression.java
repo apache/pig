@@ -19,6 +19,7 @@
 package org.apache.pig.newplan.logical.expression;
 
 import java.util.List;
+import java.io.IOException;
 
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.newplan.Operator;
