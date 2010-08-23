@@ -20,8 +20,6 @@ package org.apache.pig.newplan.logical.expression;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.io.IOException;
-
 import org.apache.pig.EvalFunc;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.data.DataType;
@@ -138,7 +136,7 @@ public class UserFuncExpression extends LogicalExpression {
     }
 
     @Override
-    public LogicalExpression deepCopy(LogicalExpressionPlan lgExpPlan) throws IOException {
+    public LogicalExpression deepCopy(LogicalExpressionPlan lgExpPlan) throws FrontendException {
         LogicalExpression copy =  null; 
         try {
         copy = new UserFuncExpression(
