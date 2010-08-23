@@ -19,6 +19,7 @@
 package org.apache.pig.newplan.logical.expression;
 
 import java.util.List;
+import java.io.IOException;
 
 import org.apache.pig.data.DataType;
 import org.apache.pig.impl.logicalLayer.FrontendException;
@@ -267,4 +268,15 @@ public class ProjectExpression extends ColumnExpression {
         }
         return super.getType();
     }
+
+    @Override
+    public LogicalExpression deepCopy(LogicalExpressionPlan lgExpPlan) throws IOException {
+        LogicalExpression copy = new ProjectExpression(
+                lgExpPlan,
+                this.getInputNum(),
+                this.getColNum(),
+                this.getAttachedRelationalOp());
+        return copy;
+    }
+
 }

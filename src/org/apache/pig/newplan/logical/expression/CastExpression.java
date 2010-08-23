@@ -18,6 +18,8 @@
 
 package org.apache.pig.newplan.logical.expression;
 
+import java.io.IOException;
+
 import org.apache.pig.FuncSpec;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.newplan.Operator;
@@ -62,7 +64,7 @@ public class CastExpression extends UnaryExpression {
     public boolean isEqual(Operator other) throws FrontendException {
         if (other != null && other instanceof CastExpression) { 
             CastExpression of = (CastExpression)other;
-            return plan.isEqual(of.plan) && getExpression().isEqual( of.getExpression() );
+            return getExpression().isEqual( of.getExpression() );
         } else {
             return false;
         }
@@ -82,4 +84,22 @@ public class CastExpression extends UnaryExpression {
         }
         return fieldSchema;
     }
+
+    @Override
+    public LogicalExpression deepCopy(LogicalExpressionPlan lgExpPlan) throws IOException {
+        LogicalExpression copy = new CastExpression(
+                lgExpPlan,
+                this.getExpression().deepCopy(lgExpPlan),
+                this.getFieldSchema().deepCopy());
+        try {
+            FuncSpec origFuncSpec = this.getFuncSpec();
+            if (origFuncSpec != null ) {
+                ((CastExpression)copy).setFuncSpec(origFuncSpec.clone());
+            }
+        } catch(CloneNotSupportedException e) {
+            e.printStackTrace(); 
+        }
+        return copy;
+    }
+
 }

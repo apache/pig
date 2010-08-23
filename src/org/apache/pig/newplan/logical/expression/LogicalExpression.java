@@ -18,6 +18,8 @@
 
 package org.apache.pig.newplan.logical.expression;
 
+import java.io.IOException;
+
 import org.apache.pig.data.DataType;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.newplan.Operator;
@@ -98,4 +100,15 @@ public abstract class LogicalExpression extends Operator {
         fieldSchema = fs;
         uidOnlyFieldSchema = fieldSchema.mergeUid(uidOnlyFieldSchema);
     }
+
+    /**
+     * Create the deep copy of this expression and add that into the passed
+     * LogicalExpressionPlan Return the copy of this expression with updated
+     * logical expression plan.
+     * @param lgExpPlan LogicalExpressionPlan in which this expression will be added.
+     * @return LogicalExpression with its own logical expression plan.
+     * @throws IOException.
+     */
+    abstract public LogicalExpression deepCopy(LogicalExpressionPlan lgExpPlan) throws IOException;
+
 }

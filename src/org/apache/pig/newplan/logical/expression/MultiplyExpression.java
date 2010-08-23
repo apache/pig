@@ -18,6 +18,8 @@
 
 package org.apache.pig.newplan.logical.expression;
 
+import java.io.IOException;
+
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.OperatorPlan;
@@ -72,4 +74,13 @@ public class MultiplyExpression extends BinaryExpression {
         return fieldSchema;
     }
 
+    @Override
+    public LogicalExpression deepCopy(LogicalExpressionPlan lgExpPlan) throws IOException {
+        LogicalExpression copy = new MultiplyExpression(
+                lgExpPlan,
+                this.getLhs().deepCopy(lgExpPlan),
+                this.getRhs().deepCopy(lgExpPlan) );
+        return copy;
+    }
+ 
 }

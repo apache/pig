@@ -18,6 +18,8 @@
 
 package org.apache.pig.newplan.logical.expression;
 
+import java.io.IOException;
+
 import org.apache.pig.data.DataType;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.newplan.Operator;
@@ -74,4 +76,14 @@ public class EqualExpression extends BinaryExpression {
         uidOnlyFieldSchema = fieldSchema.mergeUid(uidOnlyFieldSchema);
         return fieldSchema;
     }
+ 
+    @Override
+    public LogicalExpression deepCopy(LogicalExpressionPlan lgExpPlan) throws IOException {
+        LogicalExpression copy = new EqualExpression( 
+                lgExpPlan,
+                this.getLhs().deepCopy(lgExpPlan),
+                this.getRhs().deepCopy(lgExpPlan));
+        return copy;
+    }
+ 
 }

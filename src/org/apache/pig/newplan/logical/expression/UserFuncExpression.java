@@ -20,6 +20,7 @@ package org.apache.pig.newplan.logical.expression;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.io.IOException;
 
 import org.apache.pig.EvalFunc;
 import org.apache.pig.FuncSpec;
@@ -134,5 +135,18 @@ public class UserFuncExpression extends LogicalExpression {
     
     public void setImplicitReferencedOperator(Operator implicitReferencedOperator) {
         this.implicitReferencedOperator = implicitReferencedOperator;
+    }
+
+    @Override
+    public LogicalExpression deepCopy(LogicalExpressionPlan lgExpPlan) throws IOException {
+        LogicalExpression copy =  null; 
+        try {
+        copy = new UserFuncExpression(
+                lgExpPlan,
+                this.getFuncSpec().clone() );
+        } catch(CloneNotSupportedException e) {
+             e.printStackTrace();
+        }
+        return copy;
     }
 }
