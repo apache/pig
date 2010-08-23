@@ -74,7 +74,7 @@ public abstract class AllExpressionVisitor extends LogicalRelationalNodesVisitor
     @Override
     public void visit(LOJoin join) throws FrontendException {
         currentOp = join;
-        Collection<LogicalExpressionPlan> c = join.getExpressionPlans();
+        Collection<LogicalExpressionPlan> c = join.getExpressionPlanValues();
         for (LogicalExpressionPlan plan : c) {
             LogicalExpressionVisitor v = getVisitor(plan);
             v.visit();

@@ -78,21 +78,21 @@ public class ExpToPhyTranslationVisitor extends LogicalExpressionVisitor {
 
     // This value points to the current LogicalRelationalOperator we are working on
     protected LogicalRelationalOperator currentOp;
+    protected Map<PhysicalOperator, LogicalRelationalOperator> scalarAliasMap;
     
-    public ExpToPhyTranslationVisitor(OperatorPlan plan, LogicalRelationalOperator op, PhysicalPlan phyPlan, Map<Operator, PhysicalOperator> map) throws FrontendException {
-        super(plan, new DependencyOrderWalker(plan));
-        currentOp = op;
-        logToPhyMap = map;
-        currentPlan = phyPlan;
-        currentPlans = new Stack<PhysicalPlan>();
+    public ExpToPhyTranslationVisitor(OperatorPlan plan, LogicalRelationalOperator op, PhysicalPlan phyPlan, 
+            Map<Operator, PhysicalOperator> map, Map<PhysicalOperator, LogicalRelationalOperator> scalarMap) throws FrontendException {
+        this(plan, new DependencyOrderWalker(plan), op, phyPlan, map, scalarMap);
     }
     
-    public ExpToPhyTranslationVisitor(OperatorPlan plan, PlanWalker walker, LogicalRelationalOperator op, PhysicalPlan phyPlan, Map<Operator, PhysicalOperator> map) throws FrontendException {
+    public ExpToPhyTranslationVisitor(OperatorPlan plan, PlanWalker walker, LogicalRelationalOperator op, PhysicalPlan phyPlan, Map<Operator, PhysicalOperator> map, 
+            Map<PhysicalOperator, LogicalRelationalOperator> scalarMap) throws FrontendException {
         super(plan, walker);
         currentOp = op;
         logToPhyMap = map;
         currentPlan = phyPlan;
         currentPlans = new Stack<PhysicalPlan>();
+        scalarAliasMap = scalarMap;
     }
     
     protected Map<Operator, PhysicalOperator> logToPhyMap;
@@ -374,7 +374,7 @@ public class ExpToPhyTranslationVisitor extends LogicalExpressionVisitor {
                 .getExpression());
         pIsNull.setExpr(from);
         pIsNull.setResultType(op.getType());
-        pIsNull.setOperandType(op.getType());
+        pIsNull.setOperandType(op.getExpression().getType());
         try {
             currentPlan.connect(from, pIsNull);
         } catch (PlanException e) {
@@ -394,6 +394,7 @@ public class ExpToPhyTranslationVisitor extends LogicalExpressionVisitor {
         logToPhyMap.put(op, pNegative);
         ExpressionOperator from = (ExpressionOperator) logToPhyMap.get(op
                 .getExpression());
+        pNegative.setExpr(from);
         pNegative.setResultType(op.getType());        
         try {
             currentPlan.connect(from, pNegative);
@@ -507,6 +508,11 @@ public class ExpToPhyTranslationVisitor extends LogicalExpressionVisitor {
             }
         }
         logToPhyMap.put(op, p);
+        
+        //We need to track all the scalars
+        if(op.getImplicitReferencedOperator() != null) {
+            scalarAliasMap.put(p, (LogicalRelationalOperator)op.getImplicitReferencedOperator());
+        }
     }
     
     @Override

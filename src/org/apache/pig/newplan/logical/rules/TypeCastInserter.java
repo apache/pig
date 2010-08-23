@@ -39,26 +39,30 @@ import org.apache.pig.newplan.logical.relational.LOStream;
 import org.apache.pig.newplan.logical.relational.LogicalPlan;
 import org.apache.pig.newplan.logical.relational.LogicalRelationalOperator;
 import org.apache.pig.newplan.logical.relational.LogicalSchema;
+import org.apache.pig.newplan.logical.relational.LogicalSchema.LogicalFieldSchema;
 import org.apache.pig.newplan.optimizer.Rule;
 import org.apache.pig.newplan.optimizer.Transformer;
 
-public class TypeCastInserter extends Rule {
+public abstract class TypeCastInserter extends Rule {
 
-    private String operatorClassName;
-    
-    public TypeCastInserter(String n, String operatorClassName) {
+    public TypeCastInserter(String n) {
         super(n, true);
-        this.operatorClassName = operatorClassName;
     }
 
     @Override
     protected OperatorPlan buildPattern() {
         // the pattern that this rule looks for is load
         LogicalPlan plan = new LogicalPlan();
-        LogicalRelationalOperator op = new LOLoad(null, null, plan, null);
-        plan.add(op);        
+        LogicalRelationalOperator op;
+        if (getOperatorClassName().equals(LOLoad.class.getName()))
+            op = new LOLoad(null, null, plan, null);
+        else // LOStream
+            op = new LOStream(plan, null, null, null);
+        plan.add(op);
         return plan;
     }
+    
+    abstract String getOperatorClassName();
 
     @Override
     public Transformer getNewTransformer() {
@@ -72,12 +76,17 @@ public class TypeCastInserter extends Rule {
             LogicalSchema s = op.getSchema();
             if (s == null) return false;
     
-            if (((LOLoad)op).isCastInserted()) return false;
+            if (op instanceof LOLoad) {
+                if (((LOLoad)op).isCastInserted()) return false;
+            }
+            else {
+                if (((LOStream)op).isCastInserted()) return false;
+            }
             
             boolean sawOne = false;
             List<LogicalSchema.LogicalFieldSchema> fss = s.getFields();
             LogicalSchema determinedSchema = null;
-            if(LOLoad.class.getName().equals(operatorClassName)) {
+            if(LOLoad.class.getName().equals(getOperatorClassName())) {
                 determinedSchema = ((LOLoad)op).getDeterminedSchema();
             }
             for (int i = 0; i < fss.size(); i++) {
@@ -125,8 +134,14 @@ public class TypeCastInserter extends Rule {
             // Note that in this case, the data coming out of the loader is not
             // a BYTEARRAY but is whatever determineSchema() says it is.
             LogicalSchema determinedSchema = null;
-            if(LOLoad.class.getName().equals(operatorClassName)) {
+            if(LOLoad.class.getName().equals(getOperatorClassName())) {
                 determinedSchema = ((LOLoad)op).getDeterminedSchema();
+            }
+            else {
+                determinedSchema = new LogicalSchema();
+                for (int i=0;i<s.size();i++) {
+                    determinedSchema.addField(new LogicalFieldSchema(null, null, DataType.BYTEARRAY));
+                }
             }
             for (int i = 0; i < s.size(); i++) {
                 LogicalSchema.LogicalFieldSchema fs = s.getField(i);
@@ -140,7 +155,7 @@ public class TypeCastInserter extends Rule {
                 ProjectExpression prj = new ProjectExpression(exp, i, 0, gen);
                 exp.add(prj);
                 
-                if (fs.type != DataType.BYTEARRAY && (determinedSchema == null || (fs.isEqual(determinedSchema.getField(i))))) {
+                if (fs.type != DataType.BYTEARRAY && (determinedSchema == null || (!fs.isEqual(determinedSchema.getField(i))))) {
                     // Either no schema was determined by loader OR the type 
                     // from the "determinedSchema" is different
                     // from the type specified - so we need to cast
@@ -161,7 +176,10 @@ public class TypeCastInserter extends Rule {
                 }
                 exps.add(exp);
             }
-            ((LOLoad)op).setCastInserted(true);
+            if (op instanceof LOLoad)
+                ((LOLoad)op).setCastInserted(true);
+            else
+                ((LOStream)op).setCastInserted(true);
         }
         
         @Override

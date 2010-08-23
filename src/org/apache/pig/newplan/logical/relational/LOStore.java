@@ -19,6 +19,7 @@ package org.apache.pig.newplan.logical.relational;
 
 //import org.apache.commons.logging.Log;
 //import org.apache.commons.logging.LogFactory;
+import org.apache.pig.SortInfo;
 import org.apache.pig.StoreFuncInterface;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileSpec;
@@ -29,7 +30,15 @@ import org.apache.pig.newplan.PlanVisitor;
 public class LOStore extends LogicalRelationalOperator {
     private static final long serialVersionUID = 2L;
 
-    private FileSpec output;  
+    private FileSpec output;
+    
+ // If we know how to reload the store, here's how. The lFile
+    // FileSpec is set in PigServer.postProcess. It can be used to
+    // reload this store, if the optimizer has the need.
+    private FileSpec mInputSpec;
+    private String signature;
+    private boolean isTmpStore;
+    private SortInfo sortInfo;
     transient private StoreFuncInterface storeFunc;
     
     //private static Log log = LogFactory.getLog(LOStore.class);
@@ -84,5 +93,37 @@ public class LOStore extends LogicalRelationalOperator {
         } else {
             return false;
         }
+    }
+    
+    public SortInfo getSortInfo() {
+        return sortInfo;
+    }
+
+    public void setSortInfo(SortInfo sortInfo) {
+        this.sortInfo = sortInfo;
+    }
+    
+    public boolean isTmpStore() {
+        return isTmpStore;
+    }
+
+    public void setTmpStore(boolean isTmpStore) {
+        this.isTmpStore = isTmpStore;
+    }
+    
+    public void setInputSpec(FileSpec in) {
+        mInputSpec = in;
+    }
+
+    public FileSpec getInputSpec() {
+        return mInputSpec;
+    }
+    
+    public String getSignature() {
+        return signature;
+    }
+    
+    public void setSignature(String sig) {
+        signature = sig;
     }
 }

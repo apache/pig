@@ -38,9 +38,6 @@ import org.apache.pig.newplan.logical.relational.LogicalSchema;
 import org.apache.pig.newplan.optimizer.Transformer;
 
 public class AddForEach extends WholePlanRule {
-    protected static final String STATUS = "AddForEach:Status";
-    protected static final int STATUSADDED = 1;
-    protected static final int STATUSNEWFOREACH = 2;
     
     public AddForEach(String n) {
         super(n, false);		
@@ -59,8 +56,8 @@ public class AddForEach extends WholePlanRule {
             Iterator<Operator> iter = matched.getOperators();
             while(iter.hasNext()) {
                 LogicalRelationalOperator op = (LogicalRelationalOperator)iter.next();
-                if ((op instanceof LOFilter||op instanceof LOSort||op instanceof LOSplitOutput
-                        ||op instanceof LOJoin) && shouldAdd(op)) {
+                if ((op instanceof LOFilter||op instanceof LOSort||op instanceof LOJoin||
+                        op instanceof LOSplitOutput) && shouldAdd(op)) {
                     opForAdd = op;
                     return true;
                 }
@@ -93,9 +90,9 @@ public class AddForEach extends WholePlanRule {
         @SuppressWarnings("unchecked")
         // check if an LOForEach should be added after the logical operator
         private boolean shouldAdd(LogicalRelationalOperator op) throws FrontendException {
-            Integer status = (Integer)op.getAnnotation(STATUS);
-            if (status!=null && (status==STATUSADDED ||status==STATUSNEWFOREACH))
+            if (op instanceof LOForEach) {
                 return false;
+            }
             
             Set<Long> outputUids = (Set<Long>)op.getAnnotation(ColumnPruneHelper.OUTPUTUIDS);
             if (outputUids==null)
@@ -104,6 +101,12 @@ public class AddForEach extends WholePlanRule {
             LogicalSchema schema = op.getSchema();
             if (schema==null)
                 return false;
+            
+            // check if there is already a foreach
+            List<Operator> ll = op.getPlan().getSuccessors(op);
+            if (ll != null && ll.get(0) instanceof LOForEach) {
+                return false;
+            }
             
             Set<Integer> columnsToDrop = new HashSet<Integer>();
             
@@ -129,9 +132,7 @@ public class AddForEach extends WholePlanRule {
             }
             
             if (!columnsToDrop.isEmpty()) {
-                LOForEach foreach = Util.addForEachAfter((LogicalPlan)op.getPlan(), op, columnsToDrop);
-                op.annotate(STATUS, STATUSADDED);
-                foreach.annotate(STATUS, STATUSNEWFOREACH);
+                Util.addForEachAfter((LogicalPlan)op.getPlan(), op, 0, columnsToDrop);
             }
         }
     }          

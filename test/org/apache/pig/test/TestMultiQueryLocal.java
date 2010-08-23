@@ -56,6 +56,7 @@ public class TestMultiQueryLocal extends TestCase {
         PigContext context = new PigContext(ExecType.LOCAL, new Properties());
         context.getProperties().setProperty("opt.multiquery", ""+true);
         myPig = new PigServer(context);
+        myPig.getPigContext().getProperties().setProperty("pig.usenewlogicalplan", "false");
         deleteOutputFiles();
     }
 

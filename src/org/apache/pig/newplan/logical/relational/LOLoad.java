@@ -18,16 +18,22 @@
 
 package org.apache.pig.newplan.logical.relational;
 
+import java.io.IOException;
 import java.util.List;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.mapreduce.Job;
 import org.apache.pig.LoadFunc;
+import org.apache.pig.LoadMetadata;
+import org.apache.pig.ResourceSchema;
 import org.apache.pig.data.DataType;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.logicalLayer.FrontendException;
+import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.PlanVisitor;
+import org.apache.pig.newplan.logical.Util;
 
 public class LOLoad extends LogicalRelationalOperator {
     
@@ -56,7 +62,7 @@ public class LOLoad extends LogicalRelationalOperator {
     
     public LoadFunc getLoadFunc() throws FrontendException {
         try { 
-            if (loadFunc == null) {
+            if (loadFunc == null && fs!=null) {
                 loadFunc = (LoadFunc)PigContext.instantiateFuncFromSpec(fs.getFuncSpec());
                 loadFunc.setUDFContextSignature(getAlias());               
             }
@@ -88,8 +94,8 @@ public class LOLoad extends LogicalRelationalOperator {
             return schema;
         
         LogicalSchema originalSchema = null;
-        // TODO get schema from LoaderMetadata interface.
-        if (determinedSchema!=null) {
+
+        if (determinedSchema==null) {
             determinedSchema = getSchemaFromMetaData();
         }
         
@@ -128,7 +134,16 @@ public class LOLoad extends LogicalRelationalOperator {
         return schema;
     }
 
-    private LogicalSchema getSchemaFromMetaData() {
+    private LogicalSchema getSchemaFromMetaData() throws FrontendException {
+        if (getLoadFunc()!=null && getLoadFunc() instanceof LoadMetadata) {
+            try {
+                ResourceSchema resourceSchema = ((LoadMetadata)loadFunc).getSchema(getFileSpec().getFileName(), new Job(conf));
+                Schema oldSchema = Schema.getPigSchema(resourceSchema);
+                return Util.translateSchema(oldSchema);
+            } catch (IOException e) {
+                throw new FrontendException("Cannot get schema from loadFunc " + loadFunc.getClass().getName(), 9999, e);
+            }
+        }
         return null;
     }
 

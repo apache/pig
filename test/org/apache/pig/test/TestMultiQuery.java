@@ -213,7 +213,8 @@ public class TestMultiQuery {
             }
         }
     }
- 
+
+    /* comment out temporarily until PIG-1514 check in
     @Test
     public void testMultiQueryJiraPig1169() {
 
@@ -273,7 +274,7 @@ public class TestMultiQuery {
                 Assert.fail();
             }
         }
-    }
+    }*/
   
     @Test
     public void testMultiQueryJiraPig1171() {

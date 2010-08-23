@@ -17,6 +17,8 @@
  */
 package org.apache.pig.newplan.logical.relational;
 
+import java.util.Map;
+
 import org.apache.pig.data.DataType;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.newplan.Operator;
@@ -53,23 +55,31 @@ public class LOInnerLoad extends LogicalRelationalOperator {
         if (schema!=null)
             return schema;
         
-        if (prj.getFieldSchema()!=null) {
-            schema = new LogicalSchema();
-            if (prj.getFieldSchema().type==DataType.BAG && prj.getFieldSchema().schema.isTwoLevelAccessRequired()) {
-                LogicalFieldSchema tupleSchema = prj.getFieldSchema().schema.getField(0);
-                for (int i=0;i<tupleSchema.schema.size();i++)
-                    schema.addField(tupleSchema.schema.getField(i));
-                sourceIsBag = true;
-                alias = prj.getFieldSchema().alias;
-            }
-            else if (prj.getFieldSchema().type==DataType.BAG){
-                for (int i=0;i<prj.getFieldSchema().schema.size();i++)
-                    schema.addField(prj.getFieldSchema().schema.getField(i));
-                sourceIsBag = true;
-                alias = prj.getFieldSchema().alias;
-            }
-            else {
-                schema.addField(prj.getFieldSchema());
+        if (prj.findReferent().getSchema()!=null) {
+            if (prj.getFieldSchema()!=null) {
+                if (prj.getFieldSchema().type==DataType.BAG && prj.getFieldSchema().schema!=null &&
+                        prj.getFieldSchema().schema.isTwoLevelAccessRequired()) {
+                    schema = new LogicalSchema();
+                    LogicalFieldSchema tupleSchema = prj.getFieldSchema().schema.getField(0);
+                    for (int i=0;i<tupleSchema.schema.size();i++)
+                        schema.addField(tupleSchema.schema.getField(i));
+                    sourceIsBag = true;
+                    alias = prj.getFieldSchema().alias;
+                }
+                else if (prj.getFieldSchema().type==DataType.BAG){
+                    sourceIsBag = true;
+                    alias = prj.getFieldSchema().alias;
+                    if (prj.getFieldSchema().schema!=null) {
+                        schema = new LogicalSchema();
+                        for (int i=0;i<prj.getFieldSchema().schema.size();i++)
+                            schema.addField(prj.getFieldSchema().schema.getField(i));
+                    }
+                    
+                }
+                else {
+                    schema = new LogicalSchema();
+                    schema.addField(prj.getFieldSchema());
+                }
             }
         }
         return schema;
@@ -110,5 +120,32 @@ public class LOInnerLoad extends LogicalRelationalOperator {
     
     public boolean sourceIsBag() {
         return sourceIsBag;
+    }
+    
+    public String toString() {
+        StringBuilder msg = new StringBuilder();
+
+        if (alias!=null) {
+            msg.append(alias + ": ");
+        }
+        msg.append("(Name: " + name);
+        msg.append("[");
+        if (getProjection().getColNum()==-1)
+            msg.append("*");
+        else
+            msg.append(getProjection().getColNum());
+        msg.append("]");
+        msg.append(" Schema: ");
+        if (schema!=null)
+            msg.append(schema);
+        else
+            msg.append("null");
+        msg.append(")");
+        if (annotations!=null) {
+            for (Map.Entry<String, Object> entry : annotations.entrySet()) {
+                msg.append(entry);
+            }
+        }
+        return msg.toString();
     }
 }

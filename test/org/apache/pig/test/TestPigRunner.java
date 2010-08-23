@@ -161,7 +161,7 @@ public class TestPigRunner {
                     0)).getAlias());
             assertEquals("B", ((JobStats) stats.getJobGraph().getPredecessors(
                     js).get(0)).getAlias());
-            assertEquals("B", js.getAlias()); 
+            assertEquals("B,C", js.getAlias()); 
         } finally {
             new File(PIG_FILE).delete();
             Util.deleteFile(cluster, OUTPUT_FILE);

@@ -17,6 +17,7 @@
  */
 package org.apache.pig.newplan.logical.relational;
 
+import org.apache.pig.data.DataType;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.streaming.ExecutableManager;
 import org.apache.pig.impl.streaming.StreamingCommand;
@@ -25,6 +26,7 @@ import org.apache.pig.newplan.PlanVisitor;
 
 public class LOStream extends LogicalRelationalOperator {
 
+    private LogicalSchema scriptSchema;
     private static final long serialVersionUID = 2L;
     //private static Log log = LogFactory.getLog(LOFilter.class);
     
@@ -32,11 +34,14 @@ public class LOStream extends LogicalRelationalOperator {
     // Stream Operator this operator represents
     private StreamingCommand command;
     transient private ExecutableManager executableManager;
+    private LogicalSchema uidOnlySchema;
+    private boolean castInserted = false;
         
-    public LOStream(LogicalPlan plan, ExecutableManager exeManager, StreamingCommand cmd) {
-        super("LODistinct", plan);
+    public LOStream(LogicalPlan plan, ExecutableManager exeManager, StreamingCommand cmd, LogicalSchema schema) {
+        super("LOStream", plan);
         command = cmd;
         executableManager = exeManager;
+        scriptSchema = schema;
     }
     
     /**
@@ -60,10 +65,22 @@ public class LOStream extends LogicalRelationalOperator {
     public LogicalSchema getSchema() throws FrontendException {
         if (schema!=null)
             return schema;
-        LogicalRelationalOperator input = null;
-        input = (LogicalRelationalOperator)plan.getPredecessors(this).get(0);
         
-        schema = input.getSchema();
+        if (isCastInserted()) {
+            schema = new LogicalSchema();
+            for (int i=0;i<scriptSchema.size();i++) {
+                LogicalSchema.LogicalFieldSchema fs = scriptSchema.getField(i).deepCopy();
+                fs.type = DataType.BYTEARRAY;
+                schema.addField(fs);
+            }
+        } else {
+            if (scriptSchema!=null)
+                schema = scriptSchema.deepCopy();
+        }
+        
+        if (schema!=null)
+            uidOnlySchema = schema.mergeUid(uidOnlySchema);
+
         return schema;
     }   
     
@@ -82,6 +99,14 @@ public class LOStream extends LogicalRelationalOperator {
         } else {
             return false;
         }
+    }
+    
+    public void setCastInserted(boolean flag) {
+        castInserted = flag;
+    }
+        
+    public boolean isCastInserted() {
+        return castInserted;
     }
 
 }

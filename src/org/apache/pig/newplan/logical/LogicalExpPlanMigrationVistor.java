@@ -20,6 +20,7 @@ package org.apache.pig.newplan.logical;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.pig.impl.logicalLayer.ExpressionOperator;
 import org.apache.pig.impl.logicalLayer.FrontendException;
@@ -44,6 +45,8 @@ import org.apache.pig.impl.logicalLayer.LONotEqual;
 import org.apache.pig.impl.logicalLayer.LOOr;
 import org.apache.pig.impl.logicalLayer.LOProject;
 import org.apache.pig.impl.logicalLayer.LORegexp;
+import org.apache.pig.impl.logicalLayer.LOSplit;
+import org.apache.pig.impl.logicalLayer.LOSplitOutput;
 import org.apache.pig.impl.logicalLayer.LOSubtract;
 import org.apache.pig.impl.logicalLayer.LOUserFunc;
 import org.apache.pig.impl.logicalLayer.LOVisitor;
@@ -86,14 +89,19 @@ public class LogicalExpPlanMigrationVistor extends LOVisitor {
     protected org.apache.pig.newplan.logical.expression.LogicalExpressionPlan exprPlan;
     protected HashMap<LogicalOperator, LogicalExpression> exprOpsMap;
     protected LogicalRelationalOperator attachedRelationalOp;
+    protected LogicalOperator oldAttachedRelationalOp;
     protected LogicalPlan outerPlan;
+    protected Map<LogicalExpression, LogicalOperator> scalarAliasMap = new HashMap<LogicalExpression, LogicalOperator>();
     
-    public LogicalExpPlanMigrationVistor(LogicalPlan expressionPlan, LogicalRelationalOperator attachedOperator, LogicalPlan outerPlan) {
+    public LogicalExpPlanMigrationVistor(LogicalPlan expressionPlan, LogicalOperator oldAttachedOperator,
+            LogicalRelationalOperator attachedOperator, LogicalPlan outerPlan, Map<LogicalExpression, LogicalOperator> scalarMap) {
         super(expressionPlan, new DependencyOrderWalker<LogicalOperator, LogicalPlan>(expressionPlan));
         exprPlan = new org.apache.pig.newplan.logical.expression.LogicalExpressionPlan();
         exprOpsMap = new HashMap<LogicalOperator, LogicalExpression>();
         attachedRelationalOp = attachedOperator;
+        oldAttachedRelationalOp = oldAttachedOperator;
         this.outerPlan = outerPlan;
+        scalarAliasMap = scalarMap;
     }    
 
     private void translateConnection(LogicalOperator oldOp, org.apache.pig.newplan.Operator newOp) {       
@@ -122,8 +130,14 @@ public class LogicalExpPlanMigrationVistor extends LOVisitor {
         }
         else {
             LogicalOperator lg = project.getExpression();
-            LogicalOperator succed = outerPlan.getSuccessors(lg).get(0);
-            int input = outerPlan.getPredecessors(succed).indexOf(lg);
+            int input;
+            if (oldAttachedRelationalOp instanceof LOSplitOutput) {
+                LOSplit split = (LOSplit)outerPlan.getPredecessors(oldAttachedRelationalOp).get(0);
+                input = outerPlan.getPredecessors(split).indexOf(lg);
+            }
+            else {
+                input = outerPlan.getPredecessors(oldAttachedRelationalOp).indexOf(lg);
+            }
             pe = new ProjectExpression(exprPlan, input, project.isStar()?-1:col, attachedRelationalOp);
         }
         
@@ -200,6 +214,11 @@ public class LogicalExpPlanMigrationVistor extends LOVisitor {
         }
         
         exprOpsMap.put(op, exp);
+        // We need to track all the scalars
+        if(op.getImplicitReferencedOperator() != null) {
+            scalarAliasMap.put(exp, op.getImplicitReferencedOperator());
+        }
+
     }
 
     public void visit(LOBinCond op) throws VisitorException {

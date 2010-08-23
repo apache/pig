@@ -133,8 +133,7 @@ public class TestNewPlanColumnPrune extends TestCase {
         lpt = new LogicalPlanTester(pc);
         lpt.buildPlan("a = load 'd.txt' as (id, v1, v3, v2);");
         lpt.buildPlan("b = filter a by v1 != NULL AND (v2+v3)<100;");
-        lpt.buildPlan("b1 = foreach b generate id;");
-        lpt.buildPlan("c = foreach b1 generate id;");
+        lpt.buildPlan("c = foreach b generate id;");
         plan = lpt.buildPlan("store c into 'empty';"); 
         expected = migratePlan(plan);
         assertTrue(expected.isEqual(newLogicalPlan));
@@ -193,8 +192,7 @@ public class TestNewPlanColumnPrune extends TestCase {
         lpt.buildPlan("a = load 'd.txt' as (v5, v4, v2);");
         lpt.buildPlan("b = foreach a generate v2, v5, v4;");
         lpt.buildPlan("c = filter b by v2 != NULL;");
-        lpt.buildPlan("c1 = foreach c generate v5, v4;");
-        lpt.buildPlan("d = foreach c1 generate v5, v4;");
+        lpt.buildPlan("d = foreach c generate v5, v4;");
         plan = lpt.buildPlan("store d into 'empty';");  
         expected = migratePlan(plan);
         assertTrue(expected.isEqual(newLogicalPlan));
@@ -214,9 +212,8 @@ public class TestNewPlanColumnPrune extends TestCase {
         lpt = new LogicalPlanTester(pc);
         lpt.buildPlan("a = load 'd.txt' as (id, v3);");
         lpt.buildPlan("b = load 'c.txt' as (id, v4, v5);");
-        lpt.buildPlan("c = join a by id, b by id;");
-        lpt.buildPlan("c1 = foreach c generate a::id, v3, v4, v5;");  
-        lpt.buildPlan("d = foreach c1 generate a::id, v5, v3, v4;");
+        lpt.buildPlan("c = join a by id, b by id;");  
+        lpt.buildPlan("d = foreach c generate a::id, v5, v3, v4;");
         plan = lpt.buildPlan("store d into 'empty';");  
         expected = migratePlan(plan);
         assertTrue(expected.isEqual(newLogicalPlan));
@@ -236,8 +233,7 @@ public class TestNewPlanColumnPrune extends TestCase {
         lpt.buildPlan("a = load 'd.txt' using BinStorage() as (id, v1, v5, v3, v4, v2);");
         lpt.buildPlan("b = foreach a generate v5, v4, v2;");
         lpt.buildPlan("c = filter b by v2 != NULL;");
-        lpt.buildPlan("c1 = foreach c generate v5, v4;");
-        lpt.buildPlan("d = foreach c1 generate v5, v4;");
+        lpt.buildPlan("d = foreach c generate v5, v4;");
         plan = lpt.buildPlan("store d into 'empty';");  
         expected = migratePlan(plan);
         assertTrue(expected.isEqual(newLogicalPlan));
@@ -258,8 +254,7 @@ public class TestNewPlanColumnPrune extends TestCase {
         lpt.buildPlan("a = load 'd.txt' using BinStorage() as (id, v1, v5, v3, v4, v2);");
         lpt.buildPlan("b = foreach a generate v5, v2;");
         lpt.buildPlan("c = filter b by v2 != NULL;");
-        lpt.buildPlan("c1 = foreach c generate v5;");
-        lpt.buildPlan("d = foreach c1 generate v5;");
+        lpt.buildPlan("d = foreach c generate v5;");
         plan = lpt.buildPlan("store d into 'empty';");  
         expected = migratePlan(plan);
         assertTrue(expected.isEqual(newLogicalPlan));
@@ -280,8 +275,7 @@ public class TestNewPlanColumnPrune extends TestCase {
         lpt.buildPlan("a = load 'd.txt' using BinStorage() as (id, v1, v5, v3, v4, v2);");
         lpt.buildPlan("b = foreach a generate v5, v2, 10;");
         lpt.buildPlan("c = filter b by v2 != NULL;");
-        lpt.buildPlan("c1 = foreach c generate v5;");
-        lpt.buildPlan("d = foreach c1 generate v5;");
+        lpt.buildPlan("d = foreach c generate v5;");
         plan = lpt.buildPlan("store d into 'empty';");  
         expected = migratePlan(plan);
         assertTrue(expected.isEqual(newLogicalPlan));
@@ -406,9 +400,8 @@ public class TestNewPlanColumnPrune extends TestCase {
         
         lpt = new LogicalPlanTester(pc);
         lpt.buildPlan("a = load 'd.txt' as (id, v1);");
-        lpt.buildPlan("b = filter a by v1>10;");
-        lpt.buildPlan("b1 = foreach b generate id;"); 
-        lpt.buildPlan("c = foreach b1 generate id;");      
+        lpt.buildPlan("b = filter a by v1>10;"); 
+        lpt.buildPlan("c = foreach b generate id;");      
         plan = lpt.buildPlan("store c into 'empty';");  
         LogicalPlan expected = migratePlan(plan);
         
@@ -432,9 +425,8 @@ public class TestNewPlanColumnPrune extends TestCase {
         lpt.buildPlan("b = load 'd.txt' as (id, v1);");
         lpt.buildPlan("c = join a by id, b by id;");
         lpt.buildPlan("d = foreach c generate a::id, a::v1, b::v1;");        
-        lpt.buildPlan("e = filter d by a::v1>b::v1;");
-        lpt.buildPlan("e1 = foreach e generate a::id;");  
-        lpt.buildPlan("f = foreach e1 generate a::id;");        
+        lpt.buildPlan("e = filter d by a::v1>b::v1;");  
+        lpt.buildPlan("f = foreach e generate a::id;");        
         plan = lpt.buildPlan("store f into 'empty';");  
         expected = migratePlan(plan);
         

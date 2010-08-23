@@ -46,38 +46,34 @@ public class LOUnion extends LogicalRelationalOperator {
         List<Operator> inputs = null;
         inputs = plan.getPredecessors(this);
         
-        // If any predecessor's schema is null, or length of predecessor's schema does not match,
-        // then the schema for union is null
-        int length = -1;
+        // If any predecessor's schema is null, then the schema for union is null
         for (Operator input : inputs) {
             LogicalRelationalOperator op = (LogicalRelationalOperator)input;
             if (op.getSchema()==null)
                 return null;
-            if (length==-1)
-                length = op.getSchema().size();
-            else {
-                if (op.getSchema().size()!=length)
-                    return null;
-            }
         }
         
-        // Check if all predecessor's schema are compatible.
-        // TODO: Migrate all existing schema merging rules
-        LogicalSchema schema0 = ((LogicalRelationalOperator)inputs.get(0)).getSchema();
-        for (int i=1;i<inputs.size();i++) {
+        LogicalSchema s0 = ((LogicalRelationalOperator)inputs.get(0)).getSchema();
+        if (inputs.size()==1)
+            return s0;
+        LogicalSchema s1 = ((LogicalRelationalOperator)inputs.get(1)).getSchema();
+        LogicalSchema mergedSchema = LogicalSchema.merge(s0, s1);
+        
+        // Merge schema
+        for (int i=2;i<inputs.size();i++) {
             LogicalSchema otherSchema = ((LogicalRelationalOperator)inputs.get(i)).getSchema();
-            if (!schema0.isEqual(otherSchema))
+            mergedSchema = LogicalSchema.merge(mergedSchema, otherSchema);
+            if (mergedSchema == null)
                 return null;
         }
         
-        // Generate merged schema based on schema of first input
-        schema = new LogicalSchema();
-        for (int i=0;i<schema0.size();i++)
+        // Bring back cached uid if any; otherwise, cache uid generated
+        for (int i=0;i<s0.size();i++)
         {
-            LogicalSchema.LogicalFieldSchema fs = new LogicalSchema.LogicalFieldSchema(schema0.getField(i));
+            LogicalSchema.LogicalFieldSchema fs = mergedSchema.getField(i);
             long uid = -1;
             for (Pair<Long, Long> pair : uidMapping) {
-                if (pair.second==schema0.getField(i).uid) {
+                if (pair.second==s0.getField(i).uid) {
                     uid = pair.first;
                     break;
                 }
@@ -91,8 +87,8 @@ public class LOUnion extends LogicalRelationalOperator {
             }
 
             fs.uid = uid;
-            schema.addField(fs);
         }
+        schema = mergedSchema;
         return schema;
     }
 

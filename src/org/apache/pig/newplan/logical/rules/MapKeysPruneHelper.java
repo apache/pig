@@ -227,7 +227,7 @@ public class MapKeysPruneHelper {
         @Override
         public void visit(LOJoin join) throws FrontendException {
             currentOp = join;
-            Collection<LogicalExpressionPlan> c = join.getExpressionPlans();
+            Collection<LogicalExpressionPlan> c = join.getExpressionPlanValues();
             for (LogicalExpressionPlan plan : c) {
                 MapExprMarker v = (MapExprMarker) getVisitor(plan);
                 v.visit();

@@ -2715,23 +2715,30 @@ public class MRCompiler extends PhyPlanVisitor {
         private void fixProjectionAfterLimit(MapReduceOper mro,
                 MapReduceOper sortMROp) throws PlanException, VisitorException {
                         
-            PhysicalOperator op = sortMROp.reducePlan.getLeaves().get(0);
+            PhysicalOperator op = sortMROp.reducePlan.getRoots().get(0);
+            assert(op instanceof POPackage);
+            
+            op = sortMROp.reducePlan.getSuccessors(op).get(0);
+            assert(op instanceof POForEach);
             
             while (true) {
-                List<PhysicalOperator> preds = sortMROp.reducePlan
-                        .getPredecessors(op);
-                op = preds.get(0); 
-                if (op instanceof POLimit) break;
+                List<PhysicalOperator> succs = sortMROp.reducePlan
+                        .getSuccessors(op);
+                if (succs==null) break;
+                op = succs.get(0);
+                if (op instanceof POForEach) break;
             }
             
             while (true) {
-                List<PhysicalOperator> succes = sortMROp.reducePlan
+                if (op instanceof POStore) break;
+                PhysicalOperator opToMove = op;
+                List<PhysicalOperator> succs = sortMROp.reducePlan
                         .getSuccessors(op);
-                PhysicalOperator succ = succes.get(0);               
-                if (succ instanceof POStore) break;
-            
-                sortMROp.reducePlan.removeAndReconnect(succ);
-                mro.reducePlan.addAsLeaf(succ);
+                op = succs.get(0);
+                
+                sortMROp.reducePlan.removeAndReconnect(opToMove);
+                mro.reducePlan.addAsLeaf(opToMove);
+                
             }
         }
     }
