@@ -18,7 +18,6 @@
 
 package org.apache.pig.newplan.logical.expression;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -157,7 +156,7 @@ public class DereferenceExpression extends ColumnExpression {
     }
 
     @Override
-    public LogicalExpression deepCopy(LogicalExpressionPlan lgExpPlan) throws IOException {
+    public LogicalExpression deepCopy(LogicalExpressionPlan lgExpPlan) throws FrontendException {
         List<Integer> columnsCopy = new ArrayList<Integer>(this.getBagColumns());
         LogicalExpression copy = new DereferenceExpression(
                 lgExpPlan,
