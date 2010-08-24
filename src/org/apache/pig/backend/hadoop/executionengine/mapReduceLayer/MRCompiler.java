@@ -62,6 +62,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLocalRearrange;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POMergeCogroup;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POMergeJoin;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.PONative;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPackage;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPackageLite;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPartitionRearrange;
@@ -84,6 +85,7 @@ import org.apache.pig.impl.builtin.RandomSampleLoader;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.io.InterStorage;
+import org.apache.pig.impl.logicalLayer.LogicalOperator;
 import org.apache.pig.impl.plan.CompilationMessageCollector;
 import org.apache.pig.impl.plan.DepthFirstWalker;
 import org.apache.pig.impl.plan.NodeIdGenerator;
@@ -390,6 +392,10 @@ public class MRCompiler extends PhyPlanVisitor {
     
     private MapReduceOper getMROp(){
         return new MapReduceOper(new OperatorKey(scope,nig.getNextNodeId(scope)));
+    }
+    
+    private NativeMapReduceOper getNativeMROp(String mrJar, String[] parameters) {
+        return new NativeMapReduceOper(new OperatorKey(scope,nig.getNextNodeId(scope)), mrJar, parameters);
     }
     
     private POLoad getLoad(){
@@ -744,6 +750,49 @@ public class MRCompiler extends PhyPlanVisitor {
         try{
             nonBlocking(op);
             phyToMROpMap.put(op, curMROp);
+        }catch(Exception e){
+            int errCode = 2034;
+            String msg = "Error compiling operator " + op.getClass().getSimpleName();
+            throw new MRCompilerException(msg, errCode, PigException.BUG, e);
+        }
+    }
+    
+    @Override
+    public void visitNative(PONative op) throws VisitorException{
+        // We will explode the native operator here to add a new MROper for native Mapreduce job
+        // We will also add respective Load and Store operators for this native job
+        try{
+            POStore st = op.getInnerStore();
+            st.setAlias(op.getAlias());
+            st.setIsTmpStore(true);
+            st.setParentPlan(mPlan);
+            mPlan.add(st);
+            
+            PhysicalOperator pred = mPlan.getPredecessors(op).get(0);
+            mPlan.disconnect(pred, op);
+            mPlan.connect(pred, st);
+            
+            nonBlocking(st);
+            
+            MapReduceOper prevMROp = phyToMROpMap.get(pred);
+            storeToMapReduceMap.put(st, prevMROp);
+            phyToMROpMap.put(st, prevMROp);
+            if (st.getSFile()!=null && st.getSFile().getFuncSpec()!=null)
+                curMROp.UDFs.add(st.getSFile().getFuncSpec().toString());
+            
+            // add a map reduce boundary
+            MapReduceOper nativeMR = getNativeMROp(op.getNativeMRjar(), op.getParams());
+            MRPlan.add(nativeMR);
+            MRPlan.connect(curMROp, nativeMR);
+            
+            // add one more map reduce boundary
+            POLoad ld = op.getInnerLoad();
+            ld.setAlias(op.getAlias());
+            curMROp = getMROp();
+            curMROp.mapPlan.add(ld);
+            MRPlan.add(curMROp);
+            MRPlan.connect(nativeMR, curMROp);
+            
         }catch(Exception e){
             int errCode = 2034;
             String msg = "Error compiling operator " + op.getClass().getSimpleName();

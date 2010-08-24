@@ -236,6 +236,15 @@ public class SchemaCalculator extends LOVisitor {
         }
     }
     
+    protected void visit(LONative nat) throws VisitorException{
+        try {
+            nat.getSchema();
+            super.visit(nat);
+        } catch (FrontendException fe) {
+            throw new VisitorException(fe);
+        }
+    }
+    
     protected void visit(LOStore store) throws VisitorException{
         try {
             store.getSchema();

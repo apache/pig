@@ -54,6 +54,9 @@ public class KeyTypeDiscoveryVisitor extends MROpPlanVisitor {
     
     @Override
     public void visitMROp(MapReduceOper mr) throws VisitorException {
+        if(mr instanceof NativeMapReduceOper) {
+            return;
+        }
         boolean foundKeyType = false;
         PhyPlanKeyTypeVisitor kvisitor = new PhyPlanKeyTypeVisitor(mr.mapPlan, mr);
         kvisitor.visit();

@@ -2,7 +2,7 @@
 
 <expr> := [<alias> "="] <baseexpr> ["PARALLEL" <integer>]
 
-<baseexpr> := <alias> | "LOAD" <loadclause> | "EVAL" <evalclause> | "FILTER" <filterclause> | ["CO"]"GROUP" <cogroupclause> | "CROSS" <nestedexprs> | "UNION" <nestedexprs> | "LIMIT" <limitclause> |"(" <baseexpr> ")"
+<baseexpr> := <alias> | "LOAD" <loadclause> | "EVAL" <evalclause> | "FILTER" <filterclause> | ["CO"]"GROUP" <cogroupclause> | "CROSS" <nestedexprs> | "UNION" <nestedexprs> | "LIMIT" <limitclause> |"(" <baseexpr> ")" | "mapreduce" <mapreduceclause>
 
 <nestedexpr> := <alias> | "("<expr>")"
 

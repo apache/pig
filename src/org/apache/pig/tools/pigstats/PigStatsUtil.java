@@ -35,6 +35,7 @@ import org.apache.hadoop.mapred.jobcontrol.Job;
 import org.apache.hadoop.mapred.jobcontrol.JobControl;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MapReduceOper;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.NativeMapReduceOper;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROperPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.impl.PigContext;
@@ -289,6 +290,16 @@ public abstract class PigStatsUtil {
             js.setSuccessful(false);
             js.addOutputStatistics();
             js.addInputStatistics();
+        }
+        return js;
+    }
+    
+    public static JobStats addNativeJobStats(PigStats ps, NativeMapReduceOper mr) {
+        JobStats js = ps.addJobStatsForNative(mr);
+        if(js == null) {
+            LOG.warn("unable to add native job stats");
+        } else {
+            js.setSuccessful(true);
         }
         return js;
     }

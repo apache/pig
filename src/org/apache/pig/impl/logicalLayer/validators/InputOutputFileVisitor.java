@@ -25,6 +25,7 @@ import org.apache.pig.ResourceSchema;
 import org.apache.pig.StoreFuncInterface;
 import org.apache.pig.impl.PigContext ;
 import org.apache.pig.impl.logicalLayer.FrontendException;
+import org.apache.pig.impl.logicalLayer.LONative;
 import org.apache.pig.impl.logicalLayer.LOStore;
 import org.apache.pig.impl.logicalLayer.LOVisitor;
 import org.apache.pig.impl.logicalLayer.LogicalOperator;
@@ -116,4 +117,10 @@ public class InputOutputFileVisitor extends LOVisitor {
             throw new PlanValidationException(errMsg, errCode, pigCtx.getErrorSource(), ie);
         }
     }
+    
+    @Override
+    protected void visit(LONative nativeMR) throws PlanValidationException{
+        visit(nativeMR.getStore());
+    }
+
 }

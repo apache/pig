@@ -26,6 +26,8 @@ PIG-1249: Safe-guards against misconfigured Pig scripts without PARALLEL keyword
 
 IMPROVEMENTS
 
+PIG-506: Does pig need a NATIVE keyword? (aniket486 via thejas)
+
 PIG-1510: Add `deepCopy` for LogicalExpressions (swati.j via daijy)
 
 PIG-1447: Tune memory usage of InternalCachedBag (thejas)

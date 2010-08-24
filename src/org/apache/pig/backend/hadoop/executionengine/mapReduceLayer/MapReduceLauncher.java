@@ -137,8 +137,33 @@ public class MapReduceLauncher extends Launcher{
         //and register the handler with the job control thread
         JobControlThreadExceptionHandler jctExceptionHandler = new JobControlThreadExceptionHandler();
 
-        while((jc = jcc.compile(mrp, grpName)) != null) {
-            
+        // jc is null only when mrp.size == 0
+        while(mrp.size() != 0) {
+            jc = jcc.compile(mrp, grpName);
+            if(jc == null) {
+                List<MapReduceOper> roots = new LinkedList<MapReduceOper>();
+                roots.addAll(mrp.getRoots());
+                
+                // run the native mapreduce roots first then run the rest of the roots
+                for(MapReduceOper mro: roots) {
+                    if(mro instanceof NativeMapReduceOper) {
+                        NativeMapReduceOper natOp = (NativeMapReduceOper)mro;
+                        try {
+                            ScriptState.get().emitJobsSubmittedNotification(1);
+                            natOp.runJob();
+                            numMRJobsCompl++;
+                            double prog = ((double)numMRJobsCompl)/totalMRJobs;
+                            notifyProgress(prog, lastProg);
+                            lastProg = prog;
+                            mrp.remove(natOp);
+                        } catch (JobCreationException je) {
+                            mrp.trimBelow(natOp);
+                            mrp.remove(natOp);
+                        }
+                    }
+                }
+                continue;
+            }
         	// Initially, all jobs are in wait state.
             List<Job> jobsWithoutIds = jc.getWaitingJobs();
             log.info(jobsWithoutIds.size() +" map-reduce job(s) waiting for submission.");
@@ -200,14 +225,7 @@ public class MapReduceLauncher extends Launcher{
             	jobsWithoutIds.removeAll(jobsAssignedIdInThisRun);
 
             	double prog = (numMRJobsCompl+calculateProgress(jc, jobClient))/totalMRJobs;
-            	if(prog>=(lastProg+0.01)){
-            		int perCom = (int)(prog * 100);
-            		if(perCom!=100) {
-            			log.info( perCom + "% complete");
-            			
-            			ScriptState.get().emitProgressUpdatedNotification(perCom);
-            		}
-            	}
+            	notifyProgress(prog, lastProg);
             	lastProg = prog;
             }
             
@@ -362,6 +380,22 @@ public class MapReduceLauncher extends Launcher{
                 : ReturnCode.FAILURE)
                 : ReturnCode.SUCCESS; 
         return PigStatsUtil.getPigStats(ret);
+    }
+
+    /**
+     * Log the progress and notify listeners if there is sufficient progress 
+     * @param prog current progress
+     * @param lastProg progress last time
+     */
+    private void notifyProgress(double prog, double lastProg) {
+        if(prog>=(lastProg+0.01)){
+            int perCom = (int)(prog * 100);
+            if(perCom!=100) {
+                log.info( perCom + "% complete");
+                
+                ScriptState.get().emitProgressUpdatedNotification(perCom);
+            }
+        }      
     }
 
     @Override

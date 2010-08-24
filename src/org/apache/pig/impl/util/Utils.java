@@ -89,4 +89,13 @@ public class Utils {
         return schema;
     }
     
+    public static String getStringFromArray(String[] arr) {
+        StringBuilder str = new StringBuilder();
+        for(String s: arr) {
+            str.append(s);
+            str.append(" ");
+        }
+        return str.toString();
+    }
+    
 }

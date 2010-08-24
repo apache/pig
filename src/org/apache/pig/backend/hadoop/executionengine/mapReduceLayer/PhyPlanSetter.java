@@ -43,6 +43,11 @@ public class PhyPlanSetter extends PhyPlanVisitor {
     public void visitLoad(POLoad ld) throws VisitorException{
         ld.setParentPlan(parent);
     }
+    
+    @Override
+    public void visitNative(PONative nt) throws VisitorException{
+        nt.setParentPlan(parent);
+    }
  
     @Override
     public void visitStore(POStore st) throws VisitorException{
