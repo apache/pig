@@ -21,13 +21,22 @@ package org.apache.pig.newplan;
 import java.util.Iterator;
 import java.util.List;
 
+import org.apache.pig.classification.InterfaceAudience;
+import org.apache.pig.classification.InterfaceStability;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.util.Pair;
 
+/**
+ * An interface that defines graph operations on plans.  Plans are modeled as
+ * graphs with restrictions on the types of connections and operations allowed.
+ */
+@InterfaceAudience.Private
+@InterfaceStability.Unstable
 public interface OperatorPlan {
     
     /**
      * Get number of nodes in the plan.
+     * @return number of nodes in the plan
      */
     public int size();
 

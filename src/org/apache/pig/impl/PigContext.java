@@ -55,7 +55,7 @@ import org.apache.pig.impl.streaming.ExecutableManager;
 import org.apache.pig.impl.streaming.StreamingCommand;
 import org.apache.pig.impl.util.JarManager;
 
-public class PigContext implements Serializable, FunctionInstantiator {
+public class PigContext implements Serializable {
     private static final long serialVersionUID = 1L;
     
     private transient final Log log = LogFactory.getLog(getClass());
