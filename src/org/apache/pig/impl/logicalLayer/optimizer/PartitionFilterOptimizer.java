@@ -35,6 +35,7 @@ import org.apache.pig.Expression.Column;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.LOFilter;
 import org.apache.pig.impl.logicalLayer.LOLoad;
+import org.apache.pig.impl.logicalLayer.LONative;
 import org.apache.pig.impl.logicalLayer.LogicalOperator;
 import org.apache.pig.impl.logicalLayer.LogicalPlan;
 import org.apache.pig.impl.logicalLayer.PColFilterExtractor;
@@ -104,13 +105,17 @@ public class PartitionFilterOptimizer extends
             		"or empty list.";
             throw new OptimizerException(msg, errCode, PigException.BUG);
         }
-        if(nodes.size() != 1|| !(nodes.get(0) instanceof LOLoad)) {
+        if(nodes.size() != 1|| !(nodes.get(0) instanceof LOLoad || nodes.get(0) instanceof LONative)) {
             return false;
         }
         if (!alreadyChecked.add(nodes.get(0))) {
             return false;
         }
-        loLoad = (LOLoad)nodes.get(0);
+        if(nodes.get(0) instanceof LOLoad) {
+            loLoad = (LOLoad)nodes.get(0);
+        } else {
+            loLoad = ((LONative)nodes.get(0)).getLoad();
+        }
         List<LogicalOperator> sucs = mPlan.getSuccessors(loLoad);
         if(sucs == null || sucs.size() != 1 || !(sucs.get(0) instanceof LOFilter)) {
             return false;

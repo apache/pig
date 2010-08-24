@@ -47,8 +47,12 @@ public class PhyPlanVisitor extends PlanVisitor<PhysicalOperator,PhysicalPlan> {
     public void visitLoad(POLoad ld) throws VisitorException{
         //do nothing
     }
- 
+    
     public void visitStore(POStore st) throws VisitorException{
+        //do nothing
+    }
+    
+    public void visitNative(PONative nat) throws VisitorException{
         //do nothing
     }
     

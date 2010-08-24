@@ -20,6 +20,7 @@ package org.apache.pig.pen.util;
 
 import org.apache.pig.impl.logicalLayer.LOFilter;
 import org.apache.pig.impl.logicalLayer.LOLoad;
+import org.apache.pig.impl.logicalLayer.LONative;
 import org.apache.pig.impl.logicalLayer.LOStream;
 import org.apache.pig.impl.logicalLayer.LogicalOperator;
 import org.apache.pig.impl.logicalLayer.LogicalPlan;
@@ -78,6 +79,15 @@ public class FunctionalLogicalOptimizer extends
         rulePlan.add(loStream);
         mRules.add(new Rule<LogicalOperator, LogicalPlan>(rulePlan, new TypeCastInserter(plan,
                 LOStream.class.getName()), "StreamTypeCastInserter"));
+        
+        // Add type casting to plans where the schema has been declared by
+        // user in a statement with native operator.
+        rulePlan = new RulePlan();
+        RuleOperator loNative= new RuleOperator(LONative.class, 
+                new OperatorKey(SCOPE, nodeIdGen.getNextNodeId(SCOPE)));
+        rulePlan.add(loNative);
+        mRules.add(new Rule<LogicalOperator, LogicalPlan>(rulePlan, new TypeCastInserter(plan,
+                LONative.class.getName()), "NativeTypeCastInserter"));
         
         // Push up filters as far as we can
         rulePlan = new RulePlan();

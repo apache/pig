@@ -37,6 +37,7 @@ import org.apache.pig.impl.logicalLayer.LOFilter;
 import org.apache.pig.impl.logicalLayer.LOForEach;
 import org.apache.pig.impl.logicalLayer.LOLimit;
 import org.apache.pig.impl.logicalLayer.LOLoad;
+import org.apache.pig.impl.logicalLayer.LONative;
 import org.apache.pig.impl.logicalLayer.LOProject;
 import org.apache.pig.impl.logicalLayer.LOSplit;
 import org.apache.pig.impl.logicalLayer.LOStore;
@@ -123,11 +124,12 @@ public class PushUpFilter extends LogicalTransformer {
                 
             LogicalOperator predecessor = predecessors.get(0);
 
-            // if the predecessor is one of LOLoad/LOStore/LOStream/LOLimit
+            // if the predecessor is one of LOLoad/LOStore/LOStream/LOLimit/LONative
             // return false
             if (predecessor instanceof LOLoad || predecessor instanceof LOStore
                     || predecessor instanceof LOStream
-                    || predecessor instanceof LOLimit) {
+                    || predecessor instanceof LOLimit 
+                    || predecessor instanceof LONative) {
                 return false;
             }
             

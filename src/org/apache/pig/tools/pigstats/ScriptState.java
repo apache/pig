@@ -43,6 +43,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.util.VersionInfo;
 import org.apache.pig.LoadFunc;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MapReduceOper;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.NativeMapReduceOper;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
@@ -146,7 +147,8 @@ public class ScriptState {
         CROSS,
         LIMIT,
         UNION,
-        COMBINER;
+        COMBINER,
+        NATIVE;
     };
     
     /**
@@ -485,6 +487,9 @@ public class ScriptState {
             }
             if (!mro.combinePlan.isEmpty()) {
                 feature.set(PIG_FEATURE.COMBINER.ordinal());
+            }
+            if (mro instanceof NativeMapReduceOper) {
+                feature.set(PIG_FEATURE.NATIVE.ordinal());
             }
             try {
                 new FeatureVisitor(mro.mapPlan, feature).visit();

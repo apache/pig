@@ -244,6 +244,11 @@ public class DotGraphVisitor extends LOVisitor {
 
 
     }
+    
+    protected void visit(LONative nat) throws VisitorException{
+
+
+    }
 
     protected void visit(LOStore store) throws VisitorException{
 

@@ -27,6 +27,7 @@ import org.apache.pig.impl.logicalLayer.LOForEach;
 import org.apache.pig.impl.logicalLayer.LOJoin;
 import org.apache.pig.impl.logicalLayer.LOLimit;
 import org.apache.pig.impl.logicalLayer.LOLoad;
+import org.apache.pig.impl.logicalLayer.LONative;
 import org.apache.pig.impl.logicalLayer.LOSort;
 import org.apache.pig.impl.logicalLayer.LOSplit;
 import org.apache.pig.impl.logicalLayer.LOSplitOutput;
@@ -153,4 +154,11 @@ public class SchemaAliasVisitor extends LOVisitor {
         validate(union);
         return;
     }
+    
+    @Override
+    protected void visit(LONative nativeMR) throws PlanValidationException {
+        validate(nativeMR);
+        return;
+    }
+
 }
