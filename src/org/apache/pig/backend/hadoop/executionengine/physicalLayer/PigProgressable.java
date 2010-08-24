@@ -17,11 +17,28 @@
  */
 package org.apache.pig.backend.hadoop.executionengine.physicalLayer;
 
+import org.apache.pig.classification.InterfaceAudience;
+import org.apache.pig.classification.InterfaceStability;
+
+
+/**
+ * Pig's progress indicator.  An implemenation of this interface is passed to
+ * UDFs to allow them to send heartbeats.  By default Hadoop will kill a task
+ * if it does not receive a heartbeat every 600 seconds.  Any operation that
+ * may take more than this should call progress on a regular basis.
+ */
+@InterfaceAudience.Public
+@InterfaceStability.Stable
 public interface PigProgressable {
-    //Use to just inform that you are
-    //alive
+
+    /**
+     * Report progress.
+     */
     public void progress();
     
-    //If you have a status to report
+    /**
+     * Report progress with a message.
+     * @param msg message to send with progress report.
+     */
     public void progress(String msg);
 }
