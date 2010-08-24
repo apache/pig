@@ -107,6 +107,10 @@ public class TypeGraphPrinter extends LOVisitor {
 	public void visit(LOMod op) throws VisitorException {
 		appendOp(op) ;
 	}
+	
+	public void visit(LONative op) throws VisitorException {
+	    appendOp(op);
+	}
 
 
 	public void visit(LONegative op) throws VisitorException {

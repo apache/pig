@@ -284,6 +284,11 @@ abstract public class LOVisitor extends
         
     }
     
+    protected void visit(LONative loNative) throws VisitorException{
+        
+        
+    }
+    
     protected void visit(LOStore store) throws VisitorException{
         
     }

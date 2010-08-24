@@ -18,7 +18,6 @@
 package org.apache.pig.impl.logicalLayer.optimizer;
 
 import org.apache.pig.impl.logicalLayer.*;
-import org.apache.pig.impl.plan.PlanVisitor;
 import org.apache.pig.impl.plan.DependencyOrderWalker;
 import org.apache.pig.impl.plan.VisitorException;
 
@@ -182,6 +181,12 @@ public class SchemaRemover extends LOVisitor {
     protected void visit(LOLoad load) throws VisitorException{
         // Don't remove load's schema, it's not like it will change.  And we
         // don't have a way to recover it.
+        super.visit(load);
+    }
+    
+    @Override
+    protected void visit(LONative load) throws VisitorException{
+        // We treat this in similar way as load
         super.visit(load);
     }
     

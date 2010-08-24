@@ -1231,7 +1231,7 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
 	    		"filter and Load as its predecessor. Found : ";
 	    if(preds != null && !preds.isEmpty()){
 	        for(LogicalOperator lo : preds){
-	            if (!(lo instanceof LOFilter || lo instanceof LOForEach || lo instanceof LOLoad))
+	            if (!(lo instanceof LOFilter || lo instanceof LOForEach || lo instanceof LOLoad || lo instanceof LONative))
 	             throw new LogicalToPhysicalTranslatorException(errMsg, errCode);
 	            // All is good at this level. Visit predecessors now.
 	            validateMapSideMerge(lp.getPredecessors(lo),lp);
@@ -1658,6 +1658,51 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
                 throw new LogicalToPhysicalTranslatorException(msg, errCode, PigException.BUG, e);
             }
         }
+    }
+    
+    @Override
+    protected void visit(LONative loNative) throws VisitorException {
+        String scope = loNative.getOperatorKey().scope;
+        
+        PONative poNative = new PONative(new OperatorKey(scope, nodeGen
+                .getNextNodeId(scope)));
+        poNative.setAlias(loNative.getAlias());
+        poNative.setNativeMRjar(loNative.getNativeMRJar());
+        poNative.setParams(loNative.getParams());
+        poNative.setResultType(loNative.getLoad().getType());
+        
+        currentPlans.push(currentPlan);
+        currentPlan = new PhysicalPlan();
+        PlanWalker<LogicalOperator, LogicalPlan> childWalker = mCurrentWalker
+                .spawnChildWalker(loNative.getInnerPlan());
+        pushWalker(childWalker);
+        mCurrentWalker.walk(this);
+        popWalker();
+        poNative.setPhysInnerPlan(currentPlan);
+        currentPlan = currentPlans.pop();
+        
+        logToPhyMap.put(loNative, poNative);
+        currentPlan.add(poNative);
+        
+        List<LogicalOperator> op = loNative.getPlan().getPredecessors(loNative);
+
+        PhysicalOperator from;
+        if(op != null) {
+            from = logToPhyMap.get(op.get(0));
+        } else {
+            int errCode = 2051;
+            String msg = "Did not find a predecessor for Native." ;
+            throw new LogicalToPhysicalTranslatorException(msg, errCode, PigException.BUG);
+        }
+        
+        try {
+            currentPlan.connect(from, poNative);
+        } catch (PlanException e) {
+            int errCode = 2015;
+            String msg = "Invalid physical operators in the physical plan" ;
+            throw new LogicalToPhysicalTranslatorException(msg, errCode, PigException.BUG, e);
+        }
+        
     }
 
     @Override

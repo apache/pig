@@ -37,6 +37,7 @@ import org.apache.pig.PigException;
 import org.apache.pig.PigRunner.ReturnCode;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MapReduceOper;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.NativeMapReduceOper;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROpPlanVisitor;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROperPlan;
 import org.apache.pig.classification.InterfaceAudience;
@@ -530,13 +531,18 @@ public final class PigStats {
             return null;
         }
         JobStats js = mroJobMap.get(mro);
-        if (js == null) {
-            LOG.warn("unable to get Job stats for job: " 
-                    + ((jobId == null) ? job.toString() : jobId.toString()));
-            return null;
-        }
+        
         js.setAlias(mro);
         js.setConf(job.getJobConf());
+        return js;
+    }
+    
+    @SuppressWarnings("deprecation")
+    public JobStats addJobStatsForNative(NativeMapReduceOper mr) {
+        JobStats js = mroJobMap.get(mr);
+        js.setId(new JobID(mr.getJobId(), NativeMapReduceOper.getJobNumber())); 
+        js.setAlias(mr);
+        
         return js;
     }
             

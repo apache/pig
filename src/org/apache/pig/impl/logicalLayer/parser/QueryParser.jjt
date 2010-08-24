@@ -1028,6 +1028,7 @@ TOKEN : { <NULL : "null"> }
 TOKEN : { <STREAM : "stream"> }
 TOKEN : { <THROUGH : "through"> }
 TOKEN : { <STORE : "store"> }
+TOKEN : { <MAPREDUCE: "mapreduce">}
 TOKEN : { <SHIP: "ship"> }
 TOKEN : { <CACHE: "cache"> }
 TOKEN : { <INPUT: "input"> }
@@ -1274,6 +1275,7 @@ Token IdentifierOrReserved() :
 | (t1 =<STREAM> )
 | (t1 =<THROUGH> )
 | (t1 =<STORE> )
+| (t1 =<MAPREDUCE>)
 | (t1 =<SHIP> )
 | (t1 =<CACHE> )
 | (t1 =<INPUT> )
@@ -1334,7 +1336,7 @@ LogicalOperator BaseExpr(LogicalPlan lp) :
 	(
     (<DEFINE> op = DefineClause(lp))
 |	(<LOAD> op = LoadClause(lp) 
-        [ <AS> 
+		[ <AS> 
         (
             LOOKAHEAD(2) "(" schema = TupleSchema() ")" 
             {
@@ -1390,6 +1392,16 @@ LogicalOperator BaseExpr(LogicalPlan lp) :
         ]
     )
 |   (<STORE> op = StoreClause(lp))
+{
+    	String inputAlias = ((LOStore)op).getAlias();
+    	LogicalOperator input = mapAliasOp.get(inputAlias);
+        if (input == null)
+            throw new ParseException("Unable to find alias " + inputAlias);
+
+        lp.add(input);
+        lp.connect(input, op);
+}
+|	(<MAPREDUCE> op = MapReduceClause(lp))
 	)
     [<PARALLEL> t2=<INTEGER> {
       // In Local Mode we can only use one reducer
@@ -1492,6 +1504,81 @@ String StringList() :
 	| {}
 	)
 	{log.debug("StringList: " + sb.toString()); return sb.toString();}
+}
+
+//B = native ('mymr.jar' [, 'other.jar' ...]) A store into 'storeLocation' using storeFunc load 'loadLocation' using loadFunc ['params'];
+LogicalOperator MapReduceClause(LogicalPlan lp) : 
+{
+	LogicalPlan innerPlan = new LogicalPlan();
+	LogicalOperator  loLoad;
+	LogicalOperator loStore;
+	LONative loNative;
+	Schema schema;
+	Schema.FieldSchema fs;
+	String nativeMRJar;
+	Token t1, t2;
+	String[] paths;
+	String[] params = null;
+}
+{
+	t1 = <QUOTEDSTRING> 
+	{
+		nativeMRJar = unquote(t1.image);
+		pigContext.addJar(nativeMRJar);
+	}
+	[ "("
+	  paths = PathList()
+	  {
+		  for(String path: paths) {
+			  pigContext.addJar(path);
+		  }
+	  }
+	  ")"
+	]
+	
+	<STORE>
+	loStore = StoreClause(innerPlan)
+	<LOAD>
+	loLoad = LoadClause(innerPlan)
+	// We do this so that Store gets a pred etc
+	{innerPlan.connect(loLoad, loStore);}
+	[ <AS> 
+        (
+            LOOKAHEAD(2) "(" schema = TupleSchema() ")" 
+            {
+                Schema.setSchemaDefaultType(schema, DataType.BYTEARRAY); 
+                loLoad.setSchema(schema); 
+                log.debug("Load as schema" + schema);
+            } 
+        |   fs = AtomSchema() 
+            {
+                schema = new Schema(fs); 
+                loLoad.setSchema(schema); 
+                log.debug("Load as atomschema" + schema);
+            }
+        ) 
+    ]
+	[
+	 t2 = <EXECCOMMAND>
+	 {
+		 params = splitArgs(unquote(t2.image));
+	 }
+	]
+	{
+		loNative = new LONative(lp, new OperatorKey(scope, getNextId()), innerPlan, 
+				(LOStore)loStore, (LOLoad)loLoad, nativeMRJar, params);
+	
+		lp.add(loNative);
+		
+		String inputAlias = ((LOStore)loStore).getAlias();
+    	LogicalOperator input = mapAliasOp.get(inputAlias);
+        if (input == null)
+            throw new ParseException("Unable to find alias " + inputAlias);
+
+        lp.add(input);
+		lp.connect(input, loNative);
+		return loNative;
+	}
 }
 
 String FileName(): 
@@ -2749,14 +2836,8 @@ LogicalOperator StoreClause(LogicalPlan lp) : {LogicalOperator lo; Token t; Stri
         }
         LogicalOperator store = new LOStore(lp, new OperatorKey(scope, getNextId()),
                                             new FileSpec(absolutePath, funcSpec), t.image);
-
-        LogicalOperator input = mapAliasOp.get(t.image);
-        if (input == null)
-            throw new ParseException("Unable to find alias " + t.image);
-
+        
         lp.add(store);
-        lp.add(input);
-        lp.connect(input, store);
         return store;
     }
 }

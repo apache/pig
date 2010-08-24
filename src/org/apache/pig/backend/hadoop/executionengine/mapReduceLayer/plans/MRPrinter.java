@@ -23,6 +23,7 @@ import java.util.List;
 import java.io.PrintStream;
 
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MapReduceOper;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.NativeMapReduceOper;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PlanPrinter;
@@ -56,6 +57,12 @@ public class MRPrinter extends MROpPlanVisitor {
     @Override
     public void visitMROp(MapReduceOper mr) throws VisitorException {
         mStream.println("MapReduce node " + mr.getOperatorKey().toString());
+        if(mr instanceof NativeMapReduceOper) {
+            mStream.println(((NativeMapReduceOper)mr).getCommandString());
+            mStream.println("--------");
+            mStream.println();
+            return;
+        }
         if (mr.mapPlan != null && mr.mapPlan.size() > 0) {
             mStream.println("Map Plan");
             PlanPrinter<PhysicalOperator, PhysicalPlan> printer = new PlanPrinter<PhysicalOperator, PhysicalPlan>(mr.mapPlan, mStream);

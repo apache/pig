@@ -43,6 +43,7 @@ import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.JobPriority;
 import org.apache.hadoop.mapred.jobcontrol.Job;
 import org.apache.hadoop.mapred.jobcontrol.JobControl;
+import org.apache.hadoop.util.RunJar;
 import org.apache.pig.ComparisonFunc;
 import org.apache.pig.ExecType;
 import org.apache.pig.FuncSpec;
@@ -226,7 +227,7 @@ public class JobControlCompiler{
         String pathStr = uri.getPath().replace(part, "");
         return new Path(pathStr);
     }
-
+    
     /**
      * Compiles all jobs that have no dependencies removes them from
      * the plan and returns. Should be called with the same plan until
@@ -237,11 +238,8 @@ public class JobControlCompiler{
      * @throws JobCreationException
      */
     public JobControl compile(MROperPlan plan, String grpName) throws JobCreationException{
+        // Assert plan.size() != 0
         this.plan = plan;
-
-        if (plan.size() == 0) {
-            return null;
-        }
 
         JobControl jobCtrl = new JobControl(grpName);
 
@@ -249,6 +247,9 @@ public class JobControlCompiler{
             List<MapReduceOper> roots = new LinkedList<MapReduceOper>();
             roots.addAll(plan.getRoots());
             for (MapReduceOper mro: roots) {
+                if(mro instanceof NativeMapReduceOper) {
+                    return null;
+                }
                 Job job = getJob(mro, conf, pigContext);
                 jobMroMap.put(job, mro);
                 jobCtrl.addJob(job);

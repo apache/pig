@@ -120,6 +120,10 @@ public class PlanSetter extends LOVisitor {
     public void visit(LOLoad op) throws VisitorException {
         op.setPlan(mCurrentWalker.getPlan());
     }
+    
+    public void visit(LONative op) throws VisitorException {
+        op.setPlan(mCurrentWalker.getPlan());
+    }
 
     public void visit(LOMapLookup op) throws VisitorException {
         op.setPlan(mCurrentWalker.getPlan());

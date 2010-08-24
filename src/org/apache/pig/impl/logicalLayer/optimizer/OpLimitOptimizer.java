@@ -32,6 +32,7 @@ import org.apache.pig.impl.logicalLayer.LOFilter;
 import org.apache.pig.impl.logicalLayer.LOForEach;
 import org.apache.pig.impl.logicalLayer.LOLimit;
 import org.apache.pig.impl.logicalLayer.LOLoad;
+import org.apache.pig.impl.logicalLayer.LONative;
 import org.apache.pig.impl.logicalLayer.LOSort;
 import org.apache.pig.impl.logicalLayer.LOSplit;
 import org.apache.pig.impl.logicalLayer.LOSplitOutput;
@@ -99,7 +100,8 @@ public class OpLimitOptimizer extends LogicalTransformer {
             // Limit cannot be pushed up
             if (predecessor instanceof LOCogroup || predecessor instanceof LOFilter ||
                     predecessor instanceof LOLoad || predecessor instanceof LOSplit ||
-                    predecessor instanceof LODistinct || predecessor instanceof LOJoin || predecessor instanceof LOStream)
+                    predecessor instanceof LODistinct || predecessor instanceof LOJoin || 
+                    predecessor instanceof LOStream || predecessor instanceof LONative)
             {
                 return false;
             }
@@ -171,7 +173,8 @@ public class OpLimitOptimizer extends LogicalTransformer {
             // Limit cannot be pushed up
             if (predecessor instanceof LOCogroup || predecessor instanceof LOFilter ||
             		predecessor instanceof LOLoad || predecessor instanceof LOSplit ||
-            		predecessor instanceof LODistinct || predecessor instanceof LOJoin)
+            		predecessor instanceof LODistinct || predecessor instanceof LOJoin ||
+            		predecessor instanceof LOStream || predecessor instanceof LONative)
             {
             	return;
             }
