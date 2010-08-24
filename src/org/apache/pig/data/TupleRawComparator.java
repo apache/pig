@@ -20,6 +20,9 @@ package org.apache.pig.data;
 import org.apache.hadoop.conf.Configurable;
 import org.apache.hadoop.io.RawComparator;
 
+import org.apache.pig.classification.InterfaceAudience;
+import org.apache.pig.classification.InterfaceStability;
+
 /**
  * This interface is intended to compare Tuples. The semantics of Tuple comparison must take into account null values in
  * different ways. According to SQL semantics nulls are not equal. But for other Pig/Latin statements nulls must be
@@ -28,6 +31,8 @@ import org.apache.hadoop.io.RawComparator;
  * {@link #compare(byte[],int,int,byte[],int,int)} method.
  * 
  */
+@InterfaceAudience.Public
+@InterfaceStability.Evolving
 @SuppressWarnings("rawtypes")
 public interface TupleRawComparator extends RawComparator, Configurable {
     /**
