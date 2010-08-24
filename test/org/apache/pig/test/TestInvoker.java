@@ -29,6 +29,8 @@ import org.apache.pig.builtin.InvokeForFloat;
 import org.apache.pig.builtin.InvokeForInt;
 import org.apache.pig.builtin.InvokeForLong;
 import org.apache.pig.builtin.InvokeForString;
+import org.apache.pig.data.BagFactory;
+import org.apache.pig.data.DataBag;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.junit.Test;
@@ -40,6 +42,8 @@ import org.junit.Test;
 public class TestInvoker {
 
     private final TupleFactory tf_ = TupleFactory.getInstance();
+    private final BagFactory bf_ = BagFactory.getInstance();
+
     @Test
     public void testStringInvoker() throws SecurityException, ClassNotFoundException, NoSuchMethodException, IOException {
 
@@ -67,6 +71,11 @@ public class TestInvoker {
     }
 
     @Test
+    public void testNoArgInvoker() throws SecurityException, ClassNotFoundException, NoSuchMethodException, IOException {
+      InvokeForInt id = new InvokeForInt(TestInvoker.class.getName() + ".simpleStaticFunction");
+      assertEquals(Integer.valueOf(1), id.exec(tf_.newTuple()));
+    }
+    @Test
     public void testLongInvoker() throws SecurityException, ClassNotFoundException, NoSuchMethodException, NumberFormatException, IOException {
         InvokeForLong il = new InvokeForLong("java.lang.Long.valueOf", "String");
         Tuple t = tf_.newTuple(1);
@@ -82,6 +91,21 @@ public class TestInvoker {
         String arg = "245";
         t.set(0, arg);
         assertEquals(Integer.valueOf(arg), il.exec(t));
+    }
+
+    @Test
+    public void testArrayConversion() throws SecurityException, ClassNotFoundException, NoSuchMethodException, IOException {
+      InvokeForInt ii = new InvokeForInt(TestInvoker.class.getName() + ".avg", "double[]");
+      DataBag nums = newSimpleBag(1.0, 2.0, 3.0);
+      assertEquals(Integer.valueOf(2), ii.exec(tf_.newTuple(nums)));
+      
+      ii = new InvokeForInt(TestInvoker.class.getName() + ".avg", "long[]");
+      nums = newSimpleBag(1L, 2L, 3L);
+      assertEquals(Integer.valueOf(2), ii.exec(tf_.newTuple(nums)));
+
+      InvokeForString is = new InvokeForString(TestInvoker.class.getName() + ".concatStringArray", "string[]");
+      DataBag strings = newSimpleBag("foo", "bar", "baz");
+      assertEquals("foobarbaz", is.exec(tf_.newTuple(strings)));
     }
 
     @Test
@@ -104,6 +128,42 @@ public class TestInvoker {
 
     public static String concatStrings(String str1, String str2) {
         return str1.concat(str2);
+    }
+
+    public static String concatStringArray(String[] strings) {
+      StringBuilder sb = new StringBuilder();
+      for (String s : strings) {
+        sb.append(s);
+      }
+      return sb.toString();
+    }
+
+    public static int simpleStaticFunction() {
+      return 1;
+    }
+    
+    public static int avg(long[] nums) {
+        long sum = 0;
+        for (long d: nums) {
+          sum += d;
+        }
+        return (int) sum/nums.length;
+      }
+
+    public static int avg(double[] nums) {
+      double sum = 0;
+      for (double d: nums) {
+        sum += d;
+      }
+      return (int) sum/nums.length;
+    }
+
+    private DataBag newSimpleBag(Object... objects) {
+      DataBag bag = bf_.newDefaultBag();
+      for (Object o : objects) {
+        bag.add(tf_.newTuple(o));
+      }
+      return bag;
     }
 
     @Test

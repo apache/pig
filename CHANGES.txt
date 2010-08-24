@@ -26,6 +26,8 @@ PIG-1249: Safe-guards against misconfigured Pig scripts without PARALLEL keyword
 
 IMPROVEMENTS
 
+PIG-1551: Improve dynamic invokers to deal with no-arg methods and array parameters (dvryaboy)
+
 PIG-1311:  Document audience and stability for remaining interfaces (gates)
 
 PIG-506: Does pig need a NATIVE keyword? (aniket486 via thejas)
