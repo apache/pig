@@ -26,6 +26,8 @@ PIG-1249: Safe-guards against misconfigured Pig scripts without PARALLEL keyword
 
 IMPROVEMENTS
 
+PIG-1497: Mandatory rule PartitionFilterOptimizer (xuefuz via daijy)
+
 PIG-1514: Migrate logical optimization rule: OpLimitOptimizer (xuefuz via daijy)
 
 PIG-1551: Improve dynamic invokers to deal with no-arg methods and array parameters (dvryaboy)
