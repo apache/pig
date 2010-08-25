@@ -72,8 +72,17 @@ public class LogicalPlanOptimizer extends PlanOptimizer {
         if (!s.isEmpty())
             ls.add(s);
         
+        // Partition filter set
+        // This set of rules push partition filter to LoadFunc
+        s = new HashSet<Rule>();
+        // Optimize partition filter
+        r = new PartitionFilterPushDown("PartitionFilterPushDown");
+        checkAndAddRule(s, r);
+        if (!s.isEmpty())
+            ls.add(s);
+
         // Limit Set
-        // This set of rules optimize limit
+        // This set of rules push up limit
         s = new HashSet<Rule>();
         // Optimize limit
         r = new OptimizeLimit("OptimizeLimit");
