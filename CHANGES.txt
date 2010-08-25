@@ -281,6 +281,8 @@ in the path and does not consider JAVA_HOME (pradeepkth)
 
 PIG-1352: piggybank UPPER udf throws exception if argument is null
 
+PIG-1560: Fix ant target checkstyle (gkesavan) 
+
 Release 0.7.0
 
 INCOMPATIBLE CHANGES
