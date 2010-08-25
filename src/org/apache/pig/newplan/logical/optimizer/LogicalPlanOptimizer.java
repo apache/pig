@@ -31,6 +31,7 @@ import org.apache.pig.newplan.logical.rules.FilterAboveForeach;
 import org.apache.pig.newplan.logical.rules.ImplicitSplitInserter;
 import org.apache.pig.newplan.logical.rules.LoadTypeCastInserter;
 import org.apache.pig.newplan.logical.rules.MergeFilter;
+import org.apache.pig.newplan.logical.rules.OptimizeLimit;
 import org.apache.pig.newplan.logical.rules.PushUpFilter;
 import org.apache.pig.newplan.logical.rules.SplitFilter;
 import org.apache.pig.newplan.logical.rules.StreamTypeCastInserter;
@@ -67,6 +68,15 @@ public class LogicalPlanOptimizer extends PlanOptimizer {
         r = new LoadTypeCastInserter("LoadTypeCastInserter");
         checkAndAddRule(s, r);
         r = new StreamTypeCastInserter("StreamTypeCastInserter");
+        checkAndAddRule(s, r);
+        if (!s.isEmpty())
+            ls.add(s);
+        
+        // Limit Set
+        // This set of rules optimize limit
+        s = new HashSet<Rule>();
+        // Optimize limit
+        r = new OptimizeLimit("OptimizeLimit");
         checkAndAddRule(s, r);
         if (!s.isEmpty())
             ls.add(s);
