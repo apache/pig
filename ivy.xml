@@ -59,7 +59,7 @@
     <dependency org="org.mortbay.jetty" name="jetty-util" rev="${jetty-util.version}"
       conf="compile->master"/>
     <dependency org="commons-logging" name="commons-logging" rev="${commons-logging.version}"
-      conf="compile->master"/>
+      conf="compile->master;checkstyle->master"/>
      <dependency org="org.slf4j" name="slf4j-log4j12" rev="${slf4j-log4j12.version}"
       conf="compile->master;test->master"/>
     <dependency org="commons-cli" name="commons-cli" rev="${commons-cli.version}"
