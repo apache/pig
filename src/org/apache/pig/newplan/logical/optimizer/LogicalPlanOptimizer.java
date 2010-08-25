@@ -39,6 +39,9 @@ import org.apache.pig.newplan.logical.rules.TypeCastInserter;
 import org.apache.pig.newplan.optimizer.PlanOptimizer;
 import org.apache.pig.newplan.optimizer.Rule;
 
+import org.apache.pig.newplan.logical.rules.OptimizeLimit;
+import org.apache.pig.newplan.logical.rules.PartitionFilterPushDown;
+
 public class LogicalPlanOptimizer extends PlanOptimizer {
     private Set<String> mRulesOff = null;
     
