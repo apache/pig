@@ -45,7 +45,7 @@ import org.apache.pig.newplan.logical.optimizer.LogicalPlanOptimizer;
 import org.apache.pig.newplan.logical.relational.LOFilter;
 import org.apache.pig.newplan.logical.relational.LOLoad;
 import org.apache.pig.newplan.logical.relational.LogicalPlan;
-import org.apache.pig.newplan.logical.rules.PartitionFilterPushDown;
+import org.apache.pig.newplan.logical.rules.PartitionFilterOptimizer;
 import org.apache.pig.newplan.logical.rules.LoadTypeCastInserter;
 import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.OperatorPlan;
@@ -605,7 +605,7 @@ public class TestPartitionFilterPushDown {
             
             Set<Rule> s = new HashSet<Rule>();
             // add split filter rule
-            Rule r = new PartitionFilterPushDown("PartitionFilterPushDown");
+            Rule r = new PartitionFilterOptimizer("PartitionFilterPushDown");
             s = new HashSet<Rule>();
             s.add(r);            
             ls.add(s);
