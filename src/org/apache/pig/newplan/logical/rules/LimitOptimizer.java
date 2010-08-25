@@ -42,9 +42,9 @@ import org.apache.pig.newplan.OperatorPlan;
 import org.apache.pig.newplan.optimizer.Rule;
 import org.apache.pig.newplan.optimizer.Transformer;
 
-public class OptimizeLimit extends Rule {
+public class LimitOptimizer extends Rule {
 
-    public OptimizeLimit(String name) {
+    public LimitOptimizer(String name) {
         super(name, false);
     }
 
