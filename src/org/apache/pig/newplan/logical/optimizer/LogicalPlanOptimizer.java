@@ -23,24 +23,20 @@ import java.util.List;
 import java.util.Set;
 
 import org.apache.pig.newplan.OperatorPlan;
-import org.apache.pig.newplan.logical.relational.LOLoad;
-import org.apache.pig.newplan.logical.relational.LOStream;
 import org.apache.pig.newplan.logical.rules.AddForEach;
 import org.apache.pig.newplan.logical.rules.ColumnMapKeyPrune;
 import org.apache.pig.newplan.logical.rules.FilterAboveForeach;
 import org.apache.pig.newplan.logical.rules.ImplicitSplitInserter;
 import org.apache.pig.newplan.logical.rules.LoadTypeCastInserter;
 import org.apache.pig.newplan.logical.rules.MergeFilter;
-import org.apache.pig.newplan.logical.rules.OptimizeLimit;
 import org.apache.pig.newplan.logical.rules.PushUpFilter;
 import org.apache.pig.newplan.logical.rules.SplitFilter;
 import org.apache.pig.newplan.logical.rules.StreamTypeCastInserter;
-import org.apache.pig.newplan.logical.rules.TypeCastInserter;
 import org.apache.pig.newplan.optimizer.PlanOptimizer;
 import org.apache.pig.newplan.optimizer.Rule;
 
-import org.apache.pig.newplan.logical.rules.OptimizeLimit;
-import org.apache.pig.newplan.logical.rules.PartitionFilterPushDown;
+import org.apache.pig.newplan.logical.rules.LimitOptimizer;
+import org.apache.pig.newplan.logical.rules.PartitionFilterOptimizer;
 
 public class LogicalPlanOptimizer extends PlanOptimizer {
     private Set<String> mRulesOff = null;
@@ -79,7 +75,7 @@ public class LogicalPlanOptimizer extends PlanOptimizer {
         // This set of rules push partition filter to LoadFunc
         s = new HashSet<Rule>();
         // Optimize partition filter
-        r = new PartitionFilterPushDown("PartitionFilterPushDown");
+        r = new PartitionFilterOptimizer("PartitionFilterOptimizer");
         checkAndAddRule(s, r);
         if (!s.isEmpty())
             ls.add(s);
@@ -88,7 +84,7 @@ public class LogicalPlanOptimizer extends PlanOptimizer {
         // This set of rules push up limit
         s = new HashSet<Rule>();
         // Optimize limit
-        r = new OptimizeLimit("OptimizeLimit");
+        r = new LimitOptimizer("LimitOptimizer");
         checkAndAddRule(s, r);
         if (!s.isEmpty())
             ls.add(s);

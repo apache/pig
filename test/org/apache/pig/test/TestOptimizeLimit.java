@@ -27,7 +27,7 @@ import org.apache.pig.newplan.logical.LogicalPlanMigrationVistor;
 import org.apache.pig.newplan.logical.optimizer.LogicalPlanOptimizer;
 import org.apache.pig.newplan.logical.relational.LogicalPlan;
 import org.apache.pig.newplan.logical.rules.LoadTypeCastInserter;
-import org.apache.pig.newplan.logical.rules.OptimizeLimit;
+import org.apache.pig.newplan.logical.rules.LimitOptimizer;
 import org.apache.pig.newplan.OperatorPlan;
 import org.apache.pig.newplan.optimizer.PlanOptimizer;
 import org.apache.pig.newplan.optimizer.Rule;
@@ -250,7 +250,7 @@ public class TestOptimizeLimit {
             ls.add(s);
             
             s = new HashSet<Rule>();
-            r = new OptimizeLimit("OptimizeLimit");
+            r = new LimitOptimizer("OptimizeLimit");
             s.add(r);
             ls.add(s);
             

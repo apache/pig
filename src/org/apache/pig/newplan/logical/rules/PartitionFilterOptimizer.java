@@ -43,7 +43,7 @@ import org.apache.pig.newplan.optimizer.Rule;
 import org.apache.pig.newplan.optimizer.Transformer;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 
-public class PartitionFilterPushDown extends Rule {
+public class PartitionFilterOptimizer extends Rule {
     private String[] partitionKeys;
     
     /**
@@ -76,7 +76,7 @@ public class PartitionFilterPushDown extends Rule {
      */
     private Map<String, String> reverseColNameMap = new HashMap<String, String>();
 
-    public PartitionFilterPushDown(String name) {
+    public PartitionFilterOptimizer(String name) {
         super( name, false );
     }
 
