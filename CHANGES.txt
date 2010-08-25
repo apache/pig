@@ -150,6 +150,8 @@ PIG-1309: Map-side Cogroup (ashutoshc)
 
 BUG FIXES
 
+PIG-1557: couple of issue mapping aliases to jobs (rding)
+
 PIG-1552: Nested describe failed when the alias is not referred in the first foreach inner plan (aniket486 via daijy)
 
 PIG-1486: update ant eclipse-files target to include new jar and remove contrib dirs from build path (thejas)

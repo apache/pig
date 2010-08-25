@@ -687,6 +687,11 @@ public class ScriptState {
         }
         
         @Override
+        public void visitLoad(POLoad load) throws VisitorException {
+            setAlias(load);
+        }
+        
+        @Override
         public void visitFRJoin(POFRJoin join) throws VisitorException {
             setAlias(join);
         }
