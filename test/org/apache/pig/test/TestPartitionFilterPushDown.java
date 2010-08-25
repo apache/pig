@@ -46,7 +46,7 @@ import org.apache.pig.newplan.logical.relational.LOFilter;
 import org.apache.pig.newplan.logical.relational.LOLoad;
 import org.apache.pig.newplan.logical.relational.LogicalPlan;
 import org.apache.pig.newplan.logical.rules.PartitionFilterPushDown;
-import org.apache.pig.newplan.logical.rules.TypeCastInserter;
+import org.apache.pig.newplan.logical.rules.LoadTypeCastInserter;
 import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.OperatorPlan;
 import org.apache.pig.newplan.PColFilterExtractor;
@@ -610,7 +610,7 @@ public class TestPartitionFilterPushDown {
             s.add(r);            
             ls.add(s);
             
-            r = new TypeCastInserter( "TypeCastInserter", LOLoad.class.getName() );
+            r = new LoadTypeCastInserter( "LoadTypeCastInserter" );
             s = new HashSet<Rule>();
             s.add(r);
             ls.add(s);
