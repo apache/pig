@@ -95,7 +95,7 @@ public class TestPigStats  {
         assertEquals("D", getAlias(mro));
          
         mro = mp.getSuccessors(mro).get(0);
-        assertEquals("D,E", getAlias(mro));
+        assertEquals("D", getAlias(mro));
     }
     
     private void deleteDirectory( File dir ) {
