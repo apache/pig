@@ -38,7 +38,6 @@ import org.apache.pig.data.DataBag;
 import org.apache.pig.data.InternalMap;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.builtin.FindQuantiles;
-import org.apache.pig.impl.io.InterStorage;
 import org.apache.pig.impl.io.NullableBytesWritable;
 import org.apache.pig.impl.io.NullableDoubleWritable;
 import org.apache.pig.impl.io.NullableFloatWritable;
@@ -48,6 +47,7 @@ import org.apache.pig.impl.io.NullableText;
 import org.apache.pig.impl.io.NullableTuple;
 import org.apache.pig.impl.io.PigNullableWritable;
 import org.apache.pig.impl.io.ReadToEndLoader;
+import org.apache.pig.impl.util.Utils;
 
 public class WeightedRangePartitioner extends Partitioner<PigNullableWritable, Writable>   
                                       implements Configurable {
@@ -101,9 +101,15 @@ public class WeightedRangePartitioner extends Partitioner<PigNullableWritable, W
                 conf.set("fs.file.impl", configuration.get("fs.file.impl"));
             if (configuration.get("fs.hdfs.impl")!=null)
                 conf.set("fs.hdfs.impl", configuration.get("fs.hdfs.impl"));
+            if (configuration.getBoolean("pig.tmpfilecompression", false))
+            {
+                conf.setBoolean("pig.tmpfilecompression", true);
+                if (configuration.get("pig.tmpfilecompression.codec")!=null)
+                    conf.set("pig.tmpfilecompression.codec", configuration.get("pig.tmpfilecompression.codec"));
+            }
             conf.set(MapRedUtil.FILE_SYSTEM_NAME, "file:///");
             
-            ReadToEndLoader loader = new ReadToEndLoader(new InterStorage(),
+            ReadToEndLoader loader = new ReadToEndLoader(Utils.getTmpFileStorageObject(conf),
                     conf, quantilesFile, 0);
             DataBag quantilesList;
             Tuple t = loader.getNext();

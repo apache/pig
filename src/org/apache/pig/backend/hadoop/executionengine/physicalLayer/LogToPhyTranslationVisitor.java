@@ -45,7 +45,6 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOpe
 import org.apache.pig.impl.builtin.GFCross;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.FileSpec;
-import org.apache.pig.impl.io.InterStorage;
 import org.apache.pig.impl.logicalLayer.*;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.plan.DependencyOrderWalker;
@@ -60,6 +59,7 @@ import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.util.CompilerUtils;
 import org.apache.pig.impl.util.LinkedMultiMap;
 import org.apache.pig.impl.util.MultiMap;
+import org.apache.pig.impl.util.Utils;
 
 public class LogToPhyTranslationVisitor extends LOVisitor {
 
@@ -1505,7 +1505,7 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
         physOp.setAlias(split.getAlias());
         FileSpec splStrFile;
         try {
-            splStrFile = new FileSpec(FileLocalizer.getTemporaryPath(pc).toString(),new FuncSpec(InterStorage.class.getName()));
+            splStrFile = new FileSpec(FileLocalizer.getTemporaryPath(pc).toString(),new FuncSpec(Utils.getTmpFileCompressorName(pc)));
         } catch (IOException e1) {
             byte errSrc = pc.getErrorSource();
             int errCode = 0;

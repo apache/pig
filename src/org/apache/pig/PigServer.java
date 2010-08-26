@@ -63,7 +63,6 @@ import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.FileSpec;
-import org.apache.pig.impl.io.InterStorage;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.LOConst;
 import org.apache.pig.impl.logicalLayer.LODefine;
@@ -97,6 +96,7 @@ import org.apache.pig.impl.streaming.StreamingCommand;
 import org.apache.pig.impl.util.LogUtils;
 import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.impl.util.PropertiesUtil;
+import org.apache.pig.impl.util.Utils;
 import org.apache.pig.newplan.logical.LogicalPlanMigrationVistor;
 import org.apache.pig.newplan.logical.optimizer.LogicalPlanOptimizer;
 import org.apache.pig.pen.ExampleGenerator;
@@ -708,7 +708,7 @@ public class PigServer {
             }
             
             ExecJob job = store(id, FileLocalizer.getTemporaryPath(pigContext)
-                    .toString(), InterStorage.class.getName() + "()");
+                    .toString(), Utils.getTmpFileCompressorName(pigContext) + "()");
             
             // invocation of "execute" is synchronous!
 

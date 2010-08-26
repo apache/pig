@@ -84,7 +84,6 @@ import org.apache.pig.impl.builtin.PoissonSampleLoader;
 import org.apache.pig.impl.builtin.RandomSampleLoader;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.FileSpec;
-import org.apache.pig.impl.io.InterStorage;
 import org.apache.pig.impl.logicalLayer.LogicalOperator;
 import org.apache.pig.impl.plan.CompilationMessageCollector;
 import org.apache.pig.impl.plan.DepthFirstWalker;
@@ -99,6 +98,7 @@ import org.apache.pig.impl.util.CompilerUtils;
 import org.apache.pig.impl.util.MultiMap;
 import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.impl.util.Pair;
+import org.apache.pig.impl.util.Utils;
 
 /**
  * The compiler that compiles a given physical plan
@@ -613,7 +613,7 @@ public class MRCompiler extends PhyPlanVisitor {
      */
     private FileSpec getTempFileSpec() throws IOException {
         return new FileSpec(FileLocalizer.getTemporaryPath(pigContext).toString(),
-                new FuncSpec(InterStorage.class.getName()));
+                new FuncSpec(Utils.getTmpFileCompressorName(pigContext)));
     }
     
     /**
@@ -2151,7 +2151,7 @@ public class MRCompiler extends PhyPlanVisitor {
         // SampleLoader expects string version of FuncSpec 
         // as its first constructor argument.
         
-        rslargs[0] = (new FuncSpec(InterStorage.class.getName())).toString();
+        rslargs[0] = (new FuncSpec(Utils.getTmpFileCompressorName(pigContext))).toString();
         
         rslargs[1] = "100"; // The value is calculated based on the file size for skewed join
         FileSpec quantLdFilName = new FileSpec(lFile.getFileName(),
