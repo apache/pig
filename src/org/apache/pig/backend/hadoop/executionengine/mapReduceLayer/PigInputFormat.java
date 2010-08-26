@@ -19,7 +19,11 @@ package org.apache.pig.backend.hadoop.executionengine.mapReduceLayer;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.HashSet;
+import java.util.HashMap;
+import java.util.Comparator;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -36,8 +40,11 @@ import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.pig.ExecType;
 import org.apache.pig.FuncSpec;
+import org.apache.pig.IndexableLoadFunc;
 import org.apache.pig.LoadFunc;
 import org.apache.pig.PigException;
+import org.apache.pig.CollectableLoadFunc;
+import org.apache.pig.OrderedLoadFunc;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.executionengine.util.MapRedUtil;
@@ -107,11 +114,8 @@ public class PigInputFormat extends InputFormat<Text, Tuple> {
         PigInputFormat.sJob = conf;
         
         InputFormat inputFormat = loadFunc.getInputFormat();
-        // now invoke the createRecordReader() with this "adjusted" conf
-        RecordReader reader = inputFormat.createRecordReader(
-                pigSplit.getWrappedSplit(), context);
         
-        return new PigRecordReader(reader, loadFunc, conf);
+        return new PigRecordReader(inputFormat, pigSplit, loadFunc, context);
     }
     
 
@@ -243,6 +247,12 @@ public class PigInputFormat extends InputFormat<Text, Tuple> {
                 FuncSpec loadFuncSpec = inputs.get(i).getFuncSpec();
                 LoadFunc loadFunc = (LoadFunc) PigContext.instantiateFuncFromSpec(
                         loadFuncSpec);
+                boolean combinable = !(loadFunc instanceof MergeJoinIndexer) &&
+                !(IndexableLoadFunc.class.isAssignableFrom(loadFunc.getClass())) &&
+                !(CollectableLoadFunc.class.isAssignableFrom(loadFunc.getClass()) &&
+                    OrderedLoadFunc.class.isAssignableFrom(loadFunc.getClass()));
+                if (combinable)
+                    combinable = !conf.getBoolean("pig.noSplitCombination", false);
                 Configuration confClone = new Configuration(conf);
                 Job inputSpecificJob = new Job(confClone);
                 // Pass loader signature to LoadFunc and to InputFormat through
@@ -258,8 +268,8 @@ public class PigInputFormat extends InputFormat<Text, Tuple> {
                 List<InputSplit> oneInputSplits = inpFormat.getSplits(
                         new JobContext(inputSpecificJob.getConfiguration(), 
                                 jobcontext.getJobID()));
-                List<PigSplit> oneInputPigSplits = getPigSplits(
-                        oneInputSplits, i, inpTargets.get(i), conf);
+                List<InputSplit> oneInputPigSplits = getPigSplits(
+                        oneInputSplits, i, inpTargets.get(i), fs.getDefaultBlockSize(), combinable, confClone);
                 splits.addAll(oneInputPigSplits);
             } catch (ExecException ee) {
                 throw ee;
@@ -285,19 +295,40 @@ public class PigInputFormat extends InputFormat<Text, Tuple> {
         return splits;
     }
 
-    private List<PigSplit> getPigSplits(List<InputSplit> oneInputSplits, 
-            int inputIndex, ArrayList<OperatorKey> targetOps, Configuration conf) {
-        int splitIndex = 0;
-        ArrayList<PigSplit> pigSplits = new ArrayList<PigSplit>();
-        for (InputSplit inputSplit : oneInputSplits) {
-            PigSplit pigSplit = new PigSplit(inputSplit, inputIndex, targetOps,
-                    splitIndex++);
-            pigSplit.setConf(conf);
-            pigSplits.add(pigSplit);
+    protected List<InputSplit> getPigSplits(List<InputSplit> oneInputSplits, 
+            int inputIndex, ArrayList<OperatorKey> targetOps, long blockSize, boolean combinable, Configuration conf)
+            throws IOException, InterruptedException {
+        ArrayList<InputSplit> pigSplits = new ArrayList<InputSplit>();
+        if (!combinable) {
+            int splitIndex = 0;
+            for (InputSplit inputSplit : oneInputSplits) {
+                PigSplit pigSplit = new PigSplit(new InputSplit[] {inputSplit}, inputIndex, targetOps,
+                        splitIndex++);
+                pigSplit.setConf(conf);
+                pigSplits.add(pigSplit);
+            }
+            return pigSplits;
+        } else {
+            long maxCombinedSplitSize = conf.getLong("pig.maxCombinedSplitSize", 0);
+            if (maxCombinedSplitSize== 0)
+                // default is the block size
+                maxCombinedSplitSize = blockSize;
+            List<List<InputSplit>> combinedSplits = 
+                MapRedUtil.getCombinePigSplits(oneInputSplits, maxCombinedSplitSize, conf);
+            for (int i = 0; i < combinedSplits.size(); i++)
+                pigSplits.add(createPigSplit(combinedSplits.get(i), inputIndex, targetOps, i, conf));
+            return pigSplits;
         }
-        return pigSplits;
     }
 
+    private InputSplit createPigSplit(List<InputSplit> combinedSplits,
+        int inputIndex, ArrayList<OperatorKey> targetOps, int splitIndex, Configuration conf)
+    {
+        PigSplit pigSplit = new PigSplit(combinedSplits.toArray(new InputSplit[0]), inputIndex, targetOps, splitIndex);
+        pigSplit.setConf(conf);
+        return pigSplit;
+    }
+    
     public static PigSplit getActiveSplit() {
         return activeSplit;
     }

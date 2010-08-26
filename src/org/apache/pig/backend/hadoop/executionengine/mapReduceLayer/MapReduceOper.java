@@ -141,6 +141,11 @@ public class MapReduceOper extends Operator<MROpPlanVisitor> {
 	// Set to true in indexing job generated in map-side cogroup, merge join.
 	private boolean usingTypedComparator = false;
 	
+	// Flag to indicate if the small input splits need to be combined to form a larger
+	// one in order to reduce the number of mappers. For merge join, both tables
+	// are NOT combinable for correctness.
+	private boolean combineSmallSplits = true;
+	
 	private static enum OPER_FEATURE {
 	    NONE,
 	    // Indicate if this job is a sampling job
@@ -457,5 +462,13 @@ public class MapReduceOper extends Operator<MROpPlanVisitor> {
 
     protected void useTypedComparator(boolean useTypedComparator) {
         this.usingTypedComparator = useTypedComparator;
+    }
+    
+    protected void noCombineSmallSplits() {
+        combineSmallSplits = false;
+    }
+    
+    public boolean combineSmallSplits() {
+        return combineSmallSplits;
     }
 }

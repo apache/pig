@@ -636,6 +636,19 @@ public class JobControlCompiler{
 
             conf.set(PIG_MAP_STORES, ObjectSerializer.serialize(mapStores));
             conf.set(PIG_REDUCE_STORES, ObjectSerializer.serialize(reduceStores));
+            String tmp;
+            long maxCombinedSplitSize = 0;
+            if (!mro.combineSmallSplits() || pigContext.getProperties().getProperty("pig.splitCombination", "true").equals("false"))
+                conf.setBoolean("pig.noSplitCombination", true);
+            else if ((tmp = pigContext.getProperties().getProperty("pig.maxCombinedSplitSize", null)) != null) {
+                try {
+                    maxCombinedSplitSize = Long.parseLong(tmp);
+                } catch (NumberFormatException e) {
+                    log.warn("Invalid numeric format for pig.maxCombinedSplitSize; use the default maximum combined split size");
+                }
+            }
+            if (maxCombinedSplitSize > 0)
+                conf.setLong("pig.maxCombinedSplitSize", maxCombinedSplitSize);
                         
             // Serialize the UDF specific context info.
             UDFContext.getUDFContext().serialize(conf);

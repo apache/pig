@@ -26,6 +26,8 @@ PIG-1249: Safe-guards against misconfigured Pig scripts without PARALLEL keyword
 
 IMPROVEMENTS
 
+PIG-1518: multi file input format for loaders (yanz via rding)
+
 PIG-1501: need to investigate the impact of compression on pig performance (yanz via thejas)
 
 PIG-1497: Mandatory rule PartitionFilterOptimizer (xuefuz via daijy)

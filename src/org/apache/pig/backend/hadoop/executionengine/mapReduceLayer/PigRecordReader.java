@@ -58,9 +58,9 @@ public class PigRecordReader extends RecordReader<Text, Tuple> {
      */
     Tuple curValue = null;
     
-    // the underlying RecordReader used by the loader
+    // the current wrapped RecordReader used by the loader
     @SuppressWarnings("unchecked")
-    private RecordReader wrappedReader;
+    private RecordReader curReader;
     
     // the loader object
     private LoadFunc loadfunc;
@@ -71,6 +71,19 @@ public class PigRecordReader extends RecordReader<Text, Tuple> {
     // the Hadoop counter name
     transient private String counterName = null;
     
+    // the wrapped inputformat
+    private InputFormat inputformat;
+    
+    // the wrapped splits
+    private PigSplit pigSplit;
+    
+    // the wrapped split index in use
+    private int idx;
+    
+    private long progress;
+    
+    private TaskAttemptContext context;
+    
     /**
      * the Configuration object with data specific to the input the underlying
      * RecordReader will process (this is obtained after a 
@@ -80,19 +93,28 @@ public class PigRecordReader extends RecordReader<Text, Tuple> {
      */
     private Configuration inputSpecificConf;
     /**
-     * @param conf 
+     * @param context 
      * 
      */
-    public PigRecordReader(RecordReader wrappedReader, 
-            LoadFunc loadFunc, Configuration conf) {
-        this.wrappedReader = wrappedReader; 
+    public PigRecordReader(InputFormat inputformat, PigSplit pigSplit, 
+            LoadFunc loadFunc, TaskAttemptContext context) throws IOException, InterruptedException {
+        this.inputformat = inputformat;
+        this.pigSplit = pigSplit; 
         this.loadfunc = loadFunc;
-        this.inputSpecificConf = conf;
+        this.context = context;
+        this.inputSpecificConf = context.getConfiguration();
+        curReader = null;
+        progress = 0;
+        idx = 0;
+        initNextRecordReader();
     }
     
     @Override
     public void close() throws IOException {
-        wrappedReader.close();        
+        if (curReader != null) {
+            curReader.close();
+            curReader = null;
+        }
     }
 
     @Override
@@ -125,7 +147,12 @@ public class PigRecordReader extends RecordReader<Text, Tuple> {
 
     @Override
     public float getProgress() throws IOException, InterruptedException {
-        return wrappedReader.getProgress();
+        long subprogress = 0;    // bytes processed in current split
+        if (null != curReader) {
+            // idx is always one past the current subsplit's true index.
+            subprogress = (long)(curReader.getProgress() * pigSplit.getLength(idx - 1));
+        }
+        return Math.min(1.0f,  (progress + subprogress)/(float)(pigSplit.getLength()));
     }
 
     @Override
@@ -135,7 +162,8 @@ public class PigRecordReader extends RecordReader<Text, Tuple> {
         // object - this is achieved by merging the Context corresponding to 
         // the input split this Reader is supposed to process with the context
         // passed in.
-        PigSplit pigSplit = (PigSplit)split;
+        this.pigSplit = (PigSplit)split;
+        this.context = context;
         ConfigurationUtil.mergeConf(context.getConfiguration(),
                 inputSpecificConf);
         // Pass loader signature to LoadFunc and to InputFormat through
@@ -144,8 +172,10 @@ public class PigRecordReader extends RecordReader<Text, Tuple> {
                 context.getConfiguration());
         // now invoke initialize() on underlying RecordReader with
         // the "adjusted" conf
-        wrappedReader.initialize(pigSplit.getWrappedSplit(), context);
-        loadfunc.prepareToRead(wrappedReader, pigSplit);
+        if (null != curReader) {
+            curReader.initialize(pigSplit.getWrappedSplit(), context);
+            loadfunc.prepareToRead(curReader, pigSplit);
+        }
                 
         if (pigSplit.isMultiInputs()) { 
             counterName = getMultiInputsCounerName(pigSplit, inputSpecificConf);
@@ -154,8 +184,12 @@ public class PigRecordReader extends RecordReader<Text, Tuple> {
 
     @Override
     public boolean nextKeyValue() throws IOException, InterruptedException {
-        curValue = loadfunc.getNext();
-        return curValue != null;
+        while ((curReader == null) || (curValue = loadfunc.getNext()) == null) {
+            if (!initNextRecordReader()) {
+              return false;
+            }
+        }
+        return true;
     }
 
     @SuppressWarnings("unchecked")
@@ -166,5 +200,42 @@ public class PigRecordReader extends RecordReader<Text, Tuple> {
                     conf.get(PigInputFormat.PIG_INPUTS));
         String fname = inputs.get(pigSplit.getInputIndex()).getFileName();
         return PigStatsUtil.getMultiInputsCounterName(fname);
+    }
+    
+    /**
+     * Get the record reader for the next chunk in this CombineFileSplit.
+     */
+    protected boolean initNextRecordReader() throws IOException, InterruptedException {
+
+        if (curReader != null) {
+            curReader.close();
+            curReader = null;
+            if (idx > 0) {
+                progress += pigSplit.getLength(idx-1);    // done processing so far
+            }
+        }
+
+        // if all chunks have been processed, nothing more to do.
+        if (idx == pigSplit.getNumPaths()) {
+            return false;
+        }
+
+        // get a record reader for the idx-th chunk
+        try {
+          
+
+            curReader =  inputformat.createRecordReader(pigSplit.getWrappedSplit(idx), context);
+
+            if (idx > 0) {
+                // initialize() for the first RecordReader will be called by MapTask;
+                // we're responsible for initializing subsequent RecordReaders.
+                curReader.initialize(pigSplit.getWrappedSplit(idx), context);
+                loadfunc.prepareToRead(curReader, pigSplit);
+            }
+        } catch (Exception e) {
+            throw new RuntimeException (e);
+        }
+        idx++;
+        return true;
     }
 }

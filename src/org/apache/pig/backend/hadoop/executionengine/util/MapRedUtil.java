@@ -21,9 +21,12 @@ package org.apache.pig.backend.hadoop.executionengine.util;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Comparator;
+import java.util.Collections;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -32,6 +35,7 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.PathFilter;
+import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
@@ -39,6 +43,7 @@ import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigSplit;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
@@ -222,4 +227,397 @@ public class MapRedUtil {
             return !name.startsWith("_") && !name.startsWith("."); 
         }
     };    
+
+    /* The following codes are for split combination: see PIG-1518
+     * 
+     */
+    private static Comparator<Node> nodeComparator = new Comparator<Node>() {
+        @Override
+        public int compare(Node o1, Node o2) {
+            long cmp = o1.length - o2.length;
+            return cmp == 0 ? 0 : cmp < 0 ? -1 : 1;
+        }
+    };
+    
+    private static final class ComparableSplit implements Comparable<ComparableSplit> {
+        private InputSplit rawInputSplit;
+        private HashSet<Node> nodes;
+        // id used as a tie-breaker when two splits are of equal size.
+        private long id;
+        ComparableSplit(InputSplit split, long id) {
+            rawInputSplit = split;
+            nodes = new HashSet<Node>();
+            this.id = id;
+        }
+        
+        void add(Node node) {
+            nodes.add(node);
+        }
+        
+        void removeFromNodes() {
+            for (Node node : nodes)
+                node.remove(this);
+        }
+        
+        public InputSplit getSplit() {
+            return rawInputSplit;
+        }
+  
+        @Override
+        public boolean equals(Object other) {
+            if (other == null || !(other instanceof ComparableSplit))
+                return false;
+            return (compareTo((ComparableSplit) other) == 0);
+        }
+        
+        @Override
+        public int hashCode() {
+            return 41;
+        }
+        
+        @Override
+        public int compareTo(ComparableSplit other) {
+            try {
+                long cmp = rawInputSplit.getLength() - other.rawInputSplit.getLength();
+                // in descending order
+                return cmp == 0 ? (id == other.id ? 0 : id < other.id ? -1 : 1) : cmp < 0 ?  1 : -1;
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+        }
+    }
+      
+    private static class DummySplit extends InputSplit {
+        private long length;
+        
+        @Override
+        public String[] getLocations() {
+            return null;
+        }
+        
+        @Override
+        public long getLength() {
+            return length;
+        }
+        
+        public void setLength(long length) {
+            this.length = length;
+        }
+    }
+    
+    private static class Node {
+        private long length = 0;
+        private ArrayList<ComparableSplit> splits;
+        private boolean sorted;
+        
+        Node() throws IOException, InterruptedException {
+            length = 0;
+            splits = new ArrayList<ComparableSplit>();
+            sorted = false;
+        }
+        
+        void add(ComparableSplit split) throws IOException, InterruptedException {
+            splits.add(split);
+            length++;
+        }
+        
+        void remove(ComparableSplit split) {
+            if (!sorted)
+                sort();
+            int index = Collections.binarySearch(splits, split);
+            if (index >= 0) {
+                splits.remove(index);
+                length--;
+            }
+        }
+        
+        void sort() {
+            if (!sorted) {
+                Collections.sort(splits);
+                sorted = true;
+            }
+        }
+        
+        ArrayList<ComparableSplit> getSplits() {
+            return splits;
+        }
+  
+        public long getLength() {
+            return length;
+        }
+    }
+  
+    public static List<List<InputSplit>> getCombinePigSplits(List<InputSplit>
+        oneInputSplits, long maxCombinedSplitSize, Configuration conf)
+          throws IOException, InterruptedException {
+        ArrayList<Node> nodes = new ArrayList<Node>();
+        HashMap<String, Node> nodeMap = new HashMap<String, Node>();
+        List<List<InputSplit>> result = new ArrayList<List<InputSplit>>();
+        List<Long> resultLengths = new ArrayList<Long>();
+        long comparableSplitId = 0;
+        
+        int size = 0, nSplits = oneInputSplits.size();
+        InputSplit lastSplit = null;
+        int emptyCnt = 0;
+        for (InputSplit split : oneInputSplits) {
+            if (split.getLength() == 0) {
+                emptyCnt++; 
+                continue;
+            }
+            if (split.getLength() >= maxCombinedSplitSize) {
+                comparableSplitId++;
+                ArrayList<InputSplit> combinedSplits = new ArrayList<InputSplit>();
+                combinedSplits.add(split);
+                result.add(combinedSplits);
+                resultLengths.add(split.getLength());
+            } else {
+                ComparableSplit csplit = new ComparableSplit(split, comparableSplitId++);
+                String[] locations = split.getLocations();
+                HashSet<String> locationSeen = new HashSet<String>();
+                for (String location : locations)
+                {
+                    if (!locationSeen.contains(location)) 
+                    {
+                        Node node = nodeMap.get(location);
+                        if (node == null) {
+                            node = new Node();
+                            nodes.add(node);
+                            nodeMap.put(location, node);
+                        }
+                        node.add(csplit);
+                        csplit.add(node);
+                        locationSeen.add(location);
+                    }
+                }
+                lastSplit = split;
+                size++;
+            }
+        }
+        /* verification code: debug purpose
+        {
+          ArrayList<ComparableSplit> leftoverSplits = new ArrayList<ComparableSplit>();
+          HashSet<InputSplit> seen = new HashSet<InputSplit>();
+          for (Node node : nodes) {
+            if (node.getLength() > 0)
+            {
+              ArrayList<ComparableSplit> splits = node.getSplits();
+              for (ComparableSplit split : splits) {
+                if (!seen.contains(split.getSplit())) {
+                  // remove duplicates. The set has to be on the raw input split not the 
+                  // comparable input split as the latter overrides the compareTo method
+                  // so its equality semantics is changed and not we want here
+                  seen.add(split.getSplit());
+                  leftoverSplits.add(split);
+                }
+              }
+            }
+          }
+          
+          int combinedSplitLen = 0;
+          for (PigSplit split : result)
+            combinedSplitLen += split.getNumPaths();
+          if (combinedSplitLen + leftoverSplits.size()!= nSplits-emptyCnt) {
+            throw new AssertionError("number of combined splits {"+combinedSplitLen+"+"+leftoverSplits.size()+"-"+size+"} does not match the number of original splits ["+nSplits+"].");
+          }
+        }
+        */
+        if (nSplits > 0 && emptyCnt == nSplits)
+        {
+            // if all splits are empty, add a single empty split as currently an empty directory is
+            // not properly handled somewhere
+            ArrayList<InputSplit> combinedSplits = new ArrayList<InputSplit>();
+            combinedSplits.add(oneInputSplits.get(0));
+            result.add(combinedSplits);
+        }
+        else if (size == 1) {
+            ArrayList<InputSplit> combinedSplits = new ArrayList<InputSplit>();
+            combinedSplits.add(lastSplit);
+            result.add(combinedSplits);
+        } else if (size > 1) {
+            // combine small splits
+            Collections.sort(nodes, nodeComparator);
+            DummySplit dummy = new DummySplit();
+            // dummy is used to search for next split of suitable size to be combined
+            ComparableSplit dummyComparableSplit = new ComparableSplit(dummy, -1);
+            for (Node node : nodes) {
+                // sort the splits on this node in descending order
+                node.sort();
+                long totalSize = 0;
+                ArrayList<ComparableSplit> splits = node.getSplits();
+                int idx;
+                int lenSplits;
+                ArrayList<InputSplit> combinedSplits = new ArrayList<InputSplit>();
+                ArrayList<ComparableSplit> combinedComparableSplits = new ArrayList<ComparableSplit>();
+                while (!splits.isEmpty()) {
+                    combinedSplits.add(splits.get(0).getSplit());
+                    combinedComparableSplits.add(splits.get(0));
+                    int startIdx = 1;
+                    lenSplits = splits.size();
+                    totalSize += splits.get(0).getSplit().getLength();
+                    long spaceLeft = maxCombinedSplitSize - totalSize;
+                    dummy.setLength(spaceLeft);
+                    idx = Collections.binarySearch(node.getSplits().subList(startIdx, lenSplits), dummyComparableSplit);
+                    idx = -idx-1+startIdx;
+                    while (idx < lenSplits)
+                    {
+                        long thisLen = splits.get(idx).getSplit().getLength();
+                        combinedSplits.add(splits.get(idx).getSplit());
+                        combinedComparableSplits.add(splits.get(idx));
+                        totalSize += thisLen;
+                        spaceLeft -= thisLen;
+                        if (spaceLeft <= 0)
+                            break;
+                        // find next combinable chunk
+                        startIdx = idx + 1;
+                        if (startIdx >= lenSplits)
+                            break;
+                        dummy.setLength(spaceLeft);
+                        idx = Collections.binarySearch(node.getSplits().subList(startIdx, lenSplits), dummyComparableSplit);
+                        idx = -idx-1+startIdx;
+                    }
+                    if (totalSize > maxCombinedSplitSize/2) {
+                        result.add(combinedSplits);
+                        resultLengths.add(totalSize);
+                        removeSplits(combinedComparableSplits);
+                        totalSize = 0;
+                        combinedSplits = new ArrayList<InputSplit>();
+                        combinedComparableSplits.clear();
+                        splits = node.getSplits();
+                    } else {
+                        if (combinedSplits.size() != lenSplits)
+                            throw new AssertionError("Combined split logic error!");
+                        break;
+                    }
+                }
+            }
+            // handle leftovers
+            ArrayList<ComparableSplit> leftoverSplits = new ArrayList<ComparableSplit>();
+            HashSet<InputSplit> seen = new HashSet<InputSplit>();
+            for (Node node : nodes) {
+                for (ComparableSplit split : node.getSplits()) {
+                    if (!seen.contains(split.getSplit())) {
+                        // remove duplicates. The set has to be on the raw input split not the 
+                        // comparable input split as the latter overrides the compareTo method
+                        // so its equality semantics is changed and not we want here
+                        seen.add(split.getSplit());
+                        leftoverSplits.add(split);
+                    }
+                }
+            }
+            
+            /* verification code
+            int combinedSplitLen = 0;
+            for (PigSplit split : result)
+              combinedSplitLen += split.getNumPaths();
+            if (combinedSplitLen + leftoverSplits.size()!= nSplits-emptyCnt)
+              throw new AssertionError("number of combined splits ["+combinedSplitLen+"+"+leftoverSplits.size()+"] does not match the number of original splits ["+nSplits+"].");
+            */
+            if (!leftoverSplits.isEmpty())
+            {
+                long totalSize = 0;
+                ArrayList<InputSplit> combinedSplits = new ArrayList<InputSplit>();
+                ArrayList<ComparableSplit> combinedComparableSplits = new ArrayList<ComparableSplit>();
+                
+                int splitLen = leftoverSplits.size();
+                for (int i = 0; i < splitLen; i++)
+                {
+                    ComparableSplit split = leftoverSplits.get(i);
+                    long thisLen = split.getSplit().getLength();
+                    if (totalSize + thisLen >= maxCombinedSplitSize) {
+                        removeSplits(combinedComparableSplits);
+                        result.add(combinedSplits);
+                        resultLengths.add(totalSize);
+                        combinedSplits = new ArrayList<InputSplit>();
+                        combinedComparableSplits.clear();
+                        totalSize = 0;
+                    }
+                    combinedSplits.add(split.getSplit());
+                    combinedComparableSplits.add(split);
+                    totalSize += split.getSplit().getLength();
+                    if (i == splitLen - 1) {
+                        // last piece: it could be very small, try to see it can be squeezed into any existing splits
+                        for (int j =0; j < result.size(); j++)
+                        {
+                            if (resultLengths.get(j) + totalSize <= maxCombinedSplitSize)
+                            {
+                                List<InputSplit> isList = result.get(j);
+                                for (InputSplit csplit : combinedSplits) {
+                                    isList.add(csplit);
+                                }
+                                removeSplits(combinedComparableSplits);
+                                combinedSplits.clear();
+                                break;
+                            }
+                        }
+                        if (!combinedSplits.isEmpty()) {
+                            // last piece can not be squeezed in, create a new combined split for them.
+                            removeSplits(combinedComparableSplits);
+                            result.add(combinedSplits);
+                        }
+                    }
+                }
+            }
+        }
+        /* verification codes
+        int combinedSplitLen = 0;
+        for (PigSplit split : result)
+          combinedSplitLen += split.getNumPaths();
+        if (combinedSplitLen != nSplits-emptyCnt)
+          throw new AssertionError("number of combined splits ["+combinedSplitLen+"] does not match the number of original splits ["+nSplits+"].");
+        
+        long totalLen = 0;
+        for (PigSplit split : result)
+          totalLen += split.getLength();
+        
+        long origTotalLen = 0;
+        for (InputSplit split : oneInputSplits)
+          origTotalLen += split.getLength();
+        if (totalLen != origTotalLen)
+          throw new AssertionError("The total length ["+totalLen+"] does not match the original ["+origTotalLen+"]");
+        */ 
+        log.info("Total input paths (combined) to process : " + result.size());
+        return result;
+    }
+    
+    private static void removeSplits(List<ComparableSplit> splits) {
+        for (ComparableSplit split: splits)
+            split.removeFromNodes();
+    }
+    
+    public String inputSplitToString(InputSplit[] splits) throws IOException, InterruptedException {
+        // debugging purpose only
+        StringBuilder st = new StringBuilder();
+        st.append("Number of splits :" + splits.length+"\n");
+        long len = 0;
+        for (InputSplit split: splits)
+            len += split.getLength();
+        st.append("Total Length = "+ len +"\n");
+        for (int i = 0; i < splits.length; i++) {
+            st.append("Input split["+i+"]:\n   Length = "+ splits[i].getLength()+"\n  Locations:\n");
+            for (String location :  splits[i].getLocations())
+                st.append("    "+location+"\n");
+            st.append("\n-----------------------\n"); 
+        }
+        return st.toString();
+    }
+    
+    /* verification code: debug purpose only
+    public String inputSplitToString(ArrayList<ComparableSplit> splits) throws IOException, InterruptedException {
+      StringBuilder st = new StringBuilder();
+      st.append("Number of splits :" + splits.size()+"\n");
+      long len = 0;
+      for (ComparableSplit split: splits)
+        len += split.getSplit().getLength();
+      st.append("Total Length = "+ len +"\n");
+      for (int i = 0; i < splits.size(); i++) {
+        st.append("Input split["+i+"]:\n   Length = "+ splits.get(i).getSplit().getLength()+"\n  Locations:\n");
+        for (String location :  splits.get(i).getSplit().getLocations())
+          st.append("    "+location+"\n");
+        st.append("\n-----------------------\n"); 
+      }
+      return st.toString();
+    }
+    */
 }
