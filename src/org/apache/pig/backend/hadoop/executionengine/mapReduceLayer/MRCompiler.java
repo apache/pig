@@ -1572,6 +1572,9 @@ public class MRCompiler extends PhyPlanVisitor {
                 MRPlan.connect(rightMROpr, curMROp);
             }
             phyToMROpMap.put(joinOp, curMROp);
+            // no combination of small splits as there is currently no way to guarantee the sortness
+            // of the combined splits.
+            curMROp.noCombineSmallSplits();
         }
         catch(PlanException e){
             int errCode = 2034;
