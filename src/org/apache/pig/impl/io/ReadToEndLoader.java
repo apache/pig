@@ -174,7 +174,7 @@ public class ReadToEndLoader extends LoadFunc {
         // create a dummy pigsplit - other than the actual split, the other
         // params are really not needed here where we are just reading the
         // input completely
-        PigSplit pigSplit = new PigSplit(curSplit, -1, 
+        PigSplit pigSplit = new PigSplit(new InputSplit[] {curSplit}, -1, 
                 new ArrayList<OperatorKey>(), -1);
         wrappedLoadFunc.prepareToRead(reader, pigSplit);
         return true;

@@ -29,6 +29,8 @@ import java.io.OutputStream;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.HashSet;
+import java.lang.StringBuilder;
 
 import org.apache.hadoop.conf.Configurable;
 import org.apache.hadoop.conf.Configuration;
@@ -65,7 +67,7 @@ public class PigSplit extends InputSplit implements Writable, Configurable {
     private int inputIndex;
     
     // The real InputSplit this split is wrapping
-    private InputSplit wrappedSplit;
+    private InputSplit[] wrappedSplits;
 
     // index of the wrappedSplit in the list of splits returned by
     // InputFormat.getSplits()
@@ -87,20 +89,29 @@ public class PigSplit extends InputSplit implements Writable, Configurable {
      * total number of splits - required by skew join
      */
     private int totalSplits;
+    
+    /**
+     * total length
+     */
+    private long length = -1;
+    
+    /**
+     * overall locations
+     */
+    String[] locations = null;
 
     // this seems necessary for Hadoop to instatiate this split on the
     // backend
     public PigSplit() {}
     
-    public PigSplit(InputSplit wrappedSplit, int inputIndex, 
+    public PigSplit(InputSplit[] wrappedSplits, int inputIndex, 
             List<OperatorKey> targetOps, int splitIndex) {
-        this.wrappedSplit = wrappedSplit;
+        this.wrappedSplits = wrappedSplits;
         this.inputIndex = inputIndex;
         this.targetOps = new ArrayList<OperatorKey>(targetOps);
         this.splitIndex = splitIndex;
     }
-
-
+    
     public List<OperatorKey> getTargetOps() {
         return new ArrayList<OperatorKey>(targetOps);
     }
@@ -112,17 +123,53 @@ public class PigSplit extends InputSplit implements Writable, Configurable {
      * @return the wrappedSplit
      */
     public InputSplit getWrappedSplit() {
-        return wrappedSplit;
+        return wrappedSplits[0];
+    }
+    
+    /**
+     * 
+     * @param idx the index into the wrapped splits
+     * @return the specified wrapped split
+     */
+    public InputSplit getWrappedSplit(int idx) {
+        return wrappedSplits[idx];
     }
     
     @Override
     public String[] getLocations() throws IOException, InterruptedException {
-            return wrappedSplit.getLocations();
+        if (locations == null) {
+            HashSet<String> locSet = new HashSet<String>();
+            for (int i = 0; i < wrappedSplits.length; i++)
+            {
+                String[] locs = wrappedSplits[i].getLocations();
+                for (int j = 0; j < locs.length; j++)
+                    locSet.add(locs[j]);
+            }
+            locations = new String[locSet.size()];
+            int i = 0;
+            for (String loc : locSet)
+                locations[i++] = loc;
+        }
+        return locations;
     }
 
     @Override
     public long getLength() throws IOException, InterruptedException {
-        return wrappedSplit.getLength();
+        if (length == -1) {
+            length = 0;
+            for (int i = 0; i < wrappedSplits.length; i++)
+                length += wrappedSplits[i].getLength();
+        }
+        return length;
+    }
+    
+    /**
+     * Return the length of a wrapped split
+     * @param idx the index into the wrapped splits
+     * @return number of wrapped splits
+     */
+    public long getLength(int idx) throws IOException, InterruptedException {
+        return wrappedSplits[idx].getLength();
     }
     
     @SuppressWarnings("unchecked")
@@ -132,15 +179,20 @@ public class PigSplit extends InputSplit implements Writable, Configurable {
         splitIndex = is.readInt();
         inputIndex = is.readInt();
         targetOps = (ArrayList<OperatorKey>) readObject(is);
+        int splitLen = is.readInt();
         String splitClassName = is.readUTF();
         try {
             Class splitClass = conf.getClassByName(splitClassName);
-            wrappedSplit = (InputSplit)ReflectionUtils.newInstance(splitClass, conf);
             SerializationFactory sf = new SerializationFactory(conf);
             // The correct call sequence for Deserializer is, we shall open, then deserialize, but we shall not close
             Deserializer d = sf.getDeserializer(splitClass);
             d.open((InputStream) is);
-            d.deserialize(wrappedSplit);
+            wrappedSplits = new InputSplit[splitLen];
+            for (int i = 0; i < splitLen; i++)
+            {
+                wrappedSplits[i] = (InputSplit)ReflectionUtils.newInstance(splitClass, conf);
+                d.deserialize(wrappedSplits[i]);
+            }
         } catch (ClassNotFoundException e) {
             throw new IOException(e);
         }
@@ -154,13 +206,17 @@ public class PigSplit extends InputSplit implements Writable, Configurable {
         os.writeInt(splitIndex);
         os.writeInt(inputIndex);
         writeObject(targetOps, os);
-        os.writeUTF(wrappedSplit.getClass().getName());
+        os.writeInt(wrappedSplits.length);
+        os.writeUTF(wrappedSplits[0].getClass().getName());
         SerializationFactory sf = new SerializationFactory(conf);
         Serializer s = 
-            sf.getSerializer(wrappedSplit.getClass());
-        // The correct call sequence for Serializer is, we shall open, then serialize, but we shall not close
+            sf.getSerializer(wrappedSplits[0].getClass());
         s.open((OutputStream) os);
-        s.serialize(wrappedSplit);
+        for (int i = 0; i < wrappedSplits.length; i++)
+        {
+            // The correct call sequence for Serializer is, we shall open, then serialize, but we shall not close
+            s.serialize(wrappedSplits[i]);
+        }
         
     }
 
@@ -242,6 +298,14 @@ public class PigSplit extends InputSplit implements Writable, Configurable {
     int getInputIndex() {
         return inputIndex;
     }
+    
+    /**
+     * 
+     * @return the number of wrapped splits
+     */
+    public int getNumPaths() {
+        return wrappedSplits.length;
+    }
 
     /**
      * @return the totalSplits
@@ -263,4 +327,23 @@ public class PigSplit extends InputSplit implements Writable, Configurable {
         this.totalSplits = totalSplits;
     }
 
+    @Override
+    public String toString() {
+        StringBuilder st = new StringBuilder();
+        st.append("Number of splits :" + wrappedSplits.length+"\n");
+        try {
+            st.append("Total Length = "+ getLength()+"\n");
+            for (int i = 0; i < wrappedSplits.length; i++) {
+                st.append("Input split["+i+"]:\n   Length = "+ wrappedSplits[i].getLength()+"\n  Locations:\n");
+                for (String location :  wrappedSplits[i].getLocations())
+                    st.append("    "+location+"\n");
+                st.append("\n-----------------------\n"); 
+          }
+        } catch (IOException e) {
+          return null;
+        } catch (InterruptedException e) {
+          return null;
+        }
+        return st.toString();
+    }
 }
