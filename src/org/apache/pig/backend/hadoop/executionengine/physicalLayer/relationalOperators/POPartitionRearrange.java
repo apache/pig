@@ -37,6 +37,7 @@ import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.util.Pair;
+import org.apache.pig.impl.util.Utils;
 
 
 /**
@@ -86,7 +87,17 @@ public class POPartitionRearrange extends POLocalRearrange {
             "Internal error: missing key distribution file property.");
         }
 
+        boolean tmpFileCompression = Utils.tmpFileCompression(pigContext);
+        if (tmpFileCompression) {
+            PigMapReduce.sJobConf.setBoolean("pig.tmpfilecompression", true);
+            try {
+                PigMapReduce.sJobConf.set("pig.tmpfilecompression.codec", Utils.tmpFileCompressionCodec(pigContext));
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }
         try {
+          
             Integer [] redCnt = new Integer[1]; 
             
             reducerMap = MapRedUtil.loadPartitionFileFromLocalCache(

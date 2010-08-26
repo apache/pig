@@ -88,6 +88,7 @@ import org.apache.pig.impl.util.JarManager;
 import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.impl.util.Pair;
 import org.apache.pig.impl.util.UDFContext;
+import org.apache.pig.impl.util.Utils;
 import org.apache.pig.tools.pigstats.ScriptState;
 
 
@@ -626,6 +627,12 @@ public class JobControlCompiler{
             // unset inputs for POStore, otherwise, map/reduce plan will be unnecessarily deserialized 
             for (POStore st: mapStores) { st.setInputs(null); st.setParentPlan(null);}
             for (POStore st: reduceStores) { st.setInputs(null); st.setParentPlan(null);}
+
+            // tmp file compression setups
+            if (Utils.tmpFileCompression(pigContext)) {
+                conf.setBoolean("pig.tmpfilecompression", true);
+                conf.set("pig.tmpfilecompression.codec", Utils.tmpFileCompressionCodec(pigContext));
+            }
 
             conf.set(PIG_MAP_STORES, ObjectSerializer.serialize(mapStores));
             conf.set(PIG_REDUCE_STORES, ObjectSerializer.serialize(reduceStores));

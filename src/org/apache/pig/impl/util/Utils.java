@@ -18,11 +18,27 @@
 package org.apache.pig.impl.util;
 
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
 
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.mapreduce.Job;
+
+import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataType;
+import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.logicalLayer.parser.ParseException;
 import org.apache.pig.impl.logicalLayer.parser.QueryParser;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.impl.PigContext;
+import org.apache.pig.LoadFunc;
+import org.apache.pig.impl.io.InterStorage;
+import org.apache.pig.impl.io.ReadToEndLoader;
+import org.apache.pig.impl.io.TFileStorage;
+import org.apache.pig.FileInputLoadFunc;
+import org.apache.pig.PigException;
+import org.apache.pig.ResourceSchema;
 
 /**
  * Class with utility static methods
@@ -77,6 +93,42 @@ public class Utils {
         }
     }
     
+    public static ResourceSchema getSchema(LoadFunc wrappedLoadFunc, String location, boolean checkExistence, Job job)
+                    throws IOException {
+        Configuration conf = job.getConfiguration();
+        if (checkExistence) {
+            Path path = new Path(location);
+            if (!FileSystem.get(conf).exists(path)) {
+                // At compile time in batch mode, the file may not exist
+                // (such as intermediate file). Just return null - the
+                // same way as we would if we did not get a valid record
+                return null;
+            }
+        }
+        ReadToEndLoader loader = new ReadToEndLoader(wrappedLoadFunc, conf, location, 0);
+        // get the first record from the input file
+        // and figure out the schema from the data in
+        // the first record
+        Tuple t = loader.getNext();
+        if (t == null) {
+            // we couldn't get a valid record from the input
+            return null;
+        }
+        int numFields = t.size();
+        Schema s = new Schema();
+        for (int i = 0; i < numFields; i++) {
+            try {
+                s.add(DataType.determineFieldSchema(t.get(i)));
+            }
+            catch (Exception e) {
+                int errCode = 2104;
+                String msg = "Error while determining schema of SequenceFileStorage data.";
+                throw new ExecException(msg, errCode, PigException.BUG, e);
+            }
+        }
+        return new ResourceSchema(s);
+    }
+    
     public static Schema getSchemaFromString(String schemaString) throws ParseException {
         return Utils.getSchemaFromString(schemaString, DataType.BYTEARRAY);
     }
@@ -89,6 +141,40 @@ public class Utils {
         return schema;
     }
     
+    public static String getTmpFileCompressorName(PigContext pigContext) {
+        if (pigContext == null)
+            return InterStorage.class.getName();
+        boolean tmpFileCompression = pigContext.getProperties().getProperty("pig.tmpfilecompression", "false").equals("true");
+        String codec = pigContext.getProperties().getProperty("pig.tmpfilecompression.codec", "");
+        if (tmpFileCompression) {
+            if (codec.equals("lzo"))
+                pigContext.getProperties().setProperty("io.compression.codec.lzo.class", "com.hadoop.compression.lzo.LzoCodec");
+            return TFileStorage.class.getName();
+        } else
+            return InterStorage.class.getName();
+    }
+    
+    public static FileInputLoadFunc getTmpFileStorageObject(Configuration conf) throws IOException {
+        boolean tmpFileCompression = conf.getBoolean("pig.tmpfilecompression", false);
+        return tmpFileCompression ? new TFileStorage() : new InterStorage();
+    }
+    
+    public static boolean tmpFileCompression(PigContext pigContext) {
+        if (pigContext == null)
+            return false;
+        return pigContext.getProperties().getProperty("pig.tmpfilecompression", "false").equals("true");
+    }
+
+    public static String tmpFileCompressionCodec(PigContext pigContext) throws IOException {
+        if (pigContext == null)
+            return "";
+        String codec = pigContext.getProperties().getProperty("pig.tmpfilecompression.codec", "");
+        if (codec.equals("gz") || codec.equals("lzo"))
+            return codec;
+        else
+            throw new IOException("Invalid temporary file compression codec ["+codec+"]. Expected compression codecs are gz and lzo");
+    }
+
     public static String getStringFromArray(String[] arr) {
         StringBuilder str = new StringBuilder();
         for(String s: arr) {
@@ -97,5 +183,4 @@ public class Utils {
         }
         return str.toString();
     }
-    
 }

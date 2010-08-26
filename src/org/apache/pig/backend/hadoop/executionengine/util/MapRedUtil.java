@@ -47,12 +47,12 @@ import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.builtin.PartitionSkewedKeys;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.FileSpec;
-import org.apache.pig.impl.io.InterStorage;
 import org.apache.pig.impl.io.ReadToEndLoader;
 import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.util.Pair;
 import org.apache.pig.impl.util.UDFContext;
+import org.apache.pig.impl.util.Utils;
 
 /**
  * A class of utility static methods to be used in the hadoop map reduce backend
@@ -84,9 +84,15 @@ public class MapRedUtil {
             conf.set("fs.file.impl", PigMapReduce.sJobConf.get("fs.file.impl"));
         if (PigMapReduce.sJobConf.get("fs.hdfs.impl")!=null)
             conf.set("fs.hdfs.impl", PigMapReduce.sJobConf.get("fs.hdfs.impl"));
+        if (PigMapReduce.sJobConf.getBoolean("pig.tmpfilecompression", false))
+        {
+            conf.setBoolean("pig.tmpfilecompression", true);
+            if (PigMapReduce.sJobConf.get("pig.tmpfilecompression.codec")!=null)
+                conf.set("pig.tmpfilecompression.codec", PigMapReduce.sJobConf.get("pig.tmpfilecompression.codec"));
+        }
         conf.set(MapRedUtil.FILE_SYSTEM_NAME, "file:///");
 
-        ReadToEndLoader loader = new ReadToEndLoader(new InterStorage(), conf, 
+        ReadToEndLoader loader = new ReadToEndLoader(Utils.getTmpFileStorageObject(PigMapReduce.sJobConf), conf, 
                 keyDistFile, 0);
         DataBag partitionList;
         Tuple t = loader.getNext();
@@ -156,7 +162,7 @@ public class MapRedUtil {
                     NodeIdGenerator.getGenerator().getNextNodeId(scope)));
                 spec = new FileSpec(FileLocalizer.getTemporaryPath(
                     pigContext).toString(),
-                    new FuncSpec(InterStorage.class.getName()));
+                    new FuncSpec(Utils.getTmpFileCompressorName(pigContext)));
                 str.setSFile(spec);
                 plan.addAsLeaf(str);
             } else{
