@@ -55,12 +55,12 @@ import org.apache.pig.backend.hadoop.executionengine.util.MapRedUtil;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.FileSpec;
-import org.apache.pig.impl.io.InterStorage;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.LogicalPlan;
 import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.util.ObjectSerializer;
+import org.apache.pig.impl.util.Utils;
 import org.apache.pig.newplan.logical.LogicalPlanMigrationVistor;
 import org.apache.pig.newplan.logical.optimizer.SchemaResetter;
 import org.apache.pig.tools.pigstats.OutputStats;
@@ -411,7 +411,7 @@ public class HExecutionEngine {
                     NodeIdGenerator.getGenerator().getNextNodeId(scope)));
                 spec = new FileSpec(FileLocalizer.getTemporaryPath(
                     pigContext).toString(),
-                    new FuncSpec(InterStorage.class.getName()));
+                    new FuncSpec(Utils.getTmpFileCompressorName(pigContext)));
                 str.setSFile(spec);
                 plan.addAsLeaf(str);
             } else{

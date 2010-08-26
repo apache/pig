@@ -32,10 +32,11 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.Physica
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POForEach;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLoad;
 import org.apache.pig.impl.io.FileSpec;
-import org.apache.pig.impl.io.InterStorage;
 import org.apache.pig.impl.plan.DepthFirstWalker;
 import org.apache.pig.impl.plan.PlanException;
 import org.apache.pig.impl.plan.VisitorException;
+import org.apache.pig.impl.util.Utils;
+import org.apache.pig.impl.PigContext;
 
 /**
  * A visitor to optimize plans that have a sample job that immediately follows a
@@ -47,9 +48,11 @@ import org.apache.pig.impl.plan.VisitorException;
 public class SampleOptimizer extends MROpPlanVisitor {
 
     private Log log = LogFactory.getLog(getClass());
+    private PigContext pigContext;
 
-    public SampleOptimizer(MROperPlan plan) {
+    public SampleOptimizer(MROperPlan plan, PigContext pigContext) {
         super(plan, new DepthFirstWalker<MapReduceOper, MROperPlan>(plan));
+        this.pigContext = pigContext;
     }
 
     private List<MapReduceOper> opsToRemove = new ArrayList<MapReduceOper>();
@@ -136,7 +139,7 @@ public class SampleOptimizer extends MROpPlanVisitor {
         MapReduceOper succ = succs.get(0);
 
         // Find the load the correlates with the file the sampler is loading, and
-        // check that it is using BinaryStorage.
+        // check that it is using the twmp file storage format.
         if (succ.mapPlan == null) { // Huh?
             log.debug("Successor has no map plan.");
             return;
@@ -150,7 +153,7 @@ public class SampleOptimizer extends MROpPlanVisitor {
             }
             POLoad sl = (POLoad)root;
             if (loadFile.equals(sl.getLFile().getFileName()) && 
-                    InterStorage.class.getName().equals(sl.getLFile().getFuncName())) {
+                    Utils.getTmpFileCompressorName(pigContext).equals(sl.getLFile().getFuncName())) {
                 succLoad = sl;
                 break;
             }

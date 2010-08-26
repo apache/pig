@@ -55,16 +55,14 @@ import org.apache.pig.backend.hadoop.datastorage.HDataStorage;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigSplit;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataReaderWriter;
-import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.io.BinStorageInputFormat;
 import org.apache.pig.impl.io.BinStorageOutputFormat;
 import org.apache.pig.impl.io.BinStorageRecordReader;
 import org.apache.pig.impl.io.BinStorageRecordWriter;
 import org.apache.pig.impl.io.FileLocalizer;
-import org.apache.pig.impl.io.ReadToEndLoader;
-import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.util.LogUtils;
+import org.apache.pig.impl.util.Utils;
 
 /**
  * Load and store data in a binary format.  This class is used by Pig to move
@@ -408,27 +406,7 @@ implements LoadCaster, StoreFuncInterface, LoadMetadata {
             }
         }
 
-        ReadToEndLoader loader = new ReadToEndLoader(this, conf, location, 0);
-        // get the first record from the input file
-        // and figure out the schema from the data in
-        // the first record
-        Tuple t = loader.getNext();
-        if(t == null) {
-            // we couldn't get a valid record from the input
-            return null;
-        }
-        int numFields = t.size();
-        Schema s = new Schema();
-        for (int i = 0; i < numFields; i++) {
-            try {
-                s.add(DataType.determineFieldSchema(t.get(i)));
-            } catch (Exception e) {
-                int errCode = 2104;
-                String msg = "Error while determining schema of BinStorage data.";
-                throw new ExecException(msg, errCode, PigException.BUG, e);
-            } 
-        }
-        return new ResourceSchema(s);
+        return Utils.getSchema(this, location, false, job);
     }
 
     @Override

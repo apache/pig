@@ -82,7 +82,7 @@ public class TestSampleOptimizer {
         // Before optimizer visits, number of MR jobs = 3.
         assertEquals(3,count);   
 
-        SampleOptimizer so = new SampleOptimizer(mrPlan);
+        SampleOptimizer so = new SampleOptimizer(mrPlan, pc);
         so.visit();
 
         count = 1;
@@ -129,7 +129,7 @@ public class TestSampleOptimizer {
         // Before optimizer visits, number of MR jobs = 3.
         assertEquals(3,count);
 
-        SampleOptimizer so = new SampleOptimizer(mrPlan);
+        SampleOptimizer so = new SampleOptimizer(mrPlan, pc);
         so.visit();
 
         count = 1;
@@ -211,7 +211,7 @@ public class TestSampleOptimizer {
         // Before optimizer visits, number of MR jobs = 3.
         assertEquals(3,count);
 
-        SampleOptimizer so = new SampleOptimizer(mrPlan);
+        SampleOptimizer so = new SampleOptimizer(mrPlan, pc);
         so.visit();
 
         count = 1;
@@ -243,7 +243,7 @@ public class TestSampleOptimizer {
         // Before optimizer visits, number of MR jobs = 3.
         assertEquals(3,count);
 
-        SampleOptimizer so = new SampleOptimizer(mrPlan);
+        SampleOptimizer so = new SampleOptimizer(mrPlan, pc);
         so.visit();
 
         count = 1;
