@@ -108,17 +108,6 @@ public class LogicalOptimizer extends
         mRules.add(new Rule<LogicalOperator, LogicalPlan>(rulePlan,
                 new PartitionFilterOptimizer(plan), "LoadPartitionFilterOptimizer"));
         
-        // this one is ordered to be before other optimizations since  later 
-        // optimizations may move the LOFilter that is looks for just after a 
-        // LOLoad
-        rulePlan = new RulePlan();
-        RuleOperator loNat = new RuleOperator(LONative.class, 
-                new OperatorKey(SCOPE, nodeIdGen.getNextNodeId(SCOPE)));
-        rulePlan.add(loNat);
-        mRules.add(new Rule<LogicalOperator, LogicalPlan>(rulePlan,
-                new PartitionFilterOptimizer(plan), "NativePartitionFilterOptimizer"));
-
-
         // Add type casting to plans where the schema has been declared (by
         // user, data, or data catalog).
         rulePlan = new RulePlan();
@@ -138,16 +127,6 @@ public class LogicalOptimizer extends
         mRules.add(new Rule<LogicalOperator, LogicalPlan>(rulePlan, new TypeCastInserter(plan,
                 LOStream.class.getName()), "StreamTypeCastInserter"));
         
-        // Add type casting to plans where the schema has been declared by
-        // user in a statement with native operator.
-        
-        rulePlan = new RulePlan();
-        RuleOperator loNative= new RuleOperator(LONative.class, 
-                new OperatorKey(SCOPE, nodeIdGen.getNextNodeId(SCOPE)));
-        rulePlan.add(loNative);
-        mRules.add(new Rule<LogicalOperator, LogicalPlan>(rulePlan, new TypeCastInserter(plan,
-                LONative.class.getName()), "NativeTypeCastInserter"));
-
         if(!turnAllRulesOff) {
 
             // Push up limit wherever possible.

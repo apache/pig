@@ -126,6 +126,7 @@ public class MapReduceLauncher extends Launcher{
         PigStatsUtil.startCollection(pc, jobClient, jcc, mrp); 
         
         List<Job> failedJobs = new LinkedList<Job>();
+        List<NativeMapReduceOper> failedNativeMR = new LinkedList<NativeMapReduceOper>();
         List<Job> completeFailedJobsInThisRun = new LinkedList<Job>();
         List<Job> succJobs = new LinkedList<Job>();
         JobControl jc;
@@ -136,7 +137,10 @@ public class MapReduceLauncher extends Launcher{
         //create the exception handler for the job control thread
         //and register the handler with the job control thread
         JobControlThreadExceptionHandler jctExceptionHandler = new JobControlThreadExceptionHandler();
-
+        
+        boolean stop_on_failure = 
+            pc.getProperties().getProperty("stop.on.failure", "false").equals("true");
+        
         // jc is null only when mrp.size == 0
         while(mrp.size() != 0) {
             jc = jcc.compile(mrp, grpName);
@@ -152,14 +156,34 @@ public class MapReduceLauncher extends Launcher{
                             ScriptState.get().emitJobsSubmittedNotification(1);
                             natOp.runJob();
                             numMRJobsCompl++;
-                            double prog = ((double)numMRJobsCompl)/totalMRJobs;
-                            notifyProgress(prog, lastProg);
-                            lastProg = prog;
-                            mrp.remove(natOp);
-                        } catch (JobCreationException je) {
+                        } catch (IOException e) {
+                            
                             mrp.trimBelow(natOp);
-                            mrp.remove(natOp);
+                            failedNativeMR.add(natOp);
+                            
+                            String msg = "Error running native mapreduce" +
+                            " operator job :" + natOp.getJobId() + e.getMessage();
+                            
+                            String stackTrace = getStackStraceStr(e);
+                            LogUtils.writeLog(msg,
+                                    stackTrace,
+                                    pc.getProperties().getProperty("pig.logfile"),
+                                    log
+                            );     
+                            log.info(msg);
+                            
+                            if (stop_on_failure) {
+                                int errCode = 6017;
+                               
+                                throw new ExecException(msg, errCode,
+                                        PigException.REMOTE_ENVIRONMENT);
+                            }
+                            
                         }
+                        double prog = ((double)numMRJobsCompl)/totalMRJobs;
+                        notifyProgress(prog, lastProg);
+                        lastProg = prog;
+                        mrp.remove(natOp);
                     }
                 }
                 continue;
@@ -250,8 +274,7 @@ public class MapReduceLauncher extends Launcher{
             }
             
             if (!jc.getFailedJobs().isEmpty() ) {
-                if ("true".equalsIgnoreCase(pc.getProperties().getProperty(
-                        "stop.on.failure", "false"))) {
+                if (stop_on_failure){
                     int errCode = 6017;
                     StringBuilder msg = new StringBuilder();
                     
@@ -298,6 +321,10 @@ public class MapReduceLauncher extends Launcher{
         log.info( "100% complete");
              
         boolean failed = false;
+        
+        if(failedNativeMR.size() > 0){
+            failed = true;
+        }
         
         // Look to see if any jobs failed.  If so, we need to report that.
         if (failedJobs != null && failedJobs.size() > 0) {
@@ -380,6 +407,13 @@ public class MapReduceLauncher extends Launcher{
                 : ReturnCode.FAILURE)
                 : ReturnCode.SUCCESS; 
         return PigStatsUtil.getPigStats(ret);
+    }
+
+    private String getStackStraceStr(Throwable e) {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        PrintStream ps = new PrintStream(baos);
+        e.printStackTrace(ps);
+        return baos.toString();
     }
 
     /**
@@ -553,10 +587,7 @@ public class MapReduceLauncher extends Launcher{
     class JobControlThreadExceptionHandler implements Thread.UncaughtExceptionHandler {
         
         public void uncaughtException(Thread thread, Throwable throwable) {
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            PrintStream ps = new PrintStream(baos);
-            throwable.printStackTrace(ps);
-            jobControlExceptionStackTrace = baos.toString();    		
+            jobControlExceptionStackTrace = getStackStraceStr(throwable);
             try {	
                 jobControlException = getExceptionFromString(jobControlExceptionStackTrace);
             } catch (Exception e) {

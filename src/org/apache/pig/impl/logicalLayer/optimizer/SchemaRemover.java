@@ -183,13 +183,7 @@ public class SchemaRemover extends LOVisitor {
         // don't have a way to recover it.
         super.visit(load);
     }
-    
-    @Override
-    protected void visit(LONative load) throws VisitorException{
-        // We treat this in similar way as load
-        super.visit(load);
-    }
-    
+       
     @Override
     protected void visit(LOStore store) throws VisitorException{
         store.unsetSchema();

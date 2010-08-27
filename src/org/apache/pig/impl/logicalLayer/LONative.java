@@ -31,34 +31,16 @@ public class LONative extends RelationalOperator {
      */
     private static final long serialVersionUID = 1L;
 
-    String nativeMRJar;
-    LogicalPlan innerPlan;
-    String[] params = null;
-    private LOLoad load;
-    private LOStore store;
+    private String nativeMRJar;
+    private String[] params = null;
 
-    public LONative(LogicalPlan plan, OperatorKey k, LogicalPlan innerLP, 
-                    LOStore loStore, LOLoad loLoad, String nativeJar, String[] parameters) {
+    public LONative(LogicalPlan plan, OperatorKey k, 
+            String nativeJar, String[] parameters) {
         super(plan, k);
-        innerPlan = innerLP;
         nativeMRJar = nativeJar;
         params = parameters;
-        load = loLoad;
-        store = loStore;
     }
-    
-    public LogicalPlan getInnerPlan() {
-        return innerPlan;
-    }
-
-    public LOLoad getLoad() {
-        return load;
-    }
-
-    public LOStore getStore() {
-        return store;
-    }
-    
+ 
     @Override
     public List<RequiredFields> getRelevantInputs(int output, int column)
             throws FrontendException {
@@ -74,23 +56,24 @@ public class LONative extends RelationalOperator {
     }
 
     @Override
-    public Schema getSchema() throws FrontendException {
-        return load.getSchema();
-    }
-
-    @Override
     public void visit(LOVisitor v) throws VisitorException {
         v.visit(this);
     }
 
     @Override
     public String name() {
-        return getAliasString() + "Native " + mKey.scope + "-" + mKey.id +" Store: " + store.name() + " Run: hadoop jar " + nativeMRJar + " " + Utils.getStringFromArray(params) + " Load: " + load.name();
+        return getAliasString() + "Native " + mKey.scope + "-" + mKey.id 
+        + " Run: hadoop jar " + nativeMRJar + " " + Utils.getStringFromArray(params) ;
      }
     
     @Override
     public boolean supportsMultipleInputs() {
         return false;
+    }
+
+    @Override
+    public Schema getSchema() throws FrontendException {
+        return null;
     }
 
 }

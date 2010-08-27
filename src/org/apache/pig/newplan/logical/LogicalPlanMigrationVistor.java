@@ -33,6 +33,7 @@ import org.apache.pig.impl.logicalLayer.LOGenerate;
 import org.apache.pig.impl.logicalLayer.LOJoin;
 import org.apache.pig.impl.logicalLayer.LOLimit;
 import org.apache.pig.impl.logicalLayer.LOLoad;
+import org.apache.pig.impl.logicalLayer.LONative;
 import org.apache.pig.impl.logicalLayer.LOSort;
 import org.apache.pig.impl.logicalLayer.LOSplit;
 import org.apache.pig.impl.logicalLayer.LOSplitOutput;
@@ -393,6 +394,25 @@ public class LogicalPlanMigrationVistor extends LOVisitor {
         opsMap.put(distinct, newDistinct);
         translateConnection(distinct, newDistinct);
     }
+
+    
+    public void visit(LONative nativeMR) throws VisitorException {
+        org.apache.pig.newplan.logical.relational.LONative newNativeMR = 
+            new org.apache.pig.newplan.logical.relational.LONative(
+                    logicalPlan,
+                    nativeMR.getNativeMRJar(),
+                    nativeMR.getParams()
+            );
+        newNativeMR.setAlias(nativeMR.getAlias());
+        newNativeMR.setRequestedParallelism(nativeMR.getRequestedParallelism());
+        newNativeMR.setCustomPartitioner(nativeMR.getCustomPartitioner());
+        
+        logicalPlan.add(newNativeMR);
+        opsMap.put(nativeMR, newNativeMR);
+        translateConnection(nativeMR, newNativeMR);
+    }
+    
+
     
     public void finish() {
         for(org.apache.pig.newplan.logical.expression.LogicalExpression exp: scalarAliasMap.keySet()) {

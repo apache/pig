@@ -17,12 +17,13 @@
  */
 package org.apache.pig.test;
 
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Random;
-
-import junit.framework.TestCase;
 
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
@@ -34,13 +35,13 @@ import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
 
-public class TestNativeMapReduce extends TestCase {
+public class TestNativeMapReduce  {
     static MiniCluster cluster = MiniCluster.buildCluster();
     private PigServer pigServer;
     // the jar has been created using the source at
     // http://svn.apache.org/repos/asf/hadoop/mapreduce/trunk/src/examples/org/apache/hadoop/examples/WordCount.java:816822
     private String jarFileName = "test//org/apache/pig/test/data/TestWordCount.jar";
-    
+    private String exp_msg_prefix = "Check if expected results contains: ";
     TupleFactory mTf = TupleFactory.getInstance();
     BagFactory mBf = BagFactory.getInstance();
 
@@ -50,9 +51,9 @@ public class TestNativeMapReduce extends TestCase {
     }*/
 
     @Before
-    @Override
     public void setUp() throws Exception{
         FileLocalizer.setR(new Random());
+        //FileLocalizer.setInitialized(false);
         pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
 
         //createWordCountJar();
@@ -96,17 +97,17 @@ public class TestNativeMapReduce extends TestCase {
         Iterator<Tuple> iter = pigServer.openIterator("C");
         Tuple t;
 
-        assertTrue(iter.hasNext());
+        assertTrue("iter.hasNext()",iter.hasNext());
         t = iter.next();
-        assertTrue(results.contains(t.toString()));
+        assertTrue(exp_msg_prefix + t, results.contains(t.toString()));
 
-        assertTrue(iter.hasNext());
+        assertTrue("iter.hasNext()",iter.hasNext());
         t = iter.next();
-        assertTrue(results.contains(t.toString()));
+        assertTrue(exp_msg_prefix + t, results.contains(t.toString()));
 
-        assertTrue(iter.hasNext());
+        assertTrue("iter.hasNext()",iter.hasNext());
         t = iter.next();
-        assertTrue(results.contains(t.toString()));
+        assertTrue(exp_msg_prefix + t, results.contains(t.toString()));
 
         assertFalse(iter.hasNext());
         
@@ -117,17 +118,17 @@ public class TestNativeMapReduce extends TestCase {
         // check in interactive mode
         iter = pigServer.openIterator("B");
 
-        assertTrue(iter.hasNext());
+        assertTrue("iter.hasNext()",iter.hasNext());
         t = iter.next();
-        assertTrue(results.contains(t.toString()));
+        assertTrue(exp_msg_prefix + t, results.contains(t.toString()));
 
-        assertTrue(iter.hasNext());
+        assertTrue("iter.hasNext()",iter.hasNext());
         t = iter.next();
-        assertTrue(results.contains(t.toString()));
+        assertTrue(exp_msg_prefix + t, results.contains(t.toString()));
 
-        assertTrue(iter.hasNext());
+        assertTrue("iter.hasNext()",iter.hasNext());
         t = iter.next();
-        assertTrue(results.contains(t.toString()));
+        assertTrue(exp_msg_prefix + t, results.contains(t.toString()));
 
         assertFalse(iter.hasNext());
         
@@ -173,17 +174,17 @@ public class TestNativeMapReduce extends TestCase {
         Iterator<Tuple> iter = pigServer.openIterator("C");
         Tuple t;
 
-        assertTrue(iter.hasNext());
+        assertTrue("iter.hasNext()",iter.hasNext());
         t = iter.next();
-        assertTrue(results.contains(t.toString()));
+        assertTrue(exp_msg_prefix + t, results.contains(t.toString()));
 
-        assertTrue(iter.hasNext());
+        assertTrue("iter.hasNext()",iter.hasNext());
         t = iter.next();
-        assertTrue(results.contains(t.toString()));
+        assertTrue(exp_msg_prefix + t, results.contains(t.toString()));
 
-        assertTrue(iter.hasNext());
+        assertTrue("iter.hasNext()",iter.hasNext());
         t = iter.next();
-        assertTrue(results.contains(t.toString()));
+        assertTrue(exp_msg_prefix + t, results.contains(t.toString()));
 
         assertFalse(iter.hasNext());
         
@@ -193,17 +194,17 @@ public class TestNativeMapReduce extends TestCase {
         // check in interactive mode
         iter = pigServer.openIterator("B");
 
-        assertTrue(iter.hasNext());
+        assertTrue("iter.hasNext()",iter.hasNext());
         t = iter.next();
-        assertTrue(results.contains(t.toString()));
+        assertTrue(exp_msg_prefix + t, results.contains(t.toString()));
 
-        assertTrue(iter.hasNext());
+        assertTrue("iter.hasNext()",iter.hasNext());
         t = iter.next();
-        assertTrue(results.contains(t.toString()));
+        assertTrue(exp_msg_prefix + t, results.contains(t.toString()));
 
-        assertTrue(iter.hasNext());
+        assertTrue("iter.hasNext()",iter.hasNext());
         t = iter.next();
-        assertTrue(results.contains(t.toString()));
+        assertTrue(exp_msg_prefix + t, results.contains(t.toString()));
 
         assertFalse(iter.hasNext());
         
@@ -245,33 +246,33 @@ public class TestNativeMapReduce extends TestCase {
         Iterator<Tuple> iter = pigServer.openIterator("C");
         Tuple t;
 
-        assertTrue(iter.hasNext());
+        assertTrue("iter.hasNext()",iter.hasNext());
         t = iter.next();
-        assertTrue(results.contains(t.toString()));
+        assertTrue(exp_msg_prefix + t, results.contains(t.toString()));
 
-        assertTrue(iter.hasNext());
+        assertTrue("iter.hasNext()",iter.hasNext());
         t = iter.next();
-        assertTrue(results.contains(t.toString()));
+        assertTrue(exp_msg_prefix + t, results.contains(t.toString()));
 
-        assertTrue(iter.hasNext());
+        assertTrue("iter.hasNext()",iter.hasNext());
         t = iter.next();
-        assertTrue(results.contains(t.toString()));
+        assertTrue(exp_msg_prefix + t, results.contains(t.toString()));
 
         assertFalse(iter.hasNext());
 
         iter = pigServer.openIterator("B");
 
-        assertTrue(iter.hasNext());
+        assertTrue("iter.hasNext()",iter.hasNext());
         t = iter.next();
-        assertTrue(results.contains(t.toString()));
+        assertTrue(exp_msg_prefix + t, results.contains(t.toString()));
 
-        assertTrue(iter.hasNext());
+        assertTrue("iter.hasNext()",iter.hasNext());
         t = iter.next();
-        assertTrue(results.contains(t.toString()));
+        assertTrue(exp_msg_prefix + t, results.contains(t.toString()));
 
-        assertTrue(iter.hasNext());
+        assertTrue("iter.hasNext()",iter.hasNext());
         t = iter.next();
-        assertTrue(results.contains(t.toString()));
+        assertTrue(exp_msg_prefix + t, results.contains(t.toString()));
 
         assertFalse(iter.hasNext());
         
@@ -310,17 +311,17 @@ public class TestNativeMapReduce extends TestCase {
         Iterator<Tuple> iter = pigServer.openIterator("C");
         Tuple t;
         
-        assertTrue(iter.hasNext());
+        assertTrue("iter.hasNext()",iter.hasNext());
         t = iter.next();
-        assertTrue(results.contains(t.toString()));
+        assertTrue(exp_msg_prefix + t, results.contains(t.toString()));
 
-        assertTrue(iter.hasNext());
+        assertTrue("iter.hasNext()",iter.hasNext());
         t = iter.next();
-        assertTrue(results.contains(t.toString()));
+        assertTrue(exp_msg_prefix + t, results.contains(t.toString()));
 
-        assertTrue(iter.hasNext());
+        assertTrue("iter.hasNext()",iter.hasNext());
         t = iter.next();
-        assertTrue(results.contains(t.toString()));
+        assertTrue(exp_msg_prefix + t, results.contains(t.toString()));
 
         assertFalse(iter.hasNext());
         

@@ -50,7 +50,7 @@ public class PlanHelper {
      * @return List of stores (could be empty)
      */
     public static LinkedList<POStore> getStores(PhysicalPlan plan) throws VisitorException {
-        LoadStoreFinder finder = new LoadStoreFinder(plan);
+        LoadStoreNativeFinder finder = new LoadStoreNativeFinder(plan);
 
         finder.visit();
         return finder.getStores();
@@ -62,11 +62,23 @@ public class PlanHelper {
      * @return List of loads (could be empty)
      */
     public static LinkedList<POLoad> getLoads(PhysicalPlan plan) throws VisitorException {
-        LoadStoreFinder finder = new LoadStoreFinder(plan);
+        LoadStoreNativeFinder finder = new LoadStoreNativeFinder(plan);
 
         finder.visit();
         return finder.getLoads();
     }
+    
+    /**
+     * Get all the load operators in the plan in the right dependency order
+     * @param plan
+     * @return List of loads (could be empty)
+     */
+    public static LinkedList<PONative> getNativeMRs(PhysicalPlan plan) throws VisitorException {
+        LoadStoreNativeFinder finder = new LoadStoreNativeFinder(plan);
+
+        finder.visit();
+        return finder.getNativeMRs();
+    }    
 
     /**
      * Creates a relative path that can be used to build a temporary
@@ -85,14 +97,16 @@ public class PlanHelper {
         }
     }
 
-    private static class LoadStoreFinder extends PhyPlanVisitor {
+    private static class LoadStoreNativeFinder extends PhyPlanVisitor {
         private LinkedList<POLoad> loads;
         private LinkedList<POStore> stores;
+        private LinkedList<PONative> nativeMRs;
         
-        LoadStoreFinder(PhysicalPlan plan) {
+        LoadStoreNativeFinder(PhysicalPlan plan) {
             super(plan, new DependencyOrderWalker<PhysicalOperator, PhysicalPlan>(plan));
             stores = new LinkedList<POStore>();
             loads = new LinkedList<POLoad>();
+            nativeMRs = new LinkedList<PONative>();
         }
         
         @Override
@@ -111,13 +125,23 @@ public class PlanHelper {
             super.visitLoad(load);
             loads.add(load);
         }
-
+        
+        @Override 
+        public void visitNative(PONative nativeMR) throws VisitorException {
+            super.visitNative(nativeMR);
+            nativeMRs.add(nativeMR);
+        }
+        
         public LinkedList<POStore> getStores() {
             return stores;
         }
 
         public LinkedList<POLoad> getLoads() {
             return loads;
+        }
+        
+        public LinkedList<PONative> getNativeMRs(){
+            return nativeMRs;
         }
     }
 }
