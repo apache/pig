@@ -1509,8 +1509,7 @@ String StringList() :
 //B = native ('mymr.jar' [, 'other.jar' ...]) A store into 'storeLocation' using storeFunc load 'loadLocation' using loadFunc ['params'];
 LogicalOperator MapReduceClause(LogicalPlan lp) : 
 {
-	LogicalPlan innerPlan = new LogicalPlan();
-	LogicalOperator  loLoad;
+    	LogicalOperator  loLoad;
 	LogicalOperator loStore;
 	LONative loNative;
 	Schema schema;
@@ -1537,11 +1536,19 @@ LogicalOperator MapReduceClause(LogicalPlan lp) :
 	]
 	
 	<STORE>
-	loStore = StoreClause(innerPlan)
+	loStore = StoreClause(lp)
+	{
+	    ((LOStore)loStore).setTmpStore(true);
+	    String inputAlias = ((LOStore)loStore).getAlias();
+	    LogicalOperator input = mapAliasOp.get(inputAlias);
+	    if (input == null)
+	       throw new ParseException("Unable to find alias " + inputAlias);
+	    lp.add(input);
+	    lp.connect(input, loStore);
+	    
+	}
 	<LOAD>
-	loLoad = LoadClause(innerPlan)
-	// We do this so that Store gets a pred etc
-	{innerPlan.connect(loLoad, loStore);}
+	loLoad = LoadClause(lp)
 	[ <AS> 
         (
             LOOKAHEAD(2) "(" schema = TupleSchema() ")" 
@@ -1565,19 +1572,13 @@ LogicalOperator MapReduceClause(LogicalPlan lp) :
 	 }
 	]
 	{
-		loNative = new LONative(lp, new OperatorKey(scope, getNextId()), innerPlan, 
-				(LOStore)loStore, (LOLoad)loLoad, nativeMRJar, params);
+		loNative = new LONative(lp, new OperatorKey(scope, getNextId()),
+		        nativeMRJar, params);
 	
 		lp.add(loNative);
-		
-		String inputAlias = ((LOStore)loStore).getAlias();
-    	LogicalOperator input = mapAliasOp.get(inputAlias);
-        if (input == null)
-            throw new ParseException("Unable to find alias " + inputAlias);
-
-        lp.add(input);
-		lp.connect(input, loNative);
-		return loNative;
+		lp.connect(loStore, loNative);
+		lp.connect(loNative, loLoad);
+		return loLoad;
 	}
 }
 

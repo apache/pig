@@ -68,6 +68,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPartitionRearrange;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSkewedJoin;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSort;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSortedDistinct;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSplit;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStream;
@@ -149,9 +150,6 @@ public class MRCompiler extends PhyPlanVisitor {
     //The output of compiling the inputs
     MapReduceOper[] compiledInputs = null;
 
-    //Mapping of which MapReduceOper a store belongs to.
-    Map<POStore, MapReduceOper> storeToMapReduceMap;
-    
     //The split operators seen till now. If not
     //maintained they will haunt you.
     //During the traversal a split is the only
@@ -199,7 +197,6 @@ public class MRCompiler extends PhyPlanVisitor {
         }
         scope = roots.get(0).getOperatorKey().getScope();
         messageCollector = new CompilationMessageCollector() ;
-        storeToMapReduceMap = new HashMap<POStore, MapReduceOper>();
         phyToMROpMap = new HashMap<PhysicalOperator, MapReduceOper>();
     }
     
@@ -261,9 +258,17 @@ public class MRCompiler extends PhyPlanVisitor {
             }
         }
 
+        // get all stores and nativeMR operators, sort them in order(operator id)
+        // and compile their plans
         List<POStore> stores = PlanHelper.getStores(plan);
-        for (POStore store: stores) {
-            compile(store);
+        List<PONative> nativeMRs= PlanHelper.getNativeMRs(plan);
+        List<PhysicalOperator> ops = new ArrayList<PhysicalOperator>(stores.size() + nativeMRs.size());
+        ops.addAll(stores);
+        ops.addAll(nativeMRs);
+        Collections.sort(ops);
+        
+        for (PhysicalOperator op : ops) {
+            compile(op);
         }
         
         // I'm quite certain this is not the best way to do this.  The issue
@@ -313,7 +318,11 @@ public class MRCompiler extends PhyPlanVisitor {
         //store them away so that we can use them for compiling
         //op.
         List<PhysicalOperator> predecessors = plan.getPredecessors(op);
-        if (predecessors != null && predecessors.size() > 0) {
+        if(op instanceof PONative){
+            // the predecessor (store) has already been processed
+            // don't process it again
+        }
+        else if (predecessors != null && predecessors.size() > 0) {
             // When processing an entire script (multiquery), we can
             // get into a situation where a load has
             // predecessors. This means that it depends on some store
@@ -331,9 +340,12 @@ public class MRCompiler extends PhyPlanVisitor {
                 }
 
                 PhysicalOperator p = predecessors.get(0);
-                if (!(p instanceof POStore)) {
+                MapReduceOper oper = null;
+                if(p instanceof POStore || p instanceof PONative){
+                    oper = phyToMROpMap.get(p); 
+                }else{
                     int errCode = 2126;
-                    String msg = "Predecessor of load should be a store. Got "+p.getClass();
+                    String msg = "Predecessor of load should be a store or mapreduce operator. Got "+p.getClass();
                     throw new PlanException(msg, errCode, PigException.BUG);
                 }
 
@@ -341,8 +353,6 @@ public class MRCompiler extends PhyPlanVisitor {
                 curMROp = getMROp();
                 curMROp.mapPlan.add(op);
                 MRPlan.add(curMROp);
-                
-                MapReduceOper oper = storeToMapReduceMap.get((POStore)p);
 
                 plan.disconnect(op, p);
                 MRPlan.connect(oper, curMROp);
@@ -760,39 +770,13 @@ public class MRCompiler extends PhyPlanVisitor {
     @Override
     public void visitNative(PONative op) throws VisitorException{
         // We will explode the native operator here to add a new MROper for native Mapreduce job
-        // We will also add respective Load and Store operators for this native job
         try{
-            POStore st = op.getInnerStore();
-            st.setAlias(op.getAlias());
-            st.setIsTmpStore(true);
-            st.setParentPlan(mPlan);
-            mPlan.add(st);
-            
-            PhysicalOperator pred = mPlan.getPredecessors(op).get(0);
-            mPlan.disconnect(pred, op);
-            mPlan.connect(pred, st);
-            
-            nonBlocking(st);
-            
-            MapReduceOper prevMROp = phyToMROpMap.get(pred);
-            storeToMapReduceMap.put(st, prevMROp);
-            phyToMROpMap.put(st, prevMROp);
-            if (st.getSFile()!=null && st.getSFile().getFuncSpec()!=null)
-                curMROp.UDFs.add(st.getSFile().getFuncSpec().toString());
-            
             // add a map reduce boundary
-            MapReduceOper nativeMR = getNativeMROp(op.getNativeMRjar(), op.getParams());
-            MRPlan.add(nativeMR);
-            MRPlan.connect(curMROp, nativeMR);
-            
-            // add one more map reduce boundary
-            POLoad ld = op.getInnerLoad();
-            ld.setAlias(op.getAlias());
-            curMROp = getMROp();
-            curMROp.mapPlan.add(ld);
-            MRPlan.add(curMROp);
-            MRPlan.connect(nativeMR, curMROp);
-            
+            MapReduceOper nativeMROper = getNativeMROp(op.getNativeMRjar(), op.getParams());
+            MRPlan.add(nativeMROper);
+            MRPlan.connect(curMROp, nativeMROper);
+            phyToMROpMap.put(op, nativeMROper);
+            curMROp = nativeMROper;
         }catch(Exception e){
             int errCode = 2034;
             String msg = "Error compiling operator " + op.getClass().getSimpleName();
@@ -803,7 +787,6 @@ public class MRCompiler extends PhyPlanVisitor {
     @Override
     public void visitStore(POStore op) throws VisitorException{
         try{
-            storeToMapReduceMap.put(op, curMROp);
             nonBlocking(op);
             phyToMROpMap.put(op, curMROp);
             if (op.getSFile()!=null && op.getSFile().getFuncSpec()!=null)

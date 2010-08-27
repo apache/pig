@@ -30,7 +30,6 @@ import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.LOCast;
 import org.apache.pig.impl.logicalLayer.LOForEach;
 import org.apache.pig.impl.logicalLayer.LOLoad;
-import org.apache.pig.impl.logicalLayer.LONative;
 import org.apache.pig.impl.logicalLayer.LOProject;
 import org.apache.pig.impl.logicalLayer.LOStream;
 import org.apache.pig.impl.logicalLayer.LogicalOperator;
@@ -72,9 +71,6 @@ public class TypeCastInserter extends LogicalTransformer {
             Schema determinedSchema = null;
             if(LOLoad.class.getName().equals(operatorClassName)) {
                 determinedSchema = ((LOLoad)op).getDeterminedSchema();
-            }
-            if(LONative.class.getName().equals(operatorClassName)) {
-                determinedSchema = ((LONative)op).getLoad().getDeterminedSchema();
             }
             for (int i = 0; i < fss.size(); i++) {
                 if (fss.get(i).type != DataType.BYTEARRAY) {
@@ -128,16 +124,6 @@ public class TypeCastInserter extends LogicalTransformer {
             }
     
             return lo;
-        } else if(LONative.class.getName().equals(operatorClassName)) {
-            if(lo == null || !(lo instanceof LONative)) {
-                int errCode = 2005;
-                String msg = "Expected " + LONative.class.getSimpleName()
-                        + ", got "
-                        + (lo == null ? lo : lo.getClass().getSimpleName());
-                throw new OptimizerException(msg, errCode, PigException.BUG);
-            }
-            
-            return lo;
         } else {
             // we should never be called with any other operator class name
             int errCode = 1034;
@@ -166,9 +152,6 @@ public class TypeCastInserter extends LogicalTransformer {
             Schema determinedSchema = null;
             if(LOLoad.class.getName().equals(operatorClassName)) {
                 determinedSchema = ((LOLoad)lo).getDeterminedSchema();
-            }
-            if(LONative.class.getName().equals(operatorClassName)) {
-                determinedSchema = ((LONative)lo).getLoad().getDeterminedSchema();
             }
             for (int i = 0; i < s.size(); i++) {
                 LogicalPlan p = new LogicalPlan();
@@ -199,8 +182,6 @@ public class TypeCastInserter extends LogicalTransformer {
                                 StreamingCommand command = ((LOStream)lo).getStreamingCommand();
                                 HandleSpec streamOutputSpec = command.getOutputSpec(); 
                                 loadFuncSpec = new FuncSpec(streamOutputSpec.getSpec());
-                            } else if (lo instanceof LONative) {
-                                loadFuncSpec = ((LONative)lo).getLoad().getInputFile().getFuncSpec();
                             } else {
                                 int errCode = 2006;
                                 String msg = "TypeCastInserter invoked with an invalid operator class name: " + lo.getClass().getSimpleName();

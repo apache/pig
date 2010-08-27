@@ -626,7 +626,6 @@
                     <exclude name="**/TestOrderBy.java" />
                     <exclude name="**/TestOrderBy2.java" />
                     <exclude name="**/TestPi.java" />
-                    <exclude name="**/TestNativeMapReduce.java" />
                     <exclude name="**/nightly/**" />
                     <!-- <exclude name="**/pigunit/**" /> -->
                     <exclude name="**/${exclude.testcase}.java" if="exclude.testcase" />
