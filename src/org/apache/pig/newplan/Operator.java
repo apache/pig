@@ -83,6 +83,10 @@ public abstract class Operator {
         return annotations.remove(key);
     }
     
+    public void setPlan(OperatorPlan p) {
+        plan = p;
+    }
+    
     /**
      * This is like a shallow equals comparison.
      * It returns true if two operators have equivalent properties even if they are 
