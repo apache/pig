@@ -38,6 +38,7 @@ import org.apache.pig.newplan.optimizer.Rule;
 
 import org.apache.pig.newplan.logical.rules.LimitOptimizer;
 import org.apache.pig.newplan.logical.rules.PartitionFilterOptimizer;
+import org.apache.pig.newplan.logical.rules.PushDownForEachFlatten;
 
 public class LogicalPlanOptimizer extends PlanOptimizer {
     private Set<String> mRulesOff = null;
@@ -117,6 +118,14 @@ public class LogicalPlanOptimizer extends PlanOptimizer {
         checkAndAddRule(s, r);
         // add merge filter rule
         r = new MergeFilter("MergeFilter");        
+        checkAndAddRule(s, r);
+        if (!s.isEmpty())
+            ls.add(s);
+        
+        // PushDownForEachFlatten set
+        s = new HashSet<Rule>();
+        // Add the PushDownForEachFlatten
+        r = new PushDownForEachFlatten("PushDownForEachFlatten");
         checkAndAddRule(s, r);
         if (!s.isEmpty())
             ls.add(s);
