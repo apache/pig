@@ -2683,9 +2683,6 @@ public class MRCompiler extends PhyPlanVisitor {
                 POLoad ld = getLoad();
                 ld.setLFile(fSpec);
                 limitAdjustMROp.mapPlan.add(ld);
-                POLimit pLimit = new POLimit(new OperatorKey(scope,nig.getNextNodeId(scope)));
-                pLimit.setLimit(mr.limit);
-                limitAdjustMROp.mapPlan.addAsLeaf(pLimit);
                 if (mr.isGlobalSort()) {
                     connectMapToReduceLimitedSort(limitAdjustMROp, mr);
                 } else {
