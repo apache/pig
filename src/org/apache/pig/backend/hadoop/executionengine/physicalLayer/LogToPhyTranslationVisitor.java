@@ -1669,17 +1669,7 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
         poNative.setAlias(loNative.getAlias());
         poNative.setNativeMRjar(loNative.getNativeMRJar());
         poNative.setParams(loNative.getParams());
-        poNative.setResultType(loNative.getLoad().getType());
-        
-        currentPlans.push(currentPlan);
-        currentPlan = new PhysicalPlan();
-        PlanWalker<LogicalOperator, LogicalPlan> childWalker = mCurrentWalker
-                .spawnChildWalker(loNative.getInnerPlan());
-        pushWalker(childWalker);
-        mCurrentWalker.walk(this);
-        popWalker();
-        poNative.setPhysInnerPlan(currentPlan);
-        currentPlan = currentPlans.pop();
+        poNative.setResultType(DataType.BAG);
         
         logToPhyMap.put(loNative, poNative);
         currentPlan.add(poNative);

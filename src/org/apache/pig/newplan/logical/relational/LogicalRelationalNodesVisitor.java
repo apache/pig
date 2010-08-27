@@ -89,4 +89,7 @@ public abstract class LogicalRelationalNodesVisitor extends PlanVisitor {
     
     public void visit(LOStream loStream) throws FrontendException {
     }
+
+    public void visit(LONative nativeMR) throws FrontendException{     
+    }
 }

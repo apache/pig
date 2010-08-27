@@ -19,7 +19,6 @@ package org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOp
 
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.util.Utils;
@@ -28,38 +27,11 @@ public class PONative extends PhysicalOperator {
     
     private static final long serialVersionUID = 1L;
 
-    PhysicalPlan physInnerPlan;
     String nativeMRjar;
     String[] params;
-    POStore innerStore;
-    POLoad innerLoad;
-    
+
     public PONative(OperatorKey k) {
         super(k);
-    }
-
-    public PhysicalPlan getPhysInnerPlan() {
-        return physInnerPlan;
-    }
-
-    public void setPhysInnerPlan(PhysicalPlan physInnerPlan) {
-        this.physInnerPlan = physInnerPlan;
-        for(PhysicalOperator innerOp : physInnerPlan) {
-            if(innerOp instanceof POStore) {
-                innerStore = (POStore) innerOp;
-            }
-            if(innerOp instanceof POLoad) {
-                innerLoad = (POLoad) innerOp;
-            }
-        }
-    }
-    
-    public POStore getInnerStore() {
-        return innerStore;
-    }
-
-    public POLoad getInnerLoad() {
-        return innerLoad;
     }
 
     @Override
@@ -70,7 +42,8 @@ public class PONative extends PhysicalOperator {
     @Override
     public String name() {
         return getAliasString() + "Native" + "('hadoop jar "
-        + nativeMRjar + " " + Utils.getStringFromArray(params) + "')" + " - " + mKey.toString();
+        + nativeMRjar + " " + Utils.getStringFromArray(params) + "')" 
+        + " - " + mKey.toString();
     }
 
     public String getNativeMRjar() {

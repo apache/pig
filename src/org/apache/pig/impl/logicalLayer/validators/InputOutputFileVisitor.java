@@ -117,10 +117,5 @@ public class InputOutputFileVisitor extends LOVisitor {
             throw new PlanValidationException(errMsg, errCode, pigCtx.getErrorSource(), ie);
         }
     }
-    
-    @Override
-    protected void visit(LONative nativeMR) throws PlanValidationException{
-        visit(nativeMR.getStore());
-    }
 
 }

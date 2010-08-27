@@ -47,6 +47,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLocalRearrange;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POMergeCogroup;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POMergeJoin;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.PONative;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPackage;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSkewedJoin;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSort;
@@ -148,6 +149,42 @@ public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
             }
         }
 //        System.err.println("Exiting Load");
+    }
+    
+    
+    @Override
+    public void visit(LONative loNative) throws FrontendException{     
+        String scope = DEFAULT_SCOPE;
+        
+        PONative poNative = new PONative(new OperatorKey(scope, nodeGen
+                .getNextNodeId(scope)));
+        poNative.setAlias(loNative.getAlias());
+        poNative.setNativeMRjar(loNative.getNativeMRJar());
+        poNative.setParams(loNative.getParams());
+        poNative.setResultType(DataType.BAG);
+
+        logToPhyMap.put(loNative, poNative);
+        currentPlan.add(poNative);
+        
+        List<Operator> op = loNative.getPlan().getPredecessors(loNative);
+
+        PhysicalOperator from;
+        if(op != null) {
+            from = logToPhyMap.get(op.get(0));
+        } else {
+            int errCode = 2051;
+            String msg = "Did not find a predecessor for Native." ;
+            throw new LogicalToPhysicalTranslatorException(msg, errCode, PigException.BUG);
+        }
+        
+        try {
+            currentPlan.connect(from, poNative);
+        } catch (PlanException e) {
+            int errCode = 2015;
+            String msg = "Invalid physical operators in the physical plan" ;
+            throw new LogicalToPhysicalTranslatorException(msg, errCode, PigException.BUG, e);
+        }
+        
     }
     
     @Override
