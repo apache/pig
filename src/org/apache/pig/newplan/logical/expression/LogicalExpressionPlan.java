@@ -19,7 +19,12 @@
 package org.apache.pig.newplan.logical.expression;
 
 import java.io.PrintStream;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.newplan.BaseOperatorPlan;
@@ -58,4 +63,35 @@ public class LogicalExpressionPlan extends BaseOperatorPlan {
         ExprPrinter npp = new ExprPrinter(this, ps);
         npp.visit();
     }
+    
+    /**
+     * Merge all nodes in lgExpPlan, keep the connections
+     * @param lgExpPlan plan to merge
+     * @return sources of the merged plan
+     */
+    public List<Operator> merge(LogicalExpressionPlan lgExpPlan) throws FrontendException {
+        
+        List<Operator> sources = lgExpPlan.getSources();
+        
+        Iterator<Operator> iter = lgExpPlan.getOperators();
+        while (iter.hasNext()) {
+            LogicalExpression op = (LogicalExpression)iter.next();
+            op.setPlan(this);
+            add(op);
+        }
+        
+        iter = lgExpPlan.getOperators();
+        while (iter.hasNext()) {
+            LogicalExpression startOp = (LogicalExpression)iter.next();
+            ArrayList<Operator> endOps = (ArrayList<Operator>)lgExpPlan.fromEdges.get(startOp);
+            if (endOps!=null) {
+                for (Operator endOp : endOps) {
+                        connect(startOp, endOp);
+                }
+            }
+        }
+        
+        return sources;
+    }
+
 }
