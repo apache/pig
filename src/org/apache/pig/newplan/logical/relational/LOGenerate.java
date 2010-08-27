@@ -19,6 +19,7 @@ package org.apache.pig.newplan.logical.relational;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.pig.data.DataType;
 import org.apache.pig.impl.logicalLayer.FrontendException;
@@ -146,5 +147,32 @@ public class LOGenerate extends LogicalRelationalOperator {
              throw new FrontendException("Expected LogicalPlanVisitor", 2223);
          }
          ((LogicalRelationalNodesVisitor)v).visit(this);
+    }
+    
+    @Override
+    public String toString() {
+        StringBuilder msg = new StringBuilder();
+
+        if (alias!=null) {
+            msg.append(alias + ": ");
+        }
+        msg.append("(Name: " + name + "[");
+        for (int i=0;i<flattenFlags.length;i++) {
+            msg.append(flattenFlags[i]);
+            if (i!=flattenFlags.length-1)
+                msg.append(",");
+        }
+        msg.append("] Schema: ");
+        if (schema!=null)
+            msg.append(schema);
+        else
+            msg.append("null");
+        msg.append(")");
+        if (annotations!=null) {
+            for (Map.Entry<String, Object> entry : annotations.entrySet()) {
+                msg.append(entry);
+            }
+        }
+        return msg.toString();
     }
 }

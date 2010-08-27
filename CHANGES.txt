@@ -26,6 +26,8 @@ PIG-1249: Safe-guards against misconfigured Pig scripts without PARALLEL keyword
 
 IMPROVEMENTS
 
+PIG-1515: Migrate logical optimization rule: PushDownForeachFlatten (xuefuz via daijy)
+
 PIG-1321: Logical Optimizer: Merge cascading foreach (xuefuz via daijy)
 
 PIG-1483: [piggybank] Add HadoopJobHistoryLoader to the piggybank (rding)
