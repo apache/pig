@@ -1193,7 +1193,7 @@ public class TestPruneColumn extends TestCase {
         assertTrue(checkLogFileMessage(new String[]{"Columns pruned for A: $0", 
                 "Map key required for A: $1->[key2, key1]"}));
     }
-    /*
+    
     @Test
     public void testMapKey3() throws Exception {
         pigServer.registerQuery("A = load '"+ Util.generateURI(tmpFile3.toString(), pigServer.getPigContext()) + "' as (a0:int, a1:map[]);");
@@ -1211,7 +1211,7 @@ public class TestPruneColumn extends TestCase {
         assertFalse(iter.hasNext());
         
         assertTrue(checkLogFileMessage(new String[]{"Columns pruned for A: $0"}));
-    }*/
+    }
     
     @Test
     public void testMapKey4() throws Exception {
