@@ -103,10 +103,12 @@ import org.apache.pig.pen.ExampleGenerator;
 import org.apache.pig.scripting.ScriptEngine;
 import org.apache.pig.tools.grunt.GruntParser;
 import org.apache.pig.tools.parameters.ParameterSubstitutionPreprocessor;
+import org.apache.pig.tools.pigstats.JobStats;
 import org.apache.pig.tools.pigstats.OutputStats;
 import org.apache.pig.tools.pigstats.PigStats;
 import org.apache.pig.tools.pigstats.PigStatsUtil;
 import org.apache.pig.tools.pigstats.ScriptState;
+import org.apache.pig.tools.pigstats.PigStats.JobGraph;
 
 
 /**
@@ -323,13 +325,20 @@ public class PigServer {
     public List<ExecJob> executeBatch() throws FrontendException, ExecException {
         PigStats stats = executeBatchEx();
         LinkedList<ExecJob> jobs = new LinkedList<ExecJob>();
-        for (OutputStats output : stats.getOutputStats()) {
-            if (output.isSuccessful()) {
-                jobs.add(new HJob(HJob.JOB_STATUS.COMPLETED, pigContext, output
-                        .getPOStore(), output.getAlias(), stats));
-            } else {
-                jobs.add(new HJob(HJob.JOB_STATUS.FAILED, pigContext, output
-                        .getPOStore(), output.getAlias(), stats));
+        JobGraph jGraph = stats.getJobGraph();
+        Iterator<JobStats> iter = jGraph.iterator();
+        while (iter.hasNext()) {
+            JobStats js = iter.next();
+            for (OutputStats output : js.getOutputs()) {
+                if (js.isSuccessful()) {                
+                    jobs.add(new HJob(HJob.JOB_STATUS.COMPLETED, pigContext, output
+                            .getPOStore(), output.getAlias(), stats));
+                } else {
+                    HJob hjob = new HJob(HJob.JOB_STATUS.FAILED, pigContext, output
+                            .getPOStore(), output.getAlias(), stats);
+                    hjob.setException(js.getException());
+                    jobs.add(hjob);
+                }
             }
         }
         return jobs;
@@ -338,7 +347,7 @@ public class PigServer {
     private PigStats executeBatchEx() throws FrontendException, ExecException {
         if (!isMultiQuery) {
             // ignore if multiquery is off
-            return PigStatsUtil.getEmptyPigStats();
+            return PigStats.get();
         }
 
         if (currDAG == null || !isBatchOn()) {

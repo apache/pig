@@ -40,6 +40,7 @@ import org.apache.pig.impl.util.LogUtils;
 import org.apache.pig.tools.pigscript.parser.ParseException;
 import org.apache.pig.tools.pigstats.PigStats;
 import org.apache.pig.tools.pigstats.ScriptState;
+import org.junit.Before;
 import org.junit.Test;
 
 public class TestPigStats  {
@@ -73,29 +74,38 @@ public class TestPigStats  {
     
     @Test
     public void testPigStatsAlias() throws Exception {
-        PigServer pig = new PigServer(ExecType.LOCAL);
-        pig.registerQuery("A = load 'input' as (name, age, gpa);");
-        pig.registerQuery("B = group A by name;");
-        pig.registerQuery("C = foreach B generate group, COUNT(A);");
-        pig.registerQuery("D = order C by $1;");
-        pig.registerQuery("E = limit D 10;");
-        pig.registerQuery("store E into 'output';");
-        
-        LogicalPlan lp = getLogicalPlan(pig);
-        PhysicalPlan pp = pig.getPigContext().getExecutionEngine().compile(lp,
-                null);
-        MROperPlan mp = getMRPlan(pp, pig.getPigContext());
-        
-        assertEquals(3, mp.getKeys().size());
-        
-        MapReduceOper mro = mp.getRoots().get(0);
-        assertEquals("A,B,C", getAlias(mro));
-        
-        mro = mp.getSuccessors(mro).get(0);
-        assertEquals("D", getAlias(mro));
-         
-        mro = mp.getSuccessors(mro).get(0);
-        assertEquals("D", getAlias(mro));
+        try {
+            PigServer pig = new PigServer(ExecType.LOCAL);
+            pig.registerQuery("A = load 'input' as (name, age, gpa);");
+            pig.registerQuery("B = group A by name;");
+            pig.registerQuery("C = foreach B generate group, COUNT(A);");
+            pig.registerQuery("D = order C by $1;");
+            pig.registerQuery("E = limit D 10;");
+            pig.registerQuery("store E into 'alias_output';");
+            
+            LogicalPlan lp = getLogicalPlan(pig);
+            PhysicalPlan pp = pig.getPigContext().getExecutionEngine().compile(lp,
+                    null);
+            MROperPlan mp = getMRPlan(pp, pig.getPigContext());
+            
+            assertEquals(3, mp.getKeys().size());
+            
+            MapReduceOper mro = mp.getRoots().get(0);
+            assertEquals("A,B,C", getAlias(mro));
+            
+            mro = mp.getSuccessors(mro).get(0);
+            assertEquals("D", getAlias(mro));
+             
+            mro = mp.getSuccessors(mro).get(0);
+            assertEquals("D", getAlias(mro));
+        } finally {
+            File outputfile = new File("alias_output");
+            if (outputfile.exists()) {
+                // Hadoop Local mode creates a directory
+                // Hence we need to delete a directory recursively
+                deleteDirectory(outputfile);
+            }
+        }
     }
     
     private void deleteDirectory( File dir ) {
