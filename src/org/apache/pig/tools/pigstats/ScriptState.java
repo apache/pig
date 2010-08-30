@@ -353,7 +353,7 @@ public class ScriptState {
                 Attributes attr = attrs.get("org/apache/pig");
                 pigVersion = attr.getValue("Implementation-Version");
             } catch (Exception e) { 
-                LOG.warn("unable to read pigs manifest file", e); 
+                LOG.warn("unable to read pigs manifest file"); 
             } 
         }
         return (pigVersion == null) ? "" : pigVersion;

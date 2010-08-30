@@ -111,10 +111,11 @@ static int run(String args[], PigProgressNotificationListener listener) {
     int rc = 1;
     
     GenericOptionsParser parser = new GenericOptionsParser(args);
-    Configuration conf = parser.getConfiguration();
-    Properties properties = ConfigurationUtil.toProperties(conf);
+    Configuration conf = parser.getConfiguration();    
     
+    Properties properties = new Properties();
     PropertiesUtil.loadDefaultProperties(properties);
+    properties.putAll(ConfigurationUtil.toProperties(conf));
     
     String[] pigArgs = parser.getRemainingArgs();
     
@@ -161,15 +162,21 @@ static int run(String args[], PigProgressNotificationListener listener) {
         if(execTypeString!=null && execTypeString.length()>0){
             execType = PigServer.parseExecType(execTypeString);
         }
-        
-        //by default warning aggregation is on
-        properties.setProperty("aggregate.warning", ""+true);
+                
+        if (properties.getProperty("aggregate.warning") == null) {
+            //by default warning aggregation is on
+            properties.setProperty("aggregate.warning", ""+true);
+        }
+                
+        if (properties.getProperty("opt.multiquery") == null) {
+            //by default multiquery optimization is on
+            properties.setProperty("opt.multiquery", ""+true);
+        }
 
-        //by default multiquery optimization is on
-        properties.setProperty("opt.multiquery", ""+true);
-
-        //by default we keep going on error on the backend
-        properties.setProperty("stop.on.failure", ""+false);
+        if (properties.getProperty("stop.on.failure") == null) {
+            //by default we keep going on error on the backend
+            properties.setProperty("stop.on.failure", ""+false);
+        }
         
         // set up client side system properties in UDF context
         UDFContext.getUDFContext().setClientSystemProps();
