@@ -30,10 +30,12 @@ import java.util.Properties;
 
 import junit.framework.Assert;
 
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigRunner;
 import org.apache.pig.PigRunner.ReturnCode;
+import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.newplan.Operator;
@@ -72,7 +74,7 @@ public class TestPigRunner {
     public static void tearDownAfterClass() throws Exception {
         new File(INPUT_FILE).delete();
         cluster.shutDown();
-    }
+    }    
 
     @Before
     public void setUp() {
@@ -135,12 +137,12 @@ public class TestPigRunner {
         w.close();
         
         try {
-            String[] args = { PIG_FILE };
+            String[] args = { "-Dstop.on.failure=true", "-Dopt.multiquery=false", "-Daggregate.warning=false", PIG_FILE };
             PigStats stats = PigRunner.run(args, new TestNotificationListener());
      
             assertTrue(stats.isSuccessful());
             
-            assertTrue(stats.getJobGraph().size() == 1);
+            assertEquals(1, stats.getNumberJobs());
             String name = stats.getOutputNames().get(0);
             assertEquals(OUTPUT_FILE, name);
             assertEquals(12, stats.getBytesWritten());
@@ -148,6 +150,11 @@ public class TestPigRunner {
             
             assertEquals("A,B,C",
                     ((JobStats)stats.getJobGraph().getSinks().get(0)).getAlias());
+            
+            Configuration conf = ConfigurationUtil.toConfiguration(stats.getPigProperties());
+            assertTrue(conf.getBoolean("stop.on.failure", false));           
+            assertTrue(!conf.getBoolean("aggregate.warning", true));
+            assertTrue(!conf.getBoolean("opt.multiquery", true));
         } finally {
             new File(PIG_FILE).delete();
             Util.deleteFile(cluster, OUTPUT_FILE);
