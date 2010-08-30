@@ -116,7 +116,7 @@ public class TestFilterUDF {
         pigServer.registerQuery("A = LOAD '" 
                 + Util.generateURI(tmpFile.toString(), pigServer.getPigContext()) 
                 + "' as (x:int);");
-        pigServer.registerQuery("B = filter A by " + MyFilterFunction.class.getName() + "();");
+        pigServer.registerQuery("B = filter A by " + MyFilterFunction.class.getName() + "($0);");
         Iterator<Tuple> iter = pigServer.openIterator("B");
         if(!iter.hasNext()) fail("No Output received");
         int cnt = 0;
