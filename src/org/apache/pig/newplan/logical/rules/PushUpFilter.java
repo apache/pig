@@ -125,26 +125,19 @@ public class PushUpFilter extends Rule {
                     }
                 }
                 
-                // find the farthest predecessor that has all the fields
-                LogicalRelationalOperator input = join;
-                List<Operator> preds = currentPlan.getPredecessors(input);
-                while(!(input instanceof LOForEach) && preds != null) {                
-                    boolean found = false;
-                    for(int j=0; j<preds.size(); j++) {
-                        if (hasAll((LogicalRelationalOperator)preds.get(j), uids)) {
-                            input = (LogicalRelationalOperator)preds.get(j);   
-                            subPlan.add(input);
-                            found = true;
-                            break;
-                        }
-                    }
-                    if (!found) {
+                // Find the predecessor of join that contains all required uids.
+                Operator input = null;
+                List<Operator> preds = currentPlan.getPredecessors(join);
+                for(int j=0; j<preds.size(); j++) {
+                    if( hasAll((LogicalRelationalOperator)preds.get(j), uids) ) {
+                        input = preds.get(j);   
+                        subPlan.add(input);
                         break;
                     }
-                    preds = currentPlan.getPredecessors(input);
                 }
                             
-                if (input != join) {                           
+                if( input != null ) {
+                    // Found one of the join's predeccessors of the join which has all the uids.
                     Operator pred = currentPlan.getPredecessors(filter).get(0);
                     Operator succed = currentPlan.getSuccessors(filter).get(0);
                     subPlan.add(succed);
@@ -156,17 +149,17 @@ public class PushUpFilter extends Rule {
                     succed = currentPlan.getSuccessors(input).get(0);
                     Pair<Integer, Integer> p3 = currentPlan.disconnect(input, succed);
                     currentPlan.connect(input, p3.first, filter, 0);
-                    currentPlan.connect(filter, 0, succed, p3.second);                                        
-                    
+                    currentPlan.connect(filter, 0, succed, p3.second);
                     return;
-                }  
-                
-                List<Operator> l = currentPlan.getSuccessors(filter);
-                if (l != null) {
-                    next = l.get(0);
-                } else {
-                    next = null;
-                }                         
+                }  else {
+                    // Didn't find the opeartor, so looking at the next one after the filter.
+                    List<Operator> l = currentPlan.getSuccessors(filter );
+                    if( l != null ) {
+                        next = l.get( 0 );
+                    } else {
+                        next = null;
+                    }
+                }
             }
         }
         
