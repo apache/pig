@@ -147,7 +147,7 @@ public class LOSort extends RelationalOperator {
                     throw new FrontendException(msg, errCode, PigException.INPUT, false, null);
                 }
                 if(op instanceof ExpressionOperator) {
-                    Schema.FieldSchema fs = new Schema.FieldSchema(((ExpressionOperator)op).getFieldSchema());
+                    Schema.FieldSchema fs = Schema.FieldSchema.copyAndLink(((ExpressionOperator)op).getFieldSchema(), op);
                     if(DataType.isSchemaType(fs.type)) {
                         mSchema = fs.schema;
                     } else {
@@ -156,9 +156,7 @@ public class LOSort extends RelationalOperator {
                     }
                 } else {
                     if (getInput().getSchema()!=null) {
-                        mSchema = new Schema(op.getSchema());
-                        for (int i=0;i<getInput().getSchema().size();i++)
-                            mSchema.getField(i).setParent(getInput().getSchema().getField(i).canonicalName, getInput());
+                        mSchema = Schema.copyAndLink( op.getSchema(), op );
                     }
                     else
                         mSchema = null;

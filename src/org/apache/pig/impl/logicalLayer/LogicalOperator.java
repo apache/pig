@@ -162,6 +162,22 @@ abstract public class LogicalOperator extends Operator<LOVisitor> {
             mSchema.reconcile(schema);
         }
     }
+    
+    /**
+     * Set the parent of the schema field in the schema hierarchy. Currently only used by
+     * LOStream and LOLoad.
+     * 
+     * @param schema the schema instance to set parent for
+     */
+    protected final void setParent(Schema schema) {
+    	if( schema == null )
+    		return;
+    	
+    	for( Schema.FieldSchema fs : schema.getFields() ) {
+    		fs.setParent( null, this );
+   			setParent( fs.schema );
+    	}
+    }
 
     /**
      * Directly force the schema without reconcilation

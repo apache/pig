@@ -173,6 +173,8 @@ public class LOLoad extends RelationalOperator {
                 mSchema = null;
                 throw fee;
             }
+            // Set the parent of all fields in the schema as this (LOLoad instance) with parent canonicalName as null.
+            setParent( mSchema );
         }
         return mSchema;
     }

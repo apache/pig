@@ -5777,5 +5777,163 @@ public class TestTypeCheckingValidator extends TestCase {
         }
         
     }
+    
+    @Test
+    public void testLineageMultipleLoader1() throws FrontendException {
+        planTester.buildPlan( "A = LOAD 'data1' USING PigStorage() AS (u, v, w);" ) ;
+        planTester.buildPlan( "B = LOAD 'data2' USING TextLoader() AS (x, y);" ) ;
+        planTester.buildPlan("C = JOIN A BY u, B BY x USING 'replicated';") ;
+        planTester.buildPlan("D = GROUP C BY (u, x);");
+        LogicalPlan plan = planTester.buildPlan( "E = FOREACH D GENERATE (chararray)group.u, (int)group.x;" );
 
+        // validate
+        CompilationMessageCollector collector = new CompilationMessageCollector() ;
+        TypeCheckingValidator typeValidator = new TypeCheckingValidator() ;
+        typeValidator.validate(plan, collector) ;
+
+        printMessageCollector(collector) ;
+        printTypeGraph(plan) ;
+        planTester.printPlan(plan, TypeCheckingTestUtil.getCurrentMethodName());
+
+        if (collector.hasError()) {
+            throw new AssertionError("Expect no  error") ;
+        }
+
+        // Check group.u
+        LOForEach foreach = (LOForEach)plan.getLeaves().get(0);
+        LogicalPlan foreachPlan = foreach.getForEachPlans().get(0);
+        LogicalOperator exOp = foreachPlan.getRoots().get(0);
+        LOProject proj = (LOProject)foreachPlan.getSuccessors(exOp).get(0);
+        LOCast cast = (LOCast)foreachPlan.getSuccessors( proj ).get( 0 );
+        assertTrue(cast.getLoadFuncSpec().getClassName().startsWith("PigStorage"));
+
+        // Check group.x
+        foreachPlan = foreach.getForEachPlans().get( 1 );
+        exOp = foreachPlan.getRoots().get(0);
+        proj = (LOProject)foreachPlan.getSuccessors(exOp).get(0);
+        cast = (LOCast)foreachPlan.getSuccessors( proj ).get( 0 );
+        assertTrue(cast.getLoadFuncSpec().getClassName().startsWith("TextLoader"));
+    }
+
+    /**
+     * From JIRA 1482
+     * @throws FrontendException
+     */
+    @Test
+    public void testLineageMultipleLoader2() throws FrontendException {
+        planTester.buildPlan( "A = LOAD 'data1' USING PigStorage() AS (s, m, l);" ) ;
+        planTester.buildPlan( "B = FOREACH A GENERATE s#'k1' as v1, m#'k2' as v2, l#'k3' as v3;" ) ;
+        planTester.buildPlan( "C = FOREACH B GENERATE v1, (v2 == 'v2' ? 1L : 0L) as v2:long, (v3 == 'v3' ? 1 :0) as v3:int;" ) ;
+        planTester.buildPlan( "D = LOAD 'data2' USING TextLoader() AS (a);");
+        planTester.buildPlan( "E = JOIN C BY v1, D BY a USING 'replicated';" );
+        planTester.buildPlan( "F = GROUP E BY (v1, a);" );
+        LogicalPlan plan = planTester.buildPlan( "G = FOREACH F GENERATE (chararray)group.v1, group.a;" );
+
+        // validate
+        CompilationMessageCollector collector = new CompilationMessageCollector() ;
+        TypeCheckingValidator typeValidator = new TypeCheckingValidator() ;
+        typeValidator.validate(plan, collector) ;
+
+        printMessageCollector(collector) ;
+        printTypeGraph(plan) ;
+        planTester.printPlan(plan, TypeCheckingTestUtil.getCurrentMethodName());
+
+        if (collector.hasError()) {
+            throw new AssertionError("Expect no  error") ;
+        }
+
+        // Check group.u
+        LOForEach foreach = (LOForEach)plan.getLeaves().get(0);
+        LogicalPlan foreachPlan = foreach.getForEachPlans().get(0);
+        LogicalOperator exOp = foreachPlan.getRoots().get(0);
+        LOProject proj = (LOProject)foreachPlan.getSuccessors(exOp).get(0);
+        LOCast cast = (LOCast)foreachPlan.getSuccessors( proj ).get( 0 );
+        assertTrue(cast.getLoadFuncSpec().getClassName().startsWith("PigStorage"));
+    }
+
+    /**
+     * A special invalid case.
+     */
+    @Test
+    public void testLineageMultipleLoader3() throws FrontendException {
+        planTester.buildPlan( "A = LOAD 'data1' USING PigStorage() AS (u, v, w);" ) ;
+        planTester.buildPlan( "B = LOAD 'data2' USING TextLoader() AS (x, y);" ) ;
+        planTester.buildPlan("C = COGROUP A BY u, B by x;");
+        LogicalPlan plan = planTester.buildPlan( "D = FOREACH C GENERATE (chararray)group;" );
+
+        // validate
+        CompilationMessageCollector collector = new CompilationMessageCollector() ;
+        TypeCheckingValidator typeValidator = new TypeCheckingValidator() ;
+        try {
+        	typeValidator.validate(plan, collector) ;
+        } catch(PlanValidationException ex) {
+        	assertTrue( ex.getCause().toString().contains( "Cannot resolve load function to use for casting from bytearray to chararray." ) );
+        	return;
+        }
+        assertTrue( "Validation failure is expected.", false );
+    }
+    
+    /**
+     * In case of filter with tuple type
+     */
+    @Test
+    public void testLineageFilterWithTuple() throws FrontendException {
+        planTester.buildPlan( "A = LOAD 'data1' USING PigStorage() AS (u, v, w:tuple(a,b));" ) ;
+        planTester.buildPlan( "B = FOREACH A generate v, w;");
+        planTester.buildPlan( "C = FILTER B by v < 50;" ) ;
+        LogicalPlan plan = planTester.buildPlan("D = FOREACH C generate (int)w.a;");
+
+        // validate
+        CompilationMessageCollector collector = new CompilationMessageCollector() ;
+        TypeCheckingValidator typeValidator = new TypeCheckingValidator() ;
+        typeValidator.validate(plan, collector) ;
+
+        printMessageCollector(collector) ;
+        printTypeGraph(plan) ;
+        planTester.printPlan(plan, TypeCheckingTestUtil.getCurrentMethodName());
+
+        if (collector.hasError()) {
+            throw new AssertionError("Expect no  error") ;
+        }
+
+        LOForEach foreach = (LOForEach)plan.getLeaves().get(0);
+        LogicalPlan foreachPlan = foreach.getForEachPlans().get(0);
+        LogicalOperator exOp = foreachPlan.getRoots().get(0);
+        LOProject proj = (LOProject)foreachPlan.getSuccessors(exOp).get(0);
+        LOCast cast = (LOCast)foreachPlan.getSuccessors( proj ).get( 0 );
+        assertTrue(cast.getLoadFuncSpec().getClassName().startsWith("PigStorage"));
+    }
+    
+    @Test
+    public void testLineageExpressionCasting() throws FrontendException {
+        planTester.buildPlan( "A = LOAD 'data1' USING PigStorage() AS (u:int, v);" ) ;
+        planTester.buildPlan( "B = FILTER A by u < 50;" ) ;
+        LogicalPlan plan = planTester.buildPlan("C = FOREACH B generate u + v;");
+
+        // validate
+        CompilationMessageCollector collector = new CompilationMessageCollector() ;
+        TypeCheckingValidator typeValidator = new TypeCheckingValidator() ;
+        typeValidator.validate(plan, collector) ;
+
+        printMessageCollector(collector) ;
+        printTypeGraph(plan) ;
+        planTester.printPlan(plan, TypeCheckingTestUtil.getCurrentMethodName());
+
+        if (collector.hasError()) {
+            throw new AssertionError("Expect no  error") ;
+        }
+
+        LOForEach foreach = (LOForEach)plan.getLeaves().get(0);
+        LogicalPlan foreachPlan = foreach.getForEachPlans().get(0);
+        List<LogicalOperator> projs = foreachPlan.getRoots();
+        LogicalOperator proj = projs.get(1);
+        LogicalOperator op = foreachPlan.getSuccessors( proj ).get( 0 );
+        if( !( op instanceof LOCast ) ) {
+        	proj = projs.get(1);
+            op = foreachPlan.getSuccessors( proj ).get( 0 );
+        }
+        LOCast cast = (LOCast)op;
+        assertTrue(cast.getLoadFuncSpec().getClassName().startsWith("PigStorage"));
+    }
+    
 }

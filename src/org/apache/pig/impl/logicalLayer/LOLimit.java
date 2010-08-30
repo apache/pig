@@ -64,9 +64,7 @@ public class LOLimit extends RelationalOperator {
         if (!mIsSchemaComputed) {
             try {
                 if (getInput().getSchema()!=null) {
-                    mSchema = new Schema(getInput().getSchema());
-                    for (int i=0;i<getInput().getSchema().size();i++)
-                        mSchema.getField(i).setParent(getInput().getSchema().getField(i).canonicalName, getInput());
+                    mSchema = Schema.copyAndLink(getInput().getSchema(), getInput());
                 }
                 else
                     mSchema = null;

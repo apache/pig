@@ -242,8 +242,7 @@ public class LOForEach extends RelationalOperator {
 						    if(null != s && s.size()!=0) {
 						        for(int i = 0; i < s.size(); ++i) {
                                     Schema.FieldSchema fs;
-                                    fs = new Schema.FieldSchema(s.getField(i));
-                                    fs.setParent(s.getField(i).canonicalName, op);
+                                    fs = Schema.FieldSchema.copyAndLink(s.getField(i), op);
 									log.debug("fs: " + fs);
                                     if(null != userDefinedSchema) {
                                         Schema.FieldSchema userDefinedFieldSchema;
@@ -301,7 +300,7 @@ public class LOForEach extends RelationalOperator {
                                         updateAliasCount(aliases, newFs.alias);
                                         fss.add(newFs);
                                         mSchemaPlanMapping.add(plan);
-                                        newFs.setParent(null, op);
+                                        newFs.setParent(planFs.canonicalName, op);
                                     } else {
                                         for(Schema.FieldSchema ufs: userDefinedSchema.getFields()) {
                                             Schema.FieldSchema.setFieldSchemaDefaultType(ufs, DataType.BYTEARRAY);
@@ -320,14 +319,14 @@ public class LOForEach extends RelationalOperator {
                                     }
                                     fss.add(newFs);
                                     mSchemaPlanMapping.add(plan);
-                                    newFs.setParent(null, op);
+                                    newFs.setParent( planFs.canonicalName, op );
                                 }
 							}
 						} else {
 							//just populate the schema with the field schema of the expression operator
                             //check if the user has defined a schema for the operator; compare the schema
                             //with that of the expression operator field schema and then add it to the list
-                            Schema.FieldSchema newFs = new Schema.FieldSchema(planFs);
+                            Schema.FieldSchema newFs = Schema.FieldSchema.copyAndLink(planFs, op);
                             if(null != userDefinedSchema) {
                                 try {
                                     newFs = newFs.mergePrefixFieldSchema(userDefinedSchema.getField(0));

@@ -177,11 +177,13 @@ public class Schema implements Serializable, Cloneable {
             alias = a;
             schema = s;
             log.debug("t: " + t + " Bag: " + DataType.BAG + " tuple: " + DataType.TUPLE);
+            
             if ((null != s) && !(DataType.isSchemaType(t))) {
                 int errCode = 1020;
                 throw new FrontendException("Only a BAG or TUPLE can have schemas. Got "
                         + DataType.findTypeName(t), errCode, PigException.INPUT);
             }
+            
             type = t;
             canonicalName = canonicalNamer.getNewName();
             canonicalMap = new HashMap<String, LogicalOperator>();
@@ -214,6 +216,35 @@ public class Schema implements Serializable, Cloneable {
             reverseCanonicalMap = new MultiMap<LogicalOperator, String>();
         }
 
+        /**
+         * Make a copy of the FieldSchema instance and link the new one to the old one with canonical map.
+         * 
+         * @param fs FieldSchema instance to be copied.
+         * @param op The operator to which the old FieldSchema instance belongs.
+         * @return a new copy
+         * @throws FrontendException
+         */
+        public static FieldSchema copyAndLink(FieldSchema fs, LogicalOperator op) {
+        	String alias = null;
+        	Schema schema = null;
+        	byte type = DataType.UNKNOWN;
+            if( null != fs ) {
+                alias = fs.alias;
+                if( null != fs.schema ) {
+                    schema = Schema.copyAndLink( fs.schema, op );
+                } else {
+                    schema = null;
+                }
+                type = fs.type;
+            }
+            
+            FieldSchema fieldSchema = new FieldSchema( alias, schema );
+            fieldSchema.type = type;
+            fieldSchema.setParent( fs == null ? null : fs.canonicalName, op );
+            
+            return fieldSchema;
+        }
+        
         public void setParent(String parentCanonicalName, LogicalOperator parent) {
             if(null != parentCanonicalName) {
                 canonicalMap.put(parentCanonicalName, parent);
@@ -569,6 +600,22 @@ public class Schema implements Serializable, Cloneable {
             return (fs.type == DataType.NULL || fs.type == DataType.UNKNOWN);
         }
 
+        /**
+         * Find a field schema instance in this FieldSchema hierarchy (including "this")
+         * that matches the given canonical name.
+         * 
+         * @param canonicalName canonical name
+         * @return the FieldSchema instance found
+         */
+		public FieldSchema findFieldSchema(String canonicalName) {
+	        if( this.canonicalName.equals(canonicalName) ) {
+	        	return this;
+	        }
+	        if( this.schema != null )
+	        	return schema.findFieldSchema( canonicalName );
+	        return null;
+        }
+
     }
 
     private List<FieldSchema> mFields;
@@ -670,6 +717,42 @@ public class Schema implements Serializable, Cloneable {
             mAliases = new HashMap<String, FieldSchema>();
             mFieldSchemas = new MultiMap<String, String>();
         }
+    }
+
+    /**
+     * Make a copy of the given schema object and link the original with the copy using 
+     * canonical name map.
+     * 
+     * @param s The original schema
+     * @param op The operator to which the original belongs
+     * @return a new copy
+     */
+    public static Schema copyAndLink(Schema s, LogicalOperator op) {
+    	Schema result = new Schema();
+        if(null != s) {
+            result.twoLevelAccessRequired = s.twoLevelAccessRequired;
+            try {
+                for( int i = 0; i < s.size(); ++i ) {
+                    FieldSchema fs = FieldSchema.copyAndLink( s.getField(i), op );
+                    result.mFields.add(fs);
+                    if(null != fs) {
+                        if (fs.alias != null) {
+                            result.mAliases.put(fs.alias, fs);
+                            result.mFieldSchemas.put(fs.canonicalName, fs.alias);
+                        }
+                    }
+                }
+            } catch (FrontendException pe) {
+            	result.mFields = new ArrayList<FieldSchema>();
+            	result.mAliases = new HashMap<String, FieldSchema>();
+            	result.mFieldSchemas = new MultiMap<String, String>();
+            }
+        } else {
+        	result.mFields = new ArrayList<FieldSchema>();
+        	result.mAliases = new HashMap<String, FieldSchema>();
+        	result.mFieldSchemas = new MultiMap<String, String>();
+        }
+	    return result;
     }
 
     /**
@@ -1807,6 +1890,24 @@ public class Schema implements Serializable, Cloneable {
             fsList.add(fs);
         }
         return new Schema(fsList);
+    }
+
+    /**
+     * Look for a FieldSchema instance in the schema hierarchy which has the given canonical name.
+     * @param canonicalName canonical name
+     * @return the FieldSchema instance found
+     */
+	public FieldSchema findFieldSchema(String canonicalName) {
+	    for( FieldSchema fs : mFields ) {
+	    	if( fs.canonicalName.equals( canonicalName ) )
+	    		return fs;
+	    	if( fs.schema != null ) {
+	    		FieldSchema result = fs.schema.findFieldSchema( canonicalName );
+	    		if( result != null )
+	    			return result;
+	    	}
+	    }
+	    return null;
     }
     
 }

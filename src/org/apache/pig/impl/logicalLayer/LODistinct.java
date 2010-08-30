@@ -69,20 +69,16 @@ public class LODistinct extends RelationalOperator {
                     throw new FrontendException(msg, errCode, PigException.BUG, false, null);
                 }
                 if(op instanceof ExpressionOperator) {
-                    Schema.FieldSchema fs = new Schema.FieldSchema(((ExpressionOperator)op).getFieldSchema());
+                    Schema.FieldSchema fs = Schema.FieldSchema.copyAndLink(((ExpressionOperator)op).getFieldSchema(), op);
                     if(DataType.isSchemaType(fs.type)) {
                         mSchema = fs.schema;
                     } else {
                         fss.add(fs);
                         mSchema = new Schema(fss);
-                        for (int i=0;i<getInput().getSchema().size();i++)
-                            mSchema.getField(i).setParent(getInput().getSchema().getField(i).canonicalName, getInput());
                     }
                 } else {
                     if (op.getSchema()!=null) {
-                        mSchema = new Schema(op.getSchema());
-                        for (int i=0;i<op.getSchema().size();i++)
-                            mSchema.getField(i).setParent(op.getSchema().getField(i).canonicalName, op);
+                        mSchema = Schema.copyAndLink(op.getSchema(), op);
                     }
                     else
                         mSchema = null;
