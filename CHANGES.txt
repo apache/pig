@@ -26,6 +26,8 @@ PIG-1249: Safe-guards against misconfigured Pig scripts without PARALLEL keyword
 
 IMPROVEMENTS
 
+PIG-1574: Optimization rule PushUpFilter causes filter to be pushed up out joins (xuefuz via daijy)
+
 PIG-1515: Migrate logical optimization rule: PushDownForeachFlatten (xuefuz via daijy)
 
 PIG-1321: Logical Optimizer: Merge cascading foreach (xuefuz via daijy)
