@@ -75,7 +75,7 @@ public class LOFilter extends RelationalOperator {
             ArrayList<Schema.FieldSchema> fss = new ArrayList<Schema.FieldSchema>();
             try {
                 if(input instanceof ExpressionOperator) {
-                    Schema.FieldSchema fs = new Schema.FieldSchema(((ExpressionOperator)input).getFieldSchema());
+                    Schema.FieldSchema fs = Schema.FieldSchema.copyAndLink(((ExpressionOperator)input).getFieldSchema(), input);
                     if(DataType.isSchemaType(fs.type)) {
                         mSchema = fs.schema;
                     } else {
@@ -84,9 +84,7 @@ public class LOFilter extends RelationalOperator {
                     }
                 } else {
                     if (getInput().getSchema()!=null) {
-                        mSchema = new Schema(input.getSchema());
-                        for (int i=0;i<getInput().getSchema().size();i++)
-                            mSchema.getField(i).setParent(getInput().getSchema().getField(i).canonicalName, getInput());
+                        mSchema = Schema.copyAndLink( input.getSchema(), input );
                     }
                     else
                         mSchema = null;

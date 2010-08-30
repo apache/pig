@@ -134,7 +134,7 @@ public class LOGenerate extends LogicalOperator {
                     throw new FrontendException(msg, errCode, PigException.INPUT, false, null);
                 }
                 if(op instanceof ExpressionOperator) {
-                    fss.add(new Schema.FieldSchema(((ExpressionOperator)op).getFieldSchema()));
+                    fss.add( Schema.FieldSchema.copyAndLink(((ExpressionOperator)op).getFieldSchema(), op));
                     mSchema = new Schema(fss);
                 } else {
                     mSchema = op.getSchema();

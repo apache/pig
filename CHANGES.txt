@@ -171,6 +171,8 @@ PIG-1309: Map-side Cogroup (ashutoshc)
 
 BUG FIXES
 
+PIG-1482: Pig gets confused when more than one loader is involved (xuefuz via thejas)
+
 PIG-1579: Intermittent unit test failure for TestScriptUDF.testPythonScriptUDFNullInputOutput (daijy)
 
 PIG-1557: couple of issue mapping aliases to jobs (rding)
