@@ -200,7 +200,7 @@ public class Utils {
      * (not escaping a slash in grunt is disallowed, but a double slash doesn't get converted
      * into a regular slash, so we have to do it instead)
      * @param str
-     * @return
+     * @return the resulting string
      */
     public static String slashisize(String str) {
         return str.replace("\\\\", "\\");

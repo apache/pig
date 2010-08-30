@@ -353,7 +353,7 @@ public class Utf8StorageConverter implements LoadStoreCaster {
     /**
      * Note: NOT part of the LoadCaster interface.
      * @param b
-     * @return
+     * @return boolean value represented by the byte array
      * @throws IOException
      */
     public Boolean bytesToBoolean(byte[] b) throws IOException {
