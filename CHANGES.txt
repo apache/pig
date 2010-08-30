@@ -175,6 +175,9 @@ PIG-1309: Map-side Cogroup (ashutoshc)
 
 BUG FIXES
 
+PIG-1569: java properties not honored in case of properties such as
+stop.on.failure (rding)
+
 PIG-1570: native mapreduce operator MR job does not follow same failure handling logic as other pig MR jobs (thejas)
 
 PIG-1343: pig_log file missing even though Main tells it is creating one and
