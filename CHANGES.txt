@@ -171,6 +171,8 @@ PIG-1309: Map-side Cogroup (ashutoshc)
 
 BUG FIXES
 
+PIG-1579: Intermittent unit test failure for TestScriptUDF.testPythonScriptUDFNullInputOutput (daijy)
+
 PIG-1557: couple of issue mapping aliases to jobs (rding)
 
 PIG-1552: Nested describe failed when the alias is not referred in the first foreach inner plan (aniket486 via daijy)
