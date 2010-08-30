@@ -191,17 +191,18 @@ public class MapReduceLauncher extends Launcher{
         	// Initially, all jobs are in wait state.
             List<Job> jobsWithoutIds = jc.getWaitingJobs();
             log.info(jobsWithoutIds.size() +" map-reduce job(s) waiting for submission.");
-            
+            //notify listeners about jobs submitted
             ScriptState.get().emitJobsSubmittedNotification(jobsWithoutIds.size());
             
-            String jobTrackerAdd;
-            String port;
+            // determine job tracker url 
             String jobTrackerLoc;
             JobConf jobConf = jobsWithoutIds.get(0).getJobConf();
             try {
-                port = jobConf.get("mapred.job.tracker.http.address");
-                jobTrackerAdd = jobConf.get(HExecutionEngine.JOB_TRACKER_LOCATION);
-                jobTrackerLoc = jobTrackerAdd.substring(0,jobTrackerAdd.indexOf(":")) + port.substring(port.indexOf(":"));
+                String port = jobConf.get("mapred.job.tracker.http.address");
+                String jobTrackerAdd = jobConf.get(HExecutionEngine.JOB_TRACKER_LOCATION);
+                
+                jobTrackerLoc = jobTrackerAdd.substring(0,jobTrackerAdd.indexOf(":")) 
+                + port.substring(port.indexOf(":"));
             }
             catch(Exception e){
                 // Could not get the job tracker location, most probably we are running in local mode.

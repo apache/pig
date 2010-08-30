@@ -72,6 +72,7 @@ import org.apache.pig.impl.logicalLayer.LOFilter;
 import org.apache.pig.impl.logicalLayer.LOForEach;
 import org.apache.pig.impl.logicalLayer.LOJoin;
 import org.apache.pig.impl.logicalLayer.LOLimit;
+import org.apache.pig.impl.logicalLayer.LONative;
 import org.apache.pig.impl.logicalLayer.LOSort;
 import org.apache.pig.impl.logicalLayer.LOSplit;
 import org.apache.pig.impl.logicalLayer.LOStream;
@@ -491,17 +492,18 @@ public class ScriptState {
             if (mro instanceof NativeMapReduceOper) {
                 feature.set(PIG_FEATURE.NATIVE.ordinal());
             }
-            try {
-                new FeatureVisitor(mro.mapPlan, feature).visit();
-                if (mro.reducePlan.isEmpty()) { 
-                    feature.set(PIG_FEATURE.MAP_ONLY.ordinal());                    
-                } else {
-                    new FeatureVisitor(mro.reducePlan, feature).visit();
+            else{// if it is NATIVE MR , don't explore its plans
+                try {
+                    new FeatureVisitor(mro.mapPlan, feature).visit();
+                    if (mro.reducePlan.isEmpty()) { 
+                        feature.set(PIG_FEATURE.MAP_ONLY.ordinal());                    
+                    } else {
+                        new FeatureVisitor(mro.reducePlan, feature).visit();
+                    }
+                } catch (VisitorException e) {
+                    LOG.warn("Feature visitor failed", e);
                 }
-            } catch (VisitorException e) {
-                LOG.warn("Feature visitor failed", e);
             }
-            
             StringBuilder sb = new StringBuilder();
             for (int i=feature.nextSetBit(0); i>=0; i=feature.nextSetBit(i+1)) {
                 if (sb.length() > 0) sb.append(",");             
@@ -668,6 +670,12 @@ public class ScriptState {
         protected void visit(LOUnion op) throws VisitorException {
             feature.set(PIG_FEATURE.UNION.ordinal());
         }
+        
+        @Override
+        protected void visit(LONative n) throws VisitorException {
+            feature.set(PIG_FEATURE.NATIVE.ordinal());
+        }
+
     }
     
     private static class AliasVisitor extends PhyPlanVisitor {

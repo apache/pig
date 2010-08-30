@@ -294,15 +294,23 @@ public abstract class PigStatsUtil {
         return js;
     }
     
-    public static JobStats addNativeJobStats(PigStats ps, NativeMapReduceOper mr) {
+    public static JobStats addNativeJobStats(PigStats ps, NativeMapReduceOper mr,
+            boolean success) {
+        return addNativeJobStats(ps, mr, success, null);
+    }
+    
+    public static JobStats addNativeJobStats(PigStats ps, NativeMapReduceOper mr,
+            boolean success, Exception e) {
         JobStats js = ps.addJobStatsForNative(mr);
         if(js == null) {
             LOG.warn("unable to add native job stats");
         } else {
-            js.setSuccessful(true);
+            js.setSuccessful(success);
+            if(e != null)
+                js.setBackendException(e);
         }
         return js;
-    }
+    }    
     
     private static JobStats accumulateSuccessStatistics(PigStats ps, Job job) {
         JobStats js = ps.addJobStats(job);
