@@ -26,6 +26,8 @@ PIG-1249: Safe-guards against misconfigured Pig scripts without PARALLEL keyword
 
 IMPROVEMENTS
 
+PIG-1205:  Enhance HBaseStorage-- Make it support loading row key and implement StoreFunc (zjffdu and dvryaboy)
+
 PIG-1568: Optimization rule FilterAboveForeach is too restrictive and doesn't
 handle project * correctly (xuefuz via daijy)
 

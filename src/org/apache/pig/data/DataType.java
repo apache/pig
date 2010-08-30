@@ -457,6 +457,45 @@ public class DataType {
             return 1;
         }
     }
+    
+    public static byte[] toBytes(Object o) throws ExecException {
+        return toBytes(o, findType(o));
+    }
+
+    @SuppressWarnings("unchecked")
+    public static byte[] toBytes(Object o, byte type) throws ExecException {
+        switch (type) {
+        case BOOLEAN:
+            return ((Boolean) o).booleanValue() ? new byte[] {1} : new byte[] {0};
+        case BYTE:
+            return new byte[] {((Byte) o)};
+
+        case INTEGER:
+        case DOUBLE:
+        case FLOAT:
+        case LONG:
+            return ((Number) o).toString().getBytes();
+
+        case CHARARRAY:
+            return ((String) o).getBytes();
+        case MAP:
+            return mapToString((Map<String, Object>) o).getBytes();
+        case TUPLE:
+            return ((Tuple) o).toString().getBytes();
+        case BYTEARRAY:
+            return ((DataByteArray) o).get();
+        case BAG:
+            return ((DataBag) o).toString().getBytes();
+        case NULL:
+            return null;
+        default:
+            int errCode = 1071;
+            String msg = "Cannot convert a " + findTypeName(o) +
+            " to a ByteArray";
+            throw new ExecException(msg, errCode, PigException.INPUT);
+
+        }
+    }
 
     /**
      * Force a data object to an Integer, if possible.  Any numeric type

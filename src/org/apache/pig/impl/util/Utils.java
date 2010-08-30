@@ -19,32 +19,35 @@ package org.apache.pig.impl.util;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.util.List;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.Job;
-
+import org.apache.pig.FileInputLoadFunc;
+import org.apache.pig.FuncSpec;
+import org.apache.pig.LoadFunc;
+import org.apache.pig.PigException;
+import org.apache.pig.ResourceSchema;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
-import org.apache.pig.impl.logicalLayer.parser.ParseException;
-import org.apache.pig.impl.logicalLayer.parser.QueryParser;
-import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.PigContext;
-import org.apache.pig.LoadFunc;
 import org.apache.pig.impl.io.InterStorage;
 import org.apache.pig.impl.io.ReadToEndLoader;
 import org.apache.pig.impl.io.TFileStorage;
-import org.apache.pig.FileInputLoadFunc;
-import org.apache.pig.PigException;
-import org.apache.pig.ResourceSchema;
+import org.apache.pig.impl.logicalLayer.parser.ParseException;
+import org.apache.pig.impl.logicalLayer.parser.QueryParser;
+import org.apache.pig.impl.logicalLayer.schema.Schema;
+
+import com.google.common.collect.Lists;
 
 /**
  * Class with utility static methods
  */
 public class Utils {
-  
+
     /**
      * This method is a helper for classes to implement {@link java.lang.Object#equals(java.lang.Object)}
      * checks if two objects are equals - two levels of checks are
@@ -69,8 +72,8 @@ public class Utils {
         }
         return true;
     }
-    
-    
+
+
     /**
      * This method is a helper for classes to implement {@link java.lang.Object#equals(java.lang.Object)}
      * The method checks whether the two arguments are both null or both not null and 
@@ -92,9 +95,9 @@ public class Utils {
             return false;
         }
     }
-    
+
     public static ResourceSchema getSchema(LoadFunc wrappedLoadFunc, String location, boolean checkExistence, Job job)
-                    throws IOException {
+    throws IOException {
         Configuration conf = job.getConfiguration();
         if (checkExistence) {
             Path path = new Path(location);
@@ -128,7 +131,7 @@ public class Utils {
         }
         return new ResourceSchema(s);
     }
-    
+
     public static Schema getSchemaFromString(String schemaString) throws ParseException {
         return Utils.getSchemaFromString(schemaString, DataType.BYTEARRAY);
     }
@@ -140,7 +143,7 @@ public class Utils {
         Schema.setSchemaDefaultType(schema, defaultType);
         return schema;
     }
-    
+
     public static String getTmpFileCompressorName(PigContext pigContext) {
         if (pigContext == null)
             return InterStorage.class.getName();
@@ -153,12 +156,12 @@ public class Utils {
         } else
             return InterStorage.class.getName();
     }
-    
+
     public static FileInputLoadFunc getTmpFileStorageObject(Configuration conf) throws IOException {
         boolean tmpFileCompression = conf.getBoolean("pig.tmpfilecompression", false);
         return tmpFileCompression ? new TFileStorage() : new InterStorage();
     }
-    
+
     public static boolean tmpFileCompression(PigContext pigContext) {
         if (pigContext == null)
             return false;
@@ -183,4 +186,24 @@ public class Utils {
         }
         return str.toString();
     }
+
+    public static FuncSpec buildSimpleFuncSpec(String className, byte...types) {
+        List<Schema.FieldSchema> fieldSchemas = Lists.newArrayListWithExpectedSize(types.length);
+        for (byte type : types) {
+            fieldSchemas.add(new Schema.FieldSchema(null, type));
+        }
+        return new FuncSpec(className, new Schema(fieldSchemas));
+    }
+
+    /**
+     * Replace sequences of two slashes ("\\") with one slash ("\")
+     * (not escaping a slash in grunt is disallowed, but a double slash doesn't get converted
+     * into a regular slash, so we have to do it instead)
+     * @param str
+     * @return
+     */
+    public static String slashisize(String str) {
+        return str.replace("\\\\", "\\");
+    }
+
 }
