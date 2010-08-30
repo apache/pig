@@ -19,6 +19,8 @@ package org.apache.pig.backend.hadoop.executionengine.mapReduceLayer;
 
 import java.io.IOException;
 import java.io.Serializable;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -29,7 +31,16 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 
+import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileStatus;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.mapreduce.InputFormat;
+import org.apache.hadoop.mapreduce.InputSplit;
+import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.pig.CollectableLoadFunc;
 import org.apache.pig.ExecType;
 import org.apache.pig.FuncSpec;
@@ -39,6 +50,7 @@ import org.apache.pig.OrderedLoadFunc;
 import org.apache.pig.PigException;
 import org.apache.pig.PigWarning;
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.executionengine.HExecutionEngine;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROpPlanVisitor;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROperPlan;
@@ -75,6 +87,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POUnion;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPackage.PackageType;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.util.PlanHelper;
+import org.apache.pig.backend.hadoop.executionengine.util.MapRedUtil;
 import org.apache.pig.data.DataType;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.builtin.DefaultIndexableLoader;
@@ -171,9 +184,17 @@ public class MRCompiler extends PhyPlanVisitor {
     private CompilationMessageCollector messageCollector = null;
     
     private Map<PhysicalOperator,MapReduceOper> phyToMROpMap;
-    
+        
     public static final String USER_COMPARATOR_MARKER = "user.comparator.func:";
    
+    private static final Log LOG = LogFactory.getLog(MRCompiler.class);
+    
+    public static final String FRJOIN_MERGE_FILES_THRESHOLD = "pig.frjoin.merge.files.threshold";
+    public static final String FRJOIN_MERGE_FILES_OPTIMISTIC = "pig.frjoin.merge.files.optimistic";
+    
+    private int frJoinFileMergeThreshold = 100;
+    private boolean frJoinOptimisticFileMerge = false;
+    
     public MRCompiler(PhysicalPlan plan) throws MRCompilerException {
         this(plan,null);
     }
@@ -198,6 +219,13 @@ public class MRCompiler extends PhyPlanVisitor {
         scope = roots.get(0).getOperatorKey().getScope();
         messageCollector = new CompilationMessageCollector() ;
         phyToMROpMap = new HashMap<PhysicalOperator, MapReduceOper>();
+        
+        frJoinFileMergeThreshold = Integer.parseInt(pigContext.getProperties()
+                .getProperty(FRJOIN_MERGE_FILES_THRESHOLD, "100"));
+        frJoinOptimisticFileMerge = pigContext.getProperties().getProperty(
+                FRJOIN_MERGE_FILES_OPTIMISTIC, "false").equals("true");
+        LOG.info("FRJoin file merge threshold: " + frJoinFileMergeThreshold
+                + " optimistic? " + frJoinOptimisticFileMerge);
     }
     
     public void connectScalars() throws PlanException {
@@ -1083,7 +1111,7 @@ public class MRCompiler extends PhyPlanVisitor {
             throw new MRCompilerException(msg, errCode, PigException.BUG, e);
         }
     }
-    
+            
     /**
      * This is an operator which will have multiple inputs(= to number of join inputs)
      * But it prunes off all inputs but the fragment input and creates separate MR jobs
@@ -1109,18 +1137,44 @@ public class MRCompiler extends PhyPlanVisitor {
                     continue;
                 POStore str = getStore();
                 str.setSFile(replFiles[i]);
-                if (!mro.isMapDone()) {
-                    mro.mapPlan.addAsLeaf(str);
-                    mro.setMapDoneSingle(true);
+                
+                Configuration conf = 
+                    ConfigurationUtil.toConfiguration(pigContext.getProperties());
+                boolean combinable = !conf.getBoolean("pig.noSplitCombination", false);
+                
+                if (!mro.isMapDone()) {   
+                    if (combinable && hasTooManyInputFiles(mro, conf)) { 
+                        POStore tmpSto = getStore();
+                        FileSpec fSpec = getTempFileSpec();
+                        tmpSto.setSFile(fSpec);                         
+                        mro.mapPlan.addAsLeaf(tmpSto);
+                        mro.setMapDoneSingle(true);                    
+                        MapReduceOper catMROp = getConcatenateJob(fSpec, mro, str); 
+                        MRPlan.connect(catMROp, curMROp);
+                    } else {
+                        mro.mapPlan.addAsLeaf(str);
+                        mro.setMapDoneSingle(true); 
+                        MRPlan.connect(mro, curMROp);
+                    }
                 } else if (mro.isMapDone() && !mro.isReduceDone()) {
-                    mro.reducePlan.addAsLeaf(str);
-                    mro.setReduceDone(true);
+                    if (combinable && (mro.requestedParallelism >= frJoinFileMergeThreshold)) {
+                        POStore tmpSto = getStore();
+                        FileSpec fSpec = getTempFileSpec();
+                        tmpSto.setSFile(fSpec); 
+                        mro.reducePlan.addAsLeaf(tmpSto);
+                        mro.setReduceDone(true);
+                        MapReduceOper catMROp = getConcatenateJob(fSpec, mro, str); 
+                        MRPlan.connect(catMROp, curMROp);
+                    } else {
+                        mro.reducePlan.addAsLeaf(str);
+                        mro.setReduceDone(true);
+                        MRPlan.connect(mro, curMROp);
+                    }
                 } else {
                     int errCode = 2022;
                     String msg = "Both map and reduce phases have been done. This is unexpected while compiling.";
                     throw new PlanException(msg, errCode, PigException.BUG);
-                }
-                MRPlan.connect(compiledInputs[i], curMROp);
+                }              
             }
             
             if (!curMROp.isMapDone()) {
@@ -1147,7 +1201,92 @@ public class MRCompiler extends PhyPlanVisitor {
             throw new MRCompilerException(msg, errCode, PigException.BUG, e);
         }
     }
-
+  
+    @SuppressWarnings("unchecked")
+    private boolean hasTooManyInputFiles(MapReduceOper mro, Configuration conf) {
+        if (pigContext == null || pigContext.getExecType() == ExecType.LOCAL) {
+            return false;
+        }
+        
+        if (mro instanceof NativeMapReduceOper) {
+            return frJoinOptimisticFileMerge ? false : true;
+        }
+               
+        PhysicalPlan mapPlan = mro.mapPlan;
+        
+        List<PhysicalOperator> roots = mapPlan.getRoots();
+        if (roots == null || roots.size() == 0) return false;
+        
+        int numFiles = 0;
+        boolean ret = false;
+        try {
+            for (PhysicalOperator root : roots) {
+                POLoad ld = (POLoad) root;
+                String location = ld.getLFile().getFileName();
+                URI uri = new URI(location);
+                if (uri.getScheme() == null
+                        || uri.getScheme().equalsIgnoreCase("hdfs")) {
+                    Path p = new Path(location);                   
+                    FileSystem fs = p.getFileSystem(conf);
+                    if (fs.exists(p)) {
+                        LoadFunc loader = (LoadFunc) PigContext
+                                .instantiateFuncFromSpec(ld.getLFile()
+                                        .getFuncSpec());
+                        Job job = new Job(conf);
+                        loader.setLocation(location, job);
+                        InputFormat inf = loader.getInputFormat();
+                        List<InputSplit> splits = inf.getSplits(new JobContext(
+                                job.getConfiguration(), job.getJobID()));
+                        List<List<InputSplit>> results = MapRedUtil
+                                .getCombinePigSplits(splits, fs
+                                        .getDefaultBlockSize(), conf);
+                        numFiles += results.size();
+                    } else {
+                        List<MapReduceOper> preds = MRPlan.getPredecessors(mro);
+                        if (preds != null && preds.size() == 1) {
+                            MapReduceOper pred = preds.get(0);
+                            if (!pred.reducePlan.isEmpty()) { 
+                                numFiles += pred.requestedParallelism;  
+                            } else { // map-only job
+                                ret = hasTooManyInputFiles(pred, conf);
+                                break;
+                            }
+                        } else if (!frJoinOptimisticFileMerge) {                    
+                            // can't determine the number of input files. 
+                            // Treat it as having too manyfiles
+                            numFiles = frJoinFileMergeThreshold;
+                            break;
+                        }
+                    }
+                }
+            }
+        } catch (IOException e) {
+            LOG.warn("failed to get number of input files", e); 
+        } catch (URISyntaxException e) {
+            LOG.warn("failed to get number of input files", e); 
+        } catch (InterruptedException e) {
+            LOG.warn("failed to get number of input files", e); 
+        }
+                
+        LOG.info("number of input files to FR Join: " + numFiles);
+        return ret ? true : (numFiles >= frJoinFileMergeThreshold);
+    }
+    
+    /*
+     * Use Mult File Combiner to concatenate small input files
+     */
+    private MapReduceOper getConcatenateJob(FileSpec fSpec, MapReduceOper old, POStore str)
+            throws PlanException, ExecException {
+        
+        MapReduceOper mro = startNew(fSpec, old);
+        mro.mapPlan.addAsLeaf(str);
+        mro.setMapDone(true);
+        
+        LOG.info("Insert a concatenate job for FR join");
+                
+        return mro;
+    }
+    
     /** Leftmost relation is referred as base relation (this is the one fed into mappers.) 
      *  First, close all MROpers except for first one (referred as baseMROPer)
      *  Then, create a MROper which will do indexing job (idxMROper)
