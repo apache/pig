@@ -28,7 +28,7 @@ import java.util.Stack;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.pig.LoadCaster;
+import org.apache.pig.LoadStoreCaster;
 import org.apache.pig.PigWarning;
 import org.apache.pig.ResourceSchema.ResourceFieldSchema;
 import org.apache.pig.data.BagFactory;
@@ -45,7 +45,7 @@ import org.apache.pig.impl.util.LogUtils;
  * and pig data types.  It is intended to be extended by load and store
  * functions (such as {@link PigStorage}). 
  */
-public class Utf8StorageConverter implements LoadCaster {
+public class Utf8StorageConverter implements LoadStoreCaster {
 
     protected BagFactory mBagFactory = BagFactory.getInstance();
     protected TupleFactory mTupleFactory = TupleFactory.getInstance();
@@ -287,6 +287,7 @@ public class Utf8StorageConverter implements LoadCaster {
         return field;
     }
 
+    @Override
     public DataBag bytesToBag(byte[] b, ResourceFieldSchema schema) throws IOException {
         if(b == null)
             return null;
@@ -305,12 +306,14 @@ public class Utf8StorageConverter implements LoadCaster {
         return db;
     }
 
+    @Override
     public String bytesToCharArray(byte[] b) throws IOException {
         if(b == null)
             return null;
         return new String(b, "UTF-8");
     }
 
+    @Override
     public Double bytesToDouble(byte[] b) {
         if(b == null)
             return null;
@@ -324,7 +327,8 @@ public class Utf8StorageConverter implements LoadCaster {
             return null;
         }
     }
-
+    
+    @Override
     public Float bytesToFloat(byte[] b) throws IOException {
         if(b == null)
             return null;
@@ -346,6 +350,12 @@ public class Utf8StorageConverter implements LoadCaster {
         }
     }
     
+    /**
+     * Note: NOT part of the LoadCaster interface.
+     * @param b
+     * @return
+     * @throws IOException
+     */
     public Boolean bytesToBoolean(byte[] b) throws IOException {
         if(b == null)
             return null;
@@ -353,6 +363,7 @@ public class Utf8StorageConverter implements LoadCaster {
         return Boolean.valueOf(s);
     }
 
+    @Override
     public Integer bytesToInteger(byte[] b) throws IOException {
         if(b == null)
             return null;
@@ -383,7 +394,8 @@ public class Utf8StorageConverter implements LoadCaster {
             }
         }
     }
-
+    
+    @Override
     public Long bytesToLong(byte[] b) throws IOException {
         if (b == null)
             return null;
@@ -421,6 +433,7 @@ public class Utf8StorageConverter implements LoadCaster {
         }
     }
 
+    @Override
     @SuppressWarnings("unchecked")
     public Map<String, Object> bytesToMap(byte[] b) throws IOException {
         if(b == null)
@@ -443,6 +456,7 @@ public class Utf8StorageConverter implements LoadCaster {
         return map;
     }
 
+    @Override
     public Tuple bytesToTuple(byte[] b, ResourceFieldSchema fieldSchema) throws IOException {
         if(b == null)
             return null;
@@ -464,39 +478,49 @@ public class Utf8StorageConverter implements LoadCaster {
         return t;
     }
 
-
+    @Override
     public byte[] toBytes(DataBag bag) throws IOException {
         return bag.toString().getBytes();
     }
 
+    @Override
     public byte[] toBytes(String s) throws IOException {
         return s.getBytes();
     }
 
+    @Override
     public byte[] toBytes(Double d) throws IOException {
         return d.toString().getBytes();
     }
 
+    @Override
     public byte[] toBytes(Float f) throws IOException {
         return f.toString().getBytes();
     }
 
+    @Override
     public byte[] toBytes(Integer i) throws IOException {
         return i.toString().getBytes();
     }
 
+    @Override
     public byte[] toBytes(Long l) throws IOException {
         return l.toString().getBytes();
     }
 
+    @Override
     public byte[] toBytes(Map<String, Object> m) throws IOException {
         return DataType.mapToString(m).getBytes();
     }
 
+    @Override
     public byte[] toBytes(Tuple t) throws IOException {
         return t.toString().getBytes();
     }
-    
 
+    @Override
+    public byte[] toBytes(DataByteArray a) throws IOException {
+        return a.get();
+    }
 
 }

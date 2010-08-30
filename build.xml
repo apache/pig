@@ -52,8 +52,8 @@
     <property name="build.encoding" value="UTF8" />
     <!-- TODO with only one version of hadoop in the lib folder we do not need that anymore -->
     <property name="automaton.jarfile" value="automaton.jar" />
-    <property name="hbase.jarfile" value="hbase-0.20.0.jar" />
-    <property name="hbase.test.jarfile" value="hbase-0.20.0-test.jar" />
+    <property name="hbase.jarfile" value="hbase-0.20.6.jar" />
+    <property name="hbase.test.jarfile" value="hbase-0.20.6-test.jar" />
 	<property name="zookeeper.jarfile" value="zookeeper-hbase-1329.jar" />
 	
     <!-- javac properties -->
