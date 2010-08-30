@@ -351,7 +351,7 @@ public class TestScriptUDF extends TestCase {
                 "#!/usr/bin/python",
                 "@outputSchema(\"bag:{(y:{t:(word:chararray)}}\")",
                 "def multStr(cnt, str):" ,
-                "\tif cnt != None:",
+                "\tif cnt != None and str != None:",
                 "\t\treturn cnt * str",
                 "\telse:",
                 "\t\treturn None"
