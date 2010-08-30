@@ -56,6 +56,9 @@ public class LOStream extends RelationalOperator {
     // Stream Operator this operator represents
     private StreamingCommand command;
     transient private ExecutableManager executableManager;
+    
+    private boolean isParentSet = false;
+    
     /**
      * Create a new <code>LOStream</code> with the given command.
      * 
@@ -87,24 +90,15 @@ public class LOStream extends RelationalOperator {
      */
     @Override
     public Schema getSchema() throws FrontendException {
-        return mSchema;
-        /*
-        if (!mIsSchemaComputed) {
-            /*
-            LogicalOperator input = mPlan.getPredecessors(this).get(0);
-            ArrayList<Schema.FieldSchema> fss = new ArrayList<Schema.FieldSchema>();
-            try {
-                mSchema = input.getSchema();
-                mIsSchemaComputed = true;
-            } catch (FrontendException ioe) {
-                mSchema = null;
-                mIsSchemaComputed = false;
-                throw ioe;
-            }
+    	if( mSchema == null )
+    		return null;
+    	
+        if( !isParentSet ) {
+        	setParent( mSchema );
+        	isParentSet = true;
         }
+        
         return mSchema;
-        */
-
     }
     
     /**

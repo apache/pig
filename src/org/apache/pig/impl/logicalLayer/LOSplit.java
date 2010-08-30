@@ -88,9 +88,7 @@ public class LOSplit extends RelationalOperator {
                 }
                 LogicalOperator input = s.iterator().next();
                 if (input.getSchema()!=null) {
-                    mSchema = new Schema(input.getSchema());
-                    for (int i=0;i<input.getSchema().size();i++)
-                        mSchema.getField(i).setParent(input.getSchema().getField(i).canonicalName, input);
+                    mSchema = Schema.copyAndLink(input.getSchema(), input);
                 }
                 else
                     mSchema = null;
