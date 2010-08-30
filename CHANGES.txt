@@ -171,6 +171,9 @@ PIG-1309: Map-side Cogroup (ashutoshc)
 
 BUG FIXES
 
+PIG-1343: pig_log file missing even though Main tells it is creating one and
+an M/R job fails (nrai via rding)
+
 PIG-1482: Pig gets confused when more than one loader is involved (xuefuz via thejas)
 
 PIG-1579: Intermittent unit test failure for TestScriptUDF.testPythonScriptUDFNullInputOutput (daijy)
