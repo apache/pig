@@ -43,6 +43,7 @@ import org.apache.pig.tools.pigstats.PigProgressNotificationListener;
 import org.apache.pig.tools.pigstats.PigStats;
 import org.apache.pig.tools.pigstats.PigStatsUtil;
 import org.junit.AfterClass;
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -73,6 +74,57 @@ public class TestPigRunner {
         cluster.shutDown();
     }
 
+    @Before
+    public void setUp() {
+        deleteAll(new File(OUTPUT_FILE));
+    }    
+    
+    @Test
+    public void testErrorLogFile() throws Exception {
+        PrintWriter w = new PrintWriter(new FileWriter(PIG_FILE));
+        w.println("A = load '" + INPUT_FILE + "' as (a0:int, a1:int, a2:int);");
+        w.println("B = foreach A generate StringSize(a0);");
+        w.println("store B into '" + OUTPUT_FILE + "';");
+        w.close();
+        
+        try {
+            String[] args = { "-x", "local", PIG_FILE };
+            PigStats stats = PigRunner.run(args, null);
+     
+            assertTrue(!stats.isSuccessful());
+ 
+            Properties props = stats.getPigProperties();
+            String logfile = props.getProperty("pig.logfile");
+            File f = new File(logfile);
+            assertTrue(f.exists());            
+        } finally {
+            new File(PIG_FILE).delete(); 
+        }
+    }
+    
+    @Test
+    public void testErrorLogFile2() throws Exception {
+        PrintWriter w = new PrintWriter(new FileWriter(PIG_FILE));
+        w.println("A = load '" + INPUT_FILE + "' as (a0:int, a1:int, a2:int);");
+        w.println("B = foreach A generate StringSize(a0);");
+        w.println("store B into '" + OUTPUT_FILE + "';");
+        w.close();
+        
+        try {
+            String[] args = { "-M", "-x", "local", PIG_FILE };
+            PigStats stats = PigRunner.run(args, null);
+     
+            assertTrue(!stats.isSuccessful());
+ 
+            Properties props = stats.getPigProperties();
+            String logfile = props.getProperty("pig.logfile");
+            File f = new File(logfile);
+            assertTrue(f.exists());          
+        } finally {
+            new File(PIG_FILE).delete();
+        }
+    }
+    
     @Test
     public void simpleTest() throws Exception {
         PrintWriter w = new PrintWriter(new FileWriter(PIG_FILE));
@@ -461,4 +513,13 @@ public class TestPigRunner {
         
     }
 
+    private void deleteAll(File d) {
+        if (!d.exists()) return;
+        if (d.isDirectory()) {
+            for (File f : d.listFiles()) {
+                deleteAll(f);
+            }
+        } 
+        d.delete();        
+    }
 }

@@ -56,6 +56,7 @@ import org.apache.pig.backend.executionengine.ExecJob;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.datastorage.HDataStorage;
 import org.apache.pig.backend.hadoop.executionengine.HExecutionEngine;
+import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.FileLocalizer.FetchFileRet;
@@ -112,16 +113,16 @@ public class GruntParser extends PigScriptParser {
                 for(ExecJob job: jobs) {
                     if (job.getStatus() == ExecJob.JOB_STATUS.FAILED) {
                         mNumFailedJobs++;
-                        if (job.getException() != null) {
-                            LogUtils.writeLog(
-                              job.getException(), 
-                              mPigServer.getPigContext().getProperties().getProperty("pig.logfile"), 
-                              log, 
-                              "true".equalsIgnoreCase(mPigServer.getPigContext().getProperties().getProperty("verbose")),
-                              "Pig Stack Trace");
-                        }
-                    }
-                    else {
+                        Exception exp = (job.getException() != null) ? job.getException()
+                                : new ExecException(
+                                        "Job failed, hadoop does not return any error message",
+                                        2244);                        
+                        LogUtils.writeLog(exp, 
+                                mPigServer.getPigContext().getProperties().getProperty("pig.logfile"), 
+                                log, 
+                                "true".equalsIgnoreCase(mPigServer.getPigContext().getProperties().getProperty("verbose")),
+                                "Pig Stack Trace");
+                    } else {
                         mNumSucceededJobs++;
                     }
                 }
