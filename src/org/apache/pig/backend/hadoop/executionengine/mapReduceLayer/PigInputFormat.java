@@ -276,7 +276,11 @@ public class PigInputFormat extends InputFormat<Text, Tuple> {
             } catch (Exception e) {
                 int errCode = 2118;
                 String msg = "Unable to create input splits for: " + inputs.get(i).getFileName();
-                throw new ExecException(msg, errCode, PigException.BUG, e);
+                if(e.getMessage() !=null && (!e.getMessage().isEmpty()) ){
+                	throw new ExecException(e.getMessage(), errCode, PigException.BUG, e);
+                }else{
+                	throw new ExecException(msg, errCode, PigException.BUG, e);
+                }
             }
         }
         
