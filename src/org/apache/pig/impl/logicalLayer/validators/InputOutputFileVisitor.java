@@ -24,8 +24,6 @@ import org.apache.pig.PigException;
 import org.apache.pig.ResourceSchema;
 import org.apache.pig.StoreFuncInterface;
 import org.apache.pig.impl.PigContext ;
-import org.apache.pig.impl.logicalLayer.FrontendException;
-import org.apache.pig.impl.logicalLayer.LONative;
 import org.apache.pig.impl.logicalLayer.LOStore;
 import org.apache.pig.impl.logicalLayer.LOVisitor;
 import org.apache.pig.impl.logicalLayer.LogicalOperator;
@@ -37,18 +35,16 @@ import org.apache.pig.impl.plan.PlanValidationException;
 import org.apache.pig.impl.plan.CompilationMessageCollector.MessageType;
 
 /***
- * Visitor for checking input/output files
- * Exceptions in here do not affect later operations
- * so we don't throw any exception but log all of 
- * them in msgCollector.
+ * Visitor for checking output specification
+ * In addition to throwing exception we also log them in msgCollector.
  * 
  * We assume input/output files can exist only in the top level plan.
  *
  */
 public class InputOutputFileVisitor extends LOVisitor {
     
-    private PigContext pigCtx = null ;
-    private CompilationMessageCollector msgCollector = null ;
+    private PigContext pigCtx;
+    private CompilationMessageCollector msgCollector;
     
     public InputOutputFileVisitor(LogicalPlan plan,
                                 CompilationMessageCollector messageCollector,
@@ -58,7 +54,7 @@ public class InputOutputFileVisitor extends LOVisitor {
         msgCollector = messageCollector ;
         
     }
-   
+       
     /***
      * The logic here is to delegate the validation of output specification
      * to output format implementation.
@@ -68,36 +64,31 @@ public class InputOutputFileVisitor extends LOVisitor {
 
         StoreFuncInterface sf = store.getStoreFunc();
         String outLoc = store.getOutputFile().getFileName();
-        String errMsg = "Unexpected error. Could not validate the output " +
-        "specification for: "+outLoc;
         int errCode = 2116;
-
+        String validationErrStr ="Output Location Validation Failed for: '" + outLoc ;
+        Job dummyJob;
+        
         try {
             if(store.getSchema() != null){
                 sf.checkSchema(new ResourceSchema(store.getSchema(), store.getSortInfo()));                
             }
-        } catch (FrontendException e) {
-            msgCollector.collect(errMsg, MessageType.Error) ;
-            throw new PlanValidationException(errMsg, errCode, pigCtx.getErrorSource(), e);
-        } catch (IOException e) {
-            msgCollector.collect(errMsg, MessageType.Error) ;
-            throw new PlanValidationException(errMsg, errCode, pigCtx.getErrorSource(), e);
-        }
-
-        Job dummyJob;
-        
-        try {
             dummyJob = new Job(ConfigurationUtil.toConfiguration(pigCtx.getProperties()));
             sf.setStoreLocation(outLoc, dummyJob);
         } catch (IOException ioe) {
-            msgCollector.collect(errMsg, MessageType.Error) ;
-            throw new PlanValidationException(errMsg, errCode, pigCtx.getErrorSource(), ioe);
+           	if(ioe instanceof PigException){
+        		errCode = ((PigException)ioe).getErrorCode();
+        	} 
+        	String exceptionMsg = ioe.getMessage();
+        	validationErrStr += (exceptionMsg == null) ? "" : " More info to follow:\n" +exceptionMsg;
+        	msgCollector.collect(validationErrStr, MessageType.Error) ;
+            throw new PlanValidationException(validationErrStr, errCode, pigCtx.getErrorSource(), ioe);
         }
+        
+        validationErrStr += " More info to follow:\n";
         try {
             sf.getOutputFormat().checkOutputSpecs(dummyJob);
         } catch (IOException ioe) {
             byte errSrc = pigCtx.getErrorSource();
-            errCode = 0;
             switch(errSrc) {
             case PigException.BUG:
                 errCode = 2002;
@@ -109,13 +100,13 @@ public class InputOutputFileVisitor extends LOVisitor {
                 errCode = 4000;
                 break;
             }
-            errMsg = "Output specification '"+outLoc+"' is invalid or already exists";
-            msgCollector.collect(errMsg, MessageType.Error) ;
-            throw new PlanValidationException(errMsg, errCode, errSrc, ioe);
+        	validationErrStr  += ioe.getMessage();
+        	msgCollector.collect(validationErrStr, MessageType.Error) ;
+            throw new PlanValidationException(validationErrStr, errCode, errSrc, ioe);
         } catch (InterruptedException ie) {
-            msgCollector.collect(errMsg, MessageType.Error) ;
-            throw new PlanValidationException(errMsg, errCode, pigCtx.getErrorSource(), ie);
+        	validationErrStr += ie.getMessage();
+        	msgCollector.collect(validationErrStr, MessageType.Error) ;
+            throw new PlanValidationException(validationErrStr, errCode, pigCtx.getErrorSource(), ie);
         }
     }
-
 }

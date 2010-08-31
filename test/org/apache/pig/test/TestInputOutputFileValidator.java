@@ -26,7 +26,6 @@ import org.apache.pig.FuncSpec;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.datastorage.DataStorage;
 import org.apache.pig.backend.datastorage.ElementDescriptor;
-import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.executionengine.util.MapRedUtil;
 import org.apache.pig.data.Tuple;
@@ -233,6 +232,7 @@ public class TestInputOutputFileValidator extends TestCase {
                     pig.store("a", output);
                 } catch (Exception e) {
                     assertEquals(6000, LogUtils.getPigException(e).getErrorCode());
+                    assertTrue(LogUtils.getPigException(e).getMessage().contains("Output Location Validation Failed for"));
                     exceptionCaught = true;
                 }
                 if(!exceptionCaught) {
