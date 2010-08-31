@@ -35,7 +35,7 @@ import org.apache.pig.data.TupleFactory;
  * If limit is not provided, 0 is assumed, as per Java's split().
  */
 
-public class SPLIT extends EvalFunc<Tuple> {
+public class STRSPLIT extends EvalFunc<Tuple> {
 
     private final static TupleFactory tupleFactory = TupleFactory.getInstance();
 
