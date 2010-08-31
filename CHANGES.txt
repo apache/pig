@@ -169,6 +169,8 @@ create a local copy of test-patch.sh (gkesavan)
 PIG-1302: Include zebra's "pigtest" ant target as a part of pig's 
 ant test target. (gkesavan)
 
+PIG-1582: To upgrade commons-logging
+
 OPTIMIZATIONS
 
 PIG-1353: Map-side joins (ashutoshc)
