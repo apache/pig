@@ -57,3 +57,4 @@
 **/TestTupleFormat.java
 **/TestTypeChecking.java
 **/TestTypeCheckingValidatorNoSchema.java
+**/TestStringUDFs.java
