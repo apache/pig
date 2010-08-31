@@ -107,7 +107,7 @@ public class LogicalPlanOptimizer extends PlanOptimizer {
         s = new HashSet<Rule>();
         r = new PushUpFilter("PushUpFilter");
         checkAndAddRule(s, r);
-        r = new FilterAboveForeach("FilterAboveForEachWithFlatten");
+        r = new FilterAboveForeach("FilterAboveForEach");
         checkAndAddRule(s, r);
         if (!s.isEmpty())
             ls.add(s);
