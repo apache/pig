@@ -57,7 +57,7 @@ import org.apache.pig.builtin.REGEX_EXTRACT;
 import org.apache.pig.builtin.REGEX_EXTRACT_ALL;
 import org.apache.pig.builtin.REPLACE;
 import org.apache.pig.builtin.SIZE;
-import org.apache.pig.builtin.SPLIT;
+import org.apache.pig.builtin.STRSPLIT;
 import org.apache.pig.builtin.SUBSTRING;
 import org.apache.pig.builtin.StringConcat;
 import org.apache.pig.builtin.StringSize;
@@ -1258,7 +1258,7 @@ public class TestBuiltin {
         output = strFunc.exec(input);
         assertTrue(output.equals(expected));
         
-        SPLIT splitter = new SPLIT();
+        STRSPLIT splitter = new STRSPLIT();
         Tuple test1 = TupleFactory.getInstance().newTuple(1);
         Tuple test2 = TupleFactory.getInstance().newTuple(2);
         Tuple test3 = TupleFactory.getInstance().newTuple(3);
@@ -1920,6 +1920,54 @@ public class TestBuiltin {
         assertEquals(f1, f2);
         Util.deleteFile(cluster, "testSFPig-input.txt");
         Util.deleteFile(cluster, "testSFPig-output.txt");
+    }
+
+    /* This are e2e tests to make sure that function that maps
+     * arguments to class is properly setup. More comprehansive
+     * unit tests are done in TestStringUDFs
+     */
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testStringUDFs() throws Exception {
+        String inputStr = "amy smith ";
+        Util.createInputFile(cluster, "testStrUDFsIn.txt", new String[] {inputStr});
+
+        // test typed data
+        pigServer.registerQuery("A = load 'testStrUDFsIn.txt' as (name: chararray);");
+        pigServer.registerQuery("B = foreach A generate SUBSTRING(name, 0, 3), " +
+            "INDEXOF(name, 'a'), INDEXOF(name, 'a', 3), LAST_INDEX_OF(name, 'a'), REPLACE(name, 'a', 'b'), " +
+            "STRSPLIT(name), STRSPLIT(name, ' '), STRSPLIT(name, ' ', 0), TRIM(name);"); 
+
+        Iterator<Tuple> it = pigServer.openIterator("B"); 
+        assertTrue(it.hasNext());
+        Tuple t = it.next();
+        Tuple expected = Util.buildTuple("amy", "smith");
+        assertTrue(!it.hasNext()); 
+        assertEquals(9, t.size());
+        assertEquals("amy", t.get(0));
+        assertEquals(0, t.get(1));
+        assertEquals(-1, t.get(2));
+        assertEquals(0, t.get(3));
+        assertEquals("bmy smith ", t.get(4));
+        assertEquals(expected, t.get(5));
+        assertEquals(expected, t.get(6));
+        assertEquals(expected, t.get(7));
+        assertEquals("amy smith", t.get(8));
+    
+        // test untyped data
+        pigServer.registerQuery("A = load 'testStrUDFsIn.txt' as (name);");
+        pigServer.registerQuery("B = foreach A generate SUBSTRING(name, 0, 3), " +
+            "LAST_INDEX_OF(name, 'a'), REPLACE(name, 'a', 'b'), TRIM(name);"); 
+
+        it = pigServer.openIterator("B"); 
+        assertTrue(it.hasNext());
+        t = it.next();
+        assertTrue(!it.hasNext()); 
+        assertEquals(4, t.size());
+        assertEquals("amy", t.get(0));
+        assertEquals(0, t.get(1));
+        assertEquals("bmy smith ", t.get(2));
+        assertEquals("amy smith", t.get(3));
     }
     
     @Test

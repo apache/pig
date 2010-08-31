@@ -76,6 +76,9 @@ import org.apache.pig.newplan.logical.optimizer.LogicalPlanPrinter;
 import org.apache.pig.tools.grunt.Grunt;
 import org.apache.pig.tools.grunt.GruntParser;
 
+import com.google.common.base.Function;
+import com.google.common.collect.Lists;
+
 public class Util {
     private static BagFactory mBagFactory = BagFactory.getInstance();
     private static TupleFactory mTupleFactory = TupleFactory.getInstance();
@@ -143,8 +146,26 @@ public class Util {
             t.append(b[i]);
     }
     
-    
-    
+    static public Tuple buildTuple(Object... args) throws ExecException {
+        return TupleFactory.getInstance().newTupleNoCopy(Lists.newArrayList(args));
+    }
+
+    static public Tuple buildBinTuple(final Object... args) throws IOException {
+        return TupleFactory.getInstance().newTuple(Lists.transform(
+                Lists.newArrayList(args), new Function<Object, DataByteArray>() {
+                    public DataByteArray apply(Object o) {
+                        if (o == null) { 
+                            return null;
+                        }
+                        try {
+                            return new DataByteArray(DataType.toBytes(o));
+                        } catch (ExecException e) {
+                            return null;
+                        }
+                    }
+                }));
+    }
+
     static public <T>Tuple createTuple(T[] s)
     {
         Tuple t = mTupleFactory.newTuple();
