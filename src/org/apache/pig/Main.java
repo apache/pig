@@ -681,8 +681,7 @@ public static void usage()
         System.out.println("    -t, -optimizer_off - Turn optimizations off. The following values are supported:");
         System.out.println("            SplitFilter - Split filter conditions");
         System.out.println("            MergeFilter - Merge filter conditions");
-        System.out.println("            PushUpFilter - Filter as early as possible (except ForEach)");
-        System.out.println("            FilterAboveForeach - Filter as early as possible (deal with ForEach case)");
+        System.out.println("            PushUpFilter - Filter as early as possible");
         System.out.println("            PushDownForeachFlatten - Join or explode as late as possible");
         System.out.println("            ColumnMapKeyPrune - Remove unused data");
         System.out.println("            LimitOptimizer - Limit as early as possible");
