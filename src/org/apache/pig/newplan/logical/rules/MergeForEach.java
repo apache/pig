@@ -175,9 +175,9 @@ public class MergeForEach extends Rule {
                         Operator exp1Source = exp1Sources.get(0);
                         if (newExpPlan.getPredecessors(exp2Sink)!=null) {
                             Operator exp2NextToSink = newExpPlan.getPredecessors(exp2Sink).get(0);
-                            newExpPlan.disconnect(exp2NextToSink, exp2Sink);
+                            Pair<Integer, Integer> pos = newExpPlan.disconnect(exp2NextToSink, exp2Sink);
                             newExpPlan.remove(exp2Sink);
-                            newExpPlan.connect(exp2NextToSink, exp1Source);
+                            newExpPlan.connect(exp2NextToSink, pos.first, exp1Source, pos.second);
                         }
                         else {
                             newExpPlan.remove(exp2Sink);
