@@ -687,6 +687,7 @@ public static void usage()
         System.out.println("            LimitOptimizer - Limit as early as possible");
         System.out.println("            AddForEach - Add ForEach to remove unneeded columns");
         System.out.println("            MergeForEach - Merge adjacent ForEach");
+        System.out.println("            LogicalExpressionSimplifier - Combine multiple expressions");
         System.out.println("            All - Disable all optimizations");
         System.out.println("        All optimizations are enabled by default. Optimization values are case insensitive.");
         System.out.println("    -v, -verbose - Print all error messages to screen");
@@ -714,6 +715,12 @@ public static void printProperties(){
         System.out.println("            Only disable combiner as a temporary workaround for problems.");
         System.out.println("        opt.multiquery=true|false; multiquery is on by default.");
         System.out.println("            Only disable multiquery as a temporary workaround for problems.");
+        System.out.println("        pig.tmpfilecompression=true|false; compression is off by default.");
+        System.out.println("            Determines whether output of intermediate jobs is compressed.");
+        System.out.println("        pig.tmpfilecompression.codec=lzo|gzip; default is gzip.");
+        System.out.println("            Used in conjunction with pig.tmpfilecompression. Defines compression type."); 
+        System.out.println("        pig.noSplitCombination=true|false. Split combination is on by default.");
+        System.out.println("            Determines if multiple small files are combined into a single map.");
         System.out.println("    Miscellaneous:");
         System.out.println("        exectype=mapreduce|local; default is mapreduce. This property is the same as -x switch");
         System.out.println("        pig.additional.jars=<comma seperated list of jars>. Used in place of register command.");
