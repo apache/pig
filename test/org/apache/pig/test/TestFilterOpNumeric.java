@@ -49,6 +49,7 @@ public class TestFilterOpNumeric extends TestCase {
     @Override
     public void setUp() throws Exception {
         pig = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        pig.getPigContext().getProperties().setProperty("pig.usenewlogicalplan", "true");
     }
 
     @AfterClass
@@ -71,7 +72,7 @@ public class TestFilterOpNumeric extends TestCase {
         pig.registerQuery("A=load '" 
                 + Util.generateURI(tmpFile.toString(), pig.getPigContext()) 
                 + "' using "+PigStorage.class.getName() +"(':');");
-        String query = "A = filter A by $0 == $1;";
+        String query = "A = filter A by ($0 == $1 and $0 <= $1);";
         log.info(query);
         pig.registerQuery(query);
         Iterator<Tuple> it = pig.openIterator("A");
@@ -131,7 +132,7 @@ public class TestFilterOpNumeric extends TestCase {
         pig.registerQuery("A=load '" 
                 + Util.generateURI(tmpFile.toString(), pig.getPigContext()) + "' using " 
                 + PigStorage.class.getName() + "(':') as (f1: double, f2:double);");
-        String query = "A = filter A by $0 > $1;";
+        String query = "A = filter A by ($0 > $1 and $0 >= $1);";
 
         log.info(query);
         pig.registerQuery(query);
@@ -184,7 +185,7 @@ public class TestFilterOpNumeric extends TestCase {
         ps.close();
         pig.registerQuery("A=load '" 
                 + Util.generateURI(tmpFile.toString(), pig.getPigContext()) + "';");
-        String query = "A = foreach A generate ($0 < 10?($1 >= 5 ? 2: 1) : 0);";
+        String query = "A = foreach A generate (($0 < 10 or $0 < 9)?(($1 >= 5 and $1 >= 4) ? 2: 1) : 0);";
         log.info(query);
         pig.registerQuery(query);
         Iterator<Tuple> it = pig.openIterator("A");
@@ -215,7 +216,7 @@ public class TestFilterOpNumeric extends TestCase {
         pig.registerQuery("A=load '" 
                 + Util.generateURI(tmpFile.toString(), pig.getPigContext()) 
                 + "' using " + PigStorage.class.getName() + "(':') as (a: double, b:double);");
-        String query = "A = filter A by $0 < $1;";
+        String query = "A = filter A by ($0 <= $1 and $0 < $1);";
 
         log.info(query);
         pig.registerQuery(query);
@@ -247,7 +248,7 @@ public class TestFilterOpNumeric extends TestCase {
         pig.registerQuery("A=load '" 
                 + Util.generateURI(tmpFile.toString(), pig.getPigContext()) 
                 + "' using " + PigStorage.class.getName() + "(':');");
-        String query = "A = filter A by $0 >= $1;";
+        String query = "A = filter A by ($0 > $1 or $0 >= $1);";
 
         log.info(query);
         pig.registerQuery(query);
@@ -278,7 +279,7 @@ public class TestFilterOpNumeric extends TestCase {
         pig.registerQuery("A=load '" 
                 + Util.generateURI(tmpFile.toString(), pig.getPigContext()) 
                 + "' using " + PigStorage.class.getName() + "(':') as (a: double, b:double);");
-        String query = "A = filter A by $0 <= $1;";
+        String query = "A = filter A by ($0 <= $1 or $0 < $1);";
 
         log.info(query);
         pig.registerQuery(query);
