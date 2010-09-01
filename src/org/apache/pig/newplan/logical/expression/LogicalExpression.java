@@ -99,6 +99,7 @@ public abstract class LogicalExpression extends Operator {
         uidOnlyFieldSchema = fieldSchema.mergeUid(uidOnlyFieldSchema);
     }
 
+
     /**
      * Create the deep copy of this expression and add that into the passed
      * LogicalExpressionPlan Return the copy of this expression with updated

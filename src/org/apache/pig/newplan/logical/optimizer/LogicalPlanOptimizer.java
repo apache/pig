@@ -33,6 +33,7 @@ import org.apache.pig.newplan.logical.rules.MergeForEach;
 import org.apache.pig.newplan.logical.rules.PushUpFilter;
 import org.apache.pig.newplan.logical.rules.SplitFilter;
 import org.apache.pig.newplan.logical.rules.StreamTypeCastInserter;
+import org.apache.pig.newplan.logical.rules.LogicalExpressionSimplifier;
 import org.apache.pig.newplan.optimizer.PlanOptimizer;
 import org.apache.pig.newplan.optimizer.Rule;
 
@@ -53,11 +54,17 @@ public class LogicalPlanOptimizer extends PlanOptimizer {
     protected List<Set<Rule>> buildRuleSets() {
         List<Set<Rule>> ls = new ArrayList<Set<Rule>>();	    
 
+        // Logical expression simplifier
+        Set<Rule> s = new HashSet<Rule>();
+        // add logical expression simplification rule
+        Rule r = new LogicalExpressionSimplifier("FilterLogicExpressionSimplifier");
+        checkAndAddRule(s, r);
+        ls.add(s);
+
         // ImplicitSplitInserter set
         // This set of rules Insert Foreach dedicated for casting after load
-        Set<Rule> s = new HashSet<Rule>();
-        // add split filter rule
-        Rule r = new ImplicitSplitInserter("ImplicitSplitInserter");
+        s = new HashSet<Rule>();
+        r = new ImplicitSplitInserter("ImplicitSplitInserter");
         checkAndAddRule(s, r);
         if (!s.isEmpty())
             ls.add(s);
@@ -186,7 +193,7 @@ public class LogicalPlanOptimizer extends PlanOptimizer {
         
         ruleSet.add(rule);
     }
-    
+
     private void addListeners() {
         addPlanTransformListener(new SchemaPatcher());
         addPlanTransformListener(new ProjectionPatcher());
