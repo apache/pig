@@ -181,6 +181,8 @@ PIG-1309: Map-side Cogroup (ashutoshc)
 
 BUG FIXES
 
+PIG-1583: piggybank unit test TestLookupInFiles is broken (daijy)
+
 PIG-1563: some of string functions don't work on bytearrays (olgan)
 
 PIG-1569: java properties not honored in case of properties such as
