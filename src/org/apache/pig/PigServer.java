@@ -63,6 +63,7 @@ import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.FileSpec;
+import org.apache.pig.impl.io.InterStorage;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.LOConst;
 import org.apache.pig.impl.logicalLayer.LODefine;
@@ -634,7 +635,13 @@ public class PigServer {
         try {
             LogicalPlan lp = getPlanFromAlias(alias, "describe");
             lp = compileLp(alias, false);
-            Schema schema = lp.getLeaves().get(0).getSchema();
+            Schema schema = null;
+            for(LogicalOperator lo : lp.getLeaves()){
+                if(lo.getAlias().equals(alias)){
+                    schema = lo.getSchema();
+                    break;
+                }
+            }
             if (schema != null) System.out.println(alias + ": " + schema.toString());    
             else System.out.println("Schema for " + alias + " unknown.");
             return schema;
@@ -896,6 +903,7 @@ public class PigServer {
             if( pigContext.getProperties().getProperty("pig.usenewlogicalplan", "true").equals("true") ) {
                 LogicalPlanMigrationVistor migrator = new LogicalPlanMigrationVistor(lp);
                 migrator.visit();
+                migrator.finish();
                 org.apache.pig.newplan.logical.relational.LogicalPlan newPlan = migrator.getNewLogicalPlan();
                 
                 HashSet<String> optimizerRules = null;
@@ -1235,7 +1243,7 @@ public class PigServer {
                 }
                 else {
                     // add new store
-                    FuncSpec funcSpec = new FuncSpec(PigStorage.class.getName() + "()");
+                    FuncSpec funcSpec = new FuncSpec(InterStorage.class.getName());
                     fileSpec = new FileSpec(FileLocalizer.getTemporaryPath(pigContext).toString(), funcSpec);
                     store = new LOStore(referredPlan, new OperatorKey(scope, NodeIdGenerator.getGenerator().getNextNodeId(scope)),
                             fileSpec, alias);

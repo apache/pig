@@ -17,11 +17,14 @@
  */
 package org.apache.pig.test;
 
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
+import java.io.File;
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.Random;
-
-import junit.framework.TestCase;
 
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
@@ -29,13 +32,11 @@ import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.io.FileLocalizer;
-import org.apache.pig.impl.logicalLayer.FrontendException;
-import org.apache.pig.impl.logicalLayer.validators.TypeCheckerException;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
 
-public class TestScalarAliases extends TestCase {
+public class TestScalarAliases  {
     static MiniCluster cluster = MiniCluster.buildCluster();
     private PigServer pigServer;
 
@@ -43,10 +44,9 @@ public class TestScalarAliases extends TestCase {
     BagFactory mBf = BagFactory.getInstance();
 
     @Before
-    @Override
     public void setUp() throws Exception{
-        FileLocalizer.setR(new Random());
-        pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        FileLocalizer.setInitialized(false);
+        pigServer = new PigServer(ExecType.LOCAL);
     }
 
     @AfterClass
@@ -64,7 +64,7 @@ public class TestScalarAliases extends TestCase {
         };
 
         // Test the use of scalars in expressions
-        Util.createInputFile(cluster, "table_testScalarAliasesBatch", input);
+        Util.createLocalInputFile( "table_testScalarAliasesBatch", input);
         // Test in script mode
         pigServer.setBatchOn();
         pigServer.registerQuery("A = LOAD 'table_testScalarAliasesBatch' as (a0: long, a1: double);");
@@ -103,6 +103,9 @@ public class TestScalarAliases extends TestCase {
         assertTrue(t.toString().equals("(9,1.0)"));
 
         assertFalse(iter.hasNext());
+        
+        Util.deleteDirectory(new File("table_testScalarAliasesDir"));
+
     }
 
     // See PIG-1434
@@ -115,7 +118,7 @@ public class TestScalarAliases extends TestCase {
         };
 
         // Test the use of scalars in expressions
-        Util.createInputFile(cluster, "table_testUseScalarMultipleTimes", input);
+        Util.createLocalInputFile( "table_testUseScalarMultipleTimes", input);
         pigServer.setBatchOn();
         pigServer.registerQuery("A = LOAD 'table_testUseScalarMultipleTimes' as (a0: long, a1: double);");
         pigServer.registerQuery("B = group A all;");
@@ -188,6 +191,10 @@ public class TestScalarAliases extends TestCase {
         assertTrue(t.toString().equals("(23.0,60.0)"));
 
         assertFalse(iter.hasNext());
+        
+        Util.deleteDirectory(new File("table_testUseScalarMultipleTimesOutY"));
+        Util.deleteDirectory(new File("table_testUseScalarMultipleTimesOutZ"));
+        
     }
 
     // See PIG-1434
@@ -201,24 +208,14 @@ public class TestScalarAliases extends TestCase {
                 "2\t10",
                 "3\t20"
         };
-        Util.createInputFile(cluster, "table_testScalarWithNoSchema", input);
-        Util.createInputFile(cluster, "table_testScalarWithNoSchemaScalar", scalarInput);
+        Util.createLocalInputFile( "table_testScalarWithNoSchema", input);
+        Util.createLocalInputFile( "table_testScalarWithNoSchemaScalar", scalarInput);
         // Load A as a scalar
         pigServer.registerQuery("A = LOAD 'table_testScalarWithNoSchema';");
         pigServer.registerQuery("scalar = LOAD 'table_testScalarWithNoSchemaScalar' as (count, total);");
         pigServer.registerQuery("B = foreach A generate 5 / scalar.total;");
 
-        try {
-            pigServer.openIterator("B");
-            fail("We do not support no schema scalar without a cast");
-        } catch (FrontendException te) {
-            // In alias B, incompatible types in Division Operator left hand side:int right hand side:chararray
-            assertTrue(((TypeCheckerException)te.getCause().getCause().getCause()).getErrorCode() == 1039);
-        }
-
-        pigServer.registerQuery("C = foreach A generate 5 / (int)scalar.total;");
-
-        Iterator<Tuple> iter = pigServer.openIterator("C");
+        Iterator<Tuple> iter = pigServer.openIterator("B");
 
         Tuple t = iter.next();
         assertTrue(t.get(0).toString().equals("1"));
@@ -249,8 +246,8 @@ public class TestScalarAliases extends TestCase {
         };
 
         // Test the use of scalars in expressions
-        Util.createInputFile(cluster, "testScalarWithTwoBranchesA", inputA);
-        Util.createInputFile(cluster, "testScalarWithTwoBranchesX", inputX);
+        Util.createLocalInputFile( "testScalarWithTwoBranchesA", inputA);
+        Util.createLocalInputFile( "testScalarWithTwoBranchesX", inputX);
         // Test in script mode
         pigServer.setBatchOn();
         pigServer.registerQuery("A = LOAD 'testScalarWithTwoBranchesA' as (a0: long, a1: double);");
@@ -289,6 +286,9 @@ public class TestScalarAliases extends TestCase {
         assertTrue(t.toString().equals("(rocks,20.0)"));
 
         assertFalse(iter.hasNext());
+        
+        Util.deleteDirectory(new File("testScalarWithTwoBranchesDir"));
+
     }
 
     // See PIG-1434
@@ -301,16 +301,18 @@ public class TestScalarAliases extends TestCase {
         };
 
         // Test the use of scalars in expressions
-        Util.createInputFile(cluster, "table_testFilteredScalarDollarProj", input);
+        Util.createLocalInputFile( "table_testFilteredScalarDollarProj", input);
         // Test in script mode
         pigServer.setBatchOn();
         pigServer.registerQuery("A = LOAD 'table_testFilteredScalarDollarProj' as (a0: long, a1: double);");
         pigServer.registerQuery("B = filter A by $1 < 8;");
         pigServer.registerQuery("Y = foreach A generate (a0 * B.$0), (a1 / B.$1);");
         pigServer.registerQuery("Store Y into 'table_testFilteredScalarDollarProjDir';");
+        pigServer.explain("Y", System.err);
         pigServer.executeBatch();
         // Check output
         pigServer.registerQuery("Z = LOAD 'table_testFilteredScalarDollarProjDir' as (a0: int, a1: double);");
+        pigServer.explain("Z", System.err);
 
         Iterator<Tuple> iter = pigServer.openIterator("Z");
 
@@ -339,6 +341,8 @@ public class TestScalarAliases extends TestCase {
 
         assertFalse(iter.hasNext());
 
+        Util.deleteDirectory(new File("table_testFilteredScalarDollarProjDir"));
+
     }
 
     // See PIG-1434
@@ -352,24 +356,14 @@ public class TestScalarAliases extends TestCase {
                 "2\t10",
                 "3\t20"
         };
-        Util.createInputFile(cluster, "table_testScalarWithNoSchemaDollarProj", input);
-        Util.createInputFile(cluster, "table_testScalarWithNoSchemaDollarProjScalar", scalarInput);
+        Util.createLocalInputFile( "table_testScalarWithNoSchemaDollarProj", input);
+        Util.createLocalInputFile( "table_testScalarWithNoSchemaDollarProjScalar", scalarInput);
         // Load A as a scalar
         pigServer.registerQuery("A = LOAD 'table_testScalarWithNoSchemaDollarProj';");
         pigServer.registerQuery("scalar = LOAD 'table_testScalarWithNoSchemaDollarProjScalar';");
         pigServer.registerQuery("B = foreach A generate 5 / scalar.$1;");
 
-        try {
-            pigServer.openIterator("B");
-            fail("We do not support no schema scalar without a cast");
-        } catch (FrontendException te) {
-            // In alias B, incompatible types in Division Operator left hand side:int right hand side:chararray
-            assertTrue(((TypeCheckerException)te.getCause().getCause().getCause()).getErrorCode() == 1039);
-        }
-
-        pigServer.registerQuery("C = foreach A generate 5 / (int)scalar.$1;");
-
-        Iterator<Tuple> iter = pigServer.openIterator("C");
+        Iterator<Tuple> iter = pigServer.openIterator("B");
 
         Tuple t = iter.next();
         assertTrue(t.get(0).toString().equals("1"));
@@ -399,8 +393,8 @@ public class TestScalarAliases extends TestCase {
         };
 
         // Test the use of scalars in expressions
-        Util.createInputFile(cluster, "table_testScalarAliasesJoinClauseA", inputA);
-        Util.createInputFile(cluster, "table_testScalarAliasesJoinClauseB", inputB);
+        Util.createLocalInputFile( "table_testScalarAliasesJoinClauseA", inputA);
+        Util.createLocalInputFile( "table_testScalarAliasesJoinClauseB", inputB);
         // Test in script mode
         pigServer.registerQuery("A = LOAD 'table_testScalarAliasesJoinClauseA' as (a0, a1);");
         pigServer.registerQuery("G = group A all;");
@@ -435,7 +429,7 @@ public class TestScalarAliases extends TestCase {
         };
 
         // Test the use of scalars in expressions
-        Util.createInputFile(cluster, "table_testScalarAliasesFilterClause", input);
+        Util.createLocalInputFile( "table_testScalarAliasesFilterClause", input);
         // Test in script mode
         pigServer.registerQuery("A = LOAD 'table_testScalarAliasesFilterClause' as (a0, a1);");
         pigServer.registerQuery("G = group A all;");
@@ -458,6 +452,7 @@ public class TestScalarAliases extends TestCase {
     // See PIG-1434
     @Test
     public void testScalarAliasesSplitClause() throws Exception{
+        pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
         String[] input = {
                 "1\t5",
                 "2\t10",
@@ -487,7 +482,10 @@ public class TestScalarAliases extends TestCase {
         assertTrue(t.toString().equals("(3,20.0)"));
 
         assertFalse(iter.hasNext());
+        Util.deleteFile(cluster, "table_testScalarAliasesSplitClauseDir");
+
     }
+    
 
     // See PIG-1434
     @Test
@@ -498,7 +496,7 @@ public class TestScalarAliases extends TestCase {
                 "3\t20"
         };
 
-        Util.createInputFile(cluster, "table_testScalarAliasesGrammar", input);
+        Util.createLocalInputFile( "table_testScalarAliasesGrammar", input);
         pigServer.registerQuery("A = LOAD 'table_testScalarAliasesGrammar' as (a0: long, a1: double);");
         pigServer.registerQuery("B = group A all;");
         pigServer.registerQuery("C = foreach B generate COUNT(A);");

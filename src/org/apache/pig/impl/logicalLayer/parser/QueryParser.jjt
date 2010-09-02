@@ -770,6 +770,27 @@ public class QueryParser {
     static String constructFileNameSignature(String fileName, FuncSpec funcSpec) {
         return fileName+"_"+funcSpec.toString();
     }
+    
+    ExpressionOperator attachColPosToReadScalar(LogicalPlan lp, 
+            ExpressionOperator expr, int colNum, Schema over) 
+    throws PlanException, FrontendException{
+    
+        scalarFound = false;
+        // We also need to attach LOConst to the userfunc 
+        // so that it can read that projection number in ReadScalars UDF
+        LOConst rconst = new LOConst(lp, new OperatorKey(scope, getNextId()), colNum);
+        rconst.setType(DataType.INTEGER);
+        lp.add(rconst);
+        lp.connect(rconst, expr);
+
+        if(over != null && over.getField(colNum).type != DataType.BYTEARRAY) {
+            LOCast loCast = new LOCast(lp, new OperatorKey(scope, getNextId()), over.getField(colNum).type);
+            lp.add(loCast);
+            lp.connect(expr, loCast);
+            expr = loCast;
+        } 
+        return expr;
+    }    
 }
 
 
@@ -4268,51 +4289,29 @@ ExpressionOperator DollarVar(Schema over, Map<String, LogicalOperator> specs, Lo
             }
         }
         // Scalar Projections
-		if(bracketed && eOp instanceof LOUserFunc && ((LOUserFunc)eOp).getImplicitReferencedOperator() != null) {
-			try {
-				scalarFound = false;
-				// Projections decides type of scalar, we need to add a Cast operator to track that
-				LOCast loCast = null;
-				if(over != null) {
-					if(over.getField(colNum).type != DataType.BYTEARRAY) {
-						loCast = new LOCast(lp, new OperatorKey(scope, getNextId()), over.getField(colNum).type);
-					} 
-				} 
-				if(loCast == null){
-					// Default type is chararray not bytearray for ReadScalar, as it reads string from the file
-					loCast = new LOCast(lp, new OperatorKey(scope, getNextId()), DataType.CHARARRAY);
-				}
-				lp.add(loCast);
-				lp.connect(eOp, loCast);
-				
-				// We also need to attach LOConst to the userfunc 
-				// so that it can read that projection number in ReadScalars UDF
-				LOConst rconst = new LOConst(lp, new OperatorKey(scope, getNextId()), colNum);
-                rconst.setType(DataType.INTEGER);
-                lp.add(rconst);
-                lp.connect(rconst, eOp);
-                
-                return loCast;
-			} catch(Exception e) {
-				throw new ParseException("Invalid field in scalar" + e);
-			}
-		}
-		ExpressionOperator project = new LOProject(lp, new OperatorKey(scope, getNextId()), eOp, undollar(t1.image));
-		try {
-			log.debug("eOp: " + eOp.getClass().getName() + " " + eOp);
-			lp.add(project);
-			log.debug("DollarVar: Added operator " + project.getClass().getName() + " " + project + " to logical plan " + lp);
-            if((eOp instanceof ExpressionOperator) && (bracketed)) {
-			    lp.add(eOp);
-			    lp.connect(eOp, project);
+        if(bracketed && eOp instanceof LOUserFunc && ((LOUserFunc)eOp).getImplicitReferencedOperator() != null) {
+            try {
+                return attachColPosToReadScalar(lp, (ExpressionOperator)eOp, colNum, over);
+            } catch(Exception e) {
+                throw new ParseException("Invalid field in scalar" + e);
             }
-		} catch (Exception planException) {
-			ParseException pe = new ParseException(planException.getMessage());
-			pe.initCause(planException); 
-			throw pe;
-		}
-		log.trace("Exiting DollarVar");
-		return project;
+        }
+        ExpressionOperator project = new LOProject(lp, new OperatorKey(scope, getNextId()), eOp, undollar(t1.image));
+        try {
+            log.debug("eOp: " + eOp.getClass().getName() + " " + eOp);
+            lp.add(project);
+            log.debug("DollarVar: Added operator " + project.getClass().getName() + " " + project + " to logical plan " + lp);
+            if((eOp instanceof ExpressionOperator) && (bracketed)) {
+                lp.add(eOp);
+                lp.connect(eOp, project);
+            }
+        } catch (Exception planException) {
+            ParseException pe = new ParseException(planException.getMessage());
+            pe.initCause(planException); 
+            throw pe;
+        }
+        log.trace("Exiting DollarVar");
+        return project;
 	}
 }
 
@@ -4415,56 +4414,37 @@ ExpressionOperator AliasFieldOrSpec(Schema over, Map<String, LogicalOperator> sp
             } catch (FrontendException fee) {
             	ParseException pe = new ParseException(fee.getMessage());
             	pe.initCause(fee);
-                throw pe;
+            	throw pe;
             }
-			log.debug("Position of " + t1.image + " = " + i);
-			if(null != over) {
-				log.debug("Printing out the aliases in the schema");
-				over.printAliases();
-			}
-			// Scalar Projections
-			if(bracketed && eOp instanceof LOUserFunc && ((LOUserFunc)eOp).getImplicitReferencedOperator() != null) {
-				try {
-					scalarFound = false;
-					// Projections decides type of scalar, we need to add a Cast operator to track that
-					LOCast loCast;
-					if(over.getField(i).type != DataType.BYTEARRAY) {
-						loCast = new LOCast(lp, new OperatorKey(scope, getNextId()), over.getField(i).type);
-					} else {
-						// Default type is chararray not bytearray for ReadScalar, as it reads string from the file
-						loCast = new LOCast(lp, new OperatorKey(scope, getNextId()), DataType.CHARARRAY);
-					}
-					lp.add(loCast);
-					lp.connect(eOp, loCast);
-					
-					// We also need to attach LOConst to the userfunc 
-					// so that it can read that projection number in ReadScalars UDF
-					LOConst rconst = new LOConst(lp, new OperatorKey(scope, getNextId()), i);
-	                rconst.setType(DataType.INTEGER);
-	                lp.add(rconst);
-	                lp.connect(rconst, eOp);
-	                
-	                return loCast;
-				} catch(Exception e) {
-					throw new ParseException("Invalid field in scalar" + e);
-				}
-			}
-			item = new LOProject(lp, new OperatorKey(scope, getNextId()), eOp, i);
-			item.setAlias(t1.image);
-			try {
-				lp.add(item);
-				log.debug("AliasFieldOrSpec: Added operator " + item.getClass().getName() + " " + item + " to logical plan " + lp);
-                if((eOp instanceof ExpressionOperator) && (bracketed)) {
-				    lp.add(eOp);
-				    lp.connect(eOp, item);
+            log.debug("Position of " + t1.image + " = " + i);
+            if(null != over) {
+                log.debug("Printing out the aliases in the schema");
+                over.printAliases();
+            }
+            // Scalar Projections
+            if(bracketed && eOp instanceof LOUserFunc && ((LOUserFunc)eOp).getImplicitReferencedOperator() != null) {
+                try {
+                    return attachColPosToReadScalar(lp, (ExpressionOperator)eOp, i, over);
+                } catch(Exception e) {
+                    throw new ParseException("Invalid field in scalar" + e);
                 }
-			} catch (Exception planException) {
-				ParseException parseException = new ParseException(planException.getMessage());
-				parseException.initCause(planException);
-				throw parseException;
-			}
+            }
+            item = new LOProject(lp, new OperatorKey(scope, getNextId()), eOp, i);
+            item.setAlias(t1.image);
+            try {
+                lp.add(item);
+                log.debug("AliasFieldOrSpec: Added operator " + item.getClass().getName() + " " + item + " to logical plan " + lp);
+                if((eOp instanceof ExpressionOperator) && (bracketed)) {
+                    lp.add(eOp);
+                    lp.connect(eOp, item);
+                }
+            } catch (Exception planException) {
+                ParseException parseException = new ParseException(planException.getMessage());
+                parseException.initCause(planException);
+                throw parseException;
+            }
 		}
-		
+
 		log.trace("Exiting AliasFieldOrSpec");
 		return item;
 	}
