@@ -26,6 +26,7 @@ import org.apache.pig.PigException;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.impl.logicalLayer.schema.Schema.FieldSchema;
 import org.apache.pig.data.DataType;
 import org.apache.pig.impl.plan.OperatorKey;
 
@@ -56,10 +57,20 @@ public class LOUserFunc extends ExpressionOperator {
         return mFuncSpec;
     }
     
+    /**
+     * Used for scalar alias. return the source logical operator
+     * this ReadScalars udf is associated with 
+     * @return input logical operator
+     */
     public LogicalOperator getImplicitReferencedOperator() {
         return implicitReferencedOperator;
     }
 
+    /**
+     * Used for scalar alias. set the source logical operator
+     * this ReadScalars udf is associated with 
+     * @param implicitReferencedOperator input logical operator
+     */
     public void setImplicitReferencedOperator(
             LogicalOperator implicitReferencedOperator) {
         this.implicitReferencedOperator = implicitReferencedOperator;
@@ -95,6 +106,33 @@ public class LOUserFunc extends ExpressionOperator {
     @Override
     public Schema.FieldSchema getFieldSchema() throws FrontendException {
         if(!mIsFieldSchemaComputed) {
+            
+            if(implicitReferencedOperator != null ){
+                // if this is a ReadScalars udf for scalar operation, use the 
+                // FieldSchema corresponding to this position in input 
+                List<ExpressionOperator> args = getArguments();
+                if(args != null && args.size() > 0 ){
+                    int pos = (Integer)((LOConst)getArguments().get(0)).getValue();
+                    LogicalOperator inp = implicitReferencedOperator;
+                    if(inp.getSchema() != null){
+                        // input logical operator has schema, copy and link
+                        //to corresponding FieldSchema
+                        FieldSchema inpFs = inp.getSchema().getField(pos);
+                        mFieldSchema = Schema.FieldSchema.copyAndLink(inpFs, inp);
+                    }else{
+                        // no schema for input logicaloperator, use bytearray
+                        // and set it as parent
+                        mFieldSchema = new FieldSchema(null, DataType.BYTEARRAY);
+                        mFieldSchema.setParent(null, inp);
+                    }
+                    mIsFieldSchemaComputed = true;
+                    return mFieldSchema;
+                }else{
+                    //predecessors haven't been setup, return null
+                    return null;
+                }
+            }
+            
             Schema inputSchema = new Schema();
             List<ExpressionOperator> args = getArguments();
             for(ExpressionOperator op: args) {

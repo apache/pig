@@ -467,4 +467,8 @@ public class POUserFunc extends ExpressionOperator {
             ((Accumulator)func).cleanup();
         }        
     }
+    
+    public void setResultType(byte resultType) {
+        this.resultType = resultType;
+    }
 }

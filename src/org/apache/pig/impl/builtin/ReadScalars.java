@@ -17,17 +17,16 @@
  */
 package org.apache.pig.impl.builtin;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 
 import org.apache.pig.EvalFunc;
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
-import org.apache.pig.impl.io.FileLocalizer;
-import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.impl.io.InterStorage;
+import org.apache.pig.impl.io.ReadToEndLoader;
+import org.apache.pig.impl.util.UDFContext;
 
 /**
  * ReadScalars reads a line from a file and returns it as its value. The
@@ -35,10 +34,10 @@ import org.apache.pig.impl.logicalLayer.schema.Schema;
  * This is useful for incorporating a result from an agregation into another
  * evaluation.
  */
-public class ReadScalars extends EvalFunc<String> {
+public class ReadScalars extends EvalFunc<Object> {
     private String scalarfilename = null;
-    private String charset = "UTF-8";
-    private String value = null;
+  //  private String charset = "UTF-8";
+    private Object value = null;
 
     /**
      * Java level API
@@ -48,52 +47,44 @@ public class ReadScalars extends EvalFunc<String> {
      *            read
      */
     @Override
-    public String exec(Tuple input) throws IOException {
+    public Object exec(Tuple input) throws IOException {
         if (value == null) {
             if (input == null || input.size() == 0)
                 return null;
 
-            InputStream is;
-            BufferedReader reader;
             int pos;
+            ReadToEndLoader loader;
             try {
                 pos = DataType.toInteger(input.get(0));
                 scalarfilename = DataType.toString(input.get(1));
-
-                is = FileLocalizer.openDFSFile(scalarfilename);
-                reader = new BufferedReader(new InputStreamReader(is, charset));
+                loader = new ReadToEndLoader(
+                        new InterStorage(), 
+                        UDFContext.getUDFContext().getJobConf(),
+                        scalarfilename, 0
+                );
             } catch (Exception e) {
                 throw new ExecException("Failed to open file '" + scalarfilename
                         + "'; error = " + e.getMessage());
             }
             try {
-                String line = reader.readLine();
-                if(line == null) {
+                Tuple t1 = loader.getNext();
+                if(t1 == null){
                     log.warn("No scalar field to read, returning null");
                     return null;
                 }
-                String[] lineTok = line.split("\t");
-                if(pos > lineTok.length) {
-                    log.warn("No scalar field to read, returning null");
-                    return null;
+                value = t1.get(pos);
+                Tuple t2 = loader.getNext();
+                if(t2 != null){
+                    String msg = "Scalar has more than one row in the output. " 
+                        + "1st : " + t1 + ", 2nd :" + t2;
+                    throw new ExecException(msg);   
                 }
-                value = lineTok[pos];
-                if(reader.readLine() != null) {
-                    throw new ExecException("Scalar has more than one row in the output");
-                }
+                
             } catch (Exception e) {
                 throw new ExecException(e.getMessage());
-            } finally {
-                reader.close();
-                is.close();
-            }
+            } 
         }
         return value;
     }
 
-    @Override
-    public Schema outputSchema(Schema input) {
-        return new Schema(new Schema.FieldSchema(getSchemaName("ReadScalars", input),
-                DataType.CHARARRAY));
-    }
 }

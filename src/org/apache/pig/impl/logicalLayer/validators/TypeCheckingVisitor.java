@@ -1774,7 +1774,15 @@ public class TypeCheckingVisitor extends LOVisitor {
         // set here. This is a special case where output type is not
         // automatically determined.
         
-        if(inputType == DataType.BYTEARRAY) {
+        if(inputType == DataType.BYTEARRAY || 
+                (       // a hack . need to add a caster for LOUserFunc if its for
+                        // scalar alias, as the dependency on predecessor LO is not
+                        // managed correctly, and might result in result type getting
+                        // set as bytearray later on
+                        cast.getExpression() instanceof LOUserFunc && 
+                        ((LOUserFunc)cast.getExpression()).getImplicitReferencedOperator() != null
+                )
+        ) {
             try {
             	Map<String, LogicalOperator> canonicalMap = cast.getFieldSchema().getCanonicalMap();
             	for( Map.Entry<String, LogicalOperator> entry : canonicalMap.entrySet() ) {
@@ -3068,9 +3076,12 @@ public class TypeCheckingVisitor extends LOVisitor {
         MultiMap<String, FuncSpec> loadFuncSpecMap = new MultiMap<String, FuncSpec>();
         if(op instanceof ExpressionOperator) {
             if(op instanceof LOUserFunc) {
-                return null;
-            }
-            
+                if(((LOUserFunc)op).getImplicitReferencedOperator() == null){
+                    // in case of scalar alias user function, proceed and go to the parent
+                    // in case of other user functions, stop here and return null
+                    return null;
+                }
+            }            
             Schema.FieldSchema fs = ((ExpressionOperator)op).getFieldSchema();
             if( parentCanonicalName != null ) {
             	fs = fs.findFieldSchema( parentCanonicalName );
