@@ -105,7 +105,7 @@ public final class PigStats {
     /**
      * JobGraph is an {@link OperatorPlan} whose members are {@link JobStats}
      */
-    public static class JobGraph extends BaseOperatorPlan {
+    public static class JobGraph extends BaseOperatorPlan implements Iterable<JobStats>{
                 
         @Override
         public String toString() {

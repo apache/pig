@@ -179,6 +179,7 @@ public abstract class Launcher {
             String msgs[] = reports[i].getDiagnostics();
             ArrayList<Exception> exceptions = new ArrayList<Exception>();
             Set<String> errorMessageSet = new HashSet<String>();
+            String exceptionCreateFailMsg = null;
             for (int j = 0; j < msgs.length; j++) {                	
                 if(!errorMessageSet.contains(msgs[j])) {
                     errorMessageSet.add(msgs[j]);
@@ -192,10 +193,9 @@ public abstract class Launcher {
                             Exception e = getExceptionFromString(msgs[j]);
                             exceptions.add(e);
                         } catch (Exception e1) {
+                            // keep track of the exception we were unable to re-create
                             String firstLine = getFirstLineFromMessage(msgs[j]);                                
-                            int errCode = 2997;
-                            String msg = "Unable to recreate exception from backed error: " + firstLine;
-                            throw new ExecException(msg, errCode, PigException.BUG);
+                            exceptionCreateFailMsg = firstLine;
                         }
                     } else {
                         log.debug("Error message from task (" + type + ") " +
@@ -203,6 +203,14 @@ public abstract class Launcher {
                     }
                 }
             }            
+
+            //if there are no valid exception that could be created, report
+            if(exceptions.size() == 0){
+                int errCode = 2997;
+                String msg = "Unable to recreate exception from backed error: " 
+                    + exceptionCreateFailMsg;
+                throw new ExecException(msg, errCode, PigException.BUG);
+            }
             
             //if its a failed job then check if there is more than one exception
             //more than one exception implies possibly different kinds of failures
