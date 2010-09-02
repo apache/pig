@@ -193,6 +193,8 @@ PIG-1309: Map-side Cogroup (ashutoshc)
 
 BUG FIXES
 
+PIG-1550:  better error handling in casting relations to scalars (thejas)
+
 PIG-1572: change default datatype when relations are used as scalar to bytearray (thejas)
 
 PIG-1583: piggybank unit test TestLookupInFiles is broken (daijy)

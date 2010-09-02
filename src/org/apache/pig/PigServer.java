@@ -733,14 +733,22 @@ public class PigServer {
             } else if (job.getStatus() == JOB_STATUS.FAILED
                        && job.getException() != null) {
                 // throw the backend exception in the failed case
-                throw job.getException();
+                Exception e = job.getException();
+                int errCode = 1066;
+                String msg = "Unable to open iterator for alias " + id +
+                ". Backend error : " + e.getMessage(); 
+                throw new FrontendException(msg, errCode, PigException.INPUT, e);
             } else {
                 throw new IOException("Job terminated with anomalous status "
                     + job.getStatus().toString());
             }
-        } catch (Exception e) {
+        }
+        catch(FrontendException e){
+            throw e;
+        }
+        catch (Exception e) {
             int errCode = 1066;
-            String msg = "Unable to open iterator for alias " + id; 
+            String msg = "Unable to open iterator for alias " + id ; 
             throw new FrontendException(msg, errCode, PigException.INPUT, e);
         }
     }
@@ -808,8 +816,24 @@ public class PigServer {
             throw new IOException("Couldn't retrieve job.");
         }
         OutputStats output = stats.getOutputStats().get(0);
-        return new HJob(JOB_STATUS.COMPLETED, pigContext, output
-                .getPOStore(), output.getAlias(), stats);
+
+        if(stats.isSuccessful()){
+            return  new HJob(JOB_STATUS.COMPLETED, pigContext, output
+                    .getPOStore(), output.getAlias(), stats);
+        }else{
+            HJob job = new HJob(JOB_STATUS.FAILED, pigContext,
+                    output.getPOStore(), output.getAlias(), stats);
+            
+            //check for exception
+            Exception ex = null;
+            for(JobStats js : stats.getJobGraph()){
+                if(js.getException() != null)
+                    ex = js.getException();
+            }
+            job.setException(ex);
+            return job;
+        }
+
     }
        
     private PigStats storeEx(
