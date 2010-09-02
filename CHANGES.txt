@@ -26,6 +26,8 @@ PIG-1249: Safe-guards against misconfigured Pig scripts without PARALLEL keyword
 
 IMPROVEMENTS
 
+PIG-1585: Add new properties to help and documentation(olgan)
+
 PIG-1399: Filter expression optimizations (yanz via gates)
 
 PIG-1531: Pig gobbles up error messages (nrai via hashutosh)
