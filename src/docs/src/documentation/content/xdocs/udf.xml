@@ -87,7 +87,7 @@ import org.apache.pig.EvalFunc;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.util.WrappedIOException;
 
-public class UPPER extends EvalFunc (String)
+public class UPPER extends EvalFunc&lt;String&gt;
 {
     public String exec(Tuple input) throws IOException {
         if (input == null || input.size() == 0)
@@ -146,18 +146,18 @@ DUMP C;
 <p>It is very important for performance to make sure that aggregate functions that are algebraic are implemented as such. Let's look at the implementation of the COUNT function to see what this means. (Error handling and some other code is omitted to save space. The full code can be accessed <a href="http://svn.apache.org/viewvc/hadoop/pig/trunk/src/org/apache/pig/builtin/COUNT.java?view=markup"> here</a>.</p>
 
 <source>
-public class COUNT extends EvalFunc (Long) implements Algebraic{
+public class COUNT extends EvalFunc&lt;Long&gt; implements Algebraic{
     public Long exec(Tuple input) throws IOException {return count(input);}
     public String getInitial() {return Initial.class.getName();}
     public String getIntermed() {return Intermed.class.getName();}
     public String getFinal() {return Final.class.getName();}
-    static public class Initial extends EvalFunc (Tuple) {
+    static public class Initial extends EvalFunc&lt;Tuple&gt; {
         public Tuple exec(Tuple input) throws IOException {return TupleFactory.getInstance().newTuple(count(input));}
     }
-    static public class Intermed extends EvalFunc (Tuple) {
+    static public class Intermed extends EvalFunc&lt;Tuple&gt; {
         public Tuple exec(Tuple input) throws IOException {return TupleFactory.getInstance().newTuple(sum(input));}
     }
-    static public class Final extends EvalFunc (Long) {
+    static public class Final extends EvalFunc&lt;Long&gt; {
         public Tuple exec(Tuple input) throws IOException {return sum(input);}
     }
     static protected Long count(Tuple input) throws ExecException {
@@ -357,7 +357,7 @@ import org.apache.pig.data.DataBag;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 
-public class TOKENIZE extends EvalFunc (DataBag) {
+public class TOKENIZE extends EvalFunc&lt;DataBag&gt; {
     TupleFactory mTupleFactory = TupleFactory.getInstance();
     BagFactory mBagFactory = BagFactory.getInstance();
 
@@ -413,7 +413,7 @@ import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.data.DataType;
 
-public class Swap extends EvalFunc (Tuple) {
+public class Swap extends EvalFunc&lt;Tuple&gt; {
     public Tuple exec(Tuple input) throws IOException {
         if (input == null || input.size()   2
             return null;
@@ -485,7 +485,7 @@ import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.data.DataType;
 
-public class TOKENIZE extends EvalFunc (DataBag) {
+public class TOKENIZE extends EvalFunc&lt;DataBag&gt; {
     TupleFactory mTupleFactory = TupleFactory.getInstance();
     BagFactory mBagFactory = BagFactory.getInstance();
     public DataBag exec(Tuple input) throws IOException {
@@ -555,7 +555,7 @@ import org.apache.pig.impl.util.WrappedIOException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.data.DataType;
 
-public class ABS extends EvalFunc (Double) {
+public class ABS extends EvalFunc&lt;Double&gt; {
     public Double exec(Tuple input) throws IOException {
         if (input == null || input.size() == 0)
             return null;
@@ -590,7 +590,7 @@ import org.apache.pig.impl.util.WrappedIOException;
 import org.apache.pig.EvalFunc;
 import org.apache.pig.data.Tuple;
 
-public class IntAbs extends EvalFunc (Integer) {
+public class IntAbs extends EvalFunc&lt;Integer&gt; {
     public Integer exec(Tuple input) throws IOException {
         if (input == null || input.size() == 0)
             return null;
@@ -651,7 +651,7 @@ import java.io.IOException;
 import org.apache.pig.EvalFunc;
 import org.apache.pig.data.Tuple;
 
-public class UPPER extends EvalFunc (String)
+public class UPPER extends EvalFunc&lt;String&gt;
 {
     public String exec(Tuple input) throws IOException {
         if (input == null || input.size() == 0)
@@ -692,7 +692,7 @@ DUMP B;
 <p>For instance, the <code>UPPER</code> function would now look as follows: </p>
 
 <source>
-public class UPPER extends EvalFunc (String)
+public class UPPER extends EvalFunc&lt;String&gt;
 {
         public String exec(Tuple input) throws IOException {
                 if (input == null || input.size() == 0)
@@ -754,28 +754,35 @@ abstract class has the main methods for loading data and for most use cases it w
 <ul>
 <li><a href="http://svn.apache.org/viewvc/hadoop/pig/trunk/src/org/apache/pig/LoadMetadata.java?view=markup">LoadMetadata</a> 
 has methods to deal with metadata - most implementation of loaders don't need to implement this unless they interact with some metadata system. The getSchema() method in this interface provides a way for loader implementations to communicate the schema of the data back to pig. If a loader implementation returns data comprised of fields of real types (rather than DataByteArray fields), it should provide the schema describing the data returned through the getSchema() method. The other methods are concerned with other types of metadata like partition keys and statistics. Implementations can return null return values for these methods if they are not applicable for that implementation.</li>
+
 <li><a href="http://svn.apache.org/viewvc/hadoop/pig/trunk/src/org/apache/pig/LoadPushDown.java?view=markup">LoadPushDown</a> 
-has methods to push operations from pig runtime into loader implementations - currently only projections .i.e the pushProjection() method is called by Pig to communicate to the loader what exact fields are required in the pig script. The loader implementation can choose to honor the request or respond that it will not honor the request and return all fields in the data. If a loader implementation is able to efficiently return only required fields, it should implement LoadPushDown to improve query performance. (Irrespective of whether the implementation can or cannot return only the required fields, if the implementation also implements getSchema(), the schema returned in getSchema() should be for the entire tuple of data.) </li>
+has methods to push operations from Pig runtime into loader implementations. Currently only the pushProjection() method is called by Pig to communicate to the loader the exact fields that are required in the Pig script. The loader implementation can choose to honor the request (return only those fields required by Pig script) or not honor the request (return all fields in the data). If the loader implementation can efficiently honor the request, it should implement LoadPushDown to improve query performance. (Irrespective of whether the implementation can or cannot honor the request, if the implementation also implements getSchema(), the schema returned in getSchema() should describe the entire tuple of data.)
+<ul>
+	<li>pushProjection(): This method tells LoadFunc which fields are required in the Pig script, thus enabling LoadFunc to optimize performance by loading only those fields that are needed. pushProjection() takes a RequiredFieldList. RequiredFieldList includes a list of RequiredField: each RequiredField indicates a field required by the Pig script; each RequiredField includes index, alias, type (which is reserved for future use), and subFields. Pig will use the column index RequiredField.index to communicate with the LoadFunc about the fields required by the Pig script. If the required field is a map, Pig will optionally pass RequiredField.subFields which contains a list of keys that the Pig script needs for the map. For example, if the Pig script needs two keys for the map, "key1" and "key2", the subFields for that map will contain two RequiredField; the alias field for the first RequiredField will be "key1" and the alias for the second RequiredField will be "key2". LoadFunc will use RequiredFieldResponse.requiredFieldRequestHonored to indicate whether the pushProjection() request is honored.
+</li>
+</ul>
+</li>
+
 <li><a href="http://svn.apache.org/viewvc/hadoop/pig/trunk/src/org/apache/pig/LoadCaster.java?view=markup">LoadCaster</a> 
 has methods to convert byte arrays to specific types. A loader implementation should implement this if casts (implicit or explicit) from DataByteArray fields to other types need to be supported. </li>
 </ul>
 
  <p>The LoadFunc abstract class is the main class to extend for implementing a loader. The methods which need to be overriden are explained below:</p>
  <ul>
- <li>getInputFormat() :This method is called by Pig to get the InputFormat used by the loader. The methods in the InputFormat (and underlying RecordReader) are called by Pig in the same manner (and in the same context) as by Hadoop in a MapReduce java program. If the InputFormat is a Hadoop packaged one, the implementation should use the new API based one under org.apache.hadoop.mapreduce. If it is a custom InputFormat, it should be implemented using the new API in org.apache.hadoop.mapreduce.<br></br> <br></br> 
+ <li>getInputFormat(): This method is called by Pig to get the InputFormat used by the loader. The methods in the InputFormat (and underlying RecordReader) are called by Pig in the same manner (and in the same context) as by Hadoop in a MapReduce java program. If the InputFormat is a Hadoop packaged one, the implementation should use the new API based one under org.apache.hadoop.mapreduce. If it is a custom InputFormat, it should be implemented using the new API in org.apache.hadoop.mapreduce.<br></br> <br></br> 
  
  If a custom loader using a text-based InputFormat or a file-based InputFormat would like to read files in all subdirectories under a given input directory recursively, then it should use the PigTextInputFormat and PigFileInputFormat classes provided in org.apache.pig.backend.hadoop.executionengine.mapReduceLayer. The Pig InputFormat classes work around a current limitation in the Hadoop TextInputFormat and FileInputFormat classes which only read one level down from the provided input directory. For example, if the input in the load statement is 'dir1' and there are subdirs 'dir2' and 'dir2/dir3' beneath dir1, the Hadoop TextInputFormat and FileInputFormat classes read the files under 'dir1' only. Using PigTextInputFormat or PigFileInputFormat (or by extending them), the files in all the directories can be read. </li>
  
- <li>setLocation() :This method is called by Pig to communicate the load location to the loader. The loader should use this method to communicate the same information to the underlying InputFormat. This method is called multiple times by pig - implementations should bear this in mind and should ensure there are no inconsistent side effects due to the multiple calls. </li>
+ <li>setLocation(): This method is called by Pig to communicate the load location to the loader. The loader should use this method to communicate the same information to the underlying InputFormat. This method is called multiple times by pig - implementations should bear this in mind and should ensure there are no inconsistent side effects due to the multiple calls. </li>
  
- <li>prepareToRead() : Through this method the RecordReader associated with the InputFormat provided by the LoadFunc is passed to the LoadFunc. The RecordReader can then be used by the implementation in getNext() to return a tuple representing a record of data back to pig. </li>
- <li>getNext() :The meaning of getNext() has not changed and is called by Pig runtime to get the next tuple in the data - in this method the implementation should use the the underlying RecordReader and construct the tuple to return. </li>
+ <li>prepareToRead(): Through this method the RecordReader associated with the InputFormat provided by the LoadFunc is passed to the LoadFunc. The RecordReader can then be used by the implementation in getNext() to return a tuple representing a record of data back to pig. </li>
+ <li>getNext(): The meaning of getNext() has not changed and is called by Pig runtime to get the next tuple in the data - in this method the implementation should use the the underlying RecordReader and construct the tuple to return. </li>
  </ul>
 
  <p>The following methods have default implementations in LoadFunc and should be overridden only if needed: </p>
  <ul>
- <li>setUdfContextSignature():This method will be called by Pig both in the front end and back end to pass a unique signature to the Loader. The signature can be used to store into the UDFContext any information which the Loader needs to store between various method invocations in the front end and back end. A use case is to store RequiredFieldList passed to it in LoadPushDown.pushProjection(RequiredFieldList) for use in the back end before returning tuples in getNext(). The default implementation in LoadFunc has an empty body. This method will be called before other methods. </li>
- <li>relativeToAbsolutePath():Pig runtime will call this method to allow the Loader to convert a relative load location to an absolute location. The default implementation provided in LoadFunc handles this for FileSystem locations. If the load source is something else, loader implementation may choose to override this.</li>
+ <li>setUdfContextSignature(): This method will be called by Pig both in the front end and back end to pass a unique signature to the Loader. The signature can be used to store into the UDFContext any information which the Loader needs to store between various method invocations in the front end and back end. A use case is to store RequiredFieldList passed to it in LoadPushDown.pushProjection(RequiredFieldList) for use in the back end before returning tuples in getNext(). The default implementation in LoadFunc has an empty body. This method will be called before other methods. </li>
+ <li>relativeToAbsolutePath(): Pig runtime will call this method to allow the Loader to convert a relative load location to an absolute location. The default implementation provided in LoadFunc handles this for FileSystem locations. If the load source is something else, loader implementation may choose to override this.</li>
  </ul>
 
 <p><strong>Example Implementation</strong></p>

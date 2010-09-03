@@ -32,6 +32,8 @@
    <p>Also, be sure to review the information in the <a href="cookbook.html">Pig Cookbook</a>. </p>
     </section>
     
+  <!-- ==================================================================== -->
+    
    <!-- PIG LATIN STATEMENTS -->
    <section>
 	<title>Pig Latin Statements</title>	
@@ -62,8 +64,7 @@
     <li>Either interactively or in batch </li>
    </ul>
    
-   
-   <p></p>
+ <p></p>
 <p>Note that Pig now uses Hadoop's local mode (rather than Pig's native local mode).</p>   
 <p>A few run examples are shown here; see <a href="setup.html">Pig Setup</a> for more examples.</p>   
    
@@ -126,8 +127,6 @@ DUMP B;
    
    <p> </p>
    <p>See <a href="#Multi-Query+Execution">Multi-Query Execution</a> for more information on how Pig Latin statements are processed.</p> 
-   
-   
    </section>
    
    <section>
@@ -233,8 +232,20 @@ grunt> DUMP C;
 </section>  
 <!-- END PIG LATIN STATEMENTS -->
 
- 
+<!-- ================================================================== -->
+<!-- MEMORY MANAGEMENT -->
+<section>
+<title>Memory Management</title>
 
+<p>Pig allocates a fix amount of memory to store bags and spills to disk as soon as the memory limit is reached. This is very similar to how Hadoop decides when to spill data accumulated by the combiner. </p>
+
+<p>The amount of memory allocated to bags is determined by pig.cachedbag.memusage; the default is set to 10% of available memory. Note that this memory is shared across all large bags used by the application.</p>
+
+</section> 
+<!-- END MEMORY MANAGEMENT  -->
+
+
+<!-- ==================================================================== -->
 <!-- MULTI-QUERY EXECUTION-->
 <section>
 <title>Multi-Query Execution</title>
@@ -378,7 +389,6 @@ $ pig -F myscript.pig
 or
 $ pig -stop_on_failure myscript.pig
 </source>
-
 </section>
 
 <section>
@@ -497,8 +507,6 @@ Ftab = group ....
 Gtab = .... aggregation function
 STORE Gtab INTO '/user/vxj/finalresult2';
 </source>
-
-
 </section>
 </section>
 
@@ -506,177 +514,70 @@ STORE Gtab INTO '/user/vxj/finalresult2';
 <!-- END MULTI-QUERY EXECUTION-->
 
 
-
-<!-- SPECIALIZED JOINS-->
-<section>
-<title>Specialized Joins</title>
-<p>
-Pig Latin includes three "specialized" joins: replicated joins, skewed joins, and merge joins. </p>
-<ul>
-<li>Replicated, skewed, and merge joins can be performed using <a href="piglatin_ref2.html#JOIN+%28inner%29">inner joins</a>.</li>
-<li>Replicated and skewed joins can also be performed using <a href="piglatin_ref2.html#JOIN+%28outer%29">outer joins</a>.</li>
-</ul>
-
-<!-- FRAGMENT REPLICATE JOINS-->
-<section>
-<title>Replicated Joins</title>
-<p>Fragment replicate join is a special type of join that works well if one or more relations are small enough to fit into main memory. 
-In such cases, Pig can perform a very efficient join because all of the hadoop work is done on the map side. In this type of join the 
-large relation is followed by one or more small relations. The small relations must be small enough to fit into main memory; if they 
-don't, the process fails and an error is generated.</p>
+<!-- ==================================================================== -->
+ <!-- NULLS -->
+ <section>
+<title>Null Values</title>
+<p>Pig handles null values differently for the GROUP/COGROUP and JOIN operations.</p>
  
-<section>
-<title>Usage</title>
-<p>Perform a replicated join with the USING clause (see <a href="piglatin_ref2.html#JOIN+%28inner%29">inner joins</a> and <a href="piglatin_ref2.html#JOIN+%28outer%29">outer joins</a>).
-In this example, a large relation is joined with two smaller relations. Note that the large relation comes first followed by the smaller relations; 
-and, all small relations together must fit into main memory, otherwise an error is generated. </p>
+ <section>
+<title>GROUP/COGROUP and Null Values</title>
+
+<p>When using the GROUP operator with a single relation, records with a null group key are grouped together.</p>
 <source>
-big = LOAD 'big_data' AS (b1,b2,b3);
+a = load 'student' as (name:chararray, age:int, gpa:float);
+dump a;
+(joe,18,2.5)
+(sam,,3.0)
+(bob,,3.5)
 
-tiny = LOAD 'tiny_data' AS (t1,t2,t3);
+x = group a by age;
+dump x;
+(18,{(joe,18,2.5)})
+(,{(sam,,3.0),(bob,,3.5)})
+</source>
+  
+<p>When using the GROUP (COGROUP) operator with multiple relations, records with a null group key are considered different and are grouped separately. 
+In the example below note that there are two tuples in the output corresponding to the null group key: 
+one that contains tuples from relation A (but not relation B) and one that contains tuples from relation B (but not relation A).</p>
 
-mini = LOAD 'mini_data' AS (m1,m2,m3);
+<source>
+A = load 'student' as (name:chararray, age:int, gpa:float);
+B = load 'student' as (name:chararray, age:int, gpa:float);
+dump B;
+(joe,18,2.5)
+(sam,,3.0)
+(bob,,3.5)
 
-C = JOIN big BY b1, tiny BY t1, mini BY m1 USING 'replicated';
+X = cogroup A by age, B by age;
+dump X;
+(18,{(joe,18,2.5)},{(joe,18,2.5)})
+(,{(sam,,3.0),(bob,,3.5)},{})
+(,{},{(sam,,3.0),(bob,,3.5)})
+</source>
+</section>
+ 
+ <section>
+<title>JOIN and Null Values</title>
+<p>The JOIN operator - when performing inner joins - adheres to the SQL standard and disregards (filters out) null values.</p>
+ <source>
+A = load 'student' as (name:chararray, age:int, gpa:float);
+B = load 'student' as (name:chararray, age:int, gpa:float);
+dump B;
+(joe,18,2.5)
+(sam,,3.0)
+(bob,,3.5)
+  
+X = join A by age, B by age;
+dump X;
+(joe,18,2.5,joe,18,2.5)
 </source>
 </section>
 
-<section>
-<title>Conditions</title>
-<p>Fragment replicate joins are experimental; we don't have a strong sense of how small the small relation must be to fit 
-into memory. In our tests with a simple query that involves just a JOIN, a relation of up to 100 M can be used if the process overall 
-gets 1 GB of memory. Please share your observations and experience with us.</p>
-</section>
-</section>
-<!-- END FRAGMENT REPLICATE JOINS-->
+ </section>
+ <!-- END NULLS -->
 
-
-<!-- SKEWED JOINS-->
-<section>
-<title>Skewed Joins</title>
-
-<p>
-Parallel joins are vulnerable to the presence of skew in the underlying data. 
-If the underlying data is sufficiently skewed, load imbalances will swamp any of the parallelism gains. 
-In order to counteract this problem, skewed join computes a histogram of the key space and uses this 
-data to allocate reducers for a given key. Skewed join does not place a restriction on the size of the input keys. 
-It accomplishes this by splitting the left input on the join predicate and streaming the right input. The left input is 
-sampled to create the histogram.
-</p>
-
-<p>
-Skewed join can be used when the underlying data is sufficiently skewed and you need a finer 
-control over the allocation of reducers to counteract the skew. It should also be used when the data 
-associated with a given key is too large to fit in memory.
-</p>
-
-<section>
-<title>Usage</title>
-<p>Perform a skewed join with the USING clause (see <a href="piglatin_ref2.html#JOIN+%28inner%29">inner joins</a> and <a href="piglatin_ref2.html#JOIN+%28outer%29">outer joins</a>). </p>
-<source>
-big = LOAD 'big_data' AS (b1,b2,b3);
-massive = LOAD 'massive_data' AS (m1,m2,m3);
-C = JOIN big BY b1, massive BY m1 USING 'skewed';
-</source>
-</section>
-
-<section>
-<title>Conditions</title>
-<p>
-Skewed join will only work under these conditions: 
-</p>
-<ul>
-<li>Skewed join works with two-table inner join. Currently we do not support more than two tables for skewed join. 
-Specifying three-way (or more) joins will fail validation. For such joins, we rely on you to break them up into two-way joins.</li>
-<li>The pig.skewedjoin.reduce.memusage Java parameter specifies the fraction of heap available for the 
-reducer to perform the join. A low fraction forces pig to use more reducers but increases 
-copying cost. We have seen good performance when we set this value 
-in the range 0.1 - 0.4. However, note that this is hardly an accurate range. Its value 
-depends on the amount of heap available for the operation, the number of columns 
-in the input and the skew. An appropriate value is best obtained by conducting experiments to achieve 
-a good performance. The default value is =0.5=. </li>
-</ul>
-</section>
-</section><!-- END SKEWED JOINS-->
-
-
-<!-- MERGE JOIN-->
-<section>
-<title>Merge Joins</title>
-
-<p>
-Often user data is stored such that both inputs are already sorted on the join key. 
-In this case, it is possible to join the data in the map phase of a MapReduce job. 
-This provides a significant performance improvement compared to passing all of the data through 
-unneeded sort and shuffle phases. 
-</p>
-
-<p>
-Pig has implemented a merge join algorithm, or sort-merge join, although in this case the sort is already 
-assumed to have been done (see the Conditions, below). 
-
-Pig implements the merge join algorithm by selecting the left input of the join to be the input file for the map phase, 
-and the right input of the join to be the side file. It then samples records from the right input to build an
- index that contains, for each sampled record, the key(s) the filename and the offset into the file the record 
- begins at. This sampling is done in an initial map only job. A second MapReduce job is then initiated, 
- with the left input as its input. Each map uses the index to seek to the appropriate record in the right 
- input and begin doing the join. 
-</p>
-
-<section>
-<title>Usage</title>
-<p>Perform a merge join with the USING clause (see <a href="piglatin_ref2.html#JOIN+%28inner%29">inner joins</a>).</p>
-<source>
-C = JOIN A BY a1, B BY b1 USING 'merge';
-</source>
-</section>
-
-<section>
-<title>Conditions</title>
-<p>
-Merge join will only work under these conditions: 
-</p>
-
-<ul>
-<li>Both inputs are sorted in *ascending* order of join keys. If an input consists of many files, there should be 
-a total ordering across the files in the *ascending order of file name*. So for example if one of the inputs to the 
-join is a directory called input1 with files a and b under it, the data should be sorted in ascending order of join 
-key when read starting at a and ending in b. Likewise if an input directory has part files part-00000, part-00001, 
-part-00002 and part-00003, the data should be sorted if the files are read in the sequence part-00000, part-00001, 
-part-00002 and part-00003. </li>
-<li>The merge join only has two inputs </li>
-<li>The loadfunc for the right input of the join should implement the OrderedLoadFunc interface (PigStorage does 
-implement the OrderedLoadFunc interface). </li>
-<li>Only inner join will be supported </li>
-
-<li>Between the load of the sorted input and the merge join statement there can only be filter statements and 
-foreach statement where the foreach statement should meet the following conditions: 
-<ul>
-<li>There should be no UDFs in the foreach statement </li>
-<li>The foreach statement should not change the position of the join keys </li>
-<li>There should not transformation on the join keys which will change the sort order </li>
-</ul>
-</li>
-
-</ul>
-<p></p>
-<p>
-For optimal performance, each part file of the left (sorted) input of the join should have a size of at least 
-1 hdfs block size (for example if the hdfs block size is 128 MB, each part file should be less than 128 MB). 
-If the total input size (including all part files) is greater than blocksize, then the part files should be uniform in size 
-(without large skews in sizes). The main idea is to eliminate skew in the amount of input the final map 
-job performing the merge-join will process. 
-</p>
-
-<p>
-In local mode, merge join will revert to regular join.
-</p>
-</section>
-</section><!-- END MERGE JOIN -->
-
-
-</section>
-<!-- END SPECIALIZED JOINS-->
+<!-- ==================================================================== -->
  
  <!-- OPTIMIZATION RULES -->
 <section>
@@ -779,26 +680,196 @@ D = JOIN C BY $1, B BY $1;
 </section>
 </section> <!-- END OPTIMIZATION RULES -->
 
- <!-- MEMORY MANAGEMENT -->
+
+<!-- ==================================================================== -->
+
+<!-- SPECIALIZED JOINS-->
 <section>
-<title>Memory Management</title>
+<title>Specialized Joins</title>
+<p>
+In certain cases, the performance of <a href="piglatin_ref2.html#JOIN+%28inner%29">inner joins</a> and <a href="piglatin_ref2.html#JOIN+%28outer%29">outer joins</a>
+can be optimized using replicated, skewed, or merge joins. </p>
 
-<p>Pig allocates a fix amount of memory to store bags and spills to disk as soon as the memory limit is reached. This is very similar to how Hadoop decides when to spill data accumulated by the combiner. </p>
 
-<p>The amount of memory allocated to bags is determined by pig.cachedbag.memusage; the default is set to 10% of available memory. Note that this memory is shared across all large bags used by the application.</p>
-
-</section> 
-<!-- END MEMORY MANAGEMENT  -->
-
+<!-- FRAGMENT REPLICATE JOINS-->
+<section>
+<title>Replicated Joins</title>
+<p>Fragment replicate join is a special type of join that works well if one or more relations are small enough to fit into main memory. 
+In such cases, Pig can perform a very efficient join because all of the hadoop work is done on the map side. In this type of join the 
+large relation is followed by one or more small relations. The small relations must be small enough to fit into main memory; if they 
+don't, the process fails and an error is generated.</p>
  
-  <!-- ZEBRA INTEGRATION -->
+<section>
+<title>Usage</title>
+<p>Perform a replicated join with the USING clause (see <a href="piglatin_ref2.html#JOIN+%28inner%29">inner joins</a> and <a href="piglatin_ref2.html#JOIN+%28outer%29">outer joins</a>).
+In this example, a large relation is joined with two smaller relations. Note that the large relation comes first followed by the smaller relations; 
+and, all small relations together must fit into main memory, otherwise an error is generated. </p>
+<source>
+big = LOAD 'big_data' AS (b1,b2,b3);
+
+tiny = LOAD 'tiny_data' AS (t1,t2,t3);
+
+mini = LOAD 'mini_data' AS (m1,m2,m3);
+
+C = JOIN big BY b1, tiny BY t1, mini BY m1 USING 'replicated';
+</source>
+</section>
+
+<section>
+<title>Conditions</title>
+<p>Fragment replicate joins are experimental; we don't have a strong sense of how small the small relation must be to fit 
+into memory. In our tests with a simple query that involves just a JOIN, a relation of up to 100 M can be used if the process overall 
+gets 1 GB of memory. Please share your observations and experience with us.</p>
+</section>
+</section>
+<!-- END FRAGMENT REPLICATE JOINS-->
+
+
+<!-- SKEWED JOINS-->
+<section>
+<title>Skewed Joins</title>
+
+<p>
+Parallel joins are vulnerable to the presence of skew in the underlying data. 
+If the underlying data is sufficiently skewed, load imbalances will swamp any of the parallelism gains. 
+In order to counteract this problem, skewed join computes a histogram of the key space and uses this 
+data to allocate reducers for a given key. Skewed join does not place a restriction on the size of the input keys. 
+It accomplishes this by splitting the left input on the join predicate and streaming the right input. The left input is 
+sampled to create the histogram.
+</p>
+
+<p>
+Skewed join can be used when the underlying data is sufficiently skewed and you need a finer 
+control over the allocation of reducers to counteract the skew. It should also be used when the data 
+associated with a given key is too large to fit in memory.
+</p>
+
+<section>
+<title>Usage</title>
+<p>Perform a skewed join with the USING clause (see <a href="piglatin_ref2.html#JOIN+%28inner%29">inner joins</a> and <a href="piglatin_ref2.html#JOIN+%28outer%29">outer joins</a>). </p>
+<source>
+big = LOAD 'big_data' AS (b1,b2,b3);
+massive = LOAD 'massive_data' AS (m1,m2,m3);
+C = JOIN big BY b1, massive BY m1 USING 'skewed';
+</source>
+</section>
+
+<section>
+<title>Conditions</title>
+<p>
+Skewed join will only work under these conditions: 
+</p>
+<ul>
+<li>Skewed join works with two-table inner join. Currently we do not support more than two tables for skewed join. 
+Specifying three-way (or more) joins will fail validation. For such joins, we rely on you to break them up into two-way joins.</li>
+<li>The pig.skewedjoin.reduce.memusage Java parameter specifies the fraction of heap available for the 
+reducer to perform the join. A low fraction forces pig to use more reducers but increases 
+copying cost. We have seen good performance when we set this value 
+in the range 0.1 - 0.4. However, note that this is hardly an accurate range. Its value 
+depends on the amount of heap available for the operation, the number of columns 
+in the input and the skew. An appropriate value is best obtained by conducting experiments to achieve 
+a good performance. The default value is =0.5=. </li>
+</ul>
+</section>
+</section><!-- END SKEWED JOINS-->
+
+
+<!-- MERGE JOIN-->
+<section>
+<title>Merge Joins</title>
+
+<p>
+Often user data is stored such that both inputs are already sorted on the join key. 
+In this case, it is possible to join the data in the map phase of a MapReduce job. 
+This provides a significant performance improvement compared to passing all of the data through 
+unneeded sort and shuffle phases. 
+</p>
+
+<p>
+Pig has implemented a merge join algorithm, or sort-merge join, although in this case the sort is already 
+assumed to have been done (see the Conditions, below). 
+
+Pig implements the merge join algorithm by selecting the left input of the join to be the input file for the map phase, 
+and the right input of the join to be the side file. It then samples records from the right input to build an
+ index that contains, for each sampled record, the key(s) the filename and the offset into the file the record 
+ begins at. This sampling is done in the first MapReduce job. A second MapReduce job is then initiated, 
+ with the left input as its input. Each map uses the index to seek to the appropriate record in the right 
+ input and begin doing the join. 
+</p>
+
+<section>
+<title>Usage</title>
+<p>Perform a merge join with the USING clause (see <a href="piglatin_ref2.html#JOIN+%28inner%29">inner joins</a> and <a href="piglatin_ref2.html#JOIN+%28outer%29">outer joins</a>). </p>
+<source>
+C = JOIN A BY a1, B BY b1, C BY c1 USING 'merge';
+</source>
+</section>
+
+<section>
+<title>Conditions</title>
+<p><strong>Condition A</strong></p>
+<p>Inner merge join (between two tables) will only work under these conditions: </p>
+<ul>
+<li>Between the load of the sorted input and the merge join statement there can only be filter statements and 
+foreach statement where the foreach statement should meet the following conditions: 
+<ul>
+<li>There should be no UDFs in the foreach statement. </li>
+<li>The foreach statement should not change the position of the join keys. </li>
+<li>There should be no transformation on the join keys which will change the sort order. </li>
+</ul>
+</li>
+<li>Data must be sorted on join keys in ascending (ASC) order on both sides.</li>
+<li>Right-side loader must implement either the {OrderedLoadFunc} interface or {IndexableLoadFunc} interface.</li>
+<li>Type information must be provided for the join key in the schema.</li>
+</ul>
+<p></p>
+<p>The Zebra and PigStorage loaders satisfy all of these conditions.</p>
+<p></p>
+
+<p><strong>Condition B</strong></p>
+<p>Outer merge join (between two tables) and inner merge join (between three or more tables) will only work under these conditions: </p>
+<ul>
+<li>No other operations can be done between the load and join statements. </li>
+<li>Data must be sorted on join keys in ascending (ASC) order on both sides. </li>
+<li>Left-most loader must implement {CollectableLoader} interface as well as {OrderedLoadFunc}. </li>
+<li>All other loaders must implement {IndexableLoadFunc}. </li>
+<li>Type information must be provided for the join key in the schema.</li>
+</ul>
+<p></p>
+<p>The Zebra loader satisfies all of these conditions.</p>
+
+<p>An example of a left outer merge join using the Zebra loader:</p>
+<source>
+A = load 'data1' using org.apache.hadoop.zebra.pig.TableLoader('id:int', 'sorted'); 
+B = load 'data2' using org.apache.hadoop.zebra.pig.TableLoader('id:int', 'sorted'); 
+C = join A by id left, B by id using 'merge'; 
+</source>
+
+<p></p>
+<p><strong>Both Conditions</strong></p>
+<p>
+For optimal performance, each part file of the left (sorted) input of the join should have a size of at least 
+1 hdfs block size (for example if the hdfs block size is 128 MB, each part file should be less than 128 MB). 
+If the total input size (including all part files) is greater than blocksize, then the part files should be uniform in size 
+(without large skews in sizes). The main idea is to eliminate skew in the amount of input the final map 
+job performing the merge-join will process. 
+</p>
+
+</section>
+</section><!-- END MERGE JOIN -->
+
+</section>
+<!-- END SPECIALIZED JOINS-->
+
+
+<!-- ==================================================================== -->
+ 
+<!-- ZEBRA INTEGRATION -->
 <section>
 <title>Zebra Integration</title>
 <p>For information about how to integrate Zebra with your Pig scripts, see <a href="zebra_pig.html">Zebra and Pig</a>.</p>
  </section> 
 <!-- END ZEBRA INTEGRATION  -->
- 
- 
  
  </body>
  </document>
