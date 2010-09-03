@@ -189,11 +189,11 @@ public class MRCompiler extends PhyPlanVisitor {
    
     private static final Log LOG = LogFactory.getLog(MRCompiler.class);
     
-    public static final String FRJOIN_MERGE_FILES_THRESHOLD = "pig.frjoin.merge.files.threshold";
-    public static final String FRJOIN_MERGE_FILES_OPTIMISTIC = "pig.frjoin.merge.files.optimistic";
+    public static final String FILE_CONCATENATION_THRESHOLD = "pig.files.concatenation.threshold";
+    public static final String OPTIMISTIC_FILE_CONCATENATION = "pig.optimistic.files.concatenation";
     
-    private int frJoinFileMergeThreshold = 100;
-    private boolean frJoinOptimisticFileMerge = false;
+    private int fileConcatenationThreshold = 100;
+    private boolean optimisticFileConcatenation = false;
     
     public MRCompiler(PhysicalPlan plan) throws MRCompilerException {
         this(plan,null);
@@ -220,22 +220,61 @@ public class MRCompiler extends PhyPlanVisitor {
         messageCollector = new CompilationMessageCollector() ;
         phyToMROpMap = new HashMap<PhysicalOperator, MapReduceOper>();
         
-        frJoinFileMergeThreshold = Integer.parseInt(pigContext.getProperties()
-                .getProperty(FRJOIN_MERGE_FILES_THRESHOLD, "100"));
-        frJoinOptimisticFileMerge = pigContext.getProperties().getProperty(
-                FRJOIN_MERGE_FILES_OPTIMISTIC, "false").equals("true");
-        LOG.info("FRJoin file merge threshold: " + frJoinFileMergeThreshold
-                + " optimistic? " + frJoinOptimisticFileMerge);
+        fileConcatenationThreshold = Integer.parseInt(pigContext.getProperties()
+                .getProperty(FILE_CONCATENATION_THRESHOLD, "100"));
+        optimisticFileConcatenation = pigContext.getProperties().getProperty(
+                OPTIMISTIC_FILE_CONCATENATION, "false").equals("true");
+        LOG.info("File concatenation threshold: " + fileConcatenationThreshold
+                + " optimistic? " + optimisticFileConcatenation);
     }
     
-    public void connectScalars() throws PlanException {
+    public void connectScalars() throws PlanException, IOException {
         List<MapReduceOper> mrOpList = new ArrayList<MapReduceOper>();
         for(MapReduceOper mrOp: MRPlan) {
             mrOpList.add(mrOp);
         }
+        
+        Configuration conf = 
+            ConfigurationUtil.toConfiguration(pigContext.getProperties());
+        boolean combinable = !conf.getBoolean("pig.noSplitCombination", false);
+        
+        Map<FileSpec, MapReduceOper> seen = new HashMap<FileSpec, MapReduceOper>();
+        
         for(MapReduceOper mrOp: mrOpList) {
-            for(PhysicalOperator scalar: mrOp.scalars) {
-                MRPlan.connect(phyToMROpMap.get(scalar), mrOp);
+            for(PhysicalOperator scalar: mrOp.scalars) {                
+                MapReduceOper mro = phyToMROpMap.get(scalar);
+                List<PhysicalOperator> succs = plan.getSuccessors(scalar);
+                if (succs.size() == 1 && succs.get(0) instanceof POStore) {                                   
+                    POStore sto = (POStore)plan.getSuccessors(scalar).get(0);  
+                    FileSpec oldSpec = sto.getSFile();
+                    MapReduceOper mro2 = seen.get(oldSpec);
+                    boolean hasSeen = false;
+                    if (mro2 != null) {
+                        hasSeen = true;
+                        mro = mro2;
+                    }
+                    if (!hasSeen
+                            && combinable
+                            && (mro.reducePlan.isEmpty() ? hasTooManyInputFiles(mro, conf)
+                                    : (mro.requestedParallelism >= fileConcatenationThreshold))) {
+                        PhysicalPlan pl = mro.reducePlan.isEmpty() ? mro.mapPlan : mro.reducePlan;
+                        FileSpec newSpec = getTempFileSpec();
+                        
+                        // replace oldSpec in mro with newSpec
+                        new FindStoreNameVisitor(pl, newSpec, oldSpec).visit();
+                        
+                        POStore newSto = getStore();
+                        newSto.setSFile(oldSpec);                        
+                        MapReduceOper catMROp = getConcatenateJob(newSpec, mro, newSto); 
+                        MRPlan.connect(catMROp, mrOp);   
+                        seen.put(oldSpec, catMROp);
+                    } else {
+                        MRPlan.connect(mro, mrOp);
+                        if (!hasSeen) seen.put(oldSpec, mro);
+                    }
+                } else {
+                    MRPlan.connect(mro, mrOp);
+                }
             }
         }
     }
@@ -1157,7 +1196,7 @@ public class MRCompiler extends PhyPlanVisitor {
                         MRPlan.connect(mro, curMROp);
                     }
                 } else if (mro.isMapDone() && !mro.isReduceDone()) {
-                    if (combinable && (mro.requestedParallelism >= frJoinFileMergeThreshold)) {
+                    if (combinable && (mro.requestedParallelism >= fileConcatenationThreshold)) {
                         POStore tmpSto = getStore();
                         FileSpec fSpec = getTempFileSpec();
                         tmpSto.setSFile(fSpec); 
@@ -1209,7 +1248,7 @@ public class MRCompiler extends PhyPlanVisitor {
         }
         
         if (mro instanceof NativeMapReduceOper) {
-            return frJoinOptimisticFileMerge ? false : true;
+            return optimisticFileConcatenation ? false : true;
         }
                
         PhysicalPlan mapPlan = mro.mapPlan;
@@ -1251,10 +1290,10 @@ public class MRCompiler extends PhyPlanVisitor {
                                 ret = hasTooManyInputFiles(pred, conf);
                                 break;
                             }
-                        } else if (!frJoinOptimisticFileMerge) {                    
+                        } else if (!optimisticFileConcatenation) {                    
                             // can't determine the number of input files. 
                             // Treat it as having too manyfiles
-                            numFiles = frJoinFileMergeThreshold;
+                            numFiles = fileConcatenationThreshold;
                             break;
                         }
                     }
@@ -1268,8 +1307,8 @@ public class MRCompiler extends PhyPlanVisitor {
             LOG.warn("failed to get number of input files", e); 
         }
                 
-        LOG.info("number of input files to FR Join: " + numFiles);
-        return ret ? true : (numFiles >= frJoinFileMergeThreshold);
+        LOG.info("number of input files: " + numFiles);
+        return ret ? true : (numFiles >= fileConcatenationThreshold);
     }
     
     /*
@@ -1282,10 +1321,10 @@ public class MRCompiler extends PhyPlanVisitor {
         mro.mapPlan.addAsLeaf(str);
         mro.setMapDone(true);
         
-        LOG.info("Insert a concatenate job for FR join");
+        LOG.info("Insert a file-concatenation job");
                 
         return mro;
-    }
+    }    
     
     /** Leftmost relation is referred as base relation (this is the one fed into mappers.) 
      *  First, close all MROpers except for first one (referred as baseMROPer)
@@ -2929,4 +2968,24 @@ public class MRCompiler extends PhyPlanVisitor {
         }
     }
 
+    private static class FindStoreNameVisitor extends PhyPlanVisitor {
+
+        FileSpec newSpec;
+        FileSpec oldSpec;
+
+        FindStoreNameVisitor (PhysicalPlan plan, FileSpec newSpec, FileSpec oldSpec) {
+            super(plan,
+                new DepthFirstWalker<PhysicalOperator, PhysicalPlan>(plan));
+            this.newSpec = newSpec;
+            this.oldSpec = oldSpec;
+        }
+
+        @Override
+        public void visitStore(POStore sto) throws VisitorException {
+            FileSpec spec = sto.getSFile();
+            if (oldSpec.equals(spec)) {
+                sto.setSFile(newSpec);
+            }           
+        }
+    }
 }
