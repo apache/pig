@@ -150,8 +150,8 @@ Also, be sure to review the information in the <ulink url="cookbook.html">Pig Co
  <!-- KEYWORDS -->
 
    <section>
-   <title>Keywords</title>
-   <para>Pig keywords are listed here.</para>
+   <title>Reserved Keywords</title>
+   <para>Pig reserved keywords are listed here.</para>
    <informaltable frame="all">
       <tgroup cols="2"><tbody>  
     
@@ -874,7 +874,7 @@ DUMP X;
                <para>&gt;=, &lt;=</para>
             </entry>
             <entry>
-               <para>If either sub-expression is null, the result is null.</para>
+               <para>If either subexpression is null, the result is null.</para>
             </entry>
          </row>
          <row>
@@ -894,7 +894,7 @@ DUMP X;
                <para>? bincond</para>
             </entry>
             <entry>
-               <para>If either sub-expression is null, the resulting expression is null.</para>
+               <para>If either subexpression is null, the resulting expression is null.</para>
                <para/>
             </entry>
          </row>
@@ -936,7 +936,7 @@ DUMP X;
          <row>
             <entry>
                <para>Functions:</para>
-               <para>AVG, MIN, MAX, SUM</para>
+               <para>AVG, MIN, MAX, SUM, COUNT</para>
             </entry>
             <entry>
                <para>These functions ignore nulls. </para>
@@ -945,7 +945,7 @@ DUMP X;
          <row>
             <entry>
                <para>Function:</para>
-               <para>COUNT</para>
+               <para>COUNT_STAR</para>
             </entry>
             <entry>
                <para>This function counts all values, including nulls.</para>
@@ -957,7 +957,7 @@ DUMP X;
                <para>CONCAT</para>
             </entry>
             <entry>
-               <para>If either sub-expression is null, the resulting expression is null.</para>
+               <para>If either subexpression is null, the resulting expression is null.</para>
             </entry>
          </row>
          <row>
@@ -970,13 +970,13 @@ DUMP X;
             </entry>
          </row></tbody></tgroup>
    </informaltable>
-   <para>For Boolean sub-expressions, note the results when nulls are used with these operators:</para>
+   <para>For Boolean subexpressions, note the results when nulls are used with these operators:</para>
    <itemizedlist>
       <listitem>
          <para>FILTER operator – If a filter expression results in null value, the filter does not pass them through (if X is null, !X is also null, and the filter will reject both).</para>
       </listitem>
       <listitem>
-         <para>Bincond operator – If a Boolean sub-expression results in null value, the resulting expression is null (see the interactions above for Arithmetic operators)</para>
+         <para>Bincond operator – If a Boolean subexpression results in null value, the resulting expression is null (see the interactions above for Arithmetic operators)</para>
       </listitem>
    </itemizedlist>
    
@@ -4386,7 +4386,7 @@ B = FOREACH A GENERATE -x, y;
                <para>yes </para>
             </entry>
             <entry>
-               <para>error </para>
+               <para>yes </para>
             </entry>
             <entry>
                <para>error </para>
@@ -4418,7 +4418,7 @@ B = FOREACH A GENERATE -x, y;
                <para>yes </para>
             </entry>
             <entry>
-               <para>error </para>
+               <para>yes </para>
             </entry>
             <entry>
                <para>error </para>
@@ -4450,7 +4450,7 @@ B = FOREACH A GENERATE -x, y;
                <para>yes </para>
             </entry>
             <entry>
-               <para>error </para>
+               <para>yes </para>
             </entry>
             <entry>
                <para>error </para>
@@ -4482,7 +4482,7 @@ B = FOREACH A GENERATE -x, y;
                <para/>
             </entry>
             <entry>
-               <para>error </para>
+               <para>yes </para>
             </entry>
             <entry>
                <para>error </para>
@@ -4502,16 +4502,16 @@ B = FOREACH A GENERATE -x, y;
                <para>error </para>
             </entry>
             <entry>
-               <para>error</para>
+               <para>yes</para>
             </entry>
             <entry>
-               <para>error </para>
+               <para>yes</para>
             </entry>
             <entry>
-               <para>error </para>
+               <para>yes</para>
             </entry>
             <entry>
-               <para>error </para>
+               <para>yes</para>
             </entry>
             <entry>
                <para/>
@@ -4551,7 +4551,8 @@ B = FOREACH A GENERATE -x, y;
             <entry>
                <para/>
             </entry>
-         </row></tbody></tgroup>
+         </row>
+      </tbody></tgroup>
    </informaltable>
 
    <section>
@@ -4758,7 +4759,7 @@ DUMP B;
 
  <section id="COGROUP">
 <title>COGROUP</title>
-   <para>COGROUP is the same as GROUP. For readability, programmers usually use GROUP when only one relation is involved and COGROUP with multiple relations re involved. See <xref linkend="GROUP" /> for more information.</para>
+   <para>See the <xref linkend="GROUP" /> operator.</para>
 </section>
    <section>
    <title>CROSS</title>
@@ -5360,15 +5361,16 @@ DUMP X;
    
    <section id="GROUP">
    <title>GROUP</title>
-   <para>Groups the data in one or multiple relations. GROUP is the same as <xref linkend="COGROUP" />. For
-readability, programmers usually use GROUP when only one relation is involved and COGROUP with multiple relations are involved. </para>
+   <para>Groups the data in one or more relations.</para>
+   <para>Note: The GROUP and COGROUP operators are identical. Both operators work with one or more relations. 
+   For readability GROUP is used in statements involving one relation and COGROUP is used in statements involving two or more relations.</para>   
    
    <section>
    <title>Syntax</title>
    <informaltable frame="all">
       <tgroup cols="1"><tbody><row>
             <entry>
-               <para>alias = GROUP alias { ALL | BY expression} [, alias ALL | BY expression …]  [USING 'collected'] [PARALLEL n];</para>
+               <para>alias = GROUP alias { ALL | BY expression} [, alias ALL | BY expression …]  [USING 'collected' | 'merge'] [PARALLEL n];</para>
             </entry>
          </row></tbody></tgroup>
    </informaltable></section>
@@ -5424,14 +5426,62 @@ readability, programmers usually use GROUP when only one relation is involved an
             <entry>
                <para>'collected'</para>
             </entry>
+  
             <entry>
-               <para>Allows for more efficient computation of a group if the loader guarantees that the data for the 
-               same key is continuous and is given to a single map. As of this release, only the Zebra loader makes this 
-               guarantee. The efficiency is achieved by performing the group operation in map
-               rather than reduce (see <ulink url="zebra_pig.html">Zebra and Pig</ulink>). This feature cannot be used with the COGROUP operator.</para>
+
+            <para>Use the ‘collected’ clause with the GROUP operation (works with one relation only).</para>
+            <para>The following conditions apply:</para>
+               <itemizedlist>
+               <listitem>
+               <para>The loader must implement the {CollectableLoader} interface.</para>
+               </listitem>
+               <listitem>
+               <para>Data must be sorted on the group key.</para>
+               </listitem>
+               </itemizedlist>
+               <para></para>
+               <para>If your data and loaders satisfy these conditions, use the ‘collected’ clause to perform an optimized version of GROUP; 
+            the operation will execute on the map side and avoid running the reduce phase.</para>
+               <para>Note that the Zebra loader satisfies the conditions (see <ulink url="zebra_pig.html">Zebra and Pig</ulink>).</para>
+               <para></para>
             </entry>
-         </row>         
+         </row>    
          
+         <row>
+            <entry>
+               <para>'merge'</para>
+            </entry>
+            <entry>
+
+               <para>Use the ‘merge’ clause with the COGROUP operation (works with two or more relations only).</para>
+               <para>The following conditions apply:</para>
+               <itemizedlist>
+               <listitem>
+               <para>No other operations can be done between the LOAD and COGROUP statements.</para>
+               </listitem>
+               <listitem>
+               <para>Data must be sorted on the cogroup key for all tables in ascending (ASC) order.</para>
+               </listitem> 
+                <listitem>
+               <para>Nulls are considered smaller than evertyhing. If data contains null keys, they should occur before anything else.</para>
+               </listitem>
+               <listitem>
+               <para>Left-most loader must implement the {CollectableLoader} interface as well as {OrderedLoadFunc} interface.</para>
+               </listitem>
+               <listitem>
+               <para>All other loaders must implement IndexableLoadFunc.</para>
+               </listitem>
+                <listitem>
+               <para>Type information must be provided in the schema for all the loaders.</para>
+               </listitem>              
+               </itemizedlist>
+               <para></para>
+               <para>If your data and loaders satisfy these conditions, the ‘merge’ clause to perform an optimized version of COGROUP; 
+               the operation will execute on the map side and avoid running the reduce phase.</para>
+               <para>Note that the Zebra loader satisfies the conditions (see <ulink url="zebra_pig.html">Zebra and Pig</ulink>).</para>
+            </entry>
+            
+         </row>     
 
          <row>
             <entry>
@@ -5467,9 +5517,17 @@ readability, programmers usually use GROUP when only one relation is involved an
       </listitem>
    </itemizedlist>
    <para></para>
-   <para>
-   Note that the GROUP (and thus COGROUP) and JOIN operators perform similar functions. GROUP creates a nested set of output tuples while JOIN creates a flat set of output tuples.
-   </para>
+   
+   <para>Note the following about the GROUP/COGROUP and JOIN operators:</para>
+      <itemizedlist>
+      <listitem>
+         <para>The GROUP and JOIN operators perform similar functions. GROUP creates a nested set of output tuples while JOIN creates a flat set of output tuples</para>
+      </listitem>
+      <listitem>
+         <para>The GROUP/COGROUP and JOIN operators handle null values differently (see <ulink url="piglatin_ref1.html#Null+Values">Null Values</ulink>). </para>
+     </listitem>
+   </itemizedlist>
+   
    </section>
    
    <section>
@@ -5529,8 +5587,8 @@ DUMP C;
 (19,{(Mary)})
 (20,{(Bill)})
 </programlisting>
-
-   </section>
+</section>
+   
    <section>
    <title>Example</title>
    
@@ -5553,7 +5611,10 @@ DUMP X;
 (2,{(r1,1,2),(r2,2,1)})
 (16,{(r3,2,8),(r4,4,4)})
 </programlisting>
+</section>
 
+   <section>
+   <title>Example</title>
    <para>Suppose we have two relations, A and B.</para>
 <programlisting>
 A = LOAD 'data1' AS (owner:chararray,pet:chararray);
@@ -5607,36 +5668,61 @@ DUMP X;
 (Jane,{},{(Paul,Jane)})
 (Alice,{(Alice,turtle),(Alice,goldfish),(Alice,cat)},{(Cindy,Alice),(Mark,Alice)})
 </programlisting>
-   
    </section>
+   
+   
+ <section>
+   <title>Example</title>
+   <para>This example shows how to compute the number of tuples in an inner join between two relations.</para>   
+<programlisting>
+A = LOAD …
+B = LOAD …
+C = COGROUP A BY f1 INNER, B BY f2 INNER;
+D = FOREACH C GENERATE group, COUNT(A)*COUNT(B) AS count;   -- cross product in each co-group
+E = GROUP D ALL;
+F = FOREACH E GENERATE SUM(D.count) AS sum;  -- sum of cross products
+DUMP F;
+</programlisting>
+</section>
    
    <section>
    <title>Example</title>
-<para>This example shows to group using multiple keys.</para>   
+<para>This example shows how to group using multiple keys.</para>   
 <programlisting>
  A = LOAD 'allresults' USING PigStorage() AS (tcid:int, tpid:int, date:chararray, result:chararray, tsid:int, tag:chararray);
  B = GROUP A BY (tcid, tpid); 
 </programlisting>
     </section>   
-   
-   
-   
+  
    <section>
    <title>Example</title>
-<para>This example shows a map-side group.</para>   
+<para>This example shows how to group using the collected keyword.</para>   
 <programlisting>
  register zebra.jar;
- A = LOAD 'studentsortedtab' USING org.apache.hadoop.zebra.pig.TableLoader('name, age, gpa’, 'sorted');
- B = GROUP A BY name USING "collected";
+ A = LOAD 'studentsortedtab' USING org.apache.hadoop.zebra.pig.TableLoader('name, age, gpa', 'sorted');
+ B = GROUP A BY name USING 'collected';
  C = FOREACH b GENERATE group, MAX(a.age), COUNT_STAR(a);
 </programlisting>
     </section>
-
+    
+       <section>
+   <title>Example</title>
+<para>This example shows how to cogroup using the merge keyword.</para>   
+<programlisting>
+ register zebra.jar;
+ A = LOAD 'data1' USING org.apahce.hadoop.zebra.pig.TableLoader('id:int', 'sorted');
+ B = LOAD 'data2' USING org.apahce.hadoop.zebra.pig.TableLoader('id:int', 'sorted');'
+ C = COGROUP A BY id, B BY id USING 'merge';
+</programlisting>
+    </section>
    </section>
+   
+   
+<!-- =========================================================================== -->     
    
    <section>
    <title>JOIN (inner) </title>
-   <para>Performs inner, equijoin of two or more relations based on common field values.</para>
+   <para>Performs an inner join of two or more relations based on common field values.</para>
    
    <section>
    <title>Syntax</title>
@@ -5693,7 +5779,7 @@ DUMP X;
             </entry>
          </row>
          
-                  <row>
+         <row>
             <entry>
                <para>'skewed'</para>
             </entry>
@@ -5702,7 +5788,7 @@ DUMP X;
             </entry>
          </row>
          
-                  <row>
+          <row>
             <entry>
                <para>'merge'</para>
             </entry>
@@ -5736,8 +5822,15 @@ DUMP X;
    <para>Use the JOIN operator to perform an inner, equijoin join of two or more relations based on common field values. 
    The JOIN operator always performs an inner join. Inner joins ignore null keys, so it makes sense to filter them out before the join.</para>
    
-   <para>Note that the JOIN and COGROUP operators perform similar functions. 
-   JOIN creates a flat set of output records while COGROUP creates a nested set of output records.</para>
+   <para>Note the following about the GROUP/COGROUP and JOIN operators:</para>
+      <itemizedlist>
+      <listitem>
+         <para>The GROUP and JOIN operators perform similar functions. GROUP creates a nested set of output tuples while JOIN creates a flat set of output tuples.</para>
+      </listitem>
+      <listitem>
+         <para>The GROUP/COGROUP and JOIN operators handle null values differently (see <ulink url="piglatin_ref1.html#Null+Values">Null Values</ulink>). </para>
+     </listitem>
+   </itemizedlist>
     </section>
     
    <section>
@@ -5783,7 +5876,7 @@ DUMP X;
  </section>
  </section>
    
-  
+<!-- =========================================================================== -->  
 
 <section>
    <title>JOIN (outer) </title>
@@ -5795,7 +5888,7 @@ DUMP X;
       <tgroup cols="1"><tbody><row>
             <entry>
                <para>alias = JOIN left-alias BY left-alias-column [LEFT|RIGHT|FULL] [OUTER], right-alias BY right-alias-column 
-               [USING 'replicated' | 'skewed'] [PARALLEL n];  </para>
+               [USING 'replicated' | 'skewed' | 'merge']  [PARALLEL n];  </para>
             </entry>
          </row></tbody></tgroup>
    </informaltable>
@@ -5895,6 +5988,15 @@ DUMP X;
          </row>
 
 
+                  <row>
+            <entry>
+               <para>'merge'</para>
+            </entry>
+            <entry>
+               <para>Use to perform merge joins (see <ulink url="piglatin_ref1.html#Merge+Joins">Merge Joins</ulink>).</para>
+            </entry>
+         </row>
+
          <row>
             <entry>
                <para>PARALLEL n</para>
@@ -5919,9 +6021,9 @@ DUMP X;
    
  <section>
    <title>Usage</title>
-   <para>Use the OUTER JOIN operator to perform left, right, or full outer joins. The Pig Latin syntax closely adheres to the SQL standard. 
-   The keyword OUTER is optional for outer joins (the keywords LEFT, RIGHT and FULL will imply left outer, right outer and full outer joins respectively
-    when OUTER is omitted). </para>
+   <para>Use the JOIN operator with the corresponding keywords to perform left, right, or full outer joins.  
+   The keyword OUTER is optional for outer joins; the keywords LEFT, RIGHT and FULL will imply left outer, right outer and full outer joins respectively when OUTER is omitted. 
+   The Pig Latin syntax closely adheres to the SQL standard.</para>
     <para>
    Please note the following:
     </para>
@@ -5968,6 +6070,8 @@ C = JOIN A BY name FULL, B BY name USING 'skewed';
 </section>
 </section>  
   
+
+<!-- =========================================================================== -->
 
    <section>
    <title>LIMIT </title>
@@ -6056,6 +6160,8 @@ DUMP X;
 (7,2,5) 
 </programlisting>
    </section></section>
+   
+   <!-- =========================================================================== -->
    
    <section>
    <title>LOAD </title>
@@ -6313,6 +6419,9 @@ DUMP X;
    
    </section></section>
    
+
+
+<!-- =========================================================================== -->
    
    <section>
    <title>SAMPLE</title>
@@ -6455,9 +6564,26 @@ DUMP Z;
 (1,2,3)
 (7,8,9)
 </programlisting>
+</section>
 
-   </section></section>
+
+      <section>
+   <title>Example</title>
+   <para>In this example, the SPLIT and FILTER statements are essentially equivalent. 
+   However, because SPLIT is implemented as "split the data stream and then apply filters" the 
+  SPLIT statement is more expensive than the FILTER statement because Pig needs to filter and store two data streams.</para>
+   <programlisting>
+SPLIT input_var INTO output_var IF (field1 is not null), ignored_var IF (field1 is null);  
+-- where ignored_var is not used elsewhere
    
+output_var = FILTER input_var BY (field1 is not null);
+   </programlisting>
+      </section>
+   </section>
+
+
+<!-- =========================================================================== -->   
+
    <section>
    <title>STORE </title>
    <para>Stores or saves results to the file system.</para>
@@ -6597,6 +6723,9 @@ a:8,b:4,c:3
 </programlisting>
    
    </section></section>
+   
+   
+   <!-- =========================================================================== -->
    
    <section>
    <title>STREAM</title>
@@ -6745,6 +6874,9 @@ X = STREAM A THROUGH 'stream.pl' as (f1:int, f2;int, f3:int);
    </section>
    </section>
    
+   
+   <!-- =========================================================================== -->
+   
    <section>
    <title>UNION</title>
    <para>Computes the union of two or more relations.</para>
@@ -6814,9 +6946,12 @@ DUMP X;
 (1,3)
 </programlisting>
    </section></section></section>
+   
 
-
+<!-- =========================================================================== -->
+<!-- =========================================================================== -->
  <!-- DIAGNOSTIC OPERATORS -->    
+ 
 <section>
 	<title>Diagnostic Operators</title>
   
@@ -6904,7 +7039,8 @@ d: {long}
    
    </section></section>
    
-   
+
+<!-- =========================================================================== -->   
  <section>
    <title>DUMP</title>
    <para>Dumps or displays results to screen.</para>
@@ -6965,7 +7101,7 @@ DUMP B;
 </section></section>   
    
    
-   
+   <!-- =========================================================================== -->
    <section>
    <title>EXPLAIN</title>
    <para>Displays execution plans.</para>
@@ -7116,7 +7252,9 @@ Local Rearrange[tuple]{chararray}(false) - xxx-Fri Dec 05 19:42:29 UTC 2008-34
 |   Project[chararray][0] - xxx-Fri Dec 05 19:42:29 UTC 2008-35
 <emphasis>etc …</emphasis></programlisting> 
  </section></section>
-   
+  
+  
+  <!-- =========================================================================== --> 
    <section>
    <title>ILLUSTRATE</title>
    <para>(Note! This feature is NOT maintained at the moment. We are looking for someone to adopt it.)</para>
@@ -7241,6 +7379,9 @@ ILLUSTRATE num_user_visits;
    </section></section>
    </section>
    
+   
+   <!-- =========================================================================== -->
+   <!-- =========================================================================== -->
    
     <!-- UDF STATEMENTS --> 
    <section>
@@ -7549,7 +7690,7 @@ X = STREAM A THROUGH Y;
 </programlisting>
    </section>
    
- </section>  
+ 
      <section>
    <title>Example: DEFINE with STREAM</title>
 <para>In this example a command is defined for use with the <ulink url="#STREAM">STREAM</ulink> operator.</para>
@@ -7583,9 +7724,10 @@ A = LOAD 'students';
 B = FOREACH A GENERATE myFunc($0);
 </programlisting>
 
-
 </section>
+  </section>   
    
+   <!-- =========================================================================== -->
    <section>
    <title>REGISTER</title>
    <para>Registers a JAR file so that the UDFs in the file can be used.</para>
@@ -7639,9 +7781,12 @@ pig -Dpig.additional.jars=my.jar:your.jar script.pig
    <para></para></section></section>
    </section>
    
-   <!-- BUILT-IN FUNCTIONS --> 
+   
+<!-- ======================================================== -->  
+<!-- ======================================================== -->  
+<!-- EVAL FUNCTIONS --> 
     
-    <section><title>Eval Functions</title>
+<section><title>Eval Functions</title>
 
 <section>
 <title>AVG</title>
@@ -7761,7 +7906,7 @@ DUMP C;
    
    <section>
    <title>CONCAT</title>
-   <para>Concatenates two fields of type chararray or two fields of type bytearray.</para>
+   <para>Concatenates two expressions of identical type.</para>
    
    <section>
    <title>Syntax</title>
@@ -7771,7 +7916,8 @@ DUMP C;
                <para>CONCAT (expression, expression)</para>
             </entry>
          </row></tbody></tgroup>
-   </informaltable></section>
+   </informaltable>
+   </section>
    
    <section>
    <title>Terms</title>
@@ -7781,14 +7927,17 @@ DUMP C;
                <para>expression</para>
             </entry>
             <entry>
-               <para>An expression with data types chararray or bytearray.</para>
+               <para>Any expression.</para>
             </entry>
          </row></tbody></tgroup>
-   </informaltable></section>
+   </informaltable>
+   </section>
    
    <section>
    <title>Usage</title>
-   <para>Use the CONCAT function to concatenate two elements. The data type of the two elements must be the same, either chararray or bytearray.</para></section>
+   <para>Use the CONCAT function to concatenate two expressions. The result values of the two expressions must have identical types.</para>
+   </section>
+  </section>
    
    <section>
    <title>Example</title>
@@ -7808,49 +7957,7 @@ DUMP X;
 (mapreduce)
 (piglatin)
 </programlisting>
-   
-   </section>
-   
-   <section>
-   <title>Types Tables</title>
-   <informaltable frame="all">
-      <tgroup cols="3">
-         <colspec colnum="1" colname="c1"/>
-         <colspec colnum="2" colname="c2"/>
-         <colspec colnum="3" colname="c3"/><tbody><row>
-            <entry>
-               <para/>
-            </entry>
-            <entry>
-               <para>chararray </para>
-            </entry>
-            <entry>
-               <para>bytearray </para>
-            </entry>
-         </row>
-         <row>
-            <entry>
-               <para>chararray </para>
-            </entry>
-            <entry>
-               <para>chararray </para>
-            </entry>
-            <entry>
-               <para>cast as chararray  </para>
-            </entry>
-         </row>
-         <row>
-            <entry>
-               <para>bytearray </para>
-            </entry>
-            <entry>
-               <para/>
-            </entry>
-            <entry>
-               <para>bytearray </para>
-            </entry>
-         </row></tbody></tgroup>
-   </informaltable></section></section>
+</section>
    
    <section >
    <title>COUNT</title>
@@ -8054,11 +8161,19 @@ X = FOREACH B GENERATE COUNT_STAR(A);
    
    <section>
    <title>Usage</title>
-   <para>The DIFF function compares two fields in a tuple. If the field values match, null is returned. If the field values do not match, the non-matching elements are returned.</para></section>
+   <para>The DIFF function takes two bags as arguments and compares them. 
+   Any tuples that are in one bag but not the other are returned in a bag. 
+   If the bags match, an empty bag is returned. If the fields are not bags 
+   then they will be wrapped in tuples and returned in a bag if they do not match, 
+   or an empty bag will be returned if the two records match. The implementation 
+   assumes that both bags being passed to the DIFF function will fit entirely 
+   into memory simultaneously. If this is not the case the UDF will still function 
+   but it will be VERY slow.</para>
+   </section>
    
    <section>
    <title>Example</title>
-   <para>In this example the two fields are bags. DIFF compares the tuples in each bag.</para>
+   <para>In this example DIFF compares the tuples in two bags.</para>
 <programlisting>
 A = LOAD 'bag_data' AS (B1:bag{T1:tuple(t1:int,t2:int)},B2:bag{T2:tuple(f1:int,f2:int)});
 
@@ -8879,72 +8994,1756 @@ A = LOAD 'data' USING TextLoader();
 </programlisting>
    </section></section></section>
    
-      <!-- Shell COMMANDS-->
-   <section>
-   <title>Shell Commands</title>
-   
-      <section>
-   <title>fs</title>
-   <para>Invokes any FSShell command from within a Pig script or the Grunt shell.</para>
-   
-   <section>
-   <title>Syntax </title>
+
+<!-- ======================================================== -->  
+<!-- ======================================================== -->  
+<!-- Math Functions -->
+<section>
+<title>Math Functions</title>
+
+<para>For general information about these functions, see the <ulink url="http://download.oracle.com/javase/6/docs/api/">Java API Specification</ulink>, 
+<ulink url="http://download.oracle.com/javase/6/docs/api/java/lang/Math.html">Class Math</ulink>. Note the following:</para>
+
+<itemizedlist>
+		<listitem>
+<para>Pig function names are case sensitive and UPPER CASE.</para>
+	</listitem>
+	<listitem>
+<para>Pig may process results differently than as stated in the Java API Specification:</para>
+<itemizedlist>
+	<listitem>
+<para>If the result value is null or empty, Pig returns null.</para>
+	</listitem>
+		<listitem>
+<para>If the result value is not a number (NaN), Pig returns null.</para>
+	</listitem>
+		<listitem>
+<para>If Pig is unable to process the expression, Pig returns an exception.</para>
+	</listitem>
+</itemizedlist> 
+	</listitem>
+</itemizedlist> 
+ 
+<section>
+   <title>ABS</title>
+   <para>Returns the absolute value of an expression.</para>
+
+<section>
+   <title>Syntax</title>
    <informaltable frame="all">
       <tgroup cols="1"><tbody><row>
             <entry>
-               <para>fs subcommand subcommand_parameters </para>
+               <para>ABS(expression)</para>
             </entry>
          </row></tbody></tgroup>
    </informaltable></section>
    
-   <section>
+<section>
    <title>Terms</title>
    <informaltable frame="all">
-      <tgroup cols="2">
-      <tbody>
-      <row>
+      <tgroup cols="2"><tbody><row>
             <entry>
-               <para>subcommand</para>
+               <para>expression</para>
             </entry>
             <entry>
-               <para>The FSShell command.</para>
+               <para>Any expression whose result is type int, long, float, or double.</para>
             </entry>
          </row>
-               <row>
-            <entry>
-               <para>subcommand_parameters</para>
-            </entry>
-            <entry>
-               <para>The FSShell command parameters.</para>
-            </entry>
-         </row>
-         </tbody>
-         </tgroup>
-   </informaltable>
+         </tbody></tgroup>
+   </informaltable></section>
    
-   </section>
+<section>
+     <title>Usage</title>
+     <para>
+	Use the ABS function to return the absolute value of an expression. 
+    If the result is not negative (x &#8805; 0), the result is returned. If the result is negative (x &lt; 0), the negation of the result is returned.
+    </para>
+
+</section>
    
-   <section>
-   <title>Usage</title>
-   <para>Use the fs command to invoke any FSShell command from within a Pig script or Grunt shell. 
-   The fs command greatly extends the set of supported file system commands and the capabilities
-   supported for existing commands such as ls that will now support globing. For a complete list of
-   FSShell commands, see 
-   <ulink url="http://hadoop.apache.org/common/docs/current/hdfs_shell.html">HDFS File System Shell Guide</ulink></para>
-   </section>
-   
-   <section>
-   <title>Examples</title>
-   <para>In these examples, a directory is created, a file is copied, a file is listed.</para>
-<programlisting>
-fs -mkdir /tmp
-fs -copyFromLocal file-x file-y
-fs -ls file-y
-</programlisting>
-   </section>
-    </section>
-        </section>
+</section>
+
+<!-- ======================================================== --> 
     
+<section>
+   <title>ACOS</title>
+   <para>Returns the arc cosine of an expression.</para>
+
+<section>
+   <title>Syntax</title>
+   <informaltable frame="all">
+      <tgroup cols="1"><tbody><row>
+            <entry>
+               <para>ACOS(expression)</para>
+            </entry>
+         </row></tbody></tgroup>
+   </informaltable></section>
+   
+<section>
+   <title>Terms</title>
+   <informaltable frame="all">
+      <tgroup cols="2"><tbody><row>
+            <entry>
+               <para>expression</para>
+            </entry>
+            <entry>
+               <para>An expression whose result is type double.</para>
+            </entry>
+         </row>
+       </tbody></tgroup>
+   </informaltable>
+</section>
+   
+<section>
+     <title>Usage</title>
+     <para>
+Use the ACOS function to return the arc cosine of an expression.
+  </para>
+   </section>
+   
+</section>    
+   
+  <!-- ======================================================== -->     
+    <section>
+   <title>ASIN</title>
+   <para>Returns the arc sine of an expression.</para>
+
+<section>
+   <title>Syntax</title>
+   <informaltable frame="all">
+      <tgroup cols="1"><tbody><row>
+            <entry>
+               <para>ASIN(expression)</para>
+            </entry>
+         </row>
+       </tbody></tgroup>
+   </informaltable>
+ </section>
+   
+<section>
+   <title>Terms</title>
+   <informaltable frame="all">
+      <tgroup cols="2"><tbody><row>
+            <entry>
+               <para>expression</para>
+            </entry>
+            <entry>
+               <para>An expression whose result is type double.</para>
+            </entry>
+         </row>
+       </tbody></tgroup>
+   </informaltable>
+</section>
+   
+<section>
+     <title>Usage</title>
+     <para>
+Use the ASIN function to return the arc sine of an expression.
+     </para>
+   </section>
+</section>
+   
+  <!-- ======================================================== -->  
+  
+ <section>
+   <title>ATAN</title>
+   <para>Returns the arc tangent of an expression.</para>
+
+<section>
+   <title>Syntax</title>
+   <informaltable frame="all">
+      <tgroup cols="1"><tbody><row>
+            <entry>
+               <para>ATAN(expression)</para>
+            </entry>
+         </row></tbody></tgroup>
+   </informaltable></section>
+   
+<section>
+   <title>Terms</title>
+   <informaltable frame="all">
+      <tgroup cols="2"><tbody><row>
+            <entry>
+               <para>expression</para>
+            </entry>
+            <entry>
+               <para>An expression whose result is type double.</para>
+            </entry>
+         </row>
+       </tbody></tgroup>
+   </informaltable>
+</section>
+   
+<section>
+     <title>Usage</title>
+     <para>
+Use the ATAN function to return the arc tangent of an expression.
+     </para>
+   </section>
+   
+</section>  
+
+  <!-- ======================================================== -->  
+  
+ <section>
+   <title>CBRT</title>
+   <para>Returns the cube root of an expression.</para>
+
+<section>
+   <title>Syntax</title>
+   <informaltable frame="all">
+      <tgroup cols="1"><tbody><row>
+            <entry>
+               <para>CBRT(expression)</para>
+            </entry>
+         </row></tbody></tgroup>
+   </informaltable></section>
+   
+<section>
+   <title>Terms</title>
+   <informaltable frame="all">
+      <tgroup cols="2"><tbody><row>
+            <entry>
+               <para>expression</para>
+            </entry>
+            <entry>
+               <para>An expression whose result is type double.</para>
+            </entry>
+         </row>
+       </tbody></tgroup>
+   </informaltable>
+</section>
+   
+<section>
+     <title>Usage</title>
+     <para>
+Use the CBRT function to return the cube root of an expression. 
+</para>
+   </section>
+
+</section>  
+
+ <!-- ======================================================== -->  
+  
+ <section>
+   <title>CEIL</title>
+   <para>Returns the value of an expression rounded up to the nearest integer.
+</para>
+
+<section>
+   <title>Syntax</title>
+   <informaltable frame="all">
+      <tgroup cols="1"><tbody><row>
+            <entry>
+               <para>CEIL(expression)</para>
+            </entry>
+         </row></tbody></tgroup>
+   </informaltable></section>
+   
+<section>
+   <title>Terms</title>
+   <informaltable frame="all">
+      <tgroup cols="2"><tbody><row>
+            <entry>
+               <para>expression</para>
+            </entry>
+            <entry>
+               <para>An expression whose result is type double.</para>
+            </entry>
+         </row>
+       </tbody></tgroup>
+   </informaltable>
+</section>
+   
+<section>
+     <title>Usage</title>
+     <para>
+Use the CEIL function to return the value of an expression rounded up to the nearest integer. 
+This function never decreases the result value.
+     </para>
+        <informaltable frame="all">
+      <tgroup cols="2"><tbody><row>
+            <entry>
+               <para>x</para>
+            </entry>
+            <entry>
+               <para>CEIL(x)</para>
+            </entry>
+         </row>
+       </tbody></tgroup>
+             <tgroup cols="2"><tbody><row>
+            <entry>
+               <para> 4.6</para>
+            </entry>
+            <entry>
+               <para> 5</para>
+            </entry>
+         </row>
+       </tbody></tgroup>
+       <tgroup cols="2"><tbody><row>
+            <entry>
+               <para> 3.5</para>
+            </entry>
+            <entry>
+               <para> 4</para>
+            </entry>
+         </row>
+       </tbody></tgroup>
+        <tgroup cols="2"><tbody><row>
+            <entry>
+               <para> 2.4</para>
+            </entry>
+            <entry>
+               <para> 3</para>
+            </entry>
+         </row>
+       </tbody></tgroup>
+             <tgroup cols="2"><tbody><row>
+            <entry>
+               <para>1.0</para>
+            </entry>
+            <entry>
+               <para>1</para>
+            </entry>
+         </row>
+       </tbody></tgroup>
+             <tgroup cols="2"><tbody><row>
+            <entry>
+               <para>-1.0</para>
+            </entry>
+            <entry>
+               <para>-1</para>
+            </entry>
+         </row>
+       </tbody></tgroup>
+               <tgroup cols="2"><tbody><row>
+            <entry>
+               <para>-2.4</para>
+            </entry>
+            <entry>
+               <para>-2</para>
+            </entry>
+         </row>
+       </tbody></tgroup>
+        <tgroup cols="2"><tbody><row>
+            <entry>
+               <para>-3.5</para>
+            </entry>
+            <entry>
+               <para>-3</para>
+            </entry>
+         </row>
+       </tbody></tgroup>
+               <tgroup cols="2"><tbody><row>
+            <entry>
+               <para>-4.6</para>
+            </entry>
+            <entry>
+               <para>-4</para>
+            </entry>
+         </row>
+       </tbody></tgroup>
+   </informaltable>
+
+   </section>
+</section>    
+  
+<!-- ======================================================== -->  
+  
+ <section>
+   <title>COSH</title>
+   <para>Returns the hyperbolic cosine of an expression.
+</para>
+
+<section>
+   <title>Syntax</title>
+   <informaltable frame="all">
+      <tgroup cols="1"><tbody><row>
+            <entry>
+               <para>COSH(expression)</para>
+            </entry>
+         </row></tbody></tgroup>
+   </informaltable></section>
+   
+<section>
+   <title>Terms</title>
+   <informaltable frame="all">
+      <tgroup cols="2"><tbody><row>
+            <entry>
+               <para>expression</para>
+            </entry>
+            <entry>
+               <para>An expression whose result is type double.</para>
+            </entry>
+         </row>
+       </tbody></tgroup>
+   </informaltable>
+</section>
+   
+<section>
+     <title>Usage</title>
+     <para>
+Use the COSH function to return the hyperbolic cosine of an expression. 
+     </para>
+   </section>
+</section>    
+  
+  <!-- ======================================================== -->  
+  
+ <section>
+   <title>COS</title>
+   <para>Returns the trigonometric cosine of an expression.
+</para>
+
+<section>
+   <title>Syntax</title>
+   <informaltable frame="all">
+      <tgroup cols="1"><tbody><row>
+            <entry>
+               <para>COS(expression)</para>
+            </entry>
+         </row></tbody></tgroup>
+   </informaltable></section>
+   
+<section>
+   <title>Terms</title>
+   <informaltable frame="all">
+      <tgroup cols="2"><tbody><row>
+            <entry>
+               <para>expression</para>
+            </entry>
+            <entry>
+               <para>An expression (angle) whose result is type double.</para>
+            </entry>
+         </row>
+       </tbody></tgroup>
+   </informaltable>
+</section>
+   
+<section>
+     <title>Usage</title>
+     <para>
+Use the COS function to return the trigonometric cosine of an expression.
+     </para>
+   </section>
+   
+</section>    
+
+<!-- ======================================================== -->  
+  
+ <section>
+   <title>EXP</title>
+   <para>Returns Euler's number e raised to the power of x.
+</para>
+
+<section>
+   <title>Syntax</title>
+   <informaltable frame="all">
+      <tgroup cols="1"><tbody><row>
+            <entry>
+               <para>EXP(expression)</para>
+            </entry>
+         </row></tbody></tgroup>
+   </informaltable></section>
+   
+<section>
+   <title>Terms</title>
+   <informaltable frame="all">
+      <tgroup cols="2"><tbody><row>
+            <entry>
+               <para>expression</para>
+            </entry>
+            <entry>
+               <para>An expression whose result is type double.</para>
+            </entry>
+         </row>
+       </tbody></tgroup>
+   </informaltable>
+</section>
+   
+<section>
+     <title>Usage</title>
+     <para>
+Use the EXP function to return the value of Euler's number e raised to the power of x (where x is the result value of the expression).
+     </para>
+   </section>
+</section>    
+  
+<!-- ======================================================== -->  
+  
+ <section>
+   <title>FLOOR</title>
+   <para>Returns the value of an expression rounded down to the nearest integer. 
+</para>
+
+<section>
+   <title>Syntax</title>
+   <informaltable frame="all">
+      <tgroup cols="1"><tbody><row>
+            <entry>
+               <para>FLOOR(expression)</para>
+            </entry>
+         </row></tbody></tgroup>
+   </informaltable></section>
+   
+<section>
+   <title>Terms</title>
+   <informaltable frame="all">
+      <tgroup cols="2"><tbody><row>
+            <entry>
+               <para>expression</para>
+            </entry>
+            <entry>
+               <para>An expression whose result is type double.</para>
+            </entry>
+         </row>
+       </tbody></tgroup>
+   </informaltable>
+</section>
+   
+<section>
+     <title>Usage</title>
+     <para>
+Use the FLOOR function to return the value of an expression rounded down to the nearest integer. 
+This function never increases the result value.
+     </para>
+     
+     
+        <informaltable frame="all">
+      <tgroup cols="2"><tbody><row>
+            <entry>
+               <para>x</para>
+            </entry>
+            <entry>
+               <para>CEIL(x)</para>
+            </entry>
+         </row>
+       </tbody></tgroup>
+             <tgroup cols="2"><tbody><row>
+            <entry>
+               <para> 4.6</para>
+            </entry>
+            <entry>
+               <para> 4</para>
+            </entry>
+         </row>
+       </tbody></tgroup>
+       <tgroup cols="2"><tbody><row>
+            <entry>
+               <para> 3.5</para>
+            </entry>
+            <entry>
+               <para> 3</para>
+            </entry>
+         </row>
+       </tbody></tgroup>
+        <tgroup cols="2"><tbody><row>
+            <entry>
+               <para> 2.4</para>
+            </entry>
+            <entry>
+               <para> 2</para>
+            </entry>
+         </row>
+       </tbody></tgroup>
+             <tgroup cols="2"><tbody><row>
+            <entry>
+               <para>1.0</para>
+            </entry>
+            <entry>
+               <para>1</para>
+            </entry>
+         </row>
+       </tbody></tgroup>
+             <tgroup cols="2"><tbody><row>
+            <entry>
+               <para>-1.0</para>
+            </entry>
+            <entry>
+               <para>-1</para>
+            </entry>
+         </row>
+       </tbody></tgroup>
+               <tgroup cols="2"><tbody><row>
+            <entry>
+               <para>-2.4</para>
+            </entry>
+            <entry>
+               <para>-3</para>
+            </entry>
+         </row>
+       </tbody></tgroup>
+        <tgroup cols="2"><tbody><row>
+            <entry>
+               <para>-3.5</para>
+            </entry>
+            <entry>
+               <para>-4</para>
+            </entry>
+         </row>
+       </tbody></tgroup>
+               <tgroup cols="2"><tbody><row>
+            <entry>
+               <para>-4.6</para>
+            </entry>
+            <entry>
+               <para>-5</para>
+            </entry>
+         </row>
+       </tbody></tgroup>
+   </informaltable>
+   </section>
+</section>      
+<!-- ======================================================== -->  
+  
+ <section>
+   <title>LOG</title>
+   <para>Returns the natural logarithm (base e) of an expression.</para>
+
+<section>
+   <title>Syntax</title>
+   <informaltable frame="all">
+      <tgroup cols="1"><tbody><row>
+            <entry>
+               <para>LOG(expression)</para>
+            </entry>
+         </row></tbody></tgroup>
+   </informaltable></section>
+   
+<section>
+   <title>Terms</title>
+   <informaltable frame="all">
+      <tgroup cols="2"><tbody><row>
+            <entry>
+               <para>expression</para>
+            </entry>
+            <entry>
+               <para>An expression whose result is type double.</para>
+            </entry>
+         </row>
+       </tbody></tgroup>
+   </informaltable>
+</section>
+   
+<section>
+     <title>Usage</title>
+     <para>
+Use the LOG function to return the natural logarithm (base e) of an expression.
+     </para>
+   </section>
+</section>     
+  
+  <!-- ======================================================== -->  
+  
+ <section>
+   <title>LOG10</title>
+   <para>Returns the base 10 logarithm of an expression.</para>
+
+<section>
+   <title>Syntax</title>
+   <informaltable frame="all">
+      <tgroup cols="1"><tbody><row>
+            <entry>
+               <para>LOG10(expression)</para>
+            </entry>
+         </row></tbody></tgroup>
+   </informaltable></section>
+   
+<section>
+   <title>Terms</title>
+   <informaltable frame="all">
+      <tgroup cols="2"><tbody><row>
+            <entry>
+               <para>expression</para>
+            </entry>
+            <entry>
+               <para>An expression whose result is type double.</para>
+            </entry>
+         </row>
+       </tbody></tgroup>
+   </informaltable>
+</section>
+   
+<section>
+     <title>Usage</title>
+     <para>
+Use the LOG10 function to return the base 10 logarithm of an expression.
+     </para>
+   </section>
+</section>     
+
+  <!-- ======================================================== -->  
+  
+ <section>
+   <title>RANDOM</title>
+   <para>Returns a pseudo random number.</para>
+
+<section>
+   <title>Syntax</title>
+   <informaltable frame="all">
+      <tgroup cols="1"><tbody><row>
+            <entry>
+               <para>RANDOM( )</para>
+            </entry>
+         </row></tbody></tgroup>
+   </informaltable></section>
+   
+<section>
+   <title>Terms</title>
+   <informaltable frame="all">
+      <tgroup cols="2"><tbody><row>
+            <entry>
+               <para>N/A</para>
+            </entry>
+            <entry>
+               <para>No terms.</para>
+            </entry>
+         </row>
+       </tbody></tgroup>
+   </informaltable>
+</section>
+   
+<section>
+     <title>Usage</title>
+     <para>
+Use the RANDOM function to return a pseudo random number (type double) greater than or equal to 0.0 and less than 1.0.
+     </para>  
+   </section>
+</section>     
+  
+<!-- ======================================================== -->  
+  
+ <section>
+   <title>ROUND</title>
+   <para>Returns the value of an expression rounded to an integer.</para>
+
+<section>
+   <title>Syntax</title>
+   <informaltable frame="all">
+      <tgroup cols="1"><tbody><row>
+            <entry>
+               <para>ROUND(expression)</para>
+            </entry>
+         </row></tbody></tgroup>
+   </informaltable></section>
+   
+<section>
+   <title>Terms</title>
+   <informaltable frame="all">
+      <tgroup cols="2"><tbody><row>
+            <entry>
+               <para>expression</para>
+            </entry>
+            <entry>
+               <para>An expression whose result is type float or double.</para>
+            </entry>
+         </row>
+       </tbody></tgroup>
+   </informaltable>
+</section>
+   
+<section>
+     <title>Usage</title>
+     <para>
+Use the ROUND function to return the value of an expression rounded to an integer (if the result type is float) or rounded to a long (if the result type is double).
+     </para>
+        <informaltable frame="all">
+      <tgroup cols="2"><tbody><row>
+            <entry>
+               <para>x</para>
+            </entry>
+            <entry>
+               <para>CEIL(x)</para>
+            </entry>
+         </row>
+       </tbody></tgroup>
+             <tgroup cols="2"><tbody><row>
+            <entry>
+               <para> 4.6</para>
+            </entry>
+            <entry>
+               <para> 5</para>
+            </entry>
+         </row>
+       </tbody></tgroup>
+       <tgroup cols="2"><tbody><row>
+            <entry>
+               <para> 3.5</para>
+            </entry>
+            <entry>
+               <para> 4</para>
+            </entry>
+         </row>
+       </tbody></tgroup>
+        <tgroup cols="2"><tbody><row>
+            <entry>
+               <para> 2.4</para>
+            </entry>
+            <entry>
+               <para> 2</para>
+            </entry>
+         </row>
+       </tbody></tgroup>
+             <tgroup cols="2"><tbody><row>
+            <entry>
+               <para>1.0</para>
+            </entry>
+            <entry>
+               <para>1</para>
+            </entry>
+         </row>
+       </tbody></tgroup>
+             <tgroup cols="2"><tbody><row>
+            <entry>
+               <para>-1.0</para>
+            </entry>
+            <entry>
+               <para>-1</para>
+            </entry>
+         </row>
+       </tbody></tgroup>
+               <tgroup cols="2"><tbody><row>
+            <entry>
+               <para>-2.4</para>
+            </entry>
+            <entry>
+               <para>-2</para>
+            </entry>
+         </row>
+       </tbody></tgroup>
+        <tgroup cols="2"><tbody><row>
+            <entry>
+               <para>-3.5</para>
+            </entry>
+            <entry>
+               <para>-3</para>
+            </entry>
+         </row>
+       </tbody></tgroup>
+               <tgroup cols="2"><tbody><row>
+            <entry>
+               <para>-4.6</para>
+            </entry>
+            <entry>
+               <para>-5</para>
+            </entry>
+         </row>
+       </tbody></tgroup>
+   </informaltable>
+   </section>
+</section>       
+  
+<!-- ======================================================== -->  
+ <section>
+   <title>SIN</title>
+   <para>Returns the sine of an expression.</para>
+
+<section>
+   <title>Syntax</title>
+   <informaltable frame="all">
+      <tgroup cols="1"><tbody><row>
+            <entry>
+               <para>SIN(expression)</para>
+            </entry>
+         </row></tbody></tgroup>
+   </informaltable></section>
+   
+<section>
+   <title>Terms</title>
+   <informaltable frame="all">
+      <tgroup cols="2"><tbody><row>
+            <entry>
+               <para>expression</para>
+            </entry>
+            <entry>
+               <para>An expression whose result is double.</para>
+            </entry>
+         </row>
+       </tbody></tgroup>
+   </informaltable>
+</section>
+   
+<section>
+     <title>Usage</title>
+     <para>
+Use the SIN function to return the sine of an expession. 
+     </para>
+   </section>
+</section>       
+  
+<!-- ======================================================== -->  
+ <section>
+   <title>SINH</title>
+   <para>Returns the hyperbolic sine of an expression.</para>
+
+<section>
+   <title>Syntax</title>
+   <informaltable frame="all">
+      <tgroup cols="1"><tbody><row>
+            <entry>
+               <para>SINH(expression)</para>
+            </entry>
+         </row></tbody></tgroup>
+   </informaltable></section>
+   
+<section>
+   <title>Terms</title>
+   <informaltable frame="all">
+      <tgroup cols="2"><tbody><row>
+            <entry>
+               <para>expression</para>
+            </entry>
+            <entry>
+               <para>An expression whose result is double.</para>
+            </entry>
+         </row>
+       </tbody></tgroup>
+   </informaltable>
+</section>
+   
+<section>
+     <title>Usage</title>
+     <para>
+Use the SINH function to return the hyperbolic sine of an expression. 
+     </para>
+   </section>
+</section>
+
+
+<!-- ======================================================== -->  
+ <section>
+   <title>SQRT</title>
+   <para>Returns the positive square root of an expression.</para>
+
+<section>
+   <title>Syntax</title>
+   <informaltable frame="all">
+      <tgroup cols="1"><tbody><row>
+            <entry>
+               <para>SQRT(expression)</para>
+            </entry>
+         </row></tbody></tgroup>
+   </informaltable></section>
+   
+<section>
+   <title>Terms</title>
+   <informaltable frame="all">
+      <tgroup cols="2"><tbody><row>
+            <entry>
+               <para>expression</para>
+            </entry>
+            <entry>
+               <para>An expression whose result is double.</para>
+            </entry>
+         </row>
+       </tbody></tgroup>
+   </informaltable>
+</section>
+   
+<section>
+     <title>Usage</title>
+     <para>
+Use the SQRT function to return the positive square root of an expression. 
+     </para>
+   </section>
+</section>
+
+<!-- ======================================================== -->  
+ <section>
+   <title>TAN</title>
+   <para>Returns the trignometric tangent of an angle.</para>
+
+<section>
+   <title>Syntax</title>
+   <informaltable frame="all">
+      <tgroup cols="1"><tbody><row>
+            <entry>
+               <para>TAN(expression)</para>
+            </entry>
+         </row></tbody></tgroup>
+   </informaltable></section>
+   
+<section>
+   <title>Terms</title>
+   <informaltable frame="all">
+      <tgroup cols="2"><tbody><row>
+            <entry>
+               <para>expression</para>
+            </entry>
+            <entry>
+               <para>An expression (angle) whose result is double.</para>
+            </entry>
+         </row>
+       </tbody></tgroup>
+   </informaltable>
+</section>
+   
+<section>
+     <title>Usage</title>
+     <para>
+Use the TAN function to return the trignometric tangent of an angle.
+     </para>
+   </section>
+
+</section>
+
+<!-- ======================================================== -->  
+ <section>
+   <title>TANH</title>
+   <para>Returns the hyperbolic tangent of an expression. </para>
+
+<section>
+   <title>Syntax</title>
+   <informaltable frame="all">
+      <tgroup cols="1"><tbody><row>
+            <entry>
+               <para>TANH(expression)</para>
+            </entry>
+         </row></tbody></tgroup>
+   </informaltable></section>
+   
+<section>
+   <title>Terms</title>
+   <informaltable frame="all">
+      <tgroup cols="2"><tbody><row>
+            <entry>
+               <para>expression</para>
+            </entry>
+            <entry>
+               <para>An expression whose result is double.</para>
+            </entry>
+         </row>
+       </tbody></tgroup>
+   </informaltable>
+</section>
+   
+<section>
+     <title>Usage</title>
+     <para>
+Use the TANH function to return the hyperbolic tangent of an expression. 
+     </para>
+   </section>
+</section>
+</section>
+<!-- End Math Functions --> 
+
+
+<!-- ======================================================== -->
+<!-- ======================================================== -->   
+
+<!-- String Functions -->
+<section>
+<title>String Functions</title>
+
+<para>For general information about these functions, see the <ulink url="http://download.oracle.com/javase/6/docs/api/">Java API Specification</ulink>, 
+<ulink url="http://download.oracle.com/javase/6/docs/api/java/lang/String.html">Class String</ulink>. Note the following:</para>
+
+<itemizedlist>
+	<listitem>
+<para>Pig function names are case sensitive and UPPER CASE.</para>
+	</listitem>
+		<listitem>
+<para>Pig string functions have an extra, first parameter: the string to which all the operations are applied.</para>
+	</listitem>
+		<listitem>
+<para>Pig may process results differently than as stated in the Java API Specification. If any of the input parameters are null or if an insufficient number of parameters are supplied, NULL is returned.</para>
+	</listitem>
+
+</itemizedlist>
+ 
+ <section>
+   <title>INDEXOF</title>
+   <para>Returns the index of the first occurrence of a character in a string, searching forward form a start index. </para>
+
+<section>
+   <title>Syntax</title>
+   <informaltable frame="all">
+      <tgroup cols="1"><tbody><row>
+            <entry>
+               <para>INDEXOF(string, 'character', startIndex)</para>
+            </entry>
+         </row></tbody>
+       </tgroup>
+   </informaltable></section>
+   
+<section>
+   <title>Terms</title>
+   <informaltable frame="all">
+      <tgroup cols="2"><tbody><row>
+            <entry>
+               <para>string</para>
+            </entry>
+            <entry>
+               <para>The string to be searched.</para>
+            </entry>
+         </row></tbody></tgroup>
+               <tgroup cols="2"><tbody><row>
+            <entry>
+               <para>'character'</para>
+            </entry>
+            <entry>
+               <para>The character being searched for, in quotes. </para>
+            </entry>
+         </row></tbody></tgroup>
+               <tgroup cols="2"><tbody><row>
+            <entry>
+               <para>startIndex</para>
+            </entry>
+            <entry>
+               <para>The index from which to begin the forward search. </para>
+               <para>The string index begins with zero (0). Given the string ABC, the index of A is 0, B is 1, C is 2.</para>
+            </entry>
+         </row></tbody></tgroup>
+   </informaltable>
+</section>
+
+<section>
+     <title>Usage</title>
+     <para>
+Use the INDEXOF function to determine the index of the first occurrence of a character in a string. The forward search for the character begins at the designated start index.
+     </para>
+          <para>
+For example, starting the search at index 1, to determine the index of the first occurrence of A, use this statement: INDEXOF(string,'A', 1). The return value is 3.
+     </para>
+</section>
+</section> 
+
+<!-- ======================================================== -->  
+ <section>
+   <title>LAST_INDEX_OF</title>
+   <para>Returns the index of the last occurrence of a character in a string, searching backward form a start index. </para>
+
+<section>
+   <title>Syntax</title>
+   <informaltable frame="all">
+      <tgroup cols="1"><tbody><row>
+            <entry>
+               <para>LAST_INDEX_OF(expression)</para>
+            </entry>
+         </row></tbody>
+       </tgroup>
+   </informaltable></section>
+   
+<section>
+   <title>Terms</title>
+   <informaltable frame="all">
+      <tgroup cols="2"><tbody><row>
+            <entry>
+               <para>string</para>
+            </entry>
+            <entry>
+               <para>The string to be searched.</para>
+            </entry>
+         </row></tbody></tgroup>
+               <tgroup cols="2"><tbody><row>
+            <entry>
+               <para>'character'</para>
+            </entry>
+            <entry>
+               <para>The character being searched for, in quotes.</para>
+            </entry>
+         </row></tbody></tgroup>
+               <tgroup cols="2"><tbody><row>
+            <entry>
+               <para>startIndex</para>
+            </entry>
+            <entry>
+               <para>The index from which to begin the backward search.</para>
+               <para>The string index begins with zero (0). Given the string ABC, the index of A is 0, B is 1, C is 2.</para>
+            </entry>
+         </row></tbody></tgroup>
+   </informaltable>
+</section>
+
+<section>
+     <title>Usage</title>
+     <para>
+Use the LAST_INDEX_OF function to determine the index of the last occurrence of a character in a string. The backward search for the character begins at the designated start index.
+     </para>
+          <para>
+For example, starting the search at index 1, to determine the index of the first occurrence of A, use this statement: INDEXOF(string,'A', 1). The return value is 3.
+     </para>
+</section>
+</section> 
+
+
+<!-- ======================================================== -->  
+ <section>
+   <title>LCFIRST</title>
+   <para>Returns a string with the first character converted to lower case. </para>
+
+<section>
+   <title>Syntax</title>
+   <informaltable frame="all">
+      <tgroup cols="1"><tbody><row>
+            <entry>
+               <para>LCFIRST(expression)</para>
+            </entry>
+         </row></tbody>
+       </tgroup>
+   </informaltable></section>
+   
+<section>
+   <title>Terms</title>
+   <informaltable frame="all">
+      <tgroup cols="2"><tbody><row>
+            <entry>
+               <para>expression</para>
+            </entry>
+            <entry>
+               <para>An expression whose result type is chararray.</para>
+            </entry>
+         </row></tbody></tgroup>
+   </informaltable>
+</section>
+
+<section>
+     <title>Usage</title>
+     <para>
+Use the LCFIRST function to convert only the first character in a string to lower case. 
+     </para>
+</section>
+</section> 
+
+<!-- ======================================================== -->  
+ <section>
+   <title>LOWER</title>
+   <para>Returns a string converted to lower case. </para>
+
+<section>
+   <title>Syntax</title>
+   <informaltable frame="all">
+      <tgroup cols="1"><tbody><row>
+            <entry>
+               <para>LOWER(expression)</para>
+            </entry>
+         </row></tbody>
+       </tgroup>
+   </informaltable></section>
+   
+<section>
+   <title>Terms</title>
+   <informaltable frame="all">
+      <tgroup cols="2"><tbody><row>
+            <entry>
+               <para>expression</para>
+            </entry>
+            <entry>
+               <para>An expression whose result type is chararray.</para>
+            </entry>
+         </row></tbody></tgroup>
+   </informaltable>
+</section>
+
+<section>
+     <title>Usage</title>
+     <para>
+Use the LOWER function to convert all characters in a string to lower case. 
+     </para>
+</section>
+</section> 
+
+<!-- ======================================================== -->  
+ <section>
+   <title>REPLACE</title>
+   <para>Returns the ..... </para>
+
+<section>
+   <title>Syntax</title>
+   <informaltable frame="all">
+      <tgroup cols="1"><tbody><row>
+            <entry>
+               <para>REPLACE(string, 'oldChar', 'newChar');</para>
+            </entry>
+         </row></tbody>
+       </tgroup>
+   </informaltable></section>
+   
+<section>
+   <title>Terms</title>
+   <informaltable frame="all">
+      <tgroup cols="2"><tbody><row>
+            <entry>
+               <para>string</para>
+            </entry>
+            <entry>
+               <para>The string to be updated.</para>
+            </entry>
+         </row></tbody></tgroup>
+               <tgroup cols="2"><tbody><row>
+            <entry>
+               <para>'oldChar'</para>
+            </entry>
+            <entry>
+               <para>The old characters being replaced, in quotes. </para>
+            </entry>
+         </row></tbody></tgroup>
+               <tgroup cols="2"><tbody><row>
+            <entry>
+               <para>'newChar'</para>
+            </entry>
+            <entry>
+               <para>The new characters replacing the old characters, in quotes.</para>
+            </entry>
+         </row></tbody></tgroup>
+   </informaltable>
+</section>
+
+<section>
+     <title>Usage</title>
+     <para>
+Use the REPLACE function to replace the "old" characters in a string with "new" characters.
+     </para>
+     <para>
+For example, to change "open source software" to "open source wiki" use this statement: 
+REPLACE(string,'software','wiki');
+     </para>
+</section>
+</section> 
+
+<!-- ======================================================== -->  
+ <section>
+   <title>STRSPLIT</title>
+   <para>Splits a string around matches of a given regular expression. </para>
+
+<section>
+   <title>Syntax</title>
+   <informaltable frame="all">
+      <tgroup cols="1"><tbody><row>
+            <entry>
+               <para>STRSPLIT(string, regex, limit)</para>
+            </entry>
+         </row></tbody>
+       </tgroup>
+   </informaltable></section>
+   
+<section>
+   <title>Terms</title>
+   <informaltable frame="all">
+      <tgroup cols="2"><tbody><row>
+            <entry>
+               <para>string</para>
+            </entry>
+            <entry>
+               <para>The string to be split.</para>
+            </entry>
+         </row></tbody></tgroup>
+               <tgroup cols="2"><tbody><row>
+            <entry>
+               <para>regex</para>
+            </entry>
+            <entry>
+               <para>The regular expression.</para>
+            </entry>
+         </row></tbody></tgroup>
+               <tgroup cols="2"><tbody><row>
+            <entry>
+               <para>Limit</para>
+            </entry>
+            <entry>
+               <para>The number of times the pattern (the compiled representation of the regular expression) is applied.</para>
+            </entry>
+         </row></tbody></tgroup>
+   </informaltable>
+</section>
+
+<section>
+     <title>Usage</title>
+     <para>
+Use the STRSPLIT function to split a string around matches of a given regular expression.
+     </para>
+     <para>
+For example, given the string (open:source:software), STRSPLIT (string, ':',2) will return ((open,source:software)) and STRSPLIT (string, ':',3) will return ((open,source,software)).
+     </para>
+</section>
+</section> 
+
+<!-- ======================================================== -->  
+ <section>
+   <title>SUBSTRING</title>
+   <para>Returns a substring from a given string. </para>
+
+<section>
+   <title>Syntax</title>
+   <informaltable frame="all">
+      <tgroup cols="1"><tbody><row>
+            <entry>
+               <para>SUBSTRING(string, startIndex, stopIndex)</para>
+            </entry>
+         </row></tbody>
+       </tgroup>
+   </informaltable></section>
+   
+<section>
+   <title>Terms</title>
+   <informaltable frame="all">
+         <tgroup cols="2"><tbody><row>
+            <entry>
+               <para>string</para>
+            </entry>
+            <entry>
+               <para>The string from which a substring will be extracted.</para>
+            </entry>
+         </row></tbody></tgroup>
+      <tgroup cols="2"><tbody><row>
+            <entry>
+               <para>startIndex</para>
+            </entry>
+            <entry>
+               <para>The index (type integer) of the first character of the substring.</para>
+            </entry>
+         </row></tbody></tgroup>
+               <tgroup cols="2"><tbody><row>
+            <entry>
+               <para>stopIndex</para>
+            </entry>
+            <entry>
+               <para>The index (type integer) of the character <emphasis>following</emphasis> the last character of the substring.</para>
+            </entry>
+         </row></tbody></tgroup>
+   </informaltable>
+</section>
+
+<section>
+     <title>Usage</title>
+     <para>
+Use the SUBSTRING function to return a substring from a given string. 
+     </para>
+          <para>
+The index of a string begins with zero (0). Given the string ABCDEF, the index for A is 0, B is 1, C is 2, and so on. To return substring BCD use this statement: SUBSTRING(string,1,4). Note that 1 is the index of B (the first character of the substring) and  4 is the index of E  (the character <emphasis>following</emphasis> the last character of the substring).
+     </para>
+</section>
+</section> 
+
+<!-- ======================================================== -->  
+ <section>
+   <title>TRIM</title>
+   <para>Returns a copy of a string with leading and trailing white space removed.</para>
+
+<section>
+   <title>Syntax</title>
+   <informaltable frame="all">
+      <tgroup cols="1"><tbody><row>
+            <entry>
+               <para>TRIM(expression)</para>
+            </entry>
+         </row></tbody>
+       </tgroup>
+   </informaltable></section>
+   
+<section>
+   <title>Terms</title>
+   <informaltable frame="all">
+      <tgroup cols="2"><tbody><row>
+            <entry>
+               <para>expression</para>
+            </entry>
+            <entry>
+               <para>An expression whose result is chararray. </para>
+            </entry>
+         </row></tbody></tgroup>
+   </informaltable>
+</section>
+
+<section>
+     <title>Usage</title>
+     <para>
+Use the TRIM function to remove leading and trailing white space from a string.
+     </para>
+</section>
+</section> 
+
+<!-- ======================================================== -->  
+ <section>
+   <title>UCFIRST</title>
+   <para>Returns a string with the first character converted to upper case. </para>
+
+<section>
+   <title>Syntax</title>
+   <informaltable frame="all">
+      <tgroup cols="1"><tbody><row>
+            <entry>
+               <para>UCFIRST(expression)</para>
+            </entry>
+         </row></tbody>
+       </tgroup>
+   </informaltable></section>
+   
+<section>
+   <title>Terms</title>
+   <informaltable frame="all">
+      <tgroup cols="2"><tbody><row>
+            <entry>
+               <para>expression</para>
+            </entry>
+            <entry>
+               <para>An expression whose result type is chararray.</para>
+            </entry>
+         </row></tbody></tgroup>
+   </informaltable>
+</section>
+
+<section>
+     <title>Usage</title>
+     <para>
+Use the UCFIRST function to convert only the first character in a string to upper case. 
+     </para>
+</section>
+</section>
+
+<!-- ======================================================== -->  
+ <section>
+   <title>UPPER</title>
+   <para>Returns a string converted to upper case. </para>
+
+<section>
+   <title>Syntax</title>
+   <informaltable frame="all">
+      <tgroup cols="1"><tbody><row>
+            <entry>
+               <para>UPPER(expression)</para>
+            </entry>
+         </row></tbody>
+       </tgroup>
+   </informaltable></section>
+   
+<section>
+   <title>Terms</title>
+   <informaltable frame="all">
+      <tgroup cols="2"><tbody><row>
+            <entry>
+               <para>expression</para>
+            </entry>
+            <entry>
+               <para>An expression whose result type is chararray. </para>
+            </entry>
+         </row></tbody></tgroup>
+   </informaltable>
+</section>
+   
+<section>
+     <title>Usage</title>
+     <para>
+Use the UPPER function to convert all characters in a string to upper case.
+     </para>
+   </section>
+</section>
+ 
+</section>
+<!-- End String Functions -->
+
+
+<!-- ======================================================== -->
+<!-- ======================================================== -->
+<!-- Other Functions -->
+<section>
+<title>Other Functions</title>
+
+ <section>
+   <title>TOBAG</title>
+   <para>Converts one or more expressions to type bag. </para>
+
+<section>
+   <title>Syntax</title>
+   <informaltable frame="all">
+      <tgroup cols="1"><tbody><row>
+            <entry>
+               <para>TOBAG(expression [, expression ...])</para>
+            </entry>
+         </row></tbody>
+       </tgroup>
+   </informaltable>
+ </section>
+
+<section>
+   <title>Terms</title>
+   <informaltable frame="all">
+      <tgroup cols="2"><tbody><row>
+            <entry>
+               <para>expression</para>
+            </entry>
+            <entry>
+               <para>An expression with any data type.</para>
+            </entry>
+         </row></tbody></tgroup>
+   </informaltable>
+</section>
+
+<section>
+     <title>Usage</title>
+     <para>
+Use the TOBAG function to convert one or more expressions to individual tuples which are then placed in a bag.
+     </para>
+ </section>
+ 
+ <section>
+     <title>Example</title>
+     <para>
+In this example, fields f1 and f3 are converted to tuples that are then placed in a bag.
+     </para>
+ <programlisting>
+a = LOAD 'student' AS (f1:chararray, f2:int, f3:float);
+DUMP a;
+
+(John,18,4.0)
+(Mary,19,3.8)
+(Bill,20,3.9)
+(Joe,18,3.8)
+
+b = FOREACH a GENERATE TOBAG(f1,f3);
+DUMP b;
+
+({(John),(4.0)})
+({(Mary),(3.8)})
+({(Bill),(3.9)})
+({(Joe),(3.8)})
+</programlisting>
+     
+ </section>
+
+</section>
+
+ <!-- ======================================================== -->  
+ <section>
+   <title>TOP</title>
+   <para>Returns the top-n tuples from a bag of tuples.</para>
+
+<section>
+   <title>Syntax</title>
+   <informaltable frame="all">
+      <tgroup cols="1"><tbody><row>
+            <entry>
+               <para>TOP(topN,column,relation)</para>
+            </entry>
+         </row></tbody>
+       </tgroup>
+   </informaltable>
+ </section>
+
+<section>
+   <title>Terms</title>
+   <informaltable frame="all">
+      <tgroup cols="2"><tbody><row>
+            <entry>
+               <para>topN</para>
+            </entry>
+            <entry>
+               <para>The number of top tuples to return (type integer).</para>
+            </entry>
+         </row></tbody></tgroup>
+               <tgroup cols="2"><tbody><row>
+            <entry>
+               <para>column</para>
+            </entry>
+            <entry>
+               <para>The tuple column whose values are being compared.</para>
+            </entry>
+         </row></tbody></tgroup>
+               <tgroup cols="2"><tbody><row>
+            <entry>
+               <para>relation</para>
+            </entry>
+            <entry>
+               <para>The relation (bag of tuples) containing the tuple column.</para>
+            </entry>
+         </row></tbody></tgroup>
+   </informaltable>
+</section>
+
+<section>
+     <title>Usage</title>
+     <para>
+TOP function returns a bag containing top N tuples from the input bag where N is controlled by the first parameter to the function. The tuple comparison is performed based on a single column from the tuple. The column position is determined by the second parameter to the function. The function assumes that all tuples in the bag contain an element of the same type in the compared column
+     </para>
+</section>
+ 
+ <section>
+     <title>Example</title>
+     <para>
+In this example the top 10 occurrences are returned.
+     </para>
+ <programlisting>
+A = LOAD 'data' as (first: chararray, second: chararray);
+B = GROUP A BY (first, second);
+C = FOREACH B generate FLATTEN(group), COUNT(*) as count;
+D = GROUP C BY first; // again group by first
+topResults = FOREACH D {
+    result = TOP(10, 2, C); // and retain top 10 occurrences of 'second' in first
+    GENERATE FLATTEN(result);
+}
+</programlisting>
+     
+ </section>
+
+</section>
+<!-- ======================================================== -->  
+ <section>
+   <title>TOTUPLE</title>
+   <para>Converts one or more expressions to type tuple. </para>
+
+<section>
+   <title>Syntax</title>
+   <informaltable frame="all">
+      <tgroup cols="1"><tbody><row>
+            <entry>
+               <para>TOTUPLE(expression [, expression ...])</para>
+            </entry>
+         </row></tbody>
+       </tgroup>
+   </informaltable>
+ </section>
+
+<section>
+   <title>Terms</title>
+   <informaltable frame="all">
+      <tgroup cols="2"><tbody><row>
+            <entry>
+               <para>expression</para>
+            </entry>
+            <entry>
+               <para>An expression of any datatype.</para>
+            </entry>
+         </row></tbody></tgroup>
+   </informaltable>
+</section>
+
+<section>
+     <title>Usage</title>
+     <para>
+Use the TOTUPLE function to convert one or more expressions to a tuple.
+     </para>
+ </section>
+ 
+ <section>
+     <title>Example</title>
+     <para>
+In this example, fields f1, f2 and f3 are converted to a tuple.
+     </para>
+ <programlisting>
+a = LOAD 'student' AS (f1:chararray, f2:int, f3:float);
+DUMP a;
+
+(John,18,4.0)
+(Mary,19,3.8)
+(Bill,20,3.9)
+(Joe,18,3.8)
+
+b = FOREACH a GENERATE TOTUPLE(f1,f2,f3);
+DUMP b;
+
+((John,18,4.0))
+((Mary,19,3.8))
+((Bill,20,3.9))
+((Joe,18,3.8))
+</programlisting>
+ </section>
+</section>
+
+</section>
+<!-- End Other Functions -->
+
+<!-- ======================================================== -->  
+<!-- ======================================================== -->   
    <!-- FILE COMMANDS-->
    <section>
    <title>File Commands</title>
@@ -9464,7 +11263,74 @@ grunt&gt; rmf students students_sav
 
    </section>
    
+         <!-- Shell COMMANDS-->
+   <section>
+   <title>Shell Commands</title>
    
+      <section>
+   <title>fs</title>
+   <para>Invokes any FSShell command from within a Pig script or the Grunt shell.</para>
+   
+   <section>
+   <title>Syntax </title>
+   <informaltable frame="all">
+      <tgroup cols="1"><tbody><row>
+            <entry>
+               <para>fs subcommand subcommand_parameters </para>
+            </entry>
+         </row></tbody></tgroup>
+   </informaltable></section>
+   
+   <section>
+   <title>Terms</title>
+   <informaltable frame="all">
+      <tgroup cols="2">
+      <tbody>
+      <row>
+            <entry>
+               <para>subcommand</para>
+            </entry>
+            <entry>
+               <para>The FSShell command.</para>
+            </entry>
+         </row>
+               <row>
+            <entry>
+               <para>subcommand_parameters</para>
+            </entry>
+            <entry>
+               <para>The FSShell command parameters.</para>
+            </entry>
+         </row>
+         </tbody>
+         </tgroup>
+   </informaltable>
+   
+   </section>
+   
+   <section>
+   <title>Usage</title>
+   <para>Use the fs command to invoke any FSShell command from within a Pig script or Grunt shell. 
+   The fs command greatly extends the set of supported file system commands and the capabilities
+   supported for existing commands such as ls that will now support globing. For a complete list of
+   FSShell commands, see 
+   <ulink url="http://hadoop.apache.org/common/docs/current/hdfs_shell.html">HDFS File System Shell Guide</ulink></para>
+   </section>
+   
+   <section>
+   <title>Examples</title>
+   <para>In these examples a directory is created, a file is copied, a file is listed.</para>
+<programlisting>
+fs -mkdir /tmp
+fs -copyFromLocal file-x file-y
+fs -ls file-y
+</programlisting>
+   </section>
+    </section>
+        </section>
+ 
+ <!-- ======================================================== -->         
+        
    <section>
    <title>Utility Commands</title>
    
@@ -9593,7 +11459,7 @@ grunt&gt; exec –param p1=myparam1 –param p2=myparam2 myscript.pig
    
    <section>
    <title>Example</title>
-   <para>In this example the students file in the data directory is printed out.</para>
+   <para>In this example the results of the help command (the first few lines) are shown.</para>
 <programlisting>
 grunt&gt; help
 Commands:
@@ -9898,7 +11764,7 @@ grunt&gt; set default_parallel 100
 
 <para>In this example default_parallel is set in the Pig script; all MapReduce jobs that get launched will use 20 reducers.</para>
 <programlisting>
-SET DEFAULT_PARALLEL 20;
+SET default_parallel 20;
 A = LOAD 'myfile.txt' USING PigStorage() AS (t, u, v);
 B = GROUP A BY t;
 C = FOREACH B GENERATE group, COUNT(A.t) as mycount;
