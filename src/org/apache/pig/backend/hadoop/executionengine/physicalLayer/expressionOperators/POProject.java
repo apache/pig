@@ -384,6 +384,9 @@ public class POProject extends ExpressionOperator {
                     processingBagOfTuples = true;
                     res.result = bagIterator.next();
                 }
+                // If the bag contains no tuple, set the returnStatus to STATUS_EOP
+                if (!processingBagOfTuples)
+                    res.returnStatus = POStatus.STATUS_EOP;
             }
             else {
                 res.result = (Tuple)ret;
