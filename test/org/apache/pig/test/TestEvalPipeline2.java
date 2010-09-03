@@ -712,4 +712,37 @@ public class TestEvalPipeline2 extends TestCase {
         
         assertFalse(iter.hasNext());
     }
+    
+    // See PIG-1543
+    @Test
+    public void testEmptyBagIterator() throws Exception{
+        String[] input1 = {
+                "1",
+                "1",
+                "1"
+        };
+        
+        String[] input2 = {
+                "2",
+                "2"
+        };
+        
+        Util.createInputFile(cluster, "input1", input1);
+        Util.createInputFile(cluster, "input2", input2);
+        pigServer.registerQuery("A = load 'input1' as (a1:int);");
+        pigServer.registerQuery("B = load 'input2' as (b1:int);");
+        pigServer.registerQuery("C = COGROUP A by a1, B by b1;");
+        pigServer.registerQuery("C1 = foreach C { Alim = limit A 1; Blim = limit B 1; generate Alim, Blim; };");
+        pigServer.registerQuery("D1 = FOREACH C1 generate Alim,Blim, (IsEmpty(Alim)? 0:1), (IsEmpty(Blim)? 0:1), COUNT(Alim), COUNT(Blim);");
+        
+        Iterator<Tuple> iter = pigServer.openIterator("D1");
+        
+        Tuple t = iter.next();
+        assertTrue(t.toString().equals("({(1)},{},1,0,1,0)"));
+        
+        t = iter.next();
+        assertTrue(t.toString().equals("({},{(2)},0,1,0,1)"));
+        
+        assertFalse(iter.hasNext());
+    }
 }

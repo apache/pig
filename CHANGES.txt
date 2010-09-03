@@ -185,6 +185,8 @@ PIG-1309: Map-side Cogroup (ashutoshc)
 
 BUG FIXES
 
+PIG-1543: IsEmpty returns the wrong value after using LIMIT (daijy)
+
 PIG-1550:  better error handling in casting relations to scalars (thejas)
 
 PIG-1572: change default datatype when relations are used as scalar to bytearray (thejas)
