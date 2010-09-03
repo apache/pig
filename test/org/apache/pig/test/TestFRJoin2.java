@@ -45,6 +45,7 @@ public class TestFRJoin2 {
     private static final String INPUT_FILE = "input";
     
     private static final int FILE_MERGE_THRESHOLD = 5;
+    private static final int MIN_FILE_MERGE_THRESHOLD = 1;
     
     @BeforeClass
     public static void setUpBeforeClass() throws Exception {
@@ -55,7 +56,7 @@ public class TestFRJoin2 {
             String[] input = new String[2*LOOP_SIZE];
             for (int n=0; n<LOOP_SIZE; n++) {
                 for (int j=0; j<LOOP_SIZE;j++) {
-                    input[n*LOOP_SIZE + j] = i + "\t" + j;
+                    input[n*LOOP_SIZE + j] = i + "\t" + (j + n);
                 }
             }
             Util.createInputFile(cluster, INPUT_DIR + "/part-0000" + i, input);
@@ -77,8 +78,150 @@ public class TestFRJoin2 {
         cluster.shutDown();
     }
 
+    // test simple scalar alias with file concatenation following 
+    // a MapReduce job
     @Test
-    public void testConcatenateJob() throws Exception {
+    public void testConcatenateJobForScalar() throws Exception {
+        PigServer pigServer = new PigServer(ExecType.MAPREDUCE, cluster
+                .getProperties());
+        
+        pigServer.registerQuery("A = LOAD '" + INPUT_FILE + "' as (x:int,y:int);");
+        pigServer.registerQuery("B = group A all parallel 5;");
+        pigServer.registerQuery("C = foreach B generate COUNT(A) as count, MAX(A.y) as max;");
+        
+        DataBag dbfrj = BagFactory.getInstance().newDefaultBag(), dbshj = BagFactory.getInstance().newDefaultBag();
+        {
+            pigServer.getPigContext().getProperties().setProperty(
+                    MRCompiler.FILE_CONCATENATION_THRESHOLD, String.valueOf(FILE_MERGE_THRESHOLD));
+            
+            pigServer.registerQuery("D= foreach A generate x / C.count, C.max - y;");
+            Iterator<Tuple> iter = pigServer.openIterator("D");
+            
+            while(iter.hasNext()) {
+                dbfrj.add(iter.next());
+            }
+            
+            JobGraph jGraph = PigStats.get().getJobGraph();
+            assertEquals(3, jGraph.size());
+            // find added map-only concatenate job 
+            JobStats js = (JobStats)jGraph.getSuccessors(jGraph.getSources().get(0)).get(0);
+            assertEquals(1, js.getNumberMaps());   
+            assertEquals(0, js.getNumberReduces()); 
+        }
+        {
+            pigServer.getPigContext().getProperties().setProperty(
+                    "pig.noSplitCombination", "true");
+            
+            pigServer.registerQuery("D= foreach A generate x / C.count, C.max - y;");
+            Iterator<Tuple> iter = pigServer.openIterator("D");
+            
+            while(iter.hasNext()) {
+                dbshj.add(iter.next());
+            }
+            
+            assertEquals(2, PigStats.get().getJobGraph().size());
+        }
+        
+        assertEquals(dbfrj.size(), dbshj.size());
+        assertEquals(true, TestHelper.compareBags(dbfrj, dbshj));    
+    }
+    
+    // test simple scalar alias with file concatenation following 
+    // a Map-only job
+    @Test
+    public void testConcatenateJobForScalar2() throws Exception {
+        PigServer pigServer = new PigServer(ExecType.MAPREDUCE, cluster
+                .getProperties());
+        
+        pigServer.registerQuery("A = LOAD '" + INPUT_FILE + "' as (x:int,y:int);");
+        pigServer.registerQuery("B = LOAD '" + INPUT_DIR + "' as (x:int,y:int);");
+        pigServer.registerQuery("C = filter B by (x == 3) AND (y == 2);");
+        
+        DataBag dbfrj = BagFactory.getInstance().newDefaultBag(), dbshj = BagFactory.getInstance().newDefaultBag();
+        {
+            pigServer.getPigContext().getProperties().setProperty(
+                    MRCompiler.FILE_CONCATENATION_THRESHOLD, String.valueOf(MIN_FILE_MERGE_THRESHOLD));
+            
+            pigServer.registerQuery("D = foreach A generate x / C.x, y + C.y;");
+            Iterator<Tuple> iter = pigServer.openIterator("D");
+            
+            while(iter.hasNext()) {
+                dbfrj.add(iter.next());
+            }
+            
+            JobGraph jGraph = PigStats.get().getJobGraph();
+            assertEquals(3, jGraph.size());
+            // find added map-only concatenate job 
+            JobStats js = (JobStats)jGraph.getSuccessors(jGraph.getSources().get(0)).get(0);
+            assertEquals(1, js.getNumberMaps());   
+            assertEquals(0, js.getNumberReduces()); 
+        }
+        {
+            pigServer.getPigContext().getProperties().setProperty(
+                    "pig.noSplitCombination", "true");
+            
+            pigServer.registerQuery("D = foreach A generate x / C.x, y + C.y;");
+            Iterator<Tuple> iter = pigServer.openIterator("D");
+            
+            while(iter.hasNext()) {
+                dbshj.add(iter.next());
+            }
+            
+            assertEquals(2, PigStats.get().getJobGraph().size());
+        }
+        
+        assertEquals(dbfrj.size(), dbshj.size());
+        assertEquals(true, TestHelper.compareBags(dbfrj, dbshj));    
+    }
+    
+    // test scalar alias with file concatenation following 
+    // a multi-query job
+    @Test
+    public void testConcatenateJobForScalar3() throws Exception {
+        PigServer pigServer = new PigServer(ExecType.MAPREDUCE, cluster
+                .getProperties());
+        
+        pigServer.registerQuery("A = LOAD '" + INPUT_FILE + "' as (x:int,y:int);");
+        pigServer.registerQuery("B = LOAD '" + INPUT_FILE + "' as (x:int,y:int);");
+        pigServer.registerQuery("C = group A all parallel 5;");
+        pigServer.registerQuery("D = foreach C generate COUNT(A) as count;");
+        pigServer.registerQuery("E = foreach C generate MAX(A.x) as max;");
+        
+        DataBag dbfrj = BagFactory.getInstance().newDefaultBag(), dbshj = BagFactory.getInstance().newDefaultBag();
+        {
+            pigServer.getPigContext().getProperties().setProperty(
+                    MRCompiler.FILE_CONCATENATION_THRESHOLD, String.valueOf(MIN_FILE_MERGE_THRESHOLD));
+            
+            pigServer.registerQuery("F = foreach B generate x / D.count, y + E.max;");
+            Iterator<Tuple> iter = pigServer.openIterator("F");
+            
+            while(iter.hasNext()) {
+                dbfrj.add(iter.next());
+            }
+            
+            JobGraph jGraph = PigStats.get().getJobGraph();
+            assertEquals(4, jGraph.size());
+        }
+        {
+            pigServer.getPigContext().getProperties().setProperty(
+                    "pig.noSplitCombination", "true");
+            
+            pigServer.registerQuery("F = foreach B generate x / D.count, y + E.max;");
+            Iterator<Tuple> iter = pigServer.openIterator("F");
+            
+            while(iter.hasNext()) {
+                dbshj.add(iter.next());
+            }
+            
+            assertEquals(2, PigStats.get().getJobGraph().size());
+        }
+        
+        assertEquals(dbfrj.size(), dbshj.size());
+        assertEquals(true, TestHelper.compareBags(dbfrj, dbshj));    
+    }
+    
+    @Test
+    public void testConcatenateJobForFRJoin() throws Exception {
         PigServer pigServer = new PigServer(ExecType.MAPREDUCE, cluster
                 .getProperties());
         
@@ -88,7 +231,7 @@ public class TestFRJoin2 {
         DataBag dbfrj = BagFactory.getInstance().newDefaultBag(), dbshj = BagFactory.getInstance().newDefaultBag();
         {
             pigServer.getPigContext().getProperties().setProperty(
-                    MRCompiler.FRJOIN_MERGE_FILES_THRESHOLD, String.valueOf(FILE_MERGE_THRESHOLD));
+                    MRCompiler.FILE_CONCATENATION_THRESHOLD, String.valueOf(MIN_FILE_MERGE_THRESHOLD));            
             
             pigServer.registerQuery("C = join A by y, B by y using 'repl';");
             Iterator<Tuple> iter = pigServer.openIterator("C");
@@ -97,9 +240,7 @@ public class TestFRJoin2 {
                 dbfrj.add(iter.next());
             }
             
-            // In this case, multi-file-combiner is used so there is no need to add
-            // a concatenate job
-            assertEquals(2, PigStats.get().getJobGraph().size());
+            assertEquals(3, PigStats.get().getJobGraph().size());
         }
         {
             pigServer.getPigContext().getProperties().setProperty(
@@ -130,7 +271,7 @@ public class TestFRJoin2 {
         DataBag dbfrj = BagFactory.getInstance().newDefaultBag(), dbshj = BagFactory.getInstance().newDefaultBag();
         {
             pigServer.getPigContext().getProperties().setProperty(
-                    MRCompiler.FRJOIN_MERGE_FILES_THRESHOLD, String.valueOf(FILE_MERGE_THRESHOLD));
+                    MRCompiler.FILE_CONCATENATION_THRESHOLD, String.valueOf(FILE_MERGE_THRESHOLD));
             pigServer.registerQuery("D = join C by $0, B by $0 using 'repl';");
             Iterator<Tuple> iter = pigServer.openIterator("D");
             
@@ -171,17 +312,16 @@ public class TestFRJoin2 {
         DataBag dbfrj = BagFactory.getInstance().newDefaultBag(), dbshj = BagFactory.getInstance().newDefaultBag();
         {
             pigServer.getPigContext().getProperties().setProperty(
-                    MRCompiler.FRJOIN_MERGE_FILES_THRESHOLD, String.valueOf(FILE_MERGE_THRESHOLD));
+                    MRCompiler.FILE_CONCATENATION_THRESHOLD, String.valueOf(MIN_FILE_MERGE_THRESHOLD));  
             pigServer.registerQuery("C = join A by $0, B by $0 using 'repl';");
             Iterator<Tuple> iter = pigServer.openIterator("C");
             
             while(iter.hasNext()) {
                 dbfrj.add(iter.next());
             }
-            // In this case, multi-file-combiner is used in grandparent job
-            // so there is no need to add a concatenate job
+ 
             JobGraph jGraph = PigStats.get().getJobGraph();
-            assertEquals(2, jGraph.size());
+            assertEquals(3, jGraph.size());
         }
         {
             pigServer.getPigContext().getProperties().setProperty(
@@ -208,17 +348,16 @@ public class TestFRJoin2 {
         DataBag dbfrj = BagFactory.getInstance().newDefaultBag(), dbshj = BagFactory.getInstance().newDefaultBag();
         {
             pigServer.getPigContext().getProperties().setProperty(
-                    MRCompiler.FRJOIN_MERGE_FILES_THRESHOLD, String.valueOf(FILE_MERGE_THRESHOLD));
+                    MRCompiler.FILE_CONCATENATION_THRESHOLD, String.valueOf(MIN_FILE_MERGE_THRESHOLD));  
             pigServer.registerQuery("D = join B by $0, C by $0 using 'repl';");
             Iterator<Tuple> iter = pigServer.openIterator("D");
             
             while(iter.hasNext()) {
                 dbfrj.add(iter.next());
             }
-            // In this case, multi-file-combiner is used in grandparent job
-            // so there is no need to add a concatenate job
+
             JobGraph jGraph = PigStats.get().getJobGraph();
-            assertEquals(3, jGraph.size());
+            assertEquals(5, jGraph.size());
         }
         {
             pigServer.getPigContext().getProperties().setProperty(

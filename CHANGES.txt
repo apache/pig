@@ -26,6 +26,8 @@ PIG-1249: Safe-guards against misconfigured Pig scripts without PARALLEL keyword
 
 IMPROVEMENTS
 
+PIG-1548: Optimize scalar to consolidate the part file (rding)
+
 PIG-1600: Docs update (chandec via olgan)
 
 PIG-1585: Add new properties to help and documentation(olgan)
