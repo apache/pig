@@ -195,6 +195,8 @@ PIG-1309: Map-side Cogroup (ashutoshc)
 
 BUG FIXES
 
+PIG-1599: pig gives generic message for few cases (nrai via rding)
+
 PIG-1595: casting relation to scalar- problem with handling of data from non PigStorage loaders (thejas)
 
 PIG-1591: pig does not create a log file, if tje MR job succeeds but front end fails (nrai via daijy)
