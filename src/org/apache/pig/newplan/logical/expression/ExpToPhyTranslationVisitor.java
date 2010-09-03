@@ -511,7 +511,7 @@ public class ExpToPhyTranslationVisitor extends LogicalExpressionVisitor {
         
         //We need to track all the scalars
         if(op.getImplicitReferencedOperator() != null) {
-            scalarAliasMap.put(p, (LogicalRelationalOperator)op.getImplicitReferencedOperator());
+            scalarAliasMap.put(p, op.getImplicitReferencedOperator());
         }
     }
     

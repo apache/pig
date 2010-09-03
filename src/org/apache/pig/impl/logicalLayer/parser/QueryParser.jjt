@@ -783,12 +783,12 @@ public class QueryParser {
         lp.add(rconst);
         lp.connect(rconst, expr);
 
-        if(over != null && over.getField(colNum).type != DataType.BYTEARRAY) {
-            LOCast loCast = new LOCast(lp, new OperatorKey(scope, getNextId()), over.getField(colNum).type);
-            lp.add(loCast);
-            lp.connect(expr, loCast);
-            expr = loCast;
-        } 
+//        if(over != null && over.getField(colNum).type != DataType.BYTEARRAY) {
+//            LOCast loCast = new LOCast(lp, new OperatorKey(scope, getNextId()), over.getField(colNum).type);
+//            lp.add(loCast);
+//            lp.connect(expr, loCast);
+//            expr = loCast;
+//        } 
         return expr;
     }    
 }

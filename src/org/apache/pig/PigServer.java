@@ -1261,9 +1261,13 @@ public class PigServer {
                 // If referredPlan already has a store, 
                 // we just use it instead of adding one from our pocket
                 store = referredPlan.getLeaves().get(0);
-                if(store instanceof LOStore) {
-                    // use this store
-                    fileSpec = ((LOStore)store).getOutputFile();
+                if(store instanceof LOStore 
+                        &&
+                        ((LOStore)store).getOutputFile().getFuncName().equals(
+                                InterStorage.class.getName())                                            
+                ) {
+                        // use this store
+                        fileSpec = ((LOStore)store).getOutputFile();
                 }
                 else {
                     // add new store
