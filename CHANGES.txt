@@ -185,6 +185,8 @@ PIG-1309: Map-side Cogroup (ashutoshc)
 
 BUG FIXES
 
+PIG-1591: pig does not create a log file, if tje MR job succeeds but front end fails (nrai via daijy)
+
 PIG-1543: IsEmpty returns the wrong value after using LIMIT (daijy)
 
 PIG-1550:  better error handling in casting relations to scalars (thejas)

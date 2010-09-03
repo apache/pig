@@ -115,6 +115,7 @@ public class HJob implements ExecJob {
                     log.error(e);
                     t = null;
                     atEnd = true;
+                    throw new Error(e);
                 }
                 return !atEnd;
             }
