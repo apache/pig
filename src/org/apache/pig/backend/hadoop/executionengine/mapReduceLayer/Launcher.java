@@ -178,45 +178,54 @@ public abstract class Launcher {
     	for (int i = 0; i < reports.length; i++) {
             String msgs[] = reports[i].getDiagnostics();
             ArrayList<Exception> exceptions = new ArrayList<Exception>();
-            Set<String> errorMessageSet = new HashSet<String>();
             String exceptionCreateFailMsg = null;
-            for (int j = 0; j < msgs.length; j++) {                	
-                if(!errorMessageSet.contains(msgs[j])) {
-                    errorMessageSet.add(msgs[j]);
-                    if (errNotDbg) {
-                        //errNotDbg is used only for failed jobs
-                        //keep track of all the unique exceptions
-                        try {
-                            LogUtils.writeLog("Backend error message", msgs[j], 
-                                    pigContext.getProperties().getProperty("pig.logfile"),
-                                    log);
-                            Exception e = getExceptionFromString(msgs[j]);
-                            exceptions.add(e);
-                        } catch (Exception e1) {
-                            // keep track of the exception we were unable to re-create
-                            String firstLine = getFirstLineFromMessage(msgs[j]);                                
-                            exceptionCreateFailMsg = firstLine;
+            boolean jobFailed = false;
+            float successfulProgress = 1.0f;
+            if (msgs.length > 0) {
+            	//if the progress reported is not 1.0f then the map or reduce job failed
+            	//this comparison is in place till Hadoop 0.20 provides methods to query
+            	//job status            	
+            	if(reports[i].getProgress() != successfulProgress) {
+                    jobFailed = true;
+            	}
+                Set<String> errorMessageSet = new HashSet<String>();
+                for (int j = 0; j < msgs.length; j++) {                	
+                    if(!errorMessageSet.contains(msgs[j])) {
+                        errorMessageSet.add(msgs[j]);
+                        if (errNotDbg) {
+                            //errNotDbg is used only for failed jobs
+                            //keep track of all the unique exceptions
+                            try {
+                                LogUtils.writeLog("Backend error message", msgs[j], 
+                                        pigContext.getProperties().getProperty("pig.logfile"),
+                                        log);
+                                Exception e = getExceptionFromString(msgs[j]);
+                                exceptions.add(e);
+                            } catch (Exception e1) {
+                                // keep track of the exception we were unable to re-create
+                                String firstLine = getFirstLineFromMessage(msgs[j]);                                
+                                exceptionCreateFailMsg = firstLine;
+                          
+                            }
+                        } else {
+                            log.debug("Error message from task (" + type + ") " +
+                                      reports[i].getTaskID() + msgs[j]);
                         }
-                    } else {
-                        log.debug("Error message from task (" + type + ") " +
-                                  reports[i].getTaskID() + msgs[j]);
                     }
                 }
-            }            
-
-            //if there are no valid exception that could be created, report
-            if(exceptions.size() == 0){
-                int errCode = 2997;
-                String msg = "Unable to recreate exception from backed error: " 
-                    + exceptionCreateFailMsg;
-                throw new ExecException(msg, errCode, PigException.BUG);
             }
-            
+            //if there are no valid exception that could be created, report
+            if((exceptions.size() == 0) && (exceptionCreateFailMsg != null)){
+            		int errCode = 2997;
+            		String msg = "Unable to recreate exception from backed error: "+exceptionCreateFailMsg;
+            		throw new ExecException(msg, errCode, PigException.BUG);
+            }
+          
             //if its a failed job then check if there is more than one exception
             //more than one exception implies possibly different kinds of failures
             //log all the different failures and throw the exception corresponding
             //to the first failure
-            if (errNotDbg) {
+            if(jobFailed) {
                 if(exceptions.size() > 1) {
                     for(int j = 0; j < exceptions.size(); ++j) {
                         String headerMessage = "Error message from task (" + type + ") " + reports[i].getTaskID();
@@ -231,7 +240,7 @@ public abstract class Launcher {
                 	throw new ExecException(msg, errCode, PigException.BUG);
                 }
             }
-        }        
+        }
     }
     
     /**
@@ -575,3 +584,4 @@ public abstract class Launcher {
     }
 
 }
+
