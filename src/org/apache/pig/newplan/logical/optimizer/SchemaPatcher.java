@@ -20,6 +20,7 @@ package org.apache.pig.newplan.logical.optimizer;
 
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.newplan.OperatorPlan;
+import org.apache.pig.newplan.logical.relational.LogicalPlan;
 import org.apache.pig.newplan.optimizer.PlanTransformListener;
 
 /**

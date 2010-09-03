@@ -41,7 +41,7 @@ import org.apache.pig.newplan.logical.relational.LogicalSchema.LogicalFieldSchem
 public class UserFuncExpression extends LogicalExpression {
 
     private FuncSpec mFuncSpec;
-    private Operator implicitReferencedOperator = null; 
+    private LogicalRelationalOperator implicitReferencedOperator = null; 
     
     public UserFuncExpression(OperatorPlan plan, FuncSpec funcSpec) {
         super("UserFunc", plan);
@@ -108,12 +108,9 @@ public class UserFuncExpression extends LogicalExpression {
             List<Operator> args = plan.getSuccessors(this);
             if(args != null && args.size() > 0 ){
                 int pos = (Integer)((ConstantExpression)args.get(0)).getValue();
-                LogicalRelationalOperator inp = (LogicalRelationalOperator)implicitReferencedOperator;
-
-                if( inp.getSchema() != null){
-                    LogicalFieldSchema inpFs = inp.getSchema().getField(pos);
+                if( implicitReferencedOperator.getSchema() != null){
+                    LogicalFieldSchema inpFs = implicitReferencedOperator.getSchema().getField(pos);
                     fieldSchema = new LogicalFieldSchema(inpFs);
-                    //  fieldSchema.alias = "ReadScalars_" + fieldSchema.alias;
                 }else{
                     fieldSchema = new LogicalFieldSchema(null, null, DataType.BYTEARRAY);
                 }
@@ -157,11 +154,11 @@ public class UserFuncExpression extends LogicalExpression {
         return fieldSchema;
     }
     
-    public Operator getImplicitReferencedOperator() {
+    public LogicalRelationalOperator getImplicitReferencedOperator() {
         return implicitReferencedOperator;
     }
     
-    public void setImplicitReferencedOperator(Operator implicitReferencedOperator) {
+    public void setImplicitReferencedOperator(LogicalRelationalOperator implicitReferencedOperator) {
         this.implicitReferencedOperator = implicitReferencedOperator;
     }
 
