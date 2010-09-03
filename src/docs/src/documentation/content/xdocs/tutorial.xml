@@ -405,12 +405,12 @@ uniq_frequency3 = FOREACH uniq_frequency2 GENERATE $1 as hour, $0 as ngram, $2 a
 filtered_uniq_frequency = FILTER uniq_frequency3 BY score &gt; 2.0;
 </source>
 <ul>
-<li><p> Use the ORDER operator to sort the remaining records by hour and score.  </p>
+<li><p> Use the ORDER operator to sort the remaining records by hour and score. </p>
 </li>
 </ul>
 
 <source>
-ordered_uniq_frequency = ORDER filtered_uniq_frequency BY (hour, score);
+ordered_uniq_frequency = ORDER filtered_uniq_frequency BY hour, score;
 </source>
 <ul>
 <li><p> Use the PigStorage function to store the results. The output file contains a list of n-grams with the following fields: <strong>hour</strong>, <strong>ngram</strong>, <strong>score</strong>, <strong>count</strong>, <strong>mean</strong>. </p>
