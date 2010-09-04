@@ -187,6 +187,8 @@ PIG-1309: Map-side Cogroup (ashutoshc)
 
 BUG FIXES
 
+PIG-1597: Development snapshot jar no longer picked up by bin/pig
+
 PIG-1599: pig gives generic message for few cases (nrai via rding)
 
 PIG-1595: casting relation to scalar- problem with handling of data from non PigStorage loaders (thejas)
