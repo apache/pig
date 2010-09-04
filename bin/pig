@@ -131,7 +131,7 @@ for f in $PIG_HOME/pig-*-core.jar; do
 done
 
 # during development pig jar might be in build
-for f in $PIG_HOME/build/pig-*-dev.jar; do
+for f in $PIG_HOME/build/pig-*-SNAPSHOT.jar; do
     CLASSPATH=${CLASSPATH}:$f;
 done
 

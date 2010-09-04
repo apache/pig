@@ -197,6 +197,8 @@ PIG-1309: Map-side Cogroup (ashutoshc)
 
 BUG FIXES
 
+PIG-1597: NPE's thrown when attempting to load hbase columns containing null values (dvryaboy)
+
 PIG-1599: pig gives generic message for few cases (nrai via rding)
 
 PIG-1595: casting relation to scalar- problem with handling of data from non PigStorage loaders (thejas)
