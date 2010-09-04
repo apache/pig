@@ -197,7 +197,7 @@ PIG-1309: Map-side Cogroup (ashutoshc)
 
 BUG FIXES
 
-PIG-1597: NPE's thrown when attempting to load hbase columns containing null values (dvryaboy)
+PIG-1597: Development snapshot jar no longer picked up by bin/pig (dvryaboy)
 
 PIG-1599: pig gives generic message for few cases (nrai via rding)
 
