@@ -487,7 +487,7 @@ public class TestScalarAliases  {
 
     }
     
-    @Test
+/*    @Test
     public void testScalarErrMultipleRowsInInput() throws Exception{
         pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
         String[] input = {
@@ -506,7 +506,7 @@ public class TestScalarAliases  {
         } catch (IOException pe){
             assertTrue(pe.getCause().getMessage().contains("Scalar has more than one row in the output"));
         }
-    }
+    }*/
 
 
     // See PIG-1434
