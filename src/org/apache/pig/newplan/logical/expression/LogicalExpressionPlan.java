@@ -94,4 +94,12 @@ public class LogicalExpressionPlan extends BaseOperatorPlan {
         return sources;
     }
 
+    public LogicalExpressionPlan deepCopy() throws FrontendException {
+        LogicalExpressionPlan result = new LogicalExpressionPlan();
+        LogicalExpression root = (LogicalExpression)getSources().get( 0 );
+        LogicalExpression newRoot = root.deepCopy( result );
+        result.add( newRoot );
+        return result;
+    }
+
 }

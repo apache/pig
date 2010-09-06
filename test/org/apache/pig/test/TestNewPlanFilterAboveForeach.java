@@ -35,6 +35,7 @@ import org.apache.pig.newplan.logical.optimizer.LogicalPlanOptimizer;
 import org.apache.pig.newplan.logical.relational.LOFilter;
 import org.apache.pig.newplan.logical.relational.LOForEach;
 import org.apache.pig.newplan.logical.relational.LOLoad;
+import org.apache.pig.newplan.logical.relational.LOStore;
 import org.apache.pig.newplan.logical.relational.LogicalPlan;
 import org.apache.pig.newplan.logical.rules.FilterAboveForeach;
 import org.apache.pig.newplan.logical.rules.LoadTypeCastInserter;
@@ -263,7 +264,141 @@ public class TestNewPlanFilterAboveForeach {
         Operator filter = newLogicalPlan.getSuccessors( fe2 ).get( 0 );
         Assert.assertTrue( filter instanceof LOFilter );
     }
-    
+
+    @Test
+    public void testFilterForeach() throws Exception {
+        planTester.buildPlan("A = load 'myfile' as (name, age, gpa);");
+        planTester.buildPlan("B = foreach A generate $1, $2;");        
+        planTester.buildPlan("C = filter B by $0 < 18;");
+        org.apache.pig.impl.logicalLayer.LogicalPlan plan = planTester.buildPlan( "D = STORE C INTO 'empty';" ); 
+
+        LogicalPlan newLogicalPlan = migrateAndOptimizePlan( plan );
+
+        Operator load = newLogicalPlan.getSources().get( 0 );
+        Assert.assertTrue( load instanceof LOLoad );
+        Operator filter = newLogicalPlan.getSuccessors( load ).get( 0 );
+        Assert.assertTrue( filter instanceof LOFilter );
+        Operator fe = newLogicalPlan.getSuccessors( filter ).get( 0 );
+        Assert.assertTrue( fe instanceof LOForEach );
+        Operator store = newLogicalPlan.getSuccessors( fe ).get( 0 );
+        Assert.assertTrue( store instanceof LOStore );
+    }
+
+    @Test
+    public void testFilterForeachAddedField() throws Exception {
+        planTester.buildPlan("A = load 'myfile' as (name, age, gpa);");
+        planTester.buildPlan("B = foreach A generate $1, $2, COUNT({(1)});");        
+        planTester.buildPlan("C = filter B by $2 < 18;");
+        org.apache.pig.impl.logicalLayer.LogicalPlan plan = planTester.buildPlan( "D = STORE C INTO 'empty';" ); 
+
+        LogicalPlan newLogicalPlan = migrateAndOptimizePlan( plan );
+
+        Operator load = newLogicalPlan.getSources().get( 0 );
+        Assert.assertTrue( load instanceof LOLoad );
+        Operator fe = newLogicalPlan.getSuccessors( load ).get( 0 );
+        Assert.assertTrue( fe instanceof LOForEach );
+        Operator filter = newLogicalPlan.getSuccessors( fe ).get( 0 );
+        Assert.assertTrue( filter instanceof LOFilter );
+        Operator store = newLogicalPlan.getSuccessors( filter ).get( 0 );
+        Assert.assertTrue( store instanceof LOStore );
+    }
+
+    @Test
+    public void testFilterForeachCast() throws Exception {
+        planTester.buildPlan("A = load 'myfile' as (name, age, gpa);");
+        planTester.buildPlan("B = foreach A generate (int)$1, $2;");        
+        planTester.buildPlan("C = filter B by $0 < 18;");
+        org.apache.pig.impl.logicalLayer.LogicalPlan plan = planTester.buildPlan( "D = STORE C INTO 'empty';" ); 
+
+        LogicalPlan newLogicalPlan = migrateAndOptimizePlan( plan );
+
+        Operator load = newLogicalPlan.getSources().get( 0 );
+        Assert.assertTrue( load instanceof LOLoad );
+        Operator fe = newLogicalPlan.getSuccessors( load ).get( 0 );
+        Assert.assertTrue( fe instanceof LOForEach );
+        Operator filter = newLogicalPlan.getSuccessors( fe ).get( 0 );
+        Assert.assertTrue( filter instanceof LOFilter );
+        Operator store = newLogicalPlan.getSuccessors( filter ).get( 0 );
+        Assert.assertTrue( store instanceof LOStore );
+    }
+
+    @Test
+    public void testFilterCastForeach() throws Exception {
+        planTester.buildPlan("A = load 'myfile' as (name, age, gpa);");
+        planTester.buildPlan("B = foreach A generate $1, $2;");        
+        planTester.buildPlan("C = filter B by (int)$0 < 18;");
+        org.apache.pig.impl.logicalLayer.LogicalPlan plan = planTester.buildPlan( "D = STORE C INTO 'empty';" ); 
+
+        LogicalPlan newLogicalPlan = migrateAndOptimizePlan( plan );
+
+        Operator load = newLogicalPlan.getSources().get( 0 );
+        Assert.assertTrue( load instanceof LOLoad );
+        Operator filter = newLogicalPlan.getSuccessors( load ).get( 0 );
+        Assert.assertTrue( filter instanceof LOFilter );
+        Operator fe = newLogicalPlan.getSuccessors( filter ).get( 0 );
+        Assert.assertTrue( fe instanceof LOForEach );
+        Operator store = newLogicalPlan.getSuccessors( fe ).get( 0 );
+        Assert.assertTrue( store instanceof LOStore );
+    }
+
+
+    @Test
+    public void testFilterConstantConditionForeach() throws Exception {
+        planTester.buildPlan("A = load 'myfile' as (name, age, gpa);");
+        planTester.buildPlan("B = foreach A generate $1, $2;");        
+        planTester.buildPlan("C = filter B by 1 == 1;");
+        org.apache.pig.impl.logicalLayer.LogicalPlan plan = planTester.buildPlan( "D = STORE C INTO 'empty';" ); 
+
+        LogicalPlan newLogicalPlan = migrateAndOptimizePlan( plan );
+
+        Operator load = newLogicalPlan.getSources().get( 0 );
+        Assert.assertTrue( load instanceof LOLoad );
+        Operator filter = newLogicalPlan.getSuccessors( load ).get( 0 );
+        Assert.assertTrue( filter instanceof LOFilter );
+        Operator fe = newLogicalPlan.getSuccessors( filter ).get( 0 );
+        Assert.assertTrue( fe instanceof LOForEach );
+        Operator store = newLogicalPlan.getSuccessors( fe ).get( 0 );
+        Assert.assertTrue( store instanceof LOStore );
+    }
+
+    @Test
+    public void testFilterUDFForeach() throws Exception {
+        planTester.buildPlan("A = load 'myfile' as (name, age, gpa);");
+        planTester.buildPlan("B = foreach A generate $1, $2;");        
+        planTester.buildPlan("C = filter B by " + Identity.class.getName() + "($1) ;");
+        org.apache.pig.impl.logicalLayer.LogicalPlan plan = planTester.buildPlan( "D = STORE C INTO 'empty';" ); 
+
+        LogicalPlan newLogicalPlan = migrateAndOptimizePlan( plan );
+
+        Operator load = newLogicalPlan.getSources().get( 0 );
+        Assert.assertTrue( load instanceof LOLoad );
+        Operator filter = newLogicalPlan.getSuccessors( load ).get( 0 );
+        Assert.assertTrue( filter instanceof LOFilter );
+        Operator fe = newLogicalPlan.getSuccessors( filter ).get( 0 );
+        Assert.assertTrue( fe instanceof LOForEach );
+        Operator store = newLogicalPlan.getSuccessors( fe ).get( 0 );
+        Assert.assertTrue( store instanceof LOStore );
+    }
+
+    @Test
+    public void testFilterForeachFlatten() throws Exception {
+        planTester.buildPlan("A = load 'myfile' as (name, age, gpa);");
+        planTester.buildPlan("B = foreach A generate $1, flatten($2);");        
+        planTester.buildPlan("C = filter B by $0 < 18;");
+        org.apache.pig.impl.logicalLayer.LogicalPlan plan = planTester.buildPlan( "D = STORE C INTO 'empty';" ); 
+
+        LogicalPlan newLogicalPlan = migrateAndOptimizePlan( plan );
+
+        Operator load = newLogicalPlan.getSources().get( 0 );
+        Assert.assertTrue( load instanceof LOLoad );
+        Operator filter = newLogicalPlan.getSuccessors( load ).get( 0 );
+        Assert.assertTrue( filter instanceof LOFilter );
+        Operator fe = newLogicalPlan.getSuccessors( filter ).get( 0 );
+        Assert.assertTrue( fe instanceof LOForEach );
+        Operator store = newLogicalPlan.getSuccessors( fe ).get( 0 );
+        Assert.assertTrue( store instanceof LOStore );
+    }
+
     private LogicalPlan migrateAndOptimizePlan(org.apache.pig.impl.logicalLayer.LogicalPlan plan) throws FrontendException {
         LogicalPlan newLogicalPlan = migratePlan( plan );
         PlanOptimizer optimizer = new MyPlanOptimizer( newLogicalPlan, 3 );

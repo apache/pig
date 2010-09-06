@@ -325,9 +325,7 @@ public class TestNewPlanFilterRule extends TestCase {
         assertEquals(next.getClass(), LOStore.class);
         
         transformed = listener.getTransformed();
-        assertEquals(transformed.size(), 4);
-        assertEquals(transformed.getSinks().get(0).getClass(), LOFilter.class);
-        assertEquals(transformed.getSources().get(0).getClass(), LOLoad.class);
+        assertEquals(transformed.size(), 7);
         
         // run merge filter rule
         r = new MergeFilter("MergeFilter");

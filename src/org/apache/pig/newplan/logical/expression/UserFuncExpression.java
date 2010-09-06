@@ -170,6 +170,18 @@ public class UserFuncExpression extends LogicalExpression {
                     lgExpPlan,
                     this.getFuncSpec().clone() );
             copy.setImplicitReferencedOperator(this.getImplicitReferencedOperator());
+            
+            // Deep copy the input expressions.
+            List<Operator> inputs = plan.getPredecessors( this );
+            if( inputs != null ) {
+                for( Operator op : inputs ) {
+                    LogicalExpression input = (LogicalExpression)op;
+                    LogicalExpression inputCopy = input.deepCopy( lgExpPlan );
+                    lgExpPlan.add( inputCopy );
+                    lgExpPlan.connect( inputCopy, copy );
+                }
+            }
+            
         } catch(CloneNotSupportedException e) {
              e.printStackTrace();
         }
