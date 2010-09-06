@@ -104,12 +104,20 @@ public abstract class PlanOptimizer {
                     if (matches != null) {
                         Transformer transformer = rule.getNewTransformer();
                         for (OperatorPlan m : matches) {
-                            if (transformer.check(m)) {
-                                sawMatch = true;
-                                transformer.transform(m);
-                                for(PlanTransformListener l: listeners) {
-                                    l.transformed(plan, transformer.reportChanges());
+                            try {
+                                if (transformer.check(m)) {
+                                    sawMatch = true;
+                                    transformer.transform(m);
+                                    for(PlanTransformListener l: listeners) {
+                                        l.transformed(plan, transformer.reportChanges());
+                                    }
                                 }
+                            } catch (Exception e) {
+                                StringBuffer message = new StringBuffer("Error processing rule " + rule.name);
+                                if (!rule.isMandatory()) {
+                                    message.append(". Try -t " + rule.name);
+                                }
+                                throw new FrontendException(message.toString(), 2000, e);
                             }
                         }
                     }

@@ -51,6 +51,7 @@ import org.apache.pig.data.DataType;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.logicalLayer.LogicalPlan;
 import org.apache.pig.impl.plan.VisitorException;
+import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.OperatorPlan;
 import org.apache.pig.newplan.logical.LogicalPlanMigrationVistor;
 import org.apache.pig.newplan.logical.expression.AddExpression;
@@ -1337,5 +1338,37 @@ public class TestNewPlanLogToPhyTranslationVisitor extends TestCase {
         assertEquals( POPackage.class, phyPlan.getSuccessors(globalR).get(0).getClass() );
         POPackage pack = (POPackage)phyPlan.getSuccessors(globalR).get(0);
         assertEquals( DataType.TUPLE, pack.getResultType() );
+    }
+    
+    public void testUserDefinedForEachSchema1() throws Exception {
+        LogicalPlanTester lpt = new LogicalPlanTester(pc);
+        lpt.buildPlan("a = load 'a.txt';");
+        lpt.buildPlan("b = foreach a generate $0 as a0, $1 as a1;");        
+        LogicalPlan plan = lpt.buildPlan("store b into 'empty';");  
+        
+        org.apache.pig.newplan.logical.relational.LogicalPlan newLogicalPlan = migratePlan(plan);
+        Operator store = newLogicalPlan.getSinks().get(0);
+        LOForEach foreach = (LOForEach)newLogicalPlan.getPredecessors(store).get(0);
+        foreach.getSchema();
+        
+        assertTrue(foreach.getSchema().size()==2);
+        assertTrue(foreach.getSchema().getField(0).alias.equals("a0"));
+        assertTrue(foreach.getSchema().getField(1).alias.equals("a1"));
+    }
+
+    public void testUserDefinedForEachSchema2() throws Exception {
+        LogicalPlanTester lpt = new LogicalPlanTester(pc);
+        lpt.buildPlan("a = load 'a.txt' as (b:bag{});");
+        lpt.buildPlan("b = foreach a generate flatten($0) as (a0, a1);");
+        LogicalPlan plan = lpt.buildPlan("store b into 'empty';");  
+        
+        org.apache.pig.newplan.logical.relational.LogicalPlan newLogicalPlan = migratePlan(plan);
+        Operator store = newLogicalPlan.getSinks().get(0);
+        LOForEach foreach = (LOForEach)newLogicalPlan.getPredecessors(store).get(0);
+        foreach.getSchema();
+        
+        assertTrue(foreach.getSchema().size()==2);
+        assertTrue(foreach.getSchema().getField(0).alias.equals("a0"));
+        assertTrue(foreach.getSchema().getField(1).alias.equals("a1"));
     }
 }
