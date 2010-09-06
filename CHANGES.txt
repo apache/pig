@@ -26,6 +26,9 @@ PIG-1249: Safe-guards against misconfigured Pig scripts without PARALLEL keyword
 
 IMPROVEMENTS
 
+PIG-1575: Complete the migration of optimization rule PushUpFilter including
+missing test cases  (xuefuz via daijy)
+
 PIG-1548: Optimize scalar to consolidate the part file (rding)
 
 PIG-1600: Docs update (chandec via olgan)
