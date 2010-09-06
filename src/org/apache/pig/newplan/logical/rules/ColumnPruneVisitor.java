@@ -335,6 +335,8 @@ public class ColumnPruneVisitor extends LogicalRelationalNodesVisitor {
         
         // Build the temporary structure based on genPlansToRemove, which include:
         // * flattenList
+        // * outputPlanSchemas
+        // * uidOnlySchemas
         // * inputsRemoved
         //     We first construct inputsNeeded, and inputsRemoved = (all inputs) - inputsNeeded.
         //     We cannot figure out inputsRemoved directly since the inputs may be used by other output plan.
@@ -342,11 +344,15 @@ public class ColumnPruneVisitor extends LogicalRelationalNodesVisitor {
         List<Boolean> flattenList = new ArrayList<Boolean>();
         Set<Integer> inputsNeeded = new HashSet<Integer>();
         Set<Integer> inputsRemoved = new HashSet<Integer>();
+        List<LogicalSchema> outputPlanSchemas = new ArrayList<LogicalSchema>();
+        List<LogicalSchema> uidOnlySchemas = new ArrayList<LogicalSchema>();
         
         for (int i=0;i<genPlans.size();i++) {
             LogicalExpressionPlan genPlan = genPlans.get(i);
             if (!genPlansToRemove.contains(genPlan)) {
                 flattenList.add(gen.getFlattenFlags()[i]);
+                outputPlanSchemas.add(gen.getOutputPlanSchemas().get(i));
+                uidOnlySchemas.add(gen.getUidOnlySchemas().get(i));
                 List<Operator> sinks = genPlan.getSinks();
                 for(Operator s: sinks) {
                     if (s instanceof ProjectExpression) {
@@ -367,12 +373,14 @@ public class ColumnPruneVisitor extends LogicalRelationalNodesVisitor {
         
         
         // Change LOGenerate: remove unneeded output expression plan
-        // change flatten flag
+        // change flatten flag, outputPlanSchema, uidOnlySchemas
         boolean[] flatten = new boolean[flattenList.size()];
         for (int i=0;i<flattenList.size();i++)
             flatten[i] = flattenList.get(i);
 
         gen.setFlattenFlags(flatten);
+        gen.setOutputPlanSchemas(outputPlanSchemas);
+        gen.setUidOnlySchemas(uidOnlySchemas);
         
         for (LogicalExpressionPlan genPlanToRemove : genPlansToRemove) {
             genPlans.remove(genPlanToRemove);

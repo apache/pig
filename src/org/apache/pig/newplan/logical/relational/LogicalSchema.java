@@ -142,14 +142,14 @@ public class LogicalSchema {
         public LogicalFieldSchema cloneUid() {
             LogicalFieldSchema resultFs = null;
             if (schema==null) {
-                resultFs = new LogicalFieldSchema(null, null, (byte)-1, uid);
+                resultFs = new LogicalFieldSchema(null, null, type, uid);
             }
             else {
-                LogicalSchema schema = new LogicalSchema();
-                resultFs = new LogicalFieldSchema(null, schema, (byte)-1, uid);
+                LogicalSchema newSchema = new LogicalSchema();
+                resultFs = new LogicalFieldSchema(null, newSchema, type, uid);
                 for (int i=0;i<schema.size();i++) {
                     LogicalFieldSchema fs = schema.getField(i).cloneUid();
-                    schema.addField(fs);
+                    newSchema.addField(fs);
                 }
             }
             return resultFs;
@@ -297,6 +297,13 @@ public class LogicalSchema {
      * @return a merged schema, or null if the merge fails
      */
     public static LogicalSchema merge(LogicalSchema s1, LogicalSchema s2) throws FrontendException {
+        // If any of the schema is null, take the other party
+        if (s1==null || s2==null) {
+            if (s1!=null) return s1.deepCopy();
+            else if (s2!=null) return s2.deepCopy();
+            else return null;
+        }
+        
         if (s1.size()!=s2.size()) return null;
         LogicalSchema mergedSchema = new LogicalSchema();
         for (int i=0;i<s1.size();i++) {
@@ -311,7 +318,11 @@ public class LogicalSchema {
             else {
                 mergedAlias = fs1.alias; // If both schema have alias, the first one win
             }
-            mergedType = fs1.type;
+            if (fs1.type==DataType.NULL)
+                mergedType = fs2.type;
+            else
+                mergedType = fs1.type;
+            
             if (DataType.isSchemaType(mergedType)) {
                 mergedSubSchema = merge(fs1.schema, fs2.schema);
                 if (mergedSubSchema==null) {
