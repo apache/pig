@@ -45,6 +45,7 @@ import org.apache.pig.impl.logicalLayer.LogicalOperator;
 import org.apache.pig.impl.logicalLayer.LogicalPlan;
 import org.apache.pig.impl.logicalLayer.LOCogroup.GROUPTYPE;
 import org.apache.pig.impl.logicalLayer.LOJoin.JOINTYPE;
+import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.plan.DependencyOrderWalker;
 import org.apache.pig.impl.plan.PlanWalker;
 import org.apache.pig.impl.plan.VisitorException;
@@ -209,6 +210,13 @@ public class LogicalPlanMigrationVistor extends LOVisitor {
         org.apache.pig.newplan.logical.relational.LOGenerate gen = 
             new org.apache.pig.newplan.logical.relational.LOGenerate(innerPlan, expPlans, flat);
         
+        if (forEach.getUserDefinedSchema()!=null) {
+            List<LogicalSchema> userDefinedSchema = new ArrayList<LogicalSchema>();
+            for (Schema schema : forEach.getUserDefinedSchema()) {
+                userDefinedSchema.add(Util.translateSchema(schema));
+            }
+            gen.setUserDefinedSchema(userDefinedSchema);
+        }
         innerPlan.add(gen);                
         
         List<LogicalPlan> ll = forEach.getForEachPlans();

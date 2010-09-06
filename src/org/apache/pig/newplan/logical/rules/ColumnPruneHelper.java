@@ -443,28 +443,13 @@ public class ColumnPruneHelper {
              while(iter.hasNext()) {
                  long uid = iter.next();
                  for(int i=0; i<ll.size(); i++) {
-                     boolean found = false;
                      LogicalExpressionPlan exp = ll.get(i);
-                     LogicalExpression op = (LogicalExpression)exp.getSources().get(0);
-                     
-                     if (gen.getFlattenFlags()[i] && (op.getFieldSchema().type==DataType.TUPLE ||
-                             op.getFieldSchema().type== DataType.BAG)) {
-                         // if uid equal to the expression, get all uids of original projections
-                         LogicalSchema schema;
-
-                         schema = op.getFieldSchema().schema;
-                         for (LogicalSchema.LogicalFieldSchema fs : schema.getFields())
-                         {
-                             if (fs.uid==uid) {
-                                 found = true;
-                                 break;
-                             }
-                         }
-                     }
-                     else {
-                         // No flatten, collect outer uid
-                         if (op.getFieldSchema().uid == uid) {                         
+                     boolean found = false;
+                     LogicalSchema planSchema = gen.getOutputPlanSchemas().get(i);
+                     for (LogicalFieldSchema fs : planSchema.getFields()) {
+                         if (fs.uid == uid) {
                              found = true;
+                             break;
                          }
                      }
                      
@@ -506,6 +491,8 @@ public class ColumnPruneHelper {
                      continue;
                  List<Operator> srcs = exp.getSinks();
                  for (Operator src : srcs) {
+                     if (!(src instanceof ProjectExpression))
+                         continue;
                      List<LOInnerLoad> innerLoads = LOForEach.findReacheableInnerLoadFromBoundaryProject((ProjectExpression)src);
                      for (LOInnerLoad innerLoad : innerLoads) {
                          ProjectExpression prj = innerLoad.getProjection();

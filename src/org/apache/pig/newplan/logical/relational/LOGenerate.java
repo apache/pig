@@ -33,6 +33,12 @@ import org.apache.pig.newplan.logical.relational.LogicalSchema.LogicalFieldSchem
 public class LOGenerate extends LogicalRelationalOperator {
      private List<LogicalExpressionPlan> outputPlans;
      private boolean[] flattenFlags;
+     private List<LogicalSchema> mUserDefinedSchema = null;
+     private List<LogicalSchema> outputPlanSchemas = null;
+     // If LOGenerate generate new uid, cache it here.
+     // This happens when expression plan does not have complete schema, however,
+     // user give complete schema in ForEach statement in script
+     private List<LogicalSchema> uidOnlySchemas = null;
 
     public LOGenerate(OperatorPlan plan, List<LogicalExpressionPlan> ps, boolean[] flatten) {
         super("LOGenerate", plan);
@@ -46,60 +52,130 @@ public class LOGenerate extends LogicalRelationalOperator {
             return schema;
         }
         
+        if (uidOnlySchemas == null) {
+            uidOnlySchemas = new ArrayList<LogicalSchema>();
+            for (int i=0;i<outputPlans.size();i++)
+                uidOnlySchemas.add(null);
+        }
+        
         schema = new LogicalSchema();
+        outputPlanSchemas = new ArrayList<LogicalSchema>();
         
         for(int i=0; i<outputPlans.size(); i++) {
             LogicalExpression exp = (LogicalExpression)outputPlans.get(i).getSources().get(0);
             
+            LogicalSchema mUserDefinedSchemaCopy = null;
+            if (mUserDefinedSchema!=null && mUserDefinedSchema.get(i)!=null) {
+                mUserDefinedSchemaCopy = new LogicalSchema();
+                for (LogicalSchema.LogicalFieldSchema fs : mUserDefinedSchema.get(i).getFields()) {
+                    mUserDefinedSchemaCopy.addField(fs.deepCopy());
+                }
+            }
+            
             LogicalFieldSchema fieldSchema = null;
-            if (exp.getFieldSchema()==null) {
+            
+            LogicalSchema expSchema = null;
+            
+            if (exp.getFieldSchema()!=null) {
+            
+                fieldSchema = exp.getFieldSchema().deepCopy();
+                
+                expSchema = new LogicalSchema();
+                if (fieldSchema.type != DataType.TUPLE && fieldSchema.type != DataType.BAG) {
+                    // if type is primitive, just add to schema
+                    if (fieldSchema!=null)
+                        expSchema.addField(fieldSchema);
+                    else
+                        expSchema = null;
+                } else {
+                    // if bag/tuple don't have inner schema, after flatten, we don't have schema for the entire operator
+                    if (fieldSchema.schema==null) {
+                        expSchema = null;
+                    }
+                    else {
+                        // if flatten is set, set schema of tuple field to this schema
+                        List<LogicalSchema.LogicalFieldSchema> innerFieldSchemas = new ArrayList<LogicalSchema.LogicalFieldSchema>();
+                        if (flattenFlags[i]) {
+                            if (fieldSchema.type == DataType.BAG) {
+                                // if it is bag of tuples, get the schema of tuples
+                                if (fieldSchema.schema!=null) {
+                                    if (fieldSchema.schema.isTwoLevelAccessRequired()) {
+                                        //  assert(fieldSchema.schema.size() == 1 && fieldSchema.schema.getField(0).type == DataType.TUPLE)
+                                        innerFieldSchemas = fieldSchema.schema.getField(0).schema.getFields();
+                                    } else {
+                                        innerFieldSchemas = fieldSchema.schema.getFields();
+                                    }
+                                    for (LogicalSchema.LogicalFieldSchema fs : innerFieldSchemas) {
+                                        fs.alias = fieldSchema.alias + "::" + fs.alias;
+                                    }
+                                }
+                            } else { // DataType.TUPLE
+                                innerFieldSchemas = fieldSchema.schema.getFields();
+                                for (LogicalSchema.LogicalFieldSchema fs : innerFieldSchemas) {
+                                    fs.alias = fieldSchema.alias + "::" + fs.alias;
+                                }
+                            }
+                            
+                            for (LogicalSchema.LogicalFieldSchema fs : innerFieldSchemas)
+                                expSchema.addField(fs);
+                        }
+                        else
+                            expSchema.addField(fieldSchema);
+                    }
+                }
+            }
+            
+            // Merge with user defined schema
+            if (expSchema!=null && expSchema.size()==0)
+                expSchema = null;
+            LogicalSchema planSchema = new LogicalSchema();
+            if (mUserDefinedSchemaCopy!=null) {
+                LogicalSchema mergedSchema = new LogicalSchema();
+                // merge with userDefinedSchema
+                if (expSchema==null) {
+                    // Use user defined schema
+                    for (LogicalFieldSchema fs : mUserDefinedSchemaCopy.getFields()) {
+                        fs.stampFieldSchema();
+                        mergedSchema.addField(fs);
+                    }
+                }
+                else {
+                    // Merge uid with the exp field schema
+                    mergedSchema = LogicalSchema.merge(mUserDefinedSchemaCopy, expSchema);
+                    mergedSchema.mergeUid(expSchema);
+                }
+                for (LogicalFieldSchema fs : mergedSchema.getFields())
+                    planSchema.addField(fs);
+            } else {
+                // if any plan do not have schema, the whole LOGenerate do not have schema
+                if (expSchema==null) {
+                    planSchema = null;
+                }
+                else {
+                    // Merge schema for the plan
+                    for (LogicalFieldSchema fs : expSchema.getFields())
+                        planSchema.addField(fs);
+                }
+            }
+            
+            if (planSchema==null) {
                 schema = null;
                 break;
             }
-            fieldSchema = exp.getFieldSchema().deepCopy();
+            for (LogicalFieldSchema fs : planSchema.getFields())
+                schema.addField(fs);
             
-            if (fieldSchema.type != DataType.TUPLE && fieldSchema.type != DataType.BAG) {
-                // if type is primitive, just add to schema
-                schema.addField(fieldSchema);
-                continue;
-            } else {
-                // if bag/tuple don't have inner schema, after flatten, we don't have schema for the entire operator
-                if (fieldSchema.schema==null) {
-                    schema=null;
-                    break;
-                }
-                // if flatten is set, set schema of tuple field to this schema
-                List<LogicalSchema.LogicalFieldSchema> innerFieldSchemas = new ArrayList<LogicalSchema.LogicalFieldSchema>();
-                if (flattenFlags[i]) {
-                    if (fieldSchema.type == DataType.BAG) {
-                        // if it is bag of tuples, get the schema of tuples
-                        if (fieldSchema.schema!=null) {
-                            if (fieldSchema.schema.isTwoLevelAccessRequired()) {
-                                //  assert(fieldSchema.schema.size() == 1 && fieldSchema.schema.getField(0).type == DataType.TUPLE)
-                                innerFieldSchemas = fieldSchema.schema.getField(0).schema.getFields();
-                            } else {
-                                innerFieldSchemas = fieldSchema.schema.getFields();
-                            }
-                            for (LogicalSchema.LogicalFieldSchema fs : innerFieldSchemas) {
-                                fs.alias = fieldSchema.alias + "::" + fs.alias;
-                            }
-                        }
-                    } else { // DataType.TUPLE
-                        innerFieldSchemas = fieldSchema.schema.getFields();
-                        for (LogicalSchema.LogicalFieldSchema fs : innerFieldSchemas) {
-                            fs.alias = fieldSchema.alias + "::" + fs.alias;
-                        }
-                    }
-                    
-                    for (LogicalSchema.LogicalFieldSchema fs : innerFieldSchemas)
-                        schema.addField(fs);
-                }
-                else
-                    schema.addField(fieldSchema);
+            // If the schema is generated by user defined schema, keep uid
+            if (expSchema==null) {
+                LogicalSchema uidOnlySchema = schema.mergeUid(uidOnlySchemas.get(i));
+                uidOnlySchemas.set(i, uidOnlySchema);
             }
+            outputPlanSchemas.add(planSchema);
         }
-        if (schema!=null && schema.size()==0)
+        if (schema==null || schema.size()==0) {
             schema = null;
+            outputPlanSchemas = null;
+        }
         return schema;
     }
 
@@ -174,5 +250,29 @@ public class LOGenerate extends LogicalRelationalOperator {
             }
         }
         return msg.toString();
+    }
+    
+    public List<LogicalSchema> getUserDefinedSchema() {
+        return mUserDefinedSchema;
+    }
+
+    public void setUserDefinedSchema(List<LogicalSchema> userDefinedSchema) {
+        mUserDefinedSchema = userDefinedSchema;
+    }
+    
+    public List<LogicalSchema> getOutputPlanSchemas() {
+        return outputPlanSchemas;
+    }
+    
+    public void setOutputPlanSchemas(List<LogicalSchema> outputPlanSchemas) {
+        this.outputPlanSchemas = outputPlanSchemas;
+    }
+    
+    public List<LogicalSchema> getUidOnlySchemas() {
+        return uidOnlySchemas;
+    }
+    
+    public void setUidOnlySchemas(List<LogicalSchema> uidOnlySchemas) {
+        this.uidOnlySchemas = uidOnlySchemas;
     }
 }
