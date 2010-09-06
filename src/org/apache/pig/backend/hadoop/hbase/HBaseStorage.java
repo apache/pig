@@ -247,7 +247,11 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
                     startIndex++;
                 }
                 for (int i=0;i<columnList_.size();++i){
-                    tuple.set(i+startIndex, new DataByteArray(result.getValue(columnList_.get(i))));
+                	byte[] cell=result.getValue(columnList_.get(i));
+                	if (cell!=null)
+                	    tuple.set(i+startIndex, new DataByteArray(cell));
+                	else
+                	    tuple.set(i+startIndex, null);
                 }
                 return tuple;
             }
