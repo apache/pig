@@ -161,6 +161,13 @@ public class DereferenceExpression extends ColumnExpression {
         LogicalExpression copy = new DereferenceExpression(
                 lgExpPlan,
                 columnsCopy);
+        
+        // Only one input is expected.
+        LogicalExpression input = (LogicalExpression) plan.getPredecessors( this ).get( 0 );
+        LogicalExpression inputCopy = input.deepCopy( lgExpPlan );
+        lgExpPlan.add( inputCopy );
+        lgExpPlan.connect( inputCopy, copy );
+        
         return copy;
     }
 
