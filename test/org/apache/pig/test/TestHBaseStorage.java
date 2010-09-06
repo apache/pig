@@ -171,8 +171,8 @@ public class TestHBaseStorage {
 		prepareTable(TESTTABLE_1, true, DataFormat.UTF8PlainText);
 		pig.registerQuery("a = load 'hbase://" + TESTTABLE_1 + "' using "
 				+ "org.apache.pig.backend.hadoop.hbase.HBaseStorage('"
-				+ TESTCOLUMN_A + " " + TESTCOLUMN_B + " " + TESTCOLUMN_C
-				+ "') as (col_a, col_b, col_c);");
+				+ TESTCOLUMN_A + " " + TESTCOLUMN_B + " " + TESTCOLUMN_C + " pig:col_d"
+				+ "') as (col_a, col_b, col_c, col_d);");
 		Iterator<Tuple> it = pig.openIterator("a");
 		int count = 0;
 		LOG.info("LoadFromHBase Starting");
@@ -182,10 +182,11 @@ public class TestHBaseStorage {
 			String col_a = ((DataByteArray) t.get(0)).toString();
 			String col_b = ((DataByteArray) t.get(1)).toString();
 			String col_c = ((DataByteArray) t.get(2)).toString();
-
+			Object col_d = t.get(3);       // empty cell
 			Assert.assertEquals(count, Integer.parseInt(col_a));
 			Assert.assertEquals(count + 0.0, Double.parseDouble(col_b), 1e-6);
 			Assert.assertEquals("Text_" + count, col_c);
+			Assert.assertNull(col_d);
 			count++;
 		}
 		Assert.assertEquals(TEST_ROW_COUNT, count);
