@@ -15,8 +15,8 @@
 	<classpathentry exported="true" kind="lib" path="build/ivy/lib/Pig/joda-time-1.6.jar"/>
 	<classpathentry exported="true" kind="lib" path="build/ivy/lib/Pig/jsch-0.1.38.jar"/>
 	<classpathentry exported="true" kind="lib" path="build/ivy/lib/Pig/junit-4.5.jar"/>
-	<classpathentry exported="true" kind="lib" path="lib/hbase-0.20.0.jar"/>
-	<classpathentry exported="true" kind="lib" path="lib/hbase-0.20.0-test.jar"/>
+	<classpathentry exported="true" kind="lib" path="lib/hbase-0.20.6.jar"/>
+	<classpathentry exported="true" kind="lib" path="lib/hbase-0.20.6-test.jar"/>
 	<classpathentry exported="true" kind="lib" path="lib/zookeeper-hbase-1329.jar"/>
 	<classpathentry exported="true" kind="lib" path="build/ivy/lib/Pig/guava-r06.jar"/>
 	<classpathentry exported="true" kind="lib" path="build/ivy/lib/Pig/jython-2.5.0.jar"/>
