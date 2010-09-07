@@ -18,6 +18,7 @@
 package org.apache.pig.test;
 
 import static java.util.regex.Matcher.quoteReplacement;
+import static org.junit.Assert.fail;
 
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
@@ -25,7 +26,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
-import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
@@ -37,7 +37,6 @@ import java.io.PrintWriter;
 import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -73,7 +72,6 @@ import org.apache.pig.impl.logicalLayer.parser.ParseException;
 import org.apache.pig.impl.logicalLayer.parser.QueryParser;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.newplan.logical.optimizer.LogicalPlanPrinter;
-import org.apache.pig.tools.grunt.Grunt;
 import org.apache.pig.tools.grunt.GruntParser;
 
 import com.google.common.base.Function;
@@ -399,7 +397,18 @@ public class Util {
          Assert.assertEquals("Comparing actual and expected results. ",
                  expectedResList, actualResList);
      }
-     
+
+     /**
+      * Check if subStr is a subString of str . calls org.junit.Assert.fail if it is not 
+      * @param str
+      * @param subStr
+      */
+     static public void checkStrContainsSubStr(String str, String subStr){
+         if(!str.contains(subStr)){
+             fail("String '"+ subStr + "' is not a substring of '" + str + "'");
+         }
+     }
+
 	/**
 	 * Utility method to copy a file form local filesystem to the dfs on
 	 * the minicluster for testing in mapreduce mode
