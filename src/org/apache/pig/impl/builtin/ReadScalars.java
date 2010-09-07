@@ -19,6 +19,7 @@ package org.apache.pig.impl.builtin;
 
 import java.io.IOException;
 
+import org.apache.hadoop.conf.Configuration;
 import org.apache.pig.EvalFunc;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce;
@@ -57,11 +58,15 @@ public class ReadScalars extends EvalFunc<Object> {
             try {
                 pos = DataType.toInteger(input.get(0));
                 scalarfilename = DataType.toString(input.get(1));
+                
+                // Hadoop security need this property to be set
+                Configuration conf = UDFContext.getUDFContext().getJobConf();
+                if (System.getenv("HADOOP_TOKEN_FILE_LOCATION") != null) {
+                    conf.set("mapreduce.job.credentials.binary", 
+                            System.getenv("HADOOP_TOKEN_FILE_LOCATION"));
+                }
                 loader = new ReadToEndLoader(
-                        new InterStorage(), 
-                        UDFContext.getUDFContext().getJobConf(),
-                        scalarfilename, 0
-                );
+                        new InterStorage(), conf, scalarfilename, 0);
             } catch (Exception e) {
                 throw new ExecException("Failed to open file '" + scalarfilename
                         + "'; error = " + e.getMessage());
