@@ -487,7 +487,7 @@ public class TestScalarAliases  {
 
     }
     
-/*    @Test
+    @Test
     public void testScalarErrMultipleRowsInInput() throws Exception{
         pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
         String[] input = {
@@ -498,15 +498,17 @@ public class TestScalarAliases  {
         String INPUT_FILE = "table_testScalarAliasesMulRows";
         Util.createInputFile(cluster, INPUT_FILE, input);
         pigServer.registerQuery("A = LOAD '" + INPUT_FILE +  "' as (a0: long, a1: double);");
-        pigServer.registerQuery("B = LOAD '" + INPUT_FILE +  "' as (a0: long, a1: double);");
+        pigServer.registerQuery("B = LOAD '" + INPUT_FILE +  "' as (b0: long, b1: double);");
         pigServer.registerQuery("C = foreach A generate $0, B.$0;");
         try {
             pigServer.openIterator("C");
             fail("exception expected - scalar input has multiple rows");
         } catch (IOException pe){
-            assertTrue(pe.getCause().getMessage().contains("Scalar has more than one row in the output"));
+            Util.checkStrContainsSubStr(pe.getCause().getMessage(),
+                    "Scalar has more than one row in the output"
+            );
         }
-    }*/
+    }
 
 
     // See PIG-1434
