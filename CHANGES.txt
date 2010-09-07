@@ -190,6 +190,8 @@ PIG-1309: Map-side Cogroup (ashutoshc)
 
 BUG FIXES
 
+PIG-1601: Make scalar work for secure hadoop (daijy)
+
 PIG-1602: The .classpath of eclipse template still use hbase-0.20.0 (zjffdu)
 
 PIG-1596: NPE's thrown when attempting to load hbase columns containing null values (zjffdu)
