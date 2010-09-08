@@ -48,7 +48,7 @@ public class ConstantExpression extends ColumnExpression {
     }
 
     /**
-     * @link org.apache.pig.experimental.plan.Operator#accept(org.apache.pig.experimental.plan.PlanVisitor)
+     * @link org.apache.pig.newplan.Operator#accept(org.apache.pig.newplan.PlanVisitor)
      */
     @Override
     public void accept(PlanVisitor v) throws FrontendException {

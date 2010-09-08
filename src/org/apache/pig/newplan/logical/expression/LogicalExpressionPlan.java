@@ -20,17 +20,14 @@ package org.apache.pig.newplan.logical.expression;
 
 import java.io.PrintStream;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.newplan.BaseOperatorPlan;
 import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.OperatorPlan;
-import org.apache.pig.newplan.logical.optimizer.ExprPrinter;
+import org.apache.pig.newplan.logical.optimizer.LogicalPlanPrinter;
 
 /**
  * A plan containing LogicalExpressionOperators.
@@ -60,7 +57,7 @@ public class LogicalExpressionPlan extends BaseOperatorPlan {
         ps.println("# New Logical Expression Plan:");
         ps.println("#-----------------------------------------------");
 
-        ExprPrinter npp = new ExprPrinter(this, ps);
+        LogicalPlanPrinter npp = new LogicalPlanPrinter(this, ps);
         npp.visit();
     }
     

@@ -84,7 +84,6 @@
     <property name="test.timeout" value="2700000" />
     <property name="test.junit.output.format" value="plain" />
     <property name="test.commit.file" value="${test.src.dir}/commit-tests"/>
-    <property name="test.newlogicalplan.file" value="${test.src.dir}/newlogicalplan-tests"/>
     <property name="test.unit.file" value="${test.src.dir}/unit-tests"/>
     <property name="test.smoke.file" value="${test.src.dir}/smoke-tests"/>
     <property name="test.all.file" value="${test.src.dir}/all-tests"/>
@@ -561,10 +560,6 @@
 
     <target name="test-commit" depends="compile-test,jar-withouthadoop" description="Run approximate 10-minute set of unit tests prior to commiting">
         <macro-test-runner test.file="${test.commit.file}" />
-    </target>
-
-    <target name="test-newlogicalplan" depends="compile-test,jar-withouthadoop" description="Run approximate 10-minute set of unit tests prior to commiting">
-        <macro-test-runner test.file="${test.newlogicalplan.file}" />
     </target>
 
     <target name="test-unit" depends="compile-test,jar-withouthadoop" description="Run all true unit tests">

@@ -326,7 +326,7 @@ public class LogicalSchema {
             if (DataType.isSchemaType(mergedType)) {
                 mergedSubSchema = merge(fs1.schema, fs2.schema);
                 if (mergedSubSchema==null) {
-                    throw new FrontendException("Error merging schema " + fs1 + " and " + fs2, 9999);
+                    throw new FrontendException("Error merging schema " + fs1 + " and " + fs2, 2246);
                 }
             }
             LogicalFieldSchema mergedFS = new LogicalFieldSchema(mergedAlias, mergedSubSchema, mergedType);

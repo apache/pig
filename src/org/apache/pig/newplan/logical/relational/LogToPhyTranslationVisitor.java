@@ -908,7 +908,7 @@ public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
                         LogicalSchema s = ((LogicalRelationalOperator)op).getSchema();
                         // if the schema cannot be determined
                         if (s == null) {
-                            throw new FrontendException();
+                            throw new FrontendException("Cannot determine skewed join schema", 2247);
                         }
                         skj.addSchema(Util.translateSchema(s));
                     } catch (FrontendException e) {
