@@ -39,7 +39,7 @@ import org.apache.pig.newplan.optimizer.PlanTransformListener;
 public class ProjectionPatcher implements PlanTransformListener {
 
     /**
-     * @link org.apache.pig.experimental.plan.optimizer.PlanTransformListener#transformed(org.apache.pig.experimental.plan.OperatorPlan, org.apache.pig.experimental.plan.OperatorPlan)
+     * @link org.apache.pig.newplan.optimizer.PlanTransformListener#transformed(org.apache.pig.newplan.OperatorPlan, org.apache.pig.newplan.OperatorPlan)
      */
     @Override
     public void transformed(OperatorPlan fp, OperatorPlan tp)

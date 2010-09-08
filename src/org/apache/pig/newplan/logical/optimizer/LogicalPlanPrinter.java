@@ -17,216 +17,208 @@
  */
 package org.apache.pig.newplan.logical.optimizer;
 
-import java.io.PrintStream;
-import java.util.Collection;
+import java.util.ArrayList;
 import java.util.List;
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
+import java.io.OutputStream;
+import java.io.IOException;
 
-import org.apache.pig.impl.logicalLayer.FrontendException;
-import org.apache.pig.impl.util.MultiMap;
+import org.apache.pig.newplan.DepthFirstWalker;
+import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.OperatorPlan;
+import org.apache.pig.newplan.PlanVisitor;
 import org.apache.pig.newplan.PlanWalker;
 import org.apache.pig.newplan.ReverseDependencyOrderWalker;
 import org.apache.pig.newplan.logical.expression.LogicalExpressionPlan;
-import org.apache.pig.newplan.logical.expression.LogicalExpressionVisitor;
 import org.apache.pig.newplan.logical.relational.LOCogroup;
-import org.apache.pig.newplan.logical.relational.LOCross;
-import org.apache.pig.newplan.logical.relational.LODistinct;
 import org.apache.pig.newplan.logical.relational.LOFilter;
 import org.apache.pig.newplan.logical.relational.LOForEach;
 import org.apache.pig.newplan.logical.relational.LOGenerate;
-import org.apache.pig.newplan.logical.relational.LOInnerLoad;
 import org.apache.pig.newplan.logical.relational.LOJoin;
-import org.apache.pig.newplan.logical.relational.LOLimit;
-import org.apache.pig.newplan.logical.relational.LOLoad;
 import org.apache.pig.newplan.logical.relational.LOSort;
-import org.apache.pig.newplan.logical.relational.LOSplit;
 import org.apache.pig.newplan.logical.relational.LOSplitOutput;
-import org.apache.pig.newplan.logical.relational.LOStore;
-import org.apache.pig.newplan.logical.relational.LOStream;
-import org.apache.pig.newplan.logical.relational.LOUnion;
-import org.apache.pig.newplan.logical.relational.LogicalRelationalNodesVisitor;
+import org.apache.pig.newplan.logical.relational.LogicalPlan;
+import org.apache.pig.impl.logicalLayer.FrontendException;
+import org.apache.pig.impl.plan.VisitorException;
+import org.apache.pig.impl.util.MultiMap;
 
-public class LogicalPlanPrinter extends LogicalRelationalNodesVisitor {
+/**
+ * A visitor mechanism printing out the logical plan.
+ */
+public class LogicalPlanPrinter extends PlanVisitor {
 
-    protected PrintStream stream = null;
-    protected int level = 0;
-    
-//    private String TAB1 = "    ";
-//    private String TABMore = "|   ";
-//    private String LSep = "|\n|---";
-//    private String USep = "|   |\n|   ";
-//    private int levelCntr = -1;
-    
+    private PrintStream mStream = null;
+    private String TAB1 = "    ";
+    private String TABMore = "|   ";
+    private String LSep = "|\n|---";
+    private String USep = "|   |\n|   ";
+    static public String SEPERATE = "\t";
+
+    /**
+     * @param ps PrintStream to output plan information to
+     * @param plan Logical plan to print
+     */
     public LogicalPlanPrinter(OperatorPlan plan, PrintStream ps) throws FrontendException {
-        super(plan, new ReverseDependencyOrderWalker(plan));
-        stream = ps;
-    }
-
-    protected LogicalExpressionVisitor getVisitor(LogicalExpressionPlan expr) throws FrontendException {
-        return new ExprPrinter(expr, level+1, stream);
+        super(plan, null);
+        mStream = ps;
     }
 
     @Override
-    public void visit(LOLoad op) throws FrontendException {
-        printLevel();
-        stream.println( op.toString() );
-    }
-
-    @Override
-    public void visit(LOStore op) throws FrontendException {
-        printLevel();
-        stream.println( op.toString() );
-    }
-
-    @Override
-    public void visit(LOForEach op) throws FrontendException {
-        printLevel();
-        stream.println( op.toString() );
-        level++;
-        OperatorPlan innerPlan = op.getInnerPlan();
-        PlanWalker newWalker = currentWalker.spawnChildWalker(innerPlan);
-        pushWalker(newWalker);
-        currentWalker.walk(this);
-        popWalker();
-        level--;
-    }
-
-    @Override
-    public void visit(LOFilter op) throws FrontendException {
-        printLevel();
-        stream.println( op.toString() );
-        LogicalExpressionVisitor v = getVisitor(op.getFilterPlan());
-        level++;
-        v.visit();
-        level--;
-    }
-    
-    @Override
-    public void visit(LOJoin op) throws FrontendException {
-        printLevel();
-        stream.println( op.toString() );
-        
-        LogicalExpressionVisitor v = null;
-        level++;
-        for (LogicalExpressionPlan plan : op.getExpressionPlanValues()) {
-            v = getVisitor(plan);
-            v.visit();
-        }
-        level--;
-    }
-
-    @Override
-    public void visit(LOGenerate op) throws FrontendException {
-        printLevel();        
-        stream.println( op.toString() );
-        List<LogicalExpressionPlan> plans = op.getOutputPlans();
-        LogicalExpressionVisitor v = null;
-        level++;
-        for( LogicalExpressionPlan plan : plans ) {
-            v = getVisitor(plan);
-            v.visit();
-        }
-        level--;
-    }
-
-    @Override
-    public void visit(LOInnerLoad op) throws FrontendException {
-        printLevel();
-        stream.println( op.toString() );
-    }
-    
-    @Override
-    public void visit(LOCogroup op) throws FrontendException {
-        printLevel();
-        stream.println( op.toString() );
-        MultiMap<Integer,LogicalExpressionPlan> exprPlans = op.getExpressionPlans();
-        for( Integer key : exprPlans.keySet() ) {
-            Collection<LogicalExpressionPlan> plans = exprPlans.get(key);
-            LogicalExpressionVisitor v = null;
-            level++;
-            for( LogicalExpressionPlan plan : plans ) {
-                v = getVisitor(plan);
-                v.visit();
+    public void visit() throws FrontendException {
+        try {
+            if (plan instanceof LogicalPlan) {
+                mStream.write(depthFirstLP().getBytes());
             }
-            level--;
+            else {
+                mStream.write(reverseDepthFirstLP().getBytes());
+            }
+        } catch (IOException e) {
+            throw new FrontendException(e);
         }
-    }
-    
-    @Override
-    public void visit(LOSplitOutput op) throws FrontendException {
-        printLevel();
-        stream.println( op.toString() );
-        LogicalExpressionVisitor v = getVisitor(op.getFilterPlan());
-        level++;
-        v.visit();
-        level--;
-    }
-    
-    @Override
-    public void visit(LOSplit op) throws FrontendException {
-        printLevel();
-        stream.println( op.toString() );
-        level++;
-    }
-    
-    @Override
-    public void visit(LOUnion op) throws FrontendException {
-        printLevel();
-        stream.println( op.toString() );
-        level++;
-    }
-    
-    @Override
-    public void visit(LOCross op) throws FrontendException {
-        printLevel();
-        stream.println( op.toString() );
-        level++;
-    }
-    
-    @Override
-    public void visit(LOSort op) throws FrontendException {
-        printLevel();        
-        stream.println( op.toString() );
-        List<LogicalExpressionPlan> plans = op.getSortColPlans();
-        LogicalExpressionVisitor v = null;
-        level++;
-        for( LogicalExpressionPlan plan : plans ) {
-            v = getVisitor(plan);
-            v.visit();
-        }
-        level--;
-    }
-    
-    @Override
-    public void visit(LODistinct op) throws FrontendException {
-        printLevel();
-        stream.println( op.toString() );
-    }
-    
-    @Override
-    public void visit(LOLimit op) throws FrontendException {
-        printLevel();
-        stream.println( op.toString() );
     }
 
-    @Override
-    public void visit(LOStream op) throws FrontendException {
-        printLevel();
-        stream.println( op.toString() );
+    protected String depthFirstLP() throws FrontendException, IOException {
+        StringBuilder sb = new StringBuilder();
+        List<Operator> leaves = plan.getSinks();
+        for (Operator leaf : leaves) {
+            sb.append(depthFirst(leaf));
+            sb.append("\n");
+        }
+        return sb.toString();
     }
     
-    public String toString() {
-        return stream.toString();
-    }   
+    private String depthFirst(Operator node) throws FrontendException, IOException {
+        String nodeString = printNode(node);
+        
+        List<Operator> originalPredecessors =  plan.getPredecessors(node);
+        if (originalPredecessors == null)
+            return nodeString;
+        
+        StringBuffer sb = new StringBuffer(nodeString);
+        List<Operator> predecessors =  new ArrayList<Operator>(originalPredecessors);
+        
+        int i = 0;
+        for (Operator pred : predecessors) {
+            i++;
+            String DFStr = depthFirst(pred);
+            if (DFStr != null) {
+                sb.append(LSep);
+                if (i < predecessors.size())
+                    sb.append(shiftStringByTabs(DFStr, 2));
+                else
+                    sb.append(shiftStringByTabs(DFStr, 1));
+            }
+        }
+        return sb.toString();
+    }
     
-    private void printLevel() {
-        for(int i =0; i < level; i++ ) {
-            stream.print("|\t");
+    protected String reverseDepthFirstLP() throws FrontendException, IOException {
+        StringBuilder sb = new StringBuilder();
+        List<Operator> roots = plan.getSources();
+        for (Operator root : roots) {
+            sb.append(reverseDepthFirst(root));
+            sb.append("\n");
         }
-        stream.println("|");
-        for(int i =0; i < level; i++ ) {
-            stream.print("|\t");
+        return sb.toString();
+    }
+    
+    private String reverseDepthFirst(Operator node) throws FrontendException, IOException {
+        String nodeString = printNode(node);
+        
+        List<Operator> originalSuccessors =  plan.getSuccessors(node);
+        if (originalSuccessors == null)
+            return nodeString;
+        
+        StringBuffer sb = new StringBuffer(nodeString);
+        List<Operator> successors =  new ArrayList<Operator>(originalSuccessors);
+        
+        int i = 0;
+        for (Operator succ : successors) {
+            i++;
+            String DFStr = reverseDepthFirst(succ);
+            if (DFStr != null) {
+                sb.append(LSep);
+                if (i < successors.size())
+                    sb.append(shiftStringByTabs(DFStr, 2));
+                else
+                    sb.append(shiftStringByTabs(DFStr, 1));
+            }
         }
-        stream.print("|---");
+        return sb.toString();
+    }
+    
+    private String planString(OperatorPlan lp) throws VisitorException, IOException {
+        StringBuilder sb = new StringBuilder();
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        PrintStream ps = new PrintStream(baos);
+        if(lp!=null) {
+            LogicalPlanPrinter printer = new LogicalPlanPrinter(lp, ps);
+            printer.visit();
+        }
+        else
+            return "";
+        sb.append(USep);
+        sb.append(shiftStringByTabs(baos.toString(), 2));
+        return sb.toString();
+    }
+    
+    private String printNode(Operator node) throws FrontendException, IOException {
+        StringBuilder sb = new StringBuilder(node.toString()+"\n");
+        
+        if(node instanceof LOFilter){
+            sb.append(planString(((LOFilter)node).getFilterPlan()));
+        }
+        else if(node instanceof LOForEach){
+            sb.append(planString(((LOForEach)node).getInnerPlan()));        
+        }
+        else if(node instanceof LOCogroup){
+            MultiMap<Integer, LogicalExpressionPlan> plans = ((LOCogroup)node).getExpressionPlans();
+            for (int i : plans.keySet()) {
+                // Visit the associated plans
+                for (OperatorPlan plan : plans.get(i)) {
+                    sb.append(planString(plan));
+                }
+            }
+        }
+        else if(node instanceof LOJoin){
+            MultiMap<Integer, LogicalExpressionPlan> plans = ((LOJoin)node).getExpressionPlans();
+            for (int i: plans.keySet()) {
+                // Visit the associated plans
+                for (OperatorPlan plan : plans.get(i)) {
+                    sb.append(planString(plan));
+                }
+            }
+        }
+        else if(node instanceof LOSort){
+            for (OperatorPlan plan : ((LOSort)node).getSortColPlans())
+                sb.append(planString(plan));
+        }
+        else if(node instanceof LOSplitOutput){
+            sb.append(planString(((LOSplitOutput)node).getFilterPlan()));
+        }
+        else if(node instanceof LOGenerate){
+            for (OperatorPlan plan : ((LOGenerate)node).getOutputPlans()) {
+                sb.append(planString(plan));
+            }
+        }
+        return sb.toString();
+    }
+
+    private String shiftStringByTabs(String DFStr, int TabType) {
+        StringBuilder sb = new StringBuilder();
+        String[] spl = DFStr.split("\n");
+
+        String tab = (TabType == 1) ? TAB1 : TABMore;
+
+        sb.append(spl[0] + "\n");
+        for (int i = 1; i < spl.length; i++) {
+            sb.append(tab);
+            sb.append(spl[i]);
+            sb.append("\n");
+        }
+        return sb.toString();
     }
 }
+
+        
