@@ -141,7 +141,7 @@ public class LOLoad extends LogicalRelationalOperator {
                 Schema oldSchema = Schema.getPigSchema(resourceSchema);
                 return Util.translateSchema(oldSchema);
             } catch (IOException e) {
-                throw new FrontendException("Cannot get schema from loadFunc " + loadFunc.getClass().getName(), 9999, e);
+                throw new FrontendException("Cannot get schema from loadFunc " + loadFunc.getClass().getName(), 2245, e);
             }
         }
         return null;

@@ -187,4 +187,21 @@ public class UserFuncExpression extends LogicalExpression {
         }
         return copy;
     }
+    
+    public String toString() {
+        StringBuilder msg = new StringBuilder();
+        msg.append("(Name: " + name + "(" + getFuncSpec() + ")" + " Type: ");
+        if (fieldSchema!=null)
+            msg.append(DataType.findTypeName(fieldSchema.type));
+        else
+            msg.append("null");
+        msg.append(" Uid: ");
+        if (fieldSchema!=null)
+            msg.append(fieldSchema.uid);
+        else
+            msg.append("null");
+        msg.append(")");
+
+        return msg.toString();
+    }
 }
