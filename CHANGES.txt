@@ -190,6 +190,8 @@ PIG-1309: Map-side Cogroup (ashutoshc)
 
 BUG FIXES
 
+PIG-1604: 'relation as scalar' does not work with complex types (thejas)
+
 PIG-1601: Make scalar work for secure hadoop (daijy)
 
 PIG-1602: The .classpath of eclipse template still use hbase-0.20.0 (zjffdu)
