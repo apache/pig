@@ -515,69 +515,6 @@ STORE Gtab INTO '/user/vxj/finalresult2';
 
 
 <!-- ==================================================================== -->
- <!-- NULLS -->
- <section>
-<title>Null Values</title>
-<p>Pig handles null values differently for the GROUP/COGROUP and JOIN operations.</p>
- 
- <section>
-<title>GROUP/COGROUP and Null Values</title>
-
-<p>When using the GROUP operator with a single relation, records with a null group key are grouped together.</p>
-<source>
-a = load 'student' as (name:chararray, age:int, gpa:float);
-dump a;
-(joe,18,2.5)
-(sam,,3.0)
-(bob,,3.5)
-
-x = group a by age;
-dump x;
-(18,{(joe,18,2.5)})
-(,{(sam,,3.0),(bob,,3.5)})
-</source>
-  
-<p>When using the GROUP (COGROUP) operator with multiple relations, records with a null group key are considered different and are grouped separately. 
-In the example below note that there are two tuples in the output corresponding to the null group key: 
-one that contains tuples from relation A (but not relation B) and one that contains tuples from relation B (but not relation A).</p>
-
-<source>
-A = load 'student' as (name:chararray, age:int, gpa:float);
-B = load 'student' as (name:chararray, age:int, gpa:float);
-dump B;
-(joe,18,2.5)
-(sam,,3.0)
-(bob,,3.5)
-
-X = cogroup A by age, B by age;
-dump X;
-(18,{(joe,18,2.5)},{(joe,18,2.5)})
-(,{(sam,,3.0),(bob,,3.5)},{})
-(,{},{(sam,,3.0),(bob,,3.5)})
-</source>
-</section>
- 
- <section>
-<title>JOIN and Null Values</title>
-<p>The JOIN operator - when performing inner joins - adheres to the SQL standard and disregards (filters out) null values.</p>
- <source>
-A = load 'student' as (name:chararray, age:int, gpa:float);
-B = load 'student' as (name:chararray, age:int, gpa:float);
-dump B;
-(joe,18,2.5)
-(sam,,3.0)
-(bob,,3.5)
-  
-X = join A by age, B by age;
-dump X;
-(joe,18,2.5,joe,18,2.5)
-</source>
-</section>
-
- </section>
- <!-- END NULLS -->
-
-<!-- ==================================================================== -->
  
  <!-- OPTIMIZATION RULES -->
 <section>
