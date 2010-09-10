@@ -850,13 +850,12 @@ DUMP X;
    
    </section></section></section>
    
-   <section>
+   <section id="nulls">
    <title>Nulls</title>
    <para>In Pig Latin, nulls are implemented using the SQL definition of null as unknown or non-existent. Nulls can occur naturally in data or can be the result of an operation. </para>
-   
    <section>
-   <title>Nulls and Operators</title>
-   <para>Pig Latin operators interact with nulls as shown in this table.</para>
+   <title>Nulls, Operators, and Functions</title>
+   <para>Pig Latin operators and functions interact with nulls as shown in this table.</para>
    <informaltable frame="all">
       <tgroup cols="2"><tbody><row>
             <entry>
@@ -904,7 +903,7 @@ DUMP X;
                <para>is null </para>
             </entry>
             <entry>
-               <para>If the tested value is null, returns true; otherwise, returns false.</para>
+               <para>If the tested value is null, returns true; otherwise, returns false (see <xref linkend="null_operators" />).</para>
             </entry>
          </row>
          <row>
@@ -913,7 +912,7 @@ DUMP X;
                <para>is not null</para>
             </entry>
             <entry>
-               <para>If the tested value is not null, returns true; otherwise, returns false.</para>
+               <para>If the tested value is not null, returns true; otherwise, returns false (see <xref linkend="null_operators" />).</para>
             </entry>
          </row>
          <row>
@@ -923,6 +922,24 @@ DUMP X;
             </entry>
             <entry>
                <para>If the de-referenced tuple or map is null, returns null.</para>
+            </entry>
+         </row>
+                           <row>
+            <entry>
+               <para>Operators:</para>
+               <para>COGROUP, GROUP, JOIN</para>
+            </entry>
+            <entry>
+               <para>These operators handle nulls differently (see examples below).</para>
+            </entry>
+         </row>
+         <row>
+            <entry>
+               <para>Function:</para>
+               <para>COUNT_STAR</para>
+            </entry>
+            <entry>
+               <para>This function counts all values, including nulls.</para>
             </entry>
          </row>
          <row>
@@ -942,15 +959,7 @@ DUMP X;
                <para>These functions ignore nulls. </para>
             </entry>
          </row>
-         <row>
-            <entry>
-               <para>Function:</para>
-               <para>COUNT_STAR</para>
-            </entry>
-            <entry>
-               <para>This function counts all values, including nulls.</para>
-            </entry>
-         </row>
+
          <row>
             <entry>
                <para>Function:</para>
@@ -979,8 +988,6 @@ DUMP X;
          <para>Bincond operator – If a Boolean subexpression results in null value, the resulting expression is null (see the interactions above for Arithmetic operators)</para>
       </listitem>
    </itemizedlist>
-   
-
    </section>
    
    <section>
@@ -1063,16 +1070,69 @@ DUMP B;
    
    <section>
    <title>Nulls and Load Functions</title>
-   <para>
-As noted, nulls can occur naturally in the data. If nulls are part of the data, it is the responsibility of the load function to handle them correctly. Keep in mind that what is considered a null value is loader-specific; however, the load function should always communicate null values to Pig by producing Java nulls.</para>
+   <para>As noted, nulls can occur naturally in the data. If nulls are part of the data, it is the responsibility of the load function to handle them correctly. Keep in mind that what is considered a null value is loader-specific; however, the load function should always communicate null values to Pig by producing Java nulls.</para>
    <para>The Pig Latin load functions (for example, PigStorage and TextLoader) produce null values wherever data is missing. For example, empty strings (chararrays) are not loaded; instead, they are replaced by nulls.</para>
+   
    <para>PigStorage is the default load function for the LOAD operator. In this example the is not null operator is used to filter names with null values.</para>
 
  <programlisting>
 A = LOAD 'student' AS (name, age, gpa); 
 B = FILTER A BY name is not null;
 </programlisting>  
-   </section></section>
+   </section>
+   
+   <section id="nulls_group">
+   <title>Nulls and GROUP/COGROUP Operators</title>
+   <para>When using the GROUP operator with a single relation, records with a null group key are grouped together.</para>
+   <programlisting>
+A = load 'student' as (name:chararray, age:int, gpa:float);
+dump A;
+(joe,18,2.5)
+(sam,,3.0)
+(bob,,3.5)
+
+X = group A by age;
+dump X;
+(18,{(joe,18,2.5)})
+(,{(sam,,3.0),(bob,,3.5)})
+   </programlisting>
+   
+<para>When using the GROUP (COGROUP) operator with multiple relations, records with a null group key are considered different and are grouped separately. In the example below note that there are two tuples in the output corresponding to the null group key: one that contains tuples from relation A (but not relation B) and one that contains tuples from relation B (but not relation A).</para>
+   
+<programlisting>
+A = load 'student' as (name:chararray, age:int, gpa:float);
+B = load 'student' as (name:chararray, age:int, gpa:float);
+dump B;
+(joe,18,2.5)
+(sam,,3.0)
+(bob,,3.5)
+
+X = cogroup A by age, B by age;
+dump X;
+(18,{(joe,18,2.5)},{(joe,18,2.5)})
+(,{(sam,,3.0),(bob,,3.5)},{})
+(,{},{(sam,,3.0),(bob,,3.5)})
+</programlisting>
+   </section>
+   
+   <section id="nulls_join">
+   <title>Nulls and JOIN Operator</title>
+   <para>The JOIN operator - when performing inner joins - adheres to the SQL standard and disregards (filters out) null values.</para>
+<programlisting>
+A = load 'student' as (name:chararray, age:int, gpa:float);
+B = load 'student' as (name:chararray, age:int, gpa:float);
+dump B;
+(joe,18,2.5)
+(sam,,3.0)
+(bob,,3.5)
+  
+X = join A by age, B by age;
+dump X;
+(joe,18,2.5,joe,18,2.5)
+</programlisting>
+   </section>
+   
+   </section>
    
    <section>
    <title>Constants</title>
@@ -3730,7 +3790,7 @@ X = FILTER A BY (f1 matches '.*apache.*');
          </row></tbody></tgroup>
    </informaltable></section></section></section>
    
-   <section>
+   <section id="null_operators">
    <title>Null Operators</title>
      
    <section>
@@ -3780,7 +3840,7 @@ X = FILTER A BY f1 is not null;
    
    <section>
    <title>Types Table</title>
-   <para>The null operators can be applied to all data types. For more information, see Nulls.</para></section></section>
+   <para>The null operators can be applied to all data types (see <xref linkend="nulls" />). </para></section></section>
    
    <section id="boolops">
    <title>Boolean Operators</title>
@@ -4750,6 +4810,40 @@ DUMP B;
 </programlisting>
    
 </section></section></section> 
+
+   <section>
+   <title>Casting Relations to Scalars</title>
+<para>Pig allows you to cast the elements of a single-tuple relation into a scalar value. 
+The tuple can be a single-field or multi-field tulple. 
+If the relation contains more than one tuple, however, a runtime error is generated: "Scalar has more than one row in the output". 
+</para>
+
+<para>The cast relation can be used in any place where an expression of the type would make sense, including FOREACH, FILTER, and SPLIT. Note that if an explicit cast is not used an implict cast will be inserted according to Pig rules. Also, when the schema can't be inferred bytearray is used.</para>  
+ 
+<para>The primary use case for casting relations to scalars is the ability to use the values of global aggregates in follow up computations. </para> 
+ 
+<para>In this example the percentage of clicks belonging to a particular user are computed. For the FOREACH statement, an explicit cast if used. If the SUM is not given a name, a position can be used as well (userid, clicks/(double)C.$0). </para>
+
+<programlisting>
+A = load 'mydata' as (userid, clicks); 
+B = group A all; 
+C = foreach B genertate SUM(A.clicks) as total; 
+D = foreach A generate userid, clicks/(double)C.total; 
+dump D;
+</programlisting>
+   
+<para>In this example a multi-field tuple is used. For the FILTER statement, Pig performs an implicit cast. For the FOREACH statement, 
+an explicit cast is used.</para>
+<programlisting>
+A = load 'mydata' as (userid, clicks); 
+B = group A all; 
+C = foreach B genertate SUM(A.clicks) as total, COUNT(A) as cnt; 
+D = FILTER A by clicks > C.total/3 
+E = foreach D generate userid, clicks/(double)C.total, cnt; 
+dump E; 
+</programlisting>
+   </section>
+
 </section>
 
 <!-- RELATIONAL OPERATORS, ETC -->
@@ -5524,7 +5618,7 @@ DUMP X;
          <para>The GROUP and JOIN operators perform similar functions. GROUP creates a nested set of output tuples while JOIN creates a flat set of output tuples</para>
       </listitem>
       <listitem>
-         <para>The GROUP/COGROUP and JOIN operators handle null values differently (see <ulink url="piglatin_ref1.html#Null+Values">Null Values</ulink>). </para>
+         <para>The GROUP/COGROUP and JOIN operators handle null values differently (see <xref linkend="nulls_group" />).</para>
      </listitem>
    </itemizedlist>
    
@@ -5828,7 +5922,7 @@ DUMP F;
          <para>The GROUP and JOIN operators perform similar functions. GROUP creates a nested set of output tuples while JOIN creates a flat set of output tuples.</para>
       </listitem>
       <listitem>
-         <para>The GROUP/COGROUP and JOIN operators handle null values differently (see <ulink url="piglatin_ref1.html#Null+Values">Null Values</ulink>). </para>
+         <para>The GROUP/COGROUP and JOIN operators handle null values differently (see <xref linkend="nulls_join" />).</para>
      </listitem>
    </itemizedlist>
     </section>
@@ -10053,7 +10147,7 @@ Use the TANH function to return the hyperbolic tangent of an expression.
  
  <section>
    <title>INDEXOF</title>
-   <para>Returns the index of the first occurrence of a character in a string, searching forward form a start index. </para>
+   <para>Returns the index of the first occurrence of a character in a string, searching forward from a start index. </para>
 
 <section>
    <title>Syntax</title>
@@ -10091,7 +10185,7 @@ Use the TANH function to return the hyperbolic tangent of an expression.
             </entry>
             <entry>
                <para>The index from which to begin the forward search. </para>
-               <para>The string index begins with zero (0). Given the string ABC, the index of A is 0, B is 1, C is 2.</para>
+               <para>The string index begins with zero (0).</para>
             </entry>
          </row></tbody></tgroup>
    </informaltable>
@@ -10102,16 +10196,14 @@ Use the TANH function to return the hyperbolic tangent of an expression.
      <para>
 Use the INDEXOF function to determine the index of the first occurrence of a character in a string. The forward search for the character begins at the designated start index.
      </para>
-          <para>
-For example, starting the search at index 1, to determine the index of the first occurrence of A, use this statement: INDEXOF(string,'A', 1). The return value is 3.
-     </para>
+
 </section>
 </section> 
 
 <!-- ======================================================== -->  
  <section>
    <title>LAST_INDEX_OF</title>
-   <para>Returns the index of the last occurrence of a character in a string, searching backward form a start index. </para>
+   <para>Returns the index of the last occurrence of a character in a string, searching backward from a start index. </para>
 
 <section>
    <title>Syntax</title>
@@ -10149,7 +10241,7 @@ For example, starting the search at index 1, to determine the index of the first
             </entry>
             <entry>
                <para>The index from which to begin the backward search.</para>
-               <para>The string index begins with zero (0). Given the string ABC, the index of A is 0, B is 1, C is 2.</para>
+               <para>The string index begins with zero (0).</para>
             </entry>
          </row></tbody></tgroup>
    </informaltable>
@@ -10160,9 +10252,6 @@ For example, starting the search at index 1, to determine the index of the first
      <para>
 Use the LAST_INDEX_OF function to determine the index of the last occurrence of a character in a string. The backward search for the character begins at the designated start index.
      </para>
-          <para>
-For example, starting the search at index 1, to determine the index of the first occurrence of A, use this statement: INDEXOF(string,'A', 1). The return value is 3.
-     </para>
 </section>
 </section> 
 
@@ -10170,7 +10259,7 @@ For example, starting the search at index 1, to determine the index of the first
 <!-- ======================================================== -->  
  <section>
    <title>LCFIRST</title>
-   <para>Returns a string with the first character converted to lower case. </para>
+   <para>Converts the first character in a string to lower case. </para>
 
 <section>
    <title>Syntax</title>
@@ -10208,7 +10297,7 @@ Use the LCFIRST function to convert only the first character in a string to lowe
 <!-- ======================================================== -->  
  <section>
    <title>LOWER</title>
-   <para>Returns a string converted to lower case. </para>
+   <para>Converts all characters in a string to lower case. </para>
 
 <section>
    <title>Syntax</title>
@@ -10243,10 +10332,147 @@ Use the LOWER function to convert all characters in a string to lower case.
 </section>
 </section> 
 
+
+<!-- ======================================================== -->
+ <section>
+   <title>REGEX_EXTRACT </title>
+   <para>Performs regular expression matching and extracts the matched group defined by an index parameter. </para>
+
+<section>
+   <title>Syntax</title>
+   <informaltable frame="all">
+      <tgroup cols="1"><tbody><row>
+            <entry>
+               <para>REGEX_EXTRACT (string, regex, index)</para>
+            </entry>
+         </row></tbody>
+       </tgroup>
+   </informaltable>
+ </section>
+
+<section>
+   <title>Terms</title>
+   <informaltable frame="all">
+      <tgroup cols="2"><tbody><row>
+            <entry>
+               <para>string</para>
+            </entry>
+            <entry>
+               <para>The string in which to perform the match.</para>
+            </entry>
+         </row></tbody></tgroup>
+         
+               <tgroup cols="2"><tbody><row>
+            <entry>
+               <para>regex</para>
+            </entry>
+            <entry>
+               <para>The regular expression.</para>
+            </entry>
+         </row></tbody></tgroup>
+         
+               <tgroup cols="2"><tbody><row>
+            <entry>
+               <para>index</para>
+            </entry>
+            <entry>
+               <para>The index of the matched group to return.</para>
+            </entry>
+         </row></tbody></tgroup>
+   </informaltable>
+</section>
+
+<section>
+     <title>Usage</title>
+     <para>
+Use the REGEX_EXTRACT function to perform regular expression matching and to extract the matched group defined by the index parameter (where the index is a 1-based parameter.) The function uses Java regular expression form.
+     </para>
+     <para>
+The function returns a string that corresponds to the matched group in the position specified by the index. If there is no matched expression at that position, NULL is returned.
+     </para>
+ </section>
+ 
+ <section>
+     <title>Example</title>
+     <para>
+This example will return the string '192.168.1.5'.
+     </para>
+ <programlisting>
+REGEX_EXTRACT('192.168.1.5:8020', '(.*)\:(.*)', 1);
+</programlisting>
+     
+ </section>
+
+</section>
+
+<!-- ======================================================== -->
+ <section>
+   <title>REGEX_EXTRACT_ALL </title>
+   <para>Performs regular expression matching and extracts all matched groups.</para>
+
+<section>
+   <title>Syntax</title>
+   <informaltable frame="all">
+      <tgroup cols="1"><tbody><row>
+            <entry>
+               <para>REGEX_EXTRACT (string, regex)</para>
+            </entry>
+         </row></tbody>
+       </tgroup>
+   </informaltable>
+ </section>
+
+<section>
+   <title>Terms</title>
+   <informaltable frame="all">
+      <tgroup cols="2"><tbody><row>
+            <entry>
+               <para>string</para>
+            </entry>
+            <entry>
+               <para>The string in which to perform the match.</para>
+            </entry>
+         </row></tbody></tgroup>
+         
+               <tgroup cols="2"><tbody><row>
+            <entry>
+               <para>regex</para>
+            </entry>
+            <entry>
+               <para>The regular expression.</para>
+            </entry>
+         </row></tbody></tgroup>
+   </informaltable>
+</section>
+
+<section>
+     <title>Usage</title>
+     <para>
+Use the REGEX_EXTRACT_ALL function to perform regular expression matching and to extract all matched groups. The function uses Java regular expression form.
+     </para>
+     <para>
+The function returns a tuple where each field represents a matched expression. If there is no match, an empty tuple is returned.
+     </para>
+ </section>
+ 
+ <section>
+     <title>Example</title>
+     <para>
+This example will return the tuple (192.168.1.5,8020).
+     </para>
+ <programlisting>
+REGEX_EXTRACT_ALL('192.168.1.5:8020', '(.*)\:(.*)');
+</programlisting>
+     
+ </section>
+
+</section>
+
+
 <!-- ======================================================== -->  
  <section>
    <title>REPLACE</title>
-   <para>Returns the ..... </para>
+   <para>Replaces existing characters in a string with new characters.</para>
 
 <section>
    <title>Syntax</title>
@@ -10275,7 +10501,7 @@ Use the LOWER function to convert all characters in a string to lower case.
                <para>'oldChar'</para>
             </entry>
             <entry>
-               <para>The old characters being replaced, in quotes. </para>
+               <para>The existing characters being replaced, in quotes. </para>
             </entry>
          </row></tbody></tgroup>
                <tgroup cols="2"><tbody><row>
@@ -10283,7 +10509,7 @@ Use the LOWER function to convert all characters in a string to lower case.
                <para>'newChar'</para>
             </entry>
             <entry>
-               <para>The new characters replacing the old characters, in quotes.</para>
+               <para>The new characters replacing the existing characters, in quotes.</para>
             </entry>
          </row></tbody></tgroup>
    </informaltable>
@@ -10292,7 +10518,7 @@ Use the LOWER function to convert all characters in a string to lower case.
 <section>
      <title>Usage</title>
      <para>
-Use the REPLACE function to replace the "old" characters in a string with "new" characters.
+Use the REPLACE function to replace existing characters in a string with new characters.
      </para>
      <para>
 For example, to change "open source software" to "open source wiki" use this statement: 
@@ -10391,6 +10617,7 @@ For example, given the string (open:source:software), STRSPLIT (string, ':',2) w
             </entry>
             <entry>
                <para>The index (type integer) of the first character of the substring.</para>
+               <para>The index of a string begins with zero (0).</para>
             </entry>
          </row></tbody></tgroup>
                <tgroup cols="2"><tbody><row>
@@ -10409,8 +10636,8 @@ For example, given the string (open:source:software), STRSPLIT (string, ':',2) w
      <para>
 Use the SUBSTRING function to return a substring from a given string. 
      </para>
-          <para>
-The index of a string begins with zero (0). Given the string ABCDEF, the index for A is 0, B is 1, C is 2, and so on. To return substring BCD use this statement: SUBSTRING(string,1,4). Note that 1 is the index of B (the first character of the substring) and  4 is the index of E  (the character <emphasis>following</emphasis> the last character of the substring).
+          <para>  
+Given a field named alpha whose value is ABCDEF, to return substring BCD use this statement: SUBSTRING(alpha,1,4). Note that 1 is the index of B (the first character of the substring) and  4 is the index of E  (the character <emphasis>following</emphasis> the last character of the substring).
      </para>
 </section>
 </section> 
@@ -10537,8 +10764,10 @@ Use the UPPER function to convert all characters in a string to upper case.
 <!-- ======================================================== -->
 <!-- Other Functions -->
 <section>
-<title>Other Functions</title>
+<title>Bag and Tuple Functions</title>
 
+
+<!-- ======================================================== -->
  <section>
    <title>TOBAG</title>
    <para>Converts one or more expressions to type bag. </para>
