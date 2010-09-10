@@ -3467,17 +3467,17 @@ ExpressionOperator BaseEvalSpec(Schema over, Map<String, LogicalOperator> specs,
 		( 
 			"." projection = BracketedSimpleProj(subSchema,lp,item) 
 			{
-				if(item instanceof LOUserFunc && ((LOUserFunc)item).getImplicitReferencedOperator() != null) {
-					assertAtomic(item,true);
-				}
-				else {
+				if((!(item instanceof LOUserFunc)) || ((LOUserFunc)item).getImplicitReferencedOperator() == null) {
 					assertAtomic(item,false);
 				}
 				item = projection;
 			}
 		)
-|		( "#" key = StringDatum() { 
-			assertAtomic(item, false);
+|		( "#" key = StringDatum() {
+                        if( (!(item instanceof LOUserFunc)) || ((LOUserFunc)item).getImplicitReferencedOperator() == null){
+                            // if it is not a scalar udf , it should not be atomic
+		            assertAtomic(item, false);
+		        }      
 			ExpressionOperator mapLookup = new LOMapLookup(lp, new OperatorKey(scope, getNextId()), key, DataType.BYTEARRAY, null);
 			lp.add(mapLookup);
 			log.debug("BaseEvalSpec: Added operator " + mapLookup.getClass().getName() + " " + mapLookup + " to logical plan " + lp);
