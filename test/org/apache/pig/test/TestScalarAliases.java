@@ -17,6 +17,7 @@
  */
 package org.apache.pig.test;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -296,18 +297,21 @@ public class TestScalarAliases  {
     @Test
     public void testFilteredScalarDollarProj() throws Exception{
         String[] input = {
-                "1\t5",
-                "2\t10",
-                "3\t20"
+                "1\t5\t[state#maine,city#portland]\t{(a),(b)}\t(a,b)",
+                "2\t10\t\t\t",
+                "3\t20\t\t\t"
         };
 
         // Test the use of scalars in expressions
         Util.createLocalInputFile( "table_testFilteredScalarDollarProj", input);
         // Test in script mode
         pigServer.setBatchOn();
-        pigServer.registerQuery("A = LOAD 'table_testFilteredScalarDollarProj' as (a0: long, a1: double);");
+        pigServer.registerQuery("A = LOAD 'table_testFilteredScalarDollarProj'" +
+        		" as (a0: long, a1: double, a2 : bytearray, " +
+        		"a3: bag{ t : tuple(tc : chararray)}, " +
+        		"a4: tuple(c1 : chararray, c2 : chararray) );");
         pigServer.registerQuery("B = filter A by $1 < 8;");
-        pigServer.registerQuery("Y = foreach A generate (a0 * B.$0), (a1 / B.$1);");
+        pigServer.registerQuery("Y = foreach A generate (a0 * B.$0), (a1 / B.$1), B.$2, B.$2#'state', B.$3, B.a4;");
         pigServer.registerQuery("Store Y into 'table_testFilteredScalarDollarProjDir';");
         pigServer.explain("Y", System.err);
         pigServer.executeBatch();
@@ -332,13 +336,13 @@ public class TestScalarAliases  {
         iter = pigServer.openIterator("Y");
 
         t = iter.next();
-        assertTrue(t.toString().equals("(1,1.0)"));
+        assertEquals(t.toString(),"(1,1.0,[state#maine,city#portland],maine,{(a),(b)},(a,b))");
 
         t = iter.next();
-        assertTrue(t.toString().equals("(2,2.0)"));
+        assertEquals(t.toString(),"(2,2.0,[state#maine,city#portland],maine,{(a),(b)},(a,b))");
 
         t = iter.next();
-        assertTrue(t.toString().equals("(3,4.0)"));
+        assertEquals(t.toString(),"(3,4.0,[state#maine,city#portland],maine,{(a),(b)},(a,b))");
 
         assertFalse(iter.hasNext());
 
