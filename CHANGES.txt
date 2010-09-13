@@ -197,6 +197,9 @@ PIG-1309: Map-side Cogroup (ashutoshc)
 
 BUG FIXES
 
+PIG-1562: Fix the version for the dependent packages for the maven (nrai via
+rding)
+
 PIG-1604: 'relation as scalar' does not work with complex types (thejas)
 
 PIG-1601: Make scalar work for secure hadoop (daijy)
