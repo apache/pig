@@ -799,7 +799,7 @@
           uri="urn:maven-artifact-ant"
           classpathref="mvn-ant-task.classpath"/>
     </target>
-    <target name="mvn-install" depends="mvn-taskdef,jar, source-jar"
+    <target name="mvn-install" depends="mvn-taskdef,jar, set-version, source-jar"
          description="To install pig to local filesystem's m2 cache">
          <artifact:pom file="${pig.pom}" id="pig"/>
           <artifact:install file="${pig-core.jar}">
@@ -807,13 +807,13 @@
            <attach file="${output.jarfile.sources}" classifier="sources" />
           </artifact:install>
     </target>
-    <target name="mvn-deploy" depends="mvn-taskdef,jar,source-jar, signanddeploy, simpledeploy"
+    <target name="mvn-deploy" depends="mvn-taskdef,jar,source-jar, set-version, signanddeploy, simpledeploy"
          description="To deploy pig jar to apache snapshot's repository">
     </target>
 
      <target name="signanddeploy" if="staging" depends="sign">
         <artifact:pom file="${pig.pom}" id="pig"/>
-        <artifact:install-provider artifactId="wagon-http" version="1.0-beta-2"/>
+        <artifact:install-provider artifactId="wagon-http" version="${wagon-http.version}"/>
         <artifact:deploy file="${pig-core.jar}">
         <remoteRepository id="apache.staging.https" url="${asfstagingrepo}"/>
         <pom refid="pig"/>
@@ -826,7 +826,7 @@
 
     <target name="simpledeploy" unless="staging">
       <artifact:pom file="${pig.pom}" id="pig"/>
-      <artifact:install-provider artifactId="wagon-http" version="1.0-beta-2"/>
+      <artifact:install-provider artifactId="wagon-http" version="${wagon-http.version}"/>
       <artifact:deploy file="${pig-core.jar}">
               <remoteRepository id="apache.snapshots.https" url="${asfsnapshotrepo}"/>
               <pom refid="pig"/>
@@ -868,7 +868,18 @@
          <fileset dir="." includes="**/**/*.asc"/>
        </delete>
      </target>
-
+	  <target name="set-version">
+	    <delete file="${basedir}/ivy/pig.pom"/>
+	    <copy file="${basedir}/ivy/pig-template.xml" tofile="${basedir}/ivy/pig.pom"/>
+	    <replaceregexp byline="true">
+	      <regexp pattern="@version"/>
+	      <substitution expression="${version}"/>
+	      <fileset dir="${basedir}/ivy">
+	        <include name="pig.pom"/>
+	      </fileset>
+	    </replaceregexp>
+	  </target>
+	
     <!-- ================================================================== -->
     <!-- Perform audit activities for the release                           -->
     <!-- ================================================================== -->
