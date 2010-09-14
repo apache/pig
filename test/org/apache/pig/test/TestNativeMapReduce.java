@@ -21,18 +21,17 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import java.io.File;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Random;
 
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecJob;
 import org.apache.pig.backend.executionengine.ExecJob.JOB_STATUS;
 import org.apache.pig.data.Tuple;
-import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.tools.pigstats.PigStats;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -53,7 +52,12 @@ public class TestNativeMapReduce  {
     // http://svn.apache.org/repos/asf/hadoop/mapreduce/trunk/src/examples/org/apache/hadoop/examples/WordCount.java:816822
     private String jarFileName = "test//org/apache/pig/test/data/TestWordCount.jar";
     private String exp_msg_prefix = "Check if expected results contains: ";
-    final static String INPUT_FILE = "TestMapReduceInputFile";
+    final static String INPUT_FILE = "TestNMapReduceInputFile";
+    /**
+     *stop word file - used to test distributed cache usage, words in this
+     * file if specified will be skipped by the wordcount udf
+     */
+    final static String STOPWORD_FILE = "TestNMapReduceStopwFile";
     static MiniCluster cluster = MiniCluster.buildCluster();
     private PigServer pigServer = null;
     
@@ -72,8 +76,24 @@ public class TestNativeMapReduce  {
                 "two",
                 "three"
         };
+        //for stop word file
+        String[] stopw = {
+                "one"
+        };
+   
         Util.createInputFile(cluster, INPUT_FILE, input);
+        Util.createLocalInputFile(STOPWORD_FILE, stopw);
     }
+
+    //  createWordCountJar(){
+    //  // its a manual process 
+    //  javac -cp build/ivy/lib/Pig/hadoop-core-0.20.2.jar:build/ivy/lib/Pig/commons-cli-1.2.jar test/org/apache/pig/test/utils/WordCount.java 
+    //  cd test/
+    //  jar -cf WordCount.jar org/apache/pig/test/utils/WordCount*class
+    //  mv WordCount.jar org/apache/pig/test/data/TestWordCount.jar
+    //
+    //  
+    //}
 
     @Before
     public void setUp() throws Exception{
@@ -81,10 +101,13 @@ public class TestNativeMapReduce  {
 
         //createWordCountJar();
     }
+    
+
 
     @AfterClass
     public static void oneTimeTearDown() throws Exception {
         Util.deleteFile(cluster, INPUT_FILE);
+        new File(STOPWORD_FILE).delete();
         cluster.shutDown();
     }
       
@@ -94,16 +117,20 @@ public class TestNativeMapReduce  {
     public void testNativeMRJobSimple() throws Exception{
         try{
             Collection<String> results = new HashSet<String>();
-            results.add("(one,1)");
             results.add("(two,2)");
             results.add("(three,3)");
 
             pigServer.setBatchOn();
             pigServer.registerQuery("A = load '" + INPUT_FILE + "';");
+
+
+            //also test distributed cache using the stopwords file for udf
             pigServer.registerQuery("B = mapreduce '" + jarFileName + "' " +
                     "Store A into 'table_testNativeMRJobSimple_input' "+
                     "Load 'table_testNativeMRJobSimple_output' "+
-            "`WordCount table_testNativeMRJobSimple_input table_testNativeMRJobSimple_output`;");
+            "`org.apache.pig.test.utils.WordCount -files " + STOPWORD_FILE +
+            " table_testNativeMRJobSimple_input table_testNativeMRJobSimple_output " +
+            STOPWORD_FILE + "`;");
             pigServer.registerQuery("Store B into 'table_testNativeMRJobSimpleDir';");
             List<ExecJob> execJobs = pigServer.executeBatch();
 
@@ -131,10 +158,6 @@ public class TestNativeMapReduce  {
             t = iter.next();
             assertTrue(exp_msg_prefix + t, results.contains(t.toString()));
 
-            assertTrue("iter.hasNext()",iter.hasNext());
-            t = iter.next();
-            assertTrue(exp_msg_prefix + t, results.contains(t.toString()));
-
             assertFalse(iter.hasNext());
 
             // We have to manually delete intermediate mapreduce files
@@ -143,10 +166,6 @@ public class TestNativeMapReduce  {
 
             // check in interactive mode
             iter = pigServer.openIterator("B");
-
-            assertTrue("iter.hasNext()",iter.hasNext());
-            t = iter.next();
-            assertTrue(exp_msg_prefix + t, results.contains(t.toString()));
 
             assertTrue("iter.hasNext()",iter.hasNext());
             t = iter.next();
@@ -185,7 +204,7 @@ public class TestNativeMapReduce  {
             pigServer.registerQuery("B = mapreduce '" + jarFileName + "' " +
                     "Store A into 'table_testNativeMRJobSimple_input' "+
                     "Load 'table_testNativeMRJobSimple_output' "+
-            "`WordCount table_testNativeMRJobSimple_input " + INPUT_FILE + "`;");
+            "`org.apache.pig.test.utils.WordCount table_testNativeMRJobSimple_input " + INPUT_FILE + "`;");
             pigServer.registerQuery("Store B into 'table_testNativeMRJobSimpleDir';");
 //            List<ExecJob> execJobs = pigServer.executeBatch();
 
@@ -217,7 +236,7 @@ public class TestNativeMapReduce  {
             pigServer.registerQuery("B = mapreduce '" + jarFileName + "' " +
                     "Store A into 'table_testNativeMRJobMultiStoreOnPred_input' "+
                     "Load 'table_testNativeMRJobMultiStoreOnPred_output' "+
-            "`WordCount table_testNativeMRJobMultiStoreOnPred_input table_testNativeMRJobMultiStoreOnPred_output`;");
+            "`org.apache.pig.test.utils.WordCount table_testNativeMRJobMultiStoreOnPred_input table_testNativeMRJobMultiStoreOnPred_output`;");
             pigServer.registerQuery("Store B into 'table_testNativeMRJobMultiStoreOnPredDir';");
             pigServer.executeBatch();
 
@@ -282,11 +301,11 @@ public class TestNativeMapReduce  {
             pigServer.registerQuery("B = mapreduce '" + jarFileName + "' " +
                     "Store A into 'table_testNativeMRJobMultiQueryOpt_inputB' "+
                     "Load 'table_testNativeMRJobMultiQueryOpt_outputB' "+
-            "`WordCount table_testNativeMRJobMultiQueryOpt_inputB table_testNativeMRJobMultiQueryOpt_outputB`;");
+            "`org.apache.pig.test.utils.WordCount table_testNativeMRJobMultiQueryOpt_inputB table_testNativeMRJobMultiQueryOpt_outputB`;");
             pigServer.registerQuery("C = mapreduce '" + jarFileName + "' " +
                     "Store A into 'table_testNativeMRJobMultiQueryOpt_inputC' "+
                     "Load 'table_testNativeMRJobMultiQueryOpt_outputC' "+
-            "`WordCount table_testNativeMRJobMultiQueryOpt_inputC table_testNativeMRJobMultiQueryOpt_outputC`;");
+            "`org.apache.pig.test.utils.WordCount table_testNativeMRJobMultiQueryOpt_inputC table_testNativeMRJobMultiQueryOpt_outputC`;");
 
             Iterator<Tuple> iter = pigServer.openIterator("C");
             Tuple t;
@@ -341,7 +360,7 @@ public class TestNativeMapReduce  {
             pigServer.registerQuery("B = mapreduce '" + jarFileName + "' " +
                     "Store A into 'table_testNativeMRJobTypeCastInserter_input' "+
                     "Load 'table_testNativeMRJobTypeCastInserter_output' as (name:chararray, count: int)"+
-            "`WordCount table_testNativeMRJobTypeCastInserter_input table_testNativeMRJobTypeCastInserter_output`;");
+            "`org.apache.pig.test.utils.WordCount table_testNativeMRJobTypeCastInserter_input table_testNativeMRJobTypeCastInserter_output`;");
             pigServer.registerQuery("C = foreach B generate count+1;");
 
             Iterator<Tuple> iter = pigServer.openIterator("C");

@@ -26,6 +26,8 @@ PIG-1249: Safe-guards against misconfigured Pig scripts without PARALLEL keyword
 
 IMPROVEMENTS
 
+PIG-1589: add test cases for mapreduce operator which use distributed cache (thejas)
+
 PIG-1575: Complete the migration of optimization rule PushUpFilter including
 missing test cases  (xuefuz via daijy)
 
