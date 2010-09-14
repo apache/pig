@@ -2408,13 +2408,22 @@ LogicalOperator UnionClause(LogicalPlan lp) :
                             + " have null schema.";
                             throw new ParseException(msg);
                         }
+                        for(Schema.FieldSchema fs : sch.getFields()){
+                            if(fs.alias == null){
+                                String msg = "Schema of relation " + lop.getAlias()
+                                + " has a null fieldschema for column(s). Schema :" +
+                                sch;
+                                throw new ParseException(msg);
+                            }
+                        }
                         schemas.add(sch);
                     }
                     Schema mergedSchema ;
                     try {
                         mergedSchema = Schema.mergeSchemasByAlias(schemas);   
                     }catch(SchemaMergeException e)                 {
-                        String msg = "Error merging schemas for union operator";
+                        String msg = "Error merging schemas for union operator : "
+                            + e.getMessage();
                         ParseException pe = new ParseException(msg);
                         pe.initCause(e);
                         throw pe;                 
