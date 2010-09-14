@@ -47,8 +47,9 @@ import org.junit.Test;
 public class TestUnionOnSchema  {
     static MiniCluster cluster ;
     private static final String EMPTY_DIR = "emptydir";
-    private static final String INP_FILE_2NUMS = "input1";
-    private static final String INP_FILE_2NUM_1CHAR_1BAG = "input2";
+    private static final String INP_FILE_2NUMS = "TestUnionOnSchemaInput1";
+    private static final String INP_FILE_2NUM_1CHAR_1BAG = "TestUnionOnSchemaInput2";
+    private static final String INP_FILE_EMPTY= "TestUnionOnSchemaInput3";
     
     @Before
     public void setUp() throws Exception {
@@ -80,6 +81,12 @@ public class TestUnionOnSchema  {
         w.println("5\tdef\t3\t{(2,a),(2,b)}\t(2,c)");
         w.close();
         Util.copyFromLocalToCluster(cluster, INP_FILE_2NUM_1CHAR_1BAG, INP_FILE_2NUM_1CHAR_1BAG);
+
+        //3rd input - empty file
+        w = new PrintWriter(new FileWriter(INP_FILE_EMPTY));
+        w.close();
+        Util.copyFromLocalToCluster(cluster, INP_FILE_EMPTY, INP_FILE_EMPTY);
+        
     }
     
     @AfterClass
@@ -87,6 +94,7 @@ public class TestUnionOnSchema  {
 
         new File(INP_FILE_2NUMS).delete();
         new File(INP_FILE_2NUM_1CHAR_1BAG).delete();
+        new File(INP_FILE_EMPTY).delete();
         cluster.shutDown();
     }
  
@@ -195,7 +203,8 @@ public class TestUnionOnSchema  {
             + "  (i : long, c : chararray, j : int " 
             +       ", b : bag { t : tuple (c1 : int, c2 : chararray)}" 
             +       ", t : tuple (tc1 : int, tc2 : chararray) );"
-            + "u = union onschema l1, l2;"
+            + "l3 = load '" + INP_FILE_EMPTY + "' as (i : int, x : long);"
+            + "u = union onschema l1, l2, l3;"
         ; 
         Util.registerMultiLineQuery(pig, query);
         pig.explain("u", System.out);
@@ -205,10 +214,10 @@ public class TestUnionOnSchema  {
         List<Tuple> expectedRes = 
             Util.getTuplesFromConstantTupleStrings(
                     new String[] {
-                            "(1L,2,null,null,null)",
-                            "(5L,3,null,null,null)",
-                            "(1L,2,'abc',{(1,'a'),(1,'b')},(1,'c'))",
-                            "(5L,3,'def',{(2,'a'),(2,'b')},(2,'c'))",
+                            "(1L,2,null,null,null,null)",
+                            "(5L,3,null,null,null,null)",
+                            "(1L,2,'abc',{(1,'a'),(1,'b')},(1,'c'),null)",
+                            "(5L,3,'def',{(2,'a'),(2,'b')},(2,'c'),null)",
 
                     });
         Util.checkQueryOutputsAfterSort(it, expectedRes);
@@ -296,8 +305,8 @@ public class TestUnionOnSchema  {
      */
     @Test
     public void testUnionOnSchemaNoSchema() throws IOException, ParseException {
-        String expectedErr = ".*UNION ONSCHEMA cannot be used with " +
-        "relations that have null schema.*";
+        String expectedErr = "UNION ONSCHEMA cannot be used with " +
+        "relations that have null schema";
         String query =
             "  l1 = load '" + INP_FILE_2NUMS + "' ;"
             + "l2 = load '" + INP_FILE_2NUMS + "' as (x : long, y : float);"
@@ -313,6 +322,24 @@ public class TestUnionOnSchema  {
        checkSchemaEx(query, expectedErr);
 
     }
+    
+    /**
+     * negative test - test error on null alias in one of the FieldSchema
+     * @throws IOException
+     * @throws ParseException
+     */
+    @Test
+    public void testUnionOnSchemaNullAliasInFieldSchema() throws IOException, ParseException {
+        String expectedErr = "Schema of relation f has a null fieldschema for " +
+        		"column(s). Schema :{long,y: float}";
+        String query =
+            "  l = load '" + INP_FILE_2NUMS + "' as (x : long, y : float);"
+            + "f = foreach l generate x+1, y;"
+            + "u = union onschema l, f;"
+        ; 
+        checkSchemaEx(query, expectedErr);
+
+    }
 
 
     private void checkSchemaEx(String query, String expectedErr) throws IOException {
@@ -323,7 +350,7 @@ public class TestUnionOnSchema  {
             Util.registerMultiLineQuery(pig, query);
         }catch(FrontendException e){
             foundEx = true;
-            if(!e.getMessage().matches(expectedErr)){
+            if(!e.getMessage().contains(expectedErr)){
                 String msg = "Expected exception message matching '" 
                     + expectedErr + "' but got '" + e.getMessage() + "'" ;
                 fail(msg);
@@ -344,7 +371,7 @@ public class TestUnionOnSchema  {
      */
     @Test
     public void testUnionOnSchemaIncompatibleTypes() throws IOException, ParseException {
-        String expectedErr = ".*Incompatible types for merging schemas.*";
+        String expectedErr = "Incompatible types for merging schemas";
         String query =
             "  l1 = load '" + INP_FILE_2NUMS + "' as (x : long, y : chararray);"
             + "l2 = load '" + INP_FILE_2NUMS + "' as (x : long, y : float);"
@@ -360,7 +387,7 @@ public class TestUnionOnSchema  {
         checkSchemaEx(query, expectedErr);
 
         // Test error on different inner schemas
-        expectedErr = ".*Incompatible types for merging inner schemas.*";
+        expectedErr = "Incompatible types for merging inner schemas";
         // bag column with different internal column names
         query =
             "  l1 = load '" + INP_FILE_2NUMS 

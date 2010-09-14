@@ -199,6 +199,9 @@ PIG-1309: Map-side Cogroup (ashutoshc)
 
 BUG FIXES
 
+PIG-1609: 'union onschema' should give a more useful error message when
+schema of one of the relations has null column name (thejas)
+
 PIG-1562: Fix the version for the dependent packages for the maven (nrai via
 rding)
 
