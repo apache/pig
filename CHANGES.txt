@@ -36,6 +36,8 @@ PIG-1249: Safe-guards against misconfigured Pig scripts without PARALLEL keyword
 
 IMPROVEMENTS
 
+PIG-1589: add test cases for mapreduce operator which use distributed cache (thejas)
+
 PIG-1548: Optimize scalar to consolidate the part file (rding)
 
 PIG-1600: Docs update (chandec via olgan)
