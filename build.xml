@@ -466,6 +466,7 @@
                     <attribute name="Svn-Revision" value="${svnString}" />
                 </section>
             </manifest>
+            <fileset file="${basedir}/conf/pig-default.properties" />
         </jar>
         <!-- @depricated -->
         <jar jarfile="${output.jarfile}" basedir="${build.classes}">
@@ -491,6 +492,7 @@
             <zipgroupfileset dir="${ivy.lib.dir}" includes="commons*.jar"/>
             <zipgroupfileset dir="${ivy.lib.dir}" includes="log4j*.jar"/>
             <zipgroupfileset dir="${ivy.lib.dir}" includes="jsp-api*.jar"/>
+            <fileset file="${basedir}/conf/pig-default.properties" />
         </jar>
         <copy file="${output.jarfile}" tofile="${output.jarfile.backcompat}"/>
     </target>
@@ -528,6 +530,7 @@
                     <attribute name="Svn-Revision" value="${svnString}" />
                 </section>
             </manifest>
+            <fileset file="${basedir}/conf/pig-default.properties" />
         </jar>
         <!-- @depricated -->
         <jar jarfile="${output.jarfile.withouthadoop}" basedir="${build.classes}">
@@ -547,6 +550,7 @@
             <zipfileset src="${ivy.lib.dir}/jackson-mapper-asl-${jackson.version}.jar" />
             <zipfileset src="${ivy.lib.dir}/jackson-core-asl-${jackson.version}.jar" />
             <zipfileset src="${ivy.lib.dir}/joda-time-${joda-time.version}.jar" />
+            <fileset file="${basedir}/conf/pig-default.properties" />
         </jar>
         <copy file="${output.jarfile.withouthadoop}" tofile="${output.jarfile.backcompat.withouthadoop}"/>
     </target>
@@ -703,7 +707,6 @@
             <fileset dir="${build.docs}" />
         </copy>
 
-		<copy todir="${dist.dir}/conf" file="conf/pig-default.properties"/>
 		<copy todir="${dist.dir}/conf" file="conf/pig.properties"/>
 
         <copy todir="${dist.dir}/src" includeEmptyDirs="true">
