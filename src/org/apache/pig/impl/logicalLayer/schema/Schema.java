@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Collection;
+import java.util.Map.Entry;
 
 import org.apache.pig.PigException;
 import org.apache.pig.ResourceSchema;
@@ -822,6 +823,54 @@ public class Schema implements Serializable, Cloneable {
         }
     }
 
+    
+    /**
+     * Given an alias name, find the associated FieldSchema. If exact name is 
+     * not found see if any field matches the part of the 'namespaced' alias.
+     * eg. if given alias is nm::a , and schema is (a,b). It will return 
+     * FieldSchema of a.
+     * if given alias is nm::a and schema is (nm2::a, b), it will return null
+     * @param alias Alias to look up.
+     * @return FieldSchema, or null if no such alias is in this tuple.
+     */
+    public FieldSchema getFieldSubNameMatch(String alias) throws FrontendException {
+        if(alias == null)
+            return null;
+        FieldSchema fs = getField(alias);
+        if(fs != null){
+            return fs;
+        }
+        //fs is null
+        final String sep = "::";
+        ArrayList<FieldSchema> matchedFieldSchemas = new ArrayList<FieldSchema>();
+        if(alias.contains(sep)){
+            for(FieldSchema field : mFields) {
+                if(alias.endsWith(sep + field.alias)){
+                    matchedFieldSchemas.add(field);
+                }
+            }
+        }
+        if(matchedFieldSchemas.size() > 1){
+            boolean hasNext = false;
+            StringBuilder sb = new StringBuilder("Found more than one " +
+            "sub alias name match: ");
+            for (FieldSchema matchFs : matchedFieldSchemas) {
+                if(hasNext) {
+                    sb.append(", ");
+                } else {
+                    hasNext = true;
+                }
+                sb.append(matchFs.alias);
+            }
+            int errCode = 1116;
+            throw new FrontendException(sb.toString(), errCode, PigException.INPUT);
+        }else if(matchedFieldSchemas.size() == 1){
+            fs = matchedFieldSchemas.get(0);
+        }
+
+        return fs;
+    }
+    
     /**
      * Given a field number, find the associated FieldSchema.
      *
@@ -1096,6 +1145,31 @@ public class Schema implements Serializable, Cloneable {
      * @return position of the FieldSchema.
      */
     public int getPosition(String alias) throws FrontendException{
+        return getPosition(alias, false);
+    }
+
+
+    /**
+     * Given an alias, find the associated position of the field schema.
+     * It uses getFieldSubNameMatch to look for subName matches as well.
+     * @param alias
+     *            alias of the FieldSchema.
+     * @return position of the FieldSchema.
+     */
+    public int getPositionSubName(String alias) throws FrontendException{
+        return getPosition(alias, true);
+    }
+    
+    
+    private int getPosition(String alias, boolean isSubNameMatch)
+    throws FrontendException {
+        if(isSubNameMatch && twoLevelAccessRequired){
+            // should not happen
+            int errCode = 2248;
+            String msg = "twoLevelAccessRequired==true is not supported with" +
+            "and isSubNameMatch==true ";
+            throw new FrontendException(msg, errCode, PigException.BUG);
+        }
         if(twoLevelAccessRequired) {
             // this is the case where "this" schema is that of
             // a bag which has just one tuple fieldschema which
@@ -1106,7 +1180,7 @@ public class Schema implements Serializable, Cloneable {
             // which is that of a tuple
             if(mFields.size() != 1) {
                 int errCode = 1008;
-            	String msg = "Expected a bag schema with a single " +
+                String msg = "Expected a bag schema with a single " +
                 "element of type "+ DataType.findTypeName(DataType.TUPLE) +
                 " but got a bag schema with multiple elements.";
                 throw new FrontendException(msg, errCode, PigException.INPUT);
@@ -1114,10 +1188,10 @@ public class Schema implements Serializable, Cloneable {
             Schema.FieldSchema tupleFS = mFields.get(0);
             if(tupleFS.type != DataType.TUPLE) {
                 int errCode = 1009;
-            	String msg = "Expected a bag schema with a single " +
-        		"element of type "+ DataType.findTypeName(DataType.TUPLE) +
-        		" but got an element of type " +
-        		DataType.findTypeName(tupleFS.type);
+                String msg = "Expected a bag schema with a single " +
+                        "element of type "+ DataType.findTypeName(DataType.TUPLE) +
+                        " but got an element of type " +
+                        DataType.findTypeName(tupleFS.type);
                 throw new FrontendException(msg, errCode, PigException.INPUT);
             }
             
@@ -1127,16 +1201,16 @@ public class Schema implements Serializable, Cloneable {
             // in the tuple
             if(alias.equals(tupleFS.alias)) {
                 int errCode = 1028;
-            	String msg = "Access to the tuple ("+ alias + ") of " +
-        		"the bag is disallowed. Only access to the elements of " +
-        		"the tuple in the bag is allowed.";
+                String msg = "Access to the tuple ("+ alias + ") of " +
+                        "the bag is disallowed. Only access to the elements of " +
+                        "the tuple in the bag is allowed.";
                 throw new FrontendException(msg, errCode, PigException.INPUT);
             }
             
             // all is good - get the position from the tuple's schema
             return tupleFS.schema.getPosition(alias);
         } else {
-            FieldSchema fs = getField(alias);
+            FieldSchema fs = isSubNameMatch ? getFieldSubNameMatch(alias) : getField(alias);
     
             if (null == fs) {
                 return -1;
@@ -1379,6 +1453,10 @@ public class Schema implements Serializable, Cloneable {
                                boolean allowDifferentSizeMerge,
                                boolean allowIncompatibleTypes)
                                     throws SchemaMergeException {
+        if(schema == null && other == null){
+            //if both are null, they are not incompatible
+            return null;
+        }
         if (schema == null) {
             if (allowIncompatibleTypes) {
                 return null ;
@@ -1454,20 +1532,13 @@ public class Schema implements Serializable, Cloneable {
             }
             else {
                 // merge inner tuple because both sides are tuples
+                //if inner schema are incompatible and allowIncompatibleTypes==true
+                // an exception is thrown by mergeSchema
                 Schema mergedSubSchema = mergeSchema(myFs.schema,
                                                      otherFs.schema,
                                                      otherTakesAliasPrecedence,
                                                      allowDifferentSizeMerge,
                                                      allowIncompatibleTypes) ;
-                // if they cannot be merged and we don't allow incompatible
-                // types, just return null meaning cannot merge
-                if ( (mergedSubSchema == null) &&
-                     (!allowIncompatibleTypes) ) {
-                    int errCode = 1032;
-                    String msg = "Incompatible inner schemas for merging schemas. "
-                        + " Field schema: " + myFs.schema + " Other field schema: " + otherFs.schema;
-                    throw new SchemaMergeException(msg, errCode, PigException.INPUT) ;
-                }
 
                 // create the merged field
                 // the mergedSubSchema can be true if allowIncompatibleTypes
@@ -1599,32 +1670,35 @@ public class Schema implements Serializable, Cloneable {
             Schema schema2)
     throws SchemaMergeException{
         Schema mergedSchema = new Schema();
+        HashSet<FieldSchema> schema2colsAdded = new HashSet<FieldSchema>();
         // add/merge fields present in first schema 
         for(FieldSchema fs1 : schema1.getFields()){
             checkNullAlias(fs1, schema1);
-            
-            FieldSchema fs2 = getFieldThrowSchemaMergeException(schema2,fs1.alias);
+            FieldSchema fs2 = getFieldSubNameMatchThrowSchemaMergeException(schema2,fs1.alias);
+            if(fs2 != null){
+                schema2colsAdded.add(fs2);
+            }
             FieldSchema mergedFs = mergeFieldSchemaFirstLevelSameAlias(fs1,fs2);
             mergedSchema.add(mergedFs);
         }
-        
+
         //add schemas from 2nd schema, that are not already present in
         // merged schema
         for(FieldSchema fs2 : schema2.getFields()){
             checkNullAlias(fs2, schema2);
-            if(getFieldThrowSchemaMergeException(mergedSchema, fs2.alias) == null){
-                    try {
-                        mergedSchema.add(fs2.clone());
-                    } catch (CloneNotSupportedException e) {
-                        throw new SchemaMergeException(
-                                "Error encountered while merging schemas", e);
-                    }
+            if(! schema2colsAdded.contains(fs2)){
+                try {
+                    mergedSchema.add(fs2.clone());
+                } catch (CloneNotSupportedException e) {
+                    throw new SchemaMergeException(
+                            "Error encountered while merging schemas", e);
+                }
             }
         }
         return mergedSchema;
-        
+
     }
-    
+
     private static void checkNullAlias(FieldSchema fs, Schema schema)
     throws SchemaMergeException {
         if(fs.alias == null){
@@ -1655,6 +1729,8 @@ public class Schema implements Serializable, Cloneable {
 
         Schema innerSchema = null;
         
+        String alias = mergeNameSpacedAlias(fs1.alias, fs2.alias);
+        
         byte mergedType = DataType.mergeType(fs1.type, fs2.type) ;
 
         // If the types cannot be merged
@@ -1684,7 +1760,7 @@ public class Schema implements Serializable, Cloneable {
             }
         }
         try {
-            return new FieldSchema(fs1.alias, innerSchema, mergedType) ;
+            return new FieldSchema(alias, innerSchema, mergedType) ;
         } catch (FrontendException e) {
             // this exception is not expected
             int errCode = 2124;
@@ -1698,6 +1774,29 @@ public class Schema implements Serializable, Cloneable {
     
     
     /**
+     * If one of the aliases is of form 'nm::str1', and other is of the form
+     * 'str1', this returns str1
+     * @param alias1
+     * @param alias2
+     * @return merged alias
+     * @throws SchemaMergeException
+     */
+    private static String mergeNameSpacedAlias(String alias1, String alias2)
+    throws SchemaMergeException {
+        if(alias1.equals(alias2)){
+            return alias1;
+        }
+        if(alias1.endsWith("::" + alias2)){
+            return alias2;
+        }
+        if(alias2.endsWith("::" + alias1)){
+            return alias1;
+        }
+        //the aliases are different, alias cannot be merged
+        return null;
+    }
+
+    /**
      * Utility function that calls schema.getFiled(alias), and converts 
      * {@link FrontendException} to {@link SchemaMergeException}
      * @param schema
@@ -1705,13 +1804,13 @@ public class Schema implements Serializable, Cloneable {
      * @return FieldSchema
      * @throws SchemaMergeException
      */
-    private static FieldSchema getFieldThrowSchemaMergeException(
+    private static FieldSchema getFieldSubNameMatchThrowSchemaMergeException(
             Schema schema, String alias) throws SchemaMergeException {
         FieldSchema fs = null;
         try {
-            fs = schema.getField(alias);
+            fs = schema.getFieldSubNameMatch(alias);
         } catch (FrontendException e) {
-            String msg = "Caught exception finding FieldSchema for alias" +
+            String msg = "Caught exception finding FieldSchema for alias " +
             alias;
             throw new SchemaMergeException(msg, e);
         }
