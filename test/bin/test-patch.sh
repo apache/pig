@@ -12,8 +12,8 @@ parseArgs() {
     HUDSON)
       ### Set HUDSON to true to indicate that this script is being run by Hudson
       HUDSON=true
-      if [[ $# != 20 ]] ; then
-        echo "ERROR: usage $0 HUDSON <PATCH_DIR> <SUPPORT_DIR> <PS_CMD> <WGET_CMD> <JIRACLI> <SVN_CMD> <GREP_CMD> <PATCH_CMD> <FINDBUGS_HOME> <FORREST_HOME> <ECLIPSE_HOME> <PYTHON_HOME> <WORKSPACE_BASEDIR> <TRIGGER_BUILD> <JIRA_PASSWD> <JAVA5_HOME> <CURL_CMD> <DEFECT> <PROJECT NAME>"
+      if [[ $# != 19 ]] ; then
+        echo "ERROR: usage $0 HUDSON <PATCH_DIR> <SUPPORT_DIR> <PS_CMD> <WGET_CMD> <JIRACLI> <SVN_CMD> <GREP_CMD> <PATCH_CMD> <FINDBUGS_HOME> <FORREST_HOME> <ECLIPSE_HOME> <PYTHON_HOME> <WORKSPACE_BASEDIR> <TRIGGER_BUILD> <JIRA_PASSWD> <CURL_CMD> <DEFECT> <PROJECT NAME>"
         cleanupAndExit 0
       fi
       PATCH_DIR=$2
@@ -31,10 +31,9 @@ parseArgs() {
       BASEDIR=${14}
       TRIGGER_BUILD_URL=${15}
       JIRA_PASSWD=${16}
-      JAVA5_HOME=${17}
-      CURL=${18}
-      defect=${19}
-      PROJECT_NAME=${20}
+      CURL=${17}
+      defect=${18}
+      PROJECT_NAME=${19}
 		
       ### Retrieve the defect number
       if [ -z "$defect" ] ; then
@@ -52,8 +51,8 @@ parseArgs() {
     DEVELOPER)
       ### Set HUDSON to false to indicate that this script is being run by a developer
       HUDSON=false
-      if [[ $# != 11 ]] ; then
-        echo "ERROR: usage $0 DEVELOPER <PATCH_FILE> <SCRATCH_DIR> <SVN_CMD> <GREP_CMD> <PATCH_CMD> <FINDBUGS_HOME> <FORREST_HOME> <WORKSPACE_BASEDIR> <JAVA5_HOME> <PROJECT NAME>"
+      if [[ $# != 10 ]] ; then
+        echo "ERROR: usage $0 DEVELOPER <PATCH_FILE> <SCRATCH_DIR> <SVN_CMD> <GREP_CMD> <PATCH_CMD> <FINDBUGS_HOME> <FORREST_HOME> <WORKSPACE_BASEDIR> <PROJECT NAME>"
         cleanupAndExit 0
       fi
       ### PATCH_FILE contains the location of the patchfile
@@ -79,8 +78,7 @@ parseArgs() {
       FINDBUGS_HOME=$7
       FORREST_HOME=$8
       BASEDIR=$9
-      JAVA5_HOME=${10}
-      PROJECT_NAME=${11}
+      PROJECT_NAME=${10}
       ### Obtain the patch filename to append it to the ver number
       defect=`basename $PATCH_FILE` 
       ;;
@@ -162,16 +160,16 @@ setup () {
   echo "======================================================================"
   echo ""
   echo ""
-  echo "$ANT_HOME/bin/ant  -Djava5.home=${JAVA5_HOME} -Dforrest.home=${FORREST_HOME} -D${PROJECT_NAME}PatchProcess= releaseaudit > $PATCH_DIR/trunkReleaseAuditWarnings.txt 2>&1"
-  $ANT_HOME/bin/ant  -Djava5.home=${JAVA5_HOME} -Dforrest.home=${FORREST_HOME} -D${PROJECT_NAME}PatchProcess= releaseaudit > $PATCH_DIR/trunkReleaseAuditWarnings.txt 2>&1
-  echo "$ANT_HOME/bin/ant  -Djavac.args="-Xlint -Xmaxwarns 1000" $ECLIPSE_PROPERTY -Djava5.home=${JAVA5_HOME} -Dforrest.home=${FORREST_HOME} -D${PROJECT_NAME}PatchProcess= clean tar > $PATCH_DIR/trunkJavacWarnings.txt 2>&1"
-  $ANT_HOME/bin/ant  -Djavac.args="-Xlint -Xmaxwarns 1000" $ECLIPSE_PROPERTY -Djava5.home=${JAVA5_HOME} -Dforrest.home=${FORREST_HOME} -D${PROJECT_NAME}PatchProcess= clean tar > $PATCH_DIR/trunkJavacWarnings.txt 2>&1
+  echo "$ANT_HOME/bin/ant -Dforrest.home=${FORREST_HOME} -D${PROJECT_NAME}PatchProcess= releaseaudit > $PATCH_DIR/trunkReleaseAuditWarnings.txt 2>&1"
+  $ANT_HOME/bin/ant -Dforrest.home=${FORREST_HOME} -D${PROJECT_NAME}PatchProcess= releaseaudit > $PATCH_DIR/trunkReleaseAuditWarnings.txt 2>&1
+  echo "$ANT_HOME/bin/ant  -Djavac.args="-Xlint -Xmaxwarns 1000" $ECLIPSE_PROPERTY -Dforrest.home=${FORREST_HOME} -D${PROJECT_NAME}PatchProcess= clean tar > $PATCH_DIR/trunkJavacWarnings.txt 2>&1"
+  $ANT_HOME/bin/ant  -Djavac.args="-Xlint -Xmaxwarns 1000" $ECLIPSE_PROPERTY -Dforrest.home=${FORREST_HOME} -D${PROJECT_NAME}PatchProcess= clean tar > $PATCH_DIR/trunkJavacWarnings.txt 2>&1
   if [[ $? != 0 ]] ; then
     echo "Trunk compilation is broken?"
     cleanupAndExit 1
   fi
-  echo "$ANT_HOME/bin/ant  -Dfindbugs.home=$FINDBUGS_HOME -Djava5.home=${JAVA5_HOME} -Dforrest.home=${FORREST_HOME} -D${PROJECT_NAME}PatchProcess= findbugs > /dev/null 2>&1"
-  $ANT_HOME/bin/ant  -Dfindbugs.home=$FINDBUGS_HOME -Djava5.home=${JAVA5_HOME} -Dforrest.home=${FORREST_HOME} -D${PROJECT_NAME}PatchProcess= findbugs > /dev/null 2>&1
+  echo "$ANT_HOME/bin/ant  -Dfindbugs.home=$FINDBUGS_HOME -Dforrest.home=${FORREST_HOME} -D${PROJECT_NAME}PatchProcess= findbugs > /dev/null 2>&1"
+  $ANT_HOME/bin/ant  -Dfindbugs.home=$FINDBUGS_HOME -Dforrest.home=${FORREST_HOME} -D${PROJECT_NAME}PatchProcess= findbugs > /dev/null 2>&1
   if [[ $? != 0 ]] ; then
     echo "Trunk findbugs is broken?"
     cleanupAndExit 1
@@ -307,8 +305,8 @@ checkJavacWarnings () {
   echo "======================================================================"
   echo ""
   echo ""
-  echo "$ANT_HOME/bin/ant  -Djavac.args="-Xlint -Xmaxwarns 1000" $ECLIPSE_PROPERTY -Djava5.home=${JAVA5_HOME} -Dforrest.home=${FORREST_HOME} -D${PROJECT_NAME}PatchProcess= clean tar > $PATCH_DIR/patchJavacWarnings.txt 2>&1"
-  $ANT_HOME/bin/ant  -Djavac.args="-Xlint -Xmaxwarns 1000" $ECLIPSE_PROPERTY -Djava5.home=${JAVA5_HOME} -Dforrest.home=${FORREST_HOME} -D${PROJECT_NAME}PatchProcess= clean tar > $PATCH_DIR/patchJavacWarnings.txt 2>&1
+  echo "$ANT_HOME/bin/ant  -Djavac.args="-Xlint -Xmaxwarns 1000" $ECLIPSE_PROPERTY -Dforrest.home=${FORREST_HOME} -D${PROJECT_NAME}PatchProcess= clean tar > $PATCH_DIR/patchJavacWarnings.txt 2>&1"
+  $ANT_HOME/bin/ant  -Djavac.args="-Xlint -Xmaxwarns 1000" $ECLIPSE_PROPERTY -Dforrest.home=${FORREST_HOME} -D${PROJECT_NAME}PatchProcess= clean tar > $PATCH_DIR/patchJavacWarnings.txt 2>&1
 
   ### Compare trunk and patch javac warning numbers
   if [[ -f $PATCH_DIR/patchJavacWarnings.txt ]] ; then
@@ -342,8 +340,8 @@ checkReleaseAuditWarnings () {
   echo "======================================================================"
   echo ""
   echo ""
-  echo "$ANT_HOME/bin/ant  -Djava5.home=${JAVA5_HOME} -Dforrest.home=${FORREST_HOME} -D${PROJECT_NAME}PatchProcess= releaseaudit > $PATCH_DIR/patchReleaseAuditWarnings.txt 2>&1"
-  $ANT_HOME/bin/ant  -Djava5.home=${JAVA5_HOME} -Dforrest.home=${FORREST_HOME} -D${PROJECT_NAME}PatchProcess= releaseaudit > $PATCH_DIR/patchReleaseAuditWarnings.txt 2>&1
+  echo "$ANT_HOME/bin/ant -Dforrest.home=${FORREST_HOME} -D${PROJECT_NAME}PatchProcess= releaseaudit > $PATCH_DIR/patchReleaseAuditWarnings.txt 2>&1"
+  $ANT_HOME/bin/ant -Dforrest.home=${FORREST_HOME} -D${PROJECT_NAME}PatchProcess= releaseaudit > $PATCH_DIR/patchReleaseAuditWarnings.txt 2>&1
 
   ### Compare trunk and patch release audit warning numbers
   if [[ -f $PATCH_DIR/patchReleaseAuditWarnings.txt ]] ; then
@@ -420,8 +418,8 @@ checkFindbugsWarnings () {
   echo "======================================================================"
   echo ""
   echo ""
-  echo "$ANT_HOME/bin/ant  -Dfindbugs.home=$FINDBUGS_HOME -Djava5.home=${JAVA5_HOME} -Dforrest.home=${FORREST_HOME} -D${PROJECT_NAME}PatchProcess= findbugs"
-  $ANT_HOME/bin/ant  -Dfindbugs.home=$FINDBUGS_HOME -Djava5.home=${JAVA5_HOME} -Dforrest.home=${FORREST_HOME} -D${PROJECT_NAME}PatchProcess= findbugs
+  echo "$ANT_HOME/bin/ant  -Dfindbugs.home=$FINDBUGS_HOME -Dforrest.home=${FORREST_HOME} -D${PROJECT_NAME}PatchProcess= findbugs"
+  $ANT_HOME/bin/ant  -Dfindbugs.home=$FINDBUGS_HOME -Dforrest.home=${FORREST_HOME} -D${PROJECT_NAME}PatchProcess= findbugs
   if [ $? != 0 ] ; then
     JIRA_COMMENT="$JIRA_COMMENT
 
@@ -479,8 +477,8 @@ runCoreTests () {
      PreTestTarget="create-c++-configure"
   fi   
 
-  echo "$ANT_HOME/bin/ant  -D${PROJECT_NAME}PatchProcess= -Dtest.junit.output.format=xml -Dtest.output=yes -Dcompile.c++=yes -Dforrest.home=$FORREST_HOME -Djava5.home=$JAVA5_HOME $PreTestTarget test-core"
-  $ANT_HOME/bin/ant  -D${PROJECT_NAME}PatchProcess= -Dtest.junit.output.format=xml -Dtest.output=yes -Dcompile.c++=yes -Dforrest.home=$FORREST_HOME -Djava5.home=$JAVA5_HOME $PreTestTarget test-core
+  echo "$ANT_HOME/bin/ant  -D${PROJECT_NAME}PatchProcess= -Dtest.junit.output.format=xml -Dtest.output=yes -Dcompile.c++=yes -Dforrest.home=$FORREST_HOME $PreTestTarget test-core"
+  $ANT_HOME/bin/ant  -D${PROJECT_NAME}PatchProcess= -Dtest.junit.output.format=xml -Dtest.output=yes -Dcompile.c++=yes -Dforrest.home=$FORREST_HOME $PreTestTarget test-core
   if [[ $? != 0 ]] ; then
     JIRA_COMMENT="$JIRA_COMMENT
 
