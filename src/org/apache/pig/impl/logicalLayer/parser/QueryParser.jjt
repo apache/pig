@@ -2433,6 +2433,15 @@ LogicalOperator UnionClause(LogicalPlan lp) :
                     // null for columns that don't exist in the input
                     ArrayList<LogicalOperator> newInputs =
                         new ArrayList<LogicalOperator>(inputs.size());
+                    
+                    //create a user defined schema list for use in LOForeach
+                    // using merged schema
+                    ArrayList<Schema> mergedSchemaList = new ArrayList<Schema>();
+                    for(Schema.FieldSchema fs : mergedSchema.getFields()){
+                        mergedSchemaList.add(new Schema(new Schema.FieldSchema(fs.alias, DataType.NULL)));
+                    }
+                    
+                    
                     for(LogicalOperator lop : inputs)                 
                     {                     
                         if(! lop.getSchema().equals(mergedSchema))
@@ -2450,7 +2459,7 @@ LogicalOperator UnionClause(LogicalPlan lp) :
                                 Schema inpSchema = lop.getSchema();
                                 flattenList.add(Boolean.FALSE);
 
-                                int inpPos = inpSchema.getPosition(fs.alias);
+                                int inpPos = inpSchema.getPositionSubName(fs.alias);
 
                                 LogicalOperator columnProj = null;
                                 boolean isCastNeeded = false;
@@ -2478,7 +2487,7 @@ LogicalOperator UnionClause(LogicalPlan lp) :
                                     //cast is needed if types are different.    
                                     //compatibility of types has already been checked
                                     //during creation of mergedSchema
-                                    Schema.FieldSchema inpFs = inpSchema.getField(fs.alias);
+                                    Schema.FieldSchema inpFs = inpSchema.getFieldSubNameMatch(fs.alias);
                                     if(inpFs.type != fs.type)
                                         isCastNeeded = true;
                                 }
@@ -2499,7 +2508,8 @@ LogicalOperator UnionClause(LogicalPlan lp) :
                             }
                             LogicalOperator foreach = new LOForEach(lp,
                                     new OperatorKey(scope, getNextId()),
-                                    generatePlans, flattenList
+                                    generatePlans, flattenList,
+                                    mergedSchemaList
                             );
                             lp.add(foreach);
                             lp.connect(lop, foreach);
@@ -2514,7 +2524,9 @@ LogicalOperator UnionClause(LogicalPlan lp) :
                     // use newInputs as the inputs for union
                     inputs = newInputs;     
                 }
+                
 
+                
                 for (LogicalOperator lop: inputs) {
                     lp.connect(lop, union);
                     log.debug("Connected union input operator " +
