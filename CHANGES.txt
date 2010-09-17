@@ -192,6 +192,9 @@ PIG-1309: Map-side Cogroup (ashutoshc)
 
 BUG FIXES
 
+PIG-1610:  'union onschema' does handle some cases involving 'namespaced' 
+column names in schema (thejas)
+
 PIG-1609: 'union onschema' should give a more useful error message when 
 schema of one of the relations has null column name(thejas)
 
