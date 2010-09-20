@@ -65,6 +65,14 @@ public class LOCogroup extends LogicalRelationalOperator {
     private Map<Integer,Long> generatedInputUids = new HashMap<Integer,Long>();
     
     final static String GROUP_COL_NAME = "group";
+    
+    /**
+     * Constructor for use in defining rule patterns
+     * @param plan
+     */
+    public LOCogroup(LogicalPlan plan) {
+        super("LOCogroup", plan);     
+    }
         
     public LOCogroup(OperatorPlan plan, MultiMap<Integer,LogicalExpressionPlan> 
     expressionPlans, boolean[] isInner ) {

@@ -67,11 +67,15 @@ import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
+import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.LogicalPlan;
 import org.apache.pig.impl.logicalLayer.parser.ParseException;
 import org.apache.pig.impl.logicalLayer.parser.QueryParser;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.impl.plan.VisitorException;
+import org.apache.pig.newplan.logical.LogicalPlanMigrationVistor;
 import org.apache.pig.newplan.logical.optimizer.LogicalPlanPrinter;
+import org.apache.pig.newplan.logical.optimizer.SchemaResetter;
 import org.apache.pig.tools.grunt.GruntParser;
 
 import com.google.common.base.Function;
@@ -538,6 +542,62 @@ public class Util {
     	visitor.setPigContext(pc);
     	visitor.visit();
     	return visitor.getPhysicalPlan();
+    }
+
+    /**
+     * migrate old logical plan to new logical plan
+     * @param lp
+     * @return new logical plan
+     * @throws FrontendException
+     */
+    public static org.apache.pig.newplan.logical.relational.LogicalPlan migrateToNewLP(LogicalPlan lp)
+    throws FrontendException{
+        LogicalPlanMigrationVistor visitor = new LogicalPlanMigrationVistor(lp);        
+        visitor.visit();
+        org.apache.pig.newplan.logical.relational.LogicalPlan newPlan = visitor.getNewLogicalPlan();
+        
+        SchemaResetter schemaResetter = new SchemaResetter(newPlan);
+        schemaResetter.visit();
+        return newPlan;
+    }
+    
+    /**
+     * Run default set of optimizer rules on new logical plan
+     * @param lp
+     * @return optimized logical plan
+     * @throws FrontendException
+     */
+    public static  org.apache.pig.newplan.logical.relational.LogicalPlan optimizeNewLP( 
+            org.apache.pig.newplan.logical.relational.LogicalPlan lp)
+    throws FrontendException{
+        // run optimizer
+        org.apache.pig.newplan.logical.optimizer.LogicalPlanOptimizer optimizer = 
+            new org.apache.pig.newplan.logical.optimizer.LogicalPlanOptimizer(lp, 100, null);
+        optimizer.optimize();        
+        return lp;
+    }
+    
+    /**
+     * migrate old LP(logical plan) to new LP, optimize it, and build physical 
+     * plan
+     * @param lp
+     * @param pc PigContext
+     * @return physical plan
+     * @throws Exception
+     */
+    public static PhysicalPlan buildPhysicalPlanFromNewLP(
+            org.apache.pig.newplan.logical.relational.LogicalPlan lp, PigContext pc)
+    throws Exception {
+         org.apache.pig.newplan.logical.relational.LogToPhyTranslationVisitor visitor =
+             new org.apache.pig.newplan.logical.relational.LogToPhyTranslationVisitor(lp);
+        visitor.setPigContext(pc);
+        visitor.visit();
+        return visitor.getPhysicalPlan();
+    }
+    
+    public static PhysicalPlan getNewOptimizedPhysicalPlan(LogicalPlan lp, PigContext pc)
+    throws FrontendException, Exception{
+        return buildPhysicalPlanFromNewLP(optimizeNewLP(migrateToNewLP(lp)), pc);
     }
     
     public static MROperPlan buildMRPlan(PhysicalPlan pp, PigContext pc) throws Exception{
