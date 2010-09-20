@@ -54,6 +54,8 @@ import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.PlanException;
 import org.apache.pig.impl.streaming.StreamingCommand;
 import org.apache.pig.impl.streaming.StreamingCommand.HandleSpec;
+import org.apache.pig.impl.logicalLayer.validators.LogicalPlanValidationExecutor;
+import org.apache.pig.impl.plan.CompilationMessageCollector;
 import org.apache.pig.StreamToPig;
 import org.apache.pig.PigToStream;
 import org.apache.pig.builtin.PigStreaming;
@@ -2390,13 +2392,29 @@ LogicalOperator UnionClause(LogicalPlan lp) :
             try{// this try-catch block will catch all exceptions and convert them
                 // to ParseException. Otherwise, if any exception than ParseException
                 // is thrown , the generated parse code tries to cast
-                //the exception to Error, resulting in a misleading error message 
+                //the exception to Error, resulting in a misleading error message
+                
+                if(isOnSchema) {
+                    // run through validator first on inputs so that the schemas have the right
+                    //types for columns. It will run TypeCheckingValidator as well.
+                    // The compilation messages will be logged when validation is
+                    // done from PigServer, so not doing it here
+                    CompilationMessageCollector collector = new CompilationMessageCollector() ;
+                    boolean isBeforeOptimizer = true;
+                    LogicalPlanValidationExecutor validator = 
+                        new LogicalPlanValidationExecutor(lp, pigContext, isBeforeOptimizer);
+                    validator.validate(lp, collector);
+                }
+                
                 LogicalOperator union = new LOUnion(lp, new OperatorKey(scope, getNextId()));
                 lp.add(union);
                 log.debug("Added operator " + union.getClass().getName() + " to the logical plan");
 
                 if(isOnSchema)             
-                {  // this is UNION ONSCHEMA, find merged schema.
+                {  // this is UNION ONSCHEMA, find merged schema 
+                    // and  (if necessary) add foreach to align columns
+                    
+                    
                     ArrayList<Schema> schemas = new ArrayList<Schema>(inputs.size());
                     for(LogicalOperator lop : inputs){
                         Schema sch = lop.getSchema();
