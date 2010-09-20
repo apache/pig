@@ -626,21 +626,14 @@ public class TestPigServer extends TestCase {
     
     @Test
     public void testPigProperties() throws Throwable {
-        File defaultPropertyFile = new File("pig-default.properties");
         File propertyFile = new File("pig.properties");
         File cliPropertyFile = new File("commandLine_pig.properties");
         
         Properties properties = PropertiesUtil.loadDefaultProperties();
+        assertTrue(properties.getProperty("pig.spill.gc.activation.size").equals("40000000"));
         assertTrue(properties.getProperty("test123")==null);
 
-        PrintWriter out = new PrintWriter(new FileWriter(defaultPropertyFile));
-        out.println("test123=defaultproperties");
-        out.close();
-        
-        properties = PropertiesUtil.loadDefaultProperties();
-        assertTrue(properties.getProperty("test123").equals("defaultproperties"));
-
-        out = new PrintWriter(new FileWriter(propertyFile));
+        PrintWriter out = new PrintWriter(new FileWriter(propertyFile));
         out.println("test123=properties");
         out.close();
 
@@ -656,15 +649,14 @@ public class TestPigServer extends TestCase {
                 "commandLine_pig.properties");
         assertTrue(properties.getProperty("test123").equals("cli_properties"));
         
-        defaultPropertyFile.delete();
         propertyFile.delete();
         cliPropertyFile.delete();
     }
 
     @Test
     public void testPigTempDir() throws Throwable {
-        File defaultPropertyFile = new File("pig-default.properties");
-        PrintWriter out = new PrintWriter(new FileWriter(defaultPropertyFile));
+        File propertyFile = new File("pig.properties");
+        PrintWriter out = new PrintWriter(new FileWriter(propertyFile));
         out.println("pig.temp.dir=/opt/temp");
         out.close();
         Properties properties = PropertiesUtil.loadDefaultProperties();
@@ -673,7 +665,7 @@ public class TestPigServer extends TestCase {
         FileLocalizer.setInitialized(false);
         String tempPath= FileLocalizer.getTemporaryPath(pigContext).toString();
         assertTrue(tempPath.startsWith("file:/opt/temp"));
-        defaultPropertyFile.delete();
+        propertyFile.delete();
         FileLocalizer.setInitialized(false);
     }
 
