@@ -86,7 +86,9 @@ public class TestFRJoin2 {
                 .getProperties());
         
         pigServer.registerQuery("A = LOAD '" + INPUT_FILE + "' as (x:int,y:int);");
-        pigServer.registerQuery("B = group A all parallel 5;");
+        
+        // using $0*0, instead of group-all because group-all sets parallelism to 1 
+        pigServer.registerQuery("B = group A by $0*0 parallel 5;"); 
         pigServer.registerQuery("C = foreach B generate COUNT(A) as count, MAX(A.y) as max;");
         
         DataBag dbfrj = BagFactory.getInstance().newDefaultBag(), dbshj = BagFactory.getInstance().newDefaultBag();

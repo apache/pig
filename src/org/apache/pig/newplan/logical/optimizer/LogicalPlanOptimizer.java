@@ -26,20 +26,20 @@ import org.apache.pig.newplan.OperatorPlan;
 import org.apache.pig.newplan.logical.rules.AddForEach;
 import org.apache.pig.newplan.logical.rules.ColumnMapKeyPrune;
 import org.apache.pig.newplan.logical.rules.FilterAboveForeach;
+import org.apache.pig.newplan.logical.rules.GroupByConstParallelSetter;
 import org.apache.pig.newplan.logical.rules.ImplicitSplitInserter;
+import org.apache.pig.newplan.logical.rules.LimitOptimizer;
 import org.apache.pig.newplan.logical.rules.LoadTypeCastInserter;
+import org.apache.pig.newplan.logical.rules.LogicalExpressionSimplifier;
 import org.apache.pig.newplan.logical.rules.MergeFilter;
 import org.apache.pig.newplan.logical.rules.MergeForEach;
+import org.apache.pig.newplan.logical.rules.PartitionFilterOptimizer;
+import org.apache.pig.newplan.logical.rules.PushDownForEachFlatten;
 import org.apache.pig.newplan.logical.rules.PushUpFilter;
 import org.apache.pig.newplan.logical.rules.SplitFilter;
 import org.apache.pig.newplan.logical.rules.StreamTypeCastInserter;
-import org.apache.pig.newplan.logical.rules.LogicalExpressionSimplifier;
 import org.apache.pig.newplan.optimizer.PlanOptimizer;
 import org.apache.pig.newplan.optimizer.Rule;
-
-import org.apache.pig.newplan.logical.rules.LimitOptimizer;
-import org.apache.pig.newplan.logical.rules.PartitionFilterOptimizer;
-import org.apache.pig.newplan.logical.rules.PushDownForEachFlatten;
 
 public class LogicalPlanOptimizer extends PlanOptimizer {
     private Set<String> mRulesOff = null;
@@ -160,6 +160,13 @@ public class LogicalPlanOptimizer extends PlanOptimizer {
         r = new MergeForEach("MergeForEach");
         checkAndAddRule(s, r);
         if (!s.isEmpty())
+            ls.add(s);
+        
+        //set parallism to 1 for cogroup/group-by on constant
+        s = new HashSet<Rule>();
+        r = new GroupByConstParallelSetter("GroupByConstParallelSetter");
+        checkAndAddRule(s, r);
+        if(!s.isEmpty())
             ls.add(s);
         
         return ls;
