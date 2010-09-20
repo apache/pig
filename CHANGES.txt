@@ -25,6 +25,7 @@ INCOMPATIBLE CHANGES
 PIG-1249: Safe-guards against misconfigured Pig scripts without PARALLEL keyword (zjffdu vi olgan)
 
 IMPROVEMENTS
+PIG-1617: 'group all' should always use one reducer (thejas)
 
 PIG-1589: add test cases for mapreduce operator which use distributed cache (thejas)
 

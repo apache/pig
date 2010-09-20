@@ -50,6 +50,7 @@ public abstract class Rule {
     /**
      * Create this rule by using the default pattern that this rule provided
      * @param n Name of this rule
+     * @param mandatory if it is set to false, this rule can be disabled by user
      */
     public Rule(String n, boolean mandatory) {
         name = n;    
