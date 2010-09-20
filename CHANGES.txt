@@ -192,6 +192,8 @@ PIG-1353: Map-side joins (ashutoshc)
 PIG-1309: Map-side Cogroup (ashutoshc)
 
 BUG FIXES
+PIG-1616: 'union onschema' does not use create output with correct schema
+when udfs are involved (thejas)
 
 PIG-1610:  'union onschema' does handle some cases involving 'namespaced' 
 column names in schema (thejas)
