@@ -412,9 +412,14 @@
         <Method name = "init" />
         <Bug pattern="OBL_UNSATISFIED_OBLIGATION" />
     </Match>
-	<Match>
-		<Class name = "org.apache.pig.impl.builtin.ReadScalars" />
-		<Method name = "exec" />
-		<Bug pattern= "RV_DONT_JUST_NULL_CHECK_READLINE" />
-	</Match>
+    <Match>
+        <Class name = "org.apache.pig.impl.builtin.ReadScalars" />
+        <Method name = "exec" />
+        <Bug pattern = "RV_DONT_JUST_NULL_CHECK_READLINE" />
+    </Match>
+    <Match>
+        <Class name = "org.apache.pig.impl.util.Utils" />
+        <Method name = "mergeCollection" />
+        <Bug pattern = "NP_GUARANTEED_DEREF_ON_EXCEPTION_PATH" />
+    </Match>
 </FindBugsFilter>

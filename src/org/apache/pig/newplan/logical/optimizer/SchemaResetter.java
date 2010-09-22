@@ -5,7 +5,7 @@ import java.util.List;
 
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.util.MultiMap;
-import org.apache.pig.newplan.DependencyOrderWalkerLPScalar;
+import org.apache.pig.newplan.DependencyOrderWalker;
 import org.apache.pig.newplan.OperatorPlan;
 import org.apache.pig.newplan.PlanWalker;
 import org.apache.pig.newplan.ReverseDependencyOrderWalker;
@@ -33,7 +33,7 @@ import org.apache.pig.newplan.logical.relational.LogicalRelationalNodesVisitor;
 public class SchemaResetter extends LogicalRelationalNodesVisitor {
 
     public SchemaResetter(OperatorPlan plan) throws FrontendException {
-        super(plan, new DependencyOrderWalkerLPScalar(plan));
+        super(plan, new DependencyOrderWalker(plan));
     }
 
     @Override

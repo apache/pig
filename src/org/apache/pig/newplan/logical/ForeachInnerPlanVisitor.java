@@ -55,12 +55,12 @@ public class ForeachInnerPlanVisitor extends LogicalExpPlanMigrationVistor {
     private LOForEach oldForeach;
     private org.apache.pig.newplan.logical.relational.LogicalRelationalOperator gen;
     private int inputNo;
-    private HashMap<LogicalOperator, LogicalRelationalOperator> innerOpsMap;
-    private Map<LogicalExpression, LogicalOperator> scalarAliasMap = new HashMap<LogicalExpression, LogicalOperator>();
+    private Map<LogicalOperator, LogicalRelationalOperator> innerOpsMap;
+    private Map<LogicalOperator, LogicalRelationalOperator> outerOpsMap;
 
     public ForeachInnerPlanVisitor(org.apache.pig.newplan.logical.relational.LOForEach foreach, LOForEach oldForeach, LogicalPlan innerPlan, 
-            LogicalPlan oldLogicalPlan, Map<LogicalExpression, LogicalOperator> scalarMap) throws FrontendException {
-        super(innerPlan, oldForeach, foreach, oldLogicalPlan, scalarMap);
+            LogicalPlan oldLogicalPlan, Map<LogicalOperator, LogicalRelationalOperator> outerOpsMap) throws FrontendException {
+        super(innerPlan, oldForeach, foreach, oldLogicalPlan, outerOpsMap);
         newInnerPlan = foreach.getInnerPlan();
         
         // get next inputNo 
@@ -73,9 +73,9 @@ public class ForeachInnerPlanVisitor extends LogicalExpPlanMigrationVistor {
         }
         
         this.oldForeach = oldForeach;
-                    
+        this.outerOpsMap = outerOpsMap;
+        
         innerOpsMap = new HashMap<LogicalOperator, LogicalRelationalOperator>();
-        scalarAliasMap = scalarMap;
     }
     
     private void translateInnerPlanConnection(LogicalOperator oldOp, org.apache.pig.newplan.Operator newOp) throws FrontendException {
@@ -101,7 +101,7 @@ public class ForeachInnerPlanVisitor extends LogicalExpPlanMigrationVistor {
         PlanWalker<LogicalOperator, LogicalPlan> childWalker = 
             new DependencyOrderWalker<LogicalOperator, LogicalPlan>(lp);
         
-        LogicalExpPlanMigrationVistor childPlanVisitor = new LogicalExpPlanMigrationVistor(lp, oldOp, op, outerPlan, scalarAliasMap);
+        LogicalExpPlanMigrationVistor childPlanVisitor = new LogicalExpPlanMigrationVistor(lp, oldOp, op, outerPlan, outerOpsMap);
         
         childWalker.walk(childPlanVisitor);
         return childPlanVisitor.exprPlan;

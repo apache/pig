@@ -22,10 +22,17 @@ import java.util.Map;
 
 import org.apache.pig.impl.plan.DepthFirstWalker;
 import org.apache.pig.impl.plan.VisitorException;
+import org.apache.pig.impl.util.Pair;
 
 public class ScalarFinder extends LOVisitor {
 
-    Map<LOUserFunc, LogicalPlan> mScalarMap = new HashMap<LOUserFunc, LogicalPlan>();
+    // We need to find top level logical operator associated with the scalar,
+    // visiting nested plan will not change currentOp; inOp is to make sure
+    // we only track top level operator
+    private LogicalOperator currentOp;
+    
+    private boolean inOp = false;
+    Map<LOUserFunc, Pair<LogicalPlan, LogicalOperator>> mScalarMap = new HashMap<LOUserFunc, Pair<LogicalPlan, LogicalOperator>>();
 
     /**
      * @param plan
@@ -38,14 +45,64 @@ public class ScalarFinder extends LOVisitor {
     @Override
     protected void visit(LOUserFunc scalar) throws VisitorException {
         if(scalar.getImplicitReferencedOperator() != null) {
-            mScalarMap.put(scalar, mCurrentWalker.getPlan());
+            mScalarMap.put(scalar, new Pair<LogicalPlan, LogicalOperator>(mCurrentWalker.getPlan(), currentOp));
         }
+    }
+    
+    @Override
+    protected void visit(LOFilter op) throws VisitorException {
+        if (!inOp) {
+            inOp = true;
+            currentOp = op;
+        }
+        super.visit(op);
+        inOp = false;
+    }
+
+    @Override
+    protected void visit(LOForEach op) throws VisitorException {
+        if (!inOp) {
+            inOp = true;
+            currentOp = op;
+        }
+        super.visit(op);
+        inOp = false;
+    }
+    
+    @Override
+    protected void visit(LOSplitOutput op) throws VisitorException {
+        if (!inOp) {
+            inOp = true;
+            currentOp = op;
+        }
+        super.visit(op);
+        inOp = false;
+    }
+    
+    @Override
+    protected void visit(LOCogroup op) throws VisitorException {
+        if (!inOp) {
+            inOp = true;
+            currentOp = op;
+        }
+        super.visit(op);
+        inOp = false;
+    }
+
+    @Override
+    protected void visit(LOJoin op) throws VisitorException {
+        if (!inOp) {
+            inOp = true;
+            currentOp = op;
+        }
+        super.visit(op);
+        inOp = false;
     }
 
     /**
      * @return Map of scalar operators found in the plan
      */
-    public Map<LOUserFunc, LogicalPlan> getScalarMap() {
+    public Map<LOUserFunc, Pair<LogicalPlan, LogicalOperator>> getScalarMap() {
         return mScalarMap;
     }
    

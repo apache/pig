@@ -23,6 +23,7 @@ import java.util.Set;
 import java.util.HashSet;
 
 import org.apache.pig.impl.logicalLayer.FrontendException;
+import org.apache.pig.impl.util.Utils;
 import org.apache.pig.newplan.logical.expression.*;
 import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.OperatorPlan;
@@ -264,7 +265,7 @@ class NOTConversionVisitor extends LogicalExpressionVisitor {
                 if (seen.add(suc)) {
                     if (suc instanceof NotExpression)
                         ((NOTConversionVisitor) visitor).flip();
-                    Collection<Operator> newSuccessors = plan.getSuccessors(suc);
+                    Collection<Operator> newSuccessors = Utils.mergeCollection(plan.getSuccessors(suc), plan.getSoftLinkSuccessors(suc));
                     depthFirst(suc, newSuccessors, seen, visitor);
                     suc.accept(visitor);
                     if (suc instanceof NotExpression)

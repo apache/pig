@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import org.apache.pig.impl.logicalLayer.ExpressionOperator;
 import org.apache.pig.impl.logicalLayer.FrontendException;
@@ -91,31 +92,41 @@ public class LogicalExpPlanMigrationVistor extends LOVisitor {
     protected LogicalRelationalOperator attachedRelationalOp;
     protected LogicalOperator oldAttachedRelationalOp;
     protected LogicalPlan outerPlan;
-    protected Map<LogicalExpression, LogicalOperator> scalarAliasMap = new HashMap<LogicalExpression, LogicalOperator>();
+    private Map<LogicalOperator, LogicalRelationalOperator> outerOpsMap;
     
     public LogicalExpPlanMigrationVistor(LogicalPlan expressionPlan, LogicalOperator oldAttachedOperator,
-            LogicalRelationalOperator attachedOperator, LogicalPlan outerPlan, Map<LogicalExpression, LogicalOperator> scalarMap) {
+            LogicalRelationalOperator attachedOperator, LogicalPlan outerPlan, 
+            Map<LogicalOperator, LogicalRelationalOperator> outerOpsMap) {
         super(expressionPlan, new DependencyOrderWalker<LogicalOperator, LogicalPlan>(expressionPlan));
         exprPlan = new org.apache.pig.newplan.logical.expression.LogicalExpressionPlan();
         exprOpsMap = new HashMap<LogicalOperator, LogicalExpression>();
         attachedRelationalOp = attachedOperator;
         oldAttachedRelationalOp = oldAttachedOperator;
         this.outerPlan = outerPlan;
-        scalarAliasMap = scalarMap;
+        this.outerOpsMap = outerOpsMap;
     }    
 
     private void translateConnection(LogicalOperator oldOp, org.apache.pig.newplan.Operator newOp) {       
-       List<LogicalOperator> preds = mPlan.getPredecessors(oldOp); 
+       List<LogicalOperator> preds = mPlan.getPredecessors(oldOp);
        
        // the dependency relationship of new expression plan is opposite to the old logical plan
        // for example, a+b, in old plan, "add" is a leave, and "a" and "b" are roots
        // in new plan, "add" is root, and "a" and "b" are leaves.
-       if(preds != null) {            
+       if(preds != null) {
            for(LogicalOperator pred: preds) {
                org.apache.pig.newplan.Operator newPred = exprOpsMap.get(pred);
-               newOp.getPlan().connect(newOp, newPred);                 
+               newOp.getPlan().connect(newOp, newPred);
            }
-       }        
+       }
+       
+       List<LogicalOperator> softPreds = mPlan.getSoftLinkPredecessors(oldOp);
+       
+       if(softPreds != null) {
+           for(LogicalOperator softPred: softPreds) {
+               org.apache.pig.newplan.Operator newSoftPred = exprOpsMap.get(softPred);
+               newOp.getPlan().createSoftLink(newOp, newSoftPred);
+           }
+       }
    }
     
     public void visit(LOProject project) throws VisitorException {
@@ -216,7 +227,7 @@ public class LogicalExpPlanMigrationVistor extends LOVisitor {
         exprOpsMap.put(op, exp);
         // We need to track all the scalars
         if(op.getImplicitReferencedOperator() != null) {
-            scalarAliasMap.put(exp, op.getImplicitReferencedOperator());
+            exp.setImplicitReferencedOperator(outerOpsMap.get(op.getImplicitReferencedOperator()));
         }
 
     }

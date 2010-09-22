@@ -19,6 +19,7 @@ package org.apache.pig.impl.util;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.util.Collection;
 import java.util.List;
 
 import org.apache.hadoop.conf.Configuration;
@@ -204,6 +205,37 @@ public class Utils {
      */
     public static String slashisize(String str) {
         return str.replace("\\\\", "\\");
+    }
+    
+    @SuppressWarnings("unchecked")
+    public static <O> Collection<O> mergeCollection(Collection<O> a, Collection<O> b) {
+        if (a==null && b==null)
+            return null;
+        Collection<O> result = null;
+        try {
+            if (a!=null)
+                result = (Collection<O>)a.getClass().newInstance();
+            else
+                result = (Collection<O>)b.getClass().newInstance();
+        } catch (Exception e) {
+            // Shall not happen
+        }
+        if (a==null) {
+            result.addAll(b);
+        }
+        else if (b==null) {
+            result.addAll(a);
+        }
+        else {
+            result.addAll(a);
+            for (O o : b) {
+                if (!result.contains(o)) {
+                    result.add(o);
+                }
+            }
+        }
+        
+        return result;
     }
 
 }

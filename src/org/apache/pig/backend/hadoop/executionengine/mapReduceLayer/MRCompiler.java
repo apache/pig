@@ -228,7 +228,7 @@ public class MRCompiler extends PhyPlanVisitor {
                 + " optimistic? " + optimisticFileConcatenation);
     }
     
-    public void connectScalars() throws PlanException, IOException {
+    public void aggregateScalarsFiles() throws PlanException, IOException {
         List<MapReduceOper> mrOpList = new ArrayList<MapReduceOper>();
         for(MapReduceOper mrOp: MRPlan) {
             mrOpList.add(mrOp);
@@ -264,16 +264,16 @@ public class MRCompiler extends PhyPlanVisitor {
                         new FindStoreNameVisitor(pl, newSpec, oldSpec).visit();
                         
                         POStore newSto = getStore();
-                        newSto.setSFile(oldSpec);                        
+                        newSto.setSFile(oldSpec);
+                        if (MRPlan.getPredecessors(mrOp)!=null && 
+                                MRPlan.getPredecessors(mrOp).contains(mro))
+                            MRPlan.disconnect(mro, mrOp);
                         MapReduceOper catMROp = getConcatenateJob(newSpec, mro, newSto); 
                         MRPlan.connect(catMROp, mrOp);   
                         seen.put(oldSpec, catMROp);
                     } else {
-                        MRPlan.connect(mro, mrOp);
                         if (!hasSeen) seen.put(oldSpec, mro);
                     }
-                } else {
-                    MRPlan.connect(mro, mrOp);
                 }
             }
         }
@@ -360,11 +360,29 @@ public class MRCompiler extends PhyPlanVisitor {
         RearrangeAdjuster ra = new RearrangeAdjuster(MRPlan);
         ra.visit();
         
+        connectSoftLink();
+        
         LimitAdjuster la = new LimitAdjuster(MRPlan);
         la.visit();
         la.adjust();
         
         return MRPlan;
+    }
+    
+    public void connectSoftLink() throws PlanException, IOException {
+        for (PhysicalOperator op : plan) {
+            if (plan.getSoftLinkPredecessors(op)!=null) {
+                for (PhysicalOperator pred : plan.getSoftLinkPredecessors(op)) {
+                    MapReduceOper from = phyToMROpMap.get(pred);
+                    MapReduceOper to = phyToMROpMap.get(op);
+                    if (from==to)
+                        continue;
+                    if (MRPlan.getPredecessors(to)==null || !MRPlan.getPredecessors(to).contains(from)) {
+                        MRPlan.connect(from, to);
+                    }
+                }
+            }
+        }
     }
     
     /**

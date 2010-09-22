@@ -60,8 +60,6 @@ import org.apache.pig.newplan.logical.relational.LogicalSchema;
 public class LogicalPlanMigrationVistor extends LOVisitor { 
     private org.apache.pig.newplan.logical.relational.LogicalPlan logicalPlan;
     private Map<LogicalOperator, LogicalRelationalOperator> opsMap;
-    private Map<org.apache.pig.newplan.logical.expression.LogicalExpression, LogicalOperator> scalarAliasMap = 
-        new HashMap<org.apache.pig.newplan.logical.expression.LogicalExpression, LogicalOperator>();
    
     public LogicalPlanMigrationVistor(LogicalPlan plan) {
         super(plan, new DependencyOrderWalker<LogicalOperator, LogicalPlan>(plan));
@@ -72,19 +70,28 @@ public class LogicalPlanMigrationVistor extends LOVisitor {
     private void translateConnection(LogicalOperator oldOp, org.apache.pig.newplan.Operator newOp) {       
         List<LogicalOperator> preds = mPlan.getPredecessors(oldOp); 
         
-        if(preds != null) {            
+        if(preds != null) {
             for(LogicalOperator pred: preds) {
                 org.apache.pig.newplan.Operator newPred = opsMap.get(pred);
-                newOp.getPlan().connect(newPred, newOp);                 
+                newOp.getPlan().connect(newPred, newOp);
             }
-        }        
+        }
+        
+        List<LogicalOperator> softPreds = mPlan.getSoftLinkPredecessors(oldOp); 
+        
+        if(softPreds != null) {
+            for(LogicalOperator softPred: softPreds) {
+                org.apache.pig.newplan.Operator newSoftPred = opsMap.get(softPred);
+                newOp.getPlan().createSoftLink(newSoftPred, newOp);
+            }
+        }
     }      
     
     private LogicalExpressionPlan translateExpressionPlan(LogicalPlan lp, LogicalOperator oldOp, LogicalRelationalOperator op) throws VisitorException {
         PlanWalker<LogicalOperator, LogicalPlan> childWalker = 
             new DependencyOrderWalker<LogicalOperator, LogicalPlan>(lp);
         
-        LogicalExpPlanMigrationVistor childPlanVisitor = new LogicalExpPlanMigrationVistor(lp, oldOp, op, mPlan, scalarAliasMap);
+        LogicalExpPlanMigrationVistor childPlanVisitor = new LogicalExpPlanMigrationVistor(lp, oldOp, op, mPlan, opsMap);
         
         childWalker.walk(childPlanVisitor);
         return childPlanVisitor.exprPlan;
@@ -223,7 +230,7 @@ public class LogicalPlanMigrationVistor extends LOVisitor {
         try {
             for(int i=0; i<ll.size(); i++) {
                 LogicalPlan lp = ll.get(i);
-                ForeachInnerPlanVisitor v = new ForeachInnerPlanVisitor(newForeach, forEach, lp, mPlan, scalarAliasMap);
+                ForeachInnerPlanVisitor v = new ForeachInnerPlanVisitor(newForeach, forEach, lp, mPlan, opsMap);
                 v.visit();
                 
                 expPlans.add(v.exprPlan);
@@ -418,15 +425,5 @@ public class LogicalPlanMigrationVistor extends LOVisitor {
         logicalPlan.add(newNativeMR);
         opsMap.put(nativeMR, newNativeMR);
         translateConnection(nativeMR, newNativeMR);
-    }
-    
-
-    
-    public void finish() {
-        for(org.apache.pig.newplan.logical.expression.LogicalExpression exp: scalarAliasMap.keySet()) {
-            ((org.apache.pig.newplan.logical.expression.UserFuncExpression)exp).setImplicitReferencedOperator(
-                    opsMap.get(scalarAliasMap.get(exp)));
-        }
-    }
-    
+    }    
 }

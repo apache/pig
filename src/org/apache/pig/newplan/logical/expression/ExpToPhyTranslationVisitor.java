@@ -78,21 +78,19 @@ public class ExpToPhyTranslationVisitor extends LogicalExpressionVisitor {
 
     // This value points to the current LogicalRelationalOperator we are working on
     protected LogicalRelationalOperator currentOp;
-    protected Map<PhysicalOperator, LogicalRelationalOperator> scalarAliasMap;
     
     public ExpToPhyTranslationVisitor(OperatorPlan plan, LogicalRelationalOperator op, PhysicalPlan phyPlan, 
-            Map<Operator, PhysicalOperator> map, Map<PhysicalOperator, LogicalRelationalOperator> scalarMap) throws FrontendException {
-        this(plan, new DependencyOrderWalker(plan), op, phyPlan, map, scalarMap);
+            Map<Operator, PhysicalOperator> map) throws FrontendException {
+        this(plan, new DependencyOrderWalker(plan), op, phyPlan, map);
     }
     
-    public ExpToPhyTranslationVisitor(OperatorPlan plan, PlanWalker walker, LogicalRelationalOperator op, PhysicalPlan phyPlan, Map<Operator, PhysicalOperator> map, 
-            Map<PhysicalOperator, LogicalRelationalOperator> scalarMap) throws FrontendException {
+    public ExpToPhyTranslationVisitor(OperatorPlan plan, PlanWalker walker, LogicalRelationalOperator op, PhysicalPlan phyPlan, 
+            Map<Operator, PhysicalOperator> map) throws FrontendException {
         super(plan, walker);
         currentOp = op;
         logToPhyMap = map;
         currentPlan = phyPlan;
         currentPlans = new Stack<PhysicalPlan>();
-        scalarAliasMap = scalarMap;
     }
     
     protected Map<Operator, PhysicalOperator> logToPhyMap;
@@ -510,8 +508,9 @@ public class ExpToPhyTranslationVisitor extends LogicalExpressionVisitor {
         logToPhyMap.put(op, p);
         
         //We need to track all the scalars
+        
         if(op.getImplicitReferencedOperator() != null) {
-            scalarAliasMap.put(p, op.getImplicitReferencedOperator());
+            ((POUserFunc)p).setReferencedOperator(logToPhyMap.get(op.getImplicitReferencedOperator()));
         }
     }
     

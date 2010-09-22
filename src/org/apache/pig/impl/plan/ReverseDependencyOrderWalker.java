@@ -23,6 +23,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.pig.impl.util.Utils;
+
 
 /**
  * ReverseDependencyOrderWalker traverses the graph in such a way that no node is visited
@@ -79,7 +81,7 @@ public class ReverseDependencyOrderWalker <O extends Operator, P extends Operato
                                    Collection<O> fifo) throws VisitorException {
         if (!seen.contains(node)) {
             // We haven't seen this one before.
-            Collection<O> succs = mPlan.getSuccessors(node);
+            Collection<O> succs = Utils.mergeCollection(mPlan.getSuccessors(node), mPlan.getSoftLinkSuccessors(node));
             if (succs != null && succs.size() > 0) {
                 // Do all our successors before ourself
                 for (O op : succs) {
