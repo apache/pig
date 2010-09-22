@@ -26,6 +26,7 @@ import java.util.Set;
 
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.plan.VisitorException;
+import org.apache.pig.impl.util.Utils;
 
 /**
  * A walker to walk graphs in dependency order.  It is guaranteed that a node
@@ -64,7 +65,7 @@ public class DependencyOrderWalker extends PlanWalker {
 
         List<Operator> fifo = new ArrayList<Operator>();
         Set<Operator> seen = new HashSet<Operator>();
-        List<Operator> leaves = getSinks();
+        List<Operator> leaves = plan.getSinks();
         if (leaves == null) return;
         for (Operator op : leaves) {
             doAllPredecessors(op, seen, fifo);
@@ -74,17 +75,13 @@ public class DependencyOrderWalker extends PlanWalker {
             op.accept(visitor);
         }
     }
-    
-    protected List<Operator> getSinks() throws FrontendException{
-        return plan.getSinks();
-    }
 
     protected void doAllPredecessors(Operator node,
                                    Set<Operator> seen,
                                    Collection<Operator> fifo) throws FrontendException {
         if (!seen.contains(node)) {
             // We haven't seen this one before.
-            Collection<Operator> preds = plan.getPredecessors(node);
+            Collection<Operator> preds = Utils.mergeCollection(plan.getPredecessors(node), plan.getSoftLinkPredecessors(node));
             if (preds != null && preds.size() > 0) {
                 // Do all our predecessors before ourself
                 for (Operator op : preds) {

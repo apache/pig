@@ -72,6 +72,23 @@ public interface OperatorPlan {
     public List<Operator> getSuccessors(Operator op);
 
     /**
+     * For a given operator, get all operators softly immediately before it in the
+     * plan.
+     * @param op operator to fetch predecessors of
+     * @return list of all operators immediately before op, or an empty list
+     * if op is a root.
+     */
+    public List<Operator> getSoftLinkPredecessors(Operator op);
+    
+    /**
+     * For a given operator, get all operators softly immediately after it.
+     * @param op operator to fetch successors of
+     * @return list of all operators immediately after op, or an empty list
+     * if op is a leaf.
+     */
+    public List<Operator> getSoftLinkSuccessors(Operator op);
+    
+    /**
      * Add a new operator to the plan.  It will not be connected to any
      * existing operators.
      * @param op operator to add
@@ -102,6 +119,20 @@ public interface OperatorPlan {
      * @param to Operator edge will go to
      */
     public void connect(Operator from, Operator to);
+    
+    /**
+     * Create an soft edge between two nodes.
+     * @param from Operator dependent upon
+     * @param to Operator having the dependency
+     */
+    public void createSoftLink(Operator from, Operator to);
+    
+    /**
+     * Remove an soft edge
+     * @param from Operator dependent upon
+     * @param to Operator having the dependency
+     */
+    public void removeSoftLink(Operator from, Operator to);
     
     /**
      * Disconnect two operators in the plan.

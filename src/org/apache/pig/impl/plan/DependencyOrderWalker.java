@@ -23,6 +23,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.pig.impl.util.Utils;
+
 
 /**
  * DependencyOrderWalker traverses the graph in such a way that no node is visited
@@ -64,7 +66,6 @@ public class DependencyOrderWalker <O extends Operator, P extends OperatorPlan<O
         for (O op : leaves) {
             doAllPredecessors(op, seen, fifo);
         }
-
         for (O op: fifo) {
             op.visit(visitor);
         }
@@ -79,7 +80,7 @@ public class DependencyOrderWalker <O extends Operator, P extends OperatorPlan<O
                                    Collection<O> fifo) throws VisitorException {
         if (!seen.contains(node)) {
             // We haven't seen this one before.
-            Collection<O> preds = mPlan.getPredecessors(node);
+            Collection<O> preds = Utils.mergeCollection(mPlan.getPredecessors(node), mPlan.getSoftLinkPredecessors(node));
             if (preds != null && preds.size() > 0) {
                 // Do all our predecessors before ourself
                 for (O op : preds) {

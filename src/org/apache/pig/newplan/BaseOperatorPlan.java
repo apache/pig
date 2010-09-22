@@ -36,6 +36,8 @@ public abstract class BaseOperatorPlan implements OperatorPlan {
     protected Set<Operator> ops;
     protected PlanEdge fromEdges;
     protected PlanEdge toEdges;
+    protected PlanEdge softFromEdges;
+    protected PlanEdge softToEdges;
 
     private List<Operator> roots;
     private List<Operator> leaves;
@@ -48,6 +50,8 @@ public abstract class BaseOperatorPlan implements OperatorPlan {
         leaves = new ArrayList<Operator>();
         fromEdges = new PlanEdge();
         toEdges = new PlanEdge();
+        softFromEdges = new PlanEdge();
+        softToEdges = new PlanEdge();
     }
     
     /**
@@ -109,6 +113,27 @@ public abstract class BaseOperatorPlan implements OperatorPlan {
     public List<Operator> getSuccessors(Operator op) {
         return (List<Operator>)fromEdges.get(op);
     }
+    
+    /**
+     * For a given operator, get all operators softly immediately before it in the
+     * plan.
+     * @param op operator to fetch predecessors of
+     * @return list of all operators immediately before op, or an empty list
+     * if op is a root.
+     */
+    public List<Operator> getSoftLinkPredecessors(Operator op) {
+        return (List<Operator>)softToEdges.get(op);
+    }
+    
+    /**
+     * For a given operator, get all operators softly immediately after it.
+     * @param op operator to fetch successors of
+     * @return list of all operators immediately after op, or an empty list
+     * if op is a leaf.
+     */
+    public List<Operator> getSoftLinkSuccessors(Operator op) {
+        return (List<Operator>)softFromEdges.get(op);
+    }
 
     /**
      * Add a new operator to the plan.  It will not be connected to any
@@ -131,6 +156,10 @@ public abstract class BaseOperatorPlan implements OperatorPlan {
         if (fromEdges.containsKey(op) || toEdges.containsKey(op)) {
             throw new FrontendException("Attempt to remove operator " + op.getName()
                     + " that is still connected in the plan", 2243);
+        }
+        if (softFromEdges.containsKey(op) || softToEdges.containsKey(op)) {
+            throw new FrontendException("Attempt to remove operator " + op.getName()
+                    + " that is still softly connected in the plan", 2243);
         }
         markDirty();
         ops.remove(op);
@@ -162,6 +191,26 @@ public abstract class BaseOperatorPlan implements OperatorPlan {
         markDirty();
         fromEdges.put(from, to);
         toEdges.put(to, from);
+    }
+    
+    /**
+     * Create an soft edge between two nodes.
+     * @param from Operator dependent upon
+     * @param to Operator having the dependency
+     */
+    public void createSoftLink(Operator from, Operator to) {
+        softFromEdges.put(from, to);
+        softToEdges.put(to, from);
+    }
+    
+    /**
+     * Remove an soft edge
+     * @param from Operator dependent upon
+     * @param to Operator having the dependency
+     */
+    public void removeSoftLink(Operator from, Operator to) {
+        softFromEdges.remove(from, to);
+        softToEdges.remove(to, from);
     }
     
     /**

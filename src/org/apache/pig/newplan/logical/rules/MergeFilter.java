@@ -84,6 +84,14 @@ public class MergeFilter extends Rule {
                     subPlan.add(op);
                 }
                 
+                // Since we remove next, we need to merge soft link into filter
+                List<Operator> nextSoftPreds = currentPlan.getSoftLinkPredecessors(next);
+                if (nextSoftPreds!=null) {
+                    for (Operator softPred : nextSoftPreds) {
+                        currentPlan.createSoftLink(softPred, filter);
+                    }
+                }
+                
                 currentPlan.remove(next);
             }
             

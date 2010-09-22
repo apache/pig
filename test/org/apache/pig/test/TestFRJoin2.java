@@ -178,7 +178,6 @@ public class TestFRJoin2 {
     
     // test scalar alias with file concatenation following 
     // a multi-query job
-    /*
     @Test
     public void testConcatenateJobForScalar3() throws Exception {
         PigServer pigServer = new PigServer(ExecType.MAPREDUCE, cluster
@@ -221,7 +220,7 @@ public class TestFRJoin2 {
         
         assertEquals(dbfrj.size(), dbshj.size());
         assertEquals(true, TestHelper.compareBags(dbfrj, dbshj));    
-    }*/
+    }
     
     @Test
     public void testConcatenateJobForFRJoin() throws Exception {

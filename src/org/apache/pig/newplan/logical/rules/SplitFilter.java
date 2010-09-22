@@ -54,7 +54,7 @@ public class SplitFilter extends Rule {
             LOFilter filter = (LOFilter)matched.getSources().get(0);
             LogicalExpressionPlan cond = filter.getFilterPlan();
             LogicalExpression root = (LogicalExpression) cond.getSources().get(0);
-            if (root instanceof AndExpression) {
+            if (root instanceof AndExpression && currentPlan.getSoftLinkPredecessors(filter)==null) {
                 return true;
             }
             

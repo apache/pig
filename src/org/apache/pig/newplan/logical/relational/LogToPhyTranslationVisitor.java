@@ -106,9 +106,7 @@ public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
     protected NodeIdGenerator nodeGen = NodeIdGenerator.getGenerator();
 
     protected PigContext pc;
-    
-    protected Map<PhysicalOperator, LogicalRelationalOperator> scalarAliasMap = new HashMap<PhysicalOperator, LogicalRelationalOperator>();
-    
+        
     public void setPigContext(PigContext pc) {
         this.pc = pc;
     }
@@ -208,7 +206,7 @@ public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
         //currentWalker.walk(this);
         currentWalker.walk(
                 new ExpToPhyTranslationVisitor( currentWalker.getPlan(), 
-                        childWalker, filter, currentPlan, logToPhyMap, scalarAliasMap ) );
+                        childWalker, filter, currentPlan, logToPhyMap ) );
         popWalker();
 
         poFilter.setPlan(currentPlan);
@@ -232,6 +230,8 @@ public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
             String msg = "Invalid physical operators in the physical plan" ;
             throw new LogicalToPhysicalTranslatorException(msg, errCode, PigException.BUG, e);
         }
+        
+        translateSoftLinks(filter);
 //        System.err.println("Exiting Filter");
     }
     
@@ -248,7 +248,7 @@ public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
             PlanWalker childWalker = new ReverseDependencyOrderWalker(plan);
             pushWalker(childWalker);
             childWalker.walk(new ExpToPhyTranslationVisitor( currentWalker.getPlan(), 
-                    childWalker, sort, currentPlan, logToPhyMap, scalarAliasMap ));
+                    childWalker, sort, currentPlan, logToPhyMap));
             sortPlans.add(currentPlan);
             popWalker();
         }
@@ -517,7 +517,7 @@ public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
             PlanWalker childWalker = new ReverseDependencyOrderWalker(exps.get(i));
             pushWalker(childWalker);
             childWalker.walk(new ExpToPhyTranslationVisitor(exps.get(i),
-                    childWalker, gen, currentPlan, logToPhyMap, scalarAliasMap ));            
+                    childWalker, gen, currentPlan, logToPhyMap));            
             popWalker();
             
             List<Operator> leaves = exps.get(i).getSinks();
@@ -590,6 +590,7 @@ public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
             throw new LogicalToPhysicalTranslatorException(msg, errCode, PigException.BUG, e);
         }
 
+        translateSoftLinks(foreach);
     }
     
     /**
@@ -623,7 +624,7 @@ public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
             currentWalker.walk(
                     new ExpToPhyTranslationVisitor( 
                             currentWalker.getPlan(), 
-                            childWalker, loj, currentPlan, logToPhyMap, scalarAliasMap ) );
+                            childWalker, loj, currentPlan, logToPhyMap) );
             
             exprPlans.add(currentPlan);
             popWalker();
@@ -706,6 +707,7 @@ public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
         default:
             throw new LogicalToPhysicalTranslatorException("Unknown CoGroup Modifier",PigException.BUG);
         }
+        translateSoftLinks(cg);
     }
     
     private void translateCollectedCogroup(LOCogroup cg) throws FrontendException {
@@ -1064,6 +1066,7 @@ public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
             logToPhyMap.put(loj, fe);
             poPackage.setPackageType(POPackage.PackageType.JOIN);
         }
+        translateSoftLinks(loj);
     }
     
     private POPackage compileToLR_GR_PackTrio(LogicalRelationalOperator relationalOp, String customPartitioner, 
@@ -1318,7 +1321,7 @@ public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
         //currentWalker.walk(this);
         currentWalker.walk(
                 new ExpToPhyTranslationVisitor( currentWalker.getPlan(), 
-                        childWalker, loSplitOutput, currentPlan, logToPhyMap, scalarAliasMap ) );
+                        childWalker, loSplitOutput, currentPlan, logToPhyMap) );
         popWalker();
 
         poFilter.setPlan(currentPlan);
@@ -1342,6 +1345,8 @@ public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
             String msg = "Invalid physical operators in the physical plan" ;
             throw new LogicalToPhysicalTranslatorException(msg, errCode, PigException.BUG, e);
         }
+        
+        translateSoftLinks(loSplitOutput);
 //        System.err.println("Exiting Filter");
     }
 
@@ -1402,9 +1407,15 @@ public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
         return true;
     }
     
-    public void finish() {
-        for(PhysicalOperator physOp: scalarAliasMap.keySet()) {
-            ((POUserFunc)physOp).setReferencedOperator(logToPhyMap.get(scalarAliasMap.get(physOp)));
+    private void translateSoftLinks(Operator op) throws FrontendException {
+        List<Operator> preds = op.getPlan().getSoftLinkPredecessors(op);
+
+        if (preds == null)
+            return;
+
+        for (Operator pred : preds) {
+            PhysicalOperator from = logToPhyMap.get(pred);
+            currentPlan.createSoftLink(from, logToPhyMap.get(op));
         }
     }
 }
