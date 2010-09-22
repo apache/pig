@@ -1189,7 +1189,7 @@ public class PigServer {
         return executeCompiledLogicalPlan(typeCheckedLp);
     }
     
-    private PigStats executeCompiledLogicalPlan(LogicalPlan compiledLp) throws ExecException {
+    private PigStats executeCompiledLogicalPlan(LogicalPlan compiledLp) throws ExecException, FrontendException {
         // discover pig features used in this script
         ScriptState.get().setScriptFeatures(compiledLp);
         PhysicalPlan pp = compilePp(compiledLp);
