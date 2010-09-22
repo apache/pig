@@ -538,4 +538,45 @@ public class TestScalarAliases  {
             assertTrue(pe.getCause().getMessage().equalsIgnoreCase("Scalars can be only used with projections"));
         }
     }
+    
+    // See PIG-1636
+    @Test
+    public void testScalarAliasesLimit() throws Exception{
+        String[] input = {
+                "a\t1",
+                "b\t2",
+                "c\t3",
+                "a\t4",
+                "c\t5"
+        };
+
+        // Test the use of scalars in expressions
+        Util.createLocalInputFile( "table_testScalarAliasesLimit", input);
+        // Test in script mode
+        pigServer.registerQuery("A = LOAD 'table_testScalarAliasesLimit' as (a0:chararray, a1: int);");
+        pigServer.registerQuery("G = group A all;");
+        pigServer.registerQuery("C = foreach G generate SUM(A.$1) as total;");
+        pigServer.registerQuery("C1 = limit C 1;");
+        pigServer.registerQuery("Y = foreach A generate a0, a1 * (double)C1.total;");
+
+        Iterator<Tuple> iter = pigServer.openIterator("Y");
+
+        // Average is 11
+        Tuple t = iter.next();
+        assertTrue(t.toString().equals("(a,15.0)"));
+
+        t = iter.next();
+        assertTrue(t.toString().equals("(b,30.0)"));
+
+        t = iter.next();
+        assertTrue(t.toString().equals("(c,45.0)"));
+
+        t = iter.next();
+        assertTrue(t.toString().equals("(a,60.0)"));
+
+        t = iter.next();
+        assertTrue(t.toString().equals("(c,75.0)"));
+
+        assertFalse(iter.hasNext());
+    }
 }

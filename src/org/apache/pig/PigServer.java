@@ -1277,6 +1277,7 @@ public class PigServer {
                             fileSpec, alias);
                     referredPlan.addAsLeaf(store);
                     ((LOStore)store).setTmpStore(true);
+                    scalarEntry.getKey().setImplicitReferencedOperator(store);
                 }
                 lp.mergeSharedPlan(referredPlan);
 
