@@ -243,10 +243,8 @@ public class MRCompiler extends PhyPlanVisitor {
         for(MapReduceOper mrOp: mrOpList) {
             for(PhysicalOperator scalar: mrOp.scalars) {                
                 MapReduceOper mro = phyToMROpMap.get(scalar);
-                List<PhysicalOperator> succs = plan.getSuccessors(scalar);
-                if (succs.size() == 1 && succs.get(0) instanceof POStore) {                                   
-                    POStore sto = (POStore)plan.getSuccessors(scalar).get(0);  
-                    FileSpec oldSpec = sto.getSFile();
+                if (scalar instanceof POStore) {                                     
+                    FileSpec oldSpec = ((POStore)scalar).getSFile();
                     MapReduceOper mro2 = seen.get(oldSpec);
                     boolean hasSeen = false;
                     if (mro2 != null) {
