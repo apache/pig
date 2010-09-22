@@ -1052,7 +1052,8 @@ public class MRCompiler extends PhyPlanVisitor {
             LoadFunc loadFunc = ((POLoad)phyOp).getLoadFunc();
             try {
                 if(!(CollectableLoadFunc.class.isAssignableFrom(loadFunc.getClass()))){
-                    throw new MRCompilerException("While using 'collected' on group; data must be loaded via loader implementing CollectableLoadFunc.");
+                    int errCode = 2249;
+                    throw new MRCompilerException("While using 'collected' on group; data must be loaded via loader implementing CollectableLoadFunc.", errCode);
                 }
                 ((CollectableLoadFunc)loadFunc).ensureAllKeyInstancesInSameSplit();
             } catch (MRCompilerException e){
@@ -1077,8 +1078,9 @@ public class MRCompiler extends PhyPlanVisitor {
             }    
         }
         else if(!curMROp.reduceDone){
+        	int errCode=2250;
             String msg = "Blocking operators are not allowed before Collected Group. Consider dropping using 'collected'.";
-            throw new MRCompilerException(msg, PigException.BUG);   
+            throw new MRCompilerException(msg, errCode, PigException.BUG);   
         }
         else{
             int errCode = 2022;
@@ -1336,9 +1338,10 @@ public class MRCompiler extends PhyPlanVisitor {
     public void visitMergeCoGroup(POMergeCogroup poCoGrp) throws VisitorException {
 
         if(compiledInputs.length < 2){
+            int errCode=2251;
             String errMsg = "Merge Cogroup work on two or more relations." +
             		"To use map-side group-by on single relation, use 'collected' qualifier.";
-            throw new MRCompilerException(errMsg);
+            throw new MRCompilerException(errMsg, errCode);
         }
             
         List<FuncSpec> funcSpecs = new ArrayList<FuncSpec>(compiledInputs.length-1);
@@ -1372,14 +1375,18 @@ public class MRCompiler extends PhyPlanVisitor {
                 LoadFunc loadfunc = sideLoader.getLoadFunc();
                 if(i == 0){
                     
-                    if(!(CollectableLoadFunc.class.isAssignableFrom(loadfunc.getClass())))
-                        throw new MRCompilerException("Base loader in Cogroup must implement CollectableLoadFunc.");
+                    if(!(CollectableLoadFunc.class.isAssignableFrom(loadfunc.getClass()))){
+                    	int errCode = 2252;
+                        throw new MRCompilerException("Base loader in Cogroup must implement CollectableLoadFunc.", errCode);
+                    }
                     
                     ((CollectableLoadFunc)loadfunc).ensureAllKeyInstancesInSameSplit();
                     continue;
                 }
-                if(!(IndexableLoadFunc.class.isAssignableFrom(loadfunc.getClass())))
-                    throw new MRCompilerException("Side loaders in cogroup must implement IndexableLoadFunc.");
+                if(!(IndexableLoadFunc.class.isAssignableFrom(loadfunc.getClass()))){
+                    int errCode = 2253;
+                    throw new MRCompilerException("Side loaders in cogroup must implement IndexableLoadFunc.", errCode);
+                }
                 
                 funcSpecs.add(funcSpec);
                 fileSpecs.add(loadFileSpec.getFileName());
@@ -1393,8 +1400,10 @@ public class MRCompiler extends PhyPlanVisitor {
             
             // Use map-reduce operator of base relation for the cogroup operation.
             MapReduceOper baseMROp = phyToMROpMap.get(poCoGrp.getInputs().get(0));
-            if(baseMROp.mapDone || !baseMROp.reducePlan.isEmpty())
-                throw new MRCompilerException("Currently merged cogroup is not supported after blocking operators.");
+            if(baseMROp.mapDone || !baseMROp.reducePlan.isEmpty()){
+                int errCode = 2254;
+                throw new MRCompilerException("Currently merged cogroup is not supported after blocking operators.", errCode);
+            }
             
             // Create new map-reduce operator for indexing job and then configure it.
             MapReduceOper indexerMROp = getMROp();
@@ -1518,8 +1527,10 @@ public class MRCompiler extends PhyPlanVisitor {
     public void visitMergeJoin(POMergeJoin joinOp) throws VisitorException {
 
         try{
-            if(compiledInputs.length != 2 || joinOp.getInputs().size() != 2)
-                throw new MRCompilerException("Merge Join must have exactly two inputs. Found : "+compiledInputs.length, 1101);
+            if(compiledInputs.length != 2 || joinOp.getInputs().size() != 2){
+                int errCode=1101;
+                throw new MRCompilerException("Merge Join must have exactly two inputs. Found : "+compiledInputs.length, errCode);
+            }
 
             OperatorKey leftPhyOpKey = joinOp.getInputs().get(0).getOperatorKey();
             OperatorKey rightPhyOpKey = joinOp.getInputs().get(1).getOperatorKey();
@@ -1819,7 +1830,8 @@ public class MRCompiler extends PhyPlanVisitor {
     public void visitSkewedJoin(POSkewedJoin op) throws VisitorException {
 		try {
 			if (compiledInputs.length != 2) {
-				throw new VisitorException("POSkewedJoin operator has " + compiledInputs.length + " inputs. It should have 2.");
+				int errCode = 2255;
+				throw new VisitorException("POSkewedJoin operator has " + compiledInputs.length + " inputs. It should have 2.", errCode);
 			}
 			
 			//change plan to store the first join input into a temp file

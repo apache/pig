@@ -287,7 +287,7 @@ public class HExecutionEngine {
     }
 
     public List<ExecJob> execute(PhysicalPlan plan,
-                                 String jobName) throws ExecException {
+                                 String jobName) throws ExecException, FrontendException {
         MapReduceLauncher launcher = new MapReduceLauncher();
         List<ExecJob> jobs = new ArrayList<ExecJob>();
 
@@ -319,8 +319,11 @@ public class HExecutionEngine {
         } catch (Exception e) {
             // There are a lot of exceptions thrown by the launcher.  If this
             // is an ExecException, just let it through.  Else wrap it.
-            if (e instanceof ExecException) throw (ExecException)e;
-            else {
+            if (e instanceof ExecException){
+            	throw (ExecException)e;
+            } else if (e instanceof FrontendException) {
+            	throw (FrontendException)e;
+            } else {
                 int errCode = 2043;
                 String msg = "Unexpected error during execution.";
                 throw new ExecException(msg, errCode, PigException.BUG, e);
