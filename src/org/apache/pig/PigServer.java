@@ -96,6 +96,7 @@ import org.apache.pig.impl.plan.CompilationMessageCollector.MessageType;
 import org.apache.pig.impl.streaming.StreamingCommand;
 import org.apache.pig.impl.util.LogUtils;
 import org.apache.pig.impl.util.ObjectSerializer;
+import org.apache.pig.impl.util.Pair;
 import org.apache.pig.impl.util.PropertiesUtil;
 import org.apache.pig.impl.util.Utils;
 import org.apache.pig.newplan.logical.LogicalPlanMigrationVistor;
@@ -927,7 +928,6 @@ public class PigServer {
             if( pigContext.getProperties().getProperty("pig.usenewlogicalplan", "true").equals("true") ) {
                 LogicalPlanMigrationVistor migrator = new LogicalPlanMigrationVistor(lp);
                 migrator.visit();
-                migrator.finish();
                 org.apache.pig.newplan.logical.relational.LogicalPlan newPlan = migrator.getNewLogicalPlan();
                 
                 HashSet<String> optimizerRules = null;
@@ -1248,10 +1248,10 @@ public class PigServer {
         ScalarFinder scalarFinder = new ScalarFinder(lp);
         scalarFinder.visit();
 
-        Map<LOUserFunc, LogicalPlan> scalarMap = scalarFinder.getScalarMap();
+        Map<LOUserFunc, Pair<LogicalPlan, LogicalOperator>> scalarMap = scalarFinder.getScalarMap();
 
         try {
-            for(Map.Entry<LOUserFunc, LogicalPlan> scalarEntry: scalarMap.entrySet()) {
+            for(Map.Entry<LOUserFunc, Pair<LogicalPlan, LogicalOperator>> scalarEntry: scalarMap.entrySet()) {
                 FileSpec fileSpec;
                 String alias = scalarEntry.getKey().getImplicitReferencedOperator().getAlias();
                 LogicalOperator store;
@@ -1281,12 +1281,15 @@ public class PigServer {
                 lp.mergeSharedPlan(referredPlan);
 
                 // Attach a constant operator to the ReadScalar func
-                LogicalPlan innerPlan = scalarEntry.getValue();
+                LogicalPlan innerPlan = scalarEntry.getValue().first;
                 LOConst rconst = new LOConst(innerPlan, new OperatorKey(scope, NodeIdGenerator.getGenerator().getNextNodeId(scope)), fileSpec.getFileName());
                 rconst.setType(DataType.CHARARRAY);
 
                 innerPlan.add(rconst);
                 innerPlan.connect(rconst, scalarEntry.getKey());
+                
+                if (lp.getSoftLinkSuccessors(store)==null || !lp.getSoftLinkSuccessors(store).contains(scalarEntry.getValue().second))
+                    lp.createSoftLink(store, scalarEntry.getValue().second);
             }
         } catch (IOException ioe) {
             int errCode = 2219;

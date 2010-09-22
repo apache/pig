@@ -71,6 +71,8 @@ public abstract class OperatorPlan<E extends Operator> implements Iterable<E>, S
     protected Map<OperatorKey, E> mKeys;
     protected MultiMap<E, E> mFromEdges;
     protected MultiMap<E, E> mToEdges;
+    protected MultiMap<E, E> mSoftFromEdges;
+    protected MultiMap<E, E> mSoftToEdges;
 
     private List<E> mRoots;
     private List<E> mLeaves;
@@ -83,6 +85,8 @@ public abstract class OperatorPlan<E extends Operator> implements Iterable<E>, S
         mKeys = new HashMap<OperatorKey, E>();
         mFromEdges = new MultiMap<E, E>();
         mToEdges = new MultiMap<E, E>();
+        mSoftFromEdges = new MultiMap<E, E>();
+        mSoftToEdges = new MultiMap<E, E>();
     }
 
     /**
@@ -193,7 +197,32 @@ public abstract class OperatorPlan<E extends Operator> implements Iterable<E>, S
         mFromEdges.put(from, to);
         mToEdges.put(to, from);
     }
+    
+    /**
+     * Create an soft edge between two nodes.
+     * @param from Operator dependent upon.
+     * @param to Operator having the dependency.
+     * @throws PlanException if the nodes is not in plan
+     */
+    public void createSoftLink(E from, E to) throws PlanException {
+        // Check that both nodes are in the plan.
+        checkInPlan(from);
+        checkInPlan(to);
 
+        mSoftFromEdges.put(from, to);
+        mSoftToEdges.put(to, from);
+    }
+
+    /**
+     * Remove an soft edge
+     * @param from Operator dependent upon
+     * @param to Operator having the dependency
+     */
+    public void removeSoftLink(E from, E to) {
+        mSoftFromEdges.remove(from, to);
+        mSoftToEdges.remove(to, from);
+    }
+    
     /**
      * Remove an edge from between two nodes. 
      * Use {@link org.apache.pig.impl.plan.OperatorPlan#insertBetween(Operator, Operator, Operator)} 
@@ -224,6 +253,9 @@ public abstract class OperatorPlan<E extends Operator> implements Iterable<E>, S
 
         removeEdges(op, mFromEdges, mToEdges);
         removeEdges(op, mToEdges, mFromEdges);
+        
+        removeEdges(op, mSoftFromEdges, mSoftToEdges);
+        removeEdges(op, mSoftToEdges, mSoftFromEdges);
 
         // Remove the operator from nodes
         mOps.remove(op);
@@ -302,6 +334,27 @@ public abstract class OperatorPlan<E extends Operator> implements Iterable<E>, S
      */
     public List<E> getSuccessors(E op) {
         return (List<E>)mFromEdges.get(op);
+    }
+    
+    /**
+     * Find all of the nodes that have soft edges to the indicated node from
+     * themselves.
+     * @param op Node to look to
+     * @return Collection of nodes.
+     */
+    public List<E> getSoftLinkPredecessors(E op) {
+        return (List<E>)mSoftToEdges.get(op);
+    }
+
+
+    /**
+     * Find all of the nodes that have soft edges from the indicated node to
+     * themselves.
+     * @param op Node to look from
+     * @return Collection of nodes.
+     */
+    public List<E> getSoftLinkSuccessors(E op) {
+        return (List<E>)mSoftFromEdges.get(op);
     }
     
     /**

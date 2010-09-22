@@ -73,8 +73,6 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
 
     protected PigContext pc;
     
-    protected Map<PhysicalOperator, LogicalOperator> scalarAliasMap = new HashMap<PhysicalOperator, LogicalOperator>();
-
     public LogToPhyTranslationVisitor(LogicalPlan plan) {
         super(plan, new DependencyOrderWalker<LogicalOperator, LogicalPlan>(
                 plan));
@@ -83,12 +81,7 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
         currentPlan = new PhysicalPlan();
         logToPhyMap = new HashMap<LogicalOperator, PhysicalOperator>();
     }
-    
-    public void finish() {
-        for(PhysicalOperator physOp: scalarAliasMap.keySet()) {
-            ((POUserFunc)physOp).setReferencedOperator(logToPhyMap.get(scalarAliasMap.get(physOp)));
-        }
-    }
+
     public void setPigContext(PigContext pc) {
         this.pc = pc;
     }
@@ -718,6 +711,8 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
         default:
             throw new LogicalToPhysicalTranslatorException("Unknown CoGroup Modifier",PigException.BUG);
         }
+        
+        translateSoftLinks(cg);
     }
     
     private boolean validateMergeCogrp(boolean[] innerFlags){
@@ -1148,6 +1143,8 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
             logToPhyMap.put(loj, fe);
             poPackage.setPackageType(PackageType.JOIN);
 		}
+		
+		translateSoftLinks(loj);
 	}
 	
 	private POForEach compileFE4Flattening(boolean[] innerFlags,String scope, 
@@ -1281,6 +1278,8 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
             String msg = "Invalid physical operators in the physical plan" ;
             throw new LogicalToPhysicalTranslatorException(msg, errCode, PigException.BUG, e);
         }
+        
+        translateSoftLinks(filter);
     }
 
     @Override
@@ -1395,7 +1394,8 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
             String msg = "Invalid physical operators in the physical plan" ;
             throw new LogicalToPhysicalTranslatorException(msg, errCode, PigException.BUG, e);
         }
-
+        
+        translateSoftLinks(g);
     }
 
     @Override
@@ -1588,6 +1588,8 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
             String msg = "Invalid physical operators in the physical plan" ;
             throw new LogicalToPhysicalTranslatorException(msg, errCode, PigException.BUG, e);
         }
+        
+        translateSoftLinks(split);
     }
 
     @Override
@@ -1623,10 +1625,10 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
         logToPhyMap.put(func, p);
         
         // We need to track all the scalars
-        if(func.getImplicitReferencedOperator() != null) {
-            scalarAliasMap.put(p, func.getImplicitReferencedOperator());
+        if (func.getImplicitReferencedOperator()!=null) {
+            PhysicalOperator referredOp = logToPhyMap.get(func.getImplicitReferencedOperator());
+            ((POUserFunc)p).setReferencedOperator(referredOp);
         }
-
     }
 
     @Override
@@ -1969,5 +1971,22 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
             }
         }
     }
+    
+    private void translateSoftLinks(LogicalOperator op) throws VisitorException  {
+        List<LogicalOperator> preds = op.getPlan().getSoftLinkPredecessors(op);
 
+        if (preds == null)
+            return;
+
+        try {
+            for (LogicalOperator pred : preds) {
+                PhysicalOperator from = logToPhyMap.get(pred);
+                currentPlan.createSoftLink(from, logToPhyMap.get(op));
+            }
+        } catch (PlanException e) {
+            int errorCode = 2015;
+            String msg = "Cannot translate soft link";
+            throw new VisitorException(msg, errorCode, PigException.BUG, e);
+        }
+    }
 }

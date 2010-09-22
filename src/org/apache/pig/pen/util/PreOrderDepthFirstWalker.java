@@ -29,6 +29,7 @@ import org.apache.pig.impl.plan.OperatorPlan;
 import org.apache.pig.impl.plan.PlanVisitor;
 import org.apache.pig.impl.plan.PlanWalker;
 import org.apache.pig.impl.plan.VisitorException;
+import org.apache.pig.impl.util.Utils;
 
 public class PreOrderDepthFirstWalker<O extends Operator, P extends OperatorPlan<O>>
         extends PlanWalker<O, P> {
@@ -68,7 +69,7 @@ public class PreOrderDepthFirstWalker<O extends Operator, P extends OperatorPlan
         for (O pred : predecessors) {
             if (seen.add(pred)) {
                 pred.visit(visitor);
-                Collection<O> newPredecessors = mPlan.getPredecessors(pred);
+                Collection<O> newPredecessors = Utils.mergeCollection(mPlan.getPredecessors(pred), mPlan.getSoftLinkPredecessors(pred));
                 depthFirst(pred, newPredecessors, seen, visitor);
             }
         }

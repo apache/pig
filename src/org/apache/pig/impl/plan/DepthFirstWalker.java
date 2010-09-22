@@ -22,6 +22,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.pig.impl.util.Utils;
+
 
 /**
  * DepthFirstWalker traverses a plan in a depth first manner.  One important note
@@ -65,7 +67,7 @@ public class DepthFirstWalker <O extends Operator, P extends OperatorPlan<O>>
         for (O suc : successors) {
             if (seen.add(suc)) {
                 suc.visit(visitor);
-                Collection<O> newSuccessors = mPlan.getSuccessors(suc);
+                Collection<O> newSuccessors = Utils.mergeCollection(mPlan.getSuccessors(suc), mPlan.getSoftLinkSuccessors(suc));
                 depthFirst(suc, newSuccessors, seen, visitor);
             }
         }

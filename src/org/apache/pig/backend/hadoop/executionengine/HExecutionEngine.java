@@ -240,7 +240,6 @@ public class HExecutionEngine {
                 // translate old logical plan to new plan
                 LogicalPlanMigrationVistor visitor = new LogicalPlanMigrationVistor(plan);
                 visitor.visit();
-                visitor.finish();
                 org.apache.pig.newplan.logical.relational.LogicalPlan newPlan = visitor.getNewLogicalPlan();
                 
                 SchemaResetter schemaResetter = new SchemaResetter(newPlan);
@@ -268,7 +267,6 @@ public class HExecutionEngine {
                 
                 translator.setPigContext(pigContext);
                 translator.visit();
-                translator.finish();
                 return translator.getPhysicalPlan();
                 
             }else{       
@@ -276,7 +274,6 @@ public class HExecutionEngine {
                     new LogToPhyTranslationVisitor(plan);
                 translator.setPigContext(pigContext);
                 translator.visit();
-                translator.finish();
                 return translator.getPhysicalPlan();
             }
         } catch (Exception ve) {

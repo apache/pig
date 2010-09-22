@@ -19,6 +19,7 @@
 package org.apache.pig.newplan.logical.rules;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -39,6 +40,7 @@ import org.apache.pig.newplan.optimizer.Rule;
 import org.apache.pig.newplan.optimizer.Transformer;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.util.Pair;
+import org.apache.pig.impl.util.Utils;
 
 public class MergeForEach extends Rule {
 
@@ -221,6 +223,33 @@ public class MergeForEach extends Rule {
             // remove foreach1, foreach2, add new foreach
             Operator pred = currentPlan.getPredecessors(foreach1).get(0);
             Operator succ = currentPlan.getSuccessors(foreach2).get(0);
+            
+            // rebuild soft link
+            Collection<Operator> newSoftLinkPreds = Utils.mergeCollection(currentPlan.getSoftLinkPredecessors(foreach1), 
+                    currentPlan.getSoftLinkPredecessors(foreach2));
+            
+            Collection<Operator> foreach1SoftLinkPred = null;
+            if (currentPlan.getSoftLinkPredecessors(foreach1)!=null) {
+                foreach1SoftLinkPred = new ArrayList<Operator>();
+                foreach1SoftLinkPred.addAll(currentPlan.getSoftLinkPredecessors(foreach1));
+            }
+            if (foreach1SoftLinkPred!=null) {
+                for (Operator softPred : foreach1SoftLinkPred) {
+                    currentPlan.removeSoftLink(softPred, foreach1);
+                }
+            }
+            
+            Collection<Operator> foreach2SoftLinkPred = null;
+            if (currentPlan.getSoftLinkPredecessors(foreach2)!=null) {
+                foreach2SoftLinkPred = new ArrayList<Operator>();
+                foreach2SoftLinkPred.addAll(currentPlan.getSoftLinkPredecessors(foreach2));
+            }
+            if (foreach2SoftLinkPred!=null) {
+                for (Operator softPred : foreach2SoftLinkPred) {
+                    currentPlan.removeSoftLink(softPred, foreach2);
+                }
+            }
+            
             Pair<Integer, Integer> pos = currentPlan.disconnect(pred, foreach1);
             currentPlan.disconnect(foreach1, foreach2);
             currentPlan.disconnect(foreach2, succ);
@@ -230,6 +259,12 @@ public class MergeForEach extends Rule {
             currentPlan.add(newForEach);
             currentPlan.connect(pred, pos.first, newForEach, pos.second);
             currentPlan.connect(newForEach, succ);
+            
+            if (newSoftLinkPreds!=null) {
+                for (Operator softPred : newSoftLinkPreds) {
+                    currentPlan.createSoftLink(softPred, newForEach);
+                }
+            }
             
             subPlan.add(newForEach);
         }

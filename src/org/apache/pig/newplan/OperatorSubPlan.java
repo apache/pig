@@ -153,5 +153,25 @@ public class OperatorSubPlan implements OperatorPlan {
     @Override
     public boolean isEqual(OperatorPlan other) throws FrontendException {		
         return BaseOperatorPlan.isEqual(this, other);
+    }
+
+    @Override
+    public void createSoftLink(Operator from, Operator to) {
+        throw new UnsupportedOperationException("connect() can not be called on OperatorSubPlan");
+    }
+    
+    @Override
+    public void removeSoftLink(Operator from, Operator to) {
+        throw new UnsupportedOperationException("connect() can not be called on OperatorSubPlan");
+    }
+
+    @Override
+    public List<Operator> getSoftLinkPredecessors(Operator op) {
+        return basePlan.getSoftLinkPredecessors(op);
+    }
+
+    @Override
+    public List<Operator> getSoftLinkSuccessors(Operator op) {
+        return basePlan.getSoftLinkSuccessors(op);
     }    
 }

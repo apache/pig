@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.Set;
 
 import org.apache.pig.impl.logicalLayer.FrontendException;
+import org.apache.pig.impl.util.Utils;
 
 /**
  * Do a depth first traversal of the graph.
@@ -61,7 +62,7 @@ public class DepthFirstWalker extends PlanWalker {
         for (Operator suc : successors) {
             if (seen.add(suc)) {
                 suc.accept(visitor);
-                Collection<Operator> newSuccessors = plan.getSuccessors(suc);
+                Collection<Operator> newSuccessors = Utils.mergeCollection(plan.getSuccessors(suc), plan.getSoftLinkSuccessors(suc));
                 depthFirst(suc, newSuccessors, seen, visitor);
             }
         }

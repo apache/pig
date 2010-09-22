@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Set;
 
 import org.apache.pig.impl.logicalLayer.FrontendException;
+import org.apache.pig.impl.util.Utils;
 
 /**
  * Visit a plan in the reverse of the dependency order.  That is, every node
@@ -75,7 +76,7 @@ public class ReverseDependencyOrderWalker extends PlanWalker {
                                    Collection<Operator> fifo) throws FrontendException {
         if (!seen.contains(node)) {
             // We haven't seen this one before.
-            Collection<Operator> succs = plan.getSuccessors(node);
+            Collection<Operator> succs = Utils.mergeCollection(plan.getSuccessors(node), plan.getSoftLinkSuccessors(node));
             if (succs != null && succs.size() > 0) {
                 // Do all our successors before ourself
                 for (Operator op : succs) {
