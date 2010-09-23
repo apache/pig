@@ -68,7 +68,7 @@ public class TFileStorage extends FileInputLoadFunc implements
      * Simple binary nested reader format
      */
     public TFileStorage() throws IOException {
-        mLog.info("TFile storage in use");
+        mLog.debug("TFile storage in use");
     }
 
     @Override
