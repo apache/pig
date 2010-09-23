@@ -58,7 +58,7 @@ public class TestTmpFileCompression {
             logFile.delete();
         Logger logger = Logger.getLogger(clazz);
         logger.removeAllAppenders();
-        logger.setLevel(Level.INFO);
+        logger.setLevel(Level.DEBUG);
         SimpleLayout layout = new SimpleLayout();
         logFile = File.createTempFile("log", "");
         FileAppender appender = new FileAppender(layout, logFile.toString(),

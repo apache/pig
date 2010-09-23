@@ -69,7 +69,7 @@ implements StoreFuncInterface, LoadMetadata {
      * Simple binary nested reader format
      */
     public InterStorage() {
-        mLog.info("Pig Internal storage in use");
+        mLog.debug("Pig Internal storage in use");
     }
 
     @Override
