@@ -198,6 +198,9 @@ PIG-1309: Map-side Cogroup (ashutoshc)
 
 BUG FIXES
 
+PIG-1639: New logical plan: PushUpFilter should not push before group/cogroup 
+if filter condition contains UDF (xuefuz via daijy)
+
 PIG-1643: join fails for a query with input having 'load using pigstorage
 without schema' + 'foreach' (thejas)
 
