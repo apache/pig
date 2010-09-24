@@ -19,31 +19,43 @@
 package org.apache.pig.test;
 
 import java.util.*;
+
+import org.apache.pig.ExecType;
 import org.apache.pig.data.DataType;
+import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.logicalLayer.FrontendException;
+import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.util.MultiMap;
 import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.OperatorPlan;
+import org.apache.pig.newplan.logical.LogicalPlanMigrationVistor;
 import org.apache.pig.newplan.logical.expression.*;
+import org.apache.pig.newplan.logical.optimizer.LogicalPlanOptimizer;
 import org.apache.pig.newplan.logical.optimizer.ProjectionPatcher;
 import org.apache.pig.newplan.logical.optimizer.SchemaPatcher;
+import org.apache.pig.newplan.logical.relational.LOCogroup;
 import org.apache.pig.newplan.logical.relational.LOFilter;
+import org.apache.pig.newplan.logical.relational.LOForEach;
 import org.apache.pig.newplan.logical.relational.LOJoin;
 import org.apache.pig.newplan.logical.relational.LOLoad;
 import org.apache.pig.newplan.logical.relational.LOStore;
 import org.apache.pig.newplan.logical.relational.LogicalPlan;
 import org.apache.pig.newplan.logical.relational.LogicalRelationalOperator;
 import org.apache.pig.newplan.logical.relational.LogicalSchema;
+import org.apache.pig.newplan.logical.rules.LoadTypeCastInserter;
 import org.apache.pig.newplan.logical.rules.MergeFilter;
 import org.apache.pig.newplan.logical.rules.PushUpFilter;
 import org.apache.pig.newplan.logical.rules.SplitFilter;
 import org.apache.pig.newplan.optimizer.PlanOptimizer;
 import org.apache.pig.newplan.optimizer.PlanTransformListener;
 import org.apache.pig.newplan.optimizer.Rule;
+import org.apache.pig.test.utils.LogicalPlanTester;
+import org.junit.Assert;
+import org.junit.Test;
 
-import junit.framework.TestCase;
-
-public class TestNewPlanFilterRule extends TestCase {
+public class TestNewPlanFilterRule {
+    PigContext pc = new PigContext(ExecType.LOCAL, new Properties());
+    LogicalPlanTester planTester = new LogicalPlanTester(pc) ;
 
     LogicalPlan plan = null;
     LogicalRelationalOperator load1 = null;
@@ -124,6 +136,7 @@ public class TestNewPlanFilterRule extends TestCase {
         load2 = l2;
     }
     
+    @Test
     public void testFilterRule() throws Exception  {
         prep();
         // run split filter rule
@@ -135,8 +148,8 @@ public class TestNewPlanFilterRule extends TestCase {
         MyPlanOptimizer optimizer = new MyPlanOptimizer(plan, ls, 3);
         optimizer.optimize();
         
-        assertEquals(plan.getPredecessors(filter).get(0), join);
-        assertEquals(plan.getSuccessors(filter).get(0), store);
+        Assert.assertEquals(plan.getPredecessors(filter).get(0), join);
+        Assert.assertEquals(plan.getSuccessors(filter).get(0), store);
         
         // run push up filter rule
         r = new PushUpFilter("PushUpFilter");
@@ -148,9 +161,9 @@ public class TestNewPlanFilterRule extends TestCase {
         optimizer.optimize();
         
         // the filter should be moved up to be after load
-        assertEquals(plan.getSuccessors(load1).get(0), filter);
-        assertEquals(plan.getSuccessors(filter).get(0), join);
-        assertEquals(plan.getSuccessors(join).get(0), store);
+        Assert.assertEquals(plan.getSuccessors(load1).get(0), filter);
+        Assert.assertEquals(plan.getSuccessors(filter).get(0), join);
+        Assert.assertEquals(plan.getSuccessors(join).get(0), store);
         
         // run merge filter rule
         r = new MergeFilter("MergeFilter");
@@ -162,12 +175,13 @@ public class TestNewPlanFilterRule extends TestCase {
         optimizer.optimize();
         
         // the filter should the same as before, nothing to merge
-        assertEquals(plan.getSuccessors(load1).get(0), filter);
-        assertEquals(plan.getSuccessors(filter).get(0), join);
-        assertEquals(plan.getSuccessors(join).get(0), store);
+        Assert.assertEquals(plan.getSuccessors(load1).get(0), filter);
+        Assert.assertEquals(plan.getSuccessors(filter).get(0), join);
+        Assert.assertEquals(plan.getSuccessors(join).get(0), store);
     }
         
     // build an expression with 1 AND, it should split into 2 filters
+    @Test
     public void testFilterRuleWithAnd() throws Exception  {
         prep();
         
@@ -199,11 +213,11 @@ public class TestNewPlanFilterRule extends TestCase {
         PlanOptimizer optimizer = new MyPlanOptimizer(plan, ls, 3);
         optimizer.optimize();
         
-        assertEquals(plan.getPredecessors(filter).get(0), join);
+        Assert.assertEquals(plan.getPredecessors(filter).get(0), join);
         Operator next = plan.getSuccessors(filter).get(0);
-        assertEquals(LOFilter.class, next.getClass());        
+        Assert.assertEquals(LOFilter.class, next.getClass());        
         next = plan.getSuccessors(next).get(0);
-        assertEquals(LOStore.class, next.getClass());
+        Assert.assertEquals(LOStore.class, next.getClass());
         
         // run push up filter rule
         r = new PushUpFilter("PushUpFilter");
@@ -216,14 +230,14 @@ public class TestNewPlanFilterRule extends TestCase {
         
         // both filters should be moved up to be after each load
         next = plan.getSuccessors(load1).get(0);
-        assertEquals(next.getClass(), LOFilter.class);
-        assertEquals(plan.getSuccessors(next).get(0), join);
+        Assert.assertEquals(next.getClass(), LOFilter.class);
+        Assert.assertEquals(plan.getSuccessors(next).get(0), join);
         
         next = plan.getSuccessors(load2).get(0);
-        assertEquals(next.getClass(), LOFilter.class);
-        assertEquals(plan.getSuccessors(next).get(0), join);
+        Assert.assertEquals(next.getClass(), LOFilter.class);
+        Assert.assertEquals(plan.getSuccessors(next).get(0), join);
         
-        assertEquals(plan.getSuccessors(join).get(0), store);
+        Assert.assertEquals(plan.getSuccessors(join).get(0), store);
         
         // run merge filter rule
         r = new MergeFilter("MergeFilter");
@@ -236,16 +250,17 @@ public class TestNewPlanFilterRule extends TestCase {
         
         // the filters should the same as before, nothing to merge
         next = plan.getSuccessors(load1).get(0);
-        assertEquals(next.getClass(), LOFilter.class);
-        assertEquals(plan.getSuccessors(next).get(0), join);
+        Assert.assertEquals(next.getClass(), LOFilter.class);
+        Assert.assertEquals(plan.getSuccessors(next).get(0), join);
         
         next = plan.getSuccessors(load2).get(0);
-        assertEquals(next.getClass(), LOFilter.class);
-        assertEquals(plan.getSuccessors(next).get(0), join);
+        Assert.assertEquals(next.getClass(), LOFilter.class);
+        Assert.assertEquals(plan.getSuccessors(next).get(0), join);
         
-        assertEquals(plan.getSuccessors(join).get(0), store);
+        Assert.assertEquals(plan.getSuccessors(join).get(0), store);
     }
     
+    @Test
     public void testFilterRuleWith2And() throws Exception  {
         prep();
         // build an expression with 2 AND, it should split into 3 filters
@@ -287,16 +302,16 @@ public class TestNewPlanFilterRule extends TestCase {
         optimizer.addPlanTransformListener(listener);
         optimizer.optimize();
         
-        assertEquals(plan.getPredecessors(filter).get(0), join);
+        Assert.assertEquals(plan.getPredecessors(filter).get(0), join);
         Operator next = plan.getSuccessors(filter).get(0);
-        assertEquals(next.getClass(), LOFilter.class);
+        Assert.assertEquals(next.getClass(), LOFilter.class);
         next = plan.getSuccessors(next).get(0);
-        assertEquals(next.getClass(), LOFilter.class);
+        Assert.assertEquals(next.getClass(), LOFilter.class);
         next = plan.getSuccessors(next).get(0);
-        assertEquals(LOStore.class, next.getClass());
+        Assert.assertEquals(LOStore.class, next.getClass());
         
         OperatorPlan transformed = listener.getTransformed();
-        assertEquals(transformed.size(), 3);
+        Assert.assertEquals(transformed.size(), 3);
         
         // run push up filter rule
         r = new PushUpFilter("PushUpFilter");
@@ -311,21 +326,21 @@ public class TestNewPlanFilterRule extends TestCase {
         
         // 2 filters should be moved up to be after each load, and one filter should remain
         next = plan.getSuccessors(load1).get(0);
-        assertEquals(next.getClass(), LOFilter.class);
-        assertEquals(plan.getSuccessors(next).get(0), join);
+        Assert.assertEquals(next.getClass(), LOFilter.class);
+        Assert.assertEquals(plan.getSuccessors(next).get(0), join);
         
         next = plan.getSuccessors(load2).get(0);
-        assertEquals(next.getClass(), LOFilter.class);
-        assertEquals(plan.getSuccessors(next).get(0), join);
+        Assert.assertEquals(next.getClass(), LOFilter.class);
+        Assert.assertEquals(plan.getSuccessors(next).get(0), join);
         
         next = plan.getSuccessors(join).get(0);
-        assertEquals(next.getClass(), LOFilter.class);
+        Assert.assertEquals(next.getClass(), LOFilter.class);
         
         next = plan.getSuccessors(next).get(0);
-        assertEquals(next.getClass(), LOStore.class);
+        Assert.assertEquals(next.getClass(), LOStore.class);
         
         transformed = listener.getTransformed();
-        assertEquals(transformed.size(), 7);
+        Assert.assertEquals(transformed.size(), 7);
         
         // run merge filter rule
         r = new MergeFilter("MergeFilter");
@@ -340,23 +355,24 @@ public class TestNewPlanFilterRule extends TestCase {
         
         // the filters should the same as before, nothing to merge
         next = plan.getSuccessors(load1).get(0);
-        assertEquals(next.getClass(), LOFilter.class);
-        assertEquals(plan.getSuccessors(next).get(0), join);
+        Assert.assertEquals(next.getClass(), LOFilter.class);
+        Assert.assertEquals(plan.getSuccessors(next).get(0), join);
         
         next = plan.getSuccessors(load2).get(0);
-        assertEquals(next.getClass(), LOFilter.class);
-        assertEquals(plan.getSuccessors(next).get(0), join);
+        Assert.assertEquals(next.getClass(), LOFilter.class);
+        Assert.assertEquals(plan.getSuccessors(next).get(0), join);
         
         next = plan.getSuccessors(join).get(0);
-        assertEquals(next.getClass(), LOFilter.class);
+        Assert.assertEquals(next.getClass(), LOFilter.class);
         
         next = plan.getSuccessors(next).get(0);
-        assertEquals(next.getClass(), LOStore.class);
+        Assert.assertEquals(next.getClass(), LOStore.class);
         
         transformed = listener.getTransformed();
-        assertNull(transformed);
+        Assert.assertNull(transformed);
     }   
     
+    @Test
     public void testFilterRuleWith2And2() throws Exception  {
         prep();
         // build an expression with 2 AND, it should split into 3 filters
@@ -396,13 +412,13 @@ public class TestNewPlanFilterRule extends TestCase {
         MyPlanOptimizer optimizer = new MyPlanOptimizer(plan, ls, 3);
         optimizer.optimize();
         
-        assertEquals(plan.getPredecessors(filter).get(0), join);
+        Assert.assertEquals(plan.getPredecessors(filter).get(0), join);
         Operator next = plan.getSuccessors(filter).get(0);
-        assertEquals(next.getClass(), LOFilter.class);
+        Assert.assertEquals(next.getClass(), LOFilter.class);
         next = plan.getSuccessors(next).get(0);
-        assertEquals(next.getClass(), LOFilter.class);
+        Assert.assertEquals(next.getClass(), LOFilter.class);
         next = plan.getSuccessors(next).get(0);
-        assertEquals(LOStore.class, next.getClass());
+        Assert.assertEquals(LOStore.class, next.getClass());
         
         // run push up filter rule
         r = new PushUpFilter("PushUpFilter");
@@ -415,20 +431,20 @@ public class TestNewPlanFilterRule extends TestCase {
         
         // 1 filter should be moved up to be after a load, and 2 filters should remain
         next = plan.getSuccessors(load1).get(0);
-        assertEquals(next.getClass(), LOFilter.class);
-        assertEquals(plan.getSuccessors(next).get(0), join);
+        Assert.assertEquals(next.getClass(), LOFilter.class);
+        Assert.assertEquals(plan.getSuccessors(next).get(0), join);
         
         next = plan.getSuccessors(load2).get(0);
-        assertEquals(next, join);     
+        Assert.assertEquals(next, join);     
         
         next = plan.getSuccessors(join).get(0);
-        assertEquals(next.getClass(), LOFilter.class);
+        Assert.assertEquals(next.getClass(), LOFilter.class);
         
         next = plan.getSuccessors(next).get(0);
-        assertEquals(next.getClass(), LOFilter.class);
+        Assert.assertEquals(next.getClass(), LOFilter.class);
                 
         next = plan.getSuccessors(next).get(0);
-        assertEquals(next.getClass(), LOStore.class);
+        Assert.assertEquals(next.getClass(), LOStore.class);
         
         // run merge filter rule
         r = new MergeFilter("MergeFilter");
@@ -443,27 +459,88 @@ public class TestNewPlanFilterRule extends TestCase {
         
         // the 2 filters after join should merge
         next = plan.getSuccessors(load1).get(0);
-        assertEquals(next.getClass(), LOFilter.class);
-        assertEquals(plan.getSuccessors(next).get(0), join);
+        Assert.assertEquals(next.getClass(), LOFilter.class);
+        Assert.assertEquals(plan.getSuccessors(next).get(0), join);
         
         next = plan.getSuccessors(load2).get(0);
-        assertEquals(next, join);        
+        Assert.assertEquals(next, join);        
         
         next = plan.getSuccessors(join).get(0);
-        assertEquals(next.getClass(), LOFilter.class);
+        Assert.assertEquals(next.getClass(), LOFilter.class);
         
         next = plan.getSuccessors(next).get(0);
-        assertEquals(next.getClass(), LOStore.class);
+        Assert.assertEquals(next.getClass(), LOStore.class);
         
         OperatorPlan transformed = listener.getTransformed();
-        assertEquals(transformed.size(), 2);
+        Assert.assertEquals(transformed.size(), 2);
     }   
     
+    // See pig-1639
+    @Test
+    public void testFilterUDFNegative() throws Exception {
+        planTester.buildPlan("A = load 'myfile' as (name, age, gpa);");
+        planTester.buildPlan("B = group A by age;");        
+        planTester.buildPlan("C = filter B by COUNT(A) < 18;");
+        org.apache.pig.impl.logicalLayer.LogicalPlan plan = planTester.buildPlan( "D = STORE C INTO 'empty';" ); 
+
+        LogicalPlan newLogicalPlan = migrateAndOptimizePlan( plan );
+
+        Operator load = newLogicalPlan.getSources().get( 0 );
+        Assert.assertTrue( load instanceof LOLoad );
+        Operator group = newLogicalPlan.getSuccessors( load ).get( 0 );
+        Assert.assertTrue( group instanceof LOCogroup );
+        Operator filter = newLogicalPlan.getSuccessors( group ).get( 0 );
+        Assert.assertTrue( filter instanceof LOFilter );
+        Operator store = newLogicalPlan.getSuccessors( filter ).get( 0 );
+        Assert.assertTrue( store instanceof LOStore );
+    }
+
+    private LogicalPlan migrateAndOptimizePlan(org.apache.pig.impl.logicalLayer.LogicalPlan plan) throws FrontendException {
+        LogicalPlan newLogicalPlan = migratePlan( plan );
+        PlanOptimizer optimizer = new NewPlanOptimizer( newLogicalPlan, 3 );
+        optimizer.optimize();
+        return newLogicalPlan;
+    }
+    
+    private LogicalPlan migratePlan(org.apache.pig.impl.logicalLayer.LogicalPlan lp) throws VisitorException{
+        LogicalPlanMigrationVistor visitor = new LogicalPlanMigrationVistor(lp);        
+        visitor.visit();
+        org.apache.pig.newplan.logical.relational.LogicalPlan newPlan = visitor.getNewLogicalPlan();
+        return newPlan;
+    }
+
+    public class NewPlanOptimizer extends LogicalPlanOptimizer {
+        protected NewPlanOptimizer(OperatorPlan p,  int iterations) {
+            super(p, iterations, new HashSet<String>());
+        }
+        
+        public void addPlanTransformListener(PlanTransformListener listener) {
+            super.addPlanTransformListener(listener);
+        }
+        
+       protected List<Set<Rule>> buildRuleSets() {            
+            List<Set<Rule>> ls = new ArrayList<Set<Rule>>();
+            
+            Set<Rule> s = new HashSet<Rule>();
+            // add split filter rule
+            Rule r = new LoadTypeCastInserter( "TypeCastInserter" );
+            s.add(r);
+            ls.add(s);
+             
+            s = new HashSet<Rule>();
+            r = new PushUpFilter( "PushUpFilter" );
+            s.add(r);            
+            ls.add(s);
+            
+            return ls;
+        }
+    }    
+
     public class MyPlanOptimizer extends PlanOptimizer {
 
         protected MyPlanOptimizer(OperatorPlan p, List<Set<Rule>> rs,
                 int iterations) {
-            super(p, rs, iterations);			
+            super(p, rs, iterations);            
             addPlanTransformListener(new SchemaPatcher());
             addPlanTransformListener(new ProjectionPatcher());
         }

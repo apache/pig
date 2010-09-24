@@ -35,6 +35,7 @@ import org.apache.pig.newplan.OperatorSubPlan;
 import org.apache.pig.newplan.logical.expression.LogicalExpression;
 import org.apache.pig.newplan.logical.expression.LogicalExpressionPlan;
 import org.apache.pig.newplan.logical.expression.ProjectExpression;
+import org.apache.pig.newplan.logical.expression.UserFuncExpression;
 import org.apache.pig.newplan.logical.relational.LOCogroup;
 import org.apache.pig.newplan.logical.relational.LOCross;
 import org.apache.pig.newplan.logical.relational.LODistinct;
@@ -84,19 +85,6 @@ public class PushUpFilter extends Rule {
                 return true;
             }
             
-            if( pred instanceof LOCogroup ) {
-                LOCogroup cogrp = (LOCogroup)pred;
-                if( currentPlan.getPredecessors( cogrp ).size() == 1 ) {
-                    // Order by is always ok.
-                    return true;
-                }
-                
-                if( 1 == cogrp.getExpressionPlans().get( 0 ).size() ) {
-                    // Optimization is okay if there is only a single key.
-                    return true;
-                }
-            }
-            
             // if the predecessor is one of LOLoad/LOStore/LOStream/LOLimit/LONative
             // if predecessor is LOForEach, it is optimized by rule FilterAboveForeach
             // return false
@@ -106,6 +94,27 @@ public class PushUpFilter extends Rule {
                 return false;
             }
             
+            LOFilter filter = (LOFilter)current;            
+            List<Operator> preds = currentPlan.getPredecessors( pred );
+            LogicalExpressionPlan filterPlan = filter.getFilterPlan();
+                
+            // collect all uids used in the filter plan
+            Set<Long> uids = collectUidFromExpPlan(filterPlan);
+                                
+            if( pred instanceof LOCogroup ) {
+                LOCogroup cogrp = (LOCogroup)pred;
+                if( preds.size() == 1 ) { 
+                    if( hasAll( (LogicalRelationalOperator)preds.get( 0 ), uids )    ) {
+                        // Order by is ok if all UIDs can be found from previous operator.
+                        return true;
+                    }
+                } else if ( 1 == cogrp.getExpressionPlans().get( 0 ).size() && !containUDF( filterPlan ) ) {
+                    // Optimization is possible if there is only a single key.
+                    // For regular cogroup, we cannot use UIDs to determine if filter can be pushed up.
+                    // But if there is no UDF, it's okay, as only UDF can take bag field as input.
+                    return true;
+                }
+            }
             
             // if the predecessor is a multi-input operator then detailed
             // checks are required
@@ -127,13 +136,6 @@ public class PushUpFilter extends Rule {
                         return false;
                 }
                 
-                LOFilter filter = (LOFilter)current;            
-                LogicalExpressionPlan filterPlan = filter.getFilterPlan();
-                    
-                // collect all uids used in the filter plan
-                Set<Long> uids = collectUidFromExpPlan(filterPlan);
-                                    
-                List<Operator> preds = currentPlan.getPredecessors(pred);
 
                 for(int j=0; j<preds.size(); j++) {
                     if (hasAll((LogicalRelationalOperator)preds.get(j), uids)) {
@@ -148,6 +150,15 @@ public class PushUpFilter extends Rule {
             return false;
         }
         
+        private boolean containUDF(LogicalExpressionPlan filterPlan) {
+            Iterator<Operator> it = filterPlan.getOperators();
+            while( it.hasNext() ) {
+                if( it.next() instanceof UserFuncExpression )
+                    return true;
+            }
+            return false;
+        }
+
         Set<Long> collectUidFromExpPlan(LogicalExpressionPlan filterPlan) throws FrontendException {
             Set<Long> uids = new HashSet<Long>();
             Iterator<Operator> iter = filterPlan.getOperators();
