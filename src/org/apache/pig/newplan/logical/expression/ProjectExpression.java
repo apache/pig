@@ -149,8 +149,11 @@ public class ProjectExpression extends ColumnExpression {
                 if (findReferent().getSchema()!=null)
                     fieldSchema = findReferent().getSchema().getField(0);
             }
-            if (fieldSchema!=null)
-                uidOnlyFieldSchema = fieldSchema.mergeUid(uidOnlyFieldSchema);
+            if(fieldSchema == null){
+                fieldSchema = new LogicalSchema.LogicalFieldSchema(null, null, DataType.BYTEARRAY);
+            }
+            uidOnlyFieldSchema = fieldSchema.mergeUid(uidOnlyFieldSchema);
+            
         }
         else {
             if (schema == null) {
