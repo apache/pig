@@ -29,6 +29,7 @@ import org.apache.pig.PigException;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.BagFactory;
+import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.io.FileLocalizer;
@@ -256,6 +257,51 @@ public class TestJoin extends TestCase {
             deleteInputFile(execType, secondInput);
         }
         
+        
+    }
+    
+    @Test
+    public void testJoinSchema2() throws Exception {
+        // test join where one load does not have schema
+        
+        ExecType execType = ExecType.LOCAL;
+        setUp(execType );
+        String[] input1 = {
+                "1\t2",
+                "2\t3",
+                "3\t4"
+        };
+        String[] input2 = {
+                "1\thello",
+                "4\tbye",
+        };
+        
+        String firstInput = createInputFile(execType, "a.txt", input1);
+        String secondInput = createInputFile(execType, "b.txt", input2);
+        Tuple expectedResultCharArray =
+            (Tuple)Util.getPigConstant("('1','2','1','hello','1','2','1','hello')");
+        
+        Tuple expectedResult = TupleFactory.getInstance().newTuple();
+        for(Object field : expectedResultCharArray.getAll()){
+            expectedResult.append(new DataByteArray(field.toString()));
+        }
+        
+        // with schema
+        String script = "a = load '"+ firstInput +"' ; " +
+        //re-using alias a for new operator below, doing this intentionally 
+        // because such use case has been seen
+        "a = foreach a generate $0 as i, $1 as j ;" +
+        "b = load '"+ secondInput +"' as (k, l); " +
+        "c = join a by $0, b by $0;" +
+        "d = foreach c generate i,j,k,l,a::i as ai,a::j as aj,b::k as bk,b::l as bl;";
+        Util.registerMultiLineQuery(pigServer, script);
+        Iterator<Tuple> it = pigServer.openIterator("d");
+        assertEquals(true, it.hasNext());
+        Tuple res = it.next();
+        assertEquals(expectedResult, res);
+        assertEquals(false, it.hasNext());
+        deleteInputFile(execType, firstInput);
+        deleteInputFile(execType, secondInput);
         
     }
     
