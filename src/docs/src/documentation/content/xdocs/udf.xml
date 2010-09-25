@@ -143,7 +143,7 @@ DUMP C;
 
 <p>An aggregate function is an eval function that takes a bag and returns a scalar value. One interesting and useful property of many aggregate functions is that they can be computed incrementally in a distributed fashion. We call these functions <code>algebraic</code>. <code>COUNT</code> is an example of an algebraic function because we can count the number of elements in a subset of the data and then sum the counts to produce a final output. In the Hadoop world, this means that the partial computations can be done by the map and combiner, and the final result can be computed by the reducer. </p>
 
-<p>It is very important for performance to make sure that aggregate functions that are algebraic are implemented as such. Let's look at the implementation of the COUNT function to see what this means. (Error handling and some other code is omitted to save space. The full code can be accessed <a href="http://svn.apache.org/viewvc/hadoop/pig/trunk/src/org/apache/pig/builtin/COUNT.java?view=markup"> here</a>.</p>
+<p>It is very important for performance to make sure that aggregate functions that are algebraic are implemented as such. Let's look at the implementation of the COUNT function to see what this means. (Error handling and some other code is omitted to save space. The full code can be accessed <a href="http://svn.apache.org/viewvc/hadoop/pig/trunk/src/org/apache/pig/builtin/COUNT.java?view=markup"> here</a>.)</p>
 
 <source>
 public class COUNT extends EvalFunc&lt;Long&gt; implements Algebraic{
@@ -1231,6 +1231,16 @@ public class IntMax extends EvalFunc&lt;Integer&gt; implements Algebraic, Accumu
 <title>Advanced Topics</title>
 
 <section>
+<title>UDF Interfaces</title>
+<p>A UDF can be invoked multiple ways. The simplest UDF can just extend EvalFunc, which requires only the exec function to be implemented (see <a href="#How+to+Write+a+Simple+Eval+Function"> How to Write a Simple Eval Function</a>). Every eval UDF must implement this. Additionally, if a function is algebraic, it can implement <code>Algebraic</code> interface to significantly improve query performance in the cases when combiner can be used (see <a href="#Aggregate+Functions">Aggregate Functions</a>). Finally, a function that can process tuples in an incremental fashion can also implement the Accumulator interface to improve query memory consumption (see <a href="#Accumulator+Interface">Accumulator Interface</a>).
+</p>
+
+<p>The exact method by which UDF is invoked is selected by the optimizer based on the UDF type and the query. Note that only a single interface is used at any given time. The optimizer tries to find the most efficient way to execute the function. If a combiner is used and the function implements the Algebraic interface then this interface will be used to invoke the function. If the combiner is not invoked but the accumulator can be used and the function implements Accumulator interface then that interface is used. If neither of the conditions is satisfied then the exec function is used to invoke the UDF. 
+</p>
+ </section>
+ 
+ 
+<section>
 <title>Function Instantiation</title>
 
 <p>One problem that users run into is when they make assumption about how many times a constructor for their UDF is called. For instance, they might be creating side files in the store function and doing it in the constructor seems like a good idea. The problem with this approach is that in most cases Pig instantiates functions on the client side to, for instance, examine the schema of the data.  </p>
@@ -1241,7 +1251,7 @@ public class IntMax extends EvalFunc&lt;Integer&gt; implements Algebraic, Accumu
 <section>
 <title>Schemas</title>
 
-<p>One request from users is to have the ability to examine the input schema of the data before processing the data. For example, they would like to know how to convert an input tuple to a map such that the keys in the map are the names of the input columns. The current answer is that there is now way to do this. This is something we would like to support in the future. </p>
+<p>One request from users is to have the ability to examine the input schema of the data before processing the data. For example, they would like to know how to convert an input tuple to a map such that the keys in the map are the names of the input columns. The current answer is that there is no way to do this. This is something we would like to support in the future. </p>
 
  </section>
  
@@ -1296,6 +1306,131 @@ public class IntMax extends EvalFunc&lt;Integer&gt; implements Algebraic, Accumu
 <p>Currently the MonitoredUDF annotation works with regular and Algebraic UDFs, but has no effect on UDFs that run in the Accumulator mode.</p>
 
 </section>
+</section>
+
+<section>
+<title>Python UDFs</title>
+<section>
+<title>Syntax</title>
+<section>
+<title>Registering Scripts</title>
+<p>You can register a Python script as shown here. This example uses org.apache.pig.scripting.jython.JythonScriptEngine to interpret the python script. You can develop and use custom script engines to support multiple programming languages and ways to interpret them. Currently, Pig identifies jython as a keyword and ships the required scriptengine (jython) to interpret it. </p>
+<source>
+Register 'test.py' using jython as myfuncs;
+</source>
+
+<p>The following syntax is also supported, where myfuncs is the namespace created for all the functions inside test.py.</p>
+<source>
+register 'test.py' using org.apache.pig.scripting.jython.JythonScriptEngine as myfuncs;
+</source>
+
+<p>A typical test.py looks like this:</p>
+<source>
+@outputSchema("x:{t:(word:chararray)}")
+def helloworld():  
+  return ('Hello, World')
+
+@outputSchema("y:{t:(word:chararray,num:long)}")
+def complex(word):  
+  return (str(word),long(word)*long(word))
+
+@outputSchemaFunction("squareSchema")
+def square(num):
+  return ((num)*(num))
+
+@schemaFunction("squareSchema")
+def squareSchema(input):
+  return input
+
+# No decorator - bytearray
+def concat(str):
+  return str+str
+</source>
+
+<p>The register statement above registers the python functions defined in test.py in Pig’s runtime within the defined namespace (myfuncs here). They can then be referred later on in the pig script as myfuncs.helloworld(), myfuncs.complex(), and myfuncs.square(). An example usage is:</p>
+
+<source>
+b = foreach a generate myfuncs.helloworld(), myfuncs.square(3);
+</source>
+
+</section>
+<section>
+<title>Decorators and Schemas</title>
+<p>To annotate a python script so that Pig can identify return types, use python decorators to define output schema for the script UDF. </p>
+<ul>
+<li>outputSchema - Defines schema for a script udf in a format that Pig understands and is able to parse. </li>
+<li>outputFunctionSchema - Defines a script delegate function that defines schema for this function depending upon the input type. This is needed for functions that can accept generic types and perform generic operations on these types. A simple example is square which can accept multiple types. SchemaFunction for this type is a simple identity function (same schema as input). </li>
+<li>schemaFunction - Defines delegate function and is not registered to Pig. </li>
+</ul>
+
+<p>When no decorator is specified, Pig assumes the output datatype as bytearray and converts the output generated by script function to bytearray. This is consistent with Pig's behavior in case of Java UDFs. </p>
+
+<p>Sample Schema String - y:{t:(word:chararray,num:long)}, variable names inside a schema string are not used anywhere, they just make the syntax identifiable to the parser. </p>
+</section>
+</section>
+
+<section>
+<title>Inline Scripts</title>
+<p>Currently, Pig does not support UDFs using inline scripts. </p>
+</section>
+
+<section>
+<title>Sample Script UDFs</title>
+<p>Simple tasks like string manipulation, mathematical computations, and reorganizing data types can be easily done using python scripts without having to develop long and complex UDFs in Java. The overall overhead of using scripting language is much less and development cost is almost negligible. The following UDFs, developed in python, can be used with Pig. </p>
+
+<source>
+mySampleLib.py
+---------------------
+#!/usr/bin/python
+
+##################
+# Math functions #
+##################
+#Square - Square of a number of any data type
+@outputSchemaFunction("squareSchema")
+def square(num):
+  return ((num)*(num))
+@schemaFunction("squareSchema")
+def squareSchema(input):
+  return input
+
+#Percent- Percentage
+@outputSchema("t:(percent:double)")
+def percent(num, total):
+  return num * 100 / total
+
+####################
+# String Functions #
+####################
+#commaFormat- format a number with commas, 12345-> 12,345
+@outputSchema("t:(numformat:chararray)")
+def commaFormat(num):
+  return '{:,}'.format(num)
+
+#concatMultiple- concat multiple words
+@outputSchema("t:(numformat:chararray)")
+def concatMult4(word1, word2, word3, word4):
+  return word1+word2+word3+word4
+
+#######################
+# Data Type Functions #
+#######################
+#collectBag- collect elements of a bag into other bag
+#This is useful UDF after group operation
+@outputSchema("bag:{(y:{t:(word:chararray)}}")
+def collectBag(bag):
+  outBag = []
+  for word in bag:
+    tup=(len(bag), word[1])
+    outBag.append(tup)
+  return outBag
+
+# Few comments- 
+# pig mandates that a bag should be a bag of tuples, python UDFs should follow this pattern.
+# tuple in python are immutable, appending to a tuple is not possible.
+</source>
+</section>
+
 </section>
 
 </body>
