@@ -163,22 +163,23 @@ C = foreach B generate group, MyUDF(A);
 <section>
 <title>Implement the Aggregator Interface</title>
 <p>
-If your UDF can't be made Algebraic but is able to deal with getting input in chunks rather than all at once, consider implementing the Aggregator interface to reduce the amount of memory used by your script. If your function <em>is</em> Algebraic and can be used on conjunction with Accumulator functions, you will need to implement the Accumulator interface as well as the Algebraic interface. For more information, see the Pig UDF Manual and <a href="udf.html#Accumulator+Interface">Accumulator Interface</a>.
+If your UDF can't be made Algebraic but is able to deal with getting input in chunks rather than all at once, consider implementing the Aggregator interface to reduce the amount of memory used by your script.If your function <em>is</em> Algebraic and can be used on conjunction with Accumulator functions, you will need to implement the Accumulator interface as well as the Algebraic interface. For more information, see the Pig UDF Manual and <a href="udf.html#Accumulator+Interface">Accumulator Interface</a>.
 </p>
 </section>
 
 
 <section>
 <title>Drop Nulls Before a Join</title>
-<p>With the introduction of nulls, join and cogroup semantics were altered to work with nulls.  The semantic for cogrouping with nulls is that nulls from a given input are grouped together, but nulls across inputs are not grouped together.  This preserves the semantics of grouping (nulls are collected together from a single input to be passed to aggregate functions like COUNT) and the semantics of join (nulls are not joined across inputs).  Since flattening an empty bag results in an empty row, in a standard join the rows with a null key will always be dropped.  The join:  </p>
+<p>With the introduction of nulls, join and cogroup semantics were altered to work with nulls. The semantic for cogrouping with nulls is that nulls from a given input are grouped together, but nulls across inputs are not grouped together. This preserves the semantics of grouping (nulls are collected together from a single input to be passed to aggregate functions like COUNT) and the semantics of join (nulls are not joined across inputs). Since flattening an empty bag results in an empty row (and no output), in a standard join the rows with a null key will always be dropped. </p>
 
+<p>This join</p>
 <source>
 A = load 'myfile' as (t, u, v);
 B = load 'myotherfile' as (x, y, z);
 C = join A by t, B by x;
 </source>
-<p>is rewritten by pig to </p>
 
+<p>is rewritten by Pig to </p>
 <source>
 A = load 'myfile' as (t, u, v);
 B = load 'myotherfile' as (x, y, z);
@@ -186,8 +187,9 @@ C1 = cogroup A by t INNER, B by x INNER;
 C = foreach C1 generate flatten(A), flatten(B);
 </source>
 
-<p>Since the nulls from A and B won't be collected together, when the nulls are flattened we're guaranteed to have an empty bag, which will result in no output.  So the null keys will be dropped.  But they will not be dropped until the last possible moment.  If the query is rewritten to </p>
+<p>Since the nulls from A and B won't be collected together, when the nulls are flattened we're guaranteed to have an empty bag, which will result in no output. So the null keys will be dropped. But they will not be dropped until the last possible moment. </p> 
 
+<p>If the query is rewritten to </p>
 <source>
 A = load 'myfile' as (t, u, v);
 B = load 'myotherfile' as (x, y, z);

@@ -227,7 +227,7 @@ Also, be sure to review the information in the <ulink url="cookbook.html">Pig Co
          
          <row>
             <entry> <para>-- O </para> </entry>
-            <entry> <para>or, order, outer, output</para> </entry>
+            <entry> <para>onschema, or, order, outer, output</para> </entry>
          </row>  
          
          <row>
@@ -282,7 +282,7 @@ Also, be sure to review the information in the <ulink url="cookbook.html">Pig Co
 
 <!-- RELATIONS, BAGS, TUPLES, FIELDS-->
    
-   <section>
+   <section id ="relations">
    <title>Relations, Bags, Tuples, Fields</title>
       <para><ulink url="piglatin_ref1.html#Pig+Latin+Statements">Pig Latin statements</ulink> work with relations. A relation can be defined as follows:</para>
    <itemizedlist>
@@ -1117,7 +1117,8 @@ dump X;
    
    <section id="nulls_join">
    <title>Nulls and JOIN Operator</title>
-   <para>The JOIN operator - when performing inner joins - adheres to the SQL standard and disregards (filters out) null values.</para>
+   <para>The JOIN operator - when performing inner joins - adheres to the SQL standard and disregards (filters out) null values. 
+   (See also <ulink url="cookbook.html#Drop+Nulls+Before+a+Join">Drop Nulls Before a Join</ulink>.)</para>
 <programlisting>
 A = load 'student' as (name:chararray, age:int, gpa:float);
 B = load 'student' as (name:chararray, age:int, gpa:float);
@@ -1444,17 +1445,21 @@ A = LOAD 'data' AS (f1:int, f2:int);
 </programlisting>   
    </section>
    
-   <section>
+   <section id="schemaforeach">
    <title>Schemas with FOREACH Statements</title>
    <para>With FOREACH statements, the schema following the AS keyword must be enclosed in parentheses when the FLATTEN operator is used. Otherwise, the schema should not be enclosed in parentheses.</para>
    <para>In this example the FOREACH statement includes FLATTEN and a schema for simple data types.</para>
 <programlisting>
-X = FOREACH C GENERATE FLATTEN(B) AS (f1:int, f2:int, f3:int);
+X = FOREACH C GENERATE FLATTEN(B) AS (f1:int, f2:int, f3:int), group;
 </programlisting>  
-   <para>In this example the FOREACH statement includes a schema for simple data types.</para>
+   <para>In this example the FOREACH statement includes a schema for simple expression.</para>
 <programlisting>
 X = FOREACH A GENERATE f1+f2 AS x1:int;
 </programlisting>   
+   <para>In this example the FOREACH statement includes a schemas for multiple fields.</para>
+<programlisting>
+X = FOREACH A GENERATE f1 as user, f2 as age, f3 as gpa;
+</programlisting> 
    </section>
    
    <section>
@@ -4244,6 +4249,18 @@ B = FOREACH A GENERATE -x, y;
    For example, consider a relation that has a tuple of the form (a, {(b,c), (d,e)}), commonly produced by the GROUP operator. 
    If we apply the expression GENERATE $0, flatten($1) to this tuple, we will create new tuples: (a, b, c) and (a, d, e).</para>
    
+   <para>Also note that the flatten of empty bag will result in that row being discarded; no output is generated. 
+   (See also <ulink url="cookbook.html#Drop+Nulls+Before+a+Join">Drop Nulls Before a Join</ulink>.)</para>
+   
+   <programlisting>
+grunt> cat empty.bag
+{}      1
+grunt> A = LOAD 'empty.bag' AS (b : bag{}, i : int);
+grunt> B = FOREACH A GENERATE flatten(b), i;
+grunt> DUMP B;
+grunt>
+</programlisting>
+   
    <para>For examples using the FLATTEN operator, see <ulink url="#FOREACH">FOREACH</ulink>.</para>
    </section>
 
@@ -4864,7 +4881,7 @@ dump E;
    <informaltable frame="all">
       <tgroup cols="1"><tbody><row>
             <entry>
-               <para>alias = CROSS alias, alias [, alias …] [PARALLEL n];</para>
+               <para>alias = CROSS alias, alias [, alias …] [PARTITION BY partitioner] [PARALLEL n];</para>
             </entry>
          </row></tbody></tgroup>
    </informaltable></section>
@@ -4872,12 +4889,29 @@ dump E;
    <section>
    <title>Terms</title>
    <informaltable frame="all">
-      <tgroup cols="2"><tbody><row>
+      <tgroup cols="2"><tbody>
+      <row>
             <entry>
                <para>alias</para>
             </entry>
             <entry>
                <para>The name of a relation. </para>
+            </entry>
+         </row>
+               <row>
+            <entry>
+               <para>PARTITION BY partitioner</para>
+            </entry>
+            <entry>
+             <para>Use this feature to specify the Hadoop Partitioner. The partitioner controls the partitioning of the keys of the intermediate map-outputs. </para>
+             <itemizedlist>
+             <listitem>
+             <para>For more details, see http://hadoop.apache.org/common/docs/r0.20.2/api/org/apache/hadoop/mapred/Partitioner.html</para>
+             </listitem>
+             <listitem>
+             <para>For usage, see <xref linkend="partitionby" /></para>
+             </listitem>
+             </itemizedlist>
             </entry>
          </row>
          <row>
@@ -4946,7 +4980,7 @@ DUMP X;
    <informaltable frame="all">
       <tgroup cols="1"><tbody><row>
             <entry>
-               <para>alias = DISTINCT alias [PARALLEL n];        </para>
+               <para>alias = DISTINCT alias [PARTITION BY partitioner] [PARALLEL n];        </para>
             </entry>
          </row></tbody></tgroup>
    </informaltable></section>
@@ -4962,6 +4996,24 @@ DUMP X;
                <para>The name of the relation.</para>
             </entry>
          </row>
+      
+      <row>      
+         <entry>
+               <para>PARTITION BY partitioner</para>
+            </entry>
+            <entry>
+             <para>Use this feature to specify the Hadoop Partitioner. The partitioner controls the partitioning of the keys of the intermediate map-outputs. </para>
+             <itemizedlist>
+             <listitem>
+             <para>For more details, see http://hadoop.apache.org/common/docs/r0.20.2/api/org/apache/hadoop/mapred/Partitioner.html</para>
+             </listitem>
+             <listitem>
+              <para>For usage, see <xref linkend="partitionby" />.</para>
+             </listitem>
+             </itemizedlist>
+         </entry>
+     </row> 
+         
          <row>
             <entry>
                <para>PARALLEL n</para>
@@ -4983,7 +5035,7 @@ DUMP X;
    
    <section>
    <title>Usage</title>
-   <para>Use the DISTINCT operator to remove duplicate tuples in a relation. DISTINCT does not preserve the original order of the contents (to eliminate duplicates, Pig must first sort the data). You cannot use DISTINCT on a subset of fields. To do this, use FOREACH … GENERATE to select the fields, and then use DISTINCT.</para></section>
+   <para>Use the DISTINCT operator to remove duplicate tuples in a relation. DISTINCT does not preserve the original order of the contents (to eliminate duplicates, Pig must first sort the data). You cannot use DISTINCT on a subset of fields. To do this, use FOREACH…GENERATE to select the fields, and then use DISTINCT.</para></section>
    
    <section>
    <title>Example</title>
@@ -5058,7 +5110,7 @@ DUMP X;
    
    <section>
    <title>Usage</title>
-   <para>Use the FILTER operator to work with tuples or rows of data (if you want to work with columns of data, use the FOREACH …GENERATE operation).</para>
+   <para>Use the FILTER operator to work with tuples or rows of data (if you want to work with columns of data, use the FOREACH...GENERATE operation).</para>
    <para>FILTER is commonly used to select the data that you want; or, conversely, to filter out (remove) the data you don’t want.</para></section>
    
    <section>
@@ -5108,7 +5160,7 @@ DUMP X;
    <informaltable frame="all">
       <tgroup cols="1"><tbody><row>
             <entry>
-               <para>alias  = FOREACH { gen_blk | nested_gen_blk } [AS schema];</para>
+               <para>alias  = FOREACH { gen_blk | nested_gen_blk };</para>
             </entry>
          </row></tbody></tgroup>
    </informaltable></section>
@@ -5129,9 +5181,10 @@ DUMP X;
                <para>gen_blk</para>
             </entry>
             <entry>
-               <para>FOREACH … GENERATE used with a relation (outer bag). Use this syntax:</para>
+               <para>FOREACH…GENERATE used with a relation (outer bag). Use this syntax:</para>
                <para/>
-               <para>alias = FOREACH alias GENERATE expression [expression ….]</para>
+               <para>alias = FOREACH alias GENERATE expression [AS schema] [expression [AS schema]….];</para>
+               <para>See <xref linkend="schemaforeach"/></para>
             </entry>
          </row>
          <row>
@@ -5139,16 +5192,17 @@ DUMP X;
                <para>nested_gen_blk</para>
             </entry>
             <entry>
-               <para>FOREACH … GENERATE used with a inner bag. Use this syntax:</para>
+               <para>FOREACH...GENERATE used with a inner bag. Use this syntax:</para>
                <para/>
                <para>alias = FOREACH nested_alias {</para>
                <para>   alias = nested_op; [alias = nested_op; …]</para>
-               <para>   GENERATE expression [, expression …]</para>
+               <para>   GENERATE expression [AS schema] [expression [AS schema]….]</para>
                <para>};</para>
                <para/>
                <para>Where:</para>
                <para>The nested block is enclosed in opening and closing brackets { … }. </para>
                <para>The GENERATE keyword must be the last statement within the nested block.</para>
+               <para>See <xref linkend="schemaforeach"/></para>
             </entry>
          </row>
          <row>
@@ -5172,8 +5226,9 @@ DUMP X;
                <para>nested_op</para>
             </entry>
             <entry>
-               <para>Allowed operations are DISTINCT, FILTER, LIMIT, ORDER and SAMPLE. </para>
-               <para>The FOREACH … GENERATE operation itself is not allowed since this could lead to an arbitrary number of nesting levels.</para>
+               <para>Allowed operations are DISTINCT, FILTER, LIMIT, and ORDER. </para>
+               <para>The FOREACH…GENERATE operation itself is not allowed since this could lead to an arbitrary number of nesting levels.</para>
+               <para>You can also perform projections (see <xref linkend="nestedblock" />).</para>
             </entry>
          </row>
          <row>
@@ -5181,7 +5236,7 @@ DUMP X;
                <para>AS</para>
             </entry>
             <entry>
-               <para>Keyword.</para>
+               <para>Keyword</para>
             </entry>
          </row>
          <row>
@@ -5204,9 +5259,9 @@ DUMP X;
    
    <section>
    <title>Usage</title>
-   <para>Use the FOREACH …GENERATE operation to work with columns of data (if you want to work with tuples or rows of data, use the FILTER operation).</para>
+   <para>Use the FOREACH…GENERATE operation to work with columns of data (if you want to work with tuples or rows of data, use the FILTER operation).</para>
   
-   <para>FOREACH …GENERATE works with relations (outer bags) as well as inner bags:</para>
+   <para>FOREACH...GENERATE works with relations (outer bags) as well as inner bags:</para>
    <itemizedlist>
       <listitem>
          <para>If A is a relation (outer bag), a FOREACH statement could look like this.</para>
@@ -5404,21 +5459,21 @@ DUMP X;
 
    <para>Another FLATTEN example. Here, relations A and B both have a column x. When forming relation E,  you need to use the :: operator to identify which column x to use - either relation A column x (A::x) or relation B column x (B::x). This example uses relation A column x (A::x).</para>
 <programlisting>
-A = load 'data' as (x, y);
-B = load 'data' as (x, z);
-C = cogroup A by x, B by x;
-D = foreach C generate flatten(A), flatten(b);
-E = group D by A::x;
+A = LOAD 'data' AS (x, y);
+B = LOAD 'data' AS (x, z);
+C = COGROUP A BY x, B BY x;
+D = FOREACH C GENERATE flatten(A), flatten(b);
+E = GROUP D BY A::x;
 ……
 </programlisting>
    
    </section>
    
-   <section>
+   <section id="nestedblock">
    <title>Example: Nested Block</title>
    <para>Suppose we have relations A and B. Note that relation B contains an inner bag.</para>
 <programlisting>
-A = LOAD 'data' AS (url:chararray,outline:chararray);
+A = LOAD 'data' AS (url:chararray,outlink:chararray);
 
 DUMP A;
 (www.ccc.com,www.hjk.com)
@@ -5437,21 +5492,23 @@ DUMP B;
 (www.www.com,{(www.www.com,www.kpt.net),(www.www.com,www.xyz.org)})
 </programlisting>
    
-   <para>In this example we perform two of the operations allowed in a nested block, FILTER and DISTINCT. Note that the last statement in the nested block must be GENERATE.</para>
+   <para>In this example we perform two of the operations allowed in a nested block, FILTER and DISTINCT. Note that the last statement in the nested block must be GENERATE. Also, note the use of projection (PA = FA.outlink;).</para>
 <programlisting>
-X = foreach B {
+X = FOREACH B {
         FA= FILTER A BY outlink == 'www.xyz.org';
         PA = FA.outlink;
         DA = DISTINCT PA;
-        GENERATE GROUP, COUNT(DA);
+        GENERATE group, COUNT(DA);
 }
 
 DUMP X;
-(www.ddd.com,1L)
-(www.www.com,1L)
+(www.aaa.com,0)
+(www.ccc.com,0)
+(www.ddd.com,1)
+(www.www.com,1)
 </programlisting>
    
-   </section></section>
+</section></section>
    
    <section id="GROUP">
    <title>GROUP</title>
@@ -5464,7 +5521,7 @@ DUMP X;
    <informaltable frame="all">
       <tgroup cols="1"><tbody><row>
             <entry>
-               <para>alias = GROUP alias { ALL | BY expression} [, alias ALL | BY expression …]  [USING 'collected' | 'merge'] [PARALLEL n];</para>
+               <para>alias = GROUP alias { ALL | BY expression} [, alias ALL | BY expression …]  [USING 'collected' | 'merge'] [PARTITION BY partitioner] [PARALLEL n];</para>
             </entry>
          </row></tbody></tgroup>
    </informaltable></section>
@@ -5576,6 +5633,23 @@ DUMP X;
             </entry>
             
          </row>     
+         
+     <row>      
+         <entry>
+               <para>PARTITION BY partitioner</para>
+            </entry>
+            <entry>
+             <para>Use this feature to specify the Hadoop Partitioner. The partitioner controls the partitioning of the keys of the intermediate map-outputs. </para>
+             <itemizedlist>
+             <listitem>
+             <para>For more details, see http://hadoop.apache.org/common/docs/r0.20.2/api/org/apache/hadoop/mapred/Partitioner.html</para>
+             </listitem>
+             <listitem>
+             <para>For usage, see <xref linkend="partitionby" /></para>
+             </listitem>
+             </itemizedlist>
+         </entry>
+     </row> 
 
          <row>
             <entry>
@@ -5809,6 +5883,30 @@ DUMP F;
  C = COGROUP A BY id, B BY id USING 'merge';
 </programlisting>
     </section>
+    
+   <section id="partitionby">
+   <title>Example: PARTITION BY</title>
+<para>To use the Hadoop Partitioner add PARTITION BY clause to the appropriate operator: </para>
+<programlisting>
+A = LOAD 'input_data'; 
+B = GROUP A BY $0 PARTITION BY org.apache.pig.test.utils.SimpleCustomPartitioner PARALLEL 2;
+</programlisting>
+<para>Here is the code for SimpleCustomPartitioner:</para>
+<programlisting>
+public class SimpleCustomPartitioner extends Partitioner &lt;PigNullableWritable, Writable&gt; { 
+     //@Override 
+    public int getPartition(PigNullableWritable key, Writable value, int numPartitions) { 
+        if(key.getValueAsPigType() instanceof Integer) { 
+            int ret = (((Integer)key.getValueAsPigType()).intValue() % numPartitions); 
+            return ret; 
+       } 
+       else { 
+            return (key.hashCode()) % numPartitions; 
+        } 
+    } 
+}
+</programlisting>
+   </section>
    </section>
    
    
@@ -5823,7 +5921,7 @@ DUMP F;
    <informaltable frame="all">
       <tgroup cols="1"><tbody><row>
             <entry>
-               <para>alias = JOIN alias BY {expression|'('expression [, expression …]')'} (, alias BY {expression|'('expression [, expression …]')'} …) [USING 'replicated' | 'skewed' | 'merge'] [PARALLEL n];  </para>
+               <para>alias = JOIN alias BY {expression|'('expression [, expression …]')'} (, alias BY {expression|'('expression [, expression …]')'} …) [USING 'replicated' | 'skewed' | 'merge'] [PARTITION BY partitioner] [PARALLEL n];  </para>
             </entry>
          </row></tbody></tgroup>
    </informaltable></section>
@@ -5891,6 +5989,25 @@ DUMP F;
             </entry>
          </row>
          
+              <row>      
+         <entry>
+               <para>PARTITION BY partitioner</para>
+            </entry>
+            <entry>
+             <para>Use this feature to specify the Hadoop Partitioner. The partitioner controls the partitioning of the keys of the intermediate map-outputs. </para>
+             <itemizedlist>
+             <listitem>
+             <para>For more details, see http://hadoop.apache.org/common/docs/r0.20.2/api/org/apache/hadoop/mapred/Partitioner.html</para>
+             </listitem>
+             <listitem>
+              <para>For usage, see <xref linkend="partitionby" /></para>
+             </listitem>
+             </itemizedlist>
+             <para></para>
+             <para>This feature CANNOT be used with skewed joins.</para>
+         </entry>
+     </row> 
+
          
          <row>
             <entry>
@@ -5982,7 +6099,7 @@ DUMP X;
       <tgroup cols="1"><tbody><row>
             <entry>
                <para>alias = JOIN left-alias BY left-alias-column [LEFT|RIGHT|FULL] [OUTER], right-alias BY right-alias-column 
-               [USING 'replicated' | 'skewed' | 'merge']  [PARALLEL n];  </para>
+               [USING 'replicated' | 'skewed' | 'merge'] [PARTITION BY partitioner] [PARALLEL n];  </para>
             </entry>
          </row></tbody></tgroup>
    </informaltable>
@@ -6081,8 +6198,7 @@ DUMP X;
             </entry>
          </row>
 
-
-                  <row>
+         <row>
             <entry>
                <para>'merge'</para>
             </entry>
@@ -6090,6 +6206,25 @@ DUMP X;
                <para>Use to perform merge joins (see <ulink url="piglatin_ref1.html#Merge+Joins">Merge Joins</ulink>).</para>
             </entry>
          </row>
+         
+      <row>      
+         <entry>
+               <para>PARTITION BY partitioner</para>
+            </entry>
+            <entry>
+             <para>Use this feature to specify the Hadoop Partitioner. The partitioner controls the partitioning of the keys of the intermediate map-outputs. </para>
+             <itemizedlist>
+             <listitem>
+             <para>For more details, see http://hadoop.apache.org/common/docs/r0.20.2/api/org/apache/hadoop/mapred/Partitioner.html</para>
+             </listitem>
+             <listitem>
+              <para>For usage, see <xref linkend="partitionby" /></para>
+             </listitem>
+             </itemizedlist>
+             <para></para>
+             <para>This feature CANNOT be used with skewed joins.</para>
+         </entry>
+     </row> 
 
          <row>
             <entry>
@@ -6384,8 +6519,96 @@ ILLUSTRATE A;
       For examples of how to specify more complex schemas for use with the LOAD operator, see Schemas for Complex Data Types and Schemas for Multiple Types.
       </para></section></section>
       
+
+<section>
+   <title>MAPREDUCE</title>
+   <para>Executes native MapReduce jobs inside a Pig script.</para>      
+   
+   <section>
+   <title>Syntax</title>
+      <informaltable frame="all">
+      <tgroup cols="1"><tbody><row>
+            <entry>
+               <para>alias1 = MAPREDUCE 'mr1.jar' [('mr2.jar', ...)] STORE alias2 INTO 
+'inputLocation' USING storeFunc LOAD 'outputLocation' USING loadFunc AS schema [`params, ... `];</para>
+            </entry>
+         </row></tbody></tgroup>
+   </informaltable>
+   </section>
+   
+   <section>
+   <title>Terms</title>
+   <informaltable frame="all">
+      <tgroup cols="2"><tbody>
+      <row>
+            <entry>
+               <para>alias</para>
+            </entry>
+            <entry>
+               <para>The name of a relation.</para>
+            </entry>
+     </row>
+     <row>
+            <entry>
+               <para>mr.jar</para>
+            </entry>
+            <entry>
+               <para>Any MapReduce jar file which can be run through "hadoop jar mymr.jar params" command. Thus, the contract for inputLocation and outputLocation is typically managed through params. </para>
+            </entry>
+     </row>
+
+      <row>
+            <entry>
+               <para>STORE ... INTO ... USING</para>
+            </entry>
+            <entry>
+               <para>See <ulink url="piglatin_ref2.html#STORE">STORE</ulink></para>
+               <para>Store alias2 into the inputLocation using storeFunc, which is then used by native mapreduce to read its data.</para>
+                
+            </entry>
+     </row>
+
+      <row>
+            <entry>
+               <para>LOAD ... USING ... AS ....</para>
+            </entry>
+            <entry>
+               <para>See <ulink url="piglatin_ref2.html#LOAD">LOAD</ulink></para>
+               <para>After running mr1.jar's mapreduce, load back the data from outputLocation into alias1 using loadFunc as schema</para>
+            </entry>
+     </row>
+
+      <row>
+            <entry>
+               <para>'params, ...'</para>
+            </entry>
+            <entry>
+               <para>Extra parameters required for native MapReduce job. </para>
+            </entry>
+     </row>
+      </tbody></tgroup>
+</informaltable>
+</section>
+
+<section>
+<title>Usage</title>
+<para>Use the MAPREDUCE operator to run native MapReduce jobs from inside a Pig script.</para>
+</section>
+
+<section>
+<title>Example</title>
+<para>This example shows howto run the wordcount MapReduce progam from Pig.
+Note that the files specified as input and output locations in the MAPREDUCE statement will NOT be deleted by Pig automatically. You will need to delete them manually. </para>
+<programlisting>
+A = LOAD 'WordcountInput.txt';
+B = MAPREDUCE wordcount.jar STOE A INTO 'inputDir' LOAD 'outputDir' AS (word:chararray, count: int) `org.myorg.WordCount inputDir outputDir`;
+</programlisting>
+</section>
+
+</section>
+      
       <section>
-      <title>ORDER</title>
+      <title>ORDER BY</title>
    <para>Sorts a relation based on one or more fields.</para>
    
    <section>
@@ -6411,18 +6634,18 @@ ILLUSTRATE A;
          </row>
          <row>
             <entry>
-               <para>BY</para>
-            </entry>
-            <entry>
-               <para>Required keyword.</para>
-            </entry>
-         </row>
-         <row>
-            <entry>
                <para>*</para>
             </entry>
             <entry>
                <para>The designator for a tuple.</para>
+            </entry>
+         </row>
+                  <row>
+            <entry>
+               <para>field_alias</para>
+            </entry>
+            <entry>
+               <para>A field in the relation. The field must be a simple type.</para>
             </entry>
          </row>
          <row>
@@ -6441,14 +6664,7 @@ ILLUSTRATE A;
                <para>Sort in descending order.</para>
             </entry>
          </row>
-         <row>
-            <entry>
-               <para>field_alias</para>
-            </entry>
-            <entry>
-               <para>A field in the relation.</para>
-            </entry>
-         </row>
+
          <row>
             <entry>
                <para>PARALLEL n</para>
@@ -6470,19 +6686,28 @@ ILLUSTRATE A;
    
    <section>
    <title>Usage</title>
-   <para>In Pig, relations are unordered (see Relations, Bags, Tuples, and Fields):</para>
+   <para>In Pig, relations are unordered (see <xref linkend="relations" />):</para>
    <itemizedlist>
       <listitem>
-         <para>If you order relation A to produce relation X (X = ORDER A BY * DESC;) relations A and X still contain the same thing. </para>
+         <para>If you order relation A to produce relation X (X = ORDER A BY * DESC;) relations A and X still contain the same data. </para>
       </listitem>
       <listitem>
-         <para>If you retrieve the contents of relation X (DUMP X;) they are guaranteed to be in the order you specified (descending).</para>
+         <para>If you retrieve relation X (DUMP X;) the data is guaranteed to be in the order you specified (descending).</para>
       </listitem>
       <listitem>
-         <para>However, if you further process relation X (Y = FILTER X BY $0 &gt; 1;) there is no guarantee that the contents will be processed in the order you originally specified (descending).</para>
+         <para>However, if you further process relation X (Y = FILTER X BY $0 &gt; 1;) there is no guarantee that the data will be processed in the order you originally specified (descending).</para>
       </listitem>
-   </itemizedlist></section>
-   
+   </itemizedlist>
+   <para></para>
+      <para>Pig currently supports ordering on fields with simple types or by tuple designator (*). You cannot order on fields with complex types or by expressions. </para>
+     <programlisting>
+A = LOAD 'mydata' AS (x: int, y: map[]);     
+B = ORDER A BY x; -- this is allowed because x is a simple type
+B = ORDER A BY y; -- this is not allowed because y is a complex type
+B = ORDER A BY y#'id'; -- this is not allowed because y#'id' is an expression
+</programlisting> 
+   </section>
+
    <section>
    <title>Examples</title>
    <para>Suppose we have relation A.</para>
@@ -6980,7 +7205,7 @@ X = STREAM A THROUGH 'stream.pl' as (f1:int, f2;int, f3:int);
    <informaltable frame="all">
       <tgroup cols="1"><tbody><row>
             <entry>
-               <para>alias = UNION alias, alias [, alias …];</para>
+               <para>alias = UNION [ONSCHEMA] alias, alias [, alias …];</para>
             </entry>
          </row></tbody></tgroup>
    </informaltable></section>
@@ -6988,14 +7213,35 @@ X = STREAM A THROUGH 'stream.pl' as (f1:int, f2;int, f3:int);
    <section>
    <title>Terms</title>
    <informaltable frame="all">
-      <tgroup cols="2"><tbody><row>
+      <tgroup cols="2"><tbody>
+      <row>
             <entry>
                <para>alias</para>
             </entry>
             <entry>
                <para>The name of a relation.</para>
             </entry>
-         </row></tbody></tgroup>
+      </row>
+      
+      <row>
+             <entry>
+               <para>ONSCHEMA </para>  
+            </entry>
+            <entry>
+               <para>Use the keyword ONSCHEMA with UNION so that the union is based on column names of the input relations, and not column position. 
+If the following requirements are not met, the statement will throw an error:</para>
+          <itemizedlist>
+             <listitem>
+             <para>All inputs to the union should have a non null schema. </para>
+             </listitem>
+             <listitem>
+             <para>The data type for columns with same name in different input schemas should be compatible. Numeric types are compatible, and if column having same name in different input schemas have different numeric types , an implicit conversion will happen. bytearray type is considered compatible with all other types, a cast will be added to convert to other type. Bags or tuples having different inner schema are considered incompatible. 
+</para>
+             </listitem>
+           </itemizedlist>
+            </entry>
+         </row>
+         </tbody></tgroup>
    </informaltable></section>
    
    <section>
@@ -7039,7 +7285,37 @@ DUMP X;
 (8,9)
 (1,3)
 </programlisting>
-   </section></section></section>
+   </section>
+   
+   <section>
+   <title>Example</title>
+   <para>This example shows the use of ONSCHEMA.</para>
+<programlisting>
+L1 = LOAD 'f1' USING (a : int, b : float);
+DUMP L1;
+(11,12.0)
+(21,22.0)
+
+L2 = LOAD  'f1' USING (a : long, c : chararray);
+DUMP L2;
+(11,a)
+(12,b)
+(13,c)
+
+U = UNION ONSCHEMA L1, L2;
+DESCRIBE U ;
+U : {a : long, b : float, c : chararray}
+
+DUMP U;
+(11,12.0,)
+(21,22.0,)
+(11,,a)
+(12,,b)
+(13,,c)
+</programlisting>
+</section>
+   
+   </section></section>
    
 
 <!-- =========================================================================== -->
@@ -8085,7 +8361,9 @@ DUMP X;
    COUNT requires a preceding GROUP ALL statement for global counts and a GROUP BY statement for group counts.</para>
 
    <para>
-    The COUNT function ignores NULL values.  If you want to include NULL values in the count computation, use 
+    The COUNT function follows syntax semantics and ignores nulls. 
+    What this means is that a tuple in the bag will not be counted if the <emphasis>first field</emphasis> in this tuple is NULL. 
+    If you want to include NULL values in the count computation, use 
     <ulink url="#COUNT_STAR">COUNT_STAR</ulink>.
    </para>   
    
@@ -8097,7 +8375,7 @@ DUMP X;
    
    <section>
    <title>Example</title>
-   <para>In this example the tuples in the bag are counted (see the GROUP operator for information about the field names in relation B).</para>
+   <para>In this example the tuples in the bag are counted (see the <ulink url="#GROUP">GROUP</ulink> operator for information about the field names in relation B).</para>
 <programlisting>
 A = LOAD 'data' AS (f1:int,f2:int,f3:int);
 
@@ -11543,7 +11821,7 @@ grunt&gt; rmf students students_sav
    The fs command greatly extends the set of supported file system commands and the capabilities
    supported for existing commands such as ls that will now support globing. For a complete list of
    FSShell commands, see 
-   <ulink url="http://hadoop.apache.org/common/docs/current/hdfs_shell.html">HDFS File System Shell Guide</ulink></para>
+   <ulink url="http://hadoop.apache.org/common/docs/current/file_system_shell.html">File System Shell Guide</ulink></para>
    </section>
    
    <section>
@@ -11555,6 +11833,70 @@ fs -copyFromLocal file-x file-y
 fs -ls file-y
 </programlisting>
    </section>
+       </section>  
+     <section>
+   <title>sh</title>
+   <para>Invokes any sh shell command from within a Pig script or the Grunt shell.</para>
+   
+   <section>
+   <title>Syntax </title>
+   <informaltable frame="all">
+      <tgroup cols="1"><tbody><row>
+            <entry>
+               <para>sh subcommand subcommand_parameters </para>
+            </entry>
+         </row></tbody></tgroup>
+   </informaltable></section>
+   
+   <section>
+   <title>Terms</title>
+   <informaltable frame="all">
+      <tgroup cols="2">
+      <tbody>
+      <row>
+            <entry>
+               <para>subcommand</para>
+            </entry>
+            <entry>
+               <para>The sh shell command.</para>
+            </entry>
+         </row>
+               <row>
+            <entry>
+               <para>subcommand_parameters</para>
+            </entry>
+            <entry>
+               <para>The sh shell command parameters.</para>
+            </entry>
+         </row>
+         </tbody>
+         </tgroup>
+   </informaltable>
+   
+   </section>
+   
+   <section>
+   <title>Usage</title>
+   <para>Use the sh command to invoke any sh shell command from within a Pig script or Grunt shell.</para>
+   
+<para> 
+ Note that only real programs can be run form the sh command. Commands such as cd are not programs 
+ but part of the shell environment and as such cannot be executed unless the user invokes the shell explicitly, like "bash cd".
+</para>
+   </section>
+   
+   <section>
+   <title>Example</title>
+   <para>In this example the ls command is invoked.</para>
+<programlisting>
+grunt> sh ls 
+bigdata.conf 
+nightly.conf 
+..... 
+grunt> 
+</programlisting>
+   </section>
+ 
     </section>
         </section>
  
@@ -12000,12 +12342,10 @@ C = FOREACH B GENERATE group, COUNT(A.t) as mycount;
 D = ORDER C BY mycount;
 STORE D INTO 'mysortedcount' USING PigStorage();
 </programlisting>
+</section>
+</section>
 
-</section></section>
-   
-   
    </section>
-  
    </article>
   
    
