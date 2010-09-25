@@ -198,6 +198,8 @@ PIG-1309: Map-side Cogroup (ashutoshc)
 
 BUG FIXES
 
+PIG-1645: Using both small split combination and temporary file compression on a query of ORDER BY may cause crash (yanz)
+
 PIG-1635: Logical simplifier does not simplify away constants under AND and OR; after simplificaion the ordering of operands of
           AND and OR may get changed (yanz)
 
