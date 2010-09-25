@@ -211,6 +211,10 @@ public class LogicalExpressionSimplifier extends Rule {
             byte relation;
             int size = children.size();
             for (int i = 0; i < size; i++) {
+                if (children.get(i) instanceof ConstantExpression && ((Boolean) ((ConstantExpression) children.get(i)).getValue()))
+                    decrDNFSplitCount((LogicalExpression) children.get(i));
+            }
+            for (int i = 0; i < size; i++) {
                 LogicalExpression child1 = (LogicalExpression) children.get(i);
                 for (int j = i + 1; j < size; j++) {
                     LogicalExpression child2 = (LogicalExpression) children.get(j);
@@ -255,6 +259,10 @@ public class LogicalExpressionSimplifier extends Rule {
             Operator[] children = plan.getSuccessors(or).toArray(
                             new Operator[0]);
             int size = children.length;
+            for (int i = 0; i < size; i++) {
+              if (children[i] instanceof ConstantExpression && !((Boolean) ((ConstantExpression) children[i]).getValue()))
+                  decrDNFSplitCount((LogicalExpression) children[i]);
+            }
             for (int ii = 0; ii < size; ii++) {
                 LogicalExpression child = (LogicalExpression) children[ii];
                 if (child instanceof AndExpression || (child instanceof DNFExpression && ((DNFExpression) child).type == DNFExpression.DNFExpressionType.AND)) {
@@ -498,6 +506,9 @@ public class LogicalExpressionSimplifier extends Rule {
 
         private byte handleAndSimple(LogicalExpression e1, LogicalExpression e2)
                         throws FrontendException {
+            if (e2 instanceof ConstantExpression)
+                // no relationship between an AND and a constant
+                return Unknown;
             // get the inference relation between e1, an AND expression, and e2, a leaf logical expression
             List<Operator> andChildren = e1.getPlan().getSuccessors(e1);
             boolean hasUnknown = false;
