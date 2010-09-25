@@ -21,6 +21,8 @@ import java.io.IOException;
 import java.util.Random;
 
 import org.apache.pig.data.Tuple;
+import org.apache.hadoop.mapreduce.RecordReader;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigSplit;
 
 /**
  * A loader that samples the data.  
@@ -100,6 +102,13 @@ public class RandomSampleLoader extends SampleLoader {
         
         return getSample();
     } 
+    
+    @Override
+    public void prepareToRead(RecordReader reader, PigSplit split) throws IOException {
+        super.prepareToRead(reader, split);
+        samples = null;
+        nextSampleIdx = 0;
+    }
     
     private Tuple getSample() {
         if(nextSampleIdx < samples.length){

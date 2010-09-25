@@ -22,7 +22,9 @@ import java.util.ArrayList;
 import java.util.Properties;
 
 
+import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigSplit;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.PigContext;
@@ -197,6 +199,20 @@ public class PoissonSampleLoader extends SampleLoader {
             sampleRate = DEFAULT_SAMPLE_RATE;
         }
 
+    }
+    
+    @Override
+    public void prepareToRead(RecordReader reader, PigSplit split) throws IOException {
+        super.prepareToRead(reader, split);
+        numRowsSampled = 0;
+        avgTupleMemSz = 0;
+        rowNum = 0;
+        skipInterval = -1;
+        memToSkipPerSample = 0;
+        numRowSplTupleReturned = false;
+        sampleRate = DEFAULT_SAMPLE_RATE;
+        heapPerc = PartitionSkewedKeys.DEFAULT_PERCENT_MEMUSAGE;
+        newSample = null;
     }
 
 }
