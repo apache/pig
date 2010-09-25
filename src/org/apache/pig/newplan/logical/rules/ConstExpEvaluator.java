@@ -26,6 +26,7 @@ import org.apache.pig.newplan.ReverseDependencyOrderWalker;
 import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.OperatorPlan;
 import org.apache.pig.data.DataType;
+import org.apache.pig.impl.util.Pair;
 
 /**
  *  a constant expression evaluation visitor that will evaluate the constant expressions.
@@ -244,8 +245,8 @@ class ConstExpEvaluator extends LogicalExpressionVisitor {
                     Operator[] preds = predList.toArray(new Operator[0]); 
                     for (Object p : preds) {
                         Operator pred = (Operator) p;
-                        plan.disconnect(pred, parent);
-                        plan.connect(pred, newExp);
+                        Pair<Integer, Integer> pos = plan.disconnect(pred, parent);
+                        plan.connect(pred, pos.first, newExp, pos.second);
                     }
                 }
                 plan.remove(parent);

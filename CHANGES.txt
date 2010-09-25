@@ -198,6 +198,9 @@ PIG-1309: Map-side Cogroup (ashutoshc)
 
 BUG FIXES
 
+PIG-1635: Logical simplifier does not simplify away constants under AND and OR; after simplificaion the ordering of operands of
+          AND and OR may get changed (yanz)
+
 PIG-1639: New logical plan: PushUpFilter should not push before group/cogroup 
 if filter condition contains UDF (xuefuz via daijy)
 

@@ -29,6 +29,7 @@ import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.OperatorPlan;
 import org.apache.pig.newplan.PlanWalker;
 import org.apache.pig.newplan.PlanVisitor;
+import org.apache.pig.impl.util.Pair;
 
 /**
  * A NOT conversion visitor that will traverse the expression tree in a depth-first
@@ -59,8 +60,8 @@ class NOTConversionVisitor extends LogicalExpressionVisitor {
         if (p != null) {
             Operator[] preds = p.toArray(new Operator[0]);
             for (Operator pred : preds) {
-                plan.disconnect(pred, oldOp);
-                plan.connect(pred, newOp);
+                Pair<Integer, Integer> pos = plan.disconnect(pred, oldOp);
+                plan.connect(pred, pos.first, newOp, pos.second);
             }
         }
         List<Operator> s = plan.getSuccessors(oldOp);
@@ -81,8 +82,8 @@ class NOTConversionVisitor extends LogicalExpressionVisitor {
             Operator[] preds = p.toArray(new Operator[0]);
             for (Operator pred : preds) {
                 if (pred != before) {
-                    plan.disconnect(pred, after);
-                    plan.connect(pred, before);
+                    Pair<Integer, Integer> pos = plan.disconnect(pred, after);
+                    plan.connect(pred, pos.first, before, pos.second);
                 }
             }
         }
@@ -93,13 +94,12 @@ class NOTConversionVisitor extends LogicalExpressionVisitor {
         if (p != null) {
             Operator[] preds = p.toArray(new Operator[0]);
             for (Operator pred : preds) {
-                plan.disconnect(pred, op);
+                Pair<Integer, Integer> pos = plan.disconnect(pred, op);
                 List<Operator> s = plan.getSuccessors(op);
                 if (s != null) {
                     Operator[] sucs = s.toArray(new Operator[0]);
-                    for (Operator suc : sucs) {
-                        plan.connect(pred, suc);
-                    }
+                    for (int i = 0;  i < sucs.length; i++)
+                        plan.connect(pred, pos.first+i, sucs[i], pos.second+i);
                 }
             }
         }

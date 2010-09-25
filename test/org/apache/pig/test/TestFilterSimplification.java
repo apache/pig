@@ -33,6 +33,7 @@ import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.test.utils.LogicalPlanTester;
 
 import junit.framework.TestCase;
+import org.junit.Test;
 
 public class TestFilterSimplification extends TestCase {
 
@@ -48,6 +49,7 @@ public class TestFilterSimplification extends TestCase {
         return newplan;
     }
 
+    @Test
     public void test1() throws Exception {
         // case 1: simple and implication
         LogicalPlanTester lpt = new LogicalPlanTester(pc);
@@ -547,6 +549,7 @@ public class TestFilterSimplification extends TestCase {
 
     }
 
+    @Test
     public void test2() throws Exception {
         LogicalPlanTester lpt = new LogicalPlanTester(pc);
         lpt.buildPlan("b = filter (load 'd.txt' as (name, age, gpa)) by age >= 50 or name > 'fred' and gpa <= 3.0 or name >= 'bob';");
@@ -606,6 +609,57 @@ public class TestFilterSimplification extends TestCase {
 
         lpt = new LogicalPlanTester(pc);
         lpt.buildPlan("b = load 'd.txt';");
+        plan = lpt.buildPlan("store b into 'empty';");
+        expected = migratePlan(plan);
+
+        assertTrue(expected.isEqual(newLogicalPlan));
+    }
+
+    @Test
+    public void test3() throws Exception {
+        // boolean constant elimination: AND
+        LogicalPlanTester lpt = new LogicalPlanTester(pc);
+        lpt.buildPlan("b = filter (load 'd.txt' as (id:int, v1, v2)) by ((v1 is not null) AND (id == 1) AND (1 == 1));");
+        org.apache.pig.impl.logicalLayer.LogicalPlan plan = lpt.buildPlan("store b into 'empty';");
+        LogicalPlan newLogicalPlan = migratePlan(plan);
+
+        PlanOptimizer optimizer = new MyPlanOptimizer(newLogicalPlan, 10);
+        optimizer.optimize();
+
+        lpt = new LogicalPlanTester(pc);
+        lpt.buildPlan("b = filter (load 'd.txt' as (id:int, v1, v2)) by ((v1 is not null) AND (id == 1));");
+        plan = lpt.buildPlan("store b into 'empty';");
+        LogicalPlan expected = migratePlan(plan);
+
+        assertTrue(expected.isEqual(newLogicalPlan));
+
+        // boolean constant elimination: OR
+        lpt = new LogicalPlanTester(pc);
+        lpt.buildPlan("b = filter (load 'd.txt' as (id:int, v1, v2)) by (((v1 is not null) AND (id == 1)) OR (1 == 0));");
+        plan = lpt.buildPlan("store b into 'empty';");
+        newLogicalPlan = migratePlan(plan);
+
+        optimizer = new MyPlanOptimizer(newLogicalPlan, 10);
+        optimizer.optimize();
+
+        lpt = new LogicalPlanTester(pc);
+        lpt.buildPlan("b = filter (load 'd.txt' as (id:int, v1, v2)) by ((v1 is not null) AND (id == 1));");
+        plan = lpt.buildPlan("store b into 'empty';");
+        expected = migratePlan(plan);
+
+        assertTrue(expected.isEqual(newLogicalPlan));
+        
+        // the mirror case of the above
+        lpt = new LogicalPlanTester(pc);
+        lpt.buildPlan("b = filter (load 'd.txt' as (id:int, v1, v2)) by ((1 == 0) OR ((v1 is not null) AND (id == 1)));");
+        plan = lpt.buildPlan("store b into 'empty';");
+        newLogicalPlan = migratePlan(plan);
+
+        optimizer = new MyPlanOptimizer(newLogicalPlan, 10);
+        optimizer.optimize();
+
+        lpt = new LogicalPlanTester(pc);
+        lpt.buildPlan("b = filter (load 'd.txt' as (id:int, v1, v2)) by ((v1 is not null) AND (id == 1));");
         plan = lpt.buildPlan("store b into 'empty';");
         expected = migratePlan(plan);
 
