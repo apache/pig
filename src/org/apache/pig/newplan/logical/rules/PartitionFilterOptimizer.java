@@ -42,6 +42,7 @@ import org.apache.pig.newplan.PColFilterExtractor;
 import org.apache.pig.newplan.optimizer.Rule;
 import org.apache.pig.newplan.optimizer.Transformer;
 import org.apache.pig.impl.logicalLayer.FrontendException;
+import org.apache.pig.impl.util.Pair;
 
 public class PartitionFilterOptimizer extends Rule {
     private String[] partitionKeys;
@@ -157,17 +158,8 @@ public class PartitionFilterOptimizer extends Rule {
 				} catch (IOException e) {
 					throw new FrontendException( e );
 				}
-        		if(pColFilterFinder.isFilterRemovable()) {
-        			// remove this filter from the plan  
-        			Operator from = currentPlan.getPredecessors( loFilter ).get( 0 );
-        			currentPlan.disconnect( from, loFilter );
-        			List<Operator> succs = currentPlan.getSuccessors( loFilter );
-        			if( succs != null ) {
-        				Operator to = succs.get( 0 );
-	        			currentPlan.disconnect( loFilter, to );
-	        			currentPlan.connect( from, to );
-        			}
-        			currentPlan.remove( loFilter );
+        		if(pColFilterFinder.isFilterRemovable()) {  
+        			currentPlan.removeAndReconnect( loFilter );
         		}
         	}
         }

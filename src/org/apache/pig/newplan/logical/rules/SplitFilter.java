@@ -89,9 +89,7 @@ public class SplitFilter extends Rule {
             if (succeds != null) {
                 succed = succeds.get(0);
                 subPlan.add(succed);
-                Pair<Integer, Integer> p = currentPlan.disconnect(filter, succed);
-                currentPlan.connect(filter2, 0, succed, p.second);
-                currentPlan.connect(filter, p.first, filter2, 0); 
+                currentPlan.insertBetween(filter, filter2, succed);
             } else {
                 currentPlan.connect(filter, 0, filter2, 0); 
             }

@@ -22,6 +22,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -29,6 +30,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 
+import org.apache.hadoop.fs.Path;
 import org.apache.log4j.FileAppender;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
@@ -38,6 +40,7 @@ import org.apache.pig.FilterFunc;
 import org.apache.pig.PigServer;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.newplan.logical.rules.ColumnPruneVisitor;
 import org.junit.After;
@@ -1872,5 +1875,44 @@ public class TestPruneColumn extends TestCase {
 
         assertTrue(checkLogFileMessage(new String[]{"Columns pruned for A: $1"}));
     }
+    
+    // See PIG-1644
+    @Test
+    public void testSplitOutputWithForEach() throws Exception {
+        Path output1 = FileLocalizer.getTemporaryPath(pigServer.getPigContext());
+        Path output2 = FileLocalizer.getTemporaryPath(pigServer.getPigContext());
+        pigServer.setBatchOn();
+        pigServer.registerQuery("A = load '"+ Util.generateURI(tmpFile5.toString(), pigServer.getPigContext()) + "' AS (a0, a1, a2, a3);");
+        pigServer.registerQuery("B = foreach A generate a0, a1, a2;");
+        pigServer.registerQuery("store B into '" + Util.generateURI(output1.toString(), pigServer.getPigContext()) + "';");
+        pigServer.registerQuery("C = order B by a2;");
+        pigServer.registerQuery("D = foreach C generate a2;");
+        pigServer.registerQuery("store D into '" + Util.generateURI(output2.toString(), pigServer.getPigContext()) + "';");
+        pigServer.executeBatch();
+
+        BufferedReader reader1 = new BufferedReader(new InputStreamReader(FileLocalizer.openDFSFile(output1.toString())));
+        String line = reader1.readLine();
+        assertTrue(line.equals("1\t2\t3"));
+        
+        line = reader1.readLine();
+        assertTrue(line.equals("2\t3\t4"));
+        
+        assertTrue(reader1.readLine()==null);
+        
+        BufferedReader reader2 = new BufferedReader(new InputStreamReader(FileLocalizer.openDFSFile(output2.toString())));
+        line = reader2.readLine();
+        assertTrue(line.equals("3"));
+        
+        line = reader2.readLine();
+        assertTrue(line.equals("4"));
+        
+        assertTrue(reader2.readLine()==null);
+
+        assertTrue(checkLogFileMessage(new String[]{"Columns pruned for A: $3"}));
+        
+        reader1.close();
+        reader2.close();
+    }
+
 
 }

@@ -120,10 +120,7 @@ public abstract class TypeCastInserter extends Rule {
             
             // Insert the foreach into the plan and patch up the plan.
             Operator next = currentPlan.getSuccessors(op).get(0);
-            Pair<Integer,Integer> disconnectedPos = currentPlan.disconnect(op, next);
-            currentPlan.add(foreach);
-            currentPlan.connect(op, disconnectedPos.first.intValue(), foreach, 0 );
-            currentPlan.connect(foreach, 0, next, disconnectedPos.second.intValue());
+            currentPlan.insertBetween(op, foreach, next);
             
             List<LogicalExpressionPlan> exps = new ArrayList<LogicalExpressionPlan>();
             LOGenerate gen = new LOGenerate(innerPlan, exps, new boolean[s.size()]);
