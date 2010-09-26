@@ -207,8 +207,6 @@ public class PushUpFilter extends Rule {
             Operator predecessor = this.findNonFilterPredecessor( filter );
             subPlan.add( predecessor) ;
             
-            // Disconnect the filter in the plan without removing it from the plan.
-            Operator predec = currentPlan.getPredecessors( filter ).get( 0 );
             Operator succed;
             
             if (currentPlan.getSuccessors(filter)!=null)
@@ -216,13 +214,11 @@ public class PushUpFilter extends Rule {
             else
                 succed = null;
             
-            Pair<Integer, Integer> p1 = currentPlan.disconnect(predec, filter);
-            
             if (succed!=null) {
                 subPlan.add(succed);
-                Pair<Integer, Integer> p2 = currentPlan.disconnect(filter, succed);
-                currentPlan.connect(predec, p1.first, succed, p2.second);
             }
+            
+            currentPlan.removeAndReconnect(filter);
             
             if( predecessor instanceof LOSort || predecessor instanceof LODistinct ||
                 ( predecessor instanceof LOCogroup && currentPlan.getPredecessors( predecessor ).size() == 1 ) ) {
@@ -322,9 +318,7 @@ public class PushUpFilter extends Rule {
         // Insert the filter in between the given two operators.
         private void insertFilter(Operator prev, Operator predecessor, LOFilter filter)
         throws FrontendException {
-            Pair<Integer, Integer> p3 = currentPlan.disconnect( prev, predecessor );
-            currentPlan.connect( prev, p3.first, filter, 0 );
-            currentPlan.connect( filter, 0, predecessor, p3.second );
+            currentPlan.insertBetween(prev, filter, predecessor);
         }
         
         // Identify those among preds that will need to have a filter between it and the predecessor.

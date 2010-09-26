@@ -171,9 +171,7 @@ public class ColumnPruneVisitor extends LogicalRelationalNodesVisitor {
                 // add foreach to the base plan                       
                 p.add(foreach);
                                
-                Pair<Integer,Integer> disconnectedPos = p.disconnect(load, next);
-                p.connect(load, disconnectedPos.first.intValue(), foreach, 0 );
-                p.connect(foreach, 0, next, disconnectedPos.second.intValue());
+                p.insertBetween(load, foreach, next);
                 
                 LogicalPlan innerPlan = new LogicalPlan();
                 foreach.setInnerPlan(innerPlan);

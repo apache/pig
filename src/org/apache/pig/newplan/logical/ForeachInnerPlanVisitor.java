@@ -86,9 +86,7 @@ public class ForeachInnerPlanVisitor extends LogicalExpPlanMigrationVistor {
                 org.apache.pig.newplan.Operator newPred = innerOpsMap.get(pred);
                 if (newPred.getPlan().getSuccessors(newPred)!=null) {
                     org.apache.pig.newplan.Operator newSucc = newOp.getPlan().getSuccessors(newPred).get(0);
-                    Pair<Integer, Integer> pair = newOp.getPlan().disconnect(newPred, newSucc);
-                    newOp.getPlan().connect(newPred, newOp);
-                    newOp.getPlan().connect(newOp, pair.first, newSucc, pair.second);
+                    newOp.getPlan().insertBetween(newPred, newOp, newSucc);
                 }
                 else {
                     newOp.getPlan().connect(newPred, newOp);

@@ -115,11 +115,11 @@ public class Util {
         List<Operator> next = plan.getSuccessors(op);
         if (next != null) {
             LogicalRelationalOperator nextOp = (LogicalRelationalOperator)next.get(branch);
-            Pair<Integer, Integer> pos = plan.disconnect(op, nextOp);
-            plan.connect(foreach, pos.first, nextOp, pos.second);
+            plan.insertBetween(op, foreach, nextOp);
         }
-        
-        plan.connect(op, foreach);
+        else {
+            plan.connect(op, foreach);
+        }
         
         LogicalPlan innerPlan = new LogicalPlan();
         foreach.setInnerPlan(innerPlan);

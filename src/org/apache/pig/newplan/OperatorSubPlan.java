@@ -162,7 +162,7 @@ public class OperatorSubPlan implements OperatorPlan {
     
     @Override
     public void removeSoftLink(Operator from, Operator to) {
-        throw new UnsupportedOperationException("connect() can not be called on OperatorSubPlan");
+        throw new UnsupportedOperationException("removeSoftLink() can not be called on OperatorSubPlan");
     }
 
     @Override
@@ -173,5 +173,26 @@ public class OperatorSubPlan implements OperatorPlan {
     @Override
     public List<Operator> getSoftLinkSuccessors(Operator op) {
         return basePlan.getSoftLinkSuccessors(op);
-    }    
+    }
+
+    @Override
+    public void insertBetween(Operator pred, Operator operatorToInsert, Operator succ)
+            throws FrontendException {
+        throw new UnsupportedOperationException("insertBetween() can not be called on OperatorSubPlan");
+        
+    }
+
+    @Override
+    public void removeAndReconnect(Operator operatorToRemove)
+            throws FrontendException {
+        throw new UnsupportedOperationException("removeAndReconnect() can not be called on OperatorSubPlan");
+        
+    }
+
+    @Override
+    public void replace(Operator oldOperator, Operator newOperator)
+            throws FrontendException {
+        throw new UnsupportedOperationException("replace() can not be called on OperatorSubPlan");
+        
+    }
 }
