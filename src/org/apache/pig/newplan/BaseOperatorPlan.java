@@ -316,5 +316,118 @@ public abstract class BaseOperatorPlan implements OperatorPlan {
             return "";
         }
         return os.toString();
-    }   
+    }
+    
+    @Override
+    public void replace(Operator oldOperator, Operator newOperator) throws FrontendException {
+        add(newOperator);
+        
+        List<Operator> preds = getPredecessors(oldOperator);
+        if (preds!=null) {
+            List<Operator> predsCopy = new ArrayList<Operator>();
+            predsCopy.addAll(preds);
+            for (int i=0;i<predsCopy.size();i++) {
+                Operator pred = predsCopy.get(i);
+                Pair<Integer, Integer> pos = disconnect(pred, oldOperator);
+                connect(pred, pos.first, newOperator, i);
+            }
+        }
+        
+        List<Operator> succs = getSuccessors(oldOperator);
+        if (succs!=null) {
+            List<Operator> succsCopy = new ArrayList<Operator>();
+            succsCopy.addAll(succs);
+            for (int i=0;i<succsCopy.size();i++) {
+                Operator succ = succsCopy.get(i);
+                Pair<Integer, Integer> pos = disconnect(oldOperator, succ);
+                connect(newOperator, i, succ, pos.second);
+            }
+        }
+        
+        remove(oldOperator);
+    }
+    
+    // We assume if node has multiple inputs, it only has one output;
+    // if node has multiple outputs, it only has one input.
+    // Otherwise, we don't know how to connect inputs to outputs.
+    // This assumption is true for logical plan/physical plan, and most MR plan
+    @Override
+    public void removeAndReconnect(Operator operatorToRemove) throws FrontendException {
+        List<Operator> predsCopy = null;
+        if (getPredecessors(operatorToRemove)!=null && getPredecessors(operatorToRemove).size()!=0) {
+            predsCopy = new ArrayList<Operator>();
+            predsCopy.addAll(getPredecessors(operatorToRemove));
+        }
+        
+        List<Operator> succsCopy = null;
+        if (getSuccessors(operatorToRemove)!=null && getSuccessors(operatorToRemove).size()!=0) {
+            succsCopy = new ArrayList<Operator>();
+            succsCopy.addAll(getSuccessors(operatorToRemove));
+        }
+        
+        if (predsCopy!=null && predsCopy.size()>1 && succsCopy!=null && succsCopy.size()>1) {
+            throw new FrontendException("Cannot remove and reconnect node with multiple inputs/outputs", 2256);
+        }
+        
+        if (predsCopy!=null && predsCopy.size()>1) {
+            // node has multiple inputs, it can only has one output (or no output)
+            // reconnect inputs to output
+            Operator succ = null;
+            Pair<Integer, Integer> pos2 = null;
+            if (succsCopy!=null) {
+                succ = succsCopy.get(0);
+                pos2 = disconnect(operatorToRemove, succ);
+            }
+            for (Operator pred : predsCopy) {
+                Pair<Integer, Integer> pos1 = disconnect(pred, operatorToRemove);
+                if (succ!=null) {
+                    connect(pred, pos1.first, succ, pos2.second);
+                }
+            }
+        } else if (succsCopy!=null && succsCopy.size()>1) {
+            // node has multiple outputs, it can only has one output (or no output)
+            // reconnect input to outputs
+            Operator pred = null;
+            Pair<Integer, Integer> pos1 = null;
+            if (predsCopy!=null) {
+                pred = predsCopy.get(0);
+                pos1 = disconnect(pred, operatorToRemove);
+            }
+            for (Operator succ : succsCopy) {
+                Pair<Integer, Integer> pos2 = disconnect(operatorToRemove, succ);
+                if (pred!=null) {
+                    connect(pred, pos1.first, succ, pos2.second);
+                }
+            }
+        } else {
+            // Only have one input/output
+            Operator pred = null;
+            Pair<Integer, Integer> pos1 = null;
+            if (predsCopy!=null) {
+                pred = predsCopy.get(0);
+                pos1 = disconnect(pred, operatorToRemove);
+            }
+            
+            Operator succ = null;
+            Pair<Integer, Integer> pos2 = null;
+            if (succsCopy!=null) {
+                succ = succsCopy.get(0);
+                pos2 = disconnect(operatorToRemove, succ);
+            }
+            
+            if (pred!=null && succ!=null) {
+                connect(pred, pos1.first, succ, pos2.second);
+            }
+        }
+        
+        remove(operatorToRemove);
+    }
+    
+    @Override
+    public void insertBetween(Operator pred, Operator operatorToInsert, Operator succ) throws FrontendException {
+        add(operatorToInsert);
+        Pair<Integer, Integer> pos = disconnect(pred, succ);
+        connect(pred, pos.first, operatorToInsert, 0);
+        connect(operatorToInsert, 0, succ, pos.second);
+    }
 }

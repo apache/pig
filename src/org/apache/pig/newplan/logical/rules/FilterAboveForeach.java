@@ -260,13 +260,8 @@ public class FilterAboveForeach extends Rule {
              *  -- And ForEach is FilterPred 
              */
             
-            Pair<Integer, Integer> forEachPredPlaces = currentPlan.disconnect(forEachPred, foreach);
-            Pair<Integer, Integer> filterPredPlaces = currentPlan.disconnect(filterPred, filter);
-            Pair<Integer, Integer> filterSucPlaces = currentPlan.disconnect(filter, filterSuc);
-            
-            currentPlan.connect(forEachPred, forEachPredPlaces.first, filter, filterPredPlaces.second);
-            currentPlan.connect(filter, filterSucPlaces.first, foreach, forEachPredPlaces.second);
-            currentPlan.connect(filterPred, filterPredPlaces.first, filterSuc, filterSucPlaces.second);
+            currentPlan.removeAndReconnect(filter);
+            currentPlan.insertBetween(forEachPred, filter, foreach);
             
             subPlan.add(forEachPred);
             subPlan.add(foreach);

@@ -211,17 +211,17 @@ public class PushDownForEachFlatten extends Rule {
             LOForEach foreach = (LOForEach)matched.getSources().get(0);
             Operator next = currentPlan.getSuccessors( foreach ).get(0);
             if( next instanceof LOSort ) {
-                Operator pred = currentPlan.getPredecessors( foreach ).get( 0 );
+                currentPlan.removeAndReconnect(foreach);
+                
                 List<Operator> succs = currentPlan.getSuccessors( next );
-                currentPlan.disconnect( pred, foreach );
-                currentPlan.disconnect( foreach, next );
-                currentPlan.connect( pred, next );
-                currentPlan.connect( next, foreach );
                 if( succs != null ) {
-                    for( Operator succ : succs ) {
-                        currentPlan.disconnect( next, succ );
-                        currentPlan.connect( foreach, succ );
+                    List<Operator> succsCopy = new ArrayList<Operator>();
+                    succsCopy.addAll(succs);
+                    for( Operator succ : succsCopy ) {
+                        currentPlan.insertBetween(next, foreach, succ);
                     }
+                } else {
+                    currentPlan.connect( next, foreach );
                 }
             } else if( next instanceof LOCross || next instanceof LOJoin ) {
                 List<Operator> preds = currentPlan.getPredecessors( next );
@@ -275,9 +275,7 @@ public class PushDownForEachFlatten extends Rule {
                     currentPlan.connect( next, newForeach );
                 } else {
                     opAfterX = succs.get( 0 );
-                    Pair<Integer, Integer> pos = currentPlan.disconnect( next, opAfterX );
-                    currentPlan.connect( next, pos.first, newForeach, pos.second );
-                    currentPlan.connect( newForeach, opAfterX );
+                    currentPlan.insertBetween(next, newForeach, opAfterX);
                 }
                 
                 // Finally remove flatten flags from the original foreach and regenerate schemas for those impacted.

@@ -75,24 +75,21 @@ public class MergeFilter extends Rule {
             if (succeds != null && succeds.size()== 1 && (succeds.get(0) instanceof LOFilter)) {
                 LOFilter next = (LOFilter)succeds.get(0);
                 combineFilterCond(filter, next);
-                Pair<Integer, Integer> p1 = currentPlan.disconnect(filter, next);
-                List<Operator> ll = currentPlan.getSuccessors(next);
-                if (ll!= null && ll.size()>0) {
-                    Operator op = ll.get(0);
-                    Pair<Integer, Integer> p2 = currentPlan.disconnect(next, op);
-                    currentPlan.connect(filter, p1.first, op, p2.second);
-                    subPlan.add(op);
-                }
                 
+                List<Operator> succs = currentPlan.getSuccessors(next);
+                if (succs!=null && succs.size()>0) {
+                    subPlan.add(succs.get(0));
+                }
+
                 // Since we remove next, we need to merge soft link into filter
                 List<Operator> nextSoftPreds = currentPlan.getSoftLinkPredecessors(next);
                 if (nextSoftPreds!=null) {
                     for (Operator softPred : nextSoftPreds) {
+                        currentPlan.removeSoftLink(softPred, next);
                         currentPlan.createSoftLink(softPred, filter);
                     }
                 }
-                
-                currentPlan.remove(next);
+                currentPlan.removeAndReconnect(next);
             }
             
             Iterator<Operator> iter = filter.getFilterPlan().getOperators();

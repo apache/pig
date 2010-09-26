@@ -160,4 +160,30 @@ public interface OperatorPlan {
      * @throws FrontendException
      */
     public boolean isEqual( OperatorPlan other ) throws FrontendException;
+    
+    /**
+     * This method replace the oldOperator with the newOperator, make all connection
+     * to the new operator in the place of old operator
+     * @param oldOperator operator to be replaced
+     * @param newOperator operator to replace
+     * @throws FrontendException
+     */
+    public void replace(Operator oldOperator, Operator newOperator) throws FrontendException;
+    
+    /**
+     * This method remove a node operatorToRemove. It also Connect all its successors to 
+     * predecessor/connect all it's predecessors to successor
+     * @param operatorToRemove operator to remove
+     * @throws FrontendException
+     */
+    public void removeAndReconnect(Operator operatorToRemove) throws FrontendException;
+
+    /**
+     * This method insert node operatorToInsert between pred and succ. Both pred and succ cannot be null
+     * @param pred predecessor of inserted node after this method
+     * @param operatorToInsert operato to insert
+     * @param succ successor of inserted node after this method
+     * @throws FrontendException
+     */
+    public void insertBetween(Operator pred, Operator operatorToInsert, Operator succ) throws FrontendException;
 }

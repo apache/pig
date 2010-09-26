@@ -22,6 +22,7 @@ import java.util.Iterator;
 import java.util.List;
 
 import org.apache.pig.impl.logicalLayer.FrontendException;
+import org.apache.pig.impl.util.Pair;
 import org.apache.pig.newplan.logical.relational.LOCogroup;
 import org.apache.pig.newplan.logical.relational.LOCross;
 import org.apache.pig.newplan.logical.relational.LODistinct;
@@ -118,16 +119,11 @@ public class LimitOptimizer extends Rule {
 
             if (pred instanceof LOForEach) {
                 // We can safely move LOLimit up
-                // Get operator before LOFilter
+                // Get operator before LOForEach
                 Operator prepredecessor = currentPlan.getPredecessors(pred)
-                        .get(0);
-                Operator succ = currentPlan.getSuccessors(limit).get(0);
-                currentPlan.disconnect(prepredecessor, pred);
-                currentPlan.disconnect(pred, limit);
-                currentPlan.disconnect(limit, succ);
-                currentPlan.connect(prepredecessor, limit);
-                currentPlan.connect(limit, pred);
-                currentPlan.connect(pred, succ);
+                    .get(0);
+                currentPlan.removeAndReconnect(limit);
+                currentPlan.insertBetween(prepredecessor, limit, pred);
             } else if (pred instanceof LOCross || pred instanceof LOUnion) {
                 // Limit can be duplicated, and the new instance pushed in front
                 // of an operator for the following operators
@@ -146,10 +142,7 @@ public class LimitOptimizer extends Rule {
                     } else {
                         newLimit = new LOLimit((LogicalPlan) currentPlan, limit
                                 .getLimit());
-                        currentPlan.add(newLimit);
-                        currentPlan.disconnect(prepredecessor, pred);
-                        currentPlan.connect(prepredecessor, newLimit);
-                        currentPlan.connect(newLimit, pred);
+                        currentPlan.insertBetween(prepredecessor, newLimit, pred);
                     }
                 }
             } else if (pred instanceof LOSort) {
@@ -161,11 +154,7 @@ public class LimitOptimizer extends Rule {
                             .getLimit() : limit.getLimit());
 
                 // remove the limit
-                Operator succ = currentPlan.getSuccessors(limit).get(0);
-                currentPlan.disconnect(sort, limit);
-                currentPlan.disconnect(limit, succ);
-                currentPlan.connect(sort, succ);
-                currentPlan.remove(limit);
+                currentPlan.removeAndReconnect(limit);
             } else if (pred instanceof LOLimit) {
                 // Limit is merged into another LOLimit
                 LOLimit beforeLimit = (LOLimit) pred;
@@ -174,11 +163,7 @@ public class LimitOptimizer extends Rule {
                                 .getLimit()
                                 : limit.getLimit());
                 // remove the limit
-                Operator succ = currentPlan.getSuccessors(limit).get(0);
-                currentPlan.disconnect(beforeLimit, limit);
-                currentPlan.disconnect(limit, succ);
-                currentPlan.connect(beforeLimit, succ);
-                currentPlan.remove(limit);
+                currentPlan.removeAndReconnect(limit);
             } else if (pred instanceof LOSplitOutput) {
                 // Limit and OrderBy (LOSort) can be separated by split
                 List<Operator> grandparants = currentPlan.getPredecessors(pred);
@@ -197,13 +182,7 @@ public class LimitOptimizer extends Rule {
                                 sort.getUserFunc());
                         newSort.setLimit(limit.getLimit());
 
-                        Operator succ = currentPlan.getSuccessors(limit).get(0);
-                        currentPlan.disconnect(pred, limit);
-                        currentPlan.disconnect(limit, succ);
-                        currentPlan.add(newSort);
-                        currentPlan.connect(pred, newSort);
-                        currentPlan.connect(newSort, succ);
-                        currentPlan.remove(limit);
+                        currentPlan.replace(limit, newSort);
                     }
                 }
             }

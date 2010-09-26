@@ -46,6 +46,7 @@ import org.apache.pig.newplan.logical.expression.ProjectExpression;
 import org.apache.pig.newplan.logical.relational.LOFilter;
 import org.apache.pig.newplan.logical.relational.LOJoin;
 import org.apache.pig.newplan.logical.relational.LOLoad;
+import org.apache.pig.newplan.logical.relational.LOSplit;
 import org.apache.pig.newplan.logical.relational.LogicalPlan;
 import org.apache.pig.newplan.logical.relational.LogicalRelationalNodesVisitor;
 import org.apache.pig.newplan.logical.relational.LogicalSchema;
@@ -1538,5 +1539,351 @@ public class TestNewPlanOperatorPlan extends TestCase {
         assertTrue(D1.isEqual(D2));
     }
     
- 
+    @Test
+    public void testReplace1() throws FrontendException {
+        // has multiple inputs
+        SillyPlan plan = new SillyPlan();
+        Operator load1 = new SillyOperator("load1", plan);
+        Operator load2 = new SillyOperator("load2", plan);
+        Operator filter1 = new SillyOperator("filter1", plan);
+        Operator join1 = new SillyOperator("join1", plan);
+        Operator filter2 = new SillyOperator("filter2", plan);
+        plan.add(load1);
+        plan.add(load2);
+        plan.add(filter1);
+        plan.add(filter2);
+        plan.add(join1);
+        plan.connect(load1, join1);
+        plan.connect(load2, filter1);
+        plan.connect(filter1, join1);
+        plan.connect(join1, filter2);
+        
+        Operator join2 = new SillyOperator("join2", plan);
+        plan.replace(join1, join2);
+        
+        List<Operator> preds = plan.getPredecessors(join2);
+        assert(preds.size()==2);
+        assert(preds.contains(load1));
+        assert(preds.contains(filter1));
+        
+        List<Operator> succs = plan.getSuccessors(join2);
+        assert(succs.size()==1);
+        assert(succs.contains(filter2));
+    }
+    
+    @Test
+    public void testReplace2() throws FrontendException {
+        // has multiple outputs
+        SillyPlan plan = new SillyPlan();
+        Operator load1 = new SillyOperator("load1", plan);
+        Operator split1 = new SillyOperator("split1", plan);
+        Operator filter1 = new SillyOperator("filter1", plan);
+        Operator filter2 = new SillyOperator("filter2", plan);
+        plan.add(load1);
+        plan.add(split1);
+        plan.add(filter1);
+        plan.add(filter2);
+        plan.connect(load1, split1);
+        plan.connect(split1, filter1);
+        plan.connect(split1, filter2);
+        
+        Operator split2 = new SillyOperator("split2", plan);
+        plan.replace(split1, split2);
+        
+        List<Operator> preds = plan.getPredecessors(split2);
+        assert(preds.size()==1);
+        assert(preds.contains(load1));
+        
+        List<Operator> succs = plan.getSuccessors(split2);
+        assert(succs.size()==2);
+        assert(succs.contains(filter1));
+        assert(succs.contains(filter2));
+    }
+    
+    @Test
+    public void testReplace3() throws FrontendException {
+        // single input/output
+        SillyPlan plan = new SillyPlan();
+        Operator load1 = new SillyOperator("load1", plan);
+        Operator filter1 = new SillyOperator("filter1", plan);
+        Operator filter2 = new SillyOperator("filter2", plan);
+        plan.add(load1);
+        plan.add(filter1);
+        plan.add(filter2);
+        plan.connect(load1, filter1);
+        plan.connect(filter1, filter2);
+        
+        Operator filter3 = new SillyOperator("filter3", plan);
+        plan.replace(filter1, filter3);
+        
+        List<Operator> preds = plan.getPredecessors(filter3);
+        assert(preds.size()==1);
+        assert(preds.contains(load1));
+        
+        List<Operator> succs = plan.getSuccessors(filter3);
+        assert(succs.size()==1);
+        assert(succs.contains(filter2));
+    }
+
+    @Test
+    public void testReplace4() throws FrontendException {
+        // output is null
+        SillyPlan plan = new SillyPlan();
+        Operator load1 = new SillyOperator("load1", plan);
+        Operator filter1 = new SillyOperator("filter1", plan);
+        Operator filter2 = new SillyOperator("filter2", plan);
+        plan.add(load1);
+        plan.add(filter1);
+        plan.add(filter2);
+        plan.connect(load1, filter1);
+        plan.connect(filter1, filter2);
+        
+        Operator filter3 = new SillyOperator("filter3", plan);
+        plan.replace(filter2, filter3);
+        
+        List<Operator> preds = plan.getPredecessors(filter3);
+        assert(preds.size()==1);
+        assert(preds.contains(filter1));
+        
+        List<Operator> succs = plan.getSuccessors(filter3);
+        assert(succs==null);
+    }
+    
+    @Test
+    public void testReplace5() throws FrontendException {
+        // input is null
+        SillyPlan plan = new SillyPlan();
+        Operator load1 = new SillyOperator("load1", plan);
+        Operator filter1 = new SillyOperator("filter1", plan);
+        Operator filter2 = new SillyOperator("filter2", plan);
+        plan.add(load1);
+        plan.add(filter1);
+        plan.add(filter2);
+        plan.connect(load1, filter1);
+        plan.connect(filter1, filter2);
+        
+        Operator load2 = new SillyOperator("load2", plan);
+        plan.replace(load1, load2);
+        
+        List<Operator> preds = plan.getPredecessors(load2);
+        assert(preds==null);
+        
+        List<Operator> succs = plan.getSuccessors(load2);
+        assert(succs.size()==1);
+        assert(succs.contains(filter1));
+    }
+    
+    @Test
+    public void testReplace6() throws FrontendException {
+        // has multiple inputs/outputs
+        SillyPlan plan = new SillyPlan();
+        Operator load1 = new SillyOperator("load1", plan);
+        Operator load2 = new SillyOperator("load2", plan);
+        Operator filter1 = new SillyOperator("filter1", plan);
+        // fake operator to take multiple inputs/outputs
+        Operator fake1 = new SillyOperator("fake1", plan);
+        Operator filter2 = new SillyOperator("filter2", plan);
+        Operator filter3 = new SillyOperator("filter3", plan);
+        plan.add(load1);
+        plan.add(load2);
+        plan.add(filter1);
+        plan.add(filter2);
+        plan.add(filter3);
+        plan.add(fake1);
+        plan.connect(load1, fake1);
+        plan.connect(load2, filter1);
+        plan.connect(filter1, fake1);
+        plan.connect(fake1, filter2);
+        plan.connect(fake1, filter3);
+        
+        Operator fake2 = new SillyOperator("fake2", plan);
+        plan.replace(fake1, fake2);
+        
+        List<Operator> preds = plan.getPredecessors(fake2);
+        assert(preds.size()==2);
+        assert(preds.contains(load1));
+        assert(preds.contains(filter1));
+        
+        List<Operator> succs = plan.getSuccessors(fake2);
+        assert(succs.size()==2);
+        assert(succs.contains(filter2));
+        assert(succs.contains(filter3));
+    }
+    
+    @Test
+    public void testRemove1() throws FrontendException {
+        // single input/output
+        SillyPlan plan = new SillyPlan();
+        Operator load1 = new SillyOperator("load1", plan);
+        Operator load2 = new SillyOperator("load2", plan);
+        Operator filter1 = new SillyOperator("filter1", plan);
+        Operator join1 = new SillyOperator("join1", plan);
+        Operator filter2 = new SillyOperator("filter2", plan);
+        plan.add(load1);
+        plan.add(load2);
+        plan.add(filter1);
+        plan.add(filter2);
+        plan.add(join1);
+        plan.connect(load1, join1);
+        plan.connect(load2, filter1);
+        plan.connect(filter1, join1);
+        plan.connect(join1, filter2);
+        
+        plan.removeAndReconnect(filter1);
+        
+        List<Operator> preds = plan.getPredecessors(join1);
+        assert(preds.size()==2);
+        assert(preds.contains(load2));
+    }
+    
+    @Test
+    public void testRemove2() throws FrontendException {
+        // input is null
+        SillyPlan plan = new SillyPlan();
+        Operator load1 = new SillyOperator("load1", plan);
+        Operator load2 = new SillyOperator("load2", plan);
+        Operator filter1 = new SillyOperator("filter1", plan);
+        Operator join1 = new SillyOperator("join1", plan);
+        Operator filter2 = new SillyOperator("filter2", plan);
+        plan.add(load1);
+        plan.add(load2);
+        plan.add(filter1);
+        plan.add(filter2);
+        plan.add(join1);
+        plan.connect(load1, join1);
+        plan.connect(load2, filter1);
+        plan.connect(filter1, join1);
+        plan.connect(join1, filter2);
+        
+        plan.removeAndReconnect(load1);
+        
+        List<Operator> preds = plan.getPredecessors(join1);
+        assert(preds.size()==1);
+        assert(preds.contains(filter1));
+        
+        plan.removeAndReconnect(filter1);
+        preds = plan.getPredecessors(join1);
+        assert(preds.size()==1);
+        assert(preds.contains(load2));
+    }
+    
+    @Test
+    public void testRemove3() throws FrontendException {
+        // output is null
+        SillyPlan plan = new SillyPlan();
+        Operator load1 = new SillyOperator("load1", plan);
+        Operator filter1 = new SillyOperator("filter1", plan);
+        Operator filter2 = new SillyOperator("filter2", plan);
+        plan.add(load1);
+        plan.add(filter1);
+        plan.add(filter2);
+        plan.connect(load1, filter1);
+        plan.connect(filter1, filter2);
+        
+        plan.removeAndReconnect(filter2);
+        
+        List<Operator> succs = plan.getSuccessors(filter2);
+        assert(succs==null);
+    }
+    
+    @Test
+    public void testRemove4() throws FrontendException {
+        // has multiple inputs
+        SillyPlan plan = new SillyPlan();
+        Operator load1 = new SillyOperator("load1", plan);
+        Operator load2 = new SillyOperator("load2", plan);
+        Operator filter1 = new SillyOperator("filter1", plan);
+        Operator join1 = new SillyOperator("join1", plan);
+        Operator fake1 = new SillyOperator("fake1", plan);
+        plan.add(load1);
+        plan.add(load2);
+        plan.add(filter1);
+        plan.add(join1);
+        plan.connect(load1, join1);
+        plan.connect(load2, filter1);
+        plan.connect(filter1, join1);
+        plan.connect(join1, fake1);
+        
+        plan.removeAndReconnect(join1);
+        
+        List<Operator> preds = plan.getPredecessors(fake1);
+        assert(preds.size()==2);
+        assert(preds.contains(load1));
+        assert(preds.contains(filter1));        
+    }
+    
+    @Test
+    public void testRemove5() throws FrontendException {
+        // has multiple outputs
+        SillyPlan plan = new SillyPlan();
+        Operator load1 = new SillyOperator("load1", plan);
+        Operator split1 = new SillyOperator("split1", plan);
+        Operator split2 = new SillyOperator("split2", plan);
+        Operator filter1 = new SillyOperator("filter1", plan);
+        Operator filter2 = new SillyOperator("filter2", plan);
+        plan.add(load1);
+        plan.add(split1);
+        plan.add(filter1);
+        plan.add(filter2);
+        plan.connect(load1, split1);
+        plan.connect(split1, split2);
+        plan.connect(split2, filter1);
+        plan.connect(split2, filter2);
+        
+        plan.removeAndReconnect(split2);
+        
+        List<Operator> succs = plan.getSuccessors(split1);
+        assert(succs.size()==2);
+        assert(succs.contains(filter1));
+        assert(succs.contains(filter2));
+    }
+    
+    @Test
+    public void testRemove6() throws FrontendException {
+        // has multiple inputs/outputs
+        SillyPlan plan = new SillyPlan();
+        Operator load1 = new SillyOperator("load1", plan);
+        Operator load2 = new SillyOperator("load2", plan);
+        Operator fake1 = new SillyOperator("fake1", plan);
+        Operator filter1 = new SillyOperator("filter1", plan);
+        Operator filter2 = new SillyOperator("filter2", plan);
+        plan.add(load1);
+        plan.add(load2);
+        plan.add(fake1);
+        plan.add(filter1);
+        plan.add(filter2);
+        plan.connect(load1, fake1);
+        plan.connect(load2, fake1);
+        plan.connect(fake1, filter1);
+        plan.connect(fake1, filter2);
+        
+        try {
+            plan.removeAndReconnect(fake1);
+            fail();
+        } catch (FrontendException e) {
+            assertTrue(e.getErrorCode()==2256);
+        }
+    }
+    
+    @Test
+    public void testInsertBetween1() throws FrontendException {
+        // single input
+        SillyPlan plan = new SillyPlan();
+        Operator load1 = new SillyOperator("load1", plan);
+        Operator filter1 = new SillyOperator("filter1", plan);
+        plan.add(load1);
+        plan.add(filter1);
+        plan.connect(load1, filter1);
+        
+        Operator filter2 = new SillyOperator("filter2", plan);
+        plan.insertBetween(load1, filter2, filter1);
+        
+        List<Operator> succs = plan.getSuccessors(filter2);
+        assert(succs.size()==1);
+        assert(succs.contains(filter1));
+        
+        List<Operator> preds = plan.getPredecessors(filter2);
+        assert(preds.size()==1);
+        assert(preds.contains(load1));
+    }
 }

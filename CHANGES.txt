@@ -198,6 +198,9 @@ PIG-1309: Map-side Cogroup (ashutoshc)
 
 BUG FIXES
 
+PIG-1644: New logical plan: Plan.connect with position is misused in some
+places (daijy)
+
 PIG-1643: join fails for a query with input having 'load using pigstorage
 without schema' + 'foreach' (daijy)
 
