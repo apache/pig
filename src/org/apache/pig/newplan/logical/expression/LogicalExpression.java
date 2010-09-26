@@ -72,9 +72,9 @@ public abstract class LogicalExpression extends Operator {
      * @return data type, one of the static bytes of DataType
      */
     public byte getType() throws FrontendException {
-        if (getFieldSchema()!=null)
+        if (getFieldSchema()!=null && getFieldSchema().type!=DataType.NULL)
             return getFieldSchema().type;
-        return DataType.UNKNOWN;
+        return DataType.BYTEARRAY;
     }
     
     public String toString() {
