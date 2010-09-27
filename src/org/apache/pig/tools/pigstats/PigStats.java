@@ -34,6 +34,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapred.JobClient;
 import org.apache.hadoop.mapred.JobID;
 import org.apache.hadoop.mapred.jobcontrol.Job;
+import org.apache.pig.ExecType;
 import org.apache.pig.PigException;
 import org.apache.pig.PigRunner.ReturnCode;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler;
@@ -559,6 +560,17 @@ public final class PigStats {
             LOG.warn("unknown return code, can't display the results");
             return;
         }
+        if (pigContext == null) {
+            LOG.warn("unknown exec type, don't display the results");
+            return;
+        }
+ 
+        // currently counters are not working in local mode - see PIG-1286
+        ExecType execType = pigContext.getExecType();
+        if (execType == ExecType.LOCAL) {
+            LOG.info("Detected Local mode. Stats reported below may be incomplete");
+        }
+        
         SimpleDateFormat sdf = new SimpleDateFormat(DATE_FORMAT);
         StringBuilder sb = new StringBuilder();
         sb.append("\nHadoopVersion\tPigVersion\tUserId\tStartedAt\tFinishedAt\tFeatures\n");
@@ -576,47 +588,52 @@ public final class PigStats {
             sb.append("Failed!\n");
         }
         sb.append("\n");
+                
         if (returnCode == ReturnCode.SUCCESS 
-                || returnCode == ReturnCode.PARTIAL_FAILURE) {
+                || returnCode == ReturnCode.PARTIAL_FAILURE) {            
             sb.append("Job Stats (time in seconds):\n");
-            sb.append("JobId\tMaps\tReduces\tMaxMapTime\tMinMapTIme\t" +
-                    "AvgMapTime\tMaxReduceTime\tMinReduceTime\tAvgReduceTime\t" +
-                    "Alias\tFeature\tOutputs\n");
+            if (execType == ExecType.LOCAL) {
+                sb.append(JobStats.SUCCESS_HEADER_LOCAL).append("\n");
+            } else {
+                sb.append(JobStats.SUCCESS_HEADER).append("\n");
+            }
             List<JobStats> arr = jobPlan.getSuccessfulJobs();
             for (JobStats js : arr) {                
-                sb.append(js.getDisplayString());
+                sb.append(js.getDisplayString(execType == ExecType.LOCAL));
             }
             sb.append("\n");
         }
         if (returnCode == ReturnCode.FAILURE
                 || returnCode == ReturnCode.PARTIAL_FAILURE) {
             sb.append("Failed Jobs:\n");
-            sb.append("JobId\tAlias\tFeature\tMessage\tOutputs\n");
+            sb.append(JobStats.FAILURE_HEADER).append("\n");
             List<JobStats> arr = jobPlan.getFailedJobs();
             for (JobStats js : arr) {   
-                sb.append(js.getDisplayString());
+                sb.append(js.getDisplayString(execType == ExecType.LOCAL));
             }
             sb.append("\n");
         }
         sb.append("Input(s):\n");
         for (InputStats is : getInputStats()) {
-            sb.append(is.getDisplayString());
+            sb.append(is.getDisplayString(execType == ExecType.LOCAL));
         }
         sb.append("\n");
         sb.append("Output(s):\n");
         for (OutputStats ds : getOutputStats()) {
-            sb.append(ds.getDisplayString());
+            sb.append(ds.getDisplayString(execType == ExecType.LOCAL));
         }
         
-        sb.append("\nCounters:\n");
-        sb.append("Total records written : " + getRecordWritten()).append("\n");
-        sb.append("Total bytes written : " + getBytesWritten()).append("\n");
-        sb.append("Spillable Memory Manager spill count : "
-                + getSMMSpillCount()).append("\n");
-        sb.append("Total bags proactively spilled: " 
-                + getProactiveSpillCountObjects()).append("\n");
-        sb.append("Total records proactively spilled: " 
-                + getProactiveSpillCountRecords()).append("\n");
+        if (execType != ExecType.LOCAL) {
+            sb.append("\nCounters:\n");
+            sb.append("Total records written : " + getRecordWritten()).append("\n");
+            sb.append("Total bytes written : " + getBytesWritten()).append("\n");
+            sb.append("Spillable Memory Manager spill count : "
+                    + getSMMSpillCount()).append("\n");
+            sb.append("Total bags proactively spilled: " 
+                    + getProactiveSpillCountObjects()).append("\n");
+            sb.append("Total records proactively spilled: " 
+                    + getProactiveSpillCountRecords()).append("\n");
+        }
         
         sb.append("\nJob DAG:\n").append(jobPlan.toString());
         
