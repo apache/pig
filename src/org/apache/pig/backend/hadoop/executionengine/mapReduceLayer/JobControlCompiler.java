@@ -121,7 +121,7 @@ public class JobControlCompiler{
     Configuration conf;
     PigContext pigContext;
     
-    private final Log log = LogFactory.getLog(getClass());
+    private static final Log log = LogFactory.getLog(JobControlCompiler.class);
     
     public static final String LOG_DIR = "_logs";
 
@@ -682,10 +682,10 @@ public class JobControlCompiler{
      * @param lds
      * @throws IOException
      */
-    private void estimateNumberOfReducers(Configuration conf, List<POLoad> lds) throws IOException {
+    static int estimateNumberOfReducers(Configuration conf, List<POLoad> lds) throws IOException {
            long bytesPerReducer = conf.getLong("pig.exec.reducers.bytes.per.reducer", (long) (1000 * 1000 * 1000));
         int maxReducers = conf.getInt("pig.exec.reducers.max", 999);
-        long totalInputFileSize = getTotalInputFileSize(lds);
+        long totalInputFileSize = getTotalInputFileSize(conf, lds);
        
         log.info("BytesPerReducer=" + bytesPerReducer + " maxReducers="
             + maxReducers + " totalInputFileSize=" + totalInputFileSize);
@@ -695,10 +695,11 @@ public class JobControlCompiler{
         reducers = Math.min(maxReducers, reducers);
         conf.setInt("mapred.reduce.tasks", reducers);
 
-	log.info("Neither PARALLEL nor default parallelism is set for this job. Setting number of reducers to " + reducers);
+        log.info("Neither PARALLEL nor default parallelism is set for this job. Setting number of reducers to " + reducers);
+        return reducers;
     }
 
-    private long getTotalInputFileSize(List<POLoad> lds) throws IOException {
+    private static long getTotalInputFileSize(Configuration conf, List<POLoad> lds) throws IOException {
         List<String> inputs = new ArrayList<String>();
         if(lds!=null && lds.size()>0){
             for (POLoad ld : lds) {
@@ -722,7 +723,7 @@ public class JobControlCompiler{
         return size;
    }
    
-    private long getPathLength(FileSystem fs,FileStatus status) throws IOException{
+    private static long getPathLength(FileSystem fs,FileStatus status) throws IOException{
         if (!status.isDir()){
             return status.getLen();
         }else{
