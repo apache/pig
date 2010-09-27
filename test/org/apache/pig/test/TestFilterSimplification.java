@@ -666,6 +666,110 @@ public class TestFilterSimplification extends TestCase {
         assertTrue(expected.isEqual(newLogicalPlan));
     }
 
+    @Test
+    public void test4() throws Exception {
+        LogicalPlanTester lpt = new LogicalPlanTester(pc);
+        lpt.buildPlan("b = filter (load 'd.txt' as (a:chararray, b:long, c:map[], d:chararray, e:chararray)) by a == 'v' and b == 117L and c#'p1' == 'h' and c#'p2' == 'to' and ((d is not null and d != '') or (e is not null and e != ''));"); 
+
+        org.apache.pig.impl.logicalLayer.LogicalPlan plan = lpt.buildPlan("store b into 'empty';");
+        LogicalPlan newLogicalPlan = migratePlan(plan);
+
+        PlanOptimizer optimizer = new MyPlanOptimizer(newLogicalPlan, 10);
+        optimizer.optimize();
+
+        lpt = new LogicalPlanTester(pc);
+        lpt.buildPlan("b = filter (load 'd.txt' as (a:chararray, b:long, c:map[], d:chararray, e:chararray)) by a == 'v' and b == 117L and c#'p1' == 'h' and c#'p2' == 'to' and ((d is not null and d != '') or (e is not null and e != ''));"); 
+        plan = lpt.buildPlan("store b into 'empty';");
+        LogicalPlan expected = migratePlan(plan);
+
+        assertTrue(expected.isEqual(newLogicalPlan));
+
+        // mirror of the above
+        lpt.buildPlan("b = filter (load 'd.txt' as (a:chararray, b:long, c:map[], d:chararray, e:chararray)) by ((d is not null and d != '') or (e is not null and e != '')) and a == 'v' and b == 117L and c#'p1' == 'h' and c#'p2' == 'to';"); 
+
+        plan = lpt.buildPlan("store b into 'empty';");
+        newLogicalPlan = migratePlan(plan);
+
+        optimizer = new MyPlanOptimizer(newLogicalPlan, 10);
+        optimizer.optimize();
+
+        lpt = new LogicalPlanTester(pc);
+        lpt.buildPlan("b = filter (load 'd.txt' as (a:chararray, b:long, c:map[], d:chararray, e:chararray)) by ((d is not null and d != '') or (e is not null and e != '')) and a == 'v' and b == 117L and c#'p1' == 'h' and c#'p2' == 'to';"); 
+        plan = lpt.buildPlan("store b into 'empty';");
+        expected = migratePlan(plan);
+
+        assertTrue(expected.isEqual(newLogicalPlan));
+
+    }
+
+    @Test
+    public void test5() throws Exception {
+        // 2-level combo: 8 possibilities
+        boolean[] booleans = {false, true};
+        for (boolean b1 : booleans)
+        for (boolean b2 : booleans)
+        for (boolean b3 : booleans)
+            comboRunner2(b1, b2, b3);
+    }
+
+    private void comboRunner2(boolean b1, boolean b2, boolean b3) throws Exception {
+        StringBuilder sb = new StringBuilder();
+        sb.append("b = filter (load 'd.txt' as (a:int, b:int, c:int, d:int)) by (((a < 1) " + (b1 ? "and" : "or") + " (b < 2)) " + (b2 ? "and" : "or") + " ((c < 3) " + (b3 ? "and" : "or") + " (d < 4)));");  
+        String query = sb.toString();
+
+        LogicalPlanTester lpt = new LogicalPlanTester(pc);
+        lpt.buildPlan(query); 
+
+        org.apache.pig.impl.logicalLayer.LogicalPlan plan = lpt.buildPlan("store b into 'empty';");
+        LogicalPlan newLogicalPlan = migratePlan(plan);
+
+        PlanOptimizer optimizer = new MyPlanOptimizer(newLogicalPlan, 10);
+        optimizer.optimize();
+
+        lpt = new LogicalPlanTester(pc);
+        lpt.buildPlan(query); 
+        plan = lpt.buildPlan("store b into 'empty';");
+        LogicalPlan expected = migratePlan(plan);
+
+        assertTrue(expected.isEqual(newLogicalPlan));
+    }
+
+    @Test
+    public void test6() throws Exception {
+        // 3-level combo: 128 possibilities
+        boolean[] booleans = {false, true};
+        for (boolean b1 : booleans)
+        for (boolean b2 : booleans)
+        for (boolean b3 : booleans)
+        for (boolean b4 : booleans)
+        for (boolean b5 : booleans)
+        for (boolean b6 : booleans)
+        for (boolean b7 : booleans)
+            comboRunner3(b1, b2, b3, b4, b5, b6, b7);
+    }
+
+    private void comboRunner3(boolean b1, boolean b2, boolean b3, boolean b4, boolean b5, boolean b6, boolean b7) throws Exception {
+        StringBuilder sb = new StringBuilder();
+        sb.append("b = filter (load 'd.txt' as (a:int, b:int, c:int, d:int, e:int, f:int, g:int, h:int)) by ((((a < 1) " + (b1 ? "and" : "or") + " (b < 2)) " + (b2 ? "and" : "or") + " ((c < 3) " + (b3 ? "and" : "or") + " (d < 4))) " + (b4 ? "and" : "or") + " (((e < 5) " + (b5 ? "and" : "or") + " (f < 6)) " + (b6 ? "and" : "or") + " ((g < 7) " + (b7 ? "and" : "or") + " (h < 8))));");  
+        String query = sb.toString();
+
+        LogicalPlanTester lpt = new LogicalPlanTester(pc);
+        lpt.buildPlan(query); 
+
+        org.apache.pig.impl.logicalLayer.LogicalPlan plan = lpt.buildPlan("store b into 'empty';");
+        LogicalPlan newLogicalPlan = migratePlan(plan);
+
+        PlanOptimizer optimizer = new MyPlanOptimizer(newLogicalPlan, 10);
+        optimizer.optimize();
+
+        lpt = new LogicalPlanTester(pc);
+        lpt.buildPlan(query); 
+        plan = lpt.buildPlan("store b into 'empty';");
+        LogicalPlan expected = migratePlan(plan);
+
+        assertTrue(expected.isEqual(newLogicalPlan));
+    }
+
     public class MyPlanOptimizer extends LogicalPlanOptimizer {
 
         protected MyPlanOptimizer(OperatorPlan p, int iterations) {

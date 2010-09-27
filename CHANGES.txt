@@ -207,6 +207,8 @@ PIG-1309: Map-side Cogroup (ashutoshc)
 
 BUG FIXES
 
+PIG-1647: Logical simplifier throws a NPE (yanz)
+
 PIG-1642: Order by doesn't use estimation to determine the parallelism (rding)
 
 PIG-1644: New logical plan: Plan.connect with position is misused in some
