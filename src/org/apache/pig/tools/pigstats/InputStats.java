@@ -84,9 +84,9 @@ public final class InputStats {
         return type;
     }
     
-    String getDisplayString() {
+    String getDisplayString(boolean local) {
         StringBuilder sb = new StringBuilder();
-        if (success) {
+        if (success) {            
             sb.append("Successfully ");
             if (type == INPUT_TYPE.sampler) {
                 sb.append("sampled ");
@@ -95,7 +95,12 @@ public final class InputStats {
             } else {
                 sb.append("read ");
             }
-            sb.append(records).append(" records ");
+            
+            if (!local) {
+                sb.append(records).append(" records ");
+            } else {
+                sb.append("records ");
+            }
             if (bytes > 0) {
                 sb.append("(").append(bytes).append(" bytes) ");
             }

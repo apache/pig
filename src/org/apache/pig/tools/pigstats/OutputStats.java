@@ -92,11 +92,15 @@ public final class OutputStats {
         return conf;
     }
     
-    String getDisplayString() {
+    String getDisplayString(boolean local) {
         StringBuilder sb = new StringBuilder();
         if (success) {
-            sb.append("Successfully stored ").append(records).append(
-                    " records ");
+            sb.append("Successfully stored ");
+            if (!local) {
+                sb.append(records).append(" records ");
+            } else {
+                sb.append("records ");
+            }
             if (bytes > 0) {
                 sb.append("(").append(bytes).append(" bytes) ");
             }
