@@ -64,7 +64,16 @@ public final class JobStats extends Operator {
         
     public static final String ALIAS = "JobStatistics:alias";
     public static final String FEATURE = "JobStatistics:feature";
+    
+    public static final String SUCCESS_HEADER = "JobId\tMaps\tReduces\t" +
+    		"MaxMapTime\tMinMapTIme\tAvgMapTime\tMaxReduceTime\t" +
+    		"MinReduceTime\tAvgReduceTime\tAlias\tFeature\tOutputs";
    
+    public static final String FAILURE_HEADER = "JobId\tAlias\tFeature\tMessage\tOutputs";
+    
+    // currently counters are not working in local mode - see PIG-1286
+    public static final String SUCCESS_HEADER_LOCAL = "JobId\tAlias\tFeature\tOutputs";
+    
     private static final Log LOG = LogFactory.getLog(JobStats.class);
     
     public static enum JobState { UNKNOWN, SUCCESS, FAILED; }
@@ -280,14 +289,16 @@ public final class JobStats extends Operator {
         avgReduceTime = avg;       
     }  
     
-    String getDisplayString() {
+    String getDisplayString(boolean local) {
         StringBuilder sb = new StringBuilder();
         String id = (jobId == null) ? "N/A" : jobId.toString();
-        if (state == JobState.FAILED) {           
+        if (state == JobState.FAILED || local) {           
             sb.append(id).append("\t")
                 .append(getAlias()).append("\t")
-                .append(getFeature()).append("\t")
-                .append("Message: ").append(getErrorMessage()).append("\t");
+                .append(getFeature()).append("\t");
+            if (state == JobState.FAILED) {
+                sb.append("Message: ").append(getErrorMessage()).append("\t");
+            }
         } else if (state == JobState.SUCCESS) {
             sb.append(id).append("\t")
                 .append(numberMaps).append("\t")
