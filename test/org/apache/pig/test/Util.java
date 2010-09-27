@@ -52,13 +52,16 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.pig.ExecType;
+import org.apache.pig.PigException;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRCompiler;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MapReduceLauncher;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROperPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.LogToPhyTranslationVisitor;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
+import org.apache.pig.backend.hadoop.executionengine.util.MapRedUtil;
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataByteArray;
@@ -73,6 +76,7 @@ import org.apache.pig.impl.logicalLayer.parser.ParseException;
 import org.apache.pig.impl.logicalLayer.parser.QueryParser;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.plan.VisitorException;
+import org.apache.pig.impl.util.LogUtils;
 import org.apache.pig.newplan.logical.LogicalPlanMigrationVistor;
 import org.apache.pig.newplan.logical.optimizer.LogicalPlanPrinter;
 import org.apache.pig.newplan.logical.optimizer.SchemaResetter;
@@ -604,6 +608,20 @@ public class Util {
         MRCompiler comp = new MRCompiler(pp, pc);
         comp.compile();
         return comp.getMRPlan();	
+    }
+    
+    public static MROperPlan buildMRPlanWithOptimizer(PhysicalPlan pp, PigContext pc) throws Exception {
+        MapRedUtil.checkLeafIsStore(pp, pc);
+        
+        MapReduceLauncher launcher = new MapReduceLauncher();
+
+        java.lang.reflect.Method compile = launcher.getClass()
+                .getDeclaredMethod("compile",
+                        new Class[] { PhysicalPlan.class, PigContext.class });
+
+        compile.setAccessible(true);
+
+        return (MROperPlan) compile.invoke(launcher, new Object[] { pp, pc });
     }
     
     public static void registerMultiLineQuery(PigServer pigServer, String query) throws IOException {

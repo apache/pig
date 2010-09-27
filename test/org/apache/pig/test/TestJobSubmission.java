@@ -607,6 +607,72 @@ public class TestJobSubmission extends junit.framework.TestCase{
         assertEquals(job.getJobConf().getLong("mapred.reduce.tasks",10), 1);
     }
     
+    @Test
+    public void testReducerNumEstimationForOrderBy() throws Exception{
+       // use the estimation
+        pc.getProperties().setProperty("pig.exec.reducers.bytes.per.reducer", "100");
+        pc.getProperties().setProperty("pig.exec.reducers.max", "10");
+        
+        LogicalPlanTester planTester = new LogicalPlanTester(pc) ;
+        Util.copyFromLocalToCluster(cluster, "test/org/apache/pig/test/data/passwd", "/passwd");
+        planTester.buildPlan("a = load '/passwd';");
+        LogicalPlan lp = planTester.buildPlan("b = order a by $0;");
+        PhysicalPlan pp = Util.buildPhysicalPlan(lp, pc);
+        POStore store = GenPhyOp.dummyPigStorageOp();
+        pp.addAsLeaf(store);
+
+        MROperPlan mrPlan = Util.buildMRPlanWithOptimizer(pp, pc);
+        assertEquals(2, mrPlan.size());     
+        
+        MapReduceOper sort = mrPlan.getLeaves().get(0);        
+        long reducer=Math.min((long)Math.ceil(new File("test/org/apache/pig/test/data/passwd").length()/100.0), 10);
+        assertEquals(reducer, sort.getRequestedParallelism());
+        
+        // use the PARALLEL key word, it will override the estimated reducer number
+        planTester = new LogicalPlanTester(pc) ;
+        planTester.buildPlan("a = load '/passwd';");
+        lp = planTester.buildPlan("b = order a by $0 PARALLEL 2;");
+        pp = Util.buildPhysicalPlan(lp, pc);
+        store = GenPhyOp.dummyPigStorageOp();
+        pp.addAsLeaf(store);
+        
+        mrPlan = Util.buildMRPlanWithOptimizer(pp, pc);               
+        assertEquals(2, mrPlan.size());     
+        
+        sort = mrPlan.getLeaves().get(0);        
+        assertEquals(2, sort.getRequestedParallelism());
+        
+        // the estimation won't take effect when it apply to non-dfs or the files doesn't exist, such as hbase
+        planTester = new LogicalPlanTester(pc) ;
+        planTester.buildPlan("a = load 'hbase://passwd' using org.apache.pig.backend.hadoop.hbase.HBaseStorage('c:f1 c:f2');");
+        lp = planTester.buildPlan("b = order a by $0 ;");
+        pp = Util.buildPhysicalPlan(lp, pc);
+        store = GenPhyOp.dummyPigStorageOp();
+        pp.addAsLeaf(store);
+ 
+        mrPlan = Util.buildMRPlanWithOptimizer(pp, pc);               
+        assertEquals(2, mrPlan.size());     
+        
+        sort = mrPlan.getLeaves().get(0);
+        
+        assertEquals(1, sort.getRequestedParallelism());
+        
+        // test order by with three jobs (after optimization)
+        planTester = new LogicalPlanTester(pc) ;
+        planTester.buildPlan("a = load '/passwd';");
+        planTester.buildPlan("b = foreach a generate $0, $1, $2;");
+        lp = planTester.buildPlan("c = order b by $0;");
+        pp = Util.buildPhysicalPlan(lp, pc);
+        store = GenPhyOp.dummyPigStorageOp();
+        pp.addAsLeaf(store);
+        
+        mrPlan = Util.buildMRPlanWithOptimizer(pp, pc);
+        assertEquals(3, mrPlan.size());     
+        
+        sort = mrPlan.getLeaves().get(0);       
+        assertEquals(reducer, sort.getRequestedParallelism());
+    }
+    
     private void submit() throws Exception{
         assertEquals(true, FileLocalizer.fileExists(hadoopLdFile, pc));
         MapReduceLauncher mrl = new MapReduceLauncher();

@@ -18,22 +18,28 @@
 
 package org.apache.pig.backend.hadoop.executionengine.mapReduceLayer;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.pig.FuncSpec;
+import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROpPlanVisitor;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROperPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.ConstantExpression;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POUserFunc;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POForEach;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLoad;
 import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.plan.DepthFirstWalker;
 import org.apache.pig.impl.plan.PlanException;
+import org.apache.pig.impl.plan.PlanWalker;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.util.Utils;
 import org.apache.pig.impl.PigContext;
@@ -47,7 +53,7 @@ import org.apache.pig.impl.PigContext;
  */
 public class SampleOptimizer extends MROpPlanVisitor {
 
-    private Log log = LogFactory.getLog(getClass());
+    private static final Log log = LogFactory.getLog(SampleOptimizer.class);
     private PigContext pigContext;
 
     public SampleOptimizer(MROperPlan plan, PigContext pigContext) {
@@ -113,6 +119,39 @@ public class SampleOptimizer extends MROpPlanVisitor {
             return;
         }
 
+        // The MR job should have one successor.
+        List<MapReduceOper> succs = mPlan.getSuccessors(mr);
+        if (succs.size() != 1) {
+            log.debug("Job has more than one successor.");
+            return;
+        }
+        MapReduceOper succ = succs.get(0);
+        
+        // set/estimate the parallelism
+        if (succ.requestedParallelism == 1) {
+            List<PhysicalOperator> loads = pred.mapPlan.getRoots();
+            List<POLoad> lds = new ArrayList<POLoad>();
+            for (PhysicalOperator ld : loads) {
+                lds.add((POLoad)ld);
+            }
+            Configuration conf = ConfigurationUtil.toConfiguration(pigContext.getProperties());
+            int rp = 1;
+            try {
+                rp = JobControlCompiler.estimateNumberOfReducers(conf, lds);
+            } catch (IOException e) {
+                log.warn("Failed to estimate number of reducers", e);
+            }
+            
+            if (rp > 1) {
+                ParallelConstantVisitor visitor = new ParallelConstantVisitor(mr.reducePlan, rp);
+                visitor.visit();
+                if (visitor.isReplaced()) {
+                    succ.requestedParallelism = rp;
+                    log.info(" Setting number of reducers for order by to " + rp);
+                }
+            }
+        }
+        
         if (pred.mapPlan == null || pred.mapPlan.size() != 2) {
             log.debug("Predecessor has more than just load+store in the map");
             return;
@@ -130,16 +169,8 @@ public class SampleOptimizer extends MROpPlanVisitor {
         }
         POLoad predLoad = (POLoad)r;
 
-        // The MR job should have one successor.
-        List<MapReduceOper> succs = mPlan.getSuccessors(mr);
-        if (succs.size() != 1) {
-            log.debug("Job has more than one successor.");
-            return;
-        }
-        MapReduceOper succ = succs.get(0);
-
         // Find the load the correlates with the file the sampler is loading, and
-        // check that it is using the twmp file storage format.
+        // check that it is using the temp file storage format.
         if (succ.mapPlan == null) { // Huh?
             log.debug("Successor has no map plan.");
             return;
@@ -239,5 +270,36 @@ public class SampleOptimizer extends MROpPlanVisitor {
 	    		scan(mr, p, fileName);	    		
 	    	}
 		}
+    }
+    
+    private static class ParallelConstantVisitor extends PhyPlanVisitor {
+
+        private int rp;
+        
+        private boolean replaced = false;
+        
+        public ParallelConstantVisitor(PhysicalPlan plan, int rp) {
+            super(plan, new DepthFirstWalker<PhysicalOperator, PhysicalPlan>(
+                    plan));
+            this.rp = rp;
+        }
+        
+        public void visitConstant(ConstantExpression cnst) throws VisitorException {            
+            if (cnst.getRequestedParallelism() == -1) {
+                Object obj = cnst.getValue();
+                if (obj instanceof Integer) {
+                    if (replaced) {
+                        // sample job should have only one ConstantExpression
+                        throw new VisitorException("Invalid reduce plan: more " +
+                        		"than one ConstantExpression found in sampling job");
+                    }
+                    cnst.setValue(rp);                    
+                    cnst.setRequestedParallelism(rp);
+                    replaced = true;
+                }
+            }
+        }
+     
+        boolean isReplaced() { return replaced; }
     }
 }
