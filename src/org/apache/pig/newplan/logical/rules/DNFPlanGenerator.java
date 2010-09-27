@@ -147,20 +147,30 @@ class DNFPlanGenerator extends AllSameExpressionVisitor {
                     int lsize = lhsChildren.length, rsize = rhsChildren.length;
                     LogicalExpression[][] grandChildrenL = new LogicalExpression[lsize][];;
                     for (int i = 0; i < lsize; i++) {
-                        if (lhsChildren[i] instanceof AndExpression || lhsChildren[i] instanceof DNFExpression) grandChildrenL[i] = dnfPlan.getSuccessors(
-                                        lhsChildren[i]).toArray(
-                                        new LogicalExpression[0]);
-                        else {
+                        if (lhsChildren[i] instanceof AndExpression) {
+                            grandChildrenL[i] = lhsChildren[i].getPlan().getSuccessors(
+                              lhsChildren[i]).toArray(
+                              new LogicalExpression[0]);
+                        } else if (lhsChildren[i] instanceof DNFExpression) {
+                            grandChildrenL[i] = dnfPlan.getSuccessors(
+                              lhsChildren[i]).toArray(
+                              new LogicalExpression[0]);
+                        } else {
                             grandChildrenL[i] = new LogicalExpression[1];
                             grandChildrenL[i][0] = (LogicalExpression) lhsChildren[i];
                         }
                     }
                     LogicalExpression[][] grandChildrenR = new LogicalExpression[rsize][];;
                     for (int i = 0; i < rsize; i++) {
-                        if (rhsChildren[i] instanceof AndExpression || rhsChildren[i] instanceof DNFExpression) grandChildrenR[i] = dnfPlan.getSuccessors(
-                                        rhsChildren[i]).toArray(
-                                        new LogicalExpression[0]);
-                        else {
+                        if (rhsChildren[i] instanceof AndExpression) {
+                            grandChildrenR[i] = rhsChildren[i].getPlan().getSuccessors(
+                              rhsChildren[i]).toArray(
+                              new LogicalExpression[0]);
+                        } else if (rhsChildren[i] instanceof DNFExpression) {
+                            grandChildrenR[i] = dnfPlan.getSuccessors(
+                              rhsChildren[i]).toArray(
+                              new LogicalExpression[0]);
+                        } else {
                             grandChildrenR[i] = new LogicalExpression[1];
                             grandChildrenR[i][0] = (LogicalExpression) rhsChildren[i];
                         }
@@ -248,9 +258,14 @@ class DNFPlanGenerator extends AllSameExpressionVisitor {
         int size = orChildren.length;
         LogicalExpression[][] grandChildrenOr = new LogicalExpression[size][];;
         for (int i = 0; i < size; i++) {
-            if (orChildren[i] instanceof AndExpression || orChildren[i] instanceof DNFExpression) grandChildrenOr[i] = dnfPlan.getSuccessors(
+            if (orChildren[i] instanceof DNFExpression)
+              grandChildrenOr[i] = dnfPlan.getSuccessors(
                             orChildren[i]).toArray(
                             new LogicalExpression[0]);
+            else if (orChildren[i] instanceof AndExpression)
+              grandChildrenOr[i] = orChildren[i].getPlan().getSuccessors(
+                  orChildren[i]).toArray(
+                  new LogicalExpression[0]);
             else {
                 grandChildrenOr[i] = new LogicalExpression[1];
                 grandChildrenOr[i][0] = (LogicalExpression) orChildren[i];
@@ -302,9 +317,14 @@ class DNFPlanGenerator extends AllSameExpressionVisitor {
         boolean andDNF = and.getPlan() == dnfPlan, orDNF = or.getPlan() == dnfPlan;
         LogicalExpression[][] grandChildrenOr = new LogicalExpression[orSize][];;
         for (int i = 0; i < orSize; i++) {
-            if (orChildren[i] instanceof AndExpression || orChildren[i] instanceof DNFExpression) grandChildrenOr[i] = dnfPlan.getSuccessors(
+            if (orChildren[i] instanceof DNFExpression)
+              grandChildrenOr[i] = dnfPlan.getSuccessors(
                             orChildren[i]).toArray(
                             new LogicalExpression[0]);
+            else if (orChildren[i] instanceof AndExpression)
+              grandChildrenOr[i] = orChildren[i].getPlan().getSuccessors(
+                  orChildren[i]).toArray(
+                      new LogicalExpression[0]);
             else {
                 grandChildrenOr[i] = new LogicalExpression[1];
                 grandChildrenOr[i][0] = (LogicalExpression) orChildren[i];
