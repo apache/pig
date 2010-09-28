@@ -207,6 +207,8 @@ PIG-1309: Map-side Cogroup (ashutoshc)
 
 BUG FIXES
 
+PIG-1648: Split combination may return too many block locations to map/reduce framework (yanz)
+
 PIG-1641: Incorrect counters in local mode (rding)
 
 PIG-1647: Logical simplifier throws a NPE (yanz)

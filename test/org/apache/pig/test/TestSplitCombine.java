@@ -427,6 +427,38 @@ public class TestSplitCombine {
         }
     }
 
+    @Test
+    public void test9() throws IOException, InterruptedException {
+        // verify locations in order
+        ArrayList<InputSplit> rawSplits = new ArrayList<InputSplit>();
+        rawSplits.add(new DummyInputSplit(100, new String[] {
+                        "l1", "l2", "l3"
+        }));
+        rawSplits.add(new DummyInputSplit(200, new String[] {
+                        "l3", "l4", "l5"
+        }));
+        rawSplits.add(new DummyInputSplit(400, new String[] {
+                        "l5", "l6", "l1"
+        }));
+        List<InputSplit> result = pigInputFormat.getPigSplits(rawSplits, 0, ok,
+                        null, true, conf);
+        Assert.assertEquals(result.size(), 1);
+        int index = 0;
+        for (InputSplit split : result) {
+            PigSplit pigSplit = (PigSplit) split;
+            int len = pigSplit.getNumPaths();
+            Assert.assertEquals(3, len);
+            // only 5 locations are in list: refer to PIG-1648 for more details
+            checkLocationOrdering(pigSplit.getLocations(), new String[] {
+                            "l5", "l1", "l6", "l3", "l4"
+            });
+            Assert.assertEquals(400, pigSplit.getLength(0));
+            Assert.assertEquals(200, pigSplit.getLength(1));
+            Assert.assertEquals(100, pigSplit.getLength(2));
+            index++;
+        }
+    }
+    
     private void checkLocations(String[] actual, String[] expected) {
         HashSet<String> expectedSet = new HashSet<String>();
         for (String str : expected)
@@ -438,4 +470,9 @@ public class TestSplitCombine {
         Assert.assertEquals(count, expected.length);
     }
 
+    private void checkLocationOrdering(String[] actual, String[] expected) {
+      Assert.assertEquals(expected.length, actual.length);
+      for (int i = 0; i < actual.length; i++)
+        Assert.assertEquals(expected[i], actual[i]);
+    }
 }
