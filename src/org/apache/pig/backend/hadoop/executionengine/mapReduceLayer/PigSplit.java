@@ -28,8 +28,14 @@ import java.io.ObjectOutputStream;
 import java.io.OutputStream;
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 import java.util.HashSet;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
+import java.util.Map.Entry;
 import java.lang.StringBuilder;
 
 import org.apache.hadoop.conf.Configurable;
@@ -136,19 +142,41 @@ public class PigSplit extends InputSplit implements Writable, Configurable {
     }
     
     @Override
+    @SuppressWarnings("unchecked")
     public String[] getLocations() throws IOException, InterruptedException {
         if (locations == null) {
-            HashSet<String> locSet = new HashSet<String>();
-            for (int i = 0; i < wrappedSplits.length; i++)
+            HashMap<String, Long> locMap = new HashMap<String, Long>();
+            Long lenInMap;
+            for (InputSplit split : wrappedSplits)
             {
-                String[] locs = wrappedSplits[i].getLocations();
-                for (int j = 0; j < locs.length; j++)
-                    locSet.add(locs[j]);
+                String[] locs = split.getLocations();
+                for (String loc : locs)
+                {
+                    if ((lenInMap = locMap.get(loc)) == null)
+                        locMap.put(loc, split.getLength());
+                    else
+                        locMap.put(loc, lenInMap + split.getLength());
+                }
             }
-            locations = new String[locSet.size()];
-            int i = 0;
-            for (String loc : locSet)
-                locations[i++] = loc;
+            Set<Map.Entry<String, Long>> entrySet = locMap.entrySet();
+            Map.Entry<String, Long>[] hostSize =
+                entrySet.toArray(new Map.Entry[entrySet.size()]);
+            Arrays.sort(hostSize, new Comparator<Map.Entry<String, Long>>() {
+
+              @Override
+              public int compare(Entry<String, Long> o1, Entry<String, Long> o2) {
+                long diff = o1.getValue() - o2.getValue();
+                if (diff < 0) return 1;
+                if (diff > 0) return -1;
+                return 0;
+              }
+            });
+            // maximum 5 locations are in list: refer to PIG-1648 for more details
+            int nHost = Math.min(hostSize.length, 5);
+            locations = new String[nHost];
+            for (int i = 0; i < nHost; ++i) {
+              locations[i] = hostSize[i].getKey();
+            }
         }
         return locations;
     }
