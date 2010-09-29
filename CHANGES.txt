@@ -198,6 +198,9 @@ PIG-1309: Map-side Cogroup (ashutoshc)
 
 BUG FIXES
 
+PIG-1637: Combiner not use because optimizor inserts a foreach between group
+and algebric function (daijy)
+
 PIG-1648: Split combination may return too many block locations to map/reduce framework (yanz)
 
 PIG-1641: Incorrect counters in local mode (rding)

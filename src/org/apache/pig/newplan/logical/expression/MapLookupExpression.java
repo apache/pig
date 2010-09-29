@@ -113,6 +113,13 @@ public class MapLookupExpression extends ColumnExpression {
                 lgExpPlan,
                 this.getLookupKey(),
                 this.getFieldSchema().deepCopy());
+        
+        // Only one input is expected.
+        LogicalExpression input = (LogicalExpression) plan.getSuccessors( this ).get( 0 );
+        LogicalExpression inputCopy = input.deepCopy( lgExpPlan );
+        lgExpPlan.add( inputCopy );
+        lgExpPlan.connect( copy, inputCopy );
+        
         return copy;
     }
 

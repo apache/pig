@@ -128,6 +128,39 @@ public class TestMergeForEachOptimization {
     }
     
     /**
+     * One output of first foreach was referred more than once in the second foreach
+     * 
+     * @throws IOException
+     */
+    @Test
+    public void testDuplicateInputs() throws IOException {
+        LogicalPlanTester lpt = new LogicalPlanTester( pc );
+        lpt.buildPlan( "A = load 'file.txt' as (a0:int, a1:double);" );
+        lpt.buildPlan( "A1 = foreach A generate (int)a0 as a0, (double)a1 as a1;" );
+        lpt.buildPlan( "B = group A1 all;" );
+        lpt.buildPlan( "C = foreach B generate A1;" );
+        lpt.buildPlan( "D = foreach C generate SUM(A1.a0), AVG(A1.a1);" );
+        org.apache.pig.impl.logicalLayer.LogicalPlan plan = lpt.buildPlan( "store D into 'empty';" );  
+        LogicalPlan newLogicalPlan = migratePlan( plan );
+        
+        Operator store = newLogicalPlan.getSinks().get(0);
+        int forEachCount1 = getForEachOperatorCount( newLogicalPlan );
+        LOForEach foreach1 = (LOForEach)newLogicalPlan.getPredecessors(store).get(0);
+        Assert.assertTrue( foreach1.getAlias().equals( "D" ) );
+               
+        PlanOptimizer optimizer = new MyPlanOptimizer( newLogicalPlan, 3 );
+        optimizer.optimize();
+        
+        int forEachCount2 = getForEachOperatorCount( newLogicalPlan );
+        // The number of FOREACHes didn't change because one is genereated because of type cast and
+        // one is reduced because of the merge.
+        Assert.assertEquals( 1, forEachCount1 - forEachCount2 );
+        
+        LOForEach foreach2 = (LOForEach)newLogicalPlan.getPredecessors(store).get(0);
+        Assert.assertTrue( foreach2.getAlias().equals( "D" ) );
+    }
+    
+    /**
      * Not all consecutive FOREACHes can be merged. In this case, the second FOREACH statment
      * has inner plan, which cannot be merged with one before it.
      * 

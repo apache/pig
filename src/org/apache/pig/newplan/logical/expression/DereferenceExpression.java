@@ -163,10 +163,10 @@ public class DereferenceExpression extends ColumnExpression {
                 columnsCopy);
         
         // Only one input is expected.
-        LogicalExpression input = (LogicalExpression) plan.getPredecessors( this ).get( 0 );
+        LogicalExpression input = (LogicalExpression) plan.getSuccessors( this ).get( 0 );
         LogicalExpression inputCopy = input.deepCopy( lgExpPlan );
         lgExpPlan.add( inputCopy );
-        lgExpPlan.connect( inputCopy, copy );
+        lgExpPlan.connect( copy, inputCopy );
         
         return copy;
     }
