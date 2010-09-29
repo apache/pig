@@ -26,6 +26,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
@@ -51,8 +52,11 @@ import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.log4j.FileAppender;
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
+import org.apache.log4j.SimpleLayout;
 import org.apache.pig.ExecType;
-import org.apache.pig.PigException;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
@@ -75,8 +79,6 @@ import org.apache.pig.impl.logicalLayer.LogicalPlan;
 import org.apache.pig.impl.logicalLayer.parser.ParseException;
 import org.apache.pig.impl.logicalLayer.parser.QueryParser;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
-import org.apache.pig.impl.plan.VisitorException;
-import org.apache.pig.impl.util.LogUtils;
 import org.apache.pig.newplan.logical.LogicalPlanMigrationVistor;
 import org.apache.pig.newplan.logical.optimizer.LogicalPlanPrinter;
 import org.apache.pig.newplan.logical.optimizer.SchemaResetter;
@@ -737,5 +739,65 @@ public class Util {
         }
         reader.close();
         return tuples;
+    }
+    
+    /**
+     * Delete the existing logFile for the class and set the logging to a 
+     * use a new log file and set log level to DEBUG
+     * @param clazz class for which the log file is being set
+     * @param logFile current log file
+     * @return new log file
+     * @throws Exception
+     */
+    public static File resetLog(Class<?> clazz, File logFile) throws Exception {
+        if (logFile != null)
+            logFile.delete();
+        Logger logger = Logger.getLogger(clazz);
+        logger.removeAllAppenders();
+        logger.setLevel(Level.DEBUG);
+        SimpleLayout layout = new SimpleLayout();
+        File newLogFile = File.createTempFile("log", "");
+        FileAppender appender = new FileAppender(layout, newLogFile.toString(),
+                        false, false, 0);
+        logger.addAppender(appender);
+        return newLogFile;
+    }
+
+    /**
+     * Check if logFile (does not/)contains the given list of messages. 
+     * @param logFile
+     * @param messages
+     * @param expected if true, the messages are expected in the logFile, 
+     *        otherwise messages should not be there in the log
+     */
+    public static void checkLogFileMessage(File logFile, String[] messages, boolean expected) {
+        BufferedReader reader = null;
+
+        try {
+            reader = new BufferedReader(new FileReader(logFile));
+            String logMessage = "";
+            String line;
+            while ((line = reader.readLine()) != null) {
+                logMessage = logMessage + line + "\n";
+            }
+            for (int i = 0; i < messages.length; i++) {
+                boolean present = logMessage.contains(messages[i]);
+                if (expected) {
+                    if(!present){
+                        fail("The message " + messages[i] + " is not present in" +
+                                "log file contents: " + logMessage);
+                    }
+                }else{
+                    if(present){
+                        fail("The message " + messages[i] + " is present in" +
+                                "log file contents: " + logMessage);
+                    }
+                }
+            }
+            return ;
+        }
+        catch (IOException e) {
+            fail("caught exception while checking log message :" + e);
+        }
     }
 }

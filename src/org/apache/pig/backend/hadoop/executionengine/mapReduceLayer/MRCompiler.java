@@ -19,8 +19,6 @@ package org.apache.pig.backend.hadoop.executionengine.mapReduceLayer;
 
 import java.io.IOException;
 import java.io.Serializable;
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -34,7 +32,6 @@ import java.util.Set;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.InputFormat;
@@ -80,7 +77,6 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POPartitionRearrange;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSkewedJoin;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSort;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSortedDistinct;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POSplit;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStream;
@@ -98,7 +94,6 @@ import org.apache.pig.impl.builtin.PoissonSampleLoader;
 import org.apache.pig.impl.builtin.RandomSampleLoader;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.FileSpec;
-import org.apache.pig.impl.logicalLayer.LogicalOperator;
 import org.apache.pig.impl.plan.CompilationMessageCollector;
 import org.apache.pig.impl.plan.DepthFirstWalker;
 import org.apache.pig.impl.plan.NodeIdGenerator;
@@ -112,7 +107,9 @@ import org.apache.pig.impl.util.CompilerUtils;
 import org.apache.pig.impl.util.MultiMap;
 import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.impl.util.Pair;
+import org.apache.pig.impl.util.UriUtil;
 import org.apache.pig.impl.util.Utils;
+import org.mortbay.util.URIUtil;
 
 /**
  * The compiler that compiles a given physical plan
@@ -1279,47 +1276,53 @@ public class MRCompiler extends PhyPlanVisitor {
         try {
             for (PhysicalOperator root : roots) {
                 POLoad ld = (POLoad) root;
-                String location = ld.getLFile().getFileName();
-                URI uri = new URI(location);
-                if (uri.getScheme() == null
-                        || uri.getScheme().equalsIgnoreCase("hdfs")) {
-                    Path p = new Path(location);                   
-                    FileSystem fs = p.getFileSystem(conf);
-                    if (fs.exists(p)) {
-                        LoadFunc loader = (LoadFunc) PigContext
-                                .instantiateFuncFromSpec(ld.getLFile()
-                                        .getFuncSpec());
-                        Job job = new Job(conf);
-                        loader.setLocation(location, job);
-                        InputFormat inf = loader.getInputFormat();
-                        List<InputSplit> splits = inf.getSplits(new JobContext(
-                                job.getConfiguration(), job.getJobID()));
-                        List<List<InputSplit>> results = MapRedUtil
-                                .getCombinePigSplits(splits, fs
-                                        .getDefaultBlockSize(), conf);
-                        numFiles += results.size();
-                    } else {
-                        List<MapReduceOper> preds = MRPlan.getPredecessors(mro);
-                        if (preds != null && preds.size() == 1) {
-                            MapReduceOper pred = preds.get(0);
-                            if (!pred.reducePlan.isEmpty()) { 
-                                numFiles += pred.requestedParallelism;  
-                            } else { // map-only job
-                                ret = hasTooManyInputFiles(pred, conf);
+                String fileName = ld.getLFile().getFileName();
+                
+                if(UriUtil.isHDFSFile(fileName)){
+                    // Only if the input is an hdfs file, this optimization is 
+                    // useful (to reduce load on namenode)
+                    
+                    //separate out locations separated by comma
+                    String [] locations = LoadFunc.getPathStrings(fileName);
+                    for(String location : locations){
+                        if(!UriUtil.isHDFSFile(location))
+                            continue;
+                        Path path = new Path(location);
+                        FileSystem fs = path.getFileSystem(conf);
+                        if (fs.exists(path)) {
+                            LoadFunc loader = (LoadFunc) PigContext
+                            .instantiateFuncFromSpec(ld.getLFile()
+                                    .getFuncSpec());
+                            Job job = new Job(conf);
+                            loader.setLocation(location, job);
+                            InputFormat inf = loader.getInputFormat();
+                            List<InputSplit> splits = inf.getSplits(new JobContext(
+                                    job.getConfiguration(), job.getJobID()));
+                            List<List<InputSplit>> results = MapRedUtil
+                            .getCombinePigSplits(splits, fs
+                                    .getDefaultBlockSize(), conf);
+                            numFiles += results.size();
+                        } else {
+                            List<MapReduceOper> preds = MRPlan.getPredecessors(mro);
+                            if (preds != null && preds.size() == 1) {
+                                MapReduceOper pred = preds.get(0);
+                                if (!pred.reducePlan.isEmpty()) { 
+                                    numFiles += pred.requestedParallelism;
+                                } else { // map-only job
+                                    ret = hasTooManyInputFiles(pred, conf);
+                                    break;
+                                }
+                            } else if (!optimisticFileConcatenation) {                    
+                                // can't determine the number of input files. 
+                                // Treat it as having too manyfiles
+                                numFiles = fileConcatenationThreshold;
                                 break;
                             }
-                        } else if (!optimisticFileConcatenation) {                    
-                            // can't determine the number of input files. 
-                            // Treat it as having too manyfiles
-                            numFiles = fileConcatenationThreshold;
-                            break;
                         }
                     }
                 }
             }
         } catch (IOException e) {
-            LOG.warn("failed to get number of input files", e); 
-        } catch (URISyntaxException e) {
             LOG.warn("failed to get number of input files", e); 
         } catch (InterruptedException e) {
             LOG.warn("failed to get number of input files", e); 
