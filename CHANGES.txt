@@ -198,6 +198,8 @@ PIG-1309: Map-side Cogroup (ashutoshc)
 
 BUG FIXES
 
+PIG-1649: FRJoin fails to compute number of input files for replicated input (thejas)
+
 PIG-1637: Combiner not use because optimizor inserts a foreach between group
 and algebric function (daijy)
 
