@@ -47,6 +47,7 @@ import org.apache.hadoop.util.RunJar;
 import org.apache.pig.ComparisonFunc;
 import org.apache.pig.ExecType;
 import org.apache.pig.FuncSpec;
+import org.apache.pig.LoadFunc;
 import org.apache.pig.PigException;
 import org.apache.pig.StoreFuncInterface;
 import org.apache.pig.backend.executionengine.ExecException;
@@ -88,6 +89,7 @@ import org.apache.pig.impl.util.JarManager;
 import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.impl.util.Pair;
 import org.apache.pig.impl.util.UDFContext;
+import org.apache.pig.impl.util.UriUtil;
 import org.apache.pig.impl.util.Utils;
 import org.apache.pig.tools.pigstats.ScriptState;
 
@@ -709,13 +711,23 @@ public class JobControlCompiler{
         long size = 0;
         FileSystem fs = FileSystem.get(conf);
         for (String input : inputs){
-            Path path = new Path(input);
-           String schema = path.toUri().getScheme();
-            if (schema==null || schema.equalsIgnoreCase("hdfs") || schema.equalsIgnoreCase("file")){
-                FileStatus[] status=fs.globStatus(new Path(input));
+            //Using custom uri parsing because 'new Path(location).toUri()' fails
+            // for some valid uri's (eg jdbc style), and 'new Uri(location)' fails
+            // for valid hdfs paths that contain curly braces
+            if(UriUtil.isHDFSFileOrLocal(input)){
+                //skip  if it is not hdfs or local file
+                continue;
+            }
+            //the input file location might be a list of comma separeated files, 
+            // separate them out
+            for(String location : LoadFunc.getPathStrings(input)){
+                if(! UriUtil.isHDFSFileOrLocal(location)){
+                    continue;
+                }
+                FileStatus[] status=fs.globStatus(new Path(location));
                 if (status != null){
                     for (FileStatus s : status){
-                       size += getPathLength(fs, s);
+                        size += getPathLength(fs, s);
                     }
                 }
             }

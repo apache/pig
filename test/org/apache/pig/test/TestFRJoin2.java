@@ -19,6 +19,7 @@ package org.apache.pig.test;
 
 import static org.junit.Assert.assertEquals;
 
+import java.io.File;
 import java.util.Iterator;
 
 import org.apache.hadoop.fs.FileSystem;
@@ -47,8 +48,14 @@ public class TestFRJoin2 {
     private static final int FILE_MERGE_THRESHOLD = 5;
     private static final int MIN_FILE_MERGE_THRESHOLD = 1;
     
+    //contents of input dir joined by comma
+    private static String concatINPUT_DIR = null;
+    private File logFile;
+
+    
     @BeforeClass
     public static void setUpBeforeClass() throws Exception {
+        StringBuilder strBuilder = new StringBuilder();
         FileSystem fs = cluster.getFileSystem();
         fs.mkdirs(new Path(INPUT_DIR));
         int LOOP_SIZE = 2;
@@ -59,9 +66,14 @@ public class TestFRJoin2 {
                     input[n*LOOP_SIZE + j] = i + "\t" + (j + n);
                 }
             }
-            Util.createInputFile(cluster, INPUT_DIR + "/part-0000" + i, input);
+            String newFile = INPUT_DIR + "/part-0000" + i;
+            Util.createInputFile(cluster, newFile, input);
+            strBuilder.append(newFile);
+            strBuilder.append(",");
         }
-
+        strBuilder.deleteCharAt(strBuilder.length() - 1);
+        concatINPUT_DIR = strBuilder.toString();
+        
         String[] input2 = new String[2*(LOOP_SIZE/2)];
         int k = 0;
         for (int i=1; i<=LOOP_SIZE/2; i++) {
@@ -132,11 +144,12 @@ public class TestFRJoin2 {
     // a Map-only job
     @Test
     public void testConcatenateJobForScalar2() throws Exception {
+        logFile = Util.resetLog(MRCompiler.class, logFile);
         PigServer pigServer = new PigServer(ExecType.MAPREDUCE, cluster
                 .getProperties());
         
         pigServer.registerQuery("A = LOAD '" + INPUT_FILE + "' as (x:int,y:int);");
-        pigServer.registerQuery("B = LOAD '" + INPUT_DIR + "' as (x:int,y:int);");
+        pigServer.registerQuery("B = LOAD '" + INPUT_DIR +  "/{part-00*}" +"' as (x:int,y:int);");
         pigServer.registerQuery("C = filter B by (x == 3) AND (y == 2);");
         
         DataBag dbfrj = BagFactory.getInstance().newDefaultBag(), dbshj = BagFactory.getInstance().newDefaultBag();
@@ -157,6 +170,10 @@ public class TestFRJoin2 {
             JobStats js = (JobStats)jGraph.getSuccessors(jGraph.getSources().get(0)).get(0);
             assertEquals(1, js.getNumberMaps());   
             assertEquals(0, js.getNumberReduces()); 
+            Util.checkLogFileMessage(logFile, 
+                    new String[] {"number of input files: 0", "failed to get number of input files"}, 
+                    false
+            );
         }
         {
             pigServer.getPigContext().getProperties().setProperty(
@@ -224,11 +241,12 @@ public class TestFRJoin2 {
     
     @Test
     public void testConcatenateJobForFRJoin() throws Exception {
+        logFile = Util.resetLog(MRCompiler.class, logFile);
         PigServer pigServer = new PigServer(ExecType.MAPREDUCE, cluster
                 .getProperties());
         
         pigServer.registerQuery("A = LOAD '" + INPUT_FILE + "' as (x:int,y:int);");
-        pigServer.registerQuery("B = LOAD '" + INPUT_DIR + "' as (x:int,y:int);");
+        pigServer.registerQuery("B = LOAD '" + INPUT_DIR +  "/{part-00*}" + "' as (x:int,y:int);");
         
         DataBag dbfrj = BagFactory.getInstance().newDefaultBag(), dbshj = BagFactory.getInstance().newDefaultBag();
         {
@@ -243,6 +261,11 @@ public class TestFRJoin2 {
             }
             
             assertEquals(3, PigStats.get().getJobGraph().size());
+            Util.checkLogFileMessage(logFile, 
+                    new String[] {"number of input files: 0", "failed to get number of input files"}, 
+                    false
+            );
+
         }
         {
             pigServer.getPigContext().getProperties().setProperty(
@@ -259,7 +282,7 @@ public class TestFRJoin2 {
         }
         
         assertEquals(dbfrj.size(), dbshj.size());
-        assertEquals(true, TestHelper.compareBags(dbfrj, dbshj));    
+        assertEquals(true, TestHelper.compareBags(dbfrj, dbshj));  
     }
             
     @Test
@@ -309,7 +332,7 @@ public class TestFRJoin2 {
     public void testUnknownNumMaps() throws Exception {
         PigServer pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
         
-        pigServer.registerQuery("A = LOAD '" + INPUT_DIR + "' as (x:int,y:int);");
+        pigServer.registerQuery("A = LOAD '" + concatINPUT_DIR + "' as (x:int,y:int);");
         pigServer.registerQuery("B = Filter A by x < 50;");
         DataBag dbfrj = BagFactory.getInstance().newDefaultBag(), dbshj = BagFactory.getInstance().newDefaultBag();
         {
