@@ -207,6 +207,8 @@ PIG-1309: Map-side Cogroup (ashutoshc)
 
 BUG FIXES
 
+PIG-1651: PIG class loading mishandled (rding)
+
 PIG-1650: pig grunt shell breaks for many commands like perl , awk , 
 pipe , 'ls -l' etc  (nrai via thejas)
 

@@ -27,16 +27,25 @@ import org.apache.pig.builtin.PigStorage;
 
 public class PigTestLoader extends PigStorage {
 
+    // This is to test PIG-1651: PIG class loading error
+    private static boolean test = false;
+    
     @Override
     public void setLocation(String location, Job job) throws IOException {
         super.setLocation(location, job);
         FileInputFormat.setInputPathFilter(job, TestPathFilter.class);
+        test = true;
     }
 
     public static class TestPathFilter implements PathFilter {
+        
+        public TestPathFilter() {
+            if (!test) throw new RuntimeException("Invalid static variable");
+        }
+        
         @Override
         public boolean accept(Path p) {
-            String name = p.getName(); 
+            String name = p.getName();            
             return !name.endsWith(".xml");
         }       
     }
