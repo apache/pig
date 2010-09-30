@@ -207,6 +207,9 @@ PIG-1309: Map-side Cogroup (ashutoshc)
 
 BUG FIXES
 
+PIG-1650: pig grunt shell breaks for many commands like perl , awk , 
+pipe , 'ls -l' etc  (nrai via thejas)
+
 PIG-1649: FRJoin fails to compute number of input files for replicated 
 input (thejas)
 

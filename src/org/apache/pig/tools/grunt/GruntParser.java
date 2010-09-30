@@ -909,12 +909,8 @@ public class GruntParser extends PigScriptParser {
     
     @Override
     protected void processShCommand(String[] cmdTokens) throws IOException{
-        StringBuilder builder = new StringBuilder();
-        for (String token:cmdTokens){
-            builder.append(token + " ");
-        }
         try {
-            Process executor = Runtime.getRuntime().exec(builder.toString());
+            Process executor = Runtime.getRuntime().exec(cmdTokens);
             StreamPrinter outPrinter = new StreamPrinter(executor.getInputStream(), null, System.out);
             StreamPrinter errPrinter = new StreamPrinter(executor.getErrorStream(), null, System.err);
 

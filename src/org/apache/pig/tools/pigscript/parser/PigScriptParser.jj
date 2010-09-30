@@ -34,6 +34,7 @@ import java.io.InputStream;
 import java.util.Stack;
 import java.util.List;
 import java.util.ArrayList;
+import org.apache.pig.impl.util.StringUtils;
 
 import jline.ConsoleReader;
 
@@ -405,13 +406,13 @@ void parse() throws IOException:
 	|
 	<SH>
 	(
-	t1 = GetPath()
+	t1 = GetValue()
 	{
 		cmdTokens.add(t1.image);
 		while(true){
 			try{
-				t1=GetPath();
-				cmdTokens.add(t1.image);
+				t1=GetValue();
+				cmdTokens.add(StringUtils.unescapeInputString(unquote(t1.image)));
 			}catch(ParseException e){
 				break;
 			}
