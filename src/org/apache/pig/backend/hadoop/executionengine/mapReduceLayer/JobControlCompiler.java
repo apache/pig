@@ -714,7 +714,7 @@ public class JobControlCompiler{
             //Using custom uri parsing because 'new Path(location).toUri()' fails
             // for some valid uri's (eg jdbc style), and 'new Uri(location)' fails
             // for valid hdfs paths that contain curly braces
-            if(UriUtil.isHDFSFileOrLocal(input)){
+            if(!UriUtil.isHDFSFileOrLocal(input)){
                 //skip  if it is not hdfs or local file
                 continue;
             }
