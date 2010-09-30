@@ -72,6 +72,7 @@
     <property name="output.jarfile.withouthadoop" value="${build.dir}/${final.name}-withouthadoop.jar" />
     <property name="output.jarfile.core" value="${build.dir}/${final.name}-core.jar" />
     <property name="output.jarfile.sources" value="${build.dir}/${final.name}-sources.jar" />
+    <property name="output.jarfile.javadoc" value="${build.dir}/${final.name}-javadoc.jar" />
     <!-- Maintain old pig.jar in top level directory. -->
     <property name="output.jarfile.backcompat.withouthadoop" value="${basedir}/${name}-withouthadoop.jar" />
     <property name="output.jarfile.backcompat" value="${basedir}/${name}.jar" />
@@ -171,7 +172,8 @@
 	<property name="ivy.publish.pattern" value="[artifact]-[revision].[ext]"/>
 	<property name="pig.jar" value="${output.jarfile}"/>
 	<property name="pig-core.jar" value="${output.jarfile.core}"/>	
-	 <property name="pig-sources.jar" location="${build.dir}/${final.name}-sources.jar" />
+	<property name="pig-sources.jar" location="${build.dir}/${final.name}-sources.jar" />
+	<property name="pig-javadoc.jar" location="${build.dir}/${final.name}-javadoc.jar" />
 
     <!-- jdiff properties -->
     <property name="jdiff.jar" value="${ivy.lib.dir}/jdiff-${jdiff.version}.jar"/>
@@ -417,7 +419,7 @@
     </target>
 
     <target name="source-jar" depends="cc-compile">
-	    <jar duplicate="preserve" jarfile="${output.jarfile.sources}" basedir="${src.dir}">
+	    <jar duplicate="preserve" jarfile="${output.jarfile.sources}" basedir="${src.dir}/" excludes="docs/**, overview.html">
             <manifest>
                 <section name="org/apache/pig">
                     <attribute name="Implementation-Vendor" value="Apache" />
@@ -425,9 +427,19 @@
                     <attribute name="Implementation-Version" value="${version}" />
                 </section>
             </manifest>
-            <fileset dir="${src.gen.dir}"/>
             <fileset dir="${src.lib.dir}/shock"/>
             <fileset dir="${src.lib.dir}/bzip2"/>
+        </jar>
+    </target>
+    <target name="javadoc-jar" depends="cc-compile, javadoc">
+        <jar duplicate="preserve" jarfile="${output.jarfile.javadoc}" basedir="${build.javadoc}/">
+            <manifest>
+                <section name="org/apache/pig">
+                    <attribute name="Implementation-Vendor" value="Apache" />
+                    <attribute name="Implementation-Title" value="Pig" />
+                    <attribute name="Implementation-Version" value="${version}" />
+                </section>
+            </manifest>
         </jar>
     </target>
 
@@ -800,15 +812,16 @@
           uri="urn:maven-artifact-ant"
           classpathref="mvn-ant-task.classpath"/>
     </target>
-    <target name="mvn-install" depends="mvn-taskdef,jar, set-version, source-jar"
+    <target name="mvn-install" depends="mvn-taskdef,jar, set-version, source-jar, javadoc-jar"
          description="To install pig to local filesystem's m2 cache">
          <artifact:pom file="${pig.pom}" id="pig"/>
           <artifact:install file="${pig-core.jar}">
                <pom refid="pig"/>
            <attach file="${output.jarfile.sources}" classifier="sources" />
+           <attach file="${output.jarfile.javadoc}" classifier="javadoc" />
           </artifact:install>
     </target>
-    <target name="mvn-deploy" depends="mvn-taskdef,jar,source-jar, set-version, signanddeploy, simpledeploy"
+    <target name="mvn-deploy" depends="mvn-taskdef,jar,source-jar, javadoc-jar, set-version, signanddeploy, simpledeploy"
          description="To deploy pig jar to apache snapshot's repository">
     </target>
 
@@ -822,6 +835,8 @@
      	   <attach file="${pig.pom}.asc" type="pom.asc"/>
            <attach file="${output.jarfile.sources}.asc" type="jar.asc" />
           <attach file="${output.jarfile.sources}" classifier="sources" />
+          <attach file="${output.jarfile.javadoc}.asc" type="jar.asc" />
+          <attach file="${output.jarfile.javadoc}" classifier="javadoc" />
         </artifact:deploy>
     </target>
 
@@ -832,6 +847,7 @@
               <remoteRepository id="apache.snapshots.https" url="${asfsnapshotrepo}"/>
               <pom refid="pig"/>
           <attach file="${pig-sources.jar}" classifier="sources" />
+      	  <attach file="${pig-javadoc.jar}" classifier="javadoc" />
       </artifact:deploy>
    </target>
 	
@@ -860,6 +876,8 @@
         output.file="${pig-core.jar}.asc" gpg.passphrase="${gpg.passphrase}"/>
        <sign-artifact input.file="${output.jarfile.sources}"
         output.file="${output.jarfile.sources}.asc" gpg.passphrase="${gpg.passphrase}"/>
+       <sign-artifact input.file="${output.jarfile.javadoc}"
+    	output.file="${output.jarfile.javadoc}.asc" gpg.passphrase="${gpg.passphrase}"/>
     	<sign-artifact input.file="${pig.pom}"
     	output.file="${pig.pom}.asc" gpg.passphrase="${gpg.passphrase}"/>
      </target>
