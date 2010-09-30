@@ -198,6 +198,8 @@ PIG-1309: Map-side Cogroup (ashutoshc)
 
 BUG FIXES
 
+PIG-1638: sh output gets mixed up with the grunt prompt (nrai via daijy)
+
 PIG-1607: pig should have separate javadoc.jar in the maven repository (nrai via thejas)
 
 PIG-1651: PIG class loading mishandled (rding)
