@@ -918,6 +918,8 @@ public class GruntParser extends PigScriptParser {
             errPrinter.start();
 
             int ret = executor.waitFor();
+            outPrinter.join();
+            errPrinter.join();
             if (ret != 0) {
                 log.warn("Command failed with exit code = " + ret);
             }
