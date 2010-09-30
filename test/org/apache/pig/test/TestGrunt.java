@@ -869,6 +869,45 @@ public class TestGrunt extends TestCase {
             grunt = new Grunt(new BufferedReader(reader), context);
             grunt.exec();
             assertFalse(new File("test_shell_tmp").exists());
+            
+            strCmd = "sh bash -c 'echo hello world > tempShFileToTestShCommand'";
+            cmd = new ByteArrayInputStream(strCmd.getBytes());
+            reader = new InputStreamReader(cmd);
+            grunt = new Grunt(new BufferedReader(reader), context);
+            grunt.exec();
+            BufferedReader fileReader = null;
+            fileReader = new BufferedReader(new FileReader("tempShFileToTestShCommand"));
+            assertTrue(fileReader.readLine().equalsIgnoreCase("hello world"));
+            fileReader.close();
+            strCmd = "sh rm tempShFileToTestShCommand";
+            cmd = new ByteArrayInputStream(strCmd.getBytes());
+            reader = new InputStreamReader(cmd);
+            grunt = new Grunt(new BufferedReader(reader), context);
+            grunt.exec();
+            assertFalse(new File("tempShFileToTestShCommand").exists());
+
+            strCmd = "sh bash -c 'touch TouchedFileInsideGrunt_61 | ls | grep TouchedFileInsideGrunt_61 > fileContainingTouchedFileInsideGruntShell_71'";
+            cmd = new ByteArrayInputStream(strCmd.getBytes());
+            reader = new InputStreamReader(cmd);
+            grunt = new Grunt(new BufferedReader(reader), context);
+            grunt.exec();
+            fileReader = new BufferedReader(new FileReader("fileContainingTouchedFileInsideGruntShell_71"));
+            assertTrue(fileReader.readLine().equals("TouchedFileInsideGrunt_61"));
+            fileReader.close();
+            strCmd = "sh bash -c 'rm fileContainingTouchedFileInsideGruntShell_71'";
+            cmd = new ByteArrayInputStream(strCmd.getBytes());
+            reader = new InputStreamReader(cmd);
+            grunt = new Grunt(new BufferedReader(reader), context);
+            grunt.exec();
+            assertFalse(new File("fileContainingTouchedFileInsideGruntShell_71").exists());
+            strCmd = "sh bash -c 'rm TouchedFileInsideGrunt_61'";
+            cmd = new ByteArrayInputStream(strCmd.getBytes());
+            reader = new InputStreamReader(cmd);
+            grunt = new Grunt(new BufferedReader(reader), context);
+            grunt.exec();
+            assertFalse(new File("TouchedFileInsideGrunt_61").exists());
+         
+            
         } catch (ExecException e) {
             e.printStackTrace();
             fail();
@@ -877,7 +916,7 @@ public class TestGrunt extends TestCase {
             fail();
         }
     }
-    
+
     @Test
     public void testSetPriority() throws Throwable {
         PigServer server = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
