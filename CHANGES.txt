@@ -26,6 +26,8 @@ PIG-1249: Safe-guards against misconfigured Pig scripts without PARALLEL keyword
 
 IMPROVEMENTS
 
+PIG-1531: Pig gobbles up error messages (nrai via hashutosh)
+
 PIG-1628: log this message at debug level : 'Pig Internal storage in use' (thejas)
 
 PIG-1632: The core jar in the tarball contains the kitchen sink (eli via olgan)

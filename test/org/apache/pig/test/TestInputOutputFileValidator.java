@@ -23,20 +23,25 @@ import java.util.Properties;
 
 import org.apache.pig.ExecType; 
 import org.apache.pig.FuncSpec;
+import org.apache.pig.PigException;
 import org.apache.pig.PigServer;
+import org.apache.pig.ResourceSchema;
 import org.apache.pig.backend.datastorage.DataStorage;
 import org.apache.pig.backend.datastorage.ElementDescriptor;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.executionengine.util.MapRedUtil;
+import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.FileSpec;
+import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.LOLoad;
 import org.apache.pig.impl.logicalLayer.LOStore;
 import org.apache.pig.impl.logicalLayer.LogicalPlan;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.NodeIdGenerator;
+import org.apache.pig.impl.plan.PlanValidationException;
 
 import org.apache.pig.impl.logicalLayer.validators.* ;
 import org.apache.pig.impl.plan.CompilationMessageCollector;
@@ -244,6 +249,26 @@ public class TestInputOutputFileValidator extends TestCase {
             }
         }
     }
+
+    @Test
+    public void testValidationNeg() throws Throwable{
+
+        PigServer pig = new PigServer(ExecType.MAPREDUCE,cluster.getProperties());
+        try{
+            pig.setBatchOn();
+        	pig.registerQuery("A = load 'inputfile' using PigStorage () as (a:int);");
+            pig.registerQuery("store A into 'outfile' using "+DummyStorer.class.getName()+";");
+            pig.executeBatch();
+            assert false;
+        }catch(Exception fe){
+        	assertTrue(fe instanceof PlanValidationException);
+        	PigException pe = LogUtils.getPigException(fe);
+        	assertTrue(pe instanceof FrontendException);
+        	assertEquals(1115, pe.getErrorCode());
+        	assertTrue(pe.getMessage().contains("Exception from DummyStorer."));
+        }
+    }
+ 
         
     private LogicalPlan genNewLoadStorePlan(String inputFile,
                                             String outputFile, DataStorage dfs) 
@@ -318,5 +343,12 @@ public class TestInputOutputFileValidator extends TestCase {
         }   
             
         return distribElem.toString();
+    }
+
+    public static class DummyStorer extends PigStorage{
+    @Override
+        public void checkSchema(ResourceSchema s) throws IOException {
+            throw new FrontendException("Exception from DummyStorer.", 1115);
+        }
     }
 }
