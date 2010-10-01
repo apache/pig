@@ -871,10 +871,10 @@ public class PigServer {
             LogicalPlan storePlan = compileLp(unCompiledstorePlan, g, true);
             
             return executeCompiledLogicalPlan(storePlan);
-        } catch (Exception e) {
+        } catch (PigException e) {
             int errCode = 1002;
             String msg = "Unable to store alias " + id;
-            throw new FrontendException(msg, errCode, PigException.INPUT, e);
+            throw new PigException(msg, errCode, PigException.INPUT, e);
         }   
     }
     
