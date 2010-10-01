@@ -79,6 +79,8 @@ import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.ReadToEndLoader;
+import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.impl.logicalLayer.schema.Schema.FieldSchema;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
@@ -1459,13 +1461,66 @@ public class TestBuiltin {
 
     @Test
     public void testMiscFunc() throws Exception {
+        
+        //TEST TOBAG
         TOBAG tb = new TOBAG();
 
+        //test output schema of udf
+        Schema expectedSch =
+            Schema.generateNestedSchema(DataType.BAG, DataType.INTEGER);
+
+        //check schema of TOBAG when given input tuple having only integers
+        Schema inputSch = new Schema();
+        inputSch.add(new FieldSchema(null, DataType.INTEGER));
+        assertEquals("schema of tobag when input has only ints",
+                expectedSch, tb.outputSchema(inputSch));
+
+        //add another int column
+        inputSch.add(new FieldSchema(null, DataType.INTEGER));
+        assertEquals("schema of tobag when input has only ints",
+                expectedSch, tb.outputSchema(inputSch));
+
+        //add a long column
+        inputSch.add(new FieldSchema(null, DataType.LONG));
+        //expect null inner schema
+        expectedSch =
+            Schema.generateNestedSchema(DataType.BAG, DataType.NULL);
+        assertEquals("schema of tobag when input has ints and long",
+                expectedSch, tb.outputSchema(inputSch));
+
+        
+        //test schema when input is a tuple with inner schema
+        Schema tupInSchema = new Schema(new FieldSchema("x", DataType.CHARARRAY));
+        inputSch = new Schema();
+        inputSch.add(new FieldSchema("a", tupInSchema, DataType.TUPLE));
+        Schema inputSchCp = new Schema(inputSch);
+        inputSchCp.getField(0).alias = null;
+        expectedSch = new Schema(new FieldSchema(null, inputSchCp, DataType.BAG));
+        assertEquals("schema of tobag when input has cols of type tuple ",
+                expectedSch, tb.outputSchema(inputSch));
+        
+        inputSch.add(new FieldSchema("b", tupInSchema, DataType.TUPLE));
+        assertEquals("schema of tobag when input has cols of type tuple ",
+                expectedSch, tb.outputSchema(inputSch));
+        
+        //add a column of type tuple with different inner schema
+        tupInSchema = new Schema(new FieldSchema("x", DataType.BYTEARRAY));
+        inputSch.add(new FieldSchema("c", tupInSchema, DataType.TUPLE));
+        //expect null inner schema
+        expectedSch =
+            Schema.generateNestedSchema(DataType.BAG, DataType.NULL);
+        assertEquals("schema of tobag when input has cols of type tuple with diff inner schema",
+                expectedSch, tb.outputSchema(inputSch));
+
+        
+        
         Tuple input = TupleFactory.getInstance().newTuple();
         for (int i = 0; i < 100; ++i) {
             input.append(i);
-        }
-
+        }      
+        //test null value in input
+        input.append(null);
+        
         Set<Integer> s = new HashSet<Integer>();
         DataBag db = tb.exec(input);
         for (Tuple t : db) {
@@ -1473,10 +1528,11 @@ public class TestBuiltin {
         }
 
         // finally check the bag had everything we put in the tuple.
-        assertEquals(100, s.size());
+        assertEquals(101, s.size());
         for (int i = 0; i < 100; ++i) {
             assertTrue(s.contains(i));
         }
+        assertTrue("null in tobag result", s.contains(null));
         
         TOTUPLE tt = new TOTUPLE();
 
