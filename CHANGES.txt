@@ -207,6 +207,8 @@ PIG-1309: Map-side Cogroup (ashutoshc)
 
 BUG FIXES
 
+PIG-1658: ORDER BY does not work properly on integer/short keys that are -1 (yanz)
+
 PIG-1638: sh output gets mixed up with the grunt prompt (nrai via daijy)
 
 PIG-1607: pig should have separate javadoc.jar in the maven 
