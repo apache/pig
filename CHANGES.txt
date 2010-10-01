@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-1531: Pig gobbles up error messages (nrai via hashutosh) 
+
 PIG-1508: Make 'docs' target (forrest) work with Java 1.6 (cwsteinbach via gates)
 
 PIG-1608: pig should always include pig-default.properties and pig.properties in the pig.jar (nrai via daijy)

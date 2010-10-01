@@ -53,8 +53,9 @@ public abstract class PlanValidator<O extends Operator, P extends OperatorPlan<O
             messageCollector.collect("Unexpected exception in " 
                                       + this.getClass().getSimpleName(),
                                       MessageType.Error) ;
-            throw new PlanValidationException("An unexpected exception caused " 
-                                              + "the validation to stop", ve) ;
+            String errMsg="An unexpected exception caused the validation to stop";
+            int errCode = 2257;
+            throw new PlanValidationException( errMsg, errCode, ve) ;
         }
     }
     

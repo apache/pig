@@ -65,7 +65,7 @@ public class InputOutputFileVisitor extends LOVisitor {
         StoreFuncInterface sf = store.getStoreFunc();
         String outLoc = store.getOutputFile().getFileName();
         int errCode = 2116;
-        String validationErrStr ="Output Location Validation Failed for: '" + outLoc ;
+        String validationErrStr ="Output Location Validation Failed for: " + outLoc ;
         Job dummyJob;
         
         try {
