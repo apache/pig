@@ -1082,9 +1082,9 @@ public class BinInterSedes implements InterSedes {
             case BinInterSedes.INTEGER_1:
                 return 1;
             case BinInterSedes.INTEGER_INBYTE:
-                return bb.get() & 0xff;
+                return bb.get();
             case BinInterSedes.INTEGER_INSHORT:
-                return bb.getShort() & 0xffff;
+                return bb.getShort();
             case BinInterSedes.INTEGER:
                 return bb.getInt();
             default:

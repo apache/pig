@@ -352,9 +352,6 @@ to call at top-level: ant deploy-contrib compile-core-test
 		            <filename name="**/pig/TestMergeJoinEmpty.java"/>
 		          </not>
 		          <not>
-		            <filename name="**/pig/TestMergeJoinPartial.java"/>
-		          </not>
-		          <not>
 		            <filename name="**/pig/TestSimpleType.java"/>
 		          </not>
 		          <not>
