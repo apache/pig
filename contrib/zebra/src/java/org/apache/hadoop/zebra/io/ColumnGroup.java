@@ -2412,6 +2412,7 @@ class ColumnGroup {
     public boolean accept(Path p) {
       return p.getName().equals(META_FILE) || p.getName().equals(SCHEMA_FILE)
           || p.getName().startsWith(".tmp.")
+          || p.getName().startsWith("_")
           || p.getName().startsWith("ttt")
           || p.getName().startsWith(getNonDataFilePrefix(conf)) ? false : true;
     }
