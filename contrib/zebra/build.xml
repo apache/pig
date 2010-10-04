@@ -342,42 +342,6 @@ to call at top-level: ant deploy-contrib compile-core-test
 	          <not>
 	            <filename name="**/pig/TestRealCluster.java"/> <!-- This requires a real cluster anyway-->
 	          </not>
-		          <not>
-		            <filename name="**/pig/TestMergeJoinNegative.java"/>
-		          </not>
-		          <not>
-		            <filename name="**/pig/TestMergeJoin.java"/>
-		          </not>
-		          <not>
-		            <filename name="**/pig/TestMergeJoinEmpty.java"/>
-		          </not>
-		          <not>
-		            <filename name="**/pig/TestSimpleType.java"/>
-		          </not>
-		          <not>
-		            <filename name="**/pig/TestOrderPreserveMultiTable.java"/>
-		          </not>
-		          <not>
-		            <filename name="**/pig/TestOrderPreserveMultiTableGlob.java"/>
-		          </not>
-		          <not>
-		            <filename name="**/pig/TestOrderPreserveProjection.java"/>
-		          </not>
-		          <not>
-		            <filename name="**/pig/TestOrderPreserveProjectionNegative.java"/>
-		          </not>
-		          <not>
-		            <filename name="**/pig/TestOrderPreserveSimple.java"/>
-		          </not>
-		          <not>
-		            <filename name="**/pig/TestTableMergeJoinFloat.java"/>
-		          </not>
-		          <not>
-		            <filename name="**/pig/TestTableMergeJoinInteger.java"/>
-		          </not>
-		          <not>
-		            <filename name="**/pig/TestOrderPreserveVariableTable.java"/>
-		          </not>
 	        </fileset> 
 	      </batchtest>
 	    </junit>
