@@ -26,22 +26,7 @@ public class DiscreteProbabilitySampleGenerator {
     Random rGen;
     float[] probVec;
     float epsilon = 0.00001f;
-    
-    public DiscreteProbabilitySampleGenerator(long seed, float[] probVec) throws MalFormedProbVecException{
-        rGen = new Random(seed);
-        float sum = 0.0f;
-        for (float f : probVec) {
-            sum += f;
-        }
-        if(1-epsilon<=sum && sum<=1+epsilon) 
-            this.probVec = probVec;
-        else {
-            int errorCode = 2122;
-            String message = "Sum of probabilities should be one";
-            throw new MalFormedProbVecException(message, errorCode, PigException.BUG);
-        }
-    }
-    
+        
     public DiscreteProbabilitySampleGenerator(float[] probVec) throws MalFormedProbVecException{
         rGen = new Random();
         float sum = 0.0f;
@@ -52,7 +37,7 @@ public class DiscreteProbabilitySampleGenerator {
             this.probVec = probVec;
         else {
             int errorCode = 2122;
-            String message = "Sum of probabilities should be one";
+            String message = "Sum of probabilities should be one: " + Arrays.toString(probVec);
             throw new MalFormedProbVecException(message, errorCode, PigException.BUG);
         }
     }
@@ -78,7 +63,7 @@ public class DiscreteProbabilitySampleGenerator {
     
     public static void main(String[] args) throws MalFormedProbVecException {
         float[] vec = { 0, 0.3f, 0.2f, 0, 0, 0.5f };
-        DiscreteProbabilitySampleGenerator gen = new DiscreteProbabilitySampleGenerator(11317, vec);
+        DiscreteProbabilitySampleGenerator gen = new DiscreteProbabilitySampleGenerator(vec);
         CountingMap<Integer> cm = new CountingMap<Integer>();
         for(int i=0;i<100;i++){
             cm.put(gen.getNext(), 1);
