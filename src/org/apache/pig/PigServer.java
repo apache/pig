@@ -1332,15 +1332,15 @@ public class PigServer {
 
             LogicalOptimizer optimizer = new LogicalOptimizer(lp, pigContext.getExecType(), optimizerRules);
             optimizer.optimize();
+            
+            // compute whether output data is sorted or not
+            SortInfoSetter sortInfoSetter = new SortInfoSetter(lp);
+            sortInfoSetter.visit();
+            
+            // run validations to be done after optimization
+            isBeforeOptimizer = false;
+            validate(lp, collector, isBeforeOptimizer);
         }
-
-        // compute whether output data is sorted or not
-        SortInfoSetter sortInfoSetter = new SortInfoSetter(lp);
-        sortInfoSetter.visit();
-        
-        // run validations to be done after optimization
-        isBeforeOptimizer = false;
-        validate(lp, collector, isBeforeOptimizer);
         
         return lp;
     }

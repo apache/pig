@@ -41,6 +41,7 @@ import org.apache.hadoop.mapred.JobConf;
 import org.apache.pig.ExecType;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.PigException;
+import org.apache.pig.SortInfo;
 import org.apache.pig.backend.datastorage.DataStorage;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.executionengine.ExecJob;
@@ -61,8 +62,21 @@ import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.impl.util.Utils;
+import org.apache.pig.newplan.DependencyOrderWalker;
+import org.apache.pig.newplan.Operator;
+import org.apache.pig.newplan.OperatorPlan;
 import org.apache.pig.newplan.logical.LogicalPlanMigrationVistor;
+import org.apache.pig.newplan.logical.expression.ConstantExpression;
+import org.apache.pig.newplan.logical.expression.LogicalExpressionPlan;
 import org.apache.pig.newplan.logical.optimizer.SchemaResetter;
+import org.apache.pig.newplan.logical.relational.LOLimit;
+import org.apache.pig.newplan.logical.relational.LOSort;
+import org.apache.pig.newplan.logical.relational.LOSplit;
+import org.apache.pig.newplan.logical.relational.LOSplitOutput;
+import org.apache.pig.newplan.logical.relational.LOStore;
+import org.apache.pig.newplan.logical.relational.LogicalRelationalNodesVisitor;
+import org.apache.pig.newplan.logical.rules.InputOutputFileValidator;
+import org.apache.pig.newplan.optimizer.Rule;
 import org.apache.pig.tools.pigstats.OutputStats;
 import org.apache.pig.tools.pigstats.PigStats;
 
@@ -261,6 +275,18 @@ public class HExecutionEngine {
                     new org.apache.pig.newplan.logical.optimizer.LogicalPlanOptimizer(newPlan, 100, optimizerRules);
                 optimizer.optimize();
                 
+                // compute whether output data is sorted or not
+                SortInfoSetter sortInfoSetter = new SortInfoSetter(newPlan);
+                sortInfoSetter.visit();
+                
+                if (pigContext.inExplain==false) {
+                    // Validate input/output file. Currently no validation framework in
+                    // new logical plan, put this validator here first.
+                    // We might decide to move it out to a validator framework in future
+                    InputOutputFileValidator validator = new InputOutputFileValidator(newPlan, pigContext);
+                    validator.validate();
+                }
+                
                 // translate new logical plan to physical plan
                 org.apache.pig.newplan.logical.relational.LogToPhyTranslationVisitor translator = 
                     new org.apache.pig.newplan.logical.relational.LogToPhyTranslationVisitor(newPlan);
@@ -280,6 +306,56 @@ public class HExecutionEngine {
             int errCode = 2042;
             String msg = "Error in new logical plan. Try -Dpig.usenewlogicalplan=false.";
             throw new ExecException(msg, errCode, PigException.BUG, ve);
+        }
+    }
+    
+    public static class SortInfoSetter extends LogicalRelationalNodesVisitor {
+
+        public SortInfoSetter(OperatorPlan plan) throws FrontendException {
+            super(plan, new DependencyOrderWalker(plan));
+        }
+
+        @Override
+        public void visit(LOStore store) throws FrontendException {
+            
+            Operator storePred = store.getPlan().getPredecessors(store).get(0);
+            if(storePred == null){
+                int errCode = 2051;
+                String msg = "Did not find a predecessor for Store." ;
+                throw new FrontendException(msg, errCode, PigException.BUG);    
+            }
+            
+            SortInfo sortInfo = null;
+            if(storePred instanceof LOLimit) {
+                storePred = store.getPlan().getPredecessors(storePred).get(0);
+            } else if (storePred instanceof LOSplitOutput) {
+                LOSplitOutput splitOutput = (LOSplitOutput)storePred;
+                // We assume this is the LOSplitOutput we injected for this case:
+                // b = order a by $0; store b into '1'; store b into '2';
+                // In this case, we should mark both '1' and '2' as sorted
+                LogicalExpressionPlan conditionPlan = splitOutput.getFilterPlan();
+                if (conditionPlan.getSinks().size()==1) {
+                    Operator root = conditionPlan.getSinks().get(0);
+                    if (root instanceof ConstantExpression) {
+                        Object value = ((ConstantExpression)root).getValue();
+                        if (value instanceof Boolean && (Boolean)value==true) {
+                            Operator split = splitOutput.getPlan().getPredecessors(splitOutput).get(0);
+                            if (split instanceof LOSplit)
+                                storePred = store.getPlan().getPredecessors(split).get(0);
+                        }
+                    }
+                }
+            }
+            // if this predecessor is a sort, get
+            // the sort info.
+            if(storePred instanceof LOSort) {
+                try {
+                    sortInfo = ((LOSort)storePred).getSortInfo();
+                } catch (FrontendException e) {
+                    throw new FrontendException(e);
+                }
+            }
+            store.setSortInfo(sortInfo);
         }
     }
 

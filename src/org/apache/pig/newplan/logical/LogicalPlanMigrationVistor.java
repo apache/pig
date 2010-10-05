@@ -362,7 +362,6 @@ public class LogicalPlanMigrationVistor extends LOVisitor {
         newStore.setRequestedParallelism(store.getRequestedParallelism());
         newStore.setSignature(store.getSignature());
         newStore.setInputSpec(store.getInputSpec());
-        newStore.setSortInfo(store.getSortInfo());
         newStore.setTmpStore(store.isTmpStore());
         
         logicalPlan.add(newStore);
