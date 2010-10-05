@@ -125,5 +125,6 @@ public class LOStore extends LogicalRelationalOperator {
     
     public void setSignature(String sig) {
         signature = sig;
+        storeFunc.setStoreFuncUDFContextSignature(signature);
     }
 }

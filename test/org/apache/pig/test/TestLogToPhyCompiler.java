@@ -703,7 +703,6 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
     @Test
     public void testSortInfoMultipleStore() throws Exception {
         PigServer myPig = new PigServer(ExecType.LOCAL);
-        myPig.getPigContext().getProperties().setProperty("pig.usenewlogicalplan", "false");
         myPig.setBatchOn();
         myPig.registerQuery("a = load 'bla' as (i:int, n:chararray, d:double);");
         myPig.registerQuery("b = order a by i, d desc;");
@@ -719,7 +718,13 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
         LOPrinter lpr = new LOPrinter(System.err, lp);
         lpr.visit();
         
-        PhysicalPlan pp = buildPhysicalPlan(lp);
+        java.lang.reflect.Method compilePp = myPig.getClass()
+            .getDeclaredMethod("compilePp",
+            new Class[] { LogicalPlan.class });
+        
+        compilePp.setAccessible(true);
+        
+        PhysicalPlan pp = (PhysicalPlan) compilePp.invoke(myPig, new Object[] { lp });
         SortInfo si0 = ((POStore)(pp.getLeaves().get(0))).getSortInfo();
         SortInfo si1 = ((POStore)(pp.getLeaves().get(1))).getSortInfo();
         SortInfo expected = getSortInfo(
