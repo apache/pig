@@ -28,6 +28,7 @@ import org.apache.pig.PigServer;
 import org.apache.pig.ResourceSchema;
 import org.apache.pig.backend.datastorage.DataStorage;
 import org.apache.pig.backend.datastorage.ElementDescriptor;
+import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.executionengine.util.MapRedUtil;
 import org.apache.pig.builtin.PigStorage;
@@ -261,7 +262,7 @@ public class TestInputOutputFileValidator extends TestCase {
             pig.executeBatch();
             assert false;
         }catch(Exception fe){
-        	assertTrue(fe instanceof PlanValidationException);
+        	assertTrue(fe instanceof ExecException);
         	PigException pe = LogUtils.getPigException(fe);
         	assertTrue(pe instanceof FrontendException);
         	assertEquals(1115, pe.getErrorCode());
