@@ -209,6 +209,8 @@ PIG-1309: Map-side Cogroup (ashutoshc)
 
 BUG FIXES
 
+PIG-1659: sortinfo is not set for store if there is a filter after ORDER BY (daijy)
+
 PIG-1664: leading '_' in directory/file names should be ignored; the "pigtest" build target should include all pig-related zebra tests. (yanz)
 
 PIG-1662: Need better error message for MalFormedProbVecException (rding)
