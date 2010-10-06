@@ -19,49 +19,49 @@ package org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.partitioner
 import java.util.Arrays;
 import java.util.Random;
 
-import org.apache.pig.PigException;
-
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
 public class DiscreteProbabilitySampleGenerator {
     Random rGen;
     float[] probVec;
     float epsilon = 0.00001f;
         
-    public DiscreteProbabilitySampleGenerator(float[] probVec) throws MalFormedProbVecException{
+    private static final Log LOG = LogFactory.getLog(DiscreteProbabilitySampleGenerator.class);
+    
+    public DiscreteProbabilitySampleGenerator(float[] probVec) {
         rGen = new Random();
         float sum = 0.0f;
         for (float f : probVec) {
             sum += f;
         }
-        if(1-epsilon<=sum && sum<=1+epsilon) 
-            this.probVec = probVec;
-        else {
-            int errorCode = 2122;
-            String message = "Sum of probabilities should be one: " + Arrays.toString(probVec);
-            throw new MalFormedProbVecException(message, errorCode, PigException.BUG);
+        this.probVec = probVec;
+        if (1-epsilon > sum || sum > 1+epsilon) { 
+            LOG.info("Sum of probabilities should be near one: " + sum);
         }
     }
     
     public int getNext(){
         double toss = rGen.nextDouble();
         // if the uniformly random number that I generated
-        // is in the probability range for a given parition,
-        // pick that parition
+        // is in the probability range for a given partition,
+        // pick that partition
         // For some sample item which occurs only in partitions
         // 1 and 2
         // say probVec[1] = 0.3
         // and probVec[2] = 0.7
-        // if our coin toss generate < 0.3, we pick 1 otherwise
-        // we pick 2
+        // if our coin toss generate < 0.3, we pick 1 otherwise we pick 2
+        int lastIdx = -1;
         for(int i=0;i<probVec.length;i++){
+            if (probVec[i] != 0) lastIdx = i;
             toss -= probVec[i];
             if(toss<=0.0)
                 return i;
-        }
-        return -1;
+        }        
+        return lastIdx;
     }
     
-    public static void main(String[] args) throws MalFormedProbVecException {
+    public static void main(String[] args) {
         float[] vec = { 0, 0.3f, 0.2f, 0, 0, 0.5f };
         DiscreteProbabilitySampleGenerator gen = new DiscreteProbabilitySampleGenerator(vec);
         CountingMap<Integer> cm = new CountingMap<Integer>();
@@ -73,7 +73,6 @@ public class DiscreteProbabilitySampleGenerator {
 
     @Override
     public String toString() {
-        // TODO Auto-generated method stub
         return Arrays.toString(probVec);
     }
     
