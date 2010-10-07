@@ -28,6 +28,12 @@ import org.apache.pig.impl.logicalLayer.schema.Schema;
 /** 
  * upper-case the first character of a string 
  */
+
+/**
+ * @deprecated Use {@link org.apache.pig.builtin.UCFIRST}
+ */
+@Deprecated 
+
 public class UcFirst extends EvalFunc<String> {
     @Override
     public String exec(Tuple input) throws IOException {

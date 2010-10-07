@@ -45,6 +45,12 @@ package org.apache.pig.piggybank.evaluation.math;
 * @author ajay garg
 *
 */
+
+/**
+ * @deprecated Use {@link org.apache.pig.builtin.SQRT}
+ */
+@Deprecated 
+
 public class SQRT extends DoubleBase{
 	Double compute(Double input){
 		return Math.sqrt(input);

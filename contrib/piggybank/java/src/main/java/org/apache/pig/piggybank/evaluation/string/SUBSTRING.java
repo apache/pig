@@ -41,6 +41,12 @@ import org.apache.pig.impl.logicalLayer.schema.Schema;
  * Third argument is the index of the last character of substring.<br>
  * if the last argument is past the end of the string, substring of (beginIndex, length(str)) is returned.
  */
+
+/**
+ * @deprecated Use {@link org.apache.pig.builtin.SUBSTRING}
+ */
+@Deprecated 
+
 public class SUBSTRING extends EvalFunc<String> {
 
     /**

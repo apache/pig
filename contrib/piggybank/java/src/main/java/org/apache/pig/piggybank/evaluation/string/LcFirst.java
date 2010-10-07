@@ -28,6 +28,12 @@ import org.apache.pig.impl.logicalLayer.schema.Schema;
 /** 
  * lower-case the first character of a string 
  */
+
+/**
+ * @deprecated Use {@link org.apache.pig.builtin.LCFIRST}
+ */
+@Deprecated 
+
 public class LcFirst extends EvalFunc<String> {
     @Override
     public String exec(Tuple input) throws IOException {

@@ -36,6 +36,12 @@ import org.apache.pig.impl.logicalLayer.schema.Schema;
  *
  *
  */
+
+/**
+ * @deprecated Use {@link org.apache.pig.builtin.TOTUPLE}
+ */
+@Deprecated 
+
 public class ToTuple extends EvalFunc<Tuple> {
 
     @Override

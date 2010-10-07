@@ -38,6 +38,12 @@ import org.apache.pig.FuncSpec;
  *      B = foreach A generate string.LOWER(name);
  *      dump B;
  */
+
+/**
+ * @deprecated Use {@link org.apache.pig.builtin.LOWER}
+ */
+@Deprecated 
+
 public class LOWER extends EvalFunc<String> {
 
     /**

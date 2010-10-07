@@ -48,6 +48,12 @@ package org.apache.pig.piggybank.evaluation.math;
 * @author ajay garg
 *
 */
+
+/**
+ * @deprecated Use {@link org.apache.pig.builtin.CEIL}
+ */
+@Deprecated 
+
 public class CEIL extends DoubleBase{
 	Double compute(Double input){
 		return Math.ceil(input);

@@ -46,6 +46,13 @@ package org.apache.pig.piggybank.evaluation.math;
 * @author ajay garg
 *
 */
+
+
+/**
+ * @deprecated Use {@link org.apache.pig.builtin.SIN}
+ */
+@Deprecated 
+
 public class SIN extends DoubleBase{
 	Double compute(Double input){
 		return Math.sin(input);

@@ -47,6 +47,12 @@ package org.apache.pig.piggybank.evaluation.math;
 * @author ajay garg
 *
 */
+
+/**
+ * @deprecated Use {@link org.apache.pig.builtin.TANH}
+ */
+@Deprecated 
+
 public class TANH extends DoubleBase{
 	Double compute(Double input){
 		return Math.tanh(input);

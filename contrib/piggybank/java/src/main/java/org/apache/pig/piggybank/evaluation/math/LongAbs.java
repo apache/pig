@@ -54,6 +54,12 @@ import org.apache.pig.data.DataType;
  * @author ajay garg
  *
  */
+
+/**
+ * @deprecated Use {@link org.apache.pig.builtin.LongAbs}
+ */
+@Deprecated 
+
 public class LongAbs extends EvalFunc<Long>{
 	/**
 	 * java level API

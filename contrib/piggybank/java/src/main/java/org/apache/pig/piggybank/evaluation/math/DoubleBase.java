@@ -31,6 +31,12 @@ import org.apache.pig.data.DataType;
 /**
 * base class for math udfs that return Double value
 */
+
+/**
+ * @deprecated Use {@link org.apache.pig.builtin.DoubleBase}
+ */
+@Deprecated
+
 public abstract class DoubleBase extends Base{
     // each derived class provides the computation here
     abstract Double compute(Double input);

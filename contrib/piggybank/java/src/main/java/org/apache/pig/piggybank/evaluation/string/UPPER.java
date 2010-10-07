@@ -39,6 +39,12 @@ import org.apache.pig.FuncSpec;
  *      B = foreach A generate string.UPPER(name);
  *      dump B;
  */
+
+/**
+ * @deprecated Use {@link org.apache.pig.builtin.UPPER}
+ */
+@Deprecated 
+
 public class UPPER extends EvalFunc<String> {
 
     /** 

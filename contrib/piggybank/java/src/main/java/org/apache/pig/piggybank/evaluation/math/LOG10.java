@@ -46,6 +46,12 @@ package org.apache.pig.piggybank.evaluation.math;
 * @author ajay garg
 *
 */
+
+/**
+ * @deprecated Use {@link org.apache.pig.builtin.LOG10}
+ */
+@Deprecated 
+
 public class LOG10 extends DoubleBase{
 	Double compute(Double input){
 		return Math.log10(input);
