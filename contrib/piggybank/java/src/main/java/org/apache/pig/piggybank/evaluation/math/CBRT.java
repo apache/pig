@@ -47,6 +47,12 @@ package org.apache.pig.piggybank.evaluation.math;
 * @author ajay garg
 *
 */
+
+/**
+ * @deprecated Use {@link org.apache.pig.builtin.CBRT}
+ */
+@Deprecated 
+
 public class CBRT extends DoubleBase{
 	Double compute(Double input){
 		return Math.cbrt(input);

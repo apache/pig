@@ -43,6 +43,11 @@ import org.apache.pig.impl.logicalLayer.schema.Schema;
  * </dl>
  */
 
+/**
+ * @deprecated Use {@link org.apache.pig.builtin.REGEX_EXTRACT_ALL}
+ */
+@Deprecated 
+
 public class RegexExtractAll extends EvalFunc<Tuple> {
 
     private static TupleFactory tupleFactory = TupleFactory.getInstance();

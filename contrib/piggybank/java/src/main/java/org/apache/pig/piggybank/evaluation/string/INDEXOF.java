@@ -37,6 +37,12 @@ import org.apache.pig.impl.logicalLayer.schema.Schema;
  *      B = foreach A generate string.INDEXOF(name, ",");
  *      dump B;
  */
+
+/**
+ * @deprecated Use {@link org.apache.pig.builtin.INDEXOF}
+ */
+@Deprecated 
+
 public class INDEXOF extends EvalFunc<Integer> {
     
     private static final Log log = LogFactory.getLog(INDEXOF.class);

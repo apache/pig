@@ -57,6 +57,12 @@ import org.apache.pig.impl.logicalLayer.FrontendException;
 * @author ajay garg
 *
 */
+
+/**
+ * @deprecated Use {@link org.apache.pig.builtin.ROUND}
+ */
+@Deprecated 
+
 public class ROUND extends EvalFunc<Long>{
 	/**
 	 * java level API

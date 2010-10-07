@@ -62,6 +62,12 @@ import org.apache.pig.impl.logicalLayer.schema.Schema.FieldSchema;
  *          GENERATE FLATTEN(result); 
  *  }
  */
+
+/**
+ * @deprecated Use {@link org.apache.pig.builtin.TOP}
+ */
+@Deprecated 
+
 public class Top extends EvalFunc<DataBag> implements Algebraic{
     private static final Log log = LogFactory.getLog(Top.class);
     static BagFactory mBagFactory = BagFactory.getInstance();

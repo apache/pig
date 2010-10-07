@@ -54,6 +54,12 @@ import org.apache.pig.data.DataType;
  * @author ajay garg
  *
  */
+
+/**
+ * @deprecated Use {@link org.apache.pig.builtin.DoubleAbs}
+ */
+@Deprecated 
+
 public class DoubleAbs extends EvalFunc<Double>{
 	/**
 	 * java level API

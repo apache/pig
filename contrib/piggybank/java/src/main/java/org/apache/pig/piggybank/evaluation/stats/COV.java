@@ -62,6 +62,12 @@ import org.apache.pig.data.DataType;
 * @author ajay garg
 * @see  <a href = "http://en.wikipedia.org/wiki/Covariance">http://en.wikipedia.org/wiki/Covariance</a><br>
 */
+
+/**
+ * @deprecated Use {@link org.apache.pig.builtin.COV}
+ */
+@Deprecated 
+
 public class COV extends EvalFunc<DataBag> implements Algebraic,Serializable {
     //name of the schemas. Initialize when user use define
     protected Vector<String>schemaName = new Vector<String>();

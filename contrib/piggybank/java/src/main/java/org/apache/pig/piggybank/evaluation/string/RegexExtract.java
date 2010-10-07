@@ -44,6 +44,11 @@ import org.apache.pig.impl.logicalLayer.schema.Schema;
 * </dl>
 */
 
+/**
+ * @deprecated Use {@link org.apache.pig.builtin.REGEX_EXTRACT}
+ */
+@Deprecated 
+
 public class RegexExtract extends EvalFunc<String> {
     String mExpression = null;
     Pattern mPattern = null; 

@@ -54,6 +54,12 @@ import org.apache.pig.data.DataType;
  * @author ajay garg
  *
  */
+
+/**
+ * @deprecated Use {@link org.apache.pig.builtin.FloatAbs}
+ */
+@Deprecated 
+
 public class FloatAbs extends EvalFunc<Float>{
 	/**
 	 * java level API
