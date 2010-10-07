@@ -200,6 +200,8 @@ PIG-1309: Map-side Cogroup (ashutoshc)
 
 BUG FIXES
 
+PIG-1670: pig throws ExecException in stead of FrontEnd exception when the plan validation fails (nrai via daijy)
+
 PIG-1668: Order by failed with RuntimeException (rding)
 
 PIG-1659: sortinfo is not set for store if there is a filter after ORDER BY (daijy)
