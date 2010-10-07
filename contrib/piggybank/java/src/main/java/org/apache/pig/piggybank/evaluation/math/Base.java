@@ -24,6 +24,11 @@ import org.apache.pig.data.DataType;
 /**
 * base class for math udfs
 */
+
+/**
+ * @deprecated Use {@link org.apache.pig.builtin.Base}
+ */
+@Deprecated 
 public abstract class Base extends EvalFunc<Double>{
 	@Override
 	public Schema outputSchema(Schema input) {

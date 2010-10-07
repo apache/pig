@@ -38,6 +38,12 @@ import org.apache.pig.impl.logicalLayer.schema.Schema;
  *      dump B;
  * </code>
  */
+
+/**
+ * @deprecated Use {@link org.apache.pig.builtin.LAST_INDEX_OF}
+ */
+@Deprecated 
+
 public class LASTINDEXOF extends EvalFunc<Integer> {
     private static final Log log = LogFactory.getLog(LASTINDEXOF.class);
 

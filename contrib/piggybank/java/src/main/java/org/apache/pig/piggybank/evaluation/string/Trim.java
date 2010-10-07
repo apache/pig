@@ -28,6 +28,12 @@ import org.apache.pig.impl.logicalLayer.schema.Schema;
 /*
  * @see String.trim
  */
+
+/**
+ * @deprecated Use {@link org.apache.pig.builtin.TRIM}
+ */
+@Deprecated 
+
 public class Trim extends EvalFunc<String> {
     @Override
     public String exec(Tuple input) throws IOException {

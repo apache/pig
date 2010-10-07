@@ -47,6 +47,12 @@ package org.apache.pig.piggybank.evaluation.math;
 * @author ajay garg
 *
 */
+
+/**
+ * @deprecated Use {@link org.apache.pig.builtin.ATAN}
+ */
+@Deprecated 
+
 public class ATAN extends DoubleBase{
 	Double compute(Double input){
 		return Math.atan(input);

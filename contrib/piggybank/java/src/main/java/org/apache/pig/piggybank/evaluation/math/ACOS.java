@@ -47,6 +47,12 @@ package org.apache.pig.piggybank.evaluation.math;
 * @author ajay garg
 *
 */
+
+/**
+ * @deprecated Use {@link org.apache.pig.builtin.ACOS}
+ */
+@Deprecated 
+
 public class ACOS extends DoubleBase{
 	
 	Double compute(Double input){

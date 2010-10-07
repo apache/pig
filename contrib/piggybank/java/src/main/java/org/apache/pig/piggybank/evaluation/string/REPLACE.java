@@ -39,6 +39,12 @@ import org.apache.pig.impl.logicalLayer.schema.Schema;
  * This is a wrapper around Java's String.replaceAll(String, String);
  * 
  */
+
+/**
+ * @deprecated Use {@link org.apache.pig.builtin.REPLACE}
+ */
+@Deprecated 
+
 public class REPLACE extends EvalFunc<String>
 {
     /**

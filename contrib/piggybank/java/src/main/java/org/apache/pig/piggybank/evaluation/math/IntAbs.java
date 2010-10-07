@@ -53,6 +53,12 @@ import org.apache.pig.data.DataType;
  * @author ajay garg
  *
  */
+
+/**
+ * @deprecated Use {@link org.apache.pig.builtin.IntAbs}
+ */
+@Deprecated 
+
 public class IntAbs extends EvalFunc<Integer>{
 	/**
 	 * java level API

@@ -58,6 +58,12 @@ import org.apache.pig.impl.logicalLayer.FrontendException;
  * @author ajay garg
  *
  */
+
+/**
+ * @deprecated Use {@link org.apache.pig.builtin.ABS}
+ */
+
+@Deprecated 
 public class ABS extends EvalFunc<Double>{
 	/**
 	 * java level API

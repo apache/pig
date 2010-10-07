@@ -36,6 +36,12 @@ import org.apache.pig.data.TupleFactory;
  * T = foreach U generate {($0), ($1), ($2)}
  *
  */
+
+/**
+ * @deprecated Use {@link org.apache.pig.builtin.TOBAG}
+ */
+@Deprecated 
+
 public class ToBag extends EvalFunc<DataBag> {
 
     @Override
