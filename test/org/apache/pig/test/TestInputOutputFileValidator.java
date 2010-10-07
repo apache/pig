@@ -262,7 +262,7 @@ public class TestInputOutputFileValidator extends TestCase {
             pig.executeBatch();
             assert false;
         }catch(Exception fe){
-        	assertTrue(fe instanceof ExecException);
+        	assertTrue(fe instanceof FrontendException);
         	PigException pe = LogUtils.getPigException(fe);
         	assertTrue(pe instanceof FrontendException);
         	assertEquals(1115, pe.getErrorCode());

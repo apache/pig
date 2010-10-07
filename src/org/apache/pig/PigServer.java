@@ -1345,7 +1345,7 @@ public class PigServer {
         return lp;
     }
 
-    private PhysicalPlan compilePp(LogicalPlan lp) throws ExecException {
+    private PhysicalPlan compilePp(LogicalPlan lp) throws FrontendException {
         // translate lp to physical plan
         PhysicalPlan pp = pigContext.getExecutionEngine().compile(lp, null);
 

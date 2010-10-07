@@ -240,11 +240,11 @@ public class HExecutionEngine {
 
     @SuppressWarnings("unchecked")
     public PhysicalPlan compile(LogicalPlan plan,
-                                Properties properties) throws ExecException {
+                                Properties properties) throws FrontendException {
         if (plan == null) {
             int errCode = 2041;
             String msg = "No Plan to compile";
-            throw new ExecException(msg, errCode, PigException.BUG);
+            throw new FrontendException(msg, errCode, PigException.BUG);
         }
 
         try {
@@ -305,7 +305,7 @@ public class HExecutionEngine {
         } catch (Exception ve) {
             int errCode = 2042;
             String msg = "Error in new logical plan. Try -Dpig.usenewlogicalplan=false.";
-            throw new ExecException(msg, errCode, PigException.BUG, ve);
+            throw new FrontendException(msg, errCode, PigException.BUG, ve);
         }
     }
     
