@@ -1785,8 +1785,33 @@ public class TypeCheckingVisitor extends LOVisitor {
         ) {
             try {
             	Map<String, LogicalOperator> canonicalMap = cast.getFieldSchema().getCanonicalMap();
+            	// two variables to ensure that only one load func is mapped to 
+            	// the cast operator
+            	FuncSpec prevLoadFuncSpec = null;
+            	boolean prevLoadFuncSet = false;
             	for( Map.Entry<String, LogicalOperator> entry : canonicalMap.entrySet() ) {
                     FuncSpec loadFuncSpec = getLoadFuncSpec( entry.getValue(), entry.getKey() );
+                    if(!prevLoadFuncSet){
+                        prevLoadFuncSet = true;
+                        prevLoadFuncSpec = loadFuncSpec;
+                    }
+                    if(loadFuncSpec == null ){
+                        if(prevLoadFuncSpec != null){
+                            //BUG
+                            String msg = "Bug: A null and a non-null load function " +
+                            " mapped to cast through lineage";
+                            throw new VisitorException(msg, 2258, PigException.BUG);
+                        }else{
+                            continue;
+                        }
+                    }
+                    if(!loadFuncSpec.equals(prevLoadFuncSpec)){
+                        //BUG
+                        String msg = "Bug:Two different load functions mapped to " +
+                        "an LOCast op";
+                        throw new VisitorException(msg, 2258, PigException.BUG);
+                    }
+                    
                     cast.setLoadFuncSpec( loadFuncSpec );
             	}
             } catch (FrontendException fee) {

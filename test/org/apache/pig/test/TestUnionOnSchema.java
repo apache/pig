@@ -132,6 +132,35 @@ public class TestUnionOnSchema  {
 
     }
     
+    
+    /**
+     * Test UNION ONSCHEMA with cast from bytearray to another type
+     * @throws IOException
+     * @throws ParseException
+     */
+    @Test
+    public void testUnionOnSchemaCastOnByteArray() throws IOException, ParseException {
+        PigServer pig = new PigServer(ExecType.LOCAL);
+        String query =
+            "  l1 = load '" + INP_FILE_2NUMS + "' as (i, j);"
+            + " f1 = foreach l1 generate (int)i, (int)j;"
+            + "u = union onschema f1, l1;"
+        ; 
+        Util.registerMultiLineQuery(pig, query);
+        Iterator<Tuple> it = pig.openIterator("u");
+        
+        List<Tuple> expectedRes = 
+            Util.getTuplesFromConstantTupleStrings(
+                    new String[] {
+                            "(1,2)",
+                            "(5,3)",
+                            "(1,2)",
+                            "(5,3)"
+                    });
+        Util.checkQueryOutputsAfterSort(it, expectedRes);
+
+    }
+    
     /**
      * Test UNION ONSCHEMA where a common column has additional 'namespace' part
      *  in the column name in one of the inputs
