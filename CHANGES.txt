@@ -200,6 +200,9 @@ PIG-1309: Map-side Cogroup (ashutoshc)
 
 BUG FIXES
 
+PIG-1666: union onschema fails when the input relation has cast from bytearray to 
+another type (thejas)
+
 PIG-1656: TOBAG udfs ignores columns with null value; it does not use input type 
  to determine output schema (thejas)
 
