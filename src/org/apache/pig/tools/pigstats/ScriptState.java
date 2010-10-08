@@ -161,7 +161,7 @@ public class ScriptState {
     /**
      * Restricts the size of Pig script stored in job xml 
      */
-    public static final int MAX_SCRIPT_SIZE = 1024; 
+    public static final int MAX_SCRIPT_SIZE = 10240; 
     
     private static final Log LOG = LogFactory.getLog(ScriptState.class);
 
