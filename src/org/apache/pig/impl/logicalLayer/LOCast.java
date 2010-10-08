@@ -83,7 +83,7 @@ public class LOCast extends ExpressionOperator {
     public Schema.FieldSchema getFieldSchema() throws FrontendException {
         if(!mIsFieldSchemaComputed) {
             if(userSpecifiedFieldSchema != null) {
-                mFieldSchema = userSpecifiedFieldSchema;
+                mFieldSchema = new FieldSchema(userSpecifiedFieldSchema);
             } else {
                 mFieldSchema = new Schema.FieldSchema(null, mType);
             }
