@@ -261,8 +261,6 @@ public class MergeForEach extends Rule {
                 }
             }
             // remove foreach1, foreach2, add new foreach
-            Operator pred = currentPlan.getPredecessors(foreach1).get(0);
-            Operator succ = currentPlan.getSuccessors(foreach2).get(0);
             
             // rebuild soft link
             Collection<Operator> newSoftLinkPreds = Utils.mergeCollection(currentPlan.getSoftLinkPredecessors(foreach1), 
@@ -290,16 +288,9 @@ public class MergeForEach extends Rule {
                 }
             }
             
-            Pair<Integer, Integer> pos = currentPlan.disconnect(pred, foreach1);
-            currentPlan.disconnect(foreach1, foreach2);
-            currentPlan.disconnect(foreach2, succ);
-            currentPlan.remove(foreach1);
-            currentPlan.remove(foreach2);
-
-            currentPlan.add(newForEach);
-            currentPlan.connect(pred, pos.first, newForEach, pos.second);
-            currentPlan.connect(newForEach, succ);
-            
+            currentPlan.removeAndReconnect(foreach1);
+            currentPlan.replace(foreach2, newForEach);
+                       
             if (newSoftLinkPreds!=null) {
                 for (Operator softPred : newSoftLinkPreds) {
                     currentPlan.createSoftLink(softPred, newForEach);

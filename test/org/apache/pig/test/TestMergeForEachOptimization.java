@@ -18,6 +18,8 @@
 
 package org.apache.pig.test;
 
+import static org.junit.Assert.*;
+
 import java.io.IOException;
 import java.util.*;
 
@@ -26,7 +28,10 @@ import org.apache.pig.newplan.logical.LogicalPlanMigrationVistor;
 import org.apache.pig.newplan.logical.optimizer.LogicalPlanOptimizer;
 import org.apache.pig.newplan.logical.relational.LOForEach;
 import org.apache.pig.newplan.logical.relational.LOGenerate;
+import org.apache.pig.newplan.logical.relational.LOJoin;
 import org.apache.pig.newplan.logical.relational.LogicalPlan;
+import org.apache.pig.newplan.logical.relational.LogicalRelationalOperator;
+import org.apache.pig.newplan.logical.relational.LogicalRelationalNodesVisitor;
 import org.apache.pig.newplan.logical.rules.AddForEach;
 import org.apache.pig.newplan.logical.rules.LoadTypeCastInserter;
 import org.apache.pig.newplan.logical.rules.MergeForEach;
@@ -210,6 +215,48 @@ public class TestMergeForEachOptimization {
         Assert.assertEquals( 2, forEachCount1 );
         Assert.assertEquals( 2, forEachCount2 );
     }
+    
+    
+    /**
+     * Ensure that join input order does not get reversed (PIG-1672)
+     * 
+     * @throws IOException
+     */
+    @Test   
+    public void testJoinInputOrder() throws IOException  {
+        LogicalPlanTester lpt = new LogicalPlanTester( pc );
+        lpt.buildPlan( "l1 = load 'y' as (a);" );
+        lpt.buildPlan( "l2 = load 'z' as (a1,b1,c1,d1);" );
+        lpt.buildPlan( "f1 = foreach l2 generate a1 as a, b1 as b, c1 as c, d1 as d;" );
+        lpt.buildPlan( "f2 = foreach f1 generate a,b,c;" );
+        lpt.buildPlan( "j1 = join f2 by a, l1 by a using 'replicated';" );
+        
+        org.apache.pig.impl.logicalLayer.LogicalPlan plan = lpt.buildPlan( "store j1 into 'empty';" );  
+        LogicalPlan newLogicalPlan = migratePlan( plan );
+
+        int forEachCount1 = getForEachOperatorCount( newLogicalPlan );
+        int outputExprCount1 = getOutputExprCount( newLogicalPlan );
+               
+        PlanOptimizer optimizer = new MyPlanOptimizer( newLogicalPlan, 3 );
+        optimizer.optimize();
+        
+        int forEachCount2 = getForEachOperatorCount( newLogicalPlan );
+        Assert.assertEquals( 1, forEachCount1 - forEachCount2 );
+        int outputExprCount2 = getOutputExprCount( newLogicalPlan );
+        Assert.assertTrue( outputExprCount1 == outputExprCount2 );
+        LOForEach foreach2 = getForEachOperator( newLogicalPlan );
+        Assert.assertTrue( foreach2.getAlias().equals( "f2" ) );
+        
+        LOJoin join = (LOJoin)getOperator(newLogicalPlan, LOJoin.class);
+        LogicalRelationalOperator leftInp =
+            (LogicalRelationalOperator)newLogicalPlan.getPredecessors(join).get(0);
+        assertEquals("join child left", leftInp.getAlias(), "f2"); 
+        
+        LogicalRelationalOperator rightInp =
+            (LogicalRelationalOperator)newLogicalPlan.getPredecessors(join).get(1);
+        assertEquals("join child right", rightInp.getAlias(), "l1"); 
+        
+    }
 
     private int getForEachOperatorCount(LogicalPlan plan) {
         Iterator<Operator> ops = plan.getOperators();
@@ -243,6 +290,25 @@ public class TestMergeForEachOptimization {
         }
         return null;
     }
+    
+    /**
+     * returns first operator that is an instance of given class c
+     * @param plan
+     * @param c
+     * @return instance of class c if any, or null
+     * @throws IOException
+     */
+    private Operator getOperator(LogicalPlan plan, Class<? extends Operator> c) throws IOException {
+        Iterator<Operator> ops = plan.getOperators();
+        while( ops.hasNext() ) {
+            Operator op = ops.next();
+            if( op.getClass().equals(c)) {
+                return op;          
+            }
+        }
+        return null;
+    }
+    
 
     public class MyPlanOptimizer extends LogicalPlanOptimizer {
         protected MyPlanOptimizer(OperatorPlan p,  int iterations) {
