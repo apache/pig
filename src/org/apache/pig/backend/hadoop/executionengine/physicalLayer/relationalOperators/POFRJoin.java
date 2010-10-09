@@ -345,7 +345,7 @@ public class POFRJoin extends PhysicalOperator {
                 key.set(0, tuple.get(1));
                 Tuple value = getValueTuple(lr, tuple);
                 if (!replicate.containsKey(key))
-                    replicate.put(key, new ArrayList<Tuple>());
+                    replicate.put(key, new ArrayList<Tuple>(1));
                 replicate.get(key).add(value);
             }
             replicates[i] = replicate;
@@ -390,8 +390,8 @@ public class POFRJoin extends PhysicalOperator {
 
             // we have some fields of the "value" in the
             // "key".
-            retTup = mTupleFactory.newTuple();
             int finalValueSize = keyLookupSize + val.size();
+            retTup = mTupleFactory.newTuple(finalValueSize);
             int valIndex = 0; // an index for accessing elements from
             // the value (val) that we have currently
             for (int i = 0; i < finalValueSize; i++) {
@@ -400,16 +400,16 @@ public class POFRJoin extends PhysicalOperator {
                     // the field for this index is not in the
                     // key - so just take it from the "value"
                     // we were handed
-                    retTup.append(val.get(valIndex));
+                    retTup.set(i, val.get(valIndex));
                     valIndex++;
                 } else {
                     // the field for this index is in the key
                     if (isKeyTuple) {
                         // the key is a tuple, extract the
                         // field out of the tuple
-                        retTup.append(keyAsTuple.get(keyIndex));
+                        retTup.set(i, keyAsTuple.get(keyIndex));
                     } else {
-                        retTup.append(key);
+                        retTup.set(i, key);
                     }
                 }
             }

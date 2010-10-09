@@ -200,6 +200,9 @@ PIG-1309: Map-side Cogroup (ashutoshc)
 
 BUG FIXES
 
+PIG-1672: order of relations in replicated join gets switched in a query where 
+ first relation has two mergeable foreach statements (thejas)
+
 PIG-1666: union onschema fails when the input relation has cast from bytearray to 
 another type (thejas)
 
