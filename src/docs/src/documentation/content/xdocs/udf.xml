@@ -30,7 +30,8 @@
 <title>Overview</title>
 <p>Pig provides extensive support for user-defined functions (UDFs) as a way to specify custom processing. 
 Functions can be a part of almost every operator in Pig. 
-This document describes how to use existing functions as well as how to write your own functions.</p>
+This document describes how to use existing functions as well as how to write your own functions  
+(see also <a href="piglatin_ref1.html#Pig+Properties">Pig Properties</a>.)</p>
 </section>
 
 <section>
