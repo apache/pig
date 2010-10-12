@@ -1880,6 +1880,7 @@ A = LOAD 'mydata' AS (T1:(f1:int, f2:int), B:{T2:(t1:float,t2:float)}, M:[] );
                   </listitem>
                </itemizedlist>
                <para>The value of a parameter, in either form, can be expressed in terms of other parameters as long as the values of the dependent parameters are already defined.</para>
+               <para>There are no hard limits on the size except that parameters need to fit into memory.</para>
             </entry>
          </row>
          <row>
@@ -4919,16 +4920,8 @@ dump E;
                <para>PARALLEL n</para>
             </entry>
             <entry>
-               <para>Increase the parallelism of a job by specifying the number of reduce tasks, n. The default value for n is 1 (one reduce task). Note the following:</para>
-               <itemizedlist>
-                  <listitem>
-                     <para>Parallel only affects the number of reduce tasks. Map parallelism is determined by the input file, one map for each HDFS block. </para>
-                  </listitem>
-                  <listitem>
-                     <para>If you don’t specify parallel, you still get the same map parallelism but only one reduce task. </para>
-                  </listitem>
-               </itemizedlist>
-               <para>For more information, see the <ulink url="cookbook.html#Use+the+PARALLEL+Clause">Pig Cookbook</ulink>.</para>
+               <para>Increase the parallelism of a job by specifying the number of reduce tasks, n. </para>
+               <para>For more information, see <ulink url="cookbook.html#Use+the+Parallel+Features">Use the Parallel Features</ulink>.</para>
             </entry>
          </row></tbody></tgroup>
    </informaltable></section>
@@ -5019,16 +5012,8 @@ DUMP X;
                <para>PARALLEL n</para>
             </entry>
             <entry>
-               <para>Increase the parallelism of a job by specifying the number of reduce tasks, n. The default value for n is 1 (one reduce task). Note the following:</para>
-               <itemizedlist>
-                  <listitem>
-                     <para>Parallel only affects the number of reduce tasks. Map parallelism is determined by the input file, one map for each HDFS block. </para>
-                  </listitem>
-                  <listitem>
-                     <para>If you don’t specify parallel, you still get the same map parallelism but only one reduce task. </para>
-                  </listitem>
-               </itemizedlist>
-               <para>For more information, see the <ulink url="cookbook.html#Use+the+PARALLEL+Clause">Pig Cookbook</ulink>.</para>
+               <para>Increase the parallelism of a job by specifying the number of reduce tasks, n.</para>
+               <para>For more information, see <ulink url="cookbook.html#Use+the+Parallel+Features">Use the Parallel Features</ulink>.</para>
             </entry>
          </row></tbody></tgroup>
    </informaltable></section>
@@ -5226,7 +5211,7 @@ DUMP X;
                <para>nested_op</para>
             </entry>
             <entry>
-               <para>Allowed operations are DISTINCT, FILTER, LIMIT, and ORDER. </para>
+               <para>Allowed operations are DISTINCT, FILTER, LIMIT, and ORDER BY. </para>
                <para>The FOREACH…GENERATE operation itself is not allowed since this could lead to an arbitrary number of nesting levels.</para>
                <para>You can also perform projections (see <xref linkend="nestedblock" />).</para>
             </entry>
@@ -5656,16 +5641,8 @@ DUMP X;
                <para>PARALLEL n</para>
             </entry>
             <entry>
-               <para>Increase the parallelism of a job by specifying the number of reduce tasks, n. The default value for n is 1 (one reduce task). Note the following:</para>
-               <itemizedlist>
-                  <listitem>
-                     <para>Parallel only affects the number of reduce tasks. Map parallelism is determined by the input file, one map for each HDFS block. </para>
-                  </listitem>
-                  <listitem>
-                     <para>If you don’t specify parallel, you still get the same map parallelism but only one reduce task. </para>
-                  </listitem>
-               </itemizedlist>
-               <para>For more information, see the <ulink url="cookbook.html#Use+the+PARALLEL+Clause">Pig Cookbook</ulink>.</para>
+               <para>Increase the parallelism of a job by specifying the number of reduce tasks, n.</para>
+               <para>For more information, see <ulink url="cookbook.html#Use+the+Parallel+Features">Use the Parallel Features</ulink>.</para>
             </entry>
          </row></tbody></tgroup>
    </informaltable></section>
@@ -6014,16 +5991,8 @@ public class SimpleCustomPartitioner extends Partitioner &lt;PigNullableWritable
                <para>PARALLEL n</para>
             </entry>
             <entry>
-               <para>Increase the parallelism of a job by specifying the number of reduce tasks, n. The default value for n is 1 (one reduce task). Note the following:</para>
-               <itemizedlist>
-                  <listitem>
-                     <para>Parallel only affects the number of reduce tasks. Map parallelism is determined by the input file, one map for each HDFS block. </para>
-                  </listitem>
-                  <listitem>
-                     <para>If you don’t specify parallel, you still get the same map parallelism but only one reduce task. </para>
-                  </listitem>
-               </itemizedlist>
-               <para>For more information, see the <ulink url="cookbook.html#Use+the+PARALLEL+Clause">Pig Cookbook</ulink>.</para>
+               <para>Increase the parallelism of a job by specifying the number of reduce tasks, n. </para>
+               <para>For more information, see <ulink url="cookbook.html#Use+the+Parallel+Features">Use the Parallel Features</ulink>.</para>
             </entry>
          </row></tbody></tgroup>
    </informaltable></section>
@@ -6231,16 +6200,8 @@ DUMP X;
                <para>PARALLEL n</para>
             </entry>
             <entry>
-               <para>Increase the parallelism of a job by specifying the number of reduce tasks, n. The default value for n is 1 (one reduce task). Note the following:</para>
-               <itemizedlist>
-                  <listitem>
-                     <para>Parallel only affects the number of reduce tasks. Map parallelism is determined by the input file, one map for each HDFS block. </para>
-                  </listitem>
-                  <listitem>
-                     <para>If you don’t specify parallel, you still get the same map parallelism but only one reduce task. </para>
-                  </listitem>
-               </itemizedlist>
-               <para>For more information, see the <ulink url="cookbook.html#Use+the+PARALLEL+Clause">Pig Cookbook</ulink>.</para>
+               <para>Increase the parallelism of a job by specifying the number of reduce tasks, n. </para>
+               <para>For more information, see <ulink url="cookbook.html#Use+the+Parallel+Features">Use the Parallel Features</ulink>.</para>
             </entry>
          </row>
    </tbody></tgroup>
@@ -6670,16 +6631,8 @@ B = MAPREDUCE wordcount.jar STOE A INTO 'inputDir' LOAD 'outputDir' AS (word:cha
                <para>PARALLEL n</para>
             </entry>
             <entry>
-               <para>Increase the parallelism of a job by specifying the number of reduce tasks, n. The default value for n is 1 (one reduce task). Note the following:</para>
-               <itemizedlist>
-                  <listitem>
-                     <para>Parallel only affects the number of reduce tasks. Map parallelism is determined by the input file, one map for each HDFS block. </para>
-                  </listitem>
-                  <listitem>
-                     <para>If you don’t specify parallel, you still get the same map parallelism but only one reduce task. </para>
-                  </listitem>
-               </itemizedlist>
-               <para>For more information, see the <ulink url="cookbook.html#Use+the+PARALLEL+Clause">Pig Cookbook</ulink>.</para>
+               <para>Increase the parallelism of a job by specifying the number of reduce tasks, n.</para>
+               <para>For more information, see <ulink url="cookbook.html#Use+the+Parallel+Features">Use the Parallel Features</ulink>.</para>
             </entry>
          </row></tbody></tgroup>
    </informaltable></section>
@@ -7327,7 +7280,7 @@ DUMP U;
   
    <section>
    <title>DESCRIBE</title>
-   <para>Returns the schema of an alias.</para>
+   <para>Returns the schema of a relation.</para>
    
    <section>
    <title>Syntax</title>
@@ -7354,7 +7307,10 @@ DUMP U;
    
    <section>
    <title>Usage</title>
-   <para>Use the DESCRIBE operator to review the schema of a particular alias.</para></section>
+   <para>Use the DESCRIBE operator to view the schema of a relation. 
+   You can view outer relations as well as relations defined in a nested FOREACH statement.</para>
+   <para>See also: <ulink url="piglatin_ref1.html#Debugging+Pig+Latin">Debugging Pig Latin</ulink></para>
+   </section>
    
    <section>
    <title>Example</title>
@@ -7407,6 +7363,17 @@ DESCRIBE d;
 d: {long}
 </programlisting>
    
+ <para>This example shows how to view the schema of a nested relation using the :: operator.</para>  
+ <programlisting>
+A = LOAD 'studentab10k' AS (name, age, gpa); 
+B = GROUP A BY name; 
+C = FOREACH B { 
+     D = DISTINCT A.age; 
+     GENERATE COUNT(D), group;} 
+
+DESCRIBE C::D; 
+D: {age: bytearray} 
+ </programlisting>
    </section></section>
    
 
@@ -7446,6 +7413,7 @@ d: {long}
    Note that production scripts <emphasis>should not</emphasis> use DUMP as it will disable multi-query optimizations and is likely to slow down execution 
    (see <ulink url="piglatin_ref1.html#Store+vs.+Dump">Store vs. Dump</ulink>).
    </para>
+      <para>See also: <ulink url="piglatin_ref1.html#Debugging+Pig+Latin">Debugging Pig Latin</ulink></para>
    </section>
    
    <section>
@@ -7580,6 +7548,8 @@ DUMP B;
   <para></para>
    <para>If a script without an alias is specified, it will output the entire execution graph (logical, physical, or map reduce). </para>
    <para>If a script with a alias is specified, it will output the plan for the given alias. </para>
+   <para></para>
+     <para>See also: <ulink url="piglatin_ref1.html#Debugging+Pig+Latin">Debugging Pig Latin</ulink></para>
    </section>
    
    <section>
@@ -8120,20 +8090,23 @@ B = FOREACH A GENERATE myFunc($0);
                <para>alias</para>
             </entry>
             <entry>
-               <para>The path of a Java JAR file. Do not place the name in quotes.</para>
+               <para>The path to the JAR file (the full location URI is required). Do not place the name in quotes.</para>
+               <para>Pig supports functions written in Java only.</para>
+               <para>Pig supports JAR files stored in HDFS, Amazon S3, and other distributed files systems (see also <ulink url="piglatin_ref1.html#Pig+Latin+Scripts">Pig Latin Scripts</ulink>).</para>
             </entry>
          </row></tbody></tgroup>
    </informaltable></section>
    
    <section>
    <title>Usage</title>
-   <para>Use the REGISTER statement inside a Pig script to specify the path of a Java JAR file containing UDFs. </para>
+   <para>Use the REGISTER statement inside a Pig script to specify the path of the JAR file containing UDFs. </para>
    <para>You can register additional files (to use with your Pig script) via the command line using the -Dpig.additional.jars option.</para>
-   <para>For more information about UDFs, see the User Defined Function Guide. Note that Pig currently only supports functions written in Java.</para></section>
+   <para>For more information see the <ulink url="udf.html">Pig UDF Manual</ulink>.</para>
+   </section>
    
    <section>
-   <title>Example</title>
-   <para>In this example REGISTER states that myfunc.jar is located in the /src directory.</para>
+   <title>Examples</title>
+<para>In this example REGISTER states that myfunc.jar is located in the /src directory.</para>
 <programlisting>
 /src $ java -jar pig.jar –
 
@@ -8142,11 +8115,15 @@ A = LOAD 'students';
 B = FOREACH A GENERATE myfunc.MyEvalFunc($0);
 </programlisting>
    
-   <para>In this example additional jar files are registered via the command line.</para>
+<para>In this example additional jar files are registered via the command line.</para>
 <programlisting>
 pig -Dpig.additional.jars=my.jar:your.jar script.pig
 </programlisting>
 
+<para>In this example a jar file stored in HDFS is registered</para>
+<programlisting>
+java -cp pig.jar org.apache.pig.Main  hdfs://nn.mydomain.com:9020/myscripts/script.pig
+</programlisting>
 
    <para></para></section></section>
    </section>
@@ -9213,7 +9190,11 @@ store A into ‘myoutput.bz’;
    <para>BinStorage works with data that is represented on disk in machine-readable format. 
    BinStorage does NOT support <ulink url="#Handling+Compression">compression</ulink>.</para>
    
-      <para>BinStorage is used internally by Pig to store the temporary data that is created between multiple map/reduce jobs.</para></section>
+    <para>BinStorage is used internally by Pig to store the temporary data that is created between multiple map/reduce jobs.</para>
+      
+    <para>BinStorage supports multiple locations (files, directories, globs) as input.</para>
+      
+      </section>
    
    <section>
    <title>Example</title>
@@ -9222,6 +9203,11 @@ store A into ‘myoutput.bz’;
 A = LOAD 'data' USING BinStorage();
 
 STORE X into 'output' USING BinStorage(); 
+</programlisting>
+
+   <para>In this example BinStorage is used to load multiple locations.</para>
+<programlisting>
+A = LOAD 'input1.bin, input2.bin' USING BinStorage();
 </programlisting>
    </section></section>
    
@@ -9259,6 +9245,8 @@ STORE X into 'output' USING BinStorage();
    <para>PigStorage is the default function for the LOAD and STORE operators and works with both simple and complex data types. </para>
    
    <para>PigStorage supports structured text files (in human-readable UTF-8 format). PigStorage also supports <ulink url="#Handling+Compression">compression</ulink>.</para>
+   
+    <para>PigStorage supports multiple locations (files, directories, globs) as input.</para>
 
   <para>Load statements – PigStorage expects data to be formatted using field delimiters, either the tab character  ('\t') or other specified character.</para>
 
@@ -11999,14 +11987,14 @@ grunt&gt; exec –param p1=myparam1 –param p2=myparam2 myscript.pig
    
    <section>
    <title>help</title>
-   <para>Prints a list of Pig commands.</para>
+   <para>Prints a list of Pig commands or properties.</para>
    
    <section>
    <title>Syntax</title>
    <informaltable frame="all">
       <tgroup cols="1"><tbody><row>
             <entry>
-               <para>help         </para>
+               <para>-help [properties]  </para>
             </entry>
          </row></tbody></tgroup>
    </informaltable></section>
@@ -12016,29 +12004,53 @@ grunt&gt; exec –param p1=myparam1 –param p2=myparam2 myscript.pig
    <informaltable frame="all">
       <tgroup cols="2"><tbody><row>
             <entry>
-               <para>none</para>
+               <para>properties</para>
             </entry>
             <entry>
-               <para>no parameters</para>
+               <para>List Pig properties.</para>
             </entry>
          </row></tbody></tgroup>
    </informaltable></section>
    
    <section>
    <title>Usage</title>
-   <para>The help command prints a list of Pig commands.</para></section>
+   <para>The help command prints a list of Pig commands or properties.</para></section>
    
    <section>
    <title>Example</title>
-   <para>In this example the results of the help command (the first few lines) are shown.</para>
+   <para>Use "help" to get a list of commands.</para>
 <programlisting>
-grunt&gt; help
-Commands:
-&lt;pig latin statement&gt;;
-store &lt;alias&gt; into &lt;filename&gt; [using &lt;functionSpec&gt;]
-dump &lt;alias&gt;
-<emphasis>etc …</emphasis></programlisting>
-   </section></section>
+$ pig -help
+
+Apache Pig version 0.8.0-dev (r987348)
+compiled Aug 19 2010, 16:38:44
+
+USAGE: Pig [options] [-] : Run interactively in grunt shell.
+       Pig [options] -e[xecute] cmd [cmd ...] : Run cmd(s).
+       Pig [options] [-f[ile]] file : Run cmds found in file.
+  options include:
+    -4, -log4jconf - Log4j configuration file, overrides log conf
+    -b, -brief - Brief logging (no timestamps)
+    -c, -check - Syntax check
+<emphasis>etc …</emphasis>
+</programlisting>
+
+<para>Use "-help properties" to get a list of properties.</para>
+<programlisting>
+$ pig -help properties
+
+The following properties are supported:
+    Logging:
+        verbose=true|false; default is false. This property is the same as -v switch
+        brief=true|false; default is false. This property is the same as -b switch
+        debug=OFF|ERROR|WARN|INFO|DEBUG; default is INFO. This property is the same as -d switch
+        aggregate.warning=true|false; default is true. If true, prints count of warnings
+            of each type rather than logging each warning.
+<emphasis>etc …</emphasis>
+</programlisting>
+
+   </section>
+   </section>
    
    <section>
    <title>kill</title>
@@ -12246,7 +12258,8 @@ grunt&gt; run –param out=myoutput myscript.pig
    
    <section>
    <title>Usage</title>
-   <para>The set command enables you to assign values to keys, as shown in the table. </para>
+   <para>Use the set command to assign values to keys, as shown in the table. All keys and their corresponding values (for Pig and Hadoop) are case sensitive.  </para>
+
    <informaltable frame="all">
       <tgroup cols="3"><tbody><row>
             <entry>
@@ -12268,7 +12281,7 @@ grunt&gt; run –param out=myoutput myscript.pig
             </entry>
             <entry>
                <para>Sets the number of reducers for all MapReduce jobs generated by Pig 
-              (see  <ulink url="cookbook.html#Use+the+PARALLEL+Clause">Use the PARALLEL Clause</ulink>).</para>
+              (see  <ulink url="cookbook.html#Use+the+Parallel+Features">Use the Parallel Features</ulink>).</para>
             </entry>
          </row>
          <row>
@@ -12321,17 +12334,20 @@ grunt&gt; run –param out=myoutput myscript.pig
          </tbody></tgroup>
    </informaltable>
    <para/>
+   
+   <para>
+All Pig and Hadoop properties can be set, either in the Pig script or via the Grunt command line.
+   </para>
    </section>
    
    <section>
-   <title>Example</title>
-   <para>In this example debug is set on, the job is assigned a name, and the number of reducers is set to 100.</para>
+   <title>Examples</title>
+   <para>In this example key value pairs are set at the command line.</para>
 <programlisting>
-grunt&gt; set debug 'on'
-grunt&gt; set job.name 'my job'
-grunt&gt; set default_parallel 100
+grunt&gt; SET debug 'on'
+grunt&gt; SET job.name 'my job'
+grunt&gt; SET default_parallel 100
 </programlisting>
-
 
 <para>In this example default_parallel is set in the Pig script; all MapReduce jobs that get launched will use 20 reducers.</para>
 <programlisting>
@@ -12341,6 +12357,16 @@ B = GROUP A BY t;
 C = FOREACH B GENERATE group, COUNT(A.t) as mycount;
 D = ORDER C BY mycount;
 STORE D INTO 'mysortedcount' USING PigStorage();
+</programlisting>
+
+
+<para>In this example multiple key value pairs are set in the Pig script. These key value pairs are put in job-conf by Pig (making the pairs available to Pig and Hadoop). This is a script-wide setting; if a key value is defined multiple times in the script the last value will take effect and will be set for all jobs generated by the script. </para>
+<programlisting>
+...
+SET mapred.map.tasks.speculative.execution false; 
+SET pig.logfile mylogfile.log; 
+SET my.arbitrary.key my.arbitary.value; 
+...
 </programlisting>
 </section>
 </section>

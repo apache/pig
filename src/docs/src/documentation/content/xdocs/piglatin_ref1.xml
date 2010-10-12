@@ -54,6 +54,7 @@
       </li>
    </ol>
   
+<!-- ++++++++++++++++++++++++++++++++++ -->
    <section>
    <title>Running Pig Latin </title>
    
@@ -128,55 +129,27 @@ DUMP B;
    <p> </p>
    <p>See <a href="#Multi-Query+Execution">Multi-Query Execution</a> for more information on how Pig Latin statements are processed.</p> 
    </section>
-   
-   <section>
-   <title>Retrieving Pig Latin Results</title>
-   <p>Pig Latin includes operators you can use to retrieve the results of your Pig Latin statements: </p>
-   <ol>
-      <li>
-         <p>Use the DUMP operator to display results to a screen. </p>
-      </li>
-      <li>
-         <p>Use the STORE operator to write results to a file on the file system.</p>
-      </li>
-   </ol>
-   </section>   
-   
-   
-   <section>
-   <title>Debugging Pig Latin</title>
-   <p>Pig Latin includes operators that can help you debug your Pig Latin statements:</p>
-   <ol>
-      <li>
-         <p>Use the DESCRIBE operator to review the schema of a relation.</p>
-      </li>
-      <li>
-         <p>Use the EXPLAIN operator to view the logical, physical, or map reduce execution plans to compute a relation.</p>
-      </li>
-      <li>
-         <p>Use the ILLUSTRATE operator to view the step-by-step execution of a series of statements.</p>
-      </li>
-   </ol>
-   </section>
-   
-   <section>
-   <title>Working with Data</title>
-   <p>Pig Latin allows you to work with data in many ways. In general, and as a starting point:</p>
-   <ol>
-      <li>
-         <p>Use the FILTER operator to work with tuples or rows of data. Use the FOREACH operator to work with columns of data.</p>
-      </li>
-      <li>
-         <p>Use the GROUP operator to group data in a single relation. Use the COGROUP and JOIN operators to group or join data in two or more relations.</p>
-      </li>
-      <li>
-         <p>Use the UNION operator to merge the contents of two or more relations. Use the SPLIT operator to partition the contents of a relation into multiple relations.</p>
-      </li>
-   </ol>
-   </section>
  
+ <!-- ++++++++++++++++++++++++++++++++++ -->  
    <section>
-   <title>Using Comments in Scripts</title>
+   <title>Pig Latin Scripts</title>
+   <p>See the following:</p>   
+   <ul>
+		<li><a href="tutorial.html#Running+the+Pig+Scripts+in+Local+Mode">Running the Pig Scripts in Local Mode</a></li>
+		<li><a href="tutorial.html#Running+the+Pig+Scripts+in+Mapreduce+Mode">Running the Pig Scripts in MapReduce Mode</a></li>
+		<li><a href="#Multi-Query+Execution">Multi-Query Execution</a></li>
+	</ul>  
+   <p></p>
+   <p>Pig supports running scripts that are stored in HDFS, Amazon S3, or other distributed file systems (also see <a href="piglatin_ref2.html#REGISTER">REGISTER</a> for information about Jar files). The script's full location URI is required. For example, to run a Pig script on HDFS, do the following:</p>
+<source>
+java -cp pig.jar org.apache.pig.Main  hdfs://nn.mydomain.com:9020/myscripts/script.pig
+</source>   
+   
+   </section>
+   
+ <!-- ++++++++++++++++++++++++++++++++++ --> 
+   <section>
+   <title>Using Comments in Pig Latin Scripts</title>
    <p>If you place Pig Latin statements in a script, the script can include comments. </p>
    <ol>
       <li>
@@ -196,7 +169,74 @@ B = FOREACH A GENERATE name;  -- foreach statement
 DUMP B;  --dump statement
 </source>   
 </section>
+   
+<!-- ++++++++++++++++++++++++++++++++++ --> 
+   <section>
+   <title>Retrieving Pig Latin Results</title>
+   <p>Pig Latin includes operators you can use to retrieve the results of your Pig Latin statements: </p>
+   <ol>
+      <li>
+         <p>Use the DUMP operator to display results to a screen. </p>
+      </li>
+      <li>
+         <p>Use the STORE operator to write results to a file on the file system.</p>
+      </li>
+   </ol>
+   </section>   
+   
+   <!-- ++++++++++++++++++++++++++++++++++ --> 
+   <section>
+   <title>Storing Intermediate Data</title>
+   <p>Pig stores the intermediate data generated between MapReduce jobs in a temporary location on HDFS. 
+   This location must already exist on HDFS prior to use. 
+   This location can be configured using the pig.temp.dir property. The property's default value is "/tmp" which is the same 
+   as the hardcoded location in Pig 0.7.0 and earlier versions. </p>
+   </section>   
+   
+ <!-- ++++++++++++++++++++++++++++++++++ -->     
+   <section>
+   <title>Debugging Pig Latin</title>
+   <p>Pig Latin includes operators that can help you debug your Pig Latin statements:</p>
+   <ol>
+      <li>
+         <p>Use the DESCRIBE operator to review the schema of a relation.</p>
+      </li>
+      <li>
+         <p>Use the EXPLAIN operator to view the logical, physical, or map reduce execution plans to compute a relation.</p>
+      </li>
+      <li>
+         <p>Use the ILLUSTRATE operator to view the step-by-step execution of a series of statements.</p>
+      </li>
+   </ol>
+   <p></p>
+   <p>Complex Pig scripts often generate many MapReduce jobs. To help you debug a script, Pig prints a summary of the execution that shows which relations (aliases) are mapped to each MapReduce job. </p>
+<source>
+JobId Maps Reduces MaxMapTime MinMapTIme AvgMapTime MaxReduceTime MinReduceTime AvgReduceTime Alias Feature Outputs
+job_201004271216_12712 1 1 3 3 3 12 12 12 B,C GROUP_BY,COMBINER
+job_201004271216_12713 1 1 3 3 3 12 12 12 D SAMPLER
+job_201004271216_12714 1 1 3 3 3 12 12 12 D ORDER_BY,COMBINER hdfs://wilbur20.labs.corp.sp1.yahoo.com:9020/tmp/temp743703298/tmp-2019944040,
+</source>
+   </section>
+ 
+   <!-- ++++++++++++++++++++++++++++++++++ -->   
+   <section>
+   <title>Working with Data</title>
+   <p>Pig Latin allows you to work with data in many ways. In general, and as a starting point:</p>
+   <ol>
+      <li>
+         <p>Use the FILTER operator to work with tuples or rows of data. Use the FOREACH operator to work with columns of data.</p>
+      </li>
+      <li>
+         <p>Use the GROUP operator to group data in a single relation. Use the COGROUP and JOIN operators to group or join data in two or more relations.</p>
+      </li>
+      <li>
+         <p>Use the UNION operator to merge the contents of two or more relations. Use the SPLIT operator to partition the contents of a relation into multiple relations.</p>
+      </li>
+   </ol>
+   </section>
+ 
 
+   <!-- ++++++++++++++++++++++++++++++++++ --> 
  <section>
    <title>Case Sensitivity</title>
    <p>The names (aliases) of relations and fields are case sensitive. The names of Pig Latin functions are case sensitive. 
@@ -228,9 +268,38 @@ grunt> B = GROUP A BY f1;
 grunt> C = FOREACH B GENERATE COUNT ($0);
 grunt> DUMP C;
 </source>
-</section>    
+</section>      
+
 </section>  
 <!-- END PIG LATIN STATEMENTS -->
+
+
+
+<!-- ================================================================== -->
+<!-- DYNAMIC INVOKERS -->
+<section>
+<title>Dynamic Invokers</title>
+
+<p>Often you may need to use a simple function that is already provided by standard Java libraries, but for which a UDF has not been written. Dynamic Invokers allow you to refer to Java functions without having to wrap them in custom Pig UDFs, at the cost of doing some Java reflection on every function call. 
+</p>
+
+<source>
+...
+DEFINE UrlDecode InvokeForString('java.net.URLDecoder.decode', 'String String'); 
+encoded_strings = LOAD 'encoded_strings.txt' as (encoded:chararray); 
+decoded_strings = FOREACH encoded_strings GENERATE UrlDecode(encoded, 'UTF-8'); 
+...
+</source>
+
+<p>Currently, Dynamic Invokers can be used for any static function that accepts no arguments or some combination of strings, ints, longs, doubles, floats, or arrays of same, and returns a string, an int, a long, a double, or a float. Primitives only for the numbers, no capital-letter numeric classes as arguments. Depending on the return type, a specific kind of Invoker must be used: InvokeForString, InvokeForInt, InvokeForLong, InvokeForDouble, or InvokeForFloat. 
+</p>
+
+<p>The <a href="piglatin_ref2.html#define">DEFINE</a> statement is used to bind a keyword to a Java method, as above. The first argument to the InvokeFor* constructor is the full path to the desired method. The second argument is a space-delimited ordered list of the classes of the method arguments. This can be omitted or an empty string if the method takes no arguments. Valid class names are string, long, float, double, and int. Invokers can also work with array arguments, represented in Pig as DataBags of single-tuple elements. Simply refer to string[], for example. Class names are not case-sensitive. </p>
+
+<p>The ability to use invokers on methods that take array arguments makes methods like those in org.apache.commons.math.stat.StatUtils available (for processing the results of grouping your datasets, for example). This is helpful, but a word of caution: the resulting UDF will not be optimized for Hadoop, and the very significant benefits one gains from implementing the Algebraic and Accumulative interfaces are lost here. Be careful if you use invokers this way.</p>
+
+</section> 
+<!-- END DYNAMIC INVOKERS -->
 
 <!-- ================================================================== -->
 <!-- MEMORY MANAGEMENT -->
@@ -528,6 +597,7 @@ pig -optimizer_off [opt_rule | all ]
 
 <p>Note that some rules are mandatory and cannot be turned off.</p>
 
+<!-- +++++++++++++++++++++++++++++++ -->
 <section>
 <title>ImplicitSplitInserter</title>
 <p>Status: Mandatory</p>
@@ -545,35 +615,81 @@ C = COGROUP A BY $0, B BY $0;
 </source>
 </section>
 
+
+<!-- +++++++++++++++++++++++++++++++ -->
 <section>
-<title>TypeCastInserter</title>
-<p>Status: Mandatory</p>
-<p>
-If you specify a <a href="piglatin_ref2.html#Schemas">schema</a> with the 
-<a href="piglatin_ref2.html#LOAD">LOAD</a> statement, the optimizer will perform a pre-fix projection of the columns 
-and <a href="piglatin_ref2.html#Cast+Operators">cast</a> the columns to the appropriate types. An example will illustrate the point. 
-The LOAD statement (a) has a schema associated with it. The optimizer will insert a FOREACH operator that will project columns 0, 1 and 2 
-and also cast them to chararray, int and float respectively. 
-</p>
+<title>LogicalExpressionSimplifier</title>
+<p>This rule contains several types of simplifications.</p>
+
 <source>
-A = LOAD 'input' AS (name: chararray, age: int, gpa: float);
-B = FILER A BY $1 == 1;
-C = GROUP A By $0;
+1) Constant pre-calculation 
+
+B = FILTER A BY a0 &gt; 5+7; 
+is simplified to 
+B = FILTER A BY a0 &gt; 12; 
+
+2) Elimination of negations 
+
+B = FILTER A BY NOT (NOT(a0 &gt; 5) OR a &gt; 10); 
+is simplified to 
+B = FILTER A BY a0 &gt; 5 AND a &lt;= 10; 
+
+3) Elimination of logical implied expression in AND 
+
+B = FILTER A BY (a0 &gt; 5 AND a0 &gt; 7); 
+is simplified to 
+B = FILTER A BY a0 &gt; 7; 
+
+4) Elimination of logical implied expression in OR 
+
+B = FILTER A BY ((a0 &gt; 5) OR (a0 &gt; 6 AND a1 &gt; 15); 
+is simplified to 
+B = FILTER C BY a0 &gt; 5; 
+
+5) Equivalence elimination 
+
+B = FILTER A BY (a0 v 5 AND a0 &gt; 5); 
+is simplified to 
+B = FILTER A BY a0 &gt; 5; 
+
+6) Elimination of complementary expressions in OR 
+
+B = FILTER A BY (a0 &gt; 5 OR a0 &lt;= 5); 
+is simplified to non-filtering 
+
+7) Elimination of naive TRUE expression 
+
+B = FILTER A BY 1==1; 
+is simplified to non-filtering 
 </source>
 </section>
 
-<section>
-<title>StreamOptimizer</title>
-<p>
-Optimize when <a href="piglatin_ref2.html#LOAD">LOAD</a> precedes <a href="piglatin_ref2.html#STREAM">STREAM</a> 
-and the loader class is the same as the serializer for the stream. Similarly, optimize when STREAM is followed by 
-<a href="piglatin_ref2.html#STORE">STORE</a> and the deserializer class is same as the storage class. 
-For both of these cases the optimization is to replace the loader/serializer with BinaryStorage which just moves bytes 
-around and to replace the storer/deserializer with BinaryStorage.
-</p>
 
+<!-- +++++++++++++++++++++++++++++++ -->
+<section>
+<title>MergeForEach</title>
+<p>The objective of this rule is to merge together two feach statements, if these preconditions are met:</p>
+<ul>
+	<li>The foreach statements are consecutive. </li>
+	<li>The first foreach statement does not contain flatten. </li>
+	<li>The second foreach is not nested. </li>
+</ul>
+<source>
+-- Original code: 
+
+A = LOAD 'file.txt' AS (a, b, c); 
+B = FOREACH A GENERATE a+b AS u, c-b AS v; 
+C = FOREACH B GENERATE $0+5, v; 
+
+-- Optimized code: 
+
+A = LOAD 'file.txt' AS (a, b, c); 
+C = FOREACH A GENERATE a+b+5, c-b; 
+</source>
 </section>
 
+
+<!-- +++++++++++++++++++++++++++++++ -->
 <section>
 <title>OpLimitOptimizer</title>
 <p>
@@ -600,6 +716,7 @@ C = FILTER B BY $0 &lt; 10;
 </source>
 </section>
 
+<!-- +++++++++++++++++++++++++++++++ -->
 <section>
 <title>PushDownExplodes</title>
 <p>
@@ -615,8 +732,313 @@ C = FOREACH A GENERATE FLATTEN($0), B, C;
 D = JOIN C BY $1, B BY $1;
 </source>
 </section>
-</section> <!-- END OPTIMIZATION RULES -->
 
+<!-- +++++++++++++++++++++++++++++++ -->
+<section>
+<title>StreamOptimizer</title>
+<p>
+Optimize when <a href="piglatin_ref2.html#LOAD">LOAD</a> precedes <a href="piglatin_ref2.html#STREAM">STREAM</a> 
+and the loader class is the same as the serializer for the stream. Similarly, optimize when STREAM is followed by 
+<a href="piglatin_ref2.html#STORE">STORE</a> and the deserializer class is same as the storage class. 
+For both of these cases the optimization is to replace the loader/serializer with BinaryStorage which just moves bytes 
+around and to replace the storer/deserializer with BinaryStorage.
+</p>
+</section>
+
+<!-- +++++++++++++++++++++++++++++++ -->
+<section>
+<title>TypeCastInserter</title>
+<p>Status: Mandatory</p>
+<p>
+If you specify a <a href="piglatin_ref2.html#Schemas">schema</a> with the 
+<a href="piglatin_ref2.html#LOAD">LOAD</a> statement, the optimizer will perform a pre-fix projection of the columns 
+and <a href="piglatin_ref2.html#Cast+Operators">cast</a> the columns to the appropriate types. An example will illustrate the point. 
+The LOAD statement (a) has a schema associated with it. The optimizer will insert a FOREACH operator that will project columns 0, 1 and 2 
+and also cast them to chararray, int and float respectively. 
+</p>
+<source>
+A = LOAD 'input' AS (name: chararray, age: int, gpa: float);
+B = FILER A BY $1 == 1;
+C = GROUP A By $0;
+</source>
+</section>
+</section>
+<!-- END OPTIMIZATION RULES -->
+
+<!-- ================================================================== -->
+<!-- PIG PROPERTIES -->
+<section>
+<title>Pig Properties</title>
+   <p>
+The Pig "-propertyfile " option enables you to pass a set of Pig or Hadoop properties to a Pig job. If the value is present in both the property file passed from the command line as well as in default property file bundled into pig.jar, the properties passed from command line take precedence. This property, as well as all other properties defined in Pig, are available to your UDFs via UDFContext.getClientSystemProps()API call (see the <a href="udf.html">Pig UDF Manual</a>.)  </p>
+
+<p>You can retrieve a list of all properties using the <a href="piglatin_ref2.html#help">help properties</a> command.</p>
+<p>You can set properties using the <a href="piglatin_ref2.html#set">set</a> command.</p>
+  
+</section>  
+<!-- END PIG PROPERTIES -->
+
+
+<!-- ==================================================================== -->
+
+<!-- PIG STATISTICS-->
+<section>
+<title>Pig Statistics</title>
+
+<p>Pig Statistics is a framework for collecting and storing script-level statistics for Pig Latin. Characteristics of Pig Latin scripts and the resulting MapReduce jobs are collected while the script is executed. These statistics are then available for Pig users and tools using Pig (such as Oozie) to retrieve after the job is done.</p>
+
+<p>The new Pig statistics and the existing Hadoop statistics can also be accessed via the Hadoop job history file (and job xml file). Piggybank has a HadoopJobHistoryLoader which acts as an example of using Pig itself to query these statistics (the loader can be used as a reference implementation but is NOT supported for production use).</p>
+
+<section>
+<title>Java API</title>
+
+<p>Several new public classes make it easier for external tools such as Oozie to integrate with Pig statistics. </p>
+
+<p>The Pig statistics are available here: <a href="http://pig.apache.org/docs/r0.8.0/api/">http://pig.apache.org/docs/r0.8.0/api/</a></p>
+
+<p>The stats classes are in the package: org.apache.pig.tools.pigstats</p>
+<ul>
+<li>PigStats</li>
+<li>JobStats</li>
+<li>OutputStats</li>
+<li>InputStats</li>
+</ul>
+<p></p>
+
+<p>The PigRunner class mimics the behavior of the Main class but gives users a statistics object back. Optionally, you can call the API with an implementation of progress listener which will be invoked by Pig runtime during the execution. </p>
+
+<source>
+package org.apache.pig;
+
+public abstract class PigRunner {
+    public static PigStats run(String[] args, PigProgressNotificationListener listener)
+}
+
+public interface PigProgressNotificationListener extends java.util.EventListener {
+    // just before the launch of MR jobs for the script
+    public void LaunchStartedNotification(int numJobsToLaunch);
+    // number of jobs submitted in a batch
+    public void jobsSubmittedNotification(int numJobsSubmitted);
+    // a job is started
+    public void jobStartedNotification(String assignedJobId);
+    // a job is completed successfully
+    public void jobFinishedNotification(JobStats jobStats);
+    // a job is failed
+    public void jobFailedNotification(JobStats jobStats);
+    // a user output is completed successfully
+    public void outputCompletedNotification(OutputStats outputStats);
+    // updates the progress as percentage
+    public void progressUpdatedNotification(int progress);
+    // the script execution is done
+    public void launchCompletedNotification(int numJobsSucceeded);
+}
+</source>
+
+
+</section>
+
+<section>
+<title>Job XML</title>
+<p>The following entries are included in job conf: </p>
+
+<table>
+<tr>
+<td>
+<p> <strong>Pig Statistic</strong> </p>
+</td>
+<td>
+<p> <strong>Description</strong></p>
+</td>
+</tr>
+<tr>
+<td>
+<p>pig.script.id</p>
+</td>
+<td>
+<p>The UUID for the script. All jobs spawned by the script have the same script ID.</p>
+</td>
+</tr>
+<tr>
+<td>
+<p>pig.script</p>
+</td>
+<td>
+<p>The base64 encoded script text.</p>
+</td>
+</tr>
+<tr>
+<td>
+<p>pig.command.line</p>
+</td>
+<td>
+<p>The command line used to invoke the script.</p>
+</td>
+</tr>
+<tr>
+<td>
+<p>pig.hadoop.version</p>
+</td>
+<td>
+<p>The Hadoop version installed.</p>
+</td>
+</tr>
+<tr>
+<td>
+<p>pig.version</p>
+</td>
+<td>
+<p>The Pig version used.</p>
+</td>
+</tr>
+<tr>
+<td>
+<p>pig.input.dirs</p>
+</td>
+<td>
+<p>A comma-separated list of input directories for the job.</p>
+</td>
+</tr>
+<tr>
+<td>
+<p>pig.map.output.dirs</p>
+</td>
+<td>
+<p>A comma-separated list of output directories in the map phase of the job.</p>
+</td>
+</tr>
+<tr>
+<td>
+<p>pig.reduce.output.dirs</p>
+</td>
+<td>
+<p>A comma-separated list of output directories in the reduce phase of the job.</p>
+</td>
+</tr>
+<tr>
+<td>
+<p>pig.parent.jobid</p>
+</td>
+<td>
+<p>A comma-separated list of parent job ids.</p>
+</td>
+</tr>
+<tr>
+<td>
+<p>pig.script.features</p>
+</td>
+<td>
+<p>A list of Pig features used in the script.</p>
+</td>
+</tr>
+<tr>
+<td>
+<p>pig.job.feature</p>
+</td>
+<td>
+<p>A list of Pig features used in the job.</p>
+</td>
+</tr>
+<tr>
+<td>
+<p>pig.alias</p>
+</td>
+<td>
+<p>The alias associated with the job.</p>
+</td>
+</tr>
+</table>
+</section>
+
+<section>
+<title>Hadoop Job History Loader</title>
+<p>The HadoopJobHistoryLoader in Piggybank loads Hadoop job history files and job xml files from file system. For each MapReduce job, the loader produces a tuple with schema (j:map[], m:map[], r:map[]). The first map in the schema contains job-related entries. Here are some of important key names in the map: </p>
+
+<table>
+<tr>
+<td>
+<p>PIG_SCRIPT_ID</p>
+<p>CLUSTER </p>
+<p>QUEUE_NAME</p>
+<p>JOBID</p>
+<p>JOBNAME</p>
+<p>STATUS</p>
+</td>
+<td>
+<p>USER </p>
+<p>HADOOP_VERSION  </p>
+<p>PIG_VERSION</p>
+<p>PIG_JOB_FEATURE</p>
+<p>PIG_JOB_ALIAS </p>
+<p>PIG_JOB_PARENTS</p>
+</td>
+<td>
+<p>SUBMIT_TIME</p>
+<p>LAUNCH_TIME</p>
+<p>FINISH_TIME</p>
+<p>TOTAL_MAPS</p>
+<p>TOTAL_REDUCES</p>
+</td>
+</tr>
+</table>
+<p></p>
+<p>Examples that use the loader to query Pig statistics are shown below.</p>
+</section>
+
+
+<section>
+<title>Examples</title>
+<p>Find scripts that generate more then three MapReduce jobs:</p>
+<source>
+a = load '/mapred/history/done' using HadoopJobHistoryLoader() as (j:map[], m:map[], r:map[]);
+b = group a by (j#'PIG_SCRIPT_ID', j#'USER', j#'JOBNAME');
+c = foreach b generate group.$1, group.$2, COUNT(a);
+d = filter c by $2 > 3;
+dump d;
+</source>
+
+<p>Find the running time of each script (in seconds): </p>
+<source>
+a = load '/mapred/history/done' using HadoopJobHistoryLoader() as (j:map[], m:map[], r:map[]);
+b = foreach a generate j#'PIG_SCRIPT_ID' as id, j#'USER' as user, j#'JOBNAME' as script_name, 
+         (Long) j#'SUBMIT_TIME' as start, (Long) j#'FINISH_TIME' as end;
+c = group b by (id, user, script_name)
+d = foreach c generate group.user, group.script_name, (MAX(b.end) - MIN(b.start)/1000;
+dump d;
+</source>
+
+<p>Find the number of scripts run by user and queue on a cluster: </p>
+<source>
+a = load '/mapred/history/done' using HadoopJobHistoryLoader() as (j:map[], m:map[], r:map[]);
+b = foreach a generate j#'PIG_SCRIPT_ID' as id, j#'USER' as user, j#'QUEUE_NAME' as queue;
+c = group b by (id, user, queue) parallel 10;
+d = foreach c generate group.user, group.queue, COUNT(b);
+dump d;
+</source>
+
+<p>Find scripts that have failed jobs: </p>
+<source>
+a = load '/mapred/history/done' using HadoopJobHistoryLoader() as (j:map[], m:map[], r:map[]);
+b = foreach a generate (Chararray) j#'STATUS' as status, j#'PIG_SCRIPT_ID' as id, j#'USER' as user, j#'JOBNAME' as script_name, j#'JOBID' as job;
+c = filter b by status != 'SUCCESS';
+dump c;
+</source>
+
+<p>Find scripts that use only the default parallelism: </p>
+<source>
+a = load '/mapred/history/done' using HadoopJobHistoryLoader() as (j:map[], m:map[], r:map[]);
+b = foreach a generate j#'PIG_SCRIPT_ID' as id, j#'USER' as user, j#'JOBNAME' as script_name, (Long) r#'NUMBER_REDUCES' as reduces;
+c = group b by (id, user, script_name) parallel 10;
+d = foreach c generate group.user, group.script_name, MAX(b.reduces) as max_reduces;
+e = filter d by max_reduces == 1;
+dump e;
+</source>
+
+</section>
+
+
+</section>
+
+<!-- END PIG STATISTICS-->
 
 <!-- ==================================================================== -->
 
@@ -624,7 +1046,8 @@ D = JOIN C BY $1, B BY $1;
 <section>
 <title>Specialized Joins</title>
 <p>
-In certain cases, the performance of <a href="piglatin_ref2.html#JOIN+%28inner%29">inner joins</a> and <a href="piglatin_ref2.html#JOIN+%28outer%29">outer joins</a>
+In certain cases, the performance of <a href="piglatin_ref2.html#JOIN+%28inner%29">inner joins</a> and 
+<a href="piglatin_ref2.html#JOIN+%28outer%29">outer joins</a>
 can be optimized using replicated, skewed, or merge joins. </p>
 
 
@@ -794,8 +1217,8 @@ job performing the merge-join will process.
 
 </section>
 </section><!-- END MERGE JOIN -->
+</section> 
 
-</section>
 <!-- END SPECIALIZED JOINS-->
 
 
