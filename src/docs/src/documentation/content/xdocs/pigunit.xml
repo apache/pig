@@ -97,9 +97,8 @@ STORE queries_limit INTO '$output';
       <p>
         Many examples are available in the
         <a
-          href="http://svn.apache.org/viewvc/hadoop/pig/trunk/test/org/apache/pig/test/pigunit/TestPigTest.java"
-        >PigUnit tests</a>
-        .
+          href="http://svn.apache.org/viewvc/pig/trunk/test/org/apache/pig/test/pigunit/TestPigTest.java"
+        >PigUnit tests</a>.
       </p>
     </section>
 
