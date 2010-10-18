@@ -17,6 +17,7 @@
  */
 package org.apache.pig.test;
 
+import java.io.File;
 import java.util.Iterator;
 import java.util.Random;
 
@@ -381,6 +382,48 @@ public class TestScriptUDF extends TestCase {
         // UDF takes null and returns null
         assertTrue(t.get(0) == null);
         
+    }
+    
+    // See Pig-1653
+    @Test
+    public void testPythonAbsolutePath() throws Exception{
+        String[] script = {
+                "#!/usr/bin/python",
+                "@outputSchema(\"x:{t:(num:long)}\")",
+                "def square(number):" ,
+                "\treturn (number * number)"
+        };
+        String[] input = {
+                "1\t3",
+                "2\t4",
+                "3\t5"
+        };
+
+        Util.createInputFile(cluster, "table_testPythonAbsolutePath", input);
+        File scriptFile = Util.createLocalInputFile( "testPythonAbsolutePath.py", script);
+
+        // Test the namespace
+        pigServer.registerCode(scriptFile.getAbsolutePath(), "jython", "pig");
+        pigServer.registerQuery("A = LOAD 'table_testPythonAbsolutePath' as (a0:long, a1:long);");
+        pigServer.registerQuery("B = foreach A generate pig.square(a0);");
+
+        Iterator<Tuple> iter = pigServer.openIterator("B");
+        assertTrue(iter.hasNext());
+        Tuple t = iter.next();
+
+        assertTrue(t.toString().equals("(1)"));
+
+        assertTrue(iter.hasNext());
+        t = iter.next();
+
+        assertTrue(t.toString().equals("(4)"));
+
+        assertTrue(iter.hasNext());
+        t = iter.next();
+
+        assertTrue(t.toString().equals("(9)"));
+        
+        assertFalse(iter.hasNext());
     }
 }
 
