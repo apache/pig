@@ -81,7 +81,11 @@ public class JythonScriptEngine extends ScriptEngine {
                     is = new FileInputStream(file);
                 }
                 else {
-                    is = Interpreter.class.getResourceAsStream("/" + path);
+                    if (file.isAbsolute()) {
+                        is = Interpreter.class.getResourceAsStream(path);
+                    } else {
+                        is = Interpreter.class.getResourceAsStream("/" + path);
+                    }
                 }
                 if (is != null) {
                     interpreter.execfile(is);
