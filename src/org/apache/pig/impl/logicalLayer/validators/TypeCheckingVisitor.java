@@ -1892,8 +1892,10 @@ public class TypeCheckingVisitor extends LOVisitor {
             throw new TypeCheckerException(msg, errCode, PigException.INPUT, fee) ;
         }
 
-        // Do cast insertion only if we are typed
-        if (schema != null) {
+        // Do cast insertion only if we are typed 
+        // and if its not union-onschema. In case of union-onschema the
+        // foreach with cast is added in UnionOnSchemaSetter
+        if (schema != null && !u.isOnSchema()) {
             // Insert casting to inputs if necessary
             for (int i=0; i< inputs.size() ;i++) {
                 LOForEach insertedOp

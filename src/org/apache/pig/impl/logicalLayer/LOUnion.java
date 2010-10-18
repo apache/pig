@@ -18,29 +18,27 @@
 package org.apache.pig.impl.logicalLayer;
 
 import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
 import java.util.Collection;
 import java.util.Iterator;
-import java.util.Set;
+import java.util.List;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.pig.PigException;
+import org.apache.pig.data.DataType;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.plan.OperatorKey;
-import org.apache.pig.impl.plan.PlanVisitor;
 import org.apache.pig.impl.plan.ProjectionMap;
 import org.apache.pig.impl.plan.RequiredFields;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.util.MultiMap;
 import org.apache.pig.impl.util.Pair;
-import org.apache.pig.data.DataType;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 
 public class LOUnion extends RelationalOperator {
 
     private static final long serialVersionUID = 2L;
     private static Log log = LogFactory.getLog(LOUnion.class);
+    private boolean isOnSchema = false;
     
     /**
      * @param plan
@@ -293,5 +291,19 @@ public class LOUnion extends RelationalOperator {
         }
         super.pruneColumns(columns);
         return true;
+    }
+
+    /**
+     * @param isOnSchema the isOnSchema to set
+     */
+    public void setOnSchema(boolean isOnSchema) {
+        this.isOnSchema = isOnSchema;
+    }
+
+    /**
+     * @return the isOnSchema
+     */
+    public boolean isOnSchema() {
+        return isOnSchema;
     }
 }
