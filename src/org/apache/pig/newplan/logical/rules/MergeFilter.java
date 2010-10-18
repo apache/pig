@@ -17,6 +17,7 @@
  */
 package org.apache.pig.newplan.logical.rules;
 
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
@@ -82,7 +83,12 @@ public class MergeFilter extends Rule {
                 }
 
                 // Since we remove next, we need to merge soft link into filter
-                List<Operator> nextSoftPreds = currentPlan.getSoftLinkPredecessors(next);
+                List<Operator> nextSoftPreds = null;
+                if (currentPlan.getSoftLinkPredecessors(next)!=null) {
+                    nextSoftPreds = new ArrayList<Operator>();
+                    nextSoftPreds.addAll(currentPlan.getSoftLinkPredecessors(next));
+                }
+                
                 if (nextSoftPreds!=null) {
                     for (Operator softPred : nextSoftPreds) {
                         currentPlan.removeSoftLink(softPred, next);
