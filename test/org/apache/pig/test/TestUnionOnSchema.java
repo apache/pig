@@ -31,6 +31,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.pig.EvalFunc;
 import org.apache.pig.ExecType;
+import org.apache.pig.PigException;
 import org.apache.pig.PigServer;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.DataType;
@@ -40,6 +41,7 @@ import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.parser.ParseException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.logicalLayer.schema.Schema.FieldSchema;
+import org.apache.pig.impl.util.LogUtils;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -523,9 +525,11 @@ public class TestUnionOnSchema  {
         boolean foundEx = false;
         try{
             Util.registerMultiLineQuery(pig, query);
+            pig.dumpSchema("u");
         }catch(FrontendException e){
+            PigException pigEx = LogUtils.getPigException(e);
             foundEx = true;
-            if(!e.getMessage().contains(expectedErr)){
+            if(!pigEx.getMessage().contains(expectedErr)){
                 String msg = "Expected exception message matching '" 
                     + expectedErr + "' but got '" + e.getMessage() + "'" ;
                 fail(msg);
@@ -686,6 +690,60 @@ public class TestUnionOnSchema  {
                     });
         Util.checkQueryOutputsAfterSort(it, expectedRes);
     }
+    
+    
+    /**
+     * Test UNION ONSCHEMA with udf whose default type is different from
+     * final type - where udf is not in immediate input of union
+     * @throws IOException
+     * @throws ParseException
+     */
+    @Test
+    public void testUnionOnSchemaUdfTypeEvolution2() throws IOException, ParseException {
+        PigServer pig = new PigServer(ExecType.LOCAL);
+        String query_prefix =
+            "  l1 = load '" + INP_FILE_2NUM_1CHAR_1BAG + "' as " 
+            + "  (i : int, c : chararray, j : int " 
+            +       ", b : bag { t : tuple (c1 : int, c2 : chararray)}" 
+            +       ", t : tuple (tc1 : int, tc2 : chararray) );"
+            + " l2 = load '" + INP_FILE_2NUM_1CHAR_1BAG + "' as " 
+            + "  (i : int, c : chararray, j : int " 
+            +       ", b : bag { t : tuple (c1 : int, c2 : chararray)}" 
+            +       ", t : tuple (tc1 : int, tc2 : chararray) );"
+            + "f1 = foreach l1 generate i, MAX(b.c1) as mx;"
+            + "f11 = foreach f1 generate i, mx;"
+            + "f2 = foreach l2 generate i, COUNT(b.c1) as mx;"
+            + "f22 = foreach f2 generate i, mx;"
+
+        ; 
+        String query = query_prefix  + "u = union onschema f11, f22;";
+        Util.registerMultiLineQuery(pig, query);
+        Schema sch = pig.dumpSchema("u");
+        Schema expectedSch = 
+            Util.getSchemaFromString("i: int, mx: long");
+        assertEquals("Checking expected schema",sch, expectedSch);
+        
+        // verify schema for reverse order of relations as well
+        query = query_prefix  + "u = union onschema f22, f11;";
+        Util.registerMultiLineQuery(pig, query);
+        sch = pig.dumpSchema("u");
+        expectedSch = 
+            Util.getSchemaFromString("i: int, mx: long");
+        assertEquals("Checking expected schema",sch, expectedSch);
+        
+        
+        Iterator<Tuple> it = pig.openIterator("u");
+        
+        List<Tuple> expectedRes = 
+            Util.getTuplesFromConstantTupleStrings(
+                    new String[] {
+                            "(1,1L)",
+                            "(5,2L)",
+                            "(1,2L)",
+                            "(5,2L)"
+                    });
+        Util.checkQueryOutputsAfterSort(it, expectedRes);
+    }
 
     /**
      * Udf that has schema of tuple column with no inner schema 
@@ -753,5 +811,35 @@ public class TestUnionOnSchema  {
 
     }
     
-    
+    /**
+     * Test query with a union-onschema having another as input 
+     * @throws IOException
+     * @throws ParseException
+     */
+    @Test
+    public void testTwoUnions() throws IOException, ParseException {
+        PigServer pig = new PigServer(ExecType.LOCAL);
+        String query =
+            "  l1 = load '" + INP_FILE_2NUMS + "' as (i : int, j : int);"
+            + "l2 = load '" + INP_FILE_2NUMS + "' as (i : long, j : int);"
+            + "u1 = union onschema l1, l2;"
+            + "l3 = load '" + INP_FILE_2NUMS + "' as (i : long, j : double);"
+            + "u2 = union onschema u1, l3;"
+        ; 
+        Util.registerMultiLineQuery(pig, query);
+        Iterator<Tuple> it = pig.openIterator("u2");
+        
+        List<Tuple> expectedRes = 
+            Util.getTuplesFromConstantTupleStrings(
+                    new String[] {
+                            "(1L,2.0)",
+                            "(5L,3.0)",
+                            "(1L,2.0)",
+                            "(5L,3.0)",
+                            "(1L,2.0)",
+                            "(5L,3.0)"
+                    });
+        Util.checkQueryOutputsAfterSort(it, expectedRes);
+
+    }
 }

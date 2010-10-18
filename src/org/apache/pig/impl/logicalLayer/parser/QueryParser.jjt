@@ -2261,158 +2261,12 @@ LogicalOperator UnionClause(LogicalPlan lp) :
                 // to ParseException. Otherwise, if any exception than ParseException
                 // is thrown , the generated parse code tries to cast
                 //the exception to Error, resulting in a misleading error message
-                
-                if(isOnSchema) {
-                    // run through validator first on inputs so that the schemas have the right
-                    //types for columns. It will run TypeCheckingValidator as well.
-                    // The compilation messages will be logged when validation is
-                    // done from PigServer, so not doing it here
-                    CompilationMessageCollector collector = new CompilationMessageCollector() ;
-                    boolean isBeforeOptimizer = true;
-                    LogicalPlanValidationExecutor validator = 
-                        new LogicalPlanValidationExecutor(lp, pigContext, isBeforeOptimizer);
-                    validator.validate(lp, collector);
-                }
-                
-                LogicalOperator union = new LOUnion(lp, new OperatorKey(scope, getNextId()));
+                LOUnion union = new LOUnion(lp, new OperatorKey(scope, getNextId()));
+                union.setOnSchema(isOnSchema);
                 lp.add(union);
+
                 log.debug("Added operator " + union.getClass().getName() + " to the logical plan");
 
-                if(isOnSchema)             
-                {  // this is UNION ONSCHEMA, find merged schema 
-                    // and  (if necessary) add foreach to align columns
-                    
-                    
-                    ArrayList<Schema> schemas = new ArrayList<Schema>(inputs.size());
-                    for(LogicalOperator lop : inputs){
-                        Schema sch = lop.getSchema();
-                        if(sch == null)                     
-                        {                         
-                            String msg = "Schema of relation " + lop.getAlias()
-                            + " is null." 
-                            + " UNION ONSCHEMA cannot be used with relations that"
-                            + " have null schema.";
-                            throw new ParseException(msg);
-                        }
-                        for(Schema.FieldSchema fs : sch.getFields()){
-                            if(fs.alias == null){
-                                String msg = "Schema of relation " + lop.getAlias()
-                                + " has a null fieldschema for column(s). Schema :" +
-                                sch;
-                                throw new ParseException(msg);
-                            }
-                        }
-                        schemas.add(sch);
-                    }
-                    Schema mergedSchema ;
-                    try {
-                        mergedSchema = Schema.mergeSchemasByAlias(schemas);   
-                    }catch(SchemaMergeException e)                 {
-                        String msg = "Error merging schemas for union operator : "
-                            + e.getMessage();
-                        ParseException pe = new ParseException(msg);
-                        pe.initCause(e);
-                        throw pe;                 
-                    }
-
-                    // add a foreach for inputs that don't match mergedSchema, projecting
-                    // null for columns that don't exist in the input
-                    ArrayList<LogicalOperator> newInputs =
-                        new ArrayList<LogicalOperator>(inputs.size());
-                    
-                    //create a user defined schema list for use in LOForeach
-                    // using merged schema
-                    ArrayList<Schema> mergedSchemaList = new ArrayList<Schema>();
-                    for(Schema.FieldSchema fs : mergedSchema.getFields()){
-                        mergedSchemaList.add(new Schema(new Schema.FieldSchema(fs.alias, DataType.NULL)));
-                    }
-                    
-                    
-                    for(LogicalOperator lop : inputs)                 
-                    {                     
-                        if(! lop.getSchema().equals(mergedSchema))
-                        {
-                            //the mergedSchema is different from this operators schema
-                            // so add a foreach to project columns appropriately
-                            int mergeSchSz = mergedSchema.size();
-                            ArrayList<LogicalPlan> generatePlans =
-                                new ArrayList<LogicalPlan>(mergeSchSz);
-                            ArrayList<Boolean> flattenList =
-                                new ArrayList<Boolean>(mergeSchSz);
-
-                            for(Schema.FieldSchema fs : mergedSchema.getFields()) { 
-                                LogicalPlan projectPlan = new LogicalPlan();
-                                Schema inpSchema = lop.getSchema();
-                                flattenList.add(Boolean.FALSE);
-
-                                int inpPos = inpSchema.getPositionSubName(fs.alias);
-
-                                LogicalOperator columnProj = null;
-                                boolean isCastNeeded = false;
-                                if(inpPos == -1){   
-                                    //the column is not present in schema of this input,
-                                    // so project null
-                                    columnProj =
-                                        new LOConst(lp,
-                                                new OperatorKey(scope, getNextId()),
-                                                null
-                                        );
-                                    // cast is necessary if the type in schema is
-                                    // not a BYTEARRAY
-                                    if(fs.type != DataType.BYTEARRAY){
-                                        isCastNeeded = true;
-                                    }
-                                }else {
-                                    //project the column from input
-                                    columnProj = 
-                                        new LOProject(projectPlan,
-                                                new OperatorKey(scope, getNextId()),
-                                                lop, inpPos
-                                        );
-
-                                    //cast is needed if types are different.    
-                                    //compatibility of types has already been checked
-                                    //during creation of mergedSchema
-                                    Schema.FieldSchema inpFs = inpSchema.getFieldSubNameMatch(fs.alias);
-                                    if(inpFs.type != fs.type)
-                                        isCastNeeded = true;
-                                }
-                                projectPlan.add(columnProj);
-
-                                //add a LOCast if necessary
-                                if(isCastNeeded){
-                                    LOCast loCast = new LOCast(projectPlan,
-                                            new OperatorKey(scope, getNextId()),
-                                            fs.type
-                                    );
-                                    loCast.setFieldSchema(fs);
-                                    projectPlan.add(loCast);
-                                    projectPlan.connect(columnProj, loCast);
-                                }
-                                generatePlans.add(projectPlan);
-
-                            }
-                            LogicalOperator foreach = new LOForEach(lp,
-                                    new OperatorKey(scope, getNextId()),
-                                    generatePlans, flattenList,
-                                    mergedSchemaList
-                            );
-                            lp.add(foreach);
-                            lp.connect(lop, foreach);
-                            newInputs.add(foreach);
-                        }else {
-                            // schema of input is same as mergedSchema,
-                            //no additional foreach is required
-                            newInputs.add(lop);                     
-                        }
-
-                    }
-                    // use newInputs as the inputs for union
-                    inputs = newInputs;     
-                }
-                
-
-                
                 for (LogicalOperator lop: inputs) {
                     lp.connect(lop, union);
                     log.debug("Connected union input operator " +
@@ -2422,10 +2276,6 @@ LogicalOperator UnionClause(LogicalPlan lp) :
 
                 log.trace("Exiting UnionClause");
                 return union;
-            }
-            catch(ParseException e){
-                // its already a ParseException, just throw it.
-                throw e;
             }
             catch(Exception e){
                 ParseException pe = new ParseException();

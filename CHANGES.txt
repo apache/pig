@@ -200,6 +200,8 @@ PIG-1309: Map-side Cogroup (ashutoshc)
 
 BUG FIXES
 
+PIG-1673: query with consecutive union-onschema statement errors out (thejas)
+
 PIG-1653: Scripting UDF fails if the path to script is an absolute path (daijy)
 
 PIG-1669: PushUpFilter fail when filter condition contains scalar (daijy)
