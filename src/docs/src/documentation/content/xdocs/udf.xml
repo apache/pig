@@ -144,7 +144,7 @@ DUMP C;
 
 <p>An aggregate function is an eval function that takes a bag and returns a scalar value. One interesting and useful property of many aggregate functions is that they can be computed incrementally in a distributed fashion. We call these functions <code>algebraic</code>. <code>COUNT</code> is an example of an algebraic function because we can count the number of elements in a subset of the data and then sum the counts to produce a final output. In the Hadoop world, this means that the partial computations can be done by the map and combiner, and the final result can be computed by the reducer. </p>
 
-<p>It is very important for performance to make sure that aggregate functions that are algebraic are implemented as such. Let's look at the implementation of the COUNT function to see what this means. (Error handling and some other code is omitted to save space. The full code can be accessed <a href="http://svn.apache.org/viewvc/hadoop/pig/trunk/src/org/apache/pig/builtin/COUNT.java?view=markup"> here</a>.)</p>
+<p>It is very important for performance to make sure that aggregate functions that are algebraic are implemented as such. Let's look at the implementation of the COUNT function to see what this means. (Error handling and some other code is omitted to save space. The full code can be accessed <a href="http://svn.apache.org/viewvc/pig/trunk/src/org/apache/pig/builtin/COUNT.java?view=markup"> here</a>.)</p>
 
 <source>
 public class COUNT extends EvalFunc&lt;Long&gt; implements Algebraic{
@@ -343,7 +343,7 @@ Java Class
 </tr>
 </table>
 
-<p>All Pig-specific classes are available <a href="http://svn.apache.org/viewvc/hadoop/pig/trunk/src/org/apache/pig/data/"> here</a>. </p>
+<p>All Pig-specific classes are available <a href="http://svn.apache.org/viewvc/pig/trunk/src/org/apache/pig/data/"> here</a>. </p>
 <p><code>Tuple</code> and <code>DataBag</code> are different in that they are not concrete classes but rather interfaces. This enables users to extend Pig with their own versions of tuples and bags. As a result, UDFs cannot directly instantiate bags or tuples; they need to go through factory classes: <code>TupleFactory</code> and <code>BagFactory</code>. </p>
 <p>The builtin <code>TOKENIZE</code> function shows how bags and tuples are created. A function takes a text string as input and returns a bag of words from the text. (Note that currently Pig bags always contain tuples.) </p>
 
@@ -749,14 +749,14 @@ This enables Pig users/developers to create new LoadFunc and StoreFunc implement
 
 <section>
 <title> Load Functions</title>
-<p><a href="http://svn.apache.org/viewvc/hadoop/pig/trunk/src/org/apache/pig/LoadFunc.java?view=markup">LoadFunc</a> 
+<p><a href="http://svn.apache.org/viewvc/pig/trunk/src/org/apache/pig/LoadFunc.java?view=markup">LoadFunc</a> 
 abstract class has the main methods for loading data and for most use cases it would suffice to extend it. There are three other optional interfaces which can be implemented to achieve extended functionality: </p>
 
 <ul>
-<li><a href="http://svn.apache.org/viewvc/hadoop/pig/trunk/src/org/apache/pig/LoadMetadata.java?view=markup">LoadMetadata</a> 
+<li><a href="http://svn.apache.org/viewvc/pig/trunk/src/org/apache/pig/LoadMetadata.java?view=markup">LoadMetadata</a> 
 has methods to deal with metadata - most implementation of loaders don't need to implement this unless they interact with some metadata system. The getSchema() method in this interface provides a way for loader implementations to communicate the schema of the data back to pig. If a loader implementation returns data comprised of fields of real types (rather than DataByteArray fields), it should provide the schema describing the data returned through the getSchema() method. The other methods are concerned with other types of metadata like partition keys and statistics. Implementations can return null return values for these methods if they are not applicable for that implementation.</li>
 
-<li><a href="http://svn.apache.org/viewvc/hadoop/pig/trunk/src/org/apache/pig/LoadPushDown.java?view=markup">LoadPushDown</a> 
+<li><a href="http://svn.apache.org/viewvc/pig/trunk/src/org/apache/pig/LoadPushDown.java?view=markup">LoadPushDown</a> 
 has methods to push operations from Pig runtime into loader implementations. Currently only the pushProjection() method is called by Pig to communicate to the loader the exact fields that are required in the Pig script. The loader implementation can choose to honor the request (return only those fields required by Pig script) or not honor the request (return all fields in the data). If the loader implementation can efficiently honor the request, it should implement LoadPushDown to improve query performance. (Irrespective of whether the implementation can or cannot honor the request, if the implementation also implements getSchema(), the schema returned in getSchema() should describe the entire tuple of data.)
 <ul>
 	<li>pushProjection(): This method tells LoadFunc which fields are required in the Pig script, thus enabling LoadFunc to optimize performance by loading only those fields that are needed. pushProjection() takes a RequiredFieldList. RequiredFieldList includes a list of RequiredField: each RequiredField indicates a field required by the Pig script; each RequiredField includes index, alias, type (which is reserved for future use), and subFields. Pig will use the column index RequiredField.index to communicate with the LoadFunc about the fields required by the Pig script. If the required field is a map, Pig will optionally pass RequiredField.subFields which contains a list of keys that the Pig script needs for the map. For example, if the Pig script needs two keys for the map, "key1" and "key2", the subFields for that map will contain two RequiredField; the alias field for the first RequiredField will be "key1" and the alias for the second RequiredField will be "key2". LoadFunc will use RequiredFieldResponse.requiredFieldRequestHonored to indicate whether the pushProjection() request is honored.
@@ -764,7 +764,7 @@ has methods to push operations from Pig runtime into loader implementations. Cur
 </ul>
 </li>
 
-<li><a href="http://svn.apache.org/viewvc/hadoop/pig/trunk/src/org/apache/pig/LoadCaster.java?view=markup">LoadCaster</a> 
+<li><a href="http://svn.apache.org/viewvc/pig/trunk/src/org/apache/pig/LoadCaster.java?view=markup">LoadCaster</a> 
 has methods to convert byte arrays to specific types. A loader implementation should implement this if casts (implicit or explicit) from DataByteArray fields to other types need to be supported. </li>
 </ul>
 
@@ -906,10 +906,10 @@ public class SimpleTextLoader extends LoadFunc {
 <section>
 <title> Store Functions</title>
 
-<p><a href="http://svn.apache.org/viewvc/hadoop/pig/trunk/src/org/apache/pig/StoreFunc.java?view=markup">StoreFunc</a> 
+<p><a href="http://svn.apache.org/viewvc/pig/trunk/src/org/apache/pig/StoreFunc.java?view=markup">StoreFunc</a> 
 abstract class has the main methods for storing data and for most use cases it should suffice to extend it. There is an optional interface which can be implemented to achieve extended functionality: </p>
 <ul>
-<li><a href="http://svn.apache.org/viewvc/hadoop/pig/trunk/src/org/apache/pig/StoreMetadata.java?view=markup">StoreMetadata:</a> 
+<li><a href="http://svn.apache.org/viewvc/pig/trunk/src/org/apache/pig/StoreMetadata.java?view=markup">StoreMetadata:</a> 
 This interface has methods to interact with metadata systems to store schema and store statistics. This interface is truely optional and should only be implemented if metadata needs to stored. </li>
 </ul>
 
@@ -1327,13 +1327,13 @@ register 'test.py' using org.apache.pig.scripting.jython.JythonScriptEngine as m
 
 <p>A typical test.py looks like this:</p>
 <source>
-@outputSchema("x:{t:(word:chararray)}")
+@outputSchema("word:chararray")
 def helloworld():  
-  return ('Hello, World')
+  return 'Hello, World'
 
-@outputSchema("y:{t:(word:chararray,num:long)}")
-def complex(word):  
-  return (str(word),long(word)*long(word))
+@outputSchema("word:chararray,num:long")
+def complex(word):
+  return str(word),len(word)
 
 @outputSchemaFunction("squareSchema")
 def square(num):
@@ -1396,7 +1396,7 @@ def squareSchema(input):
   return input
 
 #Percent- Percentage
-@outputSchema("t:(percent:double)")
+@outputSchema("percent:double")
 def percent(num, total):
   return num * 100 / total
 
@@ -1404,12 +1404,12 @@ def percent(num, total):
 # String Functions #
 ####################
 #commaFormat- format a number with commas, 12345-> 12,345
-@outputSchema("t:(numformat:chararray)")
+@outputSchema("numformat:chararray")
 def commaFormat(num):
   return '{:,}'.format(num)
 
 #concatMultiple- concat multiple words
-@outputSchema("t:(numformat:chararray)")
+@outputSchema(“onestring:chararray")
 def concatMult4(word1, word2, word3, word4):
   return word1+word2+word3+word4
 
@@ -1418,7 +1418,7 @@ def concatMult4(word1, word2, word3, word4):
 #######################
 #collectBag- collect elements of a bag into other bag
 #This is useful UDF after group operation
-@outputSchema("bag:{(y:{t:(word:chararray)}}")
+@outputSchema(“y:bag{t:tuple(len:int,word:chararray)}”) 
 def collectBag(bag):
   outBag = []
   for word in bag:
