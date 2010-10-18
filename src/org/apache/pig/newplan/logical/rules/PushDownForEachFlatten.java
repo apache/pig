@@ -211,14 +211,18 @@ public class PushDownForEachFlatten extends Rule {
             LOForEach foreach = (LOForEach)matched.getSources().get(0);
             Operator next = currentPlan.getSuccessors( foreach ).get(0);
             if( next instanceof LOSort ) {
-                currentPlan.removeAndReconnect(foreach);
-                
-                List<Operator> succs = currentPlan.getSuccessors( next );
+                Operator pred = currentPlan.getPredecessors( foreach ).get( 0 );
+                List<Operator> succs = new ArrayList<Operator>();
+                succs.addAll(currentPlan.getSuccessors( next ));
+                Pair<Integer, Integer> pos1 = currentPlan.disconnect( pred, foreach );
+                Pair<Integer, Integer> pos2 = currentPlan.disconnect( foreach, next );
+                currentPlan.connect( pred, pos1.first, next, pos2.second );
+
                 if( succs != null ) {
-                    List<Operator> succsCopy = new ArrayList<Operator>();
-                    succsCopy.addAll(succs);
-                    for( Operator succ : succsCopy ) {
-                        currentPlan.insertBetween(next, foreach, succ);
+                    for( Operator succ : succs ) {
+                        Pair<Integer, Integer> pos = currentPlan.disconnect( next, succ );
+                        currentPlan.connect( next, pos.first, foreach, 0 );
+                        currentPlan.connect( foreach, 0, succ, pos.second );
                     }
                 } else {
                     currentPlan.connect( next, foreach );
@@ -268,10 +272,10 @@ public class PushDownForEachFlatten extends Rule {
                 
                 newForeach.setAlias(((LogicalRelationalOperator)next).getAlias());
                 
-                currentPlan.add( newForeach );
                 Operator opAfterX = null;
                 List<Operator> succs = currentPlan.getSuccessors( next );
                 if( succs == null || succs.size() == 0 ) {
+                    currentPlan.add( newForeach );
                     currentPlan.connect( next, newForeach );
                 } else {
                     opAfterX = succs.get( 0 );

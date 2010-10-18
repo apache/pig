@@ -771,6 +771,16 @@ public class MRCompiler extends PhyPlanVisitor {
                     mergedMap.scalars.add(physOp);
                 }
             }
+            Set<PhysicalOperator> opsToChange = new HashSet<PhysicalOperator>();
+            for (Map.Entry<PhysicalOperator, MapReduceOper> entry : phyToMROpMap.entrySet()) {
+                if (entry.getValue()==rmro) {
+                    opsToChange.add(entry.getKey());
+                }
+            }
+            for (PhysicalOperator op : opsToChange) {
+                phyToMROpMap.put(op, mergedMap);
+            }
+            
             MRPlan.remove(rmro);
         }
         return ret;

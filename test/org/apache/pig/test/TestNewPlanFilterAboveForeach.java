@@ -379,7 +379,7 @@ public class TestNewPlanFilterAboveForeach {
         Operator store = newLogicalPlan.getSuccessors( fe ).get( 0 );
         Assert.assertTrue( store instanceof LOStore );
     }
-
+    
     @Test
     public void testFilterForeachFlatten() throws Exception {
         planTester.buildPlan("A = load 'myfile' as (name, age, gpa);");
@@ -397,6 +397,23 @@ public class TestNewPlanFilterAboveForeach {
         Assert.assertTrue( fe instanceof LOForEach );
         Operator store = newLogicalPlan.getSuccessors( fe ).get( 0 );
         Assert.assertTrue( store instanceof LOStore );
+    }
+    
+    // See PIG-1669
+    @Test
+    public void testPushUpFilterWithScalar() throws Exception {
+        planTester.buildPlan("a = load 'studenttab10k' as (name, age, gpa);");
+        planTester.buildPlan("b = group a all;");
+        planTester.buildPlan("c = foreach b generate AVG(a.age) as age;");
+        planTester.buildPlan("d = foreach a generate name, age;");
+        planTester.buildPlan("e = filter d by age > c.age;");
+        org.apache.pig.impl.logicalLayer.LogicalPlan plan = planTester.buildPlan("f = store e into 'empty';");
+
+        LogicalPlan newLogicalPlan = migrateAndOptimizePlan( plan );
+
+        Operator store = newLogicalPlan.getSinks().get( 0 );
+        Operator foreach = newLogicalPlan.getPredecessors(store).get(0);
+        Assert.assertTrue( foreach instanceof LOForEach );
     }
 
     private LogicalPlan migrateAndOptimizePlan(org.apache.pig.impl.logicalLayer.LogicalPlan plan) throws FrontendException {
