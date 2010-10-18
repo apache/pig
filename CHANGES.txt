@@ -209,6 +209,8 @@ PIG-1309: Map-side Cogroup (ashutoshc)
 
 BUG FIXES
 
+PIG-1669: PushUpFilter fail when filter condition contains scalar (daijy)
+
 PIG-1672: order of relations in replicated join gets switched in a query where
  first relation has two mergeable foreach statements (thejas)
 

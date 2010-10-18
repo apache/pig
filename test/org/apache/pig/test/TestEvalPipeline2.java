@@ -745,4 +745,35 @@ public class TestEvalPipeline2 extends TestCase {
         
         assertFalse(iter.hasNext());
     }
+    
+    // See PIG-1669
+    @Test
+    public void testPushUpFilterScalar() throws Exception{
+        String[] input1 = {
+                "jason\t14\t4.7",
+                "jack\t18\t4.6"
+        };
+        
+        String[] input2 = {
+                "jason\t14",
+                "jack\t18"
+        };
+        
+        Util.createInputFile(cluster, "table_PushUpFilterScalar1", input1);
+        Util.createInputFile(cluster, "table_PushUpFilterScalar2", input2);
+        pigServer.registerQuery("A = load 'table_PushUpFilterScalar1' as (name, age, gpa);");
+        pigServer.registerQuery("B = load 'table_PushUpFilterScalar2' as (name, age);");
+        pigServer.registerQuery("C = filter A by age < 20;");
+        pigServer.registerQuery("D = filter B by age < 20;");
+        pigServer.registerQuery("simple_scalar = limit D 1;");
+        pigServer.registerQuery("E = join C by name, D by name;");
+        pigServer.registerQuery("F = filter E by C::age==(int)simple_scalar.age;");
+        
+        Iterator<Tuple> iter = pigServer.openIterator("F");
+        
+        Tuple t = iter.next();
+        assertTrue(t.toString().equals("(jason,14,4.7,jason,14)"));
+        
+        assertFalse(iter.hasNext());
+    }
 }
