@@ -81,6 +81,7 @@ import org.apache.pig.impl.logicalLayer.LogicalPlan;
 import org.apache.pig.impl.logicalLayer.LogicalPlanBuilder;
 import org.apache.pig.impl.logicalLayer.PlanSetter;
 import org.apache.pig.impl.logicalLayer.ScalarFinder;
+import org.apache.pig.impl.logicalLayer.UnionOnSchemaSetter;
 import org.apache.pig.impl.logicalLayer.optimizer.LogicalOptimizer;
 import org.apache.pig.impl.logicalLayer.parser.ParseException;
 import org.apache.pig.impl.logicalLayer.parser.QueryParser;
@@ -1311,6 +1312,9 @@ public class PigServer {
         // Set the logical plan values correctly in all the operators
         PlanSetter ps = new PlanSetter(lp);
         ps.visit();
+        
+        UnionOnSchemaSetter setUnionOnSchema = new UnionOnSchemaSetter(lp, pigContext);
+        setUnionOnSchema.visit();
         
         // run through validator
         CompilationMessageCollector collector = new CompilationMessageCollector() ;
