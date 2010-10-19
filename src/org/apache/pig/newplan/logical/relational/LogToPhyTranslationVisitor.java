@@ -20,7 +20,6 @@ package org.apache.pig.newplan.logical.relational;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -64,10 +63,6 @@ import org.apache.pig.impl.builtin.GFCross;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.logicalLayer.FrontendException;
-import org.apache.pig.impl.logicalLayer.LogicalOperator;
-import org.apache.pig.impl.logicalLayer.LogicalPlan;
-import org.apache.pig.impl.logicalLayer.schema.Schema;
-import org.apache.pig.impl.logicalLayer.schema.Schema.FieldSchema;
 import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.PlanException;
@@ -79,13 +74,12 @@ import org.apache.pig.newplan.DependencyOrderWalker;
 import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.OperatorPlan;
 import org.apache.pig.newplan.PlanWalker;
-import org.apache.pig.newplan.ReverseDependencyOrderWalker;
+import org.apache.pig.newplan.ReverseDependencyOrderWalkerWOSeenChk;
 import org.apache.pig.newplan.SubtreeDependencyOrderWalker;
 import org.apache.pig.newplan.logical.Util;
 import org.apache.pig.newplan.logical.expression.ExpToPhyTranslationVisitor;
 import org.apache.pig.newplan.logical.expression.LogicalExpressionPlan;
 import org.apache.pig.newplan.logical.expression.ProjectExpression;
-import org.apache.pig.newplan.logical.relational.LogicalSchema.LogicalFieldSchema;
 import org.apache.pig.impl.util.Utils;
 
 public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
@@ -201,7 +195,7 @@ public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
 
 //        PlanWalker childWalker = currentWalker
 //                .spawnChildWalker(filter.getFilterPlan());
-        PlanWalker childWalker = new ReverseDependencyOrderWalker(filter.getFilterPlan());
+        PlanWalker childWalker = new ReverseDependencyOrderWalkerWOSeenChk(filter.getFilterPlan());
         pushWalker(childWalker);
         //currentWalker.walk(this);
         currentWalker.walk(
@@ -245,7 +239,7 @@ public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
         currentPlans.push(currentPlan);
         for (LogicalExpressionPlan plan : logPlans) {
             currentPlan = new PhysicalPlan();
-            PlanWalker childWalker = new ReverseDependencyOrderWalker(plan);
+            PlanWalker childWalker = new ReverseDependencyOrderWalkerWOSeenChk(plan);
             pushWalker(childWalker);
             childWalker.walk(new ExpToPhyTranslationVisitor( currentWalker.getPlan(), 
                     childWalker, sort, currentPlan, logToPhyMap));
@@ -514,7 +508,7 @@ public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
         for (int i=0; i<exps.size(); i++) {
             currentPlan = new PhysicalPlan();
             // translate the expression plan
-            PlanWalker childWalker = new ReverseDependencyOrderWalker(exps.get(i));
+            PlanWalker childWalker = new ReverseDependencyOrderWalkerWOSeenChk(exps.get(i));
             pushWalker(childWalker);
             childWalker.walk(new ExpToPhyTranslationVisitor(exps.get(i),
                     childWalker, gen, currentPlan, logToPhyMap));            
@@ -615,7 +609,7 @@ public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
             
             // We spawn a new Dependency Walker and use it 
             // PlanWalker childWalker = currentWalker.spawnChildWalker(lp);
-            PlanWalker childWalker = new ReverseDependencyOrderWalker(lp);
+            PlanWalker childWalker = new ReverseDependencyOrderWalkerWOSeenChk(lp);
             
             // Save the old walker and use childWalker as current Walker
             pushWalker(childWalker);
@@ -1316,7 +1310,7 @@ public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
 
 //        PlanWalker childWalker = currentWalker
 //                .spawnChildWalker(filter.getFilterPlan());
-        PlanWalker childWalker = new ReverseDependencyOrderWalker(loSplitOutput.getFilterPlan());
+        PlanWalker childWalker = new ReverseDependencyOrderWalkerWOSeenChk(loSplitOutput.getFilterPlan());
         pushWalker(childWalker);
         //currentWalker.walk(this);
         currentWalker.walk(
