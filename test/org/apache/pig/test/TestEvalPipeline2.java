@@ -776,4 +776,31 @@ public class TestEvalPipeline2 extends TestCase {
         
         assertFalse(iter.hasNext());
     }
+
+    // See PIG-1683
+    @Test
+    public void testDuplicateReferenceInnerPlan() throws Exception{
+        String[] input1 = {
+                "1\t1\t1",
+        };
+        
+        String[] input2 = {
+                "1\t1",
+                "2\t2"
+        };
+        
+        Util.createInputFile(cluster, "table_testDuplicateReferenceInnerPlan1", input1);
+        Util.createInputFile(cluster, "table_testDuplicateReferenceInnerPlan2", input2);
+        pigServer.registerQuery("a = load 'table_testDuplicateReferenceInnerPlan1' as (a0, a1, a2);");
+        pigServer.registerQuery("b = load 'table_testDuplicateReferenceInnerPlan2' as (b0, b1);");
+        pigServer.registerQuery("c = join a by a0, b by b0;");
+        pigServer.registerQuery("d = foreach c {d0 = a::a1;d1 = a::a2;generate ((d0 is not null)? d0 : d1);};");
+        
+        Iterator<Tuple> iter = pigServer.openIterator("d");
+        
+        Tuple t = iter.next();
+        assertTrue(t.toString().equals("(1)"));
+        
+        assertFalse(iter.hasNext());
+    }
 }

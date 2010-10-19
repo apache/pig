@@ -200,6 +200,8 @@ PIG-1309: Map-side Cogroup (ashutoshc)
 
 BUG FIXES
 
+PIG-1683: New logical plan: Nested foreach plan fail if one inner alias is refered more than once (daijy)
+
 PIG-1542: log level not propogated to MR task loggers (nrai via daijy)
 
 PIG-1673: query with consecutive union-onschema statement errors out (thejas)
