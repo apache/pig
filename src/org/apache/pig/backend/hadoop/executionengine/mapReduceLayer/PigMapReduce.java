@@ -295,8 +295,6 @@ public class PigMapReduce {
             try {
                 PigContext.setPackageImportList((ArrayList<String>)ObjectSerializer.deserialize(jConf.get("udf.import.list")));
                 pigContext = (PigContext)ObjectSerializer.deserialize(jConf.get("pig.pigContext"));
-                if (pigContext.getLog4jProperties()!=null)
-                    PropertyConfigurator.configure(pigContext.getLog4jProperties());
                 
                 rp = (PhysicalPlan) ObjectSerializer.deserialize(jConf
                         .get("pig.reducePlan"));
