@@ -672,8 +672,11 @@
     <target depends="compile-test" name="pigunit-jar" description="create the pigunit jar file">
         <echo> *** Creating pigunit.jar ***</echo>
       <jar destfile="${pigunit.jarfile}">
-        <fileset dir="${test.build.classes}/org/apache/pig/pigunit/"/>
-      	<zipfileset src="${ivy.lib.dir}/${commons-lang.jarfile}" />
+          <fileset dir="${test.build.classes}">
+              <include name="**/org/apache/pig/pigunit/**"/>
+              <include name="**/org/apache/pig/test/Util.**"/>
+          </fileset>
+      	  <zipfileset src="${ivy.lib.dir}/${commons-lang.jarfile}" />
       </jar>
     </target>
 

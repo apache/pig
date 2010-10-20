@@ -34,7 +34,7 @@ import org.junit.Test;
  * <ul>
  *   <li>pig.jar</li>
  *   <li>pigunit.jar</li>
- *   <li>hadoop_conf_dir to current/future cluster if not using LOCAL mode</li>
+ *   <li>$HADOOP_CONF_DIR to current/future cluster if not using LOCAL mode</li>
  * </ul>
  */
 public class TestPigTest {
