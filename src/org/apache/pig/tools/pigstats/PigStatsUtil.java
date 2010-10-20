@@ -106,12 +106,7 @@ public abstract class PigStatsUtil {
      * @return the counter name 
      */
     public static String getMultiStoreCounterName(POStore store) {
-        String shortName = null;
-        try {
-            shortName = getShortName(new URI(store.getSFile().getFileName()));
-        } catch (URISyntaxException e) {
-            LOG.warn("Invalid syntax for output location", e);
-        }
+        String shortName = getShortName(store.getSFile().getFileName());
         return (shortName == null) ? null 
                 : MULTI_STORE_RECORD_COUNTER + shortName;
     }
@@ -123,12 +118,7 @@ public abstract class PigStatsUtil {
      * @return the counter name
      */
     public static String getMultiInputsCounterName(String fname) {
-        String shortName = null;
-        try {
-            shortName = getShortName(new URI(fname));            
-        } catch (URISyntaxException e) {
-            LOG.warn("Invalid syntax for input location", e);
-        }
+        String shortName = getShortName(fname);            
         return (shortName == null) ? null 
                 : MULTI_INPUTS_RECORD_COUNTER + shortName;
     }
@@ -136,23 +126,21 @@ public abstract class PigStatsUtil {
     private static final String SEPARATOR = "/";
     private static final String SEMICOLON = ";";
     
-    private static String getShortName(URI uri) {  
-        String path = uri.getPath();
-        if (path != null) {
-            int slash = path.lastIndexOf(SEPARATOR);
-            return path.substring(slash+1);
-        } 
-        // for cases such as
-        // "jdbc:hsqldb:file:/tmp/batchtest;hsqldb.default_table_type=cached;hsqldb.cache_rows=100"
-        path = uri.getSchemeSpecificPart();
-        if (path != null) {
-            int slash = path.lastIndexOf(SEPARATOR);
-            int scolon = path.indexOf(SEMICOLON);
-            if (slash < scolon) {
-                return path.substring(slash+1, scolon);
-            }
+    private static String getShortName(String uri) {  
+        int scolon = uri.indexOf(SEMICOLON);
+        int slash;
+        if (scolon!=-1) {
+            slash = uri.lastIndexOf(SEPARATOR, scolon);
+        } else {
+            slash = uri.lastIndexOf(SEPARATOR);
         }
-        return null;       
+        if (scolon==-1) {
+            return uri.substring(slash+1);
+        }
+        if (slash < scolon) {
+            return uri.substring(slash+1, scolon);
+        }
+        return null;
     }
            
     /**
