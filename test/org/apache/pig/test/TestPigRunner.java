@@ -419,6 +419,12 @@ public class TestPigRunner {
         String s = "jdbc:hsqldb:file:/tmp/batchtest;hsqldb.default_table_type=cached;hsqldb.cache_rows=100";
         String name = PigStatsUtil.getMultiInputsCounterName(s);
         assertEquals(PigStatsUtil.MULTI_INPUTS_RECORD_COUNTER + "batchtest", name);
+        s = "file:///tmp/batchtest{1,2}.txt";
+        name = PigStatsUtil.getMultiInputsCounterName(s);
+        assertEquals(PigStatsUtil.MULTI_INPUTS_RECORD_COUNTER + "batchtest{1,2}.txt", name);
+        s = "file:///tmp/batchtest*.txt";
+        name = PigStatsUtil.getMultiInputsCounterName(s);
+        assertEquals(PigStatsUtil.MULTI_INPUTS_RECORD_COUNTER + "batchtest*.txt", name);
     }
     
     @Test
