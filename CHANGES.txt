@@ -209,6 +209,8 @@ PIG-1309: Map-side Cogroup (ashutoshc)
 
 BUG FIXES
 
+PIG-1685: Pig is unable to handle counters for glob paths ? (daijy)
+
 PIG-1683: New logical plan: Nested foreach plan fail if one inner alias is refered more than once (daijy)
 
 PIG-1542: log level not propogated to MR task loggers (nrai via daijy)
