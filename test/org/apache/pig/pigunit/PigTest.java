@@ -36,7 +36,6 @@ import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.pigunit.pig.PigServer;
-import org.apache.pig.test.MiniCluster;
 import org.apache.pig.tools.parameters.ParameterSubstitutionPreprocessor;
 import org.apache.pig.tools.parameters.ParseException;
 
@@ -61,7 +60,6 @@ public class PigTest {
   private static PigServer pig;
   private static Cluster cluster;
   private static final Logger LOG = Logger.getLogger(PigTest.class);
-  private static final String EXEC_MINI_CLUSTER = "pigunit.exectype.minicluster";
   private static final String EXEC_CLUSTER = "pigunit.exectype.cluster";
 
   /**
@@ -121,14 +119,7 @@ public class PigTest {
    */
   public static Cluster getCluster() throws ExecException {
     if (cluster == null) {
-      LOG.info("Using mini cluster mode");
-      if (System.getProperties().containsKey(EXEC_MINI_CLUSTER)) {
-        if (! System.getProperties().containsKey("hadoop.log.dir")) {
-          System.setProperty("hadoop.log.dir", "/tmp/pigunit");
-        }
-        MiniCluster.buildCluster();
-        pig = new PigServer(ExecType.MAPREDUCE);
-      } else if (System.getProperties().containsKey(EXEC_CLUSTER)) {
+      if (System.getProperties().containsKey(EXEC_CLUSTER)) {
         LOG.info("Using cluster mode");
         pig = new PigServer(ExecType.MAPREDUCE);
       } else {
@@ -149,6 +140,8 @@ public class PigTest {
    * @throws ParseException The pig script could not have all its variables substituted.
    */
   protected void registerScript() throws IOException, ParseException {
+    PigTest.getCluster();
+
     BufferedReader pigIStream = new BufferedReader(new StringReader(this.originalTextPigScript));
     StringWriter pigOStream = new StringWriter();
 
@@ -156,7 +149,7 @@ public class PigTest {
     ps.genSubstitutedFile(pigIStream, pigOStream, args, argFiles);
 
     String substitutedPig = pigOStream.toString();
-    System.out.println(substitutedPig);
+    LOG.info(substitutedPig);
 
     File f = File.createTempFile("tmp", "pigunit");
     PrintWriter pw = new PrintWriter(f);
