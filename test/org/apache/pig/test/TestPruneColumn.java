@@ -38,10 +38,8 @@ import org.apache.log4j.SimpleLayout;
 import org.apache.pig.ExecType;
 import org.apache.pig.FilterFunc;
 import org.apache.pig.PigServer;
-import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.io.FileLocalizer;
-import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.newplan.logical.rules.ColumnPruneVisitor;
 import org.junit.After;
 import org.junit.Before;
@@ -63,23 +61,6 @@ public class TestPruneColumn extends TestCase {
     File tmpFile10;
     File logFile;
 
-    static public class PigStorageWithTrace extends PigStorage {
-
-        /**
-         * @param delimiter
-         */
-        public PigStorageWithTrace() {
-            super();
-        }
-        @Override
-        public RequiredFieldResponse pushProjection(RequiredFieldList requiredFieldList) throws FrontendException {
-            RequiredFieldResponse response = super.pushProjection(requiredFieldList);
-            Logger logger = Logger.getLogger(this.getClass());
-            logger.info(requiredFieldList);
-            return response;
-        }
-
-    }
     private static final String simpleEchoStreamingCommand;
     static {
         if (System.getProperty("os.name").toUpperCase().startsWith("WINDOWS"))
@@ -106,10 +87,6 @@ public class TestPruneColumn extends TestCase {
         logFile = File.createTempFile("log", "");
         FileAppender appender = new FileAppender(layout, logFile.toString(), false, false, 0);
         logger.addAppender(appender);
-        
-        Logger pigStorageWithTraceLogger = Logger.getLogger(PigStorageWithTrace.class);
-        pigStorageWithTraceLogger.setLevel(Level.INFO);
-        pigStorageWithTraceLogger.addAppender(appender);
         
         pigServer = new PigServer("local");
         //pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
@@ -1820,8 +1797,7 @@ public class TestPruneColumn extends TestCase {
     // See PIG-1210
     @Test
     public void testFieldsToReadDuplicatedEntry() throws Exception {
-        pigServer.registerQuery("A = load '"+ Util.generateURI(tmpFile1.toString(), pigServer.getPigContext()) + "' using "+PigStorageWithTrace.class.getName()
-                +" AS (a0, a1, a2);");
+        pigServer.registerQuery("A = load '"+ Util.generateURI(tmpFile1.toString(), pigServer.getPigContext()) + "' AS (a0, a1, a2);");
         pigServer.registerQuery("B = foreach A generate a0+a0, a1, a2;");
         Iterator<Tuple> iter = pigServer.openIterator("B");
 
