@@ -42,6 +42,8 @@ PIG-1249: Safe-guards against misconfigured Pig scripts without PARALLEL keyword
 
 IMPROVEMENTS
 
+PIG-1677: modify the repository path of pig artifacts to org/apache/pig in stead or org/apache/hadoop/pig (nrai via olgan)
+
 PIG-1600: Docs update (romainr via olgan)
 
 PIG-1632: The core jar in the tarball contains the kitchen sink (eli via olgan)
