@@ -107,8 +107,20 @@
     <property name="src.gen.param.parser.dir" value="${src.gen.dir}/org/apache/pig/tools/parameters" />
     <property name="src.gen.dot.parser.dir" value="${test.src.dir}/org/apache/pig/test/utils/dotGraph/parser" />
     <property name="src.gen.textdata.parser.dir" value="${src.gen.dir}/org/apache/pig/data/parser" />
-    
-    <!-- rats properties -->
+	
+	<!-- Antlr Parser properties -->
+	<property name="grammar.name" value="Query"/>
+	<property name="grammar.name.lower" value="query"/>
+	<property name="grammar.package" value="org.apache.pig.parser"/>
+	<property name="grammar.package.dir" value="org/apache/pig/parser"/>
+	<property name="grammar.src.dir" value="${src.dir}/${grammar.package.dir}"/>
+	
+	<!-- Antlr properties -->
+	<property name="antlr.dir" location="${lib.dir}"/>
+	<property name="antlr.version" value="3.2"/>
+	<property name="antlr3.jar" value="${antlr.dir}/antlr-${antlr.version}.jar"/>
+
+	<!-- rats properties -->
     <property name="rat.reporting.classname" value="rat.Report"/>
 
     <!-- javadoc properties  -->
@@ -193,6 +205,7 @@
         <fileset file="${lib.dir}/${hbase.jarfile}" />
         <fileset file="${lib.dir}/${hbase.test.jarfile}" />
     	<fileset file="${lib.dir}/${zookeeper.jarfile}"/>
+    	<pathelement location="${antlr3.jar}"/>
     </path>
 
     <!-- javadoc-classpath -->
@@ -286,11 +299,67 @@
         <jjtree target="${test.src.dir}/org/apache/pig/test/utils/dotGraph/DOTParser.jjt" outputdirectory="${src.gen.dot.parser.dir}" javacchome="${javacc.home}" />
         <javacc target="${src.gen.dot.parser.dir}/DOTParser.jj" outputdirectory="${src.gen.dot.parser.dir}" javacchome="${javacc.home}" />
     </target>
+	
+	  <target name="gen" depends="genParser"
+	    description="generates lexer and parser code from an ANTLR grammar">
+	    <!-- Move generated Java code to the correct package directory. -->
+	    <move todir="${src.gen.dir}${grammar.package.dir}">
+	      <fileset dir="${src.gen.dir}" includes="*.java"/>
+	    </move>
+	    <!-- Copy generated .token files to current directory. -->
+	    <copy todir=".">
+	      <fileset dir="${src.gen.dir}" includes="*.tokens"/>
+	    </copy>
+	  </target>
 
-    <!-- ================================================================== -->
+	  <target name="genLexer" depends="prepare, init, ivy-compile"
+	    unless="lexerGrammarProcessed"
+	    description="generates lexer class from an ANTLR grammar">
+	    <java classname="org.antlr.Tool"
+	      classpathref="classpath" fork="true">
+	      <arg line="-o ${src.gen.dir}/${grammar.package.dir} ${src.dir}/${grammar.package.dir}/${grammar.name}Lexer.g"/>
+	    </java>
+	  </target>
+
+	<target name="genParser" depends="genLexer"
+	    unless="parserGrammarProcessed"
+	    description="generates token parser class from an ANTLR grammar">
+	    <java classname="org.antlr.Tool"
+	      classpathref="classpath" fork="true">
+		      <arg line="-o ${src.gen.dir}/${grammar.package.dir} ${src.dir}/${grammar.package.dir}/${grammar.name}Parser.g"/>
+	    </java>
+	  </target>
+	
+<!--
+
+	  <target name="genTreeParser" depends="genParser"
+	    unless="treeGrammarProcessed"
+	    description="generates tree parser class from an ANTLR grammar">
+	    <java classname="org.antlr.Tool"
+	      classpathref="classpath" fork="true">
+	      <arg line="${tool.options} ${grammar.name}Tree.g"/>
+	    </java>
+	  </target>
+-->	
+
+	  <target name="prepare">
+	    <uptodate property="lexerGrammarProcessed" srcfile="${grammar.src.dir}/${grammar.name}Lexer.g">
+	      <mapper type="merge" to="${src.gen.dir}/${grammar.package.dir}/${grammar.name}Lexer.java"/>
+	    </uptodate><!--
+	    <uptodate property="parserGrammarProcessed" srcfile="${grammar.src.dir}/${grammar.name}Parser.g">
+	      <mapper type="merge" to="${src.gen.dir}/${grammar.package.dir}/${grammar.name}Parser.java"/>
+	    </uptodate>
+	    <uptodate property="treeGrammarProcessed" srcfile="${grammar.src.dir}/${grammar.name}Tree.g">
+	      <mapper type="merge" to="${src.gen.dir}/${gramar.package.dir}/${grammar.name}Tree.java"/>
+	    </uptodate>-->
+	    <!--mkdir dir="build/classes"/-->
+	    <mkdir dir="${src.gen.dir}/${grammar.package.dir}"/>
+	  </target>
+
+	<!-- ================================================================== -->
     <!-- Build sources                                          -->
     <!-- ================================================================== -->
-    <target name="compile" depends="cc-compile" description="Compile all artifacts">
+    <target name="compile" depends="cc-compile, gen" description="Compile all artifacts">
         <echo>*** Building Main Sources ***</echo>
         <echo>*** To compile with all warnings enabled, supply -Dall.warnings=1 on command line ***</echo>
         <echo>*** If all.warnings property is supplied, compile-sources-all-warnings target will be executed ***</echo>
