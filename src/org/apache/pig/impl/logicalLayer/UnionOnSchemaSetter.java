@@ -70,40 +70,12 @@ public class UnionOnSchemaSetter extends LOVisitor {
         validator.validate(mPlan, collector);
         List<LogicalOperator> preds = mPlan.getPredecessors(loUnion);
 
-        //validate each input schema, and collect them in the ArrayList
-        ArrayList<Schema> schemas = new ArrayList<Schema>(preds.size());
-        for(LogicalOperator lop : preds){
-            Schema sch;
-            try {
-                sch = lop.getSchema();
-            } catch (FrontendException e) {
-                throw new UnionOnSchemaSetException("Error getting schema from logical operator");
-            }
-            if(sch == null)                     
-            {                         
-                String msg = "Schema of relation " + lop.getAlias()
-                + " is null." 
-                + " UNION ONSCHEMA cannot be used with relations that"
-                + " have null schema.";
-                throw new UnionOnSchemaSetException(msg, 1116, PigException.INPUT);
-            }
-            for(Schema.FieldSchema fs : sch.getFields()){
-                if(fs.alias == null){
-                    String msg = "Schema of relation " + lop.getAlias()
-                    + " has a null fieldschema for column(s). Schema :" +
-                    sch;
-                    throw new UnionOnSchemaSetException(msg, 1116, PigException.INPUT);
-                }
-            }
-            schemas.add(sch);
-        }
-        
         //create the merged schema
         Schema mergedSchema ;
         try {
-            mergedSchema = Schema.mergeSchemasByAlias(schemas);   
-        }catch(SchemaMergeException e)                 {
-            String msg = "Error merging schemas for union operator : "
+            mergedSchema = loUnion.getSchema();
+        }catch(FrontendException e)                 {
+            String msg = "Error creating merged schemas for union-onschema operator : "
                 + e.getMessage();
             throw new UnionOnSchemaSetException(msg, 1116, PigException.INPUT, e);
         }

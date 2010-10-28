@@ -871,6 +871,8 @@ public class Schema implements Serializable, Cloneable {
         return fs;
     }
     
+    
+    
     /**
      * Given a field number, find the associated FieldSchema.
      *
@@ -1676,6 +1678,12 @@ public class Schema implements Serializable, Cloneable {
             checkNullAlias(fs1, schema1);
             FieldSchema fs2 = getFieldSubNameMatchThrowSchemaMergeException(schema2,fs1.alias);
             if(fs2 != null){
+                if(schema2colsAdded.contains(fs2)){
+                    // alias corresponds to multiple fields in schema1,
+                    // just do a lookup on
+                    // schema1 , that will throw the appropriate error.
+                    getFieldSubNameMatchThrowSchemaMergeException(schema1, fs2.alias);
+                }
                 schema2colsAdded.add(fs2);
             }
             FieldSchema mergedFs = mergeFieldSchemaFirstLevelSameAlias(fs1,fs2);
