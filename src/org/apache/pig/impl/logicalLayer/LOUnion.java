@@ -27,6 +27,7 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.pig.PigException;
 import org.apache.pig.data.DataType;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.impl.logicalLayer.schema.SchemaMergeException;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.ProjectionMap;
 import org.apache.pig.impl.plan.RequiredFields;
@@ -61,30 +62,42 @@ public class LOUnion extends RelationalOperator {
             log.debug("Number of predecessors in the graph: " + s.size());
             try {
                 Iterator<LogicalOperator> iter = s.iterator();
-                LogicalOperator op = iter.next();
-                if (null == op) {
-                    int errCode = 1006;
-                    String msg = "Could not find operator in plan";
-                    throw new FrontendException(msg, errCode, PigException.INPUT, false, null);
-                }
-                if (op.getSchema()!=null)
-                    mSchema = new Schema(op.getSchema());
-                else
-                    mSchema = null;
-                while(iter.hasNext()) {
-                    op = iter.next();
-                    if(null != mSchema) {
-                        mSchema = mSchema.merge(op.getSchema(), false);
-                    } else {
+                //create merged schema
+                if(isOnSchema){
+                    // this function can be called in parser, before
+                    // the foreach statements to project previous columns as 
+                    //per merged schema are setup. So can't rely just on 
+                    //regular union's schema merge logic
+                    mSchema = createMergedSchemaOnAlias(iter);
+                }else{
+                    //schema for regular union
+                    LogicalOperator op = iter.next();
+                    if (null == op) {
+                        int errCode = 1006;
+                        String msg = "Could not find operator in plan";
+                        throw new FrontendException(msg, errCode, PigException.INPUT, false, null);
+                    }
+                    if (op.getSchema()!=null)
+                        mSchema = new Schema(op.getSchema());
+                    else
                         mSchema = null;
-                        break;
+                    while(iter.hasNext()) {
+                        op = iter.next();
+                        if(null != mSchema) {
+                            mSchema = mSchema.merge(op.getSchema(), false);
+                        } else {
+                            mSchema = null;
+                            break;
+                        }
                     }
                 }
+                
+                // set fieldschema parents
                 if(null != mSchema) {
                     for(Schema.FieldSchema fs: mSchema.getFields()) {
                         iter = s.iterator();
                         while(iter.hasNext()) {
-                            op = iter.next();
+                            LogicalOperator op = iter.next();
                             Schema opSchema = op.getSchema();
                             if(null != opSchema) {
                                 for(Schema.FieldSchema opFs: opSchema.getFields()) {
@@ -104,6 +117,49 @@ public class LOUnion extends RelationalOperator {
             }
         }
         return mSchema;
+    }
+
+    /**
+     * create schema for union-onschema
+     * @param iter
+     * @return
+     * @throws FrontendException
+     */
+    private Schema createMergedSchemaOnAlias(Iterator<LogicalOperator> iter)
+    throws FrontendException {
+        ArrayList<Schema> schemas = new ArrayList<Schema>();
+        while(iter.hasNext()){
+            LogicalOperator lop = iter.next();
+            Schema sch;
+            sch = lop.getSchema();
+            if(sch == null)                     
+            {                         
+                String msg = "Schema of relation " + lop.getAlias()
+                + " is null." 
+                + " UNION ONSCHEMA cannot be used with relations that"
+                + " have null schema.";
+                throw new FrontendException(msg, 1116, PigException.INPUT);
+            }
+            for(Schema.FieldSchema fs : sch.getFields()){
+                if(fs.alias == null){
+                    String msg = "Schema of relation " + lop.getAlias()
+                    + " has a null fieldschema for column(s). Schema :" +
+                    sch;
+                    throw new FrontendException(msg, 1116, PigException.INPUT);
+                }
+            }
+            schemas.add(sch);
+        }
+        //create the merged schema
+        Schema mergedSchema ;
+        try {
+            mergedSchema = Schema.mergeSchemasByAlias(schemas);   
+        }catch(SchemaMergeException e)                 {
+            String msg = "Error merging schemas for union operator : "
+                + e.getMessage();
+            throw new FrontendException(msg, 1116, PigException.INPUT, e);
+        }
+        return mergedSchema;
     }
 
     @Override
