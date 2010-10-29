@@ -63,7 +63,7 @@ public abstract class StoreFunc implements StoreFuncInterface {
 
     /**
      * Return the OutputFormat associated with StoreFunc.  This will be called
-     * on the front end during planning and not on the backend during
+     * on the front end during planning and on the backend during
      * execution. 
      * @return the {@link OutputFormat} associated with StoreFunc
      * @throws IOException if an exception occurs while constructing the 

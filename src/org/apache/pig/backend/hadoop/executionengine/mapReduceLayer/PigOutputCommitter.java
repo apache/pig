@@ -56,40 +56,29 @@ public class PigOutputCommitter extends OutputCommitter {
     
     /**
      * @param context
+     * @param list2 
+     * @param list 
      * @throws IOException
      */
-    public PigOutputCommitter(TaskAttemptContext context)
+    public PigOutputCommitter(TaskAttemptContext context,
+            List<POStore> mapStores, List<POStore> reduceStores)
             throws IOException {
         // create and store the map and reduce output committers
-        mapOutputCommitters = getCommitters(context, 
-                JobControlCompiler.PIG_MAP_STORES);
-        reduceOutputCommitters = getCommitters(context, 
-                JobControlCompiler.PIG_REDUCE_STORES);
+        mapOutputCommitters = getCommitters(context, mapStores);
+        reduceOutputCommitters = getCommitters(context, reduceStores);
         
     }
 
     /**
      * @param conf
-     * @param storeLookupKey
+     * @param mapStores
      * @return
      * @throws IOException 
      */
     @SuppressWarnings("unchecked")
     private List<Pair<OutputCommitter, POStore>> getCommitters(
             TaskAttemptContext context,
-            String storeLookupKey) throws IOException {
-        Configuration conf = context.getConfiguration();
-        
-        // if there is a udf in the plan we would need to know the import
-        // path so we can instantiate the udf. This is required because
-        // we will be deserializing the POStores out of the plan in the next
-        // line below. The POStore inturn has a member reference to the Physical
-        // plan it is part of - so the deserialization goes deep and while
-        // deserializing the plan, the udf.import.list may be needed.
-        PigContext.setPackageImportList((ArrayList<String>)ObjectSerializer.
-                deserialize(conf.get("udf.import.list")));
-        LinkedList<POStore> stores = (LinkedList<POStore>) ObjectSerializer.
-        deserialize(conf.get(storeLookupKey));
+            List<POStore> stores) throws IOException {
         List<Pair<OutputCommitter, POStore>> committers = 
             new ArrayList<Pair<OutputCommitter,POStore>>();
         for (POStore store : stores) {
