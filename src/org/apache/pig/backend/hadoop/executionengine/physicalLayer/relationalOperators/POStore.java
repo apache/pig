@@ -212,10 +212,13 @@ public class POStore extends PhysicalOperator {
         return schema;
     }
     
+    
     public StoreFuncInterface getStoreFunc() {
-        StoreFuncInterface sFunc = (StoreFuncInterface)PigContext.instantiateFuncFromSpec(sFile.getFuncSpec());
-        sFunc.setStoreFuncUDFContextSignature(signature);
-        return sFunc;
+        if(storer == null){
+            storer = (StoreFuncInterface)PigContext.instantiateFuncFromSpec(sFile.getFuncSpec());
+            storer.setStoreFuncUDFContextSignature(signature);
+        }
+        return storer;
     }
     
     /**

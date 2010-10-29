@@ -204,6 +204,8 @@ PIG-1309: Map-side Cogroup (ashutoshc)
 
 BUG FIXES
 
+PIG-1684: Inconsistent usage of store func. (thejas)
+
 PIG-1694: union-onschema projects null schema at parsing stage for some queries (thejas)
 
 PIG-1685: Pig is unable to handle counters for glob paths ? (daijy)
