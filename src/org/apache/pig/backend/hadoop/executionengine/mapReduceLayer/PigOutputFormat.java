@@ -18,6 +18,7 @@
 package org.apache.pig.backend.hadoop.executionengine.mapReduceLayer;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.hadoop.conf.Configuration;
@@ -33,6 +34,7 @@ import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.backend.hadoop.executionengine.util.MapRedUtil;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.util.ObjectSerializer;
 
 /**
@@ -56,17 +58,15 @@ public class PigOutputFormat extends OutputFormat<WritableComparable, Tuple> {
     /** the relative path that can be used to build a temporary
      * place to store the output from a number of map-reduce tasks*/
     public static final String PIG_TMP_PATH =  "pig.tmp.path";
-     
+    
+    List<POStore> reduceStores = null;
+    List<POStore> mapStores = null;
+    Configuration currentConf = null;
+    
     @Override
     public RecordWriter<WritableComparable, Tuple> getRecordWriter(TaskAttemptContext taskattemptcontext)
                 throws IOException, InterruptedException {
-        // Setup UDFContext so StoreFunc can make use of it
-        MapRedUtil.setupUDFContext(taskattemptcontext.getConfiguration());
-        List<POStore> mapStores = getStores(taskattemptcontext, 
-                JobControlCompiler.PIG_MAP_STORES);
-        List<POStore> reduceStores = getStores(taskattemptcontext, 
-                JobControlCompiler.PIG_REDUCE_STORES);
-        
+        setupUdfEnvAndStores(taskattemptcontext);
         if(mapStores.size() + reduceStores.size() == 1) {
             // single store case
             POStore store;
@@ -182,13 +182,8 @@ public class PigOutputFormat extends OutputFormat<WritableComparable, Tuple> {
 
     @Override
     public void checkOutputSpecs(JobContext jobcontext) throws IOException, InterruptedException {
-        // Setup UDFContext so in StoreFunc can make use of it
-        MapRedUtil.setupUDFContext(jobcontext.getConfiguration());
-        List<POStore> mapStores = getStores(jobcontext, 
-                JobControlCompiler.PIG_MAP_STORES);
+        setupUdfEnvAndStores(jobcontext);
         checkOutputSpecsHelper(mapStores, jobcontext);
-        List<POStore> reduceStores = getStores(jobcontext, 
-                JobControlCompiler.PIG_REDUCE_STORES);
         checkOutputSpecsHelper(reduceStores, jobcontext);
     }
 
@@ -212,26 +207,76 @@ public class PigOutputFormat extends OutputFormat<WritableComparable, Tuple> {
         }
     }
     /**
-     * @param jobcontext
+     * @param currentConf2
      * @param storeLookupKey
      * @return
      * @throws IOException 
      */
-    private List<POStore> getStores(JobContext jobcontext, String storeLookupKey) 
+    private List<POStore> getStores(Configuration conf, String storeLookupKey) 
     throws IOException {
-        Configuration conf = jobcontext.getConfiguration();
         return (List<POStore>)ObjectSerializer.deserialize(
                 conf.get(storeLookupKey));
     }
     
+    
+    private void setupUdfEnvAndStores(JobContext jobcontext)
+    throws IOException{
+        Configuration newConf = jobcontext.getConfiguration();
+        
+        // We setup UDFContext so in StoreFunc.getOutputFormat, which is called inside 
+        // construct of PigOutputCommitter, can make use of it
+        MapRedUtil.setupUDFContext(newConf);
+        
+        // if there is a udf in the plan we would need to know the import
+        // path so we can instantiate the udf. This is required because
+        // we will be deserializing the POStores out of the plan in the next
+        // line below. The POStore inturn has a member reference to the Physical
+        // plan it is part of - so the deserialization goes deep and while
+        // deserializing the plan, the udf.import.list may be needed.
+        if(! isConfPropEqual("udf.import.list", currentConf, newConf)){
+            PigContext.setPackageImportList((ArrayList<String>)ObjectSerializer.
+                    deserialize(newConf.get("udf.import.list")));
+        }
+        if(! isConfPropEqual(JobControlCompiler.PIG_MAP_STORES, currentConf, newConf)){
+            mapStores = getStores(newConf, JobControlCompiler.PIG_MAP_STORES);
+        }
+        if(! isConfPropEqual(JobControlCompiler.PIG_REDUCE_STORES, currentConf, newConf)){
+            reduceStores = getStores(newConf, JobControlCompiler.PIG_REDUCE_STORES);
+        }
+        //keep a copy of the config, so some steps don't need to be taken unless
+        // config properties have changed (eg. creating stores).
+        currentConf = new Configuration(newConf);
+    }
+    
+    /**
+     * Check if given property prop is same in configurations conf1, conf2
+     * @param prop
+     * @param conf1
+     * @param conf2
+     * @return true if both are equal 
+     */
+    private boolean isConfPropEqual(String prop, Configuration conf1,
+            Configuration conf2) {
+        if( (conf1 == null || conf2 == null) && (conf1 != conf2) ){
+            return false;
+        }
+        String str1 = conf1.get(prop);
+        String str2 = conf2.get(prop);
+        if( (str1 == null || str2 == null) && (str1 != str2) ){
+            return false;
+        }
+        return str1.equals(str2);
+    }
+
     @Override
     public OutputCommitter getOutputCommitter(TaskAttemptContext 
             taskattemptcontext) throws IOException, InterruptedException {
-        // We setup UDFContext so in StoreFunc.getOutputFormat, which is called inside 
-        // construct of PigOutputCommitter, can make use of it
-        MapRedUtil.setupUDFContext(taskattemptcontext.getConfiguration());
+        setupUdfEnvAndStores(taskattemptcontext);
+        
         // we return an instance of PigOutputCommitter to Hadoop - this instance
         // will wrap the real OutputCommitter(s) belonging to the store(s)
-        return new PigOutputCommitter(taskattemptcontext);
+        return new PigOutputCommitter(taskattemptcontext,
+                mapStores,
+                reduceStores);
     }
 }
