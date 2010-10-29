@@ -34,6 +34,8 @@ PIG-1608: pig should always include pig-default.properties and pig.properties in
 
 OPTIMIZATIONS
 
+PIG-1696: Performance: Use System.arraycopy() instead of manually copying the bytes while reading the data (hashutosh)
+
 BUG FIXES
 
 Release 0.8.0 - Unreleased

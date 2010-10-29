@@ -68,16 +68,8 @@ public class DataByteArray implements Comparable, Serializable {
         if(totalSize == 0) {
             return;
         }
-        mData = new byte[totalSize];
-        int i = 0;
-        for ( ;i < baLength; i++) {
-            mData[i] = ba[i];
-        }
-        
-        for (int j = 0; j < caLength; j++, i++) {
-            mData[i] = ca[j];
-        }
-        
+        System.arraycopy(ba, 0, mData = new byte[totalSize], 0, baLength);
+        System.arraycopy(ca, 0, mData,baLength, caLength);
     }
     
     /**
@@ -88,10 +80,8 @@ public class DataByteArray implements Comparable, Serializable {
      * @param end ending point to copy to, exclusive.
      */
     public DataByteArray(byte[] b, int start, int end) {
-        mData = new byte[end - start];
-        for (int i = start; i < end; i++) {
-            mData[i - start] = b[i];
-        }
+    	
+    System.arraycopy(b, start, mData = new byte[end - start], 0, end-start);
     }
 
     /**
@@ -160,15 +150,8 @@ public class DataByteArray implements Comparable, Serializable {
             return;
         }
         byte[] oldData = mData == null ? new byte[0] : mData.clone();
-        mData = new byte[totalSize];
-        int i = 0;
-        for ( ;i < mDataLength; i++) {
-            mData[i] = oldData[i];
-        }
-
-        for (int j = 0; j < baLength; j++, i++) {
-            mData[i] = ba[j];
-        }
+        System.arraycopy(oldData, 0, mData = new byte[totalSize], 0, mDataLength);
+        System.arraycopy(ba, 0, mData, mDataLength, baLength);
     }
 
     /**
