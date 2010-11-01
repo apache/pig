@@ -1024,6 +1024,21 @@ public class TestNewPlanPushDownForeachFlatten {
         Operator sort = newLogicalPlan.getSuccessors( foreach1 ).get( 0 );
         Assert.assertTrue( sort instanceof LOSort );
     }
+    
+    // See PIG-1706
+    @Test
+    public void testForeachWithUserDefinedSchema() throws Exception {
+        planTester.buildPlan("a = load '1.txt' as (a0:int, a1, a2:bag{t:(i1:int, i2:int)});");
+        planTester.buildPlan("b = load '2.txt' as (b0:int, b1);");
+        planTester.buildPlan("c = foreach a generate a0, flatten(a2) as (q1, q2);");
+        org.apache.pig.impl.logicalLayer.LogicalPlan lp = planTester.buildPlan("d = join c by a0, b by b0;");
+        
+        LogicalPlan newLogicalPlan = migrateAndOptimizePlan( lp );
+        
+        LOForEach foreach = (LOForEach)newLogicalPlan.getSinks().get( 0 );
+        Assert.assertTrue(foreach.getSchema().getField(1).alias.equals("q1"));
+        Assert.assertTrue(foreach.getSchema().getField(2).alias.equals("q2"));
+    }
 
     public class MyPlanOptimizer extends LogicalPlanOptimizer {
         protected MyPlanOptimizer(OperatorPlan p,  int iterations) {
