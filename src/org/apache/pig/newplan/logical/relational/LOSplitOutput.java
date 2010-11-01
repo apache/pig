@@ -18,13 +18,22 @@
 
 package org.apache.pig.newplan.logical.relational;
 
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+
 import org.apache.pig.impl.logicalLayer.FrontendException;
+import org.apache.pig.impl.util.Pair;
 import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.PlanVisitor;
+import org.apache.pig.newplan.logical.expression.LogicalExpression;
 import org.apache.pig.newplan.logical.expression.LogicalExpressionPlan;
+import org.apache.pig.newplan.logical.relational.LogicalSchema.LogicalFieldSchema;
 
 public class LOSplitOutput extends LogicalRelationalOperator {
     private LogicalExpressionPlan filterPlan;
+    private Map<Long, Long> uidMapping = new HashMap<Long, Long>();
     public LOSplitOutput(LogicalPlan plan) {
         super("LOSplitOutput", plan);       
     }
@@ -50,7 +59,19 @@ public class LOSplitOutput extends LogicalRelationalOperator {
         LogicalRelationalOperator input = null;
         input = (LogicalRelationalOperator)plan.getPredecessors(this).get(0);
         
-        schema = input.getSchema();
+        if (input.getSchema()!=null) {
+            schema = input.getSchema().deepCopy();
+            for (LogicalFieldSchema fs : schema.getFields()) {
+                if (uidMapping.containsKey(fs.uid)) {
+                    fs.uid = uidMapping.get(fs.uid);
+                }
+                else {
+                    long predUid = fs.uid;
+                    fs.uid = LogicalExpression.getNextUid();
+                    uidMapping.put(predUid, fs.uid);
+                }
+            }
+        }
         return schema;
     }   
     
@@ -70,5 +91,18 @@ public class LOSplitOutput extends LogicalRelationalOperator {
         } else {
             return false;
         }
+    }
+    
+    @Override
+    public void resetUid() {
+        uidMapping = new HashMap<Long, Long>();
+    }
+    
+    public long getInputUids(long uid) {
+        for (Map.Entry<Long, Long> pair : uidMapping.entrySet()) {
+            if (pair.getValue()==uid)
+                return pair.getKey();
+        }
+        return -1;
     }
 }

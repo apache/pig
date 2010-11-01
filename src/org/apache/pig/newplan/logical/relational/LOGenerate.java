@@ -275,4 +275,9 @@ public class LOGenerate extends LogicalRelationalOperator {
     public void setUidOnlySchemas(List<LogicalSchema> uidOnlySchemas) {
         this.uidOnlySchemas = uidOnlySchemas;
     }
+    
+    @Override
+    public void resetUid() {
+        this.uidOnlySchemas = null;
+    }
 }

@@ -55,21 +55,21 @@ public class LogicalPlanOptimizer extends PlanOptimizer {
     protected List<Set<Rule>> buildRuleSets() {
         List<Set<Rule>> ls = new ArrayList<Set<Rule>>();	    
 
-        // Logical expression simplifier
-        Set<Rule> s = new HashSet<Rule>();
-        // add logical expression simplification rule
-        Rule r = new LogicalExpressionSimplifier("FilterLogicExpressionSimplifier");
-        checkAndAddRule(s, r);
-        ls.add(s);
-
         // ImplicitSplitInserter set
         // This set of rules Insert Foreach dedicated for casting after load
-        s = new HashSet<Rule>();
-        r = new ImplicitSplitInserter("ImplicitSplitInserter");
+        Set<Rule> s = new HashSet<Rule>();
+        Rule r = new ImplicitSplitInserter("ImplicitSplitInserter");
         checkAndAddRule(s, r);
         if (!s.isEmpty())
             ls.add(s);
-        
+
+        // Logical expression simplifier
+        s = new HashSet<Rule>();
+        // add logical expression simplification rule
+        r = new LogicalExpressionSimplifier("FilterLogicExpressionSimplifier");
+        checkAndAddRule(s, r);
+        ls.add(s);
+
         // TypeCastInserter set
         // This set of rules Insert Foreach dedicated for casting after load
         s = new HashSet<Rule>();
