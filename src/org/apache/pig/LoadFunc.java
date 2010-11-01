@@ -270,6 +270,8 @@ public abstract class LoadFunc {
                                 new Path(curDir, path).toString();
             }
             fname = fname.replaceFirst("^file:/([^/])", "file:///$1");
+            // remove the trailing /
+            fname = fname.replaceFirst("/$", "");
             pathStrings.add(fname);
         }
     

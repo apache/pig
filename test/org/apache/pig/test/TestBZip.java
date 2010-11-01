@@ -117,6 +117,65 @@ public class TestBZip {
         out.delete();
     }
     
+   /**
+    * Tests the end-to-end writing and reading of a BZip file using absolute path with a trailing /.
+    */
+    @Test
+    public void testBzipInPig2() throws Exception {
+        PigServer pig = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+       
+        File in = File.createTempFile("junit", ".bz2");
+        in.deleteOnExit();
+        
+        File out = File.createTempFile("junit", ".bz2");
+        out.deleteOnExit();
+        out.delete();
+               
+        CBZip2OutputStream cos = 
+            new CBZip2OutputStream(new FileOutputStream(in));
+        for (int i = 1; i < 100; i++) {
+            StringBuffer sb = new StringBuffer();
+            sb.append(i).append("\n").append(-i).append("\n");
+            byte bytes[] = sb.toString().getBytes();
+            cos.write(bytes);
+        }
+        cos.close();
+                       
+        pig.registerQuery("AA = load '"
+                + Util.generateURI(in.getAbsolutePath(), pig.getPigContext())
+                + "';");
+        pig.registerQuery("A = foreach (group (filter AA by $0 > 0) all) generate flatten($1);");
+        pig.registerQuery("store A into '" + out.getAbsolutePath() + "/';");
+        FileSystem fs = FileSystem.get(ConfigurationUtil.toConfiguration(
+                pig.getPigContext().getProperties()));
+        FSDataInputStream is = fs.open(new Path(out.getAbsolutePath() + 
+                "/part-r-00000.bz2"));
+        CBZip2InputStream cis = new CBZip2InputStream(is);
+        
+        // Just a sanity check, to make sure it was a bzip file; we
+        // will do the value verification later
+        assertEquals(100, cis.read(new byte[100]));
+        cis.close();
+        
+        pig.registerQuery("B = load '" + out.getAbsolutePath() + "';");
+        
+        Iterator<Tuple> i = pig.openIterator("B");
+        HashMap<Integer, Integer> map = new HashMap<Integer, Integer>();
+        while (i.hasNext()) {
+            Integer val = DataType.toInteger(i.next().get(0));
+            map.put(val, val);            
+        }
+        
+        assertEquals(new Integer(99), new Integer(map.keySet().size()));
+        
+        for (int j = 1; j < 100; j++) {
+            assertEquals(new Integer(j), map.get(j));
+        }
+        
+        in.delete();
+        out.delete();
+    }
+
     /** 
      * Tests that '\n', '\r' and '\r\n' are treated as record delims when using
      * bzip just like they are when using uncompressed text
