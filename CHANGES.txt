@@ -217,6 +217,8 @@ PIG-1309: Map-side Cogroup (ashutoshc)
 
 BUG FIXES
 
+PIG-1705: New logical plan: self-join fail for some queries (daijy)
+
 PIG-1704: Output Compression is not at work if the output path is absolute and there is a trailing / afte the compression suffix (yanz)
 
 PIG-1695: MergeForEach does not carry user defined schema if any one of the merged ForEach has user defined schema (daijy)

@@ -83,7 +83,14 @@ abstract public class LogicalRelationalOperator extends Operator {
     public void resetSchema() {
         schema = null;
     }
- 
+    
+    /**
+     * Erase all cached uid, regenerate uid when we regenerating schema.
+     * This process currently only used in ImplicitSplitInsert, which will
+     * insert split and invalidate some uids in plan
+     */
+    public void resetUid() {
+    }
 
     /**
      * Get the requestedParallelism for this operator.
