@@ -390,7 +390,7 @@ public class TestStore extends junit.framework.TestCase {
 
     @Test
     public void testStoreRemoteNormalize() throws Exception {
-        checkStorePath("/tmp/foo/../././","/tmp/foo/../././");
+        checkStorePath("/tmp/foo/../././","/tmp/foo/.././.");
     }
 
     @Test

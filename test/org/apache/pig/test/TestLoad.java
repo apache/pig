@@ -176,7 +176,7 @@ public class TestLoad extends junit.framework.TestCase {
         for (PigServer pig : servers) {
             pc = pig.getPigContext();
             boolean noConversionExpected = true;
-            checkLoadPath("/tmp/foo/../././","/tmp/foo/../././", noConversionExpected);
+            checkLoadPath("/tmp/foo/../././","/tmp/foo/.././.", noConversionExpected);
         }
     }
 
@@ -266,6 +266,7 @@ public class TestLoad extends junit.framework.TestCase {
         String nonDfsUrl = "har://hdfs-namenode/user/foo/";
         LogicalPlan lp = lpt.buildPlan("a = load '" + nonDfsUrl + "';");
         LOLoad load = (LOLoad) lp.getRoots().get(0);
+        nonDfsUrl = nonDfsUrl.replaceFirst("/$", "");
         Assert.assertEquals(nonDfsUrl, load.getInputFile().getFileName());
     }
     
