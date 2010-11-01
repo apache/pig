@@ -19,8 +19,10 @@ package org.apache.pig.newplan.logical.rules;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.pig.newplan.logical.expression.LogicalExpression;
 import org.apache.pig.newplan.logical.expression.LogicalExpressionPlan;
@@ -33,6 +35,7 @@ import org.apache.pig.newplan.logical.relational.LOCross;
 import org.apache.pig.newplan.logical.relational.LOJoin;
 import org.apache.pig.newplan.logical.relational.LogicalPlan;
 import org.apache.pig.newplan.logical.relational.LogicalRelationalOperator;
+import org.apache.pig.newplan.logical.relational.LogicalSchema;
 import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.OperatorPlan;
 import org.apache.pig.newplan.OperatorSubPlan;
@@ -230,6 +233,7 @@ public class PushDownForEachFlatten extends Rule {
             } else if( next instanceof LOCross || next instanceof LOJoin ) {
                 List<Operator> preds = currentPlan.getPredecessors( next );
                 List<Integer> fieldsToBeFlattaned = new ArrayList<Integer>();
+                Map<Integer, LogicalSchema> cachedUserDefinedSchema = new HashMap<Integer, LogicalSchema>();
                 boolean[] flags = null;
                 int fieldCount = 0;
                 for( Operator op : preds ) {
@@ -238,7 +242,12 @@ public class PushDownForEachFlatten extends Rule {
                         flags = gen.getFlattenFlags();
                         for( int i = 0; i < flags.length; i++ ) {
                             if( flags[i] ) {
-                                fieldsToBeFlattaned.add( fieldCount++ );
+                                fieldsToBeFlattaned.add(fieldCount);
+                                if (gen.getUserDefinedSchema()!=null && gen.getUserDefinedSchema().get(i)!=null) {
+                                    cachedUserDefinedSchema.put(fieldCount, gen.getUserDefinedSchema().get(i));
+                                    gen.getUserDefinedSchema().set(i, null);
+                                }
+                                fieldCount++;
                             } else {
                                 fieldCount++;
                             }
@@ -248,9 +257,19 @@ public class PushDownForEachFlatten extends Rule {
                     }
                 }
                 
+                
                 boolean[] flattenFlags = new boolean[fieldCount];
+                List<LogicalSchema> mUserDefinedSchema = null;
+                if (cachedUserDefinedSchema!=null) {
+                    mUserDefinedSchema = new ArrayList<LogicalSchema>();
+                    for (int i=0;i<fieldCount;i++)
+                        mUserDefinedSchema.add(null);
+                }
                 for( Integer i : fieldsToBeFlattaned ) {
                     flattenFlags[i] = true;
+                    if (cachedUserDefinedSchema.containsKey(i)) {
+                        mUserDefinedSchema.set(i, cachedUserDefinedSchema.get(i));
+                    }
                 }
                 
                 // Now create a new foreach after cross/join and insert it into the plan.
@@ -258,6 +277,8 @@ public class PushDownForEachFlatten extends Rule {
                 LogicalPlan innerPlan = new LogicalPlan();
                 List<LogicalExpressionPlan> exprs = new ArrayList<LogicalExpressionPlan>( fieldCount );
                 LOGenerate gen = new LOGenerate( innerPlan, exprs, flattenFlags );
+                if (mUserDefinedSchema!=null)
+                    gen.setUserDefinedSchema(mUserDefinedSchema);
                 innerPlan.add( gen );
                 newForeach.setInnerPlan( innerPlan );
                 for( int i = 0; i < fieldCount; i++ ) {
