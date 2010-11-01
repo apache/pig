@@ -56,8 +56,8 @@ public class PigOutputCommitter extends OutputCommitter {
     
     /**
      * @param context
-     * @param list2 
-     * @param list 
+     * @param mapStores 
+     * @param reduceStores 
      * @throws IOException
      */
     public PigOutputCommitter(TaskAttemptContext context,
