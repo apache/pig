@@ -109,4 +109,8 @@ public class LOStream extends LogicalRelationalOperator {
         return castInserted;
     }
 
+    @Override
+    public void resetUid() {
+        uidOnlySchema = null;
+    }
 }

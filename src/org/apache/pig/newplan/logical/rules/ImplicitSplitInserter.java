@@ -26,6 +26,7 @@ import org.apache.pig.data.DataType;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.util.Pair;
 import org.apache.pig.newplan.Operator;
+import org.apache.pig.newplan.logical.optimizer.UidResetter;
 import org.apache.pig.newplan.logical.relational.LogicalPlan;
 import org.apache.pig.newplan.OperatorPlan;
 import org.apache.pig.newplan.logical.expression.LogicalExpressionPlan;
@@ -127,6 +128,8 @@ public class ImplicitSplitInserter extends Rule {
           currentPlan.connect(splitOp, splitOutput);
           currentPlan.connect(splitOutput, pos.first, suc, pos.second);
         }
+        UidResetter uidResetter = new UidResetter(currentPlan);
+        uidResetter.visit();
       }
       
       @Override

@@ -283,4 +283,9 @@ public class LOCogroup extends LogicalRelationalOperator {
         return mIsInner;
     }
 
+    @Override
+    public void resetUid() {
+        groupKeyUidOnlySchema = null;
+        generatedInputUids = new HashMap<Integer,Long>();
+    }
 }

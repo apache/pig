@@ -93,7 +93,7 @@ public class ProjectionPatcher implements PlanTransformListener {
         }        
     }
     
-    private static class ProjectionFinder extends AllExpressionVisitor {
+    public static class ProjectionFinder extends AllExpressionVisitor {
 
         public ProjectionFinder(OperatorPlan plan) throws FrontendException {
             super(plan, new DependencyOrderWalker(plan));

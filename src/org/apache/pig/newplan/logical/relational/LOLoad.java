@@ -194,4 +194,9 @@ public class LOLoad extends LogicalRelationalOperator {
     public Configuration getConfiguration() {
         return conf;
     }
+    
+    @Override
+    public void resetUid() {
+        uidOnlySchema = null;
+    }
 }

@@ -120,4 +120,9 @@ public class LOUnion extends LogicalRelationalOperator {
         }
         return result;
     }
+    
+    @Override
+    public void resetUid() {
+        uidMapping = new ArrayList<Pair<Long, Long>>();
+    }
 }

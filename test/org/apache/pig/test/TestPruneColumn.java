@@ -61,6 +61,7 @@ public class TestPruneColumn extends TestCase {
     File tmpFile8;
     File tmpFile9;
     File tmpFile10;
+    File tmpFile11;
     File logFile;
 
     static public class PigStorageWithTrace extends PigStorage {
@@ -172,6 +173,12 @@ public class TestPruneColumn extends TestCase {
         ps.println("1\t[1#1,2#1]\t2");
         ps.close();
 
+        tmpFile11 = File.createTempFile("prune", "txt");
+        ps = new PrintStream(new FileOutputStream(tmpFile11));
+        ps.println("1\t2\t3");
+        ps.println("1\t3\t2");
+        ps.println("2\t5\t2");
+        ps.close();
     }
     
     @After
@@ -1856,6 +1863,34 @@ public class TestPruneColumn extends TestCase {
 
         assertTrue(emptyLogFileMessage());
     }
+    
+    @Test
+    public void testSplit5() throws Exception {
+        pigServer.registerQuery("A = load '"+ Util.generateURI(tmpFile11.toString(), pigServer.getPigContext()) + "' AS (a0:int, a1:int, a2:int);");
+        pigServer.registerQuery("B = foreach A generate a0, a1;");
+        pigServer.registerQuery("C = join A by a0, B by a0;");
+        pigServer.registerQuery("D = filter C by A::a1>=B::a1;");
+        Iterator<Tuple> iter = pigServer.openIterator("D");
+
+        assertTrue(iter.hasNext());
+        Tuple t = iter.next();
+        assertTrue(t.toString().equals("(1,2,3,1,2)"));
+        
+        assertTrue(iter.hasNext());
+        t = iter.next();
+        assertTrue(t.toString().equals("(1,3,2,1,2)"));
+        
+        assertTrue(iter.hasNext());
+        t = iter.next();
+        assertTrue(t.toString().equals("(1,3,2,1,3)"));
+
+        assertTrue(iter.hasNext());
+        t = iter.next();
+        assertTrue(t.toString().equals("(2,5,2,2,5)"));
+        
+        assertTrue(emptyLogFileMessage());
+    }
+
 
     // See PIG-1493
     @Test
@@ -1913,6 +1948,4 @@ public class TestPruneColumn extends TestCase {
         reader1.close();
         reader2.close();
     }
-
-
 }

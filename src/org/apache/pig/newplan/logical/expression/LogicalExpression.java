@@ -110,4 +110,12 @@ public abstract class LogicalExpression extends Operator {
      */
     abstract public LogicalExpression deepCopy(LogicalExpressionPlan lgExpPlan) throws FrontendException;
 
+    /**
+     * Erase all cached uid, regenerate uid when we regenerating schema.
+     * This process currently only used in ImplicitSplitInsert, which will
+     * insert split and invalidate some uids in plan
+     */
+    public void resetUid() {
+        uidOnlyFieldSchema = null;
+    }
 }

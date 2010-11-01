@@ -367,7 +367,11 @@ public class ColumnPruneHelper {
             
             // the input uids contains all the output uids and
             // projections in splitOutput conditions
-            Set<Long> input = new HashSet<Long>(output);
+            Set<Long> input = new HashSet<Long>();
+            
+            for (long uid : output) {
+                input.add(splitOutput.getInputUids(uid));
+            }
             
             LogicalExpressionPlan exp = splitOutput.getFilterPlan();
             collectUids(splitOutput, exp, input);
