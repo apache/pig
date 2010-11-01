@@ -32,6 +32,7 @@ import org.apache.pig.newplan.logical.relational.LOJoin;
 import org.apache.pig.newplan.logical.relational.LogicalPlan;
 import org.apache.pig.newplan.logical.relational.LogicalRelationalOperator;
 import org.apache.pig.newplan.logical.relational.LogicalRelationalNodesVisitor;
+import org.apache.pig.newplan.logical.relational.LogicalSchema;
 import org.apache.pig.newplan.logical.rules.AddForEach;
 import org.apache.pig.newplan.logical.rules.LoadTypeCastInserter;
 import org.apache.pig.newplan.logical.rules.MergeForEach;
@@ -79,8 +80,8 @@ public class TestMergeForEachOptimization {
     public void testSimple() throws IOException  {
         LogicalPlanTester lpt = new LogicalPlanTester( pc );
         lpt.buildPlan( "A = load 'file.txt' as (a, b, c);" );
-        lpt.buildPlan( "B = foreach A generate a+b as u, c-b as v;" );
-        lpt.buildPlan( "C = foreach B generate $0+5, v;" );
+        lpt.buildPlan( "B = foreach A generate a+b, c-b;" );
+        lpt.buildPlan( "C = foreach B generate $0+5, $1;" );
         org.apache.pig.impl.logicalLayer.LogicalPlan plan = lpt.buildPlan( "store C into 'empty';" );  
         LogicalPlan newLogicalPlan = migratePlan( plan );
         
@@ -109,8 +110,8 @@ public class TestMergeForEachOptimization {
     public void testComplex() throws IOException {
         LogicalPlanTester lpt = new LogicalPlanTester( pc );
         lpt.buildPlan( "A = load 'file.txt' as (a:int, b, c:bag{t:tuple(c0:int,c1:int)});" );
-        lpt.buildPlan( "B = foreach A { S = ORDER c BY $0; generate $0 as u, COUNT(S) as v, SUM(S) as w; };" );
-        lpt.buildPlan( "C = foreach B generate w+5 as x, u-v/2;" );
+        lpt.buildPlan( "B = foreach A { S = ORDER c BY $0; generate $0, COUNT(S), SUM(S); };" );
+        lpt.buildPlan( "C = foreach B generate $2+5 as x, $0-$1/2 as y;" );
         org.apache.pig.impl.logicalLayer.LogicalPlan plan = lpt.buildPlan( "store C into 'empty';" );  
         LogicalPlan newLogicalPlan = migratePlan( plan );
         
@@ -130,6 +131,9 @@ public class TestMergeForEachOptimization {
         Assert.assertTrue( outputExprCount1 == outputExprCount2 );
         LOForEach foreach2 = getForEachOperator( newLogicalPlan );
         Assert.assertTrue( foreach2.getAlias().equals( "C" ) );
+        LogicalSchema newSchema = foreach2.getSchema();
+        Assert.assertTrue(newSchema.getField(0).alias.equals("x"));
+        Assert.assertTrue(newSchema.getField(1).alias.equals("y"));
     }
     
     /**
@@ -227,9 +231,9 @@ public class TestMergeForEachOptimization {
         LogicalPlanTester lpt = new LogicalPlanTester( pc );
         lpt.buildPlan( "l1 = load 'y' as (a);" );
         lpt.buildPlan( "l2 = load 'z' as (a1,b1,c1,d1);" );
-        lpt.buildPlan( "f1 = foreach l2 generate a1 as a, b1 as b, c1 as c, d1 as d;" );
-        lpt.buildPlan( "f2 = foreach f1 generate a,b,c;" );
-        lpt.buildPlan( "j1 = join f2 by a, l1 by a using 'replicated';" );
+        lpt.buildPlan( "f1 = foreach l2 generate a1, b1, c1, d1;" );
+        lpt.buildPlan( "f2 = foreach f1 generate a1, b1, c1;" );
+        lpt.buildPlan( "j1 = join f2 by a1, l1 by a using 'replicated';" );
         
         org.apache.pig.impl.logicalLayer.LogicalPlan plan = lpt.buildPlan( "store j1 into 'empty';" );  
         LogicalPlan newLogicalPlan = migratePlan( plan );

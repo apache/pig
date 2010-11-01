@@ -36,6 +36,7 @@ import org.apache.pig.newplan.logical.relational.LOGenerate;
 import org.apache.pig.newplan.logical.relational.LOInnerLoad;
 import org.apache.pig.newplan.logical.relational.LogicalPlan;
 import org.apache.pig.newplan.logical.relational.LogicalRelationalOperator;
+import org.apache.pig.newplan.logical.relational.LogicalSchema;
 import org.apache.pig.newplan.optimizer.Rule;
 import org.apache.pig.newplan.optimizer.Transformer;
 import org.apache.pig.impl.logicalLayer.FrontendException;
@@ -87,6 +88,13 @@ public class MergeForEach extends Rule {
             for (boolean flatten : gen1.getFlattenFlags()) {
                 if( flatten )
                     return false;
+            }
+            if (gen1.getUserDefinedSchema()!=null) {
+                for (LogicalSchema s : gen1.getUserDefinedSchema()) {
+                    if (s!=null) {
+                        return false;
+                    }
+                }
             }
             
             // Check if non of the 1st foreach output is referred more than once in second foreach.
@@ -194,6 +202,7 @@ public class MergeForEach extends Rule {
             newForEach.setRequestedParallelism(foreach1.getRequestedParallelisam());
             List<LogicalExpressionPlan> newExpList = new ArrayList<LogicalExpressionPlan>();
             LOGenerate newGen = new LOGenerate(newForEachInnerPlan, newExpList, gen2.getFlattenFlags());
+            newGen.setUserDefinedSchema(gen2.getUserDefinedSchema());
             newForEachInnerPlan.add(newGen);
             
             for (LogicalExpressionPlan exp2 : gen2.getOutputPlans()) {
