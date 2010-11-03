@@ -109,7 +109,10 @@ public static void main(String args[]) {
 
 static int run(String args[], PigProgressNotificationListener listener) {
     int rc = 1;
-    
+    boolean verbose = false;
+    boolean gruntCalled = false;
+    String logFileName = null;
+    try {
     GenericOptionsParser parser = new GenericOptionsParser(args);
     Configuration conf = parser.getConfiguration();    
     
@@ -119,14 +122,12 @@ static int run(String args[], PigProgressNotificationListener listener) {
     
     String[] pigArgs = parser.getRemainingArgs();
     
-    boolean verbose = false;
-    boolean gruntCalled = false;
-    String logFileName = null;
+    
     boolean userSpecifiedLog = false;
     
     boolean checkScriptOnly = false;
 
-    try {
+    
         BufferedReader pin = null;
         boolean debug = false;
         boolean dryrun = false;
