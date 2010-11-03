@@ -26,6 +26,9 @@ PIG-1249: Safe-guards against misconfigured Pig scripts without PARALLEL keyword
 
 IMPROVEMENTS
 
+PIG-1707: Allow pig build to pull from alternate maven repo to enable building
+against newer hadoop versions (pradeepkth)
+
 PIG-1677: modify the repository path of pig artifacts to org/apache/pig in stead or org/apache/hadoop/pig (nrai via olgan)
 
 PIG-1600: Docs update (romainr via olgan)
