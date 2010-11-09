@@ -107,20 +107,19 @@
     <property name="src.gen.param.parser.dir" value="${src.gen.dir}/org/apache/pig/tools/parameters" />
     <property name="src.gen.dot.parser.dir" value="${test.src.dir}/org/apache/pig/test/utils/dotGraph/parser" />
     <property name="src.gen.textdata.parser.dir" value="${src.gen.dir}/org/apache/pig/data/parser" />
-	
-	<!-- Antlr Parser properties -->
-	<property name="grammar.name" value="Query"/>
-	<property name="grammar.name.lower" value="query"/>
-	<property name="grammar.package" value="org.apache.pig.parser"/>
-	<property name="grammar.package.dir" value="org/apache/pig/parser"/>
-	<property name="grammar.src.dir" value="${src.dir}/${grammar.package.dir}"/>
-	
-	<!-- Antlr properties -->
-	<property name="antlr.dir" location="${lib.dir}"/>
-	<property name="antlr.version" value="3.2"/>
-	<property name="antlr3.jar" value="${antlr.dir}/antlr-${antlr.version}.jar"/>
+    
+    <!-- Antlr Parser properties -->
+    <property name="grammar.name" value="Query"/>
+    <property name="grammar.name.lower" value="query"/>
+    <property name="grammar.package" value="org.apache.pig.parser"/>
+    <property name="grammar.package.dir" value="org/apache/pig/parser"/>
+    <property name="grammar.src.dir" value="${src.dir}/${grammar.package.dir}"/>
+    
+    <!-- Antlr properties -->
+    <property name="antlr.version" value="3.2"/>
+    <property name="antlr.jar" value="antlr-${antlr.version}.jar"/>
 
-	<!-- rats properties -->
+    <!-- rats properties -->
     <property name="rat.reporting.classname" value="rat.Report"/>
 
     <!-- javadoc properties  -->
@@ -205,7 +204,7 @@
         <fileset file="${lib.dir}/${hbase.jarfile}" />
         <fileset file="${lib.dir}/${hbase.test.jarfile}" />
     	<fileset file="${lib.dir}/${zookeeper.jarfile}"/>
-    	<pathelement location="${antlr3.jar}"/>
+    	<fileset file="${lib.dir}/${antlr.jar}"/>
     </path>
 
     <!-- javadoc-classpath -->
@@ -214,6 +213,7 @@
 	<fileset file="${lib.dir}/${guava.jarfile}" />
 	<fileset file="${lib.dir}/${automaton.jarfile}" />
         <fileset file="${lib.dir}/${hbase.test.jarfile}" />
+    	<fileset file="${lib.dir}/${antlr.jar}"/>
 	<path refid="javadoc.classpath"/>	
     </path> 
 
