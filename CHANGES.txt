@@ -220,6 +220,8 @@ PIG-1309: Map-side Cogroup (ashutoshc)
 
 BUG FIXES
 
+PIG-1715: pig-withouthadoop.jar missing automaton.jar (thejas)
+
 PIG-1706: New logical plan: PushDownFlattenForEach fail if flattened field has user defined schema (daijy)
 
 PIG-1705: New logical plan: self-join fail for some queries (daijy)
