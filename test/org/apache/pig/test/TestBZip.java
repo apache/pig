@@ -440,4 +440,35 @@ public class TestBZip {
         stat = fs.getFileStatus(new Path("output.bz2/part-m-00000.bz2"));
         assertTrue(stat.getLen() > 0);     
     }
+
+    @Test
+    public void testBzipStoreInMultiQuery2() throws Exception {
+        String[] inputData = new String[] {
+                "1\t2\r3\t4"
+        };
+        
+        String inputFileName = "input2.txt";
+        Util.createInputFile(cluster, inputFileName, inputData);
+        
+        PigServer pig = new PigServer(ExecType.MAPREDUCE, cluster
+                .getProperties());
+        PigContext pigContext = pig.getPigContext();
+        pigContext.getProperties().setProperty( "output.compression.enabled", "true" );
+        pigContext.getProperties().setProperty( "output.compression.codec", "org.apache.hadoop.io.compress.BZip2Codec" );
+        
+        pig.setBatchOn();
+        pig.registerQuery("a = load '" +  inputFileName + "';");
+        pig.registerQuery("store a into 'output2.bz2';");
+        pig.registerQuery("store a into 'output2';");
+        pig.executeBatch();
+        
+        FileSystem fs = FileSystem.get(ConfigurationUtil.toConfiguration(
+                pig.getPigContext().getProperties()));
+        FileStatus stat = fs.getFileStatus(new Path("output2/part-m-00000.bz2"));        
+        assertTrue(stat.getLen() > 0);     
+        
+        stat = fs.getFileStatus(new Path("output2.bz2/part-m-00000.bz2"));
+        assertTrue(stat.getLen() > 0);     
+    }
+    
 }
