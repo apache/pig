@@ -220,6 +220,9 @@ PIG-1309: Map-side Cogroup (ashutoshc)
 
 BUG FIXES
 
+PIG-1714: Option mapred.output.compress doesn't work in Pig 0.8 but worked in
+0.7 (xuefuz via rding)
+
 PIG-1715: pig-withouthadoop.jar missing automaton.jar (thejas)
 
 PIG-1706: New logical plan: PushDownFlattenForEach fail if flattened field has user defined schema (daijy)
