@@ -24,6 +24,9 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-1722 PiggyBank AllLoader - Load multiple file formats in one load
+statement (gerritjw via gates)
+
 PIG-1502 Remove Owl as a contrib project (gates)
 
 PIG-1386 UDF to extend functionalities of MaxTupleBy1stField (hcbusy via olgan)
