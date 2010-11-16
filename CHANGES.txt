@@ -207,6 +207,8 @@ PIG-1309: Map-side Cogroup (ashutoshc)
 
 BUG FIXES
 
+PIG_1723: Need to limit the length of Pig counter names (rding)
+
 PIG-1714: Option mapred.output.compress doesn't work in Pig 0.8 but worked in
 0.7 (xuefuz via rding)
 
