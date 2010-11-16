@@ -72,6 +72,10 @@ public abstract class PigStatsUtil {
             = "MultiInputCounters";
     
     private static final Log LOG = LogFactory.getLog(PigStatsUtil.class);
+    
+    // Restrict total string size of a counter name to 64 characters.
+    // Leave 24 characters for prefix string.
+    private static final int COUNTER_NAME_LIMIT = 40;
    
     /**
      * Returns the count for the given counter name in the counter group 
@@ -134,13 +138,18 @@ public abstract class PigStatsUtil {
         } else {
             slash = uri.lastIndexOf(SEPARATOR);
         }
+        String shortName = null;
         if (scolon==-1) {
-            return uri.substring(slash+1);
+            shortName = uri.substring(slash+1);
         }
         if (slash < scolon) {
-            return uri.substring(slash+1, scolon);
+            shortName = uri.substring(slash+1, scolon);
         }
-        return null;
+        if (shortName != null && shortName.length() > COUNTER_NAME_LIMIT) {
+            shortName = shortName.substring(shortName.length()
+                    - COUNTER_NAME_LIMIT);
+        }
+        return shortName;
     }
            
     /**

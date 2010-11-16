@@ -39,6 +39,7 @@ import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.newplan.Operator;
+import org.apache.pig.tools.pigstats.InputStats;
 import org.apache.pig.tools.pigstats.JobStats;
 import org.apache.pig.tools.pigstats.OutputStats;
 import org.apache.pig.tools.pigstats.PigProgressNotificationListener;
@@ -425,6 +426,44 @@ public class TestPigRunner {
         s = "file:///tmp/batchtest*.txt";
         name = PigStatsUtil.getMultiInputsCounterName(s);
         assertEquals(PigStatsUtil.MULTI_INPUTS_RECORD_COUNTER + "batchtest*.txt", name);
+    }
+    
+    @Test
+    public void testLongCounterName() throws Exception {
+        // Pig now restricts the string size of its counter name to less than 64 characters.
+        PrintWriter w = new PrintWriter(new FileWriter("myinputfile"));
+        w.println("1\t2\t3");
+        w.println("5\t3\t4");
+        w.println("3\t4\t5");
+        w.println("5\t6\t7");
+        w.println("3\t7\t8");
+        w.close();
+        String longfilename = "longlonglonglonglonglonglonglonglonglonglonglongfilefilefilename";
+        Util.copyFromLocalToCluster(cluster, "myinputfile", longfilename);
+        
+        PrintWriter w1 = new PrintWriter(new FileWriter(PIG_FILE));
+        w1.println("A = load '" + INPUT_FILE + "' as (a0:int, a1:int, a2:int);");
+        w1.println("B = load '" + longfilename + "' as (a0:int, a1:int, a2:int);");
+        w1.println("C = join A by a0, B by a0;");
+        w1.println("store C into '" + OUTPUT_FILE + "';");
+        w1.close();
+        
+        try {
+            String[] args = { PIG_FILE };
+            PigStats stats = PigRunner.run(args, new TestNotificationListener());
+     
+            assertTrue(stats.isSuccessful());
+            
+            assertEquals(1, stats.getNumberJobs());
+            List<InputStats> inputs = stats.getInputStats();
+            assertEquals(2, inputs.size());
+            for (InputStats instats : inputs) {
+                assertEquals(5, instats.getNumberRecords());
+            }
+        } finally {
+            new File(PIG_FILE).delete();
+            Util.deleteFile(cluster, OUTPUT_FILE);
+        }
     }
     
     @Test
