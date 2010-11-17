@@ -207,6 +207,8 @@ PIG-1309: Map-side Cogroup (ashutoshc)
 
 BUG FIXES
 
+PIG-1715: pig-withouthadoop.jar missing automaton.jar (thejas)
+
 PIG-1727: Hadoop default config override pig.properties (rding)
 
 PIG-1731: Stack Overflows where there are composite logical expressions on UDFs using the new logical plan (yanz)
