@@ -642,12 +642,8 @@ public class BinInterSedes implements InterSedes {
             int result = 0;
             try {
                 // first compare sizes
-                byte dt1 = bb1.get();
-                byte dt2 = bb2.get();
-                byte sizeType1 = getSizeType(dt1);
-                byte sizeType2 = getSizeType(dt2);
-                int tsz1 = readInt(bb1, sizeType1);
-                int tsz2 = readInt(bb2, sizeType2);
+                int tsz1 = readSize(bb1);
+                int tsz2 = readSize(bb2);
                 if (tsz1 > tsz2)
                     return 1;
                 else if (tsz1 < tsz2)
@@ -775,10 +771,8 @@ public class BinInterSedes implements InterSedes {
                 type1 = DataType.BYTEARRAY;
                 type2 = getGeneralizedDataType(dt2);
                 if (type1 == type2) {
-                    byte sizeType1 = getSizeType(dt1);
-                    byte sizeType2 = getSizeType(dt2);
-                    int basz1 = readInt(bb1, sizeType1);
-                    int basz2 = readInt(bb2, sizeType2);
+                    int basz1 = readSize(bb1, dt1);
+                    int basz2 = readSize(bb2, dt2);
                     byte[] ba1 = new byte[basz1];
                     byte[] ba2 = new byte[basz2];
                     bb1.get(ba1);
@@ -792,10 +786,8 @@ public class BinInterSedes implements InterSedes {
                 type1 = DataType.CHARARRAY;
                 type2 = getGeneralizedDataType(dt2);
                 if (type1 == type2) {
-                    byte sizeType1 = getSizeType(dt1);
-                    byte sizeType2 = getSizeType(dt2);
-                    int casz1 = readInt(bb1, sizeType1);
-                    int casz2 = readInt(bb2, sizeType2);
+                    int casz1 = readSize(bb1, dt1);
+                    int casz2 = readSize(bb2, dt2);
                     byte[] ca1 = new byte[casz1];
                     byte[] ca2 = new byte[casz2];
                     bb1.get(ca1);
@@ -820,10 +812,8 @@ public class BinInterSedes implements InterSedes {
                 type2 = getGeneralizedDataType(dt2);
                 if (type1 == type2) {
                     // first compare sizes
-                    byte sizeType1 = getSizeType(dt1);
-                    byte sizeType2 = getSizeType(dt2);
-                    int tsz1 = readInt(bb1, sizeType1);
-                    int tsz2 = readInt(bb2, sizeType2);
+                    int tsz1 = readSize(bb1, dt1);
+                    int tsz2 = readSize(bb2, dt2);
                     if (tsz1 > tsz2)
                         return 1;
                     else if (tsz1 < tsz2)
@@ -976,10 +966,8 @@ public class BinInterSedes implements InterSedes {
             int l1 = bb1.remaining();
             int l2 = bb2.remaining();
             // first compare sizes
-            byte sizeType1 = getSizeType(dt1);
-            byte sizeType2 = getSizeType(dt2);
-            int bsz1 = readInt(bb1, sizeType1);
-            int bsz2 = readInt(bb2, sizeType2);
+            int bsz1 = readSize(bb1, dt1);
+            int bsz2 = readSize(bb2, dt2);
             if (bsz1 > bsz2)
                 return 1;
             else if (bsz1 < bsz2)
@@ -1005,10 +993,8 @@ public class BinInterSedes implements InterSedes {
             int l1 = bb1.remaining();
             int l2 = bb2.remaining();
             // first compare sizes
-            byte sizeType1 = getSizeType(dt1);
-            byte sizeType2 = getSizeType(dt2);
-            int bsz1 = readInt(bb1, sizeType1);
-            int bsz2 = readInt(bb2, sizeType2);
+            int bsz1 = readSize(bb1, dt1);
+            int bsz2 = readSize(bb2, dt2);
             if (bsz1 > bsz2)
                 return 1;
             else if (bsz1 < bsz2)
@@ -1091,29 +1077,53 @@ public class BinInterSedes implements InterSedes {
                 throw new RuntimeException("Unexpected data type " + type + " found in stream.");
             }
         }
+        
+        /**
+         * @param bb ByteBuffer having serialized object, including the type information
+         * @param type serialized type information
+         * @return the size of this type
+         */
+        private static int readSize(ByteBuffer bb) {
+            return readSize(bb, bb.get());
+        }
 
-        private static byte getSizeType(byte type) {
+        /**
+         * @param bb ByteBuffer having serialized object, minus the type information
+         * @param type serialized type information
+         * @return the size of this type
+         */
+        private static int readSize(ByteBuffer bb, byte type) {
             switch (type) {
             case BinInterSedes.TINYBYTEARRAY:
             case BinInterSedes.TINYTUPLE:
             case BinInterSedes.TINYBAG:
             case BinInterSedes.TINYMAP:
-                return BinInterSedes.INTEGER_INBYTE;
+                return getUnsignedByte(bb);
             case BinInterSedes.SMALLBYTEARRAY:
             case BinInterSedes.SMALLCHARARRAY:
             case BinInterSedes.SMALLTUPLE:
             case BinInterSedes.SMALLBAG:
             case BinInterSedes.SMALLMAP:
-                return BinInterSedes.INTEGER_INSHORT;
+                return getUnsignedShort(bb);
             case BinInterSedes.BYTEARRAY:
             case BinInterSedes.CHARARRAY:
             case BinInterSedes.TUPLE:
             case BinInterSedes.BAG:
             case BinInterSedes.MAP:
-                return BinInterSedes.INTEGER;
+                return bb.getInt();
             default:
                 throw new RuntimeException("Unexpected data type " + type + " found in stream.");
             }
+        }
+
+        //same as format used by DataInput/DataOutput for unsigned short
+        private static int getUnsignedShort(ByteBuffer bb) {
+            return (((bb.get() & 0xff) << 8) | (bb.get() & 0xff));
+        }
+
+        //same as format used by DataInput/DataOutput for unsigned byte
+        private static int getUnsignedByte(ByteBuffer bb) {
+            return bb.get() & 0xff;
         }
     }
 
