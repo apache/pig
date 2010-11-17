@@ -207,6 +207,8 @@ PIG-1309: Map-side Cogroup (ashutoshc)
 
 BUG FIXES
 
+PIG-1731: Stack Overflows where there are composite logical expressions on UDFs using the new logical plan (yanz)
+
 PIG_1723: Need to limit the length of Pig counter names (rding)
 
 PIG-1714: Option mapred.output.compress doesn't work in Pig 0.8 but worked in
