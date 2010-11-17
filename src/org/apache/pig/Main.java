@@ -113,19 +113,20 @@ static int run(String args[], PigProgressNotificationListener listener) {
     boolean gruntCalled = false;
     String logFileName = null;
     try {
-    GenericOptionsParser parser = new GenericOptionsParser(args);
-    Configuration conf = parser.getConfiguration();    
-    
-    Properties properties = new Properties();
-    PropertiesUtil.loadDefaultProperties(properties);
-    properties.putAll(ConfigurationUtil.toProperties(conf));
-    
-    String[] pigArgs = parser.getRemainingArgs();
-    
-    
-    boolean userSpecifiedLog = false;
-    
-    boolean checkScriptOnly = false;
+        Configuration conf = new Configuration(false);
+        GenericOptionsParser parser = new GenericOptionsParser(conf, args);
+        conf = parser.getConfiguration();    
+        
+        Properties properties = new Properties();
+        PropertiesUtil.loadDefaultProperties(properties);
+        properties.putAll(ConfigurationUtil.toProperties(conf));
+        
+        String[] pigArgs = parser.getRemainingArgs();
+        
+        
+        boolean userSpecifiedLog = false;
+        
+        boolean checkScriptOnly = false;
 
     
         BufferedReader pin = null;
