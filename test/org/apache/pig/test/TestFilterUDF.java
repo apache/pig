@@ -166,4 +166,43 @@ public class TestFilterUDF {
             assertTrue(t.equals(expectedTuple));
         }
     }
+
+    @Test
+    public void testFilterUDFusingDefine2() throws Exception{
+        File inputFile= createFile(
+                    new String[]{ 
+                        "www.paulisageek.com\t4",
+                        "www.yahoo.com\t12344",
+                        "google.com\t1",
+                        "us2.amazon.com\t4141"
+                    }
+                );
+
+        File filterFile = createFile(
+                    new String[]{ 
+                        "12344"
+                    }
+                );
+
+        pigServer.registerQuery("define FILTER_CRITERION "
+                + FILTERFROMFILE.class.getName()
+                + "('"
+                + Util.generateURI(filterFile.toString(), pigServer
+                        .getPigContext()) + "');");
+        pigServer.registerQuery("a = LOAD '"
+                + Util.generateURI(inputFile.toString(), pigServer
+                        .getPigContext())
+                + "' as (url:chararray, numvisits:int);");
+        pigServer.registerQuery("b = filter a by FILTER_CRITERION(numvisits) AND FILTER_CRITERION(numvisits);");
+
+        Tuple expectedTuple = tf.newTuple();
+        expectedTuple.append(new String("www.yahoo.com"));
+        expectedTuple.append(new Integer("12344"));
+
+        Iterator<Tuple> iter = pigServer.openIterator("b");
+        while(iter.hasNext()){
+            Tuple t = iter.next();
+            assertTrue(t.equals(expectedTuple));
+        }
+    }
 }
