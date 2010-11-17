@@ -207,6 +207,8 @@ PIG-1309: Map-side Cogroup (ashutoshc)
 
 BUG FIXES
 
+PIG-1720: java.lang.NegativeArraySizeException during Quicksort (thejas)
+
 PIG-1715: pig-withouthadoop.jar missing automaton.jar (thejas)
 
 PIG-1727: Hadoop default config override pig.properties (rding)

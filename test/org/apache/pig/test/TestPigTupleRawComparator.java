@@ -29,11 +29,11 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Random;
 
-import org.apache.hadoop.conf.Configurable;
 import org.apache.hadoop.io.RawComparator;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigTupleDefaultRawComparator;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigTupleSortComparator;
+import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.DefaultDataBag;
 import org.apache.pig.data.Tuple;
@@ -130,24 +130,64 @@ public class TestPigTupleRawComparator {
         NullableTuple t = new NullableTuple(tf.newTuple(list));
         int res = compareHelper(prototype, t, comparator);
         assertEquals(Math.signum(prototype.compareTo(t)), Math.signum(res), 0);
+        
         list.set(6, new DataByteArray(new byte[] { 0x20 }));
         t = new NullableTuple(tf.newTuple(list));
         res = compareHelper(prototype, t, comparator);
         assertEquals(Math.signum(prototype.compareTo(t)), Math.signum(res), 0);
+        
+        // bytearray that will fit into BinInterSedes.TINYBYTEARRAY
+        String largeTinyStr = appendChars("abc", 'x', 255 - 10);
+        list.set(6, new DataByteArray(largeTinyStr));
+        t = new NullableTuple(tf.newTuple(list));
+        res = compareHelper(prototype, t, comparator);
+        assertEquals(Math.signum(prototype.compareTo(t)), Math.signum(res), 0);    
+        
+        //longest bytearray that will fit into BinInterSedes.TINYBYTEARRAY
+        largeTinyStr = appendChars("", 'x', 255);
+        list.set(6, new DataByteArray(largeTinyStr));
+        t = new NullableTuple(tf.newTuple(list));
+        res = compareHelper(prototype, t, comparator);
+        assertEquals(Math.signum(prototype.compareTo(t)), Math.signum(res), 0); 
+        
+        // bytearray that will fit into BinInterSedes.SMALLBYTEARRAY
+        String largeSmallStr = appendChars("abc", 'x', 65535 - 100);
+        list.set(6, new DataByteArray(largeSmallStr));
+        t = new NullableTuple(tf.newTuple(list));
+        res = compareHelper(prototype, t, comparator);
+        assertEquals(Math.signum(prototype.compareTo(t)), Math.signum(res), 0);          
+
+        // bytearray that will fit into BinInterSedes.BYTEARRAY
+        String largeStr = appendChars("abc", 'x', 65535 + 10000);
+        list.set(6, new DataByteArray(largeStr));
+        t = new NullableTuple(tf.newTuple(list));
+        res = compareHelper(prototype, t, comparator);
+        assertEquals(Math.signum(prototype.compareTo(t)), Math.signum(res), 0);          
+        
     }
 
-    @Test
+   @Test
     public void testCompareCharArray() throws IOException {
         list.set(7, "hello world!");
         NullableTuple t = new NullableTuple(tf.newTuple(list));
         int res = compareHelper(prototype, t, comparator);
         assertEquals(Math.signum(prototype.compareTo(t)), Math.signum(res), 0);
         assertTrue(res == 0);
+        
         list.set(7, "hello worlc!");
         t = new NullableTuple(tf.newTuple(list));
         res = compareHelper(prototype, t, comparator);
         assertEquals(Math.signum(prototype.compareTo(t)), Math.signum(res), 0);
         assertTrue(res > 0);
+        
+        // chararray that will fit into BinInterSedes.SMALLCHARARRAY
+        String largeTinyString = appendChars("hello worlc!", 'x', 300);
+        list.set(7, largeTinyString);
+        t = new NullableTuple(tf.newTuple(list));
+        res = compareHelper(prototype, t, comparator);
+        assertEquals(Math.signum(prototype.compareTo(t)), Math.signum(res), 0);
+        assertTrue(res > 0);
+        
         list.set(7, "hello worlz!");
         t = new NullableTuple(tf.newTuple(list));
         res = compareHelper(prototype, t, comparator);
@@ -165,33 +205,61 @@ public class TestPigTupleRawComparator {
         assertTrue(res < 0);
     }
 
+    private String appendChars(String str, char c, int rep) {
+        StringBuilder sb = new StringBuilder(str.length() + rep);
+        sb.append(str);
+        for(int i=0; i<rep; i++){
+            sb.append(c);
+        }
+        return sb.toString();
+    }
+
     @Test
     public void compareInnerTuples() throws IOException {
         NullableTuple t = new NullableTuple(tf.newTuple(list));
         int res = compareHelper(prototype, t, comparator);
         assertEquals(Math.signum(prototype.compareTo(t)), Math.signum(res), 0);
         assertTrue(res == 0);
+        
         list.set(8, tf.newTuple(Arrays.<Object> asList(8.0, 9f, 10l, 12)));
         t = new NullableTuple(tf.newTuple(list));
         res = compareHelper(prototype, t, comparator);
         assertEquals(Math.signum(prototype.compareTo(t)), Math.signum(res), 0);
         assertTrue(res < 0);
+        
         list.set(8, tf.newTuple(Arrays.<Object> asList(8.0, 9f, 9l, 12)));
         t = new NullableTuple(tf.newTuple(list));
         res = compareHelper(prototype, t, comparator);
         assertEquals(Math.signum(prototype.compareTo(t)), Math.signum(res), 0);
         assertTrue(res > 0);
+        
         list.set(8, tf.newTuple(Arrays.<Object> asList(7.0, 9f, 9l, 12)));
         t = new NullableTuple(tf.newTuple(list));
         res = compareHelper(prototype, t, comparator);
         assertEquals(Math.signum(prototype.compareTo(t)), Math.signum(res), 0);
         assertTrue(res > 0);
+        
+        //Tuple that will fit into BinInterSedes.TINYTUPLE
+        Tuple tinyTuple = createLargeTuple(1, 200, tf);
+        list.set(8, tinyTuple);
+        t = new NullableTuple(tf.newTuple(list));
+        res = compareHelper(prototype, t, comparator);
+        assertEquals(Math.signum(prototype.compareTo(t)), Math.signum(res), 0);
+        
+        //Tuple that will fit into BinInterSedes.SMALLTUPLE
+        Tuple smallTuple = createLargeTuple(1, 1000, tf);
+        list.set(8, smallTuple);
+        t = new NullableTuple(tf.newTuple(list));
+        res = compareHelper(prototype, t, comparator);
+        assertEquals(Math.signum(prototype.compareTo(t)), Math.signum(res), 0);
+        
         // DataType.LONG < DataType.DOUBLE
         list.set(8, tf.newTuple(Arrays.<Object> asList(8l, 9f, 9l, 12)));
         t = new NullableTuple(tf.newTuple(list));
         res = compareHelper(prototype, t, comparator);
         assertEquals(Math.signum(prototype.compareTo(t)), Math.signum(res), 0);
         assertTrue(res > 0);
+        
         // object after tuple
         list = new ArrayList<Object>(list);
         list.add(10);
@@ -201,6 +269,7 @@ public class TestPigTupleRawComparator {
         res = compareHelper(t1, t2, comparator);
         assertEquals(Math.signum(t1.compareTo(t2)), Math.signum(res), 0);
         assertTrue(res < 0);
+        
         // fancy tuple nesting
         list.set(list.size() - 1, tf.newTuple(list));
         t1 = new NullableTuple(tf.newTuple(list));
@@ -210,6 +279,14 @@ public class TestPigTupleRawComparator {
         res = compareHelper(t1, t2, comparator);
         assertEquals(Math.signum(t1.compareTo(t2)), Math.signum(res), 0);
         assertTrue(res > 0);
+    }
+
+    private Tuple createLargeTuple(int num, int repetitions, TupleFactory tf) {
+        ArrayList<Integer> ar = new ArrayList<Integer>(repetitions);
+        for(int i=0; i<repetitions; i++){
+            ar.add(i, num);
+        }
+        return tf.newTuple(ar); 
     }
 
     @Test
@@ -222,6 +299,28 @@ public class TestPigTupleRawComparator {
         int res = compareHelper(t1, t2, comparator);
         assertEquals(Math.signum(t1.compareTo(t2)), Math.signum(res), 0);
         assertTrue(res < 0);
+        
+        //bag that will fit into BinInterSedes.TINYBAG
+        DataBag largeBag = createLargeBag(200, tf);
+        t2 = new NullableTuple(tf.newTuple(largeBag));
+        res = compareHelper(t1, t2, comparator);
+        assertEquals(Math.signum(t1.compareTo(t2)), Math.signum(res), 0);
+
+        //bag that will fit into BinInterSedes.SMALLBAG
+        largeBag = createLargeBag(3000, tf);
+        t2 = new NullableTuple(tf.newTuple(largeBag));
+        res = compareHelper(t1, t2, comparator);
+        assertEquals(Math.signum(t1.compareTo(t2)), Math.signum(res), 0);
+    
+    }
+
+    private DataBag createLargeBag(int size, TupleFactory tf) {
+        Tuple t = tf.newTuple(Arrays.asList(0));
+        ArrayList<Tuple> tuplist = new ArrayList<Tuple>(size); 
+        for(int i=0; i<size; i++){
+            tuplist.add(t);
+        }
+        return new DefaultDataBag(tuplist);
     }
 
     @Test
