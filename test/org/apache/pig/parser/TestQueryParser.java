@@ -83,7 +83,57 @@ public class TestQueryParser {
         int errorCount = parse( "A = load '/Users/gates/test/data/studenttab10'; B = foreach A generate $0, 3.0e10.1;" );
         Assert.assertTrue( errorCount > 0 );
     }
+    
+    @Test
+    public void test2() throws IOException, RecognitionException {
+        int errorCount = parse( "A = load '/Users/gates/test/data/studenttab10'; B = foreach A generate ( $0 == 0 ? 1 : 0 );" );
+        Assert.assertTrue( errorCount == 0 );
+    }
 
+    @Test
+    public void testAST() throws IOException, RecognitionException  {
+        CharStream input = new QueryParserFileStream( "test/org/apache/pig/parser/TestAST.pig" );
+        QueryLexer lexer = new QueryLexer(input);
+        CommonTokenStream tokens = new  CommonTokenStream(lexer);
+
+        QueryParser parser = new QueryParser(tokens);
+        QueryParser.query_return result = parser.query();
+
+        Tree ast = (Tree)result.getTree();
+
+        System.out.println( ast.toStringTree() );
+        printTree( (CommonTree)ast, 0 );
+        Assert.assertEquals( 0, lexer.getNumberOfSyntaxErrors() );
+        Assert.assertEquals( 0, parser.getNumberOfSyntaxErrors() );
+   
+        Assert.assertEquals( "QUERY", ast.getText() );
+        Assert.assertEquals( 5, ast.getChildCount() );
+        
+        for( int i = 0; i < ast.getChildCount(); i++ ) {
+            Tree c = ast.getChild( i );
+            Assert.assertEquals( "STATEMENT", c.getText() );
+        }
+        
+        Tree stmt = ast.getChild( 0 );
+        Assert.assertEquals( "A", stmt.getChild( 0 ).getText() ); // alias
+        Assert.assertTrue( "LOAD".equalsIgnoreCase( stmt.getChild( 1 ).getText() ) );
+        
+        stmt = ast.getChild( 1 );
+        Assert.assertEquals( "B", stmt.getChild( 0 ).getText() ); // alias
+        Assert.assertTrue( "FOREACH".equalsIgnoreCase( stmt.getChild( 1 ).getText() ) );
+        
+        stmt = ast.getChild( 2 );
+        Assert.assertEquals( "C", stmt.getChild( 0 ).getText() ); // alias
+        Assert.assertTrue( "FILTER".equalsIgnoreCase( stmt.getChild( 1 ).getText() ) );
+
+        stmt = ast.getChild( 3 );
+        Assert.assertEquals( "D", stmt.getChild( 0 ).getText() ); // alias
+        Assert.assertTrue( "LIMIT".equalsIgnoreCase( stmt.getChild( 1 ).getText() ) );
+
+        stmt = ast.getChild( 4 );
+        Assert.assertTrue( "STORE".equalsIgnoreCase( stmt.getChild( 0 ).getText() ) );
+    }
+    
     private int parse(String query) throws IOException, RecognitionException  {
         CharStream input = new QueryParserStringStream( query );
         QueryLexer lexer = new QueryLexer(input);
