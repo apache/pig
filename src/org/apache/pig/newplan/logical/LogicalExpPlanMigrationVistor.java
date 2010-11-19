@@ -54,7 +54,7 @@ import org.apache.pig.impl.logicalLayer.LOVisitor;
 import org.apache.pig.impl.logicalLayer.LogicalOperator;
 import org.apache.pig.impl.logicalLayer.LogicalPlan;
 import org.apache.pig.impl.logicalLayer.schema.Schema.FieldSchema;
-import org.apache.pig.impl.plan.DependencyOrderWalker;
+import org.apache.pig.impl.plan.DependencyOrderWalkerWOSeenChk;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.newplan.logical.expression.AddExpression;
 import org.apache.pig.newplan.logical.expression.AndExpression;
@@ -97,7 +97,7 @@ public class LogicalExpPlanMigrationVistor extends LOVisitor {
     public LogicalExpPlanMigrationVistor(LogicalPlan expressionPlan, LogicalOperator oldAttachedOperator,
             LogicalRelationalOperator attachedOperator, LogicalPlan outerPlan, 
             Map<LogicalOperator, LogicalRelationalOperator> outerOpsMap) {
-        super(expressionPlan, new DependencyOrderWalker<LogicalOperator, LogicalPlan>(expressionPlan));
+        super(expressionPlan, new DependencyOrderWalkerWOSeenChk<LogicalOperator, LogicalPlan>(expressionPlan));
         exprPlan = new org.apache.pig.newplan.logical.expression.LogicalExpressionPlan();
         exprOpsMap = new HashMap<LogicalOperator, LogicalExpression>();
         attachedRelationalOp = attachedOperator;
