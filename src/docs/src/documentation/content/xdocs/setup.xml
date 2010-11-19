@@ -120,7 +120,7 @@ $ pig -x mapreduce id.pig
       <title>Build Pig</title>
       <p>To build pig, do the following:</p>
      <ol>
-	  <li> Check out the Pig code from SVN: <em>svn co http://svn.apache.org/repos/asf/hadoop/pig/trunk</em>. </li>
+	  <li> Check out the Pig code from SVN: <em>svn co http://svn.apache.org/repos/asf/pig/trunk</em>. </li>
 	  <li> Build the code from the top directory: <em>ant</em>. If the build is successful, you should see the <em>pig.jar</em> created in that directory. </li>	
 	  <li> Validate your <em>pig.jar</em> by running a unit test: <em>ant test</em></li>
      </ol>
