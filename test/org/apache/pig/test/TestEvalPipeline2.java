@@ -803,4 +803,20 @@ public class TestEvalPipeline2 extends TestCase {
         
         assertFalse(iter.hasNext());
     }
+    
+    // See PIG-1719
+    @Test
+    public void testBinCondSchema() throws IOException {
+        String[] inputData = new String[] {"hello world\t2"};
+        Util.createInputFile(cluster, "table_testSchemaSerialization.txt", inputData);
+        pigServer.registerQuery("a = load 'table_testSchemaSerialization.txt' as (a0:chararray, a1:int);");
+        pigServer.registerQuery("b = foreach a generate FLATTEN((a1<=1?{('null')}:TOKENIZE(a0)));");
+        pigServer.registerQuery("c = foreach b generate UPPER($0);");
+        
+        Iterator<Tuple> it = pigServer.openIterator("c");
+        Tuple t = it.next();
+        assertTrue(t.get(0).equals("HELLO"));
+        t = it.next();
+        assertTrue(t.get(0).equals("WORLD"));
+    }
 }
