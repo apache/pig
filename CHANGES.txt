@@ -220,6 +220,8 @@ PIG-1309: Map-side Cogroup (ashutoshc)
 
 BUG FIXES
 
+PIG-1719: New logical plan: FieldSchema generation for BinCond is wrong (daijy)
+
 PIG-1720: java.lang.NegativeArraySizeException during Quicksort (thejas)
 
 PIG-1727: Hadoop default config override pig.properties (rding)
