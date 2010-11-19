@@ -415,6 +415,11 @@ public class ExpToPhyTranslationVisitor extends LogicalExpressionVisitor {
         BinaryExpressionOperator exprOp = new PORegexp(new OperatorKey(DEFAULT_SCOPE, nodeGen.getNextNodeId(DEFAULT_SCOPE)));        
         
         attachBinaryExpressionOperator(op, exprOp);
+        
+        List<Operator> successors = op.getPlan().getSuccessors(op);
+        if (successors.get(1) instanceof org.apache.pig.newplan.logical.expression.ConstantExpression) {
+            ((PORegexp)exprOp).setConstExpr(true);
+        }
     }
     
     @Override
