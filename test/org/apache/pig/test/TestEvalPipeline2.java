@@ -819,4 +819,27 @@ public class TestEvalPipeline2 extends TestCase {
         t = it.next();
         assertTrue(t.get(0).equals("WORLD"));
     }
+    
+    // See PIG-1721
+    @Test
+    public void testDuplicateInnerAlias() throws Exception{
+        String[] input1 = {
+                "1\t[key1#5]", "1\t[key2#5]", "2\t[key1#3]"
+        };
+        
+        Util.createInputFile(cluster, "table_testDuplicateInnerAlias", input1);
+        pigServer.registerQuery("a = load 'table_testDuplicateInnerAlias' as (a0:int, a1:map[]);");
+        pigServer.registerQuery("b = filter a by a0==1;");
+        pigServer.registerQuery("c = foreach b { b0 = a1#'key1'; generate ((b0 is null or b0 == '')?1:0);};");
+        
+        Iterator<Tuple> iter = pigServer.openIterator("c");
+        
+        Tuple t = iter.next();
+        assertTrue((Integer)t.get(0)==0);
+        
+        t = iter.next();
+        assertTrue((Integer)t.get(0)==1);
+        
+        assertFalse(iter.hasNext());
+    }
 }

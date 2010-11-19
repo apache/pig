@@ -220,6 +220,8 @@ PIG-1309: Map-side Cogroup (ashutoshc)
 
 BUG FIXES
 
+PIG-1721: New logical plan: script fail when reuse foreach inner alias (daijy)
+
 PIG-1716: New logical plan: LogToPhyTranslationVisitor should translate the structure for regex optimization (daijy)
 
 PIG-1740: Fix SVN location in setup doc (chandec via olgan)
