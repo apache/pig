@@ -97,7 +97,7 @@ public class BinCondExpression extends LogicalExpression {
     public LogicalSchema.LogicalFieldSchema getFieldSchema() throws FrontendException {
         if (fieldSchema!=null)
             return fieldSchema;
-        fieldSchema = new LogicalSchema.LogicalFieldSchema(null, null, getLhs().getType());
+        fieldSchema = getLhs().getFieldSchema().deepCopy();
         uidOnlyFieldSchema = fieldSchema.mergeUid(uidOnlyFieldSchema);
         return fieldSchema;
     }
