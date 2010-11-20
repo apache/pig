@@ -142,6 +142,10 @@ public class LOGenerate extends LogicalRelationalOperator {
                 else {
                     // Merge uid with the exp field schema
                     mergedSchema = LogicalSchema.merge(mUserDefinedSchemaCopy, expSchema);
+                    if (mergedSchema==null) {
+                        throw new FrontendException("Cannot merge (" + expSchema.toString(false) + 
+                                ") with user defined schema (" + mUserDefinedSchemaCopy.toString(false) + ")", 1117);
+                    }
                     mergedSchema.mergeUid(expSchema);
                 }
                 for (LogicalFieldSchema fs : mergedSchema.getFields())
