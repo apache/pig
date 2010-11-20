@@ -344,6 +344,10 @@ public class ColumnPruneVisitor extends LogicalRelationalNodesVisitor {
         Set<Integer> inputsRemoved = new HashSet<Integer>();
         List<LogicalSchema> outputPlanSchemas = new ArrayList<LogicalSchema>();
         List<LogicalSchema> uidOnlySchemas = new ArrayList<LogicalSchema>();
+        List<LogicalSchema> userDefinedSchemas = null;
+        
+        if (gen.getUserDefinedSchema()!=null)
+            userDefinedSchemas = new ArrayList<LogicalSchema>();
         
         for (int i=0;i<genPlans.size();i++) {
             LogicalExpressionPlan genPlan = genPlans.get(i);
@@ -351,6 +355,9 @@ public class ColumnPruneVisitor extends LogicalRelationalNodesVisitor {
                 flattenList.add(gen.getFlattenFlags()[i]);
                 outputPlanSchemas.add(gen.getOutputPlanSchemas().get(i));
                 uidOnlySchemas.add(gen.getUidOnlySchemas().get(i));
+                if (gen.getUserDefinedSchema()!=null) {
+                    userDefinedSchemas.add(gen.getUserDefinedSchema().get(i));
+                }
                 List<Operator> sinks = genPlan.getSinks();
                 for(Operator s: sinks) {
                     if (s instanceof ProjectExpression) {
@@ -379,6 +386,7 @@ public class ColumnPruneVisitor extends LogicalRelationalNodesVisitor {
         gen.setFlattenFlags(flatten);
         gen.setOutputPlanSchemas(outputPlanSchemas);
         gen.setUidOnlySchemas(uidOnlySchemas);
+        gen.setUserDefinedSchema(userDefinedSchemas);
         
         for (LogicalExpressionPlan genPlanToRemove : genPlansToRemove) {
             genPlans.remove(genPlanToRemove);
