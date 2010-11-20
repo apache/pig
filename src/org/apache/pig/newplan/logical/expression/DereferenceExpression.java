@@ -55,12 +55,14 @@ public class DereferenceExpression extends ColumnExpression {
         super( "Dereference", plan );
         columns = new ArrayList<Integer>();
         columns.add(colNum);
+        plan.add(this);
     }
 
     public DereferenceExpression(OperatorPlan plan, List<Integer> columnNums) {
         super( "Dereference", plan );
         columns = new ArrayList<Integer>();
         columns.addAll(columnNums);
+        plan.add(this);
     }
 
     /**
