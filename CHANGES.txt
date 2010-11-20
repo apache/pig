@@ -207,6 +207,8 @@ PIG-1309: Map-side Cogroup (ashutoshc)
 
 BUG FIXES
 
+PIG-1737: New logical plan: Improve error messages when merge schema fail (daijy)
+
 PIG-1725: New logical plan: uidOnlySchema bug in LOGenerate (daijy)
 
 PIG-1729: New logical plan: Dereference does not add into plan after deepCopy (daijy)
