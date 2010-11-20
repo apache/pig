@@ -870,4 +870,25 @@ public class TestEvalPipeline2 extends TestCase {
         
         assertFalse(iter.hasNext());
     }
+    
+    @Test
+    // See PIG-1725
+    public void testLOGenerateSchema() throws Exception{
+        String[] input1 = {
+                "1\t2\t{(1)}",
+        };
+        
+        Util.createInputFile(cluster, "table_testLOGenerateSchema", input1);
+        pigServer.registerQuery("a = load 'table_testLOGenerateSchema' as (a0:int, a1, a2:bag{});");
+        pigServer.registerQuery("b = foreach a generate a0 as b0, a1 as b1, flatten(a2) as b2:int;");
+        pigServer.registerQuery("c = filter b by b0==1;");
+        pigServer.registerQuery("d = foreach c generate b0+1, b2;");
+        
+        Iterator<Tuple> iter = pigServer.openIterator("d");
+        
+        Tuple t = iter.next();
+        assertTrue(t.toString().equals("(2,1)"));
+        
+        assertFalse(iter.hasNext());
+    }
 }
