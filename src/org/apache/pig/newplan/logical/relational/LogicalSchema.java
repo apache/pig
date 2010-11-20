@@ -71,19 +71,27 @@ public class LogicalSchema {
             }
         }
                
-        public String toString() {
+        public String toString(boolean verbose) {
+            String uidString = "";
+            if (verbose)
+                uidString="#" + uid;
+            
             if( type == DataType.BAG ) {
                 if( schema == null ) {
-                    return ( alias + "#" + uid + ":bag{}#" );
+                    return ( alias + uidString + ":bag{}" );
                 }
-                return ( alias + "#" + uid + ":bag{" + schema.toString() + "}" );
+                return ( alias + uidString + ":bag{" + schema.toString() + "}" );
             } else if( type == DataType.TUPLE ) {
                 if( schema == null ) {
-                    return ( alias + "#" + uid + ":tuple{}" );
+                    return ( alias + uidString + ":tuple{}" );
                 }
-                return ( alias + "#" + uid + ":tuple(" + schema.toString() + ")" );
+                return ( alias + uidString + ":tuple(" + schema.toString() + ")" );
             }
-            return ( alias + "#" + uid + ":" + DataType.findTypeName(type) );
+            return ( alias + uidString + ":" + DataType.findTypeName(type) );
+        }
+        
+        public String toString() {
+            return toString(true);
         }
         
         public void stampFieldSchema() {
@@ -338,16 +346,20 @@ public class LogicalSchema {
         return mergedSchema;
     }
     
-    public String toString() {
+    public String toString(boolean verbose) {
         StringBuilder str = new StringBuilder();
         
         for( LogicalFieldSchema field : fields ) {
-            str.append( field.toString() + "," );
+            str.append( field.toString(verbose) + "," );
         }
         if( fields.size() != 0 ) {
             str.deleteCharAt( str.length() -1 );
         }
         return str.toString();
+    }
+    
+    public String toString() {
+        return toString(true);
     }
     
     public void setTwoLevelAccessRequired(boolean flag) {

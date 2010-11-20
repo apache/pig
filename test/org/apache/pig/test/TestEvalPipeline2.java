@@ -32,6 +32,7 @@ import java.util.Random;
 import junit.framework.TestCase;
 
 import org.apache.pig.ExecType;
+import org.apache.pig.PigException;
 import org.apache.pig.PigServer;
 import org.apache.pig.builtin.BinStorage;
 import org.apache.pig.data.BagFactory;
@@ -42,6 +43,7 @@ import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.impl.util.LogUtils;
 import org.apache.pig.test.utils.Identity;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -890,5 +892,23 @@ public class TestEvalPipeline2 extends TestCase {
         assertTrue(t.toString().equals("(2,1)"));
         
         assertFalse(iter.hasNext());
+    }
+    
+    // See PIG-1737
+    @Test
+    public void testMergeSchemaErrorMessage() throws IOException {
+        pigServer.registerQuery("a = load '1.txt' as (a0, a1, a2);");
+        pigServer.registerQuery("b = group a by (a0, a1);");
+        pigServer.registerQuery("c = foreach b generate flatten(group) as c0;");
+        
+        try {
+            pigServer.openIterator("c");
+        } catch (Exception e) {
+            PigException pe = LogUtils.getPigException(e);
+            assertTrue(pe.getErrorCode()==1117);
+            assertTrue(pe.getMessage().contains("Cannot merge"));
+            return;
+        }
+        fail();
     }
 }
