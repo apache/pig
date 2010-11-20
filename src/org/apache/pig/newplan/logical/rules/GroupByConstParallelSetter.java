@@ -55,8 +55,7 @@ public class GroupByConstParallelSetter extends Rule {
     }
     private final static Log log = LogFactory.getLog(GroupByConstParallelSetter.class);
 
-    public static class GroupAllParallelSetterTransformer extends Transformer {
-        private OperatorPlan plan;
+    public class GroupAllParallelSetterTransformer extends Transformer {
 
         @Override
         public boolean check(OperatorPlan matched) throws FrontendException {
@@ -84,7 +83,6 @@ public class GroupByConstParallelSetter extends Rule {
 
         @Override
         public void transform(OperatorPlan plan) throws FrontendException {
-            this.plan = ((OperatorSubPlan) plan).getBasePlan();
             Iterator<Operator> iter = plan.getOperators();
             while (iter.hasNext()) {
                 Operator op = iter.next();
@@ -103,7 +101,7 @@ public class GroupByConstParallelSetter extends Rule {
  
         @Override
         public OperatorPlan reportChanges() {
-            return plan;
+            return new OperatorSubPlan(currentPlan);
         }
     }
 

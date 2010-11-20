@@ -842,4 +842,32 @@ public class TestEvalPipeline2 extends TestCase {
         
         assertFalse(iter.hasNext());
     }
+    
+    // See PIG-1729
+    @Test
+    public void testDereferenceInnerPlan() throws Exception{
+        String[] input1 = {
+                "1\t2\t3"
+        };
+        
+        String[] input2 = {
+                "1\t1"
+        };
+        
+        Util.createInputFile(cluster, "table_testDereferenceInnerPlan1", input1);
+        Util.createInputFile(cluster, "table_testDereferenceInnerPlan2", input2);
+        pigServer.registerQuery("a = load 'table_testDereferenceInnerPlan1' as (a0:int, a1:int, a2:int);");
+        pigServer.registerQuery("b = load 'table_testDereferenceInnerPlan2' as (b0:int, b1:int);");
+        pigServer.registerQuery("c = cogroup a by a0, b by b0;");
+        pigServer.registerQuery("d = foreach c generate ((COUNT(a)==0L)?null : a.a0) as d0;");
+        pigServer.registerQuery("e = foreach d generate flatten(d0);");
+        pigServer.registerQuery("f = group e all;");
+        
+        Iterator<Tuple> iter = pigServer.openIterator("f");
+        
+        Tuple t = iter.next();
+        assertTrue(t.toString().equals("(all,{(1)})"));
+        
+        assertFalse(iter.hasNext());
+    }
 }

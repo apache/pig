@@ -220,6 +220,8 @@ PIG-1309: Map-side Cogroup (ashutoshc)
 
 BUG FIXES
 
+PIG-1729: New logical plan: Dereference does not add into plan after deepCopy (daijy)
+
 PIG-1721: New logical plan: script fail when reuse foreach inner alias (daijy)
 
 PIG-1716: New logical plan: LogToPhyTranslationVisitor should translate the structure for regex optimization (daijy)
