@@ -41,7 +41,8 @@ import org.apache.pig.newplan.logical.relational.LogicalSchema.LogicalFieldSchem
 public class UserFuncExpression extends LogicalExpression {
 
     private FuncSpec mFuncSpec;
-    private Operator implicitReferencedOperator = null; 
+    private Operator implicitReferencedOperator = null;
+    private EvalFunc<?> ef = null;
     
     public UserFuncExpression(OperatorPlan plan, FuncSpec funcSpec) {
         super("UserFunc", plan);
@@ -137,7 +138,10 @@ public class UserFuncExpression extends LogicalExpression {
             }
         }
 
-        EvalFunc<?> ef = (EvalFunc<?>) PigContext.instantiateFuncFromSpec(mFuncSpec);
+        // Since ef only set one time, we never change its value, so we can optimize it by instantiate only once.
+        // This significantly optimize the performance of frontend (PIG-1738)
+        if (ef==null)
+            ef = (EvalFunc<?>) PigContext.instantiateFuncFromSpec(mFuncSpec);
         Schema udfSchema = ef.outputSchema(Util.translateSchema(inputSchema));
 
         if (udfSchema != null) {

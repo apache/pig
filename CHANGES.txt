@@ -220,6 +220,8 @@ PIG-1309: Map-side Cogroup (ashutoshc)
 
 BUG FIXES
 
+PIG-1738: New logical plan: Optimized UserFuncExpression.getFieldSchema (daijy)
+
 PIG-1732: New logical plan: logical plan get confused if we generate the same
 field twice in ForEach (daijy)
 
