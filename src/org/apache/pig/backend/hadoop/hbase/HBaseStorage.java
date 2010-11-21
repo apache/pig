@@ -356,10 +356,6 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
                 (fieldSchemas == null) ? DataType.findType(t.get(0)) : fieldSchemas[0].getType()));
         long ts=System.currentTimeMillis();
         
-        for (byte[] col : columnList_) {
-            LOG.info("putNext -- col: " + Bytes.toStringBinary(col));
-        }
-                
         for (int i=1;i<t.size();++i){
             put.add(columnList_.get(i-1), ts, objToBytes(t.get(i),
                     (fieldSchemas == null) ? DataType.findType(t.get(i)) : fieldSchemas[i].getType()));
