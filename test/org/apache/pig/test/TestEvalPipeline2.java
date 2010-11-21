@@ -911,4 +911,41 @@ public class TestEvalPipeline2 extends TestCase {
         }
         fail();
     }
+    
+    // See PIG-1732
+    @Test
+    public void testForEachDupColumn() throws Exception{
+        String[] input1 = {
+                "1\t2",
+        };
+        
+        String[] input2 = {
+                "1\t1\t3",
+                "2\t4\t2"
+        };
+        
+        Util.createInputFile(cluster, "table_testForEachDupColumn1", input1);
+        Util.createInputFile(cluster, "table_testForEachDupColumn2", input2);
+        pigServer.registerQuery("a = load 'table_testForEachDupColumn1' as (a0, a1:int);");
+        pigServer.registerQuery("b = load 'table_testForEachDupColumn2' as (b0, b1:int, b2);");
+        pigServer.registerQuery("c = foreach a generate a0, a1, a1 as a2;");
+        pigServer.registerQuery("d = union b, c;");
+        pigServer.registerQuery("e = foreach d generate $1;");
+        
+        Iterator<Tuple> iter = pigServer.openIterator("e");
+        
+        Tuple t = iter.next();
+        assertTrue(t.size()==1);
+        assertTrue((Integer)t.get(0)==1);
+        
+        t = iter.next();
+        assertTrue(t.size()==1);
+        assertTrue((Integer)t.get(0)==4);
+        
+        t = iter.next();
+        assertTrue(t.size()==1);
+        assertTrue((Integer)t.get(0)==2);
+        
+        assertFalse(iter.hasNext());
+    }
 }
