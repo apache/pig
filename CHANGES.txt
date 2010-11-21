@@ -220,6 +220,9 @@ PIG-1309: Map-side Cogroup (ashutoshc)
 
 BUG FIXES
 
+PIG-1732: New logical plan: logical plan get confused if we generate the same
+field twice in ForEach (daijy)
+
 PIG-1737: New logical plan: Improve error messages when merge schema fail (daijy)
 
 PIG-1725: New logical plan: uidOnlySchema bug in LOGenerate (daijy)
