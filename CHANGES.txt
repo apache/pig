@@ -207,6 +207,8 @@ PIG-1309: Map-side Cogroup (ashutoshc)
 
 BUG FIXES
 
+PIG-1739: zero status is returned when pig script fails (yanz)
+
 PIG-1738: New logical plan: Optimized UserFuncExpression.getFieldSchema (daijy)
 
 PIG-1732: New logical plan: logical plan get confused if we generate the same
