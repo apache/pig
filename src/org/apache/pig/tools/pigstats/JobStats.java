@@ -431,7 +431,7 @@ public final class JobStats extends Operator {
         if (mapStores.size() + reduceStores.size() == 1) {
             POStore sto = (mapStores.size() > 0) ? mapStores.get(0)
                     : reduceStores.get(0);
-            if (!sto.isTmpStore()) {
+            if (!sto.isTmpStore() || state != JobState.SUCCESS) {
                 long records = (mapStores.size() > 0) ? mapOutputRecords
                         : reduceOutputRecords;           
                 OutputStats ds = new OutputStats(sto.getSFile().getFileName(),
