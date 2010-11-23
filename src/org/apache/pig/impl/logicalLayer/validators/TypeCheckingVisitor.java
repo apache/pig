@@ -3111,6 +3111,9 @@ public class TypeCheckingVisitor extends LOVisitor {
             }            
             Schema.FieldSchema fs = ((ExpressionOperator)op).getFieldSchema();
             if( parentCanonicalName != null ) {
+                // The following line is a work around for PIG-1741. Ideal fix should be to 
+                // find why the canonical map is empty and create the map
+                if (!fs.findFieldSchema( parentCanonicalName ).getCanonicalMap().isEmpty())
             	fs = fs.findFieldSchema( parentCanonicalName );
             }
             getLoadFuncSpec( fs, loadFuncSpecMap );

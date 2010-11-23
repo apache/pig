@@ -5936,4 +5936,34 @@ public class TestTypeCheckingValidator extends TestCase {
         assertTrue(cast.getLoadFuncSpec().getClassName().startsWith("PigStorage"));
     }
     
+    @Test
+    // See PIG-1741
+    public void testBagDereference() throws FrontendException {
+        planTester.buildPlan("a = load '1.txt' as (a0);");
+        planTester.buildPlan("b = foreach a generate flatten((bag{tuple(map[])})a0) as b0:map[];");
+        LogicalPlan plan = planTester.buildPlan("c = foreach b generate (long)b0#'key1';");
+
+        // validate
+        CompilationMessageCollector collector = new CompilationMessageCollector() ;
+        TypeCheckingValidator typeValidator = new TypeCheckingValidator() ;
+        typeValidator.validate(plan, collector) ;
+
+        printMessageCollector(collector) ;
+        printTypeGraph(plan) ;
+        planTester.printPlan(plan, TypeCheckingTestUtil.getCurrentMethodName());
+
+        if (collector.hasError()) {
+            throw new AssertionError("Expect no  error") ;
+        }
+
+        LOForEach foreach = (LOForEach)plan.getLeaves().get(0);
+        LogicalPlan foreachPlan = foreach.getForEachPlans().get(0);
+        List<LogicalOperator> projs = foreachPlan.getRoots();
+        LogicalOperator proj = projs.get(0);
+        LogicalOperator maplookup = foreachPlan.getSuccessors( proj ).get( 0 );
+        LogicalOperator cast = foreachPlan.getSuccessors( maplookup ).get( 0 );
+        
+        assertTrue(((LOCast)cast).getLoadFuncSpec().getClassName().equals(PigStorage.class.getName()));
+    }
+    
 }
