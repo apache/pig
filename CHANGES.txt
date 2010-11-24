@@ -41,6 +41,9 @@ PIG-1696: Performance: Use System.arraycopy() instead of manually copying the by
 
 BUG FIXES
 
+PIG-1742: org.apache.pig.newplan.optimizer.Rule.java does not work
+  with plan patterns where leaves/sinks are not siblings (thejas)
+
 Release 0.8.0 - Unreleased
 
 INCOMPATIBLE CHANGES
