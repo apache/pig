@@ -37,6 +37,11 @@ import org.apache.pig.newplan.OperatorSubPlan;
  * If the pattern of operators is found one or more times in the provided plan,
  * then the optimizer will use the associated Transformer to transform the
  * plan.
+ * Note: the pattern matching logic implemented here has a limitation 
+ * that it assumes that all the leaves in the pattern are siblings. See more 
+ * detailed description here - https://issues.apache.org/jira/browse/PIG-1742
+ * If new rules use patterns that don't work with this limitation, the pattern
+ * match logic will need to be updated. 
  */
 public abstract class Rule {
 
@@ -93,6 +98,7 @@ public abstract class Rule {
     /**
      * Search for all the sub-plans that matches the pattern
      * defined by this rule. 
+     * See class description above for limitations on the patterns supported.
      * @return A list of all matched sub-plans. The returned plans are
      *        partial views of the original OperatorPlan. Each is a 
      *        sub-set of the original plan and represents the same
