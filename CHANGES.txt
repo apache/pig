@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-1747: pattern match classes for matching patterns in physical plan (thejas)
+
 PIG-1707: Allow pig build to pull from alternate maven repo to enable building
 against newer hadoop versions (pradeepkth)
 
