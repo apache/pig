@@ -18,6 +18,10 @@
  
 /**
  * Parser file for Pig Parser
+ *
+ * NOTE: THIS FILE IS THE BASE FOR A FEW TREE PARSER FILES, such as DefaultDataTypeInserter.g, 
+ *       SO IF YOU CHANGE THIS FILE, YOU WILL PROBABLY NEED TO MAKE CORRESPONDING CHANGES TO 
+ *       THOSE FILES AS WELL.
  */
 
 parser grammar QueryParser;
@@ -32,6 +36,7 @@ tokens {
     QUERY;
     STATEMENT;
     FUNC;
+    FUNC_EVAL;
     CAST_EXPR;
     BIN_EXPR;
     TUPLE_VAL;
@@ -44,6 +49,9 @@ tokens {
     NESTED_PROJ;
     SPLIT_BRANCH;
     NESTED_PLAN;
+    MAP_TYPE;
+    TUPLE_TYPE;
+    BAG_TYPE;
 }
 
 @header {
@@ -176,7 +184,7 @@ load_clause : LOAD^ filename ( USING! func_clause )? as_clause?
 filename : QUOTEDSTRING
 ;
 
-as_clause: AS! tuple_def
+as_clause: AS^ tuple_def
 ;
 
 tuple_def : tuple_def_full | tuple_def_simple
@@ -201,13 +209,15 @@ simple_type : INT | LONG | FLOAT | DOUBLE | CHARARRAY | BYTEARRAY
 ;
 
 tuple_type : TUPLE? tuple_def_full
-          -> tuple_def_full
+          -> ^( TUPLE_TYPE tuple_def_full )
 ;
 
-bag_type : BAG? LEFT_CURLY! tuple_def? RIGHT_CURLY!
+bag_type : BAG? LEFT_CURLY tuple_def? RIGHT_CURLY
+        -> ^( BAG_TYPE tuple_def? )
 ;
 
-map_type : MAP! LEFT_BRACKET! RIGHT_BRACKET!
+map_type : MAP LEFT_BRACKET RIGHT_BRACKET
+        -> MAP_TYPE
 ;
 
 func_clause : func_name LEFT_PAREN func_args? RIGHT_PAREN
@@ -267,20 +277,17 @@ and_cond : unary_cond ( AND^ unary_cond )*
 ;
 
 unary_cond : LEFT_PAREN! cond RIGHT_PAREN!
-           |
-             expr FILTEROP^ expr
-           |
-             func_eval
-           |
-             null_check_cond
-           |
-             not_cond
+           | expr FILTEROP^ expr
+           | func_eval
+           | null_check_cond
+           | not_cond
 ;
 
 not_cond : NOT^ unary_cond
 ;
 
-func_eval: func_name LEFT_PAREN! real_arg_list? RIGHT_PAREN!
+func_eval : func_name LEFT_PAREN real_arg_list? RIGHT_PAREN
+          -> ^( FUNC_EVAL func_name real_arg_list? )
 ;
 
 real_arg_list : real_arg ( COMMA real_arg )*

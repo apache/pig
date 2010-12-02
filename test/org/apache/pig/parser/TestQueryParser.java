@@ -43,7 +43,7 @@ public class TestQueryParser {
         Tree ast = (Tree)result.getTree();
 
         System.out.println( ast.toStringTree() );
-        printTree( (CommonTree)ast, 0 );
+        TreePrinter.printTree( (CommonTree)ast, 0 );
         Assert.assertEquals( 0, lexer.getNumberOfSyntaxErrors() );
         Assert.assertEquals( 0, parser.getNumberOfSyntaxErrors() );
     }
@@ -102,7 +102,7 @@ public class TestQueryParser {
         Tree ast = (Tree)result.getTree();
 
         System.out.println( ast.toStringTree() );
-        printTree( (CommonTree)ast, 0 );
+        TreePrinter.printTree( (CommonTree)ast, 0 );
         Assert.assertEquals( 0, lexer.getNumberOfSyntaxErrors() );
         Assert.assertEquals( 0, parser.getNumberOfSyntaxErrors() );
    
@@ -145,23 +145,9 @@ public class TestQueryParser {
         Tree ast = (Tree)result.getTree();
 
         System.out.println( ast.toStringTree() );
-        printTree( (CommonTree)ast, 0 );
+        TreePrinter.printTree( (CommonTree)ast, 0 );
         Assert.assertEquals( 0, lexer.getNumberOfSyntaxErrors() );
         return parser.getNumberOfSyntaxErrors();
-    }
-
-    public static void printTree(CommonTree tree, int indent) {
-        if( tree != null ) {
-            StringBuilder sb = new StringBuilder();
-            for ( int i = 0; i < indent; i++ )
-                sb = sb.append( "   " );
-
-            System.out.println( sb + tree.getText() );
-
-            for ( int i = 0; i < tree.getChildCount(); i++ ) {
-                printTree( (CommonTree)tree.getChild( i ), indent + 1 );
-            }
-        }
     }
 
 }
