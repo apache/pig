@@ -123,7 +123,7 @@
     <property name="rat.reporting.classname" value="rat.Report"/>
 
     <!-- javadoc properties  -->
-    <property name="javadoc.link.java" value="http://java.sun.com/j2se/1.5.0/docs/api/" />
+    <property name="javadoc.link.java" value="http://download.oracle.com/javase/1.5.0/docs/api/" />
 
     <!-- test patch properties -->
     <property name="scratch.dir" value="${user.home}/tmp"/>
@@ -300,7 +300,7 @@
         <javacc target="${src.gen.dot.parser.dir}/DOTParser.jj" outputdirectory="${src.gen.dot.parser.dir}" javacchome="${javacc.home}" />
     </target>
 	
-	  <target name="gen" depends="genParser"
+	  <target name="gen" depends="genTreeParser"
 	    description="generates lexer and parser code from an ANTLR grammar">
 	    <!-- Move generated Java code to the correct package directory. -->
 	    <move todir="${src.gen.dir}${grammar.package.dir}">
@@ -330,17 +330,14 @@
 	    </java>
 	  </target>
 	
-<!--
-
 	  <target name="genTreeParser" depends="genParser"
 	    unless="treeGrammarProcessed"
 	    description="generates tree parser class from an ANTLR grammar">
 	    <java classname="org.antlr.Tool"
 	      classpathref="classpath" fork="true">
-	      <arg line="${tool.options} ${grammar.name}Tree.g"/>
+	      <arg line="-o ${src.gen.dir}/${grammar.package.dir} ${src.dir}/${grammar.package.dir}/DefaultDataTypeInserter.g"/>
 	    </java>
 	  </target>
--->	
 
 	  <target name="prepare">
 	    <uptodate property="lexerGrammarProcessed" srcfile="${grammar.src.dir}/${grammar.name}Lexer.g">
