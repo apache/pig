@@ -34,6 +34,7 @@ import junit.framework.TestCase;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigException;
 import org.apache.pig.PigServer;
+import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.builtin.BinStorage;
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
@@ -165,7 +166,7 @@ public class TestEvalPipeline2 extends TestCase {
         pigServer.deleteFile(output);
         pigServer.store("a", output, BinStorage.class.getName());
 
-        pigServer.registerQuery("b = load '" + output + "' using BinStorage() "
+        pigServer.registerQuery("b = load '" + output + "' using BinStorage('Utf8StorageConverter') "
                 + "as (name: int, age: int, gpa: float, lage: long, dgpa: double);");
         
         Iterator<Tuple> it = pigServer.openIterator("b");
@@ -180,35 +181,27 @@ public class TestEvalPipeline2 extends TestCase {
         //tuple 1 
         tup = it.next();
 
-        
-        //1634952294 is integer whose  binary represtation is same as that of "asdf"
-        // other columns are returning null because they have less than num of bytes
-        //expected for the corresponding numeric type's binary respresentation.
-        assertTrue( (Integer)tup.get(0) == 1634952294); 
-        assertTrue(tup.get(1) == null);
-        assertTrue(tup.get(2) == null);
-        assertTrue(tup.get(3) == null);
-        assertTrue(tup.get(4) == null);
+        assertTrue((Integer)tup.get(0) == null); 
+        assertTrue((Integer)tup.get(1) == 12);
+        assertTrue((Float)tup.get(2) == 1.1F);
+        assertTrue((Long)tup.get(3) == 231L);
+        assertTrue((Double)tup.get(4) == 234.0);
         
         //tuple 2 
         tup = it.next();
         assertTrue(tup.get(0) == null);
-        assertTrue( (Integer)tup.get(1) == 825373489);
-        assertTrue( (Float)tup.get(2) == 2.5931501E-9F);
-        assertTrue( (Long)tup.get(3) == 3544952156018063160L);
-        assertTrue( (Double)tup.get(4) == 1.030084341992388E-71);
+        assertTrue((Integer)tup.get(1) == 1231);
+        assertTrue((Float)tup.get(2) == 123.4F);
+        assertTrue((Long)tup.get(3) == 12345678L);
+        assertTrue((Double)tup.get(4) == 1234.567);
         
         //tuple 3
         tup = it.next();
-        // when byte array is larger than required num of bytes for given number type
-        // it uses the required bytes from beginging of byte array for conversion
-        // for example 1634952294 corresponds to first 4 byptes of binary string correspnding to
-        // asdff
-        assertTrue((Integer)tup.get(0) == 1634952294);
-        assertTrue( (Integer)tup.get(1) == 825373490);
-        assertTrue( (Float)tup.get(2) == 2.5350009E-9F);
-        assertTrue( (Long)tup.get(3) == 3544952156018063160L);
-        assertTrue( (Double)tup.get(4) == 1.0300843656201408E-71);
+        assertTrue(tup.get(0) == null);
+        assertTrue((Integer)tup.get(1) == 1232123);
+        assertTrue((Float)tup.get(2) == 1.45345F);
+        assertTrue((Long)tup.get(3) == 123456789L);
+        assertTrue((Double)tup.get(4) == 1.234567899E8);
         
         Util.deleteFile(cluster, "table");
     }
@@ -947,5 +940,30 @@ public class TestEvalPipeline2 extends TestCase {
         assertTrue((Integer)t.get(0)==2);
         
         assertFalse(iter.hasNext());
+    }
+    
+    // See PIG-1732
+    @Test
+    public void testBinStorageByteCast() throws Exception{
+        String[] input1 = {
+                "1\t2\t3",
+        };
+        
+        Util.createInputFile(cluster, "table_testBinStorageByteCast", input1);
+        pigServer.registerQuery("a = load 'table_testBinStorageByteCast' as (a0, a1, a2);");
+        pigServer.store("a", "table_testBinStorageByteCast.temp", BinStorage.class.getName());
+        
+        pigServer.registerQuery("a = load 'table_testBinStorageByteCast.temp' using BinStorage() as (a0, a1, a2);");
+        pigServer.registerQuery("b = foreach a generate (long)a0;");
+        
+        try {
+            pigServer.openIterator("b");
+        } catch (Exception e) {
+            PigException pe = LogUtils.getPigException(e);
+            assertTrue(pe.getErrorCode()==1118);
+            return;
+        }
+        
+        fail();
     }
 }

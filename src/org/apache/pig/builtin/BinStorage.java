@@ -61,6 +61,7 @@ import org.apache.pig.impl.io.BinStorageOutputFormat;
 import org.apache.pig.impl.io.BinStorageRecordReader;
 import org.apache.pig.impl.io.BinStorageRecordWriter;
 import org.apache.pig.impl.io.FileLocalizer;
+import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.util.LogUtils;
 import org.apache.pig.impl.util.Utils;
 
@@ -70,20 +71,73 @@ import org.apache.pig.impl.util.Utils;
  * supported.
  */
 public class BinStorage extends FileInputLoadFunc 
-implements LoadCaster, StoreFuncInterface, LoadMetadata {
+implements StoreFuncInterface, LoadMetadata {
 
+    static class UnImplementedLoadCaster implements LoadCaster {
+
+        @Override
+        public DataBag bytesToBag(byte[] b, ResourceFieldSchema fieldSchema)
+                throws IOException {
+            throw new ExecException("Cannot convert bytes load from BinStorage", 1118);
+        }
+
+        @Override
+        public String bytesToCharArray(byte[] b) throws IOException {
+            throw new ExecException("Cannot convert bytes load from BinStorage", 1118);
+        }
+
+        @Override
+        public Double bytesToDouble(byte[] b) throws IOException {
+            throw new ExecException("Cannot convert bytes load from BinStorage", 1118);
+        }
+
+        @Override
+        public Float bytesToFloat(byte[] b) throws IOException {
+            throw new ExecException("Cannot convert bytes load from BinStorage", 1118);
+        }
+
+        @Override
+        public Integer bytesToInteger(byte[] b) throws IOException {
+            throw new ExecException("Cannot convert bytes load from BinStorage", 1118);
+        }
+
+        @Override
+        public Long bytesToLong(byte[] b) throws IOException {
+            throw new ExecException("Cannot convert bytes load from BinStorage", 1118);
+        }
+
+        @Override
+        public Map<String, Object> bytesToMap(byte[] b) throws IOException {
+            throw new ExecException("Cannot convert bytes load from BinStorage", 1118);
+        }
+
+        @Override
+        public Tuple bytesToTuple(byte[] b, ResourceFieldSchema fieldSchema)
+                throws IOException {
+            throw new ExecException("Cannot convert bytes load from BinStorage", 1118);
+        }
+    }
 
     Iterator<Tuple>     i              = null;
     private static final Log mLog = LogFactory.getLog(BinStorage.class);
     protected long                end            = Long.MAX_VALUE;
     
+    static String casterString = null;
+    static LoadCaster caster = null;
+    
     private BinStorageRecordReader recReader = null;
     private BinStorageRecordWriter recWriter = null;
     
-    /**
-     * Simple binary nested reader format
-     */
     public BinStorage() {
+    }
+    
+    // If user knows how to cast the bytes for BinStorage, provide
+    // the class name for the caster. When we later want to convert
+    // bytes to other types, BinStorage knows how. This provides a way 
+    // for user to store intermediate data without having to explicitly
+    // list all the fields and figure out their parts.
+    public BinStorage(String casterString) {
+        this.casterString = casterString;
     }
 
     @Override
@@ -101,126 +155,6 @@ implements LoadCaster, StoreFuncInterface, LoadMetadata {
             recWriter.write(null, t);
         } catch (InterruptedException e) {
             throw new IOException(e);
-        }
-    }
-
-    @Override
-    public DataBag bytesToBag(byte[] b, ResourceFieldSchema schema){
-        DataInputStream dis = new DataInputStream(new ByteArrayInputStream(b));
-        try {
-            return DataReaderWriter.bytesToBag(dis);
-        } catch (IOException e) {
-            LogUtils.warn(this, "Unable to convert bytearray to bag, " +
-                    "caught IOException <" + e.getMessage() + ">",
-                    PigWarning.FIELD_DISCARDED_TYPE_CONVERSION_FAILED, 
-                    mLog);
-        
-            return null;
-        }        
-    }
-
-    @Override
-    public String bytesToCharArray(byte[] b) {
-        DataInputStream dis = new DataInputStream(new ByteArrayInputStream(b));
-        try {
-            return DataReaderWriter.bytesToCharArray(dis);
-        } catch (IOException e) {
-            LogUtils.warn(this, "Unable to convert bytearray to chararray, " +
-                    "caught IOException <" + e.getMessage() + ">",
-                    PigWarning.FIELD_DISCARDED_TYPE_CONVERSION_FAILED, 
-                    mLog);
-        
-            return null;
-        }
-    }
-
-    @Override
-    public Double bytesToDouble(byte[] b) {
-        DataInputStream dis = new DataInputStream(new ByteArrayInputStream(b));
-        try {
-            return new Double(dis.readDouble());
-        } catch (IOException e) {
-            LogUtils.warn(this, "Unable to convert bytearray to double, " +
-                    "caught IOException <" + e.getMessage() + ">",
-                    PigWarning.FIELD_DISCARDED_TYPE_CONVERSION_FAILED, 
-                    mLog);
-        
-            return null;
-        }
-    }
-
-    @Override
-    public Float bytesToFloat(byte[] b) {
-        DataInputStream dis = new DataInputStream(new ByteArrayInputStream(b));
-        try {
-            return new Float(dis.readFloat());
-        } catch (IOException e) {
-            LogUtils.warn(this, "Unable to convert bytearray to float, " +
-                    "caught IOException <" + e.getMessage() + ">",
-                    PigWarning.FIELD_DISCARDED_TYPE_CONVERSION_FAILED, 
-                    mLog);
-            
-            return null;
-        }
-    }
-
-    @Override
-    public Integer bytesToInteger(byte[] b) {
-        DataInputStream dis = new DataInputStream(new ByteArrayInputStream(b));
-        try {
-            return Integer.valueOf(dis.readInt());
-        } catch (IOException e) {
-            LogUtils.warn(this, "Unable to convert bytearray to integer, " +
-                    "caught IOException <" + e.getMessage() + ">",
-                    PigWarning.FIELD_DISCARDED_TYPE_CONVERSION_FAILED, 
-                    mLog);
-        
-            return null;
-        }
-    }
-
-    @Override
-    public Long bytesToLong(byte[] b) {
-        DataInputStream dis = new DataInputStream(new ByteArrayInputStream(b));
-        try {
-            return Long.valueOf(dis.readLong());
-        } catch (IOException e) {
-            LogUtils.warn(this, "Unable to convert bytearray to long, " +
-                    "caught IOException <" + e.getMessage() + ">",
-                    PigWarning.FIELD_DISCARDED_TYPE_CONVERSION_FAILED, 
-                    mLog);
-        
-            return null;
-        }
-    }
-
-    @Override
-    public Map<String, Object> bytesToMap(byte[] b) {
-        DataInputStream dis = new DataInputStream(new ByteArrayInputStream(b));
-        try {
-            return DataReaderWriter.bytesToMap(dis);
-        } catch (IOException e) {
-            LogUtils.warn(this, "Unable to convert bytearray to map, " +
-                    "caught IOException <" + e.getMessage() + ">",
-                    PigWarning.FIELD_DISCARDED_TYPE_CONVERSION_FAILED, 
-                    mLog);
-        
-            return null;
-        }
-    }
-
-    @Override
-    public Tuple bytesToTuple(byte[] b, ResourceFieldSchema schema) {
-        DataInputStream dis = new DataInputStream(new ByteArrayInputStream(b));
-        try {
-            return DataReaderWriter.bytesToTuple(dis);
-        } catch (IOException e) {
-            LogUtils.warn(this, "Unable to convert bytearray to tuple, " +
-                    "caught IOException <" + e.getMessage() + ">",
-                    PigWarning.FIELD_DISCARDED_TYPE_CONVERSION_FAILED, 
-                    mLog);
-        
-            return null;
         }
     }
 
@@ -338,9 +272,37 @@ implements LoadCaster, StoreFuncInterface, LoadMetadata {
         return 42; 
     }
 
+    @SuppressWarnings("unchecked")
     @Override
-    public LoadCaster getLoadCaster() {
-        return this;
+    public LoadCaster getLoadCaster() throws IOException {
+        if (caster == null) {
+            Class<LoadCaster> casterClass = null;
+            if (casterString!=null) {
+                ClassLoader cl = Thread.currentThread().getContextClassLoader();
+                try {
+                    // Try casterString as a fully qualified name
+                    casterClass = (Class<LoadCaster>)cl.loadClass(casterString);
+                } catch (ClassNotFoundException e) {
+                }
+                if (casterClass==null) {
+                    try {
+                        // Try casterString as in builtin
+                        casterClass = (Class<LoadCaster>)cl.loadClass("org.apache.pig.builtin." + casterString);
+                    } catch (ClassNotFoundException e) {
+                        throw new FrontendException("Cannot find LoadCaster class " + casterString, 1119, e); 
+                    }
+                }
+                try {
+                    caster = casterClass.newInstance();
+                } catch (Exception e) {
+                    throw new FrontendException("Cannot instantiate class " + casterString, 2259, e);
+                }
+            }
+            else {
+                caster = new UnImplementedLoadCaster();
+            }
+        }
+        return caster;
     }
 
     @Override
