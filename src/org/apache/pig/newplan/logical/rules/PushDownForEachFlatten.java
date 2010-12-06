@@ -164,7 +164,7 @@ public class PushDownForEachFlatten extends Rule {
         } 
         
         private List<ProjectExpression> getProjectExpressions(LogicalExpressionPlan expr) {
-            List<Operator> ops = expr.getSources();
+            List<Operator> ops = expr.getSinks();
             List<ProjectExpression> projs = new ArrayList<ProjectExpression>( ops.size() );
             for( Operator op : ops ) {
                 if( op instanceof ProjectExpression ) {
