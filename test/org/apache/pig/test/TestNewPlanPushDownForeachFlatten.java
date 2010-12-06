@@ -1039,6 +1039,20 @@ public class TestNewPlanPushDownForeachFlatten {
         Assert.assertTrue(foreach.getSchema().getField(1).alias.equals("q1"));
         Assert.assertTrue(foreach.getSchema().getField(2).alias.equals("q2"));
     }
+    
+    // See PIG-1751
+    @Test
+    public void testForeachWithUserDefinedSchema2() throws Exception {
+        planTester.buildPlan("a = load '1.txt' as (a0:chararray);");
+        planTester.buildPlan("b = load '2.txt' as (b0:chararray);");
+        planTester.buildPlan("c = foreach b generate flatten(STRSPLIT(b0)) as c0;");
+        org.apache.pig.impl.logicalLayer.LogicalPlan  lp = planTester.buildPlan("d = join c by (chararray)c0, a by a0;");
+        
+        LogicalPlan newLogicalPlan = migrateAndOptimizePlan( lp );
+        
+        Operator op = newLogicalPlan.getSinks().get( 0 );
+        Assert.assertTrue(op instanceof LOJoin);
+    }
 
     public class MyPlanOptimizer extends LogicalPlanOptimizer {
         protected MyPlanOptimizer(OperatorPlan p,  int iterations) {
