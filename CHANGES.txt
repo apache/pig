@@ -225,6 +225,9 @@ PIG-1309: Map-side Cogroup (ashutoshc)
 
 BUG FIXES
 
+PIG-1751: New logical plan: PushDownForEachFlatten fail in UDF with unknown
+output schema (daijy)
+
 PIG-1741: Lineage fail when flatten a bag (daijy)
 
 PIG-1739: zero status is returned when pig script fails (yanz)
