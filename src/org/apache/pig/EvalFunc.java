@@ -266,6 +266,16 @@ public abstract class EvalFunc<T>  {
     public List<FuncSpec> getArgToFuncMapping() throws FrontendException{
         return null;
     }
+
+    /**
+     * Allow a UDF to specify a list of files it would like placed in the distributed
+     * cache.  These files will be put in the cache for every job the UDF is used in.
+     * The default implementation returns null.
+     * @return A list of files
+     */
+    public List<String> getCacheFiles() {
+        return null;
+    }
     
     public PigLogger getPigLogger() {
         return pigLogger;

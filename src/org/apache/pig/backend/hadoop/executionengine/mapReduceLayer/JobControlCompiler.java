@@ -59,6 +59,7 @@ import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROper
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POUserFunc;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POFRJoin;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLoad;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POMergeCogroup;
@@ -502,6 +503,10 @@ public class JobControlCompiler{
             // within the MR plans, must be called before the plans are
             // serialized
             setupDistributedCacheForJoin(mro, pigContext, conf);
+
+            // Search to see if we have any UDFs that need to pack things into the
+            // distrubted cache.
+            setupDistributedCacheForUdfs(mro, pigContext, conf);
 
             POPackage pack = null;
             if(mro.reducePlan.isEmpty()){
@@ -1053,6 +1058,13 @@ public class JobControlCompiler{
                 .visit();
     }
 
+    private void setupDistributedCacheForUdfs(MapReduceOper mro,
+                                              PigContext pigContext,
+                                              Configuration conf) throws IOException {       
+        new UdfDistributedCacheVisitor(mro.mapPlan, pigContext, conf).visit();
+        new UdfDistributedCacheVisitor(mro.reducePlan, pigContext, conf).visit();
+    }
+
     private static void setupDistributedCache(PigContext pigContext,
                                               Configuration conf, 
                                               Properties properties, String key, 
@@ -1253,5 +1265,39 @@ public class JobControlCompiler{
             }
         }
      }
-    
+
+     private static class UdfDistributedCacheVisitor extends PhyPlanVisitor {
+                 
+         private PigContext pigContext = null;
+         private Configuration conf = null;
+         
+         public UdfDistributedCacheVisitor(PhysicalPlan plan, 
+                                           PigContext pigContext,
+                                           Configuration conf) {
+             super(plan, new DepthFirstWalker<PhysicalOperator, PhysicalPlan>(
+                     plan));
+             this.pigContext = pigContext;
+             this.conf = conf;
+         }
+         
+         @Override
+         public void visitUserFunc(POUserFunc func) throws VisitorException {
+             
+             // XXX Hadoop currently doesn't support distributed cache in local mode.
+             // This line will be removed after the support is added
+             if (pigContext.getExecType() == ExecType.LOCAL) return;
+             
+             // set up distributed cache for files indicated by the UDF
+             String[] files = func.getCacheFiles();
+             if (files == null) return;
+
+             try {
+                 setupDistributedCache(pigContext, conf, files, false);
+             } catch (IOException e) {
+                String msg = "Internal error. Distributed cache could not " +
+                            "be set up for the requested files";
+                throw new VisitorException(msg, e);
+             }
+         }
+     }   
 }

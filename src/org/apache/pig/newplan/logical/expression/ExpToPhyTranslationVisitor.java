@@ -490,6 +490,10 @@ public class ExpToPhyTranslationVisitor extends LogicalExpressionVisitor {
             p = new POUserFunc(new OperatorKey(DEFAULT_SCOPE, nodeGen
                     .getNextNodeId(DEFAULT_SCOPE)), -1,
                     null, op.getFuncSpec(), (EvalFunc) f);
+            List<String> cacheFiles = ((EvalFunc)f).getCacheFiles();
+            if (cacheFiles != null) {
+                ((POUserFunc)p).setCacheFiles(cacheFiles.toArray(new String[cacheFiles.size()]));
+            }
         } else {
             p = new POUserComparisonFunc(new OperatorKey(DEFAULT_SCOPE, nodeGen
                     .getNextNodeId(DEFAULT_SCOPE)), -1,

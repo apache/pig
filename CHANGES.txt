@@ -24,6 +24,9 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-1752: Enable UDFs to indicate files to load into the Distributed Cache
+		  (gates)
+
 PIG-1745: Disable converting bytes loading from BinStorage (daijy)
 
 PIG-1747: pattern match classes for matching patterns in physical plan (thejas)
