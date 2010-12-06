@@ -57,6 +57,7 @@ public class POUserFunc extends ExpressionOperator {
      */
     private static final long serialVersionUID = 1L;
     transient EvalFunc func;
+    transient private String[] cacheFiles = null;
     
     transient private final Log log = LogFactory.getLog(getClass());
     FuncSpec funcSpec;
@@ -430,6 +431,14 @@ public class POUserFunc extends ExpressionOperator {
 
     public FuncSpec getFuncSpec() {
         return funcSpec;
+    }
+
+    public String[] getCacheFiles() {
+        return cacheFiles;
+    }
+
+    public void setCacheFiles(String[] cf) {
+        cacheFiles = cf;
     }
 
     public boolean combinable() {
