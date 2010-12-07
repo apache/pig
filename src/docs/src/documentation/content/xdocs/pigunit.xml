@@ -140,36 +140,27 @@ junit.framework.ComparisonFailure: null expected:&lt;...ahoo,3)
     </section>
 
     <section>
-      <title>Running in Local Mode</title>
+      <title>Running PigUnit</title>
+      <section>
+			<title>Local Mode</title>	
       <p>
-        Pig runs in local mode by default.
-        Local mode is fast and enables you to use your local file
-        system as the HDFS cluster.
-        Local mode does not require a real cluster but a new local one is
-        created each time. 
+        PigUnit runs in Pig's local mode by default.
+        Local mode is fast and enables you to use your local file system as the HDFS cluster.
+        Local mode does not require a real cluster but a new local one is created each time. 
       </p>
     </section>
 
-    <section>
-      <title>Running in Mapreduce Mode</title>
-      <p>Pig also runs in mapreduce mode.
-        This mode requires you to use a Hadoop cluster.
-        The cluster
-        you select must be specified in the CLASSPATH
-        (similar to the HADOOP_CONF_DIR variable).
+      <section>
+			<title>Mapreduce Mode</title>
+      <p>PigUnit also runs in Pig's mapreduce mode.
+        Mapreduce mode requires you to use a Hadoop cluster and HDFS installation.
+        It is enabled when the Java system property pigunit.exectype.cluster is set to any value:
+      e.g. -Dpigunit.exectype.cluster=true or System.getProperties().setProperty("pigunit.exectype.cluster", "true").
+
+        The cluster you select must be specified in the CLASSPATH (similar to the HADOOP_CONF_DIR variable).
       </p>
 
-      <p>Notice that PigUnit comes with a standalone MiniCluster that
-        can be started
-        externally with:
-      </p>
-
-      <source>
-java -cp .../pig.jar:.../pigunit.jar org.apache.pig.pigunit.MiniClusterRunner
-</source>
-      <p>This is useful when doing some prototyping in order to have a test cluster
-        ready.
-     </p>
+    </section>
     </section>
 
     <section>

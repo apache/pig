@@ -5020,7 +5020,8 @@ DUMP X;
    
    <section>
    <title>Usage</title>
-   <para>Use the DISTINCT operator to remove duplicate tuples in a relation. DISTINCT does not preserve the original order of the contents (to eliminate duplicates, Pig must first sort the data). You cannot use DISTINCT on a subset of fields. To do this, use FOREACH…GENERATE to select the fields, and then use DISTINCT.</para></section>
+   <para>Use the DISTINCT operator to remove duplicate tuples in a relation. DISTINCT does not preserve the original order of the contents (to eliminate duplicates, Pig must first sort the data). You cannot use DISTINCT on a subset of fields. To do this, use FOREACH…GENERATE to select the fields, and then use DISTINCT (see <ulink url="#nestedblock">Example: Nested Block</ulink>).</para>
+   </section>
    
    <section>
    <title>Example</title>
@@ -6293,14 +6294,14 @@ C = JOIN A BY name FULL, B BY name USING 'skewed';
                <para>n</para>
             </entry>
             <entry>
-               <para>The number of tuples.</para>
+               <para>The number of output tuples (a constant).</para>
             </entry>
          </row></tbody></tgroup>
    </informaltable></section>
    
    <section>
    <title>Usage</title>
-   <para>Use the LIMIT operator to limit the number of output tuples. If the specified number of output tuples is equal to or exceeds the number of tuples in the relation, the output will include all tuples in the relation.</para>
+   <para>Use the LIMIT operator to limit the number of output tuples. If the specified number of output tuples is equal to or exceeds the number of tuples in the relation, all tuples in the relation are returned.</para>
    <para>There is no guarantee which tuples will be returned, and the tuples that are returned can change from one run to the next. A particular set of tuples can be requested using the ORDER operator followed by LIMIT.</para>
    <para>Note: The LIMIT operator allows Pig to avoid processing all tuples in a relation. In most cases a query that uses LIMIT will run more efficiently than an identical query that does not use LIMIT. It is always a good idea to use limit if you can.</para>
    </section>
@@ -6490,7 +6491,7 @@ ILLUSTRATE A;
       <informaltable frame="all">
       <tgroup cols="1"><tbody><row>
             <entry>
-               <para>alias1 = MAPREDUCE 'mr1.jar' [('mr2.jar', ...)] STORE alias2 INTO 
+               <para>alias1 = MAPREDUCE 'mr1.jar' STORE alias2 INTO 
 'inputLocation' USING storeFunc LOAD 'outputLocation' USING loadFunc AS schema [`params, ... `];</para>
             </entry>
          </row></tbody></tgroup>
@@ -6514,7 +6515,9 @@ ILLUSTRATE A;
                <para>mr.jar</para>
             </entry>
             <entry>
-               <para>Any MapReduce jar file which can be run through "hadoop jar mymr.jar params" command. Thus, the contract for inputLocation and outputLocation is typically managed through params. </para>
+            <para>The MapReduce jar file (enclosed in single quotes).</para>
+               <para>You can specify nny MapReduce jar file that can be run through the  "hadoop jar mymr.jar params" command. </para>
+               <para>The values for inputLocation and outputLocation can be passed in the params. </para>
             </entry>
      </row>
 
@@ -6544,7 +6547,7 @@ ILLUSTRATE A;
                <para>'params, ...'</para>
             </entry>
             <entry>
-               <para>Extra parameters required for native MapReduce job. </para>
+               <para>Extra parameters required for native MapReduce job (enclosed in back tics). </para>
             </entry>
      </row>
       </tbody></tgroup>
@@ -6554,15 +6557,17 @@ ILLUSTRATE A;
 <section>
 <title>Usage</title>
 <para>Use the MAPREDUCE operator to run native MapReduce jobs from inside a Pig script.</para>
+<para>The input and output locations for the MapReduce program are conveyed to Pig using the STORE/LOAD clauses. Pig, however, does not pass this information (nor require that this information be passed) to the MapReduce program. If you want to pass the input and output locations to the MapReduce program you can use the params clause or you can hardcode the locations in the MapReduce program.</para>
 </section>
 
 <section>
 <title>Example</title>
-<para>This example shows howto run the wordcount MapReduce progam from Pig.
+<para>This example demonstrates how to run the wordcount MapReduce progam from Pig.
 Note that the files specified as input and output locations in the MAPREDUCE statement will NOT be deleted by Pig automatically. You will need to delete them manually. </para>
 <programlisting>
 A = LOAD 'WordcountInput.txt';
-B = MAPREDUCE wordcount.jar STOE A INTO 'inputDir' LOAD 'outputDir' AS (word:chararray, count: int) `org.myorg.WordCount inputDir outputDir`;
+B = MAPREDUCE 'wordcount.jar' STOE A INTO 'inputDir' LOAD 'outputDir' 
+    AS (word:chararray, count: int) `org.myorg.WordCount inputDir outputDir`;
 </programlisting>
 </section>
 

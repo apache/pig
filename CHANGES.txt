@@ -26,6 +26,8 @@ PIG-1249: Safe-guards against misconfigured Pig scripts without PARALLEL keyword
 
 IMPROVEMENTS
 
+PIG-1756: doc updates (chandec via olgan)
+
 PIG-1707: Allow pig build to pull from alternate maven repo to enable building
 against newer hadoop versions (pradeepkth)
 

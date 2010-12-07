@@ -1128,7 +1128,10 @@ copying cost. We have seen good performance when we set this value
 in the range 0.1 - 0.4. However, note that this is hardly an accurate range. Its value 
 depends on the amount of heap available for the operation, the number of columns 
 in the input and the skew. An appropriate value is best obtained by conducting experiments to achieve 
-a good performance. The default value is =0.5=. </li>
+a good performance. The default value is 0.5. </li>
+<li>Skewed join does not address (balance) uneven data distribution across reducers. 
+However, in most cases, skewed join ensures that the join will finish (however slowly) rather than fail. 
+</li>
 </ul>
 </section>
 </section><!-- END SKEWED JOINS-->

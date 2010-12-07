@@ -1,4 +1,4 @@
-These notes are for Pig 0.3.0 release.
+These notes are for Pig 0.8.0 release.
 
 Highlights
 ==========

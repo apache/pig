@@ -62,10 +62,10 @@ $ pig
 		<title>Run Modes</title>
 	        <p>Pig has two run modes or exectypes:  </p>
     <ul>
-      <li><p> Local Mode - To run Pig in local mode, you need access to a single machine.  </p></li>
-      <li><p> Mapreduce Mode - To run Pig in mapreduce mode, you need access to a Hadoop cluster and HDFS installation. 
-      Pig will automatically allocate and deallocate a 15-node cluster.</p></li>
+      <li>Local Mode - To run Pig in local mode, you need access to a single machine. </li>
+      <li>Mapreduce Mode - To run Pig in mapreduce mode, you need access to a Hadoop cluster and HDFS installation.</li>
     </ul>
+    <p></p>
     <p>You can run the Grunt shell, Pig scripts, or embedded programs using either mode.</p>
     </section> 
 
