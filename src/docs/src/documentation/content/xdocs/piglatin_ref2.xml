@@ -6491,7 +6491,7 @@ ILLUSTRATE A;
       <informaltable frame="all">
       <tgroup cols="1"><tbody><row>
             <entry>
-               <para>alias1 = MAPREDUCE 'mr1.jar' STORE alias2 INTO 
+               <para>alias1 = MAPREDUCE 'mr.jar' STORE alias2 INTO 
 'inputLocation' USING storeFunc LOAD 'outputLocation' USING loadFunc AS schema [`params, ... `];</para>
             </entry>
          </row></tbody></tgroup>
@@ -6538,7 +6538,7 @@ ILLUSTRATE A;
             </entry>
             <entry>
                <para>See <ulink url="piglatin_ref2.html#LOAD">LOAD</ulink></para>
-               <para>After running mr1.jar's mapreduce, load back the data from outputLocation into alias1 using loadFunc as schema</para>
+               <para>After running mr.jar's mapreduce, load back the data from outputLocation into alias1 using loadFunc as schema</para>
             </entry>
      </row>
 
