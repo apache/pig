@@ -200,6 +200,8 @@ public class InternalCachedBag extends DefaultAbstractBag {
         DataInputStream in;
         Tuple next;
         
+        long numTuplesRead = 0;
+        
         public CachedBagIterator() {
             iter = mContents.iterator();
             if(mSpillFiles != null && mSpillFiles.size() > 0) {
@@ -258,6 +260,10 @@ public class InternalCachedBag extends DefaultAbstractBag {
             Tuple t = next;
             next = null;
 
+            numTuplesRead++;
+            // This will report progress every 16383 records.
+            if ((numTuplesRead & 0x3fff) == 0) reportProgress();
+            
             return t;
         }
 
