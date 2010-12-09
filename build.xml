@@ -766,8 +766,7 @@
             <fileset dir="${lib.dir}"/>
         </copy>
 
-        <copy file="${output.jarfile.backcompat}" tofile="${dist.dir}/${final.name}.jar" />
-        <copy file="${output.jarfile.core}" tofile="${dist.dir}/${final.name}-core.jar" />
+        <copy file="${output.jarfile.backcompat}" tofile="${dist.dir}/${final.name}-core.jar" />
 
         <copy todir="${dist.dir}/" file="ivy.xml" />
 
