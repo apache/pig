@@ -20,6 +20,7 @@ package org.apache.pig.test;
 
 import java.io.*;
 import java.util.Iterator;
+import java.util.Map;
 
 import junit.framework.Assert;
 import junit.framework.TestCase;
@@ -31,7 +32,10 @@ import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
+import org.apache.pig.data.DefaultDataBag;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.data.TupleFactory;
+import org.apache.pig.impl.builtin.PartitionSkewedKeys;
 import org.apache.pig.test.utils.TestHelper;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -532,5 +536,36 @@ public class TestSkewedJoin extends TestCase{
         new File(LOCAL_INPUT_FILE).delete();
         Util.deleteFile(cluster, INPUT_FILE);
           
+    }
+    
+    @Test
+    public void testSkewedJoinUDF() throws IOException {
+        PartitionSkewedKeys udf = new PartitionSkewedKeys(new String[]{"0.1", "2", "1.txt"});
+        Tuple t = TupleFactory.getInstance().newTuple();
+        t.append(3);    // use 3 reducers
+        DataBag db = new DefaultDataBag();
+        Tuple sample;
+        for (int i=0;i<=3;i++) {
+            sample = TupleFactory.getInstance().newTuple();
+            if (i!=3)
+                sample.append("1");
+            else
+                sample.append("2");
+            sample.append((long)200);
+            if (i!=3)
+                sample.append((long)0);
+            else
+                sample.append((long)30);
+            db.add(sample);
+        }
+        t.append(db);
+        Map<String, Object> output = udf.exec(t);
+        DataBag parList = (DataBag)output.get(PartitionSkewedKeys.PARTITION_LIST);
+        for (Tuple par : parList) {
+            if (par.get(0).equals("1")) {
+                par.get(1).equals(0);
+                par.get(2).equals(2);
+            }
+        }
     }
 }
