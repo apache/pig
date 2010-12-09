@@ -58,9 +58,9 @@
    <section>
    <title>Download Zebra</title> 
 <p>Zebra is a Pig contrib project and is available at: <br></br>
-   <a href="http://svn.apache.org/viewvc/hadoop/pig/trunk/contrib/zebra/">http://svn.apache.org/viewvc/hadoop/pig/trunk/contrib/zebra/</a></p>  
+   <a href="http://svn.apache.org/viewvc/pig/trunk/contrib/zebra/">http://svn.apache.org/viewvc/pig/trunk/contrib/zebra/</a></p>  
 <p>To work with Zebra you need to check out the Pig trunk:   <br></br>
-   <a href="http://svn.apache.org/repos/asf/hadoop/pig/trunk/ ">http://svn.apache.org/repos/asf/hadoop/pig/trunk/</a></p> 
+   <a href="http://svn.apache.org/repos/asf/pig/trunk/">http://svn.apache.org/repos/asf/pig/trunk/</a></p> 
    </section>
    
    <section>
