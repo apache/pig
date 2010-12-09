@@ -230,6 +230,8 @@ PIG-1309: Map-side Cogroup (ashutoshc)
 
 BUG FIXES
 
+PIG-1709: Skewed join use fewer reducer for extreme large key (daijy)
+
 PIG-1751: New logical plan: PushDownForEachFlatten fail in UDF with unknown
 output schema (daijy)
 
