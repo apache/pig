@@ -23,7 +23,7 @@
  *       PROBABLY NEED TO MAKE CORRESPONDING CHANGES TO THIS FILE AS WELL.
  */
 
-tree grammar DefaultDataTypeInserter;
+tree grammar AstValidator;
 
 options {
     tokenVocab=QueryParser;
@@ -35,12 +35,36 @@ options {
 @header {
 package org.apache.pig.parser;
 
+import java.util.HashSet;
+import java.util.Set;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 }
 
 @members {
-private static Log log = LogFactory.getLog( DefaultDataTypeInserter.class );
+
+private static Log log = LogFactory.getLog( AstValidator.class );
+
+public String getErrorMessage(RecognitionException e, String[] tokenNames) {
+    String msg = e.getMessage();
+    if ( e instanceof DuplicatedSchemaAliasException ) {
+        DuplicatedSchemaAliasException dae = (DuplicatedSchemaAliasException)e;
+        msg = "Duplicated schema alias name '"+ dae.getAlias() + "' in the schema definition";
+    }
+    
+    return msg;
+}
+
+private void validateSchemaAliasName(Set<String> fieldNames, String name)
+throws DuplicatedSchemaAliasException {
+    if( fieldNames.contains( name ) ) {
+        throw new DuplicatedSchemaAliasException( input, name );
+    } else {
+        fieldNames.add( name );
+    }
+}
+
 } // End of @members
 
 query : ^( QUERY statement* )
@@ -125,16 +149,20 @@ as_clause: ^( AS tuple_def )
 tuple_def : tuple_def_full | tuple_def_simple
 ;
 
-tuple_def_full : ^( TUPLE_DEF field+ )
+tuple_def_full
+scope{
+Set<String> fieldNames;
+} : { $tuple_def_full::fieldNames = new HashSet<String>(); }
+    ^( TUPLE_DEF field[$tuple_def_full::fieldNames]+ )
 ;
 
-tuple_def_simple : ^( TUPLE_DEF field )
+tuple_def_simple : ^( TUPLE_DEF field[new HashSet<String>()] )
 ;
 
-// Add default types for schema field.
-field : ^( FIELD IDENTIFIER )
-     -> ^( FIELD IDENTIFIER BYTEARRAY )
-      | ^( FIELD IDENTIFIER type )
+field[Set<String> fieldNames] throws Exception
+ : ^( FIELD IDENTIFIER { validateSchemaAliasName( fieldNames, $IDENTIFIER.text ); } )
+-> ^( FIELD IDENTIFIER BYTEARRAY )
+ | ^( FIELD IDENTIFIER { validateSchemaAliasName( fieldNames, $IDENTIFIER.text ); } type ) 
 ;
 
 type : simple_type | tuple_type | bag_type | map_type
