@@ -30,10 +30,13 @@ import org.antlr.runtime.tree.CommonTreeNodeStream;
 import org.antlr.runtime.tree.Tree;
 import org.junit.Test;
 
-public class TestDefaultDataTypeInserter {
+public class TestAstValidator {
 
+    /**
+     * Verify if default data type is inserted.
+     */
     @Test
-    public void test() throws IOException, RecognitionException  {
+    public void testDefaultDataTypeInsertion() throws IOException, RecognitionException  {
         CharStream input = new QueryParserFileStream( "test/org/apache/pig/parser/TestDefaultDataTypeInserter.pig" );
         QueryLexer lex = new QueryLexer(input);
         CommonTokenStream tokens = new  CommonTokenStream(lex);
@@ -47,8 +50,8 @@ public class TestDefaultDataTypeInserter {
         TreePrinter.printTree( (CommonTree)ast, 0 );
 
         CommonTreeNodeStream nodes = new CommonTreeNodeStream( ast );
-        DefaultDataTypeInserter walker = new DefaultDataTypeInserter( nodes );
-        DefaultDataTypeInserter.query_return newResult = walker.query();
+        AstValidator walker = new AstValidator( nodes );
+        AstValidator.query_return newResult = walker.query();
         
         Assert.assertEquals( 0, walker.getNumberOfSyntaxErrors() );
 
@@ -60,7 +63,6 @@ public class TestDefaultDataTypeInserter {
     
     private void validateDataTypePresent(CommonTree tree) {
         if( tree != null ) {
-
             if( tree.getText().equals( "TUPLE_DEF" ) ) {
                 for ( int i = 0; i < tree.getChildCount(); i++ ) {
                     CommonTree child = (CommonTree)tree.getChild( i ); // FIELD node
@@ -79,4 +81,31 @@ public class TestDefaultDataTypeInserter {
         }
     }
 
+    /**
+     * Validate if alias name duplication is caught.
+     */
+    @Test
+    public void tesNegative1() throws RecognitionException, IOException {
+        try {
+            ParserTestingUtils.validateAst( "A = load 'x' as ( u:int, v:long, u:chararray, w:bytearray );" );
+        } catch(ParsingFailureException ex) {
+            Assert.assertEquals( AstValidator.class, ex.getParsingClass() );
+            return;
+        }
+        Assert.assertTrue( false ); // should never come here.
+    }
+
+    /**
+     * Validate if alias name duplication is caught. Slightly more complicated than above test case.
+     */
+    @Test
+    public void tesNegative2() throws RecognitionException, IOException {
+        try {
+            ParserTestingUtils.validateAst( "A = load 'x' as ( u:int, v:long, w:tuple( w:long, u:chararray, w:bytearray) );" );
+        } catch(ParsingFailureException ex) {
+            Assert.assertEquals( AstValidator.class, ex.getParsingClass() );
+            return;
+        }
+        Assert.assertTrue( false ); // should never come here.
+    }
 }
