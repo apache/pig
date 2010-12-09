@@ -260,9 +260,10 @@ public class PartitionSkewedKeys extends EvalFunc<Map<String, Object>> {
 	            t.set(i, currentTuple.get(i));
 	        }
 
+	        int effectiveRedCount = redCount > totalReducers_? totalReducers_:redCount;
 	        // set the min index of reducer for this key
 	        t.set(i++, currentIndex_);
-	        currentIndex_ = (currentIndex_ + redCount) % totalReducers_ - 1;
+	        currentIndex_ = (currentIndex_ + effectiveRedCount) % totalReducers_ - 1;
 	        if (currentIndex_ < 0) {
 	            currentIndex_ += totalReducers_;
 	        }
