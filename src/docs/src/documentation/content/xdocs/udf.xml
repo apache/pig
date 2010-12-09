@@ -110,7 +110,7 @@ public class UPPER extends EvalFunc&lt;String&gt;
 <p>Now that we have the function implemented, it needs to be compiled and included in a jar. You will need to build <code>pig.jar</code> to compile your UDF. You can use the following set of commands to checkout the code from SVN repository and create pig.jar: </p>
 
 <source>
-svn co http://svn.apache.org/repos/asf/hadoop/pig/trunk
+svn co http://svn.apache.org/repos/asf/pig/trunk
 cd trunk
 ant
 </source>
