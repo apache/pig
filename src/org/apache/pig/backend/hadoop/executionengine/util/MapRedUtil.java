@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Comparator;
 import java.util.Collections;
+import java.util.Arrays;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -375,6 +376,8 @@ public class MapRedUtil {
             } else {
                 ComparableSplit csplit = new ComparableSplit(split, comparableSplitId++);
                 String[] locations = split.getLocations();
+                // sort the locations to stabilize the number of maps: PIG-1757
+                Arrays.sort(locations);
                 HashSet<String> locationSeen = new HashSet<String>();
                 for (String location : locations)
                 {
