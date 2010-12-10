@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-1758: Deep cast of complex type (daijy)
+
 PIG-1728: doc updates (chandec via olgan)
 
 PIG-1752: Enable UDFs to indicate files to load into the Distributed Cache
