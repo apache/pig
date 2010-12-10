@@ -948,4 +948,21 @@ public class TestEvalPipeline2 extends TestCase {
         
         assertFalse(iter.hasNext());
     }
+    
+    // See PIG-1761
+    @Test
+    public void testBagDereferenceInMiddle() throws Exception{
+        String[] input1 = {
+                "foo@apache#44",
+        };
+        
+        Util.createInputFile(cluster, "table_testBagDereferenceInMiddle", input1);
+        pigServer.registerQuery("a = load 'table_testBagDereferenceInMiddle' as (a0:chararray);");
+        pigServer.registerQuery("b = foreach a generate UPPER(REGEX_EXTRACT_ALL(a0, '.*@(.*)#.*').$0);");
+        
+        Iterator<Tuple> iter = pigServer.openIterator("b");
+        Tuple t = iter.next();
+        assertTrue(t.size()==1);
+        assertTrue(t.get(0).equals("APACHE"));
+    }
 }
