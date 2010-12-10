@@ -32,6 +32,7 @@ import org.apache.pig.ExecType;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.LoadCaster;
 import org.apache.pig.LoadFunc;
+import org.apache.pig.ResourceSchema;
 import org.apache.pig.ResourceSchema.ResourceFieldSchema;
 import org.apache.pig.backend.datastorage.DataStorage;
 import org.apache.pig.backend.executionengine.ExecException;
@@ -45,6 +46,7 @@ import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.io.BufferedPositionedInputStream;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.logicalLayer.FrontendException;
+import org.apache.pig.impl.logicalLayer.parser.ParseException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigSplit;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
@@ -53,6 +55,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.Physica
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POCast;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POProject;
 import org.apache.pig.impl.plan.PlanException;
+import org.apache.pig.impl.util.Utils;
 import org.apache.pig.test.utils.GenRandomData;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.builtin.BinStorage;
@@ -1464,7 +1467,7 @@ public class TestPOCast extends TestCase {
 	}
 	
 	@Test
-	public void testBagToOther() throws IOException {
+	public void testBagToOther() throws IOException, ParseException {
 		POCast op = new POCast(new OperatorKey("", r.nextLong()), -1);
 		op.setFuncSpec(new FuncSpec(PigStorage.class.getName()));
 		POProject prj = new POProject(new OperatorKey("", r.nextLong()), -1, 0);
@@ -1570,6 +1573,48 @@ public class TestPOCast extends TestCase {
 			res = op.getNext(i);
 			assertEquals(POStatus.STATUS_ERR, res.returnStatus);
 		}
+		
+        {
+            Tuple t = tf.newTuple();
+            t.append(GenRandomData.genRandSmallTupDataBag(r, 1, 100));
+            Schema s = Utils.getSchemaFromString("b:bag{t:tuple(a:chararray, b:float)}");
+            op.setFieldSchema(new ResourceSchema.ResourceFieldSchema(s.getField(0)));
+            plan.attachInput(t);
+            DataBag db = null;
+            Result res = op.getNext(db);
+            Iterator<Tuple> expectedBagIterator = ((DataBag)(t.get(0))).iterator();
+            Iterator<Tuple> convertedBagIterator = ((DataBag)(res.result)).iterator();
+            
+            while(expectedBagIterator.hasNext()) {
+                Tuple expectedBagTuple = expectedBagIterator.next();
+                Tuple convertedBagTuple = convertedBagIterator.next();
+                assertTrue(convertedBagTuple.get(0) instanceof String);
+                assertTrue(convertedBagTuple.get(1) instanceof Float);
+                assertTrue(expectedBagTuple.get(0).equals(convertedBagTuple.get(0)));
+                assertTrue(((Float)(expectedBagTuple.get(1))).floatValue()==(Float)(convertedBagTuple.get(1)));
+            }
+        }
+        
+        {
+            Tuple t = tf.newTuple();
+            t.append(GenRandomData.genRandSmallTupDataBag(r, 1, 100));
+            Schema s = Utils.getSchemaFromString("b:bag{}");
+            op.setFieldSchema(new ResourceSchema.ResourceFieldSchema(s.getField(0)));
+            plan.attachInput(t);
+            DataBag db = null;
+            Result res = op.getNext(db);
+            Iterator<Tuple> expectedBagIterator = ((DataBag)(t.get(0))).iterator();
+            Iterator<Tuple> convertedBagIterator = ((DataBag)(res.result)).iterator();
+            
+            while(expectedBagIterator.hasNext()) {
+                Tuple expectedBagTuple = expectedBagIterator.next();
+                Tuple convertedBagTuple = convertedBagIterator.next();
+                assertTrue(convertedBagTuple.get(0) instanceof String);
+                assertTrue(convertedBagTuple.get(1) instanceof Integer);
+                assertTrue(expectedBagTuple.get(0).equals(convertedBagTuple.get(0)));
+                assertTrue(((Integer)(expectedBagTuple.get(1)))==(Integer)(convertedBagTuple.get(1)));
+            }
+        }
 	}
 	
 	@Test
