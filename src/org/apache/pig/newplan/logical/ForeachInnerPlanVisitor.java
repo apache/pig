@@ -136,11 +136,12 @@ public class ForeachInnerPlanVisitor extends LogicalExpPlanMigrationVistor {
             } 
         }
 
-        // This case occurs when there are two projects one after another
+        // If project is after an expression, translate it into a dereference.
+        // One particular case is when there are two projects one after another
         // These projects in combination project a column (bag) out of a tuple 
         // and then project a column out of this projected bag
         // Here we merge these two projects into one BagDereferenceExpression
-        else if( op instanceof LOProject ) {
+        else if( op instanceof ExpressionOperator ) {
             LogicalExpression expOper = exprOpsMap.get(op);
             
             if (expOper!=null) {
@@ -152,6 +153,7 @@ public class ForeachInnerPlanVisitor extends LogicalExpPlanMigrationVistor {
                 exprPlan.connect(dereferenceExp, expOper);
             }
         } else {
+            // If project is after a relational operator
             if (op instanceof RelationalOperator && project.isSendEmptyBagOnEOP()) {
                 LogicalOperator currentOp = op;
                 while (currentOp instanceof RelationalOperator) {
