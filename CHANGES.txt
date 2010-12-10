@@ -59,6 +59,8 @@ Release 0.8.0 - Unreleased
 
 INCOMPATIBLE CHANGES
 
+PIG-1518: multi file input format for loaders (yanz via rding)
+
 PIG-1249: Safe-guards against misconfigured Pig scripts without PARALLEL keyword (zjffdu vi olgan)
 
 IMPROVEMENTS
@@ -99,8 +101,6 @@ PIG-1321: Logical Optimizer: Merge cascading foreach (xuefuz via daijy)
 PIG-1483: [piggybank] Add HadoopJobHistoryLoader to the piggybank (rding)
 
 PIG-1555: [piggybank] add CSV Loader (dvryaboy)
-
-PIG-1518: multi file input format for loaders (yanz via rding)
 
 PIG-1501: need to investigate the impact of compression on pig performance (yanz via thejas)
 
@@ -233,6 +233,8 @@ PIG-1353: Map-side joins (ashutoshc)
 PIG-1309: Map-side Cogroup (ashutoshc)
 
 BUG FIXES
+
+PIG-1761: New logical plan: Exception when bag dereference in the middle of expression (daijy)
 
 PIG-1757: After split combination, the number of maps may vary slightly (yanz)
 
