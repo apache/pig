@@ -33,7 +33,7 @@ import org.apache.pig.newplan.OperatorPlan;
  * generated.
  *
  */
-class DNFPlanGenerator extends AllSameExpressionVisitor {
+class DNFPlanGenerator extends LogicalExpressionVisitor {
     private OperatorPlan dnfPlan = null;
     Stack<LogicalExpression> result;
 
@@ -42,34 +42,15 @@ class DNFPlanGenerator extends AllSameExpressionVisitor {
         result = new Stack<LogicalExpression>();
     }
 
-    @Override
-    protected void execute(LogicalExpression op)
-                    throws FrontendException {
-        if (op instanceof UnaryExpression) {
-            result.pop();
-        }
-        else if (op instanceof BinaryExpression) {
-            result.pop();
-            result.pop();
-        }
-        else if (op instanceof BinCondExpression) {
-            result.pop();
-            result.pop();
-            result.pop();
-        }
-
-        result.push(op);
-    }
-
     OperatorPlan getDNFPlan() {
-        if (dnfPlan == null) dnfPlan = result.pop().getPlan();
+        if (dnfPlan == null) dnfPlan = (result.empty() ? plan : result.pop().getPlan());
         return dnfPlan;
     }
 
     @Override
     public void visit(AndExpression exp) throws FrontendException {
-        LogicalExpression rhsExp = result.pop();
-        LogicalExpression lhsExp = result.pop();
+        LogicalExpression rhsExp = ((exp.getRhs() instanceof AndExpression || exp.getRhs() instanceof OrExpression ? result.pop() : exp.getRhs()));
+        LogicalExpression lhsExp = ((exp.getLhs() instanceof AndExpression || exp.getLhs() instanceof OrExpression ? result.pop() : exp.getLhs()));
         if (!(lhsExp instanceof AndExpression) && !(lhsExp instanceof DNFExpression) && !(lhsExp instanceof OrExpression) && !(rhsExp instanceof AndExpression) && !(rhsExp instanceof OrExpression) && !(rhsExp instanceof DNFExpression)) result.push(exp);
         else {
             if (dnfPlan == null) dnfPlan = new DNFPlan();
@@ -368,8 +349,8 @@ class DNFPlanGenerator extends AllSameExpressionVisitor {
 
     @Override
     public void visit(OrExpression exp) throws FrontendException {
-        LogicalExpression rhsExp = result.pop();
-        LogicalExpression lhsExp = result.pop();
+        LogicalExpression rhsExp = ((exp.getRhs() instanceof AndExpression || exp.getRhs() instanceof OrExpression ? result.pop() : exp.getRhs()));
+        LogicalExpression lhsExp = ((exp.getLhs() instanceof AndExpression || exp.getLhs() instanceof OrExpression ? result.pop() : exp.getLhs()));
         if (!(lhsExp instanceof OrExpression) && 
             (!(lhsExp instanceof DNFExpression) || 
                 ((DNFExpression) lhsExp).type == DNFExpression.DNFExpressionType.AND) && !(rhsExp instanceof OrExpression) && (!(rhsExp instanceof DNFExpression) || ((DNFExpression) rhsExp).type == DNFExpression.DNFExpressionType.AND)) result.push(exp);
