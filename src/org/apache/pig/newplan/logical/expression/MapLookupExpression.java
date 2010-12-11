@@ -58,8 +58,22 @@ public class MapLookupExpression extends ColumnExpression {
     public boolean isEqual(Operator other) throws FrontendException {
         if (other != null && other instanceof MapLookupExpression) {
             MapLookupExpression po = (MapLookupExpression)other;
-            return ( po.mMapKey.compareTo(mMapKey) == 0 ) && 
-            po.mValueSchema.isEqual( mValueSchema );
+            if ( po.mMapKey.compareTo(mMapKey) != 0  || 
+                 !po.mValueSchema.isEqual( mValueSchema ))
+                return false;
+            else {
+                // check the nested map equality
+                if (plan.getSuccessors(this) != null) {
+                    if (other.getPlan().getSuccessors(other) == null)
+                        return false;
+                    else {
+                        return plan.getSuccessors(this).get(0).isEqual(other.getPlan().getSuccessors(other).get(0));
+                    }
+                } else if (other.getPlan().getSuccessors(other) != null) {
+                    return false;
+                } else
+                    return true;
+            }
         } else {
             return false;
         }

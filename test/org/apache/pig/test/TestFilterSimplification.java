@@ -770,6 +770,40 @@ public class TestFilterSimplification extends TestCase {
         assertTrue(expected.isEqual(newLogicalPlan));
     }
 
+    @Test
+    public void test7() throws Exception {
+        LogicalPlanTester lpt = new LogicalPlanTester(pc);
+        lpt.buildPlan("b = filter (load 'd.txt' as (k1, k2, k3, v1, v2, v3)) by k2#'f1'#'f' is not null and (v2#'f'#'f1' is not null or v2#'f'#'f2' is not null);"); 
+
+        org.apache.pig.impl.logicalLayer.LogicalPlan plan = lpt.buildPlan("store b into 'empty';");
+        LogicalPlan newLogicalPlan = migratePlan(plan);
+
+        PlanOptimizer optimizer = new MyPlanOptimizer(newLogicalPlan, 10);
+        optimizer.optimize();
+
+        lpt = new LogicalPlanTester(pc);
+        lpt.buildPlan("b = filter (load 'd.txt' as (k1, k2, k3, v1, v2, v3)) by k2#'f1'#'f' is not null and (v2#'f'#'f1' is not null or v2#'f'#'f2' is not null);"); 
+        plan = lpt.buildPlan("store b into 'empty';");
+        LogicalPlan expected = migratePlan(plan);
+
+        assertTrue(expected.isEqual(newLogicalPlan));
+        
+        lpt.buildPlan("b = filter (load 'd.txt' as (k1, k2, k3, v1, v2, v3)) by k2#'f1'#'f' is not null and (v2#'f1'#'f' is not null or v2#'f2'#'f' is not null);"); 
+
+        plan = lpt.buildPlan("store b into 'empty';");
+        newLogicalPlan = migratePlan(plan);
+
+        optimizer = new MyPlanOptimizer(newLogicalPlan, 10);
+        optimizer.optimize();
+
+        lpt = new LogicalPlanTester(pc);
+        lpt.buildPlan("b = filter (load 'd.txt' as (k1, k2, k3, v1, v2, v3)) by k2#'f1'#'f' is not null and (v2#'f1'#'f' is not null or v2#'f2'#'f' is not null);"); 
+        plan = lpt.buildPlan("store b into 'empty';");
+        expected = migratePlan(plan);
+
+        assertTrue(expected.isEqual(newLogicalPlan));
+    }
+    
     public class MyPlanOptimizer extends LogicalPlanOptimizer {
 
         protected MyPlanOptimizer(OperatorPlan p, int iterations) {
