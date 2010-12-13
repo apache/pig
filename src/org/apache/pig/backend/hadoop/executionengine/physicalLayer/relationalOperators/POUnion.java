@@ -18,6 +18,7 @@
 package org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators;
 
 import java.util.BitSet;
+import java.util.LinkedList;
 import java.util.List;
 
 import org.apache.pig.backend.executionengine.ExecException;
@@ -29,6 +30,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.impl.plan.VisitorException;
+import org.apache.pig.impl.util.IdentityHashSet;
 import org.apache.pig.pen.util.ExampleTuple;
 
 /**
@@ -165,6 +167,7 @@ public class POUnion extends PhysicalOperator {
 
                     if(res.returnStatus == POStatus.STATUS_OK || 
                             res.returnStatus == POStatus.STATUS_NULL || res.returnStatus == POStatus.STATUS_ERR) {
+                        illustratorMarkup(res.result, res.result, ind);
                         return res;
                     }
 
@@ -181,14 +184,29 @@ public class POUnion extends PhysicalOperator {
             res.returnStatus = POStatus.STATUS_OK;
             detachInput();
             nextReturnEOP = true ;
-            if(lineageTracer != null) {
-        	ExampleTuple tOut = (ExampleTuple) res.result;
-        	lineageTracer.insert(tOut);
-        	lineageTracer.union(tOut, tOut);
-            }
+            illustratorMarkup(res.result, res.result, 0);
             return res;
         }
 
 
+    }
+    
+    @Override
+    public Tuple illustratorMarkup(Object in, Object out, int eqClassIndex) {
+        if(illustrator != null) {
+            if (illustrator.getEquivalenceClasses() == null) {
+                int size = (inputs == null ? 1 : inputs.size());
+                LinkedList<IdentityHashSet<Tuple>> equivalenceClasses = new LinkedList<IdentityHashSet<Tuple>>();
+                for (int i = 0; i < size; ++i) {
+                    IdentityHashSet<Tuple> equivalenceClass = new IdentityHashSet<Tuple>();
+                    equivalenceClasses.add(equivalenceClass);
+                }
+                illustrator.setEquivalenceClasses(equivalenceClasses, this);
+            }
+            ExampleTuple tIn = (ExampleTuple) in;
+            illustrator.getEquivalenceClasses().get(eqClassIndex).add(tIn);
+            illustrator.addData((Tuple) out);
+        }
+        return null;
     }
 }

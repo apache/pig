@@ -17,6 +17,7 @@
  */
 package org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators;
 
+import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.plan.OperatorKey;
 
 /**
@@ -65,5 +66,12 @@ public abstract class BinaryComparisonOperator extends BinaryExpressionOperator
     protected void cloneHelper(BinaryComparisonOperator op) {
         operandType = op.operandType;
         super.cloneHelper(op);
+    }
+    
+    public Tuple illustratorMarkup(Object in, Object out, int eqClassIndex) {
+        if (illustrator != null) {
+            illustrator.setSubExpResult(eqClassIndex == 0);
+        }
+        return null;
     }
 }

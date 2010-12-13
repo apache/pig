@@ -103,4 +103,8 @@ public class PORead extends PhysicalOperator {
         v.visitRead(this);
     }
 
+    @Override
+    public Tuple illustratorMarkup(Object in, Object out, int eqClassIndex) {
+        return null;
+    }
 }

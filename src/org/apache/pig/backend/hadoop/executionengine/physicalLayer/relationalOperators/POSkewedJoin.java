@@ -27,6 +27,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOpera
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.data.DataType;
+import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.VisitorException;
@@ -121,4 +122,8 @@ public class POSkewedJoin extends PhysicalOperator  {
 		return inputSchema.get(i);
 	}
 
+	@Override
+  public Tuple illustratorMarkup(Object in, Object out, int eqClassIndex) {
+	    return null;
+	}
 }

@@ -204,4 +204,9 @@ public class ConstantExpression extends ExpressionOperator {
     public List<ExpressionOperator> getChildExpressions() {		
         return null;
     }
+    
+    @Override
+    public Tuple illustratorMarkup(Object in, Object out, int eqClassIndex) {
+        return (Tuple) out;
+    }
 }

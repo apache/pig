@@ -19,6 +19,7 @@ package org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOp
 
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
@@ -38,6 +39,8 @@ import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.VisitorException;
+import org.apache.pig.impl.util.IdentityHashSet;
+import org.apache.pig.pen.util.ExampleTuple;
 
 /**
  * Implements the overloaded form of the project operator.
@@ -143,6 +146,7 @@ public class POProject extends ExpressionOperator {
             return res;
         }
         if (star) {
+            illustratorMarkup(inpValue, res.result, -1);
             return res;
         } else if(columns.size() == 1) {
             try {
@@ -188,6 +192,7 @@ public class POProject extends ExpressionOperator {
             ret = tupleFactory.newTuple(objList);
         }
         res.result = ret;
+        illustratorMarkup(inpValue, res.result, -1);
         return res;
     }
 
@@ -494,4 +499,11 @@ public class POProject extends ExpressionOperator {
         return null;
     }
 
+    @Override
+    public Tuple illustratorMarkup(Object in, Object out, int eqClassIndex) {
+        if(illustrator != null) {
+
+        }
+        return null;
+    }
 }

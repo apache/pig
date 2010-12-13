@@ -445,4 +445,10 @@ public class POFRJoin extends PhysicalOperator {
     public void setReplFiles(FileSpec[] replFiles) {
         this.replFiles = replFiles;
     }
+    
+    @Override
+    public Tuple illustratorMarkup(Object in, Object out, int eqClassIndex) {
+        // no op: all handled by the preceding POForEach
+        return null;
+    }
 }

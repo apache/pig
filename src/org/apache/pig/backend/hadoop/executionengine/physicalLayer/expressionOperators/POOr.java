@@ -78,9 +78,19 @@ public class POOr extends BinaryComparisonOperator {
         // 3) f    t n f
         
         // Short circuit. if lhs is true, return true - ROW 1 above is handled with this
-        if (left.result != null && ((Boolean)left.result).booleanValue()) return left;
+        boolean returnLeft = false;
+        if (left.result != null && ((Boolean)left.result).booleanValue()) {
+          if (illustrator == null)
+              return left;
+          
+          illustratorMarkup(null, left.result, 0);
+          returnLeft = true;;
+        }
         
         Result right = rhs.getNext(dummyBool);
+        if (returnLeft)
+            return left;
+
         // pass on ERROR and EOP 
         if(right.returnStatus != POStatus.STATUS_OK && right.returnStatus != POStatus.STATUS_NULL) {
             return right;
@@ -94,6 +104,8 @@ public class POOr extends BinaryComparisonOperator {
         
         // No matter what, what we get from the right side is what we'll
         // return, null, true, or false.
+        if (right.result != null)
+            illustratorMarkup(null, right.result, (Boolean) right.result ? 0 : 1);
         return right;
     }
 

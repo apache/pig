@@ -17,6 +17,7 @@
  */
 package org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators;
 
+import java.util.LinkedList;
 import java.util.List;
 
 import org.apache.commons.logging.Log;
@@ -32,6 +33,9 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlan
 import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.VisitorException;
+import org.apache.pig.impl.util.IdentityHashSet;
+import org.apache.pig.pen.util.ExampleTuple;
+import org.apache.pig.pen.util.LineageTracer;
 
 public class POLimit extends PhysicalOperator {
 	   /**
@@ -87,7 +91,9 @@ public class POLimit extends PhysicalOperator {
                     || inp.returnStatus == POStatus.STATUS_ERR)
                 break;
             
-            if (soFar>=mLimit)
+            illustratorMarkup(inp.result, null, 0);
+            // illustrator ignore LIMIT before the post processing
+            if ((illustrator == null || illustrator.getOriginalLimit() != -1) && soFar>=mLimit)
             	inp.returnStatus = POStatus.STATUS_EOP;
             
             soFar++;
@@ -130,5 +136,15 @@ public class POLimit extends PhysicalOperator {
         newLimit.mLimit = this.mLimit;
         newLimit.setAlias(alias);
         return newLimit;
+    }
+    
+    @Override
+    public Tuple illustratorMarkup(Object in, Object out, int eqClassIndex) {
+        if(illustrator != null) {
+            ExampleTuple tIn = (ExampleTuple) in;
+            illustrator.getEquivalenceClasses().get(eqClassIndex).add(tIn);
+            illustrator.addData((Tuple) in);
+        }
+        return (Tuple) in;
     }
 }

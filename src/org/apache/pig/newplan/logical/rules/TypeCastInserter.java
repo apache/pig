@@ -119,6 +119,8 @@ public abstract class TypeCastInserter extends Rule {
             foreach.setAlias(op.getAlias());
             
             // Insert the foreach into the plan and patch up the plan.
+            if (currentPlan.getSuccessors(op) == null)
+                return;
             Operator next = currentPlan.getSuccessors(op).get(0);
             currentPlan.insertBetween(op, foreach, next);
             

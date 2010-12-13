@@ -24,9 +24,7 @@ import java.io.IOException;
 import java.util.List;
 
 import org.apache.pig.backend.executionengine.ExecException;
-import org.apache.pig.data.DefaultTuple;
 import org.apache.pig.data.Tuple;
-import org.apache.pig.data.TupleFactory;
 
 //Example tuple adds 2 booleans to Tuple
 //synthetic say whether the tuple was generated synthetically
@@ -36,17 +34,21 @@ public class ExampleTuple implements Tuple {
 
     public boolean synthetic = false;
     public boolean omittable = true;
-    Tuple t;
+    Object expr = null;
+    Tuple t = null;
 
     public ExampleTuple() {
 
+    }
+    
+    public ExampleTuple(Object expr) {
+      this.expr = expr;
     }
 
     public ExampleTuple(Tuple t) {
         // Have to do it like this because Tuple is an interface, we don't
         // have access to its internal structures.
         this.t = t;
-
     }
 
     @Override

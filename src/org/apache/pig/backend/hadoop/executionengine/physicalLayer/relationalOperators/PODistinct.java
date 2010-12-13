@@ -19,7 +19,9 @@
 package org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators;
 
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.HashSet;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -32,12 +34,17 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlan
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
+import org.apache.pig.data.DistinctDataBag;
 import org.apache.pig.data.InternalDistinctBag;
 import org.apache.pig.data.InternalSortedBag;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.VisitorException;
+import org.apache.pig.impl.util.IdentityHashSet;
+import org.apache.pig.pen.util.ExampleTuple;
+import org.apache.pig.pen.util.LineageTracer;
+import org.apache.pig.impl.util.IdentityHashSet;
 
 /**
  * Find the distinct set of tuples in a bag.
@@ -105,6 +112,7 @@ public class PODistinct extends PhysicalOperator implements Cloneable {
                     continue;
                 }
                 distinctBag.add((Tuple) in.result);
+                illustratorMarkup(in.result, in.result, 0);
                 in = processInput();
             }
             inputsAccumulated = true;
@@ -159,4 +167,12 @@ public class PODistinct extends PhysicalOperator implements Cloneable {
         return new PODistinct(new OperatorKey(this.mKey.scope, NodeIdGenerator.getGenerator().getNextNodeId(this.mKey.scope)), this.requestedParallelism, this.inputs);
     }
 
+    @Override
+    public Tuple illustratorMarkup(Object in, Object out, int eqClassIndex) {
+        if(illustrator != null) {
+            illustrator.getEquivalenceClasses().get(eqClassIndex).add((Tuple) out);
+            illustrator.addData((Tuple) out);
+        }
+        return null;
+    }
 }

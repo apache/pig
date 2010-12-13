@@ -76,6 +76,7 @@ public class POIsNull extends UnaryComparisonOperator {
                 } else {
                     res.result = false;
                 }
+                illustratorMarkup(null, res.result, (Boolean) res.result ? 0 : 1);
             }
             return res;
         case DataType.DOUBLE:
@@ -86,6 +87,7 @@ public class POIsNull extends UnaryComparisonOperator {
                 } else {
                     res.result = false;
                 }
+                illustratorMarkup(null, res.result, (Boolean) res.result ? 0 : 1);
             }
             return res;
         case DataType.INTEGER:
@@ -96,6 +98,7 @@ public class POIsNull extends UnaryComparisonOperator {
                 } else {
                     res.result = false;
                 }
+                illustratorMarkup(null, res.result, (Boolean) res.result ? 0 : 1);
             }
             return res;
         case DataType.CHARARRAY:
@@ -106,6 +109,7 @@ public class POIsNull extends UnaryComparisonOperator {
                 } else {
                     res.result = false;
                 }
+                illustratorMarkup(null, res.result, (Boolean) res.result ? 0 : 1);
             }
             return res;
         case DataType.BOOLEAN:
@@ -116,6 +120,7 @@ public class POIsNull extends UnaryComparisonOperator {
                 } else {
                     res.result = false;
                 }
+                illustratorMarkup(null, res.result, (Boolean) res.result ? 0 : 1);
             }
             return res;
         case DataType.LONG:
@@ -126,6 +131,7 @@ public class POIsNull extends UnaryComparisonOperator {
                 } else {
                     res.result = false;
                 }
+                illustratorMarkup(null, res.result, (Boolean) res.result ? 0 : 1);
             }
             return res;
         case DataType.FLOAT:
@@ -136,6 +142,7 @@ public class POIsNull extends UnaryComparisonOperator {
                 } else {
                     res.result = false;
                 }
+                illustratorMarkup(null, res.result, (Boolean) res.result ? 0 : 1);
             }
             return res;
         case DataType.MAP:
@@ -146,6 +153,7 @@ public class POIsNull extends UnaryComparisonOperator {
                 } else {
                     res.result = false;
                 }
+                illustratorMarkup(null, res.result, (Boolean) res.result ? 0 : 1);
             }
             return res;
         case DataType.TUPLE:
@@ -156,6 +164,7 @@ public class POIsNull extends UnaryComparisonOperator {
                 } else {
                     res.result = false;
                 }
+                illustratorMarkup(null, res.result, (Boolean) res.result ? 0 : 1);
             }
             return res;
         case DataType.BAG:
@@ -166,6 +175,7 @@ public class POIsNull extends UnaryComparisonOperator {
                 } else {
                     res.result = false;
                 }
+                illustratorMarkup(null, res.result, (Boolean) res.result ? 0 : 1);
             }
             return res;        
         default: {

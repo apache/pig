@@ -91,6 +91,10 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
         return currentPlan;
     }
 
+    public Map<LogicalOperator, PhysicalOperator> getLogToPhyMap() {
+        return logToPhyMap;
+    }
+    
     @Override
     protected void visit(LOGreaterThan op) throws VisitorException {
         String scope = op.getOperatorKey().scope;

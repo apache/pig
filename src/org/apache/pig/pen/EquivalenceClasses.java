@@ -19,174 +19,105 @@
 package org.apache.pig.pen;
 
 import java.util.Collection;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.Map;
+import java.util.HashMap;
+import java.util.List;
+import java.util.HashSet;
+import java.util.Iterator;
 
-import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.Tuple;
-import org.apache.pig.impl.logicalLayer.LOCogroup;
-import org.apache.pig.impl.logicalLayer.LOFilter;
 import org.apache.pig.impl.logicalLayer.LOForEach;
-import org.apache.pig.impl.logicalLayer.LOLoad;
-import org.apache.pig.impl.logicalLayer.LOSort;
-import org.apache.pig.impl.logicalLayer.LOSplit;
-import org.apache.pig.impl.logicalLayer.LOUnion;
+import org.apache.pig.impl.logicalLayer.LOCross;
 import org.apache.pig.impl.logicalLayer.LogicalOperator;
+import org.apache.pig.impl.logicalLayer.LogicalPlan;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.impl.util.IdentityHashSet;
+import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.*;
+import org.apache.pig.impl.plan.VisitorException;
 
 
 //These methods are used to generate equivalence classes given the operator name and the output from the operator
 //For example, it gives out 2 eq. classes for filter, one that passes the filter and one that doesn't
 public class EquivalenceClasses {
-    public static Collection<IdentityHashSet<Tuple>> getEquivalenceClasses(
-            LogicalOperator op, Map<LogicalOperator, DataBag> derivedData)
-            throws ExecException {
-        if (op instanceof LOCogroup)
-            return getEquivalenceClasses((LOCogroup) op, derivedData);
-        else if (op instanceof LOForEach)
-            return getEquivalenceClasses((LOForEach) op, derivedData);
-        else if (op instanceof LOFilter)
-            return getEquivalenceClasses((LOFilter) op, derivedData);
-        else if (op instanceof LOSort)
-            return getEquivalenceClasses((LOSort) op, derivedData);
-        else if (op instanceof LOSplit)
-            return getEquivalenceClasses((LOSplit) op, derivedData);
-        else if (op instanceof LOUnion)
-            return getEquivalenceClasses((LOUnion) op, derivedData);
-        else if (op instanceof LOLoad)
-            return getEquivalenceClasses((LOLoad) op, derivedData);
-            throw new RuntimeException("Unrecognized logical operator.");
-    }
-
-    static Collection<IdentityHashSet<Tuple>> getEquivalenceClasses(LOLoad op,
-            Map<LogicalOperator, DataBag> derivedData) {
-        // Since its a load, all the tuples belong to a single equivalence class
-        Collection<IdentityHashSet<Tuple>> equivClasses = new LinkedList<IdentityHashSet<Tuple>>();
-        IdentityHashSet<Tuple> input = new IdentityHashSet<Tuple>();
-
-        equivClasses.add(input);
-
-        DataBag output = derivedData.get(op);
-
-        for (Iterator<Tuple> it = output.iterator(); it.hasNext();) {
-            Tuple t = it.next();
-
-            input.add(t);
+    
+    public static Map<LogicalOperator, Collection<IdentityHashSet<Tuple>>> getLoToEqClassMap(PhysicalPlan plan,
+        LogicalPlan lp, Map<LogicalOperator, PhysicalOperator> logToPhyMap,
+        Map<LogicalOperator, DataBag> logToDataMap,
+        Map<LOForEach, Map<LogicalOperator, PhysicalOperator>> forEachInnerLogToPhyMap,
+        final HashMap<PhysicalOperator, Collection<IdentityHashSet<Tuple>>> poToEqclassesMap)
+        throws VisitorException {
+        Map<LogicalOperator, Collection<IdentityHashSet<Tuple>>> ret =
+          new HashMap<LogicalOperator, Collection<IdentityHashSet<Tuple>>>();
+        List<LogicalOperator> roots = lp.getRoots();
+        HashSet<LogicalOperator> seen = new HashSet<LogicalOperator>();
+        for(LogicalOperator lo: roots) {
+            getEqClasses(plan, lo, lp, logToPhyMap, ret, poToEqclassesMap, logToDataMap, forEachInnerLogToPhyMap, seen);
         }
-
-        return equivClasses;
+        return ret;
     }
-
-    static Collection<IdentityHashSet<Tuple>> getEquivalenceClasses(
-            LOCogroup op, Map<LogicalOperator, DataBag> derivedData)
-            throws ExecException {
-        Collection<IdentityHashSet<Tuple>> equivClasses = new LinkedList<IdentityHashSet<Tuple>>();
-        IdentityHashSet<Tuple> acceptableGroups = new IdentityHashSet<Tuple>();
-
-        equivClasses.add(acceptableGroups);
-
-        for (Iterator<Tuple> it = derivedData.get(op).iterator(); it.hasNext();) {
-            Tuple t = it.next();
-
-            boolean isAcceptable;
-
-            if (t.size() == 2) {
-                isAcceptable = (((DataBag) (t.get(1))).size() >= 2);
-            } else {
-                isAcceptable = true;
-                for (int field = 1; field < t.size(); field++) {
-                    DataBag bag = (DataBag) t.get(field);
-                    if (bag.size() == 0) {
-                        isAcceptable = false;
-                        break;
-                    }
+    
+    private static void getEqClasses(PhysicalPlan plan, LogicalOperator parent, LogicalPlan lp,
+        Map<LogicalOperator, PhysicalOperator> logToPhyMap, Map<LogicalOperator,
+        Collection<IdentityHashSet<Tuple>>> result,
+        final HashMap<PhysicalOperator, Collection<IdentityHashSet<Tuple>>> poToEqclassesMap,
+        Map<LogicalOperator, DataBag> logToDataMap,
+        Map<LOForEach, Map<LogicalOperator, PhysicalOperator>> forEachInnerLogToPhyMap,
+        HashSet<LogicalOperator> seen) throws VisitorException {
+        if (parent instanceof LOForEach) {
+            if (poToEqclassesMap.get(logToPhyMap.get(parent)) != null) {
+                LinkedList<IdentityHashSet<Tuple>> eqClasses = new LinkedList<IdentityHashSet<Tuple>>();
+                eqClasses.addAll(poToEqclassesMap.get(logToPhyMap.get(parent)));
+                for (Map.Entry<LogicalOperator, PhysicalOperator> entry : forEachInnerLogToPhyMap.get(parent).entrySet()) {
+                    if (poToEqclassesMap.get(entry.getValue()) != null)
+                        eqClasses.addAll(poToEqclassesMap.get(entry.getValue()));
+                }
+                result.put(parent, eqClasses);
+            }
+        } else if (parent instanceof LOCross) {
+            boolean ok = true; 
+            for (LogicalOperator input : ((LOCross) parent).getInputs()) {
+                if (logToDataMap.get(input).size() < 2) {
+                    // only if all inputs have at least more than two tuples will all outputs be added to the eq. class
+                    ok = false;
+                    break;
                 }
             }
-
-            if (isAcceptable)
-                acceptableGroups.add(t);
-
-        }
-        return equivClasses;
-    }
-
-    static Collection<IdentityHashSet<Tuple>> getEquivalenceClasses(
-            LOForEach op, Map<LogicalOperator, DataBag> derivedData) {
-        Collection<IdentityHashSet<Tuple>> equivClasses = new LinkedList<IdentityHashSet<Tuple>>();
-
-        IdentityHashSet<Tuple> equivClass = new IdentityHashSet<Tuple>();
-        equivClasses.add(equivClass);
-
-        for (Iterator<Tuple> it = derivedData.get(op).iterator(); it.hasNext();) {
-            equivClass.add(it.next());
-        }
-
-        return equivClasses;
-    }
-
-    static Collection<IdentityHashSet<Tuple>> getEquivalenceClasses(
-            LOFilter op, Map<LogicalOperator, DataBag> derivedData) {
-        Collection<IdentityHashSet<Tuple>> equivClasses = new LinkedList<IdentityHashSet<Tuple>>();
-
-        IdentityHashSet<Tuple> pass = new IdentityHashSet<Tuple>();
-        IdentityHashSet<Tuple> fail = new IdentityHashSet<Tuple>();
-
-        for (Iterator<Tuple> it = derivedData.get(op).iterator(); it.hasNext();) {
-            pass.add(it.next());
-        }
-
-        LogicalOperator input = op.getInput();
-
-        for (Iterator<Tuple> it = derivedData.get(input).iterator(); it
-                .hasNext();) {
-            Tuple t = it.next();
-            if (pass.contains(t))
-                continue;
-            else
-                fail.add(t);
-        }
-
-        equivClasses.add(pass);
-        equivClasses.add(fail);
-
-        return equivClasses;
-
-    }
-
-    static Collection<IdentityHashSet<Tuple>> getEquivalenceClasses(LOSort op,
-            Map<LogicalOperator, DataBag> derivedData) {
-        //We don't create any eq. class for sort
-        IdentityHashSet<Tuple> temp = new IdentityHashSet<Tuple>();
-        Collection<IdentityHashSet<Tuple>> output = new LinkedList<IdentityHashSet<Tuple>>();
-        output.add(temp);
-        return output;
-    }
-
-    static Collection<IdentityHashSet<Tuple>> getEquivalenceClasses(LOSplit op,
-            Map<LogicalOperator, DataBag> derivedData) {
-        throw new RuntimeException(
-                "LOSplit not supported yet in example generator.");
-    }
-
-    static Collection<IdentityHashSet<Tuple>> getEquivalenceClasses(LOUnion op,
-            Map<LogicalOperator, DataBag> derivedData) {
-
-        // make one equivalence class per input relation
-
-        Collection<IdentityHashSet<Tuple>> equivClasses = new LinkedList<IdentityHashSet<Tuple>>();
-
-        for (LogicalOperator input : op.getInputs()) {
-            IdentityHashSet<Tuple> equivClass = new IdentityHashSet<Tuple>();
-
-            for (Iterator<Tuple> it = derivedData.get(input).iterator(); it
-                    .hasNext();) {
-                equivClass.add(it.next());
+            if (ok) {
+                LinkedList<IdentityHashSet<Tuple>> eqClasses = new LinkedList<IdentityHashSet<Tuple>>();
+                IdentityHashSet<Tuple> eqClass = new IdentityHashSet<Tuple>();
+                for (Iterator<Tuple> it = logToDataMap.get(parent).iterator(); it.hasNext();) {
+                    eqClass.add(it.next());
+                }
+                eqClasses.add(eqClass);
+                result.put(parent, eqClasses);
+            } else {
+                LinkedList<IdentityHashSet<Tuple>> eqClasses = new LinkedList<IdentityHashSet<Tuple>>();
+                IdentityHashSet<Tuple> eqClass = new IdentityHashSet<Tuple>();
+                eqClasses.add(eqClass);
+                result.put(parent, eqClasses);
             }
-            equivClasses.add(equivClass);
+        } else {
+            Collection<IdentityHashSet<Tuple>> eqClasses = poToEqclassesMap.get(logToPhyMap.get(parent));
+            if (eqClasses == null) {
+                eqClasses = new LinkedList<IdentityHashSet<Tuple>>();
+                int size = ((POPackage)logToPhyMap.get(parent)).getNumInps();
+                for (int i = 0; i < size; i++) {
+                    eqClasses.add(new IdentityHashSet<Tuple>());
+                }
+            }
+            result.put(parent, eqClasses);
         }
-
-        return equivClasses;
+        // result.put(parent, getEquivalenceClasses(plan, parent, lp, logToPhyMap, poToEqclassesMap));
+        if (lp.getSuccessors(parent) != null) {
+            for (LogicalOperator lo : lp.getSuccessors(parent)) {
+                if (!seen.contains(lo)) {
+                    seen.add(lo);
+                    getEqClasses(plan, lo, lp, logToPhyMap, result, poToEqclassesMap, logToDataMap, forEachInnerLogToPhyMap, seen);
+                }
+            }
+        }
     }
 }

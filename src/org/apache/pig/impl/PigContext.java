@@ -115,10 +115,13 @@ public class PigContext implements Serializable {
     
     public int defaultParallel = -1;
 
-    // Says, wether we're processing an explain right now. Explain
+    // Says, whether we're processing an explain right now. Explain
     // might skip some check in the logical plan validation (file
     // existence checks, etc).
     public boolean inExplain = false;
+    
+    // whether we're processing an ILLUSTRATE right now.
+    public boolean inIllustrator = false;
     
     private String last_alias = null;
 

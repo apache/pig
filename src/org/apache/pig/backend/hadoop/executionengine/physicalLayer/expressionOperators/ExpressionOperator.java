@@ -35,6 +35,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.impl.plan.VisitorException;
+import org.apache.pig.pen.Illustrator;
 
 /**
  * A base class for all types of expressions. All expression
@@ -52,6 +53,11 @@ public abstract class ExpressionOperator extends PhysicalOperator {
 
     public ExpressionOperator(OperatorKey k, int rp) {
         super(k, rp);
+    }
+    
+    @Override
+    public void setIllustrator(Illustrator illustrator) {
+        this.illustrator = illustrator;
     }
     
     @Override

@@ -38,6 +38,7 @@ import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.VisitorException;
+import org.apache.pig.impl.util.IdentityHashSet;
 
 //We intentionally skip type checking in backend for performance reasons
 @SuppressWarnings("unchecked")
@@ -84,6 +85,9 @@ public class POUserComparisonFunc extends ExpressionOperator {
         // the two attached tuples are used up now. So we set the
         // inputAttached flag to false
         inputAttached = false;
+        if (result.returnStatus == POStatus.STATUS_OK)
+            illustratorMarkup(null, result.result, 
+                (Integer) result.result == 0 ? 0 : (Integer) result.result > 0 ? 1 : 2);
         return result;
 
     }
@@ -192,4 +196,14 @@ public class POUserComparisonFunc extends ExpressionOperator {
         return null;
     }
 
+    @Override
+    public Tuple illustratorMarkup(Object in, Object out, int eqClassIndex) {
+        if(illustrator != null) {
+            illustrator.getInputs().add(t1);
+            illustrator.getEquivalenceClasses().get(eqClassIndex).add(t1);
+            illustrator.getInputs().add(t2);
+            illustrator.getEquivalenceClasses().get(eqClassIndex).add(t2);
+        }
+        return null;
+    }
 }

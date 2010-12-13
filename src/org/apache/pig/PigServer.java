@@ -1125,23 +1125,32 @@ public class PigServer {
         return currDAG.getAliasOp().keySet();
     }
 
-    public Map<LogicalOperator, DataBag> getExamples(String alias) {
+    public Map<LogicalOperator, DataBag> getExamples(String alias) throws IOException {
         LogicalPlan plan = null;
-
         try {        
-            if (currDAG.isBatchOn()) {
+            if (currDAG.isBatchOn() && alias != null) {
                 currDAG.execute();
             }
-            
-            plan = getClonedGraph().getPlan(alias);
+            Graph g = getClonedGraph();
+            plan = g.getPlan(alias);
+            plan = compileLp(plan, g, false);
         } catch (IOException e) {
             //Since the original script is parsed anyway, there should not be an
             //error in this parsing. The only reason there can be an error is when
             //the files being loaded in load don't exist anymore.
             e.printStackTrace();
         }
+
         ExampleGenerator exgen = new ExampleGenerator(plan, pigContext);
-        return exgen.getExamples();
+        try {
+            return exgen.getExamples();
+        } catch (ExecException e) {
+            e.printStackTrace(System.out);
+            throw new IOException("ExecException : "+ e.getMessage());
+        } catch (Exception e) {
+            e.printStackTrace(System.out);
+            throw new IOException("Exception : "+ e.getMessage());
+        }
     }
 
     private LogicalPlan getStorePlan(String alias) throws IOException {

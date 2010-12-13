@@ -41,6 +41,7 @@ import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.plan.PlanException;
+import org.apache.pig.pen.util.ExampleTuple;
 
 /**
  * The local rearrange operator is a part of the co-group
@@ -380,6 +381,7 @@ public class POLocalRearrange extends PhysicalOperator {
             if(secondaryPlans != null)
                 detachPlans(secondaryPlans);
             
+            res.result = illustratorMarkup(inp.result, res.result, 0);
             return res;
         }
         return inp;
@@ -445,7 +447,10 @@ public class POLocalRearrange extends PhysicalOperator {
             //Put the key and the indexed tuple
             //in a tuple and return
             lrOutput.set(1, key);
-            lrOutput.set(2, mFakeTuple);
+            if (illustrator != null)
+                lrOutput.set(2, key);
+            else
+                lrOutput.set(2, mFakeTuple);
             return lrOutput;
         } else if(isCross){
         
@@ -486,6 +491,7 @@ public class POLocalRearrange extends PhysicalOperator {
                             minimalValue.append(value.get(i));
                         }
                     }
+                    minimalValue = illustratorMarkup(value, minimalValue, -1);
                 } else {
                     // for the project star case
                     // we would send out an empty tuple as
@@ -799,4 +805,19 @@ public class POLocalRearrange extends PhysicalOperator {
         this.stripKeyFromValue = stripKeyFromValue;
     }
 
+    @Override
+    public Tuple illustratorMarkup(Object in, Object out, int eqClassIndex) {
+        if (illustrator != null) {
+            if (!(out instanceof ExampleTuple))
+            {
+                ExampleTuple tOut = new ExampleTuple((Tuple) out);
+                illustrator.getLineage().insert(tOut);
+                illustrator.addData(tOut);
+                illustrator.getLineage().union(tOut, (Tuple) in);
+                tOut.synthetic = ((ExampleTuple) in).synthetic;
+                return tOut;
+            }
+        }
+        return (Tuple) out;
+    }
 }

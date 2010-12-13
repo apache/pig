@@ -20,6 +20,8 @@ package org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOp
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 
 import org.apache.commons.logging.Log;
@@ -37,6 +39,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOpera
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
+import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
@@ -47,7 +50,10 @@ import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.PlanException;
 import org.apache.pig.impl.plan.VisitorException;
+import org.apache.pig.impl.util.IdentityHashSet;
 import org.apache.pig.impl.util.MultiMap;
+import org.apache.pig.pen.util.ExampleTuple;
+import org.apache.pig.pen.util.LineageTracer;
 
 /** This operator implements merge join algorithm to do map side joins. 
  *  Currently, only two-way joins are supported. One input of join is identified as left
@@ -204,6 +210,7 @@ public class POMergeJoin extends PhysicalOperator {
                 for(int i=0; i < rightTupSize; i++)
                     joinedTup.set(i+leftTupSize, curJoiningRightTup.get(i));
 
+                joinedTup = illustratorMarkup(null, joinedTup, 0);
                 return new Result(POStatus.STATUS_OK, joinedTup);
             }
             // Join with current right input has ended. But bag of left tuples
@@ -554,5 +561,29 @@ public class POMergeJoin extends PhysicalOperator {
 
     public String getIndexFile() {
         return indexFile;
+    }
+    
+    @Override
+    public Tuple illustratorMarkup(Object in, Object out, int eqClassIndex) {
+        if(illustrator != null) {
+            ExampleTuple tOut = new ExampleTuple((Tuple) out);
+            tOut.synthetic = ((ExampleTuple) out).synthetic;
+            LineageTracer lineageTracer = illustrator.getLineage();
+            lineageTracer.insert(tOut);
+            try {
+                for (int i = 0; i < leftTupSize+rightTupSize; i++)
+                {
+                    lineageTracer.union(tOut,  (Tuple) tOut.get(i));
+                    illustrator.getEquivalenceClasses().get(i).add((Tuple)tOut);
+                    // TODO constraint of >=2 tuples per eq. class
+                }
+            } catch (ExecException e) {
+              // TODO better exception handling
+              throw new RuntimeException("Illustrator exception :"+e.getMessage());
+            }
+            illustrator.addData((Tuple) tOut);
+            return tOut;
+        }
+        return (Tuple) out;
     }
 }

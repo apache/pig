@@ -22,6 +22,8 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.PriorityQueue;
 import java.util.Properties;
@@ -53,7 +55,10 @@ import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.VisitorException;
+import org.apache.pig.impl.util.IdentityHashSet;
 import org.apache.pig.impl.util.Pair;
+import org.apache.pig.pen.util.ExampleTuple;
+import org.apache.pig.pen.util.LineageTracer;
 
 public class POMergeCogroup extends PhysicalOperator {
 
@@ -279,7 +284,7 @@ public class POMergeCogroup extends PhysicalOperator {
         for(int i=0; i < relationCnt; i++)
             out.set(i+1,(outBags[i]));
 
-        return new Result(POStatus.STATUS_OK, out);        
+        return new Result(POStatus.STATUS_OK, illustratorMarkup(null, out, -1));        
     }
 
 
@@ -591,5 +596,39 @@ public class POMergeCogroup extends PhysicalOperator {
         while(!copy.isEmpty()){
             System.out.println(i+++"th item in heap: "+ copy.poll());
         }
+    }
+    
+    @Override
+    public Tuple illustratorMarkup(Object in, Object out, int eqClassIndex) {
+        if(illustrator != null) {
+            ExampleTuple tOut = new ExampleTuple((Tuple) out);
+            LineageTracer lineageTracer = illustrator.getLineage();
+            lineageTracer.insert((Tuple) out);
+            Tuple tmp;
+            boolean synthetic = false;
+            try {
+                for (int i = 1; i < relationCnt; i++)
+                {
+                    DataBag dbs = (DataBag) ((Tuple) out).get(i);
+                    Iterator<Tuple> iter = dbs.iterator();
+                    while (iter.hasNext()) {
+                        tmp = iter.next();
+                        // any of synthetic data in bags causes the output tuple to be synthetic
+                        if (!synthetic && ((ExampleTuple)tmp).synthetic)
+                            synthetic = true;
+                        lineageTracer.union(tOut, tmp);
+                        // TODO constraint of >=2 tuples per eq. class
+                        illustrator.getEquivalenceClasses().get(i-1).add(tmp);
+                    }
+                }
+            } catch (ExecException e) {
+              // TODO better exception handling
+              throw new RuntimeException("Illustrator exception :"+e.getMessage());
+            }
+            tOut.synthetic = synthetic;
+            illustrator.addData((Tuple) tOut);
+            return tOut;
+        } else
+            return (Tuple) out;
     }
 }

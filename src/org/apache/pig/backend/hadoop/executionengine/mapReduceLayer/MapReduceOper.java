@@ -20,6 +20,8 @@ package org.apache.pig.backend.hadoop.executionengine.mapReduceLayer;
 import java.io.ByteArrayOutputStream;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.Map;
+import java.util.HashMap;
 
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.NodeIdGenerator;
@@ -146,6 +148,10 @@ public class MapReduceOper extends Operator<MROpPlanVisitor> {
 	// are NOT combinable for correctness.
 	private boolean combineSmallSplits = true;
 	
+	// Map of the physical operator in physical plan to the one in MR plan: only needed
+	// if the physical operator is changed/replaced in MR compilation due to, e.g., optimization
+	public Map<PhysicalOperator, PhysicalOperator> phyToMRMap;
+	
 	private static enum OPER_FEATURE {
 	    NONE,
 	    // Indicate if this job is a sampling job
@@ -169,6 +175,7 @@ public class MapReduceOper extends Operator<MROpPlanVisitor> {
         scalars = new HashSet<PhysicalOperator>();
         nig = NodeIdGenerator.getGenerator();
         scope = k.getScope();
+        phyToMRMap = new HashMap<PhysicalOperator, PhysicalOperator>();
     }
 
     /*@Override

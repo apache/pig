@@ -341,5 +341,11 @@ public class PODemux extends PhysicalOperator {
     public boolean isInCombiner() {
         return inCombiner;
     }
+    
+    @Override
+    public Tuple illustratorMarkup(Object in, Object out, int eqClassIndex) {
+        // nothing need to be done here
+        return null;
+    }
         
 }

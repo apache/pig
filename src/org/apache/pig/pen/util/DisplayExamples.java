@@ -21,13 +21,18 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.HashSet;
 
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.logicalLayer.FrontendException;
+import org.apache.pig.impl.logicalLayer.LOForEach;
 import org.apache.pig.impl.logicalLayer.LogicalOperator;
+import org.apache.pig.impl.logicalLayer.LOStore;
+import org.apache.pig.impl.logicalLayer.LOLimit;
 import org.apache.pig.impl.logicalLayer.LogicalPlan;
 import org.apache.pig.impl.logicalLayer.schema.Schema.FieldSchema;
 import org.apache.pig.impl.util.IdentityHashSet;
@@ -62,26 +67,36 @@ public class DisplayExamples {
     }
 
     public static String printTabular(LogicalPlan lp,
-            Map<LogicalOperator, DataBag> exampleData) {
+            Map<LogicalOperator, DataBag> exampleData,
+            Map<LOForEach, Map<LogicalOperator, DataBag>> forEachInnerLogToDataMap) {
         StringBuffer output = new StringBuffer();
-
-        LogicalOperator currentOp = lp.getLeaves().get(0);
-        printTabular(currentOp, exampleData, output);
+        Set<LogicalOperator> seen = new HashSet<LogicalOperator>();
+        for (LogicalOperator currentOp : lp.getLeaves())
+            printTabular(currentOp, exampleData, forEachInnerLogToDataMap, seen, output);
         return output.toString();
     }
 
     static void printTabular(LogicalOperator op,
-            Map<LogicalOperator, DataBag> exampleData, StringBuffer output) {
-        DataBag bag = exampleData.get(op);
+            Map<LogicalOperator, DataBag> exampleData,
+            Map<LOForEach, Map<LogicalOperator, DataBag>> forEachInnerLogToDataMap,
+            Set<LogicalOperator> seen,
+            StringBuffer output) {
 
         List<LogicalOperator> inputs = op.getPlan().getPredecessors(op);
         if (inputs != null) { // to avoid an exception when op == LOLoad
             for (LogicalOperator Op : inputs) {
-                printTabular(Op, exampleData, output);
+                if (!seen.contains(Op))
+                  printTabular(Op, exampleData, forEachInnerLogToDataMap, seen, output);
             }
         }
+        seen.add(op);
+        // print inner block first
+        if ((op instanceof LOForEach)) {
+            printNestedTabular((LOForEach)op, forEachInnerLogToDataMap, exampleData.get(op), output);
+        }
+        
         if (op.getAlias() != null) {
-            // printTable(op, bag, output);
+            DataBag bag = exampleData.get(op);
             try {
                 DisplayTable(MakeArray(op, bag), op, bag, output);
             } catch (FrontendException e) {
@@ -95,6 +110,45 @@ public class DisplayExamples {
 
     }
 
+    // print out nested gen block in ForEach
+    static void printNestedTabular(LOForEach foreach,
+            Map<LOForEach, Map<LogicalOperator, DataBag>> forEachInnerLogToDataMap,
+            DataBag foreachData,
+            StringBuffer output) {
+        List<LogicalPlan> plans = foreach.getForEachPlans();
+        if (plans != null) {
+            for (LogicalPlan plan : plans) {
+                printNestedTabular(plan.getLeaves().get(0), foreach.getAlias(), foreachData, forEachInnerLogToDataMap.get(foreach), output);
+            }
+        }
+    }
+
+    static void printNestedTabular(LogicalOperator lo, String foreachAlias, DataBag foreachData, 
+            Map<LogicalOperator, DataBag> logToDataMap, StringBuffer output) {
+        
+        List<LogicalOperator> inputs = lo.getPlan().getPredecessors(lo);
+        if (inputs != null) {
+            for (LogicalOperator op : inputs)
+                printNestedTabular(op, foreachAlias, foreachData, logToDataMap, output);
+        }
+        
+        DataBag bag = logToDataMap.get(lo);
+        if (bag == null)
+          return;
+        
+        if (lo.getAlias() != null) {
+            try {
+              DisplayNestedTable(MakeArray(lo, bag), lo, foreachAlias, foreachData, bag, output);
+            } catch (FrontendException e) {
+              // TODO Auto-generated catch block
+              e.printStackTrace();
+            } catch (Exception e) {
+              // TODO Auto-generated catch block
+              e.printStackTrace();
+            }
+        }
+    }
+    
     public static void printSimple(LogicalOperator op,
             Map<LogicalOperator, DataBag> exampleData) {
         DataBag bag = exampleData.get(op);
@@ -126,6 +180,9 @@ public class DisplayExamples {
 
     static void DisplayTable(String[][] table, LogicalOperator op, DataBag bag,
             StringBuffer output) throws FrontendException {
+        if (op instanceof LOStore && ((LOStore) op).isTmpStore())
+            return;
+        
         int cols = op.getSchema().getFields().size();
         List<FieldSchema> fields = op.getSchema().getFields();
         int rows = (int) bag.size();
@@ -136,7 +193,69 @@ public class DisplayExamples {
                 maxColSizes[i] = 5;
         }
         int total = 0;
-        int aliasLength = op.getAlias().length() + 4;
+        int aliasLength = (op instanceof LOStore ? op.getAlias().length() + 12 : op.getAlias().length() + 4);
+        for (int j = 0; j < cols; ++j) {
+            for (int i = 0; i < rows; ++i) {
+                int length = table[i][j].length();
+                if (length > maxColSizes[j])
+                    maxColSizes[j] = length;
+            }
+            total += maxColSizes[j];
+        }
+
+        // Note of limit reset
+        if (op instanceof LOLimit) {
+            output.append("\nThe limit now in use, " + ((LOLimit)op).getLimit() + ", may have been changed for ILLUSTRATE purpose.\n");
+        }
+        
+        // Display the schema first
+        output
+                .append(AddSpaces(total + 3 * (cols + 1) + aliasLength + 1,
+                        false)
+                        + "\n");
+        if (op instanceof LOStore)
+            output.append("| Store : " + op.getAlias() + AddSpaces(4, true) + " | ");
+        else
+            output.append("| " + op.getAlias() + AddSpaces(4, true) + " | ");
+        for (int i = 0; i < cols; ++i) {
+            String field = fields.get(i).toString();
+            output.append(field
+                    + AddSpaces(maxColSizes[i] - field.length(), true) + " | ");
+        }
+        output.append("\n"
+                + AddSpaces(total + 3 * (cols + 1) + aliasLength + 1, false)
+                + "\n");
+        // now start displaying the data
+        for (int i = 0; i < rows; ++i) {
+            output.append("| " + AddSpaces(aliasLength, true) + " | ");
+            for (int j = 0; j < cols; ++j) {
+                String str = table[i][j];
+                output.append(str
+                        + AddSpaces(maxColSizes[j] - str.length(), true)
+                        + " | ");
+            }
+            output.append("\n");
+        }
+        // now display the finish line
+        output
+                .append(AddSpaces(total + 3 * (cols + 1) + aliasLength + 1,
+                        false)
+                        + "\n");
+    }
+
+    static void DisplayNestedTable(String[][] table, LogicalOperator op, String foreachAlias, DataBag bag,
+            DataBag foreachData, StringBuffer output) throws FrontendException {
+        int cols = op.getSchema().getFields().size();
+        List<FieldSchema> fields = op.getSchema().getFields();
+        int rows = (int) bag.size();
+        int[] maxColSizes = new int[cols];
+        for (int i = 0; i < cols; ++i) {
+            maxColSizes[i] = fields.get(i).toString().length();
+            if (maxColSizes[i] < 5)
+                maxColSizes[i] = 5;
+        }
+        int total = 0;
+        int aliasLength = op.getAlias().length() + +foreachAlias.length() + 5;
         for (int j = 0; j < cols; ++j) {
             for (int i = 0; i < rows; ++i) {
                 int length = table[i][j].length();
@@ -151,9 +270,10 @@ public class DisplayExamples {
                 .append(AddSpaces(total + 3 * (cols + 1) + aliasLength + 1,
                         false)
                         + "\n");
-        output.append("| " + op.getAlias() + AddSpaces(4, true) + " | ");
+        output.append("| " + foreachAlias + "." + op.getAlias() + AddSpaces(4, true) + " | ");
         for (int i = 0; i < cols; ++i) {
-            String field = fields.get(i).toString();
+            String field;
+            field = fields.get(i).toString();
             output.append(field
                     + AddSpaces(maxColSizes[i] - field.length(), true) + " | ");
         }
@@ -201,8 +321,12 @@ public class DisplayExamples {
         else {
             // System.out.println("Unrecognized data-type received!!!");
             // return null;
-            if (DataType.findTypeName(d) != null)
-                return d.toString();
+            if (DataType.findTypeName(d) != null) {
+                if (d == null)
+                    return "";
+                else
+                    return d.toString();
+            }
         }
         System.out.println("Unrecognized data-type received!!!");
         return null;

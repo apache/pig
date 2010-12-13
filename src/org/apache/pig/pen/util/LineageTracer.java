@@ -20,7 +20,6 @@ package org.apache.pig.pen.util;
 import java.util.*;
 
 import org.apache.pig.data.Tuple;
-import org.apache.pig.impl.util.IdentityHashSet;
 
 public class LineageTracer {
 

@@ -17,7 +17,9 @@
  */
 package org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators;
 
+import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.plan.OperatorKey;
+import org.apache.pig.impl.util.IdentityHashSet;
 
 /**
  * This is a base class for all unary comparison operators. Supports the
@@ -48,5 +50,13 @@ public abstract class UnaryComparisonOperator extends UnaryExpressionOperator
 
     public void setOperandType(byte operandType) {
         this.operandType = operandType;
+    }
+    
+    @Override
+    public Tuple illustratorMarkup(Object in, Object out, int eqClassIndex) {
+        if(illustrator != null) {
+
+        }
+        return null;
     }
 }

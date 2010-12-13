@@ -82,6 +82,10 @@ public class LOJoin extends LogicalRelationalOperator {
         return mJoinType;
     }
     
+    public void resetJoinType() {
+        mJoinType = JOINTYPE.HASH;
+    }
+    
     public Collection<LogicalExpressionPlan> getJoinPlan(int inputIndex) {
         return mJoinPlans.get(inputIndex);
     }

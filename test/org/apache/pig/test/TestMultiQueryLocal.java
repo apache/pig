@@ -427,6 +427,7 @@ public class TestMultiQueryLocal extends TestCase {
             
             GruntParser parser = new GruntParser(new StringReader(script));
             parser.setInteractive(false);
+            myPig.getPigContext().getProperties().setProperty("pig.usenewlogicalplan", "true");
             parser.setParams(myPig);
             parser.parseStopOnError();
 
@@ -435,6 +436,7 @@ public class TestMultiQueryLocal extends TestCase {
             Assert.fail();
         } finally {
             deleteOutputFiles();
+            myPig.getPigContext().getProperties().setProperty("pig.usenewlogicalplan", "false");
         }
     }
 

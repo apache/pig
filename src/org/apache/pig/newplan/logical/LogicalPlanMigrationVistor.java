@@ -60,12 +60,22 @@ import org.apache.pig.newplan.logical.relational.LogicalSchema;
 public class LogicalPlanMigrationVistor extends LOVisitor { 
     private org.apache.pig.newplan.logical.relational.LogicalPlan logicalPlan;
     private Map<LogicalOperator, LogicalRelationalOperator> opsMap;
+    private Map<LOForEach, Map<LogicalOperator, LogicalRelationalOperator>> forEachInnerMap;
    
     public LogicalPlanMigrationVistor(LogicalPlan plan) {
         super(plan, new DependencyOrderWalker<LogicalOperator, LogicalPlan>(plan));
         logicalPlan = new org.apache.pig.newplan.logical.relational.LogicalPlan();
         opsMap = new HashMap<LogicalOperator, LogicalRelationalOperator>();
+        forEachInnerMap = new HashMap<LOForEach, Map<LogicalOperator, LogicalRelationalOperator>>();
     }    
+    
+    public Map<LogicalOperator, LogicalRelationalOperator> getOldToNewLOOpMap() {
+        return opsMap;
+    }
+    
+    public Map<LOForEach, Map<LogicalOperator, LogicalRelationalOperator>> getForEachInnerMap() {
+        return forEachInnerMap;
+    }
     
     private void translateConnection(LogicalOperator oldOp, org.apache.pig.newplan.Operator newOp) {       
         List<LogicalOperator> preds = mPlan.getPredecessors(oldOp); 
@@ -227,12 +237,14 @@ public class LogicalPlanMigrationVistor extends LOVisitor {
         innerPlan.add(gen);                
         
         List<LogicalPlan> ll = forEach.getForEachPlans();
+        Map<LogicalOperator, LogicalRelationalOperator> innerMap = new HashMap<LogicalOperator, LogicalRelationalOperator>();
+        forEachInnerMap.put(forEach, innerMap);
         try {
             for(int i=0; i<ll.size(); i++) {
                 LogicalPlan lp = ll.get(i);
                 ForeachInnerPlanVisitor v = new ForeachInnerPlanVisitor(newForeach, forEach, lp, mPlan, opsMap);
                 v.visit();
-                
+                innerMap.putAll(v.getInnerOpMap());
                 expPlans.add(v.exprPlan);
             }
         } catch (FrontendException e) {

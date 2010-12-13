@@ -67,7 +67,6 @@ import org.apache.pig.impl.logicalLayer.validators.InputOutputFileVisitor;
 import org.apache.pig.impl.plan.CompilationMessageCollector;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.PlanValidationException;
-import org.apache.pig.pen.physicalOperators.POCounter;
 import org.apache.pig.test.utils.GenRandomData;
 import org.apache.pig.test.utils.LogicalPlanTester;
 import org.apache.pig.test.utils.TestHelper;
@@ -87,7 +86,6 @@ public class TestStore extends junit.framework.TestCase {
     PigContext pc;
     POProject proj;
     PigServer pig;
-    POCounter pcount;
         
     String inputFileName;
     String outputFileName;
@@ -136,10 +134,8 @@ public class TestStore extends junit.framework.TestCase {
         PhysicalPlan pp = new PhysicalPlan();
         pp.add(proj);
         pp.add(st);
-        pp.add(pcount);
         //pp.connect(proj, st);
-        pp.connect(proj, pcount);
-        pp.connect(pcount, st);
+        pp.connect(proj, st);
         pc.setExecType(ExecType.LOCAL);
         return new MapReduceLauncher().launchPig(pp, "TestStore", pc);
     }

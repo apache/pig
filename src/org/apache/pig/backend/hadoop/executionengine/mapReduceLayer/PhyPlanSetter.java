@@ -276,13 +276,6 @@ public class PhyPlanSetter extends PhyPlanVisitor {
         stream.setParentPlan(parent);
     }
 
-    @Override
-    public void visitLocalRearrangeForIllustrate(
-            POLocalRearrangeForIllustrate lrfi) throws VisitorException {
-        super.visitLocalRearrangeForIllustrate(lrfi);
-        lrfi.setParentPlan(parent);
-    }
-
 /*
     @Override
     public void visitPartitionRearrange(POPartitionRearrange lrfi) throws VisitorException {

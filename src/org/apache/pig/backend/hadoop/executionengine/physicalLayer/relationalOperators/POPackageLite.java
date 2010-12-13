@@ -22,10 +22,13 @@
 package org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators;
 
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
+
+import org.apache.pig.impl.util.IdentityHashSet;
 import org.apache.pig.impl.util.Pair;
 
 import org.apache.pig.PigException;
@@ -42,6 +45,8 @@ import org.apache.pig.impl.io.NullableTuple;
 import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.VisitorException;
+import org.apache.pig.pen.util.ExampleTuple;
+import org.apache.pig.pen.util.LineageTracer;
 
 /**
  * This package operator is a specialization
@@ -173,8 +178,8 @@ public class POPackageLite extends POPackage {
         res.set(1,db);
         detachInput();
         Result r = new Result();
-        r.result = res;
         r.returnStatus = POStatus.STATUS_OK;
+        r.result = illustratorMarkup(null, res, 0);
         return r;
     }
     
@@ -201,6 +206,28 @@ public class POPackageLite extends POPackage {
                 + DataType.findTypeName(resultType) + "]" + "{"
                 + DataType.findTypeName(keyType) + "}" + " - "
                 + mKey.toString();
+    }
+    
+    @Override
+    public Tuple illustratorMarkup(Object in, Object out, int eqClassIndex) {
+        if(illustrator != null) {
+            ExampleTuple tOut = new ExampleTuple((Tuple) out);
+            LineageTracer lineageTracer = illustrator.getLineage();
+            lineageTracer.insert(tOut);
+            if (illustrator.getEquivalenceClasses() == null) {
+                LinkedList<IdentityHashSet<Tuple>> equivalenceClasses = new LinkedList<IdentityHashSet<Tuple>>();
+                for (int i = 0; i < numInputs; ++i) {
+                    IdentityHashSet<Tuple> equivalenceClass = new IdentityHashSet<Tuple>();
+                    equivalenceClasses.add(equivalenceClass);
+                }
+                illustrator.setEquivalenceClasses(equivalenceClasses, this);
+            }
+            illustrator.getEquivalenceClasses().get(eqClassIndex).add(tOut);
+            tOut.synthetic = false;  // not expect this to be really used
+            illustrator.addData((Tuple) tOut);
+            return tOut;
+        } else
+            return (Tuple) out;
     }
 }
 

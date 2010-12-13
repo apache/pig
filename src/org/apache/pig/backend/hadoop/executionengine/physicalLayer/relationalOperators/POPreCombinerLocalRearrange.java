@@ -234,4 +234,8 @@ public class POPreCombinerLocalRearrange extends PhysicalOperator {
         }            
     }
 
+    @Override
+    public Tuple illustratorMarkup(Object in, Object out, int eqClassIndex) {
+        return null;
+    }
 }

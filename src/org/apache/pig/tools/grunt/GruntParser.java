@@ -96,6 +96,7 @@ public class GruntParser extends PigScriptParser {
         mDone = false;
         mLoadOnly = false;
         mExplain = null;
+        mScriptIllustrate = false;
     }
 
     private void setBatchOn() {
@@ -202,6 +203,10 @@ public class GruntParser extends PigScriptParser {
         mJobConf = execEngine.getJobConf();
     }
 
+    public void setScriptIllustrate() {
+        mScriptIllustrate = true;
+    }
+    
     @Override
     public void prompt()
     {
@@ -271,7 +276,7 @@ public class GruntParser extends PigScriptParser {
                 }
                 setBatchOn();
                 try {
-                    loadScript(script, true, true, params, files);
+                    loadScript(script, true, true, false, params, files);
                 } catch(IOException e) {
                     discardBatch();
                     throw e;
@@ -416,20 +421,20 @@ public class GruntParser extends PigScriptParser {
                 setBatchOn();
                 mPigServer.setJobName(script);
                 try {
-                    loadScript(script, true, mLoadOnly, params, files);
+                    loadScript(script, true, false, mLoadOnly, params, files);
                     executeBatch();
                 } finally {
                     discardBatch();
                 }
             } else {
-                loadScript(script, false, mLoadOnly, params, files);
+                loadScript(script, false, false, mLoadOnly, params, files);
             }
         } else {
             log.warn("'run/exec' statement is ignored while processing 'explain -script' or '-check'");
         }
     }
 
-    private void loadScript(String script, boolean batch, boolean loadOnly,
+    private void loadScript(String script, boolean batch, boolean loadOnly, boolean illustrate,
                             List<String> params, List<String> files) 
         throws IOException, ParseException {
         
@@ -467,6 +472,8 @@ public class GruntParser extends PigScriptParser {
         parser.setConsoleReader(reader);
         parser.setInteractive(interactive);
         parser.setLoadOnly(loadOnly);
+        if (illustrate)
+            parser.setScriptIllustrate();
         parser.mExplain = mExplain;
         
         parser.prompt();
@@ -621,12 +628,43 @@ public class GruntParser extends PigScriptParser {
     }
     
     @Override
-    protected void processIllustrate(String alias) throws IOException
+    protected void processIllustrate(String alias, String script, String target, List<String> params, List<String> files) throws IOException, ParseException
     {
-        if(mExplain == null) { // process only if not in "explain" mode
-            mPigServer.getExamples(alias);
-        } else {
+        if (mScriptIllustrate)
+            throw new ParseException("'illustrate' statement can not appear in a script that is illustrated opon.");
+
+        if ((alias != null) && (script != null))
+            throw new ParseException("'illustrate' statement on an alias does not work when a script is in effect");
+        else if (mExplain != null)
             log.warn("'illustrate' statement is ignored while processing 'explain -script' or '-check'");
+        else {
+            try {
+                if (script != null) {
+                    if (!"true".equalsIgnoreCase(mPigServer.
+                                                 getPigContext()
+                                                 .getProperties().
+                                                 getProperty("opt.multiquery","true"))) {
+                        throw new ParseException("Cannot explain script if multiquery is disabled.");
+                    }
+                    setBatchOn();
+                    try {
+                        loadScript(script, true, true, true, params, files);
+                    } catch(IOException e) {
+                        discardBatch();
+                        throw e;
+                    } catch (ParseException e) {
+                        discardBatch();
+                        throw e;
+                    }
+                } else if (alias == null) {
+                    throw new ParseException("'illustrate' statement must be on an alias or on a script.");
+                }
+                mPigServer.getExamples(alias);
+            } finally {
+                if (script != null) {
+                    discardBatch();
+                }
+            }
         }
     }
 
@@ -998,4 +1036,5 @@ public class GruntParser extends PigScriptParser {
     private int mNumFailedJobs;
     private int mNumSucceededJobs;
     private FsShell shell;
+    private boolean mScriptIllustrate;
 }

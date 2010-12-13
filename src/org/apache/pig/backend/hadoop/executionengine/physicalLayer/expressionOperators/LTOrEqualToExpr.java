@@ -154,6 +154,7 @@ public class LTOrEqualToExpr extends BinaryComparisonOperator {
         } else {
             left.result = falseRef;
         }
+        illustratorMarkup(null, left.result, (Boolean) left.result ? 0 : 1);
         return left;
     }
 

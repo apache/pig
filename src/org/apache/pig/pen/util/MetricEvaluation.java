@@ -19,13 +19,11 @@
 package org.apache.pig.pen.util;
 
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.Tuple;
-import org.apache.pig.impl.logicalLayer.LOFilter;
 import org.apache.pig.impl.logicalLayer.LogicalOperator;
 import org.apache.pig.impl.util.IdentityHashSet;
 
@@ -118,24 +116,13 @@ public class MetricEvaluation {
         int noClasses = 0;
         int noCoveredClasses = 0;
         int noOperators = 0;
-        Map<Integer, Boolean> coveredClasses;
         float completeness = 0;
         if (!overallCompleteness) {
             Collection<IdentityHashSet<Tuple>> eqClasses = OperatorToEqClasses
                     .get(op);
-            DataBag bag;
 
-            if (op instanceof LOFilter)
-                bag = exampleData.get(((LOFilter) op).getInput());
-            else
-                bag = exampleData.get(op);
-            coveredClasses = getCompletenessLogic(bag, eqClasses);
+            noCoveredClasses = getCompletenessLogic(eqClasses);
             noClasses = eqClasses.size();
-            for (Map.Entry<Integer, Boolean> e : coveredClasses.entrySet()) {
-                if (e.getValue()) {
-                    noCoveredClasses++;
-                }
-            }
 
             return 100 * ((float) noCoveredClasses) / (float) noClasses;
         } else {
@@ -150,20 +137,8 @@ public class MetricEvaluation {
                     continue; // we want to consider join a single operator
                 noOperators++;
                 Collection<IdentityHashSet<Tuple>> eqClasses = e.getValue();
-                LogicalOperator lop = e.getKey();
-                DataBag bag;
-                if (lop instanceof LOFilter)
-                    bag = exampleData.get(((LOFilter) lop).getInput());
-                else
-                    bag = exampleData.get(lop);
-                coveredClasses = getCompletenessLogic(bag, eqClasses);
+                noCoveredClasses = getCompletenessLogic(eqClasses);
                 noClasses += eqClasses.size();
-                for (Map.Entry<Integer, Boolean> e_result : coveredClasses
-                        .entrySet()) {
-                    if (e_result.getValue()) {
-                        noCoveredClasses++;
-                    }
-                }
                 completeness += 100 * ((float) noCoveredClasses / (float) noClasses);
             }
             completeness /= (float) noOperators;
@@ -173,23 +148,13 @@ public class MetricEvaluation {
 
     }
 
-    private static Map<Integer, Boolean> getCompletenessLogic(DataBag bag,
+    private static int getCompletenessLogic(
             Collection<IdentityHashSet<Tuple>> eqClasses) {
-        Map<Integer, Boolean> coveredClasses = new HashMap<Integer, Boolean>();
-
-        for (Iterator<Tuple> it = bag.iterator(); it.hasNext();) {
-            Tuple t = it.next();
-            int classId = 0;
-            for (IdentityHashSet<Tuple> eqClass : eqClasses) {
-
-                if (eqClass.contains(t) || eqClass.size() == 0) {
-                    coveredClasses.put(classId, true);
-                }
-                classId++;
-            }
+        int nCoveredClasses = 0;
+        for (IdentityHashSet<Tuple> eqClass : eqClasses) {
+            if (!eqClass.isEmpty())
+                nCoveredClasses++;    
         }
-
-        return coveredClasses;
-
+        return nCoveredClasses;
     }
 }

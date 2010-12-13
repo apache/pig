@@ -267,6 +267,10 @@ public class LOCogroup extends LogicalRelationalOperator {
         return mGroupType;
     }
     
+    public void resetGroupType() {
+        mGroupType = GROUPTYPE.REGULAR;
+    }
+    
     /**
      * Returns an Unmodifiable Map of Input Number to Uid 
      * @return Unmodifiable Map<Integer,Long>
