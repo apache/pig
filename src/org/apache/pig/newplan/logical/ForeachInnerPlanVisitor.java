@@ -105,6 +105,10 @@ public class ForeachInnerPlanVisitor extends LogicalExpPlanMigrationVistor {
         return childPlanVisitor.exprPlan;
     }
     
+    public Map<LogicalOperator, LogicalRelationalOperator> getInnerOpMap() {
+        return innerOpsMap;
+    }
+    
     public void visit(LOProject project) throws VisitorException {
         LogicalOperator op = project.getExpression();
         

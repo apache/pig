@@ -19,6 +19,7 @@ package org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOp
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.LinkedList;
 
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataType;
@@ -31,6 +32,8 @@ import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.pen.util.ExampleTuple;
+import org.apache.pig.pen.util.LineageTracer;
+import org.apache.pig.impl.util.IdentityHashSet;
 
 /**
  * A specialized version of POForeach with the difference
@@ -97,13 +100,6 @@ public class POOptimizedForEach extends POForEach {
             while(true) {
                 res = processPlan();
                 if(res.returnStatus==POStatus.STATUS_OK) {
-                    if(lineageTracer !=  null && res.result != null) {
-                	ExampleTuple tOut = new ExampleTuple((Tuple) res.result);
-                	tOut.synthetic = tIn.synthetic;
-                	lineageTracer.insert(tOut);
-                	lineageTracer.union(tOut, tIn);
-                	res.result = tOut;
-                    }
                     return res;
                 }
                 if(res.returnStatus==POStatus.STATUS_EOP) {
@@ -132,16 +128,6 @@ public class POOptimizedForEach extends POForEach {
             res = processPlan();
             
             processingPlan = true;
-
-            if(lineageTracer != null && res.result != null) {
-        	//we check for res.result since that can also be null in the case of flatten
-        	tIn = (ExampleTuple) input;
-        	ExampleTuple tOut = new ExampleTuple((Tuple) res.result);
-        	tOut.synthetic = tIn.synthetic;
-        	lineageTracer.insert(tOut);
-        	lineageTracer.union(tOut, tIn);
-        	res.result = tOut;
-            }
             
             return res;
         }
@@ -171,6 +157,4 @@ public class POOptimizedForEach extends POForEach {
             NodeIdGenerator.getGenerator().getNextNodeId(mKey.scope)),
             requestedParallelism, plans, flattens);
     }
-
-    
 }

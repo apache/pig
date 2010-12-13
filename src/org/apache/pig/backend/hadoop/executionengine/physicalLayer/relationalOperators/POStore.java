@@ -19,6 +19,7 @@ package org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOp
 
 import java.io.IOException;
 import java.util.List;
+import java.util.LinkedList;
 
 import org.apache.hadoop.mapreduce.Counter;
 import org.apache.pig.PigException;
@@ -36,6 +37,9 @@ import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.VisitorException;
+import org.apache.pig.impl.util.IdentityHashSet;
+import org.apache.pig.pen.util.ExampleTuple;
+import org.apache.pig.pen.util.LineageTracer;
 
 /**
  * The store operator which is used in two ways:
@@ -132,8 +136,12 @@ public class POStore extends PhysicalOperator {
         try {
             switch (res.returnStatus) {
             case POStatus.STATUS_OK:
-                storer.putNext((Tuple)res.result);
+                if (illustrator == null) {
+                    storer.putNext((Tuple)res.result);
+                } else
+                    illustratorMarkup(res.result, res.result, 0);
                 res = empty;
+
                 if (outputRecordCounter != null) {
                     outputRecordCounter.increment(1);
                 }
@@ -249,5 +257,18 @@ public class POStore extends PhysicalOperator {
 
     public boolean isMultiStore() {
         return isMultiStore;
+    }
+    
+    @Override
+    public Tuple illustratorMarkup(Object in, Object out, int eqClassIndex) {
+        if(illustrator != null) {
+            ExampleTuple tIn = (ExampleTuple) in;
+            LineageTracer lineage = illustrator.getLineage();
+            lineage.insert(tIn);
+            if (!isTmpStore)
+                illustrator.getEquivalenceClasses().get(eqClassIndex).add(tIn);
+            illustrator.addData((Tuple) out);
+        }
+        return (Tuple) out;
     }
 }

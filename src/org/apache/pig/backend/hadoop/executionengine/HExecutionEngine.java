@@ -57,6 +57,8 @@ import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.logicalLayer.FrontendException;
+import org.apache.pig.impl.logicalLayer.LOForEach;
+import org.apache.pig.impl.logicalLayer.LogicalOperator;
 import org.apache.pig.impl.logicalLayer.LogicalPlan;
 import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.OperatorKey;
@@ -69,17 +71,17 @@ import org.apache.pig.newplan.logical.LogicalPlanMigrationVistor;
 import org.apache.pig.newplan.logical.expression.ConstantExpression;
 import org.apache.pig.newplan.logical.expression.LogicalExpressionPlan;
 import org.apache.pig.newplan.logical.optimizer.SchemaResetter;
-import org.apache.pig.newplan.logical.optimizer.ProjectionPatcher.ProjectionFinder;
 import org.apache.pig.newplan.logical.relational.LOLimit;
 import org.apache.pig.newplan.logical.relational.LOSort;
 import org.apache.pig.newplan.logical.relational.LOSplit;
 import org.apache.pig.newplan.logical.relational.LOSplitOutput;
 import org.apache.pig.newplan.logical.relational.LOStore;
 import org.apache.pig.newplan.logical.relational.LogicalRelationalNodesVisitor;
+import org.apache.pig.newplan.logical.relational.LogicalRelationalOperator;
 import org.apache.pig.newplan.logical.rules.InputOutputFileValidator;
-import org.apache.pig.newplan.optimizer.Rule;
 import org.apache.pig.tools.pigstats.OutputStats;
 import org.apache.pig.tools.pigstats.PigStats;
+import org.apache.pig.pen.POOptimizeDisabler;
 
 public class HExecutionEngine {
     
@@ -104,6 +106,11 @@ public class HExecutionEngine {
     
     // map from LOGICAL key to into about the execution
     protected Map<OperatorKey, MapRedResult> materializedResults;
+    
+    protected Map<LogicalOperator, PhysicalOperator> logToPhyMap;
+    protected Map<LogicalOperator, LogicalRelationalOperator> opsMap;
+    protected Map<Operator, PhysicalOperator> newLogToPhyMap;
+    private Map<LOForEach, Map<LogicalOperator, LogicalRelationalOperator>> forEachInnerOpMap;
     
     public HExecutionEngine(PigContext pigContext) {
         this.pigContext = pigContext;
@@ -255,7 +262,15 @@ public class HExecutionEngine {
                 // translate old logical plan to new plan
                 LogicalPlanMigrationVistor visitor = new LogicalPlanMigrationVistor(plan);
                 visitor.visit();
+                opsMap = visitor.getOldToNewLOOpMap();
+                forEachInnerOpMap = visitor.getForEachInnerMap();
                 org.apache.pig.newplan.logical.relational.LogicalPlan newPlan = visitor.getNewLogicalPlan();
+                
+                if (pigContext.inIllustrator) {
+                    // disable all PO-specific optimizations
+                    POOptimizeDisabler pod = new POOptimizeDisabler(newPlan);
+                    pod.visit();
+                }
                 
                 SchemaResetter schemaResetter = new SchemaResetter(newPlan);
                 schemaResetter.visit();
@@ -269,6 +284,22 @@ public class HExecutionEngine {
                     int errCode = 2110;
                     String msg = "Unable to deserialize optimizer rules.";
                     throw new FrontendException(msg, errCode, PigException.BUG, ioe);
+                }
+                
+                if (pigContext.inIllustrator) {
+                    // disable MergeForEach in illustrator
+                    if (optimizerRules == null)
+                        optimizerRules = new HashSet<String>();
+                    optimizerRules.add("MergeForEach");
+                    optimizerRules.add("PartitionFilterOptimizer");
+                    optimizerRules.add("LimitOptimizer");
+                    optimizerRules.add("SplitFilter");
+                    optimizerRules.add("PushUpFilter");
+                    optimizerRules.add("MergeFilter");
+                    optimizerRules.add("PushDownForEachFlatten");
+                    optimizerRules.add("ColumnMapKeyPrune");
+                    optimizerRules.add("AddForEach");
+                    optimizerRules.add("GroupByConstParallelSetter");
                 }
                 
                 // run optimizer
@@ -294,6 +325,7 @@ public class HExecutionEngine {
                 
                 translator.setPigContext(pigContext);
                 translator.visit();
+                newLogToPhyMap = translator.getLogToPhyMap();
                 return translator.getPhysicalPlan();
                 
             }else{       
@@ -303,11 +335,38 @@ public class HExecutionEngine {
                 translator.visit();
                 return translator.getPhysicalPlan();
             }
-        } catch (Exception ve) {
+        } catch (ExecException ve) {
             int errCode = 2042;
             String msg = "Error in new logical plan. Try -Dpig.usenewlogicalplan=false.";
             throw new FrontendException(msg, errCode, PigException.BUG, ve);
         }
+    }
+    
+    public Map<LogicalOperator, PhysicalOperator> getLogToPhyMap() {
+        if (logToPhyMap != null)
+            return logToPhyMap;
+        else if (newLogToPhyMap != null) {
+            Map<LogicalOperator, PhysicalOperator> result = new HashMap<LogicalOperator, PhysicalOperator>();
+            for (LogicalOperator lo: opsMap.keySet()) {
+                result.put(lo, newLogToPhyMap.get(opsMap.get(lo))); 
+            }
+            return result;
+        } else
+            return null;
+    }
+    
+    public Map<LOForEach, Map<LogicalOperator, PhysicalOperator>> getForEachInnerLogToPhyMap() {
+        Map<LOForEach, Map<LogicalOperator, PhysicalOperator>> result =
+            new HashMap<LOForEach, Map<LogicalOperator, PhysicalOperator>>();
+        for (Map.Entry<LOForEach, Map<LogicalOperator, LogicalRelationalOperator>> entry :
+            forEachInnerOpMap.entrySet()) {
+            Map<LogicalOperator, PhysicalOperator> innerOpMap = new HashMap<LogicalOperator, PhysicalOperator>();
+            for (Map.Entry<LogicalOperator, LogicalRelationalOperator> innerEntry : entry.getValue().entrySet()) {
+                innerOpMap.put(innerEntry.getKey(), newLogToPhyMap.get(innerEntry.getValue()));
+            }
+            result.put(entry.getKey(), innerOpMap);
+        }
+        return result;
     }
     
     public static class SortInfoSetter extends LogicalRelationalNodesVisitor {

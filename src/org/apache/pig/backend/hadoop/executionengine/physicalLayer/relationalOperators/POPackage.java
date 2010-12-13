@@ -21,11 +21,10 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.AccumulativeBag;
 import org.apache.pig.data.BagFactory;
@@ -44,7 +43,11 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.impl.plan.VisitorException;
+import org.apache.pig.impl.util.IdentityHashSet;
 import org.apache.pig.impl.util.Pair;
+import org.apache.pig.pen.util.ExampleTuple;
+import org.apache.pig.pen.util.LineageTracer;
+
 /**
  * The package operator that packages
  * the globally rearranged tuples into
@@ -112,8 +115,6 @@ public class POPackage extends PhysicalOperator {
     // "value" to column numbers in the "key" which contain the fields in
     // the "value"
     protected Map<Integer, Pair<Boolean, Map<Integer, Integer>>> keyInfo;
-    
-    transient private final Log log = LogFactory.getLog(getClass());
 
     protected static final BagFactory mBagFactory = BagFactory.getInstance();
     protected static final TupleFactory mTupleFactory = TupleFactory.getInstance();
@@ -304,10 +305,13 @@ public class POPackage extends PhysicalOperator {
                 res.set(i+1,bag);
             }
         }
-        detachInput();
         Result r = new Result();
-        r.result = res;
         r.returnStatus = POStatus.STATUS_OK;
+        if (!isAccumulative())
+            r.result = illustratorMarkup(null, res, 0);
+        else
+            r.result = res;
+        detachInput();
         return r;
     }
 
@@ -355,19 +359,19 @@ public class POPackage extends PhysicalOperator {
                     }
                 }
             }
-            
+            copy = illustratorMarkup2(val, copy);
         } else if (isProjectStar) {
             
             // the whole "value" is present in the "key"
             copy = mTupleFactory.newTuple(keyAsTuple.getAll());
-            
+            copy = illustratorMarkup2(keyAsTuple, copy);
         } else {
             
             // there is no field of the "value" in the
             // "key" - so just make a copy of what we got
             // as the "value"
             copy = mTupleFactory.newTuple(val.getAll());
-            
+            copy = illustratorMarkup2(val, copy);
         }
         return copy;
     }
@@ -462,7 +466,7 @@ public class POPackage extends PhysicalOperator {
         return pkgType;
     }
     
-    private class POPackageTupleBuffer implements AccumulativeTupleBuffer {
+    class POPackageTupleBuffer implements AccumulativeTupleBuffer {
         private List<Tuple>[] bags;
         private Iterator<NullableTuple> iter;
         private int batchSize;
@@ -529,5 +533,79 @@ public class POPackage extends PhysicalOperator {
         public Iterator<Tuple> getTuples(int index) {			
             return bags[index].iterator();
         }
+        
+        public Tuple illustratorMarkup(Object in, Object out, int eqClassIndex) {
+            return POPackage.this.illustratorMarkup(in, out, eqClassIndex);
+        }
        };
+       
+       private Tuple illustratorMarkup2(Object in, Object out) {
+           if(illustrator != null) {
+               ExampleTuple tOut = new ExampleTuple((Tuple) out);
+               illustrator.getLineage().insert(tOut);
+               tOut.synthetic = ((ExampleTuple) in).synthetic;
+               illustrator.getLineage().union(tOut, (Tuple) in);
+               return tOut;
+           } else
+               return (Tuple) out;
+       }
+       
+       @Override
+       public Tuple illustratorMarkup(Object in, Object out, int eqClassIndex) {
+           if(illustrator != null) {
+               ExampleTuple tOut = new ExampleTuple((Tuple) out);
+               LineageTracer lineageTracer = illustrator.getLineage();
+               lineageTracer.insert(tOut);
+               Tuple tmp;
+               boolean synthetic = false;
+               if (illustrator.getEquivalenceClasses() == null) {
+                   LinkedList<IdentityHashSet<Tuple>> equivalenceClasses = new LinkedList<IdentityHashSet<Tuple>>();
+                   for (int i = 0; i < numInputs; ++i) {
+                       IdentityHashSet<Tuple> equivalenceClass = new IdentityHashSet<Tuple>();
+                       equivalenceClasses.add(equivalenceClass);
+                   }
+                   illustrator.setEquivalenceClasses(equivalenceClasses, this);
+               }
+
+               if (distinct) {
+                   int count;
+                   for (count = 0; tupIter.hasNext(); ++count) {
+                       NullableTuple ntp = tupIter.next();
+                       tmp = (Tuple) ntp.getValueAsPigType();
+                       if (!tmp.equals(tOut))
+                           lineageTracer.union(tOut, tmp);
+                   }
+                   if (count > 1) // only non-distinct tuples are inserted into the equivalence class
+                       illustrator.getEquivalenceClasses().get(eqClassIndex).add(tOut);
+                   illustrator.addData((Tuple) tOut);
+                   return (Tuple) tOut;
+               }
+               boolean outInEqClass = true;
+               try {
+                   for (int i = 1; i < numInputs+1; i++)
+                   {
+                       DataBag dbs = (DataBag) ((Tuple) out).get(i);
+                       Iterator<Tuple> iter = dbs.iterator();
+                       if (dbs.size() <= 1 && outInEqClass) // all inputs have >= 2 records
+                           outInEqClass = false;
+                       while (iter.hasNext()) {
+                           tmp = iter.next();
+                           // any of synthetic data in bags causes the output tuple to be synthetic
+                           if (!synthetic && ((ExampleTuple)tmp).synthetic)
+                               synthetic = true;
+                           lineageTracer.union(tOut, tmp);
+                       }
+                   }
+               } catch (ExecException e) {
+                 // TODO better exception handling
+                 throw new RuntimeException("Illustrator exception :"+e.getMessage());
+               }
+               if (outInEqClass)
+                   illustrator.getEquivalenceClasses().get(eqClassIndex).add(tOut);
+               tOut.synthetic = synthetic;
+               illustrator.addData((Tuple) tOut);
+               return tOut;
+           } else
+               return (Tuple) out;
+       }
 }

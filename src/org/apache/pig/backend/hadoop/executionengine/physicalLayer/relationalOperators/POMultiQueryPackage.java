@@ -270,7 +270,7 @@ public class POMultiQueryPackage extends POPackage {
             myObj.setIndex(origIndex);
             tuple.set(0, myObj);
         }
-        
+        // illustrator markup has been handled by "pack"
         return res;
     }
 

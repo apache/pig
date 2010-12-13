@@ -72,8 +72,14 @@ public class PONot extends UnaryComparisonOperator {
         if(res.returnStatus != POStatus.STATUS_OK || res.result == null) {
             return res;
         }
-        if (((Boolean)res.result).booleanValue()) return falseRes;
-        else return trueRes;
+        if (((Boolean)res.result).booleanValue()) {
+          illustratorMarkup(null, falseRes.result, 1);
+          return falseRes;
+        }
+        else {
+          illustratorMarkup(null, trueRes.result, 0);
+          return trueRes;
+        }
     }
 
     @Override

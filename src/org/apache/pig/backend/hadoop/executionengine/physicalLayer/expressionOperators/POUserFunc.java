@@ -480,4 +480,13 @@ public class POUserFunc extends ExpressionOperator {
     public void setResultType(byte resultType) {
         this.resultType = resultType;
     }
+    
+    @Override
+    public Tuple illustratorMarkup(Object in, Object out, int eqClassIndex) {
+        return (Tuple) out;
+    }
+    
+    public EvalFunc getFunc() {
+        return func;
+    }
 }

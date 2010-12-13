@@ -47,7 +47,9 @@ import org.apache.pig.impl.plan.DependencyOrderWalker;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.VisitorException;
+import org.apache.pig.impl.util.IdentityHashSet;
 import org.apache.pig.pen.util.ExampleTuple;
+import org.apache.pig.pen.util.LineageTracer;
 
 //We intentionally skip type checking in backend for performance reasons
 @SuppressWarnings("unchecked")
@@ -92,6 +94,8 @@ public class POForEach extends PhysicalOperator {
     protected PhysicalOperator[] planLeafOps = null;
     
     protected transient AccumulativeTupleBuffer buffer;
+    
+    protected Tuple inpTuple;
     
     public POForEach(OperatorKey k) {
         this(k,-1,null,null);
@@ -209,13 +213,6 @@ public class POForEach extends PhysicalOperator {
                 res = processPlan();               
                 
                 if(res.returnStatus==POStatus.STATUS_OK) {
-                    if(lineageTracer !=  null && res.result != null) {
-                    ExampleTuple tOut = new ExampleTuple((Tuple) res.result);
-                    tOut.synthetic = tIn.synthetic;
-                    lineageTracer.insert(tOut);
-                    lineageTracer.union(tOut, tIn);
-                    res.result = tOut;
-                    }
                     return res;
                 }
                 if(res.returnStatus==POStatus.STATUS_EOP) {
@@ -247,18 +244,18 @@ public class POForEach extends PhysicalOperator {
             }
                        
             attachInputToPlans((Tuple) inp.result);
-            Tuple tuple = (Tuple)inp.result;
+            inpTuple = (Tuple)inp.result;
             
             for (PhysicalOperator po : opsToBeReset) {
                 po.reset();
             }
             
             if (isAccumulative()) {            	
-                for(int i=0; i<tuple.size(); i++) {            		
-                    if (tuple.getType(i) == DataType.BAG) {
+                for(int i=0; i<inpTuple.size(); i++) {            		
+                    if (inpTuple.getType(i) == DataType.BAG) {
                         // we only need to check one bag, because all the bags
                         // share the same buffer
-                        buffer = ((AccumulativeBag)tuple.get(i)).getTuplebuffer();
+                        buffer = ((AccumulativeBag)inpTuple.get(i)).getTuplebuffer();
                         break;
                     }
                 }
@@ -272,8 +269,9 @@ public class POForEach extends PhysicalOperator {
                         }
                         
                         setAccumStart();                		
-                    }else{                
-                        buffer.clear();
+                    }else{
+                        inpTuple = ((POPackage.POPackageTupleBuffer) buffer).illustratorMarkup(null, inpTuple, 0);
+ //                       buffer.clear();
                         setAccumEnd();                		
                     }
                     
@@ -292,16 +290,6 @@ public class POForEach extends PhysicalOperator {
             }
             
             processingPlan = true;
-
-            if(lineageTracer != null && res.result != null) {
-            //we check for res.result since that can also be null in the case of flatten
-            tIn = (ExampleTuple) inp.result;
-            ExampleTuple tOut = new ExampleTuple((Tuple) res.result);
-            tOut.synthetic = tIn.synthetic;
-            lineageTracer.insert(tOut);
-            lineageTracer.union(tOut, tIn);
-            res.result = tOut;
-            }
             
             return res;
         }
@@ -482,12 +470,10 @@ public class POForEach extends PhysicalOperator {
             } else
                 out.append(in);
         }
-        
-        if(lineageTracer != null) {
-            ExampleTuple tOut = new ExampleTuple();
-            tOut.reference(out);
-        }
-        return out;
+        if (inpTuple != null)
+            return illustratorMarkup(inpTuple, out, 0);
+        else
+            return illustratorMarkup2(data, out);
     }
 
     
@@ -698,5 +684,44 @@ public class POForEach extends PhysicalOperator {
      */
     public void setOpsToBeReset(List<PhysicalOperator> opsToBeReset) {
         this.opsToBeReset = opsToBeReset;
+    }
+    
+    private Tuple illustratorMarkup2(Object[] in, Object out) {
+      if(illustrator != null) {
+          ExampleTuple tOut = new ExampleTuple((Tuple) out);
+          illustrator.getLineage().insert(tOut);
+          boolean synthetic = false;
+          for (Object tIn : in)
+          {
+              synthetic |= ((ExampleTuple) tIn).synthetic;
+              illustrator.getLineage().union(tOut, (Tuple) tIn);
+          }
+          illustrator.addData(tOut);
+          int i;
+          for (i = 0; i < noItems; ++i)
+              if (((DataBag)bags[i]).size() < 2)
+                  break;
+          if (i >= noItems && !illustrator.getEqClassesShared())
+              illustrator.getEquivalenceClasses().get(0).add(tOut);
+          tOut.synthetic = synthetic;
+          return tOut;
+      } else
+          return (Tuple) out;
+    }
+
+    @Override
+    public Tuple illustratorMarkup(Object in, Object out, int eqClassIndex) {
+        if(illustrator != null) {
+            ExampleTuple tOut = new ExampleTuple((Tuple) out);
+            illustrator.addData(tOut);
+            if (!illustrator.getEqClassesShared())
+                illustrator.getEquivalenceClasses().get(0).add(tOut);
+            LineageTracer lineageTracer = illustrator.getLineage();
+            lineageTracer.insert(tOut);
+            tOut.synthetic = ((ExampleTuple) in).synthetic;
+            lineageTracer.union((ExampleTuple) in , tOut);
+            return tOut;
+        } else
+          return (Tuple) out;
     }
 }

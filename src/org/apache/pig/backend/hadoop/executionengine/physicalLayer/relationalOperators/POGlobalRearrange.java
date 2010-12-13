@@ -105,4 +105,9 @@ public class POGlobalRearrange extends PhysicalOperator {
         // TODO Auto-generated method stub
         return super.getNext(t);
     }
+    
+    @Override
+    public Tuple illustratorMarkup(Object in, Object out, int eqClassIndex) {
+      return null;
+    }
 }

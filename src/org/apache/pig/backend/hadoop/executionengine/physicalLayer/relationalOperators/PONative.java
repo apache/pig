@@ -22,6 +22,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlan
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.util.Utils;
+import org.apache.pig.data.Tuple;
 
 public class PONative extends PhysicalOperator {
     
@@ -72,4 +73,8 @@ public class PONative extends PhysicalOperator {
         return false;
     }
 
+    @Override
+    public Tuple illustratorMarkup(Object in, Object out, int eqClassIndex) {
+        return null;
+    }
 }

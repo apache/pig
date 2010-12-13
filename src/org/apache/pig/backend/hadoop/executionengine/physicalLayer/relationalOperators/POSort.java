@@ -21,6 +21,7 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 
 import org.apache.commons.logging.Log;
@@ -47,6 +48,8 @@ import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.VisitorException;
+import org.apache.pig.impl.util.IdentityHashSet;
+import org.apache.pig.pen.util.LineageTracer;
 
 /**
  * This implementation is applicable for both the physical plan and for the
@@ -301,10 +304,7 @@ public class POSort extends PhysicalOperator {
         }
         if (it.hasNext()) {
             res.result = it.next();
-            if(lineageTracer != null) {
-                lineageTracer.insert((Tuple) res.result);
-                lineageTracer.union((Tuple)res.result, (Tuple)res.result);
-            }
+            illustratorMarkup(res.result, res.result, 0);
             res.returnStatus = POStatus.STATUS_OK;
         } else {
             res.returnStatus = POStatus.STATUS_EOP;
@@ -406,5 +406,13 @@ public class POSort extends PhysicalOperator {
      */
     public SortInfo getSortInfo() {
         return sortInfo;
+    }
+    
+    public Tuple illustratorMarkup(Object in, Object out, int eqClassIndex) {
+        if(illustrator != null) {
+          illustrator.getEquivalenceClasses().get(eqClassIndex).add((Tuple) in);
+            illustrator.addData((Tuple) out);
+        }
+        return (Tuple) out;
     }
 }

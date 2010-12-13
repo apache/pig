@@ -130,18 +130,6 @@ public class PhyPlanVisitor extends PlanVisitor<PhysicalOperator,PhysicalPlan> {
 	public void visitDistinct(PODistinct distinct) throws VisitorException {
         //do nothing		
 	}
-	
-    public void visitPenCross(org.apache.pig.pen.physicalOperators.POCross cross) throws VisitorException {
-        //do nothing
-    }
-    
-    public void visitPenCogroup(org.apache.pig.pen.physicalOperators.POCogroup cogroup) throws VisitorException {
-        //do nothing
-    }
-    
-    public void visitPenSplit(org.apache.pig.pen.physicalOperators.POSplit split) throws VisitorException {
-        //do nothing
-    }
 
 	public void visitRead(PORead read) throws VisitorException {
         //do nothing		
@@ -297,24 +285,9 @@ public class PhyPlanVisitor extends PlanVisitor<PhysicalOperator,PhysicalPlan> {
 	}
 
     /**
-     * @param lrfi
-     * @throws VisitorException 
-     */
-    public void visitLocalRearrangeForIllustrate(
-            POLocalRearrangeForIllustrate lrfi) throws VisitorException {
-        List<PhysicalPlan> inpPlans = lrfi.getPlans();
-        for (PhysicalPlan plan : inpPlans) {
-            pushWalker(mCurrentWalker.spawnChildWalker(plan));
-            visit();
-            popWalker();
-        }
-        
-    }
-
-    /**
      * @param optimizedForEach
      */
-    public void visitPOOptimizedForEach(POOptimizedForEach optimizedForEach) {
+    public void visitPOOptimizedForEach(POOptimizedForEach optimizedForEach) throws VisitorException {
         // TODO Auto-generated method stub
         
     }

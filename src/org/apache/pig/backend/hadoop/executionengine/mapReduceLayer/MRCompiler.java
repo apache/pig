@@ -109,7 +109,6 @@ import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.impl.util.Pair;
 import org.apache.pig.impl.util.UriUtil;
 import org.apache.pig.impl.util.Utils;
-import org.mortbay.util.URIUtil;
 
 /**
  * The compiler that compiles a given physical plan
@@ -311,6 +310,7 @@ public class MRCompiler extends PhyPlanVisitor {
     public MROperPlan compile() throws IOException, PlanException, VisitorException {
         List<PhysicalOperator> leaves = plan.getLeaves();
 
+        if (!pigContext.inIllustrator)
         for (PhysicalOperator op : leaves) {
             if (!(op instanceof POStore)) {
                 int errCode = 2025;
@@ -324,8 +324,14 @@ public class MRCompiler extends PhyPlanVisitor {
         // and compile their plans
         List<POStore> stores = PlanHelper.getStores(plan);
         List<PONative> nativeMRs= PlanHelper.getNativeMRs(plan);
-        List<PhysicalOperator> ops = new ArrayList<PhysicalOperator>(stores.size() + nativeMRs.size());
-        ops.addAll(stores);
+        List<PhysicalOperator> ops;
+        if (!pigContext.inIllustrator) {
+            ops = new ArrayList<PhysicalOperator>(stores.size() + nativeMRs.size());
+            ops.addAll(stores);
+        } else {
+            ops = new ArrayList<PhysicalOperator>(leaves.size() + nativeMRs.size());
+            ops.addAll(leaves);
+        }
         ops.addAll(nativeMRs);
         Collections.sort(ops);
         
@@ -1005,16 +1011,23 @@ public class MRCompiler extends PhyPlanVisitor {
             if (!mro.isMapDone()) {
             	// if map plan is open, add a limit for optimization, eventually we
             	// will add another limit to reduce plan
-                mro.mapPlan.addAsLeaf(op);
-                mro.setMapDone(true);
+                if (!pigContext.inIllustrator)
+                {
+                    mro.mapPlan.addAsLeaf(op);
+                    mro.setMapDone(true);
+                }
                 
                 if (mro.reducePlan.isEmpty())
                 {
                     simpleConnectMapToReduce(mro);
                     mro.requestedParallelism = 1;
-                    POLimit pLimit2 = new POLimit(new OperatorKey(scope,nig.getNextNodeId(scope)));
-                    pLimit2.setLimit(op.getLimit());
-                    mro.reducePlan.addAsLeaf(pLimit2);
+                    if (!pigContext.inIllustrator) {
+                        POLimit pLimit2 = new POLimit(new OperatorKey(scope,nig.getNextNodeId(scope)));
+                        pLimit2.setLimit(op.getLimit());
+                        mro.reducePlan.addAsLeaf(pLimit2);
+                    } else {
+                        mro.reducePlan.addAsLeaf(op);
+                    }
                 }
                 else
                 {
@@ -1848,6 +1861,7 @@ public class MRCompiler extends PhyPlanVisitor {
             curMROp.reducePlan.addAsLeaf(nfe1);
             curMROp.setNeedsDistinctCombiner(true);
             phyToMROpMap.put(op, curMROp);
+            curMROp.phyToMRMap.put(op, nfe1);
         }catch(Exception e){
             int errCode = 2034;
             String msg = "Error compiling operator " + op.getClass().getSimpleName();
@@ -2221,12 +2235,13 @@ public class MRCompiler extends PhyPlanVisitor {
         POForEach nfe1 = new POForEach(new OperatorKey(scope,nig.getNextNodeId(scope)),-1,eps2,flattened);
         mro.reducePlan.add(nfe1);
         mro.reducePlan.connect(pkg, nfe1);
-        
+        mro.phyToMRMap.put(sort, nfe1);
         if (limit!=-1)
         {
 	        POLimit pLimit2 = new POLimit(new OperatorKey(scope,nig.getNextNodeId(scope)));
 	    	pLimit2.setLimit(limit);
 	    	mro.reducePlan.addAsLeaf(pLimit2);
+	    	mro.phyToMRMap.put(sort, pLimit2);
         }
 
 //        ep1.add(innGen);
@@ -2649,7 +2664,7 @@ public class MRCompiler extends PhyPlanVisitor {
             POPackage pack = (POPackage)op;
             
             List<PhysicalOperator> sucs = mr.reducePlan.getSuccessors(pack);
-            if (sucs.size()!=1) {
+            if (sucs == null || sucs.size()!=1) {
                 return;
             }
             
@@ -2739,12 +2754,12 @@ public class MRCompiler extends PhyPlanVisitor {
                 {
                     // Now we can optimize the map-reduce plan
                     // Replace POPackage->POForeach to POJoinPackage
-                    replaceWithPOJoinPackage(mr.reducePlan, pack, forEach, chunkSize);
+                    replaceWithPOJoinPackage(mr.reducePlan, mr, pack, forEach, chunkSize);
                 }
             }
         }
 
-        public static void replaceWithPOJoinPackage(PhysicalPlan plan,
+        public static void replaceWithPOJoinPackage(PhysicalPlan plan, MapReduceOper mr,
                 POPackage pack, POForEach forEach, String chunkSize) throws VisitorException {
             String scope = pack.getOperatorKey().scope;
             NodeIdGenerator nig = NodeIdGenerator.getGenerator();
@@ -2772,7 +2787,7 @@ public class MRCompiler extends PhyPlanVisitor {
                 String msg = "Error rewriting POJoinPackage.";
                 throw new MRCompilerException(msg, errCode, PigException.BUG, e);
             }
-            
+            mr.phyToMRMap.put(forEach, joinPackage);
             LogFactory.
             getLog(LastInputStreamingOptimizer.class).info("Rewrite: POPackage->POForEach to POJoinPackage");
         }
@@ -2800,6 +2815,7 @@ public class MRCompiler extends PhyPlanVisitor {
                 throw new MRCompilerException(msg, errCode, PigException.BUG);
             }
             PhysicalOperator mpLeaf = mpLeaves.get(0);
+            if (!pigContext.inIllustrator)
             if (!(mpLeaf instanceof POStore)) {
                 int errCode = 2025;
                 String msg = "Expected leaf of reduce plan to " +
@@ -2885,6 +2901,7 @@ public class MRCompiler extends PhyPlanVisitor {
                     throw new MRCompilerException(msg, errCode, PigException.BUG);
                 }
                 PhysicalOperator mpLeaf = mpLeaves.get(0);
+                if (!pigContext.inIllustrator)
                 if (!(mpLeaf instanceof POStore)) {
                     int errCode = 2025;
                     String msg = "Expected leaf of reduce plan to " +

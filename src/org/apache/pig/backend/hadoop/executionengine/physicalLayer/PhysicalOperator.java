@@ -35,6 +35,8 @@ import org.apache.pig.impl.plan.Operator;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.pen.util.LineageTracer;
+import org.apache.pig.pen.Illustrator;
+import org.apache.pig.pen.Illustrable;
 
 /**
  * 
@@ -58,7 +60,7 @@ import org.apache.pig.pen.util.LineageTracer;
  * only those types that are supported.
  *
  */
-public abstract class PhysicalOperator extends Operator<PhyPlanVisitor> implements Cloneable {
+public abstract class PhysicalOperator extends Operator<PhyPlanVisitor> implements Illustrable, Cloneable {
 
     private Log log = LogFactory.getLog(getClass());
 
@@ -125,7 +127,13 @@ public abstract class PhysicalOperator extends Operator<PhyPlanVisitor> implemen
 
     static final protected Map dummyMap = null;
     
+    // TODO: This is not needed. But a lot of tests check serialized physical plans
+    // that are sensitive to the serialized image of the contained physical operators.
+    // So for now, just keep it. Later it'll be cleansed along with those test golden
+    // files
     protected LineageTracer lineageTracer;
+
+    protected transient Illustrator illustrator = null;
 
     private boolean accum;
     private transient boolean accumStart;
@@ -149,8 +157,13 @@ public abstract class PhysicalOperator extends Operator<PhyPlanVisitor> implemen
         res = new Result();
     }
 
-    public void setLineageTracer(LineageTracer lineage) {
-	this.lineageTracer = lineage;
+    @Override
+    public void setIllustrator(Illustrator illustrator) {
+	      this.illustrator = illustrator;
+    }
+    
+    public Illustrator getIllustrator() {
+        return illustrator;
     }
     
     public int getRequestedParallelism() {

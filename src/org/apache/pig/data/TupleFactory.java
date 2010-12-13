@@ -75,6 +75,24 @@ public abstract class TupleFactory {
                     throw new RuntimeException("Unable to instantiate "
                         + "tuple factory " + factoryName, e);
                 }
+            } else if (factoryName != null) {
+                try {
+                    Class c = Class.forName(factoryName);
+                    Object o = c.newInstance();
+                    if (!(o instanceof TupleFactory)) {
+                        throw new RuntimeException("Provided factory " +
+                            factoryName + " does not extend TupleFactory!");
+                    }
+                    gSelf = (TupleFactory)o;
+                } catch (Exception e) {
+                    if (e instanceof RuntimeException) {
+                      // We just threw this
+                      RuntimeException re = (RuntimeException)e;
+                      throw re;
+                    }
+                    throw new RuntimeException("Unable to instantiate "
+                        + "tuple factory " + factoryName, e);
+                }
             } else {
                 gSelf = new BinSedesTupleFactory();
             }

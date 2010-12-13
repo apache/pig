@@ -20,6 +20,7 @@ package org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOp
 
 import java.io.IOException;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -31,6 +32,9 @@ import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.streaming.ExecutableManager;
 import org.apache.pig.impl.streaming.StreamingCommand;
+import org.apache.pig.impl.util.IdentityHashSet;
+import org.apache.pig.pen.util.ExampleTuple;
+import org.apache.pig.pen.util.LineageTracer;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
@@ -158,7 +162,8 @@ public class POStream extends PhysicalOperator {
                     // we don't need to set any flag noting we saw all output
                     // from binary
                     r = EOP_RESULT;
-                }
+                } else if (r.returnStatus == POStatus.STATUS_OK)
+                    illustratorMarkup(r.result, r.result, 0);
                 return(r);
             }
             
@@ -207,7 +212,8 @@ public class POStream extends PhysicalOperator {
                     // should never be called. So we don't need to set any 
                     // flag noting we saw all output from binary
                     r = EOP_RESULT;
-                }
+                } else if (r.returnStatus == POStatus.STATUS_OK)
+                  illustratorMarkup(r.result, r.result, 0);
                 return r;
             } else {
                 // we are not being called from close() - so
@@ -222,7 +228,8 @@ public class POStream extends PhysicalOperator {
                     // for future calls
                     r = EOP_RESULT;
                     allOutputFromBinaryProcessed  = true;
-                }
+                } else if (r.returnStatus == POStatus.STATUS_OK)
+                    illustratorMarkup(r.result, r.result, 0);
                 return r;
             }
             
@@ -347,5 +354,15 @@ public class POStream extends PhysicalOperator {
      */
     public BlockingQueue<Result> getBinaryOutputQueue() {
         return binaryOutputQueue;
+    }
+    
+    @Override
+    public Tuple illustratorMarkup(Object in, Object out, int eqClassIndex) {
+      if(illustrator != null) {
+          ExampleTuple tIn = (ExampleTuple) in;
+          illustrator.getEquivalenceClasses().get(eqClassIndex).add(tIn);
+            illustrator.addData((Tuple) out);
+      }
+      return (Tuple) out;
     }
 }

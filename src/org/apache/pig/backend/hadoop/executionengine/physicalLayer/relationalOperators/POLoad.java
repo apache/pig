@@ -135,10 +135,9 @@ public class POLoad extends PhysicalOperator {
             }
             else
                 res.returnStatus = POStatus.STATUS_OK;
-            if(lineageTracer != null) {
-        	ExampleTuple tOut = new ExampleTuple((Tuple) res.result);
-        	res.result = tOut;
-            }
+
+            if (res.returnStatus == POStatus.STATUS_OK)
+                res.result = illustratorMarkup(res, res.result, 0);
         } catch (IOException e) {
             log.error("Received error from loader function: " + e);
             return res;
@@ -198,5 +197,38 @@ public class POLoad extends PhysicalOperator {
     
     public LoadFunc getLoadFunc(){
         return this.loader;
+    }
+    
+    public Tuple illustratorMarkup(Object in, Object out, int eqClassIndex) {
+        if(illustrator != null) {
+          if (!illustrator.ceilingCheck()) {
+              ((Result) in).returnStatus = POStatus.STATUS_EOP;
+              return null;
+          }
+          if (illustrator.getSchema() == null || illustrator.getSchema().size() <= ((Tuple) out).size()) {
+              boolean hasNull = false;
+              for (int i = 0; i < ((Tuple) out).size(); ++i)
+                  try {
+                      if (((Tuple) out).get(i) == null)
+                      {
+                          hasNull = true;
+                          break;
+                      }
+                  } catch (ExecException e) {
+                      hasNull = true;
+                      break;
+                  }
+              if (!hasNull) {
+                  ExampleTuple tOut = new ExampleTuple((Tuple) out);
+                  illustrator.getLineage().insert(tOut);
+                  illustrator.addData((Tuple) tOut);
+                  illustrator.getEquivalenceClasses().get(eqClassIndex).add(tOut);
+                  return tOut;
+              } else
+                  return (Tuple) out;
+          } else
+              return (Tuple) out;
+        } else
+          return (Tuple) out;
     }
 }

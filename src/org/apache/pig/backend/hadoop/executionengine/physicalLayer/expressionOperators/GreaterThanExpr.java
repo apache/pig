@@ -17,15 +17,11 @@
  */
 package org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-
 import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
-import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.DataType;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.NodeIdGenerator;
@@ -37,7 +33,6 @@ public class GreaterThanExpr extends BinaryComparisonOperator {
      * 
      */
     private static final long serialVersionUID = 1L;
-    transient private final Log log = LogFactory.getLog(getClass());
 
     public GreaterThanExpr(OperatorKey k) {
         this(k, -1);
@@ -60,7 +55,6 @@ public class GreaterThanExpr extends BinaryComparisonOperator {
 
     @Override
     public Result getNext(Boolean bool) throws ExecException {
-        byte status;
         Result left, right;
 
         switch (operandType) {
@@ -154,6 +148,7 @@ public class GreaterThanExpr extends BinaryComparisonOperator {
         } else {
             left.result = falseRef;
         }
+        illustratorMarkup(null, left.result, (Boolean) left.result ? 0 : 1);
         return left;
     }
 

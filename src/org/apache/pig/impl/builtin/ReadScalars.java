@@ -18,16 +18,17 @@
 package org.apache.pig.impl.builtin;
 
 import java.io.IOException;
+import java.util.Map;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.pig.EvalFunc;
 import org.apache.pig.backend.executionengine.ExecException;
-import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.io.InterStorage;
 import org.apache.pig.impl.io.ReadToEndLoader;
 import org.apache.pig.impl.util.UDFContext;
+import org.apache.pig.data.DataBag;
 
 /**
  * ReadScalars reads a line from a file and returns it as its value. The
@@ -39,6 +40,9 @@ public class ReadScalars extends EvalFunc<Object> {
     private String scalarfilename = null;
   //  private String charset = "UTF-8";
     private Object value = null;
+    
+    // in-core input : used by illustrator
+    private Map<String, DataBag> inputBuffer = null;
 
     /**
      * Java level API
@@ -54,6 +58,24 @@ public class ReadScalars extends EvalFunc<Object> {
                 return null;
 
             int pos;
+            if (inputBuffer != null)
+            {
+                pos = DataType.toInteger(input.get(0));
+                scalarfilename = DataType.toString(input.get(1));
+                DataBag inputBag = inputBuffer.get(scalarfilename);
+                if (inputBag == null || inputBag.size() ==0)
+                {
+                    log.warn("No scalar field to read, returning null");
+                    return null;
+                } else if (inputBag.size() > 1) {
+                    String msg = "Scalar has more than one row in the output.";
+                    throw new ExecException(msg);
+                }
+                Tuple t1 = inputBag.iterator().next();
+                value = t1.get(pos);
+                return value;
+            }
+            
             ReadToEndLoader loader;
             try {
                 pos = DataType.toInteger(input.get(0));
@@ -92,4 +114,8 @@ public class ReadScalars extends EvalFunc<Object> {
         return value;
     }
 
+    public void setOutputBuffer(Map<String, DataBag> inputBuffer) {
+        this.inputBuffer = inputBuffer;
+        value = null;
+    }
 }

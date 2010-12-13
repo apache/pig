@@ -1327,4 +1327,8 @@ public class POCast extends ExpressionOperator {
         return funcSpec;
     }
 
+    @Override
+    public Tuple illustratorMarkup(Object in, Object out, int eqClassIndex) {
+      return (Tuple) out;
+    }
 }

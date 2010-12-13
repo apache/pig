@@ -68,7 +68,9 @@ public class AccumulativeBag implements DataBag {
     }
 
     public long size() {		
-        throw new RuntimeException("AccumulativeBag does not support size() operation");
+        int size = 0;
+        for (Iterator<Tuple> it = iterator(); it.hasNext(); it.next(), ++size);
+        return size;
     }
 
     public long getMemorySize() {	

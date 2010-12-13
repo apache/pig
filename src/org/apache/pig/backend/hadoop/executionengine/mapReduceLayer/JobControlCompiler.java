@@ -174,7 +174,10 @@ public class JobControlCompiler{
         UDFContext.getUDFContext().reset();
     }
 
-    Map<Job, MapReduceOper> getJobMroMap() {
+    /**
+     * Gets the map of Job and the MR Operator
+     */
+    public Map<Job, MapReduceOper> getJobMroMap() {
         return Collections.unmodifiableMap(jobMroMap);
     }
     
@@ -378,19 +381,23 @@ public class JobControlCompiler{
                     inpTargets.add(ldSucKeys);
                     inpSignatureLists.add(ld.getSignature());
                     //Remove the POLoad from the plan
-                    mro.mapPlan.remove(ld);
+                    if (!pigContext.inIllustrator)
+                        mro.mapPlan.remove(ld);
                 }
             }
 
-            //Create the jar of all functions and classes required
-            File submitJarFile = File.createTempFile("Job", ".jar");
-            // ensure the job jar is deleted on exit
-            submitJarFile.deleteOnExit();
-            FileOutputStream fos = new FileOutputStream(submitJarFile);
-            JarManager.createJar(fos, mro.UDFs, pigContext);
+            if (!pigContext.inIllustrator) 
+            {
+                //Create the jar of all functions and classes required
+                File submitJarFile = File.createTempFile("Job", ".jar");
+                // ensure the job jar is deleted on exit
+                submitJarFile.deleteOnExit();
+                FileOutputStream fos = new FileOutputStream(submitJarFile);
+                JarManager.createJar(fos, mro.UDFs, pigContext);
             
-            //Start setting the JobConf properties
-            conf.set("mapred.jar", submitJarFile.getPath());
+                //Start setting the JobConf properties
+                conf.set("mapred.jar", submitJarFile.getPath());
+            }
             conf.set("pig.inputs", ObjectSerializer.serialize(inp));
             conf.set("pig.inpTargets", ObjectSerializer.serialize(inpTargets));
             conf.set("pig.inpSignatures", ObjectSerializer.serialize(inpSignatureLists));
@@ -457,22 +464,23 @@ public class JobControlCompiler{
                 POStore st;
                 if (reduceStores.isEmpty()) {
                     st = mapStores.get(0);
-                    mro.mapPlan.remove(st);
+                    if(!pigContext.inIllustrator)
+                        mro.mapPlan.remove(st);
                 }
                 else {
                     st = reduceStores.get(0);
-                    mro.reducePlan.remove(st);
+                    if(!pigContext.inIllustrator)
+                        mro.reducePlan.remove(st);
                 }
 
                 // set out filespecs
                 String outputPath = st.getSFile().getFileName();
-                FuncSpec outputFuncSpec = st.getSFile().getFuncSpec();
                 
                 conf.set("pig.streaming.log.dir", 
                             new Path(outputPath, LOG_DIR).toString());
                 conf.set("pig.streaming.task.output.dir", outputPath);
             } 
-           else { // multi store case
+           else if (mapStores.size() + reduceStores.size() > 0) { // multi store case
                 log.info("Setting up multi store job");
                 String tmpLocationStr =  FileLocalizer
                 .getTemporaryPath(pigContext).toString();
@@ -513,7 +521,8 @@ public class JobControlCompiler{
                 //MapOnly Job
                 nwJob.setMapperClass(PigMapOnly.Map.class);
                 nwJob.setNumReduceTasks(0);
-                conf.set("pig.mapPlan", ObjectSerializer.serialize(mro.mapPlan));
+                if(!pigContext.inIllustrator)
+                    conf.set("pig.mapPlan", ObjectSerializer.serialize(mro.mapPlan));
                 if(mro.isEndOfAllInputSetInMap()) {
                     // this is used in Map.close() to decide whether the
                     // pipeline needs to be rerun one more time in the close()
@@ -535,7 +544,8 @@ public class JobControlCompiler{
                     log.info("Setting identity combiner class.");
                 }
                 pack = (POPackage)mro.reducePlan.getRoots().get(0);
-                mro.reducePlan.remove(pack);
+                if(!pigContext.inIllustrator)
+                    mro.reducePlan.remove(pack);
                 nwJob.setMapperClass(PigMapReduce.Map.class);
                 nwJob.setReducerClass(PigMapReduce.Reduce.class);
                 
@@ -550,21 +560,24 @@ public class JobControlCompiler{
                 if (mro.customPartitioner != null)
                 	nwJob.setPartitionerClass(PigContext.resolveClassName(mro.customPartitioner));
 
-                conf.set("pig.mapPlan", ObjectSerializer.serialize(mro.mapPlan));
+                if(!pigContext.inIllustrator)
+                    conf.set("pig.mapPlan", ObjectSerializer.serialize(mro.mapPlan));
                 if(mro.isEndOfAllInputSetInMap()) {
                     // this is used in Map.close() to decide whether the
                     // pipeline needs to be rerun one more time in the close()
                     // The pipeline is rerun only if there was a stream or merge-join.
                     conf.set(END_OF_INP_IN_MAP, "true");
                 }
-                conf.set("pig.reducePlan", ObjectSerializer.serialize(mro.reducePlan));
+                if(!pigContext.inIllustrator)
+                    conf.set("pig.reducePlan", ObjectSerializer.serialize(mro.reducePlan));
                 if(mro.isEndOfAllInputSetInReduce()) {
                     // this is used in Map.close() to decide whether the
                     // pipeline needs to be rerun one more time in the close()
                     // The pipeline is rerun only if there was a stream
                     conf.set("pig.stream.in.reduce", "true");
                 }
-                conf.set("pig.reduce.package", ObjectSerializer.serialize(pack));
+                if (!pigContext.inIllustrator)
+                    conf.set("pig.reduce.package", ObjectSerializer.serialize(pack));
                 conf.set("pig.reduce.key.type", Byte.toString(pack.getKeyType())); 
                 
                 if (mro.getUseSecondaryKey()) {
@@ -631,9 +644,14 @@ public class JobControlCompiler{
                 nwJob.setGroupingComparatorClass(PigGroupingPartitionWritableComparator.class);
             }
             
-            // unset inputs for POStore, otherwise, map/reduce plan will be unnecessarily deserialized 
-            for (POStore st: mapStores) { st.setInputs(null); st.setParentPlan(null);}
-            for (POStore st: reduceStores) { st.setInputs(null); st.setParentPlan(null);}
+            if (!pigContext.inIllustrator)
+            {
+                // unset inputs for POStore, otherwise, map/reduce plan will be unnecessarily deserialized 
+                for (POStore st: mapStores) { st.setInputs(null); st.setParentPlan(null);}
+                for (POStore st: reduceStores) { st.setInputs(null); st.setParentPlan(null);}
+                conf.set(PIG_MAP_STORES, ObjectSerializer.serialize(mapStores));
+                conf.set(PIG_REDUCE_STORES, ObjectSerializer.serialize(reduceStores));
+            }
 
             // tmp file compression setups
             if (Utils.tmpFileCompression(pigContext)) {
@@ -641,8 +659,6 @@ public class JobControlCompiler{
                 conf.set("pig.tmpfilecompression.codec", Utils.tmpFileCompressionCodec(pigContext));
             }
 
-            conf.set(PIG_MAP_STORES, ObjectSerializer.serialize(mapStores));
-            conf.set(PIG_REDUCE_STORES, ObjectSerializer.serialize(reduceStores));
             String tmp;
             long maxCombinedSplitSize = 0;
             if (!mro.combineSmallSplits() || pigContext.getProperties().getProperty("pig.splitCombination", "true").equals("false"))
@@ -661,7 +677,6 @@ public class JobControlCompiler{
             UDFContext.getUDFContext().serialize(conf);
             Job cjob = new Job(new JobConf(nwJob.getConfiguration()), new ArrayList());
             jobStoreMap.put(cjob,new Pair<List<POStore>, Path>(storeLocations, tmpLocation));
-            
             return cjob;
             
         } catch (JobCreationException jce) {
@@ -1142,7 +1157,7 @@ public class JobControlCompiler{
             PigContext pigContext, Configuration conf, String filename,
             String prefix) throws IOException {
 
-        if (!FileLocalizer.fileExists(filename, pigContext)) {
+        if (!pigContext.inIllustrator && !FileLocalizer.fileExists(filename, pigContext)) {
             throw new IOException(
                     "Internal error: skew join partition file "
                     + filename + " does not exist");

@@ -184,6 +184,7 @@ public class NotEqualToExpr extends BinaryComparisonOperator {
         }else{
             throw new ExecException("The left side and right side has the different types");
         }
+        illustratorMarkup(null, left.result, (Boolean) left.result ? 0 : 1);
         return left;
     }
 

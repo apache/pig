@@ -18,18 +18,24 @@
 package org.apache.pig.backend.hadoop.executionengine.mapReduceLayer;
 
 import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Collections;
+import java.util.Comparator;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Writable;
+import org.apache.hadoop.io.RawComparator;
 import org.apache.hadoop.mapreduce.JobContext;
+import org.apache.hadoop.mapred.jobcontrol.Job;
 import org.apache.hadoop.mapreduce.Reducer;
-import org.apache.log4j.PropertyConfigurator;
+import org.apache.hadoop.mapreduce.TaskAttemptID;
+
 import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.HDataType;
@@ -43,6 +49,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.util.PlanHelper;
 import org.apache.pig.backend.hadoop.executionengine.util.MapRedUtil;
+import org.apache.pig.pen.FakeRawKeyValueIterator;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
@@ -55,6 +62,7 @@ import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.impl.util.SpillableMemoryManager;
 import org.apache.pig.impl.util.UDFContext;
+import org.apache.pig.impl.util.Pair;
 import org.apache.pig.tools.pigstats.PigStatusReporter;
 
 /**
@@ -111,8 +119,8 @@ public class PigMapReduce {
             // value.  The value needs it so that POPackage can properly
             // assign the tuple to its slot in the projection.
             key.setIndex(index);
-            val.setIndex(index);         	
-            	
+            val.setIndex(index);
+
             oc.write(key, val);
         }
     }
@@ -194,7 +202,6 @@ public class PigMapReduce {
             // set the partition
             wrappedKey.setPartition(partitionIndex);
             val.setIndex(index);
-
             oc.write(wrappedKey, val);
         }
 
@@ -254,7 +261,7 @@ public class PigMapReduce {
         protected final Log log = LogFactory.getLog(getClass());
         
         //The reduce plan
-        protected PhysicalPlan rp;
+        protected PhysicalPlan rp = null;
 
         // Store operators
         protected List<POStore> stores;
@@ -279,6 +286,16 @@ public class PigMapReduce {
         PigContext pigContext = null;
         protected volatile boolean initialized = false;
         
+        private boolean inIllustrator = false;
+        
+        /**
+         * Set the reduce plan: to be used by local runner for illustrator
+         * @param plan Reduce plan
+         */
+        public void setReducePlan(PhysicalPlan plan) {
+            rp = plan;
+        }
+
         /**
          * Configures the Reduce plan, the POPackage operator
          * and the reporter thread
@@ -287,7 +304,9 @@ public class PigMapReduce {
         @Override
         protected void setup(Context context) throws IOException, InterruptedException {
             super.setup(context);
-            
+            inIllustrator = (context instanceof IllustratorContext);
+            if (inIllustrator)
+                pack = ((IllustratorContext) context).pack;
             Configuration jConf = context.getConfiguration();
             SpillableMemoryManager.configure(ConfigurationUtil.toProperties(jConf));
             sJobContext = context;
@@ -296,11 +315,13 @@ public class PigMapReduce {
                 PigContext.setPackageImportList((ArrayList<String>)ObjectSerializer.deserialize(jConf.get("udf.import.list")));
                 pigContext = (PigContext)ObjectSerializer.deserialize(jConf.get("pig.pigContext"));
                 
-                rp = (PhysicalPlan) ObjectSerializer.deserialize(jConf
-                        .get("pig.reducePlan"));
+                if (rp == null)
+                    rp = (PhysicalPlan) ObjectSerializer.deserialize(jConf
+                            .get("pig.reducePlan"));
                 stores = PlanHelper.getStores(rp);
 
-                pack = (POPackage)ObjectSerializer.deserialize(jConf.get("pig.reduce.package"));
+                if (!inIllustrator)
+                    pack = (POPackage)ObjectSerializer.deserialize(jConf.get("pig.reduce.package"));
                 // To be removed
                 if(rp.isEmpty())
                     log.debug("Reduce Plan empty!");
@@ -352,12 +373,13 @@ public class PigMapReduce {
                 
                 PhysicalOperator.setPigLogger(pigHadoopLogger);
 
-                for (POStore store: stores) {
-                    MapReducePOStoreImpl impl 
-                        = new MapReducePOStoreImpl(context);
-                    store.setStoreImpl(impl);
-                    store.setUp();
-                }
+                if (!inIllustrator)
+                    for (POStore store: stores) {
+                        MapReducePOStoreImpl impl 
+                            = new MapReducePOStoreImpl(context);
+                        store.setStoreImpl(impl);
+                        store.setUp();
+                    }
             }
           
             // In the case we optimize the join, we combine
@@ -511,6 +533,127 @@ public class PigMapReduce {
             
             PhysicalOperator.setReporter(null);
             initialized = false;
+        }
+        
+        /**
+         * Get reducer's illustrator context
+         * 
+         * @param input Input buffer as output by maps
+         * @param pkg package
+         * @return reducer's illustrator context
+         * @throws IOException
+         * @throws InterruptedException
+         */
+        public Context getIllustratorContext(Job job,
+               List<Pair<PigNullableWritable, Writable>> input, POPackage pkg) throws IOException, InterruptedException {
+            return new IllustratorContext(job, input, pkg);
+        }
+        
+        @SuppressWarnings("unchecked")
+        public class IllustratorContext extends Context {
+            private PigNullableWritable currentKey = null, nextKey = null;
+            private NullableTuple nextValue = null;
+            private List<NullableTuple> currentValues = null;
+            private Iterator<Pair<PigNullableWritable, Writable>> it;
+            private final ByteArrayOutputStream bos;
+            private final DataOutputStream dos;
+            private final RawComparator sortComparator, groupingComparator;
+            POPackage pack = null;
+
+            public IllustratorContext(Job job,
+                  List<Pair<PigNullableWritable, Writable>> input,
+                  POPackage pkg
+                  ) throws IOException, InterruptedException {
+                super(job.getJobConf(), new TaskAttemptID(), new FakeRawKeyValueIterator(input.iterator().hasNext()),
+                    null, null, null, null, null, null, PigNullableWritable.class, NullableTuple.class);
+                bos = new ByteArrayOutputStream();
+                dos = new DataOutputStream(bos);
+                org.apache.hadoop.mapreduce.Job nwJob = new org.apache.hadoop.mapreduce.Job(job.getJobConf());
+                sortComparator = nwJob.getSortComparator();
+                groupingComparator = nwJob.getGroupingComparator();
+                
+                Collections.sort(input, new Comparator<Pair<PigNullableWritable, Writable>>() {
+                        @Override
+                        public int compare(Pair<PigNullableWritable, Writable> o1,
+                                           Pair<PigNullableWritable, Writable> o2) {
+                            try {
+                                o1.first.write(dos);
+                                int l1 = bos.size();
+                                o2.first.write(dos);
+                                int l2 = bos.size();
+                                byte[] bytes = bos.toByteArray();
+                                bos.reset();
+                                return sortComparator.compare(bytes, 0, l1, bytes, l1, l2-l1);
+                            } catch (IOException e) {
+                                throw new RuntimeException("Serialization exception in sort:"+e.getMessage());
+                            }
+                        }
+                    }
+                );
+                currentValues = new ArrayList<NullableTuple>();
+                it = input.iterator();
+                if (it.hasNext()) {
+                    Pair<PigNullableWritable, Writable> entry = it.next();
+                    nextKey = entry.first;
+                    nextValue = (NullableTuple) entry.second;
+                }
+                pack = pkg;
+            }
+            
+            @Override
+            public PigNullableWritable getCurrentKey() {
+                return currentKey;
+            }
+            
+            @Override
+            public boolean nextKey() {
+                if (nextKey == null)
+                    return false;
+                currentKey = nextKey;
+                currentValues.clear();
+                currentValues.add(nextValue);
+                nextKey = null;
+                for(; it.hasNext(); ) {
+                    Pair<PigNullableWritable, Writable> entry = it.next();
+                    /* Why can't raw comparison be used?
+                    byte[] bytes;
+                    int l1, l2;
+                    try {
+                        currentKey.write(dos);
+                        l1 = bos.size();
+                        entry.first.write(dos);
+                        l2 = bos.size();
+                        bytes = bos.toByteArray();
+                    } catch (IOException e) {
+                        throw new RuntimeException("nextKey exception : "+e.getMessage());
+                    }
+                    bos.reset();
+                    if (groupingComparator.compare(bytes, 0, l1, bytes, l1, l2-l1) == 0)
+                    */
+                    if (groupingComparator.compare(currentKey, entry.first) == 0)
+                    {
+                        currentValues.add((NullableTuple)entry.second);
+                    } else {
+                        nextKey = entry.first;
+                        nextValue = (NullableTuple) entry.second;
+                        break;
+                    }
+                }
+                return true;
+            }
+            
+            @Override
+            public Iterable<NullableTuple> getValues() {
+                return currentValues;
+            }
+            
+            @Override
+            public void write(PigNullableWritable k, Writable t) {
+            }
+            
+            @Override
+            public void progress() { 
+            }
         }
     }
     

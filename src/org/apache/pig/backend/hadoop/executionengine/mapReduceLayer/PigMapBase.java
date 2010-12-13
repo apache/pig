@@ -21,6 +21,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Iterator;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -28,6 +29,8 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.mapreduce.Mapper;
+import org.apache.hadoop.mapreduce.InputSplit;
+import org.apache.hadoop.mapreduce.TaskAttemptID;
 import org.apache.log4j.PropertyConfigurator;
 import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
@@ -40,6 +43,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.util.PlanHelper;
 import org.apache.pig.backend.hadoop.executionengine.util.MapRedUtil;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.data.DataBag;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.PigNullableWritable;
@@ -48,6 +52,7 @@ import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.impl.util.SpillableMemoryManager;
+import org.apache.pig.impl.util.Pair;
 import org.apache.pig.tools.pigstats.PigStatusReporter;
 
 public abstract class PigMapBase extends Mapper<Text, Tuple, PigNullableWritable, Writable> {
@@ -58,12 +63,14 @@ public abstract class PigMapBase extends Mapper<Text, Tuple, PigNullableWritable
     protected byte keyType;
         
     //Map Plan
-    protected PhysicalPlan mp;
+    protected PhysicalPlan mp = null;
 
     // Store operators
     protected List<POStore> stores;
 
     protected TupleFactory tf = TupleFactory.getInstance();
+    
+    boolean inIllustrator = false;
     
     Context outputCollector;
     
@@ -79,6 +86,14 @@ public abstract class PigMapBase extends Mapper<Text, Tuple, PigNullableWritable
 
     PigContext pigContext = null;
     private volatile boolean initialized = false;
+    
+    /**
+     * for local map/reduce simulation
+     * @param plan the map plan
+     */
+    public void setMapPlan(PhysicalPlan plan) {
+        mp = plan;
+    }
     
     /**
      * Will be called when all the tuples in the input
@@ -142,14 +157,16 @@ public abstract class PigMapBase extends Mapper<Text, Tuple, PigNullableWritable
         SpillableMemoryManager.configure(ConfigurationUtil.toProperties(job));
         PigMapReduce.sJobContext = context;
         PigMapReduce.sJobConf = context.getConfiguration();
+        inIllustrator = (context instanceof IllustratorContext);
         
         PigContext.setPackageImportList((ArrayList<String>)ObjectSerializer.deserialize(job.get("udf.import.list")));
         pigContext = (PigContext)ObjectSerializer.deserialize(job.get("pig.pigContext"));
         if (pigContext.getLog4jProperties()!=null)
             PropertyConfigurator.configure(pigContext.getLog4jProperties());
         
-        mp = (PhysicalPlan) ObjectSerializer.deserialize(
-            job.get("pig.mapPlan"));
+        if (mp == null)
+            mp = (PhysicalPlan) ObjectSerializer.deserialize(
+                job.get("pig.mapPlan"));
         stores = PlanHelper.getStores(mp);
         
         // To be removed
@@ -207,7 +224,8 @@ public abstract class PigMapBase extends Mapper<Text, Tuple, PigNullableWritable
                 MapReducePOStoreImpl impl 
                     = new MapReducePOStoreImpl(context);
                 store.setStoreImpl(impl);
-                store.setUp();
+                if (!pigContext.inIllustrator)
+                    store.setUp();
             }
             
             boolean aggregateWarning = "true".equalsIgnoreCase(pigContext.getProperties().getProperty("aggregate.warning"));
@@ -225,7 +243,13 @@ public abstract class PigMapBase extends Mapper<Text, Tuple, PigNullableWritable
         }
         
         for (PhysicalOperator root : roots) {
-            root.attachInput(tf.newTupleNoCopy(inpTuple.getAll()));
+            if (inIllustrator) {
+                if (root != null) {
+                    root.attachInput(inpTuple);
+                }
+            } else {
+                root.attachInput(tf.newTupleNoCopy(inpTuple.getAll()));
+            }
         }
             
         runPipeline(leaf);
@@ -284,4 +308,76 @@ public abstract class PigMapBase extends Mapper<Text, Tuple, PigNullableWritable
         this.keyType = keyType;
     }
     
+    /**
+     * 
+     * Get mapper's illustrator context
+     * 
+     * @param conf  Configuration
+     * @param input Input bag to serve as data source
+     * @param output Map output buffer
+     * @param split the split
+     * @return Illustrator's context
+     * @throws IOException
+     * @throws InterruptedException
+     */
+    public Context getIllustratorContext(Configuration conf, DataBag input,
+          List<Pair<PigNullableWritable, Writable>> output, InputSplit split)
+          throws IOException, InterruptedException {
+        return new IllustratorContext(conf, input, output, split);
+    }
+    
+    public class IllustratorContext extends Context {
+        private DataBag input;
+        List<Pair<PigNullableWritable, Writable>> output;
+        private Iterator<Tuple> it = null;
+        private Tuple value = null;
+        private boolean init  = false;
+
+        public IllustratorContext(Configuration conf, DataBag input,
+              List<Pair<PigNullableWritable, Writable>> output,
+              InputSplit split) throws IOException, InterruptedException {
+              super(conf, new TaskAttemptID(), null, null, null, null, split);
+              if (output == null)
+                  throw new IOException("Null output can not be used");
+              this.input = input; this.output = output;
+        }
+        
+        @Override
+        public boolean nextKeyValue() throws IOException, InterruptedException {
+            if (input == null) {
+                if (!init) {
+                    init = true;
+                    return true;
+                }
+                return false;
+            }
+            if (it == null)
+                it = input.iterator();
+            if (!it.hasNext())
+                return false;
+            value = it.next();
+            return true;
+        }
+        
+        @Override
+        public Text getCurrentKey() {
+          return null;
+        }
+        
+        @Override
+        public Tuple getCurrentValue() {
+          return value;
+        }
+        
+        @Override
+        public void write(PigNullableWritable key, Writable value) 
+            throws IOException, InterruptedException {
+            output.add(new Pair<PigNullableWritable, Writable>(key, value));
+        }
+        
+        @Override
+        public void progress() {
+          
+        }
+    }
 }

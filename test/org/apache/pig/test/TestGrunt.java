@@ -24,8 +24,6 @@ import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
 import junit.framework.TestCase;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.log4j.Appender;
 import org.apache.log4j.FileAppender;
 import org.apache.log4j.PatternLayout;
@@ -34,9 +32,7 @@ import org.apache.pig.PigException;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.impl.PigContext;
-import org.apache.pig.test.Util.ProcessReturnInfo;
 import org.apache.pig.tools.grunt.Grunt;
-import org.apache.pig.tools.parameters.ParameterSubstitutionPreprocessor;
 import org.apache.pig.tools.pigscript.parser.ParseException;
 import org.apache.pig.impl.util.LogUtils;
 
@@ -45,16 +41,11 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.InputStreamReader;
 import java.io.BufferedReader;
-import java.io.StringReader;
-import java.io.StringWriter;
-import java.util.ArrayList;
 
 @RunWith(JUnit4.class)
 public class TestGrunt extends TestCase {
     static MiniCluster cluster = MiniCluster.buildCluster();
     private String basedir = "test/org/apache/pig/test/data";
-
-    private final Log log = LogFactory.getLog(getClass());
 
     @BeforeClass
     public static void oneTimeSetup() throws Exception {
@@ -468,6 +459,105 @@ public class TestGrunt extends TestCase {
         grunt.exec();
     }
 
+    @Test
+    public void testIllustrateScript() throws Throwable {
+        PigServer server = new PigServer(ExecType.LOCAL, cluster.getProperties());
+        PigContext context = server.getPigContext();
+        
+        String strCmd = "illustrate -script "
+                + basedir + "/illustrate.pig;";
+        
+        ByteArrayInputStream cmd = new ByteArrayInputStream(strCmd.getBytes());
+        InputStreamReader reader = new InputStreamReader(cmd);
+        
+        Grunt grunt = new Grunt(new BufferedReader(reader), context);
+    
+        grunt.exec();
+    }
+
+    @Test
+    public void testIllustrateScript2() throws Throwable {
+        PigServer server = new PigServer(ExecType.LOCAL, cluster.getProperties());
+        PigContext context = server.getPigContext();
+        
+        String strCmd = "illustrate -script "
+                + basedir + "/illustrate2.pig;";
+        
+        ByteArrayInputStream cmd = new ByteArrayInputStream(strCmd.getBytes());
+        InputStreamReader reader = new InputStreamReader(cmd);
+        
+        Grunt grunt = new Grunt(new BufferedReader(reader), context);
+    
+        grunt.exec();
+    }
+    
+    @Test
+    public void testIllustrateScript3() throws Throwable {
+        PigServer server = new PigServer(ExecType.LOCAL, cluster.getProperties());
+        PigContext context = server.getPigContext();
+        
+        String strCmd = "illustrate -script "
+                + basedir + "/illustrate3.pig;";
+        
+        ByteArrayInputStream cmd = new ByteArrayInputStream(strCmd.getBytes());
+        InputStreamReader reader = new InputStreamReader(cmd);
+        
+        Grunt grunt = new Grunt(new BufferedReader(reader), context);
+    
+        grunt.exec();
+    }
+    
+    @Test
+    public void testIllustrateScript4() throws Throwable {
+        // empty line/field test
+        PigServer server = new PigServer(ExecType.LOCAL, cluster.getProperties());
+        PigContext context = server.getPigContext();
+        
+        String strCmd = "illustrate -script "
+                + basedir + "/illustrate4.pig;";
+        
+        ByteArrayInputStream cmd = new ByteArrayInputStream(strCmd.getBytes());
+        InputStreamReader reader = new InputStreamReader(cmd);
+        
+        Grunt grunt = new Grunt(new BufferedReader(reader), context);
+    
+        grunt.exec();
+    }
+    
+    @Test
+    public void testIllustrateScript5() throws Throwable {
+        // empty line/field test
+        PigServer server = new PigServer(ExecType.LOCAL, cluster.getProperties());
+        PigContext context = server.getPigContext();
+        
+        String strCmd = "illustrate -script "
+                + basedir + "/illustrate5.pig;";
+        
+        ByteArrayInputStream cmd = new ByteArrayInputStream(strCmd.getBytes());
+        InputStreamReader reader = new InputStreamReader(cmd);
+        
+        Grunt grunt = new Grunt(new BufferedReader(reader), context);
+    
+        grunt.exec();
+    }
+    
+    @Test
+    public void testIllustrateScript6() throws Throwable {
+        // empty line/field test
+        PigServer server = new PigServer(ExecType.LOCAL, cluster.getProperties());
+        PigContext context = server.getPigContext();
+        
+        String strCmd = "illustrate -script "
+                + basedir + "/illustrate6.pig;";
+        
+        ByteArrayInputStream cmd = new ByteArrayInputStream(strCmd.getBytes());
+        InputStreamReader reader = new InputStreamReader(cmd);
+        
+        Grunt grunt = new Grunt(new BufferedReader(reader), context);
+    
+        grunt.exec();
+    }
+    
     /**
      * verify that grunt commands are ignored in explain -script mode
      */
@@ -678,7 +768,7 @@ public class TestGrunt extends TestCase {
             +"f = foreach e generate group, COUNT($1);"
             +"store f into 'bla';"
             +"f1 = load 'bla' as (f:chararray);"
-            +"g = order f1 by $1;"
+            +"g = order f1 by $0;"
             +"illustrate g;";
 
         ByteArrayInputStream cmd = new ByteArrayInputStream(strCmd.getBytes());

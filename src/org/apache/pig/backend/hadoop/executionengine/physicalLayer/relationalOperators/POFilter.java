@@ -18,6 +18,7 @@
 package org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators;
 
 import java.util.List;
+import java.util.LinkedList;
 
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataType;
@@ -25,12 +26,13 @@ import org.apache.pig.data.Tuple;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.ComparisonOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.VisitorException;
+import org.apache.pig.impl.util.IdentityHashSet;
 import org.apache.pig.pen.util.ExampleTuple;
+import org.apache.pig.pen.util.LineageTracer;
 
 /**
  * This is an implementation of the Filter operator. It has an Expression Plan
@@ -151,13 +153,10 @@ public class POFilter extends PhysicalOperator {
                     && res.returnStatus != POStatus.STATUS_NULL) 
                 return res;
 
-            if (res.result != null && (Boolean) res.result == true) {
-        	if(lineageTracer != null) {
-        	    ExampleTuple tIn = (ExampleTuple) inp.result;
-        	    lineageTracer.insert(tIn);
-        	    lineageTracer.union(tIn, tIn);
-        	}
-                return inp;
+            if (res.result != null) {
+                illustratorMarkup(inp.result, inp.result, (Boolean) res.result ? 0 : 1);
+                if ((Boolean) res.result)
+                  return inp;
             }
         }
         return inp;
@@ -193,5 +192,21 @@ public class POFilter extends PhysicalOperator {
 
     public PhysicalPlan getPlan() {
         return plan;
+    }
+    
+    @Override
+    public Tuple illustratorMarkup(Object in, Object out, int eqClassIndex) {
+      if (illustrator != null) {
+          int index = 0;
+          for (int i = 0; i < illustrator.getSubExpResults().size(); ++i) {
+              if (!illustrator.getSubExpResults().get(i)[0])
+                  index += (1 << i);
+          }
+          if (index < illustrator.getEquivalenceClasses().size())
+              illustrator.getEquivalenceClasses().get(index).add((Tuple) in);
+          if (eqClassIndex == 0) // add only qualified record
+              illustrator.addData((Tuple) out);
+      }
+      return (Tuple) out;
     }
 }

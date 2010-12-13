@@ -32,6 +32,7 @@ import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.VisitorException;
+import org.apache.pig.impl.util.IdentityHashSet;
 
 public class POBinCond extends ExpressionOperator {
     
@@ -65,7 +66,9 @@ public class POBinCond extends ExpressionOperator {
         
         Result res = cond.getNext(b);
         if (res.result==null || res.returnStatus != POStatus.STATUS_OK) return res;
-        return ((Boolean)res.result) == true ? lhs.getNext(b) : rhs.getNext(b);
+        Result result = ((Boolean)res.result) == true ? lhs.getNext(b) : rhs.getNext(b);
+        illustratorMarkup(null, result.result, ((Boolean)res.result) ? 0 : 1);
+        return result;
         
     }
 
@@ -88,7 +91,9 @@ public class POBinCond extends ExpressionOperator {
                         
         Result res = cond.getNext(dummyBool);
         if (res.result==null || res.returnStatus != POStatus.STATUS_OK) return res;
-        return ((Boolean)res.result) == true ? lhs.getNext(db) : rhs.getNext(db);
+        Result result = ((Boolean)res.result) == true ? lhs.getNext(db) : rhs.getNext(db);
+        illustratorMarkup(null, result.result, ((Boolean)res.result) ? 0 : 1);
+        return result;
     }
 
     @Override
@@ -109,7 +114,9 @@ public class POBinCond extends ExpressionOperator {
         }
         Result res = cond.getNext(dummyBool);
         if (res.result==null || res.returnStatus != POStatus.STATUS_OK) return res;
-        return ((Boolean)res.result) == true ? lhs.getNext(ba) : rhs.getNext(ba);
+        Result result = ((Boolean)res.result) == true ? lhs.getNext(ba) : rhs.getNext(ba);
+        illustratorMarkup(null, result.result, ((Boolean)res.result) ? 0 : 1);
+        return result;
     }
 
     @Override
@@ -130,7 +137,9 @@ public class POBinCond extends ExpressionOperator {
         }
         Result res = cond.getNext(dummyBool);
         if (res.result==null || res.returnStatus != POStatus.STATUS_OK) return res;
-        return ((Boolean)res.result) == true ? lhs.getNext(d) : rhs.getNext(d);
+        Result result = ((Boolean)res.result) == true ? lhs.getNext(d) : rhs.getNext(d);
+        illustratorMarkup(null, result.result, ((Boolean)res.result) ? 0 : 1);
+        return result;
     }
 
     @Override
@@ -151,7 +160,9 @@ public class POBinCond extends ExpressionOperator {
         }
         Result res = cond.getNext(dummyBool);
         if (res.result==null || res.returnStatus != POStatus.STATUS_OK) return res;
-        return ((Boolean)res.result) == true ? lhs.getNext(f) : rhs.getNext(f);
+        Result result = ((Boolean)res.result) == true ? lhs.getNext(f) : rhs.getNext(f);
+        illustratorMarkup(null, result.result, ((Boolean)res.result) ? 0 : 1);
+        return result;
     }
 
     @Override
@@ -171,7 +182,9 @@ public class POBinCond extends ExpressionOperator {
         }
         Result res = cond.getNext(dummyBool);
         if (res.result==null || res.returnStatus != POStatus.STATUS_OK) return res;
-        return ((Boolean)res.result) == true ? lhs.getNext(i) : rhs.getNext(i);
+        Result result = ((Boolean)res.result) == true ? lhs.getNext(i) : rhs.getNext(i);
+        illustratorMarkup(null, result.result, ((Boolean)res.result) ? 0 : 1);
+        return result;
     }
 
     @Override
@@ -192,7 +205,9 @@ public class POBinCond extends ExpressionOperator {
         }
         Result res = cond.getNext(dummyBool);
         if (res.result==null || res.returnStatus != POStatus.STATUS_OK) return res;
-        return ((Boolean)res.result) == true ? lhs.getNext(l) : rhs.getNext(l);
+        Result result = ((Boolean)res.result) == true ? lhs.getNext(l) : rhs.getNext(l);
+        illustratorMarkup(null, result.result, ((Boolean)res.result) ? 0 : 1);
+        return result;
     }
 
     @Override
@@ -213,7 +228,9 @@ public class POBinCond extends ExpressionOperator {
         }
         Result res = cond.getNext(dummyBool);
         if (res.result==null || res.returnStatus != POStatus.STATUS_OK) return res;
-        return ((Boolean)res.result) == true ? lhs.getNext(m) : rhs.getNext(m);
+        Result result = ((Boolean)res.result) == true ? lhs.getNext(m) : rhs.getNext(m);
+        illustratorMarkup(null, result.result, ((Boolean)res.result) ? 0 : 1);
+        return result;
     }
 
     @Override
@@ -234,7 +251,9 @@ public class POBinCond extends ExpressionOperator {
         }
         Result res = cond.getNext(dummyBool);
         if (res.result==null || res.returnStatus != POStatus.STATUS_OK) return res;
-        return ((Boolean)res.result) == true ? lhs.getNext(s) : rhs.getNext(s);
+        Result result = ((Boolean)res.result) == true ? lhs.getNext(s) : rhs.getNext(s);
+        illustratorMarkup(null, result.result, ((Boolean)res.result) ? 0 : 1);
+        return result;
     }
 
     @Override
@@ -255,7 +274,9 @@ public class POBinCond extends ExpressionOperator {
         }
         Result res = cond.getNext(dummyBool);
         if (res.result==null || res.returnStatus != POStatus.STATUS_OK) return res;
-        return ((Boolean)res.result) == true ? lhs.getNext(t) : rhs.getNext(t);
+        Result result = ((Boolean)res.result) == true ? lhs.getNext(t) : rhs.getNext(t);
+        illustratorMarkup(null, result.result, ((Boolean)res.result) ? 0 : 1);
+        return result;
     }
 
     @Override
@@ -338,4 +359,11 @@ public class POBinCond extends ExpressionOperator {
         return child;
     }
 
+    @Override
+    public Tuple illustratorMarkup(Object in, Object out, int eqClassIndex) {
+        if(illustrator != null) {
+            
+        }
+        return null;
+    }
 }

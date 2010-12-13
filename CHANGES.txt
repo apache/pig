@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-1712: ILLUSTRATE rework (yanz)
+
 PIG-1758: Deep cast of complex type (daijy)
 
 PIG-1728: doc updates (chandec via olgan)

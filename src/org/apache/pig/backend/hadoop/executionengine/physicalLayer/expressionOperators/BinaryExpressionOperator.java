@@ -20,7 +20,9 @@ package org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOp
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.plan.OperatorKey;
+import org.apache.pig.impl.util.IdentityHashSet;
 
 /**
  * A base class for all Binary expression operators.
@@ -84,4 +86,9 @@ public abstract class BinaryExpressionOperator extends ExpressionOperator {
         rhs = op.rhs;
         super.cloneHelper(op);
     }
-}
+    
+    @Override
+    public Tuple illustratorMarkup(Object in, Object out, int eqClassIndex) {
+        return null;
+    }
+    }

@@ -105,6 +105,10 @@ public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
         this.pc = pc;
     }
 
+    public Map<Operator, PhysicalOperator> getLogToPhyMap() {
+        return logToPhyMap;
+    }
+    
     public PhysicalPlan getPhysicalPlan() {
         return currentPlan;
     }

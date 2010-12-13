@@ -33,6 +33,9 @@ import org.apache.pig.impl.util.Utils;
 
 public class PreOrderDepthFirstWalker<O extends Operator, P extends OperatorPlan<O>>
         extends PlanWalker<O, P> {
+  
+    private boolean branchFlag = false;
+    
     /**
      * @param plan
      *            Plan for this walker to traverse.
@@ -41,6 +44,14 @@ public class PreOrderDepthFirstWalker<O extends Operator, P extends OperatorPlan
         super(plan);
     }
 
+    public void setBranchFlag() {
+        branchFlag = true;
+    }
+    
+    public boolean getBranchFlag() {
+        return branchFlag;
+    }
+    
     /**
      * Begin traversing the graph.
      * 
@@ -66,8 +77,10 @@ public class PreOrderDepthFirstWalker<O extends Operator, P extends OperatorPlan
         if (predecessors == null)
             return;
 
+        boolean thisBranchFlag = branchFlag;
         for (O pred : predecessors) {
             if (seen.add(pred)) {
+                branchFlag = thisBranchFlag;
                 pred.visit(visitor);
                 Collection<O> newPredecessors = Utils.mergeCollection(mPlan.getPredecessors(pred), mPlan.getSoftLinkPredecessors(pred));
                 depthFirst(pred, newPredecessors, seen, visitor);

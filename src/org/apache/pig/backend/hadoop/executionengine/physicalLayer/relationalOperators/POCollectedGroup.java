@@ -19,6 +19,7 @@ package org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOp
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Iterator;
 
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce;
@@ -37,6 +38,9 @@ import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.PlanException;
 import org.apache.pig.impl.plan.VisitorException;
+import org.apache.pig.pen.util.ExampleTuple;
+import org.apache.pig.pen.util.LineageTracer;
+import org.apache.pig.impl.util.IdentityHashSet;
 
 /**
  * The collected group operator is a special operator used when users give
@@ -247,7 +251,7 @@ public class POCollectedGroup extends PhysicalOperator {
             outputBag = useDefaultBag ? BagFactory.getInstance().newDefaultBag() 
                     : new InternalCachedBag(1);
             outputBag.add((Tuple)tup.get(1));
-
+            illustratorMarkup(null, tup2, 0);
             return res;
         }
 
@@ -298,4 +302,33 @@ public class POCollectedGroup extends PhysicalOperator {
             leafOps.add(leaf);
         }            
    }
+    
+    private void setIllustratorEquivalenceClasses(Tuple tin) {
+        if (illustrator != null) {
+          illustrator.getEquivalenceClasses().get(0).add(tin);
+        }
+    }
+    
+    @Override
+    public Tuple illustratorMarkup(Object in, Object out, int eqClassIndex) {
+        if (illustrator != null) {
+            ExampleTuple tOut = new ExampleTuple(out);
+            LineageTracer lineage = illustrator.getLineage();
+            lineage.insert(tOut);
+            DataBag bag;
+            try {
+                bag = (DataBag) tOut.get(1);
+            } catch (ExecException e) {
+                throw new RuntimeException("Illustrator markup exception" + e.getMessage());
+            }
+            boolean synthetic = false;
+            while (!synthetic && bag.iterator().hasNext()) {
+                synthetic |= ((ExampleTuple) bag.iterator().next()).synthetic;
+            }
+            tOut.synthetic = synthetic;
+            illustrator.addData((Tuple) out);
+            return tOut;
+        } else
+          return (Tuple) out;
+    }
 }
