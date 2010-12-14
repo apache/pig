@@ -57,23 +57,23 @@ public class LogicalPlanOptimizer extends PlanOptimizer {
         List<Set<Rule>> ls = new ArrayList<Set<Rule>>();	    
 
         
-        // DuplicateForEachColumnRewrite set
-        // This insert Identity UDF in the case foreach duplicate field.
-        // This is because we need unique uid through out the plan
-        Set<Rule> s = new HashSet<Rule>();
-        Rule r = new DuplicateForEachColumnRewrite("DuplicateForEachColumnRewrite");
-        checkAndAddRule(s, r);
-        if (!s.isEmpty())
-            ls.add(s);
-        
         // ImplicitSplitInserter set
         // This set of rules Insert Foreach dedicated for casting after load
-        s = new HashSet<Rule>();
-        r = new ImplicitSplitInserter("ImplicitSplitInserter");
+        Set<Rule> s = new HashSet<Rule>();
+        Rule r = new ImplicitSplitInserter("ImplicitSplitInserter");
         checkAndAddRule(s, r);
         if (!s.isEmpty())
             ls.add(s);
 
+        // DuplicateForEachColumnRewrite set
+        // This insert Identity UDF in the case foreach duplicate field.
+        // This is because we need unique uid through out the plan
+        s = new HashSet<Rule>();
+        r = new DuplicateForEachColumnRewrite("DuplicateForEachColumnRewrite");
+        checkAndAddRule(s, r);
+        if (!s.isEmpty())
+            ls.add(s);
+        
         // Logical expression simplifier
         s = new HashSet<Rule>();
         // add logical expression simplification rule

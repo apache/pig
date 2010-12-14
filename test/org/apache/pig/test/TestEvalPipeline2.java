@@ -912,7 +912,7 @@ public class TestEvalPipeline2 extends TestCase {
         fail();
     }
     
-    // See PIG-1732
+    // See PIG-1745
     @Test
     public void testForEachDupColumn() throws Exception{
         String[] input1 = {
@@ -964,5 +964,36 @@ public class TestEvalPipeline2 extends TestCase {
         Tuple t = iter.next();
         assertTrue(t.size()==1);
         assertTrue(t.get(0).equals("APACHE"));
+    }
+    
+    // See PIG-1766
+    @Test
+    public void testForEachSameOriginColumn() throws Exception{
+        String[] input1 = {
+                "1\t2",
+                "1\t3",
+                "2\t4",
+                "2\t5",
+        };
+        
+        String[] input2 = {
+                "1\tone",
+                "2\ttwo",
+        };
+        
+        Util.createInputFile(cluster, "table_testForEachSameOriginColumn1", input1);
+        Util.createInputFile(cluster, "table_testForEachSameOriginColumn2", input2);
+        pigServer.registerQuery("A = load 'table_testForEachSameOriginColumn1' AS (a0:int, a1:int);");
+        pigServer.registerQuery("B = load 'table_testForEachSameOriginColumn2' AS (b0:int, b1:chararray);");
+        pigServer.registerQuery("C = join A by a0, B by b0;");
+        pigServer.registerQuery("D = foreach B generate b0 as d0, b1 as d1;");
+        pigServer.registerQuery("E = join C by a1, D by d0;");
+        pigServer.registerQuery("F = foreach E generate b1, d1;");
+        
+        Iterator<Tuple> iter = pigServer.openIterator("F");
+        Tuple t = iter.next();
+        assertTrue(t.size()==2);
+        assertTrue(t.get(0).equals("one"));
+        assertTrue(t.get(1).equals("two"));
     }
 }
