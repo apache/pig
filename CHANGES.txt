@@ -236,6 +236,8 @@ PIG-1309: Map-side Cogroup (ashutoshc)
 
 BUG FIXES
 
+PIG-1766: New logical plan: ImplicitSplitInserter should before DuplicateForEachColumnRewrite (daijy)
+
 PIG-1762: Logical simplification fails on map key referenced values (yanz)
 
 PIG-1761: New logical plan: Exception when bag dereference in the middle of expression (daijy)
