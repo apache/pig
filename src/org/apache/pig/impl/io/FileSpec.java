@@ -20,6 +20,7 @@ package org.apache.pig.impl.io;
 import java.io.Serializable;
 
 import org.apache.pig.FuncSpec;
+import org.apache.pig.builtin.PigStorage;
 
 
 /**
@@ -35,7 +36,7 @@ public class FileSpec implements Serializable {
     
     public FileSpec(String fileName, FuncSpec funcSpec){
         this.fileName = fileName;
-        this.funcSpec = funcSpec;
+        this.funcSpec = funcSpec != null ? funcSpec : new FuncSpec( PigStorage.class.getName() + "()" );
     }
     
     public String getFileName(){

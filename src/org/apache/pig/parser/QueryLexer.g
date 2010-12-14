@@ -200,15 +200,45 @@ RIGHT : 'RIGHT'
 FULL : 'FULL'
 ;
 
-fragment STRFILTEROP : 'EQ' | 'GT' | 'LT' | 'GTE' | 'LTE' | 'NEQ' | 'MATCHES'
-;
-    
-fragment NUMFILTEROP : '==' | '<' | '<=' | '>' | '>=' | '!='
-;
-    
-FILTEROP : STRFILTEROP | NUMFILTEROP
+STR_OP_EQ : 'EQ'
 ;
 
+STR_OP_GT : 'GT'
+;
+
+STR_OP_LT : 'LT'
+;
+
+STR_OP_GTE : 'GTE'
+;
+
+STR_OP_LTE : 'LTE'
+;
+
+STR_OP_NE : 'NEQ'
+;
+
+STR_OP_MATCHES : 'MATCHES'
+;
+    
+NUM_OP_EQ : '=='
+;
+
+NUM_OP_LT : '<'
+;
+
+NUM_OP_LTE : '<='
+;
+
+NUM_OP_GT : '>'
+;
+
+NUM_OP_GTE : '>=' 
+;
+
+NUM_OP_NE : '!='
+;
+    
 fragment DIGIT : '0'..'9'
 ;
 

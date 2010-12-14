@@ -19,7 +19,7 @@
 /**
  * Parser file for Pig Parser
  *
- * NOTE: THIS FILE IS THE BASE FOR A FEW TREE PARSER FILES, such as DefaultDataTypeInserter.g, 
+ * NOTE: THIS FILE IS THE BASE FOR A FEW TREE PARSER FILES, such as AstValidator.g, 
  *       SO IF YOU CHANGE THIS FILE, YOU WILL PROBABLY NEED TO MAKE CORRESPONDING CHANGES TO 
  *       THOSE FILES AS WELL.
  */
@@ -52,6 +52,8 @@ tokens {
     MAP_TYPE;
     TUPLE_TYPE;
     BAG_TYPE;
+    NEG;
+    EXPR_IN_PAREN;
 }
 
 @header {
@@ -226,8 +228,7 @@ func_clause : func_name LEFT_PAREN func_args? RIGHT_PAREN
            -> ^( FUNC func_alias )
 ;
 
-func_name : eid ( PERIOD eid )*
-         -> eid+
+func_name : eid ( ( PERIOD | DOLLAR ) eid )*
 ;
 
 func_alias : IDENTIFIER
@@ -277,7 +278,7 @@ and_cond : unary_cond ( AND^ unary_cond )*
 ;
 
 unary_cond : LEFT_PAREN! cond RIGHT_PAREN!
-           | expr FILTEROP^ expr
+           | expr rel_op^ expr
            | func_eval
            | null_check_cond
            | not_cond
@@ -314,7 +315,10 @@ cast_expr : ( LEFT_PAREN type RIGHT_PAREN ) unary_expr
           | unary_expr
 ;
 
-unary_expr : expr_eval | ( LEFT_PAREN! expr RIGHT_PAREN! )  | neg_expr
+unary_expr : expr_eval 
+           | LEFT_PAREN expr RIGHT_PAREN
+          -> ^( EXPR_IN_PAREN expr )
+           | neg_expr
 ;
 
 expr_eval : const_expr | var_expr
@@ -337,7 +341,8 @@ bin_expr : LEFT_PAREN cond QMARK exp1 = expr COLON exp2 = expr RIGHT_PAREN
         -> ^( BIN_EXPR cond $exp1 $exp2 )
 ;
 
-neg_expr : MINUS^ cast_expr
+neg_expr : MINUS cast_expr
+        -> ^( NEG cast_expr )
 ;
 
 limit_clause : LIMIT^ rel ( INTEGER | LONGINTEGER )
@@ -467,33 +472,43 @@ alias_col_ref : GROUP | IDENTIFIER
 dollar_col_ref : DOLLAR^ INTEGER
 ;
 
-const_expr : scalar | map | bag | tuple
+const_expr : literal
 ;
+
+literal : scalar | map | bag | tuple
+;
+
 
 scalar : INTEGER | LONGINEGER | FLOATNUMBER | DOUBLENUMBER | QUOTEDSTRING | NULL
 ;
 
 map : LEFT_BRACKET ( keyvalue ( COMMA keyvalue )* )? RIGHT_BRACKET
    -> ^( MAP_VAL keyvalue+ )
+    | LEFT_BRACKET RIGHT_BRACKET
+   -> ^( MAP_VAL )
 ;
 
-keyvalue : string_val POUND const_expr
-        -> ^( KEY_VAL_PAIR string_val const_expr )
+keyvalue : map_key POUND const_expr
+        -> ^( KEY_VAL_PAIR map_key const_expr )
 ;
 
-string_val : QUOTEDSTRING | NULL
+map_key : QUOTEDSTRING | NULL
 ;
 
 bag : LEFT_CURLY ( tuple ( COMMA tuple )* )? RIGHT_CURLY
    -> ^( BAG_VAL tuple+ )
+    | LEFT_CURLY RIGHT_CURLY
+   -> ^( BAG_VAL )
 ;
 
-tuple : LEFT_PAREN ( const_expr ( COMMA const_expr )* )? RIGHT_PAREN
-     -> ^( TUPLE_VAL const_expr+ )
+tuple : LEFT_PAREN ( literal ( COMMA const_expr )* )? RIGHT_PAREN
+     -> ^( TUPLE_VAL literal+ )
+      | LEFT_PAREN RIGHT_PAREN
+     -> ^( TUPLE_VAL )
 ;
 
 // extended identifier, handling the keyword and identifier conflicts. Ugly but there is no other choice.
-eid : FILTEROP
+eid : rel_str_op
     | DEFINE
     | LOAD
     | FILTER
@@ -554,3 +569,41 @@ eid : FILTEROP
     | FULL
     | IDENTIFIER
 ;
+
+// relational operator
+rel_op : rel_op_eq
+       | rel_op_ne
+       | rel_op_gt
+       | rel_op_gte
+       | rel_op_lt
+       | rel_op_lte
+       | STR_OP_MATCHES
+;
+
+rel_op_eq : STR_OP_EQ | NUM_OP_EQ
+;
+
+rel_op_ne : STR_OP_NE | NUM_OP_NE
+;
+
+rel_op_gt : STR_OP_GT | NUM_OP_GT
+;
+
+rel_op_gte : STR_OP_GTE | NUM_OP_GTE
+;
+
+rel_op_lt : STR_OP_LT | NUM_OP_LT
+;
+
+rel_op_lte : STR_OP_LTE | NUM_OP_LTE
+;
+
+rel_str_op : STR_OP_EQ
+           | STR_OP_NE
+           | STR_OP_GT
+           | STR_OP_LT
+           | STR_OP_GTE
+           | STR_OP_LTE
+           | STR_OP_MATCHES
+;
+
