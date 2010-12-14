@@ -17,7 +17,7 @@ General Info
 
 For the latest information about Pig, please visit our website at:
 
-   http://hadoop.apache.org/pig/
+   http://pig.apache.org/
 
 and our wiki, at:
 
