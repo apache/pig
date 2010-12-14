@@ -162,7 +162,7 @@ tuple_def_simple : ^( TUPLE_DEF field[new HashSet<String>()] )
 field[Set<String> fieldNames] throws Exception
  : ^( FIELD IDENTIFIER { validateSchemaAliasName( fieldNames, $IDENTIFIER.text ); } )
 -> ^( FIELD IDENTIFIER BYTEARRAY )
- | ^( FIELD IDENTIFIER { validateSchemaAliasName( fieldNames, $IDENTIFIER.text ); } type ) 
+ | ^( FIELD IDENTIFIER { validateSchemaAliasName( fieldNames, $IDENTIFIER.text ); } type )
 ;
 
 type : simple_type | tuple_type | bag_type | map_type
@@ -184,7 +184,7 @@ func_clause : ^( FUNC func_name func_args? )
             | ^( FUNC func_alias )
 ;
 
-func_name : eid+
+func_name : eid ( ( PERIOD | DOLLAR ) eid )*
 ;
 
 func_alias : IDENTIFIER
@@ -224,16 +224,12 @@ filter_clause : ^( FILTER rel cond )
 cond : ^( OR cond cond )
      | ^( AND cond cond )
      | ^( NOT cond )
-     | ^( NULL expr NOT )
-     | ^( FILTEROP expr expr )
-     | func_eval
      | ^( NULL expr NOT? )
+     | ^( rel_op expr expr )
+     | func_eval
 ;
 
-func_eval: ^( FUNC_EVAL func_name real_arg_list? )
-;
-
-real_arg_list : real_arg+
+func_eval: ^( FUNC_EVAL func_name real_arg* )
 ;
 
 real_arg : expr | STAR
@@ -247,17 +243,9 @@ expr : ^( PLUS expr expr )
      | ^( CAST_EXPR type expr )
      | const_expr
      | var_expr
-     | neg_expr
-;
-
-cast_expr : ^( CAST_EXPR type unary_expr )
-          | unary_expr
-;
-
-unary_expr : expr_eval | expr | neg_expr
-;
-
-expr_eval : const_expr | var_expr
+     | ^( NEG expr )
+     | ^( CAST_EXPR type expr )
+     | ^( EXPR_IN_PAREN expr )
 ;
 
 var_expr : projectable_expr ( dot_proj | pound_proj )*
@@ -273,9 +261,6 @@ pound_proj : ^( POUND ( QUOTEDSTRING | NULL ) )
 ;
 
 bin_expr : ^( BIN_EXPR cond expr expr )
-;
-
-neg_expr : ^( MINUS cast_expr )
 ;
 
 limit_clause : ^( LIMIT rel ( INTEGER | LONGINTEGER ) )
@@ -358,16 +343,16 @@ nested_proj : ^( NESTED_PROJ col_ref col_ref_list )
 col_ref_list : col_ref+
 ;
 
-nested_filter : ^( FILTER ( IDENTIFIER | nested_proj | expr_eval ) cond )
+nested_filter : ^( FILTER ( IDENTIFIER | nested_proj | expr ) cond )
 ;
 
-nested_sort : ^( ORDER ( IDENTIFIER | nested_proj | expr_eval )  order_by_clause func_clause? )
+nested_sort : ^( ORDER ( IDENTIFIER | nested_proj | expr )  order_by_clause func_clause? )
 ;
 
-nested_distinct : ^( DISTINCT ( IDENTIFIER | nested_proj | expr_eval ) )
+nested_distinct : ^( DISTINCT ( IDENTIFIER | nested_proj | expr ) )
 ;
 
-nested_limit : ^( LIMIT ( IDENTIFIER | nested_proj | expr_eval ) INTEGER )
+nested_limit : ^( LIMIT ( IDENTIFIER | nested_proj | expr ) INTEGER )
 ;
 
 stream_clause : ^( STREAM rel ( EXECCOMMAND | IDENTIFIER ) as_clause? )
@@ -391,29 +376,32 @@ alias_col_ref : GROUP | IDENTIFIER
 dollar_col_ref : ^( DOLLAR INTEGER )
 ;
 
-const_expr : scalar | map | bag | tuple
+const_expr : literal
+;
+
+literal : scalar | map | bag | tuple
 ;
 
 scalar : INTEGER | LONGINEGER | FLOATNUMBER | DOUBLENUMBER | QUOTEDSTRING | NULL
 ;
 
-map : ^( MAP_VAL keyvalue+ )
+map : ^( MAP_VAL keyvalue* )
 ;
 
-keyvalue : ^( KEY_VAL_PAIR string_val const_expr )
+keyvalue : ^( KEY_VAL_PAIR map_key const_expr )
 ;
 
-string_val : QUOTEDSTRING | NULL
+map_key : QUOTEDSTRING | NULL
 ;
 
-bag : ^( BAG_VAL tuple+ )
+bag : ^( BAG_VAL tuple* )
 ;
 
-tuple : ^( TUPLE_VAL const_expr+ )
+tuple : ^( TUPLE_VAL literal* )
 ;
 
 // extended identifier, handling the keyword and identifier conflicts. Ugly but there is no other choice.
-eid : FILTEROP
+eid : rel_str_op
     | DEFINE
     | LOAD
     | FILTER
@@ -473,4 +461,41 @@ eid : FILTEROP
     | RIGHT
     | FULL
     | IDENTIFIER
+;
+
+// relational operator
+rel_op : rel_op_eq
+       | rel_op_ne
+       | rel_op_gt
+       | rel_op_gte
+       | rel_op_lt
+       | rel_op_lte
+       | STR_OP_MATCHES
+;
+
+rel_op_eq : STR_OP_EQ | NUM_OP_EQ
+;
+
+rel_op_ne : STR_OP_NE | NUM_OP_NE
+;
+
+rel_op_gt : STR_OP_GT | NUM_OP_GT
+;
+
+rel_op_gte : STR_OP_GTE | NUM_OP_GTE
+;
+
+rel_op_lt : STR_OP_LT | NUM_OP_LT
+;
+
+rel_op_lte : STR_OP_LTE | NUM_OP_LTE
+;
+
+rel_str_op : STR_OP_EQ
+           | STR_OP_NE
+           | STR_OP_GT
+           | STR_OP_LT
+           | STR_OP_GTE
+           | STR_OP_LTE
+           | STR_OP_MATCHES
 ;

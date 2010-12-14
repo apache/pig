@@ -335,7 +335,7 @@
 	    description="generates tree parser class from an ANTLR grammar">
 	    <java classname="org.antlr.Tool"
 	      classpathref="classpath" fork="true">
-	      <arg line="-o ${src.gen.dir}/${grammar.package.dir} ${src.dir}/${grammar.package.dir}/AstValidator.g"/>
+	      <arg line="-o ${src.gen.dir}/${grammar.package.dir} ${src.dir}/${grammar.package.dir}/AstValidator.g ${src.dir}/${grammar.package.dir}/LogicalPlanGenerator.g"/>
 	    </java>
 	  </target>
 

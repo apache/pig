@@ -49,6 +49,15 @@ public class UserFuncExpression extends LogicalExpression {
         mFuncSpec = funcSpec;
         plan.add(this);
     }
+    
+    
+    public UserFuncExpression(OperatorPlan plan, FuncSpec funcSpec, List<LogicalExpression> args) {
+        this( plan, funcSpec );
+        
+        for( LogicalExpression arg : args ) {
+        	plan.connect( this, arg );
+        }
+    }
 
     public FuncSpec getFuncSpec() {
         return mFuncSpec;

@@ -26,6 +26,7 @@ import org.antlr.runtime.RecognitionException;
 import org.antlr.runtime.tree.CommonTree;
 import org.antlr.runtime.tree.CommonTreeNodeStream;
 import org.antlr.runtime.tree.Tree;
+import org.apache.pig.newplan.logical.relational.LogicalPlan;
 
 public class ParserTestingUtils {
     public static CommonTokenStream tokenize(String query) throws IOException, ParsingFailureException {
@@ -65,4 +66,20 @@ public class ParserTestingUtils {
         return newAst;
     }
     
+    public static LogicalPlan generateLogicalPlan(String query)
+    throws RecognitionException, ParsingFailureException, IOException {
+        Tree ast = validateAst( query );
+        
+        LogicalPlanGenerator walker = new LogicalPlanGenerator( new CommonTreeNodeStream( ast ) );
+        walker.query();
+        
+        if( 0 < walker.getNumberOfSyntaxErrors() ) 
+            throw new ParsingFailureException( LogicalPlanGenerator.class );
+        
+        LogicalPlan plan = walker.getLogicalPlan();
+        System.out.println( "Generated logical plan: " + plan.toString() );
+        
+        return plan;
+    }
+
 }

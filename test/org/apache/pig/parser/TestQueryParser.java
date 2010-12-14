@@ -91,6 +91,13 @@ public class TestQueryParser {
     }
 
     @Test
+    public void test3() throws IOException, RecognitionException {
+        int errorCount = parse( 
+ "a = load '1.txt' as (a0); b = foreach a generate flatten((bag{T:tuple(m:map[])})a0) as b0:map[];c = foreach b generate (long)b0#'key1';" );
+        Assert.assertTrue( errorCount == 0 );
+    }
+
+    @Test
     public void testAST() throws IOException, RecognitionException  {
         CharStream input = new QueryParserFileStream( "test/org/apache/pig/parser/TestAST.pig" );
         QueryLexer lexer = new QueryLexer(input);
