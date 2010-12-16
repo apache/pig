@@ -21,22 +21,17 @@
   <header>
     <title>Overview </title>
   </header>
-  
   <body>
-      <p>
-        The Pig Documentation provides the information you need to get started using Pig.
-      </p>
-      <p>
-        Begin with the <a href="setup.html"> Pig Setup</a> which shows you how to download and run Pig. 
-        Then try out the <a href="tutorial.html">Pig Tutorial</a> to get an idea of how easy it is to use Pig. 
-      </p>
-      <p>  
-        When you are ready to start writing your own scripts, read through the Pig Latin Reference <a href="piglatin_ref1.html">Manual 1</a>
-        and <a href="piglatin_ref2.html">Manual 2</a> to become familiar with Pig's features. 
-        Also review the <a href="cookbook.html">Pig Cookbook</a> to learn how to tweak your code for optimal performance.
-      </p>
-      <p>
-		If you have more questions, you can ask on the <a href="http://hadoop.apache.org/pig/mailing_lists.html">Pig Mailing Lists</a>.
-    </p>
+      <p>The Pig Documentation provides the information you need to get started using Pig.</p>  
+      
+      <p>Begin with the <a href="start.html">Getting Started</a> guide which shows you how to set up Pig and how to form simple Pig Latin statements.
+      When you are ready to start writing your own scripts, review the <a href="basic.html">Pig Latin Basics</a> manual to 
+        become familiar with the Pig Latin operators and the supported data types.</p>
+        
+      <p>Functions can be a part of almost every operator in Pig. The <a href="func.html">Built In Functions</a> guide describes Pig's built in functions.  
+       The <a href="udf.html">User Defined Functions</a> manual shows you how to how to write your own functions and how to access functions 
+       contributed by other Pig users. </p>
+      
+      <p>If you have more questions, you can ask on the <a href="http://hadoop.apache.org/pig/mailing_lists.html">Pig Mailing Lists</a>.</p>
   </body>
 </document>

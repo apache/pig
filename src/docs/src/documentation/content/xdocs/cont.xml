@@ -1,0 +1,341 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<!DOCTYPE document PUBLIC "-//APACHE//DTD Documentation V2.0//EN" "http://forrest.apache.org/dtd/document-v20.dtd">
+<document>
+  <header>
+    <title>Control Structures</title>
+  </header>
+  <body>
+ <!-- ++++++++++++++++++++++++++++++++++ -->    
+   <section>
+   <title>Parameter Substitution</title>
+   <section>
+   <title>Description</title>
+   <p>Substitute values for parameters at run time.</p>
+   
+   <section>
+   <title>Syntax: Specifying parameters using the Pig command line</title>
+   <table>
+      <tr>
+            <td>
+               <p>pig {–param param_name = param_value | –param_file file_name} [-debug | -dryrun] script</p>
+            </td>
+         </tr>
+   </table>
+   </section>
+   
+   <section>
+   <title>Syntax: Specifying parameters using preprocessor statements in a Pig script</title>
+   <table>
+      <tr>
+            <td>
+               <p>{%declare | %default} param_name param_value</p>
+            </td>
+         </tr>
+   </table>
+   </section>
+   
+   <section>
+   <title>Terms</title>
+   <table>
+      <tr>
+            <td>
+               <p>pig</p>
+            </td>
+            <td>
+               <p>Keyword</p>
+               <p>Note: exec, run, and explain also support parameter substitution.</p>
+            </td>
+         </tr>
+         <tr>
+            <td>
+               <p>–param</p>
+            </td>
+            <td>
+               <p>Flag. Use this option when the parameter is included in the command line.</p>
+               <p>Multiple parameters can be specified. If the same parameter is specified multiple times, the last value will be used and a warning will be generated.</p>
+               <p>Command line parameters and parameter files can be combined with command line parameters taking precedence. </p>
+            </td>
+         </tr>
+         <tr>
+            <td>
+               <p>param_name</p>
+            </td>
+            <td>
+               <p>The name of the parameter.</p>
+               <p>The parameter name has the structure of a standard language identifier: it must start with a letter or underscore followed by any number of letters, digits, and underscores. </p>
+               <p>Parameter names are case insensitive. </p>
+               <p>If you pass a parameter to a script that the script does not use, this parameter is silently ignored. If the script has a parameter and no value is supplied or substituted, an error will result.</p>
+            </td>
+         </tr>
+         <tr>
+            <td>
+               <p>param_value</p>
+            </td>
+            <td>
+               <p>The value of the parameter. </p>
+               <p>A parameter value can take two forms:</p>
+               <ul>
+                  <li>
+                     <p>A sequence of characters enclosed in single or double quotes. In this case the unquoted version of the value is used during substitution. Quotes within the value can be escaped with the backslash character ( \ ). Single word values that don't use special characters such as % or = don't have to be quoted. </p>
+                  </li>
+                  <li>
+                     <p>A command enclosed in back ticks. </p>
+                  </li>
+               </ul>
+               <p>The value of a parameter, in either form, can be expressed in terms of other parameters as long as the values of the dependent parameters are already defined.</p>
+               <p>There are no hard limits on the size except that parameters need to fit into memory.</p>
+            </td>
+         </tr>
+         <tr>
+            <td>
+               <p>–param_file</p>
+            </td>
+            <td>
+               <p>Flag. Use this option when the parameter is included in a file. </p>
+               <p>Multiple files can be specified. If the same parameter is present multiple times in the file, the last value will be used and a warning will be generated. If a parameter present in multiple files, the value from the last file will be used and a warning will be generated.</p>
+               <p>Command line parameters and parameter files can be combined with command line parameters taking precedence. </p>
+            </td>
+         </tr>
+         <tr>
+            <td>
+               <p>file_name</p>
+            </td>
+            <td>
+               <p>The name of a file containing one or more parameters.</p>
+               <p>A parameter file will contain one line per parameter. Empty lines are allowed. Perl-style (#) comment lines are also allowed. Comments must take a full line and # must be the first character on the line. Each parameter line will be of the form: param_name = param_value. White spaces around = are allowed but are optional.</p>
+            </td>
+         </tr>
+         <tr>
+            <td>
+               <p>–debug</p>
+            </td>
+            <td>
+               <p>Flag. With this option, the script is run and a fully substituted Pig script produced in the current working directory named original_script_name.substituted </p>
+            </td>
+         </tr>
+         <tr>
+            <td>
+               <p>–dryrun</p>
+            </td>
+            <td>
+               <p>Flag. With this option, the script is not run and a fully substituted Pig script produced in the current working directory named original_script_name.substituted</p>
+            </td>
+         </tr>
+         <tr>
+            <td>
+               <p>script</p>
+            </td>
+            <td>
+               <p>A pig script. The pig script must be the last element in the Pig command line.</p>
+               <ul>
+                  <li>
+                     <p>If parameters are specified in the Pig command line or in a parameter file, the script should include a $param_name for each para_name included in the command line or parameter file.</p>
+                  </li>
+                  <li>
+                     <p>If parameters are specified using the preprocessor statements, the script should include either %declare or %default.</p>
+                  </li>
+                  <li>
+                     <p>In the script, parameter names can be escaped with the backslash character ( \ ) in which case substitution does not take place.</p>
+                  </li>
+               </ul>
+            </td>
+         </tr>
+         <tr>
+            <td>
+               <p>%declare</p>
+            </td>
+            <td>
+               <p>Preprocessor statement included in a Pig script.</p>
+               <p>Use to describe one parameter in terms of other parameters.</p>
+               <p>The declare statement is processed prior to running the Pig script. </p>
+               <p>The scope of a parameter value defined using declare is all the lines following the declare statement until the next declare statement that defines the same parameter is encountered.</p>
+            </td>
+         </tr>
+         <tr>
+            <td>
+               <p>%default</p>
+            </td>
+            <td>
+               <p>Preprocessor statement included in a Pig script.</p>
+               <p>Use to provide a default value for a parameter. The default value has the lowest priority and is used if a parameter value has not been defined by other means.</p>
+               <p>The default statement is processed prior to running the Pig script. </p>
+               <p>The scope is the same as for %declare.</p>
+            </td>
+         </tr>
+   </table>
+   </section>
+   
+   <section>
+   <title>Usage</title>
+   <p>Parameter substitution enables you to write Pig scripts that include parameters and to supply values for these parameters at run time. For instance, suppose you have a job that needs to run every day using the current day's data. You can create a Pig script that includes a parameter for the date. Then, when you run this script you can specify or supply a value for the date parameter using one of the supported methods. </p>
+   
+   <section>
+   <title>Specifying Parameters </title>
+   <p>You can specify parameter names and parameter values as follows:</p>
+   <ul>
+      <li>
+         <p>As part of a command line.</p>
+      </li>
+      <li>
+         <p>In parameter file, as part of a command line.</p>
+      </li>
+      <li>
+         <p>With the declare statement, as part of Pig script.</p>
+      </li>
+      <li>
+         <p>With default statement, as part of a Pig script.</p>
+      </li>
+   </ul>
+   </section>
+   
+   <section>
+   <title>Precedence</title>
+   <p>Precedence for parameters is as follows:</p>
+   <ul>
+      <li>
+         <p>Highest - parameters defined using the declare statement</p>
+      </li>
+      <li>
+         <p>Next - parameters defined in the command line</p>
+      </li>
+      <li>
+         <p>Lowest - parameters defined in a script</p>
+      </li>
+   </ul>
+   </section>
+   
+   <section>
+   <title>Processing Order and Precedence</title>
+   <p>Parameters are processed as follows:</p>
+   <ul>
+      <li>
+         <p>Command line parameters are scanned in the order they are specified on the command line. </p>
+      </li>
+      <li>
+         <p>Parameter files are scanned in the order they are specified on the command line. Within each file, the parameters are processed in the order they are listed. </p>
+      </li>
+      <li>
+         <p>Declare and default preprocessors statements are processed in the order they appear in the Pig script. </p>
+      </li>
+   </ul>
+   </section></section>
+   
+   <section>
+   <title>Example: Specifying parameters in the command line</title>
+   <p>Suppose we have a data file called 'mydata' and a pig script called 'myscript.pig'.</p>
+
+<p>mydata </p>
+<source>
+1       2       3
+4       2       1
+8       3       4
+</source>
+ 
+ <p>myscript.pig</p>
+<source>
+A = LOAD '$data' USING PigStorage() AS (f1:int, f2:int, f3:int);
+DUMP A;
+</source>
+
+<p>In this example the parameter (data) and the parameter value (mydata) are specified in the command line. If the parameter name in the command line (data) and the parameter name in the script ($data) do not match, the script will not run. If the value for the parameter (mydata) is not found, an error is generated.</p>
+<source>
+$ pig –param data=mydata myscript.pig
+
+(1,2,3)
+(4,2,1)
+(8,3,4)
+</source>
+   
+   </section>
+   
+   <section>
+   <title>Example: Specifying parameters using a parameter file</title>
+   <p>Suppose we have a parameter file called 'myparams.'</p>
+<source>
+# my parameters
+data1 = mydata1
+cmd = `generate_name`
+</source>
+
+   
+   <p>In this example the parameters and values are passed to the script using the parameter file.</p>
+<source>
+$ pig –param_file myparams script2.pig
+</source>
+   
+   </section>
+   
+   <section>
+   <title>Example: Specifying parameters using the declare statement</title>
+   <p>In this example the command is executed and its stdout is used as the parameter value.</p>
+<source>
+%declare CMD 'generate_date';
+A = LOAD '/data/mydata/$CMD';
+B = FILTER A BY $0>'5';
+
+<em>etc ... </em>
+</source>
+   
+   </section>
+   
+   <section>
+   <title>Example: Specifying parameters using the default statement</title>
+   <p>In this example the parameter (DATE) and value ('20090101') are specified in the Pig script using the default statement. If a value for DATE is not specified elsewhere, the default value 20090101 is used.</p>
+<source>
+%default DATE '20090101';
+A = load '/data/mydata/$DATE';
+
+<em>etc ... </em>
+</source>
+
+   </section>
+   
+   <section>
+   <title>Examples: Specifying parameter values as a sequence of characters</title>
+   <p>In this example the characters (in this case, Joe's URL) can be enclosed in single or double quotes, and quotes within the sequence of characters can be escaped. </p>
+<source>
+%declare DES 'Joe\'s URL';
+A = LOAD 'data' AS (name, description, url);
+B = FILTER A BY description == '$DES';
+ 
+<em>etc ... </em>
+</source>
+   
+   <p>In this example single word values that don't use special characters (in this case, mydata) don't have to be enclosed in quotes.</p>
+<source>
+$ pig –param data=mydata myscript.pig
+</source>   
+</section>
+   
+   <section>
+   <title>Example: Specifying parameter values as a command</title>
+   <p>In this example the command is enclosed in back ticks. First, the parameters mycmd and date are substituted when the declare statement is encountered. Then the resulting command is executed and its stdout is placed in the path before the load statement is run.</p>
+<source>
+%declare CMD '$mycmd $date';
+A = LOAD '/data/mydata/$CMD';
+B = FILTER A BY $0>'5';
+ 
+<em>etc ... </em>
+</source>
+   </section>
+   </section>
+   </section>
+
+</body>
+</document>
