@@ -21,19 +21,23 @@
 
 <document>
 <header>
-<title>Pig UDF Manual</title>
+<title>User Defined Functions</title>
 </header>
 <body>
 
+<!-- ================================================================== -->
+<!-- WRITING UDFS -->
 
 <section>
-<title>Overview</title>
-<p>Pig provides extensive support for user-defined functions (UDFs) as a way to specify custom processing. 
-Functions can be a part of almost every operator in Pig. 
-This document describes how to use existing functions as well as how to write your own functions  
-(see also <a href="piglatin_ref1.html#Pig+Properties">Pig Properties</a>.)</p>
-</section>
+<title>Writing UDFs</title>
 
+<p>
+Pig provides extensive support for user defined functions (UDFs) as a way to specify custom processing. 
+This section provides the information you need to write your own Java or Python UDFs. 
+The next section describes Piggy Bank, a repository that allows you to access and contribute Java UDFs written by you and other Pig users.
+
+</p>
+<!-- =============================================================== -->
 <section>
 <title>Eval Functions</title>
 
@@ -366,7 +370,7 @@ public class TOKENIZE extends EvalFunc&lt;DataBag&gt; {
         try {
             DataBag output = mBagFactory.newDefaultBag();
             Object o = input.get(0);
-            if (!(o instanceof String)) {
+            if ((o instanceof String)) {
                 throw new IOException("Expected input to be chararray, but  got " + o.getClass().getName());
             }
             StringTokenizer tok = new StringTokenizer((String)o, " \",()*", false);
@@ -493,7 +497,7 @@ public class TOKENIZE extends EvalFunc&lt;DataBag&gt; {
         try {
             DataBag output = mBagFactory.newDefaultBag();
             Object o = input.get(0);
-            if (!(o instanceof String)) {
+            if ((o instanceof String)) {
                 throw new IOException("Expected input to be chararray, but  got " + o.getClass().getName());
             }
             StringTokenizer tok = new StringTokenizer((String)o, " \",()*", false);
@@ -735,14 +739,15 @@ pig -cp sds.jar -Dudf.import.list=com.yahoo.yst.sds.ULT myscript.pig
 
 </section>
 
+<!-- =============================================================== -->
 <!-- BEGIN LOAD/STORE FUNCTIONS -->
 <section>
 <title> Load/Store Functions</title>
 
 <p>The load/store user-defined functions control how data goes into Pig and comes out of Pig. Often, the same function handles both input and output but that does not have to be the case. </p>
 <p>
-With Pig 0.7.0, the Pig load/store API moves closer to using Hadoop's InputFormat and OutputFormat classes.
-This enables Pig users/developers to create new LoadFunc and StoreFunc implementation based on existing Hadoop InputFormat and OutputFormat classes with minimal code. The complexity of reading the data and creating a record will now lie in the InputFormat and likewise on the writing end, the complexity of writing will lie in the OutputFormat. This enables Pig to easily read/write data in new storage formats as and when an Hadoop InputFormat and OutputFormat is available for them. </p>
+The Pig load/store API is aligned with Hadoop's InputFormat and OutputFormat classes.
+This enables you to create new LoadFunc and StoreFunc implementations based on existing Hadoop InputFormat and OutputFormat classes with minimal code. The complexity of reading the data and creating a record lies in the InputFormat while the complexity of writing the data lies in the OutputFormat. This enables Pig to easily read/write data in new storage formats as and when an Hadoop InputFormat and OutputFormat is available for them. </p>
 <p>
 <strong>Note:</strong> Both the LoadFunc and StoreFunc implementations should use the Hadoop 20 API based classes (InputFormat/OutputFormat and related classes) under the <strong>new</strong> org.apache.hadoop.mapreduce package instead of the old org.apache.hadoop.mapred package. 
 </p>
@@ -840,7 +845,7 @@ public class SimpleTextLoader extends LoadFunc {
     public Tuple getNext() throws IOException {
         try {
             boolean notDone = in.nextKeyValue();
-            if (!notDone) {
+            if (notDone) {
                 return null;
             }
             Text value = (Text) in.getCurrentValue();
@@ -903,6 +908,7 @@ public class SimpleTextLoader extends LoadFunc {
 </section>
 <!-- END LOAD FUNCTION -->
 
+<!-- =============================================================== -->
 <section>
 <title> Store Functions</title>
 
@@ -923,7 +929,7 @@ This interface has methods to interact with metadata systems to store schema and
 
 <p>The following methods have default implementations in StoreFunc and should be overridden only if necessary: </p>
 <ul>
-<li>setStoreFunc!UDFContextSignature(): This method will be called by Pig both in the front end and back end to pass a unique signature to the Storer. The signature can be used to store into the UDFContext any information which the Storer needs to store between various method invocations in the front end and back end. The default implementation in StoreFunc has an empty body. This method will be called before other methods. 
+<li>setStoreFuncUDFContextSignature(): This method will be called by Pig both in the front end and back end to pass a unique signature to the Storer. The signature can be used to store into the UDFContext any information which the Storer needs to store between various method invocations in the front end and back end. The default implementation in StoreFunc has an empty body. This method will be called before other methods. 
 </li>
 <li>relToAbsPathForStoreLocation(): Pig runtime will call this method to allow the Storer to convert a relative store location to an absolute location. An implementation is provided in StoreFunc which handles this for FileSystem based locations. </li>
 <li>checkSchema(): A Store function should implement this function to check that a given schema describing the data to be written is acceptable to it. The default implementation in StoreFunc has an empty body. This method will be called before any calls to setStoreLocation(). </li>
@@ -1137,15 +1143,7 @@ public class SimpleTextStorer extends StoreFunc {
 <!-- END LOAD/STORE FUNCTIONS -->
 
 
-<section>
-<title>Builtin Functions and Function Repositories</title>
-
-<p>Pig comes with a set of builtin functions. Two main properties differentiate builtin functions from UDFs. First, they don't need to be registered because Pig knows where they are. Second, they don't need to be qualified when used because Pig knows where to find them. </p>
-
-<p>Pig also hosts a UDF repository called <code>piggybank</code> that allows users to share UDFs that they have written. The details are described in <a href="http://wiki.apache.org/pig/PiggyBank"> PiggyBank</a>. </p>
-
-</section>
-
+<!-- =============================================================== -->
 <section>
 <title>Accumulator Interface</title>
 
@@ -1227,88 +1225,7 @@ public class IntMax extends EvalFunc&lt;Integer&gt; implements Algebraic, Accumu
 
 </section>
 
-
-<section>
-<title>Advanced Topics</title>
-
-<section>
-<title>UDF Interfaces</title>
-<p>A UDF can be invoked multiple ways. The simplest UDF can just extend EvalFunc, which requires only the exec function to be implemented (see <a href="#How+to+Write+a+Simple+Eval+Function"> How to Write a Simple Eval Function</a>). Every eval UDF must implement this. Additionally, if a function is algebraic, it can implement <code>Algebraic</code> interface to significantly improve query performance in the cases when combiner can be used (see <a href="#Aggregate+Functions">Aggregate Functions</a>). Finally, a function that can process tuples in an incremental fashion can also implement the Accumulator interface to improve query memory consumption (see <a href="#Accumulator+Interface">Accumulator Interface</a>).
-</p>
-
-<p>The exact method by which UDF is invoked is selected by the optimizer based on the UDF type and the query. Note that only a single interface is used at any given time. The optimizer tries to find the most efficient way to execute the function. If a combiner is used and the function implements the Algebraic interface then this interface will be used to invoke the function. If the combiner is not invoked but the accumulator can be used and the function implements Accumulator interface then that interface is used. If neither of the conditions is satisfied then the exec function is used to invoke the UDF. 
-</p>
- </section>
- 
- 
-<section>
-<title>Function Instantiation</title>
-
-<p>One problem that users run into is when they make assumption about how many times a constructor for their UDF is called. For instance, they might be creating side files in the store function and doing it in the constructor seems like a good idea. The problem with this approach is that in most cases Pig instantiates functions on the client side to, for instance, examine the schema of the data.  </p>
-<p>Users should not make assumptions about how many times a function is instantiated; instead, they should make their code resilient to multiple instantiations. For instance, they could check if the files exist before creating them. </p>
-
-</section>
-
-<section>
-<title>Schemas</title>
-
-<p>One request from users is to have the ability to examine the input schema of the data before processing the data. For example, they would like to know how to convert an input tuple to a map such that the keys in the map are the names of the input columns. The current answer is that there is no way to do this. This is something we would like to support in the future. </p>
-
- </section>
- 
-
-
-<section>
-<title>Passing Configurations to UDFs</title>
-<p>The singleton UDFContext class provides two features to UDF writers. First, on the backend, it allows UDFs to get access to the JobConf object, by calling getJobConf. This is only available on the backend (at run time) as the JobConf has not yet been constructed on the front end (during planning time).</p>
-
-<p>Second, it allows UDFs to pass configuration information between instantiations of the UDF on the front and backends. UDFs can store information in a configuration object when they are constructed on the front end, or during other front end calls such as describeSchema. They can then read that information on the backend when exec (for EvalFunc) or getNext (for LoadFunc) is called. Note that information will not be passed between instantiations of the function on the backend. The communication channel only works from front end to back end.</p>
-
-<p>To store information, the UDF calls getUDFProperties. This returns a Properties object which the UDF can record the information in or read the information from. To avoid name space conflicts UDFs are required to provide a signature when obtaining a Properties object. This can be done in two ways. The UDF can provide its Class object (via this.getClass()). In this case, every instantiation of the UDF will be given the same Properties object. The UDF can also provide its Class plus an array of Strings. The UDF can pass its constructor arguments, or some other identifying strings. This allows each instantiation of the UDF to have a different properties object thus avoiding name space collisions between instantiations of the UDF.</p>
-</section>
-
-<section>
-<title>Monitoring long-running UDFs</title>
-<p>Sometimes one may discover that a UDF that executes very quickly in the vast majority of cases turns out to run exceedingly slowly on occasion. This can happen, for example, if a UDF uses complex regular expressions to parse free-form strings, or if a UDF uses some external service to communicate with. As of version 0.8, Pig provides a facility for monitoring the length of time a UDF is executing for every invocation, and terminating its execution if it runs too long. This facility can be turned on using a simple Java annotation:</p>
-	
-<source>
-	import org.apache.pig.builtin.MonitoredUDF;
-	
-	@MonitoredUDF
-	public class MyUDF extends EvalFunc&lt;Integer&gt; {
-	  /* implementation goes here */
-	}
-</source>
-
-<p>Simply annotating your UDF in this way will cause Pig to terminate the UDF's exec() method if it runs for more than 10 seconds, and return the default value of null. The duration of the timeout and the default value can be specified in the annotation, if desired:</p>
-
-<source>
-	import org.apache.pig.builtin.MonitoredUDF;
-	
-	@MonitoredUDF(timeUnit = TimeUnit.MILLISECONDS, duration = 100, intDefault = 10)
-	public class MyUDF extends EvalFunc&lt;Integer&gt; {
-	  /* implementation goes here */
-	}
-</source>
-
-<p>intDefault, longDefault, doubleDefault, floatDefault, and stringDefault can be specified in the annotation; the correct default will be chosen based on the return type of the UDF. Custom defaults for tuples and bags are not supported at this time.</p>
-
-<p>If desired, custom logic can also be implemented for error handling by creating a subclass of MonitoredUDFExecutor.ErrorCallback, and overriding its handleError and/or handleTimeout methods. Both of those methods are static, and are passed in the instance of the EvalFunc that produced an exception, as well as an exception, so you may use any state you have in the UDF to process the errors as desired. The default behavior is to increment Hadoop counters every time an error is encountered. Once you have an implementation of the ErrorCallback that performs your custom logic, you can provide it in the annotation:</p>
-
-<source>
-	import org.apache.pig.builtin.MonitoredUDF;
-
-	@MonitoredUDF(errorCallback=MySpecialErrorCallback.class)
-	public class MyUDF extends EvalFunc&lt;Integer&gt; {
-	  /* implementation goes here */
-	}
-</source>
-
-<p>Currently the MonitoredUDF annotation works with regular and Algebraic UDFs, but has no effect on UDFs that run in the Accumulator mode.</p>
-
-</section>
-</section>
-
+<!-- =============================================================== -->
 <section>
 <title>Python UDFs</title>
 <section>
@@ -1382,7 +1299,7 @@ b = foreach a generate myfuncs.helloworld(), myfuncs.square(3);
 <source>
 mySampleLib.py
 ---------------------
-#!/usr/bin/python
+#/usr/bin/python
 
 ##################
 # Math functions #
@@ -1431,8 +1348,164 @@ def collectBag(bag):
 # tuple in python are immutable, appending to a tuple is not possible.
 </source>
 </section>
+</section>
+
+<!-- =============================================================== -->
+<section>
+<title>Advanced Topics</title>
+
+<section>
+<title>UDF Interfaces</title>
+<p>A UDF can be invoked multiple ways. The simplest UDF can just extend EvalFunc, which requires only the exec function to be implemented (see <a href="#How+to+Write+a+Simple+Eval+Function"> How to Write a Simple Eval Function</a>). Every eval UDF must implement this. Additionally, if a function is algebraic, it can implement <code>Algebraic</code> interface to significantly improve query performance in the cases when combiner can be used (see <a href="#Aggregate+Functions">Aggregate Functions</a>). Finally, a function that can process tuples in an incremental fashion can also implement the Accumulator interface to improve query memory consumption (see <a href="#Accumulator+Interface">Accumulator Interface</a>).
+</p>
+
+<p>The exact method by which UDF is invoked is selected by the optimizer based on the UDF type and the query. Note that only a single interface is used at any given time. The optimizer tries to find the most efficient way to execute the function. If a combiner is used and the function implements the Algebraic interface then this interface will be used to invoke the function. If the combiner is not invoked but the accumulator can be used and the function implements Accumulator interface then that interface is used. If neither of the conditions is satisfied then the exec function is used to invoke the UDF. 
+</p>
+ </section>
+ 
+ 
+<section>
+<title>Function Instantiation</title>
+<p>One problem that users run into is when they make assumption about how many times a constructor for their UDF is called. For instance, they might be creating side files in the store function and doing it in the constructor seems like a good idea. The problem with this approach is that in most cases Pig instantiates functions on the client side to, for instance, examine the schema of the data.  </p>
+<p>Users should not make assumptions about how many times a function is instantiated; instead, they should make their code resilient to multiple instantiations. For instance, they could check if the files exist before creating them. </p>
+</section>
+
+<section>
+<title>Schemas</title>
+<p>One request from users is to have the ability to examine the input schema of the data before processing the data. For example, they would like to know how to convert an input tuple to a map such that the keys in the map are the names of the input columns. The current answer is that there is no way to do this. This is something we would like to support in the future. </p>
+ </section>
+ 
+<section>
+<title>Passing Configurations to UDFs</title>
+<p>The singleton UDFContext class provides two features to UDF writers. First, on the backend, it allows UDFs to get access to the JobConf object, by calling getJobConf. This is only available on the backend (at run time) as the JobConf has not yet been constructed on the front end (during planning time).</p>
+
+<p>Second, it allows UDFs to pass configuration information between instantiations of the UDF on the front and backends. UDFs can store information in a configuration object when they are constructed on the front end, or during other front end calls such as describeSchema. They can then read that information on the backend when exec (for EvalFunc) or getNext (for LoadFunc) is called. Note that information will not be passed between instantiations of the function on the backend. The communication channel only works from front end to back end.</p>
+
+<p>To store information, the UDF calls getUDFProperties. This returns a Properties object which the UDF can record the information in or read the information from. To avoid name space conflicts UDFs are required to provide a signature when obtaining a Properties object. This can be done in two ways. The UDF can provide its Class object (via this.getClass()). In this case, every instantiation of the UDF will be given the same Properties object. The UDF can also provide its Class plus an array of Strings. The UDF can pass its constructor arguments, or some other identifying strings. This allows each instantiation of the UDF to have a different properties object thus avoiding name space collisions between instantiations of the UDF.</p>
+</section>
+
+<section>
+<title>Monitoring long-running UDFs</title>
+<p>Sometimes one may discover that a UDF that executes very quickly in the vast majority of cases turns out to run exceedingly slowly on occasion. This can happen, for example, if a UDF uses complex regular expressions to parse free-form strings, or if a UDF uses some external service to communicate with. As of version 0.8, Pig provides a facility for monitoring the length of time a UDF is executing for every invocation, and terminating its execution if it runs too long. This facility can be turned on using a simple Java annotation:</p>
+	
+<source>
+	import org.apache.pig.builtin.MonitoredUDF;
+	
+	@MonitoredUDF
+	public class MyUDF extends EvalFunc&lt;Integer&gt; {
+	  /* implementation goes here */
+	}
+</source>
+
+<p>Simply annotating your UDF in this way will cause Pig to terminate the UDF's exec() method if it runs for more than 10 seconds, and return the default value of null. The duration of the timeout and the default value can be specified in the annotation, if desired:</p>
+
+<source>
+	import org.apache.pig.builtin.MonitoredUDF;
+	
+	@MonitoredUDF(timeUnit = TimeUnit.MILLISECONDS, duration = 100, intDefault = 10)
+	public class MyUDF extends EvalFunc&lt;Integer&gt; {
+	  /* implementation goes here */
+	}
+</source>
+
+<p>intDefault, longDefault, doubleDefault, floatDefault, and stringDefault can be specified in the annotation; the correct default will be chosen based on the return type of the UDF. Custom defaults for tuples and bags are not supported at this time.</p>
+
+<p>If desired, custom logic can also be implemented for error handling by creating a subclass of MonitoredUDFExecutor.ErrorCallback, and overriding its handleError and/or handleTimeout methods. Both of those methods are static, and are passed in the instance of the EvalFunc that produced an exception, as well as an exception, so you may use any state you have in the UDF to process the errors as desired. The default behavior is to increment Hadoop counters every time an error is encountered. Once you have an implementation of the ErrorCallback that performs your custom logic, you can provide it in the annotation:</p>
+
+<source>
+	import org.apache.pig.builtin.MonitoredUDF;
+
+	@MonitoredUDF(errorCallback=MySpecialErrorCallback.class)
+	public class MyUDF extends EvalFunc&lt;Integer&gt; {
+	  /* implementation goes here */
+	}
+</source>
+
+<p>Currently the MonitoredUDF annotation works with regular and Algebraic UDFs, but has no effect on UDFs that run in the Accumulator mode.</p>
 
 </section>
+</section>
+</section>
+
+<!-- ================================================================== -->
+<!-- PIGGYBANK -->
+<section>
+<title>Piggy Bank</title>
+<p>Piggy Bank is a place for Pig users to share the Java UDFs they have written for use with Pig. 
+The functions are contributed "as-is." 
+If you find a bug in a function, take the time to fix it and contribute the fix to Piggy Bank. 
+If you don't find the UDF you need, take the time to write and contribute the function to Piggy Bank.
+</p>
+
+<p><strong>Note:</strong> Piggy Bank currently supports Java UDFs. Support for Python UDFs will be added at a later date.</p>
+
+<section>
+<title>Accessing Functions</title>
+
+<p>The Piggy Bank functions are currently distributed in source form. Users are required to checkout the code and build the package themselves. No binary distributions or nightly builds are available at this time. </p>
+
+<p>To build a jar file that contains all available UDFs, follow these steps: </p>
+<ul>
+<li>Checkout UDF code: <code>svn co http://svn.apache.org/repos/asf/pig/trunk/contrib/piggybank</code> </li>
+<li>Add pig.jar to your ClassPath: <code>export CLASSPATH=$CLASSPATH:/path/to/pig.jar</code> </li>
+<li>Build the jar file: from directory<code>trunk/contrib/piggybank/java</code> run <code>ant</code>. 
+This will generate <code>piggybank.jar</code> in the same directory. </li>
+</ul>
+<p></p>
+
+<p>Make sure your classpath includes the hadoop jars as well. This worked for me using the Cloudera CDH2 / Hadoop AMIs: </p>
+
+<source>
+pig_version=0.4.99.0+10   ; pig_dir=/usr/lib/pig ;
+hadoop_version=0.20.1+152 ; hadoop_dir=/usr/lib/hadoop ;
+export CLASSPATH=$CLASSPATH:${hadoop_dir}/hadoop-${hadoop_version}-core.jar: 
+    ${hadoop_dir}/hadoop-${hadoop_version}-tools.jar:  
+    ${hadoop_dir}/hadoop-${hadoop_version}-ant.jar:
+    ${hadoop_dir}/lib/commons-logging-1.0.4.jar:
+    ${pig_dir}/pig-${pig_version}-core.jar
+</source>
+
+<p>To obtain <code>javadoc</code> description of the functions run <code>ant javadoc</code> from directory <code>trunk/contrib/piggybank/java</code>. The documentation is generate in directory <code>trunk/contrib/piggybank/java/build/javadoc</code>.</p>
+
+<p>To use a function, you need to determine which package it belongs to. The top level packages correspond to the function type and currently are: </p>
+<ul>
+<li>org.apache.pig.piggybank.comparison - for custom comparator used by ORDER operator </li>
+<li>org.apache.pig.piggybank.evaluation - for eval functions like aggregates and column transformations </li>
+<li>org.apache.pig.piggybank.filtering - for functions used in FILTER operator </li>
+<li>org.apache.pig.piggybank.grouping - for grouping functions</li>
+<li>org.apache.pig.piggybank.storage - for load/store functions </li>
+</ul>
+<p></p>
+
+<p>(The exact package of the function can be seen in the javadocs or by navigating the source tree.) </p>
+
+<p>For example, to use the UPPER command: </p>
+
+<source>
+REGISTER /public/share/pig/contrib/piggybank/java/piggybank.jar ;
+TweetsInaug = FILTER Tweets BY org.apache.pig.piggybank.evaluation.string.UPPER(text) 
+    MATCHES '.*(INAUG|OBAMA|BIDEN|CHENEY|BUSH).*' ;
+STORE TweetsInaug INTO 'meta/inaug/tweets_inaug' ;
+</source>
+</section>
+
+<section>
+<title>Contributing Functions</title>
+
+<p>To contribute a Java function that you have written, do the following:</p>
+<ol>
+<li>Check the existing javadoc to make sure that the function does not already exist as described in <a href="#Accessing+Functions">Accessing Functions</a>. </li>
+<li>Checkout the UDF code as described in <a href="#Accessing+Functions">Accessing Functions</a>. </li>
+<li>Place your java code in the directory that makes sense for your function. The directory structure currently has two levels: (1) function type, as described in <a href="#Accessing+Functions">Accessing Functions</a>, and (2) function subtype, for some of the types (like math or string for eval functions). If you think your function requires a new subtype, feel free to add one. </li>
+<li>Make sure that your function is well documented and uses the 
+<a href="http://download.oracle.com/javase/1.4.2/docs/tooldocs/solaris/javadoc.html">javadoc</a> style of documentation. </li>
+<li>Make sure that your code follows Pig coding conventions described in <a href="http://wiki.apache.org/pig/HowToContribute">How to Contribute to Pig</a>.</li>
+<li>Make sure that for each function, you add a corresponding test class in the test part of the tree. </li>
+<li>Submit your patch following the process described in <a href="http://wiki.apache.org/pig/HowToContribute">How to Contribute to Pig</a>. </li>
+</ol>
+</section>
+
+</section> 
 
 </body>
 </document>

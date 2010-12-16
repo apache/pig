@@ -64,8 +64,8 @@ A: {name: chararray,age: int,gpa: float}
 </source>
    
 <p>You can provide alternative names to the columns with the AS clause. You can also provide alternative types as long as the 
- original type can be converted to the new type. (One exception to this rule are maps since you can't specify schema for a map. Zebra always creates map values as bytearrays which would require casting to real type in the script. Note that this is not different for treating maps in Pig for any other storage.) For more information see <a href="piglatin_ref2.html#Schemas">Schemas</a> and
-<a href="piglatin_ref2.html#Arithmetic+Operators+and+More">Arithmetic Operators and More</a>.
+ original type can be converted to the new type. (One exception to this rule are maps since you can't specify schema for a map. Zebra always creates map values as bytearrays which would require casting to real type in the script. Note that this is not different for treating maps in Pig for any other storage.) For more information see <a href="basic.html#Schemas">Schemas</a> and
+<a href="basic.html#Arithmetic+Operators+and+More">Arithmetic Operators and More</a>.
  </p>
  
 <p>You can provide multiple, comma-separated files to the loader:</p>
@@ -106,7 +106,7 @@ C = FOREACH B GENERATE group, MAX(a.$1);
     <section>
    <title>Sorting Data</title>
    <p>
-   Pig allows you to sort data by ascending (ASC) or descending (DESC) order (for more information, see <a href="piglatin_ref2.html#ORDER">ORDER</a>). Currently, Zebra supports tables that are sorted in ascending order. Zebra does not support tables that are sorted in descending order; if Zebra encounters a table to be stored that is sorted in descending order, Zebra will issue a warning and store the table as an unsorted table.</p>
+   Pig allows you to sort data by ascending (ASC) or descending (DESC) order (for more information, see <a href="basic.html#ORDER+BY">ORDER BY</a>). Currently, Zebra supports tables that are sorted in ascending order. Zebra does not support tables that are sorted in descending order; if Zebra encounters a table to be stored that is sorted in descending order, Zebra will issue a warning and store the table as an unsorted table.</p>
      </section>
      <!--end sorting data-->
      
