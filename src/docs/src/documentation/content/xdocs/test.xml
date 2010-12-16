@@ -341,7 +341,7 @@ Local Rearrange[tuple]{chararray}(false) - xxx-Fri Dec 05 19:42:29 UTC 2008-34
   
   
  <!-- +++++++++++++++++++++++++++++++++++++++ -->
-   <section>
+      <section>
    <title>ILLUSTRATE</title>
    <p>Displays a step-by-step execution of a sequence of statements.</p>
 
@@ -372,7 +372,7 @@ Local Rearrange[tuple]{chararray}(false) - xxx-Fri Dec 05 19:42:29 UTC 2008-34
                <p>-script scriptfile</p>
             </td>
             <td>
-               <p>The script keyword followed by the name of a Pig script file (for example, myscript.pig). </p>
+               <p>The script keyword followed by the name of a Pig script (for example, myscript.pig). </p>
                <p>The script file should not contain an ILLUSTRATE statement.</p>
             </td>
          </tr> 
@@ -380,92 +380,128 @@ Local Rearrange[tuple]{chararray}(false) - xxx-Fri Dec 05 19:42:29 UTC 2008-34
    
    <section>
    <title>Usage</title>
-   <p>Use the ILLUSTRATE operator to review how data is transformed through a sequence of Pig Latin statements. 
-   You can run ILLUSTRATE with a relation or a Pig script.</p>
+   <p>Use the ILLUSTRATE operator to review how data is transformed through a sequence of Pig Latin statements.
+   ILLUSTRATE allows you to test your programs on small datasets and get faster turnaround times. </p>
 
+<p>ILLUSTRATE is based on an example generator 
+(see <a href="http://research.yahoo.com/files/paper_5.pdf">Generating Example Data for Dataflow Programs</a>).
 
-   <p>ILLUSTRATE accesses the ExampleGenerator algorithm which can select an appropriate and concise set of example data automatically. It does a better job than random sampling would do; for example, random sampling suffers from the drawback that selective operations such as filters or joins can eliminate all the sampled data, giving you empty results which will not help with debugging. </p>
+The algorithm works by retrieving a small sample of the input data and then propagating this data through the pipeline. However, some operators, such as JOIN or FILTER, can eliminate tuples from the data - and this could result in no data following through the pipeline. To address this issue, the algorithm will automatically generate example data, in near real-time. Thus, you might see data propagating through the pipeline that was not found in the original input data, but this data changes nothing and ensures that you will be able to examine the semantics of your Pig Latin statements.</p>    
    
-   <p>With the ILLUSTRATE operator you can test your programs on small datasets and get faster turnaround times. The ExampleGenerator algorithm uses Pig's local mode (rather than Pig's mapreduce mode) which means that illustrative example data is generated in near real-time.</p>
-
-   </section>
+     <p>As shown in the examples below, you can use ILLUSTRATE to review a relation or an entire Pig script.</p>
+ </section>
    
    <section>
    <title>Example - Relation</title>
    <p>This example demonstrates how to use ILLUSTRATE with a relation. Note that the LOAD statement must include a schema (the AS clause).</p>
-
  <source>
-visits = LOAD 'visits.txt' AS (user:chararray, url:chararray, timestamp:chararray);
+grunt> visits = LOAD 'visits.txt' AS (user:chararray, url:chararray, timestamp:chararray);
+grunt> DUMP visits;
 
-DUMP visits;
-(Amy,cnn.com,20080218)
-(Fred,harvard.edu,20081204)
-(Amy,bbc.com,20081205)
-(Fred,stanford.edu,20081206)
+(Amy,yahoo.com,19990421)
+(Fred,harvard.edu,19991104)
+(Amy,cnn.com,20070218)
+(Frank,nba.com,20070305)
+(Fred,berkeley.edu,20071204)
+(Fred,stanford.edu,20071206)
 
-recent_visits = FILTER visits BY timestamp >= '20081201';
+grunt> recent_visits = FILTER visits BY timestamp >= '20071201';
+grunt> user_visits = GROUP recent_visits BY user;
+grunt> num_user_visits = FOREACH user_visits GENERATE group, COUNT(recent_visits);
+grunt> DUMP num_user_visits;
 
-user_visits = GROUP recent_visits BY user;
+(Fred,2)
 
-num_user_visits = FOREACH user_visits GENERATE group, COUNT(recent_visits);
-
-DUMP num_user_visits;
-(1L)
-(2L)
-
-ILLUSTRATE num_user_visits;
+grunt> ILLUSTRATE num_user_visits;
 ------------------------------------------------------------------------
-| visits     | user: bytearray | ulr: bytearray | timestamp: bytearray |
+| visits     | user: chararray | url: chararray | timestamp: chararray |
 ------------------------------------------------------------------------
-|            | Amy             | cnn.com        | 20080218             |
-|            | Fred            | harvard.edu    | 20081204             |
-|            | Amy             | bbc.com        | 20081205             |
-|            | Fred            | stanford.edu   | 20081206             |
+|            | Fred            | berkeley.edu   | 20071204             |
+|            | Fred            | stanford.edu   | 20071206             |
+|            | Frank           | nba.com        | 20070305             |
 ------------------------------------------------------------------------
-
-------------------------------------------------------------------------
-| visits     | user: chararray | ulr: chararray | timestamp: chararray |
-------------------------------------------------------------------------
-|            | Amy             | cnn.com        | 20080218             |
-|            | Fred            | harvard.edu    | 20081204             |
-|            | Amy             | bbc.com        | 20081205             |
-|            | Fred            | stanford.edu   | 20081206             |
-------------------------------------------------------------------------
-
 -------------------------------------------------------------------------------
-| recent_visits     | user: chararray | ulr: chararray | timestamp: chararray |
+| recent_visits     | user: chararray | url: chararray | timestamp: chararray |
 -------------------------------------------------------------------------------
-|                   | Fred            | harvard.edu    | 20081204             |
-|                   | Amy             | bbc.com        | 20081205             |
-|                   | Fred            | stanford.edu   | 20081206             |
+|                   | Fred            | berkeley.edu   | 20071204             |
+|                   | Fred            | stanford.edu   | 20071206             |
 -------------------------------------------------------------------------------
-
 ------------------------------------------------------------------------------------------------------------------
-| user_visits     | group: chararray | recent_visits: bag({user: chararray,ulr: chararray,timestamp: chararray}) |
+| user_visits     | group: chararray | recent_visits: bag({user: chararray,url: chararray,timestamp: chararray}) |
 ------------------------------------------------------------------------------------------------------------------
-|                 | Amy              | {(Amy, bbc.com, 20081205)}                                                |
-|                 | Fred             | {(Fred, harvard.edu, 20081204), (Fred, stanford.edu, 20081206)}           |
+|                 | Fred             | {(Fred, berkeley.edu, 20071204), (Fred, stanford.edu, 20071206)}          |
 ------------------------------------------------------------------------------------------------------------------
-
--------------------------------
-| num_user_visits     | long  |
-------------------------------
-|                     | 1     |
-|                     | 2     |
--------------------------------
+--------------------------------------------------
+| num_user_visits     | group: chararray | long  |
+--------------------------------------------------
+|                     | Fred             | 2     |
+--------------------------------------------------
 </source>
 </section>
 
    <section>
    <title>Example - Script</title>
- <p>This example demonstrates how to use ILLUSTRATE with a script. Note that the script itself should not contain an ILLUSTRATE statement.</p>
+ <p>This example demonstrates how to use ILLUSTRATE with a Pig script. Note that the script itself should not contain an ILLUSTRATE statement.</p>
 </section>
 <source>
+grunt> cat visits.txt
+Amy     yahoo.com       19990421
+Fred    harvard.edu     19991104
+Amy     cnn.com 20070218
+Frank   nba.com 20070305
+Fred    berkeley.edu    20071204
+Fred    stanford.edu    20071206
+
+grunt> cat visits.pig
+visits = LOAD 'visits.txt' AS (user, url, timestamp);
+recent_visits = FILTER visits BY timestamp &gt;= '20071201';
+historical_visits = FILTER visits BY timestamp &lt;= '20000101';
+DUMP recent_visits;
+DUMP historical_visits;
+STORE recent_visits INTO 'recent';
+STORE historical_visits INTO 'historical';
+
+grunt> exec visits.pig
+
+(Fred,berkeley.edu,20071204)
+(Fred,stanford.edu,20071206)
+
+(Amy,yahoo.com,19990421)
+(Fred,harvard.edu,19991104)
 
 
+grunt> illustrate -script visits.pig
+
+------------------------------------------------------------------------
+| visits     | user: bytearray | url: bytearray | timestamp: bytearray |
+------------------------------------------------------------------------
+|            | Amy             | yahoo.com      | 19990421             |
+|            | Fred            | stanford.edu   | 20071206             |
+------------------------------------------------------------------------
+-------------------------------------------------------------------------------
+| recent_visits     | user: bytearray | url: bytearray | timestamp: bytearray |
+-------------------------------------------------------------------------------
+|                   | Fred            | stanford.edu   | 20071206             |
+-------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------
+| Store : recent_visits     | user: bytearray | url: bytearray | timestamp: bytearray |
+---------------------------------------------------------------------------------------
+|                           | Fred            | stanford.edu   | 20071206             |
+---------------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------
+| historical_visits     | user: bytearray | url: bytearray | timestamp: bytearray |
+-----------------------------------------------------------------------------------
+|                       | Amy             | yahoo.com      | 19990421             |
+-----------------------------------------------------------------------------------
+-------------------------------------------------------------------------------------------
+| Store : historical_visits     | user: bytearray | url: bytearray | timestamp: bytearray |
+-------------------------------------------------------------------------------------------
+|                               | Amy             | yahoo.com      | 19990421             |
+-------------------------------------------------------------------------------------------
 </source>
 
 </section>
+
 </section>
 
 <!-- =========================================================================== -->

@@ -284,11 +284,35 @@ grunt> C = FOREACH B GENERATE COUNT ($0);
 grunt> DUMP C;
 </source>
 </section>
-   
-   
+  
+ <!-- ++++++++++++++++++++++++++++++++++ -->   
 <!-- DATA TYPES AND MORE-->
 <section>
 <title>Data Types and More</title>
+
+<!-- IDENTIFIERS-->
+<section>
+<title>Identifiers</title>
+<p>Identifiers include the names of relations (aliases), fields, variables, and so on. 
+In Pig, identifiers start with a letter and can be followed by any number of letters, digits, or underscores.</p>
+
+<p>Valid identifiers:</p>
+<source>
+A
+A123
+abc_123_BeX_
+</source>
+<p></p>
+<p>Invalid Identifies: </p>
+<source>
+_abc
+abc_$
+A!B
+</source>
+
+
+</section>
+
 
 <!-- RELATIONS, BAGS, TUPLES, FIELDS-->
    <section id="relations">
@@ -1830,7 +1854,7 @@ DUMP A;
 ([open#apache])
 ([apache#hadoop])
 </source>
-    </section></section>
+ </section></section>
    
    <section>
    <title>Schemas for Multiple Types</title>

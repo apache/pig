@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-1768: 09 docs: illustrate (changec via olgan)
+
 PIG-1768: docs reorg (changec via olgan)
 
 PIG-1712: ILLUSTRATE rework (yanz)
