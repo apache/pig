@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.pig.impl.logicalLayer.FrontendException;
+import org.apache.pig.impl.logicalLayer.LogicalOperator;
 import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.PlanVisitor;
 
@@ -92,5 +93,9 @@ public class LOCross extends LogicalRelationalOperator {
         } else {
             return false;
         }
+    }
+    
+    public List<Operator>  getInputs() {
+        return plan.getPredecessors(this);
     }
 }

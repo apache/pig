@@ -45,6 +45,7 @@ public class LOLoad extends LogicalRelationalOperator {
     private List<Integer> requiredFields = null;
     private boolean castInserted = false;
     private LogicalSchema uidOnlySchema;
+    private String schemaFile = null;
 
     /**
      * 
@@ -57,7 +58,13 @@ public class LOLoad extends LogicalRelationalOperator {
        super("LOLoad", plan);
        scriptSchema = schema;
        fs = loader;
+       if (loader != null)
+           schemaFile = loader.getFileName();
        this.conf = conf;
+    }
+    
+    public String getSchemaFile() {
+        return schemaFile;
     }
     
     public LoadFunc getLoadFunc() throws FrontendException {

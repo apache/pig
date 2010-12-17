@@ -80,12 +80,12 @@ public class LogicalSchema {
                 if( schema == null ) {
                     return ( alias + uidString + ":bag{}" );
                 }
-                return ( alias + uidString + ":bag{" + schema.toString() + "}" );
+                return ( alias + uidString + ":bag{" + schema.toString(verbose) + "}" );
             } else if( type == DataType.TUPLE ) {
                 if( schema == null ) {
                     return ( alias + uidString + ":tuple{}" );
                 }
-                return ( alias + uidString + ":tuple(" + schema.toString() + ")" );
+                return ( alias + uidString + ":tuple(" + schema.toString(verbose) + ")" );
             }
             return ( alias + uidString + ":" + DataType.findTypeName(type) );
         }

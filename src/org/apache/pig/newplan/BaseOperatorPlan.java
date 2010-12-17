@@ -54,6 +54,18 @@ public abstract class BaseOperatorPlan implements OperatorPlan {
         softToEdges = new PlanEdge();
     }
     
+    @SuppressWarnings("unchecked")
+    public BaseOperatorPlan(BaseOperatorPlan other) {
+        // (shallow) copy constructor
+        ops = (Set<Operator>) ((HashSet<Operator>) other.ops).clone();
+        roots = (List<Operator>) ((ArrayList) other.roots).clone();
+        leaves = (List<Operator>) ((ArrayList) other.leaves).clone();
+        fromEdges = other.fromEdges.shallowClone();
+        toEdges = other.toEdges.shallowClone();
+        softFromEdges = other.softFromEdges.shallowClone();
+        softToEdges = other.softToEdges.shallowClone();
+    }
+    
     /**
      * Get number of nodes in the plan.
      */

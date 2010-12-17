@@ -79,7 +79,7 @@ import org.apache.pig.data.Tuple;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.pen.util.LineageTracer;
 import org.apache.pig.impl.plan.DepthFirstWalker;
-import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.newplan.logical.relational.LogicalSchema;
 
 /**
  * The class used to (re)attach illustrators to physical operators
@@ -98,10 +98,10 @@ public class IllustratorAttacher extends PhyPlanVisitor {
     private int maxRecords;
     private boolean revisit = false;
     private ArrayList<Boolean[]> subExpResults = null;
-    private final Map<POLoad, Schema> poloadToSchemaMap;
+    private final Map<POLoad, LogicalSchema> poloadToSchemaMap;
     
     public IllustratorAttacher(PhysicalPlan plan, LineageTracer lineage, int maxRecords,
-        Map<POLoad, Schema> poLoadToSchemaMap, PigContext hadoopPigContext) throws VisitorException {
+        Map<POLoad, LogicalSchema> poLoadToSchemaMap, PigContext hadoopPigContext) throws VisitorException {
         super(plan, new DepthFirstWalker<PhysicalOperator, PhysicalPlan>(plan));
         pigContext = hadoopPigContext;
         this.lineage = lineage;

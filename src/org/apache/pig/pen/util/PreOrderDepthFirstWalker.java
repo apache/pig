@@ -23,16 +23,15 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.pig.impl.plan.DepthFirstWalker;
-import org.apache.pig.impl.plan.Operator;
-import org.apache.pig.impl.plan.OperatorPlan;
-import org.apache.pig.impl.plan.PlanVisitor;
-import org.apache.pig.impl.plan.PlanWalker;
-import org.apache.pig.impl.plan.VisitorException;
+import org.apache.pig.newplan.DepthFirstWalker;
+import org.apache.pig.newplan.Operator;
+import org.apache.pig.newplan.OperatorPlan;
+import org.apache.pig.newplan.PlanVisitor;
+import org.apache.pig.newplan.PlanWalker;
+import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.util.Utils;
 
-public class PreOrderDepthFirstWalker<O extends Operator, P extends OperatorPlan<O>>
-        extends PlanWalker<O, P> {
+public class PreOrderDepthFirstWalker extends PlanWalker {
   
     private boolean branchFlag = false;
     
@@ -40,7 +39,7 @@ public class PreOrderDepthFirstWalker<O extends Operator, P extends OperatorPlan
      * @param plan
      *            Plan for this walker to traverse.
      */
-    public PreOrderDepthFirstWalker(P plan) {
+    public PreOrderDepthFirstWalker(OperatorPlan plan) {
         super(plan);
     }
 
@@ -60,29 +59,28 @@ public class PreOrderDepthFirstWalker<O extends Operator, P extends OperatorPlan
      * @throws VisitorException
      *             if an error is encountered while walking.
      */
-    public void walk(PlanVisitor<O, P> visitor) throws VisitorException {
-        List<O> leaves = mPlan.getLeaves();
-        Set<O> seen = new HashSet<O>();
+    public void walk(PlanVisitor visitor) throws FrontendException {
+        List<Operator> leaves = plan.getSinks();
+        Set<Operator> seen = new HashSet<Operator>();
 
         depthFirst(null, leaves, seen, visitor);
     }
 
-    public PlanWalker<O, P> spawnChildWalker(P plan) {
-        return new DepthFirstWalker<O, P>(plan);
+    public PlanWalker spawnChildWalker(OperatorPlan plan) {
+        return new DepthFirstWalker(plan);
     }
 
-    @SuppressWarnings("unchecked")
-    private void depthFirst(O node, Collection<O> predecessors, Set<O> seen,
-            PlanVisitor<O, P> visitor) throws VisitorException {
+    private void depthFirst(Operator node, Collection<Operator> predecessors, Set<Operator> seen,
+            PlanVisitor visitor) throws FrontendException {
         if (predecessors == null)
             return;
 
         boolean thisBranchFlag = branchFlag;
-        for (O pred : predecessors) {
+        for (Operator pred : predecessors) {
             if (seen.add(pred)) {
                 branchFlag = thisBranchFlag;
-                pred.visit(visitor);
-                Collection<O> newPredecessors = Utils.mergeCollection(mPlan.getPredecessors(pred), mPlan.getSoftLinkPredecessors(pred));
+                pred.accept(visitor);
+                Collection<Operator> newPredecessors = Utils.mergeCollection(plan.getPredecessors(pred), plan.getSoftLinkPredecessors(pred));
                 depthFirst(pred, newPredecessors, seen, visitor);
             }
         }

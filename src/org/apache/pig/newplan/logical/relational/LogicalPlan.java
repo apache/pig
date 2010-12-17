@@ -19,6 +19,7 @@
 package org.apache.pig.newplan.logical.relational;
 
 import java.io.PrintStream;
+import java.util.HashSet;
 
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.newplan.BaseOperatorPlan;
@@ -32,6 +33,15 @@ import org.apache.pig.newplan.logical.optimizer.LogicalPlanPrinter;
  * each relational operator.
  */
 public class LogicalPlan extends BaseOperatorPlan {
+  
+    public LogicalPlan(LogicalPlan other) {
+        // shallow copy constructor
+        super(other);
+    }
+    
+    public LogicalPlan() {
+        super();
+    }
     
     /**
      * Equality is checked by calling equals on every leaf in the plan.  This

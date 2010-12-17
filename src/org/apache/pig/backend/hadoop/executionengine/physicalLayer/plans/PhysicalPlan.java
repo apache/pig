@@ -24,7 +24,6 @@ import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -37,6 +36,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOpe
 import org.apache.pig.impl.plan.OperatorPlan;
 import org.apache.pig.impl.plan.PlanException;
 import org.apache.pig.impl.plan.VisitorException;
+import org.apache.pig.impl.util.MultiMap;
 
 /**
  * 
@@ -57,6 +57,8 @@ public class PhysicalPlan extends OperatorPlan<PhysicalOperator> implements Clon
     // and that there is no more input expected.
     public boolean endOfAllInput = false;
 
+    private MultiMap<PhysicalOperator, PhysicalOperator> opmap = null;
+    
     public PhysicalPlan() {
         super();
     }
@@ -224,6 +226,8 @@ public class PhysicalPlan extends OperatorPlan<PhysicalOperator> implements Clon
         for (PhysicalOperator op : mOps.keySet()) {
             PhysicalOperator c = op.clone();
             clone.add(c);
+            if (opmap != null)
+                opmap.put(op, c);
             matches.put(op, c);
         }
 
@@ -296,6 +300,12 @@ public class PhysicalPlan extends OperatorPlan<PhysicalOperator> implements Clon
         return clone;
     }
     
+    public void setOpMap(MultiMap<PhysicalOperator, PhysicalOperator> opmap) {
+        this.opmap = opmap;
+    }
     
-    
+    public void resetOpMap()
+    {
+        opmap = null;
+    }
 }

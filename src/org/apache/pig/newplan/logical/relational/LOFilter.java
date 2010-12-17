@@ -73,5 +73,9 @@ public class LOFilter extends LogicalRelationalOperator {
             return false;
         }
     }
+    
+    public Operator getInput(LogicalPlan plan) {
+        return plan.getPredecessors(this).get(0);
+    }
 }
 

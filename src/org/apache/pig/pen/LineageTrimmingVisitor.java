@@ -39,22 +39,23 @@ import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
-import org.apache.pig.impl.logicalLayer.LOCogroup;
-import org.apache.pig.impl.logicalLayer.LOJoin;
-import org.apache.pig.impl.logicalLayer.LOCross;
-import org.apache.pig.impl.logicalLayer.LODistinct;
-import org.apache.pig.impl.logicalLayer.LOFilter;
-import org.apache.pig.impl.logicalLayer.LOForEach;
-import org.apache.pig.impl.logicalLayer.LOLimit;
-import org.apache.pig.impl.logicalLayer.LOLoad;
-import org.apache.pig.impl.logicalLayer.LOSort;
-import org.apache.pig.impl.logicalLayer.LOSplit;
-import org.apache.pig.impl.logicalLayer.LOUnion;
-import org.apache.pig.impl.logicalLayer.LOStore;
-import org.apache.pig.impl.logicalLayer.LOVisitor;
-import org.apache.pig.impl.logicalLayer.LogicalOperator;
-import org.apache.pig.impl.logicalLayer.LogicalPlan;
-import org.apache.pig.impl.plan.VisitorException;
+import org.apache.pig.newplan.logical.relational.LOCogroup;
+import org.apache.pig.newplan.logical.relational.LOJoin;
+import org.apache.pig.newplan.logical.relational.LOCross;
+import org.apache.pig.newplan.logical.relational.LODistinct;
+import org.apache.pig.newplan.logical.relational.LOFilter;
+import org.apache.pig.newplan.logical.relational.LOForEach;
+import org.apache.pig.newplan.logical.relational.LOLimit;
+import org.apache.pig.newplan.logical.relational.LOLoad;
+import org.apache.pig.newplan.logical.relational.LOSort;
+import org.apache.pig.newplan.logical.relational.LOSplit;
+import org.apache.pig.newplan.logical.relational.LOUnion;
+import org.apache.pig.newplan.logical.relational.LOStore;
+import org.apache.pig.newplan.logical.relational.LogicalRelationalOperator;
+import org.apache.pig.newplan.logical.relational.LogicalPlan;
+import org.apache.pig.newplan.logical.relational.LogicalRelationalNodesVisitor;
+import org.apache.pig.newplan.Operator;
+import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.util.IdentityHashSet;
 import org.apache.pig.impl.util.Pair;
 import org.apache.pig.impl.io.FileSpec;
@@ -63,18 +64,18 @@ import org.apache.pig.pen.util.MetricEvaluation;
 import org.apache.pig.pen.util.PreOrderDepthFirstWalker;
 import org.apache.pig.pen.util.ExampleTuple;
 
-public class LineageTrimmingVisitor extends LOVisitor {
+public class LineageTrimmingVisitor extends LogicalRelationalNodesVisitor {
 
     LogicalPlan plan = null;
     Map<LOLoad, DataBag> baseData;
     Map<FileSpec, DataBag> inputToDataMap;
-    Map<LogicalOperator, PhysicalOperator> LogToPhyMap = null;
+    Map<Operator, PhysicalOperator> LogToPhyMap = null;
     PhysicalPlan physPlan = null;
     double completeness = 100.0;
     Log log = LogFactory.getLog(getClass());
 
-    Map<LogicalOperator, Collection<IdentityHashSet<Tuple>>> AffinityGroups = new HashMap<LogicalOperator, Collection<IdentityHashSet<Tuple>>>();
-    Map<LogicalOperator, LineageTracer> Lineage = new HashMap<LogicalOperator, LineageTracer>();
+    Map<Operator, Collection<IdentityHashSet<Tuple>>> AffinityGroups = new HashMap<Operator, Collection<IdentityHashSet<Tuple>>>();
+    Map<Operator, LineageTracer> Lineage = new HashMap<Operator, LineageTracer>();
 
     boolean continueTrimming;
     PigContext pc;
@@ -83,10 +84,9 @@ public class LineageTrimmingVisitor extends LOVisitor {
     public LineageTrimmingVisitor(LogicalPlan plan,
             Map<LOLoad, DataBag> baseData,
             ExampleGenerator eg,
-            Map<LogicalOperator, PhysicalOperator> LogToPhyMap,
+            Map<Operator, PhysicalOperator> LogToPhyMap,
             PhysicalPlan physPlan, PigContext pc) throws IOException, InterruptedException {
-        super(plan, new PreOrderDepthFirstWalker<LogicalOperator, LogicalPlan>(
-                plan));
+        super(plan, new PreOrderDepthFirstWalker(plan));
         // this.baseData.putAll(baseData);
         this.baseData = baseData;
         this.plan = plan;
@@ -100,11 +100,11 @@ public class LineageTrimmingVisitor extends LOVisitor {
 
     public void init() throws IOException, InterruptedException {
 
-        Map<LogicalOperator, DataBag> data = eg.getData();
+        Map<Operator, DataBag> data = eg.getData();
 
         LineageTracer lineage = eg.getLineage();
-        Map<LogicalOperator, Collection<IdentityHashSet<Tuple>>> OpToEqClasses = eg.getLoToEqClassMap();
-        for (LogicalOperator leaf : plan.getLeaves()) {
+        Map<LogicalRelationalOperator, Collection<IdentityHashSet<Tuple>>> OpToEqClasses = eg.getLoToEqClassMap();
+        for (Operator leaf : plan.getSinks()) {
             Lineage.put(leaf, lineage);
             AffinityGroups.put(leaf, eg.getEqClasses());
         }
@@ -116,7 +116,7 @@ public class LineageTrimmingVisitor extends LOVisitor {
     }
 
     @Override
-    protected void visit(LOCogroup cg) throws VisitorException {
+    public void visit(LOCogroup cg) throws FrontendException {
         // can't separate CoGroup from succeeding ForEach
         if (plan.getSuccessors(cg) != null && plan.getSuccessors(cg).get(0) instanceof LOForEach)
             return;
@@ -128,91 +128,91 @@ public class LineageTrimmingVisitor extends LOVisitor {
                 
                 LineageTracer lineage = null;
                 // create affinity groups
-                if (cg.getInputs().size() == 1) {
+                if (cg.getInputs(plan).size() == 1) {
                     lineage = eg.getLineage();
-                    AffinityGroups.put(cg.getInputs().get(0), eg.getEqClasses());
-                    Lineage.put(cg.getInputs().get(0), lineage);
+                    AffinityGroups.put(cg.getInputs(plan).get(0), eg.getEqClasses());
+                    Lineage.put(cg.getInputs(plan).get(0), lineage);
 
                 } else {
-                    for (LogicalOperator input : cg.getInputs()) {
+                    for (Operator input : cg.getInputs(plan)) {
                         Lineage.put(input, eg.getLineage());
                         AffinityGroups.put(input, eg.getEqClasses());
                     }
                 }
             } catch (Exception e) {
-                throw new VisitorException("Exception : "+e.getMessage());
+                throw new FrontendException("Exception : "+e.getMessage());
             }
         }
     }
 
     @Override
-    protected void visit(LOJoin join) throws VisitorException {
+    public void visit(LOJoin join) throws FrontendException {
         if (continueTrimming) {
           processOperator(join);
         }
     }
 
     @Override
-    protected void visit(LOCross cs) throws VisitorException {
+    public void visit(LOCross cs) throws FrontendException {
         if(continueTrimming)
             processOperator(cs);
 
     }
 
     @Override
-    protected void visit(LODistinct dt) throws VisitorException {
+    public void visit(LODistinct dt) throws FrontendException {
         if(continueTrimming)
             processOperator(dt);
 
     }
 
     @Override
-    protected void visit(LOFilter filter) throws VisitorException {
+    public void visit(LOFilter filter) throws FrontendException {
         if (continueTrimming)
             processOperator(filter);
     }
     
     @Override
-    protected void visit(LOStore store) throws VisitorException {
+    public void visit(LOStore store) throws FrontendException {
         if (continueTrimming)
             processOperator(store);
     }
 
     @Override
-    protected void visit(LOForEach forEach) throws VisitorException {
+    public void visit(LOForEach forEach) throws FrontendException {
         if (continueTrimming)
             processOperator(forEach);
     }
 
     @Override
-    protected void visit(LOLimit limOp) throws VisitorException {
+    public void visit(LOLimit limOp) throws FrontendException {
         if(continueTrimming)
             processOperator(limOp);
 
     }
 
     @Override
-    protected void visit(LOLoad load) throws VisitorException {
+    public void visit(LOLoad load) throws FrontendException {
         if (continueTrimming)
             processOperator(load);
     }
 
     @Override
-    protected void visit(LOSort s) throws VisitorException {
+    public void visit(LOSort s) throws FrontendException {
         if(continueTrimming)
             processOperator(s);
 
     }
 
     @Override
-    protected void visit(LOSplit split) throws VisitorException {
+    public void visit(LOSplit split) throws FrontendException {
         if(continueTrimming)
             processOperator(split);
 
     }
 
     @Override
-    protected void visit(LOUnion u) throws VisitorException {
+    public void visit(LOUnion u) throws FrontendException {
         if(continueTrimming)
             processOperator(u);
 
@@ -322,6 +322,7 @@ public class LineageTrimmingVisitor extends LOVisitor {
             for (Tuple t : members)
                 tuplesToRetain.add(t);
         }
+
         Map<LOLoad, DataBag> newBaseData = new HashMap<LOLoad, DataBag>();
         for (LOLoad loadOp : baseData.keySet()) {
             DataBag data = baseData.get(loadOp);
@@ -338,10 +339,10 @@ public class LineageTrimmingVisitor extends LOVisitor {
         return newBaseData;
     }
 
-    private void processLoad(LOLoad ld) throws VisitorException {
+    private void processLoad(LOLoad ld) throws FrontendException {
         // prune base records
-        if (inputToDataMap.get(ld.getInputFile()) != null) {
-            baseData.put(ld, inputToDataMap.get(ld.getInputFile()));
+        if (inputToDataMap.get(ld.getFileSpec()) != null) {
+            baseData.put(ld, inputToDataMap.get(ld.getFileSpec()));
             return;
         }
         
@@ -363,7 +364,7 @@ public class LineageTrimmingVisitor extends LOVisitor {
         newBaseData.put(ld, newData);
         for (Map.Entry<LOLoad, DataBag> entry : baseData.entrySet()) {
             if (entry.getKey() != ld) {
-                if (!entry.getKey().getInputFile().equals(ld.getInputFile()))
+                if (!entry.getKey().getFileSpec().equals(ld.getFileSpec()))
                     newBaseData.put(entry.getKey(), entry.getValue());
                 else
                     newBaseData.put(entry.getKey(), newData);
@@ -373,10 +374,10 @@ public class LineageTrimmingVisitor extends LOVisitor {
         if (checkNewBaseData(newData, newBaseData, realData))
             checkNewBaseData(newData, newBaseData, syntheticData);
         
-        inputToDataMap.put(ld.getInputFile(), baseData.get(ld));
+        inputToDataMap.put(ld.getFileSpec(), baseData.get(ld));
     }
     
-    private boolean checkNewBaseData(DataBag data, Map<LOLoad, DataBag> newBaseData, Set<Tuple> loadData) throws VisitorException {
+    private boolean checkNewBaseData(DataBag data, Map<LOLoad, DataBag> newBaseData, Set<Tuple> loadData) throws FrontendException {
         List<Pair<Tuple, Double>> sortedBase = new LinkedList<Pair<Tuple, Double>>();
         DataBag oldData = BagFactory.getInstance().newDefaultBag();
         oldData.addAll(data);
@@ -384,11 +385,11 @@ public class LineageTrimmingVisitor extends LOVisitor {
         for (Tuple t : loadData) {
             data.add(t);
             // obtain the derived data 
-            Map<LogicalOperator, DataBag> derivedData;
+            Map<Operator, DataBag> derivedData;
             try {
                 derivedData = eg.getData(newBaseData);
             } catch (Exception e) {
-                throw new VisitorException("Exception: "+e.getMessage());
+                throw new FrontendException("Exception: "+e.getMessage());
             }
             double newCompleteness = MetricEvaluation.getCompleteness(null,
                     derivedData, eg.getLoToEqClassMap(), true);
@@ -412,11 +413,11 @@ public class LineageTrimmingVisitor extends LOVisitor {
         for (Pair<Tuple, Double> p : sortedBase) {
             data.add(p.first);
             // obtain the derived data 
-            Map<LogicalOperator, DataBag> derivedData;
+            Map<Operator, DataBag> derivedData;
             try {
                 derivedData = eg.getData(newBaseData);
             } catch (Exception e) {
-                throw new VisitorException("Exception: "+e.getMessage());
+                throw new FrontendException("Exception: "+e.getMessage());
             }
             double newCompleteness = MetricEvaluation.getCompleteness(null,
                     derivedData, eg.getLoToEqClassMap(), true);
@@ -430,7 +431,7 @@ public class LineageTrimmingVisitor extends LOVisitor {
         return true;
     }
     
-    private void processOperator(LogicalOperator op) throws VisitorException {
+    private void processOperator(LogicalRelationalOperator op) throws FrontendException {
         
         try {
             if (op instanceof LOLoad) {
@@ -446,28 +447,28 @@ public class LineageTrimmingVisitor extends LOVisitor {
             if (continueTrimming == false)
                 return;
 
-            LogicalOperator childOp = plan.getPredecessors(op).get(0);
+            Operator childOp = plan.getPredecessors(op).get(0);
             if (op instanceof LOForEach && childOp instanceof LOCogroup)
             {
                 LOCogroup cg = (LOCogroup) childOp;
-                for (LogicalOperator input : cg.getInputs()) {
+                for (Operator input : cg.getInputs(plan)) {
                     AffinityGroups.put(input, eg.getEqClasses());
                     Lineage.put(input, eg.getLineage());
                 }
             } else {
-                List<LogicalOperator> childOps = plan.getPredecessors(op);
-                for (LogicalOperator lo : childOps) {
+                List<Operator> childOps = plan.getPredecessors(op);
+                for (Operator lo : childOps) {
                     AffinityGroups.put(lo, eg.getEqClasses());
                     Lineage.put(lo, eg.getLineage());
                 }
             }
         } catch (Exception e) {
           e.printStackTrace(System.out);
-          throw new VisitorException("Exception: "+e.getMessage());
+          throw new FrontendException("Exception: "+e.getMessage());
         }
     }
 
-    private boolean checkCompleteness(LogicalOperator op) throws Exception, VisitorException {
+    private boolean checkCompleteness(LogicalRelationalOperator op) throws Exception {
         LineageTracer lineage = Lineage.get(op);
         Lineage.remove(op);
 
@@ -479,7 +480,7 @@ public class LineageTrimmingVisitor extends LOVisitor {
                 baseData, lineage, affinityGroups);
 
         // obtain the derived data
-        Map<LogicalOperator, DataBag> derivedData = eg.getData(newBaseData);
+        Map<Operator, DataBag> derivedData = eg.getData(newBaseData);
         double newCompleteness = MetricEvaluation.getCompleteness(null,
                 derivedData, eg.getLoToEqClassMap(), true);
 
@@ -491,5 +492,9 @@ public class LineageTrimmingVisitor extends LOVisitor {
         }
 
         return continueTrimming;
+    }
+    
+    Map<LOLoad, DataBag> getBaseData() {
+        return baseData;
     }
 }

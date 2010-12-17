@@ -524,7 +524,7 @@ public class MapReduceLauncher extends Launcher{
         if (isMultiQuery) {
             // reduces the number of MROpers in the MR plan generated 
             // by multi-query (multi-store) script.
-            MultiQueryOptimizer mqOptimizer = new MultiQueryOptimizer(plan);
+            MultiQueryOptimizer mqOptimizer = new MultiQueryOptimizer(plan, pc.inIllustrator);
             mqOptimizer.visit();
         }
         

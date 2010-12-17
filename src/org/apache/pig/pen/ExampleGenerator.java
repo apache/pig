@@ -41,14 +41,14 @@ import org.apache.pig.impl.PigContext;
 import org.apache.pig.PigException;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.logicalLayer.FrontendException;
-import org.apache.pig.impl.logicalLayer.LOForEach;
-import org.apache.pig.impl.logicalLayer.LOLoad;
-import org.apache.pig.impl.logicalLayer.LogicalOperator;
+import org.apache.pig.newplan.logical.relational.LOForEach;
+import org.apache.pig.newplan.logical.relational.LOLoad;
+import org.apache.pig.newplan.logical.relational.LogicalRelationalOperator;
 import org.apache.pig.impl.logicalLayer.LogicalPlan;
-import org.apache.pig.impl.logicalLayer.schema.Schema;
-import org.apache.pig.impl.logicalLayer.LOSort;
-import org.apache.pig.impl.logicalLayer.LOLimit;
-import org.apache.pig.impl.plan.VisitorException;
+import org.apache.pig.newplan.logical.relational.LogicalSchema;
+import org.apache.pig.newplan.logical.relational.LOSort;
+import org.apache.pig.newplan.logical.relational.LOLimit;
+import org.apache.pig.newplan.Operator;
 import org.apache.pig.pen.util.DisplayExamples;
 import org.apache.pig.pen.util.LineageTracer;
 
@@ -60,6 +60,7 @@ import org.apache.pig.pen.util.LineageTracer;
 public class ExampleGenerator {
 
     LogicalPlan plan;
+    org.apache.pig.newplan.logical.relational.LogicalPlan newPlan;
     Map<LOLoad, DataBag> baseData = null;
     PigContext pigContext;
 
@@ -72,16 +73,16 @@ public class ExampleGenerator {
 
     private int MAX_RECORDS = 10000;
     
-    private Map<LogicalOperator, PhysicalOperator> logToPhyMap;
-    private Map<PhysicalOperator, LogicalOperator> poLoadToLogMap;
-    private Map<PhysicalOperator, LogicalOperator> poToLogMap;
+    private Map<Operator, PhysicalOperator> logToPhyMap;
+    private Map<PhysicalOperator, Operator> poLoadToLogMap;
+    private Map<PhysicalOperator, Operator> poToLogMap;
     private HashMap<PhysicalOperator, Collection<IdentityHashSet<Tuple>>> poToEqclassesMap;
     private LineageTracer lineage;
-    private Map<LogicalOperator, DataBag> logToDataMap = null;
-    private Map<LOForEach, Map<LogicalOperator, DataBag>> forEachInnerLogToDataMap;
-    Map<LOForEach, Map<LogicalOperator, PhysicalOperator>> forEachInnerLogToPhyMap;
+    private Map<Operator, DataBag> logToDataMap = null;
+    private Map<LOForEach, Map<LogicalRelationalOperator, DataBag>> forEachInnerLogToDataMap;
+    Map<LOForEach, Map<LogicalRelationalOperator, PhysicalOperator>> forEachInnerLogToPhyMap;
     Map<LOLimit, Long> oriLimitMap = null;
-    Map<POLoad, Schema> poLoadToSchemaMap;
+    Map<POLoad, LogicalSchema> poLoadToSchemaMap;
 
     public ExampleGenerator(LogicalPlan plan, PigContext hadoopPigContext) {
         this.plan = plan;
@@ -99,14 +100,14 @@ public class ExampleGenerator {
         }
         execEngine = new HExecutionEngine(pigContext);
         localMRRunner = new LocalMapReduceSimulator();
-        poLoadToSchemaMap = new HashMap<POLoad, Schema>();
+        poLoadToSchemaMap = new HashMap<POLoad, LogicalSchema>();
     }
 
     public LineageTracer getLineage() {
       return lineage;
     }
     
-    public Map<LogicalOperator, PhysicalOperator> getLogToPhyMap() {
+    public Map<Operator, PhysicalOperator> getLogToPhyMap() {
         return logToPhyMap;
     }
     
@@ -114,36 +115,36 @@ public class ExampleGenerator {
         MAX_RECORDS = max;
     }
 
-    public Map<LogicalOperator, DataBag> getExamples() throws IOException, InterruptedException {
+    public Map<Operator, DataBag> getExamples() throws IOException, InterruptedException {
         if (pigContext.getProperties().getProperty("pig.usenewlogicalplan", "true").equals("false"))
             throw new ExecException("ILLUSTRATE must use the new logical plan!");
         pigContext.inIllustrator = true;
         physPlan = compilePlan(plan);
         physPlanReseter = new PhysicalPlanResetter(physPlan);
-        List<LogicalOperator> loads = plan.getRoots();
+        List<Operator> loads = newPlan.getSources();
         List<PhysicalOperator> pRoots = physPlan.getRoots();
         if (loads.size() != pRoots.size())
             throw new ExecException("Logical and Physical plans have different number of roots");
         logToPhyMap = execEngine.getLogToPhyMap();
         forEachInnerLogToPhyMap = execEngine.getForEachInnerLogToPhyMap();
-        poLoadToLogMap = new HashMap<PhysicalOperator, LogicalOperator>();
-        logToDataMap = new HashMap<LogicalOperator, DataBag>();
-        poToLogMap = new HashMap<PhysicalOperator, LogicalOperator>();
+        poLoadToLogMap = new HashMap<PhysicalOperator, Operator>();
+        logToDataMap = new HashMap<Operator, DataBag>();
+        poToLogMap = new HashMap<PhysicalOperator, Operator>();
         
         // set up foreach inner data map
-        forEachInnerLogToDataMap = new HashMap<LOForEach, Map<LogicalOperator, DataBag>>();
-        for (Map.Entry<LOForEach, Map<LogicalOperator, PhysicalOperator>> entry : forEachInnerLogToPhyMap.entrySet()) {
-            Map<LogicalOperator, DataBag> innerMap = new HashMap<LogicalOperator, DataBag>();
+        forEachInnerLogToDataMap = new HashMap<LOForEach, Map<LogicalRelationalOperator, DataBag>>();
+        for (Map.Entry<LOForEach, Map<LogicalRelationalOperator, PhysicalOperator>> entry : forEachInnerLogToPhyMap.entrySet()) {
+            Map<LogicalRelationalOperator, DataBag> innerMap = new HashMap<LogicalRelationalOperator, DataBag>();
             forEachInnerLogToDataMap.put(entry.getKey(), innerMap);
         }
 
-        for (LogicalOperator load : loads)
+        for (Operator load : loads)
         {
             poLoadToLogMap.put(logToPhyMap.get(load), load);
         }
 
         boolean hasLimit = false;
-        for (LogicalOperator lo : logToPhyMap.keySet()) {
+        for (Operator lo : logToPhyMap.keySet()) {
             poToLogMap.put(logToPhyMap.get(lo), lo);
             if (!hasLimit && lo instanceof LOLimit)
                 hasLimit = true;
@@ -159,64 +160,58 @@ public class ExampleGenerator {
             throw new RuntimeException(e.getMessage());
         }
 
-        Map<LogicalOperator, DataBag> derivedData = null;
-        try {
+        Map<Operator, DataBag> derivedData = null;
 
-            // create derived data and trim base data
-            LineageTrimmingVisitor trimmer = new LineageTrimmingVisitor(plan,
-                    baseData, this, logToPhyMap, physPlan, pigContext);
-            trimmer.visit();
-            // System.out.println(
-            // "Obtained the first level derived and trimmed data");
-            // create new derived data from trimmed basedata
-            derivedData = getData(physPlan);
+        // create derived data and trim base data
+        LineageTrimmingVisitor trimmer = new LineageTrimmingVisitor(newPlan,
+                baseData, this, logToPhyMap, physPlan, pigContext);
+        trimmer.visit();
+        baseData = trimmer.getBaseData();
+        // System.out.println(
+        // "Obtained the first level derived and trimmed data");
+        // create new derived data from trimmed basedata
+        derivedData = getData(physPlan);
 
-            // System.out.println(
-            // "Got new derived data from the trimmed base data");
-            // augment base data
-            AugmentBaseDataVisitor augment = new AugmentBaseDataVisitor(plan,
-                    logToPhyMap, baseData, derivedData);
+        // System.out.println(
+        // "Got new derived data from the trimmed base data");
+        // augment base data
+        AugmentBaseDataVisitor augment = new AugmentBaseDataVisitor(newPlan,
+                logToPhyMap, baseData, derivedData);
+        augment.visit();
+        this.baseData = augment.getNewBaseData();
+        // System.out.println("Obtained augmented base data");
+        // create new derived data and trim the base data after augmenting
+        // base data with synthetic tuples
+        trimmer = new LineageTrimmingVisitor(newPlan, baseData, this,
+                logToPhyMap, physPlan, pigContext);
+        trimmer.visit();
+        baseData = trimmer.getBaseData();
+        // System.out.println("Final trimming");
+        // create the final version of derivedData to give to the output
+        derivedData = getData(physPlan);
+        // System.out.println("Obtaining final derived data for output");
+        
+        if (hasLimit)
+        {
+            augment.setLimit();
             augment.visit();
             this.baseData = augment.getNewBaseData();
-            // System.out.println("Obtained augmented base data");
-            // create new derived data and trim the base data after augmenting
-            // base data with synthetic tuples
-            trimmer = new LineageTrimmingVisitor(plan, baseData, this,
-                    logToPhyMap, physPlan, pigContext);
-            trimmer.visit();
-            // System.out.println("Final trimming");
-            // create the final version of derivedData to give to the output
-            derivedData = getData(physPlan);
-            // System.out.println("Obtaining final derived data for output");
-            
-            if (hasLimit)
-            {
-                augment.setLimit();
-                augment.visit();
-                this.baseData = augment.getNewBaseData();
-                oriLimitMap = augment.getOriLimitMap();
-                derivedData = getData();
-            }
-
-        } catch (VisitorException e) {
-            e.printStackTrace(System.out);
-            log.error("Visitor exception while creating example data "
-                    + e.getMessage());
-            throw new RuntimeException(e.getMessage());
+            oriLimitMap = augment.getOriLimitMap();
+            derivedData = getData();
         }
 
         // DisplayExamples.printSimple(plan.getLeaves().get(0),
         // derivedData.derivedData);
-        System.out.println(DisplayExamples.printTabular(plan,
+        System.out.println(DisplayExamples.printTabular(newPlan,
                 derivedData, forEachInnerLogToDataMap));
         pigContext.inIllustrator = false;
         return derivedData;
     }
 
-    private void readBaseData(List<LogicalOperator> loads) throws IOException, InterruptedException, FrontendException, ExecException {
+    private void readBaseData(List<Operator> loads) throws IOException, InterruptedException, FrontendException, ExecException {
         PhysicalPlan thisPhyPlan = new PhysicalPlan();
-        for (LogicalOperator op : loads) {
-            Schema schema = op.getSchema();
+        for (Operator op : loads) {
+            LogicalSchema schema = ((LOLoad) op).getSchema();
             if(schema == null) {
                 throw new ExecException("Example Generator requires a schema. Please provide a schema while loading data.");
             }
@@ -224,9 +219,9 @@ public class ExampleGenerator {
             thisPhyPlan.add(logToPhyMap.get(op));
         }
         baseData = null;
-        Map<LogicalOperator, DataBag> result = getData(thisPhyPlan);
+        Map<Operator, DataBag> result = getData(thisPhyPlan);
         baseData = new HashMap<LOLoad, DataBag>();
-        for (LogicalOperator lo : result.keySet()) {
+        for (Operator lo : result.keySet()) {
             if (lo instanceof LOLoad) {
                 baseData.put((LOLoad) lo, result.get(lo));
             }
@@ -234,14 +229,16 @@ public class ExampleGenerator {
     }
 
     PhysicalPlan compilePlan(LogicalPlan plan) throws ExecException, FrontendException {
-        return execEngine.compile(plan, null);
+        PhysicalPlan result = execEngine.compile(plan, null);
+        newPlan = execEngine.getNewPlan();
+        return result;
     }
     
-    public Map<LogicalOperator, DataBag> getData() throws IOException, InterruptedException {
+    public Map<Operator, DataBag> getData() throws IOException, InterruptedException {
       return getData(physPlan);
     }
     
-    private Map<LogicalOperator, DataBag> getData(PhysicalPlan plan) throws PigException, IOException, InterruptedException
+    private Map<Operator, DataBag> getData(PhysicalPlan plan) throws PigException, IOException, InterruptedException
     {
         // get data on a physical plan possibly trimmed of one branch 
         lineage = new LineageTracer();
@@ -257,7 +254,7 @@ public class ExampleGenerator {
             setLoadDataMap();
             physPlanReseter.visit();
         }
-        localMRRunner.launchPig(plan, baseData, poLoadToLogMap, lineage, attacher, this, pigContext);
+        localMRRunner.launchPig(plan, baseData, lineage, attacher, this, pigContext);
         if (baseData == null)
             poToEqclassesMap = attacher.poToEqclassesMap;
         else {
@@ -272,7 +269,7 @@ public class ExampleGenerator {
         return logToDataMap;
     }
     
-    public Map<LogicalOperator, DataBag> getData(Map<LOLoad, DataBag> newBaseData) throws Exception 
+    public Map<Operator, DataBag> getData(Map<LOLoad, DataBag> newBaseData) throws Exception 
     {
         baseData = newBaseData;
         return getData(physPlan);
@@ -281,7 +278,7 @@ public class ExampleGenerator {
     private void phyToMRTransform(PhysicalPlan plan, Map<PhysicalOperator, DataBag> phyToDataMap) {
         // remap the LO to PO as result of the MR compilation may have changed PO in the MR plans
         Map<PhysicalOperator, PhysicalOperator> phyToMRMap = localMRRunner.getPhyToMRMap();
-        for (Map.Entry<PhysicalOperator, LogicalOperator> entry : poToLogMap.entrySet()) {
+        for (Map.Entry<PhysicalOperator, Operator> entry : poToLogMap.entrySet()) {
             if (phyToMRMap.get(entry.getKey()) != null) {
                 PhysicalOperator poInMR = phyToMRMap.get(entry.getKey());
                 logToDataMap.put(entry.getValue(), phyToDataMap.get(poInMR));
@@ -292,15 +289,15 @@ public class ExampleGenerator {
     
     private void getLogToDataMap(Map<PhysicalOperator, DataBag> phyToDataMap) {
         logToDataMap.clear();
-        for (LogicalOperator lo : logToPhyMap.keySet()) {
+        for (Operator lo : logToPhyMap.keySet()) {
             if (logToPhyMap.get(lo) != null)
                 logToDataMap.put(lo, phyToDataMap.get(logToPhyMap.get(lo)));
         }
         
         // set the LO-to-Data mapping for the ForEach inner plans
-        for (Map.Entry<LOForEach, Map<LogicalOperator, DataBag>> entry : forEachInnerLogToDataMap.entrySet()) {
+        for (Map.Entry<LOForEach, Map<LogicalRelationalOperator, DataBag>> entry : forEachInnerLogToDataMap.entrySet()) {
             entry.getValue().clear();
-            for (Map.Entry<LogicalOperator, PhysicalOperator>  innerEntry : forEachInnerLogToPhyMap.get(entry.getKey()).entrySet()) {
+            for (Map.Entry<LogicalRelationalOperator, PhysicalOperator>  innerEntry : forEachInnerLogToPhyMap.get(entry.getKey()).entrySet()) {
                 entry.getValue().put(innerEntry.getKey(), phyToDataMap.get(innerEntry.getValue()));
             }
         }
@@ -328,10 +325,10 @@ public class ExampleGenerator {
         }
     }
     
-    public Collection<IdentityHashSet<Tuple>> getEqClasses() throws VisitorException {
-        Map<LogicalOperator, Collection<IdentityHashSet<Tuple>>> logToEqclassesMap = getLoToEqClassMap();
+    public Collection<IdentityHashSet<Tuple>> getEqClasses() {
+        Map<LogicalRelationalOperator, Collection<IdentityHashSet<Tuple>>> logToEqclassesMap = getLoToEqClassMap();
         LinkedList<IdentityHashSet<Tuple>> ret = new LinkedList<IdentityHashSet<Tuple>>();
-        for (Map.Entry<LogicalOperator, Collection<IdentityHashSet<Tuple>>> entry :
+        for (Map.Entry<LogicalRelationalOperator, Collection<IdentityHashSet<Tuple>>> entry :
             logToEqclassesMap.entrySet()) {
             if (entry.getValue() != null)
                 ret.addAll(entry.getValue());
@@ -339,12 +336,12 @@ public class ExampleGenerator {
         return ret;
     }
 
-    public Map<LogicalOperator, Collection<IdentityHashSet<Tuple>>> getLoToEqClassMap() throws VisitorException {
-        Map<LogicalOperator, Collection<IdentityHashSet<Tuple>>> ret =
-          EquivalenceClasses.getLoToEqClassMap(physPlan, plan, logToPhyMap, logToDataMap, forEachInnerLogToPhyMap, poToEqclassesMap);
+    public Map<LogicalRelationalOperator, Collection<IdentityHashSet<Tuple>>> getLoToEqClassMap() {
+        Map<LogicalRelationalOperator, Collection<IdentityHashSet<Tuple>>> ret =
+          EquivalenceClasses.getLoToEqClassMap(physPlan, newPlan, logToPhyMap, logToDataMap, forEachInnerLogToPhyMap, poToEqclassesMap);
         // eq classes adjustments based upon logical operators
         
-        for (Map.Entry<LogicalOperator, Collection<IdentityHashSet<Tuple>>> entry :ret.entrySet())
+        for (Map.Entry<LogicalRelationalOperator, Collection<IdentityHashSet<Tuple>>> entry :ret.entrySet())
         {
             if (entry.getKey() instanceof LOSort) {
                 Collection<IdentityHashSet<Tuple>> eqClasses = entry.getValue();

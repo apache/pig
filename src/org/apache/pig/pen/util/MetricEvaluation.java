@@ -24,19 +24,20 @@ import java.util.Map;
 
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.Tuple;
-import org.apache.pig.impl.logicalLayer.LogicalOperator;
+import org.apache.pig.newplan.Operator;
+import org.apache.pig.newplan.logical.relational.LogicalRelationalOperator;
 import org.apache.pig.impl.util.IdentityHashSet;
 
 //Evaluates various metrics
 public class MetricEvaluation {
-    public static float getRealness(LogicalOperator op,
-            Map<LogicalOperator, DataBag> exampleData, boolean overallRealness) {
+    public static float getRealness(Operator op,
+            Map<Operator, DataBag> exampleData, boolean overallRealness) {
         // StringBuffer str = new StringBuffer();
         int noTuples = 0;
         int noSynthetic = 0;
-        for (Map.Entry<LogicalOperator, DataBag> e : exampleData.entrySet()) {
+        for (Map.Entry<Operator, DataBag> e : exampleData.entrySet()) {
             // if(e.getKey() instanceof LORead) continue;
-            if (e.getKey().getAlias() == null)
+            if (((LogicalRelationalOperator)e.getKey()).getAlias() == null)
                 continue;
             DataBag bag;
             if (overallRealness) {
@@ -65,9 +66,9 @@ public class MetricEvaluation {
     }
 
     public static float getConciseness(
-            LogicalOperator op,
-            Map<LogicalOperator, DataBag> exampleData,
-            Map<LogicalOperator, Collection<IdentityHashSet<Tuple>>> OperatorToEqClasses,
+            Operator op,
+            Map<Operator, DataBag> exampleData,
+            Map<LogicalRelationalOperator, Collection<IdentityHashSet<Tuple>>> OperatorToEqClasses,
             boolean overallConciseness) {
         DataBag bag = exampleData.get(op);
 
@@ -85,7 +86,7 @@ public class MetricEvaluation {
             conciseness = 0;
             int noOperators = 0;
 
-            for (Map.Entry<LogicalOperator, Collection<IdentityHashSet<Tuple>>> e : OperatorToEqClasses
+            for (Map.Entry<LogicalRelationalOperator, Collection<IdentityHashSet<Tuple>>> e : OperatorToEqClasses
                     .entrySet()) {
                 if (e.getKey().getAlias() == null)
                     continue;
@@ -108,9 +109,9 @@ public class MetricEvaluation {
     }
 
     public static float getCompleteness(
-            LogicalOperator op,
-            Map<LogicalOperator, DataBag> exampleData,
-            Map<LogicalOperator, Collection<IdentityHashSet<Tuple>>> OperatorToEqClasses,
+            Operator op,
+            Map<Operator, DataBag> exampleData,
+            Map<LogicalRelationalOperator, Collection<IdentityHashSet<Tuple>>> OperatorToEqClasses,
             boolean overallCompleteness) {
 
         int noClasses = 0;
@@ -126,7 +127,7 @@ public class MetricEvaluation {
 
             return 100 * ((float) noCoveredClasses) / (float) noClasses;
         } else {
-            for (Map.Entry<LogicalOperator, Collection<IdentityHashSet<Tuple>>> e : OperatorToEqClasses
+            for (Map.Entry<LogicalRelationalOperator, Collection<IdentityHashSet<Tuple>>> e : OperatorToEqClasses
                     .entrySet()) {
                 noCoveredClasses = 0;
                 noClasses = 0;

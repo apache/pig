@@ -20,6 +20,7 @@ package org.apache.pig.newplan;
 
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.Map;
 
 import org.apache.pig.impl.util.MultiMap;
 import org.apache.pig.impl.util.Pair;
@@ -100,4 +101,14 @@ public class PlanEdge extends MultiMap<Operator, Operator> {
         return new Pair<Operator, Integer>(keeper, index);
     }
 
+    public PlanEdge shallowClone() {
+        // shallow clone: elements not cloned
+        PlanEdge result = new PlanEdge();
+        for (Map.Entry<Operator, ArrayList<Operator>> entry : mMap.entrySet()) {
+            ArrayList<Operator> list = new ArrayList<Operator>();
+            list.addAll(entry.getValue());
+            result.put(entry.getKey(), list);
+        }
+        return result;
+    }
 }

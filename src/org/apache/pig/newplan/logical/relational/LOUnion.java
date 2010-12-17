@@ -125,4 +125,12 @@ public class LOUnion extends LogicalRelationalOperator {
     public void resetUid() {
         uidMapping = new ArrayList<Pair<Long, Long>>();
     }
+    
+    public List<Operator> getInputs() {
+        return plan.getPredecessors(this);
+    }
+    
+    public List<Operator> getInputs(LogicalPlan plan) {
+        return plan.getPredecessors(this);
+    }
 }

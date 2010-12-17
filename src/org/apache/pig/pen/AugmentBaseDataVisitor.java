@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.Collection;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -37,71 +38,75 @@ import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
-import org.apache.pig.impl.logicalLayer.BinaryExpressionOperator;
-import org.apache.pig.impl.logicalLayer.ExpressionOperator;
+import org.apache.pig.newplan.logical.expression.BinaryExpression;
 import org.apache.pig.impl.logicalLayer.FrontendException;
-import org.apache.pig.impl.logicalLayer.LOAdd;
-import org.apache.pig.impl.logicalLayer.LOAnd;
-import org.apache.pig.impl.logicalLayer.LOCast;
-import org.apache.pig.impl.logicalLayer.LOCogroup;
-import org.apache.pig.impl.logicalLayer.LOLimit;
-import org.apache.pig.impl.logicalLayer.LOConst;
-import org.apache.pig.impl.logicalLayer.LOCross;
-import org.apache.pig.impl.logicalLayer.LODistinct;
-import org.apache.pig.impl.logicalLayer.LODivide;
-import org.apache.pig.impl.logicalLayer.LOEqual;
-import org.apache.pig.impl.logicalLayer.LOFilter;
-import org.apache.pig.impl.logicalLayer.LOForEach;
-import org.apache.pig.impl.logicalLayer.LOGreaterThan;
-import org.apache.pig.impl.logicalLayer.LOGreaterThanEqual;
-import org.apache.pig.impl.logicalLayer.LOLesserThan;
-import org.apache.pig.impl.logicalLayer.LOLesserThanEqual;
-import org.apache.pig.impl.logicalLayer.LOLoad;
-import org.apache.pig.impl.logicalLayer.LOMod;
-import org.apache.pig.impl.logicalLayer.LOMultiply;
-import org.apache.pig.impl.logicalLayer.LONot;
-import org.apache.pig.impl.logicalLayer.LONotEqual;
-import org.apache.pig.impl.logicalLayer.LOOr;
-import org.apache.pig.impl.logicalLayer.LOProject;
-import org.apache.pig.impl.logicalLayer.LORegexp;
-import org.apache.pig.impl.logicalLayer.LOSort;
-import org.apache.pig.impl.logicalLayer.LOSplit;
-import org.apache.pig.impl.logicalLayer.LOStore;
-import org.apache.pig.impl.logicalLayer.LOSubtract;
-import org.apache.pig.impl.logicalLayer.LOUnion;
-import org.apache.pig.impl.logicalLayer.LOVisitor;
-import org.apache.pig.impl.logicalLayer.LogicalOperator;
-import org.apache.pig.impl.logicalLayer.LogicalPlan;
-import org.apache.pig.impl.logicalLayer.schema.Schema;
-import org.apache.pig.impl.plan.VisitorException;
+import org.apache.pig.newplan.logical.expression.AddExpression;
+import org.apache.pig.newplan.logical.expression.AndExpression;
+import org.apache.pig.newplan.logical.expression.CastExpression;
+import org.apache.pig.newplan.logical.expression.LogicalExpressionPlan;
+import org.apache.pig.newplan.logical.relational.LOCogroup;
+import org.apache.pig.newplan.logical.relational.LOLimit;
+import org.apache.pig.newplan.logical.expression.ConstantExpression;
+import org.apache.pig.newplan.logical.relational.LogicalRelationalOperator;
+import org.apache.pig.newplan.logical.relational.LOCross;
+import org.apache.pig.newplan.logical.relational.LODistinct;
+import org.apache.pig.newplan.logical.expression.DivideExpression;
+import org.apache.pig.newplan.logical.expression.EqualExpression;
+import org.apache.pig.newplan.logical.relational.LOFilter;
+import org.apache.pig.newplan.logical.relational.LOForEach;
+import org.apache.pig.newplan.logical.expression.GreaterThanExpression;
+import org.apache.pig.newplan.logical.expression.GreaterThanEqualExpression;
+import org.apache.pig.newplan.logical.expression.LessThanExpression;
+import org.apache.pig.newplan.logical.expression.LessThanEqualExpression;
+import org.apache.pig.newplan.logical.relational.LOLoad;
+import org.apache.pig.newplan.logical.relational.LogicalPlan;
+import org.apache.pig.newplan.logical.expression.ModExpression;
+import org.apache.pig.newplan.logical.expression.LogicalExpression;
+import org.apache.pig.newplan.logical.expression.MultiplyExpression;
+import org.apache.pig.newplan.logical.expression.NotExpression;
+import org.apache.pig.newplan.logical.expression.NotEqualExpression;
+import org.apache.pig.newplan.logical.expression.OrExpression;
+import org.apache.pig.newplan.logical.expression.ProjectExpression;
+import org.apache.pig.newplan.logical.expression.RegexExpression;
+import org.apache.pig.newplan.logical.relational.LOSort;
+import org.apache.pig.newplan.logical.relational.LOSplit;
+import org.apache.pig.newplan.logical.relational.LOStore;
+import org.apache.pig.newplan.logical.expression.SubtractExpression;
+import org.apache.pig.newplan.logical.relational.LOUnion;
+import org.apache.pig.newplan.OperatorPlan;
+import org.apache.pig.newplan.Operator;
+import org.apache.pig.newplan.logical.relational.LogicalSchema;
+import org.apache.pig.newplan.logical.relational.LogicalRelationalNodesVisitor;
 import org.apache.pig.pen.util.ExampleTuple;
 import org.apache.pig.pen.util.PreOrderDepthFirstWalker;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLimit;
+import org.apache.pig.impl.util.MultiMap;
+import org.apache.pig.impl.io.FileSpec;
 
 //This is used to generate synthetic data
 //Synthetic data generation is done by making constraint tuples for each operator as we traverse the plan
 //and try to replace the constraints with values as far as possible. We only deal with simple conditions right now
 
-public class AugmentBaseDataVisitor extends LOVisitor {
+public class AugmentBaseDataVisitor extends LogicalRelationalNodesVisitor {
 
     Map<LOLoad, DataBag> baseData = null;
     Map<LOLoad, DataBag> newBaseData = new HashMap<LOLoad, DataBag>();
-    Map<LogicalOperator, DataBag> derivedData = null;
+    Map<Operator, DataBag> derivedData = null;
     private boolean limit = false;
-    private final Map<LogicalOperator, PhysicalOperator> logToPhysMap;
+    private final Map<Operator, PhysicalOperator> logToPhysMap;
     private Map<LOLimit, Long> oriLimitMap;
 
-    Map<LogicalOperator, DataBag> outputConstraintsMap = new HashMap<LogicalOperator, DataBag>();
+    Map<Operator, DataBag> outputConstraintsMap = new HashMap<Operator, DataBag>();
 
     Log log = LogFactory.getLog(getClass());
 
     // Augmentation moves from the leaves to root and hence needs a
     // depthfirstwalker
-    public AugmentBaseDataVisitor(LogicalPlan plan,
-            Map<LogicalOperator, PhysicalOperator> logToPhysMap,
+    public AugmentBaseDataVisitor(OperatorPlan plan,
+            Map<Operator, PhysicalOperator> logToPhysMap,
             Map<LOLoad, DataBag> baseData,
-            Map<LogicalOperator, DataBag> derivedData) {
-        super(plan, new PreOrderDepthFirstWalker<LogicalOperator, LogicalPlan>(
+            Map<Operator, DataBag> derivedData) throws FrontendException {
+        super(plan, new PreOrderDepthFirstWalker(
                 plan));
         this.baseData = baseData;
         this.derivedData = derivedData;
@@ -112,7 +117,43 @@ public class AugmentBaseDataVisitor extends LOVisitor {
         limit = true;
     }
     
-    public Map<LOLoad, DataBag> getNewBaseData() {
+    public Map<LOLoad, DataBag> getNewBaseData() throws ExecException {
+        // consolidate base data from different LOADs on the same inputs
+        MultiMap<FileSpec, DataBag> inputDataMap = new MultiMap<FileSpec, DataBag>();
+        for (Map.Entry<LOLoad, DataBag> e : newBaseData.entrySet()) {
+            inputDataMap.put(e.getKey().getFileSpec(), e.getValue());
+        }
+        
+        int index = 0;
+        for (FileSpec fs : inputDataMap.keySet()) {
+            int maxSchemaSize = 0;
+            Tuple tupleOfMaxSchemaSize = null;
+            for (DataBag bag : inputDataMap.get(fs)) {
+                if (bag.size() > 0) {
+                    int size = 0;
+                    Tuple t = null;
+                    t = bag.iterator().next();
+                    size = t.size();
+                    if (size > maxSchemaSize) {
+                        maxSchemaSize = size;
+                        tupleOfMaxSchemaSize = t;
+                    }
+                }
+            }
+            for (DataBag bag : inputDataMap.get(fs)) {
+                if (bag.size() > 0) {
+                    for (Iterator<Tuple> it = bag.iterator(); it.hasNext();) {
+                        Tuple t = it.next();
+                        for (int i = t.size(); i < maxSchemaSize; ++i) {
+                            t.append(tupleOfMaxSchemaSize.get(i));
+                        }
+                    }
+                }
+            }
+            index++;
+        }
+        
+        
         for (Map.Entry<LOLoad, DataBag> e : baseData.entrySet()) {
             DataBag bag = newBaseData.get(e.getKey());
             if (bag == null) {
@@ -129,8 +170,8 @@ public class AugmentBaseDataVisitor extends LOVisitor {
     }
     
     @Override
-    protected void visit(LOCogroup cg) throws VisitorException {
-        if (limit && !((PreOrderDepthFirstWalker<LogicalOperator, LogicalPlan>) mCurrentWalker).getBranchFlag())
+    public void visit(LOCogroup cg) throws FrontendException {
+        if (limit && !((PreOrderDepthFirstWalker) currentWalker).getBranchFlag())
             return;
         // we first get the outputconstraints for the current cogroup
         DataBag outputConstraints = outputConstraintsMap.get(cg);
@@ -141,16 +182,14 @@ public class AugmentBaseDataVisitor extends LOVisitor {
         List<List<Integer>> groupSpecs = new LinkedList<List<Integer>>();
         int numCols = -1;
 
-        int minGroupSize = (cg.getInputs().size() == 1) ? 1 : 2;
-
-        for (LogicalOperator op : cg.getInputs()) {
-            List<LogicalPlan> groupByPlans = (List<LogicalPlan>) cg
-                    .getGroupByPlans().get(op);
+        for (int index = 0; index < cg.getInputs((LogicalPlan)plan).size(); ++index) {
+            Collection<LogicalExpressionPlan> groupByPlans = (List<LogicalExpressionPlan>) cg
+                    .getExpressionPlans().get(index);
             List<Integer> groupCols = new ArrayList<Integer>();
-            for (LogicalPlan plan : groupByPlans) {
-                LogicalOperator leaf = plan.getLeaves().get(0);
-                if (leaf instanceof LOProject) {
-                    groupCols.add(((LOProject) leaf).getCol());
+            for (LogicalExpressionPlan plan : groupByPlans) {
+                Operator leaf = plan.getSinks().get(0);
+                if (leaf instanceof ProjectExpression) {
+                    groupCols.add(Integer.valueOf(((ProjectExpression) leaf).getColNum()));
                 } else {
                     ableToHandle = false;
                     break;
@@ -173,7 +212,7 @@ public class AugmentBaseDataVisitor extends LOVisitor {
         try {
             if (ableToHandle) {
                 // we need to go through the output constraints first
-                int numInputs = cg.getInputs().size();
+                int numInputs = cg.getInputs((LogicalPlan) plan).size();
                 if (outputConstraints != null) {
                     for (Iterator<Tuple> it = outputConstraints.iterator(); it
                             .hasNext();) {
@@ -182,19 +221,19 @@ public class AugmentBaseDataVisitor extends LOVisitor {
 
                         for (int input = 0; input < numInputs; input++) {
 
-                            int numInputFields = cg.getInputs().get(input)
+                            int numInputFields = ((LogicalRelationalOperator) cg.getInputs((LogicalPlan) plan).get(input))
                                     .getSchema().size();
                             List<Integer> groupCols = groupSpecs.get(input);
 
                             DataBag output = outputConstraintsMap.get(cg
-                                    .getInputs().get(input));
+                                    .getInputs((LogicalPlan) plan).get(input));
                             if (output == null) {
                                 output = BagFactory.getInstance()
                                         .newDefaultBag();
-                                outputConstraintsMap.put(cg.getInputs().get(
+                                outputConstraintsMap.put(cg.getInputs((LogicalPlan) plan).get(
                                         input), output);
                             }
-                            for (int i = 0; i < minGroupSize; i++) {
+                            for (int i = 0; i < 2; i++) {
                                 Tuple inputConstraint = GetGroupByInput(
                                         groupLabel, groupCols, numInputFields);
                                 if (inputConstraint != null)
@@ -212,18 +251,18 @@ public class AugmentBaseDataVisitor extends LOVisitor {
                     Object groupLabel = groupTup.get(0);
 
                     for (int input = 0; input < numInputs; input++) {
-                        int numInputFields = cg.getInputs().get(input)
+                        int numInputFields = ((LogicalRelationalOperator)cg.getInputs((LogicalPlan) plan).get(input))
                                 .getSchema().size();
                         List<Integer> groupCols = groupSpecs.get(input);
 
                         DataBag output = outputConstraintsMap.get(cg
-                                .getInputs().get(input));
+                                .getInputs((LogicalPlan) plan).get(input));
                         if (output == null) {
                             output = BagFactory.getInstance().newDefaultBag();
-                            outputConstraintsMap.put(cg.getInputs().get(input),
+                            outputConstraintsMap.put(cg.getInputs((LogicalPlan) plan).get(input),
                                     output);
                         }
-                        int numTupsToAdd = minGroupSize
+                        int numTupsToAdd = 2
                                 - (int) ((DataBag) groupTup.get(input + 1))
                                         .size();
                         for (int i = 0; i < numTupsToAdd; i++) {
@@ -239,29 +278,29 @@ public class AugmentBaseDataVisitor extends LOVisitor {
             log
                     .error("Error visiting Cogroup during Augmentation phase of Example Generator! "
                             + e.getMessage());
-            throw new VisitorException(
+            throw new FrontendException(
                     "Error visiting Cogroup during Augmentation phase of Example Generator! "
                             + e.getMessage());
         }
     }
 
     @Override
-    protected void visit(LOCross cs) throws VisitorException {
+    public void visit(LOCross cs) throws FrontendException {
 
     }
 
     @Override
-    protected void visit(LODistinct dt) throws VisitorException {
-        if (limit && !((PreOrderDepthFirstWalker<LogicalOperator, LogicalPlan>) mCurrentWalker).getBranchFlag())
+    public void visit(LODistinct dt) throws FrontendException {
+        if (limit && !((PreOrderDepthFirstWalker) currentWalker).getBranchFlag())
             return;
     
         DataBag outputConstraints = outputConstraintsMap.get(dt);
         outputConstraintsMap.remove(dt);
 
-        DataBag inputConstraints = outputConstraintsMap.get(dt.getInput());
+        DataBag inputConstraints = outputConstraintsMap.get(dt.getInput((LogicalPlan) plan));
         if (inputConstraints == null) {
             inputConstraints = BagFactory.getInstance().newDefaultBag();
-            outputConstraintsMap.put(dt.getInput(), inputConstraints);
+            outputConstraintsMap.put(dt.getInput((LogicalPlan) plan), inputConstraints);
         }
     
         if (outputConstraints != null && outputConstraints.size() > 0) {
@@ -273,7 +312,7 @@ public class AugmentBaseDataVisitor extends LOVisitor {
         
         boolean emptyInputConstraints = inputConstraints.size() == 0;
         if (emptyInputConstraints) {
-            DataBag inputData = derivedData.get(dt.getInput());
+            DataBag inputData = derivedData.get(dt.getInput((LogicalPlan) plan));
             for (Iterator<Tuple> it = inputData.iterator(); it.hasNext();)
             {
                 inputConstraints.add(it.next());
@@ -300,22 +339,22 @@ public class AugmentBaseDataVisitor extends LOVisitor {
     }
 
     @Override
-    protected void visit(LOFilter filter) throws VisitorException {
-        if (limit && !((PreOrderDepthFirstWalker<LogicalOperator, LogicalPlan>) mCurrentWalker).getBranchFlag())
+    public void visit(LOFilter filter) throws FrontendException {
+        if (limit && !((PreOrderDepthFirstWalker) currentWalker).getBranchFlag())
             return;
         
         DataBag outputConstraints = outputConstraintsMap.get(filter);
         outputConstraintsMap.remove(filter);
 
-        LogicalPlan filterCond = filter.getComparisonPlan();
-        DataBag inputConstraints = outputConstraintsMap.get(filter.getInput());
+        LogicalExpressionPlan filterCond = filter.getFilterPlan();
+        DataBag inputConstraints = outputConstraintsMap.get(filter.getInput((LogicalPlan) plan));
         if (inputConstraints == null) {
             inputConstraints = BagFactory.getInstance().newDefaultBag();
-            outputConstraintsMap.put(filter.getInput(), inputConstraints);
+            outputConstraintsMap.put(filter.getInput((LogicalPlan) plan), inputConstraints);
         }
 
         DataBag outputData = derivedData.get(filter);
-        DataBag inputData = derivedData.get(filter.getInput());
+        DataBag inputData = derivedData.get(filter.getInput((LogicalPlan) plan));
         try {
             if (outputConstraints != null && outputConstraints.size() > 0) { // there
                 // 's
@@ -365,19 +404,19 @@ public class AugmentBaseDataVisitor extends LOVisitor {
             log
                     .error("Error visiting Load during Augmentation phase of Example Generator! "
                             + e.getMessage());
-            throw new VisitorException(
+            throw new FrontendException(
                     "Error visiting Load during Augmentation phase of Example Generator! "
                             + e.getMessage());
         }
     }
 
     @Override
-    protected void visit(LOForEach forEach) throws VisitorException {
-        if (limit && !((PreOrderDepthFirstWalker<LogicalOperator, LogicalPlan>) mCurrentWalker).getBranchFlag())
+    public void visit(LOForEach forEach) throws FrontendException {
+        if (limit && !((PreOrderDepthFirstWalker) currentWalker).getBranchFlag())
             return;
         DataBag outputConstraints = outputConstraintsMap.get(forEach);
         outputConstraintsMap.remove(forEach);
-        List<LogicalPlan> plans = forEach.getForEachPlans();
+        LogicalPlan plan = forEach.getInnerPlan();
         boolean ableToHandle = true;
         List<Integer> cols = new ArrayList<Integer>();
         boolean cast = false;
@@ -386,20 +425,18 @@ public class AugmentBaseDataVisitor extends LOVisitor {
             // we dont have to do anything in this case
             return;
 
-        for (LogicalPlan plan : plans) {
-            LogicalOperator op = plan.getLeaves().get(0);
-            if (op instanceof LOCast) {
+
+        Operator op = plan.getSinks().get(0);
+        if (op instanceof CastExpression) {
                 cast = true;
-                op = ((LOCast) op).getExpression();
+                op = ((CastExpression) op).getExpression();
             }
 
-            if (!(op instanceof LOProject)) {
+            if (!(op instanceof ProjectExpression)) {
                 ableToHandle = false;
-                break;
             } else {
-                cols.add(((LOProject) op).getCol());
+                cols.add(Integer.valueOf(((ProjectExpression) op).getColNum()));
             }
-        }
 
         if (ableToHandle) {
             // we can only handle simple projections
@@ -409,26 +446,31 @@ public class AugmentBaseDataVisitor extends LOVisitor {
                 Tuple outputConstraint = it.next();
                 try {
                     Tuple inputConstraint = BackPropConstraint(
-                            outputConstraint, cols, (forEach.getPlan()
-                                    .getPredecessors(forEach)).get(0)
+                            outputConstraint, cols, ((LogicalRelationalOperator)plan
+                                    .getPredecessors(forEach).get(0))
                                     .getSchema(), cast);
                     output.add(inputConstraint);
                 } catch (Exception e) {
                     e.printStackTrace();
-                    throw new VisitorException(
+                    throw new FrontendException(
                             "Operator error during Augmenting Phase in Example Generator "
                                     + e.getMessage());
                 }
             }
-            outputConstraintsMap.put(forEach.getPlan().getPredecessors(forEach)
+            outputConstraintsMap.put(plan.getPredecessors(forEach)
                     .get(0), output);
         }
 
     }
 
     @Override
-    protected void visit(LOLoad load) throws VisitorException {
+    public void visit(LOLoad load) throws FrontendException {
         DataBag inputData = baseData.get(load);
+       // check if the inputData exists
+        if (inputData == null || inputData.size() == 0) {
+            log.error("No (valid) input data found!");
+            throw new RuntimeException("No (valid) input data found!");
+        }
 
         DataBag newInputData = newBaseData.get(load);
         if (newInputData == null) {
@@ -436,7 +478,7 @@ public class AugmentBaseDataVisitor extends LOVisitor {
             newBaseData.put(load, newInputData);
         }
 
-        Schema schema;
+        LogicalSchema schema;
         try {
             schema = load.getSchema();
             if (schema == null)
@@ -447,17 +489,15 @@ public class AugmentBaseDataVisitor extends LOVisitor {
             log
                     .error("Error visiting Load during Augmentation phase of Example Generator! "
                             + e.getMessage());
-            throw new VisitorException(
+            throw new FrontendException(
                     "Error visiting Load during Augmentation phase of Example Generator! "
                             + e.getMessage());
         }
+        
+        Tuple exampleTuple = inputData.iterator().next();
+        
         DataBag outputConstraints = outputConstraintsMap.get(load);
         outputConstraintsMap.remove(load);
-        // check if the inputData exists
-        if (inputData == null || inputData.size() == 0) {
-            log.error("No (valid) input data found!");
-            throw new RuntimeException("No (valid) input data found!");
-        }
 
         // first of all, we are required to guarantee that there is at least one
         // output tuple
@@ -469,7 +509,6 @@ public class AugmentBaseDataVisitor extends LOVisitor {
 
         // create example tuple to steal values from when we encounter
         // "don't care" fields (i.e. null fields)
-        Tuple exampleTuple = inputData.iterator().next();
         System.out.println(exampleTuple.toString());
 
         // run through output constraints; for each one synthesize a tuple and
@@ -505,7 +544,7 @@ public class AugmentBaseDataVisitor extends LOVisitor {
                 log
                         .error("Error visiting Load during Augmentation phase of Example Generator! "
                                 + e.getMessage());
-                throw new VisitorException(
+                throw new FrontendException(
                         "Error visiting Load during Augmentation phase of Example Generator! "
                                 + e.getMessage());
 
@@ -521,24 +560,14 @@ public class AugmentBaseDataVisitor extends LOVisitor {
                         newInput = true;
                 }
             } catch (ExecException e) {
-                throw new VisitorException(
+                throw new FrontendException(
                   "Error visiting Load during Augmentation phase of Example Generator! "
                           + e.getMessage());
             }
         }
-        
-        if (newInput) {
-            for (Map.Entry<LOLoad, DataBag> entry : newBaseData.entrySet()) {
-                LOLoad otherLoad = entry.getKey();
-                if (otherLoad != load && otherLoad.getInputFile().equals(load.getInputFile())) {
-                    // different load sharing the same input file
-                    entry.getValue().addAll(newInputData);
-                }
-            }
-        }
     }
 
-    private boolean inInput(Tuple newTuple, DataBag input, Schema schema) throws ExecException {
+    private boolean inInput(Tuple newTuple, DataBag input, LogicalSchema schema) throws ExecException {
         boolean result;
         for (Iterator<Tuple> iter = input.iterator(); iter.hasNext();) {
             result = true;
@@ -556,43 +585,43 @@ public class AugmentBaseDataVisitor extends LOVisitor {
     }
     
     @Override
-    protected void visit(LOSort s) throws VisitorException {
-        if (limit && !((PreOrderDepthFirstWalker<LogicalOperator, LogicalPlan>) mCurrentWalker).getBranchFlag())
+    public void visit(LOSort s) throws FrontendException {
+        if (limit && !((PreOrderDepthFirstWalker) currentWalker).getBranchFlag())
             return;
         DataBag outputConstraints = outputConstraintsMap.get(s);
         outputConstraintsMap.remove(s);
 
         if (outputConstraints == null)
-            outputConstraintsMap.put(s.getInput(), BagFactory.getInstance()
+            outputConstraintsMap.put(s.getInput((LogicalPlan) plan), BagFactory.getInstance()
                     .newDefaultBag());
         else
-            outputConstraintsMap.put(s.getInput(), outputConstraints);
+            outputConstraintsMap.put(s.getInput((LogicalPlan) plan), outputConstraints);
     }
 
     @Override
-    protected void visit(LOSplit split) throws VisitorException {
-        if (limit && !((PreOrderDepthFirstWalker<LogicalOperator, LogicalPlan>) mCurrentWalker).getBranchFlag())
+    public void visit(LOSplit split) throws FrontendException {
+        if (limit && !((PreOrderDepthFirstWalker) currentWalker).getBranchFlag())
           return;
     }
 
     @Override
-    protected void visit(LOStore store) throws VisitorException {
-        if (limit && !((PreOrderDepthFirstWalker<LogicalOperator, LogicalPlan>) mCurrentWalker).getBranchFlag())
+    public void visit(LOStore store) throws FrontendException {
+        if (limit && !((PreOrderDepthFirstWalker) currentWalker).getBranchFlag())
             return;
         DataBag outputConstraints = outputConstraintsMap.get(store);
         if (outputConstraints == null) {
-            outputConstraintsMap.put(store.getPlan().getPredecessors(store)
+            outputConstraintsMap.put(plan.getPredecessors(store)
                     .get(0), BagFactory.getInstance().newDefaultBag());
         } else {
             outputConstraintsMap.remove(store);
-            outputConstraintsMap.put(store.getPlan().getPredecessors(store)
+            outputConstraintsMap.put(plan.getPredecessors(store)
                     .get(0), outputConstraints);
         }
     }
 
     @Override
-    protected void visit(LOUnion u) throws VisitorException {
-        if (limit && !((PreOrderDepthFirstWalker<LogicalOperator, LogicalPlan>) mCurrentWalker).getBranchFlag())
+    public void visit(LOUnion u) throws FrontendException {
+        if (limit && !((PreOrderDepthFirstWalker) currentWalker).getBranchFlag())
             return;
         DataBag outputConstraints = outputConstraintsMap.get(u);
         outputConstraintsMap.remove(u);
@@ -600,7 +629,7 @@ public class AugmentBaseDataVisitor extends LOVisitor {
             // we dont need to do anything
             // we just find the inputs, create empty bags as their
             // outputConstraints and return
-            for (LogicalOperator op : u.getInputs()) {
+            for (Operator op : u.getInputs((LogicalPlan) plan)) {
                 DataBag constraints = BagFactory.getInstance().newDefaultBag();
                 outputConstraintsMap.put(op, constraints);
             }
@@ -610,10 +639,10 @@ public class AugmentBaseDataVisitor extends LOVisitor {
         // since we have some outputConstraints, we apply them to the inputs
         // round-robin
         int count = 0;
-        List<LogicalOperator> inputs = u.getInputs();
+        List<Operator> inputs = u.getInputs(((LogicalPlan) plan));
         int noInputs = inputs.size();
 
-        for (LogicalOperator op : inputs) {
+        for (Operator op : inputs) {
             DataBag constraint = BagFactory.getInstance().newDefaultBag();
             outputConstraintsMap.put(op, constraint);
         }
@@ -626,7 +655,7 @@ public class AugmentBaseDataVisitor extends LOVisitor {
     }
 
     @Override
-    protected void visit(LOLimit lm) throws VisitorException {
+    public void visit(LOLimit lm) throws FrontendException {
         if (!limit) // not augment for LIMIT in this traversal
             return;
         
@@ -636,13 +665,13 @@ public class AugmentBaseDataVisitor extends LOVisitor {
         DataBag outputConstraints = outputConstraintsMap.get(lm);
         outputConstraintsMap.remove(lm);
 
-        DataBag inputConstraints = outputConstraintsMap.get(lm.getInput());
+        DataBag inputConstraints = outputConstraintsMap.get(lm.getInput((LogicalPlan) plan));
         if (inputConstraints == null) {
             inputConstraints = BagFactory.getInstance().newDefaultBag();
-            outputConstraintsMap.put(lm.getInput(), inputConstraints);
+            outputConstraintsMap.put(lm.getInput((LogicalPlan) plan), inputConstraints);
         }
 
-        DataBag inputData = derivedData.get(lm.getInput());
+        DataBag inputData = derivedData.get(lm.getInput((LogicalPlan) plan));
         
         if (outputConstraints != null && outputConstraints.size() > 0) { // there
             // 's
@@ -662,7 +691,7 @@ public class AugmentBaseDataVisitor extends LOVisitor {
              // ... plus one more if only one
              if (inputConstraints.size() == 1) {
                 inputConstraints.add(inputData.iterator().next());
-                ((PreOrderDepthFirstWalker<LogicalOperator, LogicalPlan>) mCurrentWalker).setBranchFlag();
+                ((PreOrderDepthFirstWalker) currentWalker).setBranchFlag();
              }
           }
         } else if (inputConstraints.size() == 0){
@@ -671,7 +700,7 @@ public class AugmentBaseDataVisitor extends LOVisitor {
             // ... plus one more if only one
             if (inputConstraints.size() == 1) {
                 inputConstraints.add(inputData.iterator().next());
-                ((PreOrderDepthFirstWalker<LogicalOperator, LogicalPlan>) mCurrentWalker).setBranchFlag();
+                ((PreOrderDepthFirstWalker) currentWalker).setBranchFlag();
             }
         }
         POLimit poLimit = (POLimit) logToPhysMap.get(lm);
@@ -700,7 +729,7 @@ public class AugmentBaseDataVisitor extends LOVisitor {
     }
 
     Tuple BackPropConstraint(Tuple outputConstraint, List<Integer> cols,
-            Schema inputSchema, boolean cast) throws ExecException {
+            LogicalSchema inputSchema, boolean cast) throws ExecException {
         Tuple inputConst = TupleFactory.getInstance().newTuple(
                 inputSchema.getFields().size());
 
@@ -732,8 +761,8 @@ public class AugmentBaseDataVisitor extends LOVisitor {
     // predicate
     // (or null if unable to find such a tuple)
 
-    ExampleTuple GenerateMatchingTuple(Schema schema, LogicalPlan plan,
-            boolean invert) throws ExecException {
+    ExampleTuple GenerateMatchingTuple(LogicalSchema schema, LogicalExpressionPlan plan,
+            boolean invert) throws FrontendException, ExecException {
         return GenerateMatchingTuple(TupleFactory.getInstance().newTuple(
                 schema.getFields().size()), plan, invert);
     }
@@ -753,39 +782,39 @@ public class AugmentBaseDataVisitor extends LOVisitor {
     // what predicate it wants satisfied in a given field)
     //
 
-    ExampleTuple GenerateMatchingTuple(Tuple constraint, LogicalPlan predicate,
-            boolean invert) throws ExecException {
+    ExampleTuple GenerateMatchingTuple(Tuple constraint, LogicalExpressionPlan predicate,
+            boolean invert) throws ExecException, FrontendException {
         Tuple t = TupleFactory.getInstance().newTuple(constraint.size());
         ExampleTuple tOut = new ExampleTuple(t);
         for (int i = 0; i < t.size(); i++)
             tOut.set(i, constraint.get(i));
 
-        GenerateMatchingTupleHelper(tOut, (ExpressionOperator) predicate
-                .getLeaves().get(0), invert);
+        GenerateMatchingTupleHelper(tOut, predicate
+                .getSources().get(0), invert);
         tOut.synthetic = true;
         return tOut;
 
     }
 
-    void GenerateMatchingTupleHelper(Tuple t, ExpressionOperator pred,
-            boolean invert) throws ExecException {
-        if (pred instanceof BinaryExpressionOperator)
-            GenerateMatchingTupleHelper(t, (BinaryExpressionOperator) pred,
+    void GenerateMatchingTupleHelper(Tuple t, Operator pred,
+            boolean invert) throws FrontendException, ExecException {
+        if (pred instanceof BinaryExpression)
+            GenerateMatchingTupleHelper(t, (BinaryExpression) pred,
                     invert);
-        else if (pred instanceof LONot)
-            GenerateMatchingTupleHelper(t, (LONot) pred, invert);
+        else if (pred instanceof NotExpression)
+            GenerateMatchingTupleHelper(t, (NotExpression) pred, invert);
         else
-            throw new ExecException("Unknown operator in filter predicate");
+            throw new FrontendException("Unknown operator in filter predicate");
     }
 
-    void GenerateMatchingTupleHelper(Tuple t, BinaryExpressionOperator pred,
-            boolean invert) throws ExecException {
+    void GenerateMatchingTupleHelper(Tuple t, BinaryExpression pred,
+            boolean invert) throws FrontendException, ExecException {
 
-        if (pred instanceof LOAnd) {
-            GenerateMatchingTupleHelper(t, (LOAnd) pred, invert);
+        if (pred instanceof AndExpression) {
+            GenerateMatchingTupleHelper(t, (AndExpression) pred, invert);
             return;
-        } else if (pred instanceof LOOr) {
-            GenerateMatchingTupleHelper(t, (LOOr) pred, invert);
+        } else if (pred instanceof OrExpression) {
+            GenerateMatchingTupleHelper(t, (OrExpression) pred, invert);
             return;
         }
 
@@ -798,27 +827,26 @@ public class AugmentBaseDataVisitor extends LOVisitor {
 
         int leftCol = -1, rightCol = -1;
 
-        if (pred instanceof LOAdd || pred instanceof LOSubtract
-                || pred instanceof LOMultiply || pred instanceof LODivide
-                || pred instanceof LOMod || pred instanceof LORegexp)
+        if (pred instanceof AddExpression || pred instanceof SubtractExpression
+                || pred instanceof MultiplyExpression || pred instanceof DivideExpression
+                || pred instanceof ModExpression || pred instanceof RegexExpression)
             return; // We don't try to work around these operators right now
 
-        if (pred.getLhsOperand() instanceof LOConst) {
+        if (pred.getLhs() instanceof ConstantExpression) {
             leftIsConst = true;
-            leftConst = ((LOConst) (pred.getLhsOperand())).getValue();
+            leftConst = ((ConstantExpression) (pred.getLhs())).getValue();
         } else {
-            LogicalOperator lhs = pred.getLhsOperand();
-            if (lhs instanceof LOCast)
-                lhs = ((LOCast) lhs).getExpression();
-            // if (!(pred.getLhsOperand() instanceof LOProject && ((LOProject)
+            LogicalExpression lhs = pred.getLhs();
+            if (lhs instanceof CastExpression)
+                lhs = ((CastExpression) lhs).getExpression();
+            // if (!(pred.getLhsOperand() instanceof ProjectExpression && ((ProjectExpression)
             // pred
             // .getLhsOperand()).getProjection().size() == 1))
             // return; // too hard
-            if (!(lhs instanceof LOProject && ((LOProject) lhs).getProjection()
-                    .size() == 1))
+            if (!(lhs instanceof ProjectExpression))
                 return;
-            leftCol = ((LOProject) lhs).getCol();
-            leftDataType = ((LOProject) lhs).getType();
+            leftCol = ((ProjectExpression) lhs).getColNum();
+            leftDataType = ((ProjectExpression) lhs).getType();
 
             Object d = t.get(leftCol);
             if (d != null) {
@@ -827,22 +855,21 @@ public class AugmentBaseDataVisitor extends LOVisitor {
             }
         }
 
-        if (pred.getRhsOperand() instanceof LOConst) {
+        if (pred.getRhs() instanceof ConstantExpression) {
             rightIsConst = true;
-            rightConst = ((LOConst) (pred.getRhsOperand())).getValue();
+            rightConst = ((ConstantExpression) (pred.getRhs())).getValue();
         } else {
-            LogicalOperator rhs = pred.getRhsOperand();
-            if (rhs instanceof LOCast)
-                rhs = ((LOCast) rhs).getExpression();
-            // if (!(pred.getRhsOperand() instanceof LOProject && ((LOProject)
+            Operator rhs = pred.getRhs();
+            if (rhs instanceof CastExpression)
+                rhs = ((CastExpression) rhs).getExpression();
+            // if (!(pred.getRhsOperand() instanceof ProjectExpression && ((ProjectExpression)
             // pred
             // .getRhsOperand()).getProjection().size() == 1))
             // return; // too hard
-            if (!(rhs instanceof LOProject && ((LOProject) rhs).getProjection()
-                    .size() == 1))
+            if (!(rhs instanceof ProjectExpression))
                 return;
-            rightCol = ((LOProject) rhs).getCol();
-            rightDataType = ((LOProject) rhs).getType();
+            rightCol = ((ProjectExpression) rhs).getColNum();
+            rightDataType = ((ProjectExpression) rhs).getType();
 
             Object d = t.get(rightCol);
             if (d != null) {
@@ -858,7 +885,7 @@ public class AugmentBaseDataVisitor extends LOVisitor {
 
         // convert some nulls to constants
         if (!invert) {
-            if (pred instanceof LOEqual) {
+            if (pred instanceof EqualExpression) {
                 if (leftIsConst) {
                     t.set(rightCol, generateData(rightDataType, leftConst
                             .toString()));
@@ -869,7 +896,7 @@ public class AugmentBaseDataVisitor extends LOVisitor {
                     t.set(leftCol, generateData(leftDataType, "0"));
                     t.set(rightCol, generateData(rightDataType, "0"));
                 }
-            } else if (pred instanceof LONotEqual) {
+            } else if (pred instanceof NotEqualExpression) {
                 if (leftIsConst) {
                     t.set(rightCol, generateData(rightDataType,
                             GetUnequalValue(leftConst).toString()));
@@ -880,8 +907,8 @@ public class AugmentBaseDataVisitor extends LOVisitor {
                     t.set(leftCol, generateData(leftDataType, "0"));
                     t.set(rightCol, generateData(rightDataType, "1"));
                 }
-            } else if (pred instanceof LOGreaterThan
-                    || pred instanceof LOGreaterThanEqual) {
+            } else if (pred instanceof GreaterThanExpression
+                    || pred instanceof GreaterThanEqualExpression) {
                 if (leftIsConst) {
                     t.set(rightCol, generateData(rightDataType,
                             GetSmallerValue(leftConst).toString()));
@@ -892,8 +919,8 @@ public class AugmentBaseDataVisitor extends LOVisitor {
                     t.set(leftCol, generateData(leftDataType, "1"));
                     t.set(rightCol, generateData(rightDataType, "0"));
                 }
-            } else if (pred instanceof LOLesserThan
-                    || pred instanceof LOLesserThanEqual) {
+            } else if (pred instanceof LessThanExpression
+                    || pred instanceof LessThanEqualExpression) {
                 if (leftIsConst) {
                     t.set(rightCol, generateData(rightDataType, GetLargerValue(
                             leftConst).toString()));
@@ -906,7 +933,7 @@ public class AugmentBaseDataVisitor extends LOVisitor {
                 }
             }
         } else {
-            if (pred instanceof LOEqual) {
+            if (pred instanceof EqualExpression) {
                 if (leftIsConst) {
                     t.set(rightCol, generateData(rightDataType,
                             GetUnequalValue(leftConst).toString()));
@@ -917,7 +944,7 @@ public class AugmentBaseDataVisitor extends LOVisitor {
                     t.set(leftCol, generateData(leftDataType, "0"));
                     t.set(rightCol, generateData(rightDataType, "1"));
                 }
-            } else if (pred instanceof LONotEqual) {
+            } else if (pred instanceof NotEqualExpression) {
                 if (leftIsConst) {
                     t.set(rightCol, generateData(rightDataType, leftConst
                             .toString()));
@@ -928,8 +955,8 @@ public class AugmentBaseDataVisitor extends LOVisitor {
                     t.set(leftCol, generateData(leftDataType, "0"));
                     t.set(rightCol, generateData(rightDataType, "0"));
                 }
-            } else if (pred instanceof LOGreaterThan
-                    || pred instanceof LOGreaterThanEqual) {
+            } else if (pred instanceof GreaterThanExpression
+                    || pred instanceof GreaterThanEqualExpression) {
                 if (leftIsConst) {
                     t.set(rightCol, generateData(rightDataType, GetLargerValue(
                             leftConst).toString()));
@@ -940,8 +967,8 @@ public class AugmentBaseDataVisitor extends LOVisitor {
                     t.set(leftCol, generateData(leftDataType, "0"));
                     t.set(rightCol, generateData(rightDataType, "1"));
                 }
-            } else if (pred instanceof LOLesserThan
-                    || pred instanceof LOLesserThanEqual) {
+            } else if (pred instanceof LessThanExpression
+                    || pred instanceof LessThanEqualExpression) {
                 if (leftIsConst) {
                     t.set(rightCol, generateData(rightDataType,
                             GetSmallerValue(leftConst).toString()));
@@ -957,27 +984,27 @@ public class AugmentBaseDataVisitor extends LOVisitor {
 
     }
 
-    void GenerateMatchingTupleHelper(Tuple t, LOAnd op, boolean invert)
-            throws ExecException {
-        ExpressionOperator input = op.getLhsOperand();
+    void GenerateMatchingTupleHelper(Tuple t, AndExpression op, boolean invert)
+            throws FrontendException, ExecException {
+        Operator input = op.getLhs();
         GenerateMatchingTupleHelper(t, input, invert);
-        input = op.getRhsOperand();
-        GenerateMatchingTupleHelper(t, input, invert);
-
-    }
-
-    void GenerateMatchingTupleHelper(Tuple t, LOOr op, boolean invert)
-            throws ExecException {
-        ExpressionOperator input = op.getLhsOperand();
-        GenerateMatchingTupleHelper(t, input, invert);
-        input = op.getRhsOperand();
+        input = op.getRhs();
         GenerateMatchingTupleHelper(t, input, invert);
 
     }
 
-    void GenerateMatchingTupleHelper(Tuple t, LONot op, boolean invert)
-            throws ExecException {
-        ExpressionOperator input = op.getOperand();
+    void GenerateMatchingTupleHelper(Tuple t, OrExpression op, boolean invert)
+            throws FrontendException, ExecException {
+        Operator input = op.getLhs();
+        GenerateMatchingTupleHelper(t, input, invert);
+        input = op.getRhs();
+        GenerateMatchingTupleHelper(t, input, invert);
+
+    }
+
+    void GenerateMatchingTupleHelper(Tuple t, NotExpression op, boolean invert)
+            throws FrontendException, ExecException {
+        LogicalExpression input = op.getExpression();
         GenerateMatchingTupleHelper(t, input, !invert);
 
     }
