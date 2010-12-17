@@ -55,6 +55,10 @@ public class LOUnion extends RelationalOperator {
         return mPlan.getPredecessors(this);
     }
     
+    public List<LogicalOperator> getInputs(LogicalPlan plan) {
+        return plan.getPredecessors(this);
+    }
+    
     @Override
     public Schema getSchema() throws FrontendException {
         if (!mIsSchemaComputed) {

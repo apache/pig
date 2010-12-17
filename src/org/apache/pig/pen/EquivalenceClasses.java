@@ -29,56 +29,56 @@ import java.util.Iterator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.Tuple;
-import org.apache.pig.impl.logicalLayer.LOForEach;
-import org.apache.pig.impl.logicalLayer.LOCross;
-import org.apache.pig.impl.logicalLayer.LogicalOperator;
-import org.apache.pig.impl.logicalLayer.LogicalPlan;
+import org.apache.pig.newplan.logical.relational.LOForEach;
+import org.apache.pig.newplan.logical.relational.LOCross;
+import org.apache.pig.newplan.logical.relational.LogicalRelationalOperator;
+import org.apache.pig.newplan.logical.relational.LogicalPlan;
+import org.apache.pig.newplan.Operator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.impl.util.IdentityHashSet;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.*;
-import org.apache.pig.impl.plan.VisitorException;
 
 
 //These methods are used to generate equivalence classes given the operator name and the output from the operator
 //For example, it gives out 2 eq. classes for filter, one that passes the filter and one that doesn't
 public class EquivalenceClasses {
     
-    public static Map<LogicalOperator, Collection<IdentityHashSet<Tuple>>> getLoToEqClassMap(PhysicalPlan plan,
-        LogicalPlan lp, Map<LogicalOperator, PhysicalOperator> logToPhyMap,
-        Map<LogicalOperator, DataBag> logToDataMap,
-        Map<LOForEach, Map<LogicalOperator, PhysicalOperator>> forEachInnerLogToPhyMap,
+    public static Map<LogicalRelationalOperator, Collection<IdentityHashSet<Tuple>>> getLoToEqClassMap(PhysicalPlan plan,
+        LogicalPlan lp, Map<Operator, PhysicalOperator> logToPhyMap,
+        Map<Operator, DataBag> logToDataMap,
+        Map<LOForEach, Map<LogicalRelationalOperator, PhysicalOperator>> forEachInnerLogToPhyMap,
         final HashMap<PhysicalOperator, Collection<IdentityHashSet<Tuple>>> poToEqclassesMap)
-        throws VisitorException {
-        Map<LogicalOperator, Collection<IdentityHashSet<Tuple>>> ret =
-          new HashMap<LogicalOperator, Collection<IdentityHashSet<Tuple>>>();
-        List<LogicalOperator> roots = lp.getRoots();
-        HashSet<LogicalOperator> seen = new HashSet<LogicalOperator>();
-        for(LogicalOperator lo: roots) {
+    {
+        Map<LogicalRelationalOperator, Collection<IdentityHashSet<Tuple>>> ret =
+          new HashMap<LogicalRelationalOperator, Collection<IdentityHashSet<Tuple>>>();
+        List<Operator> roots = lp.getSources();
+        HashSet<Operator> seen = new HashSet<Operator>();
+        for(Operator lo: roots) {
             getEqClasses(plan, lo, lp, logToPhyMap, ret, poToEqclassesMap, logToDataMap, forEachInnerLogToPhyMap, seen);
         }
         return ret;
     }
     
-    private static void getEqClasses(PhysicalPlan plan, LogicalOperator parent, LogicalPlan lp,
-        Map<LogicalOperator, PhysicalOperator> logToPhyMap, Map<LogicalOperator,
+    private static void getEqClasses(PhysicalPlan plan, Operator parent, LogicalPlan lp,
+        Map<Operator, PhysicalOperator> logToPhyMap, Map<LogicalRelationalOperator,
         Collection<IdentityHashSet<Tuple>>> result,
         final HashMap<PhysicalOperator, Collection<IdentityHashSet<Tuple>>> poToEqclassesMap,
-        Map<LogicalOperator, DataBag> logToDataMap,
-        Map<LOForEach, Map<LogicalOperator, PhysicalOperator>> forEachInnerLogToPhyMap,
-        HashSet<LogicalOperator> seen) throws VisitorException {
+        Map<Operator, DataBag> logToDataMap,
+        Map<LOForEach, Map<LogicalRelationalOperator, PhysicalOperator>> forEachInnerLogToPhyMap,
+        HashSet<Operator> seen) {
         if (parent instanceof LOForEach) {
             if (poToEqclassesMap.get(logToPhyMap.get(parent)) != null) {
                 LinkedList<IdentityHashSet<Tuple>> eqClasses = new LinkedList<IdentityHashSet<Tuple>>();
                 eqClasses.addAll(poToEqclassesMap.get(logToPhyMap.get(parent)));
-                for (Map.Entry<LogicalOperator, PhysicalOperator> entry : forEachInnerLogToPhyMap.get(parent).entrySet()) {
+                for (Map.Entry<LogicalRelationalOperator, PhysicalOperator> entry : forEachInnerLogToPhyMap.get(parent).entrySet()) {
                     if (poToEqclassesMap.get(entry.getValue()) != null)
                         eqClasses.addAll(poToEqclassesMap.get(entry.getValue()));
                 }
-                result.put(parent, eqClasses);
+                result.put((LogicalRelationalOperator) parent, eqClasses);
             }
         } else if (parent instanceof LOCross) {
             boolean ok = true; 
-            for (LogicalOperator input : ((LOCross) parent).getInputs()) {
+            for (Operator input : ((LOCross) parent).getInputs()) {
                 if (logToDataMap.get(input).size() < 2) {
                     // only if all inputs have at least more than two tuples will all outputs be added to the eq. class
                     ok = false;
@@ -92,12 +92,12 @@ public class EquivalenceClasses {
                     eqClass.add(it.next());
                 }
                 eqClasses.add(eqClass);
-                result.put(parent, eqClasses);
+                result.put((LogicalRelationalOperator) parent, eqClasses);
             } else {
                 LinkedList<IdentityHashSet<Tuple>> eqClasses = new LinkedList<IdentityHashSet<Tuple>>();
                 IdentityHashSet<Tuple> eqClass = new IdentityHashSet<Tuple>();
                 eqClasses.add(eqClass);
-                result.put(parent, eqClasses);
+                result.put((LogicalRelationalOperator)parent, eqClasses);
             }
         } else {
             Collection<IdentityHashSet<Tuple>> eqClasses = poToEqclassesMap.get(logToPhyMap.get(parent));
@@ -108,11 +108,11 @@ public class EquivalenceClasses {
                     eqClasses.add(new IdentityHashSet<Tuple>());
                 }
             }
-            result.put(parent, eqClasses);
+            result.put((LogicalRelationalOperator)parent, eqClasses);
         }
         // result.put(parent, getEquivalenceClasses(plan, parent, lp, logToPhyMap, poToEqclassesMap));
         if (lp.getSuccessors(parent) != null) {
-            for (LogicalOperator lo : lp.getSuccessors(parent)) {
+            for (Operator lo : lp.getSuccessors(parent)) {
                 if (!seen.contains(lo)) {
                     seen.add(lo);
                     getEqClasses(plan, lo, lp, logToPhyMap, result, poToEqclassesMap, logToDataMap, forEachInnerLogToPhyMap, seen);

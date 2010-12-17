@@ -20,8 +20,6 @@ package org.apache.pig.backend.hadoop.executionengine.mapReduceLayer;
 import java.io.ByteArrayOutputStream;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.Map;
-import java.util.HashMap;
 
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.NodeIdGenerator;
@@ -32,6 +30,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
 import org.apache.pig.impl.plan.Operator;
 import org.apache.pig.impl.plan.PlanException;
 import org.apache.pig.impl.plan.VisitorException;
+import org.apache.pig.impl.util.MultiMap;
 
 /**
  * An operator model for a Map Reduce job. 
@@ -150,7 +149,7 @@ public class MapReduceOper extends Operator<MROpPlanVisitor> {
 	
 	// Map of the physical operator in physical plan to the one in MR plan: only needed
 	// if the physical operator is changed/replaced in MR compilation due to, e.g., optimization
-	public Map<PhysicalOperator, PhysicalOperator> phyToMRMap;
+	public MultiMap<PhysicalOperator, PhysicalOperator> phyToMRMap;
 	
 	private static enum OPER_FEATURE {
 	    NONE,
@@ -175,7 +174,7 @@ public class MapReduceOper extends Operator<MROpPlanVisitor> {
         scalars = new HashSet<PhysicalOperator>();
         nig = NodeIdGenerator.getGenerator();
         scope = k.getScope();
-        phyToMRMap = new HashMap<PhysicalOperator, PhysicalOperator>();
+        phyToMRMap = new MultiMap<PhysicalOperator, PhysicalOperator>();
     }
 
     /*@Override

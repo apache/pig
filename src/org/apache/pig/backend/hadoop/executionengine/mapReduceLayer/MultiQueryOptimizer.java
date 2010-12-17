@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Iterator;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -77,12 +78,14 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
     
     private String scope;
     
-    MultiQueryOptimizer(MROperPlan plan) {
+    private boolean inIllustrator = false;
+    
+    MultiQueryOptimizer(MROperPlan plan, boolean inIllustrator) {
         super(plan, new ReverseDependencyOrderWalker<MapReduceOper, MROperPlan>(plan));
         nig = NodeIdGenerator.getGenerator();
         List<MapReduceOper> roots = plan.getRoots();
         scope = roots.get(0).getOperatorKey().getScope();
-        
+        this.inIllustrator = inIllustrator;
         log.info("MR plan size before optimization: " + plan.size());
     }
 
@@ -290,13 +293,28 @@ class MultiQueryOptimizer extends MROpPlanVisitor {
                 PhysicalOperator opSucc = succ.mapPlan.getSuccessors(op).get(0);
                 PhysicalPlan clone = null;
                 try {
+                    if (inIllustrator)
+                        pl.setOpMap(succ.phyToMRMap);
                     clone = pl.clone();
+                    if (inIllustrator)
+                        pl.resetOpMap();
                 } catch (CloneNotSupportedException e) {
                     int errCode = 2127;
                     String msg = "Internal Error: Cloning of plan failed for optimization.";
                     throw new OptimizerException(msg, errCode, PigException.BUG, e);
                 }
                 succ.mapPlan.remove(op);
+                
+                if (inIllustrator) {
+                    // need to remove the LOAD since data from load on temporary files can't be handled by illustrator
+                    for (Iterator<PhysicalOperator> it = pl.iterator(); it.hasNext(); )
+                    {
+                        PhysicalOperator po = it.next();
+                        if (po instanceof POLoad)
+                            succ.phyToMRMap.removeKey(po);
+                    }
+                }
+                
                 while (!clone.isEmpty()) {
                     PhysicalOperator oper = clone.getLeaves().get(0);
                     clone.remove(oper);

@@ -107,10 +107,10 @@ public class HExecutionEngine {
     // map from LOGICAL key to into about the execution
     protected Map<OperatorKey, MapRedResult> materializedResults;
     
-    protected Map<LogicalOperator, PhysicalOperator> logToPhyMap;
     protected Map<LogicalOperator, LogicalRelationalOperator> opsMap;
     protected Map<Operator, PhysicalOperator> newLogToPhyMap;
     private Map<LOForEach, Map<LogicalOperator, LogicalRelationalOperator>> forEachInnerOpMap;
+    private org.apache.pig.newplan.logical.relational.LogicalPlan newPreoptimizedPlan;
     
     public HExecutionEngine(PigContext pigContext) {
         this.pigContext = pigContext;
@@ -265,6 +265,8 @@ public class HExecutionEngine {
                 opsMap = visitor.getOldToNewLOOpMap();
                 forEachInnerOpMap = visitor.getForEachInnerMap();
                 org.apache.pig.newplan.logical.relational.LogicalPlan newPlan = visitor.getNewLogicalPlan();
+                newPreoptimizedPlan =
+                    new org.apache.pig.newplan.logical.relational.LogicalPlan(newPlan);
                 
                 if (pigContext.inIllustrator) {
                     // disable all PO-specific optimizations
@@ -342,31 +344,26 @@ public class HExecutionEngine {
         }
     }
     
-    public Map<LogicalOperator, PhysicalOperator> getLogToPhyMap() {
-        if (logToPhyMap != null)
-            return logToPhyMap;
-        else if (newLogToPhyMap != null) {
-            Map<LogicalOperator, PhysicalOperator> result = new HashMap<LogicalOperator, PhysicalOperator>();
-            for (LogicalOperator lo: opsMap.keySet()) {
-                result.put(lo, newLogToPhyMap.get(opsMap.get(lo))); 
-            }
-            return result;
-        } else
-            return null;
+    public Map<Operator, PhysicalOperator> getLogToPhyMap() {
+        return newLogToPhyMap;
     }
     
-    public Map<LOForEach, Map<LogicalOperator, PhysicalOperator>> getForEachInnerLogToPhyMap() {
-        Map<LOForEach, Map<LogicalOperator, PhysicalOperator>> result =
-            new HashMap<LOForEach, Map<LogicalOperator, PhysicalOperator>>();
+    public Map<org.apache.pig.newplan.logical.relational.LOForEach, Map<LogicalRelationalOperator, PhysicalOperator>> getForEachInnerLogToPhyMap() {
+        Map<org.apache.pig.newplan.logical.relational.LOForEach, Map<LogicalRelationalOperator, PhysicalOperator>> result =
+            new HashMap<org.apache.pig.newplan.logical.relational.LOForEach, Map<LogicalRelationalOperator, PhysicalOperator>>();
         for (Map.Entry<LOForEach, Map<LogicalOperator, LogicalRelationalOperator>> entry :
             forEachInnerOpMap.entrySet()) {
-            Map<LogicalOperator, PhysicalOperator> innerOpMap = new HashMap<LogicalOperator, PhysicalOperator>();
+            Map<LogicalRelationalOperator, PhysicalOperator> innerOpMap = new HashMap<LogicalRelationalOperator, PhysicalOperator>();
             for (Map.Entry<LogicalOperator, LogicalRelationalOperator> innerEntry : entry.getValue().entrySet()) {
-                innerOpMap.put(innerEntry.getKey(), newLogToPhyMap.get(innerEntry.getValue()));
+                innerOpMap.put(innerEntry.getValue(), newLogToPhyMap.get(innerEntry.getValue()));
             }
-            result.put(entry.getKey(), innerOpMap);
+            result.put((org.apache.pig.newplan.logical.relational.LOForEach) (opsMap.get(entry.getKey())), innerOpMap);
         }
         return result;
+    }
+    
+    public org.apache.pig.newplan.logical.relational.LogicalPlan getNewPlan() {
+        return newPreoptimizedPlan;
     }
     
     public static class SortInfoSetter extends LogicalRelationalNodesVisitor {

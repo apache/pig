@@ -25,6 +25,7 @@ import org.apache.pig.FuncSpec;
 import org.apache.pig.SortColInfo;
 import org.apache.pig.SortInfo;
 import org.apache.pig.impl.logicalLayer.FrontendException;
+import org.apache.pig.impl.logicalLayer.LogicalOperator;
 import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.OperatorPlan;
 import org.apache.pig.newplan.PlanVisitor;
@@ -156,5 +157,9 @@ public class LOSort extends LogicalRelationalOperator{
                 return false;
         }
         return checkEquality((LogicalRelationalOperator)other);
+    }
+    
+    public Operator getInput(LogicalPlan plan) {
+        return plan.getPredecessors(this).get(0);
     }
 }

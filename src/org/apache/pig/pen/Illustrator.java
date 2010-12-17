@@ -29,7 +29,7 @@ import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.pen.util.LineageTracer;
 import org.apache.pig.impl.util.IdentityHashSet;
-import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.newplan.logical.relational.LogicalSchema;
 
 /**
  * Class used by physical operators to generate example tuples for the ILLUSTRATE
@@ -51,7 +51,7 @@ public class Illustrator {
     private Boolean[] subExpResult;
     private boolean eqClassesShared;
     private long oriLimit = -1;
-    private Schema schema;
+    private LogicalSchema schema;
 
     public Illustrator(LineageTracer lineage, LinkedList<IdentityHashSet<Tuple>> equivalenceClasses, IllustratorAttacher attacher, PigContext hadoopPigContext) {
         this.lineage = lineage;
@@ -64,7 +64,7 @@ public class Illustrator {
     }
     
     public Illustrator(LineageTracer lineage, LinkedList<IdentityHashSet<Tuple>> equivalenceClasses, int maxRecords, IllustratorAttacher attacher,
-        Schema schema, PigContext hadoopPigContext) {
+        LogicalSchema schema, PigContext hadoopPigContext) {
         this(lineage, equivalenceClasses, attacher, hadoopPigContext);
         this.maxRecords = maxRecords;
         this.schema = schema;
@@ -136,7 +136,7 @@ public class Illustrator {
         return eqClassesShared;
     }
     
-    public Schema getSchema() {
+    public LogicalSchema getSchema() {
         return schema;
     }
 }

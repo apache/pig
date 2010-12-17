@@ -56,8 +56,8 @@ import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.NullableTuple;
 import org.apache.pig.impl.io.PigNullableWritable;
-import org.apache.pig.impl.logicalLayer.LOLoad;
-import org.apache.pig.impl.logicalLayer.LogicalOperator;
+import org.apache.pig.newplan.logical.relational.LOLoad;
+import org.apache.pig.newplan.logical.relational.LogicalRelationalOperator;
 import org.apache.pig.impl.plan.DepthFirstWalker;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.VisitorException;
@@ -82,7 +82,6 @@ public class LocalMapReduceSimulator {
 
     @SuppressWarnings("unchecked")
     public void launchPig(PhysicalPlan php, Map<LOLoad, DataBag> baseData,
-                              Map<PhysicalOperator, LogicalOperator> poLoadToLogMap,
                               LineageTracer lineage,
                               IllustratorAttacher attacher,
                               ExampleGenerator eg,
@@ -158,7 +157,7 @@ public class LocalMapReduceSimulator {
                 for (POLoad ld : lds) {
                     input = output.get(ld.getLFile().getFileName());
                     if (input == null && baseData != null) {
-                        for (LogicalOperator lo : baseData.keySet()) {
+                        for (LogicalRelationalOperator lo : baseData.keySet()) {
                             if (((LOLoad) lo).getSchemaFile().equals(ld.getLFile().getFileName()))
                             {
                                  input = baseData.get(lo);
@@ -174,7 +173,7 @@ public class LocalMapReduceSimulator {
                     input = output.get(ld.getLFile().getFileName());
                     if (input == null && baseData != null) {
                         if (input == null && baseData != null) {
-                            for (LogicalOperator lo : baseData.keySet()) {
+                            for (LogicalRelationalOperator lo : baseData.keySet()) {
                                 if (((LOLoad) lo).getSchemaFile().equals(ld.getLFile().getFileName()))
                                 {
                                      input = baseData.get(lo);
@@ -224,7 +223,9 @@ public class LocalMapReduceSimulator {
                         context = reduce.getIllustratorContext(job, intermediateData, (POPackage) pack);
                     reduce.run(context);
                 }
-                phyToMRMap.putAll(mro.phyToMRMap);
+                for (PhysicalOperator key : mro.phyToMRMap.keySet())
+                    for (PhysicalOperator value : mro.phyToMRMap.get(key))
+                        phyToMRMap.put(key, value);
             }
             
             

@@ -52,6 +52,10 @@ public class LOLimit extends RelationalOperator {
         return mPlan.getPredecessors(this).get(0);
     }
 
+    public LogicalOperator getInput(LogicalPlan plan) {
+        return plan.getPredecessors(this).get(0);
+    }
+    
     public long getLimit() {
         return mLimit;
     }

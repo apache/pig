@@ -102,6 +102,7 @@ import org.apache.pig.impl.util.PropertiesUtil;
 import org.apache.pig.impl.util.Utils;
 import org.apache.pig.newplan.logical.LogicalPlanMigrationVistor;
 import org.apache.pig.newplan.logical.optimizer.LogicalPlanOptimizer;
+import org.apache.pig.newplan.Operator;
 import org.apache.pig.pen.ExampleGenerator;
 import org.apache.pig.scripting.ScriptEngine;
 import org.apache.pig.tools.grunt.GruntParser;
@@ -1125,7 +1126,7 @@ public class PigServer {
         return currDAG.getAliasOp().keySet();
     }
 
-    public Map<LogicalOperator, DataBag> getExamples(String alias) throws IOException {
+    public Map<Operator, DataBag> getExamples(String alias) throws IOException {
         LogicalPlan plan = null;
         try {        
             if (currDAG.isBatchOn() && alias != null) {

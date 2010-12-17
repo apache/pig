@@ -18,6 +18,7 @@
 package org.apache.pig.newplan.logical.relational;
 
 import org.apache.pig.impl.logicalLayer.FrontendException;
+import org.apache.pig.impl.logicalLayer.LogicalOperator;
 import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.PlanVisitor;
 
@@ -68,5 +69,9 @@ public class LOLimit extends LogicalRelationalOperator {
             return checkEquality((LogicalRelationalOperator)other);
         else
             return false;
+    }
+    
+    public Operator getInput(LogicalPlan plan) {
+        return plan.getPredecessors(this).get(0);
     }
 }

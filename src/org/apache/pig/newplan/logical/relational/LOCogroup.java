@@ -292,4 +292,8 @@ public class LOCogroup extends LogicalRelationalOperator {
         groupKeyUidOnlySchema = null;
         generatedInputUids = new HashMap<Integer,Long>();
     }
+    
+    public List<Operator> getInputs(LogicalPlan plan) {
+      return plan.getPredecessors(this);
+    }
 }
