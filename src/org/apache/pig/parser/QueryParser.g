@@ -54,6 +54,7 @@ tokens {
     BAG_TYPE;
     NEG;
     EXPR_IN_PAREN;
+    JOIN_ITEM;
 }
 
 @header {
@@ -136,9 +137,8 @@ op_clause : define_clause
           | limit_clause
           | sample_clause
           | order_clause
-          | partition_clause
           | cross_clause
-          | joint_clause
+          | join_clause
           | union_clause
           | stream_clause
           | mr_clause
@@ -245,15 +245,10 @@ group_item_list : group_item ( COMMA group_item )*
                -> group_item+
 ;
 
-group_item : rel ( ( BY! flatten_generated_item_list ) | ALL | ANY ) ( INNER | OUTER )?
+group_item : rel ( join_group_by_clause | ALL | ANY ) ( INNER | OUTER )?
 ;
 
 rel : alias | LEFT_PAREN! op_clause RIGHT_PAREN!
-;
-
-flatten_generated_item_list : LEFT_PAREN flatten_generated_item ( COMMA flatten_generated_item )* RIGHT_PAREN
-                           -> flatten_generated_item+
-                            | flatten_generated_item
 ;
 
 flatten_generated_item : ( flatten_clause | expr | STAR ) as_clause?
@@ -379,7 +374,10 @@ rel_list : rel ( COMMA rel )*
         -> rel+
 ;
 
-joint_clause : JOIN^ join_sub_clause ( USING! QUOTEDSTRING )? partition_clause?
+join_clause : JOIN^ join_sub_clause ( USING! join_type )? partition_clause?
+;
+
+join_type : JOIN_TYPE_REPL | JOIN_TYPE_MERGE | JOIN_TYPE_SKEWED | JOIN_TYPE_DEFAULT
 ;
 
 join_sub_clause : join_item ( LEFT | RIGHT | FULL ) OUTER? join_item
@@ -389,7 +387,19 @@ join_sub_clause : join_item ( LEFT | RIGHT | FULL ) OUTER? join_item
 join_item_list : join_item ( COMMA! join_item )+
 ;
 
-join_item : rel BY! flatten_generated_item_list
+join_item : rel join_group_by_clause
+         -> ^( JOIN_ITEM  rel join_group_by_clause )
+;
+
+join_group_by_clause : BY^ join_group_by_expr_list
+;
+
+join_group_by_expr_list : LEFT_PAREN join_group_by_expr ( COMMA join_group_by_expr )* RIGHT_PAREN
+                       -> join_group_by_expr+
+                        | join_group_by_expr
+;
+
+join_group_by_expr : expr | STAR
 ;
 
 union_clause : UNION^ ONSCHEMA? rel_list
@@ -416,8 +426,8 @@ nested_command_list : ( nested_command SEMI_COLON )*
                     |
 ;
 
-nested_command : IDENTIFIER EQUAL expr 
-              -> ^( NESTED_CMD IDENTIFIER expr  )
+nested_command : IDENTIFIER EQUAL expr
+              -> ^( NESTED_CMD IDENTIFIER expr )
                | IDENTIFIER EQUAL nested_op
               -> ^( NESTED_CMD IDENTIFIER nested_op )
 ;
@@ -437,16 +447,19 @@ col_ref_list : ( col_ref | ( LEFT_PAREN col_ref ( COMMA col_ref )* RIGHT_PAREN )
             -> col_ref+
 ;
 
-nested_filter : FILTER^ ( IDENTIFIER | nested_proj | expr_eval ) BY! cond
+nested_alias_ref : IDENTIFIER
 ;
 
-nested_sort : ORDER^ ( IDENTIFIER | nested_proj | expr_eval ) BY!  order_by_clause ( USING! func_clause )?
+nested_filter : FILTER^ ( nested_alias_ref | nested_proj | expr_eval ) BY! cond
 ;
 
-nested_distinct : DISTINCT^ ( IDENTIFIER | nested_proj | expr_eval )
+nested_sort : ORDER^ ( nested_alias_ref | nested_proj | expr_eval ) BY!  order_by_clause ( USING! func_clause )?
 ;
 
-nested_limit : LIMIT^ ( IDENTIFIER | nested_proj | expr_eval ) INTEGER
+nested_distinct : DISTINCT^ ( nested_alias_ref | nested_proj | expr_eval )
+;
+
+nested_limit : LIMIT^ ( nested_alias_ref | nested_proj | expr_eval ) INTEGER
 ;
 
 stream_clause : STREAM^ rel THROUGH! ( EXECCOMMAND | IDENTIFIER ) as_clause?

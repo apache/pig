@@ -37,6 +37,7 @@ package org.apache.pig.parser;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.pig.impl.util.MultiMap;
 import org.apache.pig.newplan.logical.expression.AddExpression;
 import org.apache.pig.newplan.logical.expression.AndExpression;
 import org.apache.pig.newplan.logical.expression.BinCondExpression;
@@ -63,6 +64,7 @@ import org.apache.pig.newplan.logical.relational.LogicalPlan;
 import org.apache.pig.newplan.logical.relational.LogicalRelationalOperator;
 import org.apache.pig.newplan.logical.relational.LogicalSchema;
 import org.apache.pig.newplan.logical.relational.LogicalSchema.LogicalFieldSchema;
+import org.apache.pig.newplan.logical.relational.LOJoin.JOINTYPE;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
@@ -92,7 +94,7 @@ scope {
 }
 @init {
 }
-: ^( STATEMENT ( alias { $general_statement::alias = $alias.ret; } )? 
+: ^( STATEMENT ( alias { $general_statement::alias = $alias.name; } )? 
   op_clause ( INTEGER { $general_statement::parallel = Integer.parseInt( $INTEGER.text ); } )? )
 ;
 
@@ -101,33 +103,32 @@ scope {
 foreach_statement : ^( STATEMENT alias? foreach_clause[$alias.text] )
 ;
 
-alias returns[String ret]: IDENTIFIER { $ret = $IDENTIFIER.text; }
+alias returns[String name]: IDENTIFIER { $name = $IDENTIFIER.text; }
 ;
 
 op_clause returns[String alias] : 
             define_clause 
           | load_clause { $alias = $load_clause.alias; }
-          | group_clause
-          | store_clause
-          | filter_clause
-          | distinct_clause
+          | group_clause { $alias = $group_clause.alias; }
+          | store_clause { $alias = $store_clause.alias; }
+          | filter_clause { $alias = $filter_clause.alias; }
+          | distinct_clause { $alias = $distinct_clause.alias; }
           | limit_clause { $alias = $limit_clause.alias; }
-          | sample_clause
-          | order_clause
-          | partition_clause
-          | cross_clause
-          | joint_clause
-          | union_clause
+          | sample_clause { $alias = $sample_clause.alias; }
+          | order_clause { $alias = $order_clause.alias; }
+          | cross_clause { $alias = $cross_clause.alias; }
+          | join_clause { $alias = $join_clause.alias; }
+          | union_clause { $alias = $union_clause.alias; }
           | stream_clause
           | mr_clause
-          | split_clause
+          | split_clause { $alias = $split_clause.alias; }
 ;
 
 define_clause 
  : ^( DEFINE alias cmd ) 
  | ^( DEFINE alias func_clause )
    {
-       builder.defineFunction( $alias.ret, $func_clause.funcSpec );
+       builder.defineFunction( $alias.name, $func_clause.funcSpec );
    }
 ;
 
@@ -284,34 +285,34 @@ func_args returns[List<String> args]
 : ( QUOTEDSTRING { $args.add( builder.unquote( $QUOTEDSTRING.text ) ); } )+
 ;
 
-group_clause : ^( GROUP group_item_list QUOTEDSTRING? )
-             | ^( COGROUP group_item_list QUOTEDSTRING? )
+group_clause returns[String alias]
+ : ^( GROUP group_item_list QUOTEDSTRING? )
+ | ^( COGROUP group_item_list QUOTEDSTRING? )
 ;
 
 group_item_list : group_item+
 ;
 
-group_item : rel ( ( flatten_generated_item_list ) | ALL | ANY ) ( INNER | OUTER )?
+group_item : rel ( join_group_by_clause[$rel.name] | ALL | ANY ) ( INNER | OUTER )?
 ;
 
-rel returns[String ret] : alias { $ret = $alias.ret; }
-                        | op_clause { $ret = $op_clause.alias; }
+rel returns[String name] : alias { $name = $alias.name; }
+                        | op_clause { $name = $op_clause.alias; }
 ;
 
-flatten_generated_item_list : flatten_generated_item+
+flatten_generated_item
+ : ( flatten_clause | expr[null] | STAR ) as_clause?
 ;
 
-flatten_generated_item : ( flatten_clause | expr[null] | STAR ) as_clause?
-;
-
-flatten_clause : ^( FLATTEN expr[null] )
+flatten_clause
+ : ^( FLATTEN expr[null] )
 ;
 
 store_clause returns[String alias]
  : ^( STORE alias filename func_clause? )
    {
        $alias= builder.buildStoreOp( $general_statement::alias,
-          $general_statement::parallel, $alias.ret, $filename.filename, $func_clause.funcSpec );
+          $general_statement::parallel, $alias.name, $filename.filename, $func_clause.funcSpec );
    }
 ;
 
@@ -320,7 +321,7 @@ filter_clause returns[String alias]
  : ^( FILTER rel cond[exprPlan] )
    {
        $alias = builder.buildFilterOp( $general_statement::alias,
-          $general_statement::parallel, $rel.ret, exprPlan );
+          $general_statement::parallel, $rel.name, exprPlan );
    }
 ;
 
@@ -454,56 +455,160 @@ bin_expr[LogicalExpressionPlan plan] returns[LogicalExpression expr]
    }
 ;
 
-limit_clause returns[String alias] : ^( LIMIT rel INTEGER  )
-{
-$alias = builder.buildLimitOp( $general_statement::alias,
-    $general_statement::parallel, $rel.ret, Long.valueOf( $INTEGER.text ) );
+limit_clause returns[String alias]
+ : ^( LIMIT rel INTEGER  )
+   {
+       $alias = builder.buildLimitOp( $general_statement::alias,
+           $general_statement::parallel, $rel.name, Long.valueOf( $INTEGER.text ) );
+   }
+ | ^( LIMIT rel LONGINTEGER )
+   {
+       $alias = builder.buildLimitOp( $general_statement::alias,
+           $general_statement::parallel, $rel.name, Long.valueOf( $LONGINTEGER.text ) );
+   }
+;
+
+sample_clause returns[String alias]
+ : ^( SAMPLE rel DOUBLENUMBER )
+   {
+       $alias = builder.buildSampleOp( $general_statement::alias,
+           $general_statement::parallel, $rel.name, Double.valueOf( $DOUBLENUMBER.text ) );
+   }
+;
+
+order_clause returns[String alias]
+ : ^( ORDER rel order_by_clause[$rel.name] func_clause? )
+   {
+       $alias = builder.buildOrderOp( $general_statement::alias,
+           $general_statement::parallel, $rel.name, $order_by_clause.plans, 
+           $order_by_clause.ascFlags, $func_clause.funcSpec );
+   }
+;
+
+order_by_clause[String opAlias] returns[List<LogicalExpressionPlan> plans, List<Boolean> ascFlags]
+@init {
+    $plans = new ArrayList<LogicalExpressionPlan>();
+    $ascFlags = new ArrayList<Boolean>();
 }
-             | ^( LIMIT rel LONGINTEGER )
+ : STAR {
+       LogicalExpressionPlan plan = builder.buildProjectStar( $opAlias );
+       $plans.add( plan );
+   }
+   ( ASC | DESC { $ascFlags.add( false ); } )?
+ | ( order_col
+   {
+       $plans.add( $order_col.plan );
+       $ascFlags.add( $order_col.ascFlag );
+   } )+
 ;
 
-sample_clause : ^( SAMPLE rel DOUBLENUMBER )
+order_col returns[LogicalExpressionPlan plan, Boolean ascFlag]
+@init { 
+    $plan = new LogicalExpressionPlan();
+    $ascFlag = true;
+}
+ : col_ref[$plan] ( ASC | DESC { $ascFlag = false; } )?
 ;
 
-order_clause : ^( ORDER rel order_by_clause func_clause? )
+distinct_clause returns[String alias]
+ : ^( DISTINCT rel partition_clause? )
+   {
+       $alias = builder.buildDistinctOp( $general_statement::alias,
+          $general_statement::parallel, $rel.name, $partition_clause.partitioner );
+   }
 ;
 
-order_by_clause : STAR ( ASC | DESC )?
-                | order_col_list
+partition_clause returns[String partitioner]
+ : ^( PARTITION func_name )
+   {
+       $partitioner = $func_name.funcName;
+   }
 ;
 
-order_col_list : order_col+
+cross_clause returns[String alias]
+ : ^( CROSS rel_list partition_clause? )
+   {
+       $alias = builder.buildCrossOp( $general_statement::alias,
+          $general_statement::parallel, $rel_list.aliasList, $partition_clause.partitioner );
+   }
 ;
 
-order_col : col_ref[null] ( ASC | DESC )?
+rel_list returns[List<String> aliasList]
+@init { $aliasList = new ArrayList<String>(); }
+ : ( rel { $aliasList.add( $rel.name ); } )+
 ;
 
-distinct_clause : ^( DISTINCT rel partition_clause? )
+join_clause returns[String alias]
+scope {
+    MultiMap<Integer, LogicalExpressionPlan> joinPlans;
+    int inputIndex;
+    List<String> inputAliases;
+    List<Boolean> innerFlags;
+}
+@init {
+    $join_clause::joinPlans = new MultiMap<Integer, LogicalExpressionPlan>();
+    $join_clause::inputAliases = new ArrayList<String>();
+    $join_clause::innerFlags = new ArrayList<Boolean>();
+}
+ : ^( JOIN join_sub_clause join_type? partition_clause? )
+   {
+       $alias = builder.buildJoinOp( $general_statement::alias,
+          $general_statement::parallel, $join_clause::inputAliases, $join_clause::joinPlans,
+          $join_type.type, $join_clause::innerFlags, $partition_clause.partitioner );
+   }
 ;
 
-partition_clause : ^( PARTITION func_name )
+join_type returns[JOINTYPE type]
+ : JOIN_TYPE_REPL { $type = JOINTYPE.REPLICATED; }
+ | JOIN_TYPE_MERGE { $type = JOINTYPE.MERGE; }
+ | JOIN_TYPE_SKEWED { $type = JOINTYPE.SKEWED; }
+ | JOIN_TYPE_DEFAULT { $type = JOINTYPE.HASH; }
 ;
 
-cross_clause : ^( CROSS rel_list partition_clause? )
+join_sub_clause
+ : join_item ( LEFT { $join_clause::innerFlags.add( false ); 
+                      $join_clause::innerFlags.add( true ); } 
+             | RIGHT { $join_clause::innerFlags.add( true ); 
+                       $join_clause::innerFlags.add( false ); }
+             | FULL { $join_clause::innerFlags.add( false ); 
+                      $join_clause::innerFlags.add( false ); } ) OUTER? join_item
+   {
+   }
+ | join_item+
 ;
 
-rel_list : rel+
+join_item
+ : ^( JOIN_ITEM rel join_group_by_clause[$rel.name] )
+   {
+       $join_clause::inputAliases.add( $rel.name );
+       $join_clause::joinPlans.put( $join_clause::inputIndex, $join_group_by_clause.plans );
+       $join_clause::inputIndex++;
+   }
 ;
 
-joint_clause : ^( JOIN join_sub_clause QUOTEDSTRING? partition_clause? )
+join_group_by_clause[String alias] returns[List<LogicalExpressionPlan> plans]
+scope { String inputAlias; }
+@init {
+    $join_group_by_clause::inputAlias = $alias;
+    $plans = new ArrayList<LogicalExpressionPlan>();
+}
+ : ^( BY ( join_group_by_expr { $plans.add( $join_group_by_expr.plan ); } )+ )
 ;
 
-join_sub_clause : join_item ( LEFT | RIGHT | FULL ) OUTER? join_item
-                | join_item_list
+join_group_by_expr returns[LogicalExpressionPlan plan]
+ : { $plan = new LogicalExpressionPlan(); } expr[$plan]
+ | STAR 
+   {
+       $plan = builder.buildProjectStar( $join_group_by_clause::inputAlias );
+   }
 ;
 
-join_item_list : join_item ( join_item )+
-;
-
-join_item : rel flatten_generated_item_list
-;
-
-union_clause : ^( UNION ONSCHEMA? rel_list )
+union_clause returns[String alias]
+ : ^( UNION ONSCHEMA? rel_list )
+   {
+      $alias = builder.buildUnionOp( $general_statement::alias,
+          $general_statement::parallel, $rel_list.aliasList );
+   }
 ;
 
 foreach_clause[String alias] returns[LogicalRelationalOperator op] : ^( FOREACH rel nested_plan )
@@ -522,8 +627,7 @@ generate_clause : ^( GENERATE flatten_generated_item+ )
 nested_command_list : nested_command*
 ;
 
-nested_command : ^( NESTED_CMD IDENTIFIER expr[null]  )
-               | ^( NESTED_CMD IDENTIFIER nested_op )
+nested_command : ^( NESTED_CMD IDENTIFIER ( expr[null] | nested_op ) )
 ;
 
 nested_op : nested_proj
@@ -539,16 +643,19 @@ nested_proj : ^( NESTED_PROJ col_ref[null] col_ref_list )
 col_ref_list : col_ref[null]+
 ;
 
-nested_filter : ^( FILTER ( IDENTIFIER | nested_proj | expr[null] ) cond[null] )
+nested_alias_ref : IDENTIFIER
 ;
 
-nested_sort : ^( ORDER ( IDENTIFIER | nested_proj | expr[null] )  order_by_clause func_clause? )
+nested_filter : ^( FILTER ( nested_alias_ref | nested_proj | expr[null] ) cond[null] )
 ;
 
-nested_distinct : ^( DISTINCT ( IDENTIFIER | nested_proj | expr[null] ) )
+nested_sort : ^( ORDER ( nested_alias_ref | nested_proj | expr[null] )  order_by_clause[null] func_clause? )
 ;
 
-nested_limit : ^( LIMIT ( IDENTIFIER | nested_proj | expr[null] ) INTEGER )
+nested_distinct : ^( DISTINCT ( nested_alias_ref | nested_proj | expr[null] ) )
+;
+
+nested_limit : ^( LIMIT ( nested_alias_ref | nested_proj | expr[null] ) INTEGER )
 ;
 
 stream_clause : ^( STREAM rel ( EXECCOMMAND | IDENTIFIER ) as_clause? )
@@ -557,10 +664,20 @@ stream_clause : ^( STREAM rel ( EXECCOMMAND | IDENTIFIER ) as_clause? )
 mr_clause : ^( MAPREDUCE QUOTEDSTRING path_list? store_clause load_clause EXECCOMMAND? )
 ;
 
-split_clause : ^( SPLIT rel split_branch+ )
+split_clause returns[String alias]
+ : ^( SPLIT rel { $alias = builder.buildSplitOp( $general_statement::alias, 
+                  $general_statement::parallel, $rel.name ); } 
+      split_branch[$alias]+ )
+   
 ;
 
-split_branch : ^( SPLIT_BRANCH IDENTIFIER cond[null] )
+split_branch[String inputAlias] returns[String alias]
+@init { LogicalExpressionPlan splitPlan = new LogicalExpressionPlan(); }
+ : ^( SPLIT_BRANCH IDENTIFIER cond[splitPlan] )
+   {
+       $alias = builder.buildSplitOutputOp( $IDENTIFIER.text,
+          $general_statement::parallel, $inputAlias, splitPlan );
+   }
 ;
 
 col_ref[LogicalExpressionPlan plan] returns[LogicalExpression expr]
@@ -778,4 +895,3 @@ rel_str_op returns[String id]
  | STR_OP_LTE { $id = $STR_OP_LTE.text; }
  | STR_OP_MATCHES { $id = $STR_OP_MATCHES.text; }
 ;
-

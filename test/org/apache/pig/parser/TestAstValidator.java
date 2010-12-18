@@ -108,4 +108,17 @@ public class TestAstValidator {
         }
         Assert.assertTrue( false ); // should never come here.
     }
+
+    @Test
+    public void tesNegative3() throws RecognitionException, IOException {
+        try {
+            ParserTestingUtils.validateAst( "A = load 'x'; C = limit B 100;" );
+        } catch(ParsingFailureException ex) {
+            Assert.assertEquals( AstValidator.class, ex.getParsingClass() );
+            return;
+        }
+        Assert.assertTrue( false ); // should never come here.
+    }
+    
+    // TODO: need a test similar to above but for foreach inner plan.
 }

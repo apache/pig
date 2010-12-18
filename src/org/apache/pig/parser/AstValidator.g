@@ -51,6 +51,9 @@ public String getErrorMessage(RecognitionException e, String[] tokenNames) {
     if ( e instanceof DuplicatedSchemaAliasException ) {
         DuplicatedSchemaAliasException dae = (DuplicatedSchemaAliasException)e;
         msg = "Duplicated schema alias name '"+ dae.getAlias() + "' in the schema definition";
+    } else if( e instanceof UndefinedAliasException ) {
+        UndefinedAliasException dae = (UndefinedAliasException)e;
+        msg = "Alias '"+ dae.getAlias() + "' is not defined";
     }
     
     return msg;
@@ -65,6 +68,17 @@ throws DuplicatedSchemaAliasException {
     }
 }
 
+private void validateAliasRef(Set<String> aliases, String alias)
+throws UndefinedAliasException {
+    if( !aliases.contains( alias ) ) {
+        throw new UndefinedAliasException( input, alias );
+    } else {
+        aliases.add( alias );
+    }
+}
+
+private Set<String> aliases = new HashSet<String>();
+
 } // End of @members
 
 query : ^( QUERY statement* )
@@ -73,15 +87,15 @@ query : ^( QUERY statement* )
 statement : general_statement | foreach_statement
 ;
 
-general_statement : ^( STATEMENT alias? op_clause INTEGER? )
+general_statement : ^( STATEMENT ( alias { aliases.add( $alias.name ); } )? op_clause INTEGER? )
 ;
 
 // We need to handle foreach specifically because of the ending ';', which is not required 
 // if there is a nested block. This is ugly, but it gets the job done.
-foreach_statement : ^( STATEMENT alias? foreach_clause )
+foreach_statement : ^( STATEMENT ( alias { aliases.add( $alias.name ); } )? foreach_clause )
 ;
 
-alias : IDENTIFIER
+alias returns[String name] : IDENTIFIER { $name = $IDENTIFIER.text; }
 ;
 
 op_clause : define_clause 
@@ -93,9 +107,8 @@ op_clause : define_clause
           | limit_clause
           | sample_clause
           | order_clause
-          | partition_clause
           | cross_clause
-          | joint_clause
+          | join_clause
           | union_clause
           | stream_clause
           | mr_clause
@@ -200,13 +213,11 @@ group_clause : ^( GROUP group_item_list QUOTEDSTRING? )
 group_item_list : group_item+
 ;
 
-group_item : rel ( ( flatten_generated_item_list ) | ALL | ANY ) ( INNER | OUTER )?
+group_item : rel ( join_group_by_clause | ALL | ANY ) ( INNER | OUTER )?
 ;
 
-rel : alias | op_clause
-;
-
-flatten_generated_item_list : flatten_generated_item+
+rel : alias {  validateAliasRef( aliases, $alias.name ); }
+    | op_clause
 ;
 
 flatten_generated_item : ( flatten_clause | expr | STAR ) as_clause?
@@ -273,10 +284,7 @@ order_clause : ^( ORDER rel order_by_clause func_clause? )
 ;
 
 order_by_clause : STAR ( ASC | DESC )?
-                | order_col_list
-;
-
-order_col_list : order_col+
+                | order_col+
 ;
 
 order_col : col_ref ( ASC | DESC )?
@@ -294,17 +302,23 @@ cross_clause : ^( CROSS rel_list partition_clause? )
 rel_list : rel+
 ;
 
-joint_clause : ^( JOIN join_sub_clause QUOTEDSTRING? partition_clause? )
+join_clause : ^( JOIN join_sub_clause join_type? partition_clause? )
+;
+
+join_type : JOIN_TYPE_REPL | JOIN_TYPE_MERGE | JOIN_TYPE_SKEWED | JOIN_TYPE_DEFAULT
 ;
 
 join_sub_clause : join_item ( LEFT | RIGHT | FULL ) OUTER? join_item
-                | join_item_list
+                | ( join_item )+
 ;
 
-join_item_list : join_item ( join_item )+
+join_item : ^( JOIN_ITEM rel join_group_by_clause )
 ;
 
-join_item : rel flatten_generated_item_list
+join_group_by_clause : ^( BY join_group_by_expr+ )
+;
+
+join_group_by_expr : expr | STAR
 ;
 
 union_clause : ^( UNION ONSCHEMA? rel_list )
@@ -323,11 +337,17 @@ foreach_blk : nested_command_list generate_clause
 generate_clause : ^( GENERATE flatten_generated_item+ )
 ;
 
-nested_command_list : nested_command*
+nested_command_list
+scope { Set<String> ids; }
+@init{ $nested_command_list::ids = new HashSet<String>(); }
+ : nested_command*
 ;
 
-nested_command : ^( NESTED_CMD IDENTIFIER expr  )
-               | ^( NESTED_CMD IDENTIFIER nested_op )
+nested_command
+ : ^( NESTED_CMD IDENTIFIER ( expr | nested_op ) )
+   {
+       $nested_command_list::ids.add( $IDENTIFIER.text );
+   }
 ;
 
 nested_op : nested_proj
@@ -343,16 +363,24 @@ nested_proj : ^( NESTED_PROJ col_ref col_ref_list )
 col_ref_list : col_ref+
 ;
 
-nested_filter : ^( FILTER ( IDENTIFIER | nested_proj | expr ) cond )
+nested_alias_ref
+ : IDENTIFIER
+   {
+       validateAliasRef( $nested_command_list::ids, $IDENTIFIER.text );
+   }
 ;
 
-nested_sort : ^( ORDER ( IDENTIFIER | nested_proj | expr )  order_by_clause func_clause? )
+nested_filter
+ : ^( FILTER ( nested_alias_ref | nested_proj | expr ) cond )
 ;
 
-nested_distinct : ^( DISTINCT ( IDENTIFIER | nested_proj | expr ) )
+nested_sort : ^( ORDER ( nested_alias_ref | nested_proj | expr )  order_by_clause func_clause? )
 ;
 
-nested_limit : ^( LIMIT ( IDENTIFIER | nested_proj | expr ) INTEGER )
+nested_distinct : ^( DISTINCT ( nested_alias_ref | nested_proj | expr ) )
+;
+
+nested_limit : ^( LIMIT ( nested_alias_ref | nested_proj | expr ) INTEGER )
 ;
 
 stream_clause : ^( STREAM rel ( EXECCOMMAND | IDENTIFIER ) as_clause? )
