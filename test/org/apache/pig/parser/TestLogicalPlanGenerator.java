@@ -28,17 +28,35 @@ import org.junit.Test;
 public class TestLogicalPlanGenerator {
     @Test
     public void test1() throws RecognitionException, IOException, ParsingFailureException {
-        ParserTestingUtils.generateLogicalPlan( "A = load 'x' using org.apache.pig.TextLoader( 'a', 'b' ) as ( u:int, v:long, w:bytearray); B = limit A 100; C = filter B by 2 > 1; D = store C into 'output';" );
+        try {
+        ParserTestingUtils.generateLogicalPlan( 
+        		"A = load 'x' using org.apache.pig.TextLoader( 'a', 'b' ) as ( u:int, v:long, w:bytearray); " + 
+        		"B = limit A 100; " +
+        		"C = filter B by 2 > 1; " +
+        		"D = load 'y' as (d1, d2); " +
+        		"E = join C by ( $0, $1 ), D by ( d1, d2 ) using 'replicated' parallel 16; " +
+        		"F = store E into 'output';" );
+        } catch(Exception ex) {
+            Assert.assertTrue( false );// should never come here.
+        }
     }
 
     @Test
-    public void testNegative2() throws RecognitionException, IOException {
+    public void test2() throws RecognitionException, IOException, ParsingFailureException {
         try {
-            ParserTestingUtils.validateAst( "A = load 'x' as ( u:int, v:long, w:tuple( w:long, u:chararray, w:bytearray) );" );
-        } catch(ParsingFailureException ex) {
-            Assert.assertEquals( AstValidator.class, ex.getParsingClass() );
-            return;
+        ParserTestingUtils.generateLogicalPlan( 
+        		"A = load 'x' as ( u:int, v:long, w:bytearray); " + 
+        		"B = distinct A partition by org.apache.pig.Identity; " +
+        		"C = sample B 0.49; " +
+        		"D = order C by $0, $1; " +
+        		"E = load 'y' as (d1, d2); " +
+        		"F = union onschema D, E; " +
+        		"G = load 'z' as (g1:int, g2:tuple(g21, g22)); " +
+        		"H = cross F, G; " +
+        		"I = split H into I if 10 > 5, J if 'world' eq 'hello', K if 77 <= 200; " +
+        		"L = store J into 'output';" );
+        } catch(Exception ex) {
+            Assert.assertTrue( false );// should never come here.
         }
-        Assert.assertTrue( false ); // should never come here.
     }
 }

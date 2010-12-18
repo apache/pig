@@ -266,6 +266,18 @@ DOUBLENUMBER : FLOATINGPOINT ( 'E' ( MINUS | PLUS )? INTEGER )?
 FLOATNUMBER : DOUBLENUMBER ( 'F' )?
 ;
 
+JOIN_TYPE_REPL : '\'REPL\'' |  '\'REPLICATED\''
+;
+
+JOIN_TYPE_SKEWED : '\'SKEWED\''
+;
+
+JOIN_TYPE_MERGE : '\'MERGE\''
+;
+
+JOIN_TYPE_DEFAULT : '\'HASH\'' | '\'DEFAULT\''
+;
+
 QUOTEDSTRING :  '\'' (   ( ~ ( '\'' | '\\' | '\n' | '\r' ) )
                        | ( '\\' ( ( 'N' | 'T' | 'B' | 'R' | 'F' | '\\' | '\'' ) ) )
                        | ( '\\u' ( '0'..'9' | 'A'..'F' )
