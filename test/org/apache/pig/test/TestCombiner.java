@@ -181,7 +181,9 @@ public class TestCombiner extends TestCase {
         PigServer pigServer = new PigServer(ExecType.MAPREDUCE, props);
         pigServer.registerQuery("a = load 'MultiCombinerUseInput.txt' as (x:int);");
         pigServer.registerQuery("b = group a all;");
-        pigServer.registerQuery("c = foreach b generate COUNT(a), SUM(a.$0), MIN(a.$0), MAX(a.$0), AVG(a.$0);");
+        pigServer.registerQuery("c = foreach b generate COUNT(a), SUM(a.$0), " +
+        		"MIN(a.$0), MAX(a.$0), AVG(a.$0), ((double)SUM(a.$0))/COUNT(a.$0)," +
+        		" COUNT(a.$0) + SUM(a.$0) +  MAX(a.$0);");
 
         // make sure there is a combine plan in the explain output
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -196,6 +198,9 @@ public class TestCombiner extends TestCase {
         assertEquals(0, t.get(2));
         assertEquals(1, t.get(3));
         assertEquals(0.5, t.get(4));
+        assertEquals(0.5, t.get(5));
+        assertEquals(512000L + 256000L + 1, t.get(6));
+        
         assertFalse(it.hasNext());
         Util.deleteFile(cluster, "MultiCombinerUseInput.txt");
     }
@@ -246,6 +251,79 @@ public class TestCombiner extends TestCase {
         Util.deleteFile(cluster, "distinctAggs1Input.txt");
         
     }
+    
+    @Test
+    public void testGroupElements() throws Exception {
+        // test use of combiner when group elements are accessed in the foreach
+        String input[] = {
+                "ABC\t1\ta\t1",
+                "ABC\t1\tb\t2",
+                "ABC\t1\ta\t3",
+                "ABC\t2\tb\t4",
+                "DEF\t1\td\t1",
+                "XYZ\t1\tx\t2"
+        };
+
+        Util.createInputFile(cluster, "testGroupElements.txt", input);
+        PigServer pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        pigServer.registerQuery("a = load 'testGroupElements.txt' as (str:chararray, num1:int, alph : chararray, num2 : int);");
+        pigServer.registerQuery("b = group a by (str, num1);");
+        
+        //check if combiner is present or not for various forms of foreach
+        pigServer.registerQuery("c = foreach b  generate flatten(group), COUNT(a.alph), SUM(a.num2); ");
+        checkCombinerUsed(pigServer, "c", true);
+
+        pigServer.registerQuery("c = foreach b  generate group, COUNT(a.alph), SUM(a.num2); ");
+        checkCombinerUsed(pigServer, "c", true);
+
+        // projecting bag - combiner should not be used
+        pigServer.registerQuery("c = foreach b  generate group, a,  COUNT(a.alph), SUM(a.num2); ");
+        checkCombinerUsed(pigServer, "c", false);
+
+        // projecting bag - combiner should not be used
+        pigServer.registerQuery("c = foreach b  generate group, a.num2,  COUNT(a.alph), SUM(a.num2); ");
+        checkCombinerUsed(pigServer, "c", false);      
+        
+        pigServer.registerQuery("c = foreach b  generate group.$0, group.$1, COUNT(a.alph), SUM(a.num2); ");
+        checkCombinerUsed(pigServer, "c", true);
+
+        pigServer.registerQuery("c = foreach b  generate group.$0, group.$1 + COUNT(a.alph), SUM(a.num2); ");
+        checkCombinerUsed(pigServer, "c", true);
+        
+        pigServer.registerQuery("c = foreach b  generate group.str, group.$1, COUNT(a.alph), SUM(a.num2); ");
+        checkCombinerUsed(pigServer, "c", true);
+        
+        pigServer.registerQuery("c = foreach b  generate group.str, group.$1, COUNT(a.alph), SUM(a.num2), " +
+        		" (group.num1 == 1 ? (COUNT(a.num2) + 1)  : (SUM(a.num2) + 10)) ; ");
+        checkCombinerUsed(pigServer, "c", true);
+
+        List<Tuple> expectedRes = 
+            Util.getTuplesFromConstantTupleStrings(
+                    new String[] {
+                            "('ABC',1,3L,6L,4L)",
+                            "('ABC',2,1L,4L,14L)",
+                            "('DEF',1,1L,1L,2L)",
+                            "('XYZ',1,1L,2L,2L)",
+                    });
+
+        Iterator<Tuple> it = pigServer.openIterator("c");
+        Util.checkQueryOutputsAfterSort(it, expectedRes);
+
+        Util.deleteFile(cluster, "distinctAggs1Input.txt");
+        
+    }
+
+    private void checkCombinerUsed(PigServer pigServer, String string, boolean combineExpected)
+    throws IOException {
+        // make sure there is a combine plan in the explain output
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        PrintStream ps = new PrintStream(baos);
+        pigServer.explain("c", ps);
+        boolean combinerFound = baos.toString().matches("(?si).*combine plan.*"); 
+        System.out.println(baos.toString());
+        assertEquals("is combiner present as expected", combineExpected, combinerFound);
+    }
+
 
     @Test
     public void testDistinctNoCombiner() throws Exception {

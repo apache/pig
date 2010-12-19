@@ -24,6 +24,11 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-750: Use combiner when algebraic UDFs are used in expressions (thejas)
+
+PIG-490: Combiner not used when group elements referred to in 
+  tuple notation instead of flatten. (thejas)
+
 PIG-1768: 09 docs: illustrate (changec via olgan)
 
 PIG-1768: docs reorg (changec via olgan)

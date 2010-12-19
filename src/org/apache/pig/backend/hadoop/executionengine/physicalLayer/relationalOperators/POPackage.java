@@ -67,13 +67,7 @@ public class POPackage extends PhysicalOperator {
      */
     private static final long serialVersionUID = 1L;
     
-    private static boolean[] SIMPLE_KEY_POSITION; 
 
-    static {
-        SIMPLE_KEY_POSITION = new boolean[1];
-        SIMPLE_KEY_POSITION[0] = true;
-    }
-    
     public static enum PackageType { GROUP, JOIN };
     
     //The iterator of indexed Tuples
@@ -383,18 +377,7 @@ public class POPackage extends PhysicalOperator {
     public void setKeyType(byte keyType) {
         this.keyType = keyType;
     }
-
-    /**
-     * Get the field positions of key in the output tuples.
-     * For POPackage, the position is always 0. The POCombinerPackage,
-     * however, can return different values.
-     * 
-     * @return the field position of key in the output tuples.
-     */
-    public boolean[] getKeyPositionsInTuple() {
-        return SIMPLE_KEY_POSITION.clone();
-    }
-    
+  
     /**
      * Make a deep copy of this operator.  
      * @throws CloneNotSupportedException
