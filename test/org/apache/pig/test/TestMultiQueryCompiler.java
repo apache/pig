@@ -431,7 +431,7 @@ public class TestMultiQueryCompiler {
             myPig.registerQuery("c2 = foreach c1 generate group, SUM(c.uid);");
             myPig.registerQuery("store c2 into '/tmp/output2';");
             myPig.registerQuery("d1 = group d by gid;");            
-            myPig.registerQuery("d2 = foreach d1 generate group, MAX(d.uid) - MIN(d.uid);");
+            myPig.registerQuery("d2 = foreach d1 generate group, d.uname, MAX(d.uid) - MIN(d.uid);");
             myPig.registerQuery("store d2 into '/tmp/output3';");
              
             LogicalPlan lp = checkLogicalPlan(1, 3, 19);

@@ -18,15 +18,12 @@
 package org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators;
 
 import java.util.Arrays;
-import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.PigMapReduce;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
@@ -38,8 +35,8 @@ import org.apache.pig.data.NonSpillableDataBag;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.io.NullableTuple;
-import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.NodeIdGenerator;
+import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.util.Pair;
 /**
@@ -63,8 +60,6 @@ public class POCombinerPackage extends POPackage {
     private boolean[] mBags; // For each field, indicates whether or not it
                              // needs to be put in a bag.
     
-    private boolean[] keyPositions;
-    
     private Map<Integer, Integer> keyLookup;
     
     private int numBags;
@@ -75,10 +70,8 @@ public class POCombinerPackage extends POPackage {
      * @param pkg POPackage to clone.
      * @param bags for each field, indicates whether it should be a bag (true)
      * or a simple field (false).
-     * @param keyPos for each field in the output tuple of the foreach operator, 
-     * indicates whether it's the group key.
      */
-    public POCombinerPackage(POPackage pkg, boolean[] bags, boolean[] keyPos) {
+    public POCombinerPackage(POPackage pkg, boolean[] bags) {
         super(new OperatorKey(pkg.getOperatorKey().scope,
             NodeIdGenerator.getGenerator().getNextNodeId(pkg.getOperatorKey().scope)),
             pkg.getRequestedParallelism(), pkg.getInputs());
@@ -95,9 +88,6 @@ public class POCombinerPackage extends POPackage {
         numBags = 0;
         for (int i = 0; i < mBags.length; i++) {
             if (mBags[i]) numBags++;            
-        }
-        if (keyPos != null) {
-            keyPositions = Arrays.copyOf(keyPos, keyPos.length);
         }
     }
 
@@ -188,11 +178,6 @@ public class POCombinerPackage extends POPackage {
         r.returnStatus = POStatus.STATUS_OK;
         return r;
 
-    }
-    
-    @Override
-    public boolean[] getKeyPositionsInTuple() {
-        return keyPositions.clone();
     }
 
 }
