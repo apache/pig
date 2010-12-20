@@ -977,8 +977,8 @@
     <!--target name="checkstyle" depends="checkstyle.check, set-checkstyle-classpath" if="checkstyle.home"  -->
     <target name="checkstyle" depends="ivy-checkstyle" description="Run optional third-party tool targets">
     	<taskdef resource="checkstyletask.properties">
-       		<classpath refid="checkstyle.classpath"/>
-       <!-- 	<classpath refid="checkstyle-classpath"/> -->
+       <!--	<classpath refid="checkstyle.classpath"/> -->
+        	<classpath refid="checkstyle-classpath"/> 
         </taskdef>
         <mkdir dir="${test.build.dir}"/>
         <checkstyle config="${test.src.dir}/checkstyle.xml" failOnViolation="false">
@@ -994,13 +994,19 @@
 		to Ant on the command-line." />
     </target>
     
+    <!--
     <target name="set-checkstyle-classpath">
     	<path id="checkstyle-classpath">
         	<fileset dir="${checkstyle.home}">
 			<include name="**/*.jar"/>
          	</fileset>
  	</path>
-    </target>	
+    </target>
+    -->
+    <path id="checkstyle-classpath">
+	<path refid="checkstyle.classpath"/>	
+    	<fileset file="${lib.dir}/${antlr.jar}"/>
+    </path>
 
     <target name="findbugs.check" depends="check-for-findbugs" unless="findbugs.present">
     	<fail message="'findbugs.home' is not defined. Please pass -Dfindbugs.home=&lt;base of Findbugs installation&gt; 
