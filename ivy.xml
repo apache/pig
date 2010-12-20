@@ -44,8 +44,8 @@
   <dependencies>
     <dependency org="checkstyle" name="checkstyle" rev="${checkstyle.version}"
       conf="checkstyle->master"/>
-    <dependency org="antlr" name="antlr" rev="${antlr.version}"
-      conf="checkstyle->master"/>
+    <!-- <dependency org="antlr" name="antlr" rev="${antlr.version}"
+      conf="checkstyle->master"/> -->
     <dependency org="commons-beanutils" name="commons-beanutils-core" rev="${commons-beanutils.version}"
       conf="checkstyle->master"/>
     <dependency org="commons-el" name="commons-el" rev="${commons-el.version}"
