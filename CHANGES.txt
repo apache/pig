@@ -211,6 +211,8 @@ PIG-1309: Map-side Cogroup (ashutoshc)
 
 BUG FIXES
 
+PIG-1771: New logical plan: Merge schema fail if LoadFunc.getSchema return different schema with "Load...AS" (daijy)
+
 PIG-1766: New logical plan: ImplicitSplitInserter should before DuplicateForEachColumnRewrite (daijy)
 
 PIG-1762: Logical simplification fails on map key referenced values (yanz)
