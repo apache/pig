@@ -45,6 +45,7 @@ import org.apache.pig.newplan.logical.expression.AndExpression;
 import org.apache.pig.newplan.logical.expression.CastExpression;
 import org.apache.pig.newplan.logical.expression.LogicalExpressionPlan;
 import org.apache.pig.newplan.logical.relational.LOCogroup;
+import org.apache.pig.newplan.logical.relational.LOJoin;
 import org.apache.pig.newplan.logical.relational.LOLimit;
 import org.apache.pig.newplan.logical.expression.ConstantExpression;
 import org.apache.pig.newplan.logical.relational.LogicalRelationalOperator;
@@ -271,6 +272,112 @@ public class AugmentBaseDataVisitor extends LogicalRelationalNodesVisitor {
                             if (inputConstraint != null)
                                 output.add(inputConstraint);
                         }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log
+                    .error("Error visiting Cogroup during Augmentation phase of Example Generator! "
+                            + e.getMessage());
+            throw new FrontendException(
+                    "Error visiting Cogroup during Augmentation phase of Example Generator! "
+                            + e.getMessage());
+        }
+    }
+
+    @Override
+    public void visit(LOJoin join) throws FrontendException {
+        if (limit && !((PreOrderDepthFirstWalker) currentWalker).getBranchFlag())
+            return;
+        // we first get the outputconstraints for the current cogroup
+        DataBag outputConstraints = outputConstraintsMap.get(join);
+        outputConstraintsMap.remove(join);
+        boolean ableToHandle = true;
+        // we then check if we can handle this cogroup and try to collect some
+        // information about grouping
+        List<List<Integer>> groupSpecs = new LinkedList<List<Integer>>();
+        int numCols = -1;
+
+        for (int index = 0; index < join.getInputs((LogicalPlan)plan).size(); ++index) {
+            Collection<LogicalExpressionPlan> groupByPlans = (List<LogicalExpressionPlan>) join
+                    .getExpressionPlans().get(index);
+            List<Integer> groupCols = new ArrayList<Integer>();
+            for (LogicalExpressionPlan plan : groupByPlans) {
+                Operator leaf = plan.getSinks().get(0);
+                if (leaf instanceof ProjectExpression) {
+                    groupCols.add(Integer.valueOf(((ProjectExpression) leaf).getColNum()));
+                } else {
+                    ableToHandle = false;
+                    break;
+                }
+            }
+            if (numCols == -1) {
+                numCols = groupCols.size();
+            }
+            if (groupCols.size() != groupByPlans.size()
+                    || groupCols.size() != numCols) {
+                // we came across an unworkable cogroup plan
+                break;
+            } else {
+                groupSpecs.add(groupCols);
+            }
+        }
+
+        // we should now have some workable data at this point to synthesize
+        // tuples
+        try {
+            if (ableToHandle) {
+                // we need to go through the output constraints first
+                int numInputs = join.getInputs((LogicalPlan) plan).size();
+                if (outputConstraints != null) {
+                    for (Iterator<Tuple> it = outputConstraints.iterator(); it
+                            .hasNext();) {
+                        Tuple outputConstraint = it.next();
+
+                        for (int input = 0; input < numInputs; input++) {
+
+                            int numInputFields = ((LogicalRelationalOperator) join.getInputs((LogicalPlan) plan).get(input))
+                                    .getSchema().size();
+                            List<Integer> groupCols = groupSpecs.get(input);
+
+                            DataBag output = outputConstraintsMap.get(join
+                                    .getInputs((LogicalPlan) plan).get(input));
+                            if (output == null) {
+                                output = BagFactory.getInstance()
+                                        .newDefaultBag();
+                                outputConstraintsMap.put(join.getInputs((LogicalPlan) plan).get(
+                                        input), output);
+                            }
+
+                            Tuple inputConstraint = GetJoinInput(
+                                    outputConstraint, groupCols, numInputFields);
+                            if (inputConstraint != null)
+                                output.add(inputConstraint);
+                        }
+                    }
+                }
+                // then, go through all organic data groups and add input
+                // constraints to make each group big enough
+                DataBag outputData = derivedData.get(join);
+
+                if (outputData.size() == 0) {
+                    DataBag output0 = outputConstraintsMap.get(join.getInputs((LogicalPlan) plan).get(0));
+                    if (output0 == null || output0.size() == 0) {
+                        output0 = derivedData.get(join.getInputs((LogicalPlan) plan).get(0));
+                    }
+                    Tuple inputConstraint0 = output0.iterator().next();
+                    for (int input = 1; input < numInputs; input++) {
+                        DataBag output = outputConstraintsMap.get(join.getInputs((LogicalPlan) plan).get(input));
+                        if (output == null)
+                        {
+                            output = BagFactory.getInstance().newDefaultBag();
+                            outputConstraintsMap.put(join.getInputs((LogicalPlan) plan).get(input),
+                                    output);
+                        }
+                        int numInputFields = ((LogicalRelationalOperator)join.getInputs((LogicalPlan) plan).get(input)).getSchema().size();
+                        Tuple inputConstraint = GetJoinInput(inputConstraint0, groupSpecs.get(0), groupSpecs.get(input), numInputFields);
+                        if (inputConstraint != null)
+                            output.add(inputConstraint);
                     }
                 }
             }
@@ -728,6 +835,42 @@ public class AugmentBaseDataVisitor extends LogicalRelationalNodesVisitor {
         return t;
     }
 
+    Tuple GetJoinInput(Tuple group, List<Integer> groupCols0, List<Integer> groupCols,
+        int numFields) throws ExecException {
+        Tuple t = TupleFactory.getInstance().newTuple(numFields);
+
+        if (groupCols.size() == 1) {
+            // GroupLabel would be a data atom
+            t.set(groupCols.get(0), group.get(groupCols0.get(0)));
+        } else {
+            if (!(group instanceof Tuple))
+                throw new RuntimeException("Unrecognized group label!");
+            for (int i = 0; i < groupCols.size(); i++) {
+                t.set(groupCols.get(i), group.get(groupCols0.get(i)));
+            }
+        }
+
+        return t;
+    }
+    
+    Tuple GetJoinInput(Tuple group, List<Integer> groupCols,
+        int numFields) throws ExecException {
+        Tuple t = TupleFactory.getInstance().newTuple(numFields);
+
+        if (groupCols.size() == 1) {
+            // GroupLabel would be a data atom
+            t.set(groupCols.get(0), group);
+        } else {
+            if (!(group instanceof Tuple))
+                throw new RuntimeException("Unrecognized group label!");
+            for (int i = 0; i < groupCols.size(); i++) {
+                t.set(groupCols.get(i), group.get(i));
+            }
+        }
+
+        return t;
+    }
+    
     Tuple BackPropConstraint(Tuple outputConstraint, List<Integer> cols,
             LogicalSchema inputSchema, boolean cast) throws ExecException {
         Tuple inputConst = TupleFactory.getInstance().newTuple(

@@ -36,7 +36,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOpera
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.PODistinct;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.PORead;
+import org.apache.pig.test.PORead;
 import org.junit.Before;
 import org.junit.Test;
 

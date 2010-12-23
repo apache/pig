@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators;
+package org.apache.pig.test;
 
 import java.util.Iterator;
 import java.util.List;
@@ -100,7 +100,7 @@ public class PORead extends PhysicalOperator {
     @Override
     public void visit(PhyPlanVisitor v) throws VisitorException {
         // TODO Auto-generated method stub
-        v.visitRead(this);
+        throw new VisitorException("Vistor not accepted !");
     }
 
     @Override

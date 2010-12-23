@@ -558,6 +558,23 @@ public class TestGrunt extends TestCase {
         grunt.exec();
     }
     
+    @Test
+    public void testIllustrateScript7() throws Throwable {
+        // empty line/field test
+        PigServer server = new PigServer(ExecType.LOCAL, cluster.getProperties());
+        PigContext context = server.getPigContext();
+        
+        String strCmd = "illustrate -script "
+                + basedir + "/illustrate7.pig;";
+        
+        ByteArrayInputStream cmd = new ByteArrayInputStream(strCmd.getBytes());
+        InputStreamReader reader = new InputStreamReader(cmd);
+        
+        Grunt grunt = new Grunt(new BufferedReader(reader), context);
+    
+        grunt.exec();
+    }
+    
     /**
      * verify that grunt commands are ignored in explain -script mode
      */
