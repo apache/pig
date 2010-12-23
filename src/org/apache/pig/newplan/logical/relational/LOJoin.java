@@ -201,4 +201,8 @@ public class LOJoin extends LogicalRelationalOperator {
             return false;
         }
     }
+    
+    public List<Operator> getInputs(LogicalPlan plan) {
+        return plan.getPredecessors(this);
+    }
 }

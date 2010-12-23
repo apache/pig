@@ -131,10 +131,6 @@ public class PhyPlanVisitor extends PlanVisitor<PhysicalOperator,PhysicalPlan> {
         //do nothing		
 	}
 
-	public void visitRead(PORead read) throws VisitorException {
-        //do nothing		
-	}
-
 	public void visitSort(POSort sort) throws VisitorException {
         List<PhysicalPlan> inpPlans = sort.getSortPlans();
         for (PhysicalPlan plan : inpPlans) {

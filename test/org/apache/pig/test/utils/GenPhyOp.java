@@ -25,7 +25,7 @@ import java.util.Random;
 
 import org.apache.pig.FuncSpec;
 import org.apache.pig.backend.executionengine.ExecException;
-import org.apache.pig.builtin.BinStorage;
+import org.apache.pig.test.PORead;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;

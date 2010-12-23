@@ -195,11 +195,6 @@ public class IllustratorAttacher extends PhyPlanVisitor {
         innerPlanAttach(fl, fl.getPlan());
         subExpResults = null;
     }
- 
-    @Override
-    public void visitCollectedGroup(POCollectedGroup mg) throws VisitorException{
-        setIllustrator(mg, 1);
-    }
     
     @Override
     public void visitLocalRearrange(POLocalRearrange lr) throws VisitorException{
@@ -403,38 +398,9 @@ public class IllustratorAttacher extends PhyPlanVisitor {
     }
     
     @Override
-    public void visitFRJoin(POFRJoin join) throws VisitorException {
-        // one eq. class per input
-        setIllustrator(join, join.getInputs().size());
-    }
-    
-    @Override
-    public void visitMergeJoin(POMergeJoin join) throws VisitorException {
-        // one eq. class per input
-        setIllustrator(join, join.getInputs().size());
-    }
-    
-    @Override
-    public void visitMergeCoGroup(POMergeCogroup mergeCoGrp) throws VisitorException{
-        // one eq. class per input
-        setIllustrator(mergeCoGrp, mergeCoGrp.getInputs().size());
-    }
-
-    @Override
     public void visitStream(POStream stream) throws VisitorException {
         setIllustrator(stream, 1);
     }
-
-    @Override
-	public void visitSkewedJoin(POSkewedJoin sk) throws VisitorException {
-        // one eq. class per input
-        // do not go to inner plans as they are not booleans so no use of eq. classes
-        setIllustrator(sk, sk.getInputs().size());
-	}
-
-    @Override
-	public void visitPartitionRearrange(POPartitionRearrange pr) throws VisitorException {
-	}
 
     /**
      * @param optimizedForEach
@@ -442,14 +408,6 @@ public class IllustratorAttacher extends PhyPlanVisitor {
     @Override
     public void visitPOOptimizedForEach(POOptimizedForEach optimizedForEach) throws VisitorException {
         visitPOForEach(optimizedForEach);
-    }
-
-    /**
-     * @param preCombinerLocalRearrange
-     */
-    @Override
-    public void visitPreCombinerLocalRearrange(
-            POPreCombinerLocalRearrange preCombinerLocalRearrange) {
     }
     
     private void innerPlanAttach(PhysicalOperator po, PhysicalPlan plan) throws VisitorException {

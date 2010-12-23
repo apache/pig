@@ -219,7 +219,6 @@ public class POCollectedGroup extends PhysicalOperator {
             outputBag = useDefaultBag ? BagFactory.getInstance().newDefaultBag()
                     : new InternalCachedBag(1);
             outputBag.add((Tuple)tup.get(1));
-            illustratorMarkup(null, tup2, 0);
             return res;
         }
 
@@ -279,24 +278,6 @@ public class POCollectedGroup extends PhysicalOperator {
     
     @Override
     public Tuple illustratorMarkup(Object in, Object out, int eqClassIndex) {
-        if (illustrator != null) {
-            ExampleTuple tOut = new ExampleTuple(out);
-            LineageTracer lineage = illustrator.getLineage();
-            lineage.insert(tOut);
-            DataBag bag;
-            try {
-                bag = (DataBag) tOut.get(1);
-            } catch (ExecException e) {
-                throw new RuntimeException("Illustrator markup exception" + e.getMessage());
-            }
-            boolean synthetic = false;
-            while (!synthetic && bag.iterator().hasNext()) {
-                synthetic |= ((ExampleTuple) bag.iterator().next()).synthetic;
-            }
-            tOut.synthetic = synthetic;
-            illustrator.addData((Tuple) out);
-            return tOut;
-        } else
-          return (Tuple) out;
+        return null;
     }
 }

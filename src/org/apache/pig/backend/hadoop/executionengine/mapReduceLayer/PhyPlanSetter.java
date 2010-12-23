@@ -116,11 +116,6 @@ public class PhyPlanSetter extends PhyPlanVisitor {
     }
     
     @Override
-    public void visitRead(PORead read) throws VisitorException {
-        read.setParentPlan(parent);		
-    }
-    
-    @Override
     public void visitSort(POSort sort) throws VisitorException {
         super.visitSort(sort);
         sort.setParentPlan(parent);
