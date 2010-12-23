@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-1277: Pig should give error message when cogroup on tuple keys of different inner type (daijy)
+
 PIG-1755: Clean up duplicated code in PhysicalOperators (dvryaboy)
 
 PIG-750: Use combiner when algebraic UDFs are used in expressions (thejas)
@@ -246,6 +248,8 @@ PIG-1353: Map-side joins (ashutoshc)
 PIG-1309: Map-side Cogroup (ashutoshc)
 
 BUG FIXES
+
+PIG-1771: New logical plan: Merge schema fail if LoadFunc.getSchema return different schema with "Load...AS" (daijy)
 
 PIG-1766: New logical plan: ImplicitSplitInserter should before DuplicateForEachColumnRewrite (daijy)
 

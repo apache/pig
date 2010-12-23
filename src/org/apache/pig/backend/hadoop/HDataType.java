@@ -53,8 +53,12 @@ public class HDataType {
     static Map<Byte, String> typeToName = null;
 
     public static PigNullableWritable getWritableComparableTypes(Object o, byte keyType) throws ExecException{
-        byte type = DataType.findType(o);
-        switch (type) {
+        
+        byte newKeyType = keyType;
+        if (o==null)
+            newKeyType = DataType.NULL;
+        
+        switch (newKeyType) {
         case DataType.BAG:
             return new NullableBag((DataBag)o);
 
@@ -62,7 +66,7 @@ public class HDataType {
             return new NullableBooleanWritable((Boolean)o);
 
         case DataType.BYTEARRAY:
-            return new NullableBytesWritable(((DataByteArray)o).get());
+            return new NullableBytesWritable(o);
             
         case DataType.CHARARRAY:
             return new NullableText((String)o);
@@ -138,7 +142,7 @@ public class HDataType {
             if (typeToName == null) typeToName = DataType.genTypeToNameMap();
             int errCode = 2044;
             String msg = "The type "
-                + typeToName.get(type)
+                + typeToName.get(keyType)
                 + " cannot be collected as a Key type";
             throw new ExecException(msg, errCode, PigException.BUG);
 
@@ -192,4 +196,30 @@ public class HDataType {
         }
         return wcKey;
     }
+    
+    public static byte findTypeFromNullableWritable(PigNullableWritable o) throws ExecException {
+        if (o instanceof NullableBooleanWritable)
+            return DataType.BOOLEAN;
+        else if (o instanceof NullableBytesWritable)
+            return DataType.BYTEARRAY;
+        else if (o instanceof NullableText)
+            return DataType.CHARARRAY;
+        else if (o instanceof NullableFloatWritable)
+            return DataType.FLOAT;
+        else if (o instanceof NullableDoubleWritable)
+            return DataType.DOUBLE;
+        else if (o instanceof NullableIntWritable)
+            return DataType.INTEGER;
+        else if (o instanceof NullableLongWritable)
+            return DataType.LONG;
+        else if (o instanceof NullableBag)
+            return DataType.BAG;
+        else if (o instanceof NullableTuple)
+            return DataType.TUPLE;
+        else {
+            int errCode = 2044;
+            String msg = "Cannot find Pig type for " + o.getClass().getName();
+            throw new ExecException(msg, errCode, PigException.BUG);
+        }
+    }    
 }

@@ -27,10 +27,12 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Random;
 
 import junit.framework.TestCase;
 
+import org.apache.pig.EvalFunc;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigException;
 import org.apache.pig.PigServer;
@@ -39,6 +41,7 @@ import org.apache.pig.builtin.BinStorage;
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataByteArray;
+import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.io.FileLocalizer;
@@ -463,12 +466,12 @@ public class TestEvalPipeline2 extends TestCase {
         assertTrue(iter.hasNext());
         Tuple t = iter.next();
         
-        assertTrue(t.toString().equals("(1,{(1,1)},{(1,2,3)})"));
+        assertTrue(t.toString().equals("(2,{(2,2)},{(2,5,2)})"));
         
         assertTrue(iter.hasNext());
         t = iter.next();
         
-        assertTrue(t.toString().equals("(2,{(2,2)},{(2,5,2)})"));
+        assertTrue(t.toString().equals("(1,{(1,1)},{(1,2,3)})"));
         
         assertFalse(iter.hasNext());
     }
@@ -1013,5 +1016,118 @@ public class TestEvalPipeline2 extends TestCase {
         assertTrue(t.size()==2);
         assertTrue(t.get(0).equals("one"));
         assertTrue(t.get(1).equals("two"));
+    }
+    
+    // See PIG-1771
+    @Test
+    public void testLoadWithDifferentSchema() throws Exception{
+        String[] input1 = {
+                "hello\thello\t(hello)\t[key#value]",
+        };
+        
+        Util.createInputFile(cluster, "table_testLoadWithDifferentSchema1", input1);
+        pigServer.registerQuery("a = load 'table_testLoadWithDifferentSchema1' as (a0:chararray, a1:chararray, a2, a3:map[]);");
+        pigServer.store("a", "table_testLoadWithDifferentSchema1.bin", "org.apache.pig.builtin.BinStorage");
+        
+        pigServer.registerQuery("b = load 'table_testLoadWithDifferentSchema1.bin' USING BinStorage('Utf8StorageConverter') AS (b0:chararray, b1:chararray, b2:tuple(), b3:map[]);");
+        Iterator<Tuple> iter = pigServer.openIterator("b");
+        
+        Tuple t = iter.next();
+        assertTrue(t.size()==4);
+        assertTrue(t.toString().equals("(hello,hello,(hello),[key#value])"));
+    }
+    
+    static public class MapGenerate extends EvalFunc<Map> {
+        @Override
+        public Map exec(Tuple input) throws IOException {
+            Map m = new HashMap();
+            m.put("key", new Integer(input.size()));
+            return m;
+        }
+        
+        @Override
+        public Schema outputSchema(Schema input) {
+            return new Schema(new Schema.FieldSchema(null, DataType.MAP));
+        }
+    }
+    
+    // See PIG-1277
+    @Test
+    public void testWrappingUnknownKey1() throws Exception{
+        String[] input1 = {
+                "1",
+        };
+        
+        Util.createInputFile(cluster, "table_testWrappingUnknownKey1", input1);
+
+        pigServer.registerQuery("a = load 'table_testWrappingUnknownKey1' as (a0);");
+        pigServer.registerQuery("b = foreach a generate a0, "+ MapGenerate.class.getName() + "(*) as m:map[];");
+        pigServer.registerQuery("c = foreach b generate a0, m#'key' as key;");
+        pigServer.registerQuery("d = group c by key;");
+        
+        Iterator<Tuple> iter = pigServer.openIterator("d");
+        
+        Tuple t = iter.next();
+        assertTrue(t.size()==2);
+        assertTrue(t.toString().equals("(1,{(1,1)})"));
+        assertFalse(iter.hasNext());
+    }
+    
+    // See PIG-999
+    @Test
+    public void testWrappingUnknownKey2() throws Exception{
+        String[] input1 = {
+                "1",
+        };
+        
+        Util.createInputFile(cluster, "table_testWrappingUnknownKey2", input1);
+
+        pigServer.registerQuery("a = load 'table_testWrappingUnknownKey2' as (a0);");
+        pigServer.registerQuery("b = foreach a generate a0, "+ MapGenerate.class.getName() + "(*) as m:map[];");
+        pigServer.registerQuery("c = foreach b generate a0, m#'key' as key;");
+        pigServer.registerQuery("d = order c by key;");
+        
+        Iterator<Tuple> iter = pigServer.openIterator("d");
+        
+        Tuple t = iter.next();
+        assertTrue(t.size()==2);
+        assertTrue(t.toString().equals("(1,1)"));
+        assertFalse(iter.hasNext());
+    }
+    
+    // See PIG-1065
+    @Test
+    public void testWrappingUnknownKey3() throws Exception{
+        String[] input1 = {
+                "1\t2",
+                "2\t3"
+        };
+        
+        String[] input2 = {
+                "1",
+        };
+        
+        Util.createInputFile(cluster, "table_testWrappingUnknownKey3_1", input1);
+        Util.createInputFile(cluster, "table_testWrappingUnknownKey3_2", input2);
+
+        pigServer.registerQuery("a = load 'table_testWrappingUnknownKey3_1' as (a0:chararray, a1:chararray);");
+        pigServer.registerQuery("b = load 'table_testWrappingUnknownKey3_2' as (b0:chararray);");
+        pigServer.registerQuery("c = union a, b;");
+        pigServer.registerQuery("d = order c by $0;");
+        
+        Collection<String> results = new HashSet<String>();
+        results.add("(1,2)");
+        results.add("(1)");
+        results.add("(2,3)");
+        
+        Iterator<Tuple> iter = pigServer.openIterator("d");
+        
+        Tuple t = iter.next();
+        assertTrue(results.contains(t.toString()));
+        t = iter.next();
+        assertTrue(results.contains(t.toString()));
+        t = iter.next();
+        assertTrue(results.contains(t.toString()));
+        assertFalse(iter.hasNext());
     }
 }

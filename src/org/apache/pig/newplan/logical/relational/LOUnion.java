@@ -58,6 +58,8 @@ public class LOUnion extends LogicalRelationalOperator {
             return s0;
         LogicalSchema s1 = ((LogicalRelationalOperator)inputs.get(1)).getSchema();
         LogicalSchema mergedSchema = LogicalSchema.merge(s0, s1);
+        if (mergedSchema==null)
+            return null;
         
         // Merge schema
         for (int i=2;i<inputs.size();i++) {

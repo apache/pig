@@ -56,7 +56,7 @@ public class TestPackage extends junit.framework.TestCase {
     public void tearDown() throws Exception {
     }
     
-    private void runTest(Object key, boolean inner[]) throws ExecException, IOException {
+    private void runTest(Object key, boolean inner[], byte keyType) throws ExecException, IOException {
         Random r = new Random();
         DataBag db1 = GenRandomData.genRandSmallTupDataBag(r, 10, 100);
         DataBag db2 = GenRandomData.genRandSmallTupDataBag(r, 10, 100);
@@ -79,7 +79,7 @@ public class TestPackage extends junit.framework.TestCase {
         POPackage pop = new POPackage(new OperatorKey("", r.nextLong()));
         pop.setNumInps(2);
         pop.setInner(inner);
-        PigNullableWritable k = HDataType.getWritableComparableTypes(key, (byte)0);
+        PigNullableWritable k = HDataType.getWritableComparableTypes(key, keyType);
         pop.attachInput(k, db.iterator());
         
         // we are not doing any optimization to remove
@@ -117,43 +117,43 @@ public class TestPackage extends junit.framework.TestCase {
         Random r = new Random();
         switch (t) {
         case DataType.BAG:
-            runTest(GenRandomData.genRandSmallTupDataBag(r, 10, 100),inner);
+            runTest(GenRandomData.genRandSmallTupDataBag(r, 10, 100),inner, DataType.BAG);
             break;
         case DataType.BOOLEAN:
-            runTest(r.nextBoolean(),inner);
+            runTest(r.nextBoolean(),inner, DataType.BOOLEAN);
             break;
         case DataType.BYTEARRAY:
-            runTest(GenRandomData.genRandDBA(r),inner);
+            runTest(GenRandomData.genRandDBA(r),inner, DataType.BYTEARRAY);
             break;
         case DataType.BIGCHARARRAY: {
 			String s = GenRandomData.genRandString(r);			
 			for(;s.length() < 65535;) {
 				s += GenRandomData.genRandString(r);
 			}
-			runTest(s,inner);
+			runTest(s,inner, DataType.CHARARRAY);
         	break;
         }        	
         case DataType.CHARARRAY:
-            runTest(GenRandomData.genRandString(r),inner);
+            runTest(GenRandomData.genRandString(r),inner, DataType.CHARARRAY);
             break;
         case DataType.DOUBLE:
-            runTest(r.nextDouble(),inner);
+            runTest(r.nextDouble(),inner, DataType.DOUBLE);
             break;
         case DataType.FLOAT:
-            runTest(r.nextFloat(),inner);
+            runTest(r.nextFloat(),inner, DataType.FLOAT);
             break;
         case DataType.INTEGER:
-            runTest(r.nextLong(),inner);
+            runTest(r.nextInt(),inner, DataType.INTEGER);
             break;
         case DataType.LONG:
-            runTest(r.nextLong(),inner);
+            runTest(r.nextLong(),inner, DataType.LONG);
             break;
         case DataType.MAP:
         case DataType.INTERNALMAP:
         case DataType.BYTE:
             return; // map not key type
         case DataType.TUPLE:
-            runTest(GenRandomData.genRandSmallBagTuple(r, 10, 100),inner);
+            runTest(GenRandomData.genRandSmallBagTuple(r, 10, 100),inner, DataType.TUPLE);
             break;
 
         default:

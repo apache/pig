@@ -444,9 +444,9 @@ public class TestSecondarySort extends TestCase {
                 .registerQuery("D = foreach C { E = limit A 10; F = E.a1; G = DISTINCT F; generate group, COUNT(G);};");
         Iterator<Tuple> iter = pigServer.openIterator("D");
         assertTrue(iter.hasNext());
-        assertTrue(iter.next().toString().equals("(1,2)"));
-        assertTrue(iter.hasNext());
         assertTrue(iter.next().toString().equals("(2,1)"));
+        assertTrue(iter.hasNext());
+        assertTrue(iter.next().toString().equals("(1,2)"));
         assertFalse(iter.hasNext());
         Util.deleteFile(cluster, tmpFile1.getCanonicalPath());
         Util.deleteFile(cluster, tmpFile2.getCanonicalPath());
@@ -469,9 +469,9 @@ public class TestSecondarySort extends TestCase {
         pigServer.registerQuery("C = foreach B { D = distinct A; generate group, D;};");
         Iterator<Tuple> iter = pigServer.openIterator("C");
         assertTrue(iter.hasNext());
-        assertTrue(iter.next().toString().equals("(1,{(1,2,3),(1,2,4),(1,3,4)})"));
-        assertTrue(iter.hasNext());
         assertTrue(iter.next().toString().equals("(2,{(2,3,4)})"));
+        assertTrue(iter.hasNext());
+        assertTrue(iter.next().toString().equals("(1,{(1,2,3),(1,2,4),(1,3,4)})"));
         assertFalse(iter.hasNext());
         Util.deleteFile(cluster, tmpFile1.getCanonicalPath());
     }
@@ -493,9 +493,9 @@ public class TestSecondarySort extends TestCase {
         pigServer.registerQuery("C = foreach B { D = limit A 10; E = order D by $1; generate group, E;};");
         Iterator<Tuple> iter = pigServer.openIterator("C");
         assertTrue(iter.hasNext());
-        assertTrue(iter.next().toString().equals("(1,{(1,2,3),(1,2,4),(1,2,4),(1,2,4),(1,3,4)})"));
-        assertTrue(iter.hasNext());
         assertTrue(iter.next().toString().equals("(2,{(2,3,4)})"));
+        assertTrue(iter.hasNext());
+        assertTrue(iter.next().toString().equals("(1,{(1,2,3),(1,2,4),(1,2,4),(1,2,4),(1,3,4)})"));
         assertFalse(iter.hasNext());
         Util.deleteFile(cluster, tmpFile1.getCanonicalPath());
     }
@@ -517,9 +517,9 @@ public class TestSecondarySort extends TestCase {
         pigServer.registerQuery("C = foreach B { D = order A by a1 desc; generate group, D;};");
         Iterator<Tuple> iter = pigServer.openIterator("C");
         assertTrue(iter.hasNext());
-        assertEquals("(1,{(1,8,4),(1,4,4),(1,3,4),(1,2,3),(1,2,4)})", iter.next().toString());
-        assertTrue(iter.hasNext());
         assertEquals("(2,{(2,3,4)})", iter.next().toString());
+        assertTrue(iter.hasNext());
+        assertEquals("(1,{(1,8,4),(1,4,4),(1,3,4),(1,2,3),(1,2,4)})", iter.next().toString());
         assertFalse(iter.hasNext());
         Util.deleteFile(cluster, tmpFile1.getCanonicalPath());
     }

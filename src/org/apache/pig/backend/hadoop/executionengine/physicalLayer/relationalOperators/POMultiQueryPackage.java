@@ -265,7 +265,7 @@ public class POMultiQueryPackage extends POPackage {
                 myObj.setNull(true);
             }
             else {
-                myObj = HDataType.getWritableComparableTypes(obj, (byte)0);
+                myObj = HDataType.getWritableComparableTypes(obj, HDataType.findTypeFromNullableWritable(curKey));
             }
             myObj.setIndex(origIndex);
             tuple.set(0, myObj);
