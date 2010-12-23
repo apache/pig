@@ -39,18 +39,18 @@ import org.apache.pig.pen.Illustrator;
 import org.apache.pig.pen.Illustrable;
 
 /**
- * 
+ *
  * This is the base class for all operators. This supports a generic way of
  * processing inputs which can be overridden by operators extending this class.
  * The input model assumes that it can either be taken from an operator or can
  * be attached directly to this operator. Also it is assumed that inputs to an
  * operator are always in the form of a tuple.
- * 
+ *
  * For this pipeline rework, we assume a pull based model, i.e, the root
  * operator is going to call getNext with the appropriate type which initiates a
  * cascade of getNext calls that unroll to create input for the root operator to
  * work on.
- * 
+ *
  * Any operator that extends the PhysicalOperator, supports a getNext with all
  * the different types of parameter types. The concrete implementation should
  * use the result type of its input operator to decide the type of getNext's
@@ -62,7 +62,7 @@ import org.apache.pig.pen.Illustrable;
  */
 public abstract class PhysicalOperator extends Operator<PhyPlanVisitor> implements Illustrable, Cloneable {
 
-    private Log log = LogFactory.getLog(getClass());
+    private final Log log = LogFactory.getLog(getClass());
 
     protected static final long serialVersionUID = 1L;
 
@@ -81,7 +81,7 @@ public abstract class PhysicalOperator extends Operator<PhyPlanVisitor> implemen
 
     // The physical plan this operator is part of
     protected PhysicalPlan parentPlan;
-    
+
     // Specifies if the input has been directly attached
     protected boolean inputAttached = false;
 
@@ -90,11 +90,11 @@ public abstract class PhysicalOperator extends Operator<PhyPlanVisitor> implemen
 
     // The result of performing the operation along with the output
     protected Result res = null;
-    
-    
+
+
     // alias associated with this PhysicalOperator
     protected String alias = null;
-    
+
     // Will be used by operators to report status or transmit heartbeat
     // Should be set by the backends to appropriate implementations that
     // wrap their own version of a reporter.
@@ -126,7 +126,7 @@ public abstract class PhysicalOperator extends Operator<PhyPlanVisitor> implemen
     static final protected DataBag dummyBag = null;
 
     static final protected Map dummyMap = null;
-    
+
     // TODO: This is not needed. But a lot of tests check serialized physical plans
     // that are sensitive to the serialized image of the contained physical operators.
     // So for now, just keep it. Later it'll be cleansed along with those test golden
@@ -161,11 +161,11 @@ public abstract class PhysicalOperator extends Operator<PhyPlanVisitor> implemen
     public void setIllustrator(Illustrator illustrator) {
 	      this.illustrator = illustrator;
     }
-    
+
     public Illustrator getIllustrator() {
         return illustrator;
     }
-    
+
     public int getRequestedParallelism() {
         return requestedParallelism;
     }
@@ -181,16 +181,16 @@ public abstract class PhysicalOperator extends Operator<PhyPlanVisitor> implemen
     public String getAlias() {
         return alias;
     }
-    
+
     protected String getAliasString() {
         return (alias == null) ? "" : (alias + ": ");
     }
-    
+
     public void setAlias(String alias) {
         this.alias = alias;
     }
-    
-    public void setAccumulative() {    	
+
+    public void setAccumulative() {
         accum = true;
     }
 
@@ -208,7 +208,7 @@ public abstract class PhysicalOperator extends Operator<PhyPlanVisitor> implemen
     public boolean isAccumStarted() {
     	return accumStart;
     }
-    
+
     public void setAccumEnd() {
        if (!accum){
     	   throw new IllegalStateException("Accumulative is not turned on.");
@@ -235,7 +235,7 @@ public abstract class PhysicalOperator extends Operator<PhyPlanVisitor> implemen
     /**
      * Shorts the input path of this operator by providing the input tuple
      * directly
-     * 
+     *
      * @param t -
      *            The tuple that should be used as input
      */
@@ -246,7 +246,7 @@ public abstract class PhysicalOperator extends Operator<PhyPlanVisitor> implemen
 
     /**
      * Detaches any tuples that are attached
-     * 
+     *
      */
     public void detachInput() {
         input = null;
@@ -258,7 +258,7 @@ public abstract class PhysicalOperator extends Operator<PhyPlanVisitor> implemen
      * operators are those that need the full bag before operate on the tuples
      * inside the bag. Example is the Global Rearrange. Non-blocking or pipeline
      * operators are those that work on a tuple by tuple basis.
-     * 
+     *
      * @return true if blocking and false otherwise
      */
     public boolean isBlocking() {
@@ -269,22 +269,24 @@ public abstract class PhysicalOperator extends Operator<PhyPlanVisitor> implemen
      * A generic method for parsing input that either returns the attached input
      * if it exists or fetches it from its predecessor. If special processing is
      * required, this method should be overridden.
-     * 
+     *
      * @return The Result object that results from processing the input
      * @throws ExecException
      */
     public Result processInput() throws ExecException {
-        
+
         Result res = new Result();
         if (input == null && (inputs == null || inputs.size()==0)) {
 //            log.warn("No inputs found. Signaling End of Processing.");
             res.returnStatus = POStatus.STATUS_EOP;
             return res;
         }
-        
+
         //Should be removed once the model is clear
-        if(reporter!=null) reporter.progress();
-            
+        if(reporter!=null) {
+            reporter.progress();
+        }
+
         if (!isInputAttached()) {
             return inputs.get(0).getNext(dummyTuple);
         } else {
@@ -295,7 +297,73 @@ public abstract class PhysicalOperator extends Operator<PhyPlanVisitor> implemen
         }
     }
 
+    @Override
     public abstract void visit(PhyPlanVisitor v) throws VisitorException;
+
+    /**
+     * Implementations that call into the different versions of getNext are often
+     * identical, differing only in the signature of the getNext() call they make.
+     * This method allows to cut down on some of the copy-and-paste.
+     *
+     * @param obj The object we are working with. Its class should correspond to DataType
+     * @param dataType Describes the type of obj; a byte from DataType.
+     * @return result Result of applying this Operator to the Object.
+     * @throws ExecException
+     */
+    @SuppressWarnings("rawtypes")  // For legacy use of untemplatized Map.
+    public Result getNext(Object obj, byte dataType) throws ExecException {
+        switch (dataType) {
+        case DataType.BAG:
+            return getNext((DataBag) obj);
+        case DataType.BOOLEAN:
+            return getNext((Boolean) obj);
+        case DataType.BYTEARRAY:
+            return getNext((DataByteArray) obj);
+        case DataType.CHARARRAY:
+            return getNext((String) obj);
+        case DataType.DOUBLE:
+            return getNext((Double) obj);
+        case DataType.FLOAT:
+            return getNext((Float) obj);
+        case DataType.INTEGER:
+            return getNext((Integer) obj);
+        case DataType.LONG:
+            return getNext((Long) obj);
+        case DataType.MAP:
+            return getNext((Map) obj);
+        case DataType.TUPLE:
+            return getNext((Tuple) obj);
+        default:
+            throw new ExecException("Unsupported type for getNext: " + DataType.findTypeName(dataType));
+        }
+    }
+
+    public static Object getDummy(byte dataType) throws ExecException {
+        switch (dataType) {
+        case DataType.BAG:
+            return dummyBag;
+        case DataType.BOOLEAN:
+            return dummyBool;
+        case DataType.BYTEARRAY:
+            return dummyDBA;
+        case DataType.CHARARRAY:
+            return dummyString;
+        case DataType.DOUBLE:
+            return dummyDouble;
+        case DataType.FLOAT:
+            return dummyFloat;
+        case DataType.INTEGER:
+            return dummyFloat;
+        case DataType.LONG:
+            return dummyLong;
+        case DataType.MAP:
+            return dummyMap;
+        case DataType.TUPLE:
+            return dummyTuple;
+        default:
+            throw new ExecException("Unsupported type for getDummy: " + DataType.findTypeName(dataType));
+        }
+    }
 
     public Result getNext(Integer i) throws ExecException {
         return res;
@@ -337,7 +405,9 @@ public abstract class PhysicalOperator extends Operator<PhyPlanVisitor> implemen
         Result ret = null;
         DataBag tmpBag = BagFactory.getInstance().newDefaultBag();
         for(ret = getNext(dummyTuple);ret.returnStatus!=POStatus.STATUS_EOP;ret=getNext(dummyTuple)){
-            if(ret.returnStatus == POStatus.STATUS_ERR) return ret;
+            if(ret.returnStatus == POStatus.STATUS_ERR) {
+                return ret;
+            }
             tmpBag.add((Tuple)ret.result);
         }
         ret.result = tmpBag;
@@ -361,7 +431,7 @@ public abstract class PhysicalOperator extends Operator<PhyPlanVisitor> implemen
     }
 
     /**
-     * Make a deep copy of this operator. This function is blank, however, 
+     * Make a deep copy of this operator. This function is blank, however,
      * we should leave a place holder so that the subclasses can clone
      * @throws CloneNotSupportedException
      */
@@ -380,15 +450,15 @@ public abstract class PhysicalOperator extends Operator<PhyPlanVisitor> implemen
     public void setParentPlan(PhysicalPlan physicalPlan) {
        parentPlan = physicalPlan;
     }
-    
+
     public Log getLogger() {
     	return log;
     }
-    
+
     public static void setPigLogger(PigLogger logger) {
     	pigLogger = logger;
     }
-    
+
     public static PigLogger getPigLogger() {
     	return pigLogger;
     }

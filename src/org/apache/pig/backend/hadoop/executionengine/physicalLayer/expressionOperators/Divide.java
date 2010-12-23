@@ -30,7 +30,7 @@ import org.apache.pig.impl.plan.VisitorException;
 public class Divide extends BinaryExpressionOperator {
 
     /**
-     * 
+     *
      */
     private static final long serialVersionUID = 1L;
 
@@ -52,153 +52,109 @@ public class Divide extends BinaryExpressionOperator {
         return "Divide" + "[" + DataType.findTypeName(resultType) + "]" +" - " + mKey.toString();
     }
 
-    @Override
-    public Result getNext(Double d) throws ExecException {
-        Result r = accumChild(null, d);
-        if (r != null) {
-            return r;
+    /*
+     * This method is used to invoke the appropriate method, as Java does not provide generic
+     * dispatch for it.
+     */
+    @SuppressWarnings("unchecked")
+    protected <T extends Number> T divide(T a, T b, byte dataType) throws ExecException {
+        switch (dataType) {
+        case DataType.DOUBLE:
+            return (T) Double.valueOf((Double) a / (Double) b);
+        case DataType.INTEGER:
+            return (T) Integer.valueOf((Integer) a / (Integer) b);
+        case DataType.LONG:
+            return (T) Long.valueOf((Long) a / (Long) b);
+        case DataType.FLOAT:
+            return (T) Float.valueOf((Float) a / (Float) b);
+        default:
+            throw new ExecException("called on unsupported Number class " + DataType.findTypeName(dataType));
         }
-        
-        byte status;
-        Result res;
-        Double left = null, right = null;
-        res = lhs.getNext(left);
-        status = res.returnStatus;
-        if(status != POStatus.STATUS_OK || res.result == null) {
-            return res;
-        }
-        left = (Double) res.result;
-        
-        res = rhs.getNext(right);
-        status = res.returnStatus;
-        if(status != POStatus.STATUS_OK || res.result == null) {
-            return res;
-        }
-        right = (Double) res.result;
-        
-        if (right == 0) {
-            if(pigLogger != null) {
-                pigLogger.warn(this, "Divide by zero. Converting it to NULL.", PigWarning.DIVIDE_BY_ZERO);
-            }
-            res.result = null;
-        }
-        else
-            res.result = new Double(left / right);
-        return res;
     }
-    
-    @Override
-    public Result getNext(Float f) throws ExecException {
-        Result r = accumChild(null, f);
-        if (r != null) {
-            return r;
+
+    /*
+     * This method is used to invoke the appropriate method, as Java does not provide generic
+     * dispatch for it.
+     */
+    protected <T extends Number> boolean equalsZero(T a, byte dataType) throws ExecException {
+        switch (dataType) {
+        case DataType.DOUBLE:
+            return ((Double) a).equals(0.0);
+        case DataType.INTEGER:
+            return ((Integer) a).equals(0);
+        case DataType.LONG:
+            return ((Long) a).equals(0L);
+        case DataType.FLOAT:
+            return ((Float) a).equals(0.0f);
+        default:
+            throw new ExecException("Called on unsupported Number class " + DataType.findTypeName(dataType));
         }
-        
-        byte status;
-        Result res;
-        Float left = null, right = null;
-        res = lhs.getNext(left);
-        status = res.returnStatus;
-        if(status != POStatus.STATUS_OK || res.result == null) {
-            return res;
-        }
-        left = (Float) res.result;
-        
-        res = rhs.getNext(right);
-        status = res.returnStatus;
-        if(status != POStatus.STATUS_OK || res.result == null) {
-            return res;
-        }
-        right = (Float) res.result;
-        
-        if (right == 0) {
-            if(pigLogger != null) {
-                pigLogger.warn(this, "Divide by zero. Converting it to NULL.", PigWarning.DIVIDE_BY_ZERO);
-            }
-            res.result = null;
-        }
-        else
-            res.result = new Float(left / right);
-        return res;
     }
-    
-    @Override
-    public Result getNext(Integer i) throws ExecException {
-        Result r = accumChild(null, i);
+
+    @SuppressWarnings("unchecked")
+    protected <T extends Number> Result genericGetNext(T number, byte dataType) throws ExecException {
+        Result r = accumChild(null, number, dataType);
         if (r != null) {
             return r;
         }
-        
+
+
         byte status;
         Result res;
-        Integer left = null, right = null;
-        res = lhs.getNext(left);
+        T left = null, right = null;
+        res = lhs.getNext(left, dataType);
         status = res.returnStatus;
         if(status != POStatus.STATUS_OK || res.result == null) {
             return res;
         }
-        left = (Integer) res.result;
-        
-        res = rhs.getNext(right);
+        left = (T) res.result;
+
+        res = rhs.getNext(right, dataType);
         status = res.returnStatus;
         if(status != POStatus.STATUS_OK || res.result == null) {
             return res;
         }
-        right = (Integer) res.result;
-        
-        if (right == 0) {
+        right = (T) res.result;
+
+        if (equalsZero(right, dataType)) {
             if(pigLogger != null) {
                 pigLogger.warn(this, "Divide by zero. Converting it to NULL.", PigWarning.DIVIDE_BY_ZERO);
             }
             res.result = null;
+        } else {
+            res.result = divide(left, right, dataType);
         }
-        else
-            res.result = Integer.valueOf(left / right);
-        return res;
-    }
-    
-    @Override
-    public Result getNext(Long l) throws ExecException {
-        Result r = accumChild(null, l);
-        if (r != null) {
-            return r;
-        }
-        
-        byte status;
-        Result res;
-        Long left = null, right = null;
-        res = lhs.getNext(left);
-        status = res.returnStatus;
-        if(status != POStatus.STATUS_OK || res.result == null) {
-            return res;
-        }
-        left = (Long) res.result;
-        
-        res = rhs.getNext(right);
-        status = res.returnStatus;
-        if(status != POStatus.STATUS_OK || res.result == null) {
-            return res;
-        }
-        right = (Long) res.result;
-        
-        if (right == 0) {
-            if(pigLogger != null) {
-                pigLogger.warn(this, "Divide by zero. Converting it to NULL.", PigWarning.DIVIDE_BY_ZERO);
-            }
-            res.result = null;
-        }
-        else
-            res.result = Long.valueOf(left / right);
         return res;
     }
 
     @Override
+    public Result getNext(Double d) throws ExecException {
+        return genericGetNext(d, DataType.DOUBLE);
+    }
+
+    @Override
+    public Result getNext(Float f) throws ExecException {
+        return genericGetNext(f, DataType.FLOAT);
+
+    }
+
+    @Override
+    public Result getNext(Integer i) throws ExecException {
+        return genericGetNext(i, DataType.INTEGER);
+    }
+
+    @Override
+    public Result getNext(Long l) throws ExecException {
+        return genericGetNext(l, DataType.LONG);
+    }
+
+    @Override
     public Divide clone() throws CloneNotSupportedException {
-        Divide clone = new Divide(new OperatorKey(mKey.scope, 
+        Divide clone = new Divide(new OperatorKey(mKey.scope,
             NodeIdGenerator.getGenerator().getNextNodeId(mKey.scope)));
         clone.cloneHelper(this);
         return clone;
     }
-    
+
 
 }

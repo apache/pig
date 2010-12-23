@@ -25,7 +25,6 @@ import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.POStatus;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
-import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.DataType;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.NodeIdGenerator;
@@ -34,7 +33,7 @@ import org.apache.pig.impl.plan.VisitorException;
 public class GTOrEqualToExpr extends BinaryComparisonOperator {
 
     /**
-     * 
+     *
      */
     private static final long serialVersionUID = 1L;
     transient private final Log log = LogFactory.getLog(getClass());
@@ -60,70 +59,24 @@ public class GTOrEqualToExpr extends BinaryComparisonOperator {
 
     @Override
     public Result getNext(Boolean bool) throws ExecException {
-        byte status;
         Result left, right;
 
         switch (operandType) {
-        case DataType.BYTEARRAY: {
-            Result r = accumChild(null, dummyDBA);
-            if (r != null) {
-                return r;
-            }
-            left = lhs.getNext(dummyDBA);
-            right = rhs.getNext(dummyDBA);
-            return doComparison(left, right);
-                            }
-
-        case DataType.DOUBLE: {
-            Result r = accumChild(null, dummyDouble);
-            if (r != null) {
-                return r;
-            }
-            left = lhs.getNext(dummyDouble);
-            right = rhs.getNext(dummyDouble);
-            return doComparison(left, right);
-                            }
-
-        case DataType.FLOAT: {
-            Result r = accumChild(null, dummyFloat);
-            if (r != null) {
-                return r;
-            }
-            left = lhs.getNext(dummyFloat);
-            right = rhs.getNext(dummyFloat);
-            return doComparison(left, right);
-                            }
-
-        case DataType.INTEGER: {
-            Result r = accumChild(null, dummyInt);
-            if (r != null) {
-                return r;
-            }
-            left = lhs.getNext(dummyInt);
-            right = rhs.getNext(dummyInt);
-            return doComparison(left, right);
-                            }
-
-        case DataType.LONG: {
-            Result r = accumChild(null, dummyLong);
-            if (r != null) {
-                return r;
-            }
-            left = lhs.getNext(dummyLong);
-            right = rhs.getNext(dummyLong);
-            return doComparison(left, right);
-                            }
-
+        case DataType.BYTEARRAY:
+        case DataType.DOUBLE:
+        case DataType.FLOAT:
+        case DataType.INTEGER:
+        case DataType.LONG:
         case DataType.CHARARRAY: {
-            Result r = accumChild(null, dummyString);
+            Object dummy = getDummy(operandType);
+            Result r = accumChild(null, dummy, operandType);
             if (r != null) {
                 return r;
             }
-            left = lhs.getNext(dummyString);
-            right = rhs.getNext(dummyString);
+            left = lhs.getNext(dummy, operandType);
+            right = rhs.getNext(dummy, operandType);
             return doComparison(left, right);
-                            }
-
+        }
 
         default: {
             int errCode = 2067;
@@ -131,15 +84,21 @@ public class GTOrEqualToExpr extends BinaryComparisonOperator {
             "handle type: " + DataType.findTypeName(operandType);
             throw new ExecException(msg, errCode, PigException.BUG);
         }
-        
+
         }
     }
 
     @SuppressWarnings("unchecked")
     private Result doComparison(Result left, Result right) {
-        if (trueRef == null) initializeRefs();
-        if (left.returnStatus != POStatus.STATUS_OK) return left;
-        if (right.returnStatus != POStatus.STATUS_OK) return right;
+        if (trueRef == null) {
+            initializeRefs();
+        }
+        if (left.returnStatus != POStatus.STATUS_OK) {
+            return left;
+        }
+        if (right.returnStatus != POStatus.STATUS_OK) {
+            return right;
+        }
         // if either operand is null, the result should be
         // null
         if(left.result == null || right.result == null) {
@@ -149,7 +108,7 @@ public class GTOrEqualToExpr extends BinaryComparisonOperator {
         }
         assert(left.result instanceof Comparable);
         assert(right.result instanceof Comparable);
-        if (((Comparable)left.result).compareTo((Comparable)right.result) >= 0) {
+        if (((Comparable)left.result).compareTo(right.result) >= 0) {
             left.result = trueRef;
         } else {
             left.result = falseRef;
@@ -160,7 +119,7 @@ public class GTOrEqualToExpr extends BinaryComparisonOperator {
 
     @Override
     public GTOrEqualToExpr clone() throws CloneNotSupportedException {
-        GTOrEqualToExpr clone = new GTOrEqualToExpr(new OperatorKey(mKey.scope, 
+        GTOrEqualToExpr clone = new GTOrEqualToExpr(new OperatorKey(mKey.scope,
             NodeIdGenerator.getGenerator().getNextNodeId(mKey.scope)));
         clone.cloneHelper(this);
         return clone;

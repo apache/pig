@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-1755: Clean up duplicated code in PhysicalOperators (dvryaboy)
+
 PIG-750: Use combiner when algebraic UDFs are used in expressions (thejas)
 
 PIG-490: Combiner not used when group elements referred to in 

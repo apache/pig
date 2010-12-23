@@ -29,7 +29,7 @@ import org.apache.pig.impl.plan.VisitorException;
 public class Mod extends BinaryExpressionOperator {
 
     /**
-     * 
+     *
      */
     private static final long serialVersionUID = 1L;
 
@@ -40,7 +40,7 @@ public class Mod extends BinaryExpressionOperator {
     public Mod(OperatorKey k, int rp) {
         super(k, rp);
     }
-    
+
     @Override
     public void visit(PhyPlanVisitor v) throws VisitorException {
         v.visitMod(this);
@@ -50,66 +50,60 @@ public class Mod extends BinaryExpressionOperator {
     public String name() {
         return "Mod" + "[" + DataType.findTypeName(resultType) + "]" +" - " + mKey.toString();
     }
-    
-    @Override
-    public Result getNext(Integer i) throws ExecException{
-        Result r = accumChild(null, i);
-        if (r != null) {
-            return r;
+
+    @SuppressWarnings("unchecked")
+    protected <T extends Number> T mod(T a, T b, byte dataType) throws ExecException {
+        switch(dataType) {
+        case DataType.INTEGER:
+            return (T) Integer.valueOf((Integer) a % (Integer) b);
+        case DataType.LONG:
+            return (T) Long.valueOf((Long) a % (Long) b);
+        default:
+            throw new ExecException("called on unsupported Number class " + DataType.findTypeName(dataType));
         }
-        
-        byte status;
-        Result res;
-        Integer left = null, right = null;
-        res = lhs.getNext(left);
-        status = res.returnStatus;
-        if(status != POStatus.STATUS_OK || res.result == null) {
-            return res;
-        }
-        left = (Integer) res.result;
-        
-        res = rhs.getNext(right);
-        status = res.returnStatus;
-        if(status != POStatus.STATUS_OK || res.result == null) {
-            return res;
-        }
-        right = (Integer) res.result;
-        
-        res.result = Integer.valueOf(left % right);
-        return res;
     }
-    
-    @Override
-    public Result getNext(Long i) throws ExecException{
-        Result r = accumChild(null, i);
+
+    @SuppressWarnings("unchecked")
+    protected <T extends Number> Result genericGetNext(T number, byte dataType) throws ExecException {
+        Result r = accumChild(null, number, dataType);
         if (r != null) {
             return r;
         }
-        
+
         byte status;
         Result res;
-        Long left = null, right = null;
-        res = lhs.getNext(left);
+        T left = null, right = null;
+        res = lhs.getNext(left, dataType);
         status = res.returnStatus;
         if(status != POStatus.STATUS_OK || res.result == null) {
             return res;
         }
-        left = (Long) res.result;
-        
-        res = rhs.getNext(right);
+        left = (T) res.result;
+
+        res = rhs.getNext(right, dataType);
         status = res.returnStatus;
         if(status != POStatus.STATUS_OK || res.result == null) {
             return res;
         }
-        right = (Long) res.result;
-        
-        res.result = Long.valueOf(left % right);
+        right = (T) res.result;
+
+        res.result = mod(left, right, dataType);
         return res;
     }
 
     @Override
+    public Result getNext(Integer i) throws ExecException{
+        return genericGetNext(i, DataType.INTEGER);
+    }
+
+    @Override
+    public Result getNext(Long i) throws ExecException{
+        return genericGetNext(i, DataType.LONG);
+    }
+
+    @Override
     public Mod clone() throws CloneNotSupportedException {
-        Mod clone = new Mod(new OperatorKey(mKey.scope, 
+        Mod clone = new Mod(new OperatorKey(mKey.scope,
             NodeIdGenerator.getGenerator().getNextNodeId(mKey.scope)));
         clone.cloneHelper(this);
         return clone;

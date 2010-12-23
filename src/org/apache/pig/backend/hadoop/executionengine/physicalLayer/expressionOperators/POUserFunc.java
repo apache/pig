@@ -44,7 +44,6 @@ import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.PigContext;
-import org.apache.pig.impl.logicalLayer.LogicalOperator;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.OperatorKey;
@@ -53,12 +52,12 @@ import org.apache.pig.impl.plan.VisitorException;
 public class POUserFunc extends ExpressionOperator {
 
     /**
-     * 
+     *
      */
     private static final long serialVersionUID = 1L;
     transient EvalFunc func;
     transient private String[] cacheFiles = null;
-    
+
     transient private final Log log = LogFactory.getLog(getClass());
     FuncSpec funcSpec;
     FuncSpec origFSpec;
@@ -67,9 +66,9 @@ public class POUserFunc extends ExpressionOperator {
     public static final byte FINAL = 2;
     private boolean initialized = false;
     private MonitoredUDFExecutor executor = null;
-    
+
     private PhysicalOperator referencedOperator = null;
-    
+
     public PhysicalOperator getReferencedOperator() {
         return referencedOperator;
     }
@@ -91,7 +90,7 @@ public class POUserFunc extends ExpressionOperator {
             FuncSpec funcSpec) {
         this(k, rp, inp, funcSpec, null);
     }
-    
+
     public POUserFunc(
             OperatorKey k,
             int rp,
@@ -121,7 +120,8 @@ public class POUserFunc extends ExpressionOperator {
         this.func.setReporter(reporter);
         this.func.setPigLogger(pigLogger);
     }
-    
+
+    @Override
     public Result processInput() throws ExecException {
 
         // Make sure the reporter is set, because it isn't getting carried
@@ -143,9 +143,11 @@ public class POUserFunc extends ExpressionOperator {
         }
 
         //Should be removed once the model is clear
-        if(reporter!=null) reporter.progress();
+        if(reporter!=null) {
+            reporter.progress();
+        }
 
-        
+
         if(isInputAttached()) {
             res.result = input;
             res.returnStatus = POStatus.STATUS_OK;
@@ -153,52 +155,23 @@ public class POUserFunc extends ExpressionOperator {
             return res;
         } else {
             res.result = TupleFactory.getInstance().newTuple();
-            
+
             Result temp = null;
             for(PhysicalOperator op : inputs) {
-                switch(op.getResultType()){
-                case DataType.BAG:
-                    temp = op.getNext(dummyBag);
-                    break;
-                case DataType.BOOLEAN:
-                    temp = op.getNext(dummyBool);
-                    break;
-                case DataType.BYTEARRAY:
-                    temp = op.getNext(dummyDBA);
-                    break;
-                case DataType.CHARARRAY:
-                    temp = op.getNext(dummyString);
-                    break;
-                case DataType.DOUBLE:
-                    temp = op.getNext(dummyDouble);
-                    break;
-                case DataType.FLOAT:
-                    temp = op.getNext(dummyFloat);
-                    break;
-                case DataType.INTEGER:
-                    temp = op.getNext(dummyInt);
-                    break;
-                case DataType.LONG:
-                    temp = op.getNext(dummyLong);
-                    break;
-                case DataType.MAP:
-                    temp = op.getNext(dummyMap);
-                    break;
-                case DataType.TUPLE:
-                    temp = op.getNext(dummyTuple);
-                    break;
-                }
-                if(temp.returnStatus!=POStatus.STATUS_OK)
+                temp = op.getNext(getDummy(op.getResultType()), op.getResultType());
+                if(temp.returnStatus!=POStatus.STATUS_OK) {
                     return temp;
-                
+                }
+
                 if(op instanceof POProject &&
                         op.getResultType() == DataType.TUPLE){
                     POProject projOp = (POProject)op;
                     if(projOp.isStar()){
                         Tuple trslt = (Tuple) temp.result;
                         Tuple rslt = (Tuple) res.result;
-                        for(int i=0;i<trslt.size();i++)
+                        for(int i=0;i<trslt.size();i++) {
                             rslt.append(trslt.get(i));
+                        }
                         continue;
                     }
                 }
@@ -210,17 +183,17 @@ public class POUserFunc extends ExpressionOperator {
     }
 
     private Result getNext() throws ExecException {
-        Result result = processInput();        
+        Result result = processInput();
         String errMsg = "";
-        try {						
+        try {
             if(result.returnStatus == POStatus.STATUS_OK) {
                 if (isAccumulative()) {
-                    if (isAccumStarted()) {							
+                    if (isAccumStarted()) {
                         ((Accumulator)func).accumulate((Tuple)result.result);
                         result.returnStatus = POStatus.STATUS_BATCH_OK;
                         result.result = null;
-                    }else{												
-                        result.result = ((Accumulator)func).getValue();	
+                    }else{
+                        result.result = ((Accumulator)func).getValue();
                         ((Accumulator)func).cleanup();
                     }
                 } else {
@@ -239,15 +212,15 @@ public class POUserFunc extends ExpressionOperator {
                 }
                 return result;
             }
-                        
+
             return result;
         } catch (ExecException ee) {
             throw ee;
         } catch (IOException ioe) {
             int errCode = 2078;
-            String msg = "Caught error from UDF: " + funcSpec.getClassName(); 
+            String msg = "Caught error from UDF: " + funcSpec.getClassName();
             String footer = " [" + ioe.getMessage() + "]";
-            
+
             if(ioe instanceof PigException) {
                 int udfErrorCode = ((PigException)ioe).getErrorCode();
                 if(udfErrorCode != 0) {
@@ -259,11 +232,11 @@ public class POUserFunc extends ExpressionOperator {
             } else {
                 msg += footer;
             }
-            
+
             throw new ExecException(msg, errCode, PigException.BUG, ioe);
         } catch (IndexOutOfBoundsException ie) {
             int errCode = 2078;
-            String msg = "Caught error from UDF: " + funcSpec.getClassName() + 
+            String msg = "Caught error from UDF: " + funcSpec.getClassName() +
             ", Out of bounds access [" + ie.getMessage() + "]";
             throw new ExecException(msg, errCode, PigException.BUG, ie);
         }
@@ -448,13 +421,13 @@ public class POUserFunc extends ExpressionOperator {
     @Override
     public POUserFunc clone() throws CloneNotSupportedException {
         // Inputs will be patched up later by PhysicalPlan.clone()
-        POUserFunc clone = new POUserFunc(new OperatorKey(mKey.scope, 
+        POUserFunc clone = new POUserFunc(new OperatorKey(mKey.scope,
             NodeIdGenerator.getGenerator().getNextNodeId(mKey.scope)),
             requestedParallelism, null, funcSpec.clone());
         clone.setResultType(resultType);
         return clone;
     }
-    
+
     private void readObject(ObjectInputStream is) throws IOException, ClassNotFoundException{
         is.defaultReadObject();
         instantiateFunc(funcSpec);
@@ -464,19 +437,20 @@ public class POUserFunc extends ExpressionOperator {
      * Get child expression of this expression
      */
     @Override
-    public List<ExpressionOperator> getChildExpressions() {		
+    public List<ExpressionOperator> getChildExpressions() {
         return null;
     }
-    
+
     @SuppressWarnings("unchecked")
     @Override
-    public void setAccumStart() {        
+    public void setAccumStart() {
         if (isAccumulative() && !isAccumStarted()) {
             super.setAccumStart();
             ((Accumulator)func).cleanup();
-        }        
+        }
     }
-    
+
+    @Override
     public void setResultType(byte resultType) {
         this.resultType = resultType;
     }

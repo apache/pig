@@ -52,37 +52,37 @@ import org.apache.pig.pen.util.ExampleTuple;
 public class POLocalRearrange extends PhysicalOperator {
 
     /**
-     * 
+     *
      */
     protected static final long serialVersionUID = 1L;
 
     protected static final TupleFactory mTupleFactory = TupleFactory.getInstance();
 
     private static Log log = LogFactory.getLog(POLocalRearrange.class);
-    
+
     private static final Result ERR_RESULT = new Result();
 
     protected List<PhysicalPlan> plans;
-    
+
     protected List<PhysicalPlan> secondaryPlans;
-    
+
     protected List<ExpressionOperator> leafOps;
-    
+
     protected List<ExpressionOperator> secondaryLeafOps;
 
     // The position of this LR in the package operator
     protected byte index;
-    
+
     protected byte keyType;
-    
+
     protected byte mainKeyType;
-    
+
     protected byte secondaryKeyType;
 
     protected boolean mIsDistinct = false;
-    
+
     protected boolean isCross = false;
-    
+
     // map to store mapping of projected columns to
     // the position in the "Key" where these will be projected to.
     // We use this information to strip off these columns
@@ -93,8 +93,8 @@ public class POLocalRearrange extends PhysicalOperator {
     // For the first input (a), the map would contain following key:value
     // 2:0 (2 corresponds to $2 in cogroup a by ($2, $3) and 0 corresponds to 1st index in key)
     // 3:1 (3 corresponds to $3 in cogroup a by ($2, $3) and 0 corresponds to 2nd index in key)
-    private Map<Integer, Integer> mProjectedColsMap;
-    private Map<Integer, Integer> mSecondaryProjectedColsMap;
+    private final Map<Integer, Integer> mProjectedColsMap;
+    private final Map<Integer, Integer> mSecondaryProjectedColsMap;
 
     // A place holder Tuple used in distinct case where we really don't
     // have any value to pass through.  But hadoop gets cranky if we pass a
@@ -119,12 +119,12 @@ public class POLocalRearrange extends PhysicalOperator {
     private int mProjectedColsMapSize = 0;
     private int mSecondaryProjectedColsMapSize = 0;
 
-       
+
     private boolean useSecondaryKey = false;
-    
+
     // By default, we strip keys from the value.
     private boolean stripKeyFromValue = true;
-    
+
     public POLocalRearrange(OperatorKey k) {
         this(k, -1, null);
     }
@@ -175,9 +175,9 @@ public class POLocalRearrange extends PhysicalOperator {
 
     /**
      * Sets the co-group index of this operator
-     * 
-     * @param index the position of this operator in 
-     * a co-group operation 
+     *
+     * @param index the position of this operator in
+     * a co-group operation
      * @throws ExecException if the index value is bigger then 0x7F
      */
     public void setIndex(int index) throws ExecException {
@@ -186,7 +186,7 @@ public class POLocalRearrange extends PhysicalOperator {
 
     /**
      * Sets the multi-query index of this operator
-     * 
+     *
      * @param index the position of the parent plan of this operator
      * in the enclosed split operator
      * @throws ExecException if the index value is bigger then 0x7F
@@ -194,19 +194,19 @@ public class POLocalRearrange extends PhysicalOperator {
     public void setMultiQueryIndex(int index) throws ExecException {
         setIndex(index, true);
     }
-    
+
     private void setIndex(int index, boolean multiQuery) throws ExecException {
-        if (index > PigNullableWritable.idxSpace) { 
+        if (index > PigNullableWritable.idxSpace) {
             // indices in group and cogroup should only
             // be in the range 0x00 to 0x7F (only 127 possible
             // inputs)
             int errCode = 1082;
-            String msg = multiQuery? 
+            String msg = multiQuery?
                     "Merge more than 127 map-reduce jobs not supported."
                   : "Cogroups with more than 127 inputs not supported.";
             throw new ExecException(msg, errCode, PigException.INPUT);
         } else {
-            // We could potentially be sending the (key, value) relating to 
+            // We could potentially be sending the (key, value) relating to
             // multiple "group by" statements through one map reduce job
             // in  multiquery optimized execution. In this case, we want
             // two keys which have the same content but coming from different
@@ -220,10 +220,10 @@ public class POLocalRearrange extends PhysicalOperator {
             // contents coming from different "group by" operations would have different
             // indices and hence would go to different invocation of reduce()
             this.index = multiQuery ? (byte)(index | PigNullableWritable.mqFlag) : (byte)index;
-        }            
+        }
     }
-    
-    public boolean isDistinct() { 
+
+    public boolean isDistinct() {
         return mIsDistinct;
     }
 
@@ -233,7 +233,7 @@ public class POLocalRearrange extends PhysicalOperator {
             mFakeTuple = mTupleFactory.newTuple();
         }
     }
-    
+
     /**
      * Overridden since the attachment of the new input should cause the old
      * processing to end.
@@ -242,7 +242,7 @@ public class POLocalRearrange extends PhysicalOperator {
     public void attachInput(Tuple t) {
         super.attachInput(t);
     }
-    
+
     /**
      * Calls getNext on the generate operator inside the nested
      * physical plan. Converts the generated tuple into the proper
@@ -250,143 +250,111 @@ public class POLocalRearrange extends PhysicalOperator {
      */
     @Override
     public Result getNext(Tuple t) throws ExecException {
-        
+
         Result inp = null;
         Result res = ERR_RESULT;
         while (true) {
             inp = processInput();
-            if (inp.returnStatus == POStatus.STATUS_EOP || inp.returnStatus == POStatus.STATUS_ERR)
+            if (inp.returnStatus == POStatus.STATUS_EOP || inp.returnStatus == POStatus.STATUS_ERR) {
                 break;
-            if (inp.returnStatus == POStatus.STATUS_NULL)
+            }
+            if (inp.returnStatus == POStatus.STATUS_NULL) {
                 continue;
-            
+            }
+
             for (PhysicalPlan ep : plans) {
                 ep.attachInput((Tuple)inp.result);
             }
-            
+
             List<Result> resLst = new ArrayList<Result>();
-            
+
             if (secondaryPlans!=null) {
                 for (PhysicalPlan ep : secondaryPlans) {
                     ep.attachInput((Tuple)inp.result);
                 }
             }
-            
+
             List<Result> secondaryResLst = null;
-            if (secondaryLeafOps!=null)
+            if (secondaryLeafOps!=null) {
                 secondaryResLst = new ArrayList<Result>();
-            
+            }
+
             for (ExpressionOperator op : leafOps){
-                
+
                 switch(op.getResultType()){
                 case DataType.BAG:
-                    res = op.getNext(dummyBag);
-                    break;
                 case DataType.BOOLEAN:
-                    res = op.getNext(dummyBool);
-                    break;
                 case DataType.BYTEARRAY:
-                    res = op.getNext(dummyDBA);
-                    break;
                 case DataType.CHARARRAY:
-                    res = op.getNext(dummyString);
-                    break;
                 case DataType.DOUBLE:
-                    res = op.getNext(dummyDouble);
-                    break;
                 case DataType.FLOAT:
-                    res = op.getNext(dummyFloat);
-                    break;
                 case DataType.INTEGER:
-                    res = op.getNext(dummyInt);
-                    break;
                 case DataType.LONG:
-                    res = op.getNext(dummyLong);
-                    break;
                 case DataType.MAP:
-                    res = op.getNext(dummyMap);
-                    break;
                 case DataType.TUPLE:
-                    res = op.getNext(dummyTuple);
+                    res = op.getNext(getDummy(op.getResultType()), op.getResultType());
                     break;
                 default:
                     log.error("Invalid result type: " + DataType.findType(op.getResultType()));
                     break;
                 }
-                
+
                 // allow null as group by key
                 if (res.returnStatus != POStatus.STATUS_OK && res.returnStatus != POStatus.STATUS_NULL) {
                     return new Result();
                 }
-              
+
                 resLst.add(res);
             }
-            
+
             if (secondaryLeafOps!=null)
             {
                 for (ExpressionOperator op : secondaryLeafOps){
-                    
+
                     switch(op.getResultType()){
                     case DataType.BAG:
-                        res = op.getNext(dummyBag);
-                        break;
                     case DataType.BOOLEAN:
-                        res = op.getNext(dummyBool);
-                        break;
                     case DataType.BYTEARRAY:
-                        res = op.getNext(dummyDBA);
-                        break;
                     case DataType.CHARARRAY:
-                        res = op.getNext(dummyString);
-                        break;
                     case DataType.DOUBLE:
-                        res = op.getNext(dummyDouble);
-                        break;
                     case DataType.FLOAT:
-                        res = op.getNext(dummyFloat);
-                        break;
                     case DataType.INTEGER:
-                        res = op.getNext(dummyInt);
-                        break;
                     case DataType.LONG:
-                        res = op.getNext(dummyLong);
-                        break;
                     case DataType.MAP:
-                        res = op.getNext(dummyMap);
-                        break;
                     case DataType.TUPLE:
-                        res = op.getNext(dummyTuple);
+                        res = op.getNext(getDummy(op.getResultType()), op.getResultType());
                         break;
                     default:
                         log.error("Invalid result type: " + DataType.findType(op.getResultType()));
                         break;
                     }
-                    
+
                     // allow null as group by key
                     if (res.returnStatus != POStatus.STATUS_OK && res.returnStatus != POStatus.STATUS_NULL) {
                         return new Result();
                     }
-                    
+
                     secondaryResLst.add(res);
                 }
             }
-            
+
             // If we are using secondary sort key, our new key is:
-            // (nullable, index, (key, secondary key), value)             
-            res.result = constructLROutput(resLst,secondaryResLst,(Tuple)inp.result);            
+            // (nullable, index, (key, secondary key), value)
+            res.result = constructLROutput(resLst,secondaryResLst,(Tuple)inp.result);
             res.returnStatus = POStatus.STATUS_OK;
-            
+
             detachPlans(plans);
 
-            if(secondaryPlans != null)
+            if(secondaryPlans != null) {
                 detachPlans(secondaryPlans);
-            
+            }
+
             res.result = illustratorMarkup(inp.result, res.result, 0);
             return res;
         }
         return inp;
     }
-    
+
     private void detachPlans(List<PhysicalPlan> plans) {
         for (PhysicalPlan ep : plans) {
             ep.detachInput();
@@ -398,50 +366,52 @@ public class POLocalRearrange extends PhysicalOperator {
         if(resLst.size()>1){
             Tuple t = mTupleFactory.newTuple(resLst.size());
             int i=-1;
-            for(Result res : resLst)
+            for(Result res : resLst) {
                 t.set(++i, res.result);
-            key = t;           
+            }
+            key = t;
         } else if (resLst.size() == 1 && type == DataType.TUPLE) {
-            
+
             // We get here after merging multiple jobs that have different
             // map key types into a single job during multi-query optimization.
             // If the key isn't a tuple, it must be wrapped in a tuple.
             Object obj = resLst.get(0).result;
             if (obj instanceof Tuple) {
-                key = (Tuple)obj;
+                key = obj;
             } else {
                 Tuple t = mTupleFactory.newTuple(1);
                 t.set(0, resLst.get(0).result);
                 key = t;
-            }        
+            }
         }
         else{
             key = resLst.get(0).result;
         }
         return key;
     }
-    
+
     protected Tuple constructLROutput(List<Result> resLst, List<Result> secondaryResLst, Tuple value) throws ExecException{
         Tuple lrOutput = mTupleFactory.newTuple(3);
         lrOutput.set(0, Byte.valueOf(this.index));
         //Construct key
         Object key;
         Object secondaryKey=null;
-        
+
         if (secondaryResLst!=null && secondaryResLst.size()>0)
         {
             key = getKeyFromResult(resLst, mainKeyType);
             secondaryKey = getKeyFromResult(secondaryResLst, secondaryKeyType);
-        } else
+        } else {
             key = getKeyFromResult(resLst, keyType);
-        
+        }
+
 
         if(!stripKeyFromValue){
             lrOutput.set(1, key);
             lrOutput.set(2, value);
             return lrOutput;
         }
-        
+
         if (mIsDistinct) {
 
             //Put the key and the indexed tuple
@@ -453,9 +423,10 @@ public class POLocalRearrange extends PhysicalOperator {
                 lrOutput.set(2, mFakeTuple);
             return lrOutput;
         } else if(isCross){
-        
-            for(int i=0;i<plans.size();i++)
+
+            for(int i=0;i<plans.size();i++) {
                 value.getAll().remove(0);
+            }
             //Put the index, key, and value
             //in a tuple and return
             lrOutput.set(1, key);
@@ -471,11 +442,11 @@ public class POLocalRearrange extends PhysicalOperator {
                 compoundKey.set(0, key);
                 compoundKey.set(1, secondaryKey);
                 lrOutput.set(1, compoundKey);
-            }
-            else
+            } else {
                 lrOutput.set(1, key);
-            
-            // strip off the columns in the "value" which 
+            }
+
+            // strip off the columns in the "value" which
             // are present in the "key"
             if(mProjectedColsMapSize != 0 || mProjectStar == true) {
 
@@ -498,17 +469,17 @@ public class POLocalRearrange extends PhysicalOperator {
                     // the "value" since all elements are in the
                     // "key"
                     minimalValue = mTupleFactory.newTuple(0);
-    
+
                 }
                 lrOutput.set(2, minimalValue);
-            
+
             } else {
-            
+
                 // there were no columns in the "key"
                 // which we can strip off from the "value"
                 // so just send the value we got
                 lrOutput.set(2, value);
-                
+
             }
             return lrOutput;
         }
@@ -519,16 +490,17 @@ public class POLocalRearrange extends PhysicalOperator {
     }
 
     public void setKeyType(byte keyType) {
-        if (useSecondaryKey)
+        if (useSecondaryKey) {
             this.mainKeyType = keyType;
-        else
+        } else {
             this.keyType = keyType;
+        }
     }
 
     public List<PhysicalPlan> getPlans() {
         return plans;
     }
-    
+
     public void setUseSecondaryKey(boolean useSecondaryKey) {
         this.useSecondaryKey = useSecondaryKey;
         mainKeyType = keyType;
@@ -539,12 +511,12 @@ public class POLocalRearrange extends PhysicalOperator {
         leafOps.clear();
         int keyIndex = 0; // zero based index for fields in the key
         for (PhysicalPlan plan : plans) {
-            ExpressionOperator leaf = (ExpressionOperator)plan.getLeaves().get(0); 
+            ExpressionOperator leaf = (ExpressionOperator)plan.getLeaves().get(0);
             leafOps.add(leaf);
-            
+
             // don't optimize CROSS
             if(!isCross) {
-                // Look for the leaf Ops which are POProject operators - get the 
+                // Look for the leaf Ops which are POProject operators - get the
                 // the columns that these POProject Operators are projecting.
                 // They MUST be projecting either a column or '*'.
                 // Keep track of the columns which are being projected and
@@ -570,16 +542,18 @@ public class POLocalRearrange extends PhysicalOperator {
                     } else {
                         try {
                             List<PhysicalOperator> preds = plan.getPredecessors(leaf);
-                            if (preds==null || !(preds.get(0) instanceof POProject))
+                            if (preds==null || !(preds.get(0) instanceof POProject)) {
                                 mProjectedColsMap.put(project.getColumn(), keyIndex);
+                            }
                         } catch (ExecException e) {
                             int errCode = 2070;
                             String msg = "Problem in accessing column from project operator.";
                             throw new PlanException(msg, errCode, PigException.BUG);
                         }
                     }
-                    if(project.getResultType() == DataType.TUPLE)
+                    if(project.getResultType() == DataType.TUPLE) {
                         isKeyTuple = true;
+                    }
                 }
                 keyIndex++;
             }
@@ -593,18 +567,18 @@ public class POLocalRearrange extends PhysicalOperator {
         }
         mProjectedColsMapSize = mProjectedColsMap.size();
     }
-    
+
     public void setSecondaryPlans(List<PhysicalPlan> plans) throws PlanException {
         this.secondaryPlans = plans;
         secondaryLeafOps.clear();
         int keyIndex = 0; // zero based index for fields in the key
         for (PhysicalPlan plan : plans) {
-            ExpressionOperator leaf = (ExpressionOperator)plan.getLeaves().get(0); 
+            ExpressionOperator leaf = (ExpressionOperator)plan.getLeaves().get(0);
             secondaryLeafOps.add(leaf);
-            
+
             // don't optimize CROSS
             if(!isCross) {
-                // Look for the leaf Ops which are POProject operators - get the 
+                // Look for the leaf Ops which are POProject operators - get the
                 // the columns that these POProject Operators are projecting.
                 // They MUST be projecting either a column or '*'.
                 // Keep track of the columns which are being projected and
@@ -630,16 +604,18 @@ public class POLocalRearrange extends PhysicalOperator {
                     } else {
                         try {
                             List<PhysicalOperator> preds = plan.getPredecessors(leaf);
-                            if (preds==null || !(preds.get(0) instanceof POProject))
+                            if (preds==null || !(preds.get(0) instanceof POProject)) {
                                 mSecondaryProjectedColsMap.put(project.getColumn(), keyIndex);
+                            }
                         } catch (ExecException e) {
                             int errCode = 2070;
                             String msg = "Problem in accessing column from project operator.";
                             throw new PlanException(msg, errCode, PigException.BUG);
                         }
                     }
-                    if(project.getResultType() == DataType.TUPLE)
+                    if(project.getResultType() == DataType.TUPLE) {
                         isSecondaryKeyTuple = true;
+                    }
                 }
                 keyIndex++;
             }
@@ -653,9 +629,9 @@ public class POLocalRearrange extends PhysicalOperator {
         }
         mainKeyType = keyType;
         keyType = DataType.TUPLE;
-        if (plans.size()>1)
+        if (plans.size()>1) {
             secondaryKeyType = DataType.TUPLE;
-        else
+        } else
         {
             secondaryKeyType = plans.get(0).getLeaves().get(0).getResultType();
         }
@@ -663,7 +639,7 @@ public class POLocalRearrange extends PhysicalOperator {
     }
 
     /**
-     * Make a deep copy of this operator.  
+     * Make a deep copy of this operator.
      * @throws CloneNotSupportedException
      */
     @Override
@@ -674,7 +650,7 @@ public class POLocalRearrange extends PhysicalOperator {
             clonePlans.add(plan.clone());
         }
         POLocalRearrange clone = new POLocalRearrange(new OperatorKey(
-            mKey.scope, 
+            mKey.scope,
             NodeIdGenerator.getGenerator().getNextNodeId(mKey.scope)),
             requestedParallelism);
         try {
@@ -710,7 +686,7 @@ public class POLocalRearrange extends PhysicalOperator {
     public Map<Integer, Integer> getProjectedColsMap() {
         return mProjectedColsMap;
     }
-    
+
     /**
      * @return the mProjectedColsMap
      */
@@ -748,7 +724,7 @@ public class POLocalRearrange extends PhysicalOperator {
 
     /**
      * @param plans
-     * @throws ExecException 
+     * @throws ExecException
      */
     public void setPlansFromCombiner(List<PhysicalPlan> plans) throws PlanException {
         this.plans = plans;
@@ -756,12 +732,12 @@ public class POLocalRearrange extends PhysicalOperator {
         mProjectedColsMap.clear();
         int keyIndex = 0; // zero based index for fields in the key
         for (PhysicalPlan plan : plans) {
-            ExpressionOperator leaf = (ExpressionOperator)plan.getLeaves().get(0); 
+            ExpressionOperator leaf = (ExpressionOperator)plan.getLeaves().get(0);
             leafOps.add(leaf);
-            
+
             // don't optimize CROSS
             if(!isCross) {
-                // Look for the leaf Ops which are POProject operators - get the 
+                // Look for the leaf Ops which are POProject operators - get the
                 // the columns that these POProject Operators are projecting.
                 // Keep track of the columns which are being projected and
                 // the position in the "Key" where these will be projected to.
@@ -784,8 +760,9 @@ public class POLocalRearrange extends PhysicalOperator {
                             throw new PlanException(msg, errCode, PigException.BUG);
                         }
                     }
-                    if(project.getResultType() == DataType.TUPLE)
+                    if(project.getResultType() == DataType.TUPLE) {
                         isKeyTuple = true;
+                    }
                 }
                 keyIndex++;
             }
@@ -798,7 +775,7 @@ public class POLocalRearrange extends PhysicalOperator {
             isKeyTuple  = true;
         }
         mProjectedColsMapSize  = mProjectedColsMap.size();
-        
+
     }
 
     protected void setStripKeyFromValue(boolean stripKeyFromValue) {
