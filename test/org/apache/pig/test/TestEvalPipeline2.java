@@ -997,22 +997,4 @@ public class TestEvalPipeline2 extends TestCase {
         assertTrue(t.get(1).equals("two"));
     }
     
-    // See PIG-1771
-    @Test
-    public void testLoadWithDifferentSchema() throws Exception{
-        String[] input1 = {
-                "hello\thello\t(hello)\t[key#value]",
-        };
-        
-        Util.createInputFile(cluster, "table_testLoadWithDifferentSchema1", input1);
-        pigServer.registerQuery("a = load 'table_testLoadWithDifferentSchema1' as (a0:chararray, a1:chararray, a2, a3:map[]);");
-        pigServer.store("a", "table_testLoadWithDifferentSchema1.bin", "org.apache.pig.builtin.BinStorage");
-        
-        pigServer.registerQuery("b = load 'table_testLoadWithDifferentSchema1.bin' USING BinStorage('Utf8StorageConverter') AS (b0:chararray, b1:chararray, b2:tuple(), b3:map[]);");
-        Iterator<Tuple> iter = pigServer.openIterator("b");
-        
-        Tuple t = iter.next();
-        assertTrue(t.size()==4);
-        assertTrue(t.toString().equals("(hello,hello,(hello),[key#value])"));
-    }
 }
