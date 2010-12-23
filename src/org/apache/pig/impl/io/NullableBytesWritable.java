@@ -17,9 +17,9 @@
  */
 package org.apache.pig.impl.io;
 
-import org.apache.hadoop.io.BytesWritable;
-
-import org.apache.pig.data.DataByteArray;
+import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.data.Tuple;
+import org.apache.pig.data.TupleFactory;
 
 /**
  *
@@ -27,18 +27,26 @@ import org.apache.pig.data.DataByteArray;
 public class NullableBytesWritable extends PigNullableWritable {
 
     public NullableBytesWritable() {
-        mValue = new BytesWritable();
+        mValue = TupleFactory.getInstance().newTuple();
     }
 
     /**
-     * @param bytes
+     * @param obj
      */
-    public NullableBytesWritable(byte[] bytes) {
-        mValue = new BytesWritable(bytes);
+    public NullableBytesWritable(Object obj) {
+        mValue = TupleFactory.getInstance().newTuple();
+        ((Tuple)mValue).append(obj);
     }
 
     public Object getValueAsPigType() {
-        BytesWritable bw = (BytesWritable)mValue;
-        return isNull() ? null : new DataByteArray(bw.getBytes(), 0, bw.getLength());
+        if (isNull())
+            return null;
+        Object obj = null;
+        try {
+            obj = ((Tuple)mValue).get(0);
+        } catch (ExecException e) {
+            throw new RuntimeException(e);
+        }
+        return obj;
     }
 }

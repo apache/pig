@@ -187,7 +187,7 @@ public class PigMapReduce {
 			}
 
             PigNullableWritable key =
-                HDataType.getWritableComparableTypes(tuple.get(tupleKeyIdx), DataType.TUPLE);
+                HDataType.getWritableComparableTypes(tuple.get(tupleKeyIdx), keyType);
 
             NullablePartitionWritable wrappedKey = new NullablePartitionWritable(key);
 

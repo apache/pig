@@ -29,6 +29,7 @@ import org.apache.hadoop.io.WritableComparator;
 import org.apache.hadoop.mapred.JobConf;
 
 import org.apache.pig.data.DataByteArray;
+import org.apache.pig.data.DataType;
 import org.apache.pig.impl.io.NullableBytesWritable;
 import org.apache.pig.impl.util.ObjectSerializer;
 
@@ -97,7 +98,7 @@ public class PigBytesRawComparator extends WritableComparator implements Configu
 
         // If either are null, handle differently.
         if (!nbw1.isNull() && !nbw2.isNull()) {
-            rc = ((DataByteArray)nbw1.getValueAsPigType()).compareTo((DataByteArray)nbw2.getValueAsPigType());
+            rc = DataType.compare(nbw1.getValueAsPigType(), nbw2.getValueAsPigType());
         } else {
             // For sorting purposes two nulls are equal.
             if (nbw1.isNull() && nbw2.isNull()) rc = 0;
