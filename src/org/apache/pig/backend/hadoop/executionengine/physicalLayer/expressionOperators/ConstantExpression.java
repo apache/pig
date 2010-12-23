@@ -26,6 +26,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.Result;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataByteArray;
+import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.plan.OperatorKey;
@@ -35,21 +36,21 @@ import org.apache.pig.impl.plan.VisitorException;
 
 /**
  * This class implements a Constant of any type.
- * Its value can be set using the setValue method. 
+ * Its value can be set using the setValue method.
  *
  */
 public class ConstantExpression extends ExpressionOperator {
-    
+
     /**
-     * 
+     *
      */
     private static final long serialVersionUID = 1L;
 
 //    private Log log = LogFactory.getLog(getClass());
-    
+
     //The value that this constant represents
     Object value;
-    
+
     //The result of calling getNext
     Result res = new Result();
 
@@ -63,10 +64,11 @@ public class ConstantExpression extends ExpressionOperator {
 
     @Override
     public String name() {
-        if(value!=null)
+        if(value!=null) {
             return "Constant(" + value.toString() +") - " + mKey.toString();
-        else
+        } else {
             return "Constant(" + "DummyVal" +") - " + mKey.toString();
+        }
     }
 
     @Override
@@ -94,114 +96,86 @@ public class ConstantExpression extends ExpressionOperator {
         attachInput(dummyTuple);
     }
 
+    protected Result genericGetNext(Object obj, byte dataType) throws ExecException {
+        res = processInput();
+        if(res.returnStatus != POStatus.STATUS_OK) {
+            return res;
+        }
+        res.result = value;
+        return res;
+    }
+
     @Override
     public Result getNext(DataBag db) throws ExecException {
-        res = processInput();
-        if(res.returnStatus!=POStatus.STATUS_OK)
-            return res;
-        
-        res.result = (DataBag)value;
-        return res;
+        return genericGetNext(db, DataType.BAG);
     }
 
     @Override
     public Result getNext(DataByteArray ba) throws ExecException {
-        res = processInput();
-        if(res.returnStatus!=POStatus.STATUS_OK)
-            return res;
-        res.result = (DataByteArray)value;
-        return res;
+        return genericGetNext(ba, DataType.BYTEARRAY);
     }
 
     @Override
     public Result getNext(Double d) throws ExecException {
-        res = processInput();
-        if(res.returnStatus!=POStatus.STATUS_OK)
-            return res;
-        res.result = (Double)value;
-        return res;
+        return genericGetNext(d, DataType.DOUBLE);
     }
 
     @Override
     public Result getNext(Float f) throws ExecException {
-        res = processInput();
-        if(res.returnStatus!=POStatus.STATUS_OK)
-            return res;
-        res.result = (Float)value;
-        return res;
+        return genericGetNext(f, DataType.FLOAT);
+
     }
 
     @Override
     public Result getNext(Integer i) throws ExecException {
-        res = processInput();
-        if(res.returnStatus!=POStatus.STATUS_OK)
-            return res;
-        res.result = (Integer)value;
-        return res;
+        return genericGetNext(i, DataType.INTEGER);
+
     }
 
     @Override
     public Result getNext(Long l) throws ExecException {
-        res = processInput();
-        if(res.returnStatus!=POStatus.STATUS_OK)
-            return res;
-        res.result = (Long)value;
-        return res;
+        return genericGetNext(l, DataType.LONG);
+
     }
 
     @Override
     public Result getNext(String s) throws ExecException {
-        res = processInput();
-        if(res.returnStatus!=POStatus.STATUS_OK)
-            return res;
-        res.result = (String)value;
-        return res;
+        return genericGetNext(s, DataType.CHARARRAY);
+
     }
 
     @Override
     public Result getNext(Tuple t) throws ExecException {
-        res = processInput();
-        if(res.returnStatus!=POStatus.STATUS_OK)
-            return res;
-        res.result = (Tuple)value;
-        return res;
+        return genericGetNext(t, DataType.TUPLE);
+
     }
-    
-    
-    
+
     @Override
     public Result getNext(Boolean b) throws ExecException {
-        res = processInput();
-        if(res.returnStatus!=POStatus.STATUS_OK)
-            return res;
-        res.result = (Boolean)value;
-        return res;
+        return genericGetNext(b, DataType.BOOLEAN);
     }
 
     @Override
     public Result getNext(Map m) throws ExecException {
-        res = processInput();
-        if(res.returnStatus!=POStatus.STATUS_OK)
-            return res;
-        res.result = (Map)value;
-        return res;
+        return genericGetNext(m, DataType.MAP);
+
     }
 
     @Override
     public ConstantExpression clone() throws CloneNotSupportedException {
         ConstantExpression clone =
-            new ConstantExpression(new OperatorKey(mKey.scope, 
+            new ConstantExpression(new OperatorKey(mKey.scope,
             NodeIdGenerator.getGenerator().getNextNodeId(mKey.scope)));
         clone.value = value;
         clone.cloneHelper(this);
         return clone;
     }
-    
+
     /**
      * Get the child expressions of this expression
      */
     @Override
-    public List<ExpressionOperator> getChildExpressions() {		
+    public List<ExpressionOperator> getChildExpressions() {
         return null;
     }
     

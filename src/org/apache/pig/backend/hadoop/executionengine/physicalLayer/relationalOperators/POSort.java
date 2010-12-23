@@ -37,14 +37,11 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.Physica
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.ExpressionOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POUserComparisonFunc;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POUserFunc;
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
-import org.apache.pig.data.InternalCachedBag;
 import org.apache.pig.data.InternalSortedBag;
 import org.apache.pig.data.Tuple;
-import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.VisitorException;
@@ -55,13 +52,13 @@ import org.apache.pig.pen.util.LineageTracer;
  * This implementation is applicable for both the physical plan and for the
  * local backend, as the conversion of physical to mapreduce would see the SORT
  * operator and take necessary steps to convert it to a quantile and a sort job.
- * 
+ *
  * This is a blocking operator. The sortedDataBag accumulates Tuples and sorts
  * them only when there an iterator is started. So all the tuples from the input
  * operator should be accumulated and filled into the dataBag. The attachInput
  * method is not applicable here.
- * 
- * 
+ *
+ *
  */
 
 //We intentionally skip type checking in backend for performance reasons
@@ -69,7 +66,7 @@ import org.apache.pig.pen.util.LineageTracer;
 public class POSort extends PhysicalOperator {
 
 	/**
-     * 
+     *
      */
     private static final long serialVersionUID = 1L;
     //private List<Integer> mSortCols;
@@ -85,9 +82,9 @@ public class POSort extends PhysicalOperator {
 	public boolean isUDFComparatorUsed = false;
 	private DataBag sortedBag;
 	transient Iterator<Tuple> it;
-	
+
 	private SortInfo sortInfo;
-	
+
 	public POSort(
             OperatorKey k,
             int rp,
@@ -137,18 +134,20 @@ public class POSort extends PhysicalOperator {
 		super(k);
 
 	}
-	
+
 	public class SortComparator implements Comparator<Tuple>,Serializable {
 		/**
-         * 
+         *
          */
         private static final long serialVersionUID = 1L;
 
+        @Override
         public int compare(Tuple o1, Tuple o2) {
 			int count = 0;
 			int ret = 0;
-			if(sortPlans == null || sortPlans.size() == 0) 
-				return 0;
+			if(sortPlans == null || sortPlans.size() == 0) {
+                return 0;
+            }
 			for(PhysicalPlan plan : sortPlans) {
 				try {
 					plan.attachInput(o1);
@@ -175,48 +174,36 @@ public class POSort extends PhysicalOperator {
                         }
 
 					}
-						
+
 				} catch (ExecException e) {
 					log.error("Invalid result while executing the expression plan : " + plan.toString() + "\n" + e.getMessage());
 				}
 			}
 			return ret;
-		} 
-		
+		}
+
 		private Result getResult(PhysicalPlan plan, byte resultType) throws ExecException {
 			ExpressionOperator Op = (ExpressionOperator) plan.getLeaves().get(0);
 			Result res = null;
-			
+
 			switch (resultType) {
             case DataType.BYTEARRAY:
-                res = Op.getNext(dummyDBA);
-                break;
             case DataType.CHARARRAY:
-                res = Op.getNext(dummyString);
-                break;
             case DataType.DOUBLE:
-                res = Op.getNext(dummyDouble);
-                break;
             case DataType.FLOAT:
-                res = Op.getNext(dummyFloat);
-                break;
             case DataType.INTEGER:
-                res = Op.getNext(dummyInt);
-                break;
             case DataType.LONG:
-                res = Op.getNext(dummyLong);
-                break;
             case DataType.TUPLE:
-                res = Op.getNext(dummyTuple);
+                res = Op.getNext(getDummy(resultType), resultType);
                 break;
 
             default: {
                 int errCode = 2082;
                 String msg = "Did not expect result of type: " +
                         DataType.findTypeName(resultType);
-                    throw new ExecException(msg, errCode, PigException.BUG);                
+                    throw new ExecException(msg, errCode, PigException.BUG);
             }
-            
+
             }
 			return res;
 		}
@@ -225,10 +212,11 @@ public class POSort extends PhysicalOperator {
 	public class UDFSortComparator implements Comparator<Tuple>,Serializable {
 
 		/**
-         * 
+         *
          */
         private static final long serialVersionUID = 1L;
 
+        @Override
         public int compare(Tuple t1, Tuple t2) {
 
 			mSortFunc.attachInput(t1, t2);
@@ -241,10 +229,11 @@ public class POSort extends PhysicalOperator {
 				log.error("Input not ready. Error on reading from input. "
 						+ e.getMessage());
 			}
-			if (res != null)
-				return (Integer) res.result;
-			else
-				return 0;
+			if (res != null) {
+                return (Integer) res.result;
+            } else {
+                return 0;
+            }
 		}
 
 	}
@@ -266,21 +255,21 @@ public class POSort extends PhysicalOperator {
 	@Override
 	public Result getNext(Tuple t) throws ExecException {
 		Result res = new Result();
-		
+
 		if (!inputsAccumulated) {
-			res = processInput();         
+			res = processInput();
 			// by default, we create InternalSortedBag, unless user configures
 			// explicitly to use old bag
 			String bagType = null;
 	        if (PigMapReduce.sJobConf != null) {
-	   			bagType = PigMapReduce.sJobConf.get("pig.cachedbag.sort.type");       			
-	   	    }	        
-            if (bagType != null && bagType.equalsIgnoreCase("default")) {        	    	
-            	sortedBag = BagFactory.getInstance().newSortedBag(mComparator);     			
+	   			bagType = PigMapReduce.sJobConf.get("pig.cachedbag.sort.type");
+	   	    }
+            if (bagType != null && bagType.equalsIgnoreCase("default")) {
+            	sortedBag = BagFactory.getInstance().newSortedBag(mComparator);
        	    } else {
     	    	sortedBag = new InternalSortedBag(3, mComparator);
     	    }
-            
+
 			while (res.returnStatus != POStatus.STATUS_EOP) {
 				if (res.returnStatus == POStatus.STATUS_ERR) {
 					log.error("Error in reading from the inputs");
@@ -357,17 +346,17 @@ public class POSort extends PhysicalOperator {
     public List<Boolean> getMAscCols() {
         return mAscCols;
     }
-    
+
     public void setLimit(long l)
     {
     	limit = l;
     }
-    
+
     public long getLimit()
     {
     	return limit;
     }
-    
+
     public boolean isLimited()
     {
     	return (limit!=-1);
@@ -389,7 +378,7 @@ public class POSort extends PhysicalOperator {
             cloneFunc = mSortFunc.clone();
         }
         // Don't set inputs as PhysicalPlan.clone will take care of that
-        return new POSort(new OperatorKey(mKey.scope, 
+        return new POSort(new OperatorKey(mKey.scope,
             NodeIdGenerator.getGenerator().getNextNodeId(mKey.scope)),
             requestedParallelism, null, clonePlans, cloneAsc, cloneFunc);
     }

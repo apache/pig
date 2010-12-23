@@ -54,7 +54,7 @@ public class DataType {
     // IMPORTANT! Order matters here, as compare() below uses the order to
     // order unlike datatypes.  Don't change this ordering.
     // Spaced unevenly to leave room for new entries without changing
-    // values or creating order issues.  
+    // values or creating order issues.
     public static final byte UNKNOWN   =   0;
     public static final byte NULL      =   1;
     public static final byte BOOLEAN   =   5; // internal use only
@@ -72,14 +72,14 @@ public class DataType {
     public static final byte MAP       = 100;
     public static final byte TUPLE     = 110;
     public static final byte BAG       = 120;
-    
+
     /**
-     * Internal use only; used to store WriteableComparable objects 
+     * Internal use only; used to store WriteableComparable objects
      * for creating ordered index in MergeJoin. Expecting a object that
      * implements Writable interface and has default constructor
      */
-    public static final byte GENERIC_WRITABLECOMPARABLE = 123; 
-    
+    public static final byte GENERIC_WRITABLECOMPARABLE = 123;
+
     /**
      * Internal use only.
      */
@@ -92,23 +92,38 @@ public class DataType {
      * @return byte code of the type, or ERROR if we don't know.
      */
     public static byte findType(Object o) {
-        if (o == null) return NULL;
+        if (o == null) {
+            return NULL;
+        }
 
         // Try to put the most common first
-        if (o instanceof DataByteArray) return BYTEARRAY;
-        else if (o instanceof String) return CHARARRAY;
-        else if (o instanceof Tuple) return TUPLE;
-        else if (o instanceof DataBag) return BAG;
-        else if (o instanceof Integer) return INTEGER;
-        else if (o instanceof Long) return LONG;
-        else if (o instanceof InternalMap) return INTERNALMAP;
-        else if (o instanceof Map) return MAP;
-        else if (o instanceof Float) return FLOAT;
-        else if (o instanceof Double) return DOUBLE;
-        else if (o instanceof Boolean) return BOOLEAN;
-        else if (o instanceof Byte) return BYTE;
-        else if (o instanceof WritableComparable) return GENERIC_WRITABLECOMPARABLE;
-        else {return ERROR;}
+        if (o instanceof DataByteArray) {
+            return BYTEARRAY;
+        } else if (o instanceof String) {
+            return CHARARRAY;
+        } else if (o instanceof Tuple) {
+            return TUPLE;
+        } else if (o instanceof DataBag) {
+            return BAG;
+        } else if (o instanceof Integer) {
+            return INTEGER;
+        } else if (o instanceof Long) {
+            return LONG;
+        } else if (o instanceof InternalMap) {
+            return INTERNALMAP;
+        } else if (o instanceof Map) {
+            return MAP;
+        } else if (o instanceof Float) {
+            return FLOAT;
+        } else if (o instanceof Double) {
+            return DOUBLE;
+        } else if (o instanceof Boolean) {
+            return BOOLEAN;
+        } else if (o instanceof Byte) {
+            return BYTE;
+        } else if (o instanceof WritableComparable) {
+            return GENERIC_WRITABLECOMPARABLE;
+        } else {return ERROR;}
     }
 
     /**
@@ -118,19 +133,30 @@ public class DataType {
      * @return byte code of the type, or ERROR if we don't know.
      */
     public static byte findType(Type t) {
-        if (t == null) return NULL;
+        if (t == null) {
+            return NULL;
+        }
 
         // Try to put the most common first
-        if (t == DataByteArray.class) return BYTEARRAY;
-        else if (t == String.class) return CHARARRAY;
-        else if (t == Integer.class) return INTEGER;
-        else if (t == Long.class) return LONG;
-        else if (t == Float.class) return FLOAT;
-        else if (t == Double.class) return DOUBLE;
-        else if (t == Boolean.class) return BOOLEAN;
-        else if (t == Byte.class) return BYTE;
-        else if (t == InternalMap.class) return INTERNALMAP;
-        else {
+        if (t == DataByteArray.class) {
+            return BYTEARRAY;
+        } else if (t == String.class) {
+            return CHARARRAY;
+        } else if (t == Integer.class) {
+            return INTEGER;
+        } else if (t == Long.class) {
+            return LONG;
+        } else if (t == Float.class) {
+            return FLOAT;
+        } else if (t == Double.class) {
+            return DOUBLE;
+        } else if (t == Boolean.class) {
+            return BOOLEAN;
+        } else if (t == Byte.class) {
+            return BYTE;
+        } else if (t == InternalMap.class) {
+            return INTERNALMAP;
+        } else {
             // Might be a tuple or a bag, need to check the interfaces it
             // implements
             if (t instanceof Class) {
@@ -170,12 +196,13 @@ public class DataType {
 		        matchedWritableComparable = true;
                     }
 		}
-		if(matchedWritableComparable)
-		    return GENERIC_WRITABLECOMPARABLE;
-		
+		if(matchedWritableComparable) {
+            return GENERIC_WRITABLECOMPARABLE;
+        }
+
 		return ERROR;
 	}
-    
+
     /**
      * Return the number of types Pig knows about.
      * @return number of types
@@ -190,23 +217,23 @@ public class DataType {
      * @return byte array with an entry for each type.
      */
     public static byte[] genAllTypes(){
-        byte[] types = { DataType.BAG, DataType.BIGCHARARRAY, DataType.BOOLEAN, DataType.BYTE, DataType.BYTEARRAY, 
-                DataType.CHARARRAY, DataType.DOUBLE, DataType.FLOAT, 
+        byte[] types = { DataType.BAG, DataType.BIGCHARARRAY, DataType.BOOLEAN, DataType.BYTE, DataType.BYTEARRAY,
+                DataType.CHARARRAY, DataType.DOUBLE, DataType.FLOAT,
                 DataType.GENERIC_WRITABLECOMPARABLE,
-                DataType.INTEGER, DataType.INTERNALMAP, 
+                DataType.INTEGER, DataType.INTERNALMAP,
                 DataType.LONG, DataType.MAP, DataType.TUPLE};
         return types;
     }
-    
+
     private static String[] genAllTypeNames(){
-        String[] names = { "BAG", "BIGCHARARRAY", "BOOLEAN", "BYTE", "BYTEARRAY", 
-                "CHARARRAY", "DOUBLE", "FLOAT", 
+        String[] names = { "BAG", "BIGCHARARRAY", "BOOLEAN", "BYTE", "BYTEARRAY",
+                "CHARARRAY", "DOUBLE", "FLOAT",
                 "GENERIC_WRITABLECOMPARABLE",
                 "INTEGER","INTERNALMAP",
                 "LONG", "MAP", "TUPLE" };
         return names;
     }
-    
+
     /**
      * Get a map of type values to type names.
      * @return map
@@ -243,7 +270,7 @@ public class DataType {
     public static String findTypeName(Object o) {
         return findTypeName(findType(o));
     }
-    
+
     /**
      * Get the type name from the type byte code
      * @param dt Type byte code
@@ -333,7 +360,7 @@ public class DataType {
      * @return true if the type can have a valid schema (i.e., bag or tuple)
      */
     public static boolean isSchemaType(byte dataType) {
-        return ((dataType == BAG) || (dataType == TUPLE)); 
+        return ((dataType == BAG) || (dataType == TUPLE));
     }
 
     /**
@@ -357,10 +384,10 @@ public class DataType {
     }
 
     /**
-     * Same as {@link #compare(Object, Object)}, but does not use reflection to determine the type 
+     * Same as {@link #compare(Object, Object)}, but does not use reflection to determine the type
      * of passed in objects, relying instead on the caller to provide the appropriate values, as
      * determined by {@link DataType#findType(Object)}.
-     * 
+     *
      * Use this version in cases where multiple objects of the same type have to be repeatedly compared.
      * @param o1 first object
      * @param o2 second object
@@ -394,7 +421,7 @@ public class DataType {
                 return ((Double)o1).compareTo((Double)o2);
 
             case BYTEARRAY:
-                return ((DataByteArray)o1).compareTo((DataByteArray)o2);
+                return ((DataByteArray)o1).compareTo(o2);
 
             case CHARARRAY:
                 return ((String)o1).compareTo((String)o2);
@@ -406,7 +433,7 @@ public class DataType {
                 int sz2 = m2.size();
                 if (sz1 < sz2) {
                     return -1;
-                } else if (sz1 > sz2) { 
+                } else if (sz1 > sz2) {
                     return 1;
                 } else {
                     // This is bad, but we have to sort the keys of the maps in order
@@ -428,7 +455,7 @@ public class DataType {
                             if (c != 0) {
                                 return c;
                             }
-                        } 
+                        }
                     }
                     return 0;
                 }
@@ -439,13 +466,13 @@ public class DataType {
 
             case INTERNALMAP:
                 return -1;  // Don't think anyway will want to do this.
-                
+
             case TUPLE:
-                return ((Tuple)o1).compareTo((Tuple)o2);
+                return ((Tuple)o1).compareTo(o2);
 
             case BAG:
-                return ((DataBag)o1).compareTo((DataBag)o2);
-                
+                return ((DataBag)o1).compareTo(o2);
+
 
             default:
                 throw new RuntimeException("Unkown type " + dt1 +
@@ -457,7 +484,7 @@ public class DataType {
             return 1;
         }
     }
-    
+
     public static byte[] toBytes(Object o) throws ExecException {
         return toBytes(o, findType(o));
     }
@@ -513,8 +540,11 @@ public class DataType {
         try {
 			switch (type) {
 			case BOOLEAN:
-			    if (((Boolean)o) == true) return Integer.valueOf(1);
-			    else return Integer.valueOf(0);
+			    if (((Boolean)o) == true) {
+                    return Integer.valueOf(1);
+                } else {
+                    return Integer.valueOf(0);
+                }
 
 			case BYTE:
 			    return Integer.valueOf(((Byte)o).intValue());
@@ -573,7 +603,7 @@ public class DataType {
      * forced to an Integer.  This isn't particularly efficient, so if you
      * already <b>know</b> that the object you have is an Integer you
      * should just cast it.  Unlike {@link #toInteger(Object, byte)} this
-     * method will first determine the type of o and then do the cast.  
+     * method will first determine the type of o and then do the cast.
      * Use {@link #toInteger(Object, byte)} if you already know the type.
      * @param o object to cast
      * @return The object as an Integer.
@@ -599,8 +629,11 @@ public class DataType {
         try {
 			switch (type) {
 			case BOOLEAN:
-			    if (((Boolean)o) == true) return Long.valueOf(1);
-			    else return Long.valueOf(0);
+			    if (((Boolean)o) == true) {
+                    return Long.valueOf(1);
+                } else {
+                    return Long.valueOf(0);
+                }
 
 			case BYTE:
 			    return Long.valueOf(((Byte)o).longValue());
@@ -660,7 +693,7 @@ public class DataType {
      * forced to an Long.  This isn't particularly efficient, so if you
      * already <b>know</b> that the object you have is a Long you
      * should just cast it.  Unlike {@link #toLong(Object, byte)} this
-     * method will first determine the type of o and then do the cast.  
+     * method will first determine the type of o and then do the cast.
      * Use {@link #toLong(Object, byte)} if you already know the type.
      * @param o object to cast
      * @return The object as a Long.
@@ -741,7 +774,7 @@ public class DataType {
      * forced to an Float.  This isn't particularly efficient, so if you
      * already <b>know</b> that the object you have is a Float you
      * should just cast it.  Unlike {@link #toFloat(Object, byte)} this
-     * method will first determine the type of o and then do the cast.  
+     * method will first determine the type of o and then do the cast.
      * Use {@link #toFloat(Object, byte)} if you already know the type.
      * @param o object to cast
      * @return The object as a Float.
@@ -822,7 +855,7 @@ public class DataType {
      * forced to an Double.  This isn't particularly efficient, so if you
      * already <b>know</b> that the object you have is a Double you
      * should just cast it.  Unlike {@link #toDouble(Object, byte)} this
-     * method will first determine the type of o and then do the cast.  
+     * method will first determine the type of o and then do the cast.
      * Use {@link #toDouble(Object, byte)} if you already know the type.
      * @param o object to cast
      * @return The object as a Double.
@@ -901,7 +934,7 @@ public class DataType {
      * forced to a String.  This isn't particularly efficient, so if you
      * already <b>know</b> that the object you have is a String you
      * should just cast it.  Unlike {@link #toString(Object, byte)} this
-     * method will first determine the type of o and then do the cast.  
+     * method will first determine the type of o and then do the cast.
      * Use {@link #toString(Object, byte)} if you already know the type.
      * @param o object to cast
      * @return The object as a String.
@@ -922,7 +955,9 @@ public class DataType {
      */
     @SuppressWarnings("unchecked")
     public static Map<String, Object> toMap(Object o) throws ExecException {
-        if (o == null) return null;
+        if (o == null) {
+            return null;
+        }
 
         if (o instanceof Map && !(o instanceof InternalMap)) {
             try {
@@ -950,7 +985,9 @@ public class DataType {
      * @throws ExecException if the type can't be forced to a Double.
      */
     public static Tuple toTuple(Object o) throws ExecException {
-        if (o == null) return null;
+        if (o == null) {
+            return null;
+        }
 
         if (o instanceof Tuple) {
             try {
@@ -978,7 +1015,9 @@ public class DataType {
      * @throws ExecException if the type can't be forced to a Double.
      */
     public static DataBag toBag(Object o) throws ExecException {
-        if (o == null) return null;
+        if (o == null) {
+            return null;
+        }
 
         if (o instanceof DataBag) {
             try {
@@ -1007,7 +1046,7 @@ public class DataType {
         }
         System.out.println(t.toString());
     }
-    
+
     /**
      * Determine if this type is a numeric type.
      * @param t type (as byte value) to test
@@ -1020,9 +1059,9 @@ public class DataType {
             case FLOAT:     return true ;
             case DOUBLE:    return true ;
             default: return false ;
-        }        
+        }
     }
-    
+
     /**
      * Determine if this is a type that can work can be done on.
      * @param t type (as a byte value) to test
@@ -1038,7 +1077,7 @@ public class DataType {
     }
 
     /**
-     * Merge types if possible.  Merging types means finding a type that one 
+     * Merge types if possible.  Merging types means finding a type that one
      * or both types can be upcast to.
      * @param type1
      * @param type2
@@ -1074,7 +1113,7 @@ public class DataType {
         // else return just ERROR
         return DataType.ERROR ;
     }
-    
+
     /**
      * Given a map, turn it into a String.
      * @param m map
@@ -1110,15 +1149,23 @@ public class DataType {
      * the same bytes.
      */
     public static boolean equalByteArrays(byte[] lhs, byte[] rhs) {
-        if(lhs == null && rhs == null) return true;
-        if(lhs == null || rhs == null) return false;
-        if(lhs.length != rhs.length) return false;
+        if(lhs == null && rhs == null) {
+            return true;
+        }
+        if(lhs == null || rhs == null) {
+            return false;
+        }
+        if(lhs.length != rhs.length) {
+            return false;
+        }
         for(int i = 0; i < lhs.length; ++i) {
-            if(lhs[i] != rhs[i]) return false;
+            if(lhs[i] != rhs[i]) {
+                return false;
+            }
         }
         return true;
     }
-       
+
 
     /**
      * Utility method that determines the schema from the passed in dataType.
@@ -1135,7 +1182,7 @@ public class DataType {
      * @throws FrontendException
      * @throws SchemaMergeException
      */
-    private static Schema.FieldSchema determineFieldSchema(byte dataType, Iterator fieldIter, 
+    private static Schema.FieldSchema determineFieldSchema(byte dataType, Iterator fieldIter,
             long fieldNum, Class klass ) throws ExecException, FrontendException, SchemaMergeException {
         switch (dataType) {
         case NULL:
@@ -1148,14 +1195,14 @@ public class DataType {
         case DOUBLE:
         case BYTEARRAY:
         case CHARARRAY:
-        case MAP: 
+        case MAP:
             return new Schema.FieldSchema(null, dataType);
         case TUPLE: {
             Schema schema = null;
             if(fieldNum != 0) {
                 schema = new Schema();
                 for(int i = 0; i < fieldNum; ++i) {
-                    schema.add(determineFieldSchema(klass.cast(fieldIter.next()))); 
+                    schema.add(determineFieldSchema(klass.cast(fieldIter.next())));
                 }
             }
             return new Schema.FieldSchema(null, schema, TUPLE);
@@ -1187,7 +1234,7 @@ public class DataType {
                         bagSchema.setTwoLevelAccessRequired(true);
                         return new Schema.FieldSchema(null, bagSchema, BAG);
                     }
-                    schema = Schema.mergeSchema(schema, currSchema, false, false, false); 
+                    schema = Schema.mergeSchema(schema, currSchema, false, false, false);
                 }
                 Schema.FieldSchema tupleFs = new Schema.FieldSchema(null, schema, TUPLE);
                 bagSchema = new Schema(tupleFs);
@@ -1203,21 +1250,21 @@ public class DataType {
             String msg = "Cannot determine field schema";
             throw new ExecException(msg, errCode, PigException.INPUT);
         }
-        
+
         }
     }
-    
+
     /***
      * Determine the field schema of an ResourceFieldSchema
      * @param rcFieldSchema the rcFieldSchema we want translated
      * @return the field schema corresponding to the object
      * @throws ExecException,FrontendException,SchemaMergeException
      */
-    public static Schema.FieldSchema determineFieldSchema(ResourceSchema.ResourceFieldSchema rcFieldSchema) 
+    public static Schema.FieldSchema determineFieldSchema(ResourceSchema.ResourceFieldSchema rcFieldSchema)
         throws ExecException, FrontendException, SchemaMergeException {
         byte dt = rcFieldSchema.getType();
         Iterator<ResourceSchema.ResourceFieldSchema> fieldIter = null;
-        long fieldNum = 0;        
+        long fieldNum = 0;
         if (dt == TUPLE || dt == BAG ) {
             fieldIter = Arrays.asList(rcFieldSchema.getSchema().getFields()).iterator();
             fieldNum = rcFieldSchema.getSchema().getFields().length;
@@ -1225,14 +1272,14 @@ public class DataType {
         return determineFieldSchema(dt, fieldIter, fieldNum, ResourceSchema.ResourceFieldSchema.class);
     }
 
-    
+
     /***
      * Determine the field schema of an object
      * @param o the object whose field schema is to be determined
      * @return the field schema corresponding to the object
      * @throws ExecException,FrontendException,SchemaMergeException
      */
-    public static Schema.FieldSchema determineFieldSchema(Object o) 
+    public static Schema.FieldSchema determineFieldSchema(Object o)
         throws ExecException, FrontendException, SchemaMergeException {
         byte dt = findType(o);
         Iterator fieldIter = null;

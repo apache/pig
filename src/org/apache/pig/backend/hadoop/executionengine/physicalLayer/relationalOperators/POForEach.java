@@ -18,20 +18,15 @@
 package org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators;
 
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.AccumulativeBag;
 import org.apache.pig.data.DataBag;
-import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
@@ -47,7 +42,6 @@ import org.apache.pig.impl.plan.DependencyOrderWalker;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.VisitorException;
-import org.apache.pig.impl.util.IdentityHashSet;
 import org.apache.pig.pen.util.ExampleTuple;
 import org.apache.pig.pen.util.LineageTracer;
 
@@ -56,10 +50,10 @@ import org.apache.pig.pen.util.LineageTracer;
 public class POForEach extends PhysicalOperator {
 
     /**
-     * 
+     *
      */
     private static final long serialVersionUID = 1L;
-    
+
     protected List<PhysicalPlan> inputPlans;
     protected List<PhysicalOperator> opsToBeReset;
     transient protected Log log = LogFactory.getLog(getClass());
@@ -68,35 +62,35 @@ public class POForEach extends PhysicalOperator {
     //as the generate can potentially return multiple tuples for
     //same call.
     protected boolean processingPlan = false;
-    
+
     //its holds the iterators of the databags given by the input expressions which need flattening.
     transient protected Iterator<Tuple> [] its = null;
-    
+
     //This holds the outputs given out by the input expressions of any datatype
     protected Object [] bags = null;
-    
+
     //This is the template whcih contains tuples and is flattened out in createTuple() to generate the final output
     protected Object[] data = null;
-    
+
     // store result types of the plan leaves
     protected byte[] resultTypes = null;
-    
+
     // array version of isToBeFlattened - this is purely
     // for optimization - instead of calling isToBeFlattened.get(i)
     // we can do the quicker array access - isToBeFlattenedArray[i].
     // Also we can store "boolean" values rather than "Boolean" objects
     // so we can also save on the Boolean.booleanValue() calls
     protected boolean[] isToBeFlattenedArray;
-    
+
     ExampleTuple tIn = null;
     protected int noItems;
 
     protected PhysicalOperator[] planLeafOps = null;
-    
+
     protected transient AccumulativeTupleBuffer buffer;
-    
+
     protected Tuple inpTuple;
-    
+
     public POForEach(OperatorKey k) {
         this(k,-1,null,null);
     }
@@ -112,7 +106,7 @@ public class POForEach extends PhysicalOperator {
     public POForEach(OperatorKey k, List inp) {
         this(k,-1,inp,null);
     }
-    
+
     public POForEach(OperatorKey k, int rp, List<PhysicalPlan> inp, List<Boolean>  isToBeFlattened){
         super(k, rp);
         setUpFlattens(isToBeFlattened);
@@ -127,15 +121,16 @@ public class POForEach extends PhysicalOperator {
     }
 
     @Override
-    public String name() {      
+    public String name() {
         return getAliasString() + "New For Each" + "(" + getFlatStr() + ")" + "["
                 + DataType.findTypeName(resultType) + "]" + " - "
                 + mKey.toString();
     }
-    
+
     String getFlatStr() {
-        if(isToBeFlattenedArray ==null)
+        if(isToBeFlattenedArray ==null) {
             return "";
+        }
         StringBuilder sb = new StringBuilder();
         for (Boolean b : isToBeFlattenedArray) {
             sb.append(b);
@@ -155,11 +150,12 @@ public class POForEach extends PhysicalOperator {
     @Override
     public boolean supportsMultipleOutputs() {
         return false;
-    }      
-          
+    }
+
+    @Override
     public void setAccumulative() {
         super.setAccumulative();
-        for(PhysicalPlan p : inputPlans) {            
+        for(PhysicalPlan p : inputPlans) {
             Iterator<PhysicalOperator> iter = p.iterator();
             while(iter.hasNext()) {
                 PhysicalOperator po = iter.next();
@@ -170,9 +166,10 @@ public class POForEach extends PhysicalOperator {
         }
     }
 
+    @Override
     public void setAccumStart() {
         super.setAccumStart();
-        for(PhysicalPlan p : inputPlans) {            
+        for(PhysicalPlan p : inputPlans) {
             Iterator<PhysicalOperator> iter = p.iterator();
             while(iter.hasNext()) {
                 PhysicalOperator po = iter.next();
@@ -182,14 +179,15 @@ public class POForEach extends PhysicalOperator {
             }
         }
     }
-    
-    public void setAccumEnd() {    	
+
+    @Override
+    public void setAccumEnd() {
         super.setAccumEnd();
-        for(PhysicalPlan p : inputPlans) {            
+        for(PhysicalPlan p : inputPlans) {
             Iterator<PhysicalOperator> iter = p.iterator();
             while(iter.hasNext()) {
                 PhysicalOperator po = iter.next();
-                if (po instanceof ExpressionOperator || po instanceof PODistinct) {    				
+                if (po instanceof ExpressionOperator || po instanceof PODistinct) {
                     po.setAccumEnd();
                 }
             }
@@ -202,7 +200,7 @@ public class POForEach extends PhysicalOperator {
      * to denote the begin and end of the nested plan processing.
      */
     @Override
-    public Result getNext(Tuple t) throws ExecException {    	
+    public Result getNext(Tuple t) throws ExecException {
         Result res = null;
         Result inp = null;
         //The nested plan is under processing
@@ -210,15 +208,16 @@ public class POForEach extends PhysicalOperator {
         //returns
         if(processingPlan){
             while(true) {
-                res = processPlan();               
-                
+                res = processPlan();
+
                 if(res.returnStatus==POStatus.STATUS_OK) {
                     return res;
                 }
                 if(res.returnStatus==POStatus.STATUS_EOP) {
-                    processingPlan = false; 
-                    for(PhysicalPlan plan : inputPlans)
+                    processingPlan = false;
+                    for(PhysicalPlan plan : inputPlans) {
                         plan.detachInput();
+                    }
                     break;
                 }
                 if(res.returnStatus==POStatus.STATUS_ERR) {
@@ -242,16 +241,16 @@ public class POForEach extends PhysicalOperator {
             if (inp.returnStatus == POStatus.STATUS_NULL) {
                 continue;
             }
-                       
+
             attachInputToPlans((Tuple) inp.result);
             inpTuple = (Tuple)inp.result;
-            
+
             for (PhysicalOperator po : opsToBeReset) {
                 po.reset();
             }
-            
-            if (isAccumulative()) {            	
-                for(int i=0; i<inpTuple.size(); i++) {            		
+
+            if (isAccumulative()) {
+                for(int i=0; i<inpTuple.size(); i++) {
                     if (inpTuple.getType(i) == DataType.BAG) {
                         // we only need to check one bag, because all the bags
                         // share the same buffer
@@ -259,51 +258,51 @@ public class POForEach extends PhysicalOperator {
                         break;
                     }
                 }
-                
-                while(true) {                    		
-                    if (buffer.hasNextBatch()) {        
+
+                while(true) {
+                    if (buffer.hasNextBatch()) {
                         try {
                             buffer.nextBatch();
                         }catch(IOException e) {
                             throw new ExecException(e);
                         }
-                        
-                        setAccumStart();                		
+                        setAccumStart();
                     }else{
                         inpTuple = ((POPackage.POPackageTupleBuffer) buffer).illustratorMarkup(null, inpTuple, 0);
  //                       buffer.clear();
-                        setAccumEnd();                		
+                        setAccumEnd();
                     }
-                    
-                    res = processPlan();            	
-                    
+
+                    res = processPlan();
+
                     if (res.returnStatus == POStatus.STATUS_BATCH_OK) {
                         // attach same input again to process next batch
                         attachInputToPlans((Tuple) inp.result);
                     } else {
                         break;
                     }
-                } 
-                
-            } else {                        
-                res = processPlan();          
+                }
+
+            } else {
+                res = processPlan();
             }
-            
+
             processingPlan = true;
-            
+
             return res;
         }
     }
 
-    protected Result processPlan() throws ExecException{    	
+    protected Result processPlan() throws ExecException{
         Result res = new Result();
 
         //We check if all the databags have exhausted the tuples. If so we enforce the reading of new data by setting data and its to null
         if(its != null) {
             boolean restartIts = true;
             for(int i = 0; i < noItems; ++i) {
-                if(its[i] != null && isToBeFlattenedArray[i] == true)
+                if(its[i] != null && isToBeFlattenedArray[i] == true) {
                     restartIts &= !its[i].hasNext();
+                }
             }
             //this means that all the databags have reached their last elements. so we need to force reading of fresh databags
             if(restartIts) {
@@ -311,64 +310,44 @@ public class POForEach extends PhysicalOperator {
                 data = null;
             }
         }
-        
- 
+
+
         if(its == null) {
-            //getNext being called for the first time OR starting with a set of new data from inputs 
+            //getNext being called for the first time OR starting with a set of new data from inputs
             its = new Iterator[noItems];
             bags = new Object[noItems];
-            
+
             for(int i = 0; i < noItems; ++i) {
                 //Getting the iterators
                 //populate the input data
                 Result inputData = null;
                 switch(resultTypes[i]) {
                 case DataType.BAG:
-                    inputData = planLeafOps[i].getNext(dummyBag);
-                    break;
-
                 case DataType.TUPLE :
-                inputData = planLeafOps[i].getNext(dummyTuple);
-                break;
                 case DataType.BYTEARRAY :
-                inputData = planLeafOps[i].getNext(dummyDBA);
-                break; 
                 case DataType.MAP :
-                inputData = planLeafOps[i].getNext(dummyMap);
-                break;
                 case DataType.BOOLEAN :
-                inputData = planLeafOps[i].getNext(dummyBool);
-                break;
                 case DataType.INTEGER :
-                inputData = planLeafOps[i].getNext(dummyInt);
-                break;
                 case DataType.DOUBLE :
-                inputData = planLeafOps[i].getNext(dummyDouble);
-                break;
                 case DataType.LONG :
-                inputData = planLeafOps[i].getNext(dummyLong);
-                break;
                 case DataType.FLOAT :
-                inputData = planLeafOps[i].getNext(dummyFloat);
-                break;
                 case DataType.CHARARRAY :
-                inputData = planLeafOps[i].getNext(dummyString);
-                break;
-
+                    inputData = planLeafOps[i].getNext(getDummy(resultTypes[i]), resultTypes[i]);
+                    break;
                 default: {
                     int errCode = 2080;
                     String msg = "Foreach currently does not handle type " + DataType.findTypeName(resultTypes[i]);
                     throw new ExecException(msg, errCode, PigException.BUG);
                 }
-                
+
                 }
 
-                if (inputData.returnStatus == POStatus.STATUS_BATCH_OK) {                	
+                if (inputData.returnStatus == POStatus.STATUS_BATCH_OK) {
                     continue;
                 }
 
                 if(inputData.returnStatus == POStatus.STATUS_EOP) {
-                    //we are done with all the elements. Time to return.                	
+                    //we are done with all the elements. Time to return.
                     its = null;
                     bags = null;
                     return inputData;
@@ -379,22 +358,23 @@ public class POForEach extends PhysicalOperator {
                 }
 
 //                Object input = null;
-                
+
                 bags[i] = inputData.result;
-                
-                if(inputData.result instanceof DataBag && isToBeFlattenedArray[i]) 
+
+                if(inputData.result instanceof DataBag && isToBeFlattenedArray[i]) {
                     its[i] = ((DataBag)bags[i]).iterator();
-                else 
+                } else {
                     its[i] = null;
+                }
             }
         }
 
         // if accumulating, we haven't got data yet for some fields, just return
         if (isAccumulative() && isAccumStarted()) {
-            res.returnStatus = POStatus.STATUS_BATCH_OK;        	
+            res.returnStatus = POStatus.STATUS_BATCH_OK;
             return res;
         }
-        
+
         while(true) {
             if(data == null) {
                 //getNext being called for the first time or starting on new input data
@@ -416,9 +396,11 @@ public class POForEach extends PhysicalOperator {
                     } else {
                         data[i] = bags[i];
                     }
-                    
+
                 }
-                if(reporter!=null) reporter.progress();
+                if(reporter!=null) {
+                    reporter.progress();
+                }
                 //createTuple(data);
                 res.result = createTuple(data);
                 res.returnStatus = POStatus.STATUS_OK;
@@ -447,12 +429,12 @@ public class POForEach extends PhysicalOperator {
                 }
             }
         }
-        
+
         //return null;
     }
-    
+
     /**
-     * 
+     *
      * @param data array that is the template for the final flattened tuple
      * @return the final flattened tuple
      */
@@ -460,30 +442,32 @@ public class POForEach extends PhysicalOperator {
         Tuple out =  mTupleFactory.newTuple();
         for(int i = 0; i < data.length; ++i) {
             Object in = data[i];
-            
+
             if(isToBeFlattenedArray[i] && in instanceof Tuple) {
                 Tuple t = (Tuple)in;
                 int size = t.size();
                 for(int j = 0; j < size; ++j) {
                     out.append(t.get(j));
                 }
-            } else
+            } else {
                 out.append(in);
+            }
         }
-        if (inpTuple != null)
+        if (inpTuple != null) {
             return illustratorMarkup(inpTuple, out, 0);
-        else
+        } else {
             return illustratorMarkup2(data, out);
+        }
     }
 
-    
+
     protected void attachInputToPlans(Tuple t) {
-        //super.attachInput(t);    	
-        for(PhysicalPlan p : inputPlans) {        	
+        //super.attachInput(t);
+        for(PhysicalPlan p : inputPlans) {
             p.attachInput(t);
         }
     }
-    
+
     public void getLeaves() {
         if (inputPlans != null) {
             int i=-1;
@@ -493,19 +477,20 @@ public class POForEach extends PhysicalOperator {
             planLeafOps = new PhysicalOperator[inputPlans.size()];
             for(PhysicalPlan p : inputPlans) {
                 ++i;
-                PhysicalOperator leaf = p.getLeaves().get(0); 
+                PhysicalOperator leaf = p.getLeaves().get(0);
                 planLeafOps[i] = leaf;
                 if(leaf instanceof POProject &&
                         leaf.getResultType() == DataType.TUPLE &&
-                        ((POProject)leaf).isStar())
+                        ((POProject)leaf).isStar()) {
                     isToBeFlattenedArray[i] = true;
+                }
             }
         }
         // we are calculating plan leaves
         // so lets reinitialize
         reInitialize();
     }
-    
+
     private void reInitialize() {
         if(planLeafOps != null) {
             noItems = planLeafOps.length;
@@ -517,7 +502,7 @@ public class POForEach extends PhysicalOperator {
             noItems = 0;
             resultTypes = null;
         }
-        
+
         if(inputPlans != null) {
             for (PhysicalPlan pp : inputPlans) {
                 try {
@@ -530,7 +515,7 @@ public class POForEach extends PhysicalOperator {
             }
         }
     }
-    
+
     public List<PhysicalPlan> getInputPlans() {
         return inputPlans;
     }
@@ -550,9 +535,9 @@ public class POForEach extends PhysicalOperator {
             newPlanLeafOps[i] = planLeafOps[i];
         }
         // add to the end
-        newPlanLeafOps[planLeafOps.length] = plan.getLeaves().get(0); 
+        newPlanLeafOps[planLeafOps.length] = plan.getLeaves().get(0);
         planLeafOps = newPlanLeafOps;
-        
+
         // add to isToBeFlattenedArray
         // copy existing values
         boolean[] newIsToBeFlattenedArray = new boolean[isToBeFlattenedArray.length + 1];
@@ -562,7 +547,7 @@ public class POForEach extends PhysicalOperator {
         // add to end
         newIsToBeFlattenedArray[isToBeFlattenedArray.length] = flatten;
         isToBeFlattenedArray = newIsToBeFlattenedArray;
-        
+
         // we just added a leaf - reinitialize
         reInitialize();
     }
@@ -583,7 +568,7 @@ public class POForEach extends PhysicalOperator {
     }
 
     /**
-     * Make a deep copy of this operator.  
+     * Make a deep copy of this operator.
      * @throws CloneNotSupportedException
      */
     @Override
@@ -601,12 +586,12 @@ public class POForEach extends PhysicalOperator {
                 flattens.add(b);
             }
         }
-        
+
         List<PhysicalOperator> ops = new ArrayList<PhysicalOperator>(opsToBeReset.size());
         for (PhysicalOperator op : opsToBeReset) {
             ops.add(op);
         }
-        POForEach clone = new POForEach(new OperatorKey(mKey.scope, 
+        POForEach clone = new POForEach(new OperatorKey(mKey.scope,
                 NodeIdGenerator.getGenerator().getNextNodeId(mKey.scope)),
                 requestedParallelism, plans, flattens);
         clone.setOpsToBeReset(ops);
@@ -619,7 +604,7 @@ public class POForEach extends PhysicalOperator {
     {
         return processingPlan;
     }
-    
+
     protected void setUpFlattens(List<Boolean> isToBeFlattened) {
         if(isToBeFlattened == null) {
             isToBeFlattenedArray = null;
@@ -660,7 +645,7 @@ public class POForEach extends PhysicalOperator {
             // FIXME: add only if limit is present
             opsToBeReset.add(sort);
         }
-        
+
         /* (non-Javadoc)
          * @see org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor#visitProject(org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POProject)
          */
@@ -685,7 +670,7 @@ public class POForEach extends PhysicalOperator {
     public void setOpsToBeReset(List<PhysicalOperator> opsToBeReset) {
         this.opsToBeReset = opsToBeReset;
     }
-    
+
     private Tuple illustratorMarkup2(Object[] in, Object out) {
       if(illustrator != null) {
           ExampleTuple tOut = new ExampleTuple((Tuple) out);
@@ -698,15 +683,19 @@ public class POForEach extends PhysicalOperator {
           }
           illustrator.addData(tOut);
           int i;
-          for (i = 0; i < noItems; ++i)
-              if (((DataBag)bags[i]).size() < 2)
-                  break;
-          if (i >= noItems && !illustrator.getEqClassesShared())
-              illustrator.getEquivalenceClasses().get(0).add(tOut);
+          for (i = 0; i < noItems; ++i) {
+            if (((DataBag)bags[i]).size() < 2) {
+                break;
+            }
+        }
+          if (i >= noItems && !illustrator.getEqClassesShared()) {
+            illustrator.getEquivalenceClasses().get(0).add(tOut);
+        }
           tOut.synthetic = synthetic;
           return tOut;
-      } else
-          return (Tuple) out;
+      } else {
+        return (Tuple) out;
+    }
     }
 
     @Override
@@ -714,14 +703,16 @@ public class POForEach extends PhysicalOperator {
         if(illustrator != null) {
             ExampleTuple tOut = new ExampleTuple((Tuple) out);
             illustrator.addData(tOut);
-            if (!illustrator.getEqClassesShared())
+            if (!illustrator.getEqClassesShared()) {
                 illustrator.getEquivalenceClasses().get(0).add(tOut);
+            }
             LineageTracer lineageTracer = illustrator.getLineage();
             lineageTracer.insert(tOut);
             tOut.synthetic = ((ExampleTuple) in).synthetic;
             lineageTracer.union((ExampleTuple) in , tOut);
             return tOut;
-        } else
-          return (Tuple) out;
+        } else {
+            return (Tuple) out;
+        }
     }
 }
