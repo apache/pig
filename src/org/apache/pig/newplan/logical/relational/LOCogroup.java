@@ -76,11 +76,11 @@ public class LOCogroup extends LogicalRelationalOperator {
         
     public LOCogroup(OperatorPlan plan, MultiMap<Integer,LogicalExpressionPlan> 
     expressionPlans, boolean[] isInner ) {
-        this( plan, expressionPlans, GROUPTYPE.REGULAR, isInner, -1 );
+        this( plan, expressionPlans, GROUPTYPE.REGULAR, isInner );
     }
 
     public LOCogroup(OperatorPlan plan, MultiMap<Integer,LogicalExpressionPlan> 
-    expressionPlans, GROUPTYPE groupType, boolean[] isInner, int requestedParrellism) {
+    expressionPlans, GROUPTYPE groupType, boolean[] isInner) {
         super("LOCogroup", plan);
         this.mExpressionPlans = expressionPlans;
         if( isInner != null ) {

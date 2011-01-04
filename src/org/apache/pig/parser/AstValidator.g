@@ -84,10 +84,18 @@ private Set<String> aliases = new HashSet<String>();
 query : ^( QUERY statement* )
 ;
 
-statement : general_statement | foreach_statement
+statement : general_statement
+          | foreach_statement
+          | split_statement
 ;
 
-general_statement : ^( STATEMENT ( alias { aliases.add( $alias.name ); } )? op_clause INTEGER? )
+split_statement : split_clause
+;
+
+general_statement : ^( STATEMENT ( alias { aliases.add( $alias.name ); } )? op_clause parallel_clause? )
+;
+
+parallel_clause : ^( PARALLEL INTEGER )
 ;
 
 // We need to handle foreach specifically because of the ending ';', which is not required 
@@ -130,10 +138,7 @@ path_list : QUOTEDSTRING+
 cache_caluse : ^( CACHE path_list )
 ;
 
-input_clause : ^( INPUT stream_cmd_list )
-;
-
-stream_cmd_list : stream_cmd+
+input_clause : ^( INPUT stream_cmd+ )
 ;
 
 stream_cmd : ^( STDIN func_clause? )
@@ -141,13 +146,10 @@ stream_cmd : ^( STDIN func_clause? )
            | ^( QUOTEDSTRING func_clause? )
 ;
 
-output_clause : ^( OUTPUT stream_cmd_list )
+output_clause : ^( OUTPUT stream_cmd+ )
 ;
 
-error_clause : ^( ERROR error_cmd? )
-;
-
-error_cmd : ^( QUOTEDSTRING INTEGER? )
+error_clause : ^( ERROR  QUOTEDSTRING INTEGER? )
 ;
 
 load_clause : ^( LOAD filename func_clause? as_clause? )
@@ -194,7 +196,7 @@ map_type : MAP_TYPE
 ;
 
 func_clause : ^( FUNC func_name func_args? )
-            | ^( FUNC func_alias )
+            | ^( FUNC_REF func_alias )
 ;
 
 func_name : eid ( ( PERIOD | DOLLAR ) eid )*
@@ -206,11 +208,11 @@ func_alias : IDENTIFIER
 func_args : QUOTEDSTRING+
 ;
 
-group_clause : ^( GROUP group_item_list QUOTEDSTRING? )
-             | ^( COGROUP group_item_list QUOTEDSTRING? )
+group_clause : ^( GROUP group_item+ group_type? )
+             | ^( COGROUP group_item+ group_type? )
 ;
 
-group_item_list : group_item+
+group_type : HINT_COLLECTED | HINT_MERGE | HINT_REGULAR
 ;
 
 group_item : rel ( join_group_by_clause | ALL | ANY ) ( INNER | OUTER )?
@@ -220,7 +222,8 @@ rel : alias {  validateAliasRef( aliases, $alias.name ); }
     | op_clause
 ;
 
-flatten_generated_item : ( flatten_clause | expr | STAR ) as_clause?
+flatten_generated_item : flatten_clause as_clause?
+                       | ( expr | STAR ) field[new HashSet<String>()]?
 ;
 
 flatten_clause : ^( FLATTEN expr )
@@ -305,7 +308,7 @@ rel_list : rel+
 join_clause : ^( JOIN join_sub_clause join_type? partition_clause? )
 ;
 
-join_type : JOIN_TYPE_REPL | JOIN_TYPE_MERGE | JOIN_TYPE_SKEWED | JOIN_TYPE_DEFAULT
+join_type : HINT_REPL | HINT_MERGE | HINT_SKEWED | HINT_DEFAULT
 ;
 
 join_sub_clause : join_item ( LEFT | RIGHT | FULL ) OUTER? join_item
@@ -324,29 +327,26 @@ join_group_by_expr : expr | STAR
 union_clause : ^( UNION ONSCHEMA? rel_list )
 ;
 
-foreach_clause : ^( FOREACH rel nested_plan )
+foreach_clause : ^( FOREACH rel foreach_plan )
 ;
 
-nested_plan : ^( NESTED_PLAN foreach_blk )
-            | ^( NESTED_PLAN generate_clause )
+foreach_plan : ^( FOREACH_PLAN nested_blk )
+             | ^( FOREACH_PLAN generate_clause parallel_clause? )
 ;
 
-foreach_blk : nested_command_list generate_clause
+nested_blk
+scope { Set<String> ids; }
+@init{ $nested_blk::ids = new HashSet<String>(); }
+ : nested_command* generate_clause
 ;
 
 generate_clause : ^( GENERATE flatten_generated_item+ )
 ;
 
-nested_command_list
-scope { Set<String> ids; }
-@init{ $nested_command_list::ids = new HashSet<String>(); }
- : nested_command*
-;
-
 nested_command
  : ^( NESTED_CMD IDENTIFIER ( expr | nested_op ) )
    {
-       $nested_command_list::ids.add( $IDENTIFIER.text );
+       $nested_blk::ids.add( $IDENTIFIER.text );
    }
 ;
 
@@ -366,7 +366,7 @@ col_ref_list : col_ref+
 nested_alias_ref
  : IDENTIFIER
    {
-       validateAliasRef( $nested_command_list::ids, $IDENTIFIER.text );
+       validateAliasRef( $nested_blk::ids, $IDENTIFIER.text );
    }
 ;
 

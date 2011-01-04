@@ -266,16 +266,22 @@ DOUBLENUMBER : FLOATINGPOINT ( 'E' ( MINUS | PLUS )? INTEGER )?
 FLOATNUMBER : DOUBLENUMBER ( 'F' )?
 ;
 
-JOIN_TYPE_REPL : '\'REPL\'' |  '\'REPLICATED\''
+HINT_REPL : '\'REPL\'' |  '\'REPLICATED\''
 ;
 
-JOIN_TYPE_SKEWED : '\'SKEWED\''
+HINT_SKEWED : '\'SKEWED\''
 ;
 
-JOIN_TYPE_MERGE : '\'MERGE\''
+HINT_MERGE : '\'MERGE\''
 ;
 
-JOIN_TYPE_DEFAULT : '\'HASH\'' | '\'DEFAULT\''
+HINT_DEFAULT : '\'HASH\'' | '\'DEFAULT\''
+;
+
+HINT_COLLECTED : '\'COLLECTED\''
+;
+
+HINT_REGULAR : '\'REGULAR\''
 ;
 
 QUOTEDSTRING :  '\'' (   ( ~ ( '\'' | '\\' | '\n' | '\r' ) )
