@@ -36,6 +36,7 @@ tokens {
     QUERY;
     STATEMENT;
     FUNC;
+    FUNC_REF;
     FUNC_EVAL;
     CAST_EXPR;
     BIN_EXPR;
@@ -48,7 +49,7 @@ tokens {
     NESTED_CMD;
     NESTED_PROJ;
     SPLIT_BRANCH;
-    NESTED_PLAN;
+    FOREACH_PLAN;
     MAP_TYPE;
     TUPLE_TYPE;
     BAG_TYPE;
@@ -112,11 +113,19 @@ query : statement*
      -> ^( QUERY statement* )
 ;
 
-statement : general_statement | foreach_statement
+statement : general_statement
+          | foreach_statement
+          | split_statement          
 ;
 
-general_statement : ( alias EQUAL )? op_clause ( PARALLEL INTEGER )? SEMI_COLON 
-                 -> ^( STATEMENT alias? op_clause INTEGER? )
+split_statement : split_clause SEMI_COLON!
+;
+
+general_statement : ( alias EQUAL )? op_clause parallel_clause? SEMI_COLON 
+                 -> ^( STATEMENT alias? op_clause parallel_clause? )
+;
+
+parallel_clause : PARALLEL^ INTEGER
 ;
 
 // We need to handle foreach specifically because of the ending ';', which is not required 
@@ -142,7 +151,6 @@ op_clause : define_clause
           | union_clause
           | stream_clause
           | mr_clause
-          | split_clause
 ;
 
 define_clause : DEFINE^ alias ( cmd | func_clause )
@@ -174,10 +182,7 @@ stream_cmd : ( STDIN | STDOUT | QUOTEDSTRING )^ ( USING! ( func_clause ) )?
 output_clause : OUTPUT^ LEFT_PAREN! stream_cmd_list RIGHT_PAREN!
 ;
 
-error_clause : ERROR^ LEFT_PAREN! error_cmd? RIGHT_PAREN!
-;
-
-error_cmd : QUOTEDSTRING^ ( LIMIT! INTEGER )?
+error_clause : ERROR^ LEFT_PAREN! QUOTEDSTRING ( LIMIT! INTEGER )? RIGHT_PAREN!
 ;
 
 load_clause : LOAD^ filename ( USING! func_clause )? as_clause?
@@ -225,7 +230,7 @@ map_type : MAP LEFT_BRACKET RIGHT_BRACKET
 func_clause : func_name LEFT_PAREN func_args? RIGHT_PAREN
            -> ^( FUNC func_name func_args? )
             | func_alias
-           -> ^( FUNC func_alias )
+           -> ^( FUNC_REF func_alias )
 ;
 
 func_name : eid ( ( PERIOD | DOLLAR ) eid )*
@@ -238,7 +243,10 @@ func_args : QUOTEDSTRING ( COMMA QUOTEDSTRING )*
          -> QUOTEDSTRING+
 ;
 
-group_clause : ( GROUP | COGROUP )^ group_item_list ( USING! QUOTEDSTRING )?
+group_clause : ( GROUP | COGROUP )^ group_item_list ( USING! group_type )?
+;
+
+group_type : HINT_COLLECTED | HINT_MERGE | HINT_REGULAR
 ;
 
 group_item_list : group_item ( COMMA group_item )*
@@ -251,7 +259,8 @@ group_item : rel ( join_group_by_clause | ALL | ANY ) ( INNER | OUTER )?
 rel : alias | LEFT_PAREN! op_clause RIGHT_PAREN!
 ;
 
-flatten_generated_item : ( flatten_clause | expr | STAR ) as_clause?
+flatten_generated_item : flatten_clause as_clause?
+                       | ( expr | STAR ) ( AS! field )?
 ;
 
 flatten_clause : FLATTEN^ LEFT_PAREN! expr RIGHT_PAREN!
@@ -377,7 +386,7 @@ rel_list : rel ( COMMA rel )*
 join_clause : JOIN^ join_sub_clause ( USING! join_type )? partition_clause?
 ;
 
-join_type : JOIN_TYPE_REPL | JOIN_TYPE_MERGE | JOIN_TYPE_SKEWED | JOIN_TYPE_DEFAULT
+join_type : HINT_REPL | HINT_MERGE | HINT_SKEWED | HINT_DEFAULT
 ;
 
 join_sub_clause : join_item ( LEFT | RIGHT | FULL ) OUTER? join_item
@@ -405,16 +414,16 @@ join_group_by_expr : expr | STAR
 union_clause : UNION^ ONSCHEMA? rel_list
 ;
 
-foreach_clause : FOREACH^ rel nested_plan
+foreach_clause : FOREACH^ rel foreach_plan
 ;
 
-nested_plan : foreach_blk SEMI_COLON?
-           -> ^( NESTED_PLAN foreach_blk )
-            | ( generate_clause SEMI_COLON )
-           -> ^( NESTED_PLAN generate_clause )
+foreach_plan : nested_blk SEMI_COLON?
+           -> ^( FOREACH_PLAN nested_blk )
+            | ( generate_clause parallel_clause? SEMI_COLON )
+           -> ^( FOREACH_PLAN generate_clause parallel_clause? )
 ;
 
-foreach_blk : LEFT_CURLY! nested_command_list ( generate_clause SEMI_COLON! ) RIGHT_CURLY!
+nested_blk : LEFT_CURLY! nested_command_list ( generate_clause SEMI_COLON! ) RIGHT_CURLY!
 ;
 
 generate_clause : GENERATE flatten_generated_item ( COMMA flatten_generated_item )*

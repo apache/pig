@@ -130,8 +130,7 @@ public class LogicalPlanMigrationVistor extends LOVisitor {
         
         org.apache.pig.newplan.logical.relational.LOCogroup newCogroup =
             new org.apache.pig.newplan.logical.relational.LOCogroup
-            (logicalPlan, newExpressionPlans, grouptype, cg.getInner(), 
-                    cg.getRequestedParallelism() );
+            (logicalPlan, newExpressionPlans, grouptype, cg.getInner());
         
         for( int i = 0; i < inputs.size(); i++ ) {
             ArrayList<LogicalPlan> plans = 

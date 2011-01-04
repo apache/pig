@@ -77,7 +77,7 @@ store countInactiveAcct into '/user/kaleidoscope/pow_stats/20080228/acct_stats/I
 store inactiveAccounts into '/user/kaleidoscope/pow_stats/20080228/acct/InactiveAcct';
 
 --split
-G = Split A into X if $0 > 0, Y if $0 == 0;
+Split A into X if $0 > 0, Y if $0 == 0;
 
 --union
 H = union onschema A, B;
