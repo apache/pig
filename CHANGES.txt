@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-946: Combiner optimizer does not optimize when limit follow group, foreach (thejas)
+
 PIG-1277: Pig should give error message when cogroup on tuple keys of different inner type (daijy)
 
 PIG-1755: Clean up duplicated code in PhysicalOperators (dvryaboy)

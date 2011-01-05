@@ -144,25 +144,23 @@ public class CombinerOptimizer extends MROpPlanVisitor {
         if (packSuccessors == null || packSuccessors.size() != 1) return;
         PhysicalOperator successor = packSuccessors.get(0);
 
-        if (successor instanceof POFilter) {
-            /*
-               Later
-            POFilter filter = (POFilter)successor;
-            PhysicalPlan filterInner = filter.getPlan();
-            if (onKeysOnly(filterInner)) {
-                // TODO move filter to combiner
-                // TODO Patch up projects of filter successor
-                // Call ourselves again, as we may be able to move the next
-                // operator too.
-                visitMROp(mr);
-            } else if (algebraic(filterInner)) {
-                // TODO Duplicate filter to combiner
+        if (successor instanceof POLimit) {
+            //POLimit is acceptable, as long has it has a single foreach
+            // as successor
+            List<PhysicalOperator> limitSucs =
+                mr.reducePlan.getSuccessors(successor);
+            if(limitSucs != null && limitSucs.size() == 1 && 
+                    limitSucs.get(0) instanceof POForEach) {
+                // the code below will now further examine
+                // the foreach
+                successor = limitSucs.get(0);
             }
-             */
-        } else if (successor instanceof POForEach) {
+
+        } 
+        if (successor instanceof POForEach) {
             POForEach foreach = (POForEach)successor;
             List<PhysicalPlan> feInners = foreach.getInputPlans();
-            
+
             // find algebraic operators and also check if the foreach statement
             // is suitable for combiner use
             List<Pair<PhysicalOperator, PhysicalPlan>> algebraicOps = 
