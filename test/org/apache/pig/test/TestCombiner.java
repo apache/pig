@@ -17,6 +17,10 @@
  */
 package org.apache.pig.test;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -28,27 +32,21 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Properties;
 
-import org.junit.AfterClass;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
-
 import junit.framework.Assert;
-import junit.framework.TestCase;
 
 import org.apache.pig.EvalFunc;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.data.Tuple;
-
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.logicalLayer.LogicalPlan;
 import org.apache.pig.test.utils.LogicalPlanTester;
+import org.junit.AfterClass;
+import org.junit.Test;
 
-@RunWith(JUnit4.class)
-public class TestCombiner extends TestCase {
+public class TestCombiner {
 
     static MiniCluster cluster = MiniCluster.buildCluster();
 
@@ -96,7 +94,6 @@ public class TestCombiner extends TestCase {
     /* (non-Javadoc)
      * @see junit.framework.TestCase#setUp()
      */
-    @Override
     protected void setUp() throws Exception {
         // cause a re initialization of FileLocalizer's
         // internal state before each test run
@@ -311,6 +308,44 @@ public class TestCombiner extends TestCase {
 
         Util.deleteFile(cluster, "distinctAggs1Input.txt");
         
+    }
+    
+    @Test
+    public void testGroupByLimit() throws Exception {
+        // test use of combiner when group elements are accessed in the foreach
+        String input[] = {
+                "ABC 1",
+                "ABC 2",
+                "DEF 1",
+                "XYZ 1",
+                "XYZ 2",
+                "XYZ 3",
+        };
+
+        Util.createInputFile(cluster, "testGroupLimit.txt", input);
+        PigServer pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        pigServer.registerQuery("a = load 'testGroupLimit.txt'  using PigStorage(' ') " +
+        		"as (str:chararray, num1:int) ;");
+        pigServer.registerQuery("b = group a by str;");
+        
+
+        pigServer.registerQuery("c = foreach b  generate group, COUNT(a.num1) ; ");
+
+        //check if combiner is present 
+        pigServer.registerQuery("d = limit c 2 ; ");
+        checkCombinerUsed(pigServer, "d", true);
+        
+        List<Tuple> expectedRes = 
+            Util.getTuplesFromConstantTupleStrings(
+                    new String[] {
+                            "('ABC',2L)",
+                            "('DEF',1L)",
+                    });
+
+        Iterator<Tuple> it = pigServer.openIterator("d");
+        Util.checkQueryOutputsAfterSort(it, expectedRes);
+        
+
     }
 
     private void checkCombinerUsed(PigServer pigServer, String string, boolean combineExpected)
