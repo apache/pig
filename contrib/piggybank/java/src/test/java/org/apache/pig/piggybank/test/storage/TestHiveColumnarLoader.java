@@ -418,6 +418,7 @@ public class TestHiveColumnarLoader extends TestCase {
 
 	yearMonthDayHourcalendar = Calendar.getInstance();
 
+	yearMonthDayHourcalendar.set(Calendar.YEAR, 2010);
 	yearMonthDayHourcalendar.set(Calendar.DAY_OF_MONTH, Calendar.MONDAY);
 	yearMonthDayHourcalendar.set(Calendar.MONTH, Calendar.JANUARY);
 
