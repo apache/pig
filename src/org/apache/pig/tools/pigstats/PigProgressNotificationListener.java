@@ -33,57 +33,57 @@ public interface PigProgressNotificationListener extends java.util.EventListener
     
     /** 
      * Invoked just before launching MR jobs spawned by the script.
-     * 
+     * @param scriptId the unique id of the script
      * @param numJobsToLaunch the total number of MR jobs spawned by the script
      */
-    public void launchStartedNotification(int numJobsToLaunch);
+    public void launchStartedNotification(String scriptId, int numJobsToLaunch);
     
     /**
      * Invoked just before submitting a batch of MR jobs.
-     * 
+     * @param scriptId the unique id of the script
      * @param numJobsSubmitted the number of MR jobs in the batch
      */
-    public void jobsSubmittedNotification(int numJobsSubmitted);
+    public void jobsSubmittedNotification(String scriptId, int numJobsSubmitted);
     
     /**
      * Invoked after a MR job is started.
-     * 
+     * @param scriptId the unique id of the script 
      * @param assignedJobId the MR job id
      */
-    public void jobStartedNotification(String assignedJobId);
+    public void jobStartedNotification(String scriptId, String assignedJobId);
     
     /**
      * Invoked just after a MR job is completed successfully. 
-     * 
+     * @param scriptId the unique id of the script 
      * @param jobStats the {@link JobStats} object associated with the MR job
      */
-    public void jobFinishedNotification(JobStats jobStats);
+    public void jobFinishedNotification(String scriptId, JobStats jobStats);
     
     /**
      * Invoked when a MR job fails.
-     * 
+     * @param scriptId the unique id of the script 
      * @param jobStats the {@link JobStats} object associated with the MR job
      */
-    public void jobFailedNotification(JobStats jobStats);
+    public void jobFailedNotification(String scriptId, JobStats jobStats);
     
     /**
      * Invoked just after an output is successfully written.
-     * 
+     * @param scriptId the unique id of the script
      * @param outputStats the {@link OutputStats} object associated with the output
      */
-    public void outputCompletedNotification(OutputStats outputStats);
+    public void outputCompletedNotification(String scriptId, OutputStats outputStats);
     
     /**
      * Invoked to update the execution progress. 
-     * 
+     * @param scriptId the unique id of the script
      * @param progress the percentage of the execution progress
      */
-    public void progressUpdatedNotification(int progress);
+    public void progressUpdatedNotification(String scriptId, int progress);
     
     /**
      * Invoked just after all MR jobs spawned by the script are completed.
-     * 
+     * @param scriptId the unique id of the script
      * @param numJobsSucceeded the total number of MR jobs succeeded
      */
-    public void launchCompletedNotification(int numJobsSucceeded);
+    public void launchCompletedNotification(String scriptId, int numJobsSucceeded);
 }

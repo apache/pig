@@ -27,7 +27,6 @@ import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.logicalLayer.parser.ParseException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.util.Utils;
-import org.apache.pig.scripting.ScriptEngine;
 import org.python.core.Py;
 import org.python.core.PyBaseCode;
 import org.python.core.PyException;
@@ -83,9 +82,9 @@ public class JythonFunction extends EvalFunc<Object> {
         } catch (ParseException pe) {
             throw new ExecException("Could not parse schema for script function " + pe);
         } catch (IOException e) {
-            throw new IllegalStateException("Could not initialize: " + filename);
+            throw new IllegalStateException("Could not initialize: " + filename, e);
         } catch (Exception e) {
-            throw new ExecException("Could not initialize: " + filename);
+            throw new ExecException("Could not initialize: " + filename, e);
         }
     }
 
@@ -104,9 +103,9 @@ public class JythonFunction extends EvalFunc<Object> {
                 return JythonUtils.pythonToPig(function.__call__(params));
             }
         } catch (PyException e) {
-            throw new ExecException("Error executing function: " + e);
+            throw new ExecException("Error executing function", e);
         } catch (Exception e) {
-            throw new IOException("Error executing function: " + e);
+            throw new IOException("Error executing function",  e);
         }
     }
 
@@ -128,7 +127,7 @@ public class JythonFunction extends EvalFunc<Object> {
                     return (Schema)((pf.__call__(Py.java2py(input))).__tojava__(Object.class));
                 } catch (IOException ioe) {
                     throw new IllegalStateException("Could not find function: "
-                        + outputSchemaFunc + "()");
+                        + outputSchemaFunc + "()", ioe);
                 }
             } else {
                 return new Schema(new Schema.FieldSchema(null, DataType.BYTEARRAY));

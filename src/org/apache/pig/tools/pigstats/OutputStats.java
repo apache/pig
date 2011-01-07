@@ -18,11 +18,24 @@
 
 package org.apache.pig.tools.pigstats;
 
+import java.io.IOException;
+import java.util.Iterator;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
+import org.apache.pig.LoadFunc;
+import org.apache.pig.PigException;
+import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
 import org.apache.pig.classification.InterfaceAudience;
 import org.apache.pig.classification.InterfaceStability;
+import org.apache.pig.data.Tuple;
+import org.apache.pig.impl.PigContext;
+import org.apache.pig.impl.io.ReadToEndLoader;
+import org.apache.pig.newplan.Operator;
 
 /**
  * This class encapsulates the runtime statistics of an user specified output.
@@ -42,6 +55,8 @@ public final class OutputStats {
     
     private Configuration conf;
 
+    private static final Log LOG = LogFactory.getLog(OutputStats.class);
+    
     OutputStats(String location, long bytes, long records, boolean success) {
         this.location = location;
         this.bytes = bytes;
@@ -118,5 +133,67 @@ public final class OutputStats {
     
     void setConf(Configuration conf) {
         this.conf = conf;
+    }
+    
+    public Iterator<Tuple> iterator() throws IOException {
+        final LoadFunc p;
+        PigContext pigContext = ScriptState.get().getPigContext();
+        if (pigContext == null || store == null) {
+            throw new IllegalArgumentException();
+        }
+        try {
+            LoadFunc originalLoadFunc = (LoadFunc) PigContext
+                    .instantiateFuncFromSpec(store.getSFile().getFuncSpec());
+
+            p = (LoadFunc) new ReadToEndLoader(originalLoadFunc,
+                    ConfigurationUtil.toConfiguration(pigContext
+                            .getProperties()), store.getSFile().getFileName(),
+                    0);
+
+        } catch (Exception e) {
+            int errCode = 2088;
+            String msg = "Unable to get results for: " + store.getSFile();
+            throw new ExecException(msg, errCode, PigException.BUG, e);
+        }
+        
+        return new Iterator<Tuple>() {        
+            Tuple   t;
+            boolean atEnd;
+
+            public boolean hasNext() {
+                if (atEnd) return false;
+                try {
+                    if (t == null) t = p.getNext();
+                    if (t == null) atEnd = true;
+                } catch (Exception e) {
+                    LOG.error(e);
+                    t = null;
+                    atEnd = true;
+                    throw new Error(e);
+                }
+                return !atEnd;
+            }
+
+            public Tuple next() {
+                Tuple next = t;
+                if (next != null) {
+                    t = null;
+                    return next;
+                }
+                try {
+                    next = p.getNext();
+                } catch (Exception e) {
+                    LOG.error(e);
+                }
+                if (next == null)
+                    atEnd = true;
+                return next;
+            }
+
+            public void remove() {
+                throw new RuntimeException("Removal not supported");
+            }
+ 
+        };
     }
 }
