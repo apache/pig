@@ -19,15 +19,13 @@
 package org.apache.pig.tools.pigstats;
 
 import java.io.IOException;
-import java.net.URI;
-import java.net.URISyntaxException;
+import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapred.Counters;
 import org.apache.hadoop.mapred.JobClient;
 import org.apache.hadoop.mapred.RunningJob;
@@ -162,7 +160,7 @@ public abstract class PigStatsUtil {
      */
     public static void startCollection(PigContext pc, JobClient client, 
             JobControlCompiler jcc, MROperPlan plan) {
-        PigStats ps = PigStats.start();
+        SimplePigStats ps = (SimplePigStats)PigStats.start();
         ps.start(pc, client, jcc, plan);
         
         ScriptState.get().emitLaunchStartedNotification(plan.size());
@@ -175,7 +173,7 @@ public abstract class PigStatsUtil {
      *      file at INFO level 
      */
     public static void stopCollection(boolean display) {
-        PigStats ps = PigStats.get();
+        SimplePigStats ps = (SimplePigStats)PigStats.get();
         ps.stop();
         if (!ps.isSuccessful()) {
             LOG.error(ps.getNumberFailedJobs() + " map reduce job(s) failed!");
@@ -214,7 +212,7 @@ public abstract class PigStatsUtil {
      * Logs the statistics in the Pig log file at INFO level
      */
     public static void displayStatistics() {
-        PigStats.get().display();
+        ((SimplePigStats)PigStats.get()).display();
     }
     
     /**
@@ -226,7 +224,7 @@ public abstract class PigStatsUtil {
      * @param jobMroMap the map that maps {@link Job}s to {@link MapReduceOper}s
      */
     public static void updateJobMroMap(Map<Job, MapReduceOper> jobMroMap) {
-        PigStats ps = PigStats.get();
+        SimplePigStats ps = (SimplePigStats)PigStats.get();
         for (Map.Entry<Job, MapReduceOper> entry : jobMroMap.entrySet()) {
             MapReduceOper mro = entry.getValue();
             ps.mapMROperToJob(mro, entry.getKey());
@@ -239,7 +237,7 @@ public abstract class PigStatsUtil {
      * @param jc the job control
      */
     public static void accumulateStats(JobControl jc) {
-        PigStats ps = PigStats.get();
+        SimplePigStats ps = (SimplePigStats)PigStats.get();
         ScriptState ss = ScriptState.get();
         
         for (Job job : jc.getSuccessfulJobs()) {            
@@ -269,7 +267,7 @@ public abstract class PigStatsUtil {
     }
     
     public static void setBackendException(Job job, Exception e) {
-        PigStats.get().setBackendException(job, e);
+        ((SimplePigStats)PigStats.get()).setBackendException(job, e);
     }
     
     private static Pattern pattern = Pattern.compile("tmp(-)?[\\d]{1,10}$");
@@ -279,7 +277,7 @@ public abstract class PigStatsUtil {
         return result.find();
     }
     
-    private static JobStats addFailedJobStats(PigStats ps, Job job) {
+    private static JobStats addFailedJobStats(SimplePigStats ps, Job job) {
         JobStats js = ps.addJobStats(job);
         if (js == null) {
             LOG.warn("unable to add failed job stats");            
@@ -296,9 +294,17 @@ public abstract class PigStatsUtil {
         return addNativeJobStats(ps, mr, success, null);
     }
     
+    public static void setStatsMap(Map<String, List<PigStats>> statsMap) {
+        EmbeddedPigStats stats = new EmbeddedPigStats(statsMap);
+        PigStats.set(stats);
+    }
+    
     public static JobStats addNativeJobStats(PigStats ps, NativeMapReduceOper mr,
             boolean success, Exception e) {
-        JobStats js = ps.addJobStatsForNative(mr);
+        if (ps.isEmbedded()) {
+            throw new IllegalArgumentException();
+        }
+        JobStats js = ((SimplePigStats)ps).addJobStatsForNative(mr);
         if(js == null) {
             LOG.warn("unable to add native job stats");
         } else {
@@ -309,7 +315,7 @@ public abstract class PigStatsUtil {
         return js;
     }    
     
-    private static JobStats accumulateSuccessStatistics(PigStats ps, Job job) {
+    private static JobStats accumulateSuccessStatistics(SimplePigStats ps, Job job) {
         JobStats js = ps.addJobStats(job);
         if (js == null) {
             LOG.warn("unable to add job stats");

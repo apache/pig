@@ -65,6 +65,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStream;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POUnion;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.util.PlanHelper;
+import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.logicalLayer.LOCogroup;
 import org.apache.pig.impl.logicalLayer.LOCross;
 import org.apache.pig.impl.logicalLayer.LODistinct;
@@ -177,15 +178,18 @@ public class ScriptState {
     
     private long scriptFeatures;
     
+    private PigContext pigContext;
+    
     private Map<MapReduceOper, String> featureMap = null;
     private Map<MapReduceOper, String> aliasMap = null;
     
     private List<PigProgressNotificationListener> listeners
             = new ArrayList<PigProgressNotificationListener>();
     
-    public static ScriptState start(String commandLine) {
+    public static ScriptState start(String commandLine, PigContext pigContext) {
         ScriptState ss = new ScriptState(UUID.randomUUID().toString());
         ss.setCommandLine(commandLine);
+        ss.setPigContext(pigContext);
         tss.set(ss);
         return ss;
     }
@@ -197,7 +201,7 @@ public class ScriptState {
 
     public static ScriptState get() {
         if (tss.get() == null) {
-            ScriptState.start("");
+            ScriptState.start("", null);
         }
         return tss.get();
     }           
@@ -205,52 +209,56 @@ public class ScriptState {
     public void registerListener(PigProgressNotificationListener listener) {
         listeners.add(listener);
     }
+    
+    public List<PigProgressNotificationListener> getAllListeners() {
+        return listeners;
+    }
         
     public void emitLaunchStartedNotification(int numJobsToLaunch) {
         for (PigProgressNotificationListener listener: listeners) {
-            listener.launchStartedNotification(numJobsToLaunch);
+            listener.launchStartedNotification(id, numJobsToLaunch);
         }
     }
     
-    public void emitJobsSubmittedNotification(int numJobsSubmitted) {
+    public void emitJobsSubmittedNotification(int numJobsSubmitted) {        
         for (PigProgressNotificationListener listener: listeners) {
-            listener.jobsSubmittedNotification(numJobsSubmitted);
+            listener.jobsSubmittedNotification(id, numJobsSubmitted);
         }        
     }
     
     public void emitJobStartedNotification(String assignedJobId) {
         for (PigProgressNotificationListener listener: listeners) {
-            listener.jobStartedNotification(assignedJobId);
+            listener.jobStartedNotification(id, assignedJobId);
         }
     }
     
     public void emitjobFinishedNotification(JobStats jobStats) {
         for (PigProgressNotificationListener listener: listeners) {
-            listener.jobFinishedNotification(jobStats);
+            listener.jobFinishedNotification(id, jobStats);
         }
     }
     
     public void emitJobFailedNotification(JobStats jobStats) {
         for (PigProgressNotificationListener listener: listeners) {
-            listener.jobFailedNotification(jobStats);
+            listener.jobFailedNotification(id, jobStats);
         }
     }
     
     public void emitOutputCompletedNotification(OutputStats outputStats) {
         for (PigProgressNotificationListener listener: listeners) {
-            listener.outputCompletedNotification(outputStats);
+            listener.outputCompletedNotification(id, outputStats);
         }
     }
     
     public void emitProgressUpdatedNotification(int progress) {
         for (PigProgressNotificationListener listener: listeners) {
-            listener.progressUpdatedNotification(progress);
+            listener.progressUpdatedNotification(id, progress);
         }
     }
     
     public void emitLaunchCompletedNotification(int numJobsSucceeded) {
         for (PigProgressNotificationListener listener: listeners) {
-            listener.launchCompletedNotification(numJobsSucceeded);
+            listener.launchCompletedNotification(id, numJobsSucceeded);
         }
     }
     
@@ -536,6 +544,14 @@ public class ScriptState {
         return sb.toString();
     }
     
+    public void setPigContext(PigContext pigContext) {
+        this.pigContext = pigContext;
+    }
+
+    public PigContext getPigContext() {
+        return pigContext;
+    }
+
     private static class FeatureVisitor extends PhyPlanVisitor {
         private BitSet feature;
         
@@ -588,7 +604,7 @@ public class ScriptState {
         }        
     }    
     
-    public static class LogicalPlanFeatureVisitor extends LOVisitor {
+    static class LogicalPlanFeatureVisitor extends LOVisitor {
         
         private BitSet feature;
         

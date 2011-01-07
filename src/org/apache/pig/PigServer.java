@@ -504,7 +504,7 @@ public class PigServer {
                     PigException.USER_ENVIRONMENT);
         }
         if(scriptingLang != null) {
-            ScriptEngine se = ScriptEngine.getInstance(scriptingLang);
+            ScriptEngine se = ScriptEngine.getInstance(scriptingLang);    
             se.registerFunctions(path, namespace, pigContext);
         }
         pigContext.addScriptFile(path);

@@ -24,23 +24,25 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.StringReader;
 import java.io.StringWriter;
+import java.text.ParseException;
 import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.jar.Attributes;
 import java.util.jar.JarFile;
 import java.util.jar.Manifest;
-import java.text.ParseException;
+import java.util.regex.Pattern;
 
 import jline.ConsoleReader;
 import jline.ConsoleReaderInputStream;
@@ -48,34 +50,32 @@ import jline.History;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.util.GenericOptionsParser;
-import org.apache.hadoop.fs.Path;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
-
 import org.apache.pig.PigRunner.ReturnCode;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.classification.InterfaceAudience;
 import org.apache.pig.classification.InterfaceStability;
-import org.apache.pig.ExecType;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.logicalLayer.LogicalPlanBuilder;
 import org.apache.pig.impl.util.JarManager;
+import org.apache.pig.impl.util.LogUtils;
 import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.impl.util.PropertiesUtil;
 import org.apache.pig.impl.util.UDFContext;
-import org.apache.pig.tools.pigstats.PigProgressNotificationListener;
-import org.apache.pig.tools.pigstats.PigStatsUtil;
-import org.apache.pig.tools.pigstats.ScriptState;
+import org.apache.pig.scripting.ScriptEngine;
 import org.apache.pig.tools.cmdline.CmdLineParser;
 import org.apache.pig.tools.grunt.Grunt;
-import org.apache.pig.impl.util.LogUtils;
-import org.apache.pig.tools.timer.PerformanceTimerFactory;
 import org.apache.pig.tools.parameters.ParameterSubstitutionPreprocessor;
+import org.apache.pig.tools.pigstats.PigProgressNotificationListener;
+import org.apache.pig.tools.pigstats.PigStats;
+import org.apache.pig.tools.pigstats.PigStatsUtil;
+import org.apache.pig.tools.pigstats.ScriptState;
+import org.apache.pig.tools.timer.PerformanceTimerFactory;
 
 /**
  * Main class for Pig engine.
@@ -92,6 +92,8 @@ public class Main {
     private static final String VERBOSE = "verbose";
     
     private enum ExecMode {STRING, FILE, SHELL, UNKNOWN}    
+    
+    private enum ScriptType {PIG, JYTHON}
                 
 /**
  * The Main-Class for the Pig Jar that will provide a shell and setup a classpath appropriate
@@ -112,6 +114,7 @@ static int run(String args[], PigProgressNotificationListener listener) {
     boolean verbose = false;
     boolean gruntCalled = false;
     String logFileName = null;
+    
     try {
         Configuration conf = new Configuration(false);
         GenericOptionsParser parser = new GenericOptionsParser(conf, args);
@@ -122,16 +125,14 @@ static int run(String args[], PigProgressNotificationListener listener) {
         properties.putAll(ConfigurationUtil.toProperties(conf));
         
         String[] pigArgs = parser.getRemainingArgs();
-        
-        
-        boolean userSpecifiedLog = false;
-        
+                
+        boolean userSpecifiedLog = false;        
         boolean checkScriptOnly = false;
-
     
         BufferedReader pin = null;
         boolean debug = false;
         boolean dryrun = false;
+        boolean embedded = false;
         ArrayList<String> params = new ArrayList<String>();
         ArrayList<String> paramFiles = new ArrayList<String>();
         HashSet<String> optimizerRules = new HashSet<String>();
@@ -143,6 +144,7 @@ static int run(String args[], PigProgressNotificationListener listener) {
         opts.registerOpt('d', "debug", CmdLineParser.ValueExpected.REQUIRED);
         opts.registerOpt('e', "execute", CmdLineParser.ValueExpected.NOT_ACCEPTED);
         opts.registerOpt('f', "file", CmdLineParser.ValueExpected.REQUIRED);
+        opts.registerOpt('g', "embedded", CmdLineParser.ValueExpected.REQUIRED);
         opts.registerOpt('h', "help", CmdLineParser.ValueExpected.OPTIONAL);
         opts.registerOpt('i', "version", CmdLineParser.ValueExpected.OPTIONAL);        
         opts.registerOpt('l', "logfile", CmdLineParser.ValueExpected.REQUIRED);
@@ -159,6 +161,7 @@ static int run(String args[], PigProgressNotificationListener listener) {
 
         ExecMode mode = ExecMode.UNKNOWN;
         String file = null;
+        String engine = null;
         ExecType execType = ExecType.MAPREDUCE ;
         String execTypeString = properties.getProperty("exectype");
         if(execTypeString!=null && execTypeString.length()>0){
@@ -228,26 +231,31 @@ static int run(String args[], PigProgressNotificationListener listener) {
                 file = opts.getValStr();
                 break;
 
+            case 'g':
+                embedded = true;
+                engine = opts.getValStr();
+                break;
+                
             case 'F':
                 properties.setProperty("stop.on.failure", ""+true);
                 break;
 
             case 'h':
-		String topic = opts.getValStr();
-		if (topic != null)
-		    if (topic.equalsIgnoreCase("properties"))
-		        printProperties();
+                String topic = opts.getValStr();
+                if (topic != null)
+                    if (topic.equalsIgnoreCase("properties"))
+                        printProperties();
                     else{
                         System.out.println("Invalide help topic - " + topic);
-			usage();
+                        usage();
                     }
-		else
+                else
                     usage();
                 return ReturnCode.SUCCESS;
 
             case 'i':
-            	System.out.println(getVersionString());
-            	return ReturnCode.SUCCESS;
+                System.out.println(getVersionString());
+                return ReturnCode.SUCCESS;
 
             case 'l':
                 //call to method that validates the path to the log file 
@@ -333,7 +341,7 @@ static int run(String args[], PigProgressNotificationListener listener) {
         
         // create the static script state object
         String commandLine = LoadFunc.join((AbstractList<String>)Arrays.asList(args), " ");
-        ScriptState scriptState = ScriptState.start(commandLine);
+        ScriptState scriptState = ScriptState.start(commandLine, pigContext);
         if (listener != null) {
             scriptState.registerListener(listener);
         }
@@ -353,7 +361,7 @@ static int run(String args[], PigProgressNotificationListener listener) {
         }
         
         if(optimizerRules.size() > 0) {
-        	pigContext.getProperties().setProperty("pig.optimizer.rules", ObjectSerializer.serialize(optimizerRules));
+            pigContext.getProperties().setProperty("pig.optimizer.rules", ObjectSerializer.serialize(optimizerRules));
         }
         
         if (properties.get("udf.import.list")!=null)
@@ -366,13 +374,25 @@ static int run(String args[], PigProgressNotificationListener listener) {
         BufferedReader in;
         String substFile = null;
         switch (mode) {
+        
         case FILE: {
             FileLocalizer.FetchFileRet localFileRet = FileLocalizer.fetchFile(properties, file);
             if (localFileRet.didFetch) {
                 properties.setProperty("pig.jars.relative.to.dfs", "true");
+            }            
+            
+            if (embedded) {
+                return runEmbeddedScript(pigContext, localFileRet.file.getPath(), engine);
+            } else {
+                ScriptType type = determineScriptType(localFileRet.file.getPath());
+                if (type != ScriptType.PIG) {
+                    return runEmbeddedScript(pigContext, localFileRet.file
+                                .getPath(), type.name().toLowerCase());
+                }
             }
-            in = new BufferedReader(new FileReader(localFileRet.file));
 
+            in = new BufferedReader(new FileReader(localFileRet.file));
+            
             // run parameter substitution preprocessor first
             substFile = file + ".substituted";
             pin = runParamPreprocessor(properties, in, params, paramFiles, substFile, debug || dryrun || checkScriptOnly);
@@ -474,9 +494,20 @@ static int run(String args[], PigProgressNotificationListener listener) {
             FileLocalizer.FetchFileRet localFileRet = FileLocalizer.fetchFile(properties, remainders[0]);
             if (localFileRet.didFetch) {
                 properties.setProperty("pig.jars.relative.to.dfs", "true");
-            }
-            in = new BufferedReader(new FileReader(localFileRet.file));
+            }            
 
+            if (embedded) {
+                return runEmbeddedScript(pigContext, localFileRet.file.getPath(), engine);
+            } else {
+                ScriptType type = determineScriptType(localFileRet.file.getPath());
+                if (type != ScriptType.PIG) {
+                    return runEmbeddedScript(pigContext, localFileRet.file
+                                .getPath(), type.name().toLowerCase());
+                }
+            }
+            
+            in = new BufferedReader(new FileReader(localFileRet.file));
+            
             // run parameter substitution preprocessor first
             substFile = remainders[0] + ".substituted";
             pin = runParamPreprocessor(properties, in, params, paramFiles, substFile, debug || dryrun || checkScriptOnly);
@@ -683,6 +714,7 @@ public static void usage()
         System.out.println("    -d, -debug - Debug level, INFO is default");
         System.out.println("    -e, -execute - Commands to execute (within quotes)");
         System.out.println("    -f, -file - Path to the script to execute");
+        System.out.println("    -g, -embedded - ScriptEngine classname or keyword for the ScriptEngine");
         System.out.println("    -h, -help - Display this message. You can specify topic to get help for that topic.");
 	System.out.println("        properties is the only topic currently supported: -h properties.");
         System.out.println("    -i, -version - Display version information");
@@ -834,6 +866,50 @@ private static String validateLogFile(String logFileName, String scriptName) {
 
 private static String getFileFromCanonicalPath(String canonicalPath) {
     return canonicalPath.substring(canonicalPath.lastIndexOf(File.separator));
+}
+
+private static final Pattern p = Pattern.compile("^#!.*/python\\s*$");
+private static final Pattern p1 = Pattern.compile("^#!.*/jython\\s*$");
+private static final Pattern p2 = Pattern.compile("^#!.+");
+
+private static ScriptType determineScriptType(String file)
+        throws IOException {
+    ScriptType type = ScriptType.PIG;
+    // check the first line
+    BufferedReader br = new BufferedReader(new FileReader(file));
+    String line = br.readLine();
+    br.close();
+    if (line != null) {
+        if (p.matcher(line).matches() || p1.matcher(line).matches()) {
+            type = ScriptType.JYTHON;
+        } else if (p2.matcher(line).matches()) {
+            throw new IOException("Unsupported script type is specified: " + line);
+        }
+    }
+    return type;
+}
+
+private static int runEmbeddedScript(PigContext pigContext, String file, String engine)
+        throws IOException {
+    log.info("Run embedded script: " + engine);
+    pigContext.connect();
+    ScriptEngine scriptEngine = ScriptEngine.getInstance(engine);
+    Map<String, List<PigStats>> statsMap = scriptEngine.run(pigContext, file);
+    PigStatsUtil.setStatsMap(statsMap);
+    
+    int failCount = 0;
+    int totalCount = 0;
+    for (List<PigStats> lst : statsMap.values()) {
+        if (lst != null && !lst.isEmpty()) {
+            for (PigStats stats : lst) {                
+                if (!stats.isSuccessful()) failCount++;
+                totalCount++;
+            }
+        }
+    }
+    return (totalCount > 0 && failCount == totalCount) ? ReturnCode.FAILURE
+            : (failCount > 0) ? ReturnCode.PARTIAL_FAILURE
+                    : ReturnCode.SUCCESS;
 }
 
 }

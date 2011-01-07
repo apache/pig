@@ -24,8 +24,10 @@ import static org.junit.Assert.assertTrue;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.PrintWriter;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 
 import junit.framework.Assert;
@@ -507,60 +509,68 @@ public class TestPigRunner {
         }
     }
 
-    private static class TestNotificationListener implements PigProgressNotificationListener {
+    public static class TestNotificationListener implements PigProgressNotificationListener {
         
-        private int numJobsToLaunch = 0;
-        private int numJobsSubmitted = 0;
-        private int numJobStarted = 0;
-        private int numJobFinished = 0;
+        private Map<String, int[]> numMap = new HashMap<String, int[]>();
+        
+        private static final int JobsToLaunch = 0;
+        private static final int JobsSubmitted = 1;
+        private static final int JobStarted = 2;
+        private static final int JobFinished = 3;
         
         @Override
-        public void launchStartedNotification(int numJobsToLaunch) {
-            System.out.println("++++ numJobsToLaunch: " + numJobsToLaunch);  
-            this.numJobsToLaunch = numJobsToLaunch;
+        public void launchStartedNotification(String id, int numJobsToLaunch) {            
+            System.out.println("id: " + id + " numJobsToLaunch: " + numJobsToLaunch);  
+            int[] nums = new int[4];
+            numMap.put(id, nums);
+            nums[JobsToLaunch] = numJobsToLaunch;
         }
 
         @Override
-        public void jobFailedNotification(JobStats jobStats) {
-            System.out.println("++++ job failed: " + jobStats.getJobId());           
+        public void jobFailedNotification(String id, JobStats jobStats) {
+            System.out.println("id: " + id + " job failed: " + jobStats.getJobId());           
         }
 
         @Override
-        public void jobFinishedNotification(JobStats jobStats) {
-            System.out.println("++++ job finished: " + jobStats.getJobId());  
-            numJobFinished++;            
+        public void jobFinishedNotification(String id, JobStats jobStats) {
+            System.out.println("id: " + id + " job finished: " + jobStats.getJobId()); 
+            int[] nums = numMap.get(id);
+            nums[JobFinished]++;            
         }
 
         @Override
-        public void jobStartedNotification(String assignedJobId) {
-            System.out.println("++++ job started: " + assignedJobId);   
-            numJobStarted++;
+        public void jobStartedNotification(String id, String assignedJobId) {
+            System.out.println("id: " + id + " job started: " + assignedJobId);   
+            int[] nums = numMap.get(id);
+            nums[JobStarted]++;
         }
 
         @Override
-        public void jobsSubmittedNotification(int numJobsSubmitted) {
-            System.out.println("++++ jobs submitted: " + numJobsSubmitted);
-            this.numJobsSubmitted += numJobsSubmitted;
+        public void jobsSubmittedNotification(String id, int numJobsSubmitted) {
+            System.out.println("id: " + id + " jobs submitted: " + numJobsSubmitted);
+            int[] nums = numMap.get(id);
+            nums[JobsSubmitted] += numJobsSubmitted;
         }
 
         @Override
-        public void launchCompletedNotification(int numJobsSucceeded) {
-            System.out.println("++++ numJobsSucceeded: " + numJobsSucceeded);   
+        public void launchCompletedNotification(String id, int numJobsSucceeded) {
+            System.out.println("id: " + id + " numJobsSucceeded: " + numJobsSucceeded);   
             System.out.println("");
-            assertEquals(this.numJobsToLaunch, numJobsSucceeded);
-            assertEquals(this.numJobsSubmitted, numJobsSucceeded);
-            assertEquals(this.numJobStarted, numJobsSucceeded);
-            assertEquals(this.numJobFinished, numJobsSucceeded);
+            int[] nums = numMap.get(id);
+            assertEquals(nums[JobsToLaunch], numJobsSucceeded);
+            assertEquals(nums[JobsSubmitted], numJobsSucceeded);
+            assertEquals(nums[JobStarted], numJobsSucceeded);
+            assertEquals(nums[JobFinished], numJobsSucceeded);
         }
 
         @Override
-        public void outputCompletedNotification(OutputStats outputStats) {
-            System.out.println("++++ output done: " + outputStats.getLocation());
+        public void outputCompletedNotification(String id, OutputStats outputStats) {
+            System.out.println("id: " + id + " output done: " + outputStats.getLocation());
         }
 
         @Override
-        public void progressUpdatedNotification(int progress) {
-            System.out.println("++++ progress: " + progress + "%");           
+        public void progressUpdatedNotification(String id, int progress) {
+            System.out.println("id: " + id + " progress: " + progress + "%");           
         }
         
     }
