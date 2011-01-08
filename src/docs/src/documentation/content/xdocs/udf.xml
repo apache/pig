@@ -744,7 +744,7 @@ pig -cp sds.jar -Dudf.import.list=com.yahoo.yst.sds.ULT myscript.pig
 <section>
 <title> Load/Store Functions</title>
 
-<p>The load/store user-defined functions control how data goes into Pig and comes out of Pig. Often, the same function handles both input and output but that does not have to be the case. </p>
+<p>The load/store user defined functions control how data goes into Pig and comes out of Pig. Often, the same function handles both input and output but that does not have to be the case. </p>
 <p>
 The Pig load/store API is aligned with Hadoop's InputFormat and OutputFormat classes.
 This enables you to create new LoadFunc and StoreFunc implementations based on existing Hadoop InputFormat and OutputFormat classes with minimal code. The complexity of reading the data and creating a record lies in the InputFormat while the complexity of writing the data lies in the OutputFormat. This enables Pig to easily read/write data in new storage formats as and when an Hadoop InputFormat and OutputFormat is available for them. </p>
@@ -1452,18 +1452,6 @@ If you don't find the UDF you need, take the time to write and contribute the fu
 This will generate <code>piggybank.jar</code> in the same directory. </li>
 </ul>
 <p></p>
-
-<p>Make sure your classpath includes the hadoop jars as well. This worked for me using the Cloudera CDH2 / Hadoop AMIs: </p>
-
-<source>
-pig_version=0.4.99.0+10   ; pig_dir=/usr/lib/pig ;
-hadoop_version=0.20.1+152 ; hadoop_dir=/usr/lib/hadoop ;
-export CLASSPATH=$CLASSPATH:${hadoop_dir}/hadoop-${hadoop_version}-core.jar: 
-    ${hadoop_dir}/hadoop-${hadoop_version}-tools.jar:  
-    ${hadoop_dir}/hadoop-${hadoop_version}-ant.jar:
-    ${hadoop_dir}/lib/commons-logging-1.0.4.jar:
-    ${pig_dir}/pig-${pig_version}-core.jar
-</source>
 
 <p>To obtain <code>javadoc</code> description of the functions run <code>ant javadoc</code> from directory <code>trunk/contrib/piggybank/java</code>. The documentation is generate in directory <code>trunk/contrib/piggybank/java/build/javadoc</code>.</p>
 

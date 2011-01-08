@@ -55,7 +55,7 @@
 	    <ul>
 	    <li>The Pig script file, pig, is located in the bin directory (/pig-n.n.n/bin/pig). 
 	    The Pig environment variables are described in the Pig script file.</li>
-	    <li>The Pig properties file, pig.properties, is located in the /pig-n.n.n/conf directory. 
+	    <li>The Pig properties file, pig.properties, is located in the conf directory (/pig-n.n.n/conf/pig.properties). 
 	    You can specify an alternate location using the PIG_CONF_DIR environment variable.</li>
 	</ul>	
 	</li>
@@ -463,7 +463,7 @@ However, in a production environment you always want to use the STORE operator t
 <section>
 <title>Pig Properties</title>
    <p>
-The Pig "-propertyfile" option enables you to pass a set of Pig or Hadoop properties to a Pig job. If the value is present in both the property file passed from the command line as well as in default property file bundled into pig.jar, the properties passed from command line take precedence. This property, as well as all other properties defined in Pig, are available to your UDFs via UDFContext.getClientSystemProps()API call (see the <a href="udf.html">Pig UDF Manual</a>.)  </p>
+The Pig "-propertyfile" option enables you to pass a set of Pig or Hadoop properties to a Pig job. If the value is present in both the property file passed from the command line as well as in default property file bundled into pig.jar, the properties passed from command line take precedence. This property, as well as all other properties defined in Pig, are available to your UDFs via UDFContext.getClientSystemProps()API call (see <a href="udf.html">User Defined Functions</a>.)  </p>
 
 <p>You can retrieve a list of all properties using the <a href="cmds.html#help">help properties</a> command.</p>
 <p>You can set properties using the <a href="cmds.html#set">set</a> command.</p>
@@ -589,7 +589,7 @@ $ hadoop fs -cat 'script1-hadoop-results/*' | less
 <p> tutorial.jar </p>
 </td>
 <td>
-<p> User-defined functions (UDFs) and Java classes </p>
+<p> User defined functions (UDFs) and Java classes </p>
 </td>
 </tr>
 <tr>
@@ -643,7 +643,7 @@ $ hadoop fs -cat 'script1-hadoop-results/*' | less
 </table>
 
 
-<p>The user-defined functions (UDFs) are described here. </p>
+<p>The user defined functions (UDFs) are described here. </p>
 
 <table>
 <tr>
@@ -840,7 +840,7 @@ STORE ordered_uniq_frequency INTO '/tmp/tutorial-results' USING PigStorage();
 <p>The Temporal Query Phrase Popularity script (script2-local.pig or script2-hadoop.pig) processes a search query log file from the Excite search engine and compares the occurrence of frequency of search phrases across two time periods separated by twelve hours. </p>
 <p>The script is shown here: </p>
 <ul>
-<li><p> Register the tutorial JAR file so that the user-defined functions (UDFs) can be called in the script. </p>
+<li><p> Register the tutorial JAR file so that the user defined functions (UDFs) can be called in the script. </p>
 </li>
 </ul>
 

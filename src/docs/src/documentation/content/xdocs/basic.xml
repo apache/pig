@@ -1404,7 +1404,7 @@ D = FOREACH B GENERATE T.name, [25#5.6], {(1, 5, 18)};
          <p>Any Pig built in function.</p>
       </li>
       <li>
-         <p>Any user-defined function (UDF) written in Java. </p>
+         <p>Any user defined function (UDF) written in Java. </p>
        </li>
         </ul>
         <p></p>
@@ -7296,7 +7296,7 @@ DEFINE Y 'stream.pl' INPUT(stdin USING PigStreaming(',')) OUTPUT (stdout USING P
 X = STREAM A THROUGH Y;
 </source>
    
-   <p>In this example user-defined serialization/deserialization functions are used with the script.</p>
+   <p>In this example user defined serialization/deserialization functions are used with the script.</p>
 <source>
 DEFINE Y 'stream.pl' INPUT(stdin USING MySerializer) OUTPUT (stdout USING MyDeserializer);
 

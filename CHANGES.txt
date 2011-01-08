@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-1728: turing complete docs (chandec via olgan)
+
 PIG-1675: allow PigServer to register pig script from InputStream (zjffdu via dvryaboy)
 
 PIG-1479: Embed Pig in scripting languages (rding)
