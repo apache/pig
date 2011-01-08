@@ -21,6 +21,7 @@ package org.apache.pig.test;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -32,6 +33,7 @@ import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.PrintStream;
 import java.io.PrintWriter;
+import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Method;
 import java.net.URL;
 import java.net.URLClassLoader;
@@ -47,6 +49,7 @@ import junit.framework.TestCase;
 
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
+import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
@@ -614,6 +617,51 @@ public class TestPigServer extends TestCase {
         // using both param value and param file, param value should override param file
         pig=new PigServer(ExecType.LOCAL);
         pig.registerScript(scriptFile.getAbsolutePath(),params,paramFile);
+        iter=pig.openIterator("a");
+        index=0;
+        expectedTuples=Util.readFile2TupleList("test/org/apache/pig/test/data/passwd", ":");
+        while(iter.hasNext()){
+            Tuple tuple=iter.next();
+            assertEquals(tuple.get(0).toString(), expectedTuples.get(index).get(0).toString());
+            index++;
+        }
+    }
+    
+    // build the pig script from in-memory, and wrap it as ByteArrayInputStream
+    @Test
+    public void testRegisterScriptFromStream() throws Exception{
+        // using params map
+        PigServer pig=new PigServer(ExecType.LOCAL);
+        Map<String,String> params=new HashMap<String, String>();
+        params.put("input", "test/org/apache/pig/test/data/passwd");
+        String script="a = load '$input' using PigStorage(':');";
+        pig.registerScript(new ByteArrayInputStream(script.getBytes("UTF-8")),params);
+        Iterator<Tuple> iter=pig.openIterator("a");
+        int index=0;
+        List<Tuple> expectedTuples=Util.readFile2TupleList("test/org/apache/pig/test/data/passwd", ":");
+        while(iter.hasNext()){
+            Tuple tuple=iter.next();
+            assertEquals(tuple.get(0).toString(), expectedTuples.get(index).get(0).toString());
+            index++;
+        }
+        
+        // using param file
+        pig=new PigServer(ExecType.LOCAL);
+        List<String> paramFile=new ArrayList<String>();
+        paramFile.add(Util.createFile(new String[]{"input=test/org/apache/pig/test/data/passwd2"}).getAbsolutePath());
+        pig.registerScript(new ByteArrayInputStream(script.getBytes("UTF-8")),paramFile);
+        iter=pig.openIterator("a");
+        index=0;
+        expectedTuples=Util.readFile2TupleList("test/org/apache/pig/test/data/passwd2", ":");
+        while(iter.hasNext()){
+            Tuple tuple=iter.next();
+            assertEquals(tuple.get(0).toString(), expectedTuples.get(index).get(0).toString());
+            index++;
+        }
+        
+        // using both param value and param file, param value should override param file
+        pig=new PigServer(ExecType.LOCAL);
+        pig.registerScript(new ByteArrayInputStream(script.getBytes("UTF-8")),params,paramFile);
         iter=pig.openIterator("a");
         index=0;
         expectedTuples=Util.readFile2TupleList("test/org/apache/pig/test/data/passwd", ":");
