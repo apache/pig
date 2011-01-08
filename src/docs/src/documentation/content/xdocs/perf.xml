@@ -601,7 +601,7 @@ B = foreach A generate CONCAT(in#k1, in#k2);
 <section>
 <title>Make Your UDFs Algebraic</title>
 
-<p>Queries that can take advantage of the combiner generally ran much faster (sometimes several times faster) than the versions that don't. The latest code significantly improves combiner usage; however, you need to make sure you do your part. If you have a UDF that works on grouped data and is, by nature, algebraic (meaning their computation can be decomposed into multiple steps) make sure you implement it as such. For details on how to write algebraic UDFs, see the Pig UDF Manual and <a href="udf.html#Aggregate+Functions">Aggregate Functions</a>.</p>
+<p>Queries that can take advantage of the combiner generally ran much faster (sometimes several times faster) than the versions that don't. The latest code significantly improves combiner usage; however, you need to make sure you do your part. If you have a UDF that works on grouped data and is, by nature, algebraic (meaning their computation can be decomposed into multiple steps) make sure you implement it as such. For details on how to write algebraic UDFs, see <a href="udf.html#Aggregate+Functions">Aggregate Functions</a>.</p>
 
 <source>
 A = load 'data' as (x, y, z)
@@ -616,7 +616,7 @@ C = foreach B generate group, MyUDF(A);
 <section>
 <title>Implement the Aggregator Interface</title>
 <p>
-If your UDF can't be made Algebraic but is able to deal with getting input in chunks rather than all at once, consider implementing the Aggregator interface to reduce the amount of memory used by your script.If your function <em>is</em> Algebraic and can be used on conjunction with Accumulator functions, you will need to implement the Accumulator interface as well as the Algebraic interface. For more information, see the Pig UDF Manual and <a href="udf.html#Accumulator+Interface">Accumulator Interface</a>.
+If your UDF can't be made Algebraic but is able to deal with getting input in chunks rather than all at once, consider implementing the Aggregator interface to reduce the amount of memory used by your script.If your function <em>is</em> Algebraic and can be used on conjunction with Accumulator functions, you will need to implement the Accumulator interface as well as the Algebraic interface. For more information, see <a href="udf.html#Accumulator+Interface">Accumulator Interface</a>.
 </p>
 </section>
 

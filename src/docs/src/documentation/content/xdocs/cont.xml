@@ -12,8 +12,7 @@
   Unless required by applicable law or agreed to in writing, software
   distributed under the License is distributed on an "AS IS" BASIS,
   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-  See the License for the specific language governing permissions and
-  limitations under the License.
+  See the License for the specific language governing permissions and limitations under the License.
 -->
 <!DOCTYPE document PUBLIC "-//APACHE//DTD Documentation V2.0//EN" "http://forrest.apache.org/dtd/document-v20.dtd">
 <document>
@@ -21,6 +20,666 @@
     <title>Control Structures</title>
   </header>
   <body>
+  
+ <!-- ++++++++++++++++++++++++++++++++++ -->    
+   <section>
+   <title>Control Flow</title>
+   
+   <p> To enable control flow, you can embed Pig Latin scripts in a host scripting language via a JDBC-like compile, bind, run model. The default scripting language is Jython which is shipped with Pig and available by default. </p>
+   
+   <section>
+   <title>Invocation Basics</title>
+<p>Embedded Pig Latin is supported in batch mode only, not interactive mode. When Pig is invoked with a script it will look for a #! line at the beginning of the file. If the basename portion of the path matches jython or python it will use the reference embedding implementation. </p>
+
+<p>You can also explicitly request that embedded Pig Latin be used by adding the <code>--embedded</code> option to the Pig command line. If this option is passed as an argument, that argument will refer to the language the Pig Latin is embedded in. If no argument is specified, it is taken to refer to the reference implementation.</p>
+
+<source>
+$ pig myembedded.py
+OR
+$ java -cp $lt;jython jars&gt;:$lt;pig jars$gt; [--embedded jython] /tmp/myembedded.py
+</source>
+
+<p>You invoke Pig Latin in the host scripting language through an embedded <a href="#Pig+Object">Pig object</a>. The first step in this process is to compile your script. Compile is a static function on the Pig object and in its simplest form takes a fragment of Pig Latin that defines the pipeline as its input:</p>  
+
+<source>
+# COMPILE: complie method returns a Pig object that represents the pipeline
+P = Pig.compile("""A = load '$in’; store A into '$out’;""")
+</source>
+
+<p>Compile returns an instance of Pig object. This object can have certain values undefined. For example, you may want to define a pipeline without yet specifying the location of the input to the pipeline. The parameter will be indicated by a dollar sign followed by a sequence of alpha-numeric or underscore characters. Values for these parameters must be provided later at the time bind() is called on the Pig object. To call run() on a Pig object without all parameters being bound is an error. </p>
+<p></p>
+<p>Parameters need to be resolved during the <strong>bind </strong>call.</p>
+
+<source>
+input = "original”
+output = "output”
+
+# BIND: bind method binds the variables with the parameters in the pipeline and returns a BoundScript object
+Q = P.bind({'in':input, 'out':output}) 
+</source>
+
+<p>Please note that all parameters must be resolved during bind. Having unbound parameters while running your script is an error. Also note that even if your script is fully defined during compile, bind without parameters still must be called.</p>
+
+<p>Bind call returns an instance of <a href="#BoundScript+Object">BoundScript object</a> that can be used to execute the pipeline. The simplest way to execute the pipeline is to call runSingle function. (However, as mentioned later, this works only if  a single set of variables is bound to the parameters. Otherwise, if multiple set of variables are bound, an exception will be thrown if runSingle is called.)</p>
+
+<source>
+
+result = Q.runSingle()
+</source>
+
+
+<p>The function returns a <a href="#PigStats+Object">PigStats object</a> that tells you whether the run succeeded or failed. In case of success, additional run statistics are provided.</p>
+
+<p>Here is a complete example:</p>
+
+<p><strong>embedded.py</strong></p>
+<source>
+
+#! /usr/bin/python
+
+# explicitly import Pig class from org.apache.pig.scripting import Pig
+
+# COMPILE: compile method returns a Pig object that represents the pipeline
+P = Pig.compile("""A = load '$in’; store A into '$out’;""")
+
+input = "original”
+output = "output”
+
+# BIND: bind method binds the variables with the parameters in the pipeline and returns a BoundScript object
+Q = P.bind({'in':input, 'out':output}) 
+
+# In this case, only one set of variables is bound to the pipeline, runSingle method returns a PigStats object. 
+# If multiple sets of variables are bound to the pipeline, run method instead must be called and it returns 
+# a list of PigStats objects.
+result = Q.runSingle()
+
+# check the result
+if result.isSuccessful():
+    print "Pig job succeeded"
+else:
+    raise "Pig job failed"    
+
+
+OR, SIMPLY DO THIS:
+
+
+#! /usr/bin/python
+
+# explicitly import Pig class from org.apache.pig.scripting import Pig
+
+in = "original”
+out = "output”
+
+# implicitly bind the parameters to the local variables 
+result= Pig.compile("""A = load '$in’; store A into '$out’;""").bind().runSingle() 
+
+if result.isSuccessful():
+    print "Pig job succeeded"
+else:
+    raise "Pig job failed"
+</source>
+</section> 
+
+
+<section>
+<title>Invocation Details</title>
+<p>All three APIs (compile, bind, run) discussed in the previous section have several versions depending on what you are trying to do.</p>
+
+<section>
+<title>Compile</title>
+<p>In its basic form, compile just takes a Pig Latin Fragment that defines the pipeline as described in the previous section. Additionally, the pipeline can be given a name. This name is only used when the embedded script is invoked via the PigRunner Java API (as discussed later in this document).</p>
+
+<source>
+
+ P = Pig.compile(“P1”, """A = load '$in’; store A into '$out’;""")
+</source>
+
+<p>In addition to providing Pig script via a string, you can store it in a file and pass the file to the compile call:</p>
+<source>
+
+P = Pig.compileFromFile("myscript.pig”)
+</source>
+
+<p>You can also name a pipeline stored in the script:</p>
+<source>
+
+P = Pig.compileFromFile(“P2”, "myscript.pig”)
+</source>
+</section>
+
+
+<section>
+<title>Bind</title>
+<p>In its simplest form, bind takes no parameters. In this case, an implicit bind is performed.</p>
+
+<source>
+
+Q = P.bind () 
+</source>
+
+<p>In the case where parameter substitution is needed, a map of parameters (parameter name -> parameter value) must be provided as was illustrated in the example above.</p>
+
+<p>Finally, you might want to run the same pipeline in parallel with a different set of parameters, for instance for multiple dates. In this case, bind function, needs to be passed a list of maps with each element of the list containing parameters for a single invocation. In the example below, the pipeline is run for the US, the UK, and Brazil.</p>
+
+<source>
+P = Pig.compile("""A = load '$in';
+                   B = filter A by user is not null;
+                   ...
+                   store Z into '$out';
+                """)
+
+Q = P.bind([{'in':'us_raw','out':'us_processed'},
+        {'in':'uk_raw','out':'uk_processed'},
+        {'in':'brazil_raw','out':'brazil_processed'}])
+
+results = Q.run() # it blocks until all pipelines are completed
+
+for i in [0, 1, 2]:
+    result = results[i]
+    ... # check result for each pipeline
+
+</source>
+</section>
+
+<section>
+<title>Run</title>
+
+<p>We have already seen that the simplest way to run a script is to call runSingle without any parameters. Additionally, a Java Properties object and or file containing a list of properties can be passed to this call. The properties are passed to Pig and a treated as any other properties passed from command line.</p>
+
+<source>
+
+// In a jython script 
+
+from java.util import Properties
+... ...
+
+props = Properties()
+props.put(key1, val1)  
+props.put(key2, val2) 
+... ... 
+
+Pig.compile(...).bind(...).runSingle(props)
+</source>
+<p>A more general version of run allows to run one or more pipelines concurrently. In this case, a list of PigStats results is returned – one for each pipeline run. The example above shows how to make use of this call.</p>
+<p>As the case with runSingle, a set of Java Properties or a property file can be passed to the call.</p>
+</section>
+
+</section> 
+
+
+<section>
+<title>Embedded Pig and Pig Runner API</title>
+
+<p>Starting with Pig 0.8, some applications such as Oozie workflow invoke Pig using the PigRunner Java class rather than through the command line. For these applications, the PigRunner interface has been expanded to accommodate embedding. PigRunner now can accept a Jython script as input. This script can potentially contain multiple Pig pipelines; therefore, we need a way to return results for all of them.</p>
+
+<p>To do this and to preserve backward compatibility PigStats and related objects were expanded as shown below:</p>
+<ul>
+<li>getAllStats() and List getAllErrorMessages() were added to the PigStats class. The map returned from getAllStats is keyed on the name of the pipeline provided in the compile call. If the name was not compiled an internally generated id would be used. </li>
+<li>PigStats is now an abstract class with a new abstract method isEmbedded().   </li>
+<li>Two new classes that extend PigStats were created: SimplePigStats and EmbeddedPigStats. PigStats as it is today will become SimplePigStats. SimplePigStats.getAllStats() will return null. EmbeddedPigStats will return null for methods not listed in the proposal below. </li>
+<li>The PigProgressNotificationListener interface was modified to add script id to all its methods.  </li>
+</ul>
+
+<p>For more details of the changes, see <a href="#Java+Objects">Java Objects</a>.</p>
+
+</section> 
+
+
+<section>
+<title>Embedded Pig and Scripting UDFs</title>
+
+<p>Pig 0.8 introduced support for user defined functions (UDFs) written in Python. An example of adding those UDFs in Pig Latin is:</p>
+<p><code>Register 'test.py' using jython as myfuncs;</code></p>
+
+<p>An embedded Pig script (written in a scripting language such as Jython) contains definitions of Pig pipelines as well as control flow code to run these pipelines. There are two ways you can support UDFs (written in the same scripting language) in an embedded Pig script: </p>
+
+<ul>
+<li>Register the UDFs as part of pipeline definition -  In this case, the UDFs are only available to the pipeline. </li>
+<li>Use the registerUDF method on Pig object - In this case, the UDFs are available for all the pipelines defined in the script file. </li>
+</ul>
+<p></p>
+<p>Example:</p>
+<p><code>Pig.registerUDF('test.py', 'myfuncs')</code></p>
+</section> 
+
+
+
+<section>
+<title>Usage Examples</title>
+
+<section>
+<title>Pig Script Files in Scripting Language</title>
+<p>Rather than specifying individual Pig Latin statements, you can import an entire Pig script. </p>
+
+<source>
+#! /usr/bin/python
+
+from org.apache.pig.scripting import Pig
+
+P = Pig.compileFromFile("""myscript.pig""")
+
+input = "original”
+output = "output”
+
+result = p.bind({'in':input, 'out':output}).runSingle()
+if result.isSuccessful():
+    print "Pig job succeeded"
+else:
+    raise "Pig job failed" 
+</source>
+</section> 
+
+<section>
+<title>Convergence</title>
+<p>There is a whole class of problems that involve iterating over a pipeline an indeterminate number of times. Examples include running until values or error converge, graph traversal algorithms, etc. while and for loops in the host language along with the ability to test the output of a pipeline and either run it again or move to the next step will enable users to satisfy this use case. </p>
+
+<source>
+P = Pig.compile("""A = load '$in’;
+                   C = group A by user;
+                   D = foreach C generate group, myUDF(A);
+                   store D into '$out’;
+                   F = group D all;
+                   G = foreach F generate MAX(D);
+                   store G into 'tmp’;
+                """)
+error = 100.0
+input = "original”
+output = "output-0”
+final = "final-output”
+
+for i in range(1, 100):
+    p.bind({'in':input, 'out':output}) # attaches $in, $out in Pig Latin to input, output Python variables
+    results = p.runSingle()
+    
+    if results.isSuccessful() = "FAILED":
+        raise "Pig job failed"
+    iter = results.getResults("G")
+    if iter.next() > 1:
+        input = output
+        output = "output-" + i.to_s
+    else:
+        H = Pig.fs("mv " + output + " " + final)
+        break
+</source>
+</section>
+
+<section>
+<title>Automated Pig Latin Generation</title>
+<p>A number of user frameworks do automated generation of Pig Latin, such as setting the proper date for data loads.</p>
+
+<source>
+today = sys.argv[1]
+P = Pig.compile("""A = load 'fact' using HowlLoader();
+                   B = filter A by datestamp = '$date';
+                   ...
+                   store Z into 'aggregated' using HowlStorage('datestamp = $date');
+                """)
+P.bind({'date':today}).runSingle()
+</source>
+</section>
+
+
+<section>
+<title>Conditional Compilation</title>
+<p>A sub-use case of automated generation is conditional code generation. Different processing might be required based on whether this is weekday or a weekend.</p>
+
+<source>
+str = "A = load 'input';" 
+if today.isWeekday():
+    str = str + "B = filter A by weekday_filter(*);" 
+else:
+    str = str + "B = filter A by weekend_filter(*);" 
+str = str + "C = group B by user;" 
+results = Pig.compile(str).bind().runSingle()
+</source>
+</section>
+
+<section>
+<title>Parallel Execution</title>
+<p>Another sub-use case of automated generation is parallel execution of identical pipelines. You may have a single pipeline that you would like to run multiple data sets through in parallel. In the example below, the pipeline is run for the US, the UK, and Brazil.</p>
+
+<source>
+
+P = Pig.compile("""A = load '$in';
+                   B = filter A by user is not null;
+                   ...
+                   store Z into '$out';
+                """)
+
+Q = P.bind([{'in':'us_raw','out':'us_processed'},
+        {'in':'uk_raw','out':'uk_processed'},
+        {'in':'brazil_raw','out':'brazil_processed'}])
+
+results = Q.run() # it blocks until all pipelines are completed
+
+for i in [0, 1, 2]:
+    result = results[i]
+    ... # check result for each pipeline
+</source>
+</section>
+
+</section> 
+   
+ <section>
+<title>Java Objects</title>
+ <section>
+<title>Pig Object</title>
+<p><strong>Pig.java</strong></p>
+<source>
+public class Pig {    
+    /**
+     * Run a filesystem command.  Any output from this command is written to
+     * stdout or stderr as appropriate.
+     * @param cmd Filesystem command to run along with its arguments as one
+     * string.
+     * @throws IOException
+     */
+    public static void fs(String cmd) throws IOException {...}
+    
+    /**
+     * Register a jar for use in Pig.  Once this is done this jar will be
+     * registered for ALL SUBSEQUENT Pig pipelines in this script.  
+     * If you wish to register it for only a single Pig pipeline, use 
+     * register within that definition.
+     * @param jarfile Path of jar to include.
+     * @throws IOException if the indicated jarfile cannot be found.
+     */
+    public static void registerJar(String jarfile) throws IOException {...}
+    
+    /**
+     * Register script UDFs for use in Pig. Once this is done all UDFs
+     * defined in the file will be available for ALL SUBSEQUENT 
+     * Pig pipelines in this script. If you wish to register UDFS for 
+     * only a single Pig pipeline, use register within that definition.
+     * @param udffile Path of the script UDF file
+     * @param namespace namespace of the UDFs
+     * @throws IOException
+     */
+    public static void registerUDF(String udffile, String namespace) throws IOException {...}
+    
+    /**
+     * Define an alias for a UDF or a streaming command.  This definition
+     * will then be present for ALL SUBSEQUENT Pig pipelines defined in this 
+     * script.  If you wish to define it for only a single Pig pipeline, use
+     * define within that definition.
+     * @param alias name of the defined alias
+     * @param definition string this alias is defined as
+     */
+    public static void define(String alias, String definition) throws IOException {...}
+
+    /**
+     * Set a variable for use in Pig Latin.  This set
+     * will then be present for ALL SUBSEQUENT Pig pipelines defined in this 
+     * script.  If you wish to set it for only a single Pig pipeline, use
+     * set within that definition.
+     * @param var variable to set
+     * @param value to set it to
+     */
+    public static void set(String var, String value) throws IOException {...}
+            
+    /**
+     * Define a Pig pipeline.  
+     * @param pl Pig Latin definition of the pipeline.
+     * @return Pig object representing this pipeline.
+     * @throws IOException if the Pig Latin does not compile.
+     */
+    public static Pig compile(String pl) throws IOException {...}
+
+    /**
+     * Define a named portion of a Pig pipeline.  This allows it
+     * to be imported into another pipeline.
+     * @param name Name that will be used to define this pipeline.
+     * The namespace is global.
+     * @param pl Pig Latin definition of the pipeline.
+     * @return Pig object representing this pipeline.
+     * @throws IOException if the Pig Latin does not compile.
+     */
+    public static Pig compile(String name, String pl) throws IOException {...}
+
+    /**
+     * Define a Pig pipeline based on Pig Latin in a separate file.
+     * @param filename File to read Pig Latin from.  This must be a purely 
+     * Pig Latin file.  It cannot contain host language constructs in it.
+     * @return Pig object representing this pipeline.
+     * @throws IOException if the Pig Latin does not compile or the file
+     * cannot be found.
+     */
+    public static Pig compileFromFile(String filename) throws IOException {...}
+
+    /**
+     * Define a named Pig pipeline based on Pig Latin in a separate file.
+     * This allows it to be imported into another pipeline.
+     * @param name Name that will be used to define this pipeline.
+     * The namespace is global.
+     * @param filename File to read Pig Latin from.  This must be a purely 
+     * Pig Latin file.  It cannot contain host language constructs in it.
+     * @return Pig object representing this pipeline.
+     * @throws IOException if the Pig Latin does not compile or the file
+     * cannot be found.
+     */
+    public static Pig compileFromFile(String name, String filename) throws IOException {...}
+    
+    /**
+     * Bind this to a set of variables. Values must be provided
+     * for all Pig Latin parameters.
+     * @param vars map of variables to bind.  Keys should be parameters defined 
+     * in the Pig Latin.  Values should be strings that provide values for those
+     * parameters.  They can be either constants or variables from the host
+     * language.  Host language variables must contain strings.
+     * @return a {@link BoundScript} object 
+     * @throws IOException if there is not a key for each
+     * Pig Latin parameter or if they contain unsupported types.
+     */
+    public BoundScript bind(Map&lt;String, String&gt; vars) throws IOException {...}
+        
+    /**
+     * Bind this to multiple sets of variables.  This will 
+     * cause the Pig Latin script to be executed in parallel over these sets of 
+     * variables.
+     * @param vars list of maps of variables to bind.  Keys should be parameters defined 
+     * in the Pig Latin.  Values should be strings that provide values for those
+     * variables.  They can be either constants or variables from the host
+     * language.  Host language variables must be strings.
+     * @return a {@link BoundScript} object 
+     * @throws IOException  if there is not a key for each
+     * Pig Latin parameter or if they contain unsupported types.
+     */
+    public BoundScript bind(List&lt;Map&lt;String, String&gt;&gt; vars) throws IOException {...}
+
+    /**
+     * Bind a Pig object to variables in the host language (optional
+     * operation).  This does an implicit mapping of variables in the host
+     * language to parameters in Pig Latin.  For example, if the user
+     * provides a Pig Latin statement
+     * p = Pig.compile("A = load '$input';");
+     * and then calls this function it will look for a variable called
+     * input in the host language.  Scoping rules of the host
+     * language will be followed in selecting which variable to bind.  The 
+     * variable bound must contain a string value.  This method is optional
+     * because not all host languages may support searching for in scope
+     * variables.
+     * @throws IOException if host language variables are not found to resolve all
+     * Pig Latin parameters or if they contain unsupported types.
+     */
+    public BoundScript bind() throws IOException {...}
+
+}
+</source>
+</section>
+
+<section>
+<title>BoundScript Object</title>
+<p><strong>BoundScript.java</strong></p>
+<source>
+public class BoundScript {
+    
+    /**
+     * Run a pipeline on Hadoop.  
+     * If there are no stores in this pipeline then nothing will be run. 
+     * @return {@link PigStats}, null if there is no bound query to run.
+     * @throws IOException
+     */
+    public PigStats runSingle() throws IOException {...}
+     
+    /**
+     * Run a pipeline on Hadoop.  
+     * If there are no stores in this pipeline then nothing will be run.  
+     * @param prop Map of properties that Pig should set when running the script.
+     * This is intended for use with scripting languages that do not support
+     * the Properties object.
+     * @return {@link PigStats}, null if there is no bound query to run.
+     * @throws IOException
+     */
+    public PigStats runSingle(Properties prop) throws IOException {...}
+    
+    /**
+     * Run a pipeline on Hadoop.  
+     * If there are no stores in this pipeline then nothing will be run.  
+     * @param propfile File with properties that Pig should set when running the script.
+     * @return {@link PigStats}, null if there is no bound query to run.
+     * @throws IOException
+     */
+    public PigStats runSingle(String propfile) throws IOException {...}
+
+    /**
+     * Run multiple instances of bound pipeline on Hadoop in parallel.  
+     * If there are no stores in this pipeline then nothing will be run.  
+     * Bind is called first with the list of maps of variables to bind. 
+     * @return a list of {@link PigStats}, one for each map of variables passed
+     * to bind.
+     * @throws IOException
+     */    
+    public List&lt;PigStats&gt; run() throws IOException {...}
+    
+    /**
+     * Run multiple instances of bound pipeline on Hadoop in parallel.
+     * @param prop Map of properties that Pig should set when running the script.
+     * This is intended for use with scripting languages that do not support
+     * the Properties object.
+     * @return a list of {@link PigStats}, one for each map of variables passed
+     * to bind.
+     * @throws IOException
+     */
+    public List&lt;PigStats&gt;  run(Properties prop) throws IOException {...}
+    
+    /**
+     * Run multiple instances of bound pipeline on Hadoop in parallel.
+     * @param propfile File with properties that Pig should set when running the script.
+     * @return a list of PigResults, one for each map of variables passed
+     * to bind.
+     * @throws IOException
+     */
+    public List&lt;PigStats&gt;  run(String propfile) throws IOException {...}
+
+    /**
+     * Run illustrate for this pipeline.  Results will be printed to stdout.  
+     * @throws IOException if illustrate fails.
+     */
+    public void illustrate() throws IOException {...}
+
+    /**
+     * Explain this pipeline.  Results will be printed to stdout.
+     * @throws IOException if explain fails.
+     */
+    public void explain() throws IOException {...}
+
+    /**
+     * Describe the schema of an alias in this pipeline.
+     * Results will be printed to stdout.
+     * @param alias to be described
+     * @throws IOException if describe fails.
+     */
+    public void describe(String alias) throws IOException {...}
+
+}
+</source>
+</section>  
+
+<section>
+<title>PigStats Object</title>
+<p><strong>PigStats.java</strong></p>
+<source>
+public abstract class PigStats {
+    public abstract boolean isEmbedded();
+    
+    /**
+     * An embedded script contains one or more pipelines. 
+     * For a named pipeline in the script, the key in the returning map is the name of the pipeline. 
+     * Otherwise, the key in the returning map is the script id of the pipeline.
+     */
+    public abstract Map&lt;String, List&lt;PigStats&gt;&gt; getAllStats();
+    
+    public abstract List&lt;String&gt; getAllErrorMessages();      
+}
+</source>
+</section>  
+
+<section>
+<title>PigProgressNotificationListener Object</title>
+<p><strong>PigProgressNotificationListener.java</strong></p>
+<source>
+
+/** 
+     * Invoked just before launching MR jobs spawned by the script.
+     * @param scriptId id of the script
+     * @param numJobsToLaunch the total number of MR jobs spawned by the script
+     */
+    public void launchStartedNotification(String scriptId, int numJobsToLaunch);
+    
+    /**
+     * Invoked just before submitting a batch of MR jobs.
+     * @param scriptId id of the script
+     * @param numJobsSubmitted the number of MR jobs in the batch
+     */
+    public void jobsSubmittedNotification(String scriptId, int numJobsSubmitted);
+    
+    /**
+     * Invoked after a MR job is started.
+     * @param scriptId id of the script 
+     * @param assignedJobId the MR job id
+     */
+    public void jobStartedNotification(String scriptId, String assignedJobId);
+    
+    /**
+     * Invoked just after a MR job is completed successfully. 
+     * @param scriptId id of the script 
+     * @param jobStats the {@link JobStats} object associated with the MR job
+     */
+    public void jobFinishedNotification(String scriptId, JobStats jobStats);
+    
+    /**
+     * Invoked when a MR job fails.
+     * @param scriptId id of the script 
+     * @param jobStats the {@link JobStats} object associated with the MR job
+     */
+    public void jobFailedNotification(String scriptId, JobStats jobStats);
+    
+    /**
+     * Invoked just after an output is successfully written.
+     * @param scriptId id of the script
+     * @param outputStats the {@link OutputStats} object associated with the output
+     */
+    public void outputCompletedNotification(String scriptId, OutputStats outputStats);
+    
+    /**
+     * Invoked to update the execution progress. 
+     * @param scriptId id of the script
+     * @param progress the percentage of the execution progress
+     */
+    public void progressUpdatedNotification(String scriptId, int progress);
+    
+    /**
+     * Invoked just after all MR jobs spawned by the script are completed.
+     * @param scriptId id of the script
+     * @param numJobsSucceeded the total number of MR jobs succeeded
+     */
+    public void launchCompletedNotification(String scriptId, int numJobsSucceeded);
+}
+</source>
+</section>  
+</section>    
+</section> 
+  
  <!-- ++++++++++++++++++++++++++++++++++ -->    
    <section>
    <title>Parameter Substitution</title>
