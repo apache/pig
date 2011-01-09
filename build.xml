@@ -30,9 +30,6 @@
 	<property name="pig.pom" value="${basedir}/ivy/pig.pom" />
 	<property name="version" value="0.9.0-SNAPSHOT" />
     <property name="final.name" value="${name}-${version}" />
-    <condition property="isWindows">
-        <os family="windows"/>
-    </condition>
 
     <!-- source properties -->
     <property name="lib.dir" value="${basedir}/lib/" />
@@ -685,8 +682,6 @@
                     <exclude name="**/TestPigFile.java" />
                     <exclude name="**/TestStoreOld.java" />
                     -->
-                    <!-- Excluded under Windows.-->
-                    <exclude name="**/TestHBaseStorage.java" if="isWindows" />
                     <!-- Excluced because we don't want to run them -->
                     <exclude name="**/PigExecTestCase.java" />
                     <exclude name="**/TypeCheckingTestUtil.java" />
