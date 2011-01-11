@@ -180,16 +180,6 @@ static int run(String args[], PigProgressNotificationListener listener) {
             properties.setProperty("stop.on.failure", ""+false);
         }
         
-        if( "true".equals( properties.getProperty( "mapred.output.compress" ) ) ) {
-            properties.setProperty( "output.compression.enabled",  "true" );
-            String codec = properties.getProperty( "mapred.output.compression.codec" );
-            if( codec == null ) {
-                throw new RuntimeException( "'mapred.output.compress' is set but no value is specified for 'mapred.output.compression.codec'." );
-            } else {
-                properties.setProperty( "output.compression.codec", codec );
-            }
-        }
-        
         // set up client side system properties in UDF context
         UDFContext.getUDFContext().setClientSystemProps();
 
