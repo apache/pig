@@ -2994,7 +2994,11 @@ public class MRCompiler extends PhyPlanVisitor {
                         .getSuccessors(op);
                 if (succs==null) break;
                 op = succs.get(0);
-                if (op instanceof POForEach) break;
+                if (op instanceof POLimit) {
+                    // find operator after POLimit
+                    op = sortMROp.reducePlan.getSuccessors(op).get(0);
+                    break;
+                }
             }
             
             while (true) {
