@@ -237,6 +237,16 @@ public class PigServer {
             pigContext.connect();
         }
 
+        if( "true".equals( pigContext.getProperties().getProperty( "mapred.output.compress" ) ) ) {
+            pigContext.getProperties().setProperty( "output.compression.enabled",  "true" );
+            String codec = pigContext.getProperties().getProperty( "mapred.output.compression.codec" );
+            if( codec == null ) {
+                throw new RuntimeException( "'mapred.output.compress' is set but no value is specified for 'mapred.output.compression.codec'." );
+            } else {
+                pigContext.getProperties().setProperty( "output.compression.codec", codec );
+            }
+        }
+
         addJarsFromProperties();
     }
 
