@@ -996,5 +996,30 @@ public class TestEvalPipeline2 extends TestCase {
         assertTrue(t.get(0).equals("one"));
         assertTrue(t.get(1).equals("two"));
     }
-    
+
+    // See PIG-1787
+    @Test
+    public void testOrderByLimitJoin() throws Exception{
+        String[] input1 = {
+                "1\t1",
+                "1\t2"
+        };
+
+        Util.createInputFile(cluster, "table_testOrderByLimitJoin", input1);
+
+        pigServer.registerQuery("a = load 'table_testOrderByLimitJoin' as (a0, a1);");
+        pigServer.registerQuery("b = group a by a0;");
+        pigServer.registerQuery("c = foreach b generate group as c0, COUNT(a) as c1;");
+        pigServer.registerQuery("d = order c by c1 parallel 2;");
+        pigServer.registerQuery("e = limit d 10;");
+        pigServer.registerQuery("f = join e by c0, a by a0;");
+
+        Iterator<Tuple> iter = pigServer.openIterator("f");
+
+        Tuple t = iter.next();
+        assertTrue(t.toString().equals("(1,2,1,1)"));
+        t = iter.next();
+        assertTrue(t.toString().equals("(1,2,1,2)"));
+        assertFalse(iter.hasNext());
+    }
 }
