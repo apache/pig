@@ -211,6 +211,8 @@ PIG-1309: Map-side Cogroup (ashutoshc)
 
 BUG FIXES
 
+PIG-1785: New logical plan: uid conflict in flattened fields (daijy)
+
 PIG-1787: Error in logical plan generated (daijy)
 
 PIG-1791: System property mapred.output.compress, but pig-cluster-hadoop-site.xml doesn't (daijy)

@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.pig.FuncSpec;
+import org.apache.pig.data.DataType;
 import org.apache.pig.impl.builtin.IdentityColumn;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.util.Pair;
@@ -35,6 +36,8 @@ import org.apache.pig.newplan.logical.expression.LogicalExpression;
 import org.apache.pig.newplan.logical.expression.LogicalExpressionPlan;
 import org.apache.pig.newplan.logical.expression.ProjectExpression;
 import org.apache.pig.newplan.logical.expression.UserFuncExpression;
+import org.apache.pig.newplan.logical.optimizer.SchemaResetter;
+import org.apache.pig.newplan.logical.optimizer.UidResetter;
 import org.apache.pig.newplan.logical.relational.LOCross;
 import org.apache.pig.newplan.logical.relational.LOForEach;
 import org.apache.pig.newplan.logical.relational.LOGenerate;
@@ -44,6 +47,7 @@ import org.apache.pig.newplan.logical.relational.LOSort;
 import org.apache.pig.newplan.logical.relational.LogicalPlan;
 import org.apache.pig.newplan.logical.relational.LogicalRelationalOperator;
 import org.apache.pig.newplan.logical.relational.LogicalSchema;
+import org.apache.pig.newplan.logical.relational.LogicalSchema.LogicalFieldSchema;
 import org.apache.pig.newplan.logical.rules.PushDownForEachFlatten.PushDownForEachFlattenTransformer;
 import org.apache.pig.newplan.optimizer.Rule;
 import org.apache.pig.newplan.optimizer.Transformer;
@@ -56,6 +60,8 @@ public class DuplicateForEachColumnRewrite extends Rule {
 
     public DuplicateForEachColumnRewrite(String n) {
         super(n, true);
+        // See comments in ImplicitSplitInserter for the reason to skip listener 
+        setSkipListener(true);
     }
 
     @Override
@@ -81,18 +87,48 @@ public class DuplicateForEachColumnRewrite extends Rule {
             LOGenerate gen = (LOGenerate)foreach.getInnerPlan().getSinks().get(0);
             
             List<LogicalExpressionPlan> expPlans = gen.getOutputPlans();
+            boolean[] flattens = gen.getFlattenFlags();
             
             List<Long> uidSeen = new ArrayList<Long>();
             
-            for (LogicalExpressionPlan expPlan : expPlans) {
+            for (int i=0;i<expPlans.size();i++) {
+                LogicalExpressionPlan expPlan = expPlans.get(i);
+                boolean flatten = flattens[i];
                 LogicalExpression exp = (LogicalExpression)expPlan.getSources().get(0);
                 if (exp.getFieldSchema()!=null) {
-                    long uid = exp.getFieldSchema().uid;
-                    if (uidSeen.contains(uid)) {
-                        expPlansToInsertIdentity.add(expPlan);
+                    if (flatten && (exp.getFieldSchema().type == DataType.BAG || exp.getFieldSchema().type == DataType.TUPLE)) {
+                        List<LogicalFieldSchema> innerFieldSchemas = null;
+                        if (exp.getFieldSchema().type == DataType.BAG) {
+                            if (exp.getFieldSchema().schema!=null) {
+                                if (exp.getFieldSchema().schema.isTwoLevelAccessRequired()) {
+                                    //  assert(fieldSchema.schema.size() == 1 && fieldSchema.schema.getField(0).type == DataType.TUPLE)
+                                    innerFieldSchemas = exp.getFieldSchema().schema.getField(0).schema.getFields();
+                                } else {
+                                    innerFieldSchemas = exp.getFieldSchema().schema.getFields();
+                                }
+                            }
+                        }
+                        else { // DataType.TUPLE
+                            if (exp.getFieldSchema().schema!=null)
+                                innerFieldSchemas = exp.getFieldSchema().schema.getFields();
+                        }
+                        if (innerFieldSchemas != null) {
+                            for (LogicalFieldSchema innerFieldSchema : innerFieldSchemas) {
+                                long uid = innerFieldSchema.uid;
+                                if (checkAndAdd(uid, uidSeen)) {
+                                    // Seen before
+                                    expPlansToInsertIdentity.add(expPlan);
+                                    break;
+                                }
+                            }
+                        }
                     }
                     else {
-                        uidSeen.add(uid);
+                        long uid = exp.getFieldSchema().uid;
+                        if (checkAndAdd(uid, uidSeen)) {
+                            // Seen before
+                            expPlansToInsertIdentity.add(expPlan);
+                        }
                     }
                 }
             }
@@ -101,7 +137,14 @@ public class DuplicateForEachColumnRewrite extends Rule {
                 return false;
             
             return true;
-        } 
+        }
+        
+        private boolean checkAndAdd(long uid, List<Long> uidSeen) {
+            if (uidSeen.contains(uid))
+                return true;
+            uidSeen.add(uid);
+            return false;
+        }
         
         @Override
         public OperatorPlan reportChanges() {
@@ -116,6 +159,14 @@ public class DuplicateForEachColumnRewrite extends Rule {
                 expPlan.connect(userFuncExpression, oldRoot);
             }
             expPlansToInsertIdentity.clear();
+
+            // Since we adjust the uid layout, clear all cached uids
+            UidResetter uidResetter = new UidResetter(currentPlan);
+            uidResetter.visit();
+            
+            // Manually regenerate schema since we skip listener
+            SchemaResetter schemaResetter = new SchemaResetter(currentPlan);
+            schemaResetter.visit();
         }
     }
 }

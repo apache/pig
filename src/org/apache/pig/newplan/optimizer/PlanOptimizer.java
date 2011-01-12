@@ -108,8 +108,10 @@ public abstract class PlanOptimizer {
                                 if (transformer.check(m)) {
                                     sawMatch = true;
                                     transformer.transform(m);
-                                    for(PlanTransformListener l: listeners) {
-                                        l.transformed(plan, transformer.reportChanges());
+                                    if (!rule.isSkipListener()) {
+                                        for(PlanTransformListener l: listeners) {
+                                            l.transformed(plan, transformer.reportChanges());
+                                        }
                                     }
                                 }
                             } catch (Exception e) {

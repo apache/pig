@@ -46,6 +46,7 @@ public abstract class Rule {
     protected static final Log log = LogFactory.getLog(Rule.class);
     private transient Set<Operator> matchedNodes = new HashSet<Operator>();
     private boolean mandatory;
+    private boolean skipListener = false;
     
     /**
      * Create this rule by using the default pattern that this rule provided
@@ -88,6 +89,14 @@ public abstract class Rule {
      */
     public OperatorPlan getPattern() {
         return pattern;
+    }
+    
+    protected boolean isSkipListener() {
+        return this.skipListener;
+    }
+    
+    protected void setSkipListener(boolean skip) {
+        this.skipListener = skip;
     }
     
     /**
