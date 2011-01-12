@@ -989,7 +989,7 @@ public class TestEvalPipeline2 extends TestCase {
     
     // See PIG-1766
     @Test
-    public void testForEachSameOriginColumn() throws Exception{
+    public void testForEachSameOriginColumn1() throws Exception{
         String[] input1 = {
                 "1\t2",
                 "1\t3",
@@ -1002,10 +1002,10 @@ public class TestEvalPipeline2 extends TestCase {
                 "2\ttwo",
         };
         
-        Util.createInputFile(cluster, "table_testForEachSameOriginColumn1", input1);
-        Util.createInputFile(cluster, "table_testForEachSameOriginColumn2", input2);
-        pigServer.registerQuery("A = load 'table_testForEachSameOriginColumn1' AS (a0:int, a1:int);");
-        pigServer.registerQuery("B = load 'table_testForEachSameOriginColumn2' AS (b0:int, b1:chararray);");
+        Util.createInputFile(cluster, "table_testForEachSameOriginColumn1_1", input1);
+        Util.createInputFile(cluster, "table_testForEachSameOriginColumn1_2", input2);
+        pigServer.registerQuery("A = load 'table_testForEachSameOriginColumn1_1' AS (a0:int, a1:int);");
+        pigServer.registerQuery("B = load 'table_testForEachSameOriginColumn1_2' AS (b0:int, b1:chararray);");
         pigServer.registerQuery("C = join A by a0, B by b0;");
         pigServer.registerQuery("D = foreach B generate b0 as d0, b1 as d1;");
         pigServer.registerQuery("E = join C by a1, D by d0;");
@@ -1154,6 +1154,48 @@ public class TestEvalPipeline2 extends TestCase {
         assertTrue(t.toString().equals("(1,2,1,1)"));
         t = iter.next();
         assertTrue(t.toString().equals("(1,2,1,2)"));
+        assertFalse(iter.hasNext());
+    }
+    
+    // See PIG-1785
+    @Test
+    public void testForEachSameOriginColumn2() throws Exception{
+        String[] input1 = {
+                "{(1,2),(2,3)}",
+        };
+        
+        Util.createInputFile(cluster, "table_testForEachSameOriginColumn2", input1);
+
+        pigServer.registerQuery("a = load 'table_testForEachSameOriginColumn2' as (a0:bag{t:tuple(i0:int, i1:int)});");
+        pigServer.registerQuery("b = foreach a generate flatten(a0) as (b0, b1), flatten(a0) as (b2, b3);");
+        pigServer.registerQuery("c = filter b by b0>b2;");
+        
+        Iterator<Tuple> iter = pigServer.openIterator("c");
+        
+        Tuple t = iter.next();
+        assertTrue(t.toString().contains("(2,3,1,2)"));
+        assertFalse(iter.hasNext());
+    }
+    
+    // See PIG-1785
+    @Test
+    public void testForEachSameOriginColumn3() throws Exception{
+        String[] input1 = {
+                "1\t1\t2",
+                "1\t2\t3",
+        };
+        
+        Util.createInputFile(cluster, "table_testForEachSameOriginColumn3", input1);
+
+        pigServer.registerQuery("a = load 'table_testForEachSameOriginColumn3' as (a0:int, a1:int, a2:int);");
+        pigServer.registerQuery("b = group a by a0;");
+        pigServer.registerQuery("c = foreach b generate flatten(a.(a1,a2)) as (b0, b1), flatten(a.(a1,a2)) as (b2, b3);");
+        pigServer.registerQuery("d = filter c by b0>b2;");
+        
+        Iterator<Tuple> iter = pigServer.openIterator("d");
+        
+        Tuple t = iter.next();
+        assertTrue(t.toString().contains("(2,3,1,2)"));
         assertFalse(iter.hasNext());
     }
 }
