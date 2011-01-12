@@ -26,6 +26,7 @@ import org.apache.pig.data.DataType;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.util.Pair;
 import org.apache.pig.newplan.Operator;
+import org.apache.pig.newplan.logical.optimizer.SchemaResetter;
 import org.apache.pig.newplan.logical.optimizer.UidResetter;
 import org.apache.pig.newplan.logical.relational.LogicalPlan;
 import org.apache.pig.newplan.OperatorPlan;
@@ -49,6 +50,11 @@ public class ImplicitSplitInserter extends Rule {
 
     public ImplicitSplitInserter(String n) {
         super(n, true);
+        // Skip listener, especially, skip ProjectionPatcher so that we can keep column reference for 
+        // ProjectExpression (Once ProjectionPatcher is invoked, column reference will be gone in favor of uid reference).
+        // There is no need for ProjectionPatcher in this rule since we don't swap columns; however, uid conflict is not solved
+        // at this moment (until after DuplicateForEachColumnRewrite), so keep column reference for now
+        setSkipListener(true);
     }
 
     @Override
@@ -128,8 +134,14 @@ public class ImplicitSplitInserter extends Rule {
           currentPlan.connect(splitOp, splitOutput);
           currentPlan.connect(splitOutput, pos.first, suc, pos.second);
         }
+        
+        // Since we adjust the uid layout, clear all cached uids
         UidResetter uidResetter = new UidResetter(currentPlan);
         uidResetter.visit();
+
+        // Manually regenerate schema since we skip listener
+        SchemaResetter schemaResetter = new SchemaResetter(currentPlan);
+        schemaResetter.visit();
       }
       
       @Override
