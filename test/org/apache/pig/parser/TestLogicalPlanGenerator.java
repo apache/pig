@@ -19,8 +19,11 @@
 package org.apache.pig.parser;
 
 
+import java.io.IOException;
+
 import junit.framework.Assert;
 
+import org.antlr.runtime.RecognitionException;
 import org.junit.Test;
 
 public class TestLogicalPlanGenerator {
@@ -82,5 +85,81 @@ public class TestLogicalPlanGenerator {
                        "A = load 'x' using myudf;" +
                        "store A into 'y';";
         generateLogicalPlan( query );
+    }
+
+    @Test
+    public void test6() {
+        String query = "A = load 'x' as ( a : int, b, c : chararray );" +
+                       "B = group A by ( a, $2 );" +
+                       "store B into 'y';";
+        generateLogicalPlan( query );
+    }
+
+    @Test
+    public void test7() {
+        String query = "A = load 'x' as ( a : int, b, c : chararray );" +
+                       "B = foreach A generate a, $2;" +
+                       "store B into 'y';";
+        generateLogicalPlan( query );
+    }
+
+    @Test
+    public void test8() {
+        String query = "A = load 'x' as ( a : int, b, c : chararray );" +
+                       "B = group A by a;" +
+                       "C = foreach B { S = A.b; generate S; };" +
+                       "store C into 'y';";
+        generateLogicalPlan( query );
+    }
+    
+    @Test
+    public void test9() {
+        String query = "A = load 'x' as ( a : bag{ T:tuple(u, v) }, c : int, d : long );" +
+                       "B = foreach A { R = a; S = R.u; T = limit S 100; generate S, T, c + d/5; };" +
+                       "store B into 'y';";
+        generateLogicalPlan( query );
+    }
+
+    @Test
+    public void test10() {
+        String query = "A = load 'x' as ( a : bag{ T:tuple(u, v) }, c : int, d : long );" +
+                       "B = foreach A { S = a; T = limit S 100; generate T; };" +
+                       "store B into 'y';";
+        generateLogicalPlan( query );
+    }
+
+    @Test
+    public void test11() {
+        String query = "A = load 'x' as ( a : bag{ T:tuple(u, v) }, c : int, d : long );" +
+                       "B = foreach A { T = limit a 100; generate T; };" +
+                       "store B into 'y';";
+        generateLogicalPlan( query );
+    }
+
+    @Test
+    public void testFilter() {
+        String query = "A = load 'x' using org.apache.pig.TextLoader( 'a', 'b' ) as ( u:int, v:long, w:bytearray); " + 
+                       "B = filter A by 2 > 1; ";
+        generateLogicalPlan( query );
+    }
+
+    @Test
+    public void testNegative1() {
+        String query = "A = load 'x' as ( a : bag{ T:tuple(u, v) }, c : int, d : long );" +
+                       "B = foreach A { S = c * 2; T = limit S 100; generate T; };" +
+                       "store B into 'y';";
+        try {
+            ParserTestingUtils.generateLogicalPlan( query );
+        } catch (RecognitionException e) {
+            e.printStackTrace();
+        } catch (ParsingFailureException e) {
+            // Expected exception.
+            e.printStackTrace();
+            Assert.assertEquals( e.getParsingClass(), LogicalPlanGenerator.class );
+            return;
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        Assert.fail( "Query is supposed to be failing." );
     }
 }

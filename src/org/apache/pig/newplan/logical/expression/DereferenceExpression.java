@@ -47,22 +47,28 @@ import org.apache.pig.newplan.logical.relational.LogicalSchema.LogicalFieldSchem
  *
  */
 public class DereferenceExpression extends ColumnExpression {
+    private List<Object> rawColumns = new ArrayList<Object>();
     
-    private List<Integer> columns;// The column in the input bag which the project references.
+    private List<Integer> columns = new ArrayList<Integer>();// The column in the input bag which the project references.
     // Count is zero based.
+
+    public DereferenceExpression(OperatorPlan plan) {
+        super( "Dereference", plan );
+        plan.add( this );
+    }
     
     public DereferenceExpression(OperatorPlan plan, int colNum) {
-        super( "Dereference", plan );
-        columns = new ArrayList<Integer>();
+        this( plan );
         columns.add(colNum);
-        plan.add(this);
     }
 
     public DereferenceExpression(OperatorPlan plan, List<Integer> columnNums) {
-        super( "Dereference", plan );
-        columns = new ArrayList<Integer>();
+        this( plan );
         columns.addAll(columnNums);
-        plan.add(this);
+    }
+    
+    public void setRawColumns(List<Object> cols) {
+        rawColumns.addAll( cols );
     }
 
     /**

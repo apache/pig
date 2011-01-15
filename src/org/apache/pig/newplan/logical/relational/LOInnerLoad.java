@@ -50,6 +50,17 @@ public class LOInnerLoad extends LogicalRelationalOperator {
         this.foreach = foreach;
     }
 
+    public LOInnerLoad(OperatorPlan plan, LOForEach foreach, String colAlias) {
+        super("LOInnerLoad", plan); 
+        
+        // store column number as a ProjectExpression in a plan 
+        // to be able to dynamically adjust column number during optimization
+        LogicalExpressionPlan exp = new LogicalExpressionPlan();
+        
+       this.prj = new ProjectExpression( exp, 0, colAlias, foreach );
+        this.foreach = foreach;
+    }
+
     @Override
     public LogicalSchema getSchema() throws FrontendException {
         if (schema!=null)
@@ -130,7 +141,9 @@ public class LOInnerLoad extends LogicalRelationalOperator {
         }
         msg.append("(Name: " + name);
         msg.append("[");
-        if (getProjection().getColNum()==-1)
+        if( getProjection().getColAlias() != null )
+            msg.append( getProjection().getColAlias() );
+        else if (getProjection().getColNum()==-1)
             msg.append("*");
         else
             msg.append(getProjection().getColNum());

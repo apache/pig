@@ -46,10 +46,12 @@ tokens {
     KEY_VAL_PAIR;
     TUPLE_DEF;
     FIELD;
+    NESTED_CMD_ASSI;
     NESTED_CMD;
     NESTED_PROJ;
     SPLIT_BRANCH;
     FOREACH_PLAN;
+    FOREACH_PLAN_SIMPLE;
     MAP_TYPE;
     TUPLE_TYPE;
     BAG_TYPE;
@@ -334,8 +336,18 @@ var_expr : projectable_expr ( dot_proj | pound_proj )*
 projectable_expr: func_eval | col_ref | bin_expr
 ;
 
-dot_proj : PERIOD ( col_ref | ( LEFT_PAREN col_ref ( COMMA col_ref )* RIGHT_PAREN ) )
-        -> ^( PERIOD col_ref+ )
+dot_proj : PERIOD ( col_alias_or_index 
+                  | ( LEFT_PAREN col_alias_or_index ( COMMA col_alias_or_index )* RIGHT_PAREN ) )
+        -> ^( PERIOD col_alias_or_index+ )
+;
+
+col_alias_or_index : col_alias | col_index
+;
+
+col_alias : GROUP | IDENTIFIER
+;
+
+col_index : DOLLAR^ INTEGER
 ;
 
 pound_proj : POUND^ ( QUOTEDSTRING | NULL )
@@ -420,7 +432,7 @@ foreach_clause : FOREACH^ rel foreach_plan
 foreach_plan : nested_blk SEMI_COLON?
            -> ^( FOREACH_PLAN nested_blk )
             | ( generate_clause parallel_clause? SEMI_COLON )
-           -> ^( FOREACH_PLAN generate_clause parallel_clause? )
+           -> ^( FOREACH_PLAN_SIMPLE generate_clause parallel_clause? )
 ;
 
 nested_blk : LEFT_CURLY! nested_command_list ( generate_clause SEMI_COLON! ) RIGHT_CURLY!
@@ -435,10 +447,10 @@ nested_command_list : ( nested_command SEMI_COLON )*
                     |
 ;
 
-nested_command : IDENTIFIER EQUAL expr
-              -> ^( NESTED_CMD IDENTIFIER expr )
-               | IDENTIFIER EQUAL nested_op
+nested_command : IDENTIFIER EQUAL nested_op
               -> ^( NESTED_CMD IDENTIFIER nested_op )
+               | IDENTIFIER EQUAL expr
+              -> ^( NESTED_CMD_ASSI IDENTIFIER expr )
 ;
 
 nested_op : nested_proj
@@ -456,19 +468,19 @@ col_ref_list : ( col_ref | ( LEFT_PAREN col_ref ( COMMA col_ref )* RIGHT_PAREN )
             -> col_ref+
 ;
 
-nested_alias_ref : IDENTIFIER
+nested_filter : FILTER^ nested_op_input BY! cond
 ;
 
-nested_filter : FILTER^ ( nested_alias_ref | nested_proj | expr_eval ) BY! cond
+nested_sort : ORDER^ nested_op_input BY!  order_by_clause ( USING! func_clause )?
 ;
 
-nested_sort : ORDER^ ( nested_alias_ref | nested_proj | expr_eval ) BY!  order_by_clause ( USING! func_clause )?
+nested_distinct : DISTINCT^ nested_op_input
 ;
 
-nested_distinct : DISTINCT^ ( nested_alias_ref | nested_proj | expr_eval )
+nested_limit : LIMIT^ nested_op_input INTEGER
 ;
 
-nested_limit : LIMIT^ ( nested_alias_ref | nested_proj | expr_eval ) INTEGER
+nested_op_input : col_ref | nested_proj
 ;
 
 stream_clause : STREAM^ rel THROUGH! ( EXECCOMMAND | IDENTIFIER ) as_clause?

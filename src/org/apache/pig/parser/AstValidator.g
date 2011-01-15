@@ -268,7 +268,16 @@ var_expr : projectable_expr ( dot_proj | pound_proj )*
 projectable_expr: func_eval | col_ref | bin_expr
 ;
 
-dot_proj : ^( PERIOD col_ref+ )
+dot_proj : ^( PERIOD col_alias_or_index+ )
+;
+
+col_alias_or_index : col_alias | col_index
+;
+
+col_alias : GROUP | IDENTIFIER
+;
+
+col_index : DOLLAR^ INTEGER
 ;
 
 pound_proj : ^( POUND ( QUOTEDSTRING | NULL ) )
@@ -331,7 +340,7 @@ foreach_clause : ^( FOREACH rel foreach_plan )
 ;
 
 foreach_plan : ^( FOREACH_PLAN nested_blk )
-             | ^( FOREACH_PLAN generate_clause parallel_clause? )
+             | ^( FOREACH_PLAN_SIMPLE generate_clause parallel_clause? )
 ;
 
 nested_blk
@@ -344,7 +353,11 @@ generate_clause : ^( GENERATE flatten_generated_item+ )
 ;
 
 nested_command
- : ^( NESTED_CMD IDENTIFIER ( expr | nested_op ) )
+ : ^( NESTED_CMD IDENTIFIER nested_op )
+   {
+       $nested_blk::ids.add( $IDENTIFIER.text );
+   }
+ | ^( NESTED_CMD_ASSI IDENTIFIER expr )
    {
        $nested_blk::ids.add( $IDENTIFIER.text );
    }
@@ -357,30 +370,23 @@ nested_op : nested_proj
           | nested_limit
 ;
 
-nested_proj : ^( NESTED_PROJ col_ref col_ref_list )
-;
-
-col_ref_list : col_ref+
-;
-
-nested_alias_ref
- : IDENTIFIER
-   {
-       validateAliasRef( $nested_blk::ids, $IDENTIFIER.text );
-   }
+nested_proj : ^( NESTED_PROJ col_ref col_ref+ )
 ;
 
 nested_filter
- : ^( FILTER ( nested_alias_ref | nested_proj | expr ) cond )
+ : ^( FILTER nested_op_input cond )
 ;
 
-nested_sort : ^( ORDER ( nested_alias_ref | nested_proj | expr )  order_by_clause func_clause? )
+nested_sort : ^( ORDER nested_op_input  order_by_clause func_clause? )
 ;
 
-nested_distinct : ^( DISTINCT ( nested_alias_ref | nested_proj | expr ) )
+nested_distinct : ^( DISTINCT nested_op_input )
 ;
 
-nested_limit : ^( LIMIT ( nested_alias_ref | nested_proj | expr ) INTEGER )
+nested_limit : ^( LIMIT nested_op_input INTEGER )
+;
+
+nested_op_input : col_ref | nested_proj
 ;
 
 stream_clause : ^( STREAM rel ( EXECCOMMAND | IDENTIFIER ) as_clause? )

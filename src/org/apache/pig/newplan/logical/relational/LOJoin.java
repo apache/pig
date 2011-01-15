@@ -69,6 +69,18 @@ public class LOJoin extends LogicalRelationalOperator {
         mJoinType = jt;
         mInnerFlags = isInner;
     }
+    
+    public void setJoinPlans(MultiMap<Integer, LogicalExpressionPlan> joinPlans) {
+        this.mJoinPlans = joinPlans;
+    }
+    
+    public void setInnerFlags(boolean[] isInner) {
+        this.mInnerFlags = isInner;
+    }
+    
+    public void setJoinType(JOINTYPE jt) {
+        this.mJoinType = jt;
+    }
 
     public boolean isInner(int inputIndex) {
         return mInnerFlags[inputIndex];

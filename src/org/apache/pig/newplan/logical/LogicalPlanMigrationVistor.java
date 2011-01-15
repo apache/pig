@@ -163,7 +163,7 @@ public class LogicalPlanMigrationVistor extends LOVisitor {
         switch(type) {        
         case REPLICATED:
             newType = org.apache.pig.newplan.logical.relational.LOJoin.JOINTYPE.REPLICATED;
-            break;        	
+            break;            
         case SKEWED:
             newType = org.apache.pig.newplan.logical.relational.LOJoin.JOINTYPE.SKEWED;
             break;
@@ -367,7 +367,7 @@ public class LogicalPlanMigrationVistor extends LOVisitor {
 
     public void visit(LOStore store) throws VisitorException{
         org.apache.pig.newplan.logical.relational.LOStore newStore = 
-                new org.apache.pig.newplan.logical.relational.LOStore(logicalPlan, store.getOutputFile());    	
+                new org.apache.pig.newplan.logical.relational.LOStore(logicalPlan, store.getOutputFile());        
        
         newStore.setAlias(store.getAlias());
         newStore.setRequestedParallelism(store.getRequestedParallelism());
