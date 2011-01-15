@@ -45,6 +45,8 @@ public class ProjectExpression extends ColumnExpression {
                        // greater than 0.
     private int col; // The column in the input which the project references.
                      // Count is zero based.
+    private String alias; // The alias of the projected field.
+    
     private LogicalRelationalOperator attachedRelationalOp;
                       
     
@@ -60,6 +62,15 @@ public class ProjectExpression extends ColumnExpression {
         super("Project", plan);
         input = inputNum;
         col = colNum;
+        plan.add(this);
+        this.attachedRelationalOp = attachedRelationalOp;
+    }
+
+    public ProjectExpression(OperatorPlan plan, int inputNum, String alias,
+            LogicalRelationalOperator attachedRelationalOp) {
+        super("Project", plan);
+        input = inputNum;
+        this.alias = alias;
         plan.add(this);
         this.attachedRelationalOp = attachedRelationalOp;
     }
@@ -99,6 +110,10 @@ public class ProjectExpression extends ColumnExpression {
      */
     public int getColNum() {
         return col;
+    }
+    
+    public String getColAlias() {
+        return alias;
     }
     
     /**
@@ -236,7 +251,9 @@ public class ProjectExpression extends ColumnExpression {
         else
             msg.append("null");
         msg.append(" Input: " + input + " Column: ");
-        if (isProjectStar())
+        if( alias != null )
+            msg.append( alias );
+        else if (isProjectStar())
             msg.append("(*)");
         else
             msg.append(col);

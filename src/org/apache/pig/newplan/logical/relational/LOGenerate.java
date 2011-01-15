@@ -41,9 +41,17 @@ public class LOGenerate extends LogicalRelationalOperator {
      private List<LogicalSchema> uidOnlySchemas = null;
 
     public LOGenerate(OperatorPlan plan, List<LogicalExpressionPlan> ps, boolean[] flatten) {
-        super("LOGenerate", plan);
+        this( plan );
         outputPlans = ps;
         flattenFlags = flatten;
+    }
+    
+    public void setOutputPlans(List<LogicalExpressionPlan> plans) {
+        this.outputPlans = plans;
+    }
+    
+    public LOGenerate(OperatorPlan plan) {
+        super( "LOGenerate", plan );
     }
 
     @Override

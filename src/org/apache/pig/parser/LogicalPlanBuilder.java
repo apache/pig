@@ -22,10 +22,12 @@ import java.io.IOException;
 import java.net.MalformedURLException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
+import org.antlr.runtime.IntStream;
 import org.antlr.runtime.RecognitionException;
 import org.apache.pig.ExecType;
 import org.apache.pig.FuncSpec;
@@ -58,6 +60,7 @@ import org.apache.pig.newplan.logical.relational.LODistinct;
 import org.apache.pig.newplan.logical.relational.LOFilter;
 import org.apache.pig.newplan.logical.relational.LOForEach;
 import org.apache.pig.newplan.logical.relational.LOGenerate;
+import org.apache.pig.newplan.logical.relational.LOInnerLoad;
 import org.apache.pig.newplan.logical.relational.LOJoin;
 import org.apache.pig.newplan.logical.relational.LOLimit;
 import org.apache.pig.newplan.logical.relational.LOLoad;
@@ -75,6 +78,7 @@ import org.apache.pig.newplan.logical.relational.LOCogroup.GROUPTYPE;
 import org.apache.pig.newplan.logical.relational.LOJoin.JOINTYPE;
 import org.apache.pig.newplan.logical.relational.LogicalSchema.LogicalFieldSchema;
 import org.apache.pig.newplan.Operator;
+import org.apache.pig.newplan.OperatorPlan;
 
 public class LogicalPlanBuilder {
     private LogicalPlan plan = new LogicalPlan();
@@ -105,12 +109,16 @@ public class LogicalPlanBuilder {
     LogicalPlan getPlan() {
         return plan;
     }
-
-    String buildFilterOp(String alias, Integer parallel, String inputAlias, LogicalExpressionPlan expr) {
-        LOFilter op = new LOFilter( plan, expr );
-        return buildOp( op, alias, parallel, inputAlias, null );
+    
+    LOFilter createFilterOp() {
+        return new LOFilter( plan );
     }
 
+    String buildFilterOp(LOFilter op, String alias, Integer parallel, String inputAlias, LogicalExpressionPlan expr) {
+        op.setFilterPlan( expr );
+        return buildOp( op, alias, parallel, inputAlias, null );
+    }
+    
     String buildDistinctOp(String alias, Integer parallel, String inputAlias, String partitioner) {
         LODistinct op = new LODistinct( plan );
         return buildOp( op, alias, parallel, inputAlias, partitioner );
@@ -128,7 +136,7 @@ public class LogicalPlanBuilder {
                    new LogicalFieldSchema( null , null, DataType.DOUBLE ) );
         UserFuncExpression udf = new UserFuncExpression( filterPlan, new FuncSpec( RANDOM.class.getName() ) );
         new LessThanEqualExpression( filterPlan, udf, konst );
-        return buildFilterOp( alias, parallel, inputAlias, filterPlan );
+        return buildFilterOp( new LOFilter( plan ), alias, parallel, inputAlias, filterPlan );
     }
     
     String buildUnionOp(String alias, Integer parallel, List<String> inputAliases) {
@@ -141,8 +149,13 @@ public class LogicalPlanBuilder {
         return buildOp( op, null, null, inputAlias, null );
     }
     
-    String buildSplitOutputOp(String alias, Integer parallel, String inputAlias, LogicalExpressionPlan filterPlan) {
-        LOSplitOutput op = new LOSplitOutput( plan, filterPlan );
+    LOSplitOutput createSplitOutputOp() {
+        return  new LOSplitOutput( plan );
+    }
+    
+    String buildSplitOutputOp(LOSplitOutput op, String alias, Integer parallel, String inputAlias,
+            LogicalExpressionPlan filterPlan) {
+        op.setFilterPlan( filterPlan );
         return buildOp ( op, alias, parallel, inputAlias, null );
     }
     
@@ -151,29 +164,48 @@ public class LogicalPlanBuilder {
         return buildOp ( op, alias, parallel, inputAliases, partitioner );
     }
     
-    String buildOrderOp(String alias, Integer parallel, String inputAlias, List<LogicalExpressionPlan> plans, 
+    LOSort createSortOp() {
+        return new LOSort( plan );
+    }
+    
+    String buildSortOp(LOSort sort, String alias, Integer parallel, String inputAlias, List<LogicalExpressionPlan> plans, 
             List<Boolean> ascFlags, FuncSpec fs) {
-        LOSort op = new LOSort( plan, plans, ascFlags, fs );
-        return buildOp( op, alias, parallel, inputAlias, null );
+        sort.setSortColPlans( plans );
+        sort.setUserFunc( fs );
+        sort.setAscendingCols( ascFlags );
+        return buildOp( sort, alias, parallel, inputAlias, null );
+    }
+    
+    LOJoin createJoinOp() {
+        return new LOJoin( plan );
     }
 
-    String buildJoinOp(String alias, Integer parallel, List<String> inputAliases, MultiMap<Integer, LogicalExpressionPlan> joinPlans,
+    String buildJoinOp(LOJoin op, String alias, Integer parallel, List<String> inputAliases,
+            MultiMap<Integer, LogicalExpressionPlan> joinPlans,
             JOINTYPE jt, List<Boolean> innerFlags, String partitioner) {
         boolean[] flags = new boolean[innerFlags.size()];
         for( int i = 0; i < innerFlags.size(); i++ ) {
             flags[i] = innerFlags.get( i );
         }
-        LOJoin op = new LOJoin( plan, joinPlans, jt, flags );
+        op.setJoinType( jt );
+        op.setInnerFlags( flags );
+        op.setJoinPlans( joinPlans );
         return buildOp( op, alias, parallel, inputAliases, partitioner );
     }
 
-    String buildGroupOp(String alias, Integer parallel, List<String> inputAliases, 
+    LOCogroup createGroupOp() {
+        return new LOCogroup( plan );
+    }
+    
+    String buildGroupOp(LOCogroup op, String alias, Integer parallel, List<String> inputAliases, 
         MultiMap<Integer, LogicalExpressionPlan> expressionPlans, GROUPTYPE gt, List<Boolean> innerFlags) {
         boolean[] flags = new boolean[innerFlags.size()];
         for( int i = 0; i < innerFlags.size(); i++ ) {
             flags[i] = innerFlags.get( i );
         }
-        LOCogroup op = new LOCogroup( plan, expressionPlans, gt, flags );
+        op.setExpressionPlans( expressionPlans );
+        op.setGroupType( gt );
+        op.setInnerFlags( flags );
         return buildOp( op, alias, parallel, inputAliases, null );
     }
     
@@ -211,28 +243,126 @@ public class LogicalPlanBuilder {
         return buildOp( op, alias, parallel, inputAlias, null );
     }
     
-    String buildForeachOp(String alias, Integer parallel, String inputAlias, LogicalPlan innerPlan) {
-        LOForEach op = new LOForEach( plan );
+    LOForEach createForeachOp() {
+        return new LOForEach( plan );
+    }
+    
+    String buildForeachOp(LOForEach op, String alias, Integer parallel, String inputAlias, LogicalPlan innerPlan) {
         op.setInnerPlan( innerPlan );
         return buildOp( op, alias, parallel, inputAlias, null );
     }
     
-    void buildGenerateOp(LogicalPlan plan, List<LogicalExpressionPlan> exprPlans, List<Boolean> flattenFlags,
+    LOGenerate createGenerateOp(LogicalPlan plan) {
+        return new LOGenerate( plan );
+    }
+    
+    static void buildGenerateOp(LOForEach foreach, LOGenerate gen, Map<String, Operator> operators,
+            List<LogicalExpressionPlan> exprPlans, List<Boolean> flattenFlags,
             List<LogicalSchema> schemas) {
         boolean[] flags = new boolean[ flattenFlags.size() ];
         for( int i = 0; i < flattenFlags.size(); i++ )
             flags[i] = flattenFlags.get( i );
-        LOGenerate op = new LOGenerate( plan, exprPlans, flags );
-        op.setUserDefinedSchema( schemas );
-        plan.add( op );
+        LogicalPlan innerPlan = (LogicalPlan)gen.getPlan();
+        ArrayList<Operator> inputs = new ArrayList<Operator>();
+        for( LogicalExpressionPlan exprPlan : exprPlans ) {
+            processExpressionPlan( foreach, innerPlan, exprPlan, operators, inputs );
+        }
+        
+        gen.setOutputPlans( exprPlans );
+        gen.setFlattenFlags( flags );
+        gen.setUserDefinedSchema( schemas );
+        innerPlan.add( gen );
+        for( Operator input : inputs ) {
+            innerPlan.connect( input, gen );
+        }
+    }
+    
+    /**
+     * Process expression plans of LOGenerate and set inputs relation
+     * for the ProjectExpression
+     * @param foreach 
+     * @param lp Logical plan in which the LOGenerate is in
+     * @param plan One of the output expression of the LOGenerate
+     * @param operators All logical operators in lp;
+     * @param inputs  inputs of the LOGenerate
+     */
+    static void processExpressionPlan(LOForEach foreach,
+                                      LogicalPlan lp,  
+                                      LogicalExpressionPlan plan,  
+                                      Map<String, Operator> operators,  
+                                      ArrayList<Operator> inputs ) {
+        List<Operator> sinks = plan.getSinks();
+        for( Operator sink : sinks ) {
+            //check all ProjectExpression
+            if( sink instanceof ProjectExpression ) {
+                ProjectExpression projExpr = (ProjectExpression)sink;
+                String colAlias = projExpr.getColAlias();
+                if( colAlias != null ) {
+                    // the project is using a column alias
+                    Operator op = operators.get( colAlias );
+                    if( op != null ) {
+                        // this means the project expression refers to a relation
+                        // in the nested foreach
+
+                        //add the relation to inputs of LOGenerate and set 
+                        // projection input
+                        int index = inputs.indexOf( op );
+                        if( index == -1 ) {
+                            index = inputs.size();
+                            inputs.add( op );
+                        }
+                        projExpr.setInputNum( index );
+                    } else {
+                        // this means the project expression refers to a column
+                        // in the input of foreach. Add a LOInnerLoad and use that
+                        // as input
+                        projExpr.setInputNum( inputs.size() );
+                        LOInnerLoad innerLoad = new LOInnerLoad( lp, foreach, colAlias );
+                        lp.add( innerLoad );
+                        inputs.add( innerLoad );
+                    }
+                } else {
+                    // the project expression is referring to column in ForEach input
+                    // using position (eg $1)
+                    projExpr.setInputNum( inputs.size() );
+                    LOInnerLoad innerLoad = new LOInnerLoad( lp, foreach, projExpr.getColNum() );
+                    lp.add( innerLoad );
+                    inputs.add( innerLoad );
+                }
+            }
+        }
+    }
+    
+    static Operator buildNestedOperatorInput(LogicalPlan innerPlan, LOForEach foreach, 
+            Map<String, Operator> operators, LogicalExpression expr, IntStream input)
+    throws NonProjectExpressionException {
+        OperatorPlan plan = expr.getPlan();
+        Iterator<Operator> it = plan.getOperators();
+        if( !( it.next() instanceof ProjectExpression ) || it.hasNext() ) {
+            throw new NonProjectExpressionException( input, expr );
+        }
+        Operator op = null;
+        ProjectExpression projExpr = (ProjectExpression)expr;
+        String colAlias = projExpr.getColAlias();
+        if( colAlias != null ) {
+            op = operators.get( colAlias );
+            if( op == null ) {
+                op = new LOInnerLoad( innerPlan, foreach, colAlias );
+                innerPlan.add( op );
+            }
+        } else {
+            op = new LOInnerLoad( innerPlan, foreach, projExpr.getColNum() );
+            innerPlan.add( op );
+        }
+        return op;
     }
     
     StreamingCommand buildCommand(String cmd, List<String> shipPaths, List<String> cachePaths,
             List<HandleSpec> inputHandleSpecs, List<HandleSpec> outputHandleSpecs,
-            String logDir, Integer limit) throws RecognitionException {
+            String logDir, Integer limit, IntStream input) throws RecognitionException {
         StreamingCommand command = null;
         try {
-            command = buildCommand( cmd );
+            command = buildCommand( cmd, input );
             
             // Process ship paths
             if( shipPaths.size() == 0 ) {
@@ -259,31 +389,32 @@ public class LogicalPlanBuilder {
             if( limit != null )
                 command.setLogFilesLimit( limit );
         } catch(IOException e) {
+        	throw new PlanGenerationFailureException( input, e );
         }
         
         return command;
     }
     
-    StreamingCommand buildCommand(String cmd) throws RecognitionException {
+    StreamingCommand buildCommand(String cmd, IntStream input) throws RecognitionException {
         try {
             return new StreamingCommand( pigContext, splitArgs( cmd ) );
         } catch (ParseException e) {
-            throw new RecognitionException();        }
+            throw new InvalidCommandException( input, cmd );        }
     }
     
-    String buildStreamOp(String alias, Integer parallel, String inputAlias, StreamingCommand command, LogicalSchema schema)
+    String buildStreamOp(String alias, Integer parallel, String inputAlias, StreamingCommand command,
+    		LogicalSchema schema, IntStream input)
     throws RecognitionException {
         try {
             LOStream op = new LOStream( plan, pigContext.createExecutableManager(), command, schema );
             return buildOp( op, alias, parallel, inputAlias, null );
         } catch (ExecException ex) {
-            throw new RecognitionException();
+            throw new PlanGenerationFailureException( input, ex );
         }
     }
     
-    // TODO: create specific exceptions to throw.
     String buildNativeOp(Integer parallel, String inputJar, String cmd,
-            List<String> paths, String storeAlias, String loadAlias)
+            List<String> paths, String storeAlias, String loadAlias, IntStream input)
     throws RecognitionException {
         LONative op;
         try {
@@ -297,9 +428,9 @@ public class LogicalPlanBuilder {
             plan.connect( op, load );
             return load.getAlias();
         } catch (ParseException e) {
-            throw new RecognitionException();
+            throw new InvalidCommandException( input, cmd );
         } catch (MalformedURLException e) {
-            throw new RecognitionException();
+            throw new InvalidPathException( input, e);
         }
     }
     
@@ -338,9 +469,32 @@ public class LogicalPlanBuilder {
         return bagFactory.newDefaultBag();
     }
     
-    LogicalExpression buildProjectStar(LogicalExpressionPlan plan, String opAlias) {
-        LogicalRelationalOperator op = (LogicalRelationalOperator)operators.get( opAlias );
-        return new ProjectExpression( plan, 0, -1, op );
+    /**
+     *  Build a project expression in foreach inner plan.
+     *  The only difference here is that the projection can be for an expression alias, for which
+     *  we will return whatever the expression alias represents.
+     */
+    LogicalExpression buildProjectExpr(LogicalExpressionPlan plan, LogicalRelationalOperator op,
+            Map<String, LogicalExpressionPlan> exprPlans, String colAlias, int col) {
+        if( colAlias != null ) {
+            LogicalExpressionPlan exprPlan = exprPlans.get( colAlias );
+            if( exprPlan != null ) {
+                return (LogicalExpression)exprPlan.getSources().get( 0 );// get the root of the plan
+            } else {
+                return new ProjectExpression( plan, 0, colAlias, op );
+            }
+        }
+        return new ProjectExpression( plan, 0, col, op );
+    }
+
+    /**
+     * Build a project expression for a projection present in global plan (not in nested foreach plan).
+     */
+    LogicalExpression buildProjectExpr(LogicalExpressionPlan plan, LogicalRelationalOperator relOp,
+            int input, String colAlias, int col) {
+        if( colAlias != null )
+            return new ProjectExpression( plan, input, colAlias, relOp );
+        return new ProjectExpression( plan, input, col, relOp );
     }
     
     LogicalExpression buildUDF(LogicalExpressionPlan plan, String funcName, List<LogicalExpression> args) {
@@ -395,4 +549,84 @@ public class LogicalPlanBuilder {
     private static long getNextId() {
         return nodeIdGen.getNextNodeId( "test" );
     }
+
+    static LOFilter createNestedFilterOp(LogicalPlan plan) {
+        return new LOFilter( plan );
+    }
+    
+    // Build operator for foreach inner plan.
+    static Operator buildNestedFilterOp(LOFilter op, LogicalPlan plan, String alias, 
+            Operator inputOp, LogicalExpressionPlan expr) {
+        op.setFilterPlan( expr );
+        buildNestedOp( plan, op, alias, inputOp );
+        return op;
+    }
+
+    static Operator buildNestedDistinctOp(LogicalPlan plan, String alias, Operator inputOp) {
+        LODistinct op = new LODistinct( plan );
+        buildNestedOp( plan, op, alias, inputOp );
+        return op;
+    }
+
+    static Operator buildNestedLimitOp(LogicalPlan plan, String alias, Operator inputOp, long limit) {
+        LOLimit op = new LOLimit( plan, limit );
+        buildNestedOp( plan, op, alias, inputOp );
+        return op;
+    }
+    
+    private static void buildNestedOp(LogicalPlan plan, LogicalRelationalOperator op, String alias, Operator inputOp) {
+        setAlias( op, alias );
+        plan.add( op );
+        plan.connect( inputOp, op );
+    }
+
+    static LOSort createNestedSortOp(LogicalPlan plan) {
+        return new LOSort( plan );
+    }
+    
+    static Operator buildNestedSortOp(LOSort op, LogicalPlan plan, String alias, Operator inputOp,
+            List<LogicalExpressionPlan> plans, 
+            List<Boolean> ascFlags, FuncSpec fs) {
+        op.setSortColPlans( plans );
+        op.setAscendingCols( ascFlags );
+        op.setUserFunc( fs );
+        buildNestedOp( plan, op, alias, inputOp );
+        return op;
+    }
+    
+    static Operator buildNestedProjectOp(LogicalPlan innerPlan, LOForEach foreach, 
+            Map<String, Operator> operators,
+            String alias, ProjectExpression projExpr, List<LogicalExpressionPlan> exprPlans) {
+        Operator input = null;
+        boolean foreachNeeded = !exprPlans.isEmpty();
+        String colAlias = projExpr.getColAlias();
+        if( colAlias != null ) {
+            Operator op = operators.get( colAlias );
+            if( op != null ) {
+                input = op ;
+                if( !foreachNeeded )
+                    return op;
+            } else {
+                input = new LOInnerLoad( innerPlan, foreach, colAlias );
+                if( !foreachNeeded && alias != null ) {
+                    operators.put( alias , input );
+                }
+            }
+        } else {
+            input = new LOInnerLoad( innerPlan, foreach, projExpr.getColNum() );
+        }
+        
+        LogicalPlan lp = new LogicalPlan();
+        boolean[] flatten = new boolean[exprPlans.size()];
+        LOGenerate gen = new LOGenerate( lp, exprPlans, flatten );
+        lp.add( gen );
+        LOForEach f = new LOForEach( innerPlan );
+        f.setInnerPlan( lp );
+        setAlias( f, alias );
+        innerPlan.add( input );
+        innerPlan.add( f );
+        innerPlan.connect( input, f );
+        return f;
+    }
+    
 }

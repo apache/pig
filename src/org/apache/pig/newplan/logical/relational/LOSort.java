@@ -25,7 +25,6 @@ import org.apache.pig.FuncSpec;
 import org.apache.pig.SortColInfo;
 import org.apache.pig.SortInfo;
 import org.apache.pig.impl.logicalLayer.FrontendException;
-import org.apache.pig.impl.logicalLayer.LogicalOperator;
 import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.OperatorPlan;
 import org.apache.pig.newplan.PlanVisitor;
@@ -36,17 +35,20 @@ public class LOSort extends LogicalRelationalOperator{
     private List<Boolean> mAscCols;
     private FuncSpec mSortFunc;
     private boolean mIsStar = false;
-    private long limit;
+    private long limit = -1;
     private List<LogicalExpressionPlan> mSortColPlans;
+    
+    public LOSort(OperatorPlan plan) {
+        super("LOSort", plan);
+    }
 
     public LOSort(OperatorPlan plan, List<LogicalExpressionPlan> sortColPlans,
             List<Boolean> ascCols,
             FuncSpec sortFunc ) {
-        super("LOSort", plan);
+        this( plan );
         mSortColPlans = sortColPlans;
         mAscCols = ascCols;
         mSortFunc = sortFunc;
-        limit = -1;
     }
 
     public List<LogicalExpressionPlan> getSortColPlans() {

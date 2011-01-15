@@ -283,6 +283,20 @@ public class LOCogroup extends LogicalRelationalOperator {
         return mExpressionPlans;
     }
     
+    public void setExpressionPlans(MultiMap<Integer,LogicalExpressionPlan> plans) {
+        this.mExpressionPlans = plans;
+    }
+    
+    public void setGroupType(GROUPTYPE gt) {
+        mGroupType = gt;
+    }
+    
+    public void setInnerFlags(boolean[] flags) {
+        if( flags != null ) {
+            mIsInner = Arrays.copyOf( flags, flags.length );
+        }
+    }
+    
     public boolean[] getInner() {
         return mIsInner;
     }
