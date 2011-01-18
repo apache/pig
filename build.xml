@@ -28,6 +28,8 @@
     <property name="Name" value="Pig" />
 	<property name="ant-task.version" value="2.0.10" />
 	<property name="pig.pom" value="${basedir}/ivy/pig.pom" />
+  	<property name="pigsmoke.pom" value="${basedir}/ivy/pigsmoke.pom" />
+  	<property name="pigunit.pom" value="${basedir}/ivy/pigunit.pom" />
 	<property name="version" value="0.9.0-SNAPSHOT" />
     <property name="final.name" value="${name}-${version}" />
 
@@ -86,6 +88,7 @@
     <property name="test.smoke.file" value="${test.src.dir}/smoke-tests"/>
     <property name="test.all.file" value="${test.src.dir}/all-tests"/>
     <property name="pigunit.jarfile" value="pigunit.jar" />
+    <property name="smoke.tests.jarfile" value="${build.dir}/${final.name}-smoketests.jar" />
     <property name="test.pigunit.src.dir" value="${test.src.dir}/org/apache/pig/test/pigunit" />
     <property name="commons-lang.jarfile" value="commons-lang-2.4.jar" />    
     <property name="test.pigunit.file" value="${test.src.dir}/pigunit-tests"/>
@@ -502,7 +505,7 @@
     <!-- ================================================================== -->
     <!-- Make pig.jar                                                       -->
     <!-- ================================================================== -->
-    <!-- TODO we should also exculte test here...                           -->
+    <!-- TODO we should also exclude test here...                           -->
     <!-- ================================================================== -->
     <target name="jar" depends="compile" description="Create pig jar">
         <antcall target="jarWithSvn" inheritRefs="true" inheritall="true"/>
@@ -565,6 +568,23 @@
         <copy file="${output.jarfile}" tofile="${output.jarfile.backcompat}"/>
     </target>
 
+    <target name="smoketests-jar" description="Creating jar file for smoke tests">
+      <echo> *** Creating smoke tests jar for pigunit ***</echo>
+      <jar jarfile="${smoke.tests.jarfile}" basedir="${test.build.classes}"
+           includes="org/apache/pig/test/pigunit/**/*">
+        <fileset dir="${basedir}" includes="test/data/pigunit/**/*"/>
+          <manifest>
+              <section name="org/apache/pig/test/pigunit">
+                  <attribute name="Implementation-Vendor" value="Apache" />
+                  <attribute name="Implementation-Title" value="Pig" />
+                  <attribute name="Implementation-Version" value="${version}" />
+                  <attribute name="Build-TimeStamp" value="${timestamp}" />
+                  <attribute name="Svn-Revision" value="${svnString}" />
+              </section>
+          </manifest>
+      </jar>
+
+    </target>
     <!-- ================================================================== -->
     <!-- Make pig-withouthadoop.jar                                                       -->
     <!-- ================================================================== -->
@@ -872,7 +892,8 @@
           uri="urn:maven-artifact-ant"
           classpathref="mvn-ant-task.classpath"/>
     </target>
-    <target name="mvn-install" depends="mvn-taskdef,jar, set-version, source-jar, javadoc-jar"
+    <target name="mvn-install" depends="mvn-taskdef,jar, set-version, source-jar,
+      javadoc-jar, pigunit-jar, smoketests-jar"
          description="To install pig to local filesystem's m2 cache">
          <artifact:pom file="${pig.pom}" id="pig"/>
           <artifact:install file="${pig-core.jar}">
@@ -880,7 +901,16 @@
            <attach file="${output.jarfile.sources}" classifier="sources" />
            <attach file="${output.jarfile.javadoc}" classifier="javadoc" />
           </artifact:install>
+         <artifact:pom file="${pigunit.pom}" id="pigunit"/>
+          <artifact:install file="${pigunit.jarfile}">
+               <pom refid="pigunit"/>
+           </artifact:install>
+         <artifact:pom file="${pigsmoke.pom}" id="pigsmoke"/>
+          <artifact:install file="${smoke.tests.jarfile}">
+               <pom refid="pigsmoke"/>
+         </artifact:install>
     </target>
+
     <target name="mvn-deploy" depends="mvn-taskdef,jar,source-jar, javadoc-jar, set-version, signanddeploy, simpledeploy"
          description="To deploy pig jar to apache snapshot's repository">
     </target>
@@ -908,6 +938,16 @@
               <pom refid="pig"/>
           <attach file="${pig-sources.jar}" classifier="sources" />
       	  <attach file="${pig-javadoc.jar}" classifier="javadoc" />
+      </artifact:deploy>
+      <artifact:pom file="${pigunit.pom}" id="pigunit"/>
+      <artifact:deploy file="${pigunit.jarfile}">
+              <remoteRepository id="apache.snapshots.https" url="${asfsnapshotrepo}"/>
+              <pom refid="pigunit"/>
+      </artifact:deploy>
+      <artifact:pom file="${pigsmoke.pom}" id="pigsmoke"/>
+      <artifact:deploy file="${smoke.tests.jarfile}">
+              <remoteRepository id="apache.snapshots.https" url="${asfsnapshotrepo}"/>
+              <pom refid="pigsmoke"/>
       </artifact:deploy>
    </target>
 	
@@ -950,11 +990,15 @@
 	  <target name="set-version">
 	    <delete file="${basedir}/ivy/pig.pom"/>
 	    <copy file="${basedir}/ivy/pig-template.xml" tofile="${basedir}/ivy/pig.pom"/>
+	    <copy file="${basedir}/ivy/pigunit-template.xml" tofile="${basedir}/ivy/pigunit.pom"/>
+	    <copy file="${basedir}/ivy/pigsmoke-template.xml" tofile="${basedir}/ivy/pigsmoke.pom"/>
 	    <replaceregexp byline="true">
 	      <regexp pattern="@version"/>
 	      <substitution expression="${version}"/>
 	      <fileset dir="${basedir}/ivy">
 	        <include name="pig.pom"/>
+	        <include name="pigunit.pom"/>
+	        <include name="pigsmoke.pom"/>
 	      </fileset>
 	    </replaceregexp>
 	  </target>

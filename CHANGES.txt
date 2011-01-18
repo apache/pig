@@ -24,6 +24,9 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-1799: Provide deployable maven artifacts for pigunit and pig smoke tests
+(cos via gates)
+
 PIG-1728: turing complete docs (chandec via olgan)
 
 PIG-1675: allow PigServer to register pig script from InputStream (zjffdu via dvryaboy)
