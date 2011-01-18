@@ -66,7 +66,7 @@ public class TestAstValidator {
             if( tree.getText().equals( "TUPLE_DEF" ) ) {
                 for ( int i = 0; i < tree.getChildCount(); i++ ) {
                     CommonTree child = (CommonTree)tree.getChild( i ); // FIELD node
-                    Assert.assertTrue( "FIELD".equals( child.getText() ) );
+                    Assert.assertTrue( "FIELD_DEF".equals( child.getText() ) );
                     CommonTree datatype = (CommonTree)child.getChild( 1 );
                     Assert.assertTrue( datatype != null );
                     String typeName = datatype.getText();

@@ -44,8 +44,7 @@ tokens {
     MAP_VAL;
     BAG_VAL;
     KEY_VAL_PAIR;
-    TUPLE_DEF;
-    FIELD;
+    FIELD_DEF;
     NESTED_CMD_ASSI;
     NESTED_CMD;
     NESTED_PROJ;
@@ -193,22 +192,15 @@ load_clause : LOAD^ filename ( USING! func_clause )? as_clause?
 filename : QUOTEDSTRING
 ;
 
-as_clause: AS^ tuple_def
+as_clause: AS^ ( field_def | field_def_list )
 ;
 
-tuple_def : tuple_def_full | tuple_def_simple
+field_def : IDENTIFIER ( COLON type )?
+     -> ^( FIELD_DEF IDENTIFIER type? )
 ;
 
-tuple_def_full : LEFT_PAREN field ( COMMA field )* RIGHT_PAREN
-            -> ^( TUPLE_DEF field+ )
-;
-
-tuple_def_simple : field
-         -> ^( TUPLE_DEF field )
-;
-
-field : IDENTIFIER ( COLON type )?
-     -> ^( FIELD IDENTIFIER type? )
+field_def_list : LEFT_PAREN field_def ( COMMA field_def )* RIGHT_PAREN
+     -> field_def+
 ;
 
 type : simple_type | tuple_type | bag_type | map_type
@@ -217,12 +209,12 @@ type : simple_type | tuple_type | bag_type | map_type
 simple_type : INT | LONG | FLOAT | DOUBLE | CHARARRAY | BYTEARRAY
 ;
 
-tuple_type : TUPLE? tuple_def_full
-          -> ^( TUPLE_TYPE tuple_def_full )
+tuple_type : TUPLE? field_def_list
+          -> ^( TUPLE_TYPE field_def_list )
 ;
 
-bag_type : BAG? LEFT_CURLY tuple_def? RIGHT_CURLY
-        -> ^( BAG_TYPE tuple_def? )
+bag_type : BAG? LEFT_CURLY ( ( IDENTIFIER COLON )? tuple_type )? RIGHT_CURLY
+        -> ^( BAG_TYPE tuple_type? )
 ;
 
 map_type : MAP LEFT_BRACKET RIGHT_BRACKET
@@ -261,8 +253,9 @@ group_item : rel ( join_group_by_clause | ALL | ANY ) ( INNER | OUTER )?
 rel : alias | LEFT_PAREN! op_clause RIGHT_PAREN!
 ;
 
-flatten_generated_item : flatten_clause as_clause?
-                       | ( expr | STAR ) ( AS! field )?
+flatten_generated_item : flatten_clause ( AS! ( field_def | field_def_list ) )?
+                       | expr ( AS! field_def )?
+                       | STAR ( AS! ( field_def | field_def_list ) )?
 ;
 
 flatten_clause : FLATTEN^ LEFT_PAREN! expr RIGHT_PAREN!

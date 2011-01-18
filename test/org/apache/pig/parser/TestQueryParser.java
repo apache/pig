@@ -98,6 +98,23 @@ public class TestQueryParser {
     }
 
     @Test
+    public void testBagType() throws IOException, RecognitionException {
+        String query = "a = load '1.txt' as ( u : bag{}, v : bag{tuple(x, y)} );" +
+            "b = load '2.x' as ( t : {}, u : {(r,s)}, v : bag{ T : tuple( x, y ) }, w : bag{(z1, z2)} );" +
+            "c = load '3.x' as p : int;";
+        int errorCount = parse( query );
+        Assert.assertTrue( errorCount == 0 );
+    }
+
+    @Test
+    public void testFlatten() throws IOException, RecognitionException {
+        String query = "a = load '1.txt' as ( u, v, w : int );" +
+            "b = foreach a generate * as ( x, y, z ), flatten( u ) as ( r, s ), flatten( v ) as d, w + 5 as e:int;";
+        int errorCount = parse( query );
+        Assert.assertTrue( errorCount == 0 );
+    }
+
+    @Test
     public void testAST() throws IOException, RecognitionException  {
         CharStream input = new QueryParserFileStream( "test/org/apache/pig/parser/TestAST.pig" );
         QueryLexer lexer = new QueryLexer(input);
