@@ -31,13 +31,24 @@ import org.apache.pig.newplan.PlanVisitor;
 import org.apache.pig.newplan.logical.expression.LogicalExpression;
 
 public class LOUnion extends LogicalRelationalOperator {
-
+    private boolean onSchema;
+    
     // uid mapping from output uid to input uid
     private List<Pair<Long, Long>> uidMapping = new ArrayList<Pair<Long, Long>>();
     
     public LOUnion(OperatorPlan plan) {
         super("LOUnion", plan);
-    }    
+    }
+    
+    public LOUnion(OperatorPlan plan, boolean onSchema) {
+        this( plan );
+        this.onSchema = onSchema;
+    }
+    
+    public boolean isOnSchema() {
+        return onSchema;
+    }
+    
     @Override
     public LogicalSchema getSchema() throws FrontendException {
         if (schema != null) {

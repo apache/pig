@@ -267,33 +267,23 @@ filename returns[String filename]
 ;
 
 as_clause returns[LogicalSchema logicalSchema]
- : ^( AS tuple_def ) { $logicalSchema = $tuple_def.logicalSchema; }
+ : ^( AS field_def_list ) { $logicalSchema = $field_def_list.schema; }
 ;
 
-tuple_def returns[LogicalSchema logicalSchema]
- : tuple_def_full { $logicalSchema = $tuple_def_full.logicalSchema; }
- | tuple_def_simple { $logicalSchema = $tuple_def_simple.logicalSchema; }
-;
-
-tuple_def_full returns[LogicalSchema logicalSchema]
-@init { $logicalSchema = new LogicalSchema(); }
- : ^( TUPLE_DEF ( field { $logicalSchema.addField( $field.fieldSchema ); } )+ ) 
-;
-
-tuple_def_simple returns[LogicalSchema logicalSchema]
- : ^( TUPLE_DEF field )
-   {
-       $logicalSchema = new LogicalSchema();
-       $logicalSchema.addField( $field.fieldSchema );
-   }
-;
-
-field returns[LogicalFieldSchema fieldSchema]
- : ^( FIELD IDENTIFIER type )
+field_def returns[LogicalFieldSchema fieldSchema]
+ : ^( FIELD_DEF IDENTIFIER type )
    {
        $fieldSchema = new LogicalFieldSchema( $IDENTIFIER.text, $type.logicalSchema, $type.datatype );
    }
 ;
+
+field_def_list returns[LogicalSchema schema]
+@init {
+    $schema = new LogicalSchema();
+}
+ : ( field_def { $schema.addField( $field_def.fieldSchema ); } )+
+;
+
 
 type returns[byte datatype, LogicalSchema logicalSchema]
  : simple_type
@@ -326,16 +316,16 @@ simple_type returns[byte datatype]
 ;
 
 tuple_type returns[LogicalSchema logicalSchema]
- : ^( TUPLE_TYPE tuple_def_full )
+ : ^( TUPLE_TYPE field_def_list )
    { 
-       $logicalSchema = $tuple_def_full.logicalSchema;
+       $logicalSchema = $field_def_list.schema;
    }
 ;
 
 bag_type returns[LogicalSchema logicalSchema]
- : ^( BAG_TYPE tuple_def? )
+ : ^( BAG_TYPE tuple_type? )
    { 
-       $logicalSchema = $tuple_def.logicalSchema;
+       $logicalSchema = $tuple_type.logicalSchema;
    }
 ;
 
@@ -350,6 +340,8 @@ func_clause returns[FuncSpec funcSpec]
  | ^( FUNC_REF func_alias )
    {
        $funcSpec = builder.lookupFunction( $func_alias.alias );
+       if( $funcSpec == null )
+           $funcSpec = builder.buildFuncSpec( $func_alias.alias, new ArrayList<String>() );
    }
 ;
 
@@ -453,15 +445,14 @@ flatten_generated_item returns[LogicalExpressionPlan plan, boolean flattenFlag, 
 @init {
     $plan = new LogicalExpressionPlan();
 }
- : flatten_clause[$plan] { $flattenFlag = true; }
-   ( as_clause  { $schema = $as_clause.logicalSchema; } )?
- | ( expr[$plan] 
-   | STAR
+ : ( flatten_clause[$plan] { $flattenFlag = true; }
+   | expr[$plan]
+   | START
      {
          builder.buildProjectExpr( $plan, currentOp, $statement::inputIndex, null, -1 );
      }
    )
-   ( field { $schema =  new LogicalSchema(); $schema.addField( $field.fieldSchema ); } )?
+   ( field_def_list { $schema = $field_def_list.schema; } )?
 ;
 
 flatten_clause[LogicalExpressionPlan plan]
@@ -825,11 +816,13 @@ join_group_by_expr returns[LogicalExpressionPlan plan]
 ;
 
 union_clause returns[String alias]
- : ^( UNION ONSCHEMA? rel_list )
+@init {
+    boolean onSchema = false;
+}
+ : ^( UNION ( ONSCHEMA { onSchema = true; } )? rel_list )
    {
-      // TODO: onschema support
       $alias = builder.buildUnionOp( $statement::alias,
-          $statement::parallel, $rel_list.aliasList );
+          $statement::parallel, $rel_list.aliasList, onSchema );
    }
 ;
 

@@ -139,8 +139,8 @@ public class LogicalPlanBuilder {
         return buildFilterOp( new LOFilter( plan ), alias, parallel, inputAlias, filterPlan );
     }
     
-    String buildUnionOp(String alias, Integer parallel, List<String> inputAliases) {
-        LOUnion op = new LOUnion( plan );
+    String buildUnionOp(String alias, Integer parallel, List<String> inputAliases, boolean onSchema) {
+        LOUnion op = new LOUnion( plan, onSchema );
         return buildOp( op, alias, parallel, inputAliases, null );
     }
 
@@ -389,7 +389,7 @@ public class LogicalPlanBuilder {
             if( limit != null )
                 command.setLogFilesLimit( limit );
         } catch(IOException e) {
-        	throw new PlanGenerationFailureException( input, e );
+            throw new PlanGenerationFailureException( input, e );
         }
         
         return command;
@@ -403,7 +403,7 @@ public class LogicalPlanBuilder {
     }
     
     String buildStreamOp(String alias, Integer parallel, String inputAlias, StreamingCommand command,
-    		LogicalSchema schema, IntStream input)
+            LogicalSchema schema, IntStream input)
     throws RecognitionException {
         try {
             LOStream op = new LOStream( plan, pigContext.createExecutableManager(), command, schema );

@@ -158,26 +158,23 @@ load_clause : ^( LOAD filename func_clause? as_clause? )
 filename : QUOTEDSTRING
 ;
 
-as_clause: ^( AS tuple_def )
+as_clause: ^( AS field_def_list )
 ;
 
-tuple_def : tuple_def_full | tuple_def_simple
+field_def[Set<String> fieldNames] throws Exception
+ : ^( FIELD_DEF IDENTIFIER { validateSchemaAliasName( fieldNames, $IDENTIFIER.text ); } )
+-> ^( FIELD_DEF IDENTIFIER BYTEARRAY )
+ | ^( FIELD_DEF IDENTIFIER { validateSchemaAliasName( fieldNames, $IDENTIFIER.text ); } type )
 ;
 
-tuple_def_full
+field_def_list
 scope{
-Set<String> fieldNames;
-} : { $tuple_def_full::fieldNames = new HashSet<String>(); }
-    ^( TUPLE_DEF field[$tuple_def_full::fieldNames]+ )
-;
-
-tuple_def_simple : ^( TUPLE_DEF field[new HashSet<String>()] )
-;
-
-field[Set<String> fieldNames] throws Exception
- : ^( FIELD IDENTIFIER { validateSchemaAliasName( fieldNames, $IDENTIFIER.text ); } )
--> ^( FIELD IDENTIFIER BYTEARRAY )
- | ^( FIELD IDENTIFIER { validateSchemaAliasName( fieldNames, $IDENTIFIER.text ); } type )
+    Set<String> fieldNames;
+}
+@init {
+    $field_def_list::fieldNames = new HashSet<String>();
+}
+ : ( field_def[$field_def_list::fieldNames] )+
 ;
 
 type : simple_type | tuple_type | bag_type | map_type
@@ -186,10 +183,10 @@ type : simple_type | tuple_type | bag_type | map_type
 simple_type : INT | LONG | FLOAT | DOUBLE | CHARARRAY | BYTEARRAY
 ;
 
-tuple_type : ^( TUPLE_TYPE tuple_def_full )
+tuple_type : ^( TUPLE_TYPE field_def_list )
 ;
 
-bag_type : ^( BAG_TYPE tuple_def? )
+bag_type : ^( BAG_TYPE tuple_type? )
 ;
 
 map_type : MAP_TYPE
@@ -222,8 +219,7 @@ rel : alias {  validateAliasRef( aliases, $alias.name ); }
     | op_clause
 ;
 
-flatten_generated_item : flatten_clause as_clause?
-                       | ( expr | STAR ) field[new HashSet<String>()]?
+flatten_generated_item : ( flatten_clause | expr | START ) field_def_list?
 ;
 
 flatten_clause : ^( FLATTEN expr )
