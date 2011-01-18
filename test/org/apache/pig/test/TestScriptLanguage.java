@@ -18,6 +18,7 @@
 package org.apache.pig.test;
 
 
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -66,7 +67,7 @@ public class TestScriptLanguage {
         String[] script = {
                 "#!/usr/bin/python",
                 "from org.apache.pig.scripting import *",
-                "Pig.fs(\"-rmr simple_out\")",
+                "Pig.fs(\"rmr simple_out\")",
                 "input = 'simple_table'",
                 "output = 'simple_out'",
                 "P = Pig.compile(\"\"\"a = load '$input';store a into '$output';\"\"\")",
@@ -104,7 +105,7 @@ public class TestScriptLanguage {
         String[] script = {
                 "#!/usr/bin/python",
                 "from org.apache.pig.scripting import *",
-                "Pig.fs(\"-rmr simple_out\")",
+                "Pig.fs(\"rmr simple_out\")",
                 "input = 'simple_table_6'",
                 "output = 'simple_out'",
                 "P = Pig.compileFromFile(\"\"\"testScript.pig\"\"\")",
@@ -148,8 +149,8 @@ public class TestScriptLanguage {
         String[] script = {
                 "#!/usr/bin/python",
                 "from org.apache.pig.scripting import *",
-                "Pig.fs(\"-rmr simple_out\")",
-                "Pig.fs(\"-rmr simple_out2\")",
+                "Pig.fs(\"rmr simple_out\")",
+                "Pig.fs(\"rmr simple_out2\")",
                 "input = 'simple_table_1'",
                 "output1 = 'simple_out'",
                 "output2 = 'simple_out'",
@@ -184,7 +185,7 @@ public class TestScriptLanguage {
     public void pigRunnerTest() throws Exception {
         String[] script = {
                 "from org.apache.pig.scripting import *",
-                "Pig.fs(\"-rmr simple_out\")",
+                "Pig.fs(\"rmr simple_out\")",
                 "input = 'simple_table_2'",
                 "output = 'simple_out'",
                 "P = Pig.compile(\"\"\"a = load '$input';store a into '$output';\"\"\")",
@@ -227,8 +228,8 @@ public class TestScriptLanguage {
                 "#!/usr/bin/python",
                 "from org.apache.pig.scripting import *",
                 "input = 'simple_table_3'",
-                "Pig.fs(\"-rmr simple_out\")",
-                "Pig.fs(\"-rmr simple_out2\")",
+                "Pig.fs(\"rmr simple_out\")",
+                "Pig.fs(\"rmr simple_out2\")",
                 "output1 = 'simple_out'",
                 "output2 = 'simple_out2'",
                 "P = Pig.compile(\"mypipeline\", \"\"\"a = load '$input';store a into '$output';\"\"\")",
@@ -266,8 +267,8 @@ public class TestScriptLanguage {
         String[] script = {
                 "#!/usr/bin/python",
                 "from org.apache.pig.scripting import *",
-                "Pig.fs(\"-rmr simple_out\")",
-                "Pig.fs(\"-rmr simple_out2\")",
+                "Pig.fs(\"rmr simple_out\")",
+                "Pig.fs(\"rmr simple_out2\")",
                 "input = 'simple_table_4'",
                 "P = Pig.compile(\"mypipeline\", \"\"\"a = load '$input';store a into '$output';\"\"\")",
                 "for x in [\"simple_out\", \"simple_out2\"]:",
@@ -304,7 +305,7 @@ public class TestScriptLanguage {
         String[] script = {
                 "#!/usr/bin/python",
                 "from org.apache.pig.scripting import *",
-                "Pig.fs(\"-rmr simple_out\")",
+                "Pig.fs(\"rmr simple_out\")",
                 "input = 'simple_table_5'",
                 "output = 'simple_out'",
                 "P = Pig.compile(\"\"\"a = load '$input';store a into '$output';\"\"\")",
@@ -337,4 +338,37 @@ public class TestScriptLanguage {
         assertEquals(3, stats.getRecordWritten());     
     }
 
+    @Test
+    public void NegativeTest() throws Exception {
+        String[] script = {
+                "#!/usr/bin/python",
+                " from org.apache.pig.scripting import *",
+                "Pig.fs(\"rmr simple_out\")"
+        };
+
+        Util.createLocalInputFile( "testScript.py", script);
+        
+        String[] args = { "-x", "local", "testScript.py"};
+        PigStats stats = PigRunner.run(args, null);
+        assertFalse(stats.isSuccessful());
+        assertTrue(stats.getErrorCode() == 1121);
+        assertTrue(stats.getReturnCode() == PigRunner.ReturnCode.PIG_EXCEPTION);        
+    }
+   
+    @Test
+    public void NegativeTest2() throws Exception {
+        String[] script = {
+                "#!/usr/bin/python",
+                " from org.apache.pig.scripting import *",
+                "raise 'This is a test'"
+        };
+
+        Util.createLocalInputFile( "testScript.py", script);
+        
+        String[] args = { "-x", "local", "testScript.py"};
+        PigStats stats = PigRunner.run(args, null);
+        assertFalse(stats.isSuccessful());
+        assertTrue(stats.getErrorCode() == 1121);
+        assertTrue(stats.getReturnCode() == PigRunner.ReturnCode.PIG_EXCEPTION);
+    }
 }

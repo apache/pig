@@ -78,7 +78,7 @@ public abstract class ScriptEngine {
      * Loads the script in the interpreter.
      * @param script
      */
-    protected abstract void load(InputStream script);
+    protected abstract void load(InputStream script) throws IOException;
 
     /**
      * Gets ScriptEngine classname or keyword for the scripting language

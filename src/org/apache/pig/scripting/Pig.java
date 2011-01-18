@@ -58,7 +58,8 @@ public class Pig {
         FsShell shell = new FsShell(ConfigurationUtil.toConfiguration(ctx
                 .getPigContext().getProperties()));
         if (cmd != null) {
-            String[] cmdTokens = cmd.split("\\s+");            
+            String[] cmdTokens = cmd.split("\\s+");         
+            if (!cmdTokens[0].startsWith("-")) cmdTokens[0] = "-" + cmdTokens[0];
             try {
                 shell.run(cmdTokens);
             } catch (Exception e) {

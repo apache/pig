@@ -34,12 +34,14 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.PigServer;
+import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.logicalLayer.parser.ParseException;
 import org.apache.pig.impl.util.Utils;
 import org.apache.pig.scripting.ScriptEngine;
 import org.apache.pig.tools.pigstats.PigStats;
 import org.python.core.Py;
+import org.python.core.PyException;
 import org.python.core.PyFrame;
 import org.python.core.PyFunction;
 import org.python.core.PyObject;
@@ -101,7 +103,7 @@ public class JythonScriptEngine extends ScriptEngine {
                     }
                                         
                     if (is != null) {
-                        interpreter.execfile(is); 
+                        execfile(is); 
                         filesLoaded.add(path);
                     } else {
                         throw new IOException(
@@ -113,8 +115,13 @@ public class JythonScriptEngine extends ScriptEngine {
             }           
         }        
         
-        static void execfile(InputStream script) {
-            interpreter.execfile(script);
+        static void execfile(InputStream script) throws ExecException {
+            try {
+                interpreter.execfile(script);
+            } catch (PyException e) {
+                String message = "Python Error. "+e.toString();
+                throw new ExecException(message, 1121, e);
+            }
         }
         
         static String get(String name) {
@@ -215,7 +222,7 @@ public class JythonScriptEngine extends ScriptEngine {
     }
    
     @Override
-    public void load(InputStream script) {
+    public void load(InputStream script) throws IOException {
         Interpreter.execfile(script);
     }
 
