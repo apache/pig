@@ -53,19 +53,21 @@ public class Pig {
      * string.
      * @throws IOException
      */
-    public static void fs(String cmd) throws IOException {
+    public static int fs(String cmd) throws IOException {
         ScriptPigContext ctx = getScriptContext();
         FsShell shell = new FsShell(ConfigurationUtil.toConfiguration(ctx
                 .getPigContext().getProperties()));
+        int code = -1;
         if (cmd != null) {
             String[] cmdTokens = cmd.split("\\s+");         
             if (!cmdTokens[0].startsWith("-")) cmdTokens[0] = "-" + cmdTokens[0];
             try {
-                shell.run(cmdTokens);
+                code = shell.run(cmdTokens);
             } catch (Exception e) {
                 throw new IOException("Run filesystem command failed", e);
             }
         }
+        return code;
     }
     
     /**
@@ -201,7 +203,7 @@ public class Pig {
      * @throws IOException if there is not a key for each
      * Pig Latin parameter or if they contain unsupported types.
      */
-    public BoundScript bind(Map<String, String> vars) throws IOException {
+    public BoundScript bind(Map<String, Object> vars) throws IOException {
         return new BoundScript(replaceParameters(script, vars), scriptContext, name);
     }
         
@@ -217,9 +219,9 @@ public class Pig {
      * @throws IOException  if there is not a key for each
      * Pig Latin parameter or if they contain unsupported types.
      */
-    public BoundScript bind(List<Map<String, String>> vars) throws IOException {
+    public BoundScript bind(List<Map<String, Object>> vars) throws IOException {
         List<String> lst = new ArrayList<String>();
-        for (Map<String, String> var : vars) {
+        for (Map<String, Object> var : vars) {
             lst.add(replaceParameters(script, var));
         }
         return new BoundScript(lst, scriptContext, name);
@@ -242,7 +244,7 @@ public class Pig {
      */
     public BoundScript bind() throws IOException {
         ScriptEngine engine = scriptContext.getScriptEngine();
-        Map<String, String> vars = engine.getParamsFromVariables();
+        Map<String, Object> vars = engine.getParamsFromVariables();
         return bind(vars);
     }
     
@@ -266,11 +268,11 @@ public class Pig {
      * @param vars parameters and their values
      * @return the modified version
      */
-    private String replaceParameters(String qstr, Map<String, String> vars)
+    private String replaceParameters(String qstr, Map<String, Object> vars)
             throws IOException {
         ArrayList<String> plist = new ArrayList<String>();
-        for (Entry<String, String> entry : vars.entrySet()) {
-            plist.add(entry.getKey() + "=" + entry.getValue());
+        for (Entry<String, Object> entry : vars.entrySet()) {
+            plist.add(entry.getKey() + "=" + entry.getValue().toString());
         }
         
         ParameterSubstitutionPreprocessor psp = 

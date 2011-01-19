@@ -232,11 +232,11 @@ public class JythonScriptEngine extends ScriptEngine {
     }
 
     @Override
-    protected Map<String, String> getParamsFromVariables() throws IOException {
+    protected Map<String, Object> getParamsFromVariables() throws IOException {
         PyFrame frame = Py.getFrame();
         @SuppressWarnings("unchecked")
         List<PyTuple> locals = (List<PyTuple>) ((PyStringMap) frame.getLocals()).items();
-        Map<String, String> vars = new HashMap<String, String>();
+        Map<String, Object> vars = new HashMap<String, Object>();
         for (PyTuple item : locals) {
             String key = (String) item.get(0);
             Object obj = item.get(1);

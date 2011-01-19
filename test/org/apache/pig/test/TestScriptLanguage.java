@@ -17,7 +17,6 @@
  */
 package org.apache.pig.test;
 
-
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -338,6 +337,69 @@ public class TestScriptLanguage {
         assertEquals(3, stats.getRecordWritten());     
     }
 
+    @Test
+    public void bindNonStringVariableTest() throws Exception {
+        String[] script = {
+                "#!/usr/bin/python",
+                "from org.apache.pig.scripting import *",
+                "Pig.fs(\"-rmr simple_out\")",
+                "input = 'simple_table'",
+                "output = 'simple_out'",
+                "max = 2",
+                "P = Pig.compile(\"\"\"a = load '$in' as (a0:int, a1:int);" +
+                "   b = filter a by a0 > $max;" +
+                "   store b into '$out';\"\"\")",
+                "Q = P.bind({'in':input, 'out':output, 'max':max})",
+                "stats = Q.runSingle()",
+                "if stats.isSuccessful():",
+                "\tprint 'success!'",
+                "else:",
+                "\traise 'failed'"
+        };
+        String[] input = {
+                "1\t3",
+                "2\t4",
+                "3\t5"
+        };
+        
+        Util.deleteFile(cluster, "simple_table");
+        Util.createInputFile(cluster, "simple_table", input);
+        Util.createLocalInputFile( "testScript.py", script);
+        
+        ScriptEngine scriptEngine = ScriptEngine.getInstance("jython");
+        Map<String, List<PigStats>> statsMap = scriptEngine.run(pigServer.getPigContext(), "testScript.py");
+        assertEquals(1, statsMap.size());        
+        Iterator<List<PigStats>> it = statsMap.values().iterator();      
+        PigStats stats = it.next().get(0);
+        assertTrue(stats.isSuccessful());
+        assertEquals(1, stats.getNumberJobs());
+        String name = stats.getOutputNames().get(0);
+        assertEquals("simple_out", name);
+        assertEquals(4, stats.getBytesWritten());
+        assertEquals(1, stats.getRecordWritten());     
+    }
+    
+    @Test
+    public void fsTest() throws Exception {
+        String[] script = {
+                "#!/usr/bin/python",
+                "from org.apache.pig.scripting import *",
+                "ret = Pig.fs(\"-rmr simple_out\")",
+                "if ret == 0:",
+                "\tprint 'success!'",
+                "else:",
+                "\traise 'fs command failed'"
+        };
+ 
+        Util.createLocalInputFile( "testScript.py", script);
+        
+        String[] args = { "-x", "local", "testScript.py"};
+        PigStats stats = PigRunner.run(args, null);
+        assertFalse(stats.isSuccessful());
+        //assertTrue(stats.getErrorCode() == 1121);
+        //assertTrue(stats.getReturnCode() == PigRunner.ReturnCode.PIG_EXCEPTION);   
+    }
+    
     @Test
     public void NegativeTest() throws Exception {
         String[] script = {

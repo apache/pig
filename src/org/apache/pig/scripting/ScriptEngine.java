@@ -89,7 +89,7 @@ public abstract class ScriptEngine {
      * Returns a map from local variable names to their values
      * @throws IOException
      */
-    protected abstract Map<String, String> getParamsFromVariables()
+    protected abstract Map<String, Object> getParamsFromVariables()
             throws IOException;
     
     /** 

@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-1806: Modify embedded Pig API for usability (rding)
+
 PIG-1799: Provide deployable maven artifacts for pigunit and pig smoke tests
 (cos via gates)
 
