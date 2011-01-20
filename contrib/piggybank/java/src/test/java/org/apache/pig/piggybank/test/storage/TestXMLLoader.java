@@ -13,16 +13,18 @@
 
 package org.apache.pig.piggybank.test.storage;
 
+import static org.apache.pig.ExecType.LOCAL;
+
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.regex.Pattern;
 
 import junit.framework.TestCase;
 
+import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
-import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.Tuple;
-import static org.apache.pig.ExecType.LOCAL;
 
 public class TestXMLLoader extends TestCase {
   private static String patternString = "(\\d+)!+(\\w+)~+(\\w+)";
@@ -67,4 +69,85 @@ public class TestXMLLoader extends TestCase {
     }
     assertEquals(3, tupleCount); // pig adds extra 
   }
+  
+  public void testXMLLoaderShouldLoadBasicBzip2Files() throws Exception {
+    String filename = TestHelper.createTempFile(data, "");
+    Process bzipProc = Runtime.getRuntime().exec("bzip2 "+filename);
+    int waitFor = bzipProc.waitFor();
+  
+    if(waitFor != 0)
+    {
+        fail ("Failed to create the class");
+    }
+
+    filename = filename + ".bz2";
+
+    try
+    {
+        PigServer pigServer = new PigServer (ExecType.LOCAL);
+        String loadQuery = "A = LOAD 'file:" + filename + "' USING org.apache.pig.piggybank.storage.XMLLoader('property') as (doc:chararray);";
+        pigServer.registerQuery(loadQuery);
+        Iterator<Tuple> it = pigServer.openIterator("A");
+        int tupleCount = 0;
+        while (it.hasNext()) {
+        Tuple tuple = (Tuple) it.next();
+        if (tuple == null)
+        break;
+        else {
+        //TestHelper.examineTuple(expected, tuple, tupleCount);
+        if (tuple.size() > 0) {
+            tupleCount++;
+	        }
+	     }
+        }
+	    
+        assertEquals(3, tupleCount); // pig adds extra
+    
+    }finally
+    {
+        new File(filename).delete();
+    }
+	    
+   }
+
+   public void testLoaderShouldLoadBasicGzFile() throws Exception {
+    String filename = TestHelper.createTempFile(data, "");
+	  
+    Process bzipProc = Runtime.getRuntime().exec("gzip "+filename);
+    int waitFor = bzipProc.waitFor();
+	  
+    if(waitFor != 0)
+    {
+        fail ("Failed to create the class");
+    }
+	  
+    filename = filename + ".gz";
+    
+    try
+    {
+
+    PigServer pigServer = new PigServer (ExecType.LOCAL);
+    String loadQuery = "A = LOAD 'file:" + filename + "' USING org.apache.pig.piggybank.storage.XMLLoader('property') as (doc:chararray);";
+    pigServer.registerQuery(loadQuery);
+
+    Iterator<Tuple> it = pigServer.openIterator("A");
+    int tupleCount = 0;
+    while (it.hasNext()) {
+    Tuple tuple = (Tuple) it.next();
+    if (tuple == null)
+        break;
+    else {
+        //TestHelper.examineTuple(expected, tuple, tupleCount);
+        if (tuple.size() > 0) {
+        tupleCount++;
+             }
+        }
+    }	
+    assertEquals(3, tupleCount); // pig adds extra
+   
+    }finally
+    {
+        new File(filename).delete();
+    }
+ }
 }

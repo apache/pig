@@ -28,6 +28,8 @@ PIG-1249: Safe-guards against misconfigured Pig scripts without PARALLEL keyword
 
 IMPROVEMENTS
 
+PIG-1561: XMLLoader in Piggybank does not support bz2 or gzip compressed XML files (vivekp via daijy)
+
 PIG-1728: doc updates (chandec via olgan)
 
 PIG-1756: doc updates (chandec via olgan)
