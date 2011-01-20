@@ -24,8 +24,6 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
-PIG-1561: XMLLoader in Piggybank does not support bz2 or gzip compressed XML files (daijy)
-
 PIG-1806: Modify embedded Pig API for usability (rding)
 
 PIG-1799: Provide deployable maven artifacts for pigunit and pig smoke tests
@@ -96,6 +94,8 @@ PIG-1518: multi file input format for loaders (yanz via rding)
 PIG-1249: Safe-guards against misconfigured Pig scripts without PARALLEL keyword (zjffdu vi olgan)
 
 IMPROVEMENTS
+
+PIG-1561: XMLLoader in Piggybank does not support bz2 or gzip compressed XML files (vivekp via daijy)
 
 PIG-1677: modify the repository path of pig artifacts to org/apache/pig in stead or org/apache/hadoop/pig (nrai via olgan)
 
