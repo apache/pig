@@ -27,7 +27,7 @@ import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
-import org.joda.time.*;
+import org.joda.time.DateTime;
 
 /**
  * ISOToHour truncates an ISO8601 datetime string to the precision of the hour field
@@ -80,16 +80,12 @@ import org.joda.time.*;
 public class ISOToHour extends EvalFunc<String> {
 
     @Override
-    public String exec(Tuple input) throws IOException
-    {
+    public String exec(Tuple input) throws IOException {
         if (input == null || input.size() < 1) {
             return null;
-        }
-        
-        // Set the time to default or the output is in UTC
-        DateTimeZone.setDefault(DateTimeZone.UTC);
+        }        
 
-        DateTime dt = new DateTime((String)input.get(0).toString());
+        DateTime dt = ISOHelper.parseDateTime(input);
 
         // Set the minute, second and milliseconds to 0
         DateTime result = dt.minuteOfHour().setCopy(0).secondOfMinute().setCopy(0).millisOfSecond().setCopy(0);
@@ -97,10 +93,10 @@ public class ISOToHour extends EvalFunc<String> {
         return result.toString();
     }
 
-	@Override
-	public Schema outputSchema(Schema input) {
+    @Override
+    public Schema outputSchema(Schema input) {
         return new Schema(new Schema.FieldSchema(getSchemaName(this.getClass().getName().toLowerCase(), input), DataType.CHARARRAY));
-	}
+    }
 
     @Override
     public List<FuncSpec> getArgToFuncMapping() throws FrontendException {
