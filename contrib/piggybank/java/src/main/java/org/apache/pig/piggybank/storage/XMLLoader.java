@@ -29,9 +29,13 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.compress.CompressionCodec;
+import org.apache.hadoop.io.compress.CompressionCodecFactory;
+import org.apache.hadoop.io.compress.CompressionInputStream;
 import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
@@ -42,6 +46,8 @@ import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.io.BufferedPositionedInputStream;
+import org.apache.tools.bzip2r.CBZip2InputStream;
+
 
 
 
@@ -538,7 +544,15 @@ public class XMLLoader extends LoadFunc {
                 InterruptedException {
             
             return new XMLFileRecordReader(recordIdentifier);
-        }     
+        }  
+        
+        @Override
+        protected boolean isSplitable(JobContext context, Path filename) {
+        	// Always returns false since this version of XMLLoader will read an entire file.
+        	// ie.w/o this , any file > block size, MR will compute multiple splits but all 
+        	// mappers will read the full file which is functionally wrong.
+        	return false;
+        }
     }
     
     //------------------------------------------------------------------------
@@ -574,7 +588,26 @@ public class XMLLoader extends LoadFunc {
             FileSystem fs = file.getFileSystem(job);
             FSDataInputStream fileIn = fs.open(split.getPath());
         
-            this.xmlLoaderBPIS = new XMLLoaderBufferedPositionedInputStream(fileIn);
+            
+            if(file.toString().endsWith(".bz2") )
+            {
+            	// For bzip2 files use CBZip2InputStream to read and supply the upper input stream.
+            	this.xmlLoaderBPIS = new XMLLoaderBufferedPositionedInputStream(new CBZip2InputStream(fileIn, 9, end));
+            }
+            else if (file.toString().endsWith(".gz"))
+            {
+            	CompressionCodecFactory compressionCodecs =  new CompressionCodecFactory(job);
+            	final CompressionCodec codec = compressionCodecs.getCodec(file);
+            	 if (codec != null) {
+            	      CompressionInputStream stream = codec.createInputStream(fileIn);
+            	      this.xmlLoaderBPIS = new XMLLoaderBufferedPositionedInputStream(stream);
+            	    }
+            }
+            
+            else
+            {
+            	this.xmlLoaderBPIS = new XMLLoaderBufferedPositionedInputStream(fileIn);
+            }
         }
 
         
