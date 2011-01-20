@@ -24,6 +24,9 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-1781 Piggybank: ISOToDay disregards timezone (should use ISODateTimeFormat
+instead of DateTime to parse) (misterbeebee via gates)
+
 PIG-1722 PiggyBank AllLoader - Load multiple file formats in one load
 statement (gerritjw via gates)
 

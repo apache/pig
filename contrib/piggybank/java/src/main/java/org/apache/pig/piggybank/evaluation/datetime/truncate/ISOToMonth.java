@@ -24,7 +24,6 @@ import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.joda.time.DateTime;
-import org.joda.time.DateTimeZone;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -82,16 +81,12 @@ import java.util.List;
 public class ISOToMonth extends EvalFunc<String> {
 
     @Override
-    public String exec(Tuple input) throws IOException
-    {
+    public String exec(Tuple input) throws IOException {
         if (input == null || input.size() < 1) {
             return null;
         }
-        
-        // Set the time to default or the output is in UTC
-        DateTimeZone.setDefault(DateTimeZone.UTC);
 
-        DateTime dt = new DateTime((String)input.get(0).toString());
+        DateTime dt = ISOHelper.parseDateTime(input);
 
         // Set the day to 1 and the hour, minute, second and milliseconds to 0
         DateTime result = dt.dayOfMonth().setCopy(1).hourOfDay().setCopy(0).minuteOfHour().setCopy(0).secondOfMinute().setCopy(0).millisOfSecond().setCopy(0);
@@ -99,10 +94,10 @@ public class ISOToMonth extends EvalFunc<String> {
         return result.toString();
     }
 
-	@Override
-	public Schema outputSchema(Schema input) {
+    @Override
+    public Schema outputSchema(Schema input) {
         return new Schema(new Schema.FieldSchema(getSchemaName(this.getClass().getName().toLowerCase(), input), DataType.CHARARRAY));
-	}
+    }
 
     @Override
     public List<FuncSpec> getArgToFuncMapping() throws FrontendException {
