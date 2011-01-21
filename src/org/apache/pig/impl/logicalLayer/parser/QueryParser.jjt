@@ -966,6 +966,23 @@ TOKEN : { <QUOTEDSTRING :  "'"
 )*
 "'"> }
 
+
+TOKEN:{ < QUOTED_MULTI_STRING :  
+"'" (  (~["'","\\","\n","\r"])
+       | ("\\"  ["n","t","b","r","f","\\","'"] )
+       | ("\\u" ["0"-"9","A"-"F","a"-"f"]["0"-"9","A"-"F","a"-"f"]
+                ["0"-"9","A"-"F","a"-"f"]["0"-"9","A"-"F","a"-"f"])
+    )* 
+    ["\n","\r"] 
+    (  (~["'","\\"] )
+       | ("\\"  ["n","t","b","r","f","\\","'"] )
+       | ("\\u" ["0"-"9","A"-"F","a"-"f"]["0"-"9","A"-"F","a"-"f"]
+                ["0"-"9","A"-"F","a"-"f"]["0"-"9","A"-"F","a"-"f"])
+    )*
+"'"> 
+}
+
+
 TOKEN : { <EXECCOMMAND : "`" (~["`"])* "`"> }
 // Pig has special variables starting with $
 TOKEN : { <DOLLARVAR : "$" <INTEGER> > }
@@ -1396,6 +1413,33 @@ String StringList() :
 	)
 	{log.debug("StringList: " + sb.toString()); return sb.toString();}
 }
+
+String FunctionArgs() : 
+{
+       StringBuilder sb = new StringBuilder(); 
+       Token t;
+}
+{
+(
+       (
+         ( ( t = <QUOTED_MULTI_STRING> {sb.append(StringUtils.unescapeInputString(t.image));} )
+           | 
+           ( t = <QUOTEDSTRING> {sb.append(StringUtils.unescapeInputString(t.image));})
+         )
+         ( "," 
+           (
+            (t = <QUOTED_MULTI_STRING> {sb.append(",");sb.append(StringUtils.unescapeInputString(t.image));} ) 
+            | 
+            (t = <QUOTEDSTRING> {sb.append(",");sb.append(StringUtils.unescapeInputString(t.image));} ) 
+           ) 
+         )*
+       )
+       | {}
+)
+       {log.debug("FuncArgs: " + sb.toString()); return sb.toString();}
+}
+
+
 
 //B = native ('mymr.jar' [, 'other.jar' ...]) A store into 'storeLocation' using storeFunc load 'loadLocation' using loadFunc ['params'];
 LogicalOperator MapReduceClause(LogicalPlan lp) : 
@@ -3372,7 +3416,7 @@ FuncSpec NonEvalFuncSpec(byte funcType) :
 		}
     }
     )
-|   functionName = QualifiedFunction() ( "(" functionArgs = StringList() ")" )?
+|   functionName = QualifiedFunction() ( "(" functionArgs = FunctionArgs() ")" )?
     )
 	{
 		if(null != func) {

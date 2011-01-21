@@ -233,8 +233,11 @@ func_name : eid ( ( PERIOD | DOLLAR ) eid )*
 func_alias : IDENTIFIER
 ;
 
-func_args : QUOTEDSTRING ( COMMA QUOTEDSTRING )*
-         -> QUOTEDSTRING+
+func_args_string : QUOTEDSTRING | MULTILINE_QUOTEDSTRING
+;
+
+func_args : func_args_string ( COMMA func_args_string )*
+         -> func_args_string+
 ;
 
 group_clause : ( GROUP | COGROUP )^ group_item_list ( USING! group_type )?
