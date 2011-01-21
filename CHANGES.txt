@@ -213,6 +213,8 @@ PIG-1309: Map-side Cogroup (ashutoshc)
 
 BUG FIXES
 
+PIG-1815: pig task retains used instances of PhysicalPlan (thejas)
+
 PIG-1785: New logical plan: uid conflict in flattened fields (daijy)
 
 PIG-1787: Error in logical plan generated (daijy)

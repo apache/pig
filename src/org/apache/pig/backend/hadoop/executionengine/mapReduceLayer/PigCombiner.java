@@ -246,11 +246,19 @@ public class PigCombiner {
         
         /**
          * Will be called once all the intermediate keys and values are
-         * processed. So right place to stop the reporter thread.
+         * processed.
+         * cleanup references to the PhysicalPlan
          */
         @Override        
         protected void cleanup(Context context) throws IOException, InterruptedException {
             super.cleanup(context);
+            leaf = null;
+            pack = null;
+            pigReporter.setRep(null);
+            pigReporter = null;
+            pigContext = null;
+            roots = null;
+            cp = null;
         }
 
         /**
