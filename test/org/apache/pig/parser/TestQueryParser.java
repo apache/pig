@@ -50,51 +50,42 @@ public class TestQueryParser {
 
     @Test
     public void testNegative1() throws IOException, RecognitionException {
-        int errorCount = parse( "A = load 'x'; B=A;" );
-        Assert.assertTrue( errorCount > 0 );
+        shouldFail("A = load 'x'; B=A;");
     }
     
     @Test
     public void testNegative2() throws IOException, RecognitionException {
-        int errorCount = parse( "A = load 'x'; B=(A);" );
-        Assert.assertTrue( errorCount > 0 );
+        shouldFail("A = load 'x'; B=(A);");
     }
 
     @Test
     public void testNegative3() throws IOException, RecognitionException {
-        int errorCount = parse( "A = load 'x';B = (A) as (a:int, b:long);" );
-        Assert.assertTrue( errorCount > 0 );
+        shouldFail("A = load 'x';B = (A) as (a:int, b:long);");
     }
 
     @Test
     public void testNegative4() throws IOException, RecognitionException {
-        int errorCount = parse( "A = load 'x'; B = ( filter A by $0 == 0 ) as (a:bytearray, b:long);" );
-        Assert.assertTrue( errorCount > 0 );
+        shouldFail("A = load 'x'; B = ( filter A by $0 == 0 ) as (a:bytearray, b:long);");
     }
     
     @Test
     public void testNegative5() throws IOException, RecognitionException {
-        int errorCount = parse( "A = load 'x'; D = group A by $0:long;" );
-        Assert.assertTrue( errorCount > 0 );
+        shouldFail("A = load 'x'; D = group A by $0:long;");
     }
     
     @Test
     public void testNegative6() throws IOException, RecognitionException {
-        int errorCount = parse( "A = load '/Users/gates/test/data/studenttab10'; B = foreach A generate $0, 3.0e10.1;" );
-        Assert.assertTrue( errorCount > 0 );
+        shouldFail("A = load '/Users/gates/test/data/studenttab10'; B = foreach A generate $0, 3.0e10.1;");
     }
     
     @Test
     public void test2() throws IOException, RecognitionException {
-        int errorCount = parse( "A = load '/Users/gates/test/data/studenttab10'; B = foreach A generate ( $0 == 0 ? 1 : 0 );" );
-        Assert.assertTrue( errorCount == 0 );
+        shouldPass("A = load '/Users/gates/test/data/studenttab10'; B = foreach A generate ( $0 == 0 ? 1 : 0 );");
     }
 
     @Test
     public void test3() throws IOException, RecognitionException {
-        int errorCount = parse( 
- "a = load '1.txt' as (a0); b = foreach a generate flatten((bag{T:tuple(m:map[])})a0) as b0:map[];c = foreach b generate (long)b0#'key1';" );
-        Assert.assertTrue( errorCount == 0 );
+        shouldPass("a = load '1.txt' as (a0); b = foreach a generate flatten((bag{T:tuple(m:map[])})a0) as b0:map[];c = foreach b generate (long)b0#'key1';");
     }
 
     @Test
@@ -157,6 +148,44 @@ public class TestQueryParser {
         stmt = ast.getChild( 4 );
         Assert.assertTrue( "STORE".equalsIgnoreCase( stmt.getChild( 0 ).getText() ) );
     }
+
+    @Test
+    public void testMultilineFunctionArguments() throws RecognitionException, IOException {
+        final String pre = "STORE data INTO 'testOut' \n" +
+                           "USING PigStorage (\n";
+
+        String lotsOfNewLines = "'{\"debug\": 5,\n" +
+                                "  \"data\": \"/user/lguo/testOut/ComponentActTracking4/part-m-00000.avro\",\n" +
+                                "  \"field0\": \"int\",\n" +
+                                "  \"field1\": \"def:browser_id\",\n" +
+                                "  \"field3\": \"def:act_content\" }\n '\n";
+
+        String [] queries = { lotsOfNewLines,
+                            "'notsplitatall'",
+                            "'see you\nnext line'",
+                            "'surrounded \n by spaces'",
+                            "'\nleading newline'",
+                            "'trailing newline\n'",
+                            "'\n'",
+                            "'repeated\n\n\n\n\n\n\n\n\nnewlines'",
+                            "'also\ris\rsupported\r'"};
+
+        final String post = ");";
+
+        for(String q : queries) {
+            shouldPass(pre + q + post);
+        }
+    }
+
+    private void shouldPass(String query) throws RecognitionException, IOException {
+        System.out.println("Testing: " + query);
+        Assert.assertEquals(query + " should have passed", 0, parse(query));
+    }
+
+    private void shouldFail(String query) throws RecognitionException, IOException {
+        System.out.println("Testing: " + query);
+        Assert.assertFalse(query + " should have failed", 0 == parse(query));
+    }
     
     private int parse(String query) throws IOException, RecognitionException  {
         CharStream input = new QueryParserStringStream( query );
@@ -169,8 +198,8 @@ public class TestQueryParser {
         Tree ast = (Tree)result.getTree();
 
         System.out.println( ast.toStringTree() );
-        TreePrinter.printTree( (CommonTree)ast, 0 );
-        Assert.assertEquals( 0, lexer.getNumberOfSyntaxErrors() );
+        TreePrinter.printTree((CommonTree) ast, 0);
+        Assert.assertEquals(0, lexer.getNumberOfSyntaxErrors());
         return parser.getNumberOfSyntaxErrors();
     }
 

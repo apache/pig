@@ -24,6 +24,7 @@ import org.junit.Test;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
+import java.io.ByteArrayInputStream;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.InputStream;
@@ -1383,4 +1384,102 @@ public class TestParamSubPreproc extends TestCase {
         }
 
     }
+    
+    /* Test case 
+     *  Use a parameter within a pig function argument (containing newline characters).
+     *  provide value for it. 
+     */
+    @Test 
+    public void testSubstitutionInFuncArgs() throws Exception{
+        log.info("Starting test testSubstitutionInFuncArgs()");
+        final String queryString = 
+    "  avro = LOAD '/data/part-m-00000.avro' USING PigStorage ();\n" +
+    "   avro2 = FOREACH avro GENERATE  browser_id, component_version, " +
+                                   "member_id, page_key, session_id, tracking_time, type;\n" +
+
+    "    fs -rmr testOut/out1;\n" +
+    "    STORE avro2 INTO 'testOut/out2'\n" +
+    "    USING PigStorage (\n" +
+    "    ' {\n" +
+    "   \"debug\": $debug,\n" +
+    "    \"schema\":\n" +
+    "        { \"type\":\"record\",\"name\":\"$name\",   \n" +
+    "          \"fields\": [ {\"name\":\"browser_id\", \"type\":[\"null\",\"string\"]},  \n" +
+    "                      {\"name\":\"component_version\",\"type\":\"int\"},\n" +
+    "                      {\"name\":\"member_id\",\"type\":\"int\"},\n" + 
+    "                      {\"name\":\"page_key\",\"type\":[\"null\",\"string\"]},\n" + 
+    "                      {\"name\":\"session_id\",\"type\":\"long\"},\n" + 
+    "                      {\"name\":\"tracking_time\",\"type\":\"long\"},\n" + 
+    "                      {\"name\":\"type\",\"type\":[\"null\",\"string\"]}\n" + 
+    "                   ]\n" +
+    "        }\n" +
+    "    }\n"+
+    "    ');";
+
+        final String expectedString = 
+            "  avro = LOAD '/data/part-m-00000.avro' USING PigStorage ();\n" +
+            "   avro2 = FOREACH avro GENERATE  browser_id, component_version, " +
+                                           "member_id, page_key, session_id, tracking_time, type;\n" +
+
+            "    fs -rmr testOut/out1;\n" +
+            "    STORE avro2 INTO 'testOut/out2'\n" +
+            "    USING PigStorage (\n" +
+            "    ' {\n" +
+            "   \"debug\": 5,\n" +
+            "    \"schema\":\n" +
+            "        { \"type\":\"record\",\"name\":\"TestRecord\",   \n" +
+            "          \"fields\": [ {\"name\":\"browser_id\", \"type\":[\"null\",\"string\"]},  \n" +
+            "                      {\"name\":\"component_version\",\"type\":\"int\"},\n" +
+            "                      {\"name\":\"member_id\",\"type\":\"int\"},\n" + 
+            "                      {\"name\":\"page_key\",\"type\":[\"null\",\"string\"]},\n" + 
+            "                      {\"name\":\"session_id\",\"type\":\"long\"},\n" + 
+            "                      {\"name\":\"tracking_time\",\"type\":\"long\"},\n" + 
+            "                      {\"name\":\"type\",\"type\":[\"null\",\"string\"]}\n" + 
+            "                   ]\n" +
+            "        }\n" +
+            "    }\n"+
+            "    ');";
+        try {
+            ParameterSubstitutionPreprocessor ps = new ParameterSubstitutionPreprocessor(50);
+            pigIStream = new BufferedReader(
+                                            new InputStreamReader(new ByteArrayInputStream(queryString.getBytes("UTF-8"))));
+            pigOStream = new FileWriter(basedir + "/output26.pig");
+
+            String[] arg = {"debug = '5'", "name = 'TestRecord'"}; 
+            String[] argFiles = null;
+            ps.genSubstitutedFile(pigIStream , pigOStream , arg , argFiles);
+
+            FileInputStream pigResultStream = new FileInputStream(basedir + "/output26.pig");
+            InputStream expected = new ByteArrayInputStream(expectedString.getBytes("UTF-8"));
+            BufferedReader inExpected = new BufferedReader(new InputStreamReader(expected));
+            BufferedReader inResult = new BufferedReader(new InputStreamReader(pigResultStream));
+
+            String exLine;
+            String resLine;
+            int lineNum=0;
+
+            while (true) {
+                lineNum++;
+                exLine = inExpected.readLine();
+                resLine = inResult.readLine();
+                if (exLine==null || resLine==null)
+                    break;
+                assertEquals("Parameter substitution with shell command failed. " + "Expected : "+exLine+" , but got : "+resLine+" in line num : "+lineNum ,exLine.trim(), resLine.trim());
+            }
+            if (!(exLine==null && resLine==null)) {
+                fail ("Parameter substitution with shell command failed. " + "Expected : "+exLine+" , but got : "+resLine+" in line num : "+lineNum);
+            }
+
+            inExpected.close();
+            inResult.close();
+        } catch (ParseException e) {
+            fail ("Got ParseException : " + e.getMessage());
+        } catch (RuntimeException e) {
+            fail ("Got RuntimeException : " + e.getMessage());
+        } catch (Error e) {
+            fail ("Got error : " + e.getMessage());
+        }
+        log.info("Done");
+    }
+
 }
