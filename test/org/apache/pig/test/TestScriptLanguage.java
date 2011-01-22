@@ -59,6 +59,7 @@ public class TestScriptLanguage {
     @After
     public void tearDown() throws Exception {
         Util.deleteFile(cluster, "simple_out");
+        Util.deleteFile(cluster, "simple_out2");
     }
     
     @Test
@@ -152,7 +153,7 @@ public class TestScriptLanguage {
                 "Pig.fs(\"rmr simple_out2\")",
                 "input = 'simple_table_1'",
                 "output1 = 'simple_out'",
-                "output2 = 'simple_out'",
+                "output2 = 'simple_out2'",
                 "P = Pig.compile(\"mypipeline\", \"\"\"a = load '$input';store a into '$output';\"\"\")",
                 "Q = P.bind([{'input':input, 'output':output1}, {'input':input, 'output':output2}])",
                 "stats = Q.run()"
