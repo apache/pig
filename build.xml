@@ -923,10 +923,10 @@
         <pom refid="pig"/>
      	   <attach file="${pig-core.jar}.asc" type="jar.asc"/>
      	   <attach file="${pig.pom}.asc" type="pom.asc"/>
-           <attach file="${output.jarfile.sources}.asc" type="jar.asc" />
-          <attach file="${output.jarfile.sources}" classifier="sources" />
-          <attach file="${output.jarfile.javadoc}.asc" type="jar.asc" />
-          <attach file="${output.jarfile.javadoc}" classifier="javadoc" />
+           <attach file="${output.jarfile.sources}.asc" type="jar.asc" classifier="sources"/>
+           <attach file="${output.jarfile.sources}" classifier="sources" />
+           <attach file="${output.jarfile.javadoc}.asc" type="jar.asc"  classifier="javadoc"/>
+           <attach file="${output.jarfile.javadoc}" classifier="javadoc" />
         </artifact:deploy>
     </target>
 
