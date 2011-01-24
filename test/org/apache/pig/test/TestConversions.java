@@ -345,9 +345,11 @@ public class TestConversions extends TestCase {
         schema = Utils.getSchemaFromString("t:tuple()");
         rfs = new ResourceSchema(schema).getFields()[0];
         t = ps.getLoadCaster().bytesToTuple(s.getBytes(), rfs);
-        assertTrue(t.size()==1);
+        assertTrue(t.size()==2);
         assertTrue(t.get(0) instanceof DataByteArray);
-        assertTrue(t.get(0).toString().equals("a,b"));
+        assertTrue(t.get(0).toString().equals("a"));
+        assertTrue(t.get(1) instanceof DataByteArray);
+        assertTrue(t.get(1).toString().equals("b"));
         
         s = "[a#(1,2,3)]";
         m = ps.getLoadCaster().bytesToMap(s.getBytes());
@@ -360,9 +362,13 @@ public class TestConversions extends TestCase {
         schema = Utils.getSchemaFromString("t:tuple()");
         rfs = new ResourceSchema(schema).getFields()[0];
         t = ps.getLoadCaster().bytesToTuple(s.getBytes(), rfs);
-        assertTrue(t.size()==1);
+        assertTrue(t.size()==3);
         assertTrue(t.get(0) instanceof DataByteArray);
-        assertTrue(t.get(0).toString().equals("a,b,(123,456,{(1,2,3)})"));
+        assertTrue(t.get(0).toString().equals("a"));
+        assertTrue(t.get(1) instanceof DataByteArray);
+        assertTrue(t.get(1).toString().equals("b"));
+        assertTrue(t.get(2) instanceof DataByteArray);
+        assertTrue(t.get(2).toString().equals("(123,456,{(1,2,3)})"));
         
         s = "(a,b,(123,456,{(1,2,3}))";
         schema = Utils.getSchemaFromString("t:tuple()");

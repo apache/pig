@@ -73,7 +73,7 @@ public class Utf8StorageConverter implements LoadStoreCaster {
         if (fieldSchema==null) {
             throw new IOException("Schema is null");
         }
-        ResourceFieldSchema[] fss=fieldSchema.getSchema().getFields();;
+        ResourceFieldSchema[] fss=fieldSchema.getSchema().getFields();
         Tuple t;
         int buf;
         while ((buf=in.read())!='{') {
@@ -161,20 +161,31 @@ public class Utf8StorageConverter implements LoadStoreCaster {
                 }
                 if (buf=='['||buf=='{'||buf=='(') {
                     level.push((char)buf);
+                    mOut.write(buf);
                 }
                 else if (buf==')' && level.isEmpty()) // End of tuple
+                {
+                    DataByteArray value = new DataByteArray(mOut.toByteArray());
+                    t.append(value);
                     break;
+                }
+                else if (buf==',' && level.isEmpty())
+                {
+                    DataByteArray value = new DataByteArray(mOut.toByteArray());
+                    t.append(value);
+                    mOut.reset();
+                }
                 else if (buf==']' ||buf=='}'||buf==')')
                 {
                     if (level.peek()==findStartChar((char)buf))
                         level.pop();
                     else
                         throw new IOException("Malformed tuple");
+                    mOut.write(buf);
                 }
-                mOut.write(buf);
+                else
+                    mOut.write(buf);
             }
-            DataByteArray value = new DataByteArray(mOut.toByteArray());
-            t.append(value);
         }
         return t;
     }

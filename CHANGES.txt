@@ -86,6 +86,8 @@ PIG-1696: Performance: Use System.arraycopy() instead of manually copying the by
 
 BUG FIXES
 
+PIG-496: project of bags from complex data causes failures (daijy)
+
 PIG-730: problem combining schema from a union of several LOAD expressions, with a nested bag inside the schema (daijy)
 
 PIG-767: Schema reported from DESCRIBE and actual schema of inner bags are different (daijy)
