@@ -392,6 +392,15 @@ public class ResourceSchema implements Serializable {
         if (rfs1.length != rfs2.length) return false;
         
         for (int i=0; i<rfs1.length; i++) {
+            if (rfs1[i].getName()==null && rfs2[i].getName()!=null ||
+                    rfs1[i].getName()!=null && rfs2[i].getName()==null)
+                return false;
+            if (rfs1[i].getName()==null && rfs2[i].getName()==null) {
+                if (rfs1[i].getType() == rfs2[i].getType())
+                    return true;
+                else
+                    return false;
+            }
             if (!rfs1[i].getName().equals(rfs2[i].getName()) 
                     || rfs1[i].getType() != rfs2[i].getType()) {
                 return false;
