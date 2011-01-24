@@ -69,6 +69,7 @@ import org.apache.pig.newplan.logical.expression.NotExpression;
 import org.apache.pig.newplan.logical.expression.ProjectExpression;
 import org.apache.pig.newplan.logical.expression.SubtractExpression;
 import org.apache.pig.newplan.logical.expression.UserFuncExpression;
+import org.apache.pig.newplan.logical.relational.LOCogroup;
 import org.apache.pig.newplan.logical.relational.LOFilter;
 import org.apache.pig.newplan.logical.relational.LOForEach;
 import org.apache.pig.newplan.logical.relational.LOGenerate;
@@ -1370,5 +1371,48 @@ public class TestNewPlanLogToPhyTranslationVisitor extends TestCase {
         assertTrue(foreach.getSchema().size()==2);
         assertTrue(foreach.getSchema().getField(0).alias.equals("a0"));
         assertTrue(foreach.getSchema().getField(1).alias.equals("a1"));
+    }
+    
+    // See PIG-767
+    public void testCogroupSchema1() throws Exception {
+        LogicalPlanTester lpt = new LogicalPlanTester(pc);
+        lpt.buildPlan("a = load '1.txt' as (a0, a1);");
+        lpt.buildPlan("b = group a by a0;");
+        LogicalPlan plan = lpt.buildPlan("store b into 'empty';");  
+        
+        org.apache.pig.newplan.logical.relational.LogicalPlan newLogicalPlan = migratePlan(plan);
+        Operator store = newLogicalPlan.getSinks().get(0);
+        LOCogroup cogroup = (LOCogroup)newLogicalPlan.getPredecessors(store).get(0);
+        
+        LogicalSchema cogroupSchema = cogroup.getSchema();
+        assertEquals(cogroupSchema.getField(1).type, DataType.BAG);
+        assertTrue(cogroupSchema.getField(1).alias.equals("a"));
+        LogicalSchema bagSchema = cogroupSchema.getField(1).schema;
+        assertEquals(bagSchema.getField(0).type, DataType.TUPLE);
+        assertEquals(bagSchema.getField(0).alias, null);
+        LogicalSchema tupleSchema = bagSchema.getField(0).schema;
+        assertEquals(tupleSchema.size(), 2);
+    }
+    
+    // See PIG-767
+    public void testCogroupSchema2() throws Exception {
+        LogicalPlanTester lpt = new LogicalPlanTester(pc);
+        lpt.buildPlan("a = load '1.txt' as (a0, a1);");
+        lpt.buildPlan("b = group a by a0;");
+        lpt.buildPlan("c = foreach b generate a.a1;");
+        LogicalPlan plan = lpt.buildPlan("store c into 'empty';");  
+        
+        org.apache.pig.newplan.logical.relational.LogicalPlan newLogicalPlan = migratePlan(plan);
+        Operator store = newLogicalPlan.getSinks().get(0);
+        LOForEach foreach = (LOForEach)newLogicalPlan.getPredecessors(store).get(0);
+        
+        LogicalSchema foreachSchema = foreach.getSchema();
+        assertEquals(foreachSchema.getField(0).type, DataType.BAG);
+        LogicalSchema bagSchema = foreachSchema.getField(0).schema;
+        assertEquals(bagSchema.getField(0).type, DataType.TUPLE);
+        assertEquals(bagSchema.getField(0).alias, null);
+        LogicalSchema tupleSchema = bagSchema.getField(0).schema;
+        assertEquals(tupleSchema.size(), 1);
+        assertTrue(tupleSchema.getField(0).alias.equals("a1"));
     }
 }

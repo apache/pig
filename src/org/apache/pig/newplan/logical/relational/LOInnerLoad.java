@@ -70,12 +70,14 @@ public class LOInnerLoad extends LogicalRelationalOperator {
             if (prj.getFieldSchema()!=null) {
                 if (prj.getFieldSchema().type==DataType.BAG && prj.getFieldSchema().schema!=null &&
                         prj.getFieldSchema().schema.isTwoLevelAccessRequired()) {
-                    schema = new LogicalSchema();
                     LogicalFieldSchema tupleSchema = prj.getFieldSchema().schema.getField(0);
-                    for (int i=0;i<tupleSchema.schema.size();i++)
-                        schema.addField(tupleSchema.schema.getField(i));
+                    if (tupleSchema!=null && tupleSchema.schema!=null) {
+                        schema = new LogicalSchema();
+                        for (int i=0;i<tupleSchema.schema.size();i++)
+                            schema.addField(tupleSchema.schema.getField(i));
+                        alias = prj.getFieldSchema().alias;
+                    }
                     sourceIsBag = true;
-                    alias = prj.getFieldSchema().alias;
                 }
                 else if (prj.getFieldSchema().type==DataType.BAG){
                     sourceIsBag = true;

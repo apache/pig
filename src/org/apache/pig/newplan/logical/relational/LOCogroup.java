@@ -195,11 +195,18 @@ public class LOCogroup extends LogicalRelationalOperator {
                 generatedInputUids.put( counter, bagUid );
             }
             
-            LogicalFieldSchema newBagSchema = new LogicalFieldSchema(
-                    ((LogicalRelationalOperator)op).getAlias(), inputSchema, 
+            LogicalFieldSchema newTupleFieldSchema = new LogicalFieldSchema(
+                    null, inputSchema, DataType.TUPLE, LogicalExpression.getNextUid());
+            
+            LogicalSchema bagSchema = new LogicalSchema();
+            bagSchema.addField(newTupleFieldSchema);
+            bagSchema.setTwoLevelAccessRequired(true);
+            
+            LogicalFieldSchema newBagFieldSchema = new LogicalFieldSchema(
+                    ((LogicalRelationalOperator)op).getAlias(), bagSchema, 
                     DataType.BAG, bagUid);
 
-            fieldSchemaList.add( newBagSchema );
+            fieldSchemaList.add( newBagFieldSchema );
             counter ++;
         }
 

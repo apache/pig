@@ -109,9 +109,11 @@ public class LOGenerate extends LogicalRelationalOperator {
                                 if (fieldSchema.schema!=null) {
                                     if (fieldSchema.schema.isTwoLevelAccessRequired()) {
                                         //  assert(fieldSchema.schema.size() == 1 && fieldSchema.schema.getField(0).type == DataType.TUPLE)
-                                        innerFieldSchemas = fieldSchema.schema.getField(0).schema.getFields();
+                                        if (fieldSchema.schema!=null && fieldSchema.schema.getField(0).schema!=null)
+                                            innerFieldSchemas = fieldSchema.schema.getField(0).schema.getFields();
                                     } else {
-                                        innerFieldSchemas = fieldSchema.schema.getFields();
+                                        if (fieldSchema.schema!=null)
+                                            innerFieldSchemas = fieldSchema.schema.getFields();
                                     }
                                     for (LogicalSchema.LogicalFieldSchema fs : innerFieldSchemas) {
                                         fs.alias = fieldSchema.alias + "::" + fs.alias;

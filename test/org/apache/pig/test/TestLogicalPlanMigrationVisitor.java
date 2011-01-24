@@ -421,18 +421,19 @@ public class TestLogicalPlanMigrationVisitor extends TestCase {
         assertEquals( false, uids.contains( schema.getField(0).uid ) );
         assertEquals( 0, schema.getField(0).alias.compareTo("group") );
         
-        
         assertEquals( DataType.BAG, schema.getField(1).type );
+        LogicalSchema bagSchema = schema.getField(1).schema;
+        LogicalSchema tupleSchema = bagSchema.getField(0).schema;
         
-        assertEquals( DataType.CHARARRAY, schema.getField(1).schema.getField(0).type );
-        assertEquals( 0, schema.getField(1).schema.getField(0).alias.compareTo("name") );
-        assertEquals( loadSchema.getField(0).uid, schema.getField(1).schema.getField(0).uid );
-        assertEquals( DataType.INTEGER, schema.getField(1).schema.getField(1).type );
-        assertEquals( 0, schema.getField(1).schema.getField(1).alias.compareTo("age") );
-        assertEquals( loadSchema.getField(1).uid, schema.getField(1).schema.getField(1).uid );
-        assertEquals( DataType.FLOAT, schema.getField(1).schema.getField(2).type );
-        assertEquals( 0, schema.getField(1).schema.getField(2).alias.compareTo("gpa") );
-        assertEquals( loadSchema.getField(2).uid, schema.getField(1).schema.getField(2).uid );
+        assertEquals( DataType.CHARARRAY, tupleSchema.getField(0).type );
+        assertEquals( 0, tupleSchema.getField(0).alias.compareTo("name") );
+        assertEquals( loadSchema.getField(0).uid, tupleSchema.getField(0).uid );
+        assertEquals( DataType.INTEGER, tupleSchema.getField(1).type );
+        assertEquals( 0, tupleSchema.getField(1).alias.compareTo("age") );
+        assertEquals( loadSchema.getField(1).uid, tupleSchema.getField(1).uid );
+        assertEquals( DataType.FLOAT, tupleSchema.getField(2).type );
+        assertEquals( 0, tupleSchema.getField(2).alias.compareTo("gpa") );
+        assertEquals( loadSchema.getField(2).uid, tupleSchema.getField(2).uid );
         
         uids.add(Long.valueOf( schema.getField(0).uid ) );
         assertEquals( false, uids.contains( schema.getField(1).uid ) );
@@ -481,17 +482,18 @@ public class TestLogicalPlanMigrationVisitor extends TestCase {
         assertEquals( DataType.INTEGER, schema.getField(0).schema.getField(1).type );
         
         assertEquals( DataType.BAG, schema.getField(1).type );
+        LogicalSchema bagSchema = schema.getField(1).schema;
+        LogicalSchema tupleSchema = bagSchema.getField(0).schema;
         
-        assertEquals( DataType.CHARARRAY, schema.getField(1).schema.getField(0).type );
-        assertEquals( 0, schema.getField(1).schema.getField(0).alias.compareTo("name") );
-        assertEquals( loadSchema.getField(0).uid, schema.getField(1).schema.getField(0).uid );
-        assertEquals( DataType.INTEGER, schema.getField(1).schema.getField(1).type );
-        assertEquals( 0, schema.getField(1).schema.getField(1).alias.compareTo("age") );
-        assertEquals( loadSchema.getField(1).uid, schema.getField(1).schema.getField(1).uid );
-        assertEquals( DataType.FLOAT, schema.getField(1).schema.getField(2).type );
-        assertEquals( 0, schema.getField(1).schema.getField(2).alias.compareTo("gpa") );
-        assertEquals( loadSchema.getField(2).uid, schema.getField(1).schema.getField(2).uid );
-        
+        assertEquals( DataType.CHARARRAY, tupleSchema.getField(0).type );
+        assertEquals( 0, tupleSchema.getField(0).alias.compareTo("name") );
+        assertEquals( loadSchema.getField(0).uid, tupleSchema.getField(0).uid );
+        assertEquals( DataType.INTEGER, tupleSchema.getField(1).type );
+        assertEquals( 0, tupleSchema.getField(1).alias.compareTo("age") );
+        assertEquals( loadSchema.getField(1).uid, tupleSchema.getField(1).uid );
+        assertEquals( DataType.FLOAT, tupleSchema.getField(2).type );
+        assertEquals( 0, tupleSchema.getField(2).alias.compareTo("gpa") );
+        assertEquals( loadSchema.getField(2).uid, tupleSchema.getField(2).uid );
         
         // We are doing Uid tests at the end as the uids should not repeat
         uids.add(Long.valueOf( schema.getField(0).uid ) );
@@ -560,25 +562,29 @@ public class TestLogicalPlanMigrationVisitor extends TestCase {
         assertEquals( 0, schema.getField(0).alias.compareTo("group") );
 
         assertEquals( DataType.BAG, schema.getField(1).type );
+        LogicalSchema bagSchema = schema.getField(1).schema;
+        LogicalSchema tupleSchema = bagSchema.getField(0).schema;
         
-        assertEquals( DataType.CHARARRAY, schema.getField(1).schema.getField(0).type );
-        assertEquals( 0, schema.getField(1).schema.getField(0).alias.compareTo("name") );
-        assertEquals( loadSchema.getField(0).uid, schema.getField(1).schema.getField(0).uid );
-        assertEquals( DataType.INTEGER, schema.getField(1).schema.getField(1).type );
-        assertEquals( 0, schema.getField(1).schema.getField(1).alias.compareTo("age") );
-        assertEquals( loadSchema.getField(1).uid, schema.getField(1).schema.getField(1).uid );
-        assertEquals( DataType.FLOAT, schema.getField(1).schema.getField(2).type );
-        assertEquals( 0, schema.getField(1).schema.getField(2).alias.compareTo("gpa") );
-        assertEquals( loadSchema.getField(2).uid, schema.getField(1).schema.getField(2).uid );
+        assertEquals( DataType.CHARARRAY, tupleSchema.getField(0).type );
+        assertEquals( 0, tupleSchema.getField(0).alias.compareTo("name") );
+        assertEquals( loadSchema.getField(0).uid, tupleSchema.getField(0).uid );
+        assertEquals( DataType.INTEGER, tupleSchema.getField(1).type );
+        assertEquals( 0, tupleSchema.getField(1).alias.compareTo("age") );
+        assertEquals( loadSchema.getField(1).uid, tupleSchema.getField(1).uid );
+        assertEquals( DataType.FLOAT, tupleSchema.getField(2).type );
+        assertEquals( 0, tupleSchema.getField(2).alias.compareTo("gpa") );
+        assertEquals( loadSchema.getField(2).uid, tupleSchema.getField(2).uid );
         
         assertEquals( DataType.BAG, schema.getField(2).type );
+        bagSchema = schema.getField(2).schema;
+        tupleSchema = bagSchema.getField(0).schema;
         
-        assertEquals( DataType.CHARARRAY, schema.getField(2).schema.getField(0).type );
-        assertEquals( 0, schema.getField(2).schema.getField(0).alias.compareTo("name") );
-        assertEquals( load2Schema.getField(0).uid, schema.getField(2).schema.getField(0).uid );
-        assertEquals( DataType.CHARARRAY, schema.getField(2).schema.getField(1).type );
-        assertEquals( 0, schema.getField(2).schema.getField(1).alias.compareTo("blah") );
-        assertEquals( load2Schema.getField(1).uid, schema.getField(2).schema.getField(1).uid );        
+        assertEquals( DataType.CHARARRAY, tupleSchema.getField(0).type );
+        assertEquals( 0, tupleSchema.getField(0).alias.compareTo("name") );
+        assertEquals( load2Schema.getField(0).uid, tupleSchema.getField(0).uid );
+        assertEquals( DataType.CHARARRAY, tupleSchema.getField(1).type );
+        assertEquals( 0, tupleSchema.getField(1).alias.compareTo("blah") );
+        assertEquals( load2Schema.getField(1).uid, tupleSchema.getField(1).uid );        
         
         
         // We are doing Uid tests at the end as the uids should not repeat                
@@ -650,28 +656,32 @@ public class TestLogicalPlanMigrationVisitor extends TestCase {
                
 
         assertEquals( DataType.BAG, schema.getField(1).type );
+        LogicalSchema bagSchema = schema.getField(1).schema;
+        LogicalSchema tupleSchema = bagSchema.getField(0).schema;
         
-        assertEquals( DataType.CHARARRAY, schema.getField(1).schema.getField(0).type );
-        assertEquals( 0, schema.getField(1).schema.getField(0).alias.compareTo("name") );
-        assertEquals( loadSchema.getField(0).uid, schema.getField(1).schema.getField(0).uid );
-        assertEquals( DataType.INTEGER, schema.getField(1).schema.getField(1).type );
-        assertEquals( 0, schema.getField(1).schema.getField(1).alias.compareTo("age") );
-        assertEquals( loadSchema.getField(1).uid, schema.getField(1).schema.getField(1).uid );
-        assertEquals( DataType.FLOAT, schema.getField(1).schema.getField(2).type );
-        assertEquals( 0, schema.getField(1).schema.getField(2).alias.compareTo("gpa") );
-        assertEquals( loadSchema.getField(2).uid, schema.getField(1).schema.getField(2).uid );
+        assertEquals( DataType.CHARARRAY, tupleSchema.getField(0).type );
+        assertEquals( 0, tupleSchema.getField(0).alias.compareTo("name") );
+        assertEquals( loadSchema.getField(0).uid, tupleSchema.getField(0).uid );
+        assertEquals( DataType.INTEGER, tupleSchema.getField(1).type );
+        assertEquals( 0, tupleSchema.getField(1).alias.compareTo("age") );
+        assertEquals( loadSchema.getField(1).uid, tupleSchema.getField(1).uid );
+        assertEquals( DataType.FLOAT, tupleSchema.getField(2).type );
+        assertEquals( 0, tupleSchema.getField(2).alias.compareTo("gpa") );
+        assertEquals( loadSchema.getField(2).uid, tupleSchema.getField(2).uid );
         
         assertEquals( DataType.BAG, schema.getField(2).type );
+        bagSchema = schema.getField(2).schema;
+        tupleSchema = bagSchema.getField(0).schema;
         
-        assertEquals( DataType.CHARARRAY, schema.getField(2).schema.getField(0).type );
-        assertEquals( 0, schema.getField(2).schema.getField(0).alias.compareTo("name") );
-        assertEquals( load2Schema.getField(0).uid, schema.getField(2).schema.getField(0).uid );
-        assertEquals( DataType.INTEGER, schema.getField(2).schema.getField(1).type );
-        assertEquals( 0, schema.getField(2).schema.getField(1).alias.compareTo("age") );
-        assertEquals( load2Schema.getField(1).uid, schema.getField(2).schema.getField(1).uid );
-        assertEquals( DataType.CHARARRAY, schema.getField(2).schema.getField(2).type );
-        assertEquals( 0, schema.getField(2).schema.getField(2).alias.compareTo("blah") );
-        assertEquals( load2Schema.getField(2).uid, schema.getField(2).schema.getField(2).uid );        
+        assertEquals( DataType.CHARARRAY, tupleSchema.getField(0).type );
+        assertEquals( 0, tupleSchema.getField(0).alias.compareTo("name") );
+        assertEquals( load2Schema.getField(0).uid, tupleSchema.getField(0).uid );
+        assertEquals( DataType.INTEGER, tupleSchema.getField(1).type );
+        assertEquals( 0, tupleSchema.getField(1).alias.compareTo("age") );
+        assertEquals( load2Schema.getField(1).uid, tupleSchema.getField(1).uid );
+        assertEquals( DataType.CHARARRAY, tupleSchema.getField(2).type );
+        assertEquals( 0, tupleSchema.getField(2).alias.compareTo("blah") );
+        assertEquals( load2Schema.getField(2).uid, tupleSchema.getField(2).uid );        
         
         
         // We are doing Uid tests at the end as the uids should not repeat
