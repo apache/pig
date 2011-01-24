@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-1786: Move describe/nested describe to new logical plan (daijy)
+
 PIG-1809: addition of TOMAP function (olgan)
 
 PIG-1749: Update Pig parser so that function arguments can contain newline characters (jghoman via daijy)

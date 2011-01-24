@@ -89,7 +89,7 @@ public class LOGenerate extends LogicalRelationalOperator {
                 fieldSchema = exp.getFieldSchema().deepCopy();
                 
                 expSchema = new LogicalSchema();
-                if (fieldSchema.type != DataType.TUPLE && fieldSchema.type != DataType.BAG) {
+                if ((fieldSchema.type != DataType.TUPLE && fieldSchema.type != DataType.BAG)||!flattenFlags[i]) {
                     // if type is primitive, just add to schema
                     if (fieldSchema!=null)
                         expSchema.addField(fieldSchema);

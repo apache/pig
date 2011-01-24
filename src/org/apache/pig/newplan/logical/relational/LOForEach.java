@@ -24,7 +24,9 @@ import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.OperatorPlan;
 import org.apache.pig.newplan.PlanVisitor;
+import org.apache.pig.newplan.ReverseDependencyOrderWalker;
 import org.apache.pig.newplan.logical.expression.ProjectExpression;
+import org.apache.pig.newplan.logical.optimizer.AllSameRalationalNodesVisitor;
 
 public class LOForEach extends LogicalRelationalOperator {
 
@@ -88,5 +90,33 @@ public class LOForEach extends LogicalRelationalOperator {
             }
         }
         return innerLoads;
+    }
+    
+    public LogicalSchema dumpNestedSchema(String alias, String nestedAlias) throws FrontendException {
+        NestedRelationalOperatorFinder opFinder = new NestedRelationalOperatorFinder(innerPlan, nestedAlias);
+        opFinder.visit();
+        
+        if (opFinder.getMatchedOperator()!=null) {
+            LogicalSchema nestedSc = opFinder.getMatchedOperator().getSchema();
+            return nestedSc;
+        }
+        return null;
+    }
+    
+    private static class NestedRelationalOperatorFinder extends AllSameRalationalNodesVisitor {
+        String aliasOfOperator;
+        LogicalRelationalOperator opFound = null;
+        public NestedRelationalOperatorFinder(LogicalPlan plan, String alias) throws FrontendException {
+            super(plan, new ReverseDependencyOrderWalker(plan));
+            aliasOfOperator = alias;
+        }
+        public LogicalRelationalOperator getMatchedOperator() {
+            return opFound;
+        }
+        @Override
+        public void execute(LogicalRelationalOperator op) throws FrontendException {
+            if (op.getAlias().equals(aliasOfOperator))
+                opFound = op;
+        }
     }
 }
