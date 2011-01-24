@@ -1198,4 +1198,22 @@ public class TestEvalPipeline2 extends TestCase {
         assertTrue(t.toString().contains("(2,3,1,2)"));
         assertFalse(iter.hasNext());
     }
+    
+    // See PIG-1785
+    @Test
+    public void testAddingTwoBag() throws Exception{
+        pigServer.registerQuery("a = load '1.txt' as (name:chararray, age:int, gpa:double);");
+        pigServer.registerQuery("b = group a by name;");
+        pigServer.registerQuery("c = foreach b generate group, SUM(a.age*a.gpa);");
+        
+        try {
+            pigServer.openIterator("c");
+        } catch (Exception e) {
+            PigException pe = LogUtils.getPigException(e);
+            assertTrue(pe.getErrorCode()==1039);
+            assertTrue(pe.getMessage().contains("incompatible types"));
+            return;
+        }
+        fail();
+    }
 }
