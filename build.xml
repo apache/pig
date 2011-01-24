@@ -866,7 +866,7 @@
         		classpath="${findbugs.home}/lib/findbugs-ant.jar" />
 	<mkdir dir="${findbugs.out.dir}"/>
     	<findbugs home="${findbugs.home}" output="xml:withMessages"
-        		outputFile="${findbugs.report.xmlfile}" effort="max"
+        		outputFile="${findbugs.report.xmlfile}" effort="max" timeout="1200000"
                 excludeFilter="${findbugs.exclude.file}" jvmargs="-Xmx512M">
       		<auxClasspath>
         		<fileset dir="${lib.dir}">
