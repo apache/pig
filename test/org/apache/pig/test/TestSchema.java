@@ -653,7 +653,7 @@ public class TestSchema extends TestCase {
         Iterator<Tuple> it = pigServer.openIterator("c");
         while(it.hasNext()) {
             Tuple t = it.next();
-            assertEquals("{a: {f1: chararray,f2: int}}", t.get(0));
+            assertEquals("{a: {(f1: chararray,f2: int)}}", t.get(0));
         }
         cluster.shutDown();
     }

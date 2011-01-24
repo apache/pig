@@ -86,6 +86,8 @@ PIG-1696: Performance: Use System.arraycopy() instead of manually copying the by
 
 BUG FIXES
 
+PIG-767: Schema reported from DESCRIBE and actual schema of inner bags are different (daijy)
+
 PIG-1801: Need better error message for Jython errors (rding)
 
 PIG-1742: org.apache.pig.newplan.optimizer.Rule.java does not work
