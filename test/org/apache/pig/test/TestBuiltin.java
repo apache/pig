@@ -63,6 +63,7 @@ import org.apache.pig.builtin.StringConcat;
 import org.apache.pig.builtin.StringSize;
 import org.apache.pig.builtin.TOBAG;
 import org.apache.pig.builtin.TOKENIZE;
+import org.apache.pig.builtin.TOMAP;
 import org.apache.pig.builtin.TOP;
 import org.apache.pig.builtin.TOTUPLE;
 import org.apache.pig.builtin.TRIM;
@@ -1544,6 +1545,21 @@ public class TestBuiltin {
         Tuple output = tt.exec(input);
         assertTrue(!(input == output));
         assertEquals(input, output);
+
+	// TOMAP - construct a map from input fields
+	TOMAP tm = new TOMAP();
+	Tuple t = TupleFactory.getInstance().newTuple(6);
+	t.set(0, "k1");
+	t.set(1, 1);
+	t.set(2, "k2");
+	t.set(3, 2.0);
+	t.set(4, "k3");
+	t.set(5, "foo");
+	Map m = tm.exec(t);
+	assertEquals("", m.get("k1"), 1);
+	assertEquals("", m.get("k2"), 2.0);
+	assertEquals("", m.get("k3"), "foo");
+
         
         TOP top = new TOP();
         TupleFactory tupleFactory = TupleFactory.getInstance();
