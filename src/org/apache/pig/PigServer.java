@@ -103,6 +103,8 @@ import org.apache.pig.impl.util.PropertiesUtil;
 import org.apache.pig.impl.util.Utils;
 import org.apache.pig.newplan.logical.LogicalPlanMigrationVistor;
 import org.apache.pig.newplan.logical.optimizer.LogicalPlanOptimizer;
+import org.apache.pig.newplan.logical.relational.LogicalRelationalOperator;
+import org.apache.pig.newplan.logical.relational.LogicalSchema;
 import org.apache.pig.newplan.Operator;
 import org.apache.pig.pen.ExampleGenerator;
 import org.apache.pig.scripting.ScriptEngine;
@@ -725,21 +727,26 @@ public class PigServer {
      */
     public Schema dumpSchema(String alias) throws IOException{
         try {
-            LogicalPlan lp = getPlanFromAlias(alias, "describe");
-            lp = compileLp(alias, false);
-            Schema schema = null;
-            for(LogicalOperator lo : lp.getLeaves()){
-                if(lo.getAlias().equals(alias)){
-                    schema = lo.getSchema();
+            LogicalPlan oldLp = getPlanFromAlias(alias, "describe");
+            oldLp = compileLp(alias, false);
+            LogicalPlanMigrationVistor visitor = new LogicalPlanMigrationVistor(oldLp);
+            visitor.visit();
+            org.apache.pig.newplan.logical.relational.LogicalPlan lp = visitor.getNewLogicalPlan();
+            LogicalSchema schema = null;
+            for(Operator lo : lp.getSinks()){
+                if(((LogicalRelationalOperator)lo).getAlias().equals(alias)){
+                    schema = ((LogicalRelationalOperator)lo).getSchema();
                     break;
                 }
             }
             if (schema != null) {
-                System.out.println(alias + ": " + schema.toString());
+                Schema s = org.apache.pig.newplan.logical.Util.translateSchema(schema);
+                System.out.println(alias + ": " + s.toString());
+                return s;
             } else {
                 System.out.println("Schema for " + alias + " unknown.");
+                return null;
             }
-            return schema;
         } catch (FrontendException fee) {
             int errCode = 1001;
             String msg = "Unable to describe schema for alias " + alias;
@@ -754,12 +761,24 @@ public class PigServer {
      * @return Schema of alias dumped
      * @throws IOException
      */
-    public Schema dumpSchemaNested(String alias, String nestedAlias) throws IOException{
-        LogicalPlan lp = getPlanFromAlias(alias, "describe");
-        lp = compileLp(alias, false);
-        LogicalOperator op = lp.getLeaves().get(0);
-        if(op instanceof LOForEach) {
-            return ((LOForEach)op).dumpNestedSchema(alias, nestedAlias);
+    public Schema dumpSchemaNested(String alias, String nestedAlias) throws FrontendException{
+        LogicalPlan oldLp = getPlanFromAlias(alias, "describe");
+        oldLp = compileLp(alias, false);
+        LogicalPlanMigrationVistor visitor = new LogicalPlanMigrationVistor(oldLp);
+        visitor.visit();
+        org.apache.pig.newplan.logical.relational.LogicalPlan lp = visitor.getNewLogicalPlan();
+        Operator op = lp.getSinks().get(0);
+        if(op instanceof org.apache.pig.newplan.logical.relational.LOForEach) {
+            LogicalSchema nestedSc = ((org.apache.pig.newplan.logical.relational.LOForEach)op).dumpNestedSchema(alias, nestedAlias);
+            if (nestedSc!=null) {
+                Schema s = org.apache.pig.newplan.logical.Util.translateSchema(nestedSc);
+                System.out.println(alias+ "::" + nestedAlias + ": " + s.toString());
+                return s;
+            }
+            else {
+                System.out.println("Schema for "+ alias+ "::" + nestedAlias + " unknown.");
+                return null;
+            }
         }
         else {
             int errCode = 1001;

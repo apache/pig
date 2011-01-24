@@ -716,5 +716,14 @@ public class TestPigServer extends TestCase {
         propertyFile.delete();
         FileLocalizer.setInitialized(false);
     }
+    
+    @Test
+    public void testDescribeForEachFlatten() throws Throwable {
+        pig.registerQuery("a = load 'a';") ;
+        pig.registerQuery("b = group a by $0;") ;
+        pig.registerQuery("c = foreach b generate flatten(a);") ;
+        Schema s = pig.dumpSchema("c") ;
+        assertTrue(s==null);
+    }
 
 }
