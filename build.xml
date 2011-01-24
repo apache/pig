@@ -911,7 +911,8 @@
          </artifact:install>
     </target>
 
-    <target name="mvn-deploy" depends="mvn-taskdef,jar,source-jar, javadoc-jar, set-version, signanddeploy, simpledeploy"
+    <target name="mvn-deploy" depends="mvn-taskdef,jar,source-jar, javadoc-jar,
+         smoketests-jar, pigunit-jar, set-version, signanddeploy, simpledeploy"
          description="To deploy pig jar to apache snapshot's repository">
     </target>
 
