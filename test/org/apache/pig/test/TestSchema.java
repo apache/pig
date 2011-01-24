@@ -48,9 +48,12 @@ import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.impl.logicalLayer.parser.ParseException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.logicalLayer.schema.SchemaMergeException;
 import org.apache.pig.impl.logicalLayer.schema.Schema.FieldSchema;
+import org.apache.pig.impl.util.Utils;
+import org.apache.pig.newplan.logical.relational.LogicalSchema;
 import org.junit.Test;
 
 public class TestSchema extends TestCase {
@@ -656,5 +659,58 @@ public class TestSchema extends TestCase {
             assertEquals("{a: {(f1: chararray,f2: int)}}", t.get(0));
         }
         cluster.shutDown();
+    }
+    
+    @Test
+    // See PIG-730
+    public void testMergeSchemaWithTwoLevelAccess1() throws Exception {
+        // Generate two schemas
+        Schema s1 = Utils.getSchemaFromString("a:{t:(a0:int, a1:int)}");
+        Schema s2 = Utils.getSchemaFromString("b:{t:(b0:int, b1:int)}");
+        s1.getField(0).schema.setTwoLevelAccessRequired(true);
+        s2.getField(0).schema.setTwoLevelAccessRequired(true);
+        Schema s3 = Schema.mergeSchema(s1, s2, true);
+        assertEquals(s3.getField(0).schema.isTwoLevelAccessRequired(), true);
+    }
+    
+    @Test
+    // See PIG-730
+    public void testMergeSchemaWithTwoLevelAccess() throws Exception {
+        // Generate two schemas
+        Schema s1 = Utils.getSchemaFromString("a:{t:(a0:int, a1:int)}");
+        Schema s2 = Utils.getSchemaFromString("b:{t:(b0:int, b1:int)}");
+        s1.getField(0).schema.setTwoLevelAccessRequired(true);
+        s1.getField(0).schema.setTwoLevelAccessRequired(false);
+        Schema s3 = Schema.mergeSchema(s1, s2, true);
+        assertEquals(s3, null);
+    }
+    
+    @Test
+    // See PIG-730
+    public void testMergeSchemaWithTwoLevelAccess3() throws Exception {
+        // Generate two schemas
+        Schema s1 = Utils.getSchemaFromString("a:{t:(a0:int, a1:int)}");
+        Schema s2 = Utils.getSchemaFromString("b:{t:(b0:int, b1:int)}");
+        LogicalSchema ls1 = org.apache.pig.newplan.logical.Util.translateSchema(s1);
+        LogicalSchema ls2 = org.apache.pig.newplan.logical.Util.translateSchema(s2);
+        ls1.getField(0).schema.setTwoLevelAccessRequired(true);
+        ls2.getField(0).schema.setTwoLevelAccessRequired(true);
+        LogicalSchema ls3 = LogicalSchema.merge(ls1, ls2);
+        assertEquals(ls3.getField(0).schema.isTwoLevelAccessRequired(), true);
+    }
+    
+    @Test
+    // See PIG-730
+    public void testMergeSchemaWithTwoLevelAccess4() throws Exception {
+        // Generate two schemas
+        Schema s1 = Utils.getSchemaFromString("a:{t:(a0:int, a1:int)}");
+        Schema s2 = Utils.getSchemaFromString("b:{t:(b0:int, b1:int)}");
+        LogicalSchema ls1 = org.apache.pig.newplan.logical.Util.translateSchema(s1);
+        LogicalSchema ls2 = org.apache.pig.newplan.logical.Util.translateSchema(s2);
+        ls1.getField(0).schema.setTwoLevelAccessRequired(true);
+        ls2.getField(0).schema.setTwoLevelAccessRequired(false);
+        LogicalSchema ls3 = LogicalSchema.merge(ls1, ls2);
+        assertEquals(ls3.getField(0).type, DataType.BAG);
+        assertEquals(ls3.getField(0).schema, null);
     }
 }

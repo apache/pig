@@ -336,7 +336,10 @@ public class LogicalSchema {
             }
             LogicalFieldSchema mergedFS = new LogicalFieldSchema(mergedAlias, mergedSubSchema, mergedType);
             mergedSchema.addField(mergedFS);
-            if (s1.isTwoLevelAccessRequired() && s2.isTwoLevelAccessRequired()) {
+            if (s1.isTwoLevelAccessRequired() != s2.isTwoLevelAccessRequired()) {
+                return null;
+            }
+            if (s1.isTwoLevelAccessRequired()) {
                 mergedSchema.setTwoLevelAccessRequired(true);
             }
         }

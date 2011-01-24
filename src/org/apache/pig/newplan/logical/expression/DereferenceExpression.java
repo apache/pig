@@ -142,7 +142,7 @@ public class DereferenceExpression extends ColumnExpression {
                     // Get the tuple inner schema
                     LogicalSchema origSchema = predFS.schema.getField(0).schema;;
                     // Slice the tuple inner schema
-                    if (origSchema!=null) {
+                    if (origSchema!=null && origSchema.size()!=0) {
                         for (int column:columns) {
                             innerSchema.addField(origSchema.getField(column));
                         }

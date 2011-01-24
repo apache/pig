@@ -1595,7 +1595,15 @@ public class Schema implements Serializable, Cloneable {
 
         }
 
-        return new Schema(outputList) ;
+        Schema result = new Schema(outputList);
+        if (schema.isTwoLevelAccessRequired()!=other.isTwoLevelAccessRequired()) {
+            int errCode = 2124;
+            String errMsg = "Cannot merge schema " + schema + " and " + other + ". One with twoLeverAccess flag, the other doesn't.";
+            throw new SchemaMergeException(errMsg, errCode, PigException.BUG);
+        }
+        if (schema.isTwoLevelAccessRequired())
+            result.setTwoLevelAccessRequired(true);
+        return result;
     }
 
     /***
