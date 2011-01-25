@@ -79,6 +79,7 @@ import org.apache.pig.newplan.logical.relational.LOStore;
 import org.apache.pig.newplan.logical.relational.LogicalRelationalNodesVisitor;
 import org.apache.pig.newplan.logical.relational.LogicalRelationalOperator;
 import org.apache.pig.newplan.logical.rules.InputOutputFileValidator;
+import org.apache.pig.newplan.logical.visitor.SortInfoSetter;
 import org.apache.pig.tools.pigstats.OutputStats;
 import org.apache.pig.tools.pigstats.PigStats;
 import org.apache.pig.pen.POOptimizeDisabler;
@@ -366,56 +367,6 @@ public class HExecutionEngine {
         return newPreoptimizedPlan;
     }
     
-    public static class SortInfoSetter extends LogicalRelationalNodesVisitor {
-
-        public SortInfoSetter(OperatorPlan plan) throws FrontendException {
-            super(plan, new DependencyOrderWalker(plan));
-        }
-
-        @Override
-        public void visit(LOStore store) throws FrontendException {
-            
-            Operator storePred = store.getPlan().getPredecessors(store).get(0);
-            if(storePred == null){
-                int errCode = 2051;
-                String msg = "Did not find a predecessor for Store." ;
-                throw new FrontendException(msg, errCode, PigException.BUG);    
-            }
-            
-            SortInfo sortInfo = null;
-            if(storePred instanceof LOLimit) {
-                storePred = store.getPlan().getPredecessors(storePred).get(0);
-            } else if (storePred instanceof LOSplitOutput) {
-                LOSplitOutput splitOutput = (LOSplitOutput)storePred;
-                // We assume this is the LOSplitOutput we injected for this case:
-                // b = order a by $0; store b into '1'; store b into '2';
-                // In this case, we should mark both '1' and '2' as sorted
-                LogicalExpressionPlan conditionPlan = splitOutput.getFilterPlan();
-                if (conditionPlan.getSinks().size()==1) {
-                    Operator root = conditionPlan.getSinks().get(0);
-                    if (root instanceof ConstantExpression) {
-                        Object value = ((ConstantExpression)root).getValue();
-                        if (value instanceof Boolean && (Boolean)value==true) {
-                            Operator split = splitOutput.getPlan().getPredecessors(splitOutput).get(0);
-                            if (split instanceof LOSplit)
-                                storePred = store.getPlan().getPredecessors(split).get(0);
-                        }
-                    }
-                }
-            }
-            // if this predecessor is a sort, get
-            // the sort info.
-            if(storePred instanceof LOSort) {
-                try {
-                    sortInfo = ((LOSort)storePred).getSortInfo();
-                } catch (FrontendException e) {
-                    throw new FrontendException(e);
-                }
-            }
-            store.setSortInfo(sortInfo);
-        }
-    }
-
     public List<ExecJob> execute(PhysicalPlan plan,
                                  String jobName) throws ExecException, FrontendException {
         MapReduceLauncher launcher = new MapReduceLauncher();
