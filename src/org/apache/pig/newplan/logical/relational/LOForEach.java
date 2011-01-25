@@ -115,7 +115,7 @@ public class LOForEach extends LogicalRelationalOperator {
         }
         @Override
         public void execute(LogicalRelationalOperator op) throws FrontendException {
-            if (op.getAlias().equals(aliasOfOperator))
+            if (op.getAlias()!=null && op.getAlias().equals(aliasOfOperator))
                 opFound = op;
         }
     }
