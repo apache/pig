@@ -72,10 +72,9 @@ import org.apache.pig.impl.util.Utils;
 import com.google.common.collect.Lists;
 
 /**
- * A HBase implementation of LoadFunc and StoreFunc
+ * A HBase implementation of LoadFunc and StoreFunc.
  * 
- * TODO(dmitriy) test that all this stuff works
- * TODO(dmitriy) documentation
+ *
  */
 public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPushDown {
     

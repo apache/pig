@@ -43,10 +43,8 @@ import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.JobPriority;
 import org.apache.hadoop.mapred.jobcontrol.Job;
 import org.apache.hadoop.mapred.jobcontrol.JobControl;
-import org.apache.hadoop.util.RunJar;
 import org.apache.pig.ComparisonFunc;
 import org.apache.pig.ExecType;
-import org.apache.pig.FuncSpec;
 import org.apache.pig.LoadFunc;
 import org.apache.pig.PigException;
 import org.apache.pig.StoreFuncInterface;
@@ -474,12 +472,20 @@ public class JobControlCompiler{
                 }
 
                 // set out filespecs
-                String outputPath = st.getSFile().getFileName();
+                String outputPathString = st.getSFile().getFileName();
+                if (!outputPathString.contains("://") || outputPathString.startsWith("hdfs://")) {
+                    conf.set("pig.streaming.log.dir",
+                            new Path(outputPathString, LOG_DIR).toString());
+                } else {
+                    String tmpLocationStr =  FileLocalizer
+                    .getTemporaryPath(pigContext).toString();
+                    tmpLocation = new Path(tmpLocationStr);
+                    conf.set("pig.streaming.log.dir",
+                            new Path(tmpLocation, LOG_DIR).toString());
                 
-                conf.set("pig.streaming.log.dir", 
-                            new Path(outputPath, LOG_DIR).toString());
-                conf.set("pig.streaming.task.output.dir", outputPath);
             } 
+                conf.set("pig.streaming.task.output.dir", outputPathString);
+            }
            else if (mapStores.size() + reduceStores.size() > 0) { // multi store case
                 log.info("Setting up multi store job");
                 String tmpLocationStr =  FileLocalizer
@@ -705,7 +711,7 @@ public class JobControlCompiler{
      * @throws IOException
      */
     static int estimateNumberOfReducers(Configuration conf, List<POLoad> lds) throws IOException {
-           long bytesPerReducer = conf.getLong("pig.exec.reducers.bytes.per.reducer", (long) (1000 * 1000 * 1000));
+           long bytesPerReducer = conf.getLong("pig.exec.reducers.bytes.per.reducer", (1000 * 1000 * 1000));
         int maxReducers = conf.getInt("pig.exec.reducers.max", 999);
         long totalInputFileSize = getTotalInputFileSize(conf, lds);
        
