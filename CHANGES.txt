@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-1769: Consistency for HBaseStorage (dvryaboy)
+
 PIG-1786: Move describe/nested describe to new logical plan (daijy)
 
 PIG-1809: addition of TOMAP function (olgan)

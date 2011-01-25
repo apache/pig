@@ -437,7 +437,7 @@ public class TestHBaseStorage {
 				+ " "
 				+ TESTCOLUMN_C
 				+ "','-loadKey -caster HBaseBinaryConverter') as (rowKey:chararray,col_a:int, col_b:double, col_c:chararray);");
-		pig.store("a", TESTTABLE_2,
+		pig.store("a", "hbase://" + TESTTABLE_2,
 				"org.apache.pig.backend.hadoop.hbase.HBaseStorage('"
 						+ TESTCOLUMN_A + " " + TESTCOLUMN_B + " "
 						+ TESTCOLUMN_C + "','-caster HBaseBinaryConverter')");
