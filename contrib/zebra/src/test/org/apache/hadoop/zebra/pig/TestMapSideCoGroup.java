@@ -79,7 +79,7 @@ public class TestMapSideCoGroup extends BaseTestCase {
         pigServer.registerQuery( qs3 );
 
         org.apache.pig.impl.logicalLayer.schema.Schema schema = pigServer.dumpSchema( "T3" );
-        Assert.assertEquals( "{group: int,T1: {a: int,b: chararray,c: chararray},T2: {a: int,d: chararray}}",
+        Assert.assertEquals( "{group: int,T1: {(a: int,b: chararray,c: chararray)},T2: {(a: int,d: chararray)}}",
                 schema.toString() );
         Iterator<Tuple> it = pigServer.openIterator( "T3" );
         int count = 0;
