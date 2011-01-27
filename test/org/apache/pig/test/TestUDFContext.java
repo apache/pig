@@ -17,35 +17,29 @@
  */
 package org.apache.pig.test;
 
+import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+
 import java.io.File;
 import java.io.FileWriter;
-import java.io.IOException;
 import java.util.Iterator;
 import java.util.Properties;
 
-import org.apache.pig.EvalFunc;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.data.Tuple;
-import org.apache.pig.impl.io.BufferedPositionedInputStream;
 import org.apache.pig.impl.io.FileLocalizer;
-import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.util.UDFContext;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
 
-import junit.framework.TestCase;
-
-@RunWith(JUnit4.class)
-public class TestUDFContext extends TestCase {
+public class TestUDFContext {
     
     static MiniCluster cluster = null;
     
-    @Override 
     @Before
     public void setUp() throws Exception {
         cluster = MiniCluster.buildCluster();
@@ -87,4 +81,34 @@ public class TestUDFContext extends TestCase {
         	assertEquals(tuple.get(3).toString(), "five");
         }
     }
+    
+    
+    /**
+     * Test that UDFContext is reset each time the plan is regenerated 
+     * @throws Exception
+     */
+    @Test
+    public void testUDFContextReset() throws Exception {
+        PigServer pig = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        pig.registerQuery(" l = load 'file' as (a :int, b : int, c : int);");
+        pig.registerQuery(" f = foreach l generate a, b;");        
+        pig.explain("f", System.out);
+        Properties props = UDFContext.getUDFContext().getUDFProperties(PigStorage.class);
+
+        // required fields property should be set because f results does not
+        // require the third column c, so properties should not be null
+        assertNotNull(props.get("l"));
+        
+        // the new statement for alias f below will require all columns,
+        // so this time required fields property for loader should not be set
+        pig.registerQuery(" f = foreach l generate a, b, c;");
+        pig.explain("f", System.out);
+        props = UDFContext.getUDFContext().getUDFProperties(PigStorage.class);
+
+        assertTrue("properties in udf context for load should be null", 
+                props.get("l") == null);
+
+        
+    }
+    
 }

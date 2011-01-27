@@ -199,4 +199,10 @@ public class LOLoad extends LogicalRelationalOperator {
     public void resetUid() {
         uidOnlySchema = null;
     }
+    
+    @Override
+    public String toString(){
+        String str = super.toString();
+        return (str + "RequiredFields:" + requiredFields);
+    }
 }
