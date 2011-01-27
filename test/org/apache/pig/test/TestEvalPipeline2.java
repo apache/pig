@@ -42,6 +42,7 @@ import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.DataType;
+import org.apache.pig.data.DefaultBagFactory;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.io.FileLocalizer;
@@ -1215,5 +1216,62 @@ public class TestEvalPipeline2 extends TestCase {
             return;
         }
         fail();
+    }
+    
+    public static class BagGenerateNoSchema extends EvalFunc<DataBag> {
+        @Override
+        public DataBag exec(Tuple input) throws IOException {
+            DataBag bg = DefaultBagFactory.getInstance().newDefaultBag();
+            bg.add(input);
+            return bg;
+        }
+    }
+    
+    // See PIG-1813
+    @Test
+    public void testUDFNoSchemaPropagate1() throws Exception{
+        String[] input1 = {
+                "[key#1,key2#2]",
+                "[key#2,key2#3]",
+        };
+        
+        Util.createInputFile(cluster, "table_testUDFNoSchemaPropagate1", input1);
+
+        pigServer.registerQuery("a = load 'table_testUDFNoSchemaPropagate1' as (a0:map[]);");
+        pigServer.registerQuery("b = foreach a generate " + BagGenerateNoSchema.class.getName() + "(*) as b0;");
+        pigServer.registerQuery("c = foreach b generate flatten(IdentityColumn(b0));");
+        pigServer.registerQuery("d = foreach c generate $0#'key';");
+        
+        Iterator<Tuple> iter = pigServer.openIterator("d");
+        
+        Tuple t = iter.next();
+        assertTrue(t.toString().contains("(1)"));
+        t = iter.next();
+        assertTrue(t.toString().contains("(2)"));
+        assertFalse(iter.hasNext());
+    }
+    
+    // See PIG-1813
+    @Test
+    public void testUDFNoSchemaPropagate2() throws Exception{
+        String[] input1 = {
+                "[key#1,key2#2]",
+                "[key#2,key2#3]",
+        };
+        
+        Util.createInputFile(cluster, "table_testUDFNoSchemaPropagate2", input1);
+
+        pigServer.registerQuery("a = load 'table_testUDFNoSchemaPropagate2' as (a0:map[]);");
+        pigServer.registerQuery("b = foreach a generate flatten(" + BagGenerateNoSchema.class.getName() + "(*)) as b0;");
+        pigServer.registerQuery("c = foreach b generate IdentityColumn(b0);");
+        pigServer.registerQuery("d = foreach c generate $0#'key';");
+        
+        Iterator<Tuple> iter = pigServer.openIterator("d");
+        
+        Tuple t = iter.next();
+        assertTrue(t.toString().contains("(1)"));
+        t = iter.next();
+        assertTrue(t.toString().contains("(2)"));
+        assertFalse(iter.hasNext());
     }
 }

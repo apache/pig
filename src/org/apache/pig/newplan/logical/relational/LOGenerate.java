@@ -82,6 +82,7 @@ public class LOGenerate extends LogicalRelationalOperator {
             
             LogicalFieldSchema fieldSchema = null;
             
+            // schema of the expression after flatten
             LogicalSchema expSchema = null;
             
             if (exp.getFieldSchema()!=null) {
@@ -101,7 +102,7 @@ public class LOGenerate extends LogicalRelationalOperator {
                         expSchema = null;
                     }
                     else {
-                        // if flatten is set, set schema of tuple field to this schema
+                     // if we come here, we get a BAG/Tuple with flatten, extract inner schema of the tuple as expSchema
                         List<LogicalSchema.LogicalFieldSchema> innerFieldSchemas = new ArrayList<LogicalSchema.LogicalFieldSchema>();
                         if (flattenFlags[i]) {
                             if (fieldSchema.type == DataType.BAG) {
