@@ -219,7 +219,7 @@ rel : alias {  validateAliasRef( aliases, $alias.name ); }
     | op_clause
 ;
 
-flatten_generated_item : ( flatten_clause | expr | START ) field_def_list?
+flatten_generated_item : ( flatten_clause | expr | STAR ) field_def_list?
 ;
 
 flatten_clause : ^( FLATTEN expr )

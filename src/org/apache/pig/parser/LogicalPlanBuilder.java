@@ -286,13 +286,14 @@ public class LogicalPlanBuilder {
      * @param operators All logical operators in lp;
      * @param inputs  inputs of the LOGenerate
      */
-    static void processExpressionPlan(LOForEach foreach,
+    private static void processExpressionPlan(LOForEach foreach,
                                       LogicalPlan lp,  
                                       LogicalExpressionPlan plan,  
                                       Map<String, Operator> operators,  
                                       ArrayList<Operator> inputs ) {
-        List<Operator> sinks = plan.getSinks();
-        for( Operator sink : sinks ) {
+        Iterator<Operator> it = plan.getOperators();
+        while( it.hasNext() ) {
+            Operator sink = it.next();
             //check all ProjectExpression
             if( sink instanceof ProjectExpression ) {
                 ProjectExpression projExpr = (ProjectExpression)sink;
@@ -312,12 +313,14 @@ public class LogicalPlanBuilder {
                             inputs.add( op );
                         }
                         projExpr.setInputNum( index );
+                        projExpr.setColNum( -1 );
                     } else {
                         // this means the project expression refers to a column
                         // in the input of foreach. Add a LOInnerLoad and use that
                         // as input
                         projExpr.setInputNum( inputs.size() );
                         LOInnerLoad innerLoad = new LOInnerLoad( lp, foreach, colAlias );
+                        projExpr.setColNum( -1 ); // Projection Expression on InnerLoad is always (*).
                         lp.add( innerLoad );
                         inputs.add( innerLoad );
                     }
@@ -326,6 +329,7 @@ public class LogicalPlanBuilder {
                     // using position (eg $1)
                     projExpr.setInputNum( inputs.size() );
                     LOInnerLoad innerLoad = new LOInnerLoad( lp, foreach, projExpr.getColNum() );
+                    projExpr.setColNum( -1 ); // Projection Expression on InnerLoad is always (*).
                     lp.add( innerLoad );
                     inputs.add( innerLoad );
                 }
@@ -598,30 +602,50 @@ public class LogicalPlanBuilder {
             Map<String, Operator> operators,
             String alias, ProjectExpression projExpr, List<LogicalExpressionPlan> exprPlans) {
         Operator input = null;
-        boolean foreachNeeded = !exprPlans.isEmpty();
         String colAlias = projExpr.getColAlias();
         if( colAlias != null ) {
+            // ProjExpr refers to a name, which can be an alias for another operator or col name.
             Operator op = operators.get( colAlias );
             if( op != null ) {
+                // ProjExpr refers to an operator alias.
                 input = op ;
-                if( !foreachNeeded )
-                    return op;
             } else {
+                // Assuming that ProjExpr refers to a column by name. Create an LOInnerLoad
                 input = new LOInnerLoad( innerPlan, foreach, colAlias );
-                if( !foreachNeeded && alias != null ) {
-                    operators.put( alias , input );
-                }
             }
         } else {
+            // ProjExpr refers to a column by number.
             input = new LOInnerLoad( innerPlan, foreach, projExpr.getColNum() );
         }
         
-        LogicalPlan lp = new LogicalPlan();
-        boolean[] flatten = new boolean[exprPlans.size()];
-        LOGenerate gen = new LOGenerate( lp, exprPlans, flatten );
-        lp.add( gen );
+        LogicalPlan lp = new LogicalPlan(); // f's inner plan
         LOForEach f = new LOForEach( innerPlan );
         f.setInnerPlan( lp );
+        LOGenerate gen = new LOGenerate( lp );
+        boolean[] flatten = new boolean[exprPlans.size()];
+        
+        List<Operator> innerLoads = new ArrayList<Operator>( exprPlans.size() );
+        for( LogicalExpressionPlan plan : exprPlans ) {
+            ProjectExpression pe = (ProjectExpression)plan.getSinks().get( 0 );
+            String al = pe.getColAlias();
+            LOInnerLoad iload = ( al == null ) ?  
+                    new LOInnerLoad( lp, f, pe.getColNum() ) : new LOInnerLoad( lp, f, al );
+            pe.setColNum( -1 );
+            pe.setInputNum( innerLoads.size() );
+            pe.setAttachedRelationalOp( gen );
+            innerLoads.add( iload );
+        }
+        
+        gen.setOutputPlans( exprPlans );
+        gen.setFlattenFlags( flatten );
+        lp.add( gen );
+
+        for( Operator il : innerLoads ) {
+            lp.add( il );
+            lp.connect( il, gen );
+        }
+        
+        // Connect the inner load operators to gen
         setAlias( f, alias );
         innerPlan.add( input );
         innerPlan.add( f );
