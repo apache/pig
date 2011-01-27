@@ -447,7 +447,7 @@ flatten_generated_item returns[LogicalExpressionPlan plan, boolean flattenFlag, 
 }
  : ( flatten_clause[$plan] { $flattenFlag = true; }
    | expr[$plan]
-   | START
+   | STAR
      {
          builder.buildProjectExpr( $plan, currentOp, $statement::inputIndex, null, -1 );
      }

@@ -88,6 +88,7 @@ public class DereferenceExpression extends ColumnExpression {
     
     public void setBagColumns(List<Integer> columns) {
         this.columns = columns;
+        this.rawColumns.clear(); // We don't need this any more.
     }
     
     @Override
@@ -176,6 +177,10 @@ public class DereferenceExpression extends ColumnExpression {
         lgExpPlan.connect( copy, inputCopy );
         
         return copy;
+    }
+
+    public List<Object> getRawColumns() {
+        return this.rawColumns;
     }
 
 }

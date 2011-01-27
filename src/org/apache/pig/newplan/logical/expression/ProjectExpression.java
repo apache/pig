@@ -123,6 +123,7 @@ public class ProjectExpression extends ColumnExpression {
      */
     public void setColNum(int colNum) {
         col = colNum;
+        alias = null; // Once the column number is set, alias is no longer needed.
     }
     
     public boolean isProjectStar() {
