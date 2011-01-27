@@ -213,6 +213,8 @@ PIG-1309: Map-side Cogroup (ashutoshc)
 
 BUG FIXES
 
+PIG-1813: Pig 0.8 throws ERROR 1075 while trying to refer a map in the result of eval udf.Works with 0.7 (daijy)
+
 PIG-1776: changing statement corresponding to alias after explain , then
   doing dump gives incorrect result (thejas)
 

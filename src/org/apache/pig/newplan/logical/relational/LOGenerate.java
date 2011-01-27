@@ -74,6 +74,7 @@ public class LOGenerate extends LogicalRelationalOperator {
             
             LogicalFieldSchema fieldSchema = null;
             
+            // schema of expression, or inner schema if expression is flattenned
             LogicalSchema expSchema = null;
             
             if (exp.getFieldSchema()!=null) {
@@ -81,7 +82,7 @@ public class LOGenerate extends LogicalRelationalOperator {
                 fieldSchema = exp.getFieldSchema().deepCopy();
                 
                 expSchema = new LogicalSchema();
-                if (fieldSchema.type != DataType.TUPLE && fieldSchema.type != DataType.BAG) {
+                if (!flattenFlags[i] || (fieldSchema.type != DataType.TUPLE && fieldSchema.type != DataType.BAG)) {
                     // if type is primitive, just add to schema
                     if (fieldSchema!=null)
                         expSchema.addField(fieldSchema);
@@ -93,34 +94,30 @@ public class LOGenerate extends LogicalRelationalOperator {
                         expSchema = null;
                     }
                     else {
-                        // if flatten is set, set schema of tuple field to this schema
+                        // if we come here, we get a BAG/Tuple with flatten, extract inner schema of the tuple as expSchema
                         List<LogicalSchema.LogicalFieldSchema> innerFieldSchemas = new ArrayList<LogicalSchema.LogicalFieldSchema>();
-                        if (flattenFlags[i]) {
-                            if (fieldSchema.type == DataType.BAG) {
-                                // if it is bag of tuples, get the schema of tuples
-                                if (fieldSchema.schema!=null) {
-                                    if (fieldSchema.schema.isTwoLevelAccessRequired()) {
-                                        //  assert(fieldSchema.schema.size() == 1 && fieldSchema.schema.getField(0).type == DataType.TUPLE)
-                                        innerFieldSchemas = fieldSchema.schema.getField(0).schema.getFields();
-                                    } else {
-                                        innerFieldSchemas = fieldSchema.schema.getFields();
-                                    }
-                                    for (LogicalSchema.LogicalFieldSchema fs : innerFieldSchemas) {
-                                        fs.alias = fieldSchema.alias + "::" + fs.alias;
-                                    }
+                        if (fieldSchema.type == DataType.BAG) {
+                            // if it is bag of tuples, get the schema of tuples
+                            if (fieldSchema.schema!=null) {
+                                if (fieldSchema.schema.isTwoLevelAccessRequired()) {
+                                    //  assert(fieldSchema.schema.size() == 1 && fieldSchema.schema.getField(0).type == DataType.TUPLE)
+                                    innerFieldSchemas = fieldSchema.schema.getField(0).schema.getFields();
+                                } else {
+                                    innerFieldSchemas = fieldSchema.schema.getFields();
                                 }
-                            } else { // DataType.TUPLE
-                                innerFieldSchemas = fieldSchema.schema.getFields();
                                 for (LogicalSchema.LogicalFieldSchema fs : innerFieldSchemas) {
                                     fs.alias = fieldSchema.alias + "::" + fs.alias;
                                 }
                             }
-                            
-                            for (LogicalSchema.LogicalFieldSchema fs : innerFieldSchemas)
-                                expSchema.addField(fs);
+                        } else { // DataType.TUPLE
+                            innerFieldSchemas = fieldSchema.schema.getFields();
+                            for (LogicalSchema.LogicalFieldSchema fs : innerFieldSchemas) {
+                                fs.alias = fieldSchema.alias + "::" + fs.alias;
+                            }
                         }
-                        else
-                            expSchema.addField(fieldSchema);
+                        
+                        for (LogicalSchema.LogicalFieldSchema fs : innerFieldSchemas)
+                            expSchema.addField(fs);
                     }
                 }
             }
