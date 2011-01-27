@@ -100,6 +100,7 @@ import org.apache.pig.impl.util.LogUtils;
 import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.impl.util.Pair;
 import org.apache.pig.impl.util.PropertiesUtil;
+import org.apache.pig.impl.util.UDFContext;
 import org.apache.pig.impl.util.Utils;
 import org.apache.pig.newplan.logical.LogicalPlanMigrationVistor;
 import org.apache.pig.newplan.logical.optimizer.LogicalPlanOptimizer;
@@ -1762,6 +1763,9 @@ public class PigServer {
             graph.ignoreNumStores = processedStores;
             graph.processedStores = processedStores;
             graph.fileNameMap = fileNameMap;
+            
+            //reset udf properties
+            UDFContext.getUDFContext().reset();
 
             try {
                 for (Iterator<String> it = getScriptCache().iterator(); it.hasNext(); lineNumber++) {

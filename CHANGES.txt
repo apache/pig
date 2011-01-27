@@ -282,6 +282,9 @@ PIG-1309: Map-side Cogroup (ashutoshc)
 
 BUG FIXES
 
+PIG-1776: changing statement corresponding to alias after explain , then 
+  doing dump gives incorrect result (thejas)
+
 PIG-1800: Missing Signature for maven staging release (rding)
 
 PIG-1815: pig task retains used instances of PhysicalPlan (thejas)
