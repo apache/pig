@@ -53,6 +53,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POProject;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POUserComparisonFunc;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.expressionOperators.POUserFunc;
+import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.PlanException;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.test.TestPOSort.WeirdComparator;
@@ -112,6 +113,7 @@ public class TestMRCompiler extends junit.framework.TestCase {
         GenPhyOp.setR(r);
         
         GenPhyOp.setPc(pc);
+        NodeIdGenerator.getGenerator().reset("");
     }
 
     @Override

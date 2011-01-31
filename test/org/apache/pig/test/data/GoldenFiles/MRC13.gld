@@ -1,4 +1,4 @@
-MapReduce(-1) - -52:
+MapReduce(-1) - -13:
 Reduce Plan Empty
 |   Store(DummyFil:DummyLdr) - -6411189422016119355
 |   |
@@ -8,19 +8,19 @@ Reduce Plan Empty
 |       |   |   |
 |       |   |   Constant(true) - --7987250529196129674
 |       |   |
-|       |   |---Load(file:/tmp/temp-1456742965/tmp2077335416:org.apache.pig.impl.io.InterStorage) - -48
+|       |   |---Load(file:/tmp/temp-1456742965/tmp2077335416:org.apache.pig.impl.io.InterStorage) - -9
 |       |
 |       |---Filter[tuple] - -2056844330428347996
 |           |   |
 |           |   Constant(true) - --8754957318949788629
 |           |
-|           |---Load(file:/tmp/temp-1456742965/tmp2077335416:org.apache.pig.impl.io.InterStorage) - -50
+|           |---Load(file:/tmp/temp-1456742965/tmp2077335416:org.apache.pig.impl.io.InterStorage) - -11
 |
-|---MapReduce(-1) - -45:
-    |   Store(file:/tmp/temp-1456742965/tmp2077335416:org.apache.pig.impl.io.InterStorage) - -47
+|---MapReduce(-1) - -6:
+    |   Store(file:/tmp/temp-1456742965/tmp2077335416:org.apache.pig.impl.io.InterStorage) - -8
     |   |
     |   |---Package[tuple]{Unknown} - --1607475648664293401
-    |   Union[tuple] - -46
+    |   Union[tuple] - -7
     |   |
     |   |---Local Rearrange[tuple]{Unknown}(false) - --3476413267732334825
     |   |   |
@@ -28,7 +28,7 @@ Reduce Plan Empty
     |   |       |   |
     |   |       |   Constant(true) - -3515731110955624708
     |   |       |
-    |   |       |---Load(file:/tmp/temp-1456742965/tmp-1456742965:org.apache.pig.impl.io.InterStorage) - -41
+    |   |       |---Load(file:/tmp/temp-1456742965/tmp-1456742965:org.apache.pig.impl.io.InterStorage) - -2
     |   |
     |   |---Local Rearrange[tuple]{Unknown}(false) - -2351257193210757136
     |       |
@@ -36,10 +36,10 @@ Reduce Plan Empty
     |           |   |
     |           |   Constant(true) - -728209667098611077
     |           |
-    |           |---Load(file:/tmp/temp-1456742965/tmp-1456742965:org.apache.pig.impl.io.InterStorage) - -43
+    |           |---Load(file:/tmp/temp-1456742965/tmp-1456742965:org.apache.pig.impl.io.InterStorage) - -4
     |
-    |---MapReduce(-1) - -39:
+    |---MapReduce(-1) - -0:
         Reduce Plan Empty
-        |   Store(file:/tmp/temp-1456742965/tmp-1456742965:org.apache.pig.impl.io.InterStorage) - -40
+        |   Store(file:/tmp/temp-1456742965/tmp-1456742965:org.apache.pig.impl.io.InterStorage) - -1
         |   |
         |   |---Load(DummyFil:DummyLdr) - --7797378030368227515
