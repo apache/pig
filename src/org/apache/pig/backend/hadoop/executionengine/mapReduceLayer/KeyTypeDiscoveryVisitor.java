@@ -31,6 +31,7 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOpera
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhyPlanVisitor;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POLocalRearrange;
+import org.apache.pig.data.DataType;
 import org.apache.pig.impl.plan.DepthFirstWalker;
 import org.apache.pig.impl.plan.VisitorException;
 
@@ -55,6 +56,10 @@ public class KeyTypeDiscoveryVisitor extends MROpPlanVisitor {
     @Override
     public void visitMROp(MapReduceOper mr) throws VisitorException {
         if(mr instanceof NativeMapReduceOper) {
+            return;
+        }
+        if (mr.useSecondaryKey) {
+            mr.mapKeyType = DataType.TUPLE;
             return;
         }
         boolean foundKeyType = false;
