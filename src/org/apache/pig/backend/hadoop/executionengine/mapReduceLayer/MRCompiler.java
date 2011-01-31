@@ -333,28 +333,6 @@ public class MRCompiler extends PhyPlanVisitor {
             compile(op);
         }
         
-        // I'm quite certain this is not the best way to do this.  The issue
-        // is that for jobs that take multiple map reduce passes, for
-        // non-sort jobs, the POLocalRearrange is being put into the reduce
-        // of MR job n, with the map for MR job n+1 empty and the POPackage
-        // in reduce of MR job n+1.  This causes problems in the collect of
-        // the map MR job n+1.  To resolve this, the following visitor
-        // walks the resulting compiled jobs, looks for the pattern described
-        // above, and then moves the POLocalRearrange to the map of MR job
-        // n+1.  It seems to me there are two possible better solutions:
-        // 1) Change the logic in this compiler to put POLocalRearrange in
-        // the correct place to begin with instead of patching it up later.
-        // I'd do this but I don't fully understand the logic here and it's
-        // complex.
-        // 2) Change our map reduce execution to have a reduce only mode.  In
-        // this case the map would not even try to parse the input, it would
-        // just be 100% pass through.  I suspect this might be better though
-        // I don't fully understand the consequences of this.
-        // Given these issues, the following works for now, and we can fine
-        // tune it when Shravan returns.
-        RearrangeAdjuster ra = new RearrangeAdjuster(MRPlan);
-        ra.visit();
-        
         connectSoftLink();
         
         LimitAdjuster la = new LimitAdjuster(MRPlan);
@@ -531,6 +509,46 @@ public class MRCompiler extends PhyPlanVisitor {
                 mro.mapPlan.addAsLeaf(op);
             } else if (mro.isMapDone() && !mro.isReduceDone()) {
                 mro.reducePlan.addAsLeaf(op);
+            } else {
+                int errCode = 2022;
+                String msg = "Both map and reduce phases have been done. This is unexpected while compiling.";                
+                throw new PlanException(msg, errCode, PigException.BUG);
+            }
+            curMROp = mro;
+        } else {
+            List<MapReduceOper> mergedPlans = merge(compiledInputs);
+            
+            //The first MROper is always the merged map MROper
+            MapReduceOper mro = mergedPlans.remove(0);
+            //Push the input operator into the merged map MROper
+            mro.mapPlan.addAsLeaf(op);
+            
+            //Connect all the reduce MROpers
+            if(mergedPlans.size()>0)
+                connRedOper(mergedPlans, mro);
+            
+            //return the compiled MROper
+            curMROp = mro;
+        }
+    }
+    
+    private void addToMap(PhysicalOperator op) throws PlanException, IOException{
+        
+        if (compiledInputs.length == 1) {
+            //For speed
+            MapReduceOper mro = compiledInputs[0];
+            if (!mro.isMapDone()) {
+                mro.mapPlan.addAsLeaf(op);
+            } else if (mro.isMapDone() && !mro.isReduceDone()) {
+                FileSpec fSpec = getTempFileSpec();
+                
+                POStore st = getStore();
+                st.setSFile(fSpec);
+                mro.reducePlan.addAsLeaf(st);
+                mro.setReduceDone(true);
+                mro = startNew(fSpec, mro);
+                mro.mapPlan.addAsLeaf(op);
+                compiledInputs[0] = mro;
             } else {
                 int errCode = 2022;
                 String msg = "Both map and reduce phases have been done. This is unexpected while compiling.";                
@@ -1039,7 +1057,7 @@ public class MRCompiler extends PhyPlanVisitor {
     @Override
     public void visitLocalRearrange(POLocalRearrange op) throws VisitorException {
         try{
-            nonBlocking(op);
+            addToMap(op);
             List<PhysicalPlan> plans = op.getPlans();
             if(plans!=null)
                 for(PhysicalPlan ep : plans)
@@ -1813,12 +1831,8 @@ public class MRCompiler extends PhyPlanVisitor {
             lr.setPlans(eps);
             lr.setResultType(DataType.TUPLE);
             lr.setDistinct(true);
-            if(!mro.isMapDone()){
-                mro.mapPlan.addAsLeaf(lr);
-            }
-            else if(mro.isMapDone() && ! mro.isReduceDone()){
-                mro.reducePlan.addAsLeaf(lr);
-            }
+            
+            addToMap(lr);
             
             blocking(op);
             
@@ -2779,82 +2793,6 @@ public class MRCompiler extends PhyPlanVisitor {
 
     }
     
-    
-    private class RearrangeAdjuster extends MROpPlanVisitor {
-
-        RearrangeAdjuster(MROperPlan plan) {
-            super(plan, new DepthFirstWalker<MapReduceOper, MROperPlan>(plan));
-        }
-
-        @Override
-        public void visitMROp(MapReduceOper mr) throws VisitorException {
-            // Look for map reduce operators whose reduce starts in a local
-            // rearrange.  If it has a successor and that predecessor's map
-            // plan is just a load, push the porearrange to the successor.
-            // Else, throw an error.
-            if (mr.reducePlan.isEmpty()) return;
-            List<PhysicalOperator> mpLeaves = mr.reducePlan.getLeaves();
-            if (mpLeaves.size() != 1) {
-                int errCode = 2024; 
-                String msg = "Expected reduce to have single leaf. Found " + mpLeaves.size() + " leaves.";
-                throw new MRCompilerException(msg, errCode, PigException.BUG);
-            }
-            PhysicalOperator mpLeaf = mpLeaves.get(0);
-            if (!(mpLeaf instanceof POStore)) {
-                int errCode = 2025;
-                String msg = "Expected leaf of reduce plan to " +
-                    "always be POStore. Found " + mpLeaf.getClass().getSimpleName();
-                throw new MRCompilerException(msg, errCode, PigException.BUG);
-            }
-            List<PhysicalOperator> preds =
-                mr.reducePlan.getPredecessors(mpLeaf);
-            if (preds == null) return;
-            if (preds.size() > 1) {
-                int errCode = 2030;
-                String msg ="Expected reduce plan leaf to have a single predecessor. Found " + preds.size() + " predecessors.";
-                throw new MRCompilerException(msg, errCode, PigException.BUG);
-            }
-            PhysicalOperator pred = preds.get(0);
-            if (!(pred instanceof POLocalRearrange)) return;
-
-            // Next question, does the next MROper have an empty map?
-            List<MapReduceOper> succs = mPlan.getSuccessors(mr);
-            if (succs == null) {
-                int errCode = 2031;
-                String msg = "Found map reduce operator with POLocalRearrange as"
-                    + " last oper but with no succesor.";
-                throw new MRCompilerException(msg, errCode, PigException.BUG);
-            }
-            if (succs.size() > 1) {
-                int errCode = 2032;
-                String msg = "Expected map reduce operator to have a single successor. Found " + succs.size() + " successors.";
-                throw new MRCompilerException(msg, errCode, PigException.BUG);
-            }
-            MapReduceOper succ = succs.get(0);
-            List<PhysicalOperator> succMpLeaves = succ.mapPlan.getLeaves();
-            List<PhysicalOperator> succMpRoots = succ.mapPlan.getRoots();
-            if (succMpLeaves == null || succMpLeaves.size() > 1 ||
-                    succMpRoots == null || succMpRoots.size() > 1 ||
-                    succMpLeaves.get(0) != succMpRoots.get(0)) {
-            		messageCollector.collect("Expected to find subsequent map " +
-                    "with just a load, but didn't",
-                    MessageType.Warning, PigWarning.DID_NOT_FIND_LOAD_ONLY_MAP_PLAN);
-                return;
-            }
-            PhysicalOperator load = succMpRoots.get(0);
-
-            try {
-                mr.reducePlan.removeAndReconnect(pred);
-                succ.mapPlan.add(pred);
-                succ.mapPlan.connect(load, pred);
-            } catch (PlanException pe) {
-                int errCode = 2033;
-                String msg = "Problems in rearranging map reduce operators in plan.";
-                throw new MRCompilerException(msg, errCode, PigException.BUG, pe);
-            }
-        }
-    }
-
     private class LimitAdjuster extends MROpPlanVisitor {
         ArrayList<MapReduceOper> opsToAdjust = new ArrayList<MapReduceOper>();  
 

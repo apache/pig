@@ -1,16 +1,16 @@
-MapReduce(1) - -174:
+MapReduce(1) - -0:
 |   Store(DummyFil:DummyLdr) - -3851605818031718348
 |   |
-|   |---Limit - -180
+|   |---Limit - -6
 |       |
-|       |---New For Each(true)[bag] - -179
+|       |---New For Each(true)[bag] - -5
 |           |   |
-|           |   Project[tuple][1] - -178
+|           |   Project[tuple][1] - -4
 |           |
-|           |---Package[tuple]{tuple} - -177
-|   Local Rearrange[tuple]{tuple}(false) - -176
+|           |---Package[tuple]{tuple} - -3
+|   Local Rearrange[tuple]{tuple}(false) - -2
 |   |   |
-|   |   Project[tuple][*] - -175
+|   |   Project[tuple][*] - -1
 |   |
 |   |---Limit - --8049873144002881309
 |       |

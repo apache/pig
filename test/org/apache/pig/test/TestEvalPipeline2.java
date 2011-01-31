@@ -1123,4 +1123,33 @@ public class TestEvalPipeline2 extends TestCase {
         assertTrue(t.toString().contains("(2)"));
         assertFalse(iter.hasNext());
     }
+    
+    // See PIG-1812
+    @Test
+    public void testLocalRearrangeInReducer() throws Exception{
+        String[] input1 = {
+                "1\t1",
+                "1\t1",
+                "1\t2",
+        };
+        
+        String[] input2 = {
+                "1\t1",
+        };
+
+        Util.createInputFile(cluster, "table_testLocalRearrangeInReducer1", input1);
+        Util.createInputFile(cluster, "table_testLocalRearrangeInReducer2", input2);
+
+        pigServer.registerQuery("a = load 'table_testLocalRearrangeInReducer1' as (a0, a1);");
+        pigServer.registerQuery("b = distinct a;");
+        pigServer.registerQuery("c = load 'table_testLocalRearrangeInReducer2' as (c0, c1);");
+        pigServer.registerQuery("d = cogroup b by a0, c by c0;");
+        pigServer.registerQuery("e = foreach d { e1 = order c by c1; generate e1;};");
+        
+        Iterator<Tuple> iter = pigServer.openIterator("e");
+        
+        Tuple t = iter.next();
+        assertTrue(t.toString().contains("({(1,1)})"));
+        assertFalse(iter.hasNext());
+    }
 }
