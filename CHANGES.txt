@@ -24,8 +24,6 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
-PIG-1748: Add load/store function AvroStorage for avro data (guolin2001, jghoman via daijy)
-
 PIG-1769: Consistency for HBaseStorage (dvryaboy)
 
 PIG-1786: Move describe/nested describe to new logical plan (daijy)

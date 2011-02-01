@@ -65,11 +65,6 @@
     <dependency org="commons-cli" name="commons-cli" rev="${commons-cli.version}"
       conf="checkstyle->master"/>
     
-    <dependency org="org.apache.avro" name="avro" rev="${avro.version}"
-      conf="compile->master;checkstyle->master"/>
-    <dependency org="com.googlecode.json-simple" name="json-simple" rev="${json-simple.version}"
-      conf="compile->master;checkstyle->master"/>
-
     <dependency org="jdiff" name="jdiff" rev="${jdiff.version}"
       conf="jdiff->default"/>
     <dependency org="xerces" name="xerces" rev="${xerces.version}"
