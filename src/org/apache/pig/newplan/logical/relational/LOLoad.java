@@ -25,12 +25,14 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.pig.LoadFunc;
 import org.apache.pig.LoadMetadata;
+import org.apache.pig.PigException;
 import org.apache.pig.ResourceSchema;
 import org.apache.pig.data.DataType;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.PlanVisitor;
 import org.apache.pig.newplan.logical.Util;
@@ -153,6 +155,53 @@ public class LOLoad extends LogicalRelationalOperator {
         }
         return null;
     }
+
+	@Override
+	public void setAlias(String alias) {
+		super.setAlias(alias);
+
+		// set the schema in this method using the new alias assigned
+		storeScriptSchema();
+	}
+	
+	/**
+	 * This method will store the scriptSchema:Schema using ObjectSerializer to
+	 * the current configuration.<br/>
+	 * The schema can be retrieved by load functions or UDFs to know the schema
+	 * the user entered in the as clause.<br/>
+	 * The name format is:<br/>
+	 * 
+	 * <pre>
+	 * ${UDFSignature}.scriptSchema = ObjectSerializer.serialize(scriptSchema)
+	 * </pre>
+	 * <p/>
+	 * Note that this is not the schema the load functiona returns but will
+	 * always be the as clause schema.<br/>
+	 * That is a = LOAD 'input' as (a:chararray, b:chararray)<br/>
+	 * The schema wil lbe (a:chararray, b:chararray)<br/>
+	 * <p/>
+	 * 
+	 * TODO Find better solution to make script schema available to LoadFunc see
+	 * https://issues.apache.org/jira/browse/PIG-1717
+	 */
+	private void storeScriptSchema() {
+		String alias = getAlias();
+		if (!(conf == null || alias == null || scriptSchema == null)) {
+
+			try {
+
+				conf.set(alias + ".scriptSchema", ObjectSerializer
+						.serialize(Util.translateSchema(scriptSchema)));
+
+			} catch (IOException ioe) {
+				int errCode = 1018;
+				String msg = "Problem serializing script schema";
+				FrontendException fee = new FrontendException(msg, errCode,
+						PigException.INPUT, false, null, ioe);
+				throw new RuntimeException(fee);
+			}
+		}
+	}
 
     public FileSpec getFileSpec() {
         return fs;

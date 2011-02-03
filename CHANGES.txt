@@ -90,6 +90,9 @@ PIG-1696: Performance: Use System.arraycopy() instead of manually copying the by
 
 BUG FIXES
 
+PIG-1717 pig needs to call setPartitionFilter if schema is null but
+getPartitionKeys is not (gerritjvv via gates)
+
 PIG-313: Error handling aggregate of a computation (daijy)
 
 PIG-496: project of bags from complex data causes failures (daijy)
