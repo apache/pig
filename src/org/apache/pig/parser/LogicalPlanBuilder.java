@@ -89,6 +89,10 @@ public class LogicalPlanBuilder {
     private PigContext pigContext = new PigContext( ExecType.LOCAL, new Properties() );
     
     private static NodeIdGenerator nodeIdGen = NodeIdGenerator.getGenerator();
+    
+    Operator lookupOperator(String alias) {
+        return operators.get( alias );
+    }
 
     FuncSpec lookupFunction(String alias) {
         return pigContext.getFuncSpecFromAlias( alias );
@@ -483,7 +487,21 @@ public class LogicalPlanBuilder {
         if( colAlias != null ) {
             LogicalExpressionPlan exprPlan = exprPlans.get( colAlias );
             if( exprPlan != null ) {
-                return (LogicalExpression)exprPlan.getSources().get( 0 );// get the root of the plan
+                plan.merge( exprPlan );
+                // The projected alias is actually expression alias, so the projections in the represented
+                // expression doesn't have any operator associated with it. We need to set it when we 
+                // substitute the expression alias with the its expression.
+                if( op != null ) {
+                    Iterator<Operator> it = plan.getOperators();
+                    while( it.hasNext() ) {
+                        Operator o = it.next();
+                        if( o instanceof ProjectExpression ) {
+                            ProjectExpression projExpr = (ProjectExpression)o;
+                            projExpr.setAttachedRelationalOp( op );
+                        }
+                    }
+                }
+                return (LogicalExpression)plan.getSources().get( 0 );// get the root of the plan
             } else {
                 return new ProjectExpression( plan, 0, colAlias, op );
             }
@@ -502,7 +520,7 @@ public class LogicalPlanBuilder {
     }
     
     LogicalExpression buildUDF(LogicalExpressionPlan plan, String funcName, List<LogicalExpression> args) {
-        FuncSpec funcSpec = null;// TODO: get funcspec from function name.
+        FuncSpec funcSpec = new FuncSpec( funcName );
         return new UserFuncExpression( plan, funcSpec, args );
     }
     

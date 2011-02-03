@@ -110,4 +110,9 @@ public abstract class LogicalExpressionVisitor extends PlanVisitor {
 
     public void visit(RegexExpression op) throws FrontendException {
     }
+    
+    public void visit(ScalarExpression op) throws FrontendException {
+        this.visit( (UserFuncExpression)op );
+    }
+
 }

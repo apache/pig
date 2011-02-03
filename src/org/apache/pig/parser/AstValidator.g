@@ -149,7 +149,7 @@ stream_cmd : ^( STDIN func_clause? )
 output_clause : ^( OUTPUT stream_cmd+ )
 ;
 
-error_clause : ^( ERROR  QUOTEDSTRING INTEGER? )
+error_clause : ^( STDERROR  QUOTEDSTRING INTEGER? )
 ;
 
 load_clause : ^( LOAD filename func_clause? as_clause? )
@@ -273,7 +273,7 @@ col_alias_or_index : col_alias | col_index
 col_alias : GROUP | IDENTIFIER
 ;
 
-col_index : DOLLAR^ INTEGER
+col_index : ^( DOLLAR INTEGER )
 ;
 
 pound_proj : ^( POUND ( QUOTEDSTRING | NULL ) )
@@ -482,7 +482,7 @@ eid : rel_str_op
     | CACHE
     | INPUT
     | OUTPUT
-    | ERROR
+    | STDERROR
     | STDIN
     | STDOUT
     | LIMIT

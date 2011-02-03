@@ -66,7 +66,7 @@ public class LogicalExpressionPlan extends BaseOperatorPlan {
      * @param lgExpPlan plan to merge
      * @return sources of the merged plan
      */
-    public List<Operator> merge(LogicalExpressionPlan lgExpPlan) throws FrontendException {
+    public List<Operator> merge(LogicalExpressionPlan lgExpPlan) {
         
         List<Operator> sources = lgExpPlan.getSources();
         

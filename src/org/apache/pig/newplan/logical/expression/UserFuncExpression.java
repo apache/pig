@@ -24,24 +24,17 @@ import org.apache.pig.EvalFunc;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.data.DataType;
 import org.apache.pig.impl.PigContext;
-import org.apache.pig.impl.logicalLayer.ExpressionOperator;
 import org.apache.pig.impl.logicalLayer.FrontendException;
-import org.apache.pig.impl.logicalLayer.LOConst;
-import org.apache.pig.impl.logicalLayer.LogicalOperator;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
-import org.apache.pig.impl.logicalLayer.schema.Schema.FieldSchema;
 import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.OperatorPlan;
 import org.apache.pig.newplan.PlanVisitor;
 import org.apache.pig.newplan.logical.Util;
-import org.apache.pig.newplan.logical.relational.LogicalRelationalOperator;
 import org.apache.pig.newplan.logical.relational.LogicalSchema;
-import org.apache.pig.newplan.logical.relational.LogicalSchema.LogicalFieldSchema;
 
 public class UserFuncExpression extends LogicalExpression {
 
     private FuncSpec mFuncSpec;
-    private Operator implicitReferencedOperator = null;
     private EvalFunc<?> ef = null;
     
     public UserFuncExpression(OperatorPlan plan, FuncSpec funcSpec) {
@@ -55,7 +48,7 @@ public class UserFuncExpression extends LogicalExpression {
         this( plan, funcSpec );
         
         for( LogicalExpression arg : args ) {
-        	plan.connect( this, arg );
+            plan.connect( this, arg );
         }
     }
 
@@ -111,29 +104,6 @@ public class UserFuncExpression extends LogicalExpression {
         if (fieldSchema!=null)
             return fieldSchema;
         
-        if(implicitReferencedOperator != null &&
-                mFuncSpec.getClassName().equals("org.apache.pig.impl.builtin.ReadScalars")){
-            // if this is a ReadScalars udf for scalar operation, use the 
-            // FieldSchema corresponding to this position in input 
-            List<Operator> args = plan.getSuccessors(this);
-            if(args != null && args.size() > 0 ){
-                int pos = (Integer)((ConstantExpression)args.get(0)).getValue();
-                LogicalRelationalOperator inp = (LogicalRelationalOperator)implicitReferencedOperator;
-
-                if( inp.getSchema() != null){
-                    LogicalFieldSchema inpFs = inp.getSchema().getField(pos);
-                    fieldSchema = new LogicalFieldSchema(inpFs);
-                    //  fieldSchema.alias = "ReadScalars_" + fieldSchema.alias;
-                }else{
-                    fieldSchema = new LogicalFieldSchema(null, null, DataType.BYTEARRAY);
-                }
-                return fieldSchema;
-            }else{
-                //predecessors haven't been setup, return null
-                return null;
-            }
-        }
-
         LogicalSchema inputSchema = new LogicalSchema();
         List<Operator> succs = plan.getSuccessors(this);
 
@@ -170,14 +140,6 @@ public class UserFuncExpression extends LogicalExpression {
         return fieldSchema;
     }
     
-    public Operator getImplicitReferencedOperator() {
-        return implicitReferencedOperator;
-    }
-    
-    public void setImplicitReferencedOperator(Operator implicitReferencedOperator) {
-        this.implicitReferencedOperator = implicitReferencedOperator;
-    }
-
     @Override
     public LogicalExpression deepCopy(LogicalExpressionPlan lgExpPlan) throws FrontendException {
         UserFuncExpression copy =  null; 
@@ -185,7 +147,6 @@ public class UserFuncExpression extends LogicalExpression {
             copy = new UserFuncExpression(
                     lgExpPlan,
                     this.getFuncSpec().clone() );
-            copy.setImplicitReferencedOperator(this.getImplicitReferencedOperator());
             
             // Deep copy the input expressions.
             List<Operator> inputs = plan.getSuccessors( this );
@@ -220,4 +181,5 @@ public class UserFuncExpression extends LogicalExpression {
 
         return msg.toString();
     }
+
 }

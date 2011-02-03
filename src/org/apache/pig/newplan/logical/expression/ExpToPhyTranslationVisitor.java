@@ -517,9 +517,9 @@ public class ExpToPhyTranslationVisitor extends LogicalExpressionVisitor {
         logToPhyMap.put(op, p);
         
         //We need to track all the scalars
-        
-        if(op.getImplicitReferencedOperator() != null) {
-            ((POUserFunc)p).setReferencedOperator(logToPhyMap.get(op.getImplicitReferencedOperator()));
+        if( op instanceof ScalarExpression ) {
+            Operator refOp = ((ScalarExpression)op).getImplicitReferencedOperator();
+            ((POUserFunc)p).setReferencedOperator( logToPhyMap.get( refOp ) );
         }
     }
     

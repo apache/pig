@@ -21,7 +21,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 
 import org.apache.pig.impl.logicalLayer.ExpressionOperator;
 import org.apache.pig.impl.logicalLayer.FrontendException;
@@ -79,6 +78,7 @@ import org.apache.pig.newplan.logical.expression.NotExpression;
 import org.apache.pig.newplan.logical.expression.OrExpression;
 import org.apache.pig.newplan.logical.expression.ProjectExpression;
 import org.apache.pig.newplan.logical.expression.RegexExpression;
+import org.apache.pig.newplan.logical.expression.ScalarExpression;
 import org.apache.pig.newplan.logical.expression.SubtractExpression;
 import org.apache.pig.newplan.logical.expression.UserFuncExpression;
 import org.apache.pig.newplan.logical.relational.LogicalRelationalOperator;
@@ -215,10 +215,14 @@ public class LogicalExpPlanMigrationVistor extends LOVisitor {
     }
 
     public void visit(LOUserFunc op) throws VisitorException {
-        UserFuncExpression exp = new UserFuncExpression(exprPlan, op.getFuncSpec());
+        UserFuncExpression exp = null;
+        if( op.getImplicitReferencedOperator() == null ) {
+            exp = new UserFuncExpression(exprPlan, op.getFuncSpec() );
+        } else {
+            exp = new ScalarExpression( exprPlan );
+        }
         
         List<ExpressionOperator> args = op.getArguments();
-        
         for( ExpressionOperator arg : args ) {
             LogicalExpression expArg = exprOpsMap.get(arg);
             exprPlan.connect(exp, expArg);
@@ -227,9 +231,9 @@ public class LogicalExpPlanMigrationVistor extends LOVisitor {
         exprOpsMap.put(op, exp);
         // We need to track all the scalars
         if(op.getImplicitReferencedOperator() != null) {
-            exp.setImplicitReferencedOperator(outerOpsMap.get(op.getImplicitReferencedOperator()));
+            ((ScalarExpression)exp).setImplicitReferencedOperator(
+            		outerOpsMap.get(op.getImplicitReferencedOperator()) );
         }
-
     }
 
     public void visit(LOBinCond op) throws VisitorException {
