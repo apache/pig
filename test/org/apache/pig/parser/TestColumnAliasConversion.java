@@ -24,6 +24,7 @@ import junit.framework.Assert;
 
 import org.antlr.runtime.RecognitionException;
 import org.apache.pig.impl.logicalLayer.FrontendException;
+import org.apache.pig.impl.plan.PlanValidationException;
 import org.apache.pig.newplan.DependencyOrderWalker;
 import org.apache.pig.newplan.logical.expression.DereferenceExpression;
 import org.apache.pig.newplan.logical.expression.LogicalExpressionPlan;
@@ -55,15 +56,118 @@ public class TestColumnAliasConversion {
     @Test
     public void test3() throws RecognitionException, ParsingFailureException, IOException {
         String query = "A = load 'x' as ( a : bag{ T:tuple(u, v) }, c : int, d : long );" +
-                       "B = foreach A { R = a; S = R.u; T = limit S 100; generate S, T, c + d/5; };" +
+                       "B = foreach A { R = a; P = c * 2; Q = P + d; S = R.u; T = limit S 100; generate Q, R, S, T, c + d/5; };" +
                        "store B into 'y';";
         verify( query );
     }
     
-    private void verify(String query) throws RecognitionException, ParsingFailureException, IOException {
+    @Test
+    public void test4() throws RecognitionException, ParsingFailureException, IOException {
+        String query = "A = load 'x' as ( u:bag{tuple(x, y)}, v:long, w:bytearray); " + 
+                       "B = foreach A generate u.(x, $1), $1, w; " +
+                       "C = store B into 'output';";
+        validate( query );
+    }
+    
+    @Test
+    public void test5() throws RecognitionException, ParsingFailureException, IOException {
+        String query = "A = load 'x' as ( u:bag{} ); " + 
+                       "B = foreach A generate u.$100; " +
+                       "C = store B into 'output';";
+        validate( query );
+    }
+    
+    @Test
+    public void test6() throws RecognitionException, ParsingFailureException, IOException {
+        String query = "A = load 'x'; " + 
+                       "B = foreach A generate $1, $1000; " +
+                       "C = store B into 'output';";
+        validate( query );
+    }
+
+    @Test
+    public void test7() throws RecognitionException, ParsingFailureException, IOException {
+        String query = "A = load 'x'; " + 
+                       "B = load 'y' as ( u : int, v : chararray );" +
+                       "C = foreach A generate B.$1, $0; " +
+                       "D = store C into 'output';";
+        validate( query );
+    }
+    
+    @Test
+    public void testNegative1() throws RecognitionException, ParsingFailureException, IOException {
+        String query = "A = load 'x' as ( u:bag{tuple(x, y)}, v:long, w:bytearray); " + 
+                       "B = foreach A generate u.(x, $3), v, w; " +
+                       "C = store B into 'output';";
+        try {
+        	validate( query );
+        } catch(PlanValidationException ex) {
+        	return;
+        }
+        Assert.fail( "Query should fail to validate." );
+    }
+    
+    @Test
+    public void testNegative2() throws RecognitionException, ParsingFailureException, IOException {
+        String query = "A = load 'x' as ( u:bag{tuple(x, y)}, v:long, w:bytearray); " + 
+                       "B = foreach A generate u.(x, y), v, $5; " +
+                       "C = store B into 'output';";
+        try {
+        	validate( query );
+        } catch(PlanValidationException ex) {
+        	return;
+        }
+        Assert.fail( "Query should fail to validate." );
+    }
+    
+    @Test
+    public void testNegative3() throws RecognitionException, ParsingFailureException, IOException {
+        String query = "A = load 'x' as ( u:bag{tuple(x, y)}, v:long, w:bytearray); " + 
+                       "B = foreach A generate u.(x, y), v, x; " +
+                       "C = store B into 'output';";
+        try {
+        	validate( query );
+        } catch(PlanValidationException ex) {
+        	return;
+        }
+        Assert.fail( "Query should fail to validate." );
+    }
+    
+    @Test
+    public void testNegative4() throws RecognitionException, ParsingFailureException, IOException {
+        String query = "A = load 'x' as ( u:bag{tuple(x, y)}, v:long, w:bytearray); " + 
+                       "B = foreach A generate u.z, v, w; " +
+                       "C = store B into 'output';";
+        try {
+        	validate( query );
+        } catch(PlanValidationException ex) {
+        	return;
+        }
+        Assert.fail( "Query should fail to validate." );
+    }
+    
+    @Test
+    public void testNegative5() throws RecognitionException, ParsingFailureException, IOException {
+        String query = "A = load 'x';" + 
+                       "B = foreach A generate u, $1; " +
+                       "C = store B into 'output';";
+        try {
+        	validate( query );
+        } catch(PlanValidationException ex) {
+        	return;
+        }
+        Assert.fail( "Query should fail to validate." );
+    }
+
+    private LogicalPlan validate(String query) throws RecognitionException, ParsingFailureException, IOException {
         LogicalPlan plan = ParserTestingUtils.generateLogicalPlan( query );
         ColumnAliasConversionVisitor visitor = new ColumnAliasConversionVisitor( plan );
         visitor.visit();
+        return plan;
+    }
+
+    private void verify(String query) throws RecognitionException, ParsingFailureException, IOException {
+        LogicalPlan plan = validate( query );
         System.out.println( "Plan after setter: " + plan.toString() );
         new AllExpressionVisitor( plan, new DependencyOrderWalker( plan ) ) {
             @Override

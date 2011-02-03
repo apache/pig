@@ -183,7 +183,7 @@ stream_cmd : ( STDIN | STDOUT | QUOTEDSTRING )^ ( USING! ( func_clause ) )?
 output_clause : OUTPUT^ LEFT_PAREN! stream_cmd_list RIGHT_PAREN!
 ;
 
-error_clause : ERROR^ LEFT_PAREN! QUOTEDSTRING ( LIMIT! INTEGER )? RIGHT_PAREN!
+error_clause : STDERROR^ LEFT_PAREN! QUOTEDSTRING ( LIMIT! INTEGER )? RIGHT_PAREN!
 ;
 
 load_clause : LOAD^ filename ( USING! func_clause )? as_clause?
@@ -397,7 +397,7 @@ join_clause : JOIN^ join_sub_clause ( USING! join_type )? partition_clause?
 join_type : HINT_REPL | HINT_MERGE | HINT_SKEWED | HINT_DEFAULT
 ;
 
-join_sub_clause : join_item ( LEFT | RIGHT | FULL ) OUTER? join_item
+join_sub_clause : join_item ( LEFT | RIGHT | FULL ) OUTER? COMMA! join_item
                 | join_item_list
 ;
 
@@ -589,7 +589,7 @@ eid : rel_str_op
     | CACHE
     | INPUT
     | OUTPUT
-    | ERROR
+    | STDERROR
     | STDIN
     | STDOUT
     | LIMIT

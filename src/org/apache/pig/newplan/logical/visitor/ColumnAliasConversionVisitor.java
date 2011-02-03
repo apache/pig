@@ -18,11 +18,11 @@
 
 package org.apache.pig.newplan.logical.visitor;
 
-
 import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.pig.impl.logicalLayer.FrontendException;
+import org.apache.pig.impl.plan.PlanValidationException;
 import org.apache.pig.newplan.DependencyOrderWalker;
 import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.OperatorPlan;
@@ -41,6 +41,7 @@ import org.apache.pig.newplan.logical.relational.LogicalSchema;
  * indexes, using the underlying anonymous expression plan visitor.
  */
 public class ColumnAliasConversionVisitor extends AllExpressionVisitor {
+	
     public ColumnAliasConversionVisitor(OperatorPlan plan) throws FrontendException {
         super( plan, new DependencyOrderWalker( plan ) );
     }
@@ -58,15 +59,16 @@ public class ColumnAliasConversionVisitor extends AllExpressionVisitor {
                 LogicalSchema inputSchema = input.getSchema();
                 String alias = expr.getColAlias();
                 if( alias != null ) {
-                    int colNum = inputSchema.getFieldPosition( alias );
+                    int colNum = inputSchema == null ? -1 : inputSchema.getFieldPosition( alias );
                     if( colNum == -1 ) {
-                        throw new FrontendException( "Invalid field projection: " + alias );
+                		throw new PlanValidationException( "Invalid field projection. Projected field [" + 
+                    		alias + "] does not exist in schema: " + inputSchema + "." );
                     }
                     expr.setColNum( colNum );
                 } else {
                     int col = expr.getColNum();
-                    if( col >= inputSchema.size() ) {
-                        throw new FrontendException( "Out of bound access. Trying to access non-existent column: " + 
+                    if( inputSchema != null && col >= inputSchema.size() ) {
+                        throw new PlanValidationException( "Out of bound access. Trying to access non-existent column: " + 
                                                       col + ". Schema " + inputSchema + " has " + inputSchema.size() + " column(s)." );
                     }
                 }
@@ -82,14 +84,20 @@ public class ColumnAliasConversionVisitor extends AllExpressionVisitor {
                 LogicalExpressionPlan plan = (LogicalExpressionPlan)expr.getPlan();
                 LogicalExpression pred = (LogicalExpression)plan.getPredecessors( expr ).get(0);
                 LogicalSchema schema = pred.getFieldSchema().schema;
-                
+                int col = -1;
                 for( Object rc : rawCols ) {
                     if( rc instanceof Integer ) {
+                    	col = (Integer)rc;
+                    	if( schema != null && col >= schema.size() ) {
+                            throw new PlanValidationException( "Out of bound access. Trying to access non-existent column: " + 
+                                    col + ". Schema " + schema + " has " + schema.size() + " column(s)." );
+                    	}
                         cols.add( (Integer)rc );
                     } else {
-                        int col = schema.getFieldPosition( (String)rc );
+                        col = schema.getFieldPosition( (String)rc );
                         if( col == -1 ) {
-                            throw new FrontendException( "Invalid field projection: " + rc );
+                            throw new PlanValidationException( "Invalid field reference. Referenced field [" + 
+                            		rc + "] does not exist in schema: " + schema + "." );
                         }
                         cols.add( col );
                     }

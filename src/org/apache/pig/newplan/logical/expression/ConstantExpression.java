@@ -67,6 +67,10 @@ public class ConstantExpression extends ColumnExpression {
         return val;
     }
     
+    public void setValue(Object val) {
+    	this.val = val;
+    }
+    
     public LogicalFieldSchema getValueSchema() {
         return mValueSchema;
     }

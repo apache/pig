@@ -38,6 +38,8 @@ package org.apache.pig.parser;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.pig.impl.builtin.GFAny;
+import org.apache.pig.impl.builtin.ReadScalars;
+import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.streaming.StreamingCommand;
 import org.apache.pig.impl.streaming.StreamingCommand.HandleSpec;
 import org.apache.pig.impl.util.MultiMap;
@@ -66,6 +68,7 @@ import org.apache.pig.newplan.logical.expression.NotExpression;
 import org.apache.pig.newplan.logical.expression.OrExpression;
 import org.apache.pig.newplan.logical.expression.ProjectExpression;
 import org.apache.pig.newplan.logical.expression.RegexExpression;
+import org.apache.pig.newplan.logical.expression.ScalarExpression;
 import org.apache.pig.newplan.logical.expression.SubtractExpression;
 import org.apache.pig.newplan.logical.expression.UserFuncExpression;
 import org.apache.pig.newplan.logical.relational.LOCogroup;
@@ -247,7 +250,7 @@ error_clause returns[String dir, Integer limit]
 @init {
     $limit = StreamingCommand.MAX_TASKS;
 }
- : ^( ERROR QUOTEDSTRING INTEGER? )
+ : ^( STDERROR QUOTEDSTRING INTEGER? )
    {
        $dir = builder.unquote( $QUOTEDSTRING.text );
        $limit = Integer.parseInt( $INTEGER.text );
@@ -601,10 +604,46 @@ var_expr[LogicalExpressionPlan plan] returns[LogicalExpression expr]
  : projectable_expr[$plan] { $expr = $projectable_expr.expr; }
    ( dot_proj 
      {
-         DereferenceExpression e = new DereferenceExpression( $plan );
-         e.setRawColumns( $dot_proj.cols );
-         $plan.connect( $expr, e );
-         $expr = e;
+         if( $expr instanceof ScalarExpression ) {
+             // This is a scalar projection.
+             ScalarExpression scalarExpr = (ScalarExpression)$expr;
+             if( $dot_proj.cols.size() > 1 ) {
+                 throw new InvalidScalarProjectionException( input, scalarExpr );
+             } else {
+                 Object val = $dot_proj.cols.get( 0 );
+                 int pos = -1;
+                 LogicalRelationalOperator relOp = (LogicalRelationalOperator)scalarExpr.getImplicitReferencedOperator();
+                 LogicalSchema schema = null;
+                 try {
+                     schema = relOp.getSchema();
+                 } catch(FrontendException e) {
+                     throw new PlanGenerationFailureException( input, e );
+                 }
+                 if( val instanceof Integer ) {
+                     pos = (Integer)val;
+                     if( schema != null && pos >= schema.size() ) {
+                         throw new InvalidScalarProjectionException( input, scalarExpr );
+                     }
+                 } else {
+                     String colAlias = (String)val;
+                     pos = schema.getFieldPosition( colAlias );
+                     if( schema == null || pos == -1 ) {
+                         throw new InvalidScalarProjectionException( input, scalarExpr );
+                     }
+                 }
+                 LogicalFieldSchema fs = new LogicalFieldSchema( null , null, DataType.INTEGER );
+                 ConstantExpression constExpr = new ConstantExpression( $plan, pos, fs  );
+                 plan.connect( $expr, constExpr );
+                 fs = new LogicalFieldSchema( null , null, DataType.CHARARRAY );
+                 constExpr = new ConstantExpression( $plan, "filename", fs ); // place holder for file name.
+                 plan.connect( $expr, constExpr );
+             }
+         } else {
+             DereferenceExpression e = new DereferenceExpression( $plan );
+             e.setRawColumns( $dot_proj.cols );
+             $plan.connect( $expr, e );
+             $expr = e;
+         }
      }
    | pound_proj
      {
@@ -646,7 +685,7 @@ col_alias returns[Object col]
 ;
 
 col_index returns[Object col]
- : DOLLAR^ INTEGER { $col = Integer.valueOf( $INTEGER.text ); }
+ : ^( DOLLAR INTEGER { $col = Integer.valueOf( $INTEGER.text ); } )
 ;
 
 pound_proj returns[String key]
@@ -1046,12 +1085,27 @@ alias_col_ref[LogicalExpressionPlan plan] returns[LogicalExpression expr]
    }
  | IDENTIFIER
    {
-       if( inForeachPlan ) {
-           $expr = builder.buildProjectExpr( $plan, currentOp, 
-               $foreach_plan::exprPlans, $IDENTIFIER.text, 0 );
+       String alias = $IDENTIFIER.text;
+       Operator inOp = builder.lookupOperator( $statement::inputAlias );
+       LogicalSchema schema;
+       try {
+           schema = ((LogicalRelationalOperator)inOp).getSchema();
+       } catch (FrontendException e) {
+           throw new PlanGenerationFailureException( input, e );
+       }
+       
+       Operator op = builder.lookupOperator( alias );
+       if( op != null && ( schema == null || schema.getFieldPosition( alias ) == -1 ) ) {
+           $expr = new ScalarExpression( plan, op,
+               inForeachPlan ? $foreach_clause::foreachOp : currentOp );
        } else {
-           $expr = builder.buildProjectExpr( $plan, currentOp, 
-               $statement::inputIndex, $IDENTIFIER.text, 0 );
+           if( inForeachPlan ) {
+               $expr = builder.buildProjectExpr( $plan, currentOp, 
+                   $foreach_plan::exprPlans, alias, 0 );
+           } else {
+               $expr = builder.buildProjectExpr( $plan, currentOp, 
+                   $statement::inputIndex, alias, 0 );
+           }
        }
    }
 ;
@@ -1218,7 +1272,7 @@ eid returns[String id] : rel_str_op { $id = $rel_str_op.id; }
     | CACHE { $id = $CACHE.text; }
     | INPUT { $id = $INPUT.text; }
     | OUTPUT { $id = $OUTPUT.text; }
-    | ERROR { $id = $ERROR.text; }
+    | STDERROR { $id = $STDERROR.text; }
     | STDIN { $id = $STDIN.text; }
     | STDOUT { $id = $STDOUT.text; }
     | LIMIT { $id = $LIMIT.text; }
