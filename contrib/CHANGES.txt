@@ -46,6 +46,9 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-1839 XMLLoader will always add an extra empty tuple even if no tags are
+matched (vikekp via gates)
+
 PIG-1449 RegExLoader hangs on lines that don't match the regular expression
 (Christian Hargraves via hashutosh)
 
