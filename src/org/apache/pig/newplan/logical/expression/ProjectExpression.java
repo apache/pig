@@ -146,13 +146,12 @@ public class ProjectExpression extends ColumnExpression {
                 
                 // pull tuple information from innerload
                 if (innerLoads.get(0).getProjection().getFieldSchema().schema!=null &&
-                        innerLoads.get(0).getProjection().getFieldSchema().schema.isTwoLevelAccessRequired()) {
+                        innerLoads.get(0).getProjection().getFieldSchema().type==DataType.BAG) {
                     LogicalFieldSchema originalTupleFieldSchema = innerLoads.get(0).getProjection().getFieldSchema().schema.getField(0);
                     LogicalFieldSchema newTupleFieldSchema = new LogicalFieldSchema(originalTupleFieldSchema.alias,
                             schema, DataType.TUPLE);
                     newTupleFieldSchema.uid = originalTupleFieldSchema.uid;
                     LogicalSchema newTupleSchema = new LogicalSchema();
-                    newTupleSchema.setTwoLevelAccessRequired(true);
                     newTupleSchema.addField(newTupleFieldSchema);
                     fieldSchema = new LogicalSchema.LogicalFieldSchema(alias, newTupleSchema, DataType.BAG);
                 }

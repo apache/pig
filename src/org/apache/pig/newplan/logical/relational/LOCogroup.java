@@ -200,7 +200,6 @@ public class LOCogroup extends LogicalRelationalOperator {
             
             LogicalSchema bagSchema = new LogicalSchema();
             bagSchema.addField(newTupleFieldSchema);
-            bagSchema.setTwoLevelAccessRequired(true);
             
             LogicalFieldSchema newBagFieldSchema = new LogicalFieldSchema(
                     ((LogicalRelationalOperator)op).getAlias(), bagSchema, 

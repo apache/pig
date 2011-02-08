@@ -693,24 +693,7 @@ public class TestSchema extends TestCase {
         Schema s2 = Utils.getSchemaFromString("b:{t:(b0:int, b1:int)}");
         LogicalSchema ls1 = org.apache.pig.newplan.logical.Util.translateSchema(s1);
         LogicalSchema ls2 = org.apache.pig.newplan.logical.Util.translateSchema(s2);
-        ls1.getField(0).schema.setTwoLevelAccessRequired(true);
-        ls2.getField(0).schema.setTwoLevelAccessRequired(true);
         LogicalSchema ls3 = LogicalSchema.merge(ls1, ls2);
-        assertEquals(ls3.getField(0).schema.isTwoLevelAccessRequired(), true);
-    }
-    
-    @Test
-    // See PIG-730
-    public void testMergeSchemaWithTwoLevelAccess4() throws Exception {
-        // Generate two schemas
-        Schema s1 = Utils.getSchemaFromString("a:{t:(a0:int, a1:int)}");
-        Schema s2 = Utils.getSchemaFromString("b:{t:(b0:int, b1:int)}");
-        LogicalSchema ls1 = org.apache.pig.newplan.logical.Util.translateSchema(s1);
-        LogicalSchema ls2 = org.apache.pig.newplan.logical.Util.translateSchema(s2);
-        ls1.getField(0).schema.setTwoLevelAccessRequired(true);
-        ls2.getField(0).schema.setTwoLevelAccessRequired(false);
-        LogicalSchema ls3 = LogicalSchema.merge(ls1, ls2);
-        assertEquals(ls3.getField(0).type, DataType.BAG);
-        assertEquals(ls3.getField(0).schema, null);
+        assertTrue(org.apache.pig.newplan.logical.Util.translateSchema(ls3).toString().equals("{a: {t: (a0: int,a1: int)}}"));
     }
 }

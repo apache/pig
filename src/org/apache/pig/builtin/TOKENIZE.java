@@ -71,6 +71,7 @@ public class TOKENIZE extends EvalFunc<DataBag> {
         }
     }
 
+    @SuppressWarnings("deprecation")
     @Override
     public Schema outputSchema(Schema input) {
         

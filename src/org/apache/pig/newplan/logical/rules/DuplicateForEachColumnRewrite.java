@@ -100,7 +100,7 @@ public class DuplicateForEachColumnRewrite extends Rule {
                         List<LogicalFieldSchema> innerFieldSchemas = null;
                         if (exp.getFieldSchema().type == DataType.BAG) {
                             if (exp.getFieldSchema().schema!=null) {
-                                if (exp.getFieldSchema().schema.isTwoLevelAccessRequired()) {
+                                if (exp.getFieldSchema().type == DataType.BAG) {
                                     //  assert(fieldSchema.schema.size() == 1 && fieldSchema.schema.getField(0).type == DataType.TUPLE)
                                     if (exp.getFieldSchema().schema.getField(0).schema!=null)
                                         innerFieldSchemas = exp.getFieldSchema().schema.getField(0).schema.getFields();

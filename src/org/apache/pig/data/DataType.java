@@ -1182,6 +1182,7 @@ public class DataType {
      * @throws FrontendException
      * @throws SchemaMergeException
      */
+    @SuppressWarnings("deprecation")
     private static Schema.FieldSchema determineFieldSchema(byte dataType, Iterator fieldIter,
             long fieldNum, Class klass ) throws ExecException, FrontendException, SchemaMergeException {
         switch (dataType) {

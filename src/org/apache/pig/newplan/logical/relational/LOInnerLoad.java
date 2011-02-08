@@ -66,33 +66,22 @@ public class LOInnerLoad extends LogicalRelationalOperator {
         if (schema!=null)
             return schema;
         
-        if (prj.findReferent().getSchema()!=null) {
-            if (prj.getFieldSchema()!=null) {
-                if (prj.getFieldSchema().type==DataType.BAG && prj.getFieldSchema().schema!=null &&
-                        prj.getFieldSchema().schema.isTwoLevelAccessRequired()) {
+        if (prj.findReferent().getSchema()!=null && prj.getFieldSchema()!=null) {
+            if (prj.getFieldSchema().type==DataType.BAG) {
+                sourceIsBag = true;
+                alias = prj.getFieldSchema().alias;
+                if (prj.getFieldSchema().schema!=null) {
                     LogicalFieldSchema tupleSchema = prj.getFieldSchema().schema.getField(0);
                     if (tupleSchema!=null && tupleSchema.schema!=null) {
                         schema = new LogicalSchema();
                         for (int i=0;i<tupleSchema.schema.size();i++)
                             schema.addField(tupleSchema.schema.getField(i));
-                        alias = prj.getFieldSchema().alias;
                     }
-                    sourceIsBag = true;
                 }
-                else if (prj.getFieldSchema().type==DataType.BAG){
-                    sourceIsBag = true;
-                    alias = prj.getFieldSchema().alias;
-                    if (prj.getFieldSchema().schema!=null) {
-                        schema = new LogicalSchema();
-                        for (int i=0;i<prj.getFieldSchema().schema.size();i++)
-                            schema.addField(prj.getFieldSchema().schema.getField(i));
-                    }
-                    
-                }
-                else {
-                    schema = new LogicalSchema();
-                    schema.addField(prj.getFieldSchema());
-                }
+            }
+            else {
+                schema = new LogicalSchema();
+                schema.addField(prj.getFieldSchema());
             }
         }
         return schema;

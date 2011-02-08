@@ -178,6 +178,7 @@ public class LOProject extends ExpressionOperator {
         return false;
     }
 
+    @SuppressWarnings("deprecation")
     @Override
     public Schema.FieldSchema getFieldSchema() throws FrontendException {
         log.debug("Inside getFieldSchemas");

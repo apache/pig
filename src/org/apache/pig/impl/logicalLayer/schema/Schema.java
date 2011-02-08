@@ -28,6 +28,7 @@ import java.util.Set;
 import java.util.Collection;
 import java.util.Map.Entry;
 
+import org.apache.pig.FuncSpec;
 import org.apache.pig.PigException;
 import org.apache.pig.ResourceSchema;
 import org.apache.pig.ResourceSchema.ResourceFieldSchema;
@@ -1963,14 +1964,18 @@ public class Schema implements Serializable, Cloneable {
 
     /**
      * @return the twoLevelAccess
+     * @deprecated twoLevelAccess is no longer needed
      */
+    @Deprecated
     public boolean isTwoLevelAccessRequired() {
         return twoLevelAccessRequired;
     }
 
     /**
      * @param twoLevelAccess the twoLevelAccess to set
+     * @deprecated twoLevelAccess is no longer needed
      */
+    @Deprecated
     public void setTwoLevelAccessRequired(boolean twoLevelAccess) {
         this.twoLevelAccessRequired = twoLevelAccess;
     }

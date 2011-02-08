@@ -150,7 +150,6 @@ public class DereferenceExpression extends ColumnExpression {
                     }
                 }
                 LogicalSchema bagSchema = new LogicalSchema();
-                bagSchema.setTwoLevelAccessRequired(true);
                 bagSchema.addField(new LogicalSchema.LogicalFieldSchema(null, innerSchema, DataType.TUPLE, 
                         LogicalExpression.getNextUid()));
                 fieldSchema = new LogicalSchema.LogicalFieldSchema(null, bagSchema, DataType.BAG, LogicalExpression.getNextUid());

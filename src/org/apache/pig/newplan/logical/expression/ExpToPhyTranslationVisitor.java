@@ -315,7 +315,7 @@ public class ExpToPhyTranslationVisitor extends LogicalExpressionVisitor {
         ExpressionOperator from = (ExpressionOperator) logToPhyMap.get(op
                 .getExpression());
         pCast.setResultType(op.getType());
-        pCast.setFieldSchema(new ResourceSchema.ResourceFieldSchema(Util.translateFieldSchema(op.getFieldSchema())));
+        pCast.setFieldSchema(new ResourceSchema.ResourceFieldSchema(op.getFieldSchema()));
         FuncSpec lfSpec = op.getFuncSpec();
         if(null != lfSpec) {
             try {

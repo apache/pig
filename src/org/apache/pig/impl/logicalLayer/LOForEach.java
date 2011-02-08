@@ -146,6 +146,7 @@ public class LOForEach extends RelationalOperator {
 		}
     }
 
+    @SuppressWarnings("deprecation")
     @Override
     public Schema getSchema() throws FrontendException {
         log.debug("Entering getSchema");
@@ -540,6 +541,7 @@ public class LOForEach extends RelationalOperator {
         return forEachClone;
     }
 
+    @SuppressWarnings("deprecation")
     @Override
     public ProjectionMap getProjectionMap() {
         

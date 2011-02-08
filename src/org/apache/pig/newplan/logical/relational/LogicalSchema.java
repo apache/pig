@@ -222,8 +222,6 @@ public class LogicalSchema {
     private List<LogicalFieldSchema> fields;
     private Map<String, Pair<Integer, Boolean>> aliases;
     
-    private boolean twoLevelAccessRequired = false;
-    
     public LogicalSchema() {
         fields = new ArrayList<LogicalFieldSchema>();
         aliases = new HashMap<String, Pair<Integer, Boolean>>();
@@ -394,12 +392,6 @@ public class LogicalSchema {
             }
             LogicalFieldSchema mergedFS = new LogicalFieldSchema(mergedAlias, mergedSubSchema, mergedType);
             mergedSchema.addField(mergedFS);
-            if (s1.isTwoLevelAccessRequired() != s2.isTwoLevelAccessRequired()) {
-                return null;
-            }
-            if (s1.isTwoLevelAccessRequired()) {
-                mergedSchema.setTwoLevelAccessRequired(true);
-            }
         }
         return mergedSchema;
     }
@@ -418,14 +410,6 @@ public class LogicalSchema {
     
     public String toString() {
         return toString(true);
-    }
-    
-    public void setTwoLevelAccessRequired(boolean flag) {
-        twoLevelAccessRequired = flag;
-    }
-    
-    public boolean isTwoLevelAccessRequired() {
-        return twoLevelAccessRequired;
     }
 
     public LogicalSchema mergeUid(LogicalSchema uidOnlySchema) throws FrontendException {
@@ -450,7 +434,6 @@ public class LogicalSchema {
     
     public LogicalSchema deepCopy()  {
         LogicalSchema newSchema = new LogicalSchema();
-        newSchema.setTwoLevelAccessRequired(isTwoLevelAccessRequired());
         for (int i=0;i<size();i++)
             newSchema.addField(getField(i).deepCopy());
         return newSchema;
@@ -628,24 +611,6 @@ public class LogicalSchema {
         // otherwise
         if (schema == null || other == null ) {
             return false ;
-        }
-
-        /*
-         * Need to check for bags with schemas and bags with tuples that in turn have schemas.
-         * Retrieve the tuple schema of the bag if twoLevelAccessRequired
-         * Assuming that only bags exhibit this behavior and twoLevelAccessRequired is used
-         * with the right intentions
-         */
-        if(schema.isTwoLevelAccessRequired() || other.isTwoLevelAccessRequired()) {
-            if(schema.isTwoLevelAccessRequired()) {
-                schema = schema.getField(0).schema;
-            }
-            
-            if(other.isTwoLevelAccessRequired()) {
-                other = other.getField(0).schema;
-            }
-            
-            return LogicalSchema.equals(schema, other, relaxInner, relaxAlias);
         }
 
         if (schema.size() != other.size()) return false;
