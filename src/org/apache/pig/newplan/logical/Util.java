@@ -49,8 +49,6 @@ public class Util {
             s2.addField(f2);
         }
         
-        s2.setTwoLevelAccessRequired(schema.isTwoLevelAccessRequired());
-        
         return s2;
     }
     
@@ -87,8 +85,6 @@ public class Util {
             } catch (FrontendException e) {
             }
         }
-        
-        s2.setTwoLevelAccessRequired(schema.isTwoLevelAccessRequired());
         
         return s2;
     }

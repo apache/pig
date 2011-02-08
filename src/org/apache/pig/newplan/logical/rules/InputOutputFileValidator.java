@@ -69,7 +69,7 @@ public class InputOutputFileValidator {
             
             try {
                 if(store.getSchema() != null){
-                    sf.checkSchema(new ResourceSchema(Util.translateSchema(store.getSchema()), store.getSortInfo()));                
+                    sf.checkSchema(new ResourceSchema(store.getSchema(), store.getSortInfo()));                
                 }
                 dummyJob = new Job(ConfigurationUtil.toConfiguration(pigCtx.getProperties()));
                 sf.setStoreLocation(outLoc, dummyJob);

@@ -344,7 +344,6 @@ public class TestLogicalPlanMigrationVisitor extends TestCase {
         aschema3.addField(new LogicalSchema.LogicalFieldSchema("id", null, DataType.INTEGER));
         aschema3.addField(new LogicalSchema.LogicalFieldSchema("s", null, DataType.BYTEARRAY));
         aschema2.addField(new LogicalSchema.LogicalFieldSchema("t", aschema3, DataType.TUPLE));
-        aschema2.setTwoLevelAccessRequired(true);
         aschema.addField(new LogicalSchema.LogicalFieldSchema("d", aschema2, DataType.BAG));        
         
         LOLoad load = new LOLoad(new FileSpec("/test/d.txt", new FuncSpec("org.apache.pig.builtin.PigStorage")), aschema, expected, null);

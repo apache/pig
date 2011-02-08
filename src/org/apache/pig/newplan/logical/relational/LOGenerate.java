@@ -106,16 +106,10 @@ public class LOGenerate extends LogicalRelationalOperator {
                         List<LogicalSchema.LogicalFieldSchema> innerFieldSchemas = new ArrayList<LogicalSchema.LogicalFieldSchema>();
                         if (flattenFlags[i]) {
                             if (fieldSchema.type == DataType.BAG) {
-                                // if it is bag of tuples, get the schema of tuples
+                                // if it is bag, get the schema of tuples
                                 if (fieldSchema.schema!=null) {
-                                    if (fieldSchema.schema.isTwoLevelAccessRequired()) {
-                                        //  assert(fieldSchema.schema.size() == 1 && fieldSchema.schema.getField(0).type == DataType.TUPLE)
-                                        if (fieldSchema.schema!=null && fieldSchema.schema.getField(0).schema!=null)
-                                            innerFieldSchemas = fieldSchema.schema.getField(0).schema.getFields();
-                                    } else {
-                                        if (fieldSchema.schema!=null)
-                                            innerFieldSchemas = fieldSchema.schema.getFields();
-                                    }
+                                    if (fieldSchema.schema.getField(0).schema!=null)
+                                        innerFieldSchemas = fieldSchema.schema.getField(0).schema.getFields();
                                     for (LogicalSchema.LogicalFieldSchema fs : innerFieldSchemas) {
                                         fs.alias = fieldSchema.alias + "::" + fs.alias;
                                     }
