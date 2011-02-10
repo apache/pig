@@ -33,6 +33,7 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.fs.FsShell;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
+import org.apache.pig.parser.ParserUtil;
 import org.apache.pig.tools.parameters.ParameterSubstitutionPreprocessor;
 
 /**
@@ -156,8 +157,11 @@ public class Pig {
     public static Pig compile(String name, String pl) throws IOException {
         ScriptPigContext ctx = getScriptContext();
         StringBuilder sb = new StringBuilder();
-        sb.append(getRegisterScriptUDFClauses()).append(getDefineClauses())
-                .append(pl);
+        sb.append(getRegisterScriptUDFClauses()).append(getDefineClauses());
+        
+        StringReader rd = new StringReader(pl);
+        String newPl = ParserUtil.expandMacros(rd);
+        sb.append(newPl).append("\n");
         return new Pig(sb.toString(), ctx, name);
     }
 
@@ -244,6 +248,10 @@ public class Pig {
      */
     public BoundScript bind() throws IOException {
         ScriptEngine engine = scriptContext.getScriptEngine();
+        int index = script.indexOf('$');
+        if (index == -1) { // no parameter substitution is needed
+            return new BoundScript(script, scriptContext, name);
+        }
         Map<String, Object> vars = engine.getParamsFromVariables();
         return bind(vars);
     }

@@ -236,11 +236,11 @@ func_alias : IDENTIFIER
 func_args_string : QUOTEDSTRING | MULTILINE_QUOTEDSTRING
 ;
 
-func_args : func_args_string ( COMMA func_args_string )*
+func_args : func_args_string ( COMMA func_args_string )* 
          -> func_args_string+
 ;
 
-group_clause : ( GROUP | COGROUP )^ group_item_list ( USING! group_type )?
+group_clause : ( GROUP | COGROUP )^ group_item_list ( USING! group_type )? partition_clause? 
 ;
 
 group_type : HINT_COLLECTED | HINT_MERGE | HINT_REGULAR

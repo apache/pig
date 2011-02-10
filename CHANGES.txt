@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-1793: Add macro expansion to Pig Latin (rding)
+
 PIG-847: Setting twoLevelAccessRequired field in a bag schema should not be required to access fields in the tuples of the bag (daijy)
 
 PIG-1748: Add load/store function AvroStorage for avro data (guolin2001, jghoman via daijy)
