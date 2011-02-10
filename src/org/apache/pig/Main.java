@@ -67,6 +67,7 @@ import org.apache.pig.impl.util.LogUtils;
 import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.impl.util.PropertiesUtil;
 import org.apache.pig.impl.util.UDFContext;
+import org.apache.pig.parser.ParserUtil;
 import org.apache.pig.scripting.ScriptEngine;
 import org.apache.pig.tools.cmdline.CmdLineParser;
 import org.apache.pig.tools.grunt.Grunt;
@@ -380,9 +381,11 @@ static int run(String args[], PigProgressNotificationListener listener) {
                                 .getPath(), type.name().toLowerCase());
                 }
             }
-
-            in = new BufferedReader(new FileReader(localFileRet.file));
-            
+                     
+            // run macro expansion
+            FileReader fr = new FileReader(localFileRet.file);            
+            in = ParserUtil.getExpandedMacroAsBufferedReader(fr);
+                        
             // run parameter substitution preprocessor first
             substFile = file + ".substituted";
             pin = runParamPreprocessor(properties, in, params, paramFiles, substFile, debug || dryrun || checkScriptOnly);
@@ -438,7 +441,10 @@ static int run(String args[], PigProgressNotificationListener listener) {
             
             scriptState.setScript(sb.toString());
             
-            in = new BufferedReader(new StringReader(sb.toString()));
+            // run macro expansion
+            StringReader sr = new StringReader(sb.toString());           
+            in = ParserUtil.getExpandedMacroAsBufferedReader(sr);
+            
             grunt = new Grunt(in, pigContext);
             gruntCalled = true;
             int results[] = grunt.exec();
@@ -495,8 +501,10 @@ static int run(String args[], PigProgressNotificationListener listener) {
                                 .getPath(), type.name().toLowerCase());
                 }
             }
-            
-            in = new BufferedReader(new FileReader(localFileRet.file));
+                       
+            // run macro expansion
+            FileReader fr = new FileReader(localFileRet.file);            
+            in = ParserUtil.getExpandedMacroAsBufferedReader(fr);
             
             // run parameter substitution preprocessor first
             substFile = remainders[0] + ".substituted";
