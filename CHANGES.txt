@@ -94,6 +94,8 @@ PIG-1696: Performance: Use System.arraycopy() instead of manually copying the by
 
 BUG FIXES
 
+PIG-1852: Packaging antlr jar with pig.jar (rding via daijy)
+
 PIG-1717 pig needs to call setPartitionFilter if schema is null but
 getPartitionKeys is not (gerritjvv via gates)
 
