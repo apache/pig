@@ -23,7 +23,6 @@
   </header>
   <body>
 
-
 <!-- CONVENTIONS -->
 <section>
 <title>Conventions</title>
@@ -173,7 +172,7 @@
          
          <tr>
             <td> <p>-- I </p> </td>
-            <td> <p>if, illustrate, inner, input, int, into, is</p> </td>
+            <td> <p>if, illustrate, import, inner, input, int, into, is</p> </td>
          </tr>  
          
          <tr>
@@ -1477,26 +1476,32 @@ C = FOREACH G GENERATE COUNT(*)
    
    
     <!-- ++++++++++++++++++++++++++++++++++ --> 
-   <section>
+   <section id="Schemas">
    <title>Schemas</title>
-   <p>Schemas enable you to assign names to and declare types for fields. Schemas are optional but we encourage you to use them whenever possible; type declarations result in better parse-time error checking and more efficient code execution. </p>
-   <p>Schemas are defined using the AS keyword with the LOAD, STREAM, and FOREACH operators. If you define a schema using the LOAD operator, then it is the load function that enforces the schema (see the <a href="#LOAD">LOAD</a> operator and <a href="udf.html">User Defined Functions</a> for more information).</p>
+   <p>Schemas enable you to assign names to fields and declare types for fields. Schemas are optional but we encourage you to use them whenever possible; type declarations result in better parse-time error checking and more efficient code execution. </p>
+   <p>Schemas are defined for the <a href="#LOAD">LOAD</a>, <a href="#STREAM">STREAM</a>, and <a href="#FOREACH">FOREACH</a> operators using the AS clause. If you define a schema using the LOAD operator, then it is the load function that enforces the schema 
+   (see <a href="#LOAD">LOAD</a> and <a href="udf.html">User Defined Functions</a> for more information).</p>
+   <p></p>
+   <p><strong>Known Schema Handling</strong></p>
    <p>Note the following:</p>
    <ul>
-      <li>
-         <p>You can define a schema that includes both the field name and field type.</p>
-      </li>
-      <li>
-         <p>You can define a schema that includes the field name only; in this case, the field type defaults to bytearray.</p>
-      </li>
-      <li>
-         <p>You can choose not to define a schema; in this case, the field is un-named and the field type defaults to bytearray.</p>
-      </li>
+      <li>You can define a schema that includes both the field name and field type.</li>
+      <li>You can define a schema that includes the field name only; in this case, the field type defaults to bytearray.</li>
+      <li>You can choose not to define a schema; in this case, the field is un-named and the field type defaults to bytearray.</li>
    </ul>
    <p>If you assign a name to a field, you can refer to that field using the name or by positional notation. If you don't assign a name to a field (the field is un-named) you can only refer to the field using positional notation.</p>
    <p>If you assign a type to a field, you can subsequently change the type using the cast operators. If you don't assign a type to a field, the field defaults to bytearray; you can change the default type using the cast operators.</p>
-   
-   <section>
+      <p></p>
+   <p><strong>Unknown Schema Handling</strong></p>
+      <p>Note the following:</p>
+   <ul>
+      <li>When you JOIN/COGROUP/CROSS multiple relations, if any relation has a null schema (no defined schema), the schema for the resulting relation is null. </li>
+      <li>If you FLATTEN a bag with empty inner schema, the schema for the resulting relation is null.</li>
+      <li>If you UNION two relations with incompatible schema, the schema for resulting relation is null.</li>
+      <li>If the schema is null, Pig treats all fields as bytearray (in the backend, Pig will determine the real type for the fields dynamically) </li>
+    </ul>      
+    
+   <section id="schema-load">
    <title>Schemas with LOAD and STREAM Statements</title>
    <p>With LOAD and STREAM statements, the schema following the AS keyword must be enclosed in parentheses.</p>
    <p>In this example the LOAD statement includes a schema definition for simple data types.</p>
@@ -4901,7 +4906,7 @@ DUMP X;
                <p>FOREACH…GENERATE used with a relation (outer bag). Use this syntax:</p>
                <p></p>
                <p>alias = FOREACH alias GENERATE expression [AS schema] [expression [AS schema]….];</p>
-               <p>See <a href="#schemaforeach">Schemas with FOREACH Statements</a></p>
+               <p>See <a href="#schemas">Schemas</a></p>
                
             </td>
          </tr>
@@ -4920,7 +4925,7 @@ DUMP X;
                <p>Where:</p>
                <p>The nested block is enclosed in opening and closing brackets { … }. </p>
                <p>The GENERATE keyword must be the last statement within the nested block.</p>
-               <p>See <a href="#schemaforeach">Schemas with FOREACH Statements</a></p>
+               <p>See <a href="#schemas">Schemas</a></p>
             </td>
          </tr>
          <tr>
@@ -4962,7 +4967,7 @@ DUMP X;
                <p>schema</p>
             </td>
             <td>
-               <p>A schema using the AS keyword (see Schemas).</p>
+               <p>A schema using the AS keyword (see <a href="#schemas">Schemas</a>).</p>
                <ul>
                   <li>
                      <p>If the <a href="#Flatten+Operator">FLATTEN</a> operator is used, enclose the schema in parentheses.</p>
@@ -5228,6 +5233,55 @@ DUMP X;
    
 </section></section>
    
+   
+   <section id="IMPORT">
+   <title>IMPORT</title>   
+   <p>Import macros defined in another Pig script.</p>
+    <section>
+   <title>Syntax</title>
+   <table>
+      <tr> 
+            <td>
+               <p>IMPORT 'pig_script';</p>
+            </td>
+      </tr> 
+   </table>
+   </section>
+     
+   <section>
+   <title>Terms</title>
+   <table>
+      <tr>
+            <td>
+               <p>pig_script </p>
+            </td>
+            <td>
+               <p>The file name of a Pig script containing the macro, enclosed in single quotes; for example, 'mypath/my_macro.pig'.</p>
+               <p></p>
+               <p>Files are imported based on either (1) the given file path or (2) the import path specified via the Pig property pig.import.search.path. If a file path is given, whether absolute or relative to the current directory (starting with . or ..), the import path will be ignored. </p>
+            </td>
+         </tr>
+      </table>   
+   </section>
+      
+   <section>
+   <title>Usage</title>
+   <p>IMPORT adds the macros defined in the Pig script to the Pig Latin namespace; these macros can then be invoked as if they were defined in the same file.</p>
+   
+   <p>See also: <a href="#define-macros">DEFINE (macros)</a></p>
+     </section> 
+     
+   <section>
+   <title>Example</title>
+   <p>In this example, because a path is not given, Pig will use the import path specified in <code>pig.import.search.path</code>.</p>
+<source>
+IMPORT 'my_macro.pig';
+</source>
+   
+    </section> 
+   </section> 
+            
+
    <section id="GROUP">
    <title>GROUP</title>
    <p>Groups the data in one or more relations.</p>
@@ -5720,7 +5774,6 @@ public class SimpleCustomPartitioner extends Partitioner &lt;PigNullableWritable
          </td>
      </tr> 
 
-         
          <tr>
             <td>
                <p>PARALLEL n</p>
@@ -5746,8 +5799,18 @@ public class SimpleCustomPartitioner extends Partitioner &lt;PigNullableWritable
          <p>The GROUP/COGROUP and JOIN operators handle null values differently (see <a href="#nulls_join">Nulls and JOIN Operator</a>).</p>
      </li>
    </ul>
+   <p></p>
+   <p id="self-joins"><strong>Self-Joins</strong></p>
+   <p>To perform self-joins in Pig load the same data multiple times, under different aliases, to avoid naming conflicts.</p>  
+   <p>In this example the same data is loaded twice using aliases A and B.</p>
+   <source>
+grunt> A = load 'mydata';
+grunt> B = load 'mydata';
+grunt> C = join A by $0, B by $0;
+grunt> explain C;
+</source>
     </section>
-    
+
    <section>
    <title>Example</title>
    <p>Suppose we have relations A and B.</p>
@@ -6156,7 +6219,7 @@ DUMP X;
                <p>schema</p>
             </td>
             <td>
-               <p>A schema using the AS keyword, enclosed in parentheses (see Schemas).</p>
+               <p>A schema using the AS keyword, enclosed in parentheses (see <a href="#schemas">Schemas</a>).</p>
                <p>The loader produces the data of the type specified by the schema. If the data does not conform to the schema, depending on the loader, either a null value or an error is generated.</p>
                <p>Note: For performance reasons the loader may not immediately convert the data to the specified format; however, you can still operate on the data assuming the specified type.</p>
             </td>
@@ -6379,6 +6442,8 @@ B = MAPREDUCE 'wordcount.jar' STORE A INTO 'inputDir' LOAD 'outputDir'
    
    <section>
    <title>Usage</title>
+   <p><strong>Note:</strong> ORDER BY is NOT stable; if multiple records have the same ORDER BY key, the order in which these records are returned is not defined and is not guarantted to be the same from one run to the next.</p>
+   
    <p>In Pig, relations are unordered (see <a href="#relations">Relations, Bags, Tuples, Fields</a>):</p>
    <ul>
       <li>
@@ -6801,7 +6866,7 @@ a:8,b:4,c:3
                <p>schema</p>
             </td>
             <td>
-               <p>A schema using the AS keyword, enclosed in parentheses (see Schemas).</p>
+               <p>A schema using the AS keyword, enclosed in parentheses (see <a href="#schemas">Schemas</a>).</p>
             </td>
          </tr> 
    </table></section>
@@ -6881,7 +6946,7 @@ E = STREAM C THROUGH `stream.pl`;
    <title>Example: Schemas</title>
    <p>In this example a schema is specified as part of the STREAM statement.</p>
 <source>
-X = STREAM A THROUGH `stream.pl` as (f1:int, f2;int, f3:int);
+X = STREAM A THROUGH `stream.pl` as (f1:int, f2:int, f3:int);
 </source>
    </section>
    </section>
@@ -6921,21 +6986,24 @@ X = STREAM A THROUGH `stream.pl` as (f1:int, f2;int, f3:int);
                <p>ONSCHEMA </p>  
             </td>
             <td>
-               <p>Use the keyword ONSCHEMA with UNION so that the union is based on column names of the input relations, and not column position. 
-If the following requirements are not met, the statement will throw an error:</p>
+               <p>Use the ONSCHEMA clause to base the union on named fields (rather than positional notation). 
+               If the following requirements are not met, the statement will throw an error:</p>
           <ul>
-             <li>
-             <p>All inputs to the union should have a non null schema. </p>
-             </li>
-             <li>
-             <p>The data type for columns with same name in different input schemas should be compatible. Numeric types are compatible, and if column having same name in different input schemas have different numeric types , an implicit conversion will happen. bytearray type is considered compatible with all other types, a cast will be added to convert to other type. Bags or tuples having different inner schema are considered incompatible. 
-</p>
+             <li>All inputs to the union should have a non null schema.</li>
+             <li>The data type for columns with same name in different input schemas should be compatible:  
+             <ul>
+             <li>Numeric types are compatible, and if column having same name in different input schemas have different numeric types, an implicit conversion will happen.</li>
+             <li>Bytearray type is considered compatible with all other types, a cast will be added to convert to other type. </li>
+             <li>Bags or tuples having different inner schema are considered incompatible. </li>
+             </ul>
              </li>
            </ul>
+           <p></p>
+           <p>See also: <a href="#schemas">Schemas</a></p>
             </td>
          </tr>
-          
-   </table></section>
+   </table>
+   </section>
    
    <section>
    <title>Usage</title>
@@ -6950,8 +7018,44 @@ If the following requirements are not met, the statement will throw an error:</p
       <li>
          <p>Does not eliminate duplicate tuples.</p>
       </li>
-   </ul></section>
+   </ul>
+   <p></p> 
+   <p><strong>Schema Behavior</strong></p>
+   <p>The behavior of schemas for UNION (positional notation / data types) and UNION ONSCHEMA (named fields / data types) is the same, except where noted.</p>
+
+<p>Union on relations with two different sizes result in a null schema (union only): </p>
+<source>
+A: (a1:long, a2:long) 
+B: (b1:long, b2:long, b3:long) 
+A union B: null 
+</source>
+  
+<p>Union columns with incompatible types result in a bytearray type: </p>
+<source>
+A: (a1:long, a2:long) 
+B: (b1:(b11:long, b12:long), b2:long) 
+A union B: (a1:bytearray, a2:long) 
+</source>
+
+<p>Union columns of compatible type will produce an "escalate" type. 
+The priority is chararray &gt; double &gt; float &gt; long &gt; int &gt; bytearray,  tuple|bag|map &gt; bytearray:</p>
+<source>
+A: (a1:int, a2:double, a3:int) 
+B: (b1:float, b2:chararray, b3:bytearray) 
+A union B: (a1:float, a2:chararray, a3:int) 
+</source>
+
+<p>Union of different inner types results in an empty complex type: </p>
+<source>
+A: (a1:(a11:long, a12:int), a2:{(a21:charray, a22:int)}) 
+B: (b1:(b11:int, b12:int), b2:{(b21:int, b22:int)}) 
+A union B: (a1:(), a2:{()}) 
+</source>  
+
+<p>The alias of the first relation is always taken as the alias of the unioned relation field. </p>  
    
+</section>
+
    <section>
    <title>Example</title>
    <p>In this example the union of relation A and B is computed.</p>
@@ -7017,20 +7121,195 @@ DUMP U;
     <!-- UDF STATEMENTS --> 
    <section>
    <title>UDF Statements</title>
+
+  <section id="define-macros">
+   <title>DEFINE (macros)</title>
+   <p>Defines a Pig macro.</p>
    
-   <section>
-   <title>DEFINE</title>
-   <p>Assigns an alias to a UDF function or a streaming command.</p>
-   
-   <section>
+ <section>
    <title>Syntax</title>
+   <p>Define Macro</p>
+   <table>
+      <tr> 
+            <td>
+               <p>DEFINE macro_name (param [, param ...]) RETURNS alias [, alias ...] { pig_latin_fragment }; </p>
+            </td>
+      </tr> 
+   </table>
+    <p>Expand Macro</p>
+      <table>
+      <tr> 
+            <td>
+               <p>alias [, alias ...] = macro_name (param [, param ...]) ; </p>
+            </td>
+      </tr> 
+   </table>
+ </section>   
+   
+<section>
+   <title>Terms</title>
+   <table>
+      <tr>
+            <td>
+               <p>macro_name</p>
+            </td>
+            <td>
+               <p>The name of the macro. Macro names are global.</p>
+            </td>
+      </tr>
+            <tr>
+            <td>
+               <p>param</p>
+            </td>
+            <td>
+               <p>(optional) A comma-separated list of one or more parameters, including IN aliases (Pig relations), enclosed in parentheses, that are referenced in the Pig Latin fragment.</p>
+            </td>
+      </tr>
+            <tr>
+            <td>
+               <p>alias</p>
+            </td>
+            <td>
+               <p>A comma-separated list of one or more OUT aliases (Pig relations) that are referenced in the Pig Latin fragment.</p>
+            </td>
+      </tr>
+      <tr>
+            <td>
+               <p>pig_latin_fragment</p>
+            </td>
+            <td>
+               <p>One or more Pig Latin statements, enclosed in curly brackets.</p>
+            </td>
+      </tr>
+    </table>
+   </section>
+    
+   <section>
+   <title>Usage</title>
+<!-- +++++++++++++++++++++++++++++++++++++++++++++++ --> 
+   <p><strong>Macro Definition</strong></p>
+   <p>A macro definition can appear anywhere in a script as long as it appears prior to the first use. A macro definition can include references to other macros as long as the referenced macros are defined prior to the macro definition. Recursive references are not allowed. </p>
+
+<p>In this example the macro is named my_macro. Note that only aliases A and C are visible from the outside; alias B is not visible from the outside.</p>
+<source>
+ DEFINE my_macro(A, sortkey) RETURNS C {
+    B = FILTER $A BY my_filter(*);
+    $C = ORDER B BY $sortkey;
+}
+</source>
+<p></p>
+
+<!-- +++++++++++++++++++++++++++++++++++++++++++++++ -->
+<p><strong>Macro Expansion</strong></p>
+
+<p>A macro can be expanded inline using the macro expansion syntax. Note the following:</p>
+<ul>
+<li>Any alias in the macro which isn't visible from the outside will be prefixed with a macro name and suffixed with an instance id to avoid namespace collision. </li>
+<li>Macro expansion is not a complete replacement for function calls. Recursive expansions are not supported. </li>
+</ul>
+<p></p>
+<p>In this example my_macro (defined above) is expanded. Because alias B is not visible from the outside it is renamed macro_my_macro_B_0.</p>
+
+<source>
+/* These statements ... */
+
+X = LOAD 'users' AS (user, address, phone);
+Y = my_macro(X, user);
+STORE Y into 'bar';
+
+/* Are expanded into these statements ... */
+
+X = LOAD 'users' AS (user, address, phone);
+macro_my_macro_B_0 = FILTER X BY my_filter(*);
+Y = ORDER macro_my_macro_B_0  BY user;
+STORE Y INTO 'output';
+</source>
+
+<!-- +++++++++++++++++++++++++++++++++++++++++++++++ -->
+<p><strong>Macro Import</strong></p>
+<p>A macro can be imported from another Pig script (see <a href="#IMPORT">IMPORT</a>).</p>
+</section> 
+
+
+ <section>
+ <title>Examples</title>
+<p>In this example no parameters are passed to the macro.</p>
+<source>
+DEFINE my_macro() returns B {
+   D = LOAD 'data' AS (a0:int, a1:int, a2:int);   
+   $B = FILTER D BY ($1 == 8) OR (NOT ($0+$2 > $1));
+};
+
+X = my_macro();
+STORE X INTO 'output';
+</source>
+
+<p>In this example parameters are passed and returned.</p>
+<source>
+DEFINE group_and_count (A, group_key, reducers) RETURNS B {
+   D = GROUP $A BY $group_key PARALLEL $reducers;
+   $B = FOREACH D GENERATE group, COUNT($A);
+};
+
+X = LOAD 'users' AS (user, age, zip);
+Y = group_and_count (X, user, 20);
+Z = group_and_count (X, age, 30);
+STORE Y into 'byuser';
+STORE Z into 'byage';
+</source>
+
+<p>In this example a dummy alias is returned.</p>
+<source>
+DEFINE my_macro(input, output) RETURNS dummy {
+  D = LOAD '$input';   
+  STORE D INTO '$output';
+};
+dummy = my_macro('input.dat', '/tmp/output');
+</source>
+
+<p>In this example a macro (group_with_parallel) refers to another macro (foreach_count).</p>
+<source>
+DEFINE foreach_count(A, C) RETURNS B {
+   $B = FOREACH $A GENERATE group, COUNT($C);
+};
+
+DEFINE group_with_parallel (A, group_key, reducers) RETURNS B {
+   C = GROUP $A BY $group_key PARALLEL $reducers;
+   $B = foreach_count(C, $A);
+};
+       
+/* These statements ... */
+ 
+X = LOAD 'users' AS (user, age, zip);
+Y = group_with_parallel (X, user, 23);
+STORE Y INTO 'byuser';
+
+/* Are expanded into these statements ... */
+
+X = LOAD 'users' AS (user, age, zip);
+macro_group_with_parallel_C_0 = GROUP X by (user) PARALLEL 23;
+Y = FOREACH macro_group_with_parallel_C_0 GENERATE group, COUNT(X);
+STORE Y INTO 'byuser';
+</source>
+</section> 
+   
+  </section> 
+   
+
+   <section id="define">
+   <title>DEFINE (UDFs, streaming)</title>
+   <p>Assigns an alias to a UDF or streaming command.</p>
+   
+   <section>
+   <title>Syntax: UDF and streaming</title>
    <table>
       <tr> 
             <td>
                <p>DEFINE alias {function | [`command` [input] [output] [ship] [cache]] };</p>
             </td>
          </tr> 
-   </table></section>
+   </table>
+   </section>
    
    <section>
    <title>Terms</title>
@@ -7238,8 +7517,6 @@ OP = stream IP through 'CMD';
 	</ul>   
    </section>
    
-
-
    
    <section>
    <title>About Cache</title>
@@ -7387,7 +7664,8 @@ B = FOREACH A GENERATE myFunc($0);
                (see <a href="start.html#Pig+Scripts">Pig Scripts</a>).</p>
             </td>
          </tr> 
-   </table></section>
+   </table>
+   </section>
    
    <section>
    <title>Usage</title>
