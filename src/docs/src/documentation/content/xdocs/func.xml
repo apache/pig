@@ -1110,17 +1110,47 @@ store A into ‘myoutput.bz’;
    
    <section>
    <title>Usage</title>
-   <p>BinStorage works with data that is represented on disk in machine-readable format. 
-   BinStorage does NOT support <a href="#Handling+Compression">compression</a>.</p>
-   
-    <p>BinStorage is used internally by Pig to store the temporary data that is created between multiple map/reduce jobs.</p>
-      
-    <p>BinStorage supports multiple locations (files, directories, globs) as input.</p>
-    
-      </section>
+
+   <p>Pig uses BinStorage to load and store the temporary data that is generated between multiple MapReduce jobs.</p>
+   <ul>
+   <li>BinStorage works with data that is represented on disk in machine-readable format. 
+   BinStorage does NOT support <a href="#Handling+Compression">compression</a>.</li>
+   <li>BinStorage supports multiple locations (files, directories, globs) as input.</li>
+   </ul>
+    <p></p>
+   <p>Occasionally, users use BinStorage to store their own data. However, because BinStorage is a proprietary binary format, the original data is never in BinStorage - it is always a derivation of some other data.</p>
+<p>We have seen several examples of users doing something like this:</p>
+
+<source>
+a = load 'b.txt' as (id, f);
+b = group a by id;
+store b into 'g' using BinStorage();
+</source>
+
+<p>And then later:</p>
+
+<source>
+a = load 'g/part*' using BinStorage() as (id, d:bag{t:(v, s)});
+b = foreach a generate (double)id, flatten(d);
+dump b;
+</source>
+
+<p>There is a problem with this sequence of events. The first script does not define data types and, as the result, the data is stored as a bytearray and a bag with a tuple that contains two bytearrays. The second script attempts to cast the bytearray to double; however, since the data originated from a different loader, it has no way to know the format of the bytearray or how to cast it to a different type. To solve this problem, Pig:</p>
+
+<ul>
+<li>Sends an error message when the second script is executed: "ERROR 1118: Cannot cast bytes loaded from BinStorage. Please provide a custom converter."</li>
+<li>Allows you to use a custom converter to perform the casting. <br></br>
+<source>
+a = load 'g/part*' using BinStorage('Utf8StorageConverter') as (id, d:bag{t:(v, s)});
+b = foreach a generate (double)id, flatten(d);
+dump b;
+</source>
+</li>
+</ul>
+</section>
    
    <section>
-   <title>Example</title>
+   <title>Examples</title>
    <p>In this example BinStorage is used with the LOAD and STORE functions.</p>
 <source>
 A = LOAD 'data' USING BinStorage();
@@ -1163,8 +1193,12 @@ dump X;
 ()
 ()
 </source>
+</section>
 
-   </section></section>
+<section>
+<title>More Examples</title>
+</section>
+</section>
    
    <section>
    <title>PigStorage</title>

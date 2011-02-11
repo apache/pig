@@ -23,13 +23,24 @@
   
  <!-- ++++++++++++++++++++++++++++++++++ -->    
    <section>
-   <title>Control Flow</title>
+   <title>Pig Macros</title> 
+   <p>Pig Latin supports the definition, expansion, and import of macros.</p>
+   <p>See <a href="basic.html#define-macros">DEFINE (macros)</a> and <a href="/basic.html#IMPORT">IMPORT</a>.</p>
+   </section> 
+  
+ <!-- ++++++++++++++++++++++++++++++++++ -->    
+   <section>
+   <title>Embedded Pig and Control Flow </title>
    
    <p> To enable control flow, you can embed Pig Latin scripts in a host scripting language via a JDBC-like compile, bind, run model. The default scripting language is Jython which is shipped with Pig and available by default. </p>
    
    <section>
    <title>Invocation Basics</title>
 <p>Embedded Pig Latin is supported in batch mode only, not interactive mode. When Pig is invoked with a script it will look for a #! line at the beginning of the file. If the basename portion of the path matches jython or python it will use the reference embedding implementation. </p>
+
+<source>
+#! /usr/bin/jython
+</source>
 
 <p>You can also explicitly request that embedded Pig Latin be used by adding the <code>--embedded</code> option to the Pig command line. If this option is passed as an argument, that argument will refer to the language the Pig Latin is embedded in. If no argument is specified, it is taken to refer to the reference implementation.</p>
 
@@ -39,7 +50,9 @@ OR
 $ java -cp $lt;jython jars&gt;:$lt;pig jars$gt; [--embedded jython] /tmp/myembedded.py
 </source>
 
-<p>You invoke Pig Latin in the host scripting language through an embedded <a href="#Pig+Object">Pig object</a>. The first step in this process is to compile your script. Compile is a static function on the Pig object and in its simplest form takes a fragment of Pig Latin that defines the pipeline as its input:</p>  
+<p>You invoke Pig Latin in the host scripting language through an embedded <a href="#pig-Object">Pig object</a>. </p>  
+
+<p>The first step in this process is to compile your script. Compile is a static function on the Pig object and in its simplest form takes a fragment of Pig Latin that defines the pipeline as its input:</p>  
 
 <source>
 # COMPILE: complie method returns a Pig object that represents the pipeline
@@ -48,7 +61,8 @@ P = Pig.compile("""A = load '$in’; store A into '$out’;""")
 
 <p>Compile returns an instance of Pig object. This object can have certain values undefined. For example, you may want to define a pipeline without yet specifying the location of the input to the pipeline. The parameter will be indicated by a dollar sign followed by a sequence of alpha-numeric or underscore characters. Values for these parameters must be provided later at the time bind() is called on the Pig object. To call run() on a Pig object without all parameters being bound is an error. </p>
 <p></p>
-<p>Parameters need to be resolved during the <strong>bind </strong>call.</p>
+
+<p>The second step is to resolve the parameters during the <strong>bind </strong>call.</p>
 
 <source>
 input = "original”
@@ -60,7 +74,7 @@ Q = P.bind({'in':input, 'out':output})
 
 <p>Please note that all parameters must be resolved during bind. Having unbound parameters while running your script is an error. Also note that even if your script is fully defined during compile, bind without parameters still must be called.</p>
 
-<p>Bind call returns an instance of <a href="#BoundScript+Object">BoundScript object</a> that can be used to execute the pipeline. The simplest way to execute the pipeline is to call runSingle function. (However, as mentioned later, this works only if  a single set of variables is bound to the parameters. Otherwise, if multiple set of variables are bound, an exception will be thrown if runSingle is called.)</p>
+<p>Bind call returns an instance of <a href="#BoundScript-Object">BoundScript object</a> that can be used to execute the pipeline. The simplest way to execute the pipeline is to call runSingle function. (However, as mentioned later, this works only if  a single set of variables is bound to the parameters. Otherwise, if multiple set of variables are bound, an exception will be thrown if runSingle is called.)</p>
 
 <source>
 
@@ -68,7 +82,7 @@ result = Q.runSingle()
 </source>
 
 
-<p>The function returns a <a href="#PigStats+Object">PigStats object</a> that tells you whether the run succeeded or failed. In case of success, additional run statistics are provided.</p>
+<p>The function returns a <a href="#PigStats-Object">PigStats object</a> that tells you whether the run succeeded or failed. In case of success, additional run statistics are provided.</p>
 
 <p>Here is a complete example:</p>
 
@@ -362,9 +376,9 @@ for i in [0, 1, 2]:
    
  <section>
 <title>Java Objects</title>
- <section>
-<title>Pig Object</title>
-<p><strong>Pig.java</strong></p>
+
+ <section id="pig-Object">
+<title>pig.java Object</title>
 <source>
 public class Pig {    
     /**
@@ -507,9 +521,8 @@ public class Pig {
 </source>
 </section>
 
-<section>
-<title>BoundScript Object</title>
-<p><strong>BoundScript.java</strong></p>
+<section id="BoundScript-Object">
+<title>BoundScript.java Object</title>
 <source>
 public class BoundScript {
     
@@ -595,9 +608,8 @@ public class BoundScript {
 </source>
 </section>  
 
-<section>
-<title>PigStats Object</title>
-<p><strong>PigStats.java</strong></p>
+<section id="PigStats-Object">
+<title>PigStats.java Object</title>
 <source>
 public abstract class PigStats {
     public abstract boolean isEmbedded();
@@ -614,9 +626,8 @@ public abstract class PigStats {
 </source>
 </section>  
 
-<section>
-<title>PigProgressNotificationListener Object</title>
-<p><strong>PigProgressNotificationListener.java</strong></p>
+<section id="PigProgressNotificationListener-Object">
+<title>PigProgressNotificationListener.java Object</title>
 <source>
 
 /** 

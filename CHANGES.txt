@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-1728: more doc updates (chandec via olgan)
+
 PIG-1793: Add macro expansion to Pig Latin (rding)
 
 PIG-847: Setting twoLevelAccessRequired field in a bag schema should not be required to access fields in the tuples of the bag (daijy)

@@ -23,6 +23,126 @@
   <body> 
   
 <!-- ================================================================== -->
+<!-- COMBINER -->
+<section>
+<title>Combiner</title> 
+
+<p>The Pig combiner is an optimizer that is invoked when the statements in your scripts are arranged in certain ways. The examples below demonstrate when the combiner is used and not used. Whenever possible, make sure the combiner is used as it frequently yields an order of magnitude improvement in performance. </p>
+
+<section>
+<title>When the Combiner is Used</title> 
+<p>The combiner is generally used in the case of non-nested foreach where all projections are either expressions on the group column or expressions on algebraic UDFs (see  <a href="#Make+Your+UDFs+Algebraic">Make Your UDFs Algebraic</a>).</p>
+
+<p>Example:</p>
+
+<source>
+A = load 'studenttab10k' as (name, age, gpa);
+B = group A by age;
+C = foreach B generate ABS(SUM(A.gpa)), COUNT(org.apache.pig.builtin.Distinct(A.name)), (MIN(A.gpa) + MAX(A.gpa))/2, group.age;
+explain C;
+</source>
+<p></p>
+<p>In the above example:</p>
+<ul>
+<li>The GROUP statement can be referred to as a whole or by accessing individual fields (as in the example). </li>
+<li>The GROUP statement and its elements can appear anywhere in the projection. </li>
+</ul>
+
+<p>In the above example, a variety of expressions can be applied to algebraic functions including:</p>
+<ul>
+<li>A column transformation function such as ABS can be applied to an algebraic function SUM.</li>
+<li>An algebraic function (COUNT) can be applied to another algebraic function (Distinct), but only the inner function is computed using the combiner. </li>
+<li>A mathematical expression can be applied to one or more algebraic functions. </li>
+</ul>
+<p></p>
+
+<p>You can check if the combiner is used for your query by running <a href="test.html#EXPLAIN">EXPLAIN</a> on the FOREACH alias as shown above. You should see the combine section in the MapReduce part of the plan:</p>
+
+
+
+<source>
+.....
+Combine Plan
+B: Local Rearrange[tuple]{bytearray}(false) - scope-42
+| |
+| Project[bytearray][0] - scope-43
+|
+|---C: New For Each(false,false,false)[bag] - scope-28
+| |
+| Project[bytearray][0] - scope-29
+| |
+| POUserFunc(org.apache.pig.builtin.SUM$Intermediate)[tuple] - scope-30
+| |
+| |---Project[bag][1] - scope-31
+| |
+| POUserFunc(org.apache.pig.builtin.Distinct$Intermediate)[tuple] - scope-32
+| |
+| |---Project[bag][2] - scope-33
+|
+|---POCombinerPackage[tuple]{bytearray} - scope-36--------
+.....
+</source>
+
+<p>The combiner is also used with a nested foreach as long as the only nested operation used is DISTINCT
+(see <a href="basic.html#FOREACH">FOREACH</a> and <a href="basic.html#nestedblock">Example: Nested Block</a>).
+</p>
+
+<source>
+A = load 'studenttab10k' as (name, age, gpa);
+B = group A by age;
+C = foreach B { D = distinct (A.name); generate group, COUNT(D);}
+</source>
+<p></p>
+<p>Finally, use of the combiner is influenced by the surrounding environment of the GROUP and FOREACH statements.</p>
+ </section>
+
+ <section>
+<title>When the Combiner is Not Used</title> 
+<p>The combiner is generally not used if there is any operator that comes between the GROUP and FOREACH statements in the execution plan. Even if the statements are next to each other in your script, the optimizer might rearrange them. In this example, the optimizer will push FILTER above FOREACH which will prevent the use of the combiner:</p>
+<source>
+A = load 'studenttab10k' as (name, age, gpa);
+B = group A by age;
+C = foreach B generate group, COUNT (A);
+D = filter C by group.age &lt;30;
+</source>
+<p></p>
+
+<p>Please note that the script above can be made more efficient by performing filtering before the GROUP statement:</p>
+
+<source>
+A = load 'studenttab10k' as (name, age, gpa);
+B = filter A by age &lt;30;
+C = group B by age;
+D = foreach C generate group, COUNT (B);
+</source>
+<p></p>
+
+<p><strong>Note:</strong> One exception to the above rule is LIMIT. Starting with Pig 0.9, even if LIMIT comes between GROUP and FOREACH, the combiner will still be used. In this example, the optimizer will push LIMIT above FOREACH but this will not prevent the use of the combiner.</p>
+
+<source>
+A = load 'studenttab10k' as (name, age, gpa);
+B = group A by age;
+C = foreach B generate group, COUNT (A);
+D = limit C 20;
+</source>
+<p></p>
+
+<p>The combiner is also not used in the case where multiple FOREACH statements are associated with the same GROUP:</p>
+
+<source>
+A = load 'studenttab10k' as (name, age, gpa);
+B = group A by age;
+C = foreach B generate group, COUNT (A);
+D = foreach B generate group, MIN (A.gpa). MAX(A.gpa);
+.....
+</source>
+
+<p>Depending on your use case, it might be more efficient (improve performance) to split your script into multiple scripts.</p>
+ </section>
+</section> 
+  
+  
+<!-- ================================================================== -->
 <!-- MEMORY MANAGEMENT -->
 <section>
 <title>Memory Management</title>
