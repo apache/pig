@@ -75,46 +75,47 @@ implements StoreFuncInterface, LoadMetadata {
 
     static class UnImplementedLoadCaster implements LoadCaster {
 
+        private static final String unImplementedErrorMessage = "Cannot cast bytes loaded from BinStorage. Please provide a custom converter.";
         @Override
         public DataBag bytesToBag(byte[] b, ResourceFieldSchema fieldSchema)
                 throws IOException {
-            throw new ExecException("Cannot convert bytes load from BinStorage", 1118);
+            throw new ExecException(unImplementedErrorMessage, 1118);
         }
 
         @Override
         public String bytesToCharArray(byte[] b) throws IOException {
-            throw new ExecException("Cannot convert bytes load from BinStorage", 1118);
+            throw new ExecException(unImplementedErrorMessage, 1118);
         }
 
         @Override
         public Double bytesToDouble(byte[] b) throws IOException {
-            throw new ExecException("Cannot convert bytes load from BinStorage", 1118);
+            throw new ExecException(unImplementedErrorMessage, 1118);
         }
 
         @Override
         public Float bytesToFloat(byte[] b) throws IOException {
-            throw new ExecException("Cannot convert bytes load from BinStorage", 1118);
+            throw new ExecException(unImplementedErrorMessage, 1118);
         }
 
         @Override
         public Integer bytesToInteger(byte[] b) throws IOException {
-            throw new ExecException("Cannot convert bytes load from BinStorage", 1118);
+            throw new ExecException(unImplementedErrorMessage, 1118);
         }
 
         @Override
         public Long bytesToLong(byte[] b) throws IOException {
-            throw new ExecException("Cannot convert bytes load from BinStorage", 1118);
+            throw new ExecException(unImplementedErrorMessage, 1118);
         }
 
         @Override
         public Map<String, Object> bytesToMap(byte[] b) throws IOException {
-            throw new ExecException("Cannot convert bytes load from BinStorage", 1118);
+            throw new ExecException(unImplementedErrorMessage, 1118);
         }
 
         @Override
         public Tuple bytesToTuple(byte[] b, ResourceFieldSchema fieldSchema)
                 throws IOException {
-            throw new ExecException("Cannot convert bytes load from BinStorage", 1118);
+            throw new ExecException(unImplementedErrorMessage, 1118);
         }
     }
 
