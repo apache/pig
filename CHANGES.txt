@@ -96,6 +96,8 @@ PIG-1696: Performance: Use System.arraycopy() instead of manually copying the by
 
 BUG FIXES
 
+PIG-1304: Fail underlying M/R jobs when concatenated gzip and bz2 files are provided as input (laukik via rding)
+
 PIG-1852: Packaging antlr jar with pig.jar (rding via daijy)
 
 PIG-1717 pig needs to call setPartitionFilter if schema is null but
