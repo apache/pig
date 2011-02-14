@@ -220,10 +220,6 @@ public class CBZip2InputStream extends InputStream implements BZip2Constants {
         initBlock(blockSize != -1);
         setupBlock();
     }
-    
-    public CBZip2InputStream(FSDataInputStream zStream) throws IOException {
-    	this(zStream, -1, Long.MAX_VALUE);
-    }
 
     @Override
     public int read() throws IOException {
@@ -408,7 +404,10 @@ public class CBZip2InputStream extends InputStream implements BZip2Constants {
                 storedCombinedCRC != computedCombinedCRC) {
             crcError();
         }
-
+        if (innerBsStream.getPos() < endOffsetOfSplit) {
+        	throw new IOException("Encountered additional bytes in the filesplit past the crc block. "
+        			+ "Loading of concatenated bz2 files is not supported");
+        }
         bsFinishedWithStream();
         streamEnd = true;
     }

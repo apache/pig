@@ -21,8 +21,12 @@ import static org.junit.Assert.*;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotSame;
 
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -91,7 +95,7 @@ public class TestBZip {
                 pig.getPigContext().getProperties()));
         FSDataInputStream is = fs.open(new Path(out.getAbsolutePath() + 
                 "/part-r-00000.bz2"));
-        CBZip2InputStream cis = new CBZip2InputStream(is);
+        CBZip2InputStream cis = new CBZip2InputStream(is, -1, out.length());
         
         // Just a sanity check, to make sure it was a bzip file; we
         // will do the value verification later
@@ -150,7 +154,7 @@ public class TestBZip {
                 pig.getPigContext().getProperties()));
         FSDataInputStream is = fs.open(new Path(out.getAbsolutePath() + 
                 "/part-r-00000.bz2"));
-        CBZip2InputStream cis = new CBZip2InputStream(is);
+        CBZip2InputStream cis = new CBZip2InputStream(is, -1, out.length());
         
         // Just a sanity check, to make sure it was a bzip file; we
         // will do the value verification later
@@ -266,7 +270,7 @@ public class TestBZip {
                 pig.getPigContext().getProperties()));
         FSDataInputStream is = fs.open(new Path(out.getAbsolutePath() + 
                 "/part-r-00000.bz2"));
-        CBZip2InputStream cis = new CBZip2InputStream(is);
+        CBZip2InputStream cis = new CBZip2InputStream(is, -1, out.length());
         
         // Just a sanity check, to make sure it was a bzip file; we
         // will do the value verification later
@@ -294,7 +298,7 @@ public class TestBZip {
         assertNotSame(0, tmp.length());
         FileSystem fs = FileSystem.getLocal(new Configuration(false));
         CBZip2InputStream cis = new CBZip2InputStream(
-                fs.open(new Path(tmp.getAbsolutePath())));
+                fs.open(new Path(tmp.getAbsolutePath())), -1, tmp.length());
         assertEquals(-1, cis.read(new byte[100]));
         cis.close();
         tmp.delete();
@@ -469,6 +473,109 @@ public class TestBZip {
         
         stat = fs.getFileStatus(new Path("output2.bz2/part-m-00000.bz2"));
         assertTrue(stat.getLen() > 0);     
+    }
+    
+    /** 
+     * Tests that Pig throws an Exception when the input files to be loaded are actually
+     * a result of concatenating 2 or more bz2 files. Pig should not silently ignore part 
+     * of the input data.
+     */
+    @Test (expected=IOException.class)
+    public void testBZ2Concatenation() throws Exception {
+        String[] inputData1 = new String[] {
+                "1\ta",
+                "2\taa"
+        };
+        String[] inputData2 = new String[] {
+                "1\tb",
+                "2\tbb"
+        };
+        String[] inputDataMerged = new String[] {
+                "1\ta",
+                "2\taa",
+                "1\tb",
+                "2\tbb"
+        };
+       
+        // bzip compressed input file1
+        File in1 = File.createTempFile("junit", ".bz2");
+        String compressedInputFileName1 = in1.getAbsolutePath();
+        in1.deleteOnExit();
+        
+        // file2
+        File in2 = File.createTempFile("junit", ".bz2");
+        String compressedInputFileName2 = in2.getAbsolutePath();
+        in1.deleteOnExit();
+
+        String unCompressedInputFileName = "testRecordDelims-uncomp.txt";
+        Util.createInputFile(cluster, unCompressedInputFileName, inputDataMerged);
+        
+        try {
+            CBZip2OutputStream cos = 
+                new CBZip2OutputStream(new FileOutputStream(in1));
+            for (int i = 0; i < inputData1.length; i++) {
+                StringBuffer sb = new StringBuffer();
+                sb.append(inputData1[i]).append("\n");
+                byte bytes[] = sb.toString().getBytes();
+                cos.write(bytes);
+            }
+            cos.close();
+            
+            CBZip2OutputStream cos2 = 
+                new CBZip2OutputStream(new FileOutputStream(in2));
+            for (int i = 0; i < inputData2.length; i++) {
+                StringBuffer sb = new StringBuffer();
+                sb.append(inputData2[i]).append("\n");
+                byte bytes[] = sb.toString().getBytes();
+                cos2.write(bytes);
+            }
+            cos2.close();
+
+            // cat
+            catInto(compressedInputFileName2, compressedInputFileName1);
+            Util.copyFromLocalToCluster(cluster, compressedInputFileName1,
+                    compressedInputFileName1);
+            
+            // pig script to read uncompressed input
+            String script = "a = load '" + unCompressedInputFileName +"';";
+            PigServer pig = new PigServer(ExecType.MAPREDUCE, cluster
+                    .getProperties());
+            pig.registerQuery(script);
+            Iterator<Tuple> it1 = pig.openIterator("a");
+            
+            // pig script to read compressed concatenated input
+            script = "a = load '" + compressedInputFileName1 +"';";
+            pig.registerQuery(script);
+            Iterator<Tuple> it2 = pig.openIterator("a");
+            
+            while(it1.hasNext()) {
+                Tuple t1 = it1.next();
+                Tuple t2 = it2.next();
+                Assert.assertEquals(t1, t2);
+            }
+            
+            Assert.assertFalse(it2.hasNext());
+        
+        } finally {
+            in1.delete();
+            in2.delete();
+            Util.deleteFile(cluster, unCompressedInputFileName);
+        }
+        
+    }
+    
+    /*
+     * Concatenate the contents of src file to the contents of dest file
+     */
+    private void catInto(String src, String dest) throws IOException {
+    	BufferedWriter out = new BufferedWriter(new FileWriter(dest, true));
+    	BufferedReader in = new BufferedReader(new FileReader(src));
+    	String str;
+    	while ((str = in.readLine()) != null) {
+    		out.write(str);
+    	}
+    	in.close();
+    	out.close();
     }
     
 }
