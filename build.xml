@@ -320,7 +320,7 @@
 	    description="generates token parser class from an ANTLR grammar">
 	    <java classname="org.antlr.Tool"
 	      classpathref="classpath" fork="true">
-		      <arg line="-o ${src.gen.dir}/${grammar.package.dir} ${src.dir}/${grammar.package.dir}/MacroExpansion.g ${src.dir}/${grammar.package.dir}/MacroImport.g ${src.dir}/${grammar.package.dir}/${grammar.name}Parser.g"/>
+		      <arg line="-o ${src.gen.dir}/${grammar.package.dir} ${src.dir}/${grammar.package.dir}/MacroExpansion.g ${src.dir}/${grammar.package.dir}/MacroRecursion.g ${src.dir}/${grammar.package.dir}/MacroImport.g ${src.dir}/${grammar.package.dir}/${grammar.name}Parser.g"/>
 	    </java>
 	  </target>
 	
