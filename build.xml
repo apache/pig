@@ -115,10 +115,6 @@
     <property name="grammar.package.dir" value="org/apache/pig/parser"/>
     <property name="grammar.src.dir" value="${src.dir}/${grammar.package.dir}"/>
     
-    <!-- Antlr properties -->
-    <property name="antlr.version" value="3.2"/>
-    <property name="antlr.jar" value="antlr-${antlr.version}.jar"/>
-
     <!-- rats properties -->
     <property name="rat.reporting.classname" value="rat.Report"/>
 
@@ -204,7 +200,6 @@
         <fileset file="${lib.dir}/${hbase.jarfile}" />
         <fileset file="${lib.dir}/${hbase.test.jarfile}" />
     	<fileset file="${lib.dir}/${zookeeper.jarfile}"/>
-    	<fileset file="${lib.dir}/${antlr.jar}"/>
     </path>
 
     <!-- javadoc-classpath -->
@@ -213,7 +208,6 @@
 	<fileset file="${lib.dir}/${guava.jarfile}" />
 	<fileset file="${lib.dir}/${automaton.jarfile}" />
         <fileset file="${lib.dir}/${hbase.test.jarfile}" />
-    	<fileset file="${lib.dir}/${antlr.jar}"/>
 	<path refid="javadoc.classpath"/>	
     </path> 
 
@@ -553,7 +547,8 @@
             </manifest>
             <zipfileset src="${ivy.lib.dir}/hadoop-core-${hadoop-core.version}.jar" />
             <zipfileset src="${lib.dir}/${automaton.jarfile}" />
-            <zipfileset src="${lib.dir}/${antlr.jar}" />
+            <zipfileset src="${ivy.lib.dir}/antlr-runtime-${antlr.version}.jar" />
+            <zipfileset src="${ivy.lib.dir}/stringtemplate-${antlr.version}.jar" />
             <zipfileset src="${ivy.lib.dir}/junit-${junit.version}.jar" />
             <zipfileset src="${ivy.lib.dir}/jsch-${jsch.version}.jar" />
             <zipfileset src="${ivy.lib.dir}/jline-${jline.version}.jar" />
@@ -640,7 +635,8 @@
             <zipfileset src="${ivy.lib.dir}/jackson-core-asl-${jackson.version}.jar" />
             <zipfileset src="${ivy.lib.dir}/joda-time-${joda-time.version}.jar" />
             <zipfileset src="${lib.dir}/${automaton.jarfile}" />
-            <zipfileset src="${lib.dir}/${antlr.jar}" />
+            <zipfileset src="${ivy.lib.dir}/antlr-runtime-${antlr.version}.jar" />
+            <zipfileset src="${ivy.lib.dir}/stringtemplate-${antlr.version}.jar" />
             <fileset file="${basedir}/conf/pig-default.properties" />
         </jar>
         <copy file="${output.jarfile.withouthadoop}" tofile="${output.jarfile.backcompat.withouthadoop}"/>
@@ -1046,8 +1042,6 @@
     </target>
     -->
     <path id="checkstyle-classpath">
-	<path refid="checkstyle.classpath"/>	
-    	<fileset file="${lib.dir}/${antlr.jar}"/>
     </path>
 
     <target name="findbugs.check" depends="check-for-findbugs" unless="findbugs.present">
