@@ -509,6 +509,23 @@ public class TestPigRunner {
         }
     }
 
+    @Test
+    public void fsCommandTest() throws Exception {
+        PrintWriter w = new PrintWriter(new FileWriter(PIG_FILE));
+        w.println("fs -mv nonexist.file dummy.file");
+        w.close();
+        
+        try {
+            String[] args = { PIG_FILE };
+            PigStats stats = PigRunner.run(args, new TestNotificationListener());
+     
+            assertTrue(!stats.isSuccessful());
+            assertTrue(stats.getReturnCode() == PigRunner.ReturnCode.IO_EXCEPTION);
+        } finally {
+            new File(PIG_FILE).delete();
+        }
+    }
+    
     public static class TestNotificationListener implements PigProgressNotificationListener {
         
         private Map<String, int[]> numMap = new HashMap<String, int[]>();
