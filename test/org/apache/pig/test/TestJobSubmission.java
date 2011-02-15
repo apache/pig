@@ -46,6 +46,7 @@ import org.apache.pig.test.utils.GenPhyOp;
 import org.apache.pig.test.utils.LogicalPlanTester;
 import org.junit.After;
 import org.junit.AfterClass;
+import org.junit.BeforeClass;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -67,8 +68,9 @@ public class TestJobSubmission extends junit.framework.TestCase{
     String inpDir;
     String golDir;
     static MiniCluster cluster = MiniCluster.buildCluster();
-    
-    static {
+
+    @BeforeClass
+    public static void onetimeSetup() throws Exception {
 
         pc = new PigContext(ExecType.MAPREDUCE, cluster.getProperties());
         try {
@@ -78,8 +80,9 @@ public class TestJobSubmission extends junit.framework.TestCase{
             e.printStackTrace();
         }
         GenPhyOp.setPc(pc);
-        
+        Util.copyFromLocalToCluster(cluster, "test/org/apache/pig/test/data/passwd", "/passwd");      
     }
+
     @Before
     public void setUp() throws Exception{
         curDir = System.getProperty("user.dir");
@@ -549,7 +552,6 @@ public class TestJobSubmission extends junit.framework.TestCase{
     public void testReducerNumEstimation() throws Exception{
        // use the estimation
         LogicalPlanTester planTester = new LogicalPlanTester(pc) ;
-        Util.copyFromLocalToCluster(cluster, "test/org/apache/pig/test/data/passwd", "/passwd");
         planTester.buildPlan("a = load '/passwd';");
         LogicalPlan lp = planTester.buildPlan("b = group a by $0;");
         PhysicalPlan pp = Util.buildPhysicalPlan(lp, pc);
@@ -614,7 +616,6 @@ public class TestJobSubmission extends junit.framework.TestCase{
         pc.getProperties().setProperty("pig.exec.reducers.max", "10");
         
         LogicalPlanTester planTester = new LogicalPlanTester(pc) ;
-        Util.copyFromLocalToCluster(cluster, "test/org/apache/pig/test/data/passwd", "/passwd");
         planTester.buildPlan("a = load '/passwd';");
         LogicalPlan lp = planTester.buildPlan("b = order a by $0;");
         PhysicalPlan pp = Util.buildPhysicalPlan(lp, pc);
