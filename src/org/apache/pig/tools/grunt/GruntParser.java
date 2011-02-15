@@ -31,6 +31,8 @@ import java.io.PrintStream;
 import java.io.Reader;
 import java.io.StringReader;
 import java.io.StringWriter;
+import java.util.AbstractList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
@@ -47,6 +49,7 @@ import org.apache.hadoop.mapred.JobClient;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.JobID;
 import org.apache.hadoop.mapred.RunningJob;
+import org.apache.pig.LoadFunc;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.datastorage.ContainerDescriptor;
 import org.apache.pig.backend.datastorage.DataStorage;
@@ -897,10 +900,19 @@ public class GruntParser extends PigScriptParser {
             
             executeBatch();
             
+            int retCode = -1;
+            
             try {
-                shell.run(cmdTokens);
+                retCode = shell.run(cmdTokens);
             } catch (Exception e) {
                 throw new IOException(e);
+            }
+            
+            if (retCode != 0 && !mInteractive) {
+                String s = LoadFunc.join(
+                        (AbstractList<String>) Arrays.asList(cmdTokens), " ");
+                throw new IOException("fs command '" + s
+                        + "' failed. Please check output logs for details");
             }
         } else {
             log.warn("'fs' statement is ignored while processing 'explain -script' or '-check'");

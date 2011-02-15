@@ -99,6 +99,8 @@ public class LogUtils {
                     || t instanceof org.apache.pig.tools.pigscript.parser.TokenMgrError 
                     || t instanceof org.apache.pig.impl.logicalLayer.parser.TokenMgrError)) {
                 message = "ERROR 1000: Error during parsing. " + t.getMessage();
+            } else if (t instanceof IOException) {
+                message = "ERROR 2997: Encountered IOException. " + t.getMessage();
             } else if (t instanceof RuntimeException) {
                 message = "ERROR 2999: Unexpected internal error. " + t.getMessage();
             } else {
