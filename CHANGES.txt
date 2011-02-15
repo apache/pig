@@ -24,6 +24,8 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-1853: Using ANTLR jars from maven repository (rding)
+
 PIG-1728: more doc updates (chandec via olgan)
 
 PIG-1793: Add macro expansion to Pig Latin (rding)
