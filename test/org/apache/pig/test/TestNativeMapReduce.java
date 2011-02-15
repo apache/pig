@@ -197,8 +197,6 @@ public class TestNativeMapReduce  {
             results.add("(two,2)");
             results.add("(three,3)");
 
-            Util.copyFromLocalToCluster(cluster, INPUT_FILE, INPUT_FILE);
-            
             pigServer.setBatchOn();
             pigServer.registerQuery("A = load '" + INPUT_FILE + "';");
             pigServer.registerQuery("B = mapreduce '" + jarFileName + "' " +
@@ -206,8 +204,7 @@ public class TestNativeMapReduce  {
                     "Load 'table_testNativeMRJobSimple_output' "+
             "`org.apache.pig.test.utils.WordCount table_testNativeMRJobSimple_input " + INPUT_FILE + "`;");
             pigServer.registerQuery("Store B into 'table_testNativeMRJobSimpleDir';");
-//            List<ExecJob> execJobs = pigServer.executeBatch();
-
+            pigServer.executeBatch();
 
             assertTrue("job failed", PigStats.get().getReturnCode() != 0);
    
