@@ -27,12 +27,11 @@ package org.apache.pig.parser;
 
 import java.util.HashMap;
 import java.util.List;
-import java.io.IOException;
 import org.apache.pig.parser.PigMacro;
 }
 
 @members {
-    private HashMap<String, PigMacro> memory = new HashMap<String, PigMacro>();
+    private Map<String, PigMacro> memory = new HashMap<String, PigMacro>();
     private StringBuilder sb = new StringBuilder();
     
     public String getResultString() { return sb.toString(); } 
@@ -42,7 +41,7 @@ MACRO
     : 'define' WS name=ALIAS WS? '(' ( params+=ALIAS (',' WS* params+=ALIAS)* )? ')' WS 'returns' WS rets+=ALIAS (',' WS* rets+=ALIAS)* WS  '{' content=BLOCK '};' 
         {
             PigMacro macro = new PigMacro($name.text);
-            macro.setBody($content.text);
+            macro.setBody($content.text, memory);
             if ($params != null) {
                 for (Object param : $params) {
                     macro.addParam(((Token)param).getText());

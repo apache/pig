@@ -75,6 +75,8 @@ private String getMask(String alias) {
 
 private Set<String> params = new HashSet<String>();
 
+private Set<String> aliasSeen = new HashSet<String>();
+
 private String macroName = "";
 
 private long index = 0;
@@ -109,7 +111,8 @@ foreach_statement
     : ^( STATEMENT ( alias { sb.append(" = "); } )? foreach_clause { sb.append("\n"); } )
 ;
 
-alias : IDENTIFIER { sb.append(getMask($IDENTIFIER.text)); }
+alias 
+    : IDENTIFIER { sb.append(getMask($IDENTIFIER.text)); aliasSeen.add($IDENTIFIER.text); }
 ;
 
 op_clause : define_clause 
@@ -530,7 +533,13 @@ col_ref : alias_col_ref | dollar_col_ref
 
 alias_col_ref 
     : GROUP { sb.append($GROUP.text); } 
-    | IDENTIFIER { sb.append($IDENTIFIER.text); } 
+    | name = IDENTIFIER {  
+        if (aliasSeen.contains($name.text)) {
+            sb.append(getMask($name.text));
+        } else {
+            sb.append($name.text);
+        } 
+    } 
 ;
 
 dollar_col_ref 
@@ -689,3 +698,4 @@ rel_str_op
     | STR_OP_LTE { sb.append($STR_OP_LTE.text); }
     | STR_OP_MATCHES { sb.append($STR_OP_MATCHES.text); }
 ;
+

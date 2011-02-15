@@ -1058,6 +1058,144 @@ public class TestMacroExpansion {
         
         validate(s);
     }
+    
+    @Test
+    public void recursiveMacrosTest() throws Throwable {
+        String macro1 = "define group_and_partition (A, group_key, reducers) returns B {\n" +
+            "    C = group $A by $group_key partition by org.apache.pig.test.utils.SimpleCustomPartitioner parallel $reducers;\n" +
+            "    $B = foreach_count(C, $A);" +
+            "};\n";
+        
+        String macro2 = "define foreach_count(A, C) returns B {\n" +
+            "    $B = foreach $A generate group, COUNT($C);\n" +
+            "};\n";
+        
+        
+        String script = macro2 + macro1 +
+            "alpha = load 'users' as (user, age, zip);\n" +
+            "gamma = group_and_partition (alpha, user, 23);\n" +
+            "store gamma into 'byuser';\n";
+
+        StringReader rd = new StringReader(script);
+        String s = ParserUtil.expandMacros(rd);
+
+        validate(s);
+
+        String expected =
+            "\n\nalpha = load 'users' as (user, age, zip);\n" +
+            "macro_group_and_partition_C_0 = group alpha by (user) partition BY org.apache.pig.test.utils.SimpleCustomPartitioner parallel 23;\n" +
+            "gamma = foreach macro_group_and_partition_C_0 generate group, COUNT(alpha);\n\n" +
+            "store gamma into 'byuser';\n";
+
+        Assert.assertEquals(expected, s);
+    }
+    
+    @Test
+    public void recursiveMacrosTest2() throws Throwable {
+        String macro1 = "define foreach_count(A, C) returns B {\n" +
+        "    $B = foreach $A generate group, COUNT($C);\n" +
+        "};\n";
+        
+        String macro2 = "define group_and_partition (A, group_key, reducers) returns B {\n" +
+            "    C = group $A by $group_key partition by org.apache.pig.test.utils.SimpleCustomPartitioner parallel $reducers;\n" +
+            "    $B = foreach_count(C, $A);\n" +
+            "};\n";
+        
+        String macro3 = "define load_and_group() returns B {\n" +
+            "   alpha = load 'users' as (user, age, zip);\n" +
+            "   $B = group_and_partition(alpha, user, 30);\n" +
+            "};\n";
+        
+        String script = macro1 + macro2 + macro3 +
+            "gamma = load_and_group ();\n" +
+            "store gamma into 'byuser';\n";
+
+        StringReader rd = new StringReader(script);
+        String s = ParserUtil.expandMacros(rd);
+
+        validate(s);
+
+        String expected =
+            "\n\n\nmacro_load_and_group_alpha_0 = load 'users' as (user, age, zip);\n" +
+            "macro_load_and_group_C_0 = group macro_load_and_group_alpha_0 by (user) partition BY org.apache.pig.test.utils.SimpleCustomPartitioner parallel 30;\n" +
+            "gamma = foreach macro_load_and_group_C_0 generate group, COUNT(macro_load_and_group_alpha_0);\n\n" +
+            "store gamma into 'byuser';\n";
+
+        Assert.assertEquals(expected, s);
+    }
+    
+    @Test
+    public void sequenceMacrosTest() throws Throwable {
+        String macro1 = "define foreach_count(A, C) returns B {\n" +
+        "    $B = foreach $A generate group, COUNT($C);\n" +
+        "};\n";
+        
+        String macro2 = "define group_and_partition (A, group_key, reducers) returns B {\n" +
+            "    $B = group $A by $group_key partition by org.apache.pig.test.utils.SimpleCustomPartitioner parallel $reducers;\n" +
+            "};\n";
+        
+        String script = macro1 + macro2 +
+            "alpha = load 'users' as (user, age, zip);\n" +
+            "beta = group_and_partition (alpha, user, 20);\n" +
+            "gamma = foreach_count(beta, alpha);\n" +
+            "store gamma into 'byuser';\n";
+
+        StringReader rd = new StringReader(script);
+        String s = ParserUtil.expandMacros(rd);
+
+        validate(s);
+
+        String expected =
+            "\n\nalpha = load 'users' as (user, age, zip);\n" +
+            "beta = group alpha by (user) partition BY org.apache.pig.test.utils.SimpleCustomPartitioner parallel 20;\n\n" +
+            "gamma = foreach beta generate group, COUNT(alpha);\n\n" +
+            "store gamma into 'byuser';\n";
+
+        Assert.assertEquals(expected, s);
+    }
+    
+    @Test(expected = RuntimeException.class)
+    public void selfRecursiveTest() throws Throwable {
+        String macro1 = "define group_and_partition (A, group_key, reducers) returns B {\n" +
+            "    C = group $A by $group_key partition by org.apache.pig.test.utils.SimpleCustomPartitioner parallel $reducers;\n" +
+            "    $B = group_and_partition(C, age, 34);" +
+            "};\n";
+        
+        String script = macro1 +
+            "alpha = load 'users' as (user, age, zip);\n" +
+            "gamma = group_and_partition (alpha, user, 23);\n" +
+            "store gamma into 'byuser';\n";
+
+        StringReader rd = new StringReader(script);
+        String s = ParserUtil.expandMacros(rd);
+
+        validate(s);
+    }
+    
+    @Test(expected = RuntimeException.class)
+    public void cyclicRecursiveTest() throws Throwable {
+        String macro1 = "define group_and_partition (A, group_key, reducers) returns B {\n" +
+            "    C = group $A by $group_key partition by org.apache.pig.test.utils.SimpleCustomPartitioner parallel $reducers;\n" +
+            "    $B = foreach_count(C, $A);" +
+            "};\n";
+        
+        String macro2 = "define foreach_count(A, C) returns B {\n" +
+            "    $B = foreach $A generate group, COUNT($C);\n" +
+            "    D = group_and_partition($C, age, 23);" +
+            "};\n";
+        
+        
+        String script = macro2 + macro1 +
+            "alpha = load 'users' as (user, age, zip);\n" +
+            "gamma = group_and_partition (alpha, user, 23);\n" +
+            "store gamma into 'byuser';\n";
+
+        StringReader rd = new StringReader(script);
+        String s = ParserUtil.expandMacros(rd);
+
+        validate(s);
+    }
+
     private void validate(String s) throws Throwable {
         PigContext pigContext = new PigContext(ExecType.LOCAL, new Properties());
         BufferedReader br = new BufferedReader(new StringReader(s));

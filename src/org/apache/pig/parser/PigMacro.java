@@ -18,22 +18,24 @@
 package org.apache.pig.parser;
 
 import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
+import org.antlr.runtime.ANTLRReaderStream;
 import org.antlr.runtime.CharStream;
 import org.antlr.runtime.CommonTokenStream;
+import org.antlr.runtime.Token;
 import org.antlr.runtime.tree.CommonTreeNodeStream;
 import org.antlr.runtime.tree.Tree;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.pig.LoadFunc;
 import org.apache.pig.tools.parameters.ParameterSubstitutionPreprocessor;
 import org.apache.pig.tools.parameters.ParseException;
 
@@ -45,18 +47,22 @@ public class PigMacro {
     private String body;
     private List<String> params;
     private List<String> rets;
+    private Map<String, PigMacro> seen;
     private long idx = 0;
 
     public PigMacro(String name) {
         this.name = name;
         this.params = new ArrayList<String>();
         this.rets = new ArrayList<String>();
+        LOG.info("Macro '" + name + "' is defined");
     }
 
-    public void setBody(String body) {
+    public void setBody(String body, Map<String, PigMacro> seen) {
         this.body = body;
+        this.seen = new HashMap<String, PigMacro>(seen);
+        expandBody();
     }
-
+    
     public void addParam(String param) {
         params.add(param);
     }
@@ -74,8 +80,20 @@ public class PigMacro {
     public List<String> getReturns() { return rets; }
 
     public String inline(String[] inputs, String[] outputs) {
-        ParameterSubstitutionPreprocessor psp = new ParameterSubstitutionPreprocessor(
-                50);
+        String in = substituteParams(inputs, outputs);
+        Set<String> masks = new HashSet<String>();
+        if (inputs != null) {
+            for (String s : inputs) {
+                masks.add(s);
+            }
+        }
+        for (String s : outputs) {
+            masks.add(s);
+        }
+        return maskAlias(in, masks);
+    }
+    
+    public String substituteParams(String[] inputs, String[] outputs) {
         if ((inputs == null && !params.isEmpty())
                 || (inputs != null && inputs.length != params.size())) {
             throw new RuntimeException("Failed to expand macro '" + name
@@ -83,26 +101,29 @@ public class PigMacro {
                     + " actual number of inputs: "
                     + ((inputs == null) ? 0 : inputs.length));
         }
-        if ((outputs == null && !rets.isEmpty())
-                || (outputs != null && outputs.length != rets.size())) {
+        if (outputs == null || outputs.length != rets.size()) {
             throw new RuntimeException("Failed to expand macro '" + name
                     + "': expected number of return aliases: " + rets.size()
                     + " actual number of return values: "
                     + ((outputs == null) ? 0 : outputs.length));
         }
-        Set<String> masks = new HashSet<String>();
+        
         String[] args = new String[params.size() + rets.size()];
         for (int i=0; i<params.size(); i++) {
-            args[i] = params.get(i) + "=" + inputs[i];
-            masks.add(inputs[i]);
+            String p = inputs[i];
+            p = p.startsWith("$") ? ("\\\\" + p) : p;
+            args[i] = params.get(i) + "=" + p;
         }
         for (int i=0; i<rets.size(); i++) {
-            args[params.size() + i] = rets.get(i) + "=" + outputs[i];
-            masks.add(outputs[i]);
+            String p = outputs[i];
+            p = p.startsWith("$") ? ("\\\\" + p) : p;
+            args[params.size() + i] = rets.get(i) + "=" + p;
         }
         StringWriter writer = new StringWriter();
         BufferedReader in = new BufferedReader(new StringReader(body));
         try {
+            ParameterSubstitutionPreprocessor psp = new ParameterSubstitutionPreprocessor(
+                    50);
             psp.genSubstitutedFile(in, writer, args, null);
         } catch (ParseException e) {
             throw new RuntimeException(
@@ -110,10 +131,14 @@ public class PigMacro {
         }
         
         LOG.debug("--- after substition:\n" + writer.toString());
-
+        
+        return writer.toString();
+    }
+    
+    public String maskAlias(String in, Set<String> masks) {
         String resultString = "";
         try {
-            CharStream input = new QueryParserStringStream(writer.toString());
+            CharStream input = new QueryParserStringStream(in);
             QueryLexer lex = new QueryLexer(input);
             CommonTokenStream tokens = new  CommonTokenStream(lex);
 
@@ -141,4 +166,25 @@ public class PigMacro {
         return resultString;
     }
     
+    private void expandBody() {
+        // expand macros
+        boolean done = false;
+        
+        while (!done) {
+            StringReader srd = new StringReader(body);
+            ANTLRReaderStream input;
+            try {
+                input = new ANTLRReaderStream(srd);
+            } catch (IOException e) {
+                throw new RuntimeException("Failed to read ", e);
+            }
+            MacroRecursion expander = new MacroRecursion(input);
+            expander.setMacros(seen);
+            Token token = Token.EOF_TOKEN;
+            while ((token = expander.nextToken()) != Token.EOF_TOKEN);
+        
+            body = expander.getResultString();
+            done = !expander.isExpanded();
+        }
+    }
 }
