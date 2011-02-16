@@ -919,7 +919,7 @@ public class TestGrunt extends TestCase {
         assertTrue(caught);
     }
     
-    @Test
+    //@Test
     public void testFsCommand(){
         
         try {
