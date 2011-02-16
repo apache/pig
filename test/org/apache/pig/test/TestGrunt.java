@@ -812,7 +812,7 @@ public class TestGrunt extends TestCase {
         assertTrue(caught);
     }
     
-    //@Test
+    @Test
     public void testFsCommand(){
         
         try {
@@ -821,17 +821,16 @@ public class TestGrunt extends TestCase {
             
             String strCmd = 
                 "fs -ls /;"
-                +"fs -mkdir /tmp;"
-                +"fs -mkdir /tmp/foo;"
-                +"cd /tmp;"
-                +"fs -rmr bar; fs -rmr foo/baz;"
+                +"fs -mkdir /fstmp;"
+                +"fs -mkdir /fstmp/foo;"
+                +"cd /fstmp;"
                 +"fs -copyFromLocal test/org/apache/pig/test/data/passwd bar;"
                 +"a = load 'bar';"
                 +"cd foo;"
                 +"store a into 'baz';"
                 +"cd /;"
                 +"fs -ls .;"
-                +"fs -rm /tmp/foo/baz;";
+                +"fs -rmr /fstmp/foo/baz;";
             
             ByteArrayInputStream cmd = new ByteArrayInputStream(strCmd.getBytes());
             InputStreamReader reader = new InputStreamReader(cmd);
@@ -843,7 +842,7 @@ public class TestGrunt extends TestCase {
             e.printStackTrace();
             fail();
         } catch (Throwable e) {
-            e.printStackTrace();
+            e.printStackTrace(System.out);
             fail();
         }
     }
