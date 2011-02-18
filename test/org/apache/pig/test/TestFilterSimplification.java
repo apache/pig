@@ -804,6 +804,26 @@ public class TestFilterSimplification extends TestCase {
         assertTrue(expected.isEqual(newLogicalPlan));
     }
     
+    @Test
+    // PIG-1820
+    public void test8() throws Exception {
+        LogicalPlanTester lpt = new LogicalPlanTester(pc);
+        lpt.buildPlan("b = filter (load 'd.txt' as (a0, a1)) by (a0 is not null or a1 is not null) and IsEmpty(a0);"); 
+
+        org.apache.pig.impl.logicalLayer.LogicalPlan plan = lpt.buildPlan("store b into 'empty';");
+        LogicalPlan newLogicalPlan = migratePlan(plan);
+
+        PlanOptimizer optimizer = new MyPlanOptimizer(newLogicalPlan, 10);
+        optimizer.optimize();
+
+        lpt = new LogicalPlanTester(pc);
+        lpt.buildPlan("b = filter (load 'd.txt' as (a0, a1)) by (a0 is not null or a1 is not null) and IsEmpty(a0);"); 
+        plan = lpt.buildPlan("store b into 'empty';");
+        LogicalPlan expected = migratePlan(plan);
+
+        assertTrue(expected.isEqual(newLogicalPlan));
+    }
+    
     public class MyPlanOptimizer extends LogicalPlanOptimizer {
 
         protected MyPlanOptimizer(OperatorPlan p, int iterations) {
