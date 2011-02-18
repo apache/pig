@@ -1925,7 +1925,7 @@ public class TestPruneColumn extends TestCase {
         pigServer.registerQuery("store D into '" + Util.generateURI(output2.toString(), pigServer.getPigContext()) + "';");
         pigServer.executeBatch();
 
-        BufferedReader reader1 = new BufferedReader(new InputStreamReader(FileLocalizer.openDFSFile(output1.toString())));
+        BufferedReader reader1 = new BufferedReader(new InputStreamReader(FileLocalizer.openDFSFile(output1.toString(), pigServer.getPigContext().getProperties())));
         String line = reader1.readLine();
         assertTrue(line.equals("1\t2\t3"));
         
@@ -1934,7 +1934,7 @@ public class TestPruneColumn extends TestCase {
         
         assertTrue(reader1.readLine()==null);
         
-        BufferedReader reader2 = new BufferedReader(new InputStreamReader(FileLocalizer.openDFSFile(output2.toString())));
+        BufferedReader reader2 = new BufferedReader(new InputStreamReader(FileLocalizer.openDFSFile(output2.toString(), pigServer.getPigContext().getProperties())));
         line = reader2.readLine();
         assertTrue(line.equals("3"));
         

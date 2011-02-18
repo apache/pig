@@ -213,6 +213,8 @@ PIG-1309: Map-side Cogroup (ashutoshc)
 
 BUG FIXES
 
+PIG-1831: Indeterministic behavior in local mode due to static variable PigMapReduce.sJobConf (daijy)
+
 PIG-1841: TupleSize implemented incorrectly (laukik via daijy)
 
 PIG-1843: NPE in schema generation (daijy)

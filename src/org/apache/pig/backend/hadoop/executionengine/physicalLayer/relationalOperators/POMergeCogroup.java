@@ -336,7 +336,7 @@ public class POMergeCogroup extends PhysicalOperator {
 
             LoadFunc loadfunc = (LoadFunc)PigContext.instantiateFuncFromSpec(sidFuncSpecs.get(i));
             loadfunc.setUDFContextSignature(loaderSignatures.get(i));
-            Job dummyJob = new Job(new Configuration(PigMapReduce.sJobConf));
+            Job dummyJob = new Job(new Configuration(PigMapReduce.sJobConfInternal.get()));
             loadfunc.setLocation(sideFileSpecs.get(i), dummyJob);
             ((IndexableLoadFunc)loadfunc).initialize(dummyJob.getConfiguration());
             sideLoaders.add(loadfunc);

@@ -89,10 +89,10 @@ public class PigMapReduce {
      * the job's {@link Configuration}:
      * <pre>UdfContext.getUdfContext().getJobConf()</pre>
      */
-    // This is used by internal pig code - it is deprecated for user code but is
-    // used by Pig internal code to set up UDFContext's conf among other things.
     @Deprecated
     public static Configuration sJobConf = null;
+    
+    public static final ThreadLocal<Configuration> sJobConfInternal = new ThreadLocal<Configuration>();
     private final static Tuple DUMMYTUPLE = null;
     
     public static class Map extends PigMapBase {
@@ -291,6 +291,7 @@ public class PigMapReduce {
             Configuration jConf = context.getConfiguration();
             SpillableMemoryManager.configure(ConfigurationUtil.toProperties(jConf));
             sJobContext = context;
+            sJobConfInternal.set(context.getConfiguration());
             sJobConf = context.getConfiguration();
             try {
                 PigContext.setPackageImportList((ArrayList<String>)ObjectSerializer.deserialize(jConf.get("udf.import.list")));
@@ -480,7 +481,7 @@ public class PigMapReduce {
                 return;
             }
             
-            if(PigMapReduce.sJobConf.get("pig.stream.in.reduce", "false").equals("true")) {
+            if(PigMapReduce.sJobConfInternal.get().get("pig.stream.in.reduce", "false").equals("true")) {
                 // If there is a stream in the pipeline we could 
                 // potentially have more to process - so lets
                 // set the flag stating that all map input has been sent

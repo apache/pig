@@ -139,7 +139,7 @@ public class TestFRJoin extends TestCase{
         private void setUpHashTable() throws IOException {
             FileSpec replFile = new FileSpec(repl,new FuncSpec(PigStorage.class.getName()+"()"));
             POLoad ld = new POLoad(new OperatorKey("Repl File Loader", 1L), replFile);
-            PigContext pc = new PigContext(ExecType.MAPREDUCE,ConfigurationUtil.toProperties(PigMapReduce.sJobConf));
+            PigContext pc = new PigContext(ExecType.MAPREDUCE,ConfigurationUtil.toProperties(PigMapReduce.sJobConfInternal.get()));
             try {
                 pc.connect();
             

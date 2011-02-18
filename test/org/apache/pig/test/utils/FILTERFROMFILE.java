@@ -63,7 +63,7 @@ public class FILTERFROMFILE extends FilterFunc{
 	    
 		lookupTable = new HashMap<String, Boolean>();
 		
-		Properties props = ConfigurationUtil.toProperties(PigMapReduce.sJobConf);
+		Properties props = ConfigurationUtil.toProperties(PigMapReduce.sJobConfInternal.get());
 		InputStream is = FileLocalizer.openDFSFile(FilterFileName, props);
 
 		BufferedReader reader = new BufferedReader(new InputStreamReader(is));

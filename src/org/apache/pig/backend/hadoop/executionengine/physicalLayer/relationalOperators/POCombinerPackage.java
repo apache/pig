@@ -129,8 +129,8 @@ public class POCombinerPackage extends POPackage {
 
     private DataBag createDataBag(int numBags) {
     	String bagType = null;
-        if (PigMapReduce.sJobConf != null) {
-   			bagType = PigMapReduce.sJobConf.get("pig.cachedbag.type");       			
+        if (PigMapReduce.sJobConfInternal.get() != null) {
+   			bagType = PigMapReduce.sJobConfInternal.get().get("pig.cachedbag.type");       			
    	    }
                 		          	           		
     	if (bagType != null && bagType.equalsIgnoreCase("default")) {

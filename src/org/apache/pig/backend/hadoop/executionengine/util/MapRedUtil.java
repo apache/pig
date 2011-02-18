@@ -85,19 +85,19 @@ public class MapRedUtil {
         // use local file system to get the keyDistFile
         Configuration conf = new Configuration(false);            
         
-        if (PigMapReduce.sJobConf.get("fs.file.impl")!=null)
-            conf.set("fs.file.impl", PigMapReduce.sJobConf.get("fs.file.impl"));
-        if (PigMapReduce.sJobConf.get("fs.hdfs.impl")!=null)
-            conf.set("fs.hdfs.impl", PigMapReduce.sJobConf.get("fs.hdfs.impl"));
-        if (PigMapReduce.sJobConf.getBoolean("pig.tmpfilecompression", false))
+        if (PigMapReduce.sJobConfInternal.get().get("fs.file.impl")!=null)
+            conf.set("fs.file.impl", PigMapReduce.sJobConfInternal.get().get("fs.file.impl"));
+        if (PigMapReduce.sJobConfInternal.get().get("fs.hdfs.impl")!=null)
+            conf.set("fs.hdfs.impl", PigMapReduce.sJobConfInternal.get().get("fs.hdfs.impl"));
+        if (PigMapReduce.sJobConfInternal.get().getBoolean("pig.tmpfilecompression", false))
         {
             conf.setBoolean("pig.tmpfilecompression", true);
-            if (PigMapReduce.sJobConf.get("pig.tmpfilecompression.codec")!=null)
-                conf.set("pig.tmpfilecompression.codec", PigMapReduce.sJobConf.get("pig.tmpfilecompression.codec"));
+            if (PigMapReduce.sJobConfInternal.get().get("pig.tmpfilecompression.codec")!=null)
+                conf.set("pig.tmpfilecompression.codec", PigMapReduce.sJobConfInternal.get().get("pig.tmpfilecompression.codec"));
         }
         conf.set(MapRedUtil.FILE_SYSTEM_NAME, "file:///");
 
-        ReadToEndLoader loader = new ReadToEndLoader(Utils.getTmpFileStorageObject(PigMapReduce.sJobConf), conf, 
+        ReadToEndLoader loader = new ReadToEndLoader(Utils.getTmpFileStorageObject(PigMapReduce.sJobConfInternal.get()), conf, 
                 keyDistFile, 0);
         DataBag partitionList;
         Tuple t = loader.getNext();

@@ -81,7 +81,7 @@ public class POPartitionRearrange extends POLocalRearrange {
 
     /* Loads the key distribution file obtained from the sampler */
     private void loadPartitionFile() throws RuntimeException {
-        String keyDistFile = PigMapReduce.sJobConf.get("pig.keyDistFile", "");
+        String keyDistFile = PigMapReduce.sJobConfInternal.get().get("pig.keyDistFile", "");
         if (keyDistFile.isEmpty()) {
             throw new RuntimeException(
             "Internal error: missing key distribution file property.");
@@ -89,9 +89,9 @@ public class POPartitionRearrange extends POLocalRearrange {
 
         boolean tmpFileCompression = Utils.tmpFileCompression(pigContext);
         if (tmpFileCompression) {
-            PigMapReduce.sJobConf.setBoolean("pig.tmpfilecompression", true);
+            PigMapReduce.sJobConfInternal.get().setBoolean("pig.tmpfilecompression", true);
             try {
-                PigMapReduce.sJobConf.set("pig.tmpfilecompression.codec", Utils.tmpFileCompressionCodec(pigContext));
+                PigMapReduce.sJobConfInternal.get().set("pig.tmpfilecompression.codec", Utils.tmpFileCompressionCodec(pigContext));
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }

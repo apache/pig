@@ -269,8 +269,8 @@ public class POSort extends PhysicalOperator {
 			// by default, we create InternalSortedBag, unless user configures
 			// explicitly to use old bag
 			String bagType = null;
-	        if (PigMapReduce.sJobConf != null) {
-	   			bagType = PigMapReduce.sJobConf.get("pig.cachedbag.sort.type");       			
+	        if (PigMapReduce.sJobConfInternal.get() != null) {
+	   			bagType = PigMapReduce.sJobConfInternal.get().get("pig.cachedbag.sort.type");       			
 	   	    }	        
             if (bagType != null && bagType.equalsIgnoreCase("default")) {        	    	
             	sortedBag = BagFactory.getInstance().newSortedBag(mComparator);     			

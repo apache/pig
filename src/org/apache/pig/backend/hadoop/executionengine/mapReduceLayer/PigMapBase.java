@@ -92,7 +92,7 @@ public abstract class PigMapBase extends Mapper<Text, Tuple, PigNullableWritable
             return;
         }
             
-        if(PigMapReduce.sJobConf.get(JobControlCompiler.END_OF_INP_IN_MAP, "false").equals("true")) {
+        if(PigMapReduce.sJobConfInternal.get().get(JobControlCompiler.END_OF_INP_IN_MAP, "false").equals("true")) {
             // If there is a stream in the pipeline or if this map job belongs to merge-join we could 
             // potentially have more to process - so lets
             // set the flag stating that all map input has been sent
@@ -141,6 +141,7 @@ public abstract class PigMapBase extends Mapper<Text, Tuple, PigNullableWritable
         Configuration job = context.getConfiguration();
         SpillableMemoryManager.configure(ConfigurationUtil.toProperties(job));
         PigMapReduce.sJobContext = context;
+        PigMapReduce.sJobConfInternal.set(context.getConfiguration());
         PigMapReduce.sJobConf = context.getConfiguration();
         
         PigContext.setPackageImportList((ArrayList<String>)ObjectSerializer.deserialize(job.get("udf.import.list")));
