@@ -34,7 +34,8 @@ public class TupleSize extends EvalFunc<Long> {
     public Long exec(Tuple input) throws IOException {
         try{
             if (input == null) return null;
-            return Long.valueOf(input.size());
+            Tuple t = (Tuple)input.get(0);
+            return t==null ? null : Long.valueOf(t.size());
         }catch(Exception e){
             int errCode = 2106;
             String msg = "Error while computing size in " + this.getClass().getSimpleName();

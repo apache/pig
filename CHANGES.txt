@@ -299,6 +299,8 @@ PIG-1309: Map-side Cogroup (ashutoshc)
 
 BUG FIXES
 
+PIG-1841: TupleSize implemented incorrectly (laukik via daijy)
+
 PIG-1843: NPE in schema generation (daijy)
 
 PIG-1820: New logical plan: FilterLogicExpressionSimplifier fail to deal with UDF (daijy)
