@@ -557,6 +557,8 @@ public class LogicalExpressionSimplifier extends Rule {
                     return Unknown;
             }
 
+            if (!(le1 instanceof BinaryExpression)||!(le2 instanceof BinaryExpression))
+                return Unknown;
             BinaryExpression b1 = !proxy1 ? (BinaryExpression) e1
                             : (BinaryExpression) ((LogicalExpressionProxy) e1).src, b2 = !proxy2 ? (BinaryExpression) e2
                             : (BinaryExpression) ((LogicalExpressionProxy) e2).src;
