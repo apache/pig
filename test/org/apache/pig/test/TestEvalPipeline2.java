@@ -1320,4 +1320,24 @@ public class TestEvalPipeline2 extends TestCase {
         assertTrue(t.toString().contains("({(1,1)})"));
         assertFalse(iter.hasNext());
     }
+    
+    // See PIG-1850
+    @Test
+    public void testProjectNullSchema() throws Exception{
+        String[] input = {
+                "0\t1",
+        };
+        
+        Util.createInputFile(cluster, "table_testProjectNullSchema", input);
+
+        pigServer.registerQuery("a = load 'table_testProjectNullSchema';");
+        pigServer.registerQuery("b = foreach a generate ASIN($0), $1;");
+        pigServer.registerQuery("c = order b by $0;");
+        
+        Iterator<Tuple> iter = pigServer.openIterator("c");
+        
+        Tuple t = iter.next();
+        assertTrue(t.toString().contains("(0.0,1)"));
+        assertFalse(iter.hasNext());
+    }
 }

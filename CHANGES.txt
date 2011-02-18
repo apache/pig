@@ -299,6 +299,9 @@ PIG-1309: Map-side Cogroup (ashutoshc)
 
 BUG FIXES
 
+PIG-1850: Order by is failing with ClassCastException if schema is undefined
+for new logical plan in 0.8 (daijy)
+
 PIG-1831: Indeterministic behavior in local mode due to static variable PigMapReduce.sJobConf (daijy)
 
 PIG-1841: TupleSize implemented incorrectly (laukik via daijy)
