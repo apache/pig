@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
+import java.util.StringTokenizer;
 
 import org.apache.pig.Algebraic;
 import org.apache.pig.EvalFunc;
@@ -1782,17 +1783,66 @@ public class TestBuiltin {
         
         
         // Tuple size
-        expected = new Long(3);
+        Tuple suspect = Util.createTuple(new String[]{"key1", "str1"});
         size = new TupleSize();
         msg = "[Testing TupleSize on input type: Tuple]";
-        assertTrue(msg, expected.equals(size.exec(t1)));
+        expected = new Long(2);
+        Tuple suspectStuffer = TupleFactory.getInstance().newTuple(1);
+        suspectStuffer.set(0, suspect);
+        assertTrue(msg, expected.equals(size.exec(suspectStuffer)));
+        
+        // Tuple size again
+        int expectedSize = 4;
+        Tuple suspect2 = TupleFactory.getInstance().newTuple(expectedSize);
+        suspect2.set(0, a);
+        suspect2.set(1, s);
+        suspect2.set(2, b);
+        suspect2.set(3, suspect);
+        expected = new Long(expectedSize);
+        size = new TupleSize();
+        msg = "[Testing TupleSize on input type: Tuple]";
+        suspectStuffer.set(0, suspect2);
+        assertTrue(msg, expected.equals(size.exec(suspectStuffer)));
+        
         
         // Test for ARITY function.
         // It is depricated but we still need to make sure it works
         ARITY arrity = new ARITY();
+        expected = new Long(3);
         msg = "[Testing ARRITY on input type: Tuple]";
         assertTrue(msg, expected.equals(new Long(arrity.exec(t1))));
     }
+
+
+    /* End-to-end testing of the SIZE() builtin function for Tuple
+    */
+    @Test
+    public void testTupleSize() throws Exception {
+    	String inputFileName = "TupleSizeIn.txt";
+    	String[] inputData = new String[] {
+    			"Don't call my name, don't call my name, Alejandro",
+    			"I'm not your babe, I'm not your babe, Fernando",
+    			"Don't wanna kiss, don't wanna touch",
+    			"Just smoke my cigarette and hush",
+    			"Don't call my name, don't call my name, Roberto"};
+        Util.createInputFile(cluster, inputFileName, inputData);
+
+        // test typed data
+        pigServer.registerQuery("A = load '" + inputFileName + "' AS value:chararray;");
+        pigServer.registerQuery("B = foreach A generate STRSPLIT(value, ' ') AS values;");
+        pigServer.registerQuery("C = foreach B generate values, SIZE(values) as cnt;");
+
+        Iterator<Tuple> it = pigServer.openIterator("C");
+        int i=0;
+        while (it.hasNext()) {
+        	Tuple t = it.next();
+        	assertEquals("Testing SIZE(<Tuple>): ", new Long(new StringTokenizer(inputData[i]).countTokens()), t.get(1));
+        	i++;
+        }
+        assertTrue(!it.hasNext());
+        assertTrue(i==inputData.length);
+    }
+    
 
     // Builtin APPLY Functions
     // ========================
