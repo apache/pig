@@ -89,8 +89,8 @@ public class PODistinct extends PhysicalOperator implements Cloneable {
             // by default, we create InternalSortedBag, unless user configures
 			// explicitly to use old bag
            	String bagType = null;
-            if (PigMapReduce.sJobConf != null) {
-       			bagType = PigMapReduce.sJobConf.get("pig.cachedbag.distinct.type");       			
+            if (PigMapReduce.sJobConfInternal.get() != null) {
+       			bagType = PigMapReduce.sJobConfInternal.get().get("pig.cachedbag.distinct.type");       			
        	    }            
             if (bagType != null && bagType.equalsIgnoreCase("default")) {        	    	
             	distinctBag = BagFactory.getInstance().newDistinctBag();    			

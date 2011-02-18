@@ -73,7 +73,7 @@ public class TestFinish {
         @Override
         public void finish() {
             try {
-                FileSystem fs = FileSystem.get(PigMapReduce.sJobConf);
+                FileSystem fs = FileSystem.get(PigMapReduce.sJobConfInternal.get());
                 fs.create(new Path(expectedFileName));
             } catch (IOException e) {
                 throw new RuntimeException("Unable to create file:" + expectedFileName);

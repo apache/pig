@@ -57,8 +57,8 @@ public class InternalCachedBag extends DefaultAbstractBag {
     public InternalCachedBag(int bagCount) {       
         float percent = 0.2F;
         
-    	if (PigMapReduce.sJobConf != null) {
-    		String usage = PigMapReduce.sJobConf.get("pig.cachedbag.memusage");
+    	if (PigMapReduce.sJobConfInternal.get() != null) {
+    		String usage = PigMapReduce.sJobConfInternal.get().get("pig.cachedbag.memusage");
     		if (usage != null) {
     			percent = Float.parseFloat(usage);
     		}
