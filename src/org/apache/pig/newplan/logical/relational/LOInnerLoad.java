@@ -81,6 +81,9 @@ public class LOInnerLoad extends LogicalRelationalOperator {
                     schema.addField(prj.getFieldSchema());
                 }
             }
+        } else if (!prj.isProjectStar()) {
+            schema = new LogicalSchema();
+            schema.addField(new LogicalFieldSchema(null, null, DataType.BYTEARRAY));
         }
         return schema;
     }
