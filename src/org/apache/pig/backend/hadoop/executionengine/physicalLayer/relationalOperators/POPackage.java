@@ -220,8 +220,8 @@ public class POPackage extends PhysicalOperator {
         
         if(firstTime){
             firstTime = false;
-            if (PigMapReduce.sJobConf != null) {
-                String bagType = PigMapReduce.sJobConf.get("pig.cachedbag.type");
+            if (PigMapReduce.sJobConfInternal.get() != null) {
+                String bagType = PigMapReduce.sJobConfInternal.get().get("pig.cachedbag.type");
                 if (bagType != null && bagType.equalsIgnoreCase("default")) {
                     useDefaultBag = true;
                 }
@@ -458,8 +458,8 @@ public class POPackage extends PhysicalOperator {
         @SuppressWarnings("unchecked")
         public POPackageTupleBuffer() {    		
             batchSize = 20000;
-            if (PigMapReduce.sJobConf != null) {
-                String size = PigMapReduce.sJobConf.get("pig.accumulative.batchsize");
+            if (PigMapReduce.sJobConfInternal.get() != null) {
+                String size = PigMapReduce.sJobConfInternal.get().get("pig.accumulative.batchsize");
                 if (size != null) {
                     batchSize = Integer.parseInt(size);
                 }

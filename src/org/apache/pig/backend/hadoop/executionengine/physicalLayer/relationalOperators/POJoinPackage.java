@@ -107,8 +107,8 @@ public class POJoinPackage extends POPackage {
         
         if(firstTime){
             firstTime = false;
-            if (PigMapReduce.sJobConf != null) {
-                String bagType = PigMapReduce.sJobConf.get("pig.cachedbag.type");
+            if (PigMapReduce.sJobConfInternal.get() != null) {
+                String bagType = PigMapReduce.sJobConfInternal.get().get("pig.cachedbag.type");
                 if (bagType != null && bagType.equalsIgnoreCase("default")) {
                     useDefaultBag = true;
                 }

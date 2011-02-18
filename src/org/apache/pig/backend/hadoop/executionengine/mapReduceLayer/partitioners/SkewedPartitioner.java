@@ -103,6 +103,7 @@ public class SkewedPartitioner extends Partitioner<PigNullableWritable, Writable
     @Override
     public void setConf(Configuration job) {
         conf = job;
+        PigMapReduce.sJobConfInternal.set(conf);
         PigMapReduce.sJobConf = conf;
         String keyDistFile = job.get("pig.keyDistFile", "");
         if (keyDistFile.length() == 0)

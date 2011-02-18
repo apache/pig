@@ -194,7 +194,7 @@ public class DefaultIndexableLoader extends LoadFunc implements IndexableLoadFun
     
     private void initRightLoader(int [] splitsToBeRead) throws IOException{
         PigContext pc = (PigContext) ObjectSerializer
-                .deserialize(PigMapReduce.sJobConf.get("pig.pigContext"));
+                .deserialize(PigMapReduce.sJobConfInternal.get().get("pig.pigContext"));
         
         Configuration conf = ConfigurationUtil.toConfiguration(pc.getProperties());
         

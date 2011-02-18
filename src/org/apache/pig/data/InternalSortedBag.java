@@ -99,8 +99,8 @@ public class InternalSortedBag extends SortedSpillBag{
     public InternalSortedBag(int bagCount, double percent, Comparator<Tuple> comp) {
     	if (percent < 0) {
         	percent = 0.2F;            
-        	if (PigMapReduce.sJobConf != null) {
-        		String usage = PigMapReduce.sJobConf.get("pig.cachedbag.memusage");
+        	if (PigMapReduce.sJobConfInternal.get() != null) {
+        		String usage = PigMapReduce.sJobConfInternal.get().get("pig.cachedbag.memusage");
         		if (usage != null) {
         			percent = Float.parseFloat(usage);
         		}

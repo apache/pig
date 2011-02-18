@@ -176,8 +176,8 @@ public class POCollectedGroup extends PhysicalOperator {
             // the first time, just create a new buffer and continue.
             if (prevKey == null && outputBag == null) {
 
-                if (PigMapReduce.sJobConf != null) {
-                    String bagType = PigMapReduce.sJobConf.get("pig.cachedbag.type");
+                if (PigMapReduce.sJobConfInternal.get() != null) {
+                    String bagType = PigMapReduce.sJobConfInternal.get().get("pig.cachedbag.type");
                     if (bagType != null && bagType.equalsIgnoreCase("default")) {
                         useDefaultBag = true;
                     }

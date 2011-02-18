@@ -86,7 +86,7 @@ public class HadoopExecutableManager extends ExecutableManager {
         }
         
         // Save a copy of the JobConf
-        job = PigMapReduce.sJobConf;
+        job = PigMapReduce.sJobConfInternal.get();
         
         // Save the output directory for the Pig Script
         scriptOutputDir = job.get("pig.streaming.task.output.dir");

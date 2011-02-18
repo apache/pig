@@ -77,7 +77,7 @@ public class LookupInFiles extends EvalFunc<Integer> {
         }
         else
         {
-            Properties props = ConfigurationUtil.toProperties(PigMapReduce.sJobConf);
+            Properties props = ConfigurationUtil.toProperties(PigMapReduce.sJobConfInternal.get());
             for (int i = 0; i < mFiles.size(); ++i) {
                 // Files contain only 1 column with the key. No Schema. All keys
                 // separated by new line.
