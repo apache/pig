@@ -953,19 +953,50 @@ public class TestEvalPipeline2 extends TestCase {
     
     // See PIG-1761
     @Test
-    public void testBagDereferenceInMiddle() throws Exception{
+    public void testBagDereferenceInMiddle1() throws Exception{
         String[] input1 = {
                 "foo@apache#44",
         };
         
-        Util.createInputFile(cluster, "table_testBagDereferenceInMiddle", input1);
-        pigServer.registerQuery("a = load 'table_testBagDereferenceInMiddle' as (a0:chararray);");
+        Util.createInputFile(cluster, "table_testBagDereferenceInMiddle1", input1);
+        pigServer.registerQuery("a = load 'table_testBagDereferenceInMiddle1' as (a0:chararray);");
         pigServer.registerQuery("b = foreach a generate UPPER(REGEX_EXTRACT_ALL(a0, '.*@(.*)#.*').$0);");
         
         Iterator<Tuple> iter = pigServer.openIterator("b");
         Tuple t = iter.next();
         assertTrue(t.size()==1);
         assertTrue(t.get(0).equals("APACHE"));
+    }
+    
+    static public class MapGenerate extends EvalFunc<Map> {
+        @Override
+        public Map exec(Tuple input) throws IOException {
+            Map m = new HashMap();
+            m.put("key", new Integer(input.size()));
+            return m;
+        }
+
+        @Override
+        public Schema outputSchema(Schema input) {
+            return new Schema(new Schema.FieldSchema(getSchemaName("parselong", input), DataType.MAP));
+        }
+    }
+
+    // See PIG-1843
+    @Test
+    public void testBagDereferenceInMiddle2() throws Exception{
+        String[] input1 = {
+                "foo apache",
+        };
+        
+        Util.createInputFile(cluster, "table_testBagDereferenceInMiddle2", input1);
+        pigServer.registerQuery("a = load 'table_testBagDereferenceInMiddle2' as (a0:chararray);");
+        pigServer.registerQuery("b = foreach a generate " + MapGenerate.class.getName() + " (STRSPLIT(a0).$0);");
+        
+        Iterator<Tuple> iter = pigServer.openIterator("b");
+        Tuple t = iter.next();
+        assertTrue(t.size()==1);
+        assertTrue(t.toString().equals("([key#1])"));
     }
     
     // See PIG-1766
