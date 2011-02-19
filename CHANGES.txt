@@ -213,6 +213,8 @@ PIG-1309: Map-side Cogroup (ashutoshc)
 
 BUG FIXES
 
+PIG-1862: Pig returns exit code 0 for the failed Pig script due to non-existing input directory (rding)
+
 PIG-1850: Order by is failing with ClassCastException if schema is undefined
 for new logical plan in 0.8 (daijy)
 

@@ -446,11 +446,11 @@ public final class JobStats extends Operator {
             }
         } else {
             for (POStore sto : mapStores) {
-                if (sto.isTmpStore()) continue;
+                if (sto.isTmpStore() && state == JobState.SUCCESS) continue;
                 addOneOutputStats(sto);
             }
             for (POStore sto : reduceStores) {
-                if (sto.isTmpStore()) continue;
+                if (sto.isTmpStore() && state == JobState.SUCCESS) continue;
                 addOneOutputStats(sto);
             }     
         }

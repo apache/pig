@@ -523,6 +523,29 @@ public class TestPigRunner {
             new File(PIG_FILE).delete();
         }
     }
+
+    @Test
+    public void returnCodeTest() throws Exception {
+        PrintWriter w = new PrintWriter(new FileWriter(PIG_FILE));
+        w.println("A = load 'non-existine.file' as (a0:int, a1:int, a2:int);");
+        w.println("B = filter A by a0 > 0;;");
+        w.println("C = group B by $0;");
+        w.println("D = join C by $0, B by $0;");
+        w.println("store D into '" + OUTPUT_FILE + "';");
+        w.close();
+        
+        try {
+            String[] args = { PIG_FILE };
+            PigStats stats = PigRunner.run(args, null);
+            
+            assertTrue(!stats.isSuccessful());
+            assertTrue(stats.getReturnCode() != 0);
+            
+        } finally {
+            new File(PIG_FILE).delete();
+            Util.deleteFile(cluster, OUTPUT_FILE);
+        }
+    }
     
     private static class TestNotificationListener implements PigProgressNotificationListener {
         
