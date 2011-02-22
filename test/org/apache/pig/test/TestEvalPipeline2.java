@@ -1205,4 +1205,26 @@ public class TestEvalPipeline2 extends TestCase {
         assertTrue(t.toString().contains("(0.0,1)"));
         assertFalse(iter.hasNext());
     }
+    
+    // See PIG-1858
+    @Test
+    public void testNestedUDFofBag() throws Exception{
+        String[] input = {
+                "0\t1",
+                "0\t1",
+                "0\t2"
+        };
+        
+        Util.createInputFile(cluster, "table_testNestedUDFofBag", input);
+
+        pigServer.registerQuery("a = load 'table_testNestedUDFofBag' as (a0:int,a1:int);");
+        pigServer.registerQuery("b = group a by a0;");
+        pigServer.registerQuery("c = foreach b { c1 = order a by a1; c2 = org.apache.pig.builtin.Distinct(c1.$1).($0,$1);generate c2.$0;};");
+        
+        Iterator<Tuple> iter = pigServer.openIterator("c");
+        
+        Tuple t = iter.next();
+        assertTrue(t.toString().equals("({(1),(2)})"));
+        assertFalse(iter.hasNext());
+    }
 }

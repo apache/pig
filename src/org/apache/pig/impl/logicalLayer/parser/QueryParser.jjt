@@ -2320,7 +2320,7 @@ LogicalOperator UnionClause(LogicalPlan lp) :
             MultiMap<LogicalOperator, LogicalOperator> mapProjectInputs = null;
             Map<LogicalOperator, Boolean> rootProcessed = new HashMap<LogicalOperator, Boolean>();
             for(LogicalOperator root: planRoots) {
-                if(root instanceof ExpressionOperator && !(root instanceof LOProject)) {
+                if(root instanceof ExpressionOperator) {
                     if(checkGenerateInput(root)) {
                         needGenerateInput = true;
                         attachPlan(generatePlan, root, foreachPlan, rootProcessed);
