@@ -89,28 +89,12 @@ public class JythonScriptEngine extends ScriptEngine {
                         + "         return func\n"
                         + "     return decorator\n\n");
                 
-                InputStream is = null;
+                InputStream is = getScriptAsStream(path);
                 try {
-                    File file = new File(path);
-                    if (file.exists()) {
-                        is = new FileInputStream(file);
-                    } else {
-                        if (file.isAbsolute()) {
-                            is = Interpreter.class.getResourceAsStream(path);
-                        } else {
-                            is = Interpreter.class.getResourceAsStream("/" + path);
-                        }
-                    }
-                                        
-                    if (is != null) {
-                        execfile(is); 
-                        filesLoaded.add(path);
-                    } else {
-                        throw new IOException(
-                                "Could not initialize interpreter with " + path);
-                    }      
+                    execfile(is);
+                    filesLoaded.add(path);
                 } finally {
-                    if (is != null) is.close();
+                    is.close();
                 }
             }           
         }        
@@ -206,6 +190,7 @@ public class JythonScriptEngine extends ScriptEngine {
             throw new IOException("Can't read file: " + scriptFile);
         }
         
+        // TODO: fis1 is not closed
         FileInputStream fis1 = new FileInputStream(scriptFile);
         if (hasFunction(fis1)) { 
             registerFunctions(scriptFile, null, pigContext);    
@@ -221,7 +206,7 @@ public class JythonScriptEngine extends ScriptEngine {
         return getPigStatsMap();
     }
    
-    @Override
+//    @Override
     public void load(InputStream script) throws IOException {
         Interpreter.execfile(script);
     }

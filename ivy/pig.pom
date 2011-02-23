@@ -82,8 +82,8 @@
       <groupId>commons-el</groupId>
       <artifactId>commons-el</artifactId>
       <version>1.0</version>
-    </dependency>
-    <dependency>
+   </dependency>
+   <dependency>
       <groupId>net.java.dev.jets3t</groupId>
       <artifactId>jets3t</artifactId>
       <version>0.7.1</version>
