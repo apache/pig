@@ -42,7 +42,6 @@ import java.util.Properties;
 import java.util.jar.Attributes;
 import java.util.jar.JarFile;
 import java.util.jar.Manifest;
-import java.util.regex.Pattern;
 
 import jline.ConsoleReader;
 import jline.ConsoleReaderInputStream;
@@ -69,6 +68,7 @@ import org.apache.pig.impl.util.PropertiesUtil;
 import org.apache.pig.impl.util.UDFContext;
 import org.apache.pig.parser.ParserUtil;
 import org.apache.pig.scripting.ScriptEngine;
+import org.apache.pig.scripting.ScriptEngine.SupportedScriptLang;
 import org.apache.pig.tools.cmdline.CmdLineParser;
 import org.apache.pig.tools.grunt.Grunt;
 import org.apache.pig.tools.parameters.ParameterSubstitutionPreprocessor;
@@ -92,9 +92,7 @@ public class Main {
     private static final String DEBUG = "debug";
     private static final String VERBOSE = "verbose";
     
-    private enum ExecMode {STRING, FILE, SHELL, UNKNOWN}    
-    
-    private enum ScriptType {PIG, JYTHON}
+    private enum ExecMode {STRING, FILE, SHELL, UNKNOWN}
                 
 /**
  * The Main-Class for the Pig Jar that will provide a shell and setup a classpath appropriate
@@ -375,8 +373,8 @@ static int run(String args[], PigProgressNotificationListener listener) {
             if (embedded) {
                 return runEmbeddedScript(pigContext, localFileRet.file.getPath(), engine);
             } else {
-                ScriptType type = determineScriptType(localFileRet.file.getPath());
-                if (type != ScriptType.PIG) {
+                SupportedScriptLang type = determineScriptType(localFileRet.file.getPath());
+                if (type != null) {
                     return runEmbeddedScript(pigContext, localFileRet.file
                                 .getPath(), type.name().toLowerCase());
                 }
@@ -495,8 +493,8 @@ static int run(String args[], PigProgressNotificationListener listener) {
             if (embedded) {
                 return runEmbeddedScript(pigContext, localFileRet.file.getPath(), engine);
             } else {
-                ScriptType type = determineScriptType(localFileRet.file.getPath());
-                if (type != ScriptType.PIG) {
+                SupportedScriptLang type = determineScriptType(localFileRet.file.getPath());
+                if (type != null) {
                     return runEmbeddedScript(pigContext, localFileRet.file
                                 .getPath(), type.name().toLowerCase());
                 }
@@ -866,25 +864,9 @@ private static String getFileFromCanonicalPath(String canonicalPath) {
     return canonicalPath.substring(canonicalPath.lastIndexOf(File.separator));
 }
 
-private static final Pattern p = Pattern.compile("^#!.*/python\\s*$");
-private static final Pattern p1 = Pattern.compile("^#!.*/jython\\s*$");
-private static final Pattern p2 = Pattern.compile("^#!.+");
-
-private static ScriptType determineScriptType(String file)
+private static SupportedScriptLang determineScriptType(String file)
         throws IOException {
-    ScriptType type = ScriptType.PIG;
-    // check the first line
-    BufferedReader br = new BufferedReader(new FileReader(file));
-    String line = br.readLine();
-    br.close();
-    if (line != null) {
-        if (p.matcher(line).matches() || p1.matcher(line).matches()) {
-            type = ScriptType.JYTHON;
-        } else if (p2.matcher(line).matches()) {
-            throw new IOException("Unsupported script type is specified: " + line);
-        }
-    }
-    return type;
+    return ScriptEngine.getSupportedScriptLang(file);
 }
 
 private static int runEmbeddedScript(PigContext pigContext, String file, String engine)

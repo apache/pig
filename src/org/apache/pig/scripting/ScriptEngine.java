@@ -18,14 +18,22 @@
 
 package org.apache.pig.scripting;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.regex.Pattern;
 
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.impl.PigContext;
@@ -35,21 +43,133 @@ import org.apache.pig.tools.pigstats.PigStats;
  * Base class for various scripting implementations
  */
 public abstract class ScriptEngine {
+    
+    public static enum SupportedScriptLang {
+
+        // possibly jruby in the future
+        //jruby(new String[]{}, new String[]{}, "org.apache.pig.scripting.jruby.JrubyScriptEngine"),
+        
+        jython(new String[]{"python", "jython"}, new String[]{"py"}, "org.apache.pig.scripting.jython.JythonScriptEngine"), 
+        javascript(new String[]{}, new String[]{"js"}, "org.apache.pig.scripting.js.JsScriptEngine");
+        
+        private static Set<String> supportedScriptLangs;
+        static {
+            supportedScriptLangs = new HashSet<String>();
+            for (SupportedScriptLang value : SupportedScriptLang.values()) {
+                supportedScriptLangs.add(value.name());
+            }
+            supportedScriptLangs = Collections.unmodifiableSet(supportedScriptLangs);
+        }
+        
+        public static boolean contains(String supportedScriptLang) {
+            return supportedScriptLangs.contains(supportedScriptLang);
+        }
+        
+        private String[] shebangs;
+        private String[] extensions;
+        /** Class implementing the engine. As a string as dependencies are possibly not on the class path*/
+        private String engineClassName;
+        
+        private SupportedScriptLang(String[] shebangs, String[] extensions, String engineClassName) {
+            this.shebangs = shebangs;
+            this.extensions = extensions;
+            this.engineClassName = engineClassName;
+        }
+        
+        
+        /**
+         * If other discovery mechanisms come up they can also override accepts()
+         * @param file the path of the file
+         * @param firstLine The first line of the file (possibly containing #!...)
+         */
+        public boolean accepts(String file, String firstLine) {
+            
+            for (String shebang : shebangs) {
+                Pattern p = Pattern.compile("^#!.*/" + shebang + "\\s*$");
+                if (p.matcher(firstLine).matches()) {
+                    return true;
+                }
+            } 
+            
+            for (String ext : extensions) {
+                if (file.endsWith("."+ext)) {
+                    return true;
+                }
+            } 
+            
+            return false;
+        }
+
+        public String getEngineClassName() {
+            return engineClassName;
+        }
+        
+    }
+    
+    private static final Pattern shebangPattern = Pattern.compile("^#!.+");
+    
+    private static boolean declaresShebang(String firstLine) {
+        return shebangPattern.matcher(firstLine).matches();
+    }
+    
     /**
-     * Pig supported scripting languages with their keywords
+     * open a stream load a script locally or in the classpath
+     * @param scriptPath the path of the script
+     * @return a stream (it is the responsibility of the caller to close it)
+     * @throws IllegalStateException if we could not open a stream
      */
-    private static final Map<String, String> supportedScriptLangs = new HashMap<String, String>();
-    static {
-        // Python
-        supportedScriptLangs.put("jython",
-                "org.apache.pig.scripting.jython.JythonScriptEngine");
-        // Ruby
-        // supportedScriptLangs.put("jruby",
-        // "org.apache.pig.scripting.jruby.JrubyScriptEngine");
+    protected static InputStream getScriptAsStream(String scriptPath) {
+        InputStream is = null;
+        File file = new File(scriptPath);
+        if (file.exists()) {
+            try {
+                is = new FileInputStream(file);
+            } catch (FileNotFoundException e) {
+                throw new IllegalStateException("could not find existing file "+scriptPath, e);
+            }
+        } else {
+            if (file.isAbsolute()) {
+                is = ScriptEngine.class.getResourceAsStream(scriptPath);
+            } else {
+                is = ScriptEngine.class.getResourceAsStream("/" + scriptPath);
+            }
+        }
+        
+        // TODO: discuss if we want to add logic here to load a script from HDFS
+
+        if (is == null) {
+            throw new IllegalStateException(
+                    "Could not initialize interpreter (from file system or classpath) with " + scriptPath);
+        }      
+        return is;
     }
     
     public static final String NAMESPACE_SEPARATOR = ".";
        
+    /**
+     * @param file the file to inspect
+     * @return the Supported Script Lang if this is a supported script language
+     * @throws IOException if there was an error reading the file or if the file defines explicitly an unknown #!
+     */
+    public static SupportedScriptLang getSupportedScriptLang(String file) throws IOException {
+        BufferedReader br = new BufferedReader(new FileReader(file));
+        String firstLine;
+        try {
+            firstLine = br.readLine();
+        } finally {
+            br.close();
+        }
+        for (SupportedScriptLang supportedScriptLang : SupportedScriptLang.values()) {
+            if (supportedScriptLang.accepts(file, firstLine)) {
+                return supportedScriptLang;
+            }
+        }
+        if (declaresShebang(firstLine)) {
+            throw new IOException("Unsupported script type is specified: " + firstLine);
+        }
+        return null;
+    }
+    
     private Map<String, List<PigStats>> statsMap = new HashMap<String, List<PigStats>>();   
     
     /**
@@ -74,11 +194,12 @@ public abstract class ScriptEngine {
     protected abstract Map<String, List<PigStats>> main(
            PigContext context, String scriptFile) throws IOException;
     
-    /**
-     * Loads the script in the interpreter.
-     * @param script
-     */
-    protected abstract void load(InputStream script) throws IOException;
+// Not needed as a general abstraction so far
+//    /**
+//     * Loads the script in the interpreter.
+//     * @param script
+//     */
+//    protected abstract void load(InputStream script) throws IOException;
 
     /**
      * Gets ScriptEngine classname or keyword for the scripting language
@@ -122,13 +243,14 @@ public abstract class ScriptEngine {
             throws IOException {
         String scriptingEngine = scriptingLang;
         try {
-            if (supportedScriptLangs.containsKey(scriptingLang)) {
-                scriptingEngine = supportedScriptLangs.get(scriptingLang);
+            if (SupportedScriptLang.contains(scriptingLang)) {
+                SupportedScriptLang supportedScriptLang = SupportedScriptLang.valueOf(scriptingLang);
+                scriptingEngine = supportedScriptLang.getEngineClassName();
             }
             return (ScriptEngine) Class.forName(scriptingEngine).newInstance();
         } catch (Exception e) {
             throw new IOException("Could not load ScriptEngine: "
-                    + scriptingEngine + ": " + e);
+                    + scriptingEngine + " for "+scriptingLang+" (Supported langs: "+SupportedScriptLang.supportedScriptLangs+") : " + e, e);
         }
     }
     

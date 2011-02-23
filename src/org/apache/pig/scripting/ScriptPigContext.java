@@ -27,7 +27,7 @@ import org.apache.pig.impl.PigContext;
 /**
  * Context for embedded Pig script. 
  */
-class ScriptPigContext {
+public class ScriptPigContext {
     
     private static ThreadLocal<ScriptPigContext> tss = new ThreadLocal<ScriptPigContext>();
         

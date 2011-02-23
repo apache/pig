@@ -52,6 +52,7 @@ import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.PathFilter;
 import org.apache.log4j.FileAppender;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
@@ -294,7 +295,7 @@ public class Util {
     static public void createInputFile(FileSystem fs, String fileName, 
             String[] inputData) throws IOException {
         if(fs.exists(new Path(fileName))) {
-            throw new IOException("File " + fileName + " already exists on the minicluster");
+            throw new IOException("File " + fileName + " already exists on the FileSystem");
         }
         FSDataOutputStream stream = fs.create(new Path(fileName));
         PrintWriter pw = new PrintWriter(new OutputStreamWriter(stream, "UTF-8"));
@@ -303,6 +304,35 @@ public class Util {
         }
         pw.close();
 
+    }
+    
+    static public String[] readOutput(FileSystem fs, String fileName) throws IOException {
+        Path path = new Path(fileName);
+        if(!fs.exists(path)) {
+            throw new IOException("Path " + fileName + " does not exist on the FileSystem");
+        }
+        FileStatus fileStatus = fs.getFileStatus(path);
+        FileStatus[] files;
+        if (fileStatus.isDir()) {
+            files = fs.listStatus(path, new PathFilter() {
+                public boolean accept(Path p) {
+                    return !p.getName().startsWith("_");
+                }
+            });
+        } else {
+            files = new FileStatus[] { fileStatus };
+        }
+        List<String> result = new ArrayList<String>();
+        for (FileStatus f : files) {
+            FSDataInputStream stream = fs.open(f.getPath());
+            BufferedReader br = new BufferedReader(new InputStreamReader(stream, "UTF-8"));
+            String line;
+            while ((line = br.readLine()) != null) {
+                result.add(line);
+            }
+            br.close();
+        }
+        return result.toArray(new String[result.size()]);
     }
     
     /**
@@ -704,6 +734,13 @@ public class Util {
         Configuration conf = ConfigurationUtil.toConfiguration(
                 pigContext.getProperties());
         createInputFile(FileSystem.get(conf), fileName, input); 
+    }
+    
+    public static String[] readOutput(PigContext pigContext,
+            String fileName) throws IOException {
+        Configuration conf = ConfigurationUtil.toConfiguration(
+                pigContext.getProperties());
+        return readOutput(FileSystem.get(conf), fileName); 
     }
     
     public static void printPlan(org.apache.pig.newplan.logical.relational.LogicalPlan logicalPlan ) throws Exception {

@@ -40,13 +40,13 @@ import org.apache.pig.tools.parameters.ParameterSubstitutionPreprocessor;
  * The class being used in scripts to interact with Pig
  */
 public class Pig {
-        
+    
     private static final Log LOG = LogFactory.getLog(Pig.class);
-    
+
     private static List<String> defineCache = new ArrayList<String>();
-    
+
     private static List<String> scriptUDFCache = new ArrayList<String>();
-    
+
     /**
      * Run a filesystem command.  Any output from this command is written to
      * stdout or stderr as appropriate.
@@ -70,7 +70,7 @@ public class Pig {
         }
         return code;
     }
-    
+
     /**
      * Register a jar for use in Pig.  Once this is done this jar will be
      * registered for <b>all subsequent</b> Pig pipelines in this script.  
@@ -85,7 +85,7 @@ public class Pig {
         PigServer pigServer = new PigServer(ctx.getPigContext(), false);
         pigServer.registerJar(jarfile);
     }
-    
+
     /**
      * Register scripting UDFs for use in Pig. Once this is done all UDFs
      * defined in the file will be available for <b>all subsequent</b> 
@@ -106,7 +106,7 @@ public class Pig {
         engine.registerFunctions(udffile, namespace, ctx.getPigContext());
         addRegisterScriptUDFClause(udffile, namespace);        
     }
-    
+
     /**
      * Define an alias for a UDF or a streaming command.  This definition
      * will then be present for <b>all subsequent</b> Pig pipelines defined in this 
@@ -195,7 +195,7 @@ public class Pig {
     }
 
     //-------------------------------------------------------------------------
-    
+   
     /**
      * Bind this to a set of variables. Values must be provided
      * for all Pig Latin parameters.
@@ -259,12 +259,12 @@ public class Pig {
     //-------------------------------------------------------------------------
         
     private String script = null;
-    
+
     private ScriptPigContext scriptContext = null;
-    
+
     private String name = null;
     
-    private Pig(String script, ScriptPigContext scriptContext, String name) {
+    protected Pig(String script, ScriptPigContext scriptContext, String name) {
         this.script = script;
         this.scriptContext = scriptContext;
         this.name = name;       
@@ -352,4 +352,5 @@ public class Pig {
         return ctx;
     }
 
+    
 }
