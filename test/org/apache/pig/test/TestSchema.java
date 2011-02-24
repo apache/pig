@@ -48,12 +48,14 @@ import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.parser.ParseException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.logicalLayer.schema.SchemaMergeException;
 import org.apache.pig.impl.logicalLayer.schema.Schema.FieldSchema;
 import org.apache.pig.impl.util.Utils;
 import org.apache.pig.newplan.logical.relational.LogicalSchema;
+import org.apache.pig.newplan.logical.relational.LogicalSchema.MergeMode;
 import org.junit.Test;
 
 public class TestSchema extends TestCase {
@@ -693,7 +695,172 @@ public class TestSchema extends TestCase {
         Schema s2 = Utils.getSchemaFromString("b:{t:(b0:int, b1:int)}");
         LogicalSchema ls1 = org.apache.pig.newplan.logical.Util.translateSchema(s1);
         LogicalSchema ls2 = org.apache.pig.newplan.logical.Util.translateSchema(s2);
-        LogicalSchema ls3 = LogicalSchema.merge(ls1, ls2);
+        LogicalSchema ls3 = LogicalSchema.merge(ls1, ls2, MergeMode.LoadForEach);
         assertTrue(org.apache.pig.newplan.logical.Util.translateSchema(ls3).toString().equals("{a: {t: (a0: int,a1: int)}}"));
+    }
+    
+    @Test
+    public void testNewNormalNestedMerge1() throws Exception {
+        LogicalSchema a = org.apache.pig.newplan.logical.Util.translateSchema(Util.getSchemaFromString(
+            "a1:bytearray, b1:(b11:int, b12:float), c1:long"));
+        LogicalSchema b = org.apache.pig.newplan.logical.Util.translateSchema(Util.getSchemaFromString(
+            "a2:bytearray, b2:(b21:double, b22:long), c2:int"));
+        
+        LogicalSchema mergedSchema = LogicalSchema.merge(a, b, LogicalSchema.MergeMode.Union);
+        LogicalSchema expected = org.apache.pig.newplan.logical.Util.translateSchema(Util.getSchemaFromString(
+            "a1:bytearray, b1:(), c1:long"));
+        Assert.assertTrue(LogicalSchema.equals(mergedSchema, expected, false, false));
+        
+        mergedSchema = LogicalSchema.merge(a, b, LogicalSchema.MergeMode.LoadForEach);
+        expected = org.apache.pig.newplan.logical.Util.translateSchema(Util.getSchemaFromString(
+            "a1:bytearray, b1:(b11:int, b12:float), c1:long"));
+        Assert.assertTrue(LogicalSchema.equals(mergedSchema, expected, false, false));
+        
+        mergedSchema = LogicalSchema.merge(b, a, LogicalSchema.MergeMode.LoadForEach);
+        expected = org.apache.pig.newplan.logical.Util.translateSchema(Util.getSchemaFromString(
+            "a2:bytearray, b2:(b21:double, b22:long), c2:int"));
+        Assert.assertTrue(LogicalSchema.equals(mergedSchema, expected, false, false));
+    }
+    
+    @Test
+    public void testNewNormalNestedMerge2() throws Exception {
+        LogicalSchema a = org.apache.pig.newplan.logical.Util.translateSchema(Util.getSchemaFromString(
+            "a1:(a11:chararray, a12:float), b1:(b11:chararray, b12:float), c1:long"));
+        LogicalSchema b = org.apache.pig.newplan.logical.Util.translateSchema(Util.getSchemaFromString(
+            "a2:bytearray, b2:(b21:double, b22:long), c2:chararray"));
+        
+        LogicalSchema mergedSchema = LogicalSchema.merge(a, b, LogicalSchema.MergeMode.Union);
+        LogicalSchema expected = org.apache.pig.newplan.logical.Util.translateSchema(Util.getSchemaFromString(
+            "a1:(a11:chararray, a12:float), b1:(), c1:chararray"));
+        Assert.assertTrue(LogicalSchema.equals(mergedSchema, expected, false, false));
+        
+        mergedSchema = LogicalSchema.merge(a, b, LogicalSchema.MergeMode.LoadForEach);
+        expected = org.apache.pig.newplan.logical.Util.translateSchema(Util.getSchemaFromString(
+            "a1:(a11:chararray, a12:float), b1:(b11:chararray, b12:float), c1:long"));
+        Assert.assertTrue(LogicalSchema.equals(mergedSchema, expected, false, false));
+        
+        try {
+            LogicalSchema.merge(b, a, LogicalSchema.MergeMode.LoadForEach);
+            fail();
+        } catch (FrontendException e) {
+            assertTrue(e.getErrorCode()==1031);
+        }
+    }
+
+    @Test
+    public void testNewMergeNullSchemas() throws Throwable {
+        LogicalSchema a = org.apache.pig.newplan.logical.Util.translateSchema(Util.getSchemaFromString(
+            "a1:bytearray, b1:(b11:int, b12:float), c1:long"));
+        LogicalSchema b = org.apache.pig.newplan.logical.Util.translateSchema(Util.getSchemaFromString(
+            "a2:bytearray, b2:(), c2:int"));
+        
+        LogicalSchema mergedSchema = LogicalSchema.merge(a, b, LogicalSchema.MergeMode.Union);
+        LogicalSchema expected = org.apache.pig.newplan.logical.Util.translateSchema(Util.getSchemaFromString(
+            "a1:bytearray, b1:(), c1:long"));
+        Assert.assertTrue(LogicalSchema.equals(mergedSchema, expected, false, false));
+        
+        mergedSchema = LogicalSchema.merge(a, b, LogicalSchema.MergeMode.LoadForEach);
+        expected = org.apache.pig.newplan.logical.Util.translateSchema(Util.getSchemaFromString(
+            "a1:bytearray, b1:(b11:int, b12:float), c1:long"));
+        Assert.assertTrue(LogicalSchema.equals(mergedSchema, expected, false, false));
+        
+        mergedSchema = LogicalSchema.merge(b, a, LogicalSchema.MergeMode.LoadForEach);
+        expected = org.apache.pig.newplan.logical.Util.translateSchema(Util.getSchemaFromString(
+            "a2:bytearray, b2:(), c2:int"));
+        Assert.assertTrue(LogicalSchema.equals(mergedSchema, expected, false, false));
+    }
+
+    @Test
+    public void testNewMergeDifferentSize1() throws Throwable {
+        LogicalSchema a = org.apache.pig.newplan.logical.Util.translateSchema(Util.getSchemaFromString(
+            "a1:bytearray, b1:long, c1:long"));
+        LogicalSchema b = org.apache.pig.newplan.logical.Util.translateSchema(Util.getSchemaFromString(
+            "a2:bytearray, b2:long"));
+        
+        LogicalSchema mergedSchema = LogicalSchema.merge(a, b, LogicalSchema.MergeMode.Union);
+        assertTrue(mergedSchema==null);
+        
+        try {
+            LogicalSchema.merge(a, b, LogicalSchema.MergeMode.LoadForEach);
+            fail();
+        } catch (FrontendException e) {
+            assertTrue(e.getErrorCode()==1031);
+        }
+    }
+
+    @Test
+    public void testNewMergeDifferentSize2() throws Throwable {
+        LogicalSchema a = org.apache.pig.newplan.logical.Util.translateSchema(Util.getSchemaFromString(
+            "a1:bytearray, b1:(b11:int, b12:float, b13:float), c1:long"));
+        LogicalSchema b = org.apache.pig.newplan.logical.Util.translateSchema(Util.getSchemaFromString(
+            "a2:bytearray, b2:(b21:double, b22:long), c2:int"));
+
+        LogicalSchema mergedSchema = LogicalSchema.merge(a, b, LogicalSchema.MergeMode.Union);
+        LogicalSchema expected = org.apache.pig.newplan.logical.Util.translateSchema(Util.getSchemaFromString(
+            "a1:bytearray, b1:(), c1:long"));
+        Assert.assertTrue(LogicalSchema.equals(mergedSchema, expected, false, false));
+
+        try {
+            LogicalSchema.merge(a, b, LogicalSchema.MergeMode.LoadForEach);
+            fail();
+        } catch (FrontendException e) {
+            assertTrue(e.getErrorCode()==1031);
+        }
+    }
+
+
+    @Test
+    public void testNewMergeMismatchType1() throws Throwable {
+        LogicalSchema a = org.apache.pig.newplan.logical.Util.translateSchema(Util.getSchemaFromString(
+            "a1:chararray, b1:long, c1:long"));
+        LogicalSchema b = org.apache.pig.newplan.logical.Util.translateSchema(Util.getSchemaFromString(
+            "a2:bytearray, b2:(b21:double, b22:long), c2:int"));
+
+        LogicalSchema mergedSchema = LogicalSchema.merge(a, b, LogicalSchema.MergeMode.Union);
+        LogicalSchema expected = org.apache.pig.newplan.logical.Util.translateSchema(Util.getSchemaFromString(
+            "a1:chararray, b1:bytearray, c1:long"));
+        Assert.assertTrue(LogicalSchema.equals(mergedSchema, expected, false, false));
+        
+        try {
+            LogicalSchema.merge(a, b, LogicalSchema.MergeMode.LoadForEach);
+            fail();
+        } catch (FrontendException e) {
+            assertTrue(e.getErrorCode()==1031);
+        }
+        
+        try {
+            LogicalSchema.merge(b, a, LogicalSchema.MergeMode.LoadForEach);
+            fail();
+        } catch (FrontendException e) {
+            assertTrue(e.getErrorCode()==1031);
+        }
+    }
+
+
+    @Test
+    public void testNewMergeMismatchType2() throws Throwable {
+        LogicalSchema a = org.apache.pig.newplan.logical.Util.translateSchema(Util.getSchemaFromString(
+            "a1:chararray, b1:(b11:double, b12:(b121:int)), c1:long"));
+        LogicalSchema b = org.apache.pig.newplan.logical.Util.translateSchema(Util.getSchemaFromString(
+            "a2:bytearray, b2:(b21:double, b22:long), c2:int"));
+    
+        LogicalSchema mergedSchema = LogicalSchema.merge(a, b, LogicalSchema.MergeMode.Union);
+        LogicalSchema expected = org.apache.pig.newplan.logical.Util.translateSchema(Util.getSchemaFromString(
+            "a1:chararray, b1:(), c1:long"));
+        Assert.assertTrue(LogicalSchema.equals(mergedSchema, expected, false, false));
+        
+        try {
+            LogicalSchema.merge(a, b, LogicalSchema.MergeMode.LoadForEach);
+            fail();
+        } catch (FrontendException e) {
+            assertTrue(e.getErrorCode()==1031);
+        }
+        
+        try {
+            LogicalSchema.merge(b, a, LogicalSchema.MergeMode.LoadForEach);
+            fail();
+        } catch (FrontendException e) {
+            assertTrue(e.getErrorCode()==1031);
+        }
     }
 }

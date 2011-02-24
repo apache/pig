@@ -75,22 +75,19 @@ public class TestUnionOnSchemaSetter {
     }
 
     @Test
-    public void testNegative1() {
+    public void testMergeCompatibleSchema() throws FrontendException {
         String query = "A = load 'x' as ( u:int, v:long, w:chararray); " + 
                        "B = load 'y' as ( u:int, v:long, w:long); " +
                        "C = union onschema A, B; " +
                        "D = store C into 'output';";
         LogicalPlan plan = generateLogicalPlan( query );
         if( plan != null ) {
-            UnionOnSchemaSetter visitor;
-            try {
-                visitor = new UnionOnSchemaSetter( plan );
-                visitor.visit();
-            } catch (FrontendException e) {
-                return; // Expect an exception.
-            }
+            int nc = plan.size();
+            UnionOnSchemaSetter visitor = new UnionOnSchemaSetter( plan );
+            visitor.visit();
+            System.out.println( "Plan after setter: " + plan.toString() );
+            Assert.assertEquals( nc+1, plan.size() ); // ForEach inserted before union
         }
-        Assert.fail( "Test case shouldn't pass!" );
     }
     
     private LogicalPlan generateLogicalPlan(String query) {

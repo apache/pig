@@ -100,6 +100,9 @@ PIG-1696: Performance: Use System.arraycopy() instead of manually copying the by
 
 BUG FIXES
 
+PIG-1536: use same logic for merging inner schemas in "default union" and
+"union onschema" (daijy)
+
 PIG-1304: Fail underlying M/R jobs when concatenated gzip and bz2 files are provided as input (laukik via rding)
 
 PIG-1852: Packaging antlr jar with pig.jar (rding via daijy)

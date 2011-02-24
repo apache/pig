@@ -109,7 +109,7 @@ public class LOLoad extends LogicalRelationalOperator {
         }
         
         if (scriptSchema != null && determinedSchema != null) {
-            originalSchema = LogicalSchema.merge(scriptSchema, determinedSchema);
+            originalSchema = LogicalSchema.merge(scriptSchema, determinedSchema, LogicalSchema.MergeMode.LoadForEach);
         } else if (scriptSchema != null)  originalSchema = scriptSchema;
         else if (determinedSchema != null) originalSchema = determinedSchema;
         
