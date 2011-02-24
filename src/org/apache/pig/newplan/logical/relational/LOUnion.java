@@ -85,7 +85,7 @@ public class LOUnion extends LogicalRelationalOperator {
             mergedSchema = createMergedSchemaOnAlias( inputs );
         } else {
             LogicalSchema s1 = ((LogicalRelationalOperator)inputs.get(1)).getSchema();
-            mergedSchema = LogicalSchema.merge(s0, s1);
+            mergedSchema = LogicalSchema.merge(s0, s1, LogicalSchema.MergeMode.Union);
             if (mergedSchema==null)
                 return null;
             
@@ -94,7 +94,7 @@ public class LOUnion extends LogicalRelationalOperator {
                 LogicalSchema otherSchema = ((LogicalRelationalOperator)inputs.get(i)).getSchema();
                 if (mergedSchema==null || otherSchema==null)
                     return null;
-                mergedSchema = LogicalSchema.merge(mergedSchema, otherSchema);
+                mergedSchema = LogicalSchema.merge(mergedSchema, otherSchema, LogicalSchema.MergeMode.Union);
                 if (mergedSchema == null)
                     return null;
             }
@@ -147,7 +147,7 @@ public class LOUnion extends LogicalRelationalOperator {
         LogicalSchema mergedSchema = null;
         try {
             mergedSchema = LogicalSchema.mergeSchemasByAlias( schemas );   
-        } catch(SchemaMergeException e)                 {
+        } catch(FrontendException e)                 {
             String msg = "Error merging schemas for union operator : "
                 + e.getMessage();
             throw new FrontendException(msg, 1116, PigException.INPUT, e);

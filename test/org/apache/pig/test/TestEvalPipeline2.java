@@ -902,8 +902,8 @@ public class TestEvalPipeline2 extends TestCase {
             pigServer.openIterator("c");
         } catch (Exception e) {
             PigException pe = LogUtils.getPigException(e);
-            assertTrue(pe.getErrorCode()==1117);
-            assertTrue(pe.getMessage().contains("Cannot merge"));
+            assertTrue(pe.getErrorCode()==1031);
+            assertTrue(pe.getMessage().contains("Incompatable schema"));
             return;
         }
         fail();

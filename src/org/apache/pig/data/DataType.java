@@ -1077,6 +1077,44 @@ public class DataType {
     }
 
     /**
+     * Test if one type can cast to the other.
+     * @param castType data type of the cast type
+     * @param inputType data type of the input
+     * @return true or false
+     */
+    public static boolean castable(byte castType, byte inputType) {
+        // Only legal types can be cast to
+        if ( (!DataType.isUsableType(castType)) ||
+             (!DataType.isUsableType(inputType)) ) {
+            return false;
+        }
+
+        // Same type is castable
+        if (castType==inputType) {
+            return true;
+        }
+
+        // Numerical type is castable
+        if ( (DataType.isNumberType(castType)) &&
+             (DataType.isNumberType(inputType)) ) {
+            return true;
+        }
+
+        // databyte can cast to anything
+        if (inputType == DataType.BYTEARRAY) {
+            return true;
+        }
+
+        // Cast numerical type to string, or vice versa is valid
+        if (DataType.isNumberType(inputType)&&castType==DataType.CHARARRAY ||
+                DataType.isNumberType(castType)&&inputType==DataType.CHARARRAY)
+            return true;
+
+        // else return false
+        return false;
+    }
+    
+    /**
      * Merge types if possible.  Merging types means finding a type that one
      * or both types can be upcast to.
      * @param type1
