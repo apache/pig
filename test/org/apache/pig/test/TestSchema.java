@@ -739,12 +739,10 @@ public class TestSchema extends TestCase {
             "a1:(a11:chararray, a12:float), b1:(b11:chararray, b12:float), c1:long"));
         Assert.assertTrue(LogicalSchema.equals(mergedSchema, expected, false, false));
         
-        try {
-            LogicalSchema.merge(b, a, LogicalSchema.MergeMode.LoadForEach);
-            fail();
-        } catch (FrontendException e) {
-            assertTrue(e.getErrorCode()==1031);
-        }
+        mergedSchema = LogicalSchema.merge(b, a, LogicalSchema.MergeMode.LoadForEach);
+        expected = org.apache.pig.newplan.logical.Util.translateSchema(Util.getSchemaFromString(
+                "a2:(a11:chararray, a12:float), b2:(b21:double, b22:long), c2:chararray"));
+        Assert.assertTrue(LogicalSchema.equals(mergedSchema, expected, false, false));
     }
 
     @Test

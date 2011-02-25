@@ -310,12 +310,16 @@ public class LogicalSchema {
                         mergedSubSchema = LogicalSchema.merge(fs1.schema, fs2.schema, MergeMode.UnionInner);
                     else {
                         // LoadForEach/LoadForEachInner
-                        try {
-                            // Only check compatibility
-                            LogicalSchema.merge(fs1.schema, fs2.schema, MergeMode.LoadForEachInner);
-                            mergedSubSchema = fs1.schema;
-                        } catch (FrontendException e) {
-                            throw new FrontendException("Incompatable field schema: left is \"" + fs1.toString(false) + "\", right is \"" + fs2.toString(false) + "\"", 1031);
+                        if (fs1.type==DataType.BYTEARRAY)
+                            mergedSubSchema = fs2.schema;
+                        else {
+                            try {
+                                // Only check compatibility
+                                LogicalSchema.merge(fs1.schema, fs2.schema, MergeMode.LoadForEachInner);
+                                mergedSubSchema = fs1.schema;
+                            } catch (FrontendException e) {
+                                throw new FrontendException("Incompatable field schema: left is \"" + fs1.toString(false) + "\", right is \"" + fs2.toString(false) + "\"", 1031);
+                            }
                         }
                     }
                 }
