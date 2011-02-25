@@ -171,4 +171,113 @@ public class TestXMLLoader extends TestCase {
         new File(filename).delete();
     }
  }
+   
+   public void testXMLLoaderShouldNotConfusedWithTagsHavingSimilarPrefix () throws Exception
+   {
+      ArrayList<String[]> testData = new ArrayList<String[]>();
+      testData.add(new String[] { "<namethisalso> foobar9 </namethisalso>"});
+      testData.addAll(data);
+      String filename = TestHelper.createTempFile(testData, "");
+      PigServer pig = new PigServer(LOCAL);
+      filename = filename.replace("\\", "\\\\");
+      patternString = patternString.replace("\\", "\\\\");
+      String query = "A = LOAD 'file:" + filename + "' USING org.apache.pig.piggybank.storage.XMLLoader('name') as (doc:chararray);";
+      pig.registerQuery(query);
+      Iterator<?> it = pig.openIterator("A");
+      int tupleCount = 0;
+      while (it.hasNext()) {
+        Tuple tuple = (Tuple) it.next();
+        if (tuple == null) 
+          break;
+        else {
+          if (tuple.size() > 0) {
+              tupleCount++;
+          }
+        }
+      }
+      assertEquals(3, tupleCount);
+      
+   }
+   
+   public void testShouldReturn1ForIntermediateTagData () throws Exception
+   {
+      String filename = TestHelper.createTempFile(data, "");
+      PigServer pig = new PigServer(LOCAL);
+      filename = filename.replace("\\", "\\\\");
+      patternString = patternString.replace("\\", "\\\\");
+      String query = "A = LOAD 'file:" + filename + "' USING org.apache.pig.piggybank.storage.XMLLoader('ignoreProperty') as (doc:chararray);";
+      pig.registerQuery(query);
+      Iterator<?> it = pig.openIterator("A");
+      int tupleCount = 0;
+      while (it.hasNext()) {
+        Tuple tuple = (Tuple) it.next();
+        if (tuple == null) 
+          break;
+        else {
+          if (tuple.size() > 0) {
+              tupleCount++;
+          }
+        }
+      }
+      assertEquals(1, tupleCount);  
+   }
+   
+   public void testShouldReturn0TupleCountIfNoEndTagIsFound() throws Exception
+   {
+      // modify the data content to avoid end tag for </ignoreProperty>
+      ArrayList<String[]> testData = new ArrayList<String[]>();
+      for (String content[] : data) {
+         
+         if(false == data.equals(new String[] { "</ignoreProperty>"}))
+         {
+            testData.add(content);
+         }
+      }
+      
+      String filename = TestHelper.createTempFile(testData, "");
+      PigServer pig = new PigServer(LOCAL);
+      filename = filename.replace("\\", "\\\\");
+      patternString = patternString.replace("\\", "\\\\");
+      String query = "A = LOAD 'file:" + filename + "' USING org.apache.pig.piggybank.storage.XMLLoader('</ignoreProperty>') as (doc:chararray);";
+      pig.registerQuery(query);
+      Iterator<?> it = pig.openIterator("A");
+      int tupleCount = 0;
+      while (it.hasNext()) {
+        Tuple tuple = (Tuple) it.next();
+        if (tuple == null)
+          break;
+        else {
+          if (tuple.size() > 0) {
+              tupleCount++;
+          }
+        }
+      }
+      assertEquals(0, tupleCount);  
+   }
+   public void testShouldReturn0TupleCountIfEmptyFileIsPassed() throws Exception
+   {
+      // modify the data content to avoid end tag for </ignoreProperty>
+      ArrayList<String[]> testData = new ArrayList<String[]>();
+      
+      String filename = TestHelper.createTempFile(testData, "");
+      PigServer pig = new PigServer(LOCAL);
+      filename = filename.replace("\\", "\\\\");
+      patternString = patternString.replace("\\", "\\\\");
+      String query = "A = LOAD 'file:" + filename + "' USING org.apache.pig.piggybank.storage.XMLLoader('</ignoreProperty>') as (doc:chararray);";
+      pig.registerQuery(query);
+      Iterator<?> it = pig.openIterator("A");
+      int tupleCount = 0;
+      while (it.hasNext()) {
+        Tuple tuple = (Tuple) it.next();
+        if (tuple == null)
+          break;
+        else {
+          if (tuple.size() > 0) {
+              tupleCount++;
+          }
+        }
+      }
+      assertEquals(0, tupleCount);  
+   }
+   
 }

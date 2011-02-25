@@ -24,6 +24,9 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-1842 Improve Scalability of the XMLLoader for large datasets such as
+wikipedia (vivekp via gates)
+
 PIG-1781 Piggybank: ISOToDay disregards timezone (should use ISODateTimeFormat
 instead of DateTime to parse) (misterbeebee via gates)
 
