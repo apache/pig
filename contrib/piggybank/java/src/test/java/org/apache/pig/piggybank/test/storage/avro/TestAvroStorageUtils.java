@@ -48,12 +48,28 @@ public class TestAvroStorageUtils {
         final String str3 ="[\"null\", " + str2 + "]";
         s = Schema.parse(str3);
         assertTrue(AvroStorageUtils.containsRecursiveRecord(s));
+        
     }
 
     @Test
     public void canIdentifyNonRecursiveRecords() throws IOException {
         final String non = RECORD_BEGINNING + "{ \"name\": \"next\", \"type\": [\"null\", \"string\"] } ] }";
         assertFalse(AvroStorageUtils.containsRecursiveRecord(Schema.parse(non)));
+        
+        final String s1 =
+            "{ \"type\":\"record\", \"name\":\"Event\", " +
+               "\"fields\":[ " +
+                       "{\"name\":\"f1\", " +
+                         "\"type\":{ \"type\":\"record\",\"name\":\"Entity\", " +
+                                          "\"fields\":[{\"name\":\"type\", \"type\": \"string\"}," +
+                                                             "{\"name\":\"value\",\"type\": \"int\"}] " +
+                                         "} }, " +
+                       " {\"name\":\"f2\",\"type\": \"Entity\"}, " +
+                       " {\"name\":\"f3\",\"type\": \"Entity\"} " +
+                       "] }";
+            Schema schema1 = Schema.parse(s1);
+            assertFalse(AvroStorageUtils.containsRecursiveRecord(schema1));
+
     }
 
      @Test

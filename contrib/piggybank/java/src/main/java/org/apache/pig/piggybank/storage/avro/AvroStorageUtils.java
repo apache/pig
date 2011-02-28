@@ -211,6 +211,10 @@ public class AvroStorageUtils {
                 if (containsRecursiveRecord(fs, definedRecordNames))
                     return true;
             }
+            
+            /* remove its own name from the name set */
+            definedRecordNames.remove(s.getName());
+
             return false;
         }
         
