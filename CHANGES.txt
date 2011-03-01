@@ -100,6 +100,8 @@ PIG-1696: Performance: Use System.arraycopy() instead of manually copying the by
 
 BUG FIXES
 
+PIG-1856: Custom jar is not packaged with the new job created by LimitAdjuster (rding)
+
 PIG-1872: Fix bug in AvroStorage (guolin2001, jghoman via daijy)
 
 PIG-1536: use same logic for merging inner schemas in "default union" and
