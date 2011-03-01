@@ -17,6 +17,8 @@
  */
 package org.apache.pig.test;
 
+import static org.junit.Assert.assertTrue;
+
 import java.io.ByteArrayOutputStream;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -992,6 +994,30 @@ public class TestMRCompiler extends junit.framework.TestCase {
         PhysicalPlan pp = Util.buildPhysicalPlan(lp, pc);
         MROperPlan mp = Util.buildMRPlan(pp, pc);
         MapReduceOper op = mp.getLeaves().get(0);
+        assertTrue(op.UDFs.contains(new FuncSpec(PigStorageNoDefCtor.class.getName())+"('\t')"));
+    }
+    
+    @Test
+    public void testLimitAdjusterFuncShipped() throws Exception{
+ 
+        planTesterMR.buildPlan("a = load 'input';");
+        planTesterMR.buildPlan("b = order a by $0 parallel 2;");
+        planTesterMR.buildPlan("c = limit b 7;");
+        LogicalPlan lp = planTesterMR.buildPlan("store c into '/tmp' using "
+                + PigStorageNoDefCtor.class.getName() + "('\t');");
+         
+        PhysicalPlan pp = Util.buildPhysicalPlan(lp, pc);
+        MROperPlan mrPlan = Util.buildMRPlan(pp, pc);
+        MapReduceOper mrOper = mrPlan.getRoots().get(0);
+        int count = 1;
+        
+        while(mrPlan.getSuccessors(mrOper) != null) {
+            mrOper = mrPlan.getSuccessors(mrOper).get(0);
+            ++count;
+        }        
+        assertTrue(count == 4);
+
+        MapReduceOper op = mrPlan.getLeaves().get(0);
         assertTrue(op.UDFs.contains(new FuncSpec(PigStorageNoDefCtor.class.getName())+"('\t')"));
     }
     

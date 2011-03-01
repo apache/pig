@@ -2819,7 +2819,7 @@ public class MRCompiler extends PhyPlanVisitor {
         public void visitMROp(MapReduceOper mr) throws VisitorException {
             // Look for map reduce operators which contains limit operator.
             // If so and the requestedParallelism > 1, add one additional map-reduce
-            // operator with 1 reducer into the original plan
+            // operator with 1 reducer into the original plan            
             if (mr.limit!=-1 && mr.requestedParallelism!=1)
             {
                 opsToAdjust.add(mr);
@@ -2894,6 +2894,13 @@ public class MRCompiler extends PhyPlanVisitor {
                     int i=0;
                     for (MapReduceOper op:successorList)
                         successors[i++] = op;
+                }
+                               
+                // Process UDFs
+                for (String udf : mr.UDFs) {
+                    if (!limitAdjustMROp.UDFs.contains(udf)) {
+                        limitAdjustMROp.UDFs.add(udf);
+                    }
                 }
                 
                 MRPlan.add(limitAdjustMROp);
