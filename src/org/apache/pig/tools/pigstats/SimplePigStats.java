@@ -22,10 +22,12 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -69,10 +71,12 @@ final class SimplePigStats extends PigStats {
     
     private JobGraph jobPlan;
     
-    // map MR job id to MapReduceOper
-    private Map<String, MapReduceOper> jobMroMap;
+    private Map<Job, MapReduceOper> jobMroMap;
      
     private Map<MapReduceOper, JobStats> mroJobMap;
+    
+    // successful jobs so far
+    private Set<Job> jobSeen = new HashSet<Job>();
     
     private Map<String, OutputStats> aliasOuputMap;
       
@@ -351,7 +355,7 @@ final class SimplePigStats extends PigStats {
     }
     
     SimplePigStats() {        
-        jobMroMap = new HashMap<String, MapReduceOper>(); 
+        jobMroMap = new HashMap<Job, MapReduceOper>(); 
         jobPlan = new JobGraph();
     }
     
@@ -406,20 +410,16 @@ final class SimplePigStats extends PigStats {
         
     @SuppressWarnings("deprecation")
     JobStats addJobStats(Job job) {
-        MapReduceOper mro = null;
-        JobID jobId = job.getAssignedJobID();
-        if (jobId != null) {
-            mro = jobMroMap.get(jobId.toString());
-        } else {
-            mro = jobMroMap.get(job.toString());
-        }
+        MapReduceOper mro = jobMroMap.get(job);
+         
         if (mro == null) {
-            LOG.warn("unable to get MR oper for job: "
-                    + ((jobId == null) ? job.toString() : jobId.toString()));
+            LOG.warn("unable to get MR oper for job: " + job.toString());
             return null;
         }
         JobStats js = mroJobMap.get(mro);
         
+        JobID jobId = job.getAssignedJobID();
+        js.setId(jobId);
         js.setAlias(mro);
         js.setConf(job.getJobConf());
         return js;
@@ -519,7 +519,6 @@ final class SimplePigStats extends PigStats {
         LOG.info("Script Statistics: \n" + sb.toString());
     }
     
-    @SuppressWarnings("deprecation")
     void mapMROperToJob(MapReduceOper mro, Job job) {
         if (mro == null) {
             LOG.warn("null MR operator");
@@ -528,13 +527,7 @@ final class SimplePigStats extends PigStats {
             if (js == null) {
                 LOG.warn("null job stats for mro: " + mro.getOperatorKey());
             } else {
-                JobID id = job.getAssignedJobID();
-                js.setId(id);    
-                if (id != null) {
-                    jobMroMap.put(id.toString(), mro);
-                } else {
-                    jobMroMap.put(job.toString(), mro);
-                }
+                jobMroMap.put(job, mro);
             }
         }
     }   
@@ -582,6 +575,10 @@ final class SimplePigStats extends PigStats {
             if (iter.next().getState() == JobState.FAILED) count++; 
         }
         return count;
+    }
+    
+    boolean isJobSeen(Job job) {
+        return !jobSeen.add(job);    
     }
     
 }

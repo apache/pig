@@ -195,6 +195,9 @@ public class MapReduceLauncher extends Launcher{
             //notify listeners about jobs submitted
             ScriptState.get().emitJobsSubmittedNotification(jobsWithoutIds.size());
             
+            // update Pig stats' job DAG with just compiled jobs
+            PigStatsUtil.updateJobMroMap(jcc.getJobMroMap());
+            
             // determine job tracker url 
             String jobTrackerLoc;
             JobConf jobConf = jobsWithoutIds.get(0).getJobConf();
@@ -253,6 +256,10 @@ public class MapReduceLauncher extends Launcher{
             	double prog = (numMRJobsCompl+calculateProgress(jc, jobClient))/totalMRJobs;
             	notifyProgress(prog, lastProg);
             	lastProg = prog;
+            	
+            	// collect job stats by frequently polling of completed jobs (PIG-1829)
+            	PigStatsUtil.accumulateStats(jc);
+            	       	
             }
             
             //check for the jobControlException first
@@ -300,9 +307,6 @@ public class MapReduceLauncher extends Launcher{
                 }
                 failedJobs.addAll(jc.getFailedJobs());
             }
-
-            // update Pig stats' job DAG with job ids of just completed jobs
-            PigStatsUtil.updateJobMroMap(jcc.getJobMroMap());
             
             int removedMROp = jcc.updateMROpPlan(completeFailedJobsInThisRun);
             
@@ -312,7 +316,7 @@ public class MapReduceLauncher extends Launcher{
             jcc.moveResults(jobs);
             succJobs.addAll(jobs);
                         
-            // collecting statistics
+            // collecting final statistics
             PigStatsUtil.accumulateStats(jc);
 
             jc.stop(); 

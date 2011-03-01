@@ -241,7 +241,7 @@ public abstract class PigStatsUtil {
         ScriptState ss = ScriptState.get();
         
         for (Job job : jc.getSuccessfulJobs()) {            
-            JobStats js = accumulateSuccessStatistics(ps, job);
+            JobStats js = addSuccessJobStats(ps, job);
             if (js != null) {
                 ss.emitjobFinishedNotification(js);
             }
@@ -252,9 +252,7 @@ public abstract class PigStatsUtil {
             if (js != null) {
                 js.setErrorMsg(job.getMessage());    
                 ss.emitJobFailedNotification(js);
-            } else {
-                LOG.warn("unable to add failed job stats: " + job);
-            }
+            } 
         }
     }
     
@@ -278,6 +276,8 @@ public abstract class PigStatsUtil {
     }
     
     private static JobStats addFailedJobStats(SimplePigStats ps, Job job) {
+        if (ps.isJobSeen(job)) return null;
+        
         JobStats js = ps.addJobStats(job);
         if (js == null) {
             LOG.warn("unable to add failed job stats");            
@@ -315,7 +315,9 @@ public abstract class PigStatsUtil {
         return js;
     }    
     
-    private static JobStats accumulateSuccessStatistics(SimplePigStats ps, Job job) {
+    private static JobStats addSuccessJobStats(SimplePigStats ps, Job job) {
+        if (ps.isJobSeen(job)) return null;
+
         JobStats js = ps.addJobStats(job);
         if (js == null) {
             LOG.warn("unable to add job stats");
