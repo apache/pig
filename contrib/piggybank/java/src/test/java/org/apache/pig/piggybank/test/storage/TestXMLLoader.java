@@ -45,6 +45,29 @@ public class TestXMLLoader extends TestCase {
     data.add(new String[] { "</configuration>"});
   }
 
+  public void testShouldReturn0TupleCountIfSearchTagIsNotFound () throws Exception
+  {
+    String filename = TestHelper.createTempFile(data, "");
+    PigServer pig = new PigServer(LOCAL);
+    filename = filename.replace("\\", "\\\\");
+    patternString = patternString.replace("\\", "\\\\");
+    String query = "A = LOAD 'file:" + filename + "' USING org.apache.pig.piggybank.storage.XMLLoader('invalid') as (doc:chararray);";
+    pig.registerQuery(query);
+    Iterator<?> it = pig.openIterator("A");
+    int tupleCount = 0;
+    while (it.hasNext()) {
+      Tuple tuple = (Tuple) it.next();
+      if (tuple == null)
+        break;
+      else {
+        if (tuple.size() > 0) {
+            tupleCount++;
+        }
+      }
+    }
+    assertEquals(0, tupleCount); 
+  }
+  
   public void testLoadXMLLoader() throws Exception {
     //ArrayList<DataByteArray[]> expected = TestHelper.getExpected(data, pattern);
     String filename = TestHelper.createTempFile(data, "");
@@ -63,11 +86,10 @@ public class TestXMLLoader extends TestCase {
         //TestHelper.examineTuple(expected, tuple, tupleCount);
         if (tuple.size() > 0) {
             tupleCount++;
-            //System.out.println("tuple=" + tuple+":"+tuple.size());
         }
       }
     }
-    assertEquals(3, tupleCount); // pig adds extra 
+    assertEquals(2, tupleCount);  
   }
   
   public void testXMLLoaderShouldLoadBasicBzip2Files() throws Exception {
@@ -101,7 +123,7 @@ public class TestXMLLoader extends TestCase {
 	     }
         }
 	    
-        assertEquals(3, tupleCount); // pig adds extra
+        assertEquals(2, tupleCount);
     
     }finally
     {
@@ -137,13 +159,12 @@ public class TestXMLLoader extends TestCase {
     if (tuple == null)
         break;
     else {
-        //TestHelper.examineTuple(expected, tuple, tupleCount);
         if (tuple.size() > 0) {
         tupleCount++;
              }
         }
     }	
-    assertEquals(3, tupleCount); // pig adds extra
+    assertEquals(2, tupleCount); 
    
     }finally
     {

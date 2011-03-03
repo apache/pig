@@ -40,6 +40,9 @@ OPTIMIZATIONS
 
 BUG FIXES
 
+PIG-1839 piggybank: XMLLoader will always add an extra empty tuple even if no
+tags are matched (vivekp via gates)
+
 PIG-1449 RegExLoader hangs on lines that don't match the regular expression
 (Christian Hargraves via hashutosh)
 

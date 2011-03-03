@@ -470,7 +470,10 @@ public class XMLLoader extends LoadFunc {
         
         try {
             byte[] tagContent = (byte[]) reader.getCurrentValue();
-            t = createTuple(tagContent);
+            if(tagContent.length > 0)
+            {
+               t = createTuple(tagContent);
+            }
         } catch (Exception e) {
             throw new IOException(e);
         }
