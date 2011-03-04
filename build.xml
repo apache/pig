@@ -49,12 +49,9 @@
     <property name="dist.dir" value="${build.dir}/${final.name}" />
     <!-- property name="build.encoding" value="ISO-8859-1" / -->
     <property name="build.encoding" value="UTF8" />
-    <!-- TODO with only one version of hadoop in the lib folder we do not need that anymore -->
+
     <property name="automaton.jarfile" value="automaton.jar" />
-    <property name="hbase.jarfile" value="hbase-0.20.6.jar" />
-    <property name="hbase.test.jarfile" value="hbase-0.20.6-test.jar" />
-	<property name="zookeeper.jarfile" value="zookeeper-hbase-1329.jar" />
-	
+
     <!-- javac properties -->
     <property name="javac.debug" value="on" />
     <property name="javac.optimize" value="on" />
@@ -173,7 +170,7 @@
     <property name="javacc.home" location="${ivy.lib.dir}" />
 
     <!--this is the naming policy for artifacts we want pulled down-->
-    <property name="ivy.artifact.retrieve.pattern" value="${ant.project.name}/[artifact]-[revision].[ext]"/>
+    <property name="ivy.artifact.retrieve.pattern" value="${ant.project.name}/[artifact]-[revision](-[classifier]).[ext]"/>
 
     <!--this is how artifacts that get built are named-->
 	<property name="ivy.publish.pattern" value="[artifact]-[revision].[ext]"/>
@@ -197,17 +194,13 @@
     <path id="classpath">
 	<path refid="compile.classpath"/>	
         <fileset file="${lib.dir}/${automaton.jarfile}" />
-        <fileset file="${lib.dir}/${hbase.jarfile}" />
-        <fileset file="${lib.dir}/${hbase.test.jarfile}" />
-    	<fileset file="${lib.dir}/${zookeeper.jarfile}"/>
+        <fileset file="${ivy.lib.dir}/${zookeeper.jarfile}"/>
     </path>
 
     <!-- javadoc-classpath -->
     <path id="javadoc-classpath">
-        <fileset file="${lib.dir}/${hbase.jarfile}" />
-	<fileset file="${lib.dir}/${guava.jarfile}" />
 	<fileset file="${lib.dir}/${automaton.jarfile}" />
-        <fileset file="${lib.dir}/${hbase.test.jarfile}" />
+        <fileset file="${lib.dir}/${guava.jarfile}" />
 	<path refid="javadoc.classpath"/>	
     </path> 
 
@@ -556,6 +549,7 @@
             <zipfileset src="${ivy.lib.dir}/jackson-core-asl-${jackson.version}.jar" />
             <zipfileset src="${ivy.lib.dir}/joda-time-${joda-time.version}.jar" /> 
             <zipfileset src="${ivy.lib.dir}/${guava.jar}" />
+            <zipgroupfileset dir="${ivy.lib.dir}" includes="hbase-${hbase.version}.jar" /> 
             <zipgroupfileset dir="${ivy.lib.dir}" includes="commons*.jar"/>
             <zipgroupfileset dir="${ivy.lib.dir}" includes="log4j*.jar"/>
             <zipgroupfileset dir="${ivy.lib.dir}" includes="jsp-api*.jar"/>
@@ -672,7 +666,6 @@
             <sysproperty key="ssh.gateway" value="${ssh.gateway}" />
             <sysproperty key="hod.server" value="${hod.server}" />
             <sysproperty key="java.io.tmpdir" value="${junit.tmp.dir}" />
-
             <!-- <sysproperty key="hod.command" value="${hod.command}"/>
             			<sysproperty key="hod.param" value="${hod.param}"/> -->
             <sysproperty key="hadoop.log.dir" value="${test.log.dir}"/>
@@ -682,7 +675,7 @@
                 <pathelement location="${junit.hadoop.conf}" />
                 <pathelement location="." />
 		<pathelement path="${clover.jar}"/>
-                <path refid="classpath"/>
+                <path refid="test.classpath"/>
             </classpath>
             <formatter type="${test.junit.output.format}" />
 
@@ -1233,7 +1226,7 @@
        <ivy:resolve settingsRef="${ant.project.name}.ivy.settings" conf="test"/>
        <ivy:retrieve settingsRef="${ant.project.name}.ivy.settings"
                  pattern="${build.ivy.lib.dir}/${ivy.artifact.retrieve.pattern}" conf="test"/>
-       <ivy:cachepath pathid="test-classpath" conf="test"/> 		
+       <ivy:cachepath pathid="test-classpath" conf="test" type="jar,test-jar"/>
      </target>
 
      <target name="ivy-javadoc" depends="ivy-init" description="Resolve, Retrieve Ivy-managed artifacts for javadoc configuration">

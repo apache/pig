@@ -30,7 +30,7 @@
           http://www.ibiblio.net/pub/packages/maven2
   -->
   <property name="repo.maven.org" value="${mvnrepo}" override="true"/>
-  <property name="maven2.pattern"  value="[organisation]/[module]/[revision]/[module]-[revision]"/> 
+  <property name="maven2.pattern"  value="[organisation]/[module]/[revision]/[module]-[revision](-[classifier])"/> 
   <property name="maven2.pattern.ext" value="${maven2.pattern}.[ext]"/>
   <!-- pull in the local repository -->
   <include url="${ivy.default.conf.dir}/ivyconf-local.xml"/>
