@@ -61,57 +61,46 @@ class ConstExpEvaluator extends LogicalExpressionVisitor {
             ConstantExpression newExp = null;
             if (parent instanceof AndExpression) newExp = new ConstantExpression(
                             plan,
-                            (Boolean) rhs.getValue() && (Boolean) lhs.getValue(),
-                            parent.getFieldSchema());
+                            (Boolean) rhs.getValue() && (Boolean) lhs.getValue());
             else if (parent instanceof OrExpression) newExp = new ConstantExpression(
                             plan,
-                            (Boolean) rhs.getValue() || (Boolean) lhs.getValue(),
-                            parent.getFieldSchema());
+                            (Boolean) rhs.getValue() || (Boolean) lhs.getValue());
             else if (parent instanceof EqualExpression) newExp = new ConstantExpression(
-                            plan, rhs.isEqual(lhs),
-                            parent.getFieldSchema());
+                            plan, rhs.isEqual(lhs));
             else if (parent instanceof GreaterThanExpression) newExp = new ConstantExpression(
                             plan,
-                            ((Comparable) rhs.getValue()).compareTo((Comparable) lhs.getValue()) > 0,
-                            parent.getFieldSchema());
+                            ((Comparable) rhs.getValue()).compareTo((Comparable) lhs.getValue()) > 0);
             else if (parent instanceof GreaterThanEqualExpression) newExp = new ConstantExpression(
                             plan,
-                            ((Comparable) rhs.getValue()).compareTo((Comparable) lhs.getValue()) >= 0,
-                            parent.getFieldSchema());
+                            ((Comparable) rhs.getValue()).compareTo((Comparable) lhs.getValue()) >= 0);
             else if (parent instanceof LessThanExpression) newExp = new ConstantExpression(
                             plan,
-                            ((Comparable) rhs.getValue()).compareTo((Comparable) lhs.getValue()) < 0,
-                            parent.getFieldSchema());
+                            ((Comparable) rhs.getValue()).compareTo((Comparable) lhs.getValue()) < 0);
             else if (parent instanceof LessThanExpression) newExp = new ConstantExpression(
                             plan,
-                            ((Comparable) rhs.getValue()).compareTo((Comparable) lhs.getValue()) <= 0,
-                            parent.getFieldSchema());
+                            ((Comparable) rhs.getValue()).compareTo((Comparable) lhs.getValue()) <= 0);
             else if (parent instanceof AddExpression) {
                 byte type = parent.getFieldSchema().type;
                 switch (type) {
                     case DataType.INTEGER:
                         newExp = new ConstantExpression(
                                         plan,
-                                        (Integer) lhs.getValue() + (Integer) rhs.getValue(),
-                                        parent.getFieldSchema());
+                                        (Integer) lhs.getValue() + (Integer) rhs.getValue());
                         break;
                     case DataType.LONG:
                         newExp = new ConstantExpression(
                                         plan,
-                                        (Long) lhs.getValue() + (Long) rhs.getValue(),
-                                        parent.getFieldSchema());
+                                        (Long) lhs.getValue() + (Long) rhs.getValue());
                         break;
                     case DataType.FLOAT:
                         newExp = new ConstantExpression(
                                         plan,
-                                        (Float) lhs.getValue() + (Float) rhs.getValue(),
-                                        parent.getFieldSchema());
+                                        (Float) lhs.getValue() + (Float) rhs.getValue());
                         break;
                     case DataType.DOUBLE:
                         newExp = new ConstantExpression(
                                         plan,
-                                        (Double) lhs.getValue() + (Double) rhs.getValue(),
-                                        parent.getFieldSchema());
+                                        (Double) lhs.getValue() + (Double) rhs.getValue());
                         break;
                     default:
                         throw new FrontendException("Invalid type");
@@ -123,26 +112,22 @@ class ConstExpEvaluator extends LogicalExpressionVisitor {
                     case DataType.INTEGER:
                         newExp = new ConstantExpression(
                                         plan,
-                                        (Integer) lhs.getValue() - (Integer) rhs.getValue(),
-                                        parent.getFieldSchema());
+                                        (Integer) lhs.getValue() - (Integer) rhs.getValue());
                         break;
                     case DataType.LONG:
                         newExp = new ConstantExpression(
                                         plan,
-                                        (Long) lhs.getValue() - (Long) rhs.getValue(),
-                                        parent.getFieldSchema());
+                                        (Long) lhs.getValue() - (Long) rhs.getValue());
                         break;
                     case DataType.FLOAT:
                         newExp = new ConstantExpression(
                                         plan,
-                                        (Float) lhs.getValue() - (Float) rhs.getValue(),
-                                        parent.getFieldSchema());
+                                        (Float) lhs.getValue() - (Float) rhs.getValue());
                         break;
                     case DataType.DOUBLE:
                         newExp = new ConstantExpression(
                                         plan,
-                                        (Double) lhs.getValue() - (Double) rhs.getValue(),
-                                        parent.getFieldSchema());
+                                        (Double) lhs.getValue() - (Double) rhs.getValue());
                         break;
                     default:
                         throw new FrontendException("Invalid type");
@@ -154,26 +139,22 @@ class ConstExpEvaluator extends LogicalExpressionVisitor {
                     case DataType.INTEGER:
                         newExp = new ConstantExpression(
                                         plan,
-                                        (Integer) lhs.getValue() * (Integer) rhs.getValue(),
-                                        parent.getFieldSchema());
+                                        (Integer) lhs.getValue() * (Integer) rhs.getValue());
                         break;
                     case DataType.LONG:
                         newExp = new ConstantExpression(
                                         plan,
-                                        (Long) lhs.getValue() * (Long) rhs.getValue(),
-                                        parent.getFieldSchema());
+                                        (Long) lhs.getValue() * (Long) rhs.getValue());
                         break;
                     case DataType.FLOAT:
                         newExp = new ConstantExpression(
                                         plan,
-                                        (Float) lhs.getValue() * (Float) rhs.getValue(),
-                                        parent.getFieldSchema());
+                                        (Float) lhs.getValue() * (Float) rhs.getValue());
                         break;
                     case DataType.DOUBLE:
                         newExp = new ConstantExpression(
                                         plan,
-                                        (Double) lhs.getValue() * (Double) rhs.getValue(),
-                                        parent.getFieldSchema());
+                                        (Double) lhs.getValue() * (Double) rhs.getValue());
                         break;
                     default:
                         throw new FrontendException("Invalid type");
@@ -185,14 +166,12 @@ class ConstExpEvaluator extends LogicalExpressionVisitor {
                     case DataType.INTEGER:
                         newExp = new ConstantExpression(
                                         plan,
-                                        (Integer) lhs.getValue() % (Integer) rhs.getValue(),
-                                        parent.getFieldSchema());
+                                        (Integer) lhs.getValue() % (Integer) rhs.getValue());
                         break;
                     case DataType.LONG:
                         newExp = new ConstantExpression(
                                         plan,
-                                        (Long) lhs.getValue() % (Long) rhs.getValue(),
-                                        parent.getFieldSchema());
+                                        (Long) lhs.getValue() % (Long) rhs.getValue());
                         break;
                     default:
                         throw new FrontendException("Invalid type");
@@ -205,29 +184,25 @@ class ConstExpEvaluator extends LogicalExpressionVisitor {
                         if ((Integer) rhs.getValue() != 0)
                             newExp = new ConstantExpression(
                                             plan,
-                                            (Integer) lhs.getValue() / (Integer) rhs.getValue(),
-                                            parent.getFieldSchema());
+                                            (Integer) lhs.getValue() / (Integer) rhs.getValue());
                         break;
                     case DataType.LONG:
                         if ((Long) rhs.getValue() != 0)
                             newExp = new ConstantExpression(
                                             plan,
-                                            (Long) lhs.getValue() / (Long) rhs.getValue(),
-                                            parent.getFieldSchema());
+                                            (Long) lhs.getValue() / (Long) rhs.getValue());
                         break;
                     case DataType.FLOAT:
                         if ((Float) rhs.getValue() != 0)
                             newExp = new ConstantExpression(
                                             plan,
-                                            (Float) lhs.getValue() / (Float) rhs.getValue(),
-                                            parent.getFieldSchema());
+                                            (Float) lhs.getValue() / (Float) rhs.getValue());
                         break;
                     case DataType.DOUBLE:
                         if ((Double) rhs.getValue() != 0)
                             newExp = new ConstantExpression(
                                             plan,
-                                            (Double) lhs.getValue() / (Double) rhs.getValue(),
-                                            parent.getFieldSchema());
+                                            (Double) lhs.getValue() / (Double) rhs.getValue());
                         break;
                     default:
                         throw new FrontendException("Invalid type");
@@ -272,37 +247,31 @@ class ConstExpEvaluator extends LogicalExpressionVisitor {
             plan.remove(op);
             ConstantExpression newExp;
             if (op instanceof NotExpression) newExp = new ConstantExpression(
-                            plan, !((Boolean) operand.getValue()),
-                            op.getFieldSchema());
+                            plan, !((Boolean) operand.getValue()));
             else if (op instanceof IsNullExpression) newExp = new ConstantExpression(
-                            plan, operand.getValue() == null,
-                            op.getFieldSchema());
+                            plan, operand.getValue() == null);
             else if (op instanceof NegativeExpression) {
                 byte type = operand.getFieldSchema().type;
                 switch (type) {
                     case DataType.INTEGER:
                         newExp = new ConstantExpression(
                                         plan,
-                                        -1 * ((Integer) operand.getValue()),
-                                        op.getFieldSchema());
+                                        -1 * ((Integer) operand.getValue()));
                         break;
                     case DataType.LONG:
                         newExp = new ConstantExpression(
                                         plan,
-                                        -1L * ((Long) operand.getValue()),
-                                        op.getFieldSchema());
+                                        -1L * ((Long) operand.getValue()));
                         break;
                     case DataType.FLOAT:
                         newExp = new ConstantExpression(
                                         plan,
-                                        -1.0F * ((Float) operand.getValue()),
-                                        op.getFieldSchema());
+                                        -1.0F * ((Float) operand.getValue()));
                         break;
                     case DataType.DOUBLE:
                         newExp = new ConstantExpression(
                                         plan,
-                                        -1.0D * ((Integer) operand.getValue()),
-                                        op.getFieldSchema());
+                                        -1.0D * ((Integer) operand.getValue()));
                         break;
                     default:
                         throw new FrontendException("Invalid type");

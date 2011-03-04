@@ -186,7 +186,7 @@ public class TestSkewedJoin extends TestCase{
         
         DataBag dbfrj = BagFactory.getInstance().newDefaultBag(), dbshj = BagFactory.getInstance().newDefaultBag();
         {
-            pigServer.registerQuery("E = join C by group, D by group using \"skewed\" parallel 5;");
+            pigServer.registerQuery("E = join C by group, D by group using 'skewed' parallel 5;");
             Iterator<Tuple> iter = pigServer.openIterator("E");
             
             while(iter.hasNext()) {
@@ -215,7 +215,7 @@ public class TestSkewedJoin extends TestCase{
             DataBag dbfrj = BagFactory.getInstance().newDefaultBag();
             DataBag dbshj = BagFactory.getInstance().newDefaultBag();
             {
-                pigServer.registerQuery("C = join A by (id, name), B by (id, name) using \"skewed\" parallel 5;");
+                pigServer.registerQuery("C = join A by (id, name), B by (id, name) using 'skewed' parallel 5;");
                 Iterator<Tuple> iter = pigServer.openIterator("C");
 
                 while(iter.hasNext()) {
@@ -245,7 +245,7 @@ public class TestSkewedJoin extends TestCase{
         try {
             DataBag dbfrj = BagFactory.getInstance().newDefaultBag();
             {
-                pigServer.registerQuery("C = join A by id, B by id using \"skewed\" parallel 1;");
+                pigServer.registerQuery("C = join A by id, B by id using 'skewed' parallel 1;");
                 Iterator<Tuple> iter = pigServer.openIterator("C");
                 
                 while(iter.hasNext()) {
@@ -266,7 +266,7 @@ public class TestSkewedJoin extends TestCase{
         try {
             DataBag dbfrj = BagFactory.getInstance().newDefaultBag();
             {
-                pigServer.registerQuery("D = join A by id, B by id, C by id using \"skewed\" parallel 5;");
+                pigServer.registerQuery("D = join A by id, B by id, C by id using 'skewed' parallel 5;");
                 Iterator<Tuple> iter = pigServer.openIterator("D");
                 
                 while(iter.hasNext()) {
@@ -287,7 +287,7 @@ public class TestSkewedJoin extends TestCase{
         try {
             DataBag dbfrj = BagFactory.getInstance().newDefaultBag();
             {
-                pigServer.registerQuery("C = join A by (chararray)m#'a100', B by (chararray)n#'a100' using \"skewed\" parallel 20;");
+                pigServer.registerQuery("C = join A by (chararray)m#'a100', B by (chararray)n#'a100' using 'skewed' parallel 20;");
                 Iterator<Tuple> iter = pigServer.openIterator("C");
                 
                 while(iter.hasNext()) {
@@ -316,7 +316,7 @@ public class TestSkewedJoin extends TestCase{
          pigServer.registerQuery("B = LOAD '" + INPUT_FILE2 + "' as (id, name);");
            
         
-         pigServer.registerQuery("E = join A by id, B by id using \"skewed\" parallel 7;");
+         pigServer.registerQuery("E = join A by id, B by id using 'skewed' parallel 7;");
          pigServer.store("E", "skewedjoin");
          
          int[][] lineCount = new int[3][7];
@@ -355,7 +355,7 @@ public class TestSkewedJoin extends TestCase{
         try {
             DataBag dbfrj = BagFactory.getInstance().newDefaultBag();
             {
-                pigServer.registerQuery("C = join A by id, B by id using \"skewed\";");
+                pigServer.registerQuery("C = join A by id, B by id using 'skewed';");
                 Iterator<Tuple> iter = pigServer.openIterator("C");
                 
                 while(iter.hasNext()) {
@@ -377,7 +377,7 @@ public class TestSkewedJoin extends TestCase{
         try {
             DataBag dbfrj = BagFactory.getInstance().newDefaultBag();
             {
-                pigServer.registerQuery("C = join A by id left, B by id using \"skewed\";");
+                pigServer.registerQuery("C = join A by id left, B by id using 'skewed';");
                 Iterator<Tuple> iter = pigServer.openIterator("C");
                 
                 while(iter.hasNext()) {
@@ -385,7 +385,7 @@ public class TestSkewedJoin extends TestCase{
                 }
             }
             {
-                pigServer.registerQuery("C = join A by id right, B by id using \"skewed\";");
+                pigServer.registerQuery("C = join A by id right, B by id using 'skewed';");
                 Iterator<Tuple> iter = pigServer.openIterator("C");
                 
                 while(iter.hasNext()) {
@@ -393,7 +393,7 @@ public class TestSkewedJoin extends TestCase{
                 }
             }
             {
-                pigServer.registerQuery("C = join A by id full, B by id using \"skewed\";");
+                pigServer.registerQuery("C = join A by id full, B by id using 'skewed';");
                 Iterator<Tuple> iter = pigServer.openIterator("C");
                 
                 while(iter.hasNext()) {
@@ -421,7 +421,7 @@ public class TestSkewedJoin extends TestCase{
         
         DataBag dbfrj = BagFactory.getInstance().newDefaultBag(), dbrj = BagFactory.getInstance().newDefaultBag();
         {
-            pigServer.registerQuery("E = join C by id, D by id using \"skewed\";");
+            pigServer.registerQuery("E = join C by id, D by id using 'skewed';");
             Iterator<Tuple> iter = pigServer.openIterator("E");
                 
             while(iter.hasNext()) {
@@ -449,7 +449,7 @@ public class TestSkewedJoin extends TestCase{
            
         DataBag dbfrj = BagFactory.getInstance().newDefaultBag(), dbrj = BagFactory.getInstance().newDefaultBag();
         {
-            pigServer.registerQuery("E = join A by id, B by id using \"skewed\" parallel 300;");
+            pigServer.registerQuery("E = join A by id, B by id using 'skewed' parallel 300;");
             Iterator<Tuple> iter = pigServer.openIterator("E");
                 
             while(iter.hasNext()) {

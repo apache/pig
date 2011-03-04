@@ -18,6 +18,7 @@
 
 package org.apache.pig.newplan.logical.relational;
 
+import java.util.HashSet;
 import java.util.Map;
 
 import org.apache.pig.impl.logicalLayer.FrontendException;
@@ -39,6 +40,12 @@ abstract public class LogicalRelationalOperator extends Operator {
      * Name of the customPartitioner if one is used, this is set to null otherwise.
      */
     protected String mCustomPartitioner = null;
+    
+    /**
+     * A HashSet to indicate whether an option (such a Join Type) was pinned
+     * by the user or can be chosen at runtime by the optimizer.
+     */
+    protected HashSet<Integer> mPinnedOptions = new HashSet<Integer>();
 
     /**
      * 
@@ -189,5 +196,13 @@ abstract public class LogicalRelationalOperator extends Operator {
     
     public void setCustomPartitioner(String customPartitioner) {
         mCustomPartitioner = customPartitioner;
+    }
+    
+    public void pinOption(Integer opt) {
+        mPinnedOptions.add(opt);
+    }
+    
+    public boolean isPinnedOption(Integer opt) {
+        return mPinnedOptions.contains(opt);
     }
 }

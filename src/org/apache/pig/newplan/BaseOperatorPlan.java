@@ -33,7 +33,7 @@ import org.apache.pig.impl.util.Pair;
 
 public abstract class BaseOperatorPlan implements OperatorPlan {
 
-    protected Set<Operator> ops;
+    protected List<Operator> ops;
     protected PlanEdge fromEdges;
     protected PlanEdge toEdges;
     protected PlanEdge softFromEdges;
@@ -45,7 +45,7 @@ public abstract class BaseOperatorPlan implements OperatorPlan {
         LogFactory.getLog(BaseOperatorPlan.class);
  
     public BaseOperatorPlan() {
-        ops = new HashSet<Operator>();
+        ops = new ArrayList<Operator>();
         roots = new ArrayList<Operator>();
         leaves = new ArrayList<Operator>();
         fromEdges = new PlanEdge();
@@ -57,7 +57,7 @@ public abstract class BaseOperatorPlan implements OperatorPlan {
     @SuppressWarnings("unchecked")
     public BaseOperatorPlan(BaseOperatorPlan other) {
         // (shallow) copy constructor
-        ops = (Set<Operator>) ((HashSet<Operator>) other.ops).clone();
+        ops = (List<Operator>) ((ArrayList<Operator>) other.ops).clone();
         roots = (List<Operator>) ((ArrayList) other.roots).clone();
         leaves = (List<Operator>) ((ArrayList) other.leaves).clone();
         fromEdges = other.fromEdges.shallowClone();
@@ -113,7 +113,7 @@ public abstract class BaseOperatorPlan implements OperatorPlan {
      * if op is a root.
      */
     public List<Operator> getPredecessors(Operator op) {
-        return (List<Operator>)toEdges.get(op);
+        return toEdges.get(op);
     }
     
     /**
@@ -123,7 +123,7 @@ public abstract class BaseOperatorPlan implements OperatorPlan {
      * if op is a leaf.
      */
     public List<Operator> getSuccessors(Operator op) {
-        return (List<Operator>)fromEdges.get(op);
+        return fromEdges.get(op);
     }
     
     /**
@@ -134,7 +134,7 @@ public abstract class BaseOperatorPlan implements OperatorPlan {
      * if op is a root.
      */
     public List<Operator> getSoftLinkPredecessors(Operator op) {
-        return (List<Operator>)softToEdges.get(op);
+        return softToEdges.get(op);
     }
     
     /**
@@ -144,7 +144,7 @@ public abstract class BaseOperatorPlan implements OperatorPlan {
      * if op is a leaf.
      */
     public List<Operator> getSoftLinkSuccessors(Operator op) {
-        return (List<Operator>)softFromEdges.get(op);
+        return softFromEdges.get(op);
     }
 
     /**
@@ -154,7 +154,8 @@ public abstract class BaseOperatorPlan implements OperatorPlan {
      */
     public void add(Operator op) {
         markDirty();
-        ops.add(op);
+        if (!ops.contains(op))
+            ops.add(op);
     }
 
     /**
@@ -195,11 +196,24 @@ public abstract class BaseOperatorPlan implements OperatorPlan {
     }
     
     /**
+     * Check if given two operators are directly connected.
+     * @param from Operator edge will come from
+     * @param to Operator edge will go to
+     */
+    public boolean isConnected(Operator from, Operator to) {
+    	List<Operator> preds = getPredecessors( to );
+    	return ( preds != null ) && preds.contains( from );
+    }
+    
+    /**
      * Connect two operators in the plan.
      * @param from Operator edge will come from
      * @param to Operator edge will go to
      */
     public void connect(Operator from, Operator to) {
+    	if( isConnected( from, to ) )
+    		return;
+    	
         markDirty();
         fromEdges.put(from, to);
         toEdges.put(to, from);
@@ -442,4 +456,24 @@ public abstract class BaseOperatorPlan implements OperatorPlan {
         connect(pred, pos.first, operatorToInsert, 0);
         connect(operatorToInsert, 0, succ, pos.second);
     }
+
+    /**
+     * A method to check if there is a path from a given node to another node
+     * @param from the start node for checking
+     * @param to the end node for checking
+     * @return true if path exists, false otherwise
+     */
+    public boolean pathExists(Operator from, Operator to) {
+        List<Operator> successors = getSuccessors( from );
+        if(successors == null || successors.size() == 0) {
+            return false;
+        }
+        for (Operator successor : successors) {
+            if( successor.equals( to ) || pathExists( successor, to ) ) {
+                return true;
+            }
+        }
+        return false;
+    }
+
 }

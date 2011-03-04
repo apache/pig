@@ -155,7 +155,7 @@ public class ProjectFixerUpper extends LOVisitor {
 
                         }
 
-                        List<ProjectionMap.Column> columns = (List<ProjectionMap.Column>) oldNodeMappedFields.get(oldNodeColumn);
+                        List<ProjectionMap.Column> columns = oldNodeMappedFields.get(oldNodeColumn);
                         
                         if (columns == null) {
                             // there is no mapping for oldNodeColumn
@@ -224,7 +224,7 @@ public class ProjectFixerUpper extends LOVisitor {
                         boolean foundMapping = false;
                         for (Integer key : newNodeMappedFields.keySet()) {
 
-                            List<ProjectionMap.Column> columns = (List<ProjectionMap.Column>) newNodeMappedFields
+                            List<ProjectionMap.Column> columns = newNodeMappedFields
                                     .get(key);
                             if (columns == null) {
                                 // should not happen

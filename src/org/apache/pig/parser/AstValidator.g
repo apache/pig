@@ -46,6 +46,18 @@ import org.apache.commons.logging.LogFactory;
 
 private static Log log = LogFactory.getLog( AstValidator.class );
 
+@Override
+protected Object recoverFromMismatchedToken(IntStream input, int ttype, BitSet follow) 
+throws RecognitionException {
+    throw new MismatchedTokenException( ttype, input );
+}
+
+@Override
+public Object recoverFromMismatchedSet(IntStream input, RecognitionException e, BitSet follow)
+throws RecognitionException {
+    throw e;
+}
+
 public String getErrorMessage(RecognitionException e, String[] tokenNames) {
     String msg = e.getMessage();
     if ( e instanceof DuplicatedSchemaAliasException ) {
@@ -72,8 +84,6 @@ private void validateAliasRef(Set<String> aliases, String alias)
 throws UndefinedAliasException {
     if( !aliases.contains( alias ) ) {
         throw new UndefinedAliasException( input, alias );
-    } else {
-        aliases.add( alias );
     }
 }
 
@@ -81,26 +91,27 @@ private Set<String> aliases = new HashSet<String>();
 
 } // End of @members
 
+@rulecatch {
+catch(RecognitionException re) {
+    throw re;
+}
+}
+
 query : ^( QUERY statement* )
 ;
 
 statement : general_statement
-          | foreach_statement
           | split_statement
 ;
 
 split_statement : split_clause
 ;
 
+// For foreach statement that with complex inner plan.
 general_statement : ^( STATEMENT ( alias { aliases.add( $alias.name ); } )? op_clause parallel_clause? )
 ;
 
 parallel_clause : ^( PARALLEL INTEGER )
-;
-
-// We need to handle foreach specifically because of the ending ';', which is not required 
-// if there is a nested block. This is ugly, but it gets the job done.
-foreach_statement : ^( STATEMENT ( alias { aliases.add( $alias.name ); } )? foreach_clause )
 ;
 
 alias returns[String name] : IDENTIFIER { $name = $IDENTIFIER.text; }
@@ -121,6 +132,7 @@ op_clause : define_clause
           | stream_clause
           | mr_clause
           | split_clause
+          | foreach_clause
 ;
 
 define_clause : ^( DEFINE alias ( cmd | func_clause ) )
@@ -149,7 +161,7 @@ stream_cmd : ^( STDIN func_clause? )
 output_clause : ^( OUTPUT stream_cmd+ )
 ;
 
-error_clause : ^( STDERROR  QUOTEDSTRING INTEGER? )
+error_clause : ^( STDERROR  ( QUOTEDSTRING INTEGER? )? )
 ;
 
 load_clause : ^( LOAD filename func_clause? as_clause? )
@@ -162,9 +174,7 @@ as_clause: ^( AS field_def_list )
 ;
 
 field_def[Set<String> fieldNames] throws Exception
- : ^( FIELD_DEF IDENTIFIER { validateSchemaAliasName( fieldNames, $IDENTIFIER.text ); } )
--> ^( FIELD_DEF IDENTIFIER BYTEARRAY )
- | ^( FIELD_DEF IDENTIFIER { validateSchemaAliasName( fieldNames, $IDENTIFIER.text ); } type )
+ : ^( FIELD_DEF IDENTIFIER { validateSchemaAliasName( fieldNames, $IDENTIFIER.text ); } type? )
 ;
 
 field_def_list
@@ -183,7 +193,7 @@ type : simple_type | tuple_type | bag_type | map_type
 simple_type : INT | LONG | FLOAT | DOUBLE | CHARARRAY | BYTEARRAY
 ;
 
-tuple_type : ^( TUPLE_TYPE field_def_list )
+tuple_type : ^( TUPLE_TYPE field_def_list? )
 ;
 
 bag_type : ^( BAG_TYPE tuple_type? )
@@ -192,27 +202,55 @@ bag_type : ^( BAG_TYPE tuple_type? )
 map_type : MAP_TYPE
 ;
 
-func_clause : ^( FUNC func_name func_args? )
-            | ^( FUNC_REF func_alias )
+func_clause : ^( FUNC_REF func_name )
+            | ^( FUNC func_name func_args? )
 ;
 
 func_name : eid ( ( PERIOD | DOLLAR ) eid )*
 ;
 
-func_alias : IDENTIFIER
-;
-
 func_args : QUOTEDSTRING+
 ;
 
-group_clause : ^( GROUP group_item+ group_type? )
-             | ^( COGROUP group_item+ group_type? )
+group_clause
+scope {
+    int arity;
+}
+@init {
+    $group_clause::arity = 0;
+    int gt = HINT_REGULAR;
+    int num_inputs = 0;
+}
+ : ^( ( GROUP | COGROUP ) 
+      ( group_item { num_inputs++; } )+ 
+      ( group_type { gt = $group_type.type; } )? 
+      partition_clause?
+    )
+    {
+        if( gt == HINT_COLLECTED ) {
+            if( num_inputs > 1 ) {
+                throw new ParserValidationException( input, "Collected group is only supported for single input" );
+           } 
+        }
+    }
 ;
 
-group_type : HINT_COLLECTED | HINT_MERGE | HINT_REGULAR
+group_type returns [int type]
+ : HINT_COLLECTED { $type = HINT_COLLECTED; } 
+ | HINT_MERGE  { $type = HINT_MERGE; } 
+ | HINT_REGULAR { $type = HINT_REGULAR; } 
 ;
 
-group_item : rel ( join_group_by_clause | ALL | ANY ) ( INNER | OUTER )?
+group_item
+ : rel ( join_group_by_clause | ALL | ANY ) ( INNER | OUTER )?
+   {
+       if( $group_clause::arity == 0 ) {
+           // For the first input
+           $group_clause::arity = $join_group_by_clause.exprCount;
+       } else if( $join_group_by_clause.exprCount != $group_clause::arity ) {
+           throw new ParserValidationException( input, "The arity of the group by columns do not match." );
+       }
+   }
 ;
 
 rel : alias {  validateAliasRef( aliases, $alias.name ); }
@@ -254,8 +292,17 @@ expr : ^( PLUS expr expr )
      | const_expr
      | var_expr
      | ^( NEG expr )
-     | ^( CAST_EXPR type expr )
+     | ^( CAST_EXPR type_cast expr )
      | ^( EXPR_IN_PAREN expr )
+;
+
+type_cast : simple_type | map_type | tuple_type_cast | bag_type_cast
+;
+
+tuple_type_cast : ^( TUPLE_TYPE_CAST type_cast* )
+;
+
+bag_type_cast : ^( BAG_TYPE_CAST tuple_type_cast? )
 ;
 
 var_expr : projectable_expr ( dot_proj | pound_proj )*
@@ -270,10 +317,13 @@ dot_proj : ^( PERIOD col_alias_or_index+ )
 col_alias_or_index : col_alias | col_index
 ;
 
-col_alias : GROUP | IDENTIFIER
+col_alias : GROUP | scoped_col_alias
 ;
 
-col_index : ^( DOLLAR INTEGER )
+scoped_col_alias : ^( SCOPED_ALIAS IDENTIFIER+ )
+;
+
+col_index : DOLLARVAR
 ;
 
 pound_proj : ^( POUND ( QUOTEDSTRING | NULL ) )
@@ -310,20 +360,71 @@ cross_clause : ^( CROSS rel_list partition_clause? )
 rel_list : rel+
 ;
 
-join_clause : ^( JOIN join_sub_clause join_type? partition_clause? )
+join_clause
+scope {
+    int arity;
+}
+@init {
+    $join_clause::arity = 0;
+    boolean partitionerPresent = false;
+    int jt = HINT_DEFAULT;
+}
+ : ^( JOIN join_sub_clause ( join_type { jt = $join_type.type; } )? ( partition_clause { partitionerPresent = true; } )? )
+   {
+       if( jt == HINT_SKEWED ) {
+           if( partitionerPresent ) {
+               throw new ParserValidationException( input, "Custom Partitioner is not supported for skewed join" );
+           }
+           
+           if( $join_sub_clause.inputCount != 2 ) {
+               throw new ParserValidationException( input, "Skewed join can only be applied for 2-way joins" );
+           }
+       } else if( jt == HINT_MERGE && $join_sub_clause.inputCount != 2 ) {
+           throw new ParserValidationException( input, "Merge join can only be applied for 2-way joins" );
+       } else if( jt == HINT_REPL && $join_sub_clause.right ) {
+           throw new ParserValidationException( input, "Replicated join does not support (right|full) outer joins" );
+       }
+   }
 ;
 
-join_type : HINT_REPL | HINT_MERGE | HINT_SKEWED | HINT_DEFAULT
+join_type returns[int type]
+ : HINT_REPL  { $type = HINT_REPL; }
+ | HINT_MERGE { $type = HINT_MERGE; }
+ | HINT_SKEWED { $type = HINT_SKEWED; }
+ | HINT_DEFAULT { $type = HINT_DEFAULT; }
 ;
 
-join_sub_clause : join_item ( LEFT | RIGHT | FULL ) OUTER? join_item
-                | ( join_item )+
+join_sub_clause returns[int inputCount, boolean right, boolean left]
+@init {
+    $inputCount = 0;
+}
+ : join_item ( LEFT { $left = true; }
+             | RIGHT { $right = true; }
+             | FULL { $left = true; $right = true; }
+             ) OUTER? join_item
+   { 
+       $inputCount = 2;
+   }
+ | ( join_item { $inputCount++; } )+
 ;
 
-join_item : ^( JOIN_ITEM rel join_group_by_clause )
+join_item
+ : ^( JOIN_ITEM rel join_group_by_clause )
+   {
+       if( $join_clause::arity == 0 ) {
+           // For the first input
+           $join_clause::arity = $join_group_by_clause.exprCount;
+       } else if( $join_group_by_clause.exprCount != $join_clause::arity ) {
+           throw new ParserValidationException( input, "The arity of the join columns do not match." );
+       }
+   }
 ;
 
-join_group_by_clause : ^( BY join_group_by_expr+ )
+join_group_by_clause returns[int exprCount]
+@init {
+    $exprCount = 0;
+}
+ : ^( BY ( join_group_by_expr { $exprCount++; } )+ )
 ;
 
 join_group_by_expr : expr | STAR
@@ -335,8 +436,8 @@ union_clause : ^( UNION ONSCHEMA? rel_list )
 foreach_clause : ^( FOREACH rel foreach_plan )
 ;
 
-foreach_plan : ^( FOREACH_PLAN nested_blk )
-             | ^( FOREACH_PLAN_SIMPLE generate_clause parallel_clause? )
+foreach_plan : ^( FOREACH_PLAN_SIMPLE generate_clause )
+             | ^( FOREACH_PLAN_COMPLEX nested_blk )
 ;
 
 nested_blk
@@ -394,16 +495,23 @@ mr_clause : ^( MAPREDUCE QUOTEDSTRING path_list? store_clause load_clause EXECCO
 split_clause : ^( SPLIT rel split_branch+ )
 ;
 
-split_branch : ^( SPLIT_BRANCH IDENTIFIER cond )
+split_branch
+ : ^( SPLIT_BRANCH IDENTIFIER cond )
+   {
+       aliases.add( $IDENTIFIER.text );
+   }
 ;
 
 col_ref : alias_col_ref | dollar_col_ref
 ;
 
-alias_col_ref : GROUP | IDENTIFIER
+alias_col_ref : GROUP | scoped_alias_col_ref
 ;
 
-dollar_col_ref : ^( DOLLAR INTEGER )
+scoped_alias_col_ref : ^( SCOPED_ALIAS IDENTIFIER+ )
+;
+
+dollar_col_ref : DOLLARVAR
 ;
 
 const_expr : literal
@@ -412,7 +520,7 @@ const_expr : literal
 literal : scalar | map | bag | tuple
 ;
 
-scalar : INTEGER | LONGINEGER | FLOATNUMBER | DOUBLENUMBER | QUOTEDSTRING | NULL
+scalar : INTEGER | LONGINTEGER | FLOATNUMBER | DOUBLENUMBER | QUOTEDSTRING | NULL
 ;
 
 map : ^( MAP_VAL keyvalue* )
@@ -421,7 +529,7 @@ map : ^( MAP_VAL keyvalue* )
 keyvalue : ^( KEY_VAL_PAIR map_key const_expr )
 ;
 
-map_key : QUOTEDSTRING | NULL
+map_key : QUOTEDSTRING
 ;
 
 bag : ^( BAG_VAL tuple* )

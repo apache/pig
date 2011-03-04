@@ -41,14 +41,12 @@ import org.apache.hadoop.mapred.JobConf;
 import org.apache.pig.ExecType;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.PigException;
-import org.apache.pig.SortInfo;
 import org.apache.pig.backend.datastorage.DataStorage;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.executionengine.ExecJob;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.datastorage.HDataStorage;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MapReduceLauncher;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.LogToPhyTranslationVisitor;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
@@ -57,26 +55,18 @@ import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.logicalLayer.FrontendException;
-import org.apache.pig.impl.logicalLayer.LOForEach;
 import org.apache.pig.impl.logicalLayer.LogicalOperator;
-import org.apache.pig.impl.logicalLayer.LogicalPlan;
 import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.impl.util.Utils;
-import org.apache.pig.newplan.DependencyOrderWalker;
 import org.apache.pig.newplan.Operator;
-import org.apache.pig.newplan.OperatorPlan;
-import org.apache.pig.newplan.logical.LogicalPlanMigrationVistor;
-import org.apache.pig.newplan.logical.expression.ConstantExpression;
-import org.apache.pig.newplan.logical.expression.LogicalExpressionPlan;
+import org.apache.pig.newplan.logical.optimizer.LogicalPlanOptimizer;
 import org.apache.pig.newplan.logical.optimizer.SchemaResetter;
-import org.apache.pig.newplan.logical.relational.LOLimit;
-import org.apache.pig.newplan.logical.relational.LOSort;
-import org.apache.pig.newplan.logical.relational.LOSplit;
-import org.apache.pig.newplan.logical.relational.LOSplitOutput;
-import org.apache.pig.newplan.logical.relational.LOStore;
-import org.apache.pig.newplan.logical.relational.LogicalRelationalNodesVisitor;
+import org.apache.pig.newplan.logical.optimizer.UidResetter;
+import org.apache.pig.newplan.logical.relational.LOForEach;
+import org.apache.pig.newplan.logical.relational.LogToPhyTranslationVisitor;
+import org.apache.pig.newplan.logical.relational.LogicalPlan;
 import org.apache.pig.newplan.logical.relational.LogicalRelationalOperator;
 import org.apache.pig.newplan.logical.rules.InputOutputFileValidator;
 import org.apache.pig.newplan.logical.visitor.SortInfoSetter;
@@ -110,8 +100,7 @@ public class HExecutionEngine {
     
     protected Map<LogicalOperator, LogicalRelationalOperator> opsMap;
     protected Map<Operator, PhysicalOperator> newLogToPhyMap;
-    private Map<LOForEach, Map<LogicalOperator, LogicalRelationalOperator>> forEachInnerOpMap;
-    private org.apache.pig.newplan.logical.relational.LogicalPlan newPreoptimizedPlan;
+    private LogicalPlan newPreoptimizedPlan;
     
     public HExecutionEngine(PigContext pigContext) {
         this.pigContext = pigContext;
@@ -165,17 +154,17 @@ public class HExecutionEngine {
            
         JobConf jc = null;
         if ( this.pigContext.getExecType() == ExecType.MAPREDUCE ) {
-        	
+            
             // Check existence of hadoop-site.xml or core-site.xml
-        	Configuration testConf = new Configuration();
+            Configuration testConf = new Configuration();
             ClassLoader cl = testConf.getClassLoader();
             URL hadoop_site = cl.getResource( HADOOP_SITE );
             URL core_site = cl.getResource( CORE_SITE );
             
             if( hadoop_site == null && core_site == null ) {
-            	throw new ExecException("Cannot find hadoop configurations in classpath (neither hadoop-site.xml nor core-site.xml was found in the classpath)." +
-            			"If you plan to use local mode, please put -x local option in command line", 
-            			4010);
+                throw new ExecException("Cannot find hadoop configurations in classpath (neither hadoop-site.xml nor core-site.xml was found in the classpath)." +
+                        "If you plan to use local mode, please put -x local option in command line", 
+                        4010);
             }
 
             jc = new JobConf();
@@ -256,114 +245,97 @@ public class HExecutionEngine {
             throw new FrontendException(msg, errCode, PigException.BUG);
         }
 
-        try {
-            if (getConfiguration().getProperty("pig.usenewlogicalplan", "true").equals("true")) {
-                log.info("pig.usenewlogicalplan is set to true. New logical plan will be used.");
-                
-                // translate old logical plan to new plan
-                LogicalPlanMigrationVistor visitor = new LogicalPlanMigrationVistor(plan);
-                visitor.visit();
-                opsMap = visitor.getOldToNewLOOpMap();
-                forEachInnerOpMap = visitor.getForEachInnerMap();
-                org.apache.pig.newplan.logical.relational.LogicalPlan newPlan = visitor.getNewLogicalPlan();
-                newPreoptimizedPlan =
-                    new org.apache.pig.newplan.logical.relational.LogicalPlan(newPlan);
-                
-                if (pigContext.inIllustrator) {
-                    // disable all PO-specific optimizations
-                    POOptimizeDisabler pod = new POOptimizeDisabler(newPlan);
-                    pod.visit();
-                }
-                
-                SchemaResetter schemaResetter = new SchemaResetter(newPlan);
-                schemaResetter.visit();
-                
-                HashSet<String> optimizerRules = null;
-                try {
-                    optimizerRules = (HashSet<String>) ObjectSerializer
-                            .deserialize(pigContext.getProperties().getProperty(
-                                    "pig.optimizer.rules"));
-                } catch (IOException ioe) {
-                    int errCode = 2110;
-                    String msg = "Unable to deserialize optimizer rules.";
-                    throw new FrontendException(msg, errCode, PigException.BUG, ioe);
-                }
-                
-                if (pigContext.inIllustrator) {
-                    // disable MergeForEach in illustrator
-                    if (optimizerRules == null)
-                        optimizerRules = new HashSet<String>();
-                    optimizerRules.add("MergeForEach");
-                    optimizerRules.add("PartitionFilterOptimizer");
-                    optimizerRules.add("LimitOptimizer");
-                    optimizerRules.add("SplitFilter");
-                    optimizerRules.add("PushUpFilter");
-                    optimizerRules.add("MergeFilter");
-                    optimizerRules.add("PushDownForEachFlatten");
-                    optimizerRules.add("ColumnMapKeyPrune");
-                    optimizerRules.add("AddForEach");
-                    optimizerRules.add("GroupByConstParallelSetter");
-                }
-                
-                // run optimizer
-                org.apache.pig.newplan.logical.optimizer.LogicalPlanOptimizer optimizer = 
-                    new org.apache.pig.newplan.logical.optimizer.LogicalPlanOptimizer(newPlan, 100, optimizerRules);
-                optimizer.optimize();
-                
-                // compute whether output data is sorted or not
-                SortInfoSetter sortInfoSetter = new SortInfoSetter(newPlan);
-                sortInfoSetter.visit();
-                
-                if (pigContext.inExplain==false) {
-                    // Validate input/output file. Currently no validation framework in
-                    // new logical plan, put this validator here first.
-                    // We might decide to move it out to a validator framework in future
-                    InputOutputFileValidator validator = new InputOutputFileValidator(newPlan, pigContext);
-                    validator.validate();
-                }
-                
-                // translate new logical plan to physical plan
-                org.apache.pig.newplan.logical.relational.LogToPhyTranslationVisitor translator = 
-                    new org.apache.pig.newplan.logical.relational.LogToPhyTranslationVisitor(newPlan);
-                
-                translator.setPigContext(pigContext);
-                translator.visit();
-                newLogToPhyMap = translator.getLogToPhyMap();
-                return translator.getPhysicalPlan();
-                
-            }else{       
-                LogToPhyTranslationVisitor translator = 
-                    new LogToPhyTranslationVisitor(plan);
-                translator.setPigContext(pigContext);
-                translator.visit();
-                return translator.getPhysicalPlan();
-            }
-        } catch (ExecException ve) {
-            int errCode = 2042;
-            String msg = "Error in new logical plan. Try -Dpig.usenewlogicalplan=false.";
-            throw new FrontendException(msg, errCode, PigException.BUG, ve);
+        newPreoptimizedPlan = new LogicalPlan( plan );
+        
+        if (pigContext.inIllustrator) {
+            // disable all PO-specific optimizations
+            POOptimizeDisabler pod = new POOptimizeDisabler( plan );
+            pod.visit();
         }
+        
+        UidResetter uidResetter = new UidResetter( plan );
+        uidResetter.visit();
+        
+        SchemaResetter schemaResetter = new SchemaResetter( plan );
+        schemaResetter.visit();
+        
+        HashSet<String> optimizerRules = null;
+        try {
+            optimizerRules = (HashSet<String>) ObjectSerializer
+                    .deserialize(pigContext.getProperties().getProperty(
+                            "pig.optimizer.rules"));
+        } catch (IOException ioe) {
+            int errCode = 2110;
+            String msg = "Unable to deserialize optimizer rules.";
+            throw new FrontendException(msg, errCode, PigException.BUG, ioe);
+        }
+        
+        if (pigContext.inIllustrator) {
+            // disable MergeForEach in illustrator
+            if (optimizerRules == null)
+                optimizerRules = new HashSet<String>();
+            optimizerRules.add("MergeForEach");
+            optimizerRules.add("PartitionFilterOptimizer");
+            optimizerRules.add("LimitOptimizer");
+            optimizerRules.add("SplitFilter");
+            optimizerRules.add("PushUpFilter");
+            optimizerRules.add("MergeFilter");
+            optimizerRules.add("PushDownForEachFlatten");
+            optimizerRules.add("ColumnMapKeyPrune");
+            optimizerRules.add("AddForEach");
+            optimizerRules.add("GroupByConstParallelSetter");
+        }
+        
+        // run optimizer
+        LogicalPlanOptimizer optimizer = new LogicalPlanOptimizer( plan, 100, optimizerRules );
+        optimizer.optimize();
+        
+        // compute whether output data is sorted or not
+        SortInfoSetter sortInfoSetter = new SortInfoSetter( plan );
+        sortInfoSetter.visit();
+        
+        if (pigContext.inExplain==false) {
+            // Validate input/output file. Currently no validation framework in
+            // new logical plan, put this validator here first.
+            // We might decide to move it out to a validator framework in future
+            InputOutputFileValidator validator = new InputOutputFileValidator( plan, pigContext );
+            validator.validate();
+        }
+        
+        // translate new logical plan to physical plan
+        LogToPhyTranslationVisitor translator = new LogToPhyTranslationVisitor( plan );
+        
+        translator.setPigContext(pigContext);
+        translator.visit();
+        newLogToPhyMap = translator.getLogToPhyMap();
+        return translator.getPhysicalPlan();
     }
     
     public Map<Operator, PhysicalOperator> getLogToPhyMap() {
         return newLogToPhyMap;
     }
     
-    public Map<org.apache.pig.newplan.logical.relational.LOForEach, Map<LogicalRelationalOperator, PhysicalOperator>> getForEachInnerLogToPhyMap() {
-        Map<org.apache.pig.newplan.logical.relational.LOForEach, Map<LogicalRelationalOperator, PhysicalOperator>> result =
-            new HashMap<org.apache.pig.newplan.logical.relational.LOForEach, Map<LogicalRelationalOperator, PhysicalOperator>>();
-        for (Map.Entry<LOForEach, Map<LogicalOperator, LogicalRelationalOperator>> entry :
-            forEachInnerOpMap.entrySet()) {
-            Map<LogicalRelationalOperator, PhysicalOperator> innerOpMap = new HashMap<LogicalRelationalOperator, PhysicalOperator>();
-            for (Map.Entry<LogicalOperator, LogicalRelationalOperator> innerEntry : entry.getValue().entrySet()) {
-                innerOpMap.put(innerEntry.getValue(), newLogToPhyMap.get(innerEntry.getValue()));
+    public Map<LOForEach, Map<LogicalRelationalOperator, PhysicalOperator>> getForEachInnerLogToPhyMap(LogicalPlan plan) {
+        Map<LOForEach, Map<LogicalRelationalOperator, PhysicalOperator>> result =
+            new HashMap<LOForEach, Map<LogicalRelationalOperator, PhysicalOperator>>();
+        Iterator<Operator> outerIter = plan.getOperators();
+        while (outerIter.hasNext()) {
+            Operator oper = outerIter.next();
+            if (oper instanceof LOForEach) {
+                LogicalPlan innerPlan = ((LOForEach) oper).getInnerPlan();
+                Map<LogicalRelationalOperator, PhysicalOperator> innerOpMap = new HashMap<LogicalRelationalOperator, PhysicalOperator>();
+                Iterator<Operator> innerIter = innerPlan.getOperators();
+                while (innerIter.hasNext()) {
+                    Operator innerOper = innerIter.next();
+                    innerOpMap.put(((LogicalRelationalOperator)innerOper), newLogToPhyMap.get(innerOper));
+                }
+                result.put((LOForEach) oper, innerOpMap);
             }
-            result.put((org.apache.pig.newplan.logical.relational.LOForEach) (opsMap.get(entry.getKey())), innerOpMap);
         }
         return result;
     }
     
-    public org.apache.pig.newplan.logical.relational.LogicalPlan getNewPlan() {
+    public LogicalPlan getNewPlan() {
         return newPreoptimizedPlan;
     }
     
@@ -401,9 +373,9 @@ public class HExecutionEngine {
             // There are a lot of exceptions thrown by the launcher.  If this
             // is an ExecException, just let it through.  Else wrap it.
             if (e instanceof ExecException){
-            	throw (ExecException)e;
+                throw (ExecException)e;
             } else if (e instanceof FrontendException) {
-            	throw (FrontendException)e;
+                throw (FrontendException)e;
             } else {
                 int errCode = 2043;
                 String msg = "Unexpected error during execution.";

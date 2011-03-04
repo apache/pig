@@ -23,7 +23,7 @@
 
 aa = load '/data/intermediate/pow/elcarobootstrap/account/full/weekly/data/$date' using org.apache.pig.PigStorage('\n');
 bb = filter aa by (ARITY == '16') and ( $4 eq '' or $4 eq 'NULL' or $4 eq 'ss') parallel 400;
-a = foreach bb generate $0,$12,$7;
+a = foreach bb generate $0,$12,$7, $1.$1;
 
 define myudf org.apache.pig.TextLoader( 'test', 'data' );
 
@@ -54,13 +54,13 @@ E = join A by $0, B by $0 using 'replicated';
 
 F = Cross A, B;
 
-G = Split A into X if $0 > 0, Y if $0 == 0;
+G = Split A into X if $0 > 0, Y if $0 == 2L;
 
 H = union onschema A, B;
 
 B = GROUP A ALL using 'collected';
 
-I = foreach A generate flatten(c);
+I = foreach A generate flatten(B::c);
 
 CMD = `ls -l`;
 A = stream through CMD;

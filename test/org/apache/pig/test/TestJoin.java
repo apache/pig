@@ -236,6 +236,7 @@ public class TestJoin extends TestCase {
             boolean exceptionThrown = false;
             try{
                 Util.registerMultiLineQuery(pigServer, script);
+                pigServer.openIterator("d");
             }catch (Exception e) {
                 PigException pe = LogUtils.getPigException(e);
                 assertEquals(1025, pe.getErrorCode());

@@ -711,7 +711,7 @@ public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
     private void translateCollectedCogroup(LOCogroup cg) throws FrontendException {
         // can have only one input
         LogicalRelationalOperator pred = (LogicalRelationalOperator) plan.getPredecessors(cg).get(0);
-        List<LogicalExpressionPlan> exprPlans = (List<LogicalExpressionPlan>) cg.getExpressionPlans().get(0);
+        List<LogicalExpressionPlan> exprPlans =  cg.getExpressionPlans().get(0);
         POCollectedGroup physOp = new POCollectedGroup(new OperatorKey(
                 DEFAULT_SCOPE, nodeGen.getNextNodeId(DEFAULT_SCOPE)));
         physOp.setAlias(cg.getAlias());
@@ -763,7 +763,7 @@ public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
             PhysicalOperator physOp = logToPhyMap.get(op);
             inpPOs.add(physOp);
             
-            List<LogicalExpressionPlan> plans = (List<LogicalExpressionPlan>)innerPlans.get(i);
+            List<LogicalExpressionPlan> plans = innerPlans.get(i);
             POLocalRearrange poInnerLR = new POLocalRearrange(new OperatorKey(DEFAULT_SCOPE, nodeGen.getNextNodeId(DEFAULT_SCOPE)));
             poInnerLR.setAlias(relationalOp.getAlias());
             // LR will contain list of physical plans, because there could be
@@ -872,7 +872,7 @@ public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
             Operator op = inputs.get(i);
             PhysicalOperator physOp = logToPhyMap.get(op);
             inp.add(physOp);
-            List<LogicalExpressionPlan> plans = (List<LogicalExpressionPlan>) loj.getJoinPlan(i);
+            List<LogicalExpressionPlan> plans =  (List<LogicalExpressionPlan>)loj.getJoinPlan(i);
             
             List<PhysicalPlan> exprPlans = translateExpressionPlans(loj, plans);
 
@@ -1093,7 +1093,7 @@ public class LogToPhyTranslationVisitor extends LogicalRelationalNodesVisitor {
         List<Operator> inputs = relationalOp.getPlan().getPredecessors(relationalOp);
         for (int i=0;i<inputs.size();i++) {
             Operator op = inputs.get(i);
-            List<LogicalExpressionPlan> plans = (List<LogicalExpressionPlan>)innerPlans.get(i);
+            List<LogicalExpressionPlan> plans = innerPlans.get(i);
             POLocalRearrange physOp = new POLocalRearrange(new OperatorKey(
                     DEFAULT_SCOPE, nodeGen.getNextNodeId(DEFAULT_SCOPE)), relationalOp.getRequestedParallelisam());
             physOp.setAlias(relationalOp.getAlias());

@@ -1721,7 +1721,8 @@ public class Schema implements Serializable, Cloneable {
         if(fs.alias == null){
             throw new SchemaMergeException(
                     "Schema having field with null alias cannot be merged " +
-                    "using alias. Schema :" + schema
+                    "using alias. Schema :" + schema,
+                    1126
             );
         }
     }

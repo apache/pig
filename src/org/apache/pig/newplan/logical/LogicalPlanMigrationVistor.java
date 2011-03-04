@@ -177,7 +177,7 @@ public class LogicalPlanMigrationVistor extends LOVisitor {
             new org.apache.pig.newplan.logical.relational.LOJoin(logicalPlan, joinPlans, newType, isInner);
         
         for (int i=0; i<inputs.size(); i++) {
-            List<LogicalPlan> plans = (List<LogicalPlan>) loj.getJoinPlans().get(inputs.get(i));
+            List<LogicalPlan> plans = loj.getJoinPlans().get(inputs.get(i));
             for (LogicalPlan lp : plans) {                               
                 joinPlans.put(i, translateExpressionPlan(lp, loj, join));
             }        

@@ -90,6 +90,12 @@ public class LOInnerLoad extends LogicalRelationalOperator {
         return schema;
     }
     
+    @Override
+    public void resetSchema(){
+        super.resetSchema();
+        prj.resetFieldSchema();
+    }
+    
     public ProjectExpression getProjection() {
         return prj;
     }

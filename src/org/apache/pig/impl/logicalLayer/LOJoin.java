@@ -523,7 +523,7 @@ public class LOJoin extends RelationalOperator {
                     }
                 }
                 //remove the key and the values
-                List<LogicalPlan> plans = (List<LogicalPlan>)mJoinPlans.get(previous);
+                List<LogicalPlan> plans = mJoinPlans.get(previous);
                 mJoinPlans.removeKey(previous);
                 
                 //reinsert new key and values

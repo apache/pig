@@ -85,7 +85,70 @@ public class TestQueryParser {
 
     @Test
     public void test3() throws IOException, RecognitionException {
-        shouldPass("a = load '1.txt' as (a0); b = foreach a generate flatten((bag{T:tuple(m:map[])})a0) as b0:map[];c = foreach b generate (long)b0#'key1';");
+        String query = "a = load '1.txt' as (a0);" +
+                       "b = foreach a generate flatten( (bag{tuple(map[])})a0 ) as b0:map[];" +
+                       "c = foreach b generate (long)b0#'key1';";
+        shouldPass( query );
+    }
+
+    @Test
+    public void test4() throws IOException, RecognitionException {
+        String query = "a = load '1.txt'  as (name, age, gpa); b = group a by name;" +
+                       "c = foreach b generate group, COUNT(a.age);" +
+                       "store c into 'y';";
+        shouldPass( query );
+    }
+    
+    @Test
+    public void test5() throws IOException, RecognitionException {
+        String query = "a = load 'x' as (name, age, gpa);" +
+            "b = foreach a generate name, age +  2L, 3.125F, 3.4e2;" +
+            " store b into 'y'; ";
+        shouldPass( query );
+    }
+    
+    @Test
+    public void test6() throws IOException, RecognitionException {
+        String query = "a = load '/user/pig/tests/data/singlefile/studentnulltab10k' as (name:chararray, age:int, gpa:double);" +
+                       "b = foreach a generate (int)((int)gpa/((int)gpa - 1)) as norm_gpa:int;" + 
+                       "c = foreach b generate (norm_gpa is not null? norm_gpa: 0);" +
+                       "store c into '/user/pig/out/jianyong.1297229709/Types_37.out';";
+        shouldPass( query );
+    }
+    
+    @Test
+    public void test7() throws IOException, RecognitionException {
+        String query = "a = load '/user/pig/tests/data/singlefile/studenttab10k';" +
+                       "b = group a by $0;" +
+                       "c = foreach b {c1 = order $1 by * using org.apache.pig.test.udf.orderby.OrdDesc; generate flatten(c1); };" +
+                       "store c into '/user/pig/out/jianyong.1297305352/Order_15.out';";
+        shouldPass( query );
+    }
+    
+    @Test
+    public void test8() throws IOException, RecognitionException {
+        String query = "a = load '/user/pig/tests/data/singlefile/studenttab10k';" +
+                       "b = group a by $0;" +
+                       "c = foreach b {c1 = order $1 by $1; generate flatten(c1), MAX($1.$1); };" +
+                       "store c into '/user/pig/out/jianyong.1297305352/Order_17.out';";
+        shouldPass( query );
+    }
+    
+    @Test
+    public void test9() throws IOException, RecognitionException {
+        String query = "a = load 'x' as (u,v);" +
+                       "b = load 'y' as (u,w);" +
+                       "c = join a by u, b by u;" +
+                       "d = foreach c generate a::u, b::u, w;";
+        shouldPass( query );
+    }
+
+    @Test
+    public void test10() throws IOException, RecognitionException {
+        String query = "a = load 'x' as (name, age, gpa);" +
+            "b = FOREACH C GENERATE group, flatten( ( 1 == 2 ? 2 : 3 ) );" +
+            " store b into 'y'; ";
+        shouldPass( query );
     }
 
     @Test
@@ -184,7 +247,12 @@ public class TestQueryParser {
 
     private void shouldFail(String query) throws RecognitionException, IOException {
         System.out.println("Testing: " + query);
-        Assert.assertFalse(query + " should have failed", 0 == parse(query));
+        try {
+            parse( query );
+        } catch(Exception ex) {
+            return;
+        }
+        Assert.fail( query + " should have failed" );
     }
     
     private int parse(String query) throws IOException, RecognitionException  {

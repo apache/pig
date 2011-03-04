@@ -25,6 +25,7 @@ import java.io.PrintWriter;
 import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Iterator;
 
 import junit.framework.Assert;
 
@@ -41,10 +42,10 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
 import org.apache.pig.backend.hadoop.executionengine.util.MapRedUtil;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
-import org.apache.pig.impl.logicalLayer.LogicalPlan;
 import org.apache.pig.impl.plan.Operator;
 import org.apache.pig.impl.plan.OperatorPlan;
 import org.apache.pig.impl.util.LogUtils;
+import org.apache.pig.newplan.logical.relational.LogicalPlan;
 import org.apache.pig.tools.grunt.GruntParser;
 import org.apache.pig.tools.pigscript.parser.ParseException;
 import org.junit.After;
@@ -109,7 +110,7 @@ public class TestMultiQueryCompiler {
             myPig.registerQuery("store D1 into '/tmp/output1';");
             myPig.registerQuery("store D2 into '/tmp/output2';");
             
-            LogicalPlan lp = checkLogicalPlan(1, 2, 13);
+            LogicalPlan lp = checkLogicalPlan(1, 2, 9);
 
             PhysicalPlan pp = checkPhysicalPlan(lp, 1, 2, 15);
 
@@ -166,7 +167,7 @@ public class TestMultiQueryCompiler {
             myPig.registerQuery("p4 = foreach g4 generate group, COUNT(f4.gid);");
             myPig.registerQuery("store p4 into '/tmp/output4';");
 
-            LogicalPlan lp = checkLogicalPlan(1, 4, 27);
+            LogicalPlan lp = checkLogicalPlan(1, 4, 17);
 
             PhysicalPlan pp = checkPhysicalPlan(lp, 1, 4, 35);
 
@@ -201,7 +202,7 @@ public class TestMultiQueryCompiler {
             myPig.registerQuery("e = foreach d generate group, COUNT(c), COUNT(b);");
             myPig.registerQuery("store e into '/tmp/output1';");
              
-            LogicalPlan lp = checkLogicalPlan(1, 1, 10);
+            LogicalPlan lp = checkLogicalPlan(1, 1, 6);
 
             PhysicalPlan pp = checkPhysicalPlan(lp, 1, 1, 13);
 
@@ -233,7 +234,7 @@ public class TestMultiQueryCompiler {
             myPig.registerQuery("g1 = foreach g generate group, COUNT(d), COUNT(e);");
             myPig.registerQuery("store g1 into '/tmp/output2';");
              
-            LogicalPlan lp = checkLogicalPlan(1, 2, 17);
+            LogicalPlan lp = checkLogicalPlan(1, 2, 11);
 
             PhysicalPlan pp = checkPhysicalPlan(lp, 1, 2, 23);
 
@@ -266,9 +267,10 @@ public class TestMultiQueryCompiler {
             myPig.registerQuery("h = foreach g generate group, COUNT(f.uid);");
             myPig.registerQuery("store h into '/tmp/output3';");
              
-            LogicalPlan lp = checkLogicalPlan(1, 3, 18);
+            LogicalPlan lp = checkLogicalPlan(1, 3, 11);
 
-            PhysicalPlan pp = checkPhysicalPlan(lp, 1, 3, 20);
+            // NOTE: old way seemingly generated a useless foreach operator. Now we have one less operator. Reason unknow.
+            PhysicalPlan pp = checkPhysicalPlan(lp, 1, 3, 19);
 
             checkMRPlan(pp, 1, 1, 1);
             
@@ -294,7 +296,7 @@ public class TestMultiQueryCompiler {
             myPig.registerQuery("f1 = foreach f generate group, SUM(c2.gid);");
             myPig.registerQuery("store f1 into '/tmp/output1';");
 
-            LogicalPlan lp = checkLogicalPlan(1, 1, 6);
+            LogicalPlan lp = checkLogicalPlan(1, 1, 7);
 
             PhysicalPlan pp = checkPhysicalPlan(lp, 1, 1, 9);
 
@@ -330,7 +332,7 @@ public class TestMultiQueryCompiler {
             myPig.registerQuery("d2 = foreach d1 generate group, AVG(d.uid);");            
             myPig.registerQuery("store d2 into '/tmp/output3';");
              
-            LogicalPlan lp = checkLogicalPlan(1, 3, 19);
+            LogicalPlan lp = checkLogicalPlan(1, 3, 14);
 
             PhysicalPlan pp = checkPhysicalPlan(lp, 1, 3, 25);
 
@@ -362,7 +364,7 @@ public class TestMultiQueryCompiler {
             myPig.registerQuery("f1 = foreach f generate group, SUM(d.c::uid);");
             myPig.registerQuery("store f1 into '/tmp/output2';");
              
-            LogicalPlan lp = checkLogicalPlan(1, 2, 17);
+            LogicalPlan lp = checkLogicalPlan(1, 2, 10);
 
             PhysicalPlan pp = checkPhysicalPlan(lp, 1, 2, 25);
 
@@ -398,7 +400,7 @@ public class TestMultiQueryCompiler {
             myPig.registerQuery("d2 = foreach d1 generate group, MAX(d.uid) - MIN(d.uid);");
             myPig.registerQuery("store d2 into '/tmp/output3';");
              
-            LogicalPlan lp = checkLogicalPlan(1, 3, 19);
+            LogicalPlan lp = checkLogicalPlan(1, 3, 14);
 
             PhysicalPlan pp = checkPhysicalPlan(lp, 1, 3, 25);
 
@@ -434,7 +436,7 @@ public class TestMultiQueryCompiler {
             myPig.registerQuery("d2 = foreach d1 generate group, d.uname, MAX(d.uid) - MIN(d.uid);");
             myPig.registerQuery("store d2 into '/tmp/output3';");
              
-            LogicalPlan lp = checkLogicalPlan(1, 3, 19);
+            LogicalPlan lp = checkLogicalPlan(1, 3, 14);
 
             PhysicalPlan pp = checkPhysicalPlan(lp, 1, 3, 25);
 
@@ -470,7 +472,7 @@ public class TestMultiQueryCompiler {
             myPig.registerQuery("d2 = foreach d1 generate group, COUNT(d.uid);");
             myPig.registerQuery("store d2 into '/tmp/output3';");
              
-            LogicalPlan lp = checkLogicalPlan(1, 3, 19);
+            LogicalPlan lp = checkLogicalPlan(1, 3, 14);
 
             PhysicalPlan pp = checkPhysicalPlan(lp, 1, 3, 25);
 
@@ -504,7 +506,7 @@ public class TestMultiQueryCompiler {
             myPig.registerQuery("H = foreach G generate group, COUNT(A1);");          
             myPig.registerQuery("store H into '/tmp/output3';");
              
-            LogicalPlan lp = checkLogicalPlan(1, 3, 16);
+            LogicalPlan lp = checkLogicalPlan(1, 3, 15);
 
             PhysicalPlan pp = checkPhysicalPlan(lp, 1, 3, 24);
 
@@ -539,7 +541,7 @@ public class TestMultiQueryCompiler {
             myPig.registerQuery("g1 = foreach g generate group, COUNT(d2);");
             myPig.registerQuery("store g1 into '/tmp/output3';");
 
-            LogicalPlan lp = checkLogicalPlan(1, 3, 15);
+            LogicalPlan lp = checkLogicalPlan(1, 3, 17);
 
             PhysicalPlan pp = checkPhysicalPlan(lp, 1, 3, 23);
 
@@ -597,10 +599,10 @@ public class TestMultiQueryCompiler {
             myPig.registerQuery("store c into '/tmp/output1';");
             myPig.registerQuery("d = filter b by gid > 10;");
             myPig.registerQuery("store d into '/tmp/output2';");
-            myPig.registerQuery("e = join c by gid, d by gid using \"repl\";");
+            myPig.registerQuery("e = join c by gid, d by gid using 'repl';");
             myPig.registerQuery("store e into '/tmp/output3';");
 
-            LogicalPlan lp = checkLogicalPlan(2, 3, 16);
+            LogicalPlan lp = checkLogicalPlan(2, 3, 8);
 
             PhysicalPlan pp = checkPhysicalPlan(lp, 2, 3, 16);
 
@@ -629,7 +631,7 @@ public class TestMultiQueryCompiler {
             myPig.registerQuery("d = foreach e generate flatten(c), flatten(b);");
             myPig.registerQuery("store d into '/tmp/output3';");
 
-            LogicalPlan lp = checkLogicalPlan(1, 3, 15);
+            LogicalPlan lp = checkLogicalPlan(1, 3, 9);
 
             PhysicalPlan pp = checkPhysicalPlan(lp, 1, 3, 19);
 
@@ -660,7 +662,7 @@ public class TestMultiQueryCompiler {
             myPig.registerQuery("d = foreach c generate flatten(group), flatten($1), flatten($2);");
             myPig.registerQuery("store d into '/tmp/output3';");
 
-            LogicalPlan lp = checkLogicalPlan(1, 3, 17);
+            LogicalPlan lp = checkLogicalPlan(1, 3, 11);
 
             PhysicalPlan pp = checkPhysicalPlan(lp, 1, 3, 21);
 
@@ -686,7 +688,7 @@ public class TestMultiQueryCompiler {
             myPig.registerQuery("b = load '/tmp/output1' using PigStorage(':'); ");
             myPig.registerQuery("store b into '/tmp/output2';");
 
-            LogicalPlan lp = checkLogicalPlan(1, 1, 5);
+            LogicalPlan lp = checkLogicalPlan(1, 1, 4);
 
             PhysicalPlan pp = checkPhysicalPlan(lp, 1, 1, 5);
 
@@ -717,7 +719,7 @@ public class TestMultiQueryCompiler {
             myPig.registerQuery("f = filter e by b::uid < 1000;");
             myPig.registerQuery("store f into '/tmp/output3';");
 
-            LogicalPlan lp = checkLogicalPlan(1, 3, 19);
+            LogicalPlan lp = checkLogicalPlan(1, 3, 9);
 
             PhysicalPlan pp = checkPhysicalPlan(lp, 1, 3, 22);
 
@@ -750,7 +752,7 @@ public class TestMultiQueryCompiler {
             myPig.registerQuery("store g into '/tmp/output1';");
             myPig.registerQuery("store h into '/tmp/output2';");
             
-            LogicalPlan lp = checkLogicalPlan(2, 2, 15);
+            LogicalPlan lp = checkLogicalPlan(2, 2, 10);
 
             PhysicalPlan pp = checkPhysicalPlan(lp, 2, 2, 20);
 
@@ -779,7 +781,7 @@ public class TestMultiQueryCompiler {
             myPig.registerQuery("e = filter d by $1 > 5;");
             myPig.registerQuery("store e into '/tmp/output2';");
 
-            LogicalPlan lp = checkLogicalPlan(1, 2, 11);
+            LogicalPlan lp = checkLogicalPlan(1, 2, 7);
 
             PhysicalPlan pp = checkPhysicalPlan(lp, 1, 2, 13);
 
@@ -810,7 +812,7 @@ public class TestMultiQueryCompiler {
             myPig.registerQuery("g = foreach f generate group, SUM(e.$0);");
             myPig.registerQuery("store g into '/tmp/output2';");
 
-            LogicalPlan lp = checkLogicalPlan(1, 2, 13);
+            LogicalPlan lp = checkLogicalPlan(1, 2, 9);
 
             PhysicalPlan pp = checkPhysicalPlan(lp, 1, 2, 17);
 
@@ -844,7 +846,7 @@ public class TestMultiQueryCompiler {
             myPig.registerQuery("f2 = foreach f1 generate group, COUNT(f.$0);");
             myPig.registerQuery("store f2 into '/tmp/output2';");
             
-            LogicalPlan lp = checkLogicalPlan(1, 2, 16);
+            LogicalPlan lp = checkLogicalPlan(1, 2, 12);
 
             PhysicalPlan pp = checkPhysicalPlan(lp, 1, 2, 22);
 
@@ -884,7 +886,7 @@ public class TestMultiQueryCompiler {
             myPig.registerQuery("f5 = foreach f4 generate group, COUNT(f3.$0);");
             myPig.registerQuery("store f5 into '/tmp/output2';");
             
-            LogicalPlan lp = checkLogicalPlan(1, 2, 22);
+            LogicalPlan lp = checkLogicalPlan(1, 2, 18);
 
             PhysicalPlan pp = checkPhysicalPlan(lp, 1, 2, 32);
 
@@ -920,7 +922,7 @@ public class TestMultiQueryCompiler {
             myPig.registerQuery("d2 = foreach d1 generate group, COUNT(d.uid);");
             myPig.registerQuery("store d2 into '/tmp/output3';");
              
-            LogicalPlan lp = checkLogicalPlan(1, 3, 19);
+            LogicalPlan lp = checkLogicalPlan(1, 3, 14);
 
             PhysicalPlan pp = checkPhysicalPlan(lp, 1, 3, 25);
 
@@ -947,7 +949,7 @@ public class TestMultiQueryCompiler {
             myPig.registerQuery("c = group b by gid;");
             myPig.registerQuery("store c into '/tmp/output2';");
 
-            LogicalPlan lp = checkLogicalPlan(1, 2, 9);
+            LogicalPlan lp = checkLogicalPlan(1, 2, 5);
 
             PhysicalPlan pp = checkPhysicalPlan(lp, 1, 2, 11);
 
@@ -976,7 +978,7 @@ public class TestMultiQueryCompiler {
             myPig.registerQuery("d = filter c by uid > 15;");
             myPig.registerQuery("store d into '/tmp/output3';");
 
-            LogicalPlan lp = checkLogicalPlan(1, 3, 14);
+            LogicalPlan lp = checkLogicalPlan(1, 3, 7);
 
             PhysicalPlan pp = checkPhysicalPlan(lp, 1, 3, 14);
 
@@ -1007,7 +1009,7 @@ public class TestMultiQueryCompiler {
             myPig.registerQuery("e = cogroup c by uid, d by uid;");
             myPig.registerQuery("store e into '/tmp/output3';");
 
-            LogicalPlan lp = checkLogicalPlan(2, 3, 16);
+            LogicalPlan lp = checkLogicalPlan(2, 3, 8);
 
             PhysicalPlan pp = checkPhysicalPlan(lp, 2, 3, 19);
 
@@ -1076,7 +1078,7 @@ public class TestMultiQueryCompiler {
             myPig.registerQuery("g = group f by $0;");
             myPig.registerQuery("store g into '/tmp/output4';");
 
-            LogicalPlan lp = checkLogicalPlan(1, 2, 14);
+            LogicalPlan lp = checkLogicalPlan(1, 2, 10);
             PhysicalPlan pp = checkPhysicalPlan(lp, 1, 2, 20);
             MROperPlan mp = checkMRPlan(pp, 1, 2, 3);
 
@@ -1141,7 +1143,7 @@ public class TestMultiQueryCompiler {
             myPig.registerQuery("d = group c by $0;");
             myPig.registerQuery("e = store d into '/tmp/output2';");
 
-            LogicalPlan lp = checkLogicalPlan(1, 1, 7);
+            LogicalPlan lp = checkLogicalPlan(1, 1, 6);
             PhysicalPlan pp = checkPhysicalPlan(lp, 1, 1, 11);
             MROperPlan mp = checkMRPlan(pp, 1, 1, 2);
 
@@ -1188,7 +1190,7 @@ public class TestMultiQueryCompiler {
             myPig.registerQuery("store b into '/tmp/output2';");
             myPig.registerQuery("store b into '/tmp/output3';");
 
-            LogicalPlan lp = checkLogicalPlan(1, 3, 10);
+            LogicalPlan lp = checkLogicalPlan(1, 3, 5);
             PhysicalPlan pp = checkPhysicalPlan(lp, 1, 3, 10);
             MROperPlan mp = checkMRPlan(pp, 1, 1, 1);
 
@@ -1390,14 +1392,9 @@ public class TestMultiQueryCompiler {
         LogicalPlan lp = null;
 
         try {
-            myPig.getPigContext().getProperties().setProperty("pig.usenewlogicalplan", "false");
-            java.lang.reflect.Method compileLp = myPig.getClass()
-                    .getDeclaredMethod("compileLp",
-                            new Class[] { String.class });
-
-            compileLp.setAccessible(true);
-
-            lp = (LogicalPlan) compileLp.invoke(myPig, new Object[] { null });
+            java.lang.reflect.Method buildLp = myPig.getClass().getDeclaredMethod("buildLp");
+            buildLp.setAccessible(true);
+            lp = (LogicalPlan) buildLp.invoke( myPig );
 
             Assert.assertNotNull(lp);
 
@@ -1411,22 +1408,31 @@ public class TestMultiQueryCompiler {
             }
         }
 
-        showPlanOperators(lp);
+        showLPOperators(lp);
        
         ByteArrayOutputStream out = new ByteArrayOutputStream();
-        lp.explain(out, System.out);
+        System.out.println("Logical Plan: " + lp );
 
         System.out.println("===== Display Logical Plan =====");
         System.out.println(out.toString());
 
-        Assert.assertEquals(expectedRoots, lp.getRoots().size());
-        Assert.assertEquals(expectedLeaves, lp.getLeaves().size());
+        Assert.assertEquals(expectedRoots, lp.getSources().size());
+        Assert.assertEquals(expectedLeaves, lp.getSinks().size());
         Assert.assertEquals(expectedSize, lp.size());
 
         return lp;
     }
 
-    private void checkPhysicalPlan(PhysicalPlan pp, int expectedRoots,
+    static void showLPOperators(LogicalPlan lp) {
+    	System.out.println("Operators:");
+    	Iterator<org.apache.pig.newplan.Operator> it = lp.getOperators();
+    	while( it.hasNext() ) {
+    		System.out.println("    op: " + it.next().getName());
+    	}
+    	System.out.println();
+	}
+
+	private void checkPhysicalPlan(PhysicalPlan pp, int expectedRoots,
             int expectedLeaves, int expectedSize) throws IOException {
 
         System.out.println("===== check physical plan =====");

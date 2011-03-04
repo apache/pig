@@ -873,7 +873,7 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
         
         // can have only one input
         LogicalOperator op = inputs.get(0);
-        List<LogicalPlan> plans = (List<LogicalPlan>) cg.getGroupByPlans().get(op);
+        List<LogicalPlan> plans =  cg.getGroupByPlans().get(op);
         POCollectedGroup physOp = new POCollectedGroup(new OperatorKey(
                 scope, nodeGen.getNextNodeId(scope)));
         physOp.setAlias(cg.getAlias());
@@ -947,7 +947,7 @@ public class LogToPhyTranslationVisitor extends LOVisitor {
         for (LogicalOperator op : inputs) {
 			PhysicalOperator physOp = logToPhyMap.get(op);
             inp.add(physOp);
-            List<LogicalPlan> plans = (List<LogicalPlan>) loj.getJoinPlans().get(op);
+            List<LogicalPlan> plans =  loj.getJoinPlans().get(op);
             List<PhysicalPlan> exprPlans = new ArrayList<PhysicalPlan>();
             currentPlans.push(currentPlan);
             for (LogicalPlan lp : plans) {

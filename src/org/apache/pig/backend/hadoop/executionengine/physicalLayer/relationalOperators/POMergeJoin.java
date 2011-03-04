@@ -161,7 +161,7 @@ public class POMergeJoin extends PhysicalOperator {
             }
             lr.setResultType(DataType.TUPLE);
             lr.setKeyType(keyTypes.get(i).size() > 1 ? DataType.TUPLE : keyTypes.get(i).get(0));
-            lr.setPlans((List<PhysicalPlan>)inpPlans.get(inpPhyOp));
+            lr.setPlans(inpPlans.get(inpPhyOp));
             LRs[i]= lr;
         }
     }
@@ -512,7 +512,7 @@ public class POMergeJoin extends PhysicalOperator {
     }
 
     public List<PhysicalPlan> getInnerPlansOf(int index) {
-        return (List<PhysicalPlan>)inpPlans.get(inputs.get(index));
+        return inpPlans.get(inputs.get(index));
     }
 
     @Override

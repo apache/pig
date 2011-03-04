@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -92,9 +93,9 @@ public class MultiMap<K, V> implements Serializable {
     /**
      * Get the collection of values associated with a given key.
      * @param key Key to fetch values for.
-     * @return collection of values, or null if the key is not in the map.
+     * @return list of values, or null if the key is not in the map.
      */
-    public Collection<V> get(K key) {
+    public List<V> get(K key) {
         return mMap.get(key);
     }
 
@@ -183,8 +184,8 @@ public class MultiMap<K, V> implements Serializable {
     }
     
     /**
-     * Get the number of entries in the map.
-     * @return number of entries.
+     * Get the number of keys in the map.
+     * @return number of keys.
      */
     public int size() {
         return mMap.size();

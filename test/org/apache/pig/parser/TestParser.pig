@@ -67,6 +67,8 @@ B = GROUP A ALL using 'collected';
 
 --join
 E = join A by $0, B by $0 using 'replicated';
+H = join A by u, B by u;
+I = foreach H generate A::u, B::u;
 
 --croos
 F = Cross A, B;

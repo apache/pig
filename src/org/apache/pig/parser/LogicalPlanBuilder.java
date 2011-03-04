@@ -20,6 +20,7 @@ package org.apache.pig.parser;
 
 import java.io.IOException;
 import java.net.MalformedURLException;
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -31,7 +32,11 @@ import org.antlr.runtime.IntStream;
 import org.antlr.runtime.RecognitionException;
 import org.apache.pig.ExecType;
 import org.apache.pig.FuncSpec;
+import org.apache.pig.LoadFunc;
+import org.apache.pig.StoreFuncInterface;
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
+import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.builtin.RANDOM;
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
@@ -40,6 +45,7 @@ import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileSpec;
+import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.parser.ParseException;
 import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.OperatorKey;
@@ -85,10 +91,29 @@ public class LogicalPlanBuilder {
 
     private Map<String, Operator> operators = new HashMap<String, Operator>();
     
-    // TODO: hook up with the real PigContext instance instead of creating one here.
-    private PigContext pigContext = new PigContext( ExecType.LOCAL, new Properties() );
+    Map<String, String> fileNameMap;
+    
+    private PigContext pigContext = null;
+    private String scope = null;
+    private IntStream intStream;
     
     private static NodeIdGenerator nodeIdGen = NodeIdGenerator.getGenerator();
+    
+    LogicalPlanBuilder(PigContext pigContext, String scope, Map<String, String> fileNameMap,
+            IntStream input) {
+        this.pigContext = pigContext;
+        this.scope = scope;
+        this.fileNameMap = fileNameMap;
+        this.intStream = input;
+    }
+    
+    LogicalPlanBuilder(IntStream input) throws ExecException {
+        pigContext = new PigContext( ExecType.LOCAL, new Properties() );
+        pigContext.connect();
+        this.scope = "test";
+        this.fileNameMap = new HashMap<String, String>();
+        this.intStream = input;
+    }
     
     Operator lookupOperator(String alias) {
         return operators.get( alias );
@@ -114,95 +139,127 @@ public class LogicalPlanBuilder {
         return plan;
     }
     
+    Map<String, Operator> getOperators() {
+        return operators;
+    }
+    
     LOFilter createFilterOp() {
         return new LOFilter( plan );
     }
 
-    String buildFilterOp(LOFilter op, String alias, Integer parallel, String inputAlias, LogicalExpressionPlan expr) {
+    String buildFilterOp(LOFilter op, String alias, String inputAlias, LogicalExpressionPlan expr) {
         op.setFilterPlan( expr );
-        return buildOp( op, alias, parallel, inputAlias, null );
+        return buildOp( op, alias, inputAlias, null );
     }
     
-    String buildDistinctOp(String alias, Integer parallel, String inputAlias, String partitioner) {
+    String buildDistinctOp(String alias, String inputAlias, String partitioner) {
         LODistinct op = new LODistinct( plan );
-        return buildOp( op, alias, parallel, inputAlias, partitioner );
+        return buildOp( op, alias, inputAlias, partitioner );
     }
 
-    String buildLimitOp(String alias, Integer parallel, String inputAlias, long limit) {
+    String buildLimitOp(String alias, String inputAlias, long limit) {
         LOLimit op = new LOLimit( plan, limit );
-        return buildOp( op, alias, parallel, inputAlias, null );
+        return buildOp( op, alias, inputAlias, null );
     }
     
-    String buildSampleOp(String alias, Integer parallel, String inputAlias, double value) {
+    String buildSampleOp(String alias, String inputAlias, double value) {
         LogicalExpressionPlan filterPlan = new LogicalExpressionPlan();
         //  Generate a filter condition.
-        LogicalExpression konst = new ConstantExpression( filterPlan, value,
-                   new LogicalFieldSchema( null , null, DataType.DOUBLE ) );
+        LogicalExpression konst = new ConstantExpression( filterPlan, value);
         UserFuncExpression udf = new UserFuncExpression( filterPlan, new FuncSpec( RANDOM.class.getName() ) );
         new LessThanEqualExpression( filterPlan, udf, konst );
-        return buildFilterOp( new LOFilter( plan ), alias, parallel, inputAlias, filterPlan );
+        return buildFilterOp( new LOFilter( plan ), alias, inputAlias, filterPlan );
     }
     
-    String buildUnionOp(String alias, Integer parallel, List<String> inputAliases, boolean onSchema) {
+    String buildUnionOp(String alias, List<String> inputAliases, boolean onSchema) {
         LOUnion op = new LOUnion( plan, onSchema );
-        return buildOp( op, alias, parallel, inputAliases, null );
+        return buildOp( op, alias, inputAliases, null );
     }
 
     String buildSplitOp(String inputAlias) {
         LOSplit op = new LOSplit( plan );
-        return buildOp( op, null, null, inputAlias, null );
+        return buildOp( op, null, inputAlias, null );
     }
     
     LOSplitOutput createSplitOutputOp() {
         return  new LOSplitOutput( plan );
     }
     
-    String buildSplitOutputOp(LOSplitOutput op, String alias, Integer parallel, String inputAlias,
+    String buildSplitOutputOp(LOSplitOutput op, String alias, String inputAlias,
             LogicalExpressionPlan filterPlan) {
         op.setFilterPlan( filterPlan );
-        return buildOp ( op, alias, parallel, inputAlias, null );
+        return buildOp ( op, alias, inputAlias, null );
     }
     
-    String buildCrossOp(String alias, Integer parallel, List<String> inputAliases, String partitioner) {
+    String buildCrossOp(String alias, List<String> inputAliases, String partitioner) {
         LOCross op = new LOCross( plan );
-        return buildOp ( op, alias, parallel, inputAliases, partitioner );
+        return buildOp ( op, alias, inputAliases, partitioner );
     }
     
     LOSort createSortOp() {
         return new LOSort( plan );
     }
     
-    String buildSortOp(LOSort sort, String alias, Integer parallel, String inputAlias, List<LogicalExpressionPlan> plans, 
+    String buildSortOp(LOSort sort, String alias, String inputAlias, List<LogicalExpressionPlan> plans, 
             List<Boolean> ascFlags, FuncSpec fs) {
         sort.setSortColPlans( plans );
         sort.setUserFunc( fs );
+        if (ascFlags.isEmpty()) {
+            for (int i=0;i<plans.size();i++)
+                ascFlags.add(true);
+        }
         sort.setAscendingCols( ascFlags );
-        return buildOp( sort, alias, parallel, inputAlias, null );
+        return buildOp( sort, alias, inputAlias, null );
     }
     
     LOJoin createJoinOp() {
         return new LOJoin( plan );
     }
 
-    String buildJoinOp(LOJoin op, String alias, Integer parallel, List<String> inputAliases,
+    String buildJoinOp(LOJoin op, String alias, List<String> inputAliases,
             MultiMap<Integer, LogicalExpressionPlan> joinPlans,
             JOINTYPE jt, List<Boolean> innerFlags, String partitioner) {
-        boolean[] flags = new boolean[innerFlags.size()];
-        for( int i = 0; i < innerFlags.size(); i++ ) {
-            flags[i] = innerFlags.get( i );
+        if (jt==null)
+            jt = JOINTYPE.HASH;
+        else {
+            op.pinOption(LOJoin.OPTION_JOIN);
+        }
+        boolean[] flags = new boolean[joinPlans.size()];
+        if (innerFlags.size()!=0) {
+            for( int i = 0; i < joinPlans.size(); i++ ) {
+                flags[i] = innerFlags.get( i );
+            }
+        }
+        else {
+            for( int i = 0; i < joinPlans.size(); i++ ) {
+                flags[i] = true;
+            }
         }
         op.setJoinType( jt );
         op.setInnerFlags( flags );
         op.setJoinPlans( joinPlans );
-        return buildOp( op, alias, parallel, inputAliases, partitioner );
+        return buildOp( op, alias, inputAliases, partitioner );
     }
 
     LOCogroup createGroupOp() {
         return new LOCogroup( plan );
     }
     
-    String buildGroupOp(LOCogroup op, String alias, Integer parallel, List<String> inputAliases, 
-        MultiMap<Integer, LogicalExpressionPlan> expressionPlans, GROUPTYPE gt, List<Boolean> innerFlags) {
+    String buildGroupOp(LOCogroup op, String alias, List<String> inputAliases, 
+        MultiMap<Integer, LogicalExpressionPlan> expressionPlans, GROUPTYPE gt, List<Boolean> innerFlags,
+        String partitioner) throws ParserValidationException {
+        if( gt == GROUPTYPE.COLLECTED ) {
+            List<LogicalExpressionPlan> exprPlans = expressionPlans.get( 0 );
+            for( LogicalExpressionPlan exprPlan : exprPlans ) {
+                Iterator<Operator> it = exprPlan.getOperators();
+                while( it.hasNext() ) {
+                    if( !( it.next() instanceof ProjectExpression ) ) {
+                        throw new ParserValidationException( intStream, "Collected group is only supported for columns or star projection" );
+                    }
+                }
+            }
+        }
+        
         boolean[] flags = new boolean[innerFlags.size()];
         for( int i = 0; i < innerFlags.size(); i++ ) {
             flags[i] = innerFlags.get( i );
@@ -210,27 +267,53 @@ public class LogicalPlanBuilder {
         op.setExpressionPlans( expressionPlans );
         op.setGroupType( gt );
         op.setInnerFlags( flags );
-        return buildOp( op, alias, parallel, inputAliases, null );
+        return buildOp( op, alias, inputAliases, partitioner );
     }
     
-    String buildLoadOp(String alias, Integer parallel, String filename, FuncSpec funcSpec, LogicalSchema schema) {
-        FileSpec loader = new FileSpec( filename, funcSpec );
-        LOLoad op = new LOLoad( loader, schema, plan, null );
-        return buildOp( op, alias, parallel, new ArrayList<String>(), null );
+    private String getAbolutePathForLoad(String filename, FuncSpec funcSpec)
+    throws IOException, URISyntaxException {
+        if( funcSpec == null ){
+            funcSpec = new FuncSpec( PigStorage.class.getName() );
+        }
+
+        LoadFunc loFunc = (LoadFunc)PigContext.instantiateFuncFromSpec( funcSpec );
+        String sig = QueryParserUtils.constructFileNameSignature( filename, funcSpec );
+        String absolutePath = fileNameMap.get( sig );
+        if (absolutePath == null) {
+            absolutePath = loFunc.relativeToAbsolutePath( filename, QueryParserUtils.getCurrentDir( pigContext ) );
+
+            if (absolutePath!=null) {
+                QueryParserUtils.setHdfsServers( absolutePath, pigContext );
+            }
+            fileNameMap.put( sig, absolutePath );
+        }
+        
+        return absolutePath;
+    }
+     
+    String buildLoadOp(String alias, String filename, FuncSpec funcSpec, LogicalSchema schema)
+    throws ParserValidationException {
+        String absolutePath = filename;
+        try {
+            absolutePath = getAbolutePathForLoad( filename, funcSpec );
+        } catch(Exception ex) {
+            throw new ParserValidationException( intStream, ex );
+        }
+        
+        FileSpec loader = new FileSpec( absolutePath, funcSpec );
+        LOLoad op = new LOLoad( loader, schema, plan, ConfigurationUtil.toConfiguration( pigContext.getProperties() ) );
+        return buildOp( op, alias, new ArrayList<String>(), null );
     }
     
-    private String buildOp(LogicalRelationalOperator op, String alias, Integer parallel,
-            String inputAlias, String partitioner) {
+    private String buildOp(LogicalRelationalOperator op, String alias, String inputAlias, String partitioner) {
         List<String> inputAliases = new ArrayList<String>();
         if( inputAlias != null )
             inputAliases.add( inputAlias );
-        return buildOp( op, alias, parallel, inputAliases, partitioner );
+        return buildOp( op, alias, inputAliases, partitioner );
     }
     
-    private String buildOp(LogicalRelationalOperator op, String alias, Integer parallel, 
-            List<String> inputAliases, String partitioner) {
+    private String buildOp(LogicalRelationalOperator op, String alias, List<String> inputAliases, String partitioner) {
         setAlias( op, alias );
-        setParallel( op, parallel );
         setPartitioner( op, partitioner );
         plan.add( op );
         for( String a : inputAliases ) {
@@ -241,19 +324,50 @@ public class LogicalPlanBuilder {
         return op.getAlias();
     }
 
-    String buildStoreOp(String alias, Integer parallel, String inputAlias, String filename, FuncSpec funcSpec) {
-        FileSpec fileSpec = new FileSpec( filename, funcSpec );
+    private String getAbolutePathForStore(String inputAlias, String filename, FuncSpec funcSpec)
+    throws IOException, URISyntaxException {
+        if( funcSpec == null ){
+            funcSpec = new FuncSpec( PigStorage.class.getName() );
+        }
+        
+        Object obj = PigContext.instantiateFuncFromSpec( funcSpec );
+        StoreFuncInterface stoFunc = (StoreFuncInterface)obj;
+        String sig = QueryParserUtils.constructSignature( inputAlias, filename, funcSpec);
+        stoFunc.setStoreFuncUDFContextSignature( sig );
+        String absolutePath = fileNameMap.get( sig );
+        if (absolutePath == null) {
+            absolutePath = stoFunc.relToAbsPathForStoreLocation( filename, 
+                    QueryParserUtils.getCurrentDir( pigContext ) );
+            if (absolutePath!=null) {
+                QueryParserUtils.setHdfsServers( absolutePath, pigContext );
+            }
+            fileNameMap.put( sig, absolutePath );
+        }
+        
+        return absolutePath;
+    }
+
+    String buildStoreOp(String alias, String inputAlias, String filename, FuncSpec funcSpec)
+    throws ParserValidationException {
+        String absPath = filename;
+        try {
+            absPath = getAbolutePathForStore( inputAlias, filename, funcSpec );
+        } catch(Exception ex) {
+            throw new ParserValidationException( intStream, ex );
+        }
+        
+        FileSpec fileSpec = new FileSpec( absPath, funcSpec );
         LOStore op = new LOStore( plan, fileSpec );
-        return buildOp( op, alias, parallel, inputAlias, null );
+        return buildOp( op, alias, inputAlias, null );
     }
     
     LOForEach createForeachOp() {
         return new LOForEach( plan );
     }
     
-    String buildForeachOp(LOForEach op, String alias, Integer parallel, String inputAlias, LogicalPlan innerPlan) {
+    String buildForeachOp(LOForEach op, String alias, String inputAlias, LogicalPlan innerPlan) {
         op.setInnerPlan( innerPlan );
-        return buildOp( op, alias, parallel, inputAlias, null );
+        return buildOp( op, alias, inputAlias, null );
     }
     
     LOGenerate createGenerateOp(LogicalPlan plan) {
@@ -341,13 +455,13 @@ public class LogicalPlanBuilder {
         }
     }
     
-    static Operator buildNestedOperatorInput(LogicalPlan innerPlan, LOForEach foreach, 
-            Map<String, Operator> operators, LogicalExpression expr, IntStream input)
+    Operator buildNestedOperatorInput(LogicalPlan innerPlan, LOForEach foreach, 
+            Map<String, Operator> operators, LogicalExpression expr)
     throws NonProjectExpressionException {
         OperatorPlan plan = expr.getPlan();
         Iterator<Operator> it = plan.getOperators();
         if( !( it.next() instanceof ProjectExpression ) || it.hasNext() ) {
-            throw new NonProjectExpressionException( input, expr );
+            throw new NonProjectExpressionException( intStream, expr );
         }
         Operator op = null;
         ProjectExpression projExpr = (ProjectExpression)expr;
@@ -367,70 +481,85 @@ public class LogicalPlanBuilder {
     
     StreamingCommand buildCommand(String cmd, List<String> shipPaths, List<String> cachePaths,
             List<HandleSpec> inputHandleSpecs, List<HandleSpec> outputHandleSpecs,
-            String logDir, Integer limit, IntStream input) throws RecognitionException {
+            String logDir, Integer limit) throws RecognitionException {
         StreamingCommand command = null;
         try {
-            command = buildCommand( cmd, input );
+            command = buildCommand( cmd );
             
             // Process ship paths
-            if( shipPaths.size() == 0 ) {
-                command.setShipFiles( false );
-            } else {
-                for( String path : shipPaths )
-                    command.addPathToShip( path );
+            if( shipPaths != null ) {
+                if( shipPaths.size() == 0 ) {
+                    command.setShipFiles( false );
+                } else {
+                    for( String path : shipPaths )
+                        command.addPathToShip( path );
+                }
             }
             
             // Process cache paths
-            for( String path : cachePaths )
-                command.addPathToCache( path );
+            if( cachePaths != null ) {
+                for( String path : cachePaths )
+                    command.addPathToCache( path );
+            }
             
             // Process input handle specs
-            for( HandleSpec spec : inputHandleSpecs )
-                command.addHandleSpec( Handle.INPUT, spec );
+            if( inputHandleSpecs != null ) {
+                for( HandleSpec spec : inputHandleSpecs )
+                    command.addHandleSpec( Handle.INPUT, spec );
+            }
             
             // Process output handle specs
-            for( HandleSpec spec : outputHandleSpecs )
-                command.addHandleSpec( Handle.OUTPUT, spec );
+            if( outputHandleSpecs != null ) {
+                for( HandleSpec spec : outputHandleSpecs )
+                    command.addHandleSpec( Handle.OUTPUT, spec );
+            }
             
             // error handling
-            command.setLogDir( logDir );
+            if( logDir != null )
+                command.setLogDir( logDir );
             if( limit != null )
                 command.setLogFilesLimit( limit );
         } catch(IOException e) {
-            throw new PlanGenerationFailureException( input, e );
+            throw new PlanGenerationFailureException( intStream, e );
         }
         
         return command;
     }
     
-    StreamingCommand buildCommand(String cmd, IntStream input) throws RecognitionException {
+    StreamingCommand buildCommand(String cmd) throws RecognitionException {
         try {
-            return new StreamingCommand( pigContext, splitArgs( cmd ) );
+            String[] args = StreamingCommandUtils.splitArgs( cmd );
+            StreamingCommand command = new StreamingCommand( pigContext, args );
+            StreamingCommandUtils validator = new StreamingCommandUtils( pigContext );
+            validator.checkAutoShipSpecs( command, args );
+            return command;
         } catch (ParseException e) {
-            throw new InvalidCommandException( input, cmd );        }
+            throw new InvalidCommandException( intStream, cmd );
+        }
     }
     
-    String buildStreamOp(String alias, Integer parallel, String inputAlias, StreamingCommand command,
+    String buildStreamOp(String alias, String inputAlias, StreamingCommand command,
             LogicalSchema schema, IntStream input)
     throws RecognitionException {
         try {
             LOStream op = new LOStream( plan, pigContext.createExecutableManager(), command, schema );
-            return buildOp( op, alias, parallel, inputAlias, null );
+            return buildOp( op, alias, inputAlias, null );
         } catch (ExecException ex) {
             throw new PlanGenerationFailureException( input, ex );
         }
     }
     
-    String buildNativeOp(Integer parallel, String inputJar, String cmd,
+    String buildNativeOp(String inputJar, String cmd,
             List<String> paths, String storeAlias, String loadAlias, IntStream input)
     throws RecognitionException {
         LONative op;
         try {
-            op = new LONative( plan, inputJar, splitArgs( cmd ) );
+            op = new LONative( plan, inputJar, StreamingCommandUtils.splitArgs( cmd ) );
             pigContext.addJar( inputJar );
             for( String path : paths )
                 pigContext.addJar( path );
-           buildOp( op, null, parallel, new ArrayList<String>(), null );
+            buildOp( op, null, new ArrayList<String>(), null );
+            ((LOStore)operators.get( storeAlias )).setTmpStore(true);
             plan.connect( operators.get( storeAlias ), op );
             LOLoad load = (LOLoad)operators.get( loadAlias );
             plan.connect( op, load );
@@ -442,9 +571,9 @@ public class LogicalPlanBuilder {
         }
     }
     
-    static void setAlias(LogicalRelationalOperator op, String alias) {
+    void setAlias(LogicalRelationalOperator op, String alias) {
         if( alias == null )
-            alias = new OperatorKey( "test", getNextId() ).toString();
+            alias = new OperatorKey( scope, getNextId() ).toString();
         op.setAlias( alias );
     }
     
@@ -458,15 +587,45 @@ public class LogicalPlanBuilder {
             op.setCustomPartitioner( partitioner );
     }
     
-    static FuncSpec buildFuncSpec(String funcName, List<String> args) {
+    FuncSpec buildFuncSpec(String funcName, List<String> args, byte ft) throws RecognitionException {
         String[] argArray = new String[args.size()];
-        return new FuncSpec( funcName, args.toArray( argArray ) );
+        FuncSpec funcSpec = new FuncSpec( funcName, args.size() == 0 ? null : args.toArray( argArray ) );
+        validateFuncSpec( funcSpec, ft );
+        return funcSpec;
+    }
+    
+    private void validateFuncSpec(FuncSpec funcSpec, byte ft) throws RecognitionException {
+        switch( ft ) {
+        case FunctionType.COMPARISONFUNC:
+        case FunctionType.LOADFUNC:
+        case FunctionType.STOREFUNC:
+        case FunctionType.STREAMTOPIGFUNC:
+        case FunctionType.PIGTOSTREAMFUNC:
+            Object func = PigContext.instantiateFuncFromSpec( funcSpec );
+            try{
+                FunctionType.tryCasting( func, ft );
+            } catch(Exception ex){
+                throw new ParserValidationException( intStream, ex );
+            }
+        }
     }
     
     static String unquote(String s) {
         return StringUtils.unescapeInputString( s.substring(1, s.length() - 1 ) );
     }
     
+    static int undollar(String s) {
+        return Integer.parseInt( s.substring( 1, s.length() ) );    
+    }
+    
+    /**
+     * Parse the long given as a string such as "34L".
+     */
+    static long parseLong(String s) {
+        String num = s.substring( 0, s.length() - 1 );
+        return Long.parseLong( num );
+    }
+
     static Tuple buildTuple(List<Object> objList) {
         TupleFactory tf = TupleFactory.getInstance();
         return tf.newTuple( objList );
@@ -481,13 +640,21 @@ public class LogicalPlanBuilder {
      *  Build a project expression in foreach inner plan.
      *  The only difference here is that the projection can be for an expression alias, for which
      *  we will return whatever the expression alias represents.
+     * @throws RecognitionException 
      */
     LogicalExpression buildProjectExpr(LogicalExpressionPlan plan, LogicalRelationalOperator op,
-            Map<String, LogicalExpressionPlan> exprPlans, String colAlias, int col) {
+            Map<String, LogicalExpressionPlan> exprPlans, String colAlias, int col)
+    throws RecognitionException {
         if( colAlias != null ) {
             LogicalExpressionPlan exprPlan = exprPlans.get( colAlias );
             if( exprPlan != null ) {
-                plan.merge( exprPlan );
+                LogicalExpressionPlan planCopy = null;
+                try {
+                    planCopy = exprPlan.deepCopy();
+                    plan.merge( planCopy );
+                } catch (FrontendException ex) {
+                    throw new PlanGenerationFailureException( intStream, ex );
+                }
                 // The projected alias is actually expression alias, so the projections in the represented
                 // expression doesn't have any operator associated with it. We need to set it when we 
                 // substitute the expression alias with the its expression.
@@ -501,7 +668,7 @@ public class LogicalPlanBuilder {
                         }
                     }
                 }
-                return (LogicalExpression)plan.getSources().get( 0 );// get the root of the plan
+                return (LogicalExpression)planCopy.getSources().get( 0 );// get the root of the plan
             } else {
                 return new ProjectExpression( plan, 0, colAlias, op );
             }
@@ -519,57 +686,28 @@ public class LogicalPlanBuilder {
         return new ProjectExpression( plan, input, col, relOp );
     }
     
-    LogicalExpression buildUDF(LogicalExpressionPlan plan, String funcName, List<LogicalExpression> args) {
-        FuncSpec funcSpec = new FuncSpec( funcName );
+    LogicalExpression buildUDF(LogicalExpressionPlan plan, String funcName, List<LogicalExpression> args)
+    throws RecognitionException {
+        Object func;
+        try {
+            func = pigContext.instantiateFuncFromAlias( funcName );
+            FunctionType.tryCasting( func, FunctionType.EVALFUNC );
+        } catch (Exception e) {
+            throw new PlanGenerationFailureException( intStream, e );
+        }
+        
+        
+        FuncSpec funcSpec = pigContext.getFuncSpecFromAlias( funcName );
+        if( funcSpec == null ) {
+            funcName = func.getClass().getName();
+            funcSpec = new FuncSpec( funcName );
+        }
+        
         return new UserFuncExpression( plan, funcSpec, args );
     }
     
-    private static final char SINGLE_QUOTE = '\u005c'';
-    private static final char DOUBLE_QUOTE = '"';
-    private static String[] splitArgs(String command) throws ParseException {
-        List<String> argv = new ArrayList<String>();
-
-        int beginIndex = 0;
-
-        while (beginIndex < command.length()) {
-            // Skip spaces
-            while (Character.isWhitespace(command.charAt(beginIndex))) {
-                ++beginIndex;
-            }
-
-            char delim = ' ';
-            char charAtIndex = command.charAt(beginIndex);
-            if (charAtIndex == SINGLE_QUOTE || charAtIndex == DOUBLE_QUOTE) {
-                delim = charAtIndex;
-            }
-
-            int endIndex = command.indexOf(delim, beginIndex+1);
-            if (endIndex == -1) {
-                if (Character.isWhitespace(delim)) {
-                    // Reached end of command-line
-                    argv.add(command.substring(beginIndex));
-                    break;
-                } else {
-                    // Didn't find the ending quote/double-quote
-                    throw new ParseException("Illegal command: " + command);
-                }
-            }
-
-            if (Character.isWhitespace(delim)) {
-                // Do not consume the space
-                argv.add(command.substring(beginIndex, endIndex));
-            } else {
-                argv.add(command.substring(beginIndex, endIndex+1));
-            }
-
-            beginIndex = endIndex + 1;
-        }
-
-        return argv.toArray(new String[argv.size()]);
-    }
-
-    private static long getNextId() {
-        return nodeIdGen.getNextNodeId( "test" );
+    private long getNextId() {
+        return nodeIdGen.getNextNodeId( scope );
     }
 
     static LOFilter createNestedFilterOp(LogicalPlan plan) {
@@ -577,26 +715,26 @@ public class LogicalPlanBuilder {
     }
     
     // Build operator for foreach inner plan.
-    static Operator buildNestedFilterOp(LOFilter op, LogicalPlan plan, String alias, 
+    Operator buildNestedFilterOp(LOFilter op, LogicalPlan plan, String alias, 
             Operator inputOp, LogicalExpressionPlan expr) {
         op.setFilterPlan( expr );
         buildNestedOp( plan, op, alias, inputOp );
         return op;
     }
 
-    static Operator buildNestedDistinctOp(LogicalPlan plan, String alias, Operator inputOp) {
+    Operator buildNestedDistinctOp(LogicalPlan plan, String alias, Operator inputOp) {
         LODistinct op = new LODistinct( plan );
         buildNestedOp( plan, op, alias, inputOp );
         return op;
     }
 
-    static Operator buildNestedLimitOp(LogicalPlan plan, String alias, Operator inputOp, long limit) {
+    Operator buildNestedLimitOp(LogicalPlan plan, String alias, Operator inputOp, long limit) {
         LOLimit op = new LOLimit( plan, limit );
         buildNestedOp( plan, op, alias, inputOp );
         return op;
     }
     
-    private static void buildNestedOp(LogicalPlan plan, LogicalRelationalOperator op, String alias, Operator inputOp) {
+    private void buildNestedOp(LogicalPlan plan, LogicalRelationalOperator op, String alias, Operator inputOp) {
         setAlias( op, alias );
         plan.add( op );
         plan.connect( inputOp, op );
@@ -606,17 +744,36 @@ public class LogicalPlanBuilder {
         return new LOSort( plan );
     }
     
-    static Operator buildNestedSortOp(LOSort op, LogicalPlan plan, String alias, Operator inputOp,
+    /**
+     * For any UNKNOWN type in the schema fields, set the type to BYTEARRAY
+     * @param sch
+     */
+    static void setBytearrayForNULLType(LogicalSchema sch){
+        for(LogicalFieldSchema fs : sch.getFields()){
+            if(fs.type == DataType.NULL){
+                fs.type = DataType.BYTEARRAY;
+            }
+            if(fs.schema != null){
+                setBytearrayForNULLType(fs.schema);
+            }
+        }
+    }
+    
+    Operator buildNestedSortOp(LOSort op, LogicalPlan plan, String alias, Operator inputOp,
             List<LogicalExpressionPlan> plans, 
             List<Boolean> ascFlags, FuncSpec fs) {
         op.setSortColPlans( plans );
+        if (ascFlags.isEmpty()) {
+            for (int i=0;i<plans.size();i++)
+                ascFlags.add(true);
+        }
         op.setAscendingCols( ascFlags );
         op.setUserFunc( fs );
         buildNestedOp( plan, op, alias, inputOp );
         return op;
     }
     
-    static Operator buildNestedProjectOp(LogicalPlan innerPlan, LOForEach foreach, 
+    Operator buildNestedProjectOp(LogicalPlan innerPlan, LOForEach foreach, 
             Map<String, Operator> operators,
             String alias, ProjectExpression projExpr, List<LogicalExpressionPlan> exprPlans) {
         Operator input = null;

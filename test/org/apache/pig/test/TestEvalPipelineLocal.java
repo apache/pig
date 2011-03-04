@@ -31,14 +31,13 @@ import java.util.Map;
 import java.util.Random;
 import java.util.StringTokenizer;
 
-import junit.framework.TestCase;
+import junit.framework.Assert;
 
 import org.apache.pig.ComparisonFunc;
 import org.apache.pig.EvalFunc;
 import org.apache.pig.ExecType;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.PigServer;
-import org.apache.pig.backend.datastorage.ElementDescriptor;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.builtin.BinStorage;
 import org.apache.pig.builtin.PigStorage;
@@ -58,14 +57,13 @@ import org.apache.pig.test.utils.Identity;
 import org.junit.Before;
 import org.junit.Test;
 
-public class TestEvalPipelineLocal extends TestCase {
+public class TestEvalPipelineLocal {
     
     private PigServer pigServer;
 
     TupleFactory mTf = TupleFactory.getInstance();
     
     @Before
-    @Override
     public void setUp() throws Exception{
         FileLocalizer.setR(new Random());
 //        pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
@@ -109,7 +107,7 @@ public class TestEvalPipelineLocal extends TestCase {
         Iterator<Tuple> iter  = pigServer.openIterator("b");
         
         for (int i=0 ;i<3; i++){
-            assertEquals(DataType.toDouble(iter.next().get(0)), 0.0);
+            Assert.assertEquals(DataType.toDouble(iter.next().get(0)), 0.0);
         }
         
     }
@@ -133,10 +131,10 @@ public class TestEvalPipelineLocal extends TestCase {
         int count = 0;
         while(iter.hasNext()){
             Tuple t = iter.next();
-            assertTrue(t.get(0).toString().equals(t.get(2).toString()));
+            Assert.assertTrue(t.get(0).toString().equals(t.get(2).toString()));
             count++;
         }
-        assertEquals(count, 4);
+        Assert.assertEquals(count, 4);
     }
     
     @Test
@@ -155,11 +153,11 @@ public class TestEvalPipelineLocal extends TestCase {
         int count = 0;
         while(iter.hasNext()){
             Tuple t = iter.next();
-            assertTrue(t.get(0).toString().equals("1"));
-            assertTrue(t.get(1).toString().equals("a"));
+            Assert.assertTrue(t.get(0).toString().equals("1"));
+            Assert.assertTrue(t.get(1).toString().equals("a"));
             count++;
         }
-        assertEquals(count, 6);
+        Assert.assertEquals(count, 6);
         f.delete();
     }
     
@@ -191,9 +189,9 @@ public class TestEvalPipelineLocal extends TestCase {
         pigServer.registerQuery("b = foreach a generate $0#'apple',flatten($1#'orange');");
         Iterator<Tuple> iter = pigServer.openIterator("b");
         t = iter.next();
-        assertEquals(t.get(0).toString(), "red");
-        assertEquals(DataType.toDouble(t.get(1)), 0.3);
-        assertFalse(iter.hasNext());
+        Assert.assertEquals(t.get(0).toString(), "red");
+        Assert.assertEquals(DataType.toDouble(t.get(1)), 0.3);
+        Assert.assertFalse(iter.hasNext());
     }
     
     static public class TitleNGrams extends EvalFunc<DataBag> {
@@ -347,10 +345,10 @@ public class TestEvalPipelineLocal extends TestCase {
         pigServer.registerQuery("answer = FOREACH cogrouped GENERATE COUNT(queryLog),group;");
         
         Iterator<Tuple> iter = pigServer.openIterator("answer");
-        if(!iter.hasNext()) fail("No Output received");
+        if(!iter.hasNext()) Assert.fail("No Output received");
         while(iter.hasNext()){
             Tuple t = iter.next();
-            assertEquals(
+            Assert.assertEquals(
                     expectedResults.get(t.get(1).toString()).doubleValue(),
                     (DataType.toDouble(t.get(0))).doubleValue());
         }
@@ -413,17 +411,17 @@ public class TestEvalPipelineLocal extends TestCase {
         Iterator<Tuple> iter = pigServer.openIterator("A");
         String last = "";
         HashSet<Integer> seen = new HashSet<Integer>();
-        if(!iter.hasNext()) fail("No Results obtained");
+        if(!iter.hasNext()) Assert.fail("No Results obtained");
         while (iter.hasNext()){
             Tuple t = iter.next();
             //System.out.println(t.get(0).toString());
             if (eliminateDuplicates){
                 Integer act = Integer.parseInt(t.get(0).toString());
-                assertFalse(seen.contains(act));
+                Assert.assertFalse(seen.contains(act));
                 seen.add(act);
             }else{
-                assertTrue(last.compareTo(t.get(0).toString())<=0);
-                assertEquals(t.size(), 2);
+            	Assert.assertTrue(last.compareTo(t.get(0).toString())<=0);
+            	Assert.assertEquals(t.size(), 2);
                 last = t.get(0).toString();
             }
         }
@@ -455,19 +453,19 @@ public class TestEvalPipelineLocal extends TestCase {
 
         pigServer.registerQuery(query);
         Iterator<Tuple> iter = pigServer.openIterator("C");
-        if(!iter.hasNext()) fail("No output found");
+        if(!iter.hasNext()) Assert.fail("No output found");
         int numIdentity = 0;
         while(iter.hasNext()){
             Tuple t = iter.next();
-            assertEquals((Integer)numIdentity, (Integer)t.get(0));
-            assertEquals((Long)5L, (Long)t.get(2));
-            assertEquals(LOOP_COUNT*2.0, (Double)t.get(3), 0.01);
-            assertEquals(8.0, (Double)t.get(5), 0.01);
-            assertEquals(5L, ((DataBag)t.get(6)).size());
-            assertEquals(7, t.size());
+            Assert.assertEquals((Integer)numIdentity, (Integer)t.get(0));
+            Assert.assertEquals((Long)5L, (Long)t.get(2));
+            Assert.assertEquals(LOOP_COUNT*2.0, (Double)t.get(3), 0.01);
+            Assert.assertEquals(8.0, (Double)t.get(5), 0.01);
+            Assert.assertEquals(5L, ((DataBag)t.get(6)).size());
+            Assert.assertEquals(7, t.size());
             ++numIdentity;
         }
-        assertEquals(LOOP_COUNT, numIdentity);
+        Assert.assertEquals(LOOP_COUNT, numIdentity);
     }
 
     public void testNestedPlanWithExpressionAssignment() throws Exception{
@@ -500,19 +498,19 @@ public class TestEvalPipelineLocal extends TestCase {
 
         pigServer.registerQuery(query);
         Iterator<Tuple> iter = pigServer.openIterator("C");
-        if(!iter.hasNext()) fail("No output found");
+        if(!iter.hasNext()) Assert.fail("No output found");
         int numIdentity = 0;
         while(iter.hasNext()){
             Tuple t = iter.next();
-            assertEquals((Integer)numIdentity, (Integer)t.get(0));
-            assertEquals((Long)5L, (Long)t.get(2));
-            assertEquals(LOOP_COUNT*2.0, (Double)t.get(3), 0.01);
-            assertEquals(8.0, (Double)t.get(5), 0.01);
-            assertEquals(5L, ((DataBag)t.get(6)).size());
-            assertEquals(7, t.size());
+            Assert.assertEquals((Integer)numIdentity, (Integer)t.get(0));
+            Assert.assertEquals((Long)5L, (Long)t.get(2));
+            Assert.assertEquals(LOOP_COUNT*2.0, (Double)t.get(3), 0.01);
+            Assert.assertEquals(8.0, (Double)t.get(5), 0.01);
+            Assert.assertEquals(5L, ((DataBag)t.get(6)).size());
+            Assert.assertEquals(7, t.size());
             ++numIdentity;
         }
-        assertEquals(LOOP_COUNT, numIdentity);
+        Assert.assertEquals(LOOP_COUNT, numIdentity);
     }
 
     public void testLimit() throws Exception{
@@ -529,13 +527,13 @@ public class TestEvalPipelineLocal extends TestCase {
                         .getPigContext()) + "';");
         pigServer.registerQuery("B = limit A 5;");
         Iterator<Tuple> iter = pigServer.openIterator("B");
-        if(!iter.hasNext()) fail("No output found");
+        if(!iter.hasNext()) Assert.fail("No output found");
         int numIdentity = 0;
         while(iter.hasNext()){
             iter.next();
             ++numIdentity;
         }
-        assertEquals(5, numIdentity);
+        Assert.assertEquals(5, numIdentity);
     }
     
     @Test
@@ -551,11 +549,11 @@ public class TestEvalPipelineLocal extends TestCase {
         pigServer.registerQuery("b = foreach a generate COUNT(b), t2.a, t2.b, m#'key1', m#'key2';");
         Iterator<Tuple> it = pigServer.openIterator("b");
         Tuple t = it.next();
-        assertEquals(new Long(2), t.get(0));
-        assertEquals("1", t.get(1).toString());
-        assertEquals("2", t.get(2).toString());
-        assertEquals("value1", t.get(3).toString());
-        assertEquals("value2", t.get(4).toString());
+        Assert.assertEquals(new Long(2), t.get(0));
+        Assert.assertEquals("1", t.get(1).toString());
+        Assert.assertEquals("2", t.get(2).toString());
+        Assert.assertEquals("value1", t.get(3).toString());
+        Assert.assertEquals("value2", t.get(4).toString());
         
         //test with BinStorage
         pigServer.registerQuery("a = load '"
@@ -570,11 +568,11 @@ public class TestEvalPipelineLocal extends TestCase {
         pigServer.registerQuery("y = foreach x generate COUNT(b), t2.a, t2.b, m#'key1', m#'key2';");
         it = pigServer.openIterator("y");
         t = it.next();
-        assertEquals(new Long(2), t.get(0));
-        assertEquals("1", t.get(1).toString());
-        assertEquals("2", t.get(2).toString());
-        assertEquals("value1", t.get(3).toString());
-        assertEquals("value2", t.get(4).toString());
+        Assert.assertEquals(new Long(2), t.get(0));
+        Assert.assertEquals("1", t.get(1).toString());
+        Assert.assertEquals("2", t.get(2).toString());
+        Assert.assertEquals("value1", t.get(3).toString());
+        Assert.assertEquals("value2", t.get(4).toString());
         pigServer.deleteFile(output);
         
     }
@@ -591,11 +589,11 @@ public class TestEvalPipelineLocal extends TestCase {
         pigServer.registerQuery("b = foreach a generate COUNT(b), t2.a, t2.b, m#'key1', m#'key2';");
         Iterator<Tuple> it = pigServer.openIterator("b");
         Tuple t = it.next();
-        assertEquals(new Long(2), t.get(0));
-        assertEquals(1, t.get(1));
-        assertEquals(2, t.get(2));
-        assertEquals("value1", t.get(3).toString());
-        assertEquals("value2", t.get(4).toString());
+        Assert.assertEquals(new Long(2), t.get(0));
+        Assert.assertEquals(1, t.get(1));
+        Assert.assertEquals(2, t.get(2));
+        Assert.assertEquals("value1", t.get(3).toString());
+        Assert.assertEquals("value2", t.get(4).toString());
         
         //test with BinStorage
         pigServer.registerQuery("a = load 'file:" + Util.encodeEscape(input.toString()) + "' using PigStorage() " +
@@ -619,19 +617,19 @@ public class TestEvalPipelineLocal extends TestCase {
             pigServer.registerQuery(generates[i]);
             it = pigServer.openIterator("q");
             t = it.next();
-            assertEquals(new Long(2), t.get(0));
-            assertEquals(Integer.class, t.get(1).getClass());
-            assertEquals(1, t.get(1));
-            assertEquals(Integer.class, t.get(2).getClass());
-            assertEquals(2, t.get(2));
-            assertEquals("value1", t.get(3).toString());
-            assertEquals("value2", t.get(4).toString());
-            assertEquals(DefaultDataBag.class, t.get(5).getClass());
+            Assert.assertEquals(new Long(2), t.get(0));
+            Assert.assertEquals(Integer.class, t.get(1).getClass());
+            Assert.assertEquals(1, t.get(1));
+            Assert.assertEquals(Integer.class, t.get(2).getClass());
+            Assert.assertEquals(2, t.get(2));
+            Assert.assertEquals("value1", t.get(3).toString());
+            Assert.assertEquals("value2", t.get(4).toString());
+            Assert.assertEquals(DefaultDataBag.class, t.get(5).getClass());
             DataBag bg = (DataBag)t.get(5);
             for (Iterator<Tuple> bit = bg.iterator(); bit.hasNext();) {
                 Tuple bt = bit.next();
-                assertEquals(String.class, bt.get(0).getClass());
-                assertEquals(String.class, bt.get(1).getClass());            
+                Assert.assertEquals(String.class, bt.get(0).getClass());
+                Assert.assertEquals(String.class, bt.get(1).getClass());            
             }
         }        
         pigServer.deleteFile(output);
@@ -648,9 +646,9 @@ public class TestEvalPipelineLocal extends TestCase {
         pigServer.registerQuery("c = foreach b generate flatten(a.(y, z));");
         Iterator<Tuple> it = pigServer.openIterator("c");
         Tuple t = it.next();
-        assertEquals(2, t.size());
-        assertEquals("f2", t.get(0).toString());
-        assertEquals("f3", t.get(1).toString());
+        Assert.assertEquals(2, t.size());
+        Assert.assertEquals("f2", t.get(0).toString());
+        Assert.assertEquals("f3", t.get(1).toString());
     }
 
     @Test
@@ -680,12 +678,12 @@ public class TestEvalPipelineLocal extends TestCase {
             pigServer.registerQuery(generates[i]);
             Iterator<Tuple> it = pigServer.openIterator("q");
             Tuple t = it.next();
-            assertEquals("pigtester", t.get(0));
-            assertEquals(String.class, t.get(0).getClass());
-            assertEquals(10, t.get(1));
-            assertEquals(Integer.class, t.get(1).getClass());
-            assertEquals(1.2, t.get(2));
-            assertEquals(Double.class, t.get(2).getClass());
+            Assert.assertEquals("pigtester", t.get(0));
+            Assert.assertEquals(String.class, t.get(0).getClass());
+            Assert.assertEquals(10, t.get(1));
+            Assert.assertEquals(Integer.class, t.get(1).getClass());
+            Assert.assertEquals(1.2, t.get(2));
+            Assert.assertEquals(Double.class, t.get(2).getClass());
         }
         
         // test that valid casting is allowed
@@ -694,12 +692,12 @@ public class TestEvalPipelineLocal extends TestCase {
         pigServer.registerQuery("q = foreach p generate name, age, gpa;");
         Iterator<Tuple> it = pigServer.openIterator("q");
         Tuple t = it.next();
-        assertEquals("pigtester", t.get(0));
-        assertEquals(String.class, t.get(0).getClass());
-        assertEquals(10L, t.get(1));
-        assertEquals(Long.class, t.get(1).getClass());
-        assertEquals(1.2f, t.get(2));
-        assertEquals(Float.class, t.get(2).getClass());
+        Assert.assertEquals("pigtester", t.get(0));
+        Assert.assertEquals(String.class, t.get(0).getClass());
+        Assert.assertEquals(10L, t.get(1));
+        Assert.assertEquals(Long.class, t.get(1).getClass());
+        Assert.assertEquals(1.2f, t.get(2));
+        Assert.assertEquals(Float.class, t.get(2).getClass());
         
         // test that implicit casts work
         pigServer.registerQuery("p = load '" + output + "' using BinStorage() " +
@@ -707,12 +705,12 @@ public class TestEvalPipelineLocal extends TestCase {
         pigServer.registerQuery("q = foreach p generate name, age + 1L, (int)gpa;");
         it = pigServer.openIterator("q");
         t = it.next();
-        assertEquals("pigtester", t.get(0));
-        assertEquals(String.class, t.get(0).getClass());
-        assertEquals(11L, t.get(1));
-        assertEquals(Long.class, t.get(1).getClass());
-        assertEquals(1, t.get(2));
-        assertEquals(Integer.class, t.get(2).getClass());
+        Assert.assertEquals("pigtester", t.get(0));
+        Assert.assertEquals(String.class, t.get(0).getClass());
+        Assert.assertEquals(11L, t.get(1));
+        Assert.assertEquals(Long.class, t.get(1).getClass());
+        Assert.assertEquals(1, t.get(2));
+        Assert.assertEquals(Integer.class, t.get(2).getClass());
         pigServer.deleteFile(output);
     }
     
@@ -742,10 +740,10 @@ public class TestEvalPipelineLocal extends TestCase {
         Iterator<Tuple> it = pigServer.openIterator("e");
         for(int i = 0; i < resultMap.size(); i++) {
             Tuple t = it.next();
-            assertEquals(true, resultMap.containsKey(t.get(0)));
+            Assert.assertEquals(true, resultMap.containsKey(t.get(0)));
             Pair<Long, Long> output = resultMap.get(t.get(0)); 
-            assertEquals(output.first, t.get(1));
-            assertEquals(output.second, t.get(2));
+            Assert.assertEquals(output.first, t.get(1));
+            Assert.assertEquals(output.second, t.get(2));
         }
     }
     
@@ -759,7 +757,7 @@ public class TestEvalPipelineLocal extends TestCase {
         "as (name:chararray);");
         Iterator<Tuple> it = pigServer.openIterator("a");
         Tuple t = it.next();
-        assertEquals("wendyξ", t.get(0));
+        Assert.assertEquals("wendyξ", t.get(0));
         
     }
 
@@ -788,22 +786,22 @@ public class TestEvalPipelineLocal extends TestCase {
 
         pigServer.registerQuery(query);
         Iterator<Tuple> iter = pigServer.openIterator("C");
-        if(!iter.hasNext()) fail("No output found");
+        if(!iter.hasNext()) Assert.fail("No output found");
         int numIdentity = 0;
         while(iter.hasNext()){
             Tuple t = iter.next();
-            assertEquals(1.0, (Double)t.get(0), 0.01);
-            assertEquals(2.0, (Float)t.get(1), 0.01);
-            assertTrue(((String)t.get(2)).equals("Hello World!"));
-            assertEquals(new Integer(10), (Integer)t.get(3));
-            assertEquals(1, ((DataBag)t.get(4)).size());
-            assertEquals(4, ((Tuple)t.get(5)).size());
-            assertEquals(2, ((Map<String, Object>)t.get(6)).size());
-            assertEquals(DataByteArray.class, t.get(7).getClass());
-            assertEquals(8, t.size());
+            Assert.assertEquals(1.0, (Double)t.get(0), 0.01);
+            Assert.assertEquals(2.0, (Float)t.get(1), 0.01);
+            Assert.assertTrue(((String)t.get(2)).equals("Hello World!"));
+            Assert.assertEquals(new Integer(10), (Integer)t.get(3));
+            Assert.assertEquals(1, ((DataBag)t.get(4)).size());
+            Assert.assertEquals(4, ((Tuple)t.get(5)).size());
+            Assert.assertEquals(2, ((Map<String, Object>)t.get(6)).size());
+            Assert.assertEquals(DataByteArray.class, t.get(7).getClass());
+            Assert.assertEquals(8, t.size());
             ++numIdentity;
         }
-        assertEquals(LOOP_COUNT * LOOP_COUNT, numIdentity);
+        Assert.assertEquals(LOOP_COUNT * LOOP_COUNT, numIdentity);
     }
 
     public void testMapUDFFail() throws Exception{
@@ -832,7 +830,7 @@ public class TestEvalPipelineLocal extends TestCase {
         pigServer.registerQuery(query);
         try {
             Iterator<Tuple> iter = pigServer.openIterator("C");
-            fail("Error expected.");
+            Assert.fail("Error expected.");
         } catch (Exception e) {
             e.getMessage().contains("Cannot determine");
         }
@@ -849,8 +847,8 @@ public class TestEvalPipelineLocal extends TestCase {
         pigServer.registerQuery("b = foreach a generate (chararray)$0, (chararray)$1;");
         Iterator<Tuple> it = pigServer.openIterator("b");
         Tuple t = it.next();
-        assertEquals("hello", t.get(0));
-        assertEquals("world", t.get(1));
+        Assert.assertEquals("hello", t.get(0));
+        Assert.assertEquals("world", t.get(1));
         
     }
 
@@ -881,20 +879,20 @@ public class TestEvalPipelineLocal extends TestCase {
 
         pigServer.registerQuery(query);
         Iterator<Tuple> iter = pigServer.openIterator("C");
-        if(!iter.hasNext()) fail("No output found");
+        if(!iter.hasNext()) Assert.fail("No output found");
         int numIdentity = 0;
         while(iter.hasNext()){
             Tuple t = iter.next();
-            assertEquals((Integer)((numIdentity + 1) * 10), (Integer)t.get(0));
-            assertEquals((Long)10L, (Long)t.get(1));
-            assertEquals((Long)5L, (Long)t.get(2));
-            assertEquals(LOOP_COUNT*2.0, (Double)t.get(3), 0.01);
-            assertEquals(8.0, (Double)t.get(5), 0.01);
-            assertEquals(5L, ((DataBag)t.get(6)).size());
-            assertEquals(7, t.size());
+            Assert.assertEquals((Integer)((numIdentity + 1) * 10), (Integer)t.get(0));
+            Assert.assertEquals((Long)10L, (Long)t.get(1));
+            Assert.assertEquals((Long)5L, (Long)t.get(2));
+            Assert.assertEquals(LOOP_COUNT*2.0, (Double)t.get(3), 0.01);
+            Assert.assertEquals(8.0, (Double)t.get(5), 0.01);
+            Assert.assertEquals(5L, ((DataBag)t.get(6)).size());
+            Assert.assertEquals(7, t.size());
             ++numIdentity;
         }
-        assertEquals(LOOP_COUNT, numIdentity);
+        Assert.assertEquals(LOOP_COUNT, numIdentity);
     }
 
     @Test
@@ -923,26 +921,26 @@ public class TestEvalPipelineLocal extends TestCase {
 
         pigServer.registerQuery(query);
         Iterator<Tuple> iter = pigServer.openIterator("C");
-        if(!iter.hasNext()) fail("No output found");
+        if(!iter.hasNext()) Assert.fail("No output found");
 
         int numRows = 0;
         for(int i = 0; i < LOOP_COUNT; i++) {
             for(int j = 0; j < LOOP_COUNT; j+=2){
                 Tuple t = null;
                 if(iter.hasNext()) t = iter.next();
-                assertEquals(3, t.size());
-                assertEquals(new Double(j - i), (Double)t.get(0), 0.01);
-                assertEquals((Integer)(j%2), (Integer)t.get(1));
+                Assert.assertEquals(3, t.size());
+                Assert.assertEquals(new Double(j - i), (Double)t.get(0), 0.01);
+                Assert.assertEquals((Integer)(j%2), (Integer)t.get(1));
                 if(j == 0) {
-                    assertEquals(0.0, (Double)t.get(2), 0.01);
+                    Assert.assertEquals(0.0, (Double)t.get(2), 0.01);
                 } else {
-                    assertEquals((Double)((double)i/j), (Double)t.get(2), 0.01);
+                    Assert.assertEquals((Double)((double)i/j), (Double)t.get(2), 0.01);
                 }
                 ++numRows;
             }
         }
 
-        assertEquals((LOOP_COUNT * LOOP_COUNT)/2, numRows);
+        Assert.assertEquals((LOOP_COUNT * LOOP_COUNT)/2, numRows);
     }
 
     @Test
@@ -970,21 +968,21 @@ public class TestEvalPipelineLocal extends TestCase {
 
         pigServer.registerQuery(query);
         Iterator<Tuple> iter = pigServer.openIterator("C");
-        if(!iter.hasNext()) fail("No output found");
+        if(!iter.hasNext()) Assert.fail("No output found");
 
         int numRows = 0;
         for(int i = 0; i < LOOP_COUNT; i++) {
             for(int j = 0; j < LOOP_COUNT; j+=2){
                 Tuple t = null;
                 if(iter.hasNext()) t = iter.next();
-                assertEquals(2, t.size());
-                assertEquals(new Double(i + j), (Double)t.get(0), 0.01);
-                assertEquals(new Double(i + j + i), (Double)t.get(1));
+                Assert.assertEquals(2, t.size());
+                Assert.assertEquals(new Double(i + j), (Double)t.get(0), 0.01);
+                Assert.assertEquals(new Double(i + j + i), (Double)t.get(1));
                 ++numRows;
             }
         }
 
-        assertEquals((LOOP_COUNT * LOOP_COUNT)/2, numRows);
+        Assert.assertEquals((LOOP_COUNT * LOOP_COUNT)/2, numRows);
     }
 
     @Test
@@ -1007,20 +1005,20 @@ public class TestEvalPipelineLocal extends TestCase {
         pigServer.registerQuery("C = foreach B generate FLATTEN(" + Identity.class.getName() + "($0, $1));"); //the argument does not matter
 
         Iterator<Tuple> iter = pigServer.openIterator("C");
-        if(!iter.hasNext()) fail("No output found");
+        if(!iter.hasNext()) Assert.fail("No output found");
         int numRows = 0;
         for(int i = 0; i < LOOP_COUNT; i++) {
             for(int j = 0; j < LOOP_COUNT; j+=2){
                 Tuple t = null;
                 if(iter.hasNext()) t = iter.next();
-                assertEquals(2, t.size());
-                assertEquals(new Double(i), new Double(t.get(0).toString()), 0.01);
-                assertEquals(new Double(j), new Double(t.get(1).toString()), 0.01);
+                Assert.assertEquals(2, t.size());
+                Assert.assertEquals(new Double(i), new Double(t.get(0).toString()), 0.01);
+                Assert.assertEquals(new Double(j), new Double(t.get(1).toString()), 0.01);
                 ++numRows;
             }
         }
 
-        assertEquals((LOOP_COUNT * LOOP_COUNT)/2, numRows);
+        Assert.assertEquals((LOOP_COUNT * LOOP_COUNT)/2, numRows);
     }
 
 }

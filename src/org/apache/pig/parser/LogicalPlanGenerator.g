@@ -32,13 +32,17 @@ options {
     backtrack=true;
 }
 
+scope GScope {
+    LogicalRelationalOperator currentOp; // Current relational operator that's being built.
+}
+
 @header {
 package org.apache.pig.parser;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.builtin.GFAny;
-import org.apache.pig.impl.builtin.ReadScalars;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.streaming.StreamingCommand;
 import org.apache.pig.impl.streaming.StreamingCommand.HandleSpec;
@@ -94,13 +98,39 @@ import org.apache.pig.data.Tuple;
 @members {
 private static Log log = LogFactory.getLog( LogicalPlanGenerator.class );
 
-private LogicalPlanBuilder builder = new LogicalPlanBuilder();
+private LogicalPlanBuilder builder = null;
 
 private boolean inForeachPlan = false;
-private LogicalRelationalOperator currentOp = null; // Current relational operator that's being built.
 
 public LogicalPlan getLogicalPlan() {
     return builder.getPlan();
+}
+
+public Map<String, Operator> getOperators() {
+    return builder.getOperators();
+}
+
+@Override
+protected Object recoverFromMismatchedToken(IntStream input, int ttype, BitSet follow) 
+throws RecognitionException {
+    throw new MismatchedTokenException( ttype, input );
+}
+
+@Override
+public Object recoverFromMismatchedSet(IntStream input, RecognitionException e, BitSet follow)
+throws RecognitionException {
+    throw e;
+}
+
+public LogicalPlanGenerator(TreeNodeStream input, LogicalPlanBuilder builder) {
+    this(input, new RecognizerSharedState());
+    this.builder = builder;
+}
+
+public LogicalPlanGenerator(TreeNodeStream input, PigContext pigContext, String scope,
+    Map<String, String> fileNameMap) {
+    this( input );
+    builder = new LogicalPlanBuilder( pigContext, scope, fileNameMap, input );
 }
 
 public String getErrorMessage(RecognitionException e, String[] tokenNames) {
@@ -119,6 +149,12 @@ public String getErrorMessage(RecognitionException e, String[] tokenNames) {
 
 } // End of @members
 
+@rulecatch {
+catch(RecognitionException re) {
+    throw re;
+}
+}
+
 query : ^( QUERY statement* )
 ;
 
@@ -134,7 +170,6 @@ scope {
     $statement::inputIndex = 0;
 }
  : general_statement
- | foreach_statement
  | split_statement
 ;
 
@@ -142,7 +177,11 @@ split_statement : split_clause
 ;
 
 general_statement 
-: ^( STATEMENT ( alias { $statement::alias = $alias.name; } )? op_clause parallel_clause? )
+: ^( STATEMENT ( alias { $statement::alias = $alias.name; } )? oa = op_clause parallel_clause? )
+  {
+      Operator op = builder.lookupOperator( $oa.alias );
+      builder.setParallel( (LogicalRelationalOperator)op, $statement::parallel );
+  }
 ;
 
 parallel_clause
@@ -150,11 +189,6 @@ parallel_clause
    {
        $statement::parallel = Integer.parseInt( $INTEGER.text );
    }
-;
-
-// We need to handle foreach specifically because of the ending ';', which is not required 
-// if there is a nested block. This is ugly, but it gets the job done.
-foreach_statement : ^( STATEMENT ( alias { $statement::alias = $alias.name; } )? foreach_clause )
 ;
 
 alias returns[String name]: IDENTIFIER { $name = $IDENTIFIER.text; }
@@ -175,6 +209,7 @@ op_clause returns[String alias] :
           | union_clause { $alias = $union_clause.alias; }
           | stream_clause { $alias = $stream_clause.alias; }
           | mr_clause { $alias = $mr_clause.alias; }
+          | foreach_clause { $alias = $foreach_clause.alias; }
 ;
 
 define_clause 
@@ -182,7 +217,7 @@ define_clause
    {
        builder.defineCommand( $alias.name, $cmd.command );
    }
- | ^( DEFINE alias func_clause )
+ | ^( DEFINE alias func_clause[FunctionType.UNKNOWNFUNC] )
    {
        builder.defineFunction( $alias.name, $func_clause.funcSpec );
    }
@@ -195,9 +230,9 @@ cmd[String alias] returns[StreamingCommand command]
 }
  : ^( EXECCOMMAND ( ship_clause[shipPaths] | cache_caluse[cachePaths] | input_clause | output_clause | error_clause )* )
    {
-       $command = builder.buildCommand( $EXECCOMMAND.text, shipPaths,
+       $command = builder.buildCommand( builder.unquote( $EXECCOMMAND.text ), shipPaths,
            cachePaths, $input_clause.inputHandleSpecs, $output_clause.outputHandleSpecs,
-           $error_clause.dir == null? $alias : $error_clause.dir, $error_clause.limit, input );
+           $error_clause.dir == null? $alias : $error_clause.dir, $error_clause.limit );
    }
 ;
 
@@ -217,51 +252,59 @@ input_clause returns[List<HandleSpec> inputHandleSpecs]
 @init {
     $inputHandleSpecs = new ArrayList<HandleSpec>();
 }
- : ^( INPUT ( stream_cmd { $inputHandleSpecs.add( $stream_cmd.handleSpec ); } )+ )
+ : ^( INPUT ( stream_cmd[true] { $inputHandleSpecs.add( $stream_cmd.handleSpec ); } )+ )
 ;
 
-stream_cmd returns[HandleSpec handleSpec]
+stream_cmd[boolean in] returns[HandleSpec handleSpec]
 @init {
     String handleName = null;
     FuncSpec fs = null;
     String deserializer = PigStreaming.class.getName() + "()";
+    byte ft = $in ? FunctionType.PIGTOSTREAMFUNC : FunctionType.STREAMTOPIGFUNC;
+}
+@after {
     if( fs != null )
         deserializer =  fs.toString();
-}
-@final {
     $handleSpec = new HandleSpec( handleName, deserializer );
 }
  : ^( STDIN { handleName = "stdin"; }
-      ( func_clause { fs = $func_clause.funcSpec; } )? )
+      ( func_clause[ft] { fs = $func_clause.funcSpec; } )? )
  | ^( STDOUT { handleName = "stdout"; }
-      ( func_clause { fs = $func_clause.funcSpec; } )? )
+      ( func_clause[ft] { fs = $func_clause.funcSpec; } )? )
  | ^( QUOTEDSTRING { handleName = builder.unquote( $QUOTEDSTRING.text ); }
-      ( func_clause { fs = $func_clause.funcSpec; } )? )
+      ( func_clause[ft] { fs = $func_clause.funcSpec; } )? )
 ;
 
 output_clause returns[List<HandleSpec> outputHandleSpecs]
 @init {
     $outputHandleSpecs = new ArrayList<HandleSpec>();
 }
- : ^( OUTPUT ( stream_cmd { $outputHandleSpecs.add( $stream_cmd.handleSpec ); } )+ )
+ : ^( OUTPUT ( stream_cmd[false] { $outputHandleSpecs.add( $stream_cmd.handleSpec ); } )+ )
 ;
 
 error_clause returns[String dir, Integer limit]
 @init {
     $limit = StreamingCommand.MAX_TASKS;
 }
- : ^( STDERROR QUOTEDSTRING INTEGER? )
-   {
-       $dir = builder.unquote( $QUOTEDSTRING.text );
-       $limit = Integer.parseInt( $INTEGER.text );
-   }
+ : ^( STDERROR 
+      ( QUOTEDSTRING 
+        {
+            $dir = builder.unquote( $QUOTEDSTRING.text );
+        }
+        ( INTEGER 
+          { 
+              $limit = Integer.parseInt( $INTEGER.text );
+          }
+        )?
+      )?
+    )
 ;
 
 load_clause returns[String alias]
- : ^( LOAD filename func_clause? as_clause? )
+ : ^( LOAD filename func_clause[FunctionType.LOADFUNC]? as_clause? )
   {
       $alias = builder.buildLoadOp( $statement::alias,
-          $statement::parallel, $filename.filename, $func_clause.funcSpec, $as_clause.logicalSchema  );
+          $filename.filename, $func_clause.funcSpec, $as_clause.logicalSchema  );
   }
 ;
 
@@ -270,13 +313,27 @@ filename returns[String filename]
 ;
 
 as_clause returns[LogicalSchema logicalSchema]
- : ^( AS field_def_list ) { $logicalSchema = $field_def_list.schema; }
+ : ^( AS field_def_list ) 
+   { 
+        LogicalPlanBuilder.setBytearrayForNULLType($field_def_list.schema);
+        $logicalSchema = $field_def_list.schema; 
+   }
 ;
 
 field_def returns[LogicalFieldSchema fieldSchema]
- : ^( FIELD_DEF IDENTIFIER type )
+@init {
+    byte datatype = DataType.NULL;          
+}
+ : ^( FIELD_DEF IDENTIFIER ( type { datatype = $type.datatype;} )? )
    {
-       $fieldSchema = new LogicalFieldSchema( $IDENTIFIER.text, $type.logicalSchema, $type.datatype );
+       if( datatype == DataType.BAG ) {
+              LogicalFieldSchema tupleFieldSchema = new LogicalFieldSchema( null, $type.logicalSchema, DataType.TUPLE );
+              LogicalSchema bagSchema = new LogicalSchema();
+              bagSchema.addField( tupleFieldSchema );
+              $fieldSchema = new LogicalFieldSchema( $IDENTIFIER.text, bagSchema, DataType.BAG );
+       } else {
+           $fieldSchema = new LogicalFieldSchema( $IDENTIFIER.text, $type.logicalSchema, datatype );
+       }
    }
 ;
 
@@ -288,7 +345,7 @@ field_def_list returns[LogicalSchema schema]
 ;
 
 
-type returns[byte datatype, LogicalSchema logicalSchema]
+type returns[Byte datatype, LogicalSchema logicalSchema]
  : simple_type
    {
         $datatype = $simple_type.datatype;
@@ -319,10 +376,17 @@ simple_type returns[byte datatype]
 ;
 
 tuple_type returns[LogicalSchema logicalSchema]
- : ^( TUPLE_TYPE field_def_list )
-   { 
-       $logicalSchema = $field_def_list.schema;
-   }
+@init {
+    $logicalSchema = new LogicalSchema();
+}
+ : ^( TUPLE_TYPE 
+      ( field_def_list
+        { 
+            LogicalPlanBuilder.setBytearrayForNULLType($field_def_list.schema);
+            $logicalSchema = $field_def_list.schema;
+        }
+      )?
+    )
 ;
 
 bag_type returns[LogicalSchema logicalSchema]
@@ -335,33 +399,32 @@ bag_type returns[LogicalSchema logicalSchema]
 map_type : MAP_TYPE
 ;
 
-func_clause returns[FuncSpec funcSpec]
- : ^( FUNC func_name func_args? )
-   { 
-       $funcSpec = builder.buildFuncSpec( $func_name.funcName, $func_args.args );
-   }
- | ^( FUNC_REF func_alias )
+func_clause[byte ft] returns[FuncSpec funcSpec]
+ : ^( FUNC_REF func_name )
    {
-       $funcSpec = builder.lookupFunction( $func_alias.alias );
+       $funcSpec = builder.lookupFunction( $func_name.funcName );
        if( $funcSpec == null )
-           $funcSpec = builder.buildFuncSpec( $func_alias.alias, new ArrayList<String>() );
+           $funcSpec = builder.buildFuncSpec( $func_name.funcName, new ArrayList<String>(), $ft );
+   }
+ | ^( FUNC func_name func_args? )
+   {
+       $funcSpec = builder.lookupFunction( $func_name.funcName );
+       if( $funcSpec == null ) {
+           List<String> argList = new ArrayList<String>();
+           if( $func_args.args != null )
+               argList = $func_args.args;
+           $funcSpec = builder.buildFuncSpec( $func_name.funcName, argList, $ft );
+       }
    }
 ;
 
 func_name returns[String funcName]
 @init { StringBuilder buf = new StringBuilder(); } 
  : p1 = eid { buf.append( $p1.id ); }
-      ( ( PERIOD { buf.append( $PERIOD.text ); } | DOLLAR { buf.append( $PERIOD.text ); } )
+      ( ( PERIOD { buf.append( $PERIOD.text ); } | DOLLAR { buf.append( $DOLLAR.text ); } )
       p2 = eid { buf.append( $p2.id ); } )*
    {
        $funcName = buf.toString();
-   }
-;
-
-func_alias returns[String alias]
- : IDENTIFIER
-   {
-       $alias = $IDENTIFIER.text;
    }
 ;
 
@@ -377,22 +440,25 @@ scope {
     List<String> inputAliases;
     List<Boolean> innerFlags;
 }
+scope GScope;
 @init {
-    currentOp = builder.createGroupOp(); 
+    $GScope::currentOp = builder.createGroupOp(); 
     $group_clause::groupPlans = new MultiMap<Integer, LogicalExpressionPlan>();
     $group_clause::inputAliases = new ArrayList<String>();
     $group_clause::innerFlags = new ArrayList<Boolean>();
     GROUPTYPE groupType = GROUPTYPE.REGULAR;
 }
- : ^( GROUP group_item+ ( group_type { groupType = $group_type.type; } )? )
+ : ^( GROUP group_item+ ( group_type { groupType = $group_type.type; ((LOCogroup)$GScope::currentOp).pinOption(LOCogroup.OPTION_GROUPTYPE); } )? partition_clause? )
    {
-       $alias = builder.buildGroupOp( (LOCogroup)currentOp, $statement::alias, $statement::parallel, 
-           $group_clause::inputAliases, $group_clause::groupPlans, groupType, $group_clause::innerFlags );
+       $alias = builder.buildGroupOp( (LOCogroup)$GScope::currentOp, $statement::alias, 
+           $group_clause::inputAliases, $group_clause::groupPlans, groupType, $group_clause::innerFlags,
+           $partition_clause.partitioner );
    }
- | ^( COGROUP group_item+ ( group_type { groupType = $group_type.type; } )? )
+ | ^( COGROUP group_item+ ( group_type { groupType = $group_type.type;((LOCogroup)$GScope::currentOp).pinOption(LOCogroup.OPTION_GROUPTYPE); } )? partition_clause? )
    {
-       $alias = builder.buildGroupOp( (LOCogroup)currentOp, $statement::alias, $statement::parallel, 
-           $group_clause::inputAliases, $group_clause::groupPlans, groupType, $group_clause::innerFlags );
+       $alias = builder.buildGroupOp( (LOCogroup)$GScope::currentOp, $statement::alias, 
+           $group_clause::inputAliases, $group_clause::groupPlans, groupType, $group_clause::innerFlags,
+           $partition_clause.partitioner );
    }
 ;
 
@@ -411,7 +477,7 @@ group_item
          | ALL 
          {
              LogicalExpressionPlan plan = new LogicalExpressionPlan();
-             new ConstantExpression( plan, "all", new LogicalFieldSchema( null , null, DataType.CHARARRAY ) );
+             new ConstantExpression( plan, "all");
              List<LogicalExpressionPlan> plans = new ArrayList<LogicalExpressionPlan>( 1 );
              plans.add( plan );
              $group_clause::groupPlans.put( $group_clause::inputIndex, plans );
@@ -438,7 +504,18 @@ rel
    {
        $statement::inputAlias = $alias.name;
    }
- | op_clause
+ | inline_op
+;
+
+inline_op
+@init {
+    String al = $statement::alias;
+    $statement::alias = null;
+}
+@after {
+    $statement::alias = al;
+}
+ : op_clause
    {
        $statement::inputAlias = $op_clause.alias;
    }
@@ -452,7 +529,7 @@ flatten_generated_item returns[LogicalExpressionPlan plan, boolean flattenFlag, 
    | expr[$plan]
    | STAR
      {
-         builder.buildProjectExpr( $plan, currentOp, $statement::inputIndex, null, -1 );
+         builder.buildProjectExpr( $plan, $GScope::currentOp, $statement::inputIndex, null, -1 );
      }
    )
    ( field_def_list { $schema = $field_def_list.schema; } )?
@@ -463,22 +540,23 @@ flatten_clause[LogicalExpressionPlan plan]
 ;
 
 store_clause returns[String alias]
- : ^( STORE alias filename func_clause? )
+ : ^( STORE alias filename func_clause[FunctionType.STOREFUNC]? )
    {
        $alias= builder.buildStoreOp( $statement::alias,
-          $statement::parallel, $alias.name, $filename.filename, $func_clause.funcSpec );
+          $alias.name, $filename.filename, $func_clause.funcSpec );
    }
 ;
 
 filter_clause returns[String alias]
+scope GScope;
 @init { 
     LogicalExpressionPlan exprPlan = new LogicalExpressionPlan();
-    currentOp = builder.createFilterOp();
+    $GScope::currentOp = builder.createFilterOp();
 }
  : ^( FILTER rel cond[exprPlan] )
    {
-       $alias = builder.buildFilterOp( (LOFilter)currentOp, $statement::alias,
-          $statement::parallel, $statement::inputAlias, exprPlan );
+       $alias = builder.buildFilterOp( (LOFilter)$GScope::currentOp, $statement::alias,
+          $statement::inputAlias, exprPlan );
    }
 ;
 
@@ -549,7 +627,7 @@ real_arg [LogicalExpressionPlan plan] returns[LogicalExpression expr]
  : e = expr[$plan] { $expr = $e.expr; }
  | STAR
    {
-       $expr = builder.buildProjectExpr( $plan, currentOp, $statement::inputIndex, null, -1 );
+       $expr = builder.buildProjectExpr( $plan, $GScope::currentOp, $statement::inputIndex, null, -1 );
    }
 ;
 
@@ -586,10 +664,9 @@ expr[LogicalExpressionPlan plan] returns[LogicalExpression expr]
    {
        $expr = new NegativeExpression( $plan, $e.expr );
    }
- | ^( CAST_EXPR type e = expr[$plan] ) // cast expr
+ | ^( CAST_EXPR type_cast e = expr[$plan] ) // cast expr
    {
-       $expr = new CastExpression( $plan, $e.expr, 
-           new LogicalFieldSchema( null , $type.logicalSchema, $type.datatype ) );
+       $expr = new CastExpression( $plan, $e.expr, $type_cast.fieldSchema );
    }
  | ^( EXPR_IN_PAREN e = expr[$plan] ) // unary expr
    {
@@ -597,13 +674,50 @@ expr[LogicalExpressionPlan plan] returns[LogicalExpression expr]
    }
 ;
 
+type_cast returns[LogicalFieldSchema fieldSchema]
+ : simple_type
+   {
+        $fieldSchema = new LogicalFieldSchema( null, null, $simple_type.datatype );
+   }
+ | map_type
+   {
+       $fieldSchema = new LogicalFieldSchema( null, null, DataType.MAP );
+   }
+ | tuple_type_cast
+   {
+       $fieldSchema = new LogicalFieldSchema( null, $tuple_type_cast.logicalSchema, DataType.TUPLE );
+   }
+ | bag_type_cast
+   {
+       $fieldSchema = new LogicalFieldSchema( null, $bag_type_cast.logicalSchema, DataType.BAG );
+   }
+;
+
+tuple_type_cast returns[LogicalSchema logicalSchema]
+@init {
+    $logicalSchema = new LogicalSchema();
+}
+ : ^( TUPLE_TYPE_CAST ( type_cast { $logicalSchema.addField( $type_cast.fieldSchema ); } )* )
+;
+
+bag_type_cast returns[LogicalSchema logicalSchema]
+@init {
+    $logicalSchema = new LogicalSchema();
+}
+ : ^( BAG_TYPE_CAST tuple_type_cast? )
+   { 
+       $logicalSchema.addField( new LogicalFieldSchema( null, $tuple_type_cast.logicalSchema, DataType.TUPLE ) );
+   }
+;
+
 var_expr[LogicalExpressionPlan plan] returns[LogicalExpression expr]
 @init {
-    List<Object> columns = new ArrayList<Object>();
+    List<Object> columns = null;
 }
  : projectable_expr[$plan] { $expr = $projectable_expr.expr; }
    ( dot_proj 
      {
+         columns = $dot_proj.cols;
          if( $expr instanceof ScalarExpression ) {
              // This is a scalar projection.
              ScalarExpression scalarExpr = (ScalarExpression)$expr;
@@ -631,27 +745,30 @@ var_expr[LogicalExpressionPlan plan] returns[LogicalExpression expr]
                          throw new InvalidScalarProjectionException( input, scalarExpr );
                      }
                  }
-                 LogicalFieldSchema fs = new LogicalFieldSchema( null , null, DataType.INTEGER );
-                 ConstantExpression constExpr = new ConstantExpression( $plan, pos, fs  );
+                 ConstantExpression constExpr = new ConstantExpression( $plan, pos);
                  plan.connect( $expr, constExpr );
-                 fs = new LogicalFieldSchema( null , null, DataType.CHARARRAY );
-                 constExpr = new ConstantExpression( $plan, "filename", fs ); // place holder for file name.
+                 constExpr = new ConstantExpression( $plan, "filename"); // place holder for file name.
                  plan.connect( $expr, constExpr );
              }
          } else {
              DereferenceExpression e = new DereferenceExpression( $plan );
              e.setRawColumns( $dot_proj.cols );
-             $plan.connect( $expr, e );
+             $plan.connect( e, $expr );
              $expr = e;
          }
      }
    | pound_proj
      {
          MapLookupExpression e = new MapLookupExpression( $plan, $pound_proj.key, null );
-         $plan.connect( $expr, e );
+         $plan.connect( e, $expr );
          $expr = e;
      }
   )*
+  {
+      if( ( $expr instanceof ScalarExpression ) && columns == null ) {
+          throw new InvalidScalarProjectionException( input, (ScalarExpression)$expr );
+      }
+  }
 ;
 
 projectable_expr[LogicalExpressionPlan plan] returns[LogicalExpression expr]
@@ -681,11 +798,25 @@ col_alias_or_index returns[Object col]
 ;
 
 col_alias returns[Object col]
- : GROUP { $col = $GROUP.text; } | IDENTIFIER { $col = $IDENTIFIER.text; }
+ : GROUP { $col = $GROUP.text; }
+ | scoped_col_alias { $col = $scoped_col_alias.col; }
+;
+
+scoped_col_alias returns[Object col]
+@init {
+    StringBuilder sb = new StringBuilder();
+}
+@after {
+    $col = sb.toString();
+}
+ : ^( SCOPED_ALIAS
+      id1 = IDENTIFIER { sb.append( $id1.text ); } 
+      ( id2 = IDENTIFIER { sb.append( "::" ); sb.append( $id2.text ); } )*
+    )
 ;
 
 col_index returns[Object col]
- : ^( DOLLAR INTEGER { $col = Integer.valueOf( $INTEGER.text ); } )
+ : DOLLARVAR { $col = builder.undollar( $DOLLARVAR.text ); }
 ;
 
 pound_proj returns[String key]
@@ -703,12 +834,12 @@ limit_clause returns[String alias]
  : ^( LIMIT rel INTEGER  )
    {
        $alias = builder.buildLimitOp( $statement::alias,
-           $statement::parallel, $statement::inputAlias, Long.valueOf( $INTEGER.text ) );
+           $statement::inputAlias, Long.valueOf( $INTEGER.text ) );
    }
  | ^( LIMIT rel LONGINTEGER )
    {
        $alias = builder.buildLimitOp( $statement::alias,
-           $statement::parallel, $statement::inputAlias, Long.valueOf( $LONGINTEGER.text ) );
+           $statement::inputAlias, builder.parseLong( $LONGINTEGER.text ) );
    }
 ;
 
@@ -716,18 +847,19 @@ sample_clause returns[String alias]
  : ^( SAMPLE rel DOUBLENUMBER )
    {
        $alias = builder.buildSampleOp( $statement::alias,
-           $statement::parallel, $statement::inputAlias, Double.valueOf( $DOUBLENUMBER.text ) );
+           $statement::inputAlias, Double.valueOf( $DOUBLENUMBER.text ) );
    }
 ;
 
 order_clause returns[String alias]
+scope GScope;
 @init {
-    currentOp = builder.createSortOp();
+    $GScope::currentOp = builder.createSortOp();
 }
- : ^( ORDER rel order_by_clause func_clause? )
+ : ^( ORDER rel order_by_clause func_clause[FunctionType.COMPARISONFUNC]? )
    {
-       $alias = builder.buildSortOp( (LOSort)currentOp, $statement::alias,
-           $statement::parallel, $statement::inputAlias, $order_by_clause.plans, 
+       $alias = builder.buildSortOp( (LOSort)$GScope::currentOp, $statement::alias,
+           $statement::inputAlias, $order_by_clause.plans, 
            $order_by_clause.ascFlags, $func_clause.funcSpec );
    }
 ;
@@ -739,7 +871,7 @@ order_by_clause returns[List<LogicalExpressionPlan> plans, List<Boolean> ascFlag
 }
  : STAR {
        LogicalExpressionPlan plan = new LogicalExpressionPlan();
-       builder.buildProjectExpr( plan, currentOp, $statement::inputIndex, null, -1 );
+       builder.buildProjectExpr( plan, $GScope::currentOp, $statement::inputIndex, null, -1 );
        $plans.add( plan );
    }
    ( ASC { $ascFlags.add( true ); } | DESC { $ascFlags.add( false ); } )?
@@ -762,7 +894,7 @@ distinct_clause returns[String alias]
  : ^( DISTINCT rel partition_clause? )
    {
        $alias = builder.buildDistinctOp( $statement::alias,
-          $statement::parallel, $statement::inputAlias, $partition_clause.partitioner );
+          $statement::inputAlias, $partition_clause.partitioner );
    }
 ;
 
@@ -777,7 +909,7 @@ cross_clause returns[String alias]
  : ^( CROSS rel_list partition_clause? )
    {
        $alias = builder.buildCrossOp( $statement::alias,
-          $statement::parallel, $rel_list.aliasList, $partition_clause.partitioner );
+          $rel_list.aliasList, $partition_clause.partitioner );
    }
 ;
 
@@ -793,16 +925,17 @@ scope {
     List<String> inputAliases;
     List<Boolean> innerFlags;
 }
+scope GScope;
 @init {
-    currentOp = builder.createJoinOp();
+    $GScope::currentOp = builder.createJoinOp();
     $join_clause::joinPlans = new MultiMap<Integer, LogicalExpressionPlan>();
     $join_clause::inputAliases = new ArrayList<String>();
     $join_clause::innerFlags = new ArrayList<Boolean>();
 }
  : ^( JOIN join_sub_clause join_type? partition_clause? )
    {
-       $alias = builder.buildJoinOp( (LOJoin)currentOp, $statement::alias,
-          $statement::parallel, $join_clause::inputAliases, $join_clause::joinPlans,
+       $alias = builder.buildJoinOp( (LOJoin)$GScope::currentOp, $statement::alias,
+          $join_clause::inputAliases, $join_clause::joinPlans,
           $join_type.type, $join_clause::innerFlags, $partition_clause.partitioner );
    }
 ;
@@ -815,10 +948,10 @@ join_type returns[JOINTYPE type]
 ;
 
 join_sub_clause
- : join_item ( LEFT { $join_clause::innerFlags.add( false ); 
-                      $join_clause::innerFlags.add( true ); } 
-             | RIGHT { $join_clause::innerFlags.add( true ); 
-                       $join_clause::innerFlags.add( false ); }
+ : join_item ( LEFT { $join_clause::innerFlags.add( true ); 
+                      $join_clause::innerFlags.add( false ); } 
+             | RIGHT { $join_clause::innerFlags.add( false ); 
+                       $join_clause::innerFlags.add( true ); }
              | FULL { $join_clause::innerFlags.add( false ); 
                       $join_clause::innerFlags.add( false ); } ) OUTER? join_item
    {
@@ -850,7 +983,7 @@ join_group_by_expr returns[LogicalExpressionPlan plan]
  : expr[$plan]
  | STAR 
    {
-       builder.buildProjectExpr( $plan, currentOp, $statement::inputIndex, null, -1 );
+       builder.buildProjectExpr( $plan, $GScope::currentOp, $statement::inputIndex, null, -1 );
    }
 ;
 
@@ -860,8 +993,7 @@ union_clause returns[String alias]
 }
  : ^( UNION ( ONSCHEMA { onSchema = true; } )? rel_list )
    {
-      $alias = builder.buildUnionOp( $statement::alias,
-          $statement::parallel, $rel_list.aliasList, onSchema );
+      $alias = builder.buildUnionOp( $statement::alias, $rel_list.aliasList, onSchema );
    }
 ;
 
@@ -869,13 +1001,15 @@ foreach_clause returns[String alias]
 scope {
     LOForEach foreachOp;
 }
+scope GScope;
 @init {
      $foreach_clause::foreachOp = builder.createForeachOp();
+     $GScope::currentOp = $foreach_clause::foreachOp;
 }
  : ^( FOREACH rel foreach_plan )
    {
        $alias = builder.buildForeachOp( $foreach_clause::foreachOp, $statement::alias,
-          $statement::parallel, $statement::inputAlias, $foreach_plan.plan );
+          $statement::inputAlias, $foreach_plan.plan );
    }
 ;
 
@@ -895,16 +1029,17 @@ scope {
     $plan = $foreach_plan::innerPlan;
     inForeachPlan = false;
 }
- : ^( FOREACH_PLAN nested_blk )
- | ^( FOREACH_PLAN_SIMPLE generate_clause parallel_clause? )
+ : ^( FOREACH_PLAN_SIMPLE generate_clause )
+ | ^( FOREACH_PLAN_COMPLEX nested_blk )
 ;
 
 nested_blk : nested_command* generate_clause
 ;
 
 generate_clause
+scope GScope;
 @init {
-    currentOp = builder.createGenerateOp( $foreach_plan::innerPlan );
+    $GScope::currentOp = builder.createGenerateOp( $foreach_plan::innerPlan );
     List<LogicalExpressionPlan> plans = new ArrayList<LogicalExpressionPlan>();
     List<Boolean> flattenFlags = new ArrayList<Boolean>();
     List<LogicalSchema> schemas = new ArrayList<LogicalSchema>();
@@ -918,7 +1053,7 @@ generate_clause
                )+
     )
    {   
-       builder.buildGenerateOp( $foreach_clause::foreachOp, (LOGenerate)currentOp,
+       builder.buildGenerateOp( $foreach_clause::foreachOp, (LOGenerate)$GScope::currentOp,
            $foreach_plan::operators,
            plans, flattenFlags, schemas );
    }
@@ -966,26 +1101,28 @@ nested_proj[String alias] returns[Operator op]
 ;
 
 nested_filter[String alias] returns[Operator op]
+scope GScope;
 @init {
     LogicalExpressionPlan plan = new LogicalExpressionPlan();
     Operator inputOp = null;
-    currentOp = builder.createNestedFilterOp( $foreach_plan::innerPlan );
+    $GScope::currentOp = builder.createNestedFilterOp( $foreach_plan::innerPlan );
 }
  : ^( FILTER nested_op_input cond[plan] )
    {
-       $op = builder.buildNestedFilterOp( (LOFilter)currentOp, $foreach_plan::innerPlan, $alias, 
+       $op = builder.buildNestedFilterOp( (LOFilter)$GScope::currentOp, $foreach_plan::innerPlan, $alias, 
            $nested_op_input.op, plan );
    }
 ;
 
 nested_sort[String alias] returns[Operator op]
+scope GScope;
 @init {
     Operator inputOp = null;
-    currentOp = builder.createNestedSortOp( $foreach_plan::innerPlan );
+    $GScope::currentOp = builder.createNestedSortOp( $foreach_plan::innerPlan );
 }
- : ^( ORDER nested_op_input order_by_clause func_clause? )
+ : ^( ORDER nested_op_input order_by_clause func_clause[FunctionType.COMPARISONFUNC]? )
    {
-       $op = builder.buildNestedSortOp( (LOSort)currentOp, $foreach_plan::innerPlan, $alias,
+       $op = builder.buildNestedSortOp( (LOSort)$GScope::currentOp, $foreach_plan::innerPlan, $alias,
            $nested_op_input.op, 
            $order_by_clause.plans, $order_by_clause.ascFlags, $func_clause.funcSpec );
    }
@@ -1019,7 +1156,7 @@ nested_op_input returns[Operator op]
  : col_ref[plan]
    {
        $op = builder.buildNestedOperatorInput( $foreach_plan::innerPlan,
-           $foreach_clause::foreachOp, $foreach_plan::operators, $col_ref.expr, input );
+           $foreach_clause::foreachOp, $foreach_plan::operators, $col_ref.expr );
    }
  | nested_proj[null]
    { 
@@ -1031,10 +1168,18 @@ stream_clause returns[String alias]
 @init {
     StreamingCommand cmd = null;
 }
- : ^( STREAM rel ( EXECCOMMAND { cmd = builder.buildCommand( $EXECCOMMAND.text, input ); } 
-                 | IDENTIFIER { cmd = builder.lookupCommand( $IDENTIFIER.text ); } ) as_clause? )
+ : ^( STREAM rel ( EXECCOMMAND { cmd = builder.buildCommand( builder.unquote( $EXECCOMMAND.text ) ); } 
+                 | IDENTIFIER 
+                   { 
+                       cmd = builder.lookupCommand( $IDENTIFIER.text );
+                       if( cmd == null ) {
+                           String msg = "Undefined command-alias [" + $IDENTIFIER.text + "]";
+                           throw new ParserValidationException( input, msg );
+                       }
+                   }
+                 ) as_clause? )
    {
-       $alias = builder.buildStreamOp( $statement::alias, $statement::parallel,
+       $alias = builder.buildStreamOp( $statement::alias,
           $statement::inputAlias, cmd, $as_clause.logicalSchema, input );
    }
 ;
@@ -1049,7 +1194,7 @@ mr_clause returns[String alias]
      { $statement::alias = alias; } load_clause
      EXECCOMMAND? )
    {
-       $alias = builder.buildNativeOp( $statement::parallel,
+       $alias = builder.buildNativeOp(
            builder.unquote( $QUOTEDSTRING.text ), builder.unquote( $EXECCOMMAND.text ), 
            paths, $store_clause.alias, $load_clause.alias, input );
    }
@@ -1061,14 +1206,15 @@ split_clause
 ;
 
 split_branch
+scope GScope;
 @init {
     LogicalExpressionPlan splitPlan = new LogicalExpressionPlan();
-    currentOp = builder.createSplitOutputOp();
+    $GScope::currentOp = builder.createSplitOutputOp();
 }
  : ^( SPLIT_BRANCH IDENTIFIER cond[splitPlan] )
    {
-       builder.buildSplitOutputOp( (LOSplitOutput)currentOp, $IDENTIFIER.text,
-           $statement::parallel, $statement::inputAlias, splitPlan );
+       builder.buildSplitOutputOp( (LOSplitOutput)$GScope::currentOp, $IDENTIFIER.text,
+           $statement::inputAlias, splitPlan );
    }
 ;
 
@@ -1080,12 +1226,12 @@ col_ref[LogicalExpressionPlan plan] returns[LogicalExpression expr]
 alias_col_ref[LogicalExpressionPlan plan] returns[LogicalExpression expr]
  : GROUP 
    {
-       $expr = builder.buildProjectExpr( $plan, currentOp, 
+       $expr = builder.buildProjectExpr( $plan, $GScope::currentOp, 
            $statement::inputIndex, $GROUP.text, 0 );
    }
- | IDENTIFIER
+ | scoped_alias_col_ref
    {
-       String alias = $IDENTIFIER.text;
+       String alias = $scoped_alias_col_ref.alias;
        Operator inOp = builder.lookupOperator( $statement::inputAlias );
        LogicalSchema schema;
        try {
@@ -1097,24 +1243,37 @@ alias_col_ref[LogicalExpressionPlan plan] returns[LogicalExpression expr]
        Operator op = builder.lookupOperator( alias );
        if( op != null && ( schema == null || schema.getFieldPosition( alias ) == -1 ) ) {
            $expr = new ScalarExpression( plan, op,
-               inForeachPlan ? $foreach_clause::foreachOp : currentOp );
+               inForeachPlan ? $foreach_clause::foreachOp : $GScope::currentOp );
        } else {
            if( inForeachPlan ) {
-               $expr = builder.buildProjectExpr( $plan, currentOp, 
+               $expr = builder.buildProjectExpr( $plan, $GScope::currentOp, 
                    $foreach_plan::exprPlans, alias, 0 );
            } else {
-               $expr = builder.buildProjectExpr( $plan, currentOp, 
+               $expr = builder.buildProjectExpr( $plan, $GScope::currentOp, 
                    $statement::inputIndex, alias, 0 );
            }
        }
    }
 ;
 
+scoped_alias_col_ref returns[String alias]
+@init {
+    StringBuilder sb = new StringBuilder();
+}
+@after {
+    $alias = sb.toString();
+}
+ : ^( SCOPED_ALIAS
+      id1 = IDENTIFIER { sb.append( $id1.text ); } 
+      ( id2 = IDENTIFIER { sb.append( "::" ); sb.append( $id2.text ); } )*
+    )
+;
+
 dollar_col_ref[LogicalExpressionPlan plan] returns[LogicalExpression expr]
- : ^( DOLLAR INTEGER )
+ : DOLLARVAR
    {
-       int col = Integer.valueOf( $INTEGER.text );
-       $expr = builder.buildProjectExpr( $plan, currentOp, 
+       int col = builder.undollar( $DOLLARVAR.text );
+       $expr = builder.buildProjectExpr( $plan, $GScope::currentOp, 
            $statement::inputIndex, null, col );
    }
 ;
@@ -1122,8 +1281,7 @@ dollar_col_ref[LogicalExpressionPlan plan] returns[LogicalExpression expr]
 const_expr[LogicalExpressionPlan plan] returns[LogicalExpression expr]
  : literal
    {
-       $expr = new ConstantExpression( $plan, $literal.value,
-           new LogicalFieldSchema( null , null, $literal.type ) );
+       $expr = new ConstantExpression( $plan, $literal.value);
    }
 ;
 
@@ -1156,11 +1314,10 @@ scalar returns[Object value, byte type]
        $type = DataType.INTEGER;
        $value = Integer.valueOf( $INTEGER.text );
    }
- | LONGINEGER 
+ | LONGINTEGER 
    { 
        $type = DataType.LONG;
-       String num = $LONGINEGER.text.substring( 0, $LONGINEGER.text.length() - 1 );
-       $value = Long.valueOf( $LONGINEGER.text );
+       $value = builder.parseLong( $LONGINTEGER.text );
    }
  | FLOATNUMBER 
    { 
@@ -1201,7 +1358,6 @@ keyvalue returns[String key, Object value]
 
 map_key returns[String value]
  : QUOTEDSTRING { $value = builder.unquote( $QUOTEDSTRING.text ); }
- | NULL { $value = null; }
 ;
 
 bag returns[Object value]

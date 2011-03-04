@@ -131,7 +131,7 @@ fragment QUOTEDSTRING :  '\'' (   ( ~ ( '\'' | '\\' | '\n' | '\r' ) )
 fragment PARAMETER : (ALIAS | INTEGER | FLOATINGPOINT | QUOTEDSTRING)
 ;
 
-fragment STMT : ~('{' | '}')+ | '{' STMT '}'
+fragment STMT : ~('{' | '}')+ | '{}' | '{' STMT '}'
 ;
 
 fragment BLOCK : STMT+

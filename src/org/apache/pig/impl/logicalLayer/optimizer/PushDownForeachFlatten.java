@@ -280,7 +280,7 @@ public class PushDownForeachFlatten extends LogicalTransformer {
                 // due to flattenning multiple output columns could be generated from the same input column
                 // find the first or the lowest column that is a result of the 
                 for(Integer key: mappedFields.keySet()) {
-                    List<ProjectionMap.Column> columns = (List<ProjectionMap.Column>)mappedFields.get(key);
+                    List<ProjectionMap.Column> columns = mappedFields.get(key);
                     for(ProjectionMap.Column column: columns) {
                         Pair<Integer, Integer> inputColumn = column.getInputColumn();
                         

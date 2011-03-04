@@ -26,6 +26,8 @@ import java.util.Set;
 
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.util.Pair;
+import org.apache.pig.newplan.logical.relational.LOLoad;
+import org.apache.pig.newplan.logical.relational.LOStore;
 
 /**
  * Class to represent a view of a plan. The view contains a subset of the plan.
@@ -45,7 +47,7 @@ public class OperatorSubPlan implements OperatorPlan {
         roots = new ArrayList<Operator>();
         leaves = new ArrayList<Operator>();
         operators = new HashSet<Operator>();
-    }    	    	
+    }                
     
     public OperatorPlan getBasePlan() {
         return basePlan;
@@ -151,7 +153,7 @@ public class OperatorSubPlan implements OperatorPlan {
     }
 
     @Override
-    public boolean isEqual(OperatorPlan other) throws FrontendException {		
+    public boolean isEqual(OperatorPlan other) throws FrontendException {        
         return BaseOperatorPlan.isEqual(this, other);
     }
 
@@ -194,5 +196,11 @@ public class OperatorSubPlan implements OperatorPlan {
             throws FrontendException {
         throw new UnsupportedOperationException("replace() can not be called on OperatorSubPlan");
         
+    }
+
+    @Override
+    public boolean pathExists(Operator from, Operator to) {
+        // Not needed. Not implemented
+        return false;
     }
 }

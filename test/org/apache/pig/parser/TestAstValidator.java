@@ -88,11 +88,11 @@ public class TestAstValidator {
     public void tesNegative1() throws RecognitionException, IOException {
         try {
             ParserTestingUtils.validateAst( "A = load 'x' as ( u:int, v:long, u:chararray, w:bytearray );" );
-        } catch(ParsingFailureException ex) {
-            Assert.assertEquals( AstValidator.class, ex.getParsingClass() );
+        } catch(Exception ex) {
+            Assert.assertTrue( ex instanceof DuplicatedSchemaAliasException );
             return;
         }
-        Assert.assertTrue( false ); // should never come here.
+        Assert.fail( "Testcase should fail" );
     }
 
     /**
@@ -102,22 +102,22 @@ public class TestAstValidator {
     public void tesNegative2() throws RecognitionException, IOException {
         try {
             ParserTestingUtils.validateAst( "A = load 'x' as ( u:int, v:long, w:tuple( w:long, u:chararray, w:bytearray) );" );
-        } catch(ParsingFailureException ex) {
-            Assert.assertEquals( AstValidator.class, ex.getParsingClass() );
+        } catch(Exception ex) {
+            Assert.assertTrue( ex instanceof DuplicatedSchemaAliasException );
             return;
         }
-        Assert.assertTrue( false ); // should never come here.
+        Assert.fail( "Testcase should fail" );
     }
 
     @Test
     public void tesNegative3() throws RecognitionException, IOException {
         try {
             ParserTestingUtils.validateAst( "A = load 'x'; C = limit B 100;" );
-        } catch(ParsingFailureException ex) {
-            Assert.assertEquals( AstValidator.class, ex.getParsingClass() );
+        } catch(Exception ex) {
+            Assert.assertTrue( ex instanceof UndefinedAliasException );
             return;
         }
-        Assert.assertTrue( false ); // should never come here.
+        Assert.fail( "Testcase should fail" );
     }
     
     // TODO: need a test similar to above but for foreach inner plan.

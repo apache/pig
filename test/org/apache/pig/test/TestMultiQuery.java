@@ -360,8 +360,8 @@ public class TestMultiQuery {
             myPig.registerQuery("B = GROUP A1 BY a;");
             myPig.registerQuery("C = load '" + INPUT_FILE_1 
                     + "' as (x:long, y);");
-            myPig.registerQuery("D = JOIN C BY x, B BY group USING \"replicated\";");  
-            myPig.registerQuery("E = JOIN A BY a, D by x USING \"replicated\";");  
+            myPig.registerQuery("D = JOIN C BY x, B BY group USING 'replicated';");  
+            myPig.registerQuery("E = JOIN A BY a, D by x USING 'replicated';");  
             
             Iterator<Tuple> iter = myPig.openIterator("E");
 

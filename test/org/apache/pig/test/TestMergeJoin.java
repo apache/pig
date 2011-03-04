@@ -129,7 +129,7 @@ public class TestMergeJoin {
         pigServer.registerQuery("B = LOAD '" + INPUT_FILE + "';");
         DataBag dbMergeJoin = BagFactory.getInstance().newDefaultBag(), dbshj = BagFactory.getInstance().newDefaultBag();
         {
-            pigServer.registerQuery("C = join A by $0, B by $0 using \"merge\";");
+            pigServer.registerQuery("C = join A by $0, B by $0 using 'merge';");
             Iterator<Tuple> iter = pigServer.openIterator("C");
 
             while(iter.hasNext()) {
@@ -154,7 +154,7 @@ public class TestMergeJoin {
         pigServer.registerQuery("B = LOAD '" + INPUT_FILE + "';");
         DataBag dbMergeJoin = BagFactory.getInstance().newDefaultBag(), dbshj = BagFactory.getInstance().newDefaultBag();
         {
-            pigServer.registerQuery("C = join A by ($0,$1), B by ($0,$1) using \"merge\";");
+            pigServer.registerQuery("C = join A by ($0,$1), B by ($0,$1) using 'merge';");
             Iterator<Tuple> iter = pigServer.openIterator("C");
 
             while(iter.hasNext()) {
@@ -179,7 +179,7 @@ public class TestMergeJoin {
         pigServer.registerQuery("B = LOAD '" + INPUT_FILE + "';");
         DataBag dbMergeJoin = BagFactory.getInstance().newDefaultBag(), dbshj = BagFactory.getInstance().newDefaultBag();
         {
-            pigServer.registerQuery("C = join A by ($0+10), B by ($0+10) using \"merge\";");
+            pigServer.registerQuery("C = join A by ($0+10), B by ($0+10) using 'merge';");
             Iterator<Tuple> iter = pigServer.openIterator("C");
 
             while(iter.hasNext()) {
@@ -205,7 +205,7 @@ public class TestMergeJoin {
         pigServer.registerQuery("B = LOAD '" + INPUT_FILE + "' as (x:int,y:int);");
         DataBag dbMergeJoin = BagFactory.getInstance().newDefaultBag(), dbshj = BagFactory.getInstance().newDefaultBag();
         {
-            pigServer.registerQuery("C = join A by $0, B by $0 using \"merge\";");
+            pigServer.registerQuery("C = join A by $0, B by $0 using 'merge';");
             Iterator<Tuple> iter = pigServer.openIterator("C");
 
             while(iter.hasNext()) {
@@ -233,7 +233,7 @@ public class TestMergeJoin {
         pigServer.registerQuery("D = FILTER B by $1 > 1;"); 
         DataBag dbMergeJoin = BagFactory.getInstance().newDefaultBag(), dbshj = BagFactory.getInstance().newDefaultBag();
         {
-            pigServer.registerQuery("E = join C by $0, D by $0 using \"merge\";");
+            pigServer.registerQuery("E = join C by $0, D by $0 using 'merge';");
             Iterator<Tuple> iter = pigServer.openIterator("E");
 
             while(iter.hasNext()) {
@@ -261,7 +261,7 @@ public class TestMergeJoin {
         pigServer.registerQuery("D = foreach B generate f1;"); 
         DataBag dbMergeJoin = BagFactory.getInstance().newDefaultBag(), dbshj = BagFactory.getInstance().newDefaultBag();
         {
-            pigServer.registerQuery("E = join C by f1, D by f1 using \"merge\";");
+            pigServer.registerQuery("E = join C by f1, D by f1 using 'merge';");
             Iterator<Tuple> iter = pigServer.openIterator("E");
 
             while(iter.hasNext()) {
@@ -286,10 +286,10 @@ public class TestMergeJoin {
         pigServer.registerQuery("B = LOAD '" + INPUT_FILE + "' as (f1:int,f2:int);");
         DataBag dbmrj = BagFactory.getInstance().newDefaultBag(), dbshj = BagFactory.getInstance().newDefaultBag();
         {
-            pigServer.registerQuery("C = join A by $0, B by $0 using \"merge\";");
+            pigServer.registerQuery("C = join A by $0, B by $0 using 'merge';");
             pigServer.registerQuery("G = LOAD '" + INPUT_FILE + "' as (f1:int,f2:int);");
             pigServer.registerQuery("H = LOAD '" + INPUT_FILE + "' as (f1:int,f2:int);");
-            pigServer.registerQuery("D = join G by $0, H by $0 using \"merge\";");
+            pigServer.registerQuery("D = join G by $0, H by $0 using 'merge';");
             pigServer.registerQuery("E = union C,D;");
             pigServer.registerQuery("F = filter E by 1 == 1;");
             Iterator<Tuple> iter = pigServer.openIterator("F");
@@ -333,7 +333,7 @@ public class TestMergeJoin {
         pigServer.registerQuery("B = LOAD 'temp_file';");
         DataBag dbmrj = BagFactory.getInstance().newDefaultBag(), dbshj = BagFactory.getInstance().newDefaultBag();
         {
-            pigServer.registerQuery("C = join A by $0, B by $0 using \"merge\";");
+            pigServer.registerQuery("C = join A by $0, B by $0 using 'merge';");
             Iterator<Tuple> iter = pigServer.openIterator("C");
 
             while(iter.hasNext()) {
@@ -359,7 +359,7 @@ public class TestMergeJoin {
         pigServer.registerQuery("B = LOAD '" + INPUT_FILE + "' as (x:int,y:int);");
         DataBag dbMergeJoin = BagFactory.getInstance().newDefaultBag(), dbshj = BagFactory.getInstance().newDefaultBag();
         {
-            pigServer.registerQuery("C = join A by $0, B by $0 using \"merge\";");
+            pigServer.registerQuery("C = join A by $0, B by $0 using 'merge';");
             pigServer.registerQuery("D = group C by $0;");
             pigServer.registerQuery("E = filter D by $0 > 0;");
             Iterator<Tuple> iter = pigServer.openIterator("E");
@@ -388,7 +388,7 @@ public class TestMergeJoin {
         pigServer.registerQuery("B = LOAD '" + INPUT_FILE + "' as (id, name);");
         pigServer.registerQuery("C = LOAD '" + INPUT_FILE + "' as (id, name);");
         try {
-            pigServer.registerQuery("D = join A by id, B by id, C by id using \"merge\";");
+            pigServer.registerQuery("D = join A by id, B by id, C by id using 'merge';");
         }catch(Exception e) {
             PigException pe = LogUtils.getPigException(e);
             Assert.assertEquals(1000,pe.getErrorCode());
@@ -402,7 +402,7 @@ public class TestMergeJoin {
         pigServer.registerQuery("A = LOAD '" + INPUT_FILE + "' as (id, name, n);");
         pigServer.registerQuery("B = LOAD '" + INPUT_FILE + "' as (id, name);");
         pigServer.registerQuery("C = ORDER A by $0 parallel 5;");
-        pigServer.registerQuery("D = join A by id, C by id using \"merge\";");
+        pigServer.registerQuery("D = join A by id, C by id using 'merge';");
         try {
             pigServer.openIterator("D");
         }catch(Exception e) {
@@ -418,7 +418,7 @@ public class TestMergeJoin {
         pigServer.registerQuery("A = LOAD '" + INPUT_FILE + "' as (id, name, n);");
         pigServer.registerQuery("B = LOAD '" + INPUT_FILE + "' as (id, name);");
         pigServer.registerQuery("C = GROUP B by id;");
-        pigServer.registerQuery("D = join A by id, C by $0 using \"merge\";");
+        pigServer.registerQuery("D = join A by id, C by $0 using 'merge';");
         try {
             pigServer.openIterator("D");
         }catch(Exception e) {
@@ -435,7 +435,7 @@ public class TestMergeJoin {
         Util.createInputFile(cluster, "temp_file", new String[]{});
         pigServer.registerQuery("A = LOAD '" + INPUT_FILE + "';");
         pigServer.registerQuery("B = LOAD 'temp_file';");
-        pigServer.registerQuery("C = join A by $0, B by $0 using \"merge\";");
+        pigServer.registerQuery("C = join A by $0, B by $0 using 'merge';");
         pigServer.openIterator("C");
         {
             Iterator<Tuple> iter = pigServer.openIterator("C");
@@ -462,7 +462,7 @@ public class TestMergeJoin {
         LogicalPlanTester tester = new LogicalPlanTester();
         tester.buildPlan("A = LOAD '" + INPUT_FILE + "';");
         tester.buildPlan("B = LOAD '" + INPUT_FILE + "';");
-        tester.buildPlan("C = join A by $0, B by $0 using \"merge\" parallel 50;");
+        tester.buildPlan("C = join A by $0, B by $0 using 'merge' parallel 50;");
         LogicalPlan lp = tester.buildPlan("store C into 'out';");
 	PigContext pc = new PigContext(ExecType.MAPREDUCE,cluster.getProperties());
         pc.connect();
@@ -479,7 +479,7 @@ public class TestMergeJoin {
         pigServer.registerQuery("B = LOAD 'temp_file*' as (a:int);");
         DataBag dbmrj = BagFactory.getInstance().newDefaultBag(), dbshj = BagFactory.getInstance().newDefaultBag();
         {
-            pigServer.registerQuery("C = join A by $0, B by $0 using \"merge\";");
+            pigServer.registerQuery("C = join A by $0, B by $0 using 'merge';");
             Iterator<Tuple> iter = pigServer.openIterator("C");
 
             while(iter.hasNext()) {
@@ -511,7 +511,7 @@ public class TestMergeJoin {
         pigServer.registerQuery("B = LOAD 'temp_file*' as (a:int);");
         DataBag dbmrj = BagFactory.getInstance().newDefaultBag(), dbshj = BagFactory.getInstance().newDefaultBag();
         {
-            pigServer.registerQuery("C = join A by $0 + 10, B by $0 + 10 using \"merge\";");
+            pigServer.registerQuery("C = join A by $0 + 10, B by $0 + 10 using 'merge';");
             Iterator<Tuple> iter = pigServer.openIterator("C");
 
             while(iter.hasNext()) {
@@ -541,7 +541,7 @@ public class TestMergeJoin {
                 DummyIndexableLoader.class.getName() + "() as (a:int);");
         boolean exceptionThrown = false;
         try {
-            pigServer.registerQuery("C = join A by $0 + 10, B by $0 + 10 using \"merge\";");
+            pigServer.registerQuery("C = join A by $0 + 10, B by $0 + 10 using 'merge';");
             Iterator<Tuple> iter = pigServer.openIterator("C");
 
         }catch (Exception e) {
@@ -558,7 +558,7 @@ public class TestMergeJoin {
         pigServer.registerQuery("A = LOAD '" + INPUT_FILE + "' as (x:int,y:int);");
         pigServer.registerQuery("B = LOAD '" + INPUT_FILE + "' as (x:int,y:int);");
         Schema mjSch = null, shjSch = null;
-        pigServer.registerQuery("C = join A by $0, B by $0 using \"merge\";");
+        pigServer.registerQuery("C = join A by $0, B by $0 using 'merge';");
         mjSch = pigServer.dumpSchema("C");
         pigServer.registerQuery("C = join A by $0, B by $0;");
         shjSch = pigServer.dumpSchema("C");
@@ -570,7 +570,7 @@ public class TestMergeJoin {
         pigServer.registerQuery("A = LOAD '" + INPUT_FILE + "';");
         pigServer.registerQuery("B = LOAD '" + INPUT_FILE + "';");
         Schema mjSch = null, shjSch = null;
-        pigServer.registerQuery("C = join A by ($0,$1), B by ($0,$1) using \"merge\";");
+        pigServer.registerQuery("C = join A by ($0,$1), B by ($0,$1) using 'merge';");
         mjSch = pigServer.dumpSchema("C");
         pigServer.registerQuery("C = join A by ($0,$1), B by ($0,$1);");
         shjSch = pigServer.dumpSchema("C");
@@ -584,7 +584,7 @@ public class TestMergeJoin {
         pigServer.registerQuery("B = LOAD 'temp_file,righinput_file' using " +
                 DummyIndexableLoader.class.getName() + "();");
 
-        pigServer.registerQuery("C = join A by $0, B by $0 using \"merge\";");
+        pigServer.registerQuery("C = join A by $0, B by $0 using 'merge';");
             
         Iterator<Tuple> iter = pigServer.openIterator("C");
         Assert.assertFalse(iter.hasNext());
@@ -597,7 +597,7 @@ public class TestMergeJoin {
         pigServer.registerQuery("B = LOAD '" + INPUT_FILE + "';");
         
         {
-            pigServer.registerQuery("C = join A by $0, B by $0 using \"merge\";");
+            pigServer.registerQuery("C = join A by $0, B by $0 using 'merge';");
             Iterator<Tuple> iter = pigServer.openIterator("C");
             while(iter.hasNext()) {
                 dbMergeJoin.add(iter.next());

@@ -25,7 +25,6 @@ import java.util.Set;
 
 import org.apache.pig.PigException;
 import org.apache.pig.impl.logicalLayer.FrontendException;
-import org.apache.pig.impl.logicalLayer.schema.SchemaMergeException;
 import org.apache.pig.impl.util.Pair;
 import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.OperatorPlan;
@@ -98,29 +97,30 @@ public class LOUnion extends LogicalRelationalOperator {
                 if (mergedSchema == null)
                     return null;
             }
-        }
-        
-        // Bring back cached uid if any; otherwise, cache uid generated
-        for (int i=0;i<s0.size();i++)
-        {
-            LogicalSchema.LogicalFieldSchema fs = mergedSchema.getField(i);
-            long uid = -1;
-            for (Pair<Long, Long> pair : uidMapping) {
-                if (pair.second==s0.getField(i).uid) {
-                    uid = pair.first;
-                    break;
+            
+            // Bring back cached uid if any; otherwise, cache uid generated
+            for (int i=0;i<s0.size();i++)
+            {
+                LogicalSchema.LogicalFieldSchema fs = mergedSchema.getField(i);
+                long uid = -1;
+                for (Pair<Long, Long> pair : uidMapping) {
+                    if (pair.second==s0.getField(i).uid) {
+                        uid = pair.first;
+                        break;
+                    }
                 }
-            }
-            if (uid==-1) {
-                uid = LogicalExpression.getNextUid();
-                for (Operator input : inputs) {
-                    long inputUid = ((LogicalRelationalOperator)input).getSchema().getField(i).uid;
-                    uidMapping.add(new Pair<Long, Long>(uid, inputUid));
+                if (uid==-1) {
+                    uid = LogicalExpression.getNextUid();
+                    for (Operator input : inputs) {
+                        long inputUid = ((LogicalRelationalOperator)input).getSchema().getField(i).uid;
+                        uidMapping.add(new Pair<Long, Long>(uid, inputUid));
+                    }
                 }
-            }
 
-            fs.uid = uid;
+                fs.uid = uid;
+            }
         }
+
         return schema = mergedSchema;
     }
 
@@ -136,7 +136,7 @@ public class LOUnion extends LogicalRelationalOperator {
             for( LogicalFieldSchema fs : sch.getFields() ) {
                 if(fs.alias == null){
                     String msg = "Schema of relation " + lop.getAlias()
-                        + " has a null fieldschema for column(s). Schema :" + sch;
+                        + " has a null fieldschema for column(s). Schema :" + sch.toString(false);
                     throw new FrontendException( msg, 1116, PigException.INPUT );
                 }
             }
@@ -194,5 +194,9 @@ public class LOUnion extends LogicalRelationalOperator {
     
     public List<Operator> getInputs(LogicalPlan plan) {
         return plan.getPredecessors(this);
+    }
+    
+    public void setUnionOnSchema(boolean flag) {
+        onSchema = flag;
     }
 }

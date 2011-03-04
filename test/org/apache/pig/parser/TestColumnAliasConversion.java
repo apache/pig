@@ -45,8 +45,6 @@ public class TestColumnAliasConversion {
         verify( query );
     }
 
-    // Temporary disable the test. Will reenable it after parser fix checked in
-    /*
     @Test
     public void test2() throws RecognitionException, ParsingFailureException, IOException {
         String query = "A = load 'x' as ( u:bag{tuple(x, y)}, v:long, w:bytearray); " + 
@@ -70,7 +68,6 @@ public class TestColumnAliasConversion {
                        "C = store B into 'output';";
         validate( query );
     }
-    */
     
     @Test
     public void test5() throws RecognitionException, ParsingFailureException, IOException {
@@ -97,21 +94,18 @@ public class TestColumnAliasConversion {
         validate( query );
     }
     
-    // Temporary disable the test. Will reenable it after parser fix checked in
-    /*
-    @Test
+   @Test
     public void testNegative1() throws RecognitionException, ParsingFailureException, IOException {
         String query = "A = load 'x' as ( u:bag{tuple(x, y)}, v:long, w:bytearray); " + 
                        "B = foreach A generate u.(x, $3), v, w; " +
                        "C = store B into 'output';";
         try {
-        	validate( query );
+            validate( query );
         } catch(PlanValidationException ex) {
-        	return;
+            return;
         }
         Assert.fail( "Query should fail to validate." );
     }
-    */
     
     @Test
     public void testNegative2() throws RecognitionException, ParsingFailureException, IOException {
@@ -119,9 +113,9 @@ public class TestColumnAliasConversion {
                        "B = foreach A generate u.(x, y), v, $5; " +
                        "C = store B into 'output';";
         try {
-        	validate( query );
+            validate( query );
         } catch(PlanValidationException ex) {
-        	return;
+            return;
         }
         Assert.fail( "Query should fail to validate." );
     }
@@ -132,28 +126,25 @@ public class TestColumnAliasConversion {
                        "B = foreach A generate u.(x, y), v, x; " +
                        "C = store B into 'output';";
         try {
-        	validate( query );
+            validate( query );
         } catch(PlanValidationException ex) {
-        	return;
+            return;
         }
         Assert.fail( "Query should fail to validate." );
     }
     
-    // Temporary disable the test. Will reenable it after parser fix checked in
-    /*
     @Test
     public void testNegative4() throws RecognitionException, ParsingFailureException, IOException {
         String query = "A = load 'x' as ( u:bag{tuple(x, y)}, v:long, w:bytearray); " + 
                        "B = foreach A generate u.z, v, w; " +
                        "C = store B into 'output';";
         try {
-        	validate( query );
+            validate( query );
         } catch(PlanValidationException ex) {
-        	return;
+            return;
         }
         Assert.fail( "Query should fail to validate." );
     }
-    */
     
     @Test
     public void testNegative5() throws RecognitionException, ParsingFailureException, IOException {
@@ -161,9 +152,9 @@ public class TestColumnAliasConversion {
                        "B = foreach A generate u, $1; " +
                        "C = store B into 'output';";
         try {
-        	validate( query );
+            validate( query );
         } catch(PlanValidationException ex) {
-        	return;
+            return;
         }
         Assert.fail( "Query should fail to validate." );
     }

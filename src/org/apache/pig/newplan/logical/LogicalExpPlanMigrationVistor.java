@@ -159,11 +159,7 @@ public class LogicalExpPlanMigrationVistor extends LOVisitor {
     
     public void visit(LOConst con) throws VisitorException{
         ConstantExpression ce = null;
-        try {
-            ce = new ConstantExpression(exprPlan, con.getValue(), Util.translateFieldSchema(con.getFieldSchema()));
-        } catch (FrontendException e) {
-            throw new VisitorException(e);
-        }
+        ce = new ConstantExpression(exprPlan, con.getValue());
         
         exprPlan.add(ce);
         exprOpsMap.put(con, ce);       

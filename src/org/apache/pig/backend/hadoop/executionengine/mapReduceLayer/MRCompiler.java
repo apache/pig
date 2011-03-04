@@ -1937,7 +1937,7 @@ public class MRCompiler extends PhyPlanVisitor {
 			
 			List<PhysicalOperator> l = plan.getPredecessors(op);
 			MultiMap<PhysicalOperator, PhysicalPlan> joinPlans = op.getJoinPlans();
-			List<PhysicalPlan> groups = (List<PhysicalPlan>)joinPlans.get(l.get(0));
+			List<PhysicalPlan> groups = joinPlans.get(l.get(0));
 			// check the type of group keys, if there are more than one field, the key is TUPLE.
 			byte type = DataType.TUPLE;
 			if (groups.size() == 1) {
@@ -1977,7 +1977,7 @@ public class MRCompiler extends PhyPlanVisitor {
 				throw new PlanException(msg, errCode, PigException.BUG, e);
 			}               
 			
-			groups = (List<PhysicalPlan>)joinPlans.get(l.get(1));
+			groups = joinPlans.get(l.get(1));
 			lr.setPlans(groups);
 			lr.setKeyType(type);            
 			lr.setResultType(DataType.BAG);
@@ -2305,7 +2305,7 @@ public class MRCompiler extends PhyPlanVisitor {
     	MultiMap<PhysicalOperator, PhysicalPlan> joinPlans = op.getJoinPlans();
     	
     	List<PhysicalOperator> l = plan.getPredecessors(op);
-    	List<PhysicalPlan> groups = (List<PhysicalPlan>)joinPlans.get(l.get(0));
+    	List<PhysicalPlan> groups = joinPlans.get(l.get(0));
     	List<Boolean> ascCol = new ArrayList<Boolean>();
     	for(int i=0; i<groups.size(); i++) {    		    		
     		ascCol.add(false);
@@ -2819,7 +2819,7 @@ public class MRCompiler extends PhyPlanVisitor {
         public void visitMROp(MapReduceOper mr) throws VisitorException {
             // Look for map reduce operators which contains limit operator.
             // If so and the requestedParallelism > 1, add one additional map-reduce
-            // operator with 1 reducer into the original plan            
+            // operator with 1 reducer into the original plan
             if (mr.limit!=-1 && mr.requestedParallelism!=1)
             {
                 opsToAdjust.add(mr);
@@ -2895,7 +2895,7 @@ public class MRCompiler extends PhyPlanVisitor {
                     for (MapReduceOper op:successorList)
                         successors[i++] = op;
                 }
-                               
+                
                 // Process UDFs
                 for (String udf : mr.UDFs) {
                     if (!limitAdjustMROp.UDFs.contains(udf)) {

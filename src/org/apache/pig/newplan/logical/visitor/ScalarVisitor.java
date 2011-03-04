@@ -20,9 +20,7 @@ package org.apache.pig.newplan.logical.visitor;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.Properties;
 
-import org.apache.pig.ExecType;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
@@ -42,20 +40,23 @@ import org.apache.pig.newplan.logical.relational.LOStore;
 import org.apache.pig.newplan.logical.relational.LogicalPlan;
 
 /**
- * Logical plan visitor which will convert all column alias references to column
- * indexes, using the underlying anonymous expression plan visitor.
+ * Logical plan visitor which handles scalar projections. It will find or create a LOStore 
+ * and a soft link between the store operator to a scalar expression. It will also sync the file name
+ * between the store and scalar expression.
  */
 public class ScalarVisitor extends AllExpressionVisitor {
+    private final PigContext pigContext;
     
-    public ScalarVisitor(OperatorPlan plan) throws FrontendException {
+    public ScalarVisitor(OperatorPlan plan, PigContext pigContext) throws FrontendException {
         super( plan, new DependencyOrderWalker( plan ) );
+        this.pigContext = pigContext;
     }
 
     @Override
     protected LogicalExpressionVisitor getVisitor(final LogicalExpressionPlan exprPlan)
     throws FrontendException {
         return new LogicalExpressionVisitor( exprPlan, new DependencyOrderWalker( exprPlan ) ) {
-            
+
             @Override
             public void visit(ScalarExpression expr) throws FrontendException {
                 // This is a scalar udf.
@@ -78,19 +79,24 @@ public class ScalarVisitor extends AllExpressionVisitor {
                 if( store == null ) {
                     FuncSpec funcSpec = new FuncSpec(InterStorage.class.getName());
                     FileSpec fileSpec;
-                    //try {
-                    // TODO: need to hookup the pigcontext.
-                    fileSpec = new FileSpec( "/tmp/file.name", funcSpec );
-                    //                        } catch (IOException e) {
-                    //                            throw new PlanValidationException( "Failed to process scalar: " + e);
-                    //                        }
+                    try {
+                        fileSpec = new FileSpec( FileLocalizer.getTemporaryPath( pigContext ).toString(), funcSpec );                    // TODO: need to hookup the pigcontext.
+                    } catch (IOException e) {
+                        throw new PlanValidationException( "Failed to process scalar: " + e);
+                    }
                     store = new LOStore( lp, fileSpec );
+                    store.setTmpStore(true);
                     lp.add( store );
                     lp.connect( refOp, store );
+                    expr.setImplicitReferencedOperator(store);
                 }
 
                 filenameConst.setValue( store.getOutputSpec().getFileName() );
-                lp.createSoftLink( store, attachedOp );
+                
+                if( lp.getSoftLinkSuccessors( store ) == null || 
+                    !lp.getSoftLinkSuccessors( store ).contains( attachedOp ) ) {
+                    lp.createSoftLink( store, attachedOp );
+                }
             }
 
         };

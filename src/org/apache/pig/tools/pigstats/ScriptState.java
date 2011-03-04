@@ -66,27 +66,27 @@ import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOpe
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POUnion;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.util.PlanHelper;
 import org.apache.pig.impl.PigContext;
-import org.apache.pig.impl.logicalLayer.LOCogroup;
-import org.apache.pig.impl.logicalLayer.LOCross;
-import org.apache.pig.impl.logicalLayer.LODistinct;
-import org.apache.pig.impl.logicalLayer.LOFilter;
-import org.apache.pig.impl.logicalLayer.LOForEach;
-import org.apache.pig.impl.logicalLayer.LOJoin;
-import org.apache.pig.impl.logicalLayer.LOLimit;
-import org.apache.pig.impl.logicalLayer.LONative;
-import org.apache.pig.impl.logicalLayer.LOSort;
-import org.apache.pig.impl.logicalLayer.LOSplit;
-import org.apache.pig.impl.logicalLayer.LOStream;
-import org.apache.pig.impl.logicalLayer.LOUnion;
-import org.apache.pig.impl.logicalLayer.LOVisitor;
-import org.apache.pig.impl.logicalLayer.LogicalOperator;
-import org.apache.pig.impl.logicalLayer.LogicalPlan;
-import org.apache.pig.impl.logicalLayer.LOCogroup.GROUPTYPE;
-import org.apache.pig.impl.logicalLayer.LOJoin.JOINTYPE;
+import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.plan.DepthFirstWalker;
 import org.apache.pig.impl.plan.VisitorException;
 import org.apache.pig.impl.util.JarManager;
 import org.apache.pig.newplan.Operator;
+import org.apache.pig.newplan.logical.relational.LOCogroup;
+import org.apache.pig.newplan.logical.relational.LOCross;
+import org.apache.pig.newplan.logical.relational.LODistinct;
+import org.apache.pig.newplan.logical.relational.LOFilter;
+import org.apache.pig.newplan.logical.relational.LOForEach;
+import org.apache.pig.newplan.logical.relational.LOJoin;
+import org.apache.pig.newplan.logical.relational.LOLimit;
+import org.apache.pig.newplan.logical.relational.LONative;
+import org.apache.pig.newplan.logical.relational.LOSort;
+import org.apache.pig.newplan.logical.relational.LOSplit;
+import org.apache.pig.newplan.logical.relational.LOStream;
+import org.apache.pig.newplan.logical.relational.LOUnion;
+import org.apache.pig.newplan.logical.relational.LogicalPlan;
+import org.apache.pig.newplan.logical.relational.LogicalRelationalNodesVisitor;
+import org.apache.pig.newplan.logical.relational.LOCogroup.GROUPTYPE;
+import org.apache.pig.newplan.logical.relational.LOJoin.JOINTYPE;
 import org.apache.pig.tools.pigstats.PigStats.JobGraph;
 
 /**
@@ -335,7 +335,7 @@ public class ScriptState {
         BitSet bs = new BitSet();
         try {
             new LogicalPlanFeatureVisitor(plan, bs).visit();
-        } catch (VisitorException e) {
+        } catch (FrontendException e) {
             LOG.warn("unable to get script feature", e);
         }
         scriptFeatures = bitSetToLong(bs);        
@@ -604,24 +604,23 @@ public class ScriptState {
         }        
     }    
     
-    static class LogicalPlanFeatureVisitor extends LOVisitor {
+    static class LogicalPlanFeatureVisitor extends LogicalRelationalNodesVisitor {
         
         private BitSet feature;
         
-        protected LogicalPlanFeatureVisitor(LogicalPlan plan, BitSet feature) {
-            super(plan, new DepthFirstWalker<LogicalOperator, 
-                    LogicalPlan>(plan));            
+        protected LogicalPlanFeatureVisitor(LogicalPlan plan, BitSet feature) throws FrontendException {
+            super(plan, new org.apache.pig.newplan.DepthFirstWalker(plan));            
             this.feature = feature;
         }
         
         @Override
-        protected void visit(LOCogroup op) throws VisitorException {
+        public void visit(LOCogroup op) {
             if (op.getGroupType() == GROUPTYPE.COLLECTED) {
                 feature.set(PIG_FEATURE.COLLECTED_GROUP.ordinal());
             } else if (op.getGroupType() == GROUPTYPE.MERGE) {
                 feature.set(PIG_FEATURE.MERGE_COGROUP.ordinal());                
             } else if (op.getGroupType() == GROUPTYPE.REGULAR) {
-                if (op.getInputs().size() > 1) {
+                if (op.getExpressionPlans().size() > 1) {
                     feature.set(PIG_FEATURE.COGROUP.ordinal());
                 } else {
                     feature.set(PIG_FEATURE.GROUP_BY.ordinal());
@@ -630,27 +629,27 @@ public class ScriptState {
         }
         
         @Override
-        protected void visit(LOCross op) throws VisitorException {
+        public void visit(LOCross op) {
             feature.set(PIG_FEATURE.CROSS.ordinal());
         }
         
         @Override
-        protected void visit(LODistinct op) throws VisitorException {
+        public void visit(LODistinct op) {
             feature.set(PIG_FEATURE.DISTINCT.ordinal());
         }
         
         @Override
-        protected void visit(LOFilter op) throws VisitorException {
+        public void visit(LOFilter op) {
             feature.set(PIG_FEATURE.FILTER.ordinal());
         }
         
         @Override
-        protected void visit(LOForEach op) throws VisitorException {
+        public void visit(LOForEach op) {
             
         }
                 
         @Override
-        protected void visit(LOJoin op) throws VisitorException {
+        public void visit(LOJoin op) {
             if (op.getJoinType() == JOINTYPE.HASH) {
                 feature.set(PIG_FEATURE.HASH_JOIN.ordinal());
             } else if (op.getJoinType() == JOINTYPE.MERGE) {
@@ -663,32 +662,32 @@ public class ScriptState {
         }
         
         @Override
-        protected void visit(LOLimit op) throws VisitorException {
+        public void visit(LOLimit op) {
             feature.set(PIG_FEATURE.LIMIT.ordinal());
         }
         
         @Override
-        protected void visit(LOSort op) throws VisitorException {
+        public void visit(LOSort op) {
             feature.set(PIG_FEATURE.ORDER_BY.ordinal());
         }
         
         @Override
-        protected void visit(LOStream op) throws VisitorException {
+        public void visit(LOStream op) {
             feature.set(PIG_FEATURE.STREAMING.ordinal());
         }
         
         @Override
-        protected void visit(LOSplit op) throws VisitorException {
+        public void visit(LOSplit op) {
             
         }
         
         @Override
-        protected void visit(LOUnion op) throws VisitorException {
+        public void visit(LOUnion op) {
             feature.set(PIG_FEATURE.UNION.ordinal());
         }
         
         @Override
-        protected void visit(LONative n) throws VisitorException {
+        public void visit(LONative n) {
             feature.set(PIG_FEATURE.NATIVE.ordinal());
         }
 

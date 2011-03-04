@@ -56,6 +56,11 @@ public class LOJoin extends LogicalRelationalOperator {
     private boolean[] mInnerFlags;
     private JOINTYPE mJoinType; // Retains the type of the join
     
+    /** 
+     * static constant to refer to the option of selecting a join type
+     */
+    public final static Integer OPTION_JOIN = 1;
+    
     public LOJoin(LogicalPlan plan) {
         super("LOJoin", plan);     
     }

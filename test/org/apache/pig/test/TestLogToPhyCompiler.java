@@ -37,6 +37,7 @@ import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.SortColInfo;
 import org.apache.pig.SortInfo;
+import org.apache.pig.SortInfoSetter;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.LogToPhyTranslationVisitor;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
@@ -595,7 +596,7 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
         lpt.buildPlan("a = load 'bla' as (i:int, n:chararray, d:double);");
         lpt.buildPlan("b = order a by i, d;");
         LogicalPlan lp = lpt.buildPlan("store b into 'foo';");
-        PigServer.SortInfoSetter siSetter = new PigServer.SortInfoSetter(lp); 
+        SortInfoSetter siSetter = new SortInfoSetter(lp); 
         siSetter.visit();
         PhysicalPlan pp = buildPhysicalPlan(lp);
         SortInfo si = ((POStore)(pp.getLeaves().get(0))).getSortInfo();
@@ -619,7 +620,7 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
         lpt.buildPlan("b = filter a by i > 10;");
         lpt.buildPlan("c = order b by i desc, d;");
         LogicalPlan lp = lpt.buildPlan("store c into 'foo';");
-        PigServer.SortInfoSetter siSetter = new PigServer.SortInfoSetter(lp); 
+        SortInfoSetter siSetter = new SortInfoSetter(lp); 
         siSetter.visit();
         PhysicalPlan pp = buildPhysicalPlan(lp);
         SortInfo si = ((POStore)(pp.getLeaves().get(0))).getSortInfo();
@@ -643,7 +644,7 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
         lpt.buildPlan("a = load 'bla' as (i:int, n:chararray, d:double);");
         lpt.buildPlan("b = filter a by i > 10;");
         LogicalPlan lp = lpt.buildPlan("store b into 'foo';");
-        PigServer.SortInfoSetter siSetter = new PigServer.SortInfoSetter(lp); 
+        SortInfoSetter siSetter = new SortInfoSetter(lp); 
         siSetter.visit();
         PhysicalPlan pp = buildPhysicalPlan(lp);
         SortInfo si = ((POStore)(pp.getLeaves().get(0))).getSortInfo();
@@ -663,7 +664,7 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
         lpt.buildPlan("c = filter b by i > 10;");
         LogicalPlan lp = lpt.buildPlan("store c into 'foo';");
         PhysicalPlan pp = buildPhysicalPlan(lp);
-        PigServer.SortInfoSetter siSetter = new PigServer.SortInfoSetter(lp); 
+        SortInfoSetter siSetter = new SortInfoSetter(lp); 
         siSetter.visit();
         SortInfo si = ((POStore)(pp.getLeaves().get(0))).getSortInfo();
         assertEquals(null, si);
@@ -681,7 +682,7 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
         lpt.buildPlan("b = order a by i, d desc;");
         lpt.buildPlan("c = limit b 10;");
         LogicalPlan lp = lpt.buildPlan("store c into 'foo';");
-        PigServer.SortInfoSetter siSetter = new PigServer.SortInfoSetter(lp); 
+        SortInfoSetter siSetter = new SortInfoSetter(lp); 
         siSetter.visit();
         LOPrinter lpr = new LOPrinter(System.err, lp);
         lpr.visit();
@@ -708,19 +709,13 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
         myPig.registerQuery("b = order a by i, d desc;");
         myPig.registerQuery("store b into '1';");
         myPig.registerQuery("store b into '2';");
-        java.lang.reflect.Method compileLp = myPig.getClass()
-            .getDeclaredMethod("compileLp",
-            new Class[] { String.class });
+        java.lang.reflect.Method buildLp = myPig.getClass().getDeclaredMethod("buildLp");
+        buildLp.setAccessible(true);
+        org.apache.pig.newplan.logical.relational.LogicalPlan lp = (org.apache.pig.newplan.logical.relational.LogicalPlan ) buildLp.invoke( myPig );
 
-        compileLp.setAccessible(true);
-
-        LogicalPlan lp = (LogicalPlan) compileLp.invoke(myPig, new Object[] { null });
-        LOPrinter lpr = new LOPrinter(System.err, lp);
-        lpr.visit();
-        
         java.lang.reflect.Method compilePp = myPig.getClass()
             .getDeclaredMethod("compilePp",
-            new Class[] { LogicalPlan.class });
+            new Class[] { org.apache.pig.newplan.logical.relational.LogicalPlan.class });
         
         compilePp.setAccessible(true);
         
@@ -748,7 +743,7 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
         lpt.buildPlan("a = load 'bla' ;");
         lpt.buildPlan("b = order a by $0;");
         LogicalPlan lp = lpt.buildPlan("store b into 'foo';");
-        PigServer.SortInfoSetter siSetter = new PigServer.SortInfoSetter(lp); 
+        SortInfoSetter siSetter = new SortInfoSetter(lp); 
         siSetter.visit();
         PhysicalPlan pp = buildPhysicalPlan(lp);
         SortInfo si = ((POStore)(pp.getLeaves().get(0))).getSortInfo();

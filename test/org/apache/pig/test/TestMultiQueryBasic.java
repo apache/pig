@@ -463,7 +463,7 @@ public class TestMultiQueryBasic {
             myPig.registerQuery("store c into '/tmp/output1';");
             myPig.registerQuery("d = filter b by gid > 10;");
             myPig.registerQuery("store d into '/tmp/output2';");
-            myPig.registerQuery("e = join c by gid, d by gid using \"repl\";");
+            myPig.registerQuery("e = join c by gid, d by gid using \'repl\';");
             myPig.registerQuery("store e into '/tmp/output3';");
 
             List<ExecJob> jobs = myPig.executeBatch();

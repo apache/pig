@@ -126,8 +126,7 @@ public class ImplicitSplitInserter extends Rule {
           // position is remembered in order to maintain the order of the successors
           Pair<Integer, Integer> pos = currentPlan.disconnect(op, suc);
           LogicalExpressionPlan filterPlan = new LogicalExpressionPlan();
-          LogicalSchema.LogicalFieldSchema fs = new LogicalSchema.LogicalFieldSchema(null, null, DataType.BOOLEAN);
-          new ConstantExpression(filterPlan, Boolean.valueOf(true), fs);
+          new ConstantExpression(filterPlan, Boolean.valueOf(true));
           LOSplitOutput splitOutput = new LOSplitOutput((LogicalPlan) currentPlan, filterPlan);
           splitOutput.setAlias(splitOp.getAlias());
           currentPlan.add(splitOutput);

@@ -198,8 +198,6 @@ public class TestNullConstant extends TestCase {
             pigServer.registerQuery("b = foreach a generate [null#'2'];");
         } catch(Exception e) {
             exceptionOccured = true;
-            String msg = e.getMessage();
-            assertTrue(msg.contains("key in a map cannot be null"));
         }
         Util.deleteFile(cluster, inputFileName);
         if(!exceptionOccured) fail();        

@@ -259,6 +259,9 @@ INTEGER: ( DIGIT )+
 
 LONGINTEGER: INTEGER ( 'L' )?
 ;
+
+DOLLARVAR : DOLLAR INTEGER
+;
     
 DOUBLENUMBER : FLOATINGPOINT ( 'E' ( MINUS | PLUS )? INTEGER )?
 ;
@@ -310,6 +313,9 @@ EXECCOMMAND : '`' ( ~( '`' ) )* '`'
 STAR : '*'
 ;
 
+DCOLON : '::'
+;
+
 COLON : ':'
 ;
 
@@ -320,7 +326,7 @@ WS  :  ( ' ' | '\r' | '\t' | '\u000C' | '\n' ) { $channel = HIDDEN; }
 ;
     
 SL_COMMENT : '--' ( ~( '\r' | '\n' ) )* { $channel = HIDDEN; }
-	;
+;
 
 ML_COMMENT : '/*' ( options { greedy=false; } : . )* '*/' { $channel = HIDDEN; }
 ;
