@@ -105,14 +105,14 @@ public class TestNewPlanLogicalOptimizer extends TestCase {
         	LogicalExpressionPlan filterPlan = new LogicalExpressionPlan();
         	LOFilter D = new LOFilter(lp, filterPlan);
         	ProjectExpression fx = new ProjectExpression(filterPlan, 0, 0, D);
-        	ConstantExpression fc0 = new ConstantExpression(filterPlan, new Integer(0), new LogicalFieldSchema(null, null, DataType.BYTEARRAY));
+        	ConstantExpression fc0 = new ConstantExpression(filterPlan, new Integer(0));
         	EqualExpression eq1 = new EqualExpression(filterPlan, fx, fc0);
         	ProjectExpression fanotherx = new ProjectExpression(filterPlan, 0, 0, D);
         	ProjectExpression fa = new ProjectExpression(filterPlan, 0, 2, D);
         	EqualExpression eq2 = new EqualExpression(filterPlan, fanotherx, fa);
         	AndExpression and1 = new AndExpression(filterPlan, eq1, eq2);
         	ProjectExpression fb = new ProjectExpression(filterPlan, 0, 3, D);
-        	ConstantExpression fc1 = new ConstantExpression(filterPlan, new Integer(1),new LogicalFieldSchema(null, null, DataType.BYTEARRAY));
+        	ConstantExpression fc1 = new ConstantExpression(filterPlan, new Integer(1));
         	EqualExpression eq3 = new EqualExpression(filterPlan, fb, fc1);
         	AndExpression and2 = new AndExpression(filterPlan, and1, eq3);
         	ProjectExpression fanotherb = new ProjectExpression(filterPlan, 0, 3, D);
@@ -146,7 +146,7 @@ public class TestNewPlanLogicalOptimizer extends TestCase {
         	LOFilter DA = new LOFilter(expected, DAfilterPlan);
         	ProjectExpression fx = new ProjectExpression(DAfilterPlan, 0, 0, DA);
         	fx.neverUseForRealSetFieldSchema(new LogicalFieldSchema(null, null, DataType.BYTEARRAY));
-        	ConstantExpression fc0 = new ConstantExpression(DAfilterPlan, new Integer(0), new LogicalFieldSchema(null, null, DataType.BYTEARRAY));
+        	ConstantExpression fc0 = new ConstantExpression(DAfilterPlan, new Integer(0));
         	new EqualExpression(DAfilterPlan, fx, fc0);
         	
         	DA.neverUseForRealSetSchema(aschema);
@@ -167,7 +167,7 @@ public class TestNewPlanLogicalOptimizer extends TestCase {
             LOFilter DB = new LOFilter(expected, DBfilterPlan);
         	ProjectExpression fb = new ProjectExpression(DBfilterPlan, 0, 1, DB);
         	fb.neverUseForRealSetFieldSchema(new LogicalFieldSchema(null, null, DataType.BYTEARRAY));
-        	ConstantExpression fc1 = new ConstantExpression(DBfilterPlan, new Integer(1), new LogicalFieldSchema(null, null, DataType.BYTEARRAY));
+        	ConstantExpression fc1 = new ConstantExpression(DBfilterPlan, new Integer(1));
         	new EqualExpression(DBfilterPlan, fb, fc1);
 
         	DB.neverUseForRealSetSchema(bschema);

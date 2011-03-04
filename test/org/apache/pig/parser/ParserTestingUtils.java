@@ -70,7 +70,9 @@ public class ParserTestingUtils {
     throws RecognitionException, ParsingFailureException, IOException {
         Tree ast = validateAst( query );
         
-        LogicalPlanGenerator walker = new LogicalPlanGenerator( new CommonTreeNodeStream( ast ) );
+        CommonTreeNodeStream input = new CommonTreeNodeStream( ast );
+        LogicalPlanBuilder builder = new LogicalPlanBuilder( input );
+        LogicalPlanGenerator walker = new LogicalPlanGenerator( input, builder );
         walker.query();
         
         if( 0 < walker.getNumberOfSyntaxErrors() ) 

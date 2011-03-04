@@ -23,6 +23,7 @@ import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.OperatorPlan;
 import org.apache.pig.newplan.PlanVisitor;
 import org.apache.pig.newplan.logical.relational.LogicalSchema;
+import org.apache.pig.newplan.logical.relational.LogicalSchema.LogicalFieldSchema;
 
 public class BinCondExpression extends LogicalExpression {
 
@@ -97,7 +98,12 @@ public class BinCondExpression extends LogicalExpression {
     public LogicalSchema.LogicalFieldSchema getFieldSchema() throws FrontendException {
         if (fieldSchema!=null)
             return fieldSchema;
-        fieldSchema = getLhs().getFieldSchema().deepCopy();
+        
+        //TypeCheckingExpVisitor will ensure that lhs and rhs have same schema
+        LogicalFieldSchema argFs = getLhs().getFieldSchema();
+        fieldSchema = argFs.deepCopy();
+        fieldSchema.resetUid();
+        
         uidOnlyFieldSchema = fieldSchema.mergeUid(uidOnlyFieldSchema);
         return fieldSchema;
     }

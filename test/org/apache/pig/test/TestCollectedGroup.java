@@ -22,7 +22,6 @@ import java.util.Iterator;
 import java.util.List;
 
 import junit.framework.Assert;
-import junit.framework.TestCase;
 
 import org.apache.pig.CollectableLoadFunc;
 import org.apache.pig.ExecType;
@@ -49,7 +48,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
 @RunWith(JUnit4.class)
-public class TestCollectedGroup extends TestCase {
+public class TestCollectedGroup {
     private static final String INPUT_FILE = "MapSideGroupInput.txt";
     
     private PigServer pigServer;
@@ -95,9 +94,9 @@ public class TestCollectedGroup extends TestCase {
         pc.connect();
         try {
             Util.buildMRPlan(Util.buildPhysicalPlan(lp, pc),pc);  
-            fail("Must throw MRCompiler Exception");
+            Assert.fail("Must throw MRCompiler Exception");
         } catch (Exception e) {
-            assertTrue(e instanceof MRCompilerException);
+            Assert.assertTrue(e instanceof MRCompilerException);
         }
     }
 
@@ -107,7 +106,7 @@ public class TestCollectedGroup extends TestCase {
         LogicalPlanTester lpt = new LogicalPlanTester();
         lpt.buildPlan("A = LOAD '" + INPUT_FILE + "' as (id, name, grade);");
         LogicalPlan lp = lpt.buildPlan("B = group A by id using 'collected';");
-        assertEquals(LOCogroup.GROUPTYPE.COLLECTED, ((LOCogroup)lp.getLeaves().get(0)).getGroupType());
+        Assert.assertEquals(LOCogroup.GROUPTYPE.COLLECTED, ((LOCogroup)lp.getLeaves().get(0)).getGroupType());
     }
     
     @Test
@@ -116,7 +115,7 @@ public class TestCollectedGroup extends TestCase {
         LogicalPlanTester lpt = new LogicalPlanTester();
         lpt.buildPlan("A = LOAD '" + INPUT_FILE + "' as (id, name, grade);");
         LogicalPlan lp = lpt.buildPlan("B = group A all using 'regular';");
-        assertEquals(LOCogroup.GROUPTYPE.REGULAR, ((LOCogroup)lp.getLeaves().get(0)).getGroupType());
+        Assert.assertEquals(LOCogroup.GROUPTYPE.REGULAR, ((LOCogroup)lp.getLeaves().get(0)).getGroupType());
     }
     
     @AfterClass
@@ -141,11 +140,12 @@ public class TestCollectedGroup extends TestCase {
         pigServer.registerQuery("B = LOAD '" + INPUT_FILE + "' as (id, name, grade);");
     
         try {
-            pigServer.registerQuery("C = group A by id, B by id using \"collected\";");
-            fail("Pig doesn't support multi-input collected group.");
+            pigServer.registerQuery("C = group A by id, B by id using 'collected';");
+            pigServer.openIterator( "C" );
+            Assert.fail("Pig doesn't support multi-input collected group.");
         } catch (Exception e) {
-             Assert.assertEquals(e.getMessage(), 
-                "Error during parsing. Collected group is only supported for single input");
+            String msg = "Pig script failed to validate: Collected group is only supported for single input";
+            Assert.assertTrue( e.getMessage().contains( msg ) );
         }
     }
     
@@ -156,11 +156,12 @@ public class TestCollectedGroup extends TestCase {
         pigServer.registerQuery("A = LOAD '" + INPUT_FILE + "' as (id, name, grade);");
     
         try {
-            pigServer.registerQuery("B = group A all using \"collected\";");
-            fail("Pig doesn't support collected group all.");
+            pigServer.registerQuery("B = group A all using 'collected';");
+            pigServer.openIterator( "B" );
+            Assert.fail("Pig doesn't support collected group all.");
         } catch (Exception e) {
-            Assert.assertEquals(e.getMessage(), 
-                "Error during parsing. Collected group is only supported for columns or star projection");
+            String msg = "Pig script failed to validate: Collected group is only supported for columns or star projection";
+            Assert.assertTrue( e.getMessage().contains( msg ) );
         }
     }
      
@@ -171,11 +172,12 @@ public class TestCollectedGroup extends TestCase {
         pigServer.registerQuery("A = LOAD '" + INPUT_FILE + "' as (id, name, grade);");
     
         try {
-            pigServer.registerQuery("B = group A by id*grade using \"collected\";");
-            fail("Pig doesn't support collected group by expression.");
+            pigServer.registerQuery("B = group A by id*grade using 'collected';");
+            pigServer.openIterator("B");
+            Assert.fail("Pig doesn't support collected group by expression.");
         } catch (Exception e) {
-            Assert.assertEquals(e.getMessage(), 
-                "Error during parsing. Collected group is only supported for columns or star projection");
+            String msg = "Pig script failed to validate: Collected group is only supported for columns or star projection";
+            Assert.assertTrue( e.getMessage().contains( msg ) );
         }
     }
 
@@ -188,7 +190,7 @@ public class TestCollectedGroup extends TestCase {
             DataBag dbfrj = BagFactory.getInstance().newDefaultBag();
             DataBag dbshj = BagFactory.getInstance().newDefaultBag();
             {
-                pigServer.registerQuery("B = group A by id using \"collected\";");
+                pigServer.registerQuery("B = group A by id using 'collected';");
                 pigServer.registerQuery("C = foreach B generate group, COUNT(A);");
                 Iterator<Tuple> iter = pigServer.openIterator("C");
 
@@ -210,7 +212,7 @@ public class TestCollectedGroup extends TestCase {
 
         } catch (Exception e) {
             e.printStackTrace();
-            fail(e.getMessage());
+            Assert.fail(e.getMessage());
         }
     }
  
@@ -224,7 +226,7 @@ public class TestCollectedGroup extends TestCase {
             DataBag dbfrj = BagFactory.getInstance().newDefaultBag();
             DataBag dbshj = BagFactory.getInstance().newDefaultBag();
             {
-                pigServer.registerQuery("B = group A by (id, name) using \"collected\";");
+                pigServer.registerQuery("B = group A by (id, name) using 'collected';");
                 pigServer.registerQuery("C = foreach B generate group, COUNT(A);");
                 Iterator<Tuple> iter = pigServer.openIterator("C");
 
@@ -246,7 +248,7 @@ public class TestCollectedGroup extends TestCase {
 
         } catch (Exception e) {
             e.printStackTrace();
-            fail(e.getMessage());
+            Assert.fail(e.getMessage());
         }
     }
   
@@ -260,7 +262,7 @@ public class TestCollectedGroup extends TestCase {
             DataBag dbfrj = BagFactory.getInstance().newDefaultBag();
             DataBag dbshj = BagFactory.getInstance().newDefaultBag();
             {
-                pigServer.registerQuery("B = group A by * using \"collected\";");
+                pigServer.registerQuery("B = group A by * using 'collected';");
                 pigServer.registerQuery("C = foreach B generate group, COUNT(A);");
                 Iterator<Tuple> iter = pigServer.openIterator("C");
 
@@ -282,7 +284,7 @@ public class TestCollectedGroup extends TestCase {
 
         } catch (Exception e) {
             e.printStackTrace();
-            fail(e.getMessage());
+            Assert.fail(e.getMessage());
         }
     }
 

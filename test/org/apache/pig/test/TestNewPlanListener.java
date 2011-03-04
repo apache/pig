@@ -125,7 +125,7 @@ public class TestNewPlanListener extends TestCase {
         ProjectExpression fy = new ProjectExpression(filterPlan, 0, 1, D);
         fy.neverUseForRealSetFieldSchema(new LogicalFieldSchema(null, null,
                 DataType.INTEGER, 2));
-        ConstantExpression fc = new ConstantExpression(filterPlan, new Integer(0), new LogicalFieldSchema(null, null, DataType.INTEGER));
+        ConstantExpression fc = new ConstantExpression(filterPlan, new Integer(0));
         new EqualExpression(filterPlan, fy, fc);
         
         D.neverUseForRealSetSchema(cschema);

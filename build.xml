@@ -724,7 +724,9 @@
     
     <target name="test" description="to call the test-core and test-contrib target">
 	<antcall target="test-core" inheritRefs="true" inheritall="true"/>
+	<!-- temporarily disabling call to zebra tests
 	<antcall target="test-contrib-internal" inheritRefs="true" inheritall="true"/>
+	-->
     </target>    
 
     <target name="test-contrib-internal" unless="testcase">

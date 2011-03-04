@@ -66,6 +66,11 @@ public class LOCogroup extends LogicalRelationalOperator {
     
     final static String GROUP_COL_NAME = "group";
     
+    /** 
+     * static constant to refer to the option of selecting a group type
+     */
+    public final static Integer OPTION_GROUPTYPE = 1;
+    
     /**
      * Constructor for use in defining rule patterns
      * @param plan
@@ -99,7 +104,6 @@ public class LOCogroup extends LogicalRelationalOperator {
         LogicalExpression sourceExp = (LogicalExpression) exprPlan.getSources().get(0);
         LogicalFieldSchema planSchema = null;
         planSchema = sourceExp.getFieldSchema().deepCopy();
-        planSchema.uid = -1;
         return planSchema;
     }
 
@@ -171,6 +175,12 @@ public class LOCogroup extends LogicalRelationalOperator {
                 }
                 break;
             }
+            if(mExpressionPlans.size() > 1){
+                //reset the uid, because the group column is associated with more
+                // than one input
+                groupKeySchema.resetUid();
+            }
+            
         }
         
         if (groupKeySchema==null) {

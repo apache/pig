@@ -72,14 +72,14 @@ public class UnionOnSchemaSetter extends LogicalRelationalNodesVisitor{
         List<LogicalSchema> fieldSchemas = new ArrayList<LogicalSchema>( fieldCount );
         for( LogicalFieldSchema fs : outputSchema.getFields() ) {
             LogicalSchema ls = new LogicalSchema();
-            ls.addField( new LogicalFieldSchema( fs.alias, fs.schema, DataType.NULL ) );
+            ls.addField( new LogicalFieldSchema( fs.alias, null, DataType.NULL ) );
             fieldSchemas.add( ls );
         }
         
         for( Operator pred : preds ) {
             LogicalRelationalOperator op = (LogicalRelationalOperator)pred;
             LogicalSchema opSchema = op.getSchema();
-            if( opSchema.isEqual( outputSchema ) )
+            if( opSchema.isEqual( outputSchema , true) )
                 continue;
             
             LOForEach foreach = new LOForEach( plan );
@@ -94,9 +94,19 @@ public class UnionOnSchemaSetter extends LogicalRelationalNodesVisitor{
             for( LogicalFieldSchema fs : outputSchema.getFields() ) {
                 LogicalExpressionPlan exprPlan = new LogicalExpressionPlan();
                 exprPlans.add( exprPlan );
-                int pos = opSchema.getFieldPosition( fs.alias );
+                int pos = -1;
+                //do a match with subname also
+                LogicalFieldSchema matchFS = opSchema.getFieldSubNameMatch(fs.alias);
+                if(matchFS != null){
+                    pos = opSchema.getFieldPosition(matchFS.alias);
+                }
                 if( pos == -1 ) {
-                    new ConstantExpression( exprPlan, null, fs );
+                    ConstantExpression constExp = new ConstantExpression( exprPlan, null);
+                    if(fs.type != DataType.BYTEARRAY){
+                        LogicalSchema.LogicalFieldSchema constFs = fs.deepCopy();
+                        constFs.resetUid();
+                        new CastExpression(exprPlan, constExp, constFs);
+                    }
                 } else {
                     ProjectExpression projExpr = 
                         new ProjectExpression( exprPlan, genInputs.size(), 0, gen );
@@ -109,7 +119,7 @@ public class UnionOnSchemaSetter extends LogicalRelationalNodesVisitor{
             
             gen.setFlattenFlags( flattenFlags );
             gen.setOutputPlans( exprPlans );
-            gen.setOutputPlanSchemas( fieldSchemas );
+            gen.setUserDefinedSchema( fieldSchemas );
             innerPlan.add( gen );
             for( Operator input : genInputs ) {
                 innerPlan.add(input);
@@ -117,13 +127,14 @@ public class UnionOnSchemaSetter extends LogicalRelationalNodesVisitor{
             }
             
             foreach.setInnerPlan( innerPlan );
-            
+            foreach.setAlias(union.getAlias());
             Pair<Integer, Integer> pair = plan.disconnect( pred, union );
             plan.add( foreach );
             plan.connect( pred, pair.first, foreach, 0 );
             plan.connect( foreach, 0, union, pair.second );
         }
         
+        union.setUnionOnSchema(false);
     }
 
 }

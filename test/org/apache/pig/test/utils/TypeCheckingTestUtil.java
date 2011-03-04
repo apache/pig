@@ -24,6 +24,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Properties;
 
+import org.apache.hadoop.mapred.lib.FieldSelectionMapReduce;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.builtin.PigStorage;
@@ -34,6 +35,7 @@ import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.plan.CompilationMessageCollector;
 import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.OperatorKey;
+import org.apache.pig.parser.QueryParser.or_cond_return;
 import org.apache.pig.test.TypeGraphPrinter;
 
 public class TypeCheckingTestUtil {
@@ -50,6 +52,18 @@ public class TypeCheckingTestUtil {
             throw new AssertionError("This cannot happen") ;
         }
     }
+    
+    public static org.apache.pig.newplan.logical.relational.LOLoad 
+    genDummyLOLoadNewLP( org.apache.pig.newplan.logical.relational.LogicalPlan plan)  {
+        String pigStorage = PigStorage.class.getName() ;
+        org.apache.pig.newplan.logical.relational.LOLoad load =
+        new org.apache.pig.newplan.logical.relational.LOLoad(
+                new FileSpec("pi", new FuncSpec(pigStorage)),
+                null, plan, null
+        );
+        return load ;
+    }
+    
 
     public static Schema genFlatSchema(String[] aliases, byte[] types) {
         if (aliases.length != types.length) {
@@ -61,6 +75,13 @@ public class TypeCheckingTestUtil {
         }
         return new Schema(fsList) ;
     }
+    
+    public static Schema genFlatSchemaInTuple(String[] aliases, byte[] types) {
+        Schema flatSchema = genFlatSchema(aliases, types);
+        return new Schema(new Schema.FieldSchema("t", flatSchema));
+        
+    }
+    
 
     public static OperatorKey genNewOperatorKey() {
         long newId = NodeIdGenerator.getGenerator().getNextNodeId("scope") ;

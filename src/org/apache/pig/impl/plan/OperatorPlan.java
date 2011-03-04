@@ -322,7 +322,7 @@ public abstract class OperatorPlan<E extends Operator> implements Iterable<E>, S
      * @return Collection of nodes.
      */
     public List<E> getPredecessors(E op) {
-        return (List<E>)mToEdges.get(op);
+        return mToEdges.get(op);
     }
 
 
@@ -333,7 +333,7 @@ public abstract class OperatorPlan<E extends Operator> implements Iterable<E>, S
      * @return Collection of nodes.
      */
     public List<E> getSuccessors(E op) {
-        return (List<E>)mFromEdges.get(op);
+        return mFromEdges.get(op);
     }
     
     /**
@@ -343,7 +343,7 @@ public abstract class OperatorPlan<E extends Operator> implements Iterable<E>, S
      * @return Collection of nodes.
      */
     public List<E> getSoftLinkPredecessors(E op) {
-        return (List<E>)mSoftToEdges.get(op);
+        return mSoftToEdges.get(op);
     }
 
 
@@ -354,7 +354,7 @@ public abstract class OperatorPlan<E extends Operator> implements Iterable<E>, S
      * @return Collection of nodes.
      */
     public List<E> getSoftLinkSuccessors(E op) {
-        return (List<E>)mSoftFromEdges.get(op);
+        return mSoftFromEdges.get(op);
     }
     
     /**

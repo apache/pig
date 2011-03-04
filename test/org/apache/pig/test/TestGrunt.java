@@ -34,6 +34,7 @@ import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.tools.grunt.Grunt;
 import org.apache.pig.tools.pigscript.parser.ParseException;
+import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.util.LogUtils;
 
 import java.io.ByteArrayInputStream;
@@ -99,7 +100,7 @@ public class TestGrunt extends TestCase {
         PigServer server = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
         PigContext context = server.getPigContext();
         
-        String strCmd = "a = load 'input1' as (b: bag{t(i: int, c:chararray, f: float)});\n";
+        String strCmd = "a = load 'input1' as (b: bag{t:(i: int, c:chararray, f: float)});\n";
         
         ByteArrayInputStream cmd = new ByteArrayInputStream(strCmd.getBytes());
         InputStreamReader reader = new InputStreamReader(cmd);
@@ -114,7 +115,7 @@ public class TestGrunt extends TestCase {
         PigServer server = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
         PigContext context = server.getPigContext();
         
-        String strCmd = "a = load 'input1'as (b: bag{t(i: int, c:chararray, f: float)});\n";
+        String strCmd = "a = load 'input1'as (b: bag{t:(i: int, c:chararray, f: float)});\n";
         
         ByteArrayInputStream cmd = new ByteArrayInputStream(strCmd.getBytes());
         InputStreamReader reader = new InputStreamReader(cmd);
@@ -126,7 +127,7 @@ public class TestGrunt extends TestCase {
         } catch (Exception e) {
             PigException pe = LogUtils.getPigException(e);
             String msg = (pe == null? e.getMessage(): pe.getMessage());
-            assertTrue(msg.contains("Encountered \" \";"));
+            assertTrue(msg.contains("Error during parsing"));
         }
     }
 
@@ -152,7 +153,7 @@ public class TestGrunt extends TestCase {
         
         String strCmd = "a = load 'input1'; b = foreach a generate "
                 + "{(1, '1', 0.4f),(2, '2', 0.45)} as "
-                + "b: bag{t(i: int, c:chararray, d: double)};\n";
+                + "b: bag{t:(i: int, c:chararray, d: double)};\n";
         
         ByteArrayInputStream cmd = new ByteArrayInputStream(strCmd.getBytes());
         InputStreamReader reader = new InputStreamReader(cmd);
@@ -185,7 +186,7 @@ public class TestGrunt extends TestCase {
         
         String strCmd = "a = load 'input1'; "
                 + "b = foreach a {generate {(1, '1', 0.4f),(2, '2', 0.45)} "
-                + "as b: bag{t(i: int, c:chararray, d: double)};};\n";
+                + "as b: bag{t:(i: int, c:chararray, d: double)};};\n";
         
         ByteArrayInputStream cmd = new ByteArrayInputStream(strCmd.getBytes());
         InputStreamReader reader = new InputStreamReader(cmd);
@@ -317,7 +318,7 @@ public class TestGrunt extends TestCase {
         String strCmd = "a = load 'foo' as (foo, fast, regenerate); "
                 + "b = group a by foo; c = foreach b {generate "
                 + "{(1, '1', 0.4f),(2, '2', 0.45)} "
-                + "as b: bag{t(i: int, cease:chararray, degenerate: double)}, "
+                + "as b: bag{t:(i: int, cease:chararray, degenerate: double)}, "
                 + "SUM(a.fast) as fast, a.regenerate as degenerated;};\n";
         
         ByteArrayInputStream cmd = new ByteArrayInputStream(strCmd.getBytes());
@@ -336,7 +337,7 @@ public class TestGrunt extends TestCase {
         String strCmd = "a = load 'foo' as (foo, fast, regenerate); "
                 + "b = group a by foo; c = foreach b generate "
                 + "{(1, '1', 0.4f),(2, '2', 0.45)} "
-                + "as b: bag{t(i: int, cease:chararray, degenerate: double)}, "
+                + "as b: bag{t:(i: int, cease:chararray, degenerate: double)}, "
                 + "SUM(a.fast) as fast, a.regenerate as degenerated;\n";
         
         ByteArrayInputStream cmd = new ByteArrayInputStream(strCmd.getBytes());
@@ -676,6 +677,7 @@ public class TestGrunt extends TestCase {
     public void testPartialExecution() throws Throwable {
         PigServer server = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
         PigContext context = server.getPigContext();
+        FileLocalizer.setInitialized(false);
         
         String strCmd = "rmf bar; rmf baz; "
                 + "a = load '"

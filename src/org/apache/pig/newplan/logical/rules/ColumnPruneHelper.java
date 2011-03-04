@@ -114,7 +114,7 @@ public class ColumnPruneHelper {
     public boolean check() throws FrontendException {
         List<Operator> sources = currentPlan.getSources();
         // if this rule has run before, just return false
-        if (sources.get(0).getAnnotation(INPUTUIDS) != null) {
+        if (sources.size() > 1 && sources.get(0).getAnnotation(INPUTUIDS) != null) {
             clearAnnotation();
             return false;
         }

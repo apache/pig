@@ -619,6 +619,7 @@ public class GruntParser extends PigScriptParser {
     protected void processDump(String alias) throws IOException
     {
         if(mExplain == null) { // process only if not in "explain" mode
+        	executeBatch();
             Iterator<Tuple> result = mPigServer.openIterator(alias);
             while (result.hasNext())
             {

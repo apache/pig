@@ -31,19 +31,20 @@ import org.apache.pig.newplan.logical.relational.LogicalSchema.LogicalFieldSchem
 
 /**
  * 
- * This is a special case Expression and violates some of the rules of an
- * Expression.
- * Violation:
- *   It has multiple Uids ( though not tracked there can be multiple uids
- *      for this expression )
+ * get one or elements out of a tuple or a bag
  * 
- * This is a special operator which handles the case described below
- * Tuple( a:int, b:bag{ b_a:int, b_b:float } ) --> 
- * BagDereference ( 0 ) --> project( 0, 1 ) --> bag{ b_a:float }
+ * in case of Tuple( a#2:int, b#3:bag{ b_a#4:int, b_b#5:float }, c#6:int ) # 1
+ * (the number after # represents the uid)
  * 
+ * Dereference ( 0 ) --> a:int
+ * - dereference of single column in a tuple gives the field
  * 
+ * Dereference ( 0,2 ) --> Tuple(a#2:int, c#6:int) #7 
+ * - dereference of more than one column gives a tuple 
  * 
- * i.e. First input ( 0 ), second column ( 1 ) and first column of the bag.
+ * Dereference ( 1 ) --> Dereference ( 1 ) --> b:bag{b_b#5:float}#8 
+ * - dereference of a bag gives a bag
+ * 
  *
  */
 public class DereferenceExpression extends ColumnExpression {
@@ -144,6 +145,9 @@ public class DereferenceExpression extends ColumnExpression {
                     LogicalSchema origSchema = predFS.schema.getField(0).schema;;
                     // Slice the tuple inner schema
                     if (origSchema!=null && origSchema.size()!=0) {
+                        if (!rawColumns.isEmpty()) {
+                            columns = translateAliasToPos(origSchema, rawColumns);
+                        }
                         for (int column:columns) {
                             innerSchema.addField(origSchema.getField(column));
                         }
@@ -155,19 +159,53 @@ public class DereferenceExpression extends ColumnExpression {
                 fieldSchema = new LogicalSchema.LogicalFieldSchema(null, bagSchema, DataType.BAG, LogicalExpression.getNextUid());
             }
             else { // Dereference a field out of a tuple
-                if (predFS.schema!=null)
+                if (predFS.schema!=null) {
+                    if (!rawColumns.isEmpty()) {
+                        columns = translateAliasToPos(predFS.schema, rawColumns);
+                    }
                     fieldSchema = predFS.schema.getField(columns.get(0));
+                } else{
+                    fieldSchema = new LogicalFieldSchema(null, null, DataType.BYTEARRAY);
+                }
             }
         }
         return fieldSchema;
+    }
+        
+    private List<Integer> translateAliasToPos(LogicalSchema schema, List<Object> rawColumns) throws FrontendException {
+        List<Integer> columns = new ArrayList<Integer>();
+        for( Object rawColumn : rawColumns ) {
+            if( rawColumn instanceof Integer ) {
+            	// TODO: need to check bound.
+                columns.add( (Integer)rawColumn );
+            } else {
+            	boolean found = false;
+            	
+                for( int i = 0; i < schema.size(); i++ ) {
+                    LogicalSchema.LogicalFieldSchema fs = schema.getField( i );
+                    if( fs.alias != null && fs.alias.equals( rawColumn ) ) {
+                        columns.add( i );
+                        found = true;
+                        break;
+                    }
+                }
+                
+                if( !found ) {
+                    throw new FrontendException("Cannot find field " + rawColumn + " in " + schema);
+                }
+            }
+        }
+        return columns;
     }
 
     @Override
     public LogicalExpression deepCopy(LogicalExpressionPlan lgExpPlan) throws FrontendException {
         List<Integer> columnsCopy = new ArrayList<Integer>(this.getBagColumns());
-        LogicalExpression copy = new DereferenceExpression(
+        DereferenceExpression copy = new DereferenceExpression(
                 lgExpPlan,
                 columnsCopy);
+        List<Object> rawColumnsCopy = new ArrayList<Object>( this.rawColumns );
+        copy.setRawColumns( rawColumnsCopy );
         
         // Only one input is expected.
         LogicalExpression input = (LogicalExpression) plan.getSuccessors( this ).get( 0 );

@@ -21,8 +21,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.pig.data.DataType;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
+import org.apache.pig.impl.logicalLayer.schema.Schema.FieldSchema;
 import org.apache.pig.impl.util.Pair;
 import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.logical.expression.LogicalExpressionPlan;
@@ -58,7 +60,7 @@ public class Util {
             newSchema = translateSchema(fs.schema);
         }
         
-        LogicalSchema.LogicalFieldSchema newFs = new LogicalSchema.LogicalFieldSchema(null, newSchema, fs.type);
+        LogicalSchema.LogicalFieldSchema newFs = new LogicalSchema.LogicalFieldSchema(fs.alias, newSchema, fs.type);
         return newFs;
     }
     
@@ -89,7 +91,41 @@ public class Util {
         return s2;
     }
     
-    public static Schema.FieldSchema translateFieldSchema(LogicalSchema.LogicalFieldSchema fs) {      
+    /**
+     * If schema argument has fields where a bag does not contain a tuple schema,
+     * it inserts a tuple schema. It does so for all inner levels.
+     * eg bag({int}) => bag({(int)}) 
+     * @param sch
+     * @throws FrontendException 
+     */
+    public static void fixSchemaAddTupleInBag(Schema sch) throws FrontendException{
+        for(FieldSchema fs : sch.getFields()){
+            if(fs.schema != null){
+                fixSchemaAddTupleInBag(fs.schema);
+            }
+            if(fs.type == DataType.BAG){
+                // if there is no inner schema, add a empty tuple inner schema
+                if(fs.schema == null){
+                    fs.schema = new Schema(new FieldSchema(null, DataType.TUPLE));
+                }else if(
+                        (fs.schema.size() == 1 && fs.schema.getField(0).type != DataType.TUPLE)
+                        ||
+                        fs.schema.size() > 1
+                ){
+                    //the inner schema is something other than tuple schema.
+                    // change it to a schema with single tuple field, this tuple
+                    // field will have the old inner schema as its inner schema
+                    fs.schema = new Schema(new FieldSchema(null, fs.schema, DataType.TUPLE));
+                }
+            }
+
+        }
+    }
+
+
+    public static Schema.FieldSchema translateFieldSchema(LogicalSchema.LogicalFieldSchema fs) {
+        if(fs == null)
+            return null;
         Schema newSchema = null;
         if (fs.schema!=null) {
             newSchema = translateSchema(fs.schema);

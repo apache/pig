@@ -60,12 +60,12 @@ import org.apache.pig.classification.InterfaceAudience;
 import org.apache.pig.classification.InterfaceStability;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
-import org.apache.pig.impl.logicalLayer.LogicalPlanBuilder;
 import org.apache.pig.impl.util.JarManager;
 import org.apache.pig.impl.util.LogUtils;
 import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.impl.util.PropertiesUtil;
 import org.apache.pig.impl.util.UDFContext;
+import org.apache.pig.parser.QueryParserDriver;
 import org.apache.pig.parser.ParserUtil;
 import org.apache.pig.scripting.ScriptEngine;
 import org.apache.pig.scripting.ScriptEngine.SupportedScriptLang;
@@ -356,7 +356,7 @@ static int run(String args[], PigProgressNotificationListener listener) {
         if (properties.get("udf.import.list")!=null)
             PigContext.initializeImportList((String)properties.get("udf.import.list"));
 
-        LogicalPlanBuilder.classloader = pigContext.createCl(null);
+        QueryParserDriver.classloader = pigContext.createCl(null);
 
         // construct the parameter substitution preprocessor
         Grunt grunt = null;

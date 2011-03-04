@@ -141,10 +141,15 @@ public class LOGenerate extends LogicalRelationalOperator {
                     // Use user defined schema
                     for (LogicalFieldSchema fs : mUserDefinedSchemaCopy.getFields()) {
                         fs.stampFieldSchema();
-                        mergedSchema.addField(fs);
+                        mergedSchema.addField(new LogicalFieldSchema(fs));
                     }
-                }
-                else {
+                    if(mergedSchema.size() == 1 && mergedSchema.getField(0).type == DataType.NULL){
+                        //this is the use case where a new alias has been specified by user
+                        mergedSchema.getField(0).type = DataType.BYTEARRAY;
+                    }
+                
+                } else {
+
                     // Merge uid with the exp field schema
                     mergedSchema = LogicalSchema.merge(mUserDefinedSchemaCopy, expSchema, LogicalSchema.MergeMode.LoadForEach);
                     if (mergedSchema==null) {
@@ -152,6 +157,7 @@ public class LOGenerate extends LogicalRelationalOperator {
                                 ") with user defined schema (" + mUserDefinedSchemaCopy.toString(false) + ")", 1117);
                     }
                     mergedSchema.mergeUid(expSchema);
+
                 }
                 for (LogicalFieldSchema fs : mergedSchema.getFields())
                     planSchema.addField(fs);
@@ -269,6 +275,10 @@ public class LOGenerate extends LogicalRelationalOperator {
         mUserDefinedSchema = userDefinedSchema;
     }
     
+    /**
+     * Get the output schema corresponding to each input expression plan
+     * @return list of output schemas
+     */
     public List<LogicalSchema> getOutputPlanSchemas() {
         return outputPlanSchemas;
     }
@@ -288,5 +298,11 @@ public class LOGenerate extends LogicalRelationalOperator {
     @Override
     public void resetUid() {
         this.uidOnlySchemas = null;
+    }
+    
+    @Override
+    public void resetSchema(){
+        super.resetSchema();
+        outputPlanSchemas = null;
     }
 }

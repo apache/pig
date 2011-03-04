@@ -18,15 +18,9 @@
 
 package org.apache.pig.test;
 
-import java.io.IOException;
-
 import org.apache.pig.PigServer;
-import org.apache.pig.impl.logicalLayer.LOCogroup;
-import org.apache.pig.impl.logicalLayer.LOJoin;
-import org.apache.pig.impl.logicalLayer.LogicalOperator;
-import org.apache.pig.impl.logicalLayer.LOJoin;
-import org.apache.pig.impl.logicalLayer.LogicalPlan;
-import org.apache.pig.test.utils.*;
+import org.apache.pig.newplan.logical.relational.LOCogroup;
+import org.apache.pig.newplan.logical.relational.LOJoin;
 import org.junit.Before;
 import org.junit.Test;
 import static org.apache.pig.ExecType.LOCAL;
@@ -43,15 +37,16 @@ public class TestPinOptions extends TestCase {
     }
         
     @Test
-    public void testPinnedJoinOption() throws IOException {
+    public void testPinnedJoinOption() throws Exception {
         String[] joinTypes = {"hash", "repl", "merge", "skewed", "default"};
         String[] expectedJoinTypes = {"HASH", "REPLICATED", "MERGE", "SKEWED", "HASH"};
         for (int i = 0; i < joinTypes.length; i++) {
             pigServer.setBatchOn();
-            pigServer.registerQuery("a = load '/tmp' as (foo, bar);");
-            pigServer.registerQuery("b = load '/tmp' as (foo, bar);");
-            pigServer.registerQuery("c = join a by foo, b by foo using \""+joinTypes[i]+"\";");
-            LogicalOperator op = getOpByAlias(pigServer.getAliases().get("c"), "c");
+            pigServer.registerQuery("a = load 'tmp1' as (foo, bar);");
+            pigServer.registerQuery("b = load 'tmp1' as (foo, bar);");
+            pigServer.registerQuery("c = join a by foo, b by foo using '"+joinTypes[i]+"';");
+            pigServer.registerQuery("store c into 'tmp2';");
+            LOJoin op = (LOJoin)TestPigStats.getLogicalPlan(pigServer).findByAlias("c");
             assertTrue("did "+joinTypes[i]+" join get pinned? ", 
                     op.isPinnedOption(LOJoin.OPTION_JOIN));
             assertEquals("did the right join type get set? ",
@@ -61,39 +56,37 @@ public class TestPinOptions extends TestCase {
     }
     
     @Test
-    public void testNotPinnedJinOption() throws IOException {
-        pigServer.registerQuery("a = load '/tmp' as (foo, bar);");
-        pigServer.registerQuery("b = load '/tmp' as (foo, bar);");
+    public void testNotPinnedJinOption() throws Exception {
+        pigServer.setBatchOn();
+        pigServer.registerQuery("a = load 'tmp1' as (foo, bar);");
+        pigServer.registerQuery("b = load 'tmp1' as (foo, bar);");
         pigServer.registerQuery("c = join a by foo, b by foo;");
-        LogicalOperator op = getOpByAlias(pigServer.getAliases().get("c"), "c");
+        pigServer.registerQuery("store c into 'tmp2';");
+        LOJoin op = (LOJoin)TestPigStats.getLogicalPlan(pigServer).findByAlias("c");
         assertEquals("default join should be hash", 
                 ((LOJoin) op).getJoinType().toString(), "HASH");
         assertFalse(op.isPinnedOption(LOJoin.OPTION_JOIN));
+        pigServer.discardBatch();
     }
     
     @Test
-    public void testGroupOptions() throws IOException {
+    public void testGroupOptions() throws Exception {
         pigServer.setBatchOn();
-        pigServer.registerQuery("a = load '/tmp' as (foo, bar);");
+        pigServer.registerQuery("a = load 'tmp1' as (foo, bar);");
         pigServer.registerQuery("b = group a by foo;");
+        pigServer.registerQuery("store b into 'tmp2';");
         
-        LogicalOperator op = getOpByAlias(pigServer.getAliases().get("b"), "b");
+        LOCogroup op = (LOCogroup)TestPigStats.getLogicalPlan(pigServer).findByAlias("b");
         assertFalse(op.isPinnedOption(LOCogroup.OPTION_GROUPTYPE));
         pigServer.discardBatch();
         
         pigServer.setBatchOn();
-        pigServer.registerQuery("a = load '/tmp' as (foo, bar);");
-        pigServer.registerQuery("b = group a by foo using \"collected\";");
-        op = getOpByAlias(pigServer.getAliases().get("b"), "b");
+        pigServer.registerQuery("a = load 'tmp' as (foo, bar);");
+        pigServer.registerQuery("b = group a by foo using 'collected';");
+        pigServer.registerQuery("store b into 'tmp2';");
+        op = (LOCogroup)TestPigStats.getLogicalPlan(pigServer).findByAlias("b");
         assertTrue(op.isPinnedOption(LOCogroup.OPTION_GROUPTYPE));
         pigServer.discardBatch();
-    }
-    
-    private LogicalOperator getOpByAlias(LogicalPlan lp, String alias) {
-        for (LogicalOperator op : lp) {
-            if (op.getAlias().equals(alias)) return op;
-        }
-        return null;
     }
     
 }

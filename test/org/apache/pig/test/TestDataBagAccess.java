@@ -36,6 +36,7 @@ import org.apache.pig.data.DefaultTuple;
 import org.apache.pig.data.NonSpillableDataBag;
 import org.apache.pig.data.SingleTupleBag;
 import org.apache.pig.data.Tuple;
+import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.util.MultiMap;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -124,11 +125,12 @@ public class TestDataBagAccess extends TestCase {
         boolean exceptionOccured = false;
         try {
             pigServer.registerQuery("c = foreach b generate mybag.t;");
-        } catch(IOException e) {
+            pigServer.explain("c", System.out);
+        } catch(FrontendException e) {
             exceptionOccured = true;
-            String msg = e.getMessage();
-            assertTrue(msg.contains("Only access to the elements of " +
-                    "the tuple in the bag is allowed."));
+            Throwable cause = e.getCause();
+            String msg = cause.getMessage();
+            Util.checkStrContainsSubStr(msg, "Invalid field reference. Referenced field [t] does not exist in schema");
         }
         assertTrue(exceptionOccured);
     }
@@ -141,7 +143,7 @@ public class TestDataBagAccess extends TestCase {
                 + Util.generateURI(Util.encodeEscape(input.toString()), pigServer.getPigContext()) + "';");
         pigServer.registerQuery("B = foreach A generate {(('p1-t1-e1', 'p1-t1-e2'),('p1-t2-e1', 'p1-t2-e2'))," +
                 "(('p2-t1-e1', 'p2-t1-e2'), ('p2-t2-e1', 'p2-t2-e2'))};");
-        pigServer.registerQuery("C = foreach B generate $0 as pairbag { pair: ( t1: (e1, e2), t2: (e1, e2) ) };");
+        pigServer.registerQuery("C = foreach B generate $0 as pairbag : { pair: ( t1: (e1, e2), t2: (e1, e2) ) };");
         pigServer.registerQuery("D = foreach C generate FLATTEN(pairbag);");
         pigServer.registerQuery("E = foreach D generate t1.e2 as t1e2, t2.e1 as t2e1;");
         Iterator<Tuple> it = pigServer.openIterator("E");

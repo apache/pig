@@ -771,7 +771,7 @@ public class LOCogroup extends RelationalOperator {
                     }
                 }
                 //remove the key and the values
-                List<LogicalPlan> plans = (List<LogicalPlan>)mGroupByPlans.get(previous);
+                List<LogicalPlan> plans = mGroupByPlans.get(previous);
                 mGroupByPlans.removeKey(previous);
                 
                 //reinsert new key and values

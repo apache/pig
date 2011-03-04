@@ -34,23 +34,21 @@ import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecJob;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.impl.io.FileLocalizer;
-import org.apache.pig.impl.logicalLayer.LogicalPlan;
 import org.apache.pig.impl.plan.Operator;
 import org.apache.pig.impl.plan.OperatorPlan;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.tools.grunt.GruntParser;
 import org.apache.pig.impl.util.LogUtils;
-import org.apache.pig.ExecType;
+import org.apache.pig.newplan.logical.relational.LogicalPlan;
 import org.apache.pig.tools.pigscript.parser.ParseException;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-public class TestMultiQueryLocal extends TestCase {
+public class TestMultiQueryLocal {
 
     private PigServer myPig;
 
-    @Override
     @Before
     public void setUp() throws Exception {
         PigContext context = new PigContext(ExecType.LOCAL, new Properties());
@@ -60,7 +58,6 @@ public class TestMultiQueryLocal extends TestCase {
         deleteOutputFiles();
     }
 
-    @Override
     @After
     public void tearDown() throws Exception {
         myPig = null;
@@ -82,7 +79,7 @@ public class TestMultiQueryLocal extends TestCase {
             myPig.registerQuery("c = group b by gid;");
             myPig.registerQuery("store c into '/tmp/Pig-TestMultiQueryLocal2';");
 
-            LogicalPlan lp = checkLogicalPlan(1, 2, 9);
+            LogicalPlan lp = checkLogicalPlan(1, 2, 5);
 
             // XXX Physical plan has one less node in the local case
             PhysicalPlan pp = checkPhysicalPlan(lp, 1, 2, 11);
@@ -183,7 +180,7 @@ public class TestMultiQueryLocal extends TestCase {
             myPig.registerQuery("d = filter c by uid > 15;");
             myPig.registerQuery("store d into '/tmp/Pig-TestMultiQueryLocal3';");
 
-            LogicalPlan lp = checkLogicalPlan(1, 3, 14);
+            LogicalPlan lp = checkLogicalPlan(1, 3, 7);
 
             PhysicalPlan pp = checkPhysicalPlan(lp, 1, 3, 14);
 
@@ -244,7 +241,7 @@ public class TestMultiQueryLocal extends TestCase {
             myPig.registerQuery("e = cogroup c by uid, d by uid;");
             myPig.registerQuery("store e into '/tmp/Pig-TestMultiQueryLocal3';");
 
-            LogicalPlan lp = checkLogicalPlan(2, 3, 16);
+            LogicalPlan lp = checkLogicalPlan(2, 3, 8);
 
             // XXX the total number of ops is one less in the local case
             PhysicalPlan pp = checkPhysicalPlan(lp, 2, 3, 19);
@@ -303,12 +300,10 @@ public class TestMultiQueryLocal extends TestCase {
             myPig.registerQuery("group b by gid;");
 
             LogicalPlan lp = checkLogicalPlan(0, 0, 0);
-
+            
             // XXX Physical plan has one less node in the local case
             PhysicalPlan pp = checkPhysicalPlan(lp, 0, 0, 0);
-
-            //Assert.assertTrue(executePlan(pp));
-
+            
         } catch (Exception e) {
             e.printStackTrace();
             Assert.fail();
@@ -505,13 +500,9 @@ public class TestMultiQueryLocal extends TestCase {
         LogicalPlan lp = null;
 
         try {
-            java.lang.reflect.Method compileLp = myPig.getClass()
-                    .getDeclaredMethod("compileLp",
-                            new Class[] { String.class });
-
-            compileLp.setAccessible(true);
-
-            lp = (LogicalPlan) compileLp.invoke(myPig, new Object[] { null });
+            java.lang.reflect.Method buildLp = myPig.getClass().getDeclaredMethod("buildLp");
+            buildLp.setAccessible(true);
+            lp = (LogicalPlan) buildLp.invoke( myPig );
 
             Assert.assertNotNull(lp);
 
@@ -525,11 +516,11 @@ public class TestMultiQueryLocal extends TestCase {
             }
         }
 
-        Assert.assertEquals(expectedRoots, lp.getRoots().size());
-        Assert.assertEquals(expectedLeaves, lp.getLeaves().size());
+        Assert.assertEquals(expectedRoots, lp.getSources().size());
+        Assert.assertEquals(expectedLeaves, lp.getSinks().size());
         Assert.assertEquals(expectedSize, lp.size());
 
-        showPlanOperators(lp);
+        TestMultiQueryCompiler.showLPOperators(lp);
 
         return lp;
     }

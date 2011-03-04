@@ -38,6 +38,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Queue;
 import java.util.Set;
 import java.util.Stack;
 
@@ -59,54 +60,41 @@ import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.classification.InterfaceAudience;
 import org.apache.pig.classification.InterfaceStability;
 import org.apache.pig.data.DataBag;
-import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.FileLocalizer;
-import org.apache.pig.impl.io.FileSpec;
-import org.apache.pig.impl.io.InterStorage;
 import org.apache.pig.impl.logicalLayer.FrontendException;
-import org.apache.pig.impl.logicalLayer.LOConst;
-import org.apache.pig.impl.logicalLayer.LODefine;
-import org.apache.pig.impl.logicalLayer.LOForEach;
-import org.apache.pig.impl.logicalLayer.LOLimit;
-import org.apache.pig.impl.logicalLayer.LOLoad;
-import org.apache.pig.impl.logicalLayer.LOSort;
-import org.apache.pig.impl.logicalLayer.LOSplit;
-import org.apache.pig.impl.logicalLayer.LOSplitOutput;
-import org.apache.pig.impl.logicalLayer.LOStore;
-import org.apache.pig.impl.logicalLayer.LOUserFunc;
-import org.apache.pig.impl.logicalLayer.LOVisitor;
-import org.apache.pig.impl.logicalLayer.LogicalOperator;
-import org.apache.pig.impl.logicalLayer.LogicalPlan;
-import org.apache.pig.impl.logicalLayer.LogicalPlanBuilder;
-import org.apache.pig.impl.logicalLayer.PlanSetter;
-import org.apache.pig.impl.logicalLayer.ScalarFinder;
-import org.apache.pig.impl.logicalLayer.UnionOnSchemaSetter;
-import org.apache.pig.impl.logicalLayer.optimizer.LogicalOptimizer;
-import org.apache.pig.impl.logicalLayer.parser.ParseException;
-import org.apache.pig.impl.logicalLayer.parser.QueryParser;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
-import org.apache.pig.impl.logicalLayer.validators.LogicalPlanValidationExecutor;
 import org.apache.pig.impl.plan.CompilationMessageCollector;
-import org.apache.pig.impl.plan.DependencyOrderWalker;
-import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.OperatorKey;
-import org.apache.pig.impl.plan.PlanException;
-import org.apache.pig.impl.plan.VisitorException;
-import org.apache.pig.impl.plan.CompilationMessageCollector.MessageType;
 import org.apache.pig.impl.streaming.StreamingCommand;
 import org.apache.pig.impl.util.LogUtils;
 import org.apache.pig.impl.util.ObjectSerializer;
-import org.apache.pig.impl.util.Pair;
 import org.apache.pig.impl.util.PropertiesUtil;
 import org.apache.pig.impl.util.UDFContext;
 import org.apache.pig.impl.util.Utils;
-import org.apache.pig.newplan.logical.LogicalPlanMigrationVistor;
+import org.apache.pig.newplan.logical.expression.LogicalExpressionPlan;
+import org.apache.pig.newplan.logical.expression.LogicalExpressionVisitor;
+import org.apache.pig.newplan.logical.expression.ScalarExpression;
+import org.apache.pig.newplan.logical.optimizer.AllExpressionVisitor;
 import org.apache.pig.newplan.logical.optimizer.LogicalPlanOptimizer;
+import org.apache.pig.newplan.logical.relational.LOForEach;
+import org.apache.pig.newplan.logical.relational.LOLoad;
+import org.apache.pig.newplan.logical.relational.LOStore;
+import org.apache.pig.newplan.logical.relational.LogicalPlan;
 import org.apache.pig.newplan.logical.relational.LogicalRelationalOperator;
 import org.apache.pig.newplan.logical.relational.LogicalSchema;
+import org.apache.pig.newplan.logical.visitor.CastLineageSetter;
+import org.apache.pig.newplan.logical.visitor.ColumnAliasConversionVisitor;
+import org.apache.pig.newplan.logical.visitor.ProjectStarExpander;
+import org.apache.pig.newplan.logical.visitor.ScalarVisitor;
+import org.apache.pig.newplan.logical.visitor.TypeCheckingRelVisitor;
+import org.apache.pig.newplan.logical.visitor.UnionOnSchemaSetter;
+import org.apache.pig.newplan.DependencyOrderWalker;
 import org.apache.pig.newplan.Operator;
+import org.apache.pig.parser.ParserException;
+import org.apache.pig.parser.QueryParserDriver;
+import org.apache.pig.parser.QueryParserUtils;
 import org.apache.pig.pen.ExampleGenerator;
 import org.apache.pig.scripting.ScriptEngine;
 import org.apache.pig.tools.grunt.GruntParser;
@@ -117,7 +105,6 @@ import org.apache.pig.tools.pigstats.PigStats;
 import org.apache.pig.tools.pigstats.PigStatsUtil;
 import org.apache.pig.tools.pigstats.ScriptState;
 import org.apache.pig.tools.pigstats.PigStats.JobGraph;
-
 
 /**
  *
@@ -179,11 +166,15 @@ public class PigServer {
     private Graph currDAG;
 
     private final PigContext pigContext;
+    
+    private String jobName;
+
+    private String jobPriority;
 
     private static int scopeCounter = 0;
     private final String scope = constructScope();
 
-    private boolean aggregateWarning = true;
+
     private boolean isMultiQuery = true;
 
     private String constructScope() {
@@ -233,8 +224,12 @@ public class PigServer {
         this.pigContext = context;
         currDAG = new Graph(false);
 
-        aggregateWarning = "true".equalsIgnoreCase(pigContext.getProperties().getProperty("aggregate.warning"));
+        //aggregateWarning = "true".equalsIgnoreCase(pigContext.getProperties().getProperty("aggregate.warning"));
         isMultiQuery = "true".equalsIgnoreCase(pigContext.getProperties().getProperty("opt.multiquery","true"));
+        
+        jobName = pigContext.getProperties().getProperty(
+                PigContext.JOB_NAME,
+                PigContext.JOB_NAME_PREFIX + ":DefaultJobName");
 
         if (connect) {
             pigContext.connect();
@@ -347,11 +342,26 @@ public class PigServer {
      * Submits a batch of Pig commands for execution.
      *
      * @return list of jobs being executed
-     * @throws FrontendException
-     * @throws ExecException
+     * @throws IOException 
      */
-    public List<ExecJob> executeBatch() throws FrontendException, ExecException {
-        PigStats stats = executeBatchEx();
+    public List<ExecJob> executeBatch() throws IOException {
+        PigStats stats = null;
+        
+        if( !isMultiQuery ) {
+            // ignore if multiquery is off
+            stats = PigStats.get();
+        } else {
+            if (currDAG == null || !isBatchOn()) {
+                int errCode = 1083;
+                String msg = "setBatchOn() must be called first.";
+                throw new FrontendException(msg, errCode, PigException.INPUT);
+            }
+            currDAG.parseQuery();
+            currDAG.buildPlan( null );
+            stats = execute();
+        }
+
+        
         LinkedList<ExecJob> jobs = new LinkedList<ExecJob>();
         JobGraph jGraph = stats.getJobGraph();
         Iterator<JobStats> iter = jGraph.iterator();
@@ -370,21 +380,6 @@ public class PigServer {
             }
         }
         return jobs;
-    }
-
-    private PigStats executeBatchEx() throws FrontendException, ExecException {
-        if (!isMultiQuery) {
-            // ignore if multiquery is off
-            return PigStats.get();
-        }
-
-        if (currDAG == null || !isBatchOn()) {
-            int errCode = 1083;
-            String msg = "setBatchOn() must be called first.";
-            throw new FrontendException(msg, errCode, PigException.INPUT);
-        }
-
-        return currDAG.execute();
     }
 
     /**
@@ -410,21 +405,6 @@ public class PigServer {
      */
     public void addPathToSkip(String path) {
         pigContext.addPathToSkip(path);
-    }
-
-    /**
-     * Defines an alias for the given function spec. This
-     * is useful for functions that require arguments to the
-     * constructor.
-     *
-     * @param function - the new function alias to define.
-     * @param functionSpec - the name of the function and any arguments.
-     * It should have the form: classname('arg1', 'arg2', ...)
-     * @deprecated Use {@link #registerFunction(String, FuncSpec)}
-     */
-    @Deprecated
-    public void registerFunction(String function, String functionSpec) {
-        registerFunction(function, new FuncSpec(functionSpec));
     }
 
     /**
@@ -547,17 +527,6 @@ public class PigServer {
      */
     public void registerQuery(String query, int startLine) throws IOException {
         currDAG.registerQuery(query, startLine);
-    }
-
-    public Graph getClonedGraph() throws IOException {
-        Graph graph = currDAG.clone();
-
-        if (graph == null) {
-            int errCode = 2127;
-            String msg = "Cloning of plan failed.";
-            throw new FrontendException(msg, errCode, PigException.BUG);
-        }
-        return graph;
     }
 
     /**
@@ -726,20 +695,11 @@ public class PigServer {
      * @return Schema of alias dumped
      * @throws IOException
      */
-    public Schema dumpSchema(String alias) throws IOException{
+    public Schema dumpSchema(String alias) throws IOException {
         try {
-            LogicalPlan oldLp = getPlanFromAlias(alias, "describe");
-            oldLp = compileLp(alias, false);
-            LogicalPlanMigrationVistor visitor = new LogicalPlanMigrationVistor(oldLp);
-            visitor.visit();
-            org.apache.pig.newplan.logical.relational.LogicalPlan lp = visitor.getNewLogicalPlan();
-            LogicalSchema schema = null;
-            for(Operator lo : lp.getSinks()){
-                if(((LogicalRelationalOperator)lo).getAlias().equals(alias)){
-                    schema = ((LogicalRelationalOperator)lo).getSchema();
-                    break;
-                }
-            }
+            LogicalRelationalOperator op = getOperatorForAlias( alias );
+            LogicalSchema schema = op.getSchema();
+            
             if (schema != null) {
                 Schema s = org.apache.pig.newplan.logical.Util.translateSchema(schema);
                 System.out.println(alias + ": " + s.toString());
@@ -756,21 +716,18 @@ public class PigServer {
     }
 
     /**
-     * Write the schema for a nestedAlias to System.out. Denoted by alias::nestedAlias.
+     * Write the schema for a nestedAlias to System.out. Denoted by
+     * alias::nestedAlias.
+     * 
      * @param alias Alias whose schema has nestedAlias
      * @param nestedAlias Alias whose schema will be written out
      * @return Schema of alias dumped
      * @throws IOException
      */
-    public Schema dumpSchemaNested(String alias, String nestedAlias) throws FrontendException{
-        LogicalPlan oldLp = getPlanFromAlias(alias, "describe");
-        oldLp = compileLp(alias, false);
-        LogicalPlanMigrationVistor visitor = new LogicalPlanMigrationVistor(oldLp);
-        visitor.visit();
-        org.apache.pig.newplan.logical.relational.LogicalPlan lp = visitor.getNewLogicalPlan();
-        Operator op = lp.getSinks().get(0);
-        if(op instanceof org.apache.pig.newplan.logical.relational.LOForEach) {
-            LogicalSchema nestedSc = ((org.apache.pig.newplan.logical.relational.LOForEach)op).dumpNestedSchema(alias, nestedAlias);
+    public Schema dumpSchemaNested(String alias, String nestedAlias) throws IOException {
+        Operator op = getOperatorForAlias( alias );
+        if( op instanceof LOForEach ) {
+            LogicalSchema nestedSc = ((LOForEach)op).dumpNestedSchema(alias, nestedAlias);
             if (nestedSc!=null) {
                 Schema s = org.apache.pig.newplan.logical.Util.translateSchema(nestedSc);
                 System.out.println(alias+ "::" + nestedAlias + ": " + s.toString());
@@ -792,16 +749,16 @@ public class PigServer {
      * Set the name of the job.  This name will get translated to mapred.job.name.
      * @param name of job
      */
-    public void setJobName(String name){
-        currDAG.setJobName(name);
+    public void setJobName(String name) {
+        jobName = PigContext.JOB_NAME_PREFIX + ":" + name;
     }
 
     /**
      * Set Hadoop job priority.  This value will get translated to mapred.job.priority.
      * @param priority valid values are found in {@link org.apache.hadoop.mapred.JobPriority}
      */
-    public void setJobPriority(String priority){
-        currDAG.setJobPriority(priority);
+    public void setJobPriority(String priority) {
+        jobPriority = priority;
     }
 
     /**
@@ -827,43 +784,31 @@ public class PigServer {
      */
     public Iterator<Tuple> openIterator(String id) throws IOException {
         try {
-            LogicalOperator op = currDAG.getAliasOp().get(id);
-            if(null == op) {
-                int errCode = 1003;
-                String msg = "Unable to find an operator for alias " + id;
-                throw new FrontendException(msg, errCode, PigException.INPUT);
-            }
-
-            if (currDAG.isBatchOn()) {
-                currDAG.execute();
-            }
-
             ExecJob job = store(id, FileLocalizer.getTemporaryPath(pigContext)
-                    .toString(), Utils.getTmpFileCompressorName(pigContext) + "()");
+                    .toString(), Utils.getTmpFileCompressorName(pigContext)
+                    + "()");
 
             // invocation of "execute" is synchronous!
 
             if (job.getStatus() == JOB_STATUS.COMPLETED) {
                 return job.getResults();
             } else if (job.getStatus() == JOB_STATUS.FAILED
-                       && job.getException() != null) {
+                    && job.getException() != null) {
                 // throw the backend exception in the failed case
                 Exception e = job.getException();
                 int errCode = 1066;
-                String msg = "Unable to open iterator for alias " + id +
-                ". Backend error : " + e.getMessage();
+                String msg = "Unable to open iterator for alias " + id
+                        + ". Backend error : " + e.getMessage();
                 throw new FrontendException(msg, errCode, PigException.INPUT, e);
             } else {
                 throw new IOException("Job terminated with anomalous status "
-                    + job.getStatus().toString());
+                        + job.getStatus().toString());
             }
-        }
-        catch(FrontendException e){
+        } catch (FrontendException e) {
             throw e;
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             int errCode = 1066;
-            String msg = "Unable to open iterator for alias " + id ;
+            String msg = "Unable to open iterator for alias " + id;
             throw new FrontendException(msg, errCode, PigException.INPUT, e);
         }
     }
@@ -949,47 +894,20 @@ public class PigServer {
             job.setException(ex);
             return job;
         }
-
     }
 
-    private PigStats storeEx(
-            String id,
-            String filename,
-            String func) throws IOException {
-        if (!currDAG.getAliasOp().containsKey(id)) {
-            throw new IOException("Invalid alias: " + id);
-        }
+    private PigStats storeEx(String alias, String filename, String func)
+    throws IOException {
+        currDAG.parseQuery();
+        LogicalPlan lp = currDAG.buildPlan( alias );
 
         try {
-            Graph g = getClonedGraph();
-            LogicalPlan lp = g.getPlan(id);
-
-            // MRCompiler needs a store to be the leaf - hence
-            // add a store to the plan to explain
-
-            // figure out the leaf to which the store needs to be added
-            List<LogicalOperator> leaves = lp.getLeaves();
-            LogicalOperator leaf = null;
-            if(leaves.size() == 1) {
-                leaf = leaves.get(0);
-            } else {
-                for (Iterator<LogicalOperator> it = leaves.iterator(); it.hasNext();) {
-                    LogicalOperator leafOp = it.next();
-                    if(leafOp.getAlias().equals(id)) {
-                        leaf = leafOp;
-                    }
-                }
-            }
-
-            LogicalPlan unCompiledstorePlan = QueryParser.generateStorePlan(
-                    scope, lp, filename, func, leaf, leaf.getAlias(),
-                    pigContext);
-            LogicalPlan storePlan = compileLp(unCompiledstorePlan, g, true);
-
-            return executeCompiledLogicalPlan(storePlan);
+            QueryParserUtils.attachStorePlan( lp, filename, func, currDAG.getOperator( alias ), alias, pigContext );
+            compileLp();
+            return executeCompiledLogicalPlan( lp );
         } catch (PigException e) {
             int errCode = 1002;
-            String msg = "Unable to store alias " + id;
+            String msg = "Unable to store alias " + alias;
             throw new PigException(msg, errCode, PigException.INPUT, e);
         }
     }
@@ -1033,6 +951,7 @@ public class PigServer {
         try {
             pigContext.inExplain = true;
             LogicalPlan lp = getStorePlan(alias);
+            compileLp();
             if (lp.size() == 0) {
                 lps.println("Logical plan is empty.");
                 pps.println("Physical plan is empty.");
@@ -1041,27 +960,22 @@ public class PigServer {
             }
             PhysicalPlan pp = compilePp(lp);
             lp.explain(lps, format, verbose);
-            if( pigContext.getProperties().getProperty("pig.usenewlogicalplan", "true").equals("true") ) {
-                LogicalPlanMigrationVistor migrator = new LogicalPlanMigrationVistor(lp);
-                migrator.visit();
-                org.apache.pig.newplan.logical.relational.LogicalPlan newPlan = migrator.getNewLogicalPlan();
 
-                HashSet<String> optimizerRules = null;
-                try {
-                    optimizerRules = (HashSet<String>) ObjectSerializer
-                            .deserialize(pigContext.getProperties().getProperty(
-                                    "pig.optimizer.rules"));
-                } catch (IOException ioe) {
-                    int errCode = 2110;
-                    String msg = "Unable to deserialize optimizer rules.";
-                    throw new FrontendException(msg, errCode, PigException.BUG, ioe);
-                }
-
-                LogicalPlanOptimizer optimizer = new LogicalPlanOptimizer(newPlan, 3, optimizerRules);
-                optimizer.optimize();
-
-                newPlan.explain(lps, format, verbose);
+            HashSet<String> optimizerRules = null;
+            try {
+                optimizerRules = (HashSet<String>) ObjectSerializer.deserialize(
+                        pigContext.getProperties().getProperty("pig.optimizer.rules") );
+            } catch (IOException ioe) {
+                int errCode = 2110;
+                String msg = "Unable to deserialize optimizer rules.";
+                throw new FrontendException(msg, errCode, PigException.BUG, ioe);
             }
+
+            LogicalPlanOptimizer optimizer = new LogicalPlanOptimizer(lp, 3, optimizerRules);
+            optimizer.optimize();
+
+            lp.explain(lps, format, verbose);
+
             pp.explain(pps, format, verbose);
             pigContext.getExecutionEngine().explain(pp, eps, format, verbose);
             if (markAsExecute) {
@@ -1193,21 +1107,13 @@ public class PigServer {
     }
 
     /**
-     * Does not work at the moment.
-     */
-    public long totalHadoopTimeSpent() {
-//      TODO FIX Need to uncomment this with the right logic
-//        return MapReduceLauncher.totalHadoopTimeSpent;
-        return 0L;
-    }
-
-    /**
      * Return a map containing the logical plan associated with each alias.
+     * 
      * @return map
      */
     public Map<String, LogicalPlan> getAliases() {
         Map<String, LogicalPlan> aliasPlans = new HashMap<String, LogicalPlan>();
-        for(LogicalOperator op:  currDAG.getAliases().keySet()) {
+        for (LogicalRelationalOperator op : currDAG.getAliases().keySet()) {
             String alias = op.getAlias();
             if(null != alias) {
                 aliasPlans.put(alias, currDAG.getAliases().get(op));
@@ -1244,75 +1150,69 @@ public class PigServer {
         LogicalPlan plan = null;
         try {
             if (currDAG.isBatchOn() && alias != null) {
-                currDAG.execute();
+                currDAG.parseQuery();
+                currDAG.buildPlan( null );
+                execute();
             }
-            Graph g = getClonedGraph();
-            plan = g.getPlan(alias);
-            plan = compileLp(plan, g, false);
+            currDAG.parseQuery();
+            currDAG.buildPlan( alias );
+            plan = compileLp();
         } catch (IOException e) {
             //Since the original script is parsed anyway, there should not be an
             //error in this parsing. The only reason there can be an error is when
             //the files being loaded in load don't exist anymore.
             e.printStackTrace();
         }
-
+        
         ExampleGenerator exgen = new ExampleGenerator(plan, pigContext);
         try {
             return exgen.getExamples();
         } catch (ExecException e) {
             e.printStackTrace(System.out);
-            throw new IOException("ExecException : "+ e.getMessage());
+            throw new IOException("ExecException : " + e.getMessage());
         } catch (Exception e) {
             e.printStackTrace(System.out);
-            throw new IOException("Exception : "+ e.getMessage());
+            throw new IOException("Exception : " + e.getMessage());
         }
+     
     }
 
     private LogicalPlan getStorePlan(String alias) throws IOException {
-        Graph g = getClonedGraph();
-        LogicalPlan lp = g.getPlan(alias);
+        currDAG.parseQuery();
+        LogicalPlan lp = currDAG.buildPlan( alias );
 
-        if (!isBatchOn() || alias != null) {
+        if( !isBatchOn() || alias != null ) {
             // MRCompiler needs a store to be the leaf - hence
             // add a store to the plan to explain
-
-            // figure out the leaves to which stores need to be added
-            List<LogicalOperator> leaves = lp.getLeaves();
-            LogicalOperator leaf = null;
-            if(leaves.size() == 1) {
-                leaf = leaves.get(0);
-            } else {
-                for (Iterator<LogicalOperator> it = leaves.iterator(); it.hasNext();) {
-                    LogicalOperator leafOp = it.next();
-                    if(leafOp.getAlias().equals(alias)) {
-                        leaf = leafOp;
-                    }
-                }
-            }
-
-            lp = QueryParser.generateStorePlan(scope, lp, "fakefile",
-                                               PigStorage.class.getName(), leaf, "fake", pigContext);
+            QueryParserUtils.attachStorePlan( lp, "fakefile", null, currDAG.getOperator( alias ), 
+                    "fake", pigContext );
         }
-
-        compileLp(lp, g, true);
-
         return lp;
     }
 
-    private PigStats execute(String alias) throws FrontendException, ExecException {
-        LogicalPlan typeCheckedLp = compileLp(alias);
+    /**
+     * Compile and execute the current plan.
+     * @return
+     * @throws IOException
+     */
+    private PigStats execute() throws IOException {
+        pigContext.getProperties().setProperty( PigContext.JOB_NAME, jobName );
+        if( jobPriority != null ) {
+            pigContext.getProperties().setProperty( PigContext.JOB_PRIORITY, jobPriority );
+        }
+        
+        LogicalPlan compiledLp = compileLp();
 
-        if (typeCheckedLp.size() == 0) {
+        if( compiledLp.size() == 0 ) {
             return PigStatsUtil.getEmptyPigStats();
         }
 
-        LogicalOperator op = typeCheckedLp.getLeaves().get(0);
-        if (op instanceof LODefine) {
-            log.info("Skip execution of DEFINE only logical plan.");
-            return PigStatsUtil.getEmptyPigStats();
-        }
-
-        return executeCompiledLogicalPlan(typeCheckedLp);
+        PigStats stats = executeCompiledLogicalPlan( compiledLp );
+        
+        // At this point, all stores in the plan are executed. They should be ignored if the plan is reused.
+        currDAG.executed();
+        
+        return stats;
     }
 
     private PigStats executeCompiledLogicalPlan(LogicalPlan compiledLp) throws ExecException, FrontendException {
@@ -1341,242 +1241,51 @@ public class PigServer {
         return stats;
     }
 
-    private LogicalPlan compileLp(
-            String alias) throws FrontendException {
-        return compileLp(alias, true);
-    }
+    private LogicalPlan compileLp() throws IOException {
+        LogicalPlan lp = currDAG.lp;
+        
+        new ColumnAliasConversionVisitor( lp ).visit();
+        new ProjectStarExpander(lp).visit();
+        new ScalarVisitor( lp, pigContext ).visit();
+        
+        // TODO: move optimizer here from HExecuteEngine.
+        // TODO: input/output validation visitor
 
-    private LogicalPlan compileLp(
-            String alias,
-            boolean optimize) throws FrontendException {
-
-        // create a clone of the logical plan and give it
-        // to the operations below
-        LogicalPlan lpClone;
-        Graph g;
-
-        try {
-            g = getClonedGraph();
-            lpClone = g.getPlan(alias);
-        } catch (IOException e) {
-            int errCode = 2001;
-            String msg = "Unable to clone plan before compiling";
-            throw new FrontendException(msg, errCode, PigException.BUG, e);
-        }
-        return compileLp(lpClone, g, optimize);
-    }
-
-    private void mergeScalars(LogicalPlan lp, Graph g) throws FrontendException {
-        // When we start processing a store we look for scalars to add stores
-        // to respective logical plans and temporary files to the attributes
-        // Here we need to find if there are duplicates so that we do not add
-        // two stores for one plan
-        ScalarFinder scalarFinder = new ScalarFinder(lp);
-        scalarFinder.visit();
-
-        Map<LOUserFunc, Pair<LogicalPlan, LogicalOperator>> scalarMap = scalarFinder.getScalarMap();
-
-        try {
-            for(Map.Entry<LOUserFunc, Pair<LogicalPlan, LogicalOperator>> scalarEntry: scalarMap.entrySet()) {
-                FileSpec fileSpec;
-                String alias = scalarEntry.getKey().getImplicitReferencedOperator().getAlias();
-                LogicalOperator store;
-
-                LogicalPlan referredPlan = g.getAliases().get(g.getAliasOp().get(alias));
-
-                // If referredPlan already has a store,
-                // we just use it instead of adding one from our pocket
-                store = referredPlan.getLeaves().get(0);
-                if(store instanceof LOStore
-                        &&
-                        ((LOStore)store).getOutputFile().getFuncName().equals(
-                                InterStorage.class.getName())
-                ) {
-                        // use this store
-                        fileSpec = ((LOStore)store).getOutputFile();
-                }
-                else {
-                    // add new store
-                    FuncSpec funcSpec = new FuncSpec(InterStorage.class.getName());
-                    fileSpec = new FileSpec(FileLocalizer.getTemporaryPath(pigContext).toString(), funcSpec);
-                    store = new LOStore(referredPlan, new OperatorKey(scope, NodeIdGenerator.getGenerator().getNextNodeId(scope)),
-                            fileSpec, alias);
-                    referredPlan.addAsLeaf(store);
-                    ((LOStore)store).setTmpStore(true);
-                    scalarEntry.getKey().setImplicitReferencedOperator(store);
-                }
-                lp.mergeSharedPlan(referredPlan);
-
-                // Attach a constant operator to the ReadScalar func
-                LogicalPlan innerPlan = scalarEntry.getValue().first;
-                LOConst rconst = new LOConst(innerPlan, new OperatorKey(scope, NodeIdGenerator.getGenerator().getNextNodeId(scope)), fileSpec.getFileName());
-                rconst.setType(DataType.CHARARRAY);
-
-                innerPlan.add(rconst);
-                innerPlan.connect(rconst, scalarEntry.getKey());
-
-                if (lp.getSoftLinkSuccessors(store)==null || !lp.getSoftLinkSuccessors(store).contains(scalarEntry.getValue().second)) {
-                    lp.createSoftLink(store, scalarEntry.getValue().second);
-                }
-            }
-        } catch (IOException ioe) {
-            int errCode = 2219;
-            String msg = "Unable to process scalar in the plan";
-            throw new FrontendException(msg, errCode, PigException.BUG, ioe);
-        }
-    }
-
-    private LogicalPlan compileLp(LogicalPlan lp, Graph g, boolean optimize) throws FrontendException {
-        mergeScalars(lp, g);
-
-        return compileLp(lp, optimize);
-    }
-
-    @SuppressWarnings("unchecked")
-    private LogicalPlan compileLp(LogicalPlan lp, boolean optimize) throws
-    FrontendException {
-        // Set the logical plan values correctly in all the operators
-        PlanSetter ps = new PlanSetter(lp);
-        ps.visit();
-
-        UnionOnSchemaSetter setUnionOnSchema = new UnionOnSchemaSetter(lp, pigContext);
-        setUnionOnSchema.visit();
-
-        // run through validator
         CompilationMessageCollector collector = new CompilationMessageCollector() ;
-        boolean isBeforeOptimizer = true;
-        validate(lp, collector, isBeforeOptimizer);
-
-        // optimize
-        if (optimize && pigContext.getProperties().getProperty("pig.usenewlogicalplan", "true").equals("false")) {
-            HashSet<String> optimizerRules = null;
-            try {
-                optimizerRules = (HashSet<String>) ObjectSerializer
-                        .deserialize(pigContext.getProperties().getProperty(
-                                "pig.optimizer.rules"));
-            } catch (IOException ioe) {
-                int errCode = 2110;
-                String msg = "Unable to deserialize optimizer rules.";
-                throw new FrontendException(msg, errCode, PigException.BUG, ioe);
-            }
-
-            LogicalOptimizer optimizer = new LogicalOptimizer(lp, pigContext.getExecType(), optimizerRules);
-            optimizer.optimize();
-
-            // compute whether output data is sorted or not
-            SortInfoSetter sortInfoSetter = new SortInfoSetter(lp);
-            sortInfoSetter.visit();
-
-            // run validations to be done after optimization
-            isBeforeOptimizer = false;
-            validate(lp, collector, isBeforeOptimizer);
-        }
-
+        new TypeCheckingRelVisitor( lp, collector).visit();
+        new UnionOnSchemaSetter( lp ).visit();
+        new CastLineageSetter(lp, collector).visit();
+        
+        currDAG.postProcess();
+        
         return lp;
+    }
+    
+    /**
+     * NOTE: For testing only. Don't use.
+     * @throws IOException
+     */
+    @SuppressWarnings("unused")
+    private LogicalPlan buildLp() throws IOException {
+        currDAG.buildPlan( null);
+        return compileLp();
     }
 
     private PhysicalPlan compilePp(LogicalPlan lp) throws FrontendException {
         // translate lp to physical plan
-        PhysicalPlan pp = pigContext.getExecutionEngine().compile(lp, null);
-
-        // TODO optimize
-
-        return pp;
+        return pigContext.getExecutionEngine().compile(lp, null);
     }
 
-    private void validate(LogicalPlan lp, CompilationMessageCollector collector,
-            boolean isBeforeOptimizer) throws FrontendException {
-        FrontendException caught = null;
-        try {
-            LogicalPlanValidationExecutor validator =
-                new LogicalPlanValidationExecutor(lp, pigContext, isBeforeOptimizer);
-            validator.validate(lp, collector);
-        } catch (FrontendException fe) {
-            // Need to go through and see what the collector has in it.  But
-            // remember what we've caught so we can wrap it into what we
-            // throw.
-            caught = fe;
-        }
-
-        if(aggregateWarning) {
-            CompilationMessageCollector.logMessages(collector, MessageType.Warning, aggregateWarning, log);
-        } else {
-            for(Enum type: MessageType.values()) {
-                CompilationMessageCollector.logAllMessages(collector, log);
-            }
-        }
-
-        if (caught != null) {
-            throw caught;
-        }
-    }
-    private LogicalPlan getPlanFromAlias(
-            String alias,
-            String operation) throws FrontendException {
-        LogicalOperator lo = currDAG.getAliasOp().get(alias);
-        if (lo == null) {
-            int errCode = 1004;
-            String msg = "No alias " + alias + " to " + operation;
-            throw new FrontendException(msg, errCode, PigException.INPUT, false, null);
-        }
-        LogicalPlan lp = currDAG.getAliases().get(lo);
-        if (lp == null) {
+    private LogicalRelationalOperator getOperatorForAlias(String alias) throws IOException {
+        currDAG.parseQuery();
+        LogicalRelationalOperator op = (LogicalRelationalOperator)currDAG.getOperator( alias );
+        if( op == null ) {
             int errCode = 1005;
-            String msg = "No plan for " + alias + " to " + operation;
+            String msg = "No plan for " + alias + " to describe";
             throw new FrontendException(msg, errCode, PigException.INPUT, false, null);
         }
-        return lp;
-    }
-
-    public static class SortInfoSetter extends LOVisitor{
-
-        public SortInfoSetter(LogicalPlan plan) {
-            super(plan, new DependencyOrderWalker<LogicalOperator, LogicalPlan>(plan));
-        }
-
-        @Override
-        protected void visit(LOStore store) throws VisitorException {
-
-            LogicalOperator storePred = store.getPlan().getPredecessors(store).get(0);
-            if(storePred == null){
-                int errCode = 2051;
-                String msg = "Did not find a predecessor for Store." ;
-                throw new VisitorException(msg, errCode, PigException.BUG);
-            }
-
-            SortInfo sortInfo = null;
-            if(storePred instanceof LOLimit) {
-                storePred = store.getPlan().getPredecessors(storePred).get(0);
-            } else if (storePred instanceof LOSplitOutput) {
-                LOSplitOutput splitOutput = (LOSplitOutput)storePred;
-                // We assume this is the LOSplitOutput we injected for this case:
-                // b = order a by $0; store b into '1'; store b into '2';
-                // In this case, we should mark both '1' and '2' as sorted
-                LogicalPlan conditionPlan = splitOutput.getConditionPlan();
-                if (conditionPlan.getRoots().size()==1) {
-                    LogicalOperator root = conditionPlan.getRoots().get(0);
-                    if (root instanceof LOConst) {
-                        Object value = ((LOConst)root).getValue();
-                        if (value instanceof Boolean && (Boolean)value==true) {
-                            LogicalOperator split = splitOutput.getPlan().getPredecessors(splitOutput).get(0);
-                            if (split instanceof LOSplit) {
-                                storePred = store.getPlan().getPredecessors(split).get(0);
-                            }
-                        }
-                    }
-                }
-            }
-            // if this predecessor is a sort, get
-            // the sort info.
-            if(storePred instanceof LOSort) {
-                try {
-                    sortInfo = ((LOSort)storePred).getSortInfo();
-                } catch (FrontendException e) {
-                    throw new VisitorException(e);
-                }
-            }
-            store.setSortInfo(sortInfo);
-        }
+        compileLp();
+        return op;
     }
 
     /*
@@ -1584,11 +1293,9 @@ public class PigServer {
      */
     private class Graph {
 
-        private final Map<LogicalOperator, LogicalPlan> aliases = new HashMap<LogicalOperator, LogicalPlan>();
+        private final Map<LogicalRelationalOperator, LogicalPlan> aliases = new HashMap<LogicalRelationalOperator, LogicalPlan>();
 
-        private final Map<OperatorKey, LogicalOperator> opTable = new HashMap<OperatorKey, LogicalOperator>();
-
-        private final Map<String, LogicalOperator> aliasOp = new HashMap<String, LogicalOperator>();
+        private Map<String, Operator> operators = new HashMap<String, Operator>();
 
         private final List<String> scriptCache = new ArrayList<String>();
 
@@ -1598,288 +1305,250 @@ public class PigServer {
         // be correct during the first parse
         private Map<String, String> fileNameMap = new HashMap<String, String>();
 
-        private final Map<LOStore, LogicalPlan> storeOpTable = new HashMap<LOStore, LogicalPlan>();
-
-        private final Set<LOLoad> loadOps = new HashSet<LOLoad>();
-
-        private String jobName;
-
-        private String jobPriority;
-
         private final boolean batchMode;
 
-        private int processedStores;
-
-        private int ignoreNumStores;
+        private int processedStores = 0;
 
         private LogicalPlan lp;
 
         Graph(boolean batchMode) {
             this.batchMode = batchMode;
-            this.processedStores = 0;
-            this.ignoreNumStores = 0;
-            this.jobName = pigContext.getProperties().getProperty(PigContext.JOB_NAME,
-                                                                  PigContext.JOB_NAME_PREFIX+":DefaultJobName");
             this.lp = new LogicalPlan();
         };
 
-        Map<LogicalOperator, LogicalPlan> getAliases() { return aliases; }
-
-        Map<OperatorKey, LogicalOperator> getOpTable() { return opTable; }
-
-        Map<String, LogicalOperator> getAliasOp() { return aliasOp; }
-
-        List<String> getScriptCache() { return scriptCache; }
-
-        boolean isBatchOn() { return batchMode; };
-
-        boolean isBatchEmpty() { return processedStores == storeOpTable.keySet().size(); }
-
-        PigStats execute() throws ExecException, FrontendException {
-            pigContext.getProperties().setProperty(PigContext.JOB_NAME, jobName);
-            if (jobPriority != null) {
-              pigContext.getProperties().setProperty(PigContext.JOB_PRIORITY, jobPriority);
+        /**
+         * Call back method for post execution processing.
+         */
+        private void executed() {
+            for( Operator sink : lp.getSinks() ) {
+                if( sink instanceof LOStore ) {
+                    processedStores++;
+                }
             }
+        }
 
-            PigStats stats = PigServer.this.execute(null);
-            processedStores = storeOpTable.keySet().size();
-            return stats;
+        Map<LogicalRelationalOperator, LogicalPlan> getAliases() {
+            return aliases;
+        }
+
+        Map<String, Operator> getAliasOp() {
+            return operators;
+        }
+
+        boolean isBatchOn() {
+            return batchMode;
+        };
+
+        boolean isBatchEmpty() {
+            for( Operator op : lp.getSinks() ) {
+                if( op instanceof LOStore )
+                    return false;
+            }
+            return true;
         }
 
         void markAsExecuted() {
-            processedStores = storeOpTable.keySet().size();
         }
 
-        void setJobName(String name) {
-            jobName = PigContext.JOB_NAME_PREFIX+":"+name;
+        /**
+         * Get the operator with the given alias in the raw plan. Null if not 
+         * found.
+         */
+        Operator getOperator(String alias) throws FrontendException {
+            return operators.get( alias );
         }
 
-        public void setJobPriority(String priority){
-            jobPriority = priority;
-        }
-
-        LogicalPlan getPlan(String alias) throws IOException {
-            LogicalPlan plan = lp;
-
-            if (alias != null) {
-                LogicalOperator op = aliasOp.get(alias);
-                if(op == null) {
-                    int errCode = 1003;
+        /**
+         * Build a plan for the given alias. Extra branches and child branch under alias
+         * will be ignored. Dependent branch (i.e. scalar) will be kept.
+         * @throws IOException 
+         */
+        LogicalPlan buildPlan(String alias) throws IOException {
+            if( alias == null )
+                skipStores();
+            
+            final Queue<Operator> queue = new LinkedList<Operator>();
+            if( alias != null ) {
+                Operator op = getOperator( alias );
+                if (op == null) {
                     String msg = "Unable to find an operator for alias " + alias;
-                    throw new FrontendException(msg, errCode, PigException.INPUT);
+                    throw new FrontendException( msg, 1003, PigException.INPUT );
                 }
-                plan = aliases.get(op);
+                queue.add( op );
+            } else {
+                List<Operator> sinks = lp.getSinks();
+                if( sinks != null ) {
+                    for( Operator sink : sinks ) {
+                        if( sink instanceof LOStore )
+                            queue.add( sink );
+                    }
+                }
             }
-            return plan;
+
+            LogicalPlan plan = new LogicalPlan();
+            
+            while( !queue.isEmpty() ) {
+                Operator currOp = queue.poll();
+                plan.add( currOp );
+                
+                List<Operator> preds = lp.getPredecessors( currOp );
+                if( preds != null ) {
+                    List<Operator> ops = new ArrayList<Operator>( preds );
+                    for( Operator pred : ops ) {
+                        if( !queue.contains( pred ) )
+                            queue.add( pred );
+                        plan.connect( pred, currOp );
+                    }
+                }
+                
+                // visit expression associated with currOp. If it refers to any other operator
+                // that operator is also going to be enqueued.
+                currOp.accept( new AllExpressionVisitor( plan, new DependencyOrderWalker( plan ) ) {
+                        @Override
+                        protected LogicalExpressionVisitor getVisitor(LogicalExpressionPlan exprPlan)
+                        throws FrontendException {
+                            return new LogicalExpressionVisitor( exprPlan, new DependencyOrderWalker( exprPlan ) ) {
+                                @Override
+                                public void visit(ScalarExpression expr) throws FrontendException {
+                                    Operator refOp = expr.getImplicitReferencedOperator();
+                                    if( !queue.contains( refOp ) )
+                                        queue.add( refOp );
+                                }                                
+                            };
+                        }
+                    }
+                );
+                
+                currOp.setPlan( plan );
+            }
+            return lp = plan;
         }
-
+        
+        /**
+         *  Remove stores that have been executed previously from the overall plan.
+         */
+        private void skipStores() throws IOException {
+            List<Operator> sinks = lp.getSinks();
+            List<Operator> sinksToRemove = new ArrayList<Operator>();
+            int skipCount = processedStores;
+            if( skipCount > 0 ) {
+                for( Operator sink : sinks ) {
+                    if( sink instanceof LOStore ) {
+                        sinksToRemove.add( sink );
+                        skipCount--;
+                        if( skipCount == 0 )
+                            break;
+                    }
+                }
+            }
+            
+            for( Operator op : sinksToRemove ) {
+                Operator pred = lp.getPredecessors( op ).get(0);
+                lp.disconnect( pred, op );
+                lp.remove( op );
+            }
+        }
+        
+        /**
+         * Accumulate the given statement to previouis query statements and generate
+         * an overall (raw) plan.
+         */
         void registerQuery(String query, int startLine) throws IOException {
-
-            LogicalPlan tmpLp = parseQuery(query, startLine);
-
-            // store away the query for use in cloning later
-            scriptCache.add(query);
-            if (tmpLp.getLeaves().size() == 1) {
-                LogicalOperator op = tmpLp.getSingleLeafPlanOutputOp();
-
-                // Check if we just processed a LOStore i.e. STORE
-                if (op instanceof LOStore) {
-
-                    if (!batchMode) {
-                        lp = tmpLp;
+            scriptCache.add( query );
+            parseQuery();
+            
+            if( !batchMode ) {
+                buildPlan( null );
+                for( Operator sink : lp.getSinks() ) {
+                    if( sink instanceof LOStore ) {
                         try {
                             execute();
                         } catch (Exception e) {
                             int errCode = 1002;
                             String msg = "Unable to store alias "
-                                    + op.getOperatorKey().getId();
+                                + ((LOStore) sink).getAlias();
                             throw new FrontendException(msg, errCode,
                                     PigException.INPUT, e);
                         }
-                    } else {
-                        if (0 == ignoreNumStores) {
-                            storeOpTable.put((LOStore)op, tmpLp);
-                            lp.mergeSharedPlan(tmpLp);
-                            List<LogicalOperator> roots = tmpLp.getRoots();
-                            for (LogicalOperator root : roots) {
-                                if (root instanceof LOLoad) {
-                                    loadOps.add((LOLoad)root);
-                                }
-                            }
-
-                        } else {
-                            --ignoreNumStores;
-                        }
+                        break; // We should have at most one store, so break here.
                     }
                 }
             }
         }
 
-        LogicalPlan parseQuery(String query, int startLine) throws IOException {
-            if (query == null || query.length() == 0) {
-                int errCode = 1084;
-                String msg = "Invalid Query: Query is null or of size 0";
-                throw new FrontendException(msg, errCode, PigException.INPUT);
+        /**
+         * Parse the accumulated pig statements and generate an overall plan.
+         */
+        private void parseQuery() throws IOException {
+            UDFContext.getUDFContext().reset();
+            StringBuilder accuQuery = new StringBuilder();
+            for( String line : scriptCache ) {
+                accuQuery.append( line + "\n" );
             }
-
+            
+            String query = accuQuery.toString();
             query = query.trim();
 
+            if( query.isEmpty() ) {
+                lp = new LogicalPlan();
+            }
+
             try {
-                return new LogicalPlanBuilder(PigServer.this.pigContext).parse(scope, query,
-                                              aliases, opTable, aliasOp, startLine, fileNameMap);
-            } catch (ParseException e) {
-                PigException pe = LogUtils.getPigException(e);
+                QueryParserDriver parserDriver = new QueryParserDriver( pigContext, scope, fileNameMap );
+                lp = parserDriver.parse( query );
+                operators = parserDriver.getOperators();
+            } catch(ParserException ex) {
+                scriptCache.remove( scriptCache.size() -1 ); // remove the bad script from the cache.
+                PigException pe = LogUtils.getPigException(ex);
                 int errCode = 1000;
-                String msg = "Error during parsing. " + (pe == null? e.getMessage() : pe.getMessage());
-                throw new FrontendException(msg, errCode, PigException.INPUT, false, null, e);
+                String msg = "Error during parsing. "
+                        + (pe == null ? ex.getMessage() : pe.getMessage());
+                throw new FrontendException (msg, errCode, PigException.INPUT );
             }
         }
-
-        @Override
-        protected Graph clone() {
-            // There are two choices on how we clone the logical plan
-            // 1 - we really clone each operator and connect up the cloned operators
-            // 2 - we cache away the script till the point we need to clone
-            // and then simply re-parse the script.
-            // The latter approach is used here
-            // FIXME: There is one open issue with this now:
-            // Consider the following script:
-            // A = load 'file:/somefile';
-            // B = filter A by $0 > 10;
-            // store B into 'bla';
-            // rm 'file:/somefile';
-            // A = load 'file:/someotherfile'
-            // when we try to clone - we try to reparse
-            // from the beginning and currently the parser
-            // checks for file existence of files in the load
-            // in the case where the file is a local one -i.e. with file: prefix
-            // This will be a known issue now and we will need to revisit later
-
-            // parse each line of the cached script
-            int lineNumber = 1;
-
-            // create data structures needed for parsing
-            Graph graph = new Graph(isBatchOn());
-            graph.ignoreNumStores = processedStores;
-            graph.processedStores = processedStores;
-            graph.fileNameMap = fileNameMap;
-            
-            //reset udf properties
-            UDFContext.getUDFContext().reset();
-
-            try {
-                for (Iterator<String> it = getScriptCache().iterator(); it.hasNext(); lineNumber++) {
-                    if (isBatchOn()) {
-                        graph.registerQuery(it.next(), lineNumber);
-                    } else {
-                        graph.lp = graph.parseQuery(it.next(), lineNumber);
-                    }
-                }
-                graph.postProcess();
-            } catch (IOException ioe) {
-                ioe.printStackTrace();
-                graph = null;
-            }
-            return graph;
-        }
-
+        
         private void postProcess() throws IOException {
 
-            // Set the logical plan values correctly in all the operators
-            PlanSetter ps = new PlanSetter(lp);
-            ps.visit();
-
             // The following code deals with store/load combination of
-            // intermediate files. In this case we will replace the load operator
+            // intermediate files. In this case we will replace the load
+            // operator
             // with a (implicit) split operator, iff the load/store
             // func is reversible (because that's when we can safely
             // skip the load and keep going with the split output). If
             // the load/store func is not reversible (or they are
             // different functions), we connect the store and the load
             // to remember the dependency.
+            
+            Set<LOLoad> loadOps = new HashSet<LOLoad>();
+            List<Operator> sources = lp.getSources();
+            for (Operator source : sources) {
+                if (source instanceof LOLoad) {
+                    loadOps.add((LOLoad)source);
+                }
+            }
+            
+            Set<LOStore> storeOps = new HashSet<LOStore>();
+            List<Operator> sinks = lp.getSinks();
+            for (Operator sink : sinks) {
+                if (sink instanceof LOStore) {
+                    storeOps.add((LOStore)sink);
+                }
+            }
+
+            
             for (LOLoad load : loadOps) {
-                for (LOStore store : storeOpTable.keySet()) {
-                    String ifile = load.getInputFile().getFileName();
-                    String ofile = store.getOutputFile().getFileName();
+                for (LOStore store : storeOps) {
+                    String ifile = load.getFileSpec().getFileName();
+                    String ofile = store.getFileSpec().getFileName();
                     if (ofile.compareTo(ifile) == 0) {
-                        try {
-                            // if there is no path from the load to the store,
-                            // then connect the store to the load to create the
-                            // dependency of the store on the load. If there is
-                            // a path from the load to the store, then we should
-                            // not connect the store to the load and create a cycle
-                            if(!store.getPlan().pathExists(load, store)) {
-                                store.getPlan().connect(store, load);
-                            }
-                        } catch (PlanException ex) {
-                            int errCode = 2128;
-                            String msg = "Failed to connect store with dependent load.";
-                            throw new FrontendException(msg, errCode, ex);
+                        // if there is no path from the load to the store,
+                        // then connect the store to the load to create the
+                        // dependency of the store on the load. If there is
+                        // a path from the load to the store, then we should
+                        // not connect the store to the load and create a cycle
+                        if (!store.getPlan().pathExists(load, store)) {
+                            store.getPlan().connect(store, load);
                         }
-
-
-
-                        //TODO
-                        //if the load has a schema then the type cast inserter has to introduce
-                        //casts to get the right types. Since the type cast inserter runs later,
-                        //removing the load could create problems. For example, if the storage function
-                        //does not preserve type information required and the subsequent load created
-                        //as part of the MR Compiler introduces a load then the type cast insertion
-                        //will be missing.
-                        //As a result, check if the store function preserves types. For now, the only
-                        //storage that preserves types internally is BinStorage.
-                        //In the future, Pig the storage functions should support method to enquire if
-                        //type information is preserved. Similarly, the load functions should support
-                        //a similar interface. With these interfaces in place, the code below can be
-                        //used to optimize the store/load combination
-
-
-                        /*
-                        LoadFunc lFunc = (LoadFunc) pigContext.instantiateFuncFromSpec(load.getInputFile().getFuncSpec());
-                        StoreFunc sFunc = (StoreFunc) pigContext.instantiateFuncFromSpec(store.getOutputFile().getFuncSpec());
-                        if (lFunc.getClass() == sFunc.getClass() && lFunc instanceof ReversibleLoadStoreFunc) {
-
-                            log.info("Removing unnecessary load operation from location: "+ifile);
-
-                            // In this case we remember the input file
-                            // spec in the store. We might have to use it
-                            // in the MR compiler to recreate the load, if
-                            // the store happens on a job boundary.
-                            store.setInputSpec(load.getInputFile());
-
-                            LogicalOperator storePred = lp.getPredecessors(store).get(0);
-
-                            // In this case we remember the input file
-                            // spec in the store. We might have to use it
-                            // in the MR compiler to recreate the load, if
-                            // the store happens on a job boundary.
-                            store.setInputSpec(load.getInputFile());
-
-                            Schema storePredSchema = storePred.getSchema();
-                            if(storePredSchema != null) {
-                                load.setSchema(storePredSchema);
-                                TypeCastInserter typeCastInserter = new TypeCastInserter(lp, LOLoad.class.getName());
-                                List<LogicalOperator> loadList = new ArrayList<LogicalOperator>();
-                                loadList.add(load);
-                                //the following needs a change to TypeCastInserter and LogicalTransformer
-                                typeCastInserter.doTransform(loadList, false);
-                            }
-
-                            lp.disconnect(store, load);
-                            lp.connect(storePred, load);
-                            lp.removeAndReconnectMultiSucc(load);
-
-                            List<LogicalOperator> succs = lp.getSuccessors(load);
-                        } else {
-                            try {
-                                store.getPlan().connect(store, load);
-                            } catch (PlanException ex) {
-                                int errCode = 2128;
-                                String msg = "Failed to connect store with dependent load.";
-                                throw new FrontendException(msg, errCode, ex);
-                            }
-                        }
-                        */
                     }
                 }
             }

@@ -1,0 +1,162 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package org.apache.pig.parser;
+
+import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.HashSet;
+import java.util.Set;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.fs.Path;
+import org.apache.pig.FuncSpec;
+import org.apache.pig.StoreFuncInterface;
+import org.apache.pig.backend.datastorage.ContainerDescriptor;
+import org.apache.pig.backend.datastorage.DataStorage;
+import org.apache.pig.backend.datastorage.ElementDescriptor;
+import org.apache.pig.builtin.PigStorage;
+import org.apache.pig.impl.PigContext;
+import org.apache.pig.impl.io.FileSpec;
+import org.apache.pig.impl.logicalLayer.FrontendException;
+import org.apache.pig.newplan.Operator;
+import org.apache.pig.newplan.logical.relational.LOStore;
+import org.apache.pig.newplan.logical.relational.LogicalPlan;
+
+public class QueryParserUtils {
+	private static Log log = LogFactory.getLog( LogicalPlanGenerator.class );
+
+	private static String removeQuotes(String str) {
+        if (str.startsWith("\u005c'") && str.endsWith("\u005c'"))
+            return str.substring(1, str.length() - 1);
+        else
+            return str;
+    }
+
+    public static void attachStorePlan(LogicalPlan lp, String fileName,	String func, 
+    		Operator input, String alias, PigContext pigContext) throws FrontendException {
+        if( func == null ) {
+            func = PigStorage.class.getName();
+        }
+
+        FuncSpec funcSpec = new FuncSpec( func );
+        StoreFuncInterface stoFunc = (StoreFuncInterface)PigContext.instantiateFuncFromSpec( funcSpec );
+        stoFunc.setStoreFuncUDFContextSignature( LOStore.constructSignature( alias, fileName, funcSpec ) );
+
+        fileName = removeQuotes( fileName );
+        FileSpec fileSpec = new FileSpec( fileName, funcSpec );
+        LOStore store = new LOStore( lp, fileSpec );
+        store.setAlias( alias );
+
+        try {
+            stoFunc.relToAbsPathForStoreLocation( fileName, getCurrentDir( pigContext ) );
+        } catch (IOException ioe) {
+            FrontendException e = new FrontendException(  ioe.getMessage(), ioe );
+            throw e;
+        }
+
+        lp.add( store );
+        lp.connect( input, store );
+    }
+
+    static Path getCurrentDir(PigContext pigContext) throws IOException {
+        DataStorage dfs = pigContext.getDfs();
+        ContainerDescriptor desc = dfs.getActiveContainer();
+        ElementDescriptor el = dfs.asElement(desc);
+        return new Path(el.toString());
+    }
+    
+    static void setHdfsServers(String absolutePath, PigContext pigContext) throws URISyntaxException {
+        // Get native host
+        String defaultFS = (String)pigContext.getProperties().get("fs.default.name");
+        URI defaultFSURI = new URI(defaultFS);
+        String defaultHost = defaultFSURI.getHost();
+        if (defaultHost == null) defaultHost = "";
+                
+        defaultHost = defaultHost.toLowerCase();
+    
+        Set<String> remoteHosts = getRemoteHosts(absolutePath, defaultHost);
+                    
+        String hdfsServersString = (String)pigContext.getProperties().get("mapreduce.job.hdfs-servers");
+        if (hdfsServersString == null) hdfsServersString = "";
+        String hdfsServers[] = hdfsServersString.split(",");
+                    
+        for (String remoteHost : remoteHosts) {
+            boolean existing = false;
+            for (String hdfsServer : hdfsServers) {
+                if (hdfsServer.equals(remoteHost)) {
+                    existing = true;
+                }
+            }
+            if (!existing) {
+                if (!hdfsServersString.isEmpty()) {
+                    hdfsServersString = hdfsServersString + ",";
+                }
+                hdfsServersString = hdfsServersString + remoteHost;
+            }
+        }
+    
+        if (!hdfsServersString.isEmpty()) {
+            pigContext.getProperties().setProperty("mapreduce.job.hdfs-servers", hdfsServersString);
+        }
+    }
+
+	 static Set<String> getRemoteHosts(String absolutePath, String defaultHost) {
+	     String HAR_PREFIX = "hdfs-";
+	     Set<String> result = new HashSet<String>();
+	     String[] fnames = absolutePath.split(",");
+	     for (String fname: fnames) {
+	         // remove leading/trailing whitespace(s)
+	         fname = fname.trim();
+	         Path p = new Path(fname);
+	         URI uri = p.toUri();
+	         if(uri.isAbsolute()) {
+	             String scheme = uri.getScheme();
+	             if (scheme!=null && scheme.toLowerCase().equals("hdfs")||scheme.toLowerCase().equals("har")) {
+	                 if (uri.getHost()==null)
+	                     continue;
+	                 String thisHost = uri.getHost().toLowerCase();
+	                 if (scheme.toLowerCase().equals("har")) {
+	                     if (thisHost.startsWith(HAR_PREFIX)) {
+	                         thisHost = thisHost.substring(HAR_PREFIX.length());
+	                     }
+	                 }
+	                 if (!uri.getHost().isEmpty() && 
+	                         !thisHost.equals(defaultHost)) {
+	                     if (uri.getPort()!=-1)
+	                         result.add("hdfs://"+thisHost+":"+uri.getPort());
+	                     else
+	                         result.add("hdfs://"+thisHost);
+	                 }
+	             }
+	         }
+	     }
+	     return result;
+	 }
+
+	 static String constructFileNameSignature(String fileName, FuncSpec funcSpec) {
+		 return fileName+"_"+funcSpec.toString();
+	 }
+
+
+	    static String constructSignature(String alias, String filename, FuncSpec funcSpec) {
+	        return alias+"_"+filename+"_"+funcSpec.toString();
+	    }
+}

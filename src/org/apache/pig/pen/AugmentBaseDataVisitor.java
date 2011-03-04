@@ -184,8 +184,8 @@ public class AugmentBaseDataVisitor extends LogicalRelationalNodesVisitor {
         int numCols = -1;
 
         for (int index = 0; index < cg.getInputs((LogicalPlan)plan).size(); ++index) {
-            Collection<LogicalExpressionPlan> groupByPlans = (List<LogicalExpressionPlan>) cg
-                    .getExpressionPlans().get(index);
+            Collection<LogicalExpressionPlan> groupByPlans = 
+                cg.getExpressionPlans().get(index);
             List<Integer> groupCols = new ArrayList<Integer>();
             for (LogicalExpressionPlan plan : groupByPlans) {
                 Operator leaf = plan.getSinks().get(0);
@@ -299,8 +299,8 @@ public class AugmentBaseDataVisitor extends LogicalRelationalNodesVisitor {
         int numCols = -1;
 
         for (int index = 0; index < join.getInputs((LogicalPlan)plan).size(); ++index) {
-            Collection<LogicalExpressionPlan> groupByPlans = (List<LogicalExpressionPlan>) join
-                    .getExpressionPlans().get(index);
+            Collection<LogicalExpressionPlan> groupByPlans = 
+                join.getExpressionPlans().get(index);
             List<Integer> groupCols = new ArrayList<Integer>();
             for (LogicalExpressionPlan plan : groupByPlans) {
                 Operator leaf = plan.getSinks().get(0);

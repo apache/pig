@@ -97,7 +97,7 @@ public class MapLookupExpression extends ColumnExpression {
         if (mValueSchema!=null)
             fieldSchema = mValueSchema;
         else
-            fieldSchema = new LogicalSchema.LogicalFieldSchema(null, null, DataType.UNKNOWN);
+            fieldSchema = new LogicalSchema.LogicalFieldSchema(null, null, DataType.BYTEARRAY);
         uidOnlyFieldSchema = fieldSchema.mergeUid(uidOnlyFieldSchema);
         return fieldSchema;
     }

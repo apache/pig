@@ -19,10 +19,14 @@
 package org.apache.pig.newplan.logical.relational;
 
 import java.io.PrintStream;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
 
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.newplan.BaseOperatorPlan;
+import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.OperatorPlan;
 import org.apache.pig.newplan.logical.optimizer.LogicalPlanPrinter;
 
@@ -75,4 +79,24 @@ public class LogicalPlan extends BaseOperatorPlan {
         LogicalPlanPrinter npp = new LogicalPlanPrinter(this, ps);
         npp.visit();
     }
+
+    public Operator findByAlias(String alias) {
+    	Iterator<Operator> it = getOperators();
+    	List<Operator> ops = new ArrayList<Operator>();
+    	while( it.hasNext() ) {
+    	    LogicalRelationalOperator op = (LogicalRelationalOperator) it.next();
+    	    if(op.getAlias() == null)
+    	        continue;
+    	    if(op.getAlias().equals( alias ) )  {
+    	        ops.add( op );
+    	    }
+    	}
+    	
+    	if( ops.isEmpty() ) {
+            return null;
+    	} else {
+    		return ops.get( ops.size() - 1 ); // Last one
+    	}
+    }
+    
 }

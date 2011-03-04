@@ -19,15 +19,13 @@
 package org.apache.pig.newplan.logical.relational;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 
+import org.apache.pig.PigException;
 import org.apache.pig.data.DataType;
 import org.apache.pig.impl.logicalLayer.FrontendException;
-import org.apache.pig.impl.util.Pair;
 import org.apache.pig.newplan.logical.expression.LogicalExpression;
 
 /**
@@ -61,17 +59,34 @@ public class LogicalSchema {
          * or both null schema.  Alias and uid are not checked.
          */
         public boolean isEqual(Object other) {
+            return isEqual(other, false);
+        }
+               
+        /**
+         * Equality is defined as having the same type and either the same schema
+         * or both null schema. if compareAlias argument is set to true, alias
+         * is also compared.
+         * @param other 
+         * @param compareAlias
+         * @return true if equal
+         */
+        public boolean isEqual(Object other, boolean compareAlias) {
             if (other instanceof LogicalFieldSchema) {
                 LogicalFieldSchema ofs = (LogicalFieldSchema)other;
+                if(compareAlias){
+                    if(alias != null && !alias.equals(ofs.alias))
+                        return false;
+                }
                 if (type != ofs.type) return false;
                 if (schema == null && ofs.schema == null) return true;
                 if (schema == null) return false;
-                else return schema.isEqual(ofs.schema);
+                else return schema.isEqual(ofs.schema, compareAlias);
             } else {
                 return false;
             }
         }
-               
+        
+        
         public String toString(boolean verbose) {
             String uidString = "";
             if (verbose)
@@ -121,6 +136,13 @@ public class LogicalSchema {
             }
             return true;
         }
+        /**
+         * Adds the uid from FieldSchema argument to this FieldSchema
+         * If the argument is null, it stamps this FieldSchema with uid
+         * @param uidOnlyFieldSchema
+         * @return FieldSchema 
+         * @throws FrontendException
+         */
         public LogicalSchema.LogicalFieldSchema mergeUid(LogicalFieldSchema uidOnlyFieldSchema) throws FrontendException {
             if (uidOnlyFieldSchema!=null && compatible(uidOnlyFieldSchema)) {
                 this.uid = uidOnlyFieldSchema.uid;
@@ -145,6 +167,17 @@ public class LogicalSchema {
                 }
                 LogicalFieldSchema clonedUidOnlyCopy = cloneUid();
                 return clonedUidOnlyCopy;
+            }
+        }
+        
+
+        /**
+         * Rest uid of this fieldschema and inner schema
+         */
+        public void resetUid(){
+            uid = LogicalExpression.getNextUid();
+            if(schema != null){
+                schema.resetUid();
             }
         }
         
@@ -212,6 +245,73 @@ public class LogicalSchema {
                 }
             }
 
+            return true ;
+        }
+
+        /**
+         * Check if FieldSchema inFs is castable to outFs
+         * @param inFs
+         * @param outFs
+         * @return true if it is castable
+         */
+        public static boolean castable(LogicalFieldSchema inFs,
+                LogicalFieldSchema outFs) {
+            
+            if(outFs == null && inFs == null) {
+                return false;
+            }
+            
+            if (outFs == null) {
+                return false ;
+            }
+    
+            if (inFs == null) {
+                return false ;
+            }
+            byte inType = inFs.type;
+            byte outType = outFs.type;
+    
+            if (DataType.isSchemaType(outFs.type)) {
+                if(inType == DataType.BYTEARRAY) {
+                    //good
+                } else if (inType == outType) {
+                    // Don't do the comparison if both embedded schemas are
+                    // null.  That will cause Schema.equals to return false,
+                    // even though we want to view that as true.
+                    if (!(outFs.schema == null && inFs.schema == null)) { 
+                        // compare recursively using schema
+                        if (!LogicalSchema.castable(outFs.schema, inFs.schema)) {
+                            return false ;
+                        }
+                    }
+                } else {
+                    return false;
+                }
+            } else {
+                if (inType == outType) {
+                    //good
+                }
+                else if (DataType.isNumberType(inType) &&
+                    DataType.isNumberType(outType) ) {
+                    //good
+                }
+                else if (inType == DataType.BYTEARRAY) {
+                    //good
+                }
+                else if (  ( DataType.isNumberType(inType) || 
+                             inType == DataType.CHARARRAY 
+                           )  &&
+                           (  (outType == DataType.CHARARRAY) ||
+                              (outType == DataType.BYTEARRAY) ||
+                              (DataType.isNumberType(outType))
+                           ) 
+                        ) {
+                    //good
+                } else {
+                    return false;
+                }
+            }
+    
             return true ;
         }
         
@@ -283,8 +383,12 @@ public class LogicalSchema {
             
             if (fs1.alias==null)
                 mergedAlias = fs2.alias;
+            else if (fs2.alias==null)
+                mergedAlias = fs1.alias;
             else {
-                mergedAlias = fs1.alias; // If both schema have alias, the first one win
+                mergedAlias = mergeNameSpacedAlias(fs1.alias, fs2.alias);
+                if (mergedAlias==null)
+                    mergedAlias = fs1.alias;
             }
 
             if (DataType.isSchemaType(mergedType)) {
@@ -302,6 +406,13 @@ public class LogicalSchema {
                             mergedSubSchema = LogicalSchema.merge(fs1.schema, fs2.schema, MergeMode.UnionInner);
                         }
                     } catch (FrontendException e) {
+                        if(fs1.type == DataType.BAG && fs2.type == DataType.BAG){
+                            //create an empty tuple as subschema
+                            mergedSubSchema = new LogicalSchema();
+                            mergedSubSchema.addField(new LogicalFieldSchema(null, new LogicalSchema(), DataType.TUPLE));
+                        }else if(fs1.type == DataType.TUPLE && fs2.type == DataType.TUPLE){
+                            mergedSubSchema = new LogicalSchema();
+                        }
                         // If inner schema is not compatible, mergedSubSchema set to null
                     }
                 }
@@ -327,72 +438,198 @@ public class LogicalSchema {
             LogicalFieldSchema mergedFS = new LogicalFieldSchema(mergedAlias, mergedSubSchema, mergedType);
             return mergedFS;
         }
+        
+        /***
+         * Old Pig field schema does not require a tuple schema inside a bag;
+         * Now it is required to have that; this method is to fill the gap
+         */
+        public void normalize() {
+            if (type==DataType.BAG) {
+                if (schema!=null) {
+                    // Check if the BAG has a tuple field 
+                    if (schema.size()!=1 || schema.getField(0).type!=DataType.TUPLE) {
+                        LogicalSchema tupleSchema = new LogicalSchema();
+                        for (LogicalFieldSchema innerFs : schema.getFields()) {
+                            tupleSchema.addField(innerFs);
+                        }
+                        schema = new LogicalSchema();
+                        schema.addField(new LogicalFieldSchema(null, tupleSchema, DataType.TUPLE));
+                    }
+                }
+            }
+            if (schema!=null) {
+                for (LogicalFieldSchema fs : schema.getFields()) {
+                    fs.normalize();
+                }
+            }
+        }
     }
     
     private List<LogicalFieldSchema> fields;
-    private Map<String, Pair<Integer, Boolean>> aliases;
     
     public LogicalSchema() {
         fields = new ArrayList<LogicalFieldSchema>();
-        aliases = new HashMap<String, Pair<Integer, Boolean>>();
     }
-    
+
+
+    /**
+     * Reset uids of all fieldschema that the schema contains
+     */
+    public void resetUid() {
+        for(LogicalFieldSchema fs : fields){
+            fs.resetUid();
+        }
+    }
+
+    /**
+     * Recursively compare two schemas to check if the input schema 
+     * can be cast to the cast schema
+     * @param inSch schema of the cast input
+     * @param outSch schema of the cast operator
+     * @return true if castable
+     */
+    public static boolean castable(LogicalSchema inSch, LogicalSchema outSch) {
+        // If both of them are null, they are castable
+        if ((outSch == null) && (inSch == null)) {
+            return false ;
+        }
+
+        // otherwise
+        if (outSch == null) {
+            return false ;
+        }
+
+        if (inSch == null) {
+            return false ;
+        }
+
+        if (outSch.size() > inSch.size()) return false;
+
+        
+        Iterator<LogicalFieldSchema> i = outSch.fields.iterator();
+        Iterator<LogicalFieldSchema> j = inSch.fields.iterator();
+
+        while (i.hasNext()) {
+        //iterate only for the number of fields in cast
+
+            LogicalFieldSchema outFs = i.next() ;
+            LogicalFieldSchema inFs = j.next() ;
+
+            // Compare recursively using field schema
+            if (!LogicalFieldSchema.castable(inFs, outFs)) {
+                return false ;
+            }
+
+        }
+        return true;
+
+    }
+
     /**
      * Add a field to this schema.
      * @param field to be added to the schema
      */
     public void addField(LogicalFieldSchema field) {
         fields.add(field);
-        if (field.alias != null && !field.alias.equals("")) {
-            // put the full name of this field into aliases map
-            // boolean in the pair indicates if this alias is full name
-            aliases.put(field.alias, new Pair<Integer, Boolean>(fields.size()-1, true));
-            int index = 0;
-            
-            // check and put short names into alias map if there is no conflict
-            
-            while(index != -1) {
-                index = field.alias.indexOf("::", index);
-                if (index != -1) {
-                    String a = field.alias.substring(index+2);
-                    if (aliases.containsKey(a)) {
-                        // remove conflict if the conflict is not full name
-                        // we can never remove full name
-                        if (!aliases.get(a).second) {
-                            aliases.remove(a);
-                        }
-                    }else{
-                        // put alias into map and indicate it is a short name
-                        aliases.put(a, new Pair<Integer, Boolean>(fields.size()-1, false));                       
-                    }
-
-                    index = index +2;
-                }
-            }
-        }
     }
     
     /**
      * Fetch a field by alias
      * @param alias
      * @return field associated with alias, or null if no such field
+     * @throws FrontendException 
      */
-    public LogicalFieldSchema getField(String alias) {
-        Pair<Integer, Boolean> p = aliases.get(alias);
-        if (p == null) {
+    public LogicalFieldSchema getField(String alias) throws FrontendException {
+        LogicalFieldSchema result = null;
+        //first look for an exact match
+        for (LogicalFieldSchema fs : fields) {
+            if (fs.alias!=null && fs.alias.equals(alias) ) {
+                if (result==null) {
+                    result = fs;
+                }
+                else {
+                    StringBuilder sb = new StringBuilder("Found more than one match: " + result.alias + ", " + fs.alias);
+                    throw new FrontendException(sb.toString(), 1025);
+                }
+            }
+        }
+        if(result != null){
+            return result;
+        }
+        //if no exact match is found, look for matches for scoped aliases
+        for (LogicalFieldSchema fs : fields) {
+            if (fs.alias!=null && fs.alias.matches(".*::"+alias+"$") ) {
+                if (result==null) {
+                    result = fs;
+                }
+                else {
+                    StringBuilder sb = new StringBuilder("Found more than one match: " + result.alias + ", " + fs.alias);
+                    throw new FrontendException(sb.toString(), 1025);
+                }
+            }
+        }
+        
+        return result;
+    }
+    
+    /**
+     * Given an alias name, find the associated LogicalFieldSchema. If exact name is 
+     * not found see if any field matches the part of the 'namespaced' alias.
+     * eg. if given alias is nm::a , and schema is (a,b). It will return 
+     * FieldSchema of a.
+     * if given alias is nm::a and schema is (nm2::a, b), it will return null
+     * @param alias Alias to look up.
+     * @return LogicalFieldSchema, or null if no such alias is in this tuple.
+     */
+    public LogicalFieldSchema getFieldSubNameMatch(String alias) throws FrontendException {
+        if(alias == null)
             return null;
+        LogicalFieldSchema fs = getField(alias);
+        if(fs != null){
+            return fs;
+        }
+        //fs is null
+        final String sep = "::";
+        ArrayList<LogicalFieldSchema> matchedFieldSchemas = new ArrayList<LogicalFieldSchema>();
+        if(alias.contains(sep)){
+            for(LogicalFieldSchema field : fields) {
+                if(alias.endsWith(sep + field.alias)){
+                    matchedFieldSchemas.add(field);
+                }
+            }
+        }
+        if(matchedFieldSchemas.size() > 1){
+            boolean hasNext = false;
+            StringBuilder sb = new StringBuilder("Found more than one " +
+            "sub alias name match: ");
+            for (LogicalFieldSchema matchFs : matchedFieldSchemas) {
+                if(hasNext) {
+                    sb.append(", ");
+                } else {
+                    hasNext = true;
+                }
+                sb.append(matchFs.alias);
+            }
+            int errCode = 1116;
+            throw new FrontendException(sb.toString(), errCode, PigException.INPUT);
+        }else if(matchedFieldSchemas.size() == 1){
+            fs = matchedFieldSchemas.get(0);
         }
 
-        return fields.get(p.first);
+        return fs;
     }
     
     public int getFieldPosition(String alias) {
-        Pair<Integer, Boolean> p = aliases.get( alias );
-        if( p == null ) {
+        LogicalFieldSchema fs = null;
+        try {
+            fs = getField(alias);
+        } catch (FrontendException e) {
+        }
+        if( fs == null ) {
             return -1;
         }
 
-        return p.first;
+        return fields.indexOf(fs);
     }
 
     /**
@@ -422,20 +659,34 @@ public class LogicalSchema {
     
     /**
      * Two schemas are equal if they are of equal size and their fields
-     * schemas considered in order are equal.
+     * schemas considered in order are equal. This function does 
+     * not compare the alias of the fields.
      */
     public boolean isEqual(Object other) {
+        return isEqual(other, false);
+    }
+    
+    
+    
+    /**
+     * Two schemas are equal if they are of equal size and their fields
+     * schemas considered in order are equal. If compareAlias argument is 
+     * set to true, the alias of the fields are also compared.
+     * @param other
+     * @param compareAlias
+     * @return true if equal
+     */
+    public boolean isEqual(Object other, boolean compareAlias) {
         if (other != null && other instanceof LogicalSchema) {
             LogicalSchema os = (LogicalSchema)other;
             if (size() != os.size()) return false;
             for (int i = 0; i < size(); i++) {
-                if (!getField(i).isEqual(os.getField(i))) return false;
+                if (!getField(i).isEqual(os.getField(i), compareAlias)) return false;
             }
             return true;
         } else {
             return false;
         }
-        
     }
     
     /**
@@ -487,7 +738,7 @@ public class LogicalSchema {
                 else if (s2!=null) return s2.deepCopy();
                 else return null;
             }
-            else // Union/UnionInner, take null
+            else // Union/UnionInner, return null
                 return null;
         }
         
@@ -595,23 +846,25 @@ public class LogicalSchema {
      * For Tuples and Bags, SubSchemas have to be equal be considered compatible
      */
     public static LogicalSchema mergeSchemaByAlias(LogicalSchema schema1, LogicalSchema schema2)
-    throws FrontendException {
+    throws FrontendException{
         LogicalSchema mergedSchema = new LogicalSchema();
         HashSet<LogicalFieldSchema> schema2colsAdded = new HashSet<LogicalFieldSchema>();
         // add/merge fields present in first schema 
         for(LogicalFieldSchema fs1 : schema1.getFields()){
             checkNullAlias(fs1, schema1);
-            LogicalFieldSchema fs2 = schema2.getField( fs1.alias );
+            LogicalFieldSchema fs2 = schema2.getFieldSubNameMatch( fs1.alias );
             if(fs2 != null){
                 if(schema2colsAdded.contains(fs2)){
                     // alias corresponds to multiple fields in schema1,
                     // just do a lookup on
                     // schema1 , that will throw the appropriate error.
-                    schema1.getField( fs2.alias );
+                    schema1.getFieldSubNameMatch( fs2.alias );
                 }
                 schema2colsAdded.add(fs2);
                 LogicalFieldSchema mergedFs = LogicalFieldSchema.merge(fs1,fs2, MergeMode.Union);
                 mergedFs.alias = mergeNameSpacedAlias(fs1.alias, fs2.alias);
+                if (mergedFs.alias==null)
+                    mergedFs.alias = fs1.alias;
                 mergedSchema.addField(mergedFs);
             }
             else
@@ -709,5 +962,14 @@ public class LogicalSchema {
             }
         }
         return true;
+    }
+    /***
+     * Old Pig schema does not require a tuple schema inside a bag;
+     * Now it is required to have that; this method is to fill the gap
+     */
+    public void normalize() {
+        for (LogicalFieldSchema fs : getFields()) {
+            fs.normalize();
+        }
     }
 }

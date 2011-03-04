@@ -532,10 +532,11 @@ public class TestScalarAliases  {
         try {
             // Only projections of C are supported 
             pigServer.registerQuery("Y = foreach A generate C;");
+            pigServer.openIterator( "Y" );
             //Control should not reach here
             fail("Scalar projections are only supported");
         } catch (IOException pe){
-            assertTrue(pe.getCause().getMessage().equalsIgnoreCase("Scalars can be only used with projections"));
+            assertTrue(pe.getMessage().equalsIgnoreCase("Error during parsing. Invalid scalar projection: C"));
         }
     }
     

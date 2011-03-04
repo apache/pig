@@ -859,7 +859,7 @@ public class TestPruneColumn extends TestCase {
     public void testFRJoin1() throws Exception {
         pigServer.registerQuery("A = load '"+ Util.generateURI(tmpFile1.toString(), pigServer.getPigContext()) + "' AS (a0, a1, a2);");
         pigServer.registerQuery("B = load '"+ Util.generateURI(tmpFile2.toString(), pigServer.getPigContext()) + "' AS (b0, b1);");
-        pigServer.registerQuery("C = join A by $0, B by $0 using \"replicated\";");
+        pigServer.registerQuery("C = join A by $0, B by $0 using 'replicated';");
         pigServer.registerQuery("D = foreach C generate $0, $3;");
         Iterator<Tuple> iter = pigServer.openIterator("D");
         
@@ -1008,7 +1008,7 @@ public class TestPruneColumn extends TestCase {
     public void testJoin3() throws Exception {
         pigServer.registerQuery("A = load '"+ Util.generateURI(tmpFile1.toString(), pigServer.getPigContext()) + "' AS (a0, a1, a2);");
         pigServer.registerQuery("B = load '"+ Util.generateURI(tmpFile4.toString(), pigServer.getPigContext()) + "' AS (b0, b1, b2);");
-        pigServer.registerQuery("C = join A by *, B by * using \"replicated\";");
+        pigServer.registerQuery("C = join A by *, B by * using 'replicated';");
         pigServer.registerQuery("D = foreach C generate $0;");
         Iterator<Tuple> iter = pigServer.openIterator("D");
         

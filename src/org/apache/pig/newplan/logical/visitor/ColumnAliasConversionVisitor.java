@@ -21,6 +21,7 @@ package org.apache.pig.newplan.logical.visitor;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.pig.data.DataType;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.plan.PlanValidationException;
 import org.apache.pig.newplan.DependencyOrderWalker;
@@ -57,19 +58,20 @@ public class ColumnAliasConversionVisitor extends AllExpressionVisitor {
                 List<Operator> inputs = lp.getPredecessors( op );
                 LogicalRelationalOperator input = (LogicalRelationalOperator)inputs.get( expr.getInputNum() );
                 LogicalSchema inputSchema = input.getSchema();
+                
                 String alias = expr.getColAlias();
                 if( alias != null ) {
                     int colNum = inputSchema == null ? -1 : inputSchema.getFieldPosition( alias );
                     if( colNum == -1 ) {
                 		throw new PlanValidationException( "Invalid field projection. Projected field [" + 
-                    		alias + "] does not exist in schema: " + inputSchema + "." );
+                    		alias + "] does not exist in schema: " + inputSchema + ".", 1025 );
                     }
                     expr.setColNum( colNum );
                 } else {
                     int col = expr.getColNum();
                     if( inputSchema != null && col >= inputSchema.size() ) {
                         throw new PlanValidationException( "Out of bound access. Trying to access non-existent column: " + 
-                                                      col + ". Schema " + inputSchema + " has " + inputSchema.size() + " column(s)." );
+                                                      col + ". Schema " + inputSchema + " has " + inputSchema.size() + " column(s)." , 1000);
                     }
                 }
             }
@@ -82,22 +84,31 @@ public class ColumnAliasConversionVisitor extends AllExpressionVisitor {
                 
                 List<Integer> cols = new ArrayList<Integer>( rawCols.size() );
                 LogicalExpressionPlan plan = (LogicalExpressionPlan)expr.getPlan();
-                LogicalExpression pred = (LogicalExpression)plan.getPredecessors( expr ).get(0);
-                LogicalSchema schema = pred.getFieldSchema().schema;
+                LogicalExpression pred = (LogicalExpression)plan.getSuccessors( expr ).get(0);
+                
+                LogicalSchema schema = null;
+                if( pred.getFieldSchema().type == DataType.BAG ) {
+                    if( pred.getFieldSchema().schema != null )
+                        schema = pred.getFieldSchema().schema.getField(0).schema;
+                }
+                else {
+                    schema = pred.getFieldSchema().schema;
+                }
+                
                 int col = -1;
                 for( Object rc : rawCols ) {
                     if( rc instanceof Integer ) {
                     	col = (Integer)rc;
                     	if( schema != null && col >= schema.size() ) {
                             throw new PlanValidationException( "Out of bound access. Trying to access non-existent column: " + 
-                                    col + ". Schema " + schema + " has " + schema.size() + " column(s)." );
+                                    col + ". Schema " + schema + " has " + schema.size() + " column(s).", 1000 );
                     	}
                         cols.add( (Integer)rc );
                     } else {
-                        col = schema.getFieldPosition( (String)rc );
+                        col = schema == null ? -1 : schema.getFieldPosition( (String)rc );
                         if( col == -1 ) {
                             throw new PlanValidationException( "Invalid field reference. Referenced field [" + 
-                            		rc + "] does not exist in schema: " + schema + "." );
+                            		rc + "] does not exist in schema: " + schema + "." , 1000);
                         }
                         cols.add( col );
                     }

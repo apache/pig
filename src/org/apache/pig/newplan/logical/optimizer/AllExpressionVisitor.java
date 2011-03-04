@@ -44,7 +44,6 @@ import org.apache.pig.newplan.logical.relational.LogicalRelationalOperator;
  */
 public abstract class AllExpressionVisitor extends LogicalRelationalNodesVisitor {
     
-    protected LogicalExpressionVisitor exprVisitor;
     protected LogicalRelationalOperator currentOp;
 
     /**

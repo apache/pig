@@ -30,13 +30,12 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Random;
 
-import junit.framework.TestCase;
+import junit.framework.Assert;
 
 import org.apache.pig.EvalFunc;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigException;
 import org.apache.pig.PigServer;
-import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.builtin.BinStorage;
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
@@ -57,7 +56,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
 @RunWith(JUnit4.class)
-public class TestEvalPipeline2 extends TestCase {
+public class TestEvalPipeline2 {
     
     static MiniCluster cluster = MiniCluster.buildCluster();
     private PigServer pigServer;
@@ -66,7 +65,6 @@ public class TestEvalPipeline2 extends TestCase {
     BagFactory mBf = BagFactory.getInstance();
     
     @Before
-    @Override
     public void setUp() throws Exception{
         FileLocalizer.setR(new Random());
         pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
@@ -100,9 +98,9 @@ public class TestEvalPipeline2 extends TestCase {
         tup = it.next();
         Tuple out = (Tuple)tup.get(1);
 
-        assertEquals( out.get(0).toString(), "hello");
-        assertEquals(out.get(1).toString(), "abc");
-        assertEquals(out.get(2).toString(), "def");
+        Assert.assertEquals( out.get(0).toString(), "hello");
+        Assert.assertEquals(out.get(1).toString(), "abc");
+        Assert.assertEquals(out.get(2).toString(), "def");
         
         Util.deleteFile(cluster, "table_udfInp");
     }
@@ -131,21 +129,21 @@ public class TestEvalPipeline2 extends TestCase {
 
         pigServer.registerQuery(query);
         Iterator<Tuple> iter = pigServer.openIterator("C");
-        if(!iter.hasNext()) fail("No output found");
+        if(!iter.hasNext()) Assert.fail("No output found");
         int numIdentity = 0;
         while(iter.hasNext()){
             Tuple tuple = iter.next();
             Tuple t = (Tuple)tuple.get(0);
-            assertEquals(DataByteArray.class, t.get(0).getClass());
+            Assert.assertEquals(DataByteArray.class, t.get(0).getClass());
             int group = Integer.parseInt(new String(((DataByteArray)t.get(0)).get()));
-            assertEquals(numIdentity, group);
-            assertTrue(t.get(1) instanceof DataBag);
+            Assert.assertEquals(numIdentity, group);
+            Assert.assertTrue(t.get(1) instanceof DataBag);
             DataBag bag = (DataBag)t.get(1);
-            assertEquals(10, bag.size());
-            assertEquals(2, t.size());
+            Assert.assertEquals(10, bag.size());
+            Assert.assertEquals(2, t.size());
             ++numIdentity;
         }
-        assertEquals(LOOP_COUNT, numIdentity);
+        Assert.assertEquals(LOOP_COUNT, numIdentity);
 
     }
     @Test
@@ -185,27 +183,27 @@ public class TestEvalPipeline2 extends TestCase {
         //tuple 1 
         tup = it.next();
 
-        assertTrue((Integer)tup.get(0) == null); 
-        assertTrue((Integer)tup.get(1) == 12);
-        assertTrue((Float)tup.get(2) == 1.1F);
-        assertTrue((Long)tup.get(3) == 231L);
-        assertTrue((Double)tup.get(4) == 234.0);
+        Assert.assertTrue((Integer)tup.get(0) == null); 
+        Assert.assertTrue((Integer)tup.get(1) == 12);
+        Assert.assertTrue((Float)tup.get(2) == 1.1F);
+        Assert.assertTrue((Long)tup.get(3) == 231L);
+        Assert.assertTrue((Double)tup.get(4) == 234.0);
         
         //tuple 2 
         tup = it.next();
-        assertTrue(tup.get(0) == null);
-        assertTrue((Integer)tup.get(1) == 1231);
-        assertTrue((Float)tup.get(2) == 123.4F);
-        assertTrue((Long)tup.get(3) == 12345678L);
-        assertTrue((Double)tup.get(4) == 1234.567);
+        Assert.assertTrue(tup.get(0) == null);
+        Assert.assertTrue((Integer)tup.get(1) == 1231);
+        Assert.assertTrue((Float)tup.get(2) == 123.4F);
+        Assert.assertTrue((Long)tup.get(3) == 12345678L);
+        Assert.assertTrue((Double)tup.get(4) == 1234.567);
         
         //tuple 3
         tup = it.next();
-        assertTrue(tup.get(0) == null);
-        assertTrue((Integer)tup.get(1) == 1232123);
-        assertTrue((Float)tup.get(2) == 1.45345F);
-        assertTrue((Long)tup.get(3) == 123456789L);
-        assertTrue((Double)tup.get(4) == 1.234567899E8);
+        Assert.assertTrue(tup.get(0) == null);
+        Assert.assertTrue((Integer)tup.get(1) == 1232123);
+        Assert.assertTrue((Float)tup.get(2) == 1.45345F);
+        Assert.assertTrue((Long)tup.get(3) == 123456789L);
+        Assert.assertTrue((Double)tup.get(4) == 1.234567899E8);
         
         Util.deleteFile(cluster, "table");
     }
@@ -237,31 +235,31 @@ public class TestEvalPipeline2 extends TestCase {
 
         //tuple 1 
         tup = it.next();
-        assertTrue(tup.get(0) != null);
+        Assert.assertTrue(tup.get(0) != null);
         
         //tuple 2 
         tup = it.next();
-        assertTrue(tup.get(0) != null);
+        Assert.assertTrue(tup.get(0) != null);
         
         //tuple 3 - malformed
         tup = it.next();
-        assertTrue(tup.get(0) == null);
+        Assert.assertTrue(tup.get(0) == null);
 
         //tuple 4 - integer exceeds size limit
         tup = it.next();
-        assertTrue(tup.get(0) instanceof DataBag);
+        Assert.assertTrue(tup.get(0) instanceof DataBag);
         DataBag db = (DataBag)tup.get(0);
-        assertTrue(db.iterator().hasNext());
+        Assert.assertTrue(db.iterator().hasNext());
         Tuple innerTuple = (Tuple)db.iterator().next();
-        assertTrue(innerTuple.get(0)==null);
+        Assert.assertTrue(innerTuple.get(0)==null);
 
         //tuple 5 
         tup = it.next();
-        assertTrue(tup.get(0) != null);
+        Assert.assertTrue(tup.get(0) != null);
 
         //tuple 6
         tup = it.next();
-        assertTrue(tup.get(0) != null);
+        Assert.assertTrue(tup.get(0) != null);
         
         Util.deleteFile(cluster, "table_bs_ac_clx");
     }
@@ -289,19 +287,19 @@ public class TestEvalPipeline2 extends TestCase {
 
         //tuple 1 
         tup = it.next();
-        assertTrue(tup.get(0) == null);
+        Assert.assertTrue(tup.get(0) == null);
         
         //tuple 2 -malformed tuple
         tup = it.next();
-        assertTrue(tup.get(0) == null);
+        Assert.assertTrue(tup.get(0) == null);
         
         //tuple 3 - integer exceeds size limit
         tup = it.next();
-        assertTrue(tup.get(0) == null);
+        Assert.assertTrue(tup.get(0) == null);
 
         //tuple 4
         tup = it.next();
-        assertTrue(tup.get(0) == null);
+        Assert.assertTrue(tup.get(0) == null);
 
         Util.deleteFile(cluster, "table_bs_ac_clxt");
     }
@@ -325,12 +323,12 @@ public class TestEvalPipeline2 extends TestCase {
         while(it.hasNext()) {
             Tuple t = it.next();
             String firstCol = (String) t.get(0);
-            assertFalse(seen.containsKey(firstCol));
+            Assert.assertFalse(seen.containsKey(firstCol));
             seen.put(firstCol, true);
-            assertEquals(expectedResults.get(firstCol), t);
+            Assert.assertEquals(expectedResults.get(firstCol), t);
             numRows++;
         }
-        assertEquals(3, numRows);
+        Assert.assertEquals(3, numRows);
         Util.deleteFile(cluster, "testPigStorageWithCtrlCharsInput.txt");
     }
 
@@ -361,7 +359,7 @@ public class TestEvalPipeline2 extends TestCase {
             result.next();
             ++numIdentity;
         }
-        assertEquals(10, numIdentity);
+        Assert.assertEquals(10, numIdentity);
     }
 
     @Test
@@ -383,18 +381,18 @@ public class TestEvalPipeline2 extends TestCase {
         pigServer.registerQuery("B = order A by num parallel 2;");
         pigServer.registerQuery("C = limit B 10;");
         Iterator<Tuple> iter = pigServer.openIterator("C");
-        if(!iter.hasNext()) fail("No output found");
+        if(!iter.hasNext()) Assert.fail("No output found");
         int numIdentity = 0;
         int oldNum = Integer.MIN_VALUE;
         int newNum;
         while(iter.hasNext()){
             Tuple t = iter.next();
             newNum = (Integer)t.get(0);
-            assertTrue(newNum>=oldNum);
+            Assert.assertTrue(newNum>=oldNum);
             oldNum = newNum;
             ++numIdentity;
         }
-        assertEquals(10, numIdentity);
+        Assert.assertEquals(10, numIdentity);
     }
 
     @Test
@@ -416,18 +414,18 @@ public class TestEvalPipeline2 extends TestCase {
         pigServer.registerQuery("B = order A by num desc parallel 2;");
         pigServer.registerQuery("C = limit B 10;");
         Iterator<Tuple> iter = pigServer.openIterator("C");
-        if(!iter.hasNext()) fail("No output found");
+        if(!iter.hasNext()) Assert.fail("No output found");
         int numIdentity = 0;
         int oldNum = Integer.MAX_VALUE;
         int newNum;
         while(iter.hasNext()){
             Tuple t = iter.next();
             newNum = (Integer)t.get(0);
-            assertTrue(newNum<=oldNum);
+            Assert.assertTrue(newNum<=oldNum);
             oldNum = newNum;
             ++numIdentity;
         }
-        assertEquals(10, numIdentity);
+        Assert.assertEquals(10, numIdentity);
     }
 
     @Test
@@ -440,7 +438,7 @@ public class TestEvalPipeline2 extends TestCase {
         pigServer.registerQuery("B = order A by $0;");
         Iterator<Tuple> iter = pigServer.openIterator("B");
         
-        assertTrue(iter.hasNext()==false);
+        Assert.assertTrue(iter.hasNext()==false);
     }
     
     // See PIG-761
@@ -464,17 +462,17 @@ public class TestEvalPipeline2 extends TestCase {
         pigServer.registerQuery("D = COGROUP C BY b0, A BY a0 PARALLEL 2;");
         Iterator<Tuple> iter = pigServer.openIterator("D");
         
-        assertTrue(iter.hasNext());
+        Assert.assertTrue(iter.hasNext());
         Tuple t = iter.next();
         
-        assertTrue(t.toString().equals("(2,{(2,2)},{(2,5,2)})"));
+        Assert.assertTrue(t.toString().equals("(2,{(2,2)},{(2,5,2)})"));
         
-        assertTrue(iter.hasNext());
+        Assert.assertTrue(iter.hasNext());
         t = iter.next();
         
-        assertTrue(t.toString().equals("(1,{(1,1)},{(1,2,3)})"));
+        Assert.assertTrue(t.toString().equals("(1,{(1,1)},{(1,2,3)})"));
         
-        assertFalse(iter.hasNext());
+        Assert.assertFalse(iter.hasNext());
     }
 
     // See PIG-1195
@@ -486,11 +484,11 @@ public class TestEvalPipeline2 extends TestCase {
         pigServer.registerQuery("C = foreach B { D = order A by a0 desc;generate D;};");
         Iterator<Tuple> iter = pigServer.openIterator("C");
         
-        assertTrue(iter.hasNext());
+        Assert.assertTrue(iter.hasNext());
         Tuple t = iter.next();
         
-        assertTrue(t.toString().equals("({(4),(3)})"));
-        assertFalse(iter.hasNext());
+        Assert.assertTrue(t.toString().equals("({(4),(3)})"));
+        Assert.assertFalse(iter.hasNext());
         
         Util.deleteFile(cluster, "table_testNestedDescSort");
     }
@@ -512,10 +510,10 @@ public class TestEvalPipeline2 extends TestCase {
         try {
         	pigServer.registerQuery("skewed = JOIN A by $0, B by $0 USING 'skewed' PARTITION BY org.apache.pig.test.utils.SimpleCustomPartitioner;");
         	//control should not reach here
-        	fail("Skewed join cannot accept a custom partitioner");
+        	Assert.fail("Skewed join cannot accept a custom partitioner");
         }
         catch (FrontendException e) {
-        	assertTrue(e.getErrorCode() == 1000);
+        	Assert.assertTrue(e.getErrorCode() == 1000);
 		}
         
         pigServer.registerQuery("hash = JOIN A by $0, B by $0 USING 'hash' PARTITION BY org.apache.pig.test.utils.SimpleCustomPartitioner;");
@@ -528,25 +526,25 @@ public class TestEvalPipeline2 extends TestCase {
         results.add("(1,2,1,2)");
         results.add("(1,2,1,3)");
         
-        assertTrue(iter.hasNext());
+        Assert.assertTrue(iter.hasNext());
         t = iter.next();
-        assertTrue(t.size()==4);
-        assertTrue(results.contains(t.toString()));
+        Assert.assertTrue(t.size()==4);
+        Assert.assertTrue(results.contains(t.toString()));
         
-        assertTrue(iter.hasNext());
+        Assert.assertTrue(iter.hasNext());
         t = iter.next();
-        assertTrue(t.size()==4);
-        assertTrue(results.contains(t.toString()));
+        Assert.assertTrue(t.size()==4);
+        Assert.assertTrue(results.contains(t.toString()));
         
-        assertTrue(iter.hasNext());
+        Assert.assertTrue(iter.hasNext());
         t = iter.next();
-        assertTrue(t.size()==4);
-        assertTrue(results.contains(t.toString()));
+        Assert.assertTrue(t.size()==4);
+        Assert.assertTrue(results.contains(t.toString()));
         
-        assertTrue(iter.hasNext());
+        Assert.assertTrue(iter.hasNext());
         t = iter.next();
-        assertTrue(t.size()==4);
-        assertTrue(results.contains(t.toString()));
+        Assert.assertTrue(t.size()==4);
+        Assert.assertTrue(results.contains(t.toString()));
         
         // No checks are made for merged and replicated joins as they are compiled to a map only job 
         // No frontend error checking has been added for these jobs, hence not adding any test cases 
@@ -587,7 +585,7 @@ public class TestEvalPipeline2 extends TestCase {
  	    while((line = reader.readLine()) != null) {
  	        String[] cols = line.split("\t");
  	        int value = Integer.parseInt(cols[0]) % 2;
- 	        assertEquals(0, value);
+ 	        Assert.assertEquals(0, value);
  	    }
  	    Util.copyFromClusterToLocal(cluster, "tmp_testCustomPartitionerGroups/part-r-00001", "tmp_testCustomPartitionerGroups/part-r-00001");
         reader = new BufferedReader(new FileReader("tmp_testCustomPartitionerGroups/part-r-00001"));
@@ -595,7 +593,7 @@ public class TestEvalPipeline2 extends TestCase {
  	    while((line = reader.readLine()) != null) {
  	        String[] cols = line.split("\t");
  	        int value = Integer.parseInt(cols[0]) % 2;
- 	        assertEquals(1, value);
+ 	        Assert.assertEquals(1, value);
  	    } 
         Util.deleteDirectory(new File("tmp_testCustomPartitionerGroups"));
         Util.deleteFile(cluster, "table_testCustomPartitionerGroups");
@@ -622,25 +620,25 @@ public class TestEvalPipeline2 extends TestCase {
         results.add("(1,2,1,2)");
         results.add("(1,2,1,3)");
         
-        assertTrue(iter.hasNext());
+        Assert.assertTrue(iter.hasNext());
         t = iter.next();
-        assertTrue(t.size()==4);
-        assertTrue(results.contains(t.toString()));
+        Assert.assertTrue(t.size()==4);
+        Assert.assertTrue(results.contains(t.toString()));
         
-        assertTrue(iter.hasNext());
+        Assert.assertTrue(iter.hasNext());
         t = iter.next();
-        assertTrue(t.size()==4);
-        assertTrue(results.contains(t.toString()));
+        Assert.assertTrue(t.size()==4);
+        Assert.assertTrue(results.contains(t.toString()));
         
-        assertTrue(iter.hasNext());
+        Assert.assertTrue(iter.hasNext());
         t = iter.next();
-        assertTrue(t.size()==4);
-        assertTrue(results.contains(t.toString()));
+        Assert.assertTrue(t.size()==4);
+        Assert.assertTrue(results.contains(t.toString()));
         
-        assertTrue(iter.hasNext());
+        Assert.assertTrue(iter.hasNext());
         t = iter.next();
-        assertTrue(t.size()==4);
-        assertTrue(results.contains(t.toString()));
+        Assert.assertTrue(t.size()==4);
+        Assert.assertTrue(results.contains(t.toString()));
         
         Util.deleteFile(cluster, "table_testCustomPartitionerCross");
     }
@@ -663,11 +661,11 @@ public class TestEvalPipeline2 extends TestCase {
         // Test ExpressionOperator - negative test case
         pigServer.registerQuery("C = FOREACH A { D = a0/a1; E=a1/a0; generate E as newcol; };");
         Schema schema = pigServer.dumpSchemaNested("B", "D");
-        assertTrue(schema.toString().equalsIgnoreCase("{a0: bytearray,a1: bytearray}"));
+        Assert.assertTrue(schema.toString().equalsIgnoreCase("{a0: bytearray,a1: bytearray}"));
         try {
             schema = pigServer.dumpSchemaNested("C", "E");
         } catch (FrontendException e) {
-            assertTrue(e.getErrorCode() == 1113);
+            Assert.assertTrue(e.getErrorCode() == 1113);
         }
     }
     
@@ -692,24 +690,24 @@ public class TestEvalPipeline2 extends TestCase {
         Iterator<Tuple> iter = pigServer.openIterator("A");
         
         Tuple t = iter.next();
-        assertTrue(t.toString().equals("(1,3)"));
+        Assert.assertTrue(t.toString().equals("(1,3)"));
         
         t = iter.next();
-        assertTrue(t.toString().equals("(2,4)"));
+        Assert.assertTrue(t.toString().equals("(2,4)"));
         
         t = iter.next();
-        assertTrue(t.toString().equals("(3,5)"));
+        Assert.assertTrue(t.toString().equals("(3,5)"));
         
         t = iter.next();
-        assertTrue(t.toString().equals("(1,3)"));
+        Assert.assertTrue(t.toString().equals("(1,3)"));
         
         t = iter.next();
-        assertTrue(t.toString().equals("(2,4)"));
+        Assert.assertTrue(t.toString().equals("(2,4)"));
         
         t = iter.next();
-        assertTrue(t.toString().equals("(3,5)"));
+        Assert.assertTrue(t.toString().equals("(3,5)"));
         
-        assertFalse(iter.hasNext());
+        Assert.assertFalse(iter.hasNext());
     }
     
     // See PIG-1543
@@ -737,12 +735,12 @@ public class TestEvalPipeline2 extends TestCase {
         Iterator<Tuple> iter = pigServer.openIterator("D1");
         
         Tuple t = iter.next();
-        assertTrue(t.toString().equals("({(1)},{},1,0,1,0)"));
+        Assert.assertTrue(t.toString().equals("({(1)},{},1,0,1,0)"));
         
         t = iter.next();
-        assertTrue(t.toString().equals("({},{(2)},0,1,0,1)"));
+        Assert.assertTrue(t.toString().equals("({},{(2)},0,1,0,1)"));
         
-        assertFalse(iter.hasNext());
+        Assert.assertFalse(iter.hasNext());
     }
     
     // See PIG-1669
@@ -771,9 +769,9 @@ public class TestEvalPipeline2 extends TestCase {
         Iterator<Tuple> iter = pigServer.openIterator("F");
         
         Tuple t = iter.next();
-        assertTrue(t.toString().equals("(jason,14,4.7,jason,14)"));
+        Assert.assertTrue(t.toString().equals("(jason,14,4.7,jason,14)"));
         
-        assertFalse(iter.hasNext());
+        Assert.assertFalse(iter.hasNext());
     }
 
     // See PIG-1683
@@ -798,9 +796,9 @@ public class TestEvalPipeline2 extends TestCase {
         Iterator<Tuple> iter = pigServer.openIterator("d");
         
         Tuple t = iter.next();
-        assertTrue(t.toString().equals("(1)"));
+        Assert.assertTrue(t.toString().equals("(1)"));
         
-        assertFalse(iter.hasNext());
+        Assert.assertFalse(iter.hasNext());
     }
     
     // See PIG-1719
@@ -814,9 +812,9 @@ public class TestEvalPipeline2 extends TestCase {
         
         Iterator<Tuple> it = pigServer.openIterator("c");
         Tuple t = it.next();
-        assertTrue(t.get(0).equals("HELLO"));
+        Assert.assertTrue(t.get(0).equals("HELLO"));
         t = it.next();
-        assertTrue(t.get(0).equals("WORLD"));
+        Assert.assertTrue(t.get(0).equals("WORLD"));
     }
     
     // See PIG-1721
@@ -834,12 +832,12 @@ public class TestEvalPipeline2 extends TestCase {
         Iterator<Tuple> iter = pigServer.openIterator("c");
         
         Tuple t = iter.next();
-        assertTrue((Integer)t.get(0)==0);
+        Assert.assertTrue((Integer)t.get(0)==0);
         
         t = iter.next();
-        assertTrue((Integer)t.get(0)==1);
+        Assert.assertTrue((Integer)t.get(0)==1);
         
-        assertFalse(iter.hasNext());
+        Assert.assertFalse(iter.hasNext());
     }
     
     // See PIG-1729
@@ -865,9 +863,9 @@ public class TestEvalPipeline2 extends TestCase {
         Iterator<Tuple> iter = pigServer.openIterator("f");
         
         Tuple t = iter.next();
-        assertTrue(t.toString().equals("(all,{(1)})"));
+        Assert.assertTrue(t.toString().equals("(all,{(1)})"));
         
-        assertFalse(iter.hasNext());
+        Assert.assertFalse(iter.hasNext());
     }
     
     @Test
@@ -886,9 +884,9 @@ public class TestEvalPipeline2 extends TestCase {
         Iterator<Tuple> iter = pigServer.openIterator("d");
         
         Tuple t = iter.next();
-        assertTrue(t.toString().equals("(2,1)"));
+        Assert.assertTrue(t.toString().equals("(2,1)"));
         
-        assertFalse(iter.hasNext());
+        Assert.assertFalse(iter.hasNext());
     }
     
     // See PIG-1737
@@ -902,11 +900,11 @@ public class TestEvalPipeline2 extends TestCase {
             pigServer.openIterator("c");
         } catch (Exception e) {
             PigException pe = LogUtils.getPigException(e);
-            assertTrue(pe.getErrorCode()==1031);
-            assertTrue(pe.getMessage().contains("Incompatable schema"));
+            Assert.assertTrue(pe.getErrorCode()==1031);
+            Assert.assertTrue(pe.getMessage().contains("Incompatable schema"));
             return;
         }
-        fail();
+        Assert.fail();
     }
     
     // See PIG-1732
@@ -932,18 +930,18 @@ public class TestEvalPipeline2 extends TestCase {
         Iterator<Tuple> iter = pigServer.openIterator("e");
         
         Tuple t = iter.next();
-        assertTrue(t.size()==1);
-        assertTrue((Integer)t.get(0)==1);
+        Assert.assertTrue(t.size()==1);
+        Assert.assertTrue((Integer)t.get(0)==1);
         
         t = iter.next();
-        assertTrue(t.size()==1);
-        assertTrue((Integer)t.get(0)==4);
+        Assert.assertTrue(t.size()==1);
+        Assert.assertTrue((Integer)t.get(0)==4);
         
         t = iter.next();
-        assertTrue(t.size()==1);
-        assertTrue((Integer)t.get(0)==2);
+        Assert.assertTrue(t.size()==1);
+        Assert.assertTrue((Integer)t.get(0)==2);
         
-        assertFalse(iter.hasNext());
+        Assert.assertFalse(iter.hasNext());
     }
     
     // See PIG-1745
@@ -964,11 +962,11 @@ public class TestEvalPipeline2 extends TestCase {
             pigServer.openIterator("b");
         } catch (Exception e) {
             PigException pe = LogUtils.getPigException(e);
-            assertTrue(pe.getErrorCode()==1118);
+            Assert.assertTrue(pe.getErrorCode()==1118);
             return;
         }
         
-        fail();
+        Assert.fail();
     }
     
     // See PIG-1761
@@ -984,8 +982,8 @@ public class TestEvalPipeline2 extends TestCase {
         
         Iterator<Tuple> iter = pigServer.openIterator("b");
         Tuple t = iter.next();
-        assertTrue(t.size()==1);
-        assertTrue(t.get(0).equals("APACHE"));
+        Assert.assertTrue(t.size()==1);
+        Assert.assertTrue(t.get(0).equals("APACHE"));
     }
     
     // See PIG-1843
@@ -1001,8 +999,8 @@ public class TestEvalPipeline2 extends TestCase {
         
         Iterator<Tuple> iter = pigServer.openIterator("b");
         Tuple t = iter.next();
-        assertTrue(t.size()==1);
-        assertTrue(t.toString().equals("([key#1])"));
+        Assert.assertTrue(t.size()==1);
+        Assert.assertTrue(t.toString().equals("([key#1])"));
     }
     
     // See PIG-1766
@@ -1031,9 +1029,9 @@ public class TestEvalPipeline2 extends TestCase {
         
         Iterator<Tuple> iter = pigServer.openIterator("F");
         Tuple t = iter.next();
-        assertTrue(t.size()==2);
-        assertTrue(t.get(0).equals("one"));
-        assertTrue(t.get(1).equals("two"));
+        Assert.assertTrue(t.size()==2);
+        Assert.assertTrue(t.get(0).equals("one"));
+        Assert.assertTrue(t.get(1).equals("two"));
     }
     
     // See PIG-1771
@@ -1051,14 +1049,14 @@ public class TestEvalPipeline2 extends TestCase {
         Iterator<Tuple> iter = pigServer.openIterator("b");
         
         Tuple t = iter.next();
-        assertTrue(t.size()==4);
-        assertTrue(t.toString().equals("(hello,hello,(hello),[key#value])"));
+        Assert.assertTrue(t.size()==4);
+        Assert.assertTrue(t.toString().equals("(hello,hello,(hello),[key#value])"));
     }
     
-    static public class MapGenerate extends EvalFunc<Map> {
+    static public class MapGenerate extends EvalFunc<Map<String, Integer>> {
         @Override
-        public Map exec(Tuple input) throws IOException {
-            Map m = new HashMap();
+        public Map<String, Integer> exec(Tuple input) throws IOException {
+            Map<String, Integer> m = new HashMap<String, Integer>();
             m.put("key", new Integer(input.size()));
             return m;
         }
@@ -1086,9 +1084,9 @@ public class TestEvalPipeline2 extends TestCase {
         Iterator<Tuple> iter = pigServer.openIterator("d");
         
         Tuple t = iter.next();
-        assertTrue(t.size()==2);
-        assertTrue(t.toString().equals("(1,{(1,1)})"));
-        assertFalse(iter.hasNext());
+        Assert.assertTrue(t.size()==2);
+        Assert.assertTrue(t.toString().equals("(1,{(1,1)})"));
+        Assert.assertFalse(iter.hasNext());
     }
     
     // See PIG-999
@@ -1108,9 +1106,9 @@ public class TestEvalPipeline2 extends TestCase {
         Iterator<Tuple> iter = pigServer.openIterator("d");
         
         Tuple t = iter.next();
-        assertTrue(t.size()==2);
-        assertTrue(t.toString().equals("(1,1)"));
-        assertFalse(iter.hasNext());
+        Assert.assertTrue(t.size()==2);
+        Assert.assertTrue(t.toString().equals("(1,1)"));
+        Assert.assertFalse(iter.hasNext());
     }
     
     // See PIG-1065
@@ -1141,12 +1139,12 @@ public class TestEvalPipeline2 extends TestCase {
         Iterator<Tuple> iter = pigServer.openIterator("d");
         
         Tuple t = iter.next();
-        assertTrue(results.contains(t.toString()));
+        Assert.assertTrue(results.contains(t.toString()));
         t = iter.next();
-        assertTrue(results.contains(t.toString()));
+        Assert.assertTrue(results.contains(t.toString()));
         t = iter.next();
-        assertTrue(results.contains(t.toString()));
-        assertFalse(iter.hasNext());
+        Assert.assertTrue(results.contains(t.toString()));
+        Assert.assertFalse(iter.hasNext());
     }
     
     // See PIG-1787
@@ -1169,10 +1167,10 @@ public class TestEvalPipeline2 extends TestCase {
         Iterator<Tuple> iter = pigServer.openIterator("f");
         
         Tuple t = iter.next();
-        assertTrue(t.toString().equals("(1,2,1,1)"));
+        Assert.assertTrue(t.toString().equals("(1,2,1,1)"));
         t = iter.next();
-        assertTrue(t.toString().equals("(1,2,1,2)"));
-        assertFalse(iter.hasNext());
+        Assert.assertTrue(t.toString().equals("(1,2,1,2)"));
+        Assert.assertFalse(iter.hasNext());
     }
     
     // See PIG-1785
@@ -1191,8 +1189,8 @@ public class TestEvalPipeline2 extends TestCase {
         Iterator<Tuple> iter = pigServer.openIterator("c");
         
         Tuple t = iter.next();
-        assertTrue(t.toString().contains("(2,3,1,2)"));
-        assertFalse(iter.hasNext());
+        Assert.assertTrue(t.toString().contains("(2,3,1,2)"));
+        Assert.assertFalse(iter.hasNext());
     }
     
     // See PIG-1785
@@ -1213,8 +1211,8 @@ public class TestEvalPipeline2 extends TestCase {
         Iterator<Tuple> iter = pigServer.openIterator("d");
         
         Tuple t = iter.next();
-        assertTrue(t.toString().contains("(2,3,1,2)"));
-        assertFalse(iter.hasNext());
+        Assert.assertTrue(t.toString().contains("(2,3,1,2)"));
+        Assert.assertFalse(iter.hasNext());
     }
     
     // See PIG-1785
@@ -1228,11 +1226,11 @@ public class TestEvalPipeline2 extends TestCase {
             pigServer.openIterator("c");
         } catch (Exception e) {
             PigException pe = LogUtils.getPigException(e);
-            assertTrue(pe.getErrorCode()==1039);
-            assertTrue(pe.getMessage().contains("incompatible types"));
+            Assert.assertTrue(pe.getErrorCode()==1039);
+            Assert.assertTrue(pe.getMessage().contains("incompatible types"));
             return;
         }
-        fail();
+        Assert.fail();
     }
     
     public static class BagGenerateNoSchema extends EvalFunc<DataBag> {
@@ -1262,10 +1260,10 @@ public class TestEvalPipeline2 extends TestCase {
         Iterator<Tuple> iter = pigServer.openIterator("d");
         
         Tuple t = iter.next();
-        assertTrue(t.toString().contains("(1)"));
+        Assert.assertTrue(t.toString().contains("(1)"));
         t = iter.next();
-        assertTrue(t.toString().contains("(2)"));
-        assertFalse(iter.hasNext());
+        Assert.assertTrue(t.toString().contains("(2)"));
+        Assert.assertFalse(iter.hasNext());
     }
     
     // See PIG-1813
@@ -1286,10 +1284,10 @@ public class TestEvalPipeline2 extends TestCase {
         Iterator<Tuple> iter = pigServer.openIterator("d");
         
         Tuple t = iter.next();
-        assertTrue(t.toString().contains("(1)"));
+        Assert.assertTrue(t.toString().contains("(1)"));
         t = iter.next();
-        assertTrue(t.toString().contains("(2)"));
-        assertFalse(iter.hasNext());
+        Assert.assertTrue(t.toString().contains("(2)"));
+        Assert.assertFalse(iter.hasNext());
     }
     
     // See PIG-1812
@@ -1317,8 +1315,8 @@ public class TestEvalPipeline2 extends TestCase {
         Iterator<Tuple> iter = pigServer.openIterator("e");
         
         Tuple t = iter.next();
-        assertTrue(t.toString().contains("({(1,1)})"));
-        assertFalse(iter.hasNext());
+        Assert.assertTrue(t.toString().contains("({(1,1)})"));
+        Assert.assertFalse(iter.hasNext());
     }
     
     // See PIG-1850
@@ -1337,7 +1335,7 @@ public class TestEvalPipeline2 extends TestCase {
         Iterator<Tuple> iter = pigServer.openIterator("c");
         
         Tuple t = iter.next();
-        assertTrue(t.toString().contains("(0.0,1)"));
-        assertFalse(iter.hasNext());
+        Assert.assertTrue(t.toString().contains("(0.0,1)"));
+        Assert.assertFalse(iter.hasNext());
     }
 }

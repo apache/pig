@@ -161,11 +161,20 @@ public class ProjectExpression extends ColumnExpression {
                 fieldSchema.uid = innerLoads.get(0).getProjection().getFieldSchema().uid;
             }
             else {
-                if (findReferent().getSchema()!=null)
-                    fieldSchema = findReferent().getSchema().getField(0);
+                if(schema == null){
+                    byte type = DataType.BYTEARRAY;
+                    if(findReferent() instanceof LOInnerLoad && 
+                            ((LOInnerLoad)findReferent()).getProjection().isProjectStar()){
+                        //if its project all from LOInnerLoad, consider it to be a tuple
+                        type = DataType.TUPLE;
+                    }
+                    fieldSchema = new LogicalSchema.LogicalFieldSchema(null, null, type);
+                }
+                else{
+                    fieldSchema = schema.getField(0);
+                }
             }
-            if (fieldSchema!=null)
-                uidOnlyFieldSchema = fieldSchema.mergeUid(uidOnlyFieldSchema);
+            uidOnlyFieldSchema = fieldSchema.mergeUid(uidOnlyFieldSchema);
         }
         else {
             if (schema == null) {
@@ -181,6 +190,11 @@ public class ProjectExpression extends ColumnExpression {
                         if (fs.uid==uid) {
                             index = i;
                         }
+                    }
+                }
+                if (index==-1) {
+                    if (alias!=null) {
+                        index = schema.getFieldPosition(alias);
                     }
                 }
                 if (index==-1)
@@ -205,7 +219,7 @@ public class ProjectExpression extends ColumnExpression {
 
         return fieldSchema;
     }
-    
+
     /**
      * Find the LogicalRelationalOperator that this projection refers to.
      * @return LRO this projection refers to
@@ -286,11 +300,13 @@ public class ProjectExpression extends ColumnExpression {
 
     @Override
     public LogicalExpression deepCopy(LogicalExpressionPlan lgExpPlan) throws FrontendException {
-        LogicalExpression copy = new ProjectExpression(
+        ProjectExpression copy = new ProjectExpression(
                 lgExpPlan,
                 this.getInputNum(),
                 this.getColNum(),
                 this.getAttachedRelationalOp());
+        copy.alias = alias; 
+        
         return copy;
     }
 

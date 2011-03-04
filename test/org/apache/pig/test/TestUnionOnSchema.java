@@ -29,10 +29,12 @@ import java.util.List;
 
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.mapred.lib.FieldSelectionMapReduce;
 import org.apache.pig.EvalFunc;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigException;
 import org.apache.pig.PigServer;
+import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
@@ -577,7 +579,7 @@ public class TestUnionOnSchema  {
     @Test
     public void testUnionOnSchemaNullAliasInFieldSchema() throws IOException, ParseException {
         String expectedErr = "Schema of relation f has a null fieldschema for " +
-        		"column(s). Schema :{long,y: float}";
+        		"column(s). Schema :null:long,y:float";
         String query =
             "  l = load '" + INP_FILE_2NUMS + "' as (x : long, y : float);"
             + "f = foreach l generate x+1, y;"
@@ -600,7 +602,7 @@ public class TestUnionOnSchema  {
             foundEx = true;
             if(!pigEx.getMessage().contains(expectedErr)){
                 String msg = "Expected exception message matching '" 
-                    + expectedErr + "' but got '" + e.getMessage() + "'" ;
+                    + expectedErr + "' but got '" + pigEx.getMessage() + "'" ;
                 fail(msg);
             }
         }
@@ -619,34 +621,22 @@ public class TestUnionOnSchema  {
      */
     @Test
     public void testUnionOnSchemaIncompatibleTypes() throws IOException, ParseException {
-        String expectedErr = "Incompatible types for merging schemas";
         String query =
             "  l1 = load '" + INP_FILE_2NUMS + "' as (x : long, y : chararray);"
             + "l2 = load '" + INP_FILE_2NUMS + "' as (x : long, y : float);"
-            + "u = union onschema l1, l2;"
-        ; 
-        checkSchemaEx(query, expectedErr);
- 
+            + "u = union onschema l1, l2;";
+
+        checkSchemaEquals(query, "x : long, y : chararray");
+
+
+        
         query =
             "  l1 = load '" + INP_FILE_2NUMS + "' as (x : long, y : chararray);"
             + "l2 = load '" + INP_FILE_2NUMS + "' as (x : map[ ], y : chararray);"
             + "u = union onschema l1, l2;"
         ; 
-        checkSchemaEx(query, expectedErr);
-
-        // Test error on different inner schemas
-        expectedErr = "Incompatible types for merging inner schemas";
-        // bag column with different internal column names
-        query =
-            "  l1 = load '" + INP_FILE_2NUMS 
-            + "' as (x : long, b : bag { t : tuple (c1 : int, c2 : chararray)}  );"
-            
-            + "l2 = load '" + INP_FILE_2NUMS 
-            + "' as (x : long, b : bag { t : tuple (c2 : int, c3 : chararray)} );"
-            + "u = union onschema l1, l2;"
-        ; 
-        checkSchemaEx(query, expectedErr);
-        
+        checkSchemaEquals(query, "x : bytearray, y : chararray");
+               
         // bag column with different internal column types
         query =
             "  l1 = load '" + INP_FILE_2NUMS 
@@ -656,7 +646,12 @@ public class TestUnionOnSchema  {
             + "' as (x : long, b : bag { t : tuple (c1 : long, c2 : chararray)} );"
             + "u = union onschema l1, l2;"
         ; 
-        checkSchemaEx(query, expectedErr);
+        Schema sch = new Schema();
+        sch.add(new FieldSchema("x", DataType.LONG));
+        Schema bagInnerSchema = new Schema();
+        bagInnerSchema.add(new FieldSchema(null, new Schema(), DataType.TUPLE));
+        sch.add(new FieldSchema("b", bagInnerSchema, DataType.BAG));
+        checkSchemaEquals(query, sch);
         
         // tuple column with different internal column types
         query =
@@ -667,10 +662,26 @@ public class TestUnionOnSchema  {
             + "' as (t : tuple (c1 : long, c2 : chararray) );"
             + "u = union onschema l1, l2;"
         ; 
-        checkSchemaEx(query, expectedErr);
+        sch = new Schema();
+        sch.add(new FieldSchema("t", new Schema(), DataType.TUPLE));
+        checkSchemaEquals(query, sch);
     }
     
     
+    private void checkSchemaEquals(String query, Schema expectedSch) throws IOException {
+        PigServer pig = new PigServer(ExecType.LOCAL);
+        Util.registerMultiLineQuery(pig, query);
+        Schema sch = pig.dumpSchema("u");
+        assertEquals("Checking expected schema", expectedSch, sch);      
+    }
+
+
+    private void checkSchemaEquals(String query, String schemaStr) throws IOException, ParseException {
+        Schema expectedSch = Util.getSchemaFromString(schemaStr);
+        checkSchemaEquals(query, expectedSch);       
+    }
+
+
     /**
      * Test UNION ONSCHEMA with input relation having udfs
      * @throws IOException

@@ -79,7 +79,9 @@ public class TestForEachStar {
             + "f1 = foreach l1 generate * ;"
         ; 
         Util.registerMultiLineQuery(pig, query);
+        pig.explain("f1",System.out);
         Iterator<Tuple> it = pig.openIterator("f1");
+        
         
         Tuple expectedResCharArray = (Tuple)Util.getPigConstant("('one','two')");
         Tuple expectedRes = TupleFactory.getInstance().newTuple();

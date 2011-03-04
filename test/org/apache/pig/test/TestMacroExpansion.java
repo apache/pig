@@ -32,6 +32,8 @@ import junit.framework.Assert;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigRunner;
 import org.apache.pig.impl.PigContext;
+import org.apache.pig.parser.NonProjectExpressionException;
+import org.apache.pig.parser.ParserTestingUtils;
 import org.apache.pig.parser.ParserUtil;
 import org.apache.pig.tools.grunt.Grunt;
 import org.apache.pig.tools.pigstats.PigStats;
@@ -257,16 +259,16 @@ public class TestMacroExpansion {
         String s = ParserUtil.expandMacros(rd);
         
         validate(s);
-        
+                
         String expected =
             "\nmacro_group_and_count_D_0 = load 'myfile.txt' USING PigStorage('\t') AS (name:chararray, age:int, gpa:float);\n" +
             "gamma = load 'myfile' USING PigStorage('\t') AS (F:(f1:int, f2:int, f3:int), T:(t1:chararray, t2:int));\n" +
-            "macro_group_and_count_E_0 = load 'myfile.txt' USING org.apache.pig.builtin.PigStorage('\t') AS (B:{T:(t1:int, t2:int, t3:int)});\n" +
-            "macro_group_and_count_F_0 = load 'myfile.txt' USING org.apache.pig.builtin.PigStorage('\t') AS (T1:(f1:int, f2:int), B:{T:(t1:float, t2:float)}, M:MAP[]);\n\n" +
+            "macro_group_and_count_E_0 = load 'myfile.txt' USING org.apache.pig.builtin.PigStorage('\t') AS B:bag{T:(t1:int, t2:int, t3:int)};\n" +
+            "macro_group_and_count_F_0 = load 'myfile.txt' USING org.apache.pig.builtin.PigStorage('\t') AS (T1:(f1:int, f2:int), B:bag{T:(t1:float, t2:float)}, M:map[]);\n\n" +
             "macro_group_and_count_D_1 = load 'myfile.txt' USING PigStorage('\t') AS (name:chararray, age:int, gpa:float);\n" +
             "delta = load 'mydir' USING PigStorage('\t') AS (F:(f1:int, f2:int, f3:int), T:(t1:chararray, t2:int));\n" +
-            "macro_group_and_count_E_1 = load 'myfile.txt' USING org.apache.pig.builtin.PigStorage('\t') AS (B:{T:(t1:int, t2:int, t3:int)});\n" +
-            "macro_group_and_count_F_1 = load 'myfile.txt' USING org.apache.pig.builtin.PigStorage('\t') AS (T1:(f1:int, f2:int), B:{T:(t1:float, t2:float)}, M:MAP[]);\n\n" +
+            "macro_group_and_count_E_1 = load 'myfile.txt' USING org.apache.pig.builtin.PigStorage('\t') AS B:bag{T:(t1:int, t2:int, t3:int)};\n" +
+            "macro_group_and_count_F_1 = load 'myfile.txt' USING org.apache.pig.builtin.PigStorage('\t') AS (T1:(f1:int, f2:int), B:bag{T:(t1:float, t2:float)}, M:map[]);\n\n" +
             "store gamma into 'byuser';\n" +
             "store delta into 'byage';\n";
 
@@ -700,7 +702,7 @@ public class TestMacroExpansion {
         String expected =
             "\nalpha = load 'users' as (user, age, zip);\n" +
             "macro_group_and_count_C_0 = group alpha by ($0);\n" +
-            "gamma = FOREACH macro_group_and_count_C_0 { FA = FILTER alpha BY user == 'www.xyz.org'; PA = FA.(age); DA = DISTINCT PA;  GENERATE group, COUNT(DA); } \n\n" +
+            "gamma = FOREACH macro_group_and_count_C_0 { FA = FILTER alpha BY user == 'www.xyz.org'; PA = FA.(age); DA = DISTINCT PA;  GENERATE group, COUNT(DA); } ;\n\n" +
             "store gamma into 'byuser';\n";
         
         Assert.assertEquals(expected, s);
@@ -1195,7 +1197,379 @@ public class TestMacroExpansion {
 
         validate(s);
     }
+    
+    @Test
+    public void typecastTest() throws Throwable {
+        String macro = 
+            "a = load '1.txt' as (a0);" +
+            "b = foreach a generate flatten( (bag{tuple(map[])})a0 ) as b0:map[];" +
+            "c = foreach b generate (long)b0#'key1';";
+        
+        testMacro(macro);
+    }
+    
+    @Test
+    public void test17() throws Throwable {
+        String macro = 
+            "a = load '/user/pig/tests/data/singlefile/studentnulltab10k' as (name:chararray, age:int, gpa:double);" +
+            "b = foreach a generate (int)((int)gpa/((int)gpa - 1)) as norm_gpa:int;" + 
+            "c = foreach b generate (norm_gpa is not null? norm_gpa: 0);" +
+            "store c into '/user/pig/out/jianyong.1297229709/Types_37.out';";
+            
+        testMacro(macro);
+    }
+    
+    @Test
+    public void test18() throws Throwable {
+        String macro = "define mymacro() returns dummy {" +
+            "a = load '/user/pig/tests/data/singlefile/studenttab10k';" +
+            "b = group a by $0;" +
+            "c = foreach b {c1 = order $1 by * using org.apache.pig.test.udf.orderby.OrdDesc; generate flatten(c1); };" +
+            "store c into '/user/pig/out/jianyong.1297305352/Order_15.out';};";
+            
+        String script = macro +
+            "dummy = mymacro();\n";
+        
 
+        StringReader rd = new StringReader(script);
+        String s = ParserUtil.expandMacros(rd);
+
+        //validate(s);
+        String expected =
+            "macro_mymacro_a_0 = load '/user/pig/tests/data/singlefile/studenttab10k';\n" +
+            "macro_mymacro_b_0 = group macro_mymacro_a_0 by ($0);\n" +
+            "macro_mymacro_c_0 = foreach macro_mymacro_b_0 { c1 = order $1 BY * USING org.apache.pig.test.udf.orderby.OrdDesc;  generate flatten(c1) ; } ;\n" +
+            "store macro_mymacro_c_0 INTO '/user/pig/out/jianyong.1297305352/Order_15.out';\n\n";
+        
+        Assert.assertEquals(expected, s);
+    }
+    
+    @Test
+    public void test19() throws Throwable {
+        String macro = 
+            "a = load '/user/pig/tests/data/singlefile/studenttab10k';" +
+            "b = group a by $0;" +
+            "c = foreach b {c1 = order $1 by $1; generate flatten(c1), MAX($1.$1); };" +
+            "store c into '/user/pig/out/jianyong.1297305352/Order_17.out';";
+            
+        testMacro(macro);
+    }
+    
+    @Test
+    public void test20() throws Throwable {
+        String macro = 
+            "a = load 'x' as (u,v);" +
+            "b = load 'y' as (u,w);" +
+            "c = join a by u, b by u;" +
+            "d = foreach c generate a::u, b::u, w;";
+            
+        testMacro(macro);
+    }
+    
+    @Test
+    public void test21() throws Throwable {
+        String macro = 
+        "a = load '1.txt' as ( u, v, w : int );" +
+        "b = foreach a generate * as ( x, y, z ), flatten( u ) as ( r, s ), flatten( v ) as d, w + 5 as e:int;";
+            
+        testMacro(macro);
+    }
+    
+    @Test
+    public void test22() throws Throwable {
+        String macro =
+            "a = load '1.txt' as ( u : bag{}, v : bag{tuple(x, y)} );" +
+            "b = load '2.x' as ( t : {}, u : {(r,s)}, v : bag{ T : tuple( x, y ) }, w : bag{(z1, z2)} );" +
+            "c = load '3.x' as p : int;";
+            
+        testMacro(macro);
+    }
+
+    @Test
+    public void test23() throws Throwable {
+        String macro = 
+        "a = load '1.txt' as ( u, v, w : int );" +
+        "b = foreach a generate * as ( x, y, z ), flatten( u ) as ( r, s ), flatten( v ) as d, w + 5 as e:int;";
+            
+        testMacro(macro);
+    }
+    
+    @Test
+    public void test24() throws Throwable {
+        String macro = 
+        "A = load 'x' as ( u:bag{tuple(x, y)}, v:long, w:bytearray); " + 
+        "B = foreach A generate u.(x, y), v, w; " +
+        "C = store B into 'output';";
+            
+        testMacro(macro);
+    }
+    
+    @Test
+    public void test25() throws Throwable {
+        String macro = 
+        "A = load 'x' as ( a : bag{ T:tuple(u, v) }, c : int, d : long );" +
+        "B = foreach A { R = a; P = c * 2; Q = P + d; S = R.u; T = limit S 100; generate Q, R, S, T, c + d/5; };" +
+        "store B into 'y';";
+            
+        testMacro(macro);
+    }
+    
+    @Test
+    public void test26() throws Throwable {
+        String content =
+        "A = load 'x' as ( u:bag{tuple(x, y)}, v:long, w:bytearray); " + 
+        "B = foreach A generate u.(x, $1), $1, w; " +
+        "C = store B into 'output';";
+            
+        testMacro(content);
+    }
+    
+    @Test
+    public void test27() throws Throwable {
+        String content =
+            "A = load 'x' as ( u:bag{} ); " + 
+            "B = foreach A generate u.$100; " +
+            "C = store B into 'output';";
+            
+        testMacro(content);
+    }
+    
+    @Test
+    public void test28() throws Throwable {
+        String content =
+            "A = load 'x'; " + 
+            "B = foreach A generate $1, $1000; " +
+            "C = store B into 'output';";
+            
+        testMacro(content);
+    }
+    
+    @Test
+    public void test29() throws Throwable {
+        String content =
+            "A = load 'x'; " + 
+            "B = load 'y' as ( u : int, v : chararray );" +
+            "C = foreach A generate B.$1, $0; " +
+            "D = store C into 'output';";
+            
+        testMacro(content);
+    }
+    
+    @Test
+    public void test30() throws Throwable {
+        String content =
+            "A = load 'x'; " + 
+            "B = load 'y' as ( u : int, v : chararray );" +
+            "C = foreach A generate B.$1, $0; " +
+            "D = store C into 'output';";
+            
+        testMacro(content);
+    }
+    
+    @Test
+    public void test31() throws Throwable {
+        String content =
+            "A = load 'x'; " + 
+            "B = load 'y' as ( u : int, v : chararray );" +
+            "C = foreach A generate B.v, $0; " +
+            "D = store C into 'output';";
+            
+        testMacro(content);
+    }
+    
+    public void test1() throws Throwable {
+        String query = "A = load 'x' as ( u:int, v:long, w:bytearray); " + 
+                       "B = limit A 100; " +
+                       "C = filter B by 2 > 1; " +
+                       "D = load 'y' as (d1, d2); " +
+                       "E = join C by ( $0, $1 ), D by ( d1, d2 ) using 'replicated' parallel 16; " +
+                       "F = store E into 'output';";
+        testMacro( query );
+
+    }
+
+    //@Test
+    public void test2() throws Throwable {
+        String query = "A = load 'x' as ( u:int, v:long, w:bytearray); " + 
+                       "B = distinct A partition by org.apache.pig.Identity; " +
+                       "C = sample B 0.49; " +
+                       "D = order C by $0, $1; " +
+                       "E = load 'y' as (d1, d2); " +
+                       "F = union onschema D, E; " +
+                       "G = load 'z' as (g1:int, g2:tuple(g21, g22)); " +
+                       "H = cross F, G; " +
+                       "split H into I if 10 > 5, J if 'world' eq 'hello', K if 77 <= 200; " +
+                       "L = store J into 'output';";
+        testMacro( query );
+    }
+
+    @Test
+    public void test3() throws Throwable {
+        String query = "a = load '1.txt'  as (name, age, gpa);" + 
+                       "b = group a by name PARTITION BY org.apache.pig.test.utils.SimpleCustomPartitioner2;" +
+                       "c = foreach b generate group, COUNT(a.age);" +
+                       "store c into 'y';";
+        testMacro( query );
+    }
+    
+
+    @Test
+    public void test4() throws Throwable {
+        String query = "A = load 'x'; " + 
+                       "B = mapreduce '" + "myjar.jar" + "' " +
+                           "Store A into 'table_testNativeMRJobSimple_input' "+
+                           "Load 'table_testNativeMRJobSimple_output' "+
+                           "`org.apache.pig.test.utils.WordCount -files " + "file " +
+                           "table_testNativeMRJobSimple_input table_testNativeMRJobSimple_output " +
+                           "stopworld.file" + "`;" +
+                        "C = Store B into 'output';";
+        testMacro( query );
+    }
+
+    // Test define function.
+    @Test
+    public void test5() throws Throwable {
+        String query = "define myudf org.apache.pig.builtin.PigStorage( ',' );" +
+                       "A = load 'x' using myudf;" +
+                       "store A into 'y';";
+        testMacro( query );
+    }
+
+    @Test
+    public void test6() throws Throwable {
+        String query = "A = load 'x' as ( a : int, b, c : chararray );" +
+                       "B = group A by ( a, $2 );" +
+                       "store B into 'y';";
+        testMacro( query );
+    }
+
+    @Test
+    public void test7() throws Throwable {
+        String query = "A = load 'x' as ( a : int, b, c : chararray );" +
+                       "B = foreach A generate a, $2;" +
+                       "store B into 'y';";
+        testMacro( query );
+    }
+
+    @Test
+    public void test8() throws Throwable {
+        String query = "A = load 'x' as ( a : int, b, c : chararray );" +
+                       "B = group A by a;" +
+                       "C = foreach B { S = A.b; generate S; };" +
+                       "store C into 'y';";
+        testMacro( query );
+    }
+    
+    @Test
+    public void test9() throws Throwable {
+        String query = "A = load 'x' as ( a : bag{ T:tuple(u, v) }, c : int, d : long );" +
+                       "B = foreach A { R = a; S = R.u; T = limit S 100; generate S, T, c + d/5; };" +
+                       "store B into 'y';";
+        testMacro( query );
+    }
+
+    @Test
+    public void test10() throws Throwable {
+        String query = "A = load 'x' as ( a : bag{ T:tuple(u, v) }, c : int, d : long );" +
+                       "B = foreach A { S = a; T = limit S 100; generate T; };" +
+                       "store B into 'y';";
+        testMacro( query );
+    }
+
+    @Test
+    public void test11() throws Throwable {
+        String query = "A = load 'x' as ( a : bag{ T:tuple(u, v) }, c : int, d : long );" +
+                       "B = foreach A { T = limit a 100; generate T; };" +
+                       "store B into 'y';";
+        testMacro( query );
+    }
+
+    //@Test
+    public void test12() throws Throwable {
+        String query = "define CMD `perl GroupBy.pl '\t' 0 1` ship('/homes/jianyong/pig_harness/libexec/PigTest/GroupBy.pl');" +
+                       "A = load '/user/pig/tests/data/singlefile/studenttab10k';" +
+                       "B = group A by $0;" +
+                       "C = foreach B {" +
+                       "   D = order A by $1; " +
+                       "   generate flatten(D);" +
+                       "};" +
+                       "E = stream C through CMD;" +
+                       "store E into '/user/pig/out/jianyong.1297238871/ComputeSpec_8.out';";
+        testMacro( query );
+    }
+    
+    //@Test
+    public void test13() throws Throwable {
+        String query = "define CMD `perl PigStreaming.pl` ship('/homes/jianyong/pig_harness/libexec/PigTest/PigStreaming.pl') stderr('CMD');" +
+                       "A = load '/user/pig/tests/data/singlefile/studenttab10k';" +
+                       "C = stream A through CMD;" +
+                       "store C into '/user/pig/out/jianyong.1297238871/StreamingPerformance_1.out';";
+        testMacro( query );
+    }
+    
+    @Test
+    public void test14() throws Throwable {
+        String query = "a = load '/user/pig/tests/data/singlefile/studenttab10k' using PigStorage() as (name, age:int, gpa);" +
+                       "b = load '/user/pig/tests/data/singlefile/votertab10k' as (name, age, registration, contributions);" +
+                       "e = cogroup a by name, b by name parallel 8;" +
+                       "f = foreach e generate group,  SUM(a.age) as s;" +
+                       "g = filter f by s>0;" +
+                       "store g into '/user/pig/out/jianyong.1297323675/Accumulator_1.out';";
+        testMacro( query );
+    }
+    
+    @Test
+    public void test15() throws Throwable {
+        String query = "a = load '/user/pig/tests/data/singlefile/studenttab10k' using PigStorage() as (name, age, gpa);" +
+                       "b = group a all;" +
+                       "c = foreach b generate AVG(a.age) as avg; " +
+                       "d = load '/user/pig/tests/data/singlefile/votertab10k' using PigStorage() as (name, age, registration, contributions);" +
+                       "e = group d all;" +
+                       "f = foreach e generate AVG(d.age) as avg;" +
+                       "y = foreach a generate age/c.avg, age/f.avg;" +
+                       "store y into '/user/pig/out/jianyong.1297323675/Scalar_4.out';";
+        testMacro( query );
+    }
+    
+    @Test
+    public void test16() throws Throwable {
+        String query = "AA = load '/user/pig/tests/data/singlefile/studenttab10k';" +
+                       "A = foreach (group (filter AA by $0 > 0) all) generate flatten($1);" +
+                       "store A into '/user/pig/out/jianyong.1297323675/Scalar_4.out';";
+        testMacro( query );
+    }
+
+    @Test
+    public void testFilter() throws Throwable {
+        String query = "A = load 'x' as ( u:int, v:long, w:bytearray); " + 
+                       "B = filter A by 2 > 1; ";
+        testMacro( query );
+    }
+
+    @Test
+    public void testScopedAlias() throws Throwable {
+        String query = "A = load 'x' as ( u:int, v:long, w:bytearray);" + 
+                       "B = load 'y' as ( u:int, x:int, y:chararray);" +
+                       "C = join A by u, B by u;" +
+                       "D = foreach C generate A::u, B::u, v, x;" +
+                       "store D into 'z';";
+        testMacro ( query );
+    }
+
+    
+    private void testMacro(String content) throws Throwable {
+        String macro = "define mymacro() returns dummy {" +
+            content + "};";
+            
+        String script = macro +
+            "dummy = mymacro();\n";
+        
+        StringReader rd = new StringReader(script);
+        String s = ParserUtil.expandMacros(rd);
+
+        validate(s);
+    }
+    
     private void validate(String s) throws Throwable {
         PigContext pigContext = new PigContext(ExecType.LOCAL, new Properties());
         BufferedReader br = new BufferedReader(new StringReader(s));

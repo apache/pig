@@ -19,6 +19,7 @@ package org.apache.pig.newplan.logical.relational;
 
 //import org.apache.commons.logging.Log;
 //import org.apache.commons.logging.LogFactory;
+import org.apache.pig.FuncSpec;
 import org.apache.pig.SortInfo;
 import org.apache.pig.StoreFuncInterface;
 import org.apache.pig.impl.PigContext;
@@ -126,5 +127,19 @@ public class LOStore extends LogicalRelationalOperator {
     public void setSignature(String sig) {
         signature = sig;
         storeFunc.setStoreFuncUDFContextSignature(signature);
+    }
+
+    public static String constructSignature(String alias, String filename, FuncSpec funcSpec) {
+        return alias+"_"+filename+"_"+funcSpec.toString();
+    }
+
+	public FileSpec getFileSpec() {
+		return output;
+	}
+    
+	@Override
+	public void setAlias(String alias) {
+        this.alias = alias;
+        setSignature(constructSignature(alias, output.getFileName(), output.getFuncSpec()));
     }
 }

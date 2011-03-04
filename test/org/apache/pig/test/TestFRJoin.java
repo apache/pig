@@ -177,7 +177,7 @@ public class TestFRJoin extends TestCase{
       pigServer.registerQuery("E = ORDER B by y;");
       DataBag dbfrj = BagFactory.getInstance().newDefaultBag(), dbshj = BagFactory.getInstance().newDefaultBag();
       {
-          pigServer.registerQuery("C = join D by $0, E by $0 using \"replicated\";");
+          pigServer.registerQuery("C = join D by $0, E by $0 using \'replicated\';");
           Iterator<Tuple> iter = pigServer.openIterator("C");
           
           while(iter.hasNext()) {
@@ -204,7 +204,7 @@ public class TestFRJoin extends TestCase{
         pigServer.registerQuery("E = distinct B ;");
         DataBag dbfrj = BagFactory.getInstance().newDefaultBag(), dbshj = BagFactory.getInstance().newDefaultBag();
         {
-            pigServer.registerQuery("C = join D by $0, E by $0 using \"replicated\";");
+            pigServer.registerQuery("C = join D by $0, E by $0 using 'replicated';");
             Iterator<Tuple> iter = pigServer.openIterator("C");
             
             while(iter.hasNext()) {
@@ -257,7 +257,7 @@ public class TestFRJoin extends TestCase{
         pigServer.registerQuery("B = LOAD '" + INPUT_FILE + "' as (x:int,y:int);");
         DataBag dbfrj = BagFactory.getInstance().newDefaultBag(), dbshj = BagFactory.getInstance().newDefaultBag();
         {
-            pigServer.registerQuery("C = join A by $0, B by $0 using \"replicated\";");
+            pigServer.registerQuery("C = join A by $0, B by $0 using 'replicated';");
             Iterator<Tuple> iter = pigServer.openIterator("C");
             
             while(iter.hasNext()) {
@@ -282,7 +282,7 @@ public class TestFRJoin extends TestCase{
         pigServer.registerQuery("B = LOAD '" + INPUT_FILE + "';");
         DataBag dbfrj = BagFactory.getInstance().newDefaultBag(), dbshj = BagFactory.getInstance().newDefaultBag();
         {
-            pigServer.registerQuery("C = join A by $0, B by $0 using \"replicated\";");
+            pigServer.registerQuery("C = join A by $0, B by $0 using 'replicated';");
             Iterator<Tuple> iter = pigServer.openIterator("C");
             
             while(iter.hasNext()) {
@@ -308,7 +308,7 @@ public class TestFRJoin extends TestCase{
         pigServer.registerQuery("C = LOAD '" + INPUT_FILE + "' as (x:int,y:int);");
         DataBag dbfrj = BagFactory.getInstance().newDefaultBag(), dbshj = BagFactory.getInstance().newDefaultBag();
         {
-            pigServer.registerQuery("D = join A by $0, B by $0, C by $0 using \"replicated\";");
+            pigServer.registerQuery("D = join A by $0, B by $0, C by $0 using 'replicated';");
             Iterator<Tuple> iter = pigServer.openIterator("D");
             
             while(iter.hasNext()) {
@@ -334,7 +334,7 @@ public class TestFRJoin extends TestCase{
         pigServer.registerQuery("C = LOAD '" + INPUT_FILE + "';");
         DataBag dbfrj = BagFactory.getInstance().newDefaultBag(), dbshj = BagFactory.getInstance().newDefaultBag();
         {
-            pigServer.registerQuery("D = join A by $0, B by $0, C by $0 using \"replicated\";");
+            pigServer.registerQuery("D = join A by $0, B by $0, C by $0 using 'replicated';");
             Iterator<Tuple> iter = pigServer.openIterator("D");
             
             while(iter.hasNext()) {
@@ -361,7 +361,7 @@ public class TestFRJoin extends TestCase{
         pigServer.registerQuery("B = LOAD '" + INPUT_FILE + "' as (x:int,y:int);");
         DataBag dbfrj = BagFactory.getInstance().newDefaultBag(), dbshj = BagFactory.getInstance().newDefaultBag();
         {
-            pigServer.registerQuery("C = join A by ($0,$1), B by ($0,$1) using \"replicated\";");
+            pigServer.registerQuery("C = join A by ($0,$1), B by ($0,$1) using 'replicated';");
             Iterator<Tuple> iter = pigServer.openIterator("C");
             
             while(iter.hasNext()) {
@@ -386,7 +386,7 @@ public class TestFRJoin extends TestCase{
         pigServer.registerQuery("B = LOAD '" + INPUT_FILE + "';");
         DataBag dbfrj = BagFactory.getInstance().newDefaultBag(), dbshj = BagFactory.getInstance().newDefaultBag();
         {
-            pigServer.registerQuery("C = join A by ($0,$1), B by ($0,$1) using \"replicated\";");
+            pigServer.registerQuery("C = join A by ($0,$1), B by ($0,$1) using 'replicated';");
             Iterator<Tuple> iter = pigServer.openIterator("C");
             
             while(iter.hasNext()) {
@@ -411,8 +411,8 @@ public class TestFRJoin extends TestCase{
         pigServer.registerQuery("B = LOAD '" + INPUT_FILE + "' as (x:int,y:int);");
         DataBag dbfrj = BagFactory.getInstance().newDefaultBag(), dbshj = BagFactory.getInstance().newDefaultBag();
         {
-            pigServer.registerQuery("C = join A by $0, B by $0 using \"replicated\";");
-            pigServer.registerQuery("D = join A by $1, B by $1 using \"replicated\";");
+            pigServer.registerQuery("C = join A by $0, B by $0 using 'replicated';");
+            pigServer.registerQuery("D = join A by $1, B by $1 using 'replicated';");
             pigServer.registerQuery("E = union C,D;");
             Iterator<Tuple> iter = pigServer.openIterator("E");
             
@@ -442,8 +442,8 @@ public class TestFRJoin extends TestCase{
         Map<String,Tuple> hashFRJoin = new HashMap<String,Tuple>();
         Map<String,Tuple> hashJoin = new HashMap<String,Tuple>();
         {
-            pigServer.registerQuery("C = join A by $0 left, B by $0 using \"replicated\";");
-            pigServer.registerQuery("D = join A by $1 left, B by $1 using \"replicated\";");
+            pigServer.registerQuery("C = join A by $0 left, B by $0 using 'replicated';");
+            pigServer.registerQuery("D = join A by $1 left, B by $1 using 'replicated';");
             pigServer.registerQuery("E = union C,D;");
             Iterator<Tuple> iter = pigServer.openIterator("E");
             
@@ -480,8 +480,8 @@ public class TestFRJoin extends TestCase{
         Map<String,Tuple> hashFRJoin = new HashMap<String,Tuple>();
         Map<String,Tuple> hashJoin = new HashMap<String,Tuple>();
         {
-            pigServer.registerQuery("C = join A by $0 left, B by $0 using \"repl\";");
-            pigServer.registerQuery("D = join A by $1 left, B by $1 using \"repl\";");
+            pigServer.registerQuery("C = join A by $0 left, B by $0 using 'repl';");
+            pigServer.registerQuery("D = join A by $1 left, B by $1 using 'repl';");
             pigServer.registerQuery("E = union C,D;");
             Iterator<Tuple> iter = pigServer.openIterator("E");
             
@@ -514,7 +514,7 @@ public class TestFRJoin extends TestCase{
         pigServer.registerQuery("A = LOAD '" + INPUT_FILE + "' as (x:int,y:int);");
         pigServer.registerQuery("B = LOAD '" + INPUT_FILE + "' as (x:int,y:int);");
         Schema frjSch = null, shjSch = null;
-        pigServer.registerQuery("C = join A by $0, B by $0 using \"repl\";");
+        pigServer.registerQuery("C = join A by $0, B by $0 using 'repl';");
         frjSch = pigServer.dumpSchema("C");
         pigServer.registerQuery("C = join A by $0, B by $0;");
         shjSch = pigServer.dumpSchema("C");
@@ -526,7 +526,7 @@ public class TestFRJoin extends TestCase{
         pigServer.registerQuery("A = LOAD '" + INPUT_FILE + "';");
         pigServer.registerQuery("B = LOAD '" + INPUT_FILE + "';");
         Schema frjSch = null, shjSch = null;
-        pigServer.registerQuery("C = join A by $0, B by $0 using \"repl\";");
+        pigServer.registerQuery("C = join A by $0, B by $0 using 'repl';");
         frjSch = pigServer.dumpSchema("C");
         pigServer.registerQuery("C = join A by $0, B by $0;");
         shjSch = pigServer.dumpSchema("C");
@@ -539,7 +539,7 @@ public class TestFRJoin extends TestCase{
         pigServer.registerQuery("B = LOAD '" + INPUT_FILE + "' as (x:int,y:int);");
         pigServer.registerQuery("C = LOAD '" + INPUT_FILE + "' as (x:int,y:int);");
         Schema frjSch = null, shjSch = null;
-        pigServer.registerQuery("D = join A by $0, B by $0, C by $0 using \"repl\";");
+        pigServer.registerQuery("D = join A by $0, B by $0, C by $0 using 'repl';");
         frjSch = pigServer.dumpSchema("D");
         pigServer.registerQuery("D = join A by $0, B by $0, C by $0;");
         shjSch = pigServer.dumpSchema("D");
@@ -552,7 +552,7 @@ public class TestFRJoin extends TestCase{
         pigServer.registerQuery("B = LOAD '" + INPUT_FILE + "';");
         pigServer.registerQuery("C = LOAD '" + INPUT_FILE + "';");
         Schema frjSch = null, shjSch = null;
-        pigServer.registerQuery("D = join A by $0, B by $0, C by $0 using \"repl\";");
+        pigServer.registerQuery("D = join A by $0, B by $0, C by $0 using 'repl';");
         frjSch = pigServer.dumpSchema("D");
         pigServer.registerQuery("D = join A by $0, B by $0, C by $0;");
         shjSch = pigServer.dumpSchema("D");
@@ -564,7 +564,7 @@ public class TestFRJoin extends TestCase{
         pigServer.registerQuery("A = LOAD '" + INPUT_FILE + "' as (x:int,y:int);");
         pigServer.registerQuery("B = LOAD '" + INPUT_FILE + "' as (x:int,y:int);");
         Schema frjSch = null, shjSch = null;
-        pigServer.registerQuery("C = join A by ($0,$1), B by ($0,$1) using \"repl\";");
+        pigServer.registerQuery("C = join A by ($0,$1), B by ($0,$1) using 'repl';");
         frjSch = pigServer.dumpSchema("C");
         pigServer.registerQuery("C = join A by ($0,$1), B by ($0,$1);");
         shjSch = pigServer.dumpSchema("C");
@@ -576,7 +576,7 @@ public class TestFRJoin extends TestCase{
         pigServer.registerQuery("A = LOAD '" + INPUT_FILE + "';");
         pigServer.registerQuery("B = LOAD '" + INPUT_FILE + "';");
         Schema frjSch = null, shjSch = null;
-        pigServer.registerQuery("C = join A by ($0,$1), B by ($0,$1) using \"repl\";");
+        pigServer.registerQuery("C = join A by ($0,$1), B by ($0,$1) using 'repl';");
         frjSch = pigServer.dumpSchema("C");
         pigServer.registerQuery("C = join A by ($0,$1), B by ($0,$1);");
         shjSch = pigServer.dumpSchema("C");

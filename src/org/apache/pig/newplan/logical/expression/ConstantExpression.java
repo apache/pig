@@ -18,10 +18,15 @@
 
 package org.apache.pig.newplan.logical.expression;
 
+import org.apache.pig.PigException;
+import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.data.DataType;
 import org.apache.pig.impl.logicalLayer.FrontendException;
+import org.apache.pig.impl.logicalLayer.schema.SchemaMergeException;
 import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.OperatorPlan;
 import org.apache.pig.newplan.PlanVisitor;
+import org.apache.pig.newplan.logical.Util;
 import org.apache.pig.newplan.logical.relational.LogicalSchema.LogicalFieldSchema;
 
 /**
@@ -32,21 +37,18 @@ public class ConstantExpression extends ColumnExpression {
     
     // Stupid Java needs a union
     Object val;
-    LogicalFieldSchema mValueSchema;
     
     /**
      * Adds expression to the plan 
      * @param plan LogicalExpressionPlan this constant is a part of.
      * @param val Value of this constant.
-     * @param mValueSchema field schema of the constant. 
      */
-    public ConstantExpression(OperatorPlan plan, Object val, LogicalFieldSchema mValueSchema) {
+    public ConstantExpression(OperatorPlan plan, Object val){
         super("Constant", plan);
         this.val = val;
-        this.mValueSchema = mValueSchema;
         plan.add(this);
     }
-
+    
     /**
      * @link org.apache.pig.newplan.Operator#accept(org.apache.pig.newplan.PlanVisitor)
      */
@@ -71,16 +73,12 @@ public class ConstantExpression extends ColumnExpression {
     	this.val = val;
     }
     
-    public LogicalFieldSchema getValueSchema() {
-        return mValueSchema;
-    }
 
-    
     @Override
     public boolean isEqual(Operator other) throws FrontendException {
         if (other != null && other instanceof ConstantExpression) {
             ConstantExpression co = (ConstantExpression)other;
-            return co.getValueSchema().isEqual(mValueSchema) && ( ( co.val == null && val == null ) 
+            return co.getFieldSchema().isEqual(getFieldSchema()) && ( ( co.val == null && val == null ) 
                     || ( co != null && co.val.equals(val) ) );
         } else {
             return false;
@@ -91,18 +89,23 @@ public class ConstantExpression extends ColumnExpression {
     public LogicalFieldSchema getFieldSchema() throws FrontendException {
         if (fieldSchema!=null)
             return fieldSchema;
-        fieldSchema = mValueSchema;
+        try {
+            fieldSchema =  Util.translateFieldSchema(DataType.determineFieldSchema(val));
+        }catch (Exception e) {
+            throw new FrontendException(
+                    "Error determining field schema from object in constant expression",
+                    1125,
+                    PigException.INPUT,
+                    e
+            );
+        }
         uidOnlyFieldSchema = fieldSchema.mergeUid(uidOnlyFieldSchema);
         return fieldSchema;
     }
  
     @Override
     public LogicalExpression deepCopy(LogicalExpressionPlan lgExpPlan) throws FrontendException{
-        LogicalExpression copy = new ConstantExpression( 
-                lgExpPlan,
-                this.getValue(),
-                this.getFieldSchema().deepCopy() );
-        return copy;
+        return new ConstantExpression(lgExpPlan, this.getValue());
     }
  
 }

@@ -229,7 +229,7 @@ public abstract class PigStats {
             };
         }
  
-        boolean isConnected(Operator from, Operator to) {
+        public boolean isConnected(Operator from, Operator to) {
             List<Operator> succs = null;
             succs = getSuccessors(from);
             if (succs != null) {

@@ -42,6 +42,7 @@ import org.apache.pig.newplan.logical.relational.LOStore;
 import org.apache.pig.newplan.logical.relational.LogicalPlan;
 import org.apache.pig.newplan.logical.relational.LogicalRelationalOperator;
 import org.apache.pig.newplan.logical.relational.LogicalSchema;
+import org.apache.pig.newplan.logical.relational.LogicalSchema.LogicalFieldSchema;
 import org.apache.pig.newplan.logical.rules.LoadTypeCastInserter;
 import org.apache.pig.newplan.logical.rules.MergeFilter;
 import org.apache.pig.newplan.logical.rules.PushUpFilter;
@@ -109,8 +110,7 @@ public class TestNewPlanFilterRule {
         LogicalRelationalOperator f1 = new LOFilter(plan, p3);
         
         LogicalExpression lp3 = new ProjectExpression(p3, 0, 2, f1);
-        LogicalSchema.LogicalFieldSchema fs = new LogicalSchema.LogicalFieldSchema(null, null, DataType.INTEGER);
-        LogicalExpression cont = new ConstantExpression(p3, new Integer(3), fs);
+        LogicalExpression cont = new ConstantExpression(p3, new Integer(3));
         p3.add(lp3);
         p3.add(cont);       
         LogicalExpression eq = new EqualExpression(p3, lp3, cont);        
@@ -187,15 +187,13 @@ public class TestNewPlanFilterRule {
         
         LogicalExpressionPlan p4 = new LogicalExpressionPlan();        
         LogicalExpression lp3 = new ProjectExpression(p4, 0, 2, filter);
-        LogicalSchema.LogicalFieldSchema fs = new LogicalSchema.LogicalFieldSchema(null, null, DataType.INTEGER);
-        LogicalExpression cont = new ConstantExpression(p4, new Integer(3), fs);
+        LogicalExpression cont = new ConstantExpression(p4, new Integer(3));
         p4.add(lp3);
         p4.add(cont);
         LogicalExpression eq = new EqualExpression(p4, lp3, cont);
       
         LogicalExpression lp4 = new ProjectExpression(p4, 0, 5, filter);
-        fs = new LogicalSchema.LogicalFieldSchema(null, null, DataType.FLOAT);
-        LogicalExpression cont2 = new ConstantExpression(p4, new Float(100), fs);
+        LogicalExpression cont2 = new ConstantExpression(p4, new Float(100));
         p4.add(lp4);
         p4.add(cont2);
         LogicalExpression eq2 = new EqualExpression(p4, lp4, cont2);        
@@ -268,14 +266,13 @@ public class TestNewPlanFilterRule {
         
        
         LogicalExpression lp3 = new ProjectExpression(p5, 0, 2, filter);
-        LogicalSchema.LogicalFieldSchema fs = new LogicalSchema.LogicalFieldSchema(null, null, DataType.INTEGER);
-        LogicalExpression cont = new ConstantExpression(p5, new Integer(3),fs);
+        LogicalExpression cont = new ConstantExpression(p5, new Integer(3));
         p5.add(lp3);
         p5.add(cont);       
         LogicalExpression eq = new EqualExpression(p5, lp3, cont);
         
         LogicalExpression lp4 = new ProjectExpression(p5, 0, 3, filter);
-        LogicalExpression cont2 = new ConstantExpression(p5, new Integer(3), fs);        
+        LogicalExpression cont2 = new ConstantExpression(p5, new Integer(3));        
         p5.add(lp4);
         p5.add(cont2);
         LogicalExpression eq2 = new EqualExpression(p5, lp4, cont2);        
@@ -379,8 +376,7 @@ public class TestNewPlanFilterRule {
         LogicalExpressionPlan p5 = new LogicalExpressionPlan();
         
         LogicalExpression lp3 = new ProjectExpression(p5, 0, 2, filter);
-        LogicalSchema.LogicalFieldSchema fs = new LogicalSchema.LogicalFieldSchema(null, null, DataType.INTEGER);
-        LogicalExpression cont = new ConstantExpression(p5, new Integer(3),fs);
+        LogicalExpression cont = new ConstantExpression(p5, new Integer(3));
         p5.add(lp3);
         p5.add(cont);
         LogicalExpression eq = new EqualExpression(p5, lp3, cont);      
@@ -394,7 +390,6 @@ public class TestNewPlanFilterRule {
         LogicalExpression and1 = new AndExpression(p5, eq, eq2);
         
         lp3 = new ProjectExpression(p5, 0, 2, filter);
-        fs = new LogicalSchema.LogicalFieldSchema(null, null, DataType.FLOAT);
         lp4 = new ProjectExpression(p5, 0, 5, filter);
         p5.add(lp3);
         p5.add(lp4);

@@ -43,8 +43,8 @@ import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.newplan.logical.relational.LOForEach;
 import org.apache.pig.newplan.logical.relational.LOLoad;
+import org.apache.pig.newplan.logical.relational.LogicalPlan;
 import org.apache.pig.newplan.logical.relational.LogicalRelationalOperator;
-import org.apache.pig.impl.logicalLayer.LogicalPlan;
 import org.apache.pig.newplan.logical.relational.LogicalSchema;
 import org.apache.pig.newplan.logical.relational.LOSort;
 import org.apache.pig.newplan.logical.relational.LOLimit;
@@ -60,7 +60,7 @@ import org.apache.pig.pen.util.LineageTracer;
 public class ExampleGenerator {
 
     LogicalPlan plan;
-    org.apache.pig.newplan.logical.relational.LogicalPlan newPlan;
+    LogicalPlan newPlan;
     Map<LOLoad, DataBag> baseData = null;
     PigContext pigContext;
 
@@ -126,7 +126,7 @@ public class ExampleGenerator {
         if (loads.size() != pRoots.size())
             throw new ExecException("Logical and Physical plans have different number of roots");
         logToPhyMap = execEngine.getLogToPhyMap();
-        forEachInnerLogToPhyMap = execEngine.getForEachInnerLogToPhyMap();
+        forEachInnerLogToPhyMap = execEngine.getForEachInnerLogToPhyMap(plan);
         poLoadToLogMap = new HashMap<PhysicalOperator, Operator>();
         logToDataMap = new HashMap<Operator, DataBag>();
         poToLogMap = new HashMap<PhysicalOperator, Operator>();

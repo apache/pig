@@ -704,7 +704,7 @@ public class TestNewPlanOperatorPlan extends TestCase {
     @Test
     public void testBinaryOperatorOrder() throws FrontendException {
         LogicalExpressionPlan ep = new LogicalExpressionPlan();
-        ConstantExpression c = new ConstantExpression(ep, new Integer(5), new LogicalFieldSchema(null, null, DataType.INTEGER));
+        ConstantExpression c = new ConstantExpression(ep, new Integer(5));
         ProjectExpression p = new ProjectExpression(ep, 0, 0, null);
         EqualExpression e = new EqualExpression(ep, p, c);
         assertEquals(p, e.getLhs());
@@ -749,10 +749,10 @@ public class TestNewPlanOperatorPlan extends TestCase {
     @Test
     public void testExpressionPlanVisitor() throws FrontendException {
         LogicalExpressionPlan ep = new LogicalExpressionPlan();
-        ConstantExpression c = new ConstantExpression(ep, new Integer(5), new LogicalFieldSchema(null, null, DataType.INTEGER));
+        ConstantExpression c = new ConstantExpression(ep, new Integer(5));
         ProjectExpression p = new ProjectExpression(ep, 0, 0, null);
         EqualExpression e = new EqualExpression(ep, p, c);
-        ConstantExpression c2 = new ConstantExpression(ep, new Boolean("true"), new LogicalFieldSchema(null, null, DataType.BOOLEAN));
+        ConstantExpression c2 = new ConstantExpression(ep, new Boolean("true"));
         new AndExpression(ep, e, c2);
         
         TestExpressionVisitor v = new TestExpressionVisitor(ep);
@@ -763,17 +763,17 @@ public class TestNewPlanOperatorPlan extends TestCase {
     @Test
     public void testExpressionEquality() throws FrontendException {
         LogicalExpressionPlan ep1 = new LogicalExpressionPlan();
-        ConstantExpression c1 = new ConstantExpression(ep1, new Integer(5), new LogicalFieldSchema(null, null, DataType.INTEGER));
+        ConstantExpression c1 = new ConstantExpression(ep1, new Integer(5));
         ProjectExpression p1 = new ProjectExpression(ep1, 0, 0, null);
         EqualExpression e1 = new EqualExpression(ep1, p1, c1);
-        ConstantExpression ca1 = new ConstantExpression(ep1, new Boolean("true"), new LogicalFieldSchema(null, null, DataType.BOOLEAN));
+        ConstantExpression ca1 = new ConstantExpression(ep1, new Boolean("true"));
         AndExpression a1 = new AndExpression(ep1, e1, ca1);
         
         LogicalExpressionPlan ep2 = new LogicalExpressionPlan();
-        ConstantExpression c2 = new ConstantExpression(ep2, new Integer(5), new LogicalFieldSchema(null, null, DataType.INTEGER));
+        ConstantExpression c2 = new ConstantExpression(ep2, new Integer(5));
         ProjectExpression p2 = new ProjectExpression(ep2, 0, 0, null);
         EqualExpression e2 = new EqualExpression(ep2, p2, c2);
-        ConstantExpression ca2 = new ConstantExpression(ep2, new Boolean("true"), new LogicalFieldSchema(null, null, DataType.BOOLEAN));
+        ConstantExpression ca2 = new ConstantExpression(ep2, new Boolean("true"));
         AndExpression a2 = new AndExpression(ep2, e2, ca2);
         
         assertTrue(ep1.isEqual(ep2));
@@ -784,10 +784,10 @@ public class TestNewPlanOperatorPlan extends TestCase {
         assertTrue(a1.isEqual(a2));
         
         LogicalExpressionPlan ep3 = new LogicalExpressionPlan();
-        ConstantExpression c3 = new ConstantExpression(ep3, new Integer(3), new LogicalFieldSchema(null, null, DataType.INTEGER));
+        ConstantExpression c3 = new ConstantExpression(ep3, new Integer(3));
         ProjectExpression p3 = new ProjectExpression(ep3, 0, 1, null);
         EqualExpression e3 = new EqualExpression(ep3, p3, c3);
-        ConstantExpression ca3 = new ConstantExpression(ep3, "true", new LogicalFieldSchema(null, null, DataType.CHARARRAY));
+        ConstantExpression ca3 = new ConstantExpression(ep3, "true");
         AndExpression a3 = new AndExpression(ep3, e3, ca3);
         
         assertFalse(ep1.isEqual(ep3));
@@ -853,7 +853,7 @@ public class TestNewPlanOperatorPlan extends TestCase {
             // D = filter
             LogicalExpressionPlan filterPlan = new LogicalExpressionPlan();
             ProjectExpression fy = new ProjectExpression(filterPlan, 0, 1, null);
-            ConstantExpression fc = new ConstantExpression(filterPlan, new Integer(0), new LogicalFieldSchema(null, null, DataType.INTEGER));
+            ConstantExpression fc = new ConstantExpression(filterPlan, new Integer(0));
             new EqualExpression(filterPlan, fy, fc);
             LOFilter D = new LOFilter(lp, filterPlan);
             D.neverUseForRealSetSchema(cschema);
@@ -904,7 +904,7 @@ public class TestNewPlanOperatorPlan extends TestCase {
             // D = filter
             LogicalExpressionPlan filterPlan = new LogicalExpressionPlan();
             ProjectExpression fy = new ProjectExpression(filterPlan, 0, 1, null);
-            ConstantExpression fc = new ConstantExpression(filterPlan, new Integer(0), new LogicalFieldSchema(null, null, DataType.INTEGER));
+            ConstantExpression fc = new ConstantExpression(filterPlan, new Integer(0));
             new EqualExpression(filterPlan, fy, fc);
             LOFilter D = new LOFilter(lp1, filterPlan);
             D.neverUseForRealSetSchema(cschema);
@@ -1051,7 +1051,7 @@ public class TestNewPlanOperatorPlan extends TestCase {
         LogicalExpressionPlan fp1 = new LogicalExpressionPlan();
         ProjectExpression fy1 = new ProjectExpression(fp1, 0, 1, null);
         ConstantExpression fc1 = new ConstantExpression(fp1,
-            new Integer(0), new LogicalFieldSchema(null, null, DataType.INTEGER));
+            new Integer(0));
         new EqualExpression(fp1, fy1, fc1);
         LOFilter D1 = new LOFilter(lp, fp1);
         LogicalSchema cschema = new LogicalSchema();
@@ -1065,7 +1065,7 @@ public class TestNewPlanOperatorPlan extends TestCase {
         LogicalExpressionPlan fp2 = new LogicalExpressionPlan();
         ProjectExpression fy2 = new ProjectExpression(fp2, 0, 1, null);
         ConstantExpression fc2 = new ConstantExpression(fp2, 
-            new Integer(1), new LogicalFieldSchema(null, null, DataType.INTEGER));
+            new Integer(1));
         new EqualExpression(fp2, fy2, fc2);
         LOFilter D2 = new LOFilter(lp, fp2);
         D2.neverUseForRealSetSchema(cschema);
@@ -1511,7 +1511,7 @@ public class TestNewPlanOperatorPlan extends TestCase {
         LogicalExpressionPlan fp1 = new LogicalExpressionPlan();
         ProjectExpression fy1 = new ProjectExpression(fp1, 0, 0, null);
         ConstantExpression fc1 = new ConstantExpression(fp1, 
-            new Integer(0), new LogicalFieldSchema(null, null, DataType.INTEGER));
+            new Integer(0));
         new EqualExpression(fp1, fy1, fc1);
         LOFilter D1 = new LOFilter(lp1, fp1);
         LogicalSchema cschema = new LogicalSchema();
@@ -1529,7 +1529,7 @@ public class TestNewPlanOperatorPlan extends TestCase {
         LogicalExpressionPlan fp2 = new LogicalExpressionPlan();
         ProjectExpression fy2 = new ProjectExpression(fp2, 0, 0, null);
         ConstantExpression fc2 = new ConstantExpression(fp2, 
-            new Integer(0), new LogicalFieldSchema(null, null, DataType.INTEGER));
+            new Integer(0));
         new EqualExpression(fp2, fy2, fc2);
         LOFilter D2 = new LOFilter(lp2, fp2);
         D2.neverUseForRealSetSchema(cschema);

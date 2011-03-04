@@ -35,8 +35,8 @@ import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROper
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.util.MapRedUtil;
 import org.apache.pig.impl.PigContext;
-import org.apache.pig.impl.logicalLayer.LogicalPlan;
 import org.apache.pig.impl.util.LogUtils;
+import org.apache.pig.newplan.logical.relational.LogicalPlan;
 import org.apache.pig.tools.pigscript.parser.ParseException;
 import org.apache.pig.tools.pigstats.PigStats;
 import org.apache.pig.tools.pigstats.ScriptState;
@@ -76,6 +76,7 @@ public class TestPigStats  {
     public void testPigStatsAlias() throws Exception {
         try {
             PigServer pig = new PigServer(ExecType.LOCAL);
+            pig.setBatchOn();
             pig.registerQuery("A = load 'input' as (name, age, gpa);");
             pig.registerQuery("B = group A by name;");
             pig.registerQuery("C = foreach B generate group, COUNT(A);");
@@ -121,11 +122,9 @@ public class TestPigStats  {
     }
     
     public static LogicalPlan getLogicalPlan(PigServer pig) throws Exception {
-        java.lang.reflect.Method compileLp = pig.getClass()
-                .getDeclaredMethod("compileLp",
-                        new Class[] { String.class });
-        compileLp.setAccessible(true);
-        return (LogicalPlan) compileLp.invoke(pig, new Object[] { null });
+        java.lang.reflect.Method buildLp = pig.getClass().getDeclaredMethod("buildLp");
+        buildLp.setAccessible(true);
+        return (LogicalPlan ) buildLp.invoke( pig );
     }
     
     public static MROperPlan getMRPlan(PhysicalPlan pp, PigContext ctx) throws Exception {

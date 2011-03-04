@@ -35,7 +35,7 @@ public class InvalidScalarProjectionException extends RecognitionException {
     
     public String toString() {
         return "Invalid scalar projection: " + 
-        ((LogicalRelationalOperator)scalarExpr.getAttachedLogicalOperator()).getAlias();
+            ((LogicalRelationalOperator)scalarExpr.getImplicitReferencedOperator()).getAlias();
     }
 
 }

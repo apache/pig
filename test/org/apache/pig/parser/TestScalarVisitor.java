@@ -19,10 +19,13 @@
 package org.apache.pig.parser;
 
 import java.io.IOException;
+import java.util.Properties;
 
 import junit.framework.Assert;
 
 import org.antlr.runtime.RecognitionException;
+import org.apache.pig.ExecType;
+import org.apache.pig.impl.PigContext;
 import org.apache.pig.newplan.logical.relational.LogicalPlan;
 import org.apache.pig.newplan.logical.visitor.ScalarVisitor;
 
@@ -61,17 +64,19 @@ public class TestScalarVisitor {
                        "C = foreach A generate B.w, $0; " +
                        "D = store C into 'output';";
         try {
-        	visit( query );
-        } catch(ParsingFailureException ex) {
-        	// Expected exception
-        	return;
+            visit( query );
+        } catch(Exception ex) {
+            Assert.assertTrue( ex instanceof InvalidScalarProjectionException );
+            return;
         }
         Assert.fail( "Test case should fail" );
     }
 
     private LogicalPlan visit(String query) throws RecognitionException, ParsingFailureException, IOException {
         LogicalPlan plan = ParserTestingUtils.generateLogicalPlan( query );
-        ScalarVisitor visitor = new ScalarVisitor( plan );
+        PigContext pc = new PigContext( ExecType.LOCAL, new Properties() );
+        pc.connect();
+        ScalarVisitor visitor = new ScalarVisitor( plan, pc );
         visitor.visit();
         return plan;
     }

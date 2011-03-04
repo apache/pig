@@ -443,8 +443,7 @@ public class PushUpFilter extends LogicalTransformer {
         Set<Integer> grandParentIndexes = new HashSet<Integer>();
 
         for (Integer input : predInputs) {
-            List<ProjectionMap.Column> inputList = (List<ProjectionMap.Column>) mappedFields
-                    .get(input);
+            List<ProjectionMap.Column> inputList = mappedFields.get(input);
             // inputList is null -> the required field is added
             if(inputList == null) {
                 return new Pair<Boolean, Set<Integer>>(false, null);

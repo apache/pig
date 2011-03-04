@@ -97,6 +97,7 @@ public class UserFuncExpression extends LogicalExpression {
      */
     public void setFuncSpec(FuncSpec funcSpec) {
         mFuncSpec = funcSpec;
+        ef = (EvalFunc<?>) PigContext.instantiateFuncFromSpec(mFuncSpec);
     }
     
     @Override
@@ -133,6 +134,7 @@ public class UserFuncExpression extends LogicalExpression {
                 fs = new Schema.FieldSchema(null, udfSchema, DataType.TUPLE);
             }
             fieldSchema = Util.translateFieldSchema(fs);
+            fieldSchema.normalize();
         } else {
             fieldSchema = new LogicalSchema.LogicalFieldSchema(null, null, DataType.findType(ef.getReturnType()));
         }

@@ -48,19 +48,19 @@ private static Log log = LogFactory.getLog( AliasMasker.class );
 
 public String getErrorMessage(RecognitionException e, String[] tokenNames) {
     String msg = e.getMessage();
-    if ( e instanceof DuplicatedSchemaAliasException ) {
+    if ( e instanceof DuplicatedSchemaAliasException ) { 
         DuplicatedSchemaAliasException dae = (DuplicatedSchemaAliasException)e;
         msg = "Duplicated schema alias name '"+ dae.getAlias() + "' in the schema definition";
-    } else if( e instanceof UndefinedAliasException ) {
+    } else if( e instanceof UndefinedAliasException ) { 
         UndefinedAliasException dae = (UndefinedAliasException)e;
         msg = "Alias '"+ dae.getAlias() + "' is not defined";
-    }
+    }   
     
     return msg;
 }
 
 public void setParams(Set ps, String macro, long idx) {
-    params = ps;
+    params = ps; 
     macroName = macro;
     index = idx;
 }
@@ -85,30 +85,30 @@ private StringBuilder sb = new StringBuilder();
 
 } // End of @members
 
+@rulecatch {
+catch(RecognitionException re) {
+    throw re;
+}
+}
+
 query : ^( QUERY statement* )
 ;
 
 statement : general_statement
-          | foreach_statement
-          | split_statement
+          | split_statement { sb.append(";\n"); }
 ;
 
-split_statement : split_clause { sb.append(";\n"); }
+split_statement : split_clause
 ;
 
+// For foreach statement that with complex inner plan.
 general_statement 
-    : ^( STATEMENT ( alias { sb.append(" = "); } )
-        ? op_clause parallel_clause? ) { sb.append(";\n"); }
+    : ^( STATEMENT ( alias { sb.append(" = "); } )? 
+        op_clause parallel_clause? ) { sb.append(";\n"); }
 ;
 
 parallel_clause 
     : ^( PARALLEL INTEGER ) { sb.append(" ").append($PARALLEL.text).append(" ").append($INTEGER.text); }
-;
-
-// We need to handle foreach specifically because of the ending ';', which is not required 
-// if there is a nested block. This is ugly, but it gets the job done.
-foreach_statement 
-    : ^( STATEMENT ( alias { sb.append(" = "); } )? foreach_clause { sb.append("\n"); } )
 ;
 
 alias 
@@ -130,15 +130,16 @@ op_clause : define_clause
           | stream_clause
           | mr_clause
           | split_clause
+          | foreach_clause
 ;
 
 define_clause 
-    : ^( DEFINE IDENTIFIER { sb.append($DEFINE.text).append(" ").append($IDENTIFIER.text).append(" "); }
+    : ^( DEFINE IDENTIFIER { sb.append($DEFINE.text).append(" ").append($IDENTIFIER.text).append(" "); } 
         ( cmd | func_clause ) )
 ;
 
 cmd 
-    : ^( EXECCOMMAND { sb.append($EXECCOMMAND.text); } 
+    : ^( EXECCOMMAND { sb.append($EXECCOMMAND.text); }
         ( ship_clause | cache_caluse | input_clause | output_clause | error_clause )* )
 ;
 
@@ -152,7 +153,7 @@ path_list
 ;
 
 cache_caluse 
-    : ^( CACHE { sb.append(" ").append($CACHE.text).append(" ("); }  path_list { sb.append(")"); } )
+    : ^( CACHE { sb.append(" ").append($CACHE.text).append(" ("); } path_list { sb.append(")"); } )
 ;
 
 input_clause 
@@ -168,50 +169,34 @@ stream_cmd
 
 output_clause 
     : ^( OUTPUT  { sb.append(" ").append($OUTPUT.text).append(" ("); } 
-        stream_cmd ( { sb.append(","); } stream_cmd )* { sb.append(")"); } )
+        stream_cmd ( { sb.append(","); } stream_cmd)* { sb.append(")"); } )
 ;
 
 error_clause 
-    : ^( STDERROR { sb.append(" ").append($STDERROR.text).append(" ("); } 
-        QUOTEDSTRING { sb.append($QUOTEDSTRING.text); } 
-        (INTEGER { sb.append(" LIMIT ").append($INTEGER); } )? { sb.append(")"); } )
+    : ^( STDERROR { sb.append(" ").append($STDERROR.text).append(" ("); }
+        ( QUOTEDSTRING { sb.append($QUOTEDSTRING.text); } (INTEGER { sb.append(" LIMIT ").append($INTEGER); } )? )? { sb.append(")"); } )
 ;
 
 load_clause 
     : ^( LOAD { sb.append($LOAD.text).append(" "); } filename 
-        ( { sb.append(" USING "); } func_clause )? as_clause? )
+        ( { sb.append(" USING "); } func_clause)? as_clause? )
 ;
 
 filename 
-    : QUOTEDSTRING { sb.append($QUOTEDSTRING.text); } 
+    : QUOTEDSTRING { sb.append($QUOTEDSTRING.text); }
 ;
 
 as_clause
     : ^( AS { sb.append(" ").append($AS.text).append(" "); } field_def_list )
 ;
 
-field_def_0
-    : ^( FIELD_DEF IDENTIFIER { sb.append($IDENTIFIER.text); } )
-        -> ^( FIELD_DEF IDENTIFIER BYTEARRAY  )
-    | ^( FIELD_DEF IDENTIFIER { sb.append($IDENTIFIER.text).append(":"); } type  )
-;
-
-field_def[Set<String> fieldNames] throws Exception
- : ^( FIELD_DEF IDENTIFIER { sb.append($IDENTIFIER.text); } )
--> ^( FIELD_DEF IDENTIFIER BYTEARRAY  )
- | ^( FIELD_DEF IDENTIFIER { sb.append($IDENTIFIER.text).append(":"); } type  )
+field_def
+    : ^( FIELD_DEF IDENTIFIER { sb.append($IDENTIFIER.text); }  ( {sb.append(":"); }  type)? )
 ;
 
 field_def_list
-scope{
-    Set<String> fieldNames;
-}
-@init {
-    $field_def_list::fieldNames = new HashSet<String>();
-}
-    : { sb.append("("); } 
-        ( field_def[$field_def_list::fieldNames] )
-        ( { sb.append(", "); } field_def[$field_def_list::fieldNames] )* { sb.append(")"); } 
+    : { sb.append("("); } field_def ( { sb.append(", "); } field_def )+ { sb.append(")"); }
+    | field_def
 ;
 
 type : simple_type | tuple_type | bag_type | map_type
@@ -226,28 +211,24 @@ simple_type
     | BYTEARRAY { sb.append($BYTEARRAY.text); }
 ;
 
-tuple_type : ^( TUPLE_TYPE field_def_list )
+tuple_type 
+    : ^( TUPLE_TYPE field_def_list? )
 ;
 
 bag_type 
-    : ^( BAG_TYPE { sb.append("{T:"); } tuple_type? { sb.append("}"); } )
+    : ^( BAG_TYPE { sb.append("bag{"); } ( { sb.append("T:"); } tuple_type )? ) { sb.append("}"); } 
 ;
 
-map_type 
-    : MAP_TYPE { sb.append("MAP[]"); }
+map_type : MAP_TYPE { sb.append("map[]"); }
 ;
 
 func_clause 
-    : ^( FUNC func_name { sb.append("("); } func_args? { sb.append(")"); } )
-    | ^( FUNC_REF func_alias )
+    : ^( FUNC_REF func_name )
+    | ^( FUNC func_name { sb.append("("); } func_args? { sb.append(")"); } )
 ;
 
 func_name 
-    : eid ( ( PERIOD { sb.append($PERIOD.text); } | DOLLAR { sb.append($DOLLAR.text); }) eid )*
-;
-
-func_alias 
-    : IDENTIFIER { sb.append(" ").append($IDENTIFIER.text); }
+    : eid ( ( PERIOD { sb.append($PERIOD.text); } | DOLLAR { sb.append($DOLLAR.text); } ) eid )*
 ;
 
 func_args 
@@ -255,25 +236,47 @@ func_args
         (b=QUOTEDSTRING { sb.append(", ").append($b.text); } )*
 ;
 
-group_clause 
-    : ^( GROUP { sb.append($GROUP.text).append(" "); } 
-        group_item ( { sb.append(", "); } group_item)* ( { sb.append(" USING "); } group_type)? partition_clause? ) 
-    | ^( COGROUP { sb.append($COGROUP.text).append(" "); } 
-        group_item ( { sb.append(", "); } group_item)* ( { sb.append(" USING "); } group_type)? partition_clause? ) 
+group_clause
+scope {
+    int arity;
+}
+@init {
+    $group_clause::arity = 0;
+    int gt = HINT_REGULAR;
+    int num_inputs = 0;
+}
+ : ^( ( GROUP { sb.append($GROUP.text).append(" "); } | COGROUP { sb.append($COGROUP.text).append(" "); } ) 
+      group_item { num_inputs++; } ( { sb.append(", "); } group_item { num_inputs++; } )* 
+      ( { sb.append(" USING "); } group_type { gt = $group_type.type; } )? 
+      partition_clause?
+    )
+    {
+    	if( gt == HINT_COLLECTED ) {
+    	    if( num_inputs > 1 ) {
+                throw new ParserValidationException( input, "Collected group is only supported for single input" );
+    	   } 
+    	}
+    }
 ;
 
-group_type 
-    : HINT_COLLECTED { sb.append($HINT_COLLECTED.text); } 
-    | HINT_MERGE { sb.append($HINT_MERGE.text); } 
-    | HINT_REGULAR { sb.append($HINT_REGULAR.text); } 
+group_type returns [int type]
+    : HINT_COLLECTED { $type = HINT_COLLECTED; sb.append($HINT_COLLECTED.text); } 
+    | HINT_MERGE  { $type = HINT_MERGE; sb.append($HINT_MERGE.text); } 
+    | HINT_REGULAR { $type = HINT_REGULAR; sb.append($HINT_REGULAR.text); } 
 ;
 
-group_item 
+group_item
     : rel ( join_group_by_clause 
-            | ALL { sb.append(" ").append($ALL.text); } 
-            | ANY { sb.append(" ").append($ANY.text); } ) 
-          ( INNER { sb.append(" ").append($INNER.text); } 
-            | OUTER { sb.append(" ").append($OUTER.text); } )?
+            | ALL { sb.append(" ").append($ALL.text); } | ANY { sb.append(" ").append($ANY.text); } ) 
+            ( INNER { sb.append(" ").append($INNER.text); } | OUTER { sb.append(" ").append($OUTER.text); } )?
+   {
+       if( $group_clause::arity == 0 ) {
+           // For the first input
+           $group_clause::arity = $join_group_by_clause.exprCount;
+       } else if( $join_group_by_clause.exprCount != $group_clause::arity ) {
+           throw new ParserValidationException( input, "The arity of the group by columns do not match." );
+       }
+   }
 ;
 
 rel 
@@ -281,9 +284,8 @@ rel
     | { sb.append(" ("); } op_clause { sb.append(") "); }
 ;
 
-flatten_generated_item : flatten_clause ( { sb.append(" AS "); } ( field_def_0 | field_def_list ) )?
-                       | expr ( { sb.append(" AS "); }  field_def_0 )?
-                       | STAR ( { sb.append(" AS "); }  ( field_def_0 | field_def_list ) )?
+flatten_generated_item 
+    : ( flatten_clause | expr | STAR { sb.append(" ").append($STAR.text); } ) ( { sb.append(" AS "); } field_def_list)?
 ;
 
 flatten_clause 
@@ -291,9 +293,7 @@ flatten_clause
 ;
 
 store_clause 
-    : ^( STORE { sb.append($STORE.text).append(" "); } 
-        alias { sb.append(" INTO "); } filename 
-        ( { sb.append(" USING "); } func_clause)? )
+    : ^( STORE { sb.append($STORE.text).append(" "); } alias { sb.append(" INTO "); } filename ( { sb.append(" USING "); } func_clause)? )
 ;
 
 filter_clause 
@@ -301,9 +301,9 @@ filter_clause
 ;
 
 cond 
-    : ^( OR { sb.append("("); } cond { sb.append(") ").append($OR.text).append(" ("); } cond { sb.append(")"); } )     
-    | ^( AND { sb.append("("); } cond { sb.append(") ").append($AND.text).append(" ("); } cond { sb.append(")"); } )   
-    | ^( NOT { sb.append(" ").append($NOT.text).append(" ("); } cond { sb.append(")"); } )         
+    : ^( OR { sb.append("("); } cond { sb.append(") ").append($OR.text).append(" ("); } cond { sb.append(")"); } )
+    | ^( AND { sb.append("("); } cond { sb.append(") ").append($AND.text).append(" ("); } cond { sb.append(")"); } )
+    | ^( NOT { sb.append(" ").append($NOT.text).append(" ("); } cond { sb.append(")"); } )
     | ^( NULL expr { sb.append(" IS "); } (NOT { sb.append($NOT.text).append(" "); } )?  { sb.append($NULL.text); } )
     | ^( rel_op expr { sb.append(" ").append($rel_op.result).append(" "); } expr )
     | func_eval
@@ -318,120 +318,184 @@ real_arg
     : expr | STAR { sb.append($STAR.text); }
 ;
 
-expr : ^( PLUS expr { sb.append(" ").append($PLUS.text).append(" "); } expr ) 
-     | ^( MINUS expr { sb.append(" ").append($MINUS.text).append(" "); } expr )
-     | ^( STAR expr { sb.append(" ").append($STAR.text).append(" "); } expr )
-     | ^( DIV expr { sb.append(" ").append($DIV.text).append(" "); } expr )
-     | ^( PERCENT expr { sb.append(" ").append($PERCENT.text).append(" "); } expr )
-     | ^( CAST_EXPR { sb.append("("); } type { sb.append(")"); } expr )
-     | const_expr
-     | var_expr
-     | ^( NEG { sb.append($NEG.text); } expr ) 
-     | ^( CAST_EXPR { sb.append("("); } type { sb.append(")"); } expr )
-     | ^( EXPR_IN_PAREN { sb.append("("); } expr { sb.append(")"); } )
+expr 
+    : ^( PLUS expr { sb.append(" ").append($PLUS.text).append(" "); } expr )
+    | ^( MINUS expr { sb.append(" ").append($MINUS.text).append(" "); } expr )
+    | ^( STAR expr { sb.append(" ").append($STAR.text).append(" "); } expr )
+    | ^( DIV expr { sb.append(" ").append($DIV.text).append(" "); } expr )
+    | ^( PERCENT expr { sb.append(" ").append($PERCENT.text).append(" "); } expr )
+    | ^( CAST_EXPR { sb.append("("); } type { sb.append(")"); } expr )
+    | const_expr
+    | var_expr
+    | ^( NEG { sb.append($NEG.text); } expr )
+    | ^( CAST_EXPR { sb.append("("); } type_cast { sb.append(")"); } expr )
+    | ^( EXPR_IN_PAREN { sb.append("("); } expr { sb.append(")"); } )
 ;
 
-var_expr : projectable_expr ( dot_proj | pound_proj )*
+type_cast 
+    : simple_type | map_type | tuple_type_cast | bag_type_cast
 ;
 
-projectable_expr: func_eval | col_ref | bin_expr
+tuple_type_cast 
+    : ^( TUPLE_TYPE_CAST { sb.append("tuple("); } type_cast ( {sb.append(", "); } type_cast)* {sb.append(")"); } )
+    | ^( TUPLE_TYPE_CAST { sb.append("tuple("); } type_cast? {sb.append(")"); } )
+;
+
+bag_type_cast 
+    : ^( BAG_TYPE_CAST { sb.append("bag{"); } tuple_type_cast? {sb.append("}"); } )
+;
+
+var_expr 
+    : projectable_expr ( dot_proj | pound_proj )*
+;
+
+projectable_expr
+    : func_eval | col_ref | bin_expr
 ;
 
 dot_proj 
     : ^( PERIOD { sb.append(".("); } col_alias_or_index ( { sb.append(", "); } col_alias_or_index)*  { sb.append(")"); } )
 ;
 
-col_alias_or_index 
-    : col_alias  
-    | col_index 
+col_alias_or_index : col_alias | col_index
 ;
 
 col_alias 
-    : GROUP { sb.append($GROUP.text); } 
-    | IDENTIFIER { sb.append($IDENTIFIER.text); } 
+    : GROUP { sb.append($GROUP.text); }
+    | scoped_col_alias
+;
+
+scoped_col_alias 
+    : ^( SCOPED_ALIAS a=IDENTIFIER {          
+        if (aliasSeen.contains($a.text)) {
+             sb.append(getMask($a.text));
+        } else {
+            sb.append($a.text);
+        } 
+    }
+    (b=IDENTIFIER { sb.append("::").append($b.text); })* )
 ;
 
 col_index 
-    : ^( DOLLAR INTEGER { sb.append($DOLLAR.text).append($INTEGER.text); } ) 
+    : DOLLARVAR { sb.append($DOLLARVAR.text); }
 ;
 
 pound_proj 
-    : ^( POUND { sb.append($POUND.text); } 
+    : ^( POUND { sb.append($POUND.text); }
         ( QUOTEDSTRING { sb.append($QUOTEDSTRING.text); } | NULL { sb.append($NULL.text); } ) )
 ;
 
 bin_expr 
-    : ^( BIN_EXPR { sb.append(" ("); } cond { sb.append(" ? "); } expr { sb.append(" : "); } expr { sb.append(") "); })
+    : ^( BIN_EXPR { sb.append(" ("); } cond { sb.append(" ? "); } expr { sb.append(" : "); } expr { sb.append(") "); } )     
 ;
 
 limit_clause 
     : ^( LIMIT { sb.append($LIMIT.text).append(" "); } rel 
-        ( INTEGER { sb.append(" ").append($INTEGER.text); }
-            | LONGINTEGER { sb.append(" ").append($LONGINTEGER.text); } ) )
+        ( INTEGER { sb.append(" ").append($INTEGER.text); } | LONGINTEGER { sb.append(" ").append($LONGINTEGER.text); } ) )
 ;
 
 sample_clause 
-    : ^( SAMPLE { sb.append($SAMPLE.text).append(" "); } rel DOUBLENUMBER { sb.append(" ").append($DOUBLENUMBER.text); } )
+    : ^( SAMPLE { sb.append($SAMPLE.text).append(" "); } rel DOUBLENUMBER { sb.append(" ").append($DOUBLENUMBER.text); } )    
 ;
 
 order_clause 
-    : ^( ORDER { sb.append($ORDER.text).append(" "); } rel 
-        { sb.append(" BY "); } order_by_clause  
+    : ^( ORDER { sb.append($ORDER.text).append(" "); } rel
+        { sb.append(" BY "); } order_by_clause
         ( { sb.append(" USING "); } func_clause )? )
 ;
 
 order_by_clause 
-    : STAR { sb.append($STAR.text); } 
-        ( ASC { sb.append(" ").append($ASC.text); } 
-            | DESC { sb.append(" ").append($DESC.text); } )?
+    : STAR { sb.append($STAR.text); } ( ASC { sb.append(" ").append($ASC.text); } | DESC { sb.append(" ").append($DESC.text); } )?
     | order_col ( { sb.append(", "); } order_col)*
 ;
 
 order_col 
-    : col_ref ( ASC { sb.append(" ").append($ASC.text); } | DESC { sb.append(" ").append($DESC.text); } )?
+    : col_ref ( ASC { sb.append(" ").append($ASC.text); } | DESC { sb.append(" ").append($DESC.text); } )?    
 ;
 
 distinct_clause 
-    : ^( DISTINCT { sb.append($DISTINCT.text).append(" "); }  rel partition_clause? )
+    : ^( DISTINCT { sb.append($DISTINCT.text).append(" "); } rel partition_clause? )
 ;
 
 partition_clause 
-    : ^( PARTITION { sb.append(" ").append($PARTITION.text).append(" BY "); } func_name )
+    : ^( PARTITION { sb.append(" ").append($PARTITION.text).append(" BY "); } func_name )    
 ;
 
 cross_clause 
-    : ^( CROSS { sb.append($CROSS.text).append(" "); } rel_list partition_clause? )
+    : ^( CROSS { sb.append($CROSS.text).append(" "); } rel_list partition_clause? )    
 ;
 
-rel_list : rel ( { sb.append(", "); } rel)*
+rel_list 
+    : rel ( { sb.append(", "); } rel)*
 ;
 
-join_clause 
-    : ^( JOIN { sb.append($JOIN.text).append(" "); } 
-        join_sub_clause ( { sb.append(" USING "); } join_type)? partition_clause? )
+join_clause
+scope {
+    int arity;
+}
+@init {
+    $join_clause::arity = 0;
+    boolean partitionerPresent = false;
+    int jt = HINT_DEFAULT;
+}
+    : ^( JOIN { sb.append($JOIN.text).append(" "); } join_sub_clause ( { sb.append(" USING "); } join_type { jt = $join_type.type; } )? 
+    ( partition_clause { partitionerPresent = true; } )? )
+   {
+       if( jt == HINT_SKEWED ) {
+           if( partitionerPresent ) {
+               throw new ParserValidationException( input, "Custom Partitioner is not supported for skewed join" );
+           }
+           
+           if( $join_sub_clause.inputCount != 2 ) {
+               throw new ParserValidationException( input, "Skewed join can only be applied for 2-way joins" );
+           }
+       } else if( jt == HINT_MERGE && $join_sub_clause.inputCount != 2 ) {
+           throw new ParserValidationException( input, "Merge join can only be applied for 2-way joins" );
+       } else if( jt == HINT_REPL && $join_sub_clause.right ) {
+           throw new ParserValidationException( input, "Replicated join does not support (right|full) outer joins" );
+       }
+   }
 ;
 
-join_type 
-    : HINT_REPL { sb.append($HINT_REPL.text); } 
-    | HINT_MERGE { sb.append($HINT_MERGE.text); } 
-    | HINT_SKEWED { sb.append($HINT_SKEWED.text); } 
-    | HINT_DEFAULT { sb.append($HINT_DEFAULT.text); } 
+join_type returns[int type]
+    : HINT_REPL  { $type = HINT_REPL; sb.append($HINT_REPL.text); }
+    | HINT_MERGE { $type = HINT_MERGE; sb.append($HINT_MERGE.text); }
+    | HINT_SKEWED { $type = HINT_SKEWED; sb.append($HINT_SKEWED.text); }
+    | HINT_DEFAULT { $type = HINT_DEFAULT; sb.append($HINT_DEFAULT.text); }
 ;
 
-join_sub_clause 
-    : join_item ( LEFT { sb.append(" ").append($LEFT.text); } 
-                | RIGHT { sb.append(" ").append($RIGHT.text); } 
-                | FULL { sb.append(" ").append($FULL.text); } ) 
-                    (OUTER { sb.append(" ").append($OUTER.text); } )? { sb.append(", "); } join_item
-    | join_item ( { sb.append(", "); } join_item )*
+join_sub_clause returns[int inputCount, boolean right, boolean left]
+@init {
+    $inputCount = 0;
+}
+ : join_item ( LEFT { $left = true; sb.append(" ").append($LEFT.text); }
+             | RIGHT { $right = true; sb.append(" ").append($RIGHT.text); }
+             | FULL { $left = true; $right = true; sb.append(" ").append($FULL.text); }
+             ) (OUTER { sb.append(" ").append($OUTER.text); } )? { sb.append(", "); } join_item
+   { 
+       $inputCount = 2;
+   }
+ | join_item { $inputCount++; } ( { sb.append(", "); } join_item { $inputCount++; } )*
 ;
 
-join_item : ^( JOIN_ITEM rel join_group_by_clause )
+join_item
+ : ^( JOIN_ITEM rel join_group_by_clause )
+   {
+       if( $join_clause::arity == 0 ) {
+           // For the first input
+           $join_clause::arity = $join_group_by_clause.exprCount;
+       } else if( $join_group_by_clause.exprCount != $join_clause::arity ) {
+           throw new ParserValidationException( input, "The arity of the join columns do not match." );
+       }
+   }
 ;
 
-join_group_by_clause 
+join_group_by_clause returns[int exprCount]
+@init {
+    $exprCount = 0;
+}
     : ^( BY { sb.append(" ").append($BY.text).append(" ("); } 
-        join_group_by_expr ( { sb.append(", "); } join_group_by_expr)* { sb.append(")"); } )
+    join_group_by_expr { $exprCount++; } ( { sb.append(", "); } join_group_by_expr { $exprCount++; } )* { sb.append(")"); } )
 ;
 
 join_group_by_expr 
@@ -439,17 +503,16 @@ join_group_by_expr
 ;
 
 union_clause 
-    : ^( UNION { sb.append($UNION.text).append(" "); } 
-        (ONSCHEMA { sb.append($ONSCHEMA.text).append(" "); } )? rel_list )
+    : ^( UNION { sb.append($UNION.text).append(" "); } (ONSCHEMA { sb.append($ONSCHEMA.text).append(" "); } )? rel_list )    
 ;
 
 foreach_clause 
-    : ^( FOREACH { sb.append($FOREACH.text).append(" "); } rel foreach_plan )
+    : ^( FOREACH { sb.append($FOREACH.text).append(" "); } rel foreach_plan )    
 ;
 
 foreach_plan 
-    : ^( FOREACH_PLAN nested_blk )
-    | ^( FOREACH_PLAN_SIMPLE generate_clause parallel_clause? { sb.append(";"); } )
+    : ^( FOREACH_PLAN_SIMPLE generate_clause )
+    | ^( FOREACH_PLAN_COMPLEX nested_blk )
 ;
 
 nested_blk
@@ -459,8 +522,8 @@ scope { Set<String> ids; }
 ;
 
 generate_clause 
-    : ^( GENERATE { sb.append(" ").append($GENERATE.text).append(" "); } 
-        flatten_generated_item ( { sb.append(", "); } flatten_generated_item)* )
+    : ^( GENERATE { sb.append(" ").append($GENERATE.text).append(" "); }
+        flatten_generated_item ( { sb.append(", "); } flatten_generated_item)* )    
 ;
 
 nested_command
@@ -482,68 +545,71 @@ nested_op : nested_proj
 ;
 
 nested_proj 
-    : ^( NESTED_PROJ col_ref { sb.append(".("); } col_ref ( { sb.append(", "); } col_ref)* { sb.append(")"); } )
+    : ^( NESTED_PROJ col_ref { sb.append(".("); } col_ref ( { sb.append(", "); } col_ref)* { sb.append(")"); } )    
 ;
 
 nested_filter
-    : ^( FILTER { sb.append($FILTER.text).append(" "); } nested_op_input { sb.append(" BY "); } cond )
+    : ^( FILTER { sb.append($FILTER.text).append(" "); } nested_op_input { sb.append(" BY "); } cond )    
 ;
 
 nested_sort 
-    : ^( ORDER { sb.append($ORDER.text).append(" "); } nested_op_input  
-        { sb.append(" BY "); } order_by_clause ( { sb.append(" USING "); } func_clause)? )
+    : ^( ORDER { sb.append($ORDER.text).append(" "); } nested_op_input
+        { sb.append(" BY "); } order_by_clause ( { sb.append(" USING "); } func_clause)? )    
 ;
 
 nested_distinct 
-    : ^( DISTINCT { sb.append($DISTINCT.text).append(" "); }  nested_op_input )
+    : ^( DISTINCT { sb.append($DISTINCT.text).append(" "); }  nested_op_input )    
 ;
 
 nested_limit 
-    : ^( LIMIT { sb.append($LIMIT.text).append(" "); } 
-        nested_op_input INTEGER { sb.append(" ").append($INTEGER.text); } )
+    : ^( LIMIT { sb.append($LIMIT.text).append(" "); }  nested_op_input INTEGER { sb.append(" ").append($INTEGER.text); } )
 ;
 
 nested_op_input : col_ref | nested_proj
 ;
 
 stream_clause 
-    : ^( STREAM { sb.append($STREAM.text).append(" "); } rel 
-        { sb.append(" THROUGH "); } 
-        ( EXECCOMMAND { sb.append($EXECCOMMAND.text); } 
+    : ^( STREAM { sb.append($STREAM.text).append(" "); } rel { sb.append(" THROUGH "); }
+        ( EXECCOMMAND { sb.append($EXECCOMMAND.text); }
         | IDENTIFIER { sb.append($IDENTIFIER.text); } ) as_clause? )
 ;
 
 mr_clause 
-    : ^( MAPREDUCE QUOTEDSTRING { sb.append($MAPREDUCE.text).append(" ").append($QUOTEDSTRING.text).append(" "); } 
-        ({ sb.append(" ("); } path_list { sb.append(") "); } )? store_clause { sb.append(" "); } load_clause 
+    : ^( MAPREDUCE QUOTEDSTRING { sb.append($MAPREDUCE.text).append(" ").append($QUOTEDSTRING.text).append(" "); }
+        ({ sb.append(" ("); } path_list { sb.append(") "); } )? store_clause { sb.append(" "); } load_clause
         (EXECCOMMAND { sb.append(" ").append($EXECCOMMAND.text); } )? )
 ;
 
 split_clause 
-    : ^( SPLIT  { sb.append($SPLIT.text).append(" "); } 
+    : ^( SPLIT  { sb.append($SPLIT.text).append(" "); }
         rel { sb.append(" INTO "); } split_branch ( { sb.append(", "); } split_branch)+ )
 ;
 
-split_branch 
-    : ^( SPLIT_BRANCH IDENTIFIER { sb.append($IDENTIFIER.text).append(" IF "); } cond )
+split_branch
+    : ^( SPLIT_BRANCH IDENTIFIER { sb.append($IDENTIFIER.text).append(" IF "); } cond )    
 ;
 
 col_ref : alias_col_ref | dollar_col_ref
 ;
 
 alias_col_ref 
-    : GROUP { sb.append($GROUP.text); } 
-    | name = IDENTIFIER {  
+    : GROUP { sb.append($GROUP.text); }
+    | scoped_alias_col_ref
+;
+
+scoped_alias_col_ref 
+    : ^( SCOPED_ALIAS name=IDENTIFIER  {
         if (aliasSeen.contains($name.text)) {
             sb.append(getMask($name.text));
         } else {
             sb.append($name.text);
-        } 
-    } 
+        } }
+    (name1=IDENTIFIER { sb.append("::").append($name1.text); } 
+        )* )
 ;
 
 dollar_col_ref 
-    : ^( DOLLAR INTEGER { sb.append($DOLLAR.text).append($INTEGER.text); } )
+    : DOLLARVAR { sb.append($DOLLARVAR.text); }
 ;
 
 const_expr : literal
@@ -553,12 +619,12 @@ literal : scalar | map | bag | tuple
 ;
 
 scalar 
-    : INTEGER { sb.append($INTEGER.text); } 
-    | LONGINEGER { sb.append($LONGINEGER.text); } 
-    | FLOATNUMBER { sb.append($FLOATNUMBER.text); } 
-    | DOUBLENUMBER { sb.append($DOUBLENUMBER.text); } 
-    | QUOTEDSTRING { sb.append($QUOTEDSTRING.text); } 
-    | NULL { sb.append($NULL.text); } 
+    : INTEGER { sb.append($INTEGER.text); }
+    | LONGINEGER { sb.append($LONGINEGER.text); }
+    | FLOATNUMBER { sb.append($FLOATNUMBER.text); }
+    | DOUBLENUMBER { sb.append($DOUBLENUMBER.text); }
+    | QUOTEDSTRING { sb.append($QUOTEDSTRING.text); }
+    | NULL { sb.append($NULL.text); }    
 ;
 
 map 
@@ -567,12 +633,10 @@ map
 ;
 
 keyvalue 
-    : ^( KEY_VAL_PAIR map_key { sb.append("#"); } const_expr )
+    : ^( KEY_VAL_PAIR map_key { sb.append("#"); } const_expr )    
 ;
 
-map_key 
-    : QUOTEDSTRING { sb.append($QUOTEDSTRING.text); } 
-    | NULL { sb.append($NULL.text); } 
+map_key : QUOTEDSTRING { sb.append($QUOTEDSTRING.text); }
 ;
 
 bag 
@@ -642,14 +706,14 @@ eid : rel_str_op
     | STDOUT    { sb.append($STDOUT.text); }
     | LIMIT     { sb.append($LIMIT.text); }
     | SAMPLE    { sb.append($SAMPLE.text); }
-    | LEFT      { sb.append($LEFT.text); }     
+    | LEFT      { sb.append($LEFT.text); }
     | RIGHT     { sb.append($RIGHT.text); }
     | FULL      { sb.append($FULL.text); }
     | IDENTIFIER    { sb.append($IDENTIFIER.text); }
 ;
 
 // relational operator
-rel_op returns[String result] 
+rel_op returns[String result]
     : rel_op_eq     { $result = $rel_op_eq.result; }
     | rel_op_ne     { $result = $rel_op_ne.result; }
     | rel_op_gt     { $result = $rel_op_gt.result; }
@@ -689,7 +753,7 @@ rel_op_lte returns[String result]
     | NUM_OP_LTE { $result = $NUM_OP_LTE.text; }
 ;
 
-rel_str_op 
+rel_str_op
     : STR_OP_EQ { sb.append($STR_OP_EQ.text); }
     | STR_OP_NE { sb.append($STR_OP_NE.text); }
     | STR_OP_GT { sb.append($STR_OP_GT.text); }

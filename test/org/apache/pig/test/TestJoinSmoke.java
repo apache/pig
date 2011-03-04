@@ -170,7 +170,7 @@ public class TestJoinSmoke extends TestCase{
         pigServer.registerQuery("B = LOAD '" + FR_INPUT_FILE + "' as (x:int,y:int);");
         DataBag dbfrj = BagFactory.getInstance().newDefaultBag(), dbshj = BagFactory.getInstance().newDefaultBag();
         {
-            pigServer.registerQuery("C = join A by $0, B by $0 using \"replicated\";");
+            pigServer.registerQuery("C = join A by $0, B by $0 using 'replicated';");
             Iterator<Tuple> iter = pigServer.openIterator("C");
             
             while(iter.hasNext()) {
@@ -198,7 +198,7 @@ public class TestJoinSmoke extends TestCase{
 
         DataBag dbfrj = BagFactory.getInstance().newDefaultBag(), dbshj = BagFactory.getInstance().newDefaultBag();
         {
-            pigServer.registerQuery("E = join C by group, D by group using \"skewed\" parallel 5;");
+            pigServer.registerQuery("E = join C by group, D by group using 'skewed' parallel 5;");
             Iterator<Tuple> iter = pigServer.openIterator("E");
 
             while(iter.hasNext()) {
@@ -224,7 +224,7 @@ public class TestJoinSmoke extends TestCase{
         try {
             DataBag dbfrj = BagFactory.getInstance().newDefaultBag();
             {
-                pigServer.registerQuery("C = join A by id left, B by id using \"skewed\";");
+                pigServer.registerQuery("C = join A by id left, B by id using 'skewed';");
                 Iterator<Tuple> iter = pigServer.openIterator("C");
 
                 while(iter.hasNext()) {
@@ -232,7 +232,7 @@ public class TestJoinSmoke extends TestCase{
                 }
             }
             {
-                pigServer.registerQuery("C = join A by id right, B by id using \"skewed\";");
+                pigServer.registerQuery("C = join A by id right, B by id using 'skewed';");
                 Iterator<Tuple> iter = pigServer.openIterator("C");
 
                 while(iter.hasNext()) {
@@ -240,7 +240,7 @@ public class TestJoinSmoke extends TestCase{
                 }
             }
             {
-                pigServer.registerQuery("C = join A by id full, B by id using \"skewed\";");
+                pigServer.registerQuery("C = join A by id full, B by id using 'skewed';");
                 Iterator<Tuple> iter = pigServer.openIterator("C");
 
                 while(iter.hasNext()) {

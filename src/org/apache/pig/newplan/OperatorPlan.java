@@ -25,6 +25,8 @@ import org.apache.pig.classification.InterfaceAudience;
 import org.apache.pig.classification.InterfaceStability;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.util.Pair;
+import org.apache.pig.newplan.logical.relational.LOLoad;
+import org.apache.pig.newplan.logical.relational.LOStore;
 
 /**
  * An interface that defines graph operations on plans.  Plans are modeled as
@@ -186,4 +188,12 @@ public interface OperatorPlan {
      * @throws FrontendException
      */
     public void insertBetween(Operator pred, Operator operatorToInsert, Operator succ) throws FrontendException;
+
+    /**
+     * check if there is a path in the plan graph between the load operator to the store operator.
+     * @param load load operator
+     * @param store store operator
+     * @return true if yes, no otherwise.
+     */
+    public boolean pathExists(Operator load, Operator store);
 }
