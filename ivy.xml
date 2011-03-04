@@ -17,7 +17,9 @@
    limitations under the License.
 -->
 
-<ivy-module version="1.0">
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:noNamespaceSchemaLocation="http://ant.apache.org/ivy/schemas/ivy.xsd">
   <info organisation="org.apache.pig" module="${ant.project.name}" revision="${version}">
     <license name="Apache 2.0"/>
     <ivyauthor name="Apache Hadoop Team" url="http://hadoop.apache.org/pig"/>
@@ -96,8 +98,31 @@
     <dependency org="rhino" name="js" rev="${rhino.version}" conf="compile->master"/>
   	<dependency org="org.antlr" name="antlr" rev="${antlr.version}" conf="compile->master"/>
   	<dependency org="org.antlr" name="antlr-runtime" rev="${antlr.version}" conf="compile->default"/>
+    <dependency org="org.apache.zookeeper" name="zookeeper" rev="${zookeeper.version}" conf="compile->master"/>
 
-    <!--ATM hbase, hbase-test.jar, hadoop.jar are resolved from the lib dir--> 	
+    <dependency org="org.apache.hbase" name="hbase" rev="${hbase.version}" conf="compile->master">
+      <artifact name="hbase" type="jar"/>
+      <artifact name="hbase" type="test-jar" ext="jar" m:classifier="tests"/>
+      <exclude org="org.apache.thrift" module="thrift"/>
+      <exclude org="org.apache.hadoop" module="hadoop-core"/>
+      <exclude org="org.apache.ant" module="ant" />
+      <exclude org="org.slf4j" module="slf4j"/>
+      <exclude org="org.slf4j" module="slf4j-api"/>
+      <exclude org="org.slf4j" module="log4j12"/>
+      <exclude org="org.slf4j" module="slf4j-log4j12" />
+      <exclude org="stax" module="stax-api" />
+      <exclude org="javax.xml.bind" module="jaxb-api" />
+      <exclude org="javax.ws.rs" module="jsr311-api" />
+      <exclude org="com.google.protobuf" module="protobuf-java"/>
+      <exclude org="tomcat" module="jasper-runtime"/>
+      <exclude org="tomcat" module="jasper-compiler"/>
+      <exclude org="org.slf4j" module="log4j-over-slf4j"/>
+      <exclude org="com.sun.jersey" module="jersey-core"/>
+      <exclude org="com.sun.jersey" module="jersey-server"/>
+      <exclude org="com.sun.jersey" module="jersey-json"/>
+      <exclude org="asm" module="asm"/>
+    </dependency>
+
     <dependency org="hsqldb" name="hsqldb" rev="${hsqldb.version}"
       conf="test->default" />
     </dependencies>

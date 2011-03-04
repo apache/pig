@@ -120,6 +120,10 @@ public class MiniCluster {
         return ConfigurationUtil.toProperties(m_conf);
     }
 
+    public Configuration getConfiguration() {
+        return new Configuration(m_conf);
+    }
+
     public void setProperty(String name, String value) {
         errorIfNotSetup();
         m_conf.set(name, value);

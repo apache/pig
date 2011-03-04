@@ -17,6 +17,8 @@
 package org.apache.pig.backend.hadoop.hbase;
 
 import java.io.ByteArrayOutputStream;
+import java.io.DataInput;
+import java.io.DataOutput;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.Arrays;
@@ -32,6 +34,7 @@ import org.apache.commons.cli.ParseException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.Put;
@@ -43,10 +46,14 @@ import org.apache.hadoop.hbase.filter.FilterList;
 import org.apache.hadoop.hbase.filter.RowFilter;
 import org.apache.hadoop.hbase.io.ImmutableBytesWritable;
 import org.apache.hadoop.hbase.mapreduce.TableInputFormat;
+import org.apache.hadoop.hbase.mapreduce.TableMapReduceUtil;
 import org.apache.hadoop.hbase.mapreduce.TableOutputFormat;
+import org.apache.hadoop.hbase.mapreduce.TableSplit;
 import org.apache.hadoop.hbase.util.Base64;
 import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.hadoop.io.WritableComparable;
 import org.apache.hadoop.mapreduce.InputFormat;
+import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.OutputFormat;
 import org.apache.hadoop.mapreduce.RecordReader;
@@ -55,6 +62,7 @@ import org.apache.pig.LoadCaster;
 import org.apache.pig.LoadFunc;
 import org.apache.pig.LoadPushDown;
 import org.apache.pig.LoadStoreCaster;
+import org.apache.pig.OrderedLoadFunc;
 import org.apache.pig.ResourceSchema;
 import org.apache.pig.ResourceSchema.ResourceFieldSchema;
 import org.apache.pig.StoreFuncInterface;
@@ -76,7 +84,7 @@ import com.google.common.collect.Lists;
  * 
  *
  */
-public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPushDown {
+public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPushDown, OrderedLoadFunc {
     
     private static final Log LOG = LogFactory.getLog(HBaseStorage.class);
 
@@ -84,9 +92,9 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
     private final static String BYTE_CASTER = "HBaseBinaryConverter";
     private final static String CASTER_PROPERTY = "pig.hbase.caster";
     
-    private List<byte[]> columnList_ = Lists.newArrayList();
+    private List<byte[][]> columnList_ = Lists.newArrayList();
     private HTable m_table;
-    private HBaseConfiguration m_conf;
+    private Configuration m_conf;
     private RecordReader reader;
     private RecordWriter writer;
     private Scan scan;
@@ -161,10 +169,10 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
 
         loadRowKey_ = configuredOptions_.hasOption("loadKey");  
         for (String colName : colNames) {
-            columnList_.add(Bytes.toBytes(colName));
+            columnList_.add(Bytes.toByteArrays(colName.split(":")));
         }
 
-        m_conf = new HBaseConfiguration();
+        m_conf = HBaseConfiguration.create();
         String defaultCaster = m_conf.get(CASTER_PROPERTY, STRING_CASTER);
         String casterOption = configuredOptions_.getOptionValue("caster", defaultCaster);
         if (STRING_CASTER.equalsIgnoreCase(casterOption)) {
@@ -246,11 +254,11 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
                     startIndex++;
                 }
                 for (int i=0;i<columnList_.size();++i){
-                	byte[] cell=result.getValue(columnList_.get(i));
-                	if (cell!=null)
-                	    tuple.set(i+startIndex, new DataByteArray(cell));
-                	else
-                	    tuple.set(i+startIndex, null);
+                    byte[] cell=result.getValue(columnList_.get(i)[0],columnList_.get(i)[1]);
+                    if (cell!=null)
+                        tuple.set(i+startIndex, new DataByteArray(cell));
+                    else
+                        tuple.set(i+startIndex, null);
                 }
                 return tuple;
             }
@@ -280,6 +288,12 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
 
     @Override
     public void setLocation(String location, Job job) throws IOException {
+        job.getConfiguration().setBoolean("pig.noSplitCombination", true);
+        // Make sure the HBase and Guava jars get shipped.
+        TableMapReduceUtil.addDependencyJars(job.getConfiguration(), 
+            org.apache.hadoop.hbase.client.HTable.class,
+            com.google.common.collect.Lists.class);
+
         String tablename = location;
         if (location.startsWith("hbase://")){
            tablename = location.substring(8);
@@ -287,9 +301,12 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
         if (m_table == null) {
             m_table = new HTable(m_conf, tablename);
         }
+        HBaseConfiguration.addHbaseResources(m_conf);
         m_table.setScannerCaching(caching_);
         m_conf.set(TableInputFormat.INPUT_TABLE, tablename);
-        scan.addColumns(columnList_.toArray(new byte[0][]));
+        for (byte[][] col : columnList_) {
+            scan.addColumn(col[0], col[1]);
+        }
         m_conf.set(TableInputFormat.SCAN, convertScanToString(scan));
     }
 
@@ -328,6 +345,8 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
     @Override
     public OutputFormat getOutputFormat() throws IOException {
         TableOutputFormat outputFormat = new TableOutputFormat();
+        HBaseConfiguration.addHbaseResources(m_conf);
+        outputFormat.setConf(m_conf);
         return outputFormat;
     }
 
@@ -356,7 +375,7 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
         long ts=System.currentTimeMillis();
         
         for (int i=1;i<t.size();++i){
-            put.add(columnList_.get(i-1), ts, objToBytes(t.get(i),
+            put.add(columnList_.get(i-1)[0], columnList_.get(i-1)[1], ts, objToBytes(t.get(i),
                     (fieldSchemas == null) ? DataType.findType(t.get(i)) : fieldSchemas[i].getType()));
         }
         try {
@@ -405,11 +424,11 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
         }else{
             job.getConfiguration().set(TableOutputFormat.OUTPUT_TABLE, location);
         }
+        m_conf = HBaseConfiguration.create(job.getConfiguration());
     }
 
     @Override
     public void cleanupOnFailure(String location, Job job) throws IOException {
-
     }
 
     /*
@@ -425,7 +444,7 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
     public RequiredFieldResponse pushProjection(
             RequiredFieldList requiredFieldList) throws FrontendException {
         List<RequiredField>  requiredFields = requiredFieldList.getFields();
-        List<byte[]> newColumns = Lists.newArrayListWithExpectedSize(requiredFields.size());
+        List<byte[][]> newColumns = Lists.newArrayListWithExpectedSize(requiredFields.size());
         
         // HBase Row Key is the first column in the schema when it's loaded, 
         // and is not included in the columnList (since it's not a proper column).
@@ -444,12 +463,35 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
             int fieldIndex = field.getIndex();
             newColumns.add(columnList_.get(fieldIndex - offset));
         }
-        LOG.info("pushProjection After Projection: loadRowKey is " + loadRowKey_) ;
-        for (byte[] col : newColumns) {
-            LOG.info("pushProjection -- col: " + Bytes.toStringBinary(col));
+        LOG.debug("pushProjection After Projection: loadRowKey is " + loadRowKey_) ;
+        for (byte[][] col : newColumns) {
+            LOG.debug("pushProjection -- col: " + Bytes.toStringBinary(col[0]) + ":" + Bytes.toStringBinary(col[1]));
         }
         columnList_ = newColumns;
         return new RequiredFieldResponse(true);
+    }
+
+    @Override
+    public WritableComparable<InputSplit> getSplitComparable(InputSplit split)
+            throws IOException {
+        return new WritableComparable<InputSplit>() {
+            TableSplit tsplit = new TableSplit();
+
+            @Override
+            public void readFields(DataInput in) throws IOException {
+                tsplit.readFields(in);
+}
+
+            @Override
+            public void write(DataOutput out) throws IOException {
+                tsplit.write(out);
+            }
+
+            @Override
+            public int compareTo(InputSplit split) {
+                return tsplit.compareTo((TableSplit) split);
+            }
+        };
     }
 
 }
