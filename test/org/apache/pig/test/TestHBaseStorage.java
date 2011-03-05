@@ -16,28 +16,20 @@
  */
 package org.apache.pig.test;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.Iterator;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.hbase.HBaseConfiguration;
-import org.apache.hadoop.hbase.HColumnDescriptor;
-import org.apache.hadoop.hbase.HConstants;
-import org.apache.hadoop.hbase.HTableDescriptor;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.MiniHBaseCluster;
-import org.apache.hadoop.hbase.MiniZooKeeperCluster;
-import org.apache.hadoop.hbase.client.HBaseAdmin;
-import org.apache.hadoop.hbase.client.HConnectionManager;
+import org.apache.hadoop.hbase.HBaseTestingUtility;
 import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.Bytes;
-import org.apache.hadoop.hbase.util.FSUtils;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
@@ -52,11 +44,8 @@ import org.junit.Test;
 public class TestHBaseStorage {
 
 	private static final Log LOG = LogFactory.getLog(TestHBaseStorage.class);
-
-	private static MiniCluster cluster = MiniCluster.buildCluster();
-	private static HBaseConfiguration conf;
-	private static MiniHBaseCluster hbaseCluster;
-	private static MiniZooKeeperCluster zooKeeperCluster;
+	private static HBaseTestingUtility util;
+    private static Configuration conf;
 
 	private static PigServer pig;
 
@@ -73,36 +62,21 @@ public class TestHBaseStorage {
 	private static final String TESTCOLUMN_A = "pig:col_a";
 	private static final String TESTCOLUMN_B = "pig:col_b";
 	private static final String TESTCOLUMN_C = "pig:col_c";
-	private static final HColumnDescriptor family = new HColumnDescriptor(
-			COLUMNFAMILY);
 	private static final int TEST_ROW_COUNT = 100;
 
 	@BeforeClass
 	public static void setUp() throws Exception {
-		conf = new HBaseConfiguration();
-		conf.set("fs.default.name", cluster.getFileSystem().getUri().toString());
-		Path parentdir = cluster.getFileSystem().getHomeDirectory();
-		conf.set(HConstants.HBASE_DIR, parentdir.toString());
 
-		FSUtils.setVersion(cluster.getFileSystem(), parentdir);
-		conf.set(HConstants.REGIONSERVER_PORT, "0");
-		// disable UI or it clashes for more than one RegionServer
-		conf.set("hbase.regionserver.info.port", "-1");
-		
-		// Make lease timeout longer, lease checks less frequent
-		conf.setInt("hbase.master.lease.period", 10 * 1000);
+        // This is needed by Pig
+        MiniCluster cluster = MiniCluster.buildCluster();
 
-		// Increase the amount of time between client retries
-		conf.setLong("hbase.client.pause", 15 * 1000);
+        conf = cluster.getConfiguration();
+        conf.setInt("mapred.map.max.attempts", 1);
 
-		try {
-			hBaseClusterSetup();
-		} catch (Exception e) {
-			if (hbaseCluster != null) {
-				hbaseCluster.shutdown();
-			}
-			throw e;
-		}
+        util = new HBaseTestingUtility(conf);
+        util.startMiniZKCluster();
+        util.startMiniHBaseCluster(1, 1);
+
 
 		pig = new PigServer(ExecType.MAPREDUCE,
 				ConfigurationUtil.toProperties(conf));
@@ -110,54 +84,24 @@ public class TestHBaseStorage {
 
 	@AfterClass
 	public static void oneTimeTearDown() throws Exception {
-		try {
-			HConnectionManager.deleteConnectionInfo(conf, true);
-			if (hbaseCluster != null) {
-				try {
-					hbaseCluster.shutdown();
-				} catch (Exception e) {
-					LOG.warn("Closing mini hbase cluster", e);
-				}
-			}
-			if (zooKeeperCluster != null) {
-				try {
-					zooKeeperCluster.shutdown();
-				} catch (IOException e) {
-					LOG.warn("Closing zookeeper cluster", e);
-				}
-			}
-		} catch (Exception e) {
-			LOG.error(e);
-		}
-		cluster.shutDown();
-	}
-
-	/**
-	 * Actually start the MiniHBase instance.
-	 */
-	protected static void hBaseClusterSetup() throws Exception {
-		zooKeeperCluster = new MiniZooKeeperCluster();
-		int clientPort = zooKeeperCluster.startup(new File("build/test"));
-		conf.set("hbase.zookeeper.property.clientPort", clientPort + "");
-		// start the mini cluster
-		hbaseCluster = new MiniHBaseCluster(conf, NUM_REGIONSERVERS);
-		// opening the META table ensures that cluster is running
-		while (true) {
-			try {
-				new HTable(conf, HConstants.META_TABLE_NAME);
-				break;
-			} catch (IOException e) {
-				Thread.sleep(1000);
-			}
-
-		}
-	}
+        // In HBase 0.90.1 and above we can use util.shutdownMiniHBaseCluster()
+        // here instead.
+        MiniHBaseCluster hbc = util.getHBaseCluster();
+        if (hbc != null) {
+          hbc.shutdown();
+          hbc.join();
+        }
+        util.shutdownMiniZKCluster();
+    }
 
 	@After
 	public void tearDown() throws Exception {
-		// clear the table
-		deleteTable(TESTTABLE_1);
-		deleteTable(TESTTABLE_2);
+        try {
+            util.deleteTable(Bytes.toBytesBinary(TESTTABLE_1));
+        } catch (IOException e) {}
+        try {
+            util.deleteTable(Bytes.toBytesBinary(TESTTABLE_2));
+        } catch (IOException e) {}
 		pig.shutdown();
 	}
 
@@ -450,12 +394,9 @@ public class TestHBaseStorage {
 			Result result = iter.next();
 			String v = i + "";
 			String rowKey = Bytes.toString(result.getRow());
-			int col_a = Bytes
-					.toInt(result.getValue(Bytes.toBytes(TESTCOLUMN_A)));
-			double col_b = Bytes.toDouble(result.getValue(Bytes
-					.toBytes(TESTCOLUMN_B)));
-			String col_c = Bytes.toString(result.getValue(Bytes
-					.toBytes(TESTCOLUMN_C)));
+            int col_a = Bytes.toInt(getColValue(result, TESTCOLUMN_A));
+            double col_b = Bytes.toDouble(getColValue(result, TESTCOLUMN_B));
+            String col_c = Bytes.toString(getColValue(result, TESTCOLUMN_C));
 
 			Assert.assertEquals("00".substring(v.length()) + v, rowKey);
 			Assert.assertEquals(i, col_a);
@@ -499,12 +440,9 @@ public class TestHBaseStorage {
 			Result result = iter.next();
 			String v = i + "";
 			String rowKey = new String(result.getRow());
-			int col_a = Integer.parseInt(new String(result.getValue(Bytes
-					.toBytes(TESTCOLUMN_A))));
-			double col_b = Double.parseDouble(new String(result.getValue(Bytes
-					.toBytes(TESTCOLUMN_B))));
-			String col_c = new String(result.getValue(Bytes
-					.toBytes(TESTCOLUMN_C)));
+            int col_a = Integer.parseInt(new String(getColValue(result, TESTCOLUMN_A)));
+            double col_b = Double.parseDouble(new String(getColValue(result, TESTCOLUMN_B)));
+            String col_c = new String(getColValue(result, TESTCOLUMN_C));
 
 			Assert.assertEquals("00".substring(v.length()) + v, rowKey);
 			Assert.assertEquals(i, col_a);
@@ -521,18 +459,14 @@ public class TestHBaseStorage {
 	private void prepareTable(String tableName, boolean initData,
 			DataFormat format) throws IOException {
 		// define the table schema
-		HTableDescriptor tabledesc = new HTableDescriptor(tableName);
-		tabledesc.addFamily(family);
-
-		// create the table
-		HBaseAdmin admin = new HBaseAdmin(conf);
-		deleteTable(tableName);
-		admin.createTable(tabledesc);
-
+        try {
+            util.deleteTable(Bytes.toBytesBinary(tableName));
+        } catch (IOException e) {
+            // It's ok, table might not exist.
+        }
+        HTable table = util.createTable(Bytes.toBytesBinary(tableName),
+                COLUMNFAMILY);
 		if (initData) {
-			// put some data into table in the increasing order of row key
-			HTable table = new HTable(conf, tableName);
-
 			for (int i = 0; i < TEST_ROW_COUNT; i++) {
 				String v = i + "";
 				if (format == DataFormat.HBaseBinary) {
@@ -570,25 +504,14 @@ public class TestHBaseStorage {
 	}
 
 	/**
-	 * delete the table after testing
-	 * 
-	 * @param tableName
-	 * @throws IOException
+     * Helper to deal with fetching a result based on a cf:colname string spec
+     * @param result
+     * @param colName
+     * @return
 	 */
-	private void deleteTable(String tableName) throws IOException {
-		// delete the table
-		HBaseAdmin admin = new HBaseAdmin(conf);
-		if (admin.tableExists(tableName)) {
-			admin.disableTable(tableName);
-			while (admin.isTableEnabled(tableName)) {
-				try {
-					Thread.sleep(3000);
-				} catch (InterruptedException e) {
-					// do nothing.
-				}
-			}
-			admin.deleteTable(tableName);
-		}
-	}
+    private static byte[] getColValue(Result result, String colName) {
+        byte[][] colArray = Bytes.toByteArrays(colName.split(":"));
+        return result.getValue(colArray[0], colArray[1]);
 
+}
 }

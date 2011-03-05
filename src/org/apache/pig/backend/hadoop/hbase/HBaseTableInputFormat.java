@@ -32,6 +32,7 @@ import org.apache.hadoop.hbase.filter.BinaryComparator;
 import org.apache.hadoop.hbase.filter.CompareFilter.CompareOp;
 import org.apache.hadoop.hbase.filter.RowFilter;
 import org.apache.hadoop.hbase.mapreduce.TableInputFormat;
+import org.apache.hadoop.hbase.mapreduce.TableRecordReader;
 import org.apache.hadoop.hbase.mapreduce.TableSplit;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.mapreduce.InputSplit;
@@ -85,6 +86,7 @@ public class HBaseTableInputFormat extends TableInputFormat {
     throws IOException {
         List<InputSplit> splits = super.getSplits(context);
         ListIterator<InputSplit> splitIter = splits.listIterator();
+        LOG.info("Got " + splits.size() + " splits.");
         while (splitIter.hasNext()) {
             TableSplit split = (TableSplit) splitIter.next();
             byte[] startKey = split.getStartRow();
@@ -94,15 +96,17 @@ public class HBaseTableInputFormat extends TableInputFormat {
                     (skipRegion(CompareOp.GREATER, endKey, gt_)) ||
                     (skipRegion(CompareOp.GREATER, endKey, gte_)) ||
                     (skipRegion(CompareOp.LESS_OR_EQUAL, startKey, lte_)) )  {
+              LOG.info("Removing split " + split + " " + Bytes.toStringBinary(startKey) + " - " + Bytes.toStringBinary(endKey));
                 splitIter.remove();
             }
         }
+        LOG.info("Returning " + splits.size() + " splits.");
         return splits;
     }
 
     private boolean skipRegion(CompareOp op, byte[] key, byte[] option ) {
 
-        if (key.length == 0 || option == null) 
+        if (key.length == 0 || option == null)
             return false;
 
         BinaryComparator comp = new BinaryComparator(option);
@@ -190,7 +194,7 @@ public class HBaseTableInputFormat extends TableInputFormat {
                 return progressSoFar_;
             } catch (java.lang.ArithmeticException e) {
                 return 0;
-            }            
+            }
         }
 
     }
