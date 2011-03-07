@@ -102,6 +102,8 @@ PIG-1696: Performance: Use System.arraycopy() instead of manually copying the by
 
 BUG FIXES
 
+PIG-1861: The pig script stored in the Hadoop History logs is stored as a concatenated string without whitespace this causes problems when attempting to extract and execute the script (rding)
+
 PIG-1829: "0" value seen in PigStat's map/reduce runtime, even when the job is successful (rding)
 
 PIG-1856: Custom jar is not packaged with the new job created by LimitAdjuster (rding)

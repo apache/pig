@@ -18,33 +18,106 @@
 
 package org.apache.pig.test;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.io.PrintWriter;
 
 import junit.framework.Assert;
 
+import org.apache.commons.codec.binary.Base64;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.pig.ExecType;
-import org.apache.pig.PigException;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecJob;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MapReduceLauncher;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MapReduceOper;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROperPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
-import org.apache.pig.backend.hadoop.executionengine.util.MapRedUtil;
 import org.apache.pig.impl.PigContext;
-import org.apache.pig.impl.util.LogUtils;
+import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.newplan.logical.relational.LogicalPlan;
-import org.apache.pig.tools.pigscript.parser.ParseException;
 import org.apache.pig.tools.pigstats.PigStats;
 import org.apache.pig.tools.pigstats.ScriptState;
-import org.junit.Before;
 import org.junit.Test;
 
 public class TestPigStats  {
 
+    @Test
+    public void testPigScriptInConf() throws Exception {
+        PrintWriter w = new PrintWriter(new FileWriter("test.pig"));
+        w.println("register /mydir/sath.jar");
+        w.println("register /mydir/lib/hadoop-tools-0.20.201.0-SNAPSHOT.jar");
+        w.println("register /mydir/lib/jackson-core-asl-1.4.2.jar");
+        w.println("register /mydir/lib/jackson-mapper-asl-1.4.2.jar");
+        w.close();
+        
+        ScriptState ss = ScriptState.get();
+        ss.setScript(new File("test.pig"));
+        Configuration conf = new Configuration();
+        MapReduceOper mro = new MapReduceOper(new OperatorKey());
+        ss.addSettingsToConf(mro, conf);
+        
+        String s = conf.get("pig.script");
+        String script = new String(Base64.decodeBase64(s.getBytes()));
+        
+        String expected = 
+            "register /mydir/sath.jar\n" +
+            "register /mydir/lib/hadoop-tools-0.20.201.0-SNAPSHOT.jar\n" +
+            "register /mydir/lib/jackson-core-asl-1.4.2.jar\n"  +
+            "register /mydir/lib/jackson-mapper-asl-1.4.2.jar\n";
+        
+        Assert.assertEquals(expected, script);
+    }
+    
+    @Test
+    public void testJythonScriptInConf() throws Exception {
+        String[] script = {
+                "#!/usr/bin/python",
+                "from org.apache.pig.scripting import *",
+                "Pig.fs(\"rmr simple_out\")",
+                "input = 'simple_table'",
+                "output = 'simple_out'",
+                "P = Pig.compile(\"\"\"a = load '$input';store a into '$output';\"\"\")",
+                "Q = P.bind({'input':input, 'output':output})",
+                "stats = Q.runSingle()",
+                "if stats.isSuccessful():",
+                "\tprint 'success!'",
+                "else:",
+                "\traise 'failed'"
+        };
+        
+        Util.createLocalInputFile( "testScript.py", script);
+        
+        ScriptState ss = ScriptState.get();
+        ss.setScript(new File("testScript.py"));
+        Configuration conf = new Configuration();
+        MapReduceOper mro = new MapReduceOper(new OperatorKey());
+        ss.addSettingsToConf(mro, conf);
+        
+        String s = conf.get("pig.script");
+        String actual = new String(Base64.decodeBase64(s.getBytes()));
+        
+        String expected = 
+            "#!/usr/bin/python\n" +
+            "from org.apache.pig.scripting import *\n" +
+            "Pig.fs(\"rmr simple_out\")\n" +
+            "input = 'simple_table'\n" +
+            "output = 'simple_out'\n" +
+            "P = Pig.compile(\"\"\"a = load '$input';store a into '$output';\"\"\")\n" +
+            "Q = P.bind({'input':input, 'output':output})\n" +
+            "stats = Q.runSingle()\n" +
+            "if stats.isSuccessful():\n" +
+            "\tprint 'success!'\n" +
+            "else:\n" +
+            "\traise 'failed'\n";
+        
+        Assert.assertEquals(expected, actual);
+    }
+    
     @Test
     public void testBytesWritten_JIRA_1027() {
 
