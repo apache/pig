@@ -102,6 +102,8 @@ PIG-1696: Performance: Use System.arraycopy() instead of manually copying the by
 
 BUG FIXES
 
+PIG-1887: Fix pig-withouthadoop.jar to contains proper jars (daijy)
+
 PIG-1779: Wrong stats shown when there are multiple loads but same file names (rding)
 
 PIG-1861: The pig script stored in the Hadoop History logs is stored as a concatenated string without whitespace this causes problems when attempting to extract and execute the script (rding)

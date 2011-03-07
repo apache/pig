@@ -622,15 +622,19 @@
                     <attribute name="Svn-Revision" value="${svnString}" />
                 </section>
             </manifest>
+            <zipfileset src="${lib.dir}/${automaton.jarfile}" />
+            <zipfileset src="${ivy.lib.dir}/antlr-runtime-${antlr.version}.jar" />
+            <zipfileset src="${ivy.lib.dir}/stringtemplate-${antlr.version}.jar" />
             <zipfileset src="${ivy.lib.dir}/junit-${junit.version}.jar" />
             <zipfileset src="${ivy.lib.dir}/jsch-${jsch.version}.jar" />
             <zipfileset src="${ivy.lib.dir}/jline-${jline.version}.jar" />
             <zipfileset src="${ivy.lib.dir}/jackson-mapper-asl-${jackson.version}.jar" />
             <zipfileset src="${ivy.lib.dir}/jackson-core-asl-${jackson.version}.jar" />
             <zipfileset src="${ivy.lib.dir}/joda-time-${joda-time.version}.jar" />
-            <zipfileset src="${lib.dir}/${automaton.jarfile}" />
-            <zipfileset src="${ivy.lib.dir}/antlr-runtime-${antlr.version}.jar" />
-            <zipfileset src="${ivy.lib.dir}/stringtemplate-${antlr.version}.jar" />
+            <zipfileset src="${ivy.lib.dir}/${guava.jar}" />
+            <zipgroupfileset dir="${ivy.lib.dir}" includes="commons*.jar"/>
+            <zipgroupfileset dir="${ivy.lib.dir}" includes="log4j*.jar"/>
+            <zipgroupfileset dir="${ivy.lib.dir}" includes="jsp-api*.jar"/>
             <fileset file="${basedir}/conf/pig-default.properties" />
         </jar>
         <copy file="${output.jarfile.withouthadoop}" tofile="${output.jarfile.backcompat.withouthadoop}"/>
