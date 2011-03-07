@@ -199,7 +199,7 @@ public class PigRecordReader extends RecordReader<Text, Tuple> {
             (ArrayList<FileSpec>) ObjectSerializer.deserialize(
                     conf.get(PigInputFormat.PIG_INPUTS));
         String fname = inputs.get(pigSplit.getInputIndex()).getFileName();
-        return PigStatsUtil.getMultiInputsCounterName(fname);
+        return PigStatsUtil.getMultiInputsCounterName(fname, pigSplit.getInputIndex());
     }
     
     /**
