@@ -422,14 +422,14 @@ public class TestPigRunner {
     @Test
     public void testCounterName() throws Exception {
         String s = "jdbc:hsqldb:file:/tmp/batchtest;hsqldb.default_table_type=cached;hsqldb.cache_rows=100";
-        String name = PigStatsUtil.getMultiInputsCounterName(s);
-        assertEquals(PigStatsUtil.MULTI_INPUTS_RECORD_COUNTER + "batchtest", name);
+        String name = PigStatsUtil.getMultiInputsCounterName(s, 0);
+        assertEquals(PigStatsUtil.MULTI_INPUTS_RECORD_COUNTER + "_0_batchtest", name);
         s = "file:///tmp/batchtest{1,2}.txt";
-        name = PigStatsUtil.getMultiInputsCounterName(s);
-        assertEquals(PigStatsUtil.MULTI_INPUTS_RECORD_COUNTER + "batchtest{1,2}.txt", name);
+        name = PigStatsUtil.getMultiInputsCounterName(s, 1);
+        assertEquals(PigStatsUtil.MULTI_INPUTS_RECORD_COUNTER + "_1_batchtest{1,2}.txt", name);
         s = "file:///tmp/batchtest*.txt";
-        name = PigStatsUtil.getMultiInputsCounterName(s);
-        assertEquals(PigStatsUtil.MULTI_INPUTS_RECORD_COUNTER + "batchtest*.txt", name);
+        name = PigStatsUtil.getMultiInputsCounterName(s, 2);
+        assertEquals(PigStatsUtil.MULTI_INPUTS_RECORD_COUNTER + "_2_batchtest*.txt", name);
     }
     
     @Test
@@ -463,6 +463,45 @@ public class TestPigRunner {
             assertEquals(2, inputs.size());
             for (InputStats instats : inputs) {
                 assertEquals(5, instats.getNumberRecords());
+            }
+        } finally {
+            new File(PIG_FILE).delete();
+            Util.deleteFile(cluster, OUTPUT_FILE);
+        }
+    }
+    
+    @Test
+    public void testDuplicateCounterName() throws Exception {
+        // Pig now restricts the string size of its counter name to less than 64 characters.
+        PrintWriter w = new PrintWriter(new FileWriter("myinputfile"));
+        w.println("1\t2\t3");
+        w.println("5\t3\t4");
+        w.close();
+        String samefilename = "tmp/input";
+        Util.copyFromLocalToCluster(cluster, "myinputfile", samefilename);
+        
+        PrintWriter w1 = new PrintWriter(new FileWriter(PIG_FILE));
+        w1.println("A = load '" + INPUT_FILE + "' as (a0:int, a1:int, a2:int);");
+        w1.println("B = load '" + samefilename + "' as (a0:int, a1:int, a2:int);");
+        w1.println("C = join A by a0, B by a0;");
+        w1.println("store C into '" + OUTPUT_FILE + "';");
+        w1.close();
+        
+        try {
+            String[] args = { PIG_FILE };
+            PigStats stats = PigRunner.run(args, new TestNotificationListener());
+     
+            assertTrue(stats.isSuccessful());
+            
+            assertEquals(1, stats.getNumberJobs());
+            List<InputStats> inputs = stats.getInputStats();
+            assertEquals(2, inputs.size());
+            for (InputStats instats : inputs) {
+                if (instats.getLocation().endsWith("tmp/input")) {
+                    assertEquals(2, instats.getNumberRecords());
+                } else {
+                    assertEquals(5, instats.getNumberRecords());
+                }
             }
         } finally {
             new File(PIG_FILE).delete();

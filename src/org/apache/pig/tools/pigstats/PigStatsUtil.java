@@ -119,10 +119,10 @@ public abstract class PigStatsUtil {
      * @param fname the input file name
      * @return the counter name
      */
-    public static String getMultiInputsCounterName(String fname) {
+    public static String getMultiInputsCounterName(String fname, int index) {
         String shortName = getShortName(fname);            
         return (shortName == null) ? null 
-                : MULTI_INPUTS_RECORD_COUNTER + shortName;
+                : MULTI_INPUTS_RECORD_COUNTER + "_" + index + "_" + shortName;
     }
     
     private static final String SEPARATOR = "/";

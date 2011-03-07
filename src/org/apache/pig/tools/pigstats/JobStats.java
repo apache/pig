@@ -517,32 +517,20 @@ public final class JobStats extends Operator {
                 inputs.add(is);                
             }
         } else {
-            // check for self-join (duplicated input file names)
-            HashMap<String, Integer> dupmap = new HashMap<String, Integer>();
-            for (FileSpec fsp : loads) {
-                String name = PigStatsUtil.getMultiInputsCounterName(fsp.getFileName());
-                if (name == null) continue;
-                if (dupmap.containsKey(name)) {
-                    int n = dupmap.get(name);
-                    dupmap.put(name, (n+1));
-                } else {
-                    dupmap.put(name, 1);
-                }                
-            }
-            for (FileSpec fsp : loads) {
+            for (int i=0; i<loads.size(); i++) {
+                FileSpec fsp = loads.get(i);
                 if (PigStatsUtil.isTempFile(fsp.getFileName())) continue;
-                addOneInputStats(fsp.getFileName(), dupmap);
+                addOneInputStats(fsp.getFileName(), i);
             }
         }            
     }
     
-    private void addOneInputStats(String fileName, Map<String, Integer> dupmap) {
+    private void addOneInputStats(String fileName, int index) {
         long records = -1;
         Long n = multiInputCounters.get(
-                PigStatsUtil.getMultiInputsCounterName(fileName));
-        if (n != null) {
-            Integer m = dupmap.get(PigStatsUtil.getMultiInputsCounterName(fileName));            
-            records = (m != null && m > 0) ? (n / m) : n;
+                PigStatsUtil.getMultiInputsCounterName(fileName, index));
+        if (n != null) {   
+            records = n;
         } else {
             LOG.warn("unable to get input counter for " + fileName);
         }
