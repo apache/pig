@@ -578,5 +578,40 @@ public class TestAccumulator extends TestCase{
         }                                   
     }        
     
+    @Test // PIG-1837
+    public void testBinCondCheck() throws Exception {
+        PrintWriter w = new PrintWriter(new FileWriter("data1"));
+        w.println("1\t11");                
+        w.println("2\t15");          
+        w.close();   
+        
+        Util.copyFromLocalToCluster(cluster, "data1", "data1");
+        
+        w = new PrintWriter(new FileWriter("data2"));
+        w.println("1\t10");     
+        w.println("4\t11");
+        w.println("5\t10");     
+        w.close();   
+        
+        Util.copyFromLocalToCluster(cluster, "data2", "data2");
+        
+        pigServer.registerQuery("A = load 'data1' as (x:int, y:int);");
+        pigServer.registerQuery("B = load 'data2' as (x:int, z:int);");
+        pigServer.registerQuery("C = cogroup A by x, B by x;");
+        pigServer.registerQuery("D = foreach C generate group, SUM((IsEmpty(A.y) ? {(0)} : A.y)) + SUM((IsEmpty(B.z) ? {(0)} : B.z));");
+
+        HashMap<Integer, Long> expected = new HashMap<Integer, Long>();
+        expected.put(1, 21l);
+        expected.put(2, 15l);
+        expected.put(4, 11l);  
+        expected.put(5, 10l);  
+                  
+        Iterator<Tuple> iter = pigServer.openIterator("D");
+        while(iter.hasNext()) {
+            Tuple t = iter.next();
+            assertEquals(expected.get((Integer)t.get(0)), (Long)t.get(1));                
+        }      
+    }
+    
 
 }

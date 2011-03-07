@@ -257,8 +257,8 @@ public class AccumulatorOptimizer extends MROpPlanVisitor {
         }
         
         if (po instanceof POBinCond) {
-            return checkUDFInput(((POBinCond)po).getLhs()) ||
-            checkUDFInput(((POBinCond)po).getRhs()) || checkUDFInput(((POBinCond)po).getCond());
+            return checkUDFInput(((POBinCond)po).getLhs()) &&
+            checkUDFInput(((POBinCond)po).getRhs()) && checkUDFInput(((POBinCond)po).getCond());
         }
         
         if (po instanceof POSortedDistinct) {    		    		

@@ -102,6 +102,8 @@ PIG-1696: Performance: Use System.arraycopy() instead of manually copying the by
 
 BUG FIXES
 
+PIG-1837: Error while using IsEmpty function (rding)
+
 PIG-1884: Change ReadToEndLoader.setLocation not throw UnsupportedOperationException (thejas)
 
 PIG-1887: Fix pig-withouthadoop.jar to contains proper jars (daijy)
