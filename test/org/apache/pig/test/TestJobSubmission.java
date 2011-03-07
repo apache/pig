@@ -23,6 +23,10 @@ import java.util.Iterator;
 import java.util.Random;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hbase.HBaseTestingUtility;
+import org.apache.hadoop.hbase.MiniHBaseCluster;
+import org.apache.hadoop.hbase.client.HTable;
+import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.mapred.jobcontrol.Job;
 import org.apache.hadoop.mapred.jobcontrol.JobControl;
 import org.apache.pig.ExecType;
@@ -69,6 +73,7 @@ public class TestJobSubmission extends junit.framework.TestCase{
     String inpDir;
     String golDir;
     static MiniCluster cluster = MiniCluster.buildCluster();
+    private static HBaseTestingUtility util;
     
     @BeforeClass
     public static void onetimeSetUp() throws Exception {
@@ -81,6 +86,12 @@ public class TestJobSubmission extends junit.framework.TestCase{
         }
         GenPhyOp.setPc(pc);
         Util.copyFromLocalToCluster(cluster, "test/org/apache/pig/test/data/passwd", "/passwd");
+        
+        Configuration conf = cluster.getConfiguration();
+        
+        util = new HBaseTestingUtility(conf);
+        util.startMiniZKCluster();
+        util.startMiniHBaseCluster(1, 1);
     }
     
     @Before
@@ -100,6 +111,14 @@ public class TestJobSubmission extends junit.framework.TestCase{
     
     @AfterClass
     public static void oneTimeTearDown() throws Exception {
+        // In HBase 0.90.1 and above we can use util.shutdownMiniHBaseCluster()
+        // here instead.
+        MiniHBaseCluster hbc = util.getHBaseCluster();
+        if (hbc != null) {
+            hbc.shutdown();
+            hbc.join();
+        }
+        util.shutdownMiniZKCluster();
         cluster.shutDown();
     }
     
@@ -589,6 +608,10 @@ public class TestJobSubmission extends junit.framework.TestCase{
         job = jc.getWaitingJobs().get(0);
         assertEquals(job.getJobConf().getLong("mapred.reduce.tasks",10), 2);
         
+        final byte[] COLUMNFAMILY = Bytes.toBytes("pig");
+        HTable table = util.createTable(Bytes.toBytesBinary("passwd"),
+                COLUMNFAMILY);
+        
         // the estimation won't take effect when it apply to non-dfs or the files doesn't exist, such as hbase
         planTester = new LogicalPlanTester(pc) ;
         planTester.buildPlan("a = load 'hbase://passwd' using org.apache.pig.backend.hadoop.hbase.HBaseStorage('c:f1 c:f2');");
@@ -607,6 +630,7 @@ public class TestJobSubmission extends junit.framework.TestCase{
         jc=jcc.compile(mrPlan, "Test");
         job = jc.getWaitingJobs().get(0);
         assertEquals(job.getJobConf().getLong("mapred.reduce.tasks",10), 1);
+        util.deleteTable(Bytes.toBytesBinary("passwd"));
     }
     
     @Test

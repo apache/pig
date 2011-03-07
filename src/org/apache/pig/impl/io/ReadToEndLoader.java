@@ -253,7 +253,7 @@ public class ReadToEndLoader extends LoadFunc {
 
     @Override
     public void setLocation(String location, Job job) throws IOException {
-        throw new UnsupportedOperationException();       
+        //no-op
     }
 
 
