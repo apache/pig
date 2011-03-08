@@ -1040,7 +1040,12 @@
  	</path>
     </target>
     -->
+
     <path id="checkstyle-classpath">
+        <path refid="checkstyle.classpath"/>	
+        <fileset dir="${ivy.lib.dir}">
+            <include name="*.jar"/>
+        </fileset>
     </path>
 
     <target name="findbugs.check" depends="check-for-findbugs" unless="findbugs.present">
