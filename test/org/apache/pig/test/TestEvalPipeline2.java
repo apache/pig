@@ -502,18 +502,15 @@ public class TestEvalPipeline2 {
         };
         Util.createInputFile(cluster, "table_testCustomPartitionerParseJoins", input);
         
-        pigServer.registerQuery("A = LOAD 'table_testCustomPartitionerParseJoins' as (a0:int, a1:int);");
-        
-        pigServer.registerQuery("B = ORDER A by $0;");
-        
         // Custom Partitioner is not allowed for skewed joins, will throw a ExecException 
         try {
+            pigServer.registerQuery("A = LOAD 'table_testCustomPartitionerParseJoins' as (a0:int, a1:int);");
+            pigServer.registerQuery("B = ORDER A by $0;");
         	pigServer.registerQuery("skewed = JOIN A by $0, B by $0 USING 'skewed' PARTITION BY org.apache.pig.test.utils.SimpleCustomPartitioner;");
         	//control should not reach here
         	Assert.fail("Skewed join cannot accept a custom partitioner");
-        }
-        catch (FrontendException e) {
-        	Assert.assertTrue(e.getErrorCode() == 1000);
+        } catch(FrontendException e) {
+        	Assert.assertTrue( e.getMessage().contains( "Custom Partitioner is not supported for skewed join" ) );
 		}
         
         pigServer.registerQuery("hash = JOIN A by $0, B by $0 USING 'hash' PARTITION BY org.apache.pig.test.utils.SimpleCustomPartitioner;");
@@ -892,11 +889,10 @@ public class TestEvalPipeline2 {
     // See PIG-1737
     @Test
     public void testMergeSchemaErrorMessage() throws IOException {
-        pigServer.registerQuery("a = load '1.txt' as (a0, a1, a2);");
-        pigServer.registerQuery("b = group a by (a0, a1);");
-        pigServer.registerQuery("c = foreach b generate flatten(group) as c0;");
-        
         try {
+            pigServer.registerQuery("a = load '1.txt' as (a0, a1, a2);");
+            pigServer.registerQuery("b = group a by (a0, a1);");
+            pigServer.registerQuery("c = foreach b generate flatten(group) as c0;");
             pigServer.openIterator("c");
         } catch (Exception e) {
             PigException pe = LogUtils.getPigException(e);
@@ -1217,12 +1213,11 @@ public class TestEvalPipeline2 {
     
     // See PIG-1785
     @Test
-    public void testAddingTwoBag() throws Exception{
-        pigServer.registerQuery("a = load '1.txt' as (name:chararray, age:int, gpa:double);");
-        pigServer.registerQuery("b = group a by name;");
-        pigServer.registerQuery("c = foreach b generate group, SUM(a.age*a.gpa);");
-        
+    public void testAddingTwoBag() {
         try {
+            pigServer.registerQuery("a = load '1.txt' as (name:chararray, age:int, gpa:double);");
+            pigServer.registerQuery("b = group a by name;");
+            pigServer.registerQuery("c = foreach b generate group, SUM(a.age*a.gpa);");
             pigServer.openIterator("c");
         } catch (Exception e) {
             PigException pe = LogUtils.getPigException(e);

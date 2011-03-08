@@ -384,14 +384,14 @@ public class TestMergeJoin {
 
     @Test
     public void testMergeJoin3Way() throws IOException{
-        pigServer.registerQuery("A = LOAD '" + INPUT_FILE + "' as (id, name, n);");
-        pigServer.registerQuery("B = LOAD '" + INPUT_FILE + "' as (id, name);");
-        pigServer.registerQuery("C = LOAD '" + INPUT_FILE + "' as (id, name);");
         try {
+            pigServer.registerQuery("A = LOAD '" + INPUT_FILE + "' as (id, name, n);");
+            pigServer.registerQuery("B = LOAD '" + INPUT_FILE + "' as (id, name);");
+            pigServer.registerQuery("C = LOAD '" + INPUT_FILE + "' as (id, name);");
             pigServer.registerQuery("D = join A by id, B by id, C by id using 'merge';");
         }catch(Exception e) {
             PigException pe = LogUtils.getPigException(e);
-            Assert.assertEquals(1000,pe.getErrorCode());
+            Assert.assertTrue( pe.getMessage().contains( "Merge join can only be applied for 2-way joins" ) );
             return;
         }
         Assert.fail("Should throw exception, do not support 3 way join");

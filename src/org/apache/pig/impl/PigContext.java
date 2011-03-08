@@ -459,7 +459,7 @@ public class PigContext implements Serializable {
             objClass = resolveClassName(className);
         }
         catch(IOException ioe) {
-            throw new RuntimeException("Cannot instantiate:" + className, ioe) ;
+            throw new RuntimeException("Cannot instantiate: " + className, ioe) ;
         }
 
         try {

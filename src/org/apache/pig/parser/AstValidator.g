@@ -107,7 +107,6 @@ statement : general_statement
 split_statement : split_clause
 ;
 
-// For foreach statement that with complex inner plan.
 general_statement : ^( STATEMENT ( alias { aliases.add( $alias.name ); } )? op_clause parallel_clause? )
 ;
 

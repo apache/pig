@@ -119,17 +119,16 @@ public class TestDataBagAccess extends TestCase {
     public void testBagConstantAccessFailure() throws IOException, ExecException {
         File input = Util.createInputFile("tmp", "", 
                 new String[] {"sampledata\tnot_used"});
-        pigServer.registerQuery("a = load '" 
-                + Util.generateURI(Util.encodeEscape(input.toString()), pigServer.getPigContext()) + "';");
-        pigServer.registerQuery("b = foreach a generate {(16, 4.0e-2, 'hello')} as mybag:{t:(i: int, d: double, c: chararray)};");
         boolean exceptionOccured = false;
         try {
+            pigServer.registerQuery("a = load '" 
+                    + Util.generateURI(Util.encodeEscape(input.toString()), pigServer.getPigContext()) + "';");
+            pigServer.registerQuery("b = foreach a generate {(16, 4.0e-2, 'hello')} as mybag:{t:(i: int, d: double, c: chararray)};");
             pigServer.registerQuery("c = foreach b generate mybag.t;");
             pigServer.explain("c", System.out);
         } catch(FrontendException e) {
             exceptionOccured = true;
-            Throwable cause = e.getCause();
-            String msg = cause.getMessage();
+            String msg = e.getMessage();
             Util.checkStrContainsSubStr(msg, "Invalid field reference. Referenced field [t] does not exist in schema");
         }
         assertTrue(exceptionOccured);

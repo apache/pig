@@ -525,18 +525,18 @@ public class TestScalarAliases  {
         };
 
         Util.createLocalInputFile( "table_testScalarAliasesGrammar", input);
-        pigServer.registerQuery("A = LOAD 'table_testScalarAliasesGrammar' as (a0: long, a1: double);");
-        pigServer.registerQuery("B = group A all;");
-        pigServer.registerQuery("C = foreach B generate COUNT(A);");
 
         try {
+            pigServer.registerQuery("A = LOAD 'table_testScalarAliasesGrammar' as (a0: long, a1: double);");
+            pigServer.registerQuery("B = group A all;");
+            pigServer.registerQuery("C = foreach B generate COUNT(A);");
             // Only projections of C are supported 
             pigServer.registerQuery("Y = foreach A generate C;");
             pigServer.openIterator( "Y" );
             //Control should not reach here
             fail("Scalar projections are only supported");
         } catch (IOException pe){
-            assertTrue(pe.getMessage().equalsIgnoreCase("Error during parsing. Invalid scalar projection: C"));
+            assertTrue(pe.getMessage().contains("Invalid scalar projection: C"));
         }
     }
     

@@ -217,9 +217,9 @@ public class TestBestFitCast {
         //Passing (float, bytearray)
         //Ambiguous matches: (float, long) , (float, double)
         boolean exceptionCaused = false;
-        pigServer.registerQuery("A = LOAD '" + inputFile + "' as (x:float, y);");
-        pigServer.registerQuery("B = FOREACH A generate x, " + UDF3.class.getName() + "(x,y);");
         try {
+            pigServer.registerQuery("A = LOAD '" + inputFile + "' as (x:float, y);");
+            pigServer.registerQuery("B = FOREACH A generate x, " + UDF3.class.getName() + "(x,y);");
             Iterator<Tuple> iter = pigServer.openIterator("B");
         } catch(Exception e) {
             exceptionCaused = true;
@@ -302,9 +302,9 @@ public class TestBestFitCast {
         // bytearray can be casted to float but the two ints cannot be unambiguously
         // casted
         boolean exceptionCaused = false;
-        pigServer.registerQuery("A = LOAD '" + inputFile + "' as (x, y:int);");
-        pigServer.registerQuery("B = FOREACH A generate x, " + UDF3.class.getName() + "(x,y, y);");
         try {
+            pigServer.registerQuery("A = LOAD '" + inputFile + "' as (x, y:int);");
+            pigServer.registerQuery("B = FOREACH A generate x, " + UDF3.class.getName() + "(x,y, y);");
             Iterator<Tuple> iter = pigServer.openIterator("B");
         }catch(Exception e) {
             exceptionCaused = true;
@@ -323,9 +323,9 @@ public class TestBestFitCast {
         // bytearray can be casted to float but the two longs cannot be
         // unambiguously casted
         boolean exceptionCaused = false;
-        pigServer.registerQuery("A = LOAD '" + inputFile + "' as (x, y:long);");
-        pigServer.registerQuery("B = FOREACH A generate x, " + UDF3.class.getName() + "(x,y, y);");
         try {
+            pigServer.registerQuery("A = LOAD '" + inputFile + "' as (x, y:long);");
+            pigServer.registerQuery("B = FOREACH A generate x, " + UDF3.class.getName() + "(x,y, y);");
             Iterator<Tuple> iter = pigServer.openIterator("B");
         }catch(Exception e) {
             exceptionCaused = true;
@@ -344,9 +344,9 @@ public class TestBestFitCast {
         // bytearray can be casted to float but the two doubles cannot be 
         // casted with a permissible cast
         boolean exceptionCaused = false;
-        pigServer.registerQuery("A = LOAD '" + inputFile + "' as (x, y:double);");
-        pigServer.registerQuery("B = FOREACH A generate x, " + UDF3.class.getName() + "(x,y, y);");
         try {
+            pigServer.registerQuery("A = LOAD '" + inputFile + "' as (x, y:double);");
+            pigServer.registerQuery("B = FOREACH A generate x, " + UDF3.class.getName() + "(x,y, y);");
             Iterator<Tuple> iter = pigServer.openIterator("B");
         }catch(Exception e) {
             exceptionCaused = true;
@@ -456,9 +456,9 @@ public class TestBestFitCast {
         // will cause conflict since we could cast int to 
         // long or double and bytearray to long or double.
         boolean exceptionCaused = false;
-        pigServer.registerQuery("A = LOAD '" + inputFile2 + "' as (x:float, y, z:int);");
-        pigServer.registerQuery("B = FOREACH A generate x, " + UDF3.class.getName() + "(x,y, y);");
         try {
+            pigServer.registerQuery("A = LOAD '" + inputFile2 + "' as (x:float, y, z:int);");
+            pigServer.registerQuery("B = FOREACH A generate x, " + UDF3.class.getName() + "(x,y, y);");
             Iterator<Tuple> iter = pigServer.openIterator("B");
         }catch(Exception e) {
             exceptionCaused = true;
@@ -633,9 +633,9 @@ public class TestBestFitCast {
         //Passing (int, int)
         //Possible matches: (float, float) , (long, double)
         //Throws Exception as ambiguous definitions found
-        pigServer.registerQuery("A = LOAD '" + inputFile + "' as (x:long, y:int);");
-        pigServer.registerQuery("B = FOREACH A generate x, " + UDF1.class.getName() + "(y,y);");
         try{
+            pigServer.registerQuery("A = LOAD '" + inputFile + "' as (x:long, y:int);");
+            pigServer.registerQuery("B = FOREACH A generate x, " + UDF1.class.getName() + "(y,y);");
             pigServer.openIterator("B");
         }catch (Exception e) {
             PigException pe = LogUtils.getPigException(e);
@@ -687,9 +687,9 @@ public class TestBestFitCast {
         //Passing bytearrays
         //Possible matches: (float, float) , (long, double)
         //Throws exception since more than one funcSpec and inp is bytearray
-        pigServer.registerQuery("A = LOAD '" + inputFile + "';");
-        pigServer.registerQuery("B = FOREACH A generate $0, " + UDF1.class.getName() + "($1,$1);");
         try{
+            pigServer.registerQuery("A = LOAD '" + inputFile + "';");
+            pigServer.registerQuery("B = FOREACH A generate $0, " + UDF1.class.getName() + "($1,$1);");
             pigServer.openIterator("B");
         }catch (Exception e) {
             PigException pe = LogUtils.getPigException(e);
