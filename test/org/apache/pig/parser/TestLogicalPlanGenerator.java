@@ -19,14 +19,34 @@
 package org.apache.pig.parser;
 
 
+import java.io.File;
 import java.io.IOException;
 
 import junit.framework.Assert;
 
 import org.antlr.runtime.RecognitionException;
+import org.apache.pig.test.Util;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class TestLogicalPlanGenerator {
+    static File command;
+    
+    @BeforeClass
+    public static void oneTimeSetup() throws IOException, Exception {
+        // Perl script 
+        String[] script = 
+            new String[] {
+                          "#!/usr/bin/perl",
+                          "open(INFILE,  $ARGV[0]) or die \"Can't open \".$ARGV[0].\"!: $!\";",
+                          "while (<INFILE>) {",
+                          "  chomp $_;",
+                          "  print STDOUT \"$_\n\";",
+                          "  print STDERR \"STDERR: $_\n\";",
+                          "}",
+                         };
+        command = Util.createInputFile("script", "pl", script);
+    }
     @Test
     public void test1() {
         String query = "A = load 'x' as ( u:int, v:long, w:bytearray); " + 
@@ -144,56 +164,56 @@ public class TestLogicalPlanGenerator {
 
     @Test
     public void test12() {
-        String query = "define CMD `perl GroupBy.pl '\t' 0 1` ship('/homes/jianyong/pig_harness/libexec/PigTest/GroupBy.pl');" +
-                       "A = load '/user/pig/tests/data/singlefile/studenttab10k';" +
+        String query = "define CMD `perl GroupBy.pl '\t' 0 1` ship('"+Util.encodeEscape(command.toString())+"');" +
+                       "A = load 'x';" +
                        "B = group A by $0;" +
                        "C = foreach B {" +
                        "   D = order A by $1; " +
                        "   generate flatten(D);" +
                        "};" +
                        "E = stream C through CMD;" +
-                       "store E into '/user/pig/out/jianyong.1297238871/ComputeSpec_8.out';";
+                       "store E into 'y';";
         generateLogicalPlan( query );
     }
     
     @Test
     public void test13() {
-        String query = "define CMD `perl PigStreaming.pl` ship('/homes/jianyong/pig_harness/libexec/PigTest/PigStreaming.pl') stderr('CMD');" +
-                       "A = load '/user/pig/tests/data/singlefile/studenttab10k';" +
+        String query = "define CMD `perl PigStreaming.pl` ship('"+Util.encodeEscape(command.toString())+"') stderr('CMD');" +
+                       "A = load 'x';" +
                        "C = stream A through CMD;" +
-                       "store C into '/user/pig/out/jianyong.1297238871/StreamingPerformance_1.out';";
+                       "store C into 'y';";
         generateLogicalPlan( query );
     }
     
     @Test
     public void test14() {
-        String query = "a = load '/user/pig/tests/data/singlefile/studenttab10k' using PigStorage() as (name, age:int, gpa);" +
-                       "b = load '/user/pig/tests/data/singlefile/votertab10k' as (name, age, registration, contributions);" +
+        String query = "a = load 'x1' using PigStorage() as (name, age:int, gpa);" +
+                       "b = load 'x2' as (name, age, registration, contributions);" +
                        "e = cogroup a by name, b by name parallel 8;" +
                        "f = foreach e generate group,  SUM(a.age) as s;" +
                        "g = filter f by s>0;" +
-                       "store g into '/user/pig/out/jianyong.1297323675/Accumulator_1.out';";
+                       "store g into 'y';";
         generateLogicalPlan( query );
     }
     
     @Test
     public void test15() {
-        String query = "a = load '/user/pig/tests/data/singlefile/studenttab10k' using PigStorage() as (name, age, gpa);" +
+        String query = "a = load 'x1' using PigStorage() as (name, age, gpa);" +
                        "b = group a all;" +
                        "c = foreach b generate AVG(a.age) as avg; " +
-                       "d = load '/user/pig/tests/data/singlefile/votertab10k' using PigStorage() as (name, age, registration, contributions);" +
+                       "d = load 'x2' using PigStorage() as (name, age, registration, contributions);" +
                        "e = group d all;" +
                        "f = foreach e generate AVG(d.age) as avg;" +
                        "y = foreach a generate age/c.avg, age/f.avg;" +
-                       "store y into '/user/pig/out/jianyong.1297323675/Scalar_4.out';";
+                       "store y into 'y';";
         generateLogicalPlan( query );
     }
     
     @Test
     public void test16() {
-        String query = "AA = load '/user/pig/tests/data/singlefile/studenttab10k';" +
+        String query = "AA = load 'x';" +
                        "A = foreach (group (filter AA by $0 > 0) all) generate flatten($1);" +
-                       "store A into '/user/pig/out/jianyong.1297323675/Scalar_4.out';";
+                       "store A into 'y';";
         generateLogicalPlan( query );
     }
 
