@@ -104,6 +104,8 @@ PIG-1696: Performance: Use System.arraycopy() instead of manually copying the by
 
 BUG FIXES
 
+PIG-1888: Fix TestLogicalPlanGenerator not use hardcoded path (daijy)
+
 PIG-1837: Error while using IsEmpty function (rding)
 
 PIG-1884: Change ReadToEndLoader.setLocation not throw UnsupportedOperationException (thejas)
