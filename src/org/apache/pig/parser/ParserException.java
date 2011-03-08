@@ -19,9 +19,10 @@
 package org.apache.pig.parser;
 
 import org.antlr.runtime.RecognitionException;
+import org.apache.pig.impl.logicalLayer.FrontendException;
 
 
-public class ParserException extends Exception {
+public class ParserException extends FrontendException {
 	private static final long serialVersionUID = 1L;
 	
 	public ParserException(RecognitionException recoException) {
@@ -34,6 +35,6 @@ public class ParserException extends Exception {
 	
 	@Override
 	public String toString() {
-		return "Failed to parser: " +  getMessage();
+		return "Failed to parse: " +  getMessage();
 	}
 }

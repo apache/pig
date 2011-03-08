@@ -713,13 +713,10 @@ public class TestLogToPhyCompiler extends junit.framework.TestCase {
         buildLp.setAccessible(true);
         org.apache.pig.newplan.logical.relational.LogicalPlan lp = (org.apache.pig.newplan.logical.relational.LogicalPlan ) buildLp.invoke( myPig );
 
-        java.lang.reflect.Method compilePp = myPig.getClass()
-            .getDeclaredMethod("compilePp",
-            new Class[] { org.apache.pig.newplan.logical.relational.LogicalPlan.class });
-        
+        java.lang.reflect.Method compilePp = myPig.getClass().getDeclaredMethod("compilePp");
         compilePp.setAccessible(true);
         
-        PhysicalPlan pp = (PhysicalPlan) compilePp.invoke(myPig, new Object[] { lp });
+        PhysicalPlan pp = (PhysicalPlan) compilePp.invoke(myPig);
         SortInfo si0 = ((POStore)(pp.getLeaves().get(0))).getSortInfo();
         SortInfo si1 = ((POStore)(pp.getLeaves().get(1))).getSortInfo();
         SortInfo expected = getSortInfo(

@@ -45,7 +45,7 @@ public class QueryParserDriver {
         this.fileNameMap = fileNameMap;
     }
 
-    public LogicalPlan parse(String query) throws IOException, ParserException {
+    public LogicalPlan parse(String query) throws ParserException {
         LogicalPlan plan = null;
         
         try {
@@ -65,6 +65,8 @@ public class QueryParserDriver {
             operators = planGenerator.getOperators();
         } catch(RecognitionException ex) {
             throw new ParserException( ex );
+        } catch(Exception ex) {
+            throw new ParserException( "Unexpected exception: " + ex.getMessage() );
         }
         
         return plan;

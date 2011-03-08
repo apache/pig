@@ -66,7 +66,6 @@ import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.plan.CompilationMessageCollector;
-import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.streaming.StreamingCommand;
 import org.apache.pig.impl.util.LogUtils;
 import org.apache.pig.impl.util.ObjectSerializer;
@@ -899,12 +898,12 @@ public class PigServer {
     private PigStats storeEx(String alias, String filename, String func)
     throws IOException {
         currDAG.parseQuery();
-        LogicalPlan lp = currDAG.buildPlan( alias );
+        currDAG.buildPlan( alias );
 
         try {
-            QueryParserUtils.attachStorePlan( lp, filename, func, currDAG.getOperator( alias ), alias, pigContext );
-            compileLp();
-            return executeCompiledLogicalPlan( lp );
+            QueryParserUtils.attachStorePlan( currDAG.lp, filename, func, currDAG.getOperator( alias ), alias, pigContext );
+            currDAG.compile();
+            return executeCompiledLogicalPlan();
         } catch (PigException e) {
             int errCode = 1002;
             String msg = "Unable to store alias " + alias;
@@ -950,16 +949,15 @@ public class PigServer {
                         PrintStream eps) throws IOException {
         try {
             pigContext.inExplain = true;
-            LogicalPlan lp = getStorePlan(alias);
-            compileLp();
-            if (lp.size() == 0) {
+            buildStorePlan( alias );
+            if( currDAG.lp.size() == 0 ) {
                 lps.println("Logical plan is empty.");
                 pps.println("Physical plan is empty.");
                 eps.println("Execution plan is empty.");
                 return;
             }
-            PhysicalPlan pp = compilePp(lp);
-            lp.explain(lps, format, verbose);
+            PhysicalPlan pp = compilePp();
+            currDAG.lp.explain(lps, format, verbose);
 
             HashSet<String> optimizerRules = null;
             try {
@@ -971,10 +969,10 @@ public class PigServer {
                 throw new FrontendException(msg, errCode, PigException.BUG, ioe);
             }
 
-            LogicalPlanOptimizer optimizer = new LogicalPlanOptimizer(lp, 3, optimizerRules);
+            LogicalPlanOptimizer optimizer = new LogicalPlanOptimizer( currDAG.lp, 3, optimizerRules );
             optimizer.optimize();
 
-            lp.explain(lps, format, verbose);
+            currDAG.lp.explain(lps, format, verbose);
 
             pp.explain(pps, format, verbose);
             pigContext.getExecutionEngine().explain(pp, eps, format, verbose);
@@ -1147,7 +1145,6 @@ public class PigServer {
     }
 
     public Map<Operator, DataBag> getExamples(String alias) throws IOException {
-        LogicalPlan plan = null;
         try {
             if (currDAG.isBatchOn() && alias != null) {
                 currDAG.parseQuery();
@@ -1156,7 +1153,7 @@ public class PigServer {
             }
             currDAG.parseQuery();
             currDAG.buildPlan( alias );
-            plan = compileLp();
+            currDAG.compile();
         } catch (IOException e) {
             //Since the original script is parsed anyway, there should not be an
             //error in this parsing. The only reason there can be an error is when
@@ -1164,7 +1161,7 @@ public class PigServer {
             e.printStackTrace();
         }
         
-        ExampleGenerator exgen = new ExampleGenerator(plan, pigContext);
+        ExampleGenerator exgen = new ExampleGenerator( currDAG.lp, pigContext );
         try {
             return exgen.getExamples();
         } catch (ExecException e) {
@@ -1177,17 +1174,17 @@ public class PigServer {
      
     }
 
-    private LogicalPlan getStorePlan(String alias) throws IOException {
+    private void buildStorePlan(String alias) throws IOException {
         currDAG.parseQuery();
-        LogicalPlan lp = currDAG.buildPlan( alias );
+        currDAG.buildPlan( alias );
 
         if( !isBatchOn() || alias != null ) {
             // MRCompiler needs a store to be the leaf - hence
             // add a store to the plan to explain
-            QueryParserUtils.attachStorePlan( lp, "fakefile", null, currDAG.getOperator( alias ), 
+            QueryParserUtils.attachStorePlan( currDAG.lp, "fakefile", null, currDAG.getOperator( alias ), 
                     "fake", pigContext );
         }
-        return lp;
+        currDAG.compile();
     }
 
     /**
@@ -1201,13 +1198,13 @@ public class PigServer {
             pigContext.getProperties().setProperty( PigContext.JOB_PRIORITY, jobPriority );
         }
         
-        LogicalPlan compiledLp = compileLp();
+       currDAG.compile();
 
-        if( compiledLp.size() == 0 ) {
+        if( currDAG.lp.size() == 0 ) {
             return PigStatsUtil.getEmptyPigStats();
         }
 
-        PigStats stats = executeCompiledLogicalPlan( compiledLp );
+        PigStats stats = executeCompiledLogicalPlan();
         
         // At this point, all stores in the plan are executed. They should be ignored if the plan is reused.
         currDAG.executed();
@@ -1215,10 +1212,10 @@ public class PigServer {
         return stats;
     }
 
-    private PigStats executeCompiledLogicalPlan(LogicalPlan compiledLp) throws ExecException, FrontendException {
+    private PigStats executeCompiledLogicalPlan() throws ExecException, FrontendException {
         // discover pig features used in this script
-        ScriptState.get().setScriptFeatures(compiledLp);
-        PhysicalPlan pp = compilePp(compiledLp);
+        ScriptState.get().setScriptFeatures( currDAG.lp );
+        PhysicalPlan pp = compilePp();
         // execute using appropriate engine
         List<ExecJob> jobs = pigContext.getExecutionEngine().execute(pp, "job_pigexec_");
         PigStats stats = null;
@@ -1241,26 +1238,6 @@ public class PigServer {
         return stats;
     }
 
-    private LogicalPlan compileLp() throws IOException {
-        LogicalPlan lp = currDAG.lp;
-        
-        new ColumnAliasConversionVisitor( lp ).visit();
-        new ProjectStarExpander(lp).visit();
-        new ScalarVisitor( lp, pigContext ).visit();
-        
-        // TODO: move optimizer here from HExecuteEngine.
-        // TODO: input/output validation visitor
-
-        CompilationMessageCollector collector = new CompilationMessageCollector() ;
-        new TypeCheckingRelVisitor( lp, collector).visit();
-        new UnionOnSchemaSetter( lp ).visit();
-        new CastLineageSetter(lp, collector).visit();
-        
-        currDAG.postProcess();
-        
-        return lp;
-    }
-    
     /**
      * NOTE: For testing only. Don't use.
      * @throws IOException
@@ -1268,12 +1245,13 @@ public class PigServer {
     @SuppressWarnings("unused")
     private LogicalPlan buildLp() throws IOException {
         currDAG.buildPlan( null);
-        return compileLp();
+        currDAG.compile();
+        return currDAG.lp;
     }
 
-    private PhysicalPlan compilePp(LogicalPlan lp) throws FrontendException {
+    private PhysicalPlan compilePp() throws FrontendException {
         // translate lp to physical plan
-        return pigContext.getExecutionEngine().compile(lp, null);
+        return pigContext.getExecutionEngine().compile( currDAG.lp, null );
     }
 
     private LogicalRelationalOperator getOperatorForAlias(String alias) throws IOException {
@@ -1284,7 +1262,7 @@ public class PigServer {
             String msg = "No plan for " + alias + " to describe";
             throw new FrontendException(msg, errCode, PigException.INPUT, false, null);
         }
-        compileLp();
+        currDAG.compile();
         return op;
     }
 
@@ -1363,7 +1341,7 @@ public class PigServer {
          * will be ignored. Dependent branch (i.e. scalar) will be kept.
          * @throws IOException 
          */
-        LogicalPlan buildPlan(String alias) throws IOException {
+        void buildPlan(String alias) throws IOException {
             if( alias == null )
                 skipStores();
             
@@ -1421,7 +1399,7 @@ public class PigServer {
                 
                 currOp.setPlan( plan );
             }
-            return lp = plan;
+            lp = plan;
         }
         
         /**
@@ -1454,6 +1432,10 @@ public class PigServer {
          * an overall (raw) plan.
          */
         void registerQuery(String query, int startLine) throws IOException {
+            if( !batchMode ) {
+                validateQuery( query );
+            }
+            
             scriptCache.add( query );
             parseQuery();
             
@@ -1475,29 +1457,35 @@ public class PigServer {
                 }
             }
         }
+        
+        void validateQuery(String q) throws FrontendException {
+            String query = buildQuery() + "\n" + q;
+            if( query.isEmpty() ) {
+                return;
+            }
+
+            QueryParserDriver parserDriver = new QueryParserDriver( pigContext, scope, fileNameMap );
+            LogicalPlan plan = parserDriver.parse( query );
+            compile( plan );
+        }
 
         /**
          * Parse the accumulated pig statements and generate an overall plan.
          */
-        private void parseQuery() throws IOException {
+        private void parseQuery() throws FrontendException {
             UDFContext.getUDFContext().reset();
-            StringBuilder accuQuery = new StringBuilder();
-            for( String line : scriptCache ) {
-                accuQuery.append( line + "\n" );
-            }
-            
-            String query = accuQuery.toString();
-            query = query.trim();
+            String query = buildQuery();
 
             if( query.isEmpty() ) {
                 lp = new LogicalPlan();
+                return;
             }
 
             try {
                 QueryParserDriver parserDriver = new QueryParserDriver( pigContext, scope, fileNameMap );
                 lp = parserDriver.parse( query );
                 operators = parserDriver.getOperators();
-            } catch(ParserException ex) {
+            } catch(Exception ex) {
                 scriptCache.remove( scriptCache.size() -1 ); // remove the bad script from the cache.
                 PigException pe = LogUtils.getPigException(ex);
                 int errCode = 1000;
@@ -1506,7 +1494,37 @@ public class PigServer {
                 throw new FrontendException (msg, errCode, PigException.INPUT );
             }
         }
+
+        private String buildQuery() {
+            StringBuilder accuQuery = new StringBuilder();
+            for( String line : scriptCache ) {
+                accuQuery.append( line + "\n" );
+            }
+            
+            String query = accuQuery.toString();
+            query = query.trim();
+            return query;
+        }
         
+        private void compile() throws IOException {
+            compile( lp );
+            currDAG.postProcess();
+        }
+        
+        private void compile(LogicalPlan lp) throws FrontendException  {
+            new ColumnAliasConversionVisitor( lp ).visit();
+            new ProjectStarExpander(lp).visit();
+            new ScalarVisitor( lp, pigContext ).visit();
+            
+            // TODO: move optimizer here from HExecuteEngine.
+            // TODO: input/output validation visitor
+
+            CompilationMessageCollector collector = new CompilationMessageCollector() ;
+            new TypeCheckingRelVisitor( lp, collector).visit();
+            new UnionOnSchemaSetter( lp ).visit();
+            new CastLineageSetter(lp, collector).visit();
+        }
+
         private void postProcess() throws IOException {
 
             // The following code deals with store/load combination of

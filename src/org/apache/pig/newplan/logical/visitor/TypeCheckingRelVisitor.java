@@ -169,7 +169,7 @@ public class TypeCheckingRelVisitor extends LogicalRelationalNodesVisitor {
             forEach.getSchema() ;
         }  catch (FrontendException fe) {
             int errCode = 1059;
-            String msg = "Problem while reconciling output schema of Filter" ;
+            String msg = "Problem while reconciling output schema of ForEach" ;
             msgCollector.collect(msg, MessageType.Error);
             throw new TypeCheckerException(msg, errCode, PigException.INPUT, fe) ;
         }
