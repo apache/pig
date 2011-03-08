@@ -35,6 +35,9 @@
 #     PIG_ROOT_LOGGER The root appender. Default is INFO,console
 #
 #     PIG_HADOOP_VERSION Version of hadoop to run with.    Default is 20 (0.20).
+#
+#     HBASE_CONF_DIR - Optionally, the HBase configuration to run against
+#                      when using HBaseStorage
 
 cygwin=false
 case "`uname`" in
@@ -151,6 +154,12 @@ for f in $PIG_HOME/lib/*.jar; do
         fi
     fi
 done
+
+# if using HBase, likely want to include HBase config
+HBASE_CONF_DIR=${HBASE_CONF_DIR:-/etc/hbase}
+if [ -n "$HBASE_CONF_DIR" ] && [ -d "$HBASE_CONF_DIR" ]; then
+  CLASSPATH=$HBASE_CONF_DIR:$CLASSPATH
+fi
 
 # add user-specified CLASSPATH last
 if [ "$PIG_CLASSPATH" != "" ]; then
