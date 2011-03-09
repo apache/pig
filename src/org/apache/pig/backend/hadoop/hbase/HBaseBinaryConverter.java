@@ -71,11 +71,15 @@ public class HBaseBinaryConverter implements LoadStoreCaster {
         }
     }
 
+    @Override
+    public Map<String, Object> bytesToMap(byte[] b) throws IOException {
+        return bytesToMap(b, null);
+    }
     /**
      * NOT IMPLEMENTED
      */
     @Override
-    public Map<String, Object> bytesToMap(byte[] b) throws IOException {
+    public Map<String, Object> bytesToMap(byte[] b, ResourceFieldSchema fieldSchema) throws IOException {
         throw new ExecException("Can't generate a Map from byte[]");
     }
 

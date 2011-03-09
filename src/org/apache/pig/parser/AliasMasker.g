@@ -219,7 +219,7 @@ bag_type
     : ^( BAG_TYPE { sb.append("bag{"); } ( { sb.append("T:"); } tuple_type )? ) { sb.append("}"); } 
 ;
 
-map_type : MAP_TYPE { sb.append("map[]"); }
+map_type : ^( MAP_TYPE { sb.append("map["); } type? ) { sb.append("]"); }
 ;
 
 func_clause 

@@ -1556,6 +1556,38 @@ public class TestMacroExpansion {
         testMacro ( query );
     }
 
+    @Test
+    public void test32() throws Throwable {
+        String query = "a = load 'testSimpleMapKeyLookup' as (m:map[int]);" + 
+                       "b = foreach a generate m#'key';";
+        
+        testMacro( query );
+    }
+    
+    @Test
+    public void test33() throws Throwable {
+        String query = "a = load 'testSimpleMapCast' as (m);" + 
+                       "b = foreach a generate ([int])m;";
+        
+        testMacro( query );
+    }
+    
+    @Test
+    public void test34() throws Throwable {
+        String query = "a = load 'testComplexLoad' as (m:map[bag{(i:int,j:int)}]);";
+        
+        testMacro( query );
+    }
+    
+    @Test
+    public void test35() throws Throwable {
+        String query = "a = load 'testComplexCast' as (m);" +
+                       "b = foreach a generate ([{(i:int,j:int)}])m;";
+        
+        testMacro( query );
+    }
+    
+    //-------------------------------------------------------------------------
     
     private void testMacro(String content) throws Throwable {
         String macro = "define mymacro() returns dummy {" +
@@ -1567,6 +1599,8 @@ public class TestMacroExpansion {
         StringReader rd = new StringReader(script);
         String s = ParserUtil.expandMacros(rd);
 
+        System.out.println("result:\n" + s);
+      
         validate(s);
     }
     

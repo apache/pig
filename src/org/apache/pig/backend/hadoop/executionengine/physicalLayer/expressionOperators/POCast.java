@@ -104,7 +104,7 @@ public class POCast extends ExpressionOperator {
 
     @Override
     public String name() {
-        if (resultType==DataType.BAG||resultType==DataType.TUPLE)
+        if (DataType.isSchemaType(resultType))
             return "Cast" + "[" + DataType.findTypeName(resultType)+":"
             + fieldSchema.calcCastString() + "]" + " - "
             + mKey.toString();
@@ -826,6 +826,7 @@ public class POCast extends ExpressionOperator {
         return res;
     }
 
+    @SuppressWarnings("unchecked")
     private Object convertWithSchema(Object obj, ResourceFieldSchema fs) throws IOException {
         Object result = null;
         
@@ -889,10 +890,20 @@ public class POCast extends ExpressionOperator {
             break;
         case DataType.MAP:
             if (obj instanceof Map) {
-                result = obj;
+                if (fs!=null && fs.getSchema()!=null) {
+                    ResourceFieldSchema innerFieldSchema = fs.getSchema().getFields()[0];
+                    Map m = (Map)obj;
+                    for (Object entry : m.entrySet()) {
+                        Object newValue = convertWithSchema(((Map.Entry)entry).getValue(), innerFieldSchema);
+                        m.put(((Map.Entry)entry).getKey(), newValue);
+                    }
+                    result = m;
+                }
+                else
+                    result = obj;
             } else if (obj instanceof DataByteArray) {
                 if (null != caster) {
-                    result = caster.bytesToMap(((DataByteArray)obj).get());
+                    result = caster.bytesToMap(((DataByteArray)obj).get(), fs);
                 } else {
                     int errCode = 1075;
                     String msg = "Received a bytearray from the UDF. Cannot determine how to convert the bytearray to tuple.";
@@ -1195,6 +1206,16 @@ public class POCast extends ExpressionOperator {
 
         case DataType.MAP: {
             Result res = in.getNext(m);
+            if (res.returnStatus == POStatus.STATUS_OK && res.result != null) {
+                try {
+                    res.result = convertWithSchema(res.result, fieldSchema);
+                } catch (IOException e) {
+                    LogUtils.warn(this, "Unable to interpret value " + res.result + " in field being " +
+                            "converted to type map, caught ParseException <" +
+                            e.getMessage() + "> field discarded", 
+                            PigWarning.FIELD_DISCARDED_TYPE_CONVERSION_FAILED, log);
+                }
+            }
             return res;
         }
 
@@ -1232,7 +1253,7 @@ public class POCast extends ExpressionOperator {
                 }
                 try {
                     if (null != caster) {
-                        res.result = caster.bytesToMap(dba.get());
+                        res.result = caster.bytesToMap(dba.get(), fieldSchema);
                     } else {
                         int errCode = 1075;
                         String msg = "Received a bytearray from the UDF. Cannot determine how to convert the bytearray to map.";

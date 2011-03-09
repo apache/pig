@@ -360,7 +360,7 @@ public class DataType {
      * @return true if the type can have a valid schema (i.e., bag or tuple)
      */
     public static boolean isSchemaType(byte dataType) {
-        return ((dataType == BAG) || (dataType == TUPLE));
+        return ((dataType == BAG) || (dataType == TUPLE) || dataType == MAP);
     }
 
     /**

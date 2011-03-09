@@ -326,21 +326,11 @@ public class LogicalExpPlanMigrationVistor extends LOVisitor {
     }
 
     public void visit(LOMapLookup colOp) throws VisitorException {
-        FieldSchema fieldSchema;
-        try {
-            fieldSchema = colOp.getFieldSchema();
-        } catch (FrontendException e) {
-            throw new VisitorException( e.getMessage() );
-        }
-        
-        LogicalSchema.LogicalFieldSchema logfieldSchema = 
-            new LogicalSchema.LogicalFieldSchema( fieldSchema.alias, 
-                    Util.translateSchema(fieldSchema.schema), fieldSchema.type);
         
         LogicalExpression map = exprOpsMap.get( colOp.getMap() );
         
         MapLookupExpression op = new MapLookupExpression(exprPlan, 
-                colOp.getLookUpKey(),  logfieldSchema);
+                colOp.getLookUpKey());
         
         exprPlan.connect(op, map);
         
