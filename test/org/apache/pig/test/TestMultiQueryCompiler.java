@@ -573,7 +573,7 @@ public class TestMultiQueryCompiler {
 
             LogicalPlan lp = checkLogicalPlan(2, 1, 7);
 
-            PhysicalPlan pp = checkPhysicalPlan(lp, 2, 1, 10);
+            PhysicalPlan pp = checkPhysicalPlan(lp, 2, 1, 13);
 
             checkMRPlan(pp, 1, 1, 2); 
 

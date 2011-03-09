@@ -18,6 +18,7 @@
 package org.apache.pig.test;
 
 import java.io.IOException;
+import java.util.HashSet;
 
 import org.apache.pig.FuncSpec;
 import org.apache.pig.data.DataType;
@@ -29,7 +30,9 @@ import org.apache.pig.newplan.logical.expression.EqualExpression;
 import org.apache.pig.newplan.logical.expression.LogicalExpressionPlan;
 import org.apache.pig.newplan.logical.expression.ProjectExpression;
 import org.apache.pig.newplan.logical.optimizer.LogicalPlanOptimizer;
+import org.apache.pig.newplan.logical.optimizer.SchemaResetter;
 import org.apache.pig.newplan.logical.relational.LOFilter;
+import org.apache.pig.newplan.logical.relational.LOForEach;
 import org.apache.pig.newplan.logical.relational.LOJoin;
 import org.apache.pig.newplan.logical.relational.LOLoad;
 import org.apache.pig.newplan.logical.relational.LogicalPlan;
@@ -153,6 +156,11 @@ public class TestNewPlanLogicalOptimizer extends TestCase {
         	expected.add(DA);
         	expected.connect(A, DA);
 	        
+        	// A = foreach
+            LOForEach foreachA = org.apache.pig.newplan.logical.Util.addForEachAfter(expected, DA, 0, new HashSet<Integer>());
+            foreachA.setAlias("A");
+            foreachA.neverUseForRealSetSchema(aschema);
+        	
         	// B = load
         	LogicalSchema bschema = new LogicalSchema();
         	bschema.addField(new LogicalSchema.LogicalFieldSchema(
@@ -174,6 +182,11 @@ public class TestNewPlanLogicalOptimizer extends TestCase {
         	expected.add(DB);
         	expected.connect(B, DB);
 	        
+            // B = foreach
+            LOForEach foreachB = org.apache.pig.newplan.logical.Util.addForEachAfter(expected, DB, 0, new HashSet<Integer>());
+            foreachB.setAlias("B");
+            foreachB.neverUseForRealSetSchema(bschema);
+            
         	// C = join
         	LogicalSchema cschema = new LogicalSchema();
         	cschema.addField(new LogicalSchema.LogicalFieldSchema(
@@ -202,8 +215,8 @@ public class TestNewPlanLogicalOptimizer extends TestCase {
         	mm.put(1, bprojplan);
         	C.neverUseForRealSetSchema(cschema);
         	expected.add(C);
-        	expected.connect(DA, C);
-        	expected.connect(DB, C);
+        	expected.connect(foreachA, C);
+        	expected.connect(foreachB, C);
 	        
         	// D = filter
         	LogicalExpressionPlan filterPlan = new LogicalExpressionPlan();
@@ -224,6 +237,13 @@ public class TestNewPlanLogicalOptimizer extends TestCase {
         	expected.add(D);
         	expected.connect(C, D);
         }
+        
+        SchemaResetter schemaResetter = new SchemaResetter(lp);
+        schemaResetter.visit();
+        
+        schemaResetter = new SchemaResetter(expected);
+        schemaResetter.visit();
+        
         
         assertTrue( lp.isEqual(expected) );
         // assertEquals(lp, expected);

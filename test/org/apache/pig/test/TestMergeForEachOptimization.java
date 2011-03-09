@@ -239,17 +239,35 @@ public class TestMergeForEachOptimization {
         LogicalPlan newLogicalPlan = migratePlan( plan );
 
         int forEachCount1 = getForEachOperatorCount( newLogicalPlan );
-        int outputExprCount1 = getOutputExprCount( newLogicalPlan );
+        List<Operator> loads = newLogicalPlan.getSources();
+        Operator l2 = null;
+        for (Operator load : loads) {
+            if (((LogicalRelationalOperator)load).getAlias().equals("l2"))
+                l2 = load;
+        }
+        LOForEach foreachL2 = (LOForEach)newLogicalPlan.getSuccessors(l2).get(0);
+        foreachL2 = (LOForEach)newLogicalPlan.getSuccessors(foreachL2).get(0);
+        
+        int outputExprCount1 = ((LOGenerate)foreachL2.getInnerPlan().getSinks().get(0)).getOutputPlans().size();
                
         PlanOptimizer optimizer = new MyPlanOptimizer( newLogicalPlan, 3 );
         optimizer.optimize();
         
         int forEachCount2 = getForEachOperatorCount( newLogicalPlan );
-        Assert.assertEquals( 1, forEachCount1 - forEachCount2 );
-        int outputExprCount2 = getOutputExprCount( newLogicalPlan );
+        Assert.assertEquals( 0, forEachCount1 - forEachCount2 );
+        
+        loads = newLogicalPlan.getSources();
+        l2 = null;
+        for (Operator load : loads) {
+            if (((LogicalRelationalOperator)load).getAlias().equals("l2"))
+                l2 = load;
+        }
+        foreachL2 = (LOForEach)newLogicalPlan.getSuccessors(l2).get(0);
+        
+        int outputExprCount2 = ((LOGenerate)foreachL2.getInnerPlan().getSinks().get(0)).getOutputPlans().size();
+        
         Assert.assertTrue( outputExprCount1 == outputExprCount2 );
-        LOForEach foreach2 = getForEachOperator( newLogicalPlan );
-        Assert.assertTrue( foreach2.getAlias().equals( "f2" ) );
+        Assert.assertTrue( foreachL2.getAlias().equals( "f2" ) );
         
         LOJoin join = (LOJoin)getOperator(newLogicalPlan, LOJoin.class);
         LogicalRelationalOperator leftInp =
