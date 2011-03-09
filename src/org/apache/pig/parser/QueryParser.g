@@ -135,6 +135,8 @@ parallel_clause : PARALLEL^ INTEGER
 // if there is a nested block. This is ugly, but it gets the job done.
 foreach_statement : ( alias EQUAL )? foreach_clause_complex SEMI_COLON?
                  -> ^( STATEMENT alias? foreach_clause_complex )
+                  | ( alias EQUAL )? foreach_clause_simple parallel_clause? SEMI_COLON
+                 -> ^( STATEMENT alias? foreach_clause_simple parallel_clause? )
 ;
 
 alias : IDENTIFIER
@@ -154,7 +156,6 @@ op_clause : define_clause
           | union_clause
           | stream_clause
           | mr_clause
-          | foreach_clause_simple
 ;
 
 define_clause : DEFINE^ alias ( cmd | func_clause )
@@ -254,7 +255,7 @@ group_item : rel ( join_group_by_clause | ALL | ANY ) ( INNER | OUTER )?
 ;
 
 rel : alias 
-    | LEFT_PAREN! ( op_clause | foreach_clause_complex ) RIGHT_PAREN!
+    | LEFT_PAREN! ( op_clause | foreach_clause_complex | foreach_clause_simple ) RIGHT_PAREN!
 ;
 
 flatten_generated_item : flatten_clause ( AS! ( field_def | ( LEFT_PAREN! field_def_list RIGHT_PAREN! ) ) )?

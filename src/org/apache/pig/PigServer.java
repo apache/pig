@@ -87,11 +87,11 @@ import org.apache.pig.newplan.logical.visitor.CastLineageSetter;
 import org.apache.pig.newplan.logical.visitor.ColumnAliasConversionVisitor;
 import org.apache.pig.newplan.logical.visitor.ProjectStarExpander;
 import org.apache.pig.newplan.logical.visitor.ScalarVisitor;
+import org.apache.pig.newplan.logical.visitor.SchemaAliasVisitor;
 import org.apache.pig.newplan.logical.visitor.TypeCheckingRelVisitor;
 import org.apache.pig.newplan.logical.visitor.UnionOnSchemaSetter;
 import org.apache.pig.newplan.DependencyOrderWalker;
 import org.apache.pig.newplan.Operator;
-import org.apache.pig.parser.ParserException;
 import org.apache.pig.parser.QueryParserDriver;
 import org.apache.pig.parser.QueryParserUtils;
 import org.apache.pig.pen.ExampleGenerator;
@@ -1432,11 +1432,12 @@ public class PigServer {
          * an overall (raw) plan.
          */
         void registerQuery(String query, int startLine) throws IOException {
+            scriptCache.add( query );
+            
             if( !batchMode ) {
-                validateQuery( query );
+                validateQuery();
             }
             
-            scriptCache.add( query );
             parseQuery();
             
             if( !batchMode ) {
@@ -1458,15 +1459,16 @@ public class PigServer {
             }
         }
         
-        void validateQuery(String q) throws FrontendException {
-            String query = buildQuery() + "\n" + q;
-            if( query.isEmpty() ) {
-                return;
-            }
-
+        void validateQuery() throws FrontendException {
+            String query = buildQuery();
             QueryParserDriver parserDriver = new QueryParserDriver( pigContext, scope, fileNameMap );
-            LogicalPlan plan = parserDriver.parse( query );
-            compile( plan );
+            try {
+                LogicalPlan plan = parserDriver.parse( query );
+                compile( plan );
+            } catch(FrontendException ex) {
+                scriptCache.remove( scriptCache.size() -1 );
+                throw ex;
+            }
         }
 
         /**
@@ -1502,7 +1504,6 @@ public class PigServer {
             }
             
             String query = accuQuery.toString();
-            query = query.trim();
             return query;
         }
         
@@ -1513,6 +1514,7 @@ public class PigServer {
         
         private void compile(LogicalPlan lp) throws FrontendException  {
             new ColumnAliasConversionVisitor( lp ).visit();
+            new SchemaAliasVisitor( lp ).visit();
             new ProjectStarExpander(lp).visit();
             new ScalarVisitor( lp, pigContext ).visit();
             

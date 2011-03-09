@@ -48,13 +48,17 @@ public class QueryParserDriver {
     public LogicalPlan parse(String query) throws ParserException {
         LogicalPlan plan = null;
         
+        CommonTokenStream tokenStream = tokenize( query );
+	    Tree ast = null;
+	        
         try {
-            CommonTokenStream tokenStream = tokenize( query );
-            
-            Tree ast = parse( tokenStream );
-            
-            ast = validateAst( ast );
-            
+	        ast = parse( tokenStream );
+        } catch(RuntimeException ex) {
+            throw new ParserException( ex.getMessage() );
+        }
+
+        try{       
+    	    ast = validateAst( ast );
             LogicalPlanGenerator planGenerator = 
                 new LogicalPlanGenerator( new CommonTreeNodeStream( ast ), pigContext, scope, fileNameMap );
             planGenerator.query();
@@ -66,7 +70,7 @@ public class QueryParserDriver {
         } catch(RecognitionException ex) {
             throw new ParserException( ex );
         } catch(Exception ex) {
-            throw new ParserException( "Unexpected exception: " + ex.getMessage() );
+            throw new ParserException( ex.getMessage() );
         }
         
         return plan;
@@ -76,8 +80,13 @@ public class QueryParserDriver {
         return operators;
     }
 
-    private static CommonTokenStream tokenize(String query) throws IOException, ParserException {
-        CharStream input = new QueryParserStringStream( query );
+    private static CommonTokenStream tokenize(String query) throws ParserException {
+        CharStream input;
+		try {
+			input = new QueryParserStringStream( query );
+		} catch(IOException ex) {
+			throw new ParserException( "Unexpected IOException: " + ex.getMessage() );
+		}
         QueryLexer lexer = new QueryLexer( input );
         CommonTokenStream tokens = new CommonTokenStream( lexer );
         checkError( lexer );
@@ -90,17 +99,24 @@ public class QueryParserDriver {
             throw new ParserException( "Encountered " + errorCount + " parsing errors in the query" );
     }
 
-    private static Tree parse(CommonTokenStream tokens) throws IOException, RecognitionException, ParserException  {
+    private static Tree parse(CommonTokenStream tokens) throws ParserException  {
         QueryParser parser = new QueryParser( tokens );
-        QueryParser.query_return result = parser.query();
+      
+        QueryParser.query_return result = null;
+		try {
+			result = parser.query();
+		} catch (RecognitionException e) {
+			String msg = parser.getErrorHeader(e) + " " + parser.getErrorMessage(e, parser.getTokenNames() );
+			throw new ParserException( msg );
+		}
+		
         Tree ast = (Tree)result.getTree();
-        
         checkError( parser );
         
         return ast;
     }
     
-    private static Tree validateAst(Tree ast) throws IOException, RecognitionException, ParserException  {
+    private static Tree validateAst(Tree ast) throws RecognitionException, ParserException {
         CommonTreeNodeStream nodes = new CommonTreeNodeStream( ast );
         AstValidator walker = new AstValidator( nodes );
         AstValidator.query_return newResult = walker.query();
