@@ -96,6 +96,7 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
 
     @Override
     public void visit(ProjectExpression proj) throws FrontendException{
+        proj.resetFieldSchema();
         proj.getFieldSchema();
     }
 
@@ -235,7 +236,6 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
     @Override
     public void visit(NegativeExpression negExp) throws FrontendException {
         byte type = negExp.getExpression().getType() ;
-
         if (DataType.isNumberType(type)) {
             //do nothing
         }
@@ -250,6 +250,7 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
             throw new TypeCheckerException(msg, errCode, PigException.INPUT) ;
         }
 
+        negExp.resetFieldSchema();
         try {
             negExp.getFieldSchema();
         } catch (FrontendException fe) {
@@ -510,7 +511,7 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
      */
     @Override
     public void visit(RegexExpression rg) throws FrontendException {
-
+        rg.resetFieldSchema();
         // We allow BYTEARRAY to be converted to CHARARRAY
         if (rg.getLhs().getType() == DataType.BYTEARRAY){
             insertCast(rg, DataType.CHARARRAY, rg.getLhs());
@@ -629,6 +630,7 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
             // return map
             insertCast(map, DataType.MAP, map.getMap());
         }
+        map.resetFieldSchema();
     }
 
     @Override

@@ -31,10 +31,14 @@ package org.apache.pig.parser;
 @Override
 public void reportError(RecognitionException e) {
     super.reportError( e );
+    
     // The method of this signature doesn't permit checked exception. Here we have to 
     // throw a unchecked execption in order to stop at the first error.
     // For more information, visit http://www.antlr.org/wiki/pages/viewpage.action?pageId=5341217.
-    throw new RuntimeException( e );
+    StringBuilder sb = new StringBuilder();
+    sb.append( getErrorHeader( e ) ).append( " " );
+    sb.append( getErrorMessage( e, getTokenNames() ) );
+    throw new RuntimeException( sb.toString() );
 }
 
 } // End of members.

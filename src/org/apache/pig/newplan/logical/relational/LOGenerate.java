@@ -111,13 +111,13 @@ public class LOGenerate extends LogicalRelationalOperator {
                                     if (fieldSchema.schema.getField(0).schema!=null)
                                         innerFieldSchemas = fieldSchema.schema.getField(0).schema.getFields();
                                     for (LogicalSchema.LogicalFieldSchema fs : innerFieldSchemas) {
-                                        fs.alias = fieldSchema.alias + "::" + fs.alias;
+                                        fs.alias = fs.alias == null ? null : fieldSchema.alias + "::" + fs.alias;
                                     }
                                 }
                             } else { // DataType.TUPLE
                                 innerFieldSchemas = fieldSchema.schema.getFields();
                                 for (LogicalSchema.LogicalFieldSchema fs : innerFieldSchemas) {
-                                    fs.alias = fieldSchema.alias + "::" + fs.alias;
+                                    fs.alias = fs.alias == null ? null : fieldSchema.alias + "::" + fs.alias;
                                 }
                             }
                             
