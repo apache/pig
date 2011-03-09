@@ -1333,4 +1333,38 @@ public class TestEvalPipeline2 {
         Assert.assertTrue(t.toString().contains("(0.0,1)"));
         Assert.assertFalse(iter.hasNext());
     }
+    
+    
+    // See PIG-1188
+    @Test
+    public void testSchemaDataNotMatch() throws Exception{
+        String[] input = {
+                "0\t1\t2",
+                "3\t4",
+                "5"
+        };
+        
+        Util.createInputFile(cluster, "table_testSchemaDataNotMatch", input);
+        
+        pigServer.registerQuery("a = load 'table_testSchemaDataNotMatch' as (a0, a1);");
+        
+        Iterator<Tuple> iter = pigServer.openIterator("a");
+        
+        Tuple t = iter.next();
+        Assert.assertTrue(t.size()==2);
+        Assert.assertTrue(t.get(0).toString().equals("0"));
+        Assert.assertTrue(t.get(1).toString().equals("1"));
+        
+        t = iter.next();
+        Assert.assertTrue(t.size()==2);
+        Assert.assertTrue(t.get(0).toString().equals("3"));
+        Assert.assertTrue(t.get(1).toString().equals("4"));
+        
+        t = iter.next();
+        Assert.assertTrue(t.size()==2);
+        Assert.assertTrue(t.get(0).toString().equals("5"));
+        Assert.assertTrue(t.get(1)==null);
+        
+        Assert.assertFalse(iter.hasNext());
+    }
 }

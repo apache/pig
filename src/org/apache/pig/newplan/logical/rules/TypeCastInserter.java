@@ -83,26 +83,7 @@ public abstract class TypeCastInserter extends Rule {
                 if (((LOStream)op).isCastInserted()) return false;
             }
             
-            boolean sawOne = false;
-            List<LogicalSchema.LogicalFieldSchema> fss = s.getFields();
-            LogicalSchema determinedSchema = null;
-            if(LOLoad.class.getName().equals(getOperatorClassName())) {
-                determinedSchema = ((LOLoad)op).getDeterminedSchema();
-            }
-            for (int i = 0; i < fss.size(); i++) {
-                if (fss.get(i).type != DataType.BYTEARRAY) {
-                    if(determinedSchema == null || 
-                            (!fss.get(i).isEqual(determinedSchema.getField(i)))) {
-                            // Either no schema was determined by loader OR the type 
-                            // from the "determinedSchema" is different
-                            // from the type specified - so we need to cast
-                            sawOne = true;
-                        }
-                }
-            }
-
-            // If all we've found are byte arrays, we don't need a projection.
-            return sawOne;
+            return true;
         }
 
         @Override
@@ -151,7 +132,7 @@ public abstract class TypeCastInserter extends Rule {
                 
                 LogicalExpressionPlan exp = new LogicalExpressionPlan();
                 
-                ProjectExpression prj = new ProjectExpression(exp, i, 0, gen);
+                ProjectExpression prj = new ProjectExpression(exp, i, -1, gen);
                 exp.add(prj);
                 
                 if (fs.type != DataType.BYTEARRAY && (determinedSchema == null || (!fs.isEqual(determinedSchema.getField(i))))) {
