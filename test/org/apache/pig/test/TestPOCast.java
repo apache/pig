@@ -959,6 +959,10 @@ public class TestPOCast extends TestCase {
         public Map<String, Object> bytesToMap(byte[] b) throws IOException {
           return null;
         }
+        
+        public Map<String, Object> bytesToMap(byte[] b, ResourceFieldSchema s) throws IOException {
+            return null;
+        }
 
         public Tuple bytesToTuple(byte[] b, ResourceFieldSchema s) throws IOException {
             return null;

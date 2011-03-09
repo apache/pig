@@ -102,6 +102,12 @@ public class LogicalSchema {
                     return ( alias + uidString + ":tuple{}" );
                 }
                 return ( alias + uidString + ":tuple(" + schema.toString(verbose) + ")" );
+            } else if (type == DataType.MAP) {
+                if (schema == null ) {
+                    return (alias + uidString + ":map");
+                } else {
+                    return (alias + uidString + ":map(" + schema.toString(verbose) + ")");
+                }
             }
             return ( alias + uidString + ":" + DataType.findTypeName(type) );
         }
@@ -280,7 +286,7 @@ public class LogicalSchema {
                     // even though we want to view that as true.
                     if (!(outFs.schema == null && inFs.schema == null)) { 
                         // compare recursively using schema
-                        if (!LogicalSchema.castable(outFs.schema, inFs.schema)) {
+                        if (!LogicalSchema.castable(inFs.schema, outFs.schema)) {
                             return false ;
                         }
                     }
@@ -499,8 +505,9 @@ public class LogicalSchema {
             return false ;
         }
 
+        // Cast to a more specific type is good
         if (inSch == null) {
-            return false ;
+            return true ;
         }
 
         if (outSch.size() > inSch.size()) return false;

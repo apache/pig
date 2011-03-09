@@ -121,8 +121,7 @@ public class ResourceSchema implements Serializable {
             LogicalSchema inner = fieldSchema.schema;
 
             // allow partial schema 
-            if ((type == DataType.BAG || type == DataType.TUPLE)
-                    && inner != null) {
+            if (DataType.isSchemaType(type) && inner != null) {
                 schema = new ResourceSchema(inner);
             } else {
                 schema = null;
@@ -235,7 +234,7 @@ public class ResourceSchema implements Serializable {
             StringBuilder sb = new StringBuilder();
             if (printAlias)
                 sb.append(this.name).append(":");
-            if (DataType.isAtomic(this.type)||this.type==DataType.MAP) {
+            if (DataType.isAtomic(this.type)) {
                 sb.append(DataType.findTypeName(this.type));
             } else {
                 if (this.schema!=null)
@@ -490,6 +489,8 @@ public class ResourceSchema implements Serializable {
             sb.append("{");
         } else if (type == DataType.TUPLE) {
             sb.append("(");
+        } else if (type == DataType.MAP) {
+            sb.append("[");
         }
         
         for (int i=0; i<rs.getFields().length; i++) {
@@ -505,6 +506,8 @@ public class ResourceSchema implements Serializable {
             sb.append("}");
         } else if (type == DataType.TUPLE) {
             sb.append(")");
+        } else if (type == DataType.MAP) {
+            sb.append("]");
         }
     }
 }

@@ -198,7 +198,7 @@ tuple_type : ^( TUPLE_TYPE field_def_list? )
 bag_type : ^( BAG_TYPE tuple_type? )
 ;
 
-map_type : MAP_TYPE
+map_type : ^( MAP_TYPE type? )
 ;
 
 func_clause : ^( FUNC_REF func_name )

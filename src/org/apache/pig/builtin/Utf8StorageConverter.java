@@ -30,6 +30,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.pig.LoadStoreCaster;
 import org.apache.pig.PigWarning;
+import org.apache.pig.ResourceSchema;
 import org.apache.pig.ResourceSchema.ResourceFieldSchema;
 import org.apache.pig.data.BagFactory;
 import org.apache.pig.data.DataBag;
@@ -191,9 +192,6 @@ public class Utf8StorageConverter implements LoadStoreCaster {
     }
     
     private Map<String, Object> consumeMap(PushbackInputStream in, ResourceFieldSchema fieldSchema) throws IOException {
-        if (fieldSchema==null) {
-            throw new IOException("Schema is null");
-        }
         int buf;
         
         while ((buf=in.read())!='[') {
@@ -239,15 +237,31 @@ public class Utf8StorageConverter implements LoadStoreCaster {
                 }
                 mOut.write(buf);
             }
-            DataByteArray value = null;
-            if (mOut.size()>0)
+            Object value = null;
+            if (fieldSchema!=null && fieldSchema.getSchema()!=null && mOut.size()>0) {
+                value = bytesToObject(mOut.toByteArray(), fieldSchema.getSchema().getFields()[0]);
+            } else if (mOut.size()>0) { // untyped map
                 value = new DataByteArray(mOut.toByteArray());
+            }
             m.put(key, value);
             mOut.reset();
             if (buf==']')
                 break;
         }
         return m;
+    }
+    
+    private Object bytesToObject(byte[] b, ResourceFieldSchema fs) throws IOException {
+        Object field;
+        if (DataType.isComplex(fs.getType())) {
+            ByteArrayInputStream bis = new ByteArrayInputStream(b);
+            PushbackInputStream in = new PushbackInputStream(bis);
+            field = consumeComplexType(in, fs);
+        }
+        else {
+            field = parseSimpleType(b, fs);
+        }
+        return field;
     }
     
     private Object consumeComplexType(PushbackInputStream in, ResourceFieldSchema complexFieldSchema) throws IOException {
@@ -446,16 +460,14 @@ public class Utf8StorageConverter implements LoadStoreCaster {
 
     @Override
     @SuppressWarnings("unchecked")
-    public Map<String, Object> bytesToMap(byte[] b) throws IOException {
+    public Map<String, Object> bytesToMap(byte[] b, ResourceFieldSchema fieldSchema) throws IOException {
         if(b == null)
             return null;
         Map<String, Object> map;
-        ResourceFieldSchema fs = new ResourceFieldSchema();
-        fs.setType(DataType.MAP);
         try {
             ByteArrayInputStream bis = new ByteArrayInputStream(b);
             PushbackInputStream in = new PushbackInputStream(bis);
-            map = consumeMap(in, fs);
+            map = consumeMap(in, fieldSchema);
         }
         catch (IOException e) {
             LogUtils.warn(this, "Unable to interpret value " + Arrays.toString(b) + " in field being " +
@@ -465,6 +477,11 @@ public class Utf8StorageConverter implements LoadStoreCaster {
             return null;       
         }
         return map;
+    }
+    
+    @Override
+    public Map<String, Object> bytesToMap(byte[] b) throws IOException {
+        return bytesToMap(b, null);
     }
 
     @Override

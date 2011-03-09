@@ -326,14 +326,7 @@ field_def returns[LogicalFieldSchema fieldSchema]
 }
  : ^( FIELD_DEF IDENTIFIER ( type { datatype = $type.datatype;} )? )
    {
-       if( datatype == DataType.BAG ) {
-              LogicalFieldSchema tupleFieldSchema = new LogicalFieldSchema( null, $type.logicalSchema, DataType.TUPLE );
-              LogicalSchema bagSchema = new LogicalSchema();
-              bagSchema.addField( tupleFieldSchema );
-              $fieldSchema = new LogicalFieldSchema( $IDENTIFIER.text, bagSchema, DataType.BAG );
-       } else {
            $fieldSchema = new LogicalFieldSchema( $IDENTIFIER.text, $type.logicalSchema, datatype );
-       }
    }
 ;
 
@@ -363,6 +356,7 @@ type returns[Byte datatype, LogicalSchema logicalSchema]
  | map_type
    {
        $datatype = DataType.MAP;
+       $logicalSchema = $map_type.logicalSchema;
    }
 ;
 
@@ -391,12 +385,28 @@ tuple_type returns[LogicalSchema logicalSchema]
 
 bag_type returns[LogicalSchema logicalSchema]
  : ^( BAG_TYPE tuple_type? )
-   { 
-       $logicalSchema = $tuple_type.logicalSchema;
+   {
+       if ($tuple_type.logicalSchema!=null && $tuple_type.logicalSchema.size()==1 && $tuple_type.logicalSchema.getField(0).type==DataType.TUPLE) {
+           $logicalSchema = $tuple_type.logicalSchema;
+       }
+       else {
+           LogicalSchema s = new LogicalSchema();
+           s.addField(new LogicalFieldSchema(null, $tuple_type.logicalSchema, DataType.TUPLE));
+           $logicalSchema = s;
+       }
    }
 ;
 
-map_type : MAP_TYPE
+map_type returns[LogicalSchema logicalSchema]
+ : ^( MAP_TYPE type? )
+   {
+       LogicalSchema s = null;
+       if ($type.datatype!=null) {
+	       s = new LogicalSchema();
+	       s.addField(new LogicalFieldSchema(null, $type.logicalSchema, $type.datatype));
+	   }
+       $logicalSchema = s;
+   }
 ;
 
 func_clause[byte ft] returns[FuncSpec funcSpec]
@@ -681,7 +691,7 @@ type_cast returns[LogicalFieldSchema fieldSchema]
    }
  | map_type
    {
-       $fieldSchema = new LogicalFieldSchema( null, null, DataType.MAP );
+       $fieldSchema = new LogicalFieldSchema( null, $map_type.logicalSchema, DataType.MAP );
    }
  | tuple_type_cast
    {
@@ -759,7 +769,7 @@ var_expr[LogicalExpressionPlan plan] returns[LogicalExpression expr]
      }
    | pound_proj
      {
-         MapLookupExpression e = new MapLookupExpression( $plan, $pound_proj.key, null );
+         MapLookupExpression e = new MapLookupExpression( $plan, $pound_proj.key );
          $plan.connect( e, $expr );
          $expr = e;
      }

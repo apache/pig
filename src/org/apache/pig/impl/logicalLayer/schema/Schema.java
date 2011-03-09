@@ -182,7 +182,7 @@ public class Schema implements Serializable, Cloneable {
             
             if ((null != s) && !(DataType.isSchemaType(t))) {
                 int errCode = 1020;
-                throw new FrontendException("Only a BAG or TUPLE can have schemas. Got "
+                throw new FrontendException("Only a BAG, TUPLE or MAP can have schemas. Got "
                         + DataType.findTypeName(t), errCode, PigException.INPUT);
             }
             
@@ -1114,7 +1114,10 @@ public class Schema implements Serializable, Cloneable {
                                                  + "as inner schema") ;
                     }
                 } else if (fs.type == DataType.MAP) {
-                    sb.append(DataType.findTypeName(fs.type) + "[ ]") ;
+                    sb.append(DataType.findTypeName(fs.type) + "[");
+                    if (fs.schema!=null)
+                        stringifySchema(sb, fs.schema, fs.type);
+                    sb.append("]");
                 } else {
                     sb.append(DataType.findTypeName(fs.type)) ;
                 }

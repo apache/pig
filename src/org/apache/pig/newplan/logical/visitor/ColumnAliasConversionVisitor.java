@@ -88,8 +88,12 @@ public class ColumnAliasConversionVisitor extends AllExpressionVisitor {
                 
                 LogicalSchema schema = null;
                 if( pred.getFieldSchema().type == DataType.BAG ) {
-                    if( pred.getFieldSchema().schema != null )
+                    if( pred.getFieldSchema().schema != null ) {
                         schema = pred.getFieldSchema().schema.getField(0).schema;
+                        if (schema!=null && schema.size()==1 && schema.getField(0).type==DataType.TUPLE) {
+                            schema = schema.getField(0).schema;
+                        }
+                    }
                 }
                 else {
                     schema = pred.getFieldSchema().schema;

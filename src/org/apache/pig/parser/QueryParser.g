@@ -220,8 +220,8 @@ bag_type : BAG? LEFT_CURLY ( ( IDENTIFIER COLON )? tuple_type )? RIGHT_CURLY
         -> ^( BAG_TYPE tuple_type? )
 ;
 
-map_type : MAP? LEFT_BRACKET RIGHT_BRACKET
-        -> MAP_TYPE
+map_type : MAP? LEFT_BRACKET type? RIGHT_BRACKET
+        -> ^( MAP_TYPE type? )
 ;
 
 func_clause : func_name

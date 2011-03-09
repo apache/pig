@@ -34,13 +34,10 @@ public class MapLookupExpression extends ColumnExpression {
      * type and schema of the value linked to the key
      */
     private String mMapKey;
-    private LogicalFieldSchema mValueSchema;
     
-    public MapLookupExpression(OperatorPlan plan, String mapKey, 
-            LogicalFieldSchema valueSchema ) {
+    public MapLookupExpression(OperatorPlan plan, String mapKey ) {
         super("Map", plan);
         mMapKey = mapKey;
-        mValueSchema = valueSchema;
         plan.add(this);
     }
     /**
@@ -58,8 +55,7 @@ public class MapLookupExpression extends ColumnExpression {
     public boolean isEqual(Operator other) throws FrontendException {
         if (other != null && other instanceof MapLookupExpression) {
             MapLookupExpression po = (MapLookupExpression)other;
-            if ( po.mMapKey.compareTo(mMapKey) != 0  || 
-                 !po.mValueSchema.isEqual( mValueSchema ))
+            if ( po.mMapKey.compareTo(mMapKey) != 0)
                 return false;
             else {
                 // check the nested map equality
@@ -94,12 +90,19 @@ public class MapLookupExpression extends ColumnExpression {
     public LogicalFieldSchema getFieldSchema() throws FrontendException {
         if (fieldSchema!=null)
             return fieldSchema;
-        if (mValueSchema!=null)
-            fieldSchema = mValueSchema;
-        else
-            fieldSchema = new LogicalSchema.LogicalFieldSchema(null, null, DataType.BYTEARRAY);
-        uidOnlyFieldSchema = fieldSchema.mergeUid(uidOnlyFieldSchema);
-        return fieldSchema;
+        LogicalExpression successor = (LogicalExpression)plan.getSuccessors(this).get(0);
+        LogicalFieldSchema predFS = successor.getFieldSchema();
+        if (predFS!=null) {
+            if (predFS.type==DataType.MAP && predFS.schema!=null) {
+                return (predFS.schema.getField(0));
+            }
+            else {
+                fieldSchema = new LogicalSchema.LogicalFieldSchema(null, null, DataType.BYTEARRAY);
+                uidOnlyFieldSchema = fieldSchema.mergeUid(uidOnlyFieldSchema);
+                return fieldSchema;
+            }
+        }
+        return null;
     }
 
     public String toString() {
@@ -125,8 +128,7 @@ public class MapLookupExpression extends ColumnExpression {
         LogicalExpression copy = null;; 
         copy = new MapLookupExpression(
                 lgExpPlan,
-                this.getLookupKey(),
-                this.getFieldSchema().deepCopy());
+                this.getLookupKey());
         
         // Only one input is expected.
         LogicalExpression input = (LogicalExpression) plan.getSuccessors( this ).get( 0 );
