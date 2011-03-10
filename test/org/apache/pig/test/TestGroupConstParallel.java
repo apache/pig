@@ -31,7 +31,6 @@ import org.apache.hadoop.mapred.jobcontrol.JobControl;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
-import org.apache.pig.backend.hadoop.executionengine.HExecutionEngine;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.plans.MROperPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
@@ -126,9 +125,8 @@ public class TestGroupConstParallel {
         pp.addAsLeaf(store);
         MROperPlan mrPlan = Util.buildMRPlan(pp, pc);
 
-        HExecutionEngine exe = pc.getExecutionEngine();
-        ConfigurationValidator.validatePigProperties(exe.getConfiguration());
-        Configuration conf = ConfigurationUtil.toConfiguration(exe.getConfiguration());
+        ConfigurationValidator.validatePigProperties(pc.getProperties());
+        Configuration conf = ConfigurationUtil.toConfiguration(pc.getProperties());
         JobControlCompiler jcc = new JobControlCompiler(pc, conf);
         
         JobControl jobControl = jcc.compile(mrPlan, "Test");
@@ -157,9 +155,8 @@ public class TestGroupConstParallel {
         pp.addAsLeaf(store);
         MROperPlan mrPlan = Util.buildMRPlan(pp, pc);
 
-        HExecutionEngine exe = pc.getExecutionEngine();
-        ConfigurationValidator.validatePigProperties(exe.getConfiguration());
-        Configuration conf = ConfigurationUtil.toConfiguration(exe.getConfiguration());
+        ConfigurationValidator.validatePigProperties(pc.getProperties());
+        Configuration conf = ConfigurationUtil.toConfiguration(pc.getProperties());
         JobControlCompiler jcc = new JobControlCompiler(pc, conf);
         
         JobControl jobControl = jcc.compile(mrPlan, "Test");

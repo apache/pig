@@ -108,6 +108,8 @@ PIG-1696: Performance: Use System.arraycopy() instead of manually copying the by
 
 BUG FIXES
 
+PIG-1862: Pig returns exit code 0 for the failed Pig script due to non-existing input directory (rding)
+
 PIG-1888: Fix TestLogicalPlanGenerator not use hardcoded path (daijy)
 
 PIG-1837: Error while using IsEmpty function (rding)

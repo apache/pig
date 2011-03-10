@@ -69,6 +69,9 @@ import org.apache.pig.tools.parameters.ParameterSubstitutionPreprocessor;
 import org.apache.pig.tools.pigscript.parser.ParseException;
 import org.apache.pig.tools.pigscript.parser.PigScriptParser;
 import org.apache.pig.tools.pigscript.parser.PigScriptParserTokenManager;
+import org.apache.pig.tools.pigstats.JobStats;
+import org.apache.pig.tools.pigstats.PigStats;
+import org.apache.pig.tools.pigstats.PigStats.JobGraph;
 
 @SuppressWarnings("deprecation")
 public class GruntParser extends PigScriptParser {
@@ -113,11 +116,15 @@ public class GruntParser extends PigScriptParser {
             }
 
             if (!mLoadOnly) {
-                List<ExecJob> jobs = mPigServer.executeBatch();
-                for(ExecJob job: jobs) {
-                    if (job.getStatus() == ExecJob.JOB_STATUS.FAILED) {
+                mPigServer.executeBatch();
+                PigStats stats = PigStats.get();
+                JobGraph jg = stats.getJobGraph();
+                Iterator<JobStats> iter = jg.iterator();
+                while (iter.hasNext()) {
+                    JobStats js = iter.next();
+                    if (!js.isSuccessful()) {
                         mNumFailedJobs++;
-                        Exception exp = (job.getException() != null) ? job.getException()
+                        Exception exp = (js.getException() != null) ? js.getException()
                                 : new ExecException(
                                         "Job failed, hadoop does not return any error message",
                                         2244);                        

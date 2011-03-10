@@ -54,8 +54,10 @@ import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.executionengine.ExecJob;
 import org.apache.pig.backend.executionengine.ExecJob.JOB_STATUS;
 import org.apache.pig.backend.hadoop.executionengine.HJob;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MapReduceLauncher;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
+import org.apache.pig.backend.hadoop.executionengine.util.MapRedUtil;
 import org.apache.pig.builtin.PigStorage;
 import org.apache.pig.classification.InterfaceAudience;
 import org.apache.pig.classification.InterfaceStability;
@@ -975,7 +977,11 @@ public class PigServer {
             currDAG.lp.explain(lps, format, verbose);
 
             pp.explain(pps, format, verbose);
-            pigContext.getExecutionEngine().explain(pp, eps, format, verbose);
+            
+            MapRedUtil.checkLeafIsStore(pp, pigContext);
+            MapReduceLauncher launcher = new MapReduceLauncher();
+            launcher.explain(pp, pigContext, eps, format, verbose);
+
             if (markAsExecute) {
                 currDAG.markAsExecuted();
             }
@@ -1216,25 +1222,40 @@ public class PigServer {
         // discover pig features used in this script
         ScriptState.get().setScriptFeatures( currDAG.lp );
         PhysicalPlan pp = compilePp();
-        // execute using appropriate engine
-        List<ExecJob> jobs = pigContext.getExecutionEngine().execute(pp, "job_pigexec_");
+       
+        MapReduceLauncher launcher = new MapReduceLauncher();
         PigStats stats = null;
-        if (jobs.size() > 0) {
-            stats = jobs.get(0).getStatistics();
-        } else {
-            stats = PigStatsUtil.getEmptyPigStats();
+        try {
+            stats = launcher.launchPig(pp, "job_pigexec_", pigContext);
+        } catch (Exception e) {
+            // There are a lot of exceptions thrown by the launcher.  If this
+            // is an ExecException, just let it through.  Else wrap it.
+            if (e instanceof ExecException){
+                throw (ExecException)e;
+            } else if (e instanceof FrontendException) {
+                throw (FrontendException)e;
+            } else {
+                int errCode = 2043;
+                String msg = "Unexpected error during execution.";
+                throw new ExecException(msg, errCode, PigException.BUG, e);
+            }
+        } finally {
+            launcher.reset();
         }
+        
         for (OutputStats output : stats.getOutputStats()) {
             if (!output.isSuccessful()) {
                 POStore store = output.getPOStore();
                 try {
-                    store.getStoreFunc().cleanupOnFailure(store.getSFile().getFileName(),
+                    store.getStoreFunc().cleanupOnFailure(
+                            store.getSFile().getFileName(),
                             new Job(output.getConf()));
                 } catch (IOException e) {
                     throw new ExecException(e);
                 }
             }
         }
+        
         return stats;
     }
 

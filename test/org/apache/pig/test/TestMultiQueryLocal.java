@@ -20,6 +20,7 @@ package org.apache.pig.test;
 import java.io.StringReader;
 import java.io.IOException;
 import java.io.File;
+import java.util.Iterator;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -32,6 +33,7 @@ import org.apache.pig.ExecType;
 import org.apache.pig.PigException;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.executionengine.ExecJob;
+import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MapReduceLauncher;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.plan.Operator;
@@ -41,6 +43,8 @@ import org.apache.pig.tools.grunt.GruntParser;
 import org.apache.pig.impl.util.LogUtils;
 import org.apache.pig.newplan.logical.relational.LogicalPlan;
 import org.apache.pig.tools.pigscript.parser.ParseException;
+import org.apache.pig.tools.pigstats.JobStats;
+import org.apache.pig.tools.pigstats.PigStats;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -544,9 +548,18 @@ public class TestMultiQueryLocal {
 
     private boolean executePlan(PhysicalPlan pp) throws IOException {
         boolean failed = true;
-        List<ExecJob> jobs = myPig.getPigContext().getExecutionEngine().execute(pp, "execute");
-        for (ExecJob job: jobs) {
-            failed = (job.getStatus() == ExecJob.JOB_STATUS.FAILED);
+        MapReduceLauncher launcher = new MapReduceLauncher();
+        PigStats stats = null;
+        try {
+            stats = launcher.launchPig(pp, "execute", myPig.getPigContext());
+        } catch (Exception e) {
+            e.printStackTrace(System.out);
+            throw new IOException(e);
+        }
+        Iterator<JobStats> iter = stats.getJobGraph().iterator();
+        while (iter.hasNext()) {
+            JobStats js = iter.next();
+            failed = !js.isSuccessful();
             if (failed) {
                 break;
             }
