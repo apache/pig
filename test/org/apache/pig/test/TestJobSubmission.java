@@ -18,7 +18,6 @@
 package org.apache.pig.test;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.Iterator;
 import java.util.Random;
 
@@ -32,7 +31,6 @@ import org.apache.hadoop.mapred.jobcontrol.JobControl;
 import org.apache.pig.ExecType;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
-import org.apache.pig.backend.hadoop.executionengine.HExecutionEngine;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobCreationException;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MapReduceLauncher;
@@ -465,9 +463,8 @@ public class TestJobSubmission extends junit.framework.TestCase{
     		}
     	}
     	
-        HExecutionEngine exe = pc.getExecutionEngine();
-        ConfigurationValidator.validatePigProperties(exe.getConfiguration());
-        Configuration conf = ConfigurationUtil.toConfiguration(exe.getConfiguration());
+        ConfigurationValidator.validatePigProperties(pc.getProperties());
+        Configuration conf = ConfigurationUtil.toConfiguration(pc.getProperties());
         JobControlCompiler jcc = new JobControlCompiler(pc, conf);
         try {
         	jcc.compile(mrPlan, "Test");
@@ -488,9 +485,8 @@ public class TestJobSubmission extends junit.framework.TestCase{
         pp.addAsLeaf(store);
         MROperPlan mrPlan = Util.buildMRPlan(pp, pc);
 
-        HExecutionEngine exe = pc.getExecutionEngine();
-        ConfigurationValidator.validatePigProperties(exe.getConfiguration());
-        Configuration conf = ConfigurationUtil.toConfiguration(exe.getConfiguration());
+        ConfigurationValidator.validatePigProperties(pc.getProperties());
+        Configuration conf = ConfigurationUtil.toConfiguration(pc.getProperties());
         JobControlCompiler jcc = new JobControlCompiler(pc, conf);
         
         JobControl jobControl = jcc.compile(mrPlan, "Test");
@@ -514,11 +510,6 @@ public class TestJobSubmission extends junit.framework.TestCase{
         pp.addAsLeaf(store);
         MROperPlan mrPlan = Util.buildMRPlan(pp, pc);
 
-        HExecutionEngine exe = pc.getExecutionEngine();
-        ConfigurationValidator.validatePigProperties(exe.getConfiguration());
-        Configuration conf = ConfigurationUtil.toConfiguration(exe.getConfiguration());
-        JobControlCompiler jcc = new JobControlCompiler(pc, conf);
-        
         // Get the sort job
         Iterator<MapReduceOper> iter = mrPlan.getKeys().values().iterator();
         int counter = 0;
@@ -546,11 +537,6 @@ public class TestJobSubmission extends junit.framework.TestCase{
         POStore store = GenPhyOp.dummyPigStorageOp();
         pp.addAsLeaf(store);
         MROperPlan mrPlan = Util.buildMRPlan(pp, pc);
-
-        HExecutionEngine exe = pc.getExecutionEngine();
-        ConfigurationValidator.validatePigProperties(exe.getConfiguration());
-        Configuration conf = ConfigurationUtil.toConfiguration(exe.getConfiguration());
-        JobControlCompiler jcc = new JobControlCompiler(pc, conf);
         
         // Get the skew join job
         Iterator<MapReduceOper> iter = mrPlan.getKeys().values().iterator();
@@ -580,9 +566,8 @@ public class TestJobSubmission extends junit.framework.TestCase{
                
         pc.getConf().setProperty("pig.exec.reducers.bytes.per.reducer", "100");
         pc.getConf().setProperty("pig.exec.reducers.max", "10");
-        HExecutionEngine exe = pc.getExecutionEngine();
-        ConfigurationValidator.validatePigProperties(exe.getConfiguration());
-        Configuration conf = ConfigurationUtil.toConfiguration(exe.getConfiguration());
+        ConfigurationValidator.validatePigProperties(pc.getProperties());
+        Configuration conf = ConfigurationUtil.toConfiguration(pc.getProperties());
         JobControlCompiler jcc = new JobControlCompiler(pc, conf);
         JobControl jc=jcc.compile(mrPlan, "Test");
         Job job = jc.getWaitingJobs().get(0);
@@ -600,9 +585,8 @@ public class TestJobSubmission extends junit.framework.TestCase{
                
         pc.getConf().setProperty("pig.exec.reducers.bytes.per.reducer", "100");
         pc.getConf().setProperty("pig.exec.reducers.max", "10");
-        exe = pc.getExecutionEngine();
-        ConfigurationValidator.validatePigProperties(exe.getConfiguration());
-        conf = ConfigurationUtil.toConfiguration(exe.getConfiguration());
+        ConfigurationValidator.validatePigProperties(pc.getProperties());
+        conf = ConfigurationUtil.toConfiguration(pc.getProperties());
         jcc = new JobControlCompiler(pc, conf);
         jc=jcc.compile(mrPlan, "Test");
         job = jc.getWaitingJobs().get(0);
@@ -623,9 +607,9 @@ public class TestJobSubmission extends junit.framework.TestCase{
                 
         pc.getConf().setProperty("pig.exec.reducers.bytes.per.reducer", "100");
         pc.getConf().setProperty("pig.exec.reducers.max", "10");
-        exe = pc.getExecutionEngine();
-        ConfigurationValidator.validatePigProperties(exe.getConfiguration());
-        conf = ConfigurationUtil.toConfiguration(exe.getConfiguration());
+
+        ConfigurationValidator.validatePigProperties(pc.getProperties());
+        conf = ConfigurationUtil.toConfiguration(pc.getProperties());
         jcc = new JobControlCompiler(pc, conf);
         jc=jcc.compile(mrPlan, "Test");
         job = jc.getWaitingJobs().get(0);

@@ -19,17 +19,14 @@
 package org.apache.pig.backend.hadoop.executionengine;
 
 import java.io.IOException;
-import java.io.PrintStream;
 import java.net.Socket;
 import java.net.SocketException;
 import java.net.SocketImplFactory;
 import java.net.URL;
-import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
@@ -39,27 +36,18 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hdfs.DistributedFileSystem;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.pig.ExecType;
-import org.apache.pig.FuncSpec;
 import org.apache.pig.PigException;
 import org.apache.pig.backend.datastorage.DataStorage;
 import org.apache.pig.backend.executionengine.ExecException;
-import org.apache.pig.backend.executionengine.ExecJob;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.datastorage.HDataStorage;
-import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MapReduceLauncher;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
-import org.apache.pig.backend.hadoop.executionengine.physicalLayer.relationalOperators.POStore;
-import org.apache.pig.backend.hadoop.executionengine.util.MapRedUtil;
 import org.apache.pig.impl.PigContext;
-import org.apache.pig.impl.io.FileLocalizer;
-import org.apache.pig.impl.io.FileSpec;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.LogicalOperator;
-import org.apache.pig.impl.plan.NodeIdGenerator;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.util.ObjectSerializer;
-import org.apache.pig.impl.util.Utils;
 import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.logical.optimizer.LogicalPlanOptimizer;
 import org.apache.pig.newplan.logical.optimizer.SchemaResetter;
@@ -70,8 +58,6 @@ import org.apache.pig.newplan.logical.relational.LogicalPlan;
 import org.apache.pig.newplan.logical.relational.LogicalRelationalOperator;
 import org.apache.pig.newplan.logical.rules.InputOutputFileValidator;
 import org.apache.pig.newplan.logical.visitor.SortInfoSetter;
-import org.apache.pig.tools.pigstats.OutputStats;
-import org.apache.pig.tools.pigstats.PigStats;
 import org.apache.pig.pen.POOptimizeDisabler;
 
 public class HExecutionEngine {
@@ -221,19 +207,9 @@ public class HExecutionEngine {
         jobConf = new JobConf(configuration);
     }
 
-    public Properties getConfiguration() throws ExecException {
-        return this.pigContext.getProperties();
-    }
-        
     public void updateConfiguration(Properties newConfiguration) 
             throws ExecException {
         init(newConfiguration);
-    }
-        
-    public void close() throws ExecException {}
-
-    public Map<String, Object> getStatistics() throws ExecException {
-        throw new UnsupportedOperationException();
     }
 
     @SuppressWarnings("unchecked")
@@ -338,68 +314,8 @@ public class HExecutionEngine {
     public LogicalPlan getNewPlan() {
         return newPreoptimizedPlan;
     }
-    
-    public List<ExecJob> execute(PhysicalPlan plan,
-                                 String jobName) throws ExecException, FrontendException {
-        MapReduceLauncher launcher = new MapReduceLauncher();
-        List<ExecJob> jobs = new ArrayList<ExecJob>();
-
-        Map<String, PhysicalOperator> leafMap = new HashMap<String, PhysicalOperator>();
-        for (PhysicalOperator physOp : plan.getLeaves()) {
-            log.info(physOp);
-            if (physOp instanceof POStore) {
-                FileSpec spec = ((POStore) physOp).getSFile();
-                if (spec != null)
-                    leafMap.put(spec.toString(), physOp);
-            }
-        }
-        try {
-            PigStats stats = launcher.launchPig(plan, jobName, pigContext);
-
-            for (OutputStats output : stats.getOutputStats()) {
-                POStore store = output.getPOStore();               
-                String alias = store.getAlias();
-                if (output.isSuccessful()) {
-                    jobs.add(new HJob(ExecJob.JOB_STATUS.COMPLETED, pigContext, store, alias, stats));
-                } else {
-                    HJob j = new HJob(ExecJob.JOB_STATUS.FAILED, pigContext, store, alias, stats);  
-                    j.setException(launcher.getError(store.getSFile()));
-                    jobs.add(j);
-                }
-            }
-
-            return jobs;
-        } catch (Exception e) {
-            // There are a lot of exceptions thrown by the launcher.  If this
-            // is an ExecException, just let it through.  Else wrap it.
-            if (e instanceof ExecException){
-                throw (ExecException)e;
-            } else if (e instanceof FrontendException) {
-                throw (FrontendException)e;
-            } else {
-                int errCode = 2043;
-                String msg = "Unexpected error during execution.";
-                throw new ExecException(msg, errCode, PigException.BUG, e);
-            }
-        } finally {
-            launcher.reset();
-        }
-
-    }
-
-    public void explain(PhysicalPlan plan, PrintStream stream, String format, boolean verbose) {
-        try {
-            MapRedUtil.checkLeafIsStore(plan, pigContext);
-
-            MapReduceLauncher launcher = new MapReduceLauncher();
-            launcher.explain(plan, pigContext, stream, format, verbose);
-
-        } catch (Exception ve) {
-            throw new RuntimeException(ve);
-        }
-    }
-  
-    @SuppressWarnings("unchecked")
+      
+    @SuppressWarnings({ "unchecked", "rawtypes" })
     private void setSSHFactory(){
         Properties properties = this.pigContext.getProperties();
         String g = properties.getProperty("ssh.gateway");
@@ -455,29 +371,4 @@ public class HExecutionEngine {
         }
     } 
     
-    public static FileSpec checkLeafIsStore(
-            PhysicalPlan plan,
-            PigContext pigContext) throws ExecException {
-        try {
-            PhysicalOperator leaf = plan.getLeaves().get(0);
-            FileSpec spec = null;
-            if(!(leaf instanceof POStore)){
-                String scope = leaf.getOperatorKey().getScope();
-                POStore str = new POStore(new OperatorKey(scope,
-                    NodeIdGenerator.getGenerator().getNextNodeId(scope)));
-                spec = new FileSpec(FileLocalizer.getTemporaryPath(
-                    pigContext).toString(),
-                    new FuncSpec(Utils.getTmpFileCompressorName(pigContext)));
-                str.setSFile(spec);
-                plan.addAsLeaf(str);
-            } else{
-                spec = ((POStore)leaf).getSFile();
-            }
-            return spec;
-        } catch (Exception e) {
-            int errCode = 2045;
-            String msg = "Internal error. Not able to check if the leaf node is a store operator.";
-            throw new ExecException(msg, errCode, PigException.BUG, e);
-        }
-    }
 }

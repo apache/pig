@@ -116,9 +116,10 @@ public class MapReduceLauncher extends Launcher{
         aggregateWarning = "true".equalsIgnoreCase(pc.getProperties().getProperty("aggregate.warning"));
         MROperPlan mrp = compile(php, pc);
                 
+        ConfigurationValidator.validatePigProperties(pc.getProperties());
+        Configuration conf = ConfigurationUtil.toConfiguration(pc.getProperties());
+        
         HExecutionEngine exe = pc.getExecutionEngine();
-        ConfigurationValidator.validatePigProperties(exe.getConfiguration());
-        Configuration conf = ConfigurationUtil.toConfiguration(exe.getConfiguration());
         JobClient jobClient = new JobClient(exe.getJobConf());
         
         JobControlCompiler jcc = new JobControlCompiler(pc, conf);
