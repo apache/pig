@@ -416,6 +416,7 @@ public class LoadFuncHelper {
         Path file = null;
 
         FileStatus[] paths = fileSystem.listStatus(currentPath);
+        Arrays.sort(paths);
 
         for (FileStatus subPathStatus : paths) {
 
