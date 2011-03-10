@@ -455,8 +455,6 @@ public class TestAllLoader extends TestCase {
             server = new PigServer(ExecType.LOCAL, configuration);
 
             server.setBatchOn();
-            server.registerFunction(allLoaderName, new FuncSpec(
-                    allLoaderFuncSpec));
         }
     }
 
