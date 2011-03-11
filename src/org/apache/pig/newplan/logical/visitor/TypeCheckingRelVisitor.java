@@ -22,7 +22,6 @@ import java.util.Collection;
 import java.util.List;
 
 import org.apache.pig.PigException;
-import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataType;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.validators.TypeCheckerException;
@@ -360,11 +359,7 @@ public class TypeCheckingRelVisitor extends LogicalRelationalNodesVisitor {
 
             // Manipulate the plan structure
             plan.add(foreach);
-            plan.disconnect(fromOp, toOp) ;
-
-            plan.connect(fromOp, foreach);
-            plan.connect(foreach, toOp);
-
+            plan.insertBetween(fromOp, foreach, toOp);
             return foreach;
 
         }

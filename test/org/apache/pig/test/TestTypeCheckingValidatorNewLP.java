@@ -24,6 +24,7 @@ import static org.apache.pig.test.utils.TypeCheckingTestUtil.genFlatSchemaInTupl
 import static org.apache.pig.test.utils.TypeCheckingTestUtil.printCurrentMethodName;
 import static org.apache.pig.test.utils.TypeCheckingTestUtil.printMessageCollector;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -32,14 +33,18 @@ import static org.junit.Assert.fail;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Properties;
 
 import junit.framework.Assert;
 
+import org.apache.pig.EvalFunc;
 import org.apache.pig.ExecType;
 import org.apache.pig.FuncSpec;
+import org.apache.pig.PigServer;
 import org.apache.pig.builtin.PigStorage;
+import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataByteArray;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
@@ -54,8 +59,12 @@ import org.apache.pig.impl.plan.CompilationMessageCollector;
 import org.apache.pig.impl.plan.CompilationMessageCollector.Message;
 import org.apache.pig.impl.plan.CompilationMessageCollector.MessageType;
 import org.apache.pig.impl.util.MultiMap;
+import org.apache.pig.newplan.DependencyOrderWalker;
 import org.apache.pig.newplan.Operator;
+import org.apache.pig.newplan.OperatorPlan;
 import org.apache.pig.newplan.PlanVisitor;
+import org.apache.pig.newplan.PlanWalker;
+import org.apache.pig.newplan.ReverseDependencyOrderWalker;
 import org.apache.pig.newplan.logical.Util;
 import org.apache.pig.newplan.logical.expression.AddExpression;
 import org.apache.pig.newplan.logical.expression.AndExpression;
@@ -69,6 +78,7 @@ import org.apache.pig.newplan.logical.expression.GreaterThanExpression;
 import org.apache.pig.newplan.logical.expression.LessThanEqualExpression;
 import org.apache.pig.newplan.logical.expression.LogicalExpression;
 import org.apache.pig.newplan.logical.expression.LogicalExpressionPlan;
+import org.apache.pig.newplan.logical.expression.LogicalExpressionVisitor;
 import org.apache.pig.newplan.logical.expression.MapLookupExpression;
 import org.apache.pig.newplan.logical.expression.ModExpression;
 import org.apache.pig.newplan.logical.expression.MultiplyExpression;
@@ -78,6 +88,7 @@ import org.apache.pig.newplan.logical.expression.NotExpression;
 import org.apache.pig.newplan.logical.expression.ProjectExpression;
 import org.apache.pig.newplan.logical.expression.RegexExpression;
 import org.apache.pig.newplan.logical.expression.SubtractExpression;
+import org.apache.pig.newplan.logical.optimizer.AllExpressionVisitor;
 import org.apache.pig.newplan.logical.relational.LOCogroup;
 import org.apache.pig.newplan.logical.relational.LOCross;
 import org.apache.pig.newplan.logical.relational.LODistinct;
@@ -98,6 +109,7 @@ import org.apache.pig.newplan.logical.visitor.CastLineageSetter;
 import org.apache.pig.newplan.logical.visitor.ColumnAliasConversionVisitor;
 import org.apache.pig.newplan.logical.visitor.TypeCheckingExpVisitor;
 import org.apache.pig.newplan.logical.visitor.TypeCheckingRelVisitor;
+import org.apache.pig.newplan.logical.visitor.UnionOnSchemaSetter;
 import org.apache.pig.parser.ParserTestingUtils;
 import org.apache.pig.test.utils.LogicalPlanTester;
 import org.junit.Before;
@@ -767,65 +779,9 @@ public class TestTypeCheckingValidatorNewLP {
     
         }
     
-        // Expression plan has to support DAG before this can be used.
-        // Currently it supports only tree.
-    
-        /*
-        @Test
-        public void testDiamondShapedExpressionPlan1() throws Throwable {
-            LogicalExpressionPlan plan = new LogicalExpressionPlan() ;
-            ConstantExpression constant1 = new ConstantExpression(plan, 10) ;
-            constant1.setType(DataType.LONG) ;
-    
-            LONegative neg1 = new LONegative(plan, constant1) ;
-            LONegative neg2 = new LONegative(plan, constant1) ;
-    
-            DivideExpression div1 = new DivideExpression(plan, neg1, neg2) ;
-    
-            LONegative neg3 = new LONegative(plan, div1) ;
-            LONegative neg4 = new LONegative(plan, div1) ;
-    
-            AddExpression add1 = new AddExpression(plan, neg3, neg4) ;
-    
-            plan.add(constant1) ;
-            plan.add(neg1) ;
-            plan.add(neg2) ;
-            plan.add(div1) ;
-            plan.add(neg3) ;
-            plan.add(neg4) ;
-            plan.add(add1) ;
-    
-            plan.connect(constant1, neg1) ;
-            plan.connect(constant1, neg2) ;
-    
-            plan.connect(neg1, div1) ;
-            plan.connect(neg2, div1) ;
-    
-            plan.connect(div1, neg3) ;
-            plan.connect(div1, neg3) ;
-    
-            plan.connect(neg3, add1) ;
-            plan.connect(neg4, add1) ;
-    
-            // Before type checking
-            assertEquals(DataType.UNKNOWN, add1.getType()) ;
-    
-            CompilationMessageCollector collector = new CompilationMessageCollector() ;
-            TypeCheckingValidator typeValidator = new TypeCheckingValidator() ;
-            typeValidator.validate(plan, collector) ;
-            printMessageCollector(collector) ;
-    
-            //printTypeGraph(plan) ;
-    
-            // After type checking
-            assertEquals(DataType.LONG, div1.getType()) ;
-            assertEquals(DataType.LONG, add1.getType()) ;
-    
-        }
-        */
         
         // This tests when both inputs need casting
-        //@Test
+        @Test
         public void testUnionCastingInsert1() throws Throwable {
     
             printCurrentMethodName();
@@ -956,180 +912,117 @@ public class TestTypeCheckingValidatorNewLP {
             }
     
         }
-    //
-    //
-    //    // This tests when both only on input needs casting
-    //    //@Test
-    //    public void testUnionCastingInsert2() throws Throwable {
-    //
-    //        printCurrentMethodName();
-    //        LogicalPlan plan = new LogicalPlan() ;
-    //
-    //        String pigStorage = PigStorage.class.getName() ;
-    //
-    //        LOLoad load1 = new LOLoad(plan,
-    //                                  
-    //                                  new FileSpec("pi", new FuncSpec(pigStorage)),
-    //                                  null) ;
-    //        LOLoad load2 = new LOLoad(plan,
-    //                                  
-    //                                  new FileSpec("pi", new FuncSpec(pigStorage)),
-    //                                  null) ;
-    //
-    //        // schema for input#1
-    //        Schema inputSchema1 = null ;
-    //        {
-    //            List<FieldSchema> fsList1 = new ArrayList<FieldSchema>() ;
-    //            fsList1.add(new FieldSchema("field1a", DataType.INTEGER)) ;
-    //            fsList1.add(new FieldSchema("field2a", DataType.BYTEARRAY)) ;
-    //            inputSchema1 = new Schema(fsList1) ;
-    //        }
-    //
-    //        // schema for input#2
-    //        Schema inputSchema2 = null ;
-    //        {
-    //            List<FieldSchema> fsList2 = new ArrayList<FieldSchema>() ;
-    //            fsList2.add(new FieldSchema("field1b", DataType.DOUBLE)) ;
-    //            fsList2.add(new FieldSchema("field2b", DataType.DOUBLE)) ;
-    //            inputSchema2 = new Schema(fsList2) ;
-    //        }
-    //
-    //        // set schemas
-    //        load1.setEnforcedSchema(inputSchema1) ;
-    //        load2.setEnforcedSchema(inputSchema2) ;
-    //
-    //        // create union operator
-    //        ArrayList<LogicalOperator> inputList = new ArrayList<LogicalOperator>() ;
-    //        inputList.add(load1) ;
-    //        inputList.add(load2) ;
-    //        LOUnion union = new LOUnion(plan) ;
-    //
-    //        // wiring
-    //        plan.add(load1) ;
-    //        plan.add(load2) ;
-    //        plan.add(union) ;
-    //
-    //        plan.connect(load1, union);
-    //        plan.connect(load2, union);
-    //
-    //        // validate
-    //        CompilationMessageCollector collector = new CompilationMessageCollector() ;
-    //        TypeCheckingValidator typeValidator = new TypeCheckingValidator() ;
-    //        typeValidator.validate(plan, collector) ;
-    //        printMessageCollector(collector) ;
-    //
-    //        // check end result schema
-    //        Schema outputSchema = union.getSchema() ;
-    //
-    //        Schema expectedSchema = null ;
-    //        {
-    //            List<FieldSchema> fsListExpected = new ArrayList<FieldSchema>() ;
-    //            fsListExpected.add(new FieldSchema("field1a", DataType.DOUBLE)) ;
-    //            fsListExpected.add(new FieldSchema("field2a", DataType.DOUBLE)) ;
-    //            expectedSchema = new Schema(fsListExpected) ;
-    //        }
-    //
-    //        assertTrue(Schema.equals(outputSchema, expectedSchema, true, false)) ;
-    //
-    //        //printTypeGraph(plan) ;
-    //
-    //        // check the inserted casting of input1
-    //        {
-    //            // Check wiring
-    //            List<LogicalOperator> sucList1 = plan.getSuccessors(load1) ;
-    //            assertEquals(sucList1.size(), 1);
-    //            LOForEach foreach = (LOForEach) sucList1.get(0) ;
-    //            assertTrue(foreach instanceof LOForEach) ;
-    //
-    //            List<LogicalOperator> sucList2 = plan.getSuccessors(foreach) ;
-    //            assertEquals(sucList2.size(), 1);
-    //            assertTrue(sucList2.get(0) instanceof LOUnion) ;
-    //
-    //            // Check inserted casting
-    //            checkForEachCasting(foreach, 0, true, DataType.DOUBLE) ;
-    //            checkForEachCasting(foreach, 1, true, DataType.DOUBLE) ;
-    //
-    //        }
-    //
-    //        // check the inserted casting of input2
-    //        {
-    //            // Check wiring
-    //            List<LogicalOperator> sucList1 = plan.getSuccessors(load2) ;
-    //            assertEquals(sucList1.size(), 1);
-    //            assertTrue(sucList1.get(0) instanceof LOUnion) ;
-    //        }
-    //
-    //    }
-    //    
-    //    // This has to fail under strict typing mode
-    //    /*
-    //    // This is a negative test
-    //    // Two inputs cannot be merged due to incompatible schemas
-    //    @Test
-    //    public void testUnionCastingInsert3() throws Throwable {
-    //        LogicalPlan plan = new LogicalPlan() ;
-    //
-    //        String pigStorage = PigStorage.class.getName() ;
-    //
-    //        LOLoad load1 = new LOLoad(plan,
-    //                                  
-    //                                  new FileSpec("pi", new FuncSpec(pigStorage)),
-    //                                  null) ;
-    //        LOLoad load2 = new LOLoad(plan,
-    //                                  
-    //                                  new FileSpec("pi", new FuncSpec(pigStorage)),
-    //                                  null) ;
-    //
-    //        // schema for input#1
-    //        Schema inputSchema1 = null ;
-    //        {
-    //            List<FieldSchema> fsList1 = new ArrayList<FieldSchema>() ;
-    //            fsList1.add(new FieldSchema("field1a", DataType.INTEGER)) ;
-    //            fsList1.add(new FieldSchema("field2a", DataType.BYTEARRAY)) ;
-    //            inputSchema1 = new Schema(fsList1) ;
-    //        }
-    //
-    //        // schema for input#2
-    //        Schema inputSchema2 = null ;
-    //        {
-    //            List<FieldSchema> fsList2 = new ArrayList<FieldSchema>() ;
-    //            fsList2.add(new FieldSchema("field1b", DataType.CHARARRAY)) ;
-    //            fsList2.add(new FieldSchema("field2b", DataType.DOUBLE)) ;
-    //            inputSchema2 = new Schema(fsList2) ;
-    //        }
-    //
-    //        // set schemas
-    //        load1.setEnforcedSchema(inputSchema1) ;
-    //        load2.setEnforcedSchema(inputSchema2) ;
-    //
-    //        // create union operator
-    //        ArrayList<LogicalOperator> inputList = new ArrayList<LogicalOperator>() ;
-    //        inputList.add(load1) ;
-    //        inputList.add(load2) ;
-    //        LOUnion union = new LOUnion(plan, inputList) ;
-    //
-    //        // wiring
-    //        plan.add(load1) ;
-    //        plan.add(load2) ;
-    //        plan.add(union) ;
-    //
-    //        plan.connect(load1, union);
-    //        plan.connect(load2, union);
-    //
-    //        // validate
-    //        CompilationMessageCollector collector = new CompilationMessageCollector() ;
-    //        TypeCheckingValidator typeValidator = new TypeCheckingValidator() ;
-    //        try {
-    //            typeValidator.validate(plan, collector) ;
-    //            fail("Exception expected") ;
-    //        }
-    //        catch (TypeCheckerException pve) {
-    //            // good
-    //        }
-    //        printMessageCollector(collector) ;
-    //
-    //    }
-    //    */
+    
+    
+        // This tests when both only on input needs casting
+        @Test
+        public void testUnionCastingInsert2() throws Throwable {
+    
+            printCurrentMethodName();
+            LogicalPlan plan = new LogicalPlan() ;
+    
+            String pigStorage = PigStorage.class.getName() ;
+    
+            
+            LOLoad load1 = new LOLoad(
+                    new FileSpec("pi", new FuncSpec(pigStorage)),
+                    null, plan, null
+            );
+                
+            LOLoad load2 = new LOLoad(
+                    new FileSpec("pi", new FuncSpec(pigStorage)),
+                    null, plan, null
+            );
+  
+            // schema for input#1
+            Schema inputSchema1 = null ;
+            {
+                List<FieldSchema> fsList1 = new ArrayList<FieldSchema>() ;
+                fsList1.add(new FieldSchema("field1a", DataType.INTEGER)) ;
+                fsList1.add(new FieldSchema("field2a", DataType.BYTEARRAY)) ;
+                inputSchema1 = new Schema(fsList1) ;
+            }
+    
+            // schema for input#2
+            Schema inputSchema2 = null ;
+            {
+                List<FieldSchema> fsList2 = new ArrayList<FieldSchema>() ;
+                fsList2.add(new FieldSchema("field1b", DataType.DOUBLE)) ;
+                fsList2.add(new FieldSchema("field2b", DataType.DOUBLE)) ;
+                inputSchema2 = new Schema(fsList2) ;
+            }
+    
+            // set schemas
+            load1.setScriptSchema(Util.translateSchema(inputSchema1));
+            load2.setScriptSchema(Util.translateSchema(inputSchema2));
+            
+            
+            
+            // create union operator
+            ArrayList<LogicalRelationalOperator> inputList = new ArrayList<LogicalRelationalOperator>() ;
+            inputList.add(load1) ;
+            inputList.add(load2) ;
+            LOUnion union = new LOUnion(plan, false) ;
+
+            // wiring
+            plan.add(load1) ;
+            plan.add(load2) ;
+            plan.add(union) ;
+    
+            plan.connect(load1, union);
+            plan.connect(load2, union);
+    
+            
+            // validate
+            CompilationMessageCollector collector = new CompilationMessageCollector() ;
+            TypeCheckingRelVisitor typeChecker = new TypeCheckingRelVisitor(plan, collector);
+            typeChecker.visit();  
+            printMessageCollector(collector) ;
+            
+            // check end result schema
+            Schema outputSchema = Util.translateSchema(union.getSchema()) ;
+    
+            Schema expectedSchema = null ;
+            {
+                List<FieldSchema> fsListExpected = new ArrayList<FieldSchema>() ;
+                fsListExpected.add(new FieldSchema("field1a", DataType.DOUBLE)) ;
+                fsListExpected.add(new FieldSchema("field2a", DataType.DOUBLE)) ;
+                expectedSchema = new Schema(fsListExpected) ;
+            }
+    
+            assertTrue(Schema.equals(outputSchema, expectedSchema, true, false)) ;
+    
+            //printTypeGraph(plan) ;
+    
+            // check the inserted casting of input1
+            {
+                // Check wiring
+                List<Operator> sucList1 = plan.getSuccessors(load1);
+                assertEquals(sucList1.size(), 1);
+                LOForEach foreach = (LOForEach) sucList1.get(0) ;
+                assertTrue(foreach instanceof LOForEach) ;
+
+                List<Operator> sucList2 = plan.getSuccessors(foreach);
+                assertEquals(sucList2.size(), 1);
+                assertTrue(sucList2.get(0) instanceof LOUnion) ;
+
+                // Check inserted casting
+                checkForEachCasting(foreach, 0, true, DataType.DOUBLE) ;
+                checkForEachCasting(foreach, 1, true, DataType.DOUBLE) ;
+
+            }
+    
+            // check the inserted casting of input2
+            {
+                // Check wiring
+                List<Operator> sucList1 = plan.getSuccessors(load2);
+                assertEquals(sucList1.size(), 1);
+                assertTrue(sucList1.get(0) instanceof LOUnion) ;
+            }
+    
+        }
+        
+
     
         @Test
         public void testDistinct1() throws Throwable {
@@ -1626,12 +1519,6 @@ public class TestTypeCheckingValidatorNewLP {
             
             NotEqualExpression notequal1 = new NotEqualExpression(innerPlan1, project11, project12) ;
 
-//            innerPlan1.add(project11) ;
-//            innerPlan1.add(project12) ;
-//            innerPlan1.add(notequal1) ;
-//
-//            innerPlan1.connect(project11, notequal1);
-//            innerPlan1.connect(project12, notequal1);
 
             // Create expression inner plan #2
             LogicalExpressionPlan innerPlan2 = new LogicalExpressionPlan() ;
@@ -1639,13 +1526,6 @@ public class TestTypeCheckingValidatorNewLP {
             
             ConstantExpression const21 = new ConstantExpression(innerPlan2, 26L) ;
             LessThanEqualExpression lesser21 = new LessThanEqualExpression(innerPlan2, project21, const21) ;
-//
-//            innerPlan2.add(project21) ;
-//            innerPlan2.add(const21) ;
-//            innerPlan2.add(lesser21) ;
-//
-//            innerPlan2.connect(project21, lesser21);
-//            innerPlan2.connect(const21, lesser21) ;
 
 
             splitOutput1.setFilterPlan(innerPlan1);
@@ -1745,12 +1625,6 @@ public class TestTypeCheckingValidatorNewLP {
             
             NotEqualExpression notequal1 = new NotEqualExpression(innerPlan1, project11, project12) ;
 
-//            innerPlan1.add(project11) ;
-//            innerPlan1.add(project12) ;
-//            innerPlan1.add(notequal1) ;
-//
-//            innerPlan1.connect(project11, notequal1);
-//            innerPlan1.connect(project12, notequal1);
 
             // Create expression inner plan #2
             LogicalExpressionPlan innerPlan2 = new LogicalExpressionPlan() ;
@@ -1762,12 +1636,6 @@ public class TestTypeCheckingValidatorNewLP {
             SubtractExpression subtract21 = 
                 new SubtractExpression(innerPlan2, project21, const21) ;
 
-//            innerPlan2.add(project21) ;
-//            innerPlan2.add(const21) ;
-//            innerPlan2.add(subtract21) ;
-//
-//            innerPlan2.connect(project21, subtract21);
-//            innerPlan2.connect(const21, subtract21) ;
 
             splitOutput1.setFilterPlan(innerPlan1);
             splitOutput2.setFilterPlan(innerPlan2);
@@ -1848,12 +1716,7 @@ public class TestTypeCheckingValidatorNewLP {
             ConstantExpression const111 = new ConstantExpression(innerPlan11, 26F) ;
             SubtractExpression subtract111 = new SubtractExpression(innerPlan11, project111, const111) ;
     
-//            innerPlan11.add(project111) ;
-//            innerPlan11.add(const111) ;
-//            innerPlan11.add(subtract111) ;
-//    
-//            innerPlan11.connect(project111, subtract111);
-//            innerPlan11.connect(const111, subtract111) ;
+
     
             // Create expression inner plan #2 of input #1
             LogicalExpressionPlan innerPlan21 = new LogicalExpressionPlan() ;
@@ -1861,13 +1724,7 @@ public class TestTypeCheckingValidatorNewLP {
             ProjectExpression project212 = new ProjectExpression(innerPlan21, 0, 1, cogroup1) ;
     
             AddExpression add211 = new AddExpression(innerPlan21, project211, project212) ;
-    
-//            innerPlan21.add(project211) ;
-//            innerPlan21.add(project212) ;
-//            innerPlan21.add(add211) ;
-//    
-//            innerPlan21.connect(project211, add211);
-//            innerPlan21.connect(project212, add211) ;
+
    
             // Create expression inner plan #1 of input #2
             LogicalExpressionPlan innerPlan12 = new LogicalExpressionPlan() ;
@@ -1875,13 +1732,7 @@ public class TestTypeCheckingValidatorNewLP {
             ConstantExpression const121 = new ConstantExpression(innerPlan12, 26) ;
             SubtractExpression subtract121 = new SubtractExpression(innerPlan12, project121, const121) ;
     
-//            innerPlan12.add(project121) ;
-//            innerPlan12.add(const121) ;
-//            innerPlan12.add(subtract121) ;
-//    
-//            innerPlan12.connect(project121, subtract121);
-//            innerPlan12.connect(const121, subtract121) ;
-    
+
             // Create expression inner plan #2 of input #2
             LogicalExpressionPlan innerPlan22 = new LogicalExpressionPlan() ;
             ConstantExpression const122 = new ConstantExpression(innerPlan22, 26) ;
@@ -2000,13 +1851,7 @@ public class TestTypeCheckingValidatorNewLP {
             ProjectExpression project111 = new ProjectExpression(innerPlan11, 0, 0, cogroup1) ;
             ConstantExpression const111 = new ConstantExpression(innerPlan11, 26F) ;
             SubtractExpression subtract111 = new SubtractExpression(innerPlan11, project111, const111) ;
-    
-//            innerPlan11.add(project111) ;
-//            innerPlan11.add(const111) ;
-//            innerPlan11.add(subtract111) ;
-//    
-//            innerPlan11.connect(project111, subtract111);
-//            innerPlan11.connect(const111, subtract111) ;
+
     
             // Create expression inner plan #1 of input #2
             LogicalExpressionPlan innerPlan12 = new LogicalExpressionPlan() ;
@@ -2014,12 +1859,7 @@ public class TestTypeCheckingValidatorNewLP {
             ConstantExpression const121 = new ConstantExpression(innerPlan12, 26) ;
             SubtractExpression subtract121 = new SubtractExpression(innerPlan12, project121, const121) ;
     
-//            innerPlan12.add(project121) ;
-//            innerPlan12.add(const121) ;
-//            innerPlan12.add(subtract121) ;
-//    
-//            innerPlan12.connect(project121, subtract121);
-//            innerPlan12.connect(const121, subtract121) ;
+
     
             // Create Cogroup
             ArrayList<LogicalRelationalOperator> inputs = new ArrayList<LogicalRelationalOperator>() ;
@@ -2130,13 +1970,7 @@ public class TestTypeCheckingValidatorNewLP {
             ProjectExpression project111 = new ProjectExpression(innerPlan11, 0, 0, cogroup1) ;
             ConstantExpression const111 = new ConstantExpression(innerPlan11, 26F) ;
             SubtractExpression subtract111 = new SubtractExpression(innerPlan11, project111, const111) ;
-    
-//            innerPlan11.add(project111) ;
-//            innerPlan11.add(const111) ;
-//            innerPlan11.add(subtract111) ;
-//    
-//            innerPlan11.connect(project111, subtract111);
-//            innerPlan11.connect(const111, subtract111) ;
+
     
             // Create expression inner plan #2
             LogicalExpressionPlan innerPlan12 = new LogicalExpressionPlan() ;
@@ -2242,17 +2076,8 @@ public class TestTypeCheckingValidatorNewLP {
             
             
             ConstantExpression const11 = new ConstantExpression(innerPlan1, 26F) ;
-          //  const11.setType(DataType.FLOAT);
-            SubtractExpression subtract11 = new SubtractExpression(innerPlan1, project11, const11) ;
-    
-//            innerPlan1.add(project11) ;
-//            innerPlan1.add(const11) ;
-//            innerPlan1.add(subtract11) ;
-//    
-//            innerPlan1.connect(project11, subtract11);
-//            innerPlan1.connect(const11, subtract11) ;
-    
 
+            SubtractExpression subtract11 = new SubtractExpression(innerPlan1, project11, const11) ;
             
             // Create expression inner plan #2
             LogicalExpressionPlan innerPlan2 = new LogicalExpressionPlan() ;
@@ -2269,13 +2094,6 @@ public class TestTypeCheckingValidatorNewLP {
             
             AddExpression add21 = new AddExpression(innerPlan2, project21, project22 ) ;
     
-//            innerPlan2.add(project21) ;
-//            innerPlan2.add(project22) ;
-//            innerPlan2.add(add21) ;
-//    
-//            innerPlan2.connect(project21, add21);
-//            innerPlan2.connect(project22, add21);
-    
             // List of plans
             ArrayList<LogicalExpressionPlan> generatePlans = new ArrayList<LogicalExpressionPlan>() ;
             generatePlans.add(innerPlan1);
@@ -2283,9 +2101,7 @@ public class TestTypeCheckingValidatorNewLP {
     
             // List of flatten flags
             boolean [] flattens = {true, false}; 
-//            ArrayList<Boolean> flattens = new ArrayList<Boolean>() ;
-//            flattens.add(true) ;
-//            flattens.add(false) ;
+
     
             loGen.setFlattenFlags(flattens);
             loGen.setOutputPlans(generatePlans);
@@ -2354,14 +2170,7 @@ public class TestTypeCheckingValidatorNewLP {
             
             ConstantExpression const11 = new ConstantExpression(innerPlan1, "26F") ;
             SubtractExpression subtract11 = new SubtractExpression(innerPlan1, project11, const11) ;
-    
-//            innerPlan1.add(project11) ;
-//            innerPlan1.add(const11) ;
-//            innerPlan1.add(subtract11) ;
-//    
-//            innerPlan1.connect(project11, subtract11);
-//            innerPlan1.connect(const11, subtract11) ;
-    
+
             // Create expression inner plan #2
             LogicalExpressionPlan innerPlan2 = new LogicalExpressionPlan() ;
             innerLoad1 = new LOInnerLoad(innerRelPlan, foreach1, 0);
@@ -2376,13 +2185,6 @@ public class TestTypeCheckingValidatorNewLP {
             ProjectExpression project22 = new ProjectExpression(innerPlan2, 2, 1, loGen) ;
             
             AddExpression add21 = new AddExpression(innerPlan2, project21, project22) ;
-    
-//            innerPlan2.add(project21) ;
-//            innerPlan2.add(project22) ;
-//            innerPlan2.add(add21) ;
-//    
-//            innerPlan2.connect(project21, add21);
-//            innerPlan2.connect(project22, add21);
     
             // List of plans
             ArrayList<LogicalExpressionPlan> generatePlans = new ArrayList<LogicalExpressionPlan>() ;
@@ -2418,115 +2220,7 @@ public class TestTypeCheckingValidatorNewLP {
             }
     
         }
-    
-        /*
-    
-        // Positive test
-        // This one does project bag in inner plans
-        @Test
-        public void testForEachGenerate3() throws Throwable {
-    
-            printCurrentMethodName() ;
-    
-            LogicalPlan plan = new LogicalPlan() ;
-            LOLoad load1 = genDummyLOLoadNewLP(plan) ;
-    
-            String[] aliases = new String[]{ "a", "b", "c" } ;
-            byte[] types = new byte[] { DataType.INTEGER, DataType.LONG, DataType.BYTEARRAY } ;
-            Schema innerSchema1 = genFlatSchema(aliases, types) ;
-    
-            // schema for input#1
-            Schema inputSchema1 = null ;
-            {
-                List<FieldSchema> fsList1 = new ArrayList<FieldSchema>() ;
-                fsList1.add(new FieldSchema("field1a", DataType.INTEGER)) ;
-                fsList1.add(new FieldSchema("field2a", DataType.LONG)) ;
-                fsList1.add(new FieldSchema("field3a", innerSchema1, DataType.BAG)) ;
-                inputSchema1 = new Schema(fsList1) ;
-            }
-    
-            // set schemas
-            load1.setScriptSchema(Util.translateSchema((inputSchema1))) ; ;
-    
-            // Create expression inner plan #1 of input #1
-            LogicalExpressionPlan innerPlan1 = new LogicalExpressionPlan() ;
-            ProjectExpression project11 = new ProjectExpression(innerPlan1, load1, 2) ;
-            
-            List<Integer> projections1 = new ArrayList<Integer>() ;
-            projections1.add(1) ;
-            projections1.add(2) ;
-            ProjectExpression project12 = new ProjectExpression(innerPlan1, project11, projections1) ;
-            project12.setSentinel(false);
-    
-            innerPlan1.add(project12) ;
-    
-            // Create expression inner plan #1 of input #2
-            LogicalExpressionPlan innerPlan2 = new LogicalExpressionPlan() ;
-            ProjectExpression project21 = new ProjectExpression(innerPlan1, load1, 0) ;
-            
-            ProjectExpression project22 = new ProjectExpression(innerPlan1, load1, 1) ;
-            
-            AddExpression add21 = new AddExpression(innerPlan1,
-                                    
-                                    project21,
-                                    project22) ;
-    
-            innerPlan2.add(project21) ;
-            innerPlan2.add(project22) ;
-            innerPlan2.add(add21) ;
-    
-            innerPlan2.connect(project21, add21);
-            innerPlan2.connect(project22, add21);
-    
-            // List of plans
-            ArrayList<LogicalExpressionPlan> generatePlans = new ArrayList<LogicalExpressionPlan>() ;
-            generatePlans.add(innerPlan1);
-            generatePlans.add(innerPlan2);
-    
-            // List of flatten flags
-            ArrayList<Boolean> flattens = new ArrayList<Boolean>() ;
-            flattens.add(false) ;
-            flattens.add(false) ;
-    
-            // Create LOGenerate
-            LOGenerate generate1 = new LOGenerate(plan, generatePlans, flattens) ;
-    
-            LogicalExpressionPlan foreachPlan = new LogicalExpressionPlan() ;
-            foreachPlan.add(generate1) ;
-    
-            // Create LOForEach
-            LOForEach foreach1 = new LOForEach(plan, foreachPlan) ;
-    
-            // construct the main plan
-            plan.add(load1) ;
-            plan.add(foreach1) ;
-    
-            plan.connect(load1, foreach1);
-    
-            CompilationMessageCollector collector = new CompilationMessageCollector() ;
-            TypeCheckingRelVisitor typeChecker = new TypeCheckingRelVisitor(plan, collector);
-            typeChecker.visit();  
-    
-            printMessageCollector(collector) ;
-            //printTypeGraph(plan) ;
-    
-            if (collector.hasError()) {
-                throw new AssertionError("Expect no  error") ;
-            }
-            
-            // check outer schema
-            Schema endResultSchema = foreach1.getSchema() ;
-            assertEquals(endResultSchema.getField(0).type, DataType.BAG) ;
-            assertEquals(endResultSchema.getField(1).type, DataType.LONG) ;
-    
-            // check inner bag schema
-            Schema bagSchema = endResultSchema.getField(0).schema ;
-            assertEquals(bagSchema.getField(0).type, DataType.LONG) ;
-            assertEquals(bagSchema.getField(1).type, DataType.BYTEARRAY) ;
-    
-        }
-    
-        */
+
     
         // Positive test
         // This one does project bag in inner plans with flatten
@@ -2710,31 +2404,72 @@ public class TestTypeCheckingValidatorNewLP {
         
 
         private CastExpression getCastFromLastForeach(String query, int expressionNum) throws FrontendException {
-            LogicalPlan plan = createAndProcessLPlan(query);
-            LOForEach foreach = (LOForEach)plan.getSinks().get(0);
+            LOForEach foreach = getForeachFromPlan(query);
+            
             LogicalExpressionPlan foreachPlan =
                 ((LOGenerate)foreach.getInnerPlan().getSinks().get(0)).getOutputPlans().get(expressionNum);
+
+            return getCastFromExpPlan(foreachPlan);
+
+        }
+
+        private CastExpression getCastFromExpPlan( LogicalExpressionPlan expPlan) {
+            
+            if(expPlan.getSources().size() == 1 && expPlan.getSinks().size() == 1 ){
+                // looking for explicit cast . eg, foreach .. generate (int)a;
+                Operator out = expPlan.getSources().get(0);
+                Operator in = expPlan.getSinks().get(0);
+                if(in instanceof ProjectExpression && out instanceof CastExpression){
+                    return (CastExpression)out;
+                }
+
+            }
+                        
+            LogicalExpression exOp = (LogicalExpression) expPlan.getSinks().get(0);
     
-            LogicalExpression exOp = (LogicalExpression) foreachPlan.getSinks().get(0);
+            if(! (exOp instanceof ProjectExpression)) exOp = (LogicalExpression) expPlan.getSinks().get(1);
     
-            if(! (exOp instanceof ProjectExpression)) exOp = (LogicalExpression) foreachPlan.getSinks().get(1);
-    
-            assertNotNull(foreachPlan.getPredecessors(exOp));
-            return (CastExpression)foreachPlan.getPredecessors(exOp).get(0);
+            assertNotNull(expPlan.getPredecessors(exOp));
+            return (CastExpression)expPlan.getPredecessors(exOp).get(0);
+        }
+
+        private LOForEach getForeachFromPlan(String query) throws FrontendException {
+            LogicalPlan plan = createAndProcessLPlan(query);
+            LOForEach foreach = null;
+            
+            for(Operator op : plan.getSinks()){
+                if(op instanceof LOForEach){
+                    if(foreach != null){
+                        fail("more than one sink foreach found in plan");
+                    }
+                    foreach = (LOForEach) op;
+                }
+            }
+            return foreach;
         }
 
         private LogicalPlan createAndProcessLPlan(String query) throws FrontendException {
             LogicalPlan plan = generateLogicalPlan(query);
+            
+           // new ProjectStarExpander(plan).visit();
+
             new ColumnAliasConversionVisitor( plan ).visit();
-            // validate
+           // new ScalarVisitor( plan, pigContext ).visit();
+
             CompilationMessageCollector collector = new CompilationMessageCollector() ;
-            TypeCheckingRelVisitor typeChecker = new TypeCheckingRelVisitor(plan, collector);
-            typeChecker.visit();  
+            new TypeCheckingRelVisitor( plan, collector).visit();
+            new UnionOnSchemaSetter( plan ).visit();
             new CastLineageSetter(plan, collector).visit();
+            
+//            new ColumnAliasConversionVisitor( plan ).visit();
+//            // validate
+//            CompilationMessageCollector collector = new CompilationMessageCollector() ;
+//            TypeCheckingRelVisitor typeChecker = new TypeCheckingRelVisitor(plan, collector);
+//            typeChecker.visit();  
+//            new CastLineageSetter(plan, collector).visit();
     
             printMessageCollector(collector) ;
-            //printTypeGraph(plan) ;
-            //planTester.printPlan(plan, TypeCheckingTestUtil.getCurrentMethodName());
+            plan.explain(System.out, "text", true);
     
             if (collector.hasError()) {
                 throw new AssertionError("Expect no  error") ;
@@ -2772,9 +2507,8 @@ public class TestTypeCheckingValidatorNewLP {
     
         }
     
-        //@Test
+        @Test
         public void testGroupLineage() throws Throwable {
-            //FIXME : ColumnAliasConversion exception - in statement d, field1 not found in schema of c?
             String query = "a = load 'a' using PigStorage('a') as (field1 , field2: float, field3: chararray );" 
             + " b = group a by field1 ;"
             + " c = foreach b generate flatten(a) ;"
@@ -2869,9 +2603,8 @@ public class TestTypeCheckingValidatorNewLP {
     
         }
     
-        //@Test
+        @Test
         public void testCogroupLineage() throws Throwable {
-            //FIXME : same issue as testGroupLineage
             String query = "a = load 'a' using PigStorage('a') as (field1, field2: float, field3: chararray );"
             + "b = load 'a'  using PigStorage('b') as (field4, field5, field6: chararray );"
             + "c = cogroup a by field1, b by field4 ;"
@@ -2882,51 +2615,36 @@ public class TestTypeCheckingValidatorNewLP {
     
         }
     
-        //@Test
+        @Test
         public void testCogroupMapLookupLineage() throws Throwable {
-            //FIXME - invalid logical plan
             String query =  "a = load 'a' using PigStorage('a') as (field1, field2: float, field3: chararray );"
             + "b = load 'a' using PigStorage('b') as (field4, field5, field6: chararray );"
             + "c = cogroup a by field1, b by field4 ;"
             + "d = foreach c generate group, flatten(a), flatten(b)  ;"
             + "e = foreach d generate group, field1#'key' + 1, field4 + 2.0  ;";
-    
             
-            LogicalPlan plan = generateLogicalPlan(query);
-            new ColumnAliasConversionVisitor( plan ).visit();
-            // validate
-            CompilationMessageCollector collector = new CompilationMessageCollector() ;
-            TypeCheckingRelVisitor typeChecker = new TypeCheckingRelVisitor(plan, collector);
-            typeChecker.visit();  
-            new CastLineageSetter(plan, collector).visit();
-            printMessageCollector(collector) ;
-            //printTypeGraph(plan) ;
-            //planTester.printPlan(plan, TypeCheckingTestUtil.getCurrentMethodName());
-    
-            if (collector.hasError()) {
-                throw new AssertionError("Expect no  error") ;
-            }
-    
+            LogicalPlan plan = createAndProcessLPlan(query);
+
             LOForEach foreach = (LOForEach)plan.getSinks().get(0);
             LogicalExpressionPlan foreachPlan =
-                ((LOGenerate)foreach.getInnerPlan().getSinks().get(0)).getOutputPlans().get(0);
+                ((LOGenerate)foreach.getInnerPlan().getSinks().get(0)).getOutputPlans().get(1);
     
             LogicalExpression exOp = (LogicalExpression) foreachPlan.getSinks().get(0);
     
             if(! (exOp instanceof ProjectExpression)) exOp = (LogicalExpression) foreachPlan.getSinks().get(1);
 
-            CastExpression cast1 = (CastExpression)foreachPlan.getSuccessors(exOp).get(0);
-            MapLookupExpression map = (MapLookupExpression)foreachPlan.getSuccessors(cast1).get(0);
+            CastExpression cast1 = (CastExpression)foreachPlan.getPredecessors(exOp).get(0);
+            MapLookupExpression map = (MapLookupExpression)foreachPlan.getPredecessors(cast1).get(0);
             checkCastLoadFunc(cast1, "PigStorage('a')");
             
-            CastExpression cast2 = (CastExpression)foreachPlan.getSuccessors(map).get(0);
+            CastExpression cast2 = (CastExpression)foreachPlan.getPredecessors(map).get(0);
             checkCastLoadFunc(cast1, "PigStorage('a')");
             
             foreachPlan =  ((LOGenerate)foreach.getInnerPlan().getSinks().get(0)).getOutputPlans().get(2);
             exOp = (LogicalExpression) foreachPlan.getSinks().get(0);
             if(! (exOp instanceof ProjectExpression)) exOp = (LogicalExpression) foreachPlan.getSinks().get(1);
             CastExpression cast = (CastExpression)foreachPlan.getPredecessors(exOp).get(0);
-            assertTrue(cast.getFuncSpec().getClassName().startsWith("PigStorage('b')"));
+            checkCastLoadFunc(cast, "PigStorage('b')");
     
         }
     
@@ -2973,9 +2691,8 @@ public class TestTypeCheckingValidatorNewLP {
     
         }
     
-        //@Test
+        @Test
         public void testCogroupStarLineage1() throws Throwable {
-            //FIXME : parser fails because of a::field1 name - "::" is not working
             String query = "a = load 'a' using PigStorage('x') as (field1, field2: float, field3: chararray );"
             + "b = load 'b' using PigStorage('x') as (field4, field5, field6: chararray );"
             + "c = cogroup a by *, b by * ;"
@@ -2985,61 +2702,20 @@ public class TestTypeCheckingValidatorNewLP {
             checkLastForeachCastLoadFunc(query, "PigStorage('x')", 0);
             checkLastForeachCastLoadFunc(query, "PigStorage('x')", 1);
             checkLastForeachCastLoadFunc(query, "PigStorage('x')", 2);
-            
-//            // validate
-//            CompilationMessageCollector collector = new CompilationMessageCollector() ;
-//            TypeCheckingRelVisitor typeChecker = new TypeCheckingRelVisitor(plan, collector);
-//            try {
-//                typeChecker.visit();  
-//            }
-//            catch (TypeCheckerException pve) {
-//                //not good
-//            }
-//    
-//            printMessageCollector(collector) ;
-//            //printTypeGraph(plan) ;
-//            //planTester.printPlan(plan, TypeCheckingTestUtil.getCurrentMethodName());
-//    
-//            if (collector.hasError()) {
-//                throw new AssertionError("Expect no  error") ;
-//            }
-//    
-//    
-//            LOForEach foreach = (LOForEach)plan.getSinks().get(0);
-//            LogicalExpressionPlan foreachPlan = ((LOGenerate)foreach.getInnerPlan().getSinks().get(0)).getOutputPlans().get(0);
-//    
-//            LogicalExpression exOp = (LogicalExpression) foreachPlan.getSinks().get(0);
-//            if(! (exOp instanceof ProjectExpression)) exOp = (LogicalExpression) foreachPlan.getSinks().get(1);
-//    
-//            CastExpression cast = (CastExpression)foreachPlan.getPredecessors(exOp).get(0);
-//            assertTrue(cast.getFuncSpec().getClassName().startsWith("PigStorage"));
-//    
-//            foreachPlan = foreach.getForEachPlans().get(1);
-//            exOp = foreachPlan.getRoots().get(0);
-//            if(! (exOp instanceof ProjectExpression)) exOp = (LogicalExpression) foreachPlan.getSinks().get(1);
-//    
-//            cast = (CastExpression)foreachPlan.getSuccessors(exOp).get(0);
-//            assertTrue(cast.getFuncSpec().getClassName().startsWith("PigStorage"));
-//    
-//            foreachPlan = foreach.getForEachPlans().get(2);
-//            exOp = foreachPlan.getRoots().get(0);
-//            if(! (exOp instanceof ProjectExpression)) exOp = (LogicalExpression) foreachPlan.getSinks().get(1);
-//            cast = (CastExpression)foreachPlan.getSuccessors(exOp).get(0);
-//            assertTrue(cast.getFuncSpec().getClassName().startsWith("PigStorage"));
     
         }
     
-        //@Test
+        @Test
         public void testCogroupStarLineageNoSchemaFail() throws Throwable {
-            //FIXME : expected exception is thrown by ProjectStarTranslator 
+           
             String query = "a = load 'a' using PigStorage('a') ;"
             + "b = load 'b' using PigStorage('b') ;"
             + "c = cogroup a by *, b by *;";
             boolean exceptionThrown = false;
             try {
-                createAndProcessLPlan(query);
+                ParserTestingUtils.generateLogicalPlan( query );
             } catch(Exception e) {
-                assertTrue(e.getMessage().contains("Cogroup/Group by * is only allowed if " +
+                assertTrue(e.toString().contains("Cogroup/Group by * is only allowed if " +
                 "the input has a schema"));
                 exceptionThrown = true;
             }
@@ -3047,10 +2723,9 @@ public class TestTypeCheckingValidatorNewLP {
             
         }
     
-        //@Test
+        @Test
         public void testCogroupMultiColumnProjectLineage() throws Throwable {
-            //FIXME - invalid logical plan - derefence has not successor (findRereferent) gives NPE
-            // usage   a.(field1, field2), b.(field4);"
+
             String query = "a = load 'a' using PigStorage('a') as (field1, field2: float, field3: chararray );"
             + "b = load 'b' using PigStorage('b') as (field4, field5, field6: chararray );"
             + "c = cogroup a by field1, b by field4 ;"
@@ -3060,47 +2735,11 @@ public class TestTypeCheckingValidatorNewLP {
     
             checkLastForeachCastLoadFunc(query, "PigStorage('a')", 1);
             checkLastForeachCastLoadFunc(query, "PigStorage('b')", 2);
-//            
-//            // validate
-//            CompilationMessageCollector collector = new CompilationMessageCollector() ;
-//            TypeCheckingRelVisitor typeChecker = new TypeCheckingRelVisitor(plan, collector);
-//            try {
-//                typeChecker.visit();  
-//            }
-//            catch (TypeCheckerException pve) {
-//                //not good
-//            }
-//    
-//            printMessageCollector(collector) ;
-//            //printTypeGraph(plan) ;
-//            //planTester.printPlan(plan, TypeCheckingTestUtil.getCurrentMethodName());
-//    
-//            if (collector.hasError()) {
-//                throw new AssertionError("Expect no  error") ;
-//            }
-//    
-//    
-//            LOForEach foreach = (LOForEach)plan.getSinks().get(0);
-//            LogicalExpressionPlan foreachPlan = foreach.getForEachPlans().get(1);
-//    
-//            LogicalExpression exOp = (LogicalExpression) foreachPlan.getSinks().get(0);
-//    
-//            if(! (exOp instanceof ProjectExpression)) exOp = (LogicalExpression) foreachPlan.getSinks().get(1);
-//    
-//            CastExpression cast = (CastExpression)foreachPlan.getPredecessors(exOp).get(0);
-//            assertTrue(cast.getFuncSpec().getClassName().startsWith("BinStorage"));
-//    
-//            foreachPlan = foreach.getForEachPlans().get(2);
-//            exOp = foreachPlan.getRoots().get(0);
-//            if(! (exOp instanceof ProjectExpression)) exOp = (LogicalExpression) foreachPlan.getSinks().get(1);
-//            cast = (CastExpression)foreachPlan.getSuccessors(exOp).get(0);
-//            assertTrue(cast.getFuncSpec().getClassName().startsWith("PigStorage"));
-//    
+
         }
     
-        //@Test
+        @Test
         public void testCogroupProjectStarLineage() throws Throwable {
-            //FIXME : column alias finder failure. seems to be a star expansion error
             String query = "a = load 'a' using PigStorage('a') as (field1, field2: float, field3: chararray );"
             + "b = load 'b' using PigStorage('b') as (field4, field5, field6: chararray );"
             + "c = cogroup a by field1, b by field4 ;"
@@ -3110,135 +2749,40 @@ public class TestTypeCheckingValidatorNewLP {
     
             checkLastForeachCastLoadFunc(query, "PigStorage('a')", 1);
             checkLastForeachCastLoadFunc(query, "PigStorage('b')", 2);
-            
-//            // validate
-//            CompilationMessageCollector collector = new CompilationMessageCollector() ;
-//            TypeCheckingRelVisitor typeChecker = new TypeCheckingRelVisitor(plan, collector);
-//            try {
-//                typeChecker.visit();  
-//            }
-//            catch (TypeCheckerException pve) {
-//                //not good
-//            }
-//    
-//            printMessageCollector(collector) ;
-//            //printTypeGraph(plan) ;
-//            //planTester.printPlan(plan, TypeCheckingTestUtil.getCurrentMethodName());
-//    
-//            if (collector.hasError()) {
-//                throw new AssertionError("Expect no  error") ;
-//            }
-//    
-//    
-//            LOForEach foreach = (LOForEach)plan.getSinks().get(0);
-//            LogicalExpressionPlan foreachPlan = foreach.getForEachPlans().get(1);
-//    
-//            LogicalExpression exOp = (LogicalExpression) foreachPlan.getSinks().get(0);
-//    
-//            if(! (exOp instanceof ProjectExpression)) exOp = (LogicalExpression) foreachPlan.getSinks().get(1);
-//    
-//            CastExpression cast = (CastExpression)foreachPlan.getPredecessors(exOp).get(0);
-//            assertTrue(cast.getFuncSpec().getClassName().startsWith("BinStorage"));
-//    
-//            foreachPlan = foreach.getForEachPlans().get(2);
-//            exOp = foreachPlan.getRoots().get(0);
-//            if(! (exOp instanceof ProjectExpression)) exOp = (LogicalExpression) foreachPlan.getSinks().get(1);
-//            cast = (CastExpression)foreachPlan.getSuccessors(exOp).get(0);
-//            assertTrue(cast.getFuncSpec().getClassName().startsWith("PigStorage"));
     
         }
-    //
-    //    //@Test
-    //    public void testCogroupProjectStarLineageNoSchema() throws Throwable {
-    //        + "a = load 'a' using PigStorage('a') ;") ;
-    //        + "b = load 'b' using PigStorage() ;") ;
-    //        + "c = cogroup a by $0, b by $0 ;") ;
-    //        + "d = foreach c generate * ;") ;
-    //        + "f = foreach d generate group, flatten(a), flatten(b)  ;") ;
-    //        + "g = foreach f generate group, $1 + 1, $2 + 2.0  ;") ;
-    //
-    //        // validate
-    //        CompilationMessageCollector collector = new CompilationMessageCollector() ;
-    //        TypeCheckingRelVisitor typeChecker = new TypeCheckingRelVisitor(plan, collector);
-    //        try {
-    //            typeChecker.visit();  
-    //        }
-    //        catch (TypeCheckerException pve) {
-    //            //not good
-    //        }
-    //
-    //        printMessageCollector(collector) ;
-    //        //printTypeGraph(plan) ;
-    //        //planTester.printPlan(plan, TypeCheckingTestUtil.getCurrentMethodName());
-    //
-    //        if (collector.hasError()) {
-    //            throw new AssertionError("Expect no error") ;
-    //        }
-    //
-    //        LOForEach foreach = (LOForEach)plan.getSinks().get(0);
-    //        LogicalExpressionPlan foreachPlan = foreach.getForEachPlans().get(1);
-    //
-    //        LogicalExpression exOp = (LogicalExpression) foreachPlan.getSinks().get(0);
-    //
-    //        if(! (exOp instanceof ProjectExpression)) exOp = (LogicalExpression) foreachPlan.getSinks().get(1);
-    //
-    //        CastExpression cast = (CastExpression)foreachPlan.getPredecessors(exOp).get(0);
-    //        assertTrue(cast.getFuncSpec().getClassName().startsWith("BinStorage"));
-    //
-    //        foreachPlan = foreach.getForEachPlans().get(2);
-    //        exOp = foreachPlan.getRoots().get(0);
-    //        if(! (exOp instanceof ProjectExpression)) exOp = (LogicalExpression) foreachPlan.getSinks().get(1);
-    //        cast = (CastExpression)foreachPlan.getSuccessors(exOp).get(0);
-    //        assertTrue(cast.getFuncSpec().getClassName().startsWith("PigStorage"));
-    //    }
-    //
-    //    //@Test
-    //    public void testCogroupProjectStarLineageMixSchema() throws Throwable {
-    //        + "a = load 'a' using PigStorage('a') as (field1, field2: float, field3: chararray );") ;
-    //        + "b = load 'b' using PigStorage() ;") ;
-    //        + "c = cogroup a by field1, b by $0 ;") ;
-    //        + "d = foreach c generate * ;") ;
-    //        + "f = foreach d generate group, flatten(a), flatten(b)  ;") ;
-    //        + "g = foreach f generate group, field1 + 1, $4 + 2.0  ;") ;
-    //
-    //        // validate
-    //        CompilationMessageCollector collector = new CompilationMessageCollector() ;
-    //        TypeCheckingRelVisitor typeChecker = new TypeCheckingRelVisitor(plan, collector);
-    //        try {
-    //            typeChecker.visit();  
-    //        }
-    //        catch (TypeCheckerException pve) {
-    //            //not good
-    //        }
-    //
-    //        printMessageCollector(collector) ;
-    //        //printTypeGraph(plan) ;
-    //        //planTester.printPlan(plan, TypeCheckingTestUtil.getCurrentMethodName());
-    //
-    //        if (collector.hasError()) {
-    //            throw new AssertionError("Expect no error") ;
-    //        }
-    //
-    //        LOForEach foreach = (LOForEach)plan.getSinks().get(0);
-    //        LogicalExpressionPlan foreachPlan = foreach.getForEachPlans().get(1);
-    //
-    //        LogicalExpression exOp = (LogicalExpression) foreachPlan.getSinks().get(0);
-    //
-    //        if(! (exOp instanceof ProjectExpression)) exOp = (LogicalExpression) foreachPlan.getSinks().get(1);
-    //
-    //        CastExpression cast = (CastExpression)foreachPlan.getPredecessors(exOp).get(0);
-    //        assertTrue(cast.getFuncSpec().getClassName().startsWith("BinStorage"));
-    //
-    //        foreachPlan = foreach.getForEachPlans().get(2);
-    //        exOp = foreachPlan.getRoots().get(0);
-    //        if(! (exOp instanceof ProjectExpression)) exOp = (LogicalExpression) foreachPlan.getSinks().get(1);
-    //        cast = (CastExpression)foreachPlan.getSuccessors(exOp).get(0);
-    //        assertTrue(cast.getFuncSpec().getClassName().startsWith("PigStorage"));
-    //    }
-    //
-        //@Test
+    
+        @Test
+        public void testCogroupProjectStarLineageNoSchema() throws Throwable {
+            String query = "a = load 'a' using PigStorage('a') ;" 
+            + "b = load 'b' using PigStorage('b') ;"
+            + "c = cogroup a by $0, b by $0 ;"
+            + "d = foreach c generate * ;"
+            + "f = foreach d generate group, flatten(a), flatten(b)  ;"
+            + "g = foreach f generate $0, $1 + 1, $2 + 2.0  ;";
+    
+
+            checkLastForeachCastLoadFunc(query, null, 1);
+            checkLastForeachCastLoadFunc(query, null, 2);
+    
+        }
+    
+        @Test
+        public void testCogroupProjectStarLineageMixSchema() throws Throwable {
+            String query = "a = load 'a' using PigStorage('a') as (field1, field2: float, field3: chararray );"
+            + "b = load 'b' using PigStorage() ;"
+            + "c = cogroup a by field1, b by $0 ;"
+            + "d = foreach c generate * ;"
+            + "f = foreach d generate group, flatten(a), flatten(b)  ;"
+            + "g = foreach f generate $0, $1 + 1, $4 + 2.0  ;";
+            
+            checkLastForeachCastLoadFunc(query, null, 1);
+            checkLastForeachCastLoadFunc(query, null, 2);
+    
+        }
+    
+        @Test
         public void testCogroupLineageFail() throws Throwable {
-          //FIXME : same issue as testGroupLineage
             String query =  "a = load 'a' using PigStorage('a') as (field1, field2: float, field3: chararray );"
             + "b = load 'a' using PigStorage('b') as (field4, field5, field6: chararray );"
             + "c = cogroup a by field1, b by field4 ;"
@@ -3246,50 +2790,22 @@ public class TestTypeCheckingValidatorNewLP {
             + "e = foreach d generate group + 1, field1 + 1, field4 + 2.0  ;";
             
             checkLastForeachCastLoadFunc(query, null, 0);
+            checkLastForeachCastLoadFunc(query, "PigStorage('a')", 1);
+            checkLastForeachCastLoadFunc(query, "PigStorage('b')", 2);
             
         }
 
-        //@Test
+        @Test
         public void testCogroupLineage2NoSchema() throws Throwable {
-            //FIXME seems to be a problem in ForEach.getschema, it returns null
-            //schema for alias d, while it should be  {group: bytearray,bytearray,bytearray}
             String query = "a = load 'a' using PigStorage('a') ;"
             + "b = load 'a' using PigStorage('b') ;"
             + "c = cogroup a by $0, b by $0 ;"
             + "d = foreach c generate group, flatten(a), flatten(b)  ;"
-            + "e = foreach d generate group, $1 + 1, $2 + 2.0  ;";
+            + "e = foreach d generate $0, $1 + 1, $2 + 2.0  ;";
     
-            checkLastForeachCastLoadFunc(query, "PigStorage('a')", 1);
-            checkLastForeachCastLoadFunc(query, "PigStorage('b')", 2);
-//            // validate
-//            CompilationMessageCollector collector = new CompilationMessageCollector() ;
-//            TypeCheckingRelVisitor typeChecker = new TypeCheckingRelVisitor(plan, collector);
-//            typeChecker.visit();  
-//    
-//            printMessageCollector(collector) ;
-//            //printTypeGraph(plan) ;
-//            //planTester.printPlan(plan, TypeCheckingTestUtil.getCurrentMethodName());
-//    
-//            if (collector.hasError()) {
-//                throw new AssertionError("Expect no  error") ;
-//            }
-//    
-//            LOForEach foreach = (LOForEach)plan.getSinks().get(0);
-//            LogicalExpressionPlan foreachPlan = foreach.getForEachPlans().get(1);
-//    
-//            LogicalExpression exOp = (LogicalExpression) foreachPlan.getSinks().get(0);
-//    
-//            if(! (exOp instanceof ProjectExpression)) exOp = (LogicalExpression) foreachPlan.getSinks().get(1);
-//    
-//            CastExpression cast = (CastExpression)foreachPlan.getPredecessors(exOp).get(0);
-//            assertTrue(cast.getFuncSpec().getClassName().startsWith("BinStorage"));
-//    
-//            foreachPlan = foreach.getForEachPlans().get(2);
-//            exOp = foreachPlan.getRoots().get(0);
-//            if(! (exOp instanceof ProjectExpression)) exOp = (LogicalExpression) foreachPlan.getSinks().get(1);
-//            cast = (CastExpression)foreachPlan.getSuccessors(exOp).get(0);
-//            assertTrue(cast.getFuncSpec().getClassName().startsWith("PigStorage"));
-    
+            checkLastForeachCastLoadFunc(query, null, 1);
+            checkLastForeachCastLoadFunc(query, null, 2);
+  
         }
     
         @Test
@@ -3454,9 +2970,8 @@ public class TestTypeCheckingValidatorNewLP {
 
         }
     
-        //@Test
+        @Test
         public void testCogroupFilterLineage() throws Throwable {
-            //FIXME : same issue as testGroupLineage
             String query = "a = load 'a' using PigStorage('a') as (field1, field2: float, field3: chararray );"
             + "b = load 'a' using PigStorage('b') as (field4, field5, field6: chararray );"
             + "c = cogroup a by field1, b by field4 ;"
@@ -3467,81 +2982,23 @@ public class TestTypeCheckingValidatorNewLP {
             checkLastForeachCastLoadFunc(query, "PigStorage('a')", 1);
             checkLastForeachCastLoadFunc(query, "PigStorage('b')", 2);
             
-//            
-//            
-//            // validate
-//            CompilationMessageCollector collector = new CompilationMessageCollector() ;
-//            TypeCheckingRelVisitor typeChecker = new TypeCheckingRelVisitor(plan, collector);
-//            typeChecker.visit();  
-//    
-//            printMessageCollector(collector) ;
-//            //printTypeGraph(plan) ;
-//            //planTester.printPlan(plan, TypeCheckingTestUtil.getCurrentMethodName());
-//    
-//            if (collector.hasError()) {
-//                throw new AssertionError("Expect no  error") ;
-//            }
-//    
-//    
-//            LOForEach foreach = (LOForEach)plan.getSinks().get(0);
-//            LogicalExpressionPlan foreachPlan = foreach.getForEachPlans().get(1);
-//    
-//            LogicalExpression exOp = (LogicalExpression) foreachPlan.getSinks().get(0);
-//    
-//            if(! (exOp instanceof ProjectExpression)) exOp = (LogicalExpression) foreachPlan.getSinks().get(1);
-//    
-//            CastExpression cast = (CastExpression)foreachPlan.getPredecessors(exOp).get(0);
-//            assertTrue(cast.getFuncSpec().getClassName().startsWith("BinStorage"));
-//    
-//            foreachPlan = foreach.getForEachPlans().get(2);
-//            exOp = foreachPlan.getRoots().get(0);
-//            if(! (exOp instanceof ProjectExpression)) exOp = (LogicalExpression) foreachPlan.getSinks().get(1);
-//            cast = (CastExpression)foreachPlan.getSuccessors(exOp).get(0);
-//            assertTrue(cast.getFuncSpec().getClassName().startsWith("PigStorage"));
     
         }
     
-    //    //@Test
-    //    public void testCogroupFilterLineageNoSchema() throws Throwable {
-    //        + "a = load 'a' using PigStorage('a') ;") ;
-    //        + "b = load 'a' using PigStorage() ;") ;
-    //        + "c = cogroup a by $0, b by $0 ;") ;
-    //        + "d = foreach c generate group, flatten(a), flatten(b)  ;") ;
-    //        + "e = filter d by $2 > 5;") ;
-    //        + "f = foreach e generate group, $1 + 1, $2 + 2.0  ;") ;
-    //
-    //        // validate
-    //        CompilationMessageCollector collector = new CompilationMessageCollector() ;
-    //        TypeCheckingRelVisitor typeChecker = new TypeCheckingRelVisitor(plan, collector);
-    //        typeChecker.visit();  
-    //
-    //        printMessageCollector(collector) ;
-    //        //printTypeGraph(plan) ;
-    //        //planTester.printPlan(plan, TypeCheckingTestUtil.getCurrentMethodName());
-    //
-    //        if (collector.hasError()) {
-    //            throw new AssertionError("Expect no  error") ;
-    //        }
-    //
-    //
-    //        LOForEach foreach = (LOForEach)plan.getSinks().get(0);
-    //        LogicalExpressionPlan foreachPlan = foreach.getForEachPlans().get(1);
-    //
-    //        LogicalExpression exOp = (LogicalExpression) foreachPlan.getSinks().get(0);
-    //
-    //        if(! (exOp instanceof ProjectExpression)) exOp = (LogicalExpression) foreachPlan.getSinks().get(1);
-    //
-    //        CastExpression cast = (CastExpression)foreachPlan.getPredecessors(exOp).get(0);
-    //        assertTrue(cast.getFuncSpec().getClassName().startsWith("BinStorage"));
-    //
-    //        foreachPlan = foreach.getForEachPlans().get(2);
-    //        exOp = foreachPlan.getRoots().get(0);
-    //        if(! (exOp instanceof ProjectExpression)) exOp = (LogicalExpression) foreachPlan.getSinks().get(1);
-    //        cast = (CastExpression)foreachPlan.getSuccessors(exOp).get(0);
-    //        assertTrue(cast.getFuncSpec().getClassName().startsWith("PigStorage"));
-    //
-    //    }
-    //
+        @Test
+        public void testCogroupFilterLineageNoSchema() throws Throwable {
+            String query = "a = load 'a' using PigStorage('a') ;"
+            + "b = load 'a' using PigStorage('b');"
+            + "c = cogroup a by $0, b by $0 ;"
+            + "d = foreach c generate group, flatten(a), flatten(b)  ;"
+            + "e = filter d by $2 > 5;"
+            + "f = foreach e generate $1, $1 + 1, $2 + 2.0  ;";
+    
+            checkLastForeachCastLoadFunc(query, null, 1);
+            checkLastForeachCastLoadFunc(query, null, 2);
+   
+        }
+    
         @Test
         public void testSplitLineage() throws Throwable {
             String query = "a = load 'a' as (field1, field2: float, field3: chararray );"
@@ -3590,7 +3047,6 @@ public class TestTypeCheckingValidatorNewLP {
     
         @Test
         public void testSplitLineageNoSchema() throws Throwable {
-            //FIXME : split without schema - typechecker bug
             String query =  "a = load 'a' ;"
             + "split a into b if $0 > 1.0, c if $1 <= 1.0 ;";
     
@@ -3598,153 +3054,55 @@ public class TestTypeCheckingValidatorNewLP {
     
         }
     
-        //@Test
+        @Test
         public void testSplitLineage1() throws Throwable {
-            //FIXME : AstValidator - Alias 'b' is not defined
-            String query = "a = load 'a' as (field1, field2: float, field3: chararray );"
+            String query = "a = load 'a' as (field1, field2, field3: chararray );"
             + "split a into b if field2 > 1.0, c if field2 <= 1.0 ;"
-            + "c = foreach b generate field1 + 1.0 ;";
+            + "d = foreach b generate field1 + 1.0 ;"
+            + "e = foreach c generate field1 + 1.0 ;";
     
-            checkLastForeachCastLoadFunc(query, "org.apache.pig.builtin.PigStorage");
-            
-//            // validate
-//            CompilationMessageCollector collector = new CompilationMessageCollector() ;
-//            TypeCheckingRelVisitor typeChecker = new TypeCheckingRelVisitor(plan, collector);
-//            typeChecker.visit();  
-//    
-//            printMessageCollector(collector) ;
-//            //printTypeGraph(plan) ;
-//            //planTester.printPlan(plan, TypeCheckingTestUtil.getCurrentMethodName());
-//    
-//            if (collector.hasError()) {
-//                throw new AssertionError("Expect no  error") ;
-//            }
-//    
-//            LOForEach foreach = (LOForEach)plan.getSinks().get(0);
-//            LogicalExpressionPlan foreachPlan = ((LOGenerate)foreach.getInnerPlan().getSinks().get(0)).getOutputPlans().get(0);
-//    
-//            LogicalExpression exOp = (LogicalExpression) foreachPlan.getSinks().get(0);
-//    
-//            if(! (exOp instanceof ProjectExpression)) exOp = (LogicalExpression) foreachPlan.getSinks().get(1);
-//    
-//            CastExpression cast = (CastExpression)foreachPlan.getPredecessors(exOp).get(0);
-//            assertTrue(cast.getFuncSpec().getClassName().startsWith("org.apache.pig.builtin.PigStorage"));
-    
+            LogicalPlan plan = createAndProcessLPlan(query);
+            checkLoaderInCasts(plan, "org.apache.pig.builtin.PigStorage");
         }
     
-//        //@Test
-//        public void testSplitLineage1NoSchema() throws Throwable {
-//            String query =  "a = load 'a' ;"
-//            + "split a into b if $0 > 1.0, c if $1 <= 1.0 ;"
-//            + "c = foreach b generate $1 + 1.0 ;";
-//    
-//            // validate
-//            CompilationMessageCollector collector = new CompilationMessageCollector() ;
-//            TypeCheckingRelVisitor typeChecker = new TypeCheckingRelVisitor(plan, collector);
-//            typeChecker.visit();  
-//    
-//            printMessageCollector(collector) ;
-//            //printTypeGraph(plan) ;
-//            //planTester.printPlan(plan, TypeCheckingTestUtil.getCurrentMethodName());
-//    
-//            if (collector.hasError()) {
-//                throw new AssertionError("Expect no  error") ;
-//            }
-//    
-//            LOForEach foreach = (LOForEach)plan.getSinks().get(0);
-//            LogicalExpressionPlan foreachPlan = ((LOGenerate)foreach.getInnerPlan().getSinks().get(0)).getOutputPlans().get(0);
-//    
-//            LogicalExpression exOp = (LogicalExpression) foreachPlan.getSinks().get(0);
-//    
-//            if(! (exOp instanceof ProjectExpression)) exOp = (LogicalExpression) foreachPlan.getSinks().get(1);
-//    
-//            CastExpression cast = (CastExpression)foreachPlan.getPredecessors(exOp).get(0);
-//            assertTrue(cast.getFuncSpec().getClassName().startsWith("org.apache.pig.builtin.PigStorage"));
-//    
-//        }
-    //
-    //    //@Test
-    //    public void testCogroupSplitLineage() throws Throwable {
-    //        + "a = load 'a' using PigStorage('a') as (field1, field2: float, field3: chararray );"
-    //        + "b = load 'a' using PigStorage() as (field4, field5, field6: chararray );"
-    //        + "c = cogroup a by field1, b by field4 ;"
-    //        + "d = foreach c generate group, flatten(a), flatten(b)  ;"
-    //        + "split d into e if field4 > 'm', f if field6 > 'm'  ;"
-    //        + "g = foreach e generate group, field1 + 1, field4 + 2.0  ;"
-    //
-    //        // validate
-    //        CompilationMessageCollector collector = new CompilationMessageCollector() ;
-    //        TypeCheckingRelVisitor typeChecker = new TypeCheckingRelVisitor(plan, collector);
-    //        typeChecker.visit();  
-    //
-    //        printMessageCollector(collector) ;
-    //        //printTypeGraph(plan) ;
-    //        //planTester.printPlan(plan, TypeCheckingTestUtil.getCurrentMethodName());
-    //
-    //        if (collector.hasError()) {
-    //            throw new AssertionError("Expect no  error") ;
-    //        }
-    //
-    //
-    //        LOForEach foreach = (LOForEach)plan.getSinks().get(0);
-    //        LogicalExpressionPlan foreachPlan = foreach.getForEachPlans().get(1);
-    //
-    //        LogicalExpression exOp = (LogicalExpression) foreachPlan.getSinks().get(0);
-    //
-    //        if(! (exOp instanceof ProjectExpression)) exOp = (LogicalExpression) foreachPlan.getSinks().get(1);
-    //
-    //        CastExpression cast = (CastExpression)foreachPlan.getPredecessors(exOp).get(0);
-    //        assertTrue(cast.getFuncSpec().getClassName().startsWith("BinStorage"));
-    //
-    //        foreachPlan = foreach.getForEachPlans().get(2);
-    //        exOp = foreachPlan.getRoots().get(0);
-    //        if(! (exOp instanceof ProjectExpression)) exOp = (LogicalExpression) foreachPlan.getSinks().get(1);
-    //        cast = (CastExpression)foreachPlan.getSuccessors(exOp).get(0);
-    //        assertTrue(cast.getFuncSpec().getClassName().startsWith("PigStorage"));
-    //
-    //    }
-    //
-    //    //@Test
-    //    public void testCogroupSplitLineageNoSchema() throws Throwable {
-    //        + "a = load 'a' using PigStorage('a') ;") ;
-    //        + "b = load 'a' using PigStorage() ;") ;
-    //        + "c = cogroup a by $0, b by $0 ;") ;
-    //        + "d = foreach c generate group, flatten(a), flatten(b)  ;") ;
-    //        + "split d into e if $1 > 'm', f if $1 > 'm'  ;") ;
-    //        + "g = foreach e generate group, $1 + 1, $2 + 2.0  ;") ;
-    //
-    //        // validate
-    //        CompilationMessageCollector collector = new CompilationMessageCollector() ;
-    //        TypeCheckingRelVisitor typeChecker = new TypeCheckingRelVisitor(plan, collector);
-    //        typeChecker.visit();  
-    //
-    //        printMessageCollector(collector) ;
-    //        //printTypeGraph(plan) ;
-    //        //planTester.printPlan(plan, TypeCheckingTestUtil.getCurrentMethodName());
-    //
-    //        if (collector.hasError()) {
-    //            throw new AssertionError("Expect no  error") ;
-    //        }
-    //
-    //
-    //        LOForEach foreach = (LOForEach)plan.getSinks().get(0);
-    //        LogicalExpressionPlan foreachPlan = foreach.getForEachPlans().get(1);
-    //
-    //        LogicalExpression exOp = (LogicalExpression) foreachPlan.getSinks().get(0);
-    //
-    //        if(! (exOp instanceof ProjectExpression)) exOp = (LogicalExpression) foreachPlan.getSinks().get(1);
-    //
-    //        CastExpression cast = (CastExpression)foreachPlan.getPredecessors(exOp).get(0);
-    //        assertTrue(cast.getFuncSpec().getClassName().startsWith("BinStorage"));
-    //
-    //        foreachPlan = foreach.getForEachPlans().get(2);
-    //        exOp = foreachPlan.getRoots().get(0);
-    //        if(! (exOp instanceof ProjectExpression)) exOp = (LogicalExpression) foreachPlan.getSinks().get(1);
-    //        cast = (CastExpression)foreachPlan.getSuccessors(exOp).get(0);
-    //        assertTrue(cast.getFuncSpec().getClassName().startsWith("PigStorage"));
-    //
-    //    }
-    //
+        @Test
+        public void testSplitLineage1NoSchema() throws Throwable {
+            String query =  "a = load 'a' ;"
+            + "split a into b if $0 > 1.0, c if $1 <= 1.0 ;"
+            + "d = foreach b generate $1 + 1.0 ;"
+            + "e = foreach c generate $1 + 1.0 ;";
+    
+            LogicalPlan plan = createAndProcessLPlan(query);
+            checkLoaderInCasts(plan, "org.apache.pig.builtin.PigStorage");
+        }
+    
+        @Test
+        public void testCogroupSplitLineage() throws Throwable {
+            String query = "a = load 'a' using PigStorage('a') as (field1, field2: float, field3: chararray );"
+                + "b = load 'a' using PigStorage('b') as (field4, field5, field6: chararray );"
+                + "c = cogroup a by field1, b by field4 ;"
+                + "d = foreach c generate group, flatten(a), flatten(b)  ;"
+                + "split d into e if field4 > 'm', f if field6 > 'm'  ;"
+                + "g = foreach e generate group, field1 + 1, field4 + 2.0  ;";
+
+            checkLastForeachCastLoadFunc(query, "PigStorage('a')", 1);
+            checkLastForeachCastLoadFunc(query, "PigStorage('b')", 2);
+
+        }
+    
+        @Test
+        public void testCogroupSplitLineageNoSchema() throws Throwable {
+            String query = "a = load 'a' using PigStorage('a') ;"
+                + "b = load 'a' using PigStorage('b') ;"
+                + "c = cogroup a by $0, b by $0 ;"
+                + "d = foreach c generate group, flatten(a), flatten(b)  ;"
+                + "split d into e if $1 > 'm', f if $1 > 'm'  ;"
+                + "g = foreach d generate $0, $1 + 1, $2 + 2.0  ;";
+    
+            checkLastForeachCastLoadFunc(query, null, 1);
+            checkLastForeachCastLoadFunc(query, null, 2);            
+        }
+    
         @Test
         public void testDistinctLineage() throws Throwable {
             String query = "a = load 'a' as (field1, field2: float, field3: chararray );"
@@ -3762,114 +3120,36 @@ public class TestTypeCheckingValidatorNewLP {
             + "b = distinct a;"
             + "c = foreach b generate $1 + 1.0 ;";
             checkLastForeachCastLoadFunc(query, "org.apache.pig.builtin.PigStorage");
-            
-//            // validate
-//            CompilationMessageCollector collector = new CompilationMessageCollector() ;
-//            TypeCheckingRelVisitor typeChecker = new TypeCheckingRelVisitor(plan, collector);
-//            typeChecker.visit();  
-//    
-//            printMessageCollector(collector) ;
-//            //printTypeGraph(plan) ;
-//            //planTester.printPlan(plan, TypeCheckingTestUtil.getCurrentMethodName());
-//    
-//            if (collector.hasError()) {
-//                throw new AssertionError("Expect no  error") ;
-//            }
-//    
-//            LOForEach foreach = (LOForEach)plan.getSinks().get(0);
-//            LogicalExpressionPlan foreachPlan = ((LOGenerate)foreach.getInnerPlan().getSinks().get(0)).getOutputPlans().get(0);
-//    
-//            LogicalExpression exOp = (LogicalExpression) foreachPlan.getSinks().get(0);
-//    
-//            if(! (exOp instanceof ProjectExpression)) exOp = (LogicalExpression) foreachPlan.getSinks().get(1);
-//    
-//            CastExpression cast = (CastExpression)foreachPlan.getPredecessors(exOp).get(0);
-//            assertTrue(cast.getFuncSpec().getClassName().startsWith("org.apache.pig.builtin.PigStorage"));
     
         }
-    //
-    //    //@Test
-    //    public void testCogroupDistinctLineage() throws Throwable {
-    //        + "a = load 'a' using PigStorage('a') as (field1, field2: float, field3: chararray );") ;
-    //        + "b = load 'a' using PigStorage() as (field4, field5, field6: chararray );") ;
-    //        + "c = cogroup a by field1, b by field4 ;") ;
-    //        + "d = foreach c generate group, flatten(a), flatten(b)  ;") ;
-    //        + "e = distinct d ;") ;
-    //        + "f = foreach e generate group, field1 + 1, field4 + 2.0  ;") ;
-    //
-    //        // validate
-    //        CompilationMessageCollector collector = new CompilationMessageCollector() ;
-    //        TypeCheckingRelVisitor typeChecker = new TypeCheckingRelVisitor(plan, collector);
-    //        typeChecker.visit();  
-    //
-    //        printMessageCollector(collector) ;
-    //        //printTypeGraph(plan) ;
-    //        //planTester.printPlan(plan, TypeCheckingTestUtil.getCurrentMethodName());
-    //
-    //        if (collector.hasError()) {
-    //            throw new AssertionError("Expect no  error") ;
-    //        }
-    //
-    //
-    //        LOForEach foreach = (LOForEach)plan.getSinks().get(0);
-    //        LogicalExpressionPlan foreachPlan = foreach.getForEachPlans().get(1);
-    //
-    //        LogicalExpression exOp = (LogicalExpression) foreachPlan.getSinks().get(0);
-    //
-    //        if(! (exOp instanceof ProjectExpression)) exOp = (LogicalExpression) foreachPlan.getSinks().get(1);
-    //
-    //        CastExpression cast = (CastExpression)foreachPlan.getPredecessors(exOp).get(0);
-    //        assertTrue(cast.getFuncSpec().getClassName().startsWith("BinStorage"));
-    //
-    //        foreachPlan = foreach.getForEachPlans().get(2);
-    //        exOp = foreachPlan.getRoots().get(0);
-    //        if(! (exOp instanceof ProjectExpression)) exOp = (LogicalExpression) foreachPlan.getSinks().get(1);
-    //        cast = (CastExpression)foreachPlan.getSuccessors(exOp).get(0);
-    //        assertTrue(cast.getFuncSpec().getClassName().startsWith("PigStorage"));
-    //
-    //    }
-    //
-    //    //@Test
-    //    public void testCogroupDistinctLineageNoSchema() throws Throwable {
-    //        + "a = load 'a' using PigStorage('a') ;") ;
-    //        + "b = load 'a' using PigStorage() ;") ;
-    //        + "c = cogroup a by $0, b by $0 ;") ;
-    //        + "d = foreach c generate group, flatten(a), flatten(b)  ;") ;
-    //        + "e = distinct d ;") ;
-    //        + "f = foreach e generate group, $1 + 1, $2 + 2.0  ;") ;
-    //
-    //        // validate
-    //        CompilationMessageCollector collector = new CompilationMessageCollector() ;
-    //        TypeCheckingRelVisitor typeChecker = new TypeCheckingRelVisitor(plan, collector);
-    //        typeChecker.visit();  
-    //
-    //        printMessageCollector(collector) ;
-    //        //printTypeGraph(plan) ;
-    //        //planTester.printPlan(plan, TypeCheckingTestUtil.getCurrentMethodName());
-    //
-    //        if (collector.hasError()) {
-    //            throw new AssertionError("Expect no  error") ;
-    //        }
-    //
-    //
-    //        LOForEach foreach = (LOForEach)plan.getSinks().get(0);
-    //        LogicalExpressionPlan foreachPlan = foreach.getForEachPlans().get(1);
-    //
-    //        LogicalExpression exOp = (LogicalExpression) foreachPlan.getSinks().get(0);
-    //
-    //        if(! (exOp instanceof ProjectExpression)) exOp = (LogicalExpression) foreachPlan.getSinks().get(1);
-    //
-    //        CastExpression cast = (CastExpression)foreachPlan.getPredecessors(exOp).get(0);
-    //        assertTrue(cast.getFuncSpec().getClassName().startsWith("BinStorage"));
-    //
-    //        foreachPlan = foreach.getForEachPlans().get(2);
-    //        exOp = foreachPlan.getRoots().get(0);
-    //        if(! (exOp instanceof ProjectExpression)) exOp = (LogicalExpression) foreachPlan.getSinks().get(1);
-    //        cast = (CastExpression)foreachPlan.getSuccessors(exOp).get(0);
-    //        assertTrue(cast.getFuncSpec().getClassName().startsWith("PigStorage"));
-    //
-    //    }
-    //
+    
+        @Test
+        public void testCogroupDistinctLineage() throws Throwable {
+            String query = "a = load 'a' using PigStorage('a') as (field1, field2: float, field3: chararray );"
+            + "b = load 'a' using PigStorage('b') as (field4, field5, field6: chararray );"
+            + "c = cogroup a by field1, b by field4 ;"
+            + "d = foreach c generate group, flatten(a), flatten(b)  ;"
+            + "e = distinct d ;"
+            + "f = foreach e generate group, field1 + 1, field4 + 2.0  ;";
+    
+            checkLastForeachCastLoadFunc(query, "PigStorage('a')", 1);
+            checkLastForeachCastLoadFunc(query, "PigStorage('b')", 2);
+  
+        }
+    
+        @Test
+        public void testCogroupDistinctLineageNoSchema() throws Throwable {
+            String query =  "a = load 'a' using PigStorage('a') ;" 
+            + "b = load 'a' using PigStorage() ;"
+            + "c = cogroup a by $0, b by $0 ;"
+            + "d = foreach c generate group, flatten(a), flatten(b)  ;" 
+            + "e = distinct d ;"
+            + "f = foreach e generate $0, $1 + 1, $2 + 2.0  ;" ;
+
+            checkLastForeachCastLoadFunc(query, null, 1);
+            checkLastForeachCastLoadFunc(query, null, 2);
+        }
+    
         @Test
         public void testSortLineage() throws Throwable {
             String query =  "a = load 'a' as (field1, field2: float, field3: chararray );"
@@ -3921,171 +3201,62 @@ public class TestTypeCheckingValidatorNewLP {
         }
         
         
-    //
-    //    //@Test
-    //    public void testCogroupSortLineage() throws Throwable {
-    //        + "a = load 'a' using PigStorage('a') as (field1, field2: float, field3: chararray );") ;
-    //        + "b = load 'a' using PigStorage() as (field4, field5, field6: chararray );") ;
-    //        + "c = cogroup a by field1, b by field4 ;") ;
-    //        + "d = foreach c generate group, flatten(a), flatten(b)  ;") ;
-    //        + "e = order d by field4 desc;") ;
-    //        + "f = foreach e generate group, field1 + 1, field4 + 2.0  ;") ;
-    //
-    //        // validate
-    //        CompilationMessageCollector collector = new CompilationMessageCollector() ;
-    //        TypeCheckingRelVisitor typeChecker = new TypeCheckingRelVisitor(plan, collector);
-    //        typeChecker.visit();  
-    //
-    //        printMessageCollector(collector) ;
-    //        //printTypeGraph(plan) ;
-    //        //planTester.printPlan(plan, TypeCheckingTestUtil.getCurrentMethodName());
-    //
-    //        if (collector.hasError()) {
-    //            throw new AssertionError("Expect no  error") ;
-    //        }
-    //
-    //
-    //        LOForEach foreach = (LOForEach)plan.getSinks().get(0);
-    //        LogicalExpressionPlan foreachPlan = foreach.getForEachPlans().get(1);
-    //
-    //        LogicalExpression exOp = (LogicalExpression) foreachPlan.getSinks().get(0);
-    //
-    //        if(! (exOp instanceof ProjectExpression)) exOp = (LogicalExpression) foreachPlan.getSinks().get(1);
-    //
-    //        CastExpression cast = (CastExpression)foreachPlan.getPredecessors(exOp).get(0);
-    //        assertTrue(cast.getFuncSpec().getClassName().startsWith("BinStorage"));
-    //
-    //        foreachPlan = foreach.getForEachPlans().get(2);
-    //        exOp = foreachPlan.getRoots().get(0);
-    //        if(! (exOp instanceof ProjectExpression)) exOp = (LogicalExpression) foreachPlan.getSinks().get(1);
-    //        cast = (CastExpression)foreachPlan.getSuccessors(exOp).get(0);
-    //        assertTrue(cast.getFuncSpec().getClassName().startsWith("PigStorage"));
-    //
-    //    }
-    //
-    //    //@Test
-    //    public void testCogroupSortLineageNoSchema() throws Throwable {
-    //        + "a = load 'a' using PigStorage('a') ;") ;
-    //        + "b = load 'a' using PigStorage() ;") ;
-    //        + "c = cogroup a by $0, b by $0 ;") ;
-    //        + "d = foreach c generate group, flatten(a), flatten(b)  ;") ;
-    //        + "e = order d by $2 desc;") ;
-    //        + "f = foreach e generate group, $1 + 1, $2 + 2.0  ;") ;
-    //
-    //        // validate
-    //        CompilationMessageCollector collector = new CompilationMessageCollector() ;
-    //        TypeCheckingRelVisitor typeChecker = new TypeCheckingRelVisitor(plan, collector);
-    //        typeChecker.visit();  
-    //
-    //        printMessageCollector(collector) ;
-    //        //printTypeGraph(plan) ;
-    //        //planTester.printPlan(plan, TypeCheckingTestUtil.getCurrentMethodName());
-    //
-    //        if (collector.hasError()) {
-    //            throw new AssertionError("Expect no  error") ;
-    //        }
-    //
-    //
-    //        LOForEach foreach = (LOForEach)plan.getSinks().get(0);
-    //        LogicalExpressionPlan foreachPlan = foreach.getForEachPlans().get(1);
-    //
-    //        LogicalExpression exOp = (LogicalExpression) foreachPlan.getSinks().get(0);
-    //
-    //        if(! (exOp instanceof ProjectExpression)) exOp = (LogicalExpression) foreachPlan.getSinks().get(1);
-    //
-    //        CastExpression cast = (CastExpression)foreachPlan.getPredecessors(exOp).get(0);
-    //        assertTrue(cast.getFuncSpec().getClassName().startsWith("BinStorage"));
-    //
-    //        foreachPlan = foreach.getForEachPlans().get(2);
-    //        exOp = foreachPlan.getRoots().get(0);
-    //        if(! (exOp instanceof ProjectExpression)) exOp = (LogicalExpression) foreachPlan.getSinks().get(1);
-    //        cast = (CastExpression)foreachPlan.getSuccessors(exOp).get(0);
-    //        assertTrue(cast.getFuncSpec().getClassName().startsWith("PigStorage"));
-    //
-    //    }
-    //
-    //    //@Test
-    //    public void testCogroupSortStarLineage() throws Throwable {
-    //        + "a = load 'a' using PigStorage('a') as (field1, field2: float, field3: chararray );") ;
-    //        + "b = load 'a' using PigStorage() as (field4, field5, field6: chararray );") ;
-    //        + "c = cogroup a by field1, b by field4 ;") ;
-    //        + "d = foreach c generate group, flatten(a), flatten(b)  ;") ;
-    //        + "e = order d by * desc;") ;
-    //        + "f = foreach e generate group, field1 + 1, field4 + 2.0  ;") ;
-    //
-    //        // validate
-    //        CompilationMessageCollector collector = new CompilationMessageCollector() ;
-    //        TypeCheckingRelVisitor typeChecker = new TypeCheckingRelVisitor(plan, collector);
-    //        typeChecker.visit();  
-    //
-    //        printMessageCollector(collector) ;
-    //        //printTypeGraph(plan) ;
-    //        //planTester.printPlan(plan, TypeCheckingTestUtil.getCurrentMethodName());
-    //
-    //        if (collector.hasError()) {
-    //            throw new AssertionError("Expect no  error") ;
-    //        }
-    //
-    //
-    //        LOForEach foreach = (LOForEach)plan.getSinks().get(0);
-    //        LogicalExpressionPlan foreachPlan = foreach.getForEachPlans().get(1);
-    //
-    //        LogicalExpression exOp = (LogicalExpression) foreachPlan.getSinks().get(0);
-    //
-    //        if(! (exOp instanceof ProjectExpression)) exOp = (LogicalExpression) foreachPlan.getSinks().get(1);
-    //
-    //        CastExpression cast = (CastExpression)foreachPlan.getPredecessors(exOp).get(0);
-    //        assertTrue(cast.getFuncSpec().getClassName().startsWith("BinStorage"));
-    //
-    //        foreachPlan = foreach.getForEachPlans().get(2);
-    //        exOp = foreachPlan.getRoots().get(0);
-    //        if(! (exOp instanceof ProjectExpression)) exOp = (LogicalExpression) foreachPlan.getSinks().get(1);
-    //        cast = (CastExpression)foreachPlan.getSuccessors(exOp).get(0);
-    //        assertTrue(cast.getFuncSpec().getClassName().startsWith("PigStorage"));
-    //
-    //    }
-    //
-    //    //@Test
-    //    public void testCogroupSortStarLineageNoSchema() throws Throwable {
-    //        + "a = load 'a' using PigStorage('a') ;") ;
-    //        + "b = load 'a' using PigStorage() ;") ;
-    //        + "c = cogroup a by $0, b by $0 ;") ;
-    //        + "d = foreach c generate group, flatten(a), flatten(b)  ;") ;
-    //        + "e = order d by * desc;") ;
-    //        + "f = foreach e generate group, $1 + 1, $2 + 2.0  ;") ;
-    //
-    //        // validate
-    //        CompilationMessageCollector collector = new CompilationMessageCollector() ;
-    //        TypeCheckingRelVisitor typeChecker = new TypeCheckingRelVisitor(plan, collector);
-    //        typeChecker.visit();  
-    //
-    //        printMessageCollector(collector) ;
-    //        //printTypeGraph(plan) ;
-    //        //planTester.printPlan(plan, TypeCheckingTestUtil.getCurrentMethodName());
-    //
-    //        if (collector.hasError()) {
-    //            throw new AssertionError("Expect no  error") ;
-    //        }
-    //
-    //
-    //        LOForEach foreach = (LOForEach)plan.getSinks().get(0);
-    //        LogicalExpressionPlan foreachPlan = foreach.getForEachPlans().get(1);
-    //
-    //        LogicalExpression exOp = (LogicalExpression) foreachPlan.getSinks().get(0);
-    //
-    //        if(! (exOp instanceof ProjectExpression)) exOp = (LogicalExpression) foreachPlan.getSinks().get(1);
-    //
-    //        CastExpression cast = (CastExpression)foreachPlan.getPredecessors(exOp).get(0);
-    //        assertTrue(cast.getFuncSpec().getClassName().startsWith("BinStorage"));
-    //
-    //        foreachPlan = foreach.getForEachPlans().get(2);
-    //        exOp = foreachPlan.getRoots().get(0);
-    //        if(! (exOp instanceof ProjectExpression)) exOp = (LogicalExpression) foreachPlan.getSinks().get(1);
-    //        cast = (CastExpression)foreachPlan.getSuccessors(exOp).get(0);
-    //        assertTrue(cast.getFuncSpec().getClassName().startsWith("PigStorage"));
-    //
-    //    }
-    //
+    
+        @Test
+        public void testCogroupSortLineage() throws Throwable {
+            String query = "a = load 'a' using PigStorage('a') as (field1, field2: float, field3: chararray );"
+            + "b = load 'a' using PigStorage('b') as (field4, field5, field6: chararray );"
+            + "c = cogroup a by field1, b by field4 ;"
+            + "d = foreach c generate group, flatten(a), flatten(b)  ;"
+            + "e = order d by field4 desc;"
+            + "f = foreach e generate group, field1 + 1, field4 + 2.0  ;";
+    
+            checkLastForeachCastLoadFunc(query, "PigStorage('a')", 1);
+            checkLastForeachCastLoadFunc(query, "PigStorage('b')", 2);
+    
+        }
+    
+        @Test
+        public void testCogroupSortLineageNoSchema() throws Throwable {
+            String query =  "a = load 'a' using PigStorage('a');"
+            + "b = load 'a' using PigStorage('b');"
+            + "c = cogroup a by $0, b by $0 ;"
+            + "d = foreach c generate group, flatten(a), flatten(b)  ;"
+            + "e = order d by $2 desc;"
+            + "f = foreach e generate $0, $1 + 1, $2 + 2.0  ;";
+            checkLastForeachCastLoadFunc(query, null, 1);
+            checkLastForeachCastLoadFunc(query, null, 2);
+
+    
+        }
+    
+        @Test
+        public void testCogroupSortStarLineage() throws Throwable {
+            String query = "a = load 'a' using PigStorage('a') as (field1, field2: float, field3: chararray );"
+            + "b = load 'a' using PigStorage('b') as (field4, field5, field6: chararray );"
+            + "c = cogroup a by field1, b by field4 ;"
+            + "d = foreach c generate group, flatten(a), flatten(b)  ;"
+            + "e = order d by * desc;"
+            + "f = foreach e generate group, field1 + 1, field4 + 2.0  ;";
+    
+            checkLastForeachCastLoadFunc(query, "PigStorage('a')", 1);
+            checkLastForeachCastLoadFunc(query, "PigStorage('b')", 2);  
+        }
+    
+        @Test
+        public void testCogroupSortStarLineageNoSchema() throws Throwable {
+            String query = "a = load 'a' using PigStorage('a');"
+            + "b = load 'a' using PigStorage('b');"
+            + "c = cogroup a by $0, b by $0 ;"
+            + "d = foreach c generate group, flatten(a), flatten(b)  ;"
+            + "e = order d by * desc;"
+            + "f = foreach e generate $0, $1 + 1, $2 + 2.0  ;";
+    
+            checkLastForeachCastLoadFunc(query, null, 1);
+            checkLastForeachCastLoadFunc(query, null, 2);  
+    
+        }
+    
         @Test
         public void testCrossLineage() throws Throwable {
             String query =  "a = load 'a' using PigStorage('a') as (field1, field2: float, field3: chararray );"
@@ -4163,95 +3334,42 @@ public class TestTypeCheckingValidatorNewLP {
             checkLastForeachCastLoadFunc(query, "PigStorage('a')", 0);
 
         }
-    //
-    //    //@Test
-    //    public void testJoinLineageNoSchemaFail() throws Throwable {
-    //        //this test case should change when we decide on what flattening a tuple or bag
-    //        //with null schema results in a foreach flatten and hence a join
-    //        + "a = load 'a' using PigStorage('a') ;"
-    //        + "b = load 'a' using PigStorage() ;"
-    //        + "c = join a by $0, b by $0 ;"
-    //        + "d = foreach c generate $1 + 2.0  ;"
-    //
-    //        // validate
-    //        CompilationMessageCollector collector = new CompilationMessageCollector() ;
-    //        TypeCheckingRelVisitor typeChecker = new TypeCheckingRelVisitor(plan, collector);
-    //
-    //        try {
-    //            typeChecker.visit();  
-    //        }
-    //        catch (TypeCheckerException pve) {
-    //            // good
-    //        }
-    //
-    //        printMessageCollector(collector) ;
-    //        //printTypeGraph(plan) ;
-    //        //planTester.printPlan(plan, TypeCheckingTestUtil.getCurrentMethodName());
-    //
-    //        assertTrue(collector.hasError());
-    //    }
-    //
-    //    //@Test
-    //    public void testJoinLineageMixSchema() throws Throwable {
-    //        + "a = load 'a' using PigStorage() as (field1, field2: float, field3: chararray );"
-    //        + "b = load 'a' using PigStorage() ;"
-    //        + "c = join a by field1, b by $0 ;"
-    //        + "d = foreach c generate $3 + 2.0  ;"
-    //
-    //        // validate
-    //        CompilationMessageCollector collector = new CompilationMessageCollector() ;
-    //        TypeCheckingRelVisitor typeChecker = new TypeCheckingRelVisitor(plan, collector);
-    //        typeChecker.visit();  
-    //
-    //        printMessageCollector(collector) ;
-    //        //printTypeGraph(plan) ;
-    //        //planTester.printPlan(plan, TypeCheckingTestUtil.getCurrentMethodName());
-    //
-    //        if (collector.hasError()) {
-    //            throw new AssertionError("Expect no  error") ;
-    //        }
-    //
-    //
-    //        LOForEach foreach = (LOForEach)plan.getSinks().get(0);
-    //        LogicalExpressionPlan foreachPlan = ((LOGenerate)foreach.getInnerPlan().getSinks().get(0)).getOutputPlans().get(0);
-    //
-    //        LogicalExpression exOp = (LogicalExpression) foreachPlan.getSinks().get(0);
-    //
-    //        if(! (exOp instanceof ProjectExpression)) exOp = (LogicalExpression) foreachPlan.getSinks().get(1);
-    //
-    //        CastExpression cast = (CastExpression)foreachPlan.getPredecessors(exOp).get(0);
-    //        
-    //        assertTrue(cast.getFuncSpec().getClassName().startsWith("PigStorage"));
-    //
-    //    }
-    //
-    //    //@Test
-    //    public void testJoinLineageMixSchemaFail() throws Throwable {
-    //        //this test case should change when we decide on what flattening a tuple or bag
-    //        //with null schema results in a foreach flatten and hence a join
-    //        + "a = load 'a' using PigStorage('a') as (field1, field2: float, field3: chararray );"
-    //        + "b = load 'a' using PigStorage() ;"
-    //        + "c = join a by field1, b by $0 ;"
-    //        + "d = foreach c generate $3 + 2.0  ;"
-    //
-    //        // validate
-    //        CompilationMessageCollector collector = new CompilationMessageCollector() ;
-    //        TypeCheckingRelVisitor typeChecker = new TypeCheckingRelVisitor(plan, collector);
-    //
-    //        try {
-    //            typeChecker.visit();  
-    //        }
-    //        catch (TypeCheckerException pve) {
-    //            // good
-    //        }
-    //
-    //        printMessageCollector(collector) ;
-    //        //printTypeGraph(plan) ;
-    //        //planTester.printPlan(plan, TypeCheckingTestUtil.getCurrentMethodName());
-    //
-    //        assertTrue(collector.hasError());
-    //    }
-    //
+    
+        @Test
+        public void testJoinLineageNoSchemaFail() throws Throwable {
+            //this test case should change when we decide on what flattening a tuple or bag
+            //with null schema results in a foreach flatten and hence a join
+            String query =  "a = load 'a' using PigStorage('a') ;"
+            + "b = load 'a' using PigStorage() ;"
+            + "c = join a by $0, b by $0 ;"
+            + "d = foreach c generate $1 + 2.0  ;";
+            
+            checkWarning(query, CAST_LOAD_NOT_FOUND);
+        }
+    
+        @Test
+        public void testJoinLineageMixSchema() throws Throwable {
+            String query =  "a = load 'a' using PigStorage() as (field1, field2: float, field3: chararray );"
+            + "b = load 'a' using PigStorage() ;"
+            + "c = join a by field1, b by $0 ;"
+            + "d = foreach c generate $3 + 2.0  ;";
+            checkLastForeachCastLoadFunc(query, "PigStorage", 0);
+   
+        }
+    
+        @Test
+        public void testJoinLineageMixSchemaFail() throws Throwable {
+            //this test case should change when we decide on what flattening a tuple or bag
+            //with null schema results in a foreach flatten and hence a join
+            String query =  "a = load 'a' using PigStorage('a') as (field1, field2: float, field3: chararray );"
+            + "b = load 'a' using PigStorage() ;"
+            + "c = join a by field1, b by $0 ;"
+            + "d = foreach c generate $3 + 2.0  ;";
+            
+            checkWarning(query, CAST_LOAD_NOT_FOUND);
+    
+        }
+    
         @Test
         public void testLimitLineage() throws Throwable {
             String query =  "a = load 'a' as (field1, field2: float, field3: chararray );"
@@ -4259,30 +3377,6 @@ public class TestTypeCheckingValidatorNewLP {
             + "c = foreach b generate field1 + 1.0 ;";
             
             checkLastForeachCastLoadFunc(query, "org.apache.pig.builtin.PigStorage", 0);
-            
-    
-//            // validate
-//            CompilationMessageCollector collector = new CompilationMessageCollector() ;
-//            TypeCheckingRelVisitor typeChecker = new TypeCheckingRelVisitor(plan, collector);
-//            typeChecker.visit();  
-//    
-//            printMessageCollector(collector) ;
-//            //printTypeGraph(plan) ;
-//            //planTester.printPlan(plan, TypeCheckingTestUtil.getCurrentMethodName());
-//    
-//            if (collector.hasError()) {
-//                throw new AssertionError("Expect no  error") ;
-//            }
-//    
-//            LOForEach foreach = (LOForEach)plan.getSinks().get(0);
-//            LogicalExpressionPlan foreachPlan = ((LOGenerate)foreach.getInnerPlan().getSinks().get(0)).getOutputPlans().get(0);
-//    
-//            LogicalExpression exOp = (LogicalExpression) foreachPlan.getSinks().get(0);
-//    
-//            if(! (exOp instanceof ProjectExpression)) exOp = (LogicalExpression) foreachPlan.getSinks().get(1);
-//    
-//            CastExpression cast = (CastExpression)foreachPlan.getPredecessors(exOp).get(0);
-//            assertTrue(cast.getFuncSpec().getClassName().startsWith("org.apache.pig.builtin.PigStorage"));
     
         }
     
@@ -4293,746 +3387,411 @@ public class TestTypeCheckingValidatorNewLP {
             + "c = foreach b generate $1 + 1.0 ;";
             
             checkLastForeachCastLoadFunc(query, "org.apache.pig.builtin.PigStorage", 0);
-            
-//            // validate
-//            CompilationMessageCollector collector = new CompilationMessageCollector() ;
-//            TypeCheckingRelVisitor typeChecker = new TypeCheckingRelVisitor(plan, collector);
-//            typeChecker.visit();  
-//    
-//            printMessageCollector(collector) ;
-//            //printTypeGraph(plan) ;
-//            //planTester.printPlan(plan, TypeCheckingTestUtil.getCurrentMethodName());
-//    
-//            if (collector.hasError()) {
-//                throw new AssertionError("Expect no  error") ;
-//            }
-//    
-//            LOForEach foreach = (LOForEach)plan.getSinks().get(0);
-//            LogicalExpressionPlan foreachPlan = ((LOGenerate)foreach.getInnerPlan().getSinks().get(0)).getOutputPlans().get(0);
-//    
-//            LogicalExpression exOp = (LogicalExpression) foreachPlan.getSinks().get(0);
-//    
-//            if(! (exOp instanceof ProjectExpression)) exOp = (LogicalExpression) foreachPlan.getSinks().get(1);
-//    
-//            CastExpression cast = (CastExpression)foreachPlan.getPredecessors(exOp).get(0);
-//            assertTrue(cast.getFuncSpec().getClassName().startsWith("org.apache.pig.builtin.PigStorage"));
     
         }
-    //
-    //    //@Test
-    //    public void testCogroupLimitLineage() throws Throwable {
-    //        + "a = load 'a' using PigStorage('a') as (field1, field2: float, field3: chararray );"
-    //        + "b = load 'a' using PigStorage() as (field4, field5, field6: chararray );"
-    //        + "c = cogroup a by field1, b by field4 ;"
-    //        + "d = foreach c generate group, flatten(a), flatten(b)  ;"
-    //        + "e = limit d 100;"
-    //        + "f = foreach e generate group, field1 + 1, field4 + 2.0  ;"
-    //
-    //        // validate
-    //        CompilationMessageCollector collector = new CompilationMessageCollector() ;
-    //        TypeCheckingRelVisitor typeChecker = new TypeCheckingRelVisitor(plan, collector);
-    //        typeChecker.visit();  
-    //
-    //        printMessageCollector(collector) ;
-    //        //printTypeGraph(plan) ;
-    //        //planTester.printPlan(plan, TypeCheckingTestUtil.getCurrentMethodName());
-    //
-    //        if (collector.hasError()) {
-    //            throw new AssertionError("Expect no  error") ;
-    //        }
-    //
-    //
-    //        LOForEach foreach = (LOForEach)plan.getSinks().get(0);
-    //        LogicalExpressionPlan foreachPlan = foreach.getForEachPlans().get(1);
-    //
-    //        LogicalExpression exOp = (LogicalExpression) foreachPlan.getSinks().get(0);
-    //
-    //        if(! (exOp instanceof ProjectExpression)) exOp = (LogicalExpression) foreachPlan.getSinks().get(1);
-    //
-    //        CastExpression cast = (CastExpression)foreachPlan.getPredecessors(exOp).get(0);
-    //        assertTrue(cast.getFuncSpec().getClassName().startsWith("BinStorage"));
-    //
-    //        foreachPlan = foreach.getForEachPlans().get(2);
-    //        exOp = foreachPlan.getRoots().get(0);
-    //        if(! (exOp instanceof ProjectExpression)) exOp = (LogicalExpression) foreachPlan.getSinks().get(1);
-    //        cast = (CastExpression)foreachPlan.getSuccessors(exOp).get(0);
-    //        assertTrue(cast.getFuncSpec().getClassName().startsWith("PigStorage"));
-    //
-    //    }
-    //
-    //    //@Test
-    //    public void testCogroupLimitLineageNoSchema() throws Throwable {
-    //        + "a = load 'a' using PigStorage('a') ;"
-    //        + "b = load 'a' using PigStorage() ;"
-    //        + "c = cogroup a by $0, b by $0 ;"
-    //        + "d = foreach c generate group, flatten(a), flatten(b)  ;"
-    //        + "e = limit d 100;"
-    //        + "f = foreach e generate group, $1 + 1, $2 + 2.0  ;"
-    //
-    //        // validate
-    //        CompilationMessageCollector collector = new CompilationMessageCollector() ;
-    //        TypeCheckingRelVisitor typeChecker = new TypeCheckingRelVisitor(plan, collector);
-    //        typeChecker.visit();  
-    //
-    //        printMessageCollector(collector) ;
-    //        //printTypeGraph(plan) ;
-    //        //planTester.printPlan(plan, TypeCheckingTestUtil.getCurrentMethodName());
-    //
-    //        if (collector.hasError()) {
-    //            throw new AssertionError("Expect no  error") ;
-    //        }
-    //
-    //
-    //        LOForEach foreach = (LOForEach)plan.getSinks().get(0);
-    //        LogicalExpressionPlan foreachPlan = foreach.getForEachPlans().get(1);
-    //
-    //        LogicalExpression exOp = (LogicalExpression) foreachPlan.getSinks().get(0);
-    //
-    //        if(! (exOp instanceof ProjectExpression)) exOp = (LogicalExpression) foreachPlan.getSinks().get(1);
-    //
-    //        CastExpression cast = (CastExpression)foreachPlan.getPredecessors(exOp).get(0);
-    //        assertTrue(cast.getFuncSpec().getClassName().startsWith("BinStorage"));
-    //
-    //        foreachPlan = foreach.getForEachPlans().get(2);
-    //        exOp = foreachPlan.getRoots().get(0);
-    //        if(! (exOp instanceof ProjectExpression)) exOp = (LogicalExpression) foreachPlan.getSinks().get(1);
-    //        cast = (CastExpression)foreachPlan.getSuccessors(exOp).get(0);
-    //        assertTrue(cast.getFuncSpec().getClassName().startsWith("PigStorage"));
-    //
-    //    }
-    //
-    //    //@Test
-    //    public void testCogroupTopKLineage() throws Throwable {
-    //        + "a = load 'a' using PigStorage('a') as (field1, field2: float, field3: chararray );") ;
-    //        + "b = load 'a' using PigStorage() as (field4, field5, field6: chararray );"
-    //        + "c = cogroup a by field1, b by field4 ;"
-    //        + "d = foreach c generate group, flatten(a), flatten(b)  ;"
-    //        + "e = order d by field1 desc;"
-    //        + "f = limit e 100;"
-    //        + "g = foreach f generate group, field1 + 1, field4 + 2.0  ;"
-    //
-    //        // validate
-    //        CompilationMessageCollector collector = new CompilationMessageCollector() ;
-    //        TypeCheckingRelVisitor typeChecker = new TypeCheckingRelVisitor(plan, collector);
-    //        typeChecker.visit();  
-    //
-    //        printMessageCollector(collector) ;
-    //        //printTypeGraph(plan) ;
-    //        //planTester.printPlan(plan, TypeCheckingTestUtil.getCurrentMethodName());
-    //
-    //        if (collector.hasError()) {
-    //            throw new AssertionError("Expect no  error") ;
-    //        }
-    //
-    //
-    //        LOForEach foreach = (LOForEach)plan.getSinks().get(0);
-    //        LogicalExpressionPlan foreachPlan = foreach.getForEachPlans().get(1);
-    //
-    //        LogicalExpression exOp = (LogicalExpression) foreachPlan.getSinks().get(0);
-    //
-    //        if(! (exOp instanceof ProjectExpression)) exOp = (LogicalExpression) foreachPlan.getSinks().get(1);
-    //
-    //        CastExpression cast = (CastExpression)foreachPlan.getPredecessors(exOp).get(0);
-    //        assertTrue(cast.getFuncSpec().getClassName().startsWith("BinStorage"));
-    //
-    //        foreachPlan = foreach.getForEachPlans().get(2);
-    //        exOp = foreachPlan.getRoots().get(0);
-    //        if(! (exOp instanceof ProjectExpression)) exOp = (LogicalExpression) foreachPlan.getSinks().get(1);
-    //        cast = (CastExpression)foreachPlan.getSuccessors(exOp).get(0);
-    //        assertTrue(cast.getFuncSpec().getClassName().startsWith("PigStorage"));
-    //
-    //    }
-    //
-    //    //@Test
-    //    public void testCogroupTopKLineageNoSchema() throws Throwable {
-    //        + "a = load 'a' using PigStorage('a') ;"
-    //        + "b = load 'a' using PigStorage() ;"
-    //        + "c = cogroup a by $0, b by $0 ;"
-    //        + "d = foreach c generate group, flatten(a), flatten(b)  ;"
-    //        + "e = order d by $2 desc;"
-    //        + "f = limit e 100;"
-    //        + "g = foreach f generate group, $1 + 1, $2 + 2.0  ;"
-    //
-    //        // validate
-    //        CompilationMessageCollector collector = new CompilationMessageCollector() ;
-    //        TypeCheckingRelVisitor typeChecker = new TypeCheckingRelVisitor(plan, collector);
-    //        typeChecker.visit();  
-    //
-    //        printMessageCollector(collector) ;
-    //        //printTypeGraph(plan) ;
-    //        //planTester.printPlan(plan, TypeCheckingTestUtil.getCurrentMethodName());
-    //
-    //        if (collector.hasError()) {
-    //            throw new AssertionError("Expect no  error") ;
-    //        }
-    //
-    //
-    //        LOForEach foreach = (LOForEach)plan.getSinks().get(0);
-    //        LogicalExpressionPlan foreachPlan = foreach.getForEachPlans().get(1);
-    //
-    //        LogicalExpression exOp = (LogicalExpression) foreachPlan.getSinks().get(0);
-    //
-    //        if(! (exOp instanceof ProjectExpression)) exOp = (LogicalExpression) foreachPlan.getSinks().get(1);
-    //
-    //        CastExpression cast = (CastExpression)foreachPlan.getPredecessors(exOp).get(0);
-    //        assertTrue(cast.getFuncSpec().getClassName().startsWith("BinStorage"));
-    //
-    //        foreachPlan = foreach.getForEachPlans().get(2);
-    //        exOp = foreachPlan.getRoots().get(0);
-    //        if(! (exOp instanceof ProjectExpression)) exOp = (LogicalExpression) foreachPlan.getSinks().get(1);
-    //        cast = (CastExpression)foreachPlan.getSuccessors(exOp).get(0);
-    //        assertTrue(cast.getFuncSpec().getClassName().startsWith("PigStorage"));
-    //
-    //    }
-    //
-    //    //@Test
-    //    public void testStreamingLineage1() throws Throwable {
-    //        + "a = load 'a' using PigStorage('a') as (field1: int, field2: float, field3: chararray );"
-    //        + "b = stream a through `" + simpleEchoStreamingCommand + "`;");
-    //        + "c = foreach b generate $1 + 1.0 ;"
-    //
-    //        // validate
-    //        CompilationMessageCollector collector = new CompilationMessageCollector() ;
-    //        TypeCheckingRelVisitor typeChecker = new TypeCheckingRelVisitor(plan, collector);
-    //        typeChecker.visit();  
-    //
-    //        printMessageCollector(collector) ;
-    //        //printTypeGraph(plan) ;
-    //        //planTester.printPlan(plan, TypeCheckingTestUtil.getCurrentMethodName());
-    //
-    //        if (collector.hasError()) {
-    //            throw new AssertionError("Expect no  error"
-    //        }
-    //
-    //        LOForEach foreach = (LOForEach)plan.getSinks().get(0);
-    //        LogicalExpressionPlan foreachPlan = ((LOGenerate)foreach.getInnerPlan().getSinks().get(0)).getOutputPlans().get(0);
-    //
-    //        LogicalExpression exOp = (LogicalExpression) foreachPlan.getSinks().get(0);
-    //
-    //        if(! (exOp instanceof ProjectExpression)) exOp = (LogicalExpression) foreachPlan.getSinks().get(1);
-    //
-    //        CastExpression cast = (CastExpression)foreachPlan.getPredecessors(exOp).get(0);
-    //        
-    //        assertTrue(cast.getFuncSpec().getClassName().startsWith("org.apache.pig.builtin.PigStreaming"));
-    //
-    //    }
-    //
-    //    //@Test
-    //    public void testStreamingLineage2() throws Throwable {
-    //        + "a = load 'a' using PigStorage('a') as (field1: int, field2: float, field3: chararray );"
-    //        + "b = stream a through `" + simpleEchoStreamingCommand + "` as (f1, f2: float);");
-    //        + "c = foreach b generate f1 + 1.0, f2 + 4 ;"
-    //
-    //        // validate
-    //        CompilationMessageCollector collector = new CompilationMessageCollector() ;
-    //        TypeCheckingRelVisitor typeChecker = new TypeCheckingRelVisitor(plan, collector);
-    //        typeChecker.visit();  
-    //
-    //        printMessageCollector(collector) ;
-    //        //printTypeGraph(plan) ;
-    //        //planTester.printPlan(plan, TypeCheckingTestUtil.getCurrentMethodName());
-    //
-    //        if (collector.hasError()) {
-    //            throw new AssertionError("Expect no  error") ;
-    //        }
-    //
-    //        LOForEach foreach = (LOForEach)plan.getSinks().get(0);
-    //        LogicalExpressionPlan foreachPlan = ((LOGenerate)foreach.getInnerPlan().getSinks().get(0)).getOutputPlans().get(0);
-    //
-    //        LogicalExpression exOp = (LogicalExpression) foreachPlan.getSinks().get(0);
-    //
-    //        if(! (exOp instanceof ProjectExpression)) exOp = (LogicalExpression) foreachPlan.getSinks().get(1);
-    //
-    //        CastExpression cast = (CastExpression)foreachPlan.getPredecessors(exOp).get(0);
-    //        
-    //        assertTrue(cast.getFuncSpec().getClassName().startsWith("org.apache.pig.builtin.PigStreaming"));
-    //
-    //        foreachPlan = foreach.getForEachPlans().get(1);
-    //
-    //        exOp = foreachPlan.getRoots().get(0);
-    //
-    //        if(! (exOp instanceof ProjectExpression)) exOp = (LogicalExpression) foreachPlan.getSinks().get(1);
-    //
-    //        assertTrue(foreachPlan.getSuccessors(exOp).get(0) instanceof AddExpression);
-    //    }
-    //
-    //    //@Test
-    //    public void testCogroupStreamingLineage() throws Throwable {
-    //        + "a = load 'a' using PigStorage('a') as (field1, field2: float, field3: chararray );"
-    //        + "b = stream a through `" + simpleEchoStreamingCommand + "` as (field4, field5, field6: chararray);");
-    //        + "c = cogroup a by field1, b by field4 ;"
-    //        + "d = foreach c generate group, flatten(a), flatten(b)  ;"
-    //        + "e = foreach d generate group, field1 + 1, field4 + 2.0  ;"
-    //
-    //        // validate
-    //        CompilationMessageCollector collector = new CompilationMessageCollector() ;
-    //        TypeCheckingRelVisitor typeChecker = new TypeCheckingRelVisitor(plan, collector);
-    //        typeChecker.visit();  
-    //
-    //        printMessageCollector(collector) ;
-    //        //printTypeGraph(plan) ;
-    //        //planTester.printPlan(plan, TypeCheckingTestUtil.getCurrentMethodName());
-    //
-    //        if (collector.hasError()) {
-    //            throw new AssertionError("Expect no  error") ;
-    //        }
-    //
-    //
-    //        LOForEach foreach = (LOForEach)plan.getSinks().get(0);
-    //        LogicalExpressionPlan foreachPlan = foreach.getForEachPlans().get(1);
-    //
-    //        LogicalExpression exOp = (LogicalExpression) foreachPlan.getSinks().get(0);
-    //
-    //        if(! (exOp instanceof ProjectExpression)) exOp = (LogicalExpression) foreachPlan.getSinks().get(1);
-    //
-    //        CastExpression cast = (CastExpression)foreachPlan.getPredecessors(exOp).get(0);
-    //        assertTrue(cast.getFuncSpec().getClassName().startsWith("BinStorage"));
-    //
-    //        foreachPlan = foreach.getForEachPlans().get(2);
-    //        exOp = foreachPlan.getRoots().get(0);
-    //        if(! (exOp instanceof ProjectExpression)) exOp = (LogicalExpression) foreachPlan.getSinks().get(1);
-    //        cast = (CastExpression)foreachPlan.getSuccessors(exOp).get(0);
-    //        assertTrue(cast.getFuncSpec().getClassName().startsWith("org.apache.pig.builtin.PigStreaming"));
-    //
-    //    }
-    //
-    //    //@Test
-    //    public void testCogroupStreamingLineageNoSchema() throws Throwable {
-    //        + "a = load 'a' using PigStorage('a') ;"
-    //        + "b = stream a through `" + simpleEchoStreamingCommand + "` ;");
-    //        + "c = cogroup a by $0, b by $0 ;"
-    //        + "d = foreach c generate group, flatten(a), flatten(b)  ;"
-    //        + "e = foreach d generate group, $1 + 1, $2 + 2.0  ;"
-    //
-    //        // validate
-    //        CompilationMessageCollector collector = new CompilationMessageCollector() ;
-    //        TypeCheckingRelVisitor typeChecker = new TypeCheckingRelVisitor(plan, collector);
-    //        typeChecker.visit();  
-    //
-    //        printMessageCollector(collector) ;
-    //        //printTypeGraph(plan) ;
-    //        //planTester.printPlan(plan, TypeCheckingTestUtil.getCurrentMethodName());
-    //
-    //        if (collector.hasError()) {
-    //            throw new AssertionError("Expect no  error") ;
-    //        }
-    //
-    //
-    //        LOForEach foreach = (LOForEach)plan.getSinks().get(0);
-    //        LogicalExpressionPlan foreachPlan = foreach.getForEachPlans().get(1);
-    //
-    //        LogicalExpression exOp = (LogicalExpression) foreachPlan.getSinks().get(0);
-    //
-    //        if(! (exOp instanceof ProjectExpression)) exOp = (LogicalExpression) foreachPlan.getSinks().get(1);
-    //
-    //        CastExpression cast = (CastExpression)foreachPlan.getPredecessors(exOp).get(0);
-    //        assertTrue(cast.getFuncSpec().getClassName().startsWith("BinStorage"));
-    //
-    //        foreachPlan = foreach.getForEachPlans().get(2);
-    //        exOp = foreachPlan.getRoots().get(0);
-    //        if(! (exOp instanceof ProjectExpression)) exOp = (LogicalExpression) foreachPlan.getSinks().get(1);
-    //        cast = (CastExpression)foreachPlan.getSuccessors(exOp).get(0);
-    //        assertTrue(cast.getFuncSpec().getClassName().startsWith("org.apache.pig.builtin.PigStreaming"));
-    //
-    //    }
-    //
-    //    //@Test
-    //    public void testMapLookupLineage() throws Throwable {
-    //        + "a = load 'a' using PigStorage('a') as (field1, field2: float, field3: chararray );"
-    //        + "b = foreach a generate field1#'key1' as map1;"
-    //        + "c = foreach b generate map1#'key2' + 1 ;"
-    //
-    //        // validate
-    //        CompilationMessageCollector collector = new CompilationMessageCollector() ;
-    //        TypeCheckingRelVisitor typeChecker = new TypeCheckingRelVisitor(plan, collector);
-    //        typeChecker.visit();  
-    //
-    //        printMessageCollector(collector) ;
-    //        //printTypeGraph(plan) ;
-    //        //planTester.printPlan(plan, TypeCheckingTestUtil.getCurrentMethodName());
-    //
-    //        if (collector.hasError()) {
-    //            throw new AssertionError("Expect no  error") ;
-    //        }
-    //
-    //
-    //        LOForEach foreach = (LOForEach)plan.getSinks().get(0);
-    //        LogicalExpressionPlan foreachPlan = ((LOGenerate)foreach.getInnerPlan().getSinks().get(0)).getOutputPlans().get(0);
-    //
-    //        LogicalExpression exOp = (LogicalExpression) foreachPlan.getSinks().get(0);
-    //        // the root would be the project and there would be cast
-    //        // to map between the project and MapLookupExpression
-    //        CastExpression cast1 = (CastExpression)foreachPlan.getSuccessors(exOp).get(0);
-    //        assertTrue(cast1.getFuncSpec().getClassName().startsWith("BinStorage"));
-    //        MapLookupExpression map = (MapLookupExpression)foreachPlan.getSuccessors(cast1).get(0);
-    //        CastExpression cast = (CastExpression)foreachPlan.getSuccessors(map).get(0);
-    //        assertTrue(cast.getFuncSpec().getClassName().startsWith("BinStorage"));
-    //
-    //    }
-    //
-    //    //@Test
-    //    public void testMapLookupLineageNoSchema() throws Throwable {
-    //        + "a = load 'a' using PigStorage('a') ;"
-    //        + "b = foreach a generate $0#'key1';"
-    //        + "c = foreach b generate $0#'key2' + 1 ;"
-    //
-    //        // validate
-    //        CompilationMessageCollector collector = new CompilationMessageCollector() ;
-    //        TypeCheckingRelVisitor typeChecker = new TypeCheckingRelVisitor(plan, collector);
-    //        typeChecker.visit();  
-    //
-    //        printMessageCollector(collector) ;
-    //        //printTypeGraph(plan) ;
-    //        //planTester.printPlan(plan, TypeCheckingTestUtil.getCurrentMethodName());
-    //
-    //        if (collector.hasError()) {
-    //            throw new AssertionError("Expect no  error") ;
-    //        }
-    //
-    //
-    //        LOForEach foreach = (LOForEach)plan.getSinks().get(0);
-    //        LogicalExpressionPlan foreachPlan = ((LOGenerate)foreach.getInnerPlan().getSinks().get(0)).getOutputPlans().get(0);
-    //
-    //        LogicalExpression exOp = (LogicalExpression) foreachPlan.getSinks().get(0);
-    //
-    //        if(! (exOp instanceof ProjectExpression)) exOp = (LogicalExpression) foreachPlan.getSinks().get(1);
-    //
-    //        // the root would be the project and there would be cast
-    //        // to map between the project and MapLookupExpression
-    //        CastExpression cast1 = (CastExpression)foreachPlan.getSuccessors(exOp).get(0);
-    //        assertTrue(cast1.getFuncSpec().getClassName().startsWith("BinStorage"));
-    //        MapLookupExpression map = (MapLookupExpression)foreachPlan.getSuccessors(cast1).get(0);
-    //        CastExpression cast = (CastExpression)foreachPlan.getSuccessors(map).get(0);
-    //        assertTrue(cast.getFuncSpec().getClassName().startsWith("BinStorage"));
-    //
-    //    }
-    //
-    //    //@Test
-    //    public void testMapLookupLineage2() throws Throwable {
-    //        + "a = load 'a' as (s, m, l);"
-    //        + "b = foreach a generate s#'x' as f1, s#'y' as f2, s#'z' as f3;"
-    //        + "c = group b by f1;"
-    //        + "d = foreach c {fil = filter b by f2 == 1; generate flatten(group), SUM(fil.f3);};"
-    //
-    //        // validate
-    //        CompilationMessageCollector collector = new CompilationMessageCollector() ;
-    //        TypeCheckingRelVisitor typeChecker = new TypeCheckingRelVisitor(plan, collector);
-    //        typeChecker.visit();  
-    //
-    //        printMessageCollector(collector) ;
-    //        //printTypeGraph(plan) ;
-    //        //planTester.printPlan(plan, TypeCheckingTestUtil.getCurrentMethodName());
-    //
-    //        if (collector.hasError()) {
-    //            throw new AssertionError("Expect no  error") ;
-    //        }
-    //
-    //
-    //        LOForEach foreach = (LOForEach)plan.getSinks().get(0);
-    //        LogicalExpressionPlan foreachPlan = foreach.getForEachPlans().get(1);
-    //
-    //        LogicalExpression exOp = (LogicalExpression) foreachPlan.getSinks().get(0);
-    //
-    //        LOFilter filter = (LOFilter)foreachPlan.getSuccessors(exOp).get(0);
-    //        LogicalPlan filterPlan = filter.getComparisonPlan();
-    //
-    //        exOp = filterPlan.getRoots().get(0);
-    //
-    //        if(! (exOp instanceof ProjectExpression)) exOp = filterPlan.getRoots().get(1);
-    //
-    //        
-    //        CastExpression cast = (CastExpression)filterPlan.getSuccessors(exOp).get(0);
-    //        assertTrue(cast.getFuncSpec().getClassName().startsWith("org.apache.pig.builtin.PigStorage"));
-    //
-    //    }
-    //
-    //    //@Test
-    //    public void testMapLookupLineage3() throws Throwable {
-    //        + "a = load 'a' as (s, m, l);"
-    ////        + "b = foreach a generate s#'src_spaceid' AS vspaceid, flatten(l#'viewinfo') as viewinfo ;"
-    ////        + "c = foreach b generate (chararray)vspaceid#'foo', (chararray)viewinfo#'pos' as position;"
-    //        
-    //        + "b = foreach a generate flatten(l#'viewinfo') as viewinfo ;"
-    //      + "c = foreach b generate (chararray)viewinfo#'pos' as position;"
-    //
-    //        // validate
-    //        runTypeCheckingValidator(plan);
-    //        
-    //        checkLoaderInCasts(plan, "org.apache.pig.builtin.PigStorage");
-    //    }
-    //    
-    //    /**
-    //     * test various scenarios with two level map lookup
-    //     */
-    //    //@Test
-    //    public void testTwolevelMapLookupLineage() throws Exception {
-    //        List<String[]> queries = new ArrayList<String[]>();
-    //        // CASE 1: LOAD -> FILTER -> FOREACH -> LIMIT -> STORE
-    //        queries.add(new String[] {"sds = LOAD '/my/data/location' " +
-    //                "AS (simpleFields:map[], mapFields:map[], listMapFields:map[]);",
-    //                "queries = FILTER sds BY mapFields#'page_params'#'query' " +
-    //                "is NOT NULL;",
-    //                "queries_rand = FOREACH queries GENERATE " +
-    //                "(CHARARRAY) (mapFields#'page_params'#'query') AS query_string;",
-    //                "queries_limit = LIMIT queries_rand 100;",
-    //                "STORE queries_limit INTO 'out';"});     
-    //        // CASE 2: LOAD -> FOREACH -> FILTER -> LIMIT -> STORE
-    //        queries.add(new String[]{"sds = LOAD '/my/data/location'  " +
-    //                "AS (simpleFields:map[], mapFields:map[], listMapFields:map[]);",
-    //                "queries_rand = FOREACH sds GENERATE " +
-    //                "(CHARARRAY) (mapFields#'page_params'#'query') AS query_string;",
-    //                "queries = FILTER queries_rand BY query_string IS NOT null;",
-    //                "queries_limit = LIMIT queries 100;",
-    //                "STORE queries_limit INTO 'out';"});
-    //        // CASE 3: LOAD -> FOREACH -> FOREACH -> FILTER -> LIMIT -> STORE
-    //        queries.add(new String[]{"sds = LOAD '/my/data/location'  " +
-    //                "AS (simpleFields:map[], mapFields:map[], listMapFields:map[]);",
-    //                "params = FOREACH sds GENERATE " +
-    //                "(map[]) (mapFields#'page_params') AS params;",
-    //                "queries = FOREACH params " +
-    //                "GENERATE (CHARARRAY) (params#'query') AS query_string;",
-    //                "queries_filtered = FILTER queries BY query_string IS NOT null;",
-    //                "queries_limit = LIMIT queries_filtered 100;",
-    //                "STORE queries_limit INTO 'out';"});
-    //        // CASE 4: LOAD -> FOREACH -> FOREACH -> LIMIT -> STORE
-    //        queries.add(new String[]{"sds = LOAD '/my/data/location'  " +
-    //                "AS (simpleFields:map[], mapFields:map[], listMapFields:map[]);",
-    //                "params = FOREACH sds GENERATE" +
-    //                " (map[]) (mapFields#'page_params') AS params;",
-    //                "queries = FOREACH params GENERATE " +
-    //                "(CHARARRAY) (params#'query') AS query_string;",
-    //                "queries_limit = LIMIT queries 100;",
-    //                "STORE queries_limit INTO 'out';"});
-    //        // CASE 5: LOAD -> FOREACH -> FOREACH -> FOREACH -> LIMIT -> STORE
-    //        queries.add(new String[]{"sds = LOAD '/my/data/location'  " +
-    //                "AS (simpleFields:map[], mapFields:map[], listMapFields:map[]);",
-    //                "params = FOREACH sds GENERATE " +
-    //                "(map[]) (mapFields#'page_params') AS params;",
-    //                "queries = FOREACH params GENERATE " +
-    //                "(CHARARRAY) (params#'query') AS query_string;",
-    //                "rand_queries = FOREACH queries GENERATE query_string as query;",
-    //                "queries_limit = LIMIT rand_queries 100;",
-    //                "STORE rand_queries INTO 'out';"});
-    //        
-    //        for (String[] query: queries) {
-    //            LogicalPlan lp = null;
-    //            for (String queryLine : query) {
-    //                lp = + queryLine);    
-    //            }
-    //            
-    //            // validate
-    //            runTypeCheckingValidator(lp);
-    //            checkLoaderInCasts(lp, "org.apache.pig.builtin.PigStorage");
-    //            
-    //        }
-    //    }
-    //    
-    //    private void runTypeCheckingValidator(LogicalPlan plan) throws 
-    //    TypeCheckerException {
-    //        CompilationMessageCollector collector = new CompilationMessageCollector() ;
-    //        TypeCheckingRelVisitor typeChecker = new TypeCheckingRelVisitor(plan, collector);
-    //        typeChecker.visit();  
-    //
-    //        printMessageCollector(collector) ;
-    //        //printTypeGraph(plan) ;
-    //        //planTester.printPlan(plan, TypeCheckingTestUtil.getCurrentMethodName());
-    //
-    //        if (collector.hasError()) {
-    //            throw new AssertionError("Expect no  error") ;
-    //        }
-    //    }
-    //    
-    //    private void checkLoaderInCasts(LogicalPlan plan, String loaderClassName) 
-    //    throws VisitorException {
-    //        CastFinder cf = new CastFinder(plan);
-    //        cf.visit();
-    //        List<CastExpression> casts = cf.casts;
-    //        for (CastExpression cast : casts) {
-    //            assertTrue(cast.getFuncSpec().getClassName().startsWith(
-    //                    loaderClassName));    
-    //        }
-    //    }
-    //    
-    //    class CastFinder extends LOVisitor {
-    //        List<CastExpression> casts = new ArrayList<CastExpression>();
-    //        /**
-    //         * 
-    //         */
-    //        public CastFinder(LogicalPlan lp) {
-    //            super(lp, new DepthFirstWalker<LogicalOperator, LogicalPlan>(lp));
-    //        }
-    //        
-    //        @Override
-    //        protected void visit(CastExpression cast) throws VisitorException {
-    //            casts.add(cast);
-    //        }
-    //    }
-    //    
-    //    //@Test
-    //    public void testBincond() throws Throwable {
-    //        + "a = load 'a' as (name: chararray, age: int, gpa: float);"
-    //        + "b = group a by name;"
-    //        + "c = foreach b generate (IsEmpty(a) ? " + TestBinCondFieldSchema.class.getName() + "(*): a) ;"
-    //    
-    //        // validate
-    //        CompilationMessageCollector collector = new CompilationMessageCollector() ;
-    //        TypeCheckingRelVisitor typeChecker = new TypeCheckingRelVisitor(plan, collector);
-    //        
-    //        typeChecker.visit();  
-    //    
-    //        printMessageCollector(collector) ;
-    //        //printTypeGraph(plan) ;
-    //        //planTester.printPlan(plan, TypeCheckingTestUtil.getCurrentMethodName());
-    //    
-    //        if (collector.hasError()) {
-    //            throw new AssertionError("Did not expect an error") ;
-    //        }
-    //    
-    //    
-    //        LOForEach foreach = (LOForEach)plan.getSinks().get(0);
-    //        
-    //        Schema.FieldSchema charFs = new FieldSchema(null, DataType.CHARARRAY);
-    //        Schema.FieldSchema intFs = new FieldSchema(null, DataType.INTEGER);
-    //        Schema.FieldSchema floatFs = new FieldSchema(null, DataType.FLOAT);
-    //        Schema bagSchema = new Schema();
-    //        bagSchema.add(charFs);
-    //        bagSchema.add(intFs);
-    //        bagSchema.add(floatFs);
-    //        Schema.FieldSchema bagFs = null;
-    //        try {
-    //            bagFs = new Schema.FieldSchema(null, bagSchema, DataType.BAG);
-    //        } catch (FrontendException fee) {
-    //            fail("Did not expect an error");
-    //        }
-    //        
-    //        Schema expectedSchema = new Schema(bagFs);
-    //        
-    //        assertTrue(Schema.equals(foreach.getSchema(), expectedSchema, false, true));
-    //    
-    //    }
-    //
-    //    //@Test
-    //    public void testBinCondForOuterJoin() throws Throwable {
-    //        + "a = LOAD 'student_data' AS (name: chararray, age: int, gpa: float);");
-    //        + "b = LOAD 'voter_data' AS (name: chararray, age: int, registration: chararray, contributions: float);");
-    //        + "c = COGROUP a BY name, b BY name;");
-    //        + "d = FOREACH c GENERATE group, flatten((not IsEmpty(a) ? a : (bag{tuple(chararray, int, float)}){(null, null, null)})), flatten((not IsEmpty(b) ? b : (bag{tuple(chararray, int, chararray, float)}){(null,null,null, null)}));");
-    //    
-    //        // validate
-    //        CompilationMessageCollector collector = new CompilationMessageCollector() ;
-    //        TypeCheckingRelVisitor typeChecker = new TypeCheckingRelVisitor(plan, collector);
-    //        typeChecker.visit();  
-    //    
-    //        printMessageCollector(collector) ;
-    //        //printTypeGraph(plan) ;
-    //        //planTester.printPlan(plan, TypeCheckingTestUtil.getCurrentMethodName());
-    //    
-    //        if (collector.hasError()) {
-    //            throw new AssertionError("Expect no  error") ;
-    //        }
-    //    
-    //    
-    //        LOForEach foreach = (LOForEach)plan.getSinks().get(0);
-    //        String expectedSchemaString = "mygroup: chararray,A::name: chararray,A::age: int,A::gpa: float,B::name: chararray,B::age: int,B::registration: chararray,B::contributions: float";
-    //        Schema expectedSchema = Util.getSchemaFromString(expectedSchemaString);
-    //        assertTrue(Schema.equals(foreach.getSchema(), expectedSchema, false, true));
-    //    
-    //    }
-    //
-    //    //@Test
-    //    public void testMapLookupCast() throws Exception {
-    //         String input[] = { "[k1#hello,k2#bye]",
-    //                 "[k1#good,k2#morning]" };
-    //         File f = Util.createInputFile("test", ".txt", input);
-    //         String inputFileName = f.getAbsolutePath();
-    //         // load as bytearray and use as map
-    //         + "a = load 'file://" + inputFileName + "' as (m);");
-    //         LogicalPlan lp = + "b = foreach a generate m#'k1';");
-    //         // validate
-    //         CompilationMessageCollector collector = new CompilationMessageCollector() ;
-    //         TypeCheckingRelVisitor typeChecker = new TypeCheckingRelVisitor(plan, collector);
-    //         typeValidator.validate(lp, collector) ;
-    //         
-    //         // check that a CastExpression has been introduced
-    //         LOForEach foreach = (LOForEach) lp.getSinks().get(0);
-    //         LogicalPlan innerPlan = ((LOGenerate)foreach.getInnerPlan().getSinks().get(0)).getOutputPlans().get(0);
-    //         MapLookupExpression mapLookup = (MapLookupExpression) innerPlan.getSinks().get(0);
-    //         assertEquals(CastExpression.class, mapLookup.getMap().getClass());
-    //         assertEquals(DataType.MAP, ((CastExpression)mapLookup.getMap()).getType());
-    //         
-    //         // load as map and use as map
-    //         + "a = load 'file://" + inputFileName + "' as (m:[]);");
-    //         lp = + "b = foreach a generate m#'k1';");
-    //         // validate
-    //         collector = new CompilationMessageCollector() ;
-    //         typeValidator = new TypeCheckingValidator() ;
-    //         typeValidator.validate(lp, collector) ;
-    //         
-    //         // check that a CastExpression has NOT been introduced
-    //         foreach = (LOForEach) lp.getSinks().get(0);
-    //         innerPlan = ((LOGenerate)foreach.getInnerPlan().getSinks().get(0)).getOutputPlans().get(0);
-    //         mapLookup = (MapLookupExpression) innerPlan.getSinks().get(0);
-    //         assertEquals(ProjectExpression.class, mapLookup.getMap().getClass());
-    //         
-    //         
-    //         PigServer ps = new PigServer(ExecType.LOCAL);
-    //         // load as bytearray and use as map
-    //         ps.registerQuery("a = load 'file://" + inputFileName + "' as (m);");
-    //         ps.registerQuery("b = foreach a generate m#'k1';");
-    //         Iterator<Tuple> it = ps.openIterator("b");
-    //         String[] expectedResults = new String[] {"(hello)", "(good)"};
-    //         int i = 0;
-    //         while(it.hasNext()) {
-    //             assertEquals(expectedResults[i++], it.next().toString());
-    //         }
-    //         
-    //         // load as map and use as map
-    //         ps.registerQuery("a = load 'file://" + inputFileName + "' as (m:[]);");
-    //         ps.registerQuery("b = foreach a generate m#'k1';");
-    //         it = ps.openIterator("b");
-    //         expectedResults = new String[] {"(hello)", "(good)"};
-    //         i = 0;
-    //         while(it.hasNext()) {
-    //             assertEquals(expectedResults[i++], it.next().toString());
-    //         }
-    //         
-    //    }
-    //    
-    //    /*
-    //     * A test UDF that does not data processing but implements the getOutputSchema for
-    //     * checking the type checker
-    //     */
-    //    public static class TestBinCondFieldSchema extends EvalFunc<DataBag> {
-    //        //no-op exec method
-    //        @Override
-    //        public DataBag exec(Tuple input) {
-    //            return null;
-    //        }
-    //        
-    //        @Override
-    //        public Schema outputSchema(Schema input) {
-    //            Schema.FieldSchema charFs = new FieldSchema(null, DataType.CHARARRAY);
-    //            Schema.FieldSchema intFs = new FieldSchema(null, DataType.INTEGER);
-    //            Schema.FieldSchema floatFs = new FieldSchema(null, DataType.FLOAT);
-    //            Schema bagSchema = new Schema();
-    //            bagSchema.add(charFs);
-    //            bagSchema.add(intFs);
-    //            bagSchema.add(floatFs);
-    //            Schema.FieldSchema bagFs;
-    //            try {
-    //                bagFs = new Schema.FieldSchema(null, bagSchema, DataType.BAG);
-    //            } catch (FrontendException fee) {
-    //                return null;
-    //            }
-    //            return new Schema(bagFs);
-    //        }
-    //    }
-    //    
+    
+        @Test
+        public void testCogroupLimitLineage() throws Throwable {
+            String query = "a = load 'a' using PigStorage('a') as (field1, field2: float, field3: chararray );"
+            + "b = load 'a' using PigStorage('b') as (field4, field5, field6: chararray );"
+            + "c = cogroup a by field1, b by field4 ;"
+            + "d = foreach c generate group, flatten(a), flatten(b)  ;"
+            + "e = limit d 100;"
+            + "f = foreach e generate group, field1 + 1, field4 + 2.0  ;";
+            
+            checkLastForeachCastLoadFunc(query, "PigStorage('a')", 1);
+            checkLastForeachCastLoadFunc(query, "PigStorage('b')", 2);  
+    
+        }
+    
+        @Test
+        public void testCogroupLimitLineageNoSchema() throws Throwable {
+            String query = "a = load 'a' using PigStorage('a') ;"
+            + "b = load 'a' using PigStorage('b') ;"
+            + "c = cogroup a by $0, b by $0 ;"
+            + "d = foreach c generate group, flatten(a), flatten(b)  ;"
+            + "e = limit d 100;"
+            + "f = foreach e generate $0, $1 + 1, $2 + 2.0  ;";
+    
+            checkLastForeachCastLoadFunc(query, null, 1);
+            checkLastForeachCastLoadFunc(query, null, 2);  
+    
+        }
+    
+        @Test
+        public void testCogroupTopKLineage() throws Throwable {
+            String query =  "a = load 'a' using PigStorage('a') as (field1, field2: float, field3: chararray );"
+            + "b = load 'a' using PigStorage('b') as (field4, field5, field6: chararray );"
+            + "c = cogroup a by field1, b by field4 ;"
+            + "d = foreach c generate group, flatten(a), flatten(b)  ;"
+            + "e = order d by field1 desc;"
+            + "f = limit e 100;"
+            + "g = foreach f generate group, field1 + 1, field4 + 2.0  ;";
+            
+            checkLastForeachCastLoadFunc(query, "PigStorage('a')", 1);
+            checkLastForeachCastLoadFunc(query, "PigStorage('b')", 2);
+        }
+    
+        @Test
+        public void testCogroupTopKLineageNoSchema() throws Throwable {
+            String query = "a = load 'a' using PigStorage('a') ;"
+            + "b = load 'a' using PigStorage('b') ;"
+            + "c = cogroup a by $0, b by $0 ;"
+            + "d = foreach c generate group, flatten(a), flatten(b)  ;"
+            + "e = order d by $2 desc;"
+            + "f = limit e 100;"
+            + "g = foreach f generate $0, $1 + 1, $2 + 2.0  ;";
+            
+            checkLastForeachCastLoadFunc(query, null, 1);
+            checkLastForeachCastLoadFunc(query, null, 2);
+            
+        }
+    
+        @Test
+        public void testStreamingLineage1() throws Throwable {
+            String query =  "a = load 'a' using PigStorage('a') as (field1: int, field2: float, field3: chararray );"
+            + "b = stream a through `" + simpleEchoStreamingCommand + "`;"
+            + "c = foreach b generate $1 + 1.0 ;";
+            
+            checkLastForeachCastLoadFunc(query, "org.apache.pig.builtin.PigStreaming", 0);
+
+        }
+    
+        @Test
+        public void testStreamingLineage2() throws Throwable {
+            String query =  "a = load 'a' using PigStorage('a') as (field1: int, field2: float, field3: chararray );"
+            + "b = stream a through `" + simpleEchoStreamingCommand + "` as (f1, f2: float);"
+            + "c = foreach b generate f1 + 1.0, f2 + 4 ;";
+    
+            checkLastForeachCastLoadFunc(query, "org.apache.pig.builtin.PigStreaming", 0);
+        }
+    
+        @Test
+        public void testCogroupStreamingLineage() throws Throwable {
+            String query = "a = load 'a' using PigStorage('a') as (field1, field2: float, field3: chararray );"
+            + "b = stream a through `" + simpleEchoStreamingCommand + "` as (field4, field5, field6: chararray);"
+            + "c = cogroup a by field1, b by field4 ;"
+            + "d = foreach c generate group, flatten(a), flatten(b)  ;"
+            + "e = foreach d generate group, field1 + 1, field4 + 2.0  ;";
+    
+            checkLastForeachCastLoadFunc(query, "PigStorage('a')", 1);
+            checkLastForeachCastLoadFunc(query, "org.apache.pig.builtin.PigStreaming", 2);
+           
+        }
+    
+        @Test
+        public void testCogroupStreamingLineageNoSchema() throws Throwable {
+            String query = "a = load 'a' using PigStorage('a') ;"
+            + "b = stream a through `" + simpleEchoStreamingCommand + "` ;"
+            + "c = cogroup a by $0, b by $0 ;"
+            + "d = foreach c generate group, flatten(a), flatten(b)  ;"
+            + "e = foreach d generate $0, $1 + 1, $2 + 2.0  ;";
+            
+            checkLastForeachCastLoadFunc(query, null, 1);
+            checkLastForeachCastLoadFunc(query, null, 2);
+            
+        }
+    
+        @Test
+        public void testMapLookupLineage() throws Throwable {
+            String query =  "a = load 'a' using PigStorage('a') as (field1, field2: float, field3: chararray );"
+            + "b = foreach a generate field1#'key1' as map1;"
+            + "c = foreach b generate map1#'key2' + 1 ;";
+            
+            checkLastForeachCastLoadFunc(query, "PigStorage('a')", 0);
+        }
+        
+        @Test
+        public void testMapLookupLineageNoSchema() throws Throwable {
+            String query =  "a = load 'a' using PigStorage('a') ;"
+            + "b = foreach a generate $0#'key1';"
+            + "c = foreach b generate $0#'key2' + 1 ;";
+            
+            checkLastForeachCastLoadFunc(query, "PigStorage('a')", 0);
+  
+        }
+        
+        @Test
+        public void testMapLookupLineage2() throws Throwable {
+        String query =  "a = load 'a' as (s, m, l);"
+            + "b = foreach a generate s#'x' as f1, s#'y' as f2, s#'z' as f3;"
+            + "c = group b by f1;"
+            + "d = foreach c {fil = filter b by f2 == 1; generate flatten(group), SUM(fil.f3);};";
+    
+            LOForEach foreach = getForeachFromPlan(query);
+            LogicalPlan innerPlan = foreach.getInnerPlan();
+            
+            LOFilter filter = null;
+            Iterator<Operator> iter = innerPlan.getOperators();
+            while(iter.hasNext()){
+                Operator op = iter.next();
+                if(op instanceof LOFilter)
+                    filter = (LOFilter)op;
+            }
+
+            LogicalExpressionPlan filterPlan = filter.getFilterPlan();
+            CastExpression cast = getCastFromExpPlan(filterPlan);
+            assertTrue(cast.getFuncSpec().getClassName().startsWith("org.apache.pig.builtin.PigStorage"));
+    
+        }
+    
+        @Test
+        public void testMapLookupLineage3() throws Throwable {
+            String query = "a= load 'a' as (s, m, l);"
+                + "b = foreach a generate flatten(l#'viewinfo') as viewinfo ;"
+                + "c = foreach b generate (chararray)viewinfo#'pos' as position;";
+            
+            checkLastForeachCastLoadFunc(query, "org.apache.pig.builtin.PigStorage", 0);
+
+        }
+        
+        /**
+         * test various scenarios with two level map lookup
+         */
+        @Test
+        public void testTwolevelMapLookupLineage() throws Exception {
+            List<String[]> queries = new ArrayList<String[]>();
+            // CASE 1: LOAD -> FILTER -> FOREACH -> LIMIT -> STORE
+            queries.add(new String[] {"sds = LOAD '/my/data/location' " +
+                    "AS (simpleFields:map[], mapFields:map[], listMapFields:map[]);",
+                    "queries = FILTER sds BY mapFields#'page_params'#'query' " +
+                    "is NOT NULL;",
+                    "queries_rand = FOREACH queries GENERATE " +
+                    "(CHARARRAY) (mapFields#'page_params'#'query') AS query_string;",
+                    "queries_limit = LIMIT queries_rand 100;",
+                    "STORE queries_limit INTO 'out';"});     
+            // CASE 2: LOAD -> FOREACH -> FILTER -> LIMIT -> STORE
+            queries.add(new String[]{"sds = LOAD '/my/data/location'  " +
+                    "AS (simpleFields:map[], mapFields:map[], listMapFields:map[]);",
+                    "queries_rand = FOREACH sds GENERATE " +
+                    "(CHARARRAY) (mapFields#'page_params'#'query') AS query_string;",
+                    "queries = FILTER queries_rand BY query_string IS NOT null;",
+                    "queries_limit = LIMIT queries 100;",
+                    "STORE queries_limit INTO 'out';"});
+            // CASE 3: LOAD -> FOREACH -> FOREACH -> FILTER -> LIMIT -> STORE
+            queries.add(new String[]{"sds = LOAD '/my/data/location'  " +
+                    "AS (simpleFields:map[], mapFields:map[], listMapFields:map[]);",
+                    "params = FOREACH sds GENERATE " +
+                    "(map[]) (mapFields#'page_params') AS params;",
+                    "queries = FOREACH params " +
+                    "GENERATE (CHARARRAY) (params#'query') AS query_string;",
+                    "queries_filtered = FILTER queries BY query_string IS NOT null;",
+                    "queries_limit = LIMIT queries_filtered 100;",
+                    "STORE queries_limit INTO 'out';"});
+            // CASE 4: LOAD -> FOREACH -> FOREACH -> LIMIT -> STORE
+            queries.add(new String[]{"sds = LOAD '/my/data/location'  " +
+                    "AS (simpleFields:map[], mapFields:map[], listMapFields:map[]);",
+                    "params = FOREACH sds GENERATE" +
+                    " (map[]) (mapFields#'page_params') AS params;",
+                    "queries = FOREACH params GENERATE " +
+                    "(CHARARRAY) (params#'query') AS query_string;",
+                    "queries_limit = LIMIT queries 100;",
+                    "STORE queries_limit INTO 'out';"});
+            // CASE 5: LOAD -> FOREACH -> FOREACH -> FOREACH -> LIMIT -> STORE
+            queries.add(new String[]{"sds = LOAD '/my/data/location'  " +
+                    "AS (simpleFields:map[], mapFields:map[], listMapFields:map[]);",
+                    "params = FOREACH sds GENERATE " +
+                    "(map[]) (mapFields#'page_params') AS params;",
+                    "queries = FOREACH params GENERATE " +
+                    "(CHARARRAY) (params#'query') AS query_string;",
+                    "rand_queries = FOREACH queries GENERATE query_string as query;",
+                    "queries_limit = LIMIT rand_queries 100;",
+                    "STORE rand_queries INTO 'out';"});
+            
+            for (String[] query: queries) {
+                String fullQuery = "";
+                for (String queryLine : query) {
+                    fullQuery  += " " + queryLine;    
+                }
+                
+                // validate
+                LogicalPlan lp = createAndProcessLPlan(fullQuery);
+                checkLoaderInCasts(lp, "org.apache.pig.builtin.PigStorage");
+                
+            }
+        }
+    
+        private void checkLoaderInCasts(LogicalPlan plan, String loaderClassName)
+        throws FrontendException 
+       {
+            CastFinder cf = new CastFinder(plan);
+            cf.visit();
+            List<CastExpression> casts = cf.casts;
+            System.out.println("Casts found : " + casts.size());
+            for (CastExpression cast : casts) {
+                assertTrue(cast.getFuncSpec().getClassName().startsWith(
+                        loaderClassName));    
+            }
+        }
+        
+        /**
+         * Find all casts in the plan
+         */
+        class CastFinder extends AllExpressionVisitor {
+            List<CastExpression> casts = new ArrayList<CastExpression>();
+            
+            public CastFinder(OperatorPlan plan)
+                    throws FrontendException {
+                super(plan, new DependencyOrderWalker(plan));
+            }
+
+
+            @Override
+            protected LogicalExpressionVisitor getVisitor(
+                    LogicalExpressionPlan exprPlan) throws FrontendException {
+                return new CastExpFinder(exprPlan, new ReverseDependencyOrderWalker(exprPlan));
+            }
+            
+            
+            class CastExpFinder extends LogicalExpressionVisitor{
+
+                protected CastExpFinder(OperatorPlan p, PlanWalker walker)
+                throws FrontendException {
+                    super(p, walker);
+                }
+
+                public void visit(CastExpression cExp){
+                    casts.add(cExp);
+                }
+
+            }
+
+
+        }
+
+        @Test
+        public void testBincond() throws Throwable {
+            String query = "a= load 'a' as (name: chararray, age: int, gpa: float);"
+            + "b = group a by name;"
+            + "c = foreach b generate (IsEmpty(a) ? " + TestBinCondFieldSchema.class.getName() + "(*): a) ;";
+        
+            LOForEach foreach = getForeachFromPlan(query);
+            
+            Schema.FieldSchema charFs = new FieldSchema(null, DataType.CHARARRAY);
+            Schema.FieldSchema intFs = new FieldSchema(null, DataType.INTEGER);
+            Schema.FieldSchema floatFs = new FieldSchema(null, DataType.FLOAT);
+            Schema tupleSchema= new Schema();
+            tupleSchema.add(charFs);
+            tupleSchema.add(intFs);
+            tupleSchema.add(floatFs);
+            Schema.FieldSchema bagFs = null;
+            Schema bagSchema = new Schema();
+            bagSchema.add(new FieldSchema(null, tupleSchema, DataType.TUPLE));
+
+            try {
+                bagFs = new Schema.FieldSchema(null, bagSchema, DataType.BAG);
+            } catch (FrontendException fee) {
+                fail("Did not expect an error");
+            }
+            
+            Schema expectedSchema = new Schema(bagFs);
+            Schema foreachSch = Util.translateSchema(foreach.getSchema());
+            assertTrue(Schema.equals(foreachSch, expectedSchema, false, true));
+        
+        }
+        
+    
+        @Test
+        public void testBinCondForOuterJoin() throws Throwable {
+            String query = "a= LOAD 'student_data' AS (name: chararray, age: int, gpa: float);"
+            + "b = LOAD 'voter_data' AS (name: chararray, age: int, registration: chararray, contributions: float);"
+            + "c = COGROUP a BY name, b BY name;"
+            + "d = FOREACH c GENERATE group, " 
+            + "flatten((not IsEmpty(a) ? a : (bag{tuple(chararray, int, float)}){(null, null, null)}))," 
+            + " flatten((not IsEmpty(b) ? b : (bag{tuple(chararray, int, chararray, float)}){(null,null,null, null)}));";
+                
+            LOForEach foreach = getForeachFromPlan(query);
+            String expectedSchemaString = "mygroup: chararray,A::name: chararray,A::age: int," +
+            "A::gpa: float,B::name: chararray,B::age: int," +
+            "B::registration: chararray,B::contributions: float";
+            Schema expectedSchema =  org.apache.pig.test.Util.getSchemaFromString(expectedSchemaString);
+            Schema foreachSch = Util.translateSchema(foreach.getSchema());
+            assertTrue(Schema.equals(foreachSch, expectedSchema, false, true));
+        
+        }
+    
+        @Test
+        public void testMapLookupCast() throws Exception {
+             String input[] = { "[k1#hello,k2#bye]",
+                     "[k1#good,k2#morning]" };
+             File f = org.apache.pig.test.Util.createInputFile("test", ".txt", input);
+             String inputFileName = f.getAbsolutePath();
+             // load as bytearray and use as map
+             String query = "a= load 'file://" + inputFileName + "' as (m);"
+             + " b = foreach a generate m#'k1';";
+             
+             checkLastForeachCastLoadFunc(query, "org.apache.pig.builtin.PigStorage", 0);
+             
+         
+             // load as map and use as map
+             query = "a= load 'file://" + inputFileName + "' as (m:[]);"
+             + "b = foreach a generate m#'k1';";
+             
+             LOForEach foreach = getForeachFromPlan(query);
+             LOGenerate loGen = (LOGenerate) foreach.getInnerPlan().getSinks().get(0);
+             Operator outExp = loGen.getOutputPlans().get(0).getSources().get(0);
+             assertFalse("outExp is not cast", outExp instanceof CastExpression);
+             
+                         
+             
+             PigServer ps = new PigServer(ExecType.LOCAL);
+             // load as bytearray and use as map
+             ps.registerQuery("a = load 'file://" + inputFileName + "' as (m);");
+             ps.registerQuery("b = foreach a generate m#'k1';");
+             Iterator<Tuple> it = ps.openIterator("b");
+             String[] expectedResults = new String[] {"(hello)", "(good)"};
+             int i = 0;
+             while(it.hasNext()) {
+                 assertEquals(expectedResults[i++], it.next().toString());
+             }
+             
+             // load as map and use as map
+             ps.registerQuery("a = load 'file://" + inputFileName + "' as (m:[]);");
+             ps.registerQuery("b = foreach a generate m#'k1';");
+             it = ps.openIterator("b");
+             expectedResults = new String[] {"(hello)", "(good)"};
+             i = 0;
+             while(it.hasNext()) {
+                 assertEquals(expectedResults[i++], it.next().toString());
+             }
+             
+        }
+        
+        /*
+         * A test UDF that does not data processing but implements the getOutputSchema for
+         * checking the type checker
+         */
+        public static class TestBinCondFieldSchema extends EvalFunc<DataBag> {
+            //no-op exec method
+            @Override
+            public DataBag exec(Tuple input) {
+                return null;
+            }
+            
+            @Override
+            public Schema outputSchema(Schema input) {
+                Schema.FieldSchema charFs = new FieldSchema(null, DataType.CHARARRAY);
+                Schema.FieldSchema intFs = new FieldSchema(null, DataType.INTEGER);
+                Schema.FieldSchema floatFs = new FieldSchema(null, DataType.FLOAT);
+                Schema bagSchema = new Schema();
+                bagSchema.add(charFs);
+                bagSchema.add(intFs);
+                bagSchema.add(floatFs);
+                Schema.FieldSchema bagFs;
+                try {
+                    bagFs = new Schema.FieldSchema(null, bagSchema, DataType.BAG);
+                } catch (FrontendException fee) {
+                    return null;
+                }
+                return new Schema(bagFs);
+            }
+        }
+        
         ////////////////////////// Helper //////////////////////////////////
         private void checkForEachCasting(LOForEach foreach, int idx, boolean isCast, byte toType)
         throws FrontendException {
             LOGenerate gen = (LOGenerate) foreach.getInnerPlan().getSinks().get(0) ;
-            LogicalExpressionPlan plan = gen.getOutputPlans().get(0);
+            LogicalExpressionPlan plan = gen.getOutputPlans().get(idx);
 
             if (isCast) {
                 List<Operator> leaveList = plan.getSources() ;
@@ -5047,193 +3806,86 @@ public class TestTypeCheckingValidatorNewLP {
             }
 
         }
-    //    
-    //    //@Test
-    //    public void testLineageMultipleLoader1() throws FrontendException {
-    //        +  "A = LOAD 'data1' USING PigStorage() AS (u, v, w);" ) ;
-    //        +  "B = LOAD 'data2' USING TextLoader() AS (x, y);" ) ;
-    //        + "C = JOIN A BY u, B BY x USING 'replicated';"
-    //        + "D = GROUP C BY (u, x);");
-    //        LogicalPlan plan = +  "E = FOREACH D GENERATE (chararray)group.u, (int)group.x;" );
-    //
-    //        // validate
-    //        CompilationMessageCollector collector = new CompilationMessageCollector() ;
-    //        TypeCheckingRelVisitor typeChecker = new TypeCheckingRelVisitor(plan, collector);
-    //        typeChecker.visit();  
-    //
-    //        printMessageCollector(collector) ;
-    //        //printTypeGraph(plan) ;
-    //        //planTester.printPlan(plan, TypeCheckingTestUtil.getCurrentMethodName());
-    //
-    //        if (collector.hasError()) {
-    //            throw new AssertionError("Expect no  error") ;
-    //        }
-    //
-    //        // Check group.u
-    //        LOForEach foreach = (LOForEach)plan.getSinks().get(0);
-    //        LogicalExpressionPlan foreachPlan = ((LOGenerate)foreach.getInnerPlan().getSinks().get(0)).getOutputPlans().get(0);
-    //        LogicalExpression exOp = (LogicalExpression) foreachPlan.getSinks().get(0);
-    //        ProjectExpression proj = (ProjectExpression)foreachPlan.getSuccessors(exOp).get(0);
-    //        CastExpression cast = (CastExpression)foreachPlan.getSuccessors( proj ).get( 0 );
-    //        assertTrue(cast.getFuncSpec().getClassName().startsWith("PigStorage"));
-    //
-    //        // Check group.x
-    //        foreachPlan = foreach.getForEachPlans().get( 1 );
-    //        exOp = foreachPlan.getRoots().get(0);
-    //        proj = (ProjectExpression)foreachPlan.getSuccessors(exOp).get(0);
-    //        cast = (CastExpression)foreachPlan.getSuccessors( proj ).get( 0 );
-    //        assertTrue(cast.getFuncSpec().getClassName().startsWith("TextLoader"));
-    //    }
-    //
-    //    /**
-    //     * From JIRA 1482
-    //     * @throws FrontendException
-    //     */
-    //    //@Test
-    //    public void testLineageMultipleLoader2() throws FrontendException {
-    //        +  "A = LOAD 'data1' USING PigStorage() AS (s, m, l);" ) ;
-    //        +  "B = FOREACH A GENERATE s#'k1' as v1, m#'k2' as v2, l#'k3' as v3;" ) ;
-    //        +  "C = FOREACH B GENERATE v1, (v2 == 'v2' ? 1L : 0L) as v2:long, (v3 == 'v3' ? 1 :0) as v3:int;" ) ;
-    //        +  "D = LOAD 'data2' USING TextLoader() AS (a);");
-    //        +  "E = JOIN C BY v1, D BY a USING 'replicated';" );
-    //        +  "F = GROUP E BY (v1, a);" );
-    //        LogicalPlan plan = +  "G = FOREACH F GENERATE (chararray)group.v1, group.a;" );
-    //
-    //        // validate
-    //        CompilationMessageCollector collector = new CompilationMessageCollector() ;
-    //        TypeCheckingRelVisitor typeChecker = new TypeCheckingRelVisitor(plan, collector);
-    //        typeChecker.visit();  
-    //
-    //        printMessageCollector(collector) ;
-    //        //printTypeGraph(plan) ;
-    //        //planTester.printPlan(plan, TypeCheckingTestUtil.getCurrentMethodName());
-    //
-    //        if (collector.hasError()) {
-    //            throw new AssertionError("Expect no  error") ;
-    //        }
-    //
-    //        // Check group.u
-    //        LOForEach foreach = (LOForEach)plan.getSinks().get(0);
-    //        LogicalExpressionPlan foreachPlan = ((LOGenerate)foreach.getInnerPlan().getSinks().get(0)).getOutputPlans().get(0);
-    //        LogicalExpression exOp = (LogicalExpression) foreachPlan.getSinks().get(0);
-    //        ProjectExpression proj = (ProjectExpression)foreachPlan.getSuccessors(exOp).get(0);
-    //        CastExpression cast = (CastExpression)foreachPlan.getSuccessors( proj ).get( 0 );
-    //        assertTrue(cast.getFuncSpec().getClassName().startsWith("PigStorage"));
-    //    }
-    //
-    //    /**
-    //     * A special invalid case.
-    //     */
-    //    //@Test
-    //    public void testLineageMultipleLoader3() throws FrontendException {
-    //        +  "A = LOAD 'data1' USING PigStorage() AS (u, v, w);" ) ;
-    //        +  "B = LOAD 'data2' USING TextLoader() AS (x, y);" ) ;
-    //        + "C = COGROUP A BY u, B by x;");
-    //        LogicalPlan plan = +  "D = FOREACH C GENERATE (chararray)group;" );
-    //
-    //        // validate
-    //        CompilationMessageCollector collector = new CompilationMessageCollector() ;
-    //        TypeCheckingRelVisitor typeChecker = new TypeCheckingRelVisitor(plan, collector);
-    //        try {
-    //            typeChecker.visit();  
-    //        } catch(TypeCheckerException ex) {
-    //            assertTrue( ex.getCause().toString().contains( "Cannot resolve load function to use for casting from bytearray to chararray." ) );
-    //            return;
-    //        }
-    //        assertTrue( "Validation failure is expected.", false );
-    //    }
-    //    
-    //    /**
-    //     * In case of filter with tuple type
-    //     */
-    //    //@Test
-    //    public void testLineageFilterWithTuple() throws FrontendException {
-    //        +  "A = LOAD 'data1' USING PigStorage() AS (u, v, w:tuple(a,b));" ) ;
-    //        +  "B = FOREACH A generate v, w;");
-    //        +  "C = FILTER B by v < 50;" ) ;
-    //        + "D = FOREACH C generate (int)w.a;");
-    //
-    //        // validate
-    //        CompilationMessageCollector collector = new CompilationMessageCollector() ;
-    //        TypeCheckingRelVisitor typeChecker = new TypeCheckingRelVisitor(plan, collector);
-    //        typeChecker.visit();  
-    //
-    //        printMessageCollector(collector) ;
-    //        //printTypeGraph(plan) ;
-    //        //planTester.printPlan(plan, TypeCheckingTestUtil.getCurrentMethodName());
-    //
-    //        if (collector.hasError()) {
-    //            throw new AssertionError("Expect no  error") ;
-    //        }
-    //
-    //        LOForEach foreach = (LOForEach)plan.getSinks().get(0);
-    //        LogicalExpressionPlan foreachPlan = ((LOGenerate)foreach.getInnerPlan().getSinks().get(0)).getOutputPlans().get(0);
-    //        LogicalExpression exOp = (LogicalExpression) foreachPlan.getSinks().get(0);
-    //        ProjectExpression proj = (ProjectExpression)foreachPlan.getSuccessors(exOp).get(0);
-    //        CastExpression cast = (CastExpression)foreachPlan.getSuccessors( proj ).get( 0 );
-    //        assertTrue(cast.getFuncSpec().getClassName().startsWith("PigStorage"));
-    //    }
-    //    
-    //    //@Test
-    //    public void testLineageExpressionCasting() throws FrontendException {
-    //        +  "A = LOAD 'data1' USING PigStorage() AS (u:int, v);" ) ;
-    //        +  "B = FILTER A by u < 50;" ) ;
-    //        + "C = FOREACH B generate u + v;");
-    //
-    //        // validate
-    //        CompilationMessageCollector collector = new CompilationMessageCollector() ;
-    //        TypeCheckingRelVisitor typeChecker = new TypeCheckingRelVisitor(plan, collector);
-    //        typeChecker.visit();  
-    //
-    //        printMessageCollector(collector) ;
-    //        //printTypeGraph(plan) ;
-    //        //planTester.printPlan(plan, TypeCheckingTestUtil.getCurrentMethodName());
-    //
-    //        if (collector.hasError()) {
-    //            throw new AssertionError("Expect no  error") ;
-    //        }
-    //
-    //        LOForEach foreach = (LOForEach)plan.getSinks().get(0);
-    //        LogicalExpressionPlan foreachPlan = ((LOGenerate)foreach.getInnerPlan().getSinks().get(0)).getOutputPlans().get(0);
-    //        List<LogicalOperator> projs = foreachPlan.getRoots();
-    //        LogicalOperator proj = projs.get(1);
-    //        LogicalOperator op = foreachPlan.getSuccessors( proj ).get( 0 );
-    //        if( !( op instanceof CastExpression ) ) {
-    //            proj = projs.get(1);
-    //            op = foreachPlan.getSuccessors( proj ).get( 0 );
-    //        }
-    //        CastExpression cast = (CastExpression)op;
-    //        assertTrue(cast.getFuncSpec().getClassName().startsWith("PigStorage"));
-    //    }
-    //    
-    //    //@Test
-    //    // See PIG-1741
-    //    public void testBagDereference() throws FrontendException {
-    //        + "a = load '1.txt' as (a0);");
-    //        + "b = foreach a generate flatten((bag{tuple(map[])})a0) as b0:map[];");
-    //        + "c = foreach b generate (long)b0#'key1';");
-    //
-    //        // validate
-    //        CompilationMessageCollector collector = new CompilationMessageCollector() ;
-    //        TypeCheckingRelVisitor typeChecker = new TypeCheckingRelVisitor(plan, collector);
-    //        typeChecker.visit();  
-    //
-    //        printMessageCollector(collector) ;
-    //        //printTypeGraph(plan) ;
-    //        //planTester.printPlan(plan, TypeCheckingTestUtil.getCurrentMethodName());
-    //
-    //        if (collector.hasError()) {
-    //            throw new AssertionError("Expect no  error") ;
-    //        }
-    //
-    //        LOForEach foreach = (LOForEach)plan.getSinks().get(0);
-    //        LogicalExpressionPlan foreachPlan = ((LOGenerate)foreach.getInnerPlan().getSinks().get(0)).getOutputPlans().get(0);
-    //        List<LogicalOperator> projs = foreachPlan.getRoots();
-    //        LogicalOperator proj = projs.get(0);
-    //        LogicalOperator maplookup = foreachPlan.getSuccessors( proj ).get( 0 );
-    //        LogicalOperator cast = foreachPlan.getSuccessors( maplookup ).get( 0 );
-    //        
-    //        assertTrue(((CastExpression)cast).getFuncSpec().getClassName().equals(PigStorage.class.getName()));
-    //    }
+        
+        @Test
+        public void testLineageMultipleLoader1() throws FrontendException {
+            String query =  "A = LOAD 'data1' USING PigStorage() AS (u, v, w);" 
+            +  "B = LOAD 'data2' USING TextLoader() AS (x, y);" 
+            + "C = JOIN A BY u, B BY x USING 'replicated';"
+            + "D = GROUP C BY (u, x);" 
+            + "E = FOREACH D GENERATE (chararray)group.u, (int)group.x;" ;
+    
+            checkLastForeachCastLoadFunc(query, "PigStorage", 0);
+            checkLastForeachCastLoadFunc(query, "TextLoader", 1);
+        }
+    
+        /**
+         * From JIRA 1482
+         * @throws FrontendException
+         */
+        @Test
+        public void testLineageMultipleLoader2() throws FrontendException {
+            String query =  "A = LOAD 'data1' USING PigStorage() AS (s, m, l);" 
+            +  "B = FOREACH A GENERATE s#'k1' as v1, m#'k2' as v2, l#'k3' as v3;" 
+            +  "C = FOREACH B GENERATE v1, (v2 == 'v2' ? 1L : 0L) as v2:long, (v3 == 'v3' ? 1 :0) as v3:int;" 
+            +  "D = LOAD 'data2' USING TextLoader() AS (a);"
+            +  "E = JOIN C BY v1, D BY a USING 'replicated';" 
+            +  "F = GROUP E BY (v1, a);" 
+            +  "G = FOREACH F GENERATE (chararray)group.v1, group.a;" ;
+   
+            checkLastForeachCastLoadFunc(query, "PigStorage", 0);
+
+        }
+    
+        /**
+         * A special invalid case.
+         */
+        @Test
+        public void testLineageMultipleLoader3() throws FrontendException {
+            String query =  "A = LOAD 'data1' USING PigStorage() AS (u, v, w);" 
+            +  "B = LOAD 'data2' USING TextLoader() AS (x, y);" 
+            + "C = COGROUP A BY u, B by x;"
+            +  "D = FOREACH C GENERATE (chararray)group;" ;
+    
+            
+            checkWarning(query, CAST_LOAD_NOT_FOUND);
+            
+        }
+        
+        /**
+         * In case of filter with tuple type
+         */
+       @Test
+        public void testLineageFilterWithTuple() throws FrontendException {
+           String query = "A= LOAD 'data1' USING PigStorage() AS (u, v, w:tuple(a,b));" 
+               +  "B = FOREACH A generate v, w;"
+               +  "C = FILTER B by v < 50;" 
+               + "D = FOREACH C generate (int)w.a;";
+
+           checkLastForeachCastLoadFunc(query, "PigStorage", 0);
+
+        }
+        
+       @Test
+        public void testLineageExpressionCasting() throws FrontendException {
+            String query = "A= LOAD 'data1' USING PigStorage() AS (u:int, v);" 
+                +  "B = FILTER A by u < 50;" 
+                + "C = FOREACH B generate u + v;";
+
+            LogicalPlan plan = createAndProcessLPlan(query);
+            checkLoaderInCasts(plan, "PigStorage");
+
+        }
+        
+        @Test
+        // See PIG-1741
+        public void testBagDereference() throws FrontendException {
+            String query = "a= load '1.txt' as (a0) ;"
+            + "b = foreach a generate flatten((bag{tuple(map[])})a0) as b0:map[];"
+            + "c = foreach b generate (long)b0#'key1';";
+            
+            LogicalPlan plan = createAndProcessLPlan(query);
+            checkLoaderInCasts(plan, PigStorage.class.getName());
+        }
 
 }

@@ -174,13 +174,12 @@ public class LOCogroup extends LogicalRelationalOperator {
                     break;
                 }
                 break;
-            }
-            if(mExpressionPlans.size() > 1){
-                //reset the uid, because the group column is associated with more
-                // than one input
-                groupKeySchema.resetUid();
-            }
-            
+            }           
+        }
+        if(mExpressionPlans.size() > 1){
+            //reset the uid, because the group column is associated with more
+            // than one input
+            groupKeySchema.resetUid();
         }
         
         if (groupKeySchema==null) {

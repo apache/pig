@@ -646,22 +646,22 @@ public class TestSchema extends TestCase {
     	}
     }
     
-//    public void testSchemaSerialization() throws IOException {
-//        MiniCluster cluster = MiniCluster.buildCluster();
-//        PigServer pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
-//        String inputFileName = "testSchemaSerialization-input.txt";
-//        String[] inputData = new String[] { "foo\t1", "hello\t2" };
-//        Util.createInputFile(cluster, inputFileName, inputData);
-//        String script = "a = load '"+ inputFileName +"' as (f1:chararray, f2:int);" +
-//        		" b = group a all; c = foreach b generate org.apache.pig.test.InputSchemaUDF(a);";
-//        Util.registerMultiLineQuery(pigServer, script);
-//        Iterator<Tuple> it = pigServer.openIterator("c");
-//        while(it.hasNext()) {
-//            Tuple t = it.next();
-//            assertEquals("{a: {(f1: chararray,f2: int)}}", t.get(0));
-//        }
-//        cluster.shutDown();
-//    }
+    public void testSchemaSerialization() throws IOException {
+        MiniCluster cluster = MiniCluster.buildCluster();
+        PigServer pigServer = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
+        String inputFileName = "testSchemaSerialization-input.txt";
+        String[] inputData = new String[] { "foo\t1", "hello\t2" };
+        Util.createInputFile(cluster, inputFileName, inputData);
+        String script = "a = load '"+ inputFileName +"' as (f1:chararray, f2:int);" +
+        		" b = group a all; c = foreach b generate org.apache.pig.test.InputSchemaUDF(a);";
+        Util.registerMultiLineQuery(pigServer, script);
+        Iterator<Tuple> it = pigServer.openIterator("c");
+        while(it.hasNext()) {
+            Tuple t = it.next();
+            assertEquals("{a: {(f1: chararray,f2: int)}}", t.get(0));
+        }
+        cluster.shutDown();
+    }
     
     @Test
     // See PIG-730

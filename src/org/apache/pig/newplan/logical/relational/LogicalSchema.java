@@ -116,6 +116,10 @@ public class LogicalSchema {
             return toString(true);
         }
         
+        /**
+         * Give new value for uid if uid of field schema or those in fields schema
+         * of inner schema are -1.
+         */
         public void stampFieldSchema() {
             if (uid==-1)
                 uid = LogicalExpression.getNextUid();
@@ -181,7 +185,7 @@ public class LogicalSchema {
          * Rest uid of this fieldschema and inner schema
          */
         public void resetUid(){
-            uid = LogicalExpression.getNextUid();
+            uid = -1;
             if(schema != null){
                 schema.resetUid();
             }

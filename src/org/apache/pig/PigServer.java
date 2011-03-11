@@ -1524,8 +1524,7 @@ public class PigServer {
                 accuQuery.append( line + "\n" );
             }
             
-            String query = accuQuery.toString();
-            return query;
+            return accuQuery.toString();
         }
         
         private void compile() throws IOException {
@@ -1536,7 +1535,6 @@ public class PigServer {
         private void compile(LogicalPlan lp) throws FrontendException  {
             new ColumnAliasConversionVisitor( lp ).visit();
             new SchemaAliasVisitor( lp ).visit();
-            new ProjectStarExpander(lp).visit();
             new ScalarVisitor( lp, pigContext ).visit();
             
             // TODO: move optimizer here from HExecuteEngine.

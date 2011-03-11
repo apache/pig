@@ -17,6 +17,7 @@
  */
 package org.apache.pig.newplan.logical.visitor;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -247,22 +248,36 @@ public class LineageFindRelVisitor extends LogicalRelationalNodesVisitor{
     public void visit(LOCogroup group) throws FrontendException{
         mapToPredLoadFunc(group);
         List<Operator> inputs = group.getInputs((LogicalPlan)plan);
-        if(inputs.size() == 1){
-            mapToPredLoadFunc(group);
-        }
+        
+        // list of field schemas of group plans
+        List<LogicalFieldSchema> groupPlanSchemas = new ArrayList<LogicalFieldSchema>();
         
         MultiMap<Integer, LogicalExpressionPlan> plans = group.getExpressionPlans();
         for(LogicalExpressionPlan expPlan : plans.values()){
             visitExpression(expPlan);
+            if(expPlan.getSources().size() != 1){
+                throw new AssertionError("Group plans should have only one output");
+            }
+            groupPlanSchemas.add(((LogicalExpression)expPlan.getSources().get(0)).getFieldSchema());
         }
+        
+        LogicalSchema sch = group.getSchema();
+        //if the group plans are associated with same load function , associate
+        //same load fucntion with group column schema
+        mapMatchLoadFuncToUid(sch.getField(0), groupPlanSchemas);
+        
+        
+        
         //set the load func spec for the bags in the schema, this helps if
         // the input schemas are not set
-        LogicalSchema sch = group.getSchema();
         //group schema has a group column followed by bags corresponding to each
         // input
         if(sch.size() != inputs.size()+1 ){
             throw new AssertionError("cogroup schema size not same as number of inputs");
         }
+        
+        
+        
         for(int i=1; i < sch.size(); i++){
             long uid = sch.getField(i).uid;
             LogicalRelationalOperator input = (LogicalRelationalOperator) inputs.get(i-1);
@@ -435,6 +450,64 @@ public class LineageFindRelVisitor extends LogicalRelationalNodesVisitor{
             throw new VisitorException(msg,2262, PigException.BUG) ;
         }
     }
+    
+    /**
+     * if uid in input field schemas or their inner schemas map to same 
+     * load function, then map the new uid in bincond also to same
+     *  load function in uid2LoadFuncMap
+     * @param outFS
+     * @param inputFieldSchemas
+     * @throws VisitorException 
+     */
+    void mapMatchLoadFuncToUid(
+            LogicalFieldSchema outFS,
+            List<LogicalFieldSchema> inputFieldSchemas) throws VisitorException {
+
+        
+        if(inputFieldSchemas.size() == 0){
+            return;
+        }
+
+        //if same non null load func is associated with all fieldschemas
+        // asssociate that with the uid of outFS
+        LogicalFieldSchema inpFS1 = inputFieldSchemas.get(0);
+        FuncSpec funcSpec1 = uid2LoadFuncMap.get(inpFS1.uid);
+        boolean allInnerSchemaMatch = false;
+        if(funcSpec1 != null){
+            boolean allMatch = true;
+            allInnerSchemaMatch = true;
+            
+            for(LogicalFieldSchema fs : inputFieldSchemas){
+                //check if all func spec match
+                if(!funcSpec1.equals(uid2LoadFuncMap.get(fs.uid))){
+                    allMatch = false;
+                    break;
+                }
+                //check if all inner schema match for use later
+                if(outFS.schema == null ||  !outFS.schema.isEqual(fs.schema)){
+                    allInnerSchemaMatch = false;
+                }
+            }
+            if(allMatch){
+                addUidLoadFuncToMap(outFS.uid, funcSpec1);
+            }
+        }
+        
+        //recursively call the function for corresponding files in inner schemas
+        if(allInnerSchemaMatch){
+            List<LogicalFieldSchema> outFields = outFS.schema.getFields();
+            for(int i=0; i<outFields.size(); i++){
+                List<LogicalFieldSchema> inFsList = new ArrayList<LogicalFieldSchema>();
+                for(LogicalFieldSchema fs : inputFieldSchemas){
+                    inFsList.add(fs.schema.getField(i));
+                }                        
+                mapMatchLoadFuncToUid(outFields.get(i), inFsList);
+            }
+        }
+
+    }
+    
+
 
     /**
      * If a input of dereference or map-lookup has associated load function, 
@@ -506,10 +579,12 @@ public class LineageFindRelVisitor extends LogicalRelationalNodesVisitor{
                 uid2LoadFuncMap.put(binCond.getFieldSchema().uid, funcSpec);
             }
             else {
+                List<LogicalFieldSchema> inFieldSchemas = new ArrayList<LogicalFieldSchema>();
+                inFieldSchemas.add(lhs.getFieldSchema());
+                inFieldSchemas.add(rhs.getFieldSchema());
                 mapMatchLoadFuncToUid(
                         binCond.getFieldSchema(), 
-                        lhs.getFieldSchema(),
-                        rhs.getFieldSchema()
+                        inFieldSchemas
                 );
             }
         }
@@ -589,45 +664,7 @@ public class LineageFindRelVisitor extends LogicalRelationalNodesVisitor{
             return null;
         }
 
-        /**
-         * if uid in lhs and rhs fieldschema or inner schemas map to same 
-         * load function, then map the new uid in bincond also to same
-         *  load function in uid2LoadFuncMap
-         * @param binCFs
-         * @param fieldSchema2
-         * @param fieldSchema3
-         */
-        private void mapMatchLoadFuncToUid(
-                LogicalFieldSchema binCFs,
-                LogicalFieldSchema lhsFs, 
-                LogicalFieldSchema rhsFs) {
-
-            FuncSpec lhsFuncSpec = uid2LoadFuncMap.get(lhsFs.uid);
-            FuncSpec rhsFuncSpec = uid2LoadFuncMap.get(lhsFs.uid);
-            
-            if(lhsFuncSpec == null || rhsFuncSpec == null){
-                return;
-            }
-            
-            if(lhsFuncSpec.equals(rhsFuncSpec)){
-                uid2LoadFuncMap.put(binCFs.uid, lhsFuncSpec);
-            }
-            
-            if(binCFs.schema != null){
-                //then rhsFs.schema, lhsFs.schema has to be non-null as well
-                //and of same size
-                for(int i=0; i<binCFs.schema.size(); i++){
-                    mapMatchLoadFuncToUid(
-                            binCFs.schema.getField(i),
-                            lhsFs.schema.getField(i),
-                            rhsFs.schema.getField(i)
-                    );
-                }
-            }
-            
-        }
         
-    
     }
     
     

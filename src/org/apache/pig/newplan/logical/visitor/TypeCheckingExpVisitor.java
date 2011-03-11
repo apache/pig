@@ -1061,9 +1061,6 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
     public static boolean schemaEqualsForMatching(Schema inputSchema,
             Schema udfSchema, boolean ignoreByteArrays) throws FrontendException {
         
-        // the old udf schemas might not have tuple inside bag
-        // fix that!
-        Util.fixSchemaAddTupleInBag(udfSchema);
         
         // If both of them are null, they are equal
         if ((inputSchema == null) && (udfSchema == null)) {
@@ -1078,7 +1075,12 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
         if (udfSchema == null) {
             return false;
         }
-
+        
+        // the old udf schemas might not have tuple inside bag
+        // fix that!
+        udfSchema = Util.fixSchemaAddTupleInBag(udfSchema);
+        
+        
         if (inputSchema.size() != udfSchema.size())
             return false;
 

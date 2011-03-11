@@ -18,6 +18,9 @@
 
 package org.apache.pig.newplan.logical.visitor;
 
+import java.util.HashSet;
+import java.util.Set;
+
 import org.apache.pig.PigException;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.plan.PlanValidationException;
@@ -55,20 +58,22 @@ public class SchemaAliasVisitor extends LogicalRelationalNodesVisitor {
      */
     protected void validate(LogicalRelationalOperator op) throws FrontendException {
         LogicalSchema schema = op.getSchema();
-        if( schema != null ) {
-            for( int i = 0; i < schema.size(); i++ ) {
-                for( int j = i + 1; j < schema.size(); j++ ) {
-                    if( schema.getField( i ) != null &&
-                        schema.getField( j ) != null &&
-                        schema.getField( i ).alias != null &&
-                        schema.getField( j ).alias != null &&
-                        schema.getField( i ).alias.equals( schema.getField( j ).alias ) ) {
+        
+        Set<String> seenAliases = new HashSet<String>();
+        if( schema != null){
+            for( int i = 0; i < schema.size(); i++){
+                if( schema.getField(i) != null &&
+                        schema.getField(i).alias != null
+                ){
+                    String alias = schema.getField(i).alias;
+                    if(seenAliases.contains(alias)){
                         int errCode = 1108;
                         String msg = "Duplicate schema alias: " + schema.getField( i ).alias;
                         if( op.getAlias() != null )
                             msg = msg + " in \"" + op.getAlias() + "\"";
                         throw new PlanValidationException( msg, errCode, PigException.INPUT );
                     }
+                    seenAliases.add(alias);
                 }
             }
         }
