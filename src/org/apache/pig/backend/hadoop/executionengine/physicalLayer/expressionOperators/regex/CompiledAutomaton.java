@@ -26,7 +26,7 @@ public class CompiledAutomaton implements RegexImpl {
     private RunAutomaton runauto = null;
     
     public CompiledAutomaton( String rhsPattern ) {
-        RegExp regexpr = new dk.brics.automaton.RegExp(rhsPattern);
+        RegExp regexpr = new dk.brics.automaton.RegExp(rhsPattern, RegExp.NONE);
         Automaton auto = regexpr.toAutomaton();
         this.runauto = new RunAutomaton(auto, true);
     }

@@ -223,6 +223,8 @@ PIG-1309: Map-side Cogroup (ashutoshc)
 
 BUG FIXES
 
+PIG-1770: matches clause problem with chars that have special meaning in dk.brics - #, @ .. (thejas)
+
 PIG-1884: Change ReadToEndLoader.setLocation not throw UnsupportedOperationException (thejas)
 
 PIG-1858: UDF in nested plan results frontend exception (daijy)
