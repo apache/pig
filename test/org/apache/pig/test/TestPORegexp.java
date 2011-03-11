@@ -47,7 +47,19 @@ public class TestPORegexp extends TestCase {
             CompiledAutomaton auto2 = new CompiledAutomaton("[a-z]{3}");
             assertEquals(false, auto2.match("1234", "abc") );
             assertEquals(true, auto2.match("abc", "1234") );
- 
+            
+            auto2 = new CompiledAutomaton(".*#c");
+            assertEquals(true, auto2.match("ab#c", "dummy"));
+
+            auto2 = new CompiledAutomaton(".*@.*");
+            assertEquals(true, auto2.match("ab@c", "dummy"));
+
+            auto2 = new CompiledAutomaton("abc&def");
+            assertEquals(true, auto2.match("abc&def", "dummy"));
+
+            auto2 = new CompiledAutomaton("abc~[ab]");
+            assertEquals(true, auto2.match("abc~a", "dummy"));
+            
             CompiledRegex regex2 = new CompiledRegex(Pattern.compile("[a-z]{3}"));
             assertEquals(false, regex2.match("1234", "abc") );
             assertEquals(true, regex2.match("abc", "1234") );
@@ -57,6 +69,7 @@ public class TestPORegexp extends TestCase {
             assertEquals(false, ncr.match("abc", "1234"));
             assertEquals(true, ncr.match("1234", "\\d\\d\\d\\d"));
             assertEquals(true, ncr.match("abc", "[a-z]{3}"));
+
             
         } catch( Exception e ){ 
             fail();
@@ -224,6 +237,7 @@ public class TestPORegexp extends TestCase {
 
             assertEquals(1,  m.invoke(regex, "\\\\dasdfasdf\\\\" ));
 
+            assertEquals(1, m.invoke(regex, "xyz#abc") );
 
 
         } catch( Exception e ) {
