@@ -28,7 +28,10 @@ import java.util.Map;
 import org.apache.pig.ExecType;
 import org.apache.pig.PigRunner;
 import org.apache.pig.PigServer;
+import org.apache.pig.data.Tuple;
 import org.apache.pig.scripting.ScriptEngine;
+import org.apache.pig.tools.pigstats.JobStats;
+import org.apache.pig.tools.pigstats.OutputStats;
 import org.apache.pig.tools.pigstats.PigStats;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -260,6 +263,52 @@ public class TestScriptLanguage {
             assertEquals(12, stats.getBytesWritten());
             assertEquals(3, stats.getRecordWritten());     
         }
+    }
+    
+    @Test
+    public void runParallelTest2() throws Exception {
+        String[] script = {
+                "#!/usr/bin/python",
+                "from org.apache.pig.scripting import *",
+                "input = 'simple_table_7'",
+                "Pig.fs(\"rmr simple_out\")",
+                "Pig.fs(\"rmr simple_out2\")",
+                "output1 = 'simple_out'",
+                "output2 = 'simple_out2'",
+                "P = Pig.compile(\"mypipeline\", \"\"\"a = load '$input';",
+                "b = foreach a generate $0, org.apache.pig.test.utils.UDFContextTestEvalFunc3($0);",
+                "store b into '$output';\"\"\")",
+                "Q = P.bind([{'input':input, 'output':output1}, {'input':input, 'output':output2}])",
+                "stats = Q.run()"
+        };
+        String[] input = {
+                "1\t3"
+        };
+        
+        Util.createInputFile(cluster, "simple_table_7", input);
+        Util.createLocalInputFile( "testScript.py", script);
+        
+        String[] args = { "-g", "jython", "testScript.py" };
+        PigStats mainStats = PigRunner.run(args, new TestPigRunner.TestNotificationListener());
+        assertTrue(mainStats.isEmbedded());
+        assertTrue(mainStats.isSuccessful());
+        Map<String, List<PigStats>> statsMap = mainStats.getAllStats();
+        assertEquals(1, statsMap.size());
+        assertEquals("mypipeline", statsMap.keySet().iterator().next());
+        List<PigStats> lst = statsMap.get("mypipeline");
+        assertEquals(2, lst.size());
+        String[] results = new String[2];
+        int i = 0;
+        for (PigStats stats : lst) {
+            assertTrue(stats.isSuccessful());
+            assertEquals(1, stats.getNumberJobs());
+            OutputStats os = stats.getOutputStats().get(0);
+            Tuple t = os.iterator().next();
+            results[i++] = t.get(1).toString();
+        }
+        assertTrue(results[0] != null);
+        assertTrue(results[1] != null);
+        assertTrue(!results[0].equals(results[1]));
     }
     
     @Test
