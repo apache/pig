@@ -18,13 +18,10 @@
 package org.apache.pig.impl.util;
 
 import java.io.IOException;
-//import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Properties;
 
 import org.apache.hadoop.conf.Configuration;
-
-import org.apache.pig.impl.util.ObjectSerializer;
 
 public class UDFContext {
     
@@ -33,16 +30,19 @@ public class UDFContext {
     private Properties clientSysProps;
     private static final String CLIENT_SYS_PROPS = "pig.client.sys.props";
     private static final String UDF_CONTEXT = "pig.udf.context"; 
-    private static UDFContext self = null;
+    
+    private static ThreadLocal<UDFContext> tss = new ThreadLocal<UDFContext>();
+    
     private UDFContext() {
         udfConfs = new HashMap<Integer, Properties>();
     }
 
     public static UDFContext getUDFContext() {
-        if (self == null) {
-            self = new UDFContext();
+        if (tss.get() == null) {
+            UDFContext ctx = new UDFContext();
+            tss.set(ctx);
         }
-        return self;
+        return tss.get();
     }
 
     // internal pig use only - should NOT be called from user code
@@ -107,7 +107,7 @@ public class UDFContext {
      * function.
      */
     
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings("rawtypes")
     public Properties getUDFProperties(Class c, String[] args) {
         Integer k = generateKey(c, args);
         Properties p = udfConfs.get(k);
@@ -140,7 +140,7 @@ public class UDFContext {
      * propogated to other instances of the UDF calling this 
      * function.
      */
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings("rawtypes")
     public Properties getUDFProperties(Class c) {
         Integer k = generateKey(c);
         Properties p = udfConfs.get(k);
@@ -177,12 +177,12 @@ public class UDFContext {
                 jconf.get(CLIENT_SYS_PROPS));
     }
     
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings("rawtypes")
     private int generateKey(Class c) {
         return c.getName().hashCode();
     }
     
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings("rawtypes")
     private int generateKey(Class c, String[] args) {
         int hc = c.getName().hashCode();
         for (int i = 0; i < args.length; i++) {

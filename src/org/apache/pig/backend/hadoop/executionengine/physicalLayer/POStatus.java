@@ -33,6 +33,4 @@ public class POStatus {
     // successfully processing of a batch, used by accumulative UDFs
     // this is used for accumulative UDFs
     public static final byte STATUS_BATCH_OK = 5; 
-
-    public static Object result;
 }

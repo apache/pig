@@ -107,7 +107,8 @@ public class PigContext implements Serializable {
     private Map<String, StreamingCommand> definedCommands = 
         new HashMap<String, StreamingCommand>();
 
-    private static ArrayList<String> packageImportList = new ArrayList<String>();
+    private static ThreadLocal<ArrayList<String>> packageImportList = 
+        new ThreadLocal<ArrayList<String>>();
 
     private Properties log4jProperties = new Properties();
     
@@ -154,23 +155,18 @@ public class PigContext implements Serializable {
         skippedShipPaths.add("/usr/sbin");
         skippedShipPaths.add("/usr/local/sbin");
     }
-
-    static{
-        packageImportList.add("");
-        packageImportList.add("org.apache.pig.builtin.");
-        packageImportList.add("org.apache.pig.impl.builtin.");        
-    }
     
     public static void initializeImportList(String importListCommandLineProperties)
     {
         StringTokenizer tokenizer = new StringTokenizer(importListCommandLineProperties, ":");
         int pos = 0;
+        ArrayList<String> importList = getPackageImportList();
         while (tokenizer.hasMoreTokens())
         {
             String importItem = tokenizer.nextToken();
             if (!importItem.endsWith("."))
                 importItem += ".";
-            packageImportList.add(pos, importItem);
+            importList.add(pos, importItem);
             pos++;
         }
     }
@@ -420,10 +416,10 @@ public class PigContext implements Serializable {
         return new URLClassLoader(urls, PigContext.class.getClassLoader());
     }
         
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings("rawtypes")
     public static Class resolveClassName(String name) throws IOException{
 
-        for(String prefix: packageImportList) {
+        for(String prefix: getPackageImportList()) {
             Class c;
             try {
                 c = Class.forName(prefix+name,true, LogicalPlanBuilder.classloader);
@@ -443,12 +439,12 @@ public class PigContext implements Serializable {
         // create ClassNotFoundException exception and attach to IOException
         // so that we don't need to buble interface changes throughout the code
         int errCode = 1070;
-        String msg = "Could not resolve " + name + " using imports: " + packageImportList;
+        String msg = "Could not resolve " + name + " using imports: " + packageImportList.get();
         throw new ExecException(msg, errCode, PigException.INPUT);
     }
     
     
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings({ "unchecked", "rawtypes" })
     public static Object instantiateFuncFromSpec(FuncSpec funcSpec)  {
         Object ret;
         String className =funcSpec.getClassName(); 
@@ -511,7 +507,7 @@ public class PigContext implements Serializable {
         return instantiateFuncFromSpec(new FuncSpec(funcSpec));
     }    
     
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings("rawtypes")
     public Class getClassForAlias(String alias) throws IOException{
         String className = null;
         FuncSpec funcSpec = null;
@@ -617,14 +613,21 @@ public class PigContext implements Serializable {
         }        
     }
     
-    public static ArrayList<String> getPackageImportList()
-    {
-        return packageImportList;
+    public static ArrayList<String> getPackageImportList() {
+        if (packageImportList.get() == null) {
+            ArrayList<String> importlist = new ArrayList<String>();
+            importlist.add("");
+            importlist.add("org.apache.pig.builtin.");
+            importlist.add("org.apache.pig.impl.builtin.");  
+            packageImportList.set(importlist);
+        }
+        return packageImportList.get();
     }
-    public static void setPackageImportList(ArrayList<String> list)
-    {
-        packageImportList = list;
+    
+    public static void setPackageImportList(ArrayList<String> list) {
+        packageImportList.set(list);
     }
+    
     public void setLog4jProperties(Properties p)
     {
         log4jProperties = p;

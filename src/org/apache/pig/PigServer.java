@@ -41,6 +41,7 @@ import java.util.Properties;
 import java.util.Queue;
 import java.util.Set;
 import java.util.Stack;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -172,7 +173,8 @@ public class PigServer {
 
     private String jobPriority;
 
-    private static int scopeCounter = 0;
+    private final static AtomicInteger scopeCounter = new AtomicInteger(0);
+    
     private final String scope = constructScope();
 
 
@@ -189,7 +191,7 @@ public class PigServer {
         // username-date. For now let's simplify the scope, if a real
         // scope is needed again, we might need to update all the
         // operators to not include scope in their name().
-        return ""+(++scopeCounter);
+        return "" + scopeCounter.incrementAndGet();
     }
 
     /**

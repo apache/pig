@@ -33,6 +33,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.pig.PigServer;
 import org.apache.pig.PigRunner.ReturnCode;
+import org.apache.pig.impl.PigContext;
 import org.apache.pig.tools.grunt.GruntParser;
 import org.apache.pig.tools.pigscript.parser.ParseException;
 import org.apache.pig.tools.pigstats.PigProgressNotificationListener;
@@ -162,8 +163,11 @@ public class BoundScript {
             = new SyncProgressNotificationAdaptor(listeners);
         List<Future<PigStats>> futures = new ArrayList<Future<PigStats>>();
         ExecutorService executor = Executors.newFixedThreadPool(queries.size());
-        for (int i=0; i<queries.size(); i++) {                
-            MyCallable worker = new MyCallable(queries.get(i), adaptor);
+        for (int i=0; i<queries.size(); i++) {          
+            Properties props = new Properties();
+            props.putAll(scriptContext.getPigContext().getProperties());
+            PigContext ctx = new PigContext(scriptContext.getPigContext().getExecType(), props);
+            MyCallable worker = new MyCallable(queries.get(i), ctx, adaptor);
             Future<PigStats> submit = executor.submit(worker);
             futures.add(submit);
         }           
@@ -314,10 +318,12 @@ public class BoundScript {
     private class MyCallable implements Callable<PigStats> {
         
         private String query = null;
+        private PigContext ctx = null;
         private PigProgressNotificationListener adaptor;
         
-        public MyCallable(String pl, PigProgressNotificationListener adaptor) {
+        public MyCallable(String pl, PigContext ctx, PigProgressNotificationListener adaptor) {
             query = pl;
+            this.ctx = ctx;
             this.adaptor = adaptor;
         }
         
@@ -327,7 +333,7 @@ public class BoundScript {
             ScriptState.start("embedded", scriptContext.getPigContext());
             ScriptState.get().setScript(query);
             ScriptState.get().registerListener(adaptor);
-            PigServer pigServer = new PigServer(scriptContext.getPigContext(), false);
+            PigServer pigServer = new PigServer(ctx, true);
             pigServer.setBatchOn();
             GruntParser grunt = new GruntParser(new StringReader(query));
             grunt.setInteractive(false);
