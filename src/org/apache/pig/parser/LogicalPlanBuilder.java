@@ -83,6 +83,7 @@ import org.apache.pig.newplan.logical.relational.LogicalSchema;
 import org.apache.pig.newplan.logical.relational.LOCogroup.GROUPTYPE;
 import org.apache.pig.newplan.logical.relational.LOJoin.JOINTYPE;
 import org.apache.pig.newplan.logical.relational.LogicalSchema.LogicalFieldSchema;
+import org.apache.pig.newplan.logical.visitor.ProjectStarExpander;
 import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.OperatorPlan;
 
@@ -201,7 +202,7 @@ public class LogicalPlanBuilder {
     }
     
     String buildSortOp(LOSort sort, String alias, String inputAlias, List<LogicalExpressionPlan> plans, 
-            List<Boolean> ascFlags, FuncSpec fs) {
+            List<Boolean> ascFlags, FuncSpec fs) throws ParserValidationException {
         sort.setSortColPlans( plans );
         sort.setUserFunc( fs );
         if (ascFlags.isEmpty()) {
@@ -209,7 +210,13 @@ public class LogicalPlanBuilder {
                 ascFlags.add(true);
         }
         sort.setAscendingCols( ascFlags );
-        return buildOp( sort, alias, inputAlias, null );
+        alias = buildOp( sort, alias, inputAlias, null );
+        try {
+            (new ProjectStarExpander(sort.getPlan())).visit(sort);
+        } catch (FrontendException e) {
+            throw new ParserValidationException(intStream, e);
+        }
+        return alias;
     }
     
     LOJoin createJoinOp() {
@@ -218,7 +225,8 @@ public class LogicalPlanBuilder {
 
     String buildJoinOp(LOJoin op, String alias, List<String> inputAliases,
             MultiMap<Integer, LogicalExpressionPlan> joinPlans,
-            JOINTYPE jt, List<Boolean> innerFlags, String partitioner) {
+            JOINTYPE jt, List<Boolean> innerFlags, String partitioner)
+    throws ParserValidationException {
         if (jt==null)
             jt = JOINTYPE.HASH;
         else {
@@ -238,7 +246,13 @@ public class LogicalPlanBuilder {
         op.setJoinType( jt );
         op.setInnerFlags( flags );
         op.setJoinPlans( joinPlans );
-        return buildOp( op, alias, inputAliases, partitioner );
+        alias = buildOp( op, alias, inputAliases, partitioner );
+        try {
+            (new ProjectStarExpander(op.getPlan())).visit(op);
+        } catch (FrontendException e) {
+            throw new ParserValidationException(intStream, e);
+        }
+        return alias;
     }
 
     LOCogroup createGroupOp() {
@@ -267,7 +281,13 @@ public class LogicalPlanBuilder {
         op.setExpressionPlans( expressionPlans );
         op.setGroupType( gt );
         op.setInnerFlags( flags );
-        return buildOp( op, alias, inputAliases, partitioner );
+        alias = buildOp( op, alias, inputAliases, partitioner );
+        try {
+            (new ProjectStarExpander(op.getPlan())).visit(op);
+        } catch (FrontendException e) {
+            throw new ParserValidationException(intStream, e);
+        }
+        return alias;
     }
     
     private String getAbolutePathForLoad(String filename, FuncSpec funcSpec)
@@ -365,9 +385,16 @@ public class LogicalPlanBuilder {
         return new LOForEach( plan );
     }
     
-    String buildForeachOp(LOForEach op, String alias, String inputAlias, LogicalPlan innerPlan) {
+    String buildForeachOp(LOForEach op, String alias, String inputAlias, LogicalPlan innerPlan)
+    throws ParserValidationException {
         op.setInnerPlan( innerPlan );
-        return buildOp( op, alias, inputAlias, null );
+        alias = buildOp( op, alias, inputAlias, null );
+        try {
+            (new ProjectStarExpander(op.getPlan())).visit(op);
+        } catch (FrontendException e) {
+            throw new ParserValidationException(intStream, e);
+        }
+        return alias;
     }
     
     LOGenerate createGenerateOp(LogicalPlan plan) {

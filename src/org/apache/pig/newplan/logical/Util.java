@@ -96,30 +96,13 @@ public class Util {
      * it inserts a tuple schema. It does so for all inner levels.
      * eg bag({int}) => bag({(int)}) 
      * @param sch
+     * @return modified schema
      * @throws FrontendException 
      */
-    public static void fixSchemaAddTupleInBag(Schema sch) throws FrontendException{
-        for(FieldSchema fs : sch.getFields()){
-            if(fs.schema != null){
-                fixSchemaAddTupleInBag(fs.schema);
-            }
-            if(fs.type == DataType.BAG){
-                // if there is no inner schema, add a empty tuple inner schema
-                if(fs.schema == null){
-                    fs.schema = new Schema(new FieldSchema(null, DataType.TUPLE));
-                }else if(
-                        (fs.schema.size() == 1 && fs.schema.getField(0).type != DataType.TUPLE)
-                        ||
-                        fs.schema.size() > 1
-                ){
-                    //the inner schema is something other than tuple schema.
-                    // change it to a schema with single tuple field, this tuple
-                    // field will have the old inner schema as its inner schema
-                    fs.schema = new Schema(new FieldSchema(null, fs.schema, DataType.TUPLE));
-                }
-            }
-
-        }
+    public static Schema fixSchemaAddTupleInBag(Schema sch) throws FrontendException{
+        LogicalSchema logSch = translateSchema(sch);
+        logSch.normalize();
+        return translateSchema(logSch);
     }
 
 

@@ -31,7 +31,6 @@ import org.apache.pig.newplan.DepthFirstWalker;
 import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.OperatorPlan;
 import org.apache.pig.newplan.PlanWalker;
-import org.apache.pig.newplan.ReverseDependencyOrderWalker;
 import org.apache.pig.newplan.logical.expression.LogicalExpressionPlan;
 import org.apache.pig.newplan.logical.expression.LogicalExpressionVisitor;
 import org.apache.pig.newplan.logical.expression.ProjectExpression;
@@ -45,6 +44,7 @@ import org.apache.pig.newplan.logical.relational.LogicalPlan;
 import org.apache.pig.newplan.logical.relational.LogicalRelationalNodesVisitor;
 import org.apache.pig.newplan.logical.relational.LogicalRelationalOperator;
 import org.apache.pig.newplan.logical.relational.LogicalSchema;
+import org.apache.pig.newplan.logical.relational.LogicalSchema.LogicalFieldSchema;
 
 import com.google.common.primitives.Booleans;
 
@@ -250,14 +250,10 @@ public class ProjectStarExpander extends LogicalRelationalNodesVisitor{
             ){
                 //there is a project-star to be expanded
                 
+                LogicalSchema userStarSch = null;
                 //user schema for * is not supported (yet)
                 if(userSchema != null && userSchema.get(i) != null){
-                    String msg = "Schema not expected for project-star";
-                    throw new FrontendException(
-                            msg,
-                            2265,
-                            PigException.BUG
-                    );
+                   userStarSch = userSchema.get(i);
                 }
                 
                 //replacing the existing project star with new ones
@@ -287,8 +283,22 @@ public class ProjectStarExpander extends LogicalRelationalNodesVisitor{
                     proj2InpRel.put(newProj, newInLoad);
                     
                     newFlattens.add(flattens[i]);
-                    if(newUserSchema != null)
-                        newUserSchema.add(null);
+                    if(newUserSchema != null ){
+                        
+                        if(userStarSch != null 
+                                && userStarSch.getFields().size() > j 
+                                && userStarSch.getField(j) != null){
+                            
+                            //if the project-star field has user specified schema, use the
+                            // j'th field for this column
+                            LogicalSchema sch = new LogicalSchema();
+                            sch.addField(new LogicalFieldSchema(userStarSch.getField(j)));
+                            newUserSchema.add(sch);
+                        }
+                        else{
+                            newUserSchema.add(null);
+                        }
+                    }
                 }
 
             }else{ //no project-star
@@ -335,6 +345,9 @@ public class ProjectStarExpander extends LogicalRelationalNodesVisitor{
         gen.setOutputPlans(newExpPlans);
         gen.setFlattenFlags(Booleans.toArray(newFlattens));
         gen.setUserDefinedSchema(newUserSchema);
+        
+        gen.resetSchema();
+        foreach.resetSchema();
         
     }
     
