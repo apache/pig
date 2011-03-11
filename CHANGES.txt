@@ -110,6 +110,8 @@ PIG-1696: Performance: Use System.arraycopy() instead of manually copying the by
 
 BUG FIXES
 
+PIG-1770: matches clause problem with chars that have special meaning in dk.brics - #, @ .. (thejas)
+
 PIG-1862: Pig returns exit code 0 for the failed Pig script due to non-existing input directory (rding)
 
 PIG-1888: Fix TestLogicalPlanGenerator not use hardcoded path (daijy)
