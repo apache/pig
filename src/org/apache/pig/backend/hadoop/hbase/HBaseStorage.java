@@ -33,8 +33,8 @@ import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.Put;
@@ -150,6 +150,7 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
      * <li>-lt=maxKeyVal 
      * <li>-gte=minKeyVal
      * <li>-lte=maxKeyVal
+     * <li>-limit=numRowsPerRegion max number of rows to retrieve per region
      * <li>-caching=numRows  number of rows to cache (faster scans, more memory).
      * </ul>
      * @throws ParseException 
@@ -289,10 +290,11 @@ public class HBaseStorage extends LoadFunc implements StoreFuncInterface, LoadPu
     @Override
     public void setLocation(String location, Job job) throws IOException {
         job.getConfiguration().setBoolean("pig.noSplitCombination", true);
-        // Make sure the HBase and Guava jars get shipped.
+        // Make sure the HBase, ZooKeeper, and Guava jars get shipped.
         TableMapReduceUtil.addDependencyJars(job.getConfiguration(), 
             org.apache.hadoop.hbase.client.HTable.class,
-            com.google.common.collect.Lists.class);
+            com.google.common.collect.Lists.class,
+            org.apache.zookeeper.ZooKeeper.class);
 
         String tablename = location;
         if (location.startsWith("hbase://")){
