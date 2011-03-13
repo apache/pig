@@ -207,6 +207,7 @@ public class PigInputFormat extends InputFormat<Text, Tuple> {
             pigContext = (PigContext) ObjectSerializer.deserialize(conf
                     .get("pig.pigContext"));
             PigContext.setPackageImportList((ArrayList<String>)ObjectSerializer.deserialize(conf.get("udf.import.list")));
+            MapRedUtil.setupUDFContext(conf);
         } catch (Exception e) {
             int errCode = 2094;
             String msg = "Unable to deserialize object.";
