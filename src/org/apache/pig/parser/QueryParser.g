@@ -85,6 +85,10 @@ throws RecognitionException {
 }
 
 public String getErrorMessage(RecognitionException e, String[] tokenNames ) {
+    if( !log.isDebugEnabled() ) {
+        return super.getErrorMessage( e, tokenNames );
+    }
+    
     List stack =  getRuleInvocationStack( e, this.getClass().getName() );
     String msg = null;
     if( e instanceof NoViableAltException ) {
@@ -266,7 +270,7 @@ flatten_generated_item : flatten_clause ( AS! ( field_def | ( LEFT_PAREN! field_
 flatten_clause : FLATTEN^ LEFT_PAREN! expr RIGHT_PAREN!
 ;
 
-store_clause : STORE^ alias INTO! filename ( USING! func_clause )?
+store_clause : STORE^ rel INTO! filename ( USING! func_clause )?
 ;
 
 filter_clause : FILTER^ rel BY! cond

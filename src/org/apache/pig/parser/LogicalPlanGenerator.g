@@ -550,10 +550,10 @@ flatten_clause[LogicalExpressionPlan plan]
 ;
 
 store_clause returns[String alias]
- : ^( STORE alias filename func_clause[FunctionType.STOREFUNC]? )
+ : ^( STORE rel filename func_clause[FunctionType.STOREFUNC]? )
    {
        $alias= builder.buildStoreOp( $statement::alias,
-          $alias.name, $filename.filename, $func_clause.funcSpec );
+          $statement::inputAlias, $filename.filename, $func_clause.funcSpec );
    }
 ;
 

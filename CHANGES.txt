@@ -112,6 +112,8 @@ PIG-1696: Performance: Use System.arraycopy() instead of manually copying the by
 
 BUG FIXES
 
+PIG-719: store <expr> into 'filename'; should be valid syntax, but does not work (xuefuz via thejas)
+
 PIG-1770: matches clause problem with chars that have special meaning in dk.brics - #, @ .. (thejas)
 
 PIG-1862: Pig returns exit code 0 for the failed Pig script due to non-existing input directory (rding)

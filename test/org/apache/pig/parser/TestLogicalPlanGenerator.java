@@ -218,6 +218,12 @@ public class TestLogicalPlanGenerator {
     }
 
     @Test
+    public void test17() {
+        String query = "store ( load 'x' ) into 'y';";
+        generateLogicalPlan( query );
+    }
+
+    @Test
     public void testFilter() {
         String query = "A = load 'x' as ( u:int, v:long, w:bytearray); " + 
                        "B = filter A by 2 > 1; ";
