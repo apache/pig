@@ -112,6 +112,9 @@ PIG-1696: Performance: Use System.arraycopy() instead of manually copying the by
 
 BUG FIXES
 
+PIG-1885: SUBSTRING fails when input length less than start (deepujain via
+gates)
+
 PIG-719: store <expr> into 'filename'; should be valid syntax, but does not work (xuefuz via thejas)
 
 PIG-1770: matches clause problem with chars that have special meaning in dk.brics - #, @ .. (thejas)

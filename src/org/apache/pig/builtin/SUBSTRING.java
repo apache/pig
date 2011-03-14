@@ -60,6 +60,9 @@ public class SUBSTRING extends EvalFunc<String> {
         } catch (NullPointerException npe) {
             log.warn(npe.toString());
             return null;
+        } catch (StringIndexOutOfBoundsException npe) {
+            log.warn(npe.toString());
+            return null;
         } catch (ClassCastException e) {
             log.warn(e.toString());
             return null;
