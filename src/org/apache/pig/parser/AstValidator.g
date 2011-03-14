@@ -262,7 +262,7 @@ flatten_generated_item : ( flatten_clause | expr | STAR ) field_def_list?
 flatten_clause : ^( FLATTEN expr )
 ;
 
-store_clause : ^( STORE alias filename func_clause? )
+store_clause : ^( STORE rel filename func_clause? )
 ;
 
 filter_clause : ^( FILTER rel cond )

@@ -293,7 +293,7 @@ flatten_clause
 ;
 
 store_clause 
-    : ^( STORE { sb.append($STORE.text).append(" "); } alias { sb.append(" INTO "); } filename ( { sb.append(" USING "); } func_clause)? )
+    : ^( STORE { sb.append($STORE.text).append(" "); } rel { sb.append(" INTO "); } filename ( { sb.append(" USING "); } func_clause)? )
 ;
 
 filter_clause 
