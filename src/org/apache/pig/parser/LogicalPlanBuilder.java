@@ -604,9 +604,10 @@ public class LogicalPlanBuilder {
         op.setAlias( alias );
     }
     
-    static void setParallel(LogicalRelationalOperator op, Integer parallel) {
-        if( parallel != null )
-            op.setRequestedParallelism( parallel );
+    void setParallel(LogicalRelationalOperator op, Integer parallel) {
+        if( parallel != null ) {
+            op.setRequestedParallelism( pigContext.getExecType() == ExecType.LOCAL ? 1 : parallel );
+        }
     }
     
     static void setPartitioner(LogicalRelationalOperator op, String partitioner) {
