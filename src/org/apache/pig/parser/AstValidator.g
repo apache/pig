@@ -519,7 +519,10 @@ const_expr : literal
 literal : scalar | map | bag | tuple
 ;
 
-scalar : INTEGER | LONGINTEGER | FLOATNUMBER | DOUBLENUMBER | QUOTEDSTRING | NULL
+scalar : num_scalar | QUOTEDSTRING | NULL
+;
+
+num_scalar : MINUS? ( INTEGER | LONGINTEGER | FLOATNUMBER | DOUBLENUMBER )
 ;
 
 map : ^( MAP_VAL keyvalue* )

@@ -101,12 +101,12 @@ public class TestDataBagAccess extends TestCase {
                 new String[] {"sampledata\tnot_used"});
         pigServer.registerQuery("a = load '" 
                 + Util.generateURI(Util.encodeEscape(input.toString()), pigServer.getPigContext()) + "';");
-        pigServer.registerQuery("b = foreach a generate {(16, 4.0e-2, 'hello')} as mybag:{t:(i: int, d: double, c: chararray)};");
-        pigServer.registerQuery("c = foreach b generate mybag.i, mybag.d, mybag.c;");
+        pigServer.registerQuery("b = foreach a generate {(16, 4.0e-2, 'hello', -101)} as mybag:{t:(i: int, d: double, c: chararray, e : int)};");
+        pigServer.registerQuery("c = foreach b generate mybag.i, mybag.d, mybag.c, mybag.e;");
         Iterator<Tuple> it = pigServer.openIterator("c");
         Tuple t = it.next();
-        Object[] results = new Object[] { new Integer(16), new Double(4.0e-2), "hello" };
-        Class[] resultClasses = new Class[] { Integer.class, Double.class, String.class };
+        Object[] results = new Object[] { new Integer(16), new Double(4.0e-2), "hello", new Integer( -101 ) };
+        Class[] resultClasses = new Class[] { Integer.class, Double.class, String.class, Integer.class };
         assertEquals(results.length, t.size());
         for (int i = 0; i < results.length; i++) {
             DataBag bag = (DataBag)t.get(i);

@@ -241,6 +241,14 @@ public class TestLogicalPlanGenerator {
     }
 
     @Test
+    public void testConstantWithNegativeValue() {
+        String query = "A = load 'x' as ( u:int, v:long, w:bytearray);" + 
+                       "B = foreach A generate u, { ( -1, -15L, -3.5, -4.03F, -2.3e3 ) };" +
+                       "store B into 'y';";
+        generateLogicalPlan ( query );
+    }
+
+    @Test
     public void testNegative1() {
         String query = "A = load 'x' as ( a : bag{ T:tuple(u, v) }, c : int, d : long );" +
                        "B = foreach A { S = c * 2; T = limit S 100; generate T; };" +

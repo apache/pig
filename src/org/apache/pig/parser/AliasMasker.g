@@ -618,13 +618,17 @@ const_expr : literal
 literal : scalar | map | bag | tuple
 ;
 
-scalar 
-    : INTEGER { sb.append($INTEGER.text); }
-    | LONGINEGER { sb.append($LONGINEGER.text); }
-    | FLOATNUMBER { sb.append($FLOATNUMBER.text); }
-    | DOUBLENUMBER { sb.append($DOUBLENUMBER.text); }
-    | QUOTEDSTRING { sb.append($QUOTEDSTRING.text); }
-    | NULL { sb.append($NULL.text); }    
+scalar : num_scalar
+       | QUOTEDSTRING { sb.append($QUOTEDSTRING.text); }
+       | NULL { sb.append($NULL.text); }    
+;
+
+num_scalar : ( MINUS { sb.append( "-" ); } )?
+             ( INTEGER { sb.append($INTEGER.text); }
+             | LONGINEGER { sb.append($LONGINEGER.text); }
+             | FLOATNUMBER { sb.append($FLOATNUMBER.text); }
+             | DOUBLENUMBER { sb.append($DOUBLENUMBER.text); }
+             )
 ;
 
 map 

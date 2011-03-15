@@ -49,16 +49,16 @@ public class QueryParserDriver {
         LogicalPlan plan = null;
         
         CommonTokenStream tokenStream = tokenize( query );
-	    Tree ast = null;
-	        
+        Tree ast = null;
+            
         try {
-	        ast = parse( tokenStream );
+            ast = parse( tokenStream );
         } catch(RuntimeException ex) {
             throw new ParserException( ex.getMessage() );
         }
 
         try{       
-    	    ast = validateAst( ast );
+            ast = validateAst( ast );
             LogicalPlanGenerator planGenerator = 
                 new LogicalPlanGenerator( new CommonTreeNodeStream( ast ), pigContext, scope, fileNameMap );
             planGenerator.query();
@@ -82,11 +82,11 @@ public class QueryParserDriver {
 
     private static CommonTokenStream tokenize(String query) throws ParserException {
         CharStream input;
-		try {
-			input = new QueryParserStringStream( query );
-		} catch(IOException ex) {
-			throw new ParserException( "Unexpected IOException: " + ex.getMessage() );
-		}
+        try {
+            input = new QueryParserStringStream( query );
+        } catch(IOException ex) {
+            throw new ParserException( "Unexpected IOException: " + ex.getMessage() );
+        }
         QueryLexer lexer = new QueryLexer( input );
         CommonTokenStream tokens = new CommonTokenStream( lexer );
         checkError( lexer );
@@ -103,13 +103,13 @@ public class QueryParserDriver {
         QueryParser parser = new QueryParser( tokens );
       
         QueryParser.query_return result = null;
-		try {
-			result = parser.query();
-		} catch (RecognitionException e) {
-			String msg = parser.getErrorHeader(e) + " " + parser.getErrorMessage(e, parser.getTokenNames() );
-			throw new ParserException( msg );
-		}
-		
+        try {
+            result = parser.query();
+        } catch (RecognitionException e) {
+            String msg = parser.getErrorHeader(e) + " " + parser.getErrorMessage(e, parser.getTokenNames() );
+            throw new ParserException( msg );
+        }
+        
         Tree ast = (Tree)result.getTree();
         checkError( parser );
         

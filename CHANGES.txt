@@ -114,6 +114,8 @@ PIG-1696: Performance: Use System.arraycopy() instead of manually copying the by
 
 BUG FIXES
 
+PIG-1152: bincond operator throws parser error (xuefuz via thejas)
+
 PIG-1885: SUBSTRING fails when input length less than start (deepujain via
 gates)
 

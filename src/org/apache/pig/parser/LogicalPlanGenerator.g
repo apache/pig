@@ -401,10 +401,10 @@ map_type returns[LogicalSchema logicalSchema]
  : ^( MAP_TYPE type? )
    {
        LogicalSchema s = null;
-       if ($type.datatype!=null) {
-	       s = new LogicalSchema();
-	       s.addField(new LogicalFieldSchema(null, $type.logicalSchema, $type.datatype));
-	   }
+       if( $type.datatype != null ) {
+           s = new LogicalSchema();
+           s.addField( new LogicalFieldSchema( null, $type.logicalSchema, $type.datatype ) );
+       }
        $logicalSchema = s;
    }
 ;
@@ -1319,25 +1319,10 @@ literal returns[Object value, byte type]
 ;
 
 scalar returns[Object value, byte type]
- : INTEGER
-   { 
-       $type = DataType.INTEGER;
-       $value = Integer.valueOf( $INTEGER.text );
-   }
- | LONGINTEGER 
-   { 
-       $type = DataType.LONG;
-       $value = builder.parseLong( $LONGINTEGER.text );
-   }
- | FLOATNUMBER 
-   { 
-       $type = DataType.FLOAT;
-       $value = Float.valueOf( $FLOATNUMBER.text );
-   }
- | DOUBLENUMBER 
-   { 
-       $type = DataType.DOUBLE;
-       $value = Double.valueOf( $DOUBLENUMBER.text );
+ : num_scalar
+   {
+       $type = $num_scalar.type;
+       $value = $num_scalar.value;
    }
  | QUOTEDSTRING 
    { 
@@ -1348,6 +1333,34 @@ scalar returns[Object value, byte type]
    { 
        $type = DataType.NULL;
    }
+;
+
+num_scalar returns[Object value, byte type]
+@init {
+    int sign = 1;
+}
+ : ( MINUS { sign = -1; } ) ?
+   ( INTEGER
+     { 
+         $type = DataType.INTEGER;
+         $value = sign * Integer.valueOf( $INTEGER.text );
+     }
+   | LONGINTEGER 
+     { 
+         $type = DataType.LONG;
+         $value = sign * builder.parseLong( $LONGINTEGER.text );
+     }
+   | FLOATNUMBER 
+     { 
+         $type = DataType.FLOAT;
+         $value = sign * Float.valueOf( $FLOATNUMBER.text );
+     }
+   | DOUBLENUMBER 
+     { 
+         $type = DataType.DOUBLE;
+         $value = sign * Double.valueOf( $DOUBLENUMBER.text );
+     }
+   )
 ;
 
 map returns[Object value]
