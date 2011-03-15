@@ -102,7 +102,7 @@ public String getErrorMessage(RecognitionException e, String[] tokenNames ) {
 }
 
 public String getTokenErrorDisplay(Token t) {
-    return t.toString();
+    return "['" + t.getText() + "']";
 }
 
 } // End of @members
@@ -541,7 +541,10 @@ literal : scalar | map | bag | tuple
 ;
 
 
-scalar : INTEGER | LONGINTEGER | FLOATNUMBER | DOUBLENUMBER | QUOTEDSTRING | NULL
+scalar : num_scalar | QUOTEDSTRING | NULL
+;
+
+num_scalar : MINUS? ( INTEGER | LONGINTEGER | FLOATNUMBER | DOUBLENUMBER )
 ;
 
 map : LEFT_BRACKET ( keyvalue ( COMMA keyvalue )* )? RIGHT_BRACKET
