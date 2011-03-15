@@ -304,6 +304,8 @@ public class PushUpFilter extends Rule {
         // check if a relational operator contains all of the specified uids
         private boolean hasAll(LogicalRelationalOperator op, Set<Long> uids) throws FrontendException {
             LogicalSchema schema = op.getSchema();
+            if (schema==null)
+                return false;
             for(long uid: uids) {
                 if (schema.findField(uid) == -1) {
                     return false;

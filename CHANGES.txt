@@ -225,6 +225,8 @@ PIG-1309: Map-side Cogroup (ashutoshc)
 
 BUG FIXES
 
+PIG-1808: Error message in 0.8 not much helpful as compared to 0.7 (daijy)
+
 PIG-1770: matches clause problem with chars that have special meaning in dk.brics - #, @ .. (thejas)
 
 PIG-1884: Change ReadToEndLoader.setLocation not throw UnsupportedOperationException (thejas)
