@@ -1111,6 +1111,25 @@ public class TestPushUpFilter extends junit.framework.TestCase {
         assertTrue(pushUpFilter.getPushBefore() == false);
         assertTrue(pushUpFilter.getPushBeforeInput() == -1);
     }
+    
+    // See PIG-1808
+    @Test
+    public void testJoinNoSchema() throws Exception {
+        planTester.buildPlan("A = load '1.txt';");
+        planTester.buildPlan("B = load '2.txt';");
+        planTester.buildPlan("c = join A by $1 left outer, B by $1;");        
+        LogicalPlan lp = planTester.buildPlan("d = filter c by $2 is null;");
+        
+        planTester.setPlan(lp);
+        planTester.setProjectionMap(lp);
+        
+        PushUpFilter pushUpFilter = new PushUpFilter(lp);
+        
+        assertTrue(!pushUpFilter.check(lp.getLeaves()));
+        assertTrue(pushUpFilter.getSwap() == false);
+        assertTrue(pushUpFilter.getPushBefore() == false);
+        assertTrue(pushUpFilter.getPushBeforeInput() == -1);
+    }
 
 }
 
