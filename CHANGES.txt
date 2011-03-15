@@ -26,6 +26,8 @@ PIG-1680: HBaseStorage should work with HBase 0.90 (gstathis, billgraham, dvryab
 
 IMPROVEMENTS
 
+PIG-1566: Support globbing for registering jars in pig script (nrai via daijy)
+
 PIG-1886: Add zookeeper jar to list of jars shipped when HBaseStorage used (dvryaboy)
 
 PIG-1874: Make PigServer work in a multithreading environment (rding)
