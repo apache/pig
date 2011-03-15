@@ -345,6 +345,8 @@ PIG-1309: Map-side Cogroup (ashutoshc)
 
 BUG FIXES
 
+PIG-1808: Error message in 0.8 not much helpful as compared to 0.7 (daijy)
+
 PIG-1850: Order by is failing with ClassCastException if schema is undefined
 for new logical plan in 0.8 (daijy)
 
