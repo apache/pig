@@ -18,9 +18,15 @@
 
 package org.apache.pig.impl.util;
 
+import java.io.IOException;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.pig.LoadCaster;
 import org.apache.pig.PigWarning;
+import org.apache.pig.ResourceSchema.ResourceFieldSchema;
+import org.apache.pig.data.DataByteArray;
+import org.apache.pig.data.DataType;
 
 public class CastUtils {
 
@@ -30,6 +36,30 @@ public class CastUtils {
 	
 	protected static final Log mLog = LogFactory.getLog(CastUtils.class);
 
+	/**
+	 *
+	 * @param caster LoadCaster to be used to convert the bytes into a field.
+	 * @param bytes
+	 * @param fieldSchema schema of Bag or Tuple; pass in null if a simple type.
+	 * @param dataType type from DataType
+	 * @return converted object.
+	 * @throws IOException
+	 */
+	public static Object convertToType(LoadCaster caster, byte[] bytes,
+	        ResourceFieldSchema fieldSchema, byte dataType) throws IOException {
+	    switch (dataType) {
+	    case (DataType.BAG): return caster.bytesToBag(bytes, fieldSchema);
+	    case (DataType.BYTEARRAY): return new DataByteArray(bytes);
+	    case (DataType.CHARARRAY): return caster.bytesToCharArray(bytes);
+	    case (DataType.DOUBLE): return caster.bytesToDouble(bytes);
+	    case (DataType.FLOAT): return caster.bytesToFloat(bytes);
+	    case (DataType.INTEGER): return caster.bytesToInteger(bytes);
+	    case (DataType.LONG): return caster.bytesToLong(bytes);
+	    case (DataType.MAP): return caster.bytesToMap(bytes);
+	    case (DataType.TUPLE): return caster.bytesToTuple(bytes, fieldSchema);
+	    default: throw new IOException("Unknown type " + dataType);
+	    }
+	}
 
 	public static Double stringToDouble(String str) {
 		if (str == null) {

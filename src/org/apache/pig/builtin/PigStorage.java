@@ -69,7 +69,7 @@ LoadPushDown {
     protected RecordReader in = null;    
     protected RecordWriter writer = null;
     protected final Log mLog = LogFactory.getLog(getClass());
-    private String signature;
+    protected String signature;
         
     private byte fieldDel = '\t';
     private ArrayList<Object> mProtoTuple = null;
@@ -79,7 +79,7 @@ LoadPushDown {
     public PigStorage() {
     }
     
-    private boolean[] mRequiredColumns = null;
+    protected boolean[] mRequiredColumns = null;
     
     private boolean mRequiredColumnsInitialized = false;
 
@@ -267,7 +267,7 @@ LoadPushDown {
 
     @Override
     public int hashCode() {
-        return (int)fieldDel;
+        return fieldDel;
     }
 
     

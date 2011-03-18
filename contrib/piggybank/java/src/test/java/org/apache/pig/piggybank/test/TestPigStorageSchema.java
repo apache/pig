@@ -19,8 +19,7 @@
 
 package org.apache.pig.piggybank.test;
 
-import static org.junit.Assert.assertEquals;
-
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -42,14 +41,15 @@ import org.apache.pig.test.MiniCluster;
 import org.apache.pig.test.Util;
 import org.apache.pig.test.utils.TypeCheckingTestUtil;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import junit.framework.TestCase;
-
-public class TestPigStorageSchema extends TestCase {
+public class TestPigStorageSchema {
 
     protected ExecType execType = ExecType.MAPREDUCE;
+    static MiniCluster cluster = MiniCluster.buildCluster();
+    static PigServer pig;
 
     PigContext pigContext = new PigContext(ExecType.MAPREDUCE, new Properties());
     Map<LogicalOperator, LogicalPlan> aliases = new HashMap<LogicalOperator, LogicalPlan>();
@@ -57,14 +57,8 @@ public class TestPigStorageSchema extends TestCase {
     Map<String, LogicalOperator> aliasOp = new HashMap<String, LogicalOperator>();
     Map<String, String> fileNameMap = new HashMap<String, String>();
 
-    MiniCluster cluster = MiniCluster.buildCluster();
-
-    private PigServer pig;
-
     @Before
-    @Override
-    protected void setUp() throws Exception {
-        super.setUp();
+    public void setUp() throws Exception {
         pig = new PigServer(ExecType.MAPREDUCE, cluster.getProperties());
         String origPath = FileLocalizer.fullPath("originput", pig.getPigContext()); 
         if (FileLocalizer.fileExists(origPath, pig.getPigContext())) {
@@ -78,19 +72,22 @@ public class TestPigStorageSchema extends TestCase {
     }
     
     @After
-    @Override
-    protected void tearDown() throws Exception {
-        Util.deleteFile(cluster, "originput");
-        String aoutPath = FileLocalizer.fullPath("aout", pig.getPigContext()); 
-        if (FileLocalizer.fileExists(aoutPath, pig.getPigContext())) {
-            FileLocalizer.delete(aoutPath, pig.getPigContext());
+    public void tearDown() throws Exception {
+        for (String f : new String[] {"originput", "aout", "originput2",
+                "bout", ".pig_schema.bout", ".pig_schema.aout", "cout", ".pig_schema.cout",
+        ".pig_schema"}) {
+            if (FileLocalizer.fileExists(f, pig.getPigContext())) {
+                FileLocalizer.delete(f, pig.getPigContext());
         }
+    }
+        pig.shutdown();
     }
     
     @Test
     public void testPigStorageSchema() throws Exception {
         pigContext.connect();
-        String query = "a = LOAD 'originput' using org.apache.pig.piggybank.storage.PigStorageSchema() as (f1:chararray, f2:int);";
+        String query = "a = LOAD 'originput' using org.apache.pig.piggybank.storage.PigStorageSchema() " +
+        "as (f1:chararray, f2:int);";
         pig.registerQuery(query);
         Schema origSchema = pig.dumpSchema("a");
         pig.registerQuery("STORE a into 'aout' using org.apache.pig.piggybank.storage.PigStorageSchema();");
@@ -102,16 +99,19 @@ public class TestPigStorageSchema extends TestCase {
         
         pig.registerQuery("b = LOAD 'aout' using org.apache.pig.piggybank.storage.PigStorageSchema();");
         Schema genSchema = pig.dumpSchema("b");
-        assertTrue("generated schema equals original" , Schema.equals(genSchema, origSchema, true, false));
+        Assert.assertTrue("generated schema equals original" ,
+                Schema.equals(genSchema, origSchema, true, false));
         
         // Verify that giving our own schema works
         String [] aliases ={"foo", "bar"};
         byte[] types = {DataType.INTEGER, DataType.LONG};
         Schema newSchema = TypeCheckingTestUtil.genFlatSchema(
                 aliases,types);
-        pig.registerQuery("c = LOAD 'aout' using org.apache.pig.piggybank.storage.PigStorageSchema() as (foo:int, bar:long);");
+        pig.registerQuery("c = LOAD 'aout' using org.apache.pig.piggybank.storage.PigStorageSchema() "+
+        "as (foo:int, bar:long);");
         Schema newGenSchema = pig.dumpSchema("c");
-        assertTrue("explicit schema overrides metadata", Schema.equals(newSchema, newGenSchema, true, false));
+        Assert.assertTrue("explicit schema overrides metadata",
+                Schema.equals(newSchema, newGenSchema, true, false));
         
     }
     
@@ -123,7 +123,8 @@ public class TestPigStorageSchema extends TestCase {
                               "5", "5", "8", "8",
                               "8", "9"});
         
-        pig.registerQuery("A = LOAD 'originput2' using org.apache.pig.piggybank.storage.PigStorageSchema() as (f:int);");
+        pig.registerQuery("A = LOAD 'originput2' using org.apache.pig.piggybank.storage.PigStorageSchema() " +
+        "as (f:int);");
         pig.registerQuery("B = group A by f;");
         Schema origSchema = pig.dumpSchema("B");
         ResourceSchema rs1 = new ResourceSchema(origSchema);
@@ -132,7 +133,7 @@ public class TestPigStorageSchema extends TestCase {
         pig.registerQuery("C = LOAD 'bout' using org.apache.pig.piggybank.storage.PigStorageSchema();");
         Schema genSchema = pig.dumpSchema("C");
         ResourceSchema rs2 = new ResourceSchema(genSchema);
-        assertTrue("generated schema equals original" , ResourceSchema.equals(rs1, rs2));
+        Assert.assertTrue("generated schema equals original" , ResourceSchema.equals(rs1, rs2));
         
         pig.registerQuery("C1 = LOAD 'bout' as (a0:int, A: {t: (f:int) } );");
         pig.registerQuery("D = foreach C1 generate a0, SUM(A);");
@@ -150,16 +151,17 @@ public class TestPigStorageSchema extends TestCase {
         Iterator<Tuple> iter = pig.openIterator("D");
         int counter = 0;
         while (iter.hasNext()) {
-            assertEquals(expectedResults.get(counter++).toString(), iter.next().toString());      
+            Assert.assertEquals(expectedResults.get(counter++).toString(), iter.next().toString());
         }
         
-        assertEquals(expectedResults.size(), counter);
+        Assert.assertEquals(expectedResults.size(), counter);
     }
     
     @Test
     public void testSchemaConversion2() throws Exception {   
  
-        pig.registerQuery("A = LOAD 'originput' using org.apache.pig.piggybank.storage.PigStorageSchema(',') as (f1:chararray, f2:int);");
+        pig.registerQuery("A = LOAD 'originput' using org.apache.pig.piggybank.storage.PigStorageSchema(',') " +
+        "as (f1:chararray, f2:int);");
         pig.registerQuery("B = group A by f1;");
         Schema origSchema = pig.dumpSchema("B");
         ResourceSchema rs1 = new ResourceSchema(origSchema);
@@ -168,7 +170,7 @@ public class TestPigStorageSchema extends TestCase {
         pig.registerQuery("C = LOAD 'cout' using org.apache.pig.piggybank.storage.PigStorageSchema();");
         Schema genSchema = pig.dumpSchema("C");
         ResourceSchema rs2 = new ResourceSchema(genSchema);
-        assertTrue("generated schema equals original" , ResourceSchema.equals(rs1, rs2));
+        Assert.assertTrue("generated schema equals original" , ResourceSchema.equals(rs1, rs2));
         
         pig.registerQuery("C1 = LOAD 'cout' as (a0:chararray, A: {t: (f1:chararray, f2:int) } );");
         pig.registerQuery("D = foreach C1 generate a0, SUM(A.f2);");
@@ -184,10 +186,37 @@ public class TestPigStorageSchema extends TestCase {
         Iterator<Tuple> iter = pig.openIterator("D");
         int counter = 0;
         while (iter.hasNext()) {
-            assertEquals(expectedResults.get(counter++).toString(), iter.next().toString());      
+            Assert.assertEquals(expectedResults.get(counter++).toString(), iter.next().toString());
         }
         
-        assertEquals(expectedResults.size(), counter);
+        Assert.assertEquals(expectedResults.size(), counter);
     }
  
+    /**
+     * See PIG-1830
+     * @throws IOException
+     */
+    @Test
+    public void testByteArrayConversion() throws IOException {
+        Util.createInputFile(cluster, "originput2",
+                new String[] {"peter\t1", "samir\t2", "michael\t4",
+                "peter\t2", "peter\t4", "samir\t1"
+        });
+        Util.createInputFile(cluster, ".pig_schema",
+                new String[] {
+                "{\"fields\":[{\"name\":\"name\",\"type\":55,\"schema\":null," +
+                "\"description\":\"autogenerated from Pig Field Schema\"}," +
+                "{\"name\":\"val\",\"type\":10,\"schema\":null,\"description\":"+
+                "\"autogenerated from Pig Field Schema\"}],\"version\":0," +
+                "\"sortKeys\":[],\"sortKeyOrders\":[]}"
+        });
+        pig.registerQuery("Events = LOAD 'originput2' USING org.apache.pig.piggybank.storage.PigStorageSchema();");
+        pig.registerQuery("Sessions = GROUP Events BY name;");
+        Iterator<Tuple> sessions = pig.openIterator("Sessions");
+        while (sessions.hasNext()) {
+            System.out.println(sessions.next());
+}
+
+
+    }
 }
