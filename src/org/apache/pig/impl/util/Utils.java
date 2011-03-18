@@ -235,9 +235,9 @@ public class Utils {
         Collection<O> result = null;
         try {
             if (a!=null)
-                result = (Collection<O>)a.getClass().newInstance();
+                result = a.getClass().newInstance();
             else
-                result = (Collection<O>)b.getClass().newInstance();
+                result = b.getClass().newInstance();
         } catch (Exception e) {
             // Shall not happen
         }

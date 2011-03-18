@@ -483,9 +483,8 @@ public class ResourceSchema implements Serializable {
     
     private static void stringifyResourceSchema(StringBuilder sb, 
             ResourceSchema rs, byte type, boolean printAlias) {
-        if (type == DataType.UNKNOWN) {
-            sb.append("<");
-        } else if (type == DataType.BAG) {
+
+        if (type == DataType.BAG) {
             sb.append("{");
         } else if (type == DataType.TUPLE) {
             sb.append("(");
@@ -500,9 +499,7 @@ public class ResourceSchema implements Serializable {
             }
         }
                 
-        if (type == DataType.UNKNOWN) {
-            sb.append(">");
-        } else if (type == DataType.BAG) {
+        if (type == DataType.BAG) {
             sb.append("}");
         } else if (type == DataType.TUPLE) {
             sb.append(")");

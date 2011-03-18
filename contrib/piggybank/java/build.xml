@@ -21,7 +21,7 @@
     <property name="javac.level" value="source,lines,vars"/>
     <property name="javac.optimize" value="on" />
     <property name="javac.deprecation" value="off" />
-    <property name="javac.version" value="1.5" />
+    <property name="javac.version" value="1.6" />
     <property name="javac.args" value="" />
     <!-- TODO we should use warning...   <property name="javac.args.warnings" value="-Xlint:unchecked" /> -->
     <property name="javac.args.warnings" value="" />
@@ -109,7 +109,8 @@
     </target>
     <target depends="compile" name="compile-test">
         <echo> *** Compiling UDF tests ***</echo>
-        <javac srcdir="${test.src.dir}" debug="true" debuglevel="${debuglevel}" destdir="${test.classes}" source="${javac.version}" target="${javac.version}">
+        <javac srcdir="${test.src.dir}" debug="${javac.debug}" debuglevel="${javac.level}" destdir="${test.classes}" source="${javac.version}" target="${javac.version}">
+            <compilerarg line="${javac.args} ${javac.args.warnings}"/>
             <classpath refid="pigudf.classpath"/>
         </javac>
     </target>
