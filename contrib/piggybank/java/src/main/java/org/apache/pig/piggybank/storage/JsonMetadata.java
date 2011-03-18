@@ -145,7 +145,6 @@ public class JsonMetadata implements LoadMetadata, StoreMetadata {
      * For JsonMetadata schema is considered optional
      * This method suppresses (and logs) errors if they are encountered.
      * 
-     * TODO location and conf params are ignored in favor of initialzation data 
      */
     @Override
     public ResourceSchema getSchema(String location, Job job) throws IOException {     
@@ -166,7 +165,7 @@ public class JsonMetadata implements LoadMetadata, StoreMetadata {
             log.warn("Could not find schema file for "+location); 
             return null;
         }
-        log.info("Found schema file: "+schemaFile.toString());
+        log.debug("Found schema file: "+schemaFile.toString());
         ResourceSchema resourceSchema = null;
         try {
             resourceSchema = new ObjectMapper().readValue(schemaFile.open(), ResourceSchema.class);
@@ -180,7 +179,6 @@ public class JsonMetadata implements LoadMetadata, StoreMetadata {
             log.warn("Unable to load Resource Schema for "+location);
             e.printStackTrace();
         }
-
         return resourceSchema;
     }
 
@@ -206,7 +204,7 @@ public class JsonMetadata implements LoadMetadata, StoreMetadata {
             log.warn("Could not find stat file for "+location);
             return null;
         }
-        log.info("Found stat file "+statFile.toString());
+        log.debug("Found stat file "+statFile.toString());
         ResourceStatistics resourceStats = null;        
         try {
             resourceStats = new ObjectMapper().readValue(statFile.open(), ResourceStatistics.class);

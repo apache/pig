@@ -19,15 +19,23 @@
 package org.apache.pig.piggybank.storage;
 
 import java.io.IOException;
+import java.util.Properties;
 
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.pig.Expression;
+import org.apache.pig.LoadCaster;
 import org.apache.pig.LoadMetadata;
 import org.apache.pig.ResourceSchema;
+import org.apache.pig.ResourceSchema.ResourceFieldSchema;
 import org.apache.pig.ResourceStatistics;
 import org.apache.pig.StoreMetadata;
 import org.apache.pig.builtin.PigStorage;
+import org.apache.pig.data.DataByteArray;
+import org.apache.pig.data.Tuple;
+import org.apache.pig.impl.logicalLayer.parser.ParseException;
+import org.apache.pig.impl.util.CastUtils;
+import org.apache.pig.impl.util.UDFContext;
+import org.apache.pig.impl.util.Utils;
 
 /**
  *  This Load/Store Func reads/writes metafiles that allow the schema and 
@@ -43,6 +51,9 @@ import org.apache.pig.builtin.PigStorage;
  */
 public class PigStorageSchema extends PigStorage implements LoadMetadata, StoreMetadata {
 
+    private ResourceSchema schema;
+    LoadCaster caster;
+
     public PigStorageSchema() {
         super();
     }
@@ -51,13 +62,59 @@ public class PigStorageSchema extends PigStorage implements LoadMetadata, StoreM
         super(delim);
     }
      
+    @Override
+    public Tuple getNext() throws IOException {
+        Tuple tup = super.getNext();
+        if (tup == null) return null;
+
+        if ( caster == null) {
+            caster = getLoadCaster();
+        }
+        if (signature != null) {
+            Properties p = UDFContext.getUDFContext().getUDFProperties(this.getClass(),
+                    new String[] {signature});
+            String serializedSchema = p.getProperty(signature+".schema");
+            if (serializedSchema == null) return tup;
+            try {
+                schema = new ResourceSchema(Utils.getSchemaFromString(serializedSchema));
+            } catch (ParseException e) {
+                mLog.error("Unable to parse serialized schema " + serializedSchema, e);
+            }
+        }
+
+        if (schema != null) {
+
+            ResourceFieldSchema[] fieldSchemas = schema.getFields();
+            int tupleIdx = 0;
+            // If some fields have been projected out, the tuple
+            // only contains required fields.
+            // We walk the requiredColumns array to find required fields,
+            // and cast those.
+            for (int i = 0; i < fieldSchemas.length; i++) {
+                if (mRequiredColumns == null || mRequiredColumns[i]) {
+                    byte[] bytes = ((DataByteArray) tup.get(tupleIdx)).get();
+                    tup.set(tupleIdx, CastUtils.convertToType(caster, bytes,
+                            fieldSchemas[i], fieldSchemas[i].getType()));
+                    tupleIdx++;
+                }
+            }
+        }
+        return tup;
+    }
+
     //------------------------------------------------------------------------
     // Implementation of LoadMetaData interface
     
     @Override
     public ResourceSchema getSchema(String location,
             Job job) throws IOException {
-        return (new JsonMetadata()).getSchema(location, job);
+        schema = (new JsonMetadata()).getSchema(location, job);
+        if (signature != null && schema != null) {
+            Properties p = UDFContext.getUDFContext().getUDFProperties(this.getClass(),
+                    new String[] {signature});
+            p.setProperty(signature + ".schema", schema.toString());
+    }
+        return schema;
     }
 
     @Override
