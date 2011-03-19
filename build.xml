@@ -84,6 +84,7 @@
     <property name="test.unit.file" value="${test.src.dir}/unit-tests"/>
     <property name="test.smoke.file" value="${test.src.dir}/smoke-tests"/>
     <property name="test.all.file" value="${test.src.dir}/all-tests"/>
+    <property name="test.exclude.file" value="${test.src.dir}/excluded-tests"/>
     <property name="pigunit.jarfile" value="pigunit.jar" />
     <property name="smoke.tests.jarfile" value="${build.dir}/${final.name}-smoketests.jar" />
     <property name="test.pigunit.src.dir" value="${test.src.dir}/org/apache/pig/test/pigunit" />
@@ -688,27 +689,8 @@
                 <fileset dir="test">
                     <patternset>
                        <includesfile name="@{test.file}"/>
+                       <excludesfile name="${test.exclude.file}" if="test.exclude.file"/>
                     </patternset>
-
-                    <!--include name="**/*Test*.java" /-->
-                    <!-- Excluced because they are end-to-end, don't work yet.  -->
-                    <!--
-                    <exclude name="**/TestFilterOpNumeric.java" />
-                    <exclude name="**/TestPigFile.java" />
-                    <exclude name="**/TestStoreOld.java" />
-                    -->
-                    <!-- Excluced because we don't want to run them -->
-                    <exclude name="**/PigExecTestCase.java" />
-                    <exclude name="**/TypeCheckingTestUtil.java" />
-                    <exclude name="**/TypeGraphPrinter.java" />
-                    <exclude name="**/LogicalPlanTester.java" />
-                    <exclude name="**/TestHelper.java" />
-                    <exclude name="**/TestLargeFile.java" />
-                    <exclude name="**/TestOrderBy.java" />
-                    <exclude name="**/TestOrderBy2.java" />
-                    <exclude name="**/TestPi.java" />
-                    <exclude name="**/nightly/**" />
-                    <!-- <exclude name="**/pigunit/**" /> -->
                     <exclude name="**/${exclude.testcase}.java" if="exclude.testcase" />
                 </fileset>
             </batchtest>
