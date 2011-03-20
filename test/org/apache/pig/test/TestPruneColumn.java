@@ -29,6 +29,7 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.hadoop.fs.Path;
 import org.apache.log4j.FileAppender;
@@ -62,6 +63,7 @@ public class TestPruneColumn extends TestCase {
     File tmpFile9;
     File tmpFile10;
     File tmpFile11;
+    File tmpFile12;
     File logFile;
 
     static public class PigStorageWithTrace extends PigStorage {
@@ -179,6 +181,12 @@ public class TestPruneColumn extends TestCase {
         ps.println("1\t3\t2");
         ps.println("2\t5\t2");
         ps.close();
+        
+        tmpFile12 = File.createTempFile("prune", "txt");
+        ps = new PrintStream(new FileOutputStream(tmpFile12));
+        ps.println("[key1#1,key2#2,cond#1]");
+        ps.println("[key1#2,key2#3,cond#1]");
+        ps.close();
     }
     
     @After
@@ -194,6 +202,8 @@ public class TestPruneColumn extends TestCase {
         tmpFile8.delete();
         tmpFile9.delete();
         tmpFile10.delete();
+        tmpFile11.delete();
+        tmpFile12.delete();
         logFile.delete();
     }
     
@@ -1271,6 +1281,52 @@ public class TestPruneColumn extends TestCase {
         assertFalse(iter.hasNext());
         
         assertTrue(checkLogFileMessage(new String[]{"Map key required for A: $1->[key1]"}));
+    }
+    
+    @Test
+    public void testMapKeyInSplit1() throws Exception {
+        pigServer.registerQuery("A = load '"+ Util.generateURI(tmpFile12.toString(), pigServer.getPigContext()) + "' as (m:map[]);");
+        pigServer.registerQuery("B = foreach A generate m#'key1' as key1;");
+        pigServer.registerQuery("C = foreach A generate m#'key2' as key2;");
+        pigServer.registerQuery("D = join B by key1, C by key2;");
+        
+        Iterator<Tuple> iter = pigServer.openIterator("D");
+        
+        assertTrue(iter.hasNext());
+        Tuple t = iter.next();
+        assertTrue(t.size()==2);
+        assertTrue(t.get(0).toString().equals("2"));
+        assertTrue(t.get(1).toString().equals("2"));
+        
+        assertFalse(iter.hasNext());
+        
+        assertTrue(checkLogFileMessage(new String[]{"Map key required for A: $0->[key2, key1]"}));
+    }
+    
+    @SuppressWarnings("rawtypes")
+    @Test
+    public void testMapKeyInSplit2() throws Exception {
+        pigServer.registerQuery("A = load '"+ Util.generateURI(tmpFile12.toString(), pigServer.getPigContext()) + "' as (m:map[]);");
+        pigServer.registerQuery("B = filter A by m#'cond'==1;");
+        pigServer.registerQuery("C = filter B by m#'key1'==1;");
+        pigServer.registerQuery("D = filter B by m#'key2'==2;");
+        pigServer.registerQuery("E = join C by m#'key1', D by m#'key1';");
+        
+        Iterator<Tuple> iter = pigServer.openIterator("E");
+        
+        assertTrue(iter.hasNext());
+        Tuple t = iter.next();
+        assertTrue(t.size()==2);
+        assertTrue(((Map)t.get(0)).get("key1").toString().equals("1"));
+        assertTrue(((Map)t.get(0)).get("key2").toString().equals("2"));
+        assertTrue(((Map)t.get(0)).get("cond").toString().equals("1"));
+        assertTrue(((Map)t.get(1)).get("key1").toString().equals("1"));
+        assertTrue(((Map)t.get(1)).get("key2").toString().equals("2"));
+        assertTrue(((Map)t.get(1)).get("cond").toString().equals("1"));
+        
+        assertFalse(iter.hasNext());
+        
+        assertTrue(this.emptyLogFileMessage());
     }
     
     @Test
