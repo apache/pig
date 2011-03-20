@@ -44,6 +44,7 @@ import org.apache.pig.newplan.logical.relational.LOGenerate;
 import org.apache.pig.newplan.logical.relational.LOJoin;
 import org.apache.pig.newplan.logical.relational.LOLoad;
 import org.apache.pig.newplan.logical.relational.LOSort;
+import org.apache.pig.newplan.logical.relational.LOSplitOutput;
 import org.apache.pig.newplan.logical.relational.LOStore;
 import org.apache.pig.newplan.logical.relational.LOUnion;
 import org.apache.pig.newplan.logical.relational.LogicalRelationalOperator;
@@ -256,6 +257,26 @@ public class MapKeysPruneHelper {
             }
         }
         
+        
+        @Override
+        public void visit(LOSplitOutput splitOutput) throws FrontendException {
+            super.visit(splitOutput);
+            if (splitOutput.getSchema()!=null) {
+                for (LogicalFieldSchema fs : splitOutput.getSchema().getFields()) {
+                    long inputUid = splitOutput.getInputUids(fs.uid);
+                    if( inputUid!=-1) {
+                        Set<String> mapKeySet = inputUids.get(fs.uid);
+                        if (mapKeySet!=null) {
+                            if (inputUids.containsKey(inputUid))
+                                inputUids.get(inputUid).addAll(mapKeySet);
+                            else
+                                inputUids.put(inputUid, mapKeySet);
+                        }
+                    }
+                }
+            }
+        }
+        
         private void mergeUidKeys( Map<Long, Set<String> > inputMap ) {
             for( Map.Entry<Long, Set<String>> entry : inputMap.entrySet() ) {
                 if( inputUids.containsKey(entry.getKey()) ) {
@@ -302,7 +323,7 @@ public class MapKeysPruneHelper {
         Set<Long> fullMapUids = new HashSet<Long>();
 
         protected FullMapCollector(OperatorPlan plan, Set<Long> fullMapUids) throws FrontendException {
-            super(plan, new DependencyOrderWalker(plan));
+            super(plan, new ReverseDependencyOrderWalker(plan));
             this.fullMapUids = fullMapUids;
         }
         
@@ -337,6 +358,17 @@ public class MapKeysPruneHelper {
                     LogicalSchema schema = ((LogicalRelationalOperator)pred).getSchema();
                     Set<Long> uids = getMapUids(schema);
                     fullMapUids.addAll(uids);
+                }
+            }
+        }
+        
+        @Override
+        public void visit(LOSplitOutput splitOutput) throws FrontendException {
+            super.visit(splitOutput);
+            if (splitOutput.getSchema()!=null) {
+                for (LogicalFieldSchema fs : splitOutput.getSchema().getFields()) {
+                    if (fullMapUids.contains(fs.uid) && splitOutput.getInputUids(fs.uid)!=-1)
+                        fullMapUids.add(splitOutput.getInputUids(fs.uid));
                 }
             }
         }
