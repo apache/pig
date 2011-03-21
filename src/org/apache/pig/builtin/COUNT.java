@@ -18,18 +18,21 @@
 package org.apache.pig.builtin;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.Map;
+import java.util.List;
 
 import org.apache.pig.Accumulator;
 import org.apache.pig.Algebraic;
 import org.apache.pig.EvalFunc;
+import org.apache.pig.FuncSpec;
 import org.apache.pig.PigException;
 import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.DataType;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
+import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 
 /**
@@ -147,6 +150,18 @@ public class COUNT extends EvalFunc<Long> implements Algebraic, Accumulator<Long
     @Override
     public Schema outputSchema(Schema input) {
         return new Schema(new Schema.FieldSchema(null, DataType.LONG)); 
+    }
+    
+    /* (non-Javadoc)
+     * @see org.apache.pig.EvalFunc#getArgToFuncMapping()
+     */
+    @Override
+    public List<FuncSpec> getArgToFuncMapping() throws FrontendException {
+        List<FuncSpec> funcList = new ArrayList<FuncSpec>();
+        Schema s = new Schema();
+        s.add(new Schema.FieldSchema(null, DataType.BAG));
+        funcList.add(new FuncSpec(this.getClass().getName(), s));
+        return funcList;
     }
     
     /* Accumulator interface implementation */

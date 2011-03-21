@@ -20,6 +20,7 @@ package org.apache.pig.test;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import java.io.IOException;
 import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -83,7 +84,9 @@ import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.io.ReadToEndLoader;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.impl.logicalLayer.schema.Schema.FieldSchema;
+import org.apache.pig.impl.logicalLayer.validators.TypeCheckerException;
 import org.junit.AfterClass;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -850,6 +853,199 @@ public class TestBuiltin {
         Long output = count.exec(tup);
 
         assertEquals("Expected count to be 100", 100, output.longValue());
+    }
+
+    @Test
+    public void testCount_ValidNumberOfArguments_WithoutInputSchema_One() throws Exception {
+         String inputFileName = createCountInputFile();
+         try {
+             pigServer.registerQuery("A = load '" + inputFileName + "';");
+             pigServer.registerQuery("B = group A all;");
+             pigServer.registerQuery("C = foreach B generate COUNT(A.$0);");
+             assertValidCount();
+         }catch(TypeCheckerException e) {
+             Assert.fail("Query is in accordance with schema, still it failed to execute");
+         }finally {
+             Util.deleteFile(cluster, inputFileName);
+         }
+    }
+
+    @Test
+    public void testCount_ValidNumberOfArguments_WithoutInputSchema_Two() throws Exception {
+         String inputFileName = createCountInputFile();
+         try {
+             pigServer.registerQuery("A = load '" + inputFileName + "';");
+             pigServer.registerQuery("B = group A all;");
+             pigServer.registerQuery("C = foreach B generate COUNT(A);");
+             assertValidCount();
+         }catch(TypeCheckerException e) {
+             Assert.fail("Query is in accordance with schema, still it failed to execute");
+         }finally {
+             Util.deleteFile(cluster, inputFileName);
+         }
+    }
+    
+    @Test
+    public void testCount_ValidNumberOfArguments_WithNullTuplesInInput_CaseOne() throws Exception {
+        String inputFileName = "CountTest.txt";
+        String[] inputData = new String[] {
+                "1 2 3 4\n",
+                "\n",
+                "a b c d\n",
+                "\n",
+                "r s t u"};
+        Util.createInputFile(cluster, inputFileName, inputData);
+
+         try {
+             pigServer.registerQuery("A = load '" + inputFileName + "';");
+             pigServer.registerQuery("B = group A all;");
+             pigServer.registerQuery("C = foreach B generate COUNT(A);");
+             assertValidCount();
+         }catch(TypeCheckerException e) {
+             Assert.fail("Query is in accordance with schema, still it failed to execute");
+         }finally {
+             Util.deleteFile(cluster, inputFileName);
+         }
+    }
+    
+    @Test
+    public void testCount_ValidNumberOfArguments_WithNullTuplesInInput_CaseTwo() throws Exception {
+        String inputFileName = "CountTest.txt";
+        String[] inputData = new String[] {
+                "1 2 3 4\n",
+                "\n",
+                "a b c d\n",
+                "\n",
+                "r s t u"};
+        Util.createInputFile(cluster, inputFileName, inputData);
+
+         try {
+             pigServer.registerQuery("A = load '" + inputFileName + "';");
+             pigServer.registerQuery("B = group A all;");
+             pigServer.registerQuery("C = foreach B generate COUNT(A.$0);");
+             assertValidCount();
+         }catch(TypeCheckerException e) {
+             Assert.fail("Query is in accordance with schema, still it failed to execute");
+         }finally {
+             Util.deleteFile(cluster, inputFileName);
+         }
+    }
+    
+    
+    @Test
+    public void testCount_ValidNumberOfArguments_WithInputSchema_One() throws Exception {
+         String inputFileName = createCountInputFile();
+         try {
+             pigServer.registerQuery("A = load '" + inputFileName + "' as (data:chararray);");
+             pigServer.registerQuery("B = group A all;");
+             pigServer.registerQuery("C = foreach B generate COUNT(A.$0);");
+             assertValidCount();
+         }catch(TypeCheckerException e) {
+             Assert.fail("Query is in accordance with schema, still it failed to execute");
+         }finally {
+             Util.deleteFile(cluster, inputFileName);
+         }
+    }
+    
+    @Test
+    public void testCount_ValidNumberOfArguments_WithInputSchema_Two() throws Exception {
+         String inputFileName = createCountInputFile();
+         try {
+             pigServer.registerQuery("A = load '" + inputFileName + "' as (data:chararray);");
+             pigServer.registerQuery("B = group A all;");
+             pigServer.registerQuery("C = foreach B generate COUNT(A);");
+             assertValidCount();
+         }catch(TypeCheckerException e) {
+             Assert.fail("Query is in accordance with schema, still it failed to execute");
+         }finally {
+             Util.deleteFile(cluster, inputFileName);
+         }
+    }
+
+    /**
+     * Assert the result of COUNT for valid scenarios has only one tuple in output which has only one item which is set
+     * to 3.
+     * 
+     * @throws IOException
+     * @throws ExecException
+     */
+    private void assertValidCount() throws IOException, ExecException {
+        Iterator<Tuple> it = pigServer.openIterator("C");
+         int i=0;
+         final int expectedOutputTupleSize = 1;
+         final long expectedCount = 3;
+         while (it.hasNext()) {
+             Tuple t = it.next();
+             assertEquals("Testing SIZE(<Tuple>): ", expectedOutputTupleSize, t.size());
+             assertEquals("Testing Value within<Tuple>: ", expectedCount, t.get(0));
+             i++;
+         }
+         assertEquals("Testing the above loop ran only once.",1,i);
+    }
+   
+    @Test
+    public void testCount_InvalidNumberOfArguments_WithoutInputSchema() throws Exception {
+         String inputFileName = createCountInputFile();
+         try {
+             pigServer.registerQuery("A = load '" + inputFileName + "';");
+             pigServer.registerQuery("B = group A all;");
+             pigServer.registerQuery("C = foreach B generate COUNT(A.$0, A.$0);");
+             pigServer.openIterator("C");
+             Assert.fail("COUNT is suppose to run with one argument of type BAG, however it ran with couple of arguments.");
+         }catch(TypeCheckerException e) {
+
+         }finally {
+             Util.deleteFile(cluster, inputFileName);
+         }
+    }
+
+    @Test
+    public void testCount_InvalidNumberOfArguments_WithInputSchema() throws Exception {
+         String inputFileName = createCountInputFile();
+         try {
+             pigServer.registerQuery("A = load '" + inputFileName + "' as (data:chararray);");
+             pigServer.registerQuery("B = group A all;");
+             pigServer.registerQuery("C = foreach B generate COUNT(A.$0, A.$0);");
+             pigServer.openIterator("C");
+             Assert.fail("COUNT is suppose to run with one argument of type BAG, however it ran with couple of arguments.");
+         }catch(TypeCheckerException e) {
+             
+         }finally {
+             Util.deleteFile(cluster, inputFileName);
+         }
+    }
+    
+    @Test
+    public void testCount_InvalidArgumentType() throws Exception {
+         String inputFileName = createCountInputFile();
+         try {
+             pigServer.registerQuery("A = load '" + inputFileName + "' as (data:chararray);");
+             pigServer.registerQuery("B = group A all;");
+             pigServer.registerQuery("C = foreach B generate COUNT('data');");
+             pigServer.openIterator("C");
+             Assert.fail("COUNT is suppose to run with one argument of type BAG, however it ran with an argument of type chararray.");
+         }catch(TypeCheckerException e) {
+             
+         }finally {
+             Util.deleteFile(cluster, inputFileName);
+         }
+    }
+
+    /**
+     * Creates a input file that will be used to test COUNT builtin function.
+     * 
+     * @return name of the input file.
+     * @throws IOException
+     *             Unable to create input file.
+     */
+    protected String createCountInputFile() throws IOException {
+        String inputFileName = "CountTest.txt";
+         String[] inputData = new String[] {
+                 "1 2 3 4\n",
+                 "a b c d\n",
+                 "r s t u"};
+         Util.createInputFile(cluster, inputFileName, inputData);
+        return inputFileName;
     }
 
     @Test
