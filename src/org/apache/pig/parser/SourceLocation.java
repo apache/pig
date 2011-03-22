@@ -18,23 +18,38 @@
 
 package org.apache.pig.parser;
 
-import org.antlr.runtime.IntStream;
-import org.apache.pig.newplan.logical.expression.ScalarExpression;
-import org.apache.pig.newplan.logical.relational.LogicalRelationalOperator;
+import org.antlr.runtime.Token;
+import org.antlr.runtime.tree.CommonTree;
 
-public class InvalidScalarProjectionException extends PigRecognitionException {
-    private static final long serialVersionUID = 1L;
+public class SourceLocation {
+    private int line = -1; // line number, -1 if unknown.
+    private int offset = -1; // offset, -f if unknown.
     
-    private ScalarExpression scalarExpr;
-    
-    public InvalidScalarProjectionException(IntStream input, SourceLocation loc, ScalarExpression expr) {
-        super( input, loc );
-        this.scalarExpr = expr;
+    public SourceLocation(int line, int offset) {
+        this.line = line;
+        this.offset = offset;
     }
     
-    public String toString() {
-        return msgHeader() + "Invalid scalar projection: " + 
-            ((LogicalRelationalOperator)scalarExpr.getImplicitReferencedOperator()).getAlias();
+    public SourceLocation(int line) {
+        this.line = line;
     }
-
+    
+    public SourceLocation(Token token) {
+        this.line = token.getLine();
+        this.offset = token.getCharPositionInLine();
+    }
+    
+    public SourceLocation(CommonTree tree) {
+        this.line = tree.getLine();
+        this.offset = tree.getCharPositionInLine();
+    }
+    
+    public int line() {
+        return line;
+    }
+    
+    public int offset() {
+        return offset;
+    }
+    
 }

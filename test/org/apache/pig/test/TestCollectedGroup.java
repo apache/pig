@@ -144,7 +144,7 @@ public class TestCollectedGroup {
             pigServer.openIterator( "C" );
             Assert.fail("Pig doesn't support multi-input collected group.");
         } catch (Exception e) {
-            String msg = "Pig script failed to validate: Collected group is only supported for single input";
+            String msg = "pig script failed to validate: Collected group is only supported for single input";
             Assert.assertTrue( e.getMessage().contains( msg ) );
         }
     }
@@ -160,7 +160,7 @@ public class TestCollectedGroup {
             pigServer.openIterator( "B" );
             Assert.fail("Pig doesn't support collected group all.");
         } catch (Exception e) {
-            String msg = "Pig script failed to validate: Collected group is only supported for columns or star projection";
+            String msg = "pig script failed to validate: Collected group is only supported for columns or star projection";
             Assert.assertTrue( e.getMessage().contains( msg ) );
         }
     }
@@ -176,7 +176,7 @@ public class TestCollectedGroup {
             pigServer.openIterator("B");
             Assert.fail("Pig doesn't support collected group by expression.");
         } catch (Exception e) {
-            String msg = "Pig script failed to validate: Collected group is only supported for columns or star projection";
+            String msg = "pig script failed to validate: Collected group is only supported for columns or star projection";
             Assert.assertTrue( e.getMessage().contains( msg ) );
         }
     }

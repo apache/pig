@@ -19,27 +19,26 @@
 package org.apache.pig.parser;
 
 import org.antlr.runtime.IntStream;
-import org.antlr.runtime.RecognitionException;
 
-public class ParserValidationException extends RecognitionException {
+public class ParserValidationException extends PigRecognitionException {
     private static final long serialVersionUID = 1L;
     
     private String cause;
     
     private Exception ex;
     
-    public ParserValidationException(IntStream input, String cause) {
-        super( input );
+    public ParserValidationException(IntStream input, SourceLocation loc, String cause) {
+        super( input, loc );
         this.cause = cause;
     }
     
-    public ParserValidationException(IntStream input, Exception ex) {
-        super( input );
+    public ParserValidationException(IntStream input, SourceLocation loc, Exception ex) {
+        super( input, loc );
         this.ex = ex;
     }
     
     public String toString() {
-        return "Pig script failed to validate: " + ( ex != null ? ex.toString() : cause  );
+        return msgHeader() + "pig script failed to validate: " + ( ex != null ? ex.toString() : cause  );
     }
 
 }

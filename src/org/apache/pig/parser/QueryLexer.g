@@ -41,6 +41,20 @@ public void reportError(RecognitionException e) {
     throw new RuntimeException( sb.toString() );
 }
 
+@Override
+public String getErrorMessage(RecognitionException e, String[] tokenNames ) {
+    if( e instanceof NoViableAltException ) {
+        return "Unexpected character " + getCharErrorDisplay( e.c );
+    } else {
+        return super.getErrorMessage( e, tokenNames );
+    }
+}
+
+@Override
+public String getErrorHeader(RecognitionException ex) {
+	return QueryParserUtils.generateErrorHeader( ex );
+}
+
 } // End of members.
 
 DEFINE : 'DEFINE'

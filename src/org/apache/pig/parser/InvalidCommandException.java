@@ -19,20 +19,19 @@
 package org.apache.pig.parser;
 
 import org.antlr.runtime.IntStream;
-import org.antlr.runtime.RecognitionException;
 
-public class InvalidCommandException extends RecognitionException {
+public class InvalidCommandException extends PigRecognitionException {
     private static final long serialVersionUID = 1L;
     
     private String cmd;
     
-    public InvalidCommandException(IntStream input, String cmd) {
-        super( input );
+    public InvalidCommandException(IntStream input, SourceLocation loc, String cmd) {
+        super( input, loc );
         this.cmd = cmd;
     }
     
     public String toString() {
-        return "Ill-formed command line: " + cmd;
+        return msgHeader() + "Ill-formed command line: " + cmd;
     }
 
     public String getCmd() {

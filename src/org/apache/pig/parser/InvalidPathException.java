@@ -21,20 +21,19 @@ package org.apache.pig.parser;
 import java.net.MalformedURLException;
 
 import org.antlr.runtime.IntStream;
-import org.antlr.runtime.RecognitionException;
 
-public class InvalidPathException extends RecognitionException {
+public class InvalidPathException extends PigRecognitionException {
     private static final long serialVersionUID = 1L;
     
     private MalformedURLException ex;
     
-    public InvalidPathException(IntStream input, MalformedURLException ex) {
-        super( input );
+    public InvalidPathException(IntStream input, SourceLocation loc, MalformedURLException ex) {
+        super( input, loc );
         this.ex = ex;
     }
     
     public String toString() {
-        return "Malformed URL for JAR path in the command line: " + ex;
+        return msgHeader() + "Malformed URL for JAR path in the command line: " + ex;
     }
 
     public MalformedURLException getEx() {

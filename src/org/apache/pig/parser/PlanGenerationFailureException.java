@@ -19,20 +19,19 @@
 package org.apache.pig.parser;
 
 import org.antlr.runtime.IntStream;
-import org.antlr.runtime.RecognitionException;
 
-public class PlanGenerationFailureException extends RecognitionException {
+public class PlanGenerationFailureException extends PigRecognitionException {
     private static final long serialVersionUID = 1L;
     
     private Exception ex;
     
-    public PlanGenerationFailureException(IntStream input, Exception ex) {
-        super( input );
+    public PlanGenerationFailureException(IntStream input, SourceLocation loc, Exception ex) {
+        super( input, loc );
         this.ex = ex;
     }
     
     public String toString() {
-        return "Failed to generate logical plan. Nested exception: " + ex;
+        return msgHeader() + "Failed to generate logical plan. Nested exception: " + ex;
     }
 
     public Exception getEx() {

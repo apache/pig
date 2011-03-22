@@ -19,20 +19,20 @@
 package org.apache.pig.parser;
 
 import org.antlr.runtime.IntStream;
-import org.antlr.runtime.RecognitionException;
+import org.antlr.runtime.Token;
 
-public class UndefinedAliasException extends RecognitionException {
+public class UndefinedAliasException extends PigRecognitionException {
     private static final long serialVersionUID = 1L;
     
     private String alias;
     
-    public UndefinedAliasException(IntStream input, String alias) {
-        super( input );
+    public UndefinedAliasException(IntStream input, Token t, String alias) {
+        super( input, new SourceLocation( t ) );
         this.alias = alias;
     }
     
     public String toString() {
-        return "Undefined alias: " + alias;
+        return msgHeader() + "Undefined alias: " + alias;
     }
 
     public String getAlias() {
