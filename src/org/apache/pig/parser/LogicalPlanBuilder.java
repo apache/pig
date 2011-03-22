@@ -201,7 +201,7 @@ public class LogicalPlanBuilder {
         return new LOSort( plan );
     }
     
-    String buildSortOp(LOSort sort, String alias, String inputAlias, List<LogicalExpressionPlan> plans, 
+    String buildSortOp(SourceLocation loc, LOSort sort, String alias, String inputAlias, List<LogicalExpressionPlan> plans, 
             List<Boolean> ascFlags, FuncSpec fs) throws ParserValidationException {
         sort.setSortColPlans( plans );
         sort.setUserFunc( fs );
@@ -214,7 +214,7 @@ public class LogicalPlanBuilder {
         try {
             (new ProjectStarExpander(sort.getPlan())).visit(sort);
         } catch (FrontendException e) {
-            throw new ParserValidationException(intStream, e);
+            throw new ParserValidationException( intStream, loc, e );
         }
         return alias;
     }
@@ -223,7 +223,7 @@ public class LogicalPlanBuilder {
         return new LOJoin( plan );
     }
 
-    String buildJoinOp(LOJoin op, String alias, List<String> inputAliases,
+    String buildJoinOp(SourceLocation loc, LOJoin op, String alias, List<String> inputAliases,
             MultiMap<Integer, LogicalExpressionPlan> joinPlans,
             JOINTYPE jt, List<Boolean> innerFlags, String partitioner)
     throws ParserValidationException {
@@ -250,7 +250,7 @@ public class LogicalPlanBuilder {
         try {
             (new ProjectStarExpander(op.getPlan())).visit(op);
         } catch (FrontendException e) {
-            throw new ParserValidationException(intStream, e);
+            throw new ParserValidationException( intStream, loc, e );
         }
         return alias;
     }
@@ -259,7 +259,7 @@ public class LogicalPlanBuilder {
         return new LOCogroup( plan );
     }
     
-    String buildGroupOp(LOCogroup op, String alias, List<String> inputAliases, 
+    String buildGroupOp(SourceLocation loc, LOCogroup op, String alias, List<String> inputAliases, 
         MultiMap<Integer, LogicalExpressionPlan> expressionPlans, GROUPTYPE gt, List<Boolean> innerFlags,
         String partitioner) throws ParserValidationException {
         if( gt == GROUPTYPE.COLLECTED ) {
@@ -268,7 +268,8 @@ public class LogicalPlanBuilder {
                 Iterator<Operator> it = exprPlan.getOperators();
                 while( it.hasNext() ) {
                     if( !( it.next() instanceof ProjectExpression ) ) {
-                        throw new ParserValidationException( intStream, "Collected group is only supported for columns or star projection" );
+                        throw new ParserValidationException( intStream, loc,
+                        		"Collected group is only supported for columns or star projection" );
                     }
                 }
             }
@@ -285,7 +286,7 @@ public class LogicalPlanBuilder {
         try {
             (new ProjectStarExpander(op.getPlan())).visit(op);
         } catch (FrontendException e) {
-            throw new ParserValidationException(intStream, e);
+            throw new ParserValidationException( intStream, loc, e );
         }
         return alias;
     }
@@ -311,13 +312,13 @@ public class LogicalPlanBuilder {
         return absolutePath;
     }
      
-    String buildLoadOp(String alias, String filename, FuncSpec funcSpec, LogicalSchema schema)
+    String buildLoadOp(SourceLocation loc, String alias, String filename, FuncSpec funcSpec, LogicalSchema schema)
     throws ParserValidationException {
         String absolutePath = filename;
         try {
             absolutePath = getAbolutePathForLoad( filename, funcSpec );
         } catch(Exception ex) {
-            throw new ParserValidationException( intStream, ex );
+            throw new ParserValidationException( intStream, loc, ex );
         }
         
         FileSpec loader = new FileSpec( absolutePath, funcSpec );
@@ -367,13 +368,13 @@ public class LogicalPlanBuilder {
         return absolutePath;
     }
 
-    String buildStoreOp(String alias, String inputAlias, String filename, FuncSpec funcSpec)
+    String buildStoreOp(SourceLocation loc, String alias, String inputAlias, String filename, FuncSpec funcSpec)
     throws ParserValidationException {
         String absPath = filename;
         try {
             absPath = getAbolutePathForStore( inputAlias, filename, funcSpec );
         } catch(Exception ex) {
-            throw new ParserValidationException( intStream, ex );
+            throw new ParserValidationException( intStream, loc, ex );
         }
         
         FileSpec fileSpec = new FileSpec( absPath, funcSpec );
@@ -385,14 +386,14 @@ public class LogicalPlanBuilder {
         return new LOForEach( plan );
     }
     
-    String buildForeachOp(LOForEach op, String alias, String inputAlias, LogicalPlan innerPlan)
+    String buildForeachOp(SourceLocation loc, LOForEach op, String alias, String inputAlias, LogicalPlan innerPlan)
     throws ParserValidationException {
         op.setInnerPlan( innerPlan );
         alias = buildOp( op, alias, inputAlias, null );
         try {
             (new ProjectStarExpander(op.getPlan())).visit(op);
         } catch (FrontendException e) {
-            throw new ParserValidationException(intStream, e);
+            throw new ParserValidationException( intStream, loc, e );
         }
         return alias;
     }
@@ -482,13 +483,13 @@ public class LogicalPlanBuilder {
         }
     }
     
-    Operator buildNestedOperatorInput(LogicalPlan innerPlan, LOForEach foreach, 
+    Operator buildNestedOperatorInput(SourceLocation loc, LogicalPlan innerPlan, LOForEach foreach, 
             Map<String, Operator> operators, LogicalExpression expr)
     throws NonProjectExpressionException {
         OperatorPlan plan = expr.getPlan();
         Iterator<Operator> it = plan.getOperators();
         if( !( it.next() instanceof ProjectExpression ) || it.hasNext() ) {
-            throw new NonProjectExpressionException( intStream, expr );
+            throw new NonProjectExpressionException( intStream, loc, expr );
         }
         Operator op = null;
         ProjectExpression projExpr = (ProjectExpression)expr;
@@ -506,12 +507,12 @@ public class LogicalPlanBuilder {
         return op;
     }
     
-    StreamingCommand buildCommand(String cmd, List<String> shipPaths, List<String> cachePaths,
+    StreamingCommand buildCommand(SourceLocation loc, String cmd, List<String> shipPaths, List<String> cachePaths,
             List<HandleSpec> inputHandleSpecs, List<HandleSpec> outputHandleSpecs,
             String logDir, Integer limit) throws RecognitionException {
         StreamingCommand command = null;
         try {
-            command = buildCommand( cmd );
+            command = buildCommand( loc, cmd );
             
             // Process ship paths
             if( shipPaths != null ) {
@@ -547,13 +548,13 @@ public class LogicalPlanBuilder {
             if( limit != null )
                 command.setLogFilesLimit( limit );
         } catch(IOException e) {
-            throw new PlanGenerationFailureException( intStream, e );
+            throw new PlanGenerationFailureException( intStream, loc, e );
         }
         
         return command;
     }
     
-    StreamingCommand buildCommand(String cmd) throws RecognitionException {
+    StreamingCommand buildCommand(SourceLocation loc, String cmd) throws RecognitionException {
         try {
             String[] args = StreamingCommandUtils.splitArgs( cmd );
             StreamingCommand command = new StreamingCommand( pigContext, args );
@@ -561,22 +562,22 @@ public class LogicalPlanBuilder {
             validator.checkAutoShipSpecs( command, args );
             return command;
         } catch (ParseException e) {
-            throw new InvalidCommandException( intStream, cmd );
+            throw new InvalidCommandException( intStream, loc, cmd );
         }
     }
     
-    String buildStreamOp(String alias, String inputAlias, StreamingCommand command,
+    String buildStreamOp(SourceLocation loc, String alias, String inputAlias, StreamingCommand command,
             LogicalSchema schema, IntStream input)
     throws RecognitionException {
         try {
             LOStream op = new LOStream( plan, pigContext.createExecutableManager(), command, schema );
             return buildOp( op, alias, inputAlias, null );
         } catch (ExecException ex) {
-            throw new PlanGenerationFailureException( input, ex );
+            throw new PlanGenerationFailureException( input, loc, ex );
         }
     }
     
-    String buildNativeOp(String inputJar, String cmd,
+    String buildNativeOp(SourceLocation loc, String inputJar, String cmd,
             List<String> paths, String storeAlias, String loadAlias, IntStream input)
     throws RecognitionException {
         LONative op;
@@ -592,9 +593,9 @@ public class LogicalPlanBuilder {
             plan.connect( op, load );
             return load.getAlias();
         } catch (ParseException e) {
-            throw new InvalidCommandException( input, cmd );
+            throw new InvalidCommandException( input, loc, cmd );
         } catch (MalformedURLException e) {
-            throw new InvalidPathException( input, e);
+            throw new InvalidPathException( input, loc, e);
         }
     }
     
@@ -615,14 +616,14 @@ public class LogicalPlanBuilder {
             op.setCustomPartitioner( partitioner );
     }
     
-    FuncSpec buildFuncSpec(String funcName, List<String> args, byte ft) throws RecognitionException {
+    FuncSpec buildFuncSpec(SourceLocation loc, String funcName, List<String> args, byte ft) throws RecognitionException {
         String[] argArray = new String[args.size()];
         FuncSpec funcSpec = new FuncSpec( funcName, args.size() == 0 ? null : args.toArray( argArray ) );
-        validateFuncSpec( funcSpec, ft );
+        validateFuncSpec( loc, funcSpec, ft );
         return funcSpec;
     }
     
-    private void validateFuncSpec(FuncSpec funcSpec, byte ft) throws RecognitionException {
+    private void validateFuncSpec(SourceLocation loc, FuncSpec funcSpec, byte ft) throws RecognitionException {
         switch( ft ) {
         case FunctionType.COMPARISONFUNC:
         case FunctionType.LOADFUNC:
@@ -633,7 +634,7 @@ public class LogicalPlanBuilder {
             try{
                 FunctionType.tryCasting( func, ft );
             } catch(Exception ex){
-                throw new ParserValidationException( intStream, ex );
+                throw new ParserValidationException( intStream, loc, ex );
             }
         }
     }
@@ -670,7 +671,7 @@ public class LogicalPlanBuilder {
      *  we will return whatever the expression alias represents.
      * @throws RecognitionException 
      */
-    LogicalExpression buildProjectExpr(LogicalExpressionPlan plan, LogicalRelationalOperator op,
+    LogicalExpression buildProjectExpr(SourceLocation loc, LogicalExpressionPlan plan, LogicalRelationalOperator op,
             Map<String, LogicalExpressionPlan> exprPlans, String colAlias, int col)
     throws RecognitionException {
         if( colAlias != null ) {
@@ -681,7 +682,7 @@ public class LogicalPlanBuilder {
                     planCopy = exprPlan.deepCopy();
                     plan.merge( planCopy );
                 } catch (FrontendException ex) {
-                    throw new PlanGenerationFailureException( intStream, ex );
+                    throw new PlanGenerationFailureException( intStream, loc, ex );
                 }
                 // The projected alias is actually expression alias, so the projections in the represented
                 // expression doesn't have any operator associated with it. We need to set it when we 
@@ -714,16 +715,15 @@ public class LogicalPlanBuilder {
         return new ProjectExpression( plan, input, col, relOp );
     }
     
-    LogicalExpression buildUDF(LogicalExpressionPlan plan, String funcName, List<LogicalExpression> args)
+    LogicalExpression buildUDF(SourceLocation loc, LogicalExpressionPlan plan, String funcName, List<LogicalExpression> args)
     throws RecognitionException {
         Object func;
         try {
             func = pigContext.instantiateFuncFromAlias( funcName );
             FunctionType.tryCasting( func, FunctionType.EVALFUNC );
         } catch (Exception e) {
-            throw new PlanGenerationFailureException( intStream, e );
+            throw new PlanGenerationFailureException( intStream, loc, e );
         }
-        
         
         FuncSpec funcSpec = pigContext.getFuncSpecFromAlias( funcName );
         if( funcSpec == null ) {

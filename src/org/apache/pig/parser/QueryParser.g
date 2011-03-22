@@ -86,7 +86,11 @@ throws RecognitionException {
 
 public String getErrorMessage(RecognitionException e, String[] tokenNames ) {
     if( !log.isDebugEnabled() ) {
-        return super.getErrorMessage( e, tokenNames );
+        if( e instanceof NoViableAltException ) {
+            return "Syntax error, unexpected symbol at or near " + getTokenErrorDisplay( e.token );
+        } else {
+            return super.getErrorMessage( e, tokenNames );
+        }
     }
     
     List stack =  getRuleInvocationStack( e, this.getClass().getName() );
@@ -102,7 +106,12 @@ public String getErrorMessage(RecognitionException e, String[] tokenNames ) {
 }
 
 public String getTokenErrorDisplay(Token t) {
-    return "['" + t.getText() + "']";
+    return "'" + t.getText() + "'";
+}
+
+@Override
+public String getErrorHeader(RecognitionException ex) {
+	return QueryParserUtils.generateErrorHeader( ex );
 }
 
 } // End of @members

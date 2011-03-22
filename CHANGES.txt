@@ -118,6 +118,9 @@ PIG-1696: Performance: Use System.arraycopy() instead of manually copying the by
 
 BUG FIXES
 
+PIG-1925: Parser error message doesn't show location of the error or show it
+as Line 0:0 (xuefuz via gates)
+
 PIG-671:  typechecker does not throw an error when multiple arguments are
 passed to COUNT (deepujain via gates)
 

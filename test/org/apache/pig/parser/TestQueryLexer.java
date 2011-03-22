@@ -35,7 +35,7 @@ public class TestQueryLexer {
         QueryLexer lexer = new QueryLexer( input );
         int tokenCount = 0;
         Token token;
-        while( ( token = lexer.nextToken() )!= Token.EOF_TOKEN ) {
+        while( ( token = lexer.nextToken() ).getType() != Token.EOF ) {
             if( token.getChannel() == Token.HIDDEN_CHANNEL )
                 continue;
             tokenCount++;
@@ -52,4 +52,27 @@ public class TestQueryLexer {
         Assert.assertEquals( 0, lexer.getNumberOfSyntaxErrors() );
     }
     
+    @Test
+    public void test2() throws IOException {
+        String query = "A = load 'input' using PigStorage(';');" +
+                       "B = foreach ^ A generate string.concatsep( ';', $1, $2 );";
+        CharStream input = new QueryParserStringStream( query );
+        QueryLexer lexer = new QueryLexer( input );
+        Token token;
+        try {
+            while( ( token = lexer.nextToken() ).getType() != Token.EOF ) {
+                if( token.getChannel() == Token.HIDDEN_CHANNEL )
+                    continue;
+                if( token.getText().equals( ";" ) ) {
+                    System.out.println( token.getText() );
+                } else {
+                    System.out.print( token.getText() + "(" + token.getType() + ") " );
+                }
+            }
+        } catch(Exception ex) {
+            Assert.assertTrue( ex.getMessage().contains( "Unexpected character" ) );
+            return;
+        }
+        Assert.fail( "Query should fail." );
+    }
 }

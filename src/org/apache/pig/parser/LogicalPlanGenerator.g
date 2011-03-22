@@ -147,6 +147,11 @@ public String getErrorMessage(RecognitionException e, String[] tokenNames) {
     return msg;
 }
 
+@Override
+public String getErrorHeader(RecognitionException ex) {
+	return QueryParserUtils.generateErrorHeader( ex );
+}
+
 } // End of @members
 
 @rulecatch {
@@ -227,10 +232,11 @@ cmd[String alias] returns[StreamingCommand command]
 @init {
     List<String> shipPaths = new ArrayList<String>();
     List<String> cachePaths = new ArrayList<String>();
+    SourceLocation loc = new SourceLocation( (CommonTree)$cmd.start );
 }
  : ^( EXECCOMMAND ( ship_clause[shipPaths] | cache_caluse[cachePaths] | input_clause | output_clause | error_clause )* )
    {
-       $command = builder.buildCommand( builder.unquote( $EXECCOMMAND.text ), shipPaths,
+       $command = builder.buildCommand( loc, builder.unquote( $EXECCOMMAND.text ), shipPaths,
            cachePaths, $input_clause.inputHandleSpecs, $output_clause.outputHandleSpecs,
            $error_clause.dir == null? $alias : $error_clause.dir, $error_clause.limit );
    }
@@ -303,7 +309,8 @@ error_clause returns[String dir, Integer limit]
 load_clause returns[String alias]
  : ^( LOAD filename func_clause[FunctionType.LOADFUNC]? as_clause? )
   {
-      $alias = builder.buildLoadOp( $statement::alias,
+      SourceLocation loc = new SourceLocation( (CommonTree)$load_clause.start );
+      $alias = builder.buildLoadOp( loc, $statement::alias,
           $filename.filename, $func_clause.funcSpec, $as_clause.logicalSchema  );
   }
 ;
@@ -410,11 +417,14 @@ map_type returns[LogicalSchema logicalSchema]
 ;
 
 func_clause[byte ft] returns[FuncSpec funcSpec]
+@init {
+    SourceLocation loc = new SourceLocation( (CommonTree)$func_clause.start );
+}
  : ^( FUNC_REF func_name )
    {
        $funcSpec = builder.lookupFunction( $func_name.funcName );
        if( $funcSpec == null )
-           $funcSpec = builder.buildFuncSpec( $func_name.funcName, new ArrayList<String>(), $ft );
+           $funcSpec = builder.buildFuncSpec( loc, $func_name.funcName, new ArrayList<String>(), $ft );
    }
  | ^( FUNC func_name func_args? )
    {
@@ -423,7 +433,7 @@ func_clause[byte ft] returns[FuncSpec funcSpec]
            List<String> argList = new ArrayList<String>();
            if( $func_args.args != null )
                argList = $func_args.args;
-           $funcSpec = builder.buildFuncSpec( $func_name.funcName, argList, $ft );
+           $funcSpec = builder.buildFuncSpec( loc, $func_name.funcName, argList, $ft );
        }
    }
 ;
@@ -457,16 +467,17 @@ scope GScope;
     $group_clause::inputAliases = new ArrayList<String>();
     $group_clause::innerFlags = new ArrayList<Boolean>();
     GROUPTYPE groupType = GROUPTYPE.REGULAR;
+    SourceLocation loc = new SourceLocation( (CommonTree)$group_clause.start );
 }
  : ^( GROUP group_item+ ( group_type { groupType = $group_type.type; ((LOCogroup)$GScope::currentOp).pinOption(LOCogroup.OPTION_GROUPTYPE); } )? partition_clause? )
    {
-       $alias = builder.buildGroupOp( (LOCogroup)$GScope::currentOp, $statement::alias, 
+       $alias = builder.buildGroupOp( loc, (LOCogroup)$GScope::currentOp, $statement::alias, 
            $group_clause::inputAliases, $group_clause::groupPlans, groupType, $group_clause::innerFlags,
            $partition_clause.partitioner );
    }
  | ^( COGROUP group_item+ ( group_type { groupType = $group_type.type;((LOCogroup)$GScope::currentOp).pinOption(LOCogroup.OPTION_GROUPTYPE); } )? partition_clause? )
    {
-       $alias = builder.buildGroupOp( (LOCogroup)$GScope::currentOp, $statement::alias, 
+       $alias = builder.buildGroupOp( loc, (LOCogroup)$GScope::currentOp, $statement::alias, 
            $group_clause::inputAliases, $group_clause::groupPlans, groupType, $group_clause::innerFlags,
            $partition_clause.partitioner );
    }
@@ -552,7 +563,8 @@ flatten_clause[LogicalExpressionPlan plan]
 store_clause returns[String alias]
  : ^( STORE rel filename func_clause[FunctionType.STOREFUNC]? )
    {
-       $alias= builder.buildStoreOp( $statement::alias,
+       SourceLocation loc = new SourceLocation( $STORE.token );
+       $alias= builder.buildStoreOp( loc, $statement::alias,
           $statement::inputAlias, $filename.filename, $func_clause.funcSpec );
    }
 ;
@@ -629,7 +641,8 @@ func_eval[LogicalExpressionPlan plan] returns[LogicalExpression expr]
 }
  : ^( FUNC_EVAL func_name ( real_arg[$plan] { args.add( $real_arg.expr ); } )* )
    {
-       $expr = builder.buildUDF( $plan, $func_name.funcName, args );
+       SourceLocation loc = new SourceLocation( (CommonTree)$func_eval.start );
+       $expr = builder.buildUDF( loc, $plan, $func_name.funcName, args );
    }
 ;
 
@@ -723,6 +736,7 @@ bag_type_cast returns[LogicalSchema logicalSchema]
 var_expr[LogicalExpressionPlan plan] returns[LogicalExpression expr]
 @init {
     List<Object> columns = null;
+    SourceLocation loc = new SourceLocation( (CommonTree)$var_expr.start );
 }
  : projectable_expr[$plan] { $expr = $projectable_expr.expr; }
    ( dot_proj 
@@ -732,7 +746,7 @@ var_expr[LogicalExpressionPlan plan] returns[LogicalExpression expr]
              // This is a scalar projection.
              ScalarExpression scalarExpr = (ScalarExpression)$expr;
              if( $dot_proj.cols.size() > 1 ) {
-                 throw new InvalidScalarProjectionException( input, scalarExpr );
+                 throw new InvalidScalarProjectionException( input, loc, scalarExpr );
              } else {
                  Object val = $dot_proj.cols.get( 0 );
                  int pos = -1;
@@ -741,18 +755,18 @@ var_expr[LogicalExpressionPlan plan] returns[LogicalExpression expr]
                  try {
                      schema = relOp.getSchema();
                  } catch(FrontendException e) {
-                     throw new PlanGenerationFailureException( input, e );
+                     throw new PlanGenerationFailureException( input, loc, e );
                  }
                  if( val instanceof Integer ) {
                      pos = (Integer)val;
                      if( schema != null && pos >= schema.size() ) {
-                         throw new InvalidScalarProjectionException( input, scalarExpr );
+                         throw new InvalidScalarProjectionException( input, loc, scalarExpr );
                      }
                  } else {
                      String colAlias = (String)val;
                      pos = schema.getFieldPosition( colAlias );
                      if( schema == null || pos == -1 ) {
-                         throw new InvalidScalarProjectionException( input, scalarExpr );
+                         throw new InvalidScalarProjectionException( input, loc, scalarExpr );
                      }
                  }
                  ConstantExpression constExpr = new ConstantExpression( $plan, pos);
@@ -776,7 +790,7 @@ var_expr[LogicalExpressionPlan plan] returns[LogicalExpression expr]
   )*
   {
       if( ( $expr instanceof ScalarExpression ) && columns == null ) {
-          throw new InvalidScalarProjectionException( input, (ScalarExpression)$expr );
+          throw new InvalidScalarProjectionException( input, loc, (ScalarExpression)$expr );
       }
   }
 ;
@@ -868,7 +882,8 @@ scope GScope;
 }
  : ^( ORDER rel order_by_clause func_clause[FunctionType.COMPARISONFUNC]? )
    {
-       $alias = builder.buildSortOp( (LOSort)$GScope::currentOp, $statement::alias,
+       SourceLocation loc = new SourceLocation( $ORDER.token );
+       $alias = builder.buildSortOp( loc, (LOSort)$GScope::currentOp, $statement::alias,
            $statement::inputAlias, $order_by_clause.plans, 
            $order_by_clause.ascFlags, $func_clause.funcSpec );
    }
@@ -944,7 +959,8 @@ scope GScope;
 }
  : ^( JOIN join_sub_clause join_type? partition_clause? )
    {
-       $alias = builder.buildJoinOp( (LOJoin)$GScope::currentOp, $statement::alias,
+       SourceLocation loc = new SourceLocation( $JOIN.token );
+       $alias = builder.buildJoinOp( loc, (LOJoin)$GScope::currentOp, $statement::alias,
           $join_clause::inputAliases, $join_clause::joinPlans,
           $join_type.type, $join_clause::innerFlags, $partition_clause.partitioner );
    }
@@ -1018,7 +1034,8 @@ scope GScope;
 }
  : ^( FOREACH rel foreach_plan )
    {
-       $alias = builder.buildForeachOp( $foreach_clause::foreachOp, $statement::alias,
+       SourceLocation loc = new SourceLocation( $FOREACH.token );
+       $alias = builder.buildForeachOp( loc, $foreach_clause::foreachOp, $statement::alias,
           $statement::inputAlias, $foreach_plan.plan );
    }
 ;
@@ -1165,7 +1182,8 @@ nested_op_input returns[Operator op]
 }
  : col_ref[plan]
    {
-       $op = builder.buildNestedOperatorInput( $foreach_plan::innerPlan,
+       SourceLocation loc = new SourceLocation( (CommonTree)$col_ref.start );
+       $op = builder.buildNestedOperatorInput( loc, $foreach_plan::innerPlan,
            $foreach_clause::foreachOp, $foreach_plan::operators, $col_ref.expr );
    }
  | nested_proj[null]
@@ -1177,19 +1195,21 @@ nested_op_input returns[Operator op]
 stream_clause returns[String alias]
 @init {
     StreamingCommand cmd = null;
+    SourceLocation loc = new SourceLocation( (CommonTree)$stream_clause.start );
 }
- : ^( STREAM rel ( EXECCOMMAND { cmd = builder.buildCommand( builder.unquote( $EXECCOMMAND.text ) ); } 
+ : ^( STREAM rel ( EXECCOMMAND { cmd = builder.buildCommand( loc, builder.unquote( $EXECCOMMAND.text ) ); } 
                  | IDENTIFIER 
                    { 
                        cmd = builder.lookupCommand( $IDENTIFIER.text );
                        if( cmd == null ) {
                            String msg = "Undefined command-alias [" + $IDENTIFIER.text + "]";
-                           throw new ParserValidationException( input, msg );
+                           throw new ParserValidationException( input, 
+                               new SourceLocation( $IDENTIFIER.token ), msg );
                        }
                    }
                  ) as_clause? )
    {
-       $alias = builder.buildStreamOp( $statement::alias,
+       $alias = builder.buildStreamOp( loc, $statement::alias,
           $statement::inputAlias, cmd, $as_clause.logicalSchema, input );
    }
 ;
@@ -1198,13 +1218,14 @@ mr_clause returns[String alias]
 @init {
     List<String> paths = new ArrayList<String>();
     String alias = $statement::alias;
+    SourceLocation loc = new SourceLocation( (CommonTree)$mr_clause.start );
 }
  : ^( MAPREDUCE QUOTEDSTRING path_list[paths]? 
      { $statement::alias = null; } store_clause 
      { $statement::alias = alias; } load_clause
      EXECCOMMAND? )
    {
-       $alias = builder.buildNativeOp(
+       $alias = builder.buildNativeOp( loc,
            builder.unquote( $QUOTEDSTRING.text ), builder.unquote( $EXECCOMMAND.text ), 
            paths, $store_clause.alias, $load_clause.alias, input );
    }
@@ -1241,13 +1262,14 @@ alias_col_ref[LogicalExpressionPlan plan] returns[LogicalExpression expr]
    }
  | scoped_alias_col_ref
    {
+       SourceLocation loc = new SourceLocation( (CommonTree)$scoped_alias_col_ref.start );
        String alias = $scoped_alias_col_ref.alias;
        Operator inOp = builder.lookupOperator( $statement::inputAlias );
        LogicalSchema schema;
        try {
            schema = ((LogicalRelationalOperator)inOp).getSchema();
        } catch (FrontendException e) {
-           throw new PlanGenerationFailureException( input, e );
+           throw new PlanGenerationFailureException( input, loc, e );
        }
        
        Operator op = builder.lookupOperator( alias );
@@ -1256,7 +1278,7 @@ alias_col_ref[LogicalExpressionPlan plan] returns[LogicalExpression expr]
                inForeachPlan ? $foreach_clause::foreachOp : $GScope::currentOp );
        } else {
            if( inForeachPlan ) {
-               $expr = builder.buildProjectExpr( $plan, $GScope::currentOp, 
+               $expr = builder.buildProjectExpr( loc, $plan, $GScope::currentOp, 
                    $foreach_plan::exprPlans, alias, 0 );
            } else {
                $expr = builder.buildProjectExpr( $plan, $GScope::currentOp, 

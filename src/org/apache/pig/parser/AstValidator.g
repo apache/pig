@@ -71,19 +71,26 @@ public String getErrorMessage(RecognitionException e, String[] tokenNames) {
     return msg;
 }
 
-private void validateSchemaAliasName(Set<String> fieldNames, String name)
+@Override
+public String getErrorHeader(RecognitionException ex) {
+	return QueryParserUtils.generateErrorHeader( ex );
+}
+
+private void validateSchemaAliasName(Set<String> fieldNames, Token t)
 throws DuplicatedSchemaAliasException {
+    String name = t.getText();
     if( fieldNames.contains( name ) ) {
-        throw new DuplicatedSchemaAliasException( input, name );
+        throw new DuplicatedSchemaAliasException( input, t, name );
     } else {
         fieldNames.add( name );
     }
 }
 
-private void validateAliasRef(Set<String> aliases, String alias)
+private void validateAliasRef(Set<String> aliases, Token t)
 throws UndefinedAliasException {
+    String alias = t.getText();
     if( !aliases.contains( alias ) ) {
-        throw new UndefinedAliasException( input, alias );
+        throw new UndefinedAliasException( input, t, alias );
     }
 }
 
@@ -113,7 +120,12 @@ general_statement : ^( STATEMENT ( alias { aliases.add( $alias.name ); } )? op_c
 parallel_clause : ^( PARALLEL INTEGER )
 ;
 
-alias returns[String name] : IDENTIFIER { $name = $IDENTIFIER.text; }
+alias returns[String name, Token token]
+ : IDENTIFIER
+   { 
+       $name = $IDENTIFIER.text;
+       $token = $IDENTIFIER.token;
+   }
 ;
 
 op_clause : define_clause 
@@ -173,7 +185,7 @@ as_clause: ^( AS field_def_list )
 ;
 
 field_def[Set<String> fieldNames] throws Exception
- : ^( FIELD_DEF IDENTIFIER { validateSchemaAliasName( fieldNames, $IDENTIFIER.text ); } type? )
+ : ^( FIELD_DEF IDENTIFIER { validateSchemaAliasName( fieldNames, $IDENTIFIER.token ); } type? )
 ;
 
 field_def_list
@@ -228,7 +240,8 @@ scope {
     {
         if( gt == HINT_COLLECTED ) {
             if( num_inputs > 1 ) {
-                throw new ParserValidationException( input, "Collected group is only supported for single input" );
+                throw new ParserValidationException( input, new SourceLocation( (CommonTree)$group_type.start ),
+                    "Collected group is only supported for single input" );
            } 
         }
     }
@@ -247,12 +260,13 @@ group_item
            // For the first input
            $group_clause::arity = $join_group_by_clause.exprCount;
        } else if( $join_group_by_clause.exprCount != $group_clause::arity ) {
-           throw new ParserValidationException( input, "The arity of the group by columns do not match." );
+           throw new ParserValidationException( input, new SourceLocation( (CommonTree)$group_item.start ),
+               "The arity of the group by columns do not match." );
        }
    }
 ;
 
-rel : alias {  validateAliasRef( aliases, $alias.name ); }
+rel : alias {  validateAliasRef( aliases, $alias.token ); }
     | op_clause
 ;
 
@@ -371,17 +385,24 @@ scope {
  : ^( JOIN join_sub_clause ( join_type { jt = $join_type.type; } )? ( partition_clause { partitionerPresent = true; } )? )
    {
        if( jt == HINT_SKEWED ) {
+           SourceLocation loc = new SourceLocation( (CommonTree)$join_type.start );
            if( partitionerPresent ) {
-               throw new ParserValidationException( input, "Custom Partitioner is not supported for skewed join" );
+               throw new ParserValidationException( input, loc, 
+                   "Custom Partitioner is not supported for skewed join" );
            }
            
            if( $join_sub_clause.inputCount != 2 ) {
-               throw new ParserValidationException( input, "Skewed join can only be applied for 2-way joins" );
+               throw new ParserValidationException( input, loc,
+                   "Skewed join can only be applied for 2-way joins" );
            }
        } else if( jt == HINT_MERGE && $join_sub_clause.inputCount != 2 ) {
-           throw new ParserValidationException( input, "Merge join can only be applied for 2-way joins" );
+           SourceLocation loc = new SourceLocation( (CommonTree)$join_type.start );
+           throw new ParserValidationException( input, loc,
+               "Merge join can only be applied for 2-way joins" );
        } else if( jt == HINT_REPL && $join_sub_clause.right ) {
-           throw new ParserValidationException( input, "Replicated join does not support (right|full) outer joins" );
+           SourceLocation loc = new SourceLocation( (CommonTree)$join_type.start );
+           throw new ParserValidationException( input, loc,
+               "Replicated join does not support (right|full) outer joins" );
        }
    }
 ;
@@ -414,7 +435,8 @@ join_item
            // For the first input
            $join_clause::arity = $join_group_by_clause.exprCount;
        } else if( $join_group_by_clause.exprCount != $join_clause::arity ) {
-           throw new ParserValidationException( input, "The arity of the join columns do not match." );
+           throw new ParserValidationException( input, new SourceLocation( (CommonTree)$join_item.start ),
+               "The arity of the join columns do not match." );
        }
    }
 ;

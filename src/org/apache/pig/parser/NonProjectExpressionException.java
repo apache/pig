@@ -19,21 +19,20 @@
 package org.apache.pig.parser;
 
 import org.antlr.runtime.IntStream;
-import org.antlr.runtime.RecognitionException;
 import org.apache.pig.newplan.logical.expression.LogicalExpression;
 
-public class NonProjectExpressionException extends RecognitionException {
+public class NonProjectExpressionException extends PigRecognitionException {
     private static final long serialVersionUID = 1L;
     
     private LogicalExpression expr;
     
-    public NonProjectExpressionException(IntStream input, LogicalExpression expr) {
-        super( input );
+    public NonProjectExpressionException(IntStream input, SourceLocation loc, LogicalExpression expr) {
+        super( input, loc );
         this.expr = expr;
     }
     
     public String toString() {
-        return "Expression is not a project expression: " + expr;
+        return msgHeader() + "expression is not a project expression: " + expr;
     }
 
     public LogicalExpression getExpression() {

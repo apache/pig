@@ -19,22 +19,31 @@
 package org.apache.pig.parser;
 
 import org.antlr.runtime.IntStream;
-import org.apache.pig.newplan.logical.expression.ScalarExpression;
-import org.apache.pig.newplan.logical.relational.LogicalRelationalOperator;
+import org.antlr.runtime.RecognitionException;
 
-public class InvalidScalarProjectionException extends PigRecognitionException {
+/**
+ * Subclass of Antlr RecognitionException which should be the parent class of all parser related 
+ * exception classes. We need this layer because of the line number problem in tree parser in 
+ * Antlr-3.2. You will need a token where the exception occurs in order to instantiate an instance
+ * of this class.
+ *
+ */
+public abstract class PigRecognitionException extends RecognitionException {
     private static final long serialVersionUID = 1L;
     
-    private ScalarExpression scalarExpr;
-    
-    public InvalidScalarProjectionException(IntStream input, SourceLocation loc, ScalarExpression expr) {
-        super( input, loc );
-        this.scalarExpr = expr;
+    public PigRecognitionException(IntStream input, SourceLocation loc) {
+        super( input );
+        this.line = loc.line();
+        this.charPositionInLine = loc.offset();
     }
     
-    public String toString() {
-        return msgHeader() + "Invalid scalar projection: " + 
-            ((LogicalRelationalOperator)scalarExpr.getImplicitReferencedOperator()).getAlias();
+    protected String msgHeader() {
+        StringBuilder sb = new StringBuilder();
+        sb.append( "<line " + line );
+        if( charPositionInLine >= 0 )
+            sb.append( ", column " + charPositionInLine );
+        sb.append( "> " );
+        return sb.toString();
     }
 
 }

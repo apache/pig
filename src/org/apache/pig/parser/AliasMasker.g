@@ -237,46 +237,23 @@ func_args
 ;
 
 group_clause
-scope {
-    int arity;
-}
-@init {
-    $group_clause::arity = 0;
-    int gt = HINT_REGULAR;
-    int num_inputs = 0;
-}
  : ^( ( GROUP { sb.append($GROUP.text).append(" "); } | COGROUP { sb.append($COGROUP.text).append(" "); } ) 
-      group_item { num_inputs++; } ( { sb.append(", "); } group_item { num_inputs++; } )* 
-      ( { sb.append(" USING "); } group_type { gt = $group_type.type; } )? 
+      group_item ( { sb.append(", "); } group_item )* 
+      ( { sb.append(" USING "); } group_type )? 
       partition_clause?
     )
-    {
-    	if( gt == HINT_COLLECTED ) {
-    	    if( num_inputs > 1 ) {
-                throw new ParserValidationException( input, "Collected group is only supported for single input" );
-    	   } 
-    	}
-    }
 ;
 
-group_type returns [int type]
-    : HINT_COLLECTED { $type = HINT_COLLECTED; sb.append($HINT_COLLECTED.text); } 
-    | HINT_MERGE  { $type = HINT_MERGE; sb.append($HINT_MERGE.text); } 
-    | HINT_REGULAR { $type = HINT_REGULAR; sb.append($HINT_REGULAR.text); } 
+group_type
+    : HINT_COLLECTED { sb.append($HINT_COLLECTED.text); } 
+    | HINT_MERGE  { sb.append($HINT_MERGE.text); } 
+    | HINT_REGULAR { sb.append($HINT_REGULAR.text); } 
 ;
 
 group_item
     : rel ( join_group_by_clause 
             | ALL { sb.append(" ").append($ALL.text); } | ANY { sb.append(" ").append($ANY.text); } ) 
             ( INNER { sb.append(" ").append($INNER.text); } | OUTER { sb.append(" ").append($OUTER.text); } )?
-   {
-       if( $group_clause::arity == 0 ) {
-           // For the first input
-           $group_clause::arity = $join_group_by_clause.exprCount;
-       } else if( $join_group_by_clause.exprCount != $group_clause::arity ) {
-           throw new ParserValidationException( input, "The arity of the group by columns do not match." );
-       }
-   }
 ;
 
 rel 
@@ -430,72 +407,32 @@ rel_list
 ;
 
 join_clause
-scope {
-    int arity;
-}
-@init {
-    $join_clause::arity = 0;
-    boolean partitionerPresent = false;
-    int jt = HINT_DEFAULT;
-}
-    : ^( JOIN { sb.append($JOIN.text).append(" "); } join_sub_clause ( { sb.append(" USING "); } join_type { jt = $join_type.type; } )? 
-    ( partition_clause { partitionerPresent = true; } )? )
-   {
-       if( jt == HINT_SKEWED ) {
-           if( partitionerPresent ) {
-               throw new ParserValidationException( input, "Custom Partitioner is not supported for skewed join" );
-           }
-           
-           if( $join_sub_clause.inputCount != 2 ) {
-               throw new ParserValidationException( input, "Skewed join can only be applied for 2-way joins" );
-           }
-       } else if( jt == HINT_MERGE && $join_sub_clause.inputCount != 2 ) {
-           throw new ParserValidationException( input, "Merge join can only be applied for 2-way joins" );
-       } else if( jt == HINT_REPL && $join_sub_clause.right ) {
-           throw new ParserValidationException( input, "Replicated join does not support (right|full) outer joins" );
-       }
-   }
+    : ^( JOIN { sb.append($JOIN.text).append(" "); } join_sub_clause ( { sb.append(" USING "); } join_type )? 
+    ( partition_clause )? )
 ;
 
-join_type returns[int type]
-    : HINT_REPL  { $type = HINT_REPL; sb.append($HINT_REPL.text); }
-    | HINT_MERGE { $type = HINT_MERGE; sb.append($HINT_MERGE.text); }
-    | HINT_SKEWED { $type = HINT_SKEWED; sb.append($HINT_SKEWED.text); }
-    | HINT_DEFAULT { $type = HINT_DEFAULT; sb.append($HINT_DEFAULT.text); }
+join_type
+    : HINT_REPL  { sb.append($HINT_REPL.text); }
+    | HINT_MERGE { sb.append($HINT_MERGE.text); }
+    | HINT_SKEWED { sb.append($HINT_SKEWED.text); }
+    | HINT_DEFAULT { sb.append($HINT_DEFAULT.text); }
 ;
 
-join_sub_clause returns[int inputCount, boolean right, boolean left]
-@init {
-    $inputCount = 0;
-}
- : join_item ( LEFT { $left = true; sb.append(" ").append($LEFT.text); }
-             | RIGHT { $right = true; sb.append(" ").append($RIGHT.text); }
-             | FULL { $left = true; $right = true; sb.append(" ").append($FULL.text); }
+join_sub_clause
+ : join_item ( LEFT { sb.append(" ").append($LEFT.text); }
+             | RIGHT { sb.append(" ").append($RIGHT.text); }
+             | FULL { sb.append(" ").append($FULL.text); }
              ) (OUTER { sb.append(" ").append($OUTER.text); } )? { sb.append(", "); } join_item
-   { 
-       $inputCount = 2;
-   }
- | join_item { $inputCount++; } ( { sb.append(", "); } join_item { $inputCount++; } )*
+ | join_item ( { sb.append(", "); } join_item )*
 ;
 
 join_item
  : ^( JOIN_ITEM rel join_group_by_clause )
-   {
-       if( $join_clause::arity == 0 ) {
-           // For the first input
-           $join_clause::arity = $join_group_by_clause.exprCount;
-       } else if( $join_group_by_clause.exprCount != $join_clause::arity ) {
-           throw new ParserValidationException( input, "The arity of the join columns do not match." );
-       }
-   }
 ;
 
-join_group_by_clause returns[int exprCount]
-@init {
-    $exprCount = 0;
-}
+join_group_by_clause
     : ^( BY { sb.append(" ").append($BY.text).append(" ("); } 
-    join_group_by_expr { $exprCount++; } ( { sb.append(", "); } join_group_by_expr { $exprCount++; } )* { sb.append(")"); } )
+    join_group_by_expr ( { sb.append(", "); } join_group_by_expr )* { sb.append(")"); } )
 ;
 
 join_group_by_expr 
@@ -516,8 +453,6 @@ foreach_plan
 ;
 
 nested_blk
-scope { Set<String> ids; }
-@init{ $nested_blk::ids = new HashSet<String>(); }
     : { sb.append(" { "); } (nested_command { sb.append("; "); } )* generate_clause { sb.append("; } "); }
 ;
 
@@ -528,13 +463,7 @@ generate_clause
 
 nested_command
     : ^( NESTED_CMD IDENTIFIER { sb.append($IDENTIFIER.text).append(" = "); } nested_op )
-    {
-        $nested_blk::ids.add( $IDENTIFIER.text );
-    }
     | ^( NESTED_CMD_ASSI IDENTIFIER { sb.append($IDENTIFIER.text).append(" = "); } expr )
-    {
-        $nested_blk::ids.add( $IDENTIFIER.text );
-    }
 ;
 
 nested_op : nested_proj
