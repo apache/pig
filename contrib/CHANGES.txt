@@ -24,6 +24,9 @@ INCOMPATIBLE CHANGES
 
 IMPROVEMENTS
 
+PIG-1924 CSV Loader/Store that handles newlines in fields, and other Excel CSV
+features. (paepcke via gates)
+
 PIG-1842 Improve Scalability of the XMLLoader for large datasets such as
 wikipedia (vivekp via gates)
 
