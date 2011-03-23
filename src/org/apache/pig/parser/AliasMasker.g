@@ -244,10 +244,7 @@ group_clause
     )
 ;
 
-group_type
-    : HINT_COLLECTED { sb.append($HINT_COLLECTED.text); } 
-    | HINT_MERGE  { sb.append($HINT_MERGE.text); } 
-    | HINT_REGULAR { sb.append($HINT_REGULAR.text); } 
+group_type : QUOTEDSTRING { sb.append( $QUOTEDSTRING.text ); } 
 ;
 
 group_item
@@ -411,11 +408,7 @@ join_clause
     ( partition_clause )? )
 ;
 
-join_type
-    : HINT_REPL  { sb.append($HINT_REPL.text); }
-    | HINT_MERGE { sb.append($HINT_MERGE.text); }
-    | HINT_SKEWED { sb.append($HINT_SKEWED.text); }
-    | HINT_DEFAULT { sb.append($HINT_DEFAULT.text); }
+join_type : QUOTEDSTRING { sb.append( $QUOTEDSTRING.text ); }
 ;
 
 join_sub_clause

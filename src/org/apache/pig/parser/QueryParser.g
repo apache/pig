@@ -257,7 +257,7 @@ func_args : func_args_string ( COMMA func_args_string )*
 group_clause : ( GROUP | COGROUP )^ group_item_list ( USING! group_type )? partition_clause?
 ;
 
-group_type : HINT_COLLECTED | HINT_MERGE | HINT_REGULAR
+group_type : QUOTEDSTRING
 ;
 
 group_item_list : group_item ( COMMA group_item )*
@@ -424,7 +424,7 @@ rel_list : rel ( COMMA rel )*
 join_clause : JOIN^ join_sub_clause ( USING! join_type )? partition_clause?
 ;
 
-join_type : HINT_REPL | HINT_MERGE | HINT_SKEWED | HINT_DEFAULT
+join_type : QUOTEDSTRING
 ;
 
 join_sub_clause : join_item ( LEFT | RIGHT | FULL ) OUTER? COMMA! join_item

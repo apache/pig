@@ -229,28 +229,11 @@ scope {
 }
 @init {
     $group_clause::arity = 0;
-    int gt = HINT_REGULAR;
-    int num_inputs = 0;
 }
- : ^( ( GROUP | COGROUP ) 
-      ( group_item { num_inputs++; } )+ 
-      ( group_type { gt = $group_type.type; } )? 
-      partition_clause?
-    )
-    {
-        if( gt == HINT_COLLECTED ) {
-            if( num_inputs > 1 ) {
-                throw new ParserValidationException( input, new SourceLocation( (CommonTree)$group_type.start ),
-                    "Collected group is only supported for single input" );
-           } 
-        }
-    }
+ : ^( ( GROUP | COGROUP ) group_item+ group_type? partition_clause? )
 ;
 
-group_type returns [int type]
- : HINT_COLLECTED { $type = HINT_COLLECTED; } 
- | HINT_MERGE  { $type = HINT_MERGE; } 
- | HINT_REGULAR { $type = HINT_REGULAR; } 
+group_type : QUOTEDSTRING 
 ;
 
 group_item
@@ -379,53 +362,16 @@ scope {
 }
 @init {
     $join_clause::arity = 0;
-    boolean partitionerPresent = false;
-    int jt = HINT_DEFAULT;
 }
- : ^( JOIN join_sub_clause ( join_type { jt = $join_type.type; } )? ( partition_clause { partitionerPresent = true; } )? )
-   {
-       if( jt == HINT_SKEWED ) {
-           SourceLocation loc = new SourceLocation( (CommonTree)$join_type.start );
-           if( partitionerPresent ) {
-               throw new ParserValidationException( input, loc, 
-                   "Custom Partitioner is not supported for skewed join" );
-           }
-           
-           if( $join_sub_clause.inputCount != 2 ) {
-               throw new ParserValidationException( input, loc,
-                   "Skewed join can only be applied for 2-way joins" );
-           }
-       } else if( jt == HINT_MERGE && $join_sub_clause.inputCount != 2 ) {
-           SourceLocation loc = new SourceLocation( (CommonTree)$join_type.start );
-           throw new ParserValidationException( input, loc,
-               "Merge join can only be applied for 2-way joins" );
-       } else if( jt == HINT_REPL && $join_sub_clause.right ) {
-           SourceLocation loc = new SourceLocation( (CommonTree)$join_type.start );
-           throw new ParserValidationException( input, loc,
-               "Replicated join does not support (right|full) outer joins" );
-       }
-   }
+ : ^( JOIN join_sub_clause join_type? partition_clause? )
 ;
 
-join_type returns[int type]
- : HINT_REPL  { $type = HINT_REPL; }
- | HINT_MERGE { $type = HINT_MERGE; }
- | HINT_SKEWED { $type = HINT_SKEWED; }
- | HINT_DEFAULT { $type = HINT_DEFAULT; }
+join_type : QUOTEDSTRING
 ;
 
-join_sub_clause returns[int inputCount, boolean right, boolean left]
-@init {
-    $inputCount = 0;
-}
- : join_item ( LEFT { $left = true; }
-             | RIGHT { $right = true; }
-             | FULL { $left = true; $right = true; }
-             ) OUTER? join_item
-   { 
-       $inputCount = 2;
-   }
- | ( join_item { $inputCount++; } )+
+join_sub_clause
+ : join_item ( LEFT | RIGHT | FULL ) OUTER? join_item
+ | join_item+
 ;
 
 join_item

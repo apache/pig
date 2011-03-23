@@ -297,24 +297,6 @@ DOUBLENUMBER : FLOATINGPOINT ( 'E' ( MINUS | PLUS )? INTEGER )?
 FLOATNUMBER : DOUBLENUMBER ( 'F' )?
 ;
 
-HINT_REPL : '\'REPL\'' |  '\'REPLICATED\''
-;
-
-HINT_SKEWED : '\'SKEWED\''
-;
-
-HINT_MERGE : '\'MERGE\''
-;
-
-HINT_DEFAULT : '\'HASH\'' | '\'DEFAULT\''
-;
-
-HINT_COLLECTED : '\'COLLECTED\''
-;
-
-HINT_REGULAR : '\'REGULAR\''
-;
-
 QUOTEDSTRING :  '\'' (   ( ~ ( '\'' | '\\' | '\n' | '\r' ) )
                        | ( '\\' ( ( 'N' | 'T' | 'B' | 'R' | 'F' | '\\' | '\'' ) ) )
                        | ( '\\u' ( '0'..'9' | 'A'..'F' )
