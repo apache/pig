@@ -378,9 +378,8 @@ public class ScriptState {
         try {
             String line = reader.readLine();
             while (line != null) {
-                line = line.trim();
-                if (line.length() > 0 && !line.startsWith("--")) {
-                    sb.append(line);
+                if (line.length() > 0) {
+                    sb.append(line).append("\n");
                 }                
                 line = reader.readLine();
             }            
