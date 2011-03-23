@@ -77,6 +77,7 @@ import org.apache.pig.newplan.logical.relational.LOSplitOutput;
 import org.apache.pig.newplan.logical.relational.LOStore;
 import org.apache.pig.newplan.logical.relational.LogicalRelationalNodesVisitor;
 import org.apache.pig.newplan.logical.rules.InputOutputFileValidator;
+import org.apache.pig.newplan.logical.rules.LoadStoreFuncDupSignatureValidator;
 import org.apache.pig.newplan.optimizer.Rule;
 import org.apache.pig.tools.pigstats.OutputStats;
 import org.apache.pig.tools.pigstats.PigStats;
@@ -270,6 +271,9 @@ public class HExecutionEngine {
                     String msg = "Unable to deserialize optimizer rules.";
                     throw new FrontendException(msg, errCode, PigException.BUG, ioe);
                 }
+                
+                LoadStoreFuncDupSignatureValidator loadStoreFuncDupSignatureValidator = new LoadStoreFuncDupSignatureValidator(newPlan);
+                loadStoreFuncDupSignatureValidator.validate();
                 
                 // run optimizer
                 org.apache.pig.newplan.logical.optimizer.LogicalPlanOptimizer optimizer = 

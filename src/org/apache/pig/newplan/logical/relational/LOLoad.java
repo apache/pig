@@ -45,6 +45,7 @@ public class LOLoad extends LogicalRelationalOperator {
     private List<Integer> requiredFields = null;
     private boolean castInserted = false;
     private LogicalSchema uidOnlySchema;
+    private String signature = null;
 
     /**
      * 
@@ -64,7 +65,7 @@ public class LOLoad extends LogicalRelationalOperator {
         try { 
             if (loadFunc == null && fs!=null) {
                 loadFunc = (LoadFunc)PigContext.instantiateFuncFromSpec(fs.getFuncSpec());
-                loadFunc.setUDFContextSignature(getAlias());               
+                loadFunc.setUDFContextSignature(signature);
             }
             
             return loadFunc;
@@ -204,5 +205,25 @@ public class LOLoad extends LogicalRelationalOperator {
     public String toString(){
         String str = super.toString();
         return (str + "RequiredFields:" + requiredFields);
+    }
+    
+    public String getSignature() {
+        return signature;
+    }
+    
+    public void setAlias(String alias) {
+        super.setAlias(alias);
+        if (signature==null)
+            signature = alias;
+    }
+    
+    /***
+     * This method is called by Pig logical planner to setup UDFContext signature.
+     * So that loadFunc can use signature to store its own configurations in UDFContext.
+     * This is not intend to be called by users
+     */
+    public void setSignature(String signature) {
+        this.signature = signature;
+        loadFunc.setUDFContextSignature(signature);
     }
 }
