@@ -232,6 +232,29 @@ public class LogicalPlanBuilder {
         else {
             op.pinOption(LOJoin.OPTION_JOIN);
         }
+        
+        int inputCount = inputAliases.size();
+        
+        if( jt == JOINTYPE.SKEWED ) {
+            if( partitioner != null ) {
+                throw new ParserValidationException( intStream, loc,
+                        "Custom Partitioner is not supported for skewed join" );
+            }
+            
+            if( inputCount != 2 ) {
+                throw new ParserValidationException( intStream, loc,
+                        "Skewed join can only be applied for 2-way joins" );
+            }
+        } else if( jt == JOINTYPE.MERGE && inputCount != 2 ) {
+            throw new ParserValidationException( intStream, loc,
+                    "Merge join can only be applied for 2-way joins" );
+        } else if( jt == JOINTYPE.REPLICATED ) {
+            if( innerFlags.size() == 2 && innerFlags.get( 0 ) == false ) {
+                throw new ParserValidationException( intStream, loc,
+                        "Replicated join does not support (right|full) outer joins" );
+            }
+        }
+
         boolean[] flags = new boolean[joinPlans.size()];
         if (innerFlags.size()!=0) {
             for( int i = 0; i < joinPlans.size(); i++ ) {
@@ -263,13 +286,18 @@ public class LogicalPlanBuilder {
         MultiMap<Integer, LogicalExpressionPlan> expressionPlans, GROUPTYPE gt, List<Boolean> innerFlags,
         String partitioner) throws ParserValidationException {
         if( gt == GROUPTYPE.COLLECTED ) {
+            if( inputAliases.size() > 1 ) {
+                throw new ParserValidationException( intStream, loc, 
+                        "Collected group is only supported for single input" );
+            }
+            
             List<LogicalExpressionPlan> exprPlans = expressionPlans.get( 0 );
             for( LogicalExpressionPlan exprPlan : exprPlans ) {
                 Iterator<Operator> it = exprPlan.getOperators();
                 while( it.hasNext() ) {
                     if( !( it.next() instanceof ProjectExpression ) ) {
                         throw new ParserValidationException( intStream, loc,
-                        		"Collected group is only supported for columns or star projection" );
+                                "Collected group is only supported for columns or star projection" );
                     }
                 }
             }
@@ -856,4 +884,36 @@ public class LogicalPlanBuilder {
         return f;
     }
     
+    GROUPTYPE parseGroupType(String hint, SourceLocation loc) throws ParserValidationException {
+        String modifier = unquote( hint );
+        
+        if( modifier.equalsIgnoreCase( "collected" ) ) {
+            return GROUPTYPE.COLLECTED;
+        } else if( modifier.equalsIgnoreCase( "regular" ) ){
+            return GROUPTYPE.REGULAR;
+        } else if( modifier.equalsIgnoreCase( "merge" ) ){
+            return GROUPTYPE.MERGE;
+        } else {
+            throw new ParserValidationException( intStream, loc,
+                "Only COLLECTED, REGULAR or MERGE are valid GROUP modifiers." );
+        }
+    }
+    
+    JOINTYPE parseJoinType(String hint, SourceLocation loc) throws ParserValidationException {
+        String modifier = unquote( hint );
+
+        if( modifier.equalsIgnoreCase( "repl" ) || modifier.equalsIgnoreCase( "replicated" ) ) {
+                  return JOINTYPE.REPLICATED; 
+          } else if( modifier.equalsIgnoreCase( "hash" ) || modifier.equalsIgnoreCase( "default" ) ) {
+                  return LOJoin.JOINTYPE.HASH;
+          } else if( modifier.equalsIgnoreCase( "skewed" ) ) {
+                 return JOINTYPE.SKEWED;
+          } else if (modifier.equalsIgnoreCase("merge")) {
+                  return JOINTYPE.MERGE;
+          } else {
+                  throw new ParserValidationException( intStream, loc,
+                          "Only REPL, REPLICATED, HASH, SKEWED and MERGE are vaild JOIN modifiers." );
+          }
+    }
+
 }

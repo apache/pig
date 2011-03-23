@@ -149,7 +149,7 @@ public String getErrorMessage(RecognitionException e, String[] tokenNames) {
 
 @Override
 public String getErrorHeader(RecognitionException ex) {
-	return QueryParserUtils.generateErrorHeader( ex );
+    return QueryParserUtils.generateErrorHeader( ex );
 }
 
 } // End of @members
@@ -484,9 +484,10 @@ scope GScope;
 ;
 
 group_type returns[GROUPTYPE type]
- : HINT_COLLECTED { $type = GROUPTYPE.COLLECTED; }
- | HINT_MERGE { $type = GROUPTYPE.MERGE; }
- | HINT_REGULAR { $type = GROUPTYPE.REGULAR; }
+ : QUOTEDSTRING
+   {
+       $type =builder.parseGroupType( $QUOTEDSTRING.text, new SourceLocation( $QUOTEDSTRING.token ) );
+   } 
 ;
 
 group_item
@@ -967,10 +968,10 @@ scope GScope;
 ;
 
 join_type returns[JOINTYPE type]
- : HINT_REPL { $type = JOINTYPE.REPLICATED; }
- | HINT_MERGE { $type = JOINTYPE.MERGE; }
- | HINT_SKEWED { $type = JOINTYPE.SKEWED; }
- | HINT_DEFAULT { $type = JOINTYPE.HASH; }
+ : QUOTEDSTRING
+   {
+       $type = builder.parseJoinType( $QUOTEDSTRING.text, new SourceLocation( $QUOTEDSTRING.token ) );
+   }
 ;
 
 join_sub_clause

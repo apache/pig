@@ -151,6 +151,15 @@ public class TestQueryParser {
         shouldPass( query );
     }
 
+    // 'repl' and such, shouldn't be treated as a constant. So, the following should pass.
+    @Test
+    public void test11() throws IOException, RecognitionException {
+        String query = "a = load 'repl' as (name, age, gpa);" +
+            "b = FOREACH C GENERATE group, flatten( ( 1 == 2 ? 2 : 3 ) );" +
+            " store b into 'skewed'; ";
+        shouldPass( query );
+    }
+
     @Test
     public void testBagType() throws IOException, RecognitionException {
         String query = "a = load '1.txt' as ( u : bag{}, v : bag{tuple(x, y)} );" +
