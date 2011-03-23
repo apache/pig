@@ -57,6 +57,7 @@ import org.apache.pig.newplan.logical.relational.LogToPhyTranslationVisitor;
 import org.apache.pig.newplan.logical.relational.LogicalPlan;
 import org.apache.pig.newplan.logical.relational.LogicalRelationalOperator;
 import org.apache.pig.newplan.logical.rules.InputOutputFileValidator;
+import org.apache.pig.newplan.logical.rules.LoadStoreFuncDupSignatureValidator;
 import org.apache.pig.newplan.logical.visitor.SortInfoSetter;
 import org.apache.pig.pen.POOptimizeDisabler;
 
@@ -261,6 +262,10 @@ public class HExecutionEngine {
             optimizerRules.add("AddForEach");
             optimizerRules.add("GroupByConstParallelSetter");
         }
+        
+        // Check if we have duplicate signature
+        LoadStoreFuncDupSignatureValidator loadStoreFuncDupSignatureValidator = new LoadStoreFuncDupSignatureValidator(plan);
+        loadStoreFuncDupSignatureValidator.validate();
         
         // run optimizer
         LogicalPlanOptimizer optimizer = new LogicalPlanOptimizer( plan, 100, optimizerRules );

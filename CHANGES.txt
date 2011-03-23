@@ -357,6 +357,8 @@ PIG-1309: Map-side Cogroup (ashutoshc)
 
 BUG FIXES
 
+PIG-1912: non-deterministic output when a file is loaded multiple times (daijy)
+
 PIG-1892: Bug in new logical plan : No output generated even though there are
 valid records (daijy)
 

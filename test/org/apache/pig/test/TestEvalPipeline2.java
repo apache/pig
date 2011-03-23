@@ -1367,4 +1367,38 @@ public class TestEvalPipeline2 {
         
         Assert.assertFalse(iter.hasNext());
     }
+    
+    // See PIG-1912
+    @Test
+    public void testDuplicateLoadFuncSignature() throws Exception{
+        String[] input = {
+                "0\t1\ta",
+        };
+        
+        Util.createInputFile(cluster, "table_testDuplicateLoadFuncSignature", input);
+        pigServer.setBatchOn();
+        pigServer.registerQuery("a = load 'table_testDuplicateLoadFuncSignature' as (a0, a1, a2);");
+        pigServer.registerQuery("b = foreach a generate a0, a1;");
+        pigServer.registerQuery("a = load 'table_testDuplicateLoadFuncSignature' as (a0, a1, a2);");
+        pigServer.registerQuery("c = foreach a generate a0, a2;");
+        pigServer.registerQuery("store b into 'testDuplicateLoadFuncSignatureOutput1';");
+        pigServer.registerQuery("store c into 'testDuplicateLoadFuncSignatureOutput2';");
+        
+        pigServer.executeBatch();
+        
+        pigServer.registerQuery("a = load 'testDuplicateLoadFuncSignatureOutput1';");
+        Iterator<Tuple> iter = pigServer.openIterator("a");
+        
+        Tuple t = iter.next();
+        Assert.assertTrue(t.toString().equals("(0,1)"));
+        Assert.assertFalse(iter.hasNext());
+        
+        pigServer.registerQuery("a = load 'testDuplicateLoadFuncSignatureOutput2';");
+        iter = pigServer.openIterator("a");
+        
+        t = iter.next();
+        Assert.assertTrue(t.toString().equals("(0,a)"));
+        Assert.assertFalse(iter.hasNext());
+        
+    }
 }
