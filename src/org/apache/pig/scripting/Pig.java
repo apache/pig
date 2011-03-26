@@ -33,7 +33,6 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.fs.FsShell;
 import org.apache.pig.PigServer;
 import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
-import org.apache.pig.parser.ParserUtil;
 import org.apache.pig.tools.parameters.ParameterSubstitutionPreprocessor;
 
 /**
@@ -158,10 +157,7 @@ public class Pig {
         ScriptPigContext ctx = getScriptContext();
         StringBuilder sb = new StringBuilder();
         sb.append(getRegisterScriptUDFClauses()).append(getDefineClauses());
-        
-        StringReader rd = new StringReader(pl);
-        String newPl = ParserUtil.expandMacros(rd);
-        sb.append(newPl).append("\n");
+        sb.append(pl).append("\n");
         return new Pig(sb.toString(), ctx, name);
     }
 

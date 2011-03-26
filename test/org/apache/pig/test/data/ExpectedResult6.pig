@@ -1,4 +1,4 @@
-define mymacro1(A, rate) returns B { 
+define mymacro1(A, rate) returns B {
     C = group $A by $0 parallel $rate;
     B = foreach C generate group, COUNT($A);
 };

@@ -18,37 +18,42 @@
 
 package org.apache.pig.test;
 
-
 import static org.junit.Assert.assertTrue;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileReader;
 import java.io.FileWriter;
-import java.io.StringReader;
-import java.util.Properties;
 
-import junit.framework.Assert;
-
-import org.apache.pig.ExecType;
 import org.apache.pig.PigRunner;
-import org.apache.pig.impl.PigContext;
-import org.apache.pig.parser.NonProjectExpressionException;
-import org.apache.pig.parser.ParserTestingUtils;
-import org.apache.pig.parser.ParserUtil;
-import org.apache.pig.tools.grunt.Grunt;
 import org.apache.pig.tools.pigstats.PigStats;
 import org.junit.After;
 import org.junit.AfterClass;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class TestMacroExpansion {
-
+    
     private static final MiniCluster cluster = MiniCluster.buildCluster();
+    
+    static File command;
     
     @BeforeClass
     public static void setUpBeforeClass() throws Exception {
+        // Perl script 
+        String[] script = 
+            new String[] {
+                          "#!/usr/bin/perl",
+                          "open(INFILE,  $ARGV[0]) or die \"Can't open \".$ARGV[0].\"!: $!\";",
+                          "while (<INFILE>) {",
+                          "  chomp $_;",
+                          "  print STDOUT \"$_\n\";",
+                          "  print STDERR \"STDERR: $_\n\";",
+                          "}",
+                         };
+        command = Util.createInputFile("script", "pl", script);
     }
 
     @AfterClass
@@ -65,7 +70,7 @@ public class TestMacroExpansion {
     }
     
     @Test 
-    public void firstTest() throws Throwable {
+    public void firstTest() throws Exception {
         String macro = "define group_and_count (A,group_key) returns B {\n" +
             "    D = group $A by $group_key partition by org.apache.pig.test.utils.SimpleCustomPartitioner parallel 50;\n" +
             "    $B = foreach D generate group, COUNT($A);\n" +
@@ -77,26 +82,21 @@ public class TestMacroExpansion {
             "delta = group_and_count (alpha, age);\n" +
             "store gamma into 'byuser';\n" +
             "store delta into 'byage';\n";
-        
-        StringReader rd = new StringReader(macro + script);
-        String s = ParserUtil.expandMacros(rd);
-        
-        validate(s);
-        
+                
         String expected =
-            "\nalpha = load 'users' as (user, age, zip);\n" +
+            "alpha = load 'users' as (user, age, zip);\n" +
             "macro_group_and_count_D_0 = group alpha by (user) partition BY org.apache.pig.test.utils.SimpleCustomPartitioner parallel 50;\n" +
-            "gamma = foreach macro_group_and_count_D_0 generate group, COUNT(alpha);\n\n" +
+            "gamma = foreach macro_group_and_count_D_0 generate group, COUNT(alpha);\n" +
             "macro_group_and_count_D_1 = group alpha by (age) partition BY org.apache.pig.test.utils.SimpleCustomPartitioner parallel 50;\n" +
-            "delta = foreach macro_group_and_count_D_1 generate group, COUNT(alpha);\n\n" +
-            "store gamma into 'byuser';\n" +
-            "store delta into 'byage';\n";
-
-        Assert.assertEquals(expected, s);
+            "delta = foreach macro_group_and_count_D_1 generate group, COUNT(alpha);\n" +
+            "store gamma INTO 'byuser';\n" +
+            "store delta INTO 'byage';\n";
+        
+        verify(macro + script, expected);
     }
     
     @Test
-    public void distinctTest() throws Throwable {
+    public void distinctTest() throws Exception {
         String macro = "define group_and_count (A,group_key, reducers) returns B {\n" +
             "    $B = distinct $A partition by org.apache.pig.test.utils.SimpleCustomPartitioner parallel $reducers;\n" +
             "};\n";
@@ -108,23 +108,18 @@ public class TestMacroExpansion {
             "store gamma into 'byuser';\n" +
             "store delta into 'byage';\n";
         
-        StringReader rd = new StringReader(macro + script);
-        String s = ParserUtil.expandMacros(rd);
+        String expected =
+            "alpha = load 'users' as (user, age, zip);\n" +
+            "gamma = distinct alpha partition BY org.apache.pig.test.utils.SimpleCustomPartitioner parallel 23;\n" +
+            "delta = distinct alpha partition BY org.apache.pig.test.utils.SimpleCustomPartitioner parallel 32;\n" +
+            "store gamma INTO 'byuser';\n" +
+            "store delta INTO 'byage';\n";
         
-        validate(s);
-        
-        String expected = 
-            "\nalpha = load 'users' as (user, age, zip);\n" +
-            "gamma = distinct alpha partition BY org.apache.pig.test.utils.SimpleCustomPartitioner parallel 23;\n\n" +
-            "delta = distinct alpha partition BY org.apache.pig.test.utils.SimpleCustomPartitioner parallel 32;\n\n" +
-            "store gamma into 'byuser';\n" +
-            "store delta into 'byage';\n";
-        
-        Assert.assertEquals(expected, s);
+        verify(macro + script, expected);
     }   
     
     @Test
-    public void limitTest() throws Throwable {
+    public void limitTest() throws Exception {
         String macro = "define group_and_count (A,group_key, size) returns B {\n" +
             "    $B = limit $A $size;\n" +
             "};\n";
@@ -136,23 +131,18 @@ public class TestMacroExpansion {
             "store gamma into 'byuser';\n" +
             "store delta into 'byage';\n";
         
-        StringReader rd = new StringReader(macro + script);
-        String s = ParserUtil.expandMacros(rd);
-        
-        validate(s);
-        
         String expected =
-            "\nalpha = load 'users' as (user, age, zip);\n" +
-            "gamma = limit alpha 20;\n\n" +
-            "delta = limit alpha 39;\n\n" +
-            "store gamma into 'byuser';\n" +
-            "store delta into 'byage';\n";
+            "alpha = load 'users' as (user, age, zip);\n" +
+            "gamma = limit alpha 20;\n" +
+            "delta = limit alpha 39;\n" +
+            "store gamma INTO 'byuser';\n" +
+            "store delta INTO 'byage';\n";
         
-        Assert.assertEquals(expected, s);
+        verify(macro + script, expected);
     }   
     
     @Test
-    public void sampleTest() throws Throwable {
+    public void sampleTest() throws Exception {
         String macro = "define group_and_count (A, rate) returns B {\n" +
             "    $B = sample $A $rate;\n" +
             "};\n";
@@ -164,23 +154,18 @@ public class TestMacroExpansion {
             "store gamma into 'byuser';\n" +
             "store delta into 'byage';\n";
         
-        StringReader rd = new StringReader(macro + script);
-        String s = ParserUtil.expandMacros(rd);
+        String expected =
+            "alpha = load 'users' as (user, age, zip);\n" +
+            "gamma = sample alpha 0.01;\n" +
+            "delta = sample alpha 0.002;\n" +
+            "store gamma INTO 'byuser';\n" +
+            "store delta INTO 'byage';\n";
         
-        validate(s);
-        
-        String expected = 
-            "\nalpha = load 'users' as (user, age, zip);\n" +
-            "gamma = sample alpha 0.01;\n\n" +
-            "delta = sample alpha 0.002;\n\n" +
-            "store gamma into 'byuser';\n" +
-            "store delta into 'byage';\n";
-        
-        Assert.assertEquals(expected, s);
+        verify(macro + script, expected);
     }
     
     @Test
-    public void orderbyTest() throws Throwable {
+    public void orderbyTest() throws Exception {
         String macro = "define group_and_count (A,f1,f2) returns B {\n" +
             "    $B = ORDER $A BY $f1 ASC, $f2 DESC PARALLEL 3;\n" +
             "    C = ORDER $A BY * ASC PARALLEL 3;\n" +
@@ -193,25 +178,20 @@ public class TestMacroExpansion {
             "store gamma into 'byuser';\n" +
             "store delta into 'byage';\n";
         
-        StringReader rd = new StringReader(macro + script);
-        String s = ParserUtil.expandMacros(rd);
-        
-        validate(s);
-        
         String expected =
-            "\nalpha = load 'users' as (user, age, zip);\n" +
+            "alpha = load 'users' as (user, age, zip);\n" +
             "gamma = ORDER alpha BY user ASC, age DESC PARALLEL 3;\n" +
-            "macro_group_and_count_C_0 = ORDER alpha BY * ASC PARALLEL 3;\n\n" +
+            "macro_group_and_count_C_0 = ORDER alpha BY * ASC PARALLEL 3;\n" +
             "delta = ORDER alpha BY age ASC, zip DESC PARALLEL 3;\n" +
-            "macro_group_and_count_C_1 = ORDER alpha BY * ASC PARALLEL 3;\n\n" +
-            "store gamma into 'byuser';\n" +
-            "store delta into 'byage';\n";
+            "macro_group_and_count_C_1 = ORDER alpha BY * ASC PARALLEL 3;\n" +
+            "store gamma INTO 'byuser';\n" +
+            "store delta INTO 'byage';\n";
         
-        Assert.assertEquals(expected, s);
+        verify(macro + script, expected);
     }
     
     @Test
-    public void crossTest() throws Throwable {
+    public void crossTest() throws Exception {
         String macro = "define group_and_count (A,C) returns B {\n" +
             "    $B = CROSS $A, $C partition by org.apache.pig.test.utils.SimpleCustomPartitioner parallel 5;\n" +
             "};\n";
@@ -224,24 +204,19 @@ public class TestMacroExpansion {
             "store gamma into 'byuser';\n" +
             "store delta into 'byage';\n";
         
-        StringReader rd = new StringReader(macro + script);
-        String s = ParserUtil.expandMacros(rd);
-        
-        validate(s);
-        
         String expected =
-            "\nalpha = load 'users' as (user, age, zip);\n" +
+            "alpha = load 'users' as (user, age, zip);\n" +
             "beta = load 'links' as (user, page, view);\n" +
-            "gamma = CROSS alpha, beta partition BY org.apache.pig.test.utils.SimpleCustomPartitioner parallel 5;\n\n" +
-            "delta = CROSS beta, alpha partition BY org.apache.pig.test.utils.SimpleCustomPartitioner parallel 5;\n\n" +
-            "store gamma into 'byuser';\n" +
-            "store delta into 'byage';\n";
+            "gamma = CROSS alpha, beta partition BY org.apache.pig.test.utils.SimpleCustomPartitioner parallel 5;\n" +
+            "delta = CROSS beta, alpha partition BY org.apache.pig.test.utils.SimpleCustomPartitioner parallel 5;\n" +
+            "store gamma INTO 'byuser';\n" +
+            "store delta INTO 'byage';\n";
         
-        Assert.assertEquals(expected, s);
+        verify(macro + script, expected);
     }
     
     @Test
-    public void loadTest() throws Throwable {
+    public void loadTest() throws Exception {
         String macro = "define group_and_count (path) returns B {\n" +
             "    D = load 'myfile.txt' using PigStorage('\t') AS (name:chararray, age:int, gpa:float);\n" +   
             "    $B = load '$path' using PigStorage('\t') AS (F:tuple(f1:int,f2:int,f3:int),T:tuple(t1:chararray,t2:int));\n" +
@@ -255,28 +230,23 @@ public class TestMacroExpansion {
             "store gamma into 'byuser';\n" +
             "store delta into 'byage';\n";
         
-        StringReader rd = new StringReader(macro + script);
-        String s = ParserUtil.expandMacros(rd);
-        
-        validate(s);
-                
-        String expected =
-            "\nmacro_group_and_count_D_0 = load 'myfile.txt' USING PigStorage('\t') AS (name:chararray, age:int, gpa:float);\n" +
+        String expected = 
+            "macro_group_and_count_D_0 = load 'myfile.txt' USING PigStorage('\t') AS (name:chararray, age:int, gpa:float);\n" +
             "gamma = load 'myfile' USING PigStorage('\t') AS (F:(f1:int, f2:int, f3:int), T:(t1:chararray, t2:int));\n" +
             "macro_group_and_count_E_0 = load 'myfile.txt' USING org.apache.pig.builtin.PigStorage('\t') AS B:bag{T:(t1:int, t2:int, t3:int)};\n" +
-            "macro_group_and_count_F_0 = load 'myfile.txt' USING org.apache.pig.builtin.PigStorage('\t') AS (T1:(f1:int, f2:int), B:bag{T:(t1:float, t2:float)}, M:map[]);\n\n" +
+            "macro_group_and_count_F_0 = load 'myfile.txt' USING org.apache.pig.builtin.PigStorage('\t') AS (T1:(f1:int, f2:int), B:bag{T:(t1:float, t2:float)}, M:map[]);\n" +
             "macro_group_and_count_D_1 = load 'myfile.txt' USING PigStorage('\t') AS (name:chararray, age:int, gpa:float);\n" +
             "delta = load 'mydir' USING PigStorage('\t') AS (F:(f1:int, f2:int, f3:int), T:(t1:chararray, t2:int));\n" +
             "macro_group_and_count_E_1 = load 'myfile.txt' USING org.apache.pig.builtin.PigStorage('\t') AS B:bag{T:(t1:int, t2:int, t3:int)};\n" +
-            "macro_group_and_count_F_1 = load 'myfile.txt' USING org.apache.pig.builtin.PigStorage('\t') AS (T1:(f1:int, f2:int), B:bag{T:(t1:float, t2:float)}, M:map[]);\n\n" +
-            "store gamma into 'byuser';\n" +
-            "store delta into 'byage';\n";
-
-        Assert.assertEquals(expected, s);
+            "macro_group_and_count_F_1 = load 'myfile.txt' USING org.apache.pig.builtin.PigStorage('\t') AS (T1:(f1:int, f2:int), B:bag{T:(t1:float, t2:float)}, M:map[]);\n" +
+            "store gamma INTO 'byuser';\n" +
+            "store delta INTO 'byage';\n";
+        
+        verify(macro + script, expected);
     }
     
     @Test
-    public void storeTest() throws Throwable {
+    public void storeTest() throws Exception {
         String macro = "define group_and_count (A,C) returns B {\n" +
             "    $B = CROSS $A, $C partition by org.apache.pig.test.utils.SimpleCustomPartitioner parallel 5;\n" +
             "    STORE $A INTO 'myoutput' USING PigStorage ('*');\n" +
@@ -290,26 +260,21 @@ public class TestMacroExpansion {
             "store gamma into 'byuser';\n" +
             "store delta into 'byage';\n";
         
-        StringReader rd = new StringReader(macro + script);
-        String s = ParserUtil.expandMacros(rd);
-        
-        validate(s);
-        
         String expected =
-            "\nalpha = load 'users' as (user, age, zip);\n" +
+            "alpha = load 'users' as (user, age, zip);\n" +
             "beta = load 'links' as (user, page, view);\n" +
             "gamma = CROSS alpha, beta partition BY org.apache.pig.test.utils.SimpleCustomPartitioner parallel 5;\n" +
-            "STORE alpha INTO 'myoutput' USING PigStorage('*');\n\n" +
+            "STORE alpha INTO 'myoutput' USING PigStorage('*');\n" +
             "delta = CROSS beta, alpha partition BY org.apache.pig.test.utils.SimpleCustomPartitioner parallel 5;\n" +
-            "STORE beta INTO 'myoutput' USING PigStorage('*');\n\n" +
-            "store gamma into 'byuser';\n" +
-            "store delta into 'byage';\n";
-
-        Assert.assertEquals(expected, s);
+            "STORE beta INTO 'myoutput' USING PigStorage('*');\n" +
+            "store gamma INTO 'byuser';\n" +
+            "store delta INTO 'byage';\n";
+        
+        verify(macro + script, expected);
     }
     
     @Test
-    public void streamTest() throws Throwable {
+    public void streamTest() throws Exception {
         String macro = "define group_and_count (A) returns B {\n" +
             "    $B = STREAM $A THROUGH `stream.pl -n 5`;\n" +
             "    DEFINE mycmd `stream.pl -n 5`;\n" +
@@ -321,23 +286,18 @@ public class TestMacroExpansion {
             "gamma = group_and_count (alpha);\n" +
             "store gamma into 'byuser';\n";
         
-        StringReader rd = new StringReader(macro + script);
-        String s = ParserUtil.expandMacros(rd);
-        
-        validate(s);
-        
         String expected =
-            "\nalpha = load 'users' as (user, age, zip);\n" +
-            "gamma = STREAM alpha THROUGH `stream.pl -n 5`;\n" +
-            "DEFINE mycmd `stream.pl -n 5`;\n" +
-            "gamma = STREAM alpha THROUGH mycmd;\n\n" +
-            "store gamma into 'byuser';\n";
-
-        Assert.assertEquals(expected, s);
+            "alpha = load 'users' as (user, age, zip);\n" +
+            "gamma = STREAM alpha THROUGH `stream.pl -n 5`;\n" + 
+            "DEFINE macro_group_and_count_mycmd_0 `stream.pl -n 5`;\n" + 
+            "gamma = STREAM alpha THROUGH macro_group_and_count_mycmd_0;\n" +
+            "store gamma INTO 'byuser';\n";
+        
+        verify(macro + script, expected);
     }
     
     @Test 
-    public void defineTest() throws Throwable {
+    public void defineTest() throws Exception {
         String macro = "define group_and_count (A) returns B {\n" +
             "    DEFINE CMD `perl PigStreaming.pl - nameMap` input(stdin using PigStreaming(',')) output(stdout using PigStreaming(','));\n" +            
             "    DEFINE mycmd `stream_cmd input file.dat`;\n" +
@@ -352,28 +312,23 @@ public class TestMacroExpansion {
             "gamma = group_and_count (alpha);\n" +
             "store gamma into 'byuser';\n";
         
-        StringReader rd = new StringReader(macro + script);
-        String s = ParserUtil.expandMacros(rd);
+        String expected = 
+            "alpha = load 'users' as (user, age, zip);\n" +
+            "DEFINE macro_group_and_count_CMD_0 `perl PigStreaming.pl - nameMap` input(stdin USING PigStreaming(',')) output (stdout USING PigStreaming(','));\n" +
+            "DEFINE macro_group_and_count_mycmd_0 `stream_cmd input file.dat`;\n" +
+            "DEFINE macro_group_and_count_Z_0 `stream.pl` stderr ('<dir>' LIMIT 100);\n" +
+            "gamma = STREAM alpha THROUGH macro_group_and_count_CMD_0;\n" +
+            "macro_group_and_count_D_0 = STREAM alpha THROUGH macro_group_and_count_mycmd_0;\n" +
+            "macro_group_and_count_F_0 = STREAM alpha THROUGH macro_group_and_count_Z_0;\n" +
+            "store gamma INTO 'byuser';\n";
         
-        validate(s);
-        
-        String expected =
-            "\nalpha = load 'users' as (user, age, zip);\n" +
-            "DEFINE CMD `perl PigStreaming.pl - nameMap` input(stdin USING PigStreaming(',')) output (stdout USING PigStreaming(','));\n" +
-            "DEFINE mycmd `stream_cmd input file.dat`;\n" +
-            "DEFINE Z `stream.pl` stderr ('<dir>' LIMIT 100);\n" +
-            "gamma = STREAM alpha THROUGH CMD;\n" +
-            "macro_group_and_count_D_0 = STREAM alpha THROUGH mycmd;\n" +
-            "macro_group_and_count_F_0 = STREAM alpha THROUGH Z;\n\n" +
-            "store gamma into 'byuser';\n";
-
-        Assert.assertEquals(expected, s);
+        verify(macro + script, expected);
     }
     
     @Test 
-    public void defineTest2() throws Throwable {
+    public void defineTest2() throws Exception {
         String macro = "define group_and_count (A) returns B {\n" +
-            "    DEFINE CMD `stream.pl data.gz` SHIP('/work/stream.pl') CACHE('/input/data.gz#data.gz');\n" +
+            "    DEFINE CMD `stream.pl data.gz` SHIP('"+Util.encodeEscape(command.toString())+"') CACHE('"+Util.encodeEscape(command.toString())+"');\n" +
             "    $B = STREAM $A THROUGH CMD;\n" +
             "};\n";
         
@@ -382,20 +337,11 @@ public class TestMacroExpansion {
             "gamma = group_and_count (alpha);\n" +
             "store gamma into 'byuser';\n";
         
-        StringReader rd = new StringReader(macro + script);
-        String s = ParserUtil.expandMacros(rd);
-        
-        String expected =
-            "\nalpha = load 'users' as (user, age, zip);\n" +
-            "DEFINE CMD `stream.pl data.gz` SHIP ( '/work/stream.pl') CACHE ( '/input/data.gz#data.gz');\n" +
-            "gamma = STREAM alpha THROUGH CMD;\n\n" +
-            "store gamma into 'byuser';\n";
-
-        Assert.assertEquals(expected, s);
+        verify(macro + script);
     }
     
     @Test
-    public void groupTest() throws Throwable {
+    public void groupTest() throws Exception {
         String macro = "define group_and_count (A,group_key) returns B {\n" +
             "    D = group $A by $group_key parallel 50;\n" +
             "    $B = foreach D generate group, COUNT($A);\n" +
@@ -409,25 +355,20 @@ public class TestMacroExpansion {
             "gamma = group_and_count (alpha, user);\n" +
             "store gamma into 'byuser';\n";
         
-        StringReader rd = new StringReader(macro + script);
-        String s = ParserUtil.expandMacros(rd);
-        
-        validate(s);
-        
         String expected =
-            "\nalpha = load 'users' as (user, age, zip);\n" +
+            "alpha = load 'users' as (user, age, zip);\n" +
             "macro_group_and_count_D_0 = group alpha by (user) parallel 50;\n" +
             "gamma = foreach macro_group_and_count_D_0 generate group, COUNT(alpha);\n" +
             "macro_group_and_count_X_0 = GROUP alpha BY (user) USING 'collected';\n" +
             "macro_group_and_count_Y_0 = GROUP alpha BY (user, age) USING 'merge';\n" +
-            "macro_group_and_count_Z_0 = GROUP alpha ALL;\n\n" +
-            "store gamma into 'byuser';\n";
+            "macro_group_and_count_Z_0 = GROUP alpha ALL;\n" + 
+            "store gamma INTO 'byuser';\n";
         
-        Assert.assertEquals(expected, s);
+        verify(macro + script, expected);
     }
     
     @Test
-    public void cogroupTest() throws Throwable {
+    public void cogroupTest() throws Exception {
         String macro = "define group_and_count (A,C) returns B {\n" +
             "    D = cogroup $A by user, $C by user parallel 50;\n" +
             "    $B = cogroup $A by user inner, $C by user inner parallel 50;\n" +
@@ -440,24 +381,19 @@ public class TestMacroExpansion {
             "gamma = group_and_count (alpha, beta);\n" +
             "store gamma into 'byuser';\n";
         
-        StringReader rd = new StringReader(macro + script);
-        String s = ParserUtil.expandMacros(rd);
-        
-        validate(s);
-        
         String expected =
-            "\nalpha = load 'users' as (user, age, zip);\n" +
+            "alpha = load 'users' as (user, age, zip);\n" +
             "beta = load 'links' as (user, page, view);\n" +
             "macro_group_and_count_D_0 = cogroup alpha by (user), beta by (user) parallel 50;\n" +
             "gamma = cogroup alpha by (user) inner, beta by (user) inner parallel 50;\n" +
-            "macro_group_and_count_Y_0 = COGROUP alpha BY (user, age), beta by (user, view) USING 'merge';\n\n" +
-            "store gamma into 'byuser';\n";
-
-        Assert.assertEquals(expected, s);
+            "macro_group_and_count_Y_0 = COGROUP alpha BY (user, age), beta by (user, view) USING 'merge';\n" +
+            "store gamma INTO 'byuser';\n";
+        
+        verify(macro + script, expected);
     }
     
     @Test
-    public void unionTest() throws Throwable {
+    public void unionTest() throws Exception {
         String macro = "define group_and_count (A,C) returns B {\n" +
             "    D = union $A, $C;\n" +
             "    $B = union onschema $A, $C;\n" +
@@ -469,23 +405,18 @@ public class TestMacroExpansion {
             "gamma = group_and_count (alpha, beta);\n" +
             "store gamma into 'byuser';\n";
         
-        StringReader rd = new StringReader(macro + script);
-        String s = ParserUtil.expandMacros(rd);
-        
-        validate(s);
-        
-        String expected =
-            "\nalpha = load 'users' as (user, age, zip);\n" +
+        String expected = 
+            "alpha = load 'users' as (user, age, zip);\n" +
             "beta = load 'links' as (user, page, view);\n" +
             "macro_group_and_count_D_0 = union alpha, beta;\n" +
-            "gamma = union onschema alpha, beta;\n\n" +
-            "store gamma into 'byuser';\n";
-
-        Assert.assertEquals(expected, s);
+            "gamma = union onschema alpha, beta;\n" +
+            "store gamma INTO 'byuser';\n";
+        
+        verify(macro + script, expected);
     }
     
     @Test
-    public void splitTest() throws Throwable {
+    public void splitTest() throws Exception {
         String macro = "define group_and_count (A,key) returns B {\n" +
             "    SPLIT $A INTO $B IF $key<7, Y IF $key==5, Z IF ($key<6 OR $key>6);\n" +
             "};\n";
@@ -495,21 +426,16 @@ public class TestMacroExpansion {
             "gamma = group_and_count (alpha, age);\n" +
             "store gamma into 'byuser';\n";
         
-        StringReader rd = new StringReader(macro + script);
-        String s = ParserUtil.expandMacros(rd);
+        String expected = 
+            "alpha = load 'users' as (user, age, zip);\n" +
+            "SPLIT alpha INTO gamma IF age < 7, macro_group_and_count_Y_0 IF age == 5, macro_group_and_count_Z_0 IF (age < 6) OR (age > 6);\n" +
+            "store gamma INTO 'byuser';\n";
         
-        validate(s);
-        
-        String expected =
-             "\nalpha = load 'users' as (user, age, zip);\n" +
-            "SPLIT alpha INTO gamma IF age < 7, Y IF age == 5, Z IF (age < 6) OR (age > 6);\n\n" +
-            "store gamma into 'byuser';\n";
-
-        Assert.assertEquals(expected, s);
+        verify(macro + script, expected);
     }
     
     @Test
-    public void mapreduceTest() throws Throwable {
+    public void mapreduceTest() throws Exception {
         String macro = "define group_and_count (A) returns B {\n" +
             "    $B = MAPREDUCE 'wordcount.jar' STORE $A INTO 'inputDir' LOAD 'outputDir' " + 
             "AS (word:chararray, count: int) `org.myorg.WordCount inputDir outputDir`;\n" +
@@ -520,21 +446,16 @@ public class TestMacroExpansion {
             "gamma = group_and_count (alpha);\n" +
             "store gamma into 'byuser';\n";
         
-        StringReader rd = new StringReader(macro + script);
-        String s = ParserUtil.expandMacros(rd);
-        
-        validate(s);
-        
         String expected =
-             "\nalpha = load 'users' as (user, age, zip);\n" +
-            "gamma = MAPREDUCE 'wordcount.jar' STORE alpha INTO 'inputDir' LOAD 'outputDir' AS (word:chararray, count:int) `org.myorg.WordCount inputDir outputDir`;\n\n" +
-            "store gamma into 'byuser';\n";
+            "alpha = load 'users' as (user, age, zip);\n" +
+            "gamma = MAPREDUCE 'wordcount.jar' STORE alpha INTO 'inputDir' LOAD 'outputDir' AS (word:chararray, count:int) `org.myorg.WordCount inputDir outputDir`;\n" +
+            "store gamma INTO 'byuser';\n";
         
-        Assert.assertEquals(expected, s);
+        verify(macro + script, expected);
     }
     
     @Test
-    public void joinTest() throws Throwable {
+    public void joinTest() throws Exception {
         String macro = "define group_and_count (A,C) returns B {\n" +
             "    $B = JOIN $A BY user, $C BY user using 'replicated' partition by org.apache.pig.test.utils.SimpleCustomPartitioner parallel 5;\n" +
             "    $B = JOIN $A BY $0, $C BY $1 using 'skewed' parallel 5;\n" +
@@ -546,23 +467,18 @@ public class TestMacroExpansion {
             "gamma = group_and_count (alpha,beta);\n" +
             "store gamma into 'byuser';\n";
         
-        StringReader rd = new StringReader(macro + script);
-        String s = ParserUtil.expandMacros(rd);
-        
-        validate(s);
-        
         String expected =
-            "\nalpha = load 'users' as (user, age, zip);\n" +
+            "alpha = load 'users' as (user, age, zip);\n" +
             "beta = load 'links' as (user, link, view);\n" +
             "gamma = JOIN alpha BY (user), beta BY (user) USING 'replicated' partition BY org.apache.pig.test.utils.SimpleCustomPartitioner parallel 5;\n" +
-            "gamma = JOIN alpha BY ($0), beta BY ($1) USING 'skewed' parallel 5;\n\n" +
-            "store gamma into 'byuser';\n";
+            "gamma = JOIN alpha BY ($0), beta BY ($1) USING 'skewed' parallel 5;\n" +
+            "store gamma INTO 'byuser';\n";
         
-        Assert.assertEquals(expected, s);
+        verify(macro + script, expected);
     }
     
     @Test
-    public void multiOutputsTest() throws Throwable {
+    public void multiOutputsTest() throws Exception {
         String macro = "define group_and_count (A,C) returns B, D {\n" +
             "    $B = JOIN $A BY user, $C BY user using 'replicated' partition by org.apache.pig.test.utils.SimpleCustomPartitioner parallel 5;\n" +
             "    $D = JOIN $A BY $0, $C BY $1 using 'skewed' parallel 5;\n" +
@@ -575,24 +491,46 @@ public class TestMacroExpansion {
             "store gamma into 'byuser';\n" +
             "store sigma into 'byuser';\n";
         
-        StringReader rd = new StringReader(macro + script);
-        String s = ParserUtil.expandMacros(rd);
-        
-        validate(s);
-        
         String expected =
-            "\nalpha = load 'users' as (user, age, zip);\n" +
+            "alpha = load 'users' as (user, age, zip);\n" +
             "beta = load 'links' as (user, link, view);\n" +
             "gamma = JOIN alpha BY (user), beta BY (user) USING 'replicated' partition BY org.apache.pig.test.utils.SimpleCustomPartitioner parallel 5;\n" +
-            "sigma = JOIN alpha BY ($0), beta BY ($1) USING 'skewed' parallel 5;\n\n" +
-            "store gamma into 'byuser';\n" +
-            "store sigma into 'byuser';\n";
+            "sigma = JOIN alpha BY ($0), beta BY ($1) USING 'skewed' parallel 5;\n" +
+            "store gamma INTO 'byuser';\n" +
+            "store sigma INTO 'byuser';\n";
         
-        Assert.assertEquals(expected, s);
+        verify(macro + script, expected);
+    }
+    
+    @Test
+    public void parameterSubstitutionTest() throws Exception {
+        String macro = "define group_and_count (A,C) returns B, D {\n" +
+            "    $B = JOIN $A BY user, $C BY user using 'replicated' partition by org.apache.pig.test.utils.SimpleCustomPartitioner parallel 5;\n" +
+            "    $D = JOIN $A BY $0, $C BY $1 using 'skewed' parallel 5;\n" +
+            "};\n";
+        
+        String script = 
+            "alpha = load 'users' as (user, age, zip);\n" +
+            "beta = load 'links' as (user, link, view);\n" +
+            "gamma, sigma = group_and_count (alpha,beta);\n" +
+            "store gamma into '$output1';\n" +
+            "store sigma into '$output2';\n";
+        
+        File f1 = new File("myscript.pig");
+        f1.deleteOnExit();
+        
+        FileWriter fw1 = new FileWriter(f1);
+        fw1.append(macro).append(script);
+        fw1.close();
+        
+        String[] args = { "-x", "local", "-p", "output1=byuser", "-p", "output2=byage", "-c", "myscript.pig" };
+        PigStats stats = PigRunner.run(args, null);
+ 
+        assertTrue(stats.isSuccessful());
     }
     
     @Test 
-    public void outerTest() throws Throwable {
+    public void outerTest() throws Exception {
         String macro = "define group_and_count (A,C) returns B {\n" +
             "    $B = JOIN $A BY user right outer, $C BY user partition by org.apache.pig.test.utils.SimpleCustomPartitioner parallel 5;\n" +
             "    D = JOIN $A BY user LEFT, $C BY user;\n" +
@@ -604,23 +542,18 @@ public class TestMacroExpansion {
             "gamma = group_and_count (alpha,beta);\n" +
             "store gamma into 'byuser';\n";
         
-        StringReader rd = new StringReader(macro + script);
-        String s = ParserUtil.expandMacros(rd);
-        
-        validate(s);
-        
-        String expected =
-            "\nalpha = load 'users' as (user, age, zip);\n" +
+        String expected = 
+            "alpha = load 'users' as (user, age, zip);\n" +
             "beta = load 'links' as (user, link, view);\n" +
             "gamma = JOIN alpha BY (user) right outer, beta BY (user) partition BY org.apache.pig.test.utils.SimpleCustomPartitioner parallel 5;\n" +
-            "macro_group_and_count_D_0 = JOIN alpha BY (user) LEFT, beta BY (user);\n\n" +
-            "store gamma into 'byuser';\n";
-
-        Assert.assertEquals(expected, s);
+            "macro_group_and_count_D_0 = JOIN alpha BY (user) LEFT, beta BY (user);\n" +
+            "store gamma INTO 'byuser';\n";
+        
+        verify(macro + script, expected);
     }
     
     @Test
-    public void filterTest() throws Throwable {
+    public void filterTest() throws Exception {
         String macro = "define group_and_count (A) returns B {\n" +
             "    $B = FILTER $A BY ($1 == 8) OR (NOT ($0+$2 > $1));\n" +
             "};\n";
@@ -630,21 +563,16 @@ public class TestMacroExpansion {
             "gamma = group_and_count (alpha);\n" +
             "store gamma into 'byuser';\n";
         
-        StringReader rd = new StringReader(macro + script);
-        String s = ParserUtil.expandMacros(rd);
+        String expected = 
+            "alpha = load 'users' as (user, age, zip);\n" +
+            "gamma = FILTER alpha BY (($1 == 8) OR ( NOT ($0 + $2 > $1)));\n" +
+            "store gamma INTO 'byuser';\n";
         
-        validate(s);
-        
-        String expected =
-            "\nalpha = load 'users' as (user, age, zip);\n" +
-            "gamma = FILTER alpha BY (($1 == 8) OR ( NOT ($0 + $2 > $1)));\n\n" +
-            "store gamma into 'byuser';\n";
-
-        Assert.assertEquals(expected, s);
+        verify(macro + script, expected);
     }
     
     @Test 
-    public void foreachTest() throws Throwable {
+    public void foreachTest() throws Exception {
         String macro = "define group_and_count (A) returns B {\n" +
             "    $B = foreach $A generate $0, $2;\n" +
             "    C = group $A by $0;\n" +
@@ -659,26 +587,21 @@ public class TestMacroExpansion {
             "gamma = group_and_count (alpha);\n" +
             "store gamma into 'byuser';\n";
         
-        StringReader rd = new StringReader(macro + script);
-        String s = ParserUtil.expandMacros(rd);
-        
-        validate(s);
-        
         String expected =
-            "\nalpha = load 'users' as (user, age:int, zip:int);\n" +
+            "alpha = load 'users' as (user, age:int, zip:int);\n" +
             "gamma = foreach alpha generate $0, $2;\n" +
             "macro_group_and_count_C_0 = group alpha by ($0);\n" +
             "macro_group_and_count_X_0 = FOREACH macro_group_and_count_C_0 GENERATE group, SUM(alpha.($1));\n" +
             "macro_group_and_count_Y_0 = FOREACH macro_group_and_count_C_0 GENERATE group, FLATTEN(alpha) ;\n" +
             "macro_group_and_count_Z_0 = FOREACH macro_group_and_count_C_0 GENERATE FLATTEN(alpha.($1, $2)) , FLATTEN(alpha.(age)) ;\n" +
-            "macro_group_and_count_X_0 = FOREACH alpha GENERATE $1 + $2 AS f1:int;\n\n" +
-            "store gamma into 'byuser';\n";
-        
-        Assert.assertEquals(expected, s);
+            "macro_group_and_count_X_0 = FOREACH alpha GENERATE $1 + $2 AS f1:int;\n" +
+            "store gamma INTO 'byuser';\n";
+            
+        verify(macro + script, expected);
     }
     
     @Test
-    public void nestedTest() throws Throwable {
+    public void nestedTest() throws Exception {
         String macro = "define group_and_count (A) returns B {\n" +
             "    C = group $A by $0;\n" +
             "    $B = FOREACH C { \n" +
@@ -694,22 +617,17 @@ public class TestMacroExpansion {
             "gamma = group_and_count (alpha);\n" +
             "store gamma into 'byuser';\n";
         
-        StringReader rd = new StringReader(macro + script);
-        String s = ParserUtil.expandMacros(rd);
-        
-        validate(s);
-        
         String expected =
-            "\nalpha = load 'users' as (user, age, zip);\n" +
+            "alpha = load 'users' as (user, age, zip);\n" +
             "macro_group_and_count_C_0 = group alpha by ($0);\n" +
-            "gamma = FOREACH macro_group_and_count_C_0 { FA = FILTER alpha BY user == 'www.xyz.org'; PA = FA.(age); DA = DISTINCT PA;  GENERATE group, COUNT(DA); } ;\n\n" +
-            "store gamma into 'byuser';\n";
+            "gamma = FOREACH macro_group_and_count_C_0 { FA = FILTER alpha BY user == 'www.xyz.org'; PA = FA.(age); DA = DISTINCT PA;  GENERATE group, COUNT(DA); } ;\n" +
+            "store gamma INTO 'byuser';\n";
         
-        Assert.assertEquals(expected, s);
+        verify(macro + script, expected);
     }
     
     @Test
-    public void bincondTest() throws Throwable {
+    public void bincondTest() throws Exception {
         String macro = "define group_and_count (A) returns B {\n" +
             "    X = FOREACH $A GENERATE f1, f2, f1%f2;\n" +
             "    Y = FOREACH $A GENERATE f2, (f2==1?1:COUNT(B));\n" +
@@ -722,24 +640,19 @@ public class TestMacroExpansion {
             "gamma = group_and_count (alpha);\n" +
             "store gamma into 'byuser';\n";
         
-        StringReader rd = new StringReader(macro + script);
-        String s = ParserUtil.expandMacros(rd);
-        
-        validate(s);
-        
-        String expected =
-            "\nalpha = LOAD 'data' AS (f1:chararray, f2:int, B:bag{T:tuple(t1:int,t2:int)});\n" +
+        String expected = 
+            "alpha = LOAD 'data' AS (f1:chararray, f2:int, B:bag{T:(t1:int, t2:int)});\n" +
             "macro_group_and_count_X_0 = FOREACH alpha GENERATE f1, f2, f1 % f2;\n" +
             "macro_group_and_count_Y_0 = FOREACH alpha GENERATE f2,  (f2 == 1 ? 1 : COUNT(B)) ;\n" +
             "macro_group_and_count_Z_0 = FILTER alpha BY (f1 IS not null);\n" +
-            "gamma = FILTER alpha BY (f1 matches '.*apache.*');\n\n" +
-            "store gamma into 'byuser';\n";
-
-        Assert.assertEquals(expected, s);
+            "gamma = FILTER alpha BY (f1 matches '.*apache.*');\n" +
+            "store gamma INTO 'byuser';\n";
+            
+        verify(macro + script, expected);
     }
     
-    @Test(expected = RuntimeException.class)  
-    public void duplicationTest() throws Throwable {
+    @Test(expected = java.lang.AssertionError.class)  
+    public void duplicationTest() throws Exception {
         String macro = "define group_and_count (A,group_key, reducers) returns B {\n" +
             "    $B = distinct $A partition by org.apache.pig.test.utils.SimpleCustomPartitioner parallel $reducers;\n" +
             "};\n";
@@ -751,14 +664,11 @@ public class TestMacroExpansion {
             "store gamma into 'byuser';\n" +
             "store delta into 'byage';\n";
         
-        StringReader rd = new StringReader(macro + macro + script);
-        String s = ParserUtil.expandMacros(rd);
-        
-        validate(s);
+        verify(macro + macro + script);
     }
     
     @Test
-    public void simpleImportTest() throws Throwable {
+    public void simpleImportTest() throws Exception {
         String macro = "define group_and_count (A,group_key, reducers) returns B {\n" +
             "    $B = distinct $A partition by org.apache.pig.test.utils.SimpleCustomPartitioner parallel $reducers;\n" +
             "};\n";
@@ -776,21 +686,16 @@ public class TestMacroExpansion {
             "gamma = group_and_count (alpha, user, 23);\n" +
             "store gamma into 'byuser';\n";
         
-        StringReader rd = new StringReader(script);
-        String s = ParserUtil.expandMacros(rd);
-        
-        validate(s);
-        
         String expected =
-            "\n\nalpha = load 'users' as (user, age, zip);\n" +
-            "gamma = distinct alpha partition BY org.apache.pig.test.utils.SimpleCustomPartitioner parallel 23;\n\n" +
-            "store gamma into 'byuser';\n";
-
-        Assert.assertEquals(expected, s);
+            "alpha = load 'users' as (user, age, zip);\n" +
+            "gamma = distinct alpha partition BY org.apache.pig.test.utils.SimpleCustomPartitioner parallel 23;\n" +
+            "store gamma INTO 'byuser';\n";
+            
+        verify(script, expected);
     }
     
-    @Test
-    public void importUsingSearchPathTest() throws Throwable {
+    @Test 
+    public void importUsingSearchPathTest() throws Exception {
         String macro = "define group_and_count (A,group_key, reducers) returns B {\n" +
             "    $B = distinct $A partition by org.apache.pig.test.utils.SimpleCustomPartitioner parallel $reducers;\n" +
             "};\n";
@@ -822,7 +727,7 @@ public class TestMacroExpansion {
     }
     
     @Test
-    public void negtiveUsingSearchPathTest() throws Throwable {
+    public void negtiveUsingSearchPathTest() throws Exception {
         String macro = "define group_and_count (A,group_key, reducers) returns B {\n" +
             "    $B = distinct $A partition by org.apache.pig.test.utils.SimpleCustomPartitioner parallel $reducers;\n" +
             "};\n";
@@ -842,7 +747,7 @@ public class TestMacroExpansion {
         
         File f1 = new File("myscript.pig");
         f1.deleteOnExit();
-        
+                
         FileWriter fw1 = new FileWriter(f1);
         fw1.append(script);
         fw1.close();
@@ -854,7 +759,7 @@ public class TestMacroExpansion {
     }
     
     @Test
-    public void importTwoMacrosTest() throws Throwable {
+    public void importTwoMacrosTest() throws Exception {
         String macro = "define group_and_count (A, reducers) returns B {\n" +
             "    $B = distinct $A partition by org.apache.pig.test.utils.SimpleCustomPartitioner parallel $reducers;\n" +
             "};\n" +
@@ -877,23 +782,18 @@ public class TestMacroExpansion {
             "store beta into 'byage';\n" +
             "store gamma into 'byuser';\n";
 
-        StringReader rd = new StringReader(script);
-        String s = ParserUtil.expandMacros(rd);
-
-        validate(s);
-
-        String expected =
-            "\n\n\nalpha = load 'users' as (user, age, zip);\n" +
-            "gamma = distinct alpha partition BY org.apache.pig.test.utils.SimpleCustomPartitioner parallel 23;\n\n" +
-            "beta = distinct alpha partition BY org.apache.pig.test.utils.SimpleCustomPartitioner parallel 32;\n\n" +
-            "store beta into 'byage';\n" +
-            "store gamma into 'byuser';\n";
-
-        Assert.assertEquals(expected, s);
+        String expected = 
+            "alpha = load 'users' as (user, age, zip);\n" +
+            "gamma = distinct alpha partition BY org.apache.pig.test.utils.SimpleCustomPartitioner parallel 23;\n" +
+            "beta = distinct alpha partition BY org.apache.pig.test.utils.SimpleCustomPartitioner parallel 32;\n" +
+            "store beta INTO 'byage';\n" +
+            "store gamma INTO 'byuser';\n";
+            
+        verify(script, expected);
     }
     
     @Test
-    public void importTwoFilesTest() throws Throwable {
+    public void importTwoFilesTest() throws Exception {
         String macro1 = "define group_and_count (A, reducers) returns B {\n" +
             "    $B = distinct $A partition by org.apache.pig.test.utils.SimpleCustomPartitioner parallel $reducers;\n" +
             "};\n";
@@ -925,23 +825,18 @@ public class TestMacroExpansion {
             "store beta into 'byage';\n" +
             "store gamma into 'byuser';\n";
 
-        StringReader rd = new StringReader(script);
-        String s = ParserUtil.expandMacros(rd);
-
-        validate(s);
-
-        String expected =
-            "\n\n\n\nalpha = load 'users' as (user, age, zip);\n" +
-            "gamma = distinct alpha partition BY org.apache.pig.test.utils.SimpleCustomPartitioner parallel 23;\n\n" +
-            "beta = distinct alpha partition BY org.apache.pig.test.utils.SimpleCustomPartitioner parallel 32;\n\n" +
-            "store beta into 'byage';\n" +
-            "store gamma into 'byuser';\n";
-
-        Assert.assertEquals(expected, s);
+        String expected = 
+            "alpha = load 'users' as (user, age, zip);\n" +
+            "gamma = distinct alpha partition BY org.apache.pig.test.utils.SimpleCustomPartitioner parallel 23;\n" +
+            "beta = distinct alpha partition BY org.apache.pig.test.utils.SimpleCustomPartitioner parallel 32;\n" +
+            "store beta INTO 'byage';\n" +
+            "store gamma INTO 'byuser';\n";
+            
+        verify(script, expected);
     }
     
     @Test
-    public void noParamTest() throws Throwable {
+    public void noParamTest() throws Exception {
         String macro = "define group_and_count() returns B {\n" +
             "    D = load 'myfile.txt' using PigStorage('\t') AS (a0:int, a1:int, a2:int);\n" +   
             "    $B = FILTER D BY ($1 == 8) OR (NOT ($0+$2 > $1));\n" +
@@ -951,21 +846,16 @@ public class TestMacroExpansion {
             "delta = group_and_count();\n" +
             "store delta into 'byage';\n";
         
-        StringReader rd = new StringReader(macro + script);
-        String s = ParserUtil.expandMacros(rd);
-        
-        validate(s);
-        
         String expected =
-            "\nmacro_group_and_count_D_0 = load 'myfile.txt' USING PigStorage('\t') AS (a0:int, a1:int, a2:int);\n" +
-            "delta = FILTER macro_group_and_count_D_0 BY (($1 == 8) OR ( NOT ($0 + $2 > $1)));\n\n" +
-            "store delta into 'byage';\n";
-
-        Assert.assertEquals(expected, s);
+            "macro_group_and_count_D_0 = load 'myfile.txt' USING PigStorage('\t') AS (a0:int, a1:int, a2:int);\n" +
+            "delta = FILTER macro_group_and_count_D_0 BY (($1 == 8) OR ( NOT ($0 + $2 > $1)));\n" +
+            "store delta INTO 'byage';\n";
+            
+        verify(macro + script, expected);
     }
     
     @Test
-    public void noReturnTest() throws Throwable {
+    public void noReturnTest() throws Exception {
         String macro = "define group_and_count() returns void {\n" +
             "    D = load 'myfile.txt' using PigStorage() AS (a0:int, a1:int, a2:int);\n" +   
             "    store D into 'myoutput';\n" +
@@ -974,42 +864,33 @@ public class TestMacroExpansion {
         String script = 
             "dummy = group_and_count();\n";
         
-        StringReader rd = new StringReader(macro + script);
-        String s = ParserUtil.expandMacros(rd);
-        
-        validate(s);
-        
         String expected =
-            "\nmacro_group_and_count_D_0 = load 'myfile.txt' USING PigStorage() AS (a0:int, a1:int, a2:int);\n" +
-            "store macro_group_and_count_D_0 INTO 'myoutput';\n\n";
-
-        Assert.assertEquals(expected, s);
+            "macro_group_and_count_D_0 = load 'myfile.txt' USING PigStorage() AS (a0:int, a1:int, a2:int);\n" +
+            "store macro_group_and_count_D_0 INTO 'myoutput';\n";
+            
+        verify(macro + script, expected);
     }
     
     @Test
-    public void noReturnTest2() throws Throwable {
-        String macro = "define group_and_count(input, output) returns void {\n" +
-            "    D = load '$input';\n" +   
-            "    store D into '$output';\n" +
+    public void noReturnTest2() throws Exception {
+        String macro = "define group_and_count(myinput, myoutput) returns void {\n" +
+            "    D = load '$myinput';\n" +   
+            "    store D into '$myoutput';\n" +
             "};\n";
         
         String script = 
             "dummy = group_and_count('myfile.txt', '/tmp/myoutput');\n";
         
-        StringReader rd = new StringReader(macro + script);
-        String s = ParserUtil.expandMacros(rd);
-        
-        validate(s);
-       
         String expected =
-            "\nmacro_group_and_count_D_0 = load 'myfile.txt';\n" +
-            "store macro_group_and_count_D_0 INTO '/tmp/myoutput';\n\n";
-
-        Assert.assertEquals(expected, s);
+            "macro_group_and_count_D_0 = load 'myfile.txt';\n" +
+            "store macro_group_and_count_D_0 INTO '/tmp/myoutput';\n";
+            
+        verify(macro + script, expected);
     }
     
-    @Test(expected = RuntimeException.class)  
-    public void negativeTest() throws Throwable {
+    // missing inline parameters
+    @Test(expected = java.lang.AssertionError.class)  
+    public void negativeTest() throws Exception {
         String macro = "define group_and_count (A,group_key, size) returns B {\n" +
             "    $B = limit $A $size;\n" +
             "};\n";
@@ -1019,14 +900,12 @@ public class TestMacroExpansion {
             "gamma = group_and_count (alpha, 20);\n" +
             "store gamma into 'byuser';\n";
         
-        StringReader rd = new StringReader(macro + script);
-        String s = ParserUtil.expandMacros(rd);
-        
-        validate(s);
+        verify(macro + script);
     }   
     
-    @Test(expected = RuntimeException.class)  
-    public void negativeTest2() throws Throwable {
+    // missing inline parameters 
+    @Test(expected = java.lang.AssertionError.class)  
+    public void negativeTest2() throws Exception {
         String macro = "define group_and_count (A,group_key, size) returns B {\n" +
             "    $B = limit $A $size;\n" +
             "};\n";
@@ -1036,14 +915,12 @@ public class TestMacroExpansion {
             "gamma = group_and_count ();\n" +
             "store gamma into 'byuser';\n";
         
-        StringReader rd = new StringReader(macro + script);
-        String s = ParserUtil.expandMacros(rd);
-        
-        validate(s);
+        verify(macro + script);
     }   
     
-    @Test(expected = RuntimeException.class)
-    public void negativeTest3() throws Throwable {
+    // missing inline return values
+    @Test(expected = java.lang.AssertionError.class)
+    public void negativeTest3() throws Exception {
         String macro = "define group_and_count (A,C) returns B, D {\n" +
             "    $B = JOIN $A BY user, $C BY user;\n" +
             "    $D = JOIN $A BY $0, $C BY $1 using 'skewed' parallel 5;\n" +
@@ -1055,14 +932,28 @@ public class TestMacroExpansion {
             "gamma = group_and_count (alpha,beta);\n" +
             "store gamma into 'byuser';\n";
         
-        StringReader rd = new StringReader(macro + script);
-        String s = ParserUtil.expandMacros(rd);
+        verify(macro + script);
+    }
+    
+    // macro contains another macro def
+    @Test(expected = java.lang.AssertionError.class)
+    public void negativeTest4() throws Exception {
+        String macro = "define group_and_count (A,C) returns B {\n" +
+            "    $B = JOIN $A BY user, $C BY user;\n" +
+            "    define test_macro() returns dummy { a = load '1.txt'; };\n" +
+            "};\n";
         
-        validate(s);
+        String script = 
+            "alpha = load 'users' as (user, age, zip);\n" +
+            "beta = load 'links' as (user, link, view);\n" +
+            "gamma = group_and_count (alpha,beta);\n" +
+            "store gamma into 'byuser';\n";
+        
+        verify(macro + script);
     }
     
     @Test
-    public void recursiveMacrosTest() throws Throwable {
+    public void recursiveMacrosTest() throws Exception {
         String macro1 = "define group_and_partition (A, group_key, reducers) returns B {\n" +
             "    C = group $A by $group_key partition by org.apache.pig.test.utils.SimpleCustomPartitioner parallel $reducers;\n" +
             "    $B = foreach_count(C, $A);" +
@@ -1078,22 +969,17 @@ public class TestMacroExpansion {
             "gamma = group_and_partition (alpha, user, 23);\n" +
             "store gamma into 'byuser';\n";
 
-        StringReader rd = new StringReader(script);
-        String s = ParserUtil.expandMacros(rd);
-
-        validate(s);
-
         String expected =
-            "\n\nalpha = load 'users' as (user, age, zip);\n" +
+            "alpha = load 'users' as (user, age, zip);\n" +
             "macro_group_and_partition_C_0 = group alpha by (user) partition BY org.apache.pig.test.utils.SimpleCustomPartitioner parallel 23;\n" +
-            "gamma = foreach macro_group_and_partition_C_0 generate group, COUNT(alpha);\n\n" +
-            "store gamma into 'byuser';\n";
-
-        Assert.assertEquals(expected, s);
+            "gamma = foreach macro_group_and_partition_C_0 generate group, COUNT(alpha);\n" +
+            "store gamma INTO 'byuser';\n";
+            
+        verify(script, expected);
     }
     
     @Test
-    public void recursiveMacrosTest2() throws Throwable {
+    public void recursiveMacrosTest2() throws Exception {
         String macro1 = "define foreach_count(A, C) returns B {\n" +
         "    $B = foreach $A generate group, COUNT($C);\n" +
         "};\n";
@@ -1112,22 +998,17 @@ public class TestMacroExpansion {
             "gamma = load_and_group ();\n" +
             "store gamma into 'byuser';\n";
 
-        StringReader rd = new StringReader(script);
-        String s = ParserUtil.expandMacros(rd);
-
-        validate(s);
-
         String expected =
-            "\n\n\nmacro_load_and_group_alpha_0 = load 'users' as (user, age, zip);\n" +
-            "macro_load_and_group_C_0 = group macro_load_and_group_alpha_0 by (user) partition BY org.apache.pig.test.utils.SimpleCustomPartitioner parallel 30;\n" +
-            "gamma = foreach macro_load_and_group_C_0 generate group, COUNT(macro_load_and_group_alpha_0);\n\n" +
-            "store gamma into 'byuser';\n";
-
-        Assert.assertEquals(expected, s);
+            "macro_load_and_group_alpha_0 = load 'users' as (user, age, zip);\n" +
+            "macro_load_and_group_macro_group_and_partition_C_0_0 = group macro_load_and_group_alpha_0 by (user) partition BY org.apache.pig.test.utils.SimpleCustomPartitioner parallel 30;\n" +
+            "gamma = foreach macro_load_and_group_macro_group_and_partition_C_0_0 generate group, COUNT(macro_load_and_group_alpha_0);\n" +
+            "store gamma INTO 'byuser';\n";
+        
+        verify(script, expected);
     }
     
     @Test
-    public void sequenceMacrosTest() throws Throwable {
+    public void sequenceMacrosTest() throws Exception {
         String macro1 = "define foreach_count(A, C) returns B {\n" +
         "    $B = foreach $A generate group, COUNT($C);\n" +
         "};\n";
@@ -1142,22 +1023,17 @@ public class TestMacroExpansion {
             "gamma = foreach_count(beta, alpha);\n" +
             "store gamma into 'byuser';\n";
 
-        StringReader rd = new StringReader(script);
-        String s = ParserUtil.expandMacros(rd);
-
-        validate(s);
-
         String expected =
-            "\n\nalpha = load 'users' as (user, age, zip);\n" +
-            "beta = group alpha by (user) partition BY org.apache.pig.test.utils.SimpleCustomPartitioner parallel 20;\n\n" +
-            "gamma = foreach beta generate group, COUNT(alpha);\n\n" +
-            "store gamma into 'byuser';\n";
-
-        Assert.assertEquals(expected, s);
+            "alpha = load 'users' as (user, age, zip);\n" +
+            "beta = group alpha by (user) partition BY org.apache.pig.test.utils.SimpleCustomPartitioner parallel 20;\n" +
+            "gamma = foreach beta generate group, COUNT(alpha);\n" +
+            "store gamma INTO 'byuser';\n";
+            
+        verify(script, expected);
     }
     
-    @Test(expected = RuntimeException.class)
-    public void selfRecursiveTest() throws Throwable {
+    @Test(expected = java.lang.AssertionError.class)
+    public void selfRecursiveTest() throws Exception {
         String macro1 = "define group_and_partition (A, group_key, reducers) returns B {\n" +
             "    C = group $A by $group_key partition by org.apache.pig.test.utils.SimpleCustomPartitioner parallel $reducers;\n" +
             "    $B = group_and_partition(C, age, 34);" +
@@ -1168,14 +1044,11 @@ public class TestMacroExpansion {
             "gamma = group_and_partition (alpha, user, 23);\n" +
             "store gamma into 'byuser';\n";
 
-        StringReader rd = new StringReader(script);
-        String s = ParserUtil.expandMacros(rd);
-
-        validate(s);
+        verify(script);
     }
     
-    @Test(expected = RuntimeException.class)
-    public void cyclicRecursiveTest() throws Throwable {
+    @Test(expected = java.lang.AssertionError.class)
+    public void cyclicRecursiveTest() throws Exception {
         String macro1 = "define group_and_partition (A, group_key, reducers) returns B {\n" +
             "    C = group $A by $group_key partition by org.apache.pig.test.utils.SimpleCustomPartitioner parallel $reducers;\n" +
             "    $B = foreach_count(C, $A);" +
@@ -1185,211 +1058,53 @@ public class TestMacroExpansion {
             "    $B = foreach $A generate group, COUNT($C);\n" +
             "    D = group_and_partition($C, age, 23);" +
             "};\n";
-        
-        
+               
         String script = macro2 + macro1 +
             "alpha = load 'users' as (user, age, zip);\n" +
             "gamma = group_and_partition (alpha, user, 23);\n" +
             "store gamma into 'byuser';\n";
 
-        StringReader rd = new StringReader(script);
-        String s = ParserUtil.expandMacros(rd);
-
-        validate(s);
+        verify(script);
     }
     
     @Test
-    public void typecastTest() throws Throwable {
+    public void typecastTest() throws Exception {
         String macro = 
             "a = load '1.txt' as (a0);" +
             "b = foreach a generate flatten( (bag{tuple(map[])})a0 ) as b0:map[];" +
             "c = foreach b generate (long)b0#'key1';";
         
-        testMacro(macro);
-    }
-    
-    @Test
-    public void test17() throws Throwable {
-        String macro = 
-            "a = load '/user/pig/tests/data/singlefile/studentnulltab10k' as (name:chararray, age:int, gpa:double);" +
-            "b = foreach a generate (int)((int)gpa/((int)gpa - 1)) as norm_gpa:int;" + 
-            "c = foreach b generate (norm_gpa is not null? norm_gpa: 0);" +
-            "store c into '/user/pig/out/jianyong.1297229709/Types_37.out';";
-            
-        testMacro(macro);
-    }
-    
-    @Test
-    public void test18() throws Throwable {
-        String macro = "define mymacro() returns dummy {" +
-            "a = load '/user/pig/tests/data/singlefile/studenttab10k';" +
-            "b = group a by $0;" +
-            "c = foreach b {c1 = order $1 by * using org.apache.pig.test.udf.orderby.OrdDesc; generate flatten(c1); };" +
-            "store c into '/user/pig/out/jianyong.1297305352/Order_15.out';};";
-            
-        String script = macro +
-            "dummy = mymacro();\n";
-        
-
-        StringReader rd = new StringReader(script);
-        String s = ParserUtil.expandMacros(rd);
-
-        //validate(s);
         String expected =
-            "macro_mymacro_a_0 = load '/user/pig/tests/data/singlefile/studenttab10k';\n" +
-            "macro_mymacro_b_0 = group macro_mymacro_a_0 by ($0);\n" +
-            "macro_mymacro_c_0 = foreach macro_mymacro_b_0 { c1 = order $1 BY * USING org.apache.pig.test.udf.orderby.OrdDesc;  generate flatten(c1) ; } ;\n" +
-            "store macro_mymacro_c_0 INTO '/user/pig/out/jianyong.1297305352/Order_15.out';\n\n";
-        
-        Assert.assertEquals(expected, s);
+            "macro_mymacro_a_0 = load '1.txt' as a0;\n" +
+            "macro_mymacro_b_0 = foreach macro_mymacro_a_0 generate flatten((bag{tuple(map[])})a0)  AS b0:map[];\n" +
+            "macro_mymacro_c_0 = foreach macro_mymacro_b_0 generate (long)b0#'key1';\n";
+            
+        testMacro(macro, expected);
     }
     
     @Test
-    public void test19() throws Throwable {
-        String macro = 
-            "a = load '/user/pig/tests/data/singlefile/studenttab10k';" +
-            "b = group a by $0;" +
-            "c = foreach b {c1 = order $1 by $1; generate flatten(c1), MAX($1.$1); };" +
-            "store c into '/user/pig/out/jianyong.1297305352/Order_17.out';";
-            
-        testMacro(macro);
-    }
-    
-    @Test
-    public void test20() throws Throwable {
-        String macro = 
-            "a = load 'x' as (u,v);" +
-            "b = load 'y' as (u,w);" +
-            "c = join a by u, b by u;" +
-            "d = foreach c generate a::u, b::u, w;";
-            
-        testMacro(macro);
-    }
-    
-    @Test
-    public void test21() throws Throwable {
-        String macro = 
-        "a = load '1.txt' as ( u, v, w : int );" +
-        "b = foreach a generate * as ( x, y, z ), flatten( u ) as ( r, s ), flatten( v ) as d, w + 5 as e:int;";
-            
-        testMacro(macro);
-    }
-    
-    @Test
-    public void test22() throws Throwable {
-        String macro =
-            "a = load '1.txt' as ( u : bag{}, v : bag{tuple(x, y)} );" +
-            "b = load '2.x' as ( t : {}, u : {(r,s)}, v : bag{ T : tuple( x, y ) }, w : bag{(z1, z2)} );" +
-            "c = load '3.x' as p : int;";
-            
-        testMacro(macro);
-    }
-
-    @Test
-    public void test23() throws Throwable {
-        String macro = 
-        "a = load '1.txt' as ( u, v, w : int );" +
-        "b = foreach a generate * as ( x, y, z ), flatten( u ) as ( r, s ), flatten( v ) as d, w + 5 as e:int;";
-            
-        testMacro(macro);
-    }
-    
-    @Test
-    public void test24() throws Throwable {
-        String macro = 
-        "A = load 'x' as ( u:bag{tuple(x, y)}, v:long, w:bytearray); " + 
-        "B = foreach A generate u.(x, y), v, w; " +
-        "C = store B into 'output';";
-            
-        testMacro(macro);
-    }
-    
-    @Test
-    public void test25() throws Throwable {
-        String macro = 
-        "A = load 'x' as ( a : bag{ T:tuple(u, v) }, c : int, d : long );" +
-        "B = foreach A { R = a; P = c * 2; Q = P + d; S = R.u; T = limit S 100; generate Q, R, S, T, c + d/5; };" +
-        "store B into 'y';";
-            
-        testMacro(macro);
-    }
-    
-    @Test
-    public void test26() throws Throwable {
-        String content =
-        "A = load 'x' as ( u:bag{tuple(x, y)}, v:long, w:bytearray); " + 
-        "B = foreach A generate u.(x, $1), $1, w; " +
-        "C = store B into 'output';";
-            
-        testMacro(content);
-    }
-    
-    @Test
-    public void test27() throws Throwable {
-        String content =
-            "A = load 'x' as ( u:bag{} ); " + 
-            "B = foreach A generate u.$100; " +
-            "C = store B into 'output';";
-            
-        testMacro(content);
-    }
-    
-    @Test
-    public void test28() throws Throwable {
-        String content =
-            "A = load 'x'; " + 
-            "B = foreach A generate $1, $1000; " +
-            "C = store B into 'output';";
-            
-        testMacro(content);
-    }
-    
-    @Test
-    public void test29() throws Throwable {
-        String content =
-            "A = load 'x'; " + 
-            "B = load 'y' as ( u : int, v : chararray );" +
-            "C = foreach A generate B.$1, $0; " +
-            "D = store C into 'output';";
-            
-        testMacro(content);
-    }
-    
-    @Test
-    public void test30() throws Throwable {
-        String content =
-            "A = load 'x'; " + 
-            "B = load 'y' as ( u : int, v : chararray );" +
-            "C = foreach A generate B.$1, $0; " +
-            "D = store C into 'output';";
-            
-        testMacro(content);
-    }
-    
-    @Test
-    public void test31() throws Throwable {
-        String content =
-            "A = load 'x'; " + 
-            "B = load 'y' as ( u : int, v : chararray );" +
-            "C = foreach A generate B.v, $0; " +
-            "D = store C into 'output';";
-            
-        testMacro(content);
-    }
-    
-    public void test1() throws Throwable {
+    public void test1() throws Exception {
         String query = "A = load 'x' as ( u:int, v:long, w:bytearray); " + 
                        "B = limit A 100; " +
                        "C = filter B by 2 > 1; " +
                        "D = load 'y' as (d1, d2); " +
                        "E = join C by ( $0, $1 ), D by ( d1, d2 ) using 'replicated' parallel 16; " +
                        "F = store E into 'output';";
-        testMacro( query );
+        
+        String expected =
+            "macro_mymacro_A_0 = load 'x' as (u:int, v:long, w:bytearray);\n" +
+            "macro_mymacro_B_0 = limit macro_mymacro_A_0 100;\n" +
+            "macro_mymacro_C_0 = filter macro_mymacro_B_0 BY (2 > 1);\n" +
+            "macro_mymacro_D_0 = load 'y' as (d1, d2);\n" +
+            "macro_mymacro_E_0 = join macro_mymacro_C_0 by ($0, $1), macro_mymacro_D_0 by (d1, d2) USING 'replicated' parallel 16;\n" +
+            "macro_mymacro_F_0 = store macro_mymacro_E_0 INTO 'output';\n";
+            
+        testMacro( query, expected );
 
     }
 
-    //@Test
-    public void test2() throws Throwable {
+    @Test
+    public void test2() throws Exception {
         String query = "A = load 'x' as ( u:int, v:long, w:bytearray); " + 
                        "B = distinct A partition by org.apache.pig.Identity; " +
                        "C = sample B 0.49; " +
@@ -1400,21 +1115,40 @@ public class TestMacroExpansion {
                        "H = cross F, G; " +
                        "split H into I if 10 > 5, J if 'world' eq 'hello', K if 77 <= 200; " +
                        "L = store J into 'output';";
-        testMacro( query );
+        
+        String expected =
+            "macro_mymacro_A_0 = load 'x' as (u:int, v:long, w:bytearray);\n" +
+            "macro_mymacro_B_0 = distinct macro_mymacro_A_0 partition BY org.apache.pig.Identity;\n" +
+            "macro_mymacro_C_0 = sample macro_mymacro_B_0 0.49;\n" +
+            "macro_mymacro_D_0 = order macro_mymacro_C_0 BY $0, $1;\n" +
+            "macro_mymacro_E_0 = load 'y' as (d1, d2);\n" + 
+            "macro_mymacro_F_0 = union onschema macro_mymacro_D_0, macro_mymacro_E_0;\n" +
+            "macro_mymacro_G_0 = load 'z' as (g1:int, g2:(g21, g22));\n" +
+            "macro_mymacro_H_0 = cross macro_mymacro_F_0, macro_mymacro_G_0;\n" +
+            "split macro_mymacro_H_0 INTO macro_mymacro_I_0 IF 10 > 5, macro_mymacro_J_0 IF 'world' eq 'hello', macro_mymacro_K_0 IF 77 <= 200;\n" + 
+            "macro_mymacro_L_0 = store macro_mymacro_J_0 INTO 'output';\n";
+        
+        testMacro( query, expected );
     }
 
     @Test
-    public void test3() throws Throwable {
+    public void test3() throws Exception {
         String query = "a = load '1.txt'  as (name, age, gpa);" + 
                        "b = group a by name PARTITION BY org.apache.pig.test.utils.SimpleCustomPartitioner2;" +
                        "c = foreach b generate group, COUNT(a.age);" +
                        "store c into 'y';";
-        testMacro( query );
+        
+        String expected =
+            "macro_mymacro_a_0 = load '1.txt' as (name, age, gpa);\n" +
+            "macro_mymacro_b_0 = group macro_mymacro_a_0 by (name) PARTITION BY org.apache.pig.test.utils.SimpleCustomPartitioner2;\n" +
+            "macro_mymacro_c_0 = foreach macro_mymacro_b_0 generate group, COUNT(macro_mymacro_a_0.(age));\n" +
+            "store macro_mymacro_c_0 INTO 'y';\n";
+            
+        testMacro( query, expected );
     }
-    
 
     @Test
-    public void test4() throws Throwable {
+    public void test4() throws Exception {
         String query = "A = load 'x'; " + 
                        "B = mapreduce '" + "myjar.jar" + "' " +
                            "Store A into 'table_testNativeMRJobSimple_input' "+
@@ -1423,70 +1157,119 @@ public class TestMacroExpansion {
                            "table_testNativeMRJobSimple_input table_testNativeMRJobSimple_output " +
                            "stopworld.file" + "`;" +
                         "C = Store B into 'output';";
-        testMacro( query );
+        
+        String expected =
+            "macro_mymacro_A_0 = load 'x';\n" + 
+            "macro_mymacro_B_0 = mapreduce 'myjar.jar' Store macro_mymacro_A_0 INTO 'table_testNativeMRJobSimple_input' Load 'table_testNativeMRJobSimple_output' `org.apache.pig.test.utils.WordCount -files file table_testNativeMRJobSimple_input table_testNativeMRJobSimple_output stopworld.file`;\n" +
+            "macro_mymacro_C_0 = Store macro_mymacro_B_0 INTO 'output';\n";
+            
+        testMacro( query, expected );
     }
 
     // Test define function.
     @Test
-    public void test5() throws Throwable {
+    public void test5() throws Exception {
         String query = "define myudf org.apache.pig.builtin.PigStorage( ',' );" +
                        "A = load 'x' using myudf;" +
                        "store A into 'y';";
-        testMacro( query );
+        
+        String expected =
+            "define macro_mymacro_myudf_0 org.apache.pig.builtin.PigStorage(',');\n" +
+            "macro_mymacro_A_0 = load 'x' USING macro_mymacro_myudf_0;\n" +
+            "store macro_mymacro_A_0 INTO 'y';\n";
+            
+        testMacro( query, expected );
     }
 
     @Test
-    public void test6() throws Throwable {
+    public void test6() throws Exception {
         String query = "A = load 'x' as ( a : int, b, c : chararray );" +
                        "B = group A by ( a, $2 );" +
                        "store B into 'y';";
-        testMacro( query );
+        
+        String expected =
+            "macro_mymacro_A_0 = load 'x' as (a:int, b, c:chararray);\n" +
+            "macro_mymacro_B_0 = group macro_mymacro_A_0 by (a, $2);\n" + 
+            "store macro_mymacro_B_0 INTO 'y';\n";
+        
+        testMacro( query, expected );
     }
 
     @Test
-    public void test7() throws Throwable {
+    public void test7() throws Exception {
         String query = "A = load 'x' as ( a : int, b, c : chararray );" +
                        "B = foreach A generate a, $2;" +
                        "store B into 'y';";
-        testMacro( query );
+        
+        String expected =
+            "macro_mymacro_A_0 = load 'x' as (a:int, b, c:chararray);\n" +
+            "macro_mymacro_B_0 = foreach macro_mymacro_A_0 generate a, $2;\n" +
+            "store macro_mymacro_B_0 INTO 'y';\n";
+            
+        testMacro( query, expected );
     }
 
     @Test
-    public void test8() throws Throwable {
+    public void test8() throws Exception {
         String query = "A = load 'x' as ( a : int, b, c : chararray );" +
                        "B = group A by a;" +
                        "C = foreach B { S = A.b; generate S; };" +
                        "store C into 'y';";
-        testMacro( query );
+        
+        String expected =
+            "macro_mymacro_A_0 = load 'x' as (a:int, b, c:chararray);\n" +
+            "macro_mymacro_B_0 = group macro_mymacro_A_0 by (a);\n" + 
+            "macro_mymacro_C_0 = foreach macro_mymacro_B_0 { S = macro_mymacro_A_0.(b);  generate S; } ;\n" +
+            "store macro_mymacro_C_0 INTO 'y';\n";
+            
+        testMacro( query, expected );
     }
     
     @Test
-    public void test9() throws Throwable {
+    public void test9() throws Exception {
         String query = "A = load 'x' as ( a : bag{ T:tuple(u, v) }, c : int, d : long );" +
                        "B = foreach A { R = a; S = R.u; T = limit S 100; generate S, T, c + d/5; };" +
                        "store B into 'y';";
-        testMacro( query );
+        
+        String expected =
+            "macro_mymacro_A_0 = load 'x' as (a:bag{T:(u, v)}, c:int, d:long);\n" +
+            "macro_mymacro_B_0 = foreach macro_mymacro_A_0 { R = a; S = R.(u); T = limit S 100;  generate S, T, c + d / 5; } ;\n" +
+            "store macro_mymacro_B_0 INTO 'y';\n";
+            
+        testMacro( query, expected );
     }
 
     @Test
-    public void test10() throws Throwable {
+    public void test10() throws Exception {
         String query = "A = load 'x' as ( a : bag{ T:tuple(u, v) }, c : int, d : long );" +
                        "B = foreach A { S = a; T = limit S 100; generate T; };" +
                        "store B into 'y';";
-        testMacro( query );
+        
+        String expected =
+            "macro_mymacro_A_0 = load 'x' as (a:bag{T:(u, v)}, c:int, d:long);\n" +
+            "macro_mymacro_B_0 = foreach macro_mymacro_A_0 { S = a; T = limit S 100;  generate T; } ;\n" +
+            "store macro_mymacro_B_0 INTO 'y';\n";
+            
+        testMacro( query, expected );
     }
 
     @Test
-    public void test11() throws Throwable {
+    public void test11() throws Exception {
         String query = "A = load 'x' as ( a : bag{ T:tuple(u, v) }, c : int, d : long );" +
                        "B = foreach A { T = limit a 100; generate T; };" +
                        "store B into 'y';";
-        testMacro( query );
+        
+        String expected =
+            "macro_mymacro_A_0 = load 'x' as (a:bag{T:(u, v)}, c:int, d:long);\n" +
+            "macro_mymacro_B_0 = foreach macro_mymacro_A_0 { T = limit a 100;  generate T; } ;\n" +
+            "store macro_mymacro_B_0 INTO 'y';\n";
+            
+        testMacro( query, expected );
     }
 
-    //@Test
-    public void test12() throws Throwable {
-        String query = "define CMD `perl GroupBy.pl '\t' 0 1` ship('/homes/jianyong/pig_harness/libexec/PigTest/GroupBy.pl');" +
+    @Test
+    public void test12() throws Exception {
+        String query = "define CMD `perl GroupBy.pl '\t' 0 1` ship('"+Util.encodeEscape(command.toString())+"');" +
                        "A = load '/user/pig/tests/data/singlefile/studenttab10k';" +
                        "B = group A by $0;" +
                        "C = foreach B {" +
@@ -1498,9 +1281,9 @@ public class TestMacroExpansion {
         testMacro( query );
     }
     
-    //@Test
-    public void test13() throws Throwable {
-        String query = "define CMD `perl PigStreaming.pl` ship('/homes/jianyong/pig_harness/libexec/PigTest/PigStreaming.pl') stderr('CMD');" +
+    @Test
+    public void test13() throws Exception {
+        String query = "define CMD `perl PigStreaming.pl` ship('"+Util.encodeEscape(command.toString())+"') stderr('CMD');" +
                        "A = load '/user/pig/tests/data/singlefile/studenttab10k';" +
                        "C = stream A through CMD;" +
                        "store C into '/user/pig/out/jianyong.1297238871/StreamingPerformance_1.out';";
@@ -1508,18 +1291,27 @@ public class TestMacroExpansion {
     }
     
     @Test
-    public void test14() throws Throwable {
+    public void test14() throws Exception {
         String query = "a = load '/user/pig/tests/data/singlefile/studenttab10k' using PigStorage() as (name, age:int, gpa);" +
                        "b = load '/user/pig/tests/data/singlefile/votertab10k' as (name, age, registration, contributions);" +
                        "e = cogroup a by name, b by name parallel 8;" +
                        "f = foreach e generate group,  SUM(a.age) as s;" +
                        "g = filter f by s>0;" +
                        "store g into '/user/pig/out/jianyong.1297323675/Accumulator_1.out';";
-        testMacro( query );
+        
+        String expected =
+            "macro_mymacro_a_0 = load '/user/pig/tests/data/singlefile/studenttab10k' USING PigStorage() as (name, age:int, gpa);\n" +
+            "macro_mymacro_b_0 = load '/user/pig/tests/data/singlefile/votertab10k' as (name, age, registration, contributions);\n" +
+            "macro_mymacro_e_0 = cogroup macro_mymacro_a_0 by (name), macro_mymacro_b_0 by (name) parallel 8;\n" +
+            "macro_mymacro_f_0 = foreach macro_mymacro_e_0 generate group, SUM(macro_mymacro_a_0.(age)) AS s;\n" +
+            "macro_mymacro_g_0 = filter macro_mymacro_f_0 BY (s > 0);\n" +
+            "store macro_mymacro_g_0 INTO '/user/pig/out/jianyong.1297323675/Accumulator_1.out';\n";
+        
+        testMacro( query, expected );
     }
     
     @Test
-    public void test15() throws Throwable {
+    public void test15() throws Exception {
         String query = "a = load '/user/pig/tests/data/singlefile/studenttab10k' using PigStorage() as (name, age, gpa);" +
                        "b = group a all;" +
                        "c = foreach b generate AVG(a.age) as avg; " +
@@ -1528,94 +1320,442 @@ public class TestMacroExpansion {
                        "f = foreach e generate AVG(d.age) as avg;" +
                        "y = foreach a generate age/c.avg, age/f.avg;" +
                        "store y into '/user/pig/out/jianyong.1297323675/Scalar_4.out';";
-        testMacro( query );
+        
+        String expected =
+            "macro_mymacro_a_0 = load '/user/pig/tests/data/singlefile/studenttab10k' USING PigStorage() as (name, age, gpa);\n" +
+            "macro_mymacro_b_0 = group macro_mymacro_a_0 all;\n" + 
+            "macro_mymacro_c_0 = foreach macro_mymacro_b_0 generate AVG(macro_mymacro_a_0.(age)) AS avg;\n" + 
+            "macro_mymacro_d_0 = load '/user/pig/tests/data/singlefile/votertab10k' USING PigStorage() as (name, age, registration, contributions);\n" +
+            "macro_mymacro_e_0 = group macro_mymacro_d_0 all;\n" + 
+            "macro_mymacro_f_0 = foreach macro_mymacro_e_0 generate AVG(macro_mymacro_d_0.(age)) AS avg;\n" +
+            "macro_mymacro_y_0 = foreach macro_mymacro_a_0 generate age / macro_mymacro_c_0.(avg), age / macro_mymacro_f_0.(avg);\n" +
+            "store macro_mymacro_y_0 INTO '/user/pig/out/jianyong.1297323675/Scalar_4.out';\n";
+        
+        testMacro( query, expected );
     }
     
     @Test
-    public void test16() throws Throwable {
+    public void test16() throws Exception {
         String query = "AA = load '/user/pig/tests/data/singlefile/studenttab10k';" +
                        "A = foreach (group (filter AA by $0 > 0) all) generate flatten($1);" +
                        "store A into '/user/pig/out/jianyong.1297323675/Scalar_4.out';";
-        testMacro( query );
+        
+        String expected =
+            "macro_mymacro_AA_0 = load '/user/pig/tests/data/singlefile/studenttab10k';\n" +
+            "macro_mymacro_A_0 = foreach  (group  (filter macro_mymacro_AA_0 BY ($0 > 0))  all)  generate flatten($1) ;\n" +
+            "store macro_mymacro_A_0 INTO '/user/pig/out/jianyong.1297323675/Scalar_4.out';\n";
+            
+        testMacro( query, expected );
+    }
+
+    
+    @Test
+    public void test17() throws Exception {
+        String macro = 
+            "a = load '/user/pig/tests/data/singlefile/studentnulltab10k' as (name:chararray, age:int, gpa:double);" +
+            "b = foreach a generate (int)((int)gpa/((int)gpa - 1)) as norm_gpa:int;" + 
+            "c = foreach b generate (norm_gpa is not null? norm_gpa: 0);" +
+            "store c into '/user/pig/out/jianyong.1297229709/Types_37.out';";
+            
+        String expected =
+            "macro_mymacro_a_0 = load '/user/pig/tests/data/singlefile/studentnulltab10k' as (name:chararray, age:int, gpa:double);\n" +
+            "macro_mymacro_b_0 = foreach macro_mymacro_a_0 generate (int)((int)gpa / ((int)gpa - 1)) AS norm_gpa:int;\n" +
+            "macro_mymacro_c_0 = foreach macro_mymacro_b_0 generate  (norm_gpa IS not null ? norm_gpa : 0) ;\n" +
+            "store macro_mymacro_c_0 INTO '/user/pig/out/jianyong.1297229709/Types_37.out';\n";
+            
+        testMacro(macro, expected);
+    }
+    
+    @Test
+    public void test18() throws Exception {
+        String macro = "define mymacro() returns dummy {" +
+            "a = load '/user/pig/tests/data/singlefile/studenttab10k';" +
+            "b = group a by $0;" +
+            "c = foreach b {c1 = order $1 by *; generate flatten(c1); };" +
+            "store c into '/user/pig/out/jianyong.1297305352/Order_15.out';};";
+            
+        String script = macro +
+            "dummy = mymacro();\n";
+        
+        String expected =
+            "macro_mymacro_a_0 = load '/user/pig/tests/data/singlefile/studenttab10k';\n" +
+            "macro_mymacro_b_0 = group macro_mymacro_a_0 by ($0);\n" +
+            "macro_mymacro_c_0 = foreach macro_mymacro_b_0 { c1 = order $1 BY *;  generate flatten(c1) ; } ;\n" +
+            "store macro_mymacro_c_0 INTO '/user/pig/out/jianyong.1297305352/Order_15.out';\n";
+        
+        verify(script, expected);
+    }
+    
+    @Test
+    public void test19() throws Exception {
+        String macro = 
+            "a = load '/user/pig/tests/data/singlefile/studenttab10k';" +
+            "b = group a by $0;" +
+            "c = foreach b {c1 = order $1 by $1; generate flatten(c1), MAX($1.$1); };" +
+            "store c into '/user/pig/out/jianyong.1297305352/Order_17.out';";
+            
+        String expected =
+            "macro_mymacro_a_0 = load '/user/pig/tests/data/singlefile/studenttab10k';\n" +
+            "macro_mymacro_b_0 = group macro_mymacro_a_0 by ($0);\n" +
+            "macro_mymacro_c_0 = foreach macro_mymacro_b_0 { c1 = order $1 BY $1;  generate flatten(c1) , MAX($1.($1)); } ;\n" +
+            "store macro_mymacro_c_0 INTO '/user/pig/out/jianyong.1297305352/Order_17.out';\n";
+            
+        testMacro(macro, expected);
+    }
+    
+    @Test
+    public void test20() throws Exception {
+        String macro = 
+            "a = load 'x' as (u,v);" +
+            "b = load 'y' as (u,w);" +
+            "c = join a by u, b by u;" +
+            "d = foreach c generate a::u, b::u, w;";
+            
+        String expected =
+            "macro_mymacro_a_0 = load 'x' as (u, v);\n" +
+            "macro_mymacro_b_0 = load 'y' as (u, w);\n" +
+            "macro_mymacro_c_0 = join macro_mymacro_a_0 by (u), macro_mymacro_b_0 by (u);\n" +
+            "macro_mymacro_d_0 = foreach macro_mymacro_c_0 generate macro_mymacro_a_0::u, macro_mymacro_b_0::u, w;\n";
+        
+        testMacro(macro, expected);
+    }
+    
+    @Test
+    public void test21() throws Exception {
+        String macro = 
+            "a = load '1.txt' as ( u, v, w : int );" +
+            "b = foreach a generate * as ( x, y, z ), flatten( u ) as ( r, s ), flatten( v ) as d, w + 5 as e:int;";
+            
+        String expected =
+            "macro_mymacro_a_0 = load '1.txt' as (u, v, w:int);\n" +
+            "macro_mymacro_b_0 = foreach macro_mymacro_a_0 generate  * AS (x, y, z), flatten(u)  AS (r, s), flatten(v)  AS d, w + 5 AS e:int;\n";
+        
+        testMacro(macro, expected);
+    }
+    
+    @Test
+    public void test22() throws Exception {
+        String macro =
+            "a = load '1.txt' as ( u : bag{}, v : bag{tuple(x, y)} );" +
+            "b = load '2.x' as ( t : {}, u : {(r,s)}, v : bag{ T : tuple( x, y ) }, w : bag{(z1, z2)} );" +
+            "c = load '3.x' as p : int;";
+            
+        String expected =
+            "macro_mymacro_a_0 = load '1.txt' as (u:bag{}, v:bag{T:(x, y)});\n" +
+            "macro_mymacro_b_0 = load '2.x' as (t:bag{}, u:bag{T:(r, s)}, v:bag{T:(x, y)}, w:bag{T:(z1, z2)});\n" +
+            "macro_mymacro_c_0 = load '3.x' as p:int;\n";
+        
+        testMacro(macro, expected);
     }
 
     @Test
-    public void testFilter() throws Throwable {
+    public void test23() throws Exception {
+        String macro = 
+            "a = load '1.txt' as ( u, v, w : int );" +
+            "b = foreach a generate * as ( x, y, z ), flatten( u ) as ( r, s ), flatten( v ) as d, w + 5 as e:int;";
+            
+        String expected =
+            "macro_mymacro_a_0 = load '1.txt' as (u, v, w:int);\n" +
+            "macro_mymacro_b_0 = foreach macro_mymacro_a_0 generate  * AS (x, y, z), flatten(u)  AS (r, s), flatten(v)  AS d, w + 5 AS e:int;\n";
+        
+        testMacro(macro, expected);
+    }
+    
+    @Test
+    public void test24() throws Exception {
+        String macro = 
+            "A = load 'x' as ( u:bag{tuple(x, y)}, v:long, w:bytearray); " + 
+            "B = foreach A generate u.(x, y), v, w; " +
+            "C = store B into 'output';";
+            
+        String expected =
+            "macro_mymacro_A_0 = load 'x' as (u:bag{T:(x, y)}, v:long, w:bytearray);\n" +
+            "macro_mymacro_B_0 = foreach macro_mymacro_A_0 generate u.(x, y), v, w;\n" +
+            "macro_mymacro_C_0 = store macro_mymacro_B_0 INTO 'output';\n";
+        
+        testMacro(macro, expected);
+    }
+    
+    @Test
+    public void test25() throws Exception {
+        String macro = 
+            "A = load 'x' as ( a : bag{ T:tuple(u, v) }, c : int, d : long );" +
+            "B = foreach A { R = a; P = c * 2; Q = P + d; S = R.u; T = limit S 100; generate Q, R, S, T, c + d/5; };" +
+            "store B into 'y';";
+            
+        String expected =
+            "macro_mymacro_A_0 = load 'x' as (a:bag{T:(u, v)}, c:int, d:long);\n" +
+            "macro_mymacro_B_0 = foreach macro_mymacro_A_0 { R = a; P = c * 2; Q = P + d; S = R.(u); T = limit S 100;  generate Q, R, S, T, c + d / 5; } ;\n" +
+            "store macro_mymacro_B_0 INTO 'y';\n";
+        
+        testMacro(macro, expected);
+    }
+    
+    @Test
+    public void test26() throws Exception {
+        String content =
+            "A = load 'x' as ( u:bag{tuple(x, y)}, v:long, w:bytearray); " + 
+            "B = foreach A generate u.(x, $1), $1, w; " +
+            "C = store B into 'output';";
+        
+        String expected =
+            "macro_mymacro_A_0 = load 'x' as (u:bag{T:(x, y)}, v:long, w:bytearray);\n" +
+            "macro_mymacro_B_0 = foreach macro_mymacro_A_0 generate u.(x, $1), $1, w;\n" +
+            "macro_mymacro_C_0 = store macro_mymacro_B_0 INTO 'output';\n";
+            
+        testMacro(content, expected);
+    }
+    
+    @Test
+    public void test27() throws Exception {
+        String content =
+            "A = load 'x' as ( u:bag{} ); " + 
+            "B = foreach A generate u.$100; " +
+            "C = store B into 'output';";
+            
+        String expected =
+            "macro_mymacro_A_0 = load 'x' as u:bag{};\n" +
+            "macro_mymacro_B_0 = foreach macro_mymacro_A_0 generate u.($100);\n" +
+            "macro_mymacro_C_0 = store macro_mymacro_B_0 INTO 'output';\n";
+        
+        testMacro(content, expected);
+    }
+    
+    @Test
+    public void test28() throws Exception {
+        String content =
+            "A = load 'x'; " + 
+            "B = foreach A generate $1, $1000; " +
+            "C = store B into 'output';";
+            
+        String expected =
+            "macro_mymacro_A_0 = load 'x';\n" + 
+            "macro_mymacro_B_0 = foreach macro_mymacro_A_0 generate $1, $1000;\n" +
+            "macro_mymacro_C_0 = store macro_mymacro_B_0 INTO 'output';\n";
+        
+        testMacro(content, expected);
+    }
+    
+    @Test
+    public void test29() throws Exception {
+        String content =
+            "A = load 'x'; " + 
+            "B = load 'y' as ( u : int, v : chararray );" +
+            "C = foreach A generate B.$1, $0; " +
+            "D = store C into 'output';";
+            
+        String expected =
+            "macro_mymacro_A_0 = load 'x';\n" + 
+            "macro_mymacro_B_0 = load 'y' as (u:int, v:chararray);\n" +
+            "macro_mymacro_C_0 = foreach macro_mymacro_A_0 generate macro_mymacro_B_0.($1), $0;\n" +
+            "macro_mymacro_D_0 = store macro_mymacro_C_0 INTO 'output';\n";
+        
+        testMacro(content, expected);
+    }
+    
+    @Test
+    public void test30() throws Exception {
+        String content =
+            "A = load 'x'; " + 
+            "B = load 'y' as ( u : int, v : chararray );" +
+            "C = foreach A generate B.$1, $0; " +
+            "D = store C into 'output';";
+            
+        String expected =
+            "macro_mymacro_A_0 = load 'x';\n" +
+            "macro_mymacro_B_0 = load 'y' as (u:int, v:chararray);\n" +
+            "macro_mymacro_C_0 = foreach macro_mymacro_A_0 generate macro_mymacro_B_0.($1), $0;\n" +
+            "macro_mymacro_D_0 = store macro_mymacro_C_0 INTO 'output';\n";
+        
+        testMacro(content, expected);
+    }
+    
+    @Test
+    public void test31() throws Exception {
+        String content =
+            "A = load 'x'; " + 
+            "B = load 'y' as ( u : int, v : chararray );" +
+            "C = foreach A generate B.v, $0; " +
+            "D = store C into 'output';";
+            
+        String expected =
+            "macro_mymacro_A_0 = load 'x';\n" +
+            "macro_mymacro_B_0 = load 'y' as (u:int, v:chararray);\n" +
+            "macro_mymacro_C_0 = foreach macro_mymacro_A_0 generate macro_mymacro_B_0.(v), $0;\n" +
+            "macro_mymacro_D_0 = store macro_mymacro_C_0 INTO 'output';\n";
+        
+        testMacro(content, expected);
+    }
+    
+    @Test
+    public void testFilter() throws Exception {
         String query = "A = load 'x' as ( u:int, v:long, w:bytearray); " + 
                        "B = filter A by 2 > 1; ";
-        testMacro( query );
+        
+        String expected =
+            "macro_mymacro_A_0 = load 'x' as (u:int, v:long, w:bytearray);\n" +
+            "macro_mymacro_B_0 = filter macro_mymacro_A_0 BY (2 > 1);\n";
+        
+        testMacro( query, expected );
     }
 
     @Test
-    public void testScopedAlias() throws Throwable {
+    public void testScopedAlias() throws Exception {
         String query = "A = load 'x' as ( u:int, v:long, w:bytearray);" + 
                        "B = load 'y' as ( u:int, x:int, y:chararray);" +
                        "C = join A by u, B by u;" +
                        "D = foreach C generate A::u, B::u, v, x;" +
                        "store D into 'z';";
-        testMacro ( query );
+        
+        String expected =
+            "macro_mymacro_A_0 = load 'x' as (u:int, v:long, w:bytearray);\n" +
+            "macro_mymacro_B_0 = load 'y' as (u:int, x:int, y:chararray);\n" +
+            "macro_mymacro_C_0 = join macro_mymacro_A_0 by (u), macro_mymacro_B_0 by (u);\n" +
+            "macro_mymacro_D_0 = foreach macro_mymacro_C_0 generate macro_mymacro_A_0::u, macro_mymacro_B_0::u, v, x;\n" +
+            "store macro_mymacro_D_0 INTO 'z';\n";
+        
+        testMacro ( query, expected );
     }
 
     @Test
-    public void test32() throws Throwable {
+    public void test32() throws Exception {
         String query = "a = load 'testSimpleMapKeyLookup' as (m:map[int]);" + 
                        "b = foreach a generate m#'key';";
         
-        testMacro( query );
+        String expected =
+            "macro_mymacro_a_0 = load 'testSimpleMapKeyLookup' as m:map[int];\n" +
+            "macro_mymacro_b_0 = foreach macro_mymacro_a_0 generate m#'key';\n";
+        
+        testMacro( query, expected );
     }
     
     @Test
-    public void test33() throws Throwable {
+    public void test33() throws Exception {
         String query = "a = load 'testSimpleMapCast' as (m);" + 
                        "b = foreach a generate ([int])m;";
         
-        testMacro( query );
+        String expected =
+            "macro_mymacro_a_0 = load 'testSimpleMapCast' as m;\n" +
+            "macro_mymacro_b_0 = foreach macro_mymacro_a_0 generate (map[int])m;\n";
+        
+        testMacro( query, expected );
     }
     
     @Test
-    public void test34() throws Throwable {
+    public void test34() throws Exception {
         String query = "a = load 'testComplexLoad' as (m:map[bag{(i:int,j:int)}]);";
         
-        testMacro( query );
+        String expected =
+            "macro_mymacro_a_0 = load 'testComplexLoad' as m:map[bag{T:(i:int, j:int)}];\n";
+        
+        testMacro( query, expected );
     }
     
     @Test
-    public void test35() throws Throwable {
+    public void test35() throws Exception {
         String query = "a = load 'testComplexCast' as (m);" +
                        "b = foreach a generate ([{(i:int,j:int)}])m;";
         
-        testMacro( query );
+        String expected =
+            "macro_mymacro_a_0 = load 'testComplexCast' as m;\n" +
+            "macro_mymacro_b_0 = foreach macro_mymacro_a_0 generate (map[bag{T:(i:int, j:int)}])m;\n";
+        
+        testMacro( query, expected );
+    }
+    
+    @Test
+    public void testCommentInMacro() throws Exception {
+        String query = "a = load 'testComplexCast' as (m);\n" +
+                       " /* this is a test } and \n" +
+                       " and test ***/\n" +
+                       " -- this is another test } \n" +
+                       "b = foreach a generate ([{(i:int,j:int)}])m;";
+        
+        String expected =
+            "macro_mymacro_a_0 = load 'testComplexCast' as m;\n" +
+            "macro_mymacro_b_0 = foreach macro_mymacro_a_0 generate (map[bag{T:(i:int, j:int)}])m;\n";
+
+        testMacro( query, expected );
+    }
+    
+    @Test 
+    public void caseInsensitiveTest() throws Exception {
+        String macro = "DEFINE group_and_count (A,group_key) RETURNS B {\n" +
+            "    D = group $A by $group_key partition by org.apache.pig.test.utils.SimpleCustomPartitioner parallel 50;\n" +
+            "    $B = foreach D generate group, COUNT($A);\n" +
+            "};\n";
+        
+        String script = 
+            "alpha = load 'users' as (user, age, zip);\n" +
+            "gamma = group_and_count (alpha, user);\n" +
+            "delta = group_and_count (alpha, age);\n" +
+            "store gamma into 'byuser';\n" +
+            "store delta into 'byage';\n";
+                
+        String expected =
+            "alpha = load 'users' as (user, age, zip);\n" +
+            "macro_group_and_count_D_0 = group alpha by (user) partition BY org.apache.pig.test.utils.SimpleCustomPartitioner parallel 50;\n" +
+            "gamma = foreach macro_group_and_count_D_0 generate group, COUNT(alpha);\n" +
+            "macro_group_and_count_D_1 = group alpha by (age) partition BY org.apache.pig.test.utils.SimpleCustomPartitioner parallel 50;\n" +
+            "delta = foreach macro_group_and_count_D_1 generate group, COUNT(alpha);\n" +
+            "store gamma INTO 'byuser';\n" +
+            "store delta INTO 'byage';\n";
+        
+        verify(macro + script, expected);
     }
     
     //-------------------------------------------------------------------------
     
-    private void testMacro(String content) throws Throwable {
+    private void testMacro(String content) throws Exception {
+        testMacro(content, null);
+    }
+    
+    private void testMacro(String content, String expected) throws Exception {
         String macro = "define mymacro() returns dummy {" +
             content + "};";
             
         String script = macro +
             "dummy = mymacro();\n";
         
-        StringReader rd = new StringReader(script);
-        String s = ParserUtil.expandMacros(rd);
+        verify(script, expected);
+    }
 
-        System.out.println("result:\n" + s);
-      
-        validate(s);
+    private void verify(String s) throws Exception {
+        verify(s, null);
     }
     
-    private void validate(String s) throws Throwable {
-        PigContext pigContext = new PigContext(ExecType.LOCAL, new Properties());
-        BufferedReader br = new BufferedReader(new StringReader(s));
-        Grunt grunt = new Grunt(br, pigContext);
+    private void verify(String s, String expected) throws Exception {
+        File f1 = new File("myscript.pig");
+        f1.deleteOnExit();
         
-        File f = new File("macro_expansion.txt");
-        FileWriter w = new FileWriter(f);
-        w.append(s);
-        w.close();
+        FileWriter fw1 = new FileWriter(f1);
+        fw1.append(s);
+        fw1.close();
         
-        grunt.checkScript("macro_expansion.txt");
-        f.delete();
+        String[] args = { "-Dpig.import.search.path=/tmp", "-x", "local", "-c", "myscript.pig" };
+        PigStats stats = PigRunner.run(args, null);
+ 
+        assertTrue(stats.isSuccessful());
+        
+        String[] args2 = { "-Dpig.import.search.path=/tmp", "-x", "local", "-r", "myscript.pig" };
+        PigRunner.run(args2, null);
+        
+        File f2 = new File("myscript.pig.expanded");
+        BufferedReader br = new BufferedReader(new FileReader(f2));
+        StringBuilder sb = new StringBuilder();
+        String line = br.readLine();
+        
+        while (line != null) {
+            sb.append(line).append("\n");
+            line = br.readLine();
+        }
+        
+        f2.delete();
+        
+        if (expected != null) {
+            Assert.assertEquals(expected, sb.toString());
+        } else {
+            System.out.println("Result:\n" + sb.toString());
+        }
     }
-
 }

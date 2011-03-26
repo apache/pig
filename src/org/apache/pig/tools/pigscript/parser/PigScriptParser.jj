@@ -174,7 +174,7 @@ TOKEN: {<BRIEF: "-brief">}
 TOKEN: {<SCRIPT_DONE: "scriptDone">}
 
 // Define pig command as 
-// (1) Starting with "split"/"define"/"store" or assignment (A=) followed by
+// (1) Starting with "split"/"define"/"store"/"import" or assignment (A=) or multi-assignment (A, B, ...=) followed by
 // (2) Single statement followed by ; and newline or
 // (3) Block of statements enclosed in
 
@@ -214,7 +214,9 @@ TOKEN_MGR_DECLS : {
     <"split"> : PIG_START
 |   <"define"> : PIG_START
 |	<"store"> : PIG_START
+|	<"import"> : PIG_START
 | 	<(["a"-"z", "A"-"Z"])+(["a"-"z", "A"-"Z"] | ["0"-"9"] | "_")*(" " | "\t")*"="> : PIG_START
+| 	< <IDENTIFIER> (" " | "\t")* ("," (" " | "\t")* <IDENTIFIER> )* (" " | "\t")* "="> : PIG_START
 }
 
 <PIG_START> MORE :

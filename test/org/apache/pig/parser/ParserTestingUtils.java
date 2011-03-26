@@ -40,7 +40,7 @@ public class ParserTestingUtils {
 
     public static Tree parse(String query) throws IOException, RecognitionException, ParsingFailureException  {
         CommonTokenStream tokens = tokenize( query );
-        QueryParser parser = new QueryParser( tokens );
+        QueryParser parser = QueryParserUtils.createParser( tokens );
         QueryParser.query_return result = parser.query();
         Tree ast = (Tree)result.getTree();
         TreePrinter.printTree( (CommonTree)ast, 0 );
