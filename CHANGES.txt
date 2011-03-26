@@ -22,6 +22,8 @@ Unreleased 0.8.1 (Unreleased)
 
 INCOMPATIBLE CHANGES
 
+pig-1936: documentation update (chandec via olgan)
+
 PIG-1680: HBaseStorage should work with HBase 0.90 (gstathis, billgraham, dvryaboy, tlipcon via dvryaboy)
 
 IMPORVEMENTS
