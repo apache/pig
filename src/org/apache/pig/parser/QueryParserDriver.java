@@ -18,31 +18,55 @@
 
 package org.apache.pig.parser;
 
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.antlr.runtime.BaseRecognizer;
 import org.antlr.runtime.CharStream;
 import org.antlr.runtime.CommonTokenStream;
 import org.antlr.runtime.RecognitionException;
+import org.antlr.runtime.tree.CommonTree;
 import org.antlr.runtime.tree.CommonTreeNodeStream;
 import org.antlr.runtime.tree.Tree;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.logical.relational.LogicalPlan;
+import org.apache.pig.tools.pigstats.ScriptState;
 
 public class QueryParserDriver {
     public static ClassLoader classloader = QueryParserDriver.class.getClassLoader();
+    
+    private static final Log LOG = LogFactory.getLog(QueryParserDriver.class);
+    
+    private static final String MACRO_DEF = "MACRO_DEF";
+    private static final String MACRO_INLINE = "MACRO_INLINE";
+    private static final String IMPORT_DEF = "import";
     
     private PigContext pigContext;
     private String scope;
     private Map<String, String>fileNameMap;
     private Map<String, Operator> operators;
+    private Set<String> importSeen;
+    private Set<String> macroSeen;
     
     public QueryParserDriver(PigContext pigContext, String scope, Map<String, String> fileNameMap) {
         this.pigContext = pigContext;
         this.scope = scope;
         this.fileNameMap = fileNameMap;
+        importSeen = new HashSet<String>();
+        macroSeen = new HashSet<String>();        
     }
 
     public LogicalPlan parse(String query) throws ParserException {
@@ -55,7 +79,9 @@ public class QueryParserDriver {
             ast = parse( tokenStream );
         } catch(RuntimeException ex) {
             throw new ParserException( ex.getMessage() );
-        }
+        }          
+         
+        ast = expandMacro(ast);
 
         try{       
             ast = validateAst( ast );
@@ -76,6 +102,44 @@ public class QueryParserDriver {
         return plan;
     }
     
+    public boolean dryrun(String scriptFile) throws ParserException, IOException, RecognitionException {
+        BufferedReader rd = new BufferedReader(new FileReader(scriptFile));
+        StringBuilder sb = new StringBuilder();
+        String line = rd.readLine();
+        while (line != null) {
+            sb.append(line).append("\n");
+            line = rd.readLine();
+        }
+        
+        CommonTokenStream tokenStream = tokenize(sb.toString());
+        Tree ast = null;
+            
+        try {
+            ast = parse( tokenStream );
+        } catch(RuntimeException ex) {
+            throw new ParserException( ex.getMessage() );
+        }          
+        
+        List<CommonTree> importNodes = new ArrayList<CommonTree>();
+        List<CommonTree> macroNodes = new ArrayList<CommonTree>();
+        List<CommonTree> inlineNodes = new ArrayList<CommonTree>();
+        
+        traverseImport(ast, importNodes);
+        traverse(ast, macroNodes, inlineNodes);
+        
+        if (importNodes.isEmpty() && macroNodes.isEmpty()
+                && inlineNodes.isEmpty()) {
+            return false;
+        }
+
+        ast = expandMacro(ast);
+
+        String expandedFile = scriptFile.replace(".substituted", ".expanded");
+        dryrun(ast, expandedFile);
+        
+        return true;
+    }
+    
     public Map<String, Operator> getOperators() {
         return operators;
     }
@@ -83,37 +147,50 @@ public class QueryParserDriver {
     private static CommonTokenStream tokenize(String query) throws ParserException {
         CharStream input;
         try {
-            input = new QueryParserStringStream( query );
-        } catch(IOException ex) {
-            throw new ParserException( "Unexpected IOException: " + ex.getMessage() );
+            input = new QueryParserStringStream(query);
+        } catch (IOException ex) {
+            throw new ParserException("Unexpected IOException: "
+                    + ex.getMessage());
         }
-        QueryLexer lexer = new QueryLexer( input );
-        CommonTokenStream tokens = new CommonTokenStream( lexer );
-        checkError( lexer );
+        QueryLexer lexer = new QueryLexer(input);
+        CommonTokenStream tokens = new CommonTokenStream(lexer);
+        checkError(lexer);
         return tokens;
     }
     
-    private static void checkError(BaseRecognizer recognizer) throws ParserException {
+    private static void checkError(BaseRecognizer recognizer)
+            throws ParserException {
         int errorCount = recognizer.getNumberOfSyntaxErrors();
-        if( 0 < errorCount )
-            throw new ParserException( "Encountered " + errorCount + " parsing errors in the query" );
+        if (0 < errorCount)
+            throw new ParserException("Encountered " + errorCount
+                    + " parsing errors in the query");
     }
 
-    private static Tree parse(CommonTokenStream tokens) throws ParserException  {
-        QueryParser parser = new QueryParser( tokens );
-      
+    private static Tree parse(CommonTokenStream tokens) throws ParserException {
+        QueryParser parser = QueryParserUtils.createParser(tokens);
+
         QueryParser.query_return result = null;
         try {
             result = parser.query();
         } catch (RecognitionException e) {
-            String msg = parser.getErrorHeader(e) + " " + parser.getErrorMessage(e, parser.getTokenNames() );
-            throw new ParserException( msg );
+            String msg = parser.getErrorHeader(e) + " "
+                    + parser.getErrorMessage(e, parser.getTokenNames());
+            throw new ParserException(msg);
         }
-        
-        Tree ast = (Tree)result.getTree();
-        checkError( parser );
-        
+
+        Tree ast = (Tree) result.getTree();
+        checkError(parser);
+
         return ast;
+    }
+    
+    private static void dryrun(Tree ast, String scriptFile) throws RecognitionException, IOException {
+        CommonTreeNodeStream nodes = new CommonTreeNodeStream( ast );
+        AstPrinter walker = new AstPrinter( nodes );
+        walker.query();
+        BufferedWriter fw = new BufferedWriter(new FileWriter(scriptFile));
+        fw.append(walker.getResult());
+        fw.close();
     }
     
     private static Tree validateAst(Tree ast) throws RecognitionException, ParserException {
@@ -126,5 +203,232 @@ public class QueryParserDriver {
         
         return newAst;
     }
+    
+    private Tree expandMacro(Tree ast) throws ParserException {
+        LOG.debug("Original macro AST:\n" + ast.toStringTree() + "\n");
 
+        ScriptState ss = ScriptState.get();
+        if (ss != null) {
+            QueryParserUtils.recursiveSetFileName((PigParserNode) ast,
+                    ss.getFileName());
+        }
+        
+        // first insert the import files
+        while (expandImport(ast))
+            ;
+
+        LOG.debug("macro AST after import:\n" + ast.toStringTree() + "\n");
+
+        List<CommonTree> macroNodes = new ArrayList<CommonTree>();
+        List<CommonTree> inlineNodes = new ArrayList<CommonTree>();
+
+        // find all macro def/inline nodes
+        traverse(ast, macroNodes, inlineNodes);
+
+        Map<String, PigMacro> seen = new HashMap<String, PigMacro>();
+        List<PigMacro> macroDefs = new ArrayList<PigMacro>();
+
+        // gether all the def nodes
+        for (CommonTree t : macroNodes) {
+            macroDefs.add(makeMacroDef(t, seen));
+        }
+
+        // inline macros
+        inlineMacro(inlineNodes, macroDefs);
+
+        LOG.debug("Resulting macro AST:\n" + ast.toStringTree() + "\n");
+
+        return ast;
+    }
+     
+    private void inlineMacro(List<CommonTree> inlineNodes,
+            List<PigMacro> macroDefs) throws ParserException {
+        for (CommonTree t : inlineNodes) {
+            CommonTree newTree = PigMacro.macroInline(t, macroDefs);
+            
+            List<CommonTree> nodes = new ArrayList<CommonTree>();
+            traverseInline(newTree, nodes);
+   
+            if (nodes.isEmpty()) {
+                QueryParserUtils.replaceNodeWithNodeList(t, newTree, null);
+            } else {
+                inlineMacro(nodes, macroDefs);
+            }
+        }
+    }
+    
+    private void traverseInline(Tree t, List<CommonTree> nodes) {
+        if (t.getText().equals(MACRO_INLINE)) {
+            nodes.add((CommonTree)t);
+        }
+        int n = t.getChildCount();
+        for (int i = 0; i < n; i++) {
+            Tree t0 = t.getChild(i);
+            traverseInline(t0, nodes);
+        }       
+    }
+    
+    private boolean expandImport(Tree ast) throws ParserException {
+        List<CommonTree> nodes = new ArrayList<CommonTree>();
+        traverseImport(ast, nodes);
+        if (nodes.isEmpty()) return false;
+        
+        for (CommonTree t : nodes) {
+            macroImport(t);
+        }
+        
+        return true;
+    }
+    
+    private void traverseImport(Tree t, List<CommonTree> nodes) {
+        if (t.getText().equalsIgnoreCase(IMPORT_DEF)) {
+            nodes.add((CommonTree)t);
+        }
+        int n = t.getChildCount();
+        for (int i = 0; i < n; i++) {
+            Tree t0 = t.getChild(i);
+            traverseImport(t0, nodes);
+        }
+    }
+    
+    private void traverse(Tree t, List<CommonTree> macroNodes,
+            List<CommonTree> inlineNodes) {
+        if (t.getText().equals(MACRO_DEF)) {
+            macroNodes.add((CommonTree) t.getParent());  
+        } else if (t.getText().equals(MACRO_INLINE)) {
+            inlineNodes.add((CommonTree) t);
+        }
+        int n = t.getChildCount();
+        for (int i = 0; i < n; i++) {
+            Tree t0 = t.getChild(i);
+            traverse(t0, macroNodes, inlineNodes);
+        }
+    }
+    
+    /*
+     * MacroDef node has two child nodes:
+     *      1. name
+     *      2. MACRO_DEF (PARAMS, RETURN_VAL, MACRO_BODY)
+     */
+    private PigMacro makeMacroDef(CommonTree t, Map<String, PigMacro> seen)
+            throws ParserException {
+        String mn = t.getChild(0).getText();
+ 
+        if (!macroSeen.add(mn)) {
+            String msg = getErrorMessage(null, t,
+                    "Duplicated macro name '" + mn + "'", null);
+            throw new ParserException(msg);
+        }
+
+        if (seen != null) {
+            for (String s : seen.keySet()) {
+                macroSeen.add(s);
+            }
+        }
+        
+        PigMacro pm = new PigMacro(mn);
+        
+        String fname = ((PigParserNode)t).getFileName();
+        pm.setFile(fname);
+
+        Tree defNode = t.getChild(1);
+
+        // get parameter markers
+        Tree paramNode = defNode.getChild(0);
+        int n = paramNode.getChildCount();
+        for (int i = 0; i < n; i++) {
+            pm.addParam(paramNode.getChild(i).getText());
+        }
+
+        // get return alias markers
+        Tree retNode = defNode.getChild(1);
+        int m = retNode.getChildCount();
+        for (int i = 0; i < m; i++) {
+            pm.addReturn(retNode.getChild(i).getText());
+        }
+
+        // get macro body
+        Tree bodyNode = defNode.getChild(2);
+        String body = bodyNode.getChild(0).getText();
+
+        body = body.substring(1, body.length() - 1);
+
+        pm.setBody(body, seen);
+
+        seen.put(mn, pm);
+
+        // delete this node
+        Tree defineNode = t.getParent();
+        Tree stmtNode = defineNode.getParent();
+        stmtNode.deleteChild(defineNode.getChildIndex());
+
+        return pm;
+    }
+        
+    private void macroImport(CommonTree t) throws ParserException {
+        // remove quote
+        String fname = t.getChild(0).getText();
+        fname = QueryParserUtils.removeQuotes(fname);
+        if (!importSeen.add(fname)) {
+            String msg = getErrorMessage(fname, t,
+                    ": Duplicated import file '" + fname + "'", null);
+            throw new ParserException(msg);
+        }
+        
+        
+        BufferedReader in = null;
+        try {
+            in = QueryParserUtils.getImportScriptAsReader(fname);
+        } catch (FileNotFoundException e) {
+            String msg = getErrorMessage(fname, t,
+                    "Failed to import file '" + fname + "'", e.getMessage());
+            throw new ParserException(msg);
+        }
+        
+        StringBuilder sb = new StringBuilder();
+        String line = null;
+        try {
+            line = in.readLine();
+            while (line != null) {
+                sb.append(line).append("\n");
+                line = in.readLine();
+            }
+        } catch (IOException e) {
+            String msg = getErrorMessage(fname, t,
+                    "Failed to read file '" + fname + "'", e.getMessage());
+            throw new ParserException(msg);
+        }
+        
+        // parse
+        CommonTokenStream tokenStream = tokenize(sb.toString());
+        
+        Tree ast = null;
+        try {
+            ast = parse( tokenStream );
+        } catch(RuntimeException ex) {
+            throw new ParserException( ex.getMessage() );
+        } 
+        
+        QueryParserUtils.replaceNodeWithNodeList(t, (CommonTree)ast, fname);
+    }
+    
+    private String getErrorMessage(String importFile,
+            CommonTree t, String header, String reason) {
+        StringBuilder sb = new StringBuilder();
+        PigParserNode node = (PigParserNode)t;
+        String file = node.getFileName();
+        sb.append("<");
+        if (file == null) {
+            ScriptState ss = ScriptState.get();
+            if (ss != null) file = ss.getFileName();
+        }
+        if (file != null && !file.equals(importFile)) {
+            sb.append("at ").append(file).append(", ");
+        }
+        sb.append("line ").append(t.getLine()).append("> ").append(header);
+        if (reason != null) {
+            sb.append(". Reason: ").append(reason);
+        }
+        return sb.toString();
+    }
 }

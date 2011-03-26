@@ -60,17 +60,28 @@ tokens {
     SCOPED_ALIAS;
     TUPLE_TYPE_CAST;
     BAG_TYPE_CAST;
+    PARAMS;
+    RETURN_VAL;
+    MACRO_DEF;
+    MACRO_BODY;
+    MACRO_INLINE;
 }
 
 @header {
 package org.apache.pig.parser;
 
+import java.util.Set;
+import java.util.HashSet;
+import java.util.Collections;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.pig.parser.PigMacro;
 }
 
 @members {
 private static Log log = LogFactory.getLog( QueryParser.class );
+
+private Set<String> memory = new HashSet<String>();
 
 @Override
 protected Object recoverFromMismatchedToken(IntStream input, int ttype, BitSet follow) 
@@ -129,7 +140,15 @@ query : statement*
 statement : SEMI_COLON!
           | general_statement
           | foreach_statement
-          | split_statement          
+          | split_statement  
+          | inline_statement        
+          | import_statement
+;
+
+import_statement : import_clause SEMI_COLON!
+;
+
+inline_statement : inline_clause SEMI_COLON!
 ;
 
 split_statement : split_clause SEMI_COLON!
@@ -155,6 +174,16 @@ foreach_statement : ( alias EQUAL )? foreach_clause_complex SEMI_COLON?
 alias : IDENTIFIER
 ;
 
+parameter 
+    : IDENTIFIER 
+    | INTEGER 
+    | DOUBLENUMBER
+    | QUOTEDSTRING
+;
+
+content : LEFT_CURLY ( content | ~(LEFT_CURLY | RIGHT_CURLY) )* RIGHT_CURLY
+;
+
 op_clause : define_clause 
           | load_clause
           | group_clause
@@ -171,7 +200,38 @@ op_clause : define_clause
           | mr_clause
 ;
 
-define_clause : DEFINE^ alias ( cmd | func_clause )
+macro_param_clause : LEFT_PAREN ( alias (COMMA alias)* )? RIGHT_PAREN
+    -> ^(PARAMS alias*)
+;
+
+macro_return_clause : RETURNS alias (COMMA alias)*
+    -> ^(RETURN_VAL alias+)
+;
+
+macro_body_clause : content
+    -> ^(MACRO_BODY { new PigParserNode(new CommonToken(1, $content.text)) } )
+;
+
+macro_clause : macro_param_clause macro_return_clause macro_body_clause
+    -> ^(MACRO_DEF macro_param_clause macro_return_clause macro_body_clause)
+;
+
+inline_return_clause : alias (COMMA alias)*
+    -> ^(RETURN_VAL alias+)
+;
+
+inline_param_clause : LEFT_PAREN ( parameter (COMMA parameter)* )? RIGHT_PAREN
+    -> ^(PARAMS parameter*)
+;
+
+inline_clause : inline_return_clause EQUAL alias inline_param_clause
+    -> ^(MACRO_INLINE alias inline_return_clause inline_param_clause)
+;
+
+import_clause : IMPORT^ QUOTEDSTRING
+;
+
+define_clause : DEFINE^ alias ( cmd | func_clause | macro_clause)
 ;
 
 cmd : EXECCOMMAND^ ( ship_clause | cache_caluse | input_clause | output_clause | error_clause )*
@@ -516,7 +576,7 @@ nested_limit : LIMIT^ nested_op_input INTEGER
 nested_op_input : col_ref | nested_proj
 ;
 
-stream_clause : STREAM^ rel THROUGH! ( EXECCOMMAND | IDENTIFIER ) as_clause?
+stream_clause : STREAM^ rel THROUGH! ( EXECCOMMAND | alias ) as_clause?
 ;
 
 mr_clause : MAPREDUCE^ QUOTEDSTRING ( LEFT_PAREN! path_list RIGHT_PAREN! )? store_clause load_clause EXECCOMMAND?
@@ -526,8 +586,8 @@ split_clause : SPLIT rel INTO split_branch ( COMMA split_branch )+
             -> ^( SPLIT rel split_branch+ )
 ;
 
-split_branch : IDENTIFIER IF cond
-            -> ^( SPLIT_BRANCH IDENTIFIER cond )
+split_branch : alias IF cond
+            -> ^( SPLIT_BRANCH alias cond )
 ;
 
 col_ref : alias_col_ref | dollar_col_ref
@@ -583,6 +643,8 @@ tuple : LEFT_PAREN ( literal ( COMMA literal )* )? RIGHT_PAREN
 
 // extended identifier, handling the keyword and identifier conflicts. Ugly but there is no other choice.
 eid : rel_str_op
+    | IMPORT
+    | RETURNS
     | DEFINE
     | LOAD
     | FILTER

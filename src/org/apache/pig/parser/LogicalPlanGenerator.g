@@ -1243,9 +1243,9 @@ scope GScope;
     LogicalExpressionPlan splitPlan = new LogicalExpressionPlan();
     $GScope::currentOp = builder.createSplitOutputOp();
 }
- : ^( SPLIT_BRANCH IDENTIFIER cond[splitPlan] )
+ : ^( SPLIT_BRANCH alias cond[splitPlan] )
    {
-       builder.buildSplitOutputOp( (LOSplitOutput)$GScope::currentOp, $IDENTIFIER.text,
+       builder.buildSplitOutputOp( (LOSplitOutput)$GScope::currentOp, $alias.name,
            $statement::inputAlias, splitPlan );
    }
 ;
@@ -1424,6 +1424,8 @@ tuple returns[Tuple value]
 
 // extended identifier, handling the keyword and identifier conflicts. Ugly but there is no other choice.
 eid returns[String id] : rel_str_op { $id = $rel_str_op.id; }
+    | IMPORT { $id = $IMPORT.text; }
+    | RETURNS { $id = $RETURNS.text; }
     | DEFINE { $id = $DEFINE.text; }
     | LOAD { $id = $LOAD.text; }
     | FILTER { $id = $FILTER.text; }

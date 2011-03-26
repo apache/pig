@@ -463,9 +463,9 @@ split_clause : ^( SPLIT rel split_branch+ )
 ;
 
 split_branch
- : ^( SPLIT_BRANCH IDENTIFIER cond )
+ : ^( SPLIT_BRANCH alias cond )
    {
-       aliases.add( $IDENTIFIER.text );
+       aliases.add( $alias.name );
    }
 ;
 
@@ -510,6 +510,8 @@ tuple : ^( TUPLE_VAL literal* )
 
 // extended identifier, handling the keyword and identifier conflicts. Ugly but there is no other choice.
 eid : rel_str_op
+    | IMPORT
+    | RETURNS
     | DEFINE
     | LOAD
     | FILTER

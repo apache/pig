@@ -35,6 +35,7 @@ import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -66,7 +67,6 @@ import org.apache.pig.impl.util.ObjectSerializer;
 import org.apache.pig.impl.util.PropertiesUtil;
 import org.apache.pig.impl.util.UDFContext;
 import org.apache.pig.parser.QueryParserDriver;
-import org.apache.pig.parser.ParserUtil;
 import org.apache.pig.scripting.ScriptEngine;
 import org.apache.pig.scripting.ScriptEngine.SupportedScriptLang;
 import org.apache.pig.tools.cmdline.CmdLineParser;
@@ -370,6 +370,8 @@ static int run(String args[], PigProgressNotificationListener listener) {
                 properties.setProperty("pig.jars.relative.to.dfs", "true");
             }            
             
+            scriptState.setFileName(file);
+            
             if (embedded) {
                 return runEmbeddedScript(pigContext, localFileRet.file.getPath(), engine);
             } else {
@@ -379,18 +381,28 @@ static int run(String args[], PigProgressNotificationListener listener) {
                                 .getPath(), type.name().toLowerCase());
                 }
             }
-                     
-            // run macro expansion
-            FileReader fr = new FileReader(localFileRet.file);            
-            in = ParserUtil.getExpandedMacroAsBufferedReader(fr);
                         
+            in = new BufferedReader(new FileReader(localFileRet.file));
+            
             // run parameter substitution preprocessor first
             substFile = file + ".substituted";
-            pin = runParamPreprocessor(properties, in, params, paramFiles, substFile, debug || dryrun || checkScriptOnly);
+                pin = runParamPreprocessor(properties, in, params, paramFiles,
+                        substFile, debug || dryrun || checkScriptOnly);
             if (dryrun) {
-                log.info("Dry run completed. Substituted pig script is at " + substFile);
+                QueryParserDriver driver = new QueryParserDriver(
+                        pigContext, "0", new HashMap<String, String>());
+                if (driver.dryrun(substFile)) {
+                    log.info("Dry run completed. Substituted pig script is at "
+                            + substFile
+                            + ". Expanded pig script is at "
+                            + file + ".expanded");
+                } else {
+                    log.info("Dry run completed. Substituted pig script is at "
+                                + substFile);
+                }
                 return ReturnCode.SUCCESS;
             }
+            
 
             logFileName = validateLogFile(logFileName, file);
             pigContext.getProperties().setProperty("pig.logfile", logFileName);
@@ -439,9 +451,7 @@ static int run(String args[], PigProgressNotificationListener listener) {
             
             scriptState.setScript(sb.toString());
             
-            // run macro expansion
-            StringReader sr = new StringReader(sb.toString());           
-            in = ParserUtil.getExpandedMacroAsBufferedReader(sr);
+            in = new BufferedReader(new StringReader(sb.toString()));
             
             grunt = new Grunt(in, pigContext);
             gruntCalled = true;
@@ -490,6 +500,8 @@ static int run(String args[], PigProgressNotificationListener listener) {
                 properties.setProperty("pig.jars.relative.to.dfs", "true");
             }            
 
+            scriptState.setFileName(remainders[0]);
+            
             if (embedded) {
                 return runEmbeddedScript(pigContext, localFileRet.file.getPath(), engine);
             } else {
@@ -499,16 +511,24 @@ static int run(String args[], PigProgressNotificationListener listener) {
                                 .getPath(), type.name().toLowerCase());
                 }
             }
-                       
-            // run macro expansion
-            FileReader fr = new FileReader(localFileRet.file);            
-            in = ParserUtil.getExpandedMacroAsBufferedReader(fr);
+            
+            in = new BufferedReader(new FileReader(localFileRet.file));
             
             // run parameter substitution preprocessor first
             substFile = remainders[0] + ".substituted";
             pin = runParamPreprocessor(properties, in, params, paramFiles, substFile, debug || dryrun || checkScriptOnly);
-            if (dryrun){
-                log.info("Dry run completed. Substituted pig script is at " + substFile);
+            if (dryrun) {
+                QueryParserDriver driver = new QueryParserDriver(
+                        pigContext, "0", new HashMap<String, String>());
+                if (driver.dryrun(substFile)) {
+                    log.info("Dry run completed. Substituted pig script is at "
+                            + substFile
+                            + ". Expanded pig script is at "
+                            + remainders[0] + ".expanded");
+                } else {
+                    log.info("Dry run completed. Substituted pig script is at "
+                            + substFile);
+                }
                 return ReturnCode.SUCCESS;
             }
             

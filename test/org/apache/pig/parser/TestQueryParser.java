@@ -269,7 +269,7 @@ public class TestQueryParser {
         QueryLexer lexer = new QueryLexer(input);
         CommonTokenStream tokens = new  CommonTokenStream(lexer);
 
-        QueryParser parser = new QueryParser(tokens);
+        QueryParser parser = QueryParserUtils.createParser(tokens);
         QueryParser.query_return result = parser.query();
 
         Tree ast = (Tree)result.getTree();

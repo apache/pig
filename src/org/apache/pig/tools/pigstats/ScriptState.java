@@ -172,6 +172,7 @@ public class ScriptState {
     
     private String script;
     private String commandLine;
+    private String fileName;
     
     private String pigVersion;
     private String hodoopVersion;
@@ -367,6 +368,12 @@ public class ScriptState {
         return (pigVersion == null) ? "" : pigVersion;
     }
         
+    public String getFileName() { return fileName; }
+    
+    public void setFileName(String fileName) {
+        this.fileName = fileName;
+    }
+    
     String getId() { return id; }
         
     private String getCommandLine() {

@@ -18,12 +18,21 @@
 
 package org.apache.pig.parser;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
+import org.antlr.runtime.tree.CommonTree;
+import org.antlr.runtime.tree.Tree;
+import org.antlr.runtime.CommonTokenStream;
 import org.antlr.runtime.RecognitionException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -40,11 +49,12 @@ import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.newplan.Operator;
 import org.apache.pig.newplan.logical.relational.LOStore;
 import org.apache.pig.newplan.logical.relational.LogicalPlan;
+import org.apache.pig.tools.pigstats.ScriptState;
 
 public class QueryParserUtils {
     private static Log log = LogFactory.getLog( LogicalPlanGenerator.class );
 
-    private static String removeQuotes(String str) {
+	public static String removeQuotes(String str) {
         if (str.startsWith("\u005c'") && str.endsWith("\u005c'"))
             return str.substring(1, str.length() - 1);
         else
@@ -164,4 +174,84 @@ public class QueryParserUtils {
          return "<line " + ex.line +", column " + ex.charPositionInLine + ">";
      }
 
+    static String generateErrorHeader(RecognitionException ex, String fname) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("<At ").append(fname).append(", line ")
+                .append(ex.line).append(", column ")
+                .append(ex.charPositionInLine).append(">");
+        return sb.toString();
+    }
+    
+    @SuppressWarnings({ "unchecked", "rawtypes" })
+    static void replaceNodeWithNodeList(Tree oldNode, CommonTree newTree,
+            String fileName) {
+        int idx = oldNode.getChildIndex();
+
+        CommonTree parent = (CommonTree) oldNode.getParent();
+        int count = parent.getChildCount();
+
+        List childList = new ArrayList(parent.getChildren());
+        List macroList = newTree.getChildren();
+        
+        // set file name
+        for (Object obj : macroList) {
+            PigParserNode node = (PigParserNode)obj;
+            recursiveSetFileName(node, fileName);
+        }
+
+        while (parent.getChildCount() > 0) {
+            parent.deleteChild(0);
+        }
+
+        for (int i = 0; i < count; i++) {
+            if (i == idx) {
+                parent.addChildren(macroList);
+            } else {
+                parent.addChild((Tree) childList.get(i));
+            }
+        }
+    }
+
+    static void recursiveSetFileName(PigParserNode node, String fname) {
+        int n = node.getChildCount();
+        for (int i = 0; i < n; i++) {
+            Tree t = node.getChild(i);
+            recursiveSetFileName((PigParserNode)t, fname);
+        }
+        node.setFileName(fname);
+    }
+
+    static BufferedReader getImportScriptAsReader(String scriptPath)
+            throws FileNotFoundException {
+        File f = new File(scriptPath);
+        if (f.exists() || f.isAbsolute() || scriptPath.startsWith("./")
+                || scriptPath.startsWith("../")) {
+            return new BufferedReader(new FileReader(f));
+        }
+
+        ScriptState state = ScriptState.get();
+        if (state != null && state.getPigContext() != null) {
+            String srchPath = state.getPigContext().getProperties()
+                    .getProperty("pig.import.search.path");
+            if (srchPath != null) {
+                String[] paths = srchPath.split(",");
+                for (String path : paths) {
+                    File f1 = new File(path + File.separator + scriptPath);
+                    if (f1.exists()) {
+                        return new BufferedReader(new FileReader(f1));
+                    }
+                }
+            }
+        }
+
+        throw new FileNotFoundException("Can't find the Specified file "
+                + scriptPath);
+    }
+    
+    static QueryParser createParser(CommonTokenStream tokens) {
+        QueryParser parser = new QueryParser(tokens);
+        PigParserNodeAdaptor adaptor = new PigParserNodeAdaptor();
+        parser.setTreeAdaptor(adaptor);
+        return parser;
+    }
 }

@@ -57,6 +57,12 @@ public String getErrorHeader(RecognitionException ex) {
 
 } // End of members.
 
+IMPORT  : 'IMPORT'
+;
+
+RETURNS : 'RETURNS'
+;
+
 DEFINE : 'DEFINE'
 ;
 
@@ -389,4 +395,3 @@ MINUS : '-'
 QMARK : '?'
 ;
 
-    

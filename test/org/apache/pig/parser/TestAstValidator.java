@@ -41,7 +41,7 @@ public class TestAstValidator {
         QueryLexer lex = new QueryLexer(input);
         CommonTokenStream tokens = new  CommonTokenStream(lex);
 
-        QueryParser parser = new QueryParser(tokens);
+        QueryParser parser = QueryParserUtils.createParser(tokens);
         QueryParser.query_return result = parser.query();
 
         Tree ast = (Tree)result.getTree();
