@@ -302,9 +302,9 @@ A123
 abc_123_BeX_
 </source>
 <p></p>
-<p>Invalid Identifies: </p>
+<p>Invalid identifiers: </p>
 <source>
-_abc
+_A123
 abc_$
 A!B
 </source>
@@ -836,7 +836,7 @@ DUMP X;
    </section>
    </section>
    
-   <section>
+   <section id="map">
    <title>Map</title>
    <p>A map is a set of key value pairs.</p>
    
@@ -883,7 +883,7 @@ DUMP X;
                <p>value</p>
             </td>
             <td>
-               <p>Any data type.</p>
+               <p>Any data type (the defaults to bytearray).</p>
             </td>
          </tr>
    </table>
@@ -1478,9 +1478,20 @@ C = FOREACH G GENERATE COUNT(*)
     <!-- ++++++++++++++++++++++++++++++++++ --> 
    <section id="Schemas">
    <title>Schemas</title>
+
+   <p>Schemas enable you to assign names to fields and declare types for fields. Schemas are optional but we encourage you to use them whenever possible; type declarations result in better parse-time error checking and more efficient code execution.</p>  
+   
+   <p>Schemas for <a href="#schema-simple">simple types</a> and <a href="#schema-complex">complex types</a> can be used anywhere a schema definition is appropriate.</p>   
+   
+   <p>Schemas are defined with the <a href="#LOAD">LOAD</a>, <a href="#STREAM">STREAM</a>, and <a href="#FOREACH">FOREACH</a> operators using the AS clause. If you define a schema using the LOAD operator, then it is the load function that enforces the schema 
+   (see <a href="#LOAD">LOAD</a> and <a href="udf.html">User Defined Functions</a> for more information).</p>
+   
+   <p></p>
+   <p><strong>Known Schema Handling</strong></p>
    <p>Schemas enable you to assign names to fields and declare types for fields. Schemas are optional but we encourage you to use them whenever possible; type declarations result in better parse-time error checking and more efficient code execution. </p>
    <p>Schemas are defined for the <a href="#LOAD">LOAD</a>, <a href="#STREAM">STREAM</a>, and <a href="#FOREACH">FOREACH</a> operators using the AS clause. If you define a schema using the LOAD operator, then it is the load function that enforces the schema 
    (see <a href="#LOAD">LOAD</a> and <a href="udf.html">User Defined Functions</a> for more information).</p>
+  
    <p></p>
    <p><strong>Known Schema Handling</strong></p>
    <p>Note the following:</p>
@@ -1527,7 +1538,7 @@ X = FOREACH A GENERATE f1 as user, f2 as age, f3 as gpa;
 </source> 
    </section>
    
-   <section>
+   <section  id="schema-simple">
    <title>Schemas for Simple Data Types</title>
    <p>Simple data types include int, long, float, double, chararray, and bytearray.</p>
    
@@ -1616,7 +1627,7 @@ DUMP A;
    
    </section></section>
    
-   <section>
+   <section id="schema-complex">
    <title>Schemas for Complex Data Types</title>
    <p>Complex data types include tuples, bags, and maps.</p></section>
    
@@ -1802,11 +1813,11 @@ DUMP A;
    <p>A map is a set of key value pairs.</p>
    
    <section>
-   <title>Syntax (where &lt;&gt; means optional)</title>
+   <title>Syntax (&lt;&gt; demotes optional)</title>
    <table>
       <tr>
             <td>
-               <p>alias&lt;:map&gt; [ ] </p>
+               <p>alias&lt;:map&gt; [ &lt;type&gt; ] </p>
             </td>
          </tr>
    </table></section>
@@ -1814,36 +1825,31 @@ DUMP A;
    <section>
    <title>Terms</title>
    <table>
-      <tr>
-            <td>
-               <p>alias</p>
-            </td>
-            <td>
-               <p>The name assigned to the map.</p>
-            </td>
+         <tr>
+            <td><p>alias</p></td>
+            <td><p>The name assigned to the map.</p></td>
          </tr>
          <tr>
-            <td>
-               <p>:map</p>
-            </td>
-            <td>
-               <p>(Optional) The data type, map (case insensitive).</p>
-            </td>
+            <td><p>:map</p></td>
+            <td><p>(Optional) The data type, map (case insensitive).</p></td>
          </tr>
          <tr>
-            <td>
-               <p>[ ]   </p>
-            </td>
-            <td>
-               <p>The designation for a map, a set of straight brackets [ ].</p>
+            <td><p>[ ]</p></td>
+            <td><p>The designation for a map, a set of straight brackets [ ].</p></td>
+         </tr>
+         <tr>
+            <td><p>type</p></td>
+            <td><p>(Optional) The datatype (all types allowed, bytearray is the default).</p>
+            <p>The type applies to the map value only; the map key is always type chararray (see <a href="#Map">Map</a>).</p>
+            <p>If a type is declared then ALL values in the map must be of this type.</p>
             </td>
          </tr>
    </table>
    </section>
    
    <section>
-   <title>Example</title>
-   <p>In this example the schema defines a map. The load statements are equivalent.</p>
+   <title>Examples</title>
+   <p>In this example the schema defines an untyped map (the map values default to bytearray). The load statements are equivalent.</p>
 <source>
 cat data;
 [open#apache]
@@ -1858,6 +1864,22 @@ a: {M: map[ ]}
 DUMP A;
 ([open#apache])
 ([apache#hadoop])
+</source>
+
+<p>This example shows the use of a typed maps.</p>
+<source>
+/* Map types are declared*/
+a = load '1.txt' as(map[int]); --Map value is int
+b = foreach a generate (map[(i:int)])a0; -- Map value is tuple
+b = stream a through `cat` as (m:map[{(i:int,j:chararray)}]); -- Map value is bag
+
+/* The MapLookup of a typed map will result in a datatype of the map value */
+a = load '1.txt' as(map[int]);
+b = foreach a generate $0#'key';
+
+/* Schema for b */
+b: {int}
+
 </source>
  </section></section>
    
@@ -7645,7 +7667,7 @@ B = FOREACH A GENERATE myFunc($0);
    <table>
       <tr> 
             <td>
-               <p>REGISTER alias;</p>
+               <p>REGISTER path;</p>
             </td>
          </tr> 
    </table></section>
@@ -7655,13 +7677,11 @@ B = FOREACH A GENERATE myFunc($0);
    <table>
       <tr>
             <td>
-               <p>alias</p>
+               <p>path</p>
             </td>
             <td>
                <p>The path to the JAR file (the full location URI is required). Do not place the name in quotes.</p>
-               <p>Pig supports functions written in Java only.</p>
-               <p>Pig supports JAR files stored in HDFS, Amazon S3, and other distributed files systems 
-               (see <a href="start.html#Pig+Scripts">Pig Scripts</a>).</p>
+               
             </td>
          </tr> 
    </table>
@@ -7669,32 +7689,44 @@ B = FOREACH A GENERATE myFunc($0);
    
    <section>
    <title>Usage</title>
-   <p>Use the REGISTER statement inside a Pig script to specify the path of the JAR file containing UDFs. </p>
-   <p>You can register additional files (to use with your Pig script) via the command line using the -Dpig.additional.jars option.</p>
-   <p>For more information see <a href="udf.html">User Defined Functions</a>.</p>
+   <p><strong>Pig Scripts</strong></p>
+   
+   <p>Use the REGISTER statement inside a Pig script to specify a JAR file or a Python/JavaScript module. Pig supports JAR files and modules stored in local file systems as well as remote, distributed file systems such as HDFS and Amazon S3 (see <a href="start.html#Pig+Scripts">Pig Scripts</a>).</p>
+   
+   <p>Additionally, JAR files stored in local file systems can be specified as a glob pattern using “*”. Pig will search for matching jars in the local file system, either the relative path (relative to your working directory) or the absolute path. Pig will pick up all JARs that match the glob.</p>
+   
+   <p><strong>Command Line</strong></p>
+   <p>You can register additional files (to use with your Pig script) via the command line using the -Dpig.additional.jars option. 
+For more information see <a href="udf.html">User Defined Functions</a>.</p>
    </section>
    
    <section>
    <title>Examples</title>
-<p>In this example REGISTER states that myfunc.jar is located in the /src directory.</p>
+<p>In this example REGISTER states that the JavaScript module, myfunc.js, is located in the /src directory.</p>
 <source>
 /src $ java -jar pig.jar –
 
-REGISTER /src/myfunc.jar;
+REGISTER /src/myfunc.js;
 A = LOAD 'students';
 B = FOREACH A GENERATE myfunc.MyEvalFunc($0);
 </source>
    
-<p>In this example additional jar files are registered via the command line.</p>
+<p>In this example additional JAR files are registered via the command line.</p>
 <source>
 pig -Dpig.additional.jars=my.jar:your.jar script.pig
 </source>
 
-<p>In this example a jar file stored in HDFS is registered</p>
+<p>In this example a JAR file stored in HDFS is registered.</p>
 <source>
 java -cp pig.jar org.apache.pig.Main  hdfs://nn.mydomain.com:9020/myscripts/script.pig
 </source>
-<p></p>
+
+<p>This example shows how to specify a glob pattern using either a relative path or an absolute path.</p>
+<source>
+register /homes/user/pig/myfunc*.jar
+register count*.jar
+register jars/*.jar
+</source>
    </section>
    </section>
    </section>  

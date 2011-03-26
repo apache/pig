@@ -32,27 +32,77 @@
    <section>
    <title>Embedded Pig and Control Flow </title>
    
-   <p> To enable control flow, you can embed Pig Latin scripts in a host scripting language via a JDBC-like compile, bind, run model. The default scripting language is Jython which is shipped with Pig and available by default. </p>
+<p>To enable control flow, you can embed Pig Latin scripts in a host scripting language via a JDBC-like compile, bind, run model.  Supported host languages include Python (via Jython) and JavaScript (via Rhino). You must make sure that the Jython jar and/or the Rhino jar are included in your class path if you want to used embedded Pig. At runtime Pig will automatically detect the usage of a scripting UDF in the Pig script and will ship the corresponding scripting jar to the backend.</p>  
    
    <section>
    <title>Invocation Basics</title>
-<p>Embedded Pig Latin is supported in batch mode only, not interactive mode. When Pig is invoked with a script it will look for a #! line at the beginning of the file. If the basename portion of the path matches jython or python it will use the reference embedding implementation. </p>
+<p>Embedded Pig Latin is supported in batch mode only, not interactive mode. You can request that embedded Pig Latin be used by adding the <code>--embedded</code> option to the Pig command line. If this option is passed as an argument, that argument will refer to the language Pig Latin is embedded in, either Python or JavaScript. If no argument is specified, it is taken to refer to the reference implementation for Python.</p>
 
-<source>
-#! /usr/bin/jython
-</source>
 
-<p>You can also explicitly request that embedded Pig Latin be used by adding the <code>--embedded</code> option to the Pig command line. If this option is passed as an argument, that argument will refer to the language the Pig Latin is embedded in. If no argument is specified, it is taken to refer to the reference implementation.</p>
-
-<source>
-$ pig myembedded.py
+ <p><strong>Python</strong></p>
+ <source>
+ $ pig myembedded.py
 OR
-$ java -cp $lt;jython jars&gt;:$lt;pig jars$gt; [--embedded jython] /tmp/myembedded.py
+$ java -cp &lt;jython jars&gt;:&lt;pig jars&gt;; [--embedded python] /tmp/myembedded.py
+ </source>
+ <p></p>
+ <p>Pig will look for the <code>#!/usr/bin/python</code> line in the script.</p>
+ 
+  <source>
+#!/usr/bin/python 
+
+# explicitly import Pig class 
+from org.apache.pig.scripting import Pig 
+
+# COMPILE: compile method returns a Pig object that represents the pipeline
+P = Pig.compile("a = load '$in'; store a into '$out';")
+
+input = 'original'
+output = 'output'
+
+# BIND and RUN 
+result = P.bind({'in':input, 'out':output}).runSingle()
+
+if result.isSuccessful() :
+    print 'Pig job succeeded'
+else :
+    raise 'Pig job failed'
+ </source>
+
+<p><strong>JavaScript</strong></p>
+<source>
+$ pig myembedded.js
+OR
+$ java -cp &lt;rhino jars&gt;:&lt;pig jars&gt;; [--embedded javascript] /tmp/myembedded.js
 </source>
+<p></p>
+<p>Pig will look for the *.js extension in the script.</p>
+<source>
+importPackage(Packages.org.apache.pig.scripting.js) 
+
+Pig = org.apache.pig.scripting.js.JSPig
+
+function main() {
+    input = "original"
+    output = "output"
+
+    P = Pig.compile("A = load '$in'; store A into '$out';") 
+
+    result = P.bind({'in':input, 'out':output}).runSingle() 
+
+    if (result.isSuccessful()) {
+        print("Pig job succeeded")
+    } else {
+        print("Pig job failed")
+    }   
+}
+</source>
+
+<p><strong>Invocation Process</strong></p>
 
 <p>You invoke Pig Latin in the host scripting language through an embedded <a href="#pig-Object">Pig object</a>. </p>  
 
-<p>The first step in this process is to compile your script. Compile is a static function on the Pig object and in its simplest form takes a fragment of Pig Latin that defines the pipeline as its input:</p>  
+<p><strong>Compile:</strong> Compile is a static function on the Pig object and in its simplest form takes a fragment of Pig Latin that defines the pipeline as its input:</p>  
 
 <source>
 # COMPILE: complie method returns a Pig object that represents the pipeline
@@ -62,7 +112,7 @@ P = Pig.compile("""A = load '$in’; store A into '$out’;""")
 <p>Compile returns an instance of Pig object. This object can have certain values undefined. For example, you may want to define a pipeline without yet specifying the location of the input to the pipeline. The parameter will be indicated by a dollar sign followed by a sequence of alpha-numeric or underscore characters. Values for these parameters must be provided later at the time bind() is called on the Pig object. To call run() on a Pig object without all parameters being bound is an error. </p>
 <p></p>
 
-<p>The second step is to resolve the parameters during the <strong>bind </strong>call.</p>
+<p><strong>Bind:</strong> Resolve the parameters during the bind call.</p>
 
 <source>
 input = "original”
@@ -74,19 +124,18 @@ Q = P.bind({'in':input, 'out':output})
 
 <p>Please note that all parameters must be resolved during bind. Having unbound parameters while running your script is an error. Also note that even if your script is fully defined during compile, bind without parameters still must be called.</p>
 
-<p>Bind call returns an instance of <a href="#BoundScript-Object">BoundScript object</a> that can be used to execute the pipeline. The simplest way to execute the pipeline is to call runSingle function. (However, as mentioned later, this works only if  a single set of variables is bound to the parameters. Otherwise, if multiple set of variables are bound, an exception will be thrown if runSingle is called.)</p>
+<p><strong>Run:</strong> Bind call returns an instance of <a href="#BoundScript-Object">BoundScript object</a> that can be used to execute the pipeline. The simplest way to execute the pipeline is to call runSingle function. (However, as mentioned later, this works only if  a single set of variables is bound to the parameters. Otherwise, if multiple set of variables are bound, an exception will be thrown if runSingle is called.)</p>
 
 <source>
 
 result = Q.runSingle()
 </source>
 
-
 <p>The function returns a <a href="#PigStats-Object">PigStats object</a> that tells you whether the run succeeded or failed. In case of success, additional run statistics are provided.</p>
 
-<p>Here is a complete example:</p>
 
-<p><strong>embedded.py</strong></p>
+<p><strong>Embedded Python Example</strong></p>
+<p>A complete embedded example is shown below.</p>
 <source>
 
 #! /usr/bin/python
@@ -164,14 +213,14 @@ P = Pig.compileFromFile(“P2”, "myscript.pig”)
 
 <section>
 <title>Bind</title>
-<p>In its simplest form, bind takes no parameters. In this case, an implicit bind is performed.</p>
+<p>In its simplest form, bind takes no parameters. In this case, an implicit bind is performed; Pig internally constructs a map of parameters from the local variables specified by the user in the script.</p>
 
 <source>
 
 Q = P.bind () 
 </source>
 
-<p>In the case where parameter substitution is needed, a map of parameters (parameter name -> parameter value) must be provided as was illustrated in the example above.</p>
+<p>In the case where parameter substitution is needed, a map of parameters (parameter name &gt; parameter value) must be provided as was illustrated in the example above.</p>
 
 <p>Finally, you might want to run the same pipeline in parallel with a different set of parameters, for instance for multiple dates. In this case, bind function, needs to be passed a list of maps with each element of the list containing parameters for a single invocation. In the example below, the pipeline is run for the US, the UK, and Brazil.</p>
 

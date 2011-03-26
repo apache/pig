@@ -86,31 +86,30 @@ transformation functions and include aggregate and filter functions. </p>
 <p>Let's now look at the implementation of the <code>UPPER</code> UDF. </p>
 
 <source>
-package myudfs;
-import java.io.IOException;
-import org.apache.pig.EvalFunc;
-import org.apache.pig.data.Tuple;
-import org.apache.pig.impl.util.WrappedIOException;
-
-public class UPPER extends EvalFunc&lt;String&gt;
-{
-    public String exec(Tuple input) throws IOException {
-        if (input == null || input.size() == 0)
-            return null;
-        try{
-            String str = (String)input.get(0);
-            return str.toUpperCase();
-        }catch(Exception e){
-            throw WrappedIOException.wrap("Caught exception processing input row ", e);
-        }
-    }
-}
+1  package myudfs;
+2  import java.io.IOException;
+3  import org.apache.pig.EvalFunc;
+4  import org.apache.pig.data.Tuple;
+5
+6  public class UPPER extends EvalFunc&lt;String&gt;
+7  {
+8    public String exec(Tuple input) throws IOException {
+9        if (input == null || input.size() == 0)
+10            return null;
+11        try{
+12            String str = (String)input.get(0);
+13           return str.toUpperCase();
+14        }catch(Exception e){
+15            throw new IOException("Caught exception processing input row ", e);
+16        }
+17    }
+18  }
 </source>
 
-<p>The first line indicates that the function is part of the <code>myudfs</code> package. The UDF class extends the <code>EvalFunc</code> class which is the base class for all eval functions. It is parameterized with the return type of the UDF which is a Java <code>String</code> in this case. We will look into the <code>EvalFunc</code> class in more detail later, but for now all we need to do is to implement the <code>exec</code> function. This function is invoked on every input tuple. The input into the function is a tuple with input parameters in the order they are passed to the function in the Pig script. In our example, it will contain a single string field corresponding to the student name. </p>
-<p>The first thing to decide is what to do with invalid data. This depends on the format of the data. If the data is of type <code>bytearray</code> it means that it has not yet been converted to its proper type. In this case, if the format of the data does not match the expected type, a NULL value should be returned. If, on the other hand, the input data is of another type, this means that the conversion has already happened and the data should be in the correct format. This is the case with our example and that's why it throws an error (line 16.) Note that <code>WrappedIOException</code> is a helper class to convert the actual exception to an IOException.  </p>
-<p>Also, note that lines 10-11 check if the input data is null or empty and if so returns null. </p>
-<p>The actual function implementation is on lines 13-14 and is self-explanatory. </p>
+<p>Line 1 indicates that the function is part of the <code>myudfs</code> package. The UDF class extends the <code>EvalFunc</code> class which is the base class for all eval functions. It is parameterized with the return type of the UDF which is a Java <code>String</code> in this case. We will look into the <code>EvalFunc</code> class in more detail later, but for now all we need to do is to implement the <code>exec</code> function. This function is invoked on every input tuple. The input into the function is a tuple with input parameters in the order they are passed to the function in the Pig script. In our example, it will contain a single string field corresponding to the student name. </p>
+<p>The first thing to decide is what to do with invalid data. This depends on the format of the data. If the data is of type <code>bytearray</code> it means that it has not yet been converted to its proper type. In this case, if the format of the data does not match the expected type, a NULL value should be returned. If, on the other hand, the input data is of another type, this means that the conversion has already happened and the data should be in the correct format. This is the case with our example and that's why it throws an error (line 15.) </p>
+<p>Also, note that lines 9-10 check if the input data is null or empty and if so returns null. </p>
+<p>The actual function implementation is on lines 12-13 and is self-explanatory. </p>
 <p>Now that we have the function implemented, it needs to be compiled and included in a jar. You will need to build <code>pig.jar</code> to compile your UDF. You can use the following set of commands to checkout the code from SVN repository and create pig.jar: </p>
 
 <source>
@@ -234,7 +233,6 @@ import org.apache.pig.backend.executionengine.ExecException;
 import org.apache.pig.data.DataBag;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.DataType;
-import org.apache.pig.impl.util.WrappedIOException;
 
 public class IsEmpty extends FilterFunc {
     public Boolean exec(Tuple input) throws IOException {
@@ -251,7 +249,7 @@ public class IsEmpty extends FilterFunc {
                     DataType.findTypeName(values) + " for emptiness.");
             }
         } catch (ExecException ee) {
-            throw WrappedIOException.wrap("Caught exception processing input row ", ee);   
+            throw new IOException("Caught exception processing input row ", ee);   
         }
     }
 }
@@ -400,7 +398,7 @@ D = limit B 20;
 dump D;
 </source>
 
-<p>This script will result in the following error cause by line 4. </p>
+<p>This script will result in the following error cause by line 4 ( <code>C = foreach B generate $2;</code>). </p>
 
 <source>
 java.io.IOException: Out of bound access. Trying to access non-existent column: 2. Schema {bytearray,gpa: float} has 2 column(s).
@@ -445,7 +443,7 @@ public class Swap extends EvalFunc&lt;Tuple&gt; {
 }
 </source>
 
-<p>The function creates a schema with a single field (of type <code>FieldSchema=)&nbsp;of&nbsp;type&nbsp;=tuple</code>. The name of the field is constructed using the <code>getSchemaName</code> function of the <code>EvalFunc</code> class. The name consists of the name of the UDF function, the first parameter passed to it, and a sequence number to guarantee uniqueness. In the previous script, if you replace <code>dump&nbsp;D;</code>  with <code>describe&nbsp;B;</code> , you will see the following output: 
+<p>The function creates a schema with a single field (of type <code>FieldSchema) of type tuple</code>. The name of the field is constructed using the <code>getSchemaName</code> function of the <code>EvalFunc</code> class. The name consists of the name of the UDF function, the first parameter passed to it, and a sequence number to guarantee uniqueness. In the previous script, if you replace <code>dump&nbsp;D;</code>  with <code>describe&nbsp;B;</code> , you will see the following output: 
 </p>
 
 <source>
@@ -521,7 +519,7 @@ public class TOKENIZE extends EvalFunc&lt;DataBag&gt; {
 }
 </source>
 
-<p>As you can see, this is very similar to the output schema definition in the <code>Swap</code> function. One difference is that instead of reusing input schema, we create a brand new field schema to represent the tokens stored in the bag. The other difference is that the type of the schema created is <code>BAG</code> (not =TUPLE=). </p>
+<p>As you can see, this is very similar to the output schema definition in the <code>Swap</code> function. One difference is that instead of reusing input schema, we create a brand new field schema to represent the tokens stored in the bag. The other difference is that the type of the schema created is <code>BAG</code> (not TUPLE). </p>
 
 </section>
 
@@ -537,7 +535,6 @@ public class TOKENIZE extends EvalFunc&lt;DataBag&gt; {
 <li><p>An error that affects the entire processing and is not likely to succeed on retry. An example of such a failure is the inability to open a lookup file because of file permission problems. Pig currently does not have a way to handle this case. Hadoop does not have a way to handle this case either. It will be handled the same way as 2 above. </p>
 </li>
 </ol>
-<p>Pig provides a helper class <code>WrappedIOException</code>. The intent here is to allow you to convert any exception into <code>IOException</code>. Its usage can be seen in the <code>UPPER</code> function in our first example. </p>
 
 </section>
 
@@ -556,7 +553,6 @@ import org.apache.pig.EvalFunc;
 import org.apache.pig.FuncSpec;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.logicalLayer.FrontendException;
-import org.apache.pig.impl.util.WrappedIOException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
 import org.apache.pig.data.DataType;
 
@@ -571,7 +567,7 @@ public class ABS extends EvalFunc&lt;Double&gt; {
             System.err.println("Failed to process input; error - " + nfe.getMessage());
             return null;
         } catch (Exception e){
-            throw WrappedIOException.wrap("Caught exception processing input row ", e);
+            throw IOException("Caught exception processing input row ", e);
         }
         return Math.abs(d);
     }
@@ -591,7 +587,6 @@ public class ABS extends EvalFunc&lt;Double&gt; {
 
 <source>
 import java.io.IOException;
-import org.apache.pig.impl.util.WrappedIOException;
 import org.apache.pig.EvalFunc;
 import org.apache.pig.data.Tuple;
 
@@ -603,7 +598,7 @@ public class IntAbs extends EvalFunc&lt;Integer&gt; {
         try{
             d = (Integer)input.get(0);
         } catch (Exception e){
-            throw WrappedIOException.wrap("Caught exception processing input row ", e);
+            throw newIOException("Caught exception processing input row ", e);
         }
         return Math.abs(d);
     }
@@ -612,7 +607,7 @@ public class IntAbs extends EvalFunc&lt;Integer&gt; {
 
 
 <p>A note on error handling. The <code>ABS</code> class covers the case of the <code>bytearray</code> which means the data has not been converted yet to its actual type. This is why a null value is returned when <code>NumberFormatException</code> is encountered. However, the <code>IntAbs</code> function is only called if the data is already of type <code>Integer</code> which means it has already been converted to the real type and bad format has been dealt with. This is why an exception is thrown if the input can't be cast to <code>Integer</code>. </p>
-<p>The example above covers a reasonably simple case where the UDF only takes one parameter and there is a separate function for each parameter type. However, this will not always be the case. If Pig can't find an <code>exact&nbsp;match</code> it tries to do a <code>best&nbsp;match</code>. The rule for the best match is to find the most efficient function that can be used safely. This means that Pig must find the function that, for each input parameter, provides the smallest type that is equal to or greater than the input type. The type progression rules are: <code>int=-&gt;=long=-&gt;=float=-&gt;=double</code>. </p>
+<p>The example above covers a reasonably simple case where the UDF only takes one parameter and there is a separate function for each parameter type. However, this will not always be the case. If Pig can't find an <code>exact&nbsp;match</code> it tries to do a <code>best&nbsp;match</code>. The rule for the best match is to find the most efficient function that can be used safely. This means that Pig must find the function that, for each input parameter, provides the smallest type that is equal to or greater than the input type. The type progression rules are: <code>int&gt;long&gt;float&gt;double</code>. </p>
 <p>For instance, let's consider function <code>MAX</code> which is part of the <code>piggybank</code> described later in this document. Given two values, the function returns the larger value. The function table for <code>MAX</code> looks like this: </p>
 
 <source>
@@ -707,7 +702,7 @@ public class UPPER extends EvalFunc&lt;String&gt;
                         String str = (String)input.get(0);
                         return str.toUpperCase();
                 }catch(Exception e){
-                    throw WrappedIOException.wrap("Caught exception processing input row ", e);
+                    throw new OException("Caught exception processing input row ", e);
                 }
         }
 }
@@ -1222,8 +1217,65 @@ public class IntMax extends EvalFunc&lt;Integer&gt; implements Algebraic, Accumu
     }
 }
 </source>
-
 </section>
+
+
+ <!-- =============================================================== -->
+ <section>
+ <title>JavaScript UDFs</title>
+ <section>
+ <title>Syntax</title>
+ <section>
+ <title>Registering Scripts</title>
+ <p>You can register JavaScript as shown here. This example uses org.apache.pig.scripting.js.JsScriptEngine to interpret JavaScript. You can develop and use custom script engines to support multiple programming languages and ways to interpret them. Currently, Pig identifies js as a keyword and ships the required scriptengine (js) to interpret it. </p>
+ <source>
+ Register 'test.js' using js as myfuncs;
+ </source>
+ 
+ <p>The following syntax is also supported, where myfuncs is the namespace created for all the functions inside test.js.</p>
+ <source>
+ register 'test.js' using org.apache.pig.scripting.js.JsScriptEngine as myfuncs;
+ </source>
+ 
+ <p>A typical test.js looks like this:</p>
+ <source>
+ 
+ helloworld.outputSchema = "word:chararray";
+ function helloworld() {
+     return 'Hello, World';
+ }
+ 
+ complex.outputSchema = "word:chararray,num:long";
+ function complex(word) {
+     return {word:word, num:word.length};
+ }
+ 
+ </source>
+ 
+ <p>The register statement above registers the js functions defined in test.js in Pig’s runtime within the defined namespace (myfuncs here). They can then be referred later on in the pig script as myfuncs.helloworld(), myfuncs.complex(), and myfuncs.square(). An example usage is:</p>
+ 
+ <source>
+ b = foreach a generate myfuncs.helloworld(), myfuncs.complex($0);
+ </source>
+ 
+ </section>
+ <section>
+ <title>outputSchema attribute and Schemas</title>
+ <p>As JavaScript functions are first class objects, you can annotate them by adding attributes. Add an outputSchema attribute to your function so that Pig can identify return types for the script UDF. </p>
+ <ul>
+ <li>outputSchema - Defines schema for a script udf in a format that Pig understands and is able to parse. </li>
+ </ul>
+ 
+ <p>Sample Schema String - y:{t:(word:chararray,num:long)}, variable names inside a schema string are used for type conversion between Pig and JavaScript. Tuples are converted to Objects using the names and vice versa.</p>
+ </section>
+ </section>
+ 
+ <section>
+ <title>Inline Scripts</title>
+ <p>Currently, Pig does not support UDFs using inline scripts. </p>
+ </section>
+ </section>
+
 
 <!-- =============================================================== -->
 <section>
@@ -1292,62 +1344,64 @@ b = foreach a generate myfuncs.helloworld(), myfuncs.square(3);
 <p>Currently, Pig does not support UDFs using inline scripts. </p>
 </section>
 
-<section>
-<title>Sample Script UDFs</title>
-<p>Simple tasks like string manipulation, mathematical computations, and reorganizing data types can be easily done using python scripts without having to develop long and complex UDFs in Java. The overall overhead of using scripting language is much less and development cost is almost negligible. The following UDFs, developed in python, can be used with Pig. </p>
 
-<source>
-mySampleLib.py
----------------------
-#/usr/bin/python
+ <section>
+ <title>Sample Script UDFs</title>
+ <p>Simple tasks like string manipulation, mathematical computations, and reorganizing data types can be easily done using python scripts without having to develop long and complex UDFs in Java. The overall overhead of using scripting language is much less and development cost is almost negligible. The following UDFs, developed in python, can be used with Pig. </p>
+ 
+ <source>
+ mySampleLib.py
+ ---------------------
+ #/usr/bin/python
+ 
+ ##################
+ # Math functions #
+ ##################
+ #Square - Square of a number of any data type
+ @outputSchemaFunction("squareSchema")
+ def square(num):
+   return ((num)*(num))
+ @schemaFunction("squareSchema")
+ def squareSchema(input):
+   return input
+ 
+ #Percent- Percentage
+ @outputSchema("percent:double")
+ def percent(num, total):
+   return num * 100 / total
+ 
+ ####################
+ # String Functions #
+ ####################
+ #commaFormat- format a number with commas, 12345-> 12,345
+ @outputSchema("numformat:chararray")
+ def commaFormat(num):
+   return '{:,}'.format(num)
+ 
+ #concatMultiple- concat multiple words
+ @outputSchema("onestring:chararray")
+ def concatMult4(word1, word2, word3, word4):
+   return word1 word2 word3 word4
+ 
+ #######################
+ # Data Type Functions #
+ #######################
+ #collectBag- collect elements of a bag into other bag
+ #This is useful UDF after group operation
+ @outputSchema("y:bag{t:tuple(len:int,word:chararray)}") 
+ def collectBag(bag):
+   outBag = []
+   for word in bag:
+     tup=(len(bag), word[1])
+     outBag.append(tup)
+   return outBag
+ 
+ # Few comments- 
+ # pig mandates that a bag should be a bag of tuples, python UDFs should follow this pattern.
+ # tuple in python are immutable, appending to a tuple is not possible.
+ </source>
+ </section>
 
-##################
-# Math functions #
-##################
-#Square - Square of a number of any data type
-@outputSchemaFunction("squareSchema")
-def square(num):
-  return ((num)*(num))
-@schemaFunction("squareSchema")
-def squareSchema(input):
-  return input
-
-#Percent- Percentage
-@outputSchema("percent:double")
-def percent(num, total):
-  return num * 100 / total
-
-####################
-# String Functions #
-####################
-#commaFormat- format a number with commas, 12345-> 12,345
-@outputSchema("numformat:chararray")
-def commaFormat(num):
-  return '{:,}'.format(num)
-
-#concatMultiple- concat multiple words
-@outputSchema(“onestring:chararray")
-def concatMult4(word1, word2, word3, word4):
-  return word1+word2+word3+word4
-
-#######################
-# Data Type Functions #
-#######################
-#collectBag- collect elements of a bag into other bag
-#This is useful UDF after group operation
-@outputSchema(“y:bag{t:tuple(len:int,word:chararray)}”) 
-def collectBag(bag):
-  outBag = []
-  for word in bag:
-    tup=(len(bag), word[1])
-    outBag.append(tup)
-  return outBag
-
-# Few comments- 
-# pig mandates that a bag should be a bag of tuples, python UDFs should follow this pattern.
-# tuple in python are immutable, appending to a tuple is not possible.
-</source>
-</section>
 </section>
 
 <!-- =============================================================== -->
