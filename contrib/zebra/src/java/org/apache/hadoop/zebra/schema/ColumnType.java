@@ -35,7 +35,7 @@ public enum ColumnType {
    */
   ANY("any") {
 	  public byte pigDataType() {
-		  return DataType.UNKNOWN;
+		  return DataType.BYTEARRAY;
 	  }
   },
   /**

@@ -163,7 +163,7 @@ class SchemaConverter {
 
         if( cSchema.getType() ==ColumnType.ANY && cSchema.getName().isEmpty() ) { // For anonymous column
             field.setName( null );
-            field.setType(  DataType.UNKNOWN );
+            field.setType(  DataType.BYTEARRAY );
             field.setSchema( null );
         } else {
             field.setName( cSchema.getName() );

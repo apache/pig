@@ -118,6 +118,8 @@ PIG-1696: Performance: Use System.arraycopy() instead of manually copying the by
 
 BUG FIXES
 
+PIG-1934: Fix zebra test TestCheckin1, TestCheckin4 (daijy)
+
 PIG-1931: Integrate Macro Expansion with New Parser (rding)
 
 PIG-1933: Hints such as 'collected' and 'skewed' for "group by" or "join by" 
