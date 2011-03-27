@@ -120,6 +120,8 @@ PIG-1696: Performance: Use System.arraycopy() instead of manually copying the by
 
 BUG FIXES
 
+PIG-1927: Dereference partial name failed (daijy)
+
 PIG-1934: Fix zebra test TestCheckin1, TestCheckin4 (daijy)
 
 PIG-1931: Integrate Macro Expansion with New Parser (rding)

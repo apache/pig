@@ -579,7 +579,7 @@ public class TestUnionOnSchema  {
     @Test
     public void testUnionOnSchemaNullAliasInFieldSchema() throws IOException, ParseException {
         String expectedErr = "Schema of relation f has a null fieldschema for " +
-        		"column(s). Schema :null:long,y:float";
+        		"column(s). Schema ::long,y:float";
         String query =
             "  l = load '" + INP_FILE_2NUMS + "' as (x : long, y : float);"
             + "f = foreach l generate x+1, y;"
