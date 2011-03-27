@@ -176,22 +176,17 @@ public class DereferenceExpression extends ColumnExpression {
         List<Integer> columns = new ArrayList<Integer>();
         for( Object rawColumn : rawColumns ) {
             if( rawColumn instanceof Integer ) {
-            	// TODO: need to check bound.
+            	if ((Integer)rawColumn>=schema.size() || (Integer)rawColumn<0) {
+            	    throw new FrontendException("Index "+rawColumn + " out of range in schema:" + schema.toString(false), 1127);
+            	}
                 columns.add( (Integer)rawColumn );
             } else {
-            	boolean found = false;
-            	
-                for( int i = 0; i < schema.size(); i++ ) {
-                    LogicalSchema.LogicalFieldSchema fs = schema.getField( i );
-                    if( fs.alias != null && fs.alias.equals( rawColumn ) ) {
-                        columns.add( i );
-                        found = true;
-                        break;
-                    }
-                }
-                
-                if( !found ) {
-                    throw new FrontendException("Cannot find field " + rawColumn + " in " + schema);
+                int pos = schema.getFieldPosition((String)rawColumn);
+                if( pos != -1) {
+                    columns.add( pos );
+                    continue;
+                } else {
+                    throw new FrontendException("Cannot find field " + rawColumn + " in " + schema.toString(false), 1128);
                 }
             }
         }

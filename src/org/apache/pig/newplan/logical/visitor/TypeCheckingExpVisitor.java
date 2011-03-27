@@ -227,9 +227,9 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
         
         msg = msg + "incompatible types in " + binOp.getName() + " Operator"
         + " left hand side:" + DataType.findTypeName(lhsFs) 
-        + (lhsFs.schema == null ? "" : " " + lhsFs.schema + " ") 
+        + (lhsFs.schema == null ? "" : " " + lhsFs.schema.toString(false) + " ") 
         + " right hand side:" + DataType.findTypeName(rhsFs) 
-        + (rhsFs.schema == null ? "" : " " + rhsFs.schema + " ") ;
+        + (rhsFs.schema == null ? "" : " " + rhsFs.schema.toString(false) + " ") ;
         return msg;
     }
     
@@ -491,10 +491,10 @@ public class TypeCheckingExpVisitor extends LogicalExpressionVisitor{
             int errCode = 1052;
             String msg = "Cannot cast "
                            + DataType.findTypeName(inType)
-                           + ((DataType.isSchemaType(inType))? " with schema " + inFs : "")
+                           + ((DataType.isSchemaType(inType))? " with schema " + inFs.toString(false) : "")
                            + " to "
                            + DataType.findTypeName(outType)
-                           + ((DataType.isSchemaType(outType))? " with schema " + outFs: "");
+                           + ((DataType.isSchemaType(outType))? " with schema " + outFs.toString(false) : "");
             msgCollector.collect(msg, MessageType.Error) ;
             throw new TypeCheckerException(msg, errCode, PigException.INPUT) ; 
         }

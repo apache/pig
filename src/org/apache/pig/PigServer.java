@@ -1565,7 +1565,7 @@ public class PigServer {
                 int errCode = 1000;
                 String msg = "Error during parsing. "
                         + (pe == null ? ex.getMessage() : pe.getMessage());
-                throw new FrontendException (msg, errCode, PigException.INPUT );
+                throw new FrontendException (msg, errCode, PigException.INPUT , ex );
             }
         }
 

@@ -92,24 +92,28 @@ public class LogicalSchema {
             if (verbose)
                 uidString="#" + uid;
             
+            String aliasToPrint = "";
+            if (alias!=null)
+                aliasToPrint = alias;
+            
             if( type == DataType.BAG ) {
                 if( schema == null ) {
-                    return ( alias + uidString + ":bag{}" );
+                    return ( aliasToPrint + uidString + ":bag{}" );
                 }
-                return ( alias + uidString + ":bag{" + schema.toString(verbose) + "}" );
+                return ( aliasToPrint + uidString + ":bag{" + schema.toString(verbose) + "}" );
             } else if( type == DataType.TUPLE ) {
                 if( schema == null ) {
-                    return ( alias + uidString + ":tuple{}" );
+                    return ( aliasToPrint + uidString + ":tuple{}" );
                 }
-                return ( alias + uidString + ":tuple(" + schema.toString(verbose) + ")" );
+                return ( aliasToPrint + uidString + ":tuple(" + schema.toString(verbose) + ")" );
             } else if (type == DataType.MAP) {
                 if (schema == null ) {
-                    return (alias + uidString + ":map");
+                    return (aliasToPrint + uidString + ":map");
                 } else {
-                    return (alias + uidString + ":map(" + schema.toString(verbose) + ")");
+                    return (aliasToPrint + uidString + ":map(" + schema.toString(verbose) + ")");
                 }
             }
-            return ( alias + uidString + ":" + DataType.findTypeName(type) );
+            return ( aliasToPrint + uidString + ":" + DataType.findTypeName(type) );
         }
         
         public String toString() {

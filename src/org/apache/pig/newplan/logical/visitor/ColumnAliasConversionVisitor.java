@@ -64,14 +64,14 @@ public class ColumnAliasConversionVisitor extends AllExpressionVisitor {
                     int colNum = inputSchema == null ? -1 : inputSchema.getFieldPosition( alias );
                     if( colNum == -1 ) {
                 		throw new PlanValidationException( "Invalid field projection. Projected field [" + 
-                    		alias + "] does not exist in schema: " + inputSchema + ".", 1025 );
+                    		alias + "] does not exist in schema: " + (inputSchema!=null?inputSchema.toString(false):"") + ".", 1025 );
                     }
                     expr.setColNum( colNum );
                 } else {
                     int col = expr.getColNum();
                     if( inputSchema != null && col >= inputSchema.size() ) {
                         throw new PlanValidationException( "Out of bound access. Trying to access non-existent column: " + 
-                                                      col + ". Schema " + inputSchema + " has " + inputSchema.size() + " column(s)." , 1000);
+                                                      col + ". Schema " + inputSchema.toString(false) + " has " + inputSchema.size() + " column(s)." , 1000);
                     }
                 }
             }
@@ -105,14 +105,14 @@ public class ColumnAliasConversionVisitor extends AllExpressionVisitor {
                     	col = (Integer)rc;
                     	if( schema != null && col >= schema.size() ) {
                             throw new PlanValidationException( "Out of bound access. Trying to access non-existent column: " + 
-                                    col + ". Schema " + schema + " has " + schema.size() + " column(s).", 1000 );
+                                    col + ". Schema " + schema.toString(false) + " has " + schema.size() + " column(s).", 1000 );
                     	}
                         cols.add( (Integer)rc );
                     } else {
                         col = schema == null ? -1 : schema.getFieldPosition( (String)rc );
                         if( col == -1 ) {
                             throw new PlanValidationException( "Invalid field reference. Referenced field [" + 
-                            		rc + "] does not exist in schema: " + schema + "." , 1000);
+                            		rc + "] does not exist in schema: " + (schema!=null?schema.toString(false):"") + "." , 1000);
                         }
                         cols.add( col );
                     }

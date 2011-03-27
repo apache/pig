@@ -1401,4 +1401,19 @@ public class TestEvalPipeline2 {
         Assert.assertFalse(iter.hasNext());
         
     }
+    
+    // See PIG-1927
+    @Test
+    public void testDereferencePartialAlias() throws Exception{
+        
+        pigServer.registerQuery("a = load '1.txt' as (a0:int, a1);");
+        pigServer.registerQuery("b = group a by a0;");
+        pigServer.registerQuery("c = foreach b generate flatten(a);");
+        pigServer.registerQuery("d = cogroup c by (a0);");
+        pigServer.registerQuery("e = foreach d generate c.a0 as e0;");
+        pigServer.registerQuery("f = foreach e generate e0;");
+
+        // Shall not throw exception
+        pigServer.explain("f", System.out);
+    }
 }
