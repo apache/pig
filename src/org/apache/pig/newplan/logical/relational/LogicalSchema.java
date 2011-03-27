@@ -440,8 +440,7 @@ public class LogicalSchema {
                         else {
                             try {
                                 // Only check compatibility
-                                LogicalSchema.merge(fs1.schema, fs2.schema, MergeMode.LoadForEachInner);
-                                mergedSubSchema = fs1.schema;
+                                mergedSubSchema = LogicalSchema.merge(fs1.schema, fs2.schema, MergeMode.LoadForEachInner);
                             } catch (FrontendException e) {
                                 throw new FrontendException("Incompatable field schema: left is \"" + fs1.toString(false) + "\", right is \"" + fs2.toString(false) + "\"", 1031);
                             }

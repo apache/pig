@@ -768,7 +768,7 @@ public class TestSchema extends TestCase {
         
         mergedSchema = LogicalSchema.merge(b, a, LogicalSchema.MergeMode.LoadForEach);
         expected = org.apache.pig.newplan.logical.Util.translateSchema(Util.getSchemaFromString(
-            "a2:bytearray, b2:(), c2:int"));
+            "a2:bytearray, b2:(b11:int,b12:float), c2:int"));
         Assert.assertTrue(LogicalSchema.equals(mergedSchema, expected, false, false));
     }
 

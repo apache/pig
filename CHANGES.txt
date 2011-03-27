@@ -120,6 +120,9 @@ PIG-1696: Performance: Use System.arraycopy() instead of manually copying the by
 
 BUG FIXES
 
+PIG-1868: New logical plan fails when I have complex data types from udf
+(daijy)
+
 PIG-1927: Dereference partial name failed (daijy)
 
 PIG-1934: Fix zebra test TestCheckin1, TestCheckin4 (daijy)
